@@ -1,0 +1,25 @@
+<project name="cluster-manager-test" default="test" basedir=".">
+  <property name="test.jvmargs" value=" -Xms768m -Xmx1024m -XX:MaxDirectMemorySize=1024m -Ddatabus.relay.schemaRegistry.fileSystem.schemaDir=${basedir}/../../schemas_registry"/>
+  <property name="logging.default_level" value="trace" />
+
+  <import file="${basedir}/../../product/product-properties.xml"/>
+  <!-- Test properties -->
+  <import file="${build.fwk.dir}/test-properties.xml"/>
+  <!-- Run Classpath -->
+  <!-- Shared Test targets -->
+  <import file="${build.fwk.dir}/test-targets.xml"/>
+  <!-- JAR Manifest Specification Title -->
+  <property name="manifest-spec-title" value="Cluster manager test classes"/>
+  <property name="testfwk.testng" value="true"/>
+
+  <property name="module.classification" value ="test"/>
+  
+  <dependencies>
+  	<dependency org="com.linkedin.network.util" name="util-fwk-test" rev="${product.version.network}"/>
+  	<dependency org="org.testng" name="testng" rev="${artifact.version.testng}"/>
+  	<dependency org="com.linkedin.espresso.cluster-manager" name="cluster-manager-impl" rev="legacy"/>
+  </dependencies>
+	
+
+</project>
+

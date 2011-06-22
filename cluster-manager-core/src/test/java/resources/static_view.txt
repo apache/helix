@@ -1,0 +1,166 @@
+ZOOKEEPER
+	[CLUSTER_NAME]
+		IDEALSTATES
+			IDEALSTATE-1
+			IDEALSTATE-2
+			IDEALSTATE-3
+		CONFIGURATIONS
+			CONFIG-1
+			CONFIG-2
+		LIVEINSTANCES
+			INSTANCE-1
+			INSTANCE-2
+		INSTANCES
+			INSTANCE-1
+				MESSAGES
+					MESSAGE-1
+					MESSAGE-2
+				CURRENTSTATES
+					STATE-1
+					STATE-2
+					STATE-3
+				ERRORS
+					ERROR-1
+					ERROR-2
+				STATUSUPDATES
+					UPDATE-1
+					UPDATE-2
+					UPDATE-3
+			INSTANCE-2
+				MESSAGES
+					MESSAGE-1
+					MESSAGE-2
+				CURRENTSTATES
+					STATE-1
+					STATE-2
+					STATE-3
+				ERRORS
+					ERROR-1
+					ERROR-2
+				STATUSUPDATES
+					UPDATE-1
+					UPDATE-2
+					UPDATE-3
+		EXTERNALVIEW
+			SUBVIEW-1
+			SUBVIEW-2
+		STATEMODELDEF
+			STATE_MACHINE_TABLE
+EACH NODE CAN HOLD DATA OF THE FORMAT DESCRIBED IN ZNRECORD. Once can put any data in this and it will be JSONized and stored
+public class ZNRecord {
+	Map<String,Object> simpleFields;
+	Map<String,Map<String,Object>> mapFields;
+	Map<String,List<Object>> listFields;
+}
+		
+ALL STATIC PERSISTENT NODES [IDEALSTATES, CONFIGURATIONS, CURRENTSTATES] HAVE CHILDREN. THIS IS ONLY FOR VISUAL AND 
+SOME OPERATIONAL OPTIMIZATIONS AND EASE
+ANYDAY WE SHOULD BE ABLE TO  MERGE ALL CHILDREN INTO ONE ZNODE TO REDUCE WATCHES AND ALSO SUPPORT ATOMIC UPDATES. 
+Basically all keys in ZNRecord must be unique across children
+
+The stored string format of a ZNRecord is the JSONized string from the ZNRecord object.
+
+#####################################################################################################################
+IDEALSTATE
+- Even though the children are different, they should be unique across the children. One Idealstate per DB			
+EspressoDB0
+{ "id" : "EspressoDB0",
+  "l" : {  },
+  "m" : { 
+          "EspressoDB0" : 
+          { 
+            "EspressoDB0.partition-0" : 
+            {
+              "localhost_8900" : "MASTER",
+              "localhost_8901" : "SLAVE",
+              "localhost_8902" : "SLAVE"
+            },
+            "EspressoDB0.partition-1" : 
+            { 
+              "localhost_8900" : "SLAVE",
+              "localhost_8901" : "SLAVE",
+              "localhost_8902" : "MASTER"
+            },
+            "EspressoDB0.partition-2" : 
+            { 
+              "localhost_8900" : "MASTER",
+              "localhost_8901" : "SLAVE",
+              "localhost_8902" : "SLAVE"
+            },
+            "EspressoDB0.partition-3" : 
+            { 
+              "localhost_8900" : "SLAVE",
+              "localhost_8901" : "MASTER",
+              "localhost_8902" : "SLAVE"
+            }
+          } 
+        },
+  "s" : {  }
+}				
+#####################################################################################################################	
+CONFIGURATIONS
+- THIS WILL MOSTLY CONTAIN PHYSICAL INFO ABOUT A NODE and POSSIBLY SOME CONFIGURATIONS FOR THE PROCESS 
+- THERE MUST BE A CONFIGURATION FOR EACH INSTANCE. WE PROBABLY WANT TO ENHANCE THIS TO BE BASED ON TYPE OR USE REFERENCE, 
+- PARSING OF CONFIGURATION IS UPTO THE APPLICATION. CM WILL NOT PARSE THIS DATA.
+  
+INSTANCE_NAME	
+	{
+	 K1:V1
+	 K2:V2
+	}
+#####################################################################################################################
+LIVEINSTANCES
+INSTANCE_NAME
+	{
+	ID:SESSION_ID
+	HOST:HOSTNAME
+	PORT:
+	TYPE:[PARTICIPANT,CONTROLLER,SPECTATOR]
+	}	
+#####################################################################################################################	
+INSTANCES
+	INSTANCE_NAME
+		MESSAGES
+			MESSAGE-1{
+				ID:
+				TYPE:STATE_TRANSITION
+				FROM_STATE:SLAVE
+				TO_STATE:MASTER
+				TIMEOUT:
+			}
+		CURRENTSTATES
+			STATE-1{
+				DBNAME.PARTITION-1:{CURRENT_STATE:MASTER	}
+				DBNAME.PARTITION-2:{CURRENT_STATE:MASTER	}
+				DBNAME.PARTITION-3:{CURRENT_STATE:SLAVE		}
+			}
+		ERRORS
+			ERROR
+			{
+			TYPE:
+			MESSAGE:
+			}
+		STATUSUPDATES
+			UPDATE
+			{
+			ID:
+			MESSAGE:
+			}
+EXTERNALVIEW //ONE VIEW PER IDEAL STATE
+	SUBVIEW1
+	{
+		DBNAME.PARTITION-1:{INSTANCE-ID:MASTER,INSTANCE-ID:SLAVE,INSTANCE-ID:SLAVE}
+		DBNAME.PARTITION-2:{INSTANCE-ID:MASTER,INSTANCE-ID:SLAVE,INSTANCE-ID:SLAVE}
+		DBNAME.PARTITION-3:{INSTANCE-ID:MASTER,INSTANCE-ID:SLAVE,INSTANCE-ID:SLAVE}
+		DBNAME.PARTITION-4:{INSTANCE-ID:MASTER,INSTANCE-ID:SLAVE,INSTANCE-ID:SLAVE}
+	}
+	SUBVIEW2
+	{
+	}
+	SUBVIEW3
+	{
+	}		
+STATEMACHINETABLE
+TODO
+	
+	

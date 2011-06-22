@@ -1,0 +1,49 @@
+#!/bin/bash
+# test that we can insert and retrieve a simple record
+
+# start zookeeper on localhost:2183
+source setup_env.inc
+
+zookeeper_server_ports="localhost:2188,localhost:2189,localhost:2190"
+# default datadir integration_test/var/work/zookeeper/data/1
+# start the zookeeper cluster
+$SCRIPT_DIR/espresso_driver.py -c zookeeper -o start --zookeeper_reset --zookeeper_server_ports=${zookeeper_server_ports}  --cmdline_props="tickTime=2000;initLimit=5;syncLimit=2" 
+
+# create storage cluster
+./clm_console.sh -zkSvr localhost:2188 -addCluster storage-cluster-12345
+
+./clm_console.sh -zkSvr localhost:2188 -addCluster relay-cluster-12345
+
+./clm_console.sh -zkSvr localhost:2188 -addDatabase storage-cluster-12345 db-12345 120
+
+./clm_console.sh -zkSvr localhost:2188 -addNode storage-cluster-12345 localhost:8900
+
+./clm_console.sh -zkSvr localhost:2188 -addNode storage-cluster-12345 localhost:8901
+
+./clm_console.sh -zkSvr localhost:2188 -addNode storage-cluster-12345 localhost:8902
+
+./clm_console.sh -zkSvr localhost:2188 -rebalance storage-cluster-12345 db-12345 2
+
+#Launch mock storage nodes
+$SCRIPT_DIR/espresso_driver.py -c mock-storage -o start -l "cluster-manager/test/integration-test/log4j.properties" --cmdline_props="-zkSvr localhost:2188 -cluster storage-cluster-12345 -host localhost -port 8900 -relayCluster relay-cluster-12345" 
+
+$SCRIPT_DIR/espresso_driver.py -c mock-storage -o start -l "cluster-manager/test/integration-test/log4j.properties" --cmdline_props="-zkSvr localhost:2188 -cluster storage-cluster-12345 -host localhost -port 8901 -relayCluster relay-cluster-12345" 
+
+$SCRIPT_DIR/espresso_driver.py -c mock-storage -o start -l "cluster-manager/test/integration-test/log4j.properties" --cmdline_props="-zkSvr localhost:2188 -cluster storage-cluster-12345 -host localhost -port 8902 -relayCluster relay-cluster-12345" 
+#Launch the cluster manager
+sleep 2
+
+$SCRIPT_DIR/espresso_driver.py -c cluster-manager -o start -l "cluster-manager/test/integration-test/log4j.properties" --cmdline_props="-zkSvr localhost:2188 -cluster storage-cluster-12345"
+
+sleep 60
+
+$SCRIPT_DIR/espresso_driver.py -c cluster-manager -o stop
+
+#verify cluster state
+$SCRIPT_DIR/espresso_driver.py -c cluster-state-verifier -o start -l "cluster-manager/test/integration-test/log4j.properties" --cmdline_props="-zkSvr localhost:2188 -cluster storage-cluster-12345"
+
+$SCRIPT_DIR/espresso_driver.py -c mock-storage -o stop
+
+# do not stop for now so that people can view the state
+#$SCRIPT_DIR/espresso_driver.py -c zookeeper -o start
+#

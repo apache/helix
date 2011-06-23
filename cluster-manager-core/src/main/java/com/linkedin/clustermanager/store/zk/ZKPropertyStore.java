@@ -11,6 +11,7 @@ import org.I0Itec.zkclient.IZkChildListener;
 import org.I0Itec.zkclient.IZkDataListener;
 import org.I0Itec.zkclient.ZkClient;
 import org.I0Itec.zkclient.exception.ZkMarshallingError;
+import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 
 import com.linkedin.clustermanager.store.PropertyChangeListener;
@@ -24,42 +25,54 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
   protected final PropertySerializer _serializer;
   protected final String _rootPath;
 
-  private Map<PropertyChangeListener<T>, ZKPropertyStoreListeners> _listenerMap;
-
+  private Map<PropertyChangeListener<T>, ZKPropertyListenerPair> _listenerMap;
   private Map<String, T> _propertyValueCacheMap;
 
-  private class ZKPropertyStoreListeners
+  // statistics numbers
+  private long _nrReads = 0;
+  private long _nrHits = 0;
+
+  private class ZKPropertyListenerPair
   {
     public IZkDataListener _zkDataListener;
     public IZkChildListener _zkChildListener;
   }
 
-  public ZKPropertyStore(String zkServers, final PropertySerializer serializer, String rootPath)
-      throws PropertyStoreException
+  public ZKPropertyStore(ZkClient zkClient, final PropertySerializer serializer, String rootPath)
   {
-
-    // String zkServers = "localhost:2188";
 
     _serializer = serializer;
 
-    ZKClientFactory zkClientFactory = new ZKClientFactory();
-    _zkClient = zkClientFactory.create(zkServers);
+    _zkClient = zkClient;
     setPropertySerializer(serializer);
 
     _rootPath = rootPath;
 
-    _listenerMap = new ConcurrentHashMap<PropertyChangeListener<T>, ZKPropertyStoreListeners>();
+    _listenerMap = new ConcurrentHashMap<PropertyChangeListener<T>, ZKPropertyListenerPair>();
     _propertyValueCacheMap = new TreeMap<String, T>();
 
   }
 
-  private String stripOffTrailingSlash(String path)
+  public double getHitRatio()
+  {
+    if (_nrReads == 0)
+      return 0.0;
+    return (double) _nrHits / _nrReads;
+  }
+
+  private String getPath(String key)
   {
     // Strip off trailing slash
-    while (path.endsWith("/"))
+    while (key.endsWith("/"))
     {
-      path = path.substring(0, path.length() - 1);
+      key = key.substring(0, key.length() - 1);
     }
+
+    String path;
+    if (key.equals(""))
+      path = _rootPath;
+    else
+      path = _rootPath + "/" + key;
 
     return path;
   }
@@ -67,14 +80,14 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
   @Override
   public void setProperty(String key, final T value) throws PropertyStoreException
   {
-    String path = stripOffTrailingSlash(key);
+    String path = getPath(key);
 
-    _propertyValueCacheMap.put(path, value);
+    // _propertyValueCacheMap.put(path, value);
 
     // create recursively all the non-exist nodes
     String parent = path;
-    LinkedList<String> pathsToCreate = new LinkedList();
-    while (!_zkClient.exists(parent))
+    LinkedList<String> pathsToCreate = new LinkedList<String>();
+    while (parent.length() > 0 && !_zkClient.exists(parent))
     {
       pathsToCreate.push(parent);
       parent = parent.substring(0, parent.lastIndexOf('/'));
@@ -89,15 +102,19 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
     _zkClient.writeData(path, value);
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   public T getProperty(String key) throws PropertyStoreException
   {
     // TODO Auto-generated method stub
-    String path = stripOffTrailingSlash(key);
+    String path = getPath(key);
+    _nrReads++;
 
     T value = _propertyValueCacheMap.get(path);
+
     if (value != null)
     {
+      _nrHits++;
       return value;
     }
 
@@ -114,22 +131,50 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
   public void removeProperty(String key) throws PropertyStoreException
   {
     // TODO Auto-generated method stub
-    String path = stripOffTrailingSlash(key);
+    String path = getPath(key);
 
     _propertyValueCacheMap.remove(path);
 
     if (!_zkClient.exists(path))
       return;
 
-    // _zkClient.deleteRecursive(path);
     _zkClient.delete(path);
+  }
+
+  public void removeProperyRecursive(String key) throws PropertyStoreException
+  {
+    String path = getPath(key);
+    doRemovePropertyRecursive(path);
+  }
+
+  private boolean doRemovePropertyRecursive(String path) throws PropertyStoreException
+  {
+    List<String> children;
+    try
+    {
+      children = _zkClient.getChildren(path);
+    } catch (ZkNoNodeException e)
+    {
+      return true;
+    }
+
+    for (String subPath : children)
+    {
+      if (!doRemovePropertyRecursive(path + "/" + subPath))
+      {
+        return false;
+      }
+    }
+
+    _propertyValueCacheMap.remove(path);
+    return _zkClient.delete(path);
   }
 
   @Override
   public List<String> getPropertyNames(String prefix) throws PropertyStoreException
   {
     // TODO Auto-generated method stub
-    String path = stripOffTrailingSlash(prefix);
+    String path = getPath(prefix);
 
     if (!_zkClient.exists(path))
       return null;
@@ -152,56 +197,80 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
 
   }
 
+  // put listener on prefix and all its children
   @Override
   public void subscribeForPropertyChange(String prefix, final PropertyChangeListener<T> listener)
       throws PropertyStoreException
   {
     // TODO Auto-generated method stub
-    String path = stripOffTrailingSlash(prefix);
+    String path = getPath(prefix);
     if (!_zkClient.exists(path))
       return;
 
-    // subscribe to data/children changes on node pointed by path
-    IZkDataListener dataListener = new IZkDataListener() {
-
-      @Override
-      public void handleDataChange(String dataPath, Object data) throws Exception
+    synchronized (_listenerMap)
+    {
+      ZKPropertyListenerPair listenerPair = _listenerMap.get(listener);
+      if (listenerPair == null)
       {
-        // TODO Auto-generated method stub
-        // System.out.println(dataPath + ": changed to " + data);
-        listener.onPropertyChange(dataPath);
+        listenerPair = new ZKPropertyListenerPair();
+
+        final IZkDataListener dataListener = new IZkDataListener() {
+
+          @Override
+          public void handleDataChange(String dataPath, Object data) throws Exception
+          {
+            // TODO Auto-generated method stub
+            // System.out.println(dataPath + ": changed to " + data);
+            listener.onPropertyChange(dataPath);
+          }
+
+          @Override
+          public void handleDataDeleted(String dataPath) throws Exception
+          {
+            // TODO Auto-generated method stub
+            System.out.println("property deleted at " + dataPath);
+          }
+
+        };
+
+        final IZkChildListener childListener = new IZkChildListener() {
+
+          @Override
+          public void handleChildChange(String parentPath, List<String> currentChilds)
+              throws Exception
+          {
+            // TODO Auto-generated method stub
+            // System.out.println("children changed at " + parentPath + ": " +
+            // currentChilds);
+
+            for (String child : currentChilds)
+            {
+              String pathToChild = parentPath + "/" + child;
+              _zkClient.subscribeDataChanges(pathToChild, dataListener);
+            }
+          }
+
+        };
+
+        listenerPair._zkDataListener = dataListener;
+        listenerPair._zkChildListener = childListener;
+        _listenerMap.put(listener, listenerPair);
       }
 
-      @Override
-      public void handleDataDeleted(String dataPath) throws Exception
+      // add data listener on prefix and all its children
+      List<String> children = _zkClient.getChildren(path);
+
+      _zkClient.subscribeDataChanges(path, listenerPair._zkDataListener);
+      for (String child : children)
       {
-        // TODO Auto-generated method stub
-        // System.out.println(dataPath + ": deleted");
+        String pathToChild = path + "/" + child;
+        _zkClient.subscribeDataChanges(pathToChild, listenerPair._zkDataListener);
       }
 
-    };
-    _zkClient.subscribeDataChanges(path, dataListener);
+      // add child listener on prefix only
+      _zkClient.subscribeChildChanges(path, listenerPair._zkChildListener);
 
-    IZkChildListener childListener = new IZkChildListener() {
-
-      @Override
-      public void handleChildChange(String parentPath, List<String> currentChilds) throws Exception
-      {
-        // TODO Auto-generated method stub
-        System.out.println(parentPath + ": child changes");
-        System.out.println(currentChilds);
-      }
-
-    };
-    _zkClient.subscribeChildChanges(path, childListener);
-
-    // put mappings
-    ZKPropertyStoreListeners listeners = new ZKPropertyStoreListeners();
-    listeners._zkDataListener = dataListener;
-    listeners._zkChildListener = childListener;
-
-    _listenerMap.put(listener, listeners);
-
+    }
   }
 
   @Override
@@ -209,16 +278,26 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
       throws PropertyStoreException
   {
     // TODO Auto-generated method stub
-    String path = stripOffTrailingSlash(prefix);
-    if (!_zkClient.exists(path))
-      return;
+    String path = getPath(prefix);
+    // if (!_zkClient.exists(path))
+    // return;
 
-    ZKPropertyStoreListeners listeners = _listenerMap.get(listener);
-    if (listeners == null)
-      return;
+    synchronized (_listenerMap)
+    {
+      ZKPropertyListenerPair listenerPair = _listenerMap.get(listener);
+      if (listenerPair == null)
+        return;
 
-    _zkClient.unsubscribeDataChanges(path, listeners._zkDataListener);
-    _zkClient.unsubscribeChildChanges(path, listeners._zkChildListener);
+      _zkClient.unsubscribeDataChanges(path, listenerPair._zkDataListener);
+      List<String> children = _zkClient.getChildren(path);
+      for (String child : children)
+      {
+        String pathToChild = path + "/" + child;
+        _zkClient.unsubscribeDataChanges(pathToChild, listenerPair._zkDataListener);
+      }
+
+      _zkClient.unsubscribeChildChanges(path, listenerPair._zkChildListener);
+    }
   }
 
   @Override
@@ -246,6 +325,7 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
         {
           // TODO Auto-generated catch block
           e.printStackTrace();
+          throw new ZkMarshallingError(e.getMessage());
         }
         return bytes;
       }
@@ -262,6 +342,7 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
         {
           // TODO Auto-generated catch block
           e.printStackTrace();
+          throw new ZkMarshallingError(e.getMessage());
         }
 
         return obj;
@@ -274,7 +355,7 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
   }
 
   // for test purpose
-  private static class StringSerializer implements PropertySerializer
+  private static class MyStringSerializer implements PropertySerializer
   {
 
     @Override
@@ -294,85 +375,61 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
 
   }
 
-  public static void main(String[] args) throws Exception
+  private static class MyPropertyChangeListener implements PropertyChangeListener<String>
   {
 
-    // use zk-client lib
-    /*
-     * String zkServers = "localhost:2188"; int sessionTimeout = 4000; int
-     * connectTimeout = 10000; ZkSerializer zkSerializer = new ZkSerializer() {
-     * 
-     * @Override public byte[] serialize(Object data) throws ZkMarshallingError
-     * { // TODO Auto-generated method stub String str = (String) data; byte[]
-     * ret = str == null ? new byte[0] : str.getBytes(); return ret; }
-     * 
-     * @Override public Object deserialize(byte[] bytes) throws
-     * ZkMarshallingError { // TODO Auto-generated method stub String ret = new
-     * String(bytes); return ret; }
-     * 
-     * }; ZkClient client = new ZkClient(zkServers, sessionTimeout,
-     * connectTimeout, zkSerializer);
-     * 
-     * // add/del a leaf String testRoot = "/testPath1"; //
-     * client.delete("/testPath1/testPath3"); //
-     * client.createPersistent("/testPath1/testPath3", "testData3");
-     * client.deleteRecursive(testRoot); client.createPersistent(testRoot);
-     * 
-     * // subscribe/unsubscribe client.subscribeDataChanges(testRoot, new
-     * IZkDataListener() {
-     * 
-     * @Override public void handleDataChange(String dataPath, Object data)
-     * throws Exception { // TODO Auto-generated method stub
-     * System.out.println(dataPath + ": changed to " + data); }
-     * 
-     * @Override public void handleDataDeleted(String dataPath) throws Exception
-     * { // TODO Auto-generated method stub System.out.println(dataPath +
-     * ": deleted"); }
-     * 
-     * });
-     * 
-     * client.subscribeChildChanges(testRoot, new IZkChildListener() {
-     * 
-     * @Override public void handleChildChange(String parentPath, List<String>
-     * currentChilds) throws Exception { // TODO Auto-generated method stub
-     * System.out.println(parentPath + ": children changed");
-     * System.out.println(currentChilds); }
-     * 
-     * });
-     * 
-     * client.subscribeStateChanges(new IZkStateListener() {
-     * 
-     * @Override public void handleStateChanged(KeeperState state) throws
-     * Exception { // TODO Auto-generated method stub
-     * System.out.println("state changed to: " + state); }
-     * 
-     * @Override public void handleNewSession() throws Exception { // TODO
-     * Auto-generated method stub System.out.println("new session created"); }
-     * 
-     * });
-     * 
-     * client.writeData(testRoot, "testData1"); String data =
-     * client.readData(testRoot); System.out.println("read from " + testRoot +
-     * ": " + data);
-     * 
-     * String testChild1 = testRoot + "/testPath2";
-     * client.createPersistent(testChild1, "testData2");
-     */
+    @Override
+    public void onPropertyChange(String key)
+    {
+      // TODO Auto-generated method stub
+      System.out.println("property changed at " + key);
+    }
 
+  }
+
+  public static void main(String[] args) throws Exception
+  {
     String zkServers = "localhost:2188";
-    ZKPropertyStore<String> zkPropertyStore = new ZKPropertyStore<String>(zkServers,
-        new StringSerializer(), "/schemas");
+    ZKClientFactory zkClientFactory = new ZKClientFactory();
+    ZkClient zkClient = zkClientFactory.create(zkServers);
 
-    String testRoot = "/testPath1";
+    String propertyStoreRoot = "/testPath1";
+    ZKPropertyStore<String> zkPropertyStore = new ZKPropertyStore<String>(zkClient,
+        new MyStringSerializer(), propertyStoreRoot);
 
-    String value = zkPropertyStore.getProperty(testRoot);
-    System.out.println(value);
+    String root = "";
+    zkPropertyStore.removeProperyRecursive(root);
 
-    // zkPropertyStore.getZkClient().writeData(testRoot, "testData1-v0");
-    // zkPropertyStore.setProperty(testRoot, "testData1-v0");
+    String testPath2 = "testPath2";
+    zkPropertyStore.setProperty(testPath2, "testData2");
 
-    // String temp = "/abc/def";
-    // System.out.println(temp.substring(0, temp.lastIndexOf('/')));
+    String value = zkPropertyStore.getProperty(testPath2);
+    System.out.println("Read from " + testPath2 + ": " + value);
+
+    MyPropertyChangeListener listener = new MyPropertyChangeListener();
+    zkPropertyStore.subscribeForPropertyChange(root, listener);
+    // duplicated listener should have no effect
+    zkPropertyStore.subscribeForPropertyChange(root, listener);
+
+    String testPath3 = "testPath3";
+    zkPropertyStore.setProperty(testPath3, "testData3");
+
+    value = zkPropertyStore.getProperty(testPath3);
+    System.out.println("Read from " + testPath3 + ": " + value);
+
+    zkPropertyStore.removeProperty(testPath2);
+    zkPropertyStore.setProperty(root, "testData1-2");
+    zkPropertyStore.setProperty(testPath3, "testData3-2");
+
+    zkPropertyStore.unsubscribeForPropertyChange(root, listener);
+    zkPropertyStore.setProperty(testPath3, "testData3-3");
+    zkPropertyStore.setProperty(root, "testData1-3");
+
+    value = zkPropertyStore.getProperty(testPath3);
+    System.out.println("Read from " + testPath3 + ": " + value);
+
+    System.out.println("Hit ratio = " + zkPropertyStore.getHitRatio());
+
     Thread.currentThread().sleep(5000);
   }
 }

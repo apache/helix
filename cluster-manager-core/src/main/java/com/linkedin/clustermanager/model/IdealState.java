@@ -1,5 +1,7 @@
 package com.linkedin.clustermanager.model;
 
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -50,5 +52,28 @@ public class IdealState
     public Map<String, String> getInstanceStateMap(String stateUnitKey)
     {
         return _record.getMapField(stateUnitKey);
+    }
+    
+    public List<String> getInstanceStateList(String stateUnitKey)
+    {
+      LinkedList<String> instanceStateList = new LinkedList<String>();
+      Map<String, String> instanceStateMap = getInstanceStateMap(stateUnitKey);
+      
+      String masterInstance  = "";
+      for(String instanceName : instanceStateMap.keySet())
+      {
+        if(instanceStateMap.get(instanceName).equals("MASTER"))
+        {
+          masterInstance = instanceName;
+        }
+        else
+        {
+          instanceStateList.add(instanceName);
+        }
+      }
+      assert(!masterInstance.isEmpty());
+      instanceStateList.addFirst(masterInstance);
+      
+      return instanceStateList;
     }
 }

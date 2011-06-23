@@ -18,6 +18,8 @@ import com.linkedin.clustermanager.model.ZNRecord;
 import com.linkedin.clustermanager.statemachine.CMTaskExecutor;
 import com.linkedin.clustermanager.statemachine.CMTaskResult;
 import com.linkedin.clustermanager.statemachine.StateModel;
+import com.linkedin.clustermanager.statemachine.StateModelInfo;
+import com.linkedin.clustermanager.statemachine.Transition;
 
 public class Mocks
 {
@@ -35,6 +37,24 @@ public class Mocks
         {
             stateModelInvoked = true;
         }
+    }
+    @StateModelInfo(states="{'OFFLINE','SLAVE','MASTER'}",initialState="OFFINE")
+    public static class MockStateModelAnnotated extends StateModel
+    {
+    	boolean stateModelInvoked = false;
+    	
+    	@Transition(from="SLAVE", to="MASTER")
+    	public void slaveToMaster(Message msg,
+    			NotificationContext context)
+    	{
+    		stateModelInvoked = true;
+    	}
+    	@Transition(from="OFFLINE", to="SLAVEa")
+    	public void offlineToSlave(Message msg,
+    			NotificationContext context)
+    	{
+    		stateModelInvoked = true;
+    	}
     }
 
     public static class MockCMTaskExecutor extends CMTaskExecutor

@@ -1,5 +1,6 @@
 package com.linkedin.clustermanager.controller;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -74,6 +75,9 @@ public class ClusterController implements ConfigChangeListener,
     public void onLiveInstanceChange(List<ZNRecord> liveInstances,
             NotificationContext changeContext)
     {
+    	if(liveInstances == null){
+    		liveInstances = Collections.emptyList();
+    	}
         logger.info("START: ClusterController.onLiveInstanceChange()");
         _liveInstanceDataHolder.refresh(liveInstances);
         for (ZNRecord instance : liveInstances)
@@ -110,7 +114,9 @@ public class ClusterController implements ConfigChangeListener,
     public void onConfigChange(List<ZNRecord> configs,
             NotificationContext changeContext)
     {
-
+    	if(configs == null){
+    		configs = Collections.emptyList();
+    	}
         logger.info("ClusterController.onConfigChange()");
     }
 

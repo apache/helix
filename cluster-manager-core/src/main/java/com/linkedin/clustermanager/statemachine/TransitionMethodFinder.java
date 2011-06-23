@@ -25,7 +25,7 @@ public class TransitionMethodFinder
             method = getMethodForTransitionByConvention(clazz, fromState,
                     toState, paramTypes);
         }
-        return null;
+        return method;
     }
 
     /**
@@ -44,7 +44,8 @@ public class TransitionMethodFinder
     {
         Method methodToInvoke = null;
         String methodName = "onBecome" + toState + "From" + fromState;
-        for (Method method : clazz.getClass().getMethods())
+        Method[] methods = clazz.getMethods();
+		for (Method method : methods)
         {
             if (method.getName().equalsIgnoreCase(methodName))
             {

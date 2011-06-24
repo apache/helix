@@ -50,7 +50,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener,
             ChangeType changeType)
     {
         this._manager = manager;
-        this._accessor = manager.getClient();
+        this._accessor = manager.getDataAccessor();
         this._zkClient = client;
         this._path = path;
         this._listener = listener;

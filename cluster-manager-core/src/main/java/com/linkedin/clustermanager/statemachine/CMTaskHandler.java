@@ -43,7 +43,7 @@ public class CMTaskHandler implements Callable<CMTaskResult> {
 					+ Arrays.toString(Message.Attributes.values());
 
 			_statusUpdateUtil.logError(_message, CMTaskHandler.class,
-					errorMessage, _manager.getClient());
+					errorMessage, _manager.getDataAccessor());
 			throw new ClusterManagerException(errorMessage);
 		}
 	}
@@ -65,7 +65,7 @@ public class CMTaskHandler implements Callable<CMTaskResult> {
 	@Override
 	public CMTaskResult call() throws Exception {
 		synchronized (_stateModel) {
-			ClusterDataAccessor accessor = _manager.getClient();
+			ClusterDataAccessor accessor = _manager.getDataAccessor();
 
 			_statusUpdateUtil.logInfo(_message, CMTaskHandler.class,
 					"Message handling task begin execute", accessor);

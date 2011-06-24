@@ -37,7 +37,7 @@ public class StateMachineEngine<T extends StateModel> implements MessageListener
       NotificationContext changeContext)
   {
     ClusterManager manager = changeContext.getManager();
-    ClusterDataAccessor client = manager.getClient();
+    ClusterDataAccessor client = manager.getDataAccessor();
     // check the taskId, see if there is already a task started
     // if no task
     // lookup statetabel for the to and from and invoke the corresponding

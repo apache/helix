@@ -54,7 +54,7 @@ public class CMTaskExecutor
                     message, 
                     CMTaskExecutor.class, 
                     "Message handling task scheduled",
-                    notificationContext.getManager().getClient()
+                    notificationContext.getManager().getDataAccessor()
                     );
                 CMTaskHandler task = new CMTaskHandler(notificationContext,
                         message, stateModel);
@@ -69,7 +69,7 @@ public class CMTaskExecutor
                       message, 
                       CMTaskExecutor.class, 
                       "Message handling task not found in _taskMap",
-                      notificationContext.getManager().getClient()
+                      notificationContext.getManager().getDataAccessor()
                       );
                 }
             }
@@ -82,7 +82,7 @@ public class CMTaskExecutor
                   message, 
                   CMTaskExecutor.class, 
                   errorMessage,
-                  notificationContext.getManager().getClient()
+                  notificationContext.getManager().getDataAccessor()
                   );
                 // TODO add retry or update errors node
             }

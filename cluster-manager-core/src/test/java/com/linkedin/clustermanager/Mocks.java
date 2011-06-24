@@ -138,7 +138,7 @@ public class Mocks
         }
 
         @Override
-        public ClusterDataAccessor getClient()
+        public ClusterDataAccessor getDataAccessor()
         {
             return accessor;
         }
@@ -158,7 +158,7 @@ public class Mocks
         }
 
         @Override
-        public void start()
+        public void connect()
         {
             // TODO Auto-generated method stub
 
@@ -170,6 +170,12 @@ public class Mocks
             // TODO Auto-generated method stub
             return null;
         }
+
+		@Override
+		public boolean isConnected() {
+			// TODO Auto-generated method stub
+			return false;
+		}
 
     }
 

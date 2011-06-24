@@ -196,7 +196,7 @@ public class TestZKCallback
                 & testListener.messageChangeReceived);
 
         testListener.Reset();
-        ClusterDataAccessor dataAccessor = testClusterManager.getClient();
+        ClusterDataAccessor dataAccessor = testClusterManager.getDataAccessor();
         ZNRecord dummyRecord = new ZNRecord();
         dummyRecord.setId("db-12345");
         dataAccessor.setClusterProperty(ClusterPropertyType.EXTERNALVIEW, "db-12345", dummyRecord);

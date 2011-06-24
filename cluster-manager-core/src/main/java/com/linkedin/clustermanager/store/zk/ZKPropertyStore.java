@@ -9,12 +9,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.I0Itec.zkclient.IZkChildListener;
 import org.I0Itec.zkclient.IZkDataListener;
 import org.I0Itec.zkclient.ZkClient;
-import org.I0Itec.zkclient.ZkServer;
 import org.I0Itec.zkclient.exception.ZkMarshallingError;
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 
-import com.linkedin.clustermanager.TestZKCallback;
 import com.linkedin.clustermanager.store.PropertyChangeListener;
 import com.linkedin.clustermanager.store.PropertySerializer;
 import com.linkedin.clustermanager.store.PropertyStore;
@@ -478,72 +476,64 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
   }
 
   public static void main(String[] args) throws Exception
-  {
-    // start zk severs
-    List<Integer> localPorts = new ArrayList<Integer>();
-    localPorts.add(2188);
 
-    List<ZkServer> localZkServers = TestZKCallback.startLocalZookeeper(localPorts,
-        System.getProperty("user.dir") + "/" + "zkdata", 2000);
-
-    System.out.println("zk servers started on ports: " + localPorts);
-
-    String zkServers = "localhost:2188";
-    ZKClientFactory zkClientFactory = new ZKClientFactory();
-    ZkClient zkClient = zkClientFactory.create(zkServers);
-
-    String propertyStoreRoot = "/testPath1";
-    ZKPropertyStore<String> zkPropertyStore = new ZKPropertyStore<String>(zkClient,
-        new MyStringSerializer(), propertyStoreRoot);
-
-    zkPropertyStore.removeRootProperty();
-
-    String testPath2 = "testPath2";
-    zkPropertyStore.setProperty(testPath2, "testData2_I");
-
-    String value = zkPropertyStore.getProperty(testPath2);
-    System.out.println("Read from " + testPath2 + ": " + value);
-
-    MyPropertyChangeListener listener = new MyPropertyChangeListener();
-    zkPropertyStore.subscribeForRootPropertyChange(listener);
-    // duplicated listener should have no effect
-    // zkPropertyStore.subscribeForRootPropertyChange(listener);
-
-    String testPath3 = "testPath3";
-    zkPropertyStore.setProperty(testPath3, "testData3_I");
-
-    Thread.sleep(100);
-
-    zkPropertyStore.getProperty("abc");
-
-    try
-    {
-      zkPropertyStore.removeProperty("");
-    } catch (PropertyStoreException e)
-    {
-      // e.printStackTrace();
-      System.err.println(e.getMessage());
-    }
-
-    zkPropertyStore.removeProperty("xyz");
-
-    zkPropertyStore.removeProperty(testPath2);
-    Thread.sleep(100);
-
-    zkPropertyStore.setProperty(testPath3, "testData3_II");
-    Thread.sleep(100);
-
-    zkPropertyStore.unsubscribeForRootPropertyChange(listener);
-    zkPropertyStore.setProperty(testPath3, "testData3_III");
-    Thread.sleep(100);
-
-    value = zkPropertyStore.getProperty(testPath3);
-    System.out.println("Read from " + testPath3 + ": " + value);
-
-    System.out.println("Hit ratio = " + zkPropertyStore.getHitRatio());
-
-    // shutdown zk servers
-    TestZKCallback.stopLocalZookeeper(localZkServers);
-    System.out.println("zk servers stopped");
+  {/*
+    * // start zk severs List<Integer> localPorts = new ArrayList<Integer>();
+    * localPorts.add(2188);
+    * 
+    * List<ZkServer> localZkServers =
+    * TestZKCallback.startLocalZookeeper(localPorts,
+    * System.getProperty("user.dir") + "/" + "zkdata", 2000);
+    * 
+    * System.out.println("zk servers started on ports: " + localPorts);
+    * 
+    * String zkServers = "localhost:2188"; ZKClientFactory zkClientFactory = new
+    * ZKClientFactory(); ZkClient zkClient = zkClientFactory.create(zkServers);
+    * 
+    * String propertyStoreRoot = "/testPath1"; ZKPropertyStore<String>
+    * zkPropertyStore = new ZKPropertyStore<String>(zkClient, new
+    * MyStringSerializer(), propertyStoreRoot);
+    * 
+    * zkPropertyStore.removeRootProperty();
+    * 
+    * String testPath2 = "testPath2"; zkPropertyStore.setProperty(testPath2,
+    * "testData2_I");
+    * 
+    * String value = zkPropertyStore.getProperty(testPath2);
+    * System.out.println("Read from " + testPath2 + ": " + value);
+    * 
+    * MyPropertyChangeListener listener = new MyPropertyChangeListener();
+    * zkPropertyStore.subscribeForRootPropertyChange(listener); // duplicated
+    * listener should have no effect //
+    * zkPropertyStore.subscribeForRootPropertyChange(listener);
+    * 
+    * String testPath3 = "testPath3"; zkPropertyStore.setProperty(testPath3,
+    * "testData3_I");
+    * 
+    * Thread.sleep(100);
+    * 
+    * zkPropertyStore.getProperty("abc");
+    * 
+    * try { zkPropertyStore.removeProperty(""); } catch (PropertyStoreException
+    * e) { // e.printStackTrace(); System.err.println(e.getMessage()); }
+    * 
+    * zkPropertyStore.removeProperty("xyz");
+    * 
+    * zkPropertyStore.removeProperty(testPath2); Thread.sleep(100);
+    * 
+    * zkPropertyStore.setProperty(testPath3, "testData3_II"); Thread.sleep(100);
+    * 
+    * zkPropertyStore.unsubscribeForRootPropertyChange(listener);
+    * zkPropertyStore.setProperty(testPath3, "testData3_III");
+    * Thread.sleep(100);
+    * 
+    * value = zkPropertyStore.getProperty(testPath3);
+    * System.out.println("Read from " + testPath3 + ": " + value);
+    * 
+    * System.out.println("Hit ratio = " + zkPropertyStore.getHitRatio());
+    * 
+    * // shutdown zk servers TestZKCallback.stopLocalZookeeper(localZkServers);
+    * System.out.println("zk servers stopped");
+    */
   }
 }

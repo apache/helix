@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import org.I0Itec.zkclient.IZkStateListener;
 import org.I0Itec.zkclient.ZkClient;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.log4j.Logger;
@@ -37,9 +38,10 @@ public class ZKClusterManager implements ClusterManager {
 	private ZKDataAccessor _accessor;
 	private ZkClient _zkClient;
 	private List<CallbackHandler> _handlers;
+	private final ZkStateChangeListener _zkStateChangeListener;
 	private final InstanceType _instanceType;
 	private String _sessionId;
-	private boolean _isConnected;
+	
 
 	public ZKClusterManager(String clusterName, String instanceName,
 			InstanceType instanceType, String zkConnectString) throws Exception {
@@ -47,6 +49,7 @@ public class ZKClusterManager implements ClusterManager {
 		_instanceName = instanceName;
 		this._instanceType = instanceType;
 		_zkConnectString = zkConnectString;
+		_zkStateChangeListener = new ZkStateChangeListener();
 		connect();
 	}
 
@@ -157,7 +160,7 @@ public class ZKClusterManager implements ClusterManager {
 
 	@Override
 	public void connect() throws Exception {
-		if (_isConnected) {
+		if (_zkStateChangeListener.isConnected()) {
 			return;
 		}
 		_zkClient = createClient(_zkConnectString, SESSIONTIMEOUT);
@@ -175,13 +178,11 @@ public class ZKClusterManager implements ClusterManager {
 		if (_instanceType == InstanceType.PARTICIPANT) {
 			addLiveInstance();
 		}
-
-		_isConnected = true;
 	}
 
 	@Override
 	public void disconnect() {
-		_isConnected = false;
+		_zkClient.close();
 	}
 
 	@Override
@@ -206,6 +207,7 @@ public class ZKClusterManager implements ClusterManager {
 				CONNECTIONTIMEOUT, zkSerializer);
 		_sessionId = UUID.randomUUID().toString();
 		int retryCount = 0;
+		client.subscribeStateChanges(_zkStateChangeListener);
 		while (retryCount < RETRY_LIMIT) {
 			try {
 				client.waitUntilConnected(SESSIONTIMEOUT, TimeUnit.MILLISECONDS);
@@ -241,7 +243,7 @@ public class ZKClusterManager implements ClusterManager {
 
 	@Override
 	public boolean isConnected() {
-		return _isConnected;
+		return _zkStateChangeListener.isConnected();
 	}
 
 }

@@ -18,7 +18,7 @@ public class ZKClientFactory
     _zkConnMap = new ConcurrentHashMap<String, ZkConnection>();
   }
 
-  public ZkClient create(String zkServers)
+  public synchronized ZkClient create(String zkServers)
   {
     String[] zkServerArr = zkServers.split(",");
 

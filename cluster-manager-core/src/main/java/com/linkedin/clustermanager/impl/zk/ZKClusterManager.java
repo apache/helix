@@ -210,7 +210,7 @@ public class ZKClusterManager implements ClusterManager {
 		client.subscribeStateChanges(_zkStateChangeListener);
 		while (retryCount < RETRY_LIMIT) {
 			try {
-				client.waitUntilConnected(SESSIONTIMEOUT, TimeUnit.MILLISECONDS);
+				client.waitUntilConnected(sessionTimeout, TimeUnit.MILLISECONDS);
 				break;
 			} catch (Exception e) {
 				retryCount++;

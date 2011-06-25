@@ -131,6 +131,10 @@ public class TestZKPropertyStore
     AssertJUnit.assertTrue(children != null && children.size() == 1
         && children.get(0).equals(testPath3));
 
+    // test hit ratio
+    value = zkPropertyStore.getProperty(testPath3);
+    double hitRatio = zkPropertyStore.getHitRatio();
+    AssertJUnit.assertTrue( Double.compare(Math.abs(hitRatio - 0.5), 0.1) < 0);
   }
 
   @BeforeTest

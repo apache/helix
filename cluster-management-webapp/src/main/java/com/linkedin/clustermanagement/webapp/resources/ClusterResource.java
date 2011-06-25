@@ -33,17 +33,17 @@ public class ClusterResource extends Resource
   
   public boolean allowPost()
   {
-    return true;
+    return false;
   }
   
   public boolean allowPut()
   {
-    return true;
+    return false;
   }
   
   public boolean allowDelete()
   {
-    return true;
+    return false;
   }
   
   public Representation represent(Variant variant)

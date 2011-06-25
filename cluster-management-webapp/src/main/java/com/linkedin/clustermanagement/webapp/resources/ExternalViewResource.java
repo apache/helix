@@ -27,9 +27,9 @@ import com.linkedin.clustermanager.impl.zk.ZNRecordSerializer;
 import com.linkedin.clustermanager.model.ZNRecord;
 import com.linkedin.clustermanager.tools.ClusterSetup;
 
-public class IdealStateResource extends Resource
+public class ExternalViewResource extends Resource
 {
-  public IdealStateResource(Context context,
+  public ExternalViewResource(Context context,
       Request request,
       Response response) 
   {
@@ -45,7 +45,7 @@ public class IdealStateResource extends Resource
   
   public boolean allowPost()
   {
-    return true;
+    return false;
   }
   
   public boolean allowPut()
@@ -66,7 +66,7 @@ public class IdealStateResource extends Resource
       String zkServer = (String)getContext().getAttributes().get("zkServer");
       String clusterName = (String)getRequest().getAttributes().get("clusterName");
       String entityId = (String)getRequest().getAttributes().get("entityId");
-      presentation = getIdealStateRepresentation(zkServer, clusterName, entityId);
+      presentation = getExternalViewRepresentation(zkServer, clusterName, entityId);
     }
     
     catch(Exception e)
@@ -78,39 +78,13 @@ public class IdealStateResource extends Resource
     return presentation;
   }
   
-  StringRepresentation getIdealStateRepresentation(String zkServerAddress, String clusterName, String entityId) throws JsonGenerationException, JsonMappingException, IOException
+  StringRepresentation getExternalViewRepresentation(String zkServerAddress, String clusterName, String entityId) throws JsonGenerationException, JsonMappingException, IOException
   {
-    String message = "Ideal state for entity " + entityId + " in cluster "+ clusterName + "\n";
-    message += ClusterRepresentationUtil.getClusterPropertyAsString(zkServerAddress, clusterName, ClusterPropertyType.IDEALSTATES, entityId, MediaType.APPLICATION_JSON);
+    String message = "External view for entity " + entityId + " in cluster "+ clusterName + "\n";
     
+    message += ClusterRepresentationUtil.getClusterPropertyAsString(zkServerAddress, clusterName, ClusterPropertyType.EXTERNALVIEW, entityId, MediaType.APPLICATION_JSON);
     StringRepresentation representation = new StringRepresentation(message, MediaType.APPLICATION_JSON);
     
     return representation;
-  }
-  
-  public void acceptRepresentation(Representation entity)
-  {
-    try
-    {
-      String zkServer = (String)getContext().getAttributes().get("zkServer");
-      String clusterName = (String)getRequest().getAttributes().get("clusterName");
-      String entityId = (String)getRequest().getAttributes().get("entityId");
-      
-      Form form = new Form(entity);
-     
-      int replicas = Integer.parseInt(form.getFirstValue("replicas"));
-      ClusterSetup setupTool = new ClusterSetup(zkServer);
-      setupTool.rebalanceStorageCluster(clusterName, entityId, replicas);
-            // add cluster
-      getResponse().setEntity(getIdealStateRepresentation(zkServer, clusterName, entityId));
-      getResponse().setStatus(Status.SUCCESS_OK);
-    }
-
-    catch(Exception e)
-    {
-      getResponse().setEntity("ERROR " + e.getMessage(),
-          MediaType.TEXT_PLAIN);
-      getResponse().setStatus(Status.SUCCESS_OK);
-    }  
   }
 }

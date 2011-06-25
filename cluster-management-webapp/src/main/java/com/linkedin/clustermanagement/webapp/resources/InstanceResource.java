@@ -79,7 +79,7 @@ public class InstanceResource extends Resource
     
     
     String message = "Instance " + instanceName + " Status:\n" + 
-      ClusterRepresentationUtil.getClusterPropertyAsString(zkServerAddress, clusterName, ClusterPropertyType.EXTERNALVIEW, instanceName, MediaType.APPLICATION_JSON);
+      ClusterRepresentationUtil.getClusterPropertyAsString(zkServerAddress, clusterName, ClusterPropertyType.CONFIGS, instanceName, MediaType.APPLICATION_JSON);
     
     /*  
     ClusterSetup setupTool = new ClusterSetup(zkServerAddress);

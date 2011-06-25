@@ -85,8 +85,9 @@ public class InstancesResource extends Resource
     try
     {
       String zkServer = (String)getContext().getAttributes().get("zkServer");
+      String clusterName = (String)getRequest().getAttributes().get("clusterName");
+      
       Form form = new Form(entity);
-      String clusterName = form.getFirstValue("clusterName");
       String instanceName = form.getFirstValue("instanceName");
       String instanceNames = form.getFirstValue("instanceNames");
       ClusterSetup setupTool = new ClusterSetup(zkServer);

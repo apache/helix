@@ -19,6 +19,7 @@ import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 
 import com.linkedin.clustermanager.controller.IdealStateCalculatorByShuffling;
+import com.linkedin.clustermanager.core.ClusterDataAccessor.InstanceConfigProperty;
 import com.linkedin.clustermanager.core.ClusterManagementTool;
 import com.linkedin.clustermanager.core.listeners.ClusterManagerException;
 import com.linkedin.clustermanager.impl.file.FileBasedClusterManager;
@@ -51,7 +52,8 @@ public class ClusterSetup
   // setup for file-based cluster manager
   public static final String configFile = "configFile";
 
-  // TBD: remove nodes
+  // enable / disable nodes
+  public static final String enableNode = "enableNode";
 
   public static final String help = "help";
 
@@ -104,8 +106,9 @@ public class ClusterSetup
     ZNRecord nodeConfig = new ZNRecord();
     String nodeId = host + "_" + port;
     nodeConfig.setId(nodeId);
-    nodeConfig.setSimpleField("HOST", host);
-    nodeConfig.setSimpleField("PORT", "" + port);
+    nodeConfig.setSimpleField(InstanceConfigProperty.HOST.toString(), host);
+    nodeConfig.setSimpleField(InstanceConfigProperty.PORT.toString(), "" + port);
+    nodeConfig.setSimpleField(InstanceConfigProperty.ENABLED.toString(), true + "");
 
     managementTool.addNode(clusterName, nodeConfig);
   }
@@ -233,6 +236,12 @@ public class ClusterSetup
     partitionInfoOption.setArgs(2);
     partitionInfoOption.setRequired(false);
     partitionInfoOption.setArgName("clusterName partitionName");
+    
+    Option enableNodeOption = OptionBuilder.withLongOpt(enableNode)
+    .withDescription("Enable / disable a node").create();
+    enableNodeOption.setArgs(3);
+    enableNodeOption.setRequired(false);
+    enableNodeOption.setArgName("clusterName nodeName true/false");
 
     // add an option group including either --zkSvr or --configFile
     Option fileOption = OptionBuilder.withLongOpt(configFile)
@@ -260,6 +269,7 @@ public class ClusterSetup
     options.addOption(clusterInfoOption);
     options.addOption(databaseInfoOption);
     options.addOption(partitionInfoOption);
+    options.addOption(enableNodeOption);
 
     options.addOptionGroup(optionGroup);
 
@@ -389,13 +399,23 @@ public class ClusterSetup
     else if (cmd.hasOption(nodeInfo))
     {
       // print out current states and
-    } else if (cmd.hasOption(databaseInfo))
+    } 
+    else if (cmd.hasOption(databaseInfo))
     {
       // print out partition number, db name and replication number
       // Also the ideal states and current states
-    } else if (cmd.hasOption(partitionInfo))
+    } 
+    else if (cmd.hasOption(partitionInfo))
     {
       // print out where the partition master / slaves locates
+    }
+    else if (cmd.hasOption(enableNode))
+    {
+      String clusterName = cmd.getOptionValues(enableNode)[0];
+      String instanceName = cmd.getOptionValues(enableNode)[1];
+      boolean enabled  = Boolean.parseBoolean(cmd.getOptionValues(enableNode)[1].toLowerCase());
+      
+      setupTool.getClusterManagementTool().enableInstance(clusterName, instanceName, enabled);
     }
     return 0;
   }

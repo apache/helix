@@ -14,6 +14,11 @@ public interface ClusterDataAccessor
     CONFIGS, LIVEINSTANCES, INSTANCES, IDEALSTATES, EXTERNALVIEW
   }
   
+  public enum InstanceConfigProperty
+  {
+    HOST, PORT, ENABLED
+  }
+  
   public enum InstancePropertyType
   {
     MESSAGES, CURRENTSTATES, STATUSUPDATES, ERRORS

@@ -109,7 +109,7 @@ public class ClusterManagerMain
         // liveInstanceChangeListener
         // manager.addCurrentStateChangeListener(controller);
 
-        manager.start();
+        manager.connect();
 
         Thread.currentThread().join();
     }

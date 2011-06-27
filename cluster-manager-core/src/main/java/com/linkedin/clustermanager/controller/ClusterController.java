@@ -143,7 +143,7 @@ public class ClusterController implements ConfigChangeListener,
     private void runClusterRebalanceAlgo(NotificationContext changeContext)
     {
         logger.info("START:ClusterController.runClusterRebalanceAlgo()");
-        ClusterDataAccessor client = changeContext.getManager().getClient();
+        ClusterDataAccessor client = changeContext.getManager().getDataAccessor();
         List<ZNRecord> idealStates = client.getClusterView().getClusterPropertyList(ClusterPropertyType.IDEALSTATES);
         refreshData(changeContext);
         for (ZNRecord idealStateRecord : idealStates)
@@ -173,7 +173,7 @@ public class ClusterController implements ConfigChangeListener,
 
     private boolean refreshData(NotificationContext changeContext)
     {
-        ClusterDataAccessor client = changeContext.getManager().getClient();
+        ClusterDataAccessor client = changeContext.getManager().getDataAccessor();
         List<ZNRecord> liveInstances = client.getClusterPropertyList(ClusterPropertyType.LIVEINSTANCES);
         _liveInstanceDataHolder.refresh(liveInstances);
         for (ZNRecord record : liveInstances)
@@ -224,7 +224,7 @@ public class ClusterController implements ConfigChangeListener,
             // independent of NotificationType which is the case for most
             // callbacks
         }
-        ClusterDataAccessor client = changeContext.getManager().getClient();
+        ClusterDataAccessor client = changeContext.getManager().getDataAccessor();
         List<ZNRecord> idealStates = client.getClusterView().getClusterPropertyList(ClusterPropertyType.IDEALSTATES);
         List<ZNRecord> externalViewList;
         Map<String, List<ZNRecord>> currentStatesListMap = _currentStateHolder

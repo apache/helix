@@ -15,52 +15,110 @@ import com.linkedin.clustermanager.core.listeners.MessageListener;
  * manager.addSOMEListener(); manager.start() After start is invoked the
  * interactions will be via listener callback functions ... ..
  * manager.disconnect()
+ * 
  * @author kgopalak
  */
-public interface ClusterManager
-{
-    /**
-     * disconnect from the cluster
-     */
-    void disconnect();
+public interface ClusterManager {
 
-    /**
-     * listener.handleIdealStateChange will be invoked when there is change any
-     * IdealState
-     * @param listener
-     * @throws Exception
-     */
-    void addIdealStateChangeListener(IdealStateChangeListener listener)
-            throws Exception;
+	/**
+	 * Start participating in the cluster operations. All listeners will be
+	 * initialized and will be notified for every cluster state change This
+	 * method is not re-entrant. One cannot call this method twice.
+	 * 
+	 * @throws Exception
+	 */
+	void connect() throws Exception;
 
-    void addLiveInstanceChangeListener(LiveInstanceChangeListener listener);
+	/**
+	 * Check if the connection is alive, code depending on cluster manager must
+	 * always do this if( manager.isConnected()){ //custom code } This will
+	 * prevent client in doing anything when its disconnected from the cluster.
+	 * There is no need to invoke connect again if isConnected return false.
+	 * 
+	 * @return
+	 */
+	boolean isConnected();
 
-    void addConfigChangeListener(ConfigChangeListener listener);
+	/**
+	 * Disconnect from the cluster. All the listeners will be removed and
+	 * disconnected from the server. Its important for the client to ensure that
+	 * new manager instance is used when it wants to connect again.
+	 */
+	void disconnect();
 
-    void addMessageListener(MessageListener listener, String instanceName);
+	/**
+	 * @see IdealStateChangeListener#onIdealStateChange(List,
+	 *      NotificationContext)
+	 * @param listener
+	 * @throws Exception
+	 */
+	void addIdealStateChangeListener(IdealStateChangeListener listener)
+			throws Exception;
 
-    void addCurrentStateChangeListener(CurrentStateChangeListener listener,
-            String instanceName);
+	/**
+	 * @see LiveInstanceChangeListener#onLiveInstanceChange(List,
+	 *      NotificationContext)
+	 * @param listener
+	 */
+	void addLiveInstanceChangeListener(LiveInstanceChangeListener listener);
 
-    void addExternalViewChangeListener(ExternalViewChangeListener listener);
+	/**
+	 * @see ConfigChangeListener#onConfigChange(List, NotificationContext)
+	 * @param listener
+	 */
+	void addConfigChangeListener(ConfigChangeListener listener);
 
-    // void addListeners(List<Object> listeners);
+	/**
+	 * @see MessageListener#onMessage(String, List, NotificationContext)
+	 * @param listener
+	 * @param instanceName
+	 */
+	void addMessageListener(MessageListener listener, String instanceName);
 
-    /**
-     * Return the client to perform operations on the cluster
-     * @return
-     */
-    ClusterDataAccessor getClient();
+	/**
+	 * @see CurrentStateChangeListener#onStateChange(String, List,
+	 *      NotificationContext)
+	 * @param listener
+	 * @param instanceName
+	 */
 
-    String getClusterName();
+	void addCurrentStateChangeListener(CurrentStateChangeListener listener,
+			String instanceName);
 
-    String getInstanceName();
+	/**
+	 * @see ExternalViewChangeListener#onExternalViewChange(List,
+	 *      NotificationContext)
+	 * @param listener
+	 */
+	void addExternalViewChangeListener(ExternalViewChangeListener listener);
 
-    /**
-     * Start participating in the cluster operations. All listeners will be
-     * initialized and will be notified for every cluster state change
-     */
-    void start();
+	// void addListeners(List<Object> listeners);
 
-    String getSessionId();
+	/**
+	 * Return the client to perform read/write operations on the cluster data
+	 * store
+	 * 
+	 * @return ClusterDataAccessor
+	 */
+	ClusterDataAccessor getDataAccessor();
+
+	/**
+	 * Returns the cluster name associated with this cluster manager
+	 * 
+	 * @return
+	 */
+	String getClusterName();
+
+	/**
+	 * Returns the instanceName used to connect to the cluster
+	 * 
+	 * @return
+	 */
+
+	String getInstanceName();
+
+	/**
+	 * Get the sessionId associated with the connection to cluster data store. 
+	 */
+	String getSessionId();
 }

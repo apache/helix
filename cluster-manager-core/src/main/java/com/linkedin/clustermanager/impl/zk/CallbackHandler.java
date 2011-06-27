@@ -30,8 +30,8 @@ import com.linkedin.clustermanager.util.CMUtil;
 
 import static com.linkedin.clustermanager.core.CMConstants.ChangeType.*;
 
-public class CallbackHandler implements IZkChildListener, IZkDataListener,
-        IZkStateListener
+public class CallbackHandler implements IZkChildListener, IZkDataListener
+        
 {
 
     private static Logger logger = Logger.getLogger(CallbackHandler.class);
@@ -50,7 +50,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener,
             ChangeType changeType)
     {
         this._manager = manager;
-        this._accessor = manager.getClient();
+        this._accessor = manager.getDataAccessor();
         this._zkClient = client;
         this._path = path;
         this._listener = listener;
@@ -191,20 +191,6 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener,
         {
             ZKExceptionHandler.getInstance().handle(e);
         }
-    }
-
-    @Override
-    public void handleStateChanged(KeeperState state) throws Exception
-    {
-        // TODO Auto-generated method stub
-
-    }
-
-    @Override
-    public void handleNewSession() throws Exception
-    {
-        // TODO Auto-generated method stub
-
     }
 
     @Override

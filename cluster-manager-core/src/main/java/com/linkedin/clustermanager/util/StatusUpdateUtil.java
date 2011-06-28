@@ -60,6 +60,7 @@ public class StatusUpdateUtil
     
     result.setSimpleField("Class", classInfo.toString());
     result.setSimpleField("LEVEL", level.toString());
+    result.setSimpleField("Session Id", message.getTgtSessionId());
     String id = String.format("%4s %26s ", level.toString(), time) + message.getStateUnitKey() + " Trans:"+
                 message.getFromState().charAt(0) +"->"+ message.getToState().charAt(0)+ " " ;
     result.setId(id);

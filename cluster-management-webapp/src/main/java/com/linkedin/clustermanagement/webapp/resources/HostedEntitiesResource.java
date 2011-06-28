@@ -86,7 +86,7 @@ public class HostedEntitiesResource extends Resource
     {
       String zkServer = (String)getContext().getAttributes().get("zkServer");
       Form form = new Form(entity);
-      String clusterName = form.getFirstValue("clusterName");
+      String clusterName = (String)getRequest().getAttributes().get("clusterName");
       String entityName = form.getFirstValue("entityName");
       int partitions = Integer.parseInt(form.getFirstValue("partitions"));
       ClusterSetup setupTool = new ClusterSetup(zkServer);

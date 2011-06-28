@@ -50,4 +50,11 @@ public class ClusterRepresentationUtil
     
     return sw.toString();
   }
+  
+  public static ClusterDataAccessor getClusterDataAccessor( String zkServer, String clusterName)
+  {
+    ZkClient zkClient = new ZkClient(zkServer);
+    zkClient.setZkSerializer(new ZNRecordSerializer());
+    return new ZKDataAccessor(clusterName, zkClient);
+  }
 }

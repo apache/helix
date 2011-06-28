@@ -1,6 +1,7 @@
 package com.linkedin.clustermanagement.webapp.resources;
 
 import java.util.List;
+import java.util.Map;
 
 import org.restlet.Context;
 import org.restlet.data.Form;
@@ -13,7 +14,12 @@ import org.restlet.resource.Resource;
 import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 
+import com.linkedin.clustermanager.core.ClusterDataAccessor;
+import com.linkedin.clustermanager.core.ClusterDataAccessor.ClusterPropertyType;
+import com.linkedin.clustermanager.core.ClusterDataAccessor.InstanceConfigProperty;
+import com.linkedin.clustermanager.model.ZNRecord;
 import com.linkedin.clustermanager.tools.ClusterSetup;
+import com.linkedin.clustermanager.util.ZNRecordUtil;
 
 public class InstancesResource extends Resource
 {
@@ -70,10 +76,20 @@ public class InstancesResource extends Resource
     ClusterSetup setupTool = new ClusterSetup(zkServerAddress);
     List<String> instances = setupTool.getClusterManagementTool().getNodeNamesInCluster(clusterName);
     String message = "Instances in cluster "+ clusterName + "\nTotal "+ instances.size() + " instances:\n";
-   
+    
+    ClusterDataAccessor accessor = ClusterRepresentationUtil.getClusterDataAccessor(zkServerAddress,  clusterName);
+    List<ZNRecord> liveInstances = accessor.getClusterPropertyList(ClusterPropertyType.LIVEINSTANCES);
+    List<ZNRecord> instanceConfigs = accessor.getClusterPropertyList(ClusterPropertyType.CONFIGS);
+    
+    Map<String, ZNRecord> liveInstanceMap = ZNRecordUtil.convertListToMap(liveInstances);
+    Map<String, ZNRecord> configsMap = ZNRecordUtil.convertListToMap(instanceConfigs);
+    
     for (String instanceName : instances)
     {
-      message = message + "{ Instance : "+ instanceName + "}\n";
+      boolean isAlive = liveInstanceMap.containsKey(instanceName);
+      String enabled = configsMap.get(instanceName).getSimpleField(InstanceConfigProperty.ENABLED.toString());
+      
+      message = message + "{ Instance : "+ instanceName + " alive: "+ isAlive +" enabled: "+ enabled +"}\n";
     }
     StringRepresentation representation = new StringRepresentation(message, MediaType.APPLICATION_JSON);
     

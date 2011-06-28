@@ -1,6 +1,7 @@
 package com.linkedin.clustermanagement.webapp.resources;
 
 import java.io.IOException;
+import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.List;
 
@@ -98,10 +99,25 @@ public class IdealStateResource extends Resource
       
       Form form = new Form(entity);
      
-      int replicas = Integer.parseInt(form.getFirstValue("replicas"));
-      ClusterSetup setupTool = new ClusterSetup(zkServer);
-      setupTool.rebalanceStorageCluster(clusterName, entityId, replicas);
-            // add cluster
+      if(!form.getFirstValue("replicas", "").equalsIgnoreCase(""))
+      {
+        int replicas = Integer.parseInt(form.getFirstValue("replicas"));
+        ClusterSetup setupTool = new ClusterSetup(zkServer);
+        setupTool.rebalanceStorageCluster(clusterName, entityId, replicas);
+      }
+      else if(!form.getFirstValue("newIdealState", "").equalsIgnoreCase(""))
+      {
+        String newIdealStateString = form.getFirstValue("newIdealState", "");
+        
+        ObjectMapper mapper = new ObjectMapper();
+        ZNRecord newIdealState = mapper.readValue(new StringReader(newIdealStateString),
+            ZNRecord.class);
+        
+        ClusterDataAccessor accessor = ClusterRepresentationUtil.getClusterDataAccessor(zkServer,  clusterName);
+        accessor.removeClusterProperty(ClusterPropertyType.IDEALSTATES, entityId);
+        
+        accessor.setClusterProperty(ClusterPropertyType.IDEALSTATES, entityId, newIdealState);
+      }
       getResponse().setEntity(getIdealStateRepresentation(zkServer, clusterName, entityId));
       getResponse().setStatus(Status.SUCCESS_OK);
     }

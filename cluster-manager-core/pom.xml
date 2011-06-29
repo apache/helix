@@ -120,6 +120,7 @@
 					<archive>
 						<manifest>
 							<mainClass>com.linkedin.clustermanager.controller.ClusterManagerMain</mainClass>
+							<addClasspath>true</addClasspath>
 						</manifest>
 					</archive>
 					<descriptorRefs>
@@ -131,7 +132,6 @@
 			</plugin>
 		</plugins>
 	</build>
-
 	<reporting>
 		<plugins>
 			<plugin>

@@ -57,8 +57,4 @@ public class MessageHolder
         return null;
     }
 
-	public void clear() {
-		_messageStateMap.clear();
-	}
-
 }

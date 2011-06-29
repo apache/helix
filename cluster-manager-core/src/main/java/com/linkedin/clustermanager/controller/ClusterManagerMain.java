@@ -84,7 +84,7 @@ public class ClusterManagerMain
         // for each cluster create a manager
         // add the respective listeners for each manager
 
-        String clusterName = "storage-integration-cluster";
+        String clusterName = "test-cluster";
         String zkConnectString = "localhost:2181";
         if (args.length > 0)
         {

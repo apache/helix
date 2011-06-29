@@ -59,9 +59,4 @@ public class CurrentStateHolder
         return _currentStatesListMap;
     }
 
-	public void clear() {
-		_currentStatesMap.clear();
-		_currentStatesListMap.clear();
-	}
-
 }

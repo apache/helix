@@ -26,7 +26,7 @@ import com.linkedin.clustermanager.model.ZNRecord;
 
 public class ClusterRepresentationUtil
 {
-  public static final String _jsonParamaters = "jsonParamaters";
+  public static final String _jsonParameters = "jsonParameters";
   public static final String _managementCommand = "command";
   public static final String _addInstanceCommand = "addInstance";
   public static final String _addHostedEntityCommand = "addHostedEntity";
@@ -96,16 +96,16 @@ public class ClusterRepresentationUtil
   
   public static Map<String, String> getFormJsonParameters(Form form) throws JsonParseException, JsonMappingException, IOException
   {
-    String jsonPayload = form.getFirstValue(_jsonParamaters, true);
+    String jsonPayload = form.getFirstValue(_jsonParameters, true);
     return  ClusterRepresentationUtil.JsonToMap(jsonPayload);
   }
   
   public static Map<String, String> getFormJsonParametersWithCommandVerified(Form form, String commandValue) throws JsonParseException, JsonMappingException, IOException
   {
-    String jsonPayload = form.getFirstValue(_jsonParamaters, true);
+    String jsonPayload = form.getFirstValue(_jsonParameters, true);
     if(jsonPayload == null || jsonPayload.isEmpty())
     {
-      throw new ClusterManagerException("'"+_jsonParamaters+"' in the POST body is empty");
+      throw new ClusterManagerException("'"+_jsonParameters+"' in the POST body is empty");
     }
     Map<String, String> paraMap = ClusterRepresentationUtil.JsonToMap(jsonPayload);
     if(!paraMap.containsKey(_managementCommand))

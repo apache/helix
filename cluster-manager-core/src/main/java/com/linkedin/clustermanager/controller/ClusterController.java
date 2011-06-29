@@ -176,8 +176,6 @@ public class ClusterController implements ConfigChangeListener,
         ClusterDataAccessor client = changeContext.getManager().getDataAccessor();
         List<ZNRecord> liveInstances = client.getClusterPropertyList(ClusterPropertyType.LIVEINSTANCES);
         _liveInstanceDataHolder.refresh(liveInstances);
-        _messageHolder.clear();
-        _currentStateHolder.clear();
         for (ZNRecord record : liveInstances)
         {
             String instanceName = record.getId();

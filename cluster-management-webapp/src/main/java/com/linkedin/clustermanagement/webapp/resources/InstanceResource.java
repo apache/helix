@@ -3,6 +3,7 @@ package com.linkedin.clustermanagement.webapp.resources;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.util.List;
+import java.util.Map;
 
 import org.I0Itec.zkclient.ZkClient;
 import org.codehaus.jackson.JsonGenerationException;
@@ -76,17 +77,8 @@ public class InstanceResource extends Resource
 
   StringRepresentation getInstanceRepresentation(String zkServerAddress, String clusterName, String instanceName) throws JsonGenerationException, JsonMappingException, IOException
   {
-    
-    
-    String message = "Instance " + instanceName + " Status:\n" + 
+    String message = 
       ClusterRepresentationUtil.getClusterPropertyAsString(zkServerAddress, clusterName, ClusterPropertyType.CONFIGS, instanceName, MediaType.APPLICATION_JSON);
-    
-    /*  
-    ClusterSetup setupTool = new ClusterSetup(zkServerAddress);
-    List<String> hostedEntities = setupTool.getClusterManagementTool().getDatabasesInCluster(clusterName);
-    String message = "Contents for instance " + instanceName + " in cluster " + clusterName + "\n";
-    
-    */
     
     StringRepresentation representation = new StringRepresentation(message, MediaType.APPLICATION_JSON);
 
@@ -102,7 +94,10 @@ public class InstanceResource extends Resource
       String instanceName = (String) getRequest().getAttributes().get("instanceName");
   
       Form form = new Form(entity);     
-      boolean enabled = Boolean.parseBoolean(form.getFirstValue("enabled"));
+      Map<String, String> paraMap 
+        = ClusterRepresentationUtil.getFormJsonParametersWithCommandVerified(form, ClusterRepresentationUtil._enableInstanceCommand);
+      
+      boolean enabled = Boolean.parseBoolean(paraMap.get(ClusterRepresentationUtil._enabled));
       
       ClusterSetup setupTool = new ClusterSetup(zkServer);
       setupTool.getClusterManagementTool().enableInstance(clusterName, instanceName, enabled);

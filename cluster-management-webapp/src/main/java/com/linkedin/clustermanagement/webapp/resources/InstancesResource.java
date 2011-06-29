@@ -1,8 +1,11 @@
 package com.linkedin.clustermanagement.webapp.resources;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import org.codehaus.jackson.JsonGenerationException;
+import org.codehaus.jackson.map.JsonMappingException;
 import org.restlet.Context;
 import org.restlet.data.Form;
 import org.restlet.data.MediaType;
@@ -17,12 +20,15 @@ import org.restlet.resource.Variant;
 import com.linkedin.clustermanager.core.ClusterDataAccessor;
 import com.linkedin.clustermanager.core.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.core.ClusterDataAccessor.InstanceConfigProperty;
+import com.linkedin.clustermanager.core.listeners.ClusterManagerException;
 import com.linkedin.clustermanager.model.ZNRecord;
 import com.linkedin.clustermanager.tools.ClusterSetup;
 import com.linkedin.clustermanager.util.ZNRecordUtil;
 
 public class InstancesResource extends Resource
 {
+  public static final String _instanceName = "instanceName";
+  public static final String _instanceNames = "instanceNames";
   public InstancesResource(Context context,
       Request request,
       Response response) 
@@ -71,11 +77,10 @@ public class InstancesResource extends Resource
     return presentation;
   }
   
-  StringRepresentation getInstancesRepresentation(String zkServerAddress, String clusterName)
+  StringRepresentation getInstancesRepresentation(String zkServerAddress, String clusterName) throws JsonGenerationException, JsonMappingException, IOException
   {
     ClusterSetup setupTool = new ClusterSetup(zkServerAddress);
     List<String> instances = setupTool.getClusterManagementTool().getNodeNamesInCluster(clusterName);
-    String message = "Instances in cluster "+ clusterName + "\nTotal "+ instances.size() + " instances:\n";
     
     ClusterDataAccessor accessor = ClusterRepresentationUtil.getClusterDataAccessor(zkServerAddress,  clusterName);
     List<ZNRecord> liveInstances = accessor.getClusterPropertyList(ClusterPropertyType.LIVEINSTANCES);
@@ -87,11 +92,10 @@ public class InstancesResource extends Resource
     for (String instanceName : instances)
     {
       boolean isAlive = liveInstanceMap.containsKey(instanceName);
-      String enabled = configsMap.get(instanceName).getSimpleField(InstanceConfigProperty.ENABLED.toString());
-      
-      message = message + "{ Instance : "+ instanceName + " alive: "+ isAlive +" enabled: "+ enabled +"}\n";
+      configsMap.get(instanceName).setSimpleField("Alive", isAlive+"");
     }
-    StringRepresentation representation = new StringRepresentation(message, MediaType.APPLICATION_JSON);
+    
+    StringRepresentation representation = new StringRepresentation(ClusterRepresentationUtil.ObjectToJson(instanceConfigs), MediaType.APPLICATION_JSON);
     
     return representation;
   }
@@ -104,16 +108,22 @@ public class InstancesResource extends Resource
       String clusterName = (String)getRequest().getAttributes().get("clusterName");
       
       Form form = new Form(entity);
-      String instanceName = form.getFirstValue("instanceName");
-      String instanceNames = form.getFirstValue("instanceNames");
+      
+      Map<String, String> paraMap 
+      = ClusterRepresentationUtil.getFormJsonParametersWithCommandVerified(form, ClusterRepresentationUtil._addInstanceCommand);
+      
       ClusterSetup setupTool = new ClusterSetup(zkServer);
-      if(instanceName != null)
+      if(paraMap.containsKey(_instanceName))
       {
-        setupTool.addNodeToCluster(clusterName,instanceName);
+        setupTool.addNodeToCluster(clusterName, paraMap.get(_instanceName));
       }
-      else if(instanceNames != null)
+      else if(paraMap.containsKey(_instanceNames))
       {
-        setupTool.addNodesToCluster(clusterName, instanceNames.split(";"));
+        setupTool.addNodesToCluster(clusterName, paraMap.get(_instanceNames).split(";"));
+      }
+      else
+      {
+        throw new ClusterManagerException("Json paramaters does not contain '"+_instanceName+"' or '"+_instanceNames+"' ");
       }
       
       // add cluster

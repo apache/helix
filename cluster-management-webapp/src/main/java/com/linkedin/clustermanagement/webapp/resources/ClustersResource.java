@@ -1,6 +1,10 @@
 package com.linkedin.clustermanagement.webapp.resources;
+import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
+import org.codehaus.jackson.JsonGenerationException;
+import org.codehaus.jackson.map.JsonMappingException;
 import org.restlet.Context;
 import org.restlet.data.Request;
 import org.restlet.data.Response;
@@ -19,6 +23,8 @@ import com.linkedin.clustermanager.tools.ClusterSetup;
 
 public class ClustersResource extends Resource 
 {
+  public static final String _clusterName = "clusterName";
+  
   public ClustersResource(Context context,
             Request request,
             Response response) 
@@ -60,17 +66,16 @@ public class ClustersResource extends Resource
     return presentation;
   }
   
-  StringRepresentation getClustersRepresentation()
+  StringRepresentation getClustersRepresentation() throws JsonGenerationException, JsonMappingException, IOException
   {
     String zkServer = (String)getContext().getAttributes().get("zkServer");
     ClusterSetup setupTool = new ClusterSetup(zkServer);
     List<String> clusters = setupTool.getClusterManagementTool().getClusters();
-    String message = "";
-    for (String cluster : clusters)
-    {
-      message = message + "{ ClusterName : "+ cluster + "}\n";
-    }
-    StringRepresentation representation = new StringRepresentation(message, MediaType.APPLICATION_JSON);
+
+    ZNRecord clustersRecord = new ZNRecord();
+    clustersRecord.setId("ClusterSummary");
+    clustersRecord.setListField("clusters", clusters);
+    StringRepresentation representation = new StringRepresentation(ClusterRepresentationUtil.ZNRecordToJson(clustersRecord), MediaType.APPLICATION_JSON);
     
     return representation;
   }
@@ -81,9 +86,15 @@ public class ClustersResource extends Resource
     {
       String zkServer = (String)getContext().getAttributes().get("zkServer");
       Form form = new Form(entity);
-      String clusterName = form.getFirstValue("clusterName");
+      Map<String, String> jsonParameters 
+        = ClusterRepresentationUtil.getFormJsonParametersWithCommandVerified(form, ClusterRepresentationUtil._addClusterCommand);
+      
+      if(! jsonParameters.containsKey(_clusterName))
+      {
+        throw new ClusterManagerException("Json parameters does not contain '"+ _clusterName + "'");
+      }
       ClusterSetup setupTool = new ClusterSetup(zkServer);
-      setupTool.addCluster(clusterName, false);
+      setupTool.addCluster(jsonParameters.get(_clusterName), false);
       // add cluster
       getResponse().setEntity(getClustersRepresentation());
       getResponse().setStatus(Status.SUCCESS_OK);

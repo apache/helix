@@ -45,6 +45,7 @@ public class ClusterController implements ConfigChangeListener,
     private final MessageHolder _messageHolder;
     private final Set<String> _instanceSubscriptionList;
     private final RoutingInfoProvider _routingInfoProvider;
+    private final InstanceConfigHolder _instanceConfigHolder;
 
     public ClusterController()
     {
@@ -57,9 +58,10 @@ public class ClusterController implements ConfigChangeListener,
         _liveInstanceDataHolder = new LiveInstanceDataHolder();
         _bestPossibleIdealStateCalculator = new BestPossibleIdealStateCalculator(
                 _liveInstanceDataHolder);
+        _instanceConfigHolder = new InstanceConfigHolder();
         _transitionMessageGenerator = new TransitionMessageGenerator(
                 _stateModelDefinition, _currentStateHolder, _messageHolder,
-                _liveInstanceDataHolder);
+                _liveInstanceDataHolder, _instanceConfigHolder);
     }
 
     @Override
@@ -75,9 +77,9 @@ public class ClusterController implements ConfigChangeListener,
     public void onLiveInstanceChange(List<ZNRecord> liveInstances,
             NotificationContext changeContext)
     {
-    	if(liveInstances == null){
-    		liveInstances = Collections.emptyList();
-    	}
+      if(liveInstances == null){
+        liveInstances = Collections.emptyList();
+      }
         logger.info("START: ClusterController.onLiveInstanceChange()");
         _liveInstanceDataHolder.refresh(liveInstances);
         for (ZNRecord instance : liveInstances)
@@ -114,10 +116,13 @@ public class ClusterController implements ConfigChangeListener,
     public void onConfigChange(List<ZNRecord> configs,
             NotificationContext changeContext)
     {
-    	if(configs == null){
-    		configs = Collections.emptyList();
-    	}
-        logger.info("ClusterController.onConfigChange()");
+      if(configs == null)
+      {
+        configs = Collections.emptyList();
+      }
+      _instanceConfigHolder.refresh(configs);
+      runClusterRebalanceAlgo(changeContext);
+      logger.info("ClusterController.onConfigChange()");
     }
 
     @Override

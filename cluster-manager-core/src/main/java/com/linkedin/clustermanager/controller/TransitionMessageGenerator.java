@@ -21,16 +21,19 @@ public class TransitionMessageGenerator
     private final CurrentStateHolder _currentStateHolder;
     private final MessageHolder _messageHolder;
     private final LiveInstanceDataHolder _liveInstanceDataHolder;
+    private final InstanceConfigHolder _instanceConfigHolder;
 
     public TransitionMessageGenerator(
             StateModelDefinition stateModelDefinition,
             CurrentStateHolder currentStateHolder, MessageHolder messageHolder,
-            LiveInstanceDataHolder liveInstanceDataHolder)
+            LiveInstanceDataHolder liveInstanceDataHolder,
+            InstanceConfigHolder instanceConfigHolder)
     {
         this._stateModelDefinition = stateModelDefinition;
         this._currentStateHolder = currentStateHolder;
         this._messageHolder = messageHolder;
         this._liveInstanceDataHolder = liveInstanceDataHolder;
+        this._instanceConfigHolder = instanceConfigHolder;
     }
 
     /**
@@ -54,6 +57,11 @@ public class TransitionMessageGenerator
                 {
                     logger.info(instanceName + " is down ");
                     continue;
+                }
+                else if(!_instanceConfigHolder.isEnabled(instanceName))
+                {
+                  logger.info(instanceName + " is disabled ");
+                  continue;
                 }
                 String currentState = _currentStateHolder.getState(stateUnitKey,
                         instanceName);

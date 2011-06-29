@@ -5,8 +5,11 @@ import java.util.List;
 import org.I0Itec.zkclient.ZkClient;
 import org.apache.log4j.Logger;
 
+import com.linkedin.clustermanager.core.ClusterDataAccessor;
+import com.linkedin.clustermanager.core.ClusterDataAccessor.InstanceConfigProperty;
 import com.linkedin.clustermanager.core.ClusterManagementTool;
 import com.linkedin.clustermanager.core.ClusterDataAccessor.ClusterPropertyType;
+import com.linkedin.clustermanager.core.listeners.ClusterManagerException;
 import com.linkedin.clustermanager.model.ZNRecord;
 import com.linkedin.clustermanager.util.CMUtil;
 
@@ -24,9 +27,16 @@ public class ZKClusterManagementTool implements ClusterManagementTool {
     @Override
     public void addNode(String clusterName, ZNRecord nodeConfig)
     {
-        String instanceConfigPath = CMUtil.getConfigPath(clusterName);
+        String instanceConfigsPath = CMUtil.getConfigPath(clusterName);
         String nodeId = nodeConfig.getId();
-        ZKUtil.createChildren(_zkClient, instanceConfigPath, nodeConfig);
+        String instanceConfigPath  = instanceConfigsPath+"/" + nodeId;
+        
+        if(_zkClient.exists(instanceConfigPath))
+        {
+          throw new ClusterManagerException("Node " + nodeId + " already exists in cluster "+ clusterName);
+        }
+        
+        ZKUtil.createChildren(_zkClient, instanceConfigsPath, nodeConfig);
 
         _zkClient.createPersistent(CMUtil.getMessagePath(clusterName, nodeId),
                 true);
@@ -45,8 +55,23 @@ public class ZKClusterManagementTool implements ClusterManagementTool {
 
 
 	@Override
-	public void shutdownInstance(String clusterName, String instanceName) 
+	public void enableInstance(String clusterName, String instanceName, boolean enable) 
 	{
+	  String clusterPropertyPath = CMUtil.getClusterPropertyPath(clusterName, ClusterPropertyType.CONFIGS);
+    String targetPath = clusterPropertyPath + "/" + instanceName;
+    
+    if(_zkClient.exists(targetPath))
+    {
+      ClusterDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
+      ZNRecord nodeConfig = accessor.getClusterProperty(ClusterPropertyType.CONFIGS, instanceName);
+      
+      nodeConfig.setSimpleField(InstanceConfigProperty.ENABLED.toString(), enable+"");
+      accessor.setClusterProperty(ClusterPropertyType.CONFIGS, instanceName, nodeConfig);
+    }
+    else
+    {
+      throw new ClusterManagerException("Cluster "+ clusterName + ", instance "+instanceName+" does not exist");
+    }
 	}
     @Override
     public void addCluster(String clusterName, boolean overwritePrevRecord)

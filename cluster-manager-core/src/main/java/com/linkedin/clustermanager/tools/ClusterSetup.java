@@ -417,6 +417,11 @@ public class ClusterSetup
       
       setupTool.getClusterManagementTool().enableInstance(clusterName, instanceName, enabled);
     }
+    else if(cmd.hasOption(help))
+    {
+      printUsage(cliOptions);
+      return 0;
+    }
     return 0;
   }
 

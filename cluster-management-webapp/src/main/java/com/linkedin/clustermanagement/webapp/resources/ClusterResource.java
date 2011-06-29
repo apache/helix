@@ -1,7 +1,10 @@
 package com.linkedin.clustermanagement.webapp.resources;
 
+import java.io.IOException;
 import java.util.List;
 
+import org.codehaus.jackson.JsonGenerationException;
+import org.codehaus.jackson.map.JsonMappingException;
 import org.restlet.Context;
 import org.restlet.data.MediaType;
 import org.restlet.data.Request;
@@ -13,6 +16,7 @@ import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 
 import com.linkedin.clustermanager.core.listeners.ClusterManagerException;
+import com.linkedin.clustermanager.model.ZNRecord;
 import com.linkedin.clustermanager.tools.ClusterSetup;
 
 public class ClusterResource extends Resource 
@@ -65,24 +69,19 @@ public class ClusterResource extends Resource
     return presentation;
   }
   
-  StringRepresentation getClusterRepresentation(String zkServerAddress, String clusterName)
+  StringRepresentation getClusterRepresentation(String zkServerAddress, String clusterName) throws JsonGenerationException, JsonMappingException, IOException
   {
     ClusterSetup setupTool = new ClusterSetup(zkServerAddress);
     List<String> instances = setupTool.getClusterManagementTool().getNodeNamesInCluster(clusterName);
-    String message = "Contents in cluster "+ clusterName + "\nTotal "+ instances.size() + " Instances:\n";
-    for (String instanceName : instances)
-    {
-      message = message + "{ Instance : "+ instanceName + "}\n";
-    }
+    
+    ZNRecord clusterSummayRecord = new ZNRecord();
+    clusterSummayRecord.setId("cluster summary");
+    clusterSummayRecord.setListField("intances", instances);
     
     List<String> hostedEntities = setupTool.getClusterManagementTool().getDatabasesInCluster(clusterName);
     
-    message += "\nTotal "+ hostedEntities.size() + " hosted entities:\n";
-    for (String hostedEntityName : hostedEntities)
-    {
-      message = message + "{ HostedEntity : "+ hostedEntityName + "}\n";
-    }
-    StringRepresentation representation = new StringRepresentation(message, MediaType.APPLICATION_JSON);
+    clusterSummayRecord.setListField("hostedEntities", hostedEntities);
+    StringRepresentation representation = new StringRepresentation(ClusterRepresentationUtil.ZNRecordToJson(clusterSummayRecord), MediaType.APPLICATION_JSON);
     
     return representation;
   }

@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.List;
+import java.util.Map;
 
 import org.I0Itec.zkclient.ZkClient;
 import org.codehaus.jackson.JsonGenerationException;
@@ -23,6 +24,7 @@ import org.restlet.resource.Variant;
 
 import com.linkedin.clustermanager.core.ClusterDataAccessor;
 import com.linkedin.clustermanager.core.ClusterDataAccessor.ClusterPropertyType;
+import com.linkedin.clustermanager.core.listeners.ClusterManagerException;
 import com.linkedin.clustermanager.impl.zk.ZKDataAccessor;
 import com.linkedin.clustermanager.impl.zk.ZNRecordSerializer;
 import com.linkedin.clustermanager.model.ZNRecord;
@@ -81,8 +83,7 @@ public class IdealStateResource extends Resource
   
   StringRepresentation getIdealStateRepresentation(String zkServerAddress, String clusterName, String entityId) throws JsonGenerationException, JsonMappingException, IOException
   {
-    String message = "Ideal state for entity " + entityId + " in cluster "+ clusterName + "\n";
-    message += ClusterRepresentationUtil.getClusterPropertyAsString(zkServerAddress, clusterName, ClusterPropertyType.IDEALSTATES, entityId, MediaType.APPLICATION_JSON);
+    String message = ClusterRepresentationUtil.getClusterPropertyAsString(zkServerAddress, clusterName, ClusterPropertyType.IDEALSTATES, entityId, MediaType.APPLICATION_JSON);
     
     StringRepresentation representation = new StringRepresentation(message, MediaType.APPLICATION_JSON);
     
@@ -98,16 +99,13 @@ public class IdealStateResource extends Resource
       String entityId = (String)getRequest().getAttributes().get("entityId");
       
       Form form = new Form(entity);
-     
-      if(!form.getFirstValue("replicas", "").equalsIgnoreCase(""))
+      
+      Map<String, String> paraMap 
+      = ClusterRepresentationUtil.getFormJsonParameters(form);
+        
+      if(paraMap.get(ClusterRepresentationUtil._managementCommand).equalsIgnoreCase(ClusterRepresentationUtil._alterIdealStateCommand))
       {
-        int replicas = Integer.parseInt(form.getFirstValue("replicas"));
-        ClusterSetup setupTool = new ClusterSetup(zkServer);
-        setupTool.rebalanceStorageCluster(clusterName, entityId, replicas);
-      }
-      else if(!form.getFirstValue("newIdealState", "").equalsIgnoreCase(""))
-      {
-        String newIdealStateString = form.getFirstValue("newIdealState", "");
+        String newIdealStateString = form.getFirstValue(ClusterRepresentationUtil._newIdealState, true);
         
         ObjectMapper mapper = new ObjectMapper();
         ZNRecord newIdealState = mapper.readValue(new StringReader(newIdealStateString),
@@ -117,6 +115,17 @@ public class IdealStateResource extends Resource
         accessor.removeClusterProperty(ClusterPropertyType.IDEALSTATES, entityId);
         
         accessor.setClusterProperty(ClusterPropertyType.IDEALSTATES, entityId, newIdealState);
+        
+      }
+      else if(paraMap.get(ClusterRepresentationUtil._managementCommand).equalsIgnoreCase(ClusterRepresentationUtil._rebalanceCommand))
+      {
+        int replicas = Integer.parseInt(paraMap.get("replicas"));
+        ClusterSetup setupTool = new ClusterSetup(zkServer);
+        setupTool.rebalanceStorageCluster(clusterName, entityId, replicas);
+      }
+      else
+      {
+        new ClusterManagerException("Missing '"+ ClusterRepresentationUtil._alterIdealStateCommand+"' or '"+ClusterRepresentationUtil._rebalanceCommand+"' command");
       }
       getResponse().setEntity(getIdealStateRepresentation(zkServer, clusterName, entityId));
       getResponse().setStatus(Status.SUCCESS_OK);

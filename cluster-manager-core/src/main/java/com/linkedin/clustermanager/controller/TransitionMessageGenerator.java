@@ -55,7 +55,7 @@ public class TransitionMessageGenerator
             {
                 if (!_liveInstanceDataHolder.isAlive(instanceName))
                 {
-                    logger.info(instanceName + " is down ");
+                    //logger.info(instanceName + " is down ");
                     continue;
                 }
                 else if(!_instanceConfigHolder.isEnabled(instanceName))
@@ -89,7 +89,7 @@ public class TransitionMessageGenerator
                            desiredState.equalsIgnoreCase(pendingState))
                     {
                         logger.info("Message already exists to transition from "
-                                + currentState + " to " + desiredState);
+                                + currentState + " to " + desiredState + " for "+ stateUnitKey);
                     }
                     else
                     {

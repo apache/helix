@@ -9,6 +9,7 @@ import org.I0Itec.zkclient.ZkClient;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.Watcher.Event.EventType;
+import org.apache.zookeeper.Watcher.Event.KeeperState;
 
 import com.linkedin.clustermanager.core.CMConstants;
 import com.linkedin.clustermanager.core.ClusterDataAccessor;
@@ -211,6 +212,8 @@ public class ZKClusterManager implements ClusterManager {
 		while (retryCount < RETRY_LIMIT) {
 			try {
 				client.waitUntilConnected(sessionTimeout, TimeUnit.MILLISECONDS);
+				_zkStateChangeListener.handleNewSession();
+				_zkStateChangeListener.handleStateChanged(KeeperState.SyncConnected);
 				break;
 			} catch (Exception e) {
 				retryCount++;
@@ -220,6 +223,7 @@ public class ZKClusterManager implements ClusterManager {
 				}
 			}
 		}
+		
 		return client;
 	}
 

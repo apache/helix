@@ -141,7 +141,10 @@ public class ZNRecord
      */
     public void merge(ZNRecord record)
     {
-
+    	this.simpleFields.putAll(record.simpleFields);
+    	this.mapFields.putAll(record.mapFields);
+    	this.listFields.putAll(record.listFields);
+    	
     }
 
     public ZNRecord extract(String key)

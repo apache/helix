@@ -139,7 +139,7 @@ public class CMTaskHandler implements Callable<CMTaskResult> {
 				}
 				map.put(Message.Attributes.STATE_UNIT_GROUP.toString(),
 						_message.getStateUnitGroup());
-				accessor.setInstanceProperty(instanceName,
+				accessor.updateInstanceProperty(instanceName,
 						InstancePropertyType.CURRENTSTATES, stateUnitKey,
 						currentState);
 				accessor.removeInstanceProperty(instanceName,

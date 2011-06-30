@@ -125,7 +125,7 @@
 					<descriptorRefs>
 						<descriptorRef>jar-with-dependencies</descriptorRef>
 					</descriptorRefs>
-					<finalName>cluster-manager-launch</finalName>
+					<finalName>cluster-manager-launch-${project.version}</finalName>
 					<appendAssemblyId>false</appendAssemblyId>
 				</configuration>
 			</plugin>

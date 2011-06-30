@@ -129,7 +129,64 @@
 					<appendAssemblyId>false</appendAssemblyId>
 				</configuration>
 			</plugin>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>appassembler-maven-plugin</artifactId>
+				<version>1.1.1</version>
+				<configuration>
+					<daemons>
+						<daemon>
+							<id>cluster-manager</id>
+							<mainClass>com.linkedin.clustermanager.controller.ClusterManagerMain</mainClass>
+							<commandLineArguments>
+								<commandLineArgument>start</commandLineArgument>
+							</commandLineArguments>
+							<platforms>
+								<platform>jsw</platform>
+							</platforms>
+						</daemon>
+					</daemons>
+					<!-- Set the target configuration directory to be used in the bin scripts -->
+					<!-- <configurationDirectory>conf</configurationDirectory> -->
+					<!-- Copy the contents from "/src/main/config" to the target configuration 
+						directory in the assembled application -->
+					<!-- <copyConfigurationDirectory>true</copyConfigurationDirectory> -->
+					<!-- Include the target configuration directory in the beginning of 
+						the classpath declaration in the bin scripts -->
+					<!-- <includeConfigurationDirectoryInClasspath>true</includeConfigurationDirectoryInClasspath> -->
+					<!-- prefix all bin files with "mycompany" -->
+					<!-- <binPrefix>mycompany</binPrefix> -->
+					<!-- set alternative assemble directory -->
+					<assembleDirectory>${project.build.directory}/cluster-manager-pkg</assembleDirectory>
+					<!-- Extra JVM arguments that will be included in the bin scripts -->
+					<extraJvmArguments>-Xms512m -Xmx512m</extraJvmArguments>
+					<!-- Generate bin scripts for windows and unix pr default -->
+					<platforms>
+						<platform>windows</platform>
+						<platform>unix</platform>
+					</platforms>
+					<programs>
+						<program>
+							<mainClass>com.linkedin.clustermanager.controller.ClusterManagerMain</mainClass>
+							<name>run-cluster-manager</name>
+						</program>
+						<program>
+							<mainClass>com.linkedin.clustermanager.tools.ClusterSetup</mainClass>
+							<name>cluster-admin</name>
+						</program>
+					</programs>
+				</configuration>
+				<executions>
+					<execution>
+						<id>generate-jsw-scripts</id>
+						<phase>package</phase>
+						<goals>
+							<goal>generate-daemons</goal>
+						</goals>
+					</execution>
+				</executions>
 
+			</plugin>
 		</plugins>
 	</build>
 	<reporting>

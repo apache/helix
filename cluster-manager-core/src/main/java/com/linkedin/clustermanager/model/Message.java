@@ -1,5 +1,7 @@
 package com.linkedin.clustermanager.model;
 
+import com.linkedin.clustermanager.ZNRecord;
+
 
 
 /**

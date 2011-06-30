@@ -2,7 +2,7 @@ package com.linkedin.clustermanager.controller;
 
 import java.util.Map;
 
-import com.linkedin.clustermanager.core.NotificationContext;
+import com.linkedin.clustermanager.NotificationContext;
 import com.linkedin.clustermanager.model.IdealState;
 
 public class BestPossibleIdealStateCalculator

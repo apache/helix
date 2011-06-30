@@ -18,8 +18,7 @@ import org.testng.Assert;
 import org.testng.annotations.*;
 
 
-import com.linkedin.clustermanager.controller.IdealStateCalculatorByShuffling;
-import com.linkedin.clustermanager.model.ZNRecord;
+import com.linkedin.clustermanager.tools.IdealStateCalculatorByShuffling;
 
 public class TestShuffledIdealState 
 {

@@ -5,8 +5,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.linkedin.clustermanager.core.CMConstants.ZNAttribute;
-import com.linkedin.clustermanager.model.ZNRecord;
+import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.CMConstants.ZNAttribute;
 
 public class CurrentStateHolder
 {

@@ -9,9 +9,8 @@ import org.testng.annotations.Test;
 import com.linkedin.clustermanager.Mocks.MockManager;
 import com.linkedin.clustermanager.Mocks.MockStateModel;
 import com.linkedin.clustermanager.Mocks.MockStateModelAnnotated;
-import com.linkedin.clustermanager.core.NotificationContext;
 import com.linkedin.clustermanager.model.Message;
-import com.linkedin.clustermanager.statemachine.CMTaskHandler;
+import com.linkedin.clustermanager.participant.statemachine.CMTaskHandler;
 
 public class TestCMTaskHandler
 {

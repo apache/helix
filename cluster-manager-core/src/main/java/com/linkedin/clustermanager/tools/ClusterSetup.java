@@ -18,15 +18,14 @@ import org.apache.log4j.Logger;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 
-import com.linkedin.clustermanager.controller.IdealStateCalculatorByShuffling;
-import com.linkedin.clustermanager.core.ClusterDataAccessor.InstanceConfigProperty;
-import com.linkedin.clustermanager.core.ClusterManagementTool;
-import com.linkedin.clustermanager.core.listeners.ClusterManagerException;
-import com.linkedin.clustermanager.impl.file.FileBasedClusterManager;
-import com.linkedin.clustermanager.impl.zk.ZKClusterManagementTool;
-import com.linkedin.clustermanager.impl.zk.ZNRecordSerializer;
-import com.linkedin.clustermanager.model.ClusterView;
-import com.linkedin.clustermanager.model.ZNRecord;
+import com.linkedin.clustermanager.ClusterManagementService;
+import com.linkedin.clustermanager.ClusterManagerException;
+import com.linkedin.clustermanager.ClusterView;
+import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.ClusterDataAccessor.InstanceConfigProperty;
+import com.linkedin.clustermanager.agent.file.FileBasedClusterManager;
+import com.linkedin.clustermanager.agent.zk.ZKClusterManagementTool;
+import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
 
 public class ClusterSetup
 {
@@ -67,7 +66,7 @@ public class ClusterSetup
 
   public void addCluster(String clusterName, boolean overwritePrevious)
   {
-    ClusterManagementTool managementTool = getClusterManagementTool();
+    ClusterManagementService managementTool = getClusterManagementTool();
     managementTool.addCluster(clusterName, overwritePrevious);
   }
 
@@ -101,7 +100,7 @@ public class ClusterSetup
 
   public void addNodeToCluster(String clusterName, String host, int port)
   {
-    ClusterManagementTool managementTool = getClusterManagementTool();
+    ClusterManagementService managementTool = getClusterManagementTool();
 
     ZNRecord nodeConfig = new ZNRecord();
     String nodeId = host + "_" + port;
@@ -113,7 +112,7 @@ public class ClusterSetup
     managementTool.addNode(clusterName, nodeConfig);
   }
 
-  public ClusterManagementTool getClusterManagementTool()
+  public ClusterManagementService getClusterManagementTool()
   {
     ZkClient zkClient = new ZkClient(_zkServerAddress);
     zkClient.setZkSerializer(new ZNRecordSerializer());
@@ -123,13 +122,13 @@ public class ClusterSetup
 
   public void addDatabaseToCluster(String clusterName, String dbName, int partitions)
   {
-    ClusterManagementTool managementTool = getClusterManagementTool();
+    ClusterManagementService managementTool = getClusterManagementTool();
     managementTool.addDatabase(clusterName, dbName, partitions);
   }
 
   public void rebalanceStorageCluster(String clusterName, String dbName, int replica)
   {
-    ClusterManagementTool managementTool = getClusterManagementTool();
+    ClusterManagementService managementTool = getClusterManagementTool();
     List<String> nodeNames = managementTool.getNodeNamesInCluster(clusterName);
 
     ZNRecord dbIdealState = managementTool.getDBIdealState(clusterName, dbName);

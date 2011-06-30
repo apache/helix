@@ -9,8 +9,8 @@ import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
 
-import com.linkedin.clustermanager.impl.zk.CallbackHandler;
-import com.linkedin.clustermanager.impl.zk.ZKDataAccessor;
+import com.linkedin.clustermanager.agent.zk.CallbackHandler;
+import com.linkedin.clustermanager.agent.zk.ZKDataAccessor;
 
 /**
  * 

@@ -11,11 +11,10 @@ import org.testng.annotations.*;
 import com.linkedin.clustermanager.Mocks.MockCMTaskExecutor;
 import com.linkedin.clustermanager.Mocks.MockManager;
 import com.linkedin.clustermanager.Mocks.MockStateModel;
-import com.linkedin.clustermanager.core.NotificationContext;
 import com.linkedin.clustermanager.model.Message;
-import com.linkedin.clustermanager.statemachine.CMTaskExecutor;
-import com.linkedin.clustermanager.statemachine.CMTaskHandler;
-import com.linkedin.clustermanager.statemachine.StateModel;
+import com.linkedin.clustermanager.participant.statemachine.CMTaskExecutor;
+import com.linkedin.clustermanager.participant.statemachine.CMTaskHandler;
+import com.linkedin.clustermanager.participant.statemachine.StateModel;
 
 public class TestCMTaskExecutor 
 {

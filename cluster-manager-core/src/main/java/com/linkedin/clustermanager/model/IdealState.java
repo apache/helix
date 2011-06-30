@@ -6,6 +6,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+import com.linkedin.clustermanager.ZNRecord;
+
 
 public class IdealState
 {

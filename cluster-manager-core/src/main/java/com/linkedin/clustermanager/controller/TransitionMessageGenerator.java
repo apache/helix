@@ -9,10 +9,10 @@ import java.util.UUID;
 
 import org.apache.log4j.Logger;
 
+import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.model.IdealState;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.StateModelDefinition;
-import com.linkedin.clustermanager.model.ZNRecord;
 
 public class TransitionMessageGenerator
 {

@@ -4,8 +4,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import com.linkedin.clustermanager.core.ClusterDataAccessor.InstanceConfigProperty;
-import com.linkedin.clustermanager.model.ZNRecord;
+import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.ClusterDataAccessor.InstanceConfigProperty;
 
 public class InstanceConfigHolder
 {

@@ -9,8 +9,8 @@ import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
-import com.linkedin.clustermanager.core.ClusterManager;
-import com.linkedin.clustermanager.core.ClusterManagerFactory;
+import com.linkedin.clustermanager.ClusterManager;
+import com.linkedin.clustermanager.ClusterManagerFactory;
 import com.linkedin.clustermanager.tools.ClusterSetup;
 
 public class ClusterManagerMain

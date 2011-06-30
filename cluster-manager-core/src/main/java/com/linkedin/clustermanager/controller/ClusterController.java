@@ -9,21 +9,21 @@ import java.util.Set;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.clustermanager.core.CMConstants;
-import com.linkedin.clustermanager.core.ClusterDataAccessor;
-import com.linkedin.clustermanager.core.NotificationContext;
-import com.linkedin.clustermanager.core.ClusterDataAccessor.ClusterPropertyType;
-import com.linkedin.clustermanager.core.ClusterDataAccessor.InstancePropertyType;
-import com.linkedin.clustermanager.core.listeners.ConfigChangeListener;
-import com.linkedin.clustermanager.core.listeners.CurrentStateChangeListener;
-import com.linkedin.clustermanager.core.listeners.ExternalViewChangeListener;
-import com.linkedin.clustermanager.core.listeners.IdealStateChangeListener;
-import com.linkedin.clustermanager.core.listeners.LiveInstanceChangeListener;
-import com.linkedin.clustermanager.core.listeners.MessageListener;
+import com.linkedin.clustermanager.CMConstants;
+import com.linkedin.clustermanager.ClusterDataAccessor;
+import com.linkedin.clustermanager.ConfigChangeListener;
+import com.linkedin.clustermanager.CurrentStateChangeListener;
+import com.linkedin.clustermanager.ExternalViewChangeListener;
+import com.linkedin.clustermanager.IdealStateChangeListener;
+import com.linkedin.clustermanager.LiveInstanceChangeListener;
+import com.linkedin.clustermanager.MessageListener;
+import com.linkedin.clustermanager.NotificationContext;
+import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
+import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.model.IdealState;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.StateModelDefinition;
-import com.linkedin.clustermanager.model.ZNRecord;
 
 /**
  * Cluster Controllers main goal is to keep the cluster state as close as
@@ -44,7 +44,7 @@ public class ClusterController implements ConfigChangeListener,
     private final LiveInstanceDataHolder _liveInstanceDataHolder;
     private final MessageHolder _messageHolder;
     private final Set<String> _instanceSubscriptionList;
-    private final RoutingInfoProvider _routingInfoProvider;
+    private final ExternalViewGenerator _routingInfoProvider;
     private final InstanceConfigHolder _instanceConfigHolder;
 
     public ClusterController()
@@ -53,7 +53,7 @@ public class ClusterController implements ConfigChangeListener,
         _currentStateHolder = new CurrentStateHolder();
         _stateModelDefinition = new StorageStateModelDefinition();
         _instanceSubscriptionList = new HashSet<String>();
-        _routingInfoProvider = new RoutingInfoProvider();
+        _routingInfoProvider = new ExternalViewGenerator();
         _messageHolder = new MessageHolder();
         _liveInstanceDataHolder = new LiveInstanceDataHolder();
         _bestPossibleIdealStateCalculator = new BestPossibleIdealStateCalculator(

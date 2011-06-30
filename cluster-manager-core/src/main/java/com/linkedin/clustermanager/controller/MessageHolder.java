@@ -4,8 +4,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.model.Message;
-import com.linkedin.clustermanager.model.ZNRecord;
 
 /**
  * Holds the state to which the instance might go to if the task[i.e message] is

@@ -16,21 +16,10 @@ import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
 
-import com.linkedin.clustermanager.core.ClusterDataAccessor;
-import com.linkedin.clustermanager.core.ClusterManager;
-import com.linkedin.clustermanager.core.ClusterManagerFactory;
-import com.linkedin.clustermanager.core.NotificationContext;
-import com.linkedin.clustermanager.core.CMConstants.ZNAttribute;
-import com.linkedin.clustermanager.core.ClusterDataAccessor.ClusterPropertyType;
-import com.linkedin.clustermanager.core.ClusterDataAccessor.InstancePropertyType;
-import com.linkedin.clustermanager.core.listeners.ConfigChangeListener;
-import com.linkedin.clustermanager.core.listeners.CurrentStateChangeListener;
-import com.linkedin.clustermanager.core.listeners.ExternalViewChangeListener;
-import com.linkedin.clustermanager.core.listeners.IdealStateChangeListener;
-import com.linkedin.clustermanager.core.listeners.LiveInstanceChangeListener;
-import com.linkedin.clustermanager.core.listeners.MessageListener;
+import com.linkedin.clustermanager.CMConstants.ZNAttribute;
+import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
+import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.model.Message;
-import com.linkedin.clustermanager.model.ZNRecord;
 import com.linkedin.clustermanager.tools.ClusterSetup;
 
 public class TestZKCallback 

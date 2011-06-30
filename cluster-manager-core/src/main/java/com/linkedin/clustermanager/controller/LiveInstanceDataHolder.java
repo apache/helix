@@ -3,10 +3,10 @@ package com.linkedin.clustermanager.controller;
 import java.util.List;
 import java.util.Map;
 
-import com.linkedin.clustermanager.model.ZNRecord;
+import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.util.ZNRecordUtil;
 
-import static com.linkedin.clustermanager.core.CMConstants.ZNAttribute.*;
+import static com.linkedin.clustermanager.CMConstants.ZNAttribute.*;
 
 public class LiveInstanceDataHolder
 {

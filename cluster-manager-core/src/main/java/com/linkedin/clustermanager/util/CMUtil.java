@@ -1,7 +1,7 @@
 package com.linkedin.clustermanager.util;
 
-import com.linkedin.clustermanager.core.ClusterDataAccessor.ClusterPropertyType;
-import com.linkedin.clustermanager.core.ClusterDataAccessor.InstancePropertyType;
+import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
+import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 
 public final class CMUtil
 {

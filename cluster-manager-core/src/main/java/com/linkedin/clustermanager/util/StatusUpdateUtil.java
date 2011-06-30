@@ -5,10 +5,10 @@ import java.util.Date;
 
 import org.apache.zookeeper.CreateMode;
 
-import com.linkedin.clustermanager.core.ClusterDataAccessor;
-import com.linkedin.clustermanager.core.ClusterDataAccessor.InstancePropertyType;
+import com.linkedin.clustermanager.ClusterDataAccessor;
+import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.model.Message;
-import com.linkedin.clustermanager.model.ZNRecord;
 /**
  * Util class to create statusUpdates ZK records and error ZK records. These message records are
  * for diagnostics only, and they are stored on the "StatusUpdates" and "errors" ZNodes in the 

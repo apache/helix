@@ -13,8 +13,8 @@ import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.SerializationConfig;
 
-import com.linkedin.clustermanager.impl.file.FileBasedClusterManager;
-import com.linkedin.clustermanager.model.ClusterView;
+import com.linkedin.clustermanager.ClusterView;
+import com.linkedin.clustermanager.agent.file.FileBasedClusterManager;
 
 public class ClusterViewSerializer
 {

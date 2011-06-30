@@ -3,23 +3,12 @@ package com.linkedin.clustermanager;
 import java.util.List;
 import java.util.concurrent.Future;
 
-import com.linkedin.clustermanager.core.ClusterDataAccessor;
-import com.linkedin.clustermanager.core.ClusterManager;
-import com.linkedin.clustermanager.core.NotificationContext;
-import com.linkedin.clustermanager.core.listeners.ConfigChangeListener;
-import com.linkedin.clustermanager.core.listeners.CurrentStateChangeListener;
-import com.linkedin.clustermanager.core.listeners.ExternalViewChangeListener;
-import com.linkedin.clustermanager.core.listeners.IdealStateChangeListener;
-import com.linkedin.clustermanager.core.listeners.LiveInstanceChangeListener;
-import com.linkedin.clustermanager.core.listeners.MessageListener;
-import com.linkedin.clustermanager.model.ClusterView;
 import com.linkedin.clustermanager.model.Message;
-import com.linkedin.clustermanager.model.ZNRecord;
-import com.linkedin.clustermanager.statemachine.CMTaskExecutor;
-import com.linkedin.clustermanager.statemachine.CMTaskResult;
-import com.linkedin.clustermanager.statemachine.StateModel;
-import com.linkedin.clustermanager.statemachine.StateModelInfo;
-import com.linkedin.clustermanager.statemachine.Transition;
+import com.linkedin.clustermanager.participant.statemachine.CMTaskExecutor;
+import com.linkedin.clustermanager.participant.statemachine.CMTaskResult;
+import com.linkedin.clustermanager.participant.statemachine.StateModel;
+import com.linkedin.clustermanager.participant.statemachine.StateModelInfo;
+import com.linkedin.clustermanager.participant.statemachine.Transition;
 
 public class Mocks
 {

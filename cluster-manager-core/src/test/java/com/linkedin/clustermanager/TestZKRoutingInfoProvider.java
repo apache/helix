@@ -12,12 +12,10 @@ import org.I0Itec.zkclient.ZkClient;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
-import com.linkedin.clustermanager.controller.RoutingInfoProvider;
-import com.linkedin.clustermanager.core.CMConstants;
-import com.linkedin.clustermanager.impl.zk.ZKUtil;
-import com.linkedin.clustermanager.impl.zk.ZNRecordSerializer;
+import com.linkedin.clustermanager.agent.zk.ZKUtil;
+import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
+import com.linkedin.clustermanager.controller.ExternalViewGenerator;
 import com.linkedin.clustermanager.model.Message;
-import com.linkedin.clustermanager.model.ZNRecord;
 import com.linkedin.clustermanager.util.CMUtil;
 
 public class TestZKRoutingInfoProvider
@@ -162,7 +160,7 @@ public class TestZKRoutingInfoProvider
     }
     Map<String, List<ZNRecord>> currentStates =
         createCurrentStates(dbNames, nodeNames, partitions, replicas);
-    RoutingInfoProvider provider = new RoutingInfoProvider();
+    ExternalViewGenerator provider = new ExternalViewGenerator();
 
     List<ZNRecord> mockIdealStates = new ArrayList<ZNRecord>();
     for (String dbName : dbNames)

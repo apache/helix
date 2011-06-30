@@ -17,14 +17,14 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.log4j.Logger;
 
-import com.linkedin.clustermanager.core.CMConstants;
-import com.linkedin.clustermanager.core.ClusterDataAccessor.ClusterPropertyType;
-import com.linkedin.clustermanager.impl.file.FileBasedClusterManager;
-import com.linkedin.clustermanager.impl.zk.ZNRecordSerializer;
-import com.linkedin.clustermanager.model.ClusterView;
-import com.linkedin.clustermanager.model.ZNRecord;
-import com.linkedin.clustermanager.statemachine.StateModel;
-import com.linkedin.clustermanager.statemachine.StateModelFactory;
+import com.linkedin.clustermanager.CMConstants;
+import com.linkedin.clustermanager.ClusterView;
+import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
+import com.linkedin.clustermanager.agent.file.FileBasedClusterManager;
+import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
+import com.linkedin.clustermanager.participant.statemachine.StateModel;
+import com.linkedin.clustermanager.participant.statemachine.StateModelFactory;
 import com.linkedin.clustermanager.util.CMUtil;
 
 public class ClusterStateVerifier

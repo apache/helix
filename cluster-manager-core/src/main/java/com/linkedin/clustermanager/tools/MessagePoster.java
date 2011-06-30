@@ -4,10 +4,10 @@ import java.io.StringWriter;
 
 import org.I0Itec.zkclient.ZkClient;
 
-import com.linkedin.clustermanager.core.CMConstants;
-import com.linkedin.clustermanager.impl.zk.ZNRecordSerializer;
+import com.linkedin.clustermanager.CMConstants;
+import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
 import com.linkedin.clustermanager.model.Message;
-import com.linkedin.clustermanager.model.ZNRecord;
 import com.linkedin.clustermanager.util.CMUtil;
 
 public class MessagePoster

@@ -16,7 +16,8 @@ import com.linkedin.clustermanager.participant.statemachine.StateModel;
 import com.linkedin.clustermanager.participant.statemachine.StateModelFactory;
 import com.linkedin.clustermanager.util.StatusUpdateUtil;
 
-public class StateMachineEngine<T extends StateModel> implements MessageListener
+public class StateMachineEngine<T extends StateModel> implements
+    MessageListener
 {
   private static Logger logger = Logger.getLogger(StateMachineEngine.class);
   private final StateModelFactory<T> _stateModelFactory;
@@ -46,9 +47,10 @@ public class StateMachineEngine<T extends StateModel> implements MessageListener
     // lookup statetabel for the to and from and invoke the corresponding
     // method on the statemodel
     // after completion/error update the zk state
-    if(messages ==null || messages.size()==0){
-        logger.info("No Messages to process");
-        return;
+    if (messages == null || messages.size() == 0)
+    {
+      logger.info("No Messages to process");
+      return;
     }
     for (ZNRecord temp : messages)
     {
@@ -78,7 +80,7 @@ public class StateMachineEngine<T extends StateModel> implements MessageListener
           {
             System.err.println("ID=" + message.getId());
             String stateUnitKey = message.getStateUnitKey();
-//            StateModel stateModel;
+            // StateModel stateModel;
             T stateModel = _stateModelFactory.getStateModel(stateUnitKey);
             if (stateModel == null)
             {
@@ -87,52 +89,38 @@ public class StateMachineEngine<T extends StateModel> implements MessageListener
             }
             // update msgState to read
             message.setMsgState("read");
-            
-            _statusUpdateUtil.logInfo(
-                message, 
-                StateMachineEngine.class, 
-                "Message get read",
-                client
-                );
-            
-            client.updateInstanceProperty(instanceName, InstancePropertyType.MESSAGES, message.getId(), message);
+
+            _statusUpdateUtil.logInfo(message, StateMachineEngine.class,
+                "Message get read", client);
+
+            client.updateInstanceProperty(instanceName,
+                InstancePropertyType.MESSAGES, message.getId(), message);
             _taskExecutor.executeTask(message, stateModel, changeContext);
-            
+
           } else
           {
             logger.trace("Message already processed" + message.getMsgId());
-            _statusUpdateUtil.logInfo(
-                message, 
-                StateMachineEngine.class, 
-                "Message already read",
-                client
-                );
+            _statusUpdateUtil.logInfo(message, StateMachineEngine.class,
+                "Message already read", client);
           }
 
         } else
         {
-          String warningMessage = "Session Id does not match.  current session id  Expected: " + sessionId
-          + " sessionId from Message: " + tgtSessionId;
+          String warningMessage = "Session Id does not match.  current session id  Expected: "
+              + sessionId + " sessionId from Message: " + tgtSessionId;
           logger.warn(warningMessage);
-          
-          _statusUpdateUtil.logWarning(
-              message, 
-              StateMachineEngine.class, 
-              warningMessage,
-              client
-              );
+
+          _statusUpdateUtil.logWarning(message, StateMachineEngine.class,
+              warningMessage, client);
         }
       } else
       {
-        String warningMessage = "Invalid message format.Must be of type Message:" + record.getClass();
+        String warningMessage = "Invalid message format.Must be of type Message:"
+            + record.getClass();
         logger.warn(warningMessage);
-        
-        _statusUpdateUtil.logWarning(
-            record, 
-            StateMachineEngine.class, 
-            warningMessage,
-            client
-            );
+
+        _statusUpdateUtil.logWarning(record, StateMachineEngine.class,
+            warningMessage, client);
       }
     }
 

@@ -42,7 +42,8 @@ public class DummyProcess
 
   private String _file = null;
 
-  public DummyProcess(String zkConnectString, String clusterName, String instanceName, String file)
+  public DummyProcess(String zkConnectString, String clusterName,
+      String instanceName, String file)
   {
     this.zkConnectString = zkConnectString;
     this.clusterName = clusterName;
@@ -53,11 +54,11 @@ public class DummyProcess
   public void start() throws Exception
   {
     if (_file == null)
-      manager = ClusterManagerFactory.getZKBasedManagerForParticipant(clusterName, instanceName,
-          zkConnectString);
+      manager = ClusterManagerFactory.getZKBasedManagerForParticipant(
+          clusterName, instanceName, zkConnectString);
     else
-      manager = ClusterManagerFactory.getFileBasedManagerForParticipant(clusterName, instanceName,
-          _file);
+      manager = ClusterManagerFactory.getFileBasedManagerForParticipant(
+          clusterName, instanceName, _file);
 
     stateModelFactory = new DummyStateModelFactory();
     genericStateMachineHandler = new StateMachineEngine(stateModelFactory);
@@ -65,7 +66,8 @@ public class DummyProcess
 
     if (_file != null)
     {
-      ClusterStateVerifier.VerifyFileBasedClusterStates(_file, instanceName, stateModelFactory);
+      ClusterStateVerifier.VerifyFileBasedClusterStates(_file, instanceName,
+          stateModelFactory);
 
     }
   }
@@ -82,25 +84,29 @@ public class DummyProcess
 
   public static class DummyStateModel extends StateModel
   {
-    public void onBecomeSlaveFromOffline(Message message, NotificationContext context)
+    public void onBecomeSlaveFromOffline(Message message,
+        NotificationContext context)
     {
 
       System.out.println("DummyStateModel.onBecomeSlaveFromOffline()");
     }
 
-    public void onBecomeSlaveFromMaster(Message message, NotificationContext context)
+    public void onBecomeSlaveFromMaster(Message message,
+        NotificationContext context)
     {
       System.out.println("DummyStateModel.onBecomeSlaveFromMaster()");
 
     }
 
-    public void onBecomeMasterFromSlave(Message message, NotificationContext context)
+    public void onBecomeMasterFromSlave(Message message,
+        NotificationContext context)
     {
       System.out.println("DummyStateModel.onBecomeMasterFromSlave()");
 
     }
 
-    public void onBecomeOfflineFromSlave(Message message, NotificationContext context)
+    public void onBecomeOfflineFromSlave(Message message,
+        NotificationContext context)
     {
       System.out.println("DummyStateModel.onBecomeOfflineFromSlave()");
 
@@ -125,14 +131,14 @@ public class DummyProcess
     clusterOption.setRequired(true);
     clusterOption.setArgName("Cluster name (Required)");
 
-    Option hostOption = OptionBuilder.withLongOpt(hostAddress).withDescription("Provide host name")
-        .create();
+    Option hostOption = OptionBuilder.withLongOpt(hostAddress)
+        .withDescription("Provide host name").create();
     hostOption.setArgs(1);
     hostOption.setRequired(true);
     hostOption.setArgName("Host name (Required)");
 
-    Option portOption = OptionBuilder.withLongOpt(hostPort).withDescription("Provide host port")
-        .create();
+    Option portOption = OptionBuilder.withLongOpt(hostPort)
+        .withDescription("Provide host port").create();
     portOption.setArgs(1);
     portOption.setRequired(true);
     portOption.setArgName("Host port (Required)");
@@ -166,7 +172,8 @@ public class DummyProcess
     helpFormatter.printHelp("java " + ClusterSetup.class.getName(), cliOptions);
   }
 
-  public static CommandLine processCommandLineArgs(String[] cliArgs) throws Exception
+  public static CommandLine processCommandLineArgs(String[] cliArgs)
+      throws Exception
   {
     CommandLineParser cliParser = new GnuParser();
     Options cliOptions = constructCommandLineOptions();
@@ -177,8 +184,9 @@ public class DummyProcess
       return cliParser.parse(cliOptions, cliArgs);
     } catch (ParseException pe)
     {
-      System.err.println("CommandLineClient: failed to parse command-line options: "
-          + pe.toString());
+      System.err
+          .println("CommandLineClient: failed to parse command-line options: "
+              + pe.toString());
       printUsage(cliOptions);
       System.exit(1);
     }
@@ -218,7 +226,8 @@ public class DummyProcess
     // Espresso_driver.py will consume this
     System.out.println("Dummy process started");
 
-    DummyProcess process = new DummyProcess(zkConnectString, clusterName, instanceName, file);
+    DummyProcess process = new DummyProcess(zkConnectString, clusterName,
+        instanceName, file);
 
     process.start();
     Thread.currentThread().join();

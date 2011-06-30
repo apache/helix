@@ -9,21 +9,21 @@ import com.linkedin.clustermanager.participant.statemachine.StateModelFactory;
 
 public class RelayStateModelFactory extends StateModelFactory
 {
-    private static Logger logger = Logger
-            .getLogger(StorageStateModelFactory.class);
+  private static Logger logger = Logger
+      .getLogger(StorageStateModelFactory.class);
 
-    private RelayAdapter relayAdapter;
+  private RelayAdapter relayAdapter;
 
-    public RelayStateModelFactory(RelayAdapter relay)
-    {
-        relayAdapter = relay;
-    }
+  public RelayStateModelFactory(RelayAdapter relay)
+  {
+    relayAdapter = relay;
+  }
 
-    @Override
-    public StateModel createNewStateModel(String stateUnitKey)
-    {
-        logger.info("RelayStateModelFactory.getStateModel()");
-        return new RelayStateModel(stateUnitKey, relayAdapter);
-    }
+  @Override
+  public StateModel createNewStateModel(String stateUnitKey)
+  {
+    logger.info("RelayStateModelFactory.getStateModel()");
+    return new RelayStateModel(stateUnitKey, relayAdapter);
+  }
 
 }

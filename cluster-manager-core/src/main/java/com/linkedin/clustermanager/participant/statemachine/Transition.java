@@ -6,9 +6,8 @@ import java.lang.annotation.RetentionPolicy;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Transition
 {
-    String from();
-    
-    String to();
-    
- 
+  String from();
+
+  String to();
+
 }

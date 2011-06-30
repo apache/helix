@@ -15,132 +15,132 @@ import com.linkedin.clustermanager.participant.statemachine.StateModel;
 public class StorageStateModel extends StateModel
 {
 
-    // private Map<Integer, RelayConsumer> relayConsumersMap;
-    private RelayConsumer consumer = null;
-    private RelayConfig relayConfig;
-    private StorageAdapter storage;
+  // private Map<Integer, RelayConsumer> relayConsumersMap;
+  private RelayConsumer consumer = null;
+  private RelayConfig relayConfig;
+  private StorageAdapter storage;
 
-    private static Logger logger = Logger.getLogger(StorageStateModel.class);
+  private static Logger logger = Logger.getLogger(StorageStateModel.class);
 
-    public StorageStateModel(String stateUnitKey, StorageAdapter storageAdapter)
+  public StorageStateModel(String stateUnitKey, StorageAdapter storageAdapter)
+  {
+    // relayConsumersMap = new HashMap<Integer,RelayConsumer>();
+    storage = storageAdapter;
+    // this.consumerAdapter = consumerAdapter;
+  }
+
+  public RelayConfig getRelayConfig()
+  {
+    return relayConfig;
+  }
+
+  public void setRelayConfig(RelayConfig relayConfig)
+  {
+    this.relayConfig = relayConfig;
+  }
+
+  void checkDebug(Message task) throws Exception
+  {
+    // For debugging purposes
+    if ((Boolean) task.getDebug() == true)
     {
-        // relayConsumersMap = new HashMap<Integer,RelayConsumer>();
-        storage = storageAdapter;
-        // this.consumerAdapter = consumerAdapter;
+      throw new Exception("Exception for debug");
     }
+  }
 
-    public RelayConfig getRelayConfig()
-    {
-        return relayConfig;
-    }
+  // @transition(to='to',from='from',blah blah..)
+  public void onBecomeSlaveFromOffline(Message task, NotificationContext context)
+      throws Exception
+  {
 
-    public void setRelayConfig(RelayConfig relayConfig)
-    {
-        this.relayConfig = relayConfig;
-    }
+    logger.info("Becoming slave from offline");
 
-    void checkDebug(Message task) throws Exception
-    {
-        // For debugging purposes
-        if ((Boolean) task.getDebug() == true)
-        {
-            throw new Exception("Exception for debug");
-        }
-    }
+    checkDebug(task);
 
-    // @transition(to='to',from='from',blah blah..)
-    public void onBecomeSlaveFromOffline(Message task,
-            NotificationContext context) throws Exception
-    {
+    String partition = (String) task.getStateUnitKey();
+    String[] pdata = partition.split("\\.");
+    String dbName = pdata[0];
 
-        logger.info("Becoming slave from offline");
+    // Initializations for the storage node to create right tables, indexes
+    // etc.
+    storage.init(partition);
+    storage.setPermissions(partition, "READONLY");
 
-        checkDebug(task);
+    // start consuming from the relay
+    consumer = storage.getNewRelayConsumer(dbName, partition);
+    consumer.start();
+    // TODO: how do we know we are caught up?
 
-        String partition = (String) task.getStateUnitKey();
-        String[] pdata = partition.split("\\.");
-        String dbName = pdata[0];
+    logger.info("Became slave for partition " + partition);
+  }
 
-        // Initializations for the storage node to create right tables, indexes
-        // etc.
-        storage.init(partition);
-        storage.setPermissions(partition, "READONLY");
+  // @transition(to='to',from='from',blah blah..)
+  public void onBecomeSlaveFromMaster(Message task, NotificationContext context)
+      throws Exception
+  {
 
-        // start consuming from the relay
-        consumer = storage.getNewRelayConsumer(dbName, partition);
-        consumer.start();
-        // TODO: how do we know we are caught up?
+    logger.info("Becoming slave from master");
 
-        logger.info("Became slave for partition " + partition);
-    }
+    checkDebug(task);
 
-    // @transition(to='to',from='from',blah blah..)
-    public void onBecomeSlaveFromMaster(Message task,
-            NotificationContext context) throws Exception
-    {
+    String partition = (String) task.getStateUnitKey();
+    String[] pdata = partition.split("\\.");
+    String dbName = pdata[0];
+    storage.setPermissions(partition, "READONLY");
+    storage.waitForWrites(partition);
 
-        logger.info("Becoming slave from master");
+    // start consuming from the relay
+    consumer = storage.getNewRelayConsumer(dbName, partition);
+    consumer.start();
 
-        checkDebug(task);
+    logger.info("Becamse slave for partition " + partition);
+  }
 
-        String partition = (String) task.getStateUnitKey();
-        String[] pdata = partition.split("\\.");
-        String dbName = pdata[0];
-        storage.setPermissions(partition, "READONLY");
-        storage.waitForWrites(partition);
+  // @transition(to='to',from='from',blah blah..)
+  public void onBecomeMasterFromSlave(Message task, NotificationContext context)
+      throws Exception
+  {
+    logger.info("Becoming master from slave");
 
-        // start consuming from the relay
-        consumer = storage.getNewRelayConsumer(dbName, partition);
-        consumer.start();
+    checkDebug(task);
 
-        logger.info("Becamse slave for partition " + partition);
-    }
+    String partition = (String) task.getStateUnitKey();
 
-    // @transition(to='to',from='from',blah blah..)
-    public void onBecomeMasterFromSlave(Message task,
-            NotificationContext context) throws Exception
-    {
-        logger.info("Becoming master from slave");
+    // stop consumer and refetch from all so all changes are drained
+    consumer.flush(); // blocking call
 
-        checkDebug(task);
+    // TODO: publish the hwm somewhere
+    long hwm = consumer.getHwm();
+    storage.setHwm(partition, hwm);
+    storage.removeConsumer(partition);
+    consumer = null;
 
-        String partition = (String) task.getStateUnitKey();
+    // set generation in storage
+    Integer generationId = (Integer) task.getGeneration();
+    storage.setGeneration(partition, generationId);
 
-        // stop consumer and refetch from all so all changes are drained
-        consumer.flush(); // blocking call
+    storage.setPermissions(partition, "READWRITE");
 
-        // TODO: publish the hwm somewhere
-        long hwm = consumer.getHwm();
-        storage.setHwm(partition, hwm);
-        storage.removeConsumer(partition);
-        consumer = null;
+    logger.info("Became master for partition " + partition);
+  }
 
-        // set generation in storage
-        Integer generationId = (Integer) task.getGeneration();
-        storage.setGeneration(partition, generationId);
+  // @transition(to='to',from='from',blah blah..)
+  public void onBecomeOfflineFromSlave(Message task, NotificationContext context)
+      throws Exception
+  {
 
-        storage.setPermissions(partition, "READWRITE");
+    logger.info("Becoming offline from slave");
 
-        logger.info("Became master for partition " + partition);
-    }
+    checkDebug(task);
 
-    // @transition(to='to',from='from',blah blah..)
-    public void onBecomeOfflineFromSlave(Message task,
-            NotificationContext context) throws Exception
-    {
+    String partition = (String) task.getStateUnitKey();
 
-        logger.info("Becoming offline from slave");
+    consumer.stop();
+    storage.removeConsumer(partition);
+    consumer = null;
 
-        checkDebug(task);
+    storage.setPermissions(partition, "OFFLINE");
 
-        String partition = (String) task.getStateUnitKey();
-
-        consumer.stop();
-        storage.removeConsumer(partition);
-        consumer = null;
-
-        storage.setPermissions(partition, "OFFLINE");
-
-        logger.info("Became offline for partition " + partition);
-    }
+    logger.info("Became offline for partition " + partition);
+  }
 }

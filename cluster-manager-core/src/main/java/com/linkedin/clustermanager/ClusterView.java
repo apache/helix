@@ -11,8 +11,6 @@ import org.codehaus.jackson.annotate.JsonProperty;
 import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 
-
-
 public class ClusterView
 {
   private Map<ClusterPropertyType, List<ZNRecord>> clusterPropertyLists;
@@ -22,7 +20,8 @@ public class ClusterView
   // ref:
   // http://jackson.codehaus.org/DataBindingDeepDive
   // @JsonProperty
-  public void setClusterPropertyLists(Map<ClusterPropertyType, List<ZNRecord>> clusterPropertyLists)
+  public void setClusterPropertyLists(
+      Map<ClusterPropertyType, List<ZNRecord>> clusterPropertyLists)
   {
     this.clusterPropertyLists = clusterPropertyLists;
   }
@@ -33,7 +32,8 @@ public class ClusterView
     return clusterPropertyLists;
   }
 
-  public void setClusterPropertyList(ClusterPropertyType type, List<ZNRecord> propertyList)
+  public void setClusterPropertyList(ClusterPropertyType type,
+      List<ZNRecord> propertyList)
   {
     clusterPropertyLists.put(type, propertyList);
   }
@@ -54,7 +54,8 @@ public class ClusterView
     return _memberInstanceMap;
   }
 
-  public void set_memberInstanceMap(Map<String, MemberInstance> _memberInstanceMap)
+  public void set_memberInstanceMap(
+      Map<String, MemberInstance> _memberInstanceMap)
   {
     this._memberInstanceMap = _memberInstanceMap;
   }
@@ -76,7 +77,8 @@ public class ClusterView
   {
     private Map<InstancePropertyType, List<ZNRecord>> _instanceProperties = new TreeMap<InstancePropertyType, List<ZNRecord>>();
 
-    public void setClusterProperties(Map<InstancePropertyType, List<ZNRecord>> instanceProperties)
+    public void setClusterProperties(
+        Map<InstancePropertyType, List<ZNRecord>> instanceProperties)
     {
       this._instanceProperties = instanceProperties;
     }
@@ -87,7 +89,8 @@ public class ClusterView
       return _instanceProperties;
     }
 
-    public void setInstanceProperty(InstancePropertyType type, List<ZNRecord> values)
+    public void setInstanceProperty(InstancePropertyType type,
+        List<ZNRecord> values)
     {
       _instanceProperties.put(type, values);
     }
@@ -122,7 +125,8 @@ public class ClusterView
 
   }
 
-  public MemberInstance getMemberInstance(String instanceName, boolean createNewIfAbsent)
+  public MemberInstance getMemberInstance(String instanceName,
+      boolean createNewIfAbsent)
   {
     if (!_memberInstanceMap.containsKey(instanceName))
     {
@@ -136,10 +140,14 @@ public class ClusterView
   public ClusterView()
   {
     clusterPropertyLists = new TreeMap<ClusterPropertyType, List<ZNRecord>>();
-    setClusterPropertyList(ClusterPropertyType.IDEALSTATES, new ArrayList<ZNRecord>());
-    setClusterPropertyList(ClusterPropertyType.CONFIGS, new ArrayList<ZNRecord>());
-    setClusterPropertyList(ClusterPropertyType.LIVEINSTANCES, new ArrayList<ZNRecord>());
-    setClusterPropertyList(ClusterPropertyType.INSTANCES, new ArrayList<ZNRecord>());
+    setClusterPropertyList(ClusterPropertyType.IDEALSTATES,
+        new ArrayList<ZNRecord>());
+    setClusterPropertyList(ClusterPropertyType.CONFIGS,
+        new ArrayList<ZNRecord>());
+    setClusterPropertyList(ClusterPropertyType.LIVEINSTANCES,
+        new ArrayList<ZNRecord>());
+    setClusterPropertyList(ClusterPropertyType.INSTANCES,
+        new ArrayList<ZNRecord>());
 
     _memberInstanceMap = new HashMap<String, ClusterView.MemberInstance>();
   }

@@ -5,69 +5,70 @@ import java.util.Map;
 
 public class NotificationContext
 {
-    private Map<String, Object> _map;
+  private Map<String, Object> _map;
 
-    private ClusterManager _manager;
-    private Type _type;
-    private String _pathChanged;
-    public NotificationContext(ClusterManager manager)
-    {
-        this._manager = manager;
-        _map = new HashMap<String, Object>();
-    }
+  private ClusterManager _manager;
+  private Type _type;
+  private String _pathChanged;
 
-    public ClusterManager getManager()
-    {
-        return _manager;
-    }
+  public NotificationContext(ClusterManager manager)
+  {
+    this._manager = manager;
+    _map = new HashMap<String, Object>();
+  }
 
-    public Map<String, Object> getMap()
-    {
-        return _map;
-    }
+  public ClusterManager getManager()
+  {
+    return _manager;
+  }
 
-    public Type getType()
-    {
-        return _type;
-    }
+  public Map<String, Object> getMap()
+  {
+    return _map;
+  }
 
-    public void setManager(ClusterManager manager)
-    {
-        this._manager = manager;
-    }
+  public Type getType()
+  {
+    return _type;
+  }
 
-    public void add(String key, Object name)
-    {
+  public void setManager(ClusterManager manager)
+  {
+    this._manager = manager;
+  }
 
-    }
+  public void add(String key, Object name)
+  {
 
-    public void setMap(Map<String, Object> map)
-    {
-        this._map = map;
-    }
+  }
 
-    public void setType(Type type)
-    {
-        this._type = type;
-    }
+  public void setMap(Map<String, Object> map)
+  {
+    this._map = map;
+  }
 
-    public Object get(String key)
-    {
-        return _map.get(key);
-    }
+  public void setType(Type type)
+  {
+    this._type = type;
+  }
 
-    public enum Type
-    {
-        INIT, CALLBACK
-    }
+  public Object get(String key)
+  {
+    return _map.get(key);
+  }
 
-    public String getPathChanged()
-    {
-        return _pathChanged;
-    }
+  public enum Type
+  {
+    INIT, CALLBACK
+  }
 
-    public void setPathChanged(String pathChanged)
-    {
-        this._pathChanged = pathChanged;
-    }
+  public String getPathChanged()
+  {
+    return _pathChanged;
+  }
+
+  public void setPathChanged(String pathChanged)
+  {
+    this._pathChanged = pathChanged;
+  }
 }

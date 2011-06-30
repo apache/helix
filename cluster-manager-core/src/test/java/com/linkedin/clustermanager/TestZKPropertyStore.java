@@ -41,7 +41,8 @@ public class TestZKPropertyStore
 
   }
 
-  public class MyPropertyChangeListener implements PropertyChangeListener<String>
+  public class MyPropertyChangeListener implements
+      PropertyChangeListener<String>
   {
     public boolean _propertyChangeReceived = false;
 
@@ -63,8 +64,8 @@ public class TestZKPropertyStore
     ZkClient zkClient = zkClientFactory.create(zkServers);
 
     String propertyStoreRoot = "/testPath1";
-    ZKPropertyStore<String> zkPropertyStore = new ZKPropertyStore<String>(zkClient,
-        new MyStringSerializer(), propertyStoreRoot);
+    ZKPropertyStore<String> zkPropertyStore = new ZKPropertyStore<String>(
+        zkClient, new MyStringSerializer(), propertyStoreRoot);
 
     // test remove recursive
     zkPropertyStore.removeRootProperty();
@@ -134,7 +135,7 @@ public class TestZKPropertyStore
     // test hit ratio
     value = zkPropertyStore.getProperty(testPath3);
     double hitRatio = zkPropertyStore.getHitRatio();
-    AssertJUnit.assertTrue( Double.compare(Math.abs(hitRatio - 0.5), 0.1) < 0);
+    AssertJUnit.assertTrue(Double.compare(Math.abs(hitRatio - 0.5), 0.1) < 0);
   }
 
   @BeforeTest
@@ -144,8 +145,8 @@ public class TestZKPropertyStore
     localPorts.add(2188);
     // localPorts.add(2301);
 
-    _localZkServers = TestZKCallback.startLocalZookeeper(localPorts, System.getProperty("user.dir")
-        + "/" + "zkdata", 2000);
+    _localZkServers = TestZKCallback.startLocalZookeeper(localPorts,
+        System.getProperty("user.dir") + "/" + "zkdata", 2000);
 
     System.out.println("zk servers started on ports: " + localPorts);
   }

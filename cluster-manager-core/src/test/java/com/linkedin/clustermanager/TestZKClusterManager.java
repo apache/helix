@@ -1,10 +1,11 @@
 package com.linkedin.clustermanager;
 
+public class TestZKClusterManager
+{
 
-public class TestZKClusterManager {
+  void testSample()
+  {
 
-	void testSample(){
-		
-		ClusterManager manger;
-	}
+    ClusterManager manger;
+  }
 }

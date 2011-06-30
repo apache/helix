@@ -2,21 +2,21 @@ package com.linkedin.clustermanager.agent.zk;
 
 public class ZKExceptionHandler
 {
-    private static ZKExceptionHandler instance = new ZKExceptionHandler();
+  private static ZKExceptionHandler instance = new ZKExceptionHandler();
 
-    private ZKExceptionHandler()
-    {
+  private ZKExceptionHandler()
+  {
 
-    }
+  }
 
-    void handle(Exception e)
-    {
+  void handle(Exception e)
+  {
 
-        e.printStackTrace();
-    }
+    e.printStackTrace();
+  }
 
-    public static ZKExceptionHandler getInstance()
-    {
-        return instance;
-    }
+  public static ZKExceptionHandler getInstance()
+  {
+    return instance;
+  }
 }

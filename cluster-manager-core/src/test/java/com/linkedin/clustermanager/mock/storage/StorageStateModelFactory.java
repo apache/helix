@@ -8,28 +8,28 @@ import com.linkedin.clustermanager.participant.statemachine.StateModelFactory;
 
 public class StorageStateModelFactory extends StateModelFactory
 {
-    private static Logger logger = Logger
-            .getLogger(StorageStateModelFactory.class);
+  private static Logger logger = Logger
+      .getLogger(StorageStateModelFactory.class);
 
-    private StorageAdapter storageAdapter;
+  private StorageAdapter storageAdapter;
 
-    // private ConsumerAdapter consumerAdapter;
+  // private ConsumerAdapter consumerAdapter;
 
-    public StorageStateModelFactory(StorageAdapter storage)
-    {
-        storageAdapter = storage;
-    }
+  public StorageStateModelFactory(StorageAdapter storage)
+  {
+    storageAdapter = storage;
+  }
 
-    StorageStateModel getStateModelForPartition(Integer partition)
-    {
-        return null;
-    }
+  StorageStateModel getStateModelForPartition(Integer partition)
+  {
+    return null;
+  }
 
-    @Override
-    public StateModel createNewStateModel(String stateUnitKey)
-    {
-        logger.info("StorageStateModelFactory.getStateModel()");
-        return new StorageStateModel(stateUnitKey, storageAdapter);
-    }
+  @Override
+  public StateModel createNewStateModel(String stateUnitKey)
+  {
+    logger.info("StorageStateModelFactory.getStateModel()");
+    return new StorageStateModel(stateUnitKey, storageAdapter);
+  }
 
 }

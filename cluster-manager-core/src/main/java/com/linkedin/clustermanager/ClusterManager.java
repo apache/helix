@@ -2,7 +2,6 @@ package com.linkedin.clustermanager;
 
 import java.util.List;
 
-
 /**
  * First class Object any process will interact with General flow manager =
  * ClusterManagerFactory.getManager(); manager.connect();
@@ -12,107 +11,107 @@ import java.util.List;
  * 
  * @author kgopalak
  */
-public interface ClusterManager {
+public interface ClusterManager
+{
 
-	/**
-	 * Start participating in the cluster operations. All listeners will be
-	 * initialized and will be notified for every cluster state change This
-	 * method is not re-entrant. One cannot call this method twice.
-	 * 
-	 * @throws Exception
-	 */
-	void connect() throws Exception;
+  /**
+   * Start participating in the cluster operations. All listeners will be
+   * initialized and will be notified for every cluster state change This method
+   * is not re-entrant. One cannot call this method twice.
+   * 
+   * @throws Exception
+   */
+  void connect() throws Exception;
 
-	/**
-	 * Check if the connection is alive, code depending on cluster manager must
-	 * always do this if( manager.isConnected()){ //custom code } This will
-	 * prevent client in doing anything when its disconnected from the cluster.
-	 * There is no need to invoke connect again if isConnected return false.
-	 * 
-	 * @return
-	 */
-	boolean isConnected();
+  /**
+   * Check if the connection is alive, code depending on cluster manager must
+   * always do this if( manager.isConnected()){ //custom code } This will
+   * prevent client in doing anything when its disconnected from the cluster.
+   * There is no need to invoke connect again if isConnected return false.
+   * 
+   * @return
+   */
+  boolean isConnected();
 
-	/**
-	 * Disconnect from the cluster. All the listeners will be removed and
-	 * disconnected from the server. Its important for the client to ensure that
-	 * new manager instance is used when it wants to connect again.
-	 */
-	void disconnect();
+  /**
+   * Disconnect from the cluster. All the listeners will be removed and
+   * disconnected from the server. Its important for the client to ensure that
+   * new manager instance is used when it wants to connect again.
+   */
+  void disconnect();
 
-	/**
-	 * @see IdealStateChangeListener#onIdealStateChange(List,
-	 *      NotificationContext)
-	 * @param listener
-	 * @throws Exception
-	 */
-	void addIdealStateChangeListener(IdealStateChangeListener listener)
-			throws Exception;
+  /**
+   * @see IdealStateChangeListener#onIdealStateChange(List, NotificationContext)
+   * @param listener
+   * @throws Exception
+   */
+  void addIdealStateChangeListener(IdealStateChangeListener listener)
+      throws Exception;
 
-	/**
-	 * @see LiveInstanceChangeListener#onLiveInstanceChange(List,
-	 *      NotificationContext)
-	 * @param listener
-	 */
-	void addLiveInstanceChangeListener(LiveInstanceChangeListener listener);
+  /**
+   * @see LiveInstanceChangeListener#onLiveInstanceChange(List,
+   *      NotificationContext)
+   * @param listener
+   */
+  void addLiveInstanceChangeListener(LiveInstanceChangeListener listener);
 
-	/**
-	 * @see ConfigChangeListener#onConfigChange(List, NotificationContext)
-	 * @param listener
-	 */
-	void addConfigChangeListener(ConfigChangeListener listener);
+  /**
+   * @see ConfigChangeListener#onConfigChange(List, NotificationContext)
+   * @param listener
+   */
+  void addConfigChangeListener(ConfigChangeListener listener);
 
-	/**
-	 * @see MessageListener#onMessage(String, List, NotificationContext)
-	 * @param listener
-	 * @param instanceName
-	 */
-	void addMessageListener(MessageListener listener, String instanceName);
+  /**
+   * @see MessageListener#onMessage(String, List, NotificationContext)
+   * @param listener
+   * @param instanceName
+   */
+  void addMessageListener(MessageListener listener, String instanceName);
 
-	/**
-	 * @see CurrentStateChangeListener#onStateChange(String, List,
-	 *      NotificationContext)
-	 * @param listener
-	 * @param instanceName
-	 */
+  /**
+   * @see CurrentStateChangeListener#onStateChange(String, List,
+   *      NotificationContext)
+   * @param listener
+   * @param instanceName
+   */
 
-	void addCurrentStateChangeListener(CurrentStateChangeListener listener,
-			String instanceName);
+  void addCurrentStateChangeListener(CurrentStateChangeListener listener,
+      String instanceName);
 
-	/**
-	 * @see ExternalViewChangeListener#onExternalViewChange(List,
-	 *      NotificationContext)
-	 * @param listener
-	 */
-	void addExternalViewChangeListener(ExternalViewChangeListener listener);
+  /**
+   * @see ExternalViewChangeListener#onExternalViewChange(List,
+   *      NotificationContext)
+   * @param listener
+   */
+  void addExternalViewChangeListener(ExternalViewChangeListener listener);
 
-	// void addListeners(List<Object> listeners);
+  // void addListeners(List<Object> listeners);
 
-	/**
-	 * Return the client to perform read/write operations on the cluster data
-	 * store
-	 * 
-	 * @return ClusterDataAccessor
-	 */
-	ClusterDataAccessor getDataAccessor();
+  /**
+   * Return the client to perform read/write operations on the cluster data
+   * store
+   * 
+   * @return ClusterDataAccessor
+   */
+  ClusterDataAccessor getDataAccessor();
 
-	/**
-	 * Returns the cluster name associated with this cluster manager
-	 * 
-	 * @return
-	 */
-	String getClusterName();
+  /**
+   * Returns the cluster name associated with this cluster manager
+   * 
+   * @return
+   */
+  String getClusterName();
 
-	/**
-	 * Returns the instanceName used to connect to the cluster
-	 * 
-	 * @return
-	 */
+  /**
+   * Returns the instanceName used to connect to the cluster
+   * 
+   * @return
+   */
 
-	String getInstanceName();
+  String getInstanceName();
 
-	/**
-	 * Get the sessionId associated with the connection to cluster data store. 
-	 */
-	String getSessionId();
+  /**
+   * Get the sessionId associated with the connection to cluster data store.
+   */
+  String getSessionId();
 }

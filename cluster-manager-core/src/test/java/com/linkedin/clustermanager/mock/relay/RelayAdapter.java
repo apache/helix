@@ -3,19 +3,19 @@ package com.linkedin.clustermanager.mock.relay;
 class RelayAdapter
 {
 
-    void isHostingPartition(Integer partitionId)
-    {
+  void isHostingPartition(Integer partitionId)
+  {
 
-    }
+  }
 
-    void getHostedPartitions()
-    {
+  void getHostedPartitions()
+  {
 
-    }
+  }
 
-    void main()
-    {
+  void main()
+  {
 
-    }
+  }
 
 }

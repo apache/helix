@@ -9,59 +9,58 @@ import java.util.Map.Entry;
 
 public class RelayConfig
 {
-    String partitionId;
-    private ArrayList<String> masterRelays;
-    private ArrayList<String> slaveRelays;
+  String partitionId;
+  private ArrayList<String> masterRelays;
+  private ArrayList<String> slaveRelays;
 
-    public RelayConfig(Map<String, String> relayList)
+  public RelayConfig(Map<String, String> relayList)
+  {
+
+    masterRelays = new ArrayList<String>();
+    slaveRelays = new ArrayList<String>();
+
+    for (Entry<String, String> entry : relayList.entrySet())
     {
+      String relayInstance = entry.getKey();
+      String relayState = entry.getValue();
 
-        masterRelays = new ArrayList<String>();
-        slaveRelays = new ArrayList<String>();
-
-        for (Entry<String, String> entry : relayList.entrySet())
-        {
-            String relayInstance = entry.getKey();
-            String relayState = entry.getValue();
-
-            if (relayState.equals("MASTER"))
-            {
-                masterRelays.add(relayInstance);
-            }
-            else if (relayState.equals("SLAVE"))
-            {
-                slaveRelays.add(relayInstance);
-            }
-        }
+      if (relayState.equals("MASTER"))
+      {
+        masterRelays.add(relayInstance);
+      } else if (relayState.equals("SLAVE"))
+      {
+        slaveRelays.add(relayInstance);
+      }
     }
+  }
 
-    public String getClusterName()
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
+  public String getClusterName()
+  {
+    // TODO Auto-generated method stub
+    return null;
+  }
 
-    public String getzkServer()
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
+  public String getzkServer()
+  {
+    // TODO Auto-generated method stub
+    return null;
+  }
 
-    public String getMaster()
-    {
-        if (masterRelays.isEmpty())
-            return null;
+  public String getMaster()
+  {
+    if (masterRelays.isEmpty())
+      return null;
 
-        return masterRelays.get(0);
-    }
+    return masterRelays.get(0);
+  }
 
-    public List<String> getRelays()
-    {
-        List<String> relays = new ArrayList<String>();
-        relays.addAll(masterRelays);
-        relays.addAll(slaveRelays);
+  public List<String> getRelays()
+  {
+    List<String> relays = new ArrayList<String>();
+    relays.addAll(masterRelays);
+    relays.addAll(slaveRelays);
 
-        return relays;
-    }
+    return relays;
+  }
 
 }

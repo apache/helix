@@ -22,7 +22,7 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
       String key, ZNRecord value)
   {
     // TODO Auto-generated method stub
-    
+
   }
 
   @Override
@@ -30,7 +30,7 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
       String key, ZNRecord value)
   {
     // TODO Auto-generated method stub
-    
+
   }
 
   @Override
@@ -38,7 +38,7 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
       List<ZNRecord> values)
   {
     // TODO Auto-generated method stub
-    
+
   }
 
   @Override
@@ -62,7 +62,7 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
       InstancePropertyType clusterProperty, String key, ZNRecord value)
   {
     // TODO Auto-generated method stub
-    
+
   }
 
   @Override
@@ -70,7 +70,7 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
       InstancePropertyType clusterProperty, List<ZNRecord> values)
   {
     // TODO Auto-generated method stub
-    
+
   }
 
   @Override
@@ -94,7 +94,7 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
       InstancePropertyType type, String key)
   {
     // TODO Auto-generated method stub
-    
+
   }
 
   @Override
@@ -102,7 +102,7 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
       InstancePropertyType type, String hey, ZNRecord value)
   {
     // TODO Auto-generated method stub
-    
+
   }
 
   @Override
@@ -117,7 +117,7 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
       String key, ZNRecord value)
   {
     // TODO Auto-generated method stub
-    
+
   }
 
   @Override
@@ -125,8 +125,7 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
       String key)
   {
     // TODO Auto-generated method stub
-    
+
   }
 
- 
 }

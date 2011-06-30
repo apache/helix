@@ -10,7 +10,7 @@ import com.linkedin.clustermanager.ClusterDataAccessor.InstanceConfigProperty;
 public class InstanceConfigHolder
 {
   private List<ZNRecord> _instanceConfigList;
-  
+
   private Map<String, Boolean> _instanceEnabledMap = new TreeMap<String, Boolean>();
 
   public void refresh(List<ZNRecord> instanceConfigs)
@@ -18,13 +18,14 @@ public class InstanceConfigHolder
     _instanceConfigList = instanceConfigs;
     updateEnableMap();
   }
-  
+
   void updateEnableMap()
   {
     _instanceEnabledMap.clear();
-    for(ZNRecord config : _instanceConfigList)
+    for (ZNRecord config : _instanceConfigList)
     {
-      boolean enabled = Boolean.parseBoolean(config.getSimpleField(InstanceConfigProperty.ENABLED.toString()));
+      boolean enabled = Boolean.parseBoolean(config
+          .getSimpleField(InstanceConfigProperty.ENABLED.toString()));
       _instanceEnabledMap.put(config.getId(), enabled);
     }
   }
@@ -33,8 +34,8 @@ public class InstanceConfigHolder
   {
     if (!_instanceEnabledMap.containsKey(instanceName))
     {
-        return false;
+      return false;
     }
-    return _instanceEnabledMap.get(instanceName); 
+    return _instanceEnabledMap.get(instanceName);
   }
 }

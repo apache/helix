@@ -16,7 +16,8 @@ import com.linkedin.clustermanager.util.CMUtil;
 
 public class ZKDataAccessor implements ClusterDataAccessor
 {
-  class ZKPropertyCreateModeCalculator implements ClusterDataAccessor.PropertyCreateModeCalculator
+  class ZKPropertyCreateModeCalculator implements
+      ClusterDataAccessor.PropertyCreateModeCalculator
   {
 
     @Override
@@ -32,9 +33,9 @@ public class ZKDataAccessor implements ClusterDataAccessor
       // TODO Auto-generated method stub
       return null;
     }
-    
+
   }
-  
+
   private static Logger logger = Logger.getLogger(ZKDataAccessor.class);
   private final String _clusterName;
   /**
@@ -45,35 +46,37 @@ public class ZKDataAccessor implements ClusterDataAccessor
 
   public ZKDataAccessor(String clusterName, ZkClient zkClient)
   {
-      this._clusterName = clusterName;
-      this._zkClient = zkClient;
-      this._clusterView = new ClusterView();
+    this._clusterName = clusterName;
+    this._zkClient = zkClient;
+    this._clusterView = new ClusterView();
   }
 
   @Override
-  public void setClusterProperty(ClusterPropertyType clusterProperty, String key,
-      ZNRecord value)
+  public void setClusterProperty(ClusterPropertyType clusterProperty,
+      String key, ZNRecord value)
   {
-    String zkPropertyPath = CMUtil.getClusterPropertyPath(_clusterName, clusterProperty);
+    String zkPropertyPath = CMUtil.getClusterPropertyPath(_clusterName,
+        clusterProperty);
     String targetValuePath = zkPropertyPath + "/" + key;
 
     if (_zkClient.exists(targetValuePath))
     {
-        _zkClient.deleteRecursive(targetValuePath);
+      _zkClient.deleteRecursive(targetValuePath);
     }
     ZKUtil.createChildren(_zkClient, zkPropertyPath, value);
   }
 
   @Override
-  public void updateClusterProperty(ClusterPropertyType clusterProperty, String key,
-      ZNRecord value)
+  public void updateClusterProperty(ClusterPropertyType clusterProperty,
+      String key, ZNRecord value)
   {
-    String clusterPropertyPath = CMUtil.getClusterPropertyPath(_clusterName, clusterProperty);
+    String clusterPropertyPath = CMUtil.getClusterPropertyPath(_clusterName,
+        clusterProperty);
     String targetValuePath = clusterPropertyPath + "/" + key;
 
     if (_zkClient.exists(targetValuePath))
     {
-        _zkClient.deleteRecursive(targetValuePath);
+      _zkClient.deleteRecursive(targetValuePath);
     }
     ZKUtil.createChildren(_zkClient, clusterPropertyPath, value);
   }
@@ -87,9 +90,11 @@ public class ZKDataAccessor implements ClusterDataAccessor
   }
 
   @Override
-  public ZNRecord getClusterProperty(ClusterPropertyType clusterProperty, String key)
+  public ZNRecord getClusterProperty(ClusterPropertyType clusterProperty,
+      String key)
   {
-    String clusterPropertyPath = CMUtil.getClusterPropertyPath(_clusterName, clusterProperty);
+    String clusterPropertyPath = CMUtil.getClusterPropertyPath(_clusterName,
+        clusterProperty);
     String targetPath = clusterPropertyPath + "/" + key;
 
     ZNRecord nodeRecord = _zkClient.readData(targetPath);
@@ -101,7 +106,8 @@ public class ZKDataAccessor implements ClusterDataAccessor
       ClusterPropertyType clusterProperty)
   {
     // TODO Auto-generated method stub
-    String clusterPropertyPath = CMUtil.getClusterPropertyPath(_clusterName, clusterProperty);
+    String clusterPropertyPath = CMUtil.getClusterPropertyPath(_clusterName,
+        clusterProperty);
     List<ZNRecord> children;
     children = ZKUtil.getChildren(_zkClient, clusterPropertyPath);
     _clusterView.setClusterPropertyList(clusterProperty, children);
@@ -112,31 +118,30 @@ public class ZKDataAccessor implements ClusterDataAccessor
   public void setInstanceProperty(String instanceName,
       InstancePropertyType type, String key, final ZNRecord value)
   {
-    String path = CMUtil.getInstancePropertyPath(_clusterName, instanceName, type);
-    String propertyPath  = path+"/" + key;
-
+    String path = CMUtil.getInstancePropertyPath(_clusterName, instanceName,
+        type);
+    String propertyPath = path + "/" + key;
 
     boolean exists = _zkClient.exists(propertyPath);
     if (exists)
     {
-        DataUpdater<ZNRecord> updater = new DataUpdater<ZNRecord>()
+      DataUpdater<ZNRecord> updater = new DataUpdater<ZNRecord>()
+      {
+        @Override
+        public ZNRecord update(ZNRecord currentData)
         {
-            @Override
-            public ZNRecord update(ZNRecord currentData)
-            {
-                // currentData.merge(stateInfo);
-                return value;
-            }
-        };
-        _zkClient.updateDataSerialized(propertyPath, updater);
-    }
-    else
+          // currentData.merge(stateInfo);
+          return value;
+        }
+      };
+      _zkClient.updateDataSerialized(propertyPath, updater);
+    } else
     {
-        // TODO add retry mechanism since the node might be created by
-        // another thread.
-        // This can happen when we add merging multiple children into one.
-        _zkClient.createEphemeral(propertyPath, value);
-    
+      // TODO add retry mechanism since the node might be created by
+      // another thread.
+      // This can happen when we add merging multiple children into one.
+      _zkClient.createEphemeral(propertyPath, value);
+
     }
 
   }
@@ -145,12 +150,13 @@ public class ZKDataAccessor implements ClusterDataAccessor
   public ZNRecord getInstanceProperty(String instanceName,
       InstancePropertyType clusterProperty, String key)
   {
-    String path = CMUtil.getInstancePropertyPath(_clusterName, instanceName, clusterProperty);
+    String path = CMUtil.getInstancePropertyPath(_clusterName, instanceName,
+        clusterProperty);
     String propertyPath = path + "/" + key;
     ZNRecord record = _zkClient.readData(path, true);
     if (record != null)
     {
-        record = record.extract(key);
+      record = record.extract(key);
     }
     return record;
   }
@@ -159,14 +165,17 @@ public class ZKDataAccessor implements ClusterDataAccessor
   public List<ZNRecord> getInstancePropertyList(String instanceName,
       InstancePropertyType clusterProperty)
   {
-    String path = CMUtil.getInstancePropertyPath(_clusterName, instanceName, clusterProperty);
+    String path = CMUtil.getInstancePropertyPath(_clusterName, instanceName,
+        clusterProperty);
     return ZKUtil.getChildren(_zkClient, path);
   }
 
   @Override
-  public void removeInstanceProperty(String instanceName, InstancePropertyType type, String key)
+  public void removeInstanceProperty(String instanceName,
+      InstancePropertyType type, String key)
   {
-    String path = CMUtil.getInstancePropertyPath(_clusterName, instanceName, type) + "/" + key;
+    String path = CMUtil.getInstancePropertyPath(_clusterName, instanceName,
+        type) + "/" + key;
     if (_zkClient.exists(path))
     {
       boolean b = _zkClient.delete(path);
@@ -174,8 +183,7 @@ public class ZKDataAccessor implements ClusterDataAccessor
       {
         logger.warn("Unable to remove property at path:" + path);
       }
-    }
-    else
+    } else
     {
       logger.warn("No property to remove at path:" + path);
     }
@@ -186,7 +194,8 @@ public class ZKDataAccessor implements ClusterDataAccessor
       InstancePropertyType type, String key, ZNRecord value)
   {
     // TODO Auto-generated method stub
-    String path = CMUtil.getInstancePropertyPath(_clusterName, instanceName, type) + "/"+ key;
+    String path = CMUtil.getInstancePropertyPath(_clusterName, instanceName,
+        type) + "/" + key;
     ZKUtil.updateIfExists(_zkClient, path, value);
   }
 
@@ -195,9 +204,9 @@ public class ZKDataAccessor implements ClusterDataAccessor
       InstancePropertyType clusterProperty, List<ZNRecord> values)
   {
     // TODO Auto-generated method stub
-    
+
   }
-  
+
   public ClusterView getClusterView()
   {
     return _clusterView;
@@ -207,22 +216,24 @@ public class ZKDataAccessor implements ClusterDataAccessor
   public void setEphemeralClusterProperty(ClusterPropertyType clusterProperty,
       String key, ZNRecord value)
   {
-    String zkPropertyPath = CMUtil.getClusterPropertyPath(_clusterName, clusterProperty);
+    String zkPropertyPath = CMUtil.getClusterPropertyPath(_clusterName,
+        clusterProperty);
     String targetValuePath = zkPropertyPath + "/" + key;
 
     if (_zkClient.exists(targetValuePath))
     {
-        _zkClient.deleteRecursive(targetValuePath);
+      _zkClient.deleteRecursive(targetValuePath);
     }
     _zkClient.createEphemeral(targetValuePath, value);
-    
+
   }
 
   @Override
   public void removeClusterProperty(ClusterPropertyType clusterProperty,
       String key)
   {
-    String path = CMUtil.getClusterPropertyPath(_clusterName, clusterProperty) + "/" + key;
+    String path = CMUtil.getClusterPropertyPath(_clusterName, clusterProperty)
+        + "/" + key;
     if (_zkClient.exists(path))
     {
       boolean b = _zkClient.delete(path);
@@ -230,8 +241,7 @@ public class ZKDataAccessor implements ClusterDataAccessor
       {
         logger.warn("Unable to remove property at path:" + path);
       }
-    }
-    else
+    } else
     {
       logger.warn("No property to remove at path:" + path);
     }

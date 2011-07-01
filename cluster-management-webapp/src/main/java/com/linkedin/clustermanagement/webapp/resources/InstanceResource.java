@@ -21,11 +21,7 @@ import org.restlet.resource.Resource;
 import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 
-import com.linkedin.clustermanager.core.ClusterDataAccessor;
-import com.linkedin.clustermanager.core.ClusterDataAccessor.ClusterPropertyType;
-import com.linkedin.clustermanager.impl.zk.ZKDataAccessor;
-import com.linkedin.clustermanager.impl.zk.ZNRecordSerializer;
-import com.linkedin.clustermanager.model.ZNRecord;
+import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.tools.ClusterSetup;
 
 public class InstanceResource extends Resource

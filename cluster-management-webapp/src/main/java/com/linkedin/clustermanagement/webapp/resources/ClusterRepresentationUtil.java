@@ -17,12 +17,12 @@ import org.restlet.data.Form;
 import org.restlet.data.MediaType;
 import org.restlet.resource.Representation;
 
-import com.linkedin.clustermanager.core.ClusterDataAccessor;
-import com.linkedin.clustermanager.core.ClusterDataAccessor.ClusterPropertyType;
-import com.linkedin.clustermanager.core.listeners.ClusterManagerException;
-import com.linkedin.clustermanager.impl.zk.ZKDataAccessor;
-import com.linkedin.clustermanager.impl.zk.ZNRecordSerializer;
-import com.linkedin.clustermanager.model.ZNRecord;
+import com.linkedin.clustermanager.ClusterDataAccessor;
+import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
+import com.linkedin.clustermanager.ClusterManagerException;
+import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.agent.zk.ZKDataAccessor;
+import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
 
 public class ClusterRepresentationUtil
 {

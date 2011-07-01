@@ -153,7 +153,7 @@ public class RestAdminApplication extends Application
     Component component = new Component();
     component.getServers().add(Protocol.HTTP, port);
     Context applicationContext = component.getContext().createChildContext();
-    applicationContext.getAttributes().put("zkServer", cmd.getOptionValue(ZKSERVERADDRESS));
+    applicationContext.getAttributes().put(ZKSERVERADDRESS, cmd.getOptionValue(ZKSERVERADDRESS));
 
     RestAdminApplication application = new RestAdminApplication(
         applicationContext); 

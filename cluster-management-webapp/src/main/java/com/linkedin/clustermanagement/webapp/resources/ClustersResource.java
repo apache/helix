@@ -16,8 +16,8 @@ import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 import org.restlet.resource.Resource;
 
-import com.linkedin.clustermanager.core.listeners.ClusterManagerException;
-import com.linkedin.clustermanager.model.ZNRecord;
+import com.linkedin.clustermanager.ClusterManagerException;
+import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.tools.ClusterSetup;
 
 

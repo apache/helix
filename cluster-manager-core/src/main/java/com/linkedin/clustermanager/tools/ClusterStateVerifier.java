@@ -17,14 +17,14 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.log4j.Logger;
 
-import com.linkedin.clustermanager.core.CMConstants;
-import com.linkedin.clustermanager.core.ClusterDataAccessor.ClusterPropertyType;
-import com.linkedin.clustermanager.impl.file.FileBasedClusterManager;
-import com.linkedin.clustermanager.impl.zk.ZNRecordSerializer;
-import com.linkedin.clustermanager.model.ClusterView;
-import com.linkedin.clustermanager.model.ZNRecord;
-import com.linkedin.clustermanager.statemachine.StateModel;
-import com.linkedin.clustermanager.statemachine.StateModelFactory;
+import com.linkedin.clustermanager.CMConstants;
+import com.linkedin.clustermanager.ClusterView;
+import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
+import com.linkedin.clustermanager.agent.file.FileBasedClusterManager;
+import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
+import com.linkedin.clustermanager.participant.statemachine.StateModel;
+import com.linkedin.clustermanager.participant.statemachine.StateModelFactory;
 import com.linkedin.clustermanager.util.CMUtil;
 
 public class ClusterStateVerifier
@@ -54,7 +54,8 @@ public class ClusterStateVerifier
       {
         currentStates.put(instanceName, new TreeMap<String, ZNRecord>());
       }
-      String currentStatePath = CMUtil.getCurrentStatePath(clusterName, instanceName);
+      String currentStatePath = CMUtil.getCurrentStatePath(clusterName,
+          instanceName);
       List<String> partitionStatePaths = zkClient.getChildren(currentStatePath);
       for (String partitionName : partitionStatePaths)
       {
@@ -86,14 +87,16 @@ public class ClusterStateVerifier
       externalViews.add((ZNRecord) zkClient.readData(viewPath));
     }
 
-    boolean result1 = VerifyIdealStateAndCurrentState(idealStates, currentStates);
-    boolean result2 = VerifyCurrentStateAndExternalView(currentStates, externalViews);
+    boolean result1 = VerifyIdealStateAndCurrentState(idealStates,
+        currentStates);
+    boolean result2 = VerifyCurrentStateAndExternalView(currentStates,
+        externalViews);
 
     return result1 && result2;
   }
 
-  public static boolean VerifyFileBasedClusterStates(String file, String instanceName,
-      StateModelFactory stateModelFactory)
+  public static boolean VerifyFileBasedClusterStates(String file,
+      String instanceName, StateModelFactory stateModelFactory)
   {
     ClusterView clusterView = FileBasedClusterManager.readClusterView(file);
     boolean ret = true;
@@ -101,11 +104,14 @@ public class ClusterStateVerifier
 
     // ideal_state for instance with name $instanceName
     Map<String, String> instanceIdealStates = new HashMap<String, String>();
-    for (ZNRecord idealStateItem : clusterView.getClusterPropertyList(ClusterPropertyType.IDEALSTATES))
+    for (ZNRecord idealStateItem : clusterView
+        .getClusterPropertyList(ClusterPropertyType.IDEALSTATES))
     {
-      Map<String, Map<String, String>> idealStates = idealStateItem.getMapFields();
+      Map<String, Map<String, String>> idealStates = idealStateItem
+          .getMapFields();
 
-      for (Map.Entry<String, Map<String, String>> entry : idealStates.entrySet())
+      for (Map.Entry<String, Map<String, String>> entry : idealStates
+          .entrySet())
       {
         if (entry.getValue().containsKey(instanceName))
         {
@@ -115,12 +121,14 @@ public class ClusterStateVerifier
       }
     }
 
-    Map<String, StateModel> currentStateMap = stateModelFactory.getStateModelMap();
+    Map<String, StateModel> currentStateMap = stateModelFactory
+        .getStateModelMap();
 
     if (currentStateMap.size() != instanceIdealStates.size())
     {
-      _logger.error("Number of current states (" + currentStateMap.size() + ") mismatch "
-          + "number of ideal states (" + instanceIdealStates.size() + ")");
+      _logger.error("Number of current states (" + currentStateMap.size()
+          + ") mismatch " + "number of ideal states ("
+          + instanceIdealStates.size() + ")");
       return false;
     }
 
@@ -146,8 +154,9 @@ public class ClusterStateVerifier
       String curState = currentStateMap.get(stateUnitKey).getCurrentState();
       if (!idealState.equalsIgnoreCase(curState))
       {
-        _logger.error("State mismatch--unit_key:" + stateUnitKey + " cur:" + curState + " ideal:"
-            + idealState + " instance_name:" + instanceName);
+        _logger.error("State mismatch--unit_key:" + stateUnitKey + " cur:"
+            + curState + " ideal:" + idealState + " instance_name:"
+            + instanceName);
         // return false;
         ret = false;
         continue;
@@ -157,13 +166,15 @@ public class ClusterStateVerifier
     if (ret == true)
     {
       System.out.println(instanceName + ": verification succeed");
-      _logger.info(instanceName + ": verification succeed (" + nonOfflineStateNr + " states)");
+      _logger.info(instanceName + ": verification succeed ("
+          + nonOfflineStateNr + " states)");
     }
 
     return ret;
   }
 
-  public static boolean VerifyIdealStateAndCurrentState(List<ZNRecord> idealStates,
+  public static boolean VerifyIdealStateAndCurrentState(
+      List<ZNRecord> idealStates,
       Map<String, Map<String, ZNRecord>> currentStates)
   {
     int countInIdealStates = 0;
@@ -186,24 +197,27 @@ public class ClusterStateVerifier
           }
           if (!currentStates.get(nodeName).containsKey(partitionName))
           {
-            _logger.error("Current state for" + nodeName + "does not contain " + partitionName);
+            _logger.error("Current state for" + nodeName + "does not contain "
+                + partitionName);
             return false;
           }
           if (!currentStates.get(nodeName).get(partitionName).getMapFields()
               .containsKey(partitionName))
           {
-            _logger.error("Current state for" + nodeName + "does not contain " + partitionName);
+            _logger.error("Current state for" + nodeName + "does not contain "
+                + partitionName);
             return false;
           }
 
-          String partitionNodeState = currentStates.get(nodeName).get(partitionName).getMapFields()
-              .get(partitionName).get(CMConstants.ZNAttribute.CURRENT_STATE.toString());
+          String partitionNodeState = currentStates.get(nodeName)
+              .get(partitionName).getMapFields().get(partitionName)
+              .get(CMConstants.ZNAttribute.CURRENT_STATE.toString());
 
           assert (partitionNodeState.equals(nodePartitionState));
           if (!partitionNodeState.equals(nodePartitionState))
           {
-            _logger.error("State mismatch " + partitionName + " " + nodeName + " "
-                + partitionNodeState + " " + nodePartitionState);
+            _logger.error("State mismatch " + partitionName + " " + nodeName
+                + " " + partitionNodeState + " " + nodePartitionState);
             return false;
           }
         }
@@ -222,14 +236,15 @@ public class ClusterStateVerifier
 
     if (countInIdealStates != countInCurrentStates)
     {
-      _logger.error("countInIdealStates:" + countInIdealStates + "countInCurrentStates: "
-          + countInCurrentStates);
+      _logger.error("countInIdealStates:" + countInIdealStates
+          + "countInCurrentStates: " + countInCurrentStates);
     }
     return countInIdealStates == countInCurrentStates;
   }
 
   public static boolean VerifyCurrentStateAndExternalView(
-      Map<String, Map<String, ZNRecord>> currentStates, List<ZNRecord> externalViews)
+      Map<String, Map<String, ZNRecord>> currentStates,
+      List<ZNRecord> externalViews)
   {
     // currently external view and ideal state has same structure so we can
     // use the same verification code.
@@ -278,8 +293,9 @@ public class ClusterStateVerifier
       return cliParser.parse(cliOptions, cliArgs);
     } catch (ParseException pe)
     {
-      System.err.println("CommandLineClient: failed to parse command-line options: "
-          + pe.toString());
+      System.err
+          .println("CommandLineClient: failed to parse command-line options: "
+              + pe.toString());
       printUsage(cliOptions);
       System.exit(1);
     }

@@ -4,29 +4,29 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.linkedin.clustermanager.model.ZNRecord;
+import com.linkedin.clustermanager.ZNRecord;
 
 public class ExternalViewHolder
 {
-    private Map<String, List<ZNRecord>> _externalViewMap;
+  private Map<String, List<ZNRecord>> _externalViewMap;
 
-    public ExternalViewHolder()
-    {
-        _externalViewMap = new HashMap<String, List<ZNRecord>>();
-    }
+  public ExternalViewHolder()
+  {
+    _externalViewMap = new HashMap<String, List<ZNRecord>>();
+  }
 
-    public void refresh(List<ZNRecord> currentStates)
+  public void refresh(List<ZNRecord> currentStates)
+  {
+    for (ZNRecord record : currentStates)
     {
-        for (ZNRecord record : currentStates)
-        {
-            String stateUnitGroup = record.getId();
-            _externalViewMap.put(stateUnitGroup, currentStates);
-        }
+      String stateUnitGroup = record.getId();
+      _externalViewMap.put(stateUnitGroup, currentStates);
     }
+  }
 
-    public Map<String, List<ZNRecord>> getCurrentStatesListMap()
-    {
-        return _externalViewMap;
-    }
+  public Map<String, List<ZNRecord>> getCurrentStatesListMap()
+  {
+    return _externalViewMap;
+  }
 
 }

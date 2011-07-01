@@ -18,15 +18,14 @@ import org.apache.log4j.Logger;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 
-import com.linkedin.clustermanager.controller.IdealStateCalculatorByShuffling;
-import com.linkedin.clustermanager.core.ClusterDataAccessor.InstanceConfigProperty;
-import com.linkedin.clustermanager.core.ClusterManagementTool;
-import com.linkedin.clustermanager.core.listeners.ClusterManagerException;
-import com.linkedin.clustermanager.impl.file.FileBasedClusterManager;
-import com.linkedin.clustermanager.impl.zk.ZKClusterManagementTool;
-import com.linkedin.clustermanager.impl.zk.ZNRecordSerializer;
-import com.linkedin.clustermanager.model.ClusterView;
-import com.linkedin.clustermanager.model.ZNRecord;
+import com.linkedin.clustermanager.ClusterManagementService;
+import com.linkedin.clustermanager.ClusterManagerException;
+import com.linkedin.clustermanager.ClusterView;
+import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.ClusterDataAccessor.InstanceConfigProperty;
+import com.linkedin.clustermanager.agent.file.FileBasedClusterManager;
+import com.linkedin.clustermanager.agent.zk.ZKClusterManagementTool;
+import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
 
 public class ClusterSetup
 {
@@ -67,7 +66,7 @@ public class ClusterSetup
 
   public void addCluster(String clusterName, boolean overwritePrevious)
   {
-    ClusterManagementTool managementTool = getClusterManagementTool();
+    ClusterManagementService managementTool = getClusterManagementTool();
     managementTool.addCluster(clusterName, overwritePrevious);
   }
 
@@ -101,19 +100,21 @@ public class ClusterSetup
 
   public void addNodeToCluster(String clusterName, String host, int port)
   {
-    ClusterManagementTool managementTool = getClusterManagementTool();
+    ClusterManagementService managementTool = getClusterManagementTool();
 
     ZNRecord nodeConfig = new ZNRecord();
     String nodeId = host + "_" + port;
     nodeConfig.setId(nodeId);
     nodeConfig.setSimpleField(InstanceConfigProperty.HOST.toString(), host);
-    nodeConfig.setSimpleField(InstanceConfigProperty.PORT.toString(), "" + port);
-    nodeConfig.setSimpleField(InstanceConfigProperty.ENABLED.toString(), true + "");
+    nodeConfig
+        .setSimpleField(InstanceConfigProperty.PORT.toString(), "" + port);
+    nodeConfig.setSimpleField(InstanceConfigProperty.ENABLED.toString(),
+        true + "");
 
     managementTool.addNode(clusterName, nodeConfig);
   }
 
-  public ClusterManagementTool getClusterManagementTool()
+  public ClusterManagementService getClusterManagementTool()
   {
     ZkClient zkClient = new ZkClient(_zkServerAddress);
     zkClient.setZkSerializer(new ZNRecordSerializer());
@@ -121,22 +122,25 @@ public class ClusterSetup
     return new ZKClusterManagementTool(zkClient);
   }
 
-  public void addDatabaseToCluster(String clusterName, String dbName, int partitions)
+  public void addDatabaseToCluster(String clusterName, String dbName,
+      int partitions)
   {
-    ClusterManagementTool managementTool = getClusterManagementTool();
+    ClusterManagementService managementTool = getClusterManagementTool();
     managementTool.addDatabase(clusterName, dbName, partitions);
   }
 
-  public void rebalanceStorageCluster(String clusterName, String dbName, int replica)
+  public void rebalanceStorageCluster(String clusterName, String dbName,
+      int replica)
   {
-    ClusterManagementTool managementTool = getClusterManagementTool();
+    ClusterManagementService managementTool = getClusterManagementTool();
     List<String> nodeNames = managementTool.getNodeNamesInCluster(clusterName);
 
     ZNRecord dbIdealState = managementTool.getDBIdealState(clusterName, dbName);
-    int partitions = Integer.parseInt(dbIdealState.getSimpleField("partitions"));
+    int partitions = Integer
+        .parseInt(dbIdealState.getSimpleField("partitions"));
 
-    ZNRecord idealState = IdealStateCalculatorByShuffling.calculateIdealState(nodeNames,
-        partitions, replica, dbName);
+    ZNRecord idealState = IdealStateCalculatorByShuffling.calculateIdealState(
+        nodeNames, partitions, replica, dbName);
     managementTool.setDBIdealState(clusterName, dbName, idealState);
   }
 
@@ -236,9 +240,9 @@ public class ClusterSetup
     partitionInfoOption.setArgs(2);
     partitionInfoOption.setRequired(false);
     partitionInfoOption.setArgName("clusterName partitionName");
-    
+
     Option enableNodeOption = OptionBuilder.withLongOpt(enableNode)
-    .withDescription("Enable / disable a node").create();
+        .withDescription("Enable / disable a node").create();
     enableNodeOption.setArgs(3);
     enableNodeOption.setRequired(false);
     enableNodeOption.setArgName("clusterName nodeName true/false");
@@ -287,8 +291,9 @@ public class ClusterSetup
       cmd = cliParser.parse(cliOptions, cliArgs);
     } catch (ParseException pe)
     {
-      System.err.println("CommandLineClient: failed to parse command-line options: "
-          + pe.toString());
+      System.err
+          .println("CommandLineClient: failed to parse command-line options: "
+              + pe.toString());
       printUsage(cliOptions);
       System.exit(1);
     }
@@ -306,11 +311,12 @@ public class ClusterSetup
       dbParams.add(new FileBasedClusterManager.DBParam("MailboxDB", 128));
       dbParams.add(new FileBasedClusterManager.DBParam("MyDB", 8));
       dbParams.add(new FileBasedClusterManager.DBParam("schemata", 1));
-      String[] nodesInfo = { "localhost:8900" };
+      String[] nodesInfo =
+      { "localhost:8900" };
 
       ClusterViewSerializer serializer = new ClusterViewSerializer(file);
-      ClusterView view = FileBasedClusterManager.generateStaticConfigClusterView(nodesInfo,
-          dbParams, 0);
+      ClusterView view = FileBasedClusterManager
+          .generateStaticConfigClusterView(nodesInfo, dbParams, 0);
 
       byte[] bytes;
       bytes = serializer.serialize(view);
@@ -325,7 +331,8 @@ public class ClusterSetup
       return 0;
     }
 
-    ClusterSetup setupTool = new ClusterSetup(cmd.getOptionValue(zkServerAddress));
+    ClusterSetup setupTool = new ClusterSetup(
+        cmd.getOptionValue(zkServerAddress));
 
     if (cmd.hasOption(addCluster))
     {
@@ -363,7 +370,8 @@ public class ClusterSetup
 
     if (cmd.hasOption(listClusters))
     {
-      List<String> clusters = setupTool.getClusterManagementTool().getClusters();
+      List<String> clusters = setupTool.getClusterManagementTool()
+          .getClusters();
 
       System.out.println("Existing clusters:");
       for (String cluster : clusters)
@@ -387,7 +395,8 @@ public class ClusterSetup
     } else if (cmd.hasOption(listNodes))
     {
       String clusterName = cmd.getOptionValue(listNodes);
-      List<String> nodes = setupTool.getClusterManagementTool().getNodeNamesInCluster(clusterName);
+      List<String> nodes = setupTool.getClusterManagementTool()
+          .getNodeNamesInCluster(clusterName);
 
       System.out.println("Nodes in cluster " + clusterName + ":");
       for (String nodeName : nodes)
@@ -399,25 +408,23 @@ public class ClusterSetup
     else if (cmd.hasOption(nodeInfo))
     {
       // print out current states and
-    } 
-    else if (cmd.hasOption(databaseInfo))
+    } else if (cmd.hasOption(databaseInfo))
     {
       // print out partition number, db name and replication number
       // Also the ideal states and current states
-    } 
-    else if (cmd.hasOption(partitionInfo))
+    } else if (cmd.hasOption(partitionInfo))
     {
       // print out where the partition master / slaves locates
-    }
-    else if (cmd.hasOption(enableNode))
+    } else if (cmd.hasOption(enableNode))
     {
       String clusterName = cmd.getOptionValues(enableNode)[0];
       String instanceName = cmd.getOptionValues(enableNode)[1];
-      boolean enabled  = Boolean.parseBoolean(cmd.getOptionValues(enableNode)[1].toLowerCase());
-      
-      setupTool.getClusterManagementTool().enableInstance(clusterName, instanceName, enabled);
-    }
-    else if(cmd.hasOption(help))
+      boolean enabled = Boolean.parseBoolean(cmd.getOptionValues(enableNode)[1]
+          .toLowerCase());
+
+      setupTool.getClusterManagementTool().enableInstance(clusterName,
+          instanceName, enabled);
+    } else if (cmd.hasOption(help))
     {
       printUsage(cliOptions);
       return 0;
@@ -437,8 +444,10 @@ public class ClusterSetup
     Logger.getRootLogger().setLevel(Level.ERROR);
     if (args.length == 0)
     {
-      new ClusterSetup("localhost:2181").setupTestCluster("storage-integration-cluster");
-      new ClusterSetup("localhost:2181").setupTestCluster("relay-integration-cluster");
+      new ClusterSetup("localhost:2181")
+          .setupTestCluster("storage-integration-cluster");
+      new ClusterSetup("localhost:2181")
+          .setupTestCluster("relay-integration-cluster");
       System.exit(0);
     }
 

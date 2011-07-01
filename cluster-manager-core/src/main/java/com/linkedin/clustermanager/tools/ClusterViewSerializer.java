@@ -13,8 +13,8 @@ import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.SerializationConfig;
 
-import com.linkedin.clustermanager.impl.file.FileBasedClusterManager;
-import com.linkedin.clustermanager.model.ClusterView;
+import com.linkedin.clustermanager.ClusterView;
+import com.linkedin.clustermanager.agent.file.FileBasedClusterManager;
 
 public class ClusterViewSerializer
 {
@@ -27,15 +27,18 @@ public class ClusterViewSerializer
     _file = new File(filename);
   }
 
-  public byte[] serialize(Object data) 
+  public byte[] serialize(Object data)
   {
     ObjectMapper mapper = new ObjectMapper();
 
     SerializationConfig serializationConfig = mapper.getSerializationConfig();
     serializationConfig.set(SerializationConfig.Feature.INDENT_OUTPUT, true);
-    serializationConfig.set(SerializationConfig.Feature.AUTO_DETECT_GETTERS, true);
-    serializationConfig.set(SerializationConfig.Feature.AUTO_DETECT_FIELDS, true);
-    serializationConfig.set(SerializationConfig.Feature.CAN_OVERRIDE_ACCESS_MODIFIERS, true);
+    serializationConfig.set(SerializationConfig.Feature.AUTO_DETECT_GETTERS,
+        true);
+    serializationConfig.set(SerializationConfig.Feature.AUTO_DETECT_FIELDS,
+        true);
+    serializationConfig.set(
+        SerializationConfig.Feature.CAN_OVERRIDE_ACCESS_MODIFIERS, true);
     // serializationConfig.set(SerializationConfig.Feature.WRITE_NULL_PROPERTIES,
     // true);
 
@@ -58,19 +61,24 @@ public class ClusterViewSerializer
   {
     if (!_file.exists())
     {
-      logger.error(String.format("Static config file \"%s\" doesn't exist", _file.getAbsolutePath()));
+      logger.error(String.format("Static config file \"%s\" doesn't exist",
+          _file.getAbsolutePath()));
       return null; // DONT CHECK THIS IN // System.exit(1);
     }
 
     ObjectMapper mapper = new ObjectMapper();
     // ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
 
-    DeserializationConfig deserializationConfig = mapper.getDeserializationConfig();
-    deserializationConfig.set(DeserializationConfig.Feature.AUTO_DETECT_FIELDS, true);
-    deserializationConfig.set(DeserializationConfig.Feature.AUTO_DETECT_SETTERS, true);
+    DeserializationConfig deserializationConfig = mapper
+        .getDeserializationConfig();
+    deserializationConfig.set(DeserializationConfig.Feature.AUTO_DETECT_FIELDS,
+        true);
+    deserializationConfig.set(
+        DeserializationConfig.Feature.AUTO_DETECT_SETTERS, true);
     // deserializationConfig.set(DeserializationConfig.Feature.CAN_OVERRIDE_ACCESS_MODIFIERS,
     // true);
-    deserializationConfig.set(DeserializationConfig.Feature.FAIL_ON_UNKNOWN_PROPERTIES, true);
+    deserializationConfig.set(
+        DeserializationConfig.Feature.FAIL_ON_UNKNOWN_PROPERTIES, true);
 
     try
     {
@@ -79,14 +87,15 @@ public class ClusterViewSerializer
       return view;
     } catch (Exception e)
     {
-      logger.error("Error during deserialization of bytes:" + new String(bytes), e);
+      logger.error(
+          "Error during deserialization of bytes:" + new String(bytes), e);
     }
 
     return null;
   }
 
-  public static void main(String[] args) throws JsonGenerationException, JsonMappingException,
-      IOException
+  public static void main(String[] args) throws JsonGenerationException,
+      JsonMappingException, IOException
   {
     // temporary test only
     // create fake db names
@@ -100,11 +109,12 @@ public class ClusterViewSerializer
     // String[] nodesInfo = { "localhost:8900", "localhost:8901",
     // "localhost:8902", "localhost:8903",
     // "localhost:8904" };
-    String[] nodesInfo = { "localhost:12918" };
+    String[] nodesInfo =
+    { "localhost:12918" };
     int replication = 0;
 
-    ClusterView view = FileBasedClusterManager.generateStaticConfigClusterView(nodesInfo, dbParams,
-        replication);
+    ClusterView view = FileBasedClusterManager.generateStaticConfigClusterView(
+        nodesInfo, dbParams, replication);
     String file = "/tmp/cluster-view.json";
     ClusterViewSerializer serializer = new ClusterViewSerializer(file);
 

@@ -12,24 +12,19 @@ import org.I0Itec.zkclient.ZkClient;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
-import com.linkedin.clustermanager.controller.RoutingInfoProvider;
-import com.linkedin.clustermanager.core.CMConstants;
-import com.linkedin.clustermanager.impl.zk.ZKUtil;
-import com.linkedin.clustermanager.impl.zk.ZNRecordSerializer;
+import com.linkedin.clustermanager.agent.zk.ZKUtil;
+import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
+import com.linkedin.clustermanager.controller.ExternalViewGenerator;
 import com.linkedin.clustermanager.model.Message;
-import com.linkedin.clustermanager.model.ZNRecord;
 import com.linkedin.clustermanager.util.CMUtil;
 
 public class TestZKRoutingInfoProvider
 {
   public Map<String, List<ZNRecord>> createCurrentStates(String[] dbNames,
-                                                         String[] nodeNames,
-                                                         int[] partitions,
-                                                         int[] replicas)
+      String[] nodeNames, int[] partitions, int[] replicas)
   {
     Map<String, List<ZNRecord>> currentStates = new TreeMap<String, List<ZNRecord>>();
-    Map<String, Map<String, ZNRecord>> currentStates2 =
-        new TreeMap<String, Map<String, ZNRecord>>();
+    Map<String, Map<String, ZNRecord>> currentStates2 = new TreeMap<String, Map<String, ZNRecord>>();
 
     Map<String, String> stateMaster = new TreeMap<String, String>();
     stateMaster.put(CMConstants.ZNAttribute.CURRENT_STATE.toString(), "MASTER");
@@ -62,24 +57,23 @@ public class TestZKRoutingInfoProvider
 
       for (int i = 0; i < partition; i++)
       {
-        stateMaster.put(Message.Attributes.STATE_UNIT_GROUP.toString(), dbNames[j]);
-        stateSlave.put(Message.Attributes.STATE_UNIT_GROUP.toString(), dbNames[j]);
+        stateMaster.put(Message.Attributes.STATE_UNIT_GROUP.toString(),
+            dbNames[j]);
+        stateSlave.put(Message.Attributes.STATE_UNIT_GROUP.toString(),
+            dbNames[j]);
         int nodes = nodeNames.length;
         int master = randomArray.get(i) % nodes;
         String partitionName = dbNames[j] + ".partition-" + i;
-        Map<String, Map<String, String>> map =
-            (Map<String, Map<String, String>>) (currentStates2.get(nodeNames[master])
-                                                              .get(dbNames[j]).getMapFields());
+        Map<String, Map<String, String>> map = (Map<String, Map<String, String>>) (currentStates2
+            .get(nodeNames[master]).get(dbNames[j]).getMapFields());
         assert (map != null);
         map.put(partitionName, stateMaster);
 
         for (int k = 1; k <= replicas[j]; k++)
         {
           int slave = (master + k) % nodes;
-          Map<String, Map<String, String>> map2 =
-              (Map<String, Map<String, String>>) currentStates2.get(nodeNames[slave])
-                                                               .get(dbNames[j])
-                                                               .getMapFields();
+          Map<String, Map<String, String>> map2 = (Map<String, Map<String, String>>) currentStates2
+              .get(nodeNames[slave]).get(dbNames[j]).getMapFields();
 
           map2.put(partitionName, stateSlave);
         }
@@ -99,7 +93,7 @@ public class TestZKRoutingInfoProvider
   }
 
   public void Verify(Map<String, List<ZNRecord>> currentStates,
-                     Map<String, Map<String, Set<String>>> routingMap)
+      Map<String, Map<String, Set<String>>> routingMap)
   {
     int counter1 = 0;
     int counter2 = 0;
@@ -111,13 +105,12 @@ public class TestZKRoutingInfoProvider
         Map<String, Map<String, String>> dbStateMap = dbState.getMapFields();
         for (String partitionName : dbStateMap.keySet())
         {
-          Map<String, String> stateMap =
-              (Map<String, String>) dbStateMap.get(partitionName);
-          String state =
-              (String) stateMap.get(CMConstants.ZNAttribute.CURRENT_STATE.toString());
-          AssertJUnit.assertTrue(routingMap.get(partitionName)
-                                           .get(state)
-                                           .contains(nodeName));
+          Map<String, String> stateMap = (Map<String, String>) dbStateMap
+              .get(partitionName);
+          String state = (String) stateMap
+              .get(CMConstants.ZNAttribute.CURRENT_STATE.toString());
+          AssertJUnit.assertTrue(routingMap.get(partitionName).get(state)
+              .contains(nodeName));
           counter1++;
         }
       }
@@ -160,9 +153,9 @@ public class TestZKRoutingInfoProvider
     {
       replicas[i] = 3;
     }
-    Map<String, List<ZNRecord>> currentStates =
-        createCurrentStates(dbNames, nodeNames, partitions, replicas);
-    RoutingInfoProvider provider = new RoutingInfoProvider();
+    Map<String, List<ZNRecord>> currentStates = createCurrentStates(dbNames,
+        nodeNames, partitions, replicas);
+    ExternalViewGenerator provider = new ExternalViewGenerator();
 
     List<ZNRecord> mockIdealStates = new ArrayList<ZNRecord>();
     for (String dbName : dbNames)
@@ -171,28 +164,30 @@ public class TestZKRoutingInfoProvider
       rec.setId(dbName);
       mockIdealStates.add(rec);
     }
-    List<ZNRecord> externalView =
-        provider.computeExternalView(currentStates, mockIdealStates);
+    List<ZNRecord> externalView = provider.computeExternalView(currentStates,
+        mockIdealStates);
 
-    Map<String, Map<String, Set<String>>> routingMap =
-        provider.getRouterMapFromExternalView(externalView);
+    Map<String, Map<String, Set<String>>> routingMap = provider
+        .getRouterMapFromExternalView(externalView);
 
     Verify(currentStates, routingMap);
 
     /* write current state and external view to ZK */
     /*
      * String clusterName = "test-cluster44"; ZkClient zkClient = new
-     * ZkClient("localhost:2181"); zkClient.setZkSerializer(new ZNRecordSerializer());
+     * ZkClient("localhost:2181"); zkClient.setZkSerializer(new
+     * ZNRecordSerializer());
      * 
      * for(String nodeName : currentStates.keySet()) {
      * if(zkClient.exists(CMUtil.getCurrentStatePath(clusterName, nodeName))) {
-     * zkClient.deleteRecursive(CMUtil.getCurrentStatePath(clusterName, nodeName)); }
-     * ZKUtil.createChildren(zkClient,CMUtil.getCurrentStatePath (clusterName, nodeName),
-     * currentStates.get(nodeName)); }
+     * zkClient.deleteRecursive(CMUtil.getCurrentStatePath(clusterName,
+     * nodeName)); } ZKUtil.createChildren(zkClient,CMUtil.getCurrentStatePath
+     * (clusterName, nodeName), currentStates.get(nodeName)); }
      * 
      * //List<ZNRecord> externalView =
-     * ZKRoutingInfoProvider.computeExternalView(currentStates); String routingTablePath =
-     * CMUtil.getExternalViewPath(clusterName); if(zkClient.exists(routingTablePath)) {
+     * ZKRoutingInfoProvider.computeExternalView(currentStates); String
+     * routingTablePath = CMUtil.getExternalViewPath(clusterName);
+     * if(zkClient.exists(routingTablePath)) {
      * zkClient.deleteRecursive(routingTablePath); }
      * 
      * ZKUtil.createChildren(zkClient, CMUtil.getExternalViewPath(clusterName),

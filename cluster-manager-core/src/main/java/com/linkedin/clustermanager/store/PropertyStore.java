@@ -70,8 +70,8 @@ public interface PropertyStore<T>
    * @param listener
    * @throws PropertyStoreException
    */
-  void subscribeForPropertyChange(String prefix, PropertyChangeListener<T> listener)
-      throws PropertyStoreException;
+  void subscribeForPropertyChange(String prefix,
+      PropertyChangeListener<T> listener) throws PropertyStoreException;
 
   /**
    * Removes the listener for the prefix
@@ -80,8 +80,8 @@ public interface PropertyStore<T>
    * @param listener
    * @throws PropertyStoreException
    */
-  void unsubscribeForPropertyChange(String prefix, PropertyChangeListener<T> listener)
-      throws PropertyStoreException;
+  void unsubscribeForPropertyChange(String prefix,
+      PropertyChangeListener<T> listener) throws PropertyStoreException;
 
   /**
    * Indicates if the implementation supports the feature of storing data in

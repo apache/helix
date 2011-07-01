@@ -40,10 +40,12 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
 
     public ZKPropertyListenerTuple(final PropertyChangeListener<T> listener)
     {
-      _zkDataListener = new IZkDataListener() {
+      _zkDataListener = new IZkDataListener()
+      {
 
         @Override
-        public void handleDataChange(String dataPath, Object data) throws Exception
+        public void handleDataChange(String dataPath, Object data)
+            throws Exception
         {
           // TODO Auto-generated method stub
           System.out.println(dataPath + ": data changed to " + data);
@@ -65,14 +67,16 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
 
       };
 
-      _zkChildListener = new IZkChildListener() {
+      _zkChildListener = new IZkChildListener()
+      {
 
         @Override
-        public void handleChildChange(String parentPath, List<String> currentChilds)
-            throws Exception
+        public void handleChildChange(String parentPath,
+            List<String> currentChilds) throws Exception
         {
           // TODO Auto-generated method stub
-          System.out.println("children changed at " + parentPath + ": " + currentChilds);
+          System.out.println("children changed at " + parentPath + ": "
+              + currentChilds);
 
           for (String child : currentChilds)
           {
@@ -87,7 +91,8 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
     }
   }
 
-  public ZKPropertyStore(ZkClient zkClient, final PropertySerializer serializer, String rootPath)
+  public ZKPropertyStore(ZkClient zkClient,
+      final PropertySerializer serializer, String rootPath)
   {
     _serializer = serializer;
 
@@ -149,7 +154,8 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
   }
 
   @Override
-  public synchronized void setProperty(String key, final T value) throws PropertyStoreException
+  public synchronized void setProperty(String key, final T value)
+      throws PropertyStoreException
   {
     String path = getPath(key);
 
@@ -205,7 +211,8 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
   }
 
   @Override
-  public synchronized void removeProperty(String key) throws PropertyStoreException
+  public synchronized void removeProperty(String key)
+      throws PropertyStoreException
   {
     // TODO Auto-generated method stub
     String path = getPath(key);
@@ -237,13 +244,15 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
     removeProperyRecursive(_ROOT);
   }
 
-  public synchronized void removeProperyRecursive(String key) throws PropertyStoreException
+  public synchronized void removeProperyRecursive(String key)
+      throws PropertyStoreException
   {
     String path = getPath(key);
     doRemovePropertyRecursive(path);
   }
 
-  private boolean doRemovePropertyRecursive(String path) throws PropertyStoreException
+  private boolean doRemovePropertyRecursive(String path)
+      throws PropertyStoreException
   {
     List<String> children;
     try
@@ -269,7 +278,8 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
   }
 
   @Override
-  public List<String> getPropertyNames(String prefix) throws PropertyStoreException
+  public List<String> getPropertyNames(String prefix)
+      throws PropertyStoreException
   {
     // TODO Auto-generated method stub
     String path = getPath(prefix);
@@ -289,22 +299,23 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
   }
 
   @Override
-  public void setPropertyDelimiter(String delimiter) throws PropertyStoreException
+  public void setPropertyDelimiter(String delimiter)
+      throws PropertyStoreException
   {
     // TODO Auto-generated method stub
 
   }
 
-  public void subscribeForRootPropertyChange(final PropertyChangeListener<T> listener)
-      throws PropertyStoreException
+  public void subscribeForRootPropertyChange(
+      final PropertyChangeListener<T> listener) throws PropertyStoreException
   {
     subscribeForPropertyChange(_ROOT, listener);
   }
 
   // put listener on prefix and all its children
   @Override
-  public void subscribeForPropertyChange(String prefix, final PropertyChangeListener<T> listener)
-      throws PropertyStoreException
+  public void subscribeForPropertyChange(String prefix,
+      final PropertyChangeListener<T> listener) throws PropertyStoreException
   {
     // TODO Auto-generated method stub
     String path = getPath(prefix);
@@ -323,7 +334,8 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
 
       if (listenerMapForPath.get(listener) == null)
       {
-        ZKPropertyListenerTuple listenerTuple = new ZKPropertyListenerTuple(listener);
+        ZKPropertyListenerTuple listenerTuple = new ZKPropertyListenerTuple(
+            listener);
         listenerMapForPath.put(listener, listenerTuple);
 
         // add data listener on prefix and all its children
@@ -333,7 +345,8 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
         for (String child : children)
         {
           String pathToChild = path + "/" + child;
-          _zkClient.subscribeDataChanges(pathToChild, listenerTuple._zkDataListener);
+          _zkClient.subscribeDataChanges(pathToChild,
+              listenerTuple._zkDataListener);
         }
 
         // add child listener on prefix only
@@ -343,15 +356,15 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
     }
   }
 
-  public void unsubscribeForRootPropertyChange(PropertyChangeListener<T> listener)
-      throws PropertyStoreException
+  public void unsubscribeForRootPropertyChange(
+      PropertyChangeListener<T> listener) throws PropertyStoreException
   {
     unsubscribeForPropertyChange(_ROOT, listener);
   }
 
   @Override
-  public void unsubscribeForPropertyChange(String prefix, PropertyChangeListener<T> listener)
-      throws PropertyStoreException
+  public void unsubscribeForPropertyChange(String prefix,
+      PropertyChangeListener<T> listener) throws PropertyStoreException
   {
     // TODO Auto-generated method stub
     String path = getPath(prefix);
@@ -364,7 +377,8 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
           .get(path);
       if (listenerMapForPath != null)
       {
-        ZKPropertyListenerTuple listenerTuple = listenerMapForPath.remove(listener);
+        ZKPropertyListenerTuple listenerTuple = listenerMapForPath
+            .remove(listener);
 
         if (listenerTuple != null)
         {
@@ -374,10 +388,12 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
           for (String child : children)
           {
             String pathToChild = path + "/" + child;
-            _zkClient.unsubscribeDataChanges(pathToChild, listenerTuple._zkDataListener);
+            _zkClient.unsubscribeDataChanges(pathToChild,
+                listenerTuple._zkDataListener);
           }
 
-          _zkClient.unsubscribeChildChanges(path, listenerTuple._zkChildListener);
+          _zkClient.unsubscribeChildChanges(path,
+              listenerTuple._zkChildListener);
         }
       }
 
@@ -400,7 +416,8 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
   public void setPropertySerializer(final PropertySerializer serializer)
   {
     // TODO Auto-generated method stub
-    ZkSerializer zkSerializer = new ZkSerializer() {
+    ZkSerializer zkSerializer = new ZkSerializer()
+    {
 
       @Override
       public byte[] serialize(Object data) throws ZkMarshallingError

@@ -6,74 +6,74 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+import com.linkedin.clustermanager.ZNRecord;
 
 public class IdealState
 {
 
-    private final ZNRecord _record;
+  private final ZNRecord _record;
 
-    public IdealState()
+  public IdealState()
+  {
+    _record = new ZNRecord();
+  }
+
+  public IdealState(ZNRecord record)
+  {
+    this._record = record;
+
+  }
+
+  public void set(String key, String instanceName, String state)
+  {
+    Map<String, String> mapField = _record.getMapField(key);
+    if (mapField == null)
     {
-        _record = new ZNRecord();
+      _record.setMapField(key, new TreeMap<String, String>());
     }
+    _record.getMapField(key).put(instanceName, state);
+  }
 
-    public IdealState(ZNRecord record)
+  public String get(String key, String instanceName)
+  {
+
+    Map<String, String> mapField = _record.getMapField(key);
+    if (mapField != null)
     {
-        this._record = record;
-
+      return mapField.get(instanceName);
     }
+    return null;
+  }
 
-    public void set(String key, String instanceName, String state)
-    {
-        Map<String, String> mapField = _record.getMapField(key);
-        if (mapField == null)
-        {
-            _record.setMapField(key, new TreeMap<String, String>());
-        }
-        _record.getMapField(key).put(instanceName, state);
-    }
+  public Set<String> stateUnitSet()
+  {
+    return _record.getMapFields().keySet();
+  }
 
-    public String get(String key, String instanceName)
-    {
+  public Map<String, String> getInstanceStateMap(String stateUnitKey)
+  {
+    return _record.getMapField(stateUnitKey);
+  }
 
-        Map<String, String> mapField = _record.getMapField(key);
-        if (mapField != null)
-        {
-            return mapField.get(instanceName);
-        }
-        return null;
-    }
+  public List<String> getInstanceStateList(String stateUnitKey)
+  {
+    LinkedList<String> instanceStateList = new LinkedList<String>();
+    Map<String, String> instanceStateMap = getInstanceStateMap(stateUnitKey);
 
-    public Set<String> stateUnitSet()
+    String masterInstance = "";
+    for (String instanceName : instanceStateMap.keySet())
     {
-        return _record.getMapFields().keySet();
-    }
-
-    public Map<String, String> getInstanceStateMap(String stateUnitKey)
-    {
-        return _record.getMapField(stateUnitKey);
-    }
-    
-    public List<String> getInstanceStateList(String stateUnitKey)
-    {
-      LinkedList<String> instanceStateList = new LinkedList<String>();
-      Map<String, String> instanceStateMap = getInstanceStateMap(stateUnitKey);
-      
-      String masterInstance  = "";
-      for(String instanceName : instanceStateMap.keySet())
+      if (instanceStateMap.get(instanceName).equals("MASTER"))
       {
-        if(instanceStateMap.get(instanceName).equals("MASTER"))
-        {
-          masterInstance = instanceName;
-        }
-        else
-        {
-          instanceStateList.add(instanceName);
-        }
+        masterInstance = instanceName;
+      } else
+      {
+        instanceStateList.add(instanceName);
       }
-      assert(!masterInstance.isEmpty());
-      instanceStateList.addFirst(masterInstance);
-      
-      return instanceStateList;
     }
+    assert (!masterInstance.isEmpty());
+    instanceStateList.addFirst(masterInstance);
+
+    return instanceStateList;
+  }
 }

@@ -17,6 +17,7 @@ import org.restlet.resource.Resource;
 import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 
+import com.linkedin.clustermanagement.webapp.RestAdminApplication;
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.ClusterManagerException;
@@ -62,7 +63,7 @@ public class InstancesResource extends Resource
     StringRepresentation presentation = null;
     try
     {
-      String zkServer = (String)getContext().getAttributes().get("zkServer");
+      String zkServer = (String)getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
       String clusterName = (String)getRequest().getAttributes().get("clusterName");
       presentation = getInstancesRepresentation(zkServer, clusterName);
     }
@@ -103,7 +104,7 @@ public class InstancesResource extends Resource
   {
     try
     {
-      String zkServer = (String)getContext().getAttributes().get("zkServer");
+      String zkServer = (String)getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
       String clusterName = (String)getRequest().getAttributes().get("clusterName");
       
       Form form = new Form(entity);

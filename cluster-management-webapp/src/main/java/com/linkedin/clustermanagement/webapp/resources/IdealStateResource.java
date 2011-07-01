@@ -22,6 +22,7 @@ import org.restlet.resource.Resource;
 import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 
+import com.linkedin.clustermanagement.webapp.RestAdminApplication;
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.ClusterManagerException;
@@ -64,7 +65,7 @@ public class IdealStateResource extends Resource
     StringRepresentation presentation = null;
     try
     {
-      String zkServer = (String)getContext().getAttributes().get("zkServer");
+      String zkServer = (String)getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
       String clusterName = (String)getRequest().getAttributes().get("clusterName");
       String entityId = (String)getRequest().getAttributes().get("entityId");
       presentation = getIdealStateRepresentation(zkServer, clusterName, entityId);
@@ -92,7 +93,7 @@ public class IdealStateResource extends Resource
   {
     try
     {
-      String zkServer = (String)getContext().getAttributes().get("zkServer");
+      String zkServer = (String)getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
       String clusterName = (String)getRequest().getAttributes().get("clusterName");
       String entityId = (String)getRequest().getAttributes().get("entityId");
       

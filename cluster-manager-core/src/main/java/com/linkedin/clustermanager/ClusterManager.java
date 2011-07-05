@@ -53,20 +53,22 @@ public interface ClusterManager
    *      NotificationContext)
    * @param listener
    */
-  void addLiveInstanceChangeListener(LiveInstanceChangeListener listener);
+  void addLiveInstanceChangeListener(LiveInstanceChangeListener listener)
+      throws Exception;
 
   /**
    * @see ConfigChangeListener#onConfigChange(List, NotificationContext)
    * @param listener
    */
-  void addConfigChangeListener(ConfigChangeListener listener);
+  void addConfigChangeListener(ConfigChangeListener listener) throws Exception;
 
   /**
    * @see MessageListener#onMessage(String, List, NotificationContext)
    * @param listener
    * @param instanceName
    */
-  void addMessageListener(MessageListener listener, String instanceName);
+  void addMessageListener(MessageListener listener, String instanceName)
+      throws Exception;
 
   /**
    * @see CurrentStateChangeListener#onStateChange(String, List,
@@ -76,14 +78,15 @@ public interface ClusterManager
    */
 
   void addCurrentStateChangeListener(CurrentStateChangeListener listener,
-      String instanceName);
+      String instanceName) throws Exception;
 
   /**
    * @see ExternalViewChangeListener#onExternalViewChange(List,
    *      NotificationContext)
    * @param listener
    */
-  void addExternalViewChangeListener(ExternalViewChangeListener listener);
+  void addExternalViewChangeListener(ExternalViewChangeListener listener)
+      throws Exception;
 
   // void addListeners(List<Object> listeners);
 

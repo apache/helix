@@ -88,9 +88,18 @@ public class ClusterController implements ConfigChangeListener,
       String instanceName = instance.getId();
       if (!_instanceSubscriptionList.contains(instanceName))
       {
-        changeContext.getManager().addCurrentStateChangeListener(this,
-            instanceName);
-        changeContext.getManager().addMessageListener(this, instanceName);
+        try
+        {
+          changeContext.getManager().addCurrentStateChangeListener(this,
+              instanceName);
+          changeContext.getManager().addMessageListener(this, instanceName);
+        } catch (Exception e)
+        {
+          logger.error(
+              "Exception adding current state and message listener for instance:"
+                  + instanceName, e);
+        }
+
         _instanceSubscriptionList.add(instanceName);
       }
     }

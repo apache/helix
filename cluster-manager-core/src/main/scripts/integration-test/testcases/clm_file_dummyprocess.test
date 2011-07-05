@@ -7,14 +7,14 @@ source setup_env.inc
 #./clm_console.sh --configFile $CONFIG_DIR/cluster-12345-cluster-view.json
 temp_cluster_view_conf=$VIEW_ROOT/$LOG_DIR_FROM_ROOT/cluster-12345-cluster-view.json
 cp -f $CONFIG_DIR/cluster-12345-cluster-view.json $temp_cluster_view_conf
-$SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="--configFile $temp_cluster_view_con"
+$SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="--configFile $temp_cluster_view_conf"
 
 #Launch dummy process nodes
 dummy_process_1_output=$VIEW_ROOT/$LOG_DIR_FROM_ROOT/dummy_process_1.log
-$SCRIPT_DIR/cm_driver.py -c dummy-process -o start --logfile=$dummy_process_1_output -l "integration-test/config/log4j.properties" --cmdline_args="--configFile $CONFIG_DIR/cluster-12345-cluster-view.json --cluster storage-cluster-12345 --host localhost --port 8900"
+$SCRIPT_DIR/cm_driver.py -c dummy-process -o start --logfile=$dummy_process_1_output -l "integration-test/config/log4j.properties" --cmdline_args="--configFile $temp_cluster_view_conf --cluster storage-cluster-12345 --host localhost --port 8900"
 
 dummy_process_2_output=$VIEW_ROOT/$LOG_DIR_FROM_ROOT/dummy_process_2.log
-$SCRIPT_DIR/cm_driver.py -c dummy-process -o start --logfile=$dummy_process_2_output -l "integration-test/config/log4j.properties" --cmdline_args="--configFile $CONFIG_DIR/cluster-12345-cluster-view.json --cluster storage-cluster-12345 --host localhost --port 8901"
+$SCRIPT_DIR/cm_driver.py -c dummy-process -o start --logfile=$dummy_process_2_output -l "integration-test/config/log4j.properties" --cmdline_args="--configFile $temp_cluster_view_conf --cluster storage-cluster-12345 --host localhost --port 8901"
 
 #$SCRIPT_DIR/espresso_driver.py -c dummy-process -o start -l "cluster-manager/test/integration-test/log4j.properties" --cmdline_props="--configFile /tmp/cluster-12345.cv --cluster storage-cluster-12345 --host localhost --port 8902"
 

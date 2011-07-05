@@ -35,7 +35,17 @@ public interface PropertyStore<T>
    * @return value of the property
    * @throws PropertyStoreException
    */
-  T getProperty(String key) throws PropertyStoreException;
+  List<T> getProperty(String key) throws PropertyStoreException;
+  
+  /**
+   * get the property, key can be a child or parent, If parent and
+   * 
+   * @param key
+   * @param stat
+   * @return value of the property
+   * @throws PropertyStoreException
+   */
+  List<T> getProperty(String key, List<PropertyStat> propertyStatList) throws PropertyStoreException;
 
   /**
    * removes the property
@@ -97,4 +107,19 @@ public interface PropertyStore<T>
    * @param serializer
    */
   void setPropertySerializer(PropertySerializer serializer);
+  
+
+  /**
+   * return the path(name) of the root of the propertyStore
+   * 
+   * @return root property path
+   */ 
+  public String getRootPropertyName();
+  
+  /**
+   * get the statistics of the property
+   * 
+   * @param key
+   */ 
+  // PropertyStat getPropertyStat(String key);
 }

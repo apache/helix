@@ -8,10 +8,11 @@ source setup_env.inc
 $SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="--configFile $CONFIG_DIR/cluster-12345-cluster-view.json"
 
 #Launch dummy process nodes
+dummy_process_1_output=$VIEW_ROOT/$LOG_DIR_FROM_ROOT/dummy_process_1.log
+$SCRIPT_DIR/cm_driver.py -c dummy-process -o start --logfile=$dummy_process_1_output -l "integration-test/config/log4j.properties" --cmdline_args="--configFile $CONFIG_DIR/cluster-12345-cluster-view.json --cluster storage-cluster-12345 --host localhost --port 8900"
 
-$SCRIPT_DIR/cm_driver.py -c dummy-process -o start -l "integration-test/config/log4j.properties" --cmdline_args="--configFile $CONFIG_DIR/cluster-12345-cluster-view.json --cluster storage-cluster-12345 --host localhost --port 8900"
-
-$SCRIPT_DIR/cm_driver.py -c dummy-process -o start -l "integration-test/config/log4j.properties" --cmdline_args="--configFile $CONFIG_DIR/cluster-12345-cluster-view.json --cluster storage-cluster-12345 --host localhost --port 8901"
+dummy_process_2_output=$VIEW_ROOT/$LOG_DIR_FROM_ROOT/dummy_process_2.log
+$SCRIPT_DIR/cm_driver.py -c dummy-process -o start --logfile=$dummy_process_2_output -l "integration-test/config/log4j.properties" --cmdline_args="--configFile $CONFIG_DIR/cluster-12345-cluster-view.json --cluster storage-cluster-12345 --host localhost --port 8901"
 
 #$SCRIPT_DIR/espresso_driver.py -c dummy-process -o start -l "cluster-manager/test/integration-test/log4j.properties" --cmdline_props="--configFile /tmp/cluster-12345.cv --cluster storage-cluster-12345 --host localhost --port 8902"
 
@@ -29,4 +30,10 @@ $SCRIPT_DIR/cm_driver.py -c dummy-process -o stop
 #$SCRIPT_DIR/espresso_driver.py -c cluster-manager -o stop
 
 echo == GREP SUCCEED ==
-find ~/EspressoLogs/ -mmin -10 -print | xargs grep succeed
+#find ~/EspressoLogs/ -mmin -10 -print | xargs grep succeed
+grep succeed $dummy_process_1_output $dummy_process_2_output 
+
+source report_pass_fail.inc
+
+exit $all_stat
+

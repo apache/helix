@@ -23,6 +23,12 @@ dds_test_infra_tarball_full_path="%s/../lib/%s" % (this_file_dirname,dds_test_in
 need_reload=False
 file_change_time = str(os.path.getmtime(dds_test_infra_tarball_full_path))
 view_root= os.path.abspath("%s/../../../../../" % this_file_dirname)  # script dir is 5 levels lower
+if not os.path.exists(os.path.join(view_root,"integration-test")):
+  view_root= os.path.abspath("%s/../../" % this_file_dirname)  # script dir is 5 levels lower
+if not os.path.exists(os.path.join(view_root,"integration-test")):
+  print "VIEW_ROOT %s is not correct" % view_root
+  assert False, "VIEW_ROOT %s is not correct" % view_root
+
 if not os.path.exists(meta_data_file_full_path): need_reload = True
 else: 
   last_change_time = open(meta_data_file_full_path).readlines()[0].split("=")[-1]

@@ -5,7 +5,9 @@ source setup_env.inc
 
 #create config file for static storage cluster
 #./clm_console.sh --configFile $CONFIG_DIR/cluster-12345-cluster-view.json
-$SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="--configFile $CONFIG_DIR/cluster-12345-cluster-view.json"
+temp_cluster_view_conf=$VIEW_ROOT/$LOG_DIR_FROM_ROOT/cluster-12345-cluster-view.json
+cp -f $CONFIG_DIR/cluster-12345-cluster-view.json $temp_cluster_view_conf
+$SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="--configFile $temp_cluster_view_con"
 
 #Launch dummy process nodes
 dummy_process_1_output=$VIEW_ROOT/$LOG_DIR_FROM_ROOT/dummy_process_1.log

@@ -1,11 +1,14 @@
 package com.linkedin.clustermanager;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.I0Itec.zkclient.IDefaultNameSpace;
 import org.I0Itec.zkclient.ZkClient;
 import org.I0Itec.zkclient.ZkServer;
+import org.apache.commons.io.FileUtils;
 import org.testng.AssertJUnit;
 import org.testng.annotations.AfterTest;
 import org.testng.annotations.BeforeTest;
@@ -181,7 +184,7 @@ public class TestZKPropertyStore
     localPorts.add(2188);
     // localPorts.add(2301);
 
-    _localZkServers = TestZKCallback.startLocalZookeeper(localPorts,
+    _localZkServers = startLocalZookeeper(localPorts,
         System.getProperty("user.dir") + "/" + "zkdata", 2000);
 
     System.out.println("zk servers started on ports: " + localPorts);
@@ -190,7 +193,62 @@ public class TestZKPropertyStore
   @AfterTest
   public void tearDown()
   {
-    TestZKCallback.stopLocalZookeeper(_localZkServers);
+    stopLocalZookeeper(_localZkServers);
     System.out.println("zk servers stopped");
   }
+  
+  // copy from TestZKCallback
+  public static List<ZkServer> startLocalZookeeper(List<Integer> localPortsList, 
+                                                   String zkTestDataRootDir, 
+                                                   int tickTime)
+    throws IOException
+  {
+    List<ZkServer> localZkServers = new ArrayList<ZkServer>();
+  
+    int count = 0;
+    for (int port : localPortsList)
+    {
+      ZkServer zkServer = startZkServer(zkTestDataRootDir, count++, port, tickTime);
+       localZkServers.add(zkServer);
+     }
+     return localZkServers;
+   }
+  
+  public static ZkServer startZkServer(String zkTestDataRootDir, 
+                                        int machineId,
+                                        int port, 
+                                        int tickTime) 
+     throws IOException
+  {
+    File zkTestDataRootDirFile = new File(zkTestDataRootDir);
+    zkTestDataRootDirFile.mkdirs();
+  
+    String dataPath = zkTestDataRootDir + "/" + machineId + "/" + port + "/data";
+    String logPath = zkTestDataRootDir + "/" + machineId + "/" + port + "/log";
+  
+    FileUtils.deleteDirectory(new File(dataPath));
+    FileUtils.deleteDirectory(new File(logPath));
+  
+    IDefaultNameSpace mockDefaultNameSpace = new IDefaultNameSpace()
+    {
+      @Override
+      public void createDefaultNameSpace(ZkClient zkClient)
+      {
+      }
+    };
+  
+    ZkServer zkServer = new ZkServer(dataPath, logPath, mockDefaultNameSpace, port, tickTime);
+    zkServer.start();
+    
+    return zkServer;
+  }
+   
+  public static void stopLocalZookeeper(List<ZkServer> localZkServers)
+  {
+    for (ZkServer zkServer : localZkServers)
+    {
+      zkServer.shutdown();
+    }
+  }
+
 }

@@ -499,7 +499,7 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
     
     try
     {
-      value = _zkClient.readData(path, stat);
+      value = _zkClient.<T>readData(path, stat);
       
       int version = Integer.parseInt(path.substring(path.lastIndexOf('/')+1, path.length()));
       // PropertyInfo propertyInfo = new PropertyInfo(value, stat, version);

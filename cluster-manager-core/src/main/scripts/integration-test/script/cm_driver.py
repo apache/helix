@@ -37,14 +37,15 @@ else:
 if need_reload:
   open(meta_data_file_full_path,"w").write("change time of %s=%s" % (meta_data_file_full_path, file_change_time))
   # specific to the cm 
-  #os.system("tar zxf %s > /dev/null" %  dds_test_infra_tarball_full_path)
-  os.system("tar zxf %s " %  dds_test_infra_tarball_full_path)
+  os.system("tar zxf %s > /dev/null" %  dds_test_infra_tarball_full_path)
+  #os.system("tar zxf %s " %  dds_test_infra_tarball_full_path)
   integ_java_dir=os.path.join(view_root,"src/test")
+  config_dir=os.path.join(this_file_dirname,"../config")
   os.system("cp -rf integ/java %s" % integ_java_dir)
   os.system("rm -rf integ")
   os.system("cp script/* %s" % this_file_dirname)
   os.system("rm -rf script")
-  os.system("cp config/* %s" % this_file_dirname)
+  os.system("cp config/* %s" % config_dir)
   os.system("rm -rf config")
 
 os.environ["VIEW_ROOT"]=view_root

@@ -30,26 +30,26 @@ $SCRIPT_DIR/espresso_driver.py -c zookeeper -o start --zookeeper_reset --zookeep
 
 #Launch dummy process nodes
 
-$SCRIPT_DIR/espresso_driver.py -c dummy-process -o start -l "cluster-manager/test/integration-test/log4j.properties" --cmdline_props="-zkSvr localhost:2188 -cluster storage-cluster-12345 -host localhost -port 8900"
+$SCRIPT_DIR/espresso_driver.py -c dummy-process -o start -l "integration-test/config/log4j.properties" --cmdline_props="-zkSvr localhost:2188 -cluster storage-cluster-12345 -host localhost -port 8900"
 
-$SCRIPT_DIR/espresso_driver.py -c dummy-process -o start -l "cluster-manager/test/integration-test/log4j.properties" --cmdline_props="-zkSvr localhost:2188 -cluster storage-cluster-12345 -host localhost -port 8901"
+$SCRIPT_DIR/espresso_driver.py -c dummy-process -o start -l "integration-test/config/log4j.properties" --cmdline_props="-zkSvr localhost:2188 -cluster storage-cluster-12345 -host localhost -port 8901"
 
-$SCRIPT_DIR/espresso_driver.py -c dummy-process -o start -l "cluster-manager/test/integration-test/log4j.properties" --cmdline_props="-zkSvr localhost:2188 -cluster storage-cluster-12345 -host localhost -port 8902"
+$SCRIPT_DIR/espresso_driver.py -c dummy-process -o start -l "integration-test/config/log4j.properties" --cmdline_props="-zkSvr localhost:2188 -cluster storage-cluster-12345 -host localhost -port 8902"
 
-$SCRIPT_DIR/espresso_driver.py -c dummy-process -o start -l "cluster-manager/test/integration-test/log4j.properties" --cmdline_props="-zkSvr localhost:2188 -cluster storage-cluster-12345 -host localhost -port 8903"
+$SCRIPT_DIR/espresso_driver.py -c dummy-process -o start -l "integration-test/config/log4j.properties" --cmdline_props="-zkSvr localhost:2188 -cluster storage-cluster-12345 -host localhost -port 8903"
 
-$SCRIPT_DIR/espresso_driver.py -c dummy-process -o start -l "cluster-manager/test/integration-test/log4j.properties" --cmdline_props="-zkSvr localhost:2188 -cluster storage-cluster-12345 -host localhost -port 8904"
+$SCRIPT_DIR/espresso_driver.py -c dummy-process -o start -l "integration-test/config/log4j.properties" --cmdline_props="-zkSvr localhost:2188 -cluster storage-cluster-12345 -host localhost -port 8904"
 
 
 #Launch the cluster manager
-$SCRIPT_DIR/espresso_driver.py -c cluster-manager -o start -l "cluster-manager/test/integration-test/log4j.properties" --cmdline_props="-zkSvr localhost:2188 -cluster storage-cluster-12345"
+$SCRIPT_DIR/espresso_driver.py -c cluster-manager -o start -l "integration-test/config/log4j.properties" --cmdline_props="-zkSvr localhost:2188 -cluster storage-cluster-12345"
 
 sleep 60
 
 #$SCRIPT_DIR/espresso_driver.py -c cluster-manager -o stop 
 
 #verify cluster state
-$SCRIPT_DIR/espresso_driver.py -c cluster-state-verifier -o start -l "cluster-manager/test/integration-test/log4j.properties" --cmdline_props="-zkSvr localhost:2188 -cluster storage-cluster-12345"
+$SCRIPT_DIR/espresso_driver.py -c cluster-state-verifier -o start -l "integration-test/config/log4j.properties" --cmdline_props="-zkSvr localhost:2188 -cluster storage-cluster-12345"
 
 $SCRIPT_DIR/espresso_driver.py -c dummy-process -o stop
 

@@ -143,7 +143,11 @@ public class ClusterSetup
         nodeNames, partitions, replica, dbName);
     managementTool.setDBIdealState(clusterName, dbName, idealState);
   }
-
+ 
+  /**
+   * Sets up a cluster with 6 Nodes[localhost:8900 to localhost:8905], 1 database[EspressoDB] with a replication factor of 3
+   * @param clusterName
+   */
   public void setupTestCluster(String clusterName)
   {
     addCluster(clusterName, true);
@@ -152,10 +156,9 @@ public class ClusterSetup
     {
       storageNodeInfoArray[i] = "localhost:" + (8900 + i);
     }
-
     addNodesToCluster(clusterName, storageNodeInfoArray);
-    addDatabaseToCluster(clusterName, "EspressoDB", 10);
-    rebalanceStorageCluster(clusterName, "EspressoDB", 3);
+    addDatabaseToCluster(clusterName, "TestDB", 10);
+    rebalanceStorageCluster(clusterName, "TestDB", 3);
   }
 
   public static void printUsage(Options cliOptions)

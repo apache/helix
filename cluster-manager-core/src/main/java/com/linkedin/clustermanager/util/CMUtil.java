@@ -22,7 +22,10 @@ public final class CMUtil
         + "/" + instanceName + "/" + type.toString();
   }
 
-  // add parent to represent espresso
+  public static String getIdealStatePath(String clusterName,String stateUnitGroup)
+  {
+    return getClusterPropertyPath(clusterName, ClusterPropertyType.IDEALSTATES) + "/" + stateUnitGroup;
+  }
   public static String getIdealStatePath(String clusterName)
   {
     return getClusterPropertyPath(clusterName, ClusterPropertyType.IDEALSTATES);

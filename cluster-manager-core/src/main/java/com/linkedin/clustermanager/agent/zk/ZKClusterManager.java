@@ -13,6 +13,7 @@ import org.apache.zookeeper.Watcher.Event.EventType;
 import com.linkedin.clustermanager.CMConstants;
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterManager;
+import com.linkedin.clustermanager.ClusterManagerException;
 import com.linkedin.clustermanager.ConfigChangeListener;
 import com.linkedin.clustermanager.CurrentStateChangeListener;
 import com.linkedin.clustermanager.ExternalViewChangeListener;
@@ -93,7 +94,7 @@ public class ZKClusterManager implements ClusterManager
   }
 
   @Override
-  public void addLiveInstanceChangeListener(LiveInstanceChangeListener listener)
+  public void addLiveInstanceChangeListener(LiveInstanceChangeListener listener) throws Exception
   {
     final String path = CMUtil.getLiveInstancesPath(_clusterName);
     CallbackHandler callbackHandler = createCallBackHandler(path, listener,
@@ -143,6 +144,7 @@ public class ZKClusterManager implements ClusterManager
   @Override
   public void addExternalViewChangeListener(ExternalViewChangeListener listener)
   {
+    
     final String path = CMUtil.getExternalViewPath(_clusterName);
 
     CallbackHandler callbackHandler = createCallBackHandler(path, listener,
@@ -250,7 +252,9 @@ public class ZKClusterManager implements ClusterManager
   private CallbackHandler createCallBackHandler(String path, Object listener,
       EventType[] eventTypes, ChangeType changeType)
   {
-
+    if(listener == null){
+      throw new ClusterManagerException("Listener cannot be null");
+    }
     return new CallbackHandler(this, _zkClient, path, listener, eventTypes,
         changeType);
   }

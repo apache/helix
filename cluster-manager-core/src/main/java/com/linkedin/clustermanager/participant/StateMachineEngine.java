@@ -99,9 +99,12 @@ public class StateMachineEngine<T extends StateModel> implements
 
           } else
           {
-            logger.trace("Message already processed" + message.getMsgId());
-            _statusUpdateUtil.logInfo(message, StateMachineEngine.class,
-                "Message already read", client);
+            //This will happen because we dont delete the message as soon as we read it. 
+            //We keep it until the current state is changed. 
+            //We will read the message again if there is a new message but we check for the status and ignore if its already read 
+            logger.trace("Message already read" + message.getMsgId());
+            //_statusUpdateUtil.logInfo(message, StateMachineEngine.class,
+              //  "Message already read", client);
           }
 
         } else

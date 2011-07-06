@@ -2,6 +2,8 @@ package com.linkedin.clustermanager.store;
 
 import java.util.List;
 
+import org.I0Itec.zkclient.DataUpdater;
+
 /**
  * This property store is similar to a key value but supports hierarchical
  * structure. It also provides notifications when there is a change in child or
@@ -29,23 +31,25 @@ public interface PropertyStore<T>
   void setProperty(String key, T value) throws PropertyStoreException;
 
   /**
-   * get the property, key can be a child or parent, If parent and
+   * get the property
    * 
    * @param key
    * @return value of the property
    * @throws PropertyStoreException
    */
-  List<T> getProperty(String key) throws PropertyStoreException;
+  // List<T> getProperty(String key) throws PropertyStoreException;
+  T getProperty(String key) throws PropertyStoreException;
   
   /**
-   * get the property, key can be a child or parent, If parent and
+   * get the property
    * 
    * @param key
    * @param stat
    * @return value of the property
    * @throws PropertyStoreException
    */
-  List<T> getProperty(String key, List<PropertyStat> propertyStatList) throws PropertyStoreException;
+  // List<T> getProperty(String key, List<PropertyStat> propertyStatList) throws PropertyStoreException;
+  T getProperty(String key, PropertyStat propertyStatList) throws PropertyStoreException;
 
   /**
    * removes the property
@@ -107,19 +111,35 @@ public interface PropertyStore<T>
    * @param serializer
    */
   void setPropertySerializer(PropertySerializer serializer);
-  
 
   /**
-   * return the path(name) of the root of the propertyStore
+   * create a sub namespace in the property store
    * 
    * @return root property path
    */ 
-  public String getRootPropertyName();
+  public void createPropertyNamespace(String prefix);
+    
+  /**
+   * return the root namespace of the property store
+   * 
+   * @return root property path
+   */ 
+  public String getPropertyRootNamespace();
   
   /**
-   * get the statistics of the property
+   * update property until succeed, updater updates old_value to new_value
    * 
    * @param key
-   */ 
-  // PropertyStat getPropertyStat(String key);
+   * @param updater
+   */
+  public void updatePropertyUntilSucceed(String key, DataUpdater<T> updater);
+  
+  /**
+   * update property return true if succeed, false otherwise
+   * 
+   * @param key
+   * @param updater
+   */
+  public boolean updateProperty(String key, DataUpdater<T> updater);
+
 }

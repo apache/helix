@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.I0Itec.zkclient.DataUpdater;
 import org.I0Itec.zkclient.IDefaultNameSpace;
 import org.I0Itec.zkclient.ZkClient;
 import org.I0Itec.zkclient.ZkServer;
@@ -59,6 +60,17 @@ public class TestZKPropertyStore
     }
 
   }
+  
+  public class MyUpdater implements DataUpdater<String>
+  {
+
+    @Override
+    public String update(String currentData)
+    {
+      return currentData + "-new";
+    }
+    
+  }
 
   @Test
   public void testInvocation() throws Exception
@@ -69,27 +81,21 @@ public class TestZKPropertyStore
       ZKClientFactory zkClientFactory = new ZKClientFactory();
       ZkClient zkClient = zkClientFactory.create(zkServers);
   
-      String propertyStoreRoot = "/testPath1";
+      final String propertyStoreRoot = "/testPath1";
       ZKPropertyStore<String> zkPropertyStore = new ZKPropertyStore<String>(zkClient, new MyStringSerializer(), propertyStoreRoot);
   
       // test remove recursive
       zkPropertyStore.removeRootProperty();
   
-      // test set property
-      String testPath2 = "testPath2/1";
-      String testData2 = "testData2_I";
-      zkPropertyStore.setProperty(testPath2, testData2);
-     
-      testPath2 = "testPath2/2";
-      testData2 = "testData2_II";
-      zkPropertyStore.setProperty(testPath2, testData2);
+      // test set/get property
+      zkPropertyStore.setProperty("testPath2/1", "testData2_I");
+      zkPropertyStore.setProperty("testPath2/2", "testData2_II");
         
-      testPath2 = "testPath2";
-      List<PropertyStat> propertyStatList = new ArrayList<PropertyStat>();
-      List<String> valueList = zkPropertyStore.getProperty(testPath2, propertyStatList);
-      String value = valueList.get(0);
+      PropertyStat propertyStat = new PropertyStat();
+      String value = zkPropertyStore.getProperty("testPath2/1", propertyStat);
       
-      AssertJUnit.assertTrue(value.equals(testData2));
+      
+      AssertJUnit.assertTrue(value.equals("testData2_I"));
   
       /**
       // test get property of a node without data
@@ -107,23 +113,24 @@ public class TestZKPropertyStore
       zkPropertyStore.subscribeForRootPropertyChange(listener);
       AssertJUnit.assertTrue(!listener._propertyChangeReceived);
   
-      String testPath3 = "testPath3/1";
-      String testData3 = "testData3_I";
-      zkPropertyStore.setProperty(testPath3, testData3);
+      zkPropertyStore.setProperty("testPath3/1", "testData3_I");
       Thread.sleep(100);
       AssertJUnit.assertTrue(listener._propertyChangeReceived);
      
+      
       listener._propertyChangeReceived = false;
-      testPath3 = "testPath3/2";
-      testData3 = "testData3_II";
-      zkPropertyStore.setProperty(testPath3, testData3);
+      zkPropertyStore.setProperty("testPath3/2", "testData3_II");
       Thread.sleep(100);
       AssertJUnit.assertTrue(listener._propertyChangeReceived);
   
-      testPath3 = "testPath3/1";
-      value = zkPropertyStore.getPropertyByVersion(testPath3);
+      value = zkPropertyStore.getProperty("testPath3/1");
       AssertJUnit.assertTrue(value.equals("testData3_I"));
       
+      // test remove an existing property
+      // this triggers child change at both /testPath1/testPath3/1 (weird) and /testPath1/testPath3 
+      zkPropertyStore.removeProperty("testPath3/1");  
+      Thread.sleep(100);
+      AssertJUnit.assertTrue(listener._propertyChangeReceived);
       
       /**
       // test remove property of a node with children
@@ -137,30 +144,31 @@ public class TestZKPropertyStore
         exceptionThrown = true;
       }
       AssertJUnit.assertTrue(exceptionThrown);
-  
-      // test subscribe
-      listener._propertyChangeReceived = false;
-      zkPropertyStore.removeProperty(testPath2);
-      Thread.sleep(100);
-      AssertJUnit.assertTrue(listener._propertyChangeReceived);
-  
-      listener._propertyChangeReceived = false;
-      zkPropertyStore.setProperty(testPath3, "testData3_II");
-      Thread.sleep(100);
-      AssertJUnit.assertTrue(listener._propertyChangeReceived);
-  
+      **/
+      
+      // test update property
+      boolean isSucceed = zkPropertyStore.updateProperty("testPath2/1", new MyUpdater());
+      Thread.sleep(100); // wait cache to be updated by callback
+      AssertJUnit.assertTrue(isSucceed == true);
+      
+      value = zkPropertyStore.getProperty("testPath2/1");
+      AssertJUnit.assertTrue(value.equals("testData2_I-new"));
+      
+      
       // test unsubscribe
       listener._propertyChangeReceived = false;
       zkPropertyStore.unsubscribeForRootPropertyChange(listener);
-      zkPropertyStore.setProperty(testPath3, "testData3_III");
+      zkPropertyStore.setProperty("testPath3/2", "testData3_III");
       Thread.sleep(100);
-      AssertJUnit.assertTrue(!listener._propertyChangeReceived);
+      AssertJUnit.assertTrue(listener._propertyChangeReceived == false);
   
+      
       // test get proper names
-      List<String> children = zkPropertyStore.getPropertyNames("");
-      AssertJUnit.assertTrue(children != null && children.size() == 1
-          && children.get(0).equals(testPath3));
-      **/
+      List<String> children = zkPropertyStore.getPropertyNames("/testPath2");
+      AssertJUnit.assertTrue(children != null 
+                          && children.size() == 2
+                          && children.get(0).equals("testPath2/2")
+                          && children.get(1).equals("testPath2/1"));
       
       Thread.sleep(100);
     }

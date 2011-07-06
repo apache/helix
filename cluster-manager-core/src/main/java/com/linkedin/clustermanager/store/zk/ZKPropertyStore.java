@@ -1,16 +1,17 @@
 package com.linkedin.clustermanager.store.zk;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.I0Itec.zkclient.DataUpdater;
 import org.I0Itec.zkclient.IZkChildListener;
 import org.I0Itec.zkclient.IZkDataListener;
 import org.I0Itec.zkclient.ZkClient;
+import org.I0Itec.zkclient.exception.ZkBadVersionException;
 import org.I0Itec.zkclient.exception.ZkMarshallingError;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.log4j.Logger;
@@ -32,8 +33,10 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
   protected final PropertySerializer _serializer;
   protected final String _rootPath;
 
-  private Map<String, Map<PropertyChangeListener<T>, ZKPropertyListenerTuple>> _listenerMap = new ConcurrentHashMap<String, Map<PropertyChangeListener<T>, ZKPropertyListenerTuple>>();
-  private Map< String, List<PropertyInfo> > _cacheMap = new ConcurrentHashMap< String, List<PropertyInfo> >();
+  private Map<String, Map< PropertyChangeListener<T>, ZKPropertyListenerTuple> > 
+        _listenerMap = new ConcurrentHashMap<String, Map<PropertyChangeListener<T>, ZKPropertyListenerTuple>>();
+  
+  private Map<String, PropertyInfo> _cacheMap = new ConcurrentHashMap< String, PropertyInfo>();
 
   // statistics numbers
   private long _nrReads = 0;
@@ -69,10 +72,9 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
           System.out.println(dataPath + ": data changed to " + data);
           
           // need to change local {data, stat} cache to keep consistency
-          readDataByVersion(dataPath, null);
+          readData(dataPath, null);
           
-          String pathNoVersion = dataPath.substring(0, dataPath.lastIndexOf('/')); // strip off version number at end
-          listener.onPropertyChange(getRelativePath(pathNoVersion));
+          listener.onPropertyChange(getRelativePath(dataPath));
         }
 
         @Override
@@ -83,18 +85,8 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
           unsubscribeForPropertyChange(getRelativePath(dataPath), listener);
           
           // need to remove from local {data, stat} cache
-          int version = Integer.parseInt(dataPath.substring(dataPath.lastIndexOf('/')+1, dataPath.length()));
-       
-          String pathNoVersion = dataPath.substring(0, dataPath.lastIndexOf('/'));  // strip off version number at end
-          List<PropertyInfo> propertyInfoList = _cacheMap.get(pathNoVersion);
-          if (propertyInfoList != null)
-          {
-            PropertyInfo.removePropertyInfoFromList(propertyInfoList, version);
-            if (propertyInfoList.size() == 0)
-              _cacheMap.remove(pathNoVersion);
-          }
-            
-          _listenerMap.remove(pathNoVersion);
+          _cacheMap.remove(dataPath);
+          _listenerMap.remove(dataPath);
         }
 
       };
@@ -107,43 +99,32 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
         {
           System.out.println("children changed at " + parentPath + ": " + currentChilds);
           
-          List<String> nonleaf = new ArrayList<String>();
+          
+          // List<String> nonleaf = new ArrayList<String>();
           List<String> leaf = new ArrayList<String>();
-          List<String> validKeys = new ArrayList<String>(); // keys that has leaf
           
-          // may go beyond _MAX_DEPTH levels down from the original property listener
-          BFS(parentPath, _MAX_DEPTH, nonleaf, leaf);
+          // TODO: should not allow to go 
+          //  beyond _MAX_DEPTH levels down from the original property listener
+          List<String> nodes = BFS(parentPath, _MAX_DEPTH, null, leaf);
           
-          // add child listener to non-leaf nodes
-          for (String node : nonleaf)
+          // add child/data listener to nodes
+          for (String node : nodes)
           {
             _zkClient.subscribeChildChanges(node, this);
-            if (isValidKey(node))
-            {
-              validKeys.add(node);
-            }
-          }
-        
-          // add data listener to leaf node 
-          // ensure leaf node has a valid version number in path at end
-          for (String node : leaf)
-          {
-            if (!isValidLeaf(node))
-              _zkClient.subscribeChildChanges(node, this);
-            else
-              _zkClient.subscribeDataChanges(node, _zkDataListener);
+            _zkClient.subscribeDataChanges(node, _zkDataListener);  
           }
           
           // refresh cache
-          for (String key : validKeys)
+          for (String node : leaf)
           {
-            readData(key, null);
-            listener.onPropertyChange(getRelativePath(key));
+            readData(node, null);
+            listener.onPropertyChange(getRelativePath(node));
           }
+          
         }
-
+        
       };
-
+      
     }
   }
 
@@ -159,7 +140,7 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
     _zkClient = zkClient;
     setPropertySerializer(serializer);
     
-    // Strip off leading / trailing slash
+    // Strip off leading slash
     while (rootPath.startsWith("/"))
     {
       rootPath = rootPath.substring(1, rootPath.length());
@@ -181,13 +162,13 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
 
   private String getPath(String key)
   {
-    // Strip off leading / trailing slash
+    // Strip off leading slash
     while (key.startsWith("/"))
     {
       key = key.substring(1, key.length());
     }
 
-    String path = key.equals(_ROOT)? _rootPath : (_rootPath + "/" + key);
+    String path = key.equals(_ROOT) ? _rootPath : (_rootPath + "/" + key);
 
     return path;
   }
@@ -209,12 +190,10 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
     return path;
   }
 
-  
   @Override
-  public synchronized void setProperty(String key, final T value)
-      throws PropertyStoreException
+  public void createPropertyNamespace(String prefix)
   {
-    String path = getPath(key);
+    String path = getPath(prefix);
 
     // create recursively all non-exist nodes
     String parent = path;
@@ -230,8 +209,16 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
       String node = pathsToCreate.pop();
       _zkClient.createPersistent(node);
     }
-
-    // if value == null, just create a persistent node
+    
+  }
+  
+  @Override
+  public synchronized void setProperty(String key, final T value)
+      throws PropertyStoreException
+  {
+    String path = getPath(key);
+    createPropertyNamespace(key);
+    
     if (value != null)
       _zkClient.writeData(path, value);
     
@@ -239,47 +226,23 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
     // which in turn update cache
   }
 
-  // a valid leaf has version number at end
-  private boolean isValidLeaf(String path)
-  {
-    String version = path.substring(path.lastIndexOf('/')+1, path.length());
-    try 
-    {
-      Integer.parseInt(version);
-    }
-    catch (NumberFormatException e)
-    {
-      return false;
-    }
-    return true;
-  }
-  
-  // a valid key has valid leaf as its children
-  private boolean isValidKey(String path)
-  {
-    List<String> children = _zkClient.getChildren(path);
-        
-    for (String child : children)
-    {
-      String pathToChild = path + "/" + child;
-      if (isValidLeaf(pathToChild))
-        return true;
-    }
-    
-    return false;
-  }
-  
   // BFS with a given depth
   // nonleaf nodes' paths go to nonleaf
   // leaf nodes' paths go to leaf
-  private void BFS(String prefix, int depth, List<String> nonleaf, List<String> leaf)
+  // return list of all nodes (including root node)
+  private List<String> BFS(String prefix, int depth, List<String> nonleaf, List<String> leaf)
   {
-    if (nonleaf == null)
-      nonleaf = new ArrayList<String>();
+    List<String> nodes = new ArrayList<String>();
+    
+    if (nonleaf != null)
+      nonleaf.clear();
 
-    if (leaf == null)
-      leaf = new ArrayList<String>();
+    if (leaf != null)
+      leaf.clear();
 
+    if (!_zkClient.exists(prefix))
+      return nodes;
+    
     LinkedList<PathnDepth> queue = new LinkedList<PathnDepth>();
     queue.push(new PathnDepth(prefix, 0));
     while (!queue.isEmpty())
@@ -288,15 +251,20 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
       List<String> children = _zkClient.getChildren(node._path);
       if (children == null || children.isEmpty())
       {
-        leaf.add(node._path);
+        nodes.add(node._path);
+        if (leaf != null)
+          leaf.add(node._path);
+        
         continue;
       }
-      nonleaf.add(node._path);
+      
+      nodes.add(node._path);
+      
+      if (nonleaf != null)
+        nonleaf.add(node._path);
       
       if (node._depth >= depth)
-      {
         continue;
-      }
 
       for (String child : children)
       {
@@ -304,75 +272,20 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
       	queue.push(new PathnDepth(pathToChild, node._depth+1));
       }
     }
-
+    
+    return nodes;
   }
 
   @Override
-  public List<T> getProperty(String key) throws PropertyStoreException
+  public T getProperty(String key) throws PropertyStoreException
   {
     return getProperty(key, null);
   }
   
-  public T getPropertyByVersion(String key) throws PropertyStoreException
-  {
-    return getPropertyByVersion(key, null);
-  }
-  
+
   @SuppressWarnings("unchecked")
   @Override
-  public synchronized List<T> getProperty(String key, List<PropertyStat> propertyStatList) throws PropertyStoreException
-  {
-    String path = getPath(key);
-    _nrReads++;
-
-    List<T> valueList = new ArrayList<T>();
-
-    List<PropertyInfo> propertyInfoList = _cacheMap.get(path);
-
-    if (propertyInfoList != null && propertyInfoList.size() > 0)
-    {
-      _nrHits++;
-      /**
-      PropertyInfo propertyInfo = propertyInfoList.get(0); // the latest version is at head
-      value = (T) propertyInfo._value;
-      
-      if (propertyStat != null)
-      {
-        propertyStat.setLastModifiedTime(propertyInfo._stat.getMtime());
-        propertyStat.setVersion(propertyInfo._version);
-      }
-      **/
-      for (PropertyInfo info : propertyInfoList)
-      {
-        valueList.add( (T) info._value);
-        
-        if (propertyStatList != null)
-          propertyStatList.add(new PropertyStat(info._stat.getMtime(), info._version));
-      }
-      
-    } 
-    else
-    {
-      try
-      {
-        valueList = readData(path, propertyStatList);
-      } 
-      catch (Exception e) // ZkNoNodeException
-      {
-        // System.err.println(e.getMessage());
-        _logger.warn(e.getMessage());
-        throw (new PropertyStoreException(e.getMessage()));
-      }
-
-    }
-
-    return valueList;
-    // return value;
-  }
-  
-  @SuppressWarnings("unchecked")
-  // @Override
-  public synchronized T getPropertyByVersion(String key, PropertyStat propertyStat) throws PropertyStoreException
+  public synchronized T getProperty(String key, PropertyStat propertyStat) throws PropertyStoreException
   {
     String path = getPath(key);
     _nrReads++;
@@ -381,12 +294,8 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
 
     try
     {
-      int version = Integer.parseInt(path.substring(path.lastIndexOf('/')+1, path.length()));
-      String pathNoVersion = path.substring(0, path.lastIndexOf('/'));  // strip off version number at end
-      List<PropertyInfo> propertyInfoList = _cacheMap.get(pathNoVersion);
+      PropertyInfo propertyInfo = _cacheMap.get(path);
 
-      PropertyInfo propertyInfo = PropertyInfo.findPropertyInfoInList(propertyInfoList, version);
-      
       if (propertyInfo != null)
       {
         _nrHits++;
@@ -400,7 +309,7 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
       } 
       else
       {
-          value = readDataByVersion(path, propertyStat);
+          value = readData(path, propertyStat);
       }
     } 
     catch (Exception e) // ZkNoNodeException
@@ -413,86 +322,8 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
     return value;
   }
   
-  // read data without going to cache, 
-  // useful when the cached data becomes stale, because some other node changes it on ZK
-  // cache and return all versions
-  @SuppressWarnings("unchecked")
-  private synchronized List<T> readData(String path, List<PropertyStat> propertyStatList) throws PropertyStoreException
-  {
-    T value = null;
-    Stat stat = new Stat();
-    
-    try
-    {
-      List<T> valueList = new ArrayList<T>();
-      
-      // read all versions
-      ArrayList<PropertyInfo> propertyInfoList = new ArrayList<PropertyInfo>();
-      
-      List<String> children = _zkClient.getChildren(path);
-      for (String child : children)
-      {
-        String pathToChild = path + "/" + child;
-        value = (T) _zkClient.readData(pathToChild, stat);
-        
-        int version = Integer.parseInt(child.substring(child.lastIndexOf('/')+1, child.length()));
-        propertyInfoList.add(new PropertyInfo(value, stat, version));
-      }
-      
-      if (propertyInfoList.size() > 0)
-      {
-        // sort it
-        PropertyInfo[] propertyInfoArray = new PropertyInfo[propertyInfoList.size()];
-        propertyInfoList.toArray(propertyInfoArray);
-        
-        Arrays.sort(propertyInfoArray, new Comparator<PropertyInfo>() {
-
-          @Override
-          public int compare(PropertyInfo property1, PropertyInfo property2)
-          {
-            return (property2._version - property1._version);
-          }
-
-        });
-        
-        ArrayList<PropertyInfo> sortedPropertyInfoList 
-              = new ArrayList<PropertyInfo>(Arrays.asList(propertyInfoArray));
-        
-        // return sorted list of value and stat
-        for (PropertyInfo info : sortedPropertyInfoList)
-        {
-          valueList.add( (T) info._value);
-          
-          if (propertyStatList != null)
-            propertyStatList.add(new PropertyStat(info._stat.getMtime(), info._version));
-        }
-        
-        /**
-        value = (T) sortedPropertyInfoList.get(0)._value;
-        if (propertyStat != null)
-        {
-          Stat latestStat = sortedPropertyInfoList.get(0)._stat;
-          propertyStat.setLastModifiedTime(latestStat.getMtime());
-          propertyStat.setVersion(sortedPropertyInfoList.get(0)._version);
-        }
-        **/
-        
-        _cacheMap.put(path, sortedPropertyInfoList);
-      } 
-     
-      return valueList;
-    } 
-    catch (Exception e) // ZkNoNodeException
-    {
-      // System.err.println(e.getMessage());
-      // _logger.warn(e.getMessage());
-      throw (new PropertyStoreException(e.getMessage()));
-    }
-    
-    // return value;
-  }
-  
-  private synchronized T readDataByVersion(String path, PropertyStat propertyStat) throws PropertyStoreException
+  // read data without going to cache
+  private synchronized T readData(String path, PropertyStat propertyStat) throws PropertyStoreException
   {
     T value = null;
     Stat stat = new Stat();
@@ -501,31 +332,14 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
     {
       value = _zkClient.<T>readData(path, stat);
       
-      int version = Integer.parseInt(path.substring(path.lastIndexOf('/')+1, path.length()));
-      // PropertyInfo propertyInfo = new PropertyInfo(value, stat, version);
-      
       if (propertyStat != null)
       {
         propertyStat.setLastModifiedTime(stat.getMtime());
-        propertyStat.setVersion(version);
+        propertyStat.setVersion(stat.getVersion());
       }
       
-      String pathNoVersion = path.substring(0, path.lastIndexOf('/'));
-      /**
-      List<PropertyInfo> propertyInfoList = _cacheMap.get(pathNoVersion);
-      if (propertyInfoList == null)
-      {
-        propertyInfoList = new ArrayList<PropertyInfo>();
-        propertyInfoList.add(propertyInfo);
-        _cacheMap.put(pathNoVersion, propertyInfoList);
-      }
-      else
-      {
-        PropertyInfo.updatePropertyInfoInList(propertyInfoList, propertyInfo);  // need to insert and sort
-      }
-      **/
-      // cache all versions
-      readData(pathNoVersion, null);
+      // cache it
+      _cacheMap.put(path, new PropertyInfo(value, stat, stat.getVersion()));
     } 
     catch (Exception e) // ZkNoNodeException
     {
@@ -545,34 +359,6 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
 
     try
     {
-      // remove all versions under the path
-      List<String> children = _zkClient.getChildren(path);
-      for (String child : children)
-      {
-        String pathToChild = path + "/" + child;
-        _zkClient.delete(pathToChild);
-      }
-
-      _zkClient.delete(path);
-
-    } 
-    catch (Exception e)
-    {
-      // System.err.println(e.getMessage());
-      _logger.warn(e.getMessage());
-      throw (new PropertyStoreException(e.getMessage()));
-    }
-    // removeProperty() triggers either child/data listener
-    // which in turn update cache
-
-  }
-  
-  public synchronized void removePropertyByVersion(String key) throws PropertyStoreException
-  {
-    String path = getPath(key);
-
-    try
-    {
       _zkClient.delete(path);
     } 
     catch (Exception e)
@@ -581,12 +367,11 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
       _logger.warn(e.getMessage());
       throw (new PropertyStoreException(e.getMessage()));
     }
-    // removeropertyByVersion() triggers either child/data listener
-    // which in turn update cache
+    // removerProperty() triggers listener which update cache
   }
 
   @Override
-  public String getRootPropertyName()
+  public String getPropertyRootNamespace()
   {
     return _rootPath;
   }
@@ -601,8 +386,7 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
     String path = getPath(key);
 
     _zkClient.deleteRecursive(path);
-    // removePropertyRecursive() triggers listeners
-    // which in turn refresh cache
+    // removePropertyRecursive() triggers listeners which refresh cache
   }
 
   @Override
@@ -620,7 +404,9 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
     {
       String pathToChild = path + "/" + child;
       propertyNames.add(getRelativePath(pathToChild));
-      getProperty(pathToChild);
+      
+      // cache all child property values
+      getProperty(getRelativePath(pathToChild));
       
     }
 
@@ -662,36 +448,20 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
         ZKPropertyListenerTuple listenerTuple = new ZKPropertyListenerTuple(listener);
         listenerMapForPath.put(listener, listenerTuple);
 
-      	List<String> nonleaf = new ArrayList<String>();
-      	List<String> leaf = new ArrayList<String>();
-      	BFS(path, _MAX_DEPTH, nonleaf, leaf);
+      	List<String> nodes = BFS(path, _MAX_DEPTH, null, null);
       
-      	// add child listener to this node and non-leaf node
-      	// _zkClient.subscribeChildChanges(path, listenerTuple._zkChildListener);
-      	for (String node : nonleaf)
+      	for (String node: nodes)
       	{
-      	  _zkClient.subscribeChildChanges(node, listenerTuple._zkChildListener);
+          _zkClient.subscribeChildChanges(node, listenerTuple._zkChildListener);
+          _zkClient.subscribeDataChanges(node, listenerTuple._zkDataListener);
       	}
-      
-      	// add data listener to leaf node, ensure leaf has version number at end
-      	for (String node : leaf)
-      	{
-      	  if (!isValidLeaf(node))
-      	  {
-      	    _zkClient.subscribeChildChanges(node, listenerTuple._zkChildListener);
-      	  }
-      	  else
-      	  {
-      	    _zkClient.subscribeDataChanges(node, listenerTuple._zkDataListener);
-      	  }
-      	}
+      	
       }
 
     }
   }
 
-  public void unsubscribeForRootPropertyChange(
-      PropertyChangeListener<T> listener) throws PropertyStoreException
+  public void unsubscribeForRootPropertyChange(PropertyChangeListener<T> listener) throws PropertyStoreException
   {
     unsubscribeForPropertyChange(_ROOT, listener);
   }
@@ -714,29 +484,14 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
 
         if (listenerTuple != null)
         {
-          List<String> nonleaf = new ArrayList<String>();
-          List<String> leaf = new ArrayList<String>();
-          BFS(path, _MAX_DEPTH, nonleaf, leaf);
-        
-          // remove child listener from non-leaf nodes
-          for (String node : nonleaf)
+
+          List<String> nodes = BFS(path, _MAX_DEPTH, null, null);
+          for (String node: nodes)
           {
             _zkClient.unsubscribeChildChanges(node, listenerTuple._zkChildListener);
+            _zkClient.unsubscribeDataChanges(node, listenerTuple._zkDataListener);
           }
         
-          // remove data listener from leaf node, ensure leaf has version number at end
-          for (String node : leaf)
-          {
-            if (!isValidLeaf(node))
-            {
-              _zkClient.unsubscribeChildChanges(node, listenerTuple._zkChildListener);
-            }
-            else
-            {
-              _zkClient.unsubscribeDataChanges(node, listenerTuple._zkDataListener);
-            }
-          }
-          
         }
       }
 
@@ -804,4 +559,68 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
     _zkClient.setZkSerializer(zkSerializer);
   }
 
+  @Override
+  public void updatePropertyUntilSucceed(String key, DataUpdater<T> updater)
+  {
+    String path = getPath(key);
+    if (!_zkClient.exists(path))
+      return;
+    
+    _zkClient.<T>updateDataSerialized(path, updater);
+    // callback will update cache
+  }
+  
+  @Override
+  public boolean updateProperty(String key, DataUpdater<T> updater)
+  {
+    String path = getPath(key);
+    if (!_zkClient.exists(path))
+      return false;
+    
+    Stat stat = new Stat();
+    boolean isSucceed = false;
+    
+    try 
+    {
+      T oldData = _zkClient.<T>readData(path, stat);
+      T newData = updater.update(oldData);
+      _zkClient.writeData(path, newData, stat.getVersion());
+      // callback will update cache
+      isSucceed = true;
+    } 
+    catch (ZkBadVersionException e) 
+    {
+      isSucceed = false;
+    }
+    
+    return isSucceed;
+  }
+
+  @Override
+  public boolean compareAndSet(String key, T expected, T update, Comparator<T> comparator)
+  {
+    String path = getPath(key);
+    if (!_zkClient.exists(path))
+      return false;
+    
+    Stat stat = new Stat();
+    boolean isSucceed = false;
+    
+    try 
+    {
+      T current = _zkClient.<T>readData(path, stat);
+      
+      if (comparator.compare(current, expected) == 0)
+      {
+        _zkClient.writeData(path, update, stat.getVersion());
+        isSucceed = true;
+      }
+    } 
+    catch (ZkBadVersionException e) 
+    {
+      isSucceed = false;
+    }
+    
+    return isSucceed;
+  }
 }

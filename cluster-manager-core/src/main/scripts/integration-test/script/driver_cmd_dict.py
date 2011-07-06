@@ -100,7 +100,7 @@ cmd_direct_call={
       ,"IVY_DIR/org/codehaus/jackson/jackson-core-asl/1.4.2/jackson-core-asl-1.4.2.jar"
       ,"IVY_DIR/org/codehaus/jackson/jackson-mapper-asl/1.4.2/jackson-mapper-asl-1.4.2.jar"
       ,"IVY_DIR/xpp3/xpp3_min/1.1.4c/xpp3_min-1.1.4c.jar"
-      ,"VIEW_ROOT/target/cluster-manager-core-1.0-SNAPSHOT.jar"
+      ,"VIEW_ROOT/target/cluster-manager-core-0.0.1.jar"
 ]
   ,"class_name":"com.linkedin.clustermanager.tools.ClusterSetup"
    }
@@ -119,7 +119,7 @@ cmd_direct_call={
       ,"IVY_DIR/org/codehaus/jackson/jackson-mapper-asl/1.4.2/jackson-mapper-asl-1.4.2.jar"
       ,"IVY_DIR/xpp3/xpp3_min/1.1.4c/xpp3_min-1.1.4c.jar"
       ,"IVY_DIR/com/github/sgroschupf/zkclient/0.1/zkclient-0.1.jar"
-      ,"VIEW_ROOT/target/cluster-manager-core-1.0-SNAPSHOT.jar"
+      ,"VIEW_ROOT/target/cluster-manager-core-0.0.1.jar"
 ]
   ,"class_name":"com.linkedin.clustermanager.mock.storage.DummyProcess"
    }
@@ -138,7 +138,7 @@ cmd_direct_call={
       ,"IVY_DIR/org/codehaus/jackson/jackson-mapper-asl/1.4.2/jackson-mapper-asl-1.4.2.jar"
       ,"IVY_DIR/xpp3/xpp3_min/1.1.4c/xpp3_min-1.1.4c.jar"
       ,"IVY_DIR/com/github/sgroschupf/zkclient/0.1/zkclient-0.1.jar"
-      ,"VIEW_ROOT/target/cluster-manager-core-1.0-SNAPSHOT.jar"
+      ,"VIEW_ROOT/target/cluster-manager-core-0.0.1.jar"
 ]
   ,"class_name":"com.linkedin.clustermanager.controller.ClusterManagerMain"
    }

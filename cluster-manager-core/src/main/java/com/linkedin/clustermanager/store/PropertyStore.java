@@ -1,5 +1,6 @@
 package com.linkedin.clustermanager.store;
 
+import java.util.Comparator;
 import java.util.List;
 
 import org.I0Itec.zkclient.DataUpdater;
@@ -141,5 +142,15 @@ public interface PropertyStore<T>
    * @param updater
    */
   public boolean updateProperty(String key, DataUpdater<T> updater);
+  
+  /**
+   * compare and set property return true if succeed, false otherwise
+   * 
+   * @param key
+   * @param expected value
+   * @param updated value
+   * @param comparator
+   */
+  public boolean compareAndSet(String key, T expected, T update, Comparator<T> comparator);
 
 }

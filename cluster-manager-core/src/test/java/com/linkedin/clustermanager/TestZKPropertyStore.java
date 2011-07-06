@@ -3,6 +3,7 @@ package com.linkedin.clustermanager;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 import org.I0Itec.zkclient.DataUpdater;
@@ -68,6 +69,17 @@ public class TestZKPropertyStore
     public String update(String currentData)
     {
       return currentData + "-new";
+    }
+    
+  }
+  
+  public class MyComparator implements Comparator<String>
+  {
+
+    @Override
+    public int compare(String o1, String o2)
+    {
+      return o1.compareTo(o2);
     }
     
   }
@@ -154,6 +166,21 @@ public class TestZKPropertyStore
       value = zkPropertyStore.getProperty("testPath2/1");
       AssertJUnit.assertTrue(value.equals("testData2_I-new"));
       
+      // test compareAndSet property
+      isSucceed = zkPropertyStore.compareAndSet("testPath2/1", "testData2_I", "testData2_I-new2", new MyComparator());
+      Thread.sleep(100); // wait cache to be updated by callback
+      AssertJUnit.assertTrue(isSucceed == false);
+      
+      value = zkPropertyStore.getProperty("testPath2/1");
+      AssertJUnit.assertTrue(value.equals("testData2_I-new"));
+      
+      isSucceed = zkPropertyStore.compareAndSet("testPath2/1", "testData2_I-new", "testData2_I-new2", new MyComparator());
+      Thread.sleep(100); // wait cache to be updated by callback
+      AssertJUnit.assertTrue(isSucceed == true);
+      
+      value = zkPropertyStore.getProperty("testPath2/1");
+      AssertJUnit.assertTrue(value.equals("testData2_I-new2"));
+    
       
       // test unsubscribe
       listener._propertyChangeReceived = false;

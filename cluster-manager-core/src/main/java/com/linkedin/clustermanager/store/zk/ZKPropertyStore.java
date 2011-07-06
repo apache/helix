@@ -1,6 +1,7 @@
 package com.linkedin.clustermanager.store.zk;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -483,8 +484,7 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
 
         if (listenerTuple != null)
         {
-          // List<String> nonleaf = new ArrayList<String>();
-          // List<String> leaf = new ArrayList<String>();
+
           List<String> nodes = BFS(path, _MAX_DEPTH, null, null);
           for (String node: nodes)
           {
@@ -587,6 +587,34 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
       _zkClient.writeData(path, newData, stat.getVersion());
       // callback will update cache
       isSucceed = true;
+    } 
+    catch (ZkBadVersionException e) 
+    {
+      isSucceed = false;
+    }
+    
+    return isSucceed;
+  }
+
+  @Override
+  public boolean compareAndSet(String key, T expected, T update, Comparator<T> comparator)
+  {
+    String path = getPath(key);
+    if (!_zkClient.exists(path))
+      return false;
+    
+    Stat stat = new Stat();
+    boolean isSucceed = false;
+    
+    try 
+    {
+      T current = _zkClient.<T>readData(path, stat);
+      
+      if (comparator.compare(current, expected) == 0)
+      {
+        _zkClient.writeData(path, update, stat.getVersion());
+        isSucceed = true;
+      }
     } 
     catch (ZkBadVersionException e) 
     {

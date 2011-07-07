@@ -17,6 +17,8 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
 import com.linkedin.clustermanager.ClusterDataAccessor;
+import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
+import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterView;
 import com.linkedin.clustermanager.ConfigChangeListener;
@@ -28,10 +30,10 @@ import com.linkedin.clustermanager.LiveInstanceChangeListener;
 import com.linkedin.clustermanager.MessageListener;
 import com.linkedin.clustermanager.NotificationContext;
 import com.linkedin.clustermanager.ZNRecord;
-import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
-import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.model.IdealState;
 import com.linkedin.clustermanager.model.Message;
+import com.linkedin.clustermanager.participant.statemachine.StateModel;
+import com.linkedin.clustermanager.participant.statemachine.StateModelFactory;
 import com.linkedin.clustermanager.tools.ClusterViewSerializer;
 import com.linkedin.clustermanager.tools.IdealStateCalculatorByShuffling;
 
@@ -361,6 +363,113 @@ public class FileBasedClusterManager implements ClusterManager
     return null;
   }
 
+  public static ClusterView convertStateModelMapToClusterView(String outFile,
+                                                              String instanceName,
+                                                              StateModelFactory<StateModel> stateModelFactory)
+  {
+    Map<String, StateModel> currentStateMap = stateModelFactory.getStateModelMap();
+    ClusterView curView = new ClusterView();
+    
+    ClusterView.MemberInstance memberInstance = curView.getMemberInstance(instanceName, true);
+    List<ZNRecord> curStateList = new ArrayList<ZNRecord>();
+    
+    for (Map.Entry<String, StateModel> entry : currentStateMap.entrySet())
+    {
+      String stateUnitKey = entry.getKey();
+      String curState = entry.getValue().getCurrentState();
+      ZNRecord record = new ZNRecord();
+      record.setId(stateUnitKey);
+      record.simpleFields.put(stateUnitKey, curState);
+      curStateList.add(record);
+    }
+    
+    memberInstance.setInstanceProperty(ClusterDataAccessor.InstancePropertyType.CURRENTSTATES, curStateList);
+    
+    // serialize to file
+    // String outFile = "/tmp/curClusterView_" + instanceName +".json";
+    if (outFile != null)
+    {
+      ClusterViewSerializer serializer = new ClusterViewSerializer(outFile);
+      serializer.serialize(curView);
+    }
+    
+    return curView;
+  }
+  
+  public static boolean VerifyFileBasedClusterStates(String instanceName, String expectedFile, String curFile)
+  {
+    boolean ret = true;
+    ClusterView expectedView = readClusterView(expectedFile);
+    ClusterView curView = readClusterView(curFile);
+    
+    int nonOfflineNr = 0;
+
+    // ideal_state for instance with the given instanceName
+    Map<String, String> idealStates = new HashMap<String, String>();
+    for (ZNRecord idealStateItem : expectedView.getClusterPropertyList(ClusterPropertyType.IDEALSTATES))
+    {
+      Map<String, Map<String, String>> allIdealStates = idealStateItem.getMapFields();
+
+      for (Map.Entry<String, Map<String, String>> entry : allIdealStates.entrySet())
+      {
+        if (entry.getValue().containsKey(instanceName))
+        {
+          String state = entry.getValue().get(instanceName);
+          idealStates.put(entry.getKey(), state);
+        }
+      }
+    }
+
+    ClusterView.MemberInstance memberInstance = curView.getMemberInstance(instanceName, false);
+    List<ZNRecord> curStateList = memberInstance.getInstanceProperty(ClusterDataAccessor.InstancePropertyType.CURRENTSTATES);
+
+    if (curStateList.size() != idealStates.size())
+    {
+      System.err.println("Number of current states (" + curStateList.size()
+                       + ") mismatch " + "number of ideal states ("
+                       + idealStates.size() + ")");
+      return false;
+    }
+
+    for (ZNRecord record : curStateList)
+    {
+      String stateUnitKey = record.id;
+      String curState = record.simpleFields.get(stateUnitKey);
+      
+      if (!curState.equalsIgnoreCase("offline"))
+        nonOfflineNr++;
+      
+      if (!idealStates.containsKey(stateUnitKey))
+      {
+        System.err.println("Current state does not contain " + stateUnitKey);
+        ret = false;
+        continue;
+      }
+
+      String idealState = idealStates.get(stateUnitKey);
+      if (!curState.equalsIgnoreCase(idealState))
+      {
+        System.err.println("State mismatch--unit_key:" + stateUnitKey + " cur:"
+                         + curState + " ideal:" + idealState + " instance_name:"
+                         + instanceName);
+        ret = false;
+        continue;
+      }
+      
+    }
+    
+    /**
+    if (ret == true)
+    {
+      System.out.println(instanceName + ": verification succeed");
+      _logger.info(instanceName + ": verification succeed ("
+          + nonOfflineStateNr + " states)");
+    }
+    **/
+    
+    return ret;
+  }
+  
   public static void main(String[] args) throws Exception
   {
     // for temporary test only

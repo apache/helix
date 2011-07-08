@@ -7,13 +7,13 @@
   <version>1.0-SNAPSHOT</version>
   <name>cluster-management-webapp Maven Webapp</name>
   <url>http://maven.apache.org</url>
-        <repositories>
-                <repository>  
-                      <id>maven-restlet</id>  
-                      <name>Public online Restlet repository</name>  
-                      <url>http://maven.restlet.org</url>  
-                </repository>  
-        </repositories>
+  <repositories>
+    <repository>
+      <id>maven-restlet</id>
+      <name>Public online Restlet repository</name>
+      <url>http://maven.restlet.org</url>
+    </repository>
+  </repositories>
   <dependencies>
 
     <dependency>
@@ -27,17 +27,17 @@
       <artifactId>cluster-manager-core</artifactId>
       <version>0.0.1</version>
     </dependency>
-     <dependency>
-       <groupId>org.restlet</groupId>
-       <artifactId>org.restlet</artifactId>
-       <version>1.1.10</version>
-     </dependency>
-     <dependency>
-       <groupId>com.noelios.restlet</groupId>
-       <artifactId>com.noelios.restlet</artifactId>
-       <version>1.1.10</version>
-     </dependency>
-     <dependency>
+    <dependency>
+      <groupId>org.restlet</groupId>
+      <artifactId>org.restlet</artifactId>
+      <version>1.1.10</version>
+    </dependency>
+    <dependency>
+      <groupId>com.noelios.restlet</groupId>
+      <artifactId>com.noelios.restlet</artifactId>
+      <version>1.1.10</version>
+    </dependency>
+    <dependency>
       <groupId>com.thoughtworks.xstream</groupId>
       <artifactId>xstream</artifactId>
       <version>1.3.1</version>
@@ -60,28 +60,82 @@
   </dependencies>
   <build>
     <finalName>cluster-management-webapp</finalName>
-      <plugins>
-	<plugin>
-	<groupId>org.apache.maven.plugins</groupId>
-	<artifactId>maven-compiler-plugin</artifactId>
-	<configuration>
-   	  <source>1.6</source>
-	  <target>1.6</target>
-	</configuration>
-	</plugin>
-        <plugin>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <source>1.6</source>
+          <target>1.6</target>
+        </configuration>
+      </plugin>
+      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
         <executions>
           <execution>
-          <id>make-a-jar</id>
-          <phase>compile</phase>
-          <goals>
-            <goal>jar</goal>
-          </goals>
+            <id>make-a-jar</id>
+            <phase>compile</phase>
+            <goals>
+              <goal>jar</goal>
+            </goals>
           </execution>
-       </executions>
-     </plugin>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>appassembler-maven-plugin</artifactId>
+        <version>1.1.1</version>
+        <configuration>
+          <daemons>
+            <daemon>
+              <id>rest-admin</id>
+              <mainClass>com.linkedin.clustermanagement.webapp.RestAdminApplication</mainClass>
+              <commandLineArguments>
+                <commandLineArgument>start</commandLineArgument>
+              </commandLineArguments>
+              <platforms>
+                <platform>jsw</platform>
+              </platforms>
+            </daemon>
+          </daemons>
+          <!-- Set the target configuration directory to be used in the bin
+            scripts -->
+          <!-- <configurationDirectory>conf</configurationDirectory> -->
+          <!-- Copy the contents from "/src/main/config" to the target configuration
+            directory in the assembled application -->
+          <!-- <copyConfigurationDirectory>true</copyConfigurationDirectory> -->
+          <!-- Include the target configuration directory in the beginning
+            of the classpath declaration in the bin scripts -->
+          <!-- <includeConfigurationDirectoryInClasspath>true</includeConfigurationDirectoryInClasspath> -->
+          <!-- prefix all bin files with "mycompany" -->
+          <!-- <binPrefix>mycompany</binPrefix> -->
+          <!-- set alternative assemble directory -->
+          <assembleDirectory>${project.build.directory}/rest-admin-pkg</assembleDirectory>
+          <!-- Extra JVM arguments that will be included in the bin scripts -->
+          <extraJvmArguments>-Xms512m -Xmx512m</extraJvmArguments>
+          <!-- Generate bin scripts for windows and unix pr default -->
+          <platforms>
+            <platform>windows</platform>
+            <platform>unix</platform>
+          </platforms>
+          <programs>
+            <program>
+              <mainClass>com.linkedin.clustermanagement.webapp.RestAdminApplication</mainClass>
+              <name>run-rest-admin</name>
+            </program>
+          </programs>
+        </configuration>
+        <executions>
+          <execution>
+            <id>generate-jsw-scripts</id>
+            <phase>package</phase>
+            <goals>
+              <goal>generate-daemons</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
   </build>
 </project>

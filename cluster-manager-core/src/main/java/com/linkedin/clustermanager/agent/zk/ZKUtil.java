@@ -9,6 +9,7 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 
 import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.util.CMUtil;
 
 public final class ZKUtil
 {
@@ -18,6 +19,17 @@ public final class ZKUtil
   private ZKUtil()
   {
 
+  }
+  
+  public static boolean isClusterSetup(String clusterName, ZkClient zkClient)
+  {
+    String idealStatePath = CMUtil.getIdealStatePath(clusterName);
+    boolean isValid = zkClient.exists(idealStatePath)
+        && zkClient.exists(CMUtil.getConfigPath(clusterName))
+        && zkClient.exists(CMUtil.getLiveInstancesPath(clusterName))
+        && zkClient.exists(CMUtil.getMemberInstancesPath(clusterName))
+        && zkClient.exists(CMUtil.getExternalViewPath(clusterName));
+    return isValid;
   }
 
   public static void createChildren(ZkClient client, String parentPath,

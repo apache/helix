@@ -1,5 +1,6 @@
 package com.linkedin.clustermanager.agent.zk;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.I0Itec.zkclient.ZkClient;
@@ -140,7 +141,17 @@ public class ZKClusterManagementTool implements ClusterManagementService
 
   public List<String> getClusters()
   {
-    return _zkClient.getChildren("/");
+    List<String> zkToplevelPathes = _zkClient.getChildren("/");
+    List<String> result = new ArrayList<String>();
+    for(String pathName : zkToplevelPathes)
+    {
+      if(ZKUtil.isClusterSetup(pathName, _zkClient))
+      {
+        result.add(pathName);
+      }
+    }
+    
+    return result;
   }
 
   public List<String> getDatabasesInCluster(String clusterName)

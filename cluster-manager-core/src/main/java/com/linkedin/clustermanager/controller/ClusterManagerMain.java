@@ -82,17 +82,12 @@ public class ClusterManagerMain
     // get the clusters to manage
     // for each cluster create a manager
     // add the respective listeners for each manager
-
-    String clusterName = "test-cluster";
-    String zkConnectString = "localhost:2181";
-    if (args.length > 0)
-    {
-      CommandLine cmd = processCommandLineArgs(args);
-      zkConnectString = cmd.getOptionValue(zkServerAddress);
-      clusterName = cmd.getOptionValue(cluster);
-    }
+    CommandLine cmd = processCommandLineArgs(args);
+    String zkConnectString = cmd.getOptionValue(zkServerAddress);
+    String clusterName = cmd.getOptionValue(cluster);
+    
     // Espresso_driver.py will consume this
-    System.out.println("Cluster manager started");
+    System.out.println("Cluster manager started. zkServer: "+ zkConnectString+", clusterName:" + clusterName);
     // start the managers
     ClusterManager manager = ClusterManagerFactory
         .getZKBasedManagerForController(clusterName, zkConnectString);

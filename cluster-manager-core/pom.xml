@@ -113,39 +113,12 @@
 					<target>1.6</target>
 				</configuration>
 			</plugin>
-			<plugin>
-				<artifactId>maven-assembly-plugin</artifactId>
-				<configuration>
-					<archive>
-						<manifest>
-							<mainClass>com.linkedin.clustermanager.controller.ClusterManagerMain</mainClass>
-							<addClasspath>true</addClasspath>
-						</manifest>
-					</archive>
-					<descriptorRefs>
-						<descriptorRef>jar-with-dependencies</descriptorRef>
-					</descriptorRefs>
-					<finalName>cluster-manager-launch-${project.version}</finalName>
-					<appendAssemblyId>false</appendAssemblyId>
-				</configuration>
-			</plugin>
+
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>appassembler-maven-plugin</artifactId>
 				<version>1.1.1</version>
 				<configuration>
-					<daemons>
-						<daemon>
-							<id>cluster-manager</id>
-							<mainClass>com.linkedin.clustermanager.controller.ClusterManagerMain</mainClass>
-							<commandLineArguments>
-								<commandLineArgument>start</commandLineArgument>
-							</commandLineArguments>
-							<platforms>
-								<platform>jsw</platform>
-							</platforms>
-						</daemon>
-					</daemons>
 					<!-- Set the target configuration directory to be used in the bin scripts -->
 					<!-- <configurationDirectory>conf</configurationDirectory> -->
 					<!-- Copy the contents from "/src/main/config" to the target configuration 
@@ -178,10 +151,27 @@
 				</configuration>
 				<executions>
 					<execution>
-						<id>generate-jsw-scripts</id>
 						<phase>package</phase>
 						<goals>
-							<goal>generate-daemons</goal>
+							<goal>assemble</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<configuration>
+					<descriptors>
+						<descriptor>src/assemble/assembly.xml</descriptor>
+					</descriptors>
+				</configuration>
+
+				<!-- append assembly:assembly to the package phase -->
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>single</goal>
 						</goals>
 					</execution>
 				</executions>

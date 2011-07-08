@@ -2,6 +2,7 @@ package com.linkedin.clustermanager.spectator;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -9,8 +10,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
+
+import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.CMConstants;
 import com.linkedin.clustermanager.ExternalViewChangeListener;
@@ -23,6 +27,8 @@ import com.linkedin.clustermanager.util.ZNRecordUtil;
 
 public class RoutingTableProvider implements ExternalViewChangeListener
 {
+  private static final Logger logger = Logger
+      .getLogger(RoutingTableProvider.class);
   private AtomicReference<RoutingTable> _routingTableRef;
 
   // AtomicReference<V>
@@ -65,6 +71,29 @@ public class RoutingTableProvider implements ExternalViewChangeListener
     return instanceList;
   }
 
+  /**
+   * returns all instances for {stateUnitgroup} that are in a specific {state}
+   * 
+   * @param stateUnitGroup
+   * @param state
+   * @return empty list if there is no instance in a given state
+   */
+  public Set<InstanceConfig> getInstances(String stateUnitGroup, String state)
+  {
+    Set<InstanceConfig> instanceSet = null;
+    RoutingTable _routingTable = _routingTableRef.get();
+    StateUnitGroupInfo stateUnitGroupInfo = _routingTable.get(stateUnitGroup);
+    if (stateUnitGroupInfo != null)
+    {
+      instanceSet = stateUnitGroupInfo.getInstances(state);
+    }
+    if (instanceSet == null)
+    {
+      instanceSet = Collections.emptySet();
+    }
+    return instanceSet;
+  }
+
   @Override
   public void onExternalViewChange(List<ZNRecord> externalViewList,
       NotificationContext changeContext)
@@ -81,8 +110,6 @@ public class RoutingTableProvider implements ExternalViewChangeListener
       for (ZNRecord record : externalViewList)
       {
         String stateUnitGroupName = record.getId();
-        newRoutingTable.init(stateUnitGroupName);
-        StateUnitGroupInfo groupInfo = newRoutingTable.get(stateUnitGroupName);
         Map<String, Map<String, String>> stateUnitKeysMap = record
             .getMapFields();
         for (String stateUnitKey : stateUnitKeysMap.keySet())
@@ -92,19 +119,21 @@ public class RoutingTableProvider implements ExternalViewChangeListener
               .get(stateUnitKey);
           for (String instanceName : stateUnitData.keySet())
           {
-            groupInfo.init(stateUnitKey);
-            StateUnitKeyInfo stateUnitKeyInfo = groupInfo.get(stateUnitKey);
             String currentState = stateUnitData.get(instanceName);
-            stateUnitKeyInfo.init(currentState);
-            List<InstanceConfig> list = stateUnitKeyInfo.get(currentState);
-            InstanceConfig instanceConfig = new InstanceConfig();
             String[] split = instanceName.split("_");
             if (split.length == 2)
             {
+              InstanceConfig instanceConfig = new InstanceConfig();
               instanceConfig.setHostName(split[0]);
               instanceConfig.setPort(split[1]);
+              newRoutingTable.addEntry(stateUnitGroupName, stateUnitKey,
+                  currentState, instanceConfig);
+            } else
+            {
+              logger.error("Invalid instance name format for instanceName:"
+                  + instanceName);
             }
-            list.add(instanceConfig);
+
           }
         }
       }
@@ -172,12 +201,17 @@ public class RoutingTableProvider implements ExternalViewChangeListener
       groupInfoMap = new HashMap<String, RoutingTableProvider.StateUnitGroupInfo>();
     }
 
-    public void init(String stateUnitGroupName)
+    public void addEntry(String stateUnitGroupName, String stateUnitKey,
+        String state, InstanceConfig config)
     {
       if (!groupInfoMap.containsKey(stateUnitGroupName))
       {
         groupInfoMap.put(stateUnitGroupName, new StateUnitGroupInfo());
       }
+      StateUnitGroupInfo stateUnitGroupInfo = groupInfoMap
+          .get(stateUnitGroupName);
+      stateUnitGroupInfo.addEntry(stateUnitKey, state, config);
+
     }
 
     StateUnitGroupInfo get(String stateUnitGroup)
@@ -189,19 +223,71 @@ public class RoutingTableProvider implements ExternalViewChangeListener
 
   class StateUnitGroupInfo
   {
+    // store StateUnitKeyInfo for each stateUnitKey
     HashMap<String, StateUnitKeyInfo> keyInfoMap;
+    // stores the Set of Instances in a given state
+    HashMap<String, Set<InstanceConfig>> stateInfoMap;
 
     public StateUnitGroupInfo()
     {
       keyInfoMap = new HashMap<String, RoutingTableProvider.StateUnitKeyInfo>();
+      stateInfoMap = new HashMap<String, Set<InstanceConfig>>();
     }
 
-    void init(String stateUnitKey)
+    public void addEntry(String stateUnitKey, String state,
+        InstanceConfig config)
     {
+      // add
+      if (!stateInfoMap.containsKey(state))
+      {
+        Comparator<InstanceConfig> comparator = new Comparator<InstanceConfig>()
+        {
+
+          @Override
+          public int compare(InstanceConfig o1, InstanceConfig o2)
+          {
+            if (o1 == o2)
+            {
+              return 0;
+            }
+            if (o1 == null)
+            {
+              return -1;
+            }
+            if (o2 == null)
+            {
+              return 1;
+            }
+
+            int compareTo = o1.getHostName().compareTo(o2.getHostName());
+            if (compareTo == 0)
+            {
+              return o1.getPort().compareTo(o2.getPort());
+            }else{
+              return compareTo;
+            }
+
+          }
+        };
+        stateInfoMap.put(state, new TreeSet<InstanceConfig>(
+            comparator));
+      }
+      Set<InstanceConfig> set = stateInfoMap.get(state);
+      set.add(config);
+
       if (!keyInfoMap.containsKey(stateUnitKey))
       {
         keyInfoMap.put(stateUnitKey, new StateUnitKeyInfo());
       }
+      StateUnitKeyInfo stateUnitKeyInfo = keyInfoMap.get(stateUnitKey);
+      stateUnitKeyInfo.addEntry(state, config);
+
+    }
+
+    public Set<InstanceConfig> getInstances(String state)
+    {
+      Set<InstanceConfig> instanceSet = stateInfoMap.get(state);
+      return instanceSet;
     }
 
     StateUnitKeyInfo get(String stateUnitKey)
@@ -219,12 +305,14 @@ public class RoutingTableProvider implements ExternalViewChangeListener
       stateInfoMap = new HashMap<String, List<InstanceConfig>>();
     }
 
-    void init(String state)
+    public void addEntry(String state, InstanceConfig config)
     {
       if (!stateInfoMap.containsKey(state))
       {
         stateInfoMap.put(state, new ArrayList<InstanceConfig>());
       }
+      List<InstanceConfig> list = stateInfoMap.get(state);
+      list.add(config);
     }
 
     List<InstanceConfig> get(String state)

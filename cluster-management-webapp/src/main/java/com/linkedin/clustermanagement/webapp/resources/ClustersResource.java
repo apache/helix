@@ -16,6 +16,7 @@ import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 import org.restlet.resource.Resource;
 
+import com.linkedin.clustermanagement.webapp.RestAdminApplication;
 import com.linkedin.clustermanager.ClusterManagerException;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.tools.ClusterSetup;
@@ -68,7 +69,7 @@ public class ClustersResource extends Resource
   
   StringRepresentation getClustersRepresentation() throws JsonGenerationException, JsonMappingException, IOException
   {
-    String zkServer = (String)getContext().getAttributes().get("zkServer");
+    String zkServer = (String)getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
     ClusterSetup setupTool = new ClusterSetup(zkServer);
     List<String> clusters = setupTool.getClusterManagementTool().getClusters();
 
@@ -84,7 +85,7 @@ public class ClustersResource extends Resource
   {
     try
     {
-      String zkServer = (String)getContext().getAttributes().get("zkServer");
+      String zkServer = (String)getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
       Form form = new Form(entity);
       Map<String, String> jsonParameters 
         = ClusterRepresentationUtil.getFormJsonParametersWithCommandVerified(form, ClusterRepresentationUtil._addClusterCommand);

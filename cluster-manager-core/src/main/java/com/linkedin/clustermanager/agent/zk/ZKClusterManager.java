@@ -9,6 +9,7 @@ import org.I0Itec.zkclient.ZkClient;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.Watcher.Event.EventType;
+import org.apache.zookeeper.Watcher.Event.KeeperState;
 
 import com.linkedin.clustermanager.CMConstants;
 import com.linkedin.clustermanager.ClusterDataAccessor;
@@ -94,7 +95,8 @@ public class ZKClusterManager implements ClusterManager
   }
 
   @Override
-  public void addLiveInstanceChangeListener(LiveInstanceChangeListener listener) throws Exception
+  public void addLiveInstanceChangeListener(LiveInstanceChangeListener listener)
+      throws Exception
   {
     final String path = CMUtil.getLiveInstancesPath(_clusterName);
     CallbackHandler callbackHandler = createCallBackHandler(path, listener,
@@ -144,7 +146,7 @@ public class ZKClusterManager implements ClusterManager
   @Override
   public void addExternalViewChangeListener(ExternalViewChangeListener listener)
   {
-    
+
     final String path = CMUtil.getExternalViewPath(_clusterName);
 
     CallbackHandler callbackHandler = createCallBackHandler(path, listener,
@@ -235,6 +237,8 @@ public class ZKClusterManager implements ClusterManager
       try
       {
         client.waitUntilConnected(sessionTimeout, TimeUnit.MILLISECONDS);
+        _zkStateChangeListener.handleNewSession();
+        _zkStateChangeListener.handleStateChanged(KeeperState.SyncConnected);
         break;
       } catch (Exception e)
       {
@@ -252,7 +256,8 @@ public class ZKClusterManager implements ClusterManager
   private CallbackHandler createCallBackHandler(String path, Object listener,
       EventType[] eventTypes, ChangeType changeType)
   {
-    if(listener == null){
+    if (listener == null)
+    {
       throw new ClusterManagerException("Listener cannot be null");
     }
     return new CallbackHandler(this, _zkClient, path, listener, eventTypes,

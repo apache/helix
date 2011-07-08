@@ -1,13 +1,12 @@
 package com.linkedin.clustermanager.util;
 
 import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 
-import org.apache.zookeeper.CreateMode;
-
 import com.linkedin.clustermanager.ClusterDataAccessor;
-import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
+import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.model.Message;
 
 /**
@@ -53,12 +52,11 @@ public class StatusUpdateUtil
     result.setSimpleField("To    ", message.getToState());
     result.setSimpleField("Message status", message.getMsgState());
 
-    DateFormat formatter = DateFormat.getDateTimeInstance(DateFormat.DEFAULT,
-        DateFormat.DEFAULT);
+    DateFormat formatter = new SimpleDateFormat("yyyyMMdd-HHmmss.SSSSSS");
     String time = formatter.format(new Date());
-    time = time + " : " + new Date().getTime() % 1000;
-    time = time.replace('/', '-');
-    time = time.replace(':', '-');
+//    time = time + " : " + new Date().getTime() % 1000;
+//    time = time.replace('/', '-');
+//    time = time.replace(':', '-');
     result.setSimpleField("TimeStamp", time);
 
     result.setSimpleField("Class", classInfo.toString());

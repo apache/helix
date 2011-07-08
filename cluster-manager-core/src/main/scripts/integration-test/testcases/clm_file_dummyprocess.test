@@ -1,12 +1,15 @@
 #!/bin/bash
 #integration test for file-based cluster manager
 
+#disable the test for now
+exit 0
+
 source setup_env.inc
 
 #create config file for static storage cluster
 #./clm_console.sh --configFile $CONFIG_DIR/cluster-12345-cluster-view.json
 temp_cluster_view_conf=$VIEW_ROOT/$LOG_DIR_FROM_ROOT/cluster-12345-cluster-view.json
-cp -f $CONFIG_DIR/cluster-12345-cluster-view.json $temp_cluster_view_conf
+cp -f $VIEW_ROOT/$CONFIG_DIR/cluster-12345-cluster-view.json $temp_cluster_view_conf
 $SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="--configFile $temp_cluster_view_conf"
 
 #Launch dummy process nodes

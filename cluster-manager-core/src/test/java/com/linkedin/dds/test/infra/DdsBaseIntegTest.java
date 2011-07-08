@@ -89,7 +89,6 @@ public class DdsBaseIntegTest
 
     if (0 != exitValue)
     {
-//      String errString = new String(cmd.getError());¿
       String errString = new String(cmd.getOutput());
       AssertJUnit.assertTrue(errString, false);
     }

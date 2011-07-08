@@ -165,8 +165,6 @@
 						<descriptor>src/assemble/assembly.xml</descriptor>
 					</descriptors>
 				</configuration>
-
-				<!-- append assembly:assembly to the package phase -->
 				<executions>
 					<execution>
 						<phase>package</phase>

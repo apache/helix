@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.linkedin.clustermanager.webapp</groupId>
   <artifactId>cluster-management-webapp</artifactId>
-  <packaging>war</packaging>
+  <packaging>jar</packaging>
   <version>1.0-SNAPSHOT</version>
   <name>cluster-management-webapp Maven Webapp</name>
   <url>http://maven.apache.org</url>
@@ -69,6 +69,7 @@
           <target>1.6</target>
         </configuration>
       </plugin>
+      <!--  
         <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
@@ -82,6 +83,7 @@
           </execution>
         </executions>
       </plugin>
+      -->
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>appassembler-maven-plugin</artifactId>

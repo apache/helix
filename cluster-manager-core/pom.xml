@@ -1,5 +1,10 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<parent>
+		<groupId>com.linkedin.clustermanager</groupId>
+		<artifactId>cluster-manager</artifactId>
+		<version>0.0.1</version>
+	</parent>
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>com.linkedin.clustermanager</groupId>
@@ -37,7 +42,6 @@
 					<artifactId>jmxri</artifactId>
 				</exclusion>
 			</exclusions>
-
 		</dependency>
 		<dependency>
 			<groupId>org.apache.zookeeper</groupId>
@@ -85,59 +89,9 @@
 		<plugins>
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>cobertura-maven-plugin</artifactId>
-				<version>2.5.1</version>
-				<configuration>
-					<instrumentation>
-						<ignores>
-							<ignore>com.linkedin.clustermanager.mock.*.*</ignore>
-						</ignores>
-						<excludes>
-							<exclude>com/linkedin/clustermanager/mock/**/*.class</exclude>
-						</excludes>
-					</instrumentation>
-				</configuration>
-				<executions>
-					<execution>
-						<goals>
-							<goal>clean</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-compiler-plugin</artifactId>
-				<configuration>
-					<source>1.6</source>
-					<target>1.6</target>
-				</configuration>
-			</plugin>
-
-			<plugin>
-				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>appassembler-maven-plugin</artifactId>
 				<version>1.1.1</version>
 				<configuration>
-					<!-- Set the target configuration directory to be used in the bin scripts -->
-					<!-- <configurationDirectory>conf</configurationDirectory> -->
-					<!-- Copy the contents from "/src/main/config" to the target configuration 
-						directory in the assembled application -->
-					<!-- <copyConfigurationDirectory>true</copyConfigurationDirectory> -->
-					<!-- Include the target configuration directory in the beginning of 
-						the classpath declaration in the bin scripts -->
-					<!-- <includeConfigurationDirectoryInClasspath>true</includeConfigurationDirectoryInClasspath> -->
-					<!-- prefix all bin files with "mycompany" -->
-					<!-- <binPrefix>mycompany</binPrefix> -->
-					<!-- set alternative assemble directory -->
-					<assembleDirectory>${project.build.directory}/cluster-manager-pkg</assembleDirectory>
-					<!-- Extra JVM arguments that will be included in the bin scripts -->
-					<extraJvmArguments>-Xms512m -Xmx512m</extraJvmArguments>
-					<!-- Generate bin scripts for windows and unix pr default -->
-					<platforms>
-						<platform>windows</platform>
-						<platform>unix</platform>
-					</platforms>
 					<programs>
 						<program>
 							<mainClass>com.linkedin.clustermanager.controller.ClusterManagerMain</mainClass>
@@ -149,47 +103,6 @@
 						</program>
 					</programs>
 				</configuration>
-				<executions>
-					<execution>
-						<phase>package</phase>
-						<goals>
-							<goal>assemble</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<artifactId>maven-assembly-plugin</artifactId>
-				<configuration>
-					<descriptors>
-						<descriptor>src/assemble/assembly.xml</descriptor>
-					</descriptors>
-				</configuration>
-				<executions>
-					<execution>
-						<phase>package</phase>
-						<goals>
-							<goal>single</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-javadoc-plugin</artifactId>
-				<version>2.8</version>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-source-plugin</artifactId>
-				<executions>
-					<execution>
-						<id>attach-sources</id>
-						<goals>
-							<goal>jar</goal>
-						</goals>
-					</execution>
-				</executions>
 			</plugin>
 		</plugins>
 	</build>

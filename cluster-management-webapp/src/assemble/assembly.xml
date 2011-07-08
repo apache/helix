@@ -5,13 +5,13 @@
 	</formats>
 	<fileSets>
 		<fileSet>
-			<directory>target/rest-admin-pkg/bin</directory>
+			<directory>target/cluster-management-webapp-pkg/bin</directory>
 			<outputDirectory>/bin</outputDirectory>
 			<lineEnding>unix</lineEnding>
 			<fileMode>0744</fileMode>
 		</fileSet>
 		<fileSet>
-			<directory>target/rest-admin-pkg/repo</directory>
+			<directory>target/cluster-management-webapp-pkg/repo</directory>
 			<outputDirectory>/repo</outputDirectory>
 		</fileSet>
 		<!-- <fileSet> <directory>src/main/conf</directory> <includes> <include>app-env.bat</include> 

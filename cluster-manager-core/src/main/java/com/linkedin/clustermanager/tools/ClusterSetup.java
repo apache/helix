@@ -2,6 +2,8 @@ package com.linkedin.clustermanager.tools;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.I0Itec.zkclient.ZkClient;
 import org.apache.commons.cli.CommandLine;
@@ -58,6 +60,29 @@ public class ClusterSetup
 
   static Logger _logger = Logger.getLogger(ClusterSetup.class);
   String _zkServerAddress;
+  
+  public static Map<String, ZkClient> _zkClientMap = new ConcurrentHashMap<String, ZkClient>();
+  
+  public static ZkClient getZkClient(String zkServer)
+  {
+    if(_zkClientMap.containsKey(zkServer))
+    {
+      return _zkClientMap.get(zkServer);
+    }
+    else
+    {
+      synchronized(_zkClientMap)
+      {
+        if(!_zkClientMap.containsKey(zkServer))
+        {
+          ZkClient zkClient = new ZkClient(zkServer);
+          zkClient.setZkSerializer(new ZNRecordSerializer());
+          _zkClientMap.put(zkServer, zkClient);
+        }
+        return _zkClientMap.get(zkServer);
+      }
+    }
+  }
 
   public ClusterSetup(String zkServerAddress)
   {
@@ -116,9 +141,7 @@ public class ClusterSetup
 
   public ClusterManagementService getClusterManagementTool()
   {
-    ZkClient zkClient = new ZkClient(_zkServerAddress);
-    zkClient.setZkSerializer(new ZNRecordSerializer());
-
+    ZkClient zkClient = getZkClient(_zkServerAddress);
     return new ZKClusterManagementTool(zkClient);
   }
 

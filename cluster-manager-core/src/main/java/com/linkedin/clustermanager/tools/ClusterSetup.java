@@ -28,6 +28,7 @@ import com.linkedin.clustermanager.ClusterDataAccessor.InstanceConfigProperty;
 import com.linkedin.clustermanager.agent.file.FileBasedClusterManager;
 import com.linkedin.clustermanager.agent.zk.ZKClusterManagementTool;
 import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
+import com.linkedin.clustermanager.util.ZKClientPool;
 
 public class ClusterSetup
 {
@@ -60,29 +61,6 @@ public class ClusterSetup
 
   static Logger _logger = Logger.getLogger(ClusterSetup.class);
   String _zkServerAddress;
-  
-  public static Map<String, ZkClient> _zkClientMap = new ConcurrentHashMap<String, ZkClient>();
-  
-  public static ZkClient getZkClient(String zkServer)
-  {
-    if(_zkClientMap.containsKey(zkServer))
-    {
-      return _zkClientMap.get(zkServer);
-    }
-    else
-    {
-      synchronized(_zkClientMap)
-      {
-        if(!_zkClientMap.containsKey(zkServer))
-        {
-          ZkClient zkClient = new ZkClient(zkServer);
-          zkClient.setZkSerializer(new ZNRecordSerializer());
-          _zkClientMap.put(zkServer, zkClient);
-        }
-        return _zkClientMap.get(zkServer);
-      }
-    }
-  }
 
   public ClusterSetup(String zkServerAddress)
   {
@@ -141,7 +119,7 @@ public class ClusterSetup
 
   public ClusterManagementService getClusterManagementTool()
   {
-    ZkClient zkClient = getZkClient(_zkServerAddress);
+    ZkClient zkClient = ZKClientPool.getZkClient(_zkServerAddress);
     return new ZKClusterManagementTool(zkClient);
   }
 

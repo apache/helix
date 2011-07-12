@@ -23,6 +23,7 @@ import com.linkedin.clustermanager.ClusterManagerException;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.agent.zk.ZKDataAccessor;
 import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
+import com.linkedin.clustermanager.tools.ClusterSetup;
 
 public class ClusterRepresentationUtil
 {
@@ -39,8 +40,7 @@ public class ClusterRepresentationUtil
   
   public static String getClusterPropertyAsString(String zkServer, String clusterName, ClusterPropertyType clusterProperty, String key, MediaType mediaType) throws JsonGenerationException, JsonMappingException, IOException
   {
-    ZkClient zkClient = new ZkClient(zkServer);
-    zkClient.setZkSerializer(new ZNRecordSerializer());
+    ZkClient zkClient = ClusterSetup.getZkClient(zkServer);
     ClusterDataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
     
     ZNRecord record = accessor.getClusterProperty(clusterProperty, key);    
@@ -49,7 +49,7 @@ public class ClusterRepresentationUtil
   
   public static String getInstancePropertyAsString(String zkServer, String clusterName, ClusterPropertyType clusterProperty, String key, MediaType mediaType) throws JsonGenerationException, JsonMappingException, IOException
   {
-    ZkClient zkClient = new ZkClient(zkServer);
+    ZkClient zkClient = ClusterSetup.getZkClient(zkServer);
     zkClient.setZkSerializer(new ZNRecordSerializer());
     ClusterDataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
     
@@ -76,7 +76,7 @@ public class ClusterRepresentationUtil
   
   public static ClusterDataAccessor getClusterDataAccessor( String zkServer, String clusterName)
   {
-    ZkClient zkClient = new ZkClient(zkServer);
+    ZkClient zkClient = ClusterSetup.getZkClient(zkServer);
     zkClient.setZkSerializer(new ZNRecordSerializer());
     return new ZKDataAccessor(clusterName, zkClient);
   }

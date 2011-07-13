@@ -164,7 +164,7 @@ public class IdealStateCalculatorByRush
     for (int i = 0; i < partitions; i++)
     {
       int partitionId = i;
-      String partitionName = dbName + ".partition-" + partitionId;
+      String partitionName = dbName + "-" + partitionId;
 
       ArrayList<HashMap> partitionAssignmentResult = rushHash
           .findNode(partitionName);

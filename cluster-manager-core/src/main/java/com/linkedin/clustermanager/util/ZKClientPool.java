@@ -15,8 +15,8 @@ public class ZKClientPool
   {
     if(_zkClientMap.containsKey(zkServer))
     {
-      // TODO: if the ZKClient is eventually disconnected, we should get notified and remove it
-      // from the map.
+      // TODO: if the ZKClient is eventually disconnected, 
+      // we should get notified and remove the zkClient from the map.
       return _zkClientMap.get(zkServer);
     }
     else

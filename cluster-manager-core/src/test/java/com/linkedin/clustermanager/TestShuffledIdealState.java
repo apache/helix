@@ -17,6 +17,8 @@ import org.testng.AssertJUnit;
 import org.testng.Assert;
 import org.testng.annotations.*;
 
+import com.linkedin.clustermanager.tools.IdealCalculatorByConsistentHashing;
+import com.linkedin.clustermanager.tools.IdealStateCalculatorByRush;
 import com.linkedin.clustermanager.tools.IdealStateCalculatorByShuffling;
 
 public class TestShuffledIdealState
@@ -36,6 +38,15 @@ public class TestShuffledIdealState
 
     ZNRecord result = IdealStateCalculatorByShuffling.calculateIdealState(
         instanceNames, partitions, replicas, dbName);
+    
+    ZNRecord result2 = IdealStateCalculatorByRush.calculateIdealState(instanceNames, partitions, replicas, dbName);
+    
+    ZNRecord result3 = IdealCalculatorByConsistentHashing.calculateIdealState(instanceNames, partitions, replicas, dbName, new IdealCalculatorByConsistentHashing.FnvHash());
+    IdealCalculatorByConsistentHashing.printIdealStateStats(result3, "MASTER");
+    IdealCalculatorByConsistentHashing.printIdealStateStats(result3, "SLAVE");
+    IdealCalculatorByConsistentHashing.printIdealStateStats(result3, "");
+    IdealCalculatorByConsistentHashing.printNodeOfflineOverhead(result3);
+    
     // System.out.println(result);
     ObjectMapper mapper = new ObjectMapper();
 
@@ -51,6 +62,28 @@ public class TestShuffledIdealState
       System.out.println(result.toString());
       System.out.println(zn.toString());
       AssertJUnit.assertTrue(zn.toString().equalsIgnoreCase(result.toString()));
+      System.out.println();
+      
+      sw= new StringWriter();
+      mapper.writeValue(sw, result2);
+
+      ZNRecord zn2 = mapper.readValue(new StringReader(sw.toString()),
+          ZNRecord.class);
+      System.out.println(result2.toString());
+      System.out.println(zn2.toString());
+      AssertJUnit.assertTrue(zn2.toString().equalsIgnoreCase(result2.toString()));
+      
+      sw= new StringWriter();
+      mapper.writeValue(sw, result3);
+      System.out.println();
+
+      ZNRecord zn3 = mapper.readValue(new StringReader(sw.toString()),
+          ZNRecord.class);
+      System.out.println(result3.toString());
+      System.out.println(zn3.toString());
+      AssertJUnit.assertTrue(zn3.toString().equalsIgnoreCase(result3.toString()));
+      System.out.println();
+      
     } catch (JsonGenerationException e)
     {
       // TODO Auto-generated catch block

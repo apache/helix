@@ -1,5 +1,7 @@
 package com.linkedin.clustermanager;
 
+import org.testng.AssertJUnit;
+import org.testng.annotations.Test;
 import java.io.File;
 import java.util.Arrays;
 
@@ -23,8 +25,9 @@ import com.linkedin.clustermanager.tools.ClusterStateVerifier;
  */
 public class IntegrationTest
 {
-
-  public static void main(String[] args) throws Exception
+  @Test
+  public void testInvocation() throws Exception
+  //public static void main(String[] args) throws Exception
   {
     // Logger.getRootLogger().setLevel(Level.ERROR);
     String logDir = "/tmp/logs";
@@ -35,40 +38,40 @@ public class IntegrationTest
       @Override
       public void createDefaultNameSpace(ZkClient zkClient)
       {
-        zkClient.deleteRecursive("/storage-cluster-12345");
+        zkClient.deleteRecursive("/test-cluster");
         zkClient.deleteRecursive("/relay-cluster-12345");
       }
     };
-    int port = 2188;
+    int port = 2181;
     ZkServer zkServer = new ZkServer(dataDir, logDir, defaultNameSpace, port);
     zkServer.start();
     ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr localhost:2188 -addCluster storage-cluster-12345"));
+        .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addCluster test-cluster"));
     ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr localhost:2188 -addCluster relay-cluster-12345"));
+        .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addCluster relay-cluster-12345"));
     ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr localhost:2188 -addDatabase storage-cluster-12345 db-12345 120"));
+        .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addDatabase test-cluster db-12345 120"));
     ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr localhost:2188 -addNode storage-cluster-12345 localhost:8900"));
+        .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addNode test-cluster localhost:8900"));
     ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr localhost:2188 -addNode storage-cluster-12345 localhost:8901"));
+        .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addNode test-cluster localhost:8901"));
     ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr localhost:2188 -addNode storage-cluster-12345 localhost:8902"));
+        .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addNode test-cluster localhost:8902"));
     ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr localhost:2188 -addNode storage-cluster-12345 localhost:8903"));
+        .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addNode test-cluster localhost:8903"));
     ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr localhost:2188 -addNode storage-cluster-12345 localhost:8904"));
+        .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addNode test-cluster localhost:8904"));
     ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr localhost:2188 -rebalance storage-cluster-12345 db-12345 3"));
-    startDummyProcess(createArgs("-zkSvr localhost:2188 -cluster storage-cluster-12345 -host localhost -port 8900"));
-    startDummyProcess(createArgs("-zkSvr localhost:2188 -cluster storage-cluster-12345 -host localhost -port 8901"));
-    startDummyProcess(createArgs("-zkSvr localhost:2188 -cluster storage-cluster-12345 -host localhost -port 8902"));
-    startDummyProcess(createArgs("-zkSvr localhost:2188 -cluster storage-cluster-12345 -host localhost -port 8903"));
-    startDummyProcess(createArgs("-zkSvr localhost:2188 -cluster storage-cluster-12345 -host localhost -port 8904"));
-    startClusterManager(createArgs("-zkSvr localhost:2188 -cluster storage-cluster-12345"));
+        .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -rebalance test-cluster db-12345 3"));
+    startDummyProcess(createArgs("-zkSvr localhost:2181 -cluster test-cluster -host localhost -port 8900"));
+    startDummyProcess(createArgs("-zkSvr localhost:2181 -cluster test-cluster -host localhost -port 8901"));
+    startDummyProcess(createArgs("-zkSvr localhost:2181 -cluster test-cluster -host localhost -port 8902"));
+    startDummyProcess(createArgs("-zkSvr localhost:2181 -cluster test-cluster -host localhost -port 8903"));
+    startDummyProcess(createArgs("-zkSvr localhost:2181 -cluster test-cluster -host localhost -port 8904"));
+    //startClusterManager(createArgs("-zkSvr localhost:2181 -cluster test-cluster"));
     Thread.sleep(60000);
-    ClusterStateVerifier
-        .main(createArgs("-zkSvr localhost:2188 -cluster storage-cluster-12345"));
+    AssertJUnit.assertTrue(ClusterStateVerifier
+        .verifyState(createArgs("-zkSvr localhost:2181 -cluster test-cluster")));
     // zkServer.shutdown();
   }
 

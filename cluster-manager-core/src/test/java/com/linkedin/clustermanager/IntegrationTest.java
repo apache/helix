@@ -68,8 +68,8 @@ public class IntegrationTest
     startDummyProcess(createArgs("-zkSvr localhost:2181 -cluster test-cluster -host localhost -port 8902"));
     startDummyProcess(createArgs("-zkSvr localhost:2181 -cluster test-cluster -host localhost -port 8903"));
     startDummyProcess(createArgs("-zkSvr localhost:2181 -cluster test-cluster -host localhost -port 8904"));
-    //startClusterManager(createArgs("-zkSvr localhost:2181 -cluster test-cluster"));
-    Thread.sleep(60000);
+    startClusterManager(createArgs("-zkSvr localhost:2181 -cluster test-cluster"));
+    Thread.sleep(20000);
     AssertJUnit.assertTrue(ClusterStateVerifier
         .verifyState(createArgs("-zkSvr localhost:2181 -cluster test-cluster")));
     // zkServer.shutdown();

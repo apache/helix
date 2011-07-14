@@ -2,8 +2,6 @@ package com.linkedin.clustermanager.tools;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.FilenameFilter;
@@ -31,23 +29,37 @@ import org.apache.commons.cli.PosixParser;
 @SuppressWarnings("static-access")
 public class ZKDumper
 {
-  private ZkClient client;
+  private ZkClient       client;
   private FilenameFilter filter;
-  static Options options;
+  static Options         options;
+  
+  private static final String SCHEMA_FILE_SUFFIX = ".json";
+  
   static
   {
     options = new Options();
     OptionGroup optionGroup = new OptionGroup();
-    Option d = OptionBuilder.withLongOpt("download")
-        .withDescription("Download from ZK to File System").create();
+    Option d =
+        OptionBuilder.withLongOpt("download")
+                     .withDescription("Download from ZK to File System")
+                     .create();
     d.setArgs(0);
-    d.setRequired(true);
-    Option u = OptionBuilder.withLongOpt("upload")
-        .withDescription("Upload from File System to ZK").create();
+
+    Option u =
+        OptionBuilder.withLongOpt("upload")
+                     .withDescription("Upload from File System to ZK")
+                     .create();
     u.setArgs(0);
-    u.setRequired(true);
-    options.addOption(d);
-    options.addOption(u);
+    
+    Option del = 
+        OptionBuilder.withLongOpt("delete")
+                     .withDescription("Delete given path from ZK")
+                     .create();
+    
+    optionGroup.setRequired(true);
+    optionGroup.addOption(d);
+    optionGroup.addOption(u);
+    optionGroup.addOption(del);
     options.addOptionGroup(optionGroup);
     options.addOption("zkSvr", true, "Zookeeper address");
     options.addOption("zkpath", true, "Zookeeper path");
@@ -99,34 +111,53 @@ public class ZKDumper
     cmd.hasOption("zkSvr");
     boolean download = cmd.hasOption("download");
     boolean upload = cmd.hasOption("upload");
+    boolean del = cmd.hasOption("delete");
     String zkAddress = cmd.getOptionValue("zkSvr");
-    String zkPath = cmd.getOptionValue("zkPath");
-    String fsPath = cmd.getOptionValue("fsPath");
+    String zkPath = cmd.getOptionValue("zkpath");
+    String fsPath = cmd.getOptionValue("fspath");
+    
     ZKDumper zkDump = new ZKDumper(zkAddress);
     if (download)
     {
-      zkDump.download(zkPath, fsPath);
+      zkDump.download(zkPath, fsPath + zkPath);
     }
     if (upload)
     {
-      zkDump.download(zkPath, fsPath);
+      zkDump.upload(zkPath, fsPath);
     }
+    if (del)
+    {
+      zkDump.delete(zkPath);
+    }
+  }
+
+  private void delete(String zkPath)
+  {
+    client.deleteRecursive(zkPath);
+    
   }
 
   public void upload(String zkPath, String fsPath) throws Exception
   {
     File file = new File(fsPath);
-    System.out
-        .println("Uploading " + file.getCanonicalPath() + " to " + zkPath);
-    File[] children = file.listFiles(filter);
-    if (children != null && children.length > 0)
+    System.out.println("Uploading " + file.getCanonicalPath() + " to " + zkPath);
+    
+    if (file.isDirectory())
     {
+      File[] children = file.listFiles(filter);
       client.createPersistent(zkPath, true);
-      for (File child : children)
+      if (children != null && children.length > 0)
       {
-        upload(zkPath + "/" + child, fsPath + "/" + child);
+        
+        for (File child : children)
+        {
+          upload(zkPath + "/" + child.getName(), fsPath + "/" + child.getName());
+        }
+      }else{
+        
       }
-    } else
+    }
+    else
     {
       BufferedReader bfr = null;
       try
@@ -134,22 +165,27 @@ public class ZKDumper
         bfr = new BufferedReader(new FileReader(file));
         StringBuilder sb = new StringBuilder();
         String line;
+        String recordDelimiter= "";
         while ((line = bfr.readLine()) != null)
         {
-          sb.append(line);
+          sb.append(recordDelimiter).append(line);
+          recordDelimiter = "\n";
         }
         client.createPersistent(zkPath, sb.toString());
-      } catch (Exception e)
+      }
+      catch (Exception e)
       {
         throw e;
-      } finally
+      }
+      finally
       {
         if (bfr != null)
         {
           try
           {
             bfr.close();
-          } catch (IOException e)
+          }
+          catch (IOException e)
           {
           }
         }
@@ -159,8 +195,7 @@ public class ZKDumper
 
   public void download(String zkPath, String fsPath) throws Exception
   {
-    System.out.println("Saving " + zkPath + " to "
-        + new File(fsPath).getCanonicalPath());
+    System.out.println("Saving " + zkPath + " to " + new File(fsPath).getCanonicalPath());
     List<String> children = client.getChildren(zkPath);
     if (children != null && children.size() > 0)
     {
@@ -169,9 +204,10 @@ public class ZKDumper
       {
         download(zkPath + "/" + child, fsPath + "/" + child);
       }
-    } else
+    }
+    else
     {
-      FileWriter fileWriter = new FileWriter(fsPath);
+      FileWriter fileWriter = new FileWriter(fsPath + SCHEMA_FILE_SUFFIX);
       Object readData = client.readData(zkPath);
       fileWriter.write((String) readData);
       fileWriter.close();

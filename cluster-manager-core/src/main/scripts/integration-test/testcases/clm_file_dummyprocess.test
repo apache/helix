@@ -2,7 +2,7 @@
 #integration test for file-based cluster manager
 
 #disable the test for now
-exit 0
+#exit 0
 
 source setup_env.inc
 

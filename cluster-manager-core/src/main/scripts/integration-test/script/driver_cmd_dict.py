@@ -83,7 +83,6 @@ ant_call_option_mapping={
    ,"checkpoint_dir":"checkpoint.dir"
 }
  
- 
 # class path
 cmd_direct_call={
    "clm_console":
@@ -103,6 +102,7 @@ cmd_direct_call={
       ,"VIEW_ROOT/target/cluster-manager-core-0.0.1.jar"
 ]
   ,"class_name":"com.linkedin.clustermanager.tools.ClusterSetup"
+  ,"before_cmd":"mvn jar:jar"  # build jar first
    }
 
   ,"dummy-process":
@@ -120,8 +120,10 @@ cmd_direct_call={
       ,"IVY_DIR/xpp3/xpp3_min/1.1.4c/xpp3_min-1.1.4c.jar"
       ,"IVY_DIR/com/github/sgroschupf/zkclient/0.1/zkclient-0.1.jar"
       ,"VIEW_ROOT/target/cluster-manager-core-0.0.1.jar"
+      ,"VIEW_ROOT/target/test-classes"
 ]
   ,"class_name":"com.linkedin.clustermanager.mock.storage.DummyProcess"
+  ,"before_cmd":"mvn jar:jar"  # build jar first
    }
 
   ,"cluster-manager":
@@ -139,8 +141,10 @@ cmd_direct_call={
       ,"IVY_DIR/xpp3/xpp3_min/1.1.4c/xpp3_min-1.1.4c.jar"
       ,"IVY_DIR/com/github/sgroschupf/zkclient/0.1/zkclient-0.1.jar"
       ,"VIEW_ROOT/target/cluster-manager-core-0.0.1.jar"
+#      ,"VIEW_ROOT/target/test-classes"
 ]
   ,"class_name":"com.linkedin.clustermanager.controller.ClusterManagerMain"
+  ,"before_cmd":"mvn jar:jar"  # build jar first
    }
 
   ,"mock-storage":

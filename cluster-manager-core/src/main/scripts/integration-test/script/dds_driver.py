@@ -480,6 +480,10 @@ def run_cmd_direct_java_call(cmd, component):
           continue
         if re.search("VIEW_ROOT",class_path): 
           class_path_list.append(re.sub("VIEW_ROOT", view_root,class_path))
+          if not os.path.exists(class_path_list[-1]): # some jars not in VIEW_ROOT, trigger before command
+            if "before_cmd" in cmd_direct_call[component]: 
+              before_cmd = "%s; " % cmd_direct_call[component]["before_cmd"]
+              sys_call(before_cmd)
           continue
         class_path_list.append(class_path)
       if options.check_class_path: 

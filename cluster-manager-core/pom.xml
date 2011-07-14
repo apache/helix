@@ -101,6 +101,10 @@
 							<mainClass>com.linkedin.clustermanager.tools.ClusterSetup</mainClass>
 							<name>cluster-admin</name>
 						</program>
+						<program>
+							<mainClass>com.linkedin.clustermanager.tools.ZKDumper</mainClass>
+							<name>zk-dumper</name>
+						</program>
 					</programs>
 				</configuration>
 			</plugin>

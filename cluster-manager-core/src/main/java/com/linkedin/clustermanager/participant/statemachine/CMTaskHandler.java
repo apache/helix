@@ -1,5 +1,7 @@
 package com.linkedin.clustermanager.participant.statemachine;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -106,8 +108,12 @@ public class CMTaskHandler implements Callable<CMTaskResult>
       } catch (Exception e)
       {
         exception = e;
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+        e.printStackTrace(pw);
+
         String errorMessage = "Exception while executing a state transition task"
-            + e;
+            + pw.toString();
         _statusUpdateUtil.logError(_message, CMTaskHandler.class, errorMessage,
             accessor);
         logger.error(errorMessage);

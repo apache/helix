@@ -92,6 +92,9 @@ public class TestZKPropertyStore
       String zkServers = "localhost:2188";
       ZKClientFactory zkClientFactory = new ZKClientFactory();
       ZkClient zkClient = zkClientFactory.create(zkServers);
+      
+      // test init two zk-clients with the same server
+      ZkClient zkClient2 = zkClientFactory.create(zkServers);
   
       final String propertyStoreRoot = "/testPath1";
       ZKPropertyStore<String> zkPropertyStore = new ZKPropertyStore<String>(zkClient, new MyStringSerializer(), propertyStoreRoot);

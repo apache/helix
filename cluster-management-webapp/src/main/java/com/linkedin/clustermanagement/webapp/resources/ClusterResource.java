@@ -76,7 +76,7 @@ public class ClusterResource extends Resource
     
     ZNRecord clusterSummayRecord = new ZNRecord();
     clusterSummayRecord.setId("cluster summary");
-    clusterSummayRecord.setListField("intances", instances);
+    clusterSummayRecord.setListField("instances", instances);
     
     List<String> hostedEntities = setupTool.getClusterManagementTool().getDatabasesInCluster(clusterName);
     

@@ -2,6 +2,8 @@ package com.linkedin.clustermanager.tools;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.I0Itec.zkclient.ZkClient;
 import org.apache.commons.cli.CommandLine;
@@ -26,6 +28,7 @@ import com.linkedin.clustermanager.ClusterDataAccessor.InstanceConfigProperty;
 import com.linkedin.clustermanager.agent.file.FileBasedClusterManager;
 import com.linkedin.clustermanager.agent.zk.ZKClusterManagementTool;
 import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
+import com.linkedin.clustermanager.util.ZKClientPool;
 
 public class ClusterSetup
 {
@@ -116,9 +119,7 @@ public class ClusterSetup
 
   public ClusterManagementService getClusterManagementTool()
   {
-    ZkClient zkClient = new ZkClient(_zkServerAddress);
-    zkClient.setZkSerializer(new ZNRecordSerializer());
-
+    ZkClient zkClient = ZKClientPool.getZkClient(_zkServerAddress);
     return new ZKClusterManagementTool(zkClient);
   }
 

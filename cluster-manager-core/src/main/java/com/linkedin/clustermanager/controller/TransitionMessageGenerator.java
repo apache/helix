@@ -83,28 +83,28 @@ public class TransitionMessageGenerator
         String pendingState = _messageHolder.get(stateUnitKey, instanceName);
         if (!desiredState.equalsIgnoreCase(currentState))
         {
-          if (pendingState != null
-              && desiredState.equalsIgnoreCase(pendingState))
+
+          String nextState;
+          nextState = _stateModelDefinition.getNextStateForTransition(
+              currentState, desiredState);
+          if (nextState != null)
           {
-            logger.info("Message already exists to transition from "
-                + currentState + " to " + desiredState);
-          } else
-          {
-            String nextState;
-            nextState = _stateModelDefinition.getNextStateForTransition(
-                currentState, desiredState);
-            if (nextState != null)
+            if (pendingState != null
+                && nextState.equalsIgnoreCase(pendingState))
+            {
+              logger.info("Message already exists to transition from "
+                  + currentState + " to " + nextState);
+            } else
             {
               Message message = createMessage(idealStateRecord, stateUnitKey,
                   instanceName, currentState, nextState);
               messages.add(message);
-            } else
-            {
-              logger
-                  .warn("Unable to find a next state from stateModelDefinition"
-                      + _stateModelDefinition.getClass() + " from:"
-                      + currentState + " to:" + idealState);
             }
+          } else
+          {
+            logger.warn("Unable to find a next state from stateModelDefinition"
+                + _stateModelDefinition.getClass() + " from:" + currentState
+                + " to:" + idealState);
           }
         }
       }

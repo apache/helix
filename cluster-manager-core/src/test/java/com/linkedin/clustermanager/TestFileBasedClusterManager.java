@@ -1,7 +1,6 @@
 package com.linkedin.clustermanager;
 
-import org.testng.annotations.Test;
-import org.testng.AssertJUnit;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -28,19 +27,17 @@ public class TestFileBasedClusterManager
     { "localhost:8900", "localhost:8901", "localhost:8902", "localhost:8903",
         "localhost:8904" };
     
-    String file = "/tmp/cluster-12345.cv";
-    ClusterViewSerializer serializer = new ClusterViewSerializer(file);
-    ClusterView view = FileBasedClusterManager.generateStaticConfigClusterView(nodesInfo, dbParams, 0);
+    String file = "/tmp/clusterView.json";
+    int replica = 0;
+    // ClusterViewSerializer serializer = new ClusterViewSerializer(file);
+    ClusterView view = FileBasedClusterManager.generateStaticConfigClusterView(nodesInfo, dbParams, replica);
     view.setExternalView(new LinkedList<ZNRecord>());
-    byte[] bytes;
-    bytes = serializer.serialize(view);
-    ClusterView restoredView = (ClusterView) serializer.deserialize(bytes);
+    ClusterViewSerializer.serialize(view, new File(file));
+    ClusterView restoredView = ClusterViewSerializer.deserialize(new File(file));
     
     VerifyClusterViews(view, restoredView);
-    
-    
-
   }
+  
   public void VerifyClusterViews(ClusterView view1, ClusterView view2)
   {
     AssertJUnit.assertEquals(view1.getClusterPropertyLists().size(), view2.getClusterPropertyLists().size());

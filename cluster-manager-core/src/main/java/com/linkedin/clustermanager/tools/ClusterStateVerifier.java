@@ -1,5 +1,6 @@
 package com.linkedin.clustermanager.tools;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -18,10 +19,9 @@ import org.apache.commons.cli.ParseException;
 import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.CMConstants;
+import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.ClusterView;
 import com.linkedin.clustermanager.ZNRecord;
-import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
-import com.linkedin.clustermanager.agent.file.FileBasedClusterManager;
 import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
 import com.linkedin.clustermanager.participant.statemachine.StateModel;
 import com.linkedin.clustermanager.participant.statemachine.StateModelFactory;
@@ -98,7 +98,8 @@ public class ClusterStateVerifier
   public static boolean VerifyFileBasedClusterStates(String file,
       String instanceName, StateModelFactory stateModelFactory)
   {
-    ClusterView clusterView = FileBasedClusterManager.readClusterView(file);
+    // ClusterView clusterView = FileBasedClusterManager.readClusterView(file);
+    ClusterView clusterView = ClusterViewSerializer.deserialize(new File(file));
     boolean ret = true;
     int nonOfflineStateNr = 0;
 
@@ -121,8 +122,7 @@ public class ClusterStateVerifier
       }
     }
 
-    Map<String, StateModel> currentStateMap = stateModelFactory
-        .getStateModelMap();
+    Map<String, StateModel> currentStateMap = stateModelFactory.getStateModelMap();
 
     if (currentStateMap.size() != instanceIdealStates.size())
     {

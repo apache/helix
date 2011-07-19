@@ -147,6 +147,25 @@ cmd_direct_call={
   ,"before_cmd":"mvn jar:jar"  # build jar first
    }
 
+  ,"cluster-state-verifier":
+   {
+    "class_path":[
+      "IVY_DIR/com/github/sgroschupf/zkclient/0.1/zkclient-0.1.jar"
+      ,"IVY_DIR/com/thoughtworks/xstream/xstream/1.3.1/xstream-1.3.1.jar"
+      ,"IVY_DIR/commons-cli/commons-cli/1.2/commons-cli-1.2.jar"
+      ,"IVY_DIR/commons-io/commons-io/1.4/commons-io-1.4.jar"
+      ,"IVY_DIR/commons-lang/commons-lang/2.4/commons-lang-2.4.jar"
+      ,"IVY_DIR/jdom/jdom/1.0/jdom-1.0.jar"
+      ,"IVY_DIR/log4j/log4j/1.2.15/log4j-1.2.15.jar"
+      ,"IVY_DIR/org/apache/zookeeper/zookeeper/3.3.0/zookeeper-3.3.0.jar"
+      ,"IVY_DIR/org/codehaus/jackson/jackson-core-asl/1.4.2/jackson-core-asl-1.4.2.jar"
+      ,"IVY_DIR/org/codehaus/jackson/jackson-mapper-asl/1.4.2/jackson-mapper-asl-1.4.2.jar"
+      ,"IVY_DIR/xpp3/xpp3_min/1.1.4c/xpp3_min-1.1.4c.jar"
+      ,"VIEW_ROOT/target/cluster-manager-core-0.0.1.jar"
+]
+  ,"class_name":"com.linkedin.clustermanager.tools.ClusterStateVerifier"
+   }
+
   ,"mock-storage":
    {
     "class_path":[

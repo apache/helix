@@ -80,6 +80,7 @@ public class CMTaskHandler implements Callable<CMTaskResult>
           "Message handling task begin execute", accessor);
 
       String stateUnitKey = _message.getStateUnitKey();
+      String stateUnitGroup = _message.getStateUnitGroup();
       String instanceName = _manager.getInstanceName();
       CMTaskResult taskResult = new CMTaskResult();
       String fromState = _message.getFromState();
@@ -123,13 +124,13 @@ public class CMTaskHandler implements Callable<CMTaskResult>
       try
       {
         ZNRecord currentState = accessor.getInstanceProperty(instanceName,
-            InstancePropertyType.CURRENTSTATES, stateUnitKey);
+            InstancePropertyType.CURRENTSTATES, stateUnitGroup);
         if (currentState == null)
         {
           currentState = new ZNRecord();
         }
-        Map<String, String> map;
-        map = currentState.getMapField(stateUnitKey);
+        
+        Map<String, String> map = currentState.getMapField(stateUnitKey);
         if (map == null)
         {
           map = new HashMap<String, String>();
@@ -157,7 +158,7 @@ public class CMTaskHandler implements Callable<CMTaskResult>
         map.put(Message.Attributes.STATE_UNIT_GROUP.toString(),
             _message.getStateUnitGroup());
         accessor.setInstanceProperty(instanceName,
-            InstancePropertyType.CURRENTSTATES, stateUnitKey, currentState);
+            InstancePropertyType.CURRENTSTATES, stateUnitGroup, currentState);
         accessor.removeInstanceProperty(instanceName,
             InstancePropertyType.MESSAGES, _message.getId());
         // based on task result update the current state of the node.

@@ -50,7 +50,7 @@ public class IntegrationTest
     ClusterSetup
         .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addCluster relay-cluster-12345"));
     ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addDatabase test-cluster db-12345 120"));
+        .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addDatabase test-cluster db-12345 100"));
     ClusterSetup
         .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addNode test-cluster localhost:8900"));
     ClusterSetup
@@ -69,9 +69,10 @@ public class IntegrationTest
     startDummyProcess(createArgs("-zkSvr localhost:2181 -cluster test-cluster -host localhost -port 8903"));
     startDummyProcess(createArgs("-zkSvr localhost:2181 -cluster test-cluster -host localhost -port 8904"));
     startClusterManager(createArgs("-zkSvr localhost:2181 -cluster test-cluster"));
-    Thread.sleep(20000);
+    Thread.sleep(30000);
     AssertJUnit.assertTrue(ClusterStateVerifier
         .verifyState(createArgs("-zkSvr localhost:2181 -cluster test-cluster")));
+    //Thread.currentThread().join();
     // zkServer.shutdown();
   }
 

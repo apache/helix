@@ -57,12 +57,12 @@ public class ClusterStateVerifier
       String currentStatePath = CMUtil.getCurrentStatePath(clusterName,
           instanceName);
       List<String> partitionStatePaths = zkClient.getChildren(currentStatePath);
-      for (String partitionName : partitionStatePaths)
+      for (String stateUnitKey : partitionStatePaths)
       {
-        String partitionStatePath = currentStatePath + "/" + partitionName;
+        String partitionStatePath = currentStatePath + "/" + stateUnitKey;
         // System.out.println(partitionStatePath);
         ZNRecord nodeCurrentState = zkClient.readData(partitionStatePath);
-        currentStates.get(instanceName).put(partitionName, nodeCurrentState);
+        currentStates.get(instanceName).put(stateUnitKey, nodeCurrentState);
       }
     }
 
@@ -182,10 +182,12 @@ public class ClusterStateVerifier
 
     for (ZNRecord idealState : idealStates)
     {
+      String stateUnitGroup = idealState.getId();
+      
       Map<String, Map<String, String>> statesMap = idealState.getMapFields();
-      for (String partitionName : statesMap.keySet())
+      for (String stateUnitKey : statesMap.keySet())
       {
-        Map<String, String> partitionNodeStates = statesMap.get(partitionName);
+        Map<String, String> partitionNodeStates = statesMap.get(stateUnitKey);
         for (String nodeName : partitionNodeStates.keySet())
         {
           countInIdealStates++;
@@ -195,28 +197,28 @@ public class ClusterStateVerifier
             _logger.error("Current state does not contain " + nodeName);
             return false;
           }
-          if (!currentStates.get(nodeName).containsKey(partitionName))
+          if (!currentStates.get(nodeName).containsKey(stateUnitGroup))
           {
             _logger.error("Current state for" + nodeName + "does not contain "
-                + partitionName);
+                + stateUnitGroup);
             return false;
           }
-          if (!currentStates.get(nodeName).get(partitionName).getMapFields()
-              .containsKey(partitionName))
+          if (!currentStates.get(nodeName).get(stateUnitGroup).getMapFields()
+              .containsKey(stateUnitKey))
           {
-            _logger.error("Current state for" + nodeName + "does not contain "
-                + partitionName);
+            _logger.error("Current state for" + nodeName + "with "+stateUnitGroup+" does not contain "
+                + stateUnitKey);
             return false;
           }
 
           String partitionNodeState = currentStates.get(nodeName)
-              .get(partitionName).getMapFields().get(partitionName)
+              .get(stateUnitGroup).getMapFields().get(stateUnitKey)
               .get(CMConstants.ZNAttribute.CURRENT_STATE.toString());
 
           assert (partitionNodeState.equals(nodePartitionState));
           if (!partitionNodeState.equals(nodePartitionState))
           {
-            _logger.error("State mismatch " + partitionName + " " + nodeName
+            _logger.error("State mismatch " + stateUnitGroup + " " + stateUnitKey+" "+nodeName
                 + " " + partitionNodeState + " " + nodePartitionState);
             return false;
           }
@@ -227,8 +229,9 @@ public class ClusterStateVerifier
     for (String nodeName : currentStates.keySet())
     {
       Map<String, ZNRecord> nodeCurrentStates = currentStates.get(nodeName);
-      for (String partitionName : nodeCurrentStates.keySet())
+      for (String stateUnitGroup : nodeCurrentStates.keySet())
       {
+        for(String stateUnitKey : nodeCurrentStates.get(stateUnitGroup).getMapFields().keySet())
         countInCurrentStates++;
       }
     }

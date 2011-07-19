@@ -25,6 +25,8 @@ import com.linkedin.clustermanager.store.StringPropertySerializer;
 import com.linkedin.clustermanager.store.zk.ZKClientFactory;
 import com.linkedin.clustermanager.store.zk.ZKPropertyStore;
 
+// TODO: need to write multi-thread test cases
+// TODO: need to write performance test for zk-property store
 public class TestZKPropertyStore
 {
   private List<ZkServer> _localZkServers;

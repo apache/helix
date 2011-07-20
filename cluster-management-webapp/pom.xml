@@ -10,7 +10,7 @@
 	<groupId>com.linkedin.clustermanager.webapp</groupId>
 	<artifactId>cluster-management-webapp</artifactId>
 	<packaging>jar</packaging>
-	<version>0.0.1</version>
+	<version>0.0.2</version>
 	<name>cluster-management-webapp</name>
 	<url>http://maven.apache.org</url>
 	<repositories>

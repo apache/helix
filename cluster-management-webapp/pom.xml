@@ -63,6 +63,12 @@
 			<artifactId>commons-cli</artifactId>
 			<version>1.2</version>
 		</dependency>
+		<dependency>
+      <groupId>org.testng</groupId>
+      <artifactId>testng</artifactId>
+      <version>6.0.1</version>
+      <scope>test</scope>
+    </dependency>
 	</dependencies>
 	<build>
 		<finalName>cluster-management-webapp</finalName>

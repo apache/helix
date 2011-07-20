@@ -1,7 +1,6 @@
 package com.linkedin.clustermanager;
 
-import org.testng.annotations.Test;
-import org.testng.AssertJUnit;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -27,27 +26,25 @@ public class TestClusterviewSerializer
     // String[] nodesInfo = { "localhost:8900", "localhost:8901",
     // "localhost:8902", "localhost:8903",
     // "localhost:8904" };
-    String[] nodesInfo =
-    { "localhost:12918" };
+    String[] nodesInfo = { "localhost:12918" };
     int replication = 0;
 
-    ClusterView view = FileBasedClusterManager.generateStaticConfigClusterView(
-        nodesInfo, dbParams, replication);
+    ClusterView view = FileBasedClusterManager.generateStaticConfigClusterView(nodesInfo, dbParams, replication);
     view.setExternalView(new LinkedList<ZNRecord>());
-    String file = "/tmp/cluster-view.json";
-    ClusterViewSerializer serializer = new ClusterViewSerializer(file);
+    String file = "/tmp/clusterView.json";
+    // ClusterViewSerializer serializer = new ClusterViewSerializer(file);
 
-    byte[] bytes;
-    bytes = serializer.serialize(view);
-    String str1 = new String(bytes);
-    ClusterView restoredView = (ClusterView) serializer.deserialize(bytes);
+    // byte[] bytes;
+    ClusterViewSerializer.serialize(view, new File(file));
+    // String str1 = new String(bytes);
+    ClusterView restoredView = ClusterViewSerializer.deserialize(new File(file));
     // logger.info(restoredView);
 
-    byte[] bytes2 = serializer.serialize(restoredView);
+    // byte[] bytes2 = serializer.serialize(restoredView);
     
     VerifyClusterViews(view, restoredView);
-
   }
+  
   public void VerifyClusterViews(ClusterView view1, ClusterView view2)
   {
     AssertJUnit.assertEquals(view1.getClusterPropertyLists().size(), view2.getClusterPropertyLists().size());

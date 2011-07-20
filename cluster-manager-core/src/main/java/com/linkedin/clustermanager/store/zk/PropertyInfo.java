@@ -2,13 +2,13 @@ package com.linkedin.clustermanager.store.zk;
 
 import org.apache.zookeeper.data.Stat;
 
-public class PropertyInfo
+public class PropertyInfo<T>
 {
-  public Object _value;
+  public T _value;
   public Stat _stat;
   public int _version;
   
-  public PropertyInfo(Object value, Stat stat, int version)
+  public PropertyInfo(T value, Stat stat, int version)
   {
     _value = value;
     _stat = stat;

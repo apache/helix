@@ -50,7 +50,7 @@ public interface PropertyStore<T>
    * @throws PropertyStoreException
    */
   // List<T> getProperty(String key, List<PropertyStat> propertyStatList) throws PropertyStoreException;
-  T getProperty(String key, PropertyStat propertyStatList) throws PropertyStoreException;
+  T getProperty(String key, PropertyStat propertyStat) throws PropertyStoreException;
 
   /**
    * removes the property
@@ -111,7 +111,7 @@ public interface PropertyStore<T>
    * 
    * @param serializer
    */
-  void setPropertySerializer(PropertySerializer serializer);
+  void setPropertySerializer(PropertySerializer<T> serializer);
 
   /**
    * create a sub namespace in the property store
@@ -141,7 +141,7 @@ public interface PropertyStore<T>
    * @param key
    * @param updater
    */
-  public boolean updateProperty(String key, DataUpdater<T> updater);
+  // public boolean updateProperty(String key, DataUpdater<T> updater);
   
   /**
    * compare and set property return true if succeed, false otherwise
@@ -150,7 +150,9 @@ public interface PropertyStore<T>
    * @param expected value
    * @param updated value
    * @param comparator
+   * @param create if absent
    */
   public boolean compareAndSet(String key, T expected, T update, Comparator<T> comparator);
+  public boolean compareAndSet(String key, T expected, T update, Comparator<T> comparator, boolean createIfAbsent);
 
 }

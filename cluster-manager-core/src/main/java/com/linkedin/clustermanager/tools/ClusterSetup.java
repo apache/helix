@@ -1,9 +1,8 @@
 package com.linkedin.clustermanager.tools;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.I0Itec.zkclient.ZkClient;
 import org.apache.commons.cli.CommandLine;
@@ -20,14 +19,13 @@ import org.apache.log4j.Logger;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 
+import com.linkedin.clustermanager.ClusterDataAccessor.InstanceConfigProperty;
 import com.linkedin.clustermanager.ClusterManagementService;
 import com.linkedin.clustermanager.ClusterManagerException;
 import com.linkedin.clustermanager.ClusterView;
 import com.linkedin.clustermanager.ZNRecord;
-import com.linkedin.clustermanager.ClusterDataAccessor.InstanceConfigProperty;
 import com.linkedin.clustermanager.agent.file.FileBasedClusterManager;
 import com.linkedin.clustermanager.agent.zk.ZKClusterManagementTool;
-import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
 import com.linkedin.clustermanager.util.ZKClientPool;
 
 public class ClusterSetup
@@ -315,21 +313,20 @@ public class ClusterSetup
       dbParams.add(new FileBasedClusterManager.DBParam("MailboxDB", 128));
       dbParams.add(new FileBasedClusterManager.DBParam("MyDB", 8));
       dbParams.add(new FileBasedClusterManager.DBParam("schemata", 1));
-      String[] nodesInfo =
-      { "localhost:8900" };
+      String[] nodesInfo = { "localhost:8900" };
 
-      ClusterViewSerializer serializer = new ClusterViewSerializer(file);
-      ClusterView view = FileBasedClusterManager
-          .generateStaticConfigClusterView(nodesInfo, dbParams, 0);
+      // ClusterViewSerializer serializer = new ClusterViewSerializer(file);
+      int replica = 0;
+      ClusterView view = FileBasedClusterManager.generateStaticConfigClusterView(nodesInfo, dbParams, replica);
 
-      byte[] bytes;
-      bytes = serializer.serialize(view);
+      // byte[] bytes;
+      ClusterViewSerializer.serialize(view, new File(file));
       // System.out.println(new String(bytes));
 
-      ClusterView restoredView = (ClusterView) serializer.deserialize(bytes);
+      ClusterView restoredView = ClusterViewSerializer.deserialize(new File(file));
       // System.out.println(restoredView);
 
-      bytes = serializer.serialize(restoredView);
+      byte[] bytes = ClusterViewSerializer.serialize(restoredView);
       // System.out.println(new String(bytes));
 
       return 0;

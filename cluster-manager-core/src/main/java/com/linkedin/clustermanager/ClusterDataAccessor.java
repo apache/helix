@@ -4,6 +4,8 @@ import java.util.List;
 
 import org.apache.zookeeper.CreateMode;
 
+import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
+
 public interface ClusterDataAccessor
 {
   public enum ClusterPropertyType
@@ -30,9 +32,6 @@ public interface ClusterDataAccessor
 
   void setClusterProperty(ClusterPropertyType clusterProperty, String key,
       ZNRecord value);
-
-  void setEphemeralClusterProperty(ClusterPropertyType clusterProperty,
-      String key, ZNRecord value);
 
   void updateClusterProperty(ClusterPropertyType clusterProperty, String key,
       ZNRecord value);
@@ -66,5 +65,8 @@ public interface ClusterDataAccessor
       InstancePropertyType instanceProperty, String key, ZNRecord value);
 
   ClusterView getClusterView();
+
+  void setClusterProperty(ClusterPropertyType clusterProperty, String key,
+      ZNRecord value, CreateMode mode);
 
 }

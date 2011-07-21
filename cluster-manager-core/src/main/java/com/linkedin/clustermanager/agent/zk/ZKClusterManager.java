@@ -8,6 +8,7 @@ import org.I0Itec.zkclient.IZkStateListener;
 import org.I0Itec.zkclient.ZkClient;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.log4j.Logger;
+import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
 
@@ -219,8 +220,8 @@ public class ZKClusterManager implements ClusterManager
     metaData.setId(_instanceName);
     metaData.setSimpleField(CMConstants.ZNAttribute.SESSION_ID.toString(),
         _sessionId);
-    _accessor.setEphemeralClusterProperty(ClusterPropertyType.LIVEINSTANCES,
-        _instanceName, metaData);
+    _accessor.setClusterProperty(ClusterPropertyType.LIVEINSTANCES,
+        _instanceName, metaData, CreateMode.EPHEMERAL);
   }
 
   private ZkClient createClient(String zkServers, int sessionTimeout)

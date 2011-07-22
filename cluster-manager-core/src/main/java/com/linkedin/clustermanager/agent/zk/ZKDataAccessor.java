@@ -16,26 +16,6 @@ import com.linkedin.clustermanager.util.CMUtil;
 
 public class ZKDataAccessor implements ClusterDataAccessor
 {
-  class ZKPropertyCreateModeCalculator implements
-      ClusterDataAccessor.PropertyCreateModeCalculator
-  {
-
-    @Override
-    public CreateMode getClusterPropertyCreateMode()
-    {
-      // TODO Auto-generated method stub
-      return null;
-    }
-
-    @Override
-    public CreateMode getInstancePropertyCreateMode()
-    {
-      // TODO Auto-generated method stub
-      return null;
-    }
-
-  }
-
   private static Logger logger = Logger.getLogger(ZKDataAccessor.class);
   private final String _clusterName;
   /**
@@ -53,7 +33,7 @@ public class ZKDataAccessor implements ClusterDataAccessor
 
   @Override
   public void setClusterProperty(ClusterPropertyType clusterProperty,
-      String key, ZNRecord value)
+      String key, final ZNRecord value)
   {
     String zkPropertyPath = CMUtil.getClusterPropertyPath(_clusterName,
         clusterProperty);
@@ -61,24 +41,46 @@ public class ZKDataAccessor implements ClusterDataAccessor
 
     if (_zkClient.exists(targetValuePath))
     {
-      _zkClient.deleteRecursive(targetValuePath);
+      DataUpdater<ZNRecord> updater = new DataUpdater<ZNRecord>()
+      {
+        @Override
+        public ZNRecord update(ZNRecord currentData)
+        {
+          return value;
+        }
+      };
+      _zkClient.updateDataSerialized(targetValuePath, updater);
     }
-    ZKUtil.createChildren(_zkClient, zkPropertyPath, value);
+    else
+    {
+      ZKUtil.createChildren(_zkClient, zkPropertyPath, value);
+    }
   }
 
   @Override
   public void updateClusterProperty(ClusterPropertyType clusterProperty,
-      String key, ZNRecord value)
+      String key, final ZNRecord value)
   {
     String clusterPropertyPath = CMUtil.getClusterPropertyPath(_clusterName,
         clusterProperty);
     String targetValuePath = clusterPropertyPath + "/" + key;
-
+    // Now the logic is same as setClusterProperty
     if (_zkClient.exists(targetValuePath))
     {
-      _zkClient.deleteRecursive(targetValuePath);
+      DataUpdater<ZNRecord> updater = new DataUpdater<ZNRecord>()
+      {
+        @Override
+        public ZNRecord update(ZNRecord currentData)
+        {
+          return value;
+        }
+      };
+      _zkClient.updateDataSerialized(targetValuePath, updater);
     }
-    ZKUtil.createChildren(_zkClient, clusterPropertyPath, value);
+    else
+    {
+      ZKUtil.createChildren(_zkClient, clusterPropertyPath, value);
+    }
   }
 
   @Override
@@ -130,18 +132,17 @@ public class ZKDataAccessor implements ClusterDataAccessor
         @Override
         public ZNRecord update(ZNRecord currentData)
         {
-          // currentData.merge(stateInfo);
           return value;
         }
       };
       _zkClient.updateDataSerialized(propertyPath, updater);
-    } else
+    } 
+    else
     {
       // TODO add retry mechanism since the node might be created by
       // another thread.
       // This can happen when we add merging multiple children into one.
       _zkClient.createEphemeral(propertyPath, value);
-
     }
 
   }
@@ -209,8 +210,8 @@ public class ZKDataAccessor implements ClusterDataAccessor
   }
 
   @Override
-  public void setEphemeralClusterProperty(ClusterPropertyType clusterProperty,
-      String key, ZNRecord value)
+  public void setClusterProperty(ClusterPropertyType clusterProperty,
+      String key, final ZNRecord value, CreateMode mode)
   {
     String zkPropertyPath = CMUtil.getClusterPropertyPath(_clusterName,
         clusterProperty);
@@ -218,10 +219,20 @@ public class ZKDataAccessor implements ClusterDataAccessor
 
     if (_zkClient.exists(targetValuePath))
     {
-      _zkClient.deleteRecursive(targetValuePath);
+      DataUpdater<ZNRecord> updater = new DataUpdater<ZNRecord>()
+      {
+        @Override
+        public ZNRecord update(ZNRecord currentData)
+        {
+          return value;
+        }
+      };
+      _zkClient.updateDataSerialized(targetValuePath, updater);
     }
-    _zkClient.createEphemeral(targetValuePath, value);
-
+    else
+    {
+      _zkClient.create(targetValuePath, value, mode);
+    }
   }
 
   @Override

@@ -221,7 +221,6 @@ public class TestClusterManagementWebapp
     
     Reference resourceRef = new Reference(httpUrlBase);
     
-    //resourceRef.addQueryParameter(ClusterRepresentationUtil._jsonParameters, ClusterRepresentationUtil.ObjectToJson(paraMap));
     Request request = new Request(Method.POST, resourceRef);
     
     request.setEntity(ClusterRepresentationUtil._jsonParameters+"="+ClusterRepresentationUtil.ObjectToJson(paraMap), MediaType.APPLICATION_ALL);
@@ -241,7 +240,6 @@ public class TestClusterManagementWebapp
     
     httpUrlBase = "http://localhost:"+_port+"/clusters/"+clusterName+"/hostedEntities/"+entityName; resourceRef = new Reference(httpUrlBase);
     
-    //resourceRef.addQueryParameter(ClusterRepresentationUtil._jsonParameters, ClusterRepresentationUtil.ObjectToJson(paraMap));
     request = new Request(Method.GET, resourceRef);
     
     client = new Client(Protocol.HTTP);
@@ -265,7 +263,6 @@ public class TestClusterManagementWebapp
     
     Reference resourceRef = new Reference(httpUrlBase);
     
-    //resourceRef.addQueryParameter(ClusterRepresentationUtil._jsonParameters, ClusterRepresentationUtil.ObjectToJson(paraMap));
     Request request = new Request(Method.POST, resourceRef);
     
     request.setEntity(ClusterRepresentationUtil._jsonParameters+"="+ClusterRepresentationUtil.ObjectToJson(paraMap), MediaType.APPLICATION_ALL);
@@ -353,7 +350,6 @@ public class TestClusterManagementWebapp
    
     Reference resourceRef = new Reference(httpUrlBase);
     
-    //resourceRef.addQueryParameter(ClusterRepresentationUtil._jsonParameters, ClusterRepresentationUtil.ObjectToJson(paraMap));
     Request request = new Request(Method.POST, resourceRef);
     
     request.setEntity(ClusterRepresentationUtil._jsonParameters+"="+ClusterRepresentationUtil.ObjectToJson(paraMap), MediaType.APPLICATION_ALL);
@@ -403,7 +399,6 @@ public class TestClusterManagementWebapp
    
     Reference resourceRef = new Reference(httpUrlBase);
     
-    //resourceRef.addQueryParameter(ClusterRepresentationUtil._jsonParameters, ClusterRepresentationUtil.ObjectToJson(paraMap));
     Request request = new Request(Method.POST, resourceRef);
     
     request.setEntity(ClusterRepresentationUtil._jsonParameters+"="+ClusterRepresentationUtil.ObjectToJson(paraMap), MediaType.APPLICATION_ALL);

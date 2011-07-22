@@ -65,7 +65,8 @@ public class StatusUpdateUtil
     String id = String.format("%4s %26s ", level.toString(), time)
         + message.getStateUnitKey() + " Trans:"
         + message.getFromState().charAt(0) + "->"
-        + message.getToState().charAt(0) + " ";
+        + message.getToState().charAt(0) + "  "
+        + message.getMsgId();
     result.setId(id);
 
     result.setSimpleField("AdditionalInfo", additionalInfo);

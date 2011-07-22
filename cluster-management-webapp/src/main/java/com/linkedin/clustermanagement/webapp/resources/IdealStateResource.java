@@ -31,6 +31,7 @@ import com.linkedin.clustermanager.tools.ClusterSetup;
 
 public class IdealStateResource extends Resource
 {
+  public static final String _replicas = "replicas"; 
   public IdealStateResource(Context context,
       Request request,
       Response response) 
@@ -118,7 +119,7 @@ public class IdealStateResource extends Resource
       }
       else if(paraMap.get(ClusterRepresentationUtil._managementCommand).equalsIgnoreCase(ClusterRepresentationUtil._rebalanceCommand))
       {
-        int replicas = Integer.parseInt(paraMap.get("replicas"));
+        int replicas = Integer.parseInt(paraMap.get(_replicas));
         ClusterSetup setupTool = new ClusterSetup(zkServer);
         setupTool.rebalanceStorageCluster(clusterName, entityId, replicas);
       }

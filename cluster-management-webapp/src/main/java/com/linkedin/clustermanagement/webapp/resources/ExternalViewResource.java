@@ -77,9 +77,7 @@ public class ExternalViewResource extends Resource
   
   StringRepresentation getExternalViewRepresentation(String zkServerAddress, String clusterName, String entityId) throws JsonGenerationException, JsonMappingException, IOException
   {
-    String message = "External view for entity " + entityId + " in cluster "+ clusterName + "\n";
-    
-    message += ClusterRepresentationUtil.getClusterPropertyAsString(zkServerAddress, clusterName, ClusterPropertyType.EXTERNALVIEW, entityId, MediaType.APPLICATION_JSON);
+    String message = ClusterRepresentationUtil.getClusterPropertyAsString(zkServerAddress, clusterName, ClusterPropertyType.EXTERNALVIEW, entityId, MediaType.APPLICATION_JSON);
     StringRepresentation representation = new StringRepresentation(message, MediaType.APPLICATION_JSON);
     
     return representation;

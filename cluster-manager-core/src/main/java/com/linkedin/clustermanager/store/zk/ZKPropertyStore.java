@@ -37,11 +37,7 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
   private Map<String, Map< PropertyChangeListener<T>, ZKPropertyListenerTuple> > 
         _listenerMap = new ConcurrentHashMap<String, Map<PropertyChangeListener<T>, ZKPropertyListenerTuple>>();
   
-  private Map<String, PropertyInfo> _propertyCacheMap = new ConcurrentHashMap< String, PropertyInfo>();
-
-  // statistics numbers
-  // private long _nrReads = 0;
-  // private long _nrHits = 0;
+  private Map<String, PropertyInfo<T> > _propertyCacheMap = new ConcurrentHashMap< String, PropertyInfo<T> >();
 
   private class PathnDepth
   {
@@ -54,6 +50,7 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
       _depth = depth;
     }
   }
+  
   
   // 1-1 mapping from a PropertyChangeListener<T> to a tuple of { IZkxxx listeners }
   private class ZKPropertyListenerTuple
@@ -68,12 +65,12 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
 
         @Override
         public void handleDataChange(String dataPath, Object data)
-            throws Exception
+        throws Exception
         {
           System.out.println(dataPath + ": data changed to " + data);
           
-          // need to change local {data, stat} cache to keep consistency
-          readData(dataPath, null);
+          // update local {data, stat} cache to keep consistency
+          updatePropertyCache(dataPath);
           
           listener.onPropertyChange(getRelativePath(dataPath));
         }
@@ -85,9 +82,24 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
 
           unsubscribeForPropertyChange(getRelativePath(dataPath), listener);
           
-          // need to remove from local {data, stat} cache
-          _propertyCacheMap.remove(dataPath);
-          _listenerMap.remove(dataPath);
+          // remove from local {data, stat} cache
+          // synchronize is necessary, race condition:
+          //  1) thread-1 reads from ZK and not yet put the value to map
+          //  2) thread-2 deletes it from ZK and remove it from map
+          //  3) thread-1 put the value to map
+          synchronized(_propertyCacheMap)
+          {
+            _propertyCacheMap.remove(dataPath);
+          }
+          
+          // synchronize is necessary, race condition:
+          // 1) thread-1 subscribes dataPath and not yet put the listener to map
+          // 2) thread-2 deletes dataPath
+          // 3) thread-1 put listener to map
+          synchronized(_listenerMap)
+          {
+            _listenerMap.remove(dataPath);
+          }
         }
 
       };
@@ -118,7 +130,7 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
           // refresh cache
           for (String node : leaf)
           {
-            readData(node, null);
+            updatePropertyCache(node);
             listener.onPropertyChange(getRelativePath(node));
           }
           
@@ -150,19 +162,6 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
     _rootPath = "/" + rootPath;
   }
 
-  /**
-  public double getHitRatio()
-  {
-    // System.out.println("Reads(" + _nrReads + ")/Hits(" + _nrHits + ")");
-    _logger.info("Reads(" + _nrReads + ") / Hits(" + _nrHits + ")");
-    
-    if (_nrReads == 0)
-      return 0.0;
-    
-    return (double) _nrHits / _nrReads;
-  }
-  **/
-  
   private String getPath(String key)
   {
     // Strip off leading slash
@@ -193,6 +192,32 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
     return path;
   }
 
+  private void updatePropertyCache(String path) throws PropertyStoreException
+  {
+    try
+    {
+      synchronized(_propertyCacheMap)
+      {
+     
+        Stat stat = new Stat();
+        T value = _zkClient.<T>readData(path, stat);
+        
+        // cache it
+        _propertyCacheMap.put(path, new PropertyInfo<T>(value, stat, stat.getVersion()));
+      }
+    } 
+    catch (ZkNoNodeException e)
+    {
+      // This is OK
+    }
+    catch (Exception e) 
+    {
+      // System.err.println(e.getMessage());
+      // _logger.warn(e.getMessage());
+      throw (new PropertyStoreException(e.getMessage()));
+    }
+  }
+  
   // Breath First Search with a given depth
   // nonleaf nodes' paths go to nonleaf
   // leaf nodes' paths go to leaf
@@ -248,22 +273,6 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
   {
     String path = getPath(prefix);
 
-    // create recursively all non-exist nodes
-    /*
-    String parent = path;
-    LinkedList<String> pathsToCreate = new LinkedList<String>();
-    while (parent.length() > 0 && !_zkClient.exists(parent))
-    {
-      pathsToCreate.push(parent);
-      parent = parent.substring(0, parent.lastIndexOf('/'));
-    }
-
-    while (pathsToCreate.size() > 0)
-    {
-      String node = pathsToCreate.pop();
-      _zkClient.createPersistent(node);
-    }
-    */
     _zkClient.createPersistent(path, true);
     
   }
@@ -275,7 +284,7 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
     String path = getPath(key);
     _zkClient.createPersistent(path, true);
     
-    // if (value != null)
+    // it depends on the serializer to handle value == null
     _zkClient.writeData(path, value);
     
     // setProperty() triggers either child/data listener
@@ -289,23 +298,20 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
   }
   
 
-  @SuppressWarnings("unchecked")
   @Override
   public T getProperty(String key, PropertyStat propertyStat) throws PropertyStoreException
   {
     String path = getPath(key);
-    // _nrReads++;
 
     T value = null;
 
     try
     {
-      PropertyInfo propertyInfo = _propertyCacheMap.get(path);
-
-      if (propertyInfo != null)
+      if (_propertyCacheMap.containsKey(path))
       {
-        // _nrHits++;
-        value = (T) propertyInfo._value;
+        PropertyInfo<T> propertyInfo = _propertyCacheMap.get(path);
+
+        value = propertyInfo._value;
         
         if (propertyStat != null)
         {
@@ -331,22 +337,27 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
   // read data without going to cache
   private T readData(String path, PropertyStat propertyStat) throws PropertyStoreException
   {
-    T value = null;
-    Stat stat = new Stat();
-    
     try
     {
-      value = _zkClient.<T>readData(path, stat);
-      
-      if (propertyStat != null)
+      synchronized(_propertyCacheMap)
       {
-        propertyStat.setLastModifiedTime(stat.getMtime());
-        propertyStat.setVersion(stat.getVersion());
+        if (!_propertyCacheMap.containsKey(path))
+        {
+          Stat stat = new Stat();
+          T value = _zkClient.<T>readData(path, stat);
+  
+          
+          if (propertyStat != null)
+          {
+            propertyStat.setLastModifiedTime(stat.getMtime());
+            propertyStat.setVersion(stat.getVersion());
+          }
+          
+          // cache it
+          _propertyCacheMap.put(path, new PropertyInfo<T>(value, stat, stat.getVersion()));
+        }
+        return _propertyCacheMap.get(path)._value;
       }
-      
-      // cache it
-      _propertyCacheMap.put(path, new PropertyInfo(value, stat, stat.getVersion()));
-      return value;
     } 
     catch (ZkNoNodeException e)
     {
@@ -438,13 +449,14 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
       final PropertyChangeListener<T> listener) throws PropertyStoreException
   {
     String path = getPath(prefix);
-    if (!_zkClient.exists(path))
-      return;
 
-    Map<PropertyChangeListener<T>, ZKPropertyListenerTuple> listenerMapForPath = null;
+    // Map<PropertyChangeListener<T>, ZKPropertyListenerTuple> listenerMapForPath = null;
     synchronized (_listenerMap)
     {
-      listenerMapForPath = _listenerMap.get(path);
+      if (!_zkClient.exists(path))
+        return;
+      
+      Map<PropertyChangeListener<T>, ZKPropertyListenerTuple> listenerMapForPath = _listenerMap.get(path);
       if (listenerMapForPath == null)
       {
         listenerMapForPath = new ConcurrentHashMap<PropertyChangeListener<T>, ZKPropertyListenerTuple>();
@@ -480,8 +492,6 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
   {
 
     String path = getPath(prefix);
-    // if (!_zkClient.exists(path))
-    // return;
 
     synchronized (_listenerMap)
     {

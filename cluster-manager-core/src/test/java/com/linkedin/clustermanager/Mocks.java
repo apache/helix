@@ -3,6 +3,8 @@ package com.linkedin.clustermanager;
 import java.util.List;
 import java.util.concurrent.Future;
 
+import org.apache.zookeeper.CreateMode;
+
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.participant.statemachine.CMTaskExecutor;
 import com.linkedin.clustermanager.participant.statemachine.CMTaskResult;
@@ -267,19 +269,19 @@ public class Mocks
     }
 
     @Override
-    public void setEphemeralClusterProperty(
-        ClusterPropertyType clusterProperty, String key, ZNRecord value)
+    public void removeClusterProperty(ClusterPropertyType clusterProperty,
+        String key)
     {
       // TODO Auto-generated method stub
 
     }
 
     @Override
-    public void removeClusterProperty(ClusterPropertyType clusterProperty,
-        String key)
+    public void setClusterProperty(ClusterPropertyType clusterProperty,
+        String key, ZNRecord value, CreateMode mode)
     {
       // TODO Auto-generated method stub
-
+      
     }
 
   }

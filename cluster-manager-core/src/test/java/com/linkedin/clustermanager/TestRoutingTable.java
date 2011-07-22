@@ -1,11 +1,17 @@
 package com.linkedin.clustermanager;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -132,8 +138,71 @@ public class TestRoutingTable
     Assert.assertEquals(instancesArray[0].getPort(), "8900");
     Assert.assertEquals(instancesArray[1].getHostName(), "localhost");
     Assert.assertEquals(instancesArray[1].getPort(), "8901");
-    
 
+  }
+
+  @Test
+  public void testMultiThread() throws Exception
+  {
+    final RoutingTableProvider routingTable = new RoutingTableProvider();
+    List<ZNRecord> externalViewList = new ArrayList<ZNRecord>();
+    ZNRecord record = new ZNRecord();
+    externalViewList.add(record);
+    record.setId("TESTDB");
+    for (int i = 0; i < 1000; i++)
+    {
+      add(record, "TESTDB_" + i, "localhost_8900", "MASTER");
+    }
+    NotificationContext changeContext = null;
+    routingTable.onExternalViewChange(externalViewList, changeContext);
+    Callable<Boolean> runnable = new Callable<Boolean>()
+    {
+      @Override
+      public Boolean call() throws Exception
+      {
+        
+        try
+        {
+          int count = 0;
+          while (count <100)
+          {
+            List<InstanceConfig> instancesList = routingTable.getInstances(
+                "TESTDB", "TESTDB_0", "MASTER");
+            Assert.assertEquals(instancesList.size(), 1);
+            // System.out.println(System.currentTimeMillis() + "-->"
+            // + instancesList.size());
+
+            Thread.sleep(5);
+
+            count++;
+          }
+        } catch (InterruptedException e)
+        {
+          // e.printStackTrace();
+        }
+        return true;
+      }
+    };
+    ScheduledExecutorService executor = Executors
+        .newSingleThreadScheduledExecutor();
+    Future<Boolean> submit = executor.submit(runnable);
+    int count = 0;
+    while (count < 10)
+    {
+      try
+      {
+        Thread.sleep(10);
+      } catch (InterruptedException e)
+      {
+        e.printStackTrace();
+      }
+      routingTable.onExternalViewChange(externalViewList, changeContext);
+      count++;
+    }
+    
+    Boolean result = submit.get(60, TimeUnit.SECONDS);
+    Assert.assertEquals(result, Boolean.TRUE);
+    
   }
 
   private void add(ZNRecord record, String stateUnitKey, String instanceName,

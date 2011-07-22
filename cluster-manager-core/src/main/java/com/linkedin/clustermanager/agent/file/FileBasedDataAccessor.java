@@ -2,6 +2,8 @@ package com.linkedin.clustermanager.agent.file;
 
 import java.util.List;
 
+import org.apache.zookeeper.CreateMode;
+
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterView;
 import com.linkedin.clustermanager.ZNRecord;
@@ -113,19 +115,19 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
   }
 
   @Override
-  public void setEphemeralClusterProperty(ClusterPropertyType clusterProperty,
-      String key, ZNRecord value)
+  public void removeClusterProperty(ClusterPropertyType clusterProperty,
+      String key)
   {
     // TODO Auto-generated method stub
 
   }
 
   @Override
-  public void removeClusterProperty(ClusterPropertyType clusterProperty,
-      String key)
+  public void setClusterProperty(ClusterPropertyType clusterProperty,
+      String key, ZNRecord value, CreateMode mode)
   {
     // TODO Auto-generated method stub
-
+    
   }
 
 }

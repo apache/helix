@@ -449,7 +449,7 @@ public class FileBasedClusterManager implements ClusterManager
     {
       // ClusterViewSerializer serializer = new ClusterViewSerializer(outFile);
       // serializer.serialize(curView);
-      ClusterViewSerializer.serialize(curView);
+      ClusterViewSerializer.serialize(curView, new File(outFile));
     }
     
     return curView;

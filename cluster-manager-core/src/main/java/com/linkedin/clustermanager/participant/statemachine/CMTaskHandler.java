@@ -150,7 +150,7 @@ public class CMTaskHandler implements Callable<CMTaskResult>
         } else
         {
           StateTransitionError error = new StateTransitionError(
-              StateTransitionError.ErrorCode.FRAMEWORK, exception);
+              StateTransitionError.ErrorCode.INTERNAL, exception);
           _stateModel.rollbackOnError(_message, _notificationContext, error);
           map.put(ZNAttribute.CURRENT_STATE.toString(), "ERROR");
           _stateModel.updateState("ERROR");

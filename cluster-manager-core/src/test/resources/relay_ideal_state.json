@@ -1,0 +1,178 @@
+{
+"id" : "SdrRelay",
+  "simpleFields" : {
+     "partitions" : "28"
+  },
+  "mapFields" : {
+    "ela4-db-sdr.prod.linkedin.com:1521/sdr1/sdr_people_search_/p1_6/MASTER" : {
+      "rly09" : "ONLINE",
+      "rly10" : "ONLINE",
+      "rly11" : "ONLINE",
+      "rly12" : "ONLINE",
+    },
+    "ela4-db-sdr.prod.linkedin.com:1521/sdr1/sdr_people_search_/p2_6/MASTER" : {
+      "rly09" : "ONLINE",
+      "rly10" : "ONLINE",
+      "rly11" : "ONLINE",
+      "rly12" : "ONLINE",,
+    },
+    "ela4-db-sdr.prod.linkedin.com:1521/sdr1/sdr_people_search_/p3_6/MASTER" : {
+      "rly09" : "ONLINE",
+      "rly10" : "ONLINE",
+      "rly11" : "ONLINE",
+      "rly12" : "ONLINE",
+    },
+    "ela4-db-sdr.prod.linkedin.com:1521/sdr1/sdr_people_search_/p4_6/MASTER" : {
+      "rly09" : "ONLINE",
+      "rly10" : "ONLINE",
+      "rly11" : "ONLINE",
+      "rly12" : "ONLINE",
+    },
+    "ela4-db-sdr.prod.linkedin.com:1521/sdr1/sdr_people_search_/p5_6/MASTER" : {
+      "rly09" : "ONLINE",
+      "rly10" : "ONLINE",
+      "rly11" : "ONLINE",
+      "rly12" : "ONLINE",
+    },
+    "ela4-db-sdr.prod.linkedin.com:1521/sdr1/sdr_people_search_/p6_6/MASTER" : {
+      "rly09" : "ONLINE",
+      "rly10" : "ONLINE",
+      "rly11" : "ONLINE",
+      "rly12" : "ONLINE",
+    },
+    "ela4-db-sdr.prod.linkedin.com:1521/sdr1/sdr_people_search_/p7_6/MASTER" : {
+      "rly09" : "ONLINE",
+      "rly10" : "ONLINE",
+      "rly11" : "ONLINE",
+      "rly12" : "ONLINE",
+    },
+    "ela4-db-sdr.prod.linkedin.com:1521/sdr1/sdr_people_search_/p8_6/MASTER" : {
+      "rly05" : "ONLINE",
+      "rly06" : "ONLINE",
+      "rly07" : "ONLINE",
+      "rly08" : "ONLINE",
+    },
+    "ela4-db-sdr.prod.linkedin.com:1521/sdr1/sdr_people_search_/p9_6/MASTER" : {
+      "rly05" : "ONLINE",
+      "rly06" : "ONLINE",
+      "rly07" : "ONLINE",
+      "rly08" : "ONLINE",
+    },
+    "ela4-db-sdr.prod.linkedin.com:1521/sdr1/sdr_people_search_/p10_6/MASTER" : {
+      "rly05" : "ONLINE",
+      "rly06" : "ONLINE",
+      "rly07" : "ONLINE",
+      "rly08" : "ONLINE",
+    },
+    "ela4-db-sdr.prod.linkedin.com:1521/sdr1/sdr_people_search_/p11_6/MASTER" : {
+      "rly05" : "ONLINE",
+      "rly06" : "ONLINE",
+      "rly07" : "ONLINE",
+      "rly08" : "ONLINE",
+    },
+    "ela4-db-sdr.prod.linkedin.com:1521/sdr1/sdr_people_search_/p12_6/MASTER" : {
+      "rly05" : "ONLINE",
+      "rly06" : "ONLINE",
+      "rly07" : "ONLINE",
+      "rly08" : "ONLINE",
+    },
+    "ela4-db-sdr.prod.linkedin.com:1521/sdr1/sdr_people_search_/p13_6/MASTER" : {
+      "rly05" : "ONLINE",
+      "rly06" : "ONLINE",
+      "rly07" : "ONLINE",
+      "rly08" : "ONLINE",
+    },
+    "ela4-db-sdr.prod.linkedin.com:1521/sdr1/sdr_people_search_/p14_6/MASTER" : {
+      "rly05" : "ONLINE",
+      "rly06" : "ONLINE",
+      "rly07" : "ONLINE",
+      "rly08" : "ONLINE",
+    },
+    "ela4-db-sdr.prod.linkedin.com:1521/sdr1/sdr_people_search_/p15_6/MASTER" : {
+      "rly05" : "ONLINE",
+      "rly06" : "ONLINE",
+      "rly07" : "ONLINE",
+      "rly08" : "ONLINE",
+    },
+    "ela4-db-sdr.prod.linkedin.com:1521/sdr1/sdr_people_search_/p16_6/MASTER" : {
+      "rly05" : "ONLINE",
+      "rly06" : "ONLINE",
+      "rly07" : "ONLINE",
+      "rly08" : "ONLINE",
+    },
+    "ela4-db-sdr.prod.linkedin.com:1521/sdr1/sdr_people_search_/p17_6/MASTER" : {
+      "rly05" : "ONLINE",
+      "rly06" : "ONLINE",
+      "rly07" : "ONLINE",
+      "rly08" : "ONLINE",
+    },
+    "ela4-db-sdr.prod.linkedin.com:1521/sdr1/sdr_people_search_/p18_6/MASTER" : {
+      "rly05" : "ONLINE",
+      "rly06" : "ONLINE",
+      "rly07" : "ONLINE",
+      "rly08" : "ONLINE",
+    },
+    "ela4-db-sdr.prod.linkedin.com:1521/sdr1/sdr_people_search_/p19_6/MASTER" : {
+      "rly05" : "ONLINE",
+      "rly06" : "ONLINE",
+      "rly07" : "ONLINE",
+      "rly08" : "ONLINE",
+    },
+    "ela4-db-sdr.prod.linkedin.com:1521/sdr1/sdr_people_search_/p20_6/MASTER" : {
+      "rly05" : "ONLINE",
+      "rly06" : "ONLINE",
+      "rly07" : "ONLINE",
+      "rly08" : "ONLINE",
+    },
+    "ela4-db-sdr.prod.linkedin.com:1521/sdr1/sdr_people_search_/p21_6/MASTER" : {
+      "rly05" : "ONLINE",
+      "rly06" : "ONLINE",
+      "rly07" : "ONLINE",
+      "rly08" : "ONLINE",
+    },
+    "ela4-db-sdr.prod.linkedin.com:1521/sdr1/sdr_people_search_/p22_6/MASTER" : {
+      "rly05" : "ONLINE",
+      "rly06" : "ONLINE",
+      "rly07" : "ONLINE",
+      "rly08" : "ONLINE",
+    },
+    "ela4-db40.prod.linkedin.com:1521/sdr1/sdr_people_search_/p23_6/MASTER" : {
+      "rly01" : "ONLINE",
+      "ela4-rly02.prod.linkedin.com_10015" : "ONLINE",
+      "rly03" : "ONLINE",
+      "rly04" : "ONLINE",
+    },
+    "ela4-db40.prod.linkedin.com:1521/sdr1/sdr_people_search_/p24_6/MASTER" : {
+      "rly01" : "ONLINE",
+      "ela4-rly02.prod.linkedin.com_10015" : "ONLINE",
+      "rly03" : "ONLINE",
+      "rly04" : "ONLINE",
+    },
+    "ela4-db40.prod.linkedin.com:1521/sdr1/sdr_people_search_/p25_6/MASTER" : {
+      "rly01" : "ONLINE",
+      "ela4-rly02.prod.linkedin.com_10015" : "ONLINE",
+      "rly03" : "ONLINE",
+      "rly04" : "ONLINE",
+    },
+    "ela4-db40.prod.linkedin.com:1521/sdr1/sdr_people_search_/p26_6/MASTER" : {
+      "rly01" : "ONLINE",
+      "ela4-rly02.prod.linkedin.com_10015" : "ONLINE",
+      "rly03" : "ONLINE",
+      "rly04" : "ONLINE",
+    },
+    "ela4-db40.prod.linkedin.com:1521/sdr1/sdr_people_search_/p27_6/MASTER" : {
+      "rly01" : "ONLINE",
+      "ela4-rly02.prod.linkedin.com_10015" : "ONLINE",
+      "rly03" : "ONLINE",
+      "rly04" : "ONLINE",
+    },
+    "ela4-db40.prod.linkedin.com:1521/sdr1/sdr_people_search_/p28_6/MASTER" : {
+      "rly01" : "ONLINE",
+      "ela4-rly02.prod.linkedin.com_10015" : "ONLINE",
+      "rly03" : "ONLINE",
+      "rly04" : "ONLINE",
+    }
+  },
+  "listFields" : {
+  }
+}

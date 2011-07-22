@@ -97,6 +97,7 @@ public class ClusterManagerMain
     manager.addLiveInstanceChangeListener(controller);
     manager.addIdealStateChangeListener(controller);
     manager.addExternalViewChangeListener(controller);
+
     // Message listener is not needed
     // manager.addMessageListener(controller);
     // currentstatechangelistener will be added by

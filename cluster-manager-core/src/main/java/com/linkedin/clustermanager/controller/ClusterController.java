@@ -39,19 +39,22 @@ public class ClusterController implements ConfigChangeListener,
   private final BestPossibleIdealStateCalculator _bestPossibleIdealStateCalculator;
   private final TransitionMessageGenerator _transitionMessageGenerator;
 
-  private final StateModelDefinition _stateModelDefinition;
+  private StateModelDefinition _stateModelDefinition;
   private final CurrentStateHolder _currentStateHolder;
   private final LiveInstanceDataHolder _liveInstanceDataHolder;
   private final MessageHolder _messageHolder;
   private final Set<String> _instanceSubscriptionList;
   private final ExternalViewGenerator _routingInfoProvider;
   private final InstanceConfigHolder _instanceConfigHolder;
-
-  public ClusterController()
+  public ClusterController(){
+    this(new StorageStateModelDefinition());
+  }
+  
+  public ClusterController(StateModelDefinition stateModelDefinition)
   {
 
     _currentStateHolder = new CurrentStateHolder();
-    _stateModelDefinition = new StorageStateModelDefinition();
+    _stateModelDefinition = stateModelDefinition;
     _instanceSubscriptionList = new HashSet<String>();
     _routingInfoProvider = new ExternalViewGenerator();
     _messageHolder = new MessageHolder();
@@ -62,6 +65,16 @@ public class ClusterController implements ConfigChangeListener,
     _transitionMessageGenerator = new TransitionMessageGenerator(
         _stateModelDefinition, _currentStateHolder, _messageHolder,
         _liveInstanceDataHolder, _instanceConfigHolder);
+  }
+
+  public StateModelDefinition getStateModelDefinition()
+  {
+    return _stateModelDefinition;
+  }
+
+  public void setStateModelDefinition(StateModelDefinition _stateModelDefinition)
+  {
+    this._stateModelDefinition = _stateModelDefinition;
   }
 
   @Override

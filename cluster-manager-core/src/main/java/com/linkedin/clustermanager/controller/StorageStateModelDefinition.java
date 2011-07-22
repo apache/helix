@@ -1,10 +1,12 @@
 package com.linkedin.clustermanager.controller;
 
+import org.apache.log4j.Logger;
+
 import com.linkedin.clustermanager.model.StateModelDefinition;
 
 public class StorageStateModelDefinition extends StateModelDefinition
 {
-
+  private static Logger logger = Logger.getLogger(StorageStateModelDefinition.class);
   @Override
   public String getNextStateForTransition(String fromState, String toState)
   {
@@ -46,8 +48,9 @@ public class StorageStateModelDefinition extends StateModelDefinition
     }
     if (nextState == null)
     {
-      System.err.println("Unable to compute nextState to go from:" + fromState
-          + " to:" + toState);
+      logger.warn("Unable to compute nextState to go from:" + fromState
+          + " to:" + toState + " . Using toState as next state");
+      nextState = toState;
     }
     return nextState;
   }

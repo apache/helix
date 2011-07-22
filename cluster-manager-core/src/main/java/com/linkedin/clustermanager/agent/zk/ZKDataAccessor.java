@@ -154,10 +154,6 @@ public class ZKDataAccessor implements ClusterDataAccessor
         clusterProperty);
     String propertyPath = path + "/" + key;
     ZNRecord record = _zkClient.readData(propertyPath, true);
-    if (record != null)
-    {
-      record = record.extract(key);
-    }
     return record;
   }
 

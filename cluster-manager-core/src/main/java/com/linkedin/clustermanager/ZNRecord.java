@@ -142,11 +142,28 @@ public class ZNRecord
    */
   public void merge(ZNRecord record)
   {
-
-  }
-
-  public ZNRecord extract(String key)
-  {
-    return this;
+    simpleFields.putAll(record.simpleFields);
+    for (String key : record.mapFields.keySet())
+    {
+      Map<String, String> map = mapFields.get(key);
+      if (map != null)
+      {
+        map.putAll(record.mapFields.get(key));
+      } else
+      {
+        mapFields.put(key, record.mapFields.get(key));
+      }
+    }
+    for (String key : record.listFields.keySet())
+    {
+      List<String> list = listFields.get(key);
+      if (list != null)
+      {
+        list.addAll(record.listFields.get(key));
+      } else
+      {
+        listFields.put(key, record.listFields.get(key));
+      }
+    }
   }
 }

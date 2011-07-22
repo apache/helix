@@ -3,9 +3,12 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.linkedin.clustermanager</groupId>
   <artifactId>cluster-manager</artifactId>
-  <version>0.0.2</version>
+  <version>0.0.3</version>
   <packaging>pom</packaging>
   <name>Cluster Manager Parent Project</name>
+	<properties>
+		<applicationVersion>0.0.3</applicationVersion>
+	</properties>
   <modules>
     <module>cluster-manager-core</module>
     <module>cluster-management-webapp</module>

@@ -24,7 +24,7 @@ import com.linkedin.clustermanager.store.PropertyStat;
 import com.linkedin.clustermanager.store.PropertyStore;
 import com.linkedin.clustermanager.store.PropertyStoreException;
 
-public class ZKPropertyStore<T> implements PropertyStore<T>
+public class ZKPropertyStore<T> implements PropertyStore<T>, IZkDataListener
 {
   private final String _ROOT = "";
   private final int _MAX_DEPTH = 3; // max depth for adding listeners
@@ -70,7 +70,7 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
           System.out.println(dataPath + ": data changed to " + data);
           
           // update local {data, stat} cache to keep consistency
-          updatePropertyCache(dataPath);
+          // updatePropertyCache(dataPath);
           
           listener.onPropertyChange(getRelativePath(dataPath));
         }
@@ -82,6 +82,7 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
 
           unsubscribeForPropertyChange(getRelativePath(dataPath), listener);
           
+          /**
           // remove from local {data, stat} cache
           // synchronize is necessary, race condition:
           //  1) thread-1 reads from ZK and not yet put the value to map
@@ -91,6 +92,7 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
           {
             _propertyCacheMap.remove(dataPath);
           }
+          **/
           
           // synchronize is necessary, race condition:
           // 1) thread-1 subscribes dataPath and not yet put the listener to map
@@ -130,7 +132,7 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
           // refresh cache
           for (String node : leaf)
           {
-            updatePropertyCache(node);
+            // updatePropertyCache(node);
             listener.onPropertyChange(getRelativePath(node));
           }
           
@@ -331,6 +333,12 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
       throw (new PropertyStoreException(e.getMessage()));
     }
     
+    // return a copy
+    // TODO: optimize to save serailize/de-serialize by caching only byte[]
+    if (value != null)
+    {
+      value = _serializer.deserialize(_serializer.serialize(value));
+    }
     return value;
   }
   
@@ -355,6 +363,7 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
           
           // cache it
           _propertyCacheMap.put(path, new PropertyInfo<T>(value, stat, stat.getVersion()));
+          _zkClient.subscribeDataChanges(path, this);
         }
         return _propertyCacheMap.get(path)._value;
       }
@@ -656,5 +665,31 @@ public class ZKPropertyStore<T> implements PropertyStore<T>
     }
     
     return isSucceed;
+  }
+
+
+  @Override
+  public void handleDataChange(String dataPath, Object data) throws Exception
+  {
+    System.out.println("update-cache: " + dataPath + ": data changed to " + data);
+    updatePropertyCache(dataPath);
+    
+  }
+
+  @Override
+  public void handleDataDeleted(String dataPath) throws Exception
+  {
+    System.out.println("update-cache: data deleted at " + dataPath);
+    
+    // remove from local {data, stat} cache
+    // synchronize is necessary, race condition:
+    //  1) thread-1 reads from ZK and not yet put the value to map
+    //  2) thread-2 deletes it from ZK and remove it from map
+    //  3) thread-1 put the value to map
+    synchronized(_propertyCacheMap)
+    {
+      _propertyCacheMap.remove(dataPath);
+    }
+    
   }
 }

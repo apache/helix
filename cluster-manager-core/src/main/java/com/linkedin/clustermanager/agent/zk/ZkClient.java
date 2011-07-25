@@ -4,6 +4,7 @@ import java.util.concurrent.Callable;
 
 import org.I0Itec.zkclient.IZkConnection;
 import org.I0Itec.zkclient.ZkConnection;
+import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.zookeeper.data.Stat;
 
@@ -72,4 +73,15 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
 
     return stat;
   }
+  public <T extends Object> T readData(String path, boolean returnNullIfPathNotExists) {
+    T data = null;
+    try {
+        data = (T) readData(path, null);
+    } catch (ZkNoNodeException e) {
+        if (!returnNullIfPathNotExists) {
+            throw e;
+        }
+    }
+    return data;
+}
 }

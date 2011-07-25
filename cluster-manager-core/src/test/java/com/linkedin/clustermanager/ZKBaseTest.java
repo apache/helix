@@ -64,6 +64,7 @@ public class ZKBaseTest
     }
     _zkConnectString = hostName + ":" + _port;
     _zkClient = new ZkClient(_zkConnectString);
+    
   }
 
   @AfterClass

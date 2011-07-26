@@ -78,7 +78,7 @@ public class HostedEntitiesResource extends Resource
   StringRepresentation getHostedEntitiesRepresentation(String zkServerAddress, String clusterName) throws JsonGenerationException, JsonMappingException, IOException
   {
     ClusterSetup setupTool = new ClusterSetup(zkServerAddress);
-    List<String> hostedEntities = setupTool.getClusterManagementTool().getDatabasesInCluster(clusterName);
+    List<String> hostedEntities = setupTool.getClusterManagementTool().getResourceGroupsInCluster(clusterName);
     
     ZNRecord hostedEntitiesRecord = new ZNRecord();
     hostedEntitiesRecord.setId("hostedEntities");
@@ -113,7 +113,7 @@ public class HostedEntitiesResource extends Resource
       int partitions = Integer.parseInt(paraMap.get(_partitions));
       
       ClusterSetup setupTool = new ClusterSetup(zkServer);
-      setupTool.addDatabaseToCluster(clusterName, entityName, partitions);
+      setupTool.addResourceGroupToCluster(clusterName, entityName, partitions);
       // add cluster
       getResponse().setEntity(getHostedEntitiesRepresentation(zkServer, clusterName));
       getResponse().setStatus(Status.SUCCESS_OK);

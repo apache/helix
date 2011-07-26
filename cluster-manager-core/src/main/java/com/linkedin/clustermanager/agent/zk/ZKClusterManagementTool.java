@@ -121,7 +121,7 @@ public class ZKClusterManagementTool implements ClusterManagementService
     return _zkClient.getChildren(memberInstancesPath);
   }
 
-  public void addDatabase(String clusterName, String dbName, int partitions)
+  public void addResourceGroup(String clusterName, String dbName, int partitions)
   {
     ZNRecord dbEmptyIdealState = new ZNRecord();
     dbEmptyIdealState.setId(dbName);
@@ -154,20 +154,20 @@ public class ZKClusterManagementTool implements ClusterManagementService
     return result;
   }
 
-  public List<String> getDatabasesInCluster(String clusterName)
+  public List<String> getResourceGroupsInCluster(String clusterName)
   {
     return _zkClient.getChildren(CMUtil.getIdealStatePath(clusterName));
   }
 
   @Override
-  public ZNRecord getDBIdealState(String clusterName, String dbName)
+  public ZNRecord getResourceGroupIdealState(String clusterName, String dbName)
   {
     return new ZKDataAccessor(clusterName, _zkClient).getClusterProperty(
         ClusterPropertyType.IDEALSTATES, dbName);
   }
 
   @Override
-  public void setDBIdealState(String clusterName, String dbName,
+  public void setResourceGroupIdealState(String clusterName, String dbName,
       ZNRecord idealState)
   {
     new ZKDataAccessor(clusterName, _zkClient).setClusterProperty(

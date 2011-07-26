@@ -8,17 +8,17 @@ public interface ClusterManagementService
 
   List<String> getNodeNamesInCluster(String clusterName);
 
-  List<String> getDatabasesInCluster(String clusterName);
+  List<String> getResourceGroupsInCluster(String clusterName);
 
   void addCluster(String clusterName, boolean overwritePrevRecord);
 
-  void addDatabase(String clusterName, String dbName, int partitions);
+  void addResourceGroup(String clusterName, String resourceGroup, int numResources);
 
   void addNode(String clusterName, ZNRecord nodeConfig);
 
-  ZNRecord getDBIdealState(String clusterName, String dbName);
+  ZNRecord getResourceGroupIdealState(String clusterName, String dbName);
 
-  void setDBIdealState(String clusterName, String dbName, ZNRecord idealState);
+  void setResourceGroupIdealState(String clusterName, String resourceGroup, ZNRecord idealState);
 
   void enableInstance(String clusterName, String instanceName, boolean enabled);
 }

@@ -34,20 +34,20 @@ public class ClusterSetup
 
   // List info about the cluster / DB/ Nodes
   public static final String listClusters = "listClusters";
-  public static final String listDatabase = "listDatabase";
+  public static final String listResourceGroups = "listResourceGroups";
   public static final String listNodes = "listNodes";
 
   // Add and rebalance
   public static final String addCluster = "addCluster";
   public static final String addNode = "addNode";
-  public static final String addDatabase = "addDatabase";
+  public static final String addResourceGroup = "addResourceGroup";
   public static final String rebalance = "rebalance";
 
   // Query info (TBD in V2)
   public static final String clusterInfo = "clusterInfo";
   public static final String nodeInfo = "nodeInfo";
-  public static final String databaseInfo = "databaseInfo";
-  public static final String partitionInfo = "partitionInfo";
+  public static final String resourceGroupInfo = "resourceGroupInfo";
+  public static final String resourceInfo = "resourceInfo";
 
   // setup for file-based cluster manager
   public static final String configFile = "configFile";
@@ -121,30 +121,30 @@ public class ClusterSetup
     return new ZKClusterManagementTool(zkClient);
   }
 
-  public void addDatabaseToCluster(String clusterName, String dbName,
-      int partitions)
+  public void addResourceGroupToCluster(String clusterName, String resourceGroup,
+      int numResources)
   {
     ClusterManagementService managementTool = getClusterManagementTool();
-    managementTool.addDatabase(clusterName, dbName, partitions);
+    managementTool.addResourceGroup(clusterName, resourceGroup, numResources);
   }
 
-  public void rebalanceStorageCluster(String clusterName, String dbName,
+  public void rebalanceStorageCluster(String clusterName, String resourceGroupName,
       int replica)
   {
     ClusterManagementService managementTool = getClusterManagementTool();
     List<String> nodeNames = managementTool.getNodeNamesInCluster(clusterName);
 
-    ZNRecord dbIdealState = managementTool.getDBIdealState(clusterName, dbName);
+    ZNRecord dbIdealState = managementTool.getResourceGroupIdealState(clusterName, resourceGroupName);
     int partitions = Integer
         .parseInt(dbIdealState.getSimpleField("partitions"));
 
     ZNRecord idealState = IdealStateCalculatorByShuffling.calculateIdealState(
-        nodeNames, partitions, replica, dbName);
-    managementTool.setDBIdealState(clusterName, dbName, idealState);
+        nodeNames, partitions, replica, resourceGroupName);
+    managementTool.setResourceGroupIdealState(clusterName, resourceGroupName, idealState);
   }
  
   /**
-   * Sets up a cluster with 6 Nodes[localhost:8900 to localhost:8905], 1 database[EspressoDB] with a replication factor of 3
+   * Sets up a cluster with 6 Nodes[localhost:8900 to localhost:8905], 1 resourceGroup[EspressoDB] with a replication factor of 3
    * @param clusterName
    */
   public void setupTestCluster(String clusterName)
@@ -156,7 +156,7 @@ public class ClusterSetup
       storageNodeInfoArray[i] = "localhost:" + (8900 + i);
     }
     addNodesToCluster(clusterName, storageNodeInfoArray);
-    addDatabaseToCluster(clusterName, "TestDB", 10);
+    addResourceGroupToCluster(clusterName, "TestDB", 10);
     rebalanceStorageCluster(clusterName, "TestDB", 3);
   }
 
@@ -183,11 +183,11 @@ public class ClusterSetup
     listClustersOption.setArgs(0);
     listClustersOption.setRequired(false);
 
-    Option listDatabaseOption = OptionBuilder.withLongOpt(listDatabase)
-        .withDescription("List databases hosted in a cluster").create();
-    listDatabaseOption.setArgs(1);
-    listDatabaseOption.setRequired(false);
-    listDatabaseOption.setArgName("clusterName");
+    Option listResourceGroupOption = OptionBuilder.withLongOpt(listResourceGroups)
+        .withDescription("List resourceGroups hosted in a cluster").create();
+    listResourceGroupOption.setArgs(1);
+    listResourceGroupOption.setRequired(false);
+    listResourceGroupOption.setArgName("clusterName");
 
     Option listNodesOption = OptionBuilder.withLongOpt(listNodes)
         .withDescription("List nodes in a cluster").create();
@@ -207,17 +207,17 @@ public class ClusterSetup
     addNodeOption.setRequired(false);
     addNodeOption.setArgName("clusterName nodeAddress(host:port)");
 
-    Option addDatabaseOption = OptionBuilder.withLongOpt(addDatabase)
-        .withDescription("Add a database to a cluster").create();
-    addDatabaseOption.setArgs(3);
-    addDatabaseOption.setRequired(false);
-    addDatabaseOption.setArgName("clusterName dbName partitionNo");
+    Option addResourceGroupOption = OptionBuilder.withLongOpt(addResourceGroup)
+        .withDescription("Add a resourceGroup to a cluster").create();
+    addResourceGroupOption.setArgs(3);
+    addResourceGroupOption.setRequired(false);
+    addResourceGroupOption.setArgName("clusterName resourceGroupName partitionNo");
 
     Option rebalanceOption = OptionBuilder.withLongOpt(rebalance)
-        .withDescription("Rebalance a database in a cluster").create();
+        .withDescription("Rebalance a resourceGroup in a cluster").create();
     rebalanceOption.setArgs(3);
     rebalanceOption.setRequired(false);
-    rebalanceOption.setArgName("clusterName dbName replicationNo");
+    rebalanceOption.setArgName("clusterName resourceGroupName replicationNo");
 
     Option nodeInfoOption = OptionBuilder.withLongOpt(nodeInfo)
         .withDescription("Query info of a node in a cluster").create();
@@ -231,13 +231,13 @@ public class ClusterSetup
     clusterInfoOption.setRequired(false);
     clusterInfoOption.setArgName("clusterName");
 
-    Option databaseInfoOption = OptionBuilder.withLongOpt(databaseInfo)
-        .withDescription("Query info of a database").create();
-    databaseInfoOption.setArgs(2);
-    databaseInfoOption.setRequired(false);
-    databaseInfoOption.setArgName("clusterName databaseName");
+    Option resourceGroupInfoOption = OptionBuilder.withLongOpt(resourceGroupInfo)
+        .withDescription("Query info of a resourceGroup").create();
+    resourceGroupInfoOption.setArgs(2);
+    resourceGroupInfoOption.setRequired(false);
+    resourceGroupInfoOption.setArgName("clusterName resourceGroupName");
 
-    Option partitionInfoOption = OptionBuilder.withLongOpt(partitionInfo)
+    Option partitionInfoOption = OptionBuilder.withLongOpt(resourceInfo)
         .withDescription("Query info of a partition").create();
     partitionInfoOption.setArgs(2);
     partitionInfoOption.setRequired(false);
@@ -264,16 +264,16 @@ public class ClusterSetup
     options.addOption(helpOption);
     // options.addOption(zkServerOption);
     options.addOption(rebalanceOption);
-    options.addOption(addDatabaseOption);
+    options.addOption(addResourceGroupOption);
     options.addOption(addClusterOption);
     options.addOption(addNodeOption);
     options.addOption(listNodesOption);
-    options.addOption(listDatabaseOption);
+    options.addOption(listResourceGroupOption);
     options.addOption(listClustersOption);
     options.addOption(rebalanceOption);
     options.addOption(nodeInfoOption);
     options.addOption(clusterInfoOption);
-    options.addOption(databaseInfoOption);
+    options.addOption(resourceGroupInfoOption);
     options.addOption(partitionInfoOption);
     options.addOption(enableNodeOption);
 
@@ -351,21 +351,21 @@ public class ClusterSetup
       return 0;
     }
 
-    if (cmd.hasOption(addDatabase))
+    if (cmd.hasOption(addResourceGroup))
     {
-      String clusterName = cmd.getOptionValues(addDatabase)[0];
-      String dbName = cmd.getOptionValues(addDatabase)[1];
-      int partitions = Integer.parseInt(cmd.getOptionValues(addDatabase)[2]);
-      setupTool.addDatabaseToCluster(clusterName, dbName, partitions);
+      String clusterName = cmd.getOptionValues(addResourceGroup)[0];
+      String resourceGroupName = cmd.getOptionValues(addResourceGroup)[1];
+      int partitions = Integer.parseInt(cmd.getOptionValues(addResourceGroup)[2]);
+      setupTool.addResourceGroupToCluster(clusterName, resourceGroupName, partitions);
       return 0;
     }
 
     if (cmd.hasOption(rebalance))
     {
       String clusterName = cmd.getOptionValues(rebalance)[0];
-      String dbName = cmd.getOptionValues(rebalance)[1];
+      String resourceGroupName = cmd.getOptionValues(rebalance)[1];
       int replicas = Integer.parseInt(cmd.getOptionValues(rebalance)[2]);
-      setupTool.rebalanceStorageCluster(clusterName, dbName, replicas);
+      setupTool.rebalanceStorageCluster(clusterName, resourceGroupName, replicas);
       return 0;
     }
 
@@ -382,16 +382,16 @@ public class ClusterSetup
       return 0;
     }
 
-    if (cmd.hasOption(listDatabase))
+    if (cmd.hasOption(listResourceGroups))
     {
-      String clusterName = cmd.getOptionValue(listDatabase);
-      List<String> dbNames = setupTool.getClusterManagementTool()
-          .getDatabasesInCluster(clusterName);
+      String clusterName = cmd.getOptionValue(listResourceGroups);
+      List<String> resourceGroupNames = setupTool.getClusterManagementTool()
+          .getResourceGroupsInCluster(clusterName);
 
       System.out.println("Existing databses in cluster " + clusterName + ":");
-      for (String dbName : dbNames)
+      for (String resourceGroupName : resourceGroupNames)
       {
-        System.out.println(dbName);
+        System.out.println(resourceGroupName);
       }
     } else if (cmd.hasOption(listNodes))
     {
@@ -409,11 +409,11 @@ public class ClusterSetup
     else if (cmd.hasOption(nodeInfo))
     {
       // print out current states and
-    } else if (cmd.hasOption(databaseInfo))
+    } else if (cmd.hasOption(resourceGroupInfo))
     {
       // print out partition number, db name and replication number
       // Also the ideal states and current states
-    } else if (cmd.hasOption(partitionInfo))
+    } else if (cmd.hasOption(resourceInfo))
     {
       // print out where the partition master / slaves locates
     } else if (cmd.hasOption(enableNode))

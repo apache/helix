@@ -10,7 +10,56 @@ public interface ClusterDataAccessor
 {
   public enum ClusterPropertyType
   {
-    CONFIGS, LIVEINSTANCES, INSTANCES, IDEALSTATES, EXTERNALVIEW
+    CONFIGS(true, false), LIVEINSTANCES(false, false), INSTANCES(true, false), IDEALSTATES(
+        true, false), EXTERNALVIEW(true, false);
+
+    boolean isPersistent;
+
+    boolean mergeOnUpdate;
+
+    boolean updateOnlyOnExists;
+    private ClusterPropertyType(boolean isPersistent, boolean mergeOnUpdate){
+      this(isPersistent,mergeOnUpdate,false);
+    }
+    
+    private ClusterPropertyType(boolean isPersistent, boolean mergeOnUpdate,  boolean updateOnlyOnExists)
+    {
+      this.isPersistent = isPersistent;
+      this.mergeOnUpdate = mergeOnUpdate;
+      this.updateOnlyOnExists = updateOnlyOnExists;
+    }
+
+    public boolean isPersistent()
+    {
+      return isPersistent;
+    }
+
+    public void setPersistent(boolean isPersistent)
+    {
+      this.isPersistent = isPersistent;
+    }
+
+    public boolean isMergeOnUpdate()
+    {
+      return mergeOnUpdate;
+    }
+
+    public void setMergeOnUpdate(boolean mergeOnUpdate)
+    {
+      this.mergeOnUpdate = mergeOnUpdate;
+    }
+
+    public boolean isUpdateOnlyOnExists()
+    {
+      return updateOnlyOnExists;
+    }
+
+    public void setUpdateOnlyOnExists(boolean updateOnlyOnExists)
+    {
+      this.updateOnlyOnExists = updateOnlyOnExists;
+    }
+    
+
   }
 
   public enum InstanceConfigProperty
@@ -20,15 +69,57 @@ public interface ClusterDataAccessor
 
   public enum InstancePropertyType
   {
-    MESSAGES, CURRENTSTATES, STATUSUPDATES, ERRORS
+    MESSAGES(true, true, true), CURRENTSTATES(false, true,false), STATUSUPDATES(true, true, false), ERRORS(
+        true, false);
+
+    boolean isPersistent;
+
+    boolean mergeOnUpdate;
+  
+    boolean updateOnlyOnExists;
+
+    private InstancePropertyType(boolean isPersistent, boolean mergeOnUpdate)
+    {
+      this(isPersistent,mergeOnUpdate,false);
+    }
+    private InstancePropertyType(boolean isPersistent, boolean mergeOnUpdate,  boolean updateOnlyOnExists)
+    {
+      this.isPersistent = isPersistent;
+      this.mergeOnUpdate = mergeOnUpdate;
+      this.updateOnlyOnExists = updateOnlyOnExists;
+    }
+
+
+    public boolean isPersistent()
+    {
+      return isPersistent;
+    }
+
+    public void setPersistent(boolean isPersistent)
+    {
+      this.isPersistent = isPersistent;
+    }
+
+    public boolean isMergeOnUpdate()
+    {
+      return mergeOnUpdate;
+    }
+
+    public void setMergeOnUpdate(boolean mergeOnUpdate)
+    {
+      this.mergeOnUpdate = mergeOnUpdate;
+    }
+    public boolean isUpdateOnlyOnExists()
+    {
+      return updateOnlyOnExists;
+    }
+    public void setUpdateOnlyOnExists(boolean updateOnlyOnExists)
+    {
+      this.updateOnlyOnExists = updateOnlyOnExists;
+    }
   }
 
-  public interface PropertyCreateModeCalculator
-  {
-    public CreateMode getClusterPropertyCreateMode();
-
-    public CreateMode getInstancePropertyCreateMode();
-  }
+  ZNRecord getClusterProperty(ClusterPropertyType clusterProperty, String key);
 
   void setClusterProperty(ClusterPropertyType clusterProperty, String key,
       ZNRecord value);
@@ -38,19 +129,11 @@ public interface ClusterDataAccessor
 
   void removeClusterProperty(ClusterPropertyType clusterProperty, String key);
 
-  void setClusterPropertyList(ClusterPropertyType clusterProperty,
-      List<ZNRecord> values);
-
-  ZNRecord getClusterProperty(ClusterPropertyType clusterProperty, String key);
-
   List<ZNRecord> getClusterPropertyList(ClusterPropertyType clusterProperty);
 
   // instance values
   void setInstanceProperty(String instanceName,
       InstancePropertyType instanceProperty, String key, final ZNRecord value);
-
-  void setInstancePropertyList(String instanceName,
-      InstancePropertyType instanceProperty, List<ZNRecord> values);
 
   ZNRecord getInstanceProperty(String instanceName,
       InstancePropertyType instanceProperty, String key);

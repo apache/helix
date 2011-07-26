@@ -36,14 +36,6 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
   }
 
   @Override
-  public void setClusterPropertyList(ClusterPropertyType clusterProperty,
-      List<ZNRecord> values)
-  {
-    // TODO Auto-generated method stub
-
-  }
-
-  @Override
   public ZNRecord getClusterProperty(ClusterPropertyType clusterProperty,
       String key)
   {
@@ -62,14 +54,6 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
   @Override
   public void setInstanceProperty(String instanceName,
       InstancePropertyType clusterProperty, String key, ZNRecord value)
-  {
-    // TODO Auto-generated method stub
-
-  }
-
-  @Override
-  public void setInstancePropertyList(String instanceName,
-      InstancePropertyType clusterProperty, List<ZNRecord> values)
   {
     // TODO Auto-generated method stub
 

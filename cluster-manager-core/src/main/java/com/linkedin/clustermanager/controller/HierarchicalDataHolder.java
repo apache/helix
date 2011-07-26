@@ -10,7 +10,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.zookeeper.data.Stat;
 
 import com.linkedin.clustermanager.agent.zk.ZkClient;
-import com.linkedin.clustermanager.controller.HierarchicalDataHolder.Node;
 
 /**
  * Generic class that will read the data given the root path.

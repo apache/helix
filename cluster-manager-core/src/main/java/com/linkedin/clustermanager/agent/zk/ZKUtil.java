@@ -20,7 +20,7 @@ public final class ZKUtil
   {
 
   }
-  
+
   public static boolean isClusterSetup(String clusterName, ZkClient zkClient)
   {
     String idealStatePath = CMUtil.getIdealStatePath(clusterName);
@@ -80,9 +80,8 @@ public final class ZKUtil
   }
 
   public static void updateIfExists(ZkClient client, String path,
-      final ZNRecord record)
+      final ZNRecord record, boolean mergeOnUpdate)
   {
-
     if (client.exists(path))
     {
       DataUpdater<Object> updater = new DataUpdater<Object>()
@@ -98,9 +97,9 @@ public final class ZKUtil
   }
 
   public static void createOrUpdate(ZkClient client, String path,
-      final ZNRecord record, CreateMode mode)
+      final ZNRecord record, final boolean persistent,
+      final boolean mergeOnUpdate)
   {
-
     int retryCount = 0;
     while (retryCount < RETRYLIMIT)
     {
@@ -119,6 +118,8 @@ public final class ZKUtil
           client.updateDataSerialized(path, updater);
         } else
         {
+          CreateMode mode = (persistent) ? CreateMode.PERSISTENT
+              : CreateMode.EPHEMERAL;
           client.create(path, record, mode);
         }
         break;
@@ -127,6 +128,41 @@ public final class ZKUtil
         retryCount = retryCount + 1;
         logger.warn("Exception trying to update " + path + " Exception:"
             + e.getMessage() + ". Will retry.");
+      }
+    }
+  }
+
+  public static void createOrReplace(ZkClient client, String path,
+      final ZNRecord record, final boolean persistent)
+  {
+    int retryCount = 0;
+    while (retryCount < RETRYLIMIT)
+    {
+      try
+      {
+        if (client.exists(path))
+        {
+          DataUpdater<Object> updater = new DataUpdater<Object>()
+          {
+            @Override
+            public Object update(Object currentData)
+            {
+              return record;
+            }
+          };
+          client.updateDataSerialized(path, updater);
+        } else
+        {
+          CreateMode mode = (persistent) ? CreateMode.PERSISTENT
+              : CreateMode.EPHEMERAL;
+          client.create(path, record, mode);
+        }
+        break;
+      } catch (Exception e)
+      {
+        retryCount = retryCount + 1;
+        logger.warn("Exception trying to createOrReplace " + path
+            + " Exception:" + e.getMessage() + ". Will retry.");
       }
     }
   }

@@ -1,14 +1,12 @@
 package com.linkedin.clustermanager.controller;
 
+import java.io.File;
 import java.io.FileFilter;
-import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.ArrayList;
 
-import org.apache.zookeeper.data.Stat;
-
-import com.linkedin.clustermanager.agent.zk.ZkClient;
+import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
+import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.util.CMUtil;
 
 /**
  * Stores the state of the cluster.
@@ -20,8 +18,37 @@ import com.linkedin.clustermanager.agent.zk.ZkClient;
  */
 public class ClusterDataProvider
 {
+  private final String _clusterName;
+
+  public ClusterDataProvider(String clusterName)
+  {
+    this._clusterName = clusterName;
+    final ArrayList<String> interestedPath = new ArrayList<String>();
+    interestedPath.add(CMUtil.getClusterPropertyPath(clusterName,
+        ClusterPropertyType.IDEALSTATES));
+    interestedPath.add(CMUtil.getClusterPropertyPath(clusterName,
+        ClusterPropertyType.CONFIGS));
+    interestedPath.add(CMUtil.getClusterPropertyPath(clusterName,
+        ClusterPropertyType.LIVEINSTANCES));
+    interestedPath.add(CMUtil.getClusterPropertyPath(clusterName,
+        ClusterPropertyType.INSTANCES));
+    FileFilter fileFilter = new FileFilter()
+    {
+      @Override
+      public boolean accept(File pathname)
+      {
+        String path = pathname.getAbsolutePath();
+        for (String temp : interestedPath)
+        {
+          if (path.startsWith(temp))
+          {
+            return true;
+          }
+        }
+        return false;
+      }
+    };
+  //  HierarchicalDataHolder<ZNRecord> record = new HierarchicalDataHolder<ZNRecord>();
+  }
 
 }
-
-
-

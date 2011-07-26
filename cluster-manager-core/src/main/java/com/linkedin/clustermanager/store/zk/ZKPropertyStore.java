@@ -574,14 +574,18 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkDataListener
   public void updatePropertyUntilSucceed(String key, DataUpdater<T> updater, boolean createIfAbsent)
   {
     String path = getPath(key);
-    if (createIfAbsent)
-    {
-      _zkClient.createPersistent(path, true);
-    }
-    
     if (!_zkClient.exists(path))
-      return;
-    
+    {
+        if (!createIfAbsent)
+        {
+          return;
+        }
+        else
+        {
+          _zkClient.createPersistent(path, true);
+        }
+    }
+  
     _zkClient.<T>updateDataSerialized(path, updater);
     // callback will update cache
   }

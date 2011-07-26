@@ -1,6 +1,5 @@
 package com.linkedin.clustermanager;
 
-import java.util.Comparator;
 import java.util.List;
 
 import junit.framework.Assert;
@@ -8,7 +7,8 @@ import junit.framework.Assert;
 import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.store.PropertyChangeListener;
-import com.linkedin.clustermanager.store.StringPropertySerializer;
+import com.linkedin.clustermanager.store.PropertyJsonComparator;
+import com.linkedin.clustermanager.store.PropertyJsonSerializer;
 import com.linkedin.clustermanager.store.file.FilePropertyStore;
 
 public class TestFilePropertyStore
@@ -28,6 +28,7 @@ public class TestFilePropertyStore
     
   }
   
+  /**
   public class MyComparator implements Comparator<String>
   {
 
@@ -53,11 +54,13 @@ public class TestFilePropertyStore
     }
     
   }
-
+  **/
+  
   @Test
   public void testInvocation() throws Exception
   {
-    StringPropertySerializer serializer = new StringPropertySerializer();
+    // StringPropertySerializer serializer = new StringPropertySerializer();
+    PropertyJsonSerializer<String> serializer = new PropertyJsonSerializer<String>(String.class);
     String rootNamespace = "/tmp/testFilePropertyStore";
     
     FilePropertyStore<String> store = new FilePropertyStore<String>(serializer, rootNamespace);
@@ -118,10 +121,16 @@ public class TestFilePropertyStore
     listener2._propertyChangeReceived = false;
     
     // test compare and set
-    boolean success = store.compareAndSet("testPath1/testPath4", "testValue4-II\n", "testValue4-II\n", new MyComparator());
+    boolean success = store.compareAndSet("testPath1/testPath4", 
+                                          "testValue4-II\n", 
+                                          "testValue4-II\n", 
+                                          new PropertyJsonComparator<String>(String.class));
     Assert.assertEquals(success, false);
     
-    success = store.compareAndSet("testPath1/testPath4", "testValue4-I\n", "testValue4-II\n", new MyComparator());
+    success = store.compareAndSet("testPath1/testPath4", 
+                                  "testValue4-I\n", 
+                                  "testValue4-II\n", 
+                                  new PropertyJsonComparator<String>(String.class));
     Assert.assertEquals(success, true);
     
     store.unsubscribeForPropertyChange("testPath1", listener2);

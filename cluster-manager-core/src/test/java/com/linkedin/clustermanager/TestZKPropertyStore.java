@@ -3,7 +3,6 @@ package com.linkedin.clustermanager;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 
 import junit.framework.Assert;
@@ -20,9 +19,10 @@ import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.store.PropertyChangeListener;
+import com.linkedin.clustermanager.store.PropertyJsonComparator;
+import com.linkedin.clustermanager.store.PropertyJsonSerializer;
 import com.linkedin.clustermanager.store.PropertyStat;
 import com.linkedin.clustermanager.store.PropertyStoreException;
-import com.linkedin.clustermanager.store.StringPropertySerializer;
 import com.linkedin.clustermanager.store.zk.ZKConnectionFactory;
 import com.linkedin.clustermanager.store.zk.ZKPropertyStore;
 
@@ -58,6 +58,7 @@ public class TestZKPropertyStore
     
   }
   
+  /**
   public class MyComparator implements Comparator<String>
   {
 
@@ -83,7 +84,8 @@ public class TestZKPropertyStore
     }
     
   }
-
+  **/
+  
   @Test
   public void testInvocation() throws Exception
   {
@@ -92,7 +94,8 @@ public class TestZKPropertyStore
       String zkServers = "localhost:2188";
       String value = null;
       
-      StringPropertySerializer serializer = new StringPropertySerializer();
+      // StringPropertySerializer serializer = new StringPropertySerializer();
+      PropertyJsonSerializer<String> serializer = new PropertyJsonSerializer<String>(String.class);
       
       ZkConnection zkConn = ZKConnectionFactory.<String>create(zkServers, serializer);
       ZkConnection zkConnSame = ZKConnectionFactory.<String>create(zkServers, serializer);
@@ -176,14 +179,21 @@ public class TestZKPropertyStore
       Assert.assertEquals(value, "testData2_I-new");
       
       // test compareAndSet property
-      isSucceed = zkPropertyStore.compareAndSet("testPath2/1", "testData2_I", "testData2_I-new2", new MyComparator());
+      // isSucceed = zkPropertyStore.compareAndSet("testPath2/1", "testData2_I", "testData2_I-new2", new MyComparator());
+      isSucceed = zkPropertyStore.compareAndSet("testPath2/1", 
+                                                "testData2_I", 
+                                                "testData2_I-new2", 
+                                                new PropertyJsonComparator<String>(String.class));
       Thread.sleep(100); // wait cache to be updated by callback
       Assert.assertEquals(isSucceed, false);
       
       value = zkPropertyStore.getProperty("testPath2/1");
       AssertJUnit.assertTrue(value.equals("testData2_I-new"));
       
-      isSucceed = zkPropertyStore.compareAndSet("testPath2/1", "testData2_I-new", "testData2_I-new2", new MyComparator());
+      isSucceed = zkPropertyStore.compareAndSet("testPath2/1", 
+                                                "testData2_I-new", 
+                                                "testData2_I-new2", 
+                                                new PropertyJsonComparator<String>(String.class));
       Thread.sleep(100); // wait cache to be updated by callback
       Assert.assertEquals(isSucceed, true);
       
@@ -191,7 +201,11 @@ public class TestZKPropertyStore
       Assert.assertEquals(value, "testData2_I-new2");
     
       
-      isSucceed = zkPropertyStore.compareAndSet("testPath2/3", null, "testData2_III", new MyComparator(), true);
+      isSucceed = zkPropertyStore.compareAndSet("testPath2/3", 
+                                                null, 
+                                                "testData2_III",  
+                                                new PropertyJsonComparator<String>(String.class),
+                                                true);
       Thread.sleep(100); // wait cache to be updated by callback
       Assert.assertEquals(isSucceed, true);
       

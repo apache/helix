@@ -11,6 +11,7 @@ import junit.framework.Assert;
 import org.I0Itec.zkclient.DataUpdater;
 import org.I0Itec.zkclient.IDefaultNameSpace;
 import org.I0Itec.zkclient.ZkClient;
+import org.I0Itec.zkclient.ZkConnection;
 import org.I0Itec.zkclient.ZkServer;
 import org.apache.commons.io.FileUtils;
 import org.testng.AssertJUnit;
@@ -22,7 +23,7 @@ import com.linkedin.clustermanager.store.PropertyChangeListener;
 import com.linkedin.clustermanager.store.PropertyStat;
 import com.linkedin.clustermanager.store.PropertyStoreException;
 import com.linkedin.clustermanager.store.StringPropertySerializer;
-import com.linkedin.clustermanager.store.zk.ZKClientFactory;
+import com.linkedin.clustermanager.store.zk.ZKConnectionFactory;
 import com.linkedin.clustermanager.store.zk.ZKPropertyStore;
 
 // TODO: need to write multi-thread test cases
@@ -93,14 +94,14 @@ public class TestZKPropertyStore
       
       StringPropertySerializer serializer = new StringPropertySerializer();
       
-      ZkClient zkClient = ZKClientFactory.<String>create(zkServers, serializer);
-      ZkClient zkClientSame = ZKClientFactory.<String>create(zkServers, serializer);
-      Assert.assertEquals(zkClient, zkClientSame);
+      ZkConnection zkConn = ZKConnectionFactory.<String>create(zkServers, serializer);
+      ZkConnection zkConnSame = ZKConnectionFactory.<String>create(zkServers, serializer);
+      Assert.assertEquals(zkConn, zkConnSame);
       
   
       final String propertyStoreRoot = "/testPath1";
-      ZKPropertyStore<String> zkPropertyStore = new ZKPropertyStore<String>(zkClient, serializer, propertyStoreRoot);
-  
+      ZKPropertyStore<String> zkPropertyStore = new ZKPropertyStore<String>(zkConn, serializer, propertyStoreRoot);
+      
       // test remove recursive and get non exist property
       zkPropertyStore.removeRootNamespace();
       value = zkPropertyStore.getProperty("nonExist");

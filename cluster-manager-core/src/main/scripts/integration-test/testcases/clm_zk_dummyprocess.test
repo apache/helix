@@ -15,7 +15,7 @@ $SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr localhost:2188 -a
 
 $SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr localhost:2188 -addCluster relay-cluster-12345"
 
-$SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr localhost:2188 -addDatabase storage-cluster-12345 db-12345 120"
+$SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr localhost:2188 -addResourceGroup storage-cluster-12345 db-12345 120"
 
 $SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr localhost:2188 -addNode storage-cluster-12345 localhost:8900"
 

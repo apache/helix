@@ -50,7 +50,7 @@ public class IntegrationTest
     ClusterSetup
         .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addCluster relay-cluster-12345"));
     ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addDatabase test-cluster db-12345 100"));
+        .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addResourceGroup test-cluster db-12345 100"));
     ClusterSetup
         .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addNode test-cluster localhost:8900"));
     ClusterSetup

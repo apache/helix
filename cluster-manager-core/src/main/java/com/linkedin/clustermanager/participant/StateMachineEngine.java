@@ -78,7 +78,6 @@ public class StateMachineEngine<T extends StateModel> implements
         {
           if ("new".equals(message.getMsgState()))
           {
-            System.err.println("ID=" + message.getId());
             String stateUnitKey = message.getStateUnitKey();
             // StateModel stateModel;
             T stateModel = _stateModelFactory.getStateModel(stateUnitKey);

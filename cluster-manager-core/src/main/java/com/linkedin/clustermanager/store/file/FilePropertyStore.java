@@ -29,11 +29,11 @@ import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.store.PropertyChangeListener;
+import com.linkedin.clustermanager.store.PropertyJsonSerializer;
 import com.linkedin.clustermanager.store.PropertySerializer;
 import com.linkedin.clustermanager.store.PropertyStat;
 import com.linkedin.clustermanager.store.PropertyStore;
 import com.linkedin.clustermanager.store.PropertyStoreException;
-import com.linkedin.clustermanager.store.StringPropertySerializer;
 
 // file systems usually have sophisticated cache mechanisms
 // no need for another cache for file property store
@@ -675,7 +675,8 @@ public class FilePropertyStore<T> implements PropertyStore<T>
     // System.out.println("lastModified=" + mtime + ", " + new Date(mtime));
   
     
-    StringPropertySerializer serializer = new StringPropertySerializer();
+    // StringPropertySerializer serializer = new StringPropertySerializer();
+    PropertyJsonSerializer<String> serializer = new PropertyJsonSerializer<String>(String.class);
     String rootNamespace = "/tmp/testFilePropertyStore";
     
     // FileUtils.deleteDirectory(new File(rootNamespace)); // not working for a file

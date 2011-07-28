@@ -57,7 +57,6 @@ public class TestEspressoStorageClusterIdealState
     Map<String, List<Integer>> masterAssignmentMap = (Map<String, List<Integer>>) (result.get("MasterAssignmentMap"));
     Map<String, Map<String, List<Integer>>> nodeSlaveAssignmentMap = (Map<String, Map<String, List<Integer>>>)(result.get("SlaveAssignmentMap"));
     
-    int instanceNum = masterAssignmentMap.size();
     AssertJUnit.assertTrue( partitions == (Integer)(result.get("partitions")));
     
     // Verify master partitions covers all master partitions on each node
@@ -88,7 +87,7 @@ public class TestEspressoStorageClusterIdealState
         maxMasters = masterList.size();
       }
     }
-    //AssertJUnit.assertTrue((maxMasters - minMasters) <= 1);
+    // Master partition should be evenly distributed most of the time
     System.out.println("Masters: max: "+maxMasters+" Min:"+ minMasters);
     // Each master partition should occur only once
     for(int i = 0;i < partitions; i++)
@@ -117,6 +116,7 @@ public class TestEspressoStorageClusterIdealState
       {
         List<Integer> slaveAssignment = slaveAssignmentMap.get(hostInstance);
         Set<Integer> occurenceSet = new HashSet<Integer>();
+        
         // Each slave should occur only once in the list, since the list is per-node slaves
         for(Integer slavePartition : slaveAssignment)
         {
@@ -134,11 +134,13 @@ public class TestEspressoStorageClusterIdealState
           maxSlaves = slaveAssignment.size();
         }
       }
+      // check if slave distribution is even
       AssertJUnit.assertTrue(maxSlaves - minSlaves <= 1);
+      // System.out.println("Slaves: max: "+maxSlaves+" Min:"+ minSlaves);
+      
       // for each node, the slave assignment map should cover the masters for exactly replica 
       // times
       AssertJUnit.assertTrue(slaveCountMap.size() == masterList.size());
-      System.out.println("Slaves: max: "+maxSlaves+" Min:"+ minSlaves);
       for(Integer masterPartitionId : masterList)
       {
         AssertJUnit.assertTrue(slaveCountMap.get(masterPartitionId) == replicas);
@@ -171,6 +173,7 @@ public class TestEspressoStorageClusterIdealState
     AssertJUnit.assertTrue((Integer)(result2.get("partitions")) == partitions);
     AssertJUnit.assertTrue((Integer)(result2.get("replicas")) == replicas);
     
+    // masterMap1 maps from partition id to the holder instance name
     Map<Integer, String> masterMap1 = new TreeMap<Integer, String>();
     for(String instanceName : masterAssignmentMap1.keySet())
     {
@@ -181,6 +184,7 @@ public class TestEspressoStorageClusterIdealState
         masterMap1.put(partition, instanceName);
       }
     }
+    // go through masterAssignmentMap2 and find out the common number
     for(String instanceName : masterAssignmentMap2.keySet())
     {
       List<Integer> masterList2 = masterAssignmentMap2.get(instanceName);
@@ -195,6 +199,7 @@ public class TestEspressoStorageClusterIdealState
     
     System.out.println(commonMasters + " master partitions are kept, "+ (partitions - commonMasters) + " moved, keep ratio:" + 1.0*commonMasters/partitions);
     
+    // maps from the partition id to the instance names that holds its slave partition
     Map<Integer, Set<String>> slaveMap1 = new TreeMap<Integer, Set<String>>();
     for(String instanceName : nodeSlaveAssignmentMap1.keySet())
     {

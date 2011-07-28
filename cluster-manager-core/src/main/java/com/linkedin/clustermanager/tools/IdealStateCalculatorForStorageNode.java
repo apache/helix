@@ -312,7 +312,6 @@ public class IdealStateCalculatorForStorageNode
     // Note that when remain > 0, we should make [remain] moves with (numMastersFromEachNode + 1) partitions. 
     // And we should first choose those (numMastersFromEachNode + 1) moves from the instances that has more 
     // master partitions
-
     List<Integer> masterPartitionListToMove = new ArrayList<Integer>();
     
     // For corresponding moved slave partitions, keep track of their original location; the new node does not 
@@ -590,6 +589,111 @@ public class IdealStateCalculatorForStorageNode
     }
   }
   
+  public static int migrateSlaveAssignMapToNewInstancesWithWeights(
+      Map<String, List<Integer>> nodeSlaveAssignmentMap, 
+      List<String> newInstances, 
+      Map<String, Double> existingInstanceWeights, 
+      double newInstanceWeight
+      )
+  {
+    int moves = 0;
+    boolean done = false;
+    for(String newInstance : newInstances)
+    {
+      nodeSlaveAssignmentMap.put(newInstance, new ArrayList<Integer>());
+    }
+    
+    
+    
+    while(!done)
+    {
+      List<Integer> maxAssignment = null, minAssignment = null;
+      int minCount = Integer.MAX_VALUE, maxCount = Integer.MIN_VALUE;
+      String minInstance = "";
+      for(String instanceName : nodeSlaveAssignmentMap.keySet())
+      {
+        List<Integer> slaveAssignment = nodeSlaveAssignmentMap.get(instanceName);
+        if(minCount > slaveAssignment.size())
+        {
+          minCount = slaveAssignment.size();
+          minAssignment = slaveAssignment;
+          minInstance = instanceName;
+        }
+        if(maxCount < slaveAssignment.size())
+        {
+          maxCount = slaveAssignment.size();
+          maxAssignment = slaveAssignment;
+        }
+      }
+      if(maxCount - minCount <= 1 )
+      {
+        done = true;
+      }
+      else
+      {
+        int indexToMove = -1;
+        // find a partition that is not contained in the minAssignment list
+        for(int i = 0; i < maxAssignment.size(); i++ )
+        {
+          if(!minAssignment.contains(maxAssignment.get(i)))
+          {
+            indexToMove = i;
+            break;
+          }
+        }
+         
+        minAssignment.add(maxAssignment.get(indexToMove));
+        maxAssignment.remove(indexToMove);
+        
+        if(newInstances.contains(minInstance))
+        {
+          moves++;
+        }
+      }
+    }
+    return moves;
+  }
+  
+  // distribute the partitions list to assignments according to the designated instanceWeights
+  // Used when calculating ini
+  public void assignPartitionListToWeightedInstances(List<Integer> partitions, List<Integer> instanceWeights, List<List<Integer>> assignments)
+  {
+    List<Integer> numPartitionsAssignedList = new ArrayList<Integer>(instanceWeights);
+    
+    int totalWeights = 0;
+    for(Integer weight: instanceWeights)
+    {
+      totalWeights += weight;
+    }
+    int remainderPartitions = partitions.size();
+    for(Integer weight: instanceWeights)
+    {
+      int partitionAssigned  = partitions.size() * weight / totalWeights;
+      remainderPartitions -= partitionAssigned;
+      numPartitionsAssignedList.add(weight);
+    }
+    
+    // take care of the "remainder" partitions, distribute them evenly
+    for(int i = 0; i < remainderPartitions; i++)
+    {
+      int assigned = numPartitionsAssignedList.get(i % numPartitionsAssignedList.size());
+      numPartitionsAssignedList.set(i % numPartitionsAssignedList.size(), assigned + 1);
+    }
+    
+    int previousAssigned = 0;
+    for(int i = 0; i < numPartitionsAssignedList.size(); i++)
+    {
+      Integer numPartitionsAssigned = numPartitionsAssignedList.get(i);
+      List<Integer> assignedList = assignments.get(i);
+      
+      for(int j = previousAssigned; j < previousAssigned + numPartitionsAssigned; j++)
+      {
+        assignedList.add(partitions.get(j));
+      }
+      previousAssigned += numPartitionsAssigned;
+    }
+  }
+
   // TODO: implement this
   public Map<String, Object> calculateIdealState(List<List<String>>nodeBatches, List<Integer> weights, int partitions, int replicas)
   {

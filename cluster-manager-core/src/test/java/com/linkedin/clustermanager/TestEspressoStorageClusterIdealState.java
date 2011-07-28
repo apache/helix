@@ -134,7 +134,7 @@ public class TestEspressoStorageClusterIdealState
           maxSlaves = slaveAssignment.size();
         }
       }
-      //AssertJUnit.assertTrue(max - min <= 2);
+      AssertJUnit.assertTrue(maxSlaves - minSlaves <= 1);
       // for each node, the slave assignment map should cover the masters for exactly replica 
       // times
       AssertJUnit.assertTrue(slaveCountMap.size() == masterList.size());
@@ -177,6 +177,7 @@ public class TestEspressoStorageClusterIdealState
       List<Integer> masterList1 = masterAssignmentMap1.get(instanceName);
       for(Integer partition : masterList1)
       {
+        AssertJUnit.assertTrue(!masterMap1.containsKey(partition));
         masterMap1.put(partition, instanceName);
       }
     }
@@ -207,6 +208,7 @@ public class TestEspressoStorageClusterIdealState
           {
             slaveMap1.put(partition, new TreeSet<String>());
           }
+          AssertJUnit.assertTrue(!slaveMap1.get(partition).contains(slaveHostName));
           slaveMap1.get(partition).add(slaveHostName);
         }
       }

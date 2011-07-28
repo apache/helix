@@ -70,7 +70,6 @@
 		</dependency>
 	</dependencies>
 	<build>
-		<finalName>cluster-management-webapp</finalName>
 		<plugins>
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>

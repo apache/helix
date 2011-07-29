@@ -5,7 +5,6 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.I0Itec.zkclient.IZkStateListener;
-import org.I0Itec.zkclient.ZkClient;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
@@ -280,6 +279,13 @@ public class ZKClusterManager implements ClusterManager
   public boolean isConnected()
   {
     return _zkStateChangeListener.isConnected();
+  }
+
+  @Override
+  public long getLastNotificationTime()
+  {
+    return -1;
+   // return _zkClient.;
   }
 
 }

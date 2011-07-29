@@ -92,13 +92,6 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
   }
 
   @Override
-  public ClusterView getClusterView()
-  {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
   public void removeClusterProperty(ClusterPropertyType clusterProperty,
       String key)
   {

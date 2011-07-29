@@ -575,4 +575,10 @@ public class FileBasedClusterManager implements ClusterManager
     System.out.println(new String(bytes));
 
   }
+
+  @Override
+  public long getLastNotificationTime()
+  {
+    return 0;
+  }
 }

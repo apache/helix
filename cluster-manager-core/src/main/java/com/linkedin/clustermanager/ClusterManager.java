@@ -117,4 +117,11 @@ public interface ClusterManager
    * Get the sessionId associated with the connection to cluster data store.
    */
   String getSessionId();
+  
+  /**
+   * The time stamp is always updated when a notification is received.
+   * This can be used to check if there was any new notification when previous notification was being processed.
+   * This is updated based on the notifications from listeners registered.
+   */
+  long getLastNotificationTime();
 }

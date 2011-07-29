@@ -24,13 +24,13 @@ public class TestEspressoStorageClusterIdealState
     {
       instanceNames.add("localhost:123" + i);
     }
-    int partitions = 4096, replicas = 3;
-    Map<String, Object> resultOriginal = IdealStateCalculatorForStorageNode.calculateInitialIdealState(instanceNames,1, partitions, replicas);
+    int partitions = 400, replicas = 3;
+    Map<String, Object> resultOriginal = IdealStateCalculatorForStorageNode.calculateInitialIdealState(instanceNames, partitions, replicas);
     
     Verify(resultOriginal, partitions,replicas);
     printStat(resultOriginal);
     
-    Map<String, Object> result1 = IdealStateCalculatorForStorageNode.calculateInitialIdealState(instanceNames,1, partitions, replicas);
+    Map<String, Object> result1 = IdealStateCalculatorForStorageNode.calculateInitialIdealState(instanceNames, partitions, replicas);
     
     List<String> instanceNames2 = new ArrayList<String>();
     for(int i = 30;i < 35; i++)
@@ -38,7 +38,7 @@ public class TestEspressoStorageClusterIdealState
       instanceNames2.add("localhost:123" + i);
     }
     
-    IdealStateCalculatorForStorageNode.calculateNextIdealState(instanceNames2,1, result1);
+    IdealStateCalculatorForStorageNode.calculateNextIdealState(instanceNames2, result1);
     
     List<String> instanceNames3 = new ArrayList<String>();
     for(int i = 35;i < 40; i++)
@@ -46,7 +46,7 @@ public class TestEspressoStorageClusterIdealState
       instanceNames3.add("localhost:123" + i);
     }
     
-    IdealStateCalculatorForStorageNode.calculateNextIdealState(instanceNames3,1, result1);
+    IdealStateCalculatorForStorageNode.calculateNextIdealState(instanceNames3, result1);
     Verify(result1, partitions,replicas);
     compareResult(resultOriginal, result1);
     

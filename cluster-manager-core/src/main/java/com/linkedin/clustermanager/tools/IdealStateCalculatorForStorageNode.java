@@ -6,8 +6,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.TreeMap;
+import com.linkedin.clustermanager.ZNRecord;
 
-//import com.linkedin.clustermanager.ZNRecord;
 /*
  * IdealStateCalculatorForStorageNode tries to optimally allocate master/slave partitions among 
  * espresso storage nodes.
@@ -19,10 +19,98 @@ import java.util.TreeMap;
  * */
 public class IdealStateCalculatorForStorageNode
 {
+  static final String _MasterAssignmentMap = "MasterAssignmentMap";
+  static final String _SlaveAssignmentMap = "SlaveAssignmentMap";
+  static final String _partitions = "partitions";
+  static final String _replicas = "replicas";
+  
   /**
-   * Build the config map for RUSH algorithm. The input of RUSH algorithm groups
-   * nodes into "cluster"s, and different clusters can be assigned with
-   * different weights.
+   * Calculate the initial ideal state given a batch of storage instances, the replication factor and
+   * number of partitions
+   * 
+   * 1. Calculate the master assignment by random shuffling
+   * 2. for each storage instance, calculate the 1st slave assignment map, by another random shuffling
+   * 3. for each storage instance, calculate the i-th slave assignment map
+   * 4. Combine the i-th slave assignment maps together
+   * 
+   * @param instanceNames
+   *          list of storage node instances
+   * @param partitions
+   *          number of partitions
+   * @param replicas
+   *          The number of replicas (slave partitions) per master partition
+   * @param stateUnitGroup 
+   * @return a ZNRecord that contain the idealstate info
+   */
+  public static ZNRecord calculateIdealState(List<String> instanceNames, int partitions, int replicas, String stateUnitGroup)
+  {
+    Map<String, Object> result = calculateInitialIdealState(instanceNames, partitions, replicas);
+    
+    return convertToZNRecord(result, stateUnitGroup);
+  }
+  
+  public static ZNRecord calculateIdealStateBatch(List<List<String>> instanceBatches, int partitions, int replicas, String stateUnitGroup)
+  {
+    Map<String, Object> result = calculateInitialIdealState(instanceBatches.get(0), partitions, replicas);
+    
+    for(int i = 1; i < instanceBatches.size(); i++)
+    {
+      result = calculateNextIdealState(instanceBatches.get(i), result);
+    }
+    
+    return convertToZNRecord(result, stateUnitGroup);
+  }
+  
+  /**
+   * Convert the internal result (stored as a Map<String, Object>) into ZNRecord.
+   */
+  static ZNRecord convertToZNRecord(Map<String, Object> result, String stateUnitGroup)
+  {
+    Map<String, List<Integer>> nodeMasterAssignmentMap 
+    = (Map<String, List<Integer>>) (result.get(_MasterAssignmentMap));
+    Map<String, Map<String, List<Integer>>> nodeSlaveAssignmentMap 
+        = (Map<String, Map<String, List<Integer>>>)(result.get(_SlaveAssignmentMap));
+    
+    int partitions = (Integer)(result.get("partitions"));
+    
+    ZNRecord idealState = new ZNRecord();
+    idealState.setSimpleField("partitions", String.valueOf(partitions));
+    
+    idealState.setId(stateUnitGroup);
+    
+    for(String instanceName : nodeMasterAssignmentMap.keySet())
+    {
+      for(Integer partitionId : nodeMasterAssignmentMap.get(instanceName))
+      {
+        String partitionName = stateUnitGroup+"_"+partitionId;
+        if(!idealState.getMapFields().containsKey(partitionName))
+        {
+          idealState.setMapField(partitionName, new TreeMap<String, String>());
+        }
+        idealState.getMapField(partitionName).put(instanceName, "MASTER");
+      }
+    }
+    
+    for(String instanceName : nodeSlaveAssignmentMap.keySet())
+    {
+      Map<String, List<Integer>> slaveAssignmentMap = nodeSlaveAssignmentMap.get(instanceName);
+      
+      for(String slaveNode: slaveAssignmentMap.keySet())
+      {
+        List<Integer> slaveAssignment = slaveAssignmentMap.get(slaveNode);
+        for(Integer partitionId: slaveAssignment)
+        {
+          String partitionName = stateUnitGroup+"_"+partitionId;
+          idealState.getMapField(partitionName).put(slaveNode, "SLAVE");
+        }
+      }
+    }
+    
+    return idealState;
+  }
+  /**
+   * Calculate the initial ideal state given a batch of storage instances, the replication factor and
+   * number of partitions
    * 
    * 1. Calculate the master assignment by random shuffling
    * 2. for each storage instance, calculate the 1st slave assignment map, by another random shuffling
@@ -39,9 +127,9 @@ public class IdealStateCalculatorForStorageNode
    *          The number of replicas (slave partitions) per master partition
    * @return a map that contain the idealstate info
    */
-  public static Map<String, Object> calculateInitialIdealState(List<String> instanceNames, int weight, int partitions, int replicas)
+  public static Map<String, Object> calculateInitialIdealState(List<String> instanceNames, int partitions, int replicas)
   {
-    Random r = new Random(123456);
+    Random r = new Random(54321);
     assert(replicas < instanceNames.size() - 1);
     
     ArrayList<Integer> masterPartitionAssignment = new ArrayList<Integer>();
@@ -196,7 +284,7 @@ public class IdealStateCalculatorForStorageNode
    * @param order of the slave
    * @return the n-th slave assignment map for all the instances
    * */
-  public static Map<String, Map<String, List<Integer>>> calculateNextSlaveAssignemntMap(Map<String, Map<String, List<Integer>>> firstInstanceSlaveAssignmentMap, int replicaOrder)
+  static Map<String, Map<String, List<Integer>>> calculateNextSlaveAssignemntMap(Map<String, Map<String, List<Integer>>> firstInstanceSlaveAssignmentMap, int replicaOrder)
   {
     Map<String, Map<String, List<Integer>>> result = new TreeMap<String, Map<String, List<Integer>>>();
     
@@ -285,7 +373,7 @@ public class IdealStateCalculatorForStorageNode
    *          The previous ideal state
    * @return a map that contain the updated idealstate info
    * */
-  public static Map<String, Object> calculateNextIdealState(List<String> newInstances, int weight, Map<String, Object> previousIdealState)
+  public static Map<String, Object> calculateNextIdealState(List<String> newInstances, Map<String, Object> previousIdealState)
   {
     // Obtain the master / slave assignment info maps
     Map<String, List<Integer>> previousMasterAssignmentMap 
@@ -469,7 +557,7 @@ public class IdealStateCalculatorForStorageNode
    * @param removedAssignmentMap keep track of the removed slave assignment info. The info can be 
    *        used by new added storage nodes.
    * */
-  public static void removeFromSlaveAssignmentMap( Map<String, List<Integer>>slaveAssignmentMap, List<Integer> masterPartionsMoved, Map<String, List<Integer>> removedAssignmentMap)
+  static void removeFromSlaveAssignmentMap( Map<String, List<Integer>>slaveAssignmentMap, List<Integer> masterPartionsMoved, Map<String, List<Integer>> removedAssignmentMap)
   {
     for(String instanceName : slaveAssignmentMap.keySet())
     {
@@ -504,7 +592,7 @@ public class IdealStateCalculatorForStorageNode
    * @param removedAssignmentMap keep track of the removed slave assignment info. The info can be 
    *        used by new added storage nodes.
    * */
-  public static int migrateSlaveAssignMapToNewInstances(Map<String, List<Integer>> nodeSlaveAssignmentMap, List<String> newInstances)
+  static int migrateSlaveAssignMapToNewInstances(Map<String, List<Integer>> nodeSlaveAssignmentMap, List<String> newInstances)
   {
     int moves = 0;
     boolean done = false;
@@ -570,7 +658,7 @@ public class IdealStateCalculatorForStorageNode
    * @param selectedList  the list that contain selected elements
    * @param num number of elements to be selected
    * */
-  public static void randomSelect(List<Integer> originalList, List<Integer> selectedList, int num)
+  static void randomSelect(List<Integer> originalList, List<Integer> selectedList, int num)
   {
     assert(originalList.size() >= num);
     int[] indexArray = new int[originalList.size()];
@@ -589,119 +677,6 @@ public class IdealStateCalculatorForStorageNode
     }
   }
   
-  public static int migrateSlaveAssignMapToNewInstancesWithWeights(
-      Map<String, List<Integer>> nodeSlaveAssignmentMap, 
-      List<String> newInstances, 
-      Map<String, Double> existingInstanceWeights, 
-      double newInstanceWeight
-      )
-  {
-    int moves = 0;
-    boolean done = false;
-    for(String newInstance : newInstances)
-    {
-      nodeSlaveAssignmentMap.put(newInstance, new ArrayList<Integer>());
-    }
-    
-    
-    
-    while(!done)
-    {
-      List<Integer> maxAssignment = null, minAssignment = null;
-      int minCount = Integer.MAX_VALUE, maxCount = Integer.MIN_VALUE;
-      String minInstance = "";
-      for(String instanceName : nodeSlaveAssignmentMap.keySet())
-      {
-        List<Integer> slaveAssignment = nodeSlaveAssignmentMap.get(instanceName);
-        if(minCount > slaveAssignment.size())
-        {
-          minCount = slaveAssignment.size();
-          minAssignment = slaveAssignment;
-          minInstance = instanceName;
-        }
-        if(maxCount < slaveAssignment.size())
-        {
-          maxCount = slaveAssignment.size();
-          maxAssignment = slaveAssignment;
-        }
-      }
-      if(maxCount - minCount <= 1 )
-      {
-        done = true;
-      }
-      else
-      {
-        int indexToMove = -1;
-        // find a partition that is not contained in the minAssignment list
-        for(int i = 0; i < maxAssignment.size(); i++ )
-        {
-          if(!minAssignment.contains(maxAssignment.get(i)))
-          {
-            indexToMove = i;
-            break;
-          }
-        }
-         
-        minAssignment.add(maxAssignment.get(indexToMove));
-        maxAssignment.remove(indexToMove);
-        
-        if(newInstances.contains(minInstance))
-        {
-          moves++;
-        }
-      }
-    }
-    return moves;
-  }
-  
-  // distribute the partitions list to assignments according to the designated instanceWeights
-  // Used when calculating ini
-  public void assignPartitionListToWeightedInstances(List<Integer> partitions, List<Integer> instanceWeights, List<List<Integer>> assignments)
-  {
-    List<Integer> numPartitionsAssignedList = new ArrayList<Integer>(instanceWeights);
-    
-    int totalWeights = 0;
-    for(Integer weight: instanceWeights)
-    {
-      totalWeights += weight;
-    }
-    int remainderPartitions = partitions.size();
-    for(Integer weight: instanceWeights)
-    {
-      int partitionAssigned  = partitions.size() * weight / totalWeights;
-      remainderPartitions -= partitionAssigned;
-      numPartitionsAssignedList.add(weight);
-    }
-    
-    // take care of the "remainder" partitions, distribute them evenly
-    for(int i = 0; i < remainderPartitions; i++)
-    {
-      int assigned = numPartitionsAssignedList.get(i % numPartitionsAssignedList.size());
-      numPartitionsAssignedList.set(i % numPartitionsAssignedList.size(), assigned + 1);
-    }
-    
-    int previousAssigned = 0;
-    for(int i = 0; i < numPartitionsAssignedList.size(); i++)
-    {
-      Integer numPartitionsAssigned = numPartitionsAssignedList.get(i);
-      List<Integer> assignedList = assignments.get(i);
-      
-      for(int j = previousAssigned; j < previousAssigned + numPartitionsAssigned; j++)
-      {
-        assignedList.add(partitions.get(j));
-      }
-      previousAssigned += numPartitionsAssigned;
-    }
-  }
-
-  // TODO: implement this
-  public Map<String, Object> calculateIdealState(List<List<String>>nodeBatches, List<Integer> weights, int partitions, int replicas)
-  {
-    return null;
-  }
-  
-  
-  
   public static void main(String args[])
   {
     List<String> instanceNames = new ArrayList<String>();
@@ -710,7 +685,7 @@ public class IdealStateCalculatorForStorageNode
       instanceNames.add("localhost:123" + i);
     }
     int partitions = 48*3, replicas = 3;
-    Map<String, Object> resultOriginal = IdealStateCalculatorForStorageNode.calculateInitialIdealState(instanceNames,1, partitions, replicas);
+    Map<String, Object> resultOriginal = IdealStateCalculatorForStorageNode.calculateInitialIdealState(instanceNames, partitions, replicas);
     
   }
 }

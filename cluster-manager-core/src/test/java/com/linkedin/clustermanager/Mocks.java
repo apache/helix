@@ -168,6 +168,13 @@ public class Mocks
       return false;
     }
 
+    @Override
+    public long getLastNotificationTime()
+    {
+      // TODO Auto-generated method stub
+      return 0;
+    }
+
   }
 
   public static class MockAccessor implements ClusterDataAccessor
@@ -243,13 +250,6 @@ public class Mocks
     {
       // TODO Auto-generated method stub
 
-    }
-
-    @Override
-    public ClusterView getClusterView()
-    {
-      // TODO Auto-generated method stub
-      return null;
     }
 
     @Override

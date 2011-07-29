@@ -3,9 +3,9 @@ package com.linkedin.clustermanager.util;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.I0Itec.zkclient.ZkClient;
 
 import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
+import com.linkedin.clustermanager.agent.zk.ZkClient;
 
 public class ZKClientPool
 {

@@ -37,9 +37,9 @@ public class NotificationContext
     this._manager = manager;
   }
 
-  public void add(String key, Object name)
+  public void add(String key, Object value)
   {
-
+    _map.put(key, value);
   }
 
   public void setMap(Map<String, Object> map)

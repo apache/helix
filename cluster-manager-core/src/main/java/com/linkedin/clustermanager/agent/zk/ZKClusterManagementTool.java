@@ -3,7 +3,6 @@ package com.linkedin.clustermanager.agent.zk;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.I0Itec.zkclient.ZkClient;
 import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.ClusterDataAccessor;

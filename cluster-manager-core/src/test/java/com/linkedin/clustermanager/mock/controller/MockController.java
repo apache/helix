@@ -9,7 +9,6 @@ import java.util.Map;
 import java.util.Random;
 import java.util.TreeMap;
 
-import org.I0Itec.zkclient.ZkClient;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -20,8 +19,8 @@ import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.agent.zk.ZKDataAccessor;
 import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
+import com.linkedin.clustermanager.agent.zk.ZkClient;
 import com.linkedin.clustermanager.model.Message;
-import com.linkedin.clustermanager.tools.IdealStateCalculatorByShuffling;
 import com.linkedin.clustermanager.util.CMUtil;
 
 public class MockController

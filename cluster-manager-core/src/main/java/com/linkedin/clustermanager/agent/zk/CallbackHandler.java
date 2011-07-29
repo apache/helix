@@ -2,6 +2,7 @@ package com.linkedin.clustermanager.agent.zk;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.I0Itec.zkclient.IZkChildListener;
 import org.I0Itec.zkclient.IZkDataListener;
@@ -42,7 +43,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
   private final ClusterDataAccessor _accessor;
   private final ChangeType _changeType;
   private final ZkClient _zkClient;
-
+  private final AtomicLong lastNotificationTimeStamp;
   private final ClusterManager _manager;
 
   public CallbackHandler(ClusterManager manager, ZkClient client, String path,
@@ -55,6 +56,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
     this._listener = listener;
     this._eventTypes = eventTypes;
     this._changeType = changeType;
+    lastNotificationTimeStamp = new AtomicLong(System.nanoTime());
     init();
   }
 
@@ -65,7 +67,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
 
   public void invoke(NotificationContext changeContext) throws Exception
   {
-    // This allows the listener to work with
+    // This allows the listener to work with one change at a time
     synchronized (_listener)
     {
       if (logger.isDebugEnabled())
@@ -78,26 +80,26 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
       {
 
         IdealStateChangeListener idealStateChangeListener = (IdealStateChangeListener) _listener;
-        List<ZNRecord> idealStates = getChildren(_path, true, true);
-        _accessor.getClusterView().setClusterPropertyList(
-            ClusterPropertyType.IDEALSTATES, idealStates);
+        subscribeForChanges(_path, true, true);
+        List<ZNRecord> idealStates = _accessor
+            .getClusterPropertyList(ClusterPropertyType.IDEALSTATES);
         idealStateChangeListener.onIdealStateChange(idealStates, changeContext);
 
       } else if (_changeType == CONFIG)
       {
 
         ConfigChangeListener configChangeListener = (ConfigChangeListener) _listener;
-        List<ZNRecord> configs = getChildren(_path, true, true);
-        _accessor.getClusterView().setClusterPropertyList(
-            ClusterPropertyType.CONFIGS, configs);
+        subscribeForChanges(_path, true, true);
+        List<ZNRecord> configs = _accessor
+            .getClusterPropertyList(ClusterPropertyType.CONFIGS);
         configChangeListener.onConfigChange(configs, changeContext);
 
       } else if (_changeType == LIVE_INSTANCE)
       {
         LiveInstanceChangeListener liveInstanceChangeListener = (LiveInstanceChangeListener) _listener;
-        List<ZNRecord> liveInstances = getChildren(_path, true, false);
-        _accessor.getClusterView().setClusterPropertyList(
-            ClusterPropertyType.LIVEINSTANCES, liveInstances);
+        subscribeForChanges(_path, true, false);
+        List<ZNRecord> liveInstances = _accessor
+            .getClusterPropertyList(ClusterPropertyType.LIVEINSTANCES);
         liveInstanceChangeListener.onLiveInstanceChange(liveInstances,
             changeContext);
 
@@ -105,32 +107,28 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
       {
         CurrentStateChangeListener currentStateChangeListener;
         currentStateChangeListener = (CurrentStateChangeListener) _listener;
-        List<ZNRecord> currentStates = getChildren(_path, true, true);
+        subscribeForChanges(_path, true, true);
         String instanceName = CMUtil.getInstanceNameFromPath(_path);
-        MemberInstance instance;
-        instance = _accessor.getClusterView().getMemberInstance(instanceName,
-            true);
-        instance.setInstanceProperty(InstancePropertyType.CURRENTSTATES,
-            currentStates);
+        List<ZNRecord> currentStates = _accessor.getInstancePropertyList(
+            instanceName, InstancePropertyType.CURRENTSTATES);
         currentStateChangeListener.onStateChange(instanceName, currentStates,
             changeContext);
 
       } else if (_changeType == MESSAGE)
       {
         MessageListener messageListener = (MessageListener) _listener;
-        List<ZNRecord> messages = getChildren(_path, true, false);
+        subscribeForChanges(_path, true, false);
         String instanceName = CMUtil.getInstanceNameFromPath(_path);
-        MemberInstance memberInstance;
-        memberInstance = _accessor.getClusterView().getMemberInstance(
-            instanceName, true);
-        memberInstance.setInstanceProperty(InstancePropertyType.MESSAGES,
-            messages);
+        List<ZNRecord> messages = _accessor.getInstancePropertyList(
+            instanceName, InstancePropertyType.MESSAGES);
         messageListener.onMessage(instanceName, messages, changeContext);
 
       } else if (_changeType == EXTERNAL_VIEW)
       {
         ExternalViewChangeListener externalViewListener = (ExternalViewChangeListener) _listener;
-        List<ZNRecord> externalViewList = getChildren(_path, true, true);
+        subscribeForChanges(_path, true, true);
+        List<ZNRecord> externalViewList = _accessor
+            .getClusterPropertyList(ClusterPropertyType.EXTERNALVIEW);
         externalViewListener.onExternalViewChange(externalViewList,
             changeContext);
       }
@@ -143,12 +141,11 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
     }
   }
 
-  private List<ZNRecord> getChildren(String path, boolean watchParent,
+  private void subscribeForChanges(String path, boolean watchParent,
       boolean watchChild)
   {
     // parent watch will be set by zkClient
     List<String> children = _zkClient.getChildren(path);
-    List<ZNRecord> childRecords = new ArrayList<ZNRecord>();
     for (String child : children)
     {
       String childPath = path + "/" + child;
@@ -158,14 +155,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
         // checks the existence
         _zkClient.subscribeDataChanges(childPath, this);
       }
-      ZNRecord record = _zkClient.readData(childPath, true);
-      if (record != null)
-      {
-        childRecords.add(record);
-      }
-
     }
-    return childRecords;
   }
 
   public EventType[] getEventTypes()
@@ -177,6 +167,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
   // the zookeeper if any exists
   public void init()
   {
+    updateNotificationTime(System.nanoTime());
     try
     {
       NotificationContext changeContext = new NotificationContext(_manager);
@@ -191,6 +182,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
   @Override
   public void handleDataChange(String dataPath, Object data) throws Exception
   {
+    updateNotificationTime(System.nanoTime());
     if (dataPath != null && dataPath.startsWith(_path))
     {
       NotificationContext changeContext = new NotificationContext(_manager);
@@ -202,9 +194,9 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
   @Override
   public void handleDataDeleted(String dataPath) throws Exception
   {
+    updateNotificationTime(System.nanoTime());
     if (dataPath != null && dataPath.startsWith(_path))
     {
-      // TODO need to unsubscribe after a node is deleted
       NotificationContext changeContext = new NotificationContext(_manager);
       changeContext.setType(NotificationContext.Type.CALLBACK);
       _zkClient.unsubscribeChildChanges(dataPath, this);
@@ -216,11 +208,28 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
   public void handleChildChange(String parentPath, List<String> currentChilds)
       throws Exception
   {
+    updateNotificationTime(System.nanoTime());
     if (parentPath != null && parentPath.startsWith(_path))
     {
       NotificationContext changeContext = new NotificationContext(_manager);
       changeContext.setType(NotificationContext.Type.CALLBACK);
       invoke(changeContext);
+    }
+  }
+
+  private void updateNotificationTime(long nanoTime)
+  {
+    long l = lastNotificationTimeStamp.get();
+    while (nanoTime > l)
+    {
+      boolean b = lastNotificationTimeStamp.compareAndSet(l, nanoTime);
+      if (b)
+      {
+        break;
+      } else
+      {
+        l = lastNotificationTimeStamp.get();
+      }
     }
   }
 

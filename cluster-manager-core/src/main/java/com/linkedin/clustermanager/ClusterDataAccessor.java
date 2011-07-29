@@ -11,18 +11,21 @@ public interface ClusterDataAccessor
   public enum ClusterPropertyType
   {
     CONFIGS(true, false), LIVEINSTANCES(false, false), INSTANCES(true, false), IDEALSTATES(
-        true, false), EXTERNALVIEW(true, false);
+        true, false), EXTERNALVIEW(true, false), STATEMODELDEF(true, false);
 
     boolean isPersistent;
 
     boolean mergeOnUpdate;
 
     boolean updateOnlyOnExists;
-    private ClusterPropertyType(boolean isPersistent, boolean mergeOnUpdate){
-      this(isPersistent,mergeOnUpdate,false);
+
+    private ClusterPropertyType(boolean isPersistent, boolean mergeOnUpdate)
+    {
+      this(isPersistent, mergeOnUpdate, false);
     }
-    
-    private ClusterPropertyType(boolean isPersistent, boolean mergeOnUpdate,  boolean updateOnlyOnExists)
+
+    private ClusterPropertyType(boolean isPersistent, boolean mergeOnUpdate,
+        boolean updateOnlyOnExists)
     {
       this.isPersistent = isPersistent;
       this.mergeOnUpdate = mergeOnUpdate;
@@ -58,7 +61,6 @@ public interface ClusterDataAccessor
     {
       this.updateOnlyOnExists = updateOnlyOnExists;
     }
-    
 
   }
 
@@ -69,26 +71,27 @@ public interface ClusterDataAccessor
 
   public enum InstancePropertyType
   {
-    MESSAGES(true, true, true), CURRENTSTATES(false, true,false), STATUSUPDATES(true, true, false), ERRORS(
-        true, false);
+    MESSAGES(true, true, true), CURRENTSTATES(false, true, false), STATUSUPDATES(
+        true, true, false), ERRORS(true, false);
 
     boolean isPersistent;
 
     boolean mergeOnUpdate;
-  
+
     boolean updateOnlyOnExists;
 
     private InstancePropertyType(boolean isPersistent, boolean mergeOnUpdate)
     {
-      this(isPersistent,mergeOnUpdate,false);
+      this(isPersistent, mergeOnUpdate, false);
     }
-    private InstancePropertyType(boolean isPersistent, boolean mergeOnUpdate,  boolean updateOnlyOnExists)
+
+    private InstancePropertyType(boolean isPersistent, boolean mergeOnUpdate,
+        boolean updateOnlyOnExists)
     {
       this.isPersistent = isPersistent;
       this.mergeOnUpdate = mergeOnUpdate;
       this.updateOnlyOnExists = updateOnlyOnExists;
     }
-
 
     public boolean isPersistent()
     {
@@ -109,10 +112,12 @@ public interface ClusterDataAccessor
     {
       this.mergeOnUpdate = mergeOnUpdate;
     }
+
     public boolean isUpdateOnlyOnExists()
     {
       return updateOnlyOnExists;
     }
+
     public void setUpdateOnlyOnExists(boolean updateOnlyOnExists)
     {
       this.updateOnlyOnExists = updateOnlyOnExists;
@@ -149,8 +154,6 @@ public interface ClusterDataAccessor
 
   void updateInstanceProperty(String instanceName,
       InstancePropertyType instanceProperty, String key, ZNRecord value);
-
-  ClusterView getClusterView();
 
   void setClusterProperty(ClusterPropertyType clusterProperty, String key,
       ZNRecord value, CreateMode mode);

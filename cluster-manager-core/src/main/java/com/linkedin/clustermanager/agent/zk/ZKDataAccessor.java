@@ -3,7 +3,6 @@ package com.linkedin.clustermanager.agent.zk;
 import java.util.List;
 
 import org.I0Itec.zkclient.DataUpdater;
-import org.I0Itec.zkclient.ZkClient;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 

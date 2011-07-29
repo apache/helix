@@ -24,7 +24,7 @@ public class TestEspressoStorageClusterIdealState
     {
       instanceNames.add("localhost:123" + i);
     }
-    int partitions = 400, replicas = 3;
+    int partitions = 8192, replicas = 3;
     Map<String, Object> resultOriginal = IdealStateCalculatorForStorageNode.calculateInitialIdealState(instanceNames, partitions, replicas);
     
     Verify(resultOriginal, partitions,replicas);

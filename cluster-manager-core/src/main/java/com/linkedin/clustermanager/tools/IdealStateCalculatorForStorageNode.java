@@ -164,24 +164,28 @@ public class IdealStateCalculatorForStorageNode
     for(int i = 0; i < instanceNames.size(); i++)
     {
       List<String> slaveInstances = new ArrayList<String>();
+      ArrayList<Integer> slaveAssignment = new ArrayList<Integer>();
+      TreeMap<String, List<Integer>> slaveAssignmentMap = new TreeMap<String, List<Integer>>();
+      
       for(int j = 0;j < instanceNames.size(); j++)
       {
         if(j != i)
         {
           slaveInstances.add(instanceNames.get(j)); 
+          slaveAssignmentMap.put(instanceNames.get(j), new ArrayList<Integer>());
         }
       }
       // Get the number of master partitions on instanceName
       List<Integer> masterAssignment =  nodeMasterAssignmentMap.get(instanceNames.get(i));
       // do a random shuffling as in step 1, so that the first-level slave are distributed among rest instances
-      ArrayList<Integer> slaveAssignment = new ArrayList<Integer>();
+      
+      
       for(int j = 0;j < masterAssignment.size(); j++)
       {
         slaveAssignment.add(j);
       }
       Collections.shuffle(slaveAssignment, new Random(r.nextInt()));
       
-      TreeMap<String, List<Integer>> slaveAssignmentMap = new TreeMap<String, List<Integer>>();
       
       // Get the slave assignment map of node instanceName
       for(int j = 0;j < masterAssignment.size(); j++)

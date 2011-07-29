@@ -5,7 +5,7 @@
 source setup_env.inc
 export TEST_NAME=clm_zk_dummyprocess.test
 
-zookeeper_server_ports="localhost:2188,localhost:2189,localhost:2190"
+zookeeper_server_ports="localhost:2188"
 # default datadir integration_test/var/work/zookeeper/data/1
 # start the zookeeper cluster
 $SCRIPT_DIR/cm_driver.py -c zookeeper -o start --zookeeper_reset --zookeeper_server_ports=${zookeeper_server_ports}  --cmdline_props="tickTime=2000;initLimit=5;syncLimit=2" 
@@ -45,7 +45,7 @@ $SCRIPT_DIR/cm_driver.py -c dummy-process -o start -l "integration-test/config/l
 #Launch the cluster manager
 $SCRIPT_DIR/cm_driver.py -c cluster-manager -o start -l "integration-test/config/log4j.properties" --cmdline_args="-zkSvr localhost:2188 -cluster storage-cluster-12345"
 
-sleep 60
+sleep 6
 
 #$SCRIPT_DIR/cm_driver.py -c cluster-manager -o stop 
 

@@ -4,7 +4,8 @@
 # start zookeeper on localhost:2183
 source setup_env.inc
 
-zookeeper_server_ports="localhost:2188,localhost:2189,localhost:2190"
+#zookeeper_server_ports="localhost:2188,localhost:2189,localhost:2190"
+zookeeper_server_ports="localhost:2188"
 # default datadir integration_test/var/work/zookeeper/data/1
 # start the zookeeper cluster
 $SCRIPT_DIR/cm_driver.py -c zookeeper -o start --zookeeper_reset --zookeeper_server_ports=${zookeeper_server_ports}  --cmdline_props="tickTime=2000;initLimit=5;syncLimit=2" 
@@ -43,14 +44,23 @@ sleep 2
 
 $SCRIPT_DIR/cm_driver.py -c cluster-manager -o start -l "integration-test/config/log4j.properties" --cmdline_args="-zkSvr localhost:2188 -cluster storage-cluster-12345"
 
-sleep 60
+sleep 6
 
 $SCRIPT_DIR/cm_driver.py -c cluster-manager -o stop
 
 #verify cluster state
-$SCRIPT_DIR/cm_driver.py -c cluster-state-verifier -o start -l "integration-test/config/log4j.properties" --cmdline_args="-zkSvr localhost:2188 -cluster storage-cluster-12345"
+$SCRIPT_DIR/cm_driver.py -c cluster-state-verifier -o start --logfile=$verifier_1_output -l "integration-test/config/log4j.properties" --cmdline_args="-zkSvr localhost:2188 -cluster storage-cluster-12345"
 
 $SCRIPT_DIR/cm_driver.py -c mock-storage -o stop
+
+echo == GREP SUCCEED ==
+#find ~/EspressoLogs/ -mmin -10 -print | xargs grep succeed
+grep Successful $verifier_1_output
+
+source report_pass_fail.inc
+
+exit $all_stat
+
 
 # do not stop for now so that people can view the state
 #$SCRIPT_DIR/cm_driver.py -c zookeeper -o start

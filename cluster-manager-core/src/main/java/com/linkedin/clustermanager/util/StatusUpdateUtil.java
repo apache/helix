@@ -68,7 +68,8 @@ public class StatusUpdateUtil
         + message.getToState().charAt(0) + "  "
         + message.getMsgId();
     result.setId(id);
-
+    
+    
     result.setSimpleField("AdditionalInfo", additionalInfo);
     return result;
   }
@@ -94,7 +95,7 @@ public class StatusUpdateUtil
   {
     ZNRecord record = createMessageStatusUpdateRecord(message, level,
         classInfo, additionalInfo);
-    publishStatusUpdateRecord(record, message.getTgtName(), accessor);
+    publishStatusUpdateRecord(record, message, accessor);
   }
 
   public void logError(Message message, Class classInfo, String additionalInfo,
@@ -129,18 +130,27 @@ public class StatusUpdateUtil
    *          the zookeeper data accessor that writes the status update to
    *          zookeeper
    */
-  public void publishStatusUpdateRecord(ZNRecord record, String instanceName,
+  public void publishStatusUpdateRecord(ZNRecord record, Message message,
       ClusterDataAccessor accessor)
   {
+    String instanceName = message.getTgtName();
+    String statusUpdateSubPath = getStatusUpdateSubPath(message);
+      
     accessor.setInstanceProperty(instanceName,
-        InstancePropertyType.STATUSUPDATES, record.getId(), record);// ,
+        InstancePropertyType.STATUSUPDATES, statusUpdateSubPath, record.getId(), record);// ,
                                                                     // CreateMode.PERSISTENT_SEQUENTIAL);
 
     // If the error level is ERROR, also write the record to "ERROR" ZNode
     if (Level.ERROR.toString().equalsIgnoreCase(record.getSimpleField("LEVEL")))
     {
-      publishErrorRecord(record, instanceName, accessor);
+      publishErrorRecord(record, message, accessor);
     }
+  }
+  
+  String getStatusUpdateSubPath(Message message)
+  {
+    return message.getTgtSessionId() + "__" + message.getStateUnitGroup() + 
+      "/" + message.getStateUnitKey();
   }
 
   /**
@@ -154,11 +164,13 @@ public class StatusUpdateUtil
    *          the zookeeper data accessor that writes the status update to
    *          zookeeper
    */
-  void publishErrorRecord(ZNRecord record, String instanceName,
+  void publishErrorRecord(ZNRecord record, Message message,
       ClusterDataAccessor accessor)
   {
     assert (record.getSimpleField("LEVEL").equalsIgnoreCase("ERROR"));
+    String instanceName = message.getTgtName();
+    String statusUpdateSubPath = getStatusUpdateSubPath(message);
     accessor.setInstanceProperty(instanceName, InstancePropertyType.ERRORS,
-        record.getId(), record);// , CreateMode.PERSISTENT_SEQUENTIAL);
+        statusUpdateSubPath, record.getId(), record);// , CreateMode.PERSISTENT_SEQUENTIAL);
   }
 }

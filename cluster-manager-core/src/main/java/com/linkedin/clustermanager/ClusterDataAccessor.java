@@ -134,6 +134,9 @@ public interface ClusterDataAccessor
   // instance values
   void setInstanceProperty(String instanceName,
       InstancePropertyType instanceProperty, String key, final ZNRecord value);
+  
+  void setInstanceProperty(String instanceName,
+      InstancePropertyType instanceProperty, String subPath, String key, final ZNRecord value);
 
   ZNRecord getInstanceProperty(String instanceName,
       InstancePropertyType instanceProperty, String key);

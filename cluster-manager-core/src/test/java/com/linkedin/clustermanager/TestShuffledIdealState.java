@@ -39,7 +39,7 @@ public class TestShuffledIdealState
     ZNRecord result = IdealStateCalculatorByShuffling.calculateIdealState(
         instanceNames, partitions, replicas, dbName);
     
-    ZNRecord result2 = IdealStateCalculatorByRush.calculateIdealState(instanceNames, partitions, replicas, dbName);
+    ZNRecord result2 = IdealStateCalculatorByRush.calculateIdealState(instanceNames, 1, partitions, replicas, dbName);
     
     ZNRecord result3 = IdealCalculatorByConsistentHashing.calculateIdealState(instanceNames, partitions, replicas, dbName, new IdealCalculatorByConsistentHashing.FnvHash());
     IdealCalculatorByConsistentHashing.printIdealStateStats(result3, "MASTER");

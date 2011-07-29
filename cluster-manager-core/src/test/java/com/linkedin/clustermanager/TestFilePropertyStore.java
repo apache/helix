@@ -59,6 +59,7 @@ public class TestFilePropertyStore
   @Test
   public void testInvocation() throws Exception
   {
+    final int SLEEP_TIME = 2000;
     // StringPropertySerializer serializer = new StringPropertySerializer();
     PropertyJsonSerializer<String> serializer = new PropertyJsonSerializer<String>(String.class);
     String rootNamespace = "/tmp/testFilePropertyStore";
@@ -84,7 +85,7 @@ public class TestFilePropertyStore
     Assert.assertEquals(value, null);
     value = store.getProperty("testPath1/testPath2");
     Assert.assertEquals(value, "testValue2-I\n");
-    Thread.sleep(1000);
+    Thread.sleep(SLEEP_TIME);
     
     // test subscribe
     MyPropertyChangeListener listener = new MyPropertyChangeListener();
@@ -95,7 +96,7 @@ public class TestFilePropertyStore
     store.subscribeForPropertyChange("testPath1", listener2);
     
     store.setProperty("testPath1/testPath3", "testValue3-II\n");
-    Thread.sleep(1000);
+    Thread.sleep(SLEEP_TIME);
     Assert.assertEquals(listener._propertyChangeReceived, true);
     Assert.assertEquals(listener2._propertyChangeReceived, true);
     
@@ -105,7 +106,7 @@ public class TestFilePropertyStore
     // test unsubscribe
     store.unsubscribeForPropertyChange("testPath1", listener);
     store.setProperty("testPath1/testPath4", "testValue4-I\n");
-    Thread.sleep(1000);
+    Thread.sleep(SLEEP_TIME);
     
     Assert.assertEquals(listener._propertyChangeReceived, false);
     Assert.assertEquals(listener2._propertyChangeReceived, true);
@@ -116,7 +117,7 @@ public class TestFilePropertyStore
     store.removeProperty("testPath1/testPath3");
     value = store.getProperty("testPath1/testPath3");
     Assert.assertEquals(value, null);
-    Thread.sleep(1000);
+    Thread.sleep(SLEEP_TIME);
     Assert.assertEquals(listener2._propertyChangeReceived, true);
     listener2._propertyChangeReceived = false;
     

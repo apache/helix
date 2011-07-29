@@ -92,13 +92,14 @@ public class IdealStateCalculatorByRush
         nodesInClusters, replicas + 1, clusterWeights);
     RUSHrHash rushHash = new RUSHrHash(rushConfig);
 
+    Random r = new Random(0);
     for (int i = 0; i < partitions; i++)
     {
       int partitionId = i;
       String partitionName = dbName + ".partition-" + partitionId;
 
       ArrayList<HashMap> partitionAssignmentResult = rushHash
-          .findNode(partitionName);
+          .findNode(i);
       List<String> nodeNames = new ArrayList<String>();
       for (HashMap p : partitionAssignmentResult)
       {
@@ -111,91 +112,38 @@ public class IdealStateCalculatorByRush
         }
       }
       Map<String, String> partitionAssignment = new TreeMap<String, String>();
-      // the first in the list is the node that contains the master
-      partitionAssignment.put(nodeNames.get(0), "MASTER");
-      // for the jth replica, we put it on (masterNode + j) % nodes-th node
-      for (int j = 1; j < nodeNames.size(); j++)
+      
+      for (int j = 0; j < nodeNames.size(); j++)
       {
         partitionAssignment.put(nodeNames.get(j), "SLAVE");
       }
+      int master = r.nextInt(nodeNames.size());
+      //master = nodeNames.size()/2;
+      partitionAssignment.put(nodeNames.get(master), "MASTER");
+      
 
       result.setMapField(partitionName, partitionAssignment);
     }
     result.setSimpleField("partitions", String.valueOf(partitions));
     return result;
   }
-
-  /**
-   * Calculate the ideal state for list of instances. The function put all the
-   * instance in one single cluster.
-   * 
-   * @param instanceNames
-   *          List of instance names.
-   * @param partitions
-   *          the partition number of the database
-   * @param replicas
-   *          the replication degree
-   * @param dbName
-   *          the name of the database
-   * @return The ZNRecord that contains the ideal state
-   */
-  public static ZNRecord calculateIdealState(List<String> instanceNames,
-      int partitions, int replicas, String dbName) throws Exception
+  
+  public static ZNRecord calculateIdealState(
+      List<String> instanceClusters,
+      int instanceClusterWeight, int partitions, int replicas,
+      String dbName) throws Exception
   {
-    if (instanceNames.size() <= replicas)
-    {
-      throw new IllegalArgumentException(
-          "Replicas must be less than number of storage nodes");
-    }
-
-    int numberOfClusters = 1;
-    List<List<String>> nodesInClusters = new ArrayList<List<String>>();
-    nodesInClusters.add(instanceNames);
-    List<Integer> clusterWeights = new ArrayList<Integer>();
-    clusterWeights.add(1);
-
-    HashMap<String, Object> rushConfig = buildRushConfig(numberOfClusters,
-        nodesInClusters, replicas, clusterWeights);
-    RUSHrHash rushHash = new RUSHrHash(rushConfig);
-
-    ZNRecord result = new ZNRecord();
-    result.setId(dbName);
-
-    for (int i = 0; i < partitions; i++)
-    {
-      int partitionId = i;
-      String partitionName = dbName + "-" + partitionId;
-
-      ArrayList<HashMap> partitionAssignmentResult = rushHash
-          .findNode(partitionName);
-      List<String> nodeNames = new ArrayList<String>();
-      for (HashMap p : partitionAssignmentResult)
-      {
-        for (Object key : p.keySet())
-        {
-          if (p.get(key) instanceof String)
-          {
-            nodeNames.add(p.get(key).toString());
-          }
-        }
-      }
-      Map<String, String> partitionAssignment = new TreeMap<String, String>();
-      // the first in the list is the node that contains the master
-      partitionAssignment.put(nodeNames.get(0), "MASTER");
-
-      // for the jth replica, we put it on (masterNode + j) % nodes-th
-      // node
-      for (int j = 1; j < nodeNames.size(); j++)
-      {
-        partitionAssignment.put(nodeNames.get(j), "SLAVE");
-      }
-
-      result.setMapField(partitionName, partitionAssignment);
-    }
-    result.setSimpleField("partitions", String.valueOf(partitions));
-    return result;
+    List<List<String>> instanceClustersList = new ArrayList<List<String>>();
+    instanceClustersList.add(instanceClusters);
+    
+    List<Integer> instanceClusterWeightList = new ArrayList<Integer>();
+    instanceClusterWeightList.add(instanceClusterWeight);
+    
+    return calculateIdealState(
+        instanceClustersList,
+        instanceClusterWeightList, partitions, replicas,
+        dbName);
   }
-
   /**
    * Helper function to see how many partitions are mapped to different
    * instances in two ideal states
@@ -203,6 +151,7 @@ public class IdealStateCalculatorByRush
   public static void printDiff(ZNRecord record1, ZNRecord record2)
   {
     int diffCount = 0;
+    int diffCountMaster = 0;
     for (String key : record1.getMapFields().keySet())
     {
       Map<String, String> map1 = record1.getMapField(key);
@@ -213,13 +162,15 @@ public class IdealStateCalculatorByRush
         if (!map2.containsKey(k))
         {
           diffCount++;
-        } else if (!map1.get(k).equalsIgnoreCase(map2.get(k)))
+        } 
+        else if (!map1.get(k).equalsIgnoreCase(map2.get(k)))
         {
-          diffCount++;
+          diffCountMaster++;
         }
       }
     }
-    System.out.println("diff count = " + diffCount);
+    System.out.println("\ndiff count = " + diffCount);
+    System.out.println("\nmaster diff count:"+ diffCountMaster);
   }
 
   /**
@@ -229,6 +180,7 @@ public class IdealStateCalculatorByRush
   public static void printIdealStateStats(ZNRecord record)
   {
     Map<String, Integer> countsMap = new TreeMap<String, Integer>();
+    Map<String, Integer> masterCountsMap = new TreeMap<String, Integer>();
     for (String key : record.getMapFields().keySet())
     {
       Map<String, String> map1 = record.getMapField(key);
@@ -236,11 +188,20 @@ public class IdealStateCalculatorByRush
       {
         if (!countsMap.containsKey(k))
         {
-          countsMap.put(k, new Integer(0));//
-        }
-        if (map1.get(k).equalsIgnoreCase("MASTER"))
+          countsMap.put(k, new Integer(0));
+        }   
+        else
         {
           countsMap.put(k, countsMap.get(k).intValue() + 1);
+        }
+        if (!masterCountsMap.containsKey(k))
+        {
+          masterCountsMap.put(k, new Integer(0));
+          
+        }   
+        else if (map1.get(k).equalsIgnoreCase("MASTER"))
+        {
+          masterCountsMap.put(k, masterCountsMap.get(k).intValue() + 1);
         }
       }
     }
@@ -261,7 +222,27 @@ public class IdealStateCalculatorByRush
       }
       System.out.print(count + " ");
     }
-    System.out.println();
+    System.out.println("\nMax count: " + maxCount + " min count:" + minCount);
+    System.out.println("\n master:");
+    double sumMaster = 0;
+    int maxCountMaster = 0;
+    int minCountMaster = Integer.MAX_VALUE;
+    for (String k : masterCountsMap.keySet())
+    {
+      int count = masterCountsMap.get(k);
+      sumMaster += count;
+      if (maxCountMaster < count)
+      {
+        maxCountMaster = count;
+      }
+      if (minCountMaster > count)
+      {
+        minCountMaster = count;
+      }
+      System.out.print(count + " ");
+    }
+    System.out.println("\nMean master: "+ 1.0*sumMaster/countsMap.size());
+    System.out.println("Max master count: " + maxCountMaster + " min count:" + minCountMaster);
     double mean = sum / (countsMap.size());
     // calculate the deviation of the node distribution
     double deviation = 0;
@@ -273,9 +254,10 @@ public class IdealStateCalculatorByRush
     System.out.println("Mean: " + mean + " normal deviation:"
         + Math.sqrt(deviation / countsMap.size()) / mean);
 
-    System.out.println("Max count: " + maxCount + " min count:" + minCount);
+    //System.out.println("Max count: " + maxCount + " min count:" + minCount);
     int steps = 10;
     int stepLen = (maxCount - minCount) / steps;
+    if(stepLen == 0) return;
     List<Integer> histogram = new ArrayList<Integer>((maxCount - minCount)
         / stepLen + 1);
 
@@ -298,13 +280,13 @@ public class IdealStateCalculatorByRush
 
   public static void main(String args[]) throws Exception
   {
-    int partitions = 6000, replicas = 4;
+    int partitions = 4096, replicas = 2;
     String dbName = "espressoDB1";
     List<String> instanceNames = new ArrayList<String>();
     List<List<String>> instanceCluster1 = new ArrayList<List<String>>();
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < 20; i++)
     {
-      instanceNames.add("localhost_123" + i);
+      instanceNames.add("local"+i+"host_123" + i);
     }
     instanceCluster1.add(instanceNames);
     List<Integer> weights1 = new ArrayList<Integer>();
@@ -315,7 +297,7 @@ public class IdealStateCalculatorByRush
     printIdealStateStats(result);
 
     List<String> instanceNames2 = new ArrayList<String>();
-    for (int i = 400; i < 410; i++)
+    for (int i = 400; i < 405; i++)
     {
       instanceNames2.add("localhost_123" + i);
     }

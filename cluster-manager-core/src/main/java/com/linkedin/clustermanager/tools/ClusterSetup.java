@@ -138,7 +138,7 @@ public class ClusterSetup
     int partitions = Integer
         .parseInt(dbIdealState.getSimpleField("partitions"));
 
-    ZNRecord idealState = IdealStateCalculatorByShuffling.calculateIdealState(
+    ZNRecord idealState = IdealStateCalculatorForStorageNode.calculateIdealState(
         nodeNames, partitions, replica, resourceGroupName);
     managementTool.setResourceGroupIdealState(clusterName, resourceGroupName, idealState);
   }

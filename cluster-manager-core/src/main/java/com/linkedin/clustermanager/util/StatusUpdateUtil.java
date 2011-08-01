@@ -5,6 +5,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.log4j.Logger;
@@ -87,7 +88,7 @@ public class StatusUpdateUtil
         + message.getStateUnitKey() + " Trans:"
         + message.getFromState().charAt(0) + "->"
         + message.getToState().charAt(0) + "  "
-        + message.getMsgId();
+        + UUID.randomUUID().toString();
     result.setMapField(id, contentMap);
     
     result.setId(getStatusUpdateSubPath(message));

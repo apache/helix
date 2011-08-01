@@ -72,7 +72,7 @@ public interface ClusterDataAccessor
   public enum InstancePropertyType
   {
     MESSAGES(true, true, true), CURRENTSTATES(false, true, false), STATUSUPDATES(
-        true, true, false), ERRORS(true, false);
+        true, true, false), ERRORS(true, true);
 
     boolean isPersistent;
 
@@ -141,6 +141,9 @@ public interface ClusterDataAccessor
       InstancePropertyType instanceProperty, String key, final ZNRecord value);
   
   void setInstanceProperty(String instanceName,
+      InstancePropertyType instanceProperty, String subPath, String key, final ZNRecord value);
+  
+  void updateInstanceProperty(String instanceName,
       InstancePropertyType instanceProperty, String subPath, String key, final ZNRecord value);
 
   ZNRecord getInstanceProperty(String instanceName,

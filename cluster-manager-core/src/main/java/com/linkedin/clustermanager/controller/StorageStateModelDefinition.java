@@ -2,10 +2,18 @@ package com.linkedin.clustermanager.controller;
 
 import org.apache.log4j.Logger;
 
+import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.model.StateModelDefinition;
 
 public class StorageStateModelDefinition extends StateModelDefinition
 {
+  public StorageStateModelDefinition(ZNRecord record)
+  {
+    super(record);
+  }
+
+  
+
   private static Logger logger = Logger.getLogger(StorageStateModelDefinition.class);
   @Override
   public String getNextStateForTransition(String fromState, String toState)

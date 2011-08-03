@@ -49,7 +49,7 @@ public class ClusterController implements ConfigChangeListener,
 
   public ClusterController()
   {
-    this(new StorageStateModelDefinition());
+    this(new StorageStateModelDefinition(new ZNRecord()));
   }
 
   public ClusterController(StateModelDefinition stateModelDefinition)

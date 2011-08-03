@@ -38,7 +38,7 @@ public class IntegrationTest
       @Override
       public void createDefaultNameSpace(ZkClient zkClient)
       {
-        zkClient.deleteRecursive("/test-cluster");
+        zkClient.deleteRecursive("/ESPRESSO_STORAGE");
         zkClient.deleteRecursive("/relay-cluster-12345");
       }
     };
@@ -46,33 +46,33 @@ public class IntegrationTest
     ZkServer zkServer = new ZkServer(dataDir, logDir, defaultNameSpace, port);
     zkServer.start();
     ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addCluster test-cluster"));
+        .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addCluster ESPRESSO_STORAGE"));
     ClusterSetup
         .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addCluster relay-cluster-12345"));
     ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addResourceGroup test-cluster db-12345 100"));
+        .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addResourceGroup ESPRESSO_STORAGE db-12345 100"));
     ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addNode test-cluster localhost:8900"));
+        .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addNode ESPRESSO_STORAGE localhost:8900"));
     ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addNode test-cluster localhost:8901"));
+        .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addNode ESPRESSO_STORAGE localhost:8901"));
     ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addNode test-cluster localhost:8902"));
+        .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addNode ESPRESSO_STORAGE localhost:8902"));
     ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addNode test-cluster localhost:8903"));
+        .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addNode ESPRESSO_STORAGE localhost:8903"));
     ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addNode test-cluster localhost:8904"));
+        .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addNode ESPRESSO_STORAGE localhost:8904"));
     ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -rebalance test-cluster db-12345 3"));
-    startDummyProcess(createArgs("-zkSvr localhost:2181 -cluster test-cluster -host localhost -port 8900"));
-    startDummyProcess(createArgs("-zkSvr localhost:2181 -cluster test-cluster -host localhost -port 8901"));
-    startDummyProcess(createArgs("-zkSvr localhost:2181 -cluster test-cluster -host localhost -port 8902"));
-    startDummyProcess(createArgs("-zkSvr localhost:2181 -cluster test-cluster -host localhost -port 8903"));
-    startDummyProcess(createArgs("-zkSvr localhost:2181 -cluster test-cluster -host localhost -port 8904"));
-    startClusterManager(createArgs("-zkSvr localhost:2181 -cluster test-cluster"));
+        .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -rebalance ESPRESSO_STORAGE db-12345 3"));
+    startDummyProcess(createArgs("-zkSvr localhost:2181 -cluster ESPRESSO_STORAGE -host localhost -port 8900"));
+    startDummyProcess(createArgs("-zkSvr localhost:2181 -cluster ESPRESSO_STORAGE -host localhost -port 8901"));
+    startDummyProcess(createArgs("-zkSvr localhost:2181 -cluster ESPRESSO_STORAGE -host localhost -port 8902"));
+    startDummyProcess(createArgs("-zkSvr localhost:2181 -cluster ESPRESSO_STORAGE -host localhost -port 8903"));
+    startDummyProcess(createArgs("-zkSvr localhost:2181 -cluster ESPRESSO_STORAGE -host localhost -port 8904"));
+    startClusterManager(createArgs("-zkSvr localhost:2181 -cluster ESPRESSO_STORAGE"));
     Thread.sleep(30000);
 //    Thread.currentThread().join();
     AssertJUnit.assertTrue(ClusterStateVerifier
-        .verifyState(createArgs("-zkSvr localhost:2181 -cluster test-cluster")));
+        .verifyState(createArgs("-zkSvr localhost:2181 -cluster ESPRESSO_STORAGE")));
     //Thread.currentThread().join();
      zkServer.shutdown();
   }

@@ -103,6 +103,7 @@ public class MessageGenerationPhase extends AbstractBaseStage
         }
       }
     }
+    event.addAttribute(AttributeName.MESSAGES_ALL.toString(), output);
   }
 
   private Message createMessage(String resourceGroupName,

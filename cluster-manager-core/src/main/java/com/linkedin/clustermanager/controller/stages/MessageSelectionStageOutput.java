@@ -5,14 +5,12 @@ import java.util.List;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.ResourceKey;
 
-public class MessageGenerationOutput
+public class MessageSelectionStageOutput
 {
 
-  public void addMessage(String resourceGroupName, ResourceKey resource,
-      Message message)
+  public void addMessages(String resourceGroupName, ResourceKey resource,
+      List<Message> selectedMessages)
   {
-
-    
     
   }
 

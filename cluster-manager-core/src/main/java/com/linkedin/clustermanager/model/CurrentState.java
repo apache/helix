@@ -1,7 +1,9 @@
 package com.linkedin.clustermanager.model;
 
+import java.util.HashMap;
 import java.util.Map;
 
+import static com.linkedin.clustermanager.CMConstants.ZNAttribute.*;
 import com.linkedin.clustermanager.ZNRecord;
 
 public class CurrentState
@@ -15,24 +17,37 @@ public class CurrentState
 
   public String getResourceGroupName()
   {
-    return null;
+    return record.getId();
   }
 
-  public Map<String,String> getResourceKeyStateMap()
+  public Map<String, String> getResourceKeyStateMap()
   {
+    Map<String, String> map = new HashMap<String, String>();
+    Map<String, Map<String, String>> mapFields = record.getMapFields();
+    for (String resourceKey : mapFields.keySet())
+    {
+      Map<String, String> tempMap = mapFields.get(resourceKey);
+      if (tempMap != null)
+      {
+        map.put(resourceKey, tempMap.get(CURRENT_STATE.toString()));
+      }
+    }
     return null;
   }
 
   public String getSessionId()
   {
-    return null;
+    return record.getSimpleField(SESSION_ID.toString());
   }
 
   public String getState(String resourceKeyStr)
   {
-    // TODO Auto-generated method stub
+    Map<String, String> mapField = record.getMapField(resourceKeyStr);
+    if (mapField != null)
+    {
+      return mapField.get(CURRENT_STATE.toString());
+    }
     return null;
   }
 
-  
 }

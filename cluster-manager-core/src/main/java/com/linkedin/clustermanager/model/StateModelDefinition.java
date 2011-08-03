@@ -27,6 +27,19 @@ public class StateModelDefinition
    * N all instances in the cluster will be put in this state.PreferenceList must be denoted as '*' 
    */
   private Map<String, Integer> _statesCountMap;
+  
+  private List<String> _stateTransitionPriorityList;
+
+  public List<String> getStateTransitionPriorityList()
+  {
+    return _stateTransitionPriorityList;
+  }
+
+  public void setStateTransitionPriorityList(
+      List<String> stateTransitionPriorityList)
+  {
+    _stateTransitionPriorityList = stateTransitionPriorityList;
+  }
 
   /**
    * StateTransition which is used to find the nextState given StartState and

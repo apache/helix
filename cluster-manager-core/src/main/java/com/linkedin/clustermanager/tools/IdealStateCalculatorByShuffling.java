@@ -22,7 +22,8 @@ import com.linkedin.clustermanager.ZNRecord;
  * calculated by randomly assign master partitions to storage nodes.
  *
  * Note that the following code is a native strategy and is for cluster manager V1 only. We will
- * use the CRUSH hashing algorithm to calculate the ideal state in future milestones.
+ * use the other algorithm to calculate the ideal state in future milestones.
+ *
  *
  * */
 

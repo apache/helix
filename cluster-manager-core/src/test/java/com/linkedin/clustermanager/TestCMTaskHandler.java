@@ -23,6 +23,8 @@ public class TestCMTaskHandler
     message.setFromState("Offline");
     message.setToState("Slave");
     message.setStateUnitKey("Teststateunitkey");
+    message.setId("Some unique id");
+    message.setMsgId("Some unique message id");
     MockStateModel stateModel = new MockStateModel();
     NotificationContext context;
 
@@ -43,6 +45,8 @@ public class TestCMTaskHandler
     message.setFromState("Offline");
     message.setToState("Slave");
     message.setStateUnitKey("Teststateunitkey");
+    message.setId("Some unique id");
+    message.setMsgId("Some unique message id");
     MockStateModelAnnotated stateModel = new MockStateModelAnnotated();
     NotificationContext context;
 

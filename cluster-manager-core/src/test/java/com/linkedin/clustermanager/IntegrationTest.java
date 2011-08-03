@@ -70,10 +70,11 @@ public class IntegrationTest
     startDummyProcess(createArgs("-zkSvr localhost:2181 -cluster test-cluster -host localhost -port 8904"));
     startClusterManager(createArgs("-zkSvr localhost:2181 -cluster test-cluster"));
     Thread.sleep(30000);
+//    Thread.currentThread().join();
     AssertJUnit.assertTrue(ClusterStateVerifier
         .verifyState(createArgs("-zkSvr localhost:2181 -cluster test-cluster")));
     //Thread.currentThread().join();
-    // zkServer.shutdown();
+     zkServer.shutdown();
   }
 
   private static void startClusterManager(final String[] args)

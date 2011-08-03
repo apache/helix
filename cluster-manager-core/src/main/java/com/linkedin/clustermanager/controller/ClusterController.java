@@ -163,42 +163,6 @@ public class ClusterController implements ConfigChangeListener,
    * 
    * @param changeContext
    */
-  private void runClusterRebalanceAlgoOld(NotificationContext changeContext)
-  {
-    logger.info("START:ClusterController.runClusterRebalanceAlgo()");
-    ClusterDataAccessor client = changeContext.getManager().getDataAccessor();
-    List<ZNRecord> idealStates = client
-        .getClusterPropertyList(ClusterPropertyType.IDEALSTATES);
-    refreshData(changeContext);
-    for (ZNRecord idealStateRecord : idealStates)
-    {
-      IdealState idealState = new IdealState(idealStateRecord);
-      IdealState bestPossibleIdealState;
-      bestPossibleIdealState = _bestPossibleIdealStateCalculator.compute(
-          idealState, changeContext);
-      List<Message> messages;
-      messages = _transitionMessageGenerator.computeMessagesForTransition(
-          idealState, bestPossibleIdealState, idealStateRecord);
-      logger.info(messages.size() + "Messages to send");
-      int i = 0;
-      for (Message message : messages)
-      {
-        logger.info(i++ + ": Sending message to " + message.getTgtName()
-            + " transition " + message.getStateUnitKey() + " from:"
-            + message.getFromState() + " to:" + message.getToState());
-        client.setInstanceProperty(message.getTgtName(),
-            InstancePropertyType.MESSAGES, message.getId(), message);
-      }
-    }
-    logger.info("END:ClusterController.runClusterRebalanceAlgo()");
-  }
-
-  /**
-   * Generic method which will run when ever there is a change in following -
-   * IdealState - Current State change - liveInstanceChange
-   * 
-   * @param changeContext
-   */
   private void runClusterRebalanceAlgo(NotificationContext changeContext)
   {
     logger.info("START:ClusterController.runClusterRebalanceAlgo()");

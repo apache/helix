@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.TreeMap;
+
+import com.linkedin.clustermanager.ClusterManagerException;
 import com.linkedin.clustermanager.ZNRecord;
 
 /*
@@ -44,6 +46,15 @@ public class IdealStateCalculatorForStorageNode
    */
   public static ZNRecord calculateIdealState(List<String> instanceNames, int partitions, int replicas, String stateUnitGroup)
   {
+    if(instanceNames.size() < replicas + 1)
+    {
+      throw new ClusterManagerException("Number of instances must not be less than replicas + 1");
+    }
+    else if(partitions < instanceNames.size())
+    {
+      throw new ClusterManagerException("partitions must be more than number of instances");
+    }
+      
     Map<String, Object> result = calculateInitialIdealState(instanceNames, partitions, replicas);
     
     return convertToZNRecord(result, stateUnitGroup);
@@ -105,6 +116,28 @@ public class IdealStateCalculatorForStorageNode
         }
       }
     }
+    // generate the priority list of instances per partition. Master should be at front and slave follows.
+    
+    for(String partitionId : idealState.getMapFields().keySet())
+    {
+      Map<String, String> partitionAssignmentMap = idealState.getMapField(partitionId);
+      List<String> partitionAssignmentPriorityList = new ArrayList<String>();
+      String masterInstance = "";
+      for(String instanceName : partitionAssignmentMap.keySet())
+      {
+        if(partitionAssignmentMap.get(instanceName).equalsIgnoreCase("MASTER"))
+        {
+          masterInstance = instanceName;
+        }
+        else
+        {
+          partitionAssignmentPriorityList.add(instanceName);
+        }
+      }
+      Collections.shuffle(partitionAssignmentPriorityList);
+      partitionAssignmentPriorityList.add(0, masterInstance);
+      idealState.setListField(partitionId, partitionAssignmentPriorityList);
+    }
     
     return idealState;
   }
@@ -130,7 +163,7 @@ public class IdealStateCalculatorForStorageNode
   public static Map<String, Object> calculateInitialIdealState(List<String> instanceNames, int partitions, int replicas)
   {
     Random r = new Random(54321);
-    assert(replicas < instanceNames.size() - 1);
+    assert(replicas <= instanceNames.size() - 1);
     
     ArrayList<Integer> masterPartitionAssignment = new ArrayList<Integer>();
     for(int i = 0;i< partitions; i++)

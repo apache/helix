@@ -80,6 +80,7 @@ public class StatusUpdateUtil
     contentMap.put("Message state", message.getMsgState());
     contentMap.put("AdditionalInfo", additionalInfo);
     contentMap.put("Class", classInfo.toString());
+    contentMap.put("MSG_ID", message.getMsgId());
 
     DateFormat formatter = new SimpleDateFormat("yyyyMMdd-HHmmss.SSSSSS");
     String time = formatter.format(new Date());

@@ -26,6 +26,7 @@ public class HostedEntitiesResource extends Resource
 {
   public static final String _partitions = "partitions";
   public static final String _entityName = "entityName";
+  public static final String _stateModelDefRef = "stateModelDefRef";
   
   public HostedEntitiesResource(Context context,
       Request request,
@@ -110,10 +111,11 @@ public class HostedEntitiesResource extends Resource
       }
       
       String entityName = paraMap.get(_entityName);
+      String stateModelDefRef = paraMap.get(_stateModelDefRef);
       int partitions = Integer.parseInt(paraMap.get(_partitions));
       
       ClusterSetup setupTool = new ClusterSetup(zkServer);
-      setupTool.addResourceGroupToCluster(clusterName, entityName, partitions);
+      setupTool.addResourceGroupToCluster(clusterName, entityName, partitions,stateModelDefRef);
       // add cluster
       getResponse().setEntity(getHostedEntitiesRepresentation(zkServer, clusterName));
       getResponse().setStatus(Status.SUCCESS_OK);

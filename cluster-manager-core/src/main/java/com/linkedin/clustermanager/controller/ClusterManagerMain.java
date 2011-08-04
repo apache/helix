@@ -92,7 +92,8 @@ public class ClusterManagerMain
     ClusterManager manager = ClusterManagerFactory
         .getZKBasedManagerForController(clusterName, zkConnectString);
 
-    ClusterController controller = new ClusterController();
+    //ClusterController controller = new ClusterController();
+    GenericClusterController controller = new GenericClusterController();
     manager.addConfigChangeListener(controller);
     manager.addLiveInstanceChangeListener(controller);
     manager.addIdealStateChangeListener(controller);

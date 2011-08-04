@@ -13,17 +13,20 @@ public class StateModelConfigGenerator
 
   public static void main(String[] args)
   {
-    generateConfigForStorage();
+    ZNRecordSerializer serializer = new ZNRecordSerializer();
+    StateModelConfigGenerator generator = new StateModelConfigGenerator();
+    System.out.println(new String(serializer.serialize(generator
+        .generateConfigForStorage())));
   }
+
   /**
-   * count
-   * -1 dont care
-   * any numeric value > 0 will be tried to be satisfied based on priority
-   * N all nodes in the cluster will be assigned to this state if possible
-   * R all remaining nodes in the preference list will be assigned to this state, applies only to last state
+   * count -1 dont care any numeric value > 0 will be tried to be satisfied
+   * based on priority N all nodes in the cluster will be assigned to this state
+   * if possible R all remaining nodes in the preference list will be assigned
+   * to this state, applies only to last state
    */
-  
-  private static void generateConfigForStorageSchemata()
+
+  public ZNRecord generateConfigForStorageSchemata()
   {
     ZNRecord record = new ZNRecord();
     record.setId("STORAGE_DEFAULT_SM_SCHEMATA");
@@ -36,15 +39,17 @@ public class StateModelConfigGenerator
     {
       String key = state + ".meta";
       Map<String, String> metadata = new HashMap<String, String>();
-      if (state.equals("MASTER")){
-//        metadata.put("max", "");
-//        metadata.put("min", "1");
+      if (state.equals("MASTER"))
+      {
+        // metadata.put("max", "");
+        // metadata.put("min", "1");
         metadata.put("count", "N");
         record.setMapField(key, metadata);
       }
-      if (state.equals("OFFLINE")){
-//        metadata.put("max", "-1");
-//        metadata.put("min", "-1");
+      if (state.equals("OFFLINE"))
+      {
+        // metadata.put("max", "-1");
+        // metadata.put("min", "-1");
         metadata.put("count", "-1");
         record.setMapField(key, metadata);
       }
@@ -52,7 +57,7 @@ public class StateModelConfigGenerator
     for (String state : statePriorityList)
     {
       String key = state + ".next";
-      
+
       {
         Map<String, String> metadata = new HashMap<String, String>();
         metadata.put("SLAVE", "SLAVE");
@@ -81,13 +86,13 @@ public class StateModelConfigGenerator
     stateTransitionPriorityList.add("SLAVE-OFFLINE");
     record.setListField("stateTransitionPriorityList",
         stateTransitionPriorityList);
-    ZNRecordSerializer serializer = new ZNRecordSerializer();
-    System.out.println(new String(serializer.serialize(record)));
+    return record;
   }
-  private static void generateConfigForStorage()
+
+  public ZNRecord generateConfigForStorage()
   {
     ZNRecord record = new ZNRecord();
-    record.setId("STORAGE_DEFAULT_SM_DEF");
+    record.setId("espresso_state_model");
     record.setSimpleField("INITIAL_STATE", "OFFLINE");
     List<String> statePriorityList = new ArrayList<String>();
     statePriorityList.add("MASTER");
@@ -98,21 +103,24 @@ public class StateModelConfigGenerator
     {
       String key = state + ".meta";
       Map<String, String> metadata = new HashMap<String, String>();
-      if (state.equals("MASTER")){
-//        metadata.put("max", "1");
-//        metadata.put("min", "1");
+      if (state.equals("MASTER"))
+      {
+        // metadata.put("max", "1");
+        // metadata.put("min", "1");
         metadata.put("count", "1");
         record.setMapField(key, metadata);
       }
-      if (state.equals("SLAVE")){
-//        metadata.put("max", "3");
-//        metadata.put("min", "0");
+      if (state.equals("SLAVE"))
+      {
+        // metadata.put("max", "3");
+        // metadata.put("min", "0");
         metadata.put("count", "3");
         record.setMapField(key, metadata);
       }
-      if (state.equals("OFFLINE")){
-//        metadata.put("max", "-1");
-//        metadata.put("min", "-1");
+      if (state.equals("OFFLINE"))
+      {
+        // metadata.put("max", "-1");
+        // metadata.put("min", "-1");
         metadata.put("count", "-1");
         record.setMapField(key, metadata);
       }
@@ -120,7 +128,7 @@ public class StateModelConfigGenerator
     for (String state : statePriorityList)
     {
       String key = state + ".next";
-      
+
       {
         Map<String, String> metadata = new HashMap<String, String>();
         metadata.put("SLAVE", "SLAVE");
@@ -149,7 +157,8 @@ public class StateModelConfigGenerator
     stateTransitionPriorityList.add("SLAVE-OFFLINE");
     record.setListField("stateTransitionPriorityList",
         stateTransitionPriorityList);
-    ZNRecordSerializer serializer = new ZNRecordSerializer();
-    System.out.println(new String(serializer.serialize(record)));
+    return record;
+    // ZNRecordSerializer serializer = new ZNRecordSerializer();
+    // System.out.println(new String(serializer.serialize(record)));
   }
 }

@@ -1,5 +1,7 @@
 package com.linkedin.clustermanager.util;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -115,16 +117,33 @@ public class StatusUpdateUtil
   public void logMessageStatusUpdateRecord(Message message, Level level,
       Class classInfo, String additionalInfo, ClusterDataAccessor accessor)
   {
-    ZNRecord record = createMessageStatusUpdateRecord(message, level,
+    try
+    {
+      ZNRecord record = createMessageStatusUpdateRecord(message, level,
         classInfo, additionalInfo);
-    publishStatusUpdateRecord(record, message, level, accessor);
-  }
+      publishStatusUpdateRecord(record, message, level, accessor);
+    }
+    catch(Exception e)
+    {
+      _logger.error(e);
+    }
+}
 
   public void logError(Message message, Class classInfo, String additionalInfo,
       ClusterDataAccessor accessor)
   {
     logMessageStatusUpdateRecord(message, Level.ERROR, classInfo,
         additionalInfo, accessor);
+  }
+  
+  public void logError(Message message, Class classInfo, Exception e, String additionalInfo,
+      ClusterDataAccessor accessor)
+  {
+    StringWriter sw = new StringWriter();
+    PrintWriter pw = new PrintWriter(sw);
+    e.printStackTrace(pw);
+    logMessageStatusUpdateRecord(message, Level.ERROR, classInfo,
+        additionalInfo + pw.toString(), accessor);
   }
 
   public void logInfo(Message message, Class classInfo, String additionalInfo,
@@ -154,7 +173,7 @@ public class StatusUpdateUtil
    *          the zookeeper data accessor that writes the status update to
    *          zookeeper
    */
-  public void publishStatusUpdateRecord(ZNRecord record, Message message,
+  void publishStatusUpdateRecord(ZNRecord record, Message message,
       Level level, ClusterDataAccessor accessor)
   {
     String instanceName = message.getTgtName();

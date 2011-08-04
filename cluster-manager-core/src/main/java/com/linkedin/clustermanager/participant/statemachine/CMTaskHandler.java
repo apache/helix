@@ -108,14 +108,8 @@ public class CMTaskHandler implements Callable<CMTaskResult>
         invoke(accessor, taskResult, _message);
       } catch (Exception e)
       {
-        exception = e;
-        StringWriter sw = new StringWriter();
-        PrintWriter pw = new PrintWriter(sw);
-        e.printStackTrace(pw);
-
-        String errorMessage = "Exception while executing a state transition task"
-            + pw.toString();
-        _statusUpdateUtil.logError(_message, CMTaskHandler.class, errorMessage,
+        String errorMessage = "Exception while executing a state transition task"+ e;
+        _statusUpdateUtil.logError(_message, CMTaskHandler.class, e, errorMessage,
             accessor);
         logger.error(errorMessage);
         taskResult.setSuccess(false);
@@ -170,6 +164,8 @@ public class CMTaskHandler implements Callable<CMTaskResult>
         StateTransitionError error = new StateTransitionError(
             StateTransitionError.ErrorCode.FRAMEWORK, e);
         _stateModel.rollbackOnError(_message, _notificationContext, error);
+        _statusUpdateUtil.logError(_message, CMTaskHandler.class, e, "Error when update the state ",
+            accessor);
       }
       return taskResult;
     }

@@ -70,7 +70,7 @@ public class CMTaskExecutor
         String errorMessage = "Error while executing task" + e;
         logger.error("Error while executing task." + message, e);
 
-        _statusUpdateUtil.logError(message, CMTaskExecutor.class, errorMessage,
+        _statusUpdateUtil.logError(message, CMTaskExecutor.class, e, errorMessage,
             notificationContext.getManager().getDataAccessor());
         // TODO add retry or update errors node
       }

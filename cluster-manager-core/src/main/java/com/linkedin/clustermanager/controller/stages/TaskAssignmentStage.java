@@ -11,6 +11,8 @@ import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.ResourceGroup;
 import com.linkedin.clustermanager.model.ResourceKey;
+import com.linkedin.clustermanager.pipeline.AbstractBaseStage;
+import com.linkedin.clustermanager.pipeline.StageException;
 
 public class TaskAssignmentStage extends AbstractBaseStage
 {

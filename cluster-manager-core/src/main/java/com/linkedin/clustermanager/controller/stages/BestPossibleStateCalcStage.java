@@ -5,14 +5,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
+import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.model.LiveInstance;
 import com.linkedin.clustermanager.model.ResourceGroup;
 import com.linkedin.clustermanager.model.ResourceKey;
 import com.linkedin.clustermanager.model.StateModelDefinition;
+import com.linkedin.clustermanager.pipeline.AbstractBaseStage;
+import com.linkedin.clustermanager.pipeline.StageException;
 import com.linkedin.clustermanager.util.ZNRecordUtil;
 
 public class BestPossibleStateCalcStage extends AbstractBaseStage
@@ -34,15 +37,20 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
         .getClusterPropertyList(ClusterPropertyType.IDEALSTATES);
     List<ZNRecord> stateModelDefs = dataAccessor
         .getClusterPropertyList(ClusterPropertyType.STATEMODELDEFS);
+    CurrentStateOutput currentStateOutput = event
+        .getAttribute(AttributeName.CURRENT_STATE.toString());
     Map<String, ResourceGroup> resourceGroupMap = event
         .getAttribute(AttributeName.RESOURCE_GROUPS.toString());
-    BestPossibleStateOutput bestPossibleStateOutput = compute(resourceGroupMap, liveInstances, idealStates, stateModelDefs);
-    event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.toString(), bestPossibleStateOutput);
+    BestPossibleStateOutput bestPossibleStateOutput = compute(resourceGroupMap,
+        liveInstances, idealStates, stateModelDefs, currentStateOutput);
+    event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.toString(),
+        bestPossibleStateOutput);
   }
 
-  private BestPossibleStateOutput compute(Map<String, ResourceGroup> resourceGroupMap,
+  private BestPossibleStateOutput compute(
+      Map<String, ResourceGroup> resourceGroupMap,
       List<ZNRecord> liveInstances, List<ZNRecord> idealStates,
-      List<ZNRecord> stateModelDefs)
+      List<ZNRecord> stateModelDefs, CurrentStateOutput currentStateOutput)
   {
     // for each ideal state
     // read the state model def
@@ -59,14 +67,19 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
     for (String resourceGroupName : resourceGroupMap.keySet())
     {
       ResourceGroup resourceGroup = resourceGroupMap.get(resourceGroupName);
-      StateModelDefinition stateModelDef = lookupStateModel(resourceGroupName, stateModelDefs);
+      StateModelDefinition stateModelDef = lookupStateModel(resourceGroupName,
+          stateModelDefs);
       for (ResourceKey resource : resourceGroup.getResourceKeys())
       {
         ZNRecord idealState = idealStatesMap.get(resourceGroupName);
         List<String> instancePreferenceList = getPreferenceList(resource,
             idealState, liveInstances);
+
+        Map<String, String> currentStateMap = currentStateOutput
+            .getCurrentStateMap(resourceGroupName, resource);
         Map<String, String> bestStateForResource = computeBestStateForResource(
-            stateModelDef, instancePreferenceList, liveInstancesMap);
+            stateModelDef, instancePreferenceList, liveInstancesMap,
+            currentStateMap);
         output.setState(resourceGroupName, resource, bestStateForResource);
       }
     }
@@ -75,7 +88,8 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
 
   private Map<String, String> computeBestStateForResource(
       StateModelDefinition stateModelDef, List<String> instancePreferenceList,
-      Map<String, ZNRecord> liveInstancesMap)
+      Map<String, ZNRecord> liveInstancesMap,
+      Map<String, String> currentStateMap)
   {
     Map<String, String> instanceStateMap = new HashMap<String, String>();
     List<String> statesPriorityList = stateModelDef.getStatesPriorityList();
@@ -107,7 +121,9 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
         for (int i = 0; i < instancePreferenceList.size(); i++)
         {
           String instanceName = instancePreferenceList.get(i);
-          if (liveInstancesMap.containsKey(instanceName) && !assigned[i])
+
+          if (liveInstancesMap.containsKey(instanceName) && !assigned[i]
+              && !"ERROR".equals(currentStateMap.get(instanceName)))
           {
             instanceStateMap.put(instanceName, state);
             count = count + 1;
@@ -143,8 +159,10 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
   private StateModelDefinition lookupStateModel(String stateModelDefRef,
       List<ZNRecord> stateModelDefs)
   {
-    for(ZNRecord record:stateModelDefs){
-      if(record.getId().equals(stateModelDefRef)){
+    for (ZNRecord record : stateModelDefs)
+    {
+      if (record.getId().equals(stateModelDefRef))
+      {
         return new StateModelDefinition(record);
       }
     }

@@ -14,6 +14,8 @@ import com.linkedin.clustermanager.model.LiveInstance;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.ResourceGroup;
 import com.linkedin.clustermanager.model.ResourceKey;
+import com.linkedin.clustermanager.pipeline.AbstractBaseStage;
+import com.linkedin.clustermanager.pipeline.StageException;
 
 public class CurrentStateComputationStage extends AbstractBaseStage
 {
@@ -23,7 +25,7 @@ public class CurrentStateComputationStage extends AbstractBaseStage
     ClusterManager manager = event.getAttribute("clustermanager");
     if (manager == null)
     {
-      throw new StageException("ClusterManager attribute value is null");
+      throw new StageException("clustermanager attribute value is null");
     }
     ClusterDataAccessor dataAccessor = manager.getDataAccessor();
     List<ZNRecord> liveInstances;

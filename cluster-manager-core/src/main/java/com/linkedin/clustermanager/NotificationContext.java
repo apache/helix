@@ -10,6 +10,17 @@ public class NotificationContext
   private ClusterManager _manager;
   private Type _type;
   private String _pathChanged;
+  private String _eventName;
+
+  public String getEventName()
+  {
+    return _eventName;
+  }
+
+  public void setEventName(String eventName)
+  {
+    _eventName = eventName;
+  }
 
   public NotificationContext(ClusterManager manager)
   {

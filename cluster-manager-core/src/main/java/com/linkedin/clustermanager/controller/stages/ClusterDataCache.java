@@ -5,7 +5,11 @@ package com.linkedin.clustermanager.controller.stages;
  * @author kgopalak
  *
  */
-public class ClusterDataRefreshStage
+public class ClusterDataCache 
 {
-
+  public boolean refresh(){
+    return false;
+  }
+  
+  
 }

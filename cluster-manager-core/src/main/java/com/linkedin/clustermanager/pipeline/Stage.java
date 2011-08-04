@@ -1,4 +1,6 @@
-package com.linkedin.clustermanager.controller.stages;
+package com.linkedin.clustermanager.pipeline;
+
+import com.linkedin.clustermanager.controller.stages.ClusterEvent;
 
 public interface Stage
 {

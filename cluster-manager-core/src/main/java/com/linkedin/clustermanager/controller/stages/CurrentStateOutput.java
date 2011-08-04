@@ -1,5 +1,7 @@
 package com.linkedin.clustermanager.controller.stages;
 
+import java.util.Map;
+
 import com.linkedin.clustermanager.model.ResourceKey;
 
 public class CurrentStateOutput
@@ -28,6 +30,13 @@ public class CurrentStateOutput
 
   public String getPendingState(String resourceGroupName, ResourceKey resource,
       String instanceName)
+  {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  public Map<String, String> getCurrentStateMap(String resourceGroupName,
+      ResourceKey resource)
   {
     // TODO Auto-generated method stub
     return null;

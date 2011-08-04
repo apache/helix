@@ -5,16 +5,23 @@ import java.util.Map;
 
 public class ClusterEvent
 {
-  Map<String, Object> _eventAttributeMap;
+  private final String _name;
+  private Map<String, Object> _eventAttributeMap;
 
-  public ClusterEvent()
+  public ClusterEvent(String name)
   {
+    _name = name;
     _eventAttributeMap = new HashMap<String, Object>();
   }
 
   public void addAttribute(String attrName, Object attrValue)
   {
     _eventAttributeMap.put(attrName, attrValue);
+  }
+
+  public String getName()
+  {
+    return _name;
   }
 
   @SuppressWarnings("unchecked")

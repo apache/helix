@@ -125,7 +125,8 @@ public class ClusterSetup
   public void addStateModelDef(String clusterName, String stateModelDef,
       ZNRecord record)
   {
-
+    ClusterManagementService managementTool = getClusterManagementTool();
+    managementTool.addStateModelDef(clusterName, stateModelDef, record);
   }
 
   public void addResourceGroupToCluster(String clusterName,

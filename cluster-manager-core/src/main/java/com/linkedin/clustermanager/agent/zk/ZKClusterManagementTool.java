@@ -111,6 +111,8 @@ public class ZKClusterManagementTool implements ClusterManagementService
     _zkClient.createPersistent(CMUtil.getMemberInstancesPath(clusterName));
     // External view
     _zkClient.createPersistent(CMUtil.getExternalViewPath(clusterName));
+    // State model definition
+    _zkClient.createPersistent(CMUtil.getStateModelDefinitionPath(clusterName));
 
   }
 
@@ -171,5 +173,21 @@ public class ZKClusterManagementTool implements ClusterManagementService
   {
     new ZKDataAccessor(clusterName, _zkClient).setClusterProperty(
         ClusterPropertyType.IDEALSTATES, dbName, idealState);
+  }
+
+  @Override
+  public void addStateModelDef(String clusterName, String stateModelDef,
+      ZNRecord record)
+  {
+    String stateModelDefPath = CMUtil.getStateModelDefinitionPath(clusterName);
+    String stateModelPath = stateModelDefPath + "/" + stateModelDef;
+    if (_zkClient.exists(stateModelPath))
+    {
+      logger.warn("Skip the operation. DB ideal state directory exists:"
+          + stateModelPath);
+      throw new ClusterManagerException("State model path " + stateModelPath + " already exists.");
+    }
+
+    ZKUtil.createChildren(_zkClient, stateModelPath, record);
   }
 }

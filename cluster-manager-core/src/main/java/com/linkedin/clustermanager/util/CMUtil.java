@@ -86,6 +86,11 @@ public final class CMUtil
   {
     return getClusterPropertyPath(clusterName, ClusterPropertyType.EXTERNALVIEW);
   }
+  
+  public static String getStateModelDefinitionPath(String clusterName)
+  {
+    return getClusterPropertyPath(clusterName, ClusterPropertyType.STATEMODELDEFS);
+  }
 
   public static String getExternalViewPath(String clusterName,
       String stateUnitGroup)

@@ -21,4 +21,6 @@ public interface ClusterManagementService
   void setResourceGroupIdealState(String clusterName, String resourceGroup, ZNRecord idealState);
 
   void enableInstance(String clusterName, String instanceName, boolean enabled);
+  
+  void addStateModelDef(String clusterName, String stateModelDef, ZNRecord record);
 }

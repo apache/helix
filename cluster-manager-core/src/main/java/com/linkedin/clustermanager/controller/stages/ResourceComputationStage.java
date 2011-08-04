@@ -9,6 +9,7 @@ import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.model.IdealState;
 import com.linkedin.clustermanager.model.ResourceGroup;
 import com.linkedin.clustermanager.pipeline.AbstractBaseStage;
 import com.linkedin.clustermanager.pipeline.StageException;
@@ -32,19 +33,22 @@ public class ResourceComputationStage extends AbstractBaseStage
     Map<String, ResourceGroup> resourceGroupMap = new LinkedHashMap<String, ResourceGroup>();
     if (idealStates != null && idealStates.size() > 0)
     {
-      for (ZNRecord idealState : idealStates)
+      for (ZNRecord idealStateRec : idealStates)
       {
-        String resourceGroupName = idealState.getId();
-        Map<String, Map<String, String>> resourceMappings = idealState
+        IdealState idealState = new IdealState(idealStateRec);
+        String resourceGroupName = idealStateRec.getId();
+        Map<String, Map<String, String>> resourceMappings = idealStateRec
             .getMapFields();
         for (String resourceKey : resourceMappings.keySet())
         {
           addResource(resourceKey, resourceGroupName, resourceGroupMap);
+          ResourceGroup resourceGroup = resourceGroupMap.get(resourceGroupName);
+          resourceGroup.setStateModelDefRef(idealState.getStateModelDefRef());
         }
       }
     }
     // Its important to get resourceKeys from CurrentState as well since the
-    // idealState might be removed. 
+    // idealState might be removed.
     List<ZNRecord> liveInstances = dataAccessor
         .getClusterPropertyList(ClusterPropertyType.LIVEINSTANCES);
     if (liveInstances != null && liveInstances.size() > 0)
@@ -70,12 +74,18 @@ public class ResourceComputationStage extends AbstractBaseStage
         }
       }
     }
-    event.addAttribute(AttributeName.RESOURCE_GROUPS.toString(), resourceGroupMap);
+    event.addAttribute(AttributeName.RESOURCE_GROUPS.toString(),
+        resourceGroupMap);
   }
 
   private void addResource(String resourceKey, String resourceGroupName,
       Map<String, ResourceGroup> resourceGroupMap)
   {
+    if (resourceGroupName == null || resourceKey == null
+        || resourceGroupMap == null)
+    {
+      return;
+    }
     if (!resourceGroupMap.containsKey(resourceGroupName))
     {
       resourceGroupMap.put(resourceGroupName, new ResourceGroup(

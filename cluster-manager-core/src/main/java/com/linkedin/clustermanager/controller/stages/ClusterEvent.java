@@ -16,6 +16,8 @@ public class ClusterEvent
 
   public void addAttribute(String attrName, Object attrValue)
   {
+    System.out.println("Adding attribute:" + attrName);
+    System.out.println(" attribute value:" + attrValue);
     _eventAttributeMap.put(attrName, attrValue);
   }
 

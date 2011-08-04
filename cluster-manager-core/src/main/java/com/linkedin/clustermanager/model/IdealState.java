@@ -79,6 +79,11 @@ public class IdealState
 
   public String getStateModelDefRef()
   {
-    return null;
+    return _record.getSimpleField("state_model_def_ref");
+  }
+
+  public List<String> getPreferenceList(String resourceKeyName)
+  {
+    return getInstancePreferenceList(resourceKeyName);
   }
 }

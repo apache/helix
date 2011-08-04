@@ -1,5 +1,6 @@
 package com.linkedin.clustermanager.model;
 
+import static com.linkedin.clustermanager.CMConstants.ZNAttribute.*;
 import com.linkedin.clustermanager.ZNRecord;
 
 public class LiveInstance
@@ -15,14 +16,12 @@ public class LiveInstance
 
   public String getSessionId()
   {
-    // TODO Auto-generated method stub
-    return "";
+    return _record.getSimpleField(SESSION_ID.toString());
   }
 
   public String getInstanceName()
   {
-    // TODO Auto-generated method stub
-    return null;
+    return _record.getId();
   }
 
 }

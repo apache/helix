@@ -1,45 +1,108 @@
 package com.linkedin.clustermanager.controller.stages;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 import com.linkedin.clustermanager.model.ResourceKey;
 
 public class CurrentStateOutput
 {
+  private final Map<String, Map<ResourceKey, Map<String, String>>> _currentStateMap;
+  private final Map<String, Map<ResourceKey, Map<String, String>>> _pendingStateMap;
+
+  public CurrentStateOutput()
+  {
+    _currentStateMap = new HashMap<String, Map<ResourceKey, Map<String, String>>>();
+    _pendingStateMap = new HashMap<String, Map<ResourceKey, Map<String, String>>>();
+
+  }
 
   public void setCurrentState(String resourceGroupName,
       ResourceKey resourceKey, String instanceName, String state)
   {
-    // TODO Auto-generated method stub
-
+    if (!_currentStateMap.containsKey(resourceGroupName))
+    {
+      _currentStateMap.put(resourceGroupName,
+          new HashMap<ResourceKey, Map<String, String>>());
+    }
+    if (!_currentStateMap.get(resourceGroupName).containsKey(resourceKey))
+    {
+      _currentStateMap.get(resourceGroupName).put(resourceKey,
+          new HashMap<String, String>());
+    }
+    _currentStateMap.get(resourceGroupName).get(resourceKey)
+        .put(instanceName, state);
   }
 
   public void setPendingState(String resourceGroupName,
       ResourceKey resourceKey, String instanceName, String state)
   {
-    // TODO Auto-generated method stub
-    
+    if (!_pendingStateMap.containsKey(resourceGroupName))
+    {
+      _pendingStateMap.put(resourceGroupName,
+          new HashMap<ResourceKey, Map<String, String>>());
+    }
+    if (!_pendingStateMap.get(resourceGroupName).containsKey(resourceKey))
+    {
+      _pendingStateMap.get(resourceGroupName).put(resourceKey,
+          new HashMap<String, String>());
+    }
+    _pendingStateMap.get(resourceGroupName).get(resourceKey)
+        .put(instanceName, state);
   }
 
   public String getCurrentState(String resourceGroupName, ResourceKey resource,
       String instanceName)
   {
-    // TODO Auto-generated method stub
+    Map<ResourceKey, Map<String, String>> map = _currentStateMap
+        .get(resourceGroupName);
+    if (map != null)
+    {
+      Map<String, String> instanceStateMap = map.get(resource);
+      if (instanceStateMap != null)
+      {
+        return instanceStateMap.get(instanceName);
+      }
+    }
     return null;
   }
 
   public String getPendingState(String resourceGroupName, ResourceKey resource,
       String instanceName)
   {
-    // TODO Auto-generated method stub
+    Map<ResourceKey, Map<String, String>> map = _pendingStateMap
+        .get(resourceGroupName);
+    if (map != null)
+    {
+      Map<String, String> instanceStateMap = map.get(resource);
+      if (instanceStateMap != null)
+      {
+        return instanceStateMap.get(instanceName);
+      }
+    }
     return null;
   }
 
   public Map<String, String> getCurrentStateMap(String resourceGroupName,
       ResourceKey resource)
   {
-    // TODO Auto-generated method stub
-    return null;
+    Map<ResourceKey, Map<String, String>> map = _currentStateMap
+        .get(resourceGroupName);
+    if (map != null)
+    {
+      return map.get(resource);
+    }
+    return Collections.emptyMap();
+  }
+
+  public String toString()
+  {
+    StringBuilder sb = new StringBuilder();
+    sb.append("current state= ").append(_currentStateMap);
+    sb.append("pending state= ").append(_pendingStateMap);
+    return sb.toString();
+
   }
 
 }

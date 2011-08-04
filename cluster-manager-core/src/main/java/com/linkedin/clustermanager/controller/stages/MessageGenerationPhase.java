@@ -38,12 +38,13 @@ public class MessageGenerationPhase extends AbstractBaseStage
         .getClusterPropertyList(ClusterPropertyType.STATEMODELDEFS);
     Map<String, ResourceGroup> resourceGroupMap = event
         .getAttribute(AttributeName.RESOURCE_GROUPS.toString());
+
     CurrentStateOutput currentStateOutput = event
         .getAttribute(AttributeName.CURRENT_STATE.toString());
 
     BestPossibleStateOutput bestPossibleStateOutput = event
         .getAttribute(AttributeName.BEST_POSSIBLE_STATE.toString());
-
+    System.out.println("bestPossibleStateOutput=" + bestPossibleStateOutput);
     List<ZNRecord> liveInstances = dataAccessor
         .getClusterPropertyList(ClusterPropertyType.LIVEINSTANCES);
     Map<String, String> sessionIdMap = new HashMap<String, String>();
@@ -58,8 +59,8 @@ public class MessageGenerationPhase extends AbstractBaseStage
     for (String resourceGroupName : resourceGroupMap.keySet())
     {
       ResourceGroup resourceGroup = resourceGroupMap.get(resourceGroupName);
-      StateModelDefinition stateModelDef = lookupStateModel(resourceGroupName,
-          stateModelDefs);
+      StateModelDefinition stateModelDef = lookupStateModel(
+          resourceGroup.getStateModelDefRef(), stateModelDefs);
       for (ResourceKey resource : resourceGroup.getResourceKeys())
       {
         Map<String, String> instanceStateMap = bestPossibleStateOutput

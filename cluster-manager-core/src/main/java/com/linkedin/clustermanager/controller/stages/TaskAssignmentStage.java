@@ -1,5 +1,6 @@
 package com.linkedin.clustermanager.controller.stages;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -46,6 +47,10 @@ public class TaskAssignmentStage extends AbstractBaseStage
   protected void sendMessages(ClusterDataAccessor dataAccessor,
       List<Message> messages)
   {
+    if (messages == null || messages.size() == 0)
+    {
+      return;
+    }
     for (Message message : messages)
     {
       logger.info(": Sending message to " + message.getTgtName()

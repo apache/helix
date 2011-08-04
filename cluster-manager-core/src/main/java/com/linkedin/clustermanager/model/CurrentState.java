@@ -1,5 +1,6 @@
 package com.linkedin.clustermanager.model;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -32,7 +33,7 @@ public class CurrentState
         map.put(resourceKey, tempMap.get(CURRENT_STATE.toString()));
       }
     }
-    return null;
+    return map;
   }
 
   public String getSessionId()

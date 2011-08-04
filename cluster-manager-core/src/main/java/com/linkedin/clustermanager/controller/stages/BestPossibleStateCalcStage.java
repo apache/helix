@@ -5,11 +5,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
+
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.model.IdealState;
 import com.linkedin.clustermanager.model.LiveInstance;
 import com.linkedin.clustermanager.model.ResourceGroup;
 import com.linkedin.clustermanager.model.ResourceKey;
@@ -20,6 +23,8 @@ import com.linkedin.clustermanager.util.ZNRecordUtil;
 
 public class BestPossibleStateCalcStage extends AbstractBaseStage
 {
+  private static final Logger logger = Logger
+      .getLogger(BestPossibleStateCalcStage.class.getName());
 
   @Override
   public void process(ClusterEvent event) throws Exception
@@ -66,12 +71,15 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
 
     for (String resourceGroupName : resourceGroupMap.keySet())
     {
+      logger.info("Processing resourceGroup:" + resourceGroupName);
+
       ResourceGroup resourceGroup = resourceGroupMap.get(resourceGroupName);
-      StateModelDefinition stateModelDef = lookupStateModel(resourceGroupName,
-          stateModelDefs);
+      ZNRecord idealStateRec = idealStatesMap.get(resourceGroupName);
+      IdealState idealState = new IdealState(idealStateRec);
+      StateModelDefinition stateModelDef = lookupStateModel(
+          idealState.getStateModelDefRef(), stateModelDefs);
       for (ResourceKey resource : resourceGroup.getResourceKeys())
       {
-        ZNRecord idealState = idealStatesMap.get(resourceGroupName);
         List<String> instancePreferenceList = getPreferenceList(resource,
             idealState, liveInstances);
 
@@ -122,8 +130,10 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
         {
           String instanceName = instancePreferenceList.get(i);
 
+          boolean notInErrorState = currentStateMap == null
+              || !"ERROR".equals(currentStateMap.get(instanceName));
           if (liveInstancesMap.containsKey(instanceName) && !assigned[i]
-              && !"ERROR".equals(currentStateMap.get(instanceName)))
+              && notInErrorState)
           {
             instanceStateMap.put(instanceName, state);
             count = count + 1;
@@ -140,9 +150,9 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
   }
 
   private List<String> getPreferenceList(ResourceKey resource,
-      ZNRecord idealState, List<ZNRecord> liveInstances)
+      IdealState idealState, List<ZNRecord> liveInstances)
   {
-    List<String> listField = idealState.getListField(resource
+    List<String> listField = idealState.getPreferenceList(resource
         .getResourceKeyName());
     if (listField.size() == 1 && "".equals(listField.get(0)))
     {

@@ -40,14 +40,14 @@ public class MessageSelectionStage extends AbstractBaseStage
     for (String resourceGroupName : resourceGroupMap.keySet())
     {
       ResourceGroup resourceGroup = resourceGroupMap.get(resourceGroupName);
-      StateModelDefinition stateModelDef = lookupStateModel(resourceGroupName,
-          stateModelDefs);
+      StateModelDefinition stateModelDef = lookupStateModel(
+          resourceGroup.getStateModelDefRef(), stateModelDefs);
       for (ResourceKey resource : resourceGroup.getResourceKeys())
       {
         List<Message> messages = messageGenOutput.getMessages(
             resourceGroupName, resource);
         List<Message> selectedMessages = selectMessages(messages, stateModelDef);
-        output.addMessages(resourceGroupName,resource, selectedMessages);
+        output.addMessages(resourceGroupName, resource, selectedMessages);
       }
     }
     event.addAttribute(AttributeName.MESSAGES_SELECTED.toString(), output);
@@ -56,6 +56,10 @@ public class MessageSelectionStage extends AbstractBaseStage
   protected List<Message> selectMessages(List<Message> messages,
       StateModelDefinition stateModelDef)
   {
+    if (messages == null || messages.size() == 0)
+    {
+      return Collections.emptyList();
+    }
     Set<String> possibleTransitions = new HashSet<String>();
     for (Message message : messages)
     {

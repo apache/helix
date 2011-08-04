@@ -13,11 +13,29 @@ public class ResourceGroup
 
   private final Map<String, ResourceKey> _resourceKeyMap;
 
+  private String _stateModelDefRef;
+
   public ResourceGroup(String resourceGroupId)
   {
     this._resourceGroupId = resourceGroupId;
-    
+
     this._resourceKeyMap = new LinkedHashMap<String, ResourceKey>();
+
+  }
+
+  public String getStateModelDefRef()
+  {
+    return _stateModelDefRef;
+  }
+
+  public void setStateModelDefRef(String stateModelDefRef)
+  {
+    _stateModelDefRef = stateModelDefRef;
+  }
+
+  public String getResourceGroupId()
+  {
+    return _resourceGroupId;
   }
 
   public Collection<ResourceKey> getResourceKeys()

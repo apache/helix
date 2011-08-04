@@ -47,11 +47,12 @@ public class CurrentStateComputationStage extends AbstractBaseStage
 
         if (!instance.getSessionId().equals(currentState.getSessionId()))
         {
-          continue;
+          // TODO:uncomment this
+          // continue;
         }
         String resourceGroupName = currentState.getResourceGroupName();
         ResourceGroup resourceGroup = resourceGroupMap.get(resourceGroupName);
-        if (resourceGroup != null)
+        if (resourceGroup == null)
         {
           continue;
         }
@@ -71,7 +72,6 @@ public class CurrentStateComputationStage extends AbstractBaseStage
           }
         }
       }
-      event.addAttribute(AttributeName.CURRENT_STATE.toString(), currentStateOutput);
 
     }
 
@@ -108,6 +108,7 @@ public class CurrentStateComputationStage extends AbstractBaseStage
         }
       }
     }
-
+    event.addAttribute(AttributeName.CURRENT_STATE.toString(),
+        currentStateOutput);
   }
 }

@@ -130,10 +130,11 @@ public class ClusterSetup
   }
 
   public void addResourceGroupToCluster(String clusterName,
-      String resourceGroup, int numResources)
+      String resourceGroup, int numResources, String stateModelRef)
   {
     ClusterManagementService managementTool = getClusterManagementTool();
-    managementTool.addResourceGroup(clusterName, resourceGroup, numResources);
+    managementTool.addResourceGroup(clusterName, resourceGroup, numResources,
+        stateModelRef);
   }
 
   public void rebalanceStorageCluster(String clusterName,
@@ -149,6 +150,7 @@ public class ClusterSetup
 
     ZNRecord idealState = IdealStateCalculatorForStorageNode
         .calculateIdealState(nodeNames, partitions, replica, resourceGroupName);
+    idealState.merge(dbIdealState);
     managementTool.setResourceGroupIdealState(clusterName, resourceGroupName,
         idealState);
   }
@@ -168,7 +170,10 @@ public class ClusterSetup
       storageNodeInfoArray[i] = "localhost:" + (8900 + i);
     }
     addNodesToCluster(clusterName, storageNodeInfoArray);
-    addResourceGroupToCluster(clusterName, "TestDB", 10);
+    StateModelConfigGenerator generator = new StateModelConfigGenerator();
+    addStateModelDef(clusterName, "espresso_state_model",
+        generator.generateConfigForStorage());
+    addResourceGroupToCluster(clusterName, "TestDB", 10, "espresso_state_model");
     rebalanceStorageCluster(clusterName, "TestDB", 3);
   }
 
@@ -222,10 +227,10 @@ public class ClusterSetup
 
     Option addResourceGroupOption = OptionBuilder.withLongOpt(addResourceGroup)
         .withDescription("Add a resourceGroup to a cluster").create();
-    addResourceGroupOption.setArgs(3);
+    addResourceGroupOption.setArgs(4);
     addResourceGroupOption.setRequired(false);
     addResourceGroupOption
-        .setArgName("clusterName resourceGroupName partitionNo");
+        .setArgName("clusterName resourceGroupName partitionNo stateModelRef");
 
     Option addStateModelDefGroupOption = OptionBuilder
         .withLongOpt(addStateModelDef)
@@ -382,8 +387,9 @@ public class ClusterSetup
       String resourceGroupName = cmd.getOptionValues(addResourceGroup)[1];
       int partitions = Integer
           .parseInt(cmd.getOptionValues(addResourceGroup)[2]);
+      String stateModelRef = cmd.getOptionValues(addResourceGroup)[3];
       setupTool.addResourceGroupToCluster(clusterName, resourceGroupName,
-          partitions);
+          partitions, stateModelRef);
       return 0;
     }
 

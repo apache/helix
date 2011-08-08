@@ -254,7 +254,7 @@ public class TestZKCallback
     ClusterSetup
         .processCommandLineArgs(createArgs("-zkSvr localhost:2300 -addCluster relay-cluster-12345"));
     ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr localhost:2300 -addResourceGroup storage-cluster-12345 db-12345 120"));
+        .processCommandLineArgs(createArgs("-zkSvr localhost:2300 -addResourceGroup storage-cluster-12345 db-12345 120 espresso_state_model"));
     ClusterSetup
         .processCommandLineArgs(createArgs("-zkSvr localhost:2300 -addNode storage-cluster-12345 localhost:8900"));
     ClusterSetup

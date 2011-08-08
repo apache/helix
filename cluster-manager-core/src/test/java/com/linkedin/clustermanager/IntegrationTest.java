@@ -8,13 +8,12 @@ import java.util.Arrays;
 import org.I0Itec.zkclient.IDefaultNameSpace;
 import org.I0Itec.zkclient.ZkClient;
 import org.I0Itec.zkclient.ZkServer;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.controller.ClusterManagerMain;
 import com.linkedin.clustermanager.mock.storage.DummyProcess;
 import com.linkedin.clustermanager.tools.ClusterSetup;
 import com.linkedin.clustermanager.tools.ClusterStateVerifier;
+import com.linkedin.clustermanager.tools.StateModelConfigGenerator;
 
 /**
  * This is a simple integration test. We will use this until we have framework
@@ -27,7 +26,7 @@ public class IntegrationTest
 {
   @Test
   public void testInvocation() throws Exception
-  //public static void main(String[] args) throws Exception
+  // public static void main(String[] args) throws Exception
   {
     // Logger.getRootLogger().setLevel(Level.ERROR);
     String logDir = "/tmp/logs";
@@ -45,12 +44,16 @@ public class IntegrationTest
     int port = 2181;
     ZkServer zkServer = new ZkServer(dataDir, logDir, defaultNameSpace, port);
     zkServer.start();
+    ClusterSetup setup = new ClusterSetup("localhost:" + port);
     ClusterSetup
         .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addCluster ESPRESSO_STORAGE"));
     ClusterSetup
         .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addCluster relay-cluster-12345"));
+    StateModelConfigGenerator configGenerator = new StateModelConfigGenerator();
+    setup.addStateModelDef("ESPRESSO_STORAGE", "espresso_state_model",
+        configGenerator.generateConfigForStorage());
     ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addResourceGroup ESPRESSO_STORAGE db-12345 100"));
+        .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addResourceGroup ESPRESSO_STORAGE db-12345 100 espresso_state_model"));
     ClusterSetup
         .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addNode ESPRESSO_STORAGE localhost:8900"));
     ClusterSetup
@@ -70,11 +73,12 @@ public class IntegrationTest
     startDummyProcess(createArgs("-zkSvr localhost:2181 -cluster ESPRESSO_STORAGE -host localhost -port 8904"));
     startClusterManager(createArgs("-zkSvr localhost:2181 -cluster ESPRESSO_STORAGE"));
     Thread.sleep(30000);
-//    Thread.currentThread().join();
-    AssertJUnit.assertTrue(ClusterStateVerifier
-        .verifyState(createArgs("-zkSvr localhost:2181 -cluster ESPRESSO_STORAGE")));
-    //Thread.currentThread().join();
-     zkServer.shutdown();
+    // Thread.currentThread().join();
+    AssertJUnit
+        .assertTrue(ClusterStateVerifier
+            .verifyState(createArgs("-zkSvr localhost:2181 -cluster ESPRESSO_STORAGE")));
+    // Thread.currentThread().join();
+    zkServer.shutdown();
   }
 
   private static void startClusterManager(final String[] args)

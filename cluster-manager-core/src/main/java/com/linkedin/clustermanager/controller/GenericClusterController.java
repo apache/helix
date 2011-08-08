@@ -3,11 +3,13 @@ package com.linkedin.clustermanager.controller;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
+import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ConfigChangeListener;
 import com.linkedin.clustermanager.CurrentStateChangeListener;
 import com.linkedin.clustermanager.ExternalViewChangeListener;
@@ -19,6 +21,7 @@ import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.controller.stages.BestPossibleStateCalcStage;
 import com.linkedin.clustermanager.controller.stages.ClusterEvent;
 import com.linkedin.clustermanager.controller.stages.CurrentStateComputationStage;
+import com.linkedin.clustermanager.controller.stages.ExternalViewComputeStage;
 import com.linkedin.clustermanager.controller.stages.MessageGenerationPhase;
 import com.linkedin.clustermanager.controller.stages.MessageSelectionStage;
 import com.linkedin.clustermanager.controller.stages.ReadClusterDataStage;
@@ -53,6 +56,7 @@ public class GenericClusterController implements ConfigChangeListener,
   volatile boolean init = false;
   private PipelineRegistry _registry;
   private final Set<String> _instanceSubscriptionList;
+  private final ExternalViewGenerator _externalViewGenerator;
 
   public GenericClusterController()
   {
@@ -79,8 +83,13 @@ public class GenericClusterController implements ConfigChangeListener,
       rebalancePipeline.addStage(new MessageSelectionStage());
       rebalancePipeline.addStage(new TaskAssignmentStage());
 
+      // external view generation
+      Pipeline externalViewPipeline = new Pipeline();
+      externalViewPipeline.addStage(new ExternalViewComputeStage());
+
       registry.register("idealStateChange", dataRefresh, rebalancePipeline);
-      registry.register("currentStateChange", dataRefresh, rebalancePipeline);
+      registry.register("currentStateChange", dataRefresh, rebalancePipeline,
+          externalViewPipeline);
       registry.register("configChange", dataRefresh, rebalancePipeline);
       registry.register("liveInstanceChange", dataRefresh, rebalancePipeline);
 
@@ -95,6 +104,7 @@ public class GenericClusterController implements ConfigChangeListener,
   {
     _registry = registry;
     _instanceSubscriptionList = new HashSet<String>();
+    _externalViewGenerator = new ExternalViewGenerator();
   }
 
   protected void handleEvent(ClusterEvent event)

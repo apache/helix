@@ -122,8 +122,9 @@ public class CMTaskHandler implements Callable<CMTaskResult>
         if (currentState == null)
         {
           currentState = new ZNRecord();
+          currentState.setId(stateUnitGroup);
         }
-        
+
         Map<String, String> map = currentState.getMapField(stateUnitKey);
         if (map == null)
         {

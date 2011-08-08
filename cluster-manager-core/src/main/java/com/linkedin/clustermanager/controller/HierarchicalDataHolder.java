@@ -7,6 +7,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.log4j.Logger;
 import org.apache.zookeeper.data.Stat;
 
 import com.linkedin.clustermanager.agent.zk.ZkClient;
@@ -19,6 +20,8 @@ import com.linkedin.clustermanager.agent.zk.ZkClient;
  */
 public class HierarchicalDataHolder<T>
 {
+  private static final Logger logger = Logger
+      .getLogger(HierarchicalDataHolder.class.getName());
   AtomicReference<Node<T>> root;
 
   /**
@@ -110,7 +113,7 @@ public class HierarchicalDataHolder<T>
       }
     } else
     {
-      System.out.println(path + " does not exist");
+      logger.info(path + " does not exist");
     }
     return dataChanged;
   }
@@ -126,7 +129,7 @@ public class HierarchicalDataHolder<T>
 
   public void print()
   {
-    System.out.println("START "+ _rootPath);
+    logger.info("START "+ _rootPath);
     LinkedList<Node<T>> stack = new LinkedList<HierarchicalDataHolder.Node<T>>();
     stack.push(root.get());
     while (!stack.isEmpty())
@@ -134,8 +137,8 @@ public class HierarchicalDataHolder<T>
       Node<T> pop = stack.pop();
       if (pop != null)
       {
-        System.out.print("name:"+ pop.name);
-        System.out.println("\tdata:"+pop.data);
+        logger.info("name:"+ pop.name);
+        logger.info("\tdata:"+pop.data);
         if (pop.children != null)
         {
           for (Node<T> child : pop.children.values())
@@ -145,6 +148,6 @@ public class HierarchicalDataHolder<T>
         }
       }
     }
-    System.out.println("END "+ _rootPath);
+    logger.info("END "+ _rootPath);
   }
 }

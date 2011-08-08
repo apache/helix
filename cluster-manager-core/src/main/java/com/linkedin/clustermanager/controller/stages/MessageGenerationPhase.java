@@ -44,7 +44,6 @@ public class MessageGenerationPhase extends AbstractBaseStage
 
     BestPossibleStateOutput bestPossibleStateOutput = event
         .getAttribute(AttributeName.BEST_POSSIBLE_STATE.toString());
-    System.out.println("bestPossibleStateOutput=" + bestPossibleStateOutput);
     List<ZNRecord> liveInstances = dataAccessor
         .getClusterPropertyList(ClusterPropertyType.LIVEINSTANCES);
     Map<String, String> sessionIdMap = new HashMap<String, String>();

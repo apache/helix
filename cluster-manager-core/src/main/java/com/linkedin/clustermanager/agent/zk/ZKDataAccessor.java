@@ -262,4 +262,25 @@ public class ZKDataAccessor implements ClusterDataAccessor
     ZKUtil.createOrUpdate(_zkClient, propertyPath, value,
         instanceProperty.isPersistent(), instanceProperty.isMergeOnUpdate());
   }
+
+  @Override
+  public List<ZNRecord> getInstancePropertyList(String instanceName,
+      String subPath, InstancePropertyType instanceProperty)
+  {
+    String path = CMUtil.getInstancePropertyPath(_clusterName, instanceName,
+        instanceProperty);
+    path = path + "/" + subPath;
+    return ZKUtil.getChildren(_zkClient, path);
+  }
+
+  @Override
+  public ZNRecord getInstanceProperty(String instanceName,
+      InstancePropertyType instanceProperty, String subPath, String key)
+  {
+    String path = CMUtil.getInstancePropertyPath(_clusterName, instanceName,
+        instanceProperty);
+    String propertyPath = path + "/" + subPath + "/" + key;
+    ZNRecord record = _zkClient.readData(propertyPath, true);
+    return record;
+  }
 }

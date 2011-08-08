@@ -169,7 +169,7 @@ public class TestZKCallback
 
     testClusterManager.addMessageListener(testListener, "localhost_8900");
     testClusterManager.addCurrentStateChangeListener(testListener,
-        "localhost_8900");
+        "localhost_8900",testClusterManager.getSessionId());
     testClusterManager.addConfigChangeListener(testListener);
     testClusterManager.addIdealStateChangeListener(testListener);
     testClusterManager.addExternalViewChangeListener(testListener);
@@ -194,7 +194,7 @@ public class TestZKCallback
     testListener.Reset();
 
     dataAccessor.setInstanceProperty("localhost_8900",
-        InstancePropertyType.CURRENTSTATES, dummyRecord.getId(), dummyRecord);
+        InstancePropertyType.CURRENTSTATES, testClusterManager.getSessionId(),dummyRecord.getId(), dummyRecord);
     Thread.sleep(100);
     AssertJUnit.assertTrue(testListener.currentStateChangeReceived);
     testListener.Reset();

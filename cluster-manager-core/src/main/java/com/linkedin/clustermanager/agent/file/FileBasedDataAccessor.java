@@ -125,4 +125,20 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
     
   }
 
+  @Override
+  public List<ZNRecord> getInstancePropertyList(String instanceName,
+      String subPath, InstancePropertyType instanceProperty)
+  {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public ZNRecord getInstanceProperty(String instanceName,
+      InstancePropertyType instanceProperty, String subPath, String key)
+  {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
 }

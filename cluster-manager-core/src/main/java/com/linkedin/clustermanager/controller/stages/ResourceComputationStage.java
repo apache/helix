@@ -4,6 +4,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.linkedin.clustermanager.CMConstants;
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.ClusterManager;
@@ -56,8 +57,9 @@ public class ResourceComputationStage extends AbstractBaseStage
       for (ZNRecord liveInstance : liveInstances)
       {
         String instanceName = liveInstance.getId();
+        String clientSessionId = liveInstance.getSimpleField(CMConstants.ZNAttribute.SESSION_ID.toString());
         List<ZNRecord> currentStates = dataAccessor.getInstancePropertyList(
-            instanceName, InstancePropertyType.CURRENTSTATES);
+            instanceName, clientSessionId, InstancePropertyType.CURRENTSTATES);
         if (currentStates == null || currentStates.size() == 0)
         {
           continue;

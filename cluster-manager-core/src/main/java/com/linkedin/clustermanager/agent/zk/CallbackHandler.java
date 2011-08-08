@@ -108,8 +108,9 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
         currentStateChangeListener = (CurrentStateChangeListener) _listener;
         subscribeForChanges(_path, true, true);
         String instanceName = CMUtil.getInstanceNameFromPath(_path);
+        String[] pathParts = _path.split("/");
         List<ZNRecord> currentStates = _accessor.getInstancePropertyList(
-            instanceName, InstancePropertyType.CURRENTSTATES);
+            instanceName, pathParts[pathParts.length - 1], InstancePropertyType.CURRENTSTATES);
         currentStateChangeListener.onStateChange(instanceName, currentStates,
             changeContext);
 

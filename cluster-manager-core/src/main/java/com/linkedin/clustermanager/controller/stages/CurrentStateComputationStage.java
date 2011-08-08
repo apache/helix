@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.linkedin.clustermanager.CMConstants;
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.ClusterManager;
@@ -39,7 +40,8 @@ public class CurrentStateComputationStage extends AbstractBaseStage
       LiveInstance instance = new LiveInstance(record);
       String instanceName = record.getId();
       List<ZNRecord> instancePropertyList;
-      instancePropertyList = dataAccessor.getInstancePropertyList(instanceName,
+      String clientSessionId = record.getSimpleField(CMConstants.ZNAttribute.SESSION_ID.toString());
+      instancePropertyList = dataAccessor.getInstancePropertyList(instanceName, clientSessionId,
           InstancePropertyType.CURRENTSTATES);
       for (ZNRecord currStateRecord : instancePropertyList)
       {

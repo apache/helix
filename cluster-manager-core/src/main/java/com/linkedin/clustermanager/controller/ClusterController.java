@@ -101,12 +101,13 @@ public class ClusterController implements ConfigChangeListener,
     for (ZNRecord instance : liveInstances)
     {
       String instanceName = instance.getId();
+      String clientSessionId  = instance.getSimpleField(CMConstants.ZNAttribute.SESSION_ID.toString());
       if (!_instanceSubscriptionList.contains(instanceName))
       {
         try
         {
           changeContext.getManager().addCurrentStateChangeListener(this,
-              instanceName);
+              instanceName, clientSessionId);
           changeContext.getManager().addMessageListener(this, instanceName);
         } catch (Exception e)
         {
@@ -222,7 +223,7 @@ public class ClusterController implements ConfigChangeListener,
       }
       _messageHolder.update(instanceName, messages);
       List<ZNRecord> currentStates = client.getInstancePropertyList(
-          instanceName, InstancePropertyType.CURRENTSTATES);
+          instanceName, changeContext.getManager().getSessionId(), InstancePropertyType.CURRENTSTATES);
       _currentStateHolder.refresh(instanceName, currentStates);
     }
     return false;

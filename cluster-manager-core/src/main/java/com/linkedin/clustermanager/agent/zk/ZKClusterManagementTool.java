@@ -43,7 +43,7 @@ public class ZKClusterManagementTool implements ClusterManagementService
 
     _zkClient
         .createPersistent(CMUtil.getMessagePath(clusterName, nodeId), true);
-    _zkClient.createPersistent(CMUtil.getCurrentStatePath(clusterName, nodeId),
+    _zkClient.createPersistent(CMUtil.getCurrentStateBasePath(clusterName, nodeId),
         true);
     _zkClient.createPersistent(CMUtil.getErrorsPath(clusterName, nodeId), true);
     _zkClient.createPersistent(

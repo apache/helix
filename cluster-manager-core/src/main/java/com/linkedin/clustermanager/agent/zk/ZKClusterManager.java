@@ -13,6 +13,7 @@ import org.apache.zookeeper.Watcher.Event.KeeperState;
 
 import com.linkedin.clustermanager.CMConstants;
 import com.linkedin.clustermanager.ClusterDataAccessor;
+import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerException;
 import com.linkedin.clustermanager.ConfigChangeListener;
@@ -64,7 +65,7 @@ public class ZKClusterManager implements ClusterManager
           _instanceName))
           && _zkClient.exists(CMUtil
               .getMessagePath(_clusterName, _instanceName))
-          && _zkClient.exists(CMUtil.getCurrentStatePath(_clusterName,
+          && _zkClient.exists(CMUtil.getCurrentStateBasePath(_clusterName,
               _instanceName))
           && _zkClient.exists(CMUtil.getStatusUpdatesPath(_clusterName,
               _instanceName))
@@ -132,9 +133,9 @@ public class ZKClusterManager implements ClusterManager
 
   @Override
   public void addCurrentStateChangeListener(
-      CurrentStateChangeListener listener, String instanceName)
+      CurrentStateChangeListener listener, String instanceName, String sessionId)
   {
-    final String path = CMUtil.getCurrentStatePath(_clusterName, instanceName);
+    final String path = CMUtil.getCurrentStateBasePath(_clusterName, instanceName) + "/" + sessionId;
 
     CallbackHandler callbackHandler = createCallBackHandler(path, listener,
         new EventType[]
@@ -221,6 +222,12 @@ public class ZKClusterManager implements ClusterManager
         _sessionId);
     _accessor.setClusterProperty(ClusterPropertyType.LIVEINSTANCES,
         _instanceName, metaData, CreateMode.EPHEMERAL);
+    String currentStatePathParent = CMUtil.getCurrentStateBasePath(_clusterName, _instanceName) + "/" + getSessionId();
+    if(!_zkClient.exists(currentStatePathParent))
+    {
+      _zkClient.createPersistent(currentStatePathParent);
+      logger.info("Creating current state path " + currentStatePathParent);
+    }
   }
 
   private ZkClient createClient(String zkServers, int sessionTimeout)

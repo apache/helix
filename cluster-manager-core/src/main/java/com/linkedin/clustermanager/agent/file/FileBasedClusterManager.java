@@ -343,7 +343,7 @@ public class FileBasedClusterManager implements ClusterManager
 
   @Override
   public void addCurrentStateChangeListener(
-      CurrentStateChangeListener listener, String instanceName)
+      CurrentStateChangeListener listener, String instanceName, String SessionId)
   {
     throw new UnsupportedOperationException(
         "addCurrentStateChangeListener is not supported by File Based cluster manager");

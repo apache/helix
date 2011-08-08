@@ -118,7 +118,7 @@ public class CMTaskHandler implements Callable<CMTaskResult>
       try
       {
         ZNRecord currentState = accessor.getInstanceProperty(instanceName,
-            InstancePropertyType.CURRENTSTATES, stateUnitGroup);
+            InstancePropertyType.CURRENTSTATES, _manager.getSessionId(), stateUnitGroup);
         if (currentState == null)
         {
           currentState = new ZNRecord();
@@ -153,7 +153,7 @@ public class CMTaskHandler implements Callable<CMTaskResult>
         map.put(Message.Attributes.STATE_UNIT_GROUP.toString(),
             _message.getStateUnitGroup());
         accessor.setInstanceProperty(instanceName,
-            InstancePropertyType.CURRENTSTATES, stateUnitGroup, currentState);
+            InstancePropertyType.CURRENTSTATES, _manager.getSessionId(), stateUnitGroup, currentState);
         accessor.removeInstanceProperty(instanceName,
             InstancePropertyType.MESSAGES, _message.getId());
         // based on task result update the current state of the node.

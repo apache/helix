@@ -5,7 +5,7 @@ public interface CMConstants
 
   enum ZNAttribute
   {
-    SESSION_ID, CURRENT_STATE
+    SESSION_ID, CURRENT_STATE,HOST,PORT
   }
 
   enum ChangeType

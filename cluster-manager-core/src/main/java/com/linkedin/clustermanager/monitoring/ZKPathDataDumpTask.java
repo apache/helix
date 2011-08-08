@@ -19,7 +19,7 @@ import com.linkedin.clustermanager.agent.zk.ZkClient;
 
 public class ZKPathDataDumpTask extends TimerTask
 {
-  static Logger _logger = Logger.getLogger(ZKPathDataDumpTask.class);
+  static Logger logger = Logger.getLogger(ZKPathDataDumpTask.class);
   
   private int _thresholdNoChangeInMs;
   private ZkClient _zkClient;
@@ -28,7 +28,7 @@ public class ZKPathDataDumpTask extends TimerTask
   public ZKPathDataDumpTask(ZkClient zkClient, List<String> paths, int thresholdNoChangeInMs)
   {
     _zkClient = zkClient;
-    _logger.info("Scannning paths " + paths + " thresholdNoChangeInMs: "+ thresholdNoChangeInMs);
+    logger.info("Scannning paths " + paths + " thresholdNoChangeInMs: "+ thresholdNoChangeInMs);
     _thresholdNoChangeInMs = thresholdNoChangeInMs;
     _paths = paths;
   }
@@ -37,7 +37,7 @@ public class ZKPathDataDumpTask extends TimerTask
   public void run()
   {
     // For each record in status update and error node
-    _logger.info("Scannning paths ...");
+    logger.info("Scannning paths ...");
     for(String path : _paths)
     {
       ScanPath(path);
@@ -46,7 +46,7 @@ public class ZKPathDataDumpTask extends TimerTask
   
   void ScanPath(String path)
   {
-    _logger.info("Scannning path " + path);
+    logger.info("Scannning path " + path);
     List<String> subPaths  = _zkClient.getChildren(path);
     for(String subPath : subPaths)
     {
@@ -66,7 +66,7 @@ public class ZKPathDataDumpTask extends TimerTask
       
       long lastModifiedTimeInMs = pathStat.getMtime();
       long nowInMs = new Date().getTime();
-      _logger.info(nowInMs + " " + lastModifiedTimeInMs + " " + fullPath);
+      logger.info(nowInMs + " " + lastModifiedTimeInMs + " " + fullPath);
       
       // Check the last modified time
       if(nowInMs > lastModifiedTimeInMs)
@@ -74,7 +74,7 @@ public class ZKPathDataDumpTask extends TimerTask
         long timeDiff = nowInMs - lastModifiedTimeInMs;
         if(timeDiff > _thresholdNoChangeInMs)
         {
-          _logger.info("Dumping status update path " + fullPath + " " + timeDiff + "MS has passed");
+          logger.info("Dumping status update path " + fullPath + " " + timeDiff + "MS has passed");
           _zkClient.setZkSerializer(new ZNRecordSerializer());
           ZNRecord record = _zkClient.readData(fullPath);
           
@@ -87,22 +87,21 @@ public class ZKPathDataDumpTask extends TimerTask
           try
           {
             mapper.writeValue(sw, record);
-            _logger.info(sw.toString());
-            System.out.println(sw.toString());
+            logger.info(sw.toString());
           } 
           catch (JsonGenerationException e)
           {
             e.printStackTrace();
-            _logger.error(e.toString());
+            logger.error(e.toString());
           } 
           catch (JsonMappingException e)
           {
-            _logger.error(e.toString());
+            logger.error(e.toString());
             e.printStackTrace();
           } 
           catch (IOException e)
           {
-            _logger.error(e.toString());
+            logger.error(e.toString());
             e.printStackTrace();
           }
           // Delete the path data

@@ -11,6 +11,7 @@ import java.util.concurrent.Callable;
 
 import org.apache.log4j.Logger;
 
+import com.linkedin.clustermanager.CMConstants;
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerException;
@@ -108,9 +109,10 @@ public class CMTaskHandler implements Callable<CMTaskResult>
         invoke(accessor, taskResult, _message);
       } catch (Exception e)
       {
-        String errorMessage = "Exception while executing a state transition task"+ e;
-        _statusUpdateUtil.logError(_message, CMTaskHandler.class, e, errorMessage,
-            accessor);
+        String errorMessage = "Exception while executing a state transition task"
+            + e;
+        _statusUpdateUtil.logError(_message, CMTaskHandler.class, e,
+            errorMessage, accessor);
         logger.error(errorMessage);
         taskResult.setSuccess(false);
       }
@@ -123,6 +125,9 @@ public class CMTaskHandler implements Callable<CMTaskResult>
         {
           currentState = new ZNRecord();
           currentState.setId(stateUnitGroup);
+          currentState.setSimpleField(
+              CMConstants.ZNAttribute.SESSION_ID.toString(),
+              _manager.getSessionId());
         }
 
         Map<String, String> map = currentState.getMapField(stateUnitKey);
@@ -164,8 +169,8 @@ public class CMTaskHandler implements Callable<CMTaskResult>
         StateTransitionError error = new StateTransitionError(
             StateTransitionError.ErrorCode.FRAMEWORK, e);
         _stateModel.rollbackOnError(_message, _notificationContext, error);
-        _statusUpdateUtil.logError(_message, CMTaskHandler.class, e, "Error when update the state ",
-            accessor);
+        _statusUpdateUtil.logError(_message, CMTaskHandler.class, e,
+            "Error when update the state ", accessor);
       }
       return taskResult;
     }

@@ -1,6 +1,5 @@
 package com.linkedin.clustermanager.controller.stages;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -47,8 +46,7 @@ public class CurrentStateComputationStage extends AbstractBaseStage
 
         if (!instance.getSessionId().equals(currentState.getSessionId()))
         {
-          // TODO:uncomment this
-          // continue;
+           continue;
         }
         String resourceGroupName = currentState.getResourceGroupName();
         ResourceGroup resourceGroup = resourceGroupMap.get(resourceGroupName);

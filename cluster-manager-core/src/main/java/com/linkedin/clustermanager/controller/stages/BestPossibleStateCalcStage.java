@@ -50,7 +50,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
         bestPossibleStateOutput);
   }
 
-  private BestPossibleStateOutput compute(
+  protected BestPossibleStateOutput compute(
       Map<String, ResourceGroup> resourceGroupMap,
       List<ZNRecord> liveInstances, List<ZNRecord> idealStates,
       List<ZNRecord> stateModelDefs, CurrentStateOutput currentStateOutput)
@@ -118,7 +118,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
           stateCount = Integer.parseInt(num);
         } catch (Exception e)
         {
-
+          logger.error("Invalid count for state:" + state + " ,count=" + num);
         }
       }
       if (stateCount > -1)

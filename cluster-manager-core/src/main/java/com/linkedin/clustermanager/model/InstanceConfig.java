@@ -1,29 +1,35 @@
 package com.linkedin.clustermanager.model;
 
+import com.linkedin.clustermanager.CMConstants;
+import com.linkedin.clustermanager.ZNRecord;
+
 public class InstanceConfig
 {
-  // setting defaults to avoid lot of null checks
-  String _hostName = "UNK";
-  String _port = "-1";
+  private final ZNRecord _record;
+
+  public InstanceConfig(ZNRecord record)
+  {
+    _record = record;
+  }
 
   public String getHostName()
   {
-    return _hostName;
+    return _record.getSimpleField(CMConstants.ZNAttribute.HOST.toString());
   }
 
   public void setHostName(String hostName)
   {
-    _hostName = hostName;
+    _record.setSimpleField(CMConstants.ZNAttribute.HOST.toString(), hostName);
   }
 
   public String getPort()
   {
-    return _port;
+    return _record.getSimpleField(CMConstants.ZNAttribute.PORT.toString());
   }
 
   public void setPort(String port)
   {
-    _port = port;
+    _record.setSimpleField(CMConstants.ZNAttribute.HOST.toString(), port);
   }
 
   @Override
@@ -33,7 +39,7 @@ public class InstanceConfig
     {
       InstanceConfig that = (InstanceConfig) obj;
 
-      if (this._hostName.equals(that._hostName) && _port.equals(that._port))
+      if (this.getHostName().equals(that.getHostName()) && this.getPort().equals(that.getPort()))
       {
         return true;
       }
@@ -46,8 +52,9 @@ public class InstanceConfig
   {
 
     StringBuffer sb = new StringBuffer();
-    sb.append(_hostName);
-    sb.append(_port);
+    sb.append(this.getHostName());
+    sb.append("_");
+    sb.append(this.getPort());
     return sb.toString().hashCode();
   }
 }

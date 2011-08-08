@@ -41,6 +41,7 @@ public class ClusterSetup
   public static final String addCluster = "addCluster";
   public static final String addNode = "addNode";
   public static final String addResourceGroup = "addResourceGroup";
+  public static final String addStateModelDef = "addStateModelDef";
   public static final String rebalance = "rebalance";
 
   // Query info (TBD in V2)
@@ -121,30 +122,43 @@ public class ClusterSetup
     return new ZKClusterManagementTool(zkClient);
   }
 
-  public void addResourceGroupToCluster(String clusterName, String resourceGroup,
-      int numResources)
+  public void addStateModelDef(String clusterName, String stateModelDef,
+      ZNRecord record)
   {
     ClusterManagementService managementTool = getClusterManagementTool();
-    managementTool.addResourceGroup(clusterName, resourceGroup, numResources);
+    managementTool.addStateModelDef(clusterName, stateModelDef, record);
   }
 
-  public void rebalanceStorageCluster(String clusterName, String resourceGroupName,
-      int replica)
+  public void addResourceGroupToCluster(String clusterName,
+      String resourceGroup, int numResources, String stateModelRef)
+  {
+    ClusterManagementService managementTool = getClusterManagementTool();
+    managementTool.addResourceGroup(clusterName, resourceGroup, numResources,
+        stateModelRef);
+  }
+
+  public void rebalanceStorageCluster(String clusterName,
+      String resourceGroupName, int replica)
   {
     ClusterManagementService managementTool = getClusterManagementTool();
     List<String> nodeNames = managementTool.getNodeNamesInCluster(clusterName);
 
-    ZNRecord dbIdealState = managementTool.getResourceGroupIdealState(clusterName, resourceGroupName);
+    ZNRecord dbIdealState = managementTool.getResourceGroupIdealState(
+        clusterName, resourceGroupName);
     int partitions = Integer
         .parseInt(dbIdealState.getSimpleField("partitions"));
 
-    ZNRecord idealState = IdealStateCalculatorForStorageNode.calculateIdealState(
-        nodeNames, partitions, replica, resourceGroupName);
-    managementTool.setResourceGroupIdealState(clusterName, resourceGroupName, idealState);
+    ZNRecord idealState = IdealStateCalculatorForStorageNode
+        .calculateIdealState(nodeNames, partitions, replica, resourceGroupName);
+    idealState.merge(dbIdealState);
+    managementTool.setResourceGroupIdealState(clusterName, resourceGroupName,
+        idealState);
   }
- 
+
   /**
-   * Sets up a cluster with 6 Nodes[localhost:8900 to localhost:8905], 1 resourceGroup[EspressoDB] with a replication factor of 3
+   * Sets up a cluster with 6 Nodes[localhost:8900 to localhost:8905], 1
+   * resourceGroup[EspressoDB] with a replication factor of 3
+   * 
    * @param clusterName
    */
   public void setupTestCluster(String clusterName)
@@ -156,7 +170,10 @@ public class ClusterSetup
       storageNodeInfoArray[i] = "localhost:" + (8900 + i);
     }
     addNodesToCluster(clusterName, storageNodeInfoArray);
-    addResourceGroupToCluster(clusterName, "TestDB", 10);
+    StateModelConfigGenerator generator = new StateModelConfigGenerator();
+    addStateModelDef(clusterName, "espresso_state_model",
+        generator.generateConfigForStorage());
+    addResourceGroupToCluster(clusterName, "TestDB", 10, "espresso_state_model");
     rebalanceStorageCluster(clusterName, "TestDB", 3);
   }
 
@@ -183,7 +200,8 @@ public class ClusterSetup
     listClustersOption.setArgs(0);
     listClustersOption.setRequired(false);
 
-    Option listResourceGroupOption = OptionBuilder.withLongOpt(listResourceGroups)
+    Option listResourceGroupOption = OptionBuilder
+        .withLongOpt(listResourceGroups)
         .withDescription("List resourceGroups hosted in a cluster").create();
     listResourceGroupOption.setArgs(1);
     listResourceGroupOption.setRequired(false);
@@ -209,9 +227,17 @@ public class ClusterSetup
 
     Option addResourceGroupOption = OptionBuilder.withLongOpt(addResourceGroup)
         .withDescription("Add a resourceGroup to a cluster").create();
-    addResourceGroupOption.setArgs(3);
+    addResourceGroupOption.setArgs(4);
     addResourceGroupOption.setRequired(false);
-    addResourceGroupOption.setArgName("clusterName resourceGroupName partitionNo");
+    addResourceGroupOption
+        .setArgName("clusterName resourceGroupName partitionNo stateModelRef");
+
+    Option addStateModelDefGroupOption = OptionBuilder
+        .withLongOpt(addStateModelDef)
+        .withDescription("Add a resourceGroup to a cluster").create();
+    addStateModelDefGroupOption.setArgs(3);
+    addStateModelDefGroupOption.setRequired(false);
+    addStateModelDefGroupOption.setArgName("clusterName stateModelDef <text>");
 
     Option rebalanceOption = OptionBuilder.withLongOpt(rebalance)
         .withDescription("Rebalance a resourceGroup in a cluster").create();
@@ -231,7 +257,8 @@ public class ClusterSetup
     clusterInfoOption.setRequired(false);
     clusterInfoOption.setArgName("clusterName");
 
-    Option resourceGroupInfoOption = OptionBuilder.withLongOpt(resourceGroupInfo)
+    Option resourceGroupInfoOption = OptionBuilder
+        .withLongOpt(resourceGroupInfo)
         .withDescription("Query info of a resourceGroup").create();
     resourceGroupInfoOption.setArgs(2);
     resourceGroupInfoOption.setRequired(false);
@@ -313,17 +340,20 @@ public class ClusterSetup
       dbParams.add(new FileBasedClusterManager.DBParam("MailboxDB", 128));
       dbParams.add(new FileBasedClusterManager.DBParam("MyDB", 8));
       dbParams.add(new FileBasedClusterManager.DBParam("schemata", 1));
-      String[] nodesInfo = { "localhost:8900" };
+      String[] nodesInfo =
+      { "localhost:8900" };
 
       // ClusterViewSerializer serializer = new ClusterViewSerializer(file);
       int replica = 0;
-      ClusterView view = FileBasedClusterManager.generateStaticConfigClusterView(nodesInfo, dbParams, replica);
+      ClusterView view = FileBasedClusterManager
+          .generateStaticConfigClusterView(nodesInfo, dbParams, replica);
 
       // byte[] bytes;
       ClusterViewSerializer.serialize(view, new File(file));
       // System.out.println(new String(bytes));
 
-      ClusterView restoredView = ClusterViewSerializer.deserialize(new File(file));
+      ClusterView restoredView = ClusterViewSerializer.deserialize(new File(
+          file));
       // System.out.println(restoredView);
 
       byte[] bytes = ClusterViewSerializer.serialize(restoredView);
@@ -355,8 +385,11 @@ public class ClusterSetup
     {
       String clusterName = cmd.getOptionValues(addResourceGroup)[0];
       String resourceGroupName = cmd.getOptionValues(addResourceGroup)[1];
-      int partitions = Integer.parseInt(cmd.getOptionValues(addResourceGroup)[2]);
-      setupTool.addResourceGroupToCluster(clusterName, resourceGroupName, partitions);
+      int partitions = Integer
+          .parseInt(cmd.getOptionValues(addResourceGroup)[2]);
+      String stateModelRef = cmd.getOptionValues(addResourceGroup)[3];
+      setupTool.addResourceGroupToCluster(clusterName, resourceGroupName,
+          partitions, stateModelRef);
       return 0;
     }
 
@@ -365,7 +398,8 @@ public class ClusterSetup
       String clusterName = cmd.getOptionValues(rebalance)[0];
       String resourceGroupName = cmd.getOptionValues(rebalance)[1];
       int replicas = Integer.parseInt(cmd.getOptionValues(rebalance)[2]);
-      setupTool.rebalanceStorageCluster(clusterName, resourceGroupName, replicas);
+      setupTool.rebalanceStorageCluster(clusterName, resourceGroupName,
+          replicas);
       return 0;
     }
 

@@ -113,7 +113,7 @@ public class Mocks
 
     @Override
     public void addCurrentStateChangeListener(
-        CurrentStateChangeListener listener, String instanceName)
+        CurrentStateChangeListener listener, String instanceName, String sessionId)
     {
       // TODO Auto-generated method stub
 
@@ -275,6 +275,31 @@ public class Mocks
     {
       // TODO Auto-generated method stub
       
+    }
+
+    @Override
+    public void updateInstanceProperty(String instanceName,
+        InstancePropertyType instanceProperty, String subPath, String key,
+        ZNRecord value)
+    {
+      // TODO Auto-generated method stub
+      
+    }
+
+    @Override
+    public List<ZNRecord> getInstancePropertyList(String instanceName,
+        String subPath, InstancePropertyType instanceProperty)
+    {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    @Override
+    public ZNRecord getInstanceProperty(String instanceName,
+        InstancePropertyType instanceProperty, String subPath, String key)
+    {
+      // TODO Auto-generated method stub
+      return null;
     }
 
   }

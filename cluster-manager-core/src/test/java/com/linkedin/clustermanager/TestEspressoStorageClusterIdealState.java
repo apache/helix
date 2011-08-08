@@ -20,11 +20,22 @@ public class TestEspressoStorageClusterIdealState
   public void testInvocation() throws Exception
   {
     List<String> instanceNames = new ArrayList<String>();
+    for(int i = 0;i < 5; i++)
+    {
+      instanceNames.add("localhost:123" + i);
+    }
+    int partitions = 8, replicas = 0;
+    Map<String, Object> result0 = IdealStateCalculatorForStorageNode.calculateInitialIdealState(instanceNames, partitions, replicas);
+    Verify(result0, partitions,replicas);
+    
+    partitions = 8192; 
+    replicas = 3;
+    
+    instanceNames.clear();
     for(int i = 0;i < 20; i++)
     {
       instanceNames.add("localhost:123" + i);
     }
-    int partitions = 8192, replicas = 3;
     Map<String, Object> resultOriginal = IdealStateCalculatorForStorageNode.calculateInitialIdealState(instanceNames, partitions, replicas);
     
     Verify(resultOriginal, partitions,replicas);
@@ -97,6 +108,12 @@ public class TestEspressoStorageClusterIdealState
     AssertJUnit.assertTrue(masterCounterMap.size() == partitions);
     
     // for each node, verify the master partitions and the slave partition assignment map
+    if(replicas == 0)
+    {
+      AssertJUnit.assertTrue(nodeSlaveAssignmentMap.size() == 0);
+      return;
+    }
+    
     AssertJUnit.assertTrue(masterAssignmentMap.size() == nodeSlaveAssignmentMap.size());
     for(String instanceName: masterAssignmentMap.keySet())
     {

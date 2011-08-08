@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.TreeMap;
+
+import com.linkedin.clustermanager.ClusterManagerException;
 import com.linkedin.clustermanager.ZNRecord;
 
 /*
@@ -44,6 +46,15 @@ public class IdealStateCalculatorForStorageNode
    */
   public static ZNRecord calculateIdealState(List<String> instanceNames, int partitions, int replicas, String stateUnitGroup)
   {
+    if(instanceNames.size() < replicas + 1)
+    {
+      throw new ClusterManagerException("Number of instances must not be less than replicas + 1");
+    }
+    else if(partitions < instanceNames.size())
+    {
+      throw new ClusterManagerException("partitions must be more than number of instances");
+    }
+      
     Map<String, Object> result = calculateInitialIdealState(instanceNames, partitions, replicas);
     
     return convertToZNRecord(result, stateUnitGroup);
@@ -105,6 +116,28 @@ public class IdealStateCalculatorForStorageNode
         }
       }
     }
+    // generate the priority list of instances per partition. Master should be at front and slave follows.
+    
+    for(String partitionId : idealState.getMapFields().keySet())
+    {
+      Map<String, String> partitionAssignmentMap = idealState.getMapField(partitionId);
+      List<String> partitionAssignmentPriorityList = new ArrayList<String>();
+      String masterInstance = "";
+      for(String instanceName : partitionAssignmentMap.keySet())
+      {
+        if(partitionAssignmentMap.get(instanceName).equalsIgnoreCase("MASTER"))
+        {
+          masterInstance = instanceName;
+        }
+        else
+        {
+          partitionAssignmentPriorityList.add(instanceName);
+        }
+      }
+      Collections.shuffle(partitionAssignmentPriorityList);
+      partitionAssignmentPriorityList.add(0, masterInstance);
+      idealState.setListField(partitionId, partitionAssignmentPriorityList);
+    }
     
     return idealState;
   }
@@ -130,7 +163,7 @@ public class IdealStateCalculatorForStorageNode
   public static Map<String, Object> calculateInitialIdealState(List<String> instanceNames, int partitions, int replicas)
   {
     Random r = new Random(54321);
-    assert(replicas < instanceNames.size() - 1);
+    assert(replicas <= instanceNames.size() - 1);
     
     ArrayList<Integer> masterPartitionAssignment = new ArrayList<Integer>();
     for(int i = 0;i< partitions; i++)
@@ -158,77 +191,83 @@ public class IdealStateCalculatorForStorageNode
     List<Map<String, Map<String, List<Integer>>>> nodeSlaveAssignmentMapsList = new ArrayList<Map<String, Map<String, List<Integer>>>>(replicas);
     
     Map<String, Map<String, List<Integer>>> firstNodeSlaveAssignmentMap = new TreeMap<String, Map<String, List<Integer>>>();
-    
-    // 2. For each node, calculate the evenly distributed slave as the first slave assignment
-    // We will figure out the 2nd ...replicas-th slave assignment based on the first level slave assignment
-    for(int i = 0; i < instanceNames.size(); i++)
-    {
-      List<String> slaveInstances = new ArrayList<String>();
-      for(int j = 0;j < instanceNames.size(); j++)
-      {
-        if(j != i)
-        {
-          slaveInstances.add(instanceNames.get(j)); 
-        }
-      }
-      // Get the number of master partitions on instanceName
-      List<Integer> masterAssignment =  nodeMasterAssignmentMap.get(instanceNames.get(i));
-      // do a random shuffling as in step 1, so that the first-level slave are distributed among rest instances
-      ArrayList<Integer> slaveAssignment = new ArrayList<Integer>();
-      for(int j = 0;j < masterAssignment.size(); j++)
-      {
-        slaveAssignment.add(j);
-      }
-      Collections.shuffle(slaveAssignment, new Random(r.nextInt()));
-      
-      TreeMap<String, List<Integer>> slaveAssignmentMap = new TreeMap<String, List<Integer>>();
-      
-      // Get the slave assignment map of node instanceName
-      for(int j = 0;j < masterAssignment.size(); j++)
-      {
-        String slaveInstanceName = slaveInstances.get(slaveAssignment.get(j) % slaveInstances.size());
-        if(!slaveAssignmentMap.containsKey(slaveInstanceName))
-        {
-          slaveAssignmentMap.put(slaveInstanceName, new ArrayList<Integer>());
-        }
-        slaveAssignmentMap.get(slaveInstanceName).add(masterAssignment.get(j));
-      }
-      firstNodeSlaveAssignmentMap.put(instanceNames.get(i), slaveAssignmentMap);
-    }
-    nodeSlaveAssignmentMapsList.add(firstNodeSlaveAssignmentMap);
-    // From the first slave assignment map, calculate the rest slave assignment maps
-    for(int replicaOrder = 1; replicaOrder < replicas; replicaOrder++)
-    {
-      // calculate the next slave partition assignment map
-      Map<String, Map<String, List<Integer>>> nextNodeSlaveAssignmentMap 
-        = calculateNextSlaveAssignemntMap(firstNodeSlaveAssignmentMap, replicaOrder);
-      nodeSlaveAssignmentMapsList.add(nextNodeSlaveAssignmentMap);
-    }
-    
-    // Combine the calculated 1...replicas-th slave assignment map together
     Map<String, Map<String, List<Integer>>> combinedNodeSlaveAssignmentMap = new TreeMap<String, Map<String, List<Integer>>>();
     
-    for(String instanceName : nodeMasterAssignmentMap.keySet())
+    if(replicas > 0)
     {
-      Map<String, List<Integer>> combinedSlaveAssignmentMap =  new TreeMap<String, List<Integer>>();
-      
-      for(Map<String, Map<String, List<Integer>>> slaveNodeAssignmentMap : nodeSlaveAssignmentMapsList)
+      // 2. For each node, calculate the evenly distributed slave as the first slave assignment
+      // We will figure out the 2nd ...replicas-th slave assignment based on the first level slave assignment
+      for(int i = 0; i < instanceNames.size(); i++)
       {
-        Map<String, List<Integer>> slaveAssignmentMap = slaveNodeAssignmentMap.get(instanceName);
+        List<String> slaveInstances = new ArrayList<String>();
+        ArrayList<Integer> slaveAssignment = new ArrayList<Integer>();
+        TreeMap<String, List<Integer>> slaveAssignmentMap = new TreeMap<String, List<Integer>>();
         
-        for(String slaveInstance : slaveAssignmentMap.keySet())
+        for(int j = 0;j < instanceNames.size(); j++)
         {
-          if(!combinedSlaveAssignmentMap.containsKey(slaveInstance))
+          if(j != i)
           {
-            combinedSlaveAssignmentMap.put(slaveInstance, new ArrayList<Integer>());
+            slaveInstances.add(instanceNames.get(j)); 
+            slaveAssignmentMap.put(instanceNames.get(j), new ArrayList<Integer>());
           }
-          combinedSlaveAssignmentMap.get(slaveInstance).addAll(slaveAssignmentMap.get(slaveInstance));
         }
+        // Get the number of master partitions on instanceName
+        List<Integer> masterAssignment =  nodeMasterAssignmentMap.get(instanceNames.get(i));
+        // do a random shuffling as in step 1, so that the first-level slave are distributed among rest instances
+        
+        
+        for(int j = 0;j < masterAssignment.size(); j++)
+        {
+          slaveAssignment.add(j);
+        }
+        Collections.shuffle(slaveAssignment, new Random(r.nextInt()));
+        
+        
+        // Get the slave assignment map of node instanceName
+        for(int j = 0;j < masterAssignment.size(); j++)
+        {
+          String slaveInstanceName = slaveInstances.get(slaveAssignment.get(j) % slaveInstances.size());
+          if(!slaveAssignmentMap.containsKey(slaveInstanceName))
+          {
+            slaveAssignmentMap.put(slaveInstanceName, new ArrayList<Integer>());
+          }
+          slaveAssignmentMap.get(slaveInstanceName).add(masterAssignment.get(j));
+        }
+        firstNodeSlaveAssignmentMap.put(instanceNames.get(i), slaveAssignmentMap);
       }
-      migrateSlaveAssignMapToNewInstances(combinedSlaveAssignmentMap, new ArrayList<String>());
-      combinedNodeSlaveAssignmentMap.put(instanceName, combinedSlaveAssignmentMap);
+      nodeSlaveAssignmentMapsList.add(firstNodeSlaveAssignmentMap);
+      // From the first slave assignment map, calculate the rest slave assignment maps
+      for(int replicaOrder = 1; replicaOrder < replicas; replicaOrder++)
+      {
+        // calculate the next slave partition assignment map
+        Map<String, Map<String, List<Integer>>> nextNodeSlaveAssignmentMap 
+          = calculateNextSlaveAssignemntMap(firstNodeSlaveAssignmentMap, replicaOrder);
+        nodeSlaveAssignmentMapsList.add(nextNodeSlaveAssignmentMap);
+      }
+      
+      // Combine the calculated 1...replicas-th slave assignment map together
+      
+      for(String instanceName : nodeMasterAssignmentMap.keySet())
+      {
+        Map<String, List<Integer>> combinedSlaveAssignmentMap =  new TreeMap<String, List<Integer>>();
+        
+        for(Map<String, Map<String, List<Integer>>> slaveNodeAssignmentMap : nodeSlaveAssignmentMapsList)
+        {
+          Map<String, List<Integer>> slaveAssignmentMap = slaveNodeAssignmentMap.get(instanceName);
+          
+          for(String slaveInstance : slaveAssignmentMap.keySet())
+          {
+            if(!combinedSlaveAssignmentMap.containsKey(slaveInstance))
+            {
+              combinedSlaveAssignmentMap.put(slaveInstance, new ArrayList<Integer>());
+            }
+            combinedSlaveAssignmentMap.get(slaveInstance).addAll(slaveAssignmentMap.get(slaveInstance));
+          }
+        }
+        migrateSlaveAssignMapToNewInstances(combinedSlaveAssignmentMap, new ArrayList<String>());
+        combinedNodeSlaveAssignmentMap.put(instanceName, combinedSlaveAssignmentMap);
+      }
     }
-    
     /*
     // Print the result master and slave assignment maps
     System.out.println("Master assignment:");

@@ -169,7 +169,7 @@ public class TestZKCallback
 
     testClusterManager.addMessageListener(testListener, "localhost_8900");
     testClusterManager.addCurrentStateChangeListener(testListener,
-        "localhost_8900");
+        "localhost_8900",testClusterManager.getSessionId());
     testClusterManager.addConfigChangeListener(testListener);
     testClusterManager.addIdealStateChangeListener(testListener);
     testClusterManager.addExternalViewChangeListener(testListener);
@@ -194,7 +194,7 @@ public class TestZKCallback
     testListener.Reset();
 
     dataAccessor.setInstanceProperty("localhost_8900",
-        InstancePropertyType.CURRENTSTATES, dummyRecord.getId(), dummyRecord);
+        InstancePropertyType.CURRENTSTATES, testClusterManager.getSessionId(),dummyRecord.getId(), dummyRecord);
     Thread.sleep(100);
     AssertJUnit.assertTrue(testListener.currentStateChangeReceived);
     testListener.Reset();
@@ -254,7 +254,7 @@ public class TestZKCallback
     ClusterSetup
         .processCommandLineArgs(createArgs("-zkSvr localhost:2300 -addCluster relay-cluster-12345"));
     ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr localhost:2300 -addResourceGroup storage-cluster-12345 db-12345 120"));
+        .processCommandLineArgs(createArgs("-zkSvr localhost:2300 -addResourceGroup storage-cluster-12345 db-12345 120 espresso_state_model"));
     ClusterSetup
         .processCommandLineArgs(createArgs("-zkSvr localhost:2300 -addNode storage-cluster-12345 localhost:8900"));
     ClusterSetup

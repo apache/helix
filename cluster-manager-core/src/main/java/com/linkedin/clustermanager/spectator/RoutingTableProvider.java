@@ -17,6 +17,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.CMConstants;
+import com.linkedin.clustermanager.ClusterDataAccessor;
+import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.ExternalViewChangeListener;
 import com.linkedin.clustermanager.NotificationContext;
 import com.linkedin.clustermanager.ZNRecord;
@@ -98,12 +100,21 @@ public class RoutingTableProvider implements ExternalViewChangeListener
   public void onExternalViewChange(List<ZNRecord> externalViewList,
       NotificationContext changeContext)
   {
-    refresh(externalViewList);
+    refresh(externalViewList, changeContext);
   }
 
-  private void refresh(List<ZNRecord> externalViewList)
+  private void refresh(List<ZNRecord> externalViewList,
+      NotificationContext changeContext)
   {
-
+    ClusterDataAccessor dataAccessor = changeContext.getManager()
+        .getDataAccessor();
+    List<ZNRecord> configList = dataAccessor
+        .getClusterPropertyList(ClusterPropertyType.CONFIGS);
+    Map<String, InstanceConfig> instanceConfigMap = new HashMap<String, InstanceConfig>();
+    for (ZNRecord config : configList)
+    {
+      instanceConfigMap.put(config.getId(), new InstanceConfig(config));
+    }
     RoutingTable newRoutingTable = new RoutingTable();
     if (externalViewList != null)
     {
@@ -120,18 +131,16 @@ public class RoutingTableProvider implements ExternalViewChangeListener
           for (String instanceName : stateUnitData.keySet())
           {
             String currentState = stateUnitData.get(instanceName);
-            String[] split = instanceName.split("_");
-            if (split.length == 2)
+            if (instanceConfigMap.containsKey(instanceName))
             {
-              InstanceConfig instanceConfig = new InstanceConfig();
-              instanceConfig.setHostName(split[0]);
-              instanceConfig.setPort(split[1]);
+              InstanceConfig instanceConfig = instanceConfigMap
+                  .get(instanceName);
               newRoutingTable.addEntry(stateUnitGroupName, stateUnitKey,
                   currentState, instanceConfig);
             } else
             {
-              logger.error("Invalid instance name format for instanceName:"
-                  + instanceName);
+              logger.error("Invalid instance name." + instanceName
+                  + " .Not found in /cluster/configs/. instanceName: ");
             }
 
           }
@@ -263,14 +272,14 @@ public class RoutingTableProvider implements ExternalViewChangeListener
             if (compareTo == 0)
             {
               return o1.getPort().compareTo(o2.getPort());
-            }else{
+            } else
+            {
               return compareTo;
             }
 
           }
         };
-        stateInfoMap.put(state, new TreeSet<InstanceConfig>(
-            comparator));
+        stateInfoMap.put(state, new TreeSet<InstanceConfig>(comparator));
       }
       Set<InstanceConfig> set = stateInfoMap.get(state);
       set.add(config);

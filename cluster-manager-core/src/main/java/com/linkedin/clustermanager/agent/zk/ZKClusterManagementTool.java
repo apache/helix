@@ -43,7 +43,7 @@ public class ZKClusterManagementTool implements ClusterManagementService
 
     _zkClient
         .createPersistent(CMUtil.getMessagePath(clusterName, nodeId), true);
-    _zkClient.createPersistent(CMUtil.getCurrentStatePath(clusterName, nodeId),
+    _zkClient.createPersistent(CMUtil.getCurrentStateBasePath(clusterName, nodeId),
         true);
     _zkClient.createPersistent(CMUtil.getErrorsPath(clusterName, nodeId), true);
     _zkClient.createPersistent(
@@ -111,6 +111,8 @@ public class ZKClusterManagementTool implements ClusterManagementService
     _zkClient.createPersistent(CMUtil.getMemberInstancesPath(clusterName));
     // External view
     _zkClient.createPersistent(CMUtil.getExternalViewPath(clusterName));
+    // State model definition
+    _zkClient.createPersistent(CMUtil.getStateModelDefinitionPath(clusterName));
 
   }
 
@@ -120,11 +122,14 @@ public class ZKClusterManagementTool implements ClusterManagementService
     return _zkClient.getChildren(memberInstancesPath);
   }
 
-  public void addResourceGroup(String clusterName, String dbName, int partitions)
+  @Override
+  public void addResourceGroup(String clusterName, String dbName,
+      int partitions, String stateModelRef)
   {
-    ZNRecord dbEmptyIdealState = new ZNRecord();
-    dbEmptyIdealState.setId(dbName);
-    dbEmptyIdealState.setSimpleField("partitions", String.valueOf(partitions));
+    ZNRecord idealState = new ZNRecord();
+    idealState.setId(dbName);
+    idealState.setSimpleField("partitions", String.valueOf(partitions));
+    idealState.setSimpleField("state_model_def_ref", stateModelRef);
 
     String idealStatePath = CMUtil.getIdealStatePath(clusterName);
     String dbIdealStatePath = idealStatePath + "/" + dbName;
@@ -135,21 +140,20 @@ public class ZKClusterManagementTool implements ClusterManagementService
       return;
     }
 
-    ZKUtil.createChildren(_zkClient, idealStatePath, dbEmptyIdealState);
+    ZKUtil.createChildren(_zkClient, idealStatePath, idealState);
   }
 
   public List<String> getClusters()
   {
     List<String> zkToplevelPathes = _zkClient.getChildren("/");
     List<String> result = new ArrayList<String>();
-    for(String pathName : zkToplevelPathes)
+    for (String pathName : zkToplevelPathes)
     {
-      if(ZKUtil.isClusterSetup(pathName, _zkClient))
+      if (ZKUtil.isClusterSetup(pathName, _zkClient))
       {
         result.add(pathName);
       }
     }
-    
     return result;
   }
 
@@ -171,5 +175,22 @@ public class ZKClusterManagementTool implements ClusterManagementService
   {
     new ZKDataAccessor(clusterName, _zkClient).setClusterProperty(
         ClusterPropertyType.IDEALSTATES, dbName, idealState);
+  }
+
+  @Override
+  public void addStateModelDef(String clusterName, String stateModelDef,
+      ZNRecord record)
+  {
+    String stateModelDefPath = CMUtil.getStateModelDefinitionPath(clusterName);
+    String stateModelPath = stateModelDefPath + "/" + stateModelDef;
+    if (_zkClient.exists(stateModelPath))
+    {
+      logger.warn("Skip the operation.State Model directory exists:"
+          + stateModelPath);
+      throw new ClusterManagerException("State model path " + stateModelPath
+          + " already exists.");
+    }
+
+    ZKUtil.createChildren(_zkClient, stateModelDefPath, record);
   }
 }

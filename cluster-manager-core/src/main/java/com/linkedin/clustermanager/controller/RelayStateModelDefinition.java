@@ -1,9 +1,15 @@
 package com.linkedin.clustermanager.controller;
 
+import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.model.StateModelDefinition;
 
 public class RelayStateModelDefinition extends StateModelDefinition
 {
+
+  public RelayStateModelDefinition(ZNRecord record)
+  {
+    super(record);
+  }
 
   @Override
   public String getNextStateForTransition(String fromState, String toState)

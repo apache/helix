@@ -39,7 +39,7 @@ import com.linkedin.clustermanager.store.PropertyStoreException;
 // no need for another cache for file property store
 public class FilePropertyStore<T> implements PropertyStore<T>
 {
-  private static Logger _logger = Logger.getLogger(FilePropertyStore.class);
+  private static Logger logger = Logger.getLogger(FilePropertyStore.class);
   
   private final String ROOT = "";
   private final long TIMEOUT = 30L;
@@ -86,7 +86,7 @@ public class FilePropertyStore<T> implements PropertyStore<T>
           _currentHighWatermark = file.lastModified();
         }
         
-        _logger.debug("file: " + file.getAbsolutePath() + " changed " + new Date(file.lastModified()));
+        logger.debug("file: " + file.getAbsolutePath() + " changed " + new Date(file.lastModified()));
         results.add(file);
       }
       
@@ -103,7 +103,7 @@ public class FilePropertyStore<T> implements PropertyStore<T>
           _currentHighWatermark = dir.lastModified();
         }
         
-        _logger.debug("dir: " + dir.getAbsolutePath() + " changed " + new Date(dir.lastModified()));
+        logger.debug("dir: " + dir.getAbsolutePath() + " changed " + new Date(dir.lastModified()));
         results.add(dir);
        
         return true;
@@ -147,7 +147,7 @@ public class FilePropertyStore<T> implements PropertyStore<T>
         for (int i = 0; i < fileArray.length; i++)
         {
           File file = fileArray[i];
-          // System.out.println("notification of " + file.getAbsolutePath());
+          // logger.debug("notification of " + file.getAbsolutePath());
           
           for (Map.Entry< String, CopyOnWriteArraySet<PropertyChangeListener<T> > > entry : _fileChangeListeners.entrySet())
           {
@@ -189,7 +189,7 @@ public class FilePropertyStore<T> implements PropertyStore<T>
         }
       }
 
-      _logger.info("Quitting file property store refresh thread");
+      logger.info("Quitting file property store refresh thread");
       
     }
 
@@ -221,7 +221,7 @@ public class FilePropertyStore<T> implements PropertyStore<T>
 
   public boolean start()
   {
-    System.out.println("starting file property store polling thread, id=" + _id);
+    logger.debug("starting file property store polling thread, id=" + _id);
     
     _stopRefreshThread.set(false);
     _refreshThread = new Thread(new FilePropertyStoreRefreshThread(_readWriteLock), 
@@ -274,7 +274,7 @@ public class FilePropertyStore<T> implements PropertyStore<T>
     // strip off rootPath from path
     if (!path.startsWith(_rootNamespace))
     {
-      _logger.warn("path does NOT start with: " + _rootNamespace);
+      logger.warn("path does NOT start with: " + _rootNamespace);
       return path;
     }
 
@@ -301,13 +301,13 @@ public class FilePropertyStore<T> implements PropertyStore<T>
       _readWriteLock.writeLock().lock();
       if (dir.exists())
       {
-        _logger.warn(path + " already exists");
+        logger.warn(path + " already exists");
       }
       else
       {
         if (!dir.mkdirs())
         {
-          _logger.warn("Failed to create: " + path);
+          logger.warn("Failed to create: " + path);
         }
       }
     }
@@ -672,7 +672,7 @@ public class FilePropertyStore<T> implements PropertyStore<T>
   {
     // File file = new File("/tmp/testFilePropertyStore/testPath1");
     // long mtime = file.lastModified();
-    // System.out.println("lastModified=" + mtime + ", " + new Date(mtime));
+    // logger.debug("lastModified=" + mtime + ", " + new Date(mtime));
   
     
     // StringPropertySerializer serializer = new StringPropertySerializer();
@@ -693,12 +693,12 @@ public class FilePropertyStore<T> implements PropertyStore<T>
 
     // test get-names
     List<String> names = store.getPropertyNames("testPath1");
-    System.out.println("names=" + names);
+    logger.debug("names=" + names);
     
     // test get
     String key = "testPath1/testPath2";
     String value = store.getProperty(key);
-    System.out.println(key + ": value=" + value);
+    logger.debug(key + ": value=" + value);
     Thread.sleep(1000);
     
     // test subscribe
@@ -707,7 +707,7 @@ public class FilePropertyStore<T> implements PropertyStore<T>
       @Override
       public void onPropertyChange(String key)
       {
-        System.out.println("[listener1] file changed at: " + key);
+        logger.debug("[listener1] file changed at: " + key);
         
       }
       
@@ -718,7 +718,7 @@ public class FilePropertyStore<T> implements PropertyStore<T>
       @Override
       public void onPropertyChange(String key)
       {
-        System.out.println("[listener2] file changed at: " + key);
+        logger.debug("[listener2] file changed at: " + key);
         
       }
       
@@ -729,7 +729,7 @@ public class FilePropertyStore<T> implements PropertyStore<T>
     store.subscribeForPropertyChange("testPath1", listener2);
     
     store.setProperty("testPath1/testPath3", "testValue3-II\n");
-    System.out.println("set testPath1/testPath3");
+    logger.debug("set testPath1/testPath3");
     Thread.sleep(1000);
     
     

@@ -55,7 +55,7 @@ public class IdealState
     return _record.getMapField(stateUnitKey);
   }
 
-  public List<String> getInstanceStateList(String stateUnitKey)
+  public List<String> getInstancePreferenceList(String stateUnitKey)
   {
     LinkedList<String> instanceStateList = new LinkedList<String>();
     Map<String, String> instanceStateMap = getInstanceStateMap(stateUnitKey);
@@ -75,5 +75,15 @@ public class IdealState
     instanceStateList.addFirst(masterInstance);
 
     return instanceStateList;
+  }
+
+  public String getStateModelDefRef()
+  {
+    return _record.getSimpleField("state_model_def_ref");
+  }
+
+  public List<String> getPreferenceList(String resourceKeyName)
+  {
+    return getInstancePreferenceList(resourceKeyName);
   }
 }

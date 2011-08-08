@@ -11,6 +11,7 @@ import java.util.concurrent.Callable;
 
 import org.apache.log4j.Logger;
 
+import com.linkedin.clustermanager.CMConstants;
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerException;
@@ -108,15 +109,10 @@ public class CMTaskHandler implements Callable<CMTaskResult>
         invoke(accessor, taskResult, _message);
       } catch (Exception e)
       {
-        exception = e;
-        StringWriter sw = new StringWriter();
-        PrintWriter pw = new PrintWriter(sw);
-        e.printStackTrace(pw);
-
         String errorMessage = "Exception while executing a state transition task"
-            + pw.toString();
-        _statusUpdateUtil.logError(_message, CMTaskHandler.class, errorMessage,
-            accessor);
+            + e;
+        _statusUpdateUtil.logError(_message, CMTaskHandler.class, e,
+            errorMessage, accessor);
         logger.error(errorMessage);
         taskResult.setSuccess(false);
       }
@@ -124,12 +120,16 @@ public class CMTaskHandler implements Callable<CMTaskResult>
       try
       {
         ZNRecord currentState = accessor.getInstanceProperty(instanceName,
-            InstancePropertyType.CURRENTSTATES, stateUnitGroup);
+            InstancePropertyType.CURRENTSTATES, _manager.getSessionId(), stateUnitGroup);
         if (currentState == null)
         {
           currentState = new ZNRecord();
+          currentState.setId(stateUnitGroup);
+          currentState.setSimpleField(
+              CMConstants.ZNAttribute.SESSION_ID.toString(),
+              _manager.getSessionId());
         }
-        
+
         Map<String, String> map = currentState.getMapField(stateUnitKey);
         if (map == null)
         {
@@ -158,7 +158,7 @@ public class CMTaskHandler implements Callable<CMTaskResult>
         map.put(Message.Attributes.STATE_UNIT_GROUP.toString(),
             _message.getStateUnitGroup());
         accessor.setInstanceProperty(instanceName,
-            InstancePropertyType.CURRENTSTATES, stateUnitGroup, currentState);
+            InstancePropertyType.CURRENTSTATES, _manager.getSessionId(), stateUnitGroup, currentState);
         accessor.removeInstanceProperty(instanceName,
             InstancePropertyType.MESSAGES, _message.getId());
         // based on task result update the current state of the node.
@@ -169,6 +169,8 @@ public class CMTaskHandler implements Callable<CMTaskResult>
         StateTransitionError error = new StateTransitionError(
             StateTransitionError.ErrorCode.FRAMEWORK, e);
         _stateModel.rollbackOnError(_message, _notificationContext, error);
+        _statusUpdateUtil.logError(_message, CMTaskHandler.class, e,
+            "Error when update the state ", accessor);
       }
       return taskResult;
     }

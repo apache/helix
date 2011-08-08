@@ -11,7 +11,7 @@ public interface ClusterDataAccessor
   public enum ClusterPropertyType
   {
     CONFIGS(true, false), LIVEINSTANCES(false, false), INSTANCES(true, false), IDEALSTATES(
-        true, false), EXTERNALVIEW(true, false), STATEMODELDEF(true, false);
+        true, false), EXTERNALVIEW(true, false), STATEMODELDEFS(true, false);
 
     boolean isPersistent;
 
@@ -71,8 +71,8 @@ public interface ClusterDataAccessor
 
   public enum InstancePropertyType
   {
-    MESSAGES(true, true, true), CURRENTSTATES(false, true, false), STATUSUPDATES(
-        true, true, false), ERRORS(true, false);
+    MESSAGES(true, true, true), CURRENTSTATES(true, true, false), STATUSUPDATES(
+        true, true, false), ERRORS(true, true);
 
     boolean isPersistent;
 
@@ -142,11 +142,20 @@ public interface ClusterDataAccessor
   
   void setInstanceProperty(String instanceName,
       InstancePropertyType instanceProperty, String subPath, String key, final ZNRecord value);
+  
+  void updateInstanceProperty(String instanceName,
+      InstancePropertyType instanceProperty, String subPath, String key, final ZNRecord value);
 
   ZNRecord getInstanceProperty(String instanceName,
       InstancePropertyType instanceProperty, String key);
+  
+  ZNRecord getInstanceProperty(String instanceName,
+      InstancePropertyType instanceProperty, String subPath, String key);
 
   List<ZNRecord> getInstancePropertyList(String instanceName,
+      InstancePropertyType instanceProperty);
+  
+  List<ZNRecord> getInstancePropertyList(String instanceName, String subPath,
       InstancePropertyType instanceProperty);
 
   void removeInstanceProperty(String instanceName,

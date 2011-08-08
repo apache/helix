@@ -1,19 +1,24 @@
 package com.linkedin.clustermanager.agent.zk;
 
-import java.util.ArrayList;
+import static com.linkedin.clustermanager.CMConstants.ChangeType.CONFIG;
+import static com.linkedin.clustermanager.CMConstants.ChangeType.CURRENT_STATE;
+import static com.linkedin.clustermanager.CMConstants.ChangeType.EXTERNAL_VIEW;
+import static com.linkedin.clustermanager.CMConstants.ChangeType.IDEAL_STATE;
+import static com.linkedin.clustermanager.CMConstants.ChangeType.LIVE_INSTANCE;
+import static com.linkedin.clustermanager.CMConstants.ChangeType.MESSAGE;
+
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.I0Itec.zkclient.IZkChildListener;
 import org.I0Itec.zkclient.IZkDataListener;
-import org.I0Itec.zkclient.IZkStateListener;
-import org.I0Itec.zkclient.ZkClient;
 import org.apache.log4j.Logger;
-import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher.Event.EventType;
-import org.apache.zookeeper.Watcher.Event.KeeperState;
 
+import com.linkedin.clustermanager.CMConstants.ChangeType;
 import com.linkedin.clustermanager.ClusterDataAccessor;
+import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
+import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ConfigChangeListener;
 import com.linkedin.clustermanager.CurrentStateChangeListener;
@@ -23,13 +28,7 @@ import com.linkedin.clustermanager.LiveInstanceChangeListener;
 import com.linkedin.clustermanager.MessageListener;
 import com.linkedin.clustermanager.NotificationContext;
 import com.linkedin.clustermanager.ZNRecord;
-import com.linkedin.clustermanager.CMConstants.ChangeType;
-import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
-import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
-import com.linkedin.clustermanager.ClusterView.MemberInstance;
 import com.linkedin.clustermanager.util.CMUtil;
-
-import static com.linkedin.clustermanager.CMConstants.ChangeType.*;
 
 public class CallbackHandler implements IZkChildListener, IZkDataListener
 
@@ -109,8 +108,9 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
         currentStateChangeListener = (CurrentStateChangeListener) _listener;
         subscribeForChanges(_path, true, true);
         String instanceName = CMUtil.getInstanceNameFromPath(_path);
+        String[] pathParts = _path.split("/");
         List<ZNRecord> currentStates = _accessor.getInstancePropertyList(
-            instanceName, InstancePropertyType.CURRENTSTATES);
+            instanceName, pathParts[pathParts.length - 1], InstancePropertyType.CURRENTSTATES);
         currentStateChangeListener.onStateChange(instanceName, currentStates,
             changeContext);
 

@@ -14,19 +14,68 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.testng.Assert;
+import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
+import com.linkedin.clustermanager.Mocks.MockAccessor;
 import com.linkedin.clustermanager.model.InstanceConfig;
 import com.linkedin.clustermanager.spectator.RoutingTableProvider;
 
 public class TestRoutingTable
 {
+  NotificationContext changeContext = null;
+
+  @BeforeTest
+  public void setup()
+  {
+
+    final String[] array = new String[]
+    { "localhost_8900", "localhost_8901" };
+    ClusterManager manager = new Mocks.MockManager()
+    {
+      private MockAccessor _mockAccessor;
+
+      @Override
+      public ClusterDataAccessor getDataAccessor()
+      {
+        if (_mockAccessor == null)
+        {
+          _mockAccessor = new Mocks.MockAccessor()
+          {
+            public List<ZNRecord> getClusterPropertyList(
+                ClusterPropertyType clusterProperty)
+            {
+              if (clusterProperty == ClusterPropertyType.CONFIGS)
+              {
+                List<ZNRecord> configs = new ArrayList<ZNRecord>();
+                for (String instanceName : array)
+                {
+                  ZNRecord config = new ZNRecord();
+                  config.setId(instanceName);
+                  String[] splits = instanceName.split("_");
+                  config.setSimpleField(
+                      CMConstants.ZNAttribute.HOST.toString(), splits[0]);
+                  config.setSimpleField(
+                      CMConstants.ZNAttribute.PORT.toString(), splits[1]);
+                  configs.add(config);
+                }
+                return configs;
+              }
+              return Collections.emptyList();
+            };
+          };
+        }
+        return _mockAccessor;
+      }
+    };
+    changeContext = new NotificationContext(manager);
+  }
+
   @Test
   public void testNullAndEmpty()
   {
 
     RoutingTableProvider routingTable = new RoutingTableProvider();
-    NotificationContext changeContext = null;
     routingTable.onExternalViewChange(null, changeContext);
     List<ZNRecord> list = Collections.emptyList();
     routingTable.onExternalViewChange(list, changeContext);
@@ -38,7 +87,6 @@ public class TestRoutingTable
   {
     List<InstanceConfig> instances;
     RoutingTableProvider routingTable = new RoutingTableProvider();
-    NotificationContext changeContext = null;
     List<ZNRecord> externalViewList = new ArrayList<ZNRecord>();
     ZNRecord record = new ZNRecord();
     externalViewList.add(record);
@@ -77,7 +125,7 @@ public class TestRoutingTable
   {
     List<InstanceConfig> instances;
     RoutingTableProvider routingTable = new RoutingTableProvider();
-    NotificationContext changeContext = null;
+
     List<ZNRecord> externalViewList = new ArrayList<ZNRecord>();
     ZNRecord record = new ZNRecord();
     externalViewList.add(record);
@@ -103,7 +151,6 @@ public class TestRoutingTable
     Set<InstanceConfig> instancesSet;
     InstanceConfig instancesArray[];
     RoutingTableProvider routingTable = new RoutingTableProvider();
-    NotificationContext changeContext = null;
     List<ZNRecord> externalViewList = new ArrayList<ZNRecord>();
     ZNRecord record = new ZNRecord();
     externalViewList.add(record);
@@ -153,18 +200,17 @@ public class TestRoutingTable
     {
       add(record, "TESTDB_" + i, "localhost_8900", "MASTER");
     }
-    NotificationContext changeContext = null;
     routingTable.onExternalViewChange(externalViewList, changeContext);
     Callable<Boolean> runnable = new Callable<Boolean>()
     {
       @Override
       public Boolean call() throws Exception
       {
-        
+
         try
         {
           int count = 0;
-          while (count <100)
+          while (count < 100)
           {
             List<InstanceConfig> instancesList = routingTable.getInstances(
                 "TESTDB", "TESTDB_0", "MASTER");
@@ -199,10 +245,10 @@ public class TestRoutingTable
       routingTable.onExternalViewChange(externalViewList, changeContext);
       count++;
     }
-    
+
     Boolean result = submit.get(60, TimeUnit.SECONDS);
     Assert.assertEquals(result, Boolean.TRUE);
-    
+
   }
 
   private void add(ZNRecord record, String stateUnitKey, String instanceName,

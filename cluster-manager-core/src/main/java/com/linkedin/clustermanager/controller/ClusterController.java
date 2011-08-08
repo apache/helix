@@ -49,7 +49,7 @@ public class ClusterController implements ConfigChangeListener,
 
   public ClusterController()
   {
-    this(new StorageStateModelDefinition());
+    this(new StorageStateModelDefinition(new ZNRecord()));
   }
 
   public ClusterController(StateModelDefinition stateModelDefinition)
@@ -101,12 +101,13 @@ public class ClusterController implements ConfigChangeListener,
     for (ZNRecord instance : liveInstances)
     {
       String instanceName = instance.getId();
+      String clientSessionId  = instance.getSimpleField(CMConstants.ZNAttribute.SESSION_ID.toString());
       if (!_instanceSubscriptionList.contains(instanceName))
       {
         try
         {
           changeContext.getManager().addCurrentStateChangeListener(this,
-              instanceName);
+              instanceName, clientSessionId);
           changeContext.getManager().addMessageListener(this, instanceName);
         } catch (Exception e)
         {
@@ -155,42 +156,6 @@ public class ClusterController implements ConfigChangeListener,
     logger.info("START: ClusterController.onIdealStateChange()");
     runClusterRebalanceAlgo(changeContext);
     logger.info("END: ClusterController.onIdealStateChange()");
-  }
-
-  /**
-   * Generic method which will run when ever there is a change in following -
-   * IdealState - Current State change - liveInstanceChange
-   * 
-   * @param changeContext
-   */
-  private void runClusterRebalanceAlgoOld(NotificationContext changeContext)
-  {
-    logger.info("START:ClusterController.runClusterRebalanceAlgo()");
-    ClusterDataAccessor client = changeContext.getManager().getDataAccessor();
-    List<ZNRecord> idealStates = client
-        .getClusterPropertyList(ClusterPropertyType.IDEALSTATES);
-    refreshData(changeContext);
-    for (ZNRecord idealStateRecord : idealStates)
-    {
-      IdealState idealState = new IdealState(idealStateRecord);
-      IdealState bestPossibleIdealState;
-      bestPossibleIdealState = _bestPossibleIdealStateCalculator.compute(
-          idealState, changeContext);
-      List<Message> messages;
-      messages = _transitionMessageGenerator.computeMessagesForTransition(
-          idealState, bestPossibleIdealState, idealStateRecord);
-      logger.info(messages.size() + "Messages to send");
-      int i = 0;
-      for (Message message : messages)
-      {
-        logger.info(i++ + ": Sending message to " + message.getTgtName()
-            + " transition " + message.getStateUnitKey() + " from:"
-            + message.getFromState() + " to:" + message.getToState());
-        client.setInstanceProperty(message.getTgtName(),
-            InstancePropertyType.MESSAGES, message.getId(), message);
-      }
-    }
-    logger.info("END:ClusterController.runClusterRebalanceAlgo()");
   }
 
   /**
@@ -258,7 +223,7 @@ public class ClusterController implements ConfigChangeListener,
       }
       _messageHolder.update(instanceName, messages);
       List<ZNRecord> currentStates = client.getInstancePropertyList(
-          instanceName, InstancePropertyType.CURRENTSTATES);
+          instanceName, changeContext.getManager().getSessionId(), InstancePropertyType.CURRENTSTATES);
       _currentStateHolder.refresh(instanceName, currentStates);
     }
     return false;

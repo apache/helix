@@ -139,4 +139,14 @@ public class Message extends ZNRecord
   {
     return getSimpleFieldAsString(Attributes.STATE_UNIT_GROUP.toString());
   }
+
+  public String getResourceGroupName()
+  {
+    return getSimpleFieldAsString(Attributes.STATE_UNIT_GROUP.toString());
+  }
+
+  public String getResourceKey()
+  {
+    return getSimpleFieldAsString(Attributes.STATE_UNIT_KEY.toString());
+  }
 }

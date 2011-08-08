@@ -12,7 +12,7 @@ public interface ClusterManagementService
 
   void addCluster(String clusterName, boolean overwritePrevRecord);
 
-  void addResourceGroup(String clusterName, String resourceGroup, int numResources);
+  void addResourceGroup(String clusterName, String resourceGroup, int numResources, String stateModelRef);
 
   void addNode(String clusterName, ZNRecord nodeConfig);
 
@@ -21,4 +21,6 @@ public interface ClusterManagementService
   void setResourceGroupIdealState(String clusterName, String resourceGroup, ZNRecord idealState);
 
   void enableInstance(String clusterName, String instanceName, boolean enabled);
+  
+  void addStateModelDef(String clusterName, String stateModelDef, ZNRecord record);
 }

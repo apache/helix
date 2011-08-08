@@ -107,11 +107,16 @@ public final class ZKUtil
       {
         if (client.exists(path))
         {
-          DataUpdater<Object> updater = new DataUpdater<Object>()
+          DataUpdater<ZNRecord> updater = new DataUpdater<ZNRecord>()
           {
             @Override
-            public Object update(Object currentData)
+            public ZNRecord update(ZNRecord currentData)
             {
+              if(mergeOnUpdate)
+              {
+                currentData.merge(record);
+                return currentData;
+              }
               return record;
             }
           };

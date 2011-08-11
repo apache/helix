@@ -143,7 +143,7 @@ public class StatusUpdateUtil
     PrintWriter pw = new PrintWriter(sw);
     e.printStackTrace(pw);
     logMessageStatusUpdateRecord(message, Level.ERROR, classInfo,
-        additionalInfo + pw.toString(), accessor);
+        additionalInfo + sw.toString(), accessor);
   }
 
   public void logInfo(Message message, Class classInfo, String additionalInfo,

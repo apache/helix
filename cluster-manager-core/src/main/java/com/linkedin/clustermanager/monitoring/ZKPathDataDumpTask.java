@@ -2,6 +2,7 @@ package com.linkedin.clustermanager.monitoring;
 
 import java.io.IOException;
 import java.io.StringWriter;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.TimerTask;
@@ -13,9 +14,11 @@ import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.SerializationConfig;
 
+import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
+import com.linkedin.clustermanager.util.CMUtil;
 
 public class ZKPathDataDumpTask extends TimerTask
 {
@@ -88,6 +91,7 @@ public class ZKPathDataDumpTask extends TimerTask
           {
             mapper.writeValue(sw, record);
             logger.info(sw.toString());
+            System.out.println(sw.toString());
           } 
           catch (JsonGenerationException e)
           {
@@ -109,5 +113,15 @@ public class ZKPathDataDumpTask extends TimerTask
         }
       }
     }
+  }
+  
+  public static void main(String args[])
+  {
+    ZkClient zkClient = new ZkClient("localhost:2181", 30000);
+    zkClient.setZkSerializer(new ZNRecordSerializer());
+    String path = CMUtil.getInstancePropertyPath("ESPRESSO_STORAGE", "localhost_8901", InstancePropertyType.STATUSUPDATES);
+    List<String> paths = new ArrayList<String>();
+    paths.add(path);
+    new ZKPathDataDumpTask(zkClient, paths, 2000).run();
   }
 }

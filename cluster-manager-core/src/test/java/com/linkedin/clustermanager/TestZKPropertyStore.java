@@ -58,34 +58,6 @@ public class TestZKPropertyStore
     
   }
   
-  /**
-  public class MyComparator implements Comparator<String>
-  {
-
-    @Override
-    public int compare(String o1, String o2)
-    {
-      if (o1 == null && o2 == null)
-      {
-        return 0;
-      }
-      else if (o1 == null && o2 != null)
-      {
-        return -1;
-      }
-      else if (o1 != null && o2 == null)
-      {
-        return 1;
-      }
-      else
-      {
-        return o1.compareTo(o2);
-      }
-    }
-    
-  }
-  **/
-  
   @Test
   public void testInvocation() throws Exception
   {
@@ -116,10 +88,17 @@ public class TestZKPropertyStore
         
       PropertyStat propertyStat = new PropertyStat();
       value = zkPropertyStore.getProperty("testPath2/1", propertyStat);
-      
-      
       Assert.assertEquals(value, "testData2_I");
-  
+      
+      // test cache
+      zkPropertyStore.setProperty("testPath2/1", "testData2_I_new");
+      value = zkPropertyStore.getProperty("testPath2/1", propertyStat);
+      Assert.assertEquals(value, "testData2_I_new");
+      
+      zkPropertyStore.setProperty("testPath2/1", "testData2_I");
+      value = zkPropertyStore.getProperty("testPath2/1", propertyStat);
+      Assert.assertEquals(value, "testData2_I");
+      
       /**
       // test get property of a node without data
       value = zkPropertyStore.getProperty("");
@@ -172,19 +151,18 @@ public class TestZKPropertyStore
       // test update property
       boolean isSucceed;
       zkPropertyStore.updatePropertyUntilSucceed("testPath2/1", new MyUpdater());
-      Thread.sleep(100); // wait cache to be updated by callback
+      // Thread.sleep(100); // wait cache to be updated by callback
       // Assert.assertTrue(isSucceed == true);
       
       value = zkPropertyStore.getProperty("testPath2/1");
       Assert.assertEquals(value, "testData2_I-new");
       
-      // test compareAndSet property
-      // isSucceed = zkPropertyStore.compareAndSet("testPath2/1", "testData2_I", "testData2_I-new2", new MyComparator());
+      // test compareAndSet
       isSucceed = zkPropertyStore.compareAndSet("testPath2/1", 
                                                 "testData2_I", 
                                                 "testData2_I-new2", 
                                                 new PropertyJsonComparator<String>(String.class));
-      Thread.sleep(100); // wait cache to be updated by callback
+      // Thread.sleep(100); // wait cache to be updated by callback
       Assert.assertEquals(isSucceed, false);
       
       value = zkPropertyStore.getProperty("testPath2/1");
@@ -194,7 +172,7 @@ public class TestZKPropertyStore
                                                 "testData2_I-new", 
                                                 "testData2_I-new2", 
                                                 new PropertyJsonComparator<String>(String.class));
-      Thread.sleep(100); // wait cache to be updated by callback
+      // Thread.sleep(100); // wait cache to be updated by callback
       Assert.assertEquals(isSucceed, true);
       
       value = zkPropertyStore.getProperty("testPath2/1");
@@ -206,19 +184,21 @@ public class TestZKPropertyStore
                                                 "testData2_III",  
                                                 new PropertyJsonComparator<String>(String.class),
                                                 true);
-      Thread.sleep(100); // wait cache to be updated by callback
+      // Thread.sleep(100); // wait cache to be updated by callback
       Assert.assertEquals(isSucceed, true);
       
       value = zkPropertyStore.getProperty("testPath2/3");
       Assert.assertEquals(value, "testData2_III");
       
       // test unsubscribe
+      // wait for the previous callback to happen
+      // then set _propertyChangeRecieved to false
+      Thread.sleep(100);  
       listener._propertyChangeReceived = false;
       zkPropertyStore.unsubscribeForRootPropertyChange(listener);
       zkPropertyStore.setProperty("testPath3/2", "testData3_III");
       Thread.sleep(100);
       Assert.assertEquals(listener._propertyChangeReceived, false);
-  
       
       // test get proper names
       List<String> children = zkPropertyStore.getPropertyNames("/testPath2");
@@ -234,12 +214,6 @@ public class TestZKPropertyStore
       e.printStackTrace();
     }
     
-    // test hit ratio
-    /**
-    value = zkPropertyStore.getProperty(testPath3);
-    double hitRatio = zkPropertyStore.getHitRatio();
-    AssertJUnit.assertTrue(Double.compare(Math.abs(hitRatio - 0.5), 0.1) < 0);
-    **/
   }
 
   @BeforeTest

@@ -54,7 +54,7 @@ public class CMTaskExecutor
             "Message handling task scheduled", notificationContext.getManager()
                 .getDataAccessor());
         CMTaskHandler task = new CMTaskHandler(notificationContext, message,
-            stateModel);
+            stateModel, this);
         if (!_taskMap.containsKey(message.getMsgId()))
         {
           Future<CMTaskResult> future = _pool.submit(task);
@@ -79,7 +79,18 @@ public class CMTaskExecutor
 
   protected void reportCompletion(String msgId)
   {
-
+    synchronized (_lock)
+    {
+      logger.info("message " + msgId + " finished");
+      if(_taskMap.containsKey(msgId))
+      {
+        _taskMap.remove(msgId);
+      }
+      else
+      {
+        logger.warn("message " + msgId + "not found in task map");
+      }
+    }
   }
 
   public static void main(String[] args) throws Exception
@@ -100,7 +111,7 @@ public class CMTaskExecutor
       }
 
     });
-    future = pool.submit(new CMTaskHandler(null, null, null));
+    future = pool.submit(new CMTaskHandler(null, null, null, null));
     Thread.currentThread().join();
     System.out.println(future.isDone());
   }

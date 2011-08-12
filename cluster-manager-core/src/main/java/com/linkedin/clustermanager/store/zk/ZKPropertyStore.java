@@ -188,7 +188,8 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkDataListener
     return path;
   }
 
-  private void updatePropertyCache(String path) throws PropertyStoreException
+  private void updatePropertyCache(String path) 
+  // throws PropertyStoreException
   {
     try
     {
@@ -205,11 +206,6 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkDataListener
     } catch (ZkNoNodeException e)
     {
       // This is OK
-    } catch (Exception e)
-    {
-      // System.err.println(e.getMessage());
-      // _logger.warn(e.getMessage());
-      throw (new PropertyStoreException(e.getMessage()));
     }
   }
 
@@ -282,9 +278,9 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkDataListener
 
     // it depends on the serializer to handle value == null
     _zkClient.writeData(path, value);
-
-    // setProperty() triggers either child/data listener
-    // which in turn update cache
+   
+    // update cache immediately
+    updatePropertyCache(path);
   }
 
   @Override
@@ -385,7 +381,12 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkDataListener
       LOG.warn(e.getMessage());
       throw (new PropertyStoreException(e.getMessage()));
     }
-    // removerProperty() triggers listener which update property cache
+    
+    // update cache immediately
+    synchronized(_propertyCacheMap)
+    {
+      _propertyCacheMap.remove(path);
+    }
   }
 
   @Override
@@ -598,9 +599,11 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkDataListener
         _zkClient.createPersistent(path, true);
       }
     }
-
-    _zkClient.<T> updateDataSerialized(path, updater);
-    // callback will update cache
+  
+    _zkClient.<T>updateDataSerialized(path, updater);
+    
+    // update cache immediately
+    updatePropertyCache(path);
   }
 
   @Override
@@ -660,6 +663,10 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkDataListener
       if (comparator.compare(current, expected) == 0)
       {
         _zkClient.writeData(path, update, stat.getVersion());
+        
+        // update cache immediately
+        updatePropertyCache(path);
+        
         isSucceed = true;
       }
     } catch (ZkBadVersionException e)

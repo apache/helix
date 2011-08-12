@@ -18,6 +18,7 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
@@ -42,6 +43,8 @@ import com.linkedin.clustermanager.tools.IdealStateCalculatorByShuffling;
 
 public class FileBasedClusterManager implements ClusterManager
 {
+  private static final Logger LOG = Logger
+      .getLogger(FileBasedClusterManager.class.getName());
   private ClusterView _clusterView;
   private ClusterDataAccessor _fileDataAccessor;
   private final String _clusterName;
@@ -343,7 +346,7 @@ public class FileBasedClusterManager implements ClusterManager
 
   @Override
   public void addCurrentStateChangeListener(
-      CurrentStateChangeListener listener, String instanceName)
+      CurrentStateChangeListener listener, String instanceName, String SessionId)
   {
     throw new UnsupportedOperationException(
         "addCurrentStateChangeListener is not supported by File Based cluster manager");
@@ -484,7 +487,7 @@ public class FileBasedClusterManager implements ClusterManager
 
     if (curStateList.size() != idealStates.size())
     {
-      System.err.println("Number of current states (" + curStateList.size()
+      LOG.error("Number of current states (" + curStateList.size()
                        + ") mismatch " + "number of ideal states ("
                        + idealStates.size() + ")");
       return false;
@@ -500,7 +503,7 @@ public class FileBasedClusterManager implements ClusterManager
       
       if (!idealStates.containsKey(stateUnitKey))
       {
-        System.err.println("Current state does not contain " + stateUnitKey);
+        LOG.error("Current state does not contain " + stateUnitKey);
         ret = false;
         continue;
       }
@@ -508,7 +511,7 @@ public class FileBasedClusterManager implements ClusterManager
       String idealState = idealStates.get(stateUnitKey);
       if (!curState.equalsIgnoreCase(idealState))
       {
-        System.err.println("State mismatch--unit_key:" + stateUnitKey + " cur:"
+        LOG.error("State mismatch--unit_key:" + stateUnitKey + " cur:"
                          + curState + " ideal:" + idealState + " instance_name:"
                          + instanceName);
         ret = false;

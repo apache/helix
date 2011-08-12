@@ -46,16 +46,19 @@ public class ClusterStateVerifier
 
     // Make a copy of the current states
     List<String> instanceNames = zkClient.getChildren(instancesPath);
+    
     Map<String, Map<String, ZNRecord>> currentStates = new TreeMap<String, Map<String, ZNRecord>>();
 
     for (String instanceName : instanceNames)
     {
+      String liveInstancePath = CMUtil.getLiveInstancePath(clusterName, instanceName);
+      ZNRecord liveInstanceRecord = zkClient.readData(liveInstancePath);
       if (!currentStates.containsKey(instanceName))
       {
         currentStates.put(instanceName, new TreeMap<String, ZNRecord>());
       }
-      String currentStatePath = CMUtil.getCurrentStatePath(clusterName,
-          instanceName);
+      String currentStatePath = CMUtil.getCurrentStateBasePath(clusterName,
+          instanceName)+"/"+ liveInstanceRecord.getSimpleField(CMConstants.ZNAttribute.SESSION_ID.toString());
       List<String> partitionStatePaths = zkClient.getChildren(currentStatePath);
       for (String stateUnitKey : partitionStatePaths)
       {

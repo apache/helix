@@ -1,6 +1,8 @@
 package com.linkedin.clustermanager.agent.zk;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Timer;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -13,6 +15,7 @@ import org.apache.zookeeper.Watcher.Event.KeeperState;
 
 import com.linkedin.clustermanager.CMConstants;
 import com.linkedin.clustermanager.ClusterDataAccessor;
+import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerException;
 import com.linkedin.clustermanager.ConfigChangeListener;
@@ -25,6 +28,7 @@ import com.linkedin.clustermanager.MessageListener;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.CMConstants.ChangeType;
 import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
+import com.linkedin.clustermanager.monitoring.ZKPathDataDumpTask;
 import com.linkedin.clustermanager.util.CMUtil;
 
 import static com.linkedin.clustermanager.CMConstants.ChangeType.*;
@@ -44,7 +48,7 @@ public class ZKClusterManager implements ClusterManager
   private final ZkStateChangeListener _zkStateChangeListener;
   private final InstanceType _instanceType;
   private String _sessionId;
-
+  private Timer _timer;
   public ZKClusterManager(String clusterName, String instanceName,
       InstanceType instanceType, String zkConnectString) throws Exception
   {
@@ -53,6 +57,7 @@ public class ZKClusterManager implements ClusterManager
     this._instanceType = instanceType;
     _zkConnectString = zkConnectString;
     _zkStateChangeListener = new ZkStateChangeListener();
+    _timer = new Timer();
     connect();
   }
 
@@ -64,7 +69,7 @@ public class ZKClusterManager implements ClusterManager
           _instanceName))
           && _zkClient.exists(CMUtil
               .getMessagePath(_clusterName, _instanceName))
-          && _zkClient.exists(CMUtil.getCurrentStatePath(_clusterName,
+          && _zkClient.exists(CMUtil.getCurrentStateBasePath(_clusterName,
               _instanceName))
           && _zkClient.exists(CMUtil.getStatusUpdatesPath(_clusterName,
               _instanceName))
@@ -132,9 +137,9 @@ public class ZKClusterManager implements ClusterManager
 
   @Override
   public void addCurrentStateChangeListener(
-      CurrentStateChangeListener listener, String instanceName)
+      CurrentStateChangeListener listener, String instanceName, String sessionId)
   {
-    final String path = CMUtil.getCurrentStatePath(_clusterName, instanceName);
+    final String path = CMUtil.getCurrentStateBasePath(_clusterName, instanceName) + "/" + sessionId;
 
     CallbackHandler callbackHandler = createCallBackHandler(path, listener,
         new EventType[]
@@ -197,6 +202,7 @@ public class ZKClusterManager implements ClusterManager
     if (_instanceType == InstanceType.PARTICIPANT)
     {
       addLiveInstance();
+      startStatusUpdatedumpTask();
     }
   }
 
@@ -221,8 +227,26 @@ public class ZKClusterManager implements ClusterManager
         _sessionId);
     _accessor.setClusterProperty(ClusterPropertyType.LIVEINSTANCES,
         _instanceName, metaData, CreateMode.EPHEMERAL);
+    String currentStatePathParent = CMUtil.getCurrentStateBasePath(_clusterName, _instanceName) + "/" + getSessionId();
+    if(!_zkClient.exists(currentStatePathParent))
+    {
+      _zkClient.createPersistent(currentStatePathParent);
+      logger.info("Creating current state path " + currentStatePathParent);
+    }
   }
-
+  
+  private void startStatusUpdatedumpTask()
+  {
+    long initialDelay = 30*60*1000;
+    long period = 30*60*1000;
+    int timeThresholdNoChange = 15*60*1000;
+    String path = CMUtil.getInstancePropertyPath(_clusterName, _instanceName, InstancePropertyType.STATUSUPDATES);
+    List<String> paths = new ArrayList<String>();
+    paths.add(path);
+    _timer.scheduleAtFixedRate(new ZKPathDataDumpTask(_zkClient, paths, timeThresholdNoChange), initialDelay, period);
+ 
+  }
+  
   private ZkClient createClient(String zkServers, int sessionTimeout)
       throws Exception
   {

@@ -3,8 +3,12 @@ package com.linkedin.clustermanager.controller.stages;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
+
 public class ClusterEvent
 {
+  private static final Logger logger = Logger.getLogger(ClusterEvent.class
+      .getName());
   private final String _name;
   private Map<String, Object> _eventAttributeMap;
 
@@ -16,8 +20,11 @@ public class ClusterEvent
 
   public void addAttribute(String attrName, Object attrValue)
   {
-    System.out.println("Adding attribute:" + attrName);
-    System.out.println(" attribute value:" + attrValue);
+    if (logger.isDebugEnabled())
+    {
+      logger.debug("Adding attribute:" + attrName);
+      logger.debug(" attribute value:" + attrValue);
+    }
     _eventAttributeMap.put(attrName, attrValue);
   }
 

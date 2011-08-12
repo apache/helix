@@ -78,7 +78,7 @@ public interface ClusterManager
    */
 
   void addCurrentStateChangeListener(CurrentStateChangeListener listener,
-      String instanceName) throws Exception;
+      String instanceName, String sessionId) throws Exception;
 
   /**
    * @see ExternalViewChangeListener#onExternalViewChange(List,

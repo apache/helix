@@ -53,7 +53,7 @@ public final class CMUtil
         InstancePropertyType.MESSAGES);
   }
 
-  public static String getCurrentStatePath(String clusterName,
+  public static String getCurrentStateBasePath(String clusterName,
       String instanceName)
   {
     return getInstancePropertyPath(clusterName, instanceName,
@@ -76,10 +76,10 @@ public final class CMUtil
    * 
    */
   public static String getCurrentStatePath(String clusterName,
-      String instanceName, String stateUnitKey)
+      String instanceName, String sessionId, String stateUnitKey)
   {
     return getInstancePropertyPath(clusterName, instanceName,
-        InstancePropertyType.CURRENTSTATES) + "/" + stateUnitKey;
+        InstancePropertyType.CURRENTSTATES) +"/" + sessionId + "/" + stateUnitKey;
   }
 
   public static String getExternalViewPath(String clusterName)

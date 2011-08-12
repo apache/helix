@@ -9,6 +9,7 @@ import java.util.Set;
 import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
+import com.linkedin.clustermanager.CMConstants;
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ConfigChangeListener;
 import com.linkedin.clustermanager.CurrentStateChangeListener;
@@ -173,12 +174,14 @@ public class GenericClusterController implements ConfigChangeListener,
     for (ZNRecord instance : liveInstances)
     {
       String instanceName = instance.getId();
+      String clientSessionId  = instance.getSimpleField(CMConstants.ZNAttribute.SESSION_ID.toString());
+      
       if (!_instanceSubscriptionList.contains(instanceName))
       {
         try
         {
           changeContext.getManager().addCurrentStateChangeListener(this,
-              instanceName);
+              instanceName, clientSessionId);
           changeContext.getManager().addMessageListener(this, instanceName);
         } catch (Exception e)
         {

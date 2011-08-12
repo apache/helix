@@ -32,9 +32,10 @@ public class CMTaskHandler implements Callable<CMTaskResult>
   private final ClusterManager _manager;
   StatusUpdateUtil _statusUpdateUtil;
   private TransitionMethodFinder _transitionMethodFinder;
+  CMTaskExecutor _executor;
 
   public CMTaskHandler(NotificationContext notificationContext,
-      Message message, StateModel stateModel) throws Exception
+      Message message, StateModel stateModel, CMTaskExecutor executor) throws Exception
   {
     this._notificationContext = notificationContext;
     this._message = message;
@@ -42,6 +43,7 @@ public class CMTaskHandler implements Callable<CMTaskResult>
     this._manager = notificationContext.getManager();
     _statusUpdateUtil = new StatusUpdateUtil();
     _transitionMethodFinder = new TransitionMethodFinder();
+    _executor = executor;
     if (!validateTask())
     {
       String errorMessage = "Invalid Message, ensure that message: " + message
@@ -79,7 +81,8 @@ public class CMTaskHandler implements Callable<CMTaskResult>
 
       _statusUpdateUtil.logInfo(_message, CMTaskHandler.class,
           "Message handling task begin execute", accessor);
-
+      try
+      {
       String stateUnitKey = _message.getStateUnitKey();
       String stateUnitGroup = _message.getStateUnitGroup();
       String instanceName = _manager.getInstanceName();
@@ -173,6 +176,14 @@ public class CMTaskHandler implements Callable<CMTaskResult>
             "Error when update the state ", accessor);
       }
       return taskResult;
+      }
+      finally
+      {
+        if(_executor != null)
+        {
+          _executor.reportCompletion(_message.getMsgId());
+        }
+      }
     }
   }
 

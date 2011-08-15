@@ -62,7 +62,7 @@ public class CMTaskExecutor
         } else
         {
           _statusUpdateUtil.logWarning(message, CMTaskExecutor.class,
-              "Message handling task not found in _taskMap",
+              "Message handling task already sheduled for " + message.getMsgId(),
               notificationContext.getManager().getDataAccessor());
         }
       } catch (Exception e)

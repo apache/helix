@@ -34,46 +34,6 @@ public class CurrentStateComputationStage extends AbstractBaseStage
     CurrentStateOutput currentStateOutput = new CurrentStateOutput();
     Map<String, ResourceGroup> resourceGroupMap = event
         .getAttribute(AttributeName.RESOURCE_GROUPS.toString());
-    for (ZNRecord record : liveInstances)
-    {
-      LiveInstance instance = new LiveInstance(record);
-      String instanceName = record.getId();
-      List<ZNRecord> instancePropertyList;
-      String clientSessionId = record.getSimpleField(CMConstants.ZNAttribute.SESSION_ID.toString());
-      instancePropertyList = dataAccessor.getInstancePropertyList(instanceName, clientSessionId,
-          InstancePropertyType.CURRENTSTATES);
-      for (ZNRecord currStateRecord : instancePropertyList)
-      {
-        CurrentState currentState = new CurrentState(currStateRecord);
-
-        if (!instance.getSessionId().equals(currentState.getSessionId()))
-        {
-           continue;
-        }
-        String resourceGroupName = currentState.getResourceGroupName();
-        ResourceGroup resourceGroup = resourceGroupMap.get(resourceGroupName);
-        if (resourceGroup == null)
-        {
-          continue;
-        }
-        Map<String, String> resourceKeyStateMap = currentState
-            .getResourceKeyStateMap();
-        for (String resourceKeyStr : resourceKeyStateMap.keySet())
-        {
-          ResourceKey resourceKey = resourceGroup
-              .getResourceKey(resourceKeyStr);
-          if (resourceKey != null)
-          {
-            currentStateOutput.setCurrentState(resourceGroupName, resourceKey,
-                instanceName, currentState.getState(resourceKeyStr));
-          } else
-          {
-            // log
-          }
-        }
-      }
-
-    }
 
     for (ZNRecord record : liveInstances)
     {
@@ -107,6 +67,47 @@ public class CurrentStateComputationStage extends AbstractBaseStage
           // log
         }
       }
+    }
+    for (ZNRecord record : liveInstances)
+    {
+      LiveInstance instance = new LiveInstance(record);
+      String instanceName = record.getId();
+      List<ZNRecord> instancePropertyList;
+      String clientSessionId = record
+          .getSimpleField(CMConstants.ZNAttribute.SESSION_ID.toString());
+      instancePropertyList = dataAccessor.getInstancePropertyList(instanceName,
+          clientSessionId, InstancePropertyType.CURRENTSTATES);
+      for (ZNRecord currStateRecord : instancePropertyList)
+      {
+        CurrentState currentState = new CurrentState(currStateRecord);
+
+        if (!instance.getSessionId().equals(currentState.getSessionId()))
+        {
+          continue;
+        }
+        String resourceGroupName = currentState.getResourceGroupName();
+        ResourceGroup resourceGroup = resourceGroupMap.get(resourceGroupName);
+        if (resourceGroup == null)
+        {
+          continue;
+        }
+        Map<String, String> resourceKeyStateMap = currentState
+            .getResourceKeyStateMap();
+        for (String resourceKeyStr : resourceKeyStateMap.keySet())
+        {
+          ResourceKey resourceKey = resourceGroup
+              .getResourceKey(resourceKeyStr);
+          if (resourceKey != null)
+          {
+            currentStateOutput.setCurrentState(resourceGroupName, resourceKey,
+                instanceName, currentState.getState(resourceKeyStr));
+          } else
+          {
+            // log
+          }
+        }
+      }
+
     }
     event.addAttribute(AttributeName.CURRENT_STATE.toString(),
         currentStateOutput);

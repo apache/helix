@@ -41,7 +41,7 @@ public class Mocks
       stateModelInvoked = true;
     }
 
-    @Transition(from = "OFFLINE", to = "SLAVEa")
+    @Transition(from = "OFFLINE", to = "SLAVE")
     public void offlineToSlave(Message msg, NotificationContext context)
     {
       stateModelInvoked = true;

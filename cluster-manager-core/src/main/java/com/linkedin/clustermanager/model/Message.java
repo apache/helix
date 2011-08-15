@@ -10,16 +10,14 @@ import com.linkedin.clustermanager.ZNRecord;
 
 public class Message extends ZNRecord
 {
-  public enum MessageType
+  enum MessageType
   {
-    STATE_TRANSITION, SCHEDULED_TASK
+    STATE_TRANSITION
   };
-  
-  static final MessageType _defaultType = MessageType.STATE_TRANSITION;
-  
+
   public enum Attributes
   {
-    MSG_ID, TGT_SESSION_ID, SRC_NAME, TGT_NAME, MSG_STATE, STATE_UNIT_KEY, STATE_UNIT_GROUP, FROM_STATE, TO_STATE, MSG_TYPE, ACTION, ACTION_ARGS;
+    MSG_ID, TGT_SESSION_ID, SRC_NAME, TGT_NAME, MSG_STATE, STATE_UNIT_KEY, STATE_UNIT_GROUP, FROM_STATE, TO_STATE;
   }
 
   public Message()
@@ -31,21 +29,7 @@ public class Message extends ZNRecord
   {
     super(record);
   }
-  
-  public String getMsgType()
-  {
-    if(!getSimpleFields().containsKey(Attributes.MSG_TYPE.toString()))
-    {
-      return _defaultType.toString();
-    }
-    return getSimpleFieldAsString(Attributes.MSG_TYPE.toString());
-  }
-  
-  public void setMsgType(MessageType type)
-  {
-    setSimpleField(Attributes.MSG_TYPE.toString(), type.toString());
-  }
-  
+
   public String getTgtSessionId()
   {
     return getSimpleFieldAsString(Attributes.TGT_SESSION_ID.toString());
@@ -119,26 +103,6 @@ public class Message extends ZNRecord
   public String getToState()
   {
     return getSimpleFieldAsString(Attributes.TO_STATE.toString());
-  }
-  
-  public void setResourceAction(String action)
-  {
-    setSimpleField(Attributes.ACTION.toString(), action);
-  }
-
-  public String getResourceAction()
-  {
-    return getSimpleFieldAsString(Attributes.ACTION.toString());
-  }
-  
-  public void setResourceActionArgs(String action)
-  {
-    setSimpleField(Attributes.ACTION_ARGS.toString(), action);
-  }
-
-  public String getResourceActionArgs()
-  {
-    return getSimpleFieldAsString(Attributes.ACTION_ARGS.toString());
   }
 
   private String getSimpleFieldAsString(String key)

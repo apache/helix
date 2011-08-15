@@ -92,7 +92,7 @@ public class TransitionMethodFinder
           if (annotation != null)
           {
             boolean matchesFrom = annotation.from().equalsIgnoreCase(fromState);
-            boolean matchesTo = annotation.to().equalsIgnoreCase(toState);
+            boolean matchesTo = annotation.from().equalsIgnoreCase(fromState);
             boolean matchesParamTypes = Arrays.equals(paramTypes,
                 method.getParameterTypes());
             if (matchesFrom && matchesTo && matchesParamTypes)
@@ -105,37 +105,6 @@ public class TransitionMethodFinder
       }
     }
 
-    return methodToInvoke;
-  }
-
-  public Method getMethodForAction(Class<? extends StateModel> clazz,
-      String action, Class<?>[] paramTypes)
-  { 
-    Method method = getMethodForTransitionByConvention(clazz, action,
-          paramTypes);
-    return method;
-  }
-
-  private Method getMethodForTransitionByConvention(
-      Class<? extends StateModel> clazz, String action, Class<?>[] paramTypes)
-  {
-    Method methodToInvoke = null;
-    String methodName = "on" + action;
-    Method[] methods = clazz.getMethods();
-    for (Method method : methods)
-    {
-      if (method.getName().equalsIgnoreCase(methodName))
-      {
-        Class<?>[] parameterTypes = method.getParameterTypes();
-        if (parameterTypes.length == 2
-            && parameterTypes[0].equals(Message.class)
-            && parameterTypes[1].equals(NotificationContext.class))
-        {
-          methodToInvoke = method;
-          break;
-        }
-      }
-    }
     return methodToInvoke;
   }
 }

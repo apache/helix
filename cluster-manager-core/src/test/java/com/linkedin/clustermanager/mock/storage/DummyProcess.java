@@ -32,26 +32,23 @@ public class DummyProcess
   public static final String relayCluster = "relayCluster";
   public static final String help = "help";
   public static final String configFile = "configFile";
-  public static final String controllableModel = "modelc";
 
   private final String zkConnectString;
   private final String clusterName;
   private final String instanceName;
   private ClusterManager manager;
-  private StateModelFactory stateModelFactory;
+  private DummyStateModelFactory stateModelFactory;
   private StateMachineEngine genericStateMachineHandler;
 
   private String _file = null;
-  private boolean _controllable = false;
 
   public DummyProcess(String zkConnectString, String clusterName,
-      String instanceName, String file, boolean controllable)
+      String instanceName, String file)
   {
     this.zkConnectString = zkConnectString;
     this.clusterName = clusterName;
     this.instanceName = instanceName;
     this._file = file;
-    this._controllable = controllable;
   }
 
   public void start() throws Exception
@@ -63,17 +60,10 @@ public class DummyProcess
       manager = ClusterManagerFactory.getFileBasedManagerForParticipant(
           clusterName, instanceName, _file);
 
-    if(_controllable)
-    {
-      stateModelFactory = new ControllableStateModel.ControllableStateModelFactory(zkConnectString,"","");
-    }
-    else
-    {
-      stateModelFactory = new DummyStateModelFactory();
-    }
+    stateModelFactory = new DummyStateModelFactory();
     genericStateMachineHandler = new StateMachineEngine(stateModelFactory);
     manager.addMessageListener(genericStateMachineHandler, instanceName);
-    
+
     if (_file != null)
     {
       ClusterStateVerifier.VerifyFileBasedClusterStates(_file, instanceName,
@@ -121,11 +111,6 @@ public class DummyProcess
       System.out.println("DummyStateModel.onBecomeOfflineFromSlave()");
 
     }
-    
-    public void onDropResource(Message message, NotificationContext context)
-    {
-      System.out.println("DummyStateModel.onDropResource()");
-    }
   }
 
   @SuppressWarnings("static-access")
@@ -157,12 +142,6 @@ public class DummyProcess
     portOption.setArgs(1);
     portOption.setRequired(true);
     portOption.setArgName("Host port (Required)");
-    
-    Option modelOption = OptionBuilder.withLongOpt(controllableModel)
-    .withDescription("Provide model option").create();
-    modelOption.setArgs(0);
-    modelOption.setRequired(false);
-    modelOption.setArgName("Model option");
 
     // add an option group including either --zkSvr or --configFile
     Option fileOption = OptionBuilder.withLongOpt(configFile)
@@ -181,8 +160,7 @@ public class DummyProcess
     options.addOption(clusterOption);
     options.addOption(hostOption);
     options.addOption(portOption);
-    options.addOption(modelOption);
-    
+
     options.addOptionGroup(optionGroup);
 
     return options;
@@ -221,7 +199,7 @@ public class DummyProcess
     String clusterName = "test-cluster";
     String instanceName = "localhost_8900";
     String file = null;
-    boolean controllable = false;
+
     if (args.length > 0)
     {
       CommandLine cmd = processCommandLineArgs(args);
@@ -243,13 +221,13 @@ public class DummyProcess
           System.exit(1);
         }
       }
-      controllable = cmd.hasOption(controllableModel) ; 
+
     }
     // Espresso_driver.py will consume this
     System.out.println("Dummy process started");
 
     DummyProcess process = new DummyProcess(zkConnectString, clusterName,
-        instanceName, file, controllable);
+        instanceName, file);
 
     process.start();
     Thread.currentThread().join();

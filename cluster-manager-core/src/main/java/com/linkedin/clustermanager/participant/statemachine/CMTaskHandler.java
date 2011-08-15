@@ -89,8 +89,8 @@ public class CMTaskHandler implements Callable<CMTaskResult>
       CMTaskResult taskResult = new CMTaskResult();
       String fromState = _message.getFromState();
       String toState = _message.getToState();
-      if (!fromState.equalsIgnoreCase("*") && (fromState == null
-          || !fromState.equalsIgnoreCase(_stateModel.getCurrentState())))
+      if (fromState == null
+          || !fromState.equalsIgnoreCase(_stateModel.getCurrentState()))
       {
         String errorMessage = "Current state of stateModel does not match the fromState in Message "
             + " Current State:"
@@ -122,27 +122,23 @@ public class CMTaskHandler implements Callable<CMTaskResult>
 
       try
       {
-        if(!_message.getSimpleFields().containsKey(Message.Attributes.ACTION.toString()))
+        ZNRecord currentState = accessor.getInstanceProperty(instanceName,
+            InstancePropertyType.CURRENTSTATES, _manager.getSessionId(), stateUnitGroup);
+        if (currentState == null)
         {
-          
-        
-          ZNRecord currentState = accessor.getInstanceProperty(instanceName,
-              InstancePropertyType.CURRENTSTATES, _manager.getSessionId(), stateUnitGroup);
-          if (currentState == null)
-          {
-            currentState = new ZNRecord();
-            currentState.setId(stateUnitGroup);
-            currentState.setSimpleField(
-                CMConstants.ZNAttribute.SESSION_ID.toString(),
-                _manager.getSessionId());
-          }
-  
-          Map<String, String> map = currentState.getMapField(stateUnitKey);
-          if (map == null)
-          {
-            map = new HashMap<String, String>();
-            currentState.setMapField(stateUnitKey, map);
-          }
+          currentState = new ZNRecord();
+          currentState.setId(stateUnitGroup);
+          currentState.setSimpleField(
+              CMConstants.ZNAttribute.SESSION_ID.toString(),
+              _manager.getSessionId());
+        }
+
+        Map<String, String> map = currentState.getMapField(stateUnitKey);
+        if (map == null)
+        {
+          map = new HashMap<String, String>();
+          currentState.setMapField(stateUnitKey, map);
+        }
         // TODO verify that fromState is same as currentState this task
         // was
         // called at.
@@ -162,21 +158,10 @@ public class CMTaskHandler implements Callable<CMTaskResult>
           map.put(ZNAttribute.CURRENT_STATE.toString(), "ERROR");
           _stateModel.updateState("ERROR");
         }
-
         map.put(Message.Attributes.STATE_UNIT_GROUP.toString(),
             _message.getStateUnitGroup());
         accessor.setInstanceProperty(instanceName,
             InstancePropertyType.CURRENTSTATES, _manager.getSessionId(), stateUnitGroup, currentState);
-        
-        }
-        else
-        {
-          if (taskResult.isSucess())
-          {
-            _statusUpdateUtil.logInfo(_message, CMTaskHandler.class,
-                "Message handling task completed successfully", accessor);
-          }
-        }
         accessor.removeInstanceProperty(instanceName,
             InstancePropertyType.MESSAGES, _message.getId());
         // based on task result update the current state of the node.
@@ -216,21 +201,7 @@ public class CMTaskHandler implements Callable<CMTaskResult>
       methodToInvoke.invoke(_stateModel, new Object[]
       { _message, _notificationContext });
       taskResult.setSuccess(true);
-    } 
-    else if(_message.getSimpleFields().containsKey(Message.Attributes.ACTION.toString()))
-    {
-      String action = _message.getResourceAction();
-      methodToInvoke = _transitionMethodFinder.getMethodForAction(
-          _stateModel.getClass(), action, new Class[]
-          { Message.class, NotificationContext.class });
-      if(methodToInvoke != null)
-      {
-        methodToInvoke.invoke(_stateModel, new Object[]
-        { _message, _notificationContext });
-        taskResult.setSuccess(true);
-      }
-    }
-    else
+    } else
     {
       String errorMessage = "Unable to find method for transition from "
           + fromState + " to " + toState + "in " + _stateModel.getClass();

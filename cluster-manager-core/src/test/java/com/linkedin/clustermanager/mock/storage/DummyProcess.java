@@ -32,6 +32,7 @@ public class DummyProcess
   public static final String relayCluster = "relayCluster";
   public static final String help = "help";
   public static final String configFile = "configFile";
+  public static final String transDelay = "transDelay";
 
   private final String zkConnectString;
   private final String clusterName;
@@ -41,14 +42,16 @@ public class DummyProcess
   private StateMachineEngine genericStateMachineHandler;
 
   private String _file = null;
+  private int _transDelayInMs = 0;
 
   public DummyProcess(String zkConnectString, String clusterName,
-      String instanceName, String file)
+      String instanceName, String file, int delay)
   {
     this.zkConnectString = zkConnectString;
     this.clusterName = clusterName;
     this.instanceName = instanceName;
     this._file = file;
+    _transDelayInMs = delay > 0 ? delay : 0;
   }
 
   public void start() throws Exception
@@ -60,7 +63,7 @@ public class DummyProcess
       manager = ClusterManagerFactory.getFileBasedManagerForParticipant(
           clusterName, instanceName, _file);
 
-    stateModelFactory = new DummyStateModelFactory();
+    stateModelFactory = new DummyStateModelFactory(_transDelayInMs);
     genericStateMachineHandler = new StateMachineEngine(stateModelFactory);
     manager.addMessageListener(genericStateMachineHandler, instanceName);
 
@@ -74,26 +77,52 @@ public class DummyProcess
 
   public static class DummyStateModelFactory extends StateModelFactory
   {
+    int _delay;
+    public DummyStateModelFactory( int delay)
+    {
+      _delay = delay;
+    }
     @Override
     public StateModel createNewStateModel(String stateUnitKey)
     {
-      return new DummyStateModel();
+      DummyStateModel model = new DummyStateModel();
+      model.setDelay(_delay);
+      return model;
     }
-
   }
 
   public static class DummyStateModel extends StateModel
   {
+    int _transDelay = 0;
+    public void setDelay(int delay)
+    {
+      _transDelay = delay > 0 ? delay : 0;
+    }
     public void onBecomeSlaveFromOffline(Message message,
         NotificationContext context)
     {
-
+      try
+      {
+        Thread.currentThread().sleep(_transDelay);
+      } catch (InterruptedException e)
+      {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      }
       System.out.println("DummyStateModel.onBecomeSlaveFromOffline()");
     }
 
     public void onBecomeSlaveFromMaster(Message message,
         NotificationContext context)
     {
+      try
+      {
+        Thread.currentThread().sleep(_transDelay);
+      } catch (InterruptedException e)
+      {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      }
       System.out.println("DummyStateModel.onBecomeSlaveFromMaster()");
 
     }
@@ -101,6 +130,14 @@ public class DummyProcess
     public void onBecomeMasterFromSlave(Message message,
         NotificationContext context)
     {
+      try
+      {
+        Thread.currentThread().sleep(_transDelay);
+      } catch (InterruptedException e)
+      {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      }
       System.out.println("DummyStateModel.onBecomeMasterFromSlave()");
 
     }
@@ -108,7 +145,30 @@ public class DummyProcess
     public void onBecomeOfflineFromSlave(Message message,
         NotificationContext context)
     {
+      try
+      {
+        Thread.currentThread().sleep(_transDelay);
+      } catch (InterruptedException e)
+      {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      }
       System.out.println("DummyStateModel.onBecomeOfflineFromSlave()");
+
+    }
+    
+    public void onBecomeDropped(Message message,
+        NotificationContext context)
+    {
+      try
+      {
+        Thread.currentThread().sleep(_transDelay);
+      } catch (InterruptedException e)
+      {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      }
+      System.out.println("DummyStateModel.onBecomeDropped()");
 
     }
   }
@@ -149,6 +209,12 @@ public class DummyProcess
     fileOption.setArgs(1);
     fileOption.setRequired(true);
     fileOption.setArgName("File to read states/messages (Optional)");
+    
+    Option transDelayOption = OptionBuilder.withLongOpt(transDelay)
+      .withDescription("Provide state trans delay").create();
+    transDelayOption.setArgs(1);
+    transDelayOption.setRequired(false);
+    transDelayOption.setArgName("Delay time in state transition, in MS");
 
     OptionGroup optionGroup = new OptionGroup();
     optionGroup.addOption(zkServerOption);
@@ -160,7 +226,8 @@ public class DummyProcess
     options.addOption(clusterOption);
     options.addOption(hostOption);
     options.addOption(portOption);
-
+    options.addOption(transDelayOption);
+    
     options.addOptionGroup(optionGroup);
 
     return options;
@@ -199,6 +266,7 @@ public class DummyProcess
     String clusterName = "test-cluster";
     String instanceName = "localhost_8900";
     String file = null;
+    int delay = 0;
 
     if (args.length > 0)
     {
@@ -210,7 +278,7 @@ public class DummyProcess
       String portString = cmd.getOptionValue(hostPort);
       int port = Integer.parseInt(portString);
       instanceName = host + "_" + port;
-
+      
       file = cmd.getOptionValue(configFile);
       if (file != null)
       {
@@ -221,13 +289,28 @@ public class DummyProcess
           System.exit(1);
         }
       }
-
+      if(cmd.hasOption(transDelay))
+      {
+        try
+        {
+          delay = Integer.parseInt(cmd.getOptionValue(transDelay));
+          if(delay < 0)
+          {
+            throw new Exception ("delay must be positive");
+          }
+        }
+        catch(Exception e)
+        {
+          e.printStackTrace();
+          delay = 0;
+        }
+      }
     }
     // Espresso_driver.py will consume this
     System.out.println("Dummy process started");
 
     DummyProcess process = new DummyProcess(zkConnectString, clusterName,
-        instanceName, file);
+        instanceName, file, delay);
 
     process.start();
     Thread.currentThread().join();

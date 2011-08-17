@@ -138,7 +138,8 @@ public class IdealStateCalculatorForStorageNode
       partitionAssignmentPriorityList.add(0, masterInstance);
       idealState.setListField(partitionId, partitionAssignmentPriorityList);
     }
-    
+    assert(result.containsKey("replicas"));
+    idealState.setSimpleField("replicas", result.get("replicas").toString());
     return idealState;
   }
   /**

@@ -67,8 +67,7 @@ public class StateModelsResource extends Resource
     {
       String zkServer = (String)getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
       String clusterName = (String)getRequest().getAttributes().get("clusterName");
-      String modelName = (String)getRequest().getAttributes().get("modelName");
-      presentation = getStateModelsRepresentation(zkServer, clusterName, modelName);
+      presentation = getStateModelsRepresentation(zkServer, clusterName);
     }
     
     catch(Exception e)
@@ -80,11 +79,16 @@ public class StateModelsResource extends Resource
     return presentation;
   }
   
-  StringRepresentation getStateModelsRepresentation(String zkServerAddress, String clusterName, String modelName) throws JsonGenerationException, JsonMappingException, IOException
+  StringRepresentation getStateModelsRepresentation(String zkServerAddress, String clusterName) throws JsonGenerationException, JsonMappingException, IOException
   {
-    String message = ClusterRepresentationUtil.getClusterPropertyAsString(zkServerAddress, clusterName, ClusterPropertyType.IDEALSTATES, modelName, MediaType.APPLICATION_JSON);
+    ClusterSetup setupTool = new ClusterSetup(zkServerAddress);
+    List<String> models = setupTool.getClusterManagementTool().getStateModelDefs(clusterName);
     
-    StringRepresentation representation = new StringRepresentation(message, MediaType.APPLICATION_JSON);
+    ZNRecord modelDefinitions = new ZNRecord();
+    modelDefinitions.setId("modelDefinitions");
+    modelDefinitions.setListField("models", models);
+    
+    StringRepresentation representation = new StringRepresentation(ClusterRepresentationUtil.ZNRecordToJson(modelDefinitions), MediaType.APPLICATION_JSON);
     
     return representation;
   }
@@ -95,38 +99,32 @@ public class StateModelsResource extends Resource
     {
       String zkServer = (String)getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
       String clusterName = (String)getRequest().getAttributes().get("clusterName");
-      String modelName = (String)getRequest().getAttributes().get("modelName");
       
       Form form = new Form(entity);
       
       Map<String, String> paraMap 
-      = ClusterRepresentationUtil.getFormJsonParameters(form);
+      	= ClusterRepresentationUtil.getFormJsonParameters(form);
         
-      if(paraMap.get(ClusterRepresentationUtil._managementCommand).equalsIgnoreCase(ClusterRepresentationUtil._alterIdealStateCommand))
+      if(paraMap.get(ClusterRepresentationUtil._managementCommand).equalsIgnoreCase(ClusterRepresentationUtil._addStateModelCommand))
       {
-        String newIdealStateString = form.getFirstValue(ClusterRepresentationUtil._newIdealState, true);
+        String newStateModelString = form.getFirstValue(ClusterRepresentationUtil._newModelDef, true);
         
         ObjectMapper mapper = new ObjectMapper();
-        ZNRecord newIdealState = mapper.readValue(new StringReader(newIdealStateString),
+        ZNRecord newStateModel = mapper.readValue(new StringReader(newStateModelString),
             ZNRecord.class);
         
         ClusterDataAccessor accessor = ClusterRepresentationUtil.getClusterDataAccessor(zkServer,  clusterName);
-        accessor.removeClusterProperty(ClusterPropertyType.IDEALSTATES, modelName);
+        accessor.removeClusterProperty(ClusterPropertyType.STATEMODELDEFS, newStateModel.getId());
         
-        accessor.setClusterProperty(ClusterPropertyType.IDEALSTATES, modelName, newIdealState);
-        
-      }
-      else if(paraMap.get(ClusterRepresentationUtil._managementCommand).equalsIgnoreCase(ClusterRepresentationUtil._rebalanceCommand))
-      {
-        int replicas = Integer.parseInt(paraMap.get(_replicas));
-        ClusterSetup setupTool = new ClusterSetup(zkServer);
-        setupTool.rebalanceStorageCluster(clusterName, modelName, replicas);
+        accessor.setClusterProperty(ClusterPropertyType.STATEMODELDEFS, newStateModel.getId(), newStateModel);
+        getResponse().setEntity(getStateModelsRepresentation(zkServer, clusterName));
       }
       else
       {
-        new ClusterManagerException("Missing '"+ ClusterRepresentationUtil._alterIdealStateCommand+"' or '"+ClusterRepresentationUtil._rebalanceCommand+"' command");
+    	  throw new ClusterManagerException("Management command should be "+ ClusterRepresentationUtil._addStateModelCommand);
       }
-      getResponse().setEntity(getStateModelsRepresentation(zkServer, clusterName, modelName));
+      
+      
       getResponse().setStatus(Status.SUCCESS_OK);
     }
 

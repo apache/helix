@@ -193,4 +193,10 @@ public class ZKClusterManagementTool implements ClusterManagementService
 
     ZKUtil.createChildren(_zkClient, stateModelDefPath, record);
   }
+
+  @Override
+  public List<String> getStateModelDefs(String clusterName)
+  {
+    return _zkClient.getChildren(CMUtil.getStateModelDefinitionPath(clusterName));
+  }
 }

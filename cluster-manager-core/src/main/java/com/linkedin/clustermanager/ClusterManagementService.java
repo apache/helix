@@ -23,4 +23,6 @@ public interface ClusterManagementService
   void enableInstance(String clusterName, String instanceName, boolean enabled);
   
   void addStateModelDef(String clusterName, String stateModelDef, ZNRecord record);
+
+  List<String> getStateModelDefs(String clusterName);
 }

@@ -114,7 +114,7 @@ public class StateModelConfigGenerator
       {
         // metadata.put("max", "3");
         // metadata.put("min", "0");
-        metadata.put("count", "3");
+        metadata.put("count", "R");
         record.setMapField(key, metadata);
       }
       if (state.equals("OFFLINE"))

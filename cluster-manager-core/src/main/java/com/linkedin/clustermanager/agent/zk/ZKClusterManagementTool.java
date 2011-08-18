@@ -193,4 +193,11 @@ public class ZKClusterManagementTool implements ClusterManagementService
 
     ZKUtil.createChildren(_zkClient, stateModelDefPath, record);
   }
+
+  @Override
+  public void dropResourceGroup(String clusterName, String resourceGroup)
+  {
+    new ZKDataAccessor(clusterName, _zkClient).removeClusterProperty(
+        ClusterPropertyType.IDEALSTATES, resourceGroup);
+  }
 }

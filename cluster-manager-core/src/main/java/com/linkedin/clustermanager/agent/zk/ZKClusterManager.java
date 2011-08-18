@@ -27,7 +27,9 @@ import com.linkedin.clustermanager.LiveInstanceChangeListener;
 import com.linkedin.clustermanager.MessageListener;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.CMConstants.ChangeType;
+import com.linkedin.clustermanager.CMConstants.ZNAttribute;
 import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
+import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.monitoring.ZKPathDataDumpTask;
 import com.linkedin.clustermanager.util.CMUtil;
 
@@ -57,7 +59,7 @@ public class ZKClusterManager implements ClusterManager
     this._instanceType = instanceType;
     _zkConnectString = zkConnectString;
     _zkStateChangeListener = new ZkStateChangeListener();
-    _timer = new Timer();
+    _timer = null;
     connect();
   }
 
@@ -203,6 +205,37 @@ public class ZKClusterManager implements ClusterManager
     {
       addLiveInstance();
       startStatusUpdatedumpTask();
+      carryOverPreviousCurrentState();
+    }
+  }
+
+  private void carryOverPreviousCurrentState()
+  {
+    List<String> subPaths = _accessor.getInstancePropertySubPaths(_instanceName, InstancePropertyType.CURRENTSTATES);
+    for(String previousSessionId : subPaths)
+    {
+      List<ZNRecord> previousCurrentStates = _accessor.getInstancePropertyList(_instanceName, _sessionId, InstancePropertyType.CURRENTSTATES);
+      for(ZNRecord previousCurrentState : previousCurrentStates)
+      {
+        if(!previousSessionId.equalsIgnoreCase(_sessionId))
+        {
+          logger.info("Carrying over session "+ previousSessionId + " resource" + previousCurrentState.getId());
+          for(String resourceKey : previousCurrentState.mapFields.keySet())
+          {
+            previousCurrentState.getMapField(resourceKey).put(ZNAttribute.CURRENT_STATE.toString(), "OFFLINE");
+          }
+          _accessor.setInstanceProperty(_instanceName, InstancePropertyType.CURRENTSTATES, _sessionId, previousCurrentState);
+        }
+      }
+    }
+    for(String previousSessionId : subPaths)
+    {
+      if(!previousSessionId.equalsIgnoreCase(_sessionId))
+      {
+        String path = CMUtil.getInstancePropertyPath(_clusterName, _instanceName, InstancePropertyType.CURRENTSTATES);
+        _zkClient.deleteRecursive(path + "/" + previousSessionId);
+        logger.info("Deleting previous current state. path: "+ path + "/" + previousSessionId);
+      }
     }
   }
 
@@ -243,8 +276,11 @@ public class ZKClusterManager implements ClusterManager
     String path = CMUtil.getInstancePropertyPath(_clusterName, _instanceName, InstancePropertyType.STATUSUPDATES);
     List<String> paths = new ArrayList<String>();
     paths.add(path);
-    _timer.scheduleAtFixedRate(new ZKPathDataDumpTask(_zkClient, paths, timeThresholdNoChange), initialDelay, period);
- 
+    if(_timer == null)
+    {
+      _timer = new Timer();
+      _timer.scheduleAtFixedRate(new ZKPathDataDumpTask(_zkClient, paths, timeThresholdNoChange), initialDelay, period);
+    }
   }
   
   private ZkClient createClient(String zkServers, int sessionTimeout)

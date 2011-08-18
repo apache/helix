@@ -84,11 +84,11 @@
 			<version>6.0.1</version>
 			<scope>test</scope>
 		</dependency>
-                <dependency>
-                        <groupId>org.apache.commons</groupId>
-                        <artifactId>commons-math</artifactId>
-                        <version>2.1</version>
-                </dependency> 
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-math</artifactId>
+			<version>2.1</version>
+		</dependency>
 	</dependencies>
 	<build>
 		<plugins>
@@ -110,10 +110,10 @@
 							<mainClass>com.linkedin.clustermanager.tools.ZKDumper</mainClass>
 							<name>zk-dumper</name>
 						</program>
-                                                <program>
-                                                        <mainClass>com.linkedin.clustermanager.mock.storage.DummyProcess</mainClass>
-                                                        <name>DummyProcess</name>
-                                                </program>
+						<program>
+							<mainClass>com.linkedin.clustermanager.examples.ExampleProcess</mainClass>
+							<name>start-example-process</name>
+						</program>
 					</programs>
 				</configuration>
 			</plugin>

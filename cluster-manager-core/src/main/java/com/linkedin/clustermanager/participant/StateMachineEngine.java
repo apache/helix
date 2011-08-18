@@ -86,11 +86,11 @@ public class StateMachineEngine<T extends StateModel> implements
               stateModel = _stateModelFactory.createNewStateModel(stateUnitKey);
               _stateModelFactory.addStateModel(stateUnitKey, stateModel);
             }
-            // update msgState to read
-            message.setMsgState("read");
 
             _statusUpdateUtil.logInfo(message, StateMachineEngine.class,
-                "Message get read", client);
+                "New Message", client);
+            // update msgState to read
+            message.setMsgState("read");
 
             client.updateInstanceProperty(instanceName,
                 InstancePropertyType.MESSAGES, message.getId(), message);

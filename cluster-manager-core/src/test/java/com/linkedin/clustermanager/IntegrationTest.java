@@ -49,11 +49,8 @@ public class IntegrationTest
         .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addCluster ESPRESSO_STORAGE"));
     ClusterSetup
         .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addCluster relay-cluster-12345"));
-    StateModelConfigGenerator configGenerator = new StateModelConfigGenerator();
-    setup.addStateModelDef("ESPRESSO_STORAGE", "espresso_state_model",
-        configGenerator.generateConfigForStorage());
     ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addResourceGroup ESPRESSO_STORAGE db-12345 100 espresso_state_model"));
+        .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addResourceGroup ESPRESSO_STORAGE db-12345 100 MasterSlave"));
     ClusterSetup
         .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addNode ESPRESSO_STORAGE localhost:8900"));
     ClusterSetup

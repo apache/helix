@@ -16,7 +16,7 @@ public class StateModelConfigGenerator
     ZNRecordSerializer serializer = new ZNRecordSerializer();
     StateModelConfigGenerator generator = new StateModelConfigGenerator();
     System.out.println(new String(serializer.serialize(generator
-        .generateConfigForStorage())));
+        .generateConfigForMasterSlave())));
   }
 
   /**
@@ -89,10 +89,10 @@ public class StateModelConfigGenerator
     return record;
   }
 
-  public ZNRecord generateConfigForStorage()
+  public ZNRecord generateConfigForMasterSlave()
   {
     ZNRecord record = new ZNRecord();
-    record.setId("espresso_state_model");
+    record.setId("MasterSlave");
     record.setSimpleField("INITIAL_STATE", "OFFLINE");
     List<String> statePriorityList = new ArrayList<String>();
     statePriorityList.add("MASTER");

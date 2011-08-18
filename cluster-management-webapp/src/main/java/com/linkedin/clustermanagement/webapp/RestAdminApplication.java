@@ -28,6 +28,8 @@ import com.linkedin.clustermanagement.webapp.resources.HostedEntityResource;
 import com.linkedin.clustermanagement.webapp.resources.IdealStateResource;
 import com.linkedin.clustermanagement.webapp.resources.InstanceResource;
 import com.linkedin.clustermanagement.webapp.resources.InstancesResource;
+import com.linkedin.clustermanagement.webapp.resources.StateModelResource;
+import com.linkedin.clustermanagement.webapp.resources.StateModelsResource;
 import com.linkedin.clustermanager.tools.ClusterSetup;
 
 public class RestAdminApplication extends Application
@@ -59,6 +61,8 @@ public class RestAdminApplication extends Application
     router.attach("/clusters/{clusterName}/instances/{instanceName}", InstanceResource.class);
     router.attach("/clusters/{clusterName}/hostedEntities/{entityId}/idealState", IdealStateResource.class);
     router.attach("/clusters/{clusterName}/hostedEntities/{entityId}/externalView", ExternalViewResource.class);
+    router.attach("/clusters/{clusterName}/StateModelDefs/{modelName}", StateModelResource.class);
+    router.attach("/clusters/{clusterName}/StateModelDefs", StateModelsResource.class);
 
     Restlet mainpage = new Restlet()
     {

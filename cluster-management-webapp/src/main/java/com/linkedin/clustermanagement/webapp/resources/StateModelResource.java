@@ -1,11 +1,16 @@
 package com.linkedin.clustermanagement.webapp.resources;
 
 import java.io.IOException;
+import java.io.StringReader;
+import java.io.StringWriter;
 import java.util.List;
 import java.util.Map;
 
+import org.I0Itec.zkclient.ZkClient;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.map.SerializationConfig;
 import org.restlet.Context;
 import org.restlet.data.Form;
 import org.restlet.data.MediaType;
@@ -18,17 +23,15 @@ import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 
 import com.linkedin.clustermanagement.webapp.RestAdminApplication;
+import com.linkedin.clustermanager.ClusterDataAccessor;
+import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.ClusterManagerException;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.tools.ClusterSetup;
 
-public class HostedEntitiesResource extends Resource
+public class StateModelResource extends Resource
 {
-  public static final String _partitions = "partitions";
-  public static final String _entityName = "entityName";
-  public static final String _stateModelDefRef = "stateModelDefRef";
-  
-  public HostedEntitiesResource(Context context,
+  public StateModelResource(Context context,
       Request request,
       Response response) 
   {
@@ -64,7 +67,8 @@ public class HostedEntitiesResource extends Resource
     {
       String zkServer = (String)getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
       String clusterName = (String)getRequest().getAttributes().get("clusterName");
-      presentation = getHostedEntitiesRepresentation(zkServer, clusterName);
+      String modelName = (String)getRequest().getAttributes().get("modelName");
+      presentation = getStateModelRepresentation(zkServer, clusterName, modelName);
     }
     
     catch(Exception e)
@@ -76,16 +80,11 @@ public class HostedEntitiesResource extends Resource
     return presentation;
   }
   
-  StringRepresentation getHostedEntitiesRepresentation(String zkServerAddress, String clusterName) throws JsonGenerationException, JsonMappingException, IOException
+  StringRepresentation getStateModelRepresentation(String zkServerAddress, String clusterName, String modelName) throws JsonGenerationException, JsonMappingException, IOException
   {
-    ClusterSetup setupTool = new ClusterSetup(zkServerAddress);
-    List<String> hostedEntities = setupTool.getClusterManagementTool().getResourceGroupsInCluster(clusterName);
+    String message = ClusterRepresentationUtil.getClusterPropertyAsString(zkServerAddress, clusterName, ClusterPropertyType.STATEMODELDEFS, modelName, MediaType.APPLICATION_JSON);
     
-    ZNRecord hostedEntitiesRecord = new ZNRecord();
-    hostedEntitiesRecord.setId("hostedEntities");
-    hostedEntitiesRecord.setListField("entities", hostedEntities);
-    
-    StringRepresentation representation = new StringRepresentation(ClusterRepresentationUtil.ZNRecordToJson(hostedEntitiesRecord), MediaType.APPLICATION_JSON);
+    StringRepresentation representation = new StringRepresentation(message, MediaType.APPLICATION_JSON);
     
     return representation;
   }
@@ -96,32 +95,32 @@ public class HostedEntitiesResource extends Resource
     {
       String zkServer = (String)getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
       String clusterName = (String)getRequest().getAttributes().get("clusterName");
+      String modelName = (String)getRequest().getAttributes().get("modelName");
       
       Form form = new Form(entity);
+      
       Map<String, String> paraMap 
-      = ClusterRepresentationUtil.getFormJsonParametersWithCommandVerified(form, ClusterRepresentationUtil._addHostedEntityCommand);
-    
-      if(!paraMap.containsKey(_entityName))
+      = ClusterRepresentationUtil.getFormJsonParameters(form);
+        
+      if(paraMap.get(ClusterRepresentationUtil._managementCommand).equalsIgnoreCase(ClusterRepresentationUtil._alterStateModelCommand))
       {
-        throw new ClusterManagerException("Json paramaters does not contain '"+_entityName+"'");
+        String newIdealStateString = form.getFirstValue(ClusterRepresentationUtil._newModelDef, true);
+        
+        ObjectMapper mapper = new ObjectMapper();
+        ZNRecord newIdealState = mapper.readValue(new StringReader(newIdealStateString),
+            ZNRecord.class);
+        
+        ClusterDataAccessor accessor = ClusterRepresentationUtil.getClusterDataAccessor(zkServer,  clusterName);
+        accessor.removeClusterProperty(ClusterPropertyType.STATEMODELDEFS, modelName);
+        
+        accessor.setClusterProperty(ClusterPropertyType.STATEMODELDEFS, modelName, newIdealState);
+        
       }
-      else if(!paraMap.containsKey(_partitions))
+      else
       {
-        throw new ClusterManagerException("Json paramaters does not contain '"+_partitions+"'");
+        new ClusterManagerException("Missing '"+ ClusterRepresentationUtil._alterStateModelCommand);
       }
-      else if(!paraMap.containsKey(_stateModelDefRef))
-      {
-        throw new ClusterManagerException("Json paramaters does not contain '"+_stateModelDefRef+"'");
-      }
-      
-      String entityName = paraMap.get(_entityName);
-      String stateModelDefRef = paraMap.get(_stateModelDefRef);
-      int partitions = Integer.parseInt(paraMap.get(_partitions));
-      
-      ClusterSetup setupTool = new ClusterSetup(zkServer);
-      setupTool.addResourceGroupToCluster(clusterName, entityName, partitions,stateModelDefRef);
-      // add cluster
-      getResponse().setEntity(getHostedEntitiesRepresentation(zkServer, clusterName));
+      getResponse().setEntity(getStateModelRepresentation(zkServer, clusterName, modelName));
       getResponse().setStatus(Status.SUCCESS_OK);
     }
 

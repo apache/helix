@@ -32,11 +32,14 @@ public class ClusterRepresentationUtil
   public static final String _managementCommand = "command";
   public static final String _addInstanceCommand = "addInstance";
   public static final String _addHostedEntityCommand = "addHostedEntity";
+  public static final String _addStateModelCommand = "addStateModel";
   public static final String _rebalanceCommand = "rebalance";
   public static final String _alterIdealStateCommand = "alterIdealState";
   public static final String _enableInstanceCommand = "enableInstance";
   public static final String _addClusterCommand = "addCluster";
+  public static final String _alterStateModelCommand = "alterStateModel";
   public static final String _newIdealState = "newIdealState";
+  public static final String _newModelDef = "newStateModelDef";
   public static final String _enabled = "enabled";
   
   public static String getClusterPropertyAsString(String zkServer, String clusterName, ClusterPropertyType clusterProperty, String key, MediaType mediaType) throws JsonGenerationException, JsonMappingException, IOException

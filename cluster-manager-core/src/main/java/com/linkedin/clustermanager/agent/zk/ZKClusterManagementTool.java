@@ -195,12 +195,15 @@ public class ZKClusterManagementTool implements ClusterManagementService
   }
 
   @Override
+<<<<<<< HEAD
   public void dropResourceGroup(String clusterName, String resourceGroup)
   {
     new ZKDataAccessor(clusterName, _zkClient).removeClusterProperty(
         ClusterPropertyType.IDEALSTATES, resourceGroup);
   }
   
+=======
+>>>>>>> 648c257ef8fd2d881494b1b57578727a5fe22560
   public List<String> getStateModelDefs(String clusterName)
   {
     return _zkClient.getChildren(CMUtil.getStateModelDefinitionPath(clusterName));

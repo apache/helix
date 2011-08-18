@@ -205,6 +205,7 @@ public class ZKClusterManager implements ClusterManager
     {
       addLiveInstance();
       //startStatusUpdatedumpTask();
+<<<<<<< HEAD
       carryOverPreviousCurrentState();
     }
   }
@@ -236,6 +237,8 @@ public class ZKClusterManager implements ClusterManager
         _zkClient.deleteRecursive(path + "/" + previousSessionId);
         logger.info("Deleting previous current state. path: "+ path + "/" + previousSessionId);
       }
+=======
+>>>>>>> 648c257ef8fd2d881494b1b57578727a5fe22560
     }
   }
 

@@ -162,6 +162,7 @@ public class TestClusterManagementWebapp
   public void testInvocation() throws Exception
   {
     VerifyAddCluster();
+    VerifyAddStateModel();
     VerifyAddHostedEntity();
     VerifyAddInstance();
     VerifyRebalance();
@@ -207,7 +208,7 @@ public class TestClusterManagementWebapp
 	    ObjectMapper mapper = new ObjectMapper();
 	    ZNRecord zn = mapper.readValue(new StringReader(sw.toString()),
 	        ZNRecord.class);
-	    AssertJUnit.assertTrue(zn.listFields.containsKey(statemodel));
+	    AssertJUnit.assertTrue(zn.listFields.get("models").contains(statemodel));
   }
   
   void VerifyAddCluster() throws IOException, InterruptedException

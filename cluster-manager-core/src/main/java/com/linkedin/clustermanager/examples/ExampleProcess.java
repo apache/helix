@@ -138,6 +138,7 @@ public class ExampleProcess {
 		options.addOption(hostOption);
 		options.addOption(portOption);
 		options.addOption(stateModelOption);
+		options.addOption(transDelayOption);
 
 		options.addOptionGroup(optionGroup);
 

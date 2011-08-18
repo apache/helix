@@ -30,7 +30,7 @@ public class MasterSlaveStateModelFactory extends StateModelFactory<StateModel> 
 		public void onBecomeSlaveFromOffline(Message message,
 				NotificationContext context) {
 
-			System.out.println("DummyStateModel.onBecomeSlaveFromOffline()");
+			System.out.println("MasterSlaveStateModel.onBecomeSlaveFromOffline()");
 			sleep();
 		}
 
@@ -44,21 +44,21 @@ public class MasterSlaveStateModelFactory extends StateModelFactory<StateModel> 
 
 		public void onBecomeSlaveFromMaster(Message message,
 				NotificationContext context) {
-			System.out.println("DummyStateModel.onBecomeSlaveFromMaster()");
+			System.out.println("MasterSlaveStateModel.onBecomeSlaveFromMaster()");
 			sleep();
 
 		}
 
 		public void onBecomeMasterFromSlave(Message message,
 				NotificationContext context) {
-			System.out.println("DummyStateModel.onBecomeMasterFromSlave()");
+			System.out.println("MasterSlaveStateModel.onBecomeMasterFromSlave()");
 			sleep();
 
 		}
 
 		public void onBecomeOfflineFromSlave(Message message,
 				NotificationContext context) {
-			System.out.println("DummyStateModel.onBecomeOfflineFromSlave()");
+			System.out.println("MasterSlaveStateModel.onBecomeOfflineFromSlave()");
 			sleep();
 
 		}

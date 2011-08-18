@@ -1,7 +1,6 @@
 package com.linkedin.clustermanager.examples;
 
 import com.linkedin.clustermanager.NotificationContext;
-import com.linkedin.clustermanager.examples.MasterSlaveStateModelFactory.MasterSlaveStateModel;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.participant.statemachine.StateModel;
 import com.linkedin.clustermanager.participant.statemachine.StateModelFactory;
@@ -28,10 +27,17 @@ public class OnlineOfflineStateModelFactory extends
 			_transDelay = delay > 0 ? delay : 0;
 		}
 
-		public void onBecomeSlaveFromOffline(Message message,
+		public void onBecomeOnlineFromOffline(Message message,
 				NotificationContext context) {
+			System.out
+					.println("OnlineOfflineStateModel.onBecomeOnlineFromOffline()");
+			sleep();
+		}
 
-			System.out.println("DummyStateModel.onBecomeSlaveFromOffline()");
+		public void onBecomeOfflineFromOnline(Message message,
+				NotificationContext context) {
+			System.out
+					.println("OnlineOfflineStateModel.onBecomeOfflineFromOnline()");
 			sleep();
 		}
 

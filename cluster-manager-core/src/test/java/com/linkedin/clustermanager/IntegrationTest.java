@@ -66,18 +66,17 @@ public class IntegrationTest
         .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addNode ESPRESSO_STORAGE localhost:8904"));
     ClusterSetup
         .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -rebalance ESPRESSO_STORAGE db-12345 3"));
-    startDummyProcess(createArgs("-zkSvr localhost:2181 -cluster ESPRESSO_STORAGE -host localhost -port 8900"));
+    startDummyProcess(createArgs("-zkSvr localhost:2181 -cluster ESPRESSO_STORAGE -host localhost -port 8900 -transDelay 4000"));
     startDummyProcess(createArgs("-zkSvr localhost:2181 -cluster ESPRESSO_STORAGE -host localhost -port 8901"));
     startDummyProcess(createArgs("-zkSvr localhost:2181 -cluster ESPRESSO_STORAGE -host localhost -port 8902"));
     startDummyProcess(createArgs("-zkSvr localhost:2181 -cluster ESPRESSO_STORAGE -host localhost -port 8903"));
     startDummyProcess(createArgs("-zkSvr localhost:2181 -cluster ESPRESSO_STORAGE -host localhost -port 8904"));
     startClusterManager(createArgs("-zkSvr localhost:2181 -cluster ESPRESSO_STORAGE"));
-    Thread.sleep(30000);
-//     Thread.currentThread().join();
+    Thread.sleep(10000);
+     Thread.currentThread().join();
     AssertJUnit
         .assertTrue(ClusterStateVerifier
             .verifyState(createArgs("-zkSvr localhost:2181 -cluster ESPRESSO_STORAGE")));
-    // Thread.currentThread().join();
     zkServer.shutdown();
   }
 

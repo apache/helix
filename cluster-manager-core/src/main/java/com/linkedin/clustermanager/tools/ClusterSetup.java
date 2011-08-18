@@ -136,6 +136,13 @@ public class ClusterSetup
     managementTool.addResourceGroup(clusterName, resourceGroup, numResources,
         stateModelRef);
   }
+  
+  public void dropResourceGroupToCluster(String clusterName,
+      String resourceGroup)
+  {
+    ClusterManagementService managementTool = getClusterManagementTool();
+    managementTool.dropResourceGroup(clusterName, resourceGroup);
+  }
 
   public void rebalanceStorageCluster(String clusterName,
       String resourceGroupName, int replica)

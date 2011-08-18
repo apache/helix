@@ -20,6 +20,7 @@ import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.CMConstants.ZNAttribute;
 import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
+import com.linkedin.clustermanager.controller.stages.AttributeName;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.util.StatusUpdateUtil;
 
@@ -89,8 +90,48 @@ public class CMTaskHandler implements Callable<CMTaskResult>
       CMTaskResult taskResult = new CMTaskResult();
       String fromState = _message.getFromState();
       String toState = _message.getToState();
-      if (fromState == null
-          || !fromState.equalsIgnoreCase(_stateModel.getCurrentState()))
+      
+      ZNRecord currentState = accessor.getInstanceProperty(instanceName,
+          InstancePropertyType.CURRENTSTATES, _manager.getSessionId(), stateUnitGroup);
+      if (currentState == null)
+      {
+        currentState = new ZNRecord();
+        currentState.setId(stateUnitGroup);
+        currentState.setSimpleField(
+            CMConstants.ZNAttribute.SESSION_ID.toString(),
+            _manager.getSessionId());
+      }
+      Map<String, String> map;
+      // For resource unit that does not have state before, init it to offline
+      if(!currentState.getMapFields().containsKey(stateUnitKey))
+      {
+         map = new HashMap<String, String>();
+         map.put(ZNAttribute.CURRENT_STATE.toString(), "OFFLINE");
+         map.put(AttributeName.LOCAL_STATE.toString(), "");
+         currentState.setMapField(stateUnitKey, map);
+         
+         logger.info("Setting initial state for partition: " + stateUnitKey + " to offline");
+         
+         accessor.updateInstanceProperty(instanceName,
+           InstancePropertyType.CURRENTSTATES, _manager.getSessionId(), stateUnitGroup, currentState);
+      }
+      
+      // Set the state model def to current state
+      if(!currentState.getSimpleFields().containsKey(Message.Attributes.STATE_MODEL_DEF.toString()))
+      {
+        if(_message.getSimpleFields().containsKey(Message.Attributes.STATE_MODEL_DEF.toString()))
+        {
+          logger.info("Setting state model def on current state: " + _message.getStateModelDef());
+          currentState.setSimpleField(Message.Attributes.STATE_MODEL_DEF.toString(), _message.getStateModelDef());
+          
+          accessor.updateInstanceProperty(instanceName,
+              InstancePropertyType.CURRENTSTATES, _manager.getSessionId(), stateUnitGroup, currentState);
+        }
+      }
+
+      if ( !fromState.equals("*") && 
+          (fromState == null
+          || !fromState.equalsIgnoreCase(_stateModel.getCurrentState())))
       {
         String errorMessage = "Current state of stateModel does not match the fromState in Message "
             + " Current State:"
@@ -122,7 +163,7 @@ public class CMTaskHandler implements Callable<CMTaskResult>
 
       try
       {
-        ZNRecord currentState = accessor.getInstanceProperty(instanceName,
+        currentState = accessor.getInstanceProperty(instanceName,
             InstancePropertyType.CURRENTSTATES, _manager.getSessionId(), stateUnitGroup);
         if (currentState == null)
         {
@@ -133,24 +174,33 @@ public class CMTaskHandler implements Callable<CMTaskResult>
               _manager.getSessionId());
         }
 
-        Map<String, String> map = currentState.getMapField(stateUnitKey);
-        if (map == null)
-        {
-          map = new HashMap<String, String>();
-          currentState.setMapField(stateUnitKey, map);
-        }
+        map = currentState.getMapField(stateUnitKey);
+        map.put(Message.Attributes.STATE_UNIT_GROUP.toString(),
+            _message.getStateUnitGroup());
+        
+        
         // TODO verify that fromState is same as currentState this task
         // was
         // called at.
         // Verify that no one has edited this field
         if (taskResult.isSucess())
         {
-          map.put(ZNAttribute.CURRENT_STATE.toString(), toState);
-
-          _stateModel.updateState(toState);
+          if(!toState.equalsIgnoreCase("DROPPED"))
+          {
+            map.put(ZNAttribute.CURRENT_STATE.toString(), toState); 
+            map.put(AttributeName.LOCAL_STATE.toString(), "");
+            _stateModel.updateState(toState);
+          }
+          else
+          {
+            map.put(AttributeName.LOCAL_STATE.toString(), "DROPPED");
+          }
+         
           _statusUpdateUtil.logInfo(_message, CMTaskHandler.class,
               "Message handling task completed successfully", accessor);
-        } else
+          
+        } 
+        else
         {
           StateTransitionError error = new StateTransitionError(
               StateTransitionError.ErrorCode.INTERNAL, exception);
@@ -158,12 +208,19 @@ public class CMTaskHandler implements Callable<CMTaskResult>
           map.put(ZNAttribute.CURRENT_STATE.toString(), "ERROR");
           _stateModel.updateState("ERROR");
         }
-        map.put(Message.Attributes.STATE_UNIT_GROUP.toString(),
-            _message.getStateUnitGroup());
-        accessor.setInstanceProperty(instanceName,
+
+        accessor.updateInstanceProperty(instanceName,
             InstancePropertyType.CURRENTSTATES, _manager.getSessionId(), stateUnitGroup, currentState);
-        accessor.removeInstanceProperty(instanceName,
-            InstancePropertyType.MESSAGES, _message.getId());
+        
+//        currentState = accessor.getInstanceProperty(instanceName,
+//            InstancePropertyType.CURRENTSTATES, _manager.getSessionId(), stateUnitGroup);
+//        
+//        if(currentState.getMapFields().size() == 0)
+//        {
+//          accessor.removeInstanceProperty(instanceName, InstancePropertyType.CURRENTSTATES,  _manager.getSessionId()+"/"+currentState.getId());
+//        }
+//        
+        accessor.removeInstanceProperty(instanceName, InstancePropertyType.MESSAGES,_message.getId());
         // based on task result update the current state of the node.
 
       } catch (Exception e)

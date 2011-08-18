@@ -17,9 +17,9 @@ public class Message extends ZNRecord
 
   public enum Attributes
   {
-    MSG_ID, TGT_SESSION_ID, SRC_NAME, TGT_NAME, MSG_STATE, STATE_UNIT_KEY, STATE_UNIT_GROUP, FROM_STATE, TO_STATE;
+    MSG_ID, TGT_SESSION_ID, SRC_NAME, TGT_NAME, MSG_STATE, STATE_UNIT_KEY, STATE_UNIT_GROUP, FROM_STATE, TO_STATE, STATE_MODEL_DEF;
   }
-
+  
   public Message()
   {
     super();
@@ -148,5 +148,15 @@ public class Message extends ZNRecord
   public String getResourceKey()
   {
     return getSimpleFieldAsString(Attributes.STATE_UNIT_KEY.toString());
+  }
+  
+  public String getStateModelDef()
+  {
+    return getSimpleFieldAsString(Attributes.STATE_MODEL_DEF.toString());
+  }
+  
+  public void setStateModelDef(String stateModelDefName)
+  {
+    setSimpleField(Attributes.STATE_MODEL_DEF.toString(), stateModelDefName);
   }
 }

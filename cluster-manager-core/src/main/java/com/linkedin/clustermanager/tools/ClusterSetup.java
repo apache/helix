@@ -70,6 +70,9 @@ public class ClusterSetup
   {
     ClusterManagementService managementTool = getClusterManagementTool();
     managementTool.addCluster(clusterName, overwritePrevious);
+    StateModelConfigGenerator generator = new StateModelConfigGenerator();
+    addStateModelDef(clusterName, "MasterSlave",
+        generator.generateConfigForMasterSlave());
   }
 
   public void addNodesToCluster(String clusterName, String[] nodeInfoArray)
@@ -177,10 +180,7 @@ public class ClusterSetup
       storageNodeInfoArray[i] = "localhost:" + (8900 + i);
     }
     addNodesToCluster(clusterName, storageNodeInfoArray);
-    StateModelConfigGenerator generator = new StateModelConfigGenerator();
-    addStateModelDef(clusterName, "espresso_state_model",
-        generator.generateConfigForStorage());
-    addResourceGroupToCluster(clusterName, "TestDB", 10, "espresso_state_model");
+    addResourceGroupToCluster(clusterName, "TestDB", 10, "MasterSlave");
     rebalanceStorageCluster(clusterName, "TestDB", 3);
   }
 

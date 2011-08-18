@@ -6,6 +6,7 @@ import java.util.Map;
 
 import static com.linkedin.clustermanager.CMConstants.ZNAttribute.*;
 import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.model.Message.Attributes;
 
 public class CurrentState
 {
@@ -49,6 +50,11 @@ public class CurrentState
       return mapField.get(CURRENT_STATE.toString());
     }
     return null;
+  }
+  
+  public String getStateModelDefRef()
+  {
+    return record.getSimpleField(Attributes.STATE_MODEL_DEF.toString());
   }
 
 }

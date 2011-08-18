@@ -25,6 +25,7 @@ public class TestCMTaskHandler
     message.setStateUnitKey("Teststateunitkey");
     message.setId("Some unique id");
     message.setMsgId("Some unique message id");
+    message.setStateUnitGroup("TeststateunitGroup");
     MockStateModel stateModel = new MockStateModel();
     NotificationContext context;
 

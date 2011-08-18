@@ -204,7 +204,7 @@ public class ZKClusterManager implements ClusterManager
     if (_instanceType == InstanceType.PARTICIPANT)
     {
       addLiveInstance();
-      startStatusUpdatedumpTask();
+      //startStatusUpdatedumpTask();
       carryOverPreviousCurrentState();
     }
   }

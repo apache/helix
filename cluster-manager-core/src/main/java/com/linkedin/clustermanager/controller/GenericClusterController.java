@@ -176,7 +176,7 @@ public class GenericClusterController implements ConfigChangeListener,
       String instanceName = instance.getId();
       String clientSessionId  = instance.getSimpleField(CMConstants.ZNAttribute.SESSION_ID.toString());
       
-      if (!_instanceSubscriptionList.contains(instanceName))
+      if (!_instanceSubscriptionList.contains(clientSessionId))
       {
         try
         {
@@ -190,7 +190,7 @@ public class GenericClusterController implements ConfigChangeListener,
                   + instanceName, e);
         }
 
-        _instanceSubscriptionList.add(instanceName);
+        _instanceSubscriptionList.add(clientSessionId);
       }
     }
     ClusterEvent event = new ClusterEvent("liveInstanceChange");

@@ -280,7 +280,20 @@ public class ZKDataAccessor implements ClusterDataAccessor
     String path = CMUtil.getInstancePropertyPath(_clusterName, instanceName,
         instanceProperty);
     String propertyPath = path + "/" + subPath + "/" + key;
-    ZNRecord record = _zkClient.readData(propertyPath, true);
-    return record;
+    if(_zkClient.exists(propertyPath))
+    {
+      ZNRecord record = _zkClient.readData(propertyPath, true);
+      return record;
+    }
+    return null;
+  }
+
+  @Override
+  public List<String> getInstancePropertySubPaths(String instanceName,
+      InstancePropertyType instanceProperty)
+  {
+    String path = CMUtil.getInstancePropertyPath(_clusterName, instanceName,
+        instanceProperty);
+    return _zkClient.getChildren(path);
   }
 }

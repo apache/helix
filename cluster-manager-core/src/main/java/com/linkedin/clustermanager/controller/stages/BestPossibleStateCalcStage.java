@@ -72,10 +72,17 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
       logger.info("Processing resourceGroup:" + resourceGroupName);
 
       ResourceGroup resourceGroup = resourceGroupMap.get(resourceGroupName);
+      // Ideal state may be gone. In that case we need to get the state model name 
+      // from the current state
+      boolean idealStateExists = idealStatesMap.containsKey(resourceGroupName);
       ZNRecord idealStateRec = idealStatesMap.get(resourceGroupName);
       IdealState idealState = new IdealState(idealStateRec);
+      
+      String stateModelDefName = idealStateExists ?
+          idealState.getStateModelDefRef() :
+          currentStateOutput.getResourceGroupStateModelDef(resourceGroupName) ;
       StateModelDefinition stateModelDef = lookupStateModel(
-          idealState.getStateModelDefRef(), stateModelDefs);
+          stateModelDefName, stateModelDefs);
       for (ResourceKey resource : resourceGroup.getResourceKeys())
       {
         List<String> instancePreferenceList = getPreferenceList(resource,
@@ -83,9 +90,10 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
 
         Map<String, String> currentStateMap = currentStateOutput
             .getCurrentStateMap(resourceGroupName, resource);
+
         Map<String, String> bestStateForResource = computeBestStateForResource(
             stateModelDef, instancePreferenceList, liveInstancesMap,
-            currentStateMap);
+            currentStateMap, idealStateExists);
         output.setState(resourceGroupName, resource, bestStateForResource);
       }
     }
@@ -95,9 +103,19 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
   private Map<String, String> computeBestStateForResource(
       StateModelDefinition stateModelDef, List<String> instancePreferenceList,
       Map<String, ZNRecord> liveInstancesMap,
-      Map<String, String> currentStateMap)
+      Map<String, String> currentStateMap,
+      boolean idealStateExists)
   {
     Map<String, String> instanceStateMap = new HashMap<String, String>();
+    if(!idealStateExists)
+    {
+      assert(instancePreferenceList == null);
+      for(String instanceName : currentStateMap.keySet())
+      {
+        instanceStateMap.put(instanceName, "OFFLINE");
+      }
+      return instanceStateMap;
+    }
     List<String> statesPriorityList = stateModelDef.getStatesPriorityList();
     boolean assigned[] = new boolean[instancePreferenceList.size()];
 
@@ -152,7 +170,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
   {
     List<String> listField = idealState.getPreferenceList(resource
         .getResourceKeyName());
-    if (listField.size() == 1 && "".equals(listField.get(0)))
+    if (listField != null && listField.size() == 1 && "".equals(listField.get(0)))
     {
       ArrayList<String> list = new ArrayList<String>(liveInstances.size());
       for (ZNRecord liveInstance : liveInstances)

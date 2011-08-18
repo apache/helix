@@ -17,69 +17,61 @@ import com.linkedin.clustermanager.model.ResourceKey;
 import com.linkedin.clustermanager.pipeline.AbstractBaseStage;
 import com.linkedin.clustermanager.pipeline.StageException;
 
-public class CurrentStateComputationStage extends AbstractBaseStage
-{
-  @Override
-  public void process(ClusterEvent event) throws Exception
-  {
-    ClusterManager manager = event.getAttribute("clustermanager");
-    if (manager == null)
-    {
-      throw new StageException("clustermanager attribute value is null");
-    }
-    ClusterDataAccessor dataAccessor = manager.getDataAccessor();
-    List<ZNRecord> liveInstances;
-    liveInstances = dataAccessor
-        .getClusterPropertyList(ClusterPropertyType.LIVEINSTANCES);
-    CurrentStateOutput currentStateOutput = new CurrentStateOutput();
-    Map<String, ResourceGroup> resourceGroupMap = event
-        .getAttribute(AttributeName.RESOURCE_GROUPS.toString());
+public class CurrentStateComputationStage extends AbstractBaseStage {
+	@Override
+	public void process(ClusterEvent event) throws Exception {
+		ClusterManager manager = event.getAttribute("clustermanager");
+		if (manager == null) {
+			throw new StageException("clustermanager attribute value is null");
+		}
+		ClusterDataAccessor dataAccessor = manager.getDataAccessor();
+		List<ZNRecord> liveInstances;
+		liveInstances = dataAccessor
+				.getClusterPropertyList(ClusterPropertyType.LIVEINSTANCES);
+		CurrentStateOutput currentStateOutput = new CurrentStateOutput();
+		Map<String, ResourceGroup> resourceGroupMap = event
+				.getAttribute(AttributeName.RESOURCE_GROUPS.toString());
 
-    for (ZNRecord record : liveInstances)
-    {
-      LiveInstance instance = new LiveInstance(record);
-      String instanceName = record.getId();
-      List<ZNRecord> instancePropertyList;
-      instancePropertyList = dataAccessor.getInstancePropertyList(instanceName,
-          InstancePropertyType.MESSAGES);
-      for (ZNRecord messageRecord : instancePropertyList)
-      {
-        Message message = new Message(messageRecord);
+		for (ZNRecord record : liveInstances) {
+			LiveInstance instance = new LiveInstance(record);
+			String instanceName = record.getId();
+			List<ZNRecord> instancePropertyList;
+			instancePropertyList = dataAccessor.getInstancePropertyList(
+					instanceName, InstancePropertyType.MESSAGES);
+			for (ZNRecord messageRecord : instancePropertyList) {
+				Message message = new Message(messageRecord);
 
-        if (!instance.getSessionId().equals(message.getTgtSessionId()))
-        {
-          continue;
-        }
-        String resourceGroupName = message.getResourceGroupName();
-        ResourceGroup resourceGroup = resourceGroupMap.get(resourceGroupName);
-        if (resourceGroup == null)
-        {
-          continue;
-        }
-        ResourceKey resourceKey = resourceGroup.getResourceKey(message
-            .getResourceKey());
-        if (resourceKey != null)
-        {
-          currentStateOutput.setPendingState(resourceGroupName, resourceKey,
-              instanceName, message.getToState());
-        } else
-        {
-          // log
-        }
-      }
-    }
-    for (ZNRecord record : liveInstances)
-    {
-      LiveInstance instance = new LiveInstance(record);
-      String instanceName = record.getId();
-      List<ZNRecord> instancePropertyList;
-      String clientSessionId = record
-          .getSimpleField(CMConstants.ZNAttribute.SESSION_ID.toString());
-      instancePropertyList = dataAccessor.getInstancePropertyList(instanceName,
-          clientSessionId, InstancePropertyType.CURRENTSTATES);
-      for (ZNRecord currStateRecord : instancePropertyList)
-      {
-        CurrentState currentState = new CurrentState(currStateRecord);
+				if (!instance.getSessionId().equals(message.getTgtSessionId())) {
+					continue;
+				}
+				String resourceGroupName = message.getResourceGroupName();
+				ResourceGroup resourceGroup = resourceGroupMap
+						.get(resourceGroupName);
+				if (resourceGroup == null) {
+					continue;
+				}
+				ResourceKey resourceKey = resourceGroup.getResourceKey(message
+						.getResourceKey());
+				if (resourceKey != null) {
+					currentStateOutput.setPendingState(resourceGroupName,
+							resourceKey, instanceName, message.getToState());
+				} else {
+					// log
+				}
+			}
+		}
+		for (ZNRecord record : liveInstances) {
+			LiveInstance instance = new LiveInstance(record);
+			String instanceName = record.getId();
+			List<ZNRecord> instancePropertyList;
+			String clientSessionId = record
+					.getSimpleField(CMConstants.ZNAttribute.SESSION_ID
+							.toString());
+			instancePropertyList = dataAccessor.getInstancePropertyList(
+					instanceName, clientSessionId,
+					InstancePropertyType.CURRENTSTATES);
+			for (ZNRecord currStateRecord : instancePropertyList) {
+				CurrentState currentState = new CurrentState(currStateRecord);
 
         if (!instance.getSessionId().equals(currentState.getSessionId()))
         {
@@ -113,9 +105,8 @@ public class CurrentStateComputationStage extends AbstractBaseStage
           }
         }
       }
-
-    }
-    event.addAttribute(AttributeName.CURRENT_STATE.toString(),
-        currentStateOutput);
-  }
+		}
+		event.addAttribute(AttributeName.CURRENT_STATE.toString(),
+				currentStateOutput);
+	}
 }

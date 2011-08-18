@@ -145,7 +145,7 @@ public interface ClusterDataAccessor
   
   void updateInstanceProperty(String instanceName,
       InstancePropertyType instanceProperty, String subPath, String key, final ZNRecord value);
-
+  
   ZNRecord getInstanceProperty(String instanceName,
       InstancePropertyType instanceProperty, String key);
   
@@ -166,5 +166,8 @@ public interface ClusterDataAccessor
 
   void setClusterProperty(ClusterPropertyType clusterProperty, String key,
       ZNRecord value, CreateMode mode);
+  
+  List<String> getInstancePropertySubPaths(String instanceName,
+      InstancePropertyType instanceProperty);
 
 }

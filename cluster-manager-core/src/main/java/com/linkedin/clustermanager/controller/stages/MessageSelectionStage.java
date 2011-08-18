@@ -60,6 +60,7 @@ public class MessageSelectionStage extends AbstractBaseStage
     {
       return Collections.emptyList();
     }
+    
     Set<String> possibleTransitions = new HashSet<String>();
     for (Message message : messages)
     {
@@ -69,7 +70,9 @@ public class MessageSelectionStage extends AbstractBaseStage
     String preferredTransition = null;
     List<String> stateTransitionPriorityList = stateModelDef
         .getStateTransitionPriorityList();
-
+    
+    stateTransitionPriorityList.add("*-DROPPED");
+    
     for (String transition : stateTransitionPriorityList)
     {
       if (possibleTransitions.contains(transition.toUpperCase()))

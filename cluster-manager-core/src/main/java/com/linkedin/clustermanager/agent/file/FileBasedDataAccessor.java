@@ -141,4 +141,12 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
     return null;
   }
 
+  @Override
+  public List<String> getInstancePropertySubPaths(String instanceName,
+      InstancePropertyType instanceProperty)
+  {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
 }

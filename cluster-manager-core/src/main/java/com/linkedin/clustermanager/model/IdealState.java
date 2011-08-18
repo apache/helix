@@ -84,6 +84,10 @@ public class IdealState
 
   public List<String> getPreferenceList(String resourceKeyName)
   {
+    if(_record == null)
+    {
+      return null;
+    }
     return getInstancePreferenceList(resourceKeyName);
   }
 }

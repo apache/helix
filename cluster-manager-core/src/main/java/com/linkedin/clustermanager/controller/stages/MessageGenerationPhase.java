@@ -5,12 +5,15 @@ import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.UUID;
 
 import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
+import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.model.LiveInstance;
@@ -54,10 +57,17 @@ public class MessageGenerationPhase extends AbstractBaseStage
           liveInstance.getSessionId());
     }
     MessageGenerationOutput output = new MessageGenerationOutput();
-
+    
+    List<ZNRecord> idealStates = dataAccessor.getClusterPropertyList(ClusterPropertyType.IDEALSTATES);
+    Set<String> existingIdealStates = new TreeSet<String>();
+    for(ZNRecord record : idealStates)
+    {
+      existingIdealStates.add(record.getId());
+    }
     for (String resourceGroupName : resourceGroupMap.keySet())
     {
       ResourceGroup resourceGroup = resourceGroupMap.get(resourceGroupName);
+      boolean idealStateExists = existingIdealStates.contains(resourceGroupName);
       StateModelDefinition stateModelDef = lookupStateModel(
           resourceGroup.getStateModelDefRef(), stateModelDefs);
       for (ResourceKey resource : resourceGroup.getResourceKeys())
@@ -69,17 +79,33 @@ public class MessageGenerationPhase extends AbstractBaseStage
           String desiredState = instanceStateMap.get(instanceName);
           String currentState = currentStateOutput.getCurrentState(
               resourceGroupName, resource, instanceName);
-          String pendingState = currentStateOutput.getPendingState(
-              resourceGroupName, resource, instanceName);
           if (currentState == null)
           {
             currentState = stateModelDef.getInitialState();
           }
+          
+          if(!idealStateExists)
+          {
+            if(currentState.equalsIgnoreCase("OFFLINE"))
+            {
+              String sessionId = sessionIdMap.get(instanceName);
+              Message message = createMessage(resourceGroupName,
+                  resource.getResourceKeyName(), instanceName, "*",
+                  "DROPPED", sessionId, stateModelDef.getId());
+              output.addMessage(resourceGroupName, resource, message);
+              continue;
+            }
+          }
+          
+          String pendingState = currentStateOutput.getPendingState(
+              resourceGroupName, resource, instanceName);
+          
           if (!desiredState.equalsIgnoreCase(currentState))
           {
             String nextState;
             nextState = stateModelDef.getNextStateForTransition(currentState,
                 desiredState);
+
             if (nextState != null)
             {
               if (pendingState != null
@@ -94,7 +120,7 @@ public class MessageGenerationPhase extends AbstractBaseStage
               {
                 Message message = createMessage(resourceGroupName,
                     resource.getResourceKeyName(), instanceName, currentState,
-                    nextState, sessionIdMap.get(instanceName));
+                    nextState, sessionIdMap.get(instanceName), stateModelDef.getId());
                 output.addMessage(resourceGroupName, resource, message);
               }
             } else
@@ -106,6 +132,44 @@ public class MessageGenerationPhase extends AbstractBaseStage
             }
           }
         }
+        // idealstate is gone, we should go through the remaining current states of the downed 
+        // instances and issue drop messages for them
+        if(!idealStateExists) 
+        {
+          List<ZNRecord> instanceConfigs = dataAccessor.getClusterPropertyList(ClusterPropertyType.CONFIGS);
+          for(ZNRecord instanceConfig : instanceConfigs)
+          {
+            String instanceName = instanceConfig.getId();
+            String sessionId = "";
+            if(!instanceStateMap.containsKey(instanceName))
+            {
+              // The instance is not live at present. Send drop resource message to it and the instance 
+              // should handle the drop resource when it is back again
+              List<String> subPaths = dataAccessor.getInstancePropertySubPaths(instanceName, InstancePropertyType.CURRENTSTATES);
+              for(String previousSessionId : subPaths)
+              {
+                
+                ZNRecord previousCurrentState
+                  = dataAccessor.getInstanceProperty(instanceName, InstancePropertyType.CURRENTSTATES, previousSessionId, resourceGroupName);
+                if(previousCurrentState == null)
+                {
+                  continue;
+                }
+              
+                for(String resourceKey : previousCurrentState.mapFields.keySet())
+                {
+                  if(resourceKey.equals(resource.getResourceKeyName()))
+                  {
+                    Message message = createMessage(resourceGroupName,
+                        resource.getResourceKeyName(), instanceName, "*",
+                        "DROPPED", previousSessionId, stateModelDef.getId());
+                    output.addMessage(resourceGroupName, resource, message);
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     }
     event.addAttribute(AttributeName.MESSAGES_ALL.toString(), output);
@@ -113,7 +177,7 @@ public class MessageGenerationPhase extends AbstractBaseStage
 
   private Message createMessage(String resourceGroupName,
       String resourceKeyName, String instanceName, String currentState,
-      String nextState, String sessionId)
+      String nextState, String sessionId, String stateModelDefName)
   {
     Message message = new Message();
     String uuid = UUID.randomUUID().toString();
@@ -138,6 +202,7 @@ public class MessageGenerationPhase extends AbstractBaseStage
     message.setFromState(currentState);
     message.setToState(nextState);
     message.setTgtSessionId(sessionId);
+    message.setStateModelDef(stateModelDefName);
     return message;
   }
 

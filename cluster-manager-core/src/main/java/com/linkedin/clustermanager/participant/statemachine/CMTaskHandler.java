@@ -208,7 +208,8 @@ public class CMTaskHandler implements Callable<CMTaskResult>
           map.put(ZNAttribute.CURRENT_STATE.toString(), "ERROR");
           _stateModel.updateState("ERROR");
         }
-
+        map.put(Message.Attributes.STATE_UNIT_GROUP.toString(),
+            _message.getStateUnitGroup());
         accessor.updateInstanceProperty(instanceName,
             InstancePropertyType.CURRENTSTATES, _manager.getSessionId(), stateUnitGroup, currentState);
         

@@ -10,12 +10,23 @@ public class CurrentStateOutput
 {
   private final Map<String, Map<ResourceKey, Map<String, String>>> _currentStateMap;
   private final Map<String, Map<ResourceKey, Map<String, String>>> _pendingStateMap;
+  private final Map<String, String> _resourceGroupStateModelMap;
 
   public CurrentStateOutput()
   {
     _currentStateMap = new HashMap<String, Map<ResourceKey, Map<String, String>>>();
     _pendingStateMap = new HashMap<String, Map<ResourceKey, Map<String, String>>>();
-
+    _resourceGroupStateModelMap = new HashMap<String, String>();
+  }
+  
+  public void setResourceGroupStateModelDef(String resourceGroupName, String stateModelDefName)
+  {
+    _resourceGroupStateModelMap.put(resourceGroupName, stateModelDefName);
+  }
+  
+  public String getResourceGroupStateModelDef(String resourceGroupName)
+  {
+    return _resourceGroupStateModelMap.get(resourceGroupName);
   }
 
   public void setCurrentState(String resourceGroupName,

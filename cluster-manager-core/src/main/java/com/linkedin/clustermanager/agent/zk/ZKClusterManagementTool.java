@@ -200,4 +200,9 @@ public class ZKClusterManagementTool implements ClusterManagementService
     new ZKDataAccessor(clusterName, _zkClient).removeClusterProperty(
         ClusterPropertyType.IDEALSTATES, resourceGroup);
   }
+  
+  public List<String> getStateModelDefs(String clusterName)
+  {
+    return _zkClient.getChildren(CMUtil.getStateModelDefinitionPath(clusterName));
+  }
 }

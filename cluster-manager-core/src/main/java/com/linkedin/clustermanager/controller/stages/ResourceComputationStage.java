@@ -11,7 +11,9 @@ import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.model.IdealState;
+import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.ResourceGroup;
+import com.linkedin.clustermanager.model.Message.Attributes;
 import com.linkedin.clustermanager.pipeline.AbstractBaseStage;
 import com.linkedin.clustermanager.pipeline.StageException;
 
@@ -50,14 +52,14 @@ public class ResourceComputationStage extends AbstractBaseStage
     }
     // Its important to get resourceKeys from CurrentState as well since the
     // idealState might be removed.
-    List<ZNRecord> liveInstances = dataAccessor
+    List<ZNRecord> availableInstances = dataAccessor
         .getClusterPropertyList(ClusterPropertyType.LIVEINSTANCES);
-    if (liveInstances != null && liveInstances.size() > 0)
+    if (availableInstances != null && availableInstances.size() > 0)
     {
-      for (ZNRecord liveInstance : liveInstances)
+      for (ZNRecord instance : availableInstances)
       {
-        String instanceName = liveInstance.getId();
-        String clientSessionId = liveInstance.getSimpleField(CMConstants.ZNAttribute.SESSION_ID.toString());
+        String instanceName = instance.getId();
+        String clientSessionId = instance.getSimpleField(CMConstants.ZNAttribute.SESSION_ID.toString());
         List<ZNRecord> currentStates = dataAccessor.getInstancePropertyList(
             instanceName, clientSessionId, InstancePropertyType.CURRENTSTATES);
         if (currentStates == null || currentStates.size() == 0)
@@ -67,11 +69,35 @@ public class ResourceComputationStage extends AbstractBaseStage
         for (ZNRecord currentState : currentStates)
         {
           String resourceGroupName = currentState.getId();
+          boolean idealStateExists = false;
+          if (idealStates != null && idealStates.size() > 0)
+          {
+            for (ZNRecord idealStateRec : idealStates)
+            {
+              if(currentState.getId().equalsIgnoreCase(idealStateRec.getId()))
+              {
+                idealStateExists = true;
+              }
+            }
+          }
           Map<String, Map<String, String>> mapFields = currentState
               .getMapFields();
           for (String resourceKey : mapFields.keySet())
           {
+            // Skip dropped resources
+            if(!idealStateExists)
+            {
+              if(mapFields.get(resourceKey).containsKey(AttributeName.LOCAL_STATE.toString()))
+              {
+                if(mapFields.get(resourceKey).get(AttributeName.LOCAL_STATE.toString()).equalsIgnoreCase("DROPPED"))
+                {
+                  continue;
+                }
+              }
+            }
             addResource(resourceKey, resourceGroupName, resourceGroupMap);
+            ResourceGroup resourceGroup = resourceGroupMap.get(resourceGroupName);
+            resourceGroup.setStateModelDefRef(currentState.getSimpleField(Message.Attributes.STATE_MODEL_DEF.toString()));
           }
         }
       }

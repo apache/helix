@@ -25,4 +25,6 @@ public interface ClusterManagementService
   void addStateModelDef(String clusterName, String stateModelDef, ZNRecord record);
 
   void dropResourceGroup(String clusterName, String resourceGroup);
+  
+  List<String> getStateModelDefs(String clusterName);
 }

@@ -44,6 +44,11 @@ public class TransitionMethodFinder
   {
     Method methodToInvoke = null;
     String methodName = "onBecome" + toState + "From" + fromState;
+    if(fromState.equals("*"))
+    {
+      methodName = "onBecome" + toState;
+    }
+    
     Method[] methods = clazz.getMethods();
     for (Method method : methods)
     {
@@ -92,7 +97,7 @@ public class TransitionMethodFinder
           if (annotation != null)
           {
             boolean matchesFrom = annotation.from().equalsIgnoreCase(fromState);
-            boolean matchesTo = annotation.from().equalsIgnoreCase(fromState);
+            boolean matchesTo = annotation.to().equalsIgnoreCase(toState);
             boolean matchesParamTypes = Arrays.equals(paramTypes,
                 method.getParameterTypes());
             if (matchesFrom && matchesTo && matchesParamTypes)

@@ -109,6 +109,10 @@ public class HostedEntitiesResource extends Resource
       {
         throw new ClusterManagerException("Json paramaters does not contain '"+_partitions+"'");
       }
+      else if(!paraMap.containsKey(_stateModelDefRef))
+      {
+        throw new ClusterManagerException("Json paramaters does not contain '"+_stateModelDefRef+"'");
+      }
       
       String entityName = paraMap.get(_entityName);
       String stateModelDefRef = paraMap.get(_stateModelDefRef);

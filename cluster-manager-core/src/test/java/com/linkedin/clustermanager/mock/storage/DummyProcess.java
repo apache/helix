@@ -103,7 +103,8 @@ public class DummyProcess
     {
       try
       {
-        Thread.currentThread().sleep(_transDelay);
+        Thread.currentThread();
+		Thread.sleep(_transDelay);
       } catch (InterruptedException e)
       {
         // TODO Auto-generated catch block
@@ -117,7 +118,8 @@ public class DummyProcess
     {
       try
       {
-        Thread.currentThread().sleep(_transDelay);
+        Thread.currentThread();
+		Thread.sleep(_transDelay);
       } catch (InterruptedException e)
       {
         // TODO Auto-generated catch block
@@ -132,7 +134,8 @@ public class DummyProcess
     {
       try
       {
-        Thread.currentThread().sleep(_transDelay);
+        Thread.currentThread();
+		Thread.sleep(_transDelay);
       } catch (InterruptedException e)
       {
         // TODO Auto-generated catch block
@@ -147,7 +150,8 @@ public class DummyProcess
     {
       try
       {
-        Thread.currentThread().sleep(_transDelay);
+        Thread.currentThread();
+		Thread.sleep(_transDelay);
       } catch (InterruptedException e)
       {
         // TODO Auto-generated catch block

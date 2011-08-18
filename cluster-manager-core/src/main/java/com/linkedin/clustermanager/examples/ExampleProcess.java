@@ -107,11 +107,11 @@ public class ExampleProcess {
 		portOption.setRequired(true);
 		portOption.setArgName("Host port (Required)");
 
-		Option delayOption = OptionBuilder.withLongOpt(stateModel)
-				.withDescription("Provide delay in seconds ").create();
-		delayOption.setArgs(1);
-		delayOption.setRequired(false);
-		delayOption.setArgName(" Delay during transition");
+		Option stateModelOption = OptionBuilder.withLongOpt(stateModel)
+				.withDescription("StateModel Type").create();
+		stateModelOption.setArgs(1);
+		stateModelOption.setRequired(true);
+		stateModelOption.setArgName("StateModel Type (Required)");
 
 		// add an option group including either --zkSvr or --configFile
 		Option fileOption = OptionBuilder.withLongOpt(configFile)
@@ -137,6 +137,7 @@ public class ExampleProcess {
 		options.addOption(clusterOption);
 		options.addOption(hostOption);
 		options.addOption(portOption);
+		options.addOption(stateModelOption);
 
 		options.addOptionGroup(optionGroup);
 
@@ -172,7 +173,8 @@ public class ExampleProcess {
 		String file = null;
 		String stateModelValue = "MasterSlave";
 		int delay = 0;
-		if (args.length > 0) {
+		boolean skipZeroArgs = false;//false is for dev testing
+		if (!skipZeroArgs || args.length > 0) {
 			CommandLine cmd = processCommandLineArgs(args);
 			zkConnectString = cmd.getOptionValue(zkServer);
 			clusterName = cmd.getOptionValue(cluster);
@@ -205,7 +207,7 @@ public class ExampleProcess {
 			}
 		}
 		// Espresso_driver.py will consume this
-		System.out.println("Dummy process started");
+		System.out.println("Starting Process with ZK:"+zkConnectString);
 
 		ExampleProcess process = new ExampleProcess(zkConnectString,
 				clusterName, instanceName, file, stateModelValue, delay);

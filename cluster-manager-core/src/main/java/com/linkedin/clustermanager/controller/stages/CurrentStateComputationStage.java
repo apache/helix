@@ -86,10 +86,15 @@ public class CurrentStateComputationStage extends AbstractBaseStage
           continue;
         }
         String resourceGroupName = currentState.getResourceGroupName();
+        String stateModelDefName = currentState.getStateModelDefRef();
         ResourceGroup resourceGroup = resourceGroupMap.get(resourceGroupName);
         if (resourceGroup == null)
         {
           continue;
+        }
+        if(stateModelDefName != null)
+        {
+          currentStateOutput.setResourceGroupStateModelDef(resourceGroupName, stateModelDefName);
         }
         Map<String, String> resourceKeyStateMap = currentState
             .getResourceKeyStateMap();
@@ -101,6 +106,7 @@ public class CurrentStateComputationStage extends AbstractBaseStage
           {
             currentStateOutput.setCurrentState(resourceGroupName, resourceKey,
                 instanceName, currentState.getState(resourceKeyStr));
+            
           } else
           {
             // log

@@ -74,7 +74,7 @@ public class StateMachineEngine<T extends StateModel> implements
         }
         String sessionId = manager.getSessionId();
         String tgtSessionId = ((Message) message).getTgtSessionId();
-        if (sessionId.equals(tgtSessionId))
+        if (sessionId.equals(tgtSessionId) || sessionId.equals("*"))
         {
           if ("new".equals(message.getMsgState()))
           {

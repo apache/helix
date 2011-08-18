@@ -162,6 +162,7 @@ public class TestClusterManagementWebapp
   public void testInvocation() throws Exception
   {
     VerifyAddCluster();
+    VerifyAddStateModel();
     VerifyAddHostedEntity();
     VerifyAddInstance();
     VerifyRebalance();
@@ -176,7 +177,40 @@ public class TestClusterManagementWebapp
   String clusterName = "cluster-12345";
   String entityName = "new-entity-12345";
   String instance1 = "test-1";
+  String statemodel = "state_model";
   int instancePort = 9999;
+  
+  void VerifyAddStateModel()throws JsonGenerationException, JsonMappingException, IOException
+  {
+	  String httpUrlBase = "http://localhost:"+_port+"/clusters/"+clusterName+"/StateModelDefs";
+	    Map<String, String> paraMap = new HashMap<String, String>();
+	    
+	    paraMap.put(ClusterRepresentationUtil._managementCommand, ClusterRepresentationUtil._addStateModelCommand);
+	    
+	    ZNRecord r = new ZNRecord();
+	    r.setId(statemodel);
+	    
+	    Reference resourceRef = new Reference(httpUrlBase);
+	    Request request = new Request(Method.POST, resourceRef);
+	    request.setEntity(ClusterRepresentationUtil._jsonParameters + "="
+	        + ClusterRepresentationUtil.ObjectToJson(paraMap) + "&"
+	        + ClusterRepresentationUtil._newModelDef + "=" 
+	        + ClusterRepresentationUtil.ZNRecordToJson(r), MediaType.APPLICATION_ALL);
+	    Client client = new Client(Protocol.HTTP);
+	    Response response = client.handle(request);
+	    
+	    Representation result = response.getEntity();
+	    StringWriter sw = new StringWriter();
+	    result.write(sw);
+	    
+	    System.out.println(sw.toString());
+	    
+	    ObjectMapper mapper = new ObjectMapper();
+	    ZNRecord zn = mapper.readValue(new StringReader(sw.toString()),
+	        ZNRecord.class);
+	    AssertJUnit.assertTrue(zn.listFields.get("models").contains(statemodel));
+  }
+  
   void VerifyAddCluster() throws IOException, InterruptedException
   {
     String httpUrlBase = "http://localhost:"+_port+"/clusters/";
@@ -216,6 +250,7 @@ public class TestClusterManagementWebapp
     
     paraMap.put(HostedEntitiesResource._entityName, entityName);
     paraMap.put(HostedEntitiesResource._partitions, "10");
+    paraMap.put(HostedEntitiesResource._stateModelDefRef, statemodel);
     paraMap.put(ClusterRepresentationUtil._managementCommand, ClusterRepresentationUtil._addHostedEntityCommand);
     
     

@@ -92,7 +92,7 @@ public class GenericClusterController implements ConfigChangeListener,
       registry.register("currentStateChange", dataRefresh, rebalancePipeline,
           externalViewPipeline);
       registry.register("configChange", dataRefresh, rebalancePipeline);
-      registry.register("liveInstanceChange", dataRefresh, rebalancePipeline);
+      registry.register("liveInstanceChange", dataRefresh, rebalancePipeline, externalViewPipeline);
 
       registry.register("messageChange", dataRefresh);
       registry.register("externalView", dataRefresh);
@@ -131,7 +131,7 @@ public class GenericClusterController implements ConfigChangeListener,
     event.addAttribute("clustermanager", changeContext.getManager());
     event.addAttribute("changeContext", changeContext);
     event.addAttribute("eventData", externalViewList);
-    handleEvent(event);
+    //handleEvent(event);
   }
 
   @Override

@@ -17,11 +17,21 @@ public class MasterSlaveStateModelFactory extends StateModelFactory<StateModel> 
 	public StateModel createNewStateModel(String stateUnitKey) {
 		MasterSlaveStateModel stateModel = new MasterSlaveStateModel();
 		stateModel.setDelay(_delay);
+		stateModel.setStateUnitKey(stateUnitKey);
 		return stateModel;
 	}
 
 	public static class MasterSlaveStateModel extends StateModel {
 		int _transDelay = 0;
+		String stateUnitKey;
+		
+		public String getStateUnitKey() {
+			return stateUnitKey;
+		}
+
+		public void setStateUnitKey(String stateUnitKey) {
+			this.stateUnitKey = stateUnitKey;
+		}
 
 		public void setDelay(int delay) {
 			_transDelay = delay > 0 ? delay : 0;
@@ -30,7 +40,7 @@ public class MasterSlaveStateModelFactory extends StateModelFactory<StateModel> 
 		public void onBecomeSlaveFromOffline(Message message,
 				NotificationContext context) {
 
-			System.out.println("MasterSlaveStateModel.onBecomeSlaveFromOffline()");
+			System.out.println("MasterSlaveStateModel.onBecomeSlaveFromOffline() for "+ stateUnitKey);
 			sleep();
 		}
 
@@ -44,21 +54,21 @@ public class MasterSlaveStateModelFactory extends StateModelFactory<StateModel> 
 
 		public void onBecomeSlaveFromMaster(Message message,
 				NotificationContext context) {
-			System.out.println("MasterSlaveStateModel.onBecomeSlaveFromMaster()");
+			System.out.println("MasterSlaveStateModel.onBecomeSlaveFromMaster() for "+ stateUnitKey);
 			sleep();
 
 		}
 
 		public void onBecomeMasterFromSlave(Message message,
 				NotificationContext context) {
-			System.out.println("MasterSlaveStateModel.onBecomeMasterFromSlave()");
+			System.out.println("MasterSlaveStateModel.onBecomeMasterFromSlave() for "+ stateUnitKey);
 			sleep();
 
 		}
 
 		public void onBecomeOfflineFromSlave(Message message,
 				NotificationContext context) {
-			System.out.println("MasterSlaveStateModel.onBecomeOfflineFromSlave()");
+			System.out.println("MasterSlaveStateModel.onBecomeOfflineFromSlave() for "+ stateUnitKey);
 			sleep();
 
 		}

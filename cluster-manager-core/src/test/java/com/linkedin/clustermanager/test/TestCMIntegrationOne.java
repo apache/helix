@@ -17,6 +17,10 @@ public class TestCMIntegrationOne extends DdsBaseIntegTest
     // skip the super Setup. Just load the view root
     loadSystemProperties();
   }
+
+  /*
+   *  Disable this test for now as we already have it in TestNG
+   *
   @Test
   public void testClmFileDummrprocess()
   throws SecurityException, NoSuchMethodException, IOException, InterruptedException, TimeoutException
@@ -24,4 +28,5 @@ public class TestCMIntegrationOne extends DdsBaseIntegTest
     LOG.info("Running clm_file_dummyprocess.test");
     runCommandLineTest("clm_file_dummyprocess.test");
   } 
+  */
 }

@@ -169,12 +169,12 @@ public class ExampleProcess {
 
 	public static void main(String[] args) throws Exception {
 		String zkConnectString = "localhost:2181";
-		String clusterName = "test-cluster";
-		String instanceName = "localhost_8900";
+		String clusterName = "storage-integration-cluster";
+		String instanceName = "localhost_8905";
 		String file = null;
 		String stateModelValue = "MasterSlave";
 		int delay = 0;
-		boolean skipZeroArgs = false;//false is for dev testing
+		boolean skipZeroArgs = true;//false is for dev testing
 		if (!skipZeroArgs || args.length > 0) {
 			CommandLine cmd = processCommandLineArgs(args);
 			zkConnectString = cmd.getOptionValue(zkServer);

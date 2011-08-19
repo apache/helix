@@ -111,7 +111,8 @@ public class StateMachineEngine<T extends StateModel> implements
           String warningMessage = "Session Id does not match.  current session id  Expected: "
               + sessionId + " sessionId from Message: " + tgtSessionId;
           logger.warn(warningMessage);
-
+          client.removeInstanceProperty(instanceName,
+                  InstancePropertyType.MESSAGES, message.getId());
           _statusUpdateUtil.logWarning(message, StateMachineEngine.class,
               warningMessage, client);
         }

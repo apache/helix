@@ -3,6 +3,7 @@ package com.linkedin.clustermanager.tools;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Timer;
@@ -22,7 +23,14 @@ import com.linkedin.clustermanager.util.ZKClientPool;
 
 public class ZnodeModExecutor
 {
-
+  private enum ZnodeModValueType
+  {
+    INVALID,
+    SINGLE_VALUE,
+    LIST_VALUE,
+    MAP_VALUE
+  }
+  
   private static Logger LOG = Logger.getLogger(ZnodeModExecutor.class);
   private final ZnodeModDesc _testDesc;
   private final ZkClient _zkClient;
@@ -59,29 +67,22 @@ public class ZnodeModExecutor
     public void handleDataChange(String dataPath, Object data) throws Exception
     {
       ZNRecord record = (ZNRecord)data;
-      String value = getValue(record, _command._propertyType, _command._key);
-      ZnodeModTrigger trigger = _command._trigger;
-      if (trigger._expectValue == null || trigger._expectValue.compareTo(value) == 0)
+      ZnodeModTrigger trigger = _command.getTrigger();
+      if (compareValue(record, _command.getPropertyType(), 
+                       _command.getKey(), trigger.getExpectValue()) == true)
       {
         record = executeCommand(record, _command);
-        if (record == null)
+       
+        try
         {
-          _zkClient.delete(dataPath);
+          _zkClient.writeData(dataPath, record);
           _testResults.put(_command.toString(), new Boolean(true));
         }
-        else
+        catch (Exception e)
         {
-          try
-          {
-            _zkClient.writeData(dataPath, record);
-            _testResults.put(_command.toString(), new Boolean(true));
-          }
-          catch (Exception e)
-          {
-            e.printStackTrace();
-          }
+          e.printStackTrace();
         }
-       
+
         _zkClient.unsubscribeDataChanges(dataPath, this);
         if (_task != null)
         {
@@ -116,7 +117,7 @@ public class ZnodeModExecutor
     public void run()
     {
       ZnodeModCommand command = _listener.getCommand();
-      String path = command._znodePath;
+      String path = command.getZnodePath();
       _zkClient.unsubscribeDataChanges(path, _listener);
       _testResults.put(command.toString(), new Boolean(false));
       _commandCountDown.countDown();
@@ -191,7 +192,7 @@ public class ZnodeModExecutor
     public void run()
     {
       ZnodeModVerifier verifier = _listener.getVerifier();
-      String path = verifier._znodePath;
+      String path = verifier.getZnodePath();
       _zkClient.unsubscribeDataChanges(path, _listener);
       _testResults.put(verifier.toString(), new Boolean(false));
       _verifierCountDown.countDown();
@@ -206,19 +207,82 @@ public class ZnodeModExecutor
   {
     _testDesc = testDesc;
     _zkClient = ZKClientPool.getZkClient(zkAddr);
-    _verifierCountDown = new CountDownLatch(testDesc._verifiers.size());
-    _commandCountDown = new CountDownLatch(testDesc._commands.size());
+    _verifierCountDown = new CountDownLatch(testDesc.getVerifiers().size());
+    _commandCountDown = new CountDownLatch(testDesc.getCommands().size());
   }
   
-  private String getValue(ZNRecord record, ZnodePropertyType type, String key)
+  private ZnodeModValueType getValueType(ZnodePropertyType type, String key)
   {
-    String value = null;
-    String keyParts[];
-    
-    if (record == null)
+    ZnodeModValueType valueType = ZnodeModValueType.INVALID;
+    String keyParts[] = key.split("/");
+    switch(type)
+    {
+    case SIMPLE:
+      if (keyParts.length != 1)
+      {
+        LOG.warn("invalid key for simple field: " + key + ", expect 1 part: key1 (no slash)");
+      }
+      valueType = ZnodeModValueType.SINGLE_VALUE;
+      break;
+    case LIST:
+      if (keyParts.length < 1 || keyParts.length > 2)
+      {
+        LOG.warn("invalid key for list field: " + key + ", expect 1 or 2 parts: key1 or key1/index)");
+      }
+      else if (keyParts.length == 1)
+      {
+        valueType = ZnodeModValueType.LIST_VALUE;
+      }
+      else
+      {
+        try
+        {
+          int index = Integer.parseInt(keyParts[1]);
+          if (index < 0)
+          {
+            LOG.warn("invalid key for list field: " + key + ", index < 0");
+          }
+          else
+          {
+            valueType = ZnodeModValueType.SINGLE_VALUE;
+          }
+        }
+        catch (NumberFormatException e)
+        {
+          LOG.warn("invalid key for list field: " + key + ", part-2 is NOT an integer");
+        }
+      }
+      break;
+    case MAP:
+      if (keyParts.length < 1 || keyParts.length > 2)
+      {
+        LOG.warn("invalid key for map field: " + key + ", expect 1 or 2 parts: key1 or key1/key2)");
+      }
+      else if (keyParts.length == 1)
+      {
+        valueType = ZnodeModValueType.MAP_VALUE;
+      }
+      else
+      {
+        valueType = ZnodeModValueType.SINGLE_VALUE;
+      }
+      break;
+    default:
+      break;
+    }
+    return valueType;
+  }
+  
+
+  private String getSingleValue(ZNRecord record, ZnodePropertyType type, String key)
+  {
+    if (record == null || key == null)
     {
       return null;
     }
+    
+    String value = null;
+    String keyParts[] = key.split("/");
     
     switch(type)
     {
@@ -226,33 +290,20 @@ public class ZnodeModExecutor
       value = record.getSimpleField(key);
       break;
     case LIST:
-      keyParts = key.split("/");
-      if (keyParts.length != 2)
+      List<String> list = record.getListField(keyParts[0]);
+      if (list == null)
       {
-        LOG.warn("key for list field is invalid: " + key + ", expected 2 parts: key1/key2");
+        LOG.warn("invalid key for list field: " + key + ", map for key part-1 doesn't exist");
         return null;
       }
-      try
-      {
-        int idx = Integer.parseInt(keyParts[1]);
-        value = record.getListField(keyParts[0]).get(idx);
-      }
-      catch (NumberFormatException e)
-      {
-        LOG.warn("key for list field is invalid: " + key + ", expected a number for key part2");
-      }
+      int idx = Integer.parseInt(keyParts[1]);
+      value = list.get(idx);
       break;
     case MAP:
-      keyParts = key.split("/");
-      if (keyParts.length != 2)
-      {
-        LOG.warn("key for map field is invalid: " + key + ", expected 2 parts: key1/key2");
-        return null;
-      }
       Map<String, String> map = record.getMapField(keyParts[0]);
       if (map == null)
       {
-        LOG.warn("key for map field is invalid: " + key + ", value for key part1 doesn't exist");
+        LOG.warn("invalid key for map field: " + key + ", map for key part-1 doesn't exist");
         return null;
       }
       value = map.get(keyParts[1]);
@@ -264,9 +315,126 @@ public class ZnodeModExecutor
     return value;
   }
   
-  private void setValue(ZNRecord record, ZnodePropertyType type, String key, String value)
+  private List<String> getListValue(ZNRecord record, String key)
   {
-    String keyParts[];
+    return record.getListField(key);
+  }
+  
+  private Map<String, String> getMapValue(ZNRecord record, String key)
+  {
+    return record.getMapField(key);
+  }
+  
+  // comparator's for single/list/map-value
+  private boolean compareSingleValue(String value, String expect)
+  {
+    return STRING_COMPARATOR.compare(value, expect) == 0;
+  }
+  
+  private boolean compareListValue(List<String> valueList, List<String> expectList)
+  {
+    if (valueList == null && expectList == null)
+    {
+      return true;
+    }
+    else if (valueList == null && expectList != null)
+    {
+      return false;
+    }
+    else if (valueList != null && expectList == null)
+    {
+      return false;
+    }
+    else
+    {
+      if (valueList.size() != expectList.size())
+      {
+        return false;
+      }
+      
+      Iterator<String> itr1 = valueList.iterator();
+      Iterator<String> itr2 = expectList.iterator();
+      while (itr1.hasNext() && itr2.hasNext()) {
+          String value = itr1.next();
+          String expect = itr2.next();
+          
+          if (STRING_COMPARATOR.compare(value, expect) != 0)
+          {
+            return false;
+          }
+      }
+      return true;
+    }
+  }
+  
+  private boolean compareMapValue(Map<String, String> valueMap, Map<String, String> expectMap)
+  {
+    if (valueMap == null && expectMap == null)
+    {
+      return true;
+    }
+    else if (valueMap == null && expectMap != null)
+    {
+      return false;
+    }
+    else if (valueMap != null && expectMap == null)
+    {
+      return false;
+    }
+    else
+    {
+      if (valueMap.size() != expectMap.size())
+      {
+        return false;
+      }
+      for (Map.Entry<String, String> entry : valueMap.entrySet())
+      {
+        String key = entry.getKey();
+        String value = entry.getValue();
+        if (!expectMap.containsKey(key))
+        {
+          return false;
+        }
+        String expect = expectMap.get(key);
+        if (STRING_COMPARATOR.compare(value, expect) != 0)
+        {
+          return false;
+        }
+      }
+      return true;
+    }
+  }
+  
+  private boolean compareValue(ZNRecord record, ZnodePropertyType type, 
+                               String key, ZnodeModValue expect)
+  {
+    boolean result = false;
+    ZnodeModValueType valueType = getValueType(type, key);
+    switch(valueType)
+    {
+    case SINGLE_VALUE:
+      String singleValue = getSingleValue(record, type, key);
+      result = compareSingleValue(singleValue, expect.getSingleValue());
+      break;
+    case LIST_VALUE:
+      List<String> listValue = getListValue(record, key);
+      result = compareListValue(listValue, expect.getListValue());
+      break;
+    case MAP_VALUE:
+      Map<String, String> mapValue = getMapValue(record,key);
+      result = compareMapValue(mapValue, expect.getMapValue());
+      break;
+    case INVALID:
+      break;
+    default:
+      break;
+    }
+    return result;
+  }
+  
+  private void setSingleValue(ZNRecord record, ZnodePropertyType type, String key, String value)
+  {
+    String keyParts[] = key.split("/");
     
     switch(type)
     {
@@ -274,36 +442,21 @@ public class ZnodeModExecutor
       record.setSimpleField(key, value);
       break;
     case LIST:
-      keyParts = key.split("/");
-      if (keyParts.length != 2)
+      List<String> list = record.getListField(keyParts[0]);
+      if (list == null)
       {
-        LOG.warn("key for list field is invalid: " + key + ", expected 2 parts: key1/key2");
+        LOG.warn("invalid key for list field: " + key + ", value for key part-1 doesn't exist");
         return;
       }
-      try
-      {
-        int idx = Integer.parseInt(keyParts[1]);
-        List<String> list = record.getListField(keyParts[0]);
-        list.remove(idx);
-        list.add(idx, value);
-      }
-      catch (NumberFormatException e)
-      {
-        LOG.warn("key for list field is invalid: " + key + ", expected a number for key part2");
-        return;
-      }
+      int idx = Integer.parseInt(keyParts[1]);
+      list.remove(idx);
+      list.add(idx, value);
       break;
     case MAP:
-      keyParts = key.split("/");
-      if (keyParts.length != 2)
-      {
-        LOG.warn("key for map field is invalid: " + key + ", expected 2 parts: key1/key2");
-        return;
-      }
       Map<String, String> map = record.getMapField(keyParts[0]);
       if (map == null)
       {
-        LOG.warn("key for map field is invalid: " + key + ", value for key part1 doesn't exist");
+        LOG.warn("invalid key for map field: " + key + ", value for key part-1 doesn't exist");
         return;
       }
       map.put(keyParts[1], value);
@@ -313,37 +466,131 @@ public class ZnodeModExecutor
     }
   }
   
+  private void setListValue(ZNRecord record, String key, List<String> value)
+  {
+    record.setListField(key, value);
+  }
+  
+  private void setMapValue(ZNRecord record, String key, Map<String, String> value)
+  {
+    record.setMapField(key, value);
+  }
+  
+  
+  private void removeSingleValue(ZNRecord record, ZnodePropertyType type, String key)
+  {
+    String keyParts[] = key.split("/");
+    
+    switch(type)
+    {
+    case SIMPLE:
+      record.getSimpleFields().remove(key);
+      break;
+    case LIST:
+      List<String> list = record.getListField(keyParts[0]);
+      if (list == null)
+      {
+        LOG.warn("invalid key for list field: " + key + ", value for key part-1 doesn't exist");
+        return;
+      }
+      int idx = Integer.parseInt(keyParts[1]);
+      list.remove(idx);
+      break;
+    case MAP:
+      Map<String, String> map = record.getMapField(keyParts[0]);
+      if (map == null)
+      {
+        LOG.warn("invalid key for map field: " + key + ", value for key part-1 doesn't exist");
+        return;
+      }
+      map.remove(keyParts[1]);
+      break;
+    default:
+      break;
+    }
+  }
+  
+  private void removeListValue(ZNRecord record, String key)
+  {
+    record.getListFields().remove(key);
+  }
+  
+  private void removeMapValue(ZNRecord record, String key)
+  {
+    record.getMapFields().remove(key);
+  }
+  
   private boolean executeVerifier(ZNRecord record, ZnodeModVerifier verifier)
   {
-    String value = getValue(record, verifier._propertyType, verifier._key);
+    // String value = getValue(record, verifier.getPropertyType(), verifier.getKey());
     
-    boolean result = false;
-    if (verifier._operation.compareTo("==") == 0)
+    // TODO: change compare to adopt composite key
+    boolean result = compareValue(record, verifier.getPropertyType(), 
+                                  verifier.getKey(), verifier.getValue());
+    if (verifier.getOperation().compareTo("==") == 0)
     {
-      result = STRING_COMPARATOR.compare(value, verifier._value) == 0;
+      
     }
-    else if (verifier._operation.compareTo("!=") == 0)
+    else if (verifier.getOperation().compareTo("!=") == 0)
     {
-      result = STRING_COMPARATOR.compare(value, verifier._value) != 0;
+      result = !result;
     }
-    
+    else
+    {
+      LOG.warn(verifier + " fails (unsupport operation)");
+      result = false;
+    }
     return result;
   }
   
   private ZNRecord executeCommand(ZNRecord record, ZnodeModCommand command)
   {
     boolean success = true;
-    if (command._operation.compareTo("+") == 0)
+    if (command.getOperation().compareTo("+") == 0)
     {
       if (record == null)
       {
         record = new ZNRecord();
       }
-      setValue(record, command._propertyType, command._key, command._updateValue);
+      ZnodeModValueType valueType = getValueType(command.getPropertyType(), command.getKey());
+      switch(valueType)
+      {
+      case SINGLE_VALUE:
+        setSingleValue(record, command.getPropertyType(), command.getKey(), 
+                       command.getUpdateValue().getSingleValue());
+        break;
+      case LIST_VALUE:
+        setListValue(record, command.getKey(), command.getUpdateValue().getListValue());
+        break;
+      case MAP_VALUE:
+        setMapValue(record, command.getKey(), command.getUpdateValue().getMapValue());
+        break;
+      case INVALID:
+        break;
+      default:
+        break;
+      }
     }
-    else if (command._operation.compareTo("-") == 0)
+    else if (command.getOperation().compareTo("-") == 0)
     {
-      record = null;
+      ZnodeModValueType valueType = getValueType(command.getPropertyType(), command.getKey());
+      switch(valueType)
+      {
+      case SINGLE_VALUE:
+        removeSingleValue(record, command.getPropertyType(), command.getKey());
+        break;
+      case LIST_VALUE:
+        removeListValue(record, command.getKey());
+        break;
+      case MAP_VALUE:
+        removeMapValue(record, command.getKey());
+        break;
+      case INVALID:
+        break;
+      default:
+        break;
+      }
+
     }
     else
     {
@@ -359,11 +606,7 @@ public class ZnodeModExecutor
   {
     for (Map.Entry<String, ZNRecord> entry : changes.entrySet())
     {
-      if (entry.getValue() == null)
-      {
-        _zkClient.delete(entry.getKey());
-      }
-      else
+      if (entry.getValue() != null)
       {
         try
         {
@@ -383,10 +626,10 @@ public class ZnodeModExecutor
   throws InterruptedException
   {
     // sort on trigger's start time
-    List<ZnodeModCommand> commandList = _testDesc._commands;
+    List<ZnodeModCommand> commandList = _testDesc.getCommands();
     Collections.sort(commandList, new Comparator<ZnodeModCommand>() {  // stable sort
       public int compare(ZnodeModCommand o1, ZnodeModCommand o2) {
-        return (int) (o1._trigger._startTime - o2._trigger._startTime);
+        return (int) (o1.getTrigger().getStartTime() - o2.getTrigger().getStartTime());
       }
     });
     
@@ -396,10 +639,10 @@ public class ZnodeModExecutor
     
     for (ZnodeModCommand command : commandList)
     {
-      ZnodeModTrigger trigger = command._trigger;
-      if (trigger._startTime <= lastTime)
+      ZnodeModTrigger trigger = command.getTrigger();
+      if (trigger.getStartTime() <= lastTime)
       {
-        String path = command._znodePath;
+        String path = command.getZnodePath();
         ZNRecord record = znodeCache.get(path);
         if (record == null)
         {
@@ -415,7 +658,7 @@ public class ZnodeModExecutor
         }
         
 
-        if (trigger._expectValue == null) // not a data triggered command
+        if (trigger.getExpectValue() == null) // not a data triggered command
         {
           record = executeCommand(record, command);
           znodeCache.put(path, record);
@@ -424,17 +667,17 @@ public class ZnodeModExecutor
         }
         else
         {
-          if (trigger._timeout > 0)
+          if (trigger.getTimeout() > 0)
           {
             // set watcher before test the value so we can't miss any data change
             CommandDataListener listener = new CommandDataListener(command);
             CommandTimeoutTask task = new CommandTimeoutTask(listener);
-            _timer.schedule(task, trigger._timeout);
+            _timer.schedule(task, trigger.getTimeout());
             
             _zkClient.subscribeDataChanges(path, listener);
-  
-            String value = getValue(record, command._propertyType, command._key);
-            if (value != null && trigger._expectValue.compareTo(value) == 0)
+
+            if (compareValue(record, command.getPropertyType(), 
+                             command.getKey(), trigger.getExpectValue()) == true)
             {
               _zkClient.unsubscribeDataChanges(path, listener);
               task.cancel();
@@ -447,8 +690,8 @@ public class ZnodeModExecutor
           }
           else
           {
-            String value = getValue(record, command._propertyType, command._key);
-            if (value != null && trigger._expectValue.compareTo(value) == 0)
+            if (compareValue(record, command.getPropertyType(), 
+                             command.getKey(), trigger.getExpectValue()) == true)
             {
               record = executeCommand(record, command);
               znodeCache.put(path, record);
@@ -468,8 +711,8 @@ public class ZnodeModExecutor
       {
         znodeCache.clear();
         fireAllZnodeChanges(znodeChanges);
-        Thread.sleep(trigger._startTime - lastTime);
-        lastTime = trigger._startTime;
+        Thread.sleep(trigger.getStartTime() - lastTime);
+        lastTime = trigger.getStartTime();
       }
     }
     
@@ -478,26 +721,26 @@ public class ZnodeModExecutor
     
     // execute verifiers
     // sort on verifier's timeout
-    List<ZnodeModVerifier> verifierList = _testDesc._verifiers;
+    List<ZnodeModVerifier> verifierList = _testDesc.getVerifiers();
     Collections.sort(verifierList, new Comparator<ZnodeModVerifier>() {  // stable sort
       public int compare(ZnodeModVerifier o1, ZnodeModVerifier o2) {
-        return (int) (o1._timeout - o2._timeout);
+        return (int) (o1.getTimeout() - o2.getTimeout());
       }
     });
     
     for (ZnodeModVerifier verifier : verifierList)
     {
       _testResults.put(verifier.toString(), new Boolean(false));
-      String path = verifier._znodePath;
+      String path = verifier.getZnodePath();
       ZNRecord record = _zkClient.<ZNRecord>readData(path, true);
       
 
-      if (verifier._timeout > 0)
+      if (verifier.getTimeout() > 0)
       {
         // set watcher before checking the value so we can't miss any data change
         VerifierDataListener listener = new VerifierDataListener(verifier);
         VerifierTimeoutTask task = new VerifierTimeoutTask(listener);
-        _timer.schedule(task, verifier._timeout);
+        _timer.schedule(task, verifier.getTimeout());
         
         _zkClient.subscribeDataChanges(path, listener);
               

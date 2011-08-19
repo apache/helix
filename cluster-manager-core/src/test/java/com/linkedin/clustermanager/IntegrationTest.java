@@ -69,7 +69,7 @@ public class IntegrationTest
     startDummyProcess(createArgs("-zkSvr localhost:2181 -cluster ESPRESSO_STORAGE -host localhost -port 8903"));
     startDummyProcess(createArgs("-zkSvr localhost:2181 -cluster ESPRESSO_STORAGE -host localhost -port 8904"));
     startClusterManager(createArgs("-zkSvr localhost:2181 -cluster ESPRESSO_STORAGE"));
-    Thread.sleep(10000);
+    Thread.sleep(20000);
     // Thread.currentThread().join();
     AssertJUnit
         .assertTrue(ClusterStateVerifier

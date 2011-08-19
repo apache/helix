@@ -84,28 +84,24 @@ public class MessageGenerationPhase extends AbstractBaseStage
             currentState = stateModelDef.getInitialState();
           }
           
+          String pendingState = currentStateOutput.getPendingState(
+              resourceGroupName, resource, instanceName);
+          
+          String nextState;
+            nextState = stateModelDef.getNextStateForTransition(currentState,
+                desiredState);
+            
           if(!idealStateExists)
           {
             if(currentState.equalsIgnoreCase("OFFLINE"))
             {
-              String sessionId = sessionIdMap.get(instanceName);
-              Message message = createMessage(resourceGroupName,
-                  resource.getResourceKeyName(), instanceName, "*",
-                  "DROPPED", sessionId, stateModelDef.getId());
-              output.addMessage(resourceGroupName, resource, message);
-              continue;
+              desiredState = "DROPPED";
+              nextState = "DROPPED";
             }
           }
           
-          String pendingState = currentStateOutput.getPendingState(
-              resourceGroupName, resource, instanceName);
-          
           if (!desiredState.equalsIgnoreCase(currentState))
           {
-            String nextState;
-            nextState = stateModelDef.getNextStateForTransition(currentState,
-                desiredState);
-
             if (nextState != null)
             {
               if (pendingState != null
@@ -121,6 +117,13 @@ public class MessageGenerationPhase extends AbstractBaseStage
                 Message message = createMessage(resourceGroupName,
                     resource.getResourceKeyName(), instanceName, currentState,
                     nextState, sessionIdMap.get(instanceName), stateModelDef.getId());
+                
+                if(nextState.equals("DROPPED"))
+                {
+                  message.setFromState("*");
+                  message.setTgtSessionId("*");
+                }
+                
                 output.addMessage(resourceGroupName, resource, message);
               }
             } else
@@ -202,6 +205,7 @@ public class MessageGenerationPhase extends AbstractBaseStage
     message.setFromState(currentState);
     message.setToState(nextState);
     message.setTgtSessionId(sessionId);
+    message.setSrcSessionId(sessionId);
     message.setStateModelDef(stateModelDefName);
     return message;
   }

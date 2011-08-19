@@ -107,7 +107,6 @@ public class CMTaskHandler implements Callable<CMTaskResult>
       {
          map = new HashMap<String, String>();
          map.put(ZNAttribute.CURRENT_STATE.toString(), "OFFLINE");
-         map.put(AttributeName.LOCAL_STATE.toString(), "");
          currentState.setMapField(stateUnitKey, map);
          
          logger.info("Setting initial state for partition: " + stateUnitKey + " to offline");
@@ -183,22 +182,22 @@ public class CMTaskHandler implements Callable<CMTaskResult>
         // was
         // called at.
         // Verify that no one has edited this field
+        ZNRecord currentStateToSubstract = new ZNRecord();
         if (taskResult.isSucess())
         {
+          _statusUpdateUtil.logInfo(_message, CMTaskHandler.class,
+              "Message handling task completed successfully", accessor);
+          
           if(!toState.equalsIgnoreCase("DROPPED"))
           {
             map.put(ZNAttribute.CURRENT_STATE.toString(), toState); 
-            map.put(AttributeName.LOCAL_STATE.toString(), "");
             _stateModel.updateState(toState);
           }
           else
           {
-            map.put(AttributeName.LOCAL_STATE.toString(), "DROPPED");
+            currentStateToSubstract.mapFields.put(stateUnitKey, map);
           }
          
-          _statusUpdateUtil.logInfo(_message, CMTaskHandler.class,
-              "Message handling task completed successfully", accessor);
-          
         } 
         else
         {
@@ -210,17 +209,18 @@ public class CMTaskHandler implements Callable<CMTaskResult>
         }
         map.put(Message.Attributes.STATE_UNIT_GROUP.toString(),
             _message.getStateUnitGroup());
-        accessor.updateInstanceProperty(instanceName,
-            InstancePropertyType.CURRENTSTATES, _manager.getSessionId(), stateUnitGroup, currentState);
         
-//        currentState = accessor.getInstanceProperty(instanceName,
-//            InstancePropertyType.CURRENTSTATES, _manager.getSessionId(), stateUnitGroup);
-//        
-//        if(currentState.getMapFields().size() == 0)
-//        {
-//          accessor.removeInstanceProperty(instanceName, InstancePropertyType.CURRENTSTATES,  _manager.getSessionId()+"/"+currentState.getId());
-//        }
-//        
+        if(taskResult.isSucess() && toState.equals("DROPPED"))
+        {
+          accessor.substractInstanceProperty(instanceName, 
+            InstancePropertyType.CURRENTSTATES, _manager.getSessionId(), stateUnitGroup, currentStateToSubstract);
+        }
+        else
+        {
+          accessor.updateInstanceProperty(instanceName,
+            InstancePropertyType.CURRENTSTATES, _manager.getSessionId(), stateUnitGroup, currentState);
+        }
+
         accessor.removeInstanceProperty(instanceName, InstancePropertyType.MESSAGES,_message.getId());
         // based on task result update the current state of the node.
 
@@ -254,6 +254,8 @@ public class CMTaskHandler implements Callable<CMTaskResult>
     methodToInvoke = _transitionMethodFinder.getMethodForTransition(
         _stateModel.getClass(), fromState, toState, new Class[]
         { Message.class, NotificationContext.class });
+    _statusUpdateUtil.logInfo(_message, CMTaskHandler.class,
+        "Message handling invoking", accessor);
     if (methodToInvoke != null)
     {
       methodToInvoke.invoke(_stateModel, new Object[]

@@ -171,4 +171,38 @@ public final class ZKUtil
       }
     }
   }
+
+  public static void substract(
+      ZkClient client,
+      String path, final ZNRecord recordTosubtract)
+  {
+    int retryCount = 0;
+    while (retryCount < RETRYLIMIT)
+    {
+      try
+      {
+        if (client.exists(path))
+        {
+          DataUpdater<ZNRecord> updater = new DataUpdater<ZNRecord>()
+          {
+            @Override
+            public ZNRecord update(ZNRecord currentData)
+            {
+              currentData.substract(recordTosubtract);
+              return currentData;
+            }
+          };
+          client.updateDataSerialized(path, updater);
+          break;
+        }
+      } catch (Exception e)
+      {
+        retryCount = retryCount + 1;
+        logger.warn("Exception trying to createOrReplace " + path
+            + " Exception:" + e.getMessage() + ". Will retry.");
+        e.printStackTrace();
+      }
+    }
+    
+  }
 }

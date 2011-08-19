@@ -146,6 +146,9 @@ public interface ClusterDataAccessor
   void updateInstanceProperty(String instanceName,
       InstancePropertyType instanceProperty, String subPath, String key, final ZNRecord value);
   
+  void substractInstanceProperty(String instanceName,
+      InstancePropertyType instanceProperty, String subPath, String key, final ZNRecord value);
+  
   ZNRecord getInstanceProperty(String instanceName,
       InstancePropertyType instanceProperty, String key);
   

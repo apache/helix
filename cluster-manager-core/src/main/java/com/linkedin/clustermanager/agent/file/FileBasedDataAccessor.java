@@ -149,4 +149,13 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
     return null;
   }
 
+  @Override
+  public void substractInstanceProperty(String instanceName,
+      InstancePropertyType instanceProperty, String subPath, String key,
+      ZNRecord value)
+  {
+    // TODO Auto-generated method stub
+    
+  }
+
 }

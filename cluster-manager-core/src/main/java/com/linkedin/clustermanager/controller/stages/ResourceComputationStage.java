@@ -84,17 +84,6 @@ public class ResourceComputationStage extends AbstractBaseStage
               .getMapFields();
           for (String resourceKey : mapFields.keySet())
           {
-            // Skip dropped resources
-            if(!idealStateExists)
-            {
-              if(mapFields.get(resourceKey).containsKey(AttributeName.LOCAL_STATE.toString()))
-              {
-                if(mapFields.get(resourceKey).get(AttributeName.LOCAL_STATE.toString()).equalsIgnoreCase("DROPPED"))
-                {
-                  continue;
-                }
-              }
-            }
             addResource(resourceKey, resourceGroupName, resourceGroupMap);
             ResourceGroup resourceGroup = resourceGroupMap.get(resourceGroupName);
             resourceGroup.setStateModelDefRef(currentState.getSimpleField(Message.Attributes.STATE_MODEL_DEF.toString()));

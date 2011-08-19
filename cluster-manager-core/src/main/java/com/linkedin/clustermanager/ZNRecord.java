@@ -167,4 +167,32 @@ public class ZNRecord
       }
     }
   }
+
+  public void substract(ZNRecord value)
+  {
+    for(String key : value.getSimpleFields().keySet())
+    {
+      if(simpleFields.containsKey(key))
+      {
+        simpleFields.remove(key);
+      }
+    }
+    // Note: does not support substract in each list in list fields
+    // or map in mapFields
+    for(String key : value.getListFields().keySet())
+    {
+      if(listFields.containsKey(key))
+      {
+        listFields.remove(key);
+      }
+    }
+    
+    for(String key : value.getMapFields().keySet())
+    {
+      if(mapFields.containsKey(key))
+      {
+        mapFields.remove(key);
+      }
+    }
+  }
 }

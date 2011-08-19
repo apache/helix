@@ -71,7 +71,7 @@ public class MessageSelectionStage extends AbstractBaseStage
     List<String> stateTransitionPriorityList = stateModelDef
         .getStateTransitionPriorityList();
     
-    stateTransitionPriorityList.add("*-DROPPED");
+    stateTransitionPriorityList.add(0,"*-DROPPED");
     
     for (String transition : stateTransitionPriorityList)
     {

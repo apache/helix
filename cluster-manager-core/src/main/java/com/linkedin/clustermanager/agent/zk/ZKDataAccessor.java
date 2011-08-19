@@ -296,4 +296,18 @@ public class ZKDataAccessor implements ClusterDataAccessor
         instanceProperty);
     return _zkClient.getChildren(path);
   }
+
+  @Override
+  public void substractInstanceProperty(String instanceName,
+      InstancePropertyType instanceProperty, String subPath, String key,
+      ZNRecord value)
+  {
+    String path = CMUtil.getInstancePropertyPath(_clusterName, instanceName,
+        instanceProperty);
+    String propertyPath = path + "/" + subPath + "/" + key;
+    if(_zkClient.exists(propertyPath))
+    {
+      ZKUtil.substract(_zkClient, propertyPath, value);
+    }
+  }
 }

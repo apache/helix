@@ -202,7 +202,7 @@ public class StatusUpdateUtil
    */
   String getStatusUpdateSubPath(Message message)
   {
-    return message.getTgtSessionId() + "__" + message.getStateUnitGroup();
+    return message.getSrcSessionId() + "__" + message.getStateUnitGroup();
   }
 
   /**

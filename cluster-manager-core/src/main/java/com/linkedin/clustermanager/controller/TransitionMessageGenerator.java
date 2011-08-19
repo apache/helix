@@ -142,6 +142,7 @@ public class TransitionMessageGenerator
     String sessionId = _liveInstanceDataHolder.getSessionId(instanceName);
 
     message.setTgtSessionId(sessionId);
+    message.setSrcSessionId(sessionId);
     return message;
   }
 }

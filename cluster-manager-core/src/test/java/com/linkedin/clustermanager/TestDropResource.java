@@ -39,7 +39,6 @@ public class TestDropResource
   
   @Test
   public void testInvocation() throws Exception
-  // public static void main(String[] args) throws Exception
   {
     // Logger.getRootLogger().setLevel(Level.ERROR);
     String logDir = "/tmp/logs";
@@ -94,11 +93,7 @@ public class TestDropResource
     VerifyEmptyCurrentState(accessor, zkClient, "ESPRESSO_STORAGE", "localhost_8902", "db-12345");
     VerifyEmptyCurrentState(accessor, zkClient, "ESPRESSO_STORAGE", "localhost_8903", "db-12345");
     VerifyEmptyCurrentState(accessor, zkClient, "ESPRESSO_STORAGE", "localhost_8904", "db-12345");
-    //ClusterTaskScheduler scheduler = new ClusterTaskScheduler("localhost:2181", "ESPRESSO_STORAGE");
-    //scheduler.dropClusterResourceGroup("db-12345");
     
-   // Thread.currentThread().join();
-   
     zkServer.shutdown();
   }
 

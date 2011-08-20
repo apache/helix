@@ -74,6 +74,10 @@ public class MessageGenerationPhase extends AbstractBaseStage
       {
         Map<String, String> instanceStateMap = bestPossibleStateOutput
             .getInstanceStateMap(resourceGroupName, resource);
+        if(instanceStateMap == null)
+        {
+          continue;
+        }
         for (String instanceName : instanceStateMap.keySet())
         {
           String desiredState = instanceStateMap.get(instanceName);

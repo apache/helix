@@ -72,6 +72,13 @@ public class MasterSlaveStateModelFactory extends StateModelFactory<StateModel> 
 			sleep();
 
 		}
+		
+		public void onBecomeDropped(Message message,
+        NotificationContext context) {
+      System.out.println("ObBecomeDropped() for "+ stateUnitKey);
+      sleep();
+
+    }
 	}
 
 }

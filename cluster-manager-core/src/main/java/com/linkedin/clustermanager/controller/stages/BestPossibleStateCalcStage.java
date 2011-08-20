@@ -90,6 +90,11 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
 
         Map<String, String> currentStateMap = currentStateOutput
             .getCurrentStateMap(resourceGroupName, resource);
+        
+        if(currentStateMap == null)
+        {
+          continue;
+        }
 
         Map<String, String> bestStateForResource = computeBestStateForResource(
             stateModelDef, instancePreferenceList, liveInstancesMap,

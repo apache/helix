@@ -65,7 +65,7 @@ public class TestDropResource
     ClusterSetup
         .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addCluster relay-cluster-12345"));
     ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addResourceGroup ESPRESSO_STORAGE db-12345 100 MasterSlave"));
+        .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addResourceGroup ESPRESSO_STORAGE db-12345 50 MasterSlave"));
     ClusterSetup
         .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addNode ESPRESSO_STORAGE localhost:8900"));
     ClusterSetup

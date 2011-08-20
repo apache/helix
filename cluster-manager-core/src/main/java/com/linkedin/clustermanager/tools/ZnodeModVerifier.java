@@ -1,15 +1,19 @@
 package com.linkedin.clustermanager.tools;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.linkedin.clustermanager.tools.ZnodeModDesc.ZnodePropertyType;
 
 public class ZnodeModVerifier
 {
-  public long _timeout;
-  public String _znodePath;
-  public ZnodePropertyType _propertyType;
-  public String _operation;   // "==", "!="
-  public String _key;
-  public String _value;
+  private long _timeout;
+  private String _znodePath;
+  private ZnodePropertyType _propertyType;
+  private String _operation;   // "==", "!="
+  private String _key;
+  // private String _value;
+  private ZnodeModValue _value; 
   
   public ZnodeModVerifier()
   {
@@ -17,13 +21,13 @@ public class ZnodeModVerifier
   }
   
   public ZnodeModVerifier(String path, ZnodePropertyType type, 
-                          String op, String key, String value)
+                          String op, String key, ZnodeModValue value)
   {
     this(0, path, type, op, key, value);
   }
  
   public ZnodeModVerifier(long timeout, String path, ZnodePropertyType type, 
-                          String op, String key, String value)
+                          String op, String key, ZnodeModValue value)
   {
     _timeout = timeout;
     _znodePath = path;
@@ -41,14 +45,92 @@ public class ZnodeModVerifier
     return ret;
   }
   
+  // setter/getter's
+  public void setTimeout(long timeout)
+  {
+    _timeout = timeout;
+  }
+  
+  public long getTimeout()
+  {
+    return _timeout;
+  }
+  
+  public void setZnodePath(String path)
+  {
+    _znodePath = path;
+  }
+  
+  public String getZnodePath()
+  {
+    return _znodePath;
+  }
+  
+  public void setPropertyType(ZnodePropertyType type)
+  {
+    _propertyType = type;
+  }
+  
+  public ZnodePropertyType getPropertyType()
+  {
+    return _propertyType;
+  }
+  
+  public void setOperation(String op)
+  {
+    _operation = op;
+  }
+  
+  public String getOperation()
+  {
+    return _operation;
+  }
+  
+  public void setKey(String key)
+  {
+    _key = key;
+  }
+  
+  public String getKey()
+  {
+    return _key;
+  }
+  
+  public void setValue(ZnodeModValue value)
+  {
+    _value = value;
+  }
+  
+  public ZnodeModValue getValue()
+  {
+    return _value;
+  }
+  
   //temp test
   public static void main(String[] args) 
   {
-    ZnodeModVerifier verifier = new ZnodeModVerifier("/TEST_CASES", 
+    ZnodeModVerifier verifier = new ZnodeModVerifier("/testPath", 
                                                      ZnodePropertyType.SIMPLE, 
                                                      "==", 
                                                      "key1", 
-                                                     "value1");  
+                                                     new ZnodeModValue("value1"));  
+    System.out.println(verifier);
+    
+    verifier = new ZnodeModVerifier("/testPath", 
+                                    ZnodePropertyType.LIST, 
+                                    "==", 
+                                    "key1/0",
+                                    new ZnodeModValue("value1"));  
+    System.out.println(verifier);
+
+    List<String> list = new ArrayList<String>();
+    list.add("value1");
+    list.add("value2");
+    verifier = new ZnodeModVerifier("/testPath", 
+                                    ZnodePropertyType.LIST, 
+                                    "==", 
+                                    "key1",
+                                    new ZnodeModValue(list));  
     System.out.println(verifier);
     
     verifier = new ZnodeModVerifier();

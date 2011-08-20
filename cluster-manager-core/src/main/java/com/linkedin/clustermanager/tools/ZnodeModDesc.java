@@ -5,6 +5,7 @@ import java.util.List;
 
 import com.linkedin.clustermanager.store.PropertyJsonSerializer;
 import com.linkedin.clustermanager.store.PropertyStoreException;
+import com.thoughtworks.xstream.XStream;
 
 /*
  * a test case is structured logically as:
@@ -41,9 +42,9 @@ public class ZnodeModDesc
     MAP       // map field
   }
   
-  public String _testName;
-  public List<ZnodeModCommand> _commands = new ArrayList<ZnodeModCommand>();
-  public List<ZnodeModVerifier> _verifiers = new ArrayList<ZnodeModVerifier>();
+  private String _testName;
+  private List<ZnodeModCommand> _commands = new ArrayList<ZnodeModCommand>();
+  private List<ZnodeModVerifier> _verifiers = new ArrayList<ZnodeModVerifier>();
     
   public ZnodeModDesc(String testName)
   {
@@ -66,11 +67,42 @@ public class ZnodeModDesc
     }
   }
   
+  // getter/setter's
+  public void setTestName(String testName)
+  {
+    _testName = testName;
+  }
+  
+  public String getTestName()
+  {
+    return _testName;
+  }
+  
+  public void setCommands(List<ZnodeModCommand> commands)
+  {
+    _commands = commands;
+  }
+  
+  public List<ZnodeModCommand> getCommands()
+  {
+    return _commands;
+  }
+  
+  public void setVerfiers(List<ZnodeModVerifier> verifiers)
+  {
+    _verifiers = verifiers;
+  }
+  
+  public List<ZnodeModVerifier> getVerifiers()
+  {
+    return _verifiers;
+  }
+  
   // temp test
   public static void main(String[] args) 
   throws PropertyStoreException
   {
-    String znodePath = "/TEST_CASES";
+    String znodePath = "/testPath";
     ZnodeModDesc desc = new ZnodeModDesc("test1");
     
     // add commands
@@ -78,14 +110,22 @@ public class ZnodeModDesc
                                         ZnodePropertyType.SIMPLE, 
                                         "+", 
                                         "key1",
-                                        "value1"));
+                                        new ZnodeModValue("value1")));
+    
+    List<String> expectList = new ArrayList<String>();
+    expectList.add("value1");
+    expectList.add("value2");
+    
+    List<String> updateList = new ArrayList<String>();
+    updateList.add("value1_new");
+    updateList.add("value2_new");
     
     desc.addCommand(new ZnodeModCommand(znodePath, 
-                                        ZnodePropertyType.SIMPLE, 
+                                        ZnodePropertyType.LIST, 
                                         "+", 
                                         "key2",
-                                        "value2_0",
-                                        "value2_1"));
+                                        new ZnodeModValue(expectList),
+                                        new ZnodeModValue(updateList)));
     
     
     // add verification
@@ -93,18 +133,22 @@ public class ZnodeModDesc
                                               ZnodePropertyType.SIMPLE, 
                                               "==", 
                                               "key1", 
-                                              "value1"));
-    
+                                              new ZnodeModValue("value1")));
+    List<String> expectList2 = new ArrayList<String>();
+    expectList2.add("value1_new");
+    expectList2.add("value2_new");
     desc.addVerification(new ZnodeModVerifier(znodePath, 
-                                              ZnodePropertyType.SIMPLE, 
+                                              ZnodePropertyType.LIST, 
                                               "==", 
                                               "key2", 
-                                              "value2_1"));
+                                              new ZnodeModValue(expectList2)));
     
     PropertyJsonSerializer<ZnodeModDesc> serializer = new PropertyJsonSerializer<ZnodeModDesc>(ZnodeModDesc.class);
     byte[] bytes = serializer.serialize(desc);
-    
     System.out.println(new String(bytes));
+    
+    XStream xStream = new XStream();
+    System.out.println(xStream.toXML(desc));
   }
   
 }

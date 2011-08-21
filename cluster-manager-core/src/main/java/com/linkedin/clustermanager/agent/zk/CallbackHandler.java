@@ -21,6 +21,7 @@ import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ConfigChangeListener;
+import com.linkedin.clustermanager.ControllerChangeListener;
 import com.linkedin.clustermanager.CurrentStateChangeListener;
 import com.linkedin.clustermanager.ExternalViewChangeListener;
 import com.linkedin.clustermanager.IdealStateChangeListener;
@@ -132,6 +133,14 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
         externalViewListener.onExternalViewChange(externalViewList,
             changeContext);
       }
+      else if (_changeType == ChangeType.CONTROLLER)
+      {
+        ControllerChangeListener controllerChangelistener 
+          = (ControllerChangeListener)_listener;
+        subscribeForChanges(_path, true, false);
+        controllerChangelistener.onControllerChange(changeContext);
+      }
+      
       if (logger.isDebugEnabled())
       {
         logger.debug(Thread.currentThread().getId() + " END:INVOKE "

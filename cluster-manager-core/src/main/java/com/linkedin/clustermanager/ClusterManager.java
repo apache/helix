@@ -124,4 +124,18 @@ public interface ClusterManager
    * This is updated based on the notifications from listeners registered.
    */
   long getLastNotificationTime();
+  
+  // distributed cluster controller
+  /**
+   * Add listener for controller change
+   */
+ 
+  void addControllerListener(ControllerChangeListener listener);
+  
+  /**
+   * Try to update controller
+   * 
+   * @return true on success; false otherwise
+   */
+  public boolean tryUpdateController();
 }

@@ -5,9 +5,7 @@ import java.util.List;
 import org.apache.zookeeper.CreateMode;
 
 import com.linkedin.clustermanager.ClusterDataAccessor;
-import com.linkedin.clustermanager.ClusterView;
 import com.linkedin.clustermanager.ZNRecord;
-import com.linkedin.clustermanager.model.Message;
 
 public class FileBasedDataAccessor implements ClusterDataAccessor
 {
@@ -156,6 +154,36 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
   {
     // TODO Auto-generated method stub
     
+  }
+
+  @Override
+  public void createControllerProperty(ControllerPropertyType controllerProperty, ZNRecord value,
+      CreateMode mode)
+  {
+    // TODO Auto-generated method stub
+    
+  }
+
+  @Override
+  public void removeControllerProperty(ControllerPropertyType controllerProperty)
+  {
+    // TODO Auto-generated method stub
+    
+  }
+
+  @Override
+  public void setControllerProperty(ControllerPropertyType controllerProperty, ZNRecord value,
+      CreateMode mode)
+  {
+    // TODO Auto-generated method stub
+    
+  }
+
+  @Override
+  public ZNRecord getControllerProperty(ControllerPropertyType controllerProperty)
+  {
+    // TODO Auto-generated method stub
+    return null;
   }
 
 }

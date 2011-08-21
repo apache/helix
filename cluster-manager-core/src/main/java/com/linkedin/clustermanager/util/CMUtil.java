@@ -1,6 +1,7 @@
 package com.linkedin.clustermanager.util;
 
 import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
+import com.linkedin.clustermanager.ClusterDataAccessor.ControllerPropertyType;
 import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 
 public final class CMUtil
@@ -138,5 +139,16 @@ public final class CMUtil
     }
     return null;
   }
-
+  
+  // distributed cluster controller
+  public static String getControllerPath(String clusterName)
+  {
+    return getClusterPropertyPath(clusterName, ClusterPropertyType.CONTROLLER);
+  }
+  
+  public static String getControllerPropertyPath(String clusterName, 
+                                                 ControllerPropertyType type) 
+  {
+    return getControllerPath(clusterName) + "/" + type.toString();
+  }
 }

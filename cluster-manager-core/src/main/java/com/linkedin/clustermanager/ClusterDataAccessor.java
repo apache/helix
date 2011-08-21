@@ -4,14 +4,13 @@ import java.util.List;
 
 import org.apache.zookeeper.CreateMode;
 
-import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
-
 public interface ClusterDataAccessor
 {
   public enum ClusterPropertyType
   {
-    CONFIGS(true, false), LIVEINSTANCES(false, false), INSTANCES(true, false), IDEALSTATES(
-        true, false), EXTERNALVIEW(true, false), STATEMODELDEFS(true, false);
+    CONFIGS(true, false), LIVEINSTANCES(false, false), INSTANCES(true, false), 
+    IDEALSTATES(true, false), EXTERNALVIEW(true, false), STATEMODELDEFS(true, false),
+    CONTROLLER(true, false);
 
     boolean isPersistent;
 
@@ -124,6 +123,60 @@ public interface ClusterDataAccessor
     }
   }
 
+  public enum ControllerPropertyType
+  {
+    LAEDER(false, false, true), HISTORY(true, true, true);
+    
+    boolean isPersistent;
+
+    boolean mergeOnUpdate;
+
+    boolean updateOnlyOnExists;
+
+    private ControllerPropertyType(boolean isPersistent, boolean mergeOnUpdate)
+    {
+      this(isPersistent, mergeOnUpdate, false);
+    }
+
+    private ControllerPropertyType(boolean isPersistent, boolean mergeOnUpdate,
+        boolean updateOnlyOnExists)
+    {
+      this.isPersistent = isPersistent;
+      this.mergeOnUpdate = mergeOnUpdate;
+      this.updateOnlyOnExists = updateOnlyOnExists;
+    }
+
+    public boolean isPersistent()
+    {
+      return isPersistent;
+    }
+
+    public void setPersistent(boolean isPersistent)
+    {
+      this.isPersistent = isPersistent;
+    }
+
+    public boolean isMergeOnUpdate()
+    {
+      return mergeOnUpdate;
+    }
+
+    public void setMergeOnUpdate(boolean mergeOnUpdate)
+    {
+      this.mergeOnUpdate = mergeOnUpdate;
+    }
+
+    public boolean isUpdateOnlyOnExists()
+    {
+      return updateOnlyOnExists;
+    }
+
+    public void setUpdateOnlyOnExists(boolean updateOnlyOnExists)
+    {
+      this.updateOnlyOnExists = updateOnlyOnExists;
+    }
+  }
+  
   ZNRecord getClusterProperty(ClusterPropertyType clusterProperty, String key);
 
   void setClusterProperty(ClusterPropertyType clusterProperty, String key,
@@ -172,5 +225,16 @@ public interface ClusterDataAccessor
   
   List<String> getInstancePropertySubPaths(String instanceName,
       InstancePropertyType instanceProperty);
+
+  // distributed cluster controller
+  void createControllerProperty(ControllerPropertyType controllerProperty, 
+                                ZNRecord value, CreateMode mode);
+  
+  void removeControllerProperty(ControllerPropertyType controllerProperty);
+  
+  void setControllerProperty(ControllerPropertyType controllerProperty, 
+                             ZNRecord value, CreateMode mode);
+  
+  ZNRecord getControllerProperty(ControllerPropertyType controllerProperty);
 
 }

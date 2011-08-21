@@ -1,12 +1,20 @@
 package com.linkedin.clustermanager.agent.zk;
 
+import static com.linkedin.clustermanager.CMConstants.ChangeType.CONFIG;
+import static com.linkedin.clustermanager.CMConstants.ChangeType.CURRENT_STATE;
+import static com.linkedin.clustermanager.CMConstants.ChangeType.EXTERNAL_VIEW;
+import static com.linkedin.clustermanager.CMConstants.ChangeType.IDEAL_STATE;
+import static com.linkedin.clustermanager.CMConstants.ChangeType.LIVE_INSTANCE;
+import static com.linkedin.clustermanager.CMConstants.ChangeType.MESSAGE;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import org.I0Itec.zkclient.IZkStateListener;
+import org.I0Itec.zkclient.IZkChildListener;
+import org.I0Itec.zkclient.exception.ZkNodeExistsException;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
@@ -14,26 +22,26 @@ import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
 
 import com.linkedin.clustermanager.CMConstants;
+import com.linkedin.clustermanager.CMConstants.ChangeType;
+import com.linkedin.clustermanager.CMConstants.ZNAttribute;
 import com.linkedin.clustermanager.ClusterDataAccessor;
+import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
+import com.linkedin.clustermanager.ClusterDataAccessor.ControllerPropertyType;
 import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerException;
 import com.linkedin.clustermanager.ConfigChangeListener;
+import com.linkedin.clustermanager.ControllerChangeListener;
 import com.linkedin.clustermanager.CurrentStateChangeListener;
 import com.linkedin.clustermanager.ExternalViewChangeListener;
 import com.linkedin.clustermanager.IdealStateChangeListener;
 import com.linkedin.clustermanager.InstanceType;
 import com.linkedin.clustermanager.LiveInstanceChangeListener;
 import com.linkedin.clustermanager.MessageListener;
+import com.linkedin.clustermanager.NotificationContext;
 import com.linkedin.clustermanager.ZNRecord;
-import com.linkedin.clustermanager.CMConstants.ChangeType;
-import com.linkedin.clustermanager.CMConstants.ZNAttribute;
-import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
-import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.monitoring.ZKPathDataDumpTask;
 import com.linkedin.clustermanager.util.CMUtil;
-
-import static com.linkedin.clustermanager.CMConstants.ChangeType.*;
 
 public class ZKClusterManager implements ClusterManager
 {
@@ -347,5 +355,84 @@ public class ZKClusterManager implements ClusterManager
     return -1;
    // return _zkClient.;
   }
+
+  
+  // distributed cluster controller
+  private class CallbackForController implements IZkChildListener
+  {
+    private final ClusterManager _manager;
+    private final ControllerChangeListener _listener;
+    
+    public CallbackForController(ClusterManager manager, 
+                                 ControllerChangeListener listener)
+    {
+      _manager = manager;
+      _listener = listener;
+    }
+    
+    @Override
+    public void handleChildChange(String parent, List<String> childs) throws Exception
+    {
+      NotificationContext changeContext = new NotificationContext(_manager);
+      _listener.onControllerChange(changeContext);
+    }
+    
+  }
+  
+  @Override
+  public void addControllerListener(ControllerChangeListener listener)
+  {
+    final String path = CMUtil.getControllerPath(_clusterName);
+    
+    // TODO: should add listener first
+    /**
+    CallbackHandler callbackHandler = createCallBackHandler(path, listener,
+        new EventType[]
+        { EventType.NodeChildrenChanged, EventType.NodeDeleted,
+          EventType.NodeCreated }, ChangeType.CONTROLLER);
+    **/
+    _zkClient.subscribeChildChanges(path, new CallbackForController(this, listener));
+    NotificationContext changeContext = new NotificationContext(this);
+    listener.onControllerChange(changeContext);
+  }
+  
+  @Override
+  public boolean tryUpdateController()
+  {
+    try
+    {
+      final ZNRecord leaderRecord = new ZNRecord();
+      leaderRecord.setId(_instanceName);
+      
+      _accessor.createControllerProperty(ControllerPropertyType.LAEDER, 
+                                         leaderRecord, CreateMode.EPHEMERAL);
+      
+      // set controller history
+      ZNRecord histRecord = _accessor.getControllerProperty(ControllerPropertyType.HISTORY);
+      List<String> list = histRecord.getListField(_clusterName);
+      list.add(_instanceName);
+      _accessor.setControllerProperty(ControllerPropertyType.HISTORY, histRecord, 
+                                      CreateMode.PERSISTENT);
+      
+      return true;
+    }
+    catch (ZkNodeExistsException e)
+    {
+      // ignore
+    }
+    catch (Exception e)
+    {
+      e.printStackTrace();
+    }
+    return false;
+  }
+
+  /**
+  public void updateController(ClusterManager manager)
+  {
+    _accessor.removeControllerProperty(ControllerPropertyType.LAEDER);
+    tryUpdateController();
+  }
+  **/
 
 }

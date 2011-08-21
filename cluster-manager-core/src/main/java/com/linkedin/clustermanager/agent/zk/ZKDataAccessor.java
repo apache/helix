@@ -310,4 +310,49 @@ public class ZKDataAccessor implements ClusterDataAccessor
       ZKUtil.substract(_zkClient, propertyPath, value);
     }
   }
+  
+  // distributed cluster controller
+  @Override
+  public void createControllerProperty(ControllerPropertyType controllerProperty, 
+                                       ZNRecord value, CreateMode mode)
+  {
+    final String path = CMUtil.getControllerPropertyPath(_clusterName, controllerProperty);
+    _zkClient.create(path, value, mode);
+    // ZKUtil.createOrReplace(_zkClient, path, value, controllerProperty.isPersistent());
+  }
+
+  @Override
+  public void removeControllerProperty(ControllerPropertyType controllerProperty)
+  {
+    final String path = CMUtil.getControllerPropertyPath(_clusterName, controllerProperty);
+    if (_zkClient.exists(path))
+    {
+      boolean b = _zkClient.delete(path);
+      if (!b)
+      {
+        logger.warn("Unable to remove property at path:" + path);
+      }
+    } 
+    else
+    {
+      logger.warn("No controller property to remove at path:" + path);
+    }
+  }
+  
+  @Override
+  public void setControllerProperty(ControllerPropertyType controllerProperty, 
+                                    ZNRecord value, CreateMode mode)
+  {
+    final String path = CMUtil.getControllerPropertyPath(_clusterName, controllerProperty);
+    // _zkClient.create(path, value, mode);
+    ZKUtil.createOrReplace(_zkClient, path, value, controllerProperty.isPersistent());
+  }
+  
+  @Override
+  public ZNRecord getControllerProperty(ControllerPropertyType controllerProperty)
+  {
+    final String path = CMUtil.getControllerPropertyPath(_clusterName, controllerProperty);
+    ZNRecord record = _zkClient.<ZNRecord>readData(path);
+    return record;
+  }
 }

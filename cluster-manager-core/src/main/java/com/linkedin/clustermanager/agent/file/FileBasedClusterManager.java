@@ -26,6 +26,7 @@ import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterView;
 import com.linkedin.clustermanager.ConfigChangeListener;
+import com.linkedin.clustermanager.ControllerChangeListener;
 import com.linkedin.clustermanager.CurrentStateChangeListener;
 import com.linkedin.clustermanager.ExternalViewChangeListener;
 import com.linkedin.clustermanager.IdealStateChangeListener;
@@ -583,5 +584,19 @@ public class FileBasedClusterManager implements ClusterManager
   public long getLastNotificationTime()
   {
     return 0;
+  }
+
+  @Override
+  public void addControllerListener(ControllerChangeListener listener)
+  {
+    // TODO Auto-generated method stub
+    
+  }
+
+  @Override
+  public boolean tryUpdateController()
+  {
+    // TODO Auto-generated method stub
+    return false;
   }
 }

@@ -6,11 +6,12 @@ import java.util.List;
 import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.ClusterDataAccessor;
+import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
+import com.linkedin.clustermanager.ClusterDataAccessor.ControllerPropertyType;
+import com.linkedin.clustermanager.ClusterDataAccessor.InstanceConfigProperty;
 import com.linkedin.clustermanager.ClusterManagementService;
 import com.linkedin.clustermanager.ClusterManagerException;
 import com.linkedin.clustermanager.ZNRecord;
-import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
-import com.linkedin.clustermanager.ClusterDataAccessor.InstanceConfigProperty;
 import com.linkedin.clustermanager.util.CMUtil;
 
 public class ZKClusterManagementTool implements ClusterManagementService
@@ -114,6 +115,15 @@ public class ZKClusterManagementTool implements ClusterManagementService
     // State model definition
     _zkClient.createPersistent(CMUtil.getStateModelDefinitionPath(clusterName));
 
+    // controller
+    _zkClient.createPersistent(CMUtil.getControllerPath(clusterName));
+    final String path = CMUtil.getControllerPropertyPath(clusterName, 
+                                                         ControllerPropertyType.HISTORY);
+    final ZNRecord emptyHistory = new ZNRecord();
+    final List<String> emptyList = new ArrayList<String>();
+    emptyHistory.setListField(clusterName, emptyList);
+    _zkClient.createPersistent(path, emptyHistory);
+ 
   }
 
   public List<String> getNodeNamesInCluster(String clusterName)

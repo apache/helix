@@ -175,6 +175,20 @@ public class Mocks
       return 0;
     }
 
+    @Override
+    public void addControllerListener(ControllerChangeListener listener)
+    {
+      // TODO Auto-generated method stub
+      
+    }
+
+    @Override
+    public boolean tryUpdateController()
+    {
+      // TODO Auto-generated method stub
+      return false;
+    }
+
   }
 
   public static class MockAccessor implements ClusterDataAccessor
@@ -317,6 +331,36 @@ public class Mocks
     {
       // TODO Auto-generated method stub
       
+    }
+
+    @Override
+    public void createControllerProperty(ControllerPropertyType controllerProperty, ZNRecord value,
+        CreateMode mode)
+    {
+      // TODO Auto-generated method stub
+      
+    }
+
+    @Override
+    public void removeControllerProperty(ControllerPropertyType controllerProperty)
+    {
+      // TODO Auto-generated method stub
+      
+    }
+
+    @Override
+    public void setControllerProperty(ControllerPropertyType controllerProperty, ZNRecord value,
+        CreateMode mode)
+    {
+      // TODO Auto-generated method stub
+      
+    }
+
+    @Override
+    public ZNRecord getControllerProperty(ControllerPropertyType controllerProperty)
+    {
+      // TODO Auto-generated method stub
+      return null;
     }
 
   }

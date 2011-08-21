@@ -1,7 +1,5 @@
 package com.linkedin.clustermanager.tools;
 
-import java.io.File;
-import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.cli.CommandLine;
@@ -21,9 +19,7 @@ import org.codehaus.jackson.map.JsonMappingException;
 import com.linkedin.clustermanager.ClusterDataAccessor.InstanceConfigProperty;
 import com.linkedin.clustermanager.ClusterManagementService;
 import com.linkedin.clustermanager.ClusterManagerException;
-import com.linkedin.clustermanager.ClusterView;
 import com.linkedin.clustermanager.ZNRecord;
-import com.linkedin.clustermanager.agent.file.FileBasedClusterManager;
 import com.linkedin.clustermanager.agent.zk.ZKClusterManagementTool;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
 import com.linkedin.clustermanager.util.ZKClientPool;
@@ -50,8 +46,9 @@ public class ClusterSetup
   public static final String resourceGroupInfo = "resourceGroupInfo";
   public static final String resourceInfo = "resourceInfo";
 
+  // TODO: refactor
   // setup for file-based cluster manager
-  public static final String configFile = "configFile";
+  // public static final String configFile = "configFile";
 
   // enable / disable nodes
   public static final String enableNode = "enableNode";
@@ -284,15 +281,16 @@ public class ClusterSetup
     enableNodeOption.setArgName("clusterName nodeName true/false");
 
     // add an option group including either --zkSvr or --configFile
+    /**
     Option fileOption = OptionBuilder.withLongOpt(configFile)
         .withDescription("Provide file to write states/messages").create();
     fileOption.setArgs(1);
     fileOption.setRequired(true);
     fileOption.setArgName("File to write states/messages (Optional)");
-
+     **/
     OptionGroup optionGroup = new OptionGroup();
     optionGroup.addOption(zkServerOption);
-    optionGroup.addOption(fileOption);
+    // optionGroup.addOption(fileOption);
 
     Options options = new Options();
     options.addOption(helpOption);
@@ -334,6 +332,7 @@ public class ClusterSetup
       System.exit(1);
     }
 
+    /**
     if (cmd.hasOption(configFile))
     {
       String file = cmd.getOptionValue(configFile);
@@ -368,7 +367,8 @@ public class ClusterSetup
 
       return 0;
     }
-
+    **/
+    
     ClusterSetup setupTool = new ClusterSetup(
         cmd.getOptionValue(zkServerAddress));
 

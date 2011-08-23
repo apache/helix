@@ -3,12 +3,26 @@ package com.linkedin.clustermanager;
 import java.util.List;
 
 /**
- * First class Object any process will interact with General flow manager =
- * ClusterManagerFactory.getManager(); manager.connect();
- * manager.addSOMEListener(); manager.start() After start is invoked the
- * interactions will be via listener callback functions ... ..
+ * First class Object any process will interact with<br/>
+ * General flow 
+ * <blockquote>
+ * <pre> 
+ * manager = ClusterManagerFactory.getManagerFor<ROLE>(); ROLE can be participant, spectator or a controller<br/>
+ * manager.connect();
+ * manager.addSOMEListener(); 
+ * manager.start() 
+ * After start is invoked the subsequent interactions will be via listener onChange callbacks 
+ * There will be 3 scenarios for onChange callback, which can be determined using NotificationContext.type 
+ * INIT -> will be invoked the first time the listener is added
+ * CALLBACK -> will be invoked due to datachange in the property value
+ * FINALIZE -> will be invoked when listener is removed or session expires
  * manager.disconnect()
- * 
+ * </pre>
+ * </blockquote>
+ * Default implementations available 
+ * @see StateMachineEngine for participant
+ * @see RoutingTableProvider for spectator
+ * @see GenericClusterController  for controller
  * @author kgopalak
  */
 public interface ClusterManager
@@ -87,9 +101,16 @@ public interface ClusterManager
    */
   void addExternalViewChangeListener(ExternalViewChangeListener listener)
       throws Exception;
-
-  // void addListeners(List<Object> listeners);
-
+  /**
+   * Removes the listener. If the same listener was used for multiple changes, all change notifications will be removed.<br/>
+   * This will invoke onChange method on the listener with NotificationContext.type set to FINALIZE. Listener can clean up its state.<br/>
+   * The data provided in this callback may not be reliable.<br/>
+   * When a session expires all listeners will be removed and re-added automatically. <br/>
+   * This provides the ability for listeners to either reset their state or do any cleanup tasks.<br/>
+   * @param listener
+   * @return
+   */
+  boolean removeListener(Object listener);
   /**
    * Return the client to perform read/write operations on the cluster data
    * store

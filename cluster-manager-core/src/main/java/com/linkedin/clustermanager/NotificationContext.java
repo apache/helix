@@ -70,7 +70,7 @@ public class NotificationContext
 
   public enum Type
   {
-    INIT, CALLBACK
+    INIT, CALLBACK, FINALIZE
   }
 
   public String getPathChanged()

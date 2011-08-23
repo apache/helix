@@ -3,44 +3,43 @@ package com.linkedin.clustermanager.agent.zk;
 import org.I0Itec.zkclient.IZkStateListener;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
 
-public class ZkStateChangeListener implements IZkStateListener
-{
-  private volatile boolean _isConnected;
-  private volatile boolean _hasSessionExpired;
+public class ZkStateChangeListener implements IZkStateListener {
+	private volatile boolean _isConnected;
+	private volatile boolean _hasSessionExpired;
+	private final ZKClusterManager _zkClusterManager;
 
-  @Override
-  public void handleNewSession() throws Exception
-  {
-    // TODO Auto-generated method stub
-    // NOT SUPPORTED
-  }
+	public ZkStateChangeListener(ZKClusterManager zkClusterManager) {
+		this._zkClusterManager = zkClusterManager;
+	
+	}
 
-  @Override
-  public void handleStateChanged(KeeperState keeperState) throws Exception
-  {
-    switch (keeperState)
-    {
+	@Override
+	public void handleNewSession() throws Exception {
+		_zkClusterManager.handleNewSession();
+	}
 
-    case SyncConnected:
-      _isConnected = true;
-      break;
-    case Disconnected:
-      _isConnected = false;
-      break;
-    case Expired:
-      _isConnected = false;
-      _hasSessionExpired = true;
-      break;
-    }
-  }
+	@Override
+	public void handleStateChanged(KeeperState keeperState) throws Exception {
+		switch (keeperState) {
 
-  boolean isConnected()
-  {
-    return _isConnected;
-  }
+		case SyncConnected:
+			_isConnected = true;
+			break;
+		case Disconnected:
+			_isConnected = false;
+			break;
+		case Expired:
+			_isConnected = false;
+			_hasSessionExpired = true;
+			break;
+		}
+	}
 
-  boolean hasSessionExpired()
-  {
-    return _hasSessionExpired;
-  }
+	boolean isConnected() {
+		return _isConnected;
+	}
+
+	boolean hasSessionExpired() {
+		return _hasSessionExpired;
+	}
 }

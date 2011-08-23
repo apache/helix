@@ -189,6 +189,12 @@ public class Mocks
       return false;
     }
 
+	@Override
+	public boolean removeListener(Object listener) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
   }
 
   public static class MockAccessor implements ClusterDataAccessor

@@ -241,23 +241,6 @@ public class ZKClusterManager implements ClusterManager
 		// return _zkClient.;
 	}
 
-	// distributed cluster controller
-	/*
-	 * private class CallbackForController implements IZkChildListener { private
-	 * final ClusterManager _manager; private final ControllerChangeListener
-	 * _listener;
-	 * 
-	 * public CallbackForController(ClusterManager manager,
-	 * ControllerChangeListener listener) { _manager = manager; _listener =
-	 * listener; }
-	 * 
-	 * @Override public void handleChildChange(String parent, List<String> childs)
-	 * throws Exception { NotificationContext changeContext = new
-	 * NotificationContext(_manager); _listener.onControllerChange(changeContext);
-	 * }
-	 * 
-	 * }
-	 */
 	@Override
 	public void addControllerListener(ControllerChangeListener listener)
 	{

@@ -73,9 +73,9 @@ public class MasterSlaveStateModelFactory extends StateModelFactory<StateModel> 
 
 		}
 		
-		public void onBecomeDropped(Message message,
+		public void onBecomeDroppedFromOffline(Message message,
         NotificationContext context) {
-      System.out.println("ObBecomeDropped() for "+ stateUnitKey);
+      System.out.println("ObBecomeDroppedFromOffline() for "+ stateUnitKey);
       sleep();
 
     }

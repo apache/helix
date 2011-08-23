@@ -6,11 +6,15 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+import org.apache.log4j.Logger;
+
 import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.controller.stages.BestPossibleStateCalcStage;
 
 public class IdealState
 {
-
+  private static final Logger logger = Logger
+  .getLogger(IdealState.class.getName());
   private final ZNRecord _record;
 
   public IdealState()
@@ -59,6 +63,12 @@ public class IdealState
   {
     LinkedList<String> instanceStateList = new LinkedList<String>();
     Map<String, String> instanceStateMap = getInstanceStateMap(stateUnitKey);
+    
+    if(instanceStateMap == null)
+    {
+      logger.info("State unit key "+ stateUnitKey + " not found. It should be dropped from idealstate.");
+      return null;
+    }
 
     String masterInstance = "";
     for (String instanceName : instanceStateMap.keySet())

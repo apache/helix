@@ -125,6 +125,13 @@ public class StateModelConfigGenerator
         metadata.put("count", "-1");
         record.setMapField(key, metadata);
       }
+      if (state.equals("DROPPED"))
+      {
+        // metadata.put("max", "-1");
+        // metadata.put("min", "-1");
+        metadata.put("count", "-1");
+        record.setMapField(key, metadata);
+      }
     }
     for (String state : statePriorityList)
     {

@@ -350,12 +350,40 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkDataListener, IZ
     // removePropertyRecursive() triggers listeners which refresh cache
   }
 
+  private void doGetPropertyNames(String path, List<String> leafNodes) 
+  throws PropertyStoreException
+  {
+    // String path = getPath(prefix);
+    if (!_zkClient.exists(path))
+      return;
+    
+    List<String> childs = _zkClient.getChildren(path);
+    if (childs == null)
+      return;
+    
+    if (childs.size() == 0)
+    {
+      getProperty(getRelativePath(path));
+      leafNodes.add(getRelativePath(path));
+      return;
+    }
+    
+    for (String child : childs)
+    {
+      String pathToChild = path + "/" + child;
+      doGetPropertyNames(pathToChild, leafNodes);
+    }
+  }
+
   @Override
   public List<String> getPropertyNames(String prefix)
       throws PropertyStoreException
   {
     String path = getPath(prefix);
-
+    List<String> propertyNames = new ArrayList<String>();
+    doGetPropertyNames(path, propertyNames);
+    
+    /**
     if (!_zkClient.exists(path))
       return null;
 
@@ -371,7 +399,8 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkDataListener, IZ
       getProperty(getRelativePath(pathToChild));
 
     }
-
+    **/
+    
     return propertyNames;
   }
 

@@ -60,7 +60,6 @@ public class ZKClusterManager implements ClusterManager
 	private final InstanceType _instanceType;
 	private String _sessionId;
 	private Timer _timer;
-
 	public ZKClusterManager(String clusterName, String instanceName,
 	    InstanceType instanceType, String zkConnectString) throws Exception
 	{
@@ -239,6 +238,29 @@ public class ZKClusterManager implements ClusterManager
 		// return _zkClient.;
 	}
 
+	// distributed cluster controller
+	private class CallbackForController implements IZkChildListener
+	{
+		private final ClusterManager _manager;
+		private final ControllerChangeListener _listener;
+
+		public CallbackForController(ClusterManager manager,
+		    ControllerChangeListener listener)
+		{
+			_manager = manager;
+			_listener = listener;
+		}
+
+		@Override
+		public void handleChildChange(String parent, List<String> childs)
+		    throws Exception
+		{
+			NotificationContext changeContext = new NotificationContext(_manager);
+			_listener.onControllerChange(changeContext);
+		}
+
+	}
+
 	@Override
 	public void addControllerListener(ControllerChangeListener listener)
 	{
@@ -264,7 +286,7 @@ public class ZKClusterManager implements ClusterManager
 			final ZNRecord leaderRecord = new ZNRecord();
 			leaderRecord.setId(_instanceName);
 
-			_accessor.createControllerProperty(ControllerPropertyType.LAEDER,
+			_accessor.createControllerProperty(ControllerPropertyType.LEADER,
 			    leaderRecord, CreateMode.EPHEMERAL);
 
 			// set controller history
@@ -289,7 +311,7 @@ public class ZKClusterManager implements ClusterManager
 	@Override
 	public boolean removeListener(Object listener)
 	{
-		
+
 		if (_handlers != null && _handlers.size() > 0)
 		{
 			Iterator<CallbackHandler> iterator = _handlers.iterator();
@@ -394,28 +416,6 @@ public class ZKClusterManager implements ClusterManager
 		return isValid;
 	}
 
-	// distributed cluster controller
-	private class CallbackForController implements IZkChildListener
-	{
-		private final ClusterManager _manager;
-		private final ControllerChangeListener _listener;
-
-		public CallbackForController(ClusterManager manager,
-		    ControllerChangeListener listener)
-		{
-			_manager = manager;
-			_listener = listener;
-		}
-
-		@Override
-		public void handleChildChange(String parent, List<String> childs)
-		    throws Exception
-		{
-			NotificationContext changeContext = new NotificationContext(_manager);
-			_listener.onControllerChange(changeContext);
-		}
-
-	}
 
 	/**
 	 * public void updateController(ClusterManager manager) {

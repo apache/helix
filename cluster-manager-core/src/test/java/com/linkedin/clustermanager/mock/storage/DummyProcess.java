@@ -78,10 +78,12 @@ public class DummyProcess
   public static class DummyStateModelFactory extends StateModelFactory
   {
     int _delay;
-    public DummyStateModelFactory( int delay)
+
+    public DummyStateModelFactory(int delay)
     {
       _delay = delay;
     }
+
     @Override
     public StateModel createNewStateModel(String stateUnitKey)
     {
@@ -94,35 +96,39 @@ public class DummyProcess
   public static class DummyStateModel extends StateModel
   {
     int _transDelay = 0;
+
     public void setDelay(int delay)
     {
       _transDelay = delay > 0 ? delay : 0;
     }
-    public void onBecomeSlaveFromOffline(Message message,
-        NotificationContext context)
+
+    void sleep()
     {
       try
       {
-        Thread.currentThread().sleep(_transDelay);
+        if (_transDelay > 0)
+        {
+          Thread.currentThread().sleep(_transDelay);
+        }
       } catch (InterruptedException e)
       {
         // TODO Auto-generated catch block
         e.printStackTrace();
       }
+    }
+
+    public void onBecomeSlaveFromOffline(Message message,
+        NotificationContext context)
+    {
+      sleep();
       System.out.println("DummyStateModel.onBecomeSlaveFromOffline()");
     }
 
     public void onBecomeSlaveFromMaster(Message message,
         NotificationContext context)
     {
-      try
-      {
-        Thread.currentThread().sleep(_transDelay);
-      } catch (InterruptedException e)
-      {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
-      }
+
+      sleep();
       System.out.println("DummyStateModel.onBecomeSlaveFromMaster()");
 
     }
@@ -130,14 +136,8 @@ public class DummyProcess
     public void onBecomeMasterFromSlave(Message message,
         NotificationContext context)
     {
-      try
-      {
-        Thread.currentThread().sleep(_transDelay);
-      } catch (InterruptedException e)
-      {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
-      }
+
+      sleep();
       System.out.println("DummyStateModel.onBecomeMasterFromSlave()");
 
     }
@@ -145,30 +145,17 @@ public class DummyProcess
     public void onBecomeOfflineFromSlave(Message message,
         NotificationContext context)
     {
-      try
-      {
-        Thread.currentThread().sleep(_transDelay);
-      } catch (InterruptedException e)
-      {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
-      }
+
+      sleep();
       System.out.println("DummyStateModel.onBecomeOfflineFromSlave()");
 
     }
-    
-    public void onBecomeDropped(Message message,
-        NotificationContext context)
+
+    public void onBecomeDroppedFromOffline(Message message, NotificationContext context)
     {
-      try
-      {
-        Thread.currentThread().sleep(_transDelay);
-      } catch (InterruptedException e)
-      {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
-      }
-      System.out.println("DummyStateModel.onBecomeDropped()");
+
+      sleep();
+      System.out.println("DummyStateModel.onBecomeDroppedFromOffline()");
 
     }
   }
@@ -209,9 +196,9 @@ public class DummyProcess
     fileOption.setArgs(1);
     fileOption.setRequired(true);
     fileOption.setArgName("File to read states/messages (Optional)");
-    
+
     Option transDelayOption = OptionBuilder.withLongOpt(transDelay)
-      .withDescription("Provide state trans delay").create();
+        .withDescription("Provide state trans delay").create();
     transDelayOption.setArgs(1);
     transDelayOption.setRequired(false);
     transDelayOption.setArgName("Delay time in state transition, in MS");
@@ -227,7 +214,7 @@ public class DummyProcess
     options.addOption(hostOption);
     options.addOption(portOption);
     options.addOption(transDelayOption);
-    
+
     options.addOptionGroup(optionGroup);
 
     return options;
@@ -278,7 +265,7 @@ public class DummyProcess
       String portString = cmd.getOptionValue(hostPort);
       int port = Integer.parseInt(portString);
       instanceName = host + "_" + port;
-      
+
       file = cmd.getOptionValue(configFile);
       if (file != null)
       {
@@ -289,17 +276,16 @@ public class DummyProcess
           System.exit(1);
         }
       }
-      if(cmd.hasOption(transDelay))
+      if (cmd.hasOption(transDelay))
       {
         try
         {
           delay = Integer.parseInt(cmd.getOptionValue(transDelay));
-          if(delay < 0)
+          if (delay < 0)
           {
-            throw new Exception ("delay must be positive");
+            throw new Exception("delay must be positive");
           }
-        }
-        catch(Exception e)
+        } catch (Exception e)
         {
           e.printStackTrace();
           delay = 0;

@@ -57,7 +57,7 @@ public class StateModelConfigGenerator
     for (String state : statePriorityList)
     {
       String key = state + ".next";
-
+      if (state.equals("MASTER"))
       {
         Map<String, String> metadata = new HashMap<String, String>();
         metadata.put("SLAVE", "SLAVE");
@@ -98,6 +98,7 @@ public class StateModelConfigGenerator
     statePriorityList.add("MASTER");
     statePriorityList.add("SLAVE");
     statePriorityList.add("OFFLINE");
+    statePriorityList.add("DROPPED");
     record.setListField("statesPriorityList", statePriorityList);
     for (String state : statePriorityList)
     {
@@ -124,15 +125,23 @@ public class StateModelConfigGenerator
         metadata.put("count", "-1");
         record.setMapField(key, metadata);
       }
+      if (state.equals("DROPPED"))
+      {
+        // metadata.put("max", "-1");
+        // metadata.put("min", "-1");
+        metadata.put("count", "-1");
+        record.setMapField(key, metadata);
+      }
     }
     for (String state : statePriorityList)
     {
       String key = state + ".next";
-
+      if(state.equals("MASTER"))
       {
         Map<String, String> metadata = new HashMap<String, String>();
         metadata.put("SLAVE", "SLAVE");
         metadata.put("OFFLINE", "SLAVE");
+        metadata.put("DROPPED", "SLAVE");
         record.setMapField(key, metadata);
       }
       if (state.equals("SLAVE"))
@@ -140,6 +149,7 @@ public class StateModelConfigGenerator
         Map<String, String> metadata = new HashMap<String, String>();
         metadata.put("MASTER", "MASTER");
         metadata.put("OFFLINE", "OFFLINE");
+        metadata.put("DROPPED", "OFFLINE");
         record.setMapField(key, metadata);
       }
       if (state.equals("OFFLINE"))
@@ -147,6 +157,7 @@ public class StateModelConfigGenerator
         Map<String, String> metadata = new HashMap<String, String>();
         metadata.put("SLAVE", "SLAVE");
         metadata.put("MASTER", "SLAVE");
+        metadata.put("DROPPED", "DROPPED");
         record.setMapField(key, metadata);
       }
     }
@@ -155,6 +166,7 @@ public class StateModelConfigGenerator
     stateTransitionPriorityList.add("SLAVE-MASTER");
     stateTransitionPriorityList.add("OFFLINE-SLAVE");
     stateTransitionPriorityList.add("SLAVE-OFFLINE");
+    stateTransitionPriorityList.add("OFFLINE-DROPPED");
     record.setListField("stateTransitionPriorityList",
         stateTransitionPriorityList);
     return record;

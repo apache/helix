@@ -211,7 +211,8 @@ public class CMTaskHandler implements Callable<CMTaskResult>
             _message.getStateUnitGroup());
         
         if(taskResult.isSucess() && toState.equals("DROPPED"))
-        {
+        {// for "OnOfflineToDROPPED" message, we need to remove the resource key record from
+          // the current state of the instance because the resource key is dropped.
           accessor.substractInstanceProperty(instanceName, 
             InstancePropertyType.CURRENTSTATES, _manager.getSessionId(), stateUnitGroup, currentStateToSubstract);
         }
@@ -267,7 +268,8 @@ public class CMTaskHandler implements Callable<CMTaskResult>
           + fromState + " to " + toState + "in " + _stateModel.getClass();
       logger.error(errorMessage);
       taskResult.setSuccess(false);
-
+      
+      System.out.println(errorMessage);
       _statusUpdateUtil.logError(_message, CMTaskHandler.class, errorMessage,
           accessor);
     }

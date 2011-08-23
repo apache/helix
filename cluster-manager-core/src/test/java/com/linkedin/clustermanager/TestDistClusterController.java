@@ -6,19 +6,24 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.I0Itec.zkclient.ZkClient;
 import org.I0Itec.zkclient.ZkServer;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import com.linkedin.clustermanager.ClusterDataAccessor.ControllerPropertyType;
 import com.linkedin.clustermanager.tools.ClusterSetup;
 import com.linkedin.clustermanager.tools.ClusterStateVerifier;
+import com.linkedin.clustermanager.util.CMUtil;
+import com.linkedin.clustermanager.util.ZKClientPool;
 
 public class TestDistClusterController
 {
   private static Logger LOG = Logger.getLogger(TestDistClusterController.class);
   private static final String _zkAddr = "localhost:2181";
   private static ZkServer _zkServer = null;
+  private static ZkClient _zkClient;
   
   private static final String _cntrlClusterName = "CONTROLLER_CLUSTER";
   private static final String _storageClusterGroupName = "ESPRESSO_STORAGE";
@@ -41,6 +46,7 @@ public class TestDistClusterController
     }
     
     _zkServer = TestHelper.startZkSever(_zkAddr, namespaces);
+    _zkClient = ZKClientPool.getZkClient(_zkAddr);
 
     // setup CONTROLLER_CLUSTER
     ClusterSetup setupTool = new ClusterSetup(_zkAddr);
@@ -71,6 +77,20 @@ public class TestDistClusterController
     boolean result = ClusterStateVerifier.VerifyClusterStates(_zkAddr, _cntrlClusterName);
     LOG.info("verify cluster: " + _cntrlClusterName + ", result: " + result);
     Assert.assertEquals(true, result);
+    
+    
+    // get current leader and stop it
+    String leaderPath = CMUtil.getControllerPropertyPath(_cntrlClusterName, 
+                                                         ControllerPropertyType.LEADER);
+    ZNRecord leaderRecord = _zkClient.<ZNRecord>readData(leaderPath);
+    Thread thread = distControllerMap.get(leaderRecord.getId());
+    thread.interrupt();
+    
+    Thread.sleep(3000);
+    result = _zkClient.exists(leaderPath);
+    // LOG.info("new controller cluster leader exists: " + result);
+    Assert.assertEquals(true, result);
+    
     
     LOG.info("End at " + new Date(System.currentTimeMillis()));
     // stop zk server

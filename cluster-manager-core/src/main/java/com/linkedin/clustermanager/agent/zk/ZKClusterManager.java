@@ -435,9 +435,10 @@ public class ZKClusterManager implements ClusterManager
 		}
 		if (_instanceType == InstanceType.PARTICIPANT)
 		{
+		  carryOverPreviousCurrentState();
 			addLiveInstance();
 			// startStatusUpdatedumpTask();
-			carryOverPreviousCurrentState();
+			//
 		}
 		if (_handlers != null && _handlers.size() > 0)
 		{
@@ -456,7 +457,7 @@ public class ZKClusterManager implements ClusterManager
 		for (String previousSessionId : subPaths)
 		{
 			List<ZNRecord> previousCurrentStates = _accessor.getInstancePropertyList(
-			    _instanceName, _sessionId, InstancePropertyType.CURRENTSTATES);
+			    _instanceName, previousSessionId, InstancePropertyType.CURRENTSTATES);
 			for (ZNRecord previousCurrentState : previousCurrentStates)
 			{
 				if (!previousSessionId.equalsIgnoreCase(_sessionId))
@@ -468,12 +469,14 @@ public class ZKClusterManager implements ClusterManager
 						previousCurrentState.getMapField(resourceKey).put(
 						    ZNAttribute.CURRENT_STATE.toString(), "OFFLINE");
 					}
+					previousCurrentState.setSimpleField(CMConstants.ZNAttribute.SESSION_ID.toString(), _sessionId);
 					_accessor.setInstanceProperty(_instanceName,
-					    InstancePropertyType.CURRENTSTATES, _sessionId,
+					    InstancePropertyType.CURRENTSTATES, _sessionId,previousCurrentState.getId(),
 					    previousCurrentState);
 				}
 			}
 		}
+		// Deleted old current state
 		for (String previousSessionId : subPaths)
 		{
 			if (!previousSessionId.equalsIgnoreCase(_sessionId))

@@ -18,7 +18,10 @@ import com.linkedin.clustermanager.util.StatusUpdateUtil;
 
 public class CMTaskExecutor
 {
-  private static final int MAX_PARALLEL_TASKS = 1;
+  // TODO: we need to further design how to throttle this.
+  // From storage point of view, only bootstrap case is expensive 
+  // and we need to throttle, which is mostly IO / network bounded.
+  private static final int MAX_PARALLEL_TASKS = 4;
   private final ExecutorService _pool;
   protected final Map<String, Future<CMTaskResult>> _taskMap;
   private final Object _lock;

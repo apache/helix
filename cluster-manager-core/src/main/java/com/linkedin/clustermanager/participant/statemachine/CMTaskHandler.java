@@ -84,85 +84,14 @@ public class CMTaskHandler implements Callable<CMTaskResult>
           "Message handling task begin execute", accessor);
       try
       {
-      String stateUnitKey = _message.getStateUnitKey();
-      String stateUnitGroup = _message.getStateUnitGroup();
-      String instanceName = _manager.getInstanceName();
-      CMTaskResult taskResult = new CMTaskResult();
-      String fromState = _message.getFromState();
-      String toState = _message.getToState();
-      
-      ZNRecord currentState = accessor.getInstanceProperty(instanceName,
-          InstancePropertyType.CURRENTSTATES, _manager.getSessionId(), stateUnitGroup);
-      if (currentState == null)
-      {
-        currentState = new ZNRecord();
-        currentState.setId(stateUnitGroup);
-        currentState.setSimpleField(
-            CMConstants.ZNAttribute.SESSION_ID.toString(),
-            _manager.getSessionId());
-      }
-      Map<String, String> map;
-      // For resource unit that does not have state before, init it to offline
-      if(!currentState.getMapFields().containsKey(stateUnitKey))
-      {
-         map = new HashMap<String, String>();
-         map.put(ZNAttribute.CURRENT_STATE.toString(), "OFFLINE");
-         currentState.setMapField(stateUnitKey, map);
-         
-         logger.info("Setting initial state for partition: " + stateUnitKey + " to offline");
-         
-         accessor.updateInstanceProperty(instanceName,
-           InstancePropertyType.CURRENTSTATES, _manager.getSessionId(), stateUnitGroup, currentState);
-      }
-      
-      // Set the state model def to current state
-      if(!currentState.getSimpleFields().containsKey(Message.Attributes.STATE_MODEL_DEF.toString()))
-      {
-        if(_message.getSimpleFields().containsKey(Message.Attributes.STATE_MODEL_DEF.toString()))
-        {
-          logger.info("Setting state model def on current state: " + _message.getStateModelDef());
-          currentState.setSimpleField(Message.Attributes.STATE_MODEL_DEF.toString(), _message.getStateModelDef());
-          
-          accessor.updateInstanceProperty(instanceName,
-              InstancePropertyType.CURRENTSTATES, _manager.getSessionId(), stateUnitGroup, currentState);
-        }
-      }
-
-      if ( !fromState.equals("*") && 
-          (fromState == null
-          || !fromState.equalsIgnoreCase(_stateModel.getCurrentState())))
-      {
-        String errorMessage = "Current state of stateModel does not match the fromState in Message "
-            + " Current State:"
-            + _stateModel.getCurrentState()
-            + ", message expected:" + fromState;
-        logger.error(errorMessage);
-        taskResult.setSuccess(false);
-        taskResult.setMessage(errorMessage);
-        accessor.removeInstanceProperty(instanceName,
-            InstancePropertyType.MESSAGES, _message.getId());
-
-        _statusUpdateUtil.logError(_message, CMTaskHandler.class, errorMessage,
-            accessor);
-        return taskResult;
-      }
-      Exception exception = null;
-      try
-      {
-        invoke(accessor, taskResult, _message);
-      } catch (Exception e)
-      {
-        String errorMessage = "Exception while executing a state transition task"
-            + e;
-        _statusUpdateUtil.logError(_message, CMTaskHandler.class, e,
-            errorMessage, accessor);
-        logger.error(errorMessage);
-        taskResult.setSuccess(false);
-      }
-
-      try
-      {
-        currentState = accessor.getInstanceProperty(instanceName,
+        String stateUnitKey = _message.getStateUnitKey();
+        String stateUnitGroup = _message.getStateUnitGroup();
+        String instanceName = _manager.getInstanceName();
+        CMTaskResult taskResult = new CMTaskResult();
+        String fromState = _message.getFromState();
+        String toState = _message.getToState();
+        
+        ZNRecord currentState = accessor.getInstanceProperty(instanceName,
             InstancePropertyType.CURRENTSTATES, _manager.getSessionId(), stateUnitGroup);
         if (currentState == null)
         {
@@ -171,70 +100,137 @@ public class CMTaskHandler implements Callable<CMTaskResult>
           currentState.setSimpleField(
               CMConstants.ZNAttribute.SESSION_ID.toString(),
               _manager.getSessionId());
+          accessor.updateInstanceProperty(instanceName,
+              InstancePropertyType.CURRENTSTATES, _manager.getSessionId(), stateUnitGroup, currentState);
         }
-
-        map = currentState.getMapField(stateUnitKey);
-        map.put(Message.Attributes.STATE_UNIT_GROUP.toString(),
-            _message.getStateUnitGroup());
-        
-        
-        // TODO verify that fromState is same as currentState this task
-        // was
-        // called at.
-        // Verify that no one has edited this field
-        ZNRecord currentStateToSubstract = new ZNRecord();
-        if (taskResult.isSucess())
+        Map<String, String> map;
+        // For resource unit that does not have state before, init it to offline
+        if(!currentState.getMapFields().containsKey(stateUnitKey))
         {
-          _statusUpdateUtil.logInfo(_message, CMTaskHandler.class,
-              "Message handling task completed successfully", accessor);
-          
-          if(!toState.equalsIgnoreCase("DROPPED"))
+           map = new HashMap<String, String>();
+           map.put(ZNAttribute.CURRENT_STATE.toString(), "OFFLINE");
+           
+           ZNRecord currentStateDelta = new ZNRecord();
+           currentStateDelta.setMapField(stateUnitKey, map);
+           
+           logger.info("Setting initial state for partition: " + stateUnitKey + " to offline");
+           
+           accessor.updateInstanceProperty(instanceName,
+             InstancePropertyType.CURRENTSTATES, _manager.getSessionId(), stateUnitGroup, currentStateDelta);
+        }
+        
+        // Set the state model def to current state
+        if(!currentState.getSimpleFields().containsKey(Message.Attributes.STATE_MODEL_DEF.toString()))
+        {
+          if(_message.getSimpleFields().containsKey(Message.Attributes.STATE_MODEL_DEF.toString()))
           {
-            map.put(ZNAttribute.CURRENT_STATE.toString(), toState); 
-            _stateModel.updateState(toState);
+            logger.info("Setting state model def on current state: " + _message.getStateModelDef());
+            ZNRecord currentStateDelta = new ZNRecord();
+            currentStateDelta.setSimpleField(Message.Attributes.STATE_MODEL_DEF.toString(), _message.getStateModelDef());
+            
+            accessor.updateInstanceProperty(instanceName,
+                InstancePropertyType.CURRENTSTATES, _manager.getSessionId(), stateUnitGroup, currentStateDelta);
+          }
+        }
+  
+        if ( !fromState.equals("*") && 
+            (fromState == null
+            || !fromState.equalsIgnoreCase(_stateModel.getCurrentState())))
+        {
+          String errorMessage = "Current state of stateModel does not match the fromState in Message "
+              + " Current State:"
+              + _stateModel.getCurrentState()
+              + ", message expected:" + fromState;
+          logger.error(errorMessage);
+          taskResult.setSuccess(false);
+          taskResult.setMessage(errorMessage);
+          accessor.removeInstanceProperty(instanceName,
+              InstancePropertyType.MESSAGES, _message.getId());
+  
+          _statusUpdateUtil.logError(_message, CMTaskHandler.class, errorMessage,
+              accessor);
+          return taskResult;
+        }
+        Exception exception = null;
+        try
+        {
+          invoke(accessor, taskResult, _message);
+        } 
+        catch (Exception e)
+        {
+          String errorMessage = "Exception while executing a state transition task"
+              + e;
+          _statusUpdateUtil.logError(_message, CMTaskHandler.class, e,
+              errorMessage, accessor);
+          logger.error(errorMessage);
+          taskResult.setSuccess(false);
+        }
+  
+        try
+        {
+          currentState = accessor.getInstanceProperty(instanceName,
+              InstancePropertyType.CURRENTSTATES, _manager.getSessionId(), stateUnitGroup);
+          
+          map = currentState.getMapField(stateUnitKey);
+          map.put(Message.Attributes.STATE_UNIT_GROUP.toString(),
+              _message.getStateUnitGroup());
+          
+          
+          // TODO verify that fromState is same as currentState this task
+          // was
+          // called at.
+          // Verify that no one has edited this field
+          ZNRecord currentStateDelta = new ZNRecord();
+          if (taskResult.isSucess())
+          {
+            _statusUpdateUtil.logInfo(_message, CMTaskHandler.class,
+                "Message handling task completed successfully", accessor);
+            
+            if(!toState.equalsIgnoreCase("DROPPED"))
+            {
+              // If a resource key is dropped, it is ok to leave it "offline"
+              map.put(ZNAttribute.CURRENT_STATE.toString(), toState); 
+              _stateModel.updateState(toState);
+            }
+            
+            currentStateDelta.mapFields.put(stateUnitKey, map);  
+          } 
+          else
+          {
+            StateTransitionError error = new StateTransitionError(
+                StateTransitionError.ErrorCode.INTERNAL, exception);
+            _stateModel.rollbackOnError(_message, _notificationContext, error);
+            map.put(ZNAttribute.CURRENT_STATE.toString(), "ERROR");
+            _stateModel.updateState("ERROR");
+          }
+          map.put(Message.Attributes.STATE_UNIT_GROUP.toString(),
+              _message.getStateUnitGroup());
+          
+          if(taskResult.isSucess() && toState.equals("DROPPED"))
+          {// for "OnOfflineToDROPPED" message, we need to remove the resource key record from
+            // the current state of the instance because the resource key is dropped.
+            accessor.substractInstanceProperty(instanceName, 
+              InstancePropertyType.CURRENTSTATES, _manager.getSessionId(), stateUnitGroup, currentStateDelta);
           }
           else
           {
-            currentStateToSubstract.mapFields.put(stateUnitKey, map);
+            accessor.updateInstanceProperty(instanceName,
+              InstancePropertyType.CURRENTSTATES, _manager.getSessionId(), stateUnitGroup, currentStateDelta);
           }
-         
-        } 
-        else
+  
+          accessor.removeInstanceProperty(instanceName, InstancePropertyType.MESSAGES,_message.getId());
+          // based on task result update the current state of the node.
+  
+        } catch (Exception e)
         {
+          logger.error("Error when updating the state ", e);
           StateTransitionError error = new StateTransitionError(
-              StateTransitionError.ErrorCode.INTERNAL, exception);
+              StateTransitionError.ErrorCode.FRAMEWORK, e);
           _stateModel.rollbackOnError(_message, _notificationContext, error);
-          map.put(ZNAttribute.CURRENT_STATE.toString(), "ERROR");
-          _stateModel.updateState("ERROR");
+          _statusUpdateUtil.logError(_message, CMTaskHandler.class, e,
+              "Error when update the state ", accessor);
         }
-        map.put(Message.Attributes.STATE_UNIT_GROUP.toString(),
-            _message.getStateUnitGroup());
-        
-        if(taskResult.isSucess() && toState.equals("DROPPED"))
-        {// for "OnOfflineToDROPPED" message, we need to remove the resource key record from
-          // the current state of the instance because the resource key is dropped.
-          accessor.substractInstanceProperty(instanceName, 
-            InstancePropertyType.CURRENTSTATES, _manager.getSessionId(), stateUnitGroup, currentStateToSubstract);
-        }
-        else
-        {
-          accessor.updateInstanceProperty(instanceName,
-            InstancePropertyType.CURRENTSTATES, _manager.getSessionId(), stateUnitGroup, currentState);
-        }
-
-        accessor.removeInstanceProperty(instanceName, InstancePropertyType.MESSAGES,_message.getId());
-        // based on task result update the current state of the node.
-
-      } catch (Exception e)
-      {
-        logger.error("Error when updating the state ", e);
-        StateTransitionError error = new StateTransitionError(
-            StateTransitionError.ErrorCode.FRAMEWORK, e);
-        _stateModel.rollbackOnError(_message, _notificationContext, error);
-        _statusUpdateUtil.logError(_message, CMTaskHandler.class, e,
-            "Error when update the state ", accessor);
-      }
-      return taskResult;
+        return taskResult;
       }
       finally
       {

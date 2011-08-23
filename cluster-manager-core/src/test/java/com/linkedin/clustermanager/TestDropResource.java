@@ -87,7 +87,7 @@ public class TestDropResource
     Thread.sleep(15000);
     //Thread.currentThread().join();
     setup.dropResourceGroupToCluster("ESPRESSO_STORAGE", "db-12345");
-    Thread.sleep(25000);
+    Thread.sleep(35000);
     VerifyEmptyCurrentState(accessor, zkClient, "ESPRESSO_STORAGE", "localhost_8900", "db-12345");
     VerifyEmptyCurrentState(accessor, zkClient, "ESPRESSO_STORAGE", "localhost_8901", "db-12345");
     VerifyEmptyCurrentState(accessor, zkClient, "ESPRESSO_STORAGE", "localhost_8902", "db-12345");

@@ -58,29 +58,20 @@ public class MessageGenerationPhase extends AbstractBaseStage
     }
     MessageGenerationOutput output = new MessageGenerationOutput();
     
-    List<ZNRecord> idealStates = dataAccessor.getClusterPropertyList(ClusterPropertyType.IDEALSTATES);
-    Set<String> existingIdealStates = new TreeSet<String>();
-    for(ZNRecord record : idealStates)
-    {
-      existingIdealStates.add(record.getId());
-    }
     for (String resourceGroupName : resourceGroupMap.keySet())
     {
       ResourceGroup resourceGroup = resourceGroupMap.get(resourceGroupName);
-      boolean idealStateExists = existingIdealStates.contains(resourceGroupName);
       StateModelDefinition stateModelDef = lookupStateModel(
           resourceGroup.getStateModelDefRef(), stateModelDefs);
       for (ResourceKey resource : resourceGroup.getResourceKeys())
       {
         Map<String, String> instanceStateMap = bestPossibleStateOutput
             .getInstanceStateMap(resourceGroupName, resource);
-        if(instanceStateMap == null)
-        {
-          continue;
-        }
+        
         for (String instanceName : instanceStateMap.keySet())
         {
           String desiredState = instanceStateMap.get(instanceName);
+             
           String currentState = currentStateOutput.getCurrentState(
               resourceGroupName, resource, instanceName);
           if (currentState == null)
@@ -94,16 +85,7 @@ public class MessageGenerationPhase extends AbstractBaseStage
           String nextState;
             nextState = stateModelDef.getNextStateForTransition(currentState,
                 desiredState);
-            
-          if(!idealStateExists)
-          {
-            if(currentState.equalsIgnoreCase("OFFLINE"))
-            {
-              desiredState = "DROPPED";
-              nextState = "DROPPED";
-            }
-          }
-          
+
           if (!desiredState.equalsIgnoreCase(currentState))
           {
             if (nextState != null)
@@ -122,12 +104,6 @@ public class MessageGenerationPhase extends AbstractBaseStage
                     resource.getResourceKeyName(), instanceName, currentState,
                     nextState, sessionIdMap.get(instanceName), stateModelDef.getId());
                 
-                if(nextState.equals("DROPPED"))
-                {
-                  message.setFromState("*");
-                  message.setTgtSessionId("*");
-                }
-                
                 output.addMessage(resourceGroupName, resource, message);
               }
             } else
@@ -139,44 +115,7 @@ public class MessageGenerationPhase extends AbstractBaseStage
             }
           }
         }
-        // idealstate is gone, we should go through the remaining current states of the downed 
-        // instances and issue drop messages for them
-        if(!idealStateExists) 
-        {
-          List<ZNRecord> instanceConfigs = dataAccessor.getClusterPropertyList(ClusterPropertyType.CONFIGS);
-          for(ZNRecord instanceConfig : instanceConfigs)
-          {
-            String instanceName = instanceConfig.getId();
-            String sessionId = "";
-            if(!instanceStateMap.containsKey(instanceName))
-            {
-              // The instance is not live at present. Send drop resource message to it and the instance 
-              // should handle the drop resource when it is back again
-              List<String> subPaths = dataAccessor.getInstancePropertySubPaths(instanceName, InstancePropertyType.CURRENTSTATES);
-              for(String previousSessionId : subPaths)
-              {
-                
-                ZNRecord previousCurrentState
-                  = dataAccessor.getInstanceProperty(instanceName, InstancePropertyType.CURRENTSTATES, previousSessionId, resourceGroupName);
-                if(previousCurrentState == null)
-                {
-                  continue;
-                }
-              
-                for(String resourceKey : previousCurrentState.mapFields.keySet())
-                {
-                  if(resourceKey.equals(resource.getResourceKeyName()))
-                  {
-                    Message message = createMessage(resourceGroupName,
-                        resource.getResourceKeyName(), instanceName, "*",
-                        "DROPPED", previousSessionId, stateModelDef.getId());
-                    output.addMessage(resourceGroupName, resource, message);
-                  }
-                }
-              }
-            }
-          }
-        }
+        
       }
     }
     event.addAttribute(AttributeName.MESSAGES_ALL.toString(), output);

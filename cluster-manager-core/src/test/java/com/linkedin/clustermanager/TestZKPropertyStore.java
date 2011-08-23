@@ -13,6 +13,7 @@ import org.I0Itec.zkclient.ZkClient;
 import org.I0Itec.zkclient.ZkConnection;
 import org.I0Itec.zkclient.ZkServer;
 import org.apache.commons.io.FileUtils;
+import org.apache.log4j.Logger;
 import org.testng.AssertJUnit;
 import org.testng.annotations.AfterTest;
 import org.testng.annotations.BeforeTest;
@@ -30,30 +31,31 @@ import com.linkedin.clustermanager.store.zk.ZKPropertyStore;
 // TODO: need to write performance test for zk-property store
 public class TestZKPropertyStore
 {
+  private static final Logger LOG = Logger.getLogger(TestZKPropertyStore.class);
   private List<ZkServer> _localZkServers;
 
-  public class MyPropertyChangeListener implements
-      PropertyChangeListener<String>
-  {
+  public class TestPropertyChangeListener 
+  implements PropertyChangeListener<String>
+  { 
     public boolean _propertyChangeReceived = false;
 
     @Override
     public void onPropertyChange(String key)
     {
       // TODO Auto-generated method stub
-      System.out.println("property changed at " + key);
+      LOG.info("property change, " + key);
       _propertyChangeReceived = true;
     }
 
   }
   
-  public class MyUpdater implements DataUpdater<String>
+  public class TestUpdater implements DataUpdater<String>
   {
 
     @Override
     public String update(String currentData)
     {
-      return currentData + "-new";
+      return "new " + currentData;
     }
     
   }
@@ -66,15 +68,13 @@ public class TestZKPropertyStore
       String zkServers = "localhost:2188";
       String value = null;
       
-      // StringPropertySerializer serializer = new StringPropertySerializer();
       PropertyJsonSerializer<String> serializer = new PropertyJsonSerializer<String>(String.class);
       
       ZkConnection zkConn = ZKConnectionFactory.<String>create(zkServers, serializer);
       ZkConnection zkConnSame = ZKConnectionFactory.<String>create(zkServers, serializer);
       Assert.assertEquals(zkConn, zkConnSame);
-      
-  
-      final String propertyStoreRoot = "/testPath1";
+ 
+      final String propertyStoreRoot = "/testZKPropertyStore";
       ZKPropertyStore<String> zkPropertyStore = new ZKPropertyStore<String>(zkConn, serializer, propertyStoreRoot);
       
       // test remove recursive and get non exist property
@@ -83,21 +83,21 @@ public class TestZKPropertyStore
       Assert.assertEquals(value, null);
   
       // test set/get property
-      zkPropertyStore.setProperty("testPath2/1", "testData2_I");
-      zkPropertyStore.setProperty("testPath2/2", "testData2_II");
+      zkPropertyStore.setProperty("child1/grandchild1", "grandchild1");
+      zkPropertyStore.setProperty("child1/grandchild2", "grandchild2");
         
       PropertyStat propertyStat = new PropertyStat();
-      value = zkPropertyStore.getProperty("testPath2/1", propertyStat);
-      Assert.assertEquals(value, "testData2_I");
+      value = zkPropertyStore.getProperty("child1/grandchild1", propertyStat);
+      Assert.assertEquals(value, "grandchild1");
       
       // test cache
-      zkPropertyStore.setProperty("testPath2/1", "testData2_I_new");
-      value = zkPropertyStore.getProperty("testPath2/1", propertyStat);
-      Assert.assertEquals(value, "testData2_I_new");
+      zkPropertyStore.setProperty("child1/grandchild1", "new grandchild1");
+      value = zkPropertyStore.getProperty("child1/grandchild1", propertyStat);
+      Assert.assertEquals(value, "new grandchild1");
       
-      zkPropertyStore.setProperty("testPath2/1", "testData2_I");
-      value = zkPropertyStore.getProperty("testPath2/1", propertyStat);
-      Assert.assertEquals(value, "testData2_I");
+      zkPropertyStore.setProperty("child1/grandchild1", "grandchild1");
+      value = zkPropertyStore.getProperty("child1/grandchild1", propertyStat);
+      Assert.assertEquals(value, "grandchild1");
       
       /**
       // test get property of a node without data
@@ -111,26 +111,32 @@ public class TestZKPropertyStore
       
       
       // test subscribe property
-      MyPropertyChangeListener listener = new MyPropertyChangeListener();
+      TestPropertyChangeListener listener = new TestPropertyChangeListener();
       zkPropertyStore.subscribeForRootPropertyChange(listener);
-      Assert.assertEquals(listener._propertyChangeReceived, false);
+      // Assert.assertEquals(listener._propertyChangeReceived, false);
   
-      zkPropertyStore.setProperty("testPath3/1", "testData3_I");
+      listener._propertyChangeReceived = false;
+      zkPropertyStore.setProperty("child2/grandchild3", "grandchild3");
       Thread.sleep(100);
       Assert.assertEquals(listener._propertyChangeReceived, true);
-     
       
       listener._propertyChangeReceived = false;
-      zkPropertyStore.setProperty("testPath3/2", "testData3_II");
+      zkPropertyStore.setProperty("child1/grandchild4", "grandchild4");
       Thread.sleep(100);
       Assert.assertEquals(listener._propertyChangeReceived, true);
-  
-      value = zkPropertyStore.getProperty("testPath3/1");
-      Assert.assertEquals(value, "testData3_I");
+
+      listener._propertyChangeReceived = false;
+      zkPropertyStore.setProperty("child1/grandchild4", "new grandchild4");
+      Thread.sleep(100);
+      Assert.assertEquals(listener._propertyChangeReceived, true);
+
+      // value = zkPropertyStore.getProperty("child2/grandchild3");
+      // Assert.assertEquals(value, "grandchild3");
       
       // test remove an existing property
-      // this triggers child change at both /testPath1/testPath3/1 (weird) and /testPath1/testPath3 
-      zkPropertyStore.removeProperty("testPath3/1");  
+      // this triggers child change at both child1/grandchild4 and child1
+      listener._propertyChangeReceived = false;
+      zkPropertyStore.removeProperty("child1/grandchild4");  
       Thread.sleep(100);
       Assert.assertTrue(listener._propertyChangeReceived);
       
@@ -149,47 +155,43 @@ public class TestZKPropertyStore
       **/
       
       // test update property
-      boolean isSucceed;
-      zkPropertyStore.updatePropertyUntilSucceed("testPath2/1", new MyUpdater());
-      // Thread.sleep(100); // wait cache to be updated by callback
-      // Assert.assertTrue(isSucceed == true);
+      // boolean isSucceed;
+      zkPropertyStore.updatePropertyUntilSucceed("child1/grandchild1", new TestUpdater());
+      value = zkPropertyStore.getProperty("child1/grandchild1");
+      Assert.assertEquals(value, "new grandchild1");
       
-      value = zkPropertyStore.getProperty("testPath2/1");
-      Assert.assertEquals(value, "testData2_I-new");
-      
-      // test compareAndSet
-      isSucceed = zkPropertyStore.compareAndSet("testPath2/1", 
-                                                "testData2_I", 
-                                                "testData2_I-new2", 
-                                                new PropertyJsonComparator<String>(String.class));
-      // Thread.sleep(100); // wait cache to be updated by callback
+      // test compare and set
+      boolean isSucceed = zkPropertyStore.compareAndSet("child1/grandchild1", 
+                                                        "grandchild1", 
+                                                        "new new grandchild1", 
+                                                        new PropertyJsonComparator<String>(String.class));
       Assert.assertEquals(isSucceed, false);
       
-      value = zkPropertyStore.getProperty("testPath2/1");
-      AssertJUnit.assertTrue(value.equals("testData2_I-new"));
+      value = zkPropertyStore.getProperty("child1/grandchild1");
+      AssertJUnit.assertTrue(value.equals("new grandchild1"));
       
-      isSucceed = zkPropertyStore.compareAndSet("testPath2/1", 
-                                                "testData2_I-new", 
-                                                "testData2_I-new2", 
+      isSucceed = zkPropertyStore.compareAndSet("child1/grandchild1", 
+                                                "new grandchild1", 
+                                                "new new grandchild1", 
                                                 new PropertyJsonComparator<String>(String.class));
-      // Thread.sleep(100); // wait cache to be updated by callback
       Assert.assertEquals(isSucceed, true);
       
-      value = zkPropertyStore.getProperty("testPath2/1");
-      Assert.assertEquals(value, "testData2_I-new2");
+      value = zkPropertyStore.getProperty("child1/grandchild1");
+      AssertJUnit.assertTrue(value.equals("new new grandchild1"));
     
-      
-      isSucceed = zkPropertyStore.compareAndSet("testPath2/3", 
+      // test compare and set, create if absent
+      isSucceed = zkPropertyStore.compareAndSet("child2/grandchild5", 
                                                 null, 
-                                                "testData2_III",  
+                                                "grandchild5",  
                                                 new PropertyJsonComparator<String>(String.class),
                                                 true);
       // Thread.sleep(100); // wait cache to be updated by callback
       Assert.assertEquals(isSucceed, true);
       
-      value = zkPropertyStore.getProperty("testPath2/3");
-      Assert.assertEquals(value, "testData2_III");
+      value = zkPropertyStore.getProperty("/child2/grandchild5");
+      Assert.assertEquals(value, "grandchild5");
       
+      /**
       // test unsubscribe
       // wait for the previous callback to happen
       // then set _propertyChangeRecieved to false
@@ -199,13 +201,14 @@ public class TestZKPropertyStore
       zkPropertyStore.setProperty("testPath3/2", "testData3_III");
       Thread.sleep(100);
       Assert.assertEquals(listener._propertyChangeReceived, false);
+      **/
       
       // test get proper names
-      List<String> children = zkPropertyStore.getPropertyNames("/testPath2");
+      List<String> children = zkPropertyStore.getPropertyNames("/child2");
       Assert.assertTrue(children != null);
-      Assert.assertEquals(children.size(), 3);
-      Assert.assertEquals(children.get(0), "testPath2/3");
-      Assert.assertEquals(children.get(1), "testPath2/2");
+      Assert.assertEquals(children.size(), 2);
+      Assert.assertTrue(children.contains("/child2/grandchild3"));
+      Assert.assertTrue(children.contains("/child2/grandchild5"));
       
       Thread.sleep(100);
     }

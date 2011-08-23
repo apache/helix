@@ -404,7 +404,7 @@ public class ZKClusterManager implements ClusterManager
       final ZNRecord leaderRecord = new ZNRecord();
       leaderRecord.setId(_instanceName);
       
-      _accessor.createControllerProperty(ControllerPropertyType.LAEDER, 
+      _accessor.createControllerProperty(ControllerPropertyType.LEADER, 
                                          leaderRecord, CreateMode.EPHEMERAL);
       
       // set controller history

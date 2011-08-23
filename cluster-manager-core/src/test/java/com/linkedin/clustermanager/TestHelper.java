@@ -66,9 +66,10 @@ public class TestHelper
       public void run()
       {
         // participate CONTROLLOR_CLUSTER and do leader election
+        ClusterManager manager = null;
         try
         {
-          ClusterManager manager 
+          manager 
             = ClusterManagerFactory.getZKBasedManagerForParticipant(clusterName,
                                                                     instanceName,
                                                                     zkAddr);
@@ -86,8 +87,10 @@ public class TestHelper
         }
         catch (InterruptedException e)
         {
-          // manager.disconnect();
-        
+          if (manager != null)
+          {
+            manager.disconnect();
+          }
         }
         catch (Exception e)
         {

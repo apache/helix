@@ -125,7 +125,7 @@ public interface ClusterDataAccessor
 
   public enum ControllerPropertyType
   {
-    LAEDER(false, false, true), HISTORY(true, true, true);
+    LEADER(false, false, true), HISTORY(true, true, true);
     
     boolean isPersistent;
 

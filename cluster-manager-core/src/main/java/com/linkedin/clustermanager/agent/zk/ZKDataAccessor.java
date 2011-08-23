@@ -352,7 +352,7 @@ public class ZKDataAccessor implements ClusterDataAccessor
   public ZNRecord getControllerProperty(ControllerPropertyType controllerProperty)
   {
     final String path = CMUtil.getControllerPropertyPath(_clusterName, controllerProperty);
-    ZNRecord record = _zkClient.<ZNRecord>readData(path);
+    ZNRecord record = _zkClient.<ZNRecord>readData(path,true);
     return record;
   }
 }

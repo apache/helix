@@ -593,13 +593,6 @@ public class FileBasedClusterManager implements ClusterManager
     
   }
 
-  @Override
-  public boolean tryUpdateController()
-  {
-    // TODO Auto-generated method stub
-    return false;
-  }
-
 @Override
 public boolean removeListener(Object listener) {
 	// TODO Auto-generated method stub

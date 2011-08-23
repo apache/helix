@@ -60,6 +60,7 @@ public class ZKClusterManager implements ClusterManager
 	private final InstanceType _instanceType;
 	private String _sessionId;
 	private Timer _timer;
+
 	public ZKClusterManager(String clusterName, String instanceName,
 	    InstanceType instanceType, String zkConnectString) throws Exception
 	{
@@ -69,6 +70,7 @@ public class ZKClusterManager implements ClusterManager
 		_zkConnectString = zkConnectString;
 		_zkStateChangeListener = new ZkStateChangeListener(this);
 		_timer = null;
+		_handlers = new ArrayList<CallbackHandler>();
 		connect();
 	}
 
@@ -106,6 +108,7 @@ public class ZKClusterManager implements ClusterManager
 		    new EventType[]
 		    { EventType.NodeDataChanged, EventType.NodeDeleted,
 		        EventType.NodeCreated }, IDEAL_STATE);
+		_handlers.add(callbackHandler);
 		_zkClient.subscribeChildChanges(path, callbackHandler);
 
 	}
@@ -239,73 +242,35 @@ public class ZKClusterManager implements ClusterManager
 	}
 
 	// distributed cluster controller
-	private class CallbackForController implements IZkChildListener
-	{
-		private final ClusterManager _manager;
-		private final ControllerChangeListener _listener;
-
-		public CallbackForController(ClusterManager manager,
-		    ControllerChangeListener listener)
-		{
-			_manager = manager;
-			_listener = listener;
-		}
-
-		@Override
-		public void handleChildChange(String parent, List<String> childs)
-		    throws Exception
-		{
-			NotificationContext changeContext = new NotificationContext(_manager);
-			_listener.onControllerChange(changeContext);
-		}
-
-	}
-
+	/*
+	 * private class CallbackForController implements IZkChildListener { private
+	 * final ClusterManager _manager; private final ControllerChangeListener
+	 * _listener;
+	 * 
+	 * public CallbackForController(ClusterManager manager,
+	 * ControllerChangeListener listener) { _manager = manager; _listener =
+	 * listener; }
+	 * 
+	 * @Override public void handleChildChange(String parent, List<String> childs)
+	 * throws Exception { NotificationContext changeContext = new
+	 * NotificationContext(_manager); _listener.onControllerChange(changeContext);
+	 * }
+	 * 
+	 * }
+	 */
 	@Override
 	public void addControllerListener(ControllerChangeListener listener)
 	{
 		final String path = CMUtil.getControllerPath(_clusterName);
 
 		// TODO: should add listener first
-		/**
-		 * CallbackHandler callbackHandler = createCallBackHandler(path, listener,
-		 * new EventType[] { EventType.NodeChildrenChanged, EventType.NodeDeleted,
-		 * EventType.NodeCreated }, ChangeType.CONTROLLER);
-		 **/
-		_zkClient.subscribeChildChanges(path, new CallbackForController(this,
-		    listener));
-		NotificationContext changeContext = new NotificationContext(this);
-		listener.onControllerChange(changeContext);
-	}
 
-	@Override
-	public boolean tryUpdateController()
-	{
-		try
-		{
-			final ZNRecord leaderRecord = new ZNRecord();
-			leaderRecord.setId(_instanceName);
-
-			_accessor.createControllerProperty(ControllerPropertyType.LEADER,
-			    leaderRecord, CreateMode.EPHEMERAL);
-
-			// set controller history
-			ZNRecord histRecord = _accessor
-			    .getControllerProperty(ControllerPropertyType.HISTORY);
-			List<String> list = histRecord.getListField(_clusterName);
-			list.add(_instanceName);
-			_accessor.setControllerProperty(ControllerPropertyType.HISTORY,
-			    histRecord, CreateMode.PERSISTENT);
-
-			return true;
-		} catch (ZkNodeExistsException e)
-		{
-			// ignore
-		} catch (Exception e)
-		{
-			e.printStackTrace();
-		}
-		return false;
+		CallbackHandler callbackHandler = createCallBackHandler(path, listener,
+		    new EventType[]
+		    { EventType.NodeChildrenChanged, EventType.NodeDeleted,
+		        EventType.NodeCreated }, ChangeType.CONTROLLER);
+		_handlers.add(callbackHandler);
+		_zkClient.subscribeChildChanges(path, callbackHandler);
 	}
 
 	@Override
@@ -415,7 +380,6 @@ public class ZKClusterManager implements ClusterManager
 		    && _zkClient.exists(CMUtil.getExternalViewPath(_clusterName));
 		return isValid;
 	}
-
 
 	/**
 	 * public void updateController(ClusterManager manager) {

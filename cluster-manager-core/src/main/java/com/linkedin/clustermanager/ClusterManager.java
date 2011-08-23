@@ -152,11 +152,5 @@ public interface ClusterManager
    */
  
   void addControllerListener(ControllerChangeListener listener);
-  
-  /**
-   * Try to update controller
-   * 
-   * @return true on success; false otherwise
-   */
-  public boolean tryUpdateController();
+
 }

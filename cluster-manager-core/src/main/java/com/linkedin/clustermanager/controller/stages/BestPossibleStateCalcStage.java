@@ -78,9 +78,9 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
       ZNRecord idealStateRec = idealStatesMap.get(resourceGroupName);
       IdealState idealState = new IdealState(idealStateRec);
       
-      String stateModelDefName = idealStateExists ?
-          idealState.getStateModelDefRef() :
-          currentStateOutput.getResourceGroupStateModelDef(resourceGroupName) ;
+      String stateModelDefName = idealStateExists ? 
+          idealState.getStateModelDefRef() : currentStateOutput.getResourceGroupStateModelDef(resourceGroupName);
+      
       StateModelDefinition stateModelDef = lookupStateModel(
           stateModelDefName, stateModelDefs);
       for (ResourceKey resource : resourceGroup.getResourceKeys())
@@ -91,14 +91,9 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
         Map<String, String> currentStateMap = currentStateOutput
             .getCurrentStateMap(resourceGroupName, resource);
         
-        if(currentStateMap == null)
-        {
-          continue;
-        }
-
         Map<String, String> bestStateForResource = computeBestStateForResource(
             stateModelDef, instancePreferenceList, liveInstancesMap,
-            currentStateMap, idealStateExists);
+            currentStateMap);
         output.setState(resourceGroupName, resource, bestStateForResource);
       }
     }
@@ -108,19 +103,28 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
   private Map<String, String> computeBestStateForResource(
       StateModelDefinition stateModelDef, List<String> instancePreferenceList,
       Map<String, ZNRecord> liveInstancesMap,
-      Map<String, String> currentStateMap,
-      boolean idealStateExists)
+      Map<String, String> currentStateMap)
   {
     Map<String, String> instanceStateMap = new HashMap<String, String>();
-    if(!idealStateExists)
+   
+    // if the ideal state is deleted, instancePreferenceList will be empty and 
+    // we should drop all resources.
+    
+    if(currentStateMap != null)
     {
-      assert(instancePreferenceList == null);
-      for(String instanceName : currentStateMap.keySet())
+      for(String instance: currentStateMap.keySet())
       {
-        instanceStateMap.put(instanceName, "OFFLINE");
+        if(instancePreferenceList == null || !instancePreferenceList.contains(instance))
+        {
+          instanceStateMap.put(instance, "DROPPED");
+        }
       }
+    }
+    if(instancePreferenceList == null )
+    {
       return instanceStateMap;
     }
+    
     List<String> statesPriorityList = stateModelDef.getStatesPriorityList();
     boolean assigned[] = new boolean[instancePreferenceList.size()];
 

@@ -1,6 +1,7 @@
 package com.linkedin.clustermanagement.webapp.resources;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.Map;
@@ -121,5 +122,26 @@ public class ClusterRepresentationUtil
       throw new ClusterManagerException(_managementCommand +" must be '"+commandValue +"'");
     }
     return paraMap;
+  }
+  
+  public static String getErrorAsJsonStringFromException(Exception e)
+  {
+    StringWriter sw = new StringWriter();
+    PrintWriter pw = new PrintWriter(sw);
+    e.printStackTrace(pw);
+   
+    String error = e.getMessage() + "\n" + sw.toString();
+    Map<String, String> result = new TreeMap<String, String>();
+    result.put("ERROR", error);
+    try
+    {
+      return ObjectToJson(result);
+    } catch (Exception e1)
+    {
+      StringWriter sw1 = new StringWriter();
+      PrintWriter pw1 = new PrintWriter(sw1);
+      e.printStackTrace(pw1);
+      return "{\"ERROR\": \"" + sw1.toString()+"\"}";
+    } 
   }
 }

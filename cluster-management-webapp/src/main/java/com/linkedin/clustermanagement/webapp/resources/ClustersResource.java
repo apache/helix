@@ -60,8 +60,8 @@ public class ClustersResource extends Resource
     }
     catch(Exception e)
     {
-      getResponse().setEntity("ERROR " + e.getMessage(),
-          MediaType.TEXT_PLAIN);
+      getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),
+          MediaType.APPLICATION_JSON);
       getResponse().setStatus(Status.SUCCESS_OK);
     }  
     return presentation;
@@ -103,8 +103,8 @@ public class ClustersResource extends Resource
 
     catch(Exception e)
     {
-      getResponse().setEntity("ERROR " + e.getMessage(),
-          MediaType.TEXT_PLAIN);
+      getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),
+          MediaType.APPLICATION_JSON);
       getResponse().setStatus(Status.SUCCESS_OK);
     }  
   }

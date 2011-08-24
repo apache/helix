@@ -1,8 +1,11 @@
 package com.linkedin.clustermanagement.webapp.resources;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 import org.I0Itec.zkclient.ZkClient;
 import org.codehaus.jackson.JsonGenerationException;
@@ -68,8 +71,8 @@ public class ExternalViewResource extends Resource
     
     catch(Exception e)
     {
-      getResponse().setEntity("ERROR " + e.getMessage(),
-          MediaType.TEXT_PLAIN);
+      getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),
+          MediaType.APPLICATION_JSON);
       getResponse().setStatus(Status.SUCCESS_OK);
     }  
     return presentation;

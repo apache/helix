@@ -79,6 +79,44 @@ public class CMTaskExecutor
       }
     }
   }
+  
+  public void cancelTask(Message message, 
+      NotificationContext notificationContext)
+  {
+    synchronized (_lock)
+    {
+      if (_taskMap.containsKey(message.getMsgId()))
+      {
+        _statusUpdateUtil.logInfo(message, CMTaskExecutor.class,
+            "Trying to cancel the future for " + message.getMsgId(),
+            notificationContext.getManager().getDataAccessor());
+        Future<CMTaskResult> future = _taskMap.get(message.getMsgId());
+        
+        // If the thread is still running it will be interrupted if cancel(true)
+        // is called. So state transition callbacks should implement logic to return 
+        // if it is interrupted.
+        if(future.cancel(true))
+        {
+          _statusUpdateUtil.logInfo(message, CMTaskExecutor.class,
+              "Canceled " + message.getMsgId(),
+              notificationContext.getManager().getDataAccessor());
+          _taskMap.remove(message.getMsgId());
+        }
+        else
+        {
+          _statusUpdateUtil.logInfo(message, CMTaskExecutor.class,
+              "false when trying to cancel the message " + message.getMsgId(),
+              notificationContext.getManager().getDataAccessor());
+        }
+      } 
+      else
+      {
+        _statusUpdateUtil.logWarning(message, CMTaskExecutor.class,
+            "Future not found when trying to cancel " + message.getMsgId(),
+            notificationContext.getManager().getDataAccessor());
+      }
+    }
+  }
 
   protected void reportCompletion(String msgId)
   {

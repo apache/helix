@@ -74,12 +74,12 @@ public class CMTaskHandler implements Callable<CMTaskResult>
   }
 
   @Override
-  public CMTaskResult call() throws Exception
+  public CMTaskResult call()
   {
     synchronized (_stateModel)
     {
       ClusterDataAccessor accessor = _manager.getDataAccessor();
-
+      CMTaskResult taskResult = new CMTaskResult();
       _statusUpdateUtil.logInfo(_message, CMTaskHandler.class,
           "Message handling task begin execute", accessor);
       try
@@ -87,7 +87,7 @@ public class CMTaskHandler implements Callable<CMTaskResult>
         String stateUnitKey = _message.getStateUnitKey();
         String stateUnitGroup = _message.getStateUnitGroup();
         String instanceName = _manager.getInstanceName();
-        CMTaskResult taskResult = new CMTaskResult();
+        
         String fromState = _message.getFromState();
         String toState = _message.getToState();
         
@@ -156,6 +156,10 @@ public class CMTaskHandler implements Callable<CMTaskResult>
         {
           invoke(accessor, taskResult, _message);
         } 
+        catch(InterruptedException e)
+        {
+          throw e;
+        }
         catch (Exception e)
         {
           String errorMessage = "Exception while executing a state transition task"
@@ -217,11 +221,11 @@ public class CMTaskHandler implements Callable<CMTaskResult>
             accessor.updateInstanceProperty(instanceName,
               InstancePropertyType.CURRENTSTATES, _manager.getSessionId(), stateUnitGroup, currentStateDelta);
           }
-  
+          
           accessor.removeInstanceProperty(instanceName, InstancePropertyType.MESSAGES,_message.getId());
           // based on task result update the current state of the node.
-  
-        } catch (Exception e)
+        } 
+        catch (Exception e)
         {
           logger.error("Error when updating the state ", e);
           StateTransitionError error = new StateTransitionError(
@@ -230,6 +234,13 @@ public class CMTaskHandler implements Callable<CMTaskResult>
           _statusUpdateUtil.logError(_message, CMTaskHandler.class, e,
               "Error when update the state ", accessor);
         }
+        return taskResult;
+      }
+      catch(InterruptedException e)
+      {
+        _statusUpdateUtil.logError(_message, CMTaskHandler.class, e,
+            "State transition interrupted", accessor);
+        logger.info("Message "+_message.getMsgId() + " is interrupted");
         return taskResult;
       }
       finally
@@ -243,7 +254,7 @@ public class CMTaskHandler implements Callable<CMTaskResult>
   }
 
   private void invoke(ClusterDataAccessor accessor, CMTaskResult taskResult,
-      Message message) throws IllegalAccessException, InvocationTargetException
+      Message message) throws IllegalAccessException, InvocationTargetException, InterruptedException
   {
     Method methodToInvoke = null;
     String fromState = _message.getFromState();

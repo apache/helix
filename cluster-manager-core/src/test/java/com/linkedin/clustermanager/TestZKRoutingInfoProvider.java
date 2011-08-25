@@ -8,7 +8,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.TreeMap;
 
-import org.I0Itec.zkclient.ZkClient;
+import com.linkedin.clustermanager.agent.zk.ZkClient;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 

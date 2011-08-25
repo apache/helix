@@ -3,7 +3,7 @@ package com.linkedin.clustermanager.mock.router;
 import java.util.List;
 
 import org.I0Itec.zkclient.IDefaultNameSpace;
-import org.I0Itec.zkclient.ZkClient;
+import com.linkedin.clustermanager.agent.zk.ZkClient;
 import org.I0Itec.zkclient.ZkServer;
 
 import com.linkedin.clustermanager.ClusterManager;
@@ -70,7 +70,7 @@ public class MockRouterProcess
     IDefaultNameSpace defaultNameSpace = new IDefaultNameSpace()
     {
       @Override
-      public void createDefaultNameSpace(ZkClient client)
+      public void createDefaultNameSpace(org.I0Itec.zkclient.ZkClient client)
       {
         client.deleteRecursive("/" + clusterName);
 

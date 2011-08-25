@@ -6,7 +6,7 @@ import java.io.File;
 import java.util.Arrays;
 
 import org.I0Itec.zkclient.IDefaultNameSpace;
-import org.I0Itec.zkclient.ZkClient;
+import com.linkedin.clustermanager.agent.zk.ZkClient;
 import org.I0Itec.zkclient.ZkServer;
 
 import com.linkedin.clustermanager.controller.ClusterManagerMain;
@@ -35,7 +35,7 @@ public class IntegrationTest
     IDefaultNameSpace defaultNameSpace = new IDefaultNameSpace()
     {
       @Override
-      public void createDefaultNameSpace(ZkClient zkClient)
+      public void createDefaultNameSpace(org.I0Itec.zkclient.ZkClient zkClient)
       {
         zkClient.deleteRecursive("/ESPRESSO_STORAGE");
         zkClient.deleteRecursive("/relay-cluster-12345");

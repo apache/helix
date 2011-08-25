@@ -18,7 +18,9 @@ import org.apache.zookeeper.data.Stat;
  */
 public class ZkClient extends org.I0Itec.zkclient.ZkClient
 {
-
+  public static String sessionId;
+  public static String sessionPassword;
+  
   public ZkClient(IZkConnection zkConnection, int connectionTimeout,
       ZkSerializer zkSerializer)
   {

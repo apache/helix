@@ -59,6 +59,9 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
     super(serverstring);
   }
 
+	public IZkConnection getConnection(){
+  	return _connection;
+  }
   public Stat getStat(final String path)
   {
     Stat stat = retryUntilConnected(new Callable<Stat>()

@@ -63,7 +63,7 @@ public class ZKBaseTest
      throw e;
     }
     _zkConnectString = hostName + ":" + _port;
-    _zkClient = new ZkClient(_zkConnectString);
+    _zkClient = new ZkClient(_zkConnectString,1000,3000);
     
   }
 

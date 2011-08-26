@@ -28,6 +28,7 @@ import com.linkedin.clustermanager.controller.stages.MessageSelectionStage;
 import com.linkedin.clustermanager.controller.stages.ReadClusterDataStage;
 import com.linkedin.clustermanager.controller.stages.ResourceComputationStage;
 import com.linkedin.clustermanager.controller.stages.TaskAssignmentStage;
+import com.linkedin.clustermanager.monitoring.ClusterManagerContollerMonitor;
 import com.linkedin.clustermanager.pipeline.Pipeline;
 import com.linkedin.clustermanager.pipeline.PipelineRegistry;
 
@@ -58,6 +59,7 @@ public class GenericClusterController implements ConfigChangeListener,
   private PipelineRegistry _registry;
   private final Set<String> _instanceSubscriptionList;
   private final ExternalViewGenerator _externalViewGenerator;
+  ClusterManagerContollerMonitor _monitor;
 
   public GenericClusterController()
   {
@@ -68,7 +70,6 @@ public class GenericClusterController implements ConfigChangeListener,
   {
     synchronized (GenericClusterController.class)
     {
-
       PipelineRegistry registry = new PipelineRegistry();
 
       // cluster data cache refresh
@@ -106,6 +107,16 @@ public class GenericClusterController implements ConfigChangeListener,
     _registry = registry;
     _instanceSubscriptionList = new HashSet<String>();
     _externalViewGenerator = new ExternalViewGenerator();
+    try
+    {
+      _monitor = new ClusterManagerContollerMonitor();
+    }
+    catch(Exception e)
+    {
+      logger.warn("Error when creating ClusterManagerContollerMonitor", e);
+      e.printStackTrace();
+      _monitor = null;
+    }
   }
 
   protected void handleEvent(ClusterEvent event)
@@ -132,6 +143,10 @@ public class GenericClusterController implements ConfigChangeListener,
     event.addAttribute("changeContext", changeContext);
     event.addAttribute("eventData", externalViewList);
     //handleEvent(event);
+    if(_monitor != null)
+    {
+      _monitor.onExternalViewChange(externalViewList, changeContext);
+    }
   }
 
   @Override
@@ -199,6 +214,11 @@ public class GenericClusterController implements ConfigChangeListener,
     event.addAttribute("eventData", liveInstances);
     handleEvent(event);
     logger.info("END: ClusterController.onLiveInstanceChange()");
+    
+    if(_monitor != null)
+    {
+      _monitor.onLiveInstanceChange(liveInstances, changeContext);
+    }
 
   }
 

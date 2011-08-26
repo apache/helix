@@ -14,6 +14,7 @@ import org.apache.log4j.Logger;
 import com.linkedin.clustermanager.NotificationContext;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.model.Message;
+import com.linkedin.clustermanager.monitoring.ParticipantMonitor;
 import com.linkedin.clustermanager.util.StatusUpdateUtil;
 
 public class CMTaskExecutor
@@ -26,6 +27,7 @@ public class CMTaskExecutor
   protected final Map<String, Future<CMTaskResult>> _taskMap;
   private final Object _lock;
   StatusUpdateUtil _statusUpdateUtil;
+  ParticipantMonitor _monitor;
 
   private static Logger logger = Logger.getLogger(CMTaskExecutor.class);
 
@@ -35,10 +37,16 @@ public class CMTaskExecutor
     _lock = new Object();
     _statusUpdateUtil = new StatusUpdateUtil();
     _pool = Executors.newFixedThreadPool(MAX_PARALLEL_TASKS);
+    _monitor = new ParticipantMonitor();
     startMonitorThread();
 
   }
-
+  
+  ParticipantMonitor getStatMonitor()
+  {
+    return _monitor;
+  }
+  
   private void startMonitorThread()
   {
     // start a thread which monitors the completions of task
@@ -52,7 +60,6 @@ public class CMTaskExecutor
       try
       {
         logger.info("message.getMsgId() = " + message.getMsgId());
-
         _statusUpdateUtil.logInfo(message, CMTaskExecutor.class,
             "Message handling task scheduled", notificationContext.getManager()
                 .getDataAccessor());

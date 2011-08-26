@@ -5,6 +5,7 @@ import java.io.StringWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -22,6 +23,9 @@ import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.controller.stages.AttributeName;
 import com.linkedin.clustermanager.model.Message;
+import com.linkedin.clustermanager.monitoring.ParticipantMonitor;
+import com.linkedin.clustermanager.monitoring.StateTransitionContext;
+import com.linkedin.clustermanager.monitoring.StateTransitionDataPoint;
 import com.linkedin.clustermanager.util.StatusUpdateUtil;
 
 public class CMTaskHandler implements Callable<CMTaskResult>
@@ -142,12 +146,45 @@ public class CMTaskHandler implements Callable<CMTaskResult>
     }
   }
   
+  private void reportMessgeStat(CMTaskResult taskResult) throws Exception
+  {
+    // report stat
+    long now = new Date().getTime();
+    long msgReadTime = _message.getReadTimeStamp();
+    long msgExecutionStartTime = _message.getExecuteStartTimeStamp();
+    if(msgReadTime != 0 && msgExecutionStartTime != 0)
+    {
+      long totalDelay = now - msgReadTime;
+      long executionDelay = now - msgExecutionStartTime;
+      if(totalDelay > 0 && executionDelay > 0)
+      {
+        String fromState = _message.getFromState();
+        String toState = _message.getToState();
+        String transition = fromState + "--" + toState;
+        
+        StateTransitionContext cxt = new StateTransitionContext(
+          _manager.getClusterName(),
+          _manager.getInstanceName(),
+          _message.getStateUnitGroup(),
+          transition
+          );
+        
+        StateTransitionDataPoint data = new StateTransitionDataPoint(totalDelay, executionDelay, taskResult.isSucess());
+        _executor.getStatMonitor().reportTransitionStat(cxt, data);
+      }
+    }
+    else
+    {
+      logger.warn("message read time and start execution time not recorded.");
+      throw new Exception();
+    }
+  }
+  
   public void postExecutionMessage(CMTaskResult taskResult, Exception exception) throws InterruptedException
   {
     ClusterDataAccessor accessor = _manager.getDataAccessor();
     try
     {
-      
       String stateUnitKey = _message.getStateUnitKey();
       String stateUnitGroup = _message.getStateUnitGroup();
       String instanceName = _manager.getInstanceName();
@@ -189,6 +226,9 @@ public class CMTaskHandler implements Callable<CMTaskResult>
         map.put(ZNAttribute.CURRENT_STATE.toString(), "ERROR");
         _stateModel.updateState("ERROR");
       }
+      
+      reportMessgeStat(taskResult);
+      
       map.put(Message.Attributes.STATE_UNIT_GROUP.toString(),
           _message.getStateUnitGroup());
       
@@ -228,6 +268,7 @@ public class CMTaskHandler implements Callable<CMTaskResult>
       {
         _statusUpdateUtil.logInfo(_message, CMTaskHandler.class,
             "Message handling task begin execute", accessor);
+        _message.setExecuteStartTimeStamp(new Date().getTime());
         try
         {
           prepareMessageExecution();

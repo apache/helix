@@ -1,5 +1,6 @@
 package com.linkedin.clustermanager.participant;
 
+import java.util.Date;
 import java.util.List;
 
 import org.apache.log4j.Logger;
@@ -91,6 +92,8 @@ public class StateMachineEngine<T extends StateModel> implements
                 "New Message", client);
             // update msgState to read
             message.setMsgState("read");
+            
+            message.setReadTimeStamp(new Date().getTime());
 
             client.updateInstanceProperty(instanceName,
                 InstancePropertyType.MESSAGES, message.getId(), message);

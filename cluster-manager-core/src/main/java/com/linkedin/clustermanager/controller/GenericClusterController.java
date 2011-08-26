@@ -28,7 +28,7 @@ import com.linkedin.clustermanager.controller.stages.MessageSelectionStage;
 import com.linkedin.clustermanager.controller.stages.ReadClusterDataStage;
 import com.linkedin.clustermanager.controller.stages.ResourceComputationStage;
 import com.linkedin.clustermanager.controller.stages.TaskAssignmentStage;
-import com.linkedin.clustermanager.monitoring.ClusterManagerControllerMonitor;
+import com.linkedin.clustermanager.monitoring.mbeans.ClusterStatusMonitor;
 import com.linkedin.clustermanager.pipeline.Pipeline;
 import com.linkedin.clustermanager.pipeline.PipelineRegistry;
 

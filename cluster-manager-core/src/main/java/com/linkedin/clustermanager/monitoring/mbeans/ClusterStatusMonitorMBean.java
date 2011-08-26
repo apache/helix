@@ -1,6 +1,6 @@
 package com.linkedin.clustermanager.monitoring.mbeans;
 
-public interface ClusterStatusMBean
+public interface ClusterStatusMonitorMBean
 {
   @Description("Number of live instances")
   public long getNumberOfLiveInstances();

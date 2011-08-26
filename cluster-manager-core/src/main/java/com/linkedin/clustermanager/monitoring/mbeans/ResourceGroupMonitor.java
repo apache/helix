@@ -9,7 +9,6 @@ import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.NotificationContext;
 import com.linkedin.clustermanager.ZNRecord;
-import com.linkedin.clustermanager.monitoring.ClusterManagerControllerMonitor;
 
 public class ResourceGroupMonitor implements ResourceGroupMonitorMBean
 {
@@ -17,7 +16,7 @@ public class ResourceGroupMonitor implements ResourceGroupMonitorMBean
   int _numOfResourceKeysInExternalView;
   int _numOfErrorResourceKeys;
   int _externalViewIdealStateDiff;
-  private static final Logger LOG = Logger.getLogger(ClusterManagerControllerMonitor.class);
+  private static final Logger LOG = Logger.getLogger(ClusterStatusMonitor.class);
 
   
   public ResourceGroupMonitor()

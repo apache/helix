@@ -1,4 +1,4 @@
-package com.linkedin.clustermanager.monitoring;
+package com.linkedin.clustermanager.monitoring.mbeans;
 
 import java.lang.management.ManagementFactory;
 import java.util.List;
@@ -19,15 +19,12 @@ import com.linkedin.clustermanager.ExternalViewChangeListener;
 import com.linkedin.clustermanager.LiveInstanceChangeListener;
 import com.linkedin.clustermanager.NotificationContext;
 import com.linkedin.clustermanager.ZNRecord;
-import com.linkedin.clustermanager.monitoring.mbeans.ClusterStatusMBean;
-import com.linkedin.clustermanager.monitoring.mbeans.ResourceGroupMonitor;
-import com.linkedin.clustermanager.monitoring.mbeans.ResourceGroupMonitorMBean;
 
 
-public class ClusterManagerControllerMonitor 
-  implements ClusterStatusMBean,LiveInstanceChangeListener, ExternalViewChangeListener
+public class ClusterStatusMonitor 
+  implements ClusterStatusMonitorMBean,LiveInstanceChangeListener, ExternalViewChangeListener
 {
-  private static final Logger LOG = Logger.getLogger(ClusterManagerControllerMonitor.class);
+  private static final Logger LOG = Logger.getLogger(ClusterStatusMonitor.class);
 
   private final MBeanServer _beanServer;
   
@@ -37,11 +34,20 @@ public class ClusterManagerControllerMonitor
     = new ConcurrentHashMap<String, ResourceGroupMonitor>();
   private String _clusterName = "";
   
-  public ClusterManagerControllerMonitor(String clusterName, int nInstances)
+  public ClusterStatusMonitor(String clusterName, int nInstances)
   {
     _clusterName = clusterName;
     _numOfInstances = nInstances;
     _beanServer = ManagementFactory.getPlatformMBeanServer();
+    try
+    {
+      register(this, getObjectName("cluster="+_clusterName));
+    }
+    catch(Exception e)
+    {
+      LOG.error("register self failed.", e);
+      e.printStackTrace();
+    }
   }
   
   private ObjectName getObjectName(String name) throws MalformedObjectNameException

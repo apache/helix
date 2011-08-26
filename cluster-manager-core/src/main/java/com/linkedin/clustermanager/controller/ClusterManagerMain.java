@@ -13,7 +13,7 @@ import org.apache.log4j.Logger;
 import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerFactory;
-import com.linkedin.clustermanager.monitoring.ClusterManagerControllerMonitor;
+import com.linkedin.clustermanager.monitoring.mbeans.ClusterStatusMonitor;
 import com.linkedin.clustermanager.tools.ClusterSetup;
 
 public class ClusterManagerMain
@@ -106,7 +106,7 @@ public class ClusterManagerMain
     
     try
     {
-      ClusterManagerControllerMonitor monitor = new ClusterManagerControllerMonitor(manager.getClusterName(), manager.getDataAccessor().getClusterPropertyList(ClusterPropertyType.INSTANCES).size());
+      ClusterStatusMonitor monitor = new ClusterStatusMonitor(manager.getClusterName(), manager.getDataAccessor().getClusterPropertyList(ClusterPropertyType.INSTANCES).size());
       manager.addLiveInstanceChangeListener(monitor);
       manager.addExternalViewChangeListener(monitor);
     }

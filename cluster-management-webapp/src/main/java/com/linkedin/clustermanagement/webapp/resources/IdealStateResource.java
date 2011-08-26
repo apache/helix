@@ -68,8 +68,8 @@ public class IdealStateResource extends Resource
     {
       String zkServer = (String)getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
       String clusterName = (String)getRequest().getAttributes().get("clusterName");
-      String entityId = (String)getRequest().getAttributes().get("entityId");
-      presentation = getIdealStateRepresentation(zkServer, clusterName, entityId);
+      String resourceName = (String)getRequest().getAttributes().get("resourceName");
+      presentation = getIdealStateRepresentation(zkServer, clusterName, resourceName);
     }
     
     catch(Exception e)
@@ -81,9 +81,9 @@ public class IdealStateResource extends Resource
     return presentation;
   }
   
-  StringRepresentation getIdealStateRepresentation(String zkServerAddress, String clusterName, String entityId) throws JsonGenerationException, JsonMappingException, IOException
+  StringRepresentation getIdealStateRepresentation(String zkServerAddress, String clusterName, String resourceName) throws JsonGenerationException, JsonMappingException, IOException
   {
-    String message = ClusterRepresentationUtil.getClusterPropertyAsString(zkServerAddress, clusterName, ClusterPropertyType.IDEALSTATES, entityId, MediaType.APPLICATION_JSON);
+    String message = ClusterRepresentationUtil.getClusterPropertyAsString(zkServerAddress, clusterName, ClusterPropertyType.IDEALSTATES, resourceName, MediaType.APPLICATION_JSON);
     
     StringRepresentation representation = new StringRepresentation(message, MediaType.APPLICATION_JSON);
     
@@ -96,7 +96,7 @@ public class IdealStateResource extends Resource
     {
       String zkServer = (String)getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
       String clusterName = (String)getRequest().getAttributes().get("clusterName");
-      String entityId = (String)getRequest().getAttributes().get("entityId");
+      String resourceName = (String)getRequest().getAttributes().get("resourceName");
       
       Form form = new Form(entity);
       
@@ -112,22 +112,22 @@ public class IdealStateResource extends Resource
             ZNRecord.class);
         
         ClusterDataAccessor accessor = ClusterRepresentationUtil.getClusterDataAccessor(zkServer,  clusterName);
-        accessor.removeClusterProperty(ClusterPropertyType.IDEALSTATES, entityId);
+        accessor.removeClusterProperty(ClusterPropertyType.IDEALSTATES, resourceName);
         
-        accessor.setClusterProperty(ClusterPropertyType.IDEALSTATES, entityId, newIdealState);
+        accessor.setClusterProperty(ClusterPropertyType.IDEALSTATES, resourceName, newIdealState);
         
       }
       else if(paraMap.get(ClusterRepresentationUtil._managementCommand).equalsIgnoreCase(ClusterRepresentationUtil._rebalanceCommand))
       {
         int replicas = Integer.parseInt(paraMap.get(_replicas));
         ClusterSetup setupTool = new ClusterSetup(zkServer);
-        setupTool.rebalanceStorageCluster(clusterName, entityId, replicas);
+        setupTool.rebalanceStorageCluster(clusterName, resourceName, replicas);
       }
       else
       {
         new ClusterManagerException("Missing '"+ ClusterRepresentationUtil._alterIdealStateCommand+"' or '"+ClusterRepresentationUtil._rebalanceCommand+"' command");
       }
-      getResponse().setEntity(getIdealStateRepresentation(zkServer, clusterName, entityId));
+      getResponse().setEntity(getIdealStateRepresentation(zkServer, clusterName, resourceName));
       getResponse().setStatus(Status.SUCCESS_OK);
     }
 

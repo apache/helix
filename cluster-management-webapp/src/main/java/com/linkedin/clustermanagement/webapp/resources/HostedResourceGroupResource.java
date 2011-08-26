@@ -19,9 +19,9 @@ import com.linkedin.clustermanagement.webapp.RestAdminApplication;
 import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.tools.ClusterSetup;
 
-public class HostedEntityResource extends Resource
+public class HostedResourceGroupResource extends Resource
 {
-  public HostedEntityResource(Context context,
+  public HostedResourceGroupResource(Context context,
       Request request,
       Response response) 
   {
@@ -57,8 +57,8 @@ public class HostedEntityResource extends Resource
     {
       String zkServer = (String)getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
       String clusterName = (String)getRequest().getAttributes().get("clusterName");
-      String entityId = (String)getRequest().getAttributes().get("entityId");
-      presentation = getIdealStateRepresentation(zkServer, clusterName, entityId);
+      String resourceName = (String)getRequest().getAttributes().get("resourceName");
+      presentation = getIdealStateRepresentation(zkServer, clusterName, resourceName);
     }
     
     catch(Exception e)
@@ -70,9 +70,9 @@ public class HostedEntityResource extends Resource
     return presentation;
   }
   
-  StringRepresentation getIdealStateRepresentation(String zkServerAddress, String clusterName, String entityId) throws JsonGenerationException, JsonMappingException, IOException
+  StringRepresentation getIdealStateRepresentation(String zkServerAddress, String clusterName, String resourceName) throws JsonGenerationException, JsonMappingException, IOException
   {
-    String message = ClusterRepresentationUtil.getClusterPropertyAsString(zkServerAddress, clusterName, ClusterPropertyType.IDEALSTATES, entityId, MediaType.APPLICATION_JSON);
+    String message = ClusterRepresentationUtil.getClusterPropertyAsString(zkServerAddress, clusterName, ClusterPropertyType.IDEALSTATES, resourceName, MediaType.APPLICATION_JSON);
     
     StringRepresentation representation = new StringRepresentation(message, MediaType.APPLICATION_JSON);
     

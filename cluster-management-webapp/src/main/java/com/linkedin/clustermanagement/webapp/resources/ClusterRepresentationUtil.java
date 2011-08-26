@@ -32,7 +32,7 @@ public class ClusterRepresentationUtil
   public static final String _jsonParameters = "jsonParameters";
   public static final String _managementCommand = "command";
   public static final String _addInstanceCommand = "addInstance";
-  public static final String _addHostedEntityCommand = "addHostedEntity";
+  public static final String _addResourceGroupCommand = "addResourceGroup";
   public static final String _addStateModelCommand = "addStateModel";
   public static final String _rebalanceCommand = "rebalance";
   public static final String _alterIdealStateCommand = "alterIdealState";

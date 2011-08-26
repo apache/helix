@@ -13,7 +13,7 @@ import org.restlet.resource.Representation;
 import com.linkedin.clustermanagement.webapp.RestAdminApplication;
 import com.linkedin.clustermanagement.webapp.resources.ClusterRepresentationUtil;
 import com.linkedin.clustermanagement.webapp.resources.ClustersResource;
-import com.linkedin.clustermanagement.webapp.resources.HostedEntitiesResource;
+import com.linkedin.clustermanagement.webapp.resources.HostedResourceGroupsResource;
 import com.linkedin.clustermanagement.webapp.resources.IdealStateResource;
 import com.linkedin.clustermanagement.webapp.resources.InstancesResource;
 import com.linkedin.clustermanager.ZNRecord;
@@ -175,7 +175,7 @@ public class TestClusterManagementWebapp
    * Test case as steps
    * */
   String clusterName = "cluster-12345";
-  String entityName = "new-entity-12345";
+  String resourceGroupName = "new-entity-12345";
   String instance1 = "test-1";
   String statemodel = "state_model";
   int instancePort = 9999;
@@ -245,13 +245,13 @@ public class TestClusterManagementWebapp
   
   void VerifyAddHostedEntity() throws JsonGenerationException, JsonMappingException, IOException
   {
-    String httpUrlBase = "http://localhost:"+_port+"/clusters/"+clusterName+"/hostedEntities";
+    String httpUrlBase = "http://localhost:"+_port+"/clusters/"+clusterName+"/resourceGroups";
     Map<String, String> paraMap = new HashMap<String, String>();
     
-    paraMap.put(HostedEntitiesResource._entityName, entityName);
-    paraMap.put(HostedEntitiesResource._partitions, "10");
-    paraMap.put(HostedEntitiesResource._stateModelDefRef, statemodel);
-    paraMap.put(ClusterRepresentationUtil._managementCommand, ClusterRepresentationUtil._addHostedEntityCommand);
+    paraMap.put(HostedResourceGroupsResource._resourceGroupName, resourceGroupName);
+    paraMap.put(HostedResourceGroupsResource._partitions, "10");
+    paraMap.put(HostedResourceGroupsResource._stateModelDefRef, statemodel);
+    paraMap.put(ClusterRepresentationUtil._managementCommand, ClusterRepresentationUtil._addResourceGroupCommand);
     
     
     Reference resourceRef = new Reference(httpUrlBase);
@@ -271,9 +271,9 @@ public class TestClusterManagementWebapp
     ObjectMapper mapper = new ObjectMapper();
     ZNRecord zn = mapper.readValue(new StringReader(sw.toString()),
         ZNRecord.class);
-    AssertJUnit.assertTrue(zn.getListField("entities").contains(entityName));
+    AssertJUnit.assertTrue(zn.getListField("ResourceGroups").contains(resourceGroupName));
     
-    httpUrlBase = "http://localhost:"+_port+"/clusters/"+clusterName+"/hostedEntities/"+entityName; resourceRef = new Reference(httpUrlBase);
+    httpUrlBase = "http://localhost:"+_port+"/clusters/"+clusterName+"/resourceGroups/"+resourceGroupName; resourceRef = new Reference(httpUrlBase);
     
     request = new Request(Method.GET, resourceRef);
     
@@ -377,7 +377,7 @@ public class TestClusterManagementWebapp
   
   void VerifyRebalance() throws JsonGenerationException, JsonMappingException, IOException
   {
-    String httpUrlBase = "http://localhost:"+_port+"/clusters/"+clusterName+"/hostedEntities/"+ entityName+"/idealState";
+    String httpUrlBase = "http://localhost:"+_port+"/clusters/"+clusterName+"/resourceGroups/"+ resourceGroupName+"/idealState";
     Map<String, String> paraMap = new HashMap<String, String>();
     // Add 1 instance
     paraMap.put(IdealStateResource._replicas, "3");
@@ -412,7 +412,7 @@ public class TestClusterManagementWebapp
     sw = new StringWriter();
     result.write(sw);
     
-    httpUrlBase = "http://localhost:"+_port+"/clusters/"+clusterName+"/hostedEntities/"+ entityName+"/externalView";
+    httpUrlBase = "http://localhost:"+_port+"/clusters/"+clusterName+"/resourceGroups/"+ resourceGroupName+"/externalView";
     resourceRef = new Reference(httpUrlBase);
     request = new Request(Method.GET, resourceRef);
     
@@ -473,7 +473,7 @@ public class TestClusterManagementWebapp
   
   void VerifyAlterIdealState() throws IOException
   {
-    String httpUrlBase = "http://localhost:"+_port+"/clusters/"+clusterName+"/hostedEntities/"+ entityName+"/idealState";
+    String httpUrlBase = "http://localhost:"+_port+"/clusters/"+clusterName+"/resourceGroups/"+ resourceGroupName+"/idealState";
     
     Reference resourceRef = new Reference(httpUrlBase);
     Request request = new Request(Method.GET, resourceRef);

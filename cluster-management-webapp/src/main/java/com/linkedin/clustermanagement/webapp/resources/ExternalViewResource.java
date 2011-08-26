@@ -65,8 +65,8 @@ public class ExternalViewResource extends Resource
     {
       String zkServer = (String)getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
       String clusterName = (String)getRequest().getAttributes().get("clusterName");
-      String entityId = (String)getRequest().getAttributes().get("entityId");
-      presentation = getExternalViewRepresentation(zkServer, clusterName, entityId);
+      String resourceName = (String)getRequest().getAttributes().get("resourceName");
+      presentation = getExternalViewRepresentation(zkServer, clusterName, resourceName);
     }
     
     catch(Exception e)
@@ -78,9 +78,9 @@ public class ExternalViewResource extends Resource
     return presentation;
   }
   
-  StringRepresentation getExternalViewRepresentation(String zkServerAddress, String clusterName, String entityId) throws JsonGenerationException, JsonMappingException, IOException
+  StringRepresentation getExternalViewRepresentation(String zkServerAddress, String clusterName, String resourceName) throws JsonGenerationException, JsonMappingException, IOException
   {
-    String message = ClusterRepresentationUtil.getClusterPropertyAsString(zkServerAddress, clusterName, ClusterPropertyType.EXTERNALVIEW, entityId, MediaType.APPLICATION_JSON);
+    String message = ClusterRepresentationUtil.getClusterPropertyAsString(zkServerAddress, clusterName, ClusterPropertyType.EXTERNALVIEW, resourceName, MediaType.APPLICATION_JSON);
     StringRepresentation representation = new StringRepresentation(message, MediaType.APPLICATION_JSON);
     
     return representation;

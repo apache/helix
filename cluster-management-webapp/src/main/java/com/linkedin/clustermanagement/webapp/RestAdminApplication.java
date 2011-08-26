@@ -23,8 +23,8 @@ import org.restlet.data.Response;
 import com.linkedin.clustermanagement.webapp.resources.ClusterResource;
 import com.linkedin.clustermanagement.webapp.resources.ClustersResource;
 import com.linkedin.clustermanagement.webapp.resources.ExternalViewResource;
-import com.linkedin.clustermanagement.webapp.resources.HostedEntitiesResource;
-import com.linkedin.clustermanagement.webapp.resources.HostedEntityResource;
+import com.linkedin.clustermanagement.webapp.resources.HostedResourceGroupsResource;
+import com.linkedin.clustermanagement.webapp.resources.HostedResourceGroupResource;
 import com.linkedin.clustermanagement.webapp.resources.IdealStateResource;
 import com.linkedin.clustermanagement.webapp.resources.InstanceResource;
 import com.linkedin.clustermanagement.webapp.resources.InstancesResource;
@@ -55,12 +55,12 @@ public class RestAdminApplication extends Application
     Router router = new Router(getContext());
     router.attach("/clusters", ClustersResource.class);
     router.attach("/clusters/{clusterName}", ClusterResource.class);
-    router.attach("/clusters/{clusterName}/hostedEntities", HostedEntitiesResource.class);
-    router.attach("/clusters/{clusterName}/hostedEntities/{entityId}", HostedEntityResource.class);
+    router.attach("/clusters/{clusterName}/resourceGroups", HostedResourceGroupsResource.class);
+    router.attach("/clusters/{clusterName}/resourceGroups/{resourceName}", HostedResourceGroupResource.class);
     router.attach("/clusters/{clusterName}/instances", InstancesResource.class);
     router.attach("/clusters/{clusterName}/instances/{instanceName}", InstanceResource.class);
-    router.attach("/clusters/{clusterName}/hostedEntities/{entityId}/idealState", IdealStateResource.class);
-    router.attach("/clusters/{clusterName}/hostedEntities/{entityId}/externalView", ExternalViewResource.class);
+    router.attach("/clusters/{clusterName}/resourceGroups/{resourceName}/idealState", IdealStateResource.class);
+    router.attach("/clusters/{clusterName}/resourceGroups/{resourceName}/externalView", ExternalViewResource.class);
     router.attach("/clusters/{clusterName}/StateModelDefs/{modelName}", StateModelResource.class);
     router.attach("/clusters/{clusterName}/StateModelDefs", StateModelsResource.class);
 

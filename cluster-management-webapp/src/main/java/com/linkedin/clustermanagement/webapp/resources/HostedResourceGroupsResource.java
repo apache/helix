@@ -22,13 +22,13 @@ import com.linkedin.clustermanager.ClusterManagerException;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.tools.ClusterSetup;
 
-public class HostedEntitiesResource extends Resource
+public class HostedResourceGroupsResource extends Resource
 {
   public static final String _partitions = "partitions";
-  public static final String _entityName = "entityName";
+  public static final String _resourceGroupName = "resourceGroupName";
   public static final String _stateModelDefRef = "stateModelDefRef";
   
-  public HostedEntitiesResource(Context context,
+  public HostedResourceGroupsResource(Context context,
       Request request,
       Response response) 
   {
@@ -82,8 +82,8 @@ public class HostedEntitiesResource extends Resource
     List<String> hostedEntities = setupTool.getClusterManagementTool().getResourceGroupsInCluster(clusterName);
     
     ZNRecord hostedEntitiesRecord = new ZNRecord();
-    hostedEntitiesRecord.setId("hostedEntities");
-    hostedEntitiesRecord.setListField("entities", hostedEntities);
+    hostedEntitiesRecord.setId("ResourceGroups");
+    hostedEntitiesRecord.setListField("ResourceGroups", hostedEntities);
     
     StringRepresentation representation = new StringRepresentation(ClusterRepresentationUtil.ZNRecordToJson(hostedEntitiesRecord), MediaType.APPLICATION_JSON);
     
@@ -99,11 +99,11 @@ public class HostedEntitiesResource extends Resource
       
       Form form = new Form(entity);
       Map<String, String> paraMap 
-      = ClusterRepresentationUtil.getFormJsonParametersWithCommandVerified(form, ClusterRepresentationUtil._addHostedEntityCommand);
+      = ClusterRepresentationUtil.getFormJsonParametersWithCommandVerified(form, ClusterRepresentationUtil._addResourceGroupCommand);
     
-      if(!paraMap.containsKey(_entityName))
+      if(!paraMap.containsKey(_resourceGroupName))
       {
-        throw new ClusterManagerException("Json paramaters does not contain '"+_entityName+"'");
+        throw new ClusterManagerException("Json paramaters does not contain '"+_resourceGroupName+"'");
       }
       else if(!paraMap.containsKey(_partitions))
       {
@@ -114,7 +114,7 @@ public class HostedEntitiesResource extends Resource
         throw new ClusterManagerException("Json paramaters does not contain '"+_stateModelDefRef+"'");
       }
       
-      String entityName = paraMap.get(_entityName);
+      String entityName = paraMap.get(_resourceGroupName);
       String stateModelDefRef = paraMap.get(_stateModelDefRef);
       int partitions = Integer.parseInt(paraMap.get(_partitions));
       

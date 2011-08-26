@@ -8,7 +8,7 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.List;
 
-import org.I0Itec.zkclient.ZkClient;
+import com.linkedin.clustermanager.agent.zk.ZkClient;
 import org.I0Itec.zkclient.exception.ZkMarshallingError;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.commons.cli.CommandLine;

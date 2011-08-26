@@ -9,7 +9,7 @@ import junit.framework.Assert;
 
 import org.I0Itec.zkclient.DataUpdater;
 import org.I0Itec.zkclient.IDefaultNameSpace;
-import org.I0Itec.zkclient.ZkClient;
+import com.linkedin.clustermanager.agent.zk.ZkClient;
 import org.I0Itec.zkclient.ZkConnection;
 import org.I0Itec.zkclient.ZkServer;
 import org.apache.commons.io.FileUtils;
@@ -274,7 +274,7 @@ public class TestZKPropertyStore
     IDefaultNameSpace mockDefaultNameSpace = new IDefaultNameSpace()
     {
       @Override
-      public void createDefaultNameSpace(ZkClient zkClient)
+      public void createDefaultNameSpace(org.I0Itec.zkclient.ZkClient zkClient)
       {
       }
     };

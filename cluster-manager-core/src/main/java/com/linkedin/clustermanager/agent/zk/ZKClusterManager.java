@@ -109,7 +109,6 @@ public class ZKClusterManager implements ClusterManager
 		    { EventType.NodeDataChanged, EventType.NodeDeleted,
 		        EventType.NodeCreated }, IDEAL_STATE);
 		_handlers.add(callbackHandler);
-		_zkClient.subscribeChildChanges(path, callbackHandler);
 
 	}
 
@@ -122,7 +121,6 @@ public class ZKClusterManager implements ClusterManager
 		    new EventType[]
 		    { EventType.NodeChildrenChanged, EventType.NodeDeleted,
 		        EventType.NodeCreated }, LIVE_INSTANCE);
-		_zkClient.subscribeChildChanges(path, callbackHandler);
 
 	}
 
@@ -134,7 +132,6 @@ public class ZKClusterManager implements ClusterManager
 		CallbackHandler callbackHandler = createCallBackHandler(path, listener,
 		    new EventType[]
 		    { EventType.NodeChildrenChanged }, CONFIG);
-		_zkClient.subscribeChildChanges(path, callbackHandler);
 	}
 
 	@Override
@@ -146,7 +143,6 @@ public class ZKClusterManager implements ClusterManager
 		    new EventType[]
 		    { EventType.NodeChildrenChanged, EventType.NodeDeleted,
 		        EventType.NodeCreated }, MESSAGE);
-		_zkClient.subscribeChildChanges(path, callbackHandler);
 	}
 
 	@Override
@@ -160,7 +156,6 @@ public class ZKClusterManager implements ClusterManager
 		    new EventType[]
 		    { EventType.NodeChildrenChanged, EventType.NodeDeleted,
 		        EventType.NodeCreated }, CURRENT_STATE);
-		_zkClient.subscribeChildChanges(path, callbackHandler);
 	}
 
 	@Override
@@ -173,7 +168,6 @@ public class ZKClusterManager implements ClusterManager
 		    new EventType[]
 		    { EventType.NodeDataChanged, EventType.NodeDeleted,
 		        EventType.NodeCreated }, EXTERNAL_VIEW);
-		_zkClient.subscribeChildChanges(path, callbackHandler);
 	}
 
 	@Override
@@ -253,7 +247,6 @@ public class ZKClusterManager implements ClusterManager
 		    { EventType.NodeChildrenChanged, EventType.NodeDeleted,
 		        EventType.NodeCreated }, ChangeType.CONTROLLER);
 		_handlers.add(callbackHandler);
-		_zkClient.subscribeChildChanges(path, callbackHandler);
 	}
 
 	@Override

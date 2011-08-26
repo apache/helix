@@ -38,7 +38,7 @@ import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
 import org.I0Itec.zkclient.IDefaultNameSpace;
-import org.I0Itec.zkclient.ZkClient;
+import com.linkedin.clustermanager.agent.zk.ZkClient;
 import org.I0Itec.zkclient.ZkServer;
 import org.apache.commons.io.FileUtils;
 import org.codehaus.jackson.JsonGenerationException;
@@ -88,7 +88,7 @@ public class TestClusterManagementWebapp
     IDefaultNameSpace mockDefaultNameSpace = new IDefaultNameSpace()
     {
       @Override
-      public void createDefaultNameSpace(ZkClient zkClient)
+      public void createDefaultNameSpace(org.I0Itec.zkclient.ZkClient zkClient)
       {
       }
     };

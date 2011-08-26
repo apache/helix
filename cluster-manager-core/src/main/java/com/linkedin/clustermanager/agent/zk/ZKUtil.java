@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.I0Itec.zkclient.DataUpdater;
-import org.I0Itec.zkclient.ZkClient;
+import com.linkedin.clustermanager.agent.zk.ZkClient;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 

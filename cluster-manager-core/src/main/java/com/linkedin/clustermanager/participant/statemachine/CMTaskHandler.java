@@ -36,7 +36,7 @@ public class CMTaskHandler implements Callable<CMTaskResult>
   private final NotificationContext _notificationContext;
   private final ClusterManager _manager;
   StatusUpdateUtil _statusUpdateUtil;
-  private TransitionMethodFinder _transitionMethodFinder;
+  private StateModelParser _transitionMethodFinder;
   CMTaskExecutor _executor;
 
   public CMTaskHandler(NotificationContext notificationContext,
@@ -47,7 +47,7 @@ public class CMTaskHandler implements Callable<CMTaskResult>
     this._stateModel = stateModel;
     this._manager = notificationContext.getManager();
     _statusUpdateUtil = new StatusUpdateUtil();
-    _transitionMethodFinder = new TransitionMethodFinder();
+    _transitionMethodFinder = new StateModelParser();
     _executor = executor;
     if (!validateTask())
     {

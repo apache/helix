@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.I0Itec.zkclient.IDefaultNameSpace;
-import org.I0Itec.zkclient.ZkClient;
+import com.linkedin.clustermanager.agent.zk.ZkClient;
 import org.I0Itec.zkclient.ZkServer;
 
 import com.linkedin.clustermanager.participant.DistClusterControllerElection;
@@ -31,7 +31,7 @@ public class TestHelper
     IDefaultNameSpace defaultNameSpace = new IDefaultNameSpace()
     {
       @Override
-      public void createDefaultNameSpace(ZkClient zkClient)
+      public void createDefaultNameSpace(org.I0Itec.zkclient.ZkClient zkClient)
       {
         for (String rootNamespace : rootNamespaces)
         {

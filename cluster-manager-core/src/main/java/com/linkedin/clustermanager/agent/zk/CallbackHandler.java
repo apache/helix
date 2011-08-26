@@ -61,9 +61,9 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
 	}
 
 	public Object getListener()
-  {
-  	return _listener;
-  }
+	{
+		return _listener;
+	}
 
 	public Object getPath()
 	{
@@ -85,7 +85,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
 			{
 
 				IdealStateChangeListener idealStateChangeListener = (IdealStateChangeListener) _listener;
-				subscribeForChanges(_path, true, true);
+				subscribeForChanges(changeContext, true, true);
 				List<ZNRecord> idealStates = _accessor
 				    .getClusterPropertyList(ClusterPropertyType.IDEALSTATES);
 				idealStateChangeListener.onIdealStateChange(idealStates, changeContext);
@@ -94,7 +94,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
 			{
 
 				ConfigChangeListener configChangeListener = (ConfigChangeListener) _listener;
-				subscribeForChanges(_path, true, true);
+				subscribeForChanges(changeContext, true, true);
 				List<ZNRecord> configs = _accessor
 				    .getClusterPropertyList(ClusterPropertyType.CONFIGS);
 				configChangeListener.onConfigChange(configs, changeContext);
@@ -102,7 +102,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
 			} else if (_changeType == LIVE_INSTANCE)
 			{
 				LiveInstanceChangeListener liveInstanceChangeListener = (LiveInstanceChangeListener) _listener;
-				subscribeForChanges(_path, true, false);
+				subscribeForChanges(changeContext, true, false);
 				List<ZNRecord> liveInstances = _accessor
 				    .getClusterPropertyList(ClusterPropertyType.LIVEINSTANCES);
 				liveInstanceChangeListener.onLiveInstanceChange(liveInstances,
@@ -112,7 +112,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
 			{
 				CurrentStateChangeListener currentStateChangeListener;
 				currentStateChangeListener = (CurrentStateChangeListener) _listener;
-				subscribeForChanges(_path, true, true);
+				subscribeForChanges(changeContext, true, true);
 				String instanceName = CMUtil.getInstanceNameFromPath(_path);
 				String[] pathParts = _path.split("/");
 				List<ZNRecord> currentStates = _accessor.getInstancePropertyList(
@@ -124,7 +124,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
 			} else if (_changeType == MESSAGE)
 			{
 				MessageListener messageListener = (MessageListener) _listener;
-				subscribeForChanges(_path, true, false);
+				subscribeForChanges(changeContext, true, false);
 				String instanceName = CMUtil.getInstanceNameFromPath(_path);
 				List<ZNRecord> messages = _accessor.getInstancePropertyList(
 				    instanceName, InstancePropertyType.MESSAGES);
@@ -133,7 +133,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
 			} else if (_changeType == EXTERNAL_VIEW)
 			{
 				ExternalViewChangeListener externalViewListener = (ExternalViewChangeListener) _listener;
-				subscribeForChanges(_path, true, true);
+				subscribeForChanges(changeContext, true, true);
 				List<ZNRecord> externalViewList = _accessor
 				    .getClusterPropertyList(ClusterPropertyType.EXTERNALVIEW);
 				externalViewListener.onExternalViewChange(externalViewList,
@@ -141,7 +141,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
 			} else if (_changeType == ChangeType.CONTROLLER)
 			{
 				ControllerChangeListener controllerChangelistener = (ControllerChangeListener) _listener;
-				subscribeForChanges(_path, true, false);
+				subscribeForChanges(changeContext, true, false);
 				controllerChangelistener.onControllerChange(changeContext);
 			}
 
@@ -154,14 +154,21 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
 		}
 	}
 
-	private void subscribeForChanges(String path, boolean watchParent,
-	    boolean watchChild)
+	private void subscribeForChanges(NotificationContext changeContext,
+	    boolean watchParent, boolean watchChild)
 	{
 		// parent watch will be set by zkClient
-		List<String> children = _zkClient.getChildren(path);
+		if (watchParent)
+		{
+			if (changeContext.getType() == NotificationContext.Type.INIT)
+			{
+				_zkClient.subscribeChildChanges(this._path, this);
+			}
+		}
+		List<String> children = _zkClient.getChildren(_path);
 		for (String child : children)
 		{
-			String childPath = path + "/" + child;
+			String childPath = _path + "/" + child;
 			if (watchChild)
 			{
 				// its ok to subscribe changes multiple times since zkclient

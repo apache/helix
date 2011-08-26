@@ -7,7 +7,7 @@ import java.util.Map;
 
 import junit.framework.Assert;
 
-import org.I0Itec.zkclient.ZkClient;
+import com.linkedin.clustermanager.agent.zk.ZkClient;
 import org.I0Itec.zkclient.ZkServer;
 import org.testng.annotations.AfterTest;
 import org.testng.annotations.BeforeTest;

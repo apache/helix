@@ -20,10 +20,10 @@ public class ClusterEvent
 
   public void addAttribute(String attrName, Object attrValue)
   {
-    if (logger.isDebugEnabled())
+    if (logger.isTraceEnabled())
     {
-      logger.debug("Adding attribute:" + attrName);
-      logger.debug(" attribute value:" + attrValue);
+      logger.trace("Adding attribute:" + attrName);
+      logger.trace(" attribute value:" + attrValue);
     }
     _eventAttributeMap.put(attrName, attrValue);
   }

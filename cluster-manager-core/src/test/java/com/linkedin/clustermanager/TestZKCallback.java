@@ -7,7 +7,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.I0Itec.zkclient.IDefaultNameSpace;
-import org.I0Itec.zkclient.ZkClient;
+import com.linkedin.clustermanager.agent.zk.ZkClient;
 import org.I0Itec.zkclient.ZkServer;
 import org.apache.commons.io.FileUtils;
 import org.testng.AssertJUnit;
@@ -58,7 +58,7 @@ public class TestZKCallback
     IDefaultNameSpace mockDefaultNameSpace = new IDefaultNameSpace()
     {
       @Override
-      public void createDefaultNameSpace(ZkClient zkClient)
+      public void createDefaultNameSpace(org.I0Itec.zkclient.ZkClient zkClient)
       {
       }
     };

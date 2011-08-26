@@ -14,6 +14,9 @@ import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
+import com.linkedin.clustermanager.ClusterManager;
+import com.linkedin.clustermanager.ExternalViewChangeListener;
+import com.linkedin.clustermanager.LiveInstanceChangeListener;
 import com.linkedin.clustermanager.NotificationContext;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.monitoring.mbeans.ClusterStatusMBean;
@@ -21,9 +24,10 @@ import com.linkedin.clustermanager.monitoring.mbeans.ResourceGroupMonitor;
 import com.linkedin.clustermanager.monitoring.mbeans.ResourceGroupMonitorMBean;
 
 
-public class ClusterManagerContollerMonitor implements ClusterStatusMBean
+public class ClusterManagerControllerMonitor 
+  implements ClusterStatusMBean,LiveInstanceChangeListener, ExternalViewChangeListener
 {
-  private static final Logger LOG = Logger.getLogger(ClusterManagerContollerMonitor.class);
+  private static final Logger LOG = Logger.getLogger(ClusterManagerControllerMonitor.class);
 
   private final MBeanServer _beanServer;
   
@@ -33,8 +37,10 @@ public class ClusterManagerContollerMonitor implements ClusterStatusMBean
     = new ConcurrentHashMap<String, ResourceGroupMonitor>();
   private String _clusterName = "";
   
-  public ClusterManagerContollerMonitor()
+  public ClusterManagerControllerMonitor(String clusterName, int nInstances)
   {
+    _clusterName = clusterName;
+    _numOfInstances = nInstances;
     _beanServer = ManagementFactory.getPlatformMBeanServer();
   }
   
@@ -43,66 +49,6 @@ public class ClusterManagerContollerMonitor implements ClusterStatusMBean
     return new ObjectName("CLMController:"+name);
   }
   
-  private void initRecords(NotificationContext changeContext)
-  {
-    if(_clusterName.length() == 0)
-    {
-      _clusterName = changeContext.getManager().getClusterName();
-    }
-    if(_numOfInstances == 0)
-    {
-      ClusterDataAccessor accessor = changeContext.getManager().getDataAccessor();
-      _numOfInstances = accessor.getClusterPropertyList(ClusterPropertyType.CONFIGS).size();
-    }
-  }
-  
-  public void onLiveInstanceChange(List<ZNRecord> liveInstances,
-      NotificationContext changeContext)
-  {
-    try
-    {
-      _numOfLiveInstances = liveInstances.size();
-      initRecords(changeContext);
-    }
-    catch(Exception e)
-    {
-      LOG.warn(e);
-      e.printStackTrace();
-    }
-  }
-  
-  public void onExternalViewChange(List<ZNRecord> externalViewList,
-      NotificationContext changeContext)
-  {
-    try
-    {
-      for(ZNRecord externalView : externalViewList)
-      {
-        String resourceGroup = externalView.getId();
-        if(!_resourceGroupMbeanMap.containsKey(resourceGroup))
-        {
-          synchronized(this)
-          {
-            if(!_resourceGroupMbeanMap.containsKey(resourceGroup))
-            {
-              ResourceGroupMonitor bean = new ResourceGroupMonitor();
-              String beanName = "Cluster=" + _clusterName + ",resourceGroup=" + resourceGroup;
-              register(bean, getObjectName(beanName));
-              _resourceGroupMbeanMap.put(resourceGroup, bean);
-            }
-          }
-        }
-        _resourceGroupMbeanMap.get(resourceGroup).onExternalViewChange(externalView, changeContext);
-      }
-      initRecords(changeContext);
-    }
-    catch(Exception e)
-    {
-      LOG.warn(e);
-      e.printStackTrace();
-    }
-  }
-
   @Override
   public long getNumberOfLiveInstances()
   {
@@ -134,5 +80,53 @@ public class ClusterManagerContollerMonitor implements ClusterStatusMBean
     {
       LOG.warn("Could not register MBean", e);
     }
+  }
+
+  @Override
+  public void onLiveInstanceChange(List<ZNRecord> liveInstances,
+      NotificationContext changeContext)
+  {
+    try
+    {
+      _numOfLiveInstances = liveInstances.size();
+    }
+    catch(Exception e)
+    {
+      LOG.warn(e);
+      e.printStackTrace();
+    }
+  }
+
+  @Override
+  public void onExternalViewChange(List<ZNRecord> externalViewList,
+      NotificationContext changeContext)
+  {
+    try
+    {
+      for(ZNRecord externalView : externalViewList)
+      {
+        String resourceGroup = externalView.getId();
+        if(!_resourceGroupMbeanMap.containsKey(resourceGroup))
+        {
+          synchronized(this)
+          {
+            if(!_resourceGroupMbeanMap.containsKey(resourceGroup))
+            {
+              ResourceGroupMonitor bean = new ResourceGroupMonitor();
+              String beanName = "Cluster=" + _clusterName + ",resourceGroup=" + resourceGroup;
+              register(bean, getObjectName(beanName));
+              _resourceGroupMbeanMap.put(resourceGroup, bean);
+            }
+          }
+        }
+        _resourceGroupMbeanMap.get(resourceGroup).onExternalViewChange(externalView, changeContext.getManager());
+      }
+    }
+    catch(Exception e)
+    {
+      LOG.warn(e);
+      e.printStackTrace();
+    }
+    
   }
 }

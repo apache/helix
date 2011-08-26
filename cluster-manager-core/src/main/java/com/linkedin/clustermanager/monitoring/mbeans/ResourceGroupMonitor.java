@@ -6,9 +6,10 @@ import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
+import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.NotificationContext;
 import com.linkedin.clustermanager.ZNRecord;
-import com.linkedin.clustermanager.monitoring.ClusterManagerContollerMonitor;
+import com.linkedin.clustermanager.monitoring.ClusterManagerControllerMonitor;
 
 public class ResourceGroupMonitor implements ResourceGroupMonitorMBean
 {
@@ -16,7 +17,7 @@ public class ResourceGroupMonitor implements ResourceGroupMonitorMBean
   int _numOfResourceKeysInExternalView;
   int _numOfErrorResourceKeys;
   int _externalViewIdealStateDiff;
-  private static final Logger LOG = Logger.getLogger(ClusterManagerContollerMonitor.class);
+  private static final Logger LOG = Logger.getLogger(ClusterManagerControllerMonitor.class);
 
   
   public ResourceGroupMonitor()
@@ -40,7 +41,7 @@ public class ResourceGroupMonitor implements ResourceGroupMonitorMBean
     return _externalViewIdealStateDiff;
   }
   
-  public void onExternalViewChange(ZNRecord externalView, NotificationContext changeContext)
+  public void onExternalViewChange(ZNRecord externalView, ClusterManager manager)
   {
     if(externalView == null)
     {
@@ -48,7 +49,7 @@ public class ResourceGroupMonitor implements ResourceGroupMonitorMBean
       return;
     }
     String resourceGroup = externalView.getId();
-    ClusterDataAccessor accessor = changeContext.getManager().getDataAccessor();
+    ClusterDataAccessor accessor = manager.getDataAccessor();
     ZNRecord idealState = null;
     
     try
@@ -110,6 +111,8 @@ public class ResourceGroupMonitor implements ResourceGroupMonitorMBean
         }
       }
     }
+    System.out.println(_numOfErrorResourceKeys + " " 
+        + _externalViewIdealStateDiff + " " + _numOfResourceKeysInExternalView);
     _numOfErrorResourceKeys = numOfErrorResourceKeys;
     _externalViewIdealStateDiff = numOfDiff;
     _numOfResourceKeysInExternalView = externalView.getMapFields().size();

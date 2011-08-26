@@ -8,9 +8,12 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.log4j.Logger;
 
+import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerFactory;
+import com.linkedin.clustermanager.monitoring.ClusterManagerControllerMonitor;
 import com.linkedin.clustermanager.tools.ClusterSetup;
 
 public class ClusterManagerMain
@@ -18,6 +21,8 @@ public class ClusterManagerMain
   public static final String zkServerAddress = "zkSvr";
   public static final String cluster = "cluster";
   public static final String help = "help";
+  private static final Logger _logger = Logger.getLogger(ClusterManagerMain.class);
+
 
   @SuppressWarnings("static-access")
   private static Options constructCommandLineOptions()
@@ -98,6 +103,18 @@ public class ClusterManagerMain
     manager.addLiveInstanceChangeListener(controller);
     manager.addIdealStateChangeListener(controller);
     manager.addExternalViewChangeListener(controller);
+    
+    try
+    {
+      ClusterManagerControllerMonitor monitor = new ClusterManagerControllerMonitor(manager.getClusterName(), manager.getDataAccessor().getClusterPropertyList(ClusterPropertyType.INSTANCES).size());
+      manager.addLiveInstanceChangeListener(monitor);
+      manager.addExternalViewChangeListener(monitor);
+    }
+    catch(Exception e)
+    {
+      _logger.warn("Error when creating ClusterManagerContollerMonitor", e);
+      e.printStackTrace();
+    }
 
     // Message listener is not needed
     // manager.addMessageListener(controller);

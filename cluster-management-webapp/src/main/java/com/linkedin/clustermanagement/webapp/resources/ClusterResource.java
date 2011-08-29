@@ -79,8 +79,11 @@ public class ClusterResource extends Resource
     clusterSummayRecord.setListField("instances", instances);
     
     List<String> hostedEntities = setupTool.getClusterManagementTool().getResourceGroupsInCluster(clusterName);
+    clusterSummayRecord.setListField("resourceGroups", hostedEntities);
     
-    clusterSummayRecord.setListField("hostedEntities", hostedEntities);
+    List<String> models = setupTool.getClusterManagementTool().getStateModelDefs(clusterName);
+    clusterSummayRecord.setListField("stateModels", models);
+    
     StringRepresentation representation = new StringRepresentation(ClusterRepresentationUtil.ZNRecordToJson(clusterSummayRecord), MediaType.APPLICATION_JSON);
     
     return representation;

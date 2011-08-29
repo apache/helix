@@ -292,8 +292,8 @@ public class ZKClusterManager implements ClusterManager
 	private void startStatusUpdatedumpTask()
 	{
 		long initialDelay = 30 * 60 * 1000;
-		long period = 30 * 60 * 1000;
-		int timeThresholdNoChange = 15 * 60 * 1000;
+		long period = 120 * 60 * 1000;
+		int timeThresholdNoChange = 180 * 60 * 1000;
 		String path = CMUtil.getInstancePropertyPath(_clusterName, _instanceName,
 		    InstancePropertyType.STATUSUPDATES);
 		List<String> paths = new ArrayList<String>();
@@ -377,7 +377,7 @@ public class ZKClusterManager implements ClusterManager
 		{
 		  carryOverPreviousCurrentState();
 			addLiveInstance();
-			// startStatusUpdatedumpTask();
+		  startStatusUpdatedumpTask();
 			//
 		}
 		if (_handlers != null && _handlers.size() > 0)

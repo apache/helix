@@ -130,7 +130,7 @@ public class ClusterRepresentationUtil
     PrintWriter pw = new PrintWriter(sw);
     e.printStackTrace(pw);
    
-    String error = e.getMessage() + "\n" + sw.toString();
+    String error = e.getMessage() + '\n' + sw.toString();
     Map<String, String> result = new TreeMap<String, String>();
     result.put("ERROR", error);
     try

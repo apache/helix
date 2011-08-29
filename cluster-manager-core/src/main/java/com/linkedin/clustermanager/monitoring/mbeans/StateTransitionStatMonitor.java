@@ -105,4 +105,28 @@ public class StateTransitionStatMonitor implements StateTransitionStatMonitorMBe
   {
     return _monitorMap.get(LATENCY_TYPE.TOTAL).getPercentile(percentage);
   }
+
+  @Override
+  public double getMeanTransitionExecuteLatency()
+  {
+    return _monitorMap.get(LATENCY_TYPE.EXECUTION).getMean();
+  }
+
+  @Override
+  public double getMaxTransitionExecuteLatency()
+  {
+    return _monitorMap.get(LATENCY_TYPE.EXECUTION).getMax();
+  }
+
+  @Override
+  public double getMinTransitionExecuteLatency()
+  {
+    return _monitorMap.get(LATENCY_TYPE.EXECUTION).getMin();
+  }
+
+  @Override
+  public double getPercentileTransitionExecuteLatency(int percentage)
+  {
+    return _monitorMap.get(LATENCY_TYPE.EXECUTION).getPercentile(percentage);
+  }
 }

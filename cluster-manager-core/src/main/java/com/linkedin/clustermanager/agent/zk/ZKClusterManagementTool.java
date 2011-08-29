@@ -95,9 +95,10 @@ public class ZKClusterManagementTool implements ClusterManagementService
       if (overwritePrevRecord)
       {
         _zkClient.deleteRecursive(root);
-      } else
+      } 
+      else
       {
-        return;
+        throw new ClusterManagerException("Cluster "+clusterName+" already exists");
       }
     }
 

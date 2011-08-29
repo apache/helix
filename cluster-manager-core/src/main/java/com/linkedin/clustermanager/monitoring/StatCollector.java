@@ -48,6 +48,10 @@ public class StatCollector
   
   public double getMean()
   {
+    if(_stats.getN() == 0)
+    {
+      return 0;
+    }
     return _stats.getMean();
   }
 
@@ -65,6 +69,10 @@ public class StatCollector
 
   public double getPercentile(int percentage)
   {
+    if(_stats.getN() == 0)
+    {
+      return 0;
+    }
     // TODO Auto-generated method stub
     return _stats.getPercentile(percentage*1.0 / 100);
   }

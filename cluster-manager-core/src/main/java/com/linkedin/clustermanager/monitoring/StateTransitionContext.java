@@ -40,16 +40,24 @@ public class StateTransitionContext
     return _transition;
   }
   
-  
-  public boolean equals(StateTransitionContext other)
+  @Override
+  public boolean equals(Object other)
   {
-    return 
-      _clusterName.equals(other.getClusterName()) &&
-      _instanceName.equals(other.getInstanceName()) &&
-      _stateUnitGroup.equals(other.getStateUnitGroup()) &&
-      _transition.equals(other.getTransition()) ;
+    if(! (other instanceof StateTransitionContext))
+    {
+      return false;
+    }
+    
+    StateTransitionContext otherCxt = (StateTransitionContext) other;  
+    return
+      _clusterName.equals(otherCxt.getClusterName()) &&
+      _instanceName.equals(otherCxt.getInstanceName()) &&
+      _stateUnitGroup.equals(otherCxt.getStateUnitGroup()) &&
+      _transition.equals(otherCxt.getTransition()) ;
   }
-  
+    
+
+ @Override
   public int hashCode()
   {
     return toString().hashCode();

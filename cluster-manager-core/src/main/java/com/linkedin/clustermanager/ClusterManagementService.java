@@ -6,7 +6,9 @@ public interface ClusterManagementService
 {
   List<String> getClusters();
 
-  List<String> getNodeNamesInCluster(String clusterName);
+  List<String> getInstancesInCluster(String clusterName);
+  
+  ZNRecord getInstanceConfig(String clusterName, String instanceName);
 
   List<String> getResourceGroupsInCluster(String clusterName);
 
@@ -14,7 +16,7 @@ public interface ClusterManagementService
 
   void addResourceGroup(String clusterName, String resourceGroup, int numResources, String stateModelRef);
 
-  void addNode(String clusterName, ZNRecord nodeConfig);
+  void addInstance(String clusterName, ZNRecord instanceConfig);
 
   ZNRecord getResourceGroupIdealState(String clusterName, String dbName);
 
@@ -27,4 +29,8 @@ public interface ClusterManagementService
   void dropResourceGroup(String clusterName, String resourceGroup);
   
   List<String> getStateModelDefs(String clusterName);
+  
+  ZNRecord getStateModelDef(String clusterName, String stateModelName);
+  
+  ZNRecord getResourceGroupExternalView(String clusterName, String resourceGroup);
 }

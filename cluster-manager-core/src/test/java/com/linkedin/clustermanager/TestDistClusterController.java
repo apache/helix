@@ -56,7 +56,7 @@ public class TestDistClusterController
     
     for (int i = 0; i < _distClusterControllerNr; i++)
     {
-      setupTool.addNodeToCluster(_cntrlClusterName, "localhost",8900 + i);
+      setupTool.addInstanceToCluster(_cntrlClusterName, "localhost",8900 + i);
     }
     
     setupTool.rebalanceStorageCluster(_cntrlClusterName, _storageClusterGroupName, 

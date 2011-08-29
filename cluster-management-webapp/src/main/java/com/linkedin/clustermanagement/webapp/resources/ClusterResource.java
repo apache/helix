@@ -72,7 +72,7 @@ public class ClusterResource extends Resource
   StringRepresentation getClusterRepresentation(String zkServerAddress, String clusterName) throws JsonGenerationException, JsonMappingException, IOException
   {
     ClusterSetup setupTool = new ClusterSetup(zkServerAddress);
-    List<String> instances = setupTool.getClusterManagementTool().getNodeNamesInCluster(clusterName);
+    List<String> instances = setupTool.getClusterManagementTool().getInstancesInCluster(clusterName);
     
     ZNRecord clusterSummayRecord = new ZNRecord();
     clusterSummayRecord.setId("cluster summary");

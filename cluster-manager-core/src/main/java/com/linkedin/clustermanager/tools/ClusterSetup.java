@@ -21,6 +21,7 @@ import com.linkedin.clustermanager.ClusterManagementService;
 import com.linkedin.clustermanager.ClusterManagerException;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.agent.zk.ZKClusterManagementTool;
+import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
 import com.linkedin.clustermanager.util.ZKClientPool;
 
@@ -28,30 +29,33 @@ public class ClusterSetup
 {
   public static final String zkServerAddress = "zkSvr";
 
-  // List info about the cluster / DB/ Nodes
+  // List info about the cluster / DB/ Instances
   public static final String listClusters = "listClusters";
   public static final String listResourceGroups = "listResourceGroups";
-  public static final String listNodes = "listNodes";
+  public static final String listInstances = "listInstances";
 
   // Add and rebalance
   public static final String addCluster = "addCluster";
-  public static final String addNode = "addNode";
+  public static final String addInstance = "addNode";
   public static final String addResourceGroup = "addResourceGroup";
   public static final String addStateModelDef = "addStateModelDef";
   public static final String rebalance = "rebalance";
 
   // Query info (TBD in V2)
-  public static final String clusterInfo = "clusterInfo";
-  public static final String nodeInfo = "nodeInfo";
-  public static final String resourceGroupInfo = "resourceGroupInfo";
-  public static final String resourceInfo = "resourceInfo";
+  public static final String listClusterInfo = "listClusterInfo";
+  public static final String listInstanceInfo = "listInstanceInfo";
+  public static final String listResourceGroupInfo = "listResourceGroupInfo";
+  public static final String listResourceInfo = "listResourceInfo";
+  public static final String listStateModels = "listStateModels";
+  public static final String listStateModel = "listStateModel";
+  
 
   // TODO: refactor
   // setup for file-based cluster manager
   // public static final String configFile = "configFile";
 
-  // enable / disable nodes
-  public static final String enableNode = "enableNode";
+  // enable / disable Instances
+  public static final String enableInstance = "enableInstance";
 
   public static final String help = "help";
 
@@ -72,48 +76,48 @@ public class ClusterSetup
         generator.generateConfigForMasterSlave());
   }
 
-  public void addNodesToCluster(String clusterName, String[] nodeInfoArray)
+  public void addInstancesToCluster(String clusterName, String[] InstanceInfoArray)
   {
-    for (String nodeInfo : nodeInfoArray)
+    for (String InstanceInfo : InstanceInfoArray)
     {
-      // the storage node info must be hostname:port format.
-      if (nodeInfo.length() > 0)
+      // the storage Instance info must be hostname:port format.
+      if (InstanceInfo.length() > 0)
       {
-        addNodeToCluster(clusterName, nodeInfo);
+        addInstanceToCluster(clusterName, InstanceInfo);
       }
     }
   }
 
-  public void addNodeToCluster(String clusterName, String nodeAddress)
+  public void addInstanceToCluster(String clusterName, String InstanceAddress)
   {
-    // nodeAddress must be in host:port format
-    int lastPos = nodeAddress.lastIndexOf(":");
+    // InstanceAddress must be in host:port format
+    int lastPos = InstanceAddress.lastIndexOf(":");
     if (lastPos <= 0)
     {
-      String error = "Invalid storage node info format: " + nodeAddress;
+      String error = "Invalid storage Instance info format: " + InstanceAddress;
       _logger.warn(error);
       throw new ClusterManagerException(error);
     }
-    String host = nodeAddress.substring(0, lastPos);
-    String portStr = nodeAddress.substring(lastPos + 1);
+    String host = InstanceAddress.substring(0, lastPos);
+    String portStr = InstanceAddress.substring(lastPos + 1);
     int port = Integer.parseInt(portStr);
-    addNodeToCluster(clusterName, host, port);
+    addInstanceToCluster(clusterName, host, port);
   }
 
-  public void addNodeToCluster(String clusterName, String host, int port)
+  public void addInstanceToCluster(String clusterName, String host, int port)
   {
     ClusterManagementService managementTool = getClusterManagementTool();
 
-    ZNRecord nodeConfig = new ZNRecord();
-    String nodeId = host + "_" + port;
-    nodeConfig.setId(nodeId);
-    nodeConfig.setSimpleField(InstanceConfigProperty.HOST.toString(), host);
-    nodeConfig
+    ZNRecord InstanceConfig = new ZNRecord();
+    String InstanceId = host + "_" + port;
+    InstanceConfig.setId(InstanceId);
+    InstanceConfig.setSimpleField(InstanceConfigProperty.HOST.toString(), host);
+    InstanceConfig
         .setSimpleField(InstanceConfigProperty.PORT.toString(), "" + port);
-    nodeConfig.setSimpleField(InstanceConfigProperty.ENABLED.toString(),
+    InstanceConfig.setSimpleField(InstanceConfigProperty.ENABLED.toString(),
         true + "");
 
-    managementTool.addNode(clusterName, nodeConfig);
+    managementTool.addInstance(clusterName, InstanceConfig);
   }
 
   public ClusterManagementService getClusterManagementTool()
@@ -148,7 +152,7 @@ public class ClusterSetup
       String resourceGroupName, int replica)
   {
     ClusterManagementService managementTool = getClusterManagementTool();
-    List<String> nodeNames = managementTool.getNodeNamesInCluster(clusterName);
+    List<String> InstanceNames = managementTool.getInstancesInCluster(clusterName);
 
     ZNRecord dbIdealState = managementTool.getResourceGroupIdealState(
         clusterName, resourceGroupName);
@@ -156,14 +160,14 @@ public class ClusterSetup
         .parseInt(dbIdealState.getSimpleField("partitions"));
 
     ZNRecord idealState = IdealStateCalculatorForStorageNode
-        .calculateIdealState(nodeNames, partitions, replica, resourceGroupName);
+        .calculateIdealState(InstanceNames, partitions, replica, resourceGroupName);
     idealState.merge(dbIdealState);
     managementTool.setResourceGroupIdealState(clusterName, resourceGroupName,
         idealState);
   }
 
   /**
-   * Sets up a cluster with 6 Nodes[localhost:8900 to localhost:8905], 1
+   * Sets up a cluster with 6 Instances[localhost:8900 to localhost:8905], 1
    * resourceGroup[EspressoDB] with a replication factor of 3
    * 
    * @param clusterName
@@ -171,12 +175,12 @@ public class ClusterSetup
   public void setupTestCluster(String clusterName)
   {
     addCluster(clusterName, true);
-    String storageNodeInfoArray[] = new String[6];
-    for (int i = 0; i < storageNodeInfoArray.length; i++)
+    String storageInstanceInfoArray[] = new String[6];
+    for (int i = 0; i < storageInstanceInfoArray.length; i++)
     {
-      storageNodeInfoArray[i] = "localhost:" + (8900 + i);
+      storageInstanceInfoArray[i] = "localhost:" + (8900 + i);
     }
-    addNodesToCluster(clusterName, storageNodeInfoArray);
+    addInstancesToCluster(clusterName, storageInstanceInfoArray);
     addResourceGroupToCluster(clusterName, "TestDB", 10, "MasterSlave");
     rebalanceStorageCluster(clusterName, "TestDB", 3);
   }
@@ -211,11 +215,11 @@ public class ClusterSetup
     listResourceGroupOption.setRequired(false);
     listResourceGroupOption.setArgName("clusterName");
 
-    Option listNodesOption = OptionBuilder.withLongOpt(listNodes)
-        .withDescription("List nodes in a cluster").create();
-    listNodesOption.setArgs(1);
-    listNodesOption.setRequired(false);
-    listNodesOption.setArgName("clusterName");
+    Option listInstancesOption = OptionBuilder.withLongOpt(listInstances)
+        .withDescription("List Instances in a cluster").create();
+    listInstancesOption.setArgs(1);
+    listInstancesOption.setRequired(false);
+    listInstancesOption.setArgName("clusterName");
 
     Option addClusterOption = OptionBuilder.withLongOpt(addCluster)
         .withDescription("Add a new cluster").create();
@@ -223,11 +227,11 @@ public class ClusterSetup
     addClusterOption.setRequired(false);
     addClusterOption.setArgName("clusterName");
 
-    Option addNodeOption = OptionBuilder.withLongOpt(addNode)
-        .withDescription("Add a new node to a cluster").create();
-    addNodeOption.setArgs(2);
-    addNodeOption.setRequired(false);
-    addNodeOption.setArgName("clusterName nodeAddress(host:port)");
+    Option addInstanceOption = OptionBuilder.withLongOpt(addInstance)
+        .withDescription("Add a new Instance to a cluster").create();
+    addInstanceOption.setArgs(2);
+    addInstanceOption.setRequired(false);
+    addInstanceOption.setArgName("clusterName InstanceAddress(host:port)");
 
     Option addResourceGroupOption = OptionBuilder.withLongOpt(addResourceGroup)
         .withDescription("Add a resourceGroup to a cluster").create();
@@ -249,36 +253,49 @@ public class ClusterSetup
     rebalanceOption.setRequired(false);
     rebalanceOption.setArgName("clusterName resourceGroupName replicationNo");
 
-    Option nodeInfoOption = OptionBuilder.withLongOpt(nodeInfo)
-        .withDescription("Query info of a node in a cluster").create();
-    nodeInfoOption.setArgs(2);
-    nodeInfoOption.setRequired(false);
-    nodeInfoOption.setArgName("clusterName nodeName");
+    Option InstanceInfoOption = OptionBuilder.withLongOpt(listInstanceInfo)
+        .withDescription("Query info of a Instance in a cluster").create();
+    InstanceInfoOption.setArgs(2);
+    InstanceInfoOption.setRequired(false);
+    InstanceInfoOption.setArgName("clusterName InstanceName");
 
-    Option clusterInfoOption = OptionBuilder.withLongOpt(clusterInfo)
+    Option clusterInfoOption = OptionBuilder.withLongOpt(listClusterInfo)
         .withDescription("Query info of a cluster").create();
     clusterInfoOption.setArgs(1);
     clusterInfoOption.setRequired(false);
     clusterInfoOption.setArgName("clusterName");
 
     Option resourceGroupInfoOption = OptionBuilder
-        .withLongOpt(resourceGroupInfo)
+        .withLongOpt(listResourceGroupInfo)
         .withDescription("Query info of a resourceGroup").create();
     resourceGroupInfoOption.setArgs(2);
     resourceGroupInfoOption.setRequired(false);
     resourceGroupInfoOption.setArgName("clusterName resourceGroupName");
 
-    Option partitionInfoOption = OptionBuilder.withLongOpt(resourceInfo)
+    Option partitionInfoOption = OptionBuilder.withLongOpt(listResourceInfo)
         .withDescription("Query info of a partition").create();
     partitionInfoOption.setArgs(2);
     partitionInfoOption.setRequired(false);
     partitionInfoOption.setArgName("clusterName partitionName");
 
-    Option enableNodeOption = OptionBuilder.withLongOpt(enableNode)
-        .withDescription("Enable / disable a node").create();
-    enableNodeOption.setArgs(3);
-    enableNodeOption.setRequired(false);
-    enableNodeOption.setArgName("clusterName nodeName true/false");
+    Option enableInstanceOption = OptionBuilder.withLongOpt(enableInstance)
+        .withDescription("Enable / disable a Instance").create();
+    enableInstanceOption.setArgs(3);
+    enableInstanceOption.setRequired(false);
+    enableInstanceOption.setArgName("clusterName InstanceName true/false");
+    
+    Option listStateModelsOption = OptionBuilder.withLongOpt(listStateModels)
+      .withDescription("Query info of state models in a cluster").create();
+    listStateModelsOption.setArgs(1);
+    listStateModelsOption.setRequired(false);
+    listStateModelsOption.setArgName("clusterName");
+
+    Option listStateModelOption = OptionBuilder.withLongOpt(listStateModel)
+      .withDescription("Query info of a state model in a cluster").create();
+    listStateModelOption.setArgs(2);
+    listStateModelOption.setRequired(false);
+    listStateModelOption.setArgName("clusterName stateModelName");
+
 
     // add an option group including either --zkSvr or --configFile
     /**
@@ -298,16 +315,18 @@ public class ClusterSetup
     options.addOption(rebalanceOption);
     options.addOption(addResourceGroupOption);
     options.addOption(addClusterOption);
-    options.addOption(addNodeOption);
-    options.addOption(listNodesOption);
+    options.addOption(addInstanceOption);
+    options.addOption(listInstancesOption);
     options.addOption(listResourceGroupOption);
     options.addOption(listClustersOption);
     options.addOption(rebalanceOption);
-    options.addOption(nodeInfoOption);
+    options.addOption(InstanceInfoOption);
     options.addOption(clusterInfoOption);
     options.addOption(resourceGroupInfoOption);
     options.addOption(partitionInfoOption);
-    options.addOption(enableNodeOption);
+    options.addOption(enableInstanceOption);
+    options.addOption(listStateModelsOption);
+    options.addOption(listStateModelOption);
 
     options.addOptionGroup(optionGroup);
 
@@ -346,13 +365,13 @@ public class ClusterSetup
       dbParams.add(new FileBasedClusterManager.DBParam("MailboxDB", 128));
       dbParams.add(new FileBasedClusterManager.DBParam("MyDB", 8));
       dbParams.add(new FileBasedClusterManager.DBParam("schemata", 1));
-      String[] nodesInfo =
+      String[] InstancesInfo =
       { "localhost:8900" };
 
       // ClusterViewSerializer serializer = new ClusterViewSerializer(file);
       int replica = 0;
       ClusterView view = FileBasedClusterManager
-          .generateStaticConfigClusterView(nodesInfo, dbParams, replica);
+          .generateStaticConfigClusterView(InstancesInfo, dbParams, replica);
 
       // byte[] bytes;
       ClusterViewSerializer.serialize(view, new File(file));
@@ -379,12 +398,12 @@ public class ClusterSetup
       return 0;
     }
 
-    if (cmd.hasOption(addNode))
+    if (cmd.hasOption(addInstance))
     {
-      String clusterName = cmd.getOptionValues(addNode)[0];
-      String nodeAddressInfo = cmd.getOptionValues(addNode)[1];
-      String[] nodeAddresses = nodeAddressInfo.split(";");
-      setupTool.addNodesToCluster(clusterName, nodeAddresses);
+      String clusterName = cmd.getOptionValues(addInstance)[0];
+      String InstanceAddressInfo = cmd.getOptionValues(addInstance)[1];
+      String[] InstanceAddresses = InstanceAddressInfo.split(";");
+      setupTool.addInstancesToCluster(clusterName, InstanceAddresses);
       return 0;
     }
 
@@ -429,44 +448,115 @@ public class ClusterSetup
       List<String> resourceGroupNames = setupTool.getClusterManagementTool()
           .getResourceGroupsInCluster(clusterName);
 
-      System.out.println("Existing databses in cluster " + clusterName + ":");
+      System.out.println("Existing resources in cluster " + clusterName + ":");
       for (String resourceGroupName : resourceGroupNames)
       {
         System.out.println(resourceGroupName);
       }
-    } else if (cmd.hasOption(listNodes))
+      return 0;
+    } 
+    else if(cmd.hasOption(listClusterInfo))
     {
-      String clusterName = cmd.getOptionValue(listNodes);
-      List<String> nodes = setupTool.getClusterManagementTool()
-          .getNodeNamesInCluster(clusterName);
-
-      System.out.println("Nodes in cluster " + clusterName + ":");
-      for (String nodeName : nodes)
+      String clusterName = cmd.getOptionValue(listClusterInfo);
+      List<String> resourceGroupNames = setupTool.getClusterManagementTool()
+          .getResourceGroupsInCluster(clusterName);
+      List<String> Instances = setupTool.getClusterManagementTool()
+        .getInstancesInCluster(clusterName);
+      
+      System.out.println("Existing resources in cluster " + clusterName + ":");
+      for (String resourceGroupName : resourceGroupNames)
       {
-        System.out.println(nodeName);
+        System.out.println(resourceGroupName);
       }
+      
+      System.out.println("Instances in cluster " + clusterName + ":");
+      for (String InstanceName : Instances)
+      {
+        System.out.println(InstanceName);
+      }
+      return 0;
     }
-    // TODO: add implementation in CM V2
-    else if (cmd.hasOption(nodeInfo))
+    else if (cmd.hasOption(listInstances))
     {
+      String clusterName = cmd.getOptionValue(listInstances);
+      List<String> Instances = setupTool.getClusterManagementTool()
+          .getInstancesInCluster(clusterName);
+
+      System.out.println("Instances in cluster " + clusterName + ":");
+      for (String InstanceName : Instances)
+      {
+        System.out.println(InstanceName);
+      }
+      return 0;
+    }
+    else if (cmd.hasOption(listInstanceInfo))
+    {
+      String clusterName = cmd.getOptionValues(listInstanceInfo)[0];
+      String instanceName = cmd.getOptionValues(listInstanceInfo)[1];
+      ZNRecord record = setupTool.getClusterManagementTool().getInstanceConfig(clusterName, instanceName);
+      
+      String result = new String(new ZNRecordSerializer().serialize(record));
+      System.out.println(result);
+      return 0;
+      
       // print out current states and
-    } else if (cmd.hasOption(resourceGroupInfo))
+    } 
+    else if (cmd.hasOption(listResourceGroupInfo))
     {
       // print out partition number, db name and replication number
       // Also the ideal states and current states
-    } else if (cmd.hasOption(resourceInfo))
+      String clusterName = cmd.getOptionValues(listResourceGroupInfo)[0];
+      String resourceGroupName = cmd.getOptionValues(listResourceGroupInfo)[1];
+      ZNRecord idealState = setupTool.getClusterManagementTool().getResourceGroupIdealState(clusterName, resourceGroupName);
+      ZNRecord externalView = setupTool.getClusterManagementTool().getResourceGroupExternalView(clusterName, resourceGroupName);
+      
+      System.out.println("IdealState for "+resourceGroupName+":");
+      System.out.println(new String(new ZNRecordSerializer().serialize(idealState)));
+      
+      System.out.println();
+      System.out.println("External view for "+resourceGroupName+":");
+      System.out.println(new String(new ZNRecordSerializer().serialize(externalView)));
+      return 0;
+      
+    } 
+    else if (cmd.hasOption(listResourceInfo))
     {
       // print out where the partition master / slaves locates
-    } else if (cmd.hasOption(enableNode))
+    } 
+    else if (cmd.hasOption(enableInstance))
     {
-      String clusterName = cmd.getOptionValues(enableNode)[0];
-      String instanceName = cmd.getOptionValues(enableNode)[1];
-      boolean enabled = Boolean.parseBoolean(cmd.getOptionValues(enableNode)[1]
+      String clusterName = cmd.getOptionValues(enableInstance)[0];
+      String instanceName = cmd.getOptionValues(enableInstance)[1];
+      boolean enabled = Boolean.parseBoolean(cmd.getOptionValues(enableInstance)[1]
           .toLowerCase());
 
       setupTool.getClusterManagementTool().enableInstance(clusterName,
           instanceName, enabled);
-    } else if (cmd.hasOption(help))
+      return 0;
+    } 
+    else if(cmd.hasOption(listStateModels))
+    {
+      String clusterName = cmd.getOptionValues(listStateModels)[0];
+      
+      List<String> stateModels =  setupTool.getClusterManagementTool()
+      .getStateModelDefs(clusterName);
+
+      System.out.println("Existing state models:");
+      for (String stateModel : stateModels)
+      {
+        System.out.println(stateModel);
+      }
+      return 0;
+    }
+    else if (cmd.hasOption(listStateModel))
+    {
+      String clusterName = cmd.getOptionValues(listStateModel)[0];
+      String stateModel = cmd.getOptionValues(listStateModel)[1];
+      ZNRecord record = setupTool.getClusterManagementTool().getStateModelDef(clusterName, stateModel);
+      String result = new String(new ZNRecordSerializer().serialize(record));
+      System.out.println(result);
+    }
+    else if (cmd.hasOption(help))
     {
       printUsage(cliOptions);
       return 0;

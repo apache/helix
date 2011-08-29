@@ -28,10 +28,10 @@ public class ZKClusterManagementTool implements ClusterManagementService
   }
 
   @Override
-  public void addNode(String clusterName, ZNRecord nodeConfig)
+  public void addInstance(String clusterName, ZNRecord instanceConfig)
   {
     String instanceConfigsPath = CMUtil.getConfigPath(clusterName);
-    String nodeId = nodeConfig.getId();
+    String nodeId = instanceConfig.getId();
     String instanceConfigPath = instanceConfigsPath + "/" + nodeId;
 
     if (_zkClient.exists(instanceConfigPath))
@@ -40,7 +40,7 @@ public class ZKClusterManagementTool implements ClusterManagementService
           + " already exists in cluster " + clusterName);
     }
 
-    ZKUtil.createChildren(_zkClient, instanceConfigsPath, nodeConfig);
+    ZKUtil.createChildren(_zkClient, instanceConfigsPath, instanceConfig);
 
     _zkClient
         .createPersistent(CMUtil.getMessagePath(clusterName, nodeId), true);
@@ -51,9 +51,20 @@ public class ZKClusterManagementTool implements ClusterManagementService
         CMUtil.getStatusUpdatesPath(clusterName, nodeId), true);
   }
 
-  public ZNRecord getNodeConfig(String nodeId)
+  @Override
+  public ZNRecord getInstanceConfig(String clusterName, String instanceName)
   {
-    return null;
+    String instanceConfigsPath = CMUtil.getConfigPath(clusterName);
+    String instanceConfigPath = instanceConfigsPath + "/" + instanceName;
+    
+    if (!_zkClient.exists(instanceConfigPath))
+    {
+      throw new ClusterManagerException("instance" + instanceName
+          + " does not exist in cluster " + clusterName);
+    }
+    
+    ClusterDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
+    return accessor.getClusterProperty(ClusterPropertyType.CONFIGS, instanceName);
   }
 
   @Override
@@ -127,7 +138,7 @@ public class ZKClusterManagementTool implements ClusterManagementService
  
   }
 
-  public List<String> getNodeNamesInCluster(String clusterName)
+  public List<String> getInstancesInCluster(String clusterName)
   {
     String memberInstancesPath = CMUtil.getMemberInstancesPath(clusterName);
     return _zkClient.getChildren(memberInstancesPath);
@@ -187,6 +198,13 @@ public class ZKClusterManagementTool implements ClusterManagementService
     new ZKDataAccessor(clusterName, _zkClient).setClusterProperty(
         ClusterPropertyType.IDEALSTATES, dbName, idealState);
   }
+  
+  @Override
+  public ZNRecord getResourceGroupExternalView(String clusterName, String resourceGroup)
+  {
+    return new ZKDataAccessor(clusterName, _zkClient).getClusterProperty(
+        ClusterPropertyType.EXTERNALVIEW, resourceGroup);
+  }
 
   @Override
   public void addStateModelDef(String clusterName, String stateModelDef,
@@ -215,5 +233,12 @@ public class ZKClusterManagementTool implements ClusterManagementService
   public List<String> getStateModelDefs(String clusterName)
   {
     return _zkClient.getChildren(CMUtil.getStateModelDefinitionPath(clusterName));
+  }
+
+  @Override
+  public ZNRecord getStateModelDef(String clusterName, String stateModelName)
+  {
+    return new ZKDataAccessor(clusterName, _zkClient).getClusterProperty(
+        ClusterPropertyType.STATEMODELDEFS, stateModelName);
   }
 }

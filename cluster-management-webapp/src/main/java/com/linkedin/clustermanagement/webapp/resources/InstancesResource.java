@@ -80,7 +80,7 @@ public class InstancesResource extends Resource
   StringRepresentation getInstancesRepresentation(String zkServerAddress, String clusterName) throws JsonGenerationException, JsonMappingException, IOException
   {
     ClusterSetup setupTool = new ClusterSetup(zkServerAddress);
-    List<String> instances = setupTool.getClusterManagementTool().getNodeNamesInCluster(clusterName);
+    List<String> instances = setupTool.getClusterManagementTool().getInstancesInCluster(clusterName);
     
     ClusterDataAccessor accessor = ClusterRepresentationUtil.getClusterDataAccessor(zkServerAddress,  clusterName);
     List<ZNRecord> liveInstances = accessor.getClusterPropertyList(ClusterPropertyType.LIVEINSTANCES);
@@ -115,11 +115,11 @@ public class InstancesResource extends Resource
       ClusterSetup setupTool = new ClusterSetup(zkServer);
       if(paraMap.containsKey(_instanceName))
       {
-        setupTool.addNodeToCluster(clusterName, paraMap.get(_instanceName));
+        setupTool.addInstanceToCluster(clusterName, paraMap.get(_instanceName));
       }
       else if(paraMap.containsKey(_instanceNames))
       {
-        setupTool.addNodesToCluster(clusterName, paraMap.get(_instanceNames).split(";"));
+        setupTool.addInstancesToCluster(clusterName, paraMap.get(_instanceNames).split(";"));
       }
       else
       {

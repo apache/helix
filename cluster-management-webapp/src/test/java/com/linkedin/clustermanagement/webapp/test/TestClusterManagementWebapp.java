@@ -179,6 +179,8 @@ public class TestClusterManagementWebapp
   String instance1 = "test-1";
   String statemodel = "state_model";
   int instancePort = 9999;
+  int partitions = 10;
+  int replicas = 3;
   
   void VerifyAddStateModel()throws JsonGenerationException, JsonMappingException, IOException
   {
@@ -249,7 +251,7 @@ public class TestClusterManagementWebapp
     Map<String, String> paraMap = new HashMap<String, String>();
     
     paraMap.put(HostedResourceGroupsResource._resourceGroupName, resourceGroupName);
-    paraMap.put(HostedResourceGroupsResource._partitions, "10");
+    paraMap.put(HostedResourceGroupsResource._partitions, ""+partitions);
     paraMap.put(HostedResourceGroupsResource._stateModelDefRef, statemodel);
     paraMap.put(ClusterRepresentationUtil._managementCommand, ClusterRepresentationUtil._addResourceGroupCommand);
     
@@ -380,7 +382,7 @@ public class TestClusterManagementWebapp
     String httpUrlBase = "http://localhost:"+_port+"/clusters/"+clusterName+"/resourceGroups/"+ resourceGroupName+"/idealState";
     Map<String, String> paraMap = new HashMap<String, String>();
     // Add 1 instance
-    paraMap.put(IdealStateResource._replicas, "3");
+    paraMap.put(IdealStateResource._replicas, ""+replicas);
     paraMap.put(ClusterRepresentationUtil._managementCommand, ClusterRepresentationUtil._rebalanceCommand);
    
     Reference resourceRef = new Reference(httpUrlBase);
@@ -400,6 +402,12 @@ public class TestClusterManagementWebapp
     ObjectMapper mapper = new ObjectMapper();
     ZNRecord r = mapper.readValue(new StringReader(sw.toString()),
         ZNRecord.class);
+    
+    for(int i = 0;i<partitions; i++)
+    {
+      String partitionName = resourceGroupName+"_"+i;
+      assert(r.getMapField(partitionName).size() == replicas+1);
+    }
     
     httpUrlBase = "http://localhost:"+_port+"/clusters/"+clusterName;
     resourceRef = new Reference(httpUrlBase);

@@ -358,10 +358,9 @@ public class ZKClusterManager implements ClusterManager
 	}
 
 	/**
-	 * public void updateController(ClusterManager manager) {
-	 * _accessor.removeControllerProperty(ControllerPropertyType.LAEDER);
-	 * tryUpdateController(); }
-	 **/
+	 * This will be invoked when ever a new session is created<br/>
+	 * 
+	 */
 
 	protected void handleNewSession()
 	{
@@ -375,9 +374,9 @@ public class ZKClusterManager implements ClusterManager
 		}
 		if (_instanceType == InstanceType.PARTICIPANT)
 		{
-		  carryOverPreviousCurrentState();
+			carryOverPreviousCurrentState();
 			addLiveInstance();
-		  startStatusUpdatedumpTask();
+			startStatusUpdatedumpTask();
 			//
 		}
 		if (_handlers != null && _handlers.size() > 0)
@@ -409,10 +408,11 @@ public class ZKClusterManager implements ClusterManager
 						previousCurrentState.getMapField(resourceKey).put(
 						    ZNAttribute.CURRENT_STATE.toString(), "OFFLINE");
 					}
-					previousCurrentState.setSimpleField(CMConstants.ZNAttribute.SESSION_ID.toString(), _sessionId);
+					previousCurrentState.setSimpleField(
+					    CMConstants.ZNAttribute.SESSION_ID.toString(), _sessionId);
 					_accessor.setInstanceProperty(_instanceName,
-					    InstancePropertyType.CURRENTSTATES, _sessionId,previousCurrentState.getId(),
-					    previousCurrentState);
+					    InstancePropertyType.CURRENTSTATES, _sessionId,
+					    previousCurrentState.getId(), previousCurrentState);
 				}
 			}
 		}

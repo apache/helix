@@ -16,7 +16,14 @@ import com.linkedin.clustermanager.model.ResourceGroup;
 import com.linkedin.clustermanager.model.Message.Attributes;
 import com.linkedin.clustermanager.pipeline.AbstractBaseStage;
 import com.linkedin.clustermanager.pipeline.StageException;
-
+/**
+ * This stage computes all the resources in a cluster.
+ * The resources are computed from
+ * IdealStates -> this gives all the resources currently active
+ * CurrentState for liveInstance-> Helps in finding resources that are inactive and needs to be dropped
+ * @author kgopalak
+ *
+ */
 public class ResourceComputationStage extends AbstractBaseStage
 {
 

@@ -18,7 +18,12 @@ import com.linkedin.clustermanager.model.StateModelDefinition;
 import com.linkedin.clustermanager.pipeline.AbstractBaseStage;
 import com.linkedin.clustermanager.pipeline.StageException;
 import com.linkedin.clustermanager.util.ZNRecordUtil;
-
+/**
+ * For resourceKey
+ *   compute best possible (instance,state) pair based on IdealState,StateModel,LiveInstance
+ * @author kgopalak
+ *
+ */
 public class BestPossibleStateCalcStage extends AbstractBaseStage
 {
   private static final Logger logger = Logger

@@ -23,7 +23,11 @@ import com.linkedin.clustermanager.model.ResourceKey;
 import com.linkedin.clustermanager.model.StateModelDefinition;
 import com.linkedin.clustermanager.pipeline.AbstractBaseStage;
 import com.linkedin.clustermanager.pipeline.StageException;
-
+/**
+ * Compares the currentState,pendingState with IdealState and generate messages
+ * @author kgopalak
+ *
+ */
 public class MessageGenerationPhase extends AbstractBaseStage
 {
   private static Logger logger = Logger.getLogger(MessageGenerationPhase.class);

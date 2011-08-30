@@ -59,7 +59,10 @@ public class GenericClusterController implements ConfigChangeListener,
   private PipelineRegistry _registry;
   private final Set<String> _instanceSubscriptionList;
   private final ExternalViewGenerator _externalViewGenerator;
-
+  /**
+   * Default constructor that creates a default pipeline registry.
+   * This is suffucient in most cases, but if there is a some thing specific needed use another constructor where in you can pass a pipeline registry
+   */
   public GenericClusterController()
   {
     this(createDefaultRegistry());
@@ -192,6 +195,7 @@ public class GenericClusterController implements ConfigChangeListener,
 
         _instanceSubscriptionList.add(clientSessionId);
       }
+      //TODO shi call removeListener
     }
     ClusterEvent event = new ClusterEvent("liveInstanceChange");
     event.addAttribute("clustermanager", changeContext.getManager());

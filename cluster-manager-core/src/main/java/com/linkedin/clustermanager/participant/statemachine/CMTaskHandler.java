@@ -194,7 +194,12 @@ public class CMTaskHandler implements Callable<CMTaskResult>
       ZNRecord currentState = accessor.getInstanceProperty(instanceName,
           InstancePropertyType.CURRENTSTATES, _manager.getSessionId(), stateUnitGroup);
       
-      Map<String, String> map = currentState.getMapField(stateUnitKey);
+      Map<String, String> map = new HashMap<String, String>();
+      if(currentState != null)
+      {
+        logger.warn("currentState is null. Storage node should be working with file based clm.");
+        map = currentState.getMapField(stateUnitKey);
+      }
       map.put(Message.Attributes.STATE_UNIT_GROUP.toString(),
           _message.getStateUnitGroup());
       

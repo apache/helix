@@ -15,12 +15,12 @@ import org.apache.commons.cli.ParseException;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerFactory;
 import com.linkedin.clustermanager.NotificationContext;
+import com.linkedin.clustermanager.agent.file.FileBasedDataAccessor;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.participant.StateMachineEngine;
 import com.linkedin.clustermanager.participant.statemachine.StateModel;
 import com.linkedin.clustermanager.participant.statemachine.StateModelFactory;
 import com.linkedin.clustermanager.tools.ClusterSetup;
-import com.linkedin.clustermanager.tools.ClusterStateVerifier;
 
 public class DummyProcess
 {
@@ -40,18 +40,28 @@ public class DummyProcess
   private ClusterManager manager;
   private DummyStateModelFactory stateModelFactory;
   private StateMachineEngine genericStateMachineHandler;
+  
+  // private final FilePropertyStore<ClusterView> _store;
+  private final FileBasedDataAccessor _accessor;
 
   private String _file = null;
   private int _transDelayInMs = 0;
 
   public DummyProcess(String zkConnectString, String clusterName,
-      String instanceName, String file, int delay)
+                      String instanceName, String file, int delay)
+  {
+    this(zkConnectString, clusterName, instanceName, file, delay, null);
+  }
+                  
+  public DummyProcess(String zkConnectString, String clusterName,
+      String instanceName, String file, int delay, FileBasedDataAccessor accessor)
   {
     this.zkConnectString = zkConnectString;
     this.clusterName = clusterName;
     this.instanceName = instanceName;
     this._file = file;
     _transDelayInMs = delay > 0 ? delay : 0;
+    _accessor = accessor;
   }
 
   public void start() throws Exception
@@ -61,18 +71,20 @@ public class DummyProcess
           clusterName, instanceName, zkConnectString);
     else
       manager = ClusterManagerFactory.getFileBasedManagerForParticipant(
-          clusterName, instanceName, _file);
+          clusterName, instanceName, _file, _accessor);
 
     stateModelFactory = new DummyStateModelFactory(_transDelayInMs);
     genericStateMachineHandler = new StateMachineEngine(stateModelFactory);
     manager.addMessageListener(genericStateMachineHandler, instanceName);
 
+    /**
     if (_file != null)
     {
       ClusterStateVerifier.VerifyFileBasedClusterStates(_file, instanceName,
           stateModelFactory);
 
     }
+    **/
   }
 
   public static class DummyStateModelFactory extends StateModelFactory
@@ -231,7 +243,7 @@ public class DummyProcess
   {
     CommandLineParser cliParser = new GnuParser();
     Options cliOptions = constructCommandLineOptions();
-    CommandLine cmd = null;
+    // CommandLine cmd = null;
 
     try
     {

@@ -4,6 +4,8 @@ import java.util.List;
 
 import org.apache.zookeeper.CreateMode;
 
+import com.linkedin.clustermanager.store.PropertyStore;
+
 public interface ClusterDataAccessor
 {
   public enum ClusterPropertyType
@@ -237,4 +239,5 @@ public interface ClusterDataAccessor
   
   ZNRecord getControllerProperty(ControllerPropertyType controllerProperty);
 
+  PropertyStore<ZNRecord> getStore();
 }

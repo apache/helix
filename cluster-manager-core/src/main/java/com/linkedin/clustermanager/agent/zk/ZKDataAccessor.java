@@ -9,6 +9,7 @@ import org.apache.zookeeper.CreateMode;
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterView;
 import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.store.PropertyStore;
 import com.linkedin.clustermanager.util.CMUtil;
 
 public class ZKDataAccessor implements ClusterDataAccessor
@@ -354,5 +355,12 @@ public class ZKDataAccessor implements ClusterDataAccessor
     final String path = CMUtil.getControllerPropertyPath(_clusterName, controllerProperty);
     ZNRecord record = _zkClient.<ZNRecord>readData(path,true);
     return record;
+  }
+
+  @Override
+  public PropertyStore<ZNRecord> getStore()
+  {
+    // TODO Auto-generated method stub
+    return null;
   }
 }

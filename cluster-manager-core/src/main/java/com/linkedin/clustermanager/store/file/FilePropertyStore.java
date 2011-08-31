@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +29,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.store.PropertyChangeListener;
+import com.linkedin.clustermanager.store.PropertyJsonComparator;
 import com.linkedin.clustermanager.store.PropertyJsonSerializer;
 import com.linkedin.clustermanager.store.PropertySerializer;
 import com.linkedin.clustermanager.store.PropertyStat;
@@ -37,6 +38,14 @@ import com.linkedin.clustermanager.store.PropertyStoreException;
 
 // file systems usually have sophisticated cache mechanisms
 // no need for another cache for file property store
+
+// NOTES:
+// lastModified timestamp provided by java file io has only second level precision
+// so it is possible that files have been modified without changing its lastModified timestamp
+// the solution is to use a map that caches the files changed in last second
+// and in the next round of refresh, check against this map to figure out whether a file 
+// has been changed/created in the last second
+// ref: http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=6939260
 public class FilePropertyStore<T> implements PropertyStore<T>
 {
   private static Logger logger = Logger.getLogger(FilePropertyStore.class);
@@ -47,19 +56,21 @@ public class FilePropertyStore<T> implements PropertyStore<T>
   private final int _id = new Random().nextInt();
   private final String _rootNamespace;
   private PropertySerializer<T> _serializer;
+  private final PropertyJsonComparator<T> _comparator;
   
   private Thread _refreshThread;
   private final AtomicBoolean _stopRefreshThread;
   private final CountDownLatch _firstRefreshCounter;
   private final ReadWriteLock _readWriteLock;
   
+  private Map<String, T> _lastModifiedFiles = new HashMap<String, T>();
+  private Map<String, T> _curModifiedFiles = new HashMap<String, T>();
+  
   private final Map< String, CopyOnWriteArraySet<PropertyChangeListener<T> > > _fileChangeListeners; // map key to listener
-  
-  
+ 
   private class FilePropertyStoreRefreshThread implements Runnable
   {
     private final PropertyStoreDirWalker _dirWalker;
-
 
     public class PropertyStoreDirWalker extends DirectoryWalker
     {
@@ -76,34 +87,98 @@ public class FilePropertyStore<T> implements PropertyStore<T>
       @Override
       protected void handleFile(File file, int depth, Collection results) throws IOException
       {
-        if (file.lastModified() <= _lastNotifiedTime)
+        if (file.lastModified() < _lastNotifiedTime)
         {
           return;
         }
         
+        String path = getRelativePath(file.getAbsolutePath());
+        T newValue = null;
+        try
+        {
+          newValue = getProperty(path);
+        } catch (PropertyStoreException e)
+        {
+          logger.error("fail to get property, path:" + path +"\nexception:" + e);
+        }
+                
+        if (file.lastModified() == _lastNotifiedTime && _lastModifiedFiles.containsKey(path))
+        {
+          T value = _lastModifiedFiles.get(path);
+          
+          if (_comparator.compare(value, newValue) == 0)
+          {
+            if (file.lastModified() == _currentHighWatermark)
+            {
+              _curModifiedFiles.put(path, newValue);
+            }
+            return;
+          }
+        }
+
         if (file.lastModified() > _currentHighWatermark)
         {
           _currentHighWatermark = file.lastModified();
+          
+          _curModifiedFiles.clear();
+          _curModifiedFiles.put(path, newValue);
+        }
+        else if (file.lastModified() == _currentHighWatermark)
+        {
+          _curModifiedFiles.put(path, newValue);
         }
         
-        logger.debug("file: " + file.getAbsolutePath() + " changed " + new Date(file.lastModified()));
+        logger.debug("file: " + file.getAbsolutePath() + " changed " + file.lastModified());
+        // new Date(file.lastModified()));
         results.add(file);
       }
       
       @Override
       protected boolean handleDirectory(File dir, int depth, Collection results) throws IOException 
       {
-        if (dir.lastModified() <= _lastNotifiedTime)
+        if (dir.lastModified() < _lastNotifiedTime)
         {
           return true;
         }
-        
+
+        String path = getRelativePath(dir.getAbsolutePath());
+        T newValue = null;
+        try
+        {
+          newValue = getProperty(path);
+        } catch (PropertyStoreException e)
+        {
+          logger.error("fail to get property, path:" + path +"\nexception:" + e);
+        }
+                
+        if (dir.lastModified() == _lastNotifiedTime && _lastModifiedFiles.containsKey(path))
+        {
+          T value = _lastModifiedFiles.get(path);
+          if (_comparator.compare(value, newValue) == 0)
+          {
+            if (dir.lastModified() == _currentHighWatermark)
+            {
+              _curModifiedFiles.put(path, newValue);
+            }
+            return true;
+          }
+        }
+        _curModifiedFiles.put(path, newValue);
+      
         if (dir.lastModified() > _currentHighWatermark)
         {
           _currentHighWatermark = dir.lastModified();
+          
+          _curModifiedFiles.clear();
+          _curModifiedFiles.put(path, newValue);
         }
-        
-        logger.debug("dir: " + dir.getAbsolutePath() + " changed " + new Date(dir.lastModified()));
+        else if (dir.lastModified() == _currentHighWatermark)
+        {
+          _curModifiedFiles.put(path, newValue);
+        }
+       
+        logger.debug("dir: " + dir.getAbsolutePath() + " changed " + dir.lastModified());
+        // new Date(dir.lastModified()));
         results.add(dir);
        
         return true;
@@ -121,12 +196,17 @@ public class FilePropertyStore<T> implements PropertyStore<T>
         }
         catch (IOException e)
         {
-          // TODO Auto-generated catch block
-          e.printStackTrace();
+          logger.error("IO exception when walking through dir:" + _propertyStoreRootDir +
+              "\nexception:" + e);
         }
         finally
         {
           _lastNotifiedTime = _currentHighWatermark;
+          _lastModifiedFiles.clear();
+          
+          Map<String, T> temp = _lastModifiedFiles;
+          _lastModifiedFiles = _curModifiedFiles;
+          _curModifiedFiles = temp;
           _readWriteLock.readLock().unlock();
         }
 
@@ -160,8 +240,6 @@ public class FilePropertyStore<T> implements PropertyStore<T>
               }
             }
           }
-          
-          // _logger.debug("File changed:" + file.getAbsolutePath());
         }
       }
     }
@@ -173,7 +251,7 @@ public class FilePropertyStore<T> implements PropertyStore<T>
     
     @Override
     public void run()
-    {
+    {      
       while (!_stopRefreshThread.get())
       {
         this._dirWalker.walk();
@@ -192,18 +270,21 @@ public class FilePropertyStore<T> implements PropertyStore<T>
       logger.info("Quitting file property store refresh thread");
       
     }
-
+    
   }
   
+  /**
   public FilePropertyStore(final PropertySerializer<T> serializer)
   {
     this(serializer, System.getProperty("java.io.tmpdir"));
   }
+  **/
   
-  public FilePropertyStore(final PropertySerializer<T> serializer, String rootNamespace)
+  public FilePropertyStore(final PropertySerializer<T> serializer, String rootNamespace, 
+      final PropertyJsonComparator<T> comparator)
   {
     _serializer = serializer;
-    setPropertySerializer(serializer);
+    _comparator = comparator;
     _stopRefreshThread = new AtomicBoolean(false);
     _firstRefreshCounter = new CountDownLatch(1);
     _readWriteLock = new ReentrantReadWriteLock();
@@ -217,10 +298,24 @@ public class FilePropertyStore<T> implements PropertyStore<T>
     }
     _rootNamespace = "/" + rootNamespace;
 
+    try
+    {
+      this.removeRootNamespace();
+    }
+    catch (PropertyStoreException e)
+    {
+      logger.error("fail to remove root namespace" + _rootNamespace +
+          "\nexception:" + e);
+    }
+    this.createRootNamespace();
   }
 
   public boolean start()
   {
+    // check if start has already been invoked
+    if (_firstRefreshCounter.getCount() == 0)
+      return true;
+    
     logger.debug("starting file property store polling thread, id=" + _id);
     
     _stopRefreshThread.set(false);
@@ -340,20 +435,19 @@ public class FilePropertyStore<T> implements PropertyStore<T>
       
       // TODO: need a timeout on lock operation
       // fLock = fChannel.lock();
-      
-      
+    
       byte[] bytes = _serializer.serialize(value);
       fout.write(bytes);
     }
     catch (FileNotFoundException e)
     {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
+      logger.error("fail to set property, key:" + key +
+          "\nfile not found exception:" + e);
     }
     catch (IOException e)
     {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
+      logger.error("fail to set property, key:" + key +
+          "\nio exception:" + e);
     }
     finally
     {
@@ -370,8 +464,8 @@ public class FilePropertyStore<T> implements PropertyStore<T>
       }
       catch (IOException e)
       {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
+        logger.error("fail to close file, key:" + key +
+            "\nio exception:" + e);
       }
       
     }
@@ -415,14 +509,12 @@ public class FilePropertyStore<T> implements PropertyStore<T>
     }
     catch (FileNotFoundException e)
     {
-      // TODO Auto-generated catch block
-      // e.printStackTrace();
       return null;
     }
     catch (IOException e)
     {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
+      logger.error("fail to get property, key:" + key +
+          "\nio exception:" + e);
     }
     finally
     {
@@ -438,8 +530,8 @@ public class FilePropertyStore<T> implements PropertyStore<T>
       }
       catch (IOException e)
       {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
+        logger.error("fail to close file, key:" + key +
+            "\nio exception:" + e);
       }
       
     }
@@ -456,15 +548,16 @@ public class FilePropertyStore<T> implements PropertyStore<T>
     try 
     {
       _readWriteLock.writeLock().lock();
+      
       boolean success = file.delete();
       if (!success)
       {
-        System.err.println("Failed to remove file: " + path);
+        logger.error("fail to remove file, path:" + path);
       }
     }
     catch (Exception e)
     {
-      System.err.println("Failed to remove file: " + e.getMessage());
+      logger.error("fail to remove file, path:" + path + "\nexcpetion" + e);
     }
     finally
     {
@@ -489,11 +582,11 @@ public class FilePropertyStore<T> implements PropertyStore<T>
     }
     catch (IOException e)
     {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
+      logger.error("fail to remove namespace, path:" + path + "\nexcpetion" + e);
     }
   }
 
+  // TODO do it recursively, need to return all files under that prefix
   @Override
   public List<String> getPropertyNames(String prefix) throws PropertyStoreException
   {
@@ -504,6 +597,9 @@ public class FilePropertyStore<T> implements PropertyStore<T>
     List<String> names = new ArrayList<String>();
     String[] children = file.list();
     _readWriteLock.readLock().unlock();
+    
+    if (children == null)
+      return null;
     
     for (String child : children)
     {
@@ -518,8 +614,7 @@ public class FilePropertyStore<T> implements PropertyStore<T>
   @Override
   public void setPropertyDelimiter(String delimiter) throws PropertyStoreException
   {
-    throw new PropertyStoreException("setPropertyDelimiter() not implemented for FilePropertyStore");
-    
+    throw new PropertyStoreException("setPropertyDelimiter() not implemented for FilePropertyStore");  
   }
 
   @Override
@@ -581,7 +676,8 @@ public class FilePropertyStore<T> implements PropertyStore<T>
   @Override
   public void updatePropertyUntilSucceed(String key, DataUpdater<T> updater)
   {
-    // TODO implement this
+    throw new UnsupportedOperationException(
+      "updatePropertyUntilSucceed() is NOT supported by FilePropertyStore");
   }
 
 
@@ -630,14 +726,14 @@ public class FilePropertyStore<T> implements PropertyStore<T>
     }
     catch (FileNotFoundException e)
     {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
+      logger.error("fail to compareAndSet, path:" + path + 
+          "\nfile not found excpetion" + e);
       return false;
     }
     catch (Exception e)
     {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
+      logger.error("fail to compareAndSet, path:" + path + 
+          "\nexcpetion" + e);
       return false;
     }
     finally
@@ -659,13 +755,25 @@ public class FilePropertyStore<T> implements PropertyStore<T>
       }
       catch (IOException e)
       {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
+        logger.error("fail to close file, path:" + path + 
+            "\nio excpetion" + e);
       }
     }
     
   }
 
+  public boolean exists(String key)
+  {
+    String path = getPath(key);
+    File file = new File(path);
+    _readWriteLock.readLock().lock();
+      
+    boolean ret = file.exists();
+    _readWriteLock.readLock().unlock();
+    return ret;
+  }
+  
+  // TODO remove it
   // for temp test
   public static void main(String[] args) 
   throws PropertyStoreException, IOException, InterruptedException
@@ -677,11 +785,12 @@ public class FilePropertyStore<T> implements PropertyStore<T>
     
     // StringPropertySerializer serializer = new StringPropertySerializer();
     PropertyJsonSerializer<String> serializer = new PropertyJsonSerializer<String>(String.class);
+    PropertyJsonComparator<String> comparator = new PropertyJsonComparator<String>(String.class);
     String rootNamespace = "/tmp/testFilePropertyStore";
     
     // FileUtils.deleteDirectory(new File(rootNamespace)); // not working for a file
     
-    FilePropertyStore<String> store = new FilePropertyStore<String>(serializer, rootNamespace);
+    FilePropertyStore<String> store = new FilePropertyStore<String>(serializer, rootNamespace, comparator);
     store.removeRootNamespace();
     store.createRootNamespace();
     store.start();

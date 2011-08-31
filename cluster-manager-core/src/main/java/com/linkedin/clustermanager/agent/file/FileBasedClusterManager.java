@@ -1,5 +1,9 @@
 package com.linkedin.clustermanager.agent.file;
 
+import static com.linkedin.clustermanager.CMConstants.ChangeType.CURRENT_STATE;
+import static com.linkedin.clustermanager.CMConstants.ChangeType.IDEAL_STATE;
+import static com.linkedin.clustermanager.CMConstants.ChangeType.LIVE_INSTANCE;
+
 import java.io.File;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -19,11 +23,16 @@ import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.log4j.Logger;
+import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.Watcher.Event.EventType;
 
+import com.linkedin.clustermanager.CMConstants;
+import com.linkedin.clustermanager.CMConstants.ChangeType;
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.ClusterManager;
+import com.linkedin.clustermanager.ClusterManagerException;
 import com.linkedin.clustermanager.ClusterView;
 import com.linkedin.clustermanager.ConfigChangeListener;
 import com.linkedin.clustermanager.ControllerChangeListener;
@@ -39,39 +48,58 @@ import com.linkedin.clustermanager.model.IdealState;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.participant.statemachine.StateModel;
 import com.linkedin.clustermanager.participant.statemachine.StateModelFactory;
+import com.linkedin.clustermanager.store.file.FilePropertyStore;
 import com.linkedin.clustermanager.tools.ClusterViewSerializer;
 import com.linkedin.clustermanager.tools.IdealStateCalculatorByShuffling;
+import com.linkedin.clustermanager.util.CMUtil;
 
 public class FileBasedClusterManager implements ClusterManager
 {
   private static final Logger LOG = Logger
       .getLogger(FileBasedClusterManager.class.getName());
-  private ClusterView _clusterView;
-  private ClusterDataAccessor _fileDataAccessor;
+  private ClusterView _clusterView; // for backward compatibility, TODO remove it later
+  private final ClusterDataAccessor _fileDataAccessor;
+  // private final FileBasedDataAccessor _fileDataAccessor;
+  // private final String _rootNamespace = "/tmp/testFilePropertyStoreIntegration";
+  
   private final String _clusterName;
   private final InstanceType _instanceType;
-  private final String _staticClusterConfigFile;
+  // private final String _staticClusterConfigFile;
   private final String _instanceName;
   private boolean _isConnected;
+  private List<CallbackHandlerForFile> _handlers;
 
   public static final String _sessionId = "12345";
   public static final String configFile = "configFile";
   
-  // private static final String HOSTNAME_WILDCARD = "ANYHOST";
-  // private static final String PORT_WILDCARD = "ANYPORT";
-
   public FileBasedClusterManager(String clusterName, String instanceName,
-      InstanceType instanceType, String staticClusterConfigFile)
+      InstanceType instanceType, String staticClusterConfigFile, ClusterDataAccessor accessor)
   {
     this._clusterName = clusterName;
     this._instanceName = instanceName;
     this._instanceType = instanceType;
-    this._staticClusterConfigFile = staticClusterConfigFile;
+    // this._staticClusterConfigFile = staticClusterConfigFile;
 
-    this._clusterView = ClusterViewSerializer.deserialize(new File(staticClusterConfigFile)); // readClusterView(staticClusterConfigFile);
-
-    _fileDataAccessor = new FileBasedDataAccessor();
-
+    _handlers = new ArrayList<CallbackHandlerForFile>();
+    
+    // _fileDataAccessor = accessor;
+    if (accessor == null)
+    {
+      // for backward compatibility, TODO remove it later
+      _fileDataAccessor = new DummyFileDataAccessor();
+      this._clusterView = ClusterViewSerializer.deserialize(new File(staticClusterConfigFile));
+    }
+    else
+    {
+      _fileDataAccessor = accessor;
+      if (_instanceType == InstanceType.PARTICIPANT)
+      {
+        addLiveInstance();
+      }
+    
+      FilePropertyStore<ZNRecord> store = (FilePropertyStore<ZNRecord>)_fileDataAccessor.getStore();
+      store.start();
+    }
   }
 
   private static Message createSimpleMessage(ZNRecord idealStateRecord,
@@ -110,7 +138,6 @@ public class FileBasedClusterManager implements ClusterManager
   private static List<Message> computeMessagesForSimpleTransition(ZNRecord idealStateRecord)
   {
     List<Message> messages = new ArrayList<Message>();
-    // System.out.println(idealStateRecord.getId());
     IdealState idealState = new IdealState(idealStateRecord);
     for (String stateUnitKey : idealState.stateUnitSet())
     {
@@ -157,7 +184,7 @@ public class FileBasedClusterManager implements ClusterManager
                                                             List<DBParam> dbParams, 
                                                             int replica)
   {
-    // create fake cluster view
+    // create mock cluster view
     ClusterView view = new ClusterView();
 
     // add nodes
@@ -275,32 +302,6 @@ public class FileBasedClusterManager implements ClusterManager
     return view;
   }
   
-  /**
-  public static ClusterView generateLocalTemplateClusterView(int numInstances,
-                                                            List<DBParam> dbParams, 
-                                                            int replica)
-  {
-    String[] anyNodes = new String[numInstances];
-    
-    for (int i = 0; i < numInstances; i++)
-    {
-      anyNodes[i] = HOSTNAME_WILDCARD + ":" + PORT_WILDCARD + Integer.toString(i);
-    }
-    
-    return generateStaticConfigClusterView(anyNodes, dbParams, replica);
-  }
-  **/
-  
-  /**
-  public static ClusterView readClusterView(String file)
-  {
-    ClusterViewSerializer serializer = new ClusterViewSerializer(file);
-    ClusterView restoredView = (ClusterView) serializer.deserialize(null);
-
-    return restoredView;
-  }
-  **/
-
   @Override
   public void disconnect()
   {
@@ -310,54 +311,85 @@ public class FileBasedClusterManager implements ClusterManager
   @Override
   public void addIdealStateChangeListener(IdealStateChangeListener listener)
   {
+    /**
     NotificationContext context = new NotificationContext(this);
     context.setType(NotificationContext.Type.INIT);
     listener.onIdealStateChange(this._clusterView
         .getClusterPropertyList(ClusterPropertyType.IDEALSTATES), context);
+    **/
+    final String path = CMUtil.getIdealStatePath(_clusterName);
+    
+    CallbackHandlerForFile callbackHandler = createCallBackHandler(path, listener,
+        new EventType[]
+        { EventType.NodeDataChanged, EventType.NodeDeleted,
+            EventType.NodeCreated }, IDEAL_STATE);
+    _handlers.add(callbackHandler);
+
   }
 
   @Override
   public void addLiveInstanceChangeListener(LiveInstanceChangeListener listener)
   {
-    throw new UnsupportedOperationException(
-        "addLiveInstanceChangeListener is not supported by File Based cluster manager");
+    final String path = CMUtil.getLiveInstancesPath(_clusterName);
+    CallbackHandlerForFile callbackHandler = createCallBackHandler(path, listener,
+        new EventType[]
+        { EventType.NodeChildrenChanged, EventType.NodeDeleted,
+            EventType.NodeCreated }, LIVE_INSTANCE);
+    _handlers.add(callbackHandler);
   }
 
   @Override
   public void addConfigChangeListener(ConfigChangeListener listener)
   {
     throw new UnsupportedOperationException(
-        "addConfigChangeListener is not supported by File Based cluster manager");
+        "addConfigChangeListener() is NOT supported by File Based cluster manager");
   }
 
   @Override
   public void addMessageListener(MessageListener listener, String instanceName)
   {
-    NotificationContext context = new NotificationContext(this);
-    context.setType(NotificationContext.Type.INIT);
-    List<ZNRecord> messages;
-    messages = _clusterView.getMemberInstance(instanceName, true)
-        .getInstanceProperty(InstancePropertyType.MESSAGES);
-    // System.out.println("instance name: " + instanceName);
-    // System.out.println("messages: " + messages);
-
-    listener.onMessage(instanceName, messages, context);
-
+    if (_fileDataAccessor.getStore() == null)
+    {
+      // for backward compatibility, TODO remove it later
+      NotificationContext context = new NotificationContext(this);
+      context.setType(NotificationContext.Type.INIT);
+      List<ZNRecord> messages;
+      messages = _clusterView.getMemberInstance(instanceName, true)
+          .getInstanceProperty(InstancePropertyType.MESSAGES);
+      listener.onMessage(instanceName, messages, context);
+    }
+    else
+    {
+    
+      final String path = CMUtil.getMessagePath(_clusterName, instanceName);
+      
+      CallbackHandlerForFile callbackHandler = createCallBackHandler(path, listener,
+          new EventType[]
+          { EventType.NodeDataChanged, EventType.NodeDeleted,
+              EventType.NodeCreated }, ChangeType.MESSAGE);
+      _handlers.add(callbackHandler);
+    }
   }
 
   @Override
   public void addCurrentStateChangeListener(
-      CurrentStateChangeListener listener, String instanceName, String SessionId)
+      CurrentStateChangeListener listener, String instanceName, String sessionId)
   {
-    throw new UnsupportedOperationException(
-        "addCurrentStateChangeListener is not supported by File Based cluster manager");
+    final String path = CMUtil.getCurrentStateBasePath(_clusterName,
+        instanceName) + "/" + sessionId;
+
+    CallbackHandlerForFile callbackHandler = createCallBackHandler(path, listener,
+        new EventType[]
+        { EventType.NodeChildrenChanged, EventType.NodeDeleted,
+            EventType.NodeCreated }, CURRENT_STATE);
+    _handlers.add(callbackHandler);
   }
 
   @Override
   public void addExternalViewChangeListener(ExternalViewChangeListener listener)
   {
     throw new UnsupportedOperationException(
-        "addExternalViewChangeListener is not supported by File Based cluster manager");
+        "addExternalViewChangeListener() is NOT supported by File Based cluster manager");
   }
 
   @Override
@@ -409,7 +441,7 @@ public class FileBasedClusterManager implements ClusterManager
   {
     CommandLineParser cliParser = new GnuParser();
     Options cliOptions = constructCommandLineOptions();
-    CommandLine cmd = null;
+    // CommandLine cmd = null;
 
     try
     {
@@ -426,8 +458,7 @@ public class FileBasedClusterManager implements ClusterManager
   }
 
   public static ClusterView convertStateModelMapToClusterView(String outFile,
-                                                              String instanceName,
-                                                              StateModelFactory<StateModel> stateModelFactory)
+      String instanceName, StateModelFactory<StateModel> stateModelFactory)
   {
     Map<String, StateModel> currentStateMap = stateModelFactory.getStateModelMap();
     ClusterView curView = new ClusterView();
@@ -520,16 +551,7 @@ public class FileBasedClusterManager implements ClusterManager
       }
       
     }
-    
-    /**
-    if (ret == true)
-    {
-      System.out.println(instanceName + ": verification succeed");
-      _logger.info(instanceName + ": verification succeed ("
-          + nonOfflineStateNr + " states)");
-    }
-    **/
-    
+        
     return ret;
   }
   
@@ -539,6 +561,51 @@ public class FileBasedClusterManager implements ClusterManager
     return _isConnected;
   }
 
+  private void addLiveInstance()
+  { 
+      ZNRecord metaData = new ZNRecord();
+      // set it from the session
+      metaData.setId(_instanceName);
+      metaData.setSimpleField(CMConstants.ZNAttribute.SESSION_ID.toString(),
+          _sessionId);
+      _fileDataAccessor.setClusterProperty(ClusterPropertyType.LIVEINSTANCES,
+          _instanceName, metaData, CreateMode.EPHEMERAL);
+  }
+  
+
+  @Override
+  public long getLastNotificationTime()
+  {
+    return 0;
+  }
+
+  @Override
+  public void addControllerListener(ControllerChangeListener listener)
+  {
+    throw new UnsupportedOperationException(
+      "addControllerListener() is NOT supported by File Based cluster manager");
+  }
+
+  @Override
+  public boolean removeListener(Object listener) {
+  	// TODO Auto-generated method stub
+  	return false;
+  }
+  
+  
+  private CallbackHandlerForFile createCallBackHandler(String path, Object listener,
+      EventType[] eventTypes, ChangeType changeType)
+  {
+    if (listener == null)
+    {
+      throw new ClusterManagerException("Listener cannot be null");
+    }
+    return new CallbackHandlerForFile(this, path, listener, eventTypes, changeType);
+  }
+
+  
+  // TODO remove it
+  // temp test
   public static void main(String[] args) throws Exception
   {
     // for temporary test only
@@ -580,22 +647,4 @@ public class FileBasedClusterManager implements ClusterManager
 
   }
 
-  @Override
-  public long getLastNotificationTime()
-  {
-    return 0;
-  }
-
-  @Override
-  public void addControllerListener(ControllerChangeListener listener)
-  {
-    // TODO Auto-generated method stub
-    
-  }
-
-@Override
-public boolean removeListener(Object listener) {
-	// TODO Auto-generated method stub
-	return false;
-}
 }

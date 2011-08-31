@@ -14,6 +14,7 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.Watcher.Event.EventType;
 
 import com.linkedin.clustermanager.CMConstants.ChangeType;
+import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.ClusterManager;
@@ -28,6 +29,7 @@ import com.linkedin.clustermanager.NotificationContext;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.store.PropertyChangeListener;
 import com.linkedin.clustermanager.store.PropertyStoreException;
+import com.linkedin.clustermanager.store.file.FilePropertyStore;
 import com.linkedin.clustermanager.util.CMUtil;
 
 
@@ -41,20 +43,23 @@ public class CallbackHandlerForFile implements PropertyChangeListener<ZNRecord>
   private final Object _listener;
   private final EventType[] _eventTypes;
   private final ChangeType _changeType;
-  private final FileBasedDataAccessor _accessor;
+  // private final FileBasedDataAccessor _accessor;
+  private final ClusterDataAccessor _accessor;
   private final AtomicLong lastNotificationTimeStamp;
   private final ClusterManager _manager;
+  private final FilePropertyStore<ZNRecord> _store;
   
 
   public CallbackHandlerForFile(ClusterManager manager, String path,
       Object listener, EventType[] eventTypes, ChangeType changeType)
   {
     this._manager = manager;
-    this._accessor = (FileBasedDataAccessor)manager.getDataAccessor();
+    this._accessor = manager.getDataAccessor(); // (FileBasedDataAccessor)manager.getDataAccessor();
     this._path = path;
     this._listener = listener;
     this._eventTypes = eventTypes;
     this._changeType = changeType;
+    _store = (FilePropertyStore<ZNRecord>)_accessor.getStore();
     lastNotificationTimeStamp = new AtomicLong(System.nanoTime());
     
     init();
@@ -163,7 +168,8 @@ public class CallbackHandlerForFile implements PropertyChangeListener<ZNRecord>
     {
       try
       {
-        _accessor.subscribeForPropertyChange(_path, this);
+        // _accessor.subscribeForPropertyChange(_path, this);
+        _store.subscribeForPropertyChange(_path, this);
       } catch (PropertyStoreException e)
       {
         logger.error("fail to subscribe for changes" + "\nexception:" + e);
@@ -236,7 +242,7 @@ public class CallbackHandlerForFile implements PropertyChangeListener<ZNRecord>
     {
       // need to differentiate directory and regular file
       // TODO find a better way
-      ZNRecord record = _accessor.getProperty(key);
+      ZNRecord record = _store.getProperty(key);    // _accessor.getProperty(key);
            
       if (record != null)
       {

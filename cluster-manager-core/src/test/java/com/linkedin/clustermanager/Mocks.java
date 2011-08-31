@@ -11,6 +11,7 @@ import com.linkedin.clustermanager.participant.statemachine.CMTaskResult;
 import com.linkedin.clustermanager.participant.statemachine.StateModel;
 import com.linkedin.clustermanager.participant.statemachine.StateModelInfo;
 import com.linkedin.clustermanager.participant.statemachine.Transition;
+import com.linkedin.clustermanager.store.PropertyStore;
 
 public class Mocks
 {
@@ -367,6 +368,13 @@ public class Mocks
 			// TODO Auto-generated method stub
 			return null;
 		}
+
+    @Override
+    public PropertyStore<ZNRecord> getStore()
+    {
+      // TODO Auto-generated method stub
+      return null;
+    }
 
 	}
 }

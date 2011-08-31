@@ -48,6 +48,7 @@ import com.linkedin.clustermanager.model.IdealState;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.participant.statemachine.StateModel;
 import com.linkedin.clustermanager.participant.statemachine.StateModelFactory;
+import com.linkedin.clustermanager.store.file.FilePropertyStore;
 import com.linkedin.clustermanager.tools.ClusterViewSerializer;
 import com.linkedin.clustermanager.tools.IdealStateCalculatorByShuffling;
 import com.linkedin.clustermanager.util.CMUtil;
@@ -57,8 +58,8 @@ public class FileBasedClusterManager implements ClusterManager
   private static final Logger LOG = Logger
       .getLogger(FileBasedClusterManager.class.getName());
   private ClusterView _clusterView; // for backward compatibility, TODO remove it later
-  // private final ClusterDataAccessor _fileDataAccessor;
-  private final FileBasedDataAccessor _fileDataAccessor;
+  private final ClusterDataAccessor _fileDataAccessor;
+  // private final FileBasedDataAccessor _fileDataAccessor;
   // private final String _rootNamespace = "/tmp/testFilePropertyStoreIntegration";
   
   private final String _clusterName;
@@ -72,7 +73,7 @@ public class FileBasedClusterManager implements ClusterManager
   public static final String configFile = "configFile";
   
   public FileBasedClusterManager(String clusterName, String instanceName,
-      InstanceType instanceType, String staticClusterConfigFile, FileBasedDataAccessor accessor)
+      InstanceType instanceType, String staticClusterConfigFile, ClusterDataAccessor accessor)
   {
     this._clusterName = clusterName;
     this._instanceName = instanceName;
@@ -81,20 +82,23 @@ public class FileBasedClusterManager implements ClusterManager
 
     _handlers = new ArrayList<CallbackHandlerForFile>();
     
-    _fileDataAccessor = accessor;
-    if (_fileDataAccessor == null)
+    // _fileDataAccessor = accessor;
+    if (accessor == null)
     {
       // for backward compatibility, TODO remove it later
+      _fileDataAccessor = new DummyFileDataAccessor();
       this._clusterView = ClusterViewSerializer.deserialize(new File(staticClusterConfigFile));
     }
     else
     {
+      _fileDataAccessor = accessor;
       if (_instanceType == InstanceType.PARTICIPANT)
       {
         addLiveInstance();
       }
     
-      _fileDataAccessor.start();
+      FilePropertyStore<ZNRecord> store = (FilePropertyStore<ZNRecord>)_fileDataAccessor.getStore();
+      store.start();
     }
   }
 
@@ -344,7 +348,7 @@ public class FileBasedClusterManager implements ClusterManager
   @Override
   public void addMessageListener(MessageListener listener, String instanceName)
   {
-    if (_fileDataAccessor == null)
+    if (_fileDataAccessor.getStore() == null)
     {
       // for backward compatibility, TODO remove it later
       NotificationContext context = new NotificationContext(this);

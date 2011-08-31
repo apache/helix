@@ -1,9 +1,5 @@
 package com.linkedin.clustermanager.agent.file;
 
-import static com.linkedin.clustermanager.CMConstants.ChangeType.CURRENT_STATE;
-import static com.linkedin.clustermanager.CMConstants.ChangeType.IDEAL_STATE;
-import static com.linkedin.clustermanager.CMConstants.ChangeType.LIVE_INSTANCE;
-
 import java.io.File;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -31,6 +27,7 @@ import com.linkedin.clustermanager.CMConstants.ChangeType;
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
+import com.linkedin.clustermanager.ClusterManagementService;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerException;
 import com.linkedin.clustermanager.ClusterView;
@@ -48,10 +45,8 @@ import com.linkedin.clustermanager.model.IdealState;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.participant.statemachine.StateModel;
 import com.linkedin.clustermanager.participant.statemachine.StateModelFactory;
-import com.linkedin.clustermanager.store.file.FilePropertyStore;
 import com.linkedin.clustermanager.tools.ClusterViewSerializer;
 import com.linkedin.clustermanager.tools.IdealStateCalculatorByShuffling;
-import com.linkedin.clustermanager.util.CMUtil;
 
 public class FileBasedClusterManager implements ClusterManager
 {
@@ -73,7 +68,7 @@ public class FileBasedClusterManager implements ClusterManager
   public static final String configFile = "configFile";
   
   public FileBasedClusterManager(String clusterName, String instanceName,
-      InstanceType instanceType, String staticClusterConfigFile, ClusterDataAccessor accessor)
+      InstanceType instanceType, String staticClusterConfigFile)
   {
     this._clusterName = clusterName;
     this._instanceName = instanceName;
@@ -82,24 +77,8 @@ public class FileBasedClusterManager implements ClusterManager
 
     _handlers = new ArrayList<CallbackHandlerForFile>();
     
-    // _fileDataAccessor = accessor;
-    if (accessor == null)
-    {
-      // for backward compatibility, TODO remove it later
-      _fileDataAccessor = new DummyFileDataAccessor();
-      this._clusterView = ClusterViewSerializer.deserialize(new File(staticClusterConfigFile));
-    }
-    else
-    {
-      _fileDataAccessor = accessor;
-      if (_instanceType == InstanceType.PARTICIPANT)
-      {
-        addLiveInstance();
-      }
-    
-      FilePropertyStore<ZNRecord> store = (FilePropertyStore<ZNRecord>)_fileDataAccessor.getStore();
-      store.start();
-    }
+    _fileDataAccessor = new DummyFileDataAccessor();
+    this._clusterView = ClusterViewSerializer.deserialize(new File(staticClusterConfigFile));
   }
 
   private static Message createSimpleMessage(ZNRecord idealStateRecord,
@@ -311,31 +290,19 @@ public class FileBasedClusterManager implements ClusterManager
   @Override
   public void addIdealStateChangeListener(IdealStateChangeListener listener)
   {
-    /**
+
     NotificationContext context = new NotificationContext(this);
     context.setType(NotificationContext.Type.INIT);
     listener.onIdealStateChange(this._clusterView
         .getClusterPropertyList(ClusterPropertyType.IDEALSTATES), context);
-    **/
-    final String path = CMUtil.getIdealStatePath(_clusterName);
-    
-    CallbackHandlerForFile callbackHandler = createCallBackHandler(path, listener,
-        new EventType[]
-        { EventType.NodeDataChanged, EventType.NodeDeleted,
-            EventType.NodeCreated }, IDEAL_STATE);
-    _handlers.add(callbackHandler);
 
   }
 
   @Override
   public void addLiveInstanceChangeListener(LiveInstanceChangeListener listener)
   {
-    final String path = CMUtil.getLiveInstancesPath(_clusterName);
-    CallbackHandlerForFile callbackHandler = createCallBackHandler(path, listener,
-        new EventType[]
-        { EventType.NodeChildrenChanged, EventType.NodeDeleted,
-            EventType.NodeCreated }, LIVE_INSTANCE);
-    _handlers.add(callbackHandler);
+    throw new UnsupportedOperationException(
+        "addLiveInstanceChangeListener is not supported by File Based cluster manager");
   }
 
   @Override
@@ -348,42 +315,20 @@ public class FileBasedClusterManager implements ClusterManager
   @Override
   public void addMessageListener(MessageListener listener, String instanceName)
   {
-    if (_fileDataAccessor.getStore() == null)
-    {
-      // for backward compatibility, TODO remove it later
-      NotificationContext context = new NotificationContext(this);
-      context.setType(NotificationContext.Type.INIT);
-      List<ZNRecord> messages;
-      messages = _clusterView.getMemberInstance(instanceName, true)
-          .getInstanceProperty(InstancePropertyType.MESSAGES);
-      listener.onMessage(instanceName, messages, context);
-    }
-    else
-    {
-    
-      final String path = CMUtil.getMessagePath(_clusterName, instanceName);
-      
-      CallbackHandlerForFile callbackHandler = createCallBackHandler(path, listener,
-          new EventType[]
-          { EventType.NodeDataChanged, EventType.NodeDeleted,
-              EventType.NodeCreated }, ChangeType.MESSAGE);
-      _handlers.add(callbackHandler);
-    }
+    NotificationContext context = new NotificationContext(this);
+    context.setType(NotificationContext.Type.INIT);
+    List<ZNRecord> messages;
+    messages = _clusterView.getMemberInstance(instanceName, true)
+        .getInstanceProperty(InstancePropertyType.MESSAGES);
+    listener.onMessage(instanceName, messages, context);
   }
 
   @Override
   public void addCurrentStateChangeListener(
       CurrentStateChangeListener listener, String instanceName, String sessionId)
   {
-    final String path = CMUtil.getCurrentStateBasePath(_clusterName,
-        instanceName) + "/" + sessionId;
-
-    CallbackHandlerForFile callbackHandler = createCallBackHandler(path, listener,
-        new EventType[]
-        { EventType.NodeChildrenChanged, EventType.NodeDeleted,
-            EventType.NodeCreated }, CURRENT_STATE);
-    _handlers.add(callbackHandler);
-  }
+    throw new UnsupportedOperationException(
+        "addCurrentStateChangeListener is not supported by File Based cluster manager");  }
 
   @Override
   public void addExternalViewChangeListener(ExternalViewChangeListener listener)
@@ -645,6 +590,13 @@ public class FileBasedClusterManager implements ClusterManager
     byte[] bytes = ClusterViewSerializer.serialize(restoredView);
     System.out.println(new String(bytes));
 
+  }
+
+  @Override
+  public ClusterManagementService getClusterManagmentTool()
+  {
+    // TODO Auto-generated method stub
+    return null;
   }
 
 }

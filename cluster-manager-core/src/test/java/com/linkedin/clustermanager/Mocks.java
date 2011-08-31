@@ -191,6 +191,13 @@ public class Mocks
 			return false;
 		}
 
+    @Override
+    public ClusterManagementService getClusterManagmentTool()
+    {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
 	}
 
 	public static class MockAccessor implements ClusterDataAccessor

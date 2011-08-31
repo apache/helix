@@ -33,8 +33,8 @@ public class FileClusterManagementTool implements ClusterManagementService
 
   }
 
-  // @Override
-  public List<String> getNodeNamesInCluster(String clusterName)
+  @Override
+  public List<String> getInstancesInCluster(String clusterName)
   {
     String memberInstancesPath = CMUtil.getMemberInstancesPath(clusterName);
 
@@ -155,8 +155,8 @@ public class FileClusterManagementTool implements ClusterManagementService
     
   }
 
-  // @Override
-  public void addNode(String clusterName, ZNRecord nodeConfig)
+  @Override
+  public void addInstance(String clusterName, ZNRecord nodeConfig)
   {    
     String configsPath = CMUtil.getConfigPath(clusterName);
     String nodeId = nodeConfig.getId();
@@ -284,13 +284,15 @@ public class FileClusterManagementTool implements ClusterManagementService
       "getStateModelDefs() is NOT supported by FileClusterManagementTool");
   }
 
+  /**
   @Override
   public List<String> getInstancesInCluster(String clusterName)
   {
     throw new UnsupportedOperationException(
         "getInstancesInCluster() is NOT supported by FileClusterManagementTool");
   }
-
+  **/
+  
   @Override
   public ZNRecord getInstanceConfig(String clusterName, String instanceName)
   {
@@ -298,6 +300,7 @@ public class FileClusterManagementTool implements ClusterManagementService
         "getInstanceConfig() is NOT supported by FileClusterManagementTool");
   }
 
+  /**
   @Override
   public void addInstance(String clusterName, ZNRecord instanceConfig)
   {
@@ -305,7 +308,8 @@ public class FileClusterManagementTool implements ClusterManagementService
     throw new UnsupportedOperationException(
         "addInstance() is NOT supported by FileClusterManagementTool");
   }
-
+  **/
+  
   @Override
   public ZNRecord getStateModelDef(String clusterName, String stateModelName)
   {
@@ -321,5 +325,4 @@ public class FileClusterManagementTool implements ClusterManagementService
     throw new UnsupportedOperationException(
         "getResourceGroupExternalView() is NOT supported by FileClusterManagementTool");
   }
-
 }

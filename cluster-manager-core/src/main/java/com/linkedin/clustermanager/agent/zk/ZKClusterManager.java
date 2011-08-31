@@ -14,8 +14,6 @@ import java.util.Timer;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import org.I0Itec.zkclient.IZkChildListener;
-import org.I0Itec.zkclient.exception.ZkNodeExistsException;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
@@ -27,8 +25,8 @@ import com.linkedin.clustermanager.CMConstants.ChangeType;
 import com.linkedin.clustermanager.CMConstants.ZNAttribute;
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
-import com.linkedin.clustermanager.ClusterDataAccessor.ControllerPropertyType;
 import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
+import com.linkedin.clustermanager.ClusterManagementService;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerException;
 import com.linkedin.clustermanager.ConfigChangeListener;
@@ -39,7 +37,6 @@ import com.linkedin.clustermanager.IdealStateChangeListener;
 import com.linkedin.clustermanager.InstanceType;
 import com.linkedin.clustermanager.LiveInstanceChangeListener;
 import com.linkedin.clustermanager.MessageListener;
-import com.linkedin.clustermanager.NotificationContext;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.monitoring.ZKPathDataDumpTask;
 import com.linkedin.clustermanager.util.CMUtil;
@@ -429,5 +426,12 @@ public class ZKClusterManager implements ClusterManager
 			}
 		}
 	}
+
+  @Override
+  public ClusterManagementService getClusterManagmentTool()
+  {
+    // TODO Auto-generated method stub
+    return null;
+  }
 
 }

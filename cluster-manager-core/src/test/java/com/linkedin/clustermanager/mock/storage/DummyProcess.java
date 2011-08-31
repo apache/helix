@@ -66,12 +66,17 @@ public class DummyProcess
 
   public void start() throws Exception
   {
-    if (_file == null)
+    if (_file == null && _accessor == null)
       manager = ClusterManagerFactory.getZKBasedManagerForParticipant(
           clusterName, instanceName, zkConnectString);
-    else
+    else if (_file != null && _accessor == null)  // static file cluster manager
       manager = ClusterManagerFactory.getFileBasedManagerForParticipant(
-          clusterName, instanceName, _file, _accessor);
+          clusterName, instanceName, _file);
+    else if (_file == null && _accessor != null)  // dynamic file cluster manager
+      manager = ClusterManagerFactory.getFileBasedManagerForParticipant(
+          clusterName, instanceName, _accessor);
+    else
+      throw new Exception("Illeagal arguments");
 
     stateModelFactory = new DummyStateModelFactory(_transDelayInMs);
     genericStateMachineHandler = new StateMachineEngine(stateModelFactory);

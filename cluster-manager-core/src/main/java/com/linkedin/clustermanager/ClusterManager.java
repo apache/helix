@@ -2,6 +2,10 @@ package com.linkedin.clustermanager;
 
 import java.util.List;
 
+import com.linkedin.clustermanager.controller.GenericClusterController;
+import com.linkedin.clustermanager.participant.StateMachineEngine;
+import com.linkedin.clustermanager.spectator.RoutingTableProvider;
+
 /**
  * First class Object any process will interact with<br/>
  * General flow 
@@ -152,5 +156,6 @@ public interface ClusterManager
    */
  
   void addControllerListener(ControllerChangeListener listener);
-
+  
+  ClusterManagementService getClusterManagmentTool();
 }

@@ -48,13 +48,13 @@ public class TestZkClientWrapper extends ZKBaseTest
 			@Override
 			public void handleStateChanged(KeeperState state) throws Exception
 			{
-				System.out.println("New state " + state);
+				System.out.println("In Old connection New state " + state);
 			}
 
 			@Override
 			public void handleNewSession() throws Exception
 			{
-				System.out.println("New session");
+				System.out.println("In Old connection New session");
 			}
 		};
 		_zkClient.subscribeStateChanges(listener);
@@ -67,16 +67,20 @@ public class TestZkClientWrapper extends ZKBaseTest
 				@Override
         public void process(WatchedEvent event)
         {
-					System.out.println("In process event:"+ event);
+					System.out.println("In New connection In process event:"+ event);
         }
 			};
 			ZooKeeper newZookeeper = new ZooKeeper(connection.getServers(),
 			    zookeeper.getSessionTimeout(), watcher , zookeeper.getSessionId(),
 			    zookeeper.getSessionPasswd());
+			Thread.sleep(3000);
 			System.out.println("New sessionId= " + newZookeeper.getSessionId());
 			Thread.sleep(3000);
 			newZookeeper.close();
 			Thread.sleep(10000);
+			connection = ((ZkConnection) _zkClient.getConnection());
+			zookeeper = connection.getZookeeper();
+			System.out.println("After session expiry sessionId= " + zookeeper.getSessionId());
 		} catch (Exception e)
 		{
 			// TODO Auto-generated catch block

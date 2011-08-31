@@ -10,7 +10,7 @@ import org.apache.zookeeper.CreateMode;
 
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ZNRecord;
-import com.linkedin.clustermanager.store.PropertyChangeListener;
+import com.linkedin.clustermanager.store.PropertyStore;
 import com.linkedin.clustermanager.store.PropertyStoreException;
 import com.linkedin.clustermanager.store.file.FilePropertyStore;
 import com.linkedin.clustermanager.util.CMUtil;
@@ -476,6 +476,7 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
     return childRecords;
   }
   
+  /**
   // hack
   public void start()
   {
@@ -488,9 +489,6 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
   public void subscribeForPropertyChange(String path, PropertyChangeListener<ZNRecord> listener) 
   throws PropertyStoreException
   {
-    // debug
-    // System.err.println("subscribe for property change, path:" + path);
-    
     _store.subscribeForPropertyChange(path, listener);
   }
   
@@ -512,6 +510,13 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
     }
     
     return null;
+  }
+  **/
+  
+  @Override
+  public PropertyStore<ZNRecord> getStore()
+  {
+    return _store;
   }
   
 }

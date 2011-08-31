@@ -16,7 +16,13 @@ import com.linkedin.clustermanager.model.ResourceGroup;
 import com.linkedin.clustermanager.model.ResourceKey;
 import com.linkedin.clustermanager.pipeline.AbstractBaseStage;
 import com.linkedin.clustermanager.pipeline.StageException;
-
+/**
+ * For each LiveInstances
+ *  select currentState and message whose sessionId matches sessionId from LiveInstance
+ *  Get ResourceKey,State for all the resources computed in previous State [ResourceComputationStage]
+ * @author kgopalak
+ *
+ */
 public class CurrentStateComputationStage extends AbstractBaseStage {
 	@Override
 	public void process(ClusterEvent event) throws Exception {

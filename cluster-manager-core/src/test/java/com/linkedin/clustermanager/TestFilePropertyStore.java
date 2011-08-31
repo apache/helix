@@ -4,6 +4,7 @@ import java.util.List;
 
 import junit.framework.Assert;
 
+import org.apache.log4j.Logger;
 import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.store.PropertyChangeListener;
@@ -13,6 +14,7 @@ import com.linkedin.clustermanager.store.file.FilePropertyStore;
 
 public class TestFilePropertyStore
 {
+  private static Logger LOG = Logger.getLogger(TestFilePropertyStore.class);
   
   public class MyPropertyChangeListener implements PropertyChangeListener<String>
   {
@@ -21,50 +23,22 @@ public class TestFilePropertyStore
     @Override
     public void onPropertyChange(String key)
     {
-      // TODO Auto-generated method stub
-      System.out.println("property changed at " + key);
+      LOG.debug("property changed at " + key);
       _propertyChangeReceived = true;
     }
     
   }
   
-  /**
-  public class MyComparator implements Comparator<String>
-  {
-
-    @Override
-    public int compare(String o1, String o2)
-    {
-      if (o1 == null && o2 == null)
-      {
-        return 0;
-      }
-      else if (o1 == null && o2 != null)
-      {
-        return -1;
-      }
-      else if (o1 != null && o2 == null)
-      {
-        return 1;
-      }
-      else
-      {
-        return o1.compareTo(o2);
-      }
-    }
-    
-  }
-  **/
-  
   @Test
   public void testInvocation() throws Exception
   {
     final int SLEEP_TIME = 2000;
-    // StringPropertySerializer serializer = new StringPropertySerializer();
     PropertyJsonSerializer<String> serializer = new PropertyJsonSerializer<String>(String.class);
+    PropertyJsonComparator<String> comparator = new PropertyJsonComparator<String>(String.class);
     String rootNamespace = "/tmp/testFilePropertyStore";
     
-    FilePropertyStore<String> store = new FilePropertyStore<String>(serializer, rootNamespace);
+    FilePropertyStore<String> store = new FilePropertyStore<String>(serializer, rootNamespace, 
+        comparator);
     store.removeRootNamespace();
     store.createRootNamespace();
     store.start();
@@ -125,13 +99,13 @@ public class TestFilePropertyStore
     boolean success = store.compareAndSet("testPath1/testPath4", 
                                           "testValue4-II\n", 
                                           "testValue4-II\n", 
-                                          new PropertyJsonComparator<String>(String.class));
+                                          comparator);
     Assert.assertEquals(success, false);
     
     success = store.compareAndSet("testPath1/testPath4", 
                                   "testValue4-I\n", 
                                   "testValue4-II\n", 
-                                  new PropertyJsonComparator<String>(String.class));
+                                  comparator);
     Assert.assertEquals(success, true);
     
     store.unsubscribeForPropertyChange("testPath1", listener2);

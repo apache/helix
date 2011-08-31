@@ -1,189 +1,517 @@
 package com.linkedin.clustermanager.agent.file;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.store.PropertyChangeListener;
+import com.linkedin.clustermanager.store.PropertyStoreException;
+import com.linkedin.clustermanager.store.file.FilePropertyStore;
+import com.linkedin.clustermanager.util.CMUtil;
 
 public class FileBasedDataAccessor implements ClusterDataAccessor
 {
-
-  // private final ClusterView _clusterView;
-
-  public FileBasedDataAccessor()
+  private static Logger LOG = Logger.getLogger(FileBasedDataAccessor.class);
+  private final FilePropertyStore<ZNRecord> _store;
+  private final String _clusterName;  
+  private final ReadWriteLock _readWriteLock = new ReentrantReadWriteLock();
+  
+  public FileBasedDataAccessor(FilePropertyStore<ZNRecord> store, String clusterName)
   {
-    // this._clusterView = new ClusterView();
+    _store = store;
+    _clusterName = clusterName;
   }
-
+  
   @Override
   public void setClusterProperty(ClusterPropertyType clusterProperty,
       String key, ZNRecord value)
   {
-    // TODO Auto-generated method stub
+    
+    String path = CMUtil.getClusterPropertyPath(_clusterName, clusterProperty);
+    path = path + "/" + key;
+    try
+    {
+      _readWriteLock.writeLock().lock();
+      _store.setProperty(path, value);
+    }
+    catch(PropertyStoreException e)
+    {
+      LOG.error("Fail to set cluster property clusterName: " + _clusterName + 
+                " type:" + clusterProperty +
+                " key:" + key + "\nexception: " + e);
+    }
+    finally
+    {
+      _readWriteLock.writeLock().unlock();
+    }
+  }
+
+  @Override
+  public void updateClusterProperty(ClusterPropertyType type, String key, ZNRecord value)
+  {
+    // LOG.error("updateClusterProperty() NOT supported, type:" + type + 
+    //    " key:" + key);
+    throw new UnsupportedOperationException(
+      "updateClusterProperty() is NOT supported by FileDataAccessor");
 
   }
 
   @Override
-  public void updateClusterProperty(ClusterPropertyType clusterProperty,
-      String key, ZNRecord value)
+  public ZNRecord getClusterProperty(ClusterPropertyType type, String key)
   {
-    // TODO Auto-generated method stub
-
-  }
-
-  @Override
-  public ZNRecord getClusterProperty(ClusterPropertyType clusterProperty,
-      String key)
-  {
-    // TODO Auto-generated method stub
+    // LOG.error("getClusterProperty() NOT supported, type:" + type +
+    //    " key:" + key);   
+    // return null;
+    String path = CMUtil.getClusterPropertyPath(_clusterName, type);
+    path = path + "/" + key;
+    try
+    {
+      _readWriteLock.readLock().lock();
+      return _store.getProperty(path);
+    }
+    catch(PropertyStoreException e)
+    {
+      LOG.error("Fail to get cluster property clusterName: " + _clusterName + 
+                " type:" + type +
+                " key:" + key + "\nexception: " + e);
+    }
+    finally
+    {
+      _readWriteLock.readLock().unlock();
+    }
     return null;
   }
 
   @Override
-  public List<ZNRecord> getClusterPropertyList(
-      ClusterPropertyType clusterProperty)
+  public List<ZNRecord> getClusterPropertyList(ClusterPropertyType clusterProperty)
   {
-    // TODO Auto-generated method stub
-    return null;
+    String path = CMUtil.getClusterPropertyPath(_clusterName, clusterProperty);
+    return getChildRecords(path);    
   }
 
   @Override
   public void setInstanceProperty(String instanceName,
-      InstancePropertyType clusterProperty, String key, ZNRecord value)
+      InstancePropertyType type, String key, ZNRecord value)
   {
-    // TODO Auto-generated method stub
-
+    String path = CMUtil.getInstancePropertyPath(_clusterName, instanceName, type);
+    path = path + "/" + key;
+    
+    try
+    {
+      _readWriteLock.writeLock().lock();
+      _store.setProperty(path, value);
+    }
+    catch (PropertyStoreException e)
+    {
+      LOG.error("Fail to set instance property, instance:" + instanceName +
+                " type:" + type + " key:" + key + "\nexception:" + e);
+    }
+    finally
+    {
+      _readWriteLock.writeLock().unlock();
+    }
+    
   }
 
   @Override
   public ZNRecord getInstanceProperty(String instanceName,
-      InstancePropertyType clusterProperty, String key)
-  {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
-  public List<ZNRecord> getInstancePropertyList(String instanceName,
-      InstancePropertyType clusterProperty)
-  {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
-  public void removeInstanceProperty(String instanceName,
       InstancePropertyType type, String key)
   {
-    // TODO Auto-generated method stub
-
-  }
-
-  @Override
-  public void updateInstanceProperty(String instanceName,
-      InstancePropertyType type, String hey, ZNRecord value)
-  {
-    // TODO Auto-generated method stub
-
-  }
-
-  @Override
-  public void removeClusterProperty(ClusterPropertyType clusterProperty,
-      String key)
-  {
-    // TODO Auto-generated method stub
-
-  }
-
-  @Override
-  public void setClusterProperty(ClusterPropertyType clusterProperty,
-      String key, ZNRecord value, CreateMode mode)
-  {
-    // TODO Auto-generated method stub
-    
-  }
-
-  @Override
-  public void setInstanceProperty(String instanceName,
-      InstancePropertyType instanceProperty, String subPath, String key,
-      ZNRecord value)
-  {
-    // TODO Auto-generated method stub
-    
-  }
-
-  @Override
-  public void updateInstanceProperty(String instanceName,
-      InstancePropertyType instanceProperty, String subPath, String key,
-      ZNRecord value)
-  {
-    // TODO Auto-generated method stub
-    
-  }
-
-  @Override
-  public List<ZNRecord> getInstancePropertyList(String instanceName,
-      String subPath, InstancePropertyType instanceProperty)
-  {
-    // TODO Auto-generated method stub
+    String path = CMUtil.getInstancePropertyPath(_clusterName, instanceName, type);
+    path = path + "/" + key;
+    try
+    {
+      _readWriteLock.readLock().lock();
+      return _store.getProperty(path);
+    }
+    catch(PropertyStoreException e)
+    {
+      LOG.error("Fail to get instance property cluster:" + _clusterName + 
+          " instanceName:" + instanceName + "type:" + type +
+          " key:" + key + "\nexception: " + e);
+    }
+    finally
+    {
+      _readWriteLock.readLock().unlock();
+    }
+   
     return null;
   }
 
   @Override
-  public ZNRecord getInstanceProperty(String instanceName,
-      InstancePropertyType instanceProperty, String subPath, String key)
+  public List<ZNRecord> getInstancePropertyList(String instanceName,
+      InstancePropertyType type)
   {
-    // TODO Auto-generated method stub
+    String path = CMUtil.getInstancePropertyPath(_clusterName, instanceName, type);
+
+    return getChildRecords(path);
+  }
+
+  @Override
+  public void removeInstanceProperty(String instanceName, InstancePropertyType type, 
+      String key)
+  {
+    String path = CMUtil.getInstancePropertyPath(_clusterName, instanceName, type);
+    path = path + "/" + key;
+    
+    try
+    {
+      _readWriteLock.writeLock().lock();
+      _store.removeProperty(path);
+    }
+    catch (PropertyStoreException e)
+    {
+      LOG.error("Fail to remove instance property, instance:" + instanceName + 
+          " type:" + type + " key:" + key  + "\nexception:" + e);
+    }
+    finally
+    {
+      _readWriteLock.writeLock().unlock();
+    }
+
+  }
+
+  private void updateIfExists(String path, final ZNRecord record, boolean mergeOnUpdate) 
+  throws PropertyStoreException
+  {
+    if (_store.exists(path))
+    {
+      _store.setProperty(path, record);
+    }
+  }
+  
+  @Override
+  public void updateInstanceProperty(String instanceName,
+      InstancePropertyType type, String key, ZNRecord value)
+  {
+    try
+    {
+      _readWriteLock.writeLock().lock();
+      String path = CMUtil.getInstancePropertyPath(_clusterName, instanceName, type) + "/" + key;
+      if (type.isUpdateOnlyOnExists())
+      {
+        updateIfExists(path, value, type.isMergeOnUpdate());
+      } else
+      {
+        createOrUpdate(path, value, type.isMergeOnUpdate());
+      }
+    }
+    catch (PropertyStoreException e)
+    {
+      LOG.error("fail to update instance property, instance:" + instanceName + 
+          " type:" + type + " key:" + key + "\nexception:" + e);
+    }
+    finally
+    {
+      _readWriteLock.writeLock().unlock();
+    }
+
+  }
+
+  @Override
+  public void removeClusterProperty(ClusterPropertyType type, String key)
+  {
+    // LOG.error("removeClusterProperty() NOT supported, type:" + type +
+    //    " key:" + key);
+    throw new UnsupportedOperationException(
+      "removeClusterProperty() is NOT supported by FileDataAccessor");
+
+  }
+
+  @Override
+  public void setClusterProperty(ClusterPropertyType type,
+      String key, ZNRecord value, CreateMode mode)
+  {
+    setClusterProperty(type, key, value);
+  }
+
+  @Override
+  public void setInstanceProperty(String instanceName,
+      InstancePropertyType type, String subPath, String key,
+      ZNRecord value)
+  {
+    if (subPath.indexOf('/')  > 0)
+    {
+      // LOG.error("setInstanceProperty() with multiple subPath NOT supported, subPath:" 
+      //  + subPath);
+      throw new UnsupportedOperationException(
+        "setInstanceProperty() with multiple subPath is NOT supported by FileDataAccessor");
+
+    }
+    
+    String path = CMUtil.getInstancePropertyPath(_clusterName, instanceName, type);
+    path = path + "/" + subPath;
+    try
+    {
+      _readWriteLock.writeLock().lock();
+      if (!_store.exists(path))
+      {
+        _store.createPropertyNamespace(path);
+      }
+      
+      path = path + "/" + key; 
+      _store.setProperty(path, value);
+    }
+    catch(PropertyStoreException e)
+    {
+      LOG.error("Fail to set instance property cluster:" + _clusterName + 
+          " type:" + type + " subPath:" + subPath +
+          " key:" + key + "\nexception: " + e);
+    }
+    finally
+    {
+      _readWriteLock.writeLock().unlock();
+    }
+  }
+
+  private void createOrUpdate(String path, ZNRecord record, boolean mergeOnUpdate) 
+  throws PropertyStoreException
+  {
+    if (_store.exists(path))
+    {
+      ZNRecord curRecord = _store.getProperty(path);
+      if (mergeOnUpdate)
+      {
+        curRecord.merge(record);
+        _store.setProperty(path, curRecord);
+      }
+      else
+      {
+        _store.setProperty(path, record);
+      }
+    }
+    else
+    {
+      _store.setProperty(path, record);
+    }
+  }
+  
+  @Override
+  public void updateInstanceProperty(String instanceName, InstancePropertyType type, 
+      String subPath, String key, ZNRecord value)
+  {
+    
+    String path = CMUtil.getInstancePropertyPath(_clusterName, instanceName, type);
+    String parentPath = path + "/" + subPath;
+    try
+    {
+      _readWriteLock.writeLock().lock();
+    
+      if (!_store.exists(parentPath))
+      {
+        String[] subPaths = subPath.split("/");
+        String tempPath = path;
+        for (int i = 0; i < subPaths.length; i++)
+        {
+          tempPath = tempPath + "/" + subPaths[i];
+          if (!_store.exists(tempPath))
+          {
+            _store.createPropertyNamespace(tempPath);
+          }
+        }
+      }
+        
+      String propertyPath = parentPath + "/" + key;
+      createOrUpdate(propertyPath, value, type.isMergeOnUpdate());
+    }
+    catch (PropertyStoreException e)
+    {
+      LOG.error("fail to update instance property, instance:" + instanceName + 
+          " type:" + type +
+          " subPath:" + subPath + " key:" + key + "\nexception:" + e);    
+    }
+    finally
+    {
+      _readWriteLock.writeLock().unlock();
+    }
+
+  }
+
+  @Override
+  public List<ZNRecord> getInstancePropertyList(String instanceName,
+      String subPath, InstancePropertyType type)
+  {
+    String path = CMUtil.getInstancePropertyPath(_clusterName, instanceName, type);
+    path = path + "/" + subPath;
+
+    return getChildRecords(path);
+  }
+
+  @Override
+  public ZNRecord getInstanceProperty(String instanceName,
+      InstancePropertyType type, String subPath, String key)
+  {
+    if (subPath.indexOf('/')  > 0)
+    {
+      // LOG.error("getInstanceProperty() with multiple subPath NOT supported, subPath:" 
+      //  + subPath);
+      throw new UnsupportedOperationException(
+        "getInstanceProperty() with multiple subPath is NOT supported by FileDataAccessor");
+
+    }
+    
+    String path = CMUtil.getInstancePropertyPath(_clusterName, instanceName, type);
+    path = path + "/" + subPath + "/" + key;
+    try
+    {
+      _readWriteLock.readLock().lock();
+      if (_store.exists(path))
+      {
+        return _store.getProperty(path);
+      }
+    }
+    catch(PropertyStoreException e)
+    {
+      LOG.error("Fail to get instance property cluster:" + _clusterName + 
+          " type:" + type + " subPath:" + subPath +
+          " key:" + key  + "\nexception: " + e);
+    }
+    finally
+    {
+      _readWriteLock.readLock().unlock();
+    }
+   
     return null;
   }
 
   @Override
   public List<String> getInstancePropertySubPaths(String instanceName,
-      InstancePropertyType instanceProperty)
+      InstancePropertyType type)
   {
-    // TODO Auto-generated method stub
-    return null;
+    // LOG.error("getInstancePropertySubPaths() NOT supported,  type:" + type);
+    // return null;
+    throw new UnsupportedOperationException(
+      "getInstancePropertySubPaths() is NOT supported by FileDataAccessor");
   }
 
   @Override
   public void substractInstanceProperty(String instanceName,
-      InstancePropertyType instanceProperty, String subPath, String key,
+      InstancePropertyType type, String subPath, String key,
       ZNRecord value)
   {
-    // TODO Auto-generated method stub
-    
+    // LOG.error("substractInstanceProperty() NOT supported, type:" + type);
+    throw new UnsupportedOperationException(
+      "substractInstanceProperty() is NOT supported by FileDataAccessor");
+
   }
 
   @Override
-  public void createControllerProperty(ControllerPropertyType controllerProperty, ZNRecord value,
-      CreateMode mode)
+  public void createControllerProperty(ControllerPropertyType controllerProperty, 
+      ZNRecord value, CreateMode mode)
   {
-    // TODO Auto-generated method stub
-    
+    // LOG.error("createControllerProperty() NOT supported");
+    throw new UnsupportedOperationException(
+      "createControllerProperty() is NOT supported by FileDataAccessor");
+
   }
 
   @Override
-  public void removeControllerProperty(ControllerPropertyType controllerProperty)
+  public void removeControllerProperty(ControllerPropertyType type)
   {
-    // TODO Auto-generated method stub
-    
+    // LOG.error("removeControllerProperty() NOT supported, type:" + type);
+    throw new UnsupportedOperationException(
+      "removeControllerProperty() is NOT supported by FileDataAccessor");
+
   }
 
   @Override
-  public void setControllerProperty(ControllerPropertyType controllerProperty, ZNRecord value,
-      CreateMode mode)
+  public void setControllerProperty(ControllerPropertyType type, 
+      ZNRecord value, CreateMode mode)
   {
-    // TODO Auto-generated method stub
-    
+    // LOG.error("setControllerProperty() NOT supported, type:" + type);
+    throw new UnsupportedOperationException(
+      "setControllerProperty() is NOT supported by FileDataAccessor");
+
   }
 
   @Override
-  public ZNRecord getControllerProperty(ControllerPropertyType controllerProperty)
+  public ZNRecord getControllerProperty(ControllerPropertyType type)
   {
-    // TODO Auto-generated method stub
+    // LOG.error("getControllerProperty() NOT supported, type:" + type);
+    // return null;
+    throw new UnsupportedOperationException(
+      "getControllerProperty() is NOT supported by FileDataAccessor");
+
+  }
+  
+  private List<ZNRecord> getChildRecords(String parentPath)
+  {
+    List<ZNRecord> childRecords = new ArrayList<ZNRecord>();
+    try
+    {
+      _readWriteLock.readLock().lock();
+      
+      List<String> childs = _store.getPropertyNames(parentPath);
+      if (childs == null)
+      {
+        return childRecords;
+      }
+      
+      for (String child : childs)
+      {
+        ZNRecord record = _store.getProperty(child);
+        if (record != null)
+        {
+          childRecords.add(record);
+        }
+      }
+      return childRecords;
+    }
+    catch(PropertyStoreException e)
+    {
+      LOG.error("Fail to get child properties cluster:" + _clusterName + 
+          " parentPath:" + parentPath + "\nexception: " + e);
+    }
+    finally
+    {
+      _readWriteLock.readLock().unlock();
+    }
+    
+    return childRecords;
+  }
+  
+  // hack
+  public void start()
+  {
+    if (_store != null)
+    {
+      _store.start();
+    }
+  }
+  
+  public void subscribeForPropertyChange(String path, PropertyChangeListener<ZNRecord> listener) 
+  throws PropertyStoreException
+  {
+    // debug
+    // System.err.println("subscribe for property change, path:" + path);
+    
+    _store.subscribeForPropertyChange(path, listener);
+  }
+  
+  public ZNRecord getProperty(String key)
+  {
+    try 
+    {
+      _readWriteLock.readLock().lock();
+      return _store.getProperty(key);
+    }
+    catch (PropertyStoreException e)
+    {
+      LOG.error("Fail to get property, cluster:" + _clusterName +
+          " key:" + key);
+    }
+    finally
+    {
+      _readWriteLock.readLock().unlock();      
+    }
+    
     return null;
   }
-
+  
 }

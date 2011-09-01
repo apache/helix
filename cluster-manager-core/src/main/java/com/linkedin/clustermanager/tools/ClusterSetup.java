@@ -181,10 +181,12 @@ public class ClusterSetup
     if (stateModDef != null)
     {
       StateModelDefinition def = new StateModelDefinition(stateModDef);
-      masterStateValue = def.getMasterStateValue();
-      slaveStateValue = def.getSlaveStateValue();
-      // masterStateValue = def.getStatesPriorityList().get(0);
-      // slaveStateValue = def.getStatesPriorityList().get(1);
+      String value = def.getMasterStateValue(); 
+      if ( value != null)
+        masterStateValue = value;
+      value = def.getSlaveStateValue(); 
+      if ( value != null)
+      slaveStateValue = value;
     }
   
     idealState = IdealStateCalculatorForStorageNode

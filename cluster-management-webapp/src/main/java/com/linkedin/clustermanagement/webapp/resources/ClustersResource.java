@@ -60,9 +60,10 @@ public class ClustersResource extends Resource
     }
     catch(Exception e)
     {
-      getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),
-          MediaType.APPLICATION_JSON);
-      getResponse().setStatus(Status.SUCCESS_OK);
+      String error = ClusterRepresentationUtil.getErrorAsJsonStringFromException(e);
+      presentation = new StringRepresentation(error, MediaType.APPLICATION_JSON);
+      
+      e.printStackTrace();
     }  
     return presentation;
   }

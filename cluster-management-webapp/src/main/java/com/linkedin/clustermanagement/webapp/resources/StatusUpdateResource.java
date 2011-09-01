@@ -1,9 +1,15 @@
 package com.linkedin.clustermanagement.webapp.resources;
 
 import java.io.IOException;
+import java.io.StringWriter;
+import java.util.List;
+import java.util.Map;
 
+import com.linkedin.clustermanager.agent.zk.ZkClient;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.map.SerializationConfig;
 import org.restlet.Context;
 import org.restlet.data.Form;
 import org.restlet.data.MediaType;
@@ -17,13 +23,13 @@ import org.restlet.resource.Variant;
 
 import com.linkedin.clustermanagement.webapp.RestAdminApplication;
 import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
+import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
+import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.tools.ClusterSetup;
 
-public class HostedResourceGroupResource extends Resource
+public class StatusUpdateResource extends Resource
 {
-  public HostedResourceGroupResource(Context context,
-      Request request,
-      Response response) 
+  public StatusUpdateResource(Context context, Request request, Response response)
   {
     super(context, request, response);
     getVariants().add(new Variant(MediaType.TEXT_PLAIN));
@@ -34,49 +40,50 @@ public class HostedResourceGroupResource extends Resource
   {
     return true;
   }
-  
+
   public boolean allowPost()
   {
     return false;
   }
-  
+
   public boolean allowPut()
   {
     return false;
   }
-  
+
   public boolean allowDelete()
   {
     return false;
   }
-  
+
   public Representation represent(Variant variant)
   {
     StringRepresentation presentation = null;
     try
     {
-      String zkServer = (String)getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
-      String clusterName = (String)getRequest().getAttributes().get("clusterName");
-      String resourceName = (String)getRequest().getAttributes().get("resourceName");
-      presentation = getIdealStateRepresentation(zkServer, clusterName, resourceName);
+      String zkServer = (String) getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
+      String clusterName = (String) getRequest().getAttributes().get("clusterName");
+      String instanceName = (String) getRequest().getAttributes().get("instanceName");
+      String resourceGroup = (String) getRequest().getAttributes().get("resourceName");
+      
+      presentation = getInstanceStatusUpdateRepresentation(zkServer, clusterName, instanceName, resourceGroup);
     }
-    
-    catch(Exception e)
+    catch (Exception e)
     {
       String error = ClusterRepresentationUtil.getErrorAsJsonStringFromException(e);
       presentation = new StringRepresentation(error, MediaType.APPLICATION_JSON);
       
       e.printStackTrace();
-    }  
+    }
     return presentation;
   }
-  
-  StringRepresentation getIdealStateRepresentation(String zkServerAddress, String clusterName, String resourceName) throws JsonGenerationException, JsonMappingException, IOException
+
+  StringRepresentation getInstanceStatusUpdateRepresentation(String zkServerAddress, String clusterName, String instanceName, String resourceGroup) throws JsonGenerationException, JsonMappingException, IOException
   {
-    String message = ClusterRepresentationUtil.getClusterPropertyAsString(zkServerAddress, clusterName, ClusterPropertyType.IDEALSTATES, resourceName, MediaType.APPLICATION_JSON);
-    
+    String instanceSessionId = ClusterRepresentationUtil.getInstanceSessionId(zkServerAddress, clusterName, instanceName);
+    String message = 
+        ClusterRepresentationUtil.getInstancePropertyListAsString(zkServerAddress, clusterName, instanceName, InstancePropertyType.STATUSUPDATES, instanceSessionId+"__"+resourceGroup, MediaType.APPLICATION_JSON);
     StringRepresentation representation = new StringRepresentation(message, MediaType.APPLICATION_JSON);
-    
     return representation;
   }
 }

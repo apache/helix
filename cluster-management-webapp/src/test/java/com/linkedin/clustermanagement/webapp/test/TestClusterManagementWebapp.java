@@ -252,7 +252,7 @@ public class TestClusterManagementWebapp
     
     paraMap.put(HostedResourceGroupsResource._resourceGroupName, resourceGroupName);
     paraMap.put(HostedResourceGroupsResource._partitions, ""+partitions);
-    paraMap.put(HostedResourceGroupsResource._stateModelDefRef, statemodel);
+    paraMap.put(HostedResourceGroupsResource._stateModelDefRef, "MasterSlave");
     paraMap.put(ClusterRepresentationUtil._managementCommand, ClusterRepresentationUtil._addResourceGroupCommand);
     
     

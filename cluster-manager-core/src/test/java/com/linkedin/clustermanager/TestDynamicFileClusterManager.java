@@ -13,7 +13,6 @@ import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.ClusterDataAccessor.InstanceConfigProperty;
 import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.agent.file.FileBasedDataAccessor;
-import com.linkedin.clustermanager.agent.file.FileClusterManagementTool;
 import com.linkedin.clustermanager.controller.GenericClusterController;
 import com.linkedin.clustermanager.mock.storage.DummyProcess;
 import com.linkedin.clustermanager.store.PropertyJsonComparator;
@@ -21,13 +20,13 @@ import com.linkedin.clustermanager.store.PropertyJsonSerializer;
 import com.linkedin.clustermanager.store.file.FilePropertyStore;
 import com.linkedin.clustermanager.tools.IdealStateCalculatorForStorageNode;
 
-public class TestFileBasedClusterManagerIntegration
+public class TestDynamicFileClusterManager
 {
-  private static Logger LOG = Logger.getLogger(TestFileBasedClusterManagerIntegration.class);
+  private static Logger LOG = Logger.getLogger(TestDynamicFileClusterManager.class);
   private final String _clusterName = "ESPRESSO_STORAGE";
   private final String _stateModelRefName = "MasterSlave";
   private final int _numNodes = 3;
-  private FileClusterManagementTool _mgmtTool;
+  private ClusterManagementService _mgmtTool;
   
   @Test
   public void testInvocation() 
@@ -35,8 +34,8 @@ public class TestFileBasedClusterManagerIntegration
   {
     LOG.info("RUN " + new Date(System.currentTimeMillis()));
     
-    String rootPath = "/tmp/testFileCMIntegration";
-    String filePath = rootPath + "/" + _clusterName;
+    String rootPath = "/tmp/TestDyanmicFileCM";
+    // String filePath = rootPath + "/" + _clusterName;
     PropertyJsonSerializer<ZNRecord> serializer = new PropertyJsonSerializer<ZNRecord>(ZNRecord.class);
     PropertyJsonComparator<ZNRecord> comparator = new PropertyJsonComparator<ZNRecord>(ZNRecord.class);
     FilePropertyStore<ZNRecord> store = new FilePropertyStore<ZNRecord>(serializer, rootPath, 
@@ -44,8 +43,10 @@ public class TestFileBasedClusterManagerIntegration
 
     FileBasedDataAccessor accessor = new FileBasedDataAccessor(store, _clusterName);
     
-    // generate the cluster view file 
-    _mgmtTool = new FileClusterManagementTool(store);    
+    ClusterManager manager 
+      = ClusterManagerFactory.getFileBasedManagerForController(_clusterName, accessor);
+    
+    _mgmtTool = manager.getClusterManagmentTool();    
     _mgmtTool.addCluster(_clusterName, true);
     _mgmtTool.addResourceGroup(_clusterName, "TestDB", 5, _stateModelRefName);
     for (int i = 0; i < _numNodes; i++)
@@ -57,14 +58,16 @@ public class TestFileBasedClusterManagerIntegration
     // start dummy storage node
     for (int i = 0; i < _numNodes; i++)
     {
-      DummyProcess process = new DummyProcess(null, _clusterName, "localhost_" + (8900 + i), filePath, 0, accessor);
+      DummyProcess process = new DummyProcess(null, _clusterName, "localhost_" + (8900 + i), 
+                                              null, 0, accessor);
       process.start();
     }
     Thread.sleep(1000);
     
     
     // start cluster manager controller
-    ClusterManager manager = ClusterManagerFactory.getFileBasedManagerForController(_clusterName, filePath, accessor);
+    // ClusterManager manager 
+    //  = ClusterManagerFactory.getFileBasedManagerForController(_clusterName, accessor);
 
     GenericClusterController controller = new GenericClusterController();
     // manager.addConfigChangeListener(controller);
@@ -81,7 +84,6 @@ public class TestFileBasedClusterManagerIntegration
                                               manager.getSessionId(), "TestDB");
     boolean result = verifyCurStateAndIdealState(curStates, idealStates,"localhost_8900", "TestDB");
     Assert.assertTrue(result);
-    
     
     // add a new db
     _mgmtTool.addResourceGroup(_clusterName, "MyDB", 6, _stateModelRefName);
@@ -107,12 +109,12 @@ public class TestFileBasedClusterManagerIntegration
     nodeConfig.setSimpleField(InstanceConfigProperty.HOST.toString(), host);
     nodeConfig.setSimpleField(InstanceConfigProperty.PORT.toString(), Integer.toString(port));
     nodeConfig.setSimpleField(InstanceConfigProperty.ENABLED.toString(), Boolean.toString(true));
-    _mgmtTool.addNode(_clusterName, nodeConfig);
+    _mgmtTool.addInstance(_clusterName, nodeConfig);
   }
   
   private void rebalanceStorageCluster(String clusterName, String resourceGroupName, int replica)
   {
-    List<String> nodeNames = _mgmtTool.getNodeNamesInCluster(clusterName);
+    List<String> nodeNames = _mgmtTool.getInstancesInCluster(clusterName);
 
     ZNRecord idealState = _mgmtTool.getResourceGroupIdealState(clusterName, resourceGroupName);
     int partitions = Integer.parseInt(idealState.getSimpleField("partitions"));

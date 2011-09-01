@@ -1,5 +1,6 @@
 package com.linkedin.clustermanager;
 
+import com.linkedin.clustermanager.agent.file.DynamicFileClusterManager;
 import com.linkedin.clustermanager.agent.file.FileBasedClusterManager;
 import com.linkedin.clustermanager.agent.file.FileBasedDataAccessor;
 import com.linkedin.clustermanager.agent.zk.ZKClusterManager;
@@ -41,16 +42,16 @@ public final class ClusterManagerFactory
   {
 
     return new FileBasedClusterManager(clusterName, instanceName,
-        InstanceType.PARTICIPANT, file, null);
+        InstanceType.PARTICIPANT, file);
   }
 
   public static ClusterManager getFileBasedManagerForParticipant(
-    String clusterName, String instanceName, String file, FileBasedDataAccessor accessor) 
+    String clusterName, String instanceName, FileBasedDataAccessor accessor) 
   throws Exception
   {
 
-     return new FileBasedClusterManager(clusterName, instanceName,
-       InstanceType.PARTICIPANT, file, accessor);
+     return new DynamicFileClusterManager(clusterName, instanceName,
+       InstanceType.PARTICIPANT, accessor);
   }
 
   /**
@@ -61,9 +62,9 @@ public final class ClusterManagerFactory
   **/
   
   public static ClusterManager getFileBasedManagerForController(String clusterName, 
-      String file, FileBasedDataAccessor accessor)
+      FileBasedDataAccessor accessor)
   {
-    return new FileBasedClusterManager(clusterName, null, InstanceType.CONTROLLER, 
-        file, accessor);
+    return new DynamicFileClusterManager(clusterName, null, InstanceType.CONTROLLER, 
+        accessor);
   }
 }

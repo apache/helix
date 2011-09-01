@@ -23,6 +23,8 @@ import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.agent.zk.ZKClusterManagementTool;
 import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
+import com.linkedin.clustermanager.model.StateModelDefinition;
+import com.linkedin.clustermanager.util.CMUtil;
 import com.linkedin.clustermanager.util.ZKClientPool;
 
 public class ClusterSetup
@@ -74,6 +76,14 @@ public class ClusterSetup
     StateModelConfigGenerator generator = new StateModelConfigGenerator();
     addStateModelDef(clusterName, "MasterSlave",
         generator.generateConfigForMasterSlave());
+  }
+  
+  public void addCluster(String clusterName, boolean overwritePrevious, String stateModDefName, 
+                         ZNRecord stateModDef)
+  {
+    ClusterManagementService managementTool = getClusterManagementTool();
+    managementTool.addCluster(clusterName, overwritePrevious);
+    addStateModelDef(clusterName, stateModDefName, stateModDef);
   }
 
   public void addInstancesToCluster(String clusterName, String[] InstanceInfoArray)
@@ -159,8 +169,27 @@ public class ClusterSetup
     int partitions = Integer
         .parseInt(dbIdealState.getSimpleField("partitions"));
 
-    ZNRecord idealState = IdealStateCalculatorForStorageNode
-        .calculateIdealState(InstanceNames, partitions, replica, resourceGroupName);
+    String masterStateValue = "MASTER";
+    String slaveStateValue = "SLAVE";
+    
+    ZkClient zkClient = ZKClientPool.getZkClient(_zkServerAddress);
+    String idealStatePath = CMUtil.getIdealStatePath(clusterName, resourceGroupName);
+    ZNRecord idealState = zkClient.<ZNRecord>readData(idealStatePath);
+    String stateModelName = idealState.getSimpleField("state_model_def_ref");
+    ZNRecord stateModDef = managementTool.getStateModelDef(clusterName, stateModelName);
+ 
+    if (stateModDef != null)
+    {
+      StateModelDefinition def = new StateModelDefinition(stateModDef);
+      masterStateValue = def.getMasterStateValue();
+      slaveStateValue = def.getSlaveStateValue();
+      // masterStateValue = def.getStatesPriorityList().get(0);
+      // slaveStateValue = def.getStatesPriorityList().get(1);
+    }
+  
+    idealState = IdealStateCalculatorForStorageNode
+        .calculateIdealState(InstanceNames, partitions, replica, resourceGroupName,
+                             masterStateValue, slaveStateValue);
     idealState.merge(dbIdealState);
     managementTool.setResourceGroupIdealState(clusterName, resourceGroupName,
         idealState);

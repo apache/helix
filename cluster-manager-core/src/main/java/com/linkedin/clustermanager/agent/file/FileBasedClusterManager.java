@@ -114,9 +114,32 @@ public class FileBasedClusterManager implements ClusterManager
     return message;
   }
 
+  // FIXIT
+  // reorder the messages to reduce the possibility that a S->M message for a given
+  // db partition gets executed before a O->S message
+  private static void addMessageInOrder(List<ZNRecord> msgList, Message newMsg)
+  {
+    String toState = newMsg.getToState();
+    if (toState.equals("MASTER"))
+    {
+      msgList.add(newMsg);
+    }
+    if (toState.equals("SLAVE"))
+    {
+      msgList.add(0, newMsg);
+    }
+  }
+  
   private static List<Message> computeMessagesForSimpleTransition(ZNRecord idealStateRecord)
   {
-    List<Message> messages = new ArrayList<Message>();
+    // Map<String, List<Message>> msgListMap = new HashMap<String, List<Message>>();
+    // List<Message> offlineToSlaveMsg = new ArrayList<Message>();
+    // List<Message> slaveToMasterMsg = new ArrayList<Message>();
+    // msgListMap.put("O->S", offlineToSlaveMsg);
+    // msgListMap.put("S->M", slaveToMasterMsg);
+    List<Message> msgList = new ArrayList<Message>();
+    
+    // messages = new ArrayList<Message>();
     IdealState idealState = new IdealState(idealStateRecord);
     for (String stateUnitKey : idealState.stateUnitSet())
     {
@@ -130,21 +153,21 @@ public class FileBasedClusterManager implements ClusterManager
         {
           Message message = createSimpleMessage(idealStateRecord, stateUnitKey,
               instanceName, "OFFLINE", "SLAVE");
-          messages.add(message);
+          msgList.add(message);
           message = createSimpleMessage(idealStateRecord, stateUnitKey,
               instanceName, "SLAVE", "MASTER");
-          messages.add(message);
+          msgList.add(message);
         } else
         {
           Message message = createSimpleMessage(idealStateRecord, stateUnitKey,
               instanceName, "OFFLINE", "SLAVE");
-          messages.add(message);
+          msgList.add(message);
         }
 
       }
     }
 
-    return messages;
+    return msgList;
   }
 
   public static class DBParam
@@ -242,9 +265,11 @@ public class FileBasedClusterManager implements ClusterManager
           msgList = new ArrayList<ZNRecord>();
           msgListForInstance.put(instance, msgList);
         }
-        msgList.add(message);
+        // msgList.add(message);
+        addMessageInOrder(msgList, message);
       }
     }
+
 
     // set INSTANCES
     // put message lists into cluster view

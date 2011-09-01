@@ -96,5 +96,29 @@ public class StateModelDefinition
   {
     return _record.getId();
   }
+  
+  public String getStateValue(String count)
+  {
+    for (String state : _statesPriorityList)
+    {
+      String num = getNumInstancesPerState(state);
+      if (count.equals(num))
+      {
+        return state;
+      }
+    }
+
+    return null;
+  }
+  
+  public String getMasterStateValue()
+  {
+    return getStateValue("1");
+  }
+
+  public String getSlaveStateValue()
+  {
+    return getStateValue("R");
+  }
 
 }

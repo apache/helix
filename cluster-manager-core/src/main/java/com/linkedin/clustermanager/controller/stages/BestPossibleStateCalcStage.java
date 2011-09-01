@@ -91,7 +91,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
       for (ResourceKey resource : resourceGroup.getResourceKeys())
       {
         List<String> instancePreferenceList = getPreferenceList(resource,
-            idealState, liveInstances);
+            idealState, liveInstances, stateModelDef);
 
         Map<String, String> currentStateMap = currentStateOutput
             .getCurrentStateMap(resourceGroupName, resource);
@@ -180,10 +180,11 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
   }
 
   private List<String> getPreferenceList(ResourceKey resource,
-      IdealState idealState, List<ZNRecord> liveInstances)
+      IdealState idealState, List<ZNRecord> liveInstances, 
+      StateModelDefinition stateModelDef)
   {
     List<String> listField = idealState.getPreferenceList(resource
-        .getResourceKeyName());
+        .getResourceKeyName(), stateModelDef);
     if (listField != null && listField.size() == 1 && "".equals(listField.get(0)))
     {
       ArrayList<String> list = new ArrayList<String>(liveInstances.size());

@@ -238,7 +238,8 @@ public class ZKClusterManagementTool implements ClusterManagementService
   @Override
   public ZNRecord getStateModelDef(String clusterName, String stateModelName)
   {
-    return new ZKDataAccessor(clusterName, _zkClient).getClusterProperty(
-        ClusterPropertyType.STATEMODELDEFS, stateModelName);
+    ZNRecord record = new ZKDataAccessor(clusterName, _zkClient).getClusterProperty(
+      ClusterPropertyType.STATEMODELDEFS, stateModelName);
+    return record;
   }
 }

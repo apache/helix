@@ -97,8 +97,11 @@ public class StateModelDefinition
     return _record.getId();
   }
   
-  public String getStateValue(String count)
+  private String getStateValue(String count)
   {
+    if (_statesPriorityList == null)
+      return null;
+    
     for (String state : _statesPriorityList)
     {
       String num = getNumInstancesPerState(state);

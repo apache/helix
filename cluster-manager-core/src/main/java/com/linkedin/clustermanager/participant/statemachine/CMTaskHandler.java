@@ -57,6 +57,7 @@ public class CMTaskHandler implements Callable<CMTaskResult>
 
       _statusUpdateUtil.logError(_message, CMTaskHandler.class, errorMessage,
           _manager.getDataAccessor());
+      logger.error(errorMessage);
       throw new ClusterManagerException(errorMessage);
     }
   }
@@ -142,6 +143,7 @@ public class CMTaskHandler implements Callable<CMTaskResult>
       
       _statusUpdateUtil.logError(_message, CMTaskHandler.class, errorMessage,
           accessor);
+      logger.error(errorMessage);
       throw new ClusterManagerException(errorMessage);  
     }
   }
@@ -282,6 +284,7 @@ public class CMTaskHandler implements Callable<CMTaskResult>
         {
           taskResult.setSuccess(false);
           taskResult.setMessage(e.getMessage());
+          logger.error("prepareMessageExecution failed", e);
           return taskResult;
         }
     

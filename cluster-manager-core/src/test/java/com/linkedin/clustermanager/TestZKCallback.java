@@ -7,7 +7,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.I0Itec.zkclient.IDefaultNameSpace;
-import com.linkedin.clustermanager.agent.zk.ZkClient;
 import org.I0Itec.zkclient.ZkServer;
 import org.apache.commons.io.FileUtils;
 import org.testng.AssertJUnit;
@@ -15,7 +14,6 @@ import org.testng.annotations.AfterTest;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
-import com.linkedin.clustermanager.CMConstants.ZNAttribute;
 import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.model.Message;
@@ -254,7 +252,7 @@ public class TestZKCallback
     ClusterSetup
         .processCommandLineArgs(createArgs("-zkSvr localhost:2300 -addCluster relay-cluster-12345"));
     ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr localhost:2300 -addResourceGroup storage-cluster-12345 db-12345 120 espresso_state_model"));
+        .processCommandLineArgs(createArgs("-zkSvr localhost:2300 -addResourceGroup storage-cluster-12345 db-12345 120 MasterSlave"));
     ClusterSetup
         .processCommandLineArgs(createArgs("-zkSvr localhost:2300 -addNode storage-cluster-12345 localhost:8900"));
     ClusterSetup

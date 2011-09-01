@@ -3,14 +3,11 @@ package com.linkedin.clustermanager.controller;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.CMConstants;
-import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ConfigChangeListener;
 import com.linkedin.clustermanager.CurrentStateChangeListener;
 import com.linkedin.clustermanager.ExternalViewChangeListener;
@@ -28,7 +25,6 @@ import com.linkedin.clustermanager.controller.stages.MessageSelectionStage;
 import com.linkedin.clustermanager.controller.stages.ReadClusterDataStage;
 import com.linkedin.clustermanager.controller.stages.ResourceComputationStage;
 import com.linkedin.clustermanager.controller.stages.TaskAssignmentStage;
-import com.linkedin.clustermanager.monitoring.mbeans.ClusterStatusMonitor;
 import com.linkedin.clustermanager.pipeline.Pipeline;
 import com.linkedin.clustermanager.pipeline.PipelineRegistry;
 
@@ -61,7 +57,7 @@ public class GenericClusterController implements ConfigChangeListener,
   private final ExternalViewGenerator _externalViewGenerator;
   /**
    * Default constructor that creates a default pipeline registry.
-   * This is suffucient in most cases, but if there is a some thing specific needed use another constructor where in you can pass a pipeline registry
+   * This is sufficient in most cases, but if there is a some thing specific needed use another constructor where in you can pass a pipeline registry
    */
   public GenericClusterController()
   {

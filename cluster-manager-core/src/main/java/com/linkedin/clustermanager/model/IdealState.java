@@ -9,7 +9,6 @@ import java.util.TreeMap;
 import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.ZNRecord;
-import com.linkedin.clustermanager.controller.stages.BestPossibleStateCalcStage;
 
 public class IdealState
 {
@@ -59,7 +58,7 @@ public class IdealState
     return _record.getMapField(stateUnitKey);
   }
 
-  public List<String> getInstancePreferenceList(String stateUnitKey)
+  public List<String> getInstancePreferenceList(String stateUnitKey, StateModelDefinition stateModelDef)
   {
     LinkedList<String> instanceStateList = new LinkedList<String>();
     Map<String, String> instanceStateMap = getInstanceStateMap(stateUnitKey);
@@ -71,9 +70,12 @@ public class IdealState
     }
 
     String masterInstance = "";
+    // TODO how to derive masterStateValue from state model?
+    String masterStateValue = stateModelDef.getMasterStateValue();
     for (String instanceName : instanceStateMap.keySet())
     {
-      if (instanceStateMap.get(instanceName).equals("MASTER"))
+      
+      if (instanceStateMap.get(instanceName).equals(masterStateValue))
       {
         masterInstance = instanceName;
       } else
@@ -92,12 +94,12 @@ public class IdealState
     return _record.getSimpleField("state_model_def_ref");
   }
 
-  public List<String> getPreferenceList(String resourceKeyName)
+  public List<String> getPreferenceList(String resourceKeyName, StateModelDefinition stateModelDef)
   {
     if(_record == null)
     {
       return null;
     }
-    return getInstancePreferenceList(resourceKeyName);
+    return getInstancePreferenceList(resourceKeyName, stateModelDef);
   }
 }

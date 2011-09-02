@@ -106,7 +106,7 @@ public class ClusterManagerMain
     
     try
     {
-      ClusterStatusMonitor monitor = new ClusterStatusMonitor(manager.getClusterName(), manager.getDataAccessor().getClusterPropertyList(ClusterPropertyType.INSTANCES).size());
+      ClusterStatusMonitor monitor = new ClusterStatusMonitor(manager.getClusterName(), manager.getDataAccessor().getClusterPropertyList(ClusterPropertyType.CONFIGS).size());
       manager.addLiveInstanceChangeListener(monitor);
       manager.addExternalViewChangeListener(monitor);
     }

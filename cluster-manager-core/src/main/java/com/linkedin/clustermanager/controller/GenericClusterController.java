@@ -9,9 +9,11 @@ import java.util.Set;
 import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
+import com.linkedin.clustermanager.ClusterDataAccessor.ControllerPropertyType;
 import com.linkedin.clustermanager.CMConstants;
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ConfigChangeListener;
+import com.linkedin.clustermanager.ControllerChangeListener;
 import com.linkedin.clustermanager.CurrentStateChangeListener;
 import com.linkedin.clustermanager.ExternalViewChangeListener;
 import com.linkedin.clustermanager.IdealStateChangeListener;
@@ -39,196 +41,243 @@ import com.linkedin.clustermanager.pipeline.PipelineRegistry;
  * state. Every instance of this class can control can control only one cluster
  * 
  * 
- * // get all the resourceKeys use IdealState, CurrentState and Messages // for
- * each resourceKey // 1. get the (instance,state) from IdealState, CurrentState
- * and PendingMessages // 2. compute best possible state (instance,state) pair.
- * This needs previous step data and state model constraints // compute the
- * messages/tasks needed to move to 1 to 2 // select the messages that can be
- * sent, needs messages and state model constraints // send messages
- * 
- * 
- * //}
+ * Get all the resourceKeys use IdealState, CurrentState and Messages <br>
+ * foreach resourceKey <br>
+ * 1. get the (instance,state) from IdealState, CurrentState and PendingMessages <br>
+ * 2. compute best possible state (instance,state) pair. This needs previous
+ * step data and state model constraints <br>
+ * 3. compute the messages/tasks needed to move to 1 to 2 <br>
+ * 4. select the messages that can be sent, needs messages and state model
+ * constraints <br>
+ * 5. send messages
  */
 public class GenericClusterController implements ConfigChangeListener,
     IdealStateChangeListener, LiveInstanceChangeListener, MessageListener,
-    CurrentStateChangeListener, ExternalViewChangeListener
+    CurrentStateChangeListener, ExternalViewChangeListener,
+    ControllerChangeListener
 {
-  private static final Logger logger = Logger
-      .getLogger(GenericClusterController.class.getName());
-  volatile boolean init = false;
-  private PipelineRegistry _registry;
-  private final Set<String> _instanceSubscriptionList;
-  private final ExternalViewGenerator _externalViewGenerator;
-  /**
-   * Default constructor that creates a default pipeline registry.
-   * This is suffucient in most cases, but if there is a some thing specific needed use another constructor where in you can pass a pipeline registry
-   */
-  public GenericClusterController()
-  {
-    this(createDefaultRegistry());
-  }
+	private static final Logger logger = Logger
+	    .getLogger(GenericClusterController.class.getName());
+	volatile boolean init = false;
+	private PipelineRegistry _registry;
+	private final Set<String> _instanceSubscriptionList;
+	private final ExternalViewGenerator _externalViewGenerator;
+	private boolean _paused;
 
-  private static PipelineRegistry createDefaultRegistry()
-  {
-    synchronized (GenericClusterController.class)
-    {
-      PipelineRegistry registry = new PipelineRegistry();
+	/**
+	 * Default constructor that creates a default pipeline registry. This is
+	 * suffucient in most cases, but if there is a some thing specific needed use
+	 * another constructor where in you can pass a pipeline registry
+	 */
+	public GenericClusterController()
+	{
+		this(createDefaultRegistry());
+	}
 
-      // cluster data cache refresh
-      Pipeline dataRefresh = new Pipeline();
-      dataRefresh.addStage(new ReadClusterDataStage());
+	private static PipelineRegistry createDefaultRegistry()
+	{
 
-      // rebalance pipeline
-      Pipeline rebalancePipeline = new Pipeline();
-      rebalancePipeline.addStage(new ResourceComputationStage());
-      rebalancePipeline.addStage(new CurrentStateComputationStage());
-      rebalancePipeline.addStage(new BestPossibleStateCalcStage());
-      rebalancePipeline.addStage(new MessageGenerationPhase());
-      rebalancePipeline.addStage(new MessageSelectionStage());
-      rebalancePipeline.addStage(new TaskAssignmentStage());
+		synchronized (GenericClusterController.class)
+		{
+			PipelineRegistry registry = new PipelineRegistry();
 
-      // external view generation
-      Pipeline externalViewPipeline = new Pipeline();
-      externalViewPipeline.addStage(new ExternalViewComputeStage());
+			// cluster data cache refresh
+			Pipeline dataRefresh = new Pipeline();
+			dataRefresh.addStage(new ReadClusterDataStage());
 
-      registry.register("idealStateChange", dataRefresh, rebalancePipeline);
-      registry.register("currentStateChange", dataRefresh, rebalancePipeline,
-          externalViewPipeline);
-      registry.register("configChange", dataRefresh, rebalancePipeline);
-      registry.register("liveInstanceChange", dataRefresh, rebalancePipeline, externalViewPipeline);
+			// rebalance pipeline
+			Pipeline rebalancePipeline = new Pipeline();
+			rebalancePipeline.addStage(new ResourceComputationStage());
+			rebalancePipeline.addStage(new CurrentStateComputationStage());
+			rebalancePipeline.addStage(new BestPossibleStateCalcStage());
+			rebalancePipeline.addStage(new MessageGenerationPhase());
+			rebalancePipeline.addStage(new MessageSelectionStage());
+			rebalancePipeline.addStage(new TaskAssignmentStage());
 
-      registry.register("messageChange", dataRefresh);
-      registry.register("externalView", dataRefresh);
+			// external view generation
+			Pipeline externalViewPipeline = new Pipeline();
+			externalViewPipeline.addStage(new ExternalViewComputeStage());
 
-      return registry;
-    }
-  }
+			registry.register("idealStateChange", dataRefresh, rebalancePipeline);
+			registry.register("currentStateChange", dataRefresh, rebalancePipeline,
+			    externalViewPipeline);
+			registry.register("configChange", dataRefresh, rebalancePipeline);
+			registry.register("liveInstanceChange", dataRefresh, rebalancePipeline,
+			    externalViewPipeline);
 
-  public GenericClusterController(PipelineRegistry registry)
-  {
-    _registry = registry;
-    _instanceSubscriptionList = new HashSet<String>();
-    _externalViewGenerator = new ExternalViewGenerator();
-  }
+			registry.register("messageChange", dataRefresh);
+			registry.register("externalView", dataRefresh);
+			registry.register("resume", dataRefresh, rebalancePipeline,
+			    externalViewPipeline);
 
-  protected void handleEvent(ClusterEvent event)
-  {
-    List<Pipeline> pipelines = _registry.getPipelinesForEvent(event.getName());
-    if (pipelines == null || pipelines.size() == 0)
-    {
-      logger.info("No pipeline to run for event:" + event.getName());
-      return;
-    }
-    for (Pipeline pipeline : pipelines)
-    {
-      pipeline.handle(event);
-      pipeline.finish();
-    }
-  }
+			return registry;
+		}
+	}
 
-  @Override
-  public void onExternalViewChange(List<ZNRecord> externalViewList,
-      NotificationContext changeContext)
-  {
-    ClusterEvent event = new ClusterEvent("externalViewChange");
-    event.addAttribute("clustermanager", changeContext.getManager());
-    event.addAttribute("changeContext", changeContext);
-    event.addAttribute("eventData", externalViewList);
-    //handleEvent(event);
-  }
+	public GenericClusterController(PipelineRegistry registry)
+	{
+		_paused = false;
+		_registry = registry;
+		_instanceSubscriptionList = new HashSet<String>();
+		_externalViewGenerator = new ExternalViewGenerator();
+	}
 
-  @Override
-  public void onStateChange(String instanceName, List<ZNRecord> statesInfo,
-      NotificationContext changeContext)
-  {
-    logger.info("START:ClusterController.onStateChange()");
-    ClusterEvent event = new ClusterEvent("currentStateChange");
-    event.addAttribute("clustermanager", changeContext.getManager());
-    event.addAttribute("instanceName", instanceName);
-    event.addAttribute("changeContext", changeContext);
-    event.addAttribute("eventData", statesInfo);
-    handleEvent(event);
-    logger.info("END:ClusterController.onStateChange()");
-  }
+	protected void handleEvent(ClusterEvent event)
+	{
+		if (_paused)
+		{
+			logger.info("Cluster is paused. Ignoring the event:" + event.getName());
+			return;
+		}
+		List<Pipeline> pipelines = _registry.getPipelinesForEvent(event.getName());
+		if (pipelines == null || pipelines.size() == 0)
+		{
+			logger.info("No pipeline to run for event:" + event.getName());
+			return;
+		}
+		for (Pipeline pipeline : pipelines)
+		{
+			pipeline.handle(event);
+			pipeline.finish();
+		}
+	}
 
-  @Override
-  public void onMessage(String instanceName, List<ZNRecord> messages,
-      NotificationContext changeContext)
-  {
-    logger.info("START:ClusterController.onMessage()");
-    ClusterEvent event = new ClusterEvent("messageChange");
-    event.addAttribute("clustermanager", changeContext.getManager());
-    event.addAttribute("instanceName", instanceName);
-    event.addAttribute("changeContext", changeContext);
-    event.addAttribute("eventData", messages);
-    handleEvent(event);
-    logger.info("END:ClusterController.onMessage()");
-  }
+	@Override
+	public void onExternalViewChange(List<ZNRecord> externalViewList,
+	    NotificationContext changeContext)
+	{
+		ClusterEvent event = new ClusterEvent("externalViewChange");
+		event.addAttribute("clustermanager", changeContext.getManager());
+		event.addAttribute("changeContext", changeContext);
+		event.addAttribute("eventData", externalViewList);
+		// handleEvent(event);
+	}
 
-  @Override
-  public void onLiveInstanceChange(List<ZNRecord> liveInstances,
-      NotificationContext changeContext)
-  {
-    logger.info("START: ClusterController.onLiveInstanceChange()");
-    if (liveInstances == null)
-    {
-      liveInstances = Collections.emptyList();
-    }
-    for (ZNRecord instance : liveInstances)
-    {
-      String instanceName = instance.getId();
-      String clientSessionId  = instance.getSimpleField(CMConstants.ZNAttribute.SESSION_ID.toString());
-      
-      if (!_instanceSubscriptionList.contains(clientSessionId))
-      {
-        try
-        {
-          changeContext.getManager().addCurrentStateChangeListener(this,
-              instanceName, clientSessionId);
-          changeContext.getManager().addMessageListener(this, instanceName);
-        } catch (Exception e)
-        {
-          logger.error(
-              "Exception adding current state and message listener for instance:"
-                  + instanceName, e);
-        }
+	@Override
+	public void onStateChange(String instanceName, List<ZNRecord> statesInfo,
+	    NotificationContext changeContext)
+	{
+		logger.info("START: GenericClusterController.onStateChange()");
+		ClusterEvent event = new ClusterEvent("currentStateChange");
+		event.addAttribute("clustermanager", changeContext.getManager());
+		event.addAttribute("instanceName", instanceName);
+		event.addAttribute("changeContext", changeContext);
+		event.addAttribute("eventData", statesInfo);
+		handleEvent(event);
+		logger.info("END: GenericClusterController.onStateChange()");
+	}
 
-        _instanceSubscriptionList.add(clientSessionId);
-      }
-      //TODO shi call removeListener
-    }
-    ClusterEvent event = new ClusterEvent("liveInstanceChange");
-    event.addAttribute("clustermanager", changeContext.getManager());
-    event.addAttribute("changeContext", changeContext);
-    event.addAttribute("eventData", liveInstances);
-    handleEvent(event);
-    logger.info("END: ClusterController.onLiveInstanceChange()");
-  }
+	@Override
+	public void onMessage(String instanceName, List<ZNRecord> messages,
+	    NotificationContext changeContext)
+	{
+		logger.info("START: GenericClusterController.onMessage()");
+		ClusterEvent event = new ClusterEvent("messageChange");
+		event.addAttribute("clustermanager", changeContext.getManager());
+		event.addAttribute("instanceName", instanceName);
+		event.addAttribute("changeContext", changeContext);
+		event.addAttribute("eventData", messages);
+		handleEvent(event);
+		logger.info("END: GenericClusterController.onMessage()");
+	}
 
-  @Override
-  public void onIdealStateChange(List<ZNRecord> idealStates,
-      NotificationContext changeContext)
-  {
-    logger.info("START: ClusterController.onIdealStateChange()");
-    ClusterEvent event = new ClusterEvent("idealStateChange");
-    event.addAttribute("clustermanager", changeContext.getManager());
-    event.addAttribute("changeContext", changeContext);
-    event.addAttribute("eventData", idealStates);
-    handleEvent(event);
-    logger.info("END: ClusterController.onIdealStateChange()");
-  }
+	@Override
+	public void onLiveInstanceChange(List<ZNRecord> liveInstances,
+	    NotificationContext changeContext)
+	{
+		logger
+		    .info("START: Generic GenericClusterController.onLiveInstanceChange()");
+		if (liveInstances == null)
+		{
+			liveInstances = Collections.emptyList();
+		}
+		for (ZNRecord instance : liveInstances)
+		{
+			String instanceName = instance.getId();
+			String clientSessionId = instance
+			    .getSimpleField(CMConstants.ZNAttribute.SESSION_ID.toString());
 
-  @Override
-  public void onConfigChange(List<ZNRecord> configs,
-      NotificationContext changeContext)
-  {
-    logger.info("START:ClusterController.onConfigChange()");
-    ClusterEvent event = new ClusterEvent("configChange");
-    event.addAttribute("changeContext", changeContext);
-    event.addAttribute("clustermanager", changeContext.getManager());
-    event.addAttribute("eventData", configs);
-    handleEvent(event);
-    logger.info("END:ClusterController.onConfigChange()");
-  }
+			if (!_instanceSubscriptionList.contains(clientSessionId))
+			{
+				try
+				{
+					changeContext.getManager().addCurrentStateChangeListener(this,
+					    instanceName, clientSessionId);
+					changeContext.getManager().addMessageListener(this, instanceName);
+				} catch (Exception e)
+				{
+					logger.error(
+					    "Exception adding current state and message listener for instance:"
+					        + instanceName, e);
+				}
+
+				_instanceSubscriptionList.add(clientSessionId);
+			}
+			// TODO shi call removeListener
+		}
+		ClusterEvent event = new ClusterEvent("liveInstanceChange");
+		event.addAttribute("clustermanager", changeContext.getManager());
+		event.addAttribute("changeContext", changeContext);
+		event.addAttribute("eventData", liveInstances);
+		handleEvent(event);
+		logger.info("END: Generic GenericClusterController.onLiveInstanceChange()");
+	}
+
+	@Override
+	public void onIdealStateChange(List<ZNRecord> idealStates,
+	    NotificationContext changeContext)
+	{
+		logger.info("START: Generic GenericClusterController.onIdealStateChange()");
+		ClusterEvent event = new ClusterEvent("idealStateChange");
+		event.addAttribute("clustermanager", changeContext.getManager());
+		event.addAttribute("changeContext", changeContext);
+		event.addAttribute("eventData", idealStates);
+		handleEvent(event);
+		logger.info("END: Generic GenericClusterController.onIdealStateChange()");
+	}
+
+	@Override
+	public void onConfigChange(List<ZNRecord> configs,
+	    NotificationContext changeContext)
+	{
+		logger.info("START: GenericClusterController.onConfigChange()");
+		ClusterEvent event = new ClusterEvent("configChange");
+		event.addAttribute("changeContext", changeContext);
+		event.addAttribute("clustermanager", changeContext.getManager());
+		event.addAttribute("eventData", configs);
+		handleEvent(event);
+		logger.info("END: GenericClusterController.onConfigChange()");
+	}
+
+	@Override
+	public void onControllerChange(NotificationContext changeContext)
+	{
+		ClusterDataAccessor dataAccessor = changeContext.getManager()
+		    .getDataAccessor();
+		ZNRecord pauseSignal = dataAccessor
+		    .getControllerProperty(ControllerPropertyType.PAUSE);
+		if (pauseSignal != null)
+		{
+
+			_paused = true;
+		} else
+		{
+			if (_paused)
+			{
+				// it currently paused
+				_paused = false;
+				ClusterEvent event = new ClusterEvent("resume");
+				event.addAttribute("changeContext", changeContext);
+				event.addAttribute("clustermanager", changeContext.getManager());
+				event.addAttribute("eventData", pauseSignal);
+				handleEvent(event);
+			} else
+			{
+				_paused = false;
+			}
+
+		}
+
+	}
 
 }

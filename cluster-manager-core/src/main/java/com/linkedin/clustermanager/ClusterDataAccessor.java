@@ -8,6 +8,8 @@ import com.linkedin.clustermanager.store.PropertyStore;
 
 public interface ClusterDataAccessor
 {
+	
+	
   public enum ClusterPropertyType
   {
     CONFIGS(true, false), LIVEINSTANCES(false, false), INSTANCES(true, false), 
@@ -127,7 +129,7 @@ public interface ClusterDataAccessor
 
   public enum ControllerPropertyType
   {
-    LEADER(false, false, true), HISTORY(true, true, true);
+    LEADER(false, false, true), HISTORY(true, true, true), PAUSE(false,false,true);
     
     boolean isPersistent;
 

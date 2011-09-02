@@ -5,9 +5,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.I0Itec.zkclient.IDefaultNameSpace;
-import com.linkedin.clustermanager.agent.zk.ZkClient;
 import org.I0Itec.zkclient.ZkServer;
 
+import com.linkedin.clustermanager.mock.storage.DummyProcess;
 import com.linkedin.clustermanager.participant.DistClusterControllerElection;
 import com.linkedin.clustermanager.participant.DistClusterControllerStateModelFactory;
 import com.linkedin.clustermanager.participant.StateMachineEngine;
@@ -106,5 +106,31 @@ public class TestHelper
     return thread;
   }
 
+  public static Thread startDummyProcess(final String zkAddr, final String clusterName, 
+                                         final String instanceName)
+  {
+    Thread thread = new Thread(new Runnable()
+    {
+      @Override
+      public void run()
+      {
+        try
+        {
+          DummyProcess process = new DummyProcess(zkAddr, clusterName, instanceName, 
+                                                  null, 0, null);
+          process.start();
+          Thread.currentThread().join();
+        } 
+        catch (Exception e)
+        {
+          e.printStackTrace();
+        }
+      }
+    });
+    
+    thread.start();
+    return thread;
+  }
+  
   
 }

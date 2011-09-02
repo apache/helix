@@ -173,4 +173,82 @@ public class StateModelConfigGenerator
     // ZNRecordSerializer serializer = new ZNRecordSerializer();
     // System.out.println(new String(serializer.serialize(record)));
   }
+  
+  public ZNRecord generateConfigForLeaderStandby()
+  {
+    ZNRecord record = new ZNRecord();
+    record.setId("LeaderStandby");
+    record.setSimpleField("INITIAL_STATE", "OFFLINE");
+    List<String> statePriorityList = new ArrayList<String>();
+    statePriorityList.add("LEADER");
+    statePriorityList.add("STANDBY");
+    statePriorityList.add("OFFLINE");
+    record.setListField("statesPriorityList", statePriorityList);
+    for (String state : statePriorityList)
+    {
+      String key = state + ".meta";
+      Map<String, String> metadata = new HashMap<String, String>();
+      if (state.equals("LEADER"))
+      {
+        // metadata.put("max", "1");
+        // metadata.put("min", "1");
+        metadata.put("count", "1");
+        record.setMapField(key, metadata);
+      }
+      if (state.equals("STANDBY"))
+      {
+        // metadata.put("max", "3");
+        // metadata.put("min", "0");
+        metadata.put("count", "R");
+        record.setMapField(key, metadata);
+      }
+      if (state.equals("OFFLINE"))
+      {
+        // metadata.put("max", "-1");
+        // metadata.put("min", "-1");
+        metadata.put("count", "-1");
+        record.setMapField(key, metadata);
+      }
+
+    }
+    
+    for (String state : statePriorityList)
+    {
+      String key = state + ".next";
+      if(state.equals("LEADER"))
+      {
+        Map<String, String> metadata = new HashMap<String, String>();
+        metadata.put("STANDBY", "STANDBY");
+        metadata.put("OFFLINE", "STANDBY");
+
+        record.setMapField(key, metadata);
+      }
+      if (state.equals("STANDBY"))
+      {
+        Map<String, String> metadata = new HashMap<String, String>();
+        metadata.put("LEADER", "LEADER");
+        metadata.put("OFFLINE", "OFFLINE");
+        record.setMapField(key, metadata);
+      }
+      if (state.equals("OFFLINE"))
+      {
+        Map<String, String> metadata = new HashMap<String, String>();
+        metadata.put("STANDBY", "STANDBY");
+        metadata.put("LEADER", "STANDBY");
+        record.setMapField(key, metadata);
+      }
+
+    }
+    List<String> stateTransitionPriorityList = new ArrayList<String>();
+    stateTransitionPriorityList.add("LEADER-STANDBY");
+    stateTransitionPriorityList.add("STANDBY-LEADER");
+    stateTransitionPriorityList.add("OFFLINE-STANDBY");
+    stateTransitionPriorityList.add("STANDBY-OFFLINE");
+
+    record.setListField("stateTransitionPriorityList",
+        stateTransitionPriorityList);
+    return record;
+    // ZNRecordSerializer serializer = new ZNRecordSerializer();
+    // System.out.println(new String(serializer.serialize(record)));
+  }
 }

@@ -120,7 +120,8 @@ public class TestDynamicFileClusterManager
     int partitions = Integer.parseInt(idealState.getSimpleField("partitions"));
 
     ZNRecord newIdealState 
-      = IdealStateCalculatorForStorageNode.calculateIdealState(nodeNames, partitions, replica, resourceGroupName);
+      = IdealStateCalculatorForStorageNode.calculateIdealState(nodeNames, partitions, replica, 
+                                                               resourceGroupName, "MASTER", "SLAVE");
     
     newIdealState.merge(idealState);
     _mgmtTool.setResourceGroupIdealState(clusterName, resourceGroupName, newIdealState);

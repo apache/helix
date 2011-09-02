@@ -22,6 +22,11 @@ import org.restlet.data.Response;
 
 import com.linkedin.clustermanagement.webapp.resources.ClusterResource;
 import com.linkedin.clustermanagement.webapp.resources.ClustersResource;
+import com.linkedin.clustermanagement.webapp.resources.CurrentStateResource;
+import com.linkedin.clustermanagement.webapp.resources.CurrentStatesResource;
+import com.linkedin.clustermanagement.webapp.resources.StatusUpdateResource;
+import com.linkedin.clustermanagement.webapp.resources.ErrorResource;
+import com.linkedin.clustermanagement.webapp.resources.ErrorsResource;
 import com.linkedin.clustermanagement.webapp.resources.ExternalViewResource;
 import com.linkedin.clustermanagement.webapp.resources.HostedResourceGroupsResource;
 import com.linkedin.clustermanagement.webapp.resources.HostedResourceGroupResource;
@@ -30,6 +35,7 @@ import com.linkedin.clustermanagement.webapp.resources.InstanceResource;
 import com.linkedin.clustermanagement.webapp.resources.InstancesResource;
 import com.linkedin.clustermanagement.webapp.resources.StateModelResource;
 import com.linkedin.clustermanagement.webapp.resources.StateModelsResource;
+import com.linkedin.clustermanagement.webapp.resources.StatusUpdatesResource;
 import com.linkedin.clustermanager.tools.ClusterSetup;
 
 public class RestAdminApplication extends Application
@@ -59,6 +65,12 @@ public class RestAdminApplication extends Application
     router.attach("/clusters/{clusterName}/resourceGroups/{resourceName}", HostedResourceGroupResource.class);
     router.attach("/clusters/{clusterName}/instances", InstancesResource.class);
     router.attach("/clusters/{clusterName}/instances/{instanceName}", InstanceResource.class);
+    router.attach("/clusters/{clusterName}/instances/{instanceName}/currentState/{resourceName}", CurrentStateResource.class);
+    router.attach("/clusters/{clusterName}/instances/{instanceName}/statusUpdate/{resourceName}", StatusUpdateResource.class);
+    router.attach("/clusters/{clusterName}/instances/{instanceName}/errors/{resourceName}", ErrorResource.class);
+    router.attach("/clusters/{clusterName}/instances/{instanceName}/currentState", CurrentStatesResource.class);
+    router.attach("/clusters/{clusterName}/instances/{instanceName}/statusUpdate", StatusUpdatesResource.class);
+    router.attach("/clusters/{clusterName}/instances/{instanceName}/errors", ErrorsResource.class);
     router.attach("/clusters/{clusterName}/resourceGroups/{resourceName}/idealState", IdealStateResource.class);
     router.attach("/clusters/{clusterName}/resourceGroups/{resourceName}/externalView", ExternalViewResource.class);
     router.attach("/clusters/{clusterName}/StateModelDefs/{modelName}", StateModelResource.class);

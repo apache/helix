@@ -23,11 +23,12 @@ import org.restlet.resource.Variant;
 
 import com.linkedin.clustermanagement.webapp.RestAdminApplication;
 import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
+import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.tools.ClusterSetup;
 
-public class InstanceResource extends Resource
+public class CurrentStateResource extends Resource
 {
-  public InstanceResource(Context context, Request request, Response response)
+  public CurrentStateResource(Context context, Request request, Response response)
   {
     super(context, request, response);
     getVariants().add(new Variant(MediaType.TEXT_PLAIN));
@@ -41,7 +42,7 @@ public class InstanceResource extends Resource
 
   public boolean allowPost()
   {
-    return true;
+    return false;
   }
 
   public boolean allowPut()
@@ -62,7 +63,9 @@ public class InstanceResource extends Resource
       String zkServer = (String) getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       String instanceName = (String) getRequest().getAttributes().get("instanceName");
-      presentation = getInstanceRepresentation(zkServer, clusterName, instanceName);
+      String resourceGroup = (String) getRequest().getAttributes().get("resourceName");
+      
+      presentation = getInstanceCurrentStateRepresentation(zkServer, clusterName, instanceName, resourceGroup);
     }
     catch (Exception e)
     {
@@ -74,42 +77,12 @@ public class InstanceResource extends Resource
     return presentation;
   }
 
-  StringRepresentation getInstanceRepresentation(String zkServerAddress, String clusterName, String instanceName) throws JsonGenerationException, JsonMappingException, IOException
+  StringRepresentation getInstanceCurrentStateRepresentation(String zkServerAddress, String clusterName, String instanceName, String resourceGroup) throws JsonGenerationException, JsonMappingException, IOException
   {
+    String instanceSessionId = ClusterRepresentationUtil.getInstanceSessionId(zkServerAddress, clusterName, instanceName);
     String message = 
-      ClusterRepresentationUtil.getClusterPropertyAsString(zkServerAddress, clusterName, ClusterPropertyType.CONFIGS, instanceName, MediaType.APPLICATION_JSON);
-    
+        ClusterRepresentationUtil.getInstancePropertyAsString(zkServerAddress, clusterName, instanceName, InstancePropertyType.CURRENTSTATES, instanceSessionId+"/"+resourceGroup, MediaType.APPLICATION_JSON);
     StringRepresentation representation = new StringRepresentation(message, MediaType.APPLICATION_JSON);
-
     return representation;
-  }
-  
-  public void acceptRepresentation(Representation entity)
-  {
-    try
-    {
-      String zkServer = (String)getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
-      String clusterName = (String)getRequest().getAttributes().get("clusterName");
-      String instanceName = (String) getRequest().getAttributes().get("instanceName");
-  
-      Form form = new Form(entity);     
-      Map<String, String> paraMap 
-        = ClusterRepresentationUtil.getFormJsonParametersWithCommandVerified(form, ClusterRepresentationUtil._enableInstanceCommand);
-      
-      boolean enabled = Boolean.parseBoolean(paraMap.get(ClusterRepresentationUtil._enabled));
-      
-      ClusterSetup setupTool = new ClusterSetup(zkServer);
-      setupTool.getClusterManagementTool().enableInstance(clusterName, instanceName, enabled);
-
-      getResponse().setEntity(getInstanceRepresentation(zkServer, clusterName, instanceName));
-      getResponse().setStatus(Status.SUCCESS_OK);
-    }
-
-    catch(Exception e)
-    {
-      getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),
-          MediaType.APPLICATION_JSON);
-      getResponse().setStatus(Status.SUCCESS_OK);
-    }  
   }
 }

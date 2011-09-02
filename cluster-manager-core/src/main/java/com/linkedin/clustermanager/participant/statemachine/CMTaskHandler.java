@@ -1,29 +1,27 @@
 package com.linkedin.clustermanager.participant.statemachine;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
 import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.CMConstants;
+import com.linkedin.clustermanager.CMConstants.ZNAttribute;
 import com.linkedin.clustermanager.ClusterDataAccessor;
+import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
+import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerException;
 import com.linkedin.clustermanager.NotificationContext;
 import com.linkedin.clustermanager.ZNRecord;
-import com.linkedin.clustermanager.CMConstants.ZNAttribute;
-import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
-import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
-import com.linkedin.clustermanager.controller.stages.AttributeName;
 import com.linkedin.clustermanager.model.Message;
-import com.linkedin.clustermanager.monitoring.ParticipantMonitor;
+import com.linkedin.clustermanager.model.StateModelDefinition;
 import com.linkedin.clustermanager.monitoring.StateTransitionContext;
 import com.linkedin.clustermanager.monitoring.StateTransitionDataPoint;
 import com.linkedin.clustermanager.util.StatusUpdateUtil;
@@ -57,6 +55,7 @@ public class CMTaskHandler implements Callable<CMTaskResult>
 
       _statusUpdateUtil.logError(_message, CMTaskHandler.class, errorMessage,
           _manager.getDataAccessor());
+      logger.error(errorMessage);
       throw new ClusterManagerException(errorMessage);
     }
   }
@@ -87,6 +86,18 @@ public class CMTaskHandler implements Callable<CMTaskResult>
     String fromState = _message.getFromState();
     String toState = _message.getToState();
 
+    List<ZNRecord> stateModelDefs = accessor.getClusterPropertyList(ClusterPropertyType.STATEMODELDEFS);
+    String initStateValue = "OFFLINE";
+    if (stateModelDefs != null)
+    {
+      StateModelDefinition stateModelDef = lookupStateModel(_message.getStateModelDef(), stateModelDefs);
+    
+      if (stateModelDef != null)
+      {
+        initStateValue = stateModelDef.getInitialState();
+      }
+    }
+    
     ZNRecord currentState = accessor.getInstanceProperty(instanceName,
         InstancePropertyType.CURRENTSTATES, _manager.getSessionId(), stateUnitGroup);
     // Set a empty current state record if it is null
@@ -106,7 +117,7 @@ public class CMTaskHandler implements Callable<CMTaskResult>
     if(!currentState.getMapFields().containsKey(stateUnitKey))
     {
        map = new HashMap<String, String>();
-       map.put(ZNAttribute.CURRENT_STATE.toString(), "OFFLINE");
+       map.put(ZNAttribute.CURRENT_STATE.toString(), initStateValue);  // "OFFLINE");
        
        ZNRecord currentStateDelta = new ZNRecord();
        currentStateDelta.setMapField(stateUnitKey, map);
@@ -142,6 +153,7 @@ public class CMTaskHandler implements Callable<CMTaskResult>
       
       _statusUpdateUtil.logError(_message, CMTaskHandler.class, errorMessage,
           accessor);
+      logger.error(errorMessage);
       throw new ClusterManagerException(errorMessage);  
     }
   }
@@ -282,6 +294,7 @@ public class CMTaskHandler implements Callable<CMTaskResult>
         {
           taskResult.setSuccess(false);
           taskResult.setMessage(e.getMessage());
+          logger.error("prepareMessageExecution failed", e);
           return taskResult;
         }
     
@@ -360,4 +373,17 @@ public class CMTaskHandler implements Callable<CMTaskResult>
           accessor);
     }
   }
+  
+  private StateModelDefinition lookupStateModel(String stateModelDefRef, List<ZNRecord> stateModelDefs)
+  {
+    for (ZNRecord record : stateModelDefs)
+    {
+      if (record.getId().equals(stateModelDefRef))
+      {
+        return new StateModelDefinition(record);
+      }
+    }
+    return null;
+  }
+
 };

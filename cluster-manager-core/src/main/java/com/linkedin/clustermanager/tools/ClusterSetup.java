@@ -1,5 +1,12 @@
 package com.linkedin.clustermanager.tools;
 
+import java.io.BufferedReader;
+import java.io.DataInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.List;
 
 import org.apache.commons.cli.CommandLine;
@@ -23,6 +30,8 @@ import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.agent.zk.ZKClusterManagementTool;
 import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
+import com.linkedin.clustermanager.model.StateModelDefinition;
+import com.linkedin.clustermanager.util.CMUtil;
 import com.linkedin.clustermanager.util.ZKClientPool;
 
 public class ClusterSetup
@@ -39,6 +48,7 @@ public class ClusterSetup
   public static final String addInstance = "addNode";
   public static final String addResourceGroup = "addResourceGroup";
   public static final String addStateModelDef = "addStateModelDef";
+  public static final String addIdealState = "addIdealState";
   public static final String rebalance = "rebalance";
 
   // Query info (TBD in V2)
@@ -74,6 +84,14 @@ public class ClusterSetup
     StateModelConfigGenerator generator = new StateModelConfigGenerator();
     addStateModelDef(clusterName, "MasterSlave",
         generator.generateConfigForMasterSlave());
+  }
+  
+  public void addCluster(String clusterName, boolean overwritePrevious, String stateModDefName, 
+                         ZNRecord stateModDef)
+  {
+    ClusterManagementService managementTool = getClusterManagementTool();
+    managementTool.addCluster(clusterName, overwritePrevious);
+    addStateModelDef(clusterName, stateModDefName, stateModDef);
   }
 
   public void addInstancesToCluster(String clusterName, String[] InstanceInfoArray)
@@ -159,8 +177,29 @@ public class ClusterSetup
     int partitions = Integer
         .parseInt(dbIdealState.getSimpleField("partitions"));
 
-    ZNRecord idealState = IdealStateCalculatorForStorageNode
-        .calculateIdealState(InstanceNames, partitions, replica, resourceGroupName);
+    String masterStateValue = "MASTER";
+    String slaveStateValue = "SLAVE";
+    
+    ZkClient zkClient = ZKClientPool.getZkClient(_zkServerAddress);
+    String idealStatePath = CMUtil.getIdealStatePath(clusterName, resourceGroupName);
+    ZNRecord idealState = zkClient.<ZNRecord>readData(idealStatePath);
+    String stateModelName = idealState.getSimpleField("state_model_def_ref");
+    ZNRecord stateModDef = managementTool.getStateModelDef(clusterName, stateModelName);
+ 
+    if (stateModDef != null)
+    {
+      StateModelDefinition def = new StateModelDefinition(stateModDef);
+      String value = def.getMasterStateValue(); 
+      if ( value != null)
+        masterStateValue = value;
+      value = def.getSlaveStateValue(); 
+      if ( value != null)
+      slaveStateValue = value;
+    }
+  
+    idealState = IdealStateCalculatorForStorageNode
+        .calculateIdealState(InstanceNames, partitions, replica, resourceGroupName,
+                             masterStateValue, slaveStateValue);
     idealState.merge(dbIdealState);
     managementTool.setResourceGroupIdealState(clusterName, resourceGroupName,
         idealState);
@@ -240,12 +279,19 @@ public class ClusterSetup
     addResourceGroupOption
         .setArgName("clusterName resourceGroupName partitionNo stateModelRef");
 
-    Option addStateModelDefGroupOption = OptionBuilder
+    Option addStateModelDefOption = OptionBuilder
         .withLongOpt(addStateModelDef)
-        .withDescription("Add a resourceGroup to a cluster").create();
-    addStateModelDefGroupOption.setArgs(3);
-    addStateModelDefGroupOption.setRequired(false);
-    addStateModelDefGroupOption.setArgName("clusterName stateModelDef <text>");
+        .withDescription("Add a State model to a cluster").create();
+    addStateModelDefOption.setArgs(2);
+    addStateModelDefOption.setRequired(false);
+    addStateModelDefOption.setArgName("clusterName <filename>");
+    
+    Option addIdealStateOption = OptionBuilder
+        .withLongOpt(addIdealState)
+        .withDescription("Add a State model to a cluster").create();
+    addIdealStateOption.setArgs(3);
+    addIdealStateOption.setRequired(false);
+    addIdealStateOption.setArgName("clusterName reourceGroupName <filename>");
 
     Option rebalanceOption = OptionBuilder.withLongOpt(rebalance)
         .withDescription("Rebalance a resourceGroup in a cluster").create();
@@ -319,12 +365,14 @@ public class ClusterSetup
     options.addOption(listInstancesOption);
     options.addOption(listResourceGroupOption);
     options.addOption(listClustersOption);
+    options.addOption(addIdealStateOption);
     options.addOption(rebalanceOption);
     options.addOption(InstanceInfoOption);
     options.addOption(clusterInfoOption);
     options.addOption(resourceGroupInfoOption);
     options.addOption(partitionInfoOption);
     options.addOption(enableInstanceOption);
+    options.addOption(addStateModelDefOption);
     options.addOption(listStateModelsOption);
     options.addOption(listStateModelOption);
 
@@ -332,7 +380,22 @@ public class ClusterSetup
 
     return options;
   }
+  private static byte[] readFile(String filePath) throws IOException
+  {
+    File file = new File(filePath); 
 
+    int size = (int)file.length(); 
+    byte[] bytes = new byte[size]; 
+    DataInputStream dis = new DataInputStream(new FileInputStream(file)); 
+    int read = 0;
+    int numRead = 0;
+    while (read < bytes.length && 
+        (numRead = dis.read(bytes, read, bytes.length-read)) >= 0) 
+    {
+      read = read + numRead;
+    }
+    return bytes;
+  }
   public static int processCommandLineArgs(String[] cliArgs) throws Exception
   {
     CommandLineParser cliParser = new GnuParser();
@@ -555,6 +618,34 @@ public class ClusterSetup
       ZNRecord record = setupTool.getClusterManagementTool().getStateModelDef(clusterName, stateModel);
       String result = new String(new ZNRecordSerializer().serialize(record));
       System.out.println(result);
+      return 0;
+    }
+    else if(cmd.hasOption(addStateModelDef))
+    {
+      String clusterName = cmd.getOptionValues(addStateModelDef)[0];
+      String stateModelFile = cmd.getOptionValues(addStateModelDef)[1];
+      
+      ZNRecord stateModelRecord = (ZNRecord)(new ZNRecordSerializer().deserialize(readFile(stateModelFile)));
+      if(stateModelRecord.getId() == null || stateModelRecord.getId().length() == 0)
+      {
+        throw new IllegalArgumentException("ZNRecord for state model definition must have an id");
+      }
+      setupTool.getClusterManagementTool().addStateModelDef(clusterName, stateModelRecord.getId(), stateModelRecord);
+      return 0;
+    }
+    else if(cmd.hasOption(addIdealState))
+    {
+      String clusterName = cmd.getOptionValues(addIdealState)[0];
+      String resourceGroupName = cmd.getOptionValues(addIdealState)[1];
+      String idealStateFile = cmd.getOptionValues(addIdealState)[2];
+      
+      ZNRecord idealStateRecord = (ZNRecord)(new ZNRecordSerializer().deserialize(readFile(idealStateFile)));
+      if(idealStateRecord.getId() == null || !idealStateRecord.getId().equals(resourceGroupName))
+      {
+        throw new IllegalArgumentException("ideal state must have same id as resourceGroup name");
+      }
+      setupTool.getClusterManagementTool().setResourceGroupIdealState(clusterName, resourceGroupName, idealStateRecord);
+      return 0;
     }
     else if (cmd.hasOption(help))
     {

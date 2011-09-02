@@ -41,10 +41,15 @@ public class IdealStateCalculatorForStorageNode
    *          number of partitions
    * @param replicas
    *          The number of replicas (slave partitions) per master partition
+   * @param masterStateValue
+   *          master state value: e.g. "MASTER" or "LEADER"
+   * @param slaveStateValue
+   *          slave state value: e.g. "SLAVE" or "STANDBY"
    * @param stateUnitGroup 
    * @return a ZNRecord that contain the idealstate info
    */
-  public static ZNRecord calculateIdealState(List<String> instanceNames, int partitions, int replicas, String stateUnitGroup)
+  public static ZNRecord calculateIdealState(List<String> instanceNames, int partitions, int replicas, String stateUnitGroup,
+                                             String masterStateValue, String slaveStateValue)
   {
     if(instanceNames.size() < replicas + 1)
     {
@@ -57,10 +62,11 @@ public class IdealStateCalculatorForStorageNode
       
     Map<String, Object> result = calculateInitialIdealState(instanceNames, partitions, replicas);
     
-    return convertToZNRecord(result, stateUnitGroup);
+    return convertToZNRecord(result, stateUnitGroup, masterStateValue, slaveStateValue);
   }
   
-  public static ZNRecord calculateIdealStateBatch(List<List<String>> instanceBatches, int partitions, int replicas, String stateUnitGroup)
+  public static ZNRecord calculateIdealStateBatch(List<List<String>> instanceBatches, int partitions, int replicas, String stateUnitGroup, 
+                                                  String masterStateValue, String slaveStateValue)
   {
     Map<String, Object> result = calculateInitialIdealState(instanceBatches.get(0), partitions, replicas);
     
@@ -69,13 +75,14 @@ public class IdealStateCalculatorForStorageNode
       result = calculateNextIdealState(instanceBatches.get(i), result);
     }
     
-    return convertToZNRecord(result, stateUnitGroup);
+    return convertToZNRecord(result, stateUnitGroup, masterStateValue, slaveStateValue);
   }
   
   /**
    * Convert the internal result (stored as a Map<String, Object>) into ZNRecord.
    */
-  static ZNRecord convertToZNRecord(Map<String, Object> result, String stateUnitGroup)
+  static ZNRecord convertToZNRecord(Map<String, Object> result, String stateUnitGroup, 
+                                    String masterStateValue, String slaveStateValue)
   {
     Map<String, List<Integer>> nodeMasterAssignmentMap 
     = (Map<String, List<Integer>>) (result.get(_MasterAssignmentMap));
@@ -98,7 +105,7 @@ public class IdealStateCalculatorForStorageNode
         {
           idealState.setMapField(partitionName, new TreeMap<String, String>());
         }
-        idealState.getMapField(partitionName).put(instanceName, "MASTER");
+        idealState.getMapField(partitionName).put(instanceName, masterStateValue);
       }
     }
     
@@ -112,7 +119,7 @@ public class IdealStateCalculatorForStorageNode
         for(Integer partitionId: slaveAssignment)
         {
           String partitionName = stateUnitGroup+"_"+partitionId;
-          idealState.getMapField(partitionName).put(slaveNode, "SLAVE");
+          idealState.getMapField(partitionName).put(slaveNode, slaveStateValue);
         }
       }
     }
@@ -125,7 +132,7 @@ public class IdealStateCalculatorForStorageNode
       String masterInstance = "";
       for(String instanceName : partitionAssignmentMap.keySet())
       {
-        if(partitionAssignmentMap.get(instanceName).equalsIgnoreCase("MASTER"))
+        if(partitionAssignmentMap.get(instanceName).equalsIgnoreCase(masterStateValue))
         {
           masterInstance = instanceName;
         }

@@ -1,8 +1,6 @@
 package com.linkedin.clustermanager.agent.file;
 
 import java.io.File;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -89,7 +87,8 @@ public class FileBasedClusterManager implements ClusterManager
     String uuid = UUID.randomUUID().toString();
     message.setId(uuid);
     message.setMsgId(uuid);
-    String hostName = "UNKNOWN";
+    String hostName = "localhost";  // "UNKNOWN";
+    /**
     try
     {
       hostName = InetAddress.getLocalHost().getCanonicalHostName();
@@ -99,6 +98,7 @@ public class FileBasedClusterManager implements ClusterManager
       // e);
       // can ignore it,
     }
+    **/
     message.setSrcName(hostName);
     message.setTgtName(instanceName);
     message.setMsgState("new");

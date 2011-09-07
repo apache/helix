@@ -156,6 +156,15 @@ public interface ClusterManager
    */
  
   void addControllerListener(ControllerChangeListener listener);
-  
+  /**
+   * Provides admin interface to setup and modify cluster.
+   * @return
+   */
   ClusterManagementService getClusterManagmentTool();
+  /**
+   * Messaging service which can be used to send cluster wide messages.
+   * 
+   */
+  ClusterMessagingService getMessagingService();
+
 }

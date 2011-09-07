@@ -25,6 +25,7 @@ import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.ClusterManagementService;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerException;
+import com.linkedin.clustermanager.ClusterMessagingService;
 import com.linkedin.clustermanager.ConfigChangeListener;
 import com.linkedin.clustermanager.ControllerChangeListener;
 import com.linkedin.clustermanager.CurrentStateChangeListener;
@@ -270,6 +271,13 @@ public class DynamicFileClusterManager implements ClusterManager
   public ClusterManagementService getClusterManagmentTool()
   {
     return _mgmtTool;
+  }
+
+	@Override
+  public ClusterMessagingService getMessagingService()
+  {
+	  // TODO Auto-generated method stub
+	  return null;
   }
 
 }

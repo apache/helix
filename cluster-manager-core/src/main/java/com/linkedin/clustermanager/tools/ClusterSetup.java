@@ -175,6 +175,7 @@ public class ClusterSetup
   public void rebalanceStorageCluster(String clusterName,
       String resourceGroupName, int replica)
   {
+    replica --;
     ClusterManagementService managementTool = getClusterManagementTool();
     List<String> InstanceNames = managementTool.getInstancesInCluster(clusterName);
 

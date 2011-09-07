@@ -34,6 +34,8 @@ import com.linkedin.clustermanager.InstanceType;
 import com.linkedin.clustermanager.LiveInstanceChangeListener;
 import com.linkedin.clustermanager.MessageListener;
 import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.store.PropertySerializer;
+import com.linkedin.clustermanager.store.PropertyStore;
 import com.linkedin.clustermanager.store.file.FilePropertyStore;
 import com.linkedin.clustermanager.util.CMUtil;
 
@@ -270,6 +272,14 @@ public class DynamicFileClusterManager implements ClusterManager
   public ClusterManagementService getClusterManagmentTool()
   {
     return _mgmtTool;
+  }
+
+  @Override
+  public <T> PropertyStore<T> getPropertyStore(String rootNamespace,
+                                               PropertySerializer<T> serializer)
+  {
+    // TODO Auto-generated method stub
+    return null;
   }
 
 }

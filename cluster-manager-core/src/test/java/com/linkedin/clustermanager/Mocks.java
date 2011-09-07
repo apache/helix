@@ -11,6 +11,7 @@ import com.linkedin.clustermanager.participant.statemachine.CMTaskResult;
 import com.linkedin.clustermanager.participant.statemachine.StateModel;
 import com.linkedin.clustermanager.participant.statemachine.StateModelInfo;
 import com.linkedin.clustermanager.participant.statemachine.Transition;
+import com.linkedin.clustermanager.store.PropertySerializer;
 import com.linkedin.clustermanager.store.PropertyStore;
 
 public class Mocks
@@ -193,6 +194,14 @@ public class Mocks
 
     @Override
     public ClusterManagementService getClusterManagmentTool()
+    {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    @Override
+    public <T> PropertyStore<T> getPropertyStore(String rootNamespace,
+                                                 PropertySerializer<T> serializer)
     {
       // TODO Auto-generated method stub
       return null;

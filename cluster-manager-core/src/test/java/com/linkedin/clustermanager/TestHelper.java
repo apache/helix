@@ -2,11 +2,14 @@ package com.linkedin.clustermanager;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.I0Itec.zkclient.IDefaultNameSpace;
 import org.I0Itec.zkclient.ZkServer;
+import org.apache.log4j.Logger;
 
+import com.linkedin.clustermanager.controller.ClusterManagerMain;
 import com.linkedin.clustermanager.mock.storage.DummyProcess;
 import com.linkedin.clustermanager.participant.DistClusterControllerElection;
 import com.linkedin.clustermanager.participant.DistClusterControllerStateModelFactory;
@@ -14,6 +17,8 @@ import com.linkedin.clustermanager.participant.StateMachineEngine;
 
 public class TestHelper
 {
+  private static final Logger logger = Logger.getLogger(TestHelper.class);
+  
   static public ZkServer startZkSever(final String zkAddress, final String rootNamespace)
   {
     List<String> rootNamespaces = new ArrayList<String>();
@@ -132,5 +137,32 @@ public class TestHelper
     return thread;
   }
   
+  public static Thread startClusterController(final String args)
+  {
+    Thread thread = new Thread(new Runnable()
+    {
+      @Override
+      public void run()
+      {
+        try
+        {
+          ClusterManagerMain.main(createArgs(args));
+        } catch (Exception e)
+        {
+          e.printStackTrace();
+        }
+      }
+    });
+    
+    thread.start();
+    return thread;
+  }
+  
+  private static String[] createArgs(String str)
+  {
+    String[] split = str.split("[ ]+");
+    logger.info("args=" + Arrays.toString(split));
+    return split;
+  }
   
 }

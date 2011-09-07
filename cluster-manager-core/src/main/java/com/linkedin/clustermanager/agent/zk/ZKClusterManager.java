@@ -14,6 +14,7 @@ import java.util.Timer;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import org.I0Itec.zkclient.ZkConnection;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
@@ -39,6 +40,9 @@ import com.linkedin.clustermanager.LiveInstanceChangeListener;
 import com.linkedin.clustermanager.MessageListener;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.monitoring.ZKPathDataDumpTask;
+import com.linkedin.clustermanager.store.PropertySerializer;
+import com.linkedin.clustermanager.store.PropertyStore;
+import com.linkedin.clustermanager.store.zk.ZKPropertyStore;
 import com.linkedin.clustermanager.util.CMUtil;
 
 public class ZKClusterManager implements ClusterManager
@@ -237,8 +241,6 @@ public class ZKClusterManager implements ClusterManager
 	{
 		final String path = CMUtil.getControllerPath(_clusterName);
 
-		// TODO: should add listener first
-
 		CallbackHandler callbackHandler = createCallBackHandler(path, listener,
 		    new EventType[]
 		    { EventType.NodeChildrenChanged, EventType.NodeDeleted,
@@ -426,12 +428,24 @@ public class ZKClusterManager implements ClusterManager
 			}
 		}
 	}
-
-  @Override
-  public ClusterManagementService getClusterManagmentTool()
-  {
-    // TODO Auto-generated method stub
-    return null;
-  }
+	
+	@Override
+	public <T> PropertyStore<T> getPropertyStore(String rootNamespace, PropertySerializer<T> serializer)
+	{
+	  String path = "/" + _clusterName + "/" + "PRPOPERTY_STORE";
+	  if (!_zkClient.exists(path))
+	  {
+	    _zkClient.createPersistent(path);
+	  }
+	  
+	  return new ZKPropertyStore<T>((ZkConnection)_zkClient.getConnection(), serializer, path);
+	}
+	
+    @Override
+    public ClusterManagementService getClusterManagmentTool()
+    {
+      // TODO Auto-generated method stub
+      return null;
+    }
 
 }

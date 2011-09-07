@@ -15,6 +15,7 @@ import com.linkedin.clustermanager.participant.statemachine.StateModelParser;
 import com.linkedin.clustermanager.participant.statemachine.StateTransitionError;
 import com.linkedin.clustermanager.participant.statemachine.Transition;
 
+
 @StateModelInfo(initialState = "OFFLINE", states = { "LEADER", "STANDBY" })
 public class DistClusterControllerStateModel extends StateModel 
 {
@@ -44,17 +45,26 @@ public class DistClusterControllerStateModel extends StateModel
   {
     LOG.info("Becoming leader from standby");
     String clusterName = message.getStateUnitKey();
+    String controllerName = message.getTgtName();
  
     ClusterManager manager  
-      = ClusterManagerFactory.getZKBasedManagerForController(clusterName, _zkAddr);
+      = ClusterManagerFactory.getZKBasedManagerForController(clusterName, controllerName, _zkAddr);
     _controllerMap.put(clusterName, manager);
     
-    final GenericClusterController controller = new GenericClusterController();
-    context.add("listener", controller);
+    // final GenericClusterController controller = new GenericClusterController();
+    // context.add("listener", controller);
+    
+    /**
     manager.addConfigChangeListener(controller);
     manager.addLiveInstanceChangeListener(controller);
     manager.addIdealStateChangeListener(controller);
     manager.addExternalViewChangeListener(controller);
+    **/
+    
+    DistClusterControllerElection leaderElection = new DistClusterControllerElection();
+    manager.addControllerListener(leaderElection);
+    context.add(clusterName, leaderElection.getController());
+    manager.connect();
   }
   
   @Transition(to="STANDBY",from="LEADER")
@@ -79,9 +89,11 @@ public class DistClusterControllerStateModel extends StateModel
     if (manager != null)
     {
         // do clean
-      GenericClusterController listener = (GenericClusterController)context.get("listener");
+      GenericClusterController listener = (GenericClusterController)context.get(clusterName);
       if (listener != null)
+      {
         manager.removeListener(listener);
+      }
     }
 
   }

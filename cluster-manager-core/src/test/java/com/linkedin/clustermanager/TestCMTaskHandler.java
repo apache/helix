@@ -1,7 +1,5 @@
 package com.linkedin.clustermanager;
 
-import org.testng.annotations.Test;
-import org.testng.AssertJUnit;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
@@ -39,7 +37,7 @@ public class TestCMTaskHandler
   @Test
   public void testInvocationAnnotated() throws Exception
   {
-    System.out.println("TestCMTaskHandler.testInvocation()");
+    System.out.println("TestCMTaskHandler.testInvocationAnnotated()");
     Message message = new Message();
     message.setSrcName("cm-instance-0");
     message.setTgtSessionId("1234");

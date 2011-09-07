@@ -61,7 +61,6 @@ public class TestDistClusterController
     setupStorageCluster(setupTool, "ESPRESSO_STORAGE_0", "TestDB", 12918);
 
     // setup CONTROLLER_CLUSTER
-    // setupTool.addCluster(_cntrlClusterName, false);
     StateModelConfigGenerator generator = new StateModelConfigGenerator();
     setupTool.addCluster(_cntrlClusterName, false, "LeaderStandby", generator.generateConfigForLeaderStandby());
     setupTool.addResourceGroupToCluster(_cntrlClusterName, _storageClusterGroupName, 
@@ -69,7 +68,7 @@ public class TestDistClusterController
     
     for (int i = 0; i < _distClusterControllerNr; i++)
     {
-      setupTool.addInstanceToCluster(_cntrlClusterName, "localhost",8900 + i);
+      setupTool.addInstanceToCluster(_cntrlClusterName, "localhost", 8900 + i);
     }
     
     setupTool.rebalanceStorageCluster(_cntrlClusterName, _storageClusterGroupName, _replica);
@@ -81,7 +80,7 @@ public class TestDistClusterController
       TestHelper.startDummyProcess(_zkAddr, "ESPRESSO_STORAGE_0", "localhost_" + (12918 + i));
     }
     
-    // start distributed cluster controller
+    // start distributed cluster controllers
     Map<String, Thread> distControllerMap = new HashMap<String, Thread>();
     for (int i = 0; i < _distClusterControllerNr; i++)
     {
@@ -107,7 +106,7 @@ public class TestDistClusterController
     String leaderPath = CMUtil.getControllerPropertyPath(_cntrlClusterName, 
                                                          ControllerPropertyType.LEADER);
     ZNRecord leaderRecord = _zkClient.<ZNRecord>readData(leaderPath);
-    Thread thread = distControllerMap.get(leaderRecord.getId());
+    Thread thread = distControllerMap.get(leaderRecord.getSimpleField("Leader"));
     thread.interrupt();
     
     Thread.sleep(3000);

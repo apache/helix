@@ -35,6 +35,11 @@ public final class ClusterManagerFactory
         zkConnectString);
   }
   
+  public static ClusterManager getZKBasedManagerForController(
+     String clusterName, String controllerName, String zkConnectString) throws Exception
+  {
+    return new ZKClusterManager(clusterName, controllerName, InstanceType.CONTROLLER, zkConnectString);
+  }
   
   // TODO remove this
   public static ClusterManager getFileBasedManagerForParticipant(

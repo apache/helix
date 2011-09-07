@@ -5,6 +5,8 @@ import java.util.List;
 import com.linkedin.clustermanager.controller.GenericClusterController;
 import com.linkedin.clustermanager.participant.StateMachineEngine;
 import com.linkedin.clustermanager.spectator.RoutingTableProvider;
+import com.linkedin.clustermanager.store.PropertySerializer;
+import com.linkedin.clustermanager.store.PropertyStore;
 
 /**
  * First class Object any process will interact with<br/>
@@ -154,8 +156,9 @@ public interface ClusterManager
   /**
    * Add listener for controller change
    */
- 
   void addControllerListener(ControllerChangeListener listener);
   
   ClusterManagementService getClusterManagmentTool();
+  
+  <T> PropertyStore<T> getPropertyStore(String rootNamespace, PropertySerializer<T> serializer);
 }

@@ -59,7 +59,7 @@ public class TestClusterManagerMain
     TestHelper.stopZkServer(_zkServer);
   }
   
-  @Test
+  // @Test
   public void testDistMode() throws Exception
   {
     logger.info("Run testDistMode() at " + new Date(System.currentTimeMillis()));

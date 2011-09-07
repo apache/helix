@@ -60,7 +60,15 @@ public class IdealState
 
   public List<String> getInstancePreferenceList(String stateUnitKey, StateModelDefinition stateModelDef)
   {
-    LinkedList<String> instanceStateList = new LinkedList<String>();
+    List<String> instanceStateList = _record.getListField(stateUnitKey);
+    
+    if(instanceStateList != null)
+    {
+      return instanceStateList;
+    }
+    logger.info("State unit key "+ stateUnitKey + "does not have a pre-computed preference list.");
+    
+    instanceStateList = new LinkedList<String>();
     Map<String, String> instanceStateMap = getInstanceStateMap(stateUnitKey);
     
     if(instanceStateMap == null)
@@ -70,8 +78,8 @@ public class IdealState
     }
 
     String masterInstance = "";
-    // TODO how to derive masterStateValue from state model?
-    String masterStateValue = stateModelDef.getMasterStateValue();
+
+    String masterStateValue = stateModelDef.getStateValueByCount("1");
     for (String instanceName : instanceStateMap.keySet())
     {
       
@@ -83,9 +91,10 @@ public class IdealState
         instanceStateList.add(instanceName);
       }
     }
-    assert (!masterInstance.isEmpty());
-    instanceStateList.addFirst(masterInstance);
-
+    if(masterInstance != null)
+    {
+      instanceStateList.add(0, masterInstance);
+    }
     return instanceStateList;
   }
 

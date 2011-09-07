@@ -192,33 +192,38 @@ public class Mocks
 			return false;
 		}
 
-    @Override
-    public ClusterManagementService getClusterManagmentTool()
-    {
-      // TODO Auto-generated method stub
+        @Override
+        public ClusterManagementService getClusterManagmentTool()
+        {
+          // TODO Auto-generated method stub
+  return null;
+}
+
+@Override
+public <T> PropertyStore<T> getPropertyStore(String rootNamespace,
+                                             PropertySerializer<T> serializer)
+{
+  // TODO Auto-generated method stub
       return null;
     }
-
+	
     @Override
-    public <T> PropertyStore<T> getPropertyStore(String rootNamespace,
-                                                 PropertySerializer<T> serializer)
+    public ClusterMessagingService getMessagingService()
     {
-      // TODO Auto-generated method stub
-      return null;
+	    // TODO Auto-generated method stub
+	    return null;
     }
-
 	}
 
 	public static class MockAccessor implements ClusterDataAccessor
 	{
-
-		@Override
-		public void setClusterProperty(ClusterPropertyType clusterProperty,
-		    String key, ZNRecord value)
-		{
+	  @Override
+	  public void setClusterProperty(ClusterPropertyType clusterProperty,
+		  String key, ZNRecord value)
+	  {
 			// TODO Auto-generated method stub
 
-		}
+	  }
 
 		@Override
 		public void updateClusterProperty(ClusterPropertyType clusterProperty,
@@ -385,12 +390,12 @@ public class Mocks
 			return null;
 		}
 
-    @Override
-    public PropertyStore<ZNRecord> getStore()
-    {
-      // TODO Auto-generated method stub
-      return null;
-    }
+        @Override
+        public PropertyStore<ZNRecord> getStore()
+        {
+          // TODO Auto-generated method stub
+  return null;
+}
 
 	}
 }

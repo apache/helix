@@ -31,6 +31,8 @@ import com.linkedin.clustermanager.model.StateModelDefinition;
  * state and scheduling new tasks to get cluster state to best possible ideal
  * state. Every instance of this class can control can control only one cluster
  */
+//Use GenericClusterController instead
+@Deprecated
 public class ClusterController implements ConfigChangeListener,
     IdealStateChangeListener, LiveInstanceChangeListener, MessageListener,
     CurrentStateChangeListener, ExternalViewChangeListener

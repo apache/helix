@@ -209,8 +209,11 @@ public class CMTaskHandler implements Callable<CMTaskResult>
       Map<String, String> map = new HashMap<String, String>();
       if(currentState != null)
       {
-        logger.warn("currentState is null. Storage node should be working with file based clm.");
         map = currentState.getMapField(stateUnitKey);
+      }
+      else
+      {
+        logger.warn("currentState is null. Storage node should be working with file based clm.");
       }
       map.put(Message.Attributes.STATE_UNIT_GROUP.toString(),
           _message.getStateUnitGroup());

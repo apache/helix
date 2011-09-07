@@ -132,7 +132,8 @@ public class IdealStateCalculatorForStorageNode
       String masterInstance = "";
       for(String instanceName : partitionAssignmentMap.keySet())
       {
-        if(partitionAssignmentMap.get(instanceName).equalsIgnoreCase(masterStateValue))
+        if(partitionAssignmentMap.get(instanceName).equalsIgnoreCase(masterStateValue)
+            && masterInstance.equals(""))
         {
           masterInstance = instanceName;
         }

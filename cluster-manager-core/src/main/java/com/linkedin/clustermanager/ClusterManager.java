@@ -157,8 +157,23 @@ public interface ClusterManager
    * Add listener for controller change
    */
   void addControllerListener(ControllerChangeListener listener);
-  
+  /**
+   * Provides admin interface to setup and modify cluster.
+   * @return
+   */
   ClusterManagementService getClusterManagmentTool();
-  
+
+  /**
+   * Provide get property store for a cluster
+   * @param rootNamespace
+   * @param serializer
+   * @return
+   */
   <T> PropertyStore<T> getPropertyStore(String rootNamespace, PropertySerializer<T> serializer);
+
+  /**
+   * Messaging service which can be used to send cluster wide messages.
+   * 
+   */
+  ClusterMessagingService getMessagingService();
 }

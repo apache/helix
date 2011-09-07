@@ -84,6 +84,12 @@ public class ClusterSetup
     StateModelConfigGenerator generator = new StateModelConfigGenerator();
     addStateModelDef(clusterName, "MasterSlave",
         generator.generateConfigForMasterSlave());
+    
+    addStateModelDef(clusterName, "LeaderStandby",
+        generator.generateConfigForLeaderStandby());
+    
+    addStateModelDef(clusterName, "StorageSchemata",
+        generator.generateConfigForStorageSchemata());
   }
   
   public void addCluster(String clusterName, boolean overwritePrevious, String stateModDefName, 
@@ -169,6 +175,7 @@ public class ClusterSetup
   public void rebalanceStorageCluster(String clusterName,
       String resourceGroupName, int replica)
   {
+    replica --;
     ClusterManagementService managementTool = getClusterManagementTool();
     List<String> InstanceNames = managementTool.getInstancesInCluster(clusterName);
 

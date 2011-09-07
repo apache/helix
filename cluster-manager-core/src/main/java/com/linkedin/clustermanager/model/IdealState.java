@@ -66,36 +66,9 @@ public class IdealState
     {
       return instanceStateList;
     }
-    logger.info("State unit key "+ stateUnitKey + "does not have a pre-computed preference list.");
+    logger.warn("State unit key "+ stateUnitKey + "does not have a pre-computed preference list.");
+    return null;
     
-    instanceStateList = new LinkedList<String>();
-    Map<String, String> instanceStateMap = getInstanceStateMap(stateUnitKey);
-    
-    if(instanceStateMap == null)
-    {
-      logger.info("State unit key "+ stateUnitKey + " not found. It should be dropped from idealstate.");
-      return null;
-    }
-
-    String masterInstance = "";
-
-    String masterStateValue = stateModelDef.getStateValueByCount("1");
-    for (String instanceName : instanceStateMap.keySet())
-    {
-      
-      if (instanceStateMap.get(instanceName).equals(masterStateValue))
-      {
-        masterInstance = instanceName;
-      } else
-      {
-        instanceStateList.add(instanceName);
-      }
-    }
-    if(masterInstance != null)
-    {
-      instanceStateList.add(0, masterInstance);
-    }
-    return instanceStateList;
   }
 
   public String getStateModelDefRef()

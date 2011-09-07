@@ -198,6 +198,13 @@ public class Mocks
       return null;
     }
 
+		@Override
+    public ClusterMessagingService getMessagingService()
+    {
+	    // TODO Auto-generated method stub
+	    return null;
+    }
+
 	}
 
 	public static class MockAccessor implements ClusterDataAccessor

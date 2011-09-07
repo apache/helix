@@ -57,8 +57,18 @@ public class GenericClusterController implements ConfigChangeListener,
 	    .getLogger(GenericClusterController.class.getName());
 	volatile boolean init = false;
 	private PipelineRegistry _registry;
-	private final Set<String> _instanceSubscriptionList;
+	
+	/** 
+	 * Since instance current state is per-session-id, we need to track the session-ids of 
+	 * the current states that the ClusterController is observing.
+	 */
+	private final Set<String> _instanceCurrentStateChangeSubscriptionList;
 	private final ExternalViewGenerator _externalViewGenerator;
+	
+	/**
+	 * The _paused flag is checked by function handleEvent(), while if the flag is set handleEvent()
+	 * will be no-op. Other event handling logic keeps the same when the flag is set. 
+	 */
 	private boolean _paused;
 
   /**
@@ -114,7 +124,7 @@ public class GenericClusterController implements ConfigChangeListener,
 	{
 		_paused = false;
 		_registry = registry;
-		_instanceSubscriptionList = new HashSet<String>();
+		_instanceCurrentStateChangeSubscriptionList = new HashSet<String>();
 		_externalViewGenerator = new ExternalViewGenerator();
 	}
 
@@ -187,30 +197,10 @@ public class GenericClusterController implements ConfigChangeListener,
 		{
 			liveInstances = Collections.emptyList();
 		}
-		for (ZNRecord instance : liveInstances)
-		{
-			String instanceName = instance.getId();
-			String clientSessionId = instance
-			    .getSimpleField(CMConstants.ZNAttribute.SESSION_ID.toString());
-
-			if (!_instanceSubscriptionList.contains(clientSessionId))
-			{
-				try
-				{
-					changeContext.getManager().addCurrentStateChangeListener(this,
-					    instanceName, clientSessionId);
-					changeContext.getManager().addMessageListener(this, instanceName);
-				} catch (Exception e)
-				{
-					logger.error(
-					    "Exception adding current state and message listener for instance:"
-					        + instanceName, e);
-				}
-
-				_instanceSubscriptionList.add(clientSessionId);
-			}
-			// TODO shi call removeListener
-		}
+		// Go though the live instance list and make sure that we are observing them
+		// accordingly. The action is done regardless of the paused flag.
+		checkLiveInstancesObservation(liveInstances, changeContext);
+		
 		ClusterEvent event = new ClusterEvent("liveInstanceChange");
 		event.addAttribute("clustermanager", changeContext.getManager());
 		event.addAttribute("changeContext", changeContext);
@@ -254,9 +244,9 @@ public class GenericClusterController implements ConfigChangeListener,
 		    .getControllerProperty(ControllerPropertyType.PAUSE);
 		if (pauseSignal != null)
 		{
-
 			_paused = true;
-		} else
+		} 
+		else
 		{
 			if (_paused)
 			{
@@ -271,9 +261,40 @@ public class GenericClusterController implements ConfigChangeListener,
 			{
 				_paused = false;
 			}
-
 		}
-
 	}
+	
+	/**
+	 * Go through the list of liveinstances in the cluster, and add currentstateChange listener
+	 * and Message listeners to them if they are newly added. For current state change, the 
+	 * observation is tied to the session id of each live instance.
+	 *
+	 */
+	protected void checkLiveInstancesObservation(List<ZNRecord> liveInstances,
+      NotificationContext changeContext)
+	{
+	  for (ZNRecord instance : liveInstances)
+    {
+      String instanceName = instance.getId();
+      String clientSessionId = instance
+          .getSimpleField(CMConstants.ZNAttribute.SESSION_ID.toString());
 
+      if (!_instanceCurrentStateChangeSubscriptionList.contains(clientSessionId))
+      {
+        try
+        {
+          changeContext.getManager().addCurrentStateChangeListener(this,
+              instanceName, clientSessionId);
+          changeContext.getManager().addMessageListener(this, instanceName);
+        } catch (Exception e)
+        {
+          logger.error(
+              "Exception adding current state and message listener for instance:"
+                  + instanceName, e);
+        }
+        _instanceCurrentStateChangeSubscriptionList.add(clientSessionId);
+      }
+      // TODO shi call removeListener
+    }
+	}
 }

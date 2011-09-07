@@ -99,7 +99,7 @@ public class ClusterStatusMonitor
     catch(Exception e)
     {
       LOG.warn(e);
-      e.printStackTrace();
+      //e.printStackTrace();
     }
   }
 
@@ -131,7 +131,7 @@ public class ClusterStatusMonitor
     catch(Exception e)
     {
       LOG.warn(e);
-      e.printStackTrace();
+      //e.printStackTrace();
     }
     
   }

@@ -97,7 +97,7 @@ public class StateModelDefinition
     return _record.getId();
   }
   
-  private String getStateValue(String count)
+  public String getStateValueByCount(String count)
   {
     if (_statesPriorityList == null)
       return null;
@@ -113,15 +113,4 @@ public class StateModelDefinition
 
     return null;
   }
-  
-  public String getMasterStateValue()
-  {
-    return getStateValue("1");
-  }
-
-  public String getSlaveStateValue()
-  {
-    return getStateValue("R");
-  }
-
 }

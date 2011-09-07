@@ -177,26 +177,62 @@ public class ClusterSetup
     int partitions = Integer
         .parseInt(dbIdealState.getSimpleField("partitions"));
 
-    String masterStateValue = "MASTER";
-    String slaveStateValue = "SLAVE";
-    
     ZkClient zkClient = ZKClientPool.getZkClient(_zkServerAddress);
     String idealStatePath = CMUtil.getIdealStatePath(clusterName, resourceGroupName);
     ZNRecord idealState = zkClient.<ZNRecord>readData(idealStatePath);
     String stateModelName = idealState.getSimpleField("state_model_def_ref");
     ZNRecord stateModDef = managementTool.getStateModelDef(clusterName, stateModelName);
  
-    if (stateModDef != null)
+    if (stateModDef == null)
     {
-      StateModelDefinition def = new StateModelDefinition(stateModDef);
-      String value = def.getMasterStateValue(); 
-      if ( value != null)
-        masterStateValue = value;
-      value = def.getSlaveStateValue(); 
-      if ( value != null)
-      slaveStateValue = value;
+      throw new ClusterManagerException("cannot find state model " + stateModelName);
     }
-  
+    StateModelDefinition def = new StateModelDefinition(stateModDef);
+    
+    List<String> statePriorityList = def.getStatesPriorityList();
+    
+    String masterStateValue = null;
+    String slaveStateValue = null;
+    
+    for(String state : statePriorityList)
+    {
+      String count = def.getNumInstancesPerState(state);
+      if(count.equals("1"))
+      {
+        if(masterStateValue != null)
+        {
+          throw new ClusterManagerException("Invalid or unsupported state model definition");
+        }
+        masterStateValue = state;
+      }
+      else if(count.equalsIgnoreCase("R"))
+      {
+        if(slaveStateValue != null)
+        {
+          throw new ClusterManagerException("Invalid or unsupported state model definition");
+        }
+        slaveStateValue = state;
+      }
+      else if(count.equalsIgnoreCase("N"))
+      {
+        if(!(masterStateValue == null && slaveStateValue == null))
+        {
+          throw new ClusterManagerException("Invalid or unsupported state model definition");
+        }
+        replica = InstanceNames.size() - 1;
+        masterStateValue = slaveStateValue = state;
+      }
+    }
+    if(masterStateValue == null && slaveStateValue == null)
+    {
+      throw new ClusterManagerException("Invalid or unsupported state model definition");
+    }
+    
+    if(masterStateValue == null)
+    {
+      masterStateValue = slaveStateValue;
+    }
+    
     idealState = IdealStateCalculatorForStorageNode
         .calculateIdealState(InstanceNames, partitions, replica, resourceGroupName,
                              masterStateValue, slaveStateValue);

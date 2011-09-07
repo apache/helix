@@ -84,6 +84,12 @@ public class ClusterSetup
     StateModelConfigGenerator generator = new StateModelConfigGenerator();
     addStateModelDef(clusterName, "MasterSlave",
         generator.generateConfigForMasterSlave());
+    
+    addStateModelDef(clusterName, "LeaderStandby",
+        generator.generateConfigForLeaderStandby());
+    
+    addStateModelDef(clusterName, "StorageSchemata",
+        generator.generateConfigForStorageSchemata());
   }
   
   public void addCluster(String clusterName, boolean overwritePrevious, String stateModDefName, 

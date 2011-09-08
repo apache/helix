@@ -2,9 +2,8 @@ package com.linkedin.clustermanager;
 
 import java.util.Date;
 
-import junit.framework.Assert;
-
 import org.apache.log4j.Logger;
+import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;

@@ -19,14 +19,10 @@ import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.data.ACL;
 
-import junit.framework.Test;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
-
 /**
  * Unit test for simple App.
  */
-public class AppTest extends TestCase
+public class AppTest
 {
 	/**
 	 * Create the test case
@@ -36,23 +32,6 @@ public class AppTest extends TestCase
 	 */
 	public AppTest(String testName)
 	{
-		super(testName);
-	}
-
-	/**
-	 * @return the suite of tests being tested
-	 */
-	public static Test suite()
-	{
-		return new TestSuite(AppTest.class);
-	}
-
-	/**
-	 * Rigourous Test :-)
-	 */
-	public void testApp()
-	{
-		assertTrue(true);
 	}
 
 	private static void testChrootWithZkClient() throws Exception
@@ -98,11 +77,12 @@ public class AppTest extends TestCase
 			}
 		};
 		ZooKeeper zk = new ZooKeeper("localhost:2181/foo", 6000, watcher);
-		//uncommenting this line will not cause infinite connect/disconnect
-		//zk.create("/", new byte[0], Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-		
+		// uncommenting this line will not cause infinite connect/disconnect
+		// zk.create("/", new byte[0], Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+
 		zk.exists("/", true);
-		System.out.println("Stop the server and restart it when you see this message");
+		System.out
+		    .println("Stop the server and restart it when you see this message");
 		Thread.currentThread().join();
 	}
 
@@ -164,7 +144,7 @@ public class AppTest extends TestCase
 		};
 
 		client.subscribeChildChanges("/", listener1);
-		 client.subscribeChildChanges("/foo", listener2);
+		client.subscribeChildChanges("/foo", listener2);
 
 		// server.shutdown();
 		client.waitForKeeperState(KeeperState.Disconnected, 20000,
@@ -181,7 +161,7 @@ public class AppTest extends TestCase
 	public static void main(String[] args) throws Exception
 	{
 		testChroot();
-		//testZKClient();
+		// testZKClient();
 		// testChrootWithZkClient();
 
 	}

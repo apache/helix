@@ -22,7 +22,7 @@ import com.linkedin.clustermanager.agent.zk.ZkClient;
 
 public class TestDropResource
 {
-  void VerifyEmptyCurrentState(ClusterDataAccessor accessor, ZkClient client, String clusterName, String instanceName, String dbName)
+  void verifyEmptyCurrentState(ClusterDataAccessor accessor, ZkClient client, String clusterName, String instanceName, String dbName)
   {
     String path = CMUtil.getInstancePropertyPath(clusterName, instanceName, InstancePropertyType.CURRENTSTATES);
     List<String> subPaths = accessor.getInstancePropertySubPaths(instanceName, InstancePropertyType.CURRENTSTATES);
@@ -88,11 +88,11 @@ public class TestDropResource
     //Thread.currentThread().join();
     setup.dropResourceGroupToCluster("ESPRESSO_STORAGE_DROP", "db-12345");
     Thread.sleep(35000);
-    VerifyEmptyCurrentState(accessor, zkClient, "ESPRESSO_STORAGE_DROP", "localhost_8900", "db-12345");
-    VerifyEmptyCurrentState(accessor, zkClient, "ESPRESSO_STORAGE_DROP", "localhost_8901", "db-12345");
-    VerifyEmptyCurrentState(accessor, zkClient, "ESPRESSO_STORAGE_DROP", "localhost_8902", "db-12345");
-    VerifyEmptyCurrentState(accessor, zkClient, "ESPRESSO_STORAGE_DROP", "localhost_8903", "db-12345");
-    VerifyEmptyCurrentState(accessor, zkClient, "ESPRESSO_STORAGE_DROP", "localhost_8904", "db-12345");
+    verifyEmptyCurrentState(accessor, zkClient, "ESPRESSO_STORAGE_DROP", "localhost_8900", "db-12345");
+    verifyEmptyCurrentState(accessor, zkClient, "ESPRESSO_STORAGE_DROP", "localhost_8901", "db-12345");
+    verifyEmptyCurrentState(accessor, zkClient, "ESPRESSO_STORAGE_DROP", "localhost_8902", "db-12345");
+    verifyEmptyCurrentState(accessor, zkClient, "ESPRESSO_STORAGE_DROP", "localhost_8903", "db-12345");
+    verifyEmptyCurrentState(accessor, zkClient, "ESPRESSO_STORAGE_DROP", "localhost_8904", "db-12345");
     
     zkServer.shutdown();
   }

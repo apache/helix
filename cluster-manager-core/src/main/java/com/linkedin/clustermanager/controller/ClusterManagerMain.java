@@ -133,14 +133,14 @@ public class ClusterManagerMain
     CommandLine cmd = processCommandLineArgs(args);
     String zkConnectString = cmd.getOptionValue(zkServerAddress);
     String clusterName = cmd.getOptionValue(cluster);
-    String mode = STANDALONE;
+    String cntrlMode = STANDALONE;
     String cntrlName = null;
     if (cmd.hasOption(mode))
     {
-      mode = cmd.getOptionValue(mode);
+      cntrlMode = cmd.getOptionValue(mode);
     }
     
-    if (mode.equalsIgnoreCase(DISTRIBUTED) && !cmd.hasOption(controllerName))
+    if (cntrlMode.equalsIgnoreCase(DISTRIBUTED) && !cmd.hasOption(controllerName))
     {
         throw new Exception("A unique cluster controller name is required in DISTRIBUTED mode");
     }
@@ -149,10 +149,10 @@ public class ClusterManagerMain
     
     // Espresso_driver.py will consume this
     logger.info("Cluster manager started. zkServer: " + zkConnectString + 
-                ", clusterName:" + clusterName);
+                ", clusterName:" + clusterName + ", mode:" + cntrlMode);
     
     // start the managers in standalone mode
-    if (mode.equalsIgnoreCase(STANDALONE))
+    if (cntrlMode.equalsIgnoreCase(STANDALONE))
     {
       ClusterManager manager = ClusterManagerFactory
           .getZKBasedManagerForController(clusterName, cntrlName, zkConnectString);
@@ -171,7 +171,7 @@ public class ClusterManagerMain
   
       manager.connect();
     }
-    else if (mode.equalsIgnoreCase(DISTRIBUTED))
+    else if (cntrlMode.equalsIgnoreCase(DISTRIBUTED))
     {
       ClusterManager manager 
       = ClusterManagerFactory.getZKBasedManagerForParticipant(clusterName, cntrlName,
@@ -189,7 +189,8 @@ public class ClusterManagerMain
     }
     else
     {
-      logger.error("cluster controller setup mode:" + mode + " NOT supported");
+      logger.error("cluster controller mode:" + cntrlMode + " NOT supported");
+      throw new IllegalArgumentException("Unsupport cluster controller mode:" + cntrlMode);
     }
 
     Thread.currentThread().join();

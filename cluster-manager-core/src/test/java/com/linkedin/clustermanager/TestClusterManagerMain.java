@@ -8,6 +8,8 @@ import junit.framework.Assert;
 
 import org.I0Itec.zkclient.ZkServer;
 import org.apache.log4j.Logger;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.tools.ClusterSetup;
@@ -19,87 +21,89 @@ public class TestClusterManagerMain
   private static Logger logger = Logger.getLogger(TestClusterManagerMain.class);
   private static final String _zkAddr = "localhost:2181";
   private static ZkServer _zkServer = null;
+  private ClusterSetup _setupTool;
   
-  @Test
-  public void testStandaloneMode() throws Exception
+  @BeforeClass
+  public void beforeClass()
   {
-    logger.info("Run testStandaloneMode() at " + new Date(System.currentTimeMillis()));
-    // start zk server
-    List<String> namespaces = new ArrayList<String>();
-    namespaces.add("/ESPRESSO_STORAGE_11");
-    
-    _zkServer = TestHelper.startZkSever(_zkAddr, namespaces);
-    ClusterSetup setupTool = new ClusterSetup(_zkAddr);
-    
-    setupTool.addCluster("ESPRESSO_STORAGE_11", true);
-    setupTool.addResourceGroupToCluster("ESPRESSO_STORAGE_11", "TestDB", 20, "MasterSlave");
-    for (int i = 0; i < 5; i++)
-    {
-      String storageNodeName = "localhost:" + (12918 + i);
-      setupTool.addInstanceToCluster("ESPRESSO_STORAGE_11", storageNodeName);
-    }
-    setupTool.rebalanceStorageCluster("ESPRESSO_STORAGE_11", "TestDB", 3);
-    
-    for (int i = 0; i < 5; i++)
-    {
-      TestHelper.startDummyProcess(_zkAddr, "ESPRESSO_STORAGE_11", "localhost_" + (12918 + i));
-    }
-    TestHelper.startClusterController("-zkSvr localhost:2181 -cluster ESPRESSO_STORAGE_11" +
-          " -mode STANDALONE -controllerName controller_0");
-    TestHelper.startClusterController("-zkSvr localhost:2181 -cluster ESPRESSO_STORAGE_11" +
-          " -mode STANDALONE -controllerName controller_1");
-    
-    Thread.sleep(5000);
-    boolean result = ClusterStateVerifier.VerifyClusterStates(_zkAddr, "ESPRESSO_STORAGE_11");
-    Assert.assertTrue(result);
-    
-    logger.info("End testStandaloneMode() at " + new Date(System.currentTimeMillis()));
-    
-    // stop zk server
-    TestHelper.stopZkServer(_zkServer);
-  }
-  
-  // @Test
-  public void testDistMode() throws Exception
-  {
-    logger.info("Run testDistMode() at " + new Date(System.currentTimeMillis()));
-    // start zk server
     List<String> namespaces = new ArrayList<String>();
     namespaces.add("/CONTROLLER_CLUSTER");
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < 11; i++)
     {
       String storageClusterNamespace = "/ESPRESSO_STORAGE" + "_" + i;
       namespaces.add(storageClusterNamespace);
     }
     
     _zkServer = TestHelper.startZkSever(_zkAddr, namespaces);
-    // _zkClient = ZKClientPool.getZkClient(_zkAddr);
-    ClusterSetup setupTool = new ClusterSetup(_zkAddr);
+    _setupTool = new ClusterSetup(_zkAddr);
+
+  }
+  
+  @AfterClass
+  public void afterClass()
+  {
+    TestHelper.stopZkServer(_zkServer);
+  }
+  
+  @Test
+  public void testStandaloneMode() throws Exception
+  {
+    logger.info("Run testStandaloneMode() at " + new Date(System.currentTimeMillis()));
+    
+    _setupTool.addCluster("ESPRESSO_STORAGE_10", true);
+    _setupTool.addResourceGroupToCluster("ESPRESSO_STORAGE_10", "TestDB", 20, "MasterSlave");
+    for (int i = 0; i < 5; i++)
+    {
+      String storageNodeName = "localhost:" + (12918 + i);
+      _setupTool.addInstanceToCluster("ESPRESSO_STORAGE_10", storageNodeName);
+    }
+    _setupTool.rebalanceStorageCluster("ESPRESSO_STORAGE_10", "TestDB", 3);
+    
+    for (int i = 0; i < 5; i++)
+    {
+      TestHelper.startDummyProcess(_zkAddr, "ESPRESSO_STORAGE_10", "localhost_" + (12918 + i));
+    }
+    TestHelper.startClusterController("-zkSvr localhost:2181 -cluster ESPRESSO_STORAGE_10" +
+          " -mode STANDALONE -controllerName controller_0");
+    TestHelper.startClusterController("-zkSvr localhost:2181 -cluster ESPRESSO_STORAGE_10" +
+          " -mode STANDALONE -controllerName controller_1");
+    
+    Thread.sleep(5000);
+    boolean result = ClusterStateVerifier.VerifyClusterStates(_zkAddr, "ESPRESSO_STORAGE_10");
+    Assert.assertTrue(result);
+    
+    logger.info("End testStandaloneMode() at " + new Date(System.currentTimeMillis())); 
+  }
+  
+  @Test
+  public void testDistMode() throws Exception
+  {
+    logger.info("Run testDistMode() at " + new Date(System.currentTimeMillis()));
 
     // setup storage clusters, ESPRESSO_STORAGE_0 ...
     for (int i = 0; i < 10; i++)
     {
       String clusterName = "ESPRESSO_STORAGE" + "_" + i;
-      setupTool.addCluster(clusterName, true);
+      _setupTool.addCluster(clusterName, true);
     }
     
-    setupTool.addResourceGroupToCluster("ESPRESSO_STORAGE_0", "TestDB", 20, "MasterSlave");
+    _setupTool.addResourceGroupToCluster("ESPRESSO_STORAGE_0", "TestDB", 20, "MasterSlave");
     for (int i = 0; i < 5; i++)
     {
       String storageNodeName = "localhost:" + (12918 + i);
-      setupTool.addInstanceToCluster("ESPRESSO_STORAGE_0", storageNodeName);
+      _setupTool.addInstanceToCluster("ESPRESSO_STORAGE_0", storageNodeName);
     }
-    setupTool.rebalanceStorageCluster("ESPRESSO_STORAGE_0", "TestDB", 3);
+    _setupTool.rebalanceStorageCluster("ESPRESSO_STORAGE_0", "TestDB", 3);
 
     // setup CONTROLLER_CLUSTER
     StateModelConfigGenerator generator = new StateModelConfigGenerator();
-    setupTool.addCluster("CONTROLLER_CLUSTER", false, "LeaderStandby", generator.generateConfigForLeaderStandby());
-    setupTool.addResourceGroupToCluster("CONTROLLER_CLUSTER", "ESPRESSO_STORAGE", 10, "LeaderStandby");
+    _setupTool.addCluster("CONTROLLER_CLUSTER", false, "LeaderStandby", generator.generateConfigForLeaderStandby());
+    _setupTool.addResourceGroupToCluster("CONTROLLER_CLUSTER", "ESPRESSO_STORAGE", 10, "LeaderStandby");
     for (int i = 0; i < 5; i++)
     {
-      setupTool.addInstanceToCluster("CONTROLLER_CLUSTER", "localhost", 8900 + i);
+      _setupTool.addInstanceToCluster("CONTROLLER_CLUSTER", "localhost", 8900 + i);
     }
-    setupTool.rebalanceStorageCluster("CONTROLLER_CLUSTER", "ESPRESSO_STORAGE", 3);
+    _setupTool.rebalanceStorageCluster("CONTROLLER_CLUSTER", "ESPRESSO_STORAGE", 3);
     
     
     // start dummy storage node for ESPRESSO_STORAGE_0
@@ -112,7 +116,7 @@ public class TestClusterManagerMain
     for (int i = 0; i < 5; i++)
     {
       String instanceName = "localhost_" + (8900 + i);
-      TestHelper.startClusterController("-zkSvr localhost:2181 -cluster CONTROLLER_CLUSTER -mode DIST"
+      TestHelper.startClusterController("-zkSvr localhost:2181 -cluster CONTROLLER_CLUSTER -mode DISTRIBUTED"
                                         + " -controllerName " + instanceName);
     }
 
@@ -125,9 +129,5 @@ public class TestClusterManagerMain
     Assert.assertTrue(result);
     
     logger.info("End testDistMode() at " + new Date(System.currentTimeMillis()));
-    
-    // stop zk server
-    TestHelper.stopZkServer(_zkServer);
-
   }
 }

@@ -1,8 +1,6 @@
 package com.linkedin.clustermanager;
 
 import java.util.Date;
-import java.util.List;
-import java.util.Map;
 
 import junit.framework.Assert;
 
@@ -10,152 +8,31 @@ import org.apache.log4j.Logger;
 import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
-import com.linkedin.clustermanager.ClusterDataAccessor.InstanceConfigProperty;
 import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
-import com.linkedin.clustermanager.agent.file.FileBasedDataAccessor;
-import com.linkedin.clustermanager.controller.GenericClusterController;
-import com.linkedin.clustermanager.mock.storage.DummyProcess;
-import com.linkedin.clustermanager.store.PropertyJsonComparator;
-import com.linkedin.clustermanager.store.PropertyJsonSerializer;
-import com.linkedin.clustermanager.store.file.FilePropertyStore;
-import com.linkedin.clustermanager.tools.IdealStateCalculatorForStorageNode;
 
-public class TestDynamicFileClusterManager
+public class TestDynamicFileClusterManager extends FileClusterManagerHandler
 {
-  private static Logger LOG = Logger.getLogger(TestDynamicFileClusterManager.class);
-  private final String _clusterName = "ESPRESSO_STORAGE";
-  private final String _stateModelRefName = "MasterSlave";
-  private final int _numNodes = 3;
-  private ClusterManagementService _mgmtTool;
+  private static Logger logger = Logger.getLogger(TestDynamicFileClusterManager.class);
   
   @Test
-  public void testInvocation() 
-  throws Exception
+  public void testDynamicFileClusterManager() 
+  throws InterruptedException 
   {
-    LOG.info("RUN " + new Date(System.currentTimeMillis()));
-    
-    String rootPath = "/tmp/TestDyanmicFileCM";
-    // String filePath = rootPath + "/" + _clusterName;
-    PropertyJsonSerializer<ZNRecord> serializer = new PropertyJsonSerializer<ZNRecord>(ZNRecord.class);
-    PropertyJsonComparator<ZNRecord> comparator = new PropertyJsonComparator<ZNRecord>(ZNRecord.class);
-    FilePropertyStore<ZNRecord> store = new FilePropertyStore<ZNRecord>(serializer, rootPath, 
-        comparator);
+    logger.info("RUN at " + new Date(System.currentTimeMillis()));
 
-    FileBasedDataAccessor accessor = new FileBasedDataAccessor(store, _clusterName);
-    
-    ClusterManager manager 
-      = ClusterManagerFactory.getFileBasedManagerForController(_clusterName, accessor);
-    
-    _mgmtTool = manager.getClusterManagmentTool();    
-    _mgmtTool.addCluster(_clusterName, true);
-    _mgmtTool.addResourceGroup(_clusterName, "TestDB", 5, _stateModelRefName);
-    for (int i = 0; i < _numNodes; i++)
-    {
-      addNodeToCluster(_clusterName, "localhost", 8900 + i);
-    }
-    rebalanceStorageCluster(_clusterName, "TestDB", 0);
-    
-    // start dummy storage node
-    for (int i = 0; i < _numNodes; i++)
-    {
-      DummyProcess process = new DummyProcess(null, _clusterName, "localhost_" + (8900 + i), 
-                                              null, 0, accessor);
-      process.start();
-    }
-    Thread.sleep(1000);
-    
-    
-    // start cluster manager controller
-    // ClusterManager manager 
-    //  = ClusterManagerFactory.getFileBasedManagerForController(_clusterName, accessor);
-
-    GenericClusterController controller = new GenericClusterController();
-    // manager.addConfigChangeListener(controller);
-    manager.addLiveInstanceChangeListener(controller);
-    manager.addIdealStateChangeListener(controller);
-    // manager.addExternalViewChangeListener(controller);
-
-    manager.connect();
-    
-    Thread.sleep(10000);
-    // verify current state
-    ZNRecord idealStates = accessor.getClusterProperty(ClusterPropertyType.IDEALSTATES, "TestDB");
-    ZNRecord curStates =  accessor.getInstanceProperty("localhost_8900", InstancePropertyType.CURRENTSTATES, 
-                                              manager.getSessionId(), "TestDB");
-    boolean result = verifyCurStateAndIdealState(curStates, idealStates,"localhost_8900", "TestDB");
-    Assert.assertTrue(result);
-    
     // add a new db
-    _mgmtTool.addResourceGroup(_clusterName, "MyDB", 6, _stateModelRefName);
-    rebalanceStorageCluster(_clusterName, "MyDB", 0);
+    mgmtTool.addResourceGroup(storageCluster, "MyDB", 6, stateModel);
+    rebalanceStorageCluster(storageCluster, "MyDB", 0);
+    Thread.sleep(5000);
     
-    Thread.sleep(10000);
     // verify current state
-    idealStates = accessor.getClusterProperty(ClusterPropertyType.IDEALSTATES, "MyDB");
-    curStates =  accessor.getInstanceProperty("localhost_8900", InstancePropertyType.CURRENTSTATES, 
+    ZNRecord idealStates = accessor.getClusterProperty(ClusterPropertyType.IDEALSTATES, "MyDB");
+    ZNRecord curStates =  accessor.getInstanceProperty("localhost_12918", InstancePropertyType.CURRENTSTATES, 
                                               manager.getSessionId(), "MyDB");
-    result = verifyCurStateAndIdealState(curStates, idealStates,"localhost_8900", "MyDB");
+    boolean result = verifyCurStateAndIdealState(curStates, idealStates, "localhost_12918", "MyDB");
     Assert.assertTrue(result);
- 
-    LOG.info("END " + new Date(System.currentTimeMillis()));
-  }
-  
-  private void addNodeToCluster(String clusterName, String host, int port)
-  {
-    // TODO use ClusterSetup
-    ZNRecord nodeConfig = new ZNRecord();
-    String nodeId = host + "_" + port;
-    nodeConfig.setId(nodeId);
-    nodeConfig.setSimpleField(InstanceConfigProperty.HOST.toString(), host);
-    nodeConfig.setSimpleField(InstanceConfigProperty.PORT.toString(), Integer.toString(port));
-    nodeConfig.setSimpleField(InstanceConfigProperty.ENABLED.toString(), Boolean.toString(true));
-    _mgmtTool.addInstance(_clusterName, nodeConfig);
-  }
-  
-  private void rebalanceStorageCluster(String clusterName, String resourceGroupName, int replica)
-  {
-    List<String> nodeNames = _mgmtTool.getInstancesInCluster(clusterName);
-
-    ZNRecord idealState = _mgmtTool.getResourceGroupIdealState(clusterName, resourceGroupName);
-    int partitions = Integer.parseInt(idealState.getSimpleField("partitions"));
-
-    ZNRecord newIdealState 
-      = IdealStateCalculatorForStorageNode.calculateIdealState(nodeNames, partitions, replica, 
-                                                               resourceGroupName, "MASTER", "SLAVE");
     
-    newIdealState.merge(idealState);
-    _mgmtTool.setResourceGroupIdealState(clusterName, resourceGroupName, newIdealState);
+    logger.info("END at " + new Date(System.currentTimeMillis()));
   }
   
-  private boolean verifyCurStateAndIdealState(ZNRecord curStates, ZNRecord idealStates, 
-                                              String instanceName, String resourceGroupName)
-  {
-    for (Map.Entry<String, List<String>> idealStateEntry : idealStates.getListFields().entrySet())
-    {
-      String dbTablet = idealStateEntry.getKey();
-      String instance = idealStateEntry.getValue().get(0);
-      if (!instance.equals(instanceName))
-        continue;
-      
-      for (Map.Entry<String, Map<String, String>> curStateEntry : curStates.getMapFields().entrySet())
-      {
-        if (dbTablet.equals(curStateEntry.getKey()))
-        {
-          String curState = curStateEntry.getValue().get("CURRENT_STATE");
-          if (curState == null || !curState.equals("MASTER"))
-            return false;
-        }
-            
-      }
-    }
-    return true;
-  }
-  
-  /**
-  public Thread startDummyProcess(final String clusterName, final String instanceName)
-  {
-    Thread thread = new Thread(new Runnable()
-    )
-  }
-  **/
 }

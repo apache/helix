@@ -10,7 +10,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.I0Itec.zkclient.DataUpdater;
 import org.I0Itec.zkclient.IZkChildListener;
 import org.I0Itec.zkclient.IZkDataListener;
-import com.linkedin.clustermanager.agent.zk.ZkClient;
 import org.I0Itec.zkclient.ZkConnection;
 import org.I0Itec.zkclient.exception.ZkBadVersionException;
 import org.I0Itec.zkclient.exception.ZkMarshallingError;
@@ -19,6 +18,7 @@ import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.data.Stat;
 
+import com.linkedin.clustermanager.agent.zk.ZkClient;
 import com.linkedin.clustermanager.store.PropertyChangeListener;
 import com.linkedin.clustermanager.store.PropertySerializer;
 import com.linkedin.clustermanager.store.PropertyStat;
@@ -353,13 +353,16 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkDataListener, IZ
   private void doGetPropertyNames(String path, List<String> leafNodes) 
   throws PropertyStoreException
   {
-    // String path = getPath(prefix);
     if (!_zkClient.exists(path))
+    {
       return;
+    }
     
     List<String> childs = _zkClient.getChildren(path);
     if (childs == null)
+    {
       return;
+    }
     
     if (childs.size() == 0)
     {
@@ -383,7 +386,7 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkDataListener, IZ
     List<String> propertyNames = new ArrayList<String>();
     doGetPropertyNames(path, propertyNames);
     
-    /**
+    /*
     if (!_zkClient.exists(path))
       return null;
 
@@ -399,7 +402,7 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkDataListener, IZ
       getProperty(getRelativePath(pathToChild));
 
     }
-    **/
+    */
     
     return propertyNames;
   }

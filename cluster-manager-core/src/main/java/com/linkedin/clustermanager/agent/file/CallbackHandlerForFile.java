@@ -234,23 +234,12 @@ public class CallbackHandlerForFile implements PropertyChangeListener<ZNRecord>
   @Override
   public void onPropertyChange(String key)
   {
-    // TODO change file property store
-    if (!key.startsWith("/"))
-    {
-      key = "/" + key;
-    }
     // System.err.println("on property change, key:" + key);
-        
     try
     {
-      // need to differentiate directory and regular file
-      // TODO find a better way
-      // ZNRecord record = _store.getProperty(key);    // _accessor.getProperty(key);
-           
-      // if (record != null)
       if (needToNotify(key))
       {
-        System.err.println("notified on property change, key:" + key);
+        // System.err.println("notified on property change, key:" + key);
         
         updateNotificationTime(System.nanoTime());
         NotificationContext changeContext = new NotificationContext(_manager);

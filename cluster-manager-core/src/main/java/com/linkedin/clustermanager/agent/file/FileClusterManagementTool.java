@@ -36,25 +36,26 @@ public class FileClusterManagementTool implements ClusterManagementService
   @Override
   public List<String> getInstancesInCluster(String clusterName)
   {
-    String memberInstancesPath = CMUtil.getMemberInstancesPath(clusterName);
+    // this diverts from zk one
+    // String memberInstancesPath = CMUtil.getMemberInstancesPath(clusterName);
+    String path = CMUtil.getConfigPath(clusterName);
 
     List<String> childs = null;
     List<String> instanceNames = new ArrayList<String>();
     try
     {
-      childs = _store.getPropertyNames(memberInstancesPath);
+      childs = _store.getPropertyNames(path);
       for (String child : childs)
       {
-        // strip memberInstancesPath from instanceName
+        // strip config path from instanceName
         String instanceName = child.substring(child.lastIndexOf('/') + 1);
         instanceNames.add(instanceName);
-        
       }
       return instanceNames;  
     }
     catch (PropertyStoreException e)
     {
-      logger.error("Fail to getNodeNamesInCluster, cluster " + clusterName + 
+      logger.error("Fail to getInstancesInCluster, cluster " + clusterName + 
           "\nexception: " + e);
     }
     

@@ -1,6 +1,7 @@
 package com.linkedin.clustermanager.monitoring.mbeans;
 
 import java.lang.management.ManagementFactory;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -34,6 +35,34 @@ public class ClusterStatusMonitor
     = new ConcurrentHashMap<String, ResourceGroupMonitor>();
   private String _clusterName = "";
   
+  private List<ResourceGroupMonitorChangedListener> _listeners = new ArrayList<ResourceGroupMonitorChangedListener>() ;
+  
+  public void addResourceGroupMonitorChangedListener(ResourceGroupMonitorChangedListener listener)
+  {
+    synchronized(_listeners)
+    {
+      if(!_listeners.contains(listener))
+      {
+        _listeners.add(listener);
+        for(ResourceGroupMonitor bean : _resourceGroupMbeanMap.values())
+        {
+          listener.onResourceGroupMonitorAdded(bean);
+        }
+      }
+    }
+  }
+  
+  private void notifyListeners(ResourceGroupMonitor newResourceGroupMonitor)
+  {
+    synchronized(_listeners)
+    {
+      for(ResourceGroupMonitorChangedListener listener : _listeners)
+      {
+        listener.onResourceGroupMonitorAdded(newResourceGroupMonitor);
+      }
+    }
+  }
+  
   public ClusterStatusMonitor(String clusterName, int nInstances)
   {
     _clusterName = clusterName;
@@ -50,9 +79,15 @@ public class ClusterStatusMonitor
     }
   }
   
-  private ObjectName getObjectName(String name) throws MalformedObjectNameException
+  public ObjectName getObjectName(String name) throws MalformedObjectNameException
   {
-    return new ObjectName("CLMController:"+name);
+    return new ObjectName("ClusterStatus: "+name);
+  }
+  
+  // Used by other external JMX consumers like ingraph
+  public String getBeanName()
+  {
+    return "ClusterStatus "+_clusterName;
   }
   
   @Override
@@ -118,10 +153,11 @@ public class ClusterStatusMonitor
           {
             if(!_resourceGroupMbeanMap.containsKey(resourceGroup))
             {
-              ResourceGroupMonitor bean = new ResourceGroupMonitor();
+              ResourceGroupMonitor bean = new ResourceGroupMonitor(_clusterName, resourceGroup);
               String beanName = "Cluster=" + _clusterName + ",resourceGroup=" + resourceGroup;
               register(bean, getObjectName(beanName));
               _resourceGroupMbeanMap.put(resourceGroup, bean);
+              notifyListeners(bean);
             }
           }
         }

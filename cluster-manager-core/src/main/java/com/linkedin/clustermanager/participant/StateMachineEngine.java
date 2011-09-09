@@ -13,6 +13,7 @@ import com.linkedin.clustermanager.NotificationContext;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.model.Message;
+import com.linkedin.clustermanager.monitoring.ParticipantMonitor;
 import com.linkedin.clustermanager.participant.statemachine.CMTaskExecutor;
 import com.linkedin.clustermanager.participant.statemachine.StateModel;
 import com.linkedin.clustermanager.participant.statemachine.StateModelFactory;
@@ -39,6 +40,11 @@ public class StateMachineEngine<T extends StateModel> implements
 		_taskExecutor = new CMTaskExecutor();
 		_statusUpdateUtil = new StatusUpdateUtil();
 		_stateModelParser = new StateModelParser();
+	}
+	
+	public ParticipantMonitor getTransitionStatMonitor()
+	{
+	  return _taskExecutor.getParticipantMonitor();
 	}
 
 	@Override

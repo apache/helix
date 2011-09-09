@@ -42,7 +42,7 @@ public class CMTaskExecutor
 
   }
   
-  ParticipantMonitor getStatMonitor()
+  public ParticipantMonitor getParticipantMonitor()
   {
     return _monitor;
   }

@@ -7,7 +7,7 @@
   <packaging>pom</packaging>
   <name>Cluster Manager Parent Project</name>
 	<properties>
-		<applicationVersion>0.1.4</applicationVersion>
+		<applicationVersion>0.1.5</applicationVersion>
 	</properties>
   <modules>
     <module>cluster-manager-core</module>

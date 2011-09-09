@@ -23,7 +23,7 @@ public class TestDropResourceFileCM extends FileClusterManagerHandler
     // add a db to be dropped
     mgmtTool.addResourceGroup(storageCluster, "DropDB", 10, stateModel);
     rebalanceStorageCluster(storageCluster, "DropDB", 2);
-    Thread.sleep(5000);
+    Thread.sleep(10000);
     
     // verify current state
     ZNRecord idealStates = accessor.getClusterProperty(ClusterPropertyType.IDEALSTATES, "DropDB");

@@ -182,7 +182,7 @@ public class CMTaskHandler implements Callable<CMTaskResult>
           );
         
         StateTransitionDataPoint data = new StateTransitionDataPoint(totalDelay, executionDelay, taskResult.isSucess());
-        _executor.getStatMonitor().reportTransitionStat(cxt, data);
+        _executor.getParticipantMonitor().reportTransitionStat(cxt, data);
       }
     }
     else

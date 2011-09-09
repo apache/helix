@@ -18,9 +18,11 @@ public class ResourceGroupMonitor implements ResourceGroupMonitorMBean
   int _externalViewIdealStateDiff;
   private static final Logger LOG = Logger.getLogger(ClusterStatusMonitor.class);
 
-  
-  public ResourceGroupMonitor()
+  String _resourceGroup, _clusterName;
+  public ResourceGroupMonitor(String clusterName, String resourceGroup)
   {
+    _clusterName = clusterName;
+    _resourceGroup = resourceGroup;
   }
   @Override
   public long getNumberOfResourceKeys()
@@ -117,8 +119,14 @@ public class ResourceGroupMonitor implements ResourceGroupMonitorMBean
     _numOfResourceKeysInExternalView = externalView.getMapFields().size();
   }
   
+  @Override
   public long getNumberOfResourceKeysInExternalView()
   {
     return _numOfResourceKeysInExternalView;
+  }
+  
+  public String getBeanName()
+  {
+    return _clusterName+" "+_resourceGroup;
   }
 }

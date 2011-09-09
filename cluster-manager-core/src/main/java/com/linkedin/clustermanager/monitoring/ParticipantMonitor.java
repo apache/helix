@@ -12,8 +12,6 @@ import javax.management.ObjectName;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.clustermanager.monitoring.mbeans.ResourceGroupMonitor;
-import com.linkedin.clustermanager.monitoring.mbeans.ResourceGroupMonitorChangedListener;
 import com.linkedin.clustermanager.monitoring.mbeans.StateTransitionStatMonitor;
 import com.linkedin.clustermanager.monitoring.mbeans.TransStatMonitorChangedListener;
 

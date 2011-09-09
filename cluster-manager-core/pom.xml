@@ -9,7 +9,7 @@
 
 	<groupId>com.linkedin.clustermanager</groupId>
 	<artifactId>cluster-manager-core</artifactId>
-	<version>0.1.4</version>
+	<version>0.1.5</version>
 	<packaging>jar</packaging>
 
 	<name>cluster-manager-core</name>

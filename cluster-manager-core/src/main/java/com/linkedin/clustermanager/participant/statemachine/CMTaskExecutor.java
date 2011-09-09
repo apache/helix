@@ -37,7 +37,7 @@ public class CMTaskExecutor
     _lock = new Object();
     _statusUpdateUtil = new StatusUpdateUtil();
     _pool = Executors.newFixedThreadPool(MAX_PARALLEL_TASKS);
-    _monitor = new ParticipantMonitor();
+    _monitor = ParticipantMonitor.getInstance();
     startMonitorThread();
 
   }

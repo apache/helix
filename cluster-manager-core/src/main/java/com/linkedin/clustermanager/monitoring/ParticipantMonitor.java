@@ -15,9 +15,12 @@ import org.apache.log4j.Logger;
 import com.linkedin.clustermanager.monitoring.mbeans.ResourceGroupMonitor;
 import com.linkedin.clustermanager.monitoring.mbeans.ResourceGroupMonitorChangedListener;
 import com.linkedin.clustermanager.monitoring.mbeans.StateTransitionStatMonitor;
+import com.linkedin.clustermanager.monitoring.mbeans.TransStatMonitorChangedListener;
 
 public class ParticipantMonitor
 {
+  private static final ParticipantMonitor _instance = new ParticipantMonitor();
+  
   private ConcurrentHashMap<StateTransitionContext, StateTransitionStatMonitor> _monitorMap
    = new ConcurrentHashMap<StateTransitionContext, StateTransitionStatMonitor>();
   private static final Logger LOG = Logger.getLogger(ParticipantMonitor.class);
@@ -52,7 +55,12 @@ public class ParticipantMonitor
     }
   }
   
-  public ParticipantMonitor()
+  public static ParticipantMonitor getInstance()
+  {
+    return _instance;
+  }
+  
+  private ParticipantMonitor()
   {
     try
     {

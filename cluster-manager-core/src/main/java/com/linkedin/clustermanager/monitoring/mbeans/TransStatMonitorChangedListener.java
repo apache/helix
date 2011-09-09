@@ -1,6 +1,5 @@
-package com.linkedin.clustermanager.monitoring;
+package com.linkedin.clustermanager.monitoring.mbeans;
 
-import com.linkedin.clustermanager.monitoring.mbeans.StateTransitionStatMonitor;
 
 public interface TransStatMonitorChangedListener
 {

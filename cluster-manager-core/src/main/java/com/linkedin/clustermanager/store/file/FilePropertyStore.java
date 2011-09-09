@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -36,21 +37,29 @@ import com.linkedin.clustermanager.store.PropertyStat;
 import com.linkedin.clustermanager.store.PropertyStore;
 import com.linkedin.clustermanager.store.PropertyStoreException;
 
-// file systems usually have sophisticated cache mechanisms
-// no need for another cache for file property store
+/**
+ * 
+ * @author zzhang
+ * property store that built upon a file system
+ * since file systems usually have sophisticated cache mechanisms
+ * there is no need for another cache for file property store 
+ * 
+ * NOTES:
+ * lastModified timestamp provided by java file io has only second level precision
+ * so it is possible that files have been modified without changing its lastModified timestamp
+ * the solution is to use a map that caches the files changed in last second
+ * and in the next round of refresh, check against this map to figure out whether a file 
+ * has been changed/created in the last second
+ * {@http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=6939260}
+ * 
+ * @param <T>
+ */
 
-// NOTES:
-// lastModified timestamp provided by java file io has only second level precision
-// so it is possible that files have been modified without changing its lastModified timestamp
-// the solution is to use a map that caches the files changed in last second
-// and in the next round of refresh, check against this map to figure out whether a file 
-// has been changed/created in the last second
-// ref: http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=6939260
 public class FilePropertyStore<T> implements PropertyStore<T>
 {
   private static Logger logger = Logger.getLogger(FilePropertyStore.class);
   
-  private final String ROOT = "";
+  private final String ROOT = "/";
   private final long TIMEOUT = 30L;
   private final long REFRESH_PERIOD = 1000; // ms
   private final int _id = new Random().nextInt();
@@ -128,8 +137,8 @@ public class FilePropertyStore<T> implements PropertyStore<T>
           _curModifiedFiles.put(path, newValue);
         }
         
-        logger.debug("file: " + file.getAbsolutePath() + " changed " + file.lastModified());
-        // new Date(file.lastModified()));
+        logger.debug("file: " + file.getAbsolutePath() + " changed at " + file.lastModified() + " (" + 
+            new Date(file.lastModified()) + ")");
         results.add(file);
       }
       
@@ -177,8 +186,8 @@ public class FilePropertyStore<T> implements PropertyStore<T>
           _curModifiedFiles.put(path, newValue);
         }
        
-        logger.debug("dir: " + dir.getAbsolutePath() + " changed " + dir.lastModified());
-        // new Date(dir.lastModified()));
+        logger.debug("dir: " + dir.getAbsolutePath() + " changed at " + dir.lastModified() + 
+            " (" + new Date(dir.lastModified()) + ")");
         results.add(dir);
        
         return true;
@@ -210,7 +219,7 @@ public class FilePropertyStore<T> implements PropertyStore<T>
           _readWriteLock.readLock().unlock();
         }
 
-        // TODO: see if we can use DirectoryFileComparator.DIRECTORY_COMPARATOR.sort()
+        // TODO see if we can use DirectoryFileComparator.DIRECTORY_COMPARATOR.sort()
         File[] fileArray = new File[files.size()]; 
         fileArray = files.toArray(fileArray);
         Arrays.sort(fileArray, new Comparator<File>() {
@@ -273,12 +282,12 @@ public class FilePropertyStore<T> implements PropertyStore<T>
     
   }
   
-  /**
+  /*
   public FilePropertyStore(final PropertySerializer<T> serializer)
   {
     this(serializer, System.getProperty("java.io.tmpdir"));
   }
-  **/
+  */
   
   public FilePropertyStore(final PropertySerializer<T> serializer, String rootNamespace, 
       final PropertyJsonComparator<T> comparator)
@@ -294,7 +303,8 @@ public class FilePropertyStore<T> implements PropertyStore<T>
     // Strip off leading slash
     while (rootNamespace.startsWith("/"))
     {
-      rootNamespace = rootNamespace.substring(1, rootNamespace.length());
+      // rootNamespace = rootNamespace.substring(1, rootNamespace.length());
+      rootNamespace = rootNamespace.substring(1);
     }
     _rootNamespace = "/" + rootNamespace;
 
@@ -356,11 +366,12 @@ public class FilePropertyStore<T> implements PropertyStore<T>
     // Strip off leading slash
     while (key.startsWith("/"))
     {
-      key = key.substring(1, key.length());
+      // key = key.substring(1, key.length());
+      key = key.substring(1);
     }
 
-    String path = key.equals(ROOT) ? _rootNamespace : (_rootNamespace + "/" + key);
-
+    // String path = key.equals(ROOT) ? _rootNamespace : (_rootNamespace + "/" + key);
+    String path = key.equals("") ? _rootNamespace : (_rootNamespace + "/" + key);
     return path;
   }
   
@@ -376,7 +387,8 @@ public class FilePropertyStore<T> implements PropertyStore<T>
     if (path.equals(_rootNamespace))
       return ROOT;
     
-    path = path.substring(_rootNamespace.length() + 1);
+    // path = path.substring(_rootNamespace.length() + 1);
+    path = path.substring(_rootNamespace.length());
 
     return path;
   }
@@ -408,7 +420,7 @@ public class FilePropertyStore<T> implements PropertyStore<T>
     }
     catch (Exception e)
     {
-      System.err.println("Failed to create: " + path + "\n" + e.getMessage());
+      logger.error("Failed to create dir: " + path + "\nexception:" + e);
     }
     finally
     {
@@ -425,7 +437,7 @@ public class FilePropertyStore<T> implements PropertyStore<T>
     // FileLock fLock = null;
     FileOutputStream fout = null;
     
-    // TODO: create non-exist dirs recursively
+    // TODO create non-exist dirs recursively
     try
     {
       _readWriteLock.writeLock().lock();
@@ -578,21 +590,73 @@ public class FilePropertyStore<T> implements PropertyStore<T>
 
     try
     {
+      _readWriteLock.writeLock().lock();
       FileUtils.deleteDirectory(new File(path));
     }
     catch (IOException e)
     {
       logger.error("fail to remove namespace, path:" + path + "\nexcpetion" + e);
     }
+    finally
+    {
+      _readWriteLock.writeLock().unlock();
+    }
   }
 
   // TODO do it recursively, need to return all files under that prefix
+  private void doGetPropertyNames(String path, List<String> leafNodes) 
+  throws PropertyStoreException
+  {
+    File file = new File(path);
+    if (!file.exists())
+    {
+      return;
+    }
+    
+    // List<String> childs = _zkClient.getChildren(path);
+    if (file.isDirectory())
+    {
+      String[] childs = file.list();
+      if (childs == null || childs.length == 0)
+      {
+        return;
+      }
+      for (String child : childs)
+      {
+        String pathToChild = path + "/" + child;
+        doGetPropertyNames(pathToChild, leafNodes);
+      }
+    }
+    else if (file.isFile())
+    {
+      // getProperty(getRelativePath(path));
+      leafNodes.add(getRelativePath(path));
+      return;
+    }
+  }
+  
   @Override
   public List<String> getPropertyNames(String prefix) throws PropertyStoreException
   {
     String path = getPath(prefix);
-    File file = new File(path);
+    List<String> propertyNames = new ArrayList<String>();
     
+    try
+    {
+      _readWriteLock.readLock().lock();
+      doGetPropertyNames(path, propertyNames);
+    }
+    catch (PropertyStoreException e)
+    {
+      
+    }
+    finally
+    {
+      _readWriteLock.readLock().unlock();
+    }
+    
+    /*
+    File file = new File(path);
     _readWriteLock.readLock().lock();
     List<String> names = new ArrayList<String>();
     String[] children = file.list();
@@ -606,15 +670,17 @@ public class FilePropertyStore<T> implements PropertyStore<T>
       String pathToChild = path + "/" + child;
       names.add(getRelativePath(pathToChild));
     }
+    */
     
-    
-    return names;  
+    return propertyNames;  
   }
 
   @Override
   public void setPropertyDelimiter(String delimiter) throws PropertyStoreException
   {
-    throw new PropertyStoreException("setPropertyDelimiter() not implemented for FilePropertyStore");  
+    // throw new PropertyStoreException("setPropertyDelimiter() not implemented by FilePropertyStore");
+    throw new UnsupportedOperationException(
+        "setPropertyDelimiter() is NOT supported by FilePropertyStore");
   }
 
   @Override
@@ -786,37 +852,37 @@ public class FilePropertyStore<T> implements PropertyStore<T>
     // StringPropertySerializer serializer = new StringPropertySerializer();
     PropertyJsonSerializer<String> serializer = new PropertyJsonSerializer<String>(String.class);
     PropertyJsonComparator<String> comparator = new PropertyJsonComparator<String>(String.class);
-    String rootNamespace = "/tmp/testFilePropertyStore";
+    String rootNamespace = "/tmp/TestFilePropertyStore";
     
     // FileUtils.deleteDirectory(new File(rootNamespace)); // not working for a file
     
     FilePropertyStore<String> store = new FilePropertyStore<String>(serializer, rootNamespace, comparator);
-    store.removeRootNamespace();
-    store.createRootNamespace();
     store.start();
     
     // test set
-    store.createPropertyNamespace("testPath1");
-    store.setProperty("testPath1/testPath2", "testValue2-I\n");
-    store.setProperty("testPath1/testPath3", "testValue3-I\n");
+    store.createPropertyNamespace("/child1");
+    store.setProperty("/child1/grandchild1", "grandchild1\n");
+    store.setProperty("/child1/grandchild2", "grandchild2\n");
+    store.createPropertyNamespace("/child1/grandchild3");
+    store.setProperty("/child1/grandchild3/grandgrandchild1", "grandgrandchild1\n");
 
     // test get-names
-    List<String> names = store.getPropertyNames("testPath1");
-    logger.debug("names=" + names);
+    List<String> names = store.getPropertyNames("/child1");
+    logger.info("names under child1:" + names);
     
     // test get
-    String key = "testPath1/testPath2";
-    String value = store.getProperty(key);
-    logger.debug(key + ": value=" + value);
-    Thread.sleep(1000);
+    // String key = "testPath1/testPath2";
+    String value = store.getProperty("/child1/grandchild1");
+    logger.info("/child1/grandchild1=" + value);
+    // Thread.sleep(1000);
     
     // test subscribe
-    PropertyChangeListener<String> listener = new PropertyChangeListener<String>() {
+    PropertyChangeListener<String> listener1 = new PropertyChangeListener<String>() {
 
       @Override
       public void onPropertyChange(String key)
       {
-        logger.debug("[listener1] file changed at: " + key);
+        logger.info("[listener1] file/dir changed at: " + key);
         
       }
       
@@ -827,32 +893,32 @@ public class FilePropertyStore<T> implements PropertyStore<T>
       @Override
       public void onPropertyChange(String key)
       {
-        logger.debug("[listener2] file changed at: " + key);
+        logger.info("[listener2] file/dir changed at: " + key);
         
       }
       
     };
     
-    store.subscribeForPropertyChange("testPath1", listener);
-    store.subscribeForPropertyChange("testPath1", listener);
-    store.subscribeForPropertyChange("testPath1", listener2);
+    store.subscribeForPropertyChange("/child1", listener1);
+    store.subscribeForPropertyChange("/child1", listener2);
+    store.subscribeForPropertyChange("/child1", listener2);
     
-    store.setProperty("testPath1/testPath3", "testValue3-II\n");
-    logger.debug("set testPath1/testPath3");
+    store.setProperty("/child1/grandchild4", "grandchild4\n");
+    logger.info("set /child1/grandchild4");
     Thread.sleep(1000);
     
     
     // test unsubscribe
-    store.unsubscribeForPropertyChange("testPath1", listener);
+    store.unsubscribeForPropertyChange("/child1", listener1);
     
-    store.setProperty("testPath1/testPath4", "testValue4-I\n");
+    store.setProperty("/child1/grandchild5", "grandchild5\n");
     Thread.sleep(1000);
     
     // test remove
-    store.removeProperty("testPath1/testPath3");
+    store.removeProperty("/child1/grandchild4");
     Thread.sleep(1000);
     
-    store.unsubscribeForPropertyChange("testPath1", listener2);
+    store.unsubscribeForPropertyChange("/child1", listener2);
     store.stop();
     
   }

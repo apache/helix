@@ -15,7 +15,7 @@ import com.linkedin.clustermanager.util.CMUtil;
 
 public class FileClusterManagementTool implements ClusterManagementService
 {
-  private static Logger LOG = Logger.getLogger(FileClusterManagementTool.class);
+  private static Logger logger = Logger.getLogger(FileClusterManagementTool.class);
   private final FilePropertyStore<ZNRecord> _store; 
   
   public FileClusterManagementTool(FilePropertyStore<ZNRecord> store)
@@ -36,25 +36,26 @@ public class FileClusterManagementTool implements ClusterManagementService
   @Override
   public List<String> getInstancesInCluster(String clusterName)
   {
-    String memberInstancesPath = CMUtil.getMemberInstancesPath(clusterName);
+    // this diverts from zk one
+    // String memberInstancesPath = CMUtil.getMemberInstancesPath(clusterName);
+    String path = CMUtil.getConfigPath(clusterName);
 
     List<String> childs = null;
     List<String> instanceNames = new ArrayList<String>();
     try
     {
-      childs = _store.getPropertyNames(memberInstancesPath);
+      childs = _store.getPropertyNames(path);
       for (String child : childs)
       {
-        // strip memberInstancesPath from instanceName
+        // strip config path from instanceName
         String instanceName = child.substring(child.lastIndexOf('/') + 1);
         instanceNames.add(instanceName);
-        
       }
       return instanceNames;  
     }
     catch (PropertyStoreException e)
     {
-      LOG.error("Fail to getNodeNamesInCluster, cluster " + clusterName + 
+      logger.error("Fail to getInstancesInCluster, cluster " + clusterName + 
           "\nexception: " + e);
     }
     
@@ -114,7 +115,7 @@ public class FileClusterManagementTool implements ClusterManagementService
     }
     catch(PropertyStoreException e)
     {
-      LOG.error("Fail to add cluster " + clusterName + "\nexception: " + e);
+      logger.error("Fail to add cluster " + clusterName + "\nexception: " + e);
     }
 
   }
@@ -148,7 +149,7 @@ public class FileClusterManagementTool implements ClusterManagementService
     }
     catch (PropertyStoreException e)
     {
-      LOG.error("Fail to add resource group, cluster:" + clusterName + 
+      logger.error("Fail to add resource group, cluster:" + clusterName + 
           " resource group:" + resourceGroup +
           "\nexception: " + e);
     }
@@ -189,7 +190,7 @@ public class FileClusterManagementTool implements ClusterManagementService
     }
     catch(Exception e)
     {
-      LOG.error("Fail to add node, cluster:" + clusterName + 
+      logger.error("Fail to add node, cluster:" + clusterName + 
           "\nexception: " + e);
     }
     
@@ -206,7 +207,7 @@ public class FileClusterManagementTool implements ClusterManagementService
     }
     catch (Exception e)
     {
-      LOG.error("Fail to getResourceGroupIdealState, cluster:" + clusterName + 
+      logger.error("Fail to getResourceGroupIdealState, cluster:" + clusterName + 
           " resourceGroup:" + resourceGroupName + 
           "\nexception: " + e);
     }
@@ -224,7 +225,7 @@ public class FileClusterManagementTool implements ClusterManagementService
     }
     catch (Exception e)
     {
-      LOG.error("Fail to setResourceGroupIdealState, cluster:" + clusterName + 
+      logger.error("Fail to setResourceGroupIdealState, cluster:" + clusterName + 
           " resourceGroup:" + resourceGroupName + 
           "\nexception: " + e);
     }
@@ -260,7 +261,7 @@ public class FileClusterManagementTool implements ClusterManagementService
     }
     catch (PropertyStoreException e)
     {
-      LOG.error("Fail to addStateModelDef, cluster:" + clusterName + 
+      logger.error("Fail to addStateModelDef, cluster:" + clusterName + 
           " stateModelDef:" + stateModelDef + 
           "\nexception: " + e);
     }
@@ -270,9 +271,25 @@ public class FileClusterManagementTool implements ClusterManagementService
   @Override
   public void dropResourceGroup(String clusterName, String resourceGroup)
   {
-    // TODO Auto-generated method stub
-    throw new UnsupportedOperationException(
-      "dropResourceGroup() is NOT supported by FileClusterManagementTool");
+    String path = CMUtil.getClusterPropertyPath(clusterName, ClusterPropertyType.IDEALSTATES)
+        + "/" + resourceGroup;
+    
+    if (_store.exists(path))
+    {
+      try
+      {
+        _store.removeProperty(path);
+      }
+      catch (PropertyStoreException e)
+      {
+        logger.warn("Faile to remove property at path:" + path + 
+                    "\nexception:" + e);      
+      }
+    }
+    else
+    {
+      logger.warn("No property to remove at path:" + path);
+    }
   }
 
   @Override

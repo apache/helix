@@ -234,18 +234,13 @@ public class CallbackHandlerForFile implements PropertyChangeListener<ZNRecord>
   @Override
   public void onPropertyChange(String key)
   {
-    // TODO change file property store
-    key = "/" + key;
     // System.err.println("on property change, key:" + key);
-        
     try
     {
-      // need to differentiate directory and regular file
-      // TODO find a better way
-      ZNRecord record = _store.getProperty(key);    // _accessor.getProperty(key);
-           
-      if (record != null)
+      if (needToNotify(key))
       {
+        // System.err.println("notified on property change, key:" + key);
+        
         updateNotificationTime(System.nanoTime());
         NotificationContext changeContext = new NotificationContext(_manager);
         changeContext.setType(NotificationContext.Type.CALLBACK);
@@ -257,8 +252,29 @@ public class CallbackHandlerForFile implements PropertyChangeListener<ZNRecord>
       // ZKExceptionHandler.getInstance().handle(e);
       logger.error("fail onPropertyChange" + "\nexception:" + e);
     }
-
-    
   }
 
+  private boolean needToNotify(String key)
+  {
+    boolean ret = false;
+    switch(_changeType)
+    {
+    // both child/data changes matter
+    case IDEAL_STATE:
+    case CURRENT_STATE:
+    case CONFIG:
+      ret = key.startsWith(_path);
+      break;
+    // only child changes matter
+    case LIVE_INSTANCE:
+    case MESSAGE:
+    case EXTERNAL_VIEW:
+      ret = key.equals(_path);
+      break;
+    default:
+      break;
+    }
+    
+    return ret;
+  }
 }

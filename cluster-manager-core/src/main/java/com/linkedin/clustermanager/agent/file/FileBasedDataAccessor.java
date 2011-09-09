@@ -17,7 +17,7 @@ import com.linkedin.clustermanager.util.CMUtil;
 
 public class FileBasedDataAccessor implements ClusterDataAccessor
 {
-  private static Logger LOG = Logger.getLogger(FileBasedDataAccessor.class);
+  private static Logger logger = Logger.getLogger(FileBasedDataAccessor.class);
   private final FilePropertyStore<ZNRecord> _store;
   private final String _clusterName;  
   private final ReadWriteLock _readWriteLock = new ReentrantReadWriteLock();
@@ -42,7 +42,7 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
     }
     catch(PropertyStoreException e)
     {
-      LOG.error("Fail to set cluster property clusterName: " + _clusterName + 
+      logger.error("Fail to set cluster property clusterName: " + _clusterName + 
                 " type:" + clusterProperty +
                 " key:" + key + "\nexception: " + e);
     }
@@ -55,8 +55,6 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
   @Override
   public void updateClusterProperty(ClusterPropertyType type, String key, ZNRecord value)
   {
-    // LOG.error("updateClusterProperty() NOT supported, type:" + type + 
-    //    " key:" + key);
     throw new UnsupportedOperationException(
       "updateClusterProperty() is NOT supported by FileDataAccessor");
 
@@ -65,9 +63,6 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
   @Override
   public ZNRecord getClusterProperty(ClusterPropertyType type, String key)
   {
-    // LOG.error("getClusterProperty() NOT supported, type:" + type +
-    //    " key:" + key);   
-    // return null;
     String path = CMUtil.getClusterPropertyPath(_clusterName, type);
     path = path + "/" + key;
     try
@@ -77,7 +72,7 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
     }
     catch(PropertyStoreException e)
     {
-      LOG.error("Fail to get cluster property clusterName: " + _clusterName + 
+      logger.error("Fail to get cluster property clusterName: " + _clusterName + 
                 " type:" + type +
                 " key:" + key + "\nexception: " + e);
     }
@@ -109,7 +104,7 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
     }
     catch (PropertyStoreException e)
     {
-      LOG.error("Fail to set instance property, instance:" + instanceName +
+      logger.error("Fail to set instance property, instance:" + instanceName +
                 " type:" + type + " key:" + key + "\nexception:" + e);
     }
     finally
@@ -132,7 +127,7 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
     }
     catch(PropertyStoreException e)
     {
-      LOG.error("Fail to get instance property cluster:" + _clusterName + 
+      logger.error("Fail to get instance property cluster:" + _clusterName + 
           " instanceName:" + instanceName + "type:" + type +
           " key:" + key + "\nexception: " + e);
     }
@@ -167,7 +162,7 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
     }
     catch (PropertyStoreException e)
     {
-      LOG.error("Fail to remove instance property, instance:" + instanceName + 
+      logger.error("Fail to remove instance property, instance:" + instanceName + 
           " type:" + type + " key:" + key  + "\nexception:" + e);
     }
     finally
@@ -204,7 +199,7 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
     }
     catch (PropertyStoreException e)
     {
-      LOG.error("fail to update instance property, instance:" + instanceName + 
+      logger.error("fail to update instance property, instance:" + instanceName + 
           " type:" + type + " key:" + key + "\nexception:" + e);
     }
     finally
@@ -260,7 +255,7 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
     }
     catch(PropertyStoreException e)
     {
-      LOG.error("Fail to set instance property cluster:" + _clusterName + 
+      logger.error("Fail to set instance property cluster:" + _clusterName + 
           " type:" + type + " subPath:" + subPath +
           " key:" + key + "\nexception: " + e);
     }
@@ -322,7 +317,7 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
     }
     catch (PropertyStoreException e)
     {
-      LOG.error("fail to update instance property, instance:" + instanceName + 
+      logger.error("fail to update instance property, instance:" + instanceName + 
           " type:" + type +
           " subPath:" + subPath + " key:" + key + "\nexception:" + e);    
     }
@@ -368,7 +363,7 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
     }
     catch(PropertyStoreException e)
     {
-      LOG.error("Fail to get instance property cluster:" + _clusterName + 
+      logger.error("Fail to get instance property cluster:" + _clusterName + 
           " type:" + type + " subPath:" + subPath +
           " key:" + key  + "\nexception: " + e);
     }
@@ -384,10 +379,24 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
   public List<String> getInstancePropertySubPaths(String instanceName,
       InstancePropertyType type)
   {
-    // LOG.error("getInstancePropertySubPaths() NOT supported,  type:" + type);
-    // return null;
-    throw new UnsupportedOperationException(
-      "getInstancePropertySubPaths() is NOT supported by FileDataAccessor");
+    // throw new UnsupportedOperationException(
+    //  "getInstancePropertySubPaths() is NOT supported by FileDataAccessor");
+    String path = CMUtil.getInstancePropertyPath(_clusterName, instanceName, type);
+    try
+    {
+      _readWriteLock.readLock().lock();
+      return _store.getPropertyNames(path);
+    }
+    catch (PropertyStoreException e)
+    {
+      logger.error("fail to get instance property subPaths, instance:" + instanceName +
+                   ", type:" + type + "\nexception:" + e);
+      return null;
+    }
+    finally
+    {
+      _readWriteLock.readLock().unlock();
+    }
   }
 
   @Override
@@ -395,9 +404,34 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
       InstancePropertyType type, String subPath, String key,
       ZNRecord value)
   {
-    // LOG.error("substractInstanceProperty() NOT supported, type:" + type);
-    throw new UnsupportedOperationException(
-      "substractInstanceProperty() is NOT supported by FileDataAccessor");
+    try
+    {
+      _readWriteLock.writeLock().lock();
+      
+      String path = CMUtil.getInstancePropertyPath(_clusterName, instanceName, type) + 
+          "/" + subPath + "/" + key;
+      if (_store.exists(path))
+      {
+        ZNRecord curRecord = _store.getProperty(path);
+        curRecord.substract(value);
+        _store.setProperty(path, curRecord);
+      }
+      else
+      {
+        logger.warn("instance property to substract does NOT exist, instance:" + instanceName + 
+                  " type:" + type + " subPath:" + subPath + " key:" + key);
+      }
+    }
+    catch (PropertyStoreException e)
+    {
+      logger.error("fail to substract instance property, instance:" + instanceName + 
+          " type:" + type + " subPath:" + subPath + " key:" + key + "\nexception:" + e);
+      
+    }
+    finally
+    {
+      _readWriteLock.writeLock().unlock();
+    }
 
   }
 
@@ -465,7 +499,7 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
     }
     catch(PropertyStoreException e)
     {
-      LOG.error("Fail to get child properties cluster:" + _clusterName + 
+      logger.error("Fail to get child properties cluster:" + _clusterName + 
           " parentPath:" + parentPath + "\nexception: " + e);
     }
     finally

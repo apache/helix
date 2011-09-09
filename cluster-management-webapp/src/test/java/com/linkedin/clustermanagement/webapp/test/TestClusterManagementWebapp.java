@@ -406,7 +406,7 @@ public class TestClusterManagementWebapp
     for(int i = 0;i<partitions; i++)
     {
       String partitionName = resourceGroupName+"_"+i;
-      assert(r.getMapField(partitionName).size() == replicas+1);
+      assert(r.getMapField(partitionName).size() == replicas);
     }
     
     httpUrlBase = "http://localhost:"+_port+"/clusters/"+clusterName;
@@ -420,16 +420,6 @@ public class TestClusterManagementWebapp
     sw = new StringWriter();
     result.write(sw);
     
-    httpUrlBase = "http://localhost:"+_port+"/clusters/"+clusterName+"/resourceGroups/"+ resourceGroupName+"/externalView";
-    resourceRef = new Reference(httpUrlBase);
-    request = new Request(Method.GET, resourceRef);
-    
-    client = new Client(Protocol.HTTP);
-    response = client.handle(request);
-    
-    result = response.getEntity();
-    sw = new StringWriter();
-    result.write(sw);
   }
   
   void VerifyEnableInstance() throws JsonGenerationException, JsonMappingException, IOException

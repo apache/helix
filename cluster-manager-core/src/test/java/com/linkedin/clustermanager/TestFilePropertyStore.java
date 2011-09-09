@@ -2,9 +2,9 @@ package com.linkedin.clustermanager;
 
 import java.util.List;
 
-import junit.framework.Assert;
 
 import org.apache.log4j.Logger;
+import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.store.PropertyChangeListener;
@@ -14,101 +14,100 @@ import com.linkedin.clustermanager.store.file.FilePropertyStore;
 
 public class TestFilePropertyStore
 {
-  private static Logger LOG = Logger.getLogger(TestFilePropertyStore.class);
+  private static Logger logger = Logger.getLogger(TestFilePropertyStore.class);
+  private static final String rootNamespace = "/tmp/TestFilePropertyStore";
   
-  public class MyPropertyChangeListener implements PropertyChangeListener<String>
+  public class TestPropertyChangeListener implements PropertyChangeListener<String>
   {
     public boolean _propertyChangeReceived = false;
     
     @Override
     public void onPropertyChange(String key)
     {
-      LOG.debug("property changed at " + key);
+      logger.info("property changed at " + key);
       _propertyChangeReceived = true;
     }
     
   }
   
   @Test
-  public void testInvocation() throws Exception
+  public void testFilePropertyStore() throws Exception
   {
     final int SLEEP_TIME = 2000;
     PropertyJsonSerializer<String> serializer = new PropertyJsonSerializer<String>(String.class);
     PropertyJsonComparator<String> comparator = new PropertyJsonComparator<String>(String.class);
-    String rootNamespace = "/tmp/testFilePropertyStore";
     
     FilePropertyStore<String> store = new FilePropertyStore<String>(serializer, rootNamespace, 
         comparator);
-    store.removeRootNamespace();
-    store.createRootNamespace();
+    // store.removeRootNamespace();
+    // store.createRootNamespace();
     store.start();
     
     // test set
-    store.createPropertyNamespace("testPath1");
-    store.setProperty("testPath1/testPath2", "testValue2-I\n");
-    store.setProperty("testPath1/testPath3", "testValue3-I\n");
+    store.createPropertyNamespace("/child1");
+    store.setProperty("/child1/grandchild1", "grandchild1\n");
+    store.setProperty("/child1/grandchild2", "grandchild2\n");
+    store.createPropertyNamespace("/child1/grandchild3");
+    store.setProperty("/child1/grandchild3/grandgrandchild1", "grandgrandchild1\n");
 
     // test get-names
-    List<String> names = store.getPropertyNames("testPath1");
-    Assert.assertEquals(names.size(), 2);
-    Assert.assertEquals(names.get(0), "testPath1/testPath2");
-    Assert.assertEquals(names.get(1), "testPath1/testPath3");
+    List<String> names = store.getPropertyNames("/child1");
+    Assert.assertEquals(names.size(), 3);
+    Assert.assertTrue(names.contains("/child1/grandchild1"));
+    Assert.assertTrue(names.contains("/child1/grandchild2"));
+    Assert.assertTrue(names.contains("/child1/grandchild3/grandgrandchild1"));
     
     // test get
     String value = store.getProperty("nonExist");
     Assert.assertEquals(value, null);
-    value = store.getProperty("testPath1/testPath2");
-    Assert.assertEquals(value, "testValue2-I\n");
+    value = store.getProperty("/child1/grandchild2");
+    Assert.assertEquals(value, "grandchild2\n");
     Thread.sleep(SLEEP_TIME);
     
     // test subscribe
-    MyPropertyChangeListener listener = new MyPropertyChangeListener();
-    MyPropertyChangeListener listener2 = new MyPropertyChangeListener();
+    TestPropertyChangeListener listener1 = new TestPropertyChangeListener();
+    TestPropertyChangeListener listener2 = new TestPropertyChangeListener();
     
-    store.subscribeForPropertyChange("testPath1", listener);
-    store.subscribeForPropertyChange("testPath1", listener);
-    store.subscribeForPropertyChange("testPath1", listener2);
+    store.subscribeForPropertyChange("/child1", listener1);
+    store.subscribeForPropertyChange("/child1", listener1);
+    store.subscribeForPropertyChange("/child1", listener2);
     
-    store.setProperty("testPath1/testPath3", "testValue3-II\n");
+    store.setProperty("/child1/grandchild2", "grandchild2-new\n");
     Thread.sleep(SLEEP_TIME);
-    Assert.assertEquals(listener._propertyChangeReceived, true);
+    Assert.assertEquals(listener1._propertyChangeReceived, true);
     Assert.assertEquals(listener2._propertyChangeReceived, true);
     
-    listener._propertyChangeReceived = false;
+    listener1._propertyChangeReceived = false;
     listener2._propertyChangeReceived = false;
     
     // test unsubscribe
-    store.unsubscribeForPropertyChange("testPath1", listener);
-    store.setProperty("testPath1/testPath4", "testValue4-I\n");
+    store.unsubscribeForPropertyChange("/child1", listener1);
+    store.setProperty("/child1/grandchild3/grandgrandchild1", "grandgrandchild1-new\n");
     Thread.sleep(SLEEP_TIME);
     
-    Assert.assertEquals(listener._propertyChangeReceived, false);
+    Assert.assertEquals(listener1._propertyChangeReceived, false);
     Assert.assertEquals(listener2._propertyChangeReceived, true);
     
     listener2._propertyChangeReceived = false;
     
     // test remove
-    store.removeProperty("testPath1/testPath3");
-    value = store.getProperty("testPath1/testPath3");
+    store.removeProperty("/child1/grandchild2");
+    value = store.getProperty("/child1/grandchild2");
     Assert.assertEquals(value, null);
     Thread.sleep(SLEEP_TIME);
     Assert.assertEquals(listener2._propertyChangeReceived, true);
     listener2._propertyChangeReceived = false;
     
     // test compare and set
-    boolean success = store.compareAndSet("testPath1/testPath4", 
-                                          "testValue4-II\n", 
-                                          "testValue4-II\n", 
-                                          comparator);
+    boolean success = store.compareAndSet("/child1/grandchild1", "grandchild1-old\n", 
+                                          "grandchild1-new\n", comparator);
     Assert.assertEquals(success, false);
     
-    success = store.compareAndSet("testPath1/testPath4", 
-                                  "testValue4-I\n", 
-                                  "testValue4-II\n", 
-                                  comparator);
+    success = store.compareAndSet("/child1/grandchild1", "grandchild1\n", 
+                                  "grandchild1-new\n", comparator);
     Assert.assertEquals(success, true);
     
-    store.unsubscribeForPropertyChange("testPath1", listener2);
+    store.unsubscribeForPropertyChange("/child1", listener2);
     store.stop();
   }
 }

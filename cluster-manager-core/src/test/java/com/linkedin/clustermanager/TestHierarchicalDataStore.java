@@ -2,8 +2,7 @@ package com.linkedin.clustermanager;
 
 import java.io.FileFilter;
 
-import junit.framework.Assert;
-
+import org.testng.Assert;
 import org.testng.annotations.Test;
 import com.linkedin.clustermanager.ZKBaseTest;
 import com.linkedin.clustermanager.controller.HierarchicalDataHolder;

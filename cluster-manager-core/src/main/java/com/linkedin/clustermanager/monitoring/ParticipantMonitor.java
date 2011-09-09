@@ -1,6 +1,8 @@
 package com.linkedin.clustermanager.monitoring;
 
 import java.lang.management.ManagementFactory;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
@@ -10,6 +12,8 @@ import javax.management.ObjectName;
 
 import org.apache.log4j.Logger;
 
+import com.linkedin.clustermanager.monitoring.mbeans.ResourceGroupMonitor;
+import com.linkedin.clustermanager.monitoring.mbeans.ResourceGroupMonitorChangedListener;
 import com.linkedin.clustermanager.monitoring.mbeans.StateTransitionStatMonitor;
 
 public class ParticipantMonitor
@@ -19,6 +23,34 @@ public class ParticipantMonitor
   private static final Logger LOG = Logger.getLogger(ParticipantMonitor.class);
 
   private MBeanServer _beanServer;
+  
+  private List<TransStatMonitorChangedListener> _listeners = new ArrayList<TransStatMonitorChangedListener>() ;
+  
+  public void addTransStatMonitorChangedListener(TransStatMonitorChangedListener listener)
+  {
+    synchronized(_listeners)
+    {
+      if(!_listeners.contains(listener))
+      {
+        _listeners.add(listener);
+        for(StateTransitionStatMonitor bean : _monitorMap.values())
+        {
+          listener.onTransStatMonitorAdded(bean);
+        }
+      }
+    }
+  }
+  
+  private void notifyListeners(StateTransitionStatMonitor newStateTransitionStatMonitor)
+  {
+    synchronized(_listeners)
+    {
+      for(TransStatMonitorChangedListener listener : _listeners)
+      {
+        listener.onTransStatMonitorAdded(newStateTransitionStatMonitor);
+      }
+    }
+  }
   
   public ParticipantMonitor()
   {
@@ -54,6 +86,7 @@ public class ParticipantMonitor
             _monitorMap.put(cxt, bean);
             String beanName = cxt.toString();
             register(bean, getObjectName(beanName));
+            notifyListeners(bean);
           }
         }
       }

@@ -1,6 +1,5 @@
 package com.linkedin.clustermanager;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -31,7 +30,18 @@ public class TestHelper
   {
     final String logDir = "/tmp/logs";
     final String dataDir = "/tmp/dataDir";
-    new File(dataDir).delete();
+    // new File(dataDir).delete();
+    /*
+    try
+    {
+      FileUtils.deleteDirectory(new File(dataDir));
+    }
+    catch (IOException e)
+    {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+    */
     
     IDefaultNameSpace defaultNameSpace = new IDefaultNameSpace()
     {
@@ -40,7 +50,15 @@ public class TestHelper
       {
         for (String rootNamespace : rootNamespaces)
         {
-          zkClient.deleteRecursive(rootNamespace);
+          try
+          {
+            zkClient.deleteRecursive(rootNamespace);
+          }
+          catch (Exception e)
+          {
+            logger.error("fail to deleteRecursive path:" + rootNamespace + 
+                         "\nexception:" + e);
+          }
         }
       }
     };

@@ -35,7 +35,7 @@ public class TestDistClusterController
   private static final int _replica = 3;
 
   @Test
-  public void testInvocation() throws Exception
+  public void testDistClusterController() throws Exception
   {
     LOG.info("Run at " + new Date(System.currentTimeMillis()));
     // start zk server

@@ -63,7 +63,7 @@ public class ZKDataAccessor implements ClusterDataAccessor
     String clusterPropertyPath = CMUtil.getClusterPropertyPath(_clusterName,
         clusterProperty);
     String targetPath = clusterPropertyPath + "/" + key;
-    ZNRecord nodeRecord = _zkClient.readData(targetPath);
+    ZNRecord nodeRecord = _zkClient.readData(targetPath,true);
     return nodeRecord;
   }
 

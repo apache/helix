@@ -3,13 +3,13 @@
 	<parent>
 		<groupId>com.linkedin.clustermanager</groupId>
 		<artifactId>cluster-manager</artifactId>
-		<version>0.1.6</version>
+		<version>0.3.0</version>
 	</parent>
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.linkedin.clustermanager.webapp</groupId>
 	<artifactId>cluster-management-webapp</artifactId>
 	<packaging>jar</packaging>
-	<version>0.1.6</version>
+	<version>0.3.0</version>
 	<name>cluster-management-webapp</name>
 	<url>http://maven.apache.org</url>
 	<repositories>
@@ -23,7 +23,7 @@
 		<dependency>
 			<groupId>com.linkedin.clustermanager</groupId>
 			<artifactId>cluster-manager-core</artifactId>
-			<version>0.1.6</version>
+			<version>0.3.0</version>
 		</dependency>
 		<dependency>
 			<groupId>org.restlet</groupId>

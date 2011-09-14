@@ -3,6 +3,7 @@ package com.linkedin.clustermanager.monitoring;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.math.stat.descriptive.DescriptiveStatistics;
+import org.apache.commons.math.stat.descriptive.SynchronizedDescriptiveStatistics;
 
 public class StatCollector
 {
@@ -13,7 +14,7 @@ public class StatCollector
   
   public StatCollector()
   {
-    _stats = new DescriptiveStatistics();
+    _stats = new SynchronizedDescriptiveStatistics();
     _stats.setWindowSize(DEFAULT_WINDOW_SIZE);
   }
   

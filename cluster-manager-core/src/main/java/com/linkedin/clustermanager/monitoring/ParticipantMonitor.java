@@ -108,6 +108,7 @@ public class ParticipantMonitor
 
   private ObjectName getObjectName(String name) throws MalformedObjectNameException
   {
+    LOG.info("Registering bean: "+name);
     return new ObjectName("CLMParticipantReport:"+name);
   }
   

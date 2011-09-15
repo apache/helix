@@ -1,11 +1,8 @@
 package com.linkedin.clustermanager.tools;
 
-import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
 import java.util.List;
 
@@ -80,6 +77,7 @@ public class ClusterSetup
   public void addCluster(String clusterName, boolean overwritePrevious)
   {
     ClusterManagementService managementTool = getClusterManagementTool();
+    
     managementTool.addCluster(clusterName, overwritePrevious);
     StateModelConfigGenerator generator = new StateModelConfigGenerator();
     addStateModelDef(clusterName, "MasterSlave",

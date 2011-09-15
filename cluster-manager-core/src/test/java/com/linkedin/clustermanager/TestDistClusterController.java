@@ -38,6 +38,7 @@ public class TestDistClusterController
   public void testDistClusterController() throws Exception
   {
     LOG.info("Run at " + new Date(System.currentTimeMillis()));
+    
     // start zk server
     List<String> namespaces = new ArrayList<String>();
     namespaces.add("/" + _cntrlClusterName);
@@ -106,7 +107,8 @@ public class TestDistClusterController
     String leaderPath = CMUtil.getControllerPropertyPath(_cntrlClusterName, 
                                                          ControllerPropertyType.LEADER);
     ZNRecord leaderRecord = _zkClient.<ZNRecord>readData(leaderPath);
-    Thread thread = distControllerMap.get(leaderRecord.getSimpleField("Leader"));
+    Thread thread = distControllerMap
+        .get(leaderRecord.getSimpleField(ControllerPropertyType.LEADER.toString()));
     thread.interrupt();
     
     Thread.sleep(3000);

@@ -26,6 +26,7 @@ import com.linkedin.clustermanager.CMConstants.ChangeType;
 import com.linkedin.clustermanager.CMConstants.ZNAttribute;
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
+import com.linkedin.clustermanager.ClusterDataAccessor.ControllerPropertyType;
 import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.ClusterManagementService;
 import com.linkedin.clustermanager.ClusterManager;
@@ -41,6 +42,7 @@ import com.linkedin.clustermanager.LiveInstanceChangeListener;
 import com.linkedin.clustermanager.MessageListener;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.monitoring.ZKPathDataDumpTask;
+import com.linkedin.clustermanager.participant.DistClusterControllerElection;
 import com.linkedin.clustermanager.store.PropertySerializer;
 import com.linkedin.clustermanager.store.PropertyStore;
 import com.linkedin.clustermanager.store.zk.ZKPropertyStore;
@@ -54,26 +56,45 @@ public class ZKClusterManager implements ClusterManager
 	private final String _clusterName;
 	private final String _instanceName;
 	private final String _zkConnectString;
-	private static int SESSIONTIMEOUT = 3000;
+	private static final int SESSIONTIMEOUT = 3000;
 	private ZKDataAccessor _accessor;
-	private ZkClient _zkClient;
-	private List<CallbackHandler> _handlers;
+	private ZkClient _zkClient = null;
+	// private List<CallbackHandler> _handlers;
+	private List<CallbackHandler> _participantHandlers;
+	private List<CallbackHandler> _controllerHandlers;
 	private final ZkStateChangeListener _zkStateChangeListener;
 	private final InstanceType _instanceType;
 	private String _sessionId;
 	private Timer _timer;
+	private CallbackHandler _leaderElectionHandler = null;
+
+	public ZKClusterManager(String clusterName, InstanceType instanceType,
+	                        String zkConnectString) throws Exception
+    {
+	  this(clusterName, null, instanceType, zkConnectString);
+	}
 
 	public ZKClusterManager(String clusterName, String instanceName,
 	    InstanceType instanceType, String zkConnectString) throws Exception
 	{
-		_clusterName = clusterName;
-		_instanceName = instanceName;
-		this._instanceType = instanceType;
-		_zkConnectString = zkConnectString;
-		_zkStateChangeListener = new ZkStateChangeListener(this);
-		_timer = null;
-		_handlers = new ArrayList<CallbackHandler>();
-		connect();
+		this(clusterName, instanceName, instanceType, zkConnectString, null);
+	}
+	
+	public ZKClusterManager(String clusterName, String instanceName,
+             InstanceType instanceType, String zkConnectString, ZkClient zkClient) 
+    throws Exception
+    {
+	  _clusterName = clusterName;
+      _instanceName = instanceName;
+      this._instanceType = instanceType;
+      _zkConnectString = zkConnectString;
+      _zkStateChangeListener = new ZkStateChangeListener(this);
+      _timer = null;
+      // _handlers = new ArrayList<CallbackHandler>();
+      _participantHandlers = new ArrayList<CallbackHandler>();
+      _controllerHandlers = new ArrayList<CallbackHandler>();
+      _zkClient = zkClient;
+      connect();
 	}
 
 	private boolean isInstanceSetup()
@@ -95,11 +116,6 @@ public class ZKClusterManager implements ClusterManager
 		return true;
 	}
 
-	public ZKClusterManager(String clusterName, InstanceType instanceType,
-	    String zkConnectString) throws Exception
-	{
-		this(clusterName, null, instanceType, zkConnectString);
-	}
 
 	@Override
 	public void addIdealStateChangeListener(
@@ -110,7 +126,8 @@ public class ZKClusterManager implements ClusterManager
 		    new EventType[]
 		    { EventType.NodeDataChanged, EventType.NodeDeleted,
 		        EventType.NodeCreated }, IDEAL_STATE);
-		_handlers.add(callbackHandler);
+		// _handlers.add(callbackHandler);
+		_controllerHandlers.add(callbackHandler);
 
 	}
 
@@ -123,7 +140,7 @@ public class ZKClusterManager implements ClusterManager
 		    new EventType[]
 		    { EventType.NodeChildrenChanged, EventType.NodeDeleted,
 		        EventType.NodeCreated }, LIVE_INSTANCE);
-
+		_controllerHandlers.add(callbackHandler);
 	}
 
 	@Override
@@ -134,6 +151,7 @@ public class ZKClusterManager implements ClusterManager
 		CallbackHandler callbackHandler = createCallBackHandler(path, listener,
 		    new EventType[]
 		    { EventType.NodeChildrenChanged }, CONFIG);
+		_controllerHandlers.add(callbackHandler);
 	}
 
 	@Override
@@ -145,6 +163,7 @@ public class ZKClusterManager implements ClusterManager
 		    new EventType[]
 		    { EventType.NodeChildrenChanged, EventType.NodeDeleted,
 		        EventType.NodeCreated }, MESSAGE);
+		_participantHandlers.add(callbackHandler);
 	}
 
 	@Override
@@ -158,6 +177,7 @@ public class ZKClusterManager implements ClusterManager
 		    new EventType[]
 		    { EventType.NodeChildrenChanged, EventType.NodeDeleted,
 		        EventType.NodeCreated }, CURRENT_STATE);
+		_controllerHandlers.add(callbackHandler);
 	}
 
 	@Override
@@ -170,6 +190,7 @@ public class ZKClusterManager implements ClusterManager
 		    new EventType[]
 		    { EventType.NodeDataChanged, EventType.NodeDeleted,
 		        EventType.NodeCreated }, EXTERNAL_VIEW);
+		_controllerHandlers.add(callbackHandler);
 	}
 
 	@Override
@@ -246,29 +267,33 @@ public class ZKClusterManager implements ClusterManager
 		    new EventType[]
 		    { EventType.NodeChildrenChanged, EventType.NodeDeleted,
 		        EventType.NodeCreated }, ChangeType.CONTROLLER);
-		_handlers.add(callbackHandler);
+		_controllerHandlers.add(callbackHandler);
 	}
 
 	@Override
 	public boolean removeListener(Object listener)
 	{
-
-		if (_handlers != null && _handlers.size() > 0)
-		{
-			Iterator<CallbackHandler> iterator = _handlers.iterator();
-			while (iterator.hasNext())
-			{
-				CallbackHandler handler = iterator.next();
-				// simply compare ref
-				if (handler.getListener().equals(listener))
-				{
-					handler.reset();
-					iterator.remove();
-				}
-			}
-		}
-
-		return true;
+	  removeListenerFromList(listener, _participantHandlers);
+	  removeListenerFromList(listener, _controllerHandlers);
+	  return true;
+	}
+	
+	private void removeListenerFromList(Object listener, List<CallbackHandler> handlers)
+	{
+	  if (handlers != null && handlers.size() > 0)
+      {
+        Iterator<CallbackHandler> iterator = handlers.iterator();
+        while (iterator.hasNext())
+        {
+            CallbackHandler handler = iterator.next();
+            // simply compare ref
+            if (handler.getListener().equals(listener))
+            {
+                handler.reset();
+                iterator.remove();
+            }
+        }
+      }
 	}
 
 	private void addLiveInstance()
@@ -309,30 +334,33 @@ public class ZKClusterManager implements ClusterManager
 	private void createClient(String zkServers, int sessionTimeout)
 	    throws Exception
 	{
+	  if (_zkClient == null)
+	  {
 		ZkSerializer zkSerializer = new ZNRecordSerializer();
 		_zkClient = new ZkClient(zkServers, sessionTimeout, CONNECTIONTIMEOUT,
 		    zkSerializer);
-		_accessor = new ZKDataAccessor(_clusterName, _zkClient);
-		int retryCount = 0;
-		_zkClient.subscribeStateChanges(_zkStateChangeListener);
-		while (retryCount < RETRY_LIMIT)
+	  }
+	  _accessor = new ZKDataAccessor(_clusterName, _zkClient);
+	  int retryCount = 0;
+	  _zkClient.subscribeStateChanges(_zkStateChangeListener);
+	  while (retryCount < RETRY_LIMIT)
+	  {
+		try
 		{
-			try
+		  _zkClient.waitUntilConnected(sessionTimeout, TimeUnit.MILLISECONDS);
+		  _zkStateChangeListener.handleNewSession();
+		  _zkStateChangeListener.handleStateChanged(KeeperState.SyncConnected);
+		  break;
+		} catch (Exception e)
+		{
+			retryCount++;
+			// log
+			if (retryCount == RETRY_LIMIT)
 			{
-				_zkClient.waitUntilConnected(sessionTimeout, TimeUnit.MILLISECONDS);
-				_zkStateChangeListener.handleNewSession();
-				_zkStateChangeListener.handleStateChanged(KeeperState.SyncConnected);
-				break;
-			} catch (Exception e)
-			{
-				retryCount++;
-				// log
-				if (retryCount == RETRY_LIMIT)
-				{
-					throw e;
-				}
+				throw e;
 			}
 		}
+	  }
 	}
 
 	private CallbackHandler createCallBackHandler(String path, Object listener,
@@ -360,33 +388,105 @@ public class ZKClusterManager implements ClusterManager
 	/**
 	 * This will be invoked when ever a new session is created<br/>
 	 * 
+	 * case 1: the cluster manager was a participant
+	 *   carry over current state, add live instance, and invoke message listener
+	 * case 2: the cluster manager was controller and was a leader before
+	 *   do leader election, and if it becomes leader again, invoke ideal state listener,
+	 *   current state listener, etc. if it fails to become leader in the new session,
+	 *   then becomes standby
+	 * case 3: the cluster manager was controller and was NOT a leader before
+	 *   do leader election, and if it becomes leader, instantiate and invoke ideal state
+	 *   listener, current state listener, etc. if if fails to become leader in the new
+	 *   session, stay as standby
 	 */
 
 	protected void handleNewSession()
 	{
-		_sessionId = UUID.randomUUID().toString();
-		if (_handlers != null && _handlers.size() > 0)
+	  _sessionId = UUID.randomUUID().toString();
+	  resetHandlers(_participantHandlers);
+	  resetHandlers(_controllerHandlers);
+		
+	  if (_instanceType == InstanceType.PARTICIPANT 
+		   || _instanceType == InstanceType.CONTROLLER_PARTICIPANT)
+	  {
+		carryOverPreviousCurrentState();
+		addLiveInstance();
+		startStatusUpdatedumpTask();
+		//
+	  }
+		
+	  if (_instanceType == InstanceType.CONTROLLER 
+		  || _instanceType == InstanceType.CONTROLLER_PARTICIPANT)
+	  {
+	    if (_leaderElectionHandler == null)
 		{
-			for (CallbackHandler handler : _handlers)
-			{
-				handler.reset();
-			}
-		}
-		if (_instanceType == InstanceType.PARTICIPANT)
-		{
-			carryOverPreviousCurrentState();
-			addLiveInstance();
-			startStatusUpdatedumpTask();
-			//
-		}
-		if (_handlers != null && _handlers.size() > 0)
-		{
-			for (CallbackHandler handler : _handlers)
-			{
-				handler.init();
-			}
-		}
+	      final String path = CMUtil.getControllerPath(_clusterName);
 
+		  _leaderElectionHandler = createCallBackHandler(path, new DistClusterControllerElection(),
+	         new EventType[] { EventType.NodeChildrenChanged, EventType.NodeDeleted,
+	          EventType.NodeCreated }, ChangeType.CONTROLLER);
+		}
+		else
+		{
+		  _leaderElectionHandler.init();
+		}
+	  }
+		
+	  boolean leader = isLeader();
+	  if (_instanceType == InstanceType.PARTICIPANT 
+	    || (_instanceType == InstanceType.CONTROLLER_PARTICIPANT && !leader))
+	  {
+		initHandlers(_participantHandlers);
+	  }
+	  else if (leader)
+	  {
+		initHandlers(_controllerHandlers);
+	  }
+	}
+	
+	private void resetHandlers(List<CallbackHandler> handlers)
+	{
+	  if (handlers != null && handlers.size() > 0)
+      {
+        for (CallbackHandler handler : handlers)
+        {
+            handler.reset();
+        }
+      }
+	}
+	
+	private void initHandlers(List<CallbackHandler> handlers)
+    {
+      if (handlers != null && handlers.size() > 0)
+      {
+        for (CallbackHandler handler : handlers)
+        {
+            handler.init();
+        }
+      }
+    }
+	
+	private boolean isLeader()
+	{
+	  boolean ret = true;
+	  
+	  ZNRecord leaderRecord = _accessor
+          .getControllerProperty(ControllerPropertyType.LEADER);
+      if (leaderRecord == null)
+      {
+        ret = false;
+      }
+      else
+      {
+        String leader = leaderRecord
+          .getSimpleField(ControllerPropertyType.LEADER.toString());
+        
+        if (leader == null || !leader.equals(_instanceName))
+        {
+          ret = false;
+        }
+      }
+      return ret;
 	}
 
 	private void carryOverPreviousCurrentState()
@@ -433,7 +533,7 @@ public class ZKClusterManager implements ClusterManager
 	@Override
 	public <T> PropertyStore<T> getPropertyStore(String rootNamespace, PropertySerializer<T> serializer)
 	{
-	  String path = "/" + _clusterName + "/" + "PRPOPERTY_STORE";
+	  String path = "/" + _clusterName + "/" + "PRPOPERTY_STORE" + "/" + rootNamespace;
 	  if (!_zkClient.exists(path))
 	  {
 	    _zkClient.createPersistent(path);
@@ -450,10 +550,10 @@ public class ZKClusterManager implements ClusterManager
     }
 
 	@Override
-  public ClusterMessagingService getMessagingService()
-  {
+    public ClusterMessagingService getMessagingService()
+    {
 	  // TODO Auto-generated method stub
 	  return null;
-  }
+    }
 
 }

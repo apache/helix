@@ -1,5 +1,19 @@
 package com.linkedin.clustermanager.controller;
 
+/**
+ * start cluster manager controller
+ * cluster manager controller has two modes:
+ * 1) stand-alone mode: in this mode each controller gets a list of clusters 
+ *  and competes via leader election to become the controller for any of the clusters.
+ *  if a controller fails to become the leader of a given cluster, it remains as a standby
+ *  and re-does the leader election when the current leader fails
+ *  
+ * 2) distributed mode: in this mode each controller first joins as participant into 
+ *   a special CONTROLLER_CLUSTER. Leader election happens in this special
+ *   cluster. The one that becomes the leader controls all controllers (including itself
+ *   to become leaders of other clusters. 
+ */
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.GnuParser;
@@ -14,7 +28,6 @@ import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerFactory;
 import com.linkedin.clustermanager.monitoring.mbeans.ClusterStatusMonitor;
-import com.linkedin.clustermanager.participant.DistClusterControllerElection;
 import com.linkedin.clustermanager.participant.DistClusterControllerStateModel;
 import com.linkedin.clustermanager.participant.DistClusterControllerStateModelFactory;
 import com.linkedin.clustermanager.participant.StateMachineEngine;
@@ -25,7 +38,7 @@ public class ClusterManagerMain
   public static final String cluster = "cluster";
   public static final String help = "help";
   public static final String mode = "mode";
-  public static final String controllerName = "controllerName";
+  public static final String name = "controllerName";
   public static final String STANDALONE = "STANDALONE";
   public static final String DISTRIBUTED = "DISTRIBUTED";
   private static final Logger logger = Logger.getLogger(ClusterManagerMain.class);
@@ -55,7 +68,7 @@ public class ClusterManagerMain
     modeOption.setRequired(false);
     modeOption.setArgName("Cluster controller mode (Optional)");
 
-    Option controllerNameOption = OptionBuilder.withLongOpt(controllerName)
+    Option controllerNameOption = OptionBuilder.withLongOpt(name)
         .withDescription("Provide cluster controller name (Optional)").create();
     controllerNameOption.setArgs(1);
     controllerNameOption.setRequired(false);
@@ -74,25 +87,21 @@ public class ClusterManagerMain
   public static void printUsage(Options cliOptions)
   {
     HelpFormatter helpFormatter = new HelpFormatter();
-    helpFormatter.printHelp("java " + ClusterManagerMain.class.getName(),
-        cliOptions);
+    helpFormatter.printHelp("java " + ClusterManagerMain.class.getName(), cliOptions);
   }
 
   public static CommandLine processCommandLineArgs(String[] cliArgs)
-      throws Exception
+  throws Exception
   {
     CommandLineParser cliParser = new GnuParser();
     Options cliOptions = constructCommandLineOptions();
-    // CommandLine cmd = null;
 
     try
     {
       return cliParser.parse(cliOptions, cliArgs);
     } catch (ParseException pe)
     {
-      System.err
-          .println("CommandLineClient: failed to parse command-line options: "
-              + pe.toString());
+      logger.error("fail to parse command-line options:" + pe.toString());
       printUsage(cliOptions);
       System.exit(1);
     }
@@ -100,7 +109,7 @@ public class ClusterManagerMain
   }
 
   public static void addListenersToController(ClusterManager manager, 
-                                              GenericClusterController controller)
+     GenericClusterController controller)
   {
     try
     {
@@ -109,15 +118,53 @@ public class ClusterManagerMain
       manager.addIdealStateChangeListener(controller);
       manager.addExternalViewChangeListener(controller);
     
-      ClusterStatusMonitor monitor = new ClusterStatusMonitor(manager.getClusterName(), manager.getDataAccessor().getClusterPropertyList(ClusterPropertyType.CONFIGS).size());
+      ClusterStatusMonitor monitor = new ClusterStatusMonitor(manager.getClusterName(), 
+              manager.getDataAccessor().getClusterPropertyList(ClusterPropertyType.CONFIGS).size());
       manager.addLiveInstanceChangeListener(monitor);
       manager.addExternalViewChangeListener(monitor);
     }
     catch (Exception e)
     {
-      logger.warn("Error when creating ClusterManagerContollerMonitor", e);
+      logger.error("Error when creating ClusterManagerContollerMonitor", e);
       e.printStackTrace();
     }
+  }
+  
+  public static ClusterManager startClusterManagerMain(final String zkConnectString, 
+       final String clusterName, final String controllerName, final String controllerMode)
+  {
+    ClusterManager manager = null;
+    try
+    {
+      if (controllerMode.equalsIgnoreCase(STANDALONE))
+      {
+        manager = ClusterManagerFactory
+          .getZKBasedManagerForController(clusterName, controllerName, zkConnectString);
+      }
+      else if (controllerMode.equalsIgnoreCase(DISTRIBUTED))
+      {
+        manager = ClusterManagerFactory 
+          .getZKBasedManagerForControllerParticipant(clusterName, controllerName, zkConnectString);
+      
+        DistClusterControllerStateModelFactory stateModelFactory 
+           = new DistClusterControllerStateModelFactory(zkConnectString);
+        StateMachineEngine<DistClusterControllerStateModel> genericStateMachineHandler 
+           = new StateMachineEngine<DistClusterControllerStateModel>(stateModelFactory);
+        manager.addMessageListener(genericStateMachineHandler, controllerName);
+      }
+      else
+      {
+        logger.error("cluster controller mode:" + controllerMode + " NOT supported");
+        // throw new IllegalArgumentException("Unsupported cluster controller mode:" + controllerMode);
+      }
+    }
+    catch (Exception e)
+    {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+    
+    return manager;
   }
   
   public static void main(String[] args) throws Exception
@@ -133,66 +180,26 @@ public class ClusterManagerMain
     CommandLine cmd = processCommandLineArgs(args);
     String zkConnectString = cmd.getOptionValue(zkServerAddress);
     String clusterName = cmd.getOptionValue(cluster);
-    String cntrlMode = STANDALONE;
-    String cntrlName = null;
+    String controllerMode = STANDALONE;
+    String controllerName = null;
     if (cmd.hasOption(mode))
     {
-      cntrlMode = cmd.getOptionValue(mode);
+      controllerMode = cmd.getOptionValue(mode);
     }
     
-    if (cntrlMode.equalsIgnoreCase(DISTRIBUTED) && !cmd.hasOption(controllerName))
+    if (controllerMode.equalsIgnoreCase(DISTRIBUTED) && !cmd.hasOption(name))
     {
-        throw new Exception("A unique cluster controller name is required in DISTRIBUTED mode");
+      throw new Exception("A unique cluster controller name is required in DISTRIBUTED mode");
     }
     
-    cntrlName = cmd.getOptionValue(controllerName);
+    controllerName = cmd.getOptionValue(name);
     
     // Espresso_driver.py will consume this
-    logger.info("Cluster manager started. zkServer: " + zkConnectString + 
-                ", clusterName:" + clusterName + ", mode:" + cntrlMode);
+    logger.info("Cluster manager started, zkServer: " + zkConnectString + 
+        ", clusterName:" + clusterName + ", controllerName:" + controllerName + 
+        ", mode:" + controllerMode);
     
-    // start the managers in standalone mode
-    if (cntrlMode.equalsIgnoreCase(STANDALONE))
-    {
-      ClusterManager manager = ClusterManagerFactory
-          .getZKBasedManagerForController(clusterName, cntrlName, zkConnectString);
-      // GenericClusterController controller = new GenericClusterController();
-      // addListenersToController(manager, controller);
-      
-      DistClusterControllerElection leaderElection = new DistClusterControllerElection();
-      manager.addControllerListener(leaderElection);
-
-  
-      // Message listener is not needed
-      // manager.addMessageListener(controller);
-      // currentstatechangelistener will be added by
-      // liveInstanceChangeListener
-      // manager.addCurrentStateChangeListener(controller);
-  
-      manager.connect();
-    }
-    else if (cntrlMode.equalsIgnoreCase(DISTRIBUTED))
-    {
-      ClusterManager manager 
-      = ClusterManagerFactory.getZKBasedManagerForParticipant(clusterName, cntrlName,
-                                                              zkConnectString);
-    
-      DistClusterControllerStateModelFactory stateModelFactory 
-         = new DistClusterControllerStateModelFactory(zkConnectString);
-      StateMachineEngine<DistClusterControllerStateModel> genericStateMachineHandler 
-        = new StateMachineEngine<DistClusterControllerStateModel>(stateModelFactory);
-      manager.addMessageListener(genericStateMachineHandler, cntrlName);
-    
-      DistClusterControllerElection leaderElection = new DistClusterControllerElection();
-      manager.addControllerListener(leaderElection);
-
-    }
-    else
-    {
-      logger.error("cluster controller mode:" + cntrlMode + " NOT supported");
-      throw new IllegalArgumentException("Unsupport cluster controller mode:" + cntrlMode);
-    }
-
+    startClusterManagerMain(zkConnectString, clusterName, controllerName, controllerMode);
     Thread.currentThread().join();
   }
 }

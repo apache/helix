@@ -51,20 +51,10 @@ public class DistClusterControllerStateModel extends StateModel
       = ClusterManagerFactory.getZKBasedManagerForController(clusterName, controllerName, _zkAddr);
     _controllerMap.put(clusterName, manager);
     
-    // final GenericClusterController controller = new GenericClusterController();
-    // context.add("listener", controller);
-    
-    /**
-    manager.addConfigChangeListener(controller);
-    manager.addLiveInstanceChangeListener(controller);
-    manager.addIdealStateChangeListener(controller);
-    manager.addExternalViewChangeListener(controller);
-    **/
-    
     DistClusterControllerElection leaderElection = new DistClusterControllerElection();
     manager.addControllerListener(leaderElection);
     context.add(clusterName, leaderElection.getController());
-    manager.connect();
+    // manager.connect();
   }
   
   @Transition(to="STANDBY",from="LEADER")
@@ -85,6 +75,8 @@ public class DistClusterControllerStateModel extends StateModel
                               StateTransitionError error)
   {
     String clusterName = message.getStateUnitKey();
+    LOG.error("rollback on error, clusterName:" + clusterName);
+    
     ClusterManager manager = _controllerMap.remove(clusterName);
     if (manager != null)
     {

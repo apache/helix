@@ -112,8 +112,9 @@ public class ZKClusterManagementTool implements ClusterManagementService
         throw new ClusterManagerException("Cluster "+clusterName+" already exists");
       }
     }
-
+    
     _zkClient.createPersistent(root);
+    
     // IDEAL STATE
     _zkClient.createPersistent(CMUtil.getIdealStatePath(clusterName));
     // CONFIGURATIONS

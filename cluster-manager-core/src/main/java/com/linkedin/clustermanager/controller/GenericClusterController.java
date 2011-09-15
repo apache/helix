@@ -7,9 +7,9 @@ import java.util.Set;
 
 import org.apache.log4j.Logger;
 
+import com.linkedin.clustermanager.CMConstants;
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterDataAccessor.ControllerPropertyType;
-import com.linkedin.clustermanager.CMConstants;
 import com.linkedin.clustermanager.ConfigChangeListener;
 import com.linkedin.clustermanager.ControllerChangeListener;
 import com.linkedin.clustermanager.CurrentStateChangeListener;
@@ -240,6 +240,29 @@ public class GenericClusterController implements ConfigChangeListener,
 	{
 		ClusterDataAccessor dataAccessor = changeContext.getManager()
 		    .getDataAccessor();
+		
+		// double check if this controller is the leader
+		ZNRecord leaderRecord = dataAccessor
+		    .getControllerProperty(ControllerPropertyType.LEADER);
+		if (leaderRecord == null)
+		{
+		  logger.warn("No controller exists for cluster:" + 
+		      changeContext.getManager().getClusterName());
+		  return;
+		}
+		else
+		{
+  		  String leader = leaderRecord
+  		    .getSimpleField(ControllerPropertyType.LEADER.toString());
+  		  String name = changeContext.getManager().getInstanceName();
+  		  if (leader == null || !leader.equals(name))
+  		  {
+  		    logger.warn("leader name does NOT match, my name:" + name + 
+  		                ", leader:" + leader);
+  		    return;
+  		  }
+		}
+		
 		ZNRecord pauseSignal = dataAccessor
 		    .getControllerProperty(ControllerPropertyType.PAUSE);
 		if (pauseSignal != null)

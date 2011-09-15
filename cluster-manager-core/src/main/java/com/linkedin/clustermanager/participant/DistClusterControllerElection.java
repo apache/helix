@@ -32,16 +32,11 @@ public class DistClusterControllerElection implements ControllerChangeListener
 		boolean isLeader = tryUpdateController(manager);
 		if (isLeader)
 		{
+		  if (_controller == null)
+		  {
 			_controller = new GenericClusterController();
-			
-			/**
-			manager.addConfigChangeListener(_controller);
-			manager.addLiveInstanceChangeListener(_controller);
-			manager.addIdealStateChangeListener(_controller);
-			manager.addExternalViewChangeListener(_controller);
-			**/
-			
 			ClusterManagerMain.addListenersToController(manager, _controller);
+		  }
 		}
 	}
 
@@ -57,6 +52,8 @@ public class DistClusterControllerElection implements ControllerChangeListener
 
 				doLeaderElection(manager);
 			}
+			
+			/*
 			if (changeContext.getType().equals(NotificationContext.Type.FINALIZE))
 			{
 				if (_controller != null)
@@ -66,6 +63,7 @@ public class DistClusterControllerElection implements ControllerChangeListener
 				}
 			
 			}
+			*/
 		} catch (Exception e)
 		{
 			logger.error("Exception when trying to become leader" + e);
@@ -80,7 +78,8 @@ public class DistClusterControllerElection implements ControllerChangeListener
 			String clusterName = manager.getClusterName();
 			final ZNRecord leaderRecord = new ZNRecord();
 			leaderRecord.setId(ControllerPropertyType.LEADER.toString());
-			leaderRecord.setSimpleField("Leader", manager.getInstanceName());
+			leaderRecord.setSimpleField(ControllerPropertyType.LEADER.toString(), 
+			                            manager.getInstanceName());
 			ClusterDataAccessor dataAccessor = manager.getDataAccessor();
 			ZNRecord currentleader = dataAccessor
 			    .getControllerProperty(ControllerPropertyType.LEADER);

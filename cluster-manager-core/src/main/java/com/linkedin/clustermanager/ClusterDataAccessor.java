@@ -13,7 +13,7 @@ public interface ClusterDataAccessor
   public enum ClusterPropertyType
   {
     CONFIGS(true, false), LIVEINSTANCES(false, false), INSTANCES(true, false), 
-    IDEALSTATES(true, false), EXTERNALVIEW(true, false), STATEMODELDEFS(true, false),
+    IDEALSTATES(false, false), EXTERNALVIEW(true, false), STATEMODELDEFS(true, false),
     CONTROLLER(true, false);
 
     boolean isPersistent;

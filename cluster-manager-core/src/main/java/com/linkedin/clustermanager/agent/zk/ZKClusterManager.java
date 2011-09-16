@@ -501,8 +501,9 @@ public class ZKClusterManager implements ClusterManager
 			{
 				if (!previousSessionId.equalsIgnoreCase(_sessionId))
 				{
-					logger.info("Carrying over session " + previousSessionId
-					    + " resource" + previousCurrentState.getId());
+					logger.info("Carrying over old session:" + previousSessionId
+					    + " resource " + previousCurrentState.getId() + " to new session:" +
+					    _sessionId);
 					for (String resourceKey : previousCurrentState.mapFields.keySet())
 					{
 						previousCurrentState.getMapField(resourceKey).put(

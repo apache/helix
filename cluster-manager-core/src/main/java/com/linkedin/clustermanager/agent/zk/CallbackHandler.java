@@ -165,16 +165,24 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
 				_zkClient.subscribeChildChanges(this._path, this);
 			}
 		}
-		List<String> children = _zkClient.getChildren(_path);
-		for (String child : children)
+		if (_zkClient.exists(_path))
 		{
-			String childPath = _path + "/" + child;
-			if (watchChild)
-			{
-				// its ok to subscribe changes multiple times since zkclient
-				// checks the existence
-				_zkClient.subscribeDataChanges(childPath, this);
-			}
+    		List<String> children = _zkClient.getChildren(_path);
+    		for (String child : children)
+    		{
+    			String childPath = _path + "/" + child;
+    			if (watchChild)
+    			{
+    				// its ok to subscribe changes multiple times since zkclient
+    				// checks the existence
+    				_zkClient.subscribeDataChanges(childPath, this);
+    			}
+    		}
+		}
+		else
+		{
+		  logger.info("can't subscribe for data change on childs, path:" + _path + 
+		              " doesn't exist");
 		}
 	}
 

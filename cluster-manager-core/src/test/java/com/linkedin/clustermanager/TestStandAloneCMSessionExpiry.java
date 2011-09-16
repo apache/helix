@@ -19,24 +19,25 @@ public class TestStandAloneCMSessionExpiry extends ZkStandAloneCMHandler
   {
     logger.info("RUN at " + new Date(System.currentTimeMillis()));
     
+    final String clusterName = CLUSTER_PREFIX + "_" + this.getClass().getName();
     simulateSessionExpiry(_participantZkClients[0]);
     
-    _setupTool.addResourceGroupToCluster(storageCluster, "MyDB", 10, stateModel);
-    _setupTool.rebalanceStorageCluster(storageCluster, "MyDB", 3);
+    _setupTool.addResourceGroupToCluster(clusterName, "MyDB", 10, STATE_MODEL);
+    _setupTool.rebalanceStorageCluster(clusterName, "MyDB", 3);
     Thread.sleep(8000);
-    boolean result = ClusterStateVerifier.VerifyClusterStates(zkAddr, storageCluster);
+    boolean result = ClusterStateVerifier.VerifyClusterStates(ZK_ADDR, clusterName);
     Assert.assertTrue(result);
-    logger.info("cluster:" + storageCluster + " after pariticipant session expiry result:" + result);
+    logger.info("cluster:" + clusterName + " after pariticipant session expiry result:" + result);
 
     
     simulateSessionExpiry(_controllerZkClient);
-    _setupTool.addResourceGroupToCluster(storageCluster, "MyDB2", 8, stateModel);
-    _setupTool.rebalanceStorageCluster(storageCluster, "MyDB2", 3);
+    _setupTool.addResourceGroupToCluster(clusterName, "MyDB2", 8, STATE_MODEL);
+    _setupTool.rebalanceStorageCluster(clusterName, "MyDB2", 3);
     Thread.sleep(8000);
     
-    result = ClusterStateVerifier.VerifyClusterStates(zkAddr, storageCluster);
+    result = ClusterStateVerifier.VerifyClusterStates(ZK_ADDR, clusterName);
     Assert.assertTrue(result);
-    logger.info("cluster:" + storageCluster + " after controller session expiry result:" + result);
+    logger.info("cluster:" + clusterName + " after controller session expiry result:" + result);
     
     logger.info("END at " + new Date(System.currentTimeMillis()));
   }

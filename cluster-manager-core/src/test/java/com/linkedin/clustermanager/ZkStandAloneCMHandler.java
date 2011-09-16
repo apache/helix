@@ -2,6 +2,8 @@ package com.linkedin.clustermanager;
 
 import java.io.IOException;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.I0Itec.zkclient.IZkStateListener;
 import org.I0Itec.zkclient.ZkConnection;
@@ -15,10 +17,13 @@ import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 
+import com.linkedin.clustermanager.ClusterDataAccessor.ControllerPropertyType;
 import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
+import com.linkedin.clustermanager.controller.ClusterManagerMain;
 import com.linkedin.clustermanager.tools.ClusterSetup;
 import com.linkedin.clustermanager.tools.ClusterStateVerifier;
+import com.linkedin.clustermanager.util.CMUtil;
 
 /**
  * 
@@ -30,46 +35,65 @@ import com.linkedin.clustermanager.tools.ClusterStateVerifier;
 public class ZkStandAloneCMHandler
 {
   private static Logger logger = Logger.getLogger(ZkStandAloneCMHandler.class);
-  protected static final String zkAddr = "localhost:2181";
-  protected static final String storageCluster = "ESPRESSO_STORAGE";
-  private static final String testDB = "TestDB";
-  protected static final int storageNodeNr = 5;
-  protected static final int startPort = 12918;
-  protected static final String stateModel = "MasterSlave";
-  private ZkServer _zkServer = null;
-  // protected static ZkClient _zkClient;
+  protected static final String ZK_ADDR = "localhost:2181";
+  protected static final String CLUSTER_PREFIX = "ESPRESSO_STORAGE";
+
+  protected static final int NODE_NR = 5;
+  protected static final int START_PORT = 12918;
+  protected static final String STATE_MODEL = "MasterSlave";
   protected static ZkClient _controllerZkClient;
-  protected static ZkClient[] _participantZkClients = new ZkClient[storageNodeNr];
+  protected static ZkClient[] _participantZkClients = new ZkClient[NODE_NR];
   protected ClusterSetup _setupTool = null;
+  
+  private static final String TEST_DB = "TestDB";
+  private ZkServer _zkServer = null;
+  private Map<String, Thread> _threadMap = new HashMap<String, Thread>();
   
   // static
   @BeforeClass
   public void beforeClass()
   {
     logger.info("START ZkStandAloneCMHandler at " + new Date(System.currentTimeMillis()));
-    _zkServer = TestHelper.startZkSever(zkAddr, "/" + storageCluster);
-    // _zkClient = new ZkClient(zkAddr, 1000, 3000);
-    _setupTool = new ClusterSetup(zkAddr);
+    
+    final String clusterName = CLUSTER_PREFIX + "_" + this.getClass().getName();
+    _zkServer = TestHelper.startZkSever(ZK_ADDR, "/" + clusterName);
+    _setupTool = new ClusterSetup(ZK_ADDR);
     
     // setup storage cluster
-    _setupTool.addCluster(storageCluster, true);
-    _setupTool.addResourceGroupToCluster(storageCluster, testDB, 20, stateModel);
-    for (int i = 0; i < storageNodeNr; i++)
+    _setupTool.addCluster(clusterName, true);
+    _setupTool.addResourceGroupToCluster(clusterName, TEST_DB, 20, STATE_MODEL);
+    for (int i = 0; i < NODE_NR; i++)
     {
-      String storageNodeName = "localhost:" + (startPort + i);
-      _setupTool.addInstanceToCluster(storageCluster, storageNodeName);
+      String storageNodeName = "localhost:" + (START_PORT + i);
+      _setupTool.addInstanceToCluster(clusterName, storageNodeName);
     }
-    _setupTool.rebalanceStorageCluster(storageCluster, testDB, 3);
+    _setupTool.rebalanceStorageCluster(clusterName, TEST_DB, 3);
     
-    for (int i = 0; i < storageNodeNr; i++)
+    // start dummy participants 
+    Thread thread;
+    for (int i = 0; i < NODE_NR; i++)
     {
-      _participantZkClients[i] = new ZkClient(zkAddr, 3000, 10000, new ZNRecordSerializer());
-      TestHelper.startDummyProcess(zkAddr, storageCluster, "localhost_" + (startPort + i),
-                                   _participantZkClients[i]);
+      String instanceName = "localhost_" + (START_PORT + i);
+      if (_threadMap.get(instanceName) != null)
+      {
+        logger.error("fail to start participant:" + instanceName + 
+          " because there is already a thread with same instanceName running");
+      }
+      else
+      {
+        _participantZkClients[i] = new ZkClient(ZK_ADDR, 3000, 10000, new ZNRecordSerializer());
+        thread = TestHelper.startDummyProcess(ZK_ADDR, clusterName, 
+                       instanceName, _participantZkClients[i]);
+        _threadMap.put(instanceName, thread);
+      }
     }
-    _controllerZkClient = new ZkClient(zkAddr, 3000, 10000, new ZNRecordSerializer());
-
-    TestHelper.startClusterController(storageCluster, "controller_0", zkAddr, _controllerZkClient);
+    
+    // start controller
+    String controllerName = "controller_0";
+    _controllerZkClient = new ZkClient(ZK_ADDR, 3000, 10000, new ZNRecordSerializer());
+    thread = TestHelper.startClusterController(clusterName, controllerName, ZK_ADDR, 
+                       ClusterManagerMain.STANDALONE, _controllerZkClient);
+    _threadMap.put(controllerName, thread);
     try
     {
       Thread.sleep(5000);
@@ -79,15 +103,19 @@ public class ZkStandAloneCMHandler
       // TODO Auto-generated catch block
       e.printStackTrace();
     }
-    boolean result = ClusterStateVerifier.VerifyClusterStates(zkAddr, storageCluster);
+    boolean result = ClusterStateVerifier.VerifyClusterStates(ZK_ADDR, clusterName);
     Assert.assertTrue(result);
-    logger.info("cluster:" + storageCluster + " starts result:" + result);
+    logger.info("cluster:" + clusterName + " starts result:" + result);
   }
   
   @AfterClass
   public void afterClass() throws Exception
   {
     logger.info("END ZkStandAloneCMHandler at " + new Date(System.currentTimeMillis()));
+    for (Map.Entry<String, Thread> entry : _threadMap.entrySet())
+    {
+      entry.getValue().interrupt();
+    }
     TestHelper.stopZkServer(_zkServer);
   }
   
@@ -132,6 +160,21 @@ public class ZkStandAloneCMHandler
     connection = (ZkConnection) zkClient.getConnection();
     oldZookeeper = connection.getZookeeper();
     logger.info("After session expiry sessionId = " + oldZookeeper.getSessionId());
+  }
+  
+  protected void stopCurrentLeader(String clusterName)
+  {
+    String leaderPath = CMUtil
+        .getControllerPropertyPath(clusterName, ControllerPropertyType.LEADER);
+    final ZkClient zkClient = new ZkClient(ZK_ADDR, 3000, 10000, new ZNRecordSerializer());
+    ZNRecord leaderRecord = zkClient.<ZNRecord>readData(leaderPath);
+    Assert.assertTrue(leaderRecord != null);
+    String controller = leaderRecord.getSimpleField(ControllerPropertyType.LEADER.toString());
+    logger.info("stop current leader:" + controller);
+    Assert.assertTrue(controller != null);
+    Thread thread = _threadMap.remove(controller);
+    Assert.assertTrue(thread != null);
+    thread.interrupt();
   }
   
 }

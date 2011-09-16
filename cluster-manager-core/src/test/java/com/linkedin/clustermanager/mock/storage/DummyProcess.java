@@ -92,7 +92,7 @@ public class DummyProcess
     **/
   }
 
-  public static class DummyStateModelFactory extends StateModelFactory
+  public static class DummyStateModelFactory extends StateModelFactory<DummyStateModel>
   {
     int _delay;
 
@@ -102,7 +102,7 @@ public class DummyProcess
     }
 
     @Override
-    public StateModel createNewStateModel(String stateUnitKey)
+    public DummyStateModel createNewStateModel(String stateUnitKey)
     {
       DummyStateModel model = new DummyStateModel();
       model.setDelay(_delay);

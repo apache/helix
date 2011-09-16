@@ -241,7 +241,7 @@ public class ClusterSetup
     idealState = IdealStateCalculatorForStorageNode
         .calculateIdealState(InstanceNames, partitions, replica, resourceGroupName,
                              masterStateValue, slaveStateValue);
-    idealState.merge(dbIdealState);
+    idealState.setSimpleFields(dbIdealState.getSimpleFields());
     managementTool.setResourceGroupIdealState(clusterName, resourceGroupName,
         idealState);
   }

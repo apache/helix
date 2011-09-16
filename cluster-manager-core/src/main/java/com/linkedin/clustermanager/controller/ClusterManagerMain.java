@@ -27,6 +27,7 @@ import org.apache.log4j.Logger;
 import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerFactory;
+import com.linkedin.clustermanager.agent.zk.ZkClient;
 import com.linkedin.clustermanager.monitoring.mbeans.ClusterStatusMonitor;
 import com.linkedin.clustermanager.participant.DistClusterControllerStateModel;
 import com.linkedin.clustermanager.participant.DistClusterControllerStateModelFactory;
@@ -133,18 +134,26 @@ public class ClusterManagerMain
   public static ClusterManager startClusterManagerMain(final String zkConnectString, 
        final String clusterName, final String controllerName, final String controllerMode)
   {
+    return startClusterManagerMain(zkConnectString, clusterName, controllerName, 
+                            controllerMode, null);
+  }
+                                                  
+  public static ClusterManager startClusterManagerMain(final String zkConnectString, 
+       final String clusterName, final String controllerName, final String controllerMode, 
+       final ZkClient zkClient)
+  {
     ClusterManager manager = null;
     try
     {
       if (controllerMode.equalsIgnoreCase(STANDALONE))
       {
-        manager = ClusterManagerFactory
-          .getZKBasedManagerForController(clusterName, controllerName, zkConnectString);
+        manager = ClusterManagerFactory.getZKBasedManagerForController(clusterName, 
+                   controllerName, zkConnectString, zkClient);
       }
       else if (controllerMode.equalsIgnoreCase(DISTRIBUTED))
       {
-        manager = ClusterManagerFactory 
-          .getZKBasedManagerForControllerParticipant(clusterName, controllerName, zkConnectString);
+        manager = ClusterManagerFactory.getZKBasedManagerForControllerParticipant(clusterName, 
+                   controllerName, zkConnectString);
       
         DistClusterControllerStateModelFactory stateModelFactory 
            = new DistClusterControllerStateModelFactory(zkConnectString);
@@ -167,7 +176,7 @@ public class ClusterManagerMain
     return manager;
   }
   
-  public static void main(String[] args) throws Exception
+  public static void main(String[] args) throws ClusterManagerMainException, Exception
   {
     // read the config
     // check if the this process is the master wait indefinitely
@@ -189,7 +198,7 @@ public class ClusterManagerMain
     
     if (controllerMode.equalsIgnoreCase(DISTRIBUTED) && !cmd.hasOption(name))
     {
-      throw new Exception("A unique cluster controller name is required in DISTRIBUTED mode");
+      throw new IllegalArgumentException("A unique cluster controller name is required in DISTRIBUTED mode");
     }
     
     controllerName = cmd.getOptionValue(name);
@@ -199,7 +208,16 @@ public class ClusterManagerMain
         ", clusterName:" + clusterName + ", controllerName:" + controllerName + 
         ", mode:" + controllerMode);
     
-    startClusterManagerMain(zkConnectString, clusterName, controllerName, controllerMode);
-    Thread.currentThread().join();
+    ClusterManager manager = startClusterManagerMain(zkConnectString, clusterName, 
+                              controllerName, controllerMode);
+    
+    try
+    {
+      Thread.currentThread().join();
+    }
+    catch (InterruptedException e)
+    {
+      throw new ClusterManagerMainException(manager, e.getMessage());
+    }
   }
 }

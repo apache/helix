@@ -15,6 +15,7 @@ public class ZKExceptionHandler
   {
 
   logger.error(e);
+  e.printStackTrace();
   }
 
   public static ZKExceptionHandler getInstance()

@@ -10,9 +10,9 @@ import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.agent.zk.ZkClient;
 import com.linkedin.clustermanager.controller.ClusterManagerMain;
-import com.linkedin.clustermanager.mock.storage.DummyProcess;
+import com.linkedin.clustermanager.controller.ClusterManagerMainException;
+import com.linkedin.clustermanager.mock.storage.DummyProcess.DummyStateModel;
 import com.linkedin.clustermanager.mock.storage.DummyProcess.DummyStateModelFactory;
-import com.linkedin.clustermanager.participant.DistClusterControllerStateModelFactory;
 import com.linkedin.clustermanager.participant.StateMachineEngine;
 import com.linkedin.clustermanager.util.ZKClientPool;
 
@@ -82,6 +82,7 @@ public class TestHelper
     }
   }
   
+  /*
   public static Thread startDistClusterController(final String clusterName,
       final String instanceName, final String zkAddr)
   {
@@ -129,7 +130,9 @@ public class TestHelper
     thread.start();
     return thread;
   }
-
+  */
+  
+  /*
   public static Thread startDummyProcess(final String zkAddr, final String clusterName, 
                                          final String instanceName)
   {
@@ -155,9 +158,19 @@ public class TestHelper
     thread.start();
     return thread;
   }
+  */
   
+  /**
+   * start dummy cluster participant with a pre-created zkClient
+   *   for testing session expiry
+   * @param zkAddr
+   * @param clusterName
+   * @param instanceName
+   * @param zkClient
+   * @return
+   */
   public static Thread startDummyProcess(final String zkAddr, final String clusterName, 
-                                         final String instanceName, final ZkClient zkClient)
+         final String instanceName, final ZkClient zkClient)
   {
     Thread thread = new Thread(new Runnable()
     {
@@ -167,15 +180,21 @@ public class TestHelper
         try
         {
           ClusterManager manager = ClusterManagerFactory
-              .getZKBasedManagerForParticipant(clusterName, instanceName, zkAddr, zkClient);
+            .getZKBasedManagerForParticipant(clusterName, instanceName, zkAddr, zkClient);
           DummyStateModelFactory stateModelFactory = new DummyStateModelFactory(0);
-          StateMachineEngine genericStateMachineHandler = new StateMachineEngine(stateModelFactory);
+          StateMachineEngine<DummyStateModel> genericStateMachineHandler 
+            = new StateMachineEngine<DummyStateModel>(stateModelFactory);
           
           manager.addMessageListener(genericStateMachineHandler, instanceName);
           Thread.currentThread().join();
-        } 
+        }
+        catch (InterruptedException e)
+        {
+          logger.info("thread:" + Thread.currentThread().getName() + " interrupted");
+        }
         catch (Exception e)
         {
+          // TODO Auto-generated catch block
           e.printStackTrace();
         }
       }
@@ -185,21 +204,43 @@ public class TestHelper
     return thread;
   }
 
+  /**
+   * start cluster controller with a pre-created zkClient
+   *   for testing session expiry
+   * @param clusterName
+   * @param controllerName
+   * @param zkConnectString
+   * @param zkClient
+   * @return
+   */
   public static Thread startClusterController(final String clusterName, 
-    final String controllerName, final String zkConnectString, final ZkClient zkClient)
+    final String controllerName, final String zkConnectString, final String controllerMode, 
+    final ZkClient zkClient)
   {
     Thread thread = new Thread(new Runnable()
     {
       @Override
       public void run()
       {
+        ClusterManager manager = null;
         try
         {
-          ClusterManager manager = ClusterManagerFactory
-            .getZKBasedManagerForController(clusterName, controllerName, zkConnectString,
-                zkClient);
+          // ClusterManager manager = ClusterManagerFactory
+          //  .getZKBasedManagerForController(clusterName, controllerName, zkConnectString,
+          //      zkClient);
+           manager = ClusterManagerMain.startClusterManagerMain(zkConnectString, 
+                 clusterName, controllerName, controllerMode, zkClient);
           Thread.currentThread().join();
-        } catch (Exception e)
+        } 
+        catch (InterruptedException e)
+        {
+          if (manager != null)
+          {
+            manager.disconnect();
+          }
+          logger.info("thread:" + Thread.currentThread().getName() + " interrupted");
+        }
+        catch (Exception e)
         {
           e.printStackTrace();
         }
@@ -221,7 +262,17 @@ public class TestHelper
         try
         {
           ClusterManagerMain.main(createArgs(args));
-        } catch (Exception e)
+        }
+        catch (ClusterManagerMainException e)
+        {
+          ClusterManager manager = e.getManager();
+          if (manager != null)
+          {
+            manager.disconnect();
+          }
+          logger.info("thread:" + Thread.currentThread().getName() + " interrupted");
+        }
+        catch (Exception e)
         {
           e.printStackTrace();
         }

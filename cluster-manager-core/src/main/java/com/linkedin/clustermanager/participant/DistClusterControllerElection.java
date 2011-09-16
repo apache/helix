@@ -53,17 +53,6 @@ public class DistClusterControllerElection implements ControllerChangeListener
 				doLeaderElection(manager);
 			}
 			
-			/*
-			if (changeContext.getType().equals(NotificationContext.Type.FINALIZE))
-			{
-				if (_controller != null)
-				{
-					// do clean
-					manager.removeListener(_controller);
-				}
-			
-			}
-			*/
 		} catch (Exception e)
 		{
 			logger.error("Exception when trying to become leader" + e);
@@ -105,7 +94,7 @@ public class DistClusterControllerElection implements ControllerChangeListener
 
 		} catch (ZkNodeExistsException e)
 		{
-			logger.warn("Ignorable exception. Found that leader already exists"
+			logger.warn("Ignorable exception. Found that leader already exists, "
 			    + e.getMessage());
 		}
 		return false;

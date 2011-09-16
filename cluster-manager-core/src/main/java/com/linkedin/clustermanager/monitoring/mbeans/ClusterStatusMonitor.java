@@ -91,13 +91,13 @@ public class ClusterStatusMonitor
   }
   
   @Override
-  public long getNumberOfLiveInstances()
+  public long getLiveInstanceCount()
   {
     return _numOfLiveInstances;
   }
 
   @Override
-  public long getNumberOfInstances()
+  public long getInstancesCount()
   {
     return _numOfInstances;
   }

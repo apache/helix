@@ -3,13 +3,13 @@ package com.linkedin.clustermanager.monitoring.mbeans;
 public interface StateTransitionStatMonitorMBean
 {
   @Description("Total state transitions happened")
-  long getTotalStateTransitions();
+  long getTotalStateTransitionCount();
   
   @Description("Total failed transitions ")
-  long getTotalFailedTransitions();
+  long getTotalFailedTransitionCount();
   
   @Description("Total successful transitions")
-  long getTotalSuccessTransitions();
+  long getTotalSuccessTransitionCount();
   
   @Description("Mean transition latency")
   double getMeanTransitionLatency();
@@ -35,7 +35,6 @@ public interface StateTransitionStatMonitorMBean
   @Description("Transition execute latency at X top percentage")
   double getPercentileTransitionExecuteLatency(int percentage);
   
-  
-  @Description("")
+  @Description("Reset counters")
   void reset();
 }

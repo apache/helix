@@ -75,19 +75,19 @@ public class StateTransitionStatMonitor implements StateTransitionStatMonitorMBe
   }
 
   @Override
-  public long getTotalStateTransitions()
+  public long getTotalStateTransitionCount()
   {
     return _numDataPoints;
   }
 
   @Override
-  public long getTotalFailedTransitions()
+  public long getTotalFailedTransitionCount()
   {
     return _numDataPoints - _successCount;
   }
 
   @Override
-  public long getTotalSuccessTransitions()
+  public long getTotalSuccessTransitionCount()
   {
     return _successCount;
   }

@@ -410,17 +410,29 @@ public class ZKClusterManager implements ClusterManager
         || _instanceType == InstanceType.CONTROLLER_PARTICIPANT)
     {
       // Check if liveInstancePath for the instance already exists. If yes, throw exception
-      String liveInstancePath = CMUtil.getClusterPropertyPath(_clusterName, ClusterPropertyType.LIVEINSTANCES);
-      if(_zkClient.exists(liveInstancePath + "/" + _instanceName))
+      if(_accessor.getClusterProperty(ClusterPropertyType.LIVEINSTANCES, _instanceName) != null)
       {
-        String errorMessage = "instance " + _instanceName + " already has a liveinstance in cluster " + _clusterName;
-        logger.error(errorMessage);
-        throw new ClusterManagerException(errorMessage);
+        logger.warn("find liveinstance record for "+_instanceName + " in cluster "+_clusterName);
+        // Wait for a while, in case previous storage node exits unexpectedly and its liveinstance
+        // still hangs around until session timeout happens
+        try
+        {
+          Thread.currentThread().sleep(SESSIONTIMEOUT + 5000);
+        } 
+        catch (InterruptedException e)
+        {
+          e.printStackTrace();
+        }
+        if(_accessor.getClusterProperty(ClusterPropertyType.LIVEINSTANCES, _instanceName) != null)
+        {
+            String errorMessage = "instance " + _instanceName + " already has a liveinstance in cluster " + _clusterName;
+            logger.error(errorMessage);
+            throw new ClusterManagerException(errorMessage);
+        }
       }
       carryOverPreviousCurrentState();
       addLiveInstance();
       startStatusUpdatedumpTask();
-      //
     }
 
     if (_instanceType == InstanceType.CONTROLLER

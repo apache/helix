@@ -268,12 +268,14 @@ public class GenericClusterController implements ConfigChangeListener,
 		if (pauseSignal != null)
 		{
 			_paused = true;
+		  logger.info("controller is now paused");
 		} 
 		else
 		{
 			if (_paused)
 			{
 				// it currently paused
+			  logger.info("controller is now resumed");
 				_paused = false;
 				ClusterEvent event = new ClusterEvent("resume");
 				event.addAttribute("changeContext", changeContext);

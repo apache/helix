@@ -84,6 +84,8 @@ public class ZKClusterManager implements ClusterManager
       InstanceType instanceType, String zkConnectString, ZkClient zkClient)
       throws Exception
   {
+    logger.info("Cluster manager created: " + clusterName + " instance: " + 
+        instanceName +" type:" + instanceType+" zkSvr:"+zkConnectString);
     _clusterName = clusterName;
     _instanceName = instanceName;
     this._instanceType = instanceType;
@@ -213,6 +215,7 @@ public class ZKClusterManager implements ClusterManager
   @Override
   public void connect() throws Exception
   {
+    logger.info("Clustermanager.connect()");
     if (_zkStateChangeListener.isConnected())
     {
       return;
@@ -261,7 +264,7 @@ public class ZKClusterManager implements ClusterManager
   public void addControllerListener(ControllerChangeListener listener)
   {
     final String path = CMUtil.getControllerPath(_clusterName);
-
+    logger.info("Add controller listener at: "+ path);
     CallbackHandler callbackHandler = createCallBackHandler(path, listener,
         new EventType[]
         { EventType.NodeChildrenChanged, EventType.NodeDeleted,
@@ -303,6 +306,8 @@ public class ZKClusterManager implements ClusterManager
     metaData.setId(_instanceName);
     metaData.setSimpleField(CMConstants.ZNAttribute.SESSION_ID.toString(),
         _sessionId);
+    
+    logger.info("Add live instance: InstanceName: "+_instanceName+" Session id:"+_sessionId);
     
     _accessor.setClusterProperty(ClusterPropertyType.LIVEINSTANCES,
         _instanceName, metaData, CreateMode.EPHEMERAL);
@@ -405,7 +410,8 @@ public class ZKClusterManager implements ClusterManager
     _sessionId = UUID.randomUUID().toString();
     resetHandlers(_participantHandlers);
     resetHandlers(_controllerHandlers);
-
+    logger.info("Handling new session, session id:"+_sessionId);
+    
     if (_instanceType == InstanceType.PARTICIPANT
         || _instanceType == InstanceType.CONTROLLER_PARTICIPANT)
     {

@@ -136,7 +136,9 @@ public class ZkDistCMHandler
     for (Map.Entry<String, Thread> entry : _threadMap.entrySet())
     {
       entry.getValue().interrupt();
+      // Thread.sleep(3000);
     }
+    Thread.sleep(3000);
     TestHelper.stopZkServer(_zkServer);
   }
   

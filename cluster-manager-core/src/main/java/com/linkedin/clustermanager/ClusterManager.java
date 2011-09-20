@@ -176,4 +176,10 @@ public interface ClusterManager
    * 
    */
   ClusterMessagingService getMessagingService();
+  
+  /**
+   * 
+   * @return
+   */
+  InstanceType getInstanceType();
 }

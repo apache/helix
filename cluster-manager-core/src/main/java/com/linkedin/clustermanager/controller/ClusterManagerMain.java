@@ -176,7 +176,7 @@ public class ClusterManagerMain
     return manager;
   }
   
-  public static void main(String[] args) throws ClusterManagerMainException, Exception
+  public static void main(String[] args) throws InterruptedException, Exception
   {
     // read the config
     // check if the this process is the master wait indefinitely
@@ -217,7 +217,8 @@ public class ClusterManagerMain
     }
     catch (InterruptedException e)
     {
-      throw new ClusterManagerMainException(manager, e.getMessage());
+      ClusterManagerFactory.disconnectManagers(controllerName);
+      logger.info("thread:" + Thread.currentThread().getName() + " interrupted");
     }
   }
 }

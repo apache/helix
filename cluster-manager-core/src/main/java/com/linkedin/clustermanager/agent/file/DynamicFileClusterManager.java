@@ -290,4 +290,10 @@ public class DynamicFileClusterManager implements ClusterManager
 	  return null;
   }
 
+  @Override
+  public InstanceType getInstanceType()
+  {
+    return _instanceType;
+  }
+
 }

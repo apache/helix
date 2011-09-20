@@ -47,6 +47,8 @@ public class ZkStandAloneCMHandler
   
   private static final String TEST_DB = "TestDB";
   private ZkServer _zkServer = null;
+  // private Map<String, Thread> _participantThreadMap = new HashMap<String, Thread>();
+  // private Map<String, Thread> _controllerThreadMap = new HashMap<String, Thread>();
   private Map<String, Thread> _threadMap = new HashMap<String, Thread>();
   
   // static
@@ -111,12 +113,26 @@ public class ZkStandAloneCMHandler
   @AfterClass
   public void afterClass() throws Exception
   {
-    logger.info("END ZkStandAloneCMHandler at " + new Date(System.currentTimeMillis()));
-    for (Map.Entry<String, Thread> entry : _threadMap.entrySet())
+    logger.info("END shutting down cluster managers at " + new Date(System.currentTimeMillis()));
+    /*
+    for (Map.Entry<String, Thread> entry : _controllerThreadMap.entrySet())
     {
       entry.getValue().interrupt();
     }
+    */
+    stopThread(_threadMap);
+    // stopThread(_participantThreadMap);
+    Thread.sleep(3000);
+    logger.info("END shutting down zk at " + new Date(System.currentTimeMillis()));
     TestHelper.stopZkServer(_zkServer);
+  }
+  
+  private void stopThread(Map<String, Thread> threadMap)
+  {
+    for (Map.Entry<String, Thread> entry : threadMap.entrySet())
+    {
+      entry.getValue().interrupt();
+    }
   }
   
   protected void simulateSessionExpiry(ZkClient zkClient) 
@@ -154,7 +170,7 @@ public class ZkStandAloneCMHandler
                   oldZookeeper.getSessionTimeout(), watcher, oldZookeeper.getSessionId(),
                   oldZookeeper.getSessionPasswd());
     logger.info("New sessionId = " + newZookeeper.getSessionId());
-    Thread.sleep(3000);
+    // Thread.sleep(3000);
     newZookeeper.close();
     Thread.sleep(10000);
     connection = (ZkConnection) zkClient.getConnection();

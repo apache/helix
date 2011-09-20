@@ -1,14 +1,11 @@
 package com.linkedin.clustermanager;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 import org.I0Itec.zkclient.IDefaultNameSpace;
 import org.I0Itec.zkclient.ZkServer;
-import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.agent.zk.ZkClient;
@@ -34,7 +31,7 @@ public class TestHelper
     final String logDir = "/tmp/logs";
     final String dataDir = "/tmp/dataDir";
     
-    
+    /*
     try
     {
       FileUtils.deleteDirectory(new File(dataDir));
@@ -45,7 +42,7 @@ public class TestHelper
       logger.warn("fail to delete dir: " + dataDir + ", " + logDir + 
                   "\nexception:" + e);
     }
-    
+    */
     
     ZKClientPool.reset();
     

@@ -41,21 +41,19 @@ public class ZkStandAloneCMHandler
   protected static final int NODE_NR = 5;
   protected static final int START_PORT = 12918;
   protected static final String STATE_MODEL = "MasterSlave";
-  protected static ZkClient _controllerZkClient;
-  protected static ZkClient[] _participantZkClients = new ZkClient[NODE_NR];
-  protected ClusterSetup _setupTool = null;
-  
   private static final String TEST_DB = "TestDB";
+  
+  protected ZkClient _controllerZkClient;
+  protected ZkClient[] _participantZkClients = new ZkClient[NODE_NR];
+  protected ClusterSetup _setupTool = null;
+
   private ZkServer _zkServer = null;
-  // private Map<String, Thread> _participantThreadMap = new HashMap<String, Thread>();
-  // private Map<String, Thread> _controllerThreadMap = new HashMap<String, Thread>();
   private Map<String, Thread> _threadMap = new HashMap<String, Thread>();
   
-  // static
   @BeforeClass
   public void beforeClass()
   {
-    logger.info("START ZkStandAloneCMHandler at " + new Date(System.currentTimeMillis()));
+    logger.info("START at " + new Date(System.currentTimeMillis()));
     
     final String clusterName = CLUSTER_PREFIX + "_" + this.getClass().getName();
     _zkServer = TestHelper.startZkSever(ZK_ADDR, "/" + clusterName);
@@ -114,16 +112,9 @@ public class ZkStandAloneCMHandler
   public void afterClass() throws Exception
   {
     logger.info("END shutting down cluster managers at " + new Date(System.currentTimeMillis()));
-    /*
-    for (Map.Entry<String, Thread> entry : _controllerThreadMap.entrySet())
-    {
-      entry.getValue().interrupt();
-    }
-    */
     stopThread(_threadMap);
-    // stopThread(_participantThreadMap);
     Thread.sleep(3000);
-    logger.info("END shutting down zk at " + new Date(System.currentTimeMillis()));
+    logger.info("END at " + new Date(System.currentTimeMillis()));
     TestHelper.stopZkServer(_zkServer);
   }
   

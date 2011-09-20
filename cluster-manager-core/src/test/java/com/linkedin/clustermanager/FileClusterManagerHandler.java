@@ -3,7 +3,6 @@ package com.linkedin.clustermanager;
 import java.util.List;
 import java.util.Map;
 
-
 import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.AssertJUnit;
@@ -19,7 +18,12 @@ import com.linkedin.clustermanager.store.PropertyJsonSerializer;
 import com.linkedin.clustermanager.store.file.FilePropertyStore;
 import com.linkedin.clustermanager.tools.IdealStateCalculatorForStorageNode;
 
-// start once for all tests that use dynamic-file-based cluster manager
+/**
+ * Base test for dynamic file-based cluster manager
+ * 
+ * @author zzhang
+ *
+ */
 public class FileClusterManagerHandler
 {
   private static Logger logger = Logger.getLogger(FileClusterManagerHandler.class);
@@ -176,11 +180,11 @@ public class FileClusterManagerHandler
     }
   }
   
-  /**
+  /*
   @Test
   public void testFileClusterManagerHandler()
   {
     logger.info("Run at " + new Date(System.currentTimeMillis()));
   }
-  **/
+  */
 }

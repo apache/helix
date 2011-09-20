@@ -48,6 +48,11 @@ public class ReadClusterDataStage extends AbstractBaseStage
     Map<String, LiveInstance> liveInstanceMap = retrieve(dataAccessor,
         ClusterPropertyType.LIVEINSTANCES, LiveInstance.class);
     _cache.setLiveInstanceMap(liveInstanceMap);
+    
+    for(LiveInstance instance : liveInstanceMap.values())
+    {
+      logger.trace("live instance: "+ instance.getInstanceName() + " " + instance.getSessionId());
+    }
     _cache.setStateModelDefMap(retrieve(dataAccessor,
         ClusterPropertyType.STATEMODELDEFS, StateModelDefinition.class));
     _cache.setInstanceConfigMap(retrieve(dataAccessor,
@@ -56,9 +61,7 @@ public class ReadClusterDataStage extends AbstractBaseStage
     {
       retrieve(instanceName, dataAccessor, InstancePropertyType.CURRENTSTATES,
           CurrentState.class);
-
     }
-
     event.addAttribute("clusterDataCache", _cache);
   }
 

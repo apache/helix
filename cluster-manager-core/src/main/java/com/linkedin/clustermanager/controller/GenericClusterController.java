@@ -82,7 +82,7 @@ public class GenericClusterController implements ConfigChangeListener,
 
 	private static PipelineRegistry createDefaultRegistry()
 	{
-
+	  logger.info("createDefaultRegistry");
 		synchronized (GenericClusterController.class)
 		{
 			PipelineRegistry registry = new PipelineRegistry();
@@ -268,12 +268,14 @@ public class GenericClusterController implements ConfigChangeListener,
 		if (pauseSignal != null)
 		{
 			_paused = true;
+		  logger.info("controller is now paused");
 		} 
 		else
 		{
 			if (_paused)
 			{
 				// it currently paused
+			  logger.info("controller is now resumed");
 				_paused = false;
 				ClusterEvent event = new ClusterEvent("resume");
 				event.addAttribute("changeContext", changeContext);
@@ -315,6 +317,7 @@ public class GenericClusterController implements ConfigChangeListener,
               "Exception adding current state and message listener for instance:"
                   + instanceName, e);
         }
+        logger.info("Observing client session id: "+ clientSessionId);
         _instanceCurrentStateChangeSubscriptionList.add(clientSessionId);
       }
       // TODO shi call removeListener

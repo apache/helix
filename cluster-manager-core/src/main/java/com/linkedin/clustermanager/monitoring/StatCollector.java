@@ -75,6 +75,6 @@ public class StatCollector
       return 0;
     }
     // TODO Auto-generated method stub
-    return _stats.getPercentile(percentage*1.0 / 100);
+    return _stats.getPercentile(percentage*1.0);
   }
 }

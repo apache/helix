@@ -350,7 +350,12 @@ public class ZKClusterManager implements ClusterManager
         _zkStateChangeListener.handleNewSession();
         _zkStateChangeListener.handleStateChanged(KeeperState.SyncConnected);
         break;
-      } catch (Exception e)
+      }
+      catch (ClusterManagerException e)
+      {
+        throw e;
+      }
+      catch (Exception e)
       {
         retryCount++;
         // log
@@ -398,12 +403,12 @@ public class ZKClusterManager implements ClusterManager
    * new session, stay as standby
    */
 
-  protected void handleNewSession()
+  protected void handleNewSession() throws Exception
   {
     _sessionId = UUID.randomUUID().toString();
     resetHandlers(_handlers);
 
-    logger.info("Handling new session, session id:" + _sessionId);
+    logger.info("Handling new session, session id:" + _sessionId + "instance:" + _instanceName);
     
     if (_instanceType == InstanceType.PARTICIPANT
         || _instanceType == InstanceType.CONTROLLER_PARTICIPANT)
@@ -416,7 +421,7 @@ public class ZKClusterManager implements ClusterManager
         // still hangs around until session timeout happens
         try
         {
-          Thread.currentThread().sleep(SESSIONTIMEOUT + 5000);
+          Thread.sleep(SESSIONTIMEOUT + 5000);
         } 
         catch (InterruptedException e)
         {

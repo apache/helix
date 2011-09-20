@@ -178,8 +178,9 @@ public class DummyProcess
     }
   }
 
+  // TODO hack OptionBuilder is not thread safe
   @SuppressWarnings("static-access")
-  private static Options constructCommandLineOptions()
+  synchronized private static Options constructCommandLineOptions()
   {
     Option helpOption = OptionBuilder.withLongOpt(help)
         .withDescription("Prints command-line options info").create();
@@ -315,8 +316,8 @@ public class DummyProcess
 
     DummyProcess process = new DummyProcess(zkConnectString, clusterName,
         instanceName, file, delay);
-
     process.start();
+    
     try
     {
       Thread.currentThread().join();
@@ -327,5 +328,6 @@ public class DummyProcess
       logger.info("thread:" + Thread.currentThread().getName() + 
                   "instanceName:" + instanceName + " interrupted");
     }
+
   }
 }

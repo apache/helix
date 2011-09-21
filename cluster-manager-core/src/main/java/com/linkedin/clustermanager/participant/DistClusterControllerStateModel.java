@@ -43,15 +43,16 @@ public class DistClusterControllerStateModel extends StateModel
   public void onBecomeLeaderFromStandby(Message message, NotificationContext context)
   throws Exception
   {
-    LOG.info("Becoming leader from standby");
     String clusterName = message.getStateUnitKey();
     String controllerName = message.getTgtName();
+
+    LOG.info(controllerName + " becomes leader from standby for cluster:" + clusterName);
  
-    ClusterManager manager  
-      = ClusterManagerFactory.getZKBasedManagerForController(clusterName, controllerName, _zkAddr);
+    ClusterManager manager = ClusterManagerFactory
+        .getZKBasedManagerForController(clusterName, controllerName, _zkAddr);
     _controllerMap.put(clusterName, manager);
     
-    DistClusterControllerElection leaderElection = new DistClusterControllerElection();
+    DistClusterControllerElection leaderElection = new DistClusterControllerElection(_zkAddr);
     manager.addControllerListener(leaderElection);
     context.add(clusterName, leaderElection.getController());
     // manager.connect();

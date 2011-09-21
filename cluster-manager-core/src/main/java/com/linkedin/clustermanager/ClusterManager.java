@@ -184,4 +184,10 @@ public interface ClusterManager
    * 
    */
   ParticipantHealthReportCollector getHealthReportCollector();
+  
+  /**
+   * 
+   * @return
+   */
+  InstanceType getInstanceType();
 }

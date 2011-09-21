@@ -31,6 +31,16 @@ public class TestDynamicFileClusterManager extends FileClusterManagerHandler
     boolean result = verifyCurStateAndIdealState(curStates, idealStates, "localhost_12918", "MyDB");
     Assert.assertTrue(result);
     
+    // drop db
+    mgmtTool.dropResourceGroup(storageCluster, "MyDB");
+    Thread.sleep(10000);
+    
+    for (int i = 0; i < storageNodeNr; i++)
+    {
+      String instanceName = "localhost_" + (12918 + i);
+      verifyEmptyCurrentState(instanceName, "MyDB");
+    }
+
     logger.info("END at " + new Date(System.currentTimeMillis()));
   }
   

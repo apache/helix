@@ -39,7 +39,6 @@ import com.linkedin.clustermanager.store.PropertyStoreException;
 
 /**
  * 
- * @author zzhang
  * property store that built upon a file system
  * since file systems usually have sophisticated cache mechanisms
  * there is no need for another cache for file property store 
@@ -51,7 +50,8 @@ import com.linkedin.clustermanager.store.PropertyStoreException;
  * and in the next round of refresh, check against this map to figure out whether a file 
  * has been changed/created in the last second
  * {@http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=6939260}
- * 
+ *
+ * @author zzhang
  * @param <T>
  */
 

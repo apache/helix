@@ -41,19 +41,19 @@ public class ZkStandAloneCMHandler
   protected static final int NODE_NR = 5;
   protected static final int START_PORT = 12918;
   protected static final String STATE_MODEL = "MasterSlave";
-  protected static ZkClient _controllerZkClient;
-  protected static ZkClient[] _participantZkClients = new ZkClient[NODE_NR];
-  protected ClusterSetup _setupTool = null;
-  
   private static final String TEST_DB = "TestDB";
+  
+  protected ZkClient _controllerZkClient;
+  protected ZkClient[] _participantZkClients = new ZkClient[NODE_NR];
+  protected ClusterSetup _setupTool = null;
+
   private ZkServer _zkServer = null;
   private Map<String, Thread> _threadMap = new HashMap<String, Thread>();
   
-  // static
   @BeforeClass
   public void beforeClass()
   {
-    logger.info("START ZkStandAloneCMHandler at " + new Date(System.currentTimeMillis()));
+    logger.info("START at " + new Date(System.currentTimeMillis()));
     
     final String clusterName = CLUSTER_PREFIX + "_" + this.getClass().getName();
     _zkServer = TestHelper.startZkSever(ZK_ADDR, "/" + clusterName);
@@ -111,12 +111,19 @@ public class ZkStandAloneCMHandler
   @AfterClass
   public void afterClass() throws Exception
   {
-    logger.info("END ZkStandAloneCMHandler at " + new Date(System.currentTimeMillis()));
-    for (Map.Entry<String, Thread> entry : _threadMap.entrySet())
+    logger.info("END shutting down cluster managers at " + new Date(System.currentTimeMillis()));
+    stopThread(_threadMap);
+    Thread.sleep(3000);
+    logger.info("END at " + new Date(System.currentTimeMillis()));
+    TestHelper.stopZkServer(_zkServer);
+  }
+  
+  private void stopThread(Map<String, Thread> threadMap)
+  {
+    for (Map.Entry<String, Thread> entry : threadMap.entrySet())
     {
       entry.getValue().interrupt();
     }
-    TestHelper.stopZkServer(_zkServer);
   }
   
   protected void simulateSessionExpiry(ZkClient zkClient) 
@@ -154,7 +161,7 @@ public class ZkStandAloneCMHandler
                   oldZookeeper.getSessionTimeout(), watcher, oldZookeeper.getSessionId(),
                   oldZookeeper.getSessionPasswd());
     logger.info("New sessionId = " + newZookeeper.getSessionId());
-    Thread.sleep(3000);
+    // Thread.sleep(3000);
     newZookeeper.close();
     Thread.sleep(10000);
     connection = (ZkConnection) zkClient.getConnection();

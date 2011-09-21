@@ -11,6 +11,7 @@ import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerFactory;
@@ -24,7 +25,7 @@ import com.linkedin.clustermanager.tools.ClusterSetup;
 
 public class DummyProcess
 {
-
+  private static final Logger logger = Logger.getLogger(DummyProcess.class);
   public static final String zkServer = "zkSvr";
   public static final String cluster = "cluster";
   public static final String hostAddress = "host";
@@ -177,8 +178,9 @@ public class DummyProcess
     }
   }
 
+  // TODO hack OptionBuilder is not thread safe
   @SuppressWarnings("static-access")
-  private static Options constructCommandLineOptions()
+  synchronized private static Options constructCommandLineOptions()
   {
     Option helpOption = OptionBuilder.withLongOpt(help)
         .withDescription("Prints command-line options info").create();
@@ -310,12 +312,22 @@ public class DummyProcess
       }
     }
     // Espresso_driver.py will consume this
-    System.out.println("Dummy process started");
+    logger.info("Dummy process started, instanceName:" + instanceName);
 
     DummyProcess process = new DummyProcess(zkConnectString, clusterName,
         instanceName, file, delay);
-
     process.start();
-    Thread.currentThread().join();
+    
+    try
+    {
+      Thread.currentThread().join();
+    }
+    catch (InterruptedException e)
+    {
+      ClusterManagerFactory.disconnectManagers(instanceName);
+      logger.info("thread:" + Thread.currentThread().getName() + 
+                  "instanceName:" + instanceName + " interrupted");
+    }
+
   }
 }

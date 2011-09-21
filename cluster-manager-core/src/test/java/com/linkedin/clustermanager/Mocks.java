@@ -201,14 +201,6 @@ public class Mocks
     }
 
     @Override
-    public <T> PropertyStore<T> getPropertyStore(String rootNamespace,
-        PropertySerializer<T> serializer)
-    {
-      // TODO Auto-generated method stub
-      return null;
-    }
-
-    @Override
     public ClusterMessagingService getMessagingService()
     {
       // TODO Auto-generated method stub
@@ -218,10 +210,24 @@ public class Mocks
     @Override
     public ParticipantHealthReportCollector getHealthReportCollector()
     {
+	    // TODO Auto-generated method stub
+	    return null;
+    }
+
+    @Override
+    public InstanceType getInstanceType()
+    {
       // TODO Auto-generated method stub
       return null;
     }
 
+    @Override
+    public <T> PropertyStore<T> getPropertyStore(String rootNamespace,
+        PropertySerializer<T> serializer)
+    {
+      // TODO Auto-generated method stub
+      return null;
+    }
   }
 
   public static class MockAccessor implements ClusterDataAccessor
@@ -406,6 +412,5 @@ public class Mocks
       // TODO Auto-generated method stub
       return null;
     }
-
   }
 }

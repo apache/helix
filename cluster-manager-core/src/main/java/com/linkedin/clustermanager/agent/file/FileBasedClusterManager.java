@@ -649,5 +649,10 @@ public class FileBasedClusterManager implements ClusterManager
     // TODO Auto-generated method stub
     return null;
   }
+  
+  public InstanceType getInstanceType()
+  {
+    return _instanceType;
+  }
 
 }

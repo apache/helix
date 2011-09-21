@@ -1,81 +1,38 @@
 package com.linkedin.clustermanager;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
-import org.I0Itec.zkclient.IDefaultNameSpace;
-import org.I0Itec.zkclient.ZkServer;
-import org.testng.AssertJUnit;
+import org.apache.log4j.Logger;
+import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import com.linkedin.clustermanager.controller.ClusterManagerMain;
 import com.linkedin.clustermanager.mock.storage.DummyProcess;
-import com.linkedin.clustermanager.tools.ClusterSetup;
-import com.linkedin.clustermanager.tools.ClusterStateVerifier;
 
-public class TestParticiptantNameCollision
+public class TestParticiptantNameCollision extends ZkStandAloneCMHandler
 {
-  static int exceptionCount = 0;
+  private static Logger logger = Logger.getLogger(TestParticiptantNameCollision.class);
+  static final AtomicInteger _exceptionCounter = new AtomicInteger();
+  
   @Test
-  public void testInvocation() throws Exception
-  // public static void main(String[] args) throws Exception
+  public void testParticiptantNameCollision() throws Exception
   {
-    // Logger.getRootLogger().setLevel(Level.ERROR);
-    String logDir = "/tmp/logs";
-    String dataDir = "/tmp/dataDir";
-    new File(dataDir).delete();
-    IDefaultNameSpace defaultNameSpace = new IDefaultNameSpace()
-    {
-      @Override
-      public void createDefaultNameSpace(org.I0Itec.zkclient.ZkClient zkClient)
-      {
-        zkClient.deleteRecursive("/ESPRESSO_STORAGE");
-        zkClient.deleteRecursive("/relay-cluster-12345");
-      }
-    };
-    int port = 2181;
-    ZkServer zkServer = new ZkServer(dataDir, logDir, defaultNameSpace, port);
-    zkServer.start();
-    ClusterSetup setup = new ClusterSetup("localhost:" + port);
-    ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addCluster ESPRESSO_STORAGE"));
-    ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addCluster relay-cluster-12345"));
-    ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addResourceGroup ESPRESSO_STORAGE db-12345 50 MasterSlave"));
-    ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addNode ESPRESSO_STORAGE localhost:8900"));
-    ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addNode ESPRESSO_STORAGE localhost:8901"));
-    ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addNode ESPRESSO_STORAGE localhost:8902"));
-    ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addNode ESPRESSO_STORAGE localhost:8903"));
-    ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -addNode ESPRESSO_STORAGE localhost:8904"));
-    ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr localhost:2181 -rebalance ESPRESSO_STORAGE db-12345 3"));
+    logger.info("RUN at " + new Date(System.currentTimeMillis()));
     
+    final String clusterName = CLUSTER_PREFIX + "_" + this.getClass().getName(); 
     List<Thread> tList = new ArrayList<Thread>();
     
-    tList.add(startDummyProcess(createArgs("-zkSvr localhost:2181 -cluster ESPRESSO_STORAGE -host localhost -port 8900")));
-    tList.add(startDummyProcess(createArgs("-zkSvr localhost:2181 -cluster ESPRESSO_STORAGE -host localhost -port 8901")));
-    tList.add(startDummyProcess(createArgs("-zkSvr localhost:2181 -cluster ESPRESSO_STORAGE -host localhost -port 8901")));
-    tList.add(startDummyProcess(createArgs("-zkSvr localhost:2181 -cluster ESPRESSO_STORAGE -host localhost -port 8903")));
-    tList.add(startDummyProcess(createArgs("-zkSvr localhost:2181 -cluster ESPRESSO_STORAGE -host localhost -port 8903")));
-    
-        // Thread.currentThread().join();
-    Thread.sleep(5000);
-    AssertJUnit
-        .assertTrue(exceptionCount == 2);
-    zkServer.shutdown();
-    
-    for(Thread t: tList)
-    {
-      t.interrupt();
-    }
+    tList.add(startDummyProcess(createArgs("-zkSvr " + ZK_ADDR + " -cluster " + clusterName + 
+                                           " -host localhost -port 12919")));
+    tList.add(startDummyProcess(createArgs("-zkSvr " + ZK_ADDR + " -cluster " + clusterName + 
+                                           " -host localhost -port 12920")));
+
+    Thread.sleep(40000);
+    Assert.assertEquals(2, _exceptionCounter.get());
+    logger.info("END at " + new Date(System.currentTimeMillis()));
   }
 
   private static Thread startDummyProcess(final String[] args) 
@@ -89,9 +46,10 @@ public class TestParticiptantNameCollision
         {
           DummyProcess.main(args);
         } 
-        catch(ClusterManagerException e)
+        catch (ClusterManagerException e)
         {
-          exceptionCount++;
+          _exceptionCounter.addAndGet(1);
+          logger.info("exceptionCounter:" + _exceptionCounter.get());
         }
         catch (Exception e)
         {
@@ -100,14 +58,7 @@ public class TestParticiptantNameCollision
       }
     });
     t.start();
-    try
-    {
-      Thread.currentThread().sleep(500);
-    } catch (InterruptedException e)
-    {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    }
+
     return t;
   }
 

@@ -6,18 +6,72 @@ package com.linkedin.clustermanager;
  * for zk-based cluster managers, the getZKXXX(..zkClient) that takes a zkClient parameter
  *   are intended for session expiry test purpose
  */
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
+
+import org.apache.log4j.Logger;
+
 import com.linkedin.clustermanager.agent.file.DynamicFileClusterManager;
 import com.linkedin.clustermanager.agent.file.FileBasedClusterManager;
 import com.linkedin.clustermanager.agent.file.FileBasedDataAccessor;
 import com.linkedin.clustermanager.agent.zk.ZKClusterManager;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
+import com.linkedin.clustermanager.store.PropertyJsonSerializer;
 
 public final class ClusterManagerFactory
 {
+  private static final Logger logger = Logger.getLogger(ClusterManagerFactory.class);
+  
+  // for shutting down multiple cluster managers cleanly when a thread gets interrupted
+  private final static Map<String, ConcurrentLinkedQueue<ClusterManager>> _managers 
+     = new ConcurrentHashMap<String, ConcurrentLinkedQueue<ClusterManager>>();
+  
+  private static final PropertyJsonSerializer<String> _serializer 
+    = new PropertyJsonSerializer<String>(String.class);
+  
   private ClusterManagerFactory()
   {
   }
 
+  private static void addManager(String name, ClusterManager manager)
+  {
+    try
+    {
+      name = new String(_serializer.serialize(name));
+      if (_managers.get(name) == null)
+      {
+        _managers.put(name, new ConcurrentLinkedQueue<ClusterManager>());
+      }
+      _managers.get(name).add(manager);
+    }
+    catch (Exception e)
+    {
+      e.printStackTrace();
+    }
+  }
+  
+  public static void disconnectManagers(String name)
+  {
+    try
+    {
+      name = new String(_serializer.serialize(name));
+      ConcurrentLinkedQueue<ClusterManager> queue = _managers.remove(name);
+      logger.info("disconnect cluster managers:" + name);
+      if (queue != null)
+      {
+        for (ClusterManager manager : queue)
+        {
+          manager.disconnect();
+        }
+      }
+    }
+    catch (Exception e)
+    {
+      e.printStackTrace();
+    }
+  }
+  
   // zk-based cluster manager factory functions
   /**
    * create zk-based cluster participant
@@ -31,8 +85,10 @@ public final class ClusterManagerFactory
       String instanceName, String zkConnectString)
   throws Exception
   {
-    return new ZKClusterManager(clusterName, instanceName,InstanceType.PARTICIPANT, 
-                                zkConnectString);
+    ClusterManager manager = new ZKClusterManager(clusterName, instanceName, 
+                           InstanceType.PARTICIPANT, zkConnectString);
+    addManager(instanceName, manager);
+    return manager;
   }
   
   /**
@@ -50,8 +106,10 @@ public final class ClusterManagerFactory
      String instanceName, String zkConnectString, ZkClient zkClient)
   throws Exception
   {
-    return new ZKClusterManager(clusterName, instanceName, InstanceType.PARTICIPANT, 
-                                zkConnectString, zkClient);
+    ClusterManager manager = new ZKClusterManager(clusterName, instanceName, 
+                        InstanceType.PARTICIPANT, zkConnectString, zkClient);
+    addManager(instanceName, manager);
+    return manager;
   }
   
   /**
@@ -92,8 +150,10 @@ public final class ClusterManagerFactory
   public static ClusterManager getZKBasedManagerForController(
      String clusterName, String controllerName, String zkConnectString) throws Exception
   {
-    return new ZKClusterManager(clusterName, controllerName, InstanceType.CONTROLLER, 
-       zkConnectString);
+    ClusterManager manager = new ZKClusterManager(clusterName, controllerName, 
+            InstanceType.CONTROLLER, zkConnectString);
+    addManager(controllerName, manager);
+    return manager; 
   }
 
   /**
@@ -110,8 +170,10 @@ public final class ClusterManagerFactory
   public static ClusterManager getZKBasedManagerForController(String clusterName, 
     String controllerName, String zkConnectString, ZkClient zkClient) throws Exception
   {
-    return new ZKClusterManager(clusterName, controllerName, InstanceType.CONTROLLER, 
-       zkConnectString, zkClient);
+    ClusterManager manager = new ZKClusterManager(clusterName, controllerName, InstanceType.CONTROLLER, 
+                                                  zkConnectString, zkClient);
+    addManager(controllerName, manager);
+    return manager;
   }
 
   /**
@@ -127,8 +189,10 @@ public final class ClusterManagerFactory
   public static ClusterManager getZKBasedManagerForControllerParticipant(
      String clusterName, String controllerName, String zkConnectString) throws Exception
   {
-    return new ZKClusterManager(clusterName, controllerName, 
-                                InstanceType.CONTROLLER_PARTICIPANT, zkConnectString);
+    ClusterManager manager = new ZKClusterManager(clusterName, controllerName, 
+                           InstanceType.CONTROLLER_PARTICIPANT, zkConnectString);
+    addManager(controllerName, manager);
+    return manager;
   }
   
   // file-based cluster manager factory functions

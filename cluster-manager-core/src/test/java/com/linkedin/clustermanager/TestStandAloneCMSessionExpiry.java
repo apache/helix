@@ -14,7 +14,7 @@ public class TestStandAloneCMSessionExpiry extends ZkStandAloneCMHandler
   private static Logger logger = Logger.getLogger(TestStandAloneCMSessionExpiry.class);
   
   @Test
-  public void testZkClusterManagerHandler() 
+  public void testStandAloneCMSessionExpiry() 
   throws InterruptedException, IOException
   {
     logger.info("RUN at " + new Date(System.currentTimeMillis()));

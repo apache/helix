@@ -40,6 +40,7 @@ import com.linkedin.clustermanager.LiveInstanceChangeListener;
 import com.linkedin.clustermanager.MessageListener;
 import com.linkedin.clustermanager.NotificationContext;
 import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.healthcheck.ParticipantHealthReportCollector;
 import com.linkedin.clustermanager.model.IdealState;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.participant.statemachine.StateModel;
@@ -125,11 +126,11 @@ public class FileBasedClusterManager implements ClusterManager
     String toState = newMsg.getToState();
     if (toState.equals("MASTER"))
     {
-      msgList.add(newMsg);
+      msgList.add(newMsg.getRecord());
     }
     if (toState.equals("SLAVE"))
     {
-      msgList.add(0, newMsg);
+      msgList.add(0, newMsg.getRecord());
     }
   }
   
@@ -643,6 +644,12 @@ public class FileBasedClusterManager implements ClusterManager
   }
 
   @Override
+  public ParticipantHealthReportCollector getHealthReportCollector()
+  {
+    // TODO Auto-generated method stub
+    return null;
+  }
+  
   public InstanceType getInstanceType()
   {
     return _instanceType;

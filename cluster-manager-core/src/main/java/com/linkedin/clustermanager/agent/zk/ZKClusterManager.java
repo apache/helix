@@ -41,6 +41,8 @@ import com.linkedin.clustermanager.InstanceType;
 import com.linkedin.clustermanager.LiveInstanceChangeListener;
 import com.linkedin.clustermanager.MessageListener;
 import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.healthcheck.ParticipantHealthReportCollector;
+import com.linkedin.clustermanager.healthcheck.ParticipantHealthReportCollectorImpl;
 import com.linkedin.clustermanager.monitoring.ZKPathDataDumpTask;
 import com.linkedin.clustermanager.participant.DistClusterControllerElection;
 import com.linkedin.clustermanager.store.PropertySerializer;
@@ -65,6 +67,7 @@ public class ZKClusterManager implements ClusterManager
   private String _sessionId;
   private Timer _timer;
   private CallbackHandler _leaderElectionHandler = null;
+  private ParticipantHealthReportCollectorImpl _participantHealthCheckInfoCollector = null;
 
 
   public ZKClusterManager(String clusterName, InstanceType instanceType,
@@ -83,8 +86,8 @@ public class ZKClusterManager implements ClusterManager
       InstanceType instanceType, String zkConnectString, ZkClient zkClient)
       throws Exception
   {
-    logger.info("Cluster manager created: " + clusterName + " instance: " + 
-        instanceName +" type:" + instanceType+" zkSvr:"+zkConnectString);
+    logger.info("Cluster manager created: " + clusterName + " instance: "
+        + instanceName + " type:" + instanceType + " zkSvr:" + zkConnectString);
     _clusterName = clusterName;
     _instanceName = instanceName;
     this._instanceType = instanceType;
@@ -95,7 +98,7 @@ public class ZKClusterManager implements ClusterManager
     _zkClient = zkClient;
     connect();
   }
-
+  
   private boolean isInstanceSetup()
   {
     if (_instanceType == InstanceType.PARTICIPANT)
@@ -233,6 +236,8 @@ public class ZKClusterManager implements ClusterManager
   @Override
   public void disconnect()
   {
+    logger.info("Cluster manager disconnected");
+    
     for (CallbackHandler handler : _handlers)
     {
       handler.reset();
@@ -250,6 +255,17 @@ public class ZKClusterManager implements ClusterManager
       
     }
     _zkClient.close();
+    
+    if(_participantHealthCheckInfoCollector != null)
+    {
+      _participantHealthCheckInfoCollector.stop();
+    }
+    
+    if(_timer != null)
+    {
+      _timer.cancel();
+      _timer = null;
+    }
   }
 
   @Override
@@ -275,7 +291,7 @@ public class ZKClusterManager implements ClusterManager
   public void addControllerListener(ControllerChangeListener listener)
   {
     final String path = CMUtil.getControllerPath(_clusterName);
-    logger.info("Add controller listener at: "+ path);
+    logger.info("Add controller listener at: " + path);
     CallbackHandler callbackHandler = createCallBackHandler(path, listener,
         new EventType[]
         { EventType.NodeChildrenChanged, EventType.NodeDeleted,
@@ -316,9 +332,10 @@ public class ZKClusterManager implements ClusterManager
     metaData.setId(_instanceName);
     metaData.setSimpleField(CMConstants.ZNAttribute.SESSION_ID.toString(),
         _sessionId);
-    
-    logger.info("Add live instance: InstanceName: "+_instanceName+" Session id:"+_sessionId);
-    
+
+    logger.info("Add live instance: InstanceName: " + _instanceName
+        + " Session id:" + _sessionId);
+
     _accessor.setClusterProperty(ClusterPropertyType.LIVEINSTANCES,
         _instanceName, metaData, CreateMode.EPHEMERAL);
     String currentStatePathParent = CMUtil.getCurrentStateBasePath(
@@ -424,39 +441,21 @@ public class ZKClusterManager implements ClusterManager
   {
     _sessionId = UUID.randomUUID().toString();
     resetHandlers(_handlers);
+<<<<<<< HEAD
 
     logger.info("Handling new session, session id:" + _sessionId + ", instance:" + _instanceName);
     
+=======
+    logger.info("Handling new session, session id:" + _sessionId + "instance:" + _instanceName);
+
+>>>>>>> 1610676af530775e915e3f01647925f1c9fe73f7
     if (_instanceType == InstanceType.PARTICIPANT
         || _instanceType == InstanceType.CONTROLLER_PARTICIPANT)
     {
-      // Check if liveInstancePath for the instance already exists. If yes, throw exception
-      if(_accessor.getClusterProperty(ClusterPropertyType.LIVEINSTANCES, _instanceName) != null)
-      {
-        logger.warn("find liveinstance record for "+_instanceName + " in cluster "+_clusterName);
-        // Wait for a while, in case previous storage node exits unexpectedly and its liveinstance
-        // still hangs around until session timeout happens
-        try
-        {
-          Thread.sleep(SESSIONTIMEOUT + 5000);
-        } 
-        catch (InterruptedException e)
-        {
-          e.printStackTrace();
-        }
-        if(_accessor.getClusterProperty(ClusterPropertyType.LIVEINSTANCES, _instanceName) != null)
-        {
-            String errorMessage = "instance " + _instanceName + " already has a liveinstance in cluster " + _clusterName;
-            logger.error(errorMessage);
-            throw new ClusterManagerException(errorMessage);
-        }
-      }
-      carryOverPreviousCurrentState();
-      addLiveInstance();
-      startStatusUpdatedumpTask();
+      handleNewSessionAsParticipant();
     }
 
-    if (_instanceType == InstanceType.CONTROLLER
+    else if (_instanceType == InstanceType.CONTROLLER
         || _instanceType == InstanceType.CONTROLLER_PARTICIPANT)
     {
       if (_leaderElectionHandler == null)
@@ -478,6 +477,51 @@ public class ZKClusterManager implements ClusterManager
         || (_instanceType == InstanceType.CONTROLLER && isLeader()))
     {
       initHandlers(_handlers);
+    }
+  }
+  
+  private void handleNewSessionAsParticipant()
+  {
+    // In case there is a live instance record on zookeeper
+    if (_accessor.getClusterProperty(ClusterPropertyType.LIVEINSTANCES,
+        _instanceName) != null)
+    {
+      logger.warn("find liveinstance record for " + _instanceName
+          + " in cluster " + _clusterName);
+      // Wait for a while, in case previous storage node exits unexpectedly
+      // and its liveinstance
+      // still hangs around until session timeout happens
+      try
+      {
+        Thread.currentThread().sleep(SESSIONTIMEOUT + 5000);
+      } catch (InterruptedException e)
+      {
+        e.printStackTrace();
+      }
+      if (_accessor.getClusterProperty(ClusterPropertyType.LIVEINSTANCES,
+          _instanceName) != null)
+      {
+        String errorMessage = "instance " + _instanceName
+            + " already has a liveinstance in cluster " + _clusterName;
+        logger.error(errorMessage);
+        throw new ClusterManagerException(errorMessage);
+      }
+    }
+    carryOverPreviousCurrentState();
+    addLiveInstance();
+    startStatusUpdatedumpTask();
+    if(_participantHealthCheckInfoCollector == null)
+    {
+      _participantHealthCheckInfoCollector 
+        = new ParticipantHealthReportCollectorImpl(this, _instanceName);
+      _participantHealthCheckInfoCollector.start();
+    }
+    // start the participant health check timer, also create zk path for health check info
+    String healthCheckInfoPath = CMUtil.getInstancePropertyPath(_clusterName, _instanceName, InstancePropertyType.HEALTHREPORT);
+    if(!_zkClient.exists(healthCheckInfoPath))
+    {
+      _zkClient.createPersistent(healthCheckInfoPath);
+      logger.info("Creating healthcheck info path " + healthCheckInfoPath);
     }
   }
 
@@ -525,60 +569,63 @@ public class ZKClusterManager implements ClusterManager
     return ret;
   }
 
-	private void carryOverPreviousCurrentState()
-	{
-		List<String> subPaths = _accessor.getInstancePropertySubPaths(
-		    _instanceName, InstancePropertyType.CURRENTSTATES);
-		for (String previousSessionId : subPaths)
-		{
-			List<ZNRecord> previousCurrentStates = _accessor.getInstancePropertyList(
-			    _instanceName, previousSessionId, InstancePropertyType.CURRENTSTATES);
-			for (ZNRecord previousCurrentState : previousCurrentStates)
-			{
-				if (!previousSessionId.equalsIgnoreCase(_sessionId))
-				{
-					logger.info("Carrying over old session:" + previousSessionId
-					    + " resource " + previousCurrentState.getId() + " to new session:" +
-					    _sessionId);
-					for (String resourceKey : previousCurrentState.mapFields.keySet())
-					{
-						previousCurrentState.getMapField(resourceKey).put(
-						    ZNAttribute.CURRENT_STATE.toString(), "OFFLINE");
-					}
-					previousCurrentState.setSimpleField(
-					    CMConstants.ZNAttribute.SESSION_ID.toString(), _sessionId);
-					_accessor.setInstanceProperty(_instanceName,
-					    InstancePropertyType.CURRENTSTATES, _sessionId,
-					    previousCurrentState.getId(), previousCurrentState);
-				}
-			}
-		}
-		// Deleted old current state
-		for (String previousSessionId : subPaths)
-		{
-			if (!previousSessionId.equalsIgnoreCase(_sessionId))
-			{
-				String path = CMUtil.getInstancePropertyPath(_clusterName,
-				    _instanceName, InstancePropertyType.CURRENTSTATES);
-				_zkClient.deleteRecursive(path + "/" + previousSessionId);
-				logger.info("Deleting previous current state. path: " + path + "/"
-				    + previousSessionId);
-			}
-		}
-	}
-	
-	@Override
-	public <T> PropertyStore<T> getPropertyStore(String rootNamespace, PropertySerializer<T> serializer)
-	{
-	  String path = "/" + _clusterName + "/" + "PRPOPERTY_STORE" + "/" + rootNamespace;
-	  if (!_zkClient.exists(path))
-	  {
-	    _zkClient.createPersistent(path);
-	  }
-	  
-	  return new ZKPropertyStore<T>((ZkConnection)_zkClient.getConnection(), serializer, path);
-	}
-	
+  private void carryOverPreviousCurrentState()
+  {
+    List<String> subPaths = _accessor.getInstancePropertySubPaths(
+        _instanceName, InstancePropertyType.CURRENTSTATES);
+    for (String previousSessionId : subPaths)
+    {
+      List<ZNRecord> previousCurrentStates = _accessor.getInstancePropertyList(
+          _instanceName, previousSessionId, InstancePropertyType.CURRENTSTATES);
+      for (ZNRecord previousCurrentState : previousCurrentStates)
+      {
+        if (!previousSessionId.equalsIgnoreCase(_sessionId))
+        {
+          logger.info("Carrying over old session:" + previousSessionId
+              + " resource " + previousCurrentState.getId()
+              + " to new session:" + _sessionId);
+          for (String resourceKey : previousCurrentState.mapFields.keySet())
+          {
+            previousCurrentState.getMapField(resourceKey).put(
+                ZNAttribute.CURRENT_STATE.toString(), "OFFLINE");
+          }
+          previousCurrentState.setSimpleField(
+              CMConstants.ZNAttribute.SESSION_ID.toString(), _sessionId);
+          _accessor.setInstanceProperty(_instanceName,
+              InstancePropertyType.CURRENTSTATES, _sessionId,
+              previousCurrentState.getId(), previousCurrentState);
+        }
+      }
+    }
+    // Deleted old current state
+    for (String previousSessionId : subPaths)
+    {
+      if (!previousSessionId.equalsIgnoreCase(_sessionId))
+      {
+        String path = CMUtil.getInstancePropertyPath(_clusterName,
+            _instanceName, InstancePropertyType.CURRENTSTATES);
+        _zkClient.deleteRecursive(path + "/" + previousSessionId);
+        logger.info("Deleting previous current state. path: " + path + "/"
+            + previousSessionId);
+      }
+    }
+  }
+
+  @Override
+  public <T> PropertyStore<T> getPropertyStore(String rootNamespace,
+      PropertySerializer<T> serializer)
+  {
+    String path = "/" + _clusterName + "/" + "PRPOPERTY_STORE" + "/"
+        + rootNamespace;
+    if (!_zkClient.exists(path))
+    {
+      _zkClient.createPersistent(path);
+    }
+
+    return new ZKPropertyStore<T>((ZkConnection) _zkClient.getConnection(),
+        serializer, path);
+  }
+
   @Override
   public ClusterManagementService getClusterManagmentTool()
   {
@@ -593,6 +640,12 @@ public class ZKClusterManager implements ClusterManager
     return null;
   }
 
+  @Override
+  public ParticipantHealthReportCollector getHealthReportCollector()
+  {
+    return (ParticipantHealthReportCollector)_participantHealthCheckInfoCollector;
+  }
+  
   @Override
   public InstanceType getInstanceType()
   {

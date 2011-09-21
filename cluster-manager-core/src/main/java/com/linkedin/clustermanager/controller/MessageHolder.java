@@ -30,15 +30,7 @@ public class MessageHolder
     for (ZNRecord record : messages)
     {
       Message message;
-      if (record instanceof Message)
-      {
-        message = (Message) record;
-      } else
-      {
-        // TODO remove this after upgrading jackson to handle derived
-        // class
-        message = new Message(record);
-      }
+      message = new Message(record);
 
       String stateUnitKey = message.getStateUnitKey();
       String value = message.getToState();

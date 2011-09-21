@@ -75,7 +75,7 @@ public interface ClusterDataAccessor
   public enum InstancePropertyType
   {
     MESSAGES(true, true, true), CURRENTSTATES(true, true, false), STATUSUPDATES(
-        true, true, false), ERRORS(true, true);
+        true, true, false), ERRORS(true, true), HEALTHREPORT(true, true, false);
 
     boolean isPersistent;
 
@@ -129,7 +129,7 @@ public interface ClusterDataAccessor
 
   public enum ControllerPropertyType
   {
-    LEADER(false, false, true), HISTORY(true, true, true), PAUSE(false,false,true);
+    LEADER(false, false, true), HISTORY(true, true, true), PAUSE(false,false,true), MESSAGES(false,false,true);
     
     boolean isPersistent;
 

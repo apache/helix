@@ -60,7 +60,7 @@ public class TaskAssignmentStage extends AbstractBaseStage
           + " transition " + message.getStateUnitKey() + " from:"
           + message.getFromState() + " to:" + message.getToState());
       dataAccessor.setInstanceProperty(message.getTgtName(),
-          InstancePropertyType.MESSAGES, message.getId(), message);
+          InstancePropertyType.MESSAGES, message.getId(), message.getRecord());
     }
   }
 }

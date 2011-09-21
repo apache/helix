@@ -191,7 +191,7 @@ public class ClusterController implements ConfigChangeListener,
             + " transition " + message.getStateUnitKey() + " from:"
             + message.getFromState() + " to:" + message.getToState());
         client.setInstanceProperty(message.getTgtName(),
-            InstancePropertyType.MESSAGES, message.getId(), message);
+            InstancePropertyType.MESSAGES, message.getId(), message.getRecord());
       }
     }
     logger.info("END:ClusterController.runClusterRebalanceAlgo()");

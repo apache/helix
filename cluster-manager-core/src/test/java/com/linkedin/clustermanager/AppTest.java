@@ -19,6 +19,8 @@ import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.data.ACL;
 
+import com.linkedin.clustermanager.model.Message;
+
 /**
  * Unit test for simple App.
  */
@@ -160,7 +162,12 @@ public class AppTest
 
 	public static void main(String[] args) throws Exception
 	{
-		testChroot();
+	  Message message = new Message();
+	  message.setFromState("asdasd");
+	  Message clone = new Message(new ZNRecord(message.getRecord()));
+	  clone.setFromState("newstate");
+	  System.out.println(message.getFromState());
+		//testChroot();
 		// testZKClient();
 		// testChrootWithZkClient();
 

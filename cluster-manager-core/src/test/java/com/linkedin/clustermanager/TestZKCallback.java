@@ -218,7 +218,7 @@ public class TestZKCallback
     testListener.Reset();
     Message message = new Message();
     dataAccessor.setInstanceProperty("localhost_8900",
-        InstancePropertyType.MESSAGES, message.getId(), message);
+        InstancePropertyType.MESSAGES, message.getId(), message.getRecord());
     Thread.sleep(100);
     AssertJUnit.assertTrue(testListener.messageChangeReceived);
 

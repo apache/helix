@@ -127,8 +127,16 @@ public class TestHelper
         }
       }
     });
-    
+    try
+    {
+      Thread.currentThread().sleep(500);
+    } catch (InterruptedException e)
+    {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
     thread.start();
+    
     return thread;
   }
 

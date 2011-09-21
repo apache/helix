@@ -8,6 +8,7 @@ import com.linkedin.clustermanager.CMConstants;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
 import com.linkedin.clustermanager.model.Message;
+import com.linkedin.clustermanager.model.Message.MessageType;
 import com.linkedin.clustermanager.util.CMUtil;
 
 public class MessagePoster
@@ -27,7 +28,7 @@ public class MessagePoster
 
     ZkClient client = new ZkClient(serverstring);
     client.setZkSerializer(new ZNRecordSerializer());
-    Message message = new Message();
+    Message message = new Message(MessageType.STATE_TRANSITION);
     message.setId(msgId);
     message.setMsgId(msgId);
     message.setSrcName(msgSrc);

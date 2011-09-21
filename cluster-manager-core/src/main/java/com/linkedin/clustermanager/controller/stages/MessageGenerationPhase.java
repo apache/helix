@@ -18,6 +18,7 @@ import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.model.LiveInstance;
 import com.linkedin.clustermanager.model.Message;
+import com.linkedin.clustermanager.model.Message.MessageType;
 import com.linkedin.clustermanager.model.ResourceGroup;
 import com.linkedin.clustermanager.model.ResourceKey;
 import com.linkedin.clustermanager.model.StateModelDefinition;
@@ -129,7 +130,7 @@ public class MessageGenerationPhase extends AbstractBaseStage
       String resourceKeyName, String instanceName, String currentState,
       String nextState, String sessionId, String stateModelDefName)
   {
-    Message message = new Message();
+    Message message = new Message(MessageType.STATE_TRANSITION);
     String uuid = UUID.randomUUID().toString();
     message.setId(uuid);
     message.setMsgId(uuid);

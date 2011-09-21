@@ -21,6 +21,7 @@ import com.linkedin.clustermanager.agent.zk.ZKDataAccessor;
 import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
 import com.linkedin.clustermanager.model.Message;
+import com.linkedin.clustermanager.model.Message.MessageType;
 import com.linkedin.clustermanager.util.CMUtil;
 
 public class MockController
@@ -42,7 +43,7 @@ public class MockController
       throws InterruptedException, JsonGenerationException,
       JsonMappingException, IOException
   {
-    Message message = new Message();
+    Message message = new Message(MessageType.STATE_TRANSITION);
 
     message.setId(msgId);
     message.setMsgId(msgId);

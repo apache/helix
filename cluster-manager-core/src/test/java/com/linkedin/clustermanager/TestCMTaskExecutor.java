@@ -11,6 +11,7 @@ import com.linkedin.clustermanager.Mocks.MockCMTaskExecutor;
 import com.linkedin.clustermanager.Mocks.MockManager;
 import com.linkedin.clustermanager.Mocks.MockStateModel;
 import com.linkedin.clustermanager.model.Message;
+import com.linkedin.clustermanager.model.Message.MessageType;
 import com.linkedin.clustermanager.participant.statemachine.CMTaskExecutor;
 import com.linkedin.clustermanager.participant.statemachine.CMTaskHandler;
 import com.linkedin.clustermanager.participant.statemachine.StateModel;
@@ -22,7 +23,7 @@ public class TestCMTaskExecutor
   public void testInvocation() throws Exception
   {
     System.out.println("TestCMTaskHandler.testInvocation()");
-    Message message = new Message();
+    Message message = new Message(MessageType.STATE_TRANSITION);
     String msgId = "TestMessageId";
     message.setMsgId(msgId);
     message.setSrcName("cm-instance-0");

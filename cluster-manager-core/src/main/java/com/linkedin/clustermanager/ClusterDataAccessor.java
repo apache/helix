@@ -75,7 +75,7 @@ public interface ClusterDataAccessor
   public enum InstancePropertyType
   {
     MESSAGES(true, true, true), CURRENTSTATES(true, true, false), STATUSUPDATES(
-        true, true, false), ERRORS(true, true);
+        true, true, false), ERRORS(true, true), HEALTHREPORT(true, true, false);
 
     boolean isPersistent;
 

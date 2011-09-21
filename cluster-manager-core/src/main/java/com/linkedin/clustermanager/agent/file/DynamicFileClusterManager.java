@@ -35,6 +35,7 @@ import com.linkedin.clustermanager.InstanceType;
 import com.linkedin.clustermanager.LiveInstanceChangeListener;
 import com.linkedin.clustermanager.MessageListener;
 import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.healthcheck.ParticipantHealthReportCollector;
 import com.linkedin.clustermanager.store.PropertySerializer;
 import com.linkedin.clustermanager.store.PropertyStore;
 import com.linkedin.clustermanager.store.file.FilePropertyStore;
@@ -46,18 +47,19 @@ public class DynamicFileClusterManager implements ClusterManager
       .getLogger(FileBasedClusterManager.class.getName());
   private final ClusterDataAccessor _fileDataAccessor;
   // private final FileBasedDataAccessor _fileDataAccessor;
-  // private final String _rootNamespace = "/tmp/testFilePropertyStoreIntegration";
-  
+  // private final String _rootNamespace =
+  // "/tmp/testFilePropertyStoreIntegration";
+
   private final String _clusterName;
   private final InstanceType _instanceType;
   private final String _instanceName;
   private boolean _isConnected;
   private List<CallbackHandlerForFile> _handlers;
   private final FileClusterManagementTool _mgmtTool;
-  
+
   public static final String _sessionId = "12345";
   public static final String configFile = "configFile";
-  
+
   public DynamicFileClusterManager(String clusterName, String instanceName,
       InstanceType instanceType, ClusterDataAccessor accessor)
   {
@@ -67,13 +69,14 @@ public class DynamicFileClusterManager implements ClusterManager
 
     _handlers = new ArrayList<CallbackHandlerForFile>();
     _fileDataAccessor = accessor;
-    
+
     if (_instanceType == InstanceType.PARTICIPANT)
     {
       addLiveInstance();
     }
-  
-    FilePropertyStore<ZNRecord> store = (FilePropertyStore<ZNRecord>)_fileDataAccessor.getStore();
+
+    FilePropertyStore<ZNRecord> store = (FilePropertyStore<ZNRecord>) _fileDataAccessor
+        .getStore();
     _mgmtTool = new FileClusterManagementTool(store);
     store.start();
 
@@ -89,15 +92,15 @@ public class DynamicFileClusterManager implements ClusterManager
   public void addIdealStateChangeListener(IdealStateChangeListener listener)
   {
     /**
-    NotificationContext context = new NotificationContext(this);
-    context.setType(NotificationContext.Type.INIT);
-    listener.onIdealStateChange(this._clusterView
-        .getClusterPropertyList(ClusterPropertyType.IDEALSTATES), context);
-    **/
+     * NotificationContext context = new NotificationContext(this);
+     * context.setType(NotificationContext.Type.INIT);
+     * listener.onIdealStateChange(this._clusterView
+     * .getClusterPropertyList(ClusterPropertyType.IDEALSTATES), context);
+     **/
     final String path = CMUtil.getIdealStatePath(_clusterName);
-    
-    CallbackHandlerForFile callbackHandler = createCallBackHandler(path, listener,
-        new EventType[]
+
+    CallbackHandlerForFile callbackHandler = createCallBackHandler(path,
+        listener, new EventType[]
         { EventType.NodeDataChanged, EventType.NodeDeleted,
             EventType.NodeCreated }, IDEAL_STATE);
     _handlers.add(callbackHandler);
@@ -108,8 +111,8 @@ public class DynamicFileClusterManager implements ClusterManager
   public void addLiveInstanceChangeListener(LiveInstanceChangeListener listener)
   {
     final String path = CMUtil.getLiveInstancesPath(_clusterName);
-    CallbackHandlerForFile callbackHandler = createCallBackHandler(path, listener,
-        new EventType[]
+    CallbackHandlerForFile callbackHandler = createCallBackHandler(path,
+        listener, new EventType[]
         { EventType.NodeChildrenChanged, EventType.NodeDeleted,
             EventType.NodeCreated }, LIVE_INSTANCE);
     _handlers.add(callbackHandler);
@@ -126,9 +129,9 @@ public class DynamicFileClusterManager implements ClusterManager
   public void addMessageListener(MessageListener listener, String instanceName)
   {
     final String path = CMUtil.getMessagePath(_clusterName, instanceName);
-    
-    CallbackHandlerForFile callbackHandler = createCallBackHandler(path, listener,
-        new EventType[]
+
+    CallbackHandlerForFile callbackHandler = createCallBackHandler(path,
+        listener, new EventType[]
         { EventType.NodeDataChanged, EventType.NodeDeleted,
             EventType.NodeCreated }, ChangeType.MESSAGE);
     _handlers.add(callbackHandler);
@@ -142,8 +145,8 @@ public class DynamicFileClusterManager implements ClusterManager
     final String path = CMUtil.getCurrentStateBasePath(_clusterName,
         instanceName) + "/" + sessionId;
 
-    CallbackHandlerForFile callbackHandler = createCallBackHandler(path, listener,
-        new EventType[]
+    CallbackHandlerForFile callbackHandler = createCallBackHandler(path,
+        listener, new EventType[]
         { EventType.NodeChildrenChanged, EventType.NodeDeleted,
             EventType.NodeCreated }, CURRENT_STATE);
     _handlers.add(callbackHandler);
@@ -228,16 +231,15 @@ public class DynamicFileClusterManager implements ClusterManager
   }
 
   private void addLiveInstance()
-  { 
-      ZNRecord metaData = new ZNRecord();
-      // set it from the session
-      metaData.setId(_instanceName);
-      metaData.setSimpleField(CMConstants.ZNAttribute.SESSION_ID.toString(),
-          _sessionId);
-      _fileDataAccessor.setClusterProperty(ClusterPropertyType.LIVEINSTANCES,
-          _instanceName, metaData, CreateMode.EPHEMERAL);
+  {
+    ZNRecord metaData = new ZNRecord();
+    // set it from the session
+    metaData.setId(_instanceName);
+    metaData.setSimpleField(CMConstants.ZNAttribute.SESSION_ID.toString(),
+        _sessionId);
+    _fileDataAccessor.setClusterProperty(ClusterPropertyType.LIVEINSTANCES,
+        _instanceName, metaData, CreateMode.EPHEMERAL);
   }
-  
 
   @Override
   public long getLastNotificationTime()
@@ -249,24 +251,25 @@ public class DynamicFileClusterManager implements ClusterManager
   public void addControllerListener(ControllerChangeListener listener)
   {
     throw new UnsupportedOperationException(
-      "addControllerListener() is NOT supported by File Based cluster manager");
+        "addControllerListener() is NOT supported by File Based cluster manager");
   }
 
   @Override
-  public boolean removeListener(Object listener) {
+  public boolean removeListener(Object listener)
+  {
     // TODO Auto-generated method stub
     return false;
   }
-  
-  
-  private CallbackHandlerForFile createCallBackHandler(String path, Object listener,
-      EventType[] eventTypes, ChangeType changeType)
+
+  private CallbackHandlerForFile createCallBackHandler(String path,
+      Object listener, EventType[] eventTypes, ChangeType changeType)
   {
     if (listener == null)
     {
       throw new ClusterManagerException("Listener cannot be null");
     }
-    return new CallbackHandlerForFile(this, path, listener, eventTypes, changeType);
+    return new CallbackHandlerForFile(this, path, listener, eventTypes,
+        changeType);
   }
 
   @Override
@@ -277,17 +280,24 @@ public class DynamicFileClusterManager implements ClusterManager
 
   @Override
   public <T> PropertyStore<T> getPropertyStore(String rootNamespace,
-                                               PropertySerializer<T> serializer)
+      PropertySerializer<T> serializer)
   {
     // TODO Auto-generated method stub
     return null;
   }
-  
+
   @Override
   public ClusterMessagingService getMessagingService()
   {
-	  // TODO Auto-generated method stub
-	  return null;
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public ParticipantHealthReportCollector getHealthReportCollector()
+  {
+    // TODO Auto-generated method stub
+    return null;
   }
 
 }

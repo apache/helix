@@ -3,6 +3,7 @@ package com.linkedin.clustermanager;
 import java.util.List;
 
 import com.linkedin.clustermanager.controller.GenericClusterController;
+import com.linkedin.clustermanager.healthcheck.ParticipantHealthReportCollector;
 import com.linkedin.clustermanager.participant.StateMachineEngine;
 import com.linkedin.clustermanager.spectator.RoutingTableProvider;
 import com.linkedin.clustermanager.store.PropertySerializer;
@@ -176,4 +177,11 @@ public interface ClusterManager
    * 
    */
   ClusterMessagingService getMessagingService();
+  
+  /**
+   * Participant only component that periodically update participant health report to cluster 
+   * manager server.
+   * 
+   */
+  ParticipantHealthReportCollector getHealthReportCollector();
 }

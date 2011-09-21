@@ -176,9 +176,9 @@ public class ClusterManagerMain
     return manager;
   }
   
-  public static void main(String[] args) throws InterruptedException, Exception
+  public static void main(String[] args) throws Exception
   {
-    // read the config
+    // read the config;
     // check if the this process is the master wait indefinitely
     // other approach is always process the events but when updating the zk
     // check if this is master.
@@ -210,15 +210,17 @@ public class ClusterManagerMain
     
     ClusterManager manager = startClusterManagerMain(zkConnectString, clusterName, 
                               controllerName, controllerMode);
-    
     try
     {
       Thread.currentThread().join();
     }
     catch (InterruptedException e)
     {
-      ClusterManagerFactory.disconnectManagers(controllerName);
-      logger.info("thread:" + Thread.currentThread().getName() + " interrupted");
+      // ClusterManagerFactory.disconnectManagers(controllerName);
+      logger.info("controller:" + controllerName + ", " + 
+                    Thread.currentThread().getName() + " interrupted");
+      manager.disconnect();
     }
+
   }
 }

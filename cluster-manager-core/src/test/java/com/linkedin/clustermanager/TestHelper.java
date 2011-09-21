@@ -112,9 +112,13 @@ public class TestHelper
         }
         catch (InterruptedException e)
         {
-          ClusterManagerFactory.disconnectManagers(instanceName);
-          logger.info("thread:" + Thread.currentThread().getName() + 
-                      "instanceName:" + instanceName + " interrupted");
+          // ClusterManagerFactory.disconnectManagers(instanceName);
+          logger.info("participant:" + instanceName + ", " + 
+                      Thread.currentThread().getName() + " interrupted");
+          if (manager != null)
+          {
+            manager.disconnect();
+          }
         }
         catch (Exception e)
         {
@@ -147,6 +151,7 @@ public class TestHelper
       public void run()
       {
         ClusterManager manager = null;
+       
         try
         {
           manager = ClusterManagerMain.startClusterManagerMain(zkConnectString, 
@@ -155,8 +160,13 @@ public class TestHelper
         } 
         catch (InterruptedException e)
         {
-          ClusterManagerFactory.disconnectManagers(controllerName);
-          logger.info("thread:" + Thread.currentThread().getName() + " interrupted");
+          // ClusterManagerFactory.disconnectManagers(controllerName);
+          logger.info("controller:" + controllerName + ", " + 
+                      Thread.currentThread().getName() + " interrupted");
+          if (manager != null)
+          {
+            manager.disconnect();
+          }
         }
         catch (Exception e)
         {

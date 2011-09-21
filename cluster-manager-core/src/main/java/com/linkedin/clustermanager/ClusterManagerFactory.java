@@ -6,10 +6,6 @@ package com.linkedin.clustermanager;
  * for zk-based cluster managers, the getZKXXX(..zkClient) that takes a zkClient parameter
  *   are intended for session expiry test purpose
  */
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
-
 import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.agent.file.DynamicFileClusterManager;
@@ -17,18 +13,18 @@ import com.linkedin.clustermanager.agent.file.FileBasedClusterManager;
 import com.linkedin.clustermanager.agent.file.FileBasedDataAccessor;
 import com.linkedin.clustermanager.agent.zk.ZKClusterManager;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
-import com.linkedin.clustermanager.store.PropertyJsonSerializer;
 
 public final class ClusterManagerFactory
 {
   private static final Logger logger = Logger.getLogger(ClusterManagerFactory.class);
   
   // for shutting down multiple cluster managers cleanly when a thread gets interrupted
+  /*
   private final static Map<String, ConcurrentLinkedQueue<ClusterManager>> _managers 
      = new ConcurrentHashMap<String, ConcurrentLinkedQueue<ClusterManager>>();
   
   private static final PropertyJsonSerializer<String> _serializer 
-    = new PropertyJsonSerializer<String>(String.class);
+     = new PropertyJsonSerializer<String>(String.class);
   
   private ClusterManagerFactory()
   {
@@ -71,6 +67,7 @@ public final class ClusterManagerFactory
       e.printStackTrace();
     }
   }
+  */
   
   // zk-based cluster manager factory functions
   /**
@@ -87,7 +84,7 @@ public final class ClusterManagerFactory
   {
     ClusterManager manager = new ZKClusterManager(clusterName, instanceName, 
                            InstanceType.PARTICIPANT, zkConnectString);
-    addManager(instanceName, manager);
+    // addManager(instanceName, manager);
     return manager;
   }
   
@@ -108,7 +105,7 @@ public final class ClusterManagerFactory
   {
     ClusterManager manager = new ZKClusterManager(clusterName, instanceName, 
                         InstanceType.PARTICIPANT, zkConnectString, zkClient);
-    addManager(instanceName, manager);
+    // addManager(instanceName, manager);
     return manager;
   }
   
@@ -152,7 +149,7 @@ public final class ClusterManagerFactory
   {
     ClusterManager manager = new ZKClusterManager(clusterName, controllerName, 
             InstanceType.CONTROLLER, zkConnectString);
-    addManager(controllerName, manager);
+    // addManager(controllerName, manager);
     return manager; 
   }
 
@@ -172,7 +169,7 @@ public final class ClusterManagerFactory
   {
     ClusterManager manager = new ZKClusterManager(clusterName, controllerName, InstanceType.CONTROLLER, 
                                                   zkConnectString, zkClient);
-    addManager(controllerName, manager);
+    // addManager(controllerName, manager);
     return manager;
   }
 
@@ -191,7 +188,7 @@ public final class ClusterManagerFactory
   {
     ClusterManager manager = new ZKClusterManager(clusterName, controllerName, 
                            InstanceType.CONTROLLER_PARTICIPANT, zkConnectString);
-    addManager(controllerName, manager);
+    // addManager(controllerName, manager);
     return manager;
   }
   

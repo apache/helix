@@ -66,6 +66,7 @@ public class ZKClusterManager implements ClusterManager
   private Timer _timer;
   private CallbackHandler _leaderElectionHandler = null;
 
+
   public ZKClusterManager(String clusterName, InstanceType instanceType,
       String zkConnectString) throws Exception
   {
@@ -232,6 +233,17 @@ public class ZKClusterManager implements ClusterManager
   @Override
   public void disconnect()
   {
+    if (_leaderElectionHandler != null)
+    {
+      DistClusterControllerElection listener 
+         = (DistClusterControllerElection)_leaderElectionHandler.getListener();
+      ClusterManager leader = listener.getLeader();
+      if (leader != null)
+      {
+        leader.disconnect();
+      }
+      
+    }
     _zkClient.close();
   }
 
@@ -408,7 +420,7 @@ public class ZKClusterManager implements ClusterManager
     _sessionId = UUID.randomUUID().toString();
     resetHandlers(_handlers);
 
-    logger.info("Handling new session, session id:" + _sessionId + "instance:" + _instanceName);
+    logger.info("Handling new session, session id:" + _sessionId + ", instance:" + _instanceName);
     
     if (_instanceType == InstanceType.PARTICIPANT
         || _instanceType == InstanceType.CONTROLLER_PARTICIPANT)

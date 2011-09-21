@@ -39,7 +39,7 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkDataListener, IZ
   private Map<String, Map<PropertyChangeListener<T>, ZKPropertyListenerTuple>> _listenerMap 
       = new ConcurrentHashMap<String, Map<PropertyChangeListener<T>, ZKPropertyListenerTuple>>();
 
-  // TODO: property cache needs to have a bounded capacity
+  // TODO property cache needs to have a bounded capacity
   private Map<String, PropertyInfo<T>> _propertyCacheMap = new ConcurrentHashMap<String, PropertyInfo<T>>();
 
   // 1-1 mapping from a PropertyChangeListener<T> to a tuple of { IZkxxx
@@ -74,7 +74,7 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkDataListener, IZ
             LOG.debug("data delete, " + dataPath);
           }
           
-          /**
+          /*
           // unsubscribeForPropertyChange(getRelativePath(dataPath), listener);
 
           // synchronize is necessary, race condition:
@@ -85,12 +85,12 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkDataListener, IZ
           {
             _listenerMap.remove(dataPath);
           }
-          **/
+          */
         }
 
       };
 
-      // TODO: implement remove listener
+      // TODO implement remove listener
       _zkChildListener = new IZkChildListener()
       {
 
@@ -264,7 +264,7 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkDataListener, IZ
     }
 
     // return a copy
-    // TODO: optimize to save serialize/de-serialize by caching only byte[]
+    // TODO optimize to save serialize/de-serialize by caching only byte[]
     if (value != null)
     {
       value = _serializer.deserialize(_serializer.serialize(value));
@@ -481,7 +481,7 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkDataListener, IZ
   {
     throw new PropertyStoreException("unsubscribe not implememted");
     
-    /**
+    /*
     String path = getPath(prefix);
 
     synchronized (_listenerMap)
@@ -514,7 +514,7 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkDataListener, IZ
       }
 
     }
-    **/
+    */
   }
 
   @Override
@@ -596,20 +596,29 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkDataListener, IZ
     updatePropertyUntilSucceed(key, updater, true);
   }
 
-  /**
-   * @Override public boolean updateProperty(String key, DataUpdater<T> updater)
-   *           { String path = getPath(key); if (!_zkClient.exists(path)) return
-   *           false;
-   * 
-   *           Stat stat = new Stat(); boolean isSucceed = false;
-   * 
-   *           try { T oldData = _zkClient.<T>readData(path, stat); T newData =
-   *           updater.update(oldData); _zkClient.writeData(path, newData,
-   *           stat.getVersion()); // callback will update cache isSucceed =
-   *           true; } catch (ZkBadVersionException e) { isSucceed = false; }
-   * 
-   *           return isSucceed; }
-   **/
+  /*
+  @Override 
+  public boolean updateProperty(String key, DataUpdater<T> updater)
+  { 
+    String path = getPath(key); 
+    if (!_zkClient.exists(path)) 
+       return false;
+    Stat stat = new Stat(); 
+    boolean isSucceed = false;
+    
+    try 
+    { 
+      T oldData = _zkClient.<T>readData(path, stat); 
+      T newData = updater.update(oldData); 
+      _zkClient.writeData(path, newData,
+      stat.getVersion()); // callback will update cache isSucceed = true; 
+    } catch (ZkBadVersionException e) 
+    { 
+      isSucceed = false; 
+    }
+    return isSucceed; 
+  }
+  */
 
   @Override
   public boolean compareAndSet(String key, T expected, T update,

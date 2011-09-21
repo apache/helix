@@ -52,9 +52,9 @@ public class StatusUpdateUtil
     result.setMapField(mapFieldKey, new TreeMap<String, String>());
     
     // Store all the simple fields of the message in the new ZNRecord's map field.
-    for(String simpleFieldKey : message.getSimpleFields().keySet())
+    for(String simpleFieldKey : message.getRecord().getSimpleFields().keySet())
     {
-      result.getMapField(mapFieldKey).put(simpleFieldKey, message.getSimpleField(simpleFieldKey));
+      result.getMapField(mapFieldKey).put(simpleFieldKey, message.getRecord().getSimpleField(simpleFieldKey));
     }
     result.setId(getStatusUpdateSubPath(message));
     return result;

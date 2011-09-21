@@ -1,6 +1,7 @@
 package com.linkedin.clustermanager.model;
 
 import java.util.Map;
+import java.util.Set;
 
 import com.linkedin.clustermanager.ZNRecord;
 
@@ -25,4 +26,13 @@ public class ExternalView
     return _record;
   }
 
+  public Set<String> getResourceKeys()
+  {
+    return _record.getMapFields().keySet();
+  }
+
+  public Map<String, String> getStateMap(String resourceKeyName)
+  {
+    return _record.getMapField(resourceKeyName);
+  }
 }

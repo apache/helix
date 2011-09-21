@@ -1,6 +1,14 @@
 package com.linkedin.clustermanager;
 
-public class AsyncCallback
-{
+import com.linkedin.clustermanager.model.Message;
 
+public abstract class AsyncCallback
+{
+  public abstract void onReply(Message message);
+    
+  public abstract boolean isDone();
+
+  public void onTimeOut(){
+    
+  }
 }

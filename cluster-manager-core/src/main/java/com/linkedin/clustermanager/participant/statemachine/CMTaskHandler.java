@@ -131,7 +131,7 @@ public class CMTaskHandler implements Callable<CMTaskResult>
     // Set the state model def to current state
     if(!currentState.getSimpleFields().containsKey(Message.Attributes.STATE_MODEL_DEF.toString()))
     {
-      if(_message.getSimpleFields().containsKey(Message.Attributes.STATE_MODEL_DEF.toString()))
+      if(_message.getRecord().getSimpleFields().containsKey(Message.Attributes.STATE_MODEL_DEF.toString()))
       {
         logger.info("Setting state model def on current state: " + _message.getStateModelDef());
         ZNRecord currentStateDelta = new ZNRecord();

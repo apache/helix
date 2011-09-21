@@ -34,12 +34,12 @@ class DefaultHealthReportProvider extends HealthReportProvider
     
     try
     {
-      if( osMxBean instanceof  com.sun.management.OperatingSystemMXBean)
-      {
-        com.sun.management.OperatingSystemMXBean sunOsMxBean 
-          = (com.sun.management.OperatingSystemMXBean) osMxBean;
-        freePhysicalMemory = sunOsMxBean.getFreePhysicalMemorySize();
-      }
+//      if( osMxBean instanceof  com.sun.management.OperatingSystemMXBean)
+//      {
+//        com.sun.management.OperatingSystemMXBean sunOsMxBean 
+//          = (com.sun.management.OperatingSystemMXBean) osMxBean;
+//        freePhysicalMemory = sunOsMxBean.getFreePhysicalMemorySize();
+//      }
     }
     catch (Throwable t) 
     {

@@ -129,7 +129,7 @@ public interface ClusterDataAccessor
 
   public enum ControllerPropertyType
   {
-    LEADER(false, false, true), HISTORY(true, true, true), PAUSE(false,false,true);
+    LEADER(false, false, true), HISTORY(true, true, true), PAUSE(false,false,true), MESSAGES(false,false,true);
     
     boolean isPersistent;
 

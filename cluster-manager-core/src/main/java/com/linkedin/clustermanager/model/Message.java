@@ -8,8 +8,10 @@ import com.linkedin.clustermanager.ZNRecord;
  * @author kgopalak
  */
 
-public class Message extends ZNRecord
+public class Message
 {
+  private final ZNRecord _record;
+
   enum MessageType
   {
     STATE_TRANSITION
@@ -19,15 +21,25 @@ public class Message extends ZNRecord
   {
     MSG_ID, SRC_SESSION_ID, TGT_SESSION_ID, SRC_NAME, TGT_NAME, MSG_STATE, STATE_UNIT_KEY, STATE_UNIT_GROUP, FROM_STATE, TO_STATE, STATE_MODEL_DEF, READ_TIMESTAMP, EXECUTE_START_TIMESTAMP;
   }
-  
+
   public Message()
   {
-    super();
+    _record = new ZNRecord();
   }
 
   public Message(ZNRecord record)
   {
-    super(record);
+    _record = record;
+  }
+
+  public void setId(String id)
+  {
+    _record.setId(id);
+  }
+
+  public String getId()
+  {
+    return _record.getId();
   }
 
   public String getTgtSessionId()
@@ -37,9 +49,9 @@ public class Message extends ZNRecord
 
   public void setTgtSessionId(String tgtSessionId)
   {
-    setSimpleField(Attributes.TGT_SESSION_ID.toString(), tgtSessionId);
+    _record.setSimpleField(Attributes.TGT_SESSION_ID.toString(), tgtSessionId);
   }
-  
+
   public String getSrcSessionId()
   {
     return getSimpleFieldAsString(Attributes.SRC_SESSION_ID.toString());
@@ -47,7 +59,7 @@ public class Message extends ZNRecord
 
   public void setSrcSessionId(String srcSessionId)
   {
-    setSimpleField(Attributes.SRC_SESSION_ID.toString(), srcSessionId);
+    _record.setSimpleField(Attributes.SRC_SESSION_ID.toString(), srcSessionId);
   }
 
   public String getMsgSrc()
@@ -57,7 +69,7 @@ public class Message extends ZNRecord
 
   public void setSrcName(String msgSrc)
   {
-    setSimpleField(Attributes.SRC_NAME.toString(), msgSrc);
+    _record.setSimpleField(Attributes.SRC_NAME.toString(), msgSrc);
   }
 
   public String getTgtName()
@@ -67,7 +79,7 @@ public class Message extends ZNRecord
 
   public void setMsgState(String msgState)
   {
-    setSimpleField(Attributes.MSG_STATE.toString(), msgState);
+    _record.setSimpleField(Attributes.MSG_STATE.toString(), msgState);
   }
 
   public String getMsgState()
@@ -77,7 +89,7 @@ public class Message extends ZNRecord
 
   public void setStateUnitKey(String stateUnitKey)
   {
-    setSimpleField(Attributes.STATE_UNIT_KEY.toString(), stateUnitKey);
+    _record.setSimpleField(Attributes.STATE_UNIT_KEY.toString(), stateUnitKey);
   }
 
   public String getStateUnitKey()
@@ -92,12 +104,12 @@ public class Message extends ZNRecord
 
   public void setMsgId(String msgId)
   {
-    setSimpleField(Attributes.MSG_ID.toString(), msgId);
+    _record.setSimpleField(Attributes.MSG_ID.toString(), msgId);
   }
 
   public void setFromState(String state)
   {
-    setSimpleField(Attributes.FROM_STATE.toString(), state);
+    _record.setSimpleField(Attributes.FROM_STATE.toString(), state);
   }
 
   public String getFromState()
@@ -107,7 +119,7 @@ public class Message extends ZNRecord
 
   public void setToState(String state)
   {
-    setSimpleField(Attributes.TO_STATE.toString(), state);
+    _record.setSimpleField(Attributes.TO_STATE.toString(), state);
   }
 
   public String getToState()
@@ -117,31 +129,29 @@ public class Message extends ZNRecord
 
   private String getSimpleFieldAsString(String key)
   {
-    Object ret = getSimpleField(key);
+    Object ret = _record.getSimpleField(key);
     return (ret != null) ? ret.toString() : null;
   }
 
   public void setTgtName(String msgTgt)
   {
-    setSimpleField(Attributes.TGT_NAME.toString(), msgTgt);
-
+    _record.setSimpleField(Attributes.TGT_NAME.toString(), msgTgt);
   }
 
   public Boolean getDebug()
   {
-    // TODO Auto-generated method stub
     return false;
   }
 
   public Integer getGeneration()
   {
-    // TODO Auto-generated method stub
     return 1;
   }
 
   public void setStateUnitGroup(String stateUnitGroup)
   {
-    setSimpleField(Attributes.STATE_UNIT_GROUP.toString(), stateUnitGroup);
+    _record.setSimpleField(Attributes.STATE_UNIT_GROUP.toString(),
+        stateUnitGroup);
 
   }
 
@@ -159,57 +169,65 @@ public class Message extends ZNRecord
   {
     return getSimpleFieldAsString(Attributes.STATE_UNIT_KEY.toString());
   }
-  
+
   public String getStateModelDef()
   {
     return getSimpleFieldAsString(Attributes.STATE_MODEL_DEF.toString());
   }
-  
+
   public void setStateModelDef(String stateModelDefName)
   {
-    setSimpleField(Attributes.STATE_MODEL_DEF.toString(), stateModelDefName);
+    _record.setSimpleField(Attributes.STATE_MODEL_DEF.toString(),
+        stateModelDefName);
   }
-  
+
   public void setReadTimeStamp(long time)
   {
-    setSimpleField(Attributes.READ_TIMESTAMP.toString(), ""+time);
+    _record.setSimpleField(Attributes.READ_TIMESTAMP.toString(), "" + time);
   }
-  
+
   public void setExecuteStartTimeStamp(long time)
   {
-    setSimpleField(Attributes.EXECUTE_START_TIMESTAMP.toString(), ""+time);
+    _record.setSimpleField(Attributes.EXECUTE_START_TIMESTAMP.toString(), ""
+        + time);
   }
-  
+
   public long getReadTimeStamp()
   {
-    if(getSimpleField(Attributes.READ_TIMESTAMP.toString()) == null)
+    if (_record.getSimpleField(Attributes.READ_TIMESTAMP.toString()) == null)
     {
       return 0;
     }
     try
     {
-      return Long.parseLong(getSimpleField(Attributes.READ_TIMESTAMP.toString()));
-    }
-    catch(Exception e)
+      return Long.parseLong(_record.getSimpleField(Attributes.READ_TIMESTAMP
+          .toString()));
+    } catch (Exception e)
     {
       return 0;
     }
-    
+
   }
-  
+
   public long getExecuteStartTimeStamp()
   {
-    if(getSimpleField(Attributes.EXECUTE_START_TIMESTAMP.toString()) == null)
+    if (_record.getSimpleField(Attributes.EXECUTE_START_TIMESTAMP.toString()) == null)
     {
       return 0;
     }
     try
     {
-      return Long.parseLong(getSimpleField(Attributes.EXECUTE_START_TIMESTAMP.toString()));
-    }
-    catch(Exception e)
+      return Long.parseLong(_record
+          .getSimpleField(Attributes.EXECUTE_START_TIMESTAMP.toString()));
+    } catch (Exception e)
     {
       return 0;
     }
   }
+
+  public ZNRecord getRecord()
+  {
+    return _record;
+  }
+
 }

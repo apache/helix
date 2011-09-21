@@ -126,11 +126,11 @@ public class FileBasedClusterManager implements ClusterManager
     String toState = newMsg.getToState();
     if (toState.equals("MASTER"))
     {
-      msgList.add(newMsg);
+      msgList.add(newMsg.getRecord());
     }
     if (toState.equals("SLAVE"))
     {
-      msgList.add(0, newMsg);
+      msgList.add(0, newMsg.getRecord());
     }
   }
   

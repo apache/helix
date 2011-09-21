@@ -33,7 +33,7 @@ public class PendingMessageStateHolder
     Map<String, String> map = new HashMap<String, String>();
     for (ZNRecord record : messages)
     {
-      Message message = (Message) record;
+      Message message = new Message(record);
       if (message.getTgtSessionId().equals(currentSessionId))
       {
         map.put(message.getStateUnitKey(), message.getToState());

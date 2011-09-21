@@ -43,6 +43,7 @@ import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.healthcheck.ParticipantHealthReportCollector;
 import com.linkedin.clustermanager.model.IdealState;
 import com.linkedin.clustermanager.model.Message;
+import com.linkedin.clustermanager.model.Message.MessageType;
 import com.linkedin.clustermanager.participant.statemachine.StateModel;
 import com.linkedin.clustermanager.participant.statemachine.StateModelFactory;
 import com.linkedin.clustermanager.store.PropertySerializer;
@@ -87,7 +88,7 @@ public class FileBasedClusterManager implements ClusterManager
       String stateUnitKey, String instanceName, String currentState,
       String nextState)
   {
-    Message message = new Message();
+    Message message = new Message(MessageType.STATE_TRANSITION);
     String uuid = UUID.randomUUID().toString();
     message.setId(uuid);
     message.setMsgId(uuid);

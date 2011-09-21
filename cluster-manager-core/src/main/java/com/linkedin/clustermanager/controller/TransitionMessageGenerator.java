@@ -116,7 +116,7 @@ public class TransitionMessageGenerator
   private Message createMessage(ZNRecord idealStateRecord, String stateUnitKey,
       String instanceName, String currentState, String nextState)
   {
-    Message message = new Message();
+    Message message = new Message(Message.MessageType.STATE_TRANSITION);
     String uuid = UUID.randomUUID().toString();
     message.setId(uuid);
     message.setMsgId(uuid);

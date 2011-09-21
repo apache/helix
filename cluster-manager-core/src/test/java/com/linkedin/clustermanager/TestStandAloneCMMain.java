@@ -16,21 +16,20 @@ public class TestStandAloneCMMain extends ZkStandAloneCMHandler
   @Test
   public void testStandAloneCMMain() throws Exception
   {
-    logger.info("Run testStandAloneCMMain() at " + new Date(System.currentTimeMillis()));
+    logger.info("Run at " + new Date(System.currentTimeMillis()));
     
-    // final String clusterName = CLUSTER_PREFIX + "_" + this.getClass().getName();
-    TestHelper.startClusterController("-zkSvr " + ZK_ADDR + " -cluster " + clusterName +
+    TestHelper.startClusterController("-zkSvr " + ZK_ADDR + " -cluster " + CLUSTER_NAME +
           " -mode " + ClusterManagerMain.STANDALONE + " -controllerName controller_1");
-    TestHelper.startClusterController("-zkSvr " + ZK_ADDR + " -cluster " + clusterName +
+    TestHelper.startClusterController("-zkSvr " + ZK_ADDR + " -cluster " + CLUSTER_NAME +
           " -mode " + ClusterManagerMain.STANDALONE + " -controllerName controller_2");
     
-    stopCurrentLeader(clusterName);
+    stopCurrentLeader(CLUSTER_NAME);
     
     Thread.sleep(5000);
-    boolean result = ClusterStateVerifier.VerifyClusterStates(ZK_ADDR, clusterName);
+    boolean result = ClusterStateVerifier.VerifyClusterStates(ZK_ADDR, CLUSTER_NAME);
     Assert.assertTrue(result);
     
-    logger.info("End testStandAloneCMMain() at " + new Date(System.currentTimeMillis())); 
+    logger.info("End at " + new Date(System.currentTimeMillis())); 
   }
 
 }

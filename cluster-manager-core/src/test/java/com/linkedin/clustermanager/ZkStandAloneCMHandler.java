@@ -36,7 +36,7 @@ public class ZkStandAloneCMHandler
 {
   private static Logger logger = Logger.getLogger(ZkStandAloneCMHandler.class);
   protected static final String ZK_ADDR = "localhost:2181";
-  protected static final String CLUSTER_PREFIX = "ESPRESSO_STORAGE";
+  // protected static final String CLUSTER_PREFIX = "ESPRESSO_STORAGE";
 
   protected static final int NODE_NR = 5;
   protected static final int START_PORT = 12918;
@@ -46,7 +46,8 @@ public class ZkStandAloneCMHandler
   protected ZkClient _controllerZkClient;
   protected ZkClient[] _participantZkClients = new ZkClient[NODE_NR];
   protected ClusterSetup _setupTool = null;
-  protected final String clusterName = CLUSTER_PREFIX + "_" + this.getClass().getName();
+  protected final String CLASS_NAME = getShortClassName();
+  protected final String CLUSTER_NAME = "ESPRESSO_STORAGE_" + CLASS_NAME;
 
   private ZkServer _zkServer = null;
   private Map<String, Thread> _threadMap = new HashMap<String, Thread>();
@@ -56,19 +57,18 @@ public class ZkStandAloneCMHandler
   {
     logger.info("START at " + new Date(System.currentTimeMillis()));
     
-    // final String clusterName = CLUSTER_PREFIX + "_" + this.getClass().getName();
-    _zkServer = TestHelper.startZkSever(ZK_ADDR, "/" + clusterName);
+    _zkServer = TestHelper.startZkSever(ZK_ADDR, "/" + CLUSTER_NAME);
     _setupTool = new ClusterSetup(ZK_ADDR);
     
     // setup storage cluster
-    _setupTool.addCluster(clusterName, true);
-    _setupTool.addResourceGroupToCluster(clusterName, TEST_DB, 20, STATE_MODEL);
+    _setupTool.addCluster(CLUSTER_NAME, true);
+    _setupTool.addResourceGroupToCluster(CLUSTER_NAME, TEST_DB, 20, STATE_MODEL);
     for (int i = 0; i < NODE_NR; i++)
     {
       String storageNodeName = "localhost:" + (START_PORT + i);
-      _setupTool.addInstanceToCluster(clusterName, storageNodeName);
+      _setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
     }
-    _setupTool.rebalanceStorageCluster(clusterName, TEST_DB, 3);
+    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, TEST_DB, 3);
     
     // start dummy participants 
     Thread thread;
@@ -83,7 +83,7 @@ public class ZkStandAloneCMHandler
       else
       {
         _participantZkClients[i] = new ZkClient(ZK_ADDR, 3000, 10000, new ZNRecordSerializer());
-        thread = TestHelper.startDummyProcess(ZK_ADDR, clusterName, 
+        thread = TestHelper.startDummyProcess(ZK_ADDR, CLUSTER_NAME, 
                        instanceName, _participantZkClients[i]);
         _threadMap.put(instanceName, thread);
       }
@@ -92,7 +92,7 @@ public class ZkStandAloneCMHandler
     // start controller
     String controllerName = "controller_0";
     _controllerZkClient = new ZkClient(ZK_ADDR, 3000, 10000, new ZNRecordSerializer());
-    thread = TestHelper.startClusterController(clusterName, controllerName, ZK_ADDR, 
+    thread = TestHelper.startClusterController(CLUSTER_NAME, controllerName, ZK_ADDR, 
                        ClusterManagerMain.STANDALONE, _controllerZkClient);
     _threadMap.put(controllerName, thread);
     try
@@ -104,9 +104,9 @@ public class ZkStandAloneCMHandler
       // TODO Auto-generated catch block
       e.printStackTrace();
     }
-    boolean result = ClusterStateVerifier.VerifyClusterStates(ZK_ADDR, clusterName);
+    boolean result = ClusterStateVerifier.VerifyClusterStates(ZK_ADDR, CLUSTER_NAME);
     Assert.assertTrue(result);
-    logger.info("cluster:" + clusterName + " starts result:" + result);
+    logger.info("cluster:" + CLUSTER_NAME + " starts result:" + result);
   }
   
   @AfterClass
@@ -118,6 +118,12 @@ public class ZkStandAloneCMHandler
     Thread.sleep(3000);
     logger.info("END at " + new Date(System.currentTimeMillis()));
     TestHelper.stopZkServer(_zkServer);
+  }
+  
+  private String getShortClassName()
+  {
+    String className = this.getClass().getName();
+    return className.substring(className.lastIndexOf('.') + 1);
   }
   
   private void stopThread(Map<String, Thread> threadMap)

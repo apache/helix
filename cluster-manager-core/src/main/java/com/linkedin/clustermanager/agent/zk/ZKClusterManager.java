@@ -450,7 +450,7 @@ public class ZKClusterManager implements ClusterManager
       handleNewSessionAsParticipant();
     }
 
-    else if (_instanceType == InstanceType.CONTROLLER
+    if (_instanceType == InstanceType.CONTROLLER
         || _instanceType == InstanceType.CONTROLLER_PARTICIPANT)
     {
       if (_leaderElectionHandler == null)

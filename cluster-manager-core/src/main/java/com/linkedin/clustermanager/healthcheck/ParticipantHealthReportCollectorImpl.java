@@ -1,10 +1,10 @@
 package com.linkedin.clustermanager.healthcheck;
 
+import java.util.LinkedList;
 import java.util.Map;
 import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.ConcurrentSkipListSet;
 
 import org.apache.log4j.Logger;
 
@@ -15,8 +15,7 @@ import com.linkedin.clustermanager.ZNRecord;
 public class ParticipantHealthReportCollectorImpl implements
     ParticipantHealthReportCollector
 {
-  private final ConcurrentSkipListSet<HealthReportProvider> _healthReportProviderSet 
-    = new ConcurrentSkipListSet<HealthReportProvider>();
+  private final LinkedList<HealthReportProvider> _healthReportProviderList = new LinkedList<HealthReportProvider>();
   private Timer _timer;
   private static final Logger _logger = Logger
       .getLogger(ParticipantHealthReportCollectorImpl.class);
@@ -43,8 +42,7 @@ public class ParticipantHealthReportCollectorImpl implements
     {
       _timer = new Timer();
       _timer.scheduleAtFixedRate(new HealthCheckInfoReportingTask(),
-          new Random().nextInt(DEFAULT_REPORT_LATENCY),
-          DEFAULT_REPORT_LATENCY);
+          new Random().nextInt(DEFAULT_REPORT_LATENCY), DEFAULT_REPORT_LATENCY);
     } else
     {
       _logger.warn("timer already started");
@@ -54,24 +52,36 @@ public class ParticipantHealthReportCollectorImpl implements
   @Override
   public void addHealthReportProvider(HealthReportProvider provider)
   {
-    if (!_healthReportProviderSet.contains(provider))
+    try
     {
-      _healthReportProviderSet.add(provider);
-    } else
+      synchronized (_healthReportProviderList)
+      {
+        if (!_healthReportProviderList.contains(provider))
+        {
+          _healthReportProviderList.add(provider);
+        } else
+        {
+          _logger.warn("Skipping a duplicated HealthCheckInfoProvider");
+        }
+      }
+    } catch (Exception e)
     {
-      _logger.warn("Skipping a duplicated HealthCheckInfoProvider");
+      _logger.error(e);
     }
   }
 
   @Override
   public void removeHealthReportProvider(HealthReportProvider provider)
   {
-    if (_healthReportProviderSet.contains(provider))
+    synchronized (_healthReportProviderList)
     {
-      _healthReportProviderSet.remove(provider);
-    } else
-    {
-      _logger.warn("Skip removing a non-exist HealthCheckInfoProvider");
+      if (_healthReportProviderList.contains(provider))
+      {
+        _healthReportProviderList.remove(provider);
+      } else
+      {
+        _logger.warn("Skip removing a non-exist HealthCheckInfoProvider");
+      }
     }
   }
 
@@ -88,8 +98,7 @@ public class ParticipantHealthReportCollectorImpl implements
     {
       _timer.cancel();
       _timer = null;
-    } 
-    else
+    } else
     {
       _logger.warn("timer already stopped");
     }
@@ -100,21 +109,24 @@ public class ParticipantHealthReportCollectorImpl implements
     @Override
     public void run()
     {
-      for (HealthReportProvider provider : _healthReportProviderSet)
+      synchronized (_healthReportProviderList)
       {
-        try
+        for (HealthReportProvider provider : _healthReportProviderList)
         {
-          Map<String, String> report = provider.getRecentHealthReport();
-          ZNRecord record = new ZNRecord();
-          record.setId(provider.getReportName());
-          record.setSimpleFields(report);
-          
-          _clusterManager.getDataAccessor().setInstanceProperty(_instanceName,
-              InstancePropertyType.HEALTHREPORT, record.getId(), record);
-        }
-        catch(Exception e)
-        {
-          _logger.error(e);
+          try
+          {
+            Map<String, String> report = provider.getRecentHealthReport();
+            ZNRecord record = new ZNRecord();
+            record.setId(provider.getReportName());
+            record.setSimpleFields(report);
+
+            _clusterManager.getDataAccessor().setInstanceProperty(
+                _instanceName, InstancePropertyType.HEALTHREPORT,
+                record.getId(), record);
+          } catch (Exception e)
+          {
+            _logger.error(e);
+          }
         }
       }
     }

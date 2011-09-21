@@ -441,14 +441,9 @@ public class ZKClusterManager implements ClusterManager
   {
     _sessionId = UUID.randomUUID().toString();
     resetHandlers(_handlers);
-<<<<<<< HEAD
 
     logger.info("Handling new session, session id:" + _sessionId + ", instance:" + _instanceName);
     
-=======
-    logger.info("Handling new session, session id:" + _sessionId + "instance:" + _instanceName);
-
->>>>>>> 1610676af530775e915e3f01647925f1c9fe73f7
     if (_instanceType == InstanceType.PARTICIPANT
         || _instanceType == InstanceType.CONTROLLER_PARTICIPANT)
     {

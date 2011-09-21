@@ -3,6 +3,7 @@ package com.linkedin.clustermanager.pipeline;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.I0Itec.zkclient.exception.ZkInterruptedException;
 import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.controller.stages.ClusterEvent;
@@ -37,7 +38,12 @@ public class Pipeline
       try
       {
         stage.process(event);
-      } catch (Exception e)
+      }
+      catch (ZkInterruptedException e)
+      {
+        logger.error("Interrupted while executing stage:" + stage + ", exception:" + e);
+      }
+      catch (Exception e)
       {
         logger.error("Exception while executing stage:" + stage
             + ". Pipeline will not continue to next stage", e);

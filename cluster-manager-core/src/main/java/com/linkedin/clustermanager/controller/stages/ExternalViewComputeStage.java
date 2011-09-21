@@ -5,9 +5,9 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.ClusterDataAccessor;
+import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ZNRecord;
-import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.model.ExternalView;
 import com.linkedin.clustermanager.model.ResourceGroup;
 import com.linkedin.clustermanager.model.ResourceKey;
@@ -30,6 +30,11 @@ public class ExternalViewComputeStage extends AbstractBaseStage
 		ClusterDataAccessor dataAccessor = manager.getDataAccessor();
 		Map<String, ResourceGroup> resourceGroupMap = event
 		    .getAttribute(AttributeName.RESOURCE_GROUPS.toString());
+		if (resourceGroupMap == null)
+		{
+		  throw new StageException("ResourceGroupMap attribute value is null");
+		}
+		
 		CurrentStateOutput currentStateOutput = event
 		    .getAttribute(AttributeName.CURRENT_STATE.toString());
 		for (String resourceGroupName : resourceGroupMap.keySet())

@@ -164,20 +164,39 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
 			{
 				_zkClient.subscribeChildChanges(this._path, this);
 			}
+			else if (changeContext.getType() == NotificationContext.Type.INIT)
+			{
+			  _zkClient.unsubscribeChildChanges(this._path, this);
+			}
 		}
-		if (_zkClient.exists(_path) && watchChild)
+		if (_zkClient.exists(_path))
 		{
+		  if (watchChild)
+		  {
     		List<String> children = _zkClient.getChildren(_path);
     		for (String child : children)
     		{
     			String childPath = _path + "/" + child;
-    			// if (watchChild)
-    			// {
-    				// its ok to subscribe changes multiple times since zkclient
-    				// checks the existence
-    				_zkClient.subscribeDataChanges(childPath, this);
-    			// }
+    			/*
+    			if (watchChild)
+    			{
+    			  // its ok to subscribe changes multiple times since zkclient
+    			  // checks the existence
+    			
+    			  _zkClient.subscribeDataChanges(childPath, this);
+    			}
+    			*/
+    			if (changeContext.getType() == NotificationContext.Type.INIT
+    			    || changeContext.getType() == NotificationContext.Type.CALLBACK)
+    			{
+    			  _zkClient.subscribeDataChanges(childPath, this);
+    			}
+    			else if (changeContext.getType() == NotificationContext.Type.FINALIZE)
+    			{
+    			  _zkClient.unsubscribeDataChanges(childPath, this);
+    			}
     		}
+		  }
 		}
 		else
 		{

@@ -233,6 +233,11 @@ public class ZKClusterManager implements ClusterManager
   @Override
   public void disconnect()
   {
+    for (CallbackHandler handler : _handlers)
+    {
+      handler.reset();
+    }
+    
     if (_leaderElectionHandler != null)
     {
       DistClusterControllerElection listener 

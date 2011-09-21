@@ -37,6 +37,8 @@ public class TestDistCMMain extends ZkDistCMHandler
       _threadMap.put(controller, thread);
     }
     
+    Thread.sleep(10000);
+    
     // stop controllers
     for (int i = 0; i < NODE_NR; i++)
     {

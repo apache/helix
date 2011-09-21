@@ -22,7 +22,7 @@ public class TestParticiptantNameCollision extends ZkStandAloneCMHandler
   {
     logger.info("RUN at " + new Date(System.currentTimeMillis()));
     
-    final String clusterName = CLUSTER_PREFIX + "_" + this.getClass().getName(); 
+    // final String clusterName = CLUSTER_PREFIX + "_" + this.getClass().getName(); 
     List<Thread> tList = new ArrayList<Thread>();
     
     tList.add(startDummyProcess(createArgs("-zkSvr " + ZK_ADDR + " -cluster " + clusterName + 

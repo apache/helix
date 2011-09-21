@@ -36,14 +36,18 @@ public class DistClusterControllerElection implements ControllerChangeListener
 	  return _controller;
 	}
 	
+	public ClusterManager getLeader()
+	{
+	  return _leader;
+	}
+	
 	private void doLeaderElection(ClusterManager manager) throws Exception
 	{
 		boolean isLeader = tryUpdateController(manager);
 		if (isLeader)
 		{
 		  if (_controller == null)
-		  {
-		    
+		  {	    
 			_controller = new GenericClusterController();
 			InstanceType type = manager.getInstanceType(); 
 			if (type == InstanceType.CONTROLLER)

@@ -17,7 +17,7 @@ public class TestDistCMMain extends ZkDistCMHandler
   {
     logger.info("RUN at " + new Date(System.currentTimeMillis()));
     
-    final String controllerCluster = CONTROLLER_CLUSTER_PREFIX + "_" + this.getClass().getName();
+    // final String controllerCluster = CONTROLLER_CLUSTER_PREFIX + "_" + this.getClass().getName();
 
     // add more controllers to controller cluster
     for (int i = 0; i < NODE_NR; i++)
@@ -36,6 +36,8 @@ public class TestDistCMMain extends ZkDistCMHandler
            " -mode " + ClusterManagerMain.DISTRIBUTED + " -controllerName " + controller);
       _threadMap.put(controller, thread);
     }
+    
+    Thread.sleep(10000);
     
     // stop controllers
     for (int i = 0; i < NODE_NR; i++)

@@ -46,6 +46,7 @@ public class ZkStandAloneCMHandler
   protected ZkClient _controllerZkClient;
   protected ZkClient[] _participantZkClients = new ZkClient[NODE_NR];
   protected ClusterSetup _setupTool = null;
+  protected final String clusterName = CLUSTER_PREFIX + "_" + this.getClass().getName();
 
   private ZkServer _zkServer = null;
   private Map<String, Thread> _threadMap = new HashMap<String, Thread>();
@@ -55,7 +56,7 @@ public class ZkStandAloneCMHandler
   {
     logger.info("START at " + new Date(System.currentTimeMillis()));
     
-    final String clusterName = CLUSTER_PREFIX + "_" + this.getClass().getName();
+    // final String clusterName = CLUSTER_PREFIX + "_" + this.getClass().getName();
     _zkServer = TestHelper.startZkSever(ZK_ADDR, "/" + clusterName);
     _setupTool = new ClusterSetup(ZK_ADDR);
     
@@ -112,6 +113,7 @@ public class ZkStandAloneCMHandler
   public void afterClass() throws Exception
   {
     logger.info("END shutting down cluster managers at " + new Date(System.currentTimeMillis()));
+    
     stopThread(_threadMap);
     Thread.sleep(3000);
     logger.info("END at " + new Date(System.currentTimeMillis()));

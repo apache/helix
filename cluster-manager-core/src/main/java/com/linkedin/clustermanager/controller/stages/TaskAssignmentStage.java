@@ -1,14 +1,13 @@
 package com.linkedin.clustermanager.controller.stages;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.ClusterDataAccessor;
-import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
+import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.ResourceGroup;
 import com.linkedin.clustermanager.model.ResourceKey;
@@ -30,6 +29,10 @@ public class TaskAssignmentStage extends AbstractBaseStage
     ClusterDataAccessor dataAccessor = manager.getDataAccessor();
     Map<String, ResourceGroup> resourceGroupMap = event
         .getAttribute(AttributeName.RESOURCE_GROUPS.toString());
+    if (resourceGroupMap == null)
+    {
+      throw new StageException("ResourceGroupMap attribute value is null");
+    }
     MessageSelectionStageOutput messageSelectionStageOutput = event
         .getAttribute(AttributeName.MESSAGES_SELECTED.toString());
     for (String resourceGroupName : resourceGroupMap.keySet())

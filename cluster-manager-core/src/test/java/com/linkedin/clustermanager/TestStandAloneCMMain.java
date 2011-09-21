@@ -18,7 +18,7 @@ public class TestStandAloneCMMain extends ZkStandAloneCMHandler
   {
     logger.info("Run testStandAloneCMMain() at " + new Date(System.currentTimeMillis()));
     
-    final String clusterName = CLUSTER_PREFIX + "_" + this.getClass().getName();
+    // final String clusterName = CLUSTER_PREFIX + "_" + this.getClass().getName();
     TestHelper.startClusterController("-zkSvr " + ZK_ADDR + " -cluster " + clusterName +
           " -mode " + ClusterManagerMain.STANDALONE + " -controllerName controller_1");
     TestHelper.startClusterController("-zkSvr " + ZK_ADDR + " -cluster " + clusterName +

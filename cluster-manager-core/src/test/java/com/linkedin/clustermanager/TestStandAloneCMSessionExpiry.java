@@ -19,7 +19,7 @@ public class TestStandAloneCMSessionExpiry extends ZkStandAloneCMHandler
   {
     logger.info("RUN at " + new Date(System.currentTimeMillis()));
     
-    final String clusterName = CLUSTER_PREFIX + "_" + this.getClass().getName();
+    // final String clusterName = CLUSTER_PREFIX + "_" + this.getClass().getName();
     simulateSessionExpiry(_participantZkClients[0]);
     
     _setupTool.addResourceGroupToCluster(clusterName, "MyDB", 10, STATE_MODEL);

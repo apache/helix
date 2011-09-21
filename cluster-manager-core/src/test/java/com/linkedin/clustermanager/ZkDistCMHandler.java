@@ -43,6 +43,7 @@ public class ZkDistCMHandler
   protected static final String STATE_MODEL = "MasterSlave";
   protected ClusterSetup _setupTool = null;
   protected Map<String, Thread> _threadMap = new HashMap<String, Thread>();
+  protected final String controllerCluster = CONTROLLER_CLUSTER_PREFIX + "_" + this.getClass().getName();
   
   private static final String TEST_DB = "TestDB";
   private ZkServer _zkServer = null;
@@ -50,10 +51,10 @@ public class ZkDistCMHandler
   @BeforeClass
   public void beforeClass()
   {
-    logger.info("START ZkDistCMHandler at " + new Date(System.currentTimeMillis()));
+    logger.info("START at " + new Date(System.currentTimeMillis()));
     List<String> namespaces = new ArrayList<String>();
     
-    final String controllerCluster = CONTROLLER_CLUSTER_PREFIX + "_" + this.getClass().getName(); 
+    // final String controllerCluster = CONTROLLER_CLUSTER_PREFIX + "_" + this.getClass().getName(); 
     namespaces.add("/" + controllerCluster);
     for (int i = 0; i < CLUSTER_NR; i++)
     {
@@ -132,7 +133,12 @@ public class ZkDistCMHandler
   @AfterClass
   public void afterClass() throws Exception
   {
-    logger.info("END ZkDistCMHandler at " + new Date(System.currentTimeMillis()));
+    logger.info("END at " + new Date(System.currentTimeMillis()));
+    
+    _setupTool.dropResourceGroupToCluster(controllerCluster, 
+                   CLUSTER_PREFIX + "_" + this.getClass().getName());
+    Thread.sleep(10000);
+    
     for (Map.Entry<String, Thread> entry : _threadMap.entrySet())
     {
       entry.getValue().interrupt();
@@ -191,5 +197,11 @@ public class ZkDistCMHandler
     Assert.assertTrue(controller != null);
     Thread thread = _threadMap.get(controller);
     Assert.assertTrue(thread != null);
+  }
+  
+  // @Test
+  public void testZkDistCMHandler()
+  {
+    logger.info("dummy start at " + new Date(System.currentTimeMillis()));
   }
 }

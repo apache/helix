@@ -183,6 +183,7 @@ public class StateModelConfigGenerator
     statePriorityList.add("LEADER");
     statePriorityList.add("STANDBY");
     statePriorityList.add("OFFLINE");
+    statePriorityList.add("DROPPED");
     record.setListField("statesPriorityList", statePriorityList);
     for (String state : statePriorityList)
     {
@@ -190,22 +191,21 @@ public class StateModelConfigGenerator
       Map<String, String> metadata = new HashMap<String, String>();
       if (state.equals("LEADER"))
       {
-        // metadata.put("max", "1");
-        // metadata.put("min", "1");
         metadata.put("count", "1");
         record.setMapField(key, metadata);
       }
       if (state.equals("STANDBY"))
       {
-        // metadata.put("max", "3");
-        // metadata.put("min", "0");
         metadata.put("count", "R");
         record.setMapField(key, metadata);
       }
       if (state.equals("OFFLINE"))
       {
-        // metadata.put("max", "-1");
-        // metadata.put("min", "-1");
+        metadata.put("count", "-1");
+        record.setMapField(key, metadata);
+      }
+      if (state.equals("DROPPED"))
+      {
         metadata.put("count", "-1");
         record.setMapField(key, metadata);
       }
@@ -220,7 +220,7 @@ public class StateModelConfigGenerator
         Map<String, String> metadata = new HashMap<String, String>();
         metadata.put("STANDBY", "STANDBY");
         metadata.put("OFFLINE", "STANDBY");
-
+        metadata.put("DROPPED", "STANDBY");
         record.setMapField(key, metadata);
       }
       if (state.equals("STANDBY"))
@@ -228,6 +228,7 @@ public class StateModelConfigGenerator
         Map<String, String> metadata = new HashMap<String, String>();
         metadata.put("LEADER", "LEADER");
         metadata.put("OFFLINE", "OFFLINE");
+        metadata.put("DROPPED", "OFFLINE");
         record.setMapField(key, metadata);
       }
       if (state.equals("OFFLINE"))
@@ -235,6 +236,7 @@ public class StateModelConfigGenerator
         Map<String, String> metadata = new HashMap<String, String>();
         metadata.put("STANDBY", "STANDBY");
         metadata.put("LEADER", "STANDBY");
+        metadata.put("DROPPED", "DROPPED");
         record.setMapField(key, metadata);
       }
 
@@ -244,6 +246,7 @@ public class StateModelConfigGenerator
     stateTransitionPriorityList.add("STANDBY-LEADER");
     stateTransitionPriorityList.add("OFFLINE-STANDBY");
     stateTransitionPriorityList.add("STANDBY-OFFLINE");
+    stateTransitionPriorityList.add("OFFLINE-DROPPED");
 
     record.setListField("stateTransitionPriorityList",
         stateTransitionPriorityList);

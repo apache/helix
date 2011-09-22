@@ -35,4 +35,9 @@ public class ExternalView
   {
     return _record.getMapField(resourceKeyName);
   }
+
+  public String getResourceGroup()
+  {
+    return _record.getId();
+  }
 }

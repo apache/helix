@@ -30,7 +30,7 @@ public interface ClusterMessagingService
    * @param callbackOnReply
    * @return
    */
-  boolean send(Criteria receipientCriteria, Message message,
+  int send(Criteria receipientCriteria, Message message,
       AsyncCallback callbackOnReply);
 
   /**

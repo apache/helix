@@ -19,7 +19,7 @@ public class Message
 
   public enum Attributes
   {
-    MSG_ID, SRC_SESSION_ID, TGT_SESSION_ID, SRC_NAME, TGT_NAME, MSG_STATE, STATE_UNIT_KEY, STATE_UNIT_GROUP, FROM_STATE, TO_STATE, STATE_MODEL_DEF, READ_TIMESTAMP, EXECUTE_START_TIMESTAMP;
+    MSG_ID, SRC_SESSION_ID, TGT_SESSION_ID, SRC_NAME, TGT_NAME, MSG_STATE, STATE_UNIT_KEY, STATE_UNIT_GROUP, FROM_STATE, TO_STATE, STATE_MODEL_DEF, READ_TIMESTAMP, CORRELATION_ID, EXECUTE_START_TIMESTAMP;
   }
 
   public Message()
@@ -228,6 +228,11 @@ public class Message
   public ZNRecord getRecord()
   {
     return _record;
+  }
+
+  public void setCorrelationId(String correlationId)
+  {
+    _record.setSimpleField(Attributes.CORRELATION_ID.toString(), correlationId);
   }
 
 }

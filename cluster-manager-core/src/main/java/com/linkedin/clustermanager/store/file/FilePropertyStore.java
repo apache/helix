@@ -433,7 +433,7 @@ public class FilePropertyStore<T> implements PropertyStore<T>
   public void setProperty(String key, T value) throws PropertyStoreException
   {
     String path = getPath(key);
-    File file = null;
+    File file = new File(path);  // null;
     // FileLock fLock = null;
     FileOutputStream fout = null;
     
@@ -441,7 +441,12 @@ public class FilePropertyStore<T> implements PropertyStore<T>
     try
     {
       _readWriteLock.writeLock().lock();
-      file = new File(path);
+      // file = new File(path);
+      if (!file.exists())
+      {
+        FileUtils.touch(file);
+      }
+      
       fout = new FileOutputStream(file);
       // FileChannel fChannel = fout.getChannel();
       
@@ -505,11 +510,22 @@ public class FilePropertyStore<T> implements PropertyStore<T>
       _readWriteLock.readLock().lock();
       
       file = new File(path);
+      if (!file.exists())
+      {
+        return null;
+      }
+      
       fin = new FileInputStream(file);
       // FileChannel fChannel = fin.getChannel();
       // fLock = fChannel.lock(0L, Long.MAX_VALUE, true);
       
-      byte[] bytes = new byte[fin.available()];
+      int availableBytes = fin.available();
+      if (availableBytes == 0)
+      {
+        return null;
+      }
+      
+      byte[] bytes = new byte[availableBytes];
       fin.read(bytes);
       
       if (propertyStat != null)
@@ -752,7 +768,8 @@ public class FilePropertyStore<T> implements PropertyStore<T>
       _readWriteLock.writeLock().lock();
       if (!file.exists())
       {
-        file.createNewFile();
+        // file.createNewFile();
+        FileUtils.touch(file);
       }
     
       fin = new FileInputStream(file);

@@ -99,7 +99,7 @@ public class FileClusterManagerHandler
     // TODO replace sleep with verifier
     try
     {
-      Thread.sleep(10000);
+      Thread.sleep(15000);
     }
     catch (InterruptedException e)
     {

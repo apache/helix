@@ -17,34 +17,34 @@ public class TestDistCMMain extends ZkDistCMHandler
   {
     logger.info("RUN at " + new Date(System.currentTimeMillis()));
     
-    final String controllerCluster = CONTROLLER_CLUSTER_PREFIX + "_" + this.getClass().getName();
-
     // add more controllers to controller cluster
     for (int i = 0; i < NODE_NR; i++)
     {
       String controller = "controller:" + i;
-      _setupTool.addInstanceToCluster(controllerCluster, controller);
+      _setupTool.addInstanceToCluster(CONTROLLER_CLUSTER, controller);
     }
-    _setupTool.rebalanceStorageCluster(controllerCluster, 
-                 CLUSTER_PREFIX + "_" + this.getClass().getName(), 10);
+    _setupTool.rebalanceStorageCluster(CONTROLLER_CLUSTER, 
+                 CLUSTER_PREFIX + "_" + CLASS_NAME, 10);
 
     // start extra cluster controllers in distributed mode
     for (int i = 0; i < 5; i++)
     {
       String controller = "controller_" + i;
-      Thread thread = TestHelper.startClusterController("-zkSvr " + ZK_ADDR + " -cluster " + controllerCluster + 
+      Thread thread = TestHelper.startClusterController("-zkSvr " + ZK_ADDR + " -cluster " + CONTROLLER_CLUSTER + 
            " -mode " + ClusterManagerMain.DISTRIBUTED + " -controllerName " + controller);
       _threadMap.put(controller, thread);
     }
     
+    Thread.sleep(10000);
+    
     // stop controllers
     for (int i = 0; i < NODE_NR; i++)
     {
-      stopCurrentLeader(controllerCluster);
+      stopCurrentLeader(CONTROLLER_CLUSTER);
       Thread.sleep(5000);
     }
     
-    assertLeader(controllerCluster);
+    assertLeader(CONTROLLER_CLUSTER);
     logger.info("END at " + new Date(System.currentTimeMillis()));
   }
 }

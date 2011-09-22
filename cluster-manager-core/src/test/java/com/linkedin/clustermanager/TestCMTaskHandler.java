@@ -7,6 +7,7 @@ import com.linkedin.clustermanager.Mocks.MockManager;
 import com.linkedin.clustermanager.Mocks.MockStateModel;
 import com.linkedin.clustermanager.Mocks.MockStateModelAnnotated;
 import com.linkedin.clustermanager.model.Message;
+import com.linkedin.clustermanager.model.Message.MessageType;
 import com.linkedin.clustermanager.participant.statemachine.CMTaskHandler;
 
 public class TestCMTaskHandler
@@ -15,7 +16,7 @@ public class TestCMTaskHandler
   public void testInvocation() throws Exception
   {
     System.out.println("TestCMTaskHandler.testInvocation()");
-    Message message = new Message();
+    Message message = new Message(MessageType.STATE_TRANSITION);
     message.setSrcName("cm-instance-0");
     message.setTgtSessionId("1234");
     message.setFromState("Offline");
@@ -38,7 +39,7 @@ public class TestCMTaskHandler
   public void testInvocationAnnotated() throws Exception
   {
     System.out.println("TestCMTaskHandler.testInvocationAnnotated()");
-    Message message = new Message();
+    Message message = new Message(MessageType.STATE_TRANSITION);
     message.setSrcName("cm-instance-0");
     message.setTgtSessionId("1234");
     message.setFromState("Offline");

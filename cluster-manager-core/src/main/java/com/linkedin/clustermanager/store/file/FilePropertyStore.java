@@ -49,7 +49,7 @@ import com.linkedin.clustermanager.store.PropertyStoreException;
  * the solution is to use a map that caches the files changed in last second
  * and in the next round of refresh, check against this map to figure out whether a file 
  * has been changed/created in the last second
- * {@http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=6939260}
+ * @link http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=6939260
  *
  * @author zzhang
  * @param <T>
@@ -433,7 +433,7 @@ public class FilePropertyStore<T> implements PropertyStore<T>
   public void setProperty(String key, T value) throws PropertyStoreException
   {
     String path = getPath(key);
-    File file = null;
+    File file = new File(path);  // null;
     // FileLock fLock = null;
     FileOutputStream fout = null;
     
@@ -441,11 +441,16 @@ public class FilePropertyStore<T> implements PropertyStore<T>
     try
     {
       _readWriteLock.writeLock().lock();
-      file = new File(path);
+      // file = new File(path);
+      if (!file.exists())
+      {
+        FileUtils.touch(file);
+      }
+      
       fout = new FileOutputStream(file);
       // FileChannel fChannel = fout.getChannel();
       
-      // TODO: need a timeout on lock operation
+      // TODO need a timeout on lock operation
       // fLock = fChannel.lock();
     
       byte[] bytes = _serializer.serialize(value);
@@ -501,15 +506,26 @@ public class FilePropertyStore<T> implements PropertyStore<T>
     
     try
     {
-      // TODO: need a timeout on lock operation
+      // TODO need a timeout on lock operation
       _readWriteLock.readLock().lock();
       
       file = new File(path);
+      if (!file.exists())
+      {
+        return null;
+      }
+      
       fin = new FileInputStream(file);
       // FileChannel fChannel = fin.getChannel();
       // fLock = fChannel.lock(0L, Long.MAX_VALUE, true);
       
-      byte[] bytes = new byte[fin.available()];
+      int availableBytes = fin.available();
+      if (availableBytes == 0)
+      {
+        return null;
+      }
+      
+      byte[] bytes = new byte[availableBytes];
       fin.read(bytes);
       
       if (propertyStat != null)
@@ -603,7 +619,6 @@ public class FilePropertyStore<T> implements PropertyStore<T>
     }
   }
 
-  // TODO do it recursively, need to return all files under that prefix
   private void doGetPropertyNames(String path, List<String> leafNodes) 
   throws PropertyStoreException
   {
@@ -678,7 +693,6 @@ public class FilePropertyStore<T> implements PropertyStore<T>
   @Override
   public void setPropertyDelimiter(String delimiter) throws PropertyStoreException
   {
-    // throw new PropertyStoreException("setPropertyDelimiter() not implemented by FilePropertyStore");
     throw new UnsupportedOperationException(
         "setPropertyDelimiter() is NOT supported by FilePropertyStore");
   }
@@ -742,15 +756,67 @@ public class FilePropertyStore<T> implements PropertyStore<T>
   @Override
   public void updatePropertyUntilSucceed(String key, DataUpdater<T> updater)
   {
-    throw new UnsupportedOperationException(
-      "updatePropertyUntilSucceed() is NOT supported by FilePropertyStore");
+    // throw new UnsupportedOperationException(
+    //  "updatePropertyUntilSucceed() is NOT supported by FilePropertyStore");
+    String path = getPath(key);
+    File file = new File(path);
+    FileInputStream fin = null;
+    FileOutputStream fout = null;
+
+    try
+    {
+      _readWriteLock.writeLock().lock();
+      if (!file.exists())
+      {
+        // file.createNewFile();
+        FileUtils.touch(file);
+      }
+    
+      fin = new FileInputStream(file);
+      
+      T current = this.getProperty(key);
+      T update = updater.update(current);
+      fout = new FileOutputStream(file);
+      byte[] bytes = _serializer.serialize(update);
+      fout.write(bytes);
+    }
+    catch (Exception e)
+    {
+      logger.error("fail to updatePropertyUntilSucceed, path:" + path + 
+                   "\nexcpetion" + e);
+    }
+    finally
+    {
+      _readWriteLock.writeLock().unlock();
+      try
+      {
+        // if (fLock != null && fLock.isValid())
+        //   fLock.release();
+        if (fin != null)
+        {
+          fin.close();
+        }
+        
+        if (fout != null)
+        {
+          fout.close();
+        }
+      }
+      catch (IOException e)
+      {
+        logger.error("fail to close file, path:" + path + 
+            "\nio excpetion" + e);
+      }
+    }
   }
 
 
   @Override
   public void setPropertySerializer(PropertySerializer<T> serializer)
   {
-    _serializer = serializer;  
+    _readWriteLock.writeLock().lock();
+    _serializer = serializer;
+    _readWriteLock.writeLock().unlock();
   }
 
   @Override
@@ -760,7 +826,8 @@ public class FilePropertyStore<T> implements PropertyStore<T>
   }
 
   @Override
-  public boolean compareAndSet(String key, T expected, T update, Comparator<T> comparator, boolean createIfAbsent)
+  public boolean compareAndSet(String key, T expected, T update, Comparator<T> comparator, 
+                               boolean createIfAbsent)
   {
     String path = getPath(key);
     File file = new File(path);

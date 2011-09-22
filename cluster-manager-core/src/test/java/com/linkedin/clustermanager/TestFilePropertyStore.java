@@ -2,7 +2,7 @@ package com.linkedin.clustermanager;
 
 import java.util.List;
 
-
+import org.I0Itec.zkclient.DataUpdater;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -26,6 +26,17 @@ public class TestFilePropertyStore
     {
       logger.info("property changed at " + key);
       _propertyChangeReceived = true;
+    }
+    
+  }
+  
+  public class TestUpdater implements DataUpdater<String>
+  {
+
+    @Override
+    public String update(String currentData)
+    {
+      return "new " + currentData;
     }
     
   }
@@ -89,6 +100,11 @@ public class TestFilePropertyStore
     Assert.assertEquals(listener2._propertyChangeReceived, true);
     
     listener2._propertyChangeReceived = false;
+
+    // test update property
+    store.updatePropertyUntilSucceed("child1/grandchild2", new TestUpdater());
+    value = store.getProperty("child1/grandchild2");
+    Assert.assertEquals(value, "new grandchild2-new\n");
     
     // test remove
     store.removeProperty("/child1/grandchild2");

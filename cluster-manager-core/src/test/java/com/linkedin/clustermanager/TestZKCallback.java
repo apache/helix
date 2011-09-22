@@ -17,6 +17,7 @@ import org.testng.annotations.Test;
 import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.model.Message;
+import com.linkedin.clustermanager.model.Message.MessageType;
 import com.linkedin.clustermanager.tools.ClusterSetup;
 
 public class TestZKCallback
@@ -216,7 +217,7 @@ public class TestZKCallback
     recList.add(dummyRecord);
 
     testListener.Reset();
-    Message message = new Message();
+    Message message = new Message(MessageType.STATE_TRANSITION);
     dataAccessor.setInstanceProperty("localhost_8900",
         InstancePropertyType.MESSAGES, message.getId(), message.getRecord());
     Thread.sleep(100);

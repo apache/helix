@@ -11,20 +11,27 @@ import com.linkedin.clustermanager.ZNRecord;
 public class Message
 {
   private final ZNRecord _record;
-
-  enum MessageType
+  
+  public enum MessageType
   {
-    STATE_TRANSITION
+    STATE_TRANSITION,
+    USER_DEFINE_MSG,
+    CONTROLLER_MSG,
+    TASK_REPLY
   };
 
   public enum Attributes
   {
-    MSG_ID, SRC_SESSION_ID, TGT_SESSION_ID, SRC_NAME, TGT_NAME, MSG_STATE, STATE_UNIT_KEY, STATE_UNIT_GROUP, FROM_STATE, TO_STATE, STATE_MODEL_DEF, READ_TIMESTAMP, CORRELATION_ID, EXECUTE_START_TIMESTAMP;
+    MSG_ID, SRC_SESSION_ID, TGT_SESSION_ID, SRC_NAME, TGT_NAME, 
+    MSG_STATE, STATE_UNIT_KEY, STATE_UNIT_GROUP, FROM_STATE, TO_STATE, 
+    STATE_MODEL_DEF, READ_TIMESTAMP, EXECUTE_START_TIMESTAMP, MSG_TYPE, 
+    MSG_SUBTYPE, CORRELATION_ID;
   }
 
-  public Message()
+  public Message(MessageType type)
   {
     _record = new ZNRecord();
+    setMsgType(type);
   }
 
   public Message(ZNRecord record)
@@ -40,6 +47,26 @@ public class Message
   public String getId()
   {
     return _record.getId();
+  }
+  
+  public void setMsgSubType(String subType)
+  {
+    _record.setSimpleField(Attributes.MSG_SUBTYPE.toString(), subType);
+  }
+  
+  public String getMsgSubType()
+  {
+    return getSimpleFieldAsString(Attributes.MSG_SUBTYPE.toString());
+  }
+  
+  void setMsgType(MessageType type)
+  {
+    _record.setSimpleField(Attributes.MSG_TYPE.toString(), type.toString());
+  }
+  
+  public MessageType getMsgType()
+  {
+    return MessageType.valueOf(getSimpleFieldAsString(Attributes.MSG_TYPE.toString()));
   }
 
   public String getTgtSessionId()

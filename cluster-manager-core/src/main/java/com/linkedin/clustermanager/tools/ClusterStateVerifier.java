@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import com.linkedin.clustermanager.agent.zk.ZkClient;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.GnuParser;
@@ -23,6 +22,7 @@ import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.ClusterView;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
+import com.linkedin.clustermanager.agent.zk.ZkClient;
 import com.linkedin.clustermanager.participant.statemachine.StateModel;
 import com.linkedin.clustermanager.participant.statemachine.StateModelFactory;
 import com.linkedin.clustermanager.util.CMUtil;
@@ -202,7 +202,7 @@ public class ClusterStateVerifier
           }
           if (!currentStates.get(nodeName).containsKey(stateUnitGroup))
           {
-            _logger.error("Current state for" + nodeName + "does not contain "
+            _logger.error("Current state for " + nodeName + " does not contain "
                 + stateUnitGroup);
             return false;
           }

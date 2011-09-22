@@ -38,7 +38,7 @@ public class DummyProcess
   private final String zkConnectString;
   private final String clusterName;
   private final String instanceName;
-  private ClusterManager manager;
+  // private ClusterManager _manager = null;
   private DummyStateModelFactory stateModelFactory;
   private StateMachineEngine genericStateMachineHandler;
   
@@ -65,8 +65,9 @@ public class DummyProcess
     _accessor = accessor;
   }
 
-  public void start() throws Exception
+  public ClusterManager start() throws Exception
   {
+    ClusterManager manager = null;
     if (_file == null && _accessor == null)
       manager = ClusterManagerFactory.getZKBasedManagerForParticipant(
           clusterName, instanceName, zkConnectString);
@@ -83,14 +84,15 @@ public class DummyProcess
     genericStateMachineHandler = new StateMachineEngine(stateModelFactory);
     manager.addMessageListener(genericStateMachineHandler, instanceName);
 
-    /**
+    /*
     if (_file != null)
     {
       ClusterStateVerifier.VerifyFileBasedClusterStates(_file, instanceName,
           stateModelFactory);
 
     }
-    **/
+    */
+    return manager;
   }
 
   public static class DummyStateModelFactory extends StateModelFactory<DummyStateModel>
@@ -316,7 +318,7 @@ public class DummyProcess
 
     DummyProcess process = new DummyProcess(zkConnectString, clusterName,
         instanceName, file, delay);
-    process.start();
+    ClusterManager manager = process.start();
     
     try
     {
@@ -324,9 +326,13 @@ public class DummyProcess
     }
     catch (InterruptedException e)
     {
-      ClusterManagerFactory.disconnectManagers(instanceName);
-      logger.info("thread:" + Thread.currentThread().getName() + 
-                  "instanceName:" + instanceName + " interrupted");
+      // ClusterManagerFactory.disconnectManagers(instanceName);
+      logger.info("participant:" + instanceName + ", " + 
+                   Thread.currentThread().getName() + " interrupted");
+      if (manager != null)
+      {
+        manager.disconnect();
+      }
     }
 
   }

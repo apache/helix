@@ -69,6 +69,7 @@ public class ZKClusterManager implements ClusterManager
   private CallbackHandler _leaderElectionHandler = null;
   private ParticipantHealthReportCollectorImpl _participantHealthCheckInfoCollector = null;
 
+
   public ZKClusterManager(String clusterName, InstanceType instanceType,
       String zkConnectString) throws Exception
   {
@@ -236,7 +237,25 @@ public class ZKClusterManager implements ClusterManager
   public void disconnect()
   {
     logger.info("Cluster manager disconnected");
+    
+    for (CallbackHandler handler : _handlers)
+    {
+      handler.reset();
+    }
+    
+    if (_leaderElectionHandler != null)
+    {
+      DistClusterControllerElection listener 
+         = (DistClusterControllerElection)_leaderElectionHandler.getListener();
+      ClusterManager leader = listener.getLeader();
+      if (leader != null)
+      {
+        leader.disconnect();
+      }
+      
+    }
     _zkClient.close();
+    
     if(_participantHealthCheckInfoCollector != null)
     {
       _participantHealthCheckInfoCollector.stop();
@@ -422,15 +441,16 @@ public class ZKClusterManager implements ClusterManager
   {
     _sessionId = UUID.randomUUID().toString();
     resetHandlers(_handlers);
-    logger.info("Handling new session, session id:" + _sessionId + "instance:" + _instanceName);
 
+    logger.info("Handling new session, session id:" + _sessionId + ", instance:" + _instanceName);
+    
     if (_instanceType == InstanceType.PARTICIPANT
         || _instanceType == InstanceType.CONTROLLER_PARTICIPANT)
     {
       handleNewSessionAsParticipant();
     }
 
-    else if (_instanceType == InstanceType.CONTROLLER
+    if (_instanceType == InstanceType.CONTROLLER
         || _instanceType == InstanceType.CONTROLLER_PARTICIPANT)
     {
       if (_leaderElectionHandler == null)

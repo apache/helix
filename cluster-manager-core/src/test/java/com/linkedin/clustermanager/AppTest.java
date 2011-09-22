@@ -162,7 +162,7 @@ public class AppTest
 
 	public static void main(String[] args) throws Exception
 	{
-	  Message message = new Message();
+	  Message message = new Message(Message.MessageType.STATE_TRANSITION);
 	  message.setFromState("asdasd");
 	  Message clone = new Message(new ZNRecord(message.getRecord()));
 	  clone.setFromState("newstate");

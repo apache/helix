@@ -25,19 +25,19 @@ public class ResourceGroupMonitor implements ResourceGroupMonitorMBean
     _resourceGroup = resourceGroup;
   }
   @Override
-  public long getResourceKeyCount()
+  public long getResourceKeyGauge()
   {
     return _numOfResourceKeys;
   }
 
   @Override
-  public long getErrorResouceKeyCount()
+  public long getErrorResouceKeyGauge()
   {
     return _numOfErrorResourceKeys;
   }
 
   @Override
-  public long getDifferenceWithIdealStateCount()
+  public long getDifferenceWithIdealStateGauge()
   {
     return _externalViewIdealStateDiff;
   }
@@ -120,7 +120,7 @@ public class ResourceGroupMonitor implements ResourceGroupMonitorMBean
   }
   
   @Override
-  public long getExternalViewResourceKeyCount()
+  public long getExternalViewResourceKeyGauge()
   {
     return _numOfResourceKeysInExternalView;
   }

@@ -6,9 +6,9 @@ import java.util.concurrent.Future;
 import org.apache.zookeeper.CreateMode;
 
 import com.linkedin.clustermanager.healthcheck.ParticipantHealthReportCollector;
+import com.linkedin.clustermanager.messaging.handling.CMTaskExecutor;
+import com.linkedin.clustermanager.messaging.handling.CMTaskResult;
 import com.linkedin.clustermanager.model.Message;
-import com.linkedin.clustermanager.participant.statemachine.CMTaskExecutor;
-import com.linkedin.clustermanager.participant.statemachine.CMTaskResult;
 import com.linkedin.clustermanager.participant.statemachine.StateModel;
 import com.linkedin.clustermanager.participant.statemachine.StateModelInfo;
 import com.linkedin.clustermanager.participant.statemachine.Transition;

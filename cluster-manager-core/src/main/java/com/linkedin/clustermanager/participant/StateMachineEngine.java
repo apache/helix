@@ -8,20 +8,25 @@ import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterManager;
+import com.linkedin.clustermanager.ClusterManagerException;
 import com.linkedin.clustermanager.MessageListener;
 import com.linkedin.clustermanager.NotificationContext;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
+import com.linkedin.clustermanager.messaging.handling.CMStateTransitionHandler;
+import com.linkedin.clustermanager.messaging.handling.CMTaskExecutor;
+import com.linkedin.clustermanager.messaging.handling.MessageHandler;
+import com.linkedin.clustermanager.messaging.handling.MessageHandlerFactory;
 import com.linkedin.clustermanager.model.Message;
+import com.linkedin.clustermanager.model.Message.MessageType;
 import com.linkedin.clustermanager.monitoring.ParticipantMonitor;
-import com.linkedin.clustermanager.participant.statemachine.CMTaskExecutor;
 import com.linkedin.clustermanager.participant.statemachine.StateModel;
 import com.linkedin.clustermanager.participant.statemachine.StateModelFactory;
 import com.linkedin.clustermanager.participant.statemachine.StateModelParser;
 import com.linkedin.clustermanager.util.StatusUpdateUtil;
 
 public class StateMachineEngine<T extends StateModel> implements
-    MessageListener
+    MessageHandlerFactory
 {
   private static Logger logger = Logger.getLogger(StateMachineEngine.class);
   private final StateModelFactory<T> _stateModelFactory;
@@ -47,87 +52,7 @@ public class StateMachineEngine<T extends StateModel> implements
     return _taskExecutor.getParticipantMonitor();
   }
 
-  @Override
-  public void onMessage(String instanceName, List<ZNRecord> messages,
-      NotificationContext changeContext)
-  {
-    ClusterManager manager = changeContext.getManager();
-    ClusterDataAccessor client = manager.getDataAccessor();
-    if (changeContext.getType() == NotificationContext.Type.FINALIZE)
-    {
-      reset();
-      return;
-    }
-    // check the taskId, see if there is already a task started
-    // if no task
-    // lookup statetabel for the to and from and invoke the corresponding
-    // method on the statemodel
-    // after completion/error update the zk state
-    if (messages == null || messages.size() == 0)
-    {
-      logger.info("No Messages to process");
-      return;
-    }
-    for (ZNRecord record : messages)
-    {
-      Message message = new Message(record);
-      // another hack for jackson problem
-      if (message.getId() == null)
-      {
-        message.setId(message.getMsgId());
-      }
-      String sessionId = manager.getSessionId();
-      String tgtSessionId = ((Message) message).getTgtSessionId();
-      if (sessionId.equals(tgtSessionId) || tgtSessionId.equals("*"))
-      {
-        if ("new".equals(message.getMsgState()))
-        {
-          String stateUnitKey = message.getStateUnitKey();
-          // StateModel stateModel;
-          T stateModel = _stateModelFactory.getStateModel(stateUnitKey);
-          if (stateModel == null)
-          {
-            stateModel = _stateModelFactory.createNewStateModel(stateUnitKey);
-            _stateModelFactory.addStateModel(stateUnitKey, stateModel);
-          }
-          _statusUpdateUtil.logInfo(message, StateMachineEngine.class,
-              "New Message", client);
-          // update msgState to read
-          message.setMsgState("read");
-          message.setReadTimeStamp(new Date().getTime());
-
-          client.updateInstanceProperty(instanceName,
-              InstancePropertyType.MESSAGES, message.getId(),
-              message.getRecord());
-          _taskExecutor.executeTask(message, stateModel, changeContext);
-
-        } else
-        {
-          // This will happen because we dont delete the message as soon as we
-          // read it.
-          // We keep it until the current state is changed.
-          // We will read the message again if there is a new message but we
-          // check for the status and ignore if its already read
-          logger.trace("Message already read" + message.getMsgId());
-          // _statusUpdateUtil.logInfo(message, StateMachineEngine.class,
-          // "Message already read", client);
-        }
-
-      } else
-      {
-        String warningMessage = "Session Id does not match.  current session id  Expected: "
-            + sessionId + " sessionId from Message: " + tgtSessionId;
-        logger.warn(warningMessage);
-        client.removeInstanceProperty(instanceName,
-            InstancePropertyType.MESSAGES, message.getId());
-        _statusUpdateUtil.logWarning(message, StateMachineEngine.class,
-            warningMessage, client);
-      }
-    }
-
-  }
-
-  private void reset()
+  void reset()
   {
     ConcurrentMap<String, T> modelMap = _stateModelFactory.getStateModelMap();
     if (modelMap == null || modelMap.isEmpty())
@@ -146,4 +71,27 @@ public class StateMachineEngine<T extends StateModel> implements
     }
   }
 
+  @Override
+  public MessageHandler createHandler(Message message,
+      NotificationContext context)
+  {
+    MessageType type = message.getMsgType();
+    
+    if(type != MessageType.STATE_TRANSITION)
+    {
+      throw new ClusterManagerException("Unexpected msg type for message "+message.getMsgId()
+          +" type:" + message.getMsgType());
+    }
+    
+    String stateUnitKey = message.getStateUnitKey();
+    StateModelFactory<T> stateModelFactory = getStateModelFactory();
+    // StateModel stateModel;
+    T stateModel = stateModelFactory.getStateModel(stateUnitKey);
+    if (stateModel == null)
+    {
+      stateModel =stateModelFactory.createNewStateModel(stateUnitKey);
+      stateModelFactory.addStateModel(stateUnitKey, stateModel);
+    }
+    return new CMStateTransitionHandler(stateModel);
+  }
 }

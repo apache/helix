@@ -10,10 +10,10 @@ import org.testng.annotations.*;
 import com.linkedin.clustermanager.Mocks.MockCMTaskExecutor;
 import com.linkedin.clustermanager.Mocks.MockManager;
 import com.linkedin.clustermanager.Mocks.MockStateModel;
+import com.linkedin.clustermanager.messaging.handling.CMTaskExecutor;
+import com.linkedin.clustermanager.messaging.handling.CMStateTransitionHandler;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.Message.MessageType;
-import com.linkedin.clustermanager.participant.statemachine.CMTaskExecutor;
-import com.linkedin.clustermanager.participant.statemachine.CMTaskHandler;
 import com.linkedin.clustermanager.participant.statemachine.StateModel;
 
 public class TestCMTaskExecutor
@@ -36,8 +36,8 @@ public class TestCMTaskExecutor
     NotificationContext context;
 
     context = new NotificationContext(new MockManager());
-    CMTaskHandler handler;
-    executor.executeTask(message, stateModel, context);
+    CMStateTransitionHandler handler = new CMStateTransitionHandler(stateModel);
+    executor.scheduleTask(message, handler, context);
     while (!executor.isDone(msgId))
     {
       Thread.sleep(500);

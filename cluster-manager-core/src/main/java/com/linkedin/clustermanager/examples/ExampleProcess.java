@@ -14,6 +14,8 @@ import org.apache.commons.cli.ParseException;
 
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerFactory;
+import com.linkedin.clustermanager.messaging.handling.CMTaskExecutor;
+import com.linkedin.clustermanager.model.Message.MessageType;
 import com.linkedin.clustermanager.participant.StateMachineEngine;
 import com.linkedin.clustermanager.participant.statemachine.StateModel;
 import com.linkedin.clustermanager.participant.statemachine.StateModelFactory;
@@ -69,7 +71,10 @@ public class ExampleProcess {
 			stateModelFactory = new LeaderStandbyStateModelFactory(delay);
 		}
 		genericStateMachineHandler = new StateMachineEngine<StateModel>(stateModelFactory);
-		manager.addMessageListener(genericStateMachineHandler, instanceName);
+		CMTaskExecutor executor = new CMTaskExecutor();
+		executor.registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(), genericStateMachineHandler);
+		
+		manager.addMessageListener(executor, instanceName);
 
 		if (_file != null) {
 			ClusterStateVerifier.VerifyFileBasedClusterStates(_file,

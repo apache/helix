@@ -11,9 +11,11 @@ import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerFactory;
 import com.linkedin.clustermanager.ExternalViewChangeListener;
 import com.linkedin.clustermanager.MessageListener;
+import com.linkedin.clustermanager.messaging.handling.CMTaskExecutor;
 import com.linkedin.clustermanager.mock.consumer.ConsumerAdapter;
 import com.linkedin.clustermanager.mock.consumer.RelayConfig;
 import com.linkedin.clustermanager.mock.consumer.RelayConsumer;
+import com.linkedin.clustermanager.model.Message.MessageType;
 import com.linkedin.clustermanager.participant.StateMachineEngine;
 
 class StorageAdapter
@@ -25,7 +27,7 @@ class StorageAdapter
   ClusterDataAccessor storageClusterClient;
 
   private ExternalViewChangeListener relayViewHolder;
-  private MessageListener genericStateMachineHandler;
+  private MessageListener messageListener;
 
   // Map<Object, RelayConsumer> relayConsumersMap;
   private ConsumerAdapter consumerAdapter;
@@ -56,9 +58,13 @@ class StorageAdapter
         .getZKBasedManagerForParticipant(clusterName, instanceName,
             zkConnectString);
     stateModelFactory = new StorageStateModelFactory(this);
-    genericStateMachineHandler = new StateMachineEngine(stateModelFactory);
-    storageClusterManager.addMessageListener(genericStateMachineHandler,
-        instanceName);
+    StateMachineEngine genericStateMachineHandler = new StateMachineEngine(stateModelFactory);
+    
+    CMTaskExecutor executor = new CMTaskExecutor();
+    executor.registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(), genericStateMachineHandler);
+    
+    storageClusterManager.addMessageListener(executor, instanceName);
+    
     storageClusterClient = storageClusterManager.getDataAccessor();
 
     consumerAdapter = new ConsumerAdapter(instanceName, zkConnectString,

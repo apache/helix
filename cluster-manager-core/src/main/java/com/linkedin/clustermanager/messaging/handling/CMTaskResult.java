@@ -1,4 +1,4 @@
-package com.linkedin.clustermanager.participant.statemachine;
+package com.linkedin.clustermanager.messaging.handling;
 
 public class CMTaskResult
 {

@@ -10,8 +10,10 @@ import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.agent.zk.ZkClient;
 import com.linkedin.clustermanager.controller.ClusterManagerMain;
+import com.linkedin.clustermanager.messaging.handling.CMTaskExecutor;
 import com.linkedin.clustermanager.mock.storage.DummyProcess.DummyStateModel;
 import com.linkedin.clustermanager.mock.storage.DummyProcess.DummyStateModelFactory;
+import com.linkedin.clustermanager.model.Message.MessageType;
 import com.linkedin.clustermanager.participant.StateMachineEngine;
 import com.linkedin.clustermanager.util.ZKClientPool;
 
@@ -106,8 +108,10 @@ public class TestHelper
           DummyStateModelFactory stateModelFactory = new DummyStateModelFactory(0);
           StateMachineEngine<DummyStateModel> genericStateMachineHandler 
             = new StateMachineEngine<DummyStateModel>(stateModelFactory);
+          CMTaskExecutor executor = new CMTaskExecutor();
+          executor.registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(), genericStateMachineHandler);
           
-          manager.addMessageListener(genericStateMachineHandler, instanceName);
+          manager.addMessageListener(executor, instanceName);
           Thread.currentThread().join();
         }
         catch (InterruptedException e)

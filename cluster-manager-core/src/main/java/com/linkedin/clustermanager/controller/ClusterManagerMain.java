@@ -28,6 +28,8 @@ import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerFactory;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
+import com.linkedin.clustermanager.messaging.handling.CMTaskExecutor;
+import com.linkedin.clustermanager.model.Message.MessageType;
 import com.linkedin.clustermanager.monitoring.mbeans.ClusterStatusMonitor;
 import com.linkedin.clustermanager.participant.DistClusterControllerStateModel;
 import com.linkedin.clustermanager.participant.DistClusterControllerStateModelFactory;
@@ -159,7 +161,9 @@ public class ClusterManagerMain
            = new DistClusterControllerStateModelFactory(zkConnectString);
         StateMachineEngine<DistClusterControllerStateModel> genericStateMachineHandler 
            = new StateMachineEngine<DistClusterControllerStateModel>(stateModelFactory);
-        manager.addMessageListener(genericStateMachineHandler, controllerName);
+        CMTaskExecutor executor = new CMTaskExecutor();
+        executor.registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(), genericStateMachineHandler);
+        manager.addMessageListener(executor, controllerName);
       }
       else
       {

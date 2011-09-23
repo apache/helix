@@ -6,9 +6,10 @@ import org.testng.annotations.Test;
 import com.linkedin.clustermanager.Mocks.MockManager;
 import com.linkedin.clustermanager.Mocks.MockStateModel;
 import com.linkedin.clustermanager.Mocks.MockStateModelAnnotated;
+import com.linkedin.clustermanager.messaging.handling.CMStateTransitionHandler;
+import com.linkedin.clustermanager.messaging.handling.CMTaskHandler;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.Message.MessageType;
-import com.linkedin.clustermanager.participant.statemachine.CMTaskHandler;
 
 public class TestCMTaskHandler
 {
@@ -30,7 +31,7 @@ public class TestCMTaskHandler
 
     context = new NotificationContext(new MockManager());
     CMTaskHandler handler;
-    handler = new CMTaskHandler(context, message, stateModel, null);
+    handler = new CMTaskHandler(message, context, null, null);
     handler.call();
     AssertJUnit.assertTrue(stateModel.stateModelInvoked);
   }
@@ -52,7 +53,7 @@ public class TestCMTaskHandler
 
     context = new NotificationContext(new MockManager());
     CMTaskHandler handler;
-    handler = new CMTaskHandler(context, message, stateModel, null);
+    handler = new CMTaskHandler(message, context, null, null);
     handler.call();
     AssertJUnit.assertTrue(stateModel.stateModelInvoked);
   }

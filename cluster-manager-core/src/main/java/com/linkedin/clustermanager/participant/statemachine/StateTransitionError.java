@@ -21,7 +21,7 @@ public class StateTransitionError
     return _code;
   }
 
-  enum ErrorCode
+  public enum ErrorCode
   {
     FRAMEWORK, INTERNAL
   }

@@ -28,10 +28,11 @@ public class TestCMTaskHandler
     message.setStateUnitGroup("TeststateunitGroup");
     MockStateModel stateModel = new MockStateModel();
     NotificationContext context;
+    CMStateTransitionHandler stHandler = new CMStateTransitionHandler(stateModel);
 
     context = new NotificationContext(new MockManager());
     CMTaskHandler handler;
-    handler = new CMTaskHandler(message, context, null, null);
+    handler = new CMTaskHandler(message, context, stHandler, null);
     handler.call();
     AssertJUnit.assertTrue(stateModel.stateModelInvoked);
   }
@@ -53,7 +54,9 @@ public class TestCMTaskHandler
 
     context = new NotificationContext(new MockManager());
     CMTaskHandler handler;
-    handler = new CMTaskHandler(message, context, null, null);
+    CMStateTransitionHandler stHandler = new CMStateTransitionHandler(stateModel);
+
+    handler = new CMTaskHandler(message, context, stHandler, null);
     handler.call();
     AssertJUnit.assertTrue(stateModel.stateModelInvoked);
   }

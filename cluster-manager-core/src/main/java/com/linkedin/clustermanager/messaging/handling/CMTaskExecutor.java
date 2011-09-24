@@ -34,6 +34,7 @@ public class CMTaskExecutor implements MessageListener
   // From storage point of view, only bootstrap case is expensive 
   // and we need to throttle, which is mostly IO / network bounded.
   private static final int MAX_PARALLEL_TASKS = 4;
+  // TODO: create per-task type threadpool with customizable pool size 
   private final ExecutorService _pool;
   protected final Map<String, Future<CMTaskResult>> _taskMap;
   private final Object _lock;
@@ -210,10 +211,10 @@ public class CMTaskExecutor implements MessageListener
       logger.info("No Messages to process");
       return;
     }
+    //TODO: sort message based on timestamp
     for (ZNRecord record : messages)
     {
       Message message = new Message(record);
-      // another hack for jackson problem
       if (message.getId() == null)
       {
         message.setId(message.getMsgId());
@@ -230,6 +231,17 @@ public class CMTaskExecutor implements MessageListener
           {
             logger.info("Creating handler for message "+ message.getMsgId());
             handler = createMessageHandler(message, changeContext);
+            
+            _statusUpdateUtil.logInfo(message, StateMachineEngine.class,
+              "New Message", client);
+            // update msgState to read
+            message.setMsgState("read");
+            message.setReadTimeStamp(new Date().getTime());
+  
+            client.updateInstanceProperty(instanceName,
+                InstancePropertyType.MESSAGES, message.getId(),
+                message.getRecord());
+            scheduleTask(message, handler, changeContext);
           }
           catch(Exception e)
           {
@@ -241,18 +253,8 @@ public class CMTaskExecutor implements MessageListener
             
             client.removeInstanceProperty(instanceName,
                 InstancePropertyType.MESSAGES, message.getId());
+            continue;
           }
-          
-          _statusUpdateUtil.logInfo(message, StateMachineEngine.class,
-              "New Message", client);
-          // update msgState to read
-          message.setMsgState("read");
-          message.setReadTimeStamp(new Date().getTime());
-
-          client.updateInstanceProperty(instanceName,
-              InstancePropertyType.MESSAGES, message.getId(),
-              message.getRecord());
-          scheduleTask(message, handler, changeContext);
         } 
         else
         {

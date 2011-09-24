@@ -97,7 +97,7 @@ public class CMTaskExecutor implements MessageListener
             "Message handling task scheduled", notificationContext.getManager()
                 .getDataAccessor());
         
-        CMTaskHandler task = new CMTaskHandler(message, notificationContext, 
+        CMTask task = new CMTask(message, notificationContext, 
             handler, this);
         if (!_taskMap.containsKey(message.getMsgId()))
         {
@@ -195,7 +195,7 @@ public class CMTaskExecutor implements MessageListener
       }
 
     });
-    future = pool.submit(new CMTaskHandler(null, null, null, null));
+    future = pool.submit(new CMTask(null, null, null, null));
     Thread.currentThread().join();
     System.out.println(future.isDone());
   }

@@ -7,7 +7,7 @@ import com.linkedin.clustermanager.Mocks.MockManager;
 import com.linkedin.clustermanager.Mocks.MockStateModel;
 import com.linkedin.clustermanager.Mocks.MockStateModelAnnotated;
 import com.linkedin.clustermanager.messaging.handling.CMStateTransitionHandler;
-import com.linkedin.clustermanager.messaging.handling.CMTaskHandler;
+import com.linkedin.clustermanager.messaging.handling.CMTask;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.Message.MessageType;
 
@@ -31,8 +31,8 @@ public class TestCMTaskHandler
     CMStateTransitionHandler stHandler = new CMStateTransitionHandler(stateModel);
 
     context = new NotificationContext(new MockManager());
-    CMTaskHandler handler;
-    handler = new CMTaskHandler(message, context, stHandler, null);
+    CMTask handler;
+    handler = new CMTask(message, context, stHandler, null);
     handler.call();
     AssertJUnit.assertTrue(stateModel.stateModelInvoked);
   }
@@ -53,10 +53,10 @@ public class TestCMTaskHandler
     NotificationContext context;
 
     context = new NotificationContext(new MockManager());
-    CMTaskHandler handler;
+    CMTask handler;
     CMStateTransitionHandler stHandler = new CMStateTransitionHandler(stateModel);
 
-    handler = new CMTaskHandler(message, context, stHandler, null);
+    handler = new CMTask(message, context, stHandler, null);
     handler.call();
     AssertJUnit.assertTrue(stateModel.stateModelInvoked);
   }

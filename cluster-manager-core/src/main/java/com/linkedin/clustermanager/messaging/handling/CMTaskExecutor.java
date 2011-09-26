@@ -60,18 +60,18 @@ public class CMTaskExecutor implements MessageListener
   {
     if(!_handlerFactoryMap.containsKey(type))
     {
+      if(!type.equalsIgnoreCase(factory.getMessageType()))
+      {
+        throw new ClusterManagerException("Message factory type mismatch. Type: "+ type+ " factory : "+ factory.getMessageType());
+        
+      }
       _handlerFactoryMap.put(type, factory);
-      logger.warn("adding msg factory for type " + type);
+      logger.info("adding msg factory for type " + type);
     }
     else
     {
       logger.warn("Ignoring duplicate msg factory for type " + type);
     }
-  }
-  
-  public void registerExternalMessageHandlerFactory(String type, MessageHandlerFactory factory)
-  {
-    registerMessageHandlerFactory(MessageType.USER_DEFINE_MSG+"."+type, factory);
   }
   
   public ParticipantMonitor getParticipantMonitor()

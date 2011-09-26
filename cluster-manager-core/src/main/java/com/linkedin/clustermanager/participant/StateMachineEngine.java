@@ -94,4 +94,10 @@ public class StateMachineEngine<T extends StateModel> implements
     }
     return new CMStateTransitionHandler(stateModel);
   }
+
+  @Override
+  public String getMessageType()
+  {
+    return MessageType.STATE_TRANSITION.toString();
+  }
 }

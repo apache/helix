@@ -7,5 +7,5 @@ public interface MessageHandlerFactory
 {
   public MessageHandler createHandler(Message message, NotificationContext context);
   
-  // TODO: add String getMessageType()
+  public String getMessageType();
 }

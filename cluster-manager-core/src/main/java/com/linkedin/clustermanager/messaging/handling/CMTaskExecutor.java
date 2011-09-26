@@ -19,6 +19,7 @@ import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerException;
 import com.linkedin.clustermanager.MessageListener;
 import com.linkedin.clustermanager.NotificationContext;
+import com.linkedin.clustermanager.NotificationContext.Type;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.model.Message;
@@ -206,6 +207,16 @@ public class CMTaskExecutor implements MessageListener
   {
     ClusterManager manager = changeContext.getManager();
     ClusterDataAccessor client = manager.getDataAccessor();
+    
+    // If FINALIZE notification comes, reset all handler factories
+    // TODO: see if we should have a separate notification call for resetting
+    if(changeContext.getType() == Type.FINALIZE)
+    {
+      for(MessageHandlerFactory factory : _handlerFactoryMap.values())
+      {
+        factory.reset();
+      }
+    }
     if (messages == null || messages.size() == 0)
     {
       logger.info("No Messages to process");

@@ -52,7 +52,7 @@ public class StateMachineEngine<T extends StateModel> implements
     return _taskExecutor.getParticipantMonitor();
   }
 
-  void reset()
+  public void reset()
   {
     ConcurrentMap<String, T> modelMap = _stateModelFactory.getStateModelMap();
     if (modelMap == null || modelMap.isEmpty())

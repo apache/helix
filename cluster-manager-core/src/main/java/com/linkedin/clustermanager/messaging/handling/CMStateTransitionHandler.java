@@ -144,7 +144,8 @@ public class CMStateTransitionHandler implements MessageHandler
       String errorMessage = "Current state of stateModel does not match the fromState in Message "
           + " Current State:"
           + _stateModel.getCurrentState()
-          + ", message expected:" + fromState;
+          + ", message expected:" + fromState
+          +" partition: " + message.getStateUnitKey();
       
       _statusUpdateUtil.logError(message, CMStateTransitionHandler.class, errorMessage,
           accessor);

@@ -8,4 +8,6 @@ public interface MessageHandlerFactory
   public MessageHandler createHandler(Message message, NotificationContext context);
   
   public String getMessageType();
+  
+  public void reset();
 }

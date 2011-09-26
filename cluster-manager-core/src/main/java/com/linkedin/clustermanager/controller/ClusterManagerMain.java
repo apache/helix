@@ -161,9 +161,7 @@ public class ClusterManagerMain
            = new DistClusterControllerStateModelFactory(zkConnectString);
         StateMachineEngine<DistClusterControllerStateModel> genericStateMachineHandler 
            = new StateMachineEngine<DistClusterControllerStateModel>(stateModelFactory);
-        CMTaskExecutor executor = new CMTaskExecutor();
-        executor.registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(), genericStateMachineHandler);
-        manager.addMessageListener(executor, controllerName);
+        manager.getMessagingService().registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(), genericStateMachineHandler);
       }
       else
       {

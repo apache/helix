@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 
 import com.linkedin.clustermanager.AsyncCallback;
@@ -19,6 +20,8 @@ import com.linkedin.clustermanager.ClusterMessagingService;
 import com.linkedin.clustermanager.Criteria;
 import com.linkedin.clustermanager.InstanceType;
 import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.messaging.handling.CMTaskExecutor;
+import com.linkedin.clustermanager.messaging.handling.MessageHandlerFactory;
 import com.linkedin.clustermanager.model.ExternalView;
 import com.linkedin.clustermanager.model.LiveInstance;
 import com.linkedin.clustermanager.model.Message;
@@ -29,13 +32,15 @@ public class DefaultMessagingService implements ClusterMessagingService
   private CriteriaEvaluator _evaluator;
   private ClusterDataAccessor _dataAccessor;
   private Map<String, AsyncCallback> _asyncCallbackMap;
-
+  private final CMTaskExecutor _taskExecutor;
+  private static Logger _logger = Logger.getLogger(DefaultMessagingService.class);
   public DefaultMessagingService(ClusterManager manager)
   {
     _evaluator = new CriteriaEvaluator();
     _manager = manager;
     _dataAccessor = _manager.getDataAccessor();
     _asyncCallbackMap = new HashMap<String, AsyncCallback>();
+    _taskExecutor = new CMTaskExecutor();
   }
 
   @Override
@@ -177,4 +182,16 @@ public class DefaultMessagingService implements ClusterMessagingService
     return messages;
   }
 
+  @Override
+  public void registerMessageHandlerFactory(String type,
+      MessageHandlerFactory factory)
+  {
+    _logger.info("adding msg factory for type " + type);
+    _taskExecutor.registerMessageHandlerFactory(type, factory);
+  }
+  
+  public CMTaskExecutor getExecutor()
+  {
+    return _taskExecutor;
+  }
 }

@@ -60,10 +60,7 @@ class StorageAdapter
     stateModelFactory = new StorageStateModelFactory(this);
     StateMachineEngine genericStateMachineHandler = new StateMachineEngine(stateModelFactory);
     
-    CMTaskExecutor executor = new CMTaskExecutor();
-    executor.registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(), genericStateMachineHandler);
-    
-    storageClusterManager.addMessageListener(executor, instanceName);
+    storageClusterManager.getMessagingService().registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(), genericStateMachineHandler);
     
     storageClusterClient = storageClusterManager.getDataAccessor();
 

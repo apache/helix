@@ -63,11 +63,8 @@ public class DummyRelayProcess
           clusterName, instanceName, _file);
 
     stateModelFactory = new DummyStateModelFactory();
-    CMTaskExecutor executor = new CMTaskExecutor();
-    executor.registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(), genericStateMachineHandler);
+    manager.getMessagingService().registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(), genericStateMachineHandler);
     
-    manager.addMessageListener(executor, instanceName);
-
     if (_file != null)
     {
       ClusterStateVerifier.VerifyFileBasedClusterStates(_file, instanceName,

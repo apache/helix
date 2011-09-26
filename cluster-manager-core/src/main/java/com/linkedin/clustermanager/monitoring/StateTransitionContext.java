@@ -51,8 +51,8 @@ public class StateTransitionContext
     StateTransitionContext otherCxt = (StateTransitionContext) other;  
     return
       _clusterName.equals(otherCxt.getClusterName()) &&
-      _instanceName.equals(otherCxt.getInstanceName()) &&
-      //_stateUnitGroup.equals(otherCxt.getStateUnitGroup()) &&
+      // _instanceName.equals(otherCxt.getInstanceName()) &&
+      _stateUnitGroup.equals(otherCxt.getStateUnitGroup()) &&
       _transition.equals(otherCxt.getTransition()) ;
   }
     
@@ -67,8 +67,8 @@ public class StateTransitionContext
   public String toString()
   {
      return "Cluster=" + _clusterName + "," + 
-           "instance=" + _instanceName + "," +
-           //"ResourceGroup=" + _stateUnitGroup +"," + 
+           // "instance=" + _instanceName + "," +
+           "ResourceGroup=" + _stateUnitGroup +"," + 
            "Transition=" + _transition;    
   }
   

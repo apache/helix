@@ -36,6 +36,7 @@ import com.linkedin.clustermanager.LiveInstanceChangeListener;
 import com.linkedin.clustermanager.MessageListener;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.healthcheck.ParticipantHealthReportCollector;
+import com.linkedin.clustermanager.messaging.DefaultMessagingService;
 import com.linkedin.clustermanager.store.PropertySerializer;
 import com.linkedin.clustermanager.store.PropertyStore;
 import com.linkedin.clustermanager.store.file.FilePropertyStore;
@@ -59,6 +60,7 @@ public class DynamicFileClusterManager implements ClusterManager
 
   public static final String _sessionId = "12345";
   public static final String configFile = "configFile";
+  private final DefaultMessagingService _messagingService;
 
   public DynamicFileClusterManager(String clusterName, String instanceName,
       InstanceType instanceType, ClusterDataAccessor accessor)
@@ -78,6 +80,13 @@ public class DynamicFileClusterManager implements ClusterManager
     FilePropertyStore<ZNRecord> store = (FilePropertyStore<ZNRecord>) _fileDataAccessor
         .getStore();
     _mgmtTool = new FileClusterManagementTool(store);
+    
+    _messagingService = new DefaultMessagingService(this);
+    if(instanceType == InstanceType.PARTICIPANT)
+    {
+      addMessageListener(_messagingService.getExecutor(), _instanceName);
+    }
+    
     store.start();
 
   }
@@ -289,8 +298,7 @@ public class DynamicFileClusterManager implements ClusterManager
   @Override
   public ClusterMessagingService getMessagingService()
   {
-    // TODO Auto-generated method stub
-    return null;
+    return _messagingService;
   }
 
   @Override

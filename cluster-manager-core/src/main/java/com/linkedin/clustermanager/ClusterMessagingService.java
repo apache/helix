@@ -1,5 +1,6 @@
 package com.linkedin.clustermanager;
 
+import com.linkedin.clustermanager.messaging.handling.MessageHandlerFactory;
 import com.linkedin.clustermanager.model.Message;
 
 /**
@@ -111,4 +112,6 @@ public interface ClusterMessagingService
    */
   // boolean sendReceive(InstanceStateCriteria criteria, Message message,
   // AsyncCallback callback);
+  
+  public void registerMessageHandlerFactory(String type, MessageHandlerFactory factory);
 }

@@ -85,10 +85,8 @@ public class DummyProcess
     stateModelFactory = new DummyStateModelFactory(_transDelayInMs);
     genericStateMachineHandler = new StateMachineEngine(stateModelFactory);
     
-    CMTaskExecutor executor = new CMTaskExecutor();
-    executor.registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(), genericStateMachineHandler);
+    manager.getMessagingService().registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(), genericStateMachineHandler);
     
-    manager.addMessageListener(executor, instanceName);
     /*
     if (_file != null)
     {

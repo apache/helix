@@ -43,6 +43,7 @@ import com.linkedin.clustermanager.MessageListener;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.healthcheck.ParticipantHealthReportCollector;
 import com.linkedin.clustermanager.healthcheck.ParticipantHealthReportCollectorImpl;
+import com.linkedin.clustermanager.messaging.DefaultMessagingService;
 import com.linkedin.clustermanager.monitoring.ZKPathDataDumpTask;
 import com.linkedin.clustermanager.participant.DistClusterControllerElection;
 import com.linkedin.clustermanager.store.PropertySerializer;
@@ -68,6 +69,7 @@ public class ZKClusterManager implements ClusterManager
   private Timer _timer;
   private CallbackHandler _leaderElectionHandler = null;
   private ParticipantHealthReportCollectorImpl _participantHealthCheckInfoCollector = null;
+  private final DefaultMessagingService _messagingService;
 
 
   public ZKClusterManager(String clusterName, InstanceType instanceType,
@@ -96,6 +98,7 @@ public class ZKClusterManager implements ClusterManager
     _timer = null;
     _handlers = new ArrayList<CallbackHandler>();
     _zkClient = zkClient;
+    _messagingService = new DefaultMessagingService(this);
     connect();
   }
   
@@ -505,6 +508,10 @@ public class ZKClusterManager implements ClusterManager
     carryOverPreviousCurrentState();
     addLiveInstance();
     startStatusUpdatedumpTask();
+    
+    // In case the cluster manager is running as a participant, setup message listener
+    addMessageListener(_messagingService.getExecutor(), _instanceName);
+    
     if(_participantHealthCheckInfoCollector == null)
     {
       _participantHealthCheckInfoCollector 
@@ -631,8 +638,7 @@ public class ZKClusterManager implements ClusterManager
   @Override
   public ClusterMessagingService getMessagingService()
   {
-    // TODO Auto-generated method stub
-    return null;
+    return _messagingService;
   }
 
   @Override

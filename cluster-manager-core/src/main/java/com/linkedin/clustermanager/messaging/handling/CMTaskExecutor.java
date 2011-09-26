@@ -39,8 +39,8 @@ public class CMTaskExecutor implements MessageListener
   private final ExecutorService _pool;
   protected final Map<String, Future<CMTaskResult>> _taskMap;
   private final Object _lock;
-  StatusUpdateUtil _statusUpdateUtil;
-  ParticipantMonitor _monitor;
+  private final StatusUpdateUtil _statusUpdateUtil;
+  private final ParticipantMonitor _monitor;
   
   private final ConcurrentHashMap<String, MessageHandlerFactory> _handlerFactoryMap 
   = new ConcurrentHashMap<String, MessageHandlerFactory>();

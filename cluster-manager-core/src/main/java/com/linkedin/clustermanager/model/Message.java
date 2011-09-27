@@ -1,5 +1,8 @@
 package com.linkedin.clustermanager.model;
 
+import java.util.Map;
+
+import com.linkedin.clustermanager.ClusterManagerException;
 import com.linkedin.clustermanager.ZNRecord;
 
 /**
@@ -11,7 +14,7 @@ import com.linkedin.clustermanager.ZNRecord;
 public class Message
 {
   private final ZNRecord _record;
-  
+
   public enum MessageType
   {
     STATE_TRANSITION,
@@ -25,7 +28,7 @@ public class Message
     MSG_ID, SRC_SESSION_ID, TGT_SESSION_ID, SRC_NAME, TGT_NAME, 
     MSG_STATE, STATE_UNIT_KEY, STATE_UNIT_GROUP, FROM_STATE, TO_STATE, 
     STATE_MODEL_DEF, READ_TIMESTAMP, EXECUTE_START_TIMESTAMP, MSG_TYPE, 
-    MSG_SUBTYPE, CORRELATION_ID;
+    MSG_SUBTYPE, CORRELATION_ID, MESSAGE_RESULT;
   }
 
   public Message(MessageType type)
@@ -265,6 +268,31 @@ public class Message
   public String getCorrelationId()
   {
     return getSimpleFieldAsString(Attributes.CORRELATION_ID.toString());
+  }
+  
+  public Map<String, String> getResultMap()
+  {
+    return _record.getMapField(Attributes.MESSAGE_RESULT.toString());
+  }
+  
+  public void setResultMap(Map<String, String> resultMap)
+  {
+    _record.setMapField(Attributes.MESSAGE_RESULT.toString(), resultMap);
+  }
+
+  public static Message createReplyMessage(Message srcMessage, String instanceName,
+      Map<String, String> taskResultMap)
+  {
+    if(srcMessage.getCorrelationId() == null)
+    {
+      throw new ClusterManagerException("Message "+ srcMessage.getMsgId()+" does not contain correlation id");
+    }
+    Message replyMessage = new Message(MessageType.TASK_REPLY);
+    replyMessage.setCorrelationId(srcMessage.getCorrelationId());
+    replyMessage.setTgtName(srcMessage.getMsgSrc());
+    replyMessage.setResultMap(taskResultMap);
+    
+    return replyMessage;
   }
 
 }

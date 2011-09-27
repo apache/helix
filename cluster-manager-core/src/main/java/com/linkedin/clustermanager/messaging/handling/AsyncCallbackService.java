@@ -1,5 +1,6 @@
 package com.linkedin.clustermanager.messaging.handling;
 
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.log4j.Logger;
@@ -23,7 +24,7 @@ public class AsyncCallbackService implements MessageHandlerFactory
     {
       _logger.warn("correlation id "+ correlationId +" already registered");
     }
-    _logger.warn("registering correlation id "+ correlationId);
+    _logger.info("registering correlation id "+ correlationId);
     _callbackMap.put(correlationId, callback);
   }
   
@@ -84,7 +85,7 @@ public class AsyncCallbackService implements MessageHandlerFactory
     }
     
     @Override
-    public void handleMessage(Message message, NotificationContext context)
+    public void handleMessage(Message message, NotificationContext context, Map<String, String> resultMap)
         throws InterruptedException
     {
       verifyMessage(message);
@@ -99,4 +100,5 @@ public class AsyncCallbackService implements MessageHandlerFactory
     }
     
   }
+  // TODO: asynccallback.isdone() and istimeout()
 }

@@ -155,7 +155,7 @@ public class ZKClusterManager implements ClusterManager
         { EventType.NodeChildrenChanged }, CONFIG);
     _handlers.add(callbackHandler);
   }
-
+  // TODO: Decide if do we still need this since we are exposing ClusterMessagingService
   @Override
   public void addMessageListener(MessageListener listener, String instanceName)
   {

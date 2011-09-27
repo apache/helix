@@ -345,7 +345,7 @@ public class CMStateTransitionHandler implements MessageHandler
   }
 
   @Override
-  public void handleMessage(Message message, NotificationContext context)
+  public void handleMessage(Message message, NotificationContext context, Map<String, String> resultMap)
       throws InterruptedException
   {
     handleMessageInternal( message,  context);

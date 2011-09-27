@@ -1,6 +1,5 @@
 package com.linkedin.clustermanager.messaging.handling;
 
-import java.util.Arrays;
 import java.util.Date;
 import java.util.concurrent.Callable;
 
@@ -9,7 +8,7 @@ import org.apache.log4j.Logger;
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.ClusterManager;
-import com.linkedin.clustermanager.ClusterManagerException;
+import com.linkedin.clustermanager.Criteria;
 import com.linkedin.clustermanager.NotificationContext;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.Message.MessageType;
@@ -53,8 +52,20 @@ public class CMTask implements Callable<CMTaskResult>
 
       try
       {
-        _handler.handleMessage(_message, _notificationContext);
+        _handler.handleMessage(_message, _notificationContext, taskResult.getTaskResultMap());
         taskResult.setSuccess(true);
+        
+        // If the message requires reply, send reply message
+        if(_message.getCorrelationId() != null)
+        {
+          logger.info("Sending reply for message "+ _message.getCorrelationId());
+          _statusUpdateUtil.logInfo(_message, CMTask.class, "Sending reply", accessor);
+          
+          Message replyMessage = Message.createReplyMessage(_message, _manager.getInstanceName(), taskResult.getTaskResultMap());
+          Criteria recipientCriteria = new Criteria();
+          recipientCriteria.setInstanceName(replyMessage.getTgtName());
+          _manager.getMessagingService().send(recipientCriteria, replyMessage);
+        }
       }
       catch(InterruptedException e)
       {

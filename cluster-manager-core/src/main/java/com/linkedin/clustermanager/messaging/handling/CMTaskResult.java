@@ -1,10 +1,14 @@
 package com.linkedin.clustermanager.messaging.handling;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class CMTaskResult
 {
 
   private boolean _success;
   private String _message;
+  private Map<String, String> _taskResultMap = new HashMap<String, String>();
 
   public boolean isSucess()
   {
@@ -25,5 +29,9 @@ public class CMTaskResult
   {
     this._message = message;
   }
-
+  
+  public Map<String, String> getTaskResultMap()
+  {
+    return _taskResultMap;
+  }
 }

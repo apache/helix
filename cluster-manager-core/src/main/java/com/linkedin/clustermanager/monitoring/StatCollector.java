@@ -7,7 +7,7 @@ import org.apache.commons.math.stat.descriptive.SynchronizedDescriptiveStatistic
 
 public class StatCollector
 {
-  private static final int DEFAULT_WINDOW_SIZE = 4000;
+  private static final int DEFAULT_WINDOW_SIZE = 100;
   private final DescriptiveStatistics _stats;
   private long _numDataPoints;
   private long _totalSum;

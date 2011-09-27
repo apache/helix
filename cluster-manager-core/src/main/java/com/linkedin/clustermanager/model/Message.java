@@ -262,4 +262,9 @@ public class Message
     _record.setSimpleField(Attributes.CORRELATION_ID.toString(), correlationId);
   }
 
+  public String getCorrelationId()
+  {
+    return getSimpleFieldAsString(Attributes.CORRELATION_ID.toString());
+  }
+
 }

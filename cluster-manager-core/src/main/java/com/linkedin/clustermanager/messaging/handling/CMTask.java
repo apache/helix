@@ -12,6 +12,9 @@ import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerException;
 import com.linkedin.clustermanager.NotificationContext;
 import com.linkedin.clustermanager.model.Message;
+import com.linkedin.clustermanager.model.Message.MessageType;
+import com.linkedin.clustermanager.monitoring.StateTransitionContext;
+import com.linkedin.clustermanager.monitoring.StateTransitionDataPoint;
 import com.linkedin.clustermanager.util.StatusUpdateUtil;
 
 public class CMTask implements Callable<CMTaskResult>
@@ -76,6 +79,7 @@ public class CMTask implements Callable<CMTaskResult>
     }
     finally
     {
+      reportMessgeStat(_manager, _message, taskResult);
       accessor.removeInstanceProperty(instanceName,
           InstancePropertyType.MESSAGES, _message.getId());
       if(_executor != null)
@@ -86,4 +90,42 @@ public class CMTask implements Callable<CMTaskResult>
     } 
   }
   
+
+  private void reportMessgeStat(ClusterManager manager, Message message, CMTaskResult taskResult)
+  {
+    // report stat
+    if(message.getMsgType() != MessageType.STATE_TRANSITION)
+    {
+      return;
+    }
+    long now = new Date().getTime();
+    long msgReadTime = message.getReadTimeStamp();
+    long msgExecutionStartTime = message.getExecuteStartTimeStamp();
+    if(msgReadTime != 0 && msgExecutionStartTime != 0)
+    {
+      long totalDelay = now - msgReadTime;
+      long executionDelay = now - msgExecutionStartTime;
+      if(totalDelay > 0 && executionDelay > 0)
+      {
+        String fromState = message.getFromState();
+        String toState = message.getToState();
+        String transition = fromState + "--" + toState;
+        
+        StateTransitionContext cxt = new StateTransitionContext(
+            manager.getClusterName(),
+            manager.getInstanceName(),
+            message.getStateUnitGroup(),
+          transition
+          );
+        
+        StateTransitionDataPoint data = new StateTransitionDataPoint(totalDelay, executionDelay, taskResult.isSucess());
+        _executor.getParticipantMonitor().reportTransitionStat(cxt, data);
+      }
+    }
+    else
+    {
+      logger.warn("message read time and start execution time not recorded.");
+    }
+  }
+
 };

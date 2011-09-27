@@ -210,7 +210,6 @@ public class CMStateTransitionHandler implements MessageHandler
         map.put(ZNAttribute.CURRENT_STATE.toString(), "ERROR");
         _stateModel.updateState("ERROR");
       }
-      reportMessgeStat(manager, message, taskResult);
       
       map.put(Message.Attributes.STATE_UNIT_GROUP.toString(),
           message.getStateUnitGroup());
@@ -352,43 +351,4 @@ public class CMStateTransitionHandler implements MessageHandler
     handleMessageInternal( message,  context);
     
   }
-  
-
-  private void reportMessgeStat(ClusterManager manager, Message message, CMTaskResult taskResult)
-  {
-    // report stat
-    if(message.getMsgType() != MessageType.STATE_TRANSITION)
-    {
-      return;
-    }
-    long now = new Date().getTime();
-    long msgReadTime = message.getReadTimeStamp();
-    long msgExecutionStartTime = message.getExecuteStartTimeStamp();
-    if(msgReadTime != 0 && msgExecutionStartTime != 0)
-    {
-      long totalDelay = now - msgReadTime;
-      long executionDelay = now - msgExecutionStartTime;
-      if(totalDelay > 0 && executionDelay > 0)
-      {
-        String fromState = message.getFromState();
-        String toState = message.getToState();
-        String transition = fromState + "--" + toState;
-        
-        StateTransitionContext cxt = new StateTransitionContext(
-            manager.getClusterName(),
-            manager.getInstanceName(),
-            message.getStateUnitGroup(),
-          transition
-          );
-        
-        StateTransitionDataPoint data = new StateTransitionDataPoint(totalDelay, executionDelay, taskResult.isSucess());
-        //_executor.getParticipantMonitor().reportTransitionStat(cxt, data);
-      }
-    }
-    else
-    {
-      logger.warn("message read time and start execution time not recorded.");
-    }
-  }
-
 };

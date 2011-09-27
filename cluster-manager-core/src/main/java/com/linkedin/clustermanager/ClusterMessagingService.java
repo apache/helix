@@ -113,5 +113,17 @@ public interface ClusterMessagingService
   // boolean sendReceive(InstanceStateCriteria criteria, Message message,
   // AsyncCallback callback);
   
+  /**
+   * This will register a message handler factory to create handlers for message. In case client code
+   * defines its own message type, it can define a message handler factory to create handlers to process
+   * those messages. Messages are processed in a threadpool which is hosted by cluster manager, and 
+   * cluster manager will call the factory to create handler, and the handler is called in the threadpool.
+   * 
+   * Note that only one message handler factory can be registed with one message type.
+   * 
+   * @param type     The message type that the factory will create handler for
+   * @param factory  The per-type message factory
+   * @return
+   */
   public void registerMessageHandlerFactory(String type, MessageHandlerFactory factory);
 }

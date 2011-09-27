@@ -20,33 +20,36 @@ import com.linkedin.clustermanager.ClusterMessagingService;
 import com.linkedin.clustermanager.Criteria;
 import com.linkedin.clustermanager.InstanceType;
 import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.messaging.handling.AsyncCallbackService;
 import com.linkedin.clustermanager.messaging.handling.CMTaskExecutor;
 import com.linkedin.clustermanager.messaging.handling.MessageHandlerFactory;
 import com.linkedin.clustermanager.model.ExternalView;
 import com.linkedin.clustermanager.model.LiveInstance;
 import com.linkedin.clustermanager.model.Message;
+import com.linkedin.clustermanager.model.Message.MessageType;
 
 public class DefaultMessagingService implements ClusterMessagingService
 {
   private final ClusterManager _manager;
   private CriteriaEvaluator _evaluator;
   private ClusterDataAccessor _dataAccessor;
-  private Map<String, AsyncCallback> _asyncCallbackMap;
   private final CMTaskExecutor _taskExecutor;
+  private final AsyncCallbackService _asyncCallbackService; 
   private static Logger _logger = Logger.getLogger(DefaultMessagingService.class);
   public DefaultMessagingService(ClusterManager manager)
   {
     _evaluator = new CriteriaEvaluator();
     _manager = manager;
     _dataAccessor = _manager.getDataAccessor();
-    _asyncCallbackMap = new HashMap<String, AsyncCallback>();
     _taskExecutor = new CMTaskExecutor();
+    _asyncCallbackService = new AsyncCallbackService();
+    registerMessageHandlerFactory(MessageType.TASK_REPLY.toString(), _asyncCallbackService);
+    
   }
 
   @Override
   public int send(Criteria recipientCriteria, final Message messageTemplate)
   {
-
     return send(recipientCriteria, messageTemplate, null);
   }
 
@@ -58,17 +61,18 @@ public class DefaultMessagingService implements ClusterMessagingService
     Map<InstanceType, List<Message>> generateMessage = generateMessage(
         recipientCriteria, message);
     int totalMessageCount = 0;
+    String correlationId = null;
     if (callbackOnReply != null)
     {
-      String correlationId = UUID.randomUUID().toString();
-
+      correlationId = UUID.randomUUID().toString();
+      // TODO: add "send reply message" work in the message handling code
       for (List<Message> messages : generateMessage.values())
       {
         totalMessageCount += messages.size();
         callbackOnReply.setMessageSentCount(totalMessageCount);
         callbackOnReply.setMessagesSent(generateMessage);
       }
-      _asyncCallbackMap.put(correlationId, callbackOnReply);
+      _asyncCallbackService.registerAsyncCallback(correlationId, callbackOnReply);
     }
 
     for (InstanceType receiverType : generateMessage.keySet())
@@ -77,6 +81,10 @@ public class DefaultMessagingService implements ClusterMessagingService
       for (Message tempMessage : list)
       {
         tempMessage.setId(UUID.randomUUID().toString());
+        if(correlationId != null)
+        {
+          tempMessage.setCorrelationId(correlationId);
+        }
         if (receiverType == InstanceType.CONTROLLER)
         {
           _dataAccessor.setControllerProperty(ControllerPropertyType.MESSAGES,

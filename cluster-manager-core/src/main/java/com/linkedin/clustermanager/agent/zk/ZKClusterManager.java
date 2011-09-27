@@ -70,6 +70,7 @@ public class ZKClusterManager implements ClusterManager
   private CallbackHandler _leaderElectionHandler = null;
   private ParticipantHealthReportCollectorImpl _participantHealthCheckInfoCollector = null;
   private final DefaultMessagingService _messagingService;
+  private final ZKClusterManagementTool _managementTool;
 
 
   public ZKClusterManager(String clusterName, InstanceType instanceType,
@@ -98,6 +99,7 @@ public class ZKClusterManager implements ClusterManager
     _timer = null;
     _handlers = new ArrayList<CallbackHandler>();
     _zkClient = zkClient;
+    _managementTool = new ZKClusterManagementTool(zkClient);
     _messagingService = new DefaultMessagingService(this);
     connect();
   }
@@ -631,8 +633,7 @@ public class ZKClusterManager implements ClusterManager
   @Override
   public ClusterManagementService getClusterManagmentTool()
   {
-    // TODO Auto-generated method stub
-    return null;
+    return _managementTool;
   }
 
   @Override

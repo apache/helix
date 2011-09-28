@@ -70,7 +70,7 @@ public class ZKClusterManager implements ClusterManager
   private CallbackHandler _leaderElectionHandler = null;
   private ParticipantHealthReportCollectorImpl _participantHealthCheckInfoCollector = null;
   private final DefaultMessagingService _messagingService;
-  private ZKClusterManagementTool _managementTool;
+  private ZKClusterManagementTool _managementTool = null;
 
 
   public ZKClusterManager(String clusterName, InstanceType instanceType,

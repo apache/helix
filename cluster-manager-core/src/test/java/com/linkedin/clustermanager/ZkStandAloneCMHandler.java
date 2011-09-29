@@ -35,7 +35,7 @@ import com.linkedin.clustermanager.util.CMUtil;
 public class ZkStandAloneCMHandler
 {
   private static Logger logger = Logger.getLogger(ZkStandAloneCMHandler.class);
-  protected static final String ZK_ADDR = "localhost:2181";
+  protected static final String ZK_ADDR = "localhost:2183";
   // protected static final String CLUSTER_PREFIX = "ESPRESSO_STORAGE";
 
   protected static final int NODE_NR = 5;

@@ -14,7 +14,11 @@ public interface ClusterManagementService
 
   void addCluster(String clusterName, boolean overwritePrevRecord);
 
-  void addResourceGroup(String clusterName, String resourceGroup, int numResources, String stateModelRef);
+  void addResourceGroup(String clusterName, String resourceGroup, int numResources, 
+                        String stateModelRef);
+
+  void addResourceGroup(String clusterName, String resourceGroup, int numResources, 
+                        String stateModelRef, String idealStateMode);
 
   void addInstance(String clusterName, ZNRecord instanceConfig);
 

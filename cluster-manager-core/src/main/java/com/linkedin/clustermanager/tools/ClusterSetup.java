@@ -20,6 +20,7 @@ import org.apache.log4j.Logger;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 
+import com.linkedin.clustermanager.ClusterDataAccessor.IdealStateConfigProperty;
 import com.linkedin.clustermanager.ClusterDataAccessor.InstanceConfigProperty;
 import com.linkedin.clustermanager.ClusterManagementService;
 import com.linkedin.clustermanager.ClusterManagerException;
@@ -33,6 +34,7 @@ import com.linkedin.clustermanager.util.ZKClientPool;
 
 public class ClusterSetup
 {
+  private static Logger logger = Logger.getLogger(ClusterSetup.class);
   public static final String zkServerAddress = "zkSvr";
 
   // List info about the cluster / DB/ Instances
@@ -158,9 +160,26 @@ public class ClusterSetup
   public void addResourceGroupToCluster(String clusterName,
       String resourceGroup, int numResources, String stateModelRef)
   {
+    /*
     ClusterManagementService managementTool = getClusterManagementTool();
     managementTool.addResourceGroup(clusterName, resourceGroup, numResources,
         stateModelRef);
+    */
+    addResourceGroupToCluster(clusterName, resourceGroup, numResources, stateModelRef, 
+                              IdealStateConfigProperty.AUTO.toString());
+  }
+  
+  public void addResourceGroupToCluster(String clusterName,
+      String resourceGroup, int numResources, String stateModelRef, String idealStateMode)
+  {
+    if (!idealStateMode.equalsIgnoreCase(IdealStateConfigProperty.CUSTOMIZED.toString()))
+    {
+      logger.info("ideal state mode is configured to auto mode");
+      idealStateMode = IdealStateConfigProperty.AUTO.toString();
+    }
+    ClusterManagementService managementTool = getClusterManagementTool();
+    managementTool.addResourceGroup(clusterName, resourceGroup, numResources,
+        stateModelRef, idealStateMode);
   }
   
   public void dropResourceGroupToCluster(String clusterName,

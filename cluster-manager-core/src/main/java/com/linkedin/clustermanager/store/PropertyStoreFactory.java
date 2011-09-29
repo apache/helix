@@ -21,8 +21,9 @@ public class PropertyStoreFactory
   public static <T extends Object> PropertyStore<T> getFilePropertyStore(
         PropertySerializer<T> serializer, String rootNamespace, PropertyJsonComparator<T> comparator)
   {
-    // ZkConnection zkConn = ZKConnectionFactory.<T>create(zkAddress, serializer);
-    return new FilePropertyStore<T>(serializer, rootNamespace, comparator);
+    FilePropertyStore<T> store = new FilePropertyStore<T>(serializer, rootNamespace, comparator);
+    store.start();
+    return store;
    
   }
 

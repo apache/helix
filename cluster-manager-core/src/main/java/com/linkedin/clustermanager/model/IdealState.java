@@ -1,6 +1,5 @@
 package com.linkedin.clustermanager.model;
 
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -8,12 +7,13 @@ import java.util.TreeMap;
 
 import org.apache.log4j.Logger;
 
+import com.linkedin.clustermanager.ClusterDataAccessor.IdealStateConfigProperty;
 import com.linkedin.clustermanager.ZNRecord;
 
 public class IdealState
 {
   private static final Logger logger = Logger
-  .getLogger(IdealState.class.getName());
+    .getLogger(IdealState.class.getName());
   private final ZNRecord _record;
 
   public IdealState()
@@ -27,6 +27,25 @@ public class IdealState
 
   }
 
+  public IdealStateConfigProperty getIdealStateMode()
+  {
+    if (_record == null)
+    {
+      return IdealStateConfigProperty.AUTO;
+    }
+    
+    String mode = _record.getSimpleField("ideal_state_mode");
+    if (mode == null || !mode.equalsIgnoreCase(IdealStateConfigProperty.CUSTOMIZED.toString()))
+    {
+      return IdealStateConfigProperty.AUTO;  
+    }
+    else
+    {
+      return IdealStateConfigProperty.CUSTOMIZED;
+    }
+    
+  }
+  
   public void set(String key, String instanceName, String state)
   {
     Map<String, String> mapField = _record.getMapField(key);
@@ -53,20 +72,20 @@ public class IdealState
     return _record.getMapFields().keySet();
   }
 
-  public Map<String, String> getInstanceStateMap(String stateUnitKey)
+  public Map<String, String> getInstanceStateMap(String resourceKeyName)
   {
-    return _record.getMapField(stateUnitKey);
+    return _record.getMapField(resourceKeyName);
   }
 
-  public List<String> getInstancePreferenceList(String stateUnitKey, StateModelDefinition stateModelDef)
+  private List<String> getInstancePreferenceList(String resourceKeyName, StateModelDefinition stateModelDef)
   {
-    List<String> instanceStateList = _record.getListField(stateUnitKey);
+    List<String> instanceStateList = _record.getListField(resourceKeyName);
     
     if(instanceStateList != null)
     {
       return instanceStateList;
     }
-    logger.warn("State unit key "+ stateUnitKey + "does not have a pre-computed preference list.");
+    logger.warn("State unit key "+ resourceKeyName + "does not have a pre-computed preference list.");
     return null;
     
   }

@@ -206,9 +206,10 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkDataListener, IZ
   public void createPropertyNamespace(String prefix)
   {
     String path = getPath(prefix);
-
-    _zkClient.createPersistent(path, true);
-
+    if (!_zkClient.exists(path))
+    {
+      _zkClient.createPersistent(path, true);
+    }
   }
 
   @Override
@@ -727,6 +728,13 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkDataListener, IZ
       }
     }
     
+  }
+
+  @Override
+  public boolean exists(String key)
+  {
+    String path = getPath(key);
+    return _zkClient.exists(path);
   }
 
 }

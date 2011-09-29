@@ -2,7 +2,9 @@ package com.linkedin.clustermanager.tools;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
+import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.tools.ZnodeModDesc.ZnodePropertyType;
 
 public class ZnodeModVerifier
@@ -12,7 +14,6 @@ public class ZnodeModVerifier
   private ZnodePropertyType _propertyType;
   private String _operation;   // "==", "!="
   private String _key;
-  // private String _value;
   private ZnodeModValue _value; 
   
   public ZnodeModVerifier()
@@ -20,12 +21,92 @@ public class ZnodeModVerifier
     
   }
   
+  /**
+   * verify a simple field
+   * @param path
+   * @param type
+   * @param op
+   * @param key
+   * @param expect
+   */
   public ZnodeModVerifier(String path, ZnodePropertyType type, 
-                          String op, String key, ZnodeModValue value)
+                          String op, String key, String expect)
   {
-    this(0, path, type, op, key, value);
+    this(0, path, type, op, key, new ZnodeModValue(expect));
   }
- 
+
+  /**
+   * verify a list field
+   * @param path
+   * @param type
+   * @param op
+   * @param key
+   * @param expect
+   */
+  public ZnodeModVerifier(String path, ZnodePropertyType type, 
+                          String op, String key, List<String> expect)
+  {
+    this(0, path, type, op, key, new ZnodeModValue(expect));
+  }
+
+  /**
+   * verify a map field
+   * @param path
+   * @param type
+   * @param op
+   * @param key
+   * @param expect
+   */
+  public ZnodeModVerifier(String path, ZnodePropertyType type, 
+                          String op, String key, Map<String, String> expect)
+  {
+    this(0, path, type, op, key, new ZnodeModValue(expect));
+  }
+
+  /**
+   * verify entire znode
+   * @param path
+   * @param type
+   * @param op
+   * @param key
+   * @param expect
+   */
+  public ZnodeModVerifier(String path, ZnodePropertyType type, 
+                          String op, ZNRecord expect)
+  {
+    this(0, path, type, op, null, new ZnodeModValue(expect));
+  }
+
+  /**
+   * simple field with timeout
+   * @param timeout
+   * @param path
+   * @param type
+   * @param op
+   * @param key
+   * @param expect
+   */
+  public ZnodeModVerifier(long timeout, String path, ZnodePropertyType type, 
+                          String op, String key, String expect)
+  {
+    this(timeout, path, type, op, key, new ZnodeModValue(expect));
+  }
+
+  /**
+   * znode with timeout
+   * @param timeout
+   * @param path
+   * @param type
+   * @param op
+   * @param expect
+   */
+  public ZnodeModVerifier(long timeout, String path, ZnodePropertyType type, 
+                          String op, ZNRecord expect)
+  {
+    this(timeout, path, type, op, null, new ZnodeModValue(expect));
+  }
+
+  
   public ZnodeModVerifier(long timeout, String path, ZnodePropertyType type, 
                           String op, String key, ZnodeModValue value)
   {
@@ -39,7 +120,7 @@ public class ZnodeModVerifier
   
   public String toString()
   {
-    String ret = "verifier={ " + _timeout + "ms, \"" +  
+    String ret = super.toString() + "={ " + _timeout + "ms, \"" +  
                  _znodePath + "\", " + _propertyType + "/" + _key + " " + _operation + 
                  " " + _value + " }";
     return ret;
@@ -109,28 +190,19 @@ public class ZnodeModVerifier
   //temp test
   public static void main(String[] args) 
   {
-    ZnodeModVerifier verifier = new ZnodeModVerifier("/testPath", 
-                                                     ZnodePropertyType.SIMPLE, 
-                                                     "==", 
-                                                     "key1", 
-                                                     new ZnodeModValue("value1"));  
+    ZnodeModVerifier verifier = new ZnodeModVerifier("/testPath", ZnodePropertyType.SIMPLE, 
+                                                     "==", "key1", "simpleValue1");  
     System.out.println(verifier);
     
-    verifier = new ZnodeModVerifier("/testPath", 
-                                    ZnodePropertyType.LIST, 
-                                    "==", 
-                                    "key1/0",
-                                    new ZnodeModValue("value1"));  
+    verifier = new ZnodeModVerifier("/testPath", ZnodePropertyType.LIST, 
+                                    "==", "key1/0", "value1");  
     System.out.println(verifier);
 
     List<String> list = new ArrayList<String>();
     list.add("value1");
     list.add("value2");
-    verifier = new ZnodeModVerifier("/testPath", 
-                                    ZnodePropertyType.LIST, 
-                                    "==", 
-                                    "key1",
-                                    new ZnodeModValue(list));  
+    verifier = new ZnodeModVerifier("/testPath", ZnodePropertyType.LIST, 
+                                    "==", "key1", list);  
     System.out.println(verifier);
     
     verifier = new ZnodeModVerifier();

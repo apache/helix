@@ -2,105 +2,185 @@ package com.linkedin.clustermanager;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.I0Itec.zkclient.ZkServer;
+import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.AfterTest;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
+import com.linkedin.clustermanager.ClusterDataAccessor.IdealStateConfigProperty;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
 import com.linkedin.clustermanager.tools.ZnodeModCommand;
 import com.linkedin.clustermanager.tools.ZnodeModDesc;
 import com.linkedin.clustermanager.tools.ZnodeModDesc.ZnodePropertyType;
 import com.linkedin.clustermanager.tools.ZnodeModExecutor;
-import com.linkedin.clustermanager.tools.ZnodeModValue;
 import com.linkedin.clustermanager.tools.ZnodeModVerifier;
 import com.linkedin.clustermanager.util.ZKClientPool;
 
-
-
 public class TestZnodeModExecutor
 {
-  private final String _zkAddress = "localhost:2191";
-  private final String _znodePath = "/testPath";
-  private ZkServer _zkServer = null;
+  private static Logger logger = Logger.getLogger(TestZnodeModExecutor.class);
+  private static final String ZK_ADDR = "localhost:2181";
+  private final String PREFIX = "/" + getShortClassName();
+  private ZkServer _zkServer = null; 
 
   @Test
-  public void test() throws Exception
+  public void testBasic() throws Exception
   {
-    System.out.println("Running TestZnodeModExecutor: " + new Date(System.currentTimeMillis()));
+    logger.info("RUN: " + new Date(System.currentTimeMillis()));
     
     // test case for the basic flow, no timeout, no data trigger
-    ZnodeModDesc testDesc = new ZnodeModDesc("test1");
-    ZnodeModCommand command = new ZnodeModCommand(_znodePath, ZnodePropertyType.SIMPLE, 
-                                                  "+", "key1", null, new ZnodeModValue("value1_1"));
+    ZnodeModDesc testDesc = new ZnodeModDesc("testBasic");
+    String pathChild1 = PREFIX + "/basic_child1";
+    String pathChild2 = PREFIX + "/basic_child2";
+    
+    ZnodeModCommand command; 
+    command = new ZnodeModCommand(pathChild1, ZnodePropertyType.SIMPLE, "+", "key1", "simpleValue1");
     testDesc.addCommand(command);
     
     List<String> list = new ArrayList<String>();
-    list.add("value5_1");
-    list.add("value5_2");
-    ZnodeModCommand command2 = new ZnodeModCommand(_znodePath, ZnodePropertyType.LIST, 
-                                                   "+", "key5", null, new ZnodeModValue(list));
-    testDesc.addCommand(command2);
+    list.add("listValue1");
+    list.add("listValue2");
+    command = new ZnodeModCommand(pathChild1, ZnodePropertyType.LIST, "+", "key2", list);
+    testDesc.addCommand(command);
     
-    ZnodeModVerifier verifier = new ZnodeModVerifier(_znodePath, ZnodePropertyType.SIMPLE, 
-                                                     "==", "key1", new ZnodeModValue("value1_1")); 
+    ZNRecord record = getExampleZNRecord();
+    command = new ZnodeModCommand(pathChild2, ZnodePropertyType.ZNODE, "+", record);
+    testDesc.addCommand(command);
+    
+    ZnodeModVerifier verifier;
+    verifier = new ZnodeModVerifier(pathChild1, ZnodePropertyType.SIMPLE, "==", "key1", "simpleValue1"); 
     testDesc.addVerification(verifier);
     
+    verifier = new ZnodeModVerifier(pathChild1, ZnodePropertyType.LIST, "==", "key2", list); 
+    testDesc.addVerification(verifier);
     
-    ZnodeModVerifier verifier2 = new ZnodeModVerifier(_znodePath, ZnodePropertyType.LIST, 
-                                                      "==", "key5", new ZnodeModValue(list)); 
-    testDesc.addVerification(verifier2);
+    verifier = new ZnodeModVerifier(pathChild2, ZnodePropertyType.ZNODE, "==", record); 
+    testDesc.addVerification(verifier);
     
-    ZnodeModExecutor executor = new ZnodeModExecutor(testDesc, _zkAddress);
+    ZnodeModExecutor executor = new ZnodeModExecutor(testDesc, ZK_ADDR);
     Map<String, Boolean> results = executor.executeTest();
-    Assert.assertEquals(true, results.get(command.toString()).booleanValue());
-    Assert.assertEquals(true, results.get(command2.toString()).booleanValue());
-    Assert.assertEquals(true, results.get(verifier.toString()).booleanValue());
-    Assert.assertEquals(true, results.get(verifier2.toString()).booleanValue());
+    for (ZnodeModCommand resultCommand : testDesc.getCommands())
+    {
+      Assert.assertTrue(results.get(resultCommand.toString()).booleanValue());
+    }
+    for (ZnodeModVerifier resultVerifier : testDesc.getVerifiers())
+    {
+      Assert.assertTrue(results.get(resultVerifier.toString()).booleanValue());
+    } 
     
+    logger.info("END: " + new Date(System.currentTimeMillis()));
+  }
+  
+  @Test
+  public void testDataTrigger() throws Exception
+  {
+    logger.info("RUN: " + new Date(System.currentTimeMillis()));
     
-    // test case for command/verifier fails on data-trigger
-    testDesc = new ZnodeModDesc("test2");
-    command = new ZnodeModCommand(_znodePath, ZnodePropertyType.SIMPLE, 
-                                  "+", "key2", new ZnodeModValue("value2_0"), new ZnodeModValue("value2_1"));
+    // test case for data trigger, no timeout
+    ZnodeModDesc testDesc = new ZnodeModDesc("testDataTrigger");
+    String pathChild1 = PREFIX + "/data_trigger_child1";
+    String pathChild2 = PREFIX + "/data_trigger_child2";
+    
+    ZnodeModCommand command = new ZnodeModCommand(pathChild1, ZnodePropertyType.SIMPLE, 
+                                  "+", "key1", "simpleValue1", "simpleValue1-new");
     testDesc.addCommand(command);
-    verifier = new ZnodeModVerifier(_znodePath, ZnodePropertyType.SIMPLE, 
-                                    "==", "key2", new ZnodeModValue("value2_1")); 
+    
+    ZNRecord record = getExampleZNRecord();
+    ZNRecord recordNew = new ZNRecord(record);
+    recordNew.setSimpleField("ideal_state_mode", IdealStateConfigProperty.AUTO.toString());
+    command = new ZnodeModCommand(pathChild2, ZnodePropertyType.ZNODE, 
+                                  "+", record, recordNew);
+    testDesc.addCommand(command);
+    
+    ZnodeModVerifier verifier = new ZnodeModVerifier(pathChild1, ZnodePropertyType.SIMPLE, 
+                                    "==", "key1", "simpleValue1-new"); 
+    testDesc.addVerification(verifier);
+    verifier = new ZnodeModVerifier(pathChild2, ZnodePropertyType.ZNODE, 
+                                                     "==", recordNew); 
     testDesc.addVerification(verifier);
     
-    executor = new ZnodeModExecutor(testDesc, _zkAddress);
-    results = executor.executeTest();
-    Assert.assertEquals(false, results.get(command.toString()).booleanValue());
-    Assert.assertEquals(false, results.get(verifier.toString()).booleanValue());
-    
-    // test case for command/verifier fails on timeout
-    testDesc = new ZnodeModDesc("test3");
-    command = new ZnodeModCommand(0, 1000, _znodePath, ZnodePropertyType.SIMPLE, 
-                                  "+", "key3", new ZnodeModValue("value3_0"), new ZnodeModValue("value3_1"));
-    testDesc.addCommand(command);
-    verifier = new ZnodeModVerifier(1000, _znodePath, ZnodePropertyType.SIMPLE, 
-                                    "==", "key3", new ZnodeModValue("value3_1")); 
-    testDesc.addVerification(verifier);
-    
-    executor = new ZnodeModExecutor(testDesc, _zkAddress);
-    results = executor.executeTest();
-    Assert.assertEquals(false, results.get(command.toString()).booleanValue());
-    Assert.assertEquals(false, results.get(verifier.toString()).booleanValue());
+    ZnodeModExecutor executor = new ZnodeModExecutor(testDesc, ZK_ADDR);
+    Map<String, Boolean> results = executor.executeTest();
+    for (ZnodeModCommand resultCommand : testDesc.getCommands())
+    {
+      Assert.assertFalse(results.get(resultCommand.toString()).booleanValue());
+    }
+    for (ZnodeModVerifier resultVerifier : testDesc.getVerifiers())
+    {
+      Assert.assertFalse(results.get(resultVerifier.toString()).booleanValue());
+    }
 
-    // test case for command with data trigger, and verifier
-    testDesc = new ZnodeModDesc("test4");
-    command = new ZnodeModCommand(0, 10000, _znodePath, ZnodePropertyType.SIMPLE, 
-                                  "+", "key4", new ZnodeModValue("value4_0"), new ZnodeModValue("value4_1"));
+    logger.info("END: " + new Date(System.currentTimeMillis()));
+  }
+  
+  @Test
+  public void testTimeout() throws Exception
+  {
+    logger.info("RUN: " + new Date(System.currentTimeMillis()));
+    
+    // test case for timeout, no data trigger
+    ZnodeModDesc testDesc = new ZnodeModDesc("testTimeout");
+    String pathChild1 = PREFIX + "/timeout_child1";
+    String pathChild2 = PREFIX + "/timeout_child2";
+
+    ZnodeModCommand command = new ZnodeModCommand(0, 1000, pathChild1, ZnodePropertyType.SIMPLE, 
+                        "+", "key1", "simpleValue1", "simpleValue1-new");
     testDesc.addCommand(command);
-    verifier = new ZnodeModVerifier(1000, _znodePath, ZnodePropertyType.SIMPLE, 
-                                    "==", "key4", new ZnodeModValue("value4_1")); 
+    
+    ZNRecord record = getExampleZNRecord();
+    ZNRecord recordNew = new ZNRecord(record);
+    recordNew.setSimpleField("ideal_state_mode", IdealStateConfigProperty.AUTO.toString());
+    command = new ZnodeModCommand(0, 500, pathChild2, ZnodePropertyType.ZNODE, 
+                                  "+", record, recordNew);
+    testDesc.addCommand(command);
+                              
+    ZnodeModVerifier verifier = new ZnodeModVerifier(1000, pathChild1, ZnodePropertyType.SIMPLE, 
+                                    "==", "key1", "simpleValue1-new");
+    testDesc.addVerification(verifier);
+    verifier = new ZnodeModVerifier(pathChild2, ZnodePropertyType.ZNODE, 
+                                    "==", recordNew); 
     testDesc.addVerification(verifier);
     
-    // start a separate thread to change SIMPLE/key4 to value4_0
+    ZnodeModExecutor executor = new ZnodeModExecutor(testDesc, ZK_ADDR);
+    Map<String, Boolean> results = executor.executeTest();
+    for (ZnodeModCommand resultCommand : testDesc.getCommands())
+    {
+      Assert.assertFalse(results.get(resultCommand.toString()).booleanValue());
+    }
+    for (ZnodeModVerifier resultVerifier : testDesc.getVerifiers())
+    {
+      Assert.assertFalse(results.get(resultVerifier.toString()).booleanValue());
+    }
+
+    logger.info("END: " + new Date(System.currentTimeMillis()));
+  }
+  
+  @Test
+  public void testDataTriggerWithTimeout() throws Exception
+  {
+    logger.info("RUN: " + new Date(System.currentTimeMillis()));
+    
+    // test case for data trigger with timeout
+    ZnodeModDesc testDesc = new ZnodeModDesc("testDataTriggerWithTimeout");
+    final String pathChild1 = PREFIX + "/dataTriggerWithTimeout_child1";
+    
+    final ZNRecord record = getExampleZNRecord();
+    ZNRecord recordNew = new ZNRecord(record);
+    recordNew.setSimpleField("ideal_state_mode", IdealStateConfigProperty.AUTO.toString());
+    ZnodeModCommand command = new ZnodeModCommand(0, 10000, pathChild1, ZnodePropertyType.ZNODE, 
+                        "+", record, recordNew);
+    testDesc.addCommand(command);
+    ZnodeModVerifier verifier = new ZnodeModVerifier(1000, pathChild1, ZnodePropertyType.ZNODE, 
+                                    "==", recordNew); 
+    testDesc.addVerification(verifier);
+    
+    // start a separate thread to change znode at pathChild1
     new Thread()
     {
       @Override
@@ -109,10 +189,9 @@ public class TestZnodeModExecutor
         try
         {
           Thread.sleep(3000);
-          ZkClient zkClient = ZKClientPool.getZkClient(_zkAddress);
-          ZNRecord record = new ZNRecord();
-          record.setSimpleField("key4", "value4_0");
-          zkClient.writeData(_znodePath, record);
+          ZkClient zkClient = ZKClientPool.getZkClient(ZK_ADDR);
+          zkClient.createPersistent(pathChild1, true);
+          zkClient.writeData(pathChild1, record);
         }
         catch (InterruptedException e)
         {
@@ -122,19 +201,23 @@ public class TestZnodeModExecutor
       }
     }.start();
     
-    executor = new ZnodeModExecutor(testDesc, _zkAddress);
-    results = executor.executeTest();
-    Assert.assertEquals(true, results.get(command.toString()).booleanValue());
-    Assert.assertEquals(true, results.get(verifier.toString()).booleanValue());
-    
-    System.out.println("Ending TestZnodeModExecutor: " + new Date(System.currentTimeMillis()));
+    ZnodeModExecutor executor = new ZnodeModExecutor(testDesc, ZK_ADDR);
+    Map<String, Boolean> results = executor.executeTest();
+    for (ZnodeModCommand resultCommand : testDesc.getCommands())
+    {
+      Assert.assertTrue(results.get(resultCommand.toString()).booleanValue());
+    }
+    for (ZnodeModVerifier resultVerifier : testDesc.getVerifiers())
+    {
+      Assert.assertTrue(results.get(resultVerifier.toString()).booleanValue());
+    }
     
   }
   
   @BeforeTest
   public void beforeTest()
   {
-    _zkServer = TestHelper.startZkSever(_zkAddress, _znodePath);
+    _zkServer = TestHelper.startZkSever(ZK_ADDR, PREFIX);
     
   }
   
@@ -142,5 +225,27 @@ public class TestZnodeModExecutor
   public void afterTest()
   {
     TestHelper.stopZkServer(_zkServer);
+  }
+  
+  private ZNRecord getExampleZNRecord()
+  {
+    ZNRecord record = new ZNRecord();
+    record.setSimpleField("ideal_state_mode", IdealStateConfigProperty.CUSTOMIZED.toString());
+    Map<String, String> map = new HashMap<String, String>();
+    map.put("localhost_12918", "MASTER");
+    map.put("localhost_12919", "SLAVE");
+    record.setMapField("TestDB_0", map);
+    
+    List<String> list = new ArrayList<String>();
+    list.add("localhost_12918");
+    list.add("localhost_12919");
+    record.setListField("TestDB_0", list);
+    return record;
+  }
+  
+  private String getShortClassName()
+  {
+    String className = this.getClass().getName();
+    return className.substring(className.lastIndexOf('.') + 1);
   }
 }

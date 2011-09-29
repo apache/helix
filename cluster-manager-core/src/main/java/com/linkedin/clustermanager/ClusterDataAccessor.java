@@ -72,6 +72,11 @@ public interface ClusterDataAccessor
     HOST, PORT, ENABLED
   }
 
+  public enum IdealStateConfigProperty
+  {
+    AUTO, CUSTOMIZED
+  }
+  
   public enum InstancePropertyType
   {
     MESSAGES(true, true, true), CURRENTSTATES(true, true, false), STATUSUPDATES(

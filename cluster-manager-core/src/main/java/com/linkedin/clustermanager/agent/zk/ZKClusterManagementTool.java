@@ -8,6 +8,7 @@ import org.apache.log4j.Logger;
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.ClusterDataAccessor.ControllerPropertyType;
+import com.linkedin.clustermanager.ClusterDataAccessor.IdealStateConfigProperty;
 import com.linkedin.clustermanager.ClusterDataAccessor.InstanceConfigProperty;
 import com.linkedin.clustermanager.ClusterManagementService;
 import com.linkedin.clustermanager.ClusterManagerException;
@@ -149,10 +150,19 @@ public class ZKClusterManagementTool implements ClusterManagementService
   public void addResourceGroup(String clusterName, String dbName,
       int partitions, String stateModelRef)
   {
+    addResourceGroup(clusterName, dbName, partitions, stateModelRef, 
+                     IdealStateConfigProperty.AUTO.toString());
+  }
+  
+  @Override
+  public void addResourceGroup(String clusterName, String dbName,
+      int partitions, String stateModelRef, String idealStateMode)
+  {
     ZNRecord idealState = new ZNRecord();
     idealState.setId(dbName);
     idealState.setSimpleField("partitions", String.valueOf(partitions));
     idealState.setSimpleField("state_model_def_ref", stateModelRef);
+    idealState.setSimpleField("ideal_state_mode", idealStateMode);
 
     String idealStatePath = CMUtil.getIdealStatePath(clusterName);
     String dbIdealStatePath = idealStatePath + "/" + dbName;

@@ -6,6 +6,7 @@ import java.util.List;
 import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
+import com.linkedin.clustermanager.ClusterDataAccessor.IdealStateConfigProperty;
 import com.linkedin.clustermanager.ClusterManagementService;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.store.PropertyStoreException;
@@ -120,10 +121,10 @@ public class FileClusterManagementTool implements ClusterManagementService
 
   }
 
+  
+  
   @Override
-  public void addResourceGroup(String clusterName,
-                               String resourceGroup,
-                               int numResources,
+  public void addResourceGroup(String clusterName, String resourceGroup, int numResources,
                                String stateModelRef)
   {
     String idealStatePath = CMUtil.getIdealStatePath(clusterName);
@@ -142,6 +143,7 @@ public class FileClusterManagementTool implements ClusterManagementService
     idealState.setId(resourceGroup);
     idealState.setSimpleField("partitions", String.valueOf(numResources));
     idealState.setSimpleField("state_model_def_ref", stateModelRef);
+    idealState.setSimpleField("ideal_state_mode", IdealStateConfigProperty.AUTO.toString());
     
     try
     {
@@ -154,6 +156,13 @@ public class FileClusterManagementTool implements ClusterManagementService
           "\nexception: " + e);
     }
     
+  }
+  
+  @Override
+  public void addResourceGroup(String clusterName, String resourceGroup, int numResources,
+                               String stateModelRef, String idealStateMode)
+  {
+    throw new UnsupportedOperationException("ideal state mode not supported in file-based cluster manager");
   }
 
   @Override

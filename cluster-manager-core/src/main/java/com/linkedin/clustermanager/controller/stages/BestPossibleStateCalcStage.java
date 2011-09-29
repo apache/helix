@@ -9,6 +9,7 @@ import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
+import com.linkedin.clustermanager.ClusterDataAccessor.IdealStateConfigProperty;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.model.IdealState;
@@ -96,9 +97,19 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
         Map<String, String> currentStateMap = currentStateOutput
             .getCurrentStateMap(resourceGroupName, resource);
         
-        Map<String, String> bestStateForResource = computeBestStateForResource(
-            stateModelDef, instancePreferenceList, liveInstancesMap,
-            currentStateMap);
+        Map<String, String> bestStateForResource;
+        if (idealState.getIdealStateMode() == IdealStateConfigProperty.CUSTOMIZED)
+        {
+          // TODO add computerBestStateForResourceInCustomizedMode()
+          bestStateForResource = idealState.getInstanceStateMap(resource.getResourceKeyName());
+        }
+        else
+        {
+          bestStateForResource = computeBestStateForResource(
+              stateModelDef, instancePreferenceList, liveInstancesMap,
+              currentStateMap);
+        }
+        
         output.setState(resourceGroupName, resource, bestStateForResource);
       }
     }

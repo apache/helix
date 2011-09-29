@@ -136,6 +136,13 @@ public interface PropertyStore<T>
   public void updatePropertyUntilSucceed(String key, DataUpdater<T> updater);
   
   /**
+   * test if a property exists
+   * @param key
+   * @return
+   */
+  public boolean exists(String key);
+  
+  /**
    * update property return true if succeed, false otherwise
    * 
    * @param key

@@ -2,18 +2,21 @@ package com.linkedin.clustermanager.tools;
 
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import org.I0Itec.zkclient.IZkDataListener;
-import org.I0Itec.zkclient.exception.ZkNoNodeException;
+import org.I0Itec.zkclient.exception.ZkBadVersionException;
+import org.I0Itec.zkclient.exception.ZkNodeExistsException;
 import org.apache.log4j.Logger;
+import org.apache.zookeeper.data.Stat;
 
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
@@ -28,67 +31,63 @@ public class ZnodeModExecutor
     INVALID,
     SINGLE_VALUE,
     LIST_VALUE,
-    MAP_VALUE
+    MAP_VALUE,
+    ZNODE_VALUE
   }
   
-  private static Logger LOG = Logger.getLogger(ZnodeModExecutor.class);
+  private static Logger logger = Logger.getLogger(ZnodeModExecutor.class);
+  private static final int MAX_PARALLEL_TASKS = 1;
+  
   private final ZnodeModDesc _testDesc;
   private final ZkClient _zkClient;
   
-  private final Timer _timer = new Timer();
   private final Map<String, Boolean> _testResults = new ConcurrentHashMap<String, Boolean>();
   private final CountDownLatch _verifierCountDown;
   private final CountDownLatch _commandCountDown;
+  private final ScheduledExecutorService _executor = Executors.newScheduledThreadPool(MAX_PARALLEL_TASKS);
+  private final ScheduledExecutorService _timeoutExecutor = Executors.newScheduledThreadPool(MAX_PARALLEL_TASKS);
   
-  private final static PropertyJsonComparator<String> STRING_COMPARATOR = new PropertyJsonComparator<String>(String.class);
+  private final static PropertyJsonComparator<String> STRING_COMPARATOR 
+            = new PropertyJsonComparator<String>(String.class);
+  private final static PropertyJsonComparator<ZNRecord> ZNODE_COMPARATOR 
+            = new PropertyJsonComparator<ZNRecord>(ZNRecord.class);
 
   
   private class CommandDataListener implements IZkDataListener
   {
-    private CommandTimeoutTask _task = null;
     private final ZnodeModCommand _command;
+    private Future _task = null;
+    private Future _timeoutTask = null;
 
     public CommandDataListener(ZnodeModCommand command)
     {
       _command = command;
     }
     
-    public void setTimeoutTask(CommandTimeoutTask task)
+    public void setTask(Future task)
     {
       _task = task;
     }
     
-    public ZnodeModCommand getCommand()
+    public void setTimeoutTask(Future timeoutTask)
     {
-      return _command;
+      _timeoutTask = timeoutTask;
     }
     
     @Override
     public void handleDataChange(String dataPath, Object data) throws Exception
     {
-      ZNRecord record = (ZNRecord)data;
-      ZnodeModTrigger trigger = _command.getTrigger();
-      if (compareValue(record, _command.getPropertyType(), 
-                       _command.getKey(), trigger.getExpectValue()) == true)
+      if (compareAndSet(_command) == true)
       {
-        record = executeCommand(record, _command);
-       
-        try
-        {
-          _zkClient.writeData(dataPath, record);
-          _testResults.put(_command.toString(), new Boolean(true));
-        }
-        catch (Exception e)
-        {
-          e.printStackTrace();
-        }
-
         _zkClient.unsubscribeDataChanges(dataPath, this);
         if (_task != null)
         {
-          _task.cancel();
+          _task.cancel(true);
         }
-     
+        if (_timeoutTask != null)
+        {
+          _timeoutTask.cancel(true);
+        }
         _commandCountDown.countDown();
       }
     }
@@ -102,36 +101,95 @@ public class ZnodeModExecutor
         
   };
   
-  
-  private class CommandTimeoutTask extends TimerTask
+  private class CommandExecutor implements Runnable
   {
+    private final ZnodeModCommand _command;
     private final CommandDataListener _listener;
+    private final String _path;
+    private final ZnodeModValue _expect;
+    private final long _timeout;
+    private Future _timeoutTask = null;
     
-    public CommandTimeoutTask(CommandDataListener listener)
+    
+    public CommandExecutor(ZnodeModCommand command)
     {
-      listener.setTimeoutTask(this);
+      this(command, null);
+    }
+    
+    
+    public CommandExecutor(ZnodeModCommand command, CommandDataListener listener)
+    {
+      _command = command;
       _listener = listener;
+      _path = command.getZnodePath();
+      _expect = command.getTrigger().getExpectValue();
+      _timeout = command.getTrigger().getTimeout();
+    }
+    
+    public void setTimeoutTask(Future timeoutTask)
+    {
+      _timeoutTask = timeoutTask;
     }
     
     @Override
     public void run()
     {
-      ZnodeModCommand command = _listener.getCommand();
-      String path = command.getZnodePath();
-      _zkClient.unsubscribeDataChanges(path, _listener);
-      _testResults.put(command.toString(), new Boolean(false));
+      boolean result = compareAndSet(_command);
+      if (result == true)
+      {
+        if (_expect != null && _listener != null)
+        {
+          _zkClient.unsubscribeDataChanges(_path, _listener);
+        }
+        if (_timeout > 0 && _timeoutTask != null)
+        {
+          _timeoutTask.cancel(true);
+        }
+        _commandCountDown.countDown();
+      }
+      else
+      {
+        if (_timeout == 0)
+        {
+          logger.warn("fail to execute command (timeout=0):" + _command.toString());
+          _commandCountDown.countDown();
+        }
+      }
+    }
+  }
+  
+  private class CommandTimeoutTask implements Runnable
+  {
+    private final ZnodeModCommand _command;
+    private final CommandDataListener _listener;
+    private final String _path;
+    private final Future _task;
+    
+    public CommandTimeoutTask(ZnodeModCommand command, CommandDataListener listener, Future task)
+    {
+      _command = command;
+      _listener = listener;
+      _path = command.getZnodePath();
+      _task = task;
+    }
+    
+    @Override
+    public void run()
+    {
+      _zkClient.unsubscribeDataChanges(_path, _listener);
+      _task.cancel(true);
       _commandCountDown.countDown();
       
-      LOG.warn(command + " fails (timeout)");
+      logger.warn("fail to execute command (timeout):" + _command);
       
     }
     
   };
-  
-  
+ 
   private class VerifierDataListener implements IZkDataListener
   {
-    private VerifierTimeoutTask _task = null;
+    private Future _timeoutTask = null;
+    private Future _task = null;
     private final ZnodeModVerifier _verifier;
 
     public VerifierDataListener(ZnodeModVerifier verifier)
@@ -139,17 +197,20 @@ public class ZnodeModExecutor
       _verifier = verifier;
     }
     
-    public void setTimeoutTask(VerifierTimeoutTask task)
+    public void setTimeoutTask(Future timeoutTask)
+    {
+      _timeoutTask = timeoutTask;
+    }
+    
+    public void setTask(Future task)
     {
       _task = task;
     }
-    
     
     public ZnodeModVerifier getVerifier()
     {
       return _verifier;
     }
-    
     
     @Override
     public void handleDataChange(String dataPath, Object data) throws Exception
@@ -162,9 +223,13 @@ public class ZnodeModExecutor
         _zkClient.unsubscribeDataChanges(dataPath, this);
         if (_task != null)
         {
-          _task.cancel();
+          _task.cancel(true);
         }
-        _testResults.put(_verifier.toString(), new Boolean(true));
+        
+        if (_timeoutTask != null)
+        {
+          _timeoutTask.cancel(true);
+        }
         _verifierCountDown.countDown();
       }
     }
@@ -178,27 +243,87 @@ public class ZnodeModExecutor
         
   };
   
-  private class VerifierTimeoutTask extends TimerTask
+  private class VerifierExecutor implements Runnable
   {
     private final VerifierDataListener _listener;
+    private final ZnodeModVerifier _verifier;
+    private final String _path;
+    private final long _timeout;
+    private Future _timeoutTask = null;
     
-    public VerifierTimeoutTask(VerifierDataListener listener)
+    public VerifierExecutor(ZnodeModVerifier verifier)
     {
-      listener.setTimeoutTask(this);
+      this(null, verifier);
+    }
+    
+    public VerifierExecutor(VerifierDataListener listener, ZnodeModVerifier verifier)
+    {
       _listener = listener;
+      _verifier = verifier;
+      _path = verifier.getZnodePath();
+      _timeout = verifier.getTimeout();
+    }
+    
+    public void setTimeoutTask(Future timeoutTask)
+    {
+      _timeoutTask = timeoutTask;
+    }
+
+    @Override
+    public void run()
+    {
+      ZNRecord record = _zkClient.<ZNRecord>readData(_path, true);
+
+      boolean result = executeVerifier(record, _verifier);
+      if (result == true)
+      {
+        if (_listener != null)
+        {
+          _zkClient.unsubscribeDataChanges(_path, _listener);
+        }
+        
+        if (_timeout > 0 && _timeoutTask != null)
+        {
+          _timeoutTask.cancel(true);
+        }
+
+        _verifierCountDown.countDown();
+      }
+      else
+      {
+        if (_timeout == 0)
+        {
+          logger.warn("fail to verify (timeout=0):" + _verifier.toString());
+          _verifierCountDown.countDown();
+        }
+      }
+    }
+    
+  }
+  
+  private class VerifierTimeoutTask implements Runnable // extends TimerTask
+  {
+    private final VerifierDataListener _listener;
+    private final ZnodeModVerifier _verifier;
+    private final String _path;
+    private final Future _task;
+    
+    public VerifierTimeoutTask(VerifierDataListener listener, ZnodeModVerifier verifier, Future task)
+    {
+      _listener = listener;
+      _verifier = verifier;
+      _path = verifier.getZnodePath();
+      _task = task;
     }
     
     @Override
     public void run()
     {
-      ZnodeModVerifier verifier = _listener.getVerifier();
-      String path = verifier.getZnodePath();
-      _zkClient.unsubscribeDataChanges(path, _listener);
-      _testResults.put(verifier.toString(), new Boolean(false));
+      _zkClient.unsubscribeDataChanges(_path, _listener);
+      _task.cancel(true);
       _verifierCountDown.countDown();
       
-      LOG.warn(verifier + " fails (timeout)");
-      
+      logger.warn("fail to verifier (timeout):" + _verifier);
     }
     
   };
@@ -214,20 +339,21 @@ public class ZnodeModExecutor
   private ZnodeModValueType getValueType(ZnodePropertyType type, String key)
   {
     ZnodeModValueType valueType = ZnodeModValueType.INVALID;
-    String keyParts[] = key.split("/");
     switch(type)
     {
     case SIMPLE:
+      String keyParts[] = key.split("/");
       if (keyParts.length != 1)
       {
-        LOG.warn("invalid key for simple field: " + key + ", expect 1 part: key1 (no slash)");
+        logger.warn("invalid key for simple field: " + key + ", expect 1 part: key1 (no slash)");
       }
       valueType = ZnodeModValueType.SINGLE_VALUE;
       break;
     case LIST:
+      keyParts = key.split("/");
       if (keyParts.length < 1 || keyParts.length > 2)
       {
-        LOG.warn("invalid key for list field: " + key + ", expect 1 or 2 parts: key1 or key1/index)");
+        logger.warn("invalid key for list field: " + key + ", expect 1 or 2 parts: key1 or key1/index)");
       }
       else if (keyParts.length == 1)
       {
@@ -240,7 +366,7 @@ public class ZnodeModExecutor
           int index = Integer.parseInt(keyParts[1]);
           if (index < 0)
           {
-            LOG.warn("invalid key for list field: " + key + ", index < 0");
+            logger.warn("invalid key for list field: " + key + ", index < 0");
           }
           else
           {
@@ -249,14 +375,15 @@ public class ZnodeModExecutor
         }
         catch (NumberFormatException e)
         {
-          LOG.warn("invalid key for list field: " + key + ", part-2 is NOT an integer");
+          logger.warn("invalid key for list field: " + key + ", part-2 is NOT an integer");
         }
       }
       break;
     case MAP:
+      keyParts = key.split("/");
       if (keyParts.length < 1 || keyParts.length > 2)
       {
-        LOG.warn("invalid key for map field: " + key + ", expect 1 or 2 parts: key1 or key1/key2)");
+        logger.warn("invalid key for map field: " + key + ", expect 1 or 2 parts: key1 or key1/key2)");
       }
       else if (keyParts.length == 1)
       {
@@ -267,13 +394,14 @@ public class ZnodeModExecutor
         valueType = ZnodeModValueType.SINGLE_VALUE;
       }
       break;
+    case ZNODE:
+      valueType = ZnodeModValueType.ZNODE_VALUE;
     default:
       break;
     }
     return valueType;
   }
   
-
   private String getSingleValue(ZNRecord record, ZnodePropertyType type, String key)
   {
     if (record == null || key == null)
@@ -293,7 +421,7 @@ public class ZnodeModExecutor
       List<String> list = record.getListField(keyParts[0]);
       if (list == null)
       {
-        LOG.warn("invalid key for list field: " + key + ", map for key part-1 doesn't exist");
+        logger.warn("invalid key for list field: " + key + ", map for key part-1 doesn't exist");
         return null;
       }
       int idx = Integer.parseInt(keyParts[1]);
@@ -303,7 +431,7 @@ public class ZnodeModExecutor
       Map<String, String> map = record.getMapField(keyParts[0]);
       if (map == null)
       {
-        LOG.warn("invalid key for map field: " + key + ", map for key part-1 doesn't exist");
+        logger.warn("invalid key for map field: " + key + ", map for key part-1 doesn't exist");
         return null;
       }
       value = map.get(keyParts[1]);
@@ -408,6 +536,11 @@ public class ZnodeModExecutor
   private boolean compareValue(ZNRecord record, ZnodePropertyType type, 
                                String key, ZnodeModValue expect)
   {
+    if (expect == null)
+    {
+      return true;
+    }
+    
     boolean result = false;
     ZnodeModValueType valueType = getValueType(type, key);
     switch(valueType)
@@ -421,8 +554,11 @@ public class ZnodeModExecutor
       result = compareListValue(listValue, expect.getListValue());
       break;
     case MAP_VALUE:
-      Map<String, String> mapValue = getMapValue(record,key);
+      Map<String, String> mapValue = getMapValue(record, key);
       result = compareMapValue(mapValue, expect.getMapValue());
+      break;
+    case ZNODE_VALUE:
+      result = (ZNODE_COMPARATOR.compare(expect.getZnodeValue(), record) == 0);
       break;
     case INVALID:
       break;
@@ -445,7 +581,7 @@ public class ZnodeModExecutor
       List<String> list = record.getListField(keyParts[0]);
       if (list == null)
       {
-        LOG.warn("invalid key for list field: " + key + ", value for key part-1 doesn't exist");
+        logger.warn("invalid key for list field: " + key + ", value for key part-1 doesn't exist");
         return;
       }
       int idx = Integer.parseInt(keyParts[1]);
@@ -456,7 +592,7 @@ public class ZnodeModExecutor
       Map<String, String> map = record.getMapField(keyParts[0]);
       if (map == null)
       {
-        LOG.warn("invalid key for map field: " + key + ", value for key part-1 doesn't exist");
+        logger.warn("invalid key for map field: " + key + ", value for key part-1 doesn't exist");
         return;
       }
       map.put(keyParts[1], value);
@@ -476,7 +612,6 @@ public class ZnodeModExecutor
     record.setMapField(key, value);
   }
   
-  
   private void removeSingleValue(ZNRecord record, ZnodePropertyType type, String key)
   {
     String keyParts[] = key.split("/");
@@ -490,7 +625,7 @@ public class ZnodeModExecutor
       List<String> list = record.getListField(keyParts[0]);
       if (list == null)
       {
-        LOG.warn("invalid key for list field: " + key + ", value for key part-1 doesn't exist");
+        logger.warn("invalid key for list field: " + key + ", value for key part-1 doesn't exist");
         return;
       }
       int idx = Integer.parseInt(keyParts[1]);
@@ -500,7 +635,7 @@ public class ZnodeModExecutor
       Map<String, String> map = record.getMapField(keyParts[0]);
       if (map == null)
       {
-        LOG.warn("invalid key for map field: " + key + ", value for key part-1 doesn't exist");
+        logger.warn("invalid key for map field: " + key + ", value for key part-1 doesn't exist");
         return;
       }
       map.remove(keyParts[1]);
@@ -522,23 +657,24 @@ public class ZnodeModExecutor
   
   private boolean executeVerifier(ZNRecord record, ZnodeModVerifier verifier)
   {
-    // String value = getValue(record, verifier.getPropertyType(), verifier.getKey());
-    
-    // TODO: change compare to adopt composite key
+    // TODO change compare to adopt composite key
     boolean result = compareValue(record, verifier.getPropertyType(), 
                                   verifier.getKey(), verifier.getValue());
-    if (verifier.getOperation().compareTo("==") == 0)
-    {
-      
-    }
-    else if (verifier.getOperation().compareTo("!=") == 0)
+    String operation = verifier.getOperation(); 
+    if (operation.equals("!="))
     {
       result = !result;
     }
-    else
+    else if (!operation.equals("=="))
     {
-      LOG.warn(verifier + " fails (unsupport operation)");
+      logger.warn("fail to verify (unsupport operation=" + operation + "):" + verifier);
       result = false;
+    }
+    
+    if (result == true)
+    {
+      logger.info("verifier result:" + result + ", verifier:" + verifier.toString());
+      _testResults.put(verifier.toString(), new Boolean(true));
     }
     return result;
   }
@@ -557,7 +693,7 @@ public class ZnodeModExecutor
       {
       case SINGLE_VALUE:
         setSingleValue(record, command.getPropertyType(), command.getKey(), 
-                       command.getUpdateValue().getSingleValue());
+                       command.getUpdateValue().getSingleValue());   
         break;
       case LIST_VALUE:
         setListValue(record, command.getKey(), command.getUpdateValue().getListValue());
@@ -565,11 +701,15 @@ public class ZnodeModExecutor
       case MAP_VALUE:
         setMapValue(record, command.getKey(), command.getUpdateValue().getMapValue());
         break;
+      case ZNODE_VALUE:
+        record = command.getUpdateValue().getZnodeValue();
+        break;
       case INVALID:
         break;
       default:
         break;
       }
+      
     }
     else if (command.getOperation().compareTo("-") == 0)
     {
@@ -585,6 +725,9 @@ public class ZnodeModExecutor
       case MAP_VALUE:
         removeMapValue(record, command.getKey());
         break;
+      case ZNODE_VALUE:
+        // record = null;
+        break;
       case INVALID:
         break;
       default:
@@ -594,32 +737,67 @@ public class ZnodeModExecutor
     }
     else
     {
-      LOG.warn(command + " fails (unsupport operation)");
+      logger.warn("fail to execute command(unsupport operation):" + command);
       success = false;
     }
     
-    _testResults.put(command.toString(), new Boolean(success));
+    if (success == true)
+    {
+      logger.info("execute command result:" + success + ", command:" + command.toString());
+      _testResults.put(command.toString(), new Boolean(true));
+    }
     return record;
   }
   
-  private void fireAllZnodeChanges(Map<String, ZNRecord> changes)
+  private boolean compareAndSet(ZnodeModCommand command)
   {
-    for (Map.Entry<String, ZNRecord> entry : changes.entrySet())
+    String path = command.getZnodePath();
+    ZnodePropertyType type = command.getPropertyType();
+    String key = command.getKey();
+    ZnodeModValue expect = command.getTrigger().getExpectValue();
+    
+    if (expect != null && !_zkClient.exists(path))
     {
-      if (entry.getValue() != null)
-      {
-        try
-        {
-          _zkClient.writeData(entry.getKey(), entry.getValue());    
-        }
-        catch (Exception e)
-        {
-          e.printStackTrace();
-        }
-      }
+      return false;
     }
     
-    changes.clear();
+    boolean isSucceed = false;
+    try
+    {
+      if (!_zkClient.exists(path))
+      {
+        _zkClient.createPersistent(path, true);
+      }
+    }
+    catch (ZkNodeExistsException e)
+    {
+      // OK
+    }
+      
+    try
+    {
+      Stat stat = new Stat();
+      ZNRecord current = _zkClient.<ZNRecord>readData(path, stat);
+
+      if (compareValue(current, type, key, expect))
+      {
+        ZNRecord update = executeCommand(current, command);
+        if (update == null)
+        {
+         _zkClient.delete(path); 
+        }
+        else
+        {
+          _zkClient.writeData(path, update, stat.getVersion());
+        }
+        isSucceed = true;
+      }
+    } catch (ZkBadVersionException e)
+    {
+      // isSucceed = false;
+    }
+
+    return isSucceed;
   }
   
   public Map<String, Boolean> executeTest() 
@@ -633,90 +811,38 @@ public class ZnodeModExecutor
       }
     });
     
-    long lastTime = 0;
-    final Map<String, ZNRecord> znodeChanges = new HashMap<String, ZNRecord>();
-    final Map<String, ZNRecord> znodeCache = new HashMap<String, ZNRecord>();
-    
     for (ZnodeModCommand command : commandList)
     {
+      _testResults.put(command.toString(), new Boolean(false));
+      
       ZnodeModTrigger trigger = command.getTrigger();
-      if (trigger.getStartTime() <= lastTime)
+      String path = command.getZnodePath();
+      if (trigger.getExpectValue() == null
+          || (trigger.getExpectValue() != null && trigger.getTimeout() == 0) )
       {
-        String path = command.getZnodePath();
-        ZNRecord record = znodeCache.get(path);
-        if (record == null)
-        {
-          try
-          {
-            record = _zkClient.<ZNRecord>readData(path);
-          }
-          catch (ZkNoNodeException e)
-          {
-            _zkClient.createPersistent(path);
-          }
-          znodeCache.put(path, record);
-        }
-        
-
-        if (trigger.getExpectValue() == null) // not a data triggered command
-        {
-          record = executeCommand(record, command);
-          znodeCache.put(path, record);
-          znodeChanges.put(path, record);
-          _commandCountDown.countDown();
-        }
-        else
-        {
-          if (trigger.getTimeout() > 0)
-          {
-            // set watcher before test the value so we can't miss any data change
-            CommandDataListener listener = new CommandDataListener(command);
-            CommandTimeoutTask task = new CommandTimeoutTask(listener);
-            _timer.schedule(task, trigger.getTimeout());
-            
-            _zkClient.subscribeDataChanges(path, listener);
-
-            if (compareValue(record, command.getPropertyType(), 
-                             command.getKey(), trigger.getExpectValue()) == true)
-            {
-              _zkClient.unsubscribeDataChanges(path, listener);
-              task.cancel();
-                
-              record = executeCommand(record, command);
-              znodeCache.put(path, record);
-              znodeChanges.put(path, record);
-              _commandCountDown.countDown();
-            }
-          }
-          else
-          {
-            if (compareValue(record, command.getPropertyType(), 
-                             command.getKey(), trigger.getExpectValue()) == true)
-            {
-              record = executeCommand(record, command);
-              znodeCache.put(path, record);
-              znodeChanges.put(path, record);
-              _commandCountDown.countDown();
-            }
-            else
-            {
-              LOG.warn(command + " fails (value not expected, no timeout)");
-              _testResults.put(command.toString(), new Boolean(false));
-              _commandCountDown.countDown();
-            }
-          }
-        }
+        _executor.schedule(new CommandExecutor(command), command.getTrigger().getStartTime(), 
+                              TimeUnit.MILLISECONDS);
+        // no timeout task for command without data-trigger
       }
-      else  // trigger._startTime > lastTime
+      else if (trigger.getExpectValue() != null && trigger.getTimeout() > 0)
       {
-        znodeCache.clear();
-        fireAllZnodeChanges(znodeChanges);
-        Thread.sleep(trigger.getStartTime() - lastTime);
-        lastTime = trigger.getStartTime();
+        // set watcher before test the value so we can't miss any data change
+        CommandDataListener listener = new CommandDataListener(command);
+        _zkClient.subscribeDataChanges(path, listener);
+        
+        // TODO possible that listener callback happens and succeeds before task is scheduled
+        CommandExecutor executor = new CommandExecutor(command, listener);
+        long startTime = command.getTrigger().getStartTime();
+        Future task = _executor.schedule(executor, startTime, TimeUnit.MILLISECONDS);
+        listener.setTask(task);
+        
+        Future timeoutTask = _timeoutExecutor.schedule(new CommandTimeoutTask(command, listener, task), 
+                        startTime + command.getTrigger().getTimeout(), TimeUnit.MILLISECONDS);
+        listener.setTimeoutTask(timeoutTask);
+        executor.setTimeoutTask(timeoutTask);
       }
     }
     
-    fireAllZnodeChanges(znodeChanges);
     _commandCountDown.await();
     
     // execute verifiers
@@ -732,40 +858,28 @@ public class ZnodeModExecutor
     {
       _testResults.put(verifier.toString(), new Boolean(false));
       String path = verifier.getZnodePath();
-      ZNRecord record = _zkClient.<ZNRecord>readData(path, true);
-      
 
       if (verifier.getTimeout() > 0)
       {
         // set watcher before checking the value so we can't miss any data change
         VerifierDataListener listener = new VerifierDataListener(verifier);
-        VerifierTimeoutTask task = new VerifierTimeoutTask(listener);
-        _timer.schedule(task, verifier.getTimeout());
-        
         _zkClient.subscribeDataChanges(path, listener);
-              
-        boolean result = executeVerifier(record, verifier);
-        if (result == true)
-        {
-          _testResults.put(verifier.toString(), new Boolean(true));
-          _verifierCountDown.countDown();
-          _zkClient.unsubscribeDataChanges(path, listener);
-          task.cancel();
-        }
+        VerifierExecutor executor = new VerifierExecutor(listener, verifier);
+        
+        // TODO possible that listener callback happens and succeeds before task is scheduled
+        Future task = _executor.schedule(executor, 0, TimeUnit.MILLISECONDS);
+        listener.setTask(task);
+        
+        Future timeoutTask = _timeoutExecutor.schedule(new VerifierTimeoutTask(listener, verifier, task), 
+                                  verifier.getTimeout(), TimeUnit.MILLISECONDS);
+        listener.setTimeoutTask(timeoutTask);
+        executor.setTimeoutTask(timeoutTask);
       }
       else
       {
-        boolean result = executeVerifier(record, verifier);
-        _testResults.put(verifier.toString(), new Boolean(result));
-        if (result == false)
-        {
-          LOG.warn(verifier + " fails (no timeout)");
-        }
-        _verifierCountDown.countDown();
-
+        Future task = _executor.schedule(new VerifierExecutor(verifier), 0, TimeUnit.MILLISECONDS);
       }
     }
-    
     _verifierCountDown.await();
     return _testResults;
   }

@@ -308,18 +308,6 @@ public class FilePropertyStore<T> implements PropertyStore<T>
     }
     _rootNamespace = "/" + rootNamespace;
 
-    /*
-    try
-    {
-      this.removeRootNamespace();
-    }
-    catch (PropertyStoreException e)
-    {
-      logger.error("fail to remove root namespace" + _rootNamespace +
-          "\nexception:" + e);
-    }
-    */
-    
     this.createRootNamespace();
   }
 
@@ -579,6 +567,10 @@ public class FilePropertyStore<T> implements PropertyStore<T>
     try 
     {
       _readWriteLock.writeLock().lock();
+      if (!file.exists())
+      {
+        return;
+      }
       
       boolean success = file.delete();
       if (!success)
@@ -603,6 +595,7 @@ public class FilePropertyStore<T> implements PropertyStore<T>
     removeNamespace(ROOT);
   }
   
+  @Override
   public void removeNamespace(String prefix) throws PropertyStoreException
   {
     String path = getPath(prefix);

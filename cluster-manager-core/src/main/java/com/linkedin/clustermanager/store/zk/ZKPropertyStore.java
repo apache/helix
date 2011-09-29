@@ -343,6 +343,7 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkDataListener, IZ
     removeNamespace(ROOT);
   }
 
+  @Override
   public void removeNamespace(String prefix) throws PropertyStoreException
   {
     String path = getPath(prefix);

@@ -143,6 +143,13 @@ public interface PropertyStore<T>
   public boolean exists(String key);
   
   /**
+   * remove a namespace
+   * @param prefix
+   * @throws PropertyStoreException
+   */
+  public void removeNamespace(String prefix) throws PropertyStoreException;
+  
+  /**
    * update property return true if succeed, false otherwise
    * 
    * @param key

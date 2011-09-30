@@ -90,6 +90,9 @@ public class ClusterSetup
     
     addStateModelDef(clusterName, "StorageSchemata",
         generator.generateConfigForStorageSchemata());
+    
+    addStateModelDef(clusterName, "OnlineOffline",
+        generator.generateConfigForOnlineOffline());
   }
   
   public void addCluster(String clusterName, boolean overwritePrevious, String stateModDefName, 

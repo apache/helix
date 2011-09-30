@@ -40,6 +40,13 @@ public class OnlineOfflineStateModelFactory extends
 					.println("OnlineOfflineStateModel.onBecomeOfflineFromOnline()");
 			sleep();
 		}
+		
+		public void onBecomeDroppedFromOffline(Message message,
+        NotificationContext context) {
+      System.out.println("OnlineOfflineStateModel.onBecomeDroppedFromOffline()");
+      sleep();
+
+    }
 
 		private void sleep() {
 			try {

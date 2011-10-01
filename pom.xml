@@ -29,6 +29,12 @@
           <artifactId>appassembler-maven-plugin</artifactId>
           <version>1.1.1</version>
           <configuration>
+	            <!-- Set the target configuration directory to be used in the bin scripts -->
+		    <configurationDirectory>conf</configurationDirectory>
+	 	    <!-- Copy the contents from "/src/main/config" to the target configuration directory in the assembled application -->
+		    <copyConfigurationDirectory>true</copyConfigurationDirectory>
+		    <!-- Include the target configuration directory in the beginning of the classpath declaration in the bin scripts -->
+	            <includeConfigurationDirectoryInClasspath>true</includeConfigurationDirectoryInClasspath>
             <assembleDirectory>${project.build.directory}/${project.name}-pkg</assembleDirectory>
             <!-- Extra JVM arguments that will be included in the bin scripts -->
             <extraJvmArguments>-Xms512m -Xmx512m</extraJvmArguments>

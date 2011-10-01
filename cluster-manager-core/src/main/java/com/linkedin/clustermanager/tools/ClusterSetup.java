@@ -15,7 +15,6 @@ import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
@@ -727,7 +726,7 @@ public class ClusterSetup
   public static void main(String[] args) throws Exception
   {
     // For temporary test only, remove later
-    Logger.getRootLogger().setLevel(Level.ERROR);
+    // Logger.getRootLogger().setLevel(Level.ERROR);
     if (args.length == 0)
     {
       new ClusterSetup("localhost:2181")

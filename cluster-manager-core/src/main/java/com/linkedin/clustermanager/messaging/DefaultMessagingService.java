@@ -19,6 +19,7 @@ import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterMessagingService;
 import com.linkedin.clustermanager.Criteria;
 import com.linkedin.clustermanager.InstanceType;
+import com.linkedin.clustermanager.BlockingAsyncCallback;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.messaging.handling.AsyncCallbackService;
 import com.linkedin.clustermanager.messaging.handling.CMTaskExecutor;
@@ -65,12 +66,10 @@ public class DefaultMessagingService implements ClusterMessagingService
     if (callbackOnReply != null)
     {
       correlationId = UUID.randomUUID().toString();
-      // TODO: add "send reply message" work in the message handling code
       for (List<Message> messages : generateMessage.values())
       {
         totalMessageCount += messages.size();
-        callbackOnReply.setMessageSentCount(totalMessageCount);
-        callbackOnReply.setMessagesSent(generateMessage);
+        callbackOnReply.setMessagesSent(messages);
       }
       _asyncCallbackService.registerAsyncCallback(correlationId, callbackOnReply);
     }
@@ -201,5 +200,29 @@ public class DefaultMessagingService implements ClusterMessagingService
   public CMTaskExecutor getExecutor()
   {
     return _taskExecutor;
+  }
+
+  @Override
+  public void sendReceive(Criteria receipientCriteria,
+      Message message, AsyncCallback callback, long timeout)
+  {
+    BlockingAsyncCallback result = new BlockingAsyncCallback(timeout);
+    send(receipientCriteria, message, callback);
+    while(!callback.isDone() && !callback.isTimeOut())
+    {
+      synchronized(callback)
+      {
+        try
+        {
+          callback.wait();
+        } 
+        catch (InterruptedException e)
+        {
+          // TODO Auto-generated catch block
+          e.printStackTrace();
+          _logger.error(e);
+        }
+      }
+    }
   }
 }

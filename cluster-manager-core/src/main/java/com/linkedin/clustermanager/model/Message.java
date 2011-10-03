@@ -36,6 +36,12 @@ public class Message
     _record = new ZNRecord();
     setMsgType(type);
   }
+  
+  public Message(String type)
+  {
+    _record = new ZNRecord();
+    _record.setSimpleField(Attributes.MSG_TYPE.toString(), type);
+  }
 
   public Message(ZNRecord record)
   {

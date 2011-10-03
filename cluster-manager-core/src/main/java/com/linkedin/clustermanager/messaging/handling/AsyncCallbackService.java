@@ -1,6 +1,11 @@
 package com.linkedin.clustermanager.messaging.handling;
 
+import java.util.Collection;
+import java.util.Date;
 import java.util.Map;
+import java.util.Random;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.log4j.Logger;
@@ -17,6 +22,10 @@ public class AsyncCallbackService implements MessageHandlerFactory
   private final ConcurrentHashMap<String, AsyncCallback> _callbackMap 
       = new ConcurrentHashMap<String, AsyncCallback>();
   private static Logger _logger = Logger.getLogger(StateMachineEngine.class);
+  
+  public AsyncCallbackService()
+  {
+  }
   
   public void registerAsyncCallback( String correlationId,AsyncCallback callback)
   {
@@ -49,7 +58,7 @@ public class AsyncCallbackService implements MessageHandlerFactory
     if(!_callbackMap.containsKey(correlationId))
     {
       String errorMsg = "Message "+message.getMsgId()
-        +" does not have correponding callback. Correlation id: " + correlationId;
+        +" does not have correponding callback. Probably timed out already. Correlation id: " + correlationId;
       _logger.error(errorMsg);
       throw new ClusterManagerException(errorMsg);
     }
@@ -76,6 +85,7 @@ public class AsyncCallbackService implements MessageHandlerFactory
     
   }
   
+  
   public class AsyncCallbackMessageHandler implements MessageHandler
   {
     private final String _correlationId;
@@ -96,9 +106,13 @@ public class AsyncCallbackService implements MessageHandlerFactory
       synchronized(callback)
       {
         callback.onReply(message);
+        if(callback.isDone())
+        {
+          _logger.info("Removing finished callback, correlationid:"+ _correlationId);
+          _callbackMap.remove(_correlationId);
+        }
       }
+      
     }
-    
   }
-  // TODO: asynccallback.isdone() and istimeout()
 }

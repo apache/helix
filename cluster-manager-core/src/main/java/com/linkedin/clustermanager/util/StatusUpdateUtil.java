@@ -16,6 +16,7 @@ import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.model.Message;
+import com.linkedin.clustermanager.model.Message.MessageType;
 /**
  * Util class to create statusUpdates ZK records and error ZK records. These
  * message records are for diagnostics only, and they are stored on the
@@ -88,16 +89,29 @@ public class StatusUpdateUtil
     String time = formatter.format(new Date());
 
     String id = String.format("%4s %26s ", level.toString(), time)
-        + message.getStateUnitKey() + " Trans:"
-        + message.getFromState().charAt(0) + "->"
-        + message.getToState().charAt(0) + "  "
-        + UUID.randomUUID().toString();
+        + getRecordIdForMessage(message);
+    
     result.setMapField(id, contentMap);
     
     result.setId(getStatusUpdateSubPath(message));
     return result;
   }
-
+  
+  String getRecordIdForMessage(Message message)
+  {
+    if(message.getMsgType().equals(MessageType.STATE_TRANSITION))
+    {
+      return message.getStateUnitKey() + " Trans:"
+        + message.getFromState().charAt(0) + "->"
+        + message.getToState().charAt(0) + "  "
+        + UUID.randomUUID().toString();
+    }
+    else
+    {
+      return message.getMsgType()
+        + UUID.randomUUID().toString();
+    }
+  }
   /**
    * Create a statusupdate that is related to a cluster manager message, then
    * record it to the zookeeper store.
@@ -202,7 +216,9 @@ public class StatusUpdateUtil
    */
   String getStatusUpdateSubPath(Message message)
   {
-    return message.getSrcSessionId() + "__" + message.getStateUnitGroup();
+    if(message.getStateUnitGroup() != null)
+      return message.getTgtSessionId() + "__" + message.getStateUnitGroup();
+    return message.getTgtSessionId();
   }
 
   /**

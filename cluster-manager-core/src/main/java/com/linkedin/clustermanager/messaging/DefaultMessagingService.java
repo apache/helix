@@ -33,7 +33,6 @@ public class DefaultMessagingService implements ClusterMessagingService
 {
   private final ClusterManager _manager;
   private CriteriaEvaluator _evaluator;
-  private ClusterDataAccessor _dataAccessor;
   private final CMTaskExecutor _taskExecutor;
   private final AsyncCallbackService _asyncCallbackService; 
   private static Logger _logger = Logger.getLogger(DefaultMessagingService.class);
@@ -41,7 +40,6 @@ public class DefaultMessagingService implements ClusterMessagingService
   {
     _evaluator = new CriteriaEvaluator();
     _manager = manager;
-    _dataAccessor = _manager.getDataAccessor();
     _taskExecutor = new CMTaskExecutor();
     _asyncCallbackService = new AsyncCallbackService();
     registerMessageHandlerFactory(MessageType.TASK_REPLY.toString(), _asyncCallbackService);
@@ -79,19 +77,18 @@ public class DefaultMessagingService implements ClusterMessagingService
       List<Message> list = generateMessage.get(receiverType);
       for (Message tempMessage : list)
       {
-        tempMessage.setId(UUID.randomUUID().toString());
         if(correlationId != null)
         {
           tempMessage.setCorrelationId(correlationId);
         }
         if (receiverType == InstanceType.CONTROLLER)
         {
-          _dataAccessor.setControllerProperty(ControllerPropertyType.MESSAGES,
+          _manager.getDataAccessor().setControllerProperty(ControllerPropertyType.MESSAGES,
               tempMessage.getRecord(), CreateMode.PERSISTENT);
         }
         if (receiverType == InstanceType.PARTICIPANT)
         {
-          _dataAccessor.setInstanceProperty(message.getTgtName(),
+          _manager.getDataAccessor().setInstanceProperty(message.getTgtName(),
               InstancePropertyType.MESSAGES, tempMessage.getId(),
               tempMessage.getRecord());
         }
@@ -125,7 +122,7 @@ public class DefaultMessagingService implements ClusterMessagingService
         Map<String, String> sessionIdMap = new HashMap<String, String>();
         if (recipientCriteria.isSessionSpecific())
         {
-          List<ZNRecord> clusterPropertyList = _dataAccessor
+          List<ZNRecord> clusterPropertyList = _manager.getDataAccessor()
               .getClusterPropertyList(ClusterPropertyType.LIVEINSTANCES);
           for (ZNRecord znRecord : clusterPropertyList)
           {
@@ -141,6 +138,8 @@ public class DefaultMessagingService implements ClusterMessagingService
           newMessage.setTgtName(map.get("instanceName"));
           newMessage.setStateUnitGroup(map.get("resourceGroup"));
           newMessage.setStateUnitKey(map.get("resourceKey"));
+          newMessage.setMsgId(UUID.randomUUID().toString());
+          newMessage.setId(newMessage.getMsgId());
           if (recipientCriteria.isSessionSpecific())
           {
             newMessage.setTgtName(sessionIdMap.get(map.get("instanceName")));
@@ -157,7 +156,7 @@ public class DefaultMessagingService implements ClusterMessagingService
   {
     // todo:optimize and read only resource groups needed
     List<Map<String, String>> rows = new ArrayList<Map<String, String>>();
-    List<ZNRecord> recordList = _dataAccessor
+    List<ZNRecord> recordList = _manager.getDataAccessor()
         .getClusterPropertyList(ClusterPropertyType.EXTERNALVIEW);
     for (ZNRecord record : recordList)
     {
@@ -172,7 +171,7 @@ public class DefaultMessagingService implements ClusterMessagingService
           row.put("instanceName", name);
           row.put("resourceGroup", view.getResourceGroup());
           row.put("state", stateMap.get(name));
-          row.put("resourceKey", name);
+          row.put("resourceKey", resourceKeyName);
           rows.add(row);
         }
       }

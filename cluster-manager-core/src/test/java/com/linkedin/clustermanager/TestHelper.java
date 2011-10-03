@@ -91,55 +91,21 @@ public class TestHelper
    * @param instanceName
    * @param zkClient
    * @return
+   * @throws Exception 
    */
-  public static Thread startDummyProcess(final String zkAddr, final String clusterName, 
-         final String instanceName, final ZkClient zkClient)
+  public static DummyProcessResult startDummyProcess(final String zkAddr, final String clusterName, 
+         final String instanceName, final ZkClient zkClient) throws Exception
   {
-    Thread thread = new Thread(new Runnable()
-    {
-      @Override
-      public void run()
-      {
-        ClusterManager manager = null;
-        try
-        {
-          manager = ClusterManagerFactory
+    DummyProcessResult result = new DummyProcessResult();
+    ClusterManager manager = null;
+    manager = ClusterManagerFactory
             .getZKBasedManagerForParticipant(clusterName, instanceName, zkAddr, zkClient);
-          DummyStateModelFactory stateModelFactory = new DummyStateModelFactory(0);
-          StateMachineEngine<DummyStateModel> genericStateMachineHandler 
-            = new StateMachineEngine<DummyStateModel>(stateModelFactory);
-          manager.getMessagingService().registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(), genericStateMachineHandler);
-          
-          Thread.currentThread().join();
-        }
-        catch (InterruptedException e)
-        {
-          // ClusterManagerFactory.disconnectManagers(instanceName);
-          logger.info("participant:" + instanceName + ", " + 
-                      Thread.currentThread().getName() + " interrupted");
-          if (manager != null)
-          {
-            manager.disconnect();
-          }
-        }
-        catch (Exception e)
-        {
-          // TODO Auto-generated catch block
-          e.printStackTrace();
-        }
-      }
-    });
-    try
-    {
-      Thread.currentThread().sleep(500);
-    } catch (InterruptedException e)
-    {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    }
+    result._manager = manager;
+    Thread thread = new Thread(new DummyProcessThread(manager, instanceName));
+    result._thread = thread;
     thread.start();
     
-    return thread;
+    return result;
   }
 
   /**
@@ -152,42 +118,42 @@ public class TestHelper
    * @return
    */
   public static Thread startClusterController(final String clusterName, 
-    final String controllerName, final String zkConnectString, final String controllerMode, 
-    final ZkClient zkClient)
-  {
-    Thread thread = new Thread(new Runnable()
+      final String controllerName, final String zkConnectString, final String controllerMode, 
+      final ZkClient zkClient)
     {
-      @Override
-      public void run()
+      Thread thread = new Thread(new Runnable()
       {
-        ClusterManager manager = null;
-       
-        try
+        @Override
+        public void run()
         {
-          manager = ClusterManagerMain.startClusterManagerMain(zkConnectString, 
-                 clusterName, controllerName, controllerMode, zkClient);
-          Thread.currentThread().join();
-        } 
-        catch (InterruptedException e)
-        {
-          // ClusterManagerFactory.disconnectManagers(controllerName);
-          logger.info("controller:" + controllerName + ", " + 
-                      Thread.currentThread().getName() + " interrupted");
-          if (manager != null)
+          ClusterManager manager = null;
+         
+          try
           {
-            manager.disconnect();
+            manager = ClusterManagerMain.startClusterManagerMain(zkConnectString, 
+                   clusterName, controllerName, controllerMode, zkClient);
+            Thread.currentThread().join();
+          } 
+          catch (InterruptedException e)
+          {
+            // ClusterManagerFactory.disconnectManagers(controllerName);
+            logger.info("controller:" + controllerName + ", " + 
+                        Thread.currentThread().getName() + " interrupted");
+            if (manager != null)
+            {
+              manager.disconnect();
+            }
+          }
+          catch (Exception e)
+          {
+            e.printStackTrace();
           }
         }
-        catch (Exception e)
-        {
-          e.printStackTrace();
-        }
-      }
-    });
-    
-    thread.start();
-    return thread;
-  }
+      });
+      
+      thread.start();
+      return thread;
+    }
   
   public static Thread startClusterController(final String args)
   {
@@ -218,4 +184,49 @@ public class TestHelper
     return split;
   }
   
+  public static class DummyProcessResult
+  {
+    public Thread _thread;
+    public ClusterManager _manager;
+  }
+  
+  static class DummyProcessThread implements Runnable
+  {
+    ClusterManager _manager;
+    String _instanceName;
+    public DummyProcessThread(ClusterManager manager, String instanceName)
+    {
+      _manager = manager;
+      _instanceName = instanceName;
+    }
+    @Override
+    public void run()
+    {
+      try
+      {
+        
+        DummyStateModelFactory stateModelFactory = new DummyStateModelFactory(0);
+        StateMachineEngine<DummyStateModel> genericStateMachineHandler 
+          = new StateMachineEngine<DummyStateModel>(stateModelFactory);
+        _manager.getMessagingService().registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(), genericStateMachineHandler);
+        
+        Thread.currentThread().join();
+      }
+      catch (InterruptedException e)
+      {
+        // ClusterManagerFactory.disconnectManagers(instanceName);
+        logger.info("participant:" + _instanceName + ", " + 
+                    Thread.currentThread().getName() + " interrupted");
+        if (_manager != null)
+        {
+          _manager.disconnect();
+        }
+      }
+      catch (Exception e)
+      {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      }
+    }
+  }
 }

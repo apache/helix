@@ -231,6 +231,7 @@ public class IdealStateCalculatorForStorageNode
         }
         Collections.shuffle(slaveAssignment, new Random(r.nextInt()));
         
+        Collections.shuffle(slaveInstances, new Random(instanceNames.get(i).hashCode()));
         
         // Get the slave assignment map of node instanceName
         for(int j = 0;j < masterAssignment.size(); j++)

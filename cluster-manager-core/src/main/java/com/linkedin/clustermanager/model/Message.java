@@ -73,9 +73,9 @@ public class Message
     _record.setSimpleField(Attributes.MSG_TYPE.toString(), type.toString());
   }
   
-  public MessageType getMsgType()
+  public String getMsgType()
   {
-    return MessageType.valueOf(getSimpleFieldAsString(Attributes.MSG_TYPE.toString()));
+    return getSimpleFieldAsString(Attributes.MSG_TYPE.toString());
   }
 
   public String getTgtSessionId()

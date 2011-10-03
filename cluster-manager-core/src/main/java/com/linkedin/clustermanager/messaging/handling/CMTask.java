@@ -55,17 +55,8 @@ public class CMTask implements Callable<CMTaskResult>
         _handler.handleMessage(_message, _notificationContext, taskResult.getTaskResultMap());
         taskResult.setSuccess(true);
         
-        // If the message requires reply, send reply message
-        if(_message.getCorrelationId() != null)
-        {
-          logger.info("Sending reply for message "+ _message.getCorrelationId());
-          _statusUpdateUtil.logInfo(_message, CMTask.class, "Sending reply", accessor);
-          
-          Message replyMessage = Message.createReplyMessage(_message, _manager.getInstanceName(), taskResult.getTaskResultMap());
-          Criteria recipientCriteria = new Criteria();
-          recipientCriteria.setInstanceName(replyMessage.getTgtName());
-          _manager.getMessagingService().send(recipientCriteria, replyMessage);
-        }
+        _statusUpdateUtil.logInfo(_message, CMStateTransitionHandler.class,
+            "Message handling task completed successfully", accessor);
       }
       catch(InterruptedException e)
       {
@@ -97,6 +88,17 @@ public class CMTask implements Callable<CMTaskResult>
       {
         _executor.reportCompletion(_message.getMsgId());
       }
+   // If the message requires reply, send reply message
+      if(_message.getCorrelationId() != null)
+      {
+        logger.info("Sending reply for message "+ _message.getCorrelationId());
+        _statusUpdateUtil.logInfo(_message, CMTask.class, "Sending reply", accessor);
+        
+        Message replyMessage = Message.createReplyMessage(_message, _manager.getInstanceName(), taskResult.getTaskResultMap());
+        Criteria recipientCriteria = new Criteria();
+        recipientCriteria.setInstanceName(replyMessage.getTgtName());
+        _manager.getMessagingService().send(recipientCriteria, replyMessage);
+      }
       return taskResult;
     } 
   }
@@ -105,7 +107,7 @@ public class CMTask implements Callable<CMTaskResult>
   private void reportMessgeStat(ClusterManager manager, Message message, CMTaskResult taskResult)
   {
     // report stat
-    if(message.getMsgType() != MessageType.STATE_TRANSITION)
+    if(!message.getMsgType().equals(MessageType.STATE_TRANSITION.toString()))
     {
       return;
     }

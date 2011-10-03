@@ -13,6 +13,7 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 
 import com.linkedin.clustermanager.ClusterDataAccessor.ControllerPropertyType;
+import com.linkedin.clustermanager.TestHelper.DummyProcessResult;
 import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
 import com.linkedin.clustermanager.controller.ClusterManagerMain;
@@ -50,7 +51,7 @@ public class ZkDistCMHandler
   private ZkServer _zkServer = null;
 
   @BeforeClass
-  public void beforeClass()
+  public void beforeClass() throws Exception
   {
     logger.info("START at " + new Date(System.currentTimeMillis()));
     List<String> namespaces = new ArrayList<String>();
@@ -92,7 +93,8 @@ public class ZkDistCMHandler
       }
       else
       {
-        thread = TestHelper.startDummyProcess(ZK_ADDR, firstCluster, instanceName, null);
+        DummyProcessResult result = TestHelper.startDummyProcess(ZK_ADDR, firstCluster, instanceName, null);
+        thread = result._thread;
         _threadMap.put(instanceName, thread);
       }
     }

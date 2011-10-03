@@ -189,10 +189,7 @@ public class CMStateTransitionHandler implements MessageHandler
       // Verify that no one has edited this field
       ZNRecord currentStateDelta = new ZNRecord();
       if (taskResult.isSucess())
-      {
-        _statusUpdateUtil.logInfo(message, CMStateTransitionHandler.class,
-            "Message handling task completed successfully", accessor);
-        
+      { 
         if(!toState.equalsIgnoreCase("DROPPED"))
         {
           // If a resource key is dropped, it is ok to leave it "offline"

@@ -56,9 +56,9 @@ public class StateMachineEngine<T extends StateModel> implements
   public MessageHandler createHandler(Message message,
       NotificationContext context)
   {
-    MessageType type = message.getMsgType();
+    String type = message.getMsgType();
     
-    if(type != MessageType.STATE_TRANSITION)
+    if(!type.equals(MessageType.STATE_TRANSITION.toString()))
     {
       throw new ClusterManagerException("Unexpected msg type for message "+message.getMsgId()
           +" type:" + message.getMsgType());

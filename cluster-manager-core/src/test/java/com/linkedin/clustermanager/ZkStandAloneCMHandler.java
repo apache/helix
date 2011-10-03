@@ -18,6 +18,7 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 
 import com.linkedin.clustermanager.ClusterDataAccessor.ControllerPropertyType;
+import com.linkedin.clustermanager.TestHelper.DummyProcessResult;
 import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
 import com.linkedin.clustermanager.controller.ClusterManagerMain;
@@ -51,9 +52,10 @@ public class ZkStandAloneCMHandler
 
   private ZkServer _zkServer = null;
   private Map<String, Thread> _threadMap = new HashMap<String, Thread>();
+  Map<String, ClusterManager> _managerMap = new HashMap<String, ClusterManager>();
   
   @BeforeClass
-  public void beforeClass()
+  public void beforeClass() throws Exception
   {
     logger.info("START at " + new Date(System.currentTimeMillis()));
     
@@ -83,8 +85,10 @@ public class ZkStandAloneCMHandler
       else
       {
         _participantZkClients[i] = new ZkClient(ZK_ADDR, 3000, 10000, new ZNRecordSerializer());
-        thread = TestHelper.startDummyProcess(ZK_ADDR, CLUSTER_NAME, 
+        DummyProcessResult result = TestHelper.startDummyProcess(ZK_ADDR, CLUSTER_NAME, 
                        instanceName, _participantZkClients[i]);
+        thread = result._thread;
+        _managerMap.put(instanceName, result._manager);
         _threadMap.put(instanceName, thread);
       }
     }

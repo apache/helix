@@ -139,4 +139,35 @@ public class TestMessagingService extends ZkStandAloneCMHandler
     Assert.assertTrue(TestAsyncCallback._replyedMessageContents.contains("TestReplyMessage"));
     
   }
+  
+  @Test
+  public void TestBlockingSendReceive() throws Exception
+  {
+    String hostSrc = "localhost_"+START_PORT;
+    String hostDest = "localhost_"+(START_PORT + 1);
+    
+    TestMessagingHandlerFactory factory = new TestMessagingHandlerFactory();
+    _managerMap.get(hostDest).getMessagingService().registerMessageHandlerFactory(factory.getMessageType(), factory);
+    
+    String msgId = new UUID(123,456).toString(); 
+    Message msg = new Message(factory.getMessageType());
+    msg.setMsgId(msgId);
+    msg.setSrcName(hostSrc);
+    
+    msg.setTgtSessionId("*");
+    msg.setMsgState("new");
+    String para = "Testing messaging para";
+    msg.getRecord().setSimpleField("TestMessagingPara", para);
+    
+    Criteria cr = new Criteria();
+    cr.setInstanceName(hostDest);
+    cr.setRecipientInstanceType(InstanceType.PARTICIPANT);
+    cr.setSessionSpecific(false);
+    
+    
+    AsyncCallback result = _managerMap.get(hostSrc).getMessagingService().sendReceive(cr, msg, 2000);
+    
+    Assert.assertTrue(result.getMessageReplied().get(0).getRecord().getMapField(Message.Attributes.MESSAGE_RESULT.toString()).get("ReplyMessage").equals("TestReplyMessage"));
+    
+  }
 }

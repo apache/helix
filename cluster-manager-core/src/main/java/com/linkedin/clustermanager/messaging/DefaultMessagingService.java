@@ -202,10 +202,10 @@ public class DefaultMessagingService implements ClusterMessagingService
   }
 
   @Override
-  public void sendReceive(Criteria receipientCriteria,
-      Message message, AsyncCallback callback, long timeout)
+  public AsyncCallback sendReceive(Criteria receipientCriteria,
+      Message message, long timeout)
   {
-    BlockingAsyncCallback result = new BlockingAsyncCallback(timeout);
+    BlockingAsyncCallback callback = new BlockingAsyncCallback(timeout);
     send(receipientCriteria, message, callback);
     while(!callback.isDone() && !callback.isTimeOut())
     {
@@ -220,8 +220,11 @@ public class DefaultMessagingService implements ClusterMessagingService
           // TODO Auto-generated catch block
           e.printStackTrace();
           _logger.error(e);
+          callback.setInterrupted(true);
+          break;
         }
       }
     }
+    return callback;
   }
 }

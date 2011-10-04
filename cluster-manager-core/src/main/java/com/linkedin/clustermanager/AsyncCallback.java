@@ -20,6 +20,7 @@ public abstract class AsyncCallback
   List<Message> _messagesSent;
   final List<Message> _messageReplied = new ArrayList<Message>();
   boolean _timeOut = false;
+  boolean _isInterrupted = false;
 
   public final void setTimeout(long timeout)
   {
@@ -35,6 +36,16 @@ public abstract class AsyncCallback
       _timer = new Timer();
       _timer.schedule(new TimeoutTask(this), _timeout);
     }
+  }
+  
+  public List<Message> getMessageReplied()
+  {
+    return _messageReplied;
+  }
+  
+  public boolean isInterrupted()
+  {
+    return _isInterrupted;
   }
   
   public synchronized final void onReply(Message message)

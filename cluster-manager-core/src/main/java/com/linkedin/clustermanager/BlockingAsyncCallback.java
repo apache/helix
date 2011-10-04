@@ -19,4 +19,10 @@ public class BlockingAsyncCallback extends AsyncCallback
   {
     notifyAll();
   }
+
+  public void setInterrupted(boolean b)
+  {
+    _isInterrupted = true;
+    
+  }
 }

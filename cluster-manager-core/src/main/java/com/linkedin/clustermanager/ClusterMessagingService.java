@@ -127,6 +127,6 @@ public interface ClusterMessagingService
    */
   public void registerMessageHandlerFactory(String type, MessageHandlerFactory factory);
 
-  public void sendReceive(Criteria receipientCriteria, Message message,
-      AsyncCallback callback, long timeout);
+  public AsyncCallback sendReceive(Criteria receipientCriteria, Message message,
+      long timeout);
 }

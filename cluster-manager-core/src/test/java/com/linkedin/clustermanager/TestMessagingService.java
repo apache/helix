@@ -77,8 +77,8 @@ public class TestMessagingService extends ZkStandAloneCMHandler
     cr.setRecipientInstanceType(InstanceType.PARTICIPANT);
     cr.setSessionSpecific(false);
     
-    _managerMap.get(hostSrc).getMessagingService().send(cr, msg);
-    
+    int nMsgs = _managerMap.get(hostSrc).getMessagingService().send(cr, msg);
+    Assert.assertTrue(nMsgs == 1);
     Thread.currentThread().sleep(2500);
     //Thread.currentThread().join();
     Assert.assertTrue(TestMessagingHandlerFactory._processedMsgIds.contains(para));
@@ -139,6 +139,7 @@ public class TestMessagingService extends ZkStandAloneCMHandler
     Thread.currentThread().sleep(3000);
     //Thread.currentThread().join();
     Assert.assertTrue(TestAsyncCallback._replyedMessageContents.contains("TestReplyMessage"));
+    Assert.assertTrue(callback.getMessageReplied().size() == 1);
     
     callback.setTimeout(500);
     _managerMap.get(hostSrc).getMessagingService().send(cr, msg, callback);
@@ -177,9 +178,10 @@ public class TestMessagingService extends ZkStandAloneCMHandler
     AsyncCallback result = _managerMap.get(hostSrc).getMessagingService().sendReceive(cr, msg, 3000);
     
     Assert.assertTrue(result.getMessageReplied().get(0).getRecord().getMapField(Message.Attributes.MESSAGE_RESULT.toString()).get("ReplyMessage").equals("TestReplyMessage"));
-  
-    result = _managerMap.get(hostSrc).getMessagingService().sendReceive(cr, msg, 1000);
+    Assert.assertTrue(result.getMessageReplied().size() == 1);
     
+    result = _managerMap.get(hostSrc).getMessagingService().sendReceive(cr, msg, 1000);
     Assert.assertTrue(result.isTimeOut());
+    
   }
 }

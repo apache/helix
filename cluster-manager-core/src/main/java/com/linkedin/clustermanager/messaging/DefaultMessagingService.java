@@ -60,6 +60,10 @@ public class DefaultMessagingService implements ClusterMessagingService
     Map<InstanceType, List<Message>> generateMessage = generateMessage(
         recipientCriteria, message);
     int totalMessageCount = 0;
+    for (List<Message> messages : generateMessage.values())
+    {
+      totalMessageCount += messages.size();
+    }
     String correlationId = null;
     if (callbackOnReply != null)
     {
@@ -112,7 +116,7 @@ public class DefaultMessagingService implements ClusterMessagingService
     } else if (instanceType == InstanceType.PARTICIPANT)
     {
       List<Message> messages = new ArrayList<Message>();
-      List<Map<String, String>> clusterData = prepareInputFromClusterData();
+      List<Map<String, String>> clusterData = prepareInputFromClusterData(recipientCriteria);
 
       List<Map<String, String>> matchedList = _evaluator.evaluateCriteria(
           clusterData, recipientCriteria);
@@ -152,7 +156,7 @@ public class DefaultMessagingService implements ClusterMessagingService
     return messagesToSendMap;
   }
 
-  private List<Map<String, String>> prepareInputFromClusterData()
+  private List<Map<String, String>> prepareInputFromClusterData( Criteria criteria)
   {
     // todo:optimize and read only resource groups needed
     List<Map<String, String>> rows = new ArrayList<Map<String, String>>();

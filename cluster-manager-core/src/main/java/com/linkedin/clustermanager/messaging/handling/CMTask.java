@@ -90,7 +90,7 @@ public class CMTask implements Callable<CMTaskResult>
         _executor.reportCompletion(_message.getMsgId());
       }
    // If the message requires reply, send reply message
-      if(_message.getCorrelationId() != null)
+      if(_message.getCorrelationId() != null && !_message.getMsgType().equals(MessageType.TASK_REPLY.toString()))
       {
         logger.info("Sending reply for message "+ _message.getCorrelationId());
         _statusUpdateUtil.logInfo(_message, CMTask.class, "Sending reply", accessor);

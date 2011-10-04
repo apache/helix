@@ -11,10 +11,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import junit.framework.Assert;
-
 import org.I0Itec.zkclient.ZkServer;
 import org.apache.log4j.Logger;
+import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.ClusterDataAccessor.IdealStateConfigProperty;

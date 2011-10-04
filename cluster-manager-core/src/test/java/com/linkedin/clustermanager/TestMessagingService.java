@@ -45,6 +45,7 @@ public class TestMessagingService extends ZkStandAloneCMHandler
           Map<String, String> resultMap) throws InterruptedException
       {
         // TODO Auto-generated method stub
+        Thread.currentThread().sleep(2000);
         System.out.println("TestMessagingHandler " + message.getMsgId());
         _processedMsgIds.add(message.getRecord().getSimpleField("TestMessagingPara"));
         resultMap.put("ReplyMessage", "TestReplyMessage");
@@ -78,7 +79,7 @@ public class TestMessagingService extends ZkStandAloneCMHandler
     
     _managerMap.get(hostSrc).getMessagingService().send(cr, msg);
     
-    Thread.currentThread().sleep(2000);
+    Thread.currentThread().sleep(2500);
     //Thread.currentThread().join();
     Assert.assertTrue(TestMessagingHandlerFactory._processedMsgIds.contains(para));
     
@@ -86,11 +87,12 @@ public class TestMessagingService extends ZkStandAloneCMHandler
   public static class TestAsyncCallback extends AsyncCallback
   {
     static HashSet<String> _replyedMessageContents = new HashSet<String>();
+    public boolean timeout = false;
     @Override
     public void onTimeOut()
     {
       // TODO Auto-generated method stub
-      
+      timeout = true;
     }
 
     @Override
@@ -134,9 +136,16 @@ public class TestMessagingService extends ZkStandAloneCMHandler
     
     _managerMap.get(hostSrc).getMessagingService().send(cr, msg, callback);
     
-    Thread.currentThread().sleep(2000);
+    Thread.currentThread().sleep(3000);
     //Thread.currentThread().join();
     Assert.assertTrue(TestAsyncCallback._replyedMessageContents.contains("TestReplyMessage"));
+    
+    callback.setTimeout(500);
+    _managerMap.get(hostSrc).getMessagingService().send(cr, msg, callback);
+    
+    Thread.currentThread().sleep(3000);
+    //Thread.currentThread().join();
+    Assert.assertTrue(callback.isTimeOut());
     
   }
   
@@ -165,9 +174,12 @@ public class TestMessagingService extends ZkStandAloneCMHandler
     cr.setSessionSpecific(false);
     
     
-    AsyncCallback result = _managerMap.get(hostSrc).getMessagingService().sendReceive(cr, msg, 2000);
+    AsyncCallback result = _managerMap.get(hostSrc).getMessagingService().sendReceive(cr, msg, 3000);
     
     Assert.assertTrue(result.getMessageReplied().get(0).getRecord().getMapField(Message.Attributes.MESSAGE_RESULT.toString()).get("ReplyMessage").equals("TestReplyMessage"));
+  
+    result = _managerMap.get(hostSrc).getMessagingService().sendReceive(cr, msg, 1000);
     
+    Assert.assertTrue(result.isTimeOut());
   }
 }

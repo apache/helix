@@ -9,6 +9,7 @@ import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.Criteria;
+import com.linkedin.clustermanager.InstanceType;
 import com.linkedin.clustermanager.NotificationContext;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.Message.MessageType;
@@ -97,6 +98,9 @@ public class CMTask implements Callable<CMTaskResult>
         Message replyMessage = Message.createReplyMessage(_message, _manager.getInstanceName(), taskResult.getTaskResultMap());
         Criteria recipientCriteria = new Criteria();
         recipientCriteria.setInstanceName(replyMessage.getTgtName());
+
+        recipientCriteria.setRecipientInstanceType(InstanceType.PARTICIPANT);
+        recipientCriteria.setSessionSpecific(false);
         _manager.getMessagingService().send(recipientCriteria, replyMessage);
       }
       return taskResult;

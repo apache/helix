@@ -297,6 +297,8 @@ public class Message
     replyMessage.setCorrelationId(srcMessage.getCorrelationId());
     replyMessage.setTgtName(srcMessage.getMsgSrc());
     replyMessage.setResultMap(taskResultMap);
+    replyMessage.setTgtSessionId("*");
+    replyMessage.setMsgState("new");
     
     return replyMessage;
   }

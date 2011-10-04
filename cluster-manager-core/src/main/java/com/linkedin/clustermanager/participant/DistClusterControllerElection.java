@@ -87,7 +87,7 @@ public class DistClusterControllerElection implements ControllerChangeListener
 			
 		} catch (Exception e)
 		{
-			logger.error("Exception when trying to become leader" + e);
+			logger.error("Exception when trying to become leader, exception:" + e);
 		}
 	}
 

@@ -51,7 +51,7 @@ public class ZkStandAloneCMHandler
   protected final String CLUSTER_NAME = "ESPRESSO_STORAGE_" + CLASS_NAME;
 
   private ZkServer _zkServer = null;
-  private Map<String, Thread> _threadMap = new HashMap<String, Thread>();
+  private final Map<String, Thread> _threadMap = new HashMap<String, Thread>();
   Map<String, ClusterManager> _managerMap = new HashMap<String, ClusterManager>();
   
   @BeforeClass
@@ -101,7 +101,7 @@ public class ZkStandAloneCMHandler
     _threadMap.put(controllerName, thread);
     try
     {
-      Thread.sleep(5000);
+      Thread.sleep(10000);
     }
     catch (InterruptedException e)
     {

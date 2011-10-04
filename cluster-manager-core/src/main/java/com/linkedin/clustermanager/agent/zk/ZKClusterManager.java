@@ -250,7 +250,7 @@ public class ZKClusterManager implements ClusterManager
   @Override
   public void disconnect()
   {
-    logger.info("Cluster manager disconnected");
+    logger.info("Cluster manager: " + _instanceName + " disconnected");
 
     for (CallbackHandler handler : _handlers)
     {
@@ -268,8 +268,7 @@ public class ZKClusterManager implements ClusterManager
       }
 
     }
-    _zkClient.close();
-
+    
     if (_participantHealthCheckInfoCollector != null)
     {
       _participantHealthCheckInfoCollector.stop();
@@ -280,6 +279,9 @@ public class ZKClusterManager implements ClusterManager
       _timer.cancel();
       _timer = null;
     }
+    
+    _zkClient.close();
+
   }
 
   @Override

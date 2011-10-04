@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.I0Itec.zkclient.exception.ZkInterruptedException;
 import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.CMConstants;
@@ -56,7 +57,7 @@ public class GenericClusterController implements ConfigChangeListener,
 	private static final Logger logger = Logger
 	    .getLogger(GenericClusterController.class.getName());
 	volatile boolean init = false;
-	private PipelineRegistry _registry;
+	private final PipelineRegistry _registry;
 	
 	/** 
 	 * Since instance current state is per-session-id, we need to track the session-ids of 
@@ -141,10 +142,26 @@ public class GenericClusterController implements ConfigChangeListener,
 			logger.info("No pipeline to run for event:" + event.getName());
 			return;
 		}
+		
 		for (Pipeline pipeline : pipelines)
 		{
+		  try
+		  {
 			pipeline.handle(event);
 			pipeline.finish();
+		  }
+		  catch (ZkInterruptedException e)
+          {
+            logger.error("Interrupted while executing pipeline:" + pipeline
+                + ". Will not continue to next pipeline" + ", exception:" + e);
+            break;
+          }
+	      catch (Exception e)
+	      {
+	        logger.error("Exception while executing pipeline:" + pipeline
+	            + ". Will not continue to next pipeline", e);
+	        break;
+	      }
 		}
 	}
 
@@ -152,11 +169,13 @@ public class GenericClusterController implements ConfigChangeListener,
 	public void onExternalViewChange(List<ZNRecord> externalViewList,
 	    NotificationContext changeContext)
 	{
+	    logger.info("START: GenericClusterController.onExternalViewChange()");
 		ClusterEvent event = new ClusterEvent("externalViewChange");
 		event.addAttribute("clustermanager", changeContext.getManager());
 		event.addAttribute("changeContext", changeContext);
 		event.addAttribute("eventData", externalViewList);
 		// handleEvent(event);
+		logger.info("END: GenericClusterController.onExternalViewChange()");
 	}
 
 	@Override
@@ -238,6 +257,7 @@ public class GenericClusterController implements ConfigChangeListener,
 	@Override
 	public void onControllerChange(NotificationContext changeContext)
 	{
+	    logger.info("START: GenericClusterController.onControllerChange()");
 		ClusterDataAccessor dataAccessor = changeContext.getManager()
 		    .getDataAccessor();
 		
@@ -258,7 +278,7 @@ public class GenericClusterController implements ConfigChangeListener,
   		  if (leader == null || !leader.equals(name))
   		  {
   		    logger.warn("leader name does NOT match, my name:" + name + 
-  		                ", leader:" + leader);
+		                ", leader:" + leader);
   		    return;
   		  }
 		}
@@ -287,6 +307,7 @@ public class GenericClusterController implements ConfigChangeListener,
 				_paused = false;
 			}
 		}
+		logger.info("END: GenericClusterController.onControllerChange()");
 	}
 	
 	/**

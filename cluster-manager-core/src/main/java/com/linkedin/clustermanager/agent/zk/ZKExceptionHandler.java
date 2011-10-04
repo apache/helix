@@ -13,7 +13,7 @@ public class ZKExceptionHandler
 
   void handle(Exception e)
   {
-    logger.error(e);
+    logger.error(e.getMessage(), e);
     // e.printStackTrace();
   }
 

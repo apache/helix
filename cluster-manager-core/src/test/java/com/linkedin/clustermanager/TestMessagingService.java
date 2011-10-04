@@ -45,7 +45,7 @@ public class TestMessagingService extends ZkStandAloneCMHandler
           Map<String, String> resultMap) throws InterruptedException
       {
         // TODO Auto-generated method stub
-        Thread.currentThread().sleep(2000);
+        Thread.currentThread().sleep(1000);
         System.out.println("TestMessagingHandler " + message.getMsgId());
         _processedMsgIds.add(message.getRecord().getSimpleField("TestMessagingPara"));
         resultMap.put("ReplyMessage", "TestReplyMessage");
@@ -136,7 +136,7 @@ public class TestMessagingService extends ZkStandAloneCMHandler
     
     _managerMap.get(hostSrc).getMessagingService().send(cr, msg, callback);
     
-    Thread.currentThread().sleep(3000);
+    Thread.currentThread().sleep(2000);
     //Thread.currentThread().join();
     Assert.assertTrue(TestAsyncCallback._replyedMessageContents.contains("TestReplyMessage"));
     Assert.assertTrue(callback.getMessageReplied().size() == 1);
@@ -175,13 +175,59 @@ public class TestMessagingService extends ZkStandAloneCMHandler
     cr.setSessionSpecific(false);
     
     
-    AsyncCallback result = _managerMap.get(hostSrc).getMessagingService().sendReceive(cr, msg, 3000);
+    AsyncCallback result = _managerMap.get(hostSrc).getMessagingService().sendReceive(cr, msg, 2000);
     
     Assert.assertTrue(result.getMessageReplied().get(0).getRecord().getMapField(Message.Attributes.MESSAGE_RESULT.toString()).get("ReplyMessage").equals("TestReplyMessage"));
     Assert.assertTrue(result.getMessageReplied().size() == 1);
     
-    result = _managerMap.get(hostSrc).getMessagingService().sendReceive(cr, msg, 1000);
+    result = _managerMap.get(hostSrc).getMessagingService().sendReceive(cr, msg, 500);
     Assert.assertTrue(result.isTimeOut());
+    
+  }
+  
+  @Test
+  public void TestMultiMessageCriteria() throws Exception
+  {
+    String hostSrc = "localhost_"+START_PORT;
+    
+   
+    for(int i = 0;i < NODE_NR; i++)
+    { 
+      TestMessagingHandlerFactory factory = new TestMessagingHandlerFactory();
+      String hostDest = "localhost_"+(START_PORT + i);
+      _managerMap.get(hostDest).getMessagingService().registerMessageHandlerFactory(factory.getMessageType(), factory);
+    }
+    String msgId = new UUID(123,456).toString(); 
+    Message msg = new Message(new TestMessagingHandlerFactory().getMessageType());
+    msg.setMsgId(msgId);
+    msg.setSrcName(hostSrc);
+    
+    msg.setTgtSessionId("*");
+    msg.setMsgState("new");
+    String para = "Testing messaging para";
+    msg.getRecord().setSimpleField("TestMessagingPara", para);
+    
+    Criteria cr = new Criteria();
+    cr.setInstanceName("*");
+    cr.setRecipientInstanceType(InstanceType.PARTICIPANT);
+    cr.setSessionSpecific(false);
+    
+    
+    AsyncCallback result = _managerMap.get(hostSrc).getMessagingService().sendReceive(cr, msg, 2000);
+    
+    Assert.assertTrue(result.getMessageReplied().get(0).getRecord().getMapField(Message.Attributes.MESSAGE_RESULT.toString()).get("ReplyMessage").equals("TestReplyMessage"));
+    Assert.assertTrue(result.getMessageReplied().size() == NODE_NR);
+    
+    result = _managerMap.get(hostSrc).getMessagingService().sendReceive(cr, msg, 500);
+    Assert.assertTrue(result.isTimeOut());
+    
+    cr.setResourceKey("TestDB_17");
+    result = _managerMap.get(hostSrc).getMessagingService().sendReceive(cr, msg, 2000);
+    Assert.assertTrue(result.getMessageReplied().size() == 3);
+    
+    cr.setResourceState("SLAVE");
+    result = _managerMap.get(hostSrc).getMessagingService().sendReceive(cr, msg, 2000);
+    Assert.assertTrue(result.getMessageReplied().size() == 2);
     
   }
 }

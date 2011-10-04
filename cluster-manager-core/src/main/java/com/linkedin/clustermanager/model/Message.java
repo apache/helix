@@ -45,7 +45,8 @@ public class Message
 
   public Message(ZNRecord record)
   {
-    _record = record;
+    _record = new ZNRecord();
+    _record.merge(record);
   }
 
   public void setId(String id)

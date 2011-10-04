@@ -92,7 +92,7 @@ public class DefaultMessagingService implements ClusterMessagingService
         }
         if (receiverType == InstanceType.PARTICIPANT)
         {
-          _manager.getDataAccessor().setInstanceProperty(message.getTgtName(),
+          _manager.getDataAccessor().setInstanceProperty(tempMessage.getTgtName(),
               InstancePropertyType.MESSAGES, tempMessage.getId(),
               tempMessage.getRecord());
         }

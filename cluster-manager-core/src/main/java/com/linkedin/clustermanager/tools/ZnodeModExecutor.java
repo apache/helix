@@ -49,8 +49,8 @@ public class ZnodeModExecutor
   
   private final static PropertyJsonComparator<String> STRING_COMPARATOR 
             = new PropertyJsonComparator<String>(String.class);
-  private final static PropertyJsonComparator<ZNRecord> ZNODE_COMPARATOR 
-            = new PropertyJsonComparator<ZNRecord>(ZNRecord.class);
+  // private final static PropertyJsonComparator<ZNRecord> ZNODE_COMPARATOR 
+  //          = new PropertyJsonComparator<ZNRecord>(ZNRecord.class);
 
   
   private class CommandDataListener implements IZkDataListener
@@ -533,6 +533,49 @@ public class ZnodeModExecutor
     }
   }
   
+  private boolean compareZnodeValue(ZNRecord value, ZNRecord expect)
+  {
+    if (value == null && expect == null)
+    {
+      return true;
+    }
+    else if (value == null && expect != null)
+    {
+      return false;
+    }
+    else if (value != null && expect == null)
+    {
+      return false;
+    }
+    else
+    {
+      if (!compareMapValue(value.simpleFields, expect.getSimpleFields()))
+      {
+        return false;
+      }
+      
+      if (value.getMapFields().size() != expect.getMapFields().size())
+      {
+        return false;
+      }
+      for (Map.Entry<String, Map<String, String>> entry : value.getMapFields().entrySet())
+      {
+        String key = entry.getKey();
+        Map<String, String> mapValue = entry.getValue();
+        if (!expect.getMapFields().containsKey(key))
+        {
+          return false;
+        }
+        Map<String, String> mapExpect = expect.getMapFields().get(key);
+        if (!compareMapValue(mapValue, mapExpect))
+        {
+          return false;
+        }
+      }
+      return true;
+    }    
+  }
+  
   private boolean compareValue(ZNRecord record, ZnodePropertyType type, 
                                String key, ZnodeModValue expect)
   {
@@ -558,7 +601,8 @@ public class ZnodeModExecutor
       result = compareMapValue(mapValue, expect.getMapValue());
       break;
     case ZNODE_VALUE:
-      result = (ZNODE_COMPARATOR.compare(expect.getZnodeValue(), record) == 0);
+      result = compareZnodeValue(record, expect.getZnodeValue()); 
+      // (ZNODE_COMPARATOR.compare(expect.getZnodeValue(), record) == 0);
       break;
     case INVALID:
       break;
@@ -806,6 +850,7 @@ public class ZnodeModExecutor
     // sort on trigger's start time
     List<ZnodeModCommand> commandList = _testDesc.getCommands();
     Collections.sort(commandList, new Comparator<ZnodeModCommand>() {  // stable sort
+      @Override
       public int compare(ZnodeModCommand o1, ZnodeModCommand o2) {
         return (int) (o1.getTrigger().getStartTime() - o2.getTrigger().getStartTime());
       }
@@ -849,6 +894,7 @@ public class ZnodeModExecutor
     // sort on verifier's timeout
     List<ZnodeModVerifier> verifierList = _testDesc.getVerifiers();
     Collections.sort(verifierList, new Comparator<ZnodeModVerifier>() {  // stable sort
+      @Override
       public int compare(ZnodeModVerifier o1, ZnodeModVerifier o2) {
         return (int) (o1.getTimeout() - o2.getTimeout());
       }

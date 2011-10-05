@@ -209,7 +209,10 @@ public class ZKDumper
     {
       FileWriter fileWriter = new FileWriter(fsPath + SCHEMA_FILE_SUFFIX);
       Object readData = client.readData(zkPath);
-      fileWriter.write((String) readData);
+      if(readData != null)
+      {
+        fileWriter.write((String) readData);
+      }
       fileWriter.close();
     }
   }

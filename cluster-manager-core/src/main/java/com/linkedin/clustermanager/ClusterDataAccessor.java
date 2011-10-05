@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.apache.zookeeper.CreateMode;
 
+import com.linkedin.clustermanager.ClusterDataAccessor.ControllerPropertyType;
 import com.linkedin.clustermanager.store.PropertyStore;
 
 public interface ClusterDataAccessor
@@ -134,7 +135,8 @@ public interface ClusterDataAccessor
 
   public enum ControllerPropertyType
   {
-    LEADER(false, false, true), HISTORY(true, true, true), PAUSE(false,false,true), MESSAGES(false,false,true);
+    LEADER(false, false, true), HISTORY(true, true, true), PAUSE(false,false,true), MESSAGES(true,false,true),
+    STATUSUPDATES(true,true,true), ERRORS(true,true,true);
     
     boolean isPersistent;
 
@@ -244,7 +246,12 @@ public interface ClusterDataAccessor
   void setControllerProperty(ControllerPropertyType controllerProperty, 
                              ZNRecord value, CreateMode mode);
   
+  void setControllerProperty(ControllerPropertyType controllerProperty, String subPath,
+      ZNRecord value, CreateMode mode);
+  
   ZNRecord getControllerProperty(ControllerPropertyType controllerProperty);
 
   PropertyStore<ZNRecord> getStore();
+
+  void removeControllerProperty(ControllerPropertyType messages, String id);
 }

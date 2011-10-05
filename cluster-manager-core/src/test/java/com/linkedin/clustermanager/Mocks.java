@@ -412,5 +412,22 @@ public class Mocks
       // TODO Auto-generated method stub
       return null;
     }
+
+    @Override
+    public void removeControllerProperty(ControllerPropertyType messages,
+        String id)
+    {
+      // TODO Auto-generated method stub
+      
+    }
+
+    @Override
+    public void setControllerProperty(
+        ControllerPropertyType controllerProperty, String subPath,
+        ZNRecord value, CreateMode mode)
+    {
+      // TODO Auto-generated method stub
+      
+    }
   }
 }

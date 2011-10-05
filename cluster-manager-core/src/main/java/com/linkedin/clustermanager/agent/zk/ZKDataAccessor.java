@@ -389,8 +389,8 @@ public class ZKDataAccessor implements ClusterDataAccessor
                                     CreateMode mode)
   {
     final String path =
-        CMUtil.getControllerPropertyPath(_clusterName, controllerProperty);
-    // _zkClient.create(path, value, mode);
+        CMUtil.getControllerPropertyPath(_clusterName, controllerProperty) + "/" + value.getId();
+    // _zkClient.create(path, mode);
     ZKUtil.createOrReplace(_zkClient, path, value, controllerProperty.isPersistent());
   }
 
@@ -408,5 +408,59 @@ public class ZKDataAccessor implements ClusterDataAccessor
   {
     // TODO Auto-generated method stub
     return null;
+  }
+
+  @Override
+  public void removeControllerProperty(ControllerPropertyType type,
+      String id)
+  {
+    String path =
+      CMUtil.getControllerPropertyPath(_clusterName, type) + "/" + id;
+  if (_zkClient.exists(path))
+  {
+    boolean b = _zkClient.delete(path);
+    if (!b)
+    {
+      logger.warn("Unable to remove property at path:" + path);
+    }
+  }
+  else
+  {
+    logger.warn("No property to remove at path:" + path);
+  }
+    
+  }
+
+  @Override
+  public void setControllerProperty(ControllerPropertyType controllerProperty,
+      String subPath, ZNRecord value, CreateMode mode)
+  {
+    String path =
+      CMUtil.getControllerPropertyPath(_clusterName, controllerProperty);
+    String parentPath = CMUtil.getControllerPropertyPath(_clusterName, controllerProperty) + "/"+ subPath;
+    if (!_zkClient.exists(parentPath))
+    {
+      String[] subPaths = subPath.split("/");
+      String tempPath = path;
+      for (int i = 0; i < subPaths.length; i++)
+      {
+        tempPath = tempPath + "/" + subPaths[i];
+        if (!_zkClient.exists(tempPath))
+        {
+          if (controllerProperty.isPersistent())
+          {
+            _zkClient.createPersistent(tempPath);
+          }
+          else
+          {
+            _zkClient.createEphemeral(tempPath);
+          }
+        }
+      }
+    }
+    path =
+      CMUtil.getControllerPropertyPath(_clusterName, controllerProperty) + "/"+ subPath+"/"+ value.getId();
+    ZKUtil.createOrUpdate(_zkClient, path, value, controllerProperty.isPersistent(), controllerProperty.isMergeOnUpdate());
+    
   }
 }

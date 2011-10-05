@@ -70,7 +70,6 @@ public class DefaultMessagingService implements ClusterMessagingService
       correlationId = UUID.randomUUID().toString();
       for (List<Message> messages : generateMessage.values())
       {
-        totalMessageCount += messages.size();
         callbackOnReply.setMessagesSent(messages);
       }
       _asyncCallbackService.registerAsyncCallback(correlationId, callbackOnReply);
@@ -87,8 +86,8 @@ public class DefaultMessagingService implements ClusterMessagingService
         }
         if (receiverType == InstanceType.CONTROLLER)
         {
-          _manager.getDataAccessor().setControllerProperty(ControllerPropertyType.MESSAGES,
-              tempMessage.getRecord(), CreateMode.PERSISTENT);
+          _manager.getDataAccessor().setControllerProperty(ControllerPropertyType.MESSAGES, 
+              tempMessage.getRecord(),  CreateMode.PERSISTENT);
         }
         if (receiverType == InstanceType.PARTICIPANT)
         {
@@ -187,7 +186,9 @@ public class DefaultMessagingService implements ClusterMessagingService
   {
     List<Message> messages = new ArrayList<Message>();
     Message newMessage = new Message(message.getRecord());
+    newMessage.setId(message.getId());
     newMessage.setSrcName(_manager.getInstanceName());
+    newMessage.setTgtName("Controller");
     messages.add(newMessage);
     return messages;
   }

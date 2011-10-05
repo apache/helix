@@ -46,6 +46,8 @@ import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.healthcheck.ParticipantHealthReportCollector;
 import com.linkedin.clustermanager.healthcheck.ParticipantHealthReportCollectorImpl;
 import com.linkedin.clustermanager.messaging.DefaultMessagingService;
+import com.linkedin.clustermanager.messaging.handling.CMTaskExecutor;
+import com.linkedin.clustermanager.messaging.handling.MessageHandlerFactory;
 import com.linkedin.clustermanager.monitoring.ZKPathDataDumpTask;
 import com.linkedin.clustermanager.participant.DistClusterControllerElection;
 import com.linkedin.clustermanager.store.PropertySerializer;
@@ -181,7 +183,17 @@ public class ZKClusterManager implements ClusterManager
             EventType.NodeDeleted, EventType.NodeCreated }, MESSAGE);
     _handlers.add(callbackHandler);
   }
-
+  
+  void addControllerMessageListener(MessageListener listener)
+  {
+    final String path = CMUtil.getControllerPropertyPath(_clusterName, ControllerPropertyType.MESSAGES);
+    
+    CallbackHandler callbackHandler =
+      createCallBackHandler(path, listener, new EventType[] { EventType.NodeChildrenChanged,
+          EventType.NodeDeleted, EventType.NodeCreated }, MESSAGE);
+    _handlers.add(callbackHandler);
+  }
+  
   @Override
   public void addCurrentStateChangeListener(CurrentStateChangeListener listener,
                                             String instanceName,
@@ -468,6 +480,10 @@ public class ZKClusterManager implements ClusterManager
     if (_instanceType == InstanceType.CONTROLLER
         || _instanceType == InstanceType.CONTROLLER_PARTICIPANT)
     {
+      addControllerMessageListener( _messagingService.getExecutor());
+      MessageHandlerFactory defaultControllerMsgHandlerFactory = new DefaultControllerMessageHandlerFactory();
+      _messagingService.getExecutor().registerMessageHandlerFactory(
+          defaultControllerMsgHandlerFactory.getMessageType(), defaultControllerMsgHandlerFactory);
       if (_leaderElectionHandler == null)
       {
         final String path = CMUtil.getControllerPath(_clusterName);

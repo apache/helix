@@ -11,8 +11,10 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.log4j.Logger;
+import org.apache.zookeeper.CreateMode;
 
 import com.linkedin.clustermanager.ClusterDataAccessor;
+import com.linkedin.clustermanager.ClusterDataAccessor.ControllerPropertyType;
 import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.model.Message;
@@ -57,7 +59,7 @@ public class StatusUpdateUtil
     {
       result.getMapField(mapFieldKey).put(simpleFieldKey, message.getRecord().getSimpleField(simpleFieldKey));
     }
-    result.setId(getStatusUpdateSubPath(message));
+    result.setId(getStatusUpdateRecordName(message));
     return result;
   }
   Map<String, String> _recordedMessages = new ConcurrentHashMap<String, String>();
@@ -93,7 +95,7 @@ public class StatusUpdateUtil
     
     result.setMapField(id, contentMap);
     
-    result.setId(getStatusUpdateSubPath(message));
+    result.setId(getStatusUpdateRecordName(message));
     return result;
   }
   
@@ -192,17 +194,33 @@ public class StatusUpdateUtil
   {
     String instanceName = message.getTgtName();
     String statusUpdateSubPath = getStatusUpdateSubPath(message);
+    String statusUpdateKey = getStatusUpdateKey(message);
     
     if(!_recordedMessages.containsKey(message.getMsgId()))
     {
-      accessor.updateInstanceProperty(instanceName,
+      if(instanceName.equalsIgnoreCase("Controller"))
+      {
+        accessor.setControllerProperty(ControllerPropertyType.STATUSUPDATES, statusUpdateSubPath, createMessageLogRecord(message), CreateMode.PERSISTENT);
+      }
+      else
+      {
+        accessor.updateInstanceProperty(instanceName,    
           InstancePropertyType.STATUSUPDATES, statusUpdateSubPath, message.getStateUnitKey(), createMessageLogRecord(message));
+      }
       _recordedMessages.put(message.getMsgId(), message.getMsgId());
+      return;
     }
       
-    accessor.updateInstanceProperty(instanceName,
-        InstancePropertyType.STATUSUPDATES, statusUpdateSubPath, message.getStateUnitKey(), record);
-    
+    if(instanceName.equalsIgnoreCase("Controller"))
+    {
+      accessor.setControllerProperty(ControllerPropertyType.STATUSUPDATES, statusUpdateSubPath, record, CreateMode.PERSISTENT);
+      
+    }
+    else
+    {
+      accessor.updateInstanceProperty(instanceName,
+        InstancePropertyType.STATUSUPDATES, statusUpdateSubPath, statusUpdateKey, record);
+    }
     // If the error level is ERROR, also write the record to "ERROR" ZNode
     if (Level.ERROR == level)
     {
@@ -210,15 +228,38 @@ public class StatusUpdateUtil
     }
   }
   
+  private String getStatusUpdateKey(Message message)
+  {
+    if(message.getMsgType().equalsIgnoreCase(MessageType.STATE_TRANSITION.toString()))
+    {
+      return message.getStateUnitKey();
+    }
+    return message.getMsgId();
+  }
+
   /**
    * Generate the sub-path under STATUSUPDATE or ERROR path for a status update
    * 
    */
   String getStatusUpdateSubPath(Message message)
   {
-    if(message.getStateUnitGroup() != null)
+    if(message.getMsgType().equalsIgnoreCase(MessageType.STATE_TRANSITION.toString()))
+    {
       return message.getTgtSessionId() + "__" + message.getStateUnitGroup();
-    return message.getTgtSessionId();
+    }
+    else
+    {
+      return message.getMsgType();
+    }
+  }
+  
+  String getStatusUpdateRecordName(Message message)
+  {
+    if(message.getMsgType().equalsIgnoreCase(MessageType.STATE_TRANSITION.toString()))
+    {
+      return message.getTgtSessionId() + "__" + message.getStateUnitGroup();
+    }
+    return message.getMsgId();
   }
 
   /**
@@ -238,6 +279,11 @@ public class StatusUpdateUtil
     String instanceName = message.getTgtName();
     String statusUpdateSubPath = getStatusUpdateSubPath(message);
     
+    if(instanceName.equalsIgnoreCase("controller"))
+    {
+      accessor.setControllerProperty(ControllerPropertyType.ERRORS, record, CreateMode.PERSISTENT);
+      return;
+    }
     accessor.updateInstanceProperty(instanceName, InstancePropertyType.ERRORS,
         statusUpdateSubPath, message.getStateUnitKey(), record);
   }

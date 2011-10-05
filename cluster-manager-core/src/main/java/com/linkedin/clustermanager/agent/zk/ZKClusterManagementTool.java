@@ -131,12 +131,24 @@ public class ZKClusterManagementTool implements ClusterManagementService
 
     // controller
     _zkClient.createPersistent(CMUtil.getControllerPath(clusterName));
-    final String path = CMUtil.getControllerPropertyPath(clusterName, 
+    String path = CMUtil.getControllerPropertyPath(clusterName, 
                                                          ControllerPropertyType.HISTORY);
     final ZNRecord emptyHistory = new ZNRecord();
     final List<String> emptyList = new ArrayList<String>();
     emptyHistory.setListField(clusterName, emptyList);
     _zkClient.createPersistent(path, emptyHistory);
+    
+    path = CMUtil.getControllerPropertyPath(clusterName, 
+        ControllerPropertyType.MESSAGES);
+    _zkClient.createPersistent(path);
+    
+    path = CMUtil.getControllerPropertyPath(clusterName, 
+        ControllerPropertyType.STATUSUPDATES);
+    _zkClient.createPersistent(path);
+    
+    path = CMUtil.getControllerPropertyPath(clusterName, 
+        ControllerPropertyType.ERRORS);
+    _zkClient.createPersistent(path);
  
   }
 

@@ -230,4 +230,58 @@ public class TestMessagingService extends ZkStandAloneCMHandler
     Assert.assertTrue(result.getMessageReplied().size() == 2);
     
   }
+  
+  @Test
+  public void TestControllerMessage() throws Exception
+  {
+    String hostSrc = "localhost_"+START_PORT;
+    
+   
+    for(int i = 0;i < NODE_NR; i++)
+    { 
+      TestMessagingHandlerFactory factory = new TestMessagingHandlerFactory();
+      String hostDest = "localhost_"+(START_PORT + i);
+      _managerMap.get(hostDest).getMessagingService().registerMessageHandlerFactory(factory.getMessageType(), factory);
+    }
+    String msgId = new UUID(123,456).toString(); 
+    Message msg = new Message(MessageType.CONTROLLER_MSG);
+    msg.setMsgId(msgId);
+    msg.setId(msgId);
+    msg.setSrcName(hostSrc);
+    
+    msg.setTgtSessionId("*");
+    msg.setMsgState("new");
+    String para = "Testing messaging para";
+    msg.getRecord().setSimpleField("TestMessagingPara", para);
+    
+    Criteria cr = new Criteria();
+    cr.setInstanceName("*");
+    cr.setRecipientInstanceType(InstanceType.CONTROLLER);
+    cr.setSessionSpecific(false);
+    
+    
+    AsyncCallback result = _managerMap.get(hostSrc).getMessagingService().sendReceive(cr, msg, 2000);
+    
+    Assert.assertTrue(result.getMessageReplied().get(0).getRecord().getMapField(Message.Attributes.MESSAGE_RESULT.toString()).get("ControllerResult").indexOf(msgId) != -1);
+    Assert.assertTrue(result.getMessageReplied().size() == 1);
+    
+    msgId = UUID.randomUUID().toString(); 
+    msg.setMsgId(msgId);
+    msg.setId(msgId);
+    cr.setResourceKey("TestDB_17");
+    result = _managerMap.get(hostSrc).getMessagingService().sendReceive(cr, msg, 2000);
+    Assert.assertTrue(result.getMessageReplied().get(0).getRecord().getMapField(Message.Attributes.MESSAGE_RESULT.toString()).get("ControllerResult").indexOf(msgId) != -1);
+    
+    Assert.assertTrue(result.getMessageReplied().size() == 1);
+    
+    msgId = UUID.randomUUID().toString(); 
+    msg.setMsgId(msgId);
+    msg.setId(msgId);
+    cr.setResourceState("SLAVE");
+    result = _managerMap.get(hostSrc).getMessagingService().sendReceive(cr, msg, 2000);
+    Assert.assertTrue(result.getMessageReplied().get(0).getRecord().getMapField(Message.Attributes.MESSAGE_RESULT.toString()).get("ControllerResult").indexOf(msgId) != -1);
+    
+    Assert.assertTrue(result.getMessageReplied().size() == 1);
+    
+  }
 }

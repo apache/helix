@@ -303,5 +303,4 @@ public class Message
     
     return replyMessage;
   }
-
 }

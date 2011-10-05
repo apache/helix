@@ -6,6 +6,7 @@ import java.util.concurrent.Callable;
 import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.ClusterDataAccessor;
+import com.linkedin.clustermanager.ClusterDataAccessor.ControllerPropertyType;
 import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.Criteria;
@@ -83,30 +84,54 @@ public class CMTask implements Callable<CMTaskResult>
     finally
     {
       reportMessgeStat(_manager, _message, taskResult);
-      accessor.removeInstanceProperty(instanceName,
-          InstancePropertyType.MESSAGES, _message.getId());
+      
+      removeMessage(accessor, _message);
+      
       if(_executor != null)
       {
         _executor.reportCompletion(_message.getMsgId());
       }
-   // If the message requires reply, send reply message
-      if(_message.getCorrelationId() != null && !_message.getMsgType().equals(MessageType.TASK_REPLY.toString()))
-      {
-        logger.info("Sending reply for message "+ _message.getCorrelationId());
-        _statusUpdateUtil.logInfo(_message, CMTask.class, "Sending reply", accessor);
-        
-        Message replyMessage = Message.createReplyMessage(_message, _manager.getInstanceName(), taskResult.getTaskResultMap());
-        Criteria recipientCriteria = new Criteria();
-        recipientCriteria.setInstanceName(replyMessage.getTgtName());
-
-        recipientCriteria.setRecipientInstanceType(InstanceType.PARTICIPANT);
-        recipientCriteria.setSessionSpecific(false);
-        _manager.getMessagingService().send(recipientCriteria, replyMessage);
-      }
+      
+      sendReply(accessor, _message, taskResult);
       return taskResult;
     } 
   }
   
+  private void removeMessage(ClusterDataAccessor accessor, Message message)
+  {
+    if(message.getTgtName().equalsIgnoreCase("controller"))
+    {
+      accessor.removeControllerProperty(ControllerPropertyType.MESSAGES, message.getId());
+    }
+    else
+    {
+      accessor.removeInstanceProperty(_manager.getInstanceName(),
+        InstancePropertyType.MESSAGES, message.getId());
+    }
+  }
+  
+  private void sendReply(ClusterDataAccessor accessor, Message message, CMTaskResult taskResult)
+  {
+    if(_message.getCorrelationId() != null && !message.getMsgType().equals(MessageType.TASK_REPLY.toString()))
+    {
+      logger.info("Sending reply for message "+ message.getCorrelationId());
+      _statusUpdateUtil.logInfo(message, CMTask.class, "Sending reply", accessor);
+      
+      taskResult.getTaskResultMap().put("SUCCESS", "" + taskResult.isSucess());
+      if(!taskResult.isSucess())
+      {
+        taskResult.getTaskResultMap().put("ERRORINFO", taskResult.getMessage());
+      }
+      Message replyMessage = Message.createReplyMessage(_message, _manager.getInstanceName(), taskResult.getTaskResultMap());
+      Criteria recipientCriteria = new Criteria();
+      recipientCriteria.setInstanceName(replyMessage.getTgtName());
+      
+      recipientCriteria.setRecipientInstanceType(
+          message.getMsgSrc().equalsIgnoreCase("controller") ? InstanceType.CONTROLLER : InstanceType.PARTICIPANT);
+      recipientCriteria.setSessionSpecific(false);
+      _manager.getMessagingService().send(recipientCriteria, replyMessage);
+    }
+  }
 
   private void reportMessgeStat(ClusterManager manager, Message message, CMTaskResult taskResult)
   {

@@ -121,7 +121,6 @@ public class ZKLogFormatter
       }
       // print the node
       format(startId, pair, head, data);
-      startId = startId + 1;
       Set<String> children = head.getChildren();
       if (children != null)
       {
@@ -138,6 +137,7 @@ public class ZKLogFormatter
           queue.add(new Pair(childPath, startId));
         }
       }
+      startId = startId + 1;
     }
 
   }

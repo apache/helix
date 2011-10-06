@@ -128,6 +128,10 @@
               <name>zk-dumper</name>
             </program>
             <program>
+              <mainClass>com.linkedin.clustermanager.tools.ZKLogFormatter</mainClass>
+              <name>zk-log-parser</name>
+            </program>
+            <program>
               <mainClass>com.linkedin.clustermanager.examples.ExampleProcess</mainClass>
               <name>start-example-process</name>
             </program>

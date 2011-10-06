@@ -520,7 +520,7 @@ public class ZKClusterManager implements ClusterManager
       // still hangs around until session timeout happens
       try
       {
-        Thread.currentThread().sleep(SESSIONTIMEOUT + 5000);
+        Thread.sleep(SESSIONTIMEOUT + 5000);
       }
       catch (InterruptedException e)
       {

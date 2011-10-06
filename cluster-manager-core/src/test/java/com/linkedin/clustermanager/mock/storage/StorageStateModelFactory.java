@@ -2,7 +2,6 @@ package com.linkedin.clustermanager.mock.storage;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.clustermanager.mock.consumer.ConsumerAdapter;
 import com.linkedin.clustermanager.participant.statemachine.StateModel;
 import com.linkedin.clustermanager.participant.statemachine.StateModelFactory;
 

@@ -1,4 +1,4 @@
-package com.linkedin.clustermanager;
+package com.linkedin.clustermanager.messaging;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -19,73 +19,95 @@ public abstract class AsyncCallback
   Timer _timer = null;
   List<Message> _messagesSent;
   final List<Message> _messageReplied = new ArrayList<Message>();
-  boolean _timeOut = false;
+  boolean _timedOut = false;
   boolean _isInterrupted = false;
+
+  /**
+   * Enforcing timeout to be set
+   * 
+   * @param timeout
+   */
+  public AsyncCallback(long timeout)
+  {
+    _logger.info("Setting time out to " + timeout + " ms");
+    _timeout = timeout;
+  }
 
   public final void setTimeout(long timeout)
   {
     _logger.info("Setting time out to " + timeout + " ms");
-    if(_timer == null && timeout != (long)(-1))
-    {
-      if(_startTimeStamp == 0)
-      {
-        _startTimeStamp = new Date().getTime();
-      }
-      _timeout = timeout;
-      assert(_timeout > 0);
-      _timer = new Timer();
-      _timer.schedule(new TimeoutTask(this), _timeout);
-    }
+
   }
-  
+
   public List<Message> getMessageReplied()
   {
     return _messageReplied;
   }
-  
+
   public boolean isInterrupted()
   {
     return _isInterrupted;
   }
-  
+
+  public void setInterrupted(boolean b)
+  {
+    _isInterrupted = true;
+  }
+
   public synchronized final void onReply(Message message)
   {
     _logger.info("OnReply msg " + message.getMsgId());
-    if(!isDone())
+    if (!isDone())
     {
       _messageReplied.add(message);
-      onReplyMessage(message);  
+      onReplyMessage(message);
     }
-    
-    if(isDone() && _timer != null)
+
+    if (isDone() && _timer != null)
     {
       _timer.cancel();
       notifyAll();
     }
   };
-  
+
+  /**
+   * Default implementation will wait until every message sent gets a response
+   * 
+   * @return
+   */
   public boolean isDone()
   {
     return _messageReplied.size() == _messagesSent.size();
   }
-  
-  public boolean isTimeOut()
+
+  public boolean isTimedOut()
   {
-    return _timeOut;
+    return _timedOut;
   }
 
-  public final void setMessagesSent(List<Message> generatedMessage)
+  final void setMessagesSent(List<Message> generatedMessage)
   {
     _messagesSent = generatedMessage;
   }
-  
+  final void startTimer(){
+    if (_timer == null && _timeout>0)
+    {
+      if (_startTimeStamp == 0)
+      {
+        _startTimeStamp = new Date().getTime();
+      }
+      _timer = new Timer();
+      _timer.schedule(new TimeoutTask(this), _timeout);
+    }  
+  }
   public abstract void onTimeOut();
-  
+
   public abstract void onReplyMessage(Message message);
-  
+
   class TimeoutTask extends TimerTask
   {
-    AsyncCallback _callback; 
+    AsyncCallback _callback;
+
     public TimeoutTask(AsyncCallback asyncCallback)
     {
       _callback = asyncCallback;
@@ -96,18 +118,17 @@ public abstract class AsyncCallback
     {
       try
       {
-        synchronized(_callback)
+        synchronized (_callback)
         {
-          _callback._timeOut = true;
+          _callback._timedOut = true;
           _callback.onTimeOut();
           _callback.notifyAll();
         }
-      }
-      catch(Exception e)
+      } catch (Exception e)
       {
         _logger.error(e);
       }
     }
   }
-  
+
 }

@@ -10,8 +10,6 @@ import java.util.UUID;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 
-import com.linkedin.clustermanager.AsyncCallback;
-import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.ClusterDataAccessor.ControllerPropertyType;
 import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
@@ -19,7 +17,6 @@ import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterMessagingService;
 import com.linkedin.clustermanager.Criteria;
 import com.linkedin.clustermanager.InstanceType;
-import com.linkedin.clustermanager.BlockingAsyncCallback;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.messaging.handling.AsyncCallbackService;
 import com.linkedin.clustermanager.messaging.handling.CMTaskExecutor;
@@ -31,19 +28,26 @@ import com.linkedin.clustermanager.model.Message.MessageType;
 
 public class DefaultMessagingService implements ClusterMessagingService
 {
+  private static Logger logger = Logger
+      .getLogger(DefaultMessagingService.class);
+
   private final ClusterManager _manager;
   private CriteriaEvaluator _evaluator;
   private final CMTaskExecutor _taskExecutor;
-  private final AsyncCallbackService _asyncCallbackService; 
-  private static Logger _logger = Logger.getLogger(DefaultMessagingService.class);
+  // TODO:rename to factory, this is not a service
+  private final AsyncCallbackService _asyncCallbackService;
+  private static Logger _logger = Logger
+      .getLogger(DefaultMessagingService.class);
+
   public DefaultMessagingService(ClusterManager manager)
   {
     _evaluator = new CriteriaEvaluator();
     _manager = manager;
     _taskExecutor = new CMTaskExecutor();
     _asyncCallbackService = new AsyncCallbackService();
-    registerMessageHandlerFactory(MessageType.TASK_REPLY.toString(), _asyncCallbackService);
-    
+    registerMessageHandlerFactory(MessageType.TASK_REPLY.toString(),
+        _asyncCallbackService);
+
   }
 
   @Override
@@ -56,7 +60,6 @@ public class DefaultMessagingService implements ClusterMessagingService
   public int send(final Criteria recipientCriteria, final Message message,
       AsyncCallback callbackOnReply)
   {
-
     Map<InstanceType, List<Message>> generateMessage = generateMessage(
         recipientCriteria, message);
     int totalMessageCount = 0;
@@ -72,7 +75,8 @@ public class DefaultMessagingService implements ClusterMessagingService
       {
         callbackOnReply.setMessagesSent(messages);
       }
-      _asyncCallbackService.registerAsyncCallback(correlationId, callbackOnReply);
+      _asyncCallbackService.registerAsyncCallback(correlationId,
+          callbackOnReply);
     }
 
     for (InstanceType receiverType : generateMessage.keySet())
@@ -80,22 +84,29 @@ public class DefaultMessagingService implements ClusterMessagingService
       List<Message> list = generateMessage.get(receiverType);
       for (Message tempMessage : list)
       {
-        if(correlationId != null)
+        if (correlationId != null)
         {
           tempMessage.setCorrelationId(correlationId);
         }
         if (receiverType == InstanceType.CONTROLLER)
         {
-          _manager.getDataAccessor().setControllerProperty(ControllerPropertyType.MESSAGES, 
-              tempMessage.getRecord(),  CreateMode.PERSISTENT);
+          _manager.getDataAccessor().setControllerProperty(
+              ControllerPropertyType.MESSAGES, tempMessage.getRecord(),
+              CreateMode.PERSISTENT);
         }
         if (receiverType == InstanceType.PARTICIPANT)
         {
-          _manager.getDataAccessor().setInstanceProperty(tempMessage.getTgtName(),
-              InstancePropertyType.MESSAGES, tempMessage.getId(),
-              tempMessage.getRecord());
+          _manager.getDataAccessor().setInstanceProperty(
+              tempMessage.getTgtName(), InstancePropertyType.MESSAGES,
+              tempMessage.getId(), tempMessage.getRecord());
         }
       }
+    }
+
+    if (callbackOnReply != null)
+    {
+      // start timer if timeout is set
+      callbackOnReply.startTimer();
     }
     return totalMessageCount;
   }
@@ -155,7 +166,8 @@ public class DefaultMessagingService implements ClusterMessagingService
     return messagesToSendMap;
   }
 
-  private List<Map<String, String>> prepareInputFromClusterData( Criteria criteria)
+  private List<Map<String, String>> prepareInputFromClusterData(
+      Criteria criteria)
   {
     // todo:optimize and read only resource groups needed
     List<Map<String, String>> rows = new ArrayList<Map<String, String>>();
@@ -200,36 +212,38 @@ public class DefaultMessagingService implements ClusterMessagingService
     _logger.info("adding msg factory for type " + type);
     _taskExecutor.registerMessageHandlerFactory(type, factory);
   }
-  
+
   public CMTaskExecutor getExecutor()
   {
     return _taskExecutor;
   }
 
   @Override
-  public AsyncCallback sendReceive(Criteria receipientCriteria,
-      Message message, long timeout)
+  public int sendAndWait(Criteria receipientCriteria, Message message,
+      AsyncCallback asyncCallback)
   {
-    BlockingAsyncCallback callback = new BlockingAsyncCallback(timeout);
-    send(receipientCriteria, message, callback);
-    while(!callback.isDone() && !callback.isTimeOut())
+    int messagesSent = send(receipientCriteria, message, asyncCallback);
+    if (messagesSent > 0)
     {
-      synchronized(callback)
+      while (!asyncCallback.isDone() && !asyncCallback.isTimedOut())
       {
-        try
+        synchronized (asyncCallback)
         {
-          callback.wait();
-        } 
-        catch (InterruptedException e)
-        {
-          // TODO Auto-generated catch block
-          e.printStackTrace();
-          _logger.error(e);
-          callback.setInterrupted(true);
-          break;
+          try
+          {
+            asyncCallback.wait();
+          } catch (InterruptedException e)
+          {
+            _logger.error(e);
+            asyncCallback.setInterrupted(true);
+            break;
+          }
         }
       }
+    } else
+    {
+      logger.warn("No messages sent. For Criteria:" + receipientCriteria);
     }
-    return callback;
+    return messagesSent;
   }
 }

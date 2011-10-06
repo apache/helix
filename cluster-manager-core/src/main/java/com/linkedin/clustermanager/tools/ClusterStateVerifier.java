@@ -217,14 +217,15 @@ public class ClusterStateVerifier
           String partitionNodeState = currentStates.get(nodeName)
               .get(stateUnitGroup).getMapFields().get(stateUnitKey)
               .get(CMConstants.ZNAttribute.CURRENT_STATE.toString());
-
-          assert (partitionNodeState.equals(nodePartitionState));
+          boolean success =true;
           if (!partitionNodeState.equals(nodePartitionState))
           {
             _logger.error("State mismatch " + stateUnitGroup + " " + stateUnitKey+" "+nodeName
                 + " " + partitionNodeState + " " + nodePartitionState);
-            return false;
+            success= false;
           }
+          assert (partitionNodeState.equals(nodePartitionState));
+          return success;
         }
       }
     }

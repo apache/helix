@@ -243,6 +243,12 @@ public class CMTaskExecutor implements MessageListener
             logger.info("Creating handler for message "+ message.getMsgId());
             handler = createMessageHandler(message, changeContext);
             
+            if(handler == null)
+            {
+              logger.warn("Message handler factory not found");
+              continue;
+            }
+            
             _statusUpdateUtil.logInfo(message, StateMachineEngine.class,
               "New Message", client);
             // update msgState to read
@@ -298,17 +304,14 @@ public class CMTaskExecutor implements MessageListener
       NotificationContext changeContext)
   {
     String msgType = message.getMsgType().toString();
-    if(msgType.equalsIgnoreCase(MessageType.USER_DEFINE_MSG.toString()))
-    {
-      msgType = msgType + "."+message.getMsgSubType();
-    }
-    
+   
     MessageHandlerFactory handlerFactory = _handlerFactoryMap.get(msgType);
     
     if(handlerFactory == null)
     {
-      throw new ClusterManagerException("Cannot find handler factory for msg type " + msgType
+      logger.warn("Cannot find handler factory for msg type " + msgType
           +" message:" + message.getMsgId());
+      return null;
     }
     
     return handlerFactory.createHandler(message, changeContext);

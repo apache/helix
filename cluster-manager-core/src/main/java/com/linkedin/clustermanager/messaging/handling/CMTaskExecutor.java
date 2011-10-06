@@ -278,7 +278,6 @@ public class CMTaskExecutor implements MessageListener
           // _statusUpdateUtil.logInfo(message, StateMachineEngine.class,
           // "Message already read", client);
         }
-
       } 
       else
       {

@@ -365,7 +365,7 @@ public class ZKClusterManager implements ClusterManager
                                  metaData,
                                  CreateMode.EPHEMERAL);
     String currentStatePathParent =
-        CMUtil.getCurrentStateBasePath(_clusterName, _instanceName) + "/" + getSessionId();
+      CMUtil.getCurrentStateBasePath(_clusterName, _instanceName) + "/" + getSessionId();
     if (!_zkClient.exists(currentStatePathParent))
     {
       _zkClient.createPersistent(currentStatePathParent);
@@ -534,8 +534,8 @@ public class ZKClusterManager implements ClusterManager
         throw new ClusterManagerException(errorMessage);
       }
     }
-    carryOverPreviousCurrentState();
     addLiveInstance();
+    carryOverPreviousCurrentState();
     startStatusUpdatedumpTask();
 
     // In case the cluster manager is running as a participant, setup message listener
@@ -604,6 +604,7 @@ public class ZKClusterManager implements ClusterManager
 
   private void carryOverPreviousCurrentState()
   {
+    
     List<String> subPaths =
         _accessor.getInstancePropertySubPaths(_instanceName, InstancePropertyType.CURRENTSTATES);
     for (String previousSessionId : subPaths)

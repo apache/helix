@@ -38,7 +38,7 @@ public class ClusterStateVerifier
    * @param args
    * @return
    */
-  public static boolean VerifyClusterStates(String zkServer, String clusterName)
+  public static boolean verifyClusterStates(String zkServer, String clusterName)
   {
     ZkClient zkClient = new ZkClient(zkServer);
     zkClient.setZkSerializer(new ZNRecordSerializer());
@@ -320,7 +320,7 @@ public class ClusterStateVerifier
       zkServer = cmd.getOptionValue(zkServerAddress);
       clusterName = cmd.getOptionValue(cluster);
     }
-    return VerifyClusterStates(zkServer, clusterName);
+    return verifyClusterStates(zkServer, clusterName);
 
   }
 

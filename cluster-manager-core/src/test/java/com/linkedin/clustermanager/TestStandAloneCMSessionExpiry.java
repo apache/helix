@@ -24,7 +24,7 @@ public class TestStandAloneCMSessionExpiry extends ZkStandAloneCMHandler
     _setupTool.addResourceGroupToCluster(CLUSTER_NAME, "MyDB", 10, STATE_MODEL);
     _setupTool.rebalanceStorageCluster(CLUSTER_NAME, "MyDB", 3);
     Thread.sleep(8000);
-    boolean result = ClusterStateVerifier.VerifyClusterStates(ZK_ADDR, CLUSTER_NAME);
+    boolean result = ClusterStateVerifier.verifyClusterStates(ZK_ADDR, CLUSTER_NAME);
     Assert.assertTrue(result);
     logger.info("cluster:" + CLUSTER_NAME + " after pariticipant session expiry result:" + result);
 
@@ -34,7 +34,7 @@ public class TestStandAloneCMSessionExpiry extends ZkStandAloneCMHandler
     _setupTool.rebalanceStorageCluster(CLUSTER_NAME, "MyDB2", 3);
     Thread.sleep(8000);
     
-    result = ClusterStateVerifier.VerifyClusterStates(ZK_ADDR, CLUSTER_NAME);
+    result = ClusterStateVerifier.verifyClusterStates(ZK_ADDR, CLUSTER_NAME);
     Assert.assertTrue(result);
     logger.info("cluster:" + CLUSTER_NAME + " after controller session expiry result:" + result);
     

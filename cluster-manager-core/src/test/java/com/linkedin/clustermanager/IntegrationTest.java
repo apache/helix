@@ -17,6 +17,6 @@ public class IntegrationTest extends ZkStandAloneCMHandler
   @Test
   public void integrationTest() throws Exception
   {
-    Assert.assertTrue(ClusterStateVerifier.VerifyClusterStates(ZK_ADDR, CLUSTER_NAME));
+    Assert.assertTrue(ClusterStateVerifier.verifyClusterStates(ZK_ADDR, CLUSTER_NAME));
   }
 }

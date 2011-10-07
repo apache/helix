@@ -108,7 +108,7 @@ public class ZkStandAloneCMHandler
       // TODO Auto-generated catch block
       e.printStackTrace();
     }
-    boolean result = ClusterStateVerifier.VerifyClusterStates(ZK_ADDR, CLUSTER_NAME);
+    boolean result = ClusterStateVerifier.verifyClusterStates(ZK_ADDR, CLUSTER_NAME);
     Assert.assertTrue(result);
     logger.info("cluster:" + CLUSTER_NAME + " starts result:" + result);
   }

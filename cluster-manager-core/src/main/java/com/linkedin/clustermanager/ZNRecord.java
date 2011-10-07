@@ -37,6 +37,14 @@ public class ZNRecord
     mapFields.putAll(record.getMapFields());
     listFields.putAll(record.getListFields());
   }
+  
+  public ZNRecord(ZNRecord record, String id)
+  {
+    this(id);
+    simpleFields.putAll(record.getSimpleFields());
+    mapFields.putAll(record.getMapFields());
+    listFields.putAll(record.getListFields());
+  }
 
   @JsonProperty
   public Map<String, String> getSimpleFields()

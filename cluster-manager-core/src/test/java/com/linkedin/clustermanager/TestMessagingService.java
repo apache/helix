@@ -322,7 +322,7 @@ public class TestMessagingService extends ZkStandAloneCMHandler
 
     Assert.assertTrue(callback1.getMessageReplied().get(0).getRecord()
         .getMapField(Message.Attributes.MESSAGE_RESULT.toString())
-        .get("ControllerResult").indexOf(msgId) != -1);
+        .get("ControllerResult").indexOf(hostSrc) != -1);
     Assert.assertTrue(callback1.getMessageReplied().size() == 1);
 
     msgId = UUID.randomUUID().toString();
@@ -333,7 +333,7 @@ public class TestMessagingService extends ZkStandAloneCMHandler
         .sendAndWait(cr, msg, callback2);
     Assert.assertTrue(callback2.getMessageReplied().get(0).getRecord()
         .getMapField(Message.Attributes.MESSAGE_RESULT.toString())
-        .get("ControllerResult").indexOf(msgId) != -1);
+        .get("ControllerResult").indexOf(hostSrc) != -1);
 
     Assert.assertTrue(callback2.getMessageReplied().size() == 1);
 
@@ -345,9 +345,8 @@ public class TestMessagingService extends ZkStandAloneCMHandler
         .sendAndWait(cr, msg, callback3);
     Assert.assertTrue(callback3.getMessageReplied().get(0).getRecord()
         .getMapField(Message.Attributes.MESSAGE_RESULT.toString())
-        .get("ControllerResult").indexOf(msgId) != -1);
+        .get("ControllerResult").indexOf(hostSrc) != -1);
 
     Assert.assertTrue(callback3.getMessageReplied().size() == 1);
-
   }
 }

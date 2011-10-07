@@ -226,6 +226,15 @@ public class CMTaskExecutor implements MessageListener
     for (ZNRecord record : messages)
     {
       Message message = new Message(record);
+      // NO_OP messages are removed with nothing done. It is used to trigger the
+      // onMessage() call if needed.
+      if (message.getMsgType().equalsIgnoreCase(MessageType.NO_OP.toString()))
+      {
+        logger.info("Dropping NO-OP msg from "+ message.getMsgSrc());
+        client.removeInstanceProperty(instanceName,
+            InstancePropertyType.MESSAGES, message.getId());
+        continue;
+      }
       String sessionId = manager.getSessionId();
       String tgtSessionId = ((Message) message).getTgtSessionId();
       if (sessionId.equals(tgtSessionId) || tgtSessionId.equals("*"))
@@ -240,7 +249,7 @@ public class CMTaskExecutor implements MessageListener
             
             if(handler == null)
             {
-              logger.warn("Message handler factory not found");
+              logger.warn("Message handler factory not found for message type "+ message.getMsgType());
               continue;
             }
             

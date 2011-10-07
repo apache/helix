@@ -20,7 +20,8 @@ public class Message
     STATE_TRANSITION,
     USER_DEFINE_MSG,
     CONTROLLER_MSG,
-    TASK_REPLY
+    TASK_REPLY,
+    NO_OP
   };
 
   public enum Attributes
@@ -46,6 +47,12 @@ public class Message
   public Message(ZNRecord record)
   {
     _record = new ZNRecord(record);
+  }
+  
+  public Message(ZNRecord record, String id)
+  {
+    _record = new ZNRecord(record, id);
+    setMsgId(id);
   }
 
   public String getId()

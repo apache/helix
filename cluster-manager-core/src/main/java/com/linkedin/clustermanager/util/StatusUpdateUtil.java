@@ -204,7 +204,7 @@ public class StatusUpdateUtil
       else
       {
         accessor.updateInstanceProperty(instanceName,    
-          InstancePropertyType.STATUSUPDATES, statusUpdateSubPath, message.getStateUnitKey(), createMessageLogRecord(message));
+          InstancePropertyType.STATUSUPDATES, statusUpdateSubPath, statusUpdateKey, createMessageLogRecord(message));
       }
       _recordedMessages.put(message.getMsgId(), message.getMsgId());
       return;
@@ -277,10 +277,11 @@ public class StatusUpdateUtil
   {
     String instanceName = message.getTgtName();
     String statusUpdateSubPath = getStatusUpdateSubPath(message);
+    String statusUpdateKey = getStatusUpdateKey(message);
     
     if(instanceName.equalsIgnoreCase("controller"))
     {
-      accessor.setControllerProperty(ControllerPropertyType.ERRORS, record, CreateMode.PERSISTENT);
+      accessor.setControllerProperty(ControllerPropertyType.ERRORS, statusUpdateSubPath, record,CreateMode.PERSISTENT);
       return;
     }
     accessor.updateInstanceProperty(instanceName, InstancePropertyType.ERRORS,

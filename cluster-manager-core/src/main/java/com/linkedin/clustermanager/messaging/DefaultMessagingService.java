@@ -45,7 +45,7 @@ public class DefaultMessagingService implements ClusterMessagingService
     _manager = manager;
     _taskExecutor = new CMTaskExecutor();
     _asyncCallbackService = new AsyncCallbackService();
-    registerMessageHandlerFactory(MessageType.TASK_REPLY.toString(),
+    _taskExecutor.registerMessageHandlerFactory(MessageType.TASK_REPLY.toString(),
         _asyncCallbackService);
 
   }
@@ -147,12 +147,12 @@ public class DefaultMessagingService implements ClusterMessagingService
         }
         for (Map<String, String> map : matchedList)
         {
-          Message newMessage = new Message(message.getRecord());
+          String id = UUID.randomUUID().toString();
+          Message newMessage = new Message(message.getRecord(), id);
           newMessage.setSrcName(_manager.getInstanceName());
           newMessage.setTgtName(map.get("instanceName"));
           newMessage.setStateUnitGroup(map.get("resourceGroup"));
           newMessage.setStateUnitKey(map.get("resourceKey"));
-          newMessage.setMsgId(UUID.randomUUID().toString());
           if (recipientCriteria.isSessionSpecific())
           {
             newMessage.setTgtName(sessionIdMap.get(map.get("instanceName")));
@@ -196,8 +196,9 @@ public class DefaultMessagingService implements ClusterMessagingService
   private List<Message> generateMessagesForController(Message message)
   {
     List<Message> messages = new ArrayList<Message>();
-    Message newMessage = new Message(message.getRecord());
-    newMessage.setMsgId(message.getId());
+    String id = UUID.randomUUID().toString();
+    Message newMessage = new Message(message.getRecord(), id);
+    newMessage.setMsgId(id);
     newMessage.setSrcName(_manager.getInstanceName());
     newMessage.setTgtName("Controller");
     messages.add(newMessage);
@@ -210,6 +211,34 @@ public class DefaultMessagingService implements ClusterMessagingService
   {
     _logger.info("adding msg factory for type " + type);
     _taskExecutor.registerMessageHandlerFactory(type, factory);
+    // Self-send a no-op message, so that the onMessage() call will be invoked
+    // again, and
+    // we have a chance to process the message that we received with the new
+    // added MessageHandlerFactory
+    // before the factory is added.
+    try
+    {
+      Message noOPMsg = new Message(MessageType.NO_OP, UUID.randomUUID().toString());
+      if (_manager.getInstanceType() == InstanceType.CONTROLLER)
+      {
+        noOPMsg.setTgtName("Controller");
+        _manager.getDataAccessor().setControllerProperty(
+            ControllerPropertyType.MESSAGES, noOPMsg.getRecord(),
+            CreateMode.PERSISTENT);
+      }
+      if (_manager.getInstanceType() == InstanceType.PARTICIPANT)
+      {
+        noOPMsg.setTgtName(_manager.getInstanceName());
+        _manager.getDataAccessor()
+            .setInstanceProperty(noOPMsg.getTgtName(),
+                InstancePropertyType.MESSAGES, noOPMsg.getId(),
+                noOPMsg.getRecord());
+      }
+
+    } catch (Exception e)
+    {
+      _logger.error(e);
+    }
   }
 
   public CMTaskExecutor getExecutor()

@@ -133,7 +133,7 @@ public class ZKClusterManagementTool implements ClusterManagementService
     _zkClient.createPersistent(CMUtil.getControllerPath(clusterName));
     String path = CMUtil.getControllerPropertyPath(clusterName, 
                                                          ControllerPropertyType.HISTORY);
-    final ZNRecord emptyHistory = new ZNRecord();
+    final ZNRecord emptyHistory = new ZNRecord("HISTORY");
     final List<String> emptyList = new ArrayList<String>();
     emptyHistory.setListField(clusterName, emptyList);
     _zkClient.createPersistent(path, emptyHistory);
@@ -170,8 +170,7 @@ public class ZKClusterManagementTool implements ClusterManagementService
   public void addResourceGroup(String clusterName, String dbName,
       int partitions, String stateModelRef, String idealStateMode)
   {
-    ZNRecord idealState = new ZNRecord();
-    idealState.setId(dbName);
+    ZNRecord idealState = new ZNRecord(dbName);
     idealState.setSimpleField("partitions", String.valueOf(partitions));
     idealState.setSimpleField("state_model_def_ref", stateModelRef);
     idealState.setSimpleField("ideal_state_mode", idealStateMode);

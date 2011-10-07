@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.codehaus.jackson.annotate.JsonCreator;
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 import org.codehaus.jackson.annotate.JsonProperty;
 
@@ -15,13 +16,15 @@ import org.codehaus.jackson.annotate.JsonProperty;
 public class ZNRecord
 {
 
-  public String id;
-  public Map<String, String> simpleFields;
-  public Map<String, Map<String, String>> mapFields;
-  public Map<String, List<String>> listFields;
+  private final String id;
+  private Map<String, String> simpleFields;
+  private Map<String, Map<String, String>> mapFields;
+  private Map<String, List<String>> listFields;
 
-  public ZNRecord()
+  @JsonCreator
+  public ZNRecord(@JsonProperty("id") String id)
   {
+    this.id = id;
     simpleFields = new TreeMap<String, String>();
     mapFields = new TreeMap<String, Map<String, String>>();
     listFields = new TreeMap<String, List<String>>();
@@ -29,7 +32,7 @@ public class ZNRecord
 
   public ZNRecord(ZNRecord record)
   {
-    this();
+    this(record.getId());
     simpleFields.putAll(record.getSimpleFields());
     mapFields.putAll(record.getMapFields());
     listFields.putAll(record.getListFields());
@@ -81,12 +84,6 @@ public class ZNRecord
   public String getId()
   {
     return id;
-  }
-
-  @JsonProperty
-  public void setId(String id)
-  {
-    this.id = id;
   }
 
   public void setMapField(String k, Map<String, String> v)
@@ -168,26 +165,26 @@ public class ZNRecord
 
   public void substract(ZNRecord value)
   {
-    for(String key : value.getSimpleFields().keySet())
+    for (String key : value.getSimpleFields().keySet())
     {
-      if(simpleFields.containsKey(key))
+      if (simpleFields.containsKey(key))
       {
         simpleFields.remove(key);
       }
     }
     // Note: does not support substract in each list in list fields
     // or map in mapFields
-    for(String key : value.getListFields().keySet())
+    for (String key : value.getListFields().keySet())
     {
-      if(listFields.containsKey(key))
+      if (listFields.containsKey(key))
       {
         listFields.remove(key);
       }
     }
-    
-    for(String key : value.getMapFields().keySet())
+
+    for (String key : value.getMapFields().keySet())
     {
-      if(mapFields.containsKey(key))
+      if (mapFields.containsKey(key))
       {
         mapFields.remove(key);
       }

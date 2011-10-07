@@ -68,7 +68,7 @@ public class TestMessagingService extends ZkStandAloneCMHandler
         .registerMessageHandlerFactory(factory.getMessageType(), factory);
 
     String msgId = new UUID(123, 456).toString();
-    Message msg = new Message(factory.getMessageType());
+    Message msg = new Message(factory.getMessageType(),msgId);
     msg.setMsgId(msgId);
     msg.setSrcName(hostSrc);
     msg.setTgtSessionId("*");
@@ -159,7 +159,7 @@ public class TestMessagingService extends ZkStandAloneCMHandler
         .registerMessageHandlerFactory(factory.getMessageType(), factory);
 
     String msgId = new UUID(123, 456).toString();
-    Message msg = new Message(factory.getMessageType());
+    Message msg = new Message(factory.getMessageType(),msgId);
     msg.setMsgId(msgId);
     msg.setSrcName(hostSrc);
 
@@ -203,7 +203,7 @@ public class TestMessagingService extends ZkStandAloneCMHandler
         .registerMessageHandlerFactory(factory.getMessageType(), factory);
 
     String msgId = new UUID(123, 456).toString();
-    Message msg = new Message(factory.getMessageType());
+    Message msg = new Message(factory.getMessageType(),msgId);
     msg.setMsgId(msgId);
     msg.setSrcName(hostSrc);
 
@@ -248,7 +248,7 @@ public class TestMessagingService extends ZkStandAloneCMHandler
     }
     String msgId = new UUID(123, 456).toString();
     Message msg = new Message(
-        new TestMessagingHandlerFactory().getMessageType());
+        new TestMessagingHandlerFactory().getMessageType(),msgId);
     msg.setMsgId(msgId);
     msg.setSrcName(hostSrc);
 
@@ -302,9 +302,8 @@ public class TestMessagingService extends ZkStandAloneCMHandler
           .registerMessageHandlerFactory(factory.getMessageType(), factory);
     }
     String msgId = new UUID(123, 456).toString();
-    Message msg = new Message(MessageType.CONTROLLER_MSG);
+    Message msg = new Message(MessageType.CONTROLLER_MSG,msgId);
     msg.setMsgId(msgId);
-    msg.setId(msgId);
     msg.setSrcName(hostSrc);
 
     msg.setTgtSessionId("*");
@@ -328,7 +327,6 @@ public class TestMessagingService extends ZkStandAloneCMHandler
 
     msgId = UUID.randomUUID().toString();
     msg.setMsgId(msgId);
-    msg.setId(msgId);
     cr.setResourceKey("TestDB_17");
     AsyncCallback callback2 = new MockAsyncCallback(2000);
     messagesSent = _managerMap.get(hostSrc).getMessagingService()
@@ -341,7 +339,6 @@ public class TestMessagingService extends ZkStandAloneCMHandler
 
     msgId = UUID.randomUUID().toString();
     msg.setMsgId(msgId);
-    msg.setId(msgId);
     cr.setResourceState("SLAVE");
     AsyncCallback callback3 = new MockAsyncCallback(2000);
     messagesSent = _managerMap.get(hostSrc).getMessagingService()

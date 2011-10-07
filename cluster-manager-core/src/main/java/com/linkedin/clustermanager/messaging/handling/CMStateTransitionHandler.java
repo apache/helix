@@ -98,8 +98,7 @@ public class CMStateTransitionHandler implements MessageHandler
     // Set a empty current state record if it is null
     if (currentState == null)
     {
-      currentState = new ZNRecord();
-      currentState.setId(stateUnitGroup);
+      currentState = new ZNRecord(stateUnitGroup);
       currentState.setSimpleField(
           CMConstants.ZNAttribute.SESSION_ID.toString(),
           manager.getSessionId());
@@ -114,7 +113,7 @@ public class CMStateTransitionHandler implements MessageHandler
        map = new HashMap<String, String>();
        map.put(ZNAttribute.CURRENT_STATE.toString(), initStateValue);  // "OFFLINE");
        
-       ZNRecord currentStateDelta = new ZNRecord();
+       ZNRecord currentStateDelta = new ZNRecord(stateUnitGroup);
        currentStateDelta.setMapField(stateUnitKey, map);
        
        logger.info("Setting initial state for partition: " + stateUnitKey + " to offline");
@@ -129,7 +128,7 @@ public class CMStateTransitionHandler implements MessageHandler
       if(message.getRecord().getSimpleFields().containsKey(Message.Attributes.STATE_MODEL_DEF.toString()))
       {
         logger.info("Setting state model def on current state: " + message.getStateModelDef());
-        ZNRecord currentStateDelta = new ZNRecord();
+        ZNRecord currentStateDelta = new ZNRecord(stateUnitGroup);
         currentStateDelta.setSimpleField(Message.Attributes.STATE_MODEL_DEF.toString(), message.getStateModelDef());
         
         accessor.updateInstanceProperty(instanceName,
@@ -187,7 +186,7 @@ public class CMStateTransitionHandler implements MessageHandler
       // was
       // called at.
       // Verify that no one has edited this field
-      ZNRecord currentStateDelta = new ZNRecord();
+      ZNRecord currentStateDelta = new ZNRecord(stateUnitGroup);
       if (taskResult.isSucess())
       { 
         if(!toState.equalsIgnoreCase("DROPPED"))
@@ -197,7 +196,7 @@ public class CMStateTransitionHandler implements MessageHandler
           _stateModel.updateState(toState);
         }
         
-        currentStateDelta.mapFields.put(stateUnitKey, map);  
+        currentStateDelta.setMapField(stateUnitKey, map);  
       } 
       else
       {

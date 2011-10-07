@@ -97,8 +97,7 @@ public class DistClusterControllerElection implements ControllerChangeListener
 		{
 			String instanceName = manager.getInstanceName();
 			String clusterName = manager.getClusterName();
-			final ZNRecord leaderRecord = new ZNRecord();
-			leaderRecord.setId(ControllerPropertyType.LEADER.toString());
+			final ZNRecord leaderRecord = new ZNRecord(ControllerPropertyType.LEADER.toString());
 			leaderRecord.setSimpleField(ControllerPropertyType.LEADER.toString(), 
 			                            manager.getInstanceName());
 			ClusterDataAccessor dataAccessor = manager.getDataAccessor();

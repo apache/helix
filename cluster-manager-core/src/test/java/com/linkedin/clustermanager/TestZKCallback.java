@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 
 import org.I0Itec.zkclient.IDefaultNameSpace;
 import org.I0Itec.zkclient.ZkServer;
@@ -184,8 +185,7 @@ public class TestZKCallback
 
     testListener.Reset();
     ClusterDataAccessor dataAccessor = testClusterManager.getDataAccessor();
-    ZNRecord dummyRecord = new ZNRecord();
-    dummyRecord.setId("db-12345");
+    ZNRecord dummyRecord = new ZNRecord("db-12345");
     dataAccessor.setClusterProperty(ClusterPropertyType.EXTERNALVIEW,
         "db-12345", dummyRecord);
     Thread.sleep(100);
@@ -198,32 +198,32 @@ public class TestZKCallback
     AssertJUnit.assertTrue(testListener.currentStateChangeReceived);
     testListener.Reset();
 
-    dummyRecord.setId("db-1234");
+    dummyRecord = new ZNRecord("db-1234");
     dataAccessor.setClusterProperty(ClusterPropertyType.IDEALSTATES, "db-1234",
         dummyRecord);
     Thread.sleep(100);
     AssertJUnit.assertTrue(testListener.idealStateChangeReceived);
     testListener.Reset();
 
-    dummyRecord.setId("db-12345");
+    dummyRecord = new ZNRecord("db-12345");
     dataAccessor.setClusterProperty(ClusterPropertyType.IDEALSTATES,
         "db-12345", dummyRecord);
     Thread.sleep(100);
     AssertJUnit.assertTrue(testListener.idealStateChangeReceived);
     testListener.Reset();
-
+   
+    dummyRecord = new ZNRecord("localhost:8900");
     List<ZNRecord> recList = new ArrayList<ZNRecord>();
-    dummyRecord.setId("localhost:8900");
     recList.add(dummyRecord);
 
     testListener.Reset();
-    Message message = new Message(MessageType.STATE_TRANSITION);
+    Message message = new Message(MessageType.STATE_TRANSITION,UUID.randomUUID().toString());
     dataAccessor.setInstanceProperty("localhost_8900",
         InstancePropertyType.MESSAGES, message.getId(), message.getRecord());
     Thread.sleep(100);
     AssertJUnit.assertTrue(testListener.messageChangeReceived);
 
-    dummyRecord.setId("localhost_9801");
+    dummyRecord = new ZNRecord("localhost_9801");
     dataAccessor.setClusterProperty(ClusterPropertyType.LIVEINSTANCES,
         "localhost_9801", dummyRecord);
     Thread.sleep(100);

@@ -116,7 +116,6 @@ public class TestFrameworkExample
                              TEST_DB,
                              "MASTER",
                              "SLAVE");
-    destIS.setId(TEST_DB);
     destIS.setSimpleField("ideal_state_mode", IdealStateConfigProperty.CUSTOMIZED.toString());
     destIS.setSimpleField("partitions", Integer.toString(PARTITIONS));
     destIS.setSimpleField("state_model_def_ref", STATE_MODEL);
@@ -190,10 +189,8 @@ public class TestFrameworkExample
 
   private ZNRecord getExternalViewFromIdealState(final ZNRecord idealState)
   {
-    ZNRecord externalView = new ZNRecord();
+    ZNRecord externalView = new ZNRecord("TestDB");
 
-    externalView.setId("TestDB");
-    
     for (Map.Entry<String, Map<String, String>> mapEntry : idealState.getMapFields().entrySet())
     {
       mapEntry.getValue().remove("localhost_12918");

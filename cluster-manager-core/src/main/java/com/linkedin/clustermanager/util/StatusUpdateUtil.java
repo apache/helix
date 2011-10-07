@@ -37,10 +37,11 @@ public class StatusUpdateUtil
  
   /**
    * Creates an empty ZNRecord as the statusUpdate/error record
+   * @param id 
    */
-  public ZNRecord createEmptyStatusUpdateRecord()
+  public ZNRecord createEmptyStatusUpdateRecord(String id)
   {
-    return new ZNRecord();
+    return new ZNRecord(id);
   }
   
   /**
@@ -50,7 +51,7 @@ public class StatusUpdateUtil
    * */
   ZNRecord createMessageLogRecord(Message message)
   {
-    ZNRecord result = new ZNRecord();
+    ZNRecord result = new ZNRecord(getStatusUpdateRecordName(message));
     String mapFieldKey = "MESSAGE " + message.getMsgId();
     result.setMapField(mapFieldKey, new TreeMap<String, String>());
     
@@ -59,7 +60,6 @@ public class StatusUpdateUtil
     {
       result.getMapField(mapFieldKey).put(simpleFieldKey, message.getRecord().getSimpleField(simpleFieldKey));
     }
-    result.setId(getStatusUpdateRecordName(message));
     return result;
   }
   Map<String, String> _recordedMessages = new ConcurrentHashMap<String, String>();
@@ -79,7 +79,7 @@ public class StatusUpdateUtil
   public ZNRecord createMessageStatusUpdateRecord(Message message, Level level,
       Class classInfo, String additionalInfo)
   {
-    ZNRecord result = createEmptyStatusUpdateRecord();
+    ZNRecord result = createEmptyStatusUpdateRecord(getStatusUpdateRecordName(message));
     Map<String, String> contentMap = new TreeMap<String, String>();
     
     contentMap.put("Message state", message.getMsgState());
@@ -95,7 +95,6 @@ public class StatusUpdateUtil
     
     result.setMapField(id, contentMap);
     
-    result.setId(getStatusUpdateRecordName(message));
     return result;
   }
   

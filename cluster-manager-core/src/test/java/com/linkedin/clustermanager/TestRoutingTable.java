@@ -50,8 +50,7 @@ public class TestRoutingTable
                 List<ZNRecord> configs = new ArrayList<ZNRecord>();
                 for (String instanceName : array)
                 {
-                  ZNRecord config = new ZNRecord();
-                  config.setId(instanceName);
+                  ZNRecord config = new ZNRecord(instanceName);
                   String[] splits = instanceName.split("_");
                   config.setSimpleField(
                       CMConstants.ZNAttribute.HOST.toString(), splits[0]);
@@ -88,10 +87,9 @@ public class TestRoutingTable
     List<InstanceConfig> instances;
     RoutingTableProvider routingTable = new RoutingTableProvider();
     List<ZNRecord> externalViewList = new ArrayList<ZNRecord>();
-    ZNRecord record = new ZNRecord();
+    ZNRecord record = new ZNRecord("TESTDB");
     externalViewList.add(record);
     // one master
-    record.setId("TESTDB");
     add(record, "TESTDB_0", "localhost_8900", "MASTER");
     routingTable.onExternalViewChange(externalViewList, changeContext);
 
@@ -127,10 +125,9 @@ public class TestRoutingTable
     RoutingTableProvider routingTable = new RoutingTableProvider();
 
     List<ZNRecord> externalViewList = new ArrayList<ZNRecord>();
-    ZNRecord record = new ZNRecord();
+    ZNRecord record = new ZNRecord("TESTDB");
     externalViewList.add(record);
     // one master
-    record.setId("TESTDB");
     add(record, "TESTDB_0", "localhost_8900", "MASTER");
     routingTable.onExternalViewChange(externalViewList, changeContext);
     instances = routingTable.getInstances("TESTDB", "TESTDB_0", "MASTER");
@@ -152,10 +149,9 @@ public class TestRoutingTable
     InstanceConfig instancesArray[];
     RoutingTableProvider routingTable = new RoutingTableProvider();
     List<ZNRecord> externalViewList = new ArrayList<ZNRecord>();
-    ZNRecord record = new ZNRecord();
+    ZNRecord record = new ZNRecord("TESTDB");
     externalViewList.add(record);
     // one master
-    record.setId("TESTDB");
     add(record, "TESTDB_0", "localhost_8900", "MASTER");
     add(record, "TESTDB_1", "localhost_8900", "MASTER");
     add(record, "TESTDB_2", "localhost_8900", "MASTER");
@@ -193,9 +189,8 @@ public class TestRoutingTable
   {
     final RoutingTableProvider routingTable = new RoutingTableProvider();
     List<ZNRecord> externalViewList = new ArrayList<ZNRecord>();
-    ZNRecord record = new ZNRecord();
+    ZNRecord record = new ZNRecord("TESTDB");
     externalViewList.add(record);
-    record.setId("TESTDB");
     for (int i = 0; i < 1000; i++)
     {
       add(record, "TESTDB_" + i, "localhost_8900", "MASTER");

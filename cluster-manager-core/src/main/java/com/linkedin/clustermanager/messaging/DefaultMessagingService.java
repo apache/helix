@@ -153,7 +153,6 @@ public class DefaultMessagingService implements ClusterMessagingService
           newMessage.setStateUnitGroup(map.get("resourceGroup"));
           newMessage.setStateUnitKey(map.get("resourceKey"));
           newMessage.setMsgId(UUID.randomUUID().toString());
-          newMessage.setId(newMessage.getMsgId());
           if (recipientCriteria.isSessionSpecific())
           {
             newMessage.setTgtName(sessionIdMap.get(map.get("instanceName")));
@@ -198,7 +197,7 @@ public class DefaultMessagingService implements ClusterMessagingService
   {
     List<Message> messages = new ArrayList<Message>();
     Message newMessage = new Message(message.getRecord());
-    newMessage.setId(message.getId());
+    newMessage.setMsgId(message.getId());
     newMessage.setSrcName(_manager.getInstanceName());
     newMessage.setTgtName("Controller");
     messages.add(newMessage);

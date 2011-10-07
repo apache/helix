@@ -15,14 +15,22 @@ public class IdealState
   private static final Logger logger = Logger
     .getLogger(IdealState.class.getName());
   private final ZNRecord _record;
+  private final String _resourceGroup;
 
-  public IdealState()
+  public String getResourceGroup()
   {
-    _record = new ZNRecord();
+    return _resourceGroup;
+  }
+
+  public IdealState(String resourceGroup)
+  {
+    _resourceGroup = resourceGroup;
+    _record = new ZNRecord(resourceGroup);
   }
 
   public IdealState(ZNRecord record)
   {
+    _resourceGroup = record.getId();
     this._record = record;
 
   }
@@ -45,7 +53,6 @@ public class IdealState
     }
     
   }
-  
   public void set(String key, String instanceName, String state)
   {
     Map<String, String> mapField = _record.getMapField(key);

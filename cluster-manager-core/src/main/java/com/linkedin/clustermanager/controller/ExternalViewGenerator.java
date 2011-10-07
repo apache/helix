@@ -91,8 +91,7 @@ public class ExternalViewGenerator
     {
       for (ZNRecord idealState : idealStates)
       {
-        ZNRecord defaultDBExternalView = new ZNRecord();
-        defaultDBExternalView.setId(idealState.getId());
+        ZNRecord defaultDBExternalView = new ZNRecord(idealState.getId());
         resultRoutingTable.put(idealState.getId(), defaultDBExternalView);
       }
     } else
@@ -115,8 +114,7 @@ public class ExternalViewGenerator
           ZNRecord partitionStatus = resultRoutingTable.get(dbName);
           if (partitionStatus == null)
           {
-            partitionStatus = new ZNRecord();
-            partitionStatus.setId(dbName);
+            partitionStatus = new ZNRecord(dbName);
             resultRoutingTable.put(dbName, partitionStatus);
           }
           String currentStateKey = CMConstants.ZNAttribute.CURRENT_STATE

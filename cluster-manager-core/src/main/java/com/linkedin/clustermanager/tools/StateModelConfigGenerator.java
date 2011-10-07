@@ -28,8 +28,7 @@ public class StateModelConfigGenerator
 
   public ZNRecord generateConfigForStorageSchemata()
   {
-    ZNRecord record = new ZNRecord();
-    record.setId("STORAGE_DEFAULT_SM_SCHEMATA");
+    ZNRecord record = new ZNRecord("STORAGE_DEFAULT_SM_SCHEMATA");
     record.setSimpleField("INITIAL_STATE", "OFFLINE");
     List<String> statePriorityList = new ArrayList<String>();
     statePriorityList.add("MASTER");
@@ -91,8 +90,7 @@ public class StateModelConfigGenerator
 
   public ZNRecord generateConfigForMasterSlave()
   {
-    ZNRecord record = new ZNRecord();
-    record.setId("MasterSlave");
+    ZNRecord record = new ZNRecord("MasterSlave");
     record.setSimpleField("INITIAL_STATE", "OFFLINE");
     List<String> statePriorityList = new ArrayList<String>();
     statePriorityList.add("MASTER");
@@ -176,8 +174,7 @@ public class StateModelConfigGenerator
   
   public ZNRecord generateConfigForLeaderStandby()
   {
-    ZNRecord record = new ZNRecord();
-    record.setId("LeaderStandby");
+    ZNRecord record = new ZNRecord("LeaderStandby");
     record.setSimpleField("INITIAL_STATE", "OFFLINE");
     List<String> statePriorityList = new ArrayList<String>();
     statePriorityList.add("LEADER");
@@ -258,8 +255,7 @@ public class StateModelConfigGenerator
 
   public ZNRecord generateConfigForOnlineOffline()
   {
-    ZNRecord record = new ZNRecord();
-    record.setId("OnlineOffline");
+    ZNRecord record = new ZNRecord("OnlineOffline");
     record.setSimpleField("INITIAL_STATE", "OFFLINE");
     List<String> statePriorityList = new ArrayList<String>();
     statePriorityList.add("ONLINE");

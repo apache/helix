@@ -81,8 +81,7 @@ public class IdealStateCalculatorByRush
       List<Integer> instanceClusterWeights, int partitions, int replicas,
       String dbName) throws Exception
   {
-    ZNRecord result = new ZNRecord();
-    result.setId(dbName);
+    ZNRecord result = new ZNRecord(dbName);
 
     int numberOfClusters = instanceClusters.size();
     List<List<String>> nodesInClusters = instanceClusters;

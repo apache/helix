@@ -28,8 +28,7 @@ public class MessagePoster
 
     ZkClient client = new ZkClient(serverstring);
     client.setZkSerializer(new ZNRecordSerializer());
-    Message message = new Message(MessageType.STATE_TRANSITION);
-    message.setId(msgId);
+    Message message = new Message(MessageType.STATE_TRANSITION,msgId);
     message.setMsgId(msgId);
     message.setSrcName(msgSrc);
     message.setTgtName(instanceName);

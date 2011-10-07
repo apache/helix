@@ -54,8 +54,7 @@ public class IdealStateCalculatorByShuffling
 
     Collections.sort(instanceNames);
 
-    ZNRecord result = new ZNRecord();
-    result.setId(dbName);
+    ZNRecord result = new ZNRecord(dbName);
 
     List<Integer> partitionList = new ArrayList<Integer>(partitions);
     for (int i = 0; i < partitions; i++)

@@ -130,9 +130,8 @@ public class MessageGenerationPhase extends AbstractBaseStage
       String resourceKeyName, String instanceName, String currentState,
       String nextState, String sessionId, String stateModelDefName)
   {
-    Message message = new Message(MessageType.STATE_TRANSITION);
     String uuid = UUID.randomUUID().toString();
-    message.setId(uuid);
+    Message message = new Message(MessageType.STATE_TRANSITION,uuid);
     message.setMsgId(uuid);
     String hostName = "UNKNOWN";
     try

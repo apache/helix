@@ -43,9 +43,7 @@ public class MockController
       throws InterruptedException, JsonGenerationException,
       JsonMappingException, IOException
   {
-    Message message = new Message(MessageType.STATE_TRANSITION);
-
-    message.setId(msgId);
+    Message message = new Message(MessageType.STATE_TRANSITION,msgId);
     message.setMsgId(msgId);
     message.setSrcName(srcName);
     message.setTgtName(instanceName);
@@ -88,8 +86,7 @@ public class MockController
     assert (instanceNames.size() > replicas);
     Collections.sort(instanceNames);
 
-    ZNRecord result = new ZNRecord();
-    result.setId(dbName);
+    ZNRecord result = new ZNRecord(dbName);
 
     Map<String, Object> externalView = new TreeMap<String, Object>();
 

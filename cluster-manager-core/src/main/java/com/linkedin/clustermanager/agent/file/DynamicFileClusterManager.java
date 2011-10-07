@@ -241,9 +241,8 @@ public class DynamicFileClusterManager implements ClusterManager
 
   private void addLiveInstance()
   {
-    ZNRecord metaData = new ZNRecord();
     // set it from the session
-    metaData.setId(_instanceName);
+    ZNRecord metaData = new ZNRecord(_instanceName);
     metaData.setSimpleField(CMConstants.ZNAttribute.SESSION_ID.toString(),
         _sessionId);
     _fileDataAccessor.setClusterProperty(ClusterPropertyType.LIVEINSTANCES,

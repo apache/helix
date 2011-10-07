@@ -139,8 +139,7 @@ public class FileClusterManagementTool implements ClusterManagementService
     }
     **/
  
-    ZNRecord idealState = new ZNRecord();
-    idealState.setId(resourceGroup);
+    ZNRecord idealState = new ZNRecord(resourceGroup);
     idealState.setSimpleField("partitions", String.valueOf(numResources));
     idealState.setSimpleField("state_model_def_ref", stateModelRef);
     idealState.setSimpleField("ideal_state_mode", IdealStateConfigProperty.AUTO.toString());

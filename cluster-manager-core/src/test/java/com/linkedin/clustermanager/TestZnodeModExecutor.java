@@ -229,7 +229,7 @@ public class TestZnodeModExecutor
   
   private ZNRecord getExampleZNRecord()
   {
-    ZNRecord record = new ZNRecord();
+    ZNRecord record = new ZNRecord("example");
     record.setSimpleField("ideal_state_mode", IdealStateConfigProperty.CUSTOMIZED.toString());
     Map<String, String> map = new HashMap<String, String>();
     map.put("localhost_12918", "MASTER");

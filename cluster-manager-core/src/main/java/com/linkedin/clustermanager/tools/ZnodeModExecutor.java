@@ -549,7 +549,7 @@ public class ZnodeModExecutor
     }
     else
     {
-      if (!compareMapValue(value.simpleFields, expect.getSimpleFields()))
+      if (!compareMapValue(value.getSimpleFields(), expect.getSimpleFields()))
       {
         return false;
       }
@@ -730,7 +730,7 @@ public class ZnodeModExecutor
     {
       if (record == null)
       {
-        record = new ZNRecord();
+        record = new ZNRecord("command");
       }
       ZnodeModValueType valueType = getValueType(command.getPropertyType(), command.getKey());
       switch(valueType)

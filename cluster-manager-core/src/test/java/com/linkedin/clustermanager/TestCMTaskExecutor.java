@@ -23,8 +23,9 @@ public class TestCMTaskExecutor
   public void testInvocation() throws Exception
   {
     System.out.println("TestCMTaskHandler.testInvocation()");
-    Message message = new Message(MessageType.STATE_TRANSITION);
     String msgId = "TestMessageId";
+    Message message = new Message(MessageType.STATE_TRANSITION,msgId);
+   
     message.setMsgId(msgId);
     message.setSrcName("cm-instance-0");
     message.setTgtSessionId("1234");

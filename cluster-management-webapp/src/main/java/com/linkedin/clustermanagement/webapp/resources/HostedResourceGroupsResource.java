@@ -82,8 +82,7 @@ public class HostedResourceGroupsResource extends Resource
     ClusterSetup setupTool = new ClusterSetup(zkServerAddress);
     List<String> hostedEntities = setupTool.getClusterManagementTool().getResourceGroupsInCluster(clusterName);
     
-    ZNRecord hostedEntitiesRecord = new ZNRecord();
-    hostedEntitiesRecord.setId("ResourceGroups");
+    ZNRecord hostedEntitiesRecord = new ZNRecord("ResourceGroups");
     hostedEntitiesRecord.setListField("ResourceGroups", hostedEntities);
     
     StringRepresentation representation = new StringRepresentation(ClusterRepresentationUtil.ZNRecordToJson(hostedEntitiesRecord), MediaType.APPLICATION_JSON);

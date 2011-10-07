@@ -226,11 +226,6 @@ public class CMTaskExecutor implements MessageListener
     for (ZNRecord record : messages)
     {
       Message message = new Message(record);
-      if (message.getId() == null)
-      {
-        message.setId(message.getMsgId());
-      }
-      
       String sessionId = manager.getSessionId();
       String tgtSessionId = ((Message) message).getTgtSessionId();
       if (sessionId.equals(tgtSessionId) || tgtSessionId.equals("*"))

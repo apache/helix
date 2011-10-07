@@ -87,9 +87,8 @@ public class FileBasedClusterManager implements ClusterManager
                                              String currentState,
                                              String nextState)
   {
-    Message message = new Message(MessageType.STATE_TRANSITION);
     String uuid = UUID.randomUUID().toString();
-    message.setId(uuid);
+    Message message = new Message(MessageType.STATE_TRANSITION,uuid);
     message.setMsgId(uuid);
     String hostName = "localhost"; // "UNKNOWN";
 
@@ -216,10 +215,9 @@ public class FileBasedClusterManager implements ClusterManager
       int lastPos = nodeInfo.lastIndexOf(":");
       String host = nodeInfo.substring(0, lastPos);
       String port = nodeInfo.substring(lastPos + 1);
-      ZNRecord nodeConfig = new ZNRecord();
-
       String nodeId = host + "_" + port;
-      nodeConfig.setId(nodeId);
+      ZNRecord nodeConfig = new ZNRecord(nodeId);
+
       nodeConfig.setSimpleField(ClusterDataAccessor.InstanceConfigProperty.ENABLED.toString(),
                                 Boolean.toString(true));
       nodeConfig.setSimpleField(ClusterDataAccessor.InstanceConfigProperty.HOST.toString(), host);
@@ -447,9 +445,8 @@ public class FileBasedClusterManager implements ClusterManager
     {
       String stateUnitKey = entry.getKey();
       String curState = entry.getValue().getCurrentState();
-      ZNRecord record = new ZNRecord();
-      record.setId(stateUnitKey);
-      record.simpleFields.put(stateUnitKey, curState);
+      ZNRecord record = new ZNRecord(stateUnitKey);
+      record.setSimpleField(stateUnitKey, curState);
       curStateList.add(record);
     }
 
@@ -507,8 +504,8 @@ public class FileBasedClusterManager implements ClusterManager
 
     for (ZNRecord record : curStateList)
     {
-      String stateUnitKey = record.id;
-      String curState = record.simpleFields.get(stateUnitKey);
+      String stateUnitKey = record.getId();
+      String curState = record.getSimpleField(stateUnitKey);
 
       // if (!curState.equalsIgnoreCase("offline"))
       // nonOfflineNr++;
@@ -542,9 +539,9 @@ public class FileBasedClusterManager implements ClusterManager
 
   private void addLiveInstance()
   {
-    ZNRecord metaData = new ZNRecord();
     // set it from the session
-    metaData.setId(_instanceName);
+
+    ZNRecord metaData = new ZNRecord(_instanceName);
     metaData.setSimpleField(CMConstants.ZNAttribute.SESSION_ID.toString(), _sessionId);
     _fileDataAccessor.setClusterProperty(ClusterPropertyType.LIVEINSTANCES,
                                          _instanceName,

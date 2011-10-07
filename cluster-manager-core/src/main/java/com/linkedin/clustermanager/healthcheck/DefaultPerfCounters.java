@@ -25,7 +25,7 @@ public class DefaultPerfCounters extends ZNRecord
       double averageSystemLoad
     )
   {
-    setId("DefaultPerfCounters");
+    super("DefaultPerfCounters");
     setSimpleField("instanceName", instanceName);
     setSimpleField("createTime", new Date().toString());
     

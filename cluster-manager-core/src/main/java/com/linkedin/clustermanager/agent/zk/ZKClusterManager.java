@@ -353,9 +353,7 @@ public class ZKClusterManager implements ClusterManager
 
   private void addLiveInstance()
   {
-    ZNRecord metaData = new ZNRecord();
-    // set it from the session
-    metaData.setId(_instanceName);
+    ZNRecord metaData = new ZNRecord(_instanceName);
     metaData.setSimpleField(CMConstants.ZNAttribute.SESSION_ID.toString(), _sessionId);
 
     logger.info("Add live instance: InstanceName: " + _instanceName + " Session id:" + _sessionId);
@@ -619,7 +617,7 @@ public class ZKClusterManager implements ClusterManager
         {
           logger.info("Carrying over old session:" + previousSessionId + " resource "
               + previousCurrentState.getId() + " to new session:" + _sessionId);
-          for (String resourceKey : previousCurrentState.mapFields.keySet())
+          for (String resourceKey : previousCurrentState.getMapFields().keySet())
           {
             previousCurrentState.getMapField(resourceKey).put(ZNAttribute.CURRENT_STATE.toString(),
                                                               "OFFLINE");

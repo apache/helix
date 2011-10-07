@@ -141,9 +141,8 @@ public class FileClusterManagerHandler
   private void addNodeToCluster(String clusterName, String host, int port)
   {
     // TODO use ClusterSetup
-    ZNRecord nodeConfig = new ZNRecord();
     String nodeId = host + "_" + port;
-    nodeConfig.setId(nodeId);
+    ZNRecord nodeConfig = new ZNRecord(nodeId);
     nodeConfig.setSimpleField(InstanceConfigProperty.HOST.toString(), host);
     nodeConfig.setSimpleField(InstanceConfigProperty.PORT.toString(), Integer.toString(port));
     nodeConfig.setSimpleField(InstanceConfigProperty.ENABLED.toString(), Boolean.toString(true));

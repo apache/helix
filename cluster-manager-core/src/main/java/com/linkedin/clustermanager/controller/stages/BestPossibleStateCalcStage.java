@@ -80,9 +80,18 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
       ResourceGroup resourceGroup = resourceGroupMap.get(resourceGroupName);
       // Ideal state may be gone. In that case we need to get the state model name 
       // from the current state
+      IdealState idealState;
       boolean idealStateExists = idealStatesMap.containsKey(resourceGroupName);
-      ZNRecord idealStateRec = idealStatesMap.get(resourceGroupName);
-      IdealState idealState = new IdealState(idealStateRec);
+      if(!idealStateExists)
+      {
+        logger.info(" resourceGroup:" + resourceGroupName + " does not exist anymore");
+        idealState = new IdealState(new ZNRecord(resourceGroupName));
+      }
+      else
+      {
+        // if ideal state is deleted, use a empty ZnRecord 
+        idealState = new IdealState(idealStatesMap.get(resourceGroupName));
+      }
       
       String stateModelDefName = idealStateExists ? 
           idealState.getStateModelDefRef() : currentStateOutput.getResourceGroupStateModelDef(resourceGroupName);

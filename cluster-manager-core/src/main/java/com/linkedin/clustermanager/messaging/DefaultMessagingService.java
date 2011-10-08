@@ -22,6 +22,7 @@ import com.linkedin.clustermanager.messaging.handling.AsyncCallbackService;
 import com.linkedin.clustermanager.messaging.handling.CMTaskExecutor;
 import com.linkedin.clustermanager.messaging.handling.MessageHandlerFactory;
 import com.linkedin.clustermanager.model.ExternalView;
+import com.linkedin.clustermanager.model.InstanceConfig;
 import com.linkedin.clustermanager.model.LiveInstance;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.Message.MessageType;
@@ -45,8 +46,8 @@ public class DefaultMessagingService implements ClusterMessagingService
     _manager = manager;
     _taskExecutor = new CMTaskExecutor();
     _asyncCallbackService = new AsyncCallbackService();
-    _taskExecutor.registerMessageHandlerFactory(MessageType.TASK_REPLY.toString(),
-        _asyncCallbackService);
+    _taskExecutor.registerMessageHandlerFactory(
+        MessageType.TASK_REPLY.toString(), _asyncCallbackService);
 
   }
 
@@ -155,7 +156,7 @@ public class DefaultMessagingService implements ClusterMessagingService
           newMessage.setStateUnitKey(map.get("resourceKey"));
           if (recipientCriteria.isSessionSpecific())
           {
-            newMessage.setTgtName(sessionIdMap.get(map.get("instanceName")));
+            newMessage.setTgtSessionId(sessionIdMap.get(map.get("instanceName")));
           }
           messages.add(newMessage);
         }
@@ -182,6 +183,7 @@ public class DefaultMessagingService implements ClusterMessagingService
         for (String name : stateMap.keySet())
         {
           Map<String, String> row = new HashMap<String, String>();
+          row.put("source", "externalView");
           row.put("instanceName", name);
           row.put("resourceGroup", view.getResourceGroup());
           row.put("state", stateMap.get(name));
@@ -190,6 +192,29 @@ public class DefaultMessagingService implements ClusterMessagingService
         }
       }
     }
+    /*
+    List<ZNRecord> instances = _manager.getDataAccessor()
+        .getClusterPropertyList(ClusterPropertyType.CONFIGS);
+    for (ZNRecord record : instances)
+    {
+      InstanceConfig config = new InstanceConfig(record);
+
+      Map<String, String> row = new HashMap<String, String>();
+      row.put("source", "configs");
+      row.put("instanceName", config.getInstanceName());
+      rows.add(row);
+    }
+    List<ZNRecord> liveInstances = _manager.getDataAccessor()
+        .getClusterPropertyList(ClusterPropertyType.LIVEINSTANCES);
+    for (ZNRecord record : liveInstances)
+    {
+      LiveInstance liveInstance = new LiveInstance(record);
+      Map<String, String> row = new HashMap<String, String>();
+      row.put("source", "liveInstances");
+      row.put("instanceName", liveInstance.getInstanceName());
+      rows.add(row);
+    }
+*/
     return rows;
   }
 
@@ -218,7 +243,8 @@ public class DefaultMessagingService implements ClusterMessagingService
     // before the factory is added.
     try
     {
-      Message noOPMsg = new Message(MessageType.NO_OP, UUID.randomUUID().toString());
+      Message noOPMsg = new Message(MessageType.NO_OP, UUID.randomUUID()
+          .toString());
       if (_manager.getInstanceType() == InstanceType.CONTROLLER)
       {
         noOPMsg.setTgtName("Controller");

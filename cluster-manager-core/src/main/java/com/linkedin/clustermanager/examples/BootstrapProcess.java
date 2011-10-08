@@ -3,6 +3,7 @@ package com.linkedin.clustermanager.examples;
 import java.io.File;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Date;
 import java.util.Map;
 import java.util.UUID;
 
@@ -123,7 +124,8 @@ public class BootstrapProcess
     public MessageHandler createHandler(Message message,
         NotificationContext context)
     {
-      return null;
+      
+      return new CustomMessageHandler();
     }
 
     @Override
@@ -163,6 +165,10 @@ public class BootstrapProcess
                   + "/getFile?path=/data/bootstrap/"
                   + message.getResourceGroupName() + "/"
                   + message.getResourceKey() + ".tar");
+          
+          resultMap.put(
+              "BOOTSTRAP_TIME",
+              ""+new Date().getTime());
         }
       }
     }
@@ -355,13 +361,12 @@ class BootstrapReplyHandler extends AsyncCallback
   @Override
   public void onReplyMessage(Message message)
   {
-    String time = message.getRecord().getSimpleField("BOOTSTRAP_TIME");
+    String time = message.getResultMap().get("BOOTSTRAP_TIME");
     if (bootstrapTime == null || time.compareTo(bootstrapTime) > -1)
     {
-      bootstrapTime = message.getRecord().getSimpleField("BOOTSTRAP_TIME");
-      bootstrapUrl = message.getRecord().getSimpleField("BOOTSTRAP_URL");
+      bootstrapTime = message.getResultMap().get("BOOTSTRAP_TIME");
+      bootstrapUrl = message.getResultMap().get("BOOTSTRAP_URL");
     }
-
   }
 
 }

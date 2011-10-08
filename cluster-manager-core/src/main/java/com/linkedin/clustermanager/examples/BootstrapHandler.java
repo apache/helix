@@ -46,6 +46,7 @@ public class BootstrapHandler extends StateModelFactory<StateModel>
           MessageType.USER_DEFINE_MSG, UUID.randomUUID().toString());
       requestBackupUriRequest
           .setMsgSubType(BootstrapProcess.REQUEST_BOOTSTRAP_URL);
+      requestBackupUriRequest.setMsgState("new");
       Criteria recipientCriteria = new Criteria();
       recipientCriteria.setInstanceName("*");
       recipientCriteria.setRecipientInstanceType(InstanceType.PARTICIPANT);

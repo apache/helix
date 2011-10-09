@@ -100,8 +100,8 @@ public class MessageGenerationPhase extends AbstractBaseStage
               {
                 if (logger.isDebugEnabled())
                 {
-                  logger.debug("Message already exists to transition from "
-                      + currentState + " to " + nextState);
+                  logger.debug("Message already exists at" + instanceName + " to transition"+ resource.getResourceKeyName() +" from "
+                      + currentState + " to " + nextState );
                 }
               } else
               {

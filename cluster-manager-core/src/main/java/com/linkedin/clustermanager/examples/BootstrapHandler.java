@@ -34,7 +34,11 @@ public class BootstrapHandler extends StateModelFactory<StateModel>
       _stateUnitKey = stateUnitKey;
 
     }
-
+    @Transition(from = "MASTER", to = "SLAVE")
+    public void masterToSlave(Message message, NotificationContext context)
+    {
+      
+    }
     @Transition(from = "OFFLINE", to = "SLAVE")
     public void offlineToSlave(Message message, NotificationContext context)
     {
@@ -64,6 +68,8 @@ public class BootstrapHandler extends StateModelFactory<StateModel>
         // could not find any other node hosting the partition
       } else if (responseHandler.getBootstrapUrl() != null)
       {
+        System.out.println("Got bootstrap url:"+ responseHandler.getBootstrapUrl() );
+        System.out.println("Got backup time:"+ responseHandler.getBootstrapTime() );
         // Got the url fetch it
       } else
       {
@@ -72,7 +78,12 @@ public class BootstrapHandler extends StateModelFactory<StateModel>
         // Request some node to start backup process
       }
     }
-
+    @Transition(from = "SLAVE", to = "OFFLINE")
+    public void slaveToOffline(Message message, NotificationContext context)
+    {
+      System.out
+          .println("BootstrapProcess.BootstrapStateModel.slaveToOffline()");
+    }
     @Transition(from = "SLAVE", to = "MASTER")
     public void slaveToMaster(Message message, NotificationContext context)
     {

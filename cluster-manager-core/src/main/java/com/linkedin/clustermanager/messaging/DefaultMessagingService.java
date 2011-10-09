@@ -42,8 +42,8 @@ public class DefaultMessagingService implements ClusterMessagingService
 
   public DefaultMessagingService(ClusterManager manager)
   {
-    _evaluator = new CriteriaEvaluator();
     _manager = manager;
+    _evaluator = new CriteriaEvaluator();
     _taskExecutor = new CMTaskExecutor();
     _asyncCallbackService = new AsyncCallbackService();
     _taskExecutor.registerMessageHandlerFactory(
@@ -150,13 +150,21 @@ public class DefaultMessagingService implements ClusterMessagingService
         {
           String id = UUID.randomUUID().toString();
           Message newMessage = new Message(message.getRecord(), id);
-          newMessage.setSrcName(_manager.getInstanceName());
-          newMessage.setTgtName(map.get("instanceName"));
+          String srcInstanceName = _manager.getInstanceName();
+          String tgtInstanceName = map.get("instanceName");
+          // Don't send message to self
+          if (recipientCriteria.isSelfExcluded()
+              && srcInstanceName.equalsIgnoreCase(tgtInstanceName))
+          {
+            continue;
+          }
+          newMessage.setSrcName(srcInstanceName);
+          newMessage.setTgtName(tgtInstanceName);
           newMessage.setStateUnitGroup(map.get("resourceGroup"));
           newMessage.setStateUnitKey(map.get("resourceKey"));
           if (recipientCriteria.isSessionSpecific())
           {
-            newMessage.setTgtSessionId(sessionIdMap.get(map.get("instanceName")));
+            newMessage.setTgtSessionId(sessionIdMap.get(tgtInstanceName));
           }
           messages.add(newMessage);
         }
@@ -188,33 +196,32 @@ public class DefaultMessagingService implements ClusterMessagingService
           row.put("resourceGroup", view.getResourceGroup());
           row.put("state", stateMap.get(name));
           row.put("resourceKey", resourceKeyName);
+          if (name.equalsIgnoreCase(_manager.getInstanceName()))
+          {
+            row.put("isSender", "true");
+          } else
+          {
+            row.put("isSender", "false");
+          }
           rows.add(row);
         }
       }
     }
     /*
-    List<ZNRecord> instances = _manager.getDataAccessor()
-        .getClusterPropertyList(ClusterPropertyType.CONFIGS);
-    for (ZNRecord record : instances)
-    {
-      InstanceConfig config = new InstanceConfig(record);
-
-      Map<String, String> row = new HashMap<String, String>();
-      row.put("source", "configs");
-      row.put("instanceName", config.getInstanceName());
-      rows.add(row);
-    }
-    List<ZNRecord> liveInstances = _manager.getDataAccessor()
-        .getClusterPropertyList(ClusterPropertyType.LIVEINSTANCES);
-    for (ZNRecord record : liveInstances)
-    {
-      LiveInstance liveInstance = new LiveInstance(record);
-      Map<String, String> row = new HashMap<String, String>();
-      row.put("source", "liveInstances");
-      row.put("instanceName", liveInstance.getInstanceName());
-      rows.add(row);
-    }
-*/
+     * List<ZNRecord> instances = _manager.getDataAccessor()
+     * .getClusterPropertyList(ClusterPropertyType.CONFIGS); for (ZNRecord
+     * record : instances) { InstanceConfig config = new InstanceConfig(record);
+     * 
+     * Map<String, String> row = new HashMap<String, String>();
+     * row.put("source", "configs"); row.put("instanceName",
+     * config.getInstanceName()); rows.add(row); } List<ZNRecord> liveInstances
+     * = _manager.getDataAccessor()
+     * .getClusterPropertyList(ClusterPropertyType.LIVEINSTANCES); for (ZNRecord
+     * record : liveInstances) { LiveInstance liveInstance = new
+     * LiveInstance(record); Map<String, String> row = new HashMap<String,
+     * String>(); row.put("source", "liveInstances"); row.put("instanceName",
+     * liveInstance.getInstanceName()); rows.add(row); }
+     */
     return rows;
   }
 

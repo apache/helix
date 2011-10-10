@@ -22,7 +22,6 @@ import com.linkedin.clustermanager.messaging.handling.AsyncCallbackService;
 import com.linkedin.clustermanager.messaging.handling.CMTaskExecutor;
 import com.linkedin.clustermanager.messaging.handling.MessageHandlerFactory;
 import com.linkedin.clustermanager.model.ExternalView;
-import com.linkedin.clustermanager.model.InstanceConfig;
 import com.linkedin.clustermanager.model.LiveInstance;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.Message.MessageType;
@@ -48,7 +47,6 @@ public class DefaultMessagingService implements ClusterMessagingService
     _asyncCallbackService = new AsyncCallbackService();
     _taskExecutor.registerMessageHandlerFactory(
         MessageType.TASK_REPLY.toString(), _asyncCallbackService);
-
   }
 
   @Override
@@ -253,29 +251,32 @@ public class DefaultMessagingService implements ClusterMessagingService
     // we have a chance to process the message that we received with the new
     // added MessageHandlerFactory
     // before the factory is added.
-    try
+    if(_manager.isConnected())
     {
-      Message noOPMsg = new Message(MessageType.NO_OP, UUID.randomUUID()
-          .toString());
-      if (_manager.getInstanceType() == InstanceType.CONTROLLER)
+      try
       {
-        noOPMsg.setTgtName("Controller");
-        _manager.getDataAccessor().setControllerProperty(
-            ControllerPropertyType.MESSAGES, noOPMsg.getRecord(),
-            CreateMode.PERSISTENT);
-      }
-      if (_manager.getInstanceType() == InstanceType.PARTICIPANT)
+        Message noOPMsg = new Message(MessageType.NO_OP, UUID.randomUUID()
+            .toString());
+        if (_manager.getInstanceType() == InstanceType.CONTROLLER)
+        {
+          noOPMsg.setTgtName("Controller");
+          _manager.getDataAccessor().setControllerProperty(
+              ControllerPropertyType.MESSAGES, noOPMsg.getRecord(),
+              CreateMode.PERSISTENT);
+        }
+        if (_manager.getInstanceType() == InstanceType.PARTICIPANT)
+        {
+          noOPMsg.setTgtName(_manager.getInstanceName());
+          _manager.getDataAccessor()
+              .setInstanceProperty(noOPMsg.getTgtName(),
+                  InstancePropertyType.MESSAGES, noOPMsg.getId(),
+                  noOPMsg.getRecord());
+        }
+  
+      } catch (Exception e)
       {
-        noOPMsg.setTgtName(_manager.getInstanceName());
-        _manager.getDataAccessor()
-            .setInstanceProperty(noOPMsg.getTgtName(),
-                InstancePropertyType.MESSAGES, noOPMsg.getId(),
-                noOPMsg.getRecord());
+        _logger.error(e);
       }
-
-    } catch (Exception e)
-    {
-      _logger.error(e);
     }
   }
 

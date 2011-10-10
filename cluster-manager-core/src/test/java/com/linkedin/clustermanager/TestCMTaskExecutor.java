@@ -10,6 +10,7 @@ import org.testng.annotations.*;
 import com.linkedin.clustermanager.Mocks.MockCMTaskExecutor;
 import com.linkedin.clustermanager.Mocks.MockManager;
 import com.linkedin.clustermanager.Mocks.MockStateModel;
+import com.linkedin.clustermanager.messaging.handling.AsyncCallbackService;
 import com.linkedin.clustermanager.messaging.handling.CMTaskExecutor;
 import com.linkedin.clustermanager.messaging.handling.CMStateTransitionHandler;
 import com.linkedin.clustermanager.model.Message;
@@ -24,7 +25,7 @@ public class TestCMTaskExecutor
   {
     System.out.println("TestCMTaskHandler.testInvocation()");
     String msgId = "TestMessageId";
-    Message message = new Message(MessageType.STATE_TRANSITION,msgId);
+    Message message = new Message(MessageType.TASK_REPLY,msgId);
    
     message.setMsgId(msgId);
     message.setSrcName("cm-instance-0");
@@ -35,7 +36,9 @@ public class TestCMTaskExecutor
     MockCMTaskExecutor executor = new MockCMTaskExecutor();
     MockStateModel stateModel = new MockStateModel();
     NotificationContext context;
-
+    executor.registerMessageHandlerFactory(
+        MessageType.TASK_REPLY.toString(), new AsyncCallbackService());
+    
     context = new NotificationContext(new MockManager());
     CMStateTransitionHandler handler = new CMStateTransitionHandler(stateModel);
     executor.scheduleTask(message, handler, context);

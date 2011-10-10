@@ -112,8 +112,8 @@ public class ResourceGroupMonitor implements ResourceGroupMonitorMBean
         }
       }
     }
-    System.out.println(_numOfErrorResourceKeys + " " 
-        + _externalViewIdealStateDiff + " " + _numOfResourceKeysInExternalView);
+    //System.out.println(_numOfErrorResourceKeys + " " 
+    //    + _externalViewIdealStateDiff + " " + _numOfResourceKeysInExternalView);
     _numOfErrorResourceKeys = numOfErrorResourceKeys;
     _externalViewIdealStateDiff = numOfDiff;
     _numOfResourceKeysInExternalView = externalView.getMapFields().size();

@@ -85,7 +85,7 @@ public class DummyProcess
     genericStateMachineHandler = new StateMachineEngine(stateModelFactory);
     
     manager.getMessagingService().registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(), genericStateMachineHandler);
-    
+    manager.connect();
     /*
     if (_file != null)
     {

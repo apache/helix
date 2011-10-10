@@ -60,7 +60,7 @@ public class DistClusterControllerElection implements ControllerChangeListener
 	            String controllerName = manager.getInstanceName();
 	            _leader = ClusterManagerFactory
 	                .getZKBasedManagerForController(clusterName, controllerName, _zkAddr);
-
+	      _leader.connect();
 			  ClusterManagerMain.addListenersToController(_leader, _controller);
 			}
 			else

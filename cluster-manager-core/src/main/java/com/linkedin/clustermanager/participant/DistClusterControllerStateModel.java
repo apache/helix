@@ -49,6 +49,7 @@ public class DistClusterControllerStateModel extends StateModel
  
     ClusterManager manager = ClusterManagerFactory
         .getZKBasedManagerForController(clusterName, controllerName, _zkAddr);
+    manager.connect();
     _controllers.put(controllerName, manager);
     
     DistClusterControllerElection leaderElection = new DistClusterControllerElection(_zkAddr);

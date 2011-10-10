@@ -80,7 +80,7 @@ public class ExampleProcess
         stateModelFactory);
     manager.getMessagingService().registerMessageHandlerFactory(
         MessageType.STATE_TRANSITION.toString(), genericStateMachineHandler);
-
+    manager.connect();
     if (_file != null)
     {
       ClusterStateVerifier.VerifyFileBasedClusterStates(_file, instanceName,

@@ -195,8 +195,6 @@ public class CMStateTransitionHandler implements MessageHandler
           map.put(ZNAttribute.CURRENT_STATE.toString(), toState); 
           _stateModel.updateState(toState);
         }
-        
-        currentStateDelta.setMapField(stateUnitKey, map);  
       } 
       else
       {
@@ -210,6 +208,8 @@ public class CMStateTransitionHandler implements MessageHandler
       map.put(Message.Attributes.STATE_UNIT_GROUP.toString(),
           message.getStateUnitGroup());
       
+      currentStateDelta.setMapField(stateUnitKey, map);  
+        
       if(taskResult.isSucess() && toState.equals("DROPPED"))
       {// for "OnOfflineToDROPPED" message, we need to remove the resource key record from
         // the current state of the instance because the resource key is dropped.

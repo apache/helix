@@ -1,5 +1,6 @@
 package com.linkedin.clustermanager.agent.zk;
 
+import org.I0Itec.zkclient.exception.ZkInterruptedException;
 import org.apache.log4j.Logger;
 
 public class ZKExceptionHandler
@@ -13,8 +14,15 @@ public class ZKExceptionHandler
 
   void handle(Exception e)
   {
-    logger.error(e.getMessage(), e);
-    // e.printStackTrace();
+    if (e instanceof ZkInterruptedException)
+    {
+      logger.warn("zk connection is interrupted, exception" + e);
+    }
+    else
+    {
+      logger.error(e.getMessage(), e);
+      // e.printStackTrace();
+    }
   }
 
   public static ZKExceptionHandler getInstance()

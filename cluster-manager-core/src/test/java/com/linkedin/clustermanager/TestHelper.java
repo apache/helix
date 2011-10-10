@@ -10,7 +10,6 @@ import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.agent.zk.ZkClient;
 import com.linkedin.clustermanager.controller.ClusterManagerMain;
-import com.linkedin.clustermanager.messaging.handling.CMTaskExecutor;
 import com.linkedin.clustermanager.mock.storage.DummyProcess.DummyStateModel;
 import com.linkedin.clustermanager.mock.storage.DummyProcess.DummyStateModelFactory;
 import com.linkedin.clustermanager.model.Message.MessageType;
@@ -136,17 +135,21 @@ public class TestHelper
           } 
           catch (InterruptedException e)
           {
-            // ClusterManagerFactory.disconnectManagers(controllerName);
-            logger.info("controller:" + controllerName + ", " + 
-                        Thread.currentThread().getName() + " interrupted");
-            if (manager != null)
-            {
-              manager.disconnect();
-            }
+            String msg = "controller:" + controllerName + ", " + Thread.currentThread().getName() + " interrupted";
+            logger.info(msg);
+            // System.err.println(msg);
+            
           }
           catch (Exception e)
           {
             e.printStackTrace();
+          }
+          finally
+          {
+            if (manager != null)
+            {
+              manager.disconnect();
+            }
           }
         }
       });
@@ -214,18 +217,22 @@ public class TestHelper
       }
       catch (InterruptedException e)
       {
-        // ClusterManagerFactory.disconnectManagers(instanceName);
-        logger.info("participant:" + _instanceName + ", " + 
-                    Thread.currentThread().getName() + " interrupted");
-        if (_manager != null)
-        {
-          _manager.disconnect();
-        }
+        String msg = "participant:" + _instanceName + ", " + Thread.currentThread().getName() + " interrupted";
+        logger.info(msg);
+        // System.err.println(msg);
+        
       }
       catch (Exception e)
       {
         // TODO Auto-generated catch block
         e.printStackTrace();
+      }
+      finally
+      {
+        if (_manager != null)
+        {
+          _manager.disconnect();
+        }
       }
     }
   }

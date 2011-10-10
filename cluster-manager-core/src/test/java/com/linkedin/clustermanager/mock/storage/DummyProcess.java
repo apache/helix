@@ -17,7 +17,6 @@ import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerFactory;
 import com.linkedin.clustermanager.NotificationContext;
 import com.linkedin.clustermanager.agent.file.FileBasedDataAccessor;
-import com.linkedin.clustermanager.messaging.handling.CMTaskExecutor;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.Message.MessageType;
 import com.linkedin.clustermanager.participant.StateMachineEngine;
@@ -143,8 +142,11 @@ public class DummyProcess
     public void onBecomeSlaveFromOffline(Message message,
         NotificationContext context)
     {
+      String db = message.getStateUnitKey();
+      String instanceName = context.getManager().getInstanceName();
       sleep();
-      System.out.println("DummyStateModel.onBecomeSlaveFromOffline()");
+      System.out.println("DummyStateModel.onBecomeSlaveFromOffline(), instance:" + instanceName 
+                         + ", db:" + db);
     }
 
     public void onBecomeSlaveFromMaster(Message message,

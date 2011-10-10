@@ -78,7 +78,8 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
       if (logger.isDebugEnabled())
       {
         logger.debug(Thread.currentThread().getId() + " START:INVOKE "
-            + changeContext.getPathChanged() + " listener:"
+            // + changeContext.getPathChanged() 
+            + _path + " listener:"
             + _listener.getClass().getCanonicalName());
       }
       if (_changeType == IDEAL_STATE)
@@ -151,7 +152,8 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
       if (logger.isDebugEnabled())
       {
         logger.debug(Thread.currentThread().getId() + " END:INVOKE "
-            + changeContext.getPathChanged() + " listener:"
+            // + changeContext.getPathChanged() 
+            + _path + " listener:"
             + _listener.getClass().getCanonicalName());
       }
     }
@@ -217,7 +219,8 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
       NotificationContext changeContext = new NotificationContext(_manager);
       changeContext.setType(NotificationContext.Type.INIT);
       invoke(changeContext);
-    } catch (Exception e)
+    }
+    catch (Exception e)
     {
       ZKExceptionHandler.getInstance().handle(e);
     }
@@ -235,7 +238,8 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
         changeContext.setType(NotificationContext.Type.CALLBACK);
         invoke(changeContext);
       }
-    } catch (Exception e)
+    } 
+    catch (Exception e)
     {
       ZKExceptionHandler.getInstance().handle(e);
     }
@@ -254,7 +258,8 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
         _zkClient.unsubscribeChildChanges(dataPath, this);
         invoke(changeContext);
       }
-    } catch (Exception e)
+    } 
+    catch (Exception e)
     {
       ZKExceptionHandler.getInstance().handle(e);
     }
@@ -272,7 +277,8 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
         changeContext.setType(NotificationContext.Type.CALLBACK);
         invoke(changeContext);
       }
-    } catch (Exception e)
+    }
+    catch (Exception e)
     {
       ZKExceptionHandler.getInstance().handle(e);
     }
@@ -285,7 +291,8 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
       NotificationContext changeContext = new NotificationContext(_manager);
       changeContext.setType(NotificationContext.Type.FINALIZE);
       invoke(changeContext);
-    } catch (Exception e)
+    } 
+    catch (Exception e)
     {
       ZKExceptionHandler.getInstance().handle(e);
     }

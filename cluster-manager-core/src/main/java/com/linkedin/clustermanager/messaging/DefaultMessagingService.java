@@ -54,12 +54,12 @@ public class DefaultMessagingService implements ClusterMessagingService
   @Override
   public int send(Criteria recipientCriteria, final Message messageTemplate)
   {
-    return send(recipientCriteria, messageTemplate, null);
+    return send(recipientCriteria, messageTemplate, null, -1);
   }
 
   @Override
   public int send(final Criteria recipientCriteria, final Message message,
-      AsyncCallback callbackOnReply)
+      AsyncCallback callbackOnReply, int timeOut)
   {
     Map<InstanceType, List<Message>> generateMessage = generateMessage(
         recipientCriteria, message);
@@ -71,6 +71,11 @@ public class DefaultMessagingService implements ClusterMessagingService
     String correlationId = null;
     if (callbackOnReply != null)
     {
+      if(timeOut < 0)
+      {
+        timeOut = -1;
+      }
+      callbackOnReply.setTimeout(timeOut);
       correlationId = UUID.randomUUID().toString();
       for (List<Message> messages : generateMessage.values())
       {
@@ -281,9 +286,9 @@ public class DefaultMessagingService implements ClusterMessagingService
 
   @Override
   public int sendAndWait(Criteria receipientCriteria, Message message,
-      AsyncCallback asyncCallback)
+      AsyncCallback asyncCallback, int timeOut)
   {
-    int messagesSent = send(receipientCriteria, message, asyncCallback);
+    int messagesSent = send(receipientCriteria, message, asyncCallback, timeOut);
     if (messagesSent > 0)
     {
       while (!asyncCallback.isDone() && !asyncCallback.isTimedOut())

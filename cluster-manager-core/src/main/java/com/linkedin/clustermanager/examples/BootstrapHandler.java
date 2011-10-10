@@ -59,10 +59,10 @@ public class BootstrapHandler extends StateModelFactory<StateModel>
       recipientCriteria.setSessionSpecific(true);
       // wait for 30 seconds
       int timeout = 30000;
-      BootstrapReplyHandler responseHandler = new BootstrapReplyHandler(timeout);
+      BootstrapReplyHandler responseHandler = new BootstrapReplyHandler();
 
       int sentMessageCount = messagingService.sendAndWait(recipientCriteria,
-          requestBackupUriRequest, responseHandler);
+          requestBackupUriRequest, responseHandler, timeout);
       if (sentMessageCount == 0)
       {
         // could not find any other node hosting the partition

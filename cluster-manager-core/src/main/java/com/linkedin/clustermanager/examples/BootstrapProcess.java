@@ -326,17 +326,11 @@ public class BootstrapProcess
   }
 }
 
-
-
-
-
 class BootstrapReplyHandler extends AsyncCallback
 {
 
-  public BootstrapReplyHandler(long timeout)
+  public BootstrapReplyHandler()
   {
-    super(timeout);
-    // TODO Auto-generated constructor stub
   }
 
   private String bootstrapUrl;

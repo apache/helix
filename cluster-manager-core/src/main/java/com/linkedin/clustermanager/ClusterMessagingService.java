@@ -44,7 +44,7 @@ public interface ClusterMessagingService
    * @return
    */
   int send(Criteria receipientCriteria, Message message,
-      AsyncCallback callbackOnReply);
+      AsyncCallback callbackOnReply, int timeOut);
 
   /**
    * This will send the message to all instances matching the criteria<br>
@@ -61,7 +61,7 @@ public interface ClusterMessagingService
    * @return
    */
   int sendAndWait(Criteria receipientCriteria, Message message,
-      AsyncCallback callbackOnReply); 
+      AsyncCallback callbackOnReply, int timeOut); 
 
   /**
    * This will register a message handler factory to create handlers for

@@ -32,6 +32,11 @@ public abstract class AsyncCallback
     _logger.info("Setting time out to " + timeout + " ms");
     _timeout = timeout;
   }
+  
+  public AsyncCallback()
+  {
+    this(-1);
+  }
 
   public final void setTimeout(long timeout)
   {
@@ -95,8 +100,10 @@ public abstract class AsyncCallback
   {
     _messagesSent = generatedMessage;
   }
-  final void startTimer(){
-    if (_timer == null && _timeout>0)
+  
+  final void startTimer()
+  {
+    if (_timer == null && _timeout > 0)
     {
       if (_startTimeStamp == 0)
       {
@@ -106,6 +113,7 @@ public abstract class AsyncCallback
       _timer.schedule(new TimeoutTask(this), _timeout);
     }  
   }
+  
   public abstract void onTimeOut();
 
   public abstract void onReplyMessage(Message message);
@@ -127,8 +135,8 @@ public abstract class AsyncCallback
         synchronized (_callback)
         {
           _callback._timedOut = true;
-          _callback.onTimeOut();
           _callback.notifyAll();
+          _callback.onTimeOut();
         }
       } 
       catch (Exception e)

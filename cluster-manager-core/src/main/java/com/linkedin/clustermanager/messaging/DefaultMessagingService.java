@@ -22,6 +22,7 @@ import com.linkedin.clustermanager.messaging.handling.AsyncCallbackService;
 import com.linkedin.clustermanager.messaging.handling.CMTaskExecutor;
 import com.linkedin.clustermanager.messaging.handling.MessageHandlerFactory;
 import com.linkedin.clustermanager.model.ExternalView;
+import com.linkedin.clustermanager.model.InstanceConfig;
 import com.linkedin.clustermanager.model.LiveInstance;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.Message.MessageType;
@@ -41,12 +42,12 @@ public class DefaultMessagingService implements ClusterMessagingService
 
   public DefaultMessagingService(ClusterManager manager)
   {
-    _evaluator = new CriteriaEvaluator();
     _manager = manager;
+    _evaluator = new CriteriaEvaluator();
     _taskExecutor = new CMTaskExecutor();
     _asyncCallbackService = new AsyncCallbackService();
-    _taskExecutor.registerMessageHandlerFactory(MessageType.TASK_REPLY.toString(),
-        _asyncCallbackService);
+    _taskExecutor.registerMessageHandlerFactory(
+        MessageType.TASK_REPLY.toString(), _asyncCallbackService);
 
   }
 
@@ -149,13 +150,21 @@ public class DefaultMessagingService implements ClusterMessagingService
         {
           String id = UUID.randomUUID().toString();
           Message newMessage = new Message(message.getRecord(), id);
-          newMessage.setSrcName(_manager.getInstanceName());
-          newMessage.setTgtName(map.get("instanceName"));
+          String srcInstanceName = _manager.getInstanceName();
+          String tgtInstanceName = map.get("instanceName");
+          // Don't send message to self
+          if (recipientCriteria.isSelfExcluded()
+              && srcInstanceName.equalsIgnoreCase(tgtInstanceName))
+          {
+            continue;
+          }
+          newMessage.setSrcName(srcInstanceName);
+          newMessage.setTgtName(tgtInstanceName);
           newMessage.setStateUnitGroup(map.get("resourceGroup"));
           newMessage.setStateUnitKey(map.get("resourceKey"));
           if (recipientCriteria.isSessionSpecific())
           {
-            newMessage.setTgtName(sessionIdMap.get(map.get("instanceName")));
+            newMessage.setTgtSessionId(sessionIdMap.get(tgtInstanceName));
           }
           messages.add(newMessage);
         }
@@ -182,14 +191,37 @@ public class DefaultMessagingService implements ClusterMessagingService
         for (String name : stateMap.keySet())
         {
           Map<String, String> row = new HashMap<String, String>();
+          row.put("source", "externalView");
           row.put("instanceName", name);
           row.put("resourceGroup", view.getResourceGroup());
           row.put("state", stateMap.get(name));
           row.put("resourceKey", resourceKeyName);
+          if (name.equalsIgnoreCase(_manager.getInstanceName()))
+          {
+            row.put("isSender", "true");
+          } else
+          {
+            row.put("isSender", "false");
+          }
           rows.add(row);
         }
       }
     }
+    /*
+     * List<ZNRecord> instances = _manager.getDataAccessor()
+     * .getClusterPropertyList(ClusterPropertyType.CONFIGS); for (ZNRecord
+     * record : instances) { InstanceConfig config = new InstanceConfig(record);
+     * 
+     * Map<String, String> row = new HashMap<String, String>();
+     * row.put("source", "configs"); row.put("instanceName",
+     * config.getInstanceName()); rows.add(row); } List<ZNRecord> liveInstances
+     * = _manager.getDataAccessor()
+     * .getClusterPropertyList(ClusterPropertyType.LIVEINSTANCES); for (ZNRecord
+     * record : liveInstances) { LiveInstance liveInstance = new
+     * LiveInstance(record); Map<String, String> row = new HashMap<String,
+     * String>(); row.put("source", "liveInstances"); row.put("instanceName",
+     * liveInstance.getInstanceName()); rows.add(row); }
+     */
     return rows;
   }
 
@@ -218,7 +250,8 @@ public class DefaultMessagingService implements ClusterMessagingService
     // before the factory is added.
     try
     {
-      Message noOPMsg = new Message(MessageType.NO_OP, UUID.randomUUID().toString());
+      Message noOPMsg = new Message(MessageType.NO_OP, UUID.randomUUID()
+          .toString());
       if (_manager.getInstanceType() == InstanceType.CONTROLLER)
       {
         noOPMsg.setTgtName("Controller");

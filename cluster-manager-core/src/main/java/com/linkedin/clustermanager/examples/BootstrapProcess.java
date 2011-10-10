@@ -1,6 +1,11 @@
-package com.linkedin.clustermanager.mock.storage;
+package com.linkedin.clustermanager.examples;
 
 import java.io.File;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.Date;
+import java.util.Map;
+import java.util.UUID;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -11,22 +16,49 @@ import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerFactory;
+import com.linkedin.clustermanager.ClusterMessagingService;
+import com.linkedin.clustermanager.Criteria;
 import com.linkedin.clustermanager.NotificationContext;
-import com.linkedin.clustermanager.agent.file.FileBasedDataAccessor;
+import com.linkedin.clustermanager.messaging.AsyncCallback;
+import com.linkedin.clustermanager.messaging.handling.CMTaskExecutor;
+import com.linkedin.clustermanager.messaging.handling.MessageHandler;
+import com.linkedin.clustermanager.messaging.handling.MessageHandlerFactory;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.Message.MessageType;
 import com.linkedin.clustermanager.participant.StateMachineEngine;
 import com.linkedin.clustermanager.participant.statemachine.StateModel;
 import com.linkedin.clustermanager.participant.statemachine.StateModelFactory;
+import com.linkedin.clustermanager.participant.statemachine.StateModelInfo;
+import com.linkedin.clustermanager.participant.statemachine.Transition;
 import com.linkedin.clustermanager.tools.ClusterSetup;
+import com.linkedin.clustermanager.tools.ClusterStateVerifier;
 
-public class DummyProcess
+/**
+ * This process does little more than handling the state transition messages.
+ * This is generally the case when the server needs to bootstrap when it comes
+ * up.<br>
+ * Flow for a typical Master-slave state model<br>
+ * <ul>
+ * <li>Gets OFFLINE-SLAVE transition</li>
+ * <li>Figure out if it has any data and how old it is for the SLAVE partition</li>
+ * <li>If the data is fresh enough it can probably catch up from the replication
+ * stream of the master</li>
+ * <li>If not, then it can use the messaging service provided by cluster manager
+ * to talk other nodes to figure out if they have any backup</li>
+ * </li>
+ * <li>Once it gets a response from other nodes in the cluster the process can
+ * decide which back up it wants to use to bootstrap</li>
+ * </ul>
+ * 
+ * @author kgopalak
+ * 
+ */
+public class BootstrapProcess
 {
-  private static final Logger logger = Logger.getLogger(DummyProcess.class);
+  static final String REQUEST_BOOTSTRAP_URL = "REQUEST_BOOTSTRAP_URL";
   public static final String zkServer = "zkSvr";
   public static final String cluster = "cluster";
   public static final String hostAddress = "host";
@@ -34,160 +66,117 @@ public class DummyProcess
   public static final String relayCluster = "relayCluster";
   public static final String help = "help";
   public static final String configFile = "configFile";
+  public static final String stateModel = "stateModelType";
   public static final String transDelay = "transDelay";
 
   private final String zkConnectString;
   private final String clusterName;
   private final String instanceName;
-  // private ClusterManager _manager = null;
-  private DummyStateModelFactory stateModelFactory;
-  private StateMachineEngine genericStateMachineHandler;
-  
-  // private final FilePropertyStore<ClusterView> _store;
-  private final FileBasedDataAccessor _accessor;
+  private final String stateModelType;
+  private ClusterManager manager;
+
+  private StateMachineEngine<StateModel> genericStateMachineHandler;
 
   private String _file = null;
-  private int _transDelayInMs = 0;
+  private StateModelFactory<StateModel> stateModelFactory;
+  private final int delay;
 
-  public DummyProcess(String zkConnectString, String clusterName,
-                      String instanceName, String file, int delay)
-  {
-    this(zkConnectString, clusterName, instanceName, file, delay, null);
-  }
-                  
-  public DummyProcess(String zkConnectString, String clusterName,
-      String instanceName, String file, int delay, FileBasedDataAccessor accessor)
+  public BootstrapProcess(String zkConnectString, String clusterName,
+      String instanceName, String file, String stateModel, int delay)
   {
     this.zkConnectString = zkConnectString;
     this.clusterName = clusterName;
     this.instanceName = instanceName;
     this._file = file;
-    _transDelayInMs = delay > 0 ? delay : 0;
-    _accessor = accessor;
+    stateModelType = stateModel;
+    this.delay = delay;
   }
 
-  public ClusterManager start() throws Exception
+  public void start() throws Exception
   {
-    ClusterManager manager = null;
-    if (_file == null && _accessor == null)
+    if (_file == null)
       manager = ClusterManagerFactory.getZKBasedManagerForParticipant(
           clusterName, instanceName, zkConnectString);
-    else if (_file != null && _accessor == null)  // static file cluster manager
+    else
       manager = ClusterManagerFactory.getFileBasedManagerForParticipant(
           clusterName, instanceName, _file);
-    else if (_file == null && _accessor != null)  // dynamic file cluster manager
-      manager = ClusterManagerFactory.getFileBasedManagerForParticipant(
-          clusterName, instanceName, _accessor);
-    else
-      throw new Exception("Illeagal arguments");
-
-    stateModelFactory = new DummyStateModelFactory(_transDelayInMs);
-    genericStateMachineHandler = new StateMachineEngine(stateModelFactory);
-    
-    manager.getMessagingService().registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(), genericStateMachineHandler);
-    
-    /*
+    stateModelFactory = new BootstrapHandler();
+    genericStateMachineHandler = new StateMachineEngine<StateModel>(
+        stateModelFactory);
+    manager.getMessagingService().registerMessageHandlerFactory(
+        MessageType.STATE_TRANSITION.toString(), genericStateMachineHandler);
+    manager.getMessagingService().registerMessageHandlerFactory(
+        MessageType.USER_DEFINE_MSG.toString(),
+        new CustomMessageHandlerFactory());
     if (_file != null)
     {
       ClusterStateVerifier.VerifyFileBasedClusterStates(_file, instanceName,
           stateModelFactory);
 
     }
-    */
-    return manager;
   }
 
-  public static class DummyStateModelFactory extends StateModelFactory<DummyStateModel>
+  public static class CustomMessageHandlerFactory implements
+      MessageHandlerFactory
   {
-    int _delay;
 
-    public DummyStateModelFactory(int delay)
+    @Override
+    public MessageHandler createHandler(Message message,
+        NotificationContext context)
     {
-      _delay = delay;
+      
+      return new CustomMessageHandler();
     }
 
     @Override
-    public DummyStateModel createNewStateModel(String stateUnitKey)
+    public String getMessageType()
     {
-      DummyStateModel model = new DummyStateModel();
-      model.setDelay(_delay);
-      return model;
-    }
-  }
-
-  public static class DummyStateModel extends StateModel
-  {
-    int _transDelay = 0;
-
-    public void setDelay(int delay)
-    {
-      _transDelay = delay > 0 ? delay : 0;
+      return MessageType.USER_DEFINE_MSG.toString();
     }
 
-    void sleep()
+    @Override
+    public void reset()
     {
-      try
+
+    }
+
+    static class CustomMessageHandler implements MessageHandler
+    {
+
+      @Override
+      public void handleMessage(Message message, NotificationContext context,
+          Map<String, String> resultMap) throws InterruptedException
       {
-        if (_transDelay > 0)
+        String hostName;
+        try
         {
-          Thread.currentThread().sleep(_transDelay);
+          hostName = InetAddress.getLocalHost().getCanonicalHostName();
+        } catch (UnknownHostException e)
+        {
+          hostName = "UNKNOWN";
         }
-      } catch (InterruptedException e)
-      {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
+        String port = "2134";
+        String msgSubType = message.getMsgSubType();
+        if (msgSubType.equals(REQUEST_BOOTSTRAP_URL))
+        {
+          resultMap.put(
+              "BOOTSTRAP_URL",
+              "http://" + hostName + ":" + port
+                  + "/getFile?path=/data/bootstrap/"
+                  + message.getResourceGroupName() + "/"
+                  + message.getResourceKey() + ".tar");
+          
+          resultMap.put(
+              "BOOTSTRAP_TIME",
+              ""+new Date().getTime());
+        }
       }
     }
-
-    public void onBecomeSlaveFromOffline(Message message,
-        NotificationContext context)
-    {
-      String db = message.getStateUnitKey();
-      String instanceName = context.getManager().getInstanceName();
-      sleep();
-      System.out.println("DummyStateModel.onBecomeSlaveFromOffline(), instance:" + instanceName 
-                         + ", db:" + db);
-    }
-
-    public void onBecomeSlaveFromMaster(Message message,
-        NotificationContext context)
-    {
-
-      sleep();
-      System.out.println("DummyStateModel.onBecomeSlaveFromMaster()");
-
-    }
-
-    public void onBecomeMasterFromSlave(Message message,
-        NotificationContext context)
-    {
-
-      sleep();
-      System.out.println("DummyStateModel.onBecomeMasterFromSlave()");
-
-    }
-
-    public void onBecomeOfflineFromSlave(Message message,
-        NotificationContext context)
-    {
-
-      sleep();
-      System.out.println("DummyStateModel.onBecomeOfflineFromSlave()");
-
-    }
-
-    public void onBecomeDroppedFromOffline(Message message, NotificationContext context)
-    {
-
-      sleep();
-      System.out.println("DummyStateModel.onBecomeDroppedFromOffline()");
-
-    }
   }
 
-  // TODO hack OptionBuilder is not thread safe
+
   @SuppressWarnings("static-access")
-  synchronized private static Options constructCommandLineOptions()
+  private static Options constructCommandLineOptions()
   {
     Option helpOption = OptionBuilder.withLongOpt(help)
         .withDescription("Prints command-line options info").create();
@@ -216,6 +205,12 @@ public class DummyProcess
     portOption.setRequired(true);
     portOption.setArgName("Host port (Required)");
 
+    Option stateModelOption = OptionBuilder.withLongOpt(stateModel)
+        .withDescription("StateModel Type").create();
+    stateModelOption.setArgs(1);
+    stateModelOption.setRequired(true);
+    stateModelOption.setArgName("StateModel Type (Required)");
+
     // add an option group including either --zkSvr or --configFile
     Option fileOption = OptionBuilder.withLongOpt(configFile)
         .withDescription("Provide file to read states/messages").create();
@@ -239,6 +234,7 @@ public class DummyProcess
     options.addOption(clusterOption);
     options.addOption(hostOption);
     options.addOption(portOption);
+    options.addOption(stateModelOption);
     options.addOption(transDelayOption);
 
     options.addOptionGroup(optionGroup);
@@ -257,8 +253,6 @@ public class DummyProcess
   {
     CommandLineParser cliParser = new GnuParser();
     Options cliOptions = constructCommandLineOptions();
-    // CommandLine cmd = null;
-
     try
     {
       return cliParser.parse(cliOptions, cliArgs);
@@ -276,12 +270,13 @@ public class DummyProcess
   public static void main(String[] args) throws Exception
   {
     String zkConnectString = "localhost:2181";
-    String clusterName = "test-cluster";
-    String instanceName = "localhost_8900";
+    String clusterName = "storage-integration-cluster";
+    String instanceName = "localhost_8905";
     String file = null;
+    String stateModelValue = "MasterSlave";
     int delay = 0;
-
-    if (args.length > 0)
+    boolean skipZeroArgs = true;// false is for dev testing
+    if (!skipZeroArgs || args.length > 0)
     {
       CommandLine cmd = processCommandLineArgs(args);
       zkConnectString = cmd.getOptionValue(zkServer);
@@ -302,6 +297,8 @@ public class DummyProcess
           System.exit(1);
         }
       }
+
+      stateModelValue = cmd.getOptionValue(stateModel);
       if (cmd.hasOption(transDelay))
       {
         try
@@ -319,26 +316,57 @@ public class DummyProcess
       }
     }
     // Espresso_driver.py will consume this
-    logger.info("Dummy process started, instanceName:" + instanceName);
+    System.out.println("Starting Process with ZK:" + zkConnectString);
 
-    DummyProcess process = new DummyProcess(zkConnectString, clusterName,
-        instanceName, file, delay);
-    ClusterManager manager = process.start();
-    
-    try
-    {
-      Thread.currentThread().join();
-    }
-    catch (InterruptedException e)
-    {
-      // ClusterManagerFactory.disconnectManagers(instanceName);
-      logger.info("participant:" + instanceName + ", " + 
-                   Thread.currentThread().getName() + " interrupted");
-      if (manager != null)
-      {
-        manager.disconnect();
-      }
-    }
+    BootstrapProcess process = new BootstrapProcess(zkConnectString,
+        clusterName, instanceName, file, stateModelValue, delay);
 
+    process.start();
+    Thread.currentThread().join();
   }
+}
+
+
+
+
+
+class BootstrapReplyHandler extends AsyncCallback
+{
+
+  public BootstrapReplyHandler(long timeout)
+  {
+    super(timeout);
+    // TODO Auto-generated constructor stub
+  }
+
+  private String bootstrapUrl;
+  private String bootstrapTime;
+
+  @Override
+  public void onTimeOut()
+  {
+    System.out.println("Timed out");
+  }
+
+  public String getBootstrapUrl()
+  {
+    return bootstrapUrl;
+  }
+
+  public String getBootstrapTime()
+  {
+    return bootstrapTime;
+  }
+
+  @Override
+  public void onReplyMessage(Message message)
+  {
+    String time = message.getResultMap().get("BOOTSTRAP_TIME");
+    if (bootstrapTime == null || time.compareTo(bootstrapTime) > -1)
+    {
+      bootstrapTime = message.getResultMap().get("BOOTSTRAP_TIME");
+      bootstrapUrl = message.getResultMap().get("BOOTSTRAP_URL");
+    }
+  }
+
 }

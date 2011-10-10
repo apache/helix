@@ -7,5 +7,5 @@ import com.linkedin.clustermanager.model.Message;
 
 public interface MessageHandler
 {
-  public void handleMessage(Message message, NotificationContext context, Map<String, String> resultMap)  throws InterruptedException;
+  public void handleMessage(Message message, NotificationContext context, final Map<String, String> resultMap)  throws InterruptedException;
 }

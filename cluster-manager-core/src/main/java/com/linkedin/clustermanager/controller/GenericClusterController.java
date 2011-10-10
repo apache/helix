@@ -1,6 +1,7 @@
 package com.linkedin.clustermanager.controller;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -320,28 +321,28 @@ public class GenericClusterController implements ConfigChangeListener,
       NotificationContext changeContext)
 	{
 	  for (ZNRecord instance : liveInstances)
-    {
-      String instanceName = instance.getId();
-      String clientSessionId = instance
-          .getSimpleField(CMConstants.ZNAttribute.SESSION_ID.toString());
-
-      if (!_instanceCurrentStateChangeSubscriptionList.contains(clientSessionId))
       {
-        try
+        String instanceName = instance.getId();
+        String clientSessionId = instance
+            .getSimpleField(CMConstants.ZNAttribute.SESSION_ID.toString());
+  
+        if (!_instanceCurrentStateChangeSubscriptionList.contains(clientSessionId))
         {
-          changeContext.getManager().addCurrentStateChangeListener(this,
-              instanceName, clientSessionId);
-          changeContext.getManager().addMessageListener(this, instanceName);
-        } catch (Exception e)
-        {
-          logger.error(
-              "Exception adding current state and message listener for instance:"
-                  + instanceName, e);
+          try
+          {
+            changeContext.getManager().addCurrentStateChangeListener(this,
+                instanceName, clientSessionId);
+            changeContext.getManager().addMessageListener(this, instanceName);
+          } catch (Exception e)
+          {
+            logger.error(
+                "Exception adding current state and message listener for instance:"
+                    + instanceName, e);
+          }
+          logger.info("Observing client session id: "+ clientSessionId + "@" + new Date().getTime());
+          _instanceCurrentStateChangeSubscriptionList.add(clientSessionId);
         }
-        logger.info("Observing client session id: "+ clientSessionId);
-        _instanceCurrentStateChangeSubscriptionList.add(clientSessionId);
+        // TODO shi call removeListener
       }
-      // TODO shi call removeListener
-    }
 	}
 }

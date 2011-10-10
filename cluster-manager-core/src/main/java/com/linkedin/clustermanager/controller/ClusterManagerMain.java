@@ -14,6 +14,7 @@ package com.linkedin.clustermanager.controller;
  *   to become leaders of other clusters. 
  */
 
+import org.I0Itec.zkclient.exception.ZkInterruptedException;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.GnuParser;
@@ -28,7 +29,6 @@ import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerFactory;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
-import com.linkedin.clustermanager.messaging.handling.CMTaskExecutor;
 import com.linkedin.clustermanager.model.Message.MessageType;
 import com.linkedin.clustermanager.monitoring.mbeans.ClusterStatusMonitor;
 import com.linkedin.clustermanager.participant.DistClusterControllerStateModel;
@@ -125,6 +125,10 @@ public class ClusterManagerMain
               manager.getDataAccessor().getClusterPropertyList(ClusterPropertyType.CONFIGS).size());
       manager.addLiveInstanceChangeListener(monitor);
       manager.addExternalViewChangeListener(monitor);
+    }
+    catch (ZkInterruptedException e)
+    {
+      logger.warn("zk connection is interrupted during ClusterManagerMain.addListenersToController(), exception" + e);
     }
     catch (Exception e)
     {

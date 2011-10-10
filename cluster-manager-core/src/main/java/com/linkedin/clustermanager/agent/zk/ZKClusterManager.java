@@ -46,7 +46,6 @@ import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.healthcheck.ParticipantHealthReportCollector;
 import com.linkedin.clustermanager.healthcheck.ParticipantHealthReportCollectorImpl;
 import com.linkedin.clustermanager.messaging.DefaultMessagingService;
-import com.linkedin.clustermanager.messaging.handling.CMTaskExecutor;
 import com.linkedin.clustermanager.messaging.handling.MessageHandlerFactory;
 import com.linkedin.clustermanager.monitoring.ZKPathDataDumpTask;
 import com.linkedin.clustermanager.participant.DistClusterControllerElection;
@@ -246,16 +245,24 @@ public class ZKClusterManager implements ClusterManager
     {
       return;
     }
-    createClient(_zkConnectString, SESSIONTIMEOUT);
-
-    if (!isClusterSetup())
+    
+    try
     {
-      throw new Exception("Initial cluster structure is not set up for cluster:" + _clusterName);
+      createClient(_zkConnectString, SESSIONTIMEOUT);
+  
+      if (!isClusterSetup())
+      {
+        throw new Exception("Initial cluster structure is not set up for cluster:" + _clusterName);
+      }
+      if (!isInstanceSetup())
+      {
+        throw new Exception("Initial cluster structure is not set up for instance:" + _instanceName
+            + " instanceType:" + _instanceType);
+      }
     }
-    if (!isInstanceSetup())
+    catch (Exception e)
     {
-      throw new Exception("Initial cluster structure is not set up for instance:" + _instanceName
-          + " instanceType:" + _instanceType);
+      ZKExceptionHandler.getInstance().handle(e);
     }
   }
 
@@ -400,6 +407,7 @@ public class ZKClusterManager implements ClusterManager
     }
     _accessor = new ZKDataAccessor(_clusterName, _zkClient);
     int retryCount = 0;
+    
     _zkClient.subscribeStateChanges(_zkStateChangeListener);
     while (retryCount < RETRY_LIMIT)
     {
@@ -512,7 +520,7 @@ public class ZKClusterManager implements ClusterManager
     // In case there is a live instance record on zookeeper
     if (_accessor.getClusterProperty(ClusterPropertyType.LIVEINSTANCES, _instanceName) != null)
     {
-      logger.warn("find liveinstance record for " + _instanceName + " in cluster " + _clusterName);
+      logger.warn("Found another instance with instanceName: " + _instanceName + " in cluster " + _clusterName );
       // Wait for a while, in case previous storage node exits unexpectedly
       // and its liveinstance
       // still hangs around until session timeout happens

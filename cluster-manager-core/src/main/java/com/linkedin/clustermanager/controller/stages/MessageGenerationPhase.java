@@ -100,12 +100,12 @@ public class MessageGenerationPhase extends AbstractBaseStage
               {
                 if (logger.isDebugEnabled())
                 {
-                  logger.debug("Message already exists to transition from "
-                      + currentState + " to " + nextState);
+                  logger.debug("Message already exists at" + instanceName + " to transition"+ resource.getResourceKeyName() +" from "
+                      + currentState + " to " + nextState );
                 }
               } else
               {
-                Message message = createMessage(resourceGroupName,
+                Message message = createMessage(manager,resourceGroupName,
                     resource.getResourceKeyName(), instanceName, currentState,
                     nextState, sessionIdMap.get(instanceName), stateModelDef.getId());
                 
@@ -126,7 +126,7 @@ public class MessageGenerationPhase extends AbstractBaseStage
     event.addAttribute(AttributeName.MESSAGES_ALL.toString(), output);
   }
 
-  private Message createMessage(String resourceGroupName,
+  private Message createMessage(ClusterManager manager,String resourceGroupName,
       String resourceKeyName, String instanceName, String currentState,
       String nextState, String sessionId, String stateModelDefName)
   {
@@ -152,7 +152,7 @@ public class MessageGenerationPhase extends AbstractBaseStage
     message.setFromState(currentState);
     message.setToState(nextState);
     message.setTgtSessionId(sessionId);
-    message.setSrcSessionId(sessionId);
+    message.setSrcSessionId(manager.getSessionId());
     message.setStateModelDef(stateModelDefName);
     return message;
   }

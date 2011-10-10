@@ -165,7 +165,7 @@ public class ClusterSetup
   {
     if (!idealStateMode.equalsIgnoreCase(IdealStateConfigProperty.CUSTOMIZED.toString()))
     {
-      logger.info("ideal state mode is configured to auto mode");
+      logger.info("ideal state mode is configured to auto for " + resourceGroup);
       idealStateMode = IdealStateConfigProperty.AUTO.toString();
     }
     ClusterManagementService managementTool = getClusterManagementTool();

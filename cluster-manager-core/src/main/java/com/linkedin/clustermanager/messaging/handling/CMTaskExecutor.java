@@ -36,7 +36,6 @@ public class CMTaskExecutor implements MessageListener
   // and we need to throttle, which is mostly IO / network bounded.
   private static final int MAX_PARALLEL_TASKS = 4;
   // TODO: create per-task type threadpool with customizable pool size 
-  private final ExecutorService _pool;
   protected final Map<String, Future<CMTaskResult>> _taskMap;
   private final Object _lock;
   private final StatusUpdateUtil _statusUpdateUtil;
@@ -44,6 +43,9 @@ public class CMTaskExecutor implements MessageListener
   
   private final ConcurrentHashMap<String, MessageHandlerFactory> _handlerFactoryMap 
   = new ConcurrentHashMap<String, MessageHandlerFactory>();
+  
+  private final ConcurrentHashMap<String, ExecutorService> _threadpoolMap 
+  = new ConcurrentHashMap<String, ExecutorService>();
 
   private static Logger logger = Logger.getLogger(CMTaskExecutor.class);
 
@@ -52,7 +54,6 @@ public class CMTaskExecutor implements MessageListener
     _taskMap = new HashMap<String, Future<CMTaskResult>>();
     _lock = new Object();
     _statusUpdateUtil = new StatusUpdateUtil();
-    _pool = Executors.newFixedThreadPool(MAX_PARALLEL_TASKS);
     _monitor = ParticipantMonitor.getInstance();
     startMonitorThread();
   }
@@ -67,6 +68,7 @@ public class CMTaskExecutor implements MessageListener
         
       }
       _handlerFactoryMap.put(type, factory);
+      _threadpoolMap.put(type, Executors.newFixedThreadPool(MAX_PARALLEL_TASKS));
       logger.info("adding msg factory for type " + type);
     }
     else
@@ -102,7 +104,7 @@ public class CMTaskExecutor implements MessageListener
             handler, this);
         if (!_taskMap.containsKey(message.getMsgId()))
         {
-          Future<CMTaskResult> future = _pool.submit(task);
+          Future<CMTaskResult> future = _threadpoolMap.get(message.getMsgType()).submit(task);
           _taskMap.put(message.getMsgId(), future);
         } 
         else

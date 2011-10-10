@@ -34,25 +34,33 @@ public class Message
 
   public Message(MessageType type, String msgId)
   {
-    _record = new ZNRecord(msgId);
-    setMsgType(type);
+    this(type.toString(),msgId);
   }
   
   public Message(String type,String msgId)
   {
     _record = new ZNRecord(msgId);
     _record.setSimpleField(Attributes.MSG_TYPE.toString(), type);
+    setMsgState("new");
   }
 
   public Message(ZNRecord record)
   {
     _record = new ZNRecord(record);
+    if(getMsgState() == null)
+    {
+      setMsgState("new");
+    }
   }
   
   public Message(ZNRecord record, String id)
   {
     _record = new ZNRecord(record, id);
     setMsgId(id);
+    if(getMsgState() == null)
+    {
+      setMsgState("new");
+    }
   }
 
   public String getId()

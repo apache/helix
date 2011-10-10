@@ -220,8 +220,8 @@ public class ClusterStateVerifier
           boolean success =true;
           if (!partitionNodeState.equals(nodePartitionState))
           {
-            _logger.error("State mismatch " + stateUnitGroup + " " + stateUnitKey+" "+nodeName
-                + " " + partitionNodeState + " " + nodePartitionState);
+            _logger.error("State mismatch " + stateUnitGroup + " " + stateUnitKey + " " +nodeName
+                + " current:" + partitionNodeState + ", expected:" + nodePartitionState);
             success= false;
           }
           assert (partitionNodeState.equals(nodePartitionState));

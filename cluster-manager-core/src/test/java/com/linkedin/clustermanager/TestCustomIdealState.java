@@ -4,12 +4,13 @@ import java.util.Date;
 
 import org.I0Itec.zkclient.ZkServer;
 import org.apache.log4j.Logger;
+import org.testng.annotations.Test;
 
-public class TestUsingCustomIdealState
+public class TestCustomIdealState
 {
-  private static Logger logger = Logger.getLogger(TestUsingCustomIdealState.class);
+  private static Logger logger = Logger.getLogger(TestCustomIdealState.class);
 
-  // @Test
+  @Test
   public void testFrameworkExample() throws Exception
   {
     String uniqTestName = "test_customIS";

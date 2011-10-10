@@ -17,8 +17,6 @@ public class TestParticiptantNameCollision extends ZkStandAloneCMHandler
   {
     logger.info("RUN at " + new Date(System.currentTimeMillis()));
     
-    // List<DummyProcessResult> results = new ArrayList<DummyProcessResult>();
-    
     int i = 0;
     for (; i < 1; i++)
     {
@@ -45,40 +43,4 @@ public class TestParticiptantNameCollision extends ZkStandAloneCMHandler
     Assert.assertEquals(i, _exceptionCounter.get());
     logger.info("END at " + new Date(System.currentTimeMillis()));
   }
-
-  /*
-  private static Thread startDummyProcess(final String[] args) 
-  {
-    Thread t = new Thread(new Runnable()
-    {
-      @Override
-      public void run()
-      {
-        try
-        {
-          DummyProcess.main(args);
-        } 
-        catch (ClusterManagerException e)
-        {
-          _exceptionCounter.addAndGet(1);
-          logger.info("exceptionCounter:" + _exceptionCounter.get());
-        }
-        catch (Exception e)
-        {
-          e.printStackTrace();
-        }
-      }
-    });
-    t.start();
-
-    return t;
-  }
-
-  private static String[] createArgs(String str)
-  {
-    String[] split = str.split("[ ]+");
-    System.out.println(Arrays.toString(split));
-    return split;
-  }
-  */
 }

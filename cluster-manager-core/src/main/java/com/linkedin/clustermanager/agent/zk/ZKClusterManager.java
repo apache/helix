@@ -260,6 +260,10 @@ public class ZKClusterManager implements ClusterManager
             + " instanceType:" + _instanceType);
       }
     }
+    catch (ClusterManagerException e)
+    {
+      throw e;
+    }
     catch (Exception e)
     {
       ZKExceptionHandler.getInstance().handle(e);
@@ -470,7 +474,7 @@ public class ZKClusterManager implements ClusterManager
    * the new session, stay as standby
    */
 
-  protected void handleNewSession() throws Exception
+  protected void handleNewSession()
   {
     _sessionId = UUID.randomUUID().toString();
     resetHandlers(_handlers);
@@ -532,6 +536,7 @@ public class ZKClusterManager implements ClusterManager
       {
         e.printStackTrace();
       }
+      
       if (_accessor.getClusterProperty(ClusterPropertyType.LIVEINSTANCES, _instanceName) != null)
       {
         String errorMessage =

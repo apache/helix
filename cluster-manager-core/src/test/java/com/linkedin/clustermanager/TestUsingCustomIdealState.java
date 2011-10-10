@@ -21,7 +21,7 @@ public class TestUsingCustomIdealState
     TestDriver.startDummyParticipants(uniqTestName, 10);
     TestDriver.startController(uniqTestName);
     
-    TestDriver.randomFailWithCustomIs(uniqTestName, 1, 0, 30, 10000);
+    TestDriver.randomFailWithCustomIdealState(uniqTestName, 1, 0, 30, 10000);
     
     TestDriver.verifyCluster(uniqTestName);
     TestDriver.stopCluster(uniqTestName);

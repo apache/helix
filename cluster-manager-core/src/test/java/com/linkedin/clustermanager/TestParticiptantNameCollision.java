@@ -1,16 +1,11 @@
 package com.linkedin.clustermanager;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
-
-import com.linkedin.clustermanager.mock.storage.DummyProcess;
 
 public class TestParticiptantNameCollision extends ZkStandAloneCMHandler
 {
@@ -22,18 +17,36 @@ public class TestParticiptantNameCollision extends ZkStandAloneCMHandler
   {
     logger.info("RUN at " + new Date(System.currentTimeMillis()));
     
-    List<Thread> tList = new ArrayList<Thread>();
+    // List<DummyProcessResult> results = new ArrayList<DummyProcessResult>();
     
-    tList.add(startDummyProcess(createArgs("-zkSvr " + ZK_ADDR + " -cluster " + CLUSTER_NAME + 
-                                           " -host localhost -port 12919")));
-    tList.add(startDummyProcess(createArgs("-zkSvr " + ZK_ADDR + " -cluster " + CLUSTER_NAME + 
-                                           " -host localhost -port 12920")));
-
-    Thread.sleep(40000);
-    Assert.assertEquals(2, _exceptionCounter.get());
+    int i = 0;
+    for (; i < 1; i++)
+    {
+      String instanceName = "localhost_" + (START_PORT + i);
+      try
+      {
+        // the call fails on getClusterManagerForParticipant()
+        // no threads start
+        TestHelper.startDummyProcess(ZK_ADDR, CLUSTER_NAME, instanceName, null);
+      }
+      catch (ClusterManagerException e)
+      {
+        _exceptionCounter.addAndGet(1);
+        logger.info("exceptionCounter:" + _exceptionCounter.get());
+      }
+      catch (Exception e)
+      {
+        e.printStackTrace();
+      }
+    }
+    
+    // Thread.sleep(40000);
+  
+    Assert.assertEquals(i, _exceptionCounter.get());
     logger.info("END at " + new Date(System.currentTimeMillis()));
   }
 
+  /*
   private static Thread startDummyProcess(final String[] args) 
   {
     Thread t = new Thread(new Runnable()
@@ -67,4 +80,5 @@ public class TestParticiptantNameCollision extends ZkStandAloneCMHandler
     System.out.println(Arrays.toString(split));
     return split;
   }
+  */
 }

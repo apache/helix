@@ -32,7 +32,8 @@ public class BasicTestUsingTestDriver
           {
             String uniqTestName = "test_" + "db" + numDb + "_p" + numPartitionsPerDb 
                 + "_n" + numNode + "_r" + replica;
-            System.err.println("START " + uniqTestName + "@" + new Date().getTime());
+            // System.err.println("START " + uniqTestName + "@" + new Date().getTime());
+            LOG.info("START " + uniqTestName + "@" + new Date().getTime());
             
             TestDriver.setupCluster(uniqTestName, numDb, numPartitionsPerDb, numNode, replica);
             TestDriver.startDummyParticipants(uniqTestName, numNode);
@@ -40,7 +41,8 @@ public class BasicTestUsingTestDriver
             TestDriver.verifyCluster(uniqTestName);
             TestDriver.stopCluster(uniqTestName);
             
-            System.err.println("END " + uniqTestName + "@" + new Date().getTime());
+            // System.err.println("END " + uniqTestName + "@" + new Date().getTime());
+            LOG.info("END " + uniqTestName + "@" + new Date().getTime());
           }
         }
       }

@@ -16,8 +16,9 @@ public class ZkStateChangeListener implements IZkStateListener {
 	}
 
 	@Override
-	public void handleNewSession() throws Exception {
-		_zkClusterManager.handleNewSession();
+	public void handleNewSession() 
+	{
+      _zkClusterManager.handleNewSession();
 	}
 
 	@Override

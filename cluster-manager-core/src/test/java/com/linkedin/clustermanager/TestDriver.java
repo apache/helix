@@ -267,7 +267,8 @@ public class TestDriver
     Map<String, Boolean> results = TestExecutor.executeTest(commandList, ZK_ADDR);
     for (Map.Entry<String, Boolean> entry : results.entrySet())
     {
-      System.err.println(entry.getValue() + ":" + entry.getKey());
+      // System.err.println(entry.getValue() + ":" + entry.getKey());
+      LOG.info(entry.getValue() + ":" + entry.getKey());
       // System.err.println(entry.getValue() + ":" + uniqTestName + "@" + new Date().getTime());
       Assert.assertTrue(entry.getValue());
     }
@@ -309,7 +310,7 @@ public class TestDriver
     }
   }
   
-  public static void randomFailWithCustomIs(String uniqTestName, int numFail, int numRecover, 
+  public static void randomFailWithCustomIdealState(String uniqTestName, int numFail, int numRecover, 
                                             int percentage, long timeForEachStep)
   throws Exception
   {

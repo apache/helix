@@ -60,6 +60,10 @@ public class StatusUpdateUtil
     {
       result.getMapField(mapFieldKey).put(simpleFieldKey, message.getRecord().getSimpleField(simpleFieldKey));
     }
+    if(message.getResultMap()!= null)
+    {
+      result.setMapField("MessageResult", message.getResultMap());
+    }
     return result;
   }
   Map<String, String> _recordedMessages = new ConcurrentHashMap<String, String>();
@@ -285,6 +289,6 @@ public class StatusUpdateUtil
       return;
     }
     accessor.updateInstanceProperty(instanceName, InstancePropertyType.ERRORS,
-        statusUpdateSubPath, message.getStateUnitKey(), record);
+        statusUpdateSubPath, statusUpdateKey, record);
   }
 }

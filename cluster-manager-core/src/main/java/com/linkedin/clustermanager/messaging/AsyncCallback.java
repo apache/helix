@@ -60,15 +60,21 @@ public abstract class AsyncCallback
     if (!isDone())
     {
       _messageReplied.add(message);
-      onReplyMessage(message);
+      try
+      {
+        onReplyMessage(message);
+      }
+      catch(Exception e) 
+      {
+        _logger.error(e);
+      }
     }
-
     if (isDone() && _timer != null)
     {
       _timer.cancel();
       notifyAll();
     }
-  };
+  }
 
   /**
    * Default implementation will wait until every message sent gets a response
@@ -124,7 +130,8 @@ public abstract class AsyncCallback
           _callback.onTimeOut();
           _callback.notifyAll();
         }
-      } catch (Exception e)
+      } 
+      catch (Exception e)
       {
         _logger.error(e);
       }

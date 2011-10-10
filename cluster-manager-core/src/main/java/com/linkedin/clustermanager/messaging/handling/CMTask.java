@@ -130,7 +130,7 @@ public class CMTask implements Callable<CMTaskResult>
           message.getMsgSrc().equalsIgnoreCase("controller") ? InstanceType.CONTROLLER : InstanceType.PARTICIPANT);
       recipientCriteria.setSessionSpecific(false);
       int nMsgs = _manager.getMessagingService().send(recipientCriteria, replyMessage);
-      _statusUpdateUtil.logInfo(message, CMTask.class, nMsgs + "To " + replyMessage.getTgtName() +" msgs replied", accessor);
+      _statusUpdateUtil.logInfo(message, CMTask.class, nMsgs +" msgs replied to " + replyMessage.getTgtName(), accessor);
     }
   }
 

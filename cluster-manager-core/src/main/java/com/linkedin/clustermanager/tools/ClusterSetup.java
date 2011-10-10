@@ -123,15 +123,14 @@ public class ClusterSetup
   public void addInstanceToCluster(String clusterName, String host, int port)
   {
     ClusterManagementService managementTool = getClusterManagementTool();
+    String instanceId = host + "_" + port;
+    ZNRecord instanceConfig = new ZNRecord(instanceId);
+    
+    instanceConfig.setSimpleField(InstanceConfigProperty.HOST.toString(), host);
+    instanceConfig.setSimpleField(InstanceConfigProperty.PORT.toString(), "" + port);
+    instanceConfig.setSimpleField(InstanceConfigProperty.ENABLED.toString(), true + "");
 
-    ZNRecord InstanceConfig = new ZNRecord();
-    String InstanceId = host + "_" + port;
-    InstanceConfig.setId(InstanceId);
-    InstanceConfig.setSimpleField(InstanceConfigProperty.HOST.toString(), host);
-    InstanceConfig.setSimpleField(InstanceConfigProperty.PORT.toString(), "" + port);
-    InstanceConfig.setSimpleField(InstanceConfigProperty.ENABLED.toString(), true + "");
-
-    managementTool.addInstance(clusterName, InstanceConfig);
+    managementTool.addInstance(clusterName, instanceConfig);
   }
 
   public ClusterManagementService getClusterManagementTool()

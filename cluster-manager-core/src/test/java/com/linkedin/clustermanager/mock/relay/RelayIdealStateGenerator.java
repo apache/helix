@@ -10,8 +10,7 @@ public class RelayIdealStateGenerator
 {
   public static void main(String[] args)
   {
-    ZNRecord record = new ZNRecord();
-    record.setId("SdrRelay");
+    ZNRecord record = new ZNRecord("SdrRelay");
     record.setSimpleField("partitions", "28");
     for (int i = 22; i < 28; i++)
     {

@@ -75,8 +75,7 @@ public class ClusterResource extends Resource
     ClusterSetup setupTool = new ClusterSetup(zkServerAddress);
     List<String> instances = setupTool.getClusterManagementTool().getInstancesInCluster(clusterName);
     
-    ZNRecord clusterSummayRecord = new ZNRecord();
-    clusterSummayRecord.setId("cluster summary");
+    ZNRecord clusterSummayRecord = new ZNRecord("cluster summary");
     clusterSummayRecord.setListField("instances", instances);
     
     List<String> hostedEntities = setupTool.getClusterManagementTool().getResourceGroupsInCluster(clusterName);

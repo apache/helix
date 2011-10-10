@@ -55,7 +55,7 @@ public class DefaultControllerMessageHandlerFactory implements
             +" type:" + message.getMsgType());
       }
       
-      resultMap.put("ControllerResult", "msg "+ message.getMsgId()+" processed");
+      resultMap.put("ControllerResult", "msg "+ message.getMsgId() + " from "+message.getMsgSrc() + " processed");
     }
     
   }

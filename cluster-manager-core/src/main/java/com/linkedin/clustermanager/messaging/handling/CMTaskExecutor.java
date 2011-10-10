@@ -36,7 +36,6 @@ public class CMTaskExecutor implements MessageListener
   // and we need to throttle, which is mostly IO / network bounded.
   private static final int MAX_PARALLEL_TASKS = 4;
   // TODO: create per-task type threadpool with customizable pool size 
-  private final ExecutorService _pool;
   protected final Map<String, Future<CMTaskResult>> _taskMap;
   private final Object _lock;
   private final StatusUpdateUtil _statusUpdateUtil;
@@ -44,6 +43,9 @@ public class CMTaskExecutor implements MessageListener
   
   private final ConcurrentHashMap<String, MessageHandlerFactory> _handlerFactoryMap 
   = new ConcurrentHashMap<String, MessageHandlerFactory>();
+  
+  private final ConcurrentHashMap<String, ExecutorService> _threadpoolMap 
+  = new ConcurrentHashMap<String, ExecutorService>();
 
   private static Logger logger = Logger.getLogger(CMTaskExecutor.class);
 
@@ -52,7 +54,6 @@ public class CMTaskExecutor implements MessageListener
     _taskMap = new HashMap<String, Future<CMTaskResult>>();
     _lock = new Object();
     _statusUpdateUtil = new StatusUpdateUtil();
-    _pool = Executors.newFixedThreadPool(MAX_PARALLEL_TASKS);
     _monitor = ParticipantMonitor.getInstance();
     startMonitorThread();
   }
@@ -67,6 +68,7 @@ public class CMTaskExecutor implements MessageListener
         
       }
       _handlerFactoryMap.put(type, factory);
+      _threadpoolMap.put(type, Executors.newFixedThreadPool(MAX_PARALLEL_TASKS));
       logger.info("adding msg factory for type " + type);
     }
     else
@@ -102,7 +104,7 @@ public class CMTaskExecutor implements MessageListener
             handler, this);
         if (!_taskMap.containsKey(message.getMsgId()))
         {
-          Future<CMTaskResult> future = _pool.submit(task);
+          Future<CMTaskResult> future = _threadpoolMap.get(message.getMsgType()).submit(task);
           _taskMap.put(message.getMsgId(), future);
         } 
         else
@@ -226,11 +228,15 @@ public class CMTaskExecutor implements MessageListener
     for (ZNRecord record : messages)
     {
       Message message = new Message(record);
-      if (message.getId() == null)
+      // NO_OP messages are removed with nothing done. It is used to trigger the
+      // onMessage() call if needed.
+      if (message.getMsgType().equalsIgnoreCase(MessageType.NO_OP.toString()))
       {
-        message.setId(message.getMsgId());
+        logger.info("Dropping NO-OP msg from "+ message.getMsgSrc());
+        client.removeInstanceProperty(instanceName,
+            InstancePropertyType.MESSAGES, message.getId());
+        continue;
       }
-      
       String sessionId = manager.getSessionId();
       String tgtSessionId = ((Message) message).getTgtSessionId();
       if (sessionId.equals(tgtSessionId) || tgtSessionId.equals("*"))
@@ -242,6 +248,12 @@ public class CMTaskExecutor implements MessageListener
           {
             logger.info("Creating handler for message "+ message.getMsgId());
             handler = createMessageHandler(message, changeContext);
+            
+            if(handler == null)
+            {
+              logger.warn("Message handler factory not found for message type "+ message.getMsgType());
+              continue;
+            }
             
             _statusUpdateUtil.logInfo(message, StateMachineEngine.class,
               "New Message", client);
@@ -297,17 +309,14 @@ public class CMTaskExecutor implements MessageListener
       NotificationContext changeContext)
   {
     String msgType = message.getMsgType().toString();
-    if(msgType.equalsIgnoreCase(MessageType.USER_DEFINE_MSG.toString()))
-    {
-      msgType = msgType + "."+message.getMsgSubType();
-    }
-    
+   
     MessageHandlerFactory handlerFactory = _handlerFactoryMap.get(msgType);
     
     if(handlerFactory == null)
     {
-      throw new ClusterManagerException("Cannot find handler factory for msg type " + msgType
+      logger.warn("Cannot find handler factory for msg type " + msgType
           +" message:" + message.getMsgId());
+      return null;
     }
     
     return handlerFactory.createHandler(message, changeContext);

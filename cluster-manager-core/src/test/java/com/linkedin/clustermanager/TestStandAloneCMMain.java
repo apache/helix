@@ -26,7 +26,7 @@ public class TestStandAloneCMMain extends ZkStandAloneCMHandler
     stopCurrentLeader(CLUSTER_NAME);
     
     Thread.sleep(5000);
-    boolean result = ClusterStateVerifier.VerifyClusterStates(ZK_ADDR, CLUSTER_NAME);
+    boolean result = ClusterStateVerifier.verifyClusterStates(ZK_ADDR, CLUSTER_NAME);
     Assert.assertTrue(result);
     
     logger.info("End at " + new Date(System.currentTimeMillis())); 

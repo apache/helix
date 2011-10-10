@@ -23,7 +23,7 @@ public class BestPossibleIdealStateCalculator
   IdealState compute(IdealState idealState, NotificationContext context)
   {
 
-    IdealState bestPossibleIdealState = new IdealState();
+    IdealState bestPossibleIdealState = new IdealState(idealState.getResourceGroup());
     for (String stateUnitKey : idealState.stateUnitSet())
     {
       Map<String, String> instanceStateMap;

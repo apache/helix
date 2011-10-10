@@ -39,8 +39,7 @@ public class ExternalViewComputeStage extends AbstractBaseStage
 		    .getAttribute(AttributeName.CURRENT_STATE.toString());
 		for (String resourceGroupName : resourceGroupMap.keySet())
 		{
-			ZNRecord viewRecord = new ZNRecord();
-			viewRecord.setId(resourceGroupName);
+			ZNRecord viewRecord = new ZNRecord(resourceGroupName);
 			ExternalView view = new ExternalView(viewRecord);
 			ResourceGroup resourceGroup = resourceGroupMap.get(resourceGroupName);
 			for (ResourceKey resource : resourceGroup.getResourceKeys())

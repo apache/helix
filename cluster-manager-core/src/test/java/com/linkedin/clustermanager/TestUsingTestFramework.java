@@ -232,7 +232,7 @@ public class TestUsingTestFramework
   
   private ZNRecord getExampleZNRecord()
   {
-    ZNRecord record = new ZNRecord();
+    ZNRecord record = new ZNRecord("TestDB");
     record.setSimpleField("ideal_state_mode", IdealStateConfigProperty.CUSTOMIZED.toString());
     Map<String, String> map = new HashMap<String, String>();
     map.put("localhost_12918", "MASTER");

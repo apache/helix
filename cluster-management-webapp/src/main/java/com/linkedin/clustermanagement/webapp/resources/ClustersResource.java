@@ -74,8 +74,7 @@ public class ClustersResource extends Resource
     ClusterSetup setupTool = new ClusterSetup(zkServer);
     List<String> clusters = setupTool.getClusterManagementTool().getClusters();
 
-    ZNRecord clustersRecord = new ZNRecord();
-    clustersRecord.setId("ClusterSummary");
+    ZNRecord clustersRecord = new ZNRecord("ClusterSummary");
     clustersRecord.setListField("clusters", clusters);
     StringRepresentation representation = new StringRepresentation(ClusterRepresentationUtil.ZNRecordToJson(clustersRecord), MediaType.APPLICATION_JSON);
     

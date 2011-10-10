@@ -108,11 +108,10 @@ public class IdealCalculatorByConsistentHashing
       int partitions, int replicas, String dbName, HashFunction hashFunc,
       int hashRingSize)
   {
-    ZNRecord result = new ZNRecord();
+    ZNRecord result = new ZNRecord(dbName);
 
     int[] hashRing = generateEvenHashRing(instanceNames, hashRingSize);
     result.setSimpleField("partitions", String.valueOf(partitions));
-    result.setId(dbName);
     Random rand = new Random(0xc0ffee);
     for (int i = 0; i < partitions; i++)
     {

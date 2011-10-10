@@ -189,8 +189,7 @@ public class TestClusterManagementWebapp
 	    
 	    paraMap.put(ClusterRepresentationUtil._managementCommand, ClusterRepresentationUtil._addStateModelCommand);
 	    
-	    ZNRecord r = new ZNRecord();
-	    r.setId(statemodel);
+	    ZNRecord r = new ZNRecord(statemodel);
 	    
 	    Reference resourceRef = new Reference(httpUrlBase);
 	    Request request = new Request(Method.POST, resourceRef);
@@ -210,7 +209,7 @@ public class TestClusterManagementWebapp
 	    ObjectMapper mapper = new ObjectMapper();
 	    ZNRecord zn = mapper.readValue(new StringReader(sw.toString()),
 	        ZNRecord.class);
-	    AssertJUnit.assertTrue(zn.listFields.get("models").contains(statemodel));
+	    AssertJUnit.assertTrue(zn.getListFields().get("models").contains(statemodel));
   }
   
   void VerifyAddCluster() throws IOException, InterruptedException

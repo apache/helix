@@ -155,8 +155,7 @@ public class ZnodeOpArg
     System.out.println(command);
 
     // map modification command
-    ZNRecord record = new ZNRecord();
-    record.setId("znrecord");
+    ZNRecord record = new ZNRecord("znrecord");
     record.setSimpleField("key1", "simpleValue1");
     record.setListField("key1", list);
     record.setMapField("key1", map);

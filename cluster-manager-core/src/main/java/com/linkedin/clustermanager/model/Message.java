@@ -20,7 +20,8 @@ public class Message
     STATE_TRANSITION,
     USER_DEFINE_MSG,
     CONTROLLER_MSG,
-    TASK_REPLY
+    TASK_REPLY,
+    NO_OP
   };
 
   public enum Attributes
@@ -31,27 +32,35 @@ public class Message
     MSG_SUBTYPE, CORRELATION_ID, MESSAGE_RESULT;
   }
 
-  public Message(MessageType type)
+  public Message(MessageType type, String msgId)
   {
-    _record = new ZNRecord();
-    setMsgType(type);
+    this(type.toString(),msgId);
   }
   
-  public Message(String type)
+  public Message(String type,String msgId)
   {
-    _record = new ZNRecord();
+    _record = new ZNRecord(msgId);
     _record.setSimpleField(Attributes.MSG_TYPE.toString(), type);
+    setMsgState("new");
   }
 
   public Message(ZNRecord record)
   {
-    _record = new ZNRecord();
-    _record.merge(record);
+    _record = new ZNRecord(record);
+    if(getMsgState() == null)
+    {
+      setMsgState("new");
+    }
   }
-
-  public void setId(String id)
+  
+  public Message(ZNRecord record, String id)
   {
-    _record.setId(id);
+    _record = new ZNRecord(record, id);
+    setMsgId(id);
+    if(getMsgState() == null)
+    {
+      setMsgState("new");
+    }
   }
 
   public String getId()
@@ -294,7 +303,7 @@ public class Message
     {
       throw new ClusterManagerException("Message "+ srcMessage.getMsgId()+" does not contain correlation id");
     }
-    Message replyMessage = new Message(MessageType.TASK_REPLY);
+    Message replyMessage = new Message(MessageType.TASK_REPLY,"TEMPLATE");
     replyMessage.setCorrelationId(srcMessage.getCorrelationId());
     replyMessage.setTgtName(srcMessage.getMsgSrc());
     replyMessage.setResultMap(taskResultMap);

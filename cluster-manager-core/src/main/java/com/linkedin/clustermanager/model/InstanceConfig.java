@@ -57,4 +57,9 @@ public class InstanceConfig
     sb.append(this.getPort());
     return sb.toString().hashCode();
   }
+
+  public String getInstanceName()
+  {
+    return _record.getId();
+  }
 }

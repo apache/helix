@@ -360,9 +360,7 @@ public class ZKClusterManager implements ClusterManager
 
   private void addLiveInstance()
   {
-    ZNRecord metaData = new ZNRecord();
-    // set it from the session
-    metaData.setId(_instanceName);
+    ZNRecord metaData = new ZNRecord(_instanceName);
     metaData.setSimpleField(CMConstants.ZNAttribute.SESSION_ID.toString(), _sessionId);
 
     logger.info("Add live instance: InstanceName: " + _instanceName + " Session id:" + _sessionId);
@@ -372,7 +370,7 @@ public class ZKClusterManager implements ClusterManager
                                  metaData,
                                  CreateMode.EPHEMERAL);
     String currentStatePathParent =
-        CMUtil.getCurrentStateBasePath(_clusterName, _instanceName) + "/" + getSessionId();
+      CMUtil.getCurrentStateBasePath(_clusterName, _instanceName) + "/" + getSessionId();
     if (!_zkClient.exists(currentStatePathParent))
     {
       _zkClient.createPersistent(currentStatePathParent);
@@ -522,7 +520,7 @@ public class ZKClusterManager implements ClusterManager
     // In case there is a live instance record on zookeeper
     if (_accessor.getClusterProperty(ClusterPropertyType.LIVEINSTANCES, _instanceName) != null)
     {
-      logger.warn("find liveinstance record for " + _instanceName + " in cluster " + _clusterName);
+      logger.warn("Found another instance with instanceName: " + _instanceName + " in cluster " + _clusterName );
       // Wait for a while, in case previous storage node exits unexpectedly
       // and its liveinstance
       // still hangs around until session timeout happens
@@ -542,8 +540,8 @@ public class ZKClusterManager implements ClusterManager
         throw new ClusterManagerException(errorMessage);
       }
     }
-    carryOverPreviousCurrentState();
     addLiveInstance();
+    carryOverPreviousCurrentState();
     startStatusUpdatedumpTask();
 
     // In case the cluster manager is running as a participant, setup message listener
@@ -612,6 +610,7 @@ public class ZKClusterManager implements ClusterManager
 
   private void carryOverPreviousCurrentState()
   {
+    
     List<String> subPaths =
         _accessor.getInstancePropertySubPaths(_instanceName, InstancePropertyType.CURRENTSTATES);
     for (String previousSessionId : subPaths)
@@ -626,7 +625,7 @@ public class ZKClusterManager implements ClusterManager
         {
           logger.info("Carrying over old session:" + previousSessionId + " resource "
               + previousCurrentState.getId() + " to new session:" + _sessionId);
-          for (String resourceKey : previousCurrentState.mapFields.keySet())
+          for (String resourceKey : previousCurrentState.getMapFields().keySet())
           {
             previousCurrentState.getMapField(resourceKey).put(ZNAttribute.CURRENT_STATE.toString(),
                                                               "OFFLINE");

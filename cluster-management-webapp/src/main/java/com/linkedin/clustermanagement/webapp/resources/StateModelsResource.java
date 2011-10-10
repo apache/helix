@@ -85,8 +85,7 @@ public class StateModelsResource extends Resource
     ClusterSetup setupTool = new ClusterSetup(zkServerAddress);
     List<String> models = setupTool.getClusterManagementTool().getStateModelDefs(clusterName);
     
-    ZNRecord modelDefinitions = new ZNRecord();
-    modelDefinitions.setId("modelDefinitions");
+    ZNRecord modelDefinitions = new ZNRecord("modelDefinitions");
     modelDefinitions.setListField("models", models);
     
     StringRepresentation representation = new StringRepresentation(ClusterRepresentationUtil.ZNRecordToJson(modelDefinitions), MediaType.APPLICATION_JSON);

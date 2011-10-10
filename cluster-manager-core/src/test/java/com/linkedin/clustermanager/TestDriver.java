@@ -350,7 +350,7 @@ public class TestDriver
       String dbName = TEST_DB_PREFIX + i;
       ZNRecord destIS = IdealStateCalculatorForStorageNode.calculateIdealState(instanceNames, 
                testInfo._numPartitionsPerDb, testInfo._replica - 1, dbName, "MASTER", "SLAVE");
-      destIS.setId(dbName);
+      // destIS.setId(dbName);
       destIS.setSimpleField("ideal_state_mode", IdealStateConfigProperty.CUSTOMIZED.toString());
       destIS.setSimpleField("partitions", Integer.toString(testInfo._numPartitionsPerDb));
       destIS.setSimpleField("state_model_def_ref", STATE_MODEL);
@@ -414,9 +414,9 @@ public class TestDriver
   
   private static ZNRecord calculateExternalViewFromIdealState(ZNRecord idealState, List<String> failInstances)
   {
-    ZNRecord externalView = new ZNRecord();
+    ZNRecord externalView = new ZNRecord(idealState.getId());
 
-    externalView.setId(idealState.getId());
+    // externalView.setId();
     
     for (Map.Entry<String, Map<String, String>> mapEntry : idealState.getMapFields().entrySet())
     {

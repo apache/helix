@@ -172,7 +172,7 @@ public class ZkDistCMHandler
   {
     for (String clusterName : clusterNames)
     {
-      boolean result = ClusterStateVerifier.VerifyClusterStates(ZK_ADDR, clusterName);
+      boolean result = ClusterStateVerifier.verifyClusterStates(ZK_ADDR, clusterName);
       logger.info("verify cluster: " + clusterName + ", result: " + result);
       Assert.assertTrue(result);
     }

@@ -315,7 +315,7 @@ public class TestExecutor
     }
     else
     {
-      if (!compareMapValue(value.simpleFields, expect.getSimpleFields()))
+      if (!compareMapValue(value.getSimpleFields(), expect.getSimpleFields()))
       {
         return false;
       }
@@ -527,7 +527,7 @@ public class TestExecutor
         {
           if (record == null)
           {
-            record = new ZNRecord();
+            record = new ZNRecord("default");
           }
           ZnodeModValueType valueType = getValueType(arg._propertyType, arg._key);
           switch(valueType)

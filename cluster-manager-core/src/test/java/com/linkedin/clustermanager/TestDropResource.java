@@ -21,7 +21,7 @@ public class TestDropResource extends ZkStandAloneCMHandler
     _setupTool.rebalanceStorageCluster(CLUSTER_NAME, "MyDB", 3);
     Thread.sleep(10000);
     
-    boolean result = ClusterStateVerifier.VerifyClusterStates(ZK_ADDR, CLUSTER_NAME);
+    boolean result = ClusterStateVerifier.verifyClusterStates(ZK_ADDR, CLUSTER_NAME);
     Assert.assertTrue(result);
     
     _setupTool.dropResourceGroupToCluster(CLUSTER_NAME, "MyDB");

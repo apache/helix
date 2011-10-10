@@ -38,8 +38,7 @@ public class TestZKRoutingInfoProvider
       currentStates2.put(nodeNames[i], new TreeMap<String, ZNRecord>());
       for (int j = 0; j < dbNames.length; j++)
       {
-        ZNRecord dbPartitionState = new ZNRecord();
-        dbPartitionState.setId(dbNames[j]);
+        ZNRecord dbPartitionState = new ZNRecord(dbNames[j]);
         currentStates2.get(nodeNames[i]).put(dbNames[j], dbPartitionState);
       }
     }
@@ -160,8 +159,7 @@ public class TestZKRoutingInfoProvider
     List<ZNRecord> mockIdealStates = new ArrayList<ZNRecord>();
     for (String dbName : dbNames)
     {
-      ZNRecord rec = new ZNRecord();
-      rec.setId(dbName);
+      ZNRecord rec = new ZNRecord(dbName);
       mockIdealStates.add(rec);
     }
     List<ZNRecord> externalView = provider.computeExternalView(currentStates,

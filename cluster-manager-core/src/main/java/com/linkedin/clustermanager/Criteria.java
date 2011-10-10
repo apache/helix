@@ -1,6 +1,5 @@
 package com.linkedin.clustermanager;
 
-
 public class Criteria
 {
   /**
@@ -31,6 +30,20 @@ public class Criteria
    * State of the resource
    */
   String resourceState;
+  /**
+   * Exclude sending message to your self. True by default
+   */
+  boolean selfExcluded = true;
+
+  public boolean isSelfExcluded()
+  {
+    return selfExcluded;
+  }
+
+  public void setSelfExcluded(boolean selfExcluded)
+  {
+    this.selfExcluded = selfExcluded;
+  }
 
   public InstanceType getRecipientInstanceType()
   {

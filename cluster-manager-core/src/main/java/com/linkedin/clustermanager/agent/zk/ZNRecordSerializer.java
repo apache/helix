@@ -74,8 +74,7 @@ public class ZNRecordSerializer implements ZkSerializer
 
   public static void main(String[] args)
   {
-    ZNRecord record = new ZNRecord();
-    record.setId("asdsa");
+    ZNRecord record = new ZNRecord("asdsa");
     Map<String, String> v = new TreeMap<String, String>();
     v.put("KEY!", "asdas");
     record.setSimpleField("asdsa", "adasdsdasd");

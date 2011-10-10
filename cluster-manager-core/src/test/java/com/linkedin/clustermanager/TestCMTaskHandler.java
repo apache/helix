@@ -17,13 +17,12 @@ public class TestCMTaskHandler
   public void testInvocation() throws Exception
   {
     System.out.println("TestCMTaskHandler.testInvocation()");
-    Message message = new Message(MessageType.STATE_TRANSITION);
+    Message message = new Message(MessageType.STATE_TRANSITION,"Some unique id");
     message.setSrcName("cm-instance-0");
     message.setTgtSessionId("1234");
     message.setFromState("Offline");
     message.setToState("Slave");
     message.setStateUnitKey("Teststateunitkey");
-    message.setId("Some unique id");
     message.setMsgId("Some unique message id");
     message.setStateUnitGroup("TeststateunitGroup");
     message.setTgtName("localhost");
@@ -42,13 +41,12 @@ public class TestCMTaskHandler
   public void testInvocationAnnotated() throws Exception
   {
     System.out.println("TestCMTaskHandler.testInvocationAnnotated()");
-    Message message = new Message(MessageType.STATE_TRANSITION);
+    Message message = new Message(MessageType.STATE_TRANSITION,"Some unique id");
     message.setSrcName("cm-instance-0");
     message.setTgtSessionId("1234");
     message.setFromState("Offline");
     message.setToState("Slave");
     message.setStateUnitKey("Teststateunitkey");
-    message.setId("Some unique id");
     message.setMsgId("Some unique message id");
     message.setTgtName("localhost");
     MockStateModelAnnotated stateModel = new MockStateModelAnnotated();

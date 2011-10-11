@@ -115,7 +115,7 @@
         <version>2.10</version>
         <configuration>
           <parallel>classes</parallel>
-          <threadCount>1</threadCount>
+          <threadCount>40</threadCount>
         </configuration>
       </plugin>
       <plugin>

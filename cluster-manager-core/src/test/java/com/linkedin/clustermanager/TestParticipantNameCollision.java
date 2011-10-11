@@ -7,9 +7,11 @@ import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestParticiptantNameCollision extends ZkStandAloneCMHandler
+import com.linkedin.clustermanager.TestHelper.DummyProcessResult;
+
+public class TestParticipantNameCollision extends ZkStandAloneCMHandler
 {
-  private static Logger logger = Logger.getLogger(TestParticiptantNameCollision.class);
+  private static Logger logger = Logger.getLogger(TestParticipantNameCollision.class);
   static final AtomicInteger _exceptionCounter = new AtomicInteger();
   
   @Test
@@ -17,6 +19,7 @@ public class TestParticiptantNameCollision extends ZkStandAloneCMHandler
   {
     logger.info("RUN at " + new Date(System.currentTimeMillis()));
     
+    DummyProcessResult result = null;
     int i = 0;
     for (; i < 1; i++)
     {
@@ -25,7 +28,7 @@ public class TestParticiptantNameCollision extends ZkStandAloneCMHandler
       {
         // the call fails on getClusterManagerForParticipant()
         // no threads start
-        TestHelper.startDummyProcess(ZK_ADDR, CLUSTER_NAME, instanceName, null);
+        result = TestHelper.startDummyProcess(ZK_ADDR, CLUSTER_NAME, instanceName, null);
       }
       catch (ClusterManagerException e)
       {
@@ -38,9 +41,10 @@ public class TestParticiptantNameCollision extends ZkStandAloneCMHandler
       }
     }
     
-    // Thread.sleep(40000);
+    Thread.sleep(40000);
   
-    Assert.assertEquals(i, _exceptionCounter.get());
+    Assert.assertFalse(result._manager.isConnected());
+    // Assert.assertEquals(i, _exceptionCounter.get());
     logger.info("END at " + new Date(System.currentTimeMillis()));
   }
 }

@@ -9,8 +9,8 @@ import java.util.Map;
 import org.I0Itec.zkclient.ZkServer;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
-import org.testng.annotations.AfterTest;
-import org.testng.annotations.BeforeTest;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.ClusterDataAccessor.IdealStateConfigProperty;
@@ -217,15 +217,15 @@ public class TestUsingTestFramework
     
   }
   
-  @BeforeTest
-  public void beforeTest()
+  @BeforeClass
+  public void beforeClass()
   {
     _zkServer = TestHelper.startZkSever(ZK_ADDR, PREFIX);
     
   }
   
-  @AfterTest
-  public void afterTest()
+  @AfterClass
+  public void afterClass()
   {
     TestHelper.stopZkServer(_zkServer);
   }

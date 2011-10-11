@@ -145,7 +145,7 @@ public class DummyProcess
       String db = message.getStateUnitKey();
       String instanceName = context.getManager().getInstanceName();
       sleep();
-      System.out.println("DummyStateModel.onBecomeSlaveFromOffline(), instance:" + instanceName 
+      logger.info("DummyStateModel.onBecomeSlaveFromOffline(), instance:" + instanceName 
                          + ", db:" + db);
     }
 
@@ -154,7 +154,7 @@ public class DummyProcess
     {
 
       sleep();
-      System.out.println("DummyStateModel.onBecomeSlaveFromMaster()");
+      logger.info("DummyStateModel.onBecomeSlaveFromMaster()");
 
     }
 
@@ -163,7 +163,7 @@ public class DummyProcess
     {
 
       sleep();
-      System.out.println("DummyStateModel.onBecomeMasterFromSlave()");
+      logger.info("DummyStateModel.onBecomeMasterFromSlave()");
 
     }
 

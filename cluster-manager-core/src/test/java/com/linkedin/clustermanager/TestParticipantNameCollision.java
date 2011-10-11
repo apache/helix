@@ -1,7 +1,6 @@
 package com.linkedin.clustermanager;
 
 import java.util.Date;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.log4j.Logger;
 import org.testng.Assert;
@@ -12,7 +11,7 @@ import com.linkedin.clustermanager.TestHelper.DummyProcessResult;
 public class TestParticipantNameCollision extends ZkStandAloneCMHandler
 {
   private static Logger logger = Logger.getLogger(TestParticipantNameCollision.class);
-  static final AtomicInteger _exceptionCounter = new AtomicInteger();
+  // static final AtomicInteger _exceptionCounter = new AtomicInteger();
   
   @Test
   public void testParticiptantNameCollision() throws Exception
@@ -30,18 +29,13 @@ public class TestParticipantNameCollision extends ZkStandAloneCMHandler
         // no threads start
         result = TestHelper.startDummyProcess(ZK_ADDR, CLUSTER_NAME, instanceName, null);
       }
-      catch (ClusterManagerException e)
-      {
-        _exceptionCounter.addAndGet(1);
-        logger.info("exceptionCounter:" + _exceptionCounter.get());
-      }
       catch (Exception e)
       {
         e.printStackTrace();
       }
     }
     
-    Thread.sleep(40000);
+    Thread.sleep(20000);
   
     Assert.assertFalse(result._manager.isConnected());
     // Assert.assertEquals(i, _exceptionCounter.get());

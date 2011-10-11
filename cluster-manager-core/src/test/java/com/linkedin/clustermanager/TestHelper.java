@@ -3,6 +3,7 @@ package com.linkedin.clustermanager;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.Semaphore;
 
 import org.I0Itec.zkclient.IDefaultNameSpace;
 import org.I0Itec.zkclient.ZkServer;
@@ -19,8 +20,9 @@ import com.linkedin.clustermanager.util.ZKClientPool;
 public class TestHelper
 {
   private static final Logger logger = Logger.getLogger(TestHelper.class);
-  volatile static boolean alreadyRunning = false;
-  static Object lock = new Object();
+  // volatile static boolean alreadyRunning = false;
+  // static Object lock = new Object();
+  private static final Semaphore available = new Semaphore(1, true);
 
   static public ZkServer startZkSever(final String zkAddress, final String rootNamespace)
   {
@@ -32,7 +34,7 @@ public class TestHelper
   static public ZkServer startZkSever(final String zkAddress, final List<String> rootNamespaces)
   {
     logger.info("Starting zookeeper at " +zkAddress + " in thread "+ Thread.currentThread().getName());
-    
+    /*
     synchronized (lock)
     {
       logger.info("alreadyRunning: "+alreadyRunning+ " for " + Thread.currentThread().getName());
@@ -51,6 +53,16 @@ public class TestHelper
       }
       logger.info("started zk, alreadyRunning: "+alreadyRunning+ " for " + Thread.currentThread().getName());
       alreadyRunning = true;
+    }
+    */
+    try
+    {
+      available.acquire();
+    }
+    catch (InterruptedException e1)
+    {
+      // TODO Auto-generated catch block
+      e1.printStackTrace();
     }
     final String logDir = "/tmp/logs";
     final String dataDir = "/tmp/dataDir";
@@ -95,12 +107,14 @@ public class TestHelper
     {
       zkServer.shutdown();
       logger.info("Shutting down ZK " + Thread.currentThread().getName());
+      /*
       synchronized (lock)
       {
         alreadyRunning = false;
         lock.notify();
       }
-
+      */
+      available.release();
     }
   }
 

@@ -105,18 +105,34 @@ public class ZkStandAloneCMHandler
                                           ClusterManagerMain.STANDALONE,
                                           _controllerZkClient);
     _threadMap.put(controllerName, thread);
+    
     try
     {
-      Thread.sleep(10000);
+      boolean result = false;
+      int i = 0;
+      for ( ; i < 24; i++)
+      {
+        Thread.sleep(2000);
+        result = ClusterStateVerifier.verifyClusterStates(ZK_ADDR, CLUSTER_NAME);
+        if (result == true)
+        {
+          break;
+        }
+      }
+      // debug
+      System.out.println("ZkStandaloneCMHandler.beforeClass(): wait " + ((i+1) * 2000) 
+                         + "s to verify cluster:" + CLUSTER_NAME);
+      if (result == false)
+      {
+        System.out.println("ZkStandaloneCMHandler.beforeClass() verification fails");
+      }
+      Assert.assertTrue(result);
     }
     catch (InterruptedException e)
     {
       // TODO Auto-generated catch block
       e.printStackTrace();
     }
-    boolean result = ClusterStateVerifier.verifyClusterStates(ZK_ADDR, CLUSTER_NAME);
-    Assert.assertTrue(result);
-    logger.info("cluster:" + CLUSTER_NAME + " starts result:" + result);
   }
 
   @AfterClass

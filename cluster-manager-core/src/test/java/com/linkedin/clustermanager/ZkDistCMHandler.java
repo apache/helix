@@ -123,17 +123,18 @@ public class ZkDistCMHandler
     {
       boolean result = false;
       int i = 0;
-      for ( ; i < 12; i++)
+      for ( ; i < 24; i++)
       {
-        Thread.sleep(5000);
-         result = verifyIdealAndCurrentState(clusterNames);
+        Thread.sleep(2000);
+        result = verifyIdealAndCurrentState(clusterNames);
         if (result == true)
         {
           break;
         }
       }
       // debug
-      System.err.println("wait time=" + ((i+1) * 5000) + "s");
+      System.out.println("ZkDistCMHandler.beforeClass(): wait " + ((i+1) * 2000) 
+                         + "s to verify cluster:" + CONTROLLER_CLUSTER + ", " + firstCluster);
       if (result == false)
       {
         System.out.println("ZkDistCMHandler.beforeClass() verification fails");
@@ -158,7 +159,6 @@ public class ZkDistCMHandler
     for (Map.Entry<String, Thread> entry : _threadMap.entrySet())
     {
       entry.getValue().interrupt();
-      // Thread.sleep(3000);
     }
     Thread.sleep(3000);
     TestHelper.stopZkServer(_zkServer);

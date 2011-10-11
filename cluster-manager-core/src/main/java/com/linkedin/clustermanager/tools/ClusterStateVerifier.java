@@ -224,7 +224,7 @@ public class ClusterStateVerifier
                 + " current:" + partitionNodeState + ", expected:" + nodePartitionState);
             success= false;
           }
-          assert (partitionNodeState.equals(nodePartitionState));
+          // assert (partitionNodeState.equals(nodePartitionState));
           return success;
         }
       }
@@ -239,7 +239,7 @@ public class ClusterStateVerifier
         countInCurrentStates++;
       }
     }
-    assert (countInIdealStates == countInCurrentStates);
+    // assert (countInIdealStates == countInCurrentStates);
 
     if (countInIdealStates != countInCurrentStates)
     {

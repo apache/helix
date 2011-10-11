@@ -111,7 +111,7 @@ public class BootstrapProcess
     manager.connect();
     if (_file != null)
     {
-      ClusterStateVerifier.VerifyFileBasedClusterStates(_file, instanceName,
+      ClusterStateVerifier.verifyFileBasedClusterStates(_file, instanceName,
           stateModelFactory);
 
     }

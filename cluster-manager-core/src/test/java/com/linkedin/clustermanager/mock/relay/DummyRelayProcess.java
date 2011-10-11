@@ -40,7 +40,7 @@ public class DummyRelayProcess
   private final String instanceName;
   private ClusterManager manager;
   private DummyStateModelFactory stateModelFactory;
-  private StateMachineEngine genericStateMachineHandler;
+  private StateMachineEngine<StateModel> genericStateMachineHandler;
 
   private String _file = null;
 
@@ -67,13 +67,13 @@ public class DummyRelayProcess
     manager.connect();
     if (_file != null)
     {
-      ClusterStateVerifier.VerifyFileBasedClusterStates(_file, instanceName,
+      ClusterStateVerifier.verifyFileBasedClusterStates(_file, instanceName,
           stateModelFactory);
 
     }
   }
 
-  public static class DummyStateModelFactory extends StateModelFactory
+  public static class DummyStateModelFactory extends StateModelFactory<StateModel>
   {
     @Override
     public StateModel createNewStateModel(String stateUnitKey)

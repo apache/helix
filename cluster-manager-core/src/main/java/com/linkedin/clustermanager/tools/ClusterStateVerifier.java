@@ -90,16 +90,16 @@ public class ClusterStateVerifier
       externalViews.add((ZNRecord) zkClient.readData(viewPath));
     }
 
-    boolean result1 = VerifyIdealStateAndCurrentState(idealStates,
+    boolean result1 = verifyIdealStateAndCurrentState(idealStates,
         currentStates);
-    boolean result2 = VerifyCurrentStateAndExternalView(currentStates,
+    boolean result2 = verifyCurrentStateAndExternalView(currentStates,
         externalViews);
 
     return result1 && result2;
   }
 
-  public static boolean VerifyFileBasedClusterStates(String file,
-      String instanceName, StateModelFactory stateModelFactory)
+  public static boolean verifyFileBasedClusterStates(String file,
+      String instanceName, StateModelFactory<StateModel> stateModelFactory)
   {
     // ClusterView clusterView = FileBasedClusterManager.readClusterView(file);
     ClusterView clusterView = ClusterViewSerializer.deserialize(new File(file));
@@ -176,7 +176,7 @@ public class ClusterStateVerifier
     return ret;
   }
 
-  public static boolean VerifyIdealStateAndCurrentState(
+  public static boolean verifyIdealStateAndCurrentState(
       List<ZNRecord> idealStates,
       Map<String, Map<String, ZNRecord>> currentStates)
   {
@@ -249,13 +249,13 @@ public class ClusterStateVerifier
     return countInIdealStates == countInCurrentStates;
   }
 
-  public static boolean VerifyCurrentStateAndExternalView(
+  public static boolean verifyCurrentStateAndExternalView(
       Map<String, Map<String, ZNRecord>> currentStates,
       List<ZNRecord> externalViews)
   {
     // currently external view and ideal state has same structure so we can
     // use the same verification code.
-    return VerifyIdealStateAndCurrentState(externalViews, currentStates);
+    return verifyIdealStateAndCurrentState(externalViews, currentStates);
   }
 
   @SuppressWarnings("static-access")

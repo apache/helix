@@ -1,11 +1,14 @@
-package com.linkedin.clustermanager;
+package com.linkedin.clustermanager.zk;
 
+import org.testng.annotations.Test;
+import org.testng.AssertJUnit;
 import java.util.Date;
 
 import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import com.linkedin.clustermanager.TestHelper;
 import com.linkedin.clustermanager.controller.ClusterManagerMain;
 import com.linkedin.clustermanager.tools.ClusterStateVerifier;
 
@@ -27,7 +30,7 @@ public class TestStandAloneCMMain extends ZkStandAloneCMHandler
     
     Thread.sleep(5000);
     boolean result = ClusterStateVerifier.verifyClusterStates(ZK_ADDR, CLUSTER_NAME);
-    Assert.assertTrue(result);
+    AssertJUnit.assertTrue(result);
     
     logger.info("End at " + new Date(System.currentTimeMillis())); 
   }

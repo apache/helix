@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
+<suite name="ZkSuite" parallel="tests" thread-count="10">
+  <test name="ZkTest" preserve-order="false">
+    <classes>
+      <class name="com.linkedin.clustermanager.zk.IntegrationTest"/>
+      <class name="com.linkedin.clustermanager.zk.TestDistClusterController"/>
+      <class name="com.linkedin.clustermanager.zk.TestDistCMMain"/>
+      <class name="com.linkedin.clustermanager.zk.TestDropResource"/>      
+      <class name="com.linkedin.clustermanager.zk.TestMessagingService"/>
+	  <class name="com.linkedin.clustermanager.zk.TestParticipantNameCollision"/>
+      <class name="com.linkedin.clustermanager.zk.TestStandAloneCMMain"/>
+      <class name="com.linkedin.clustermanager.zk.TestStandAloneCMSessionExpiry"/>
+      <class name="com.linkedin.clustermanager.zk.TestUsingTestFramework"/>
+    </classes>
+  </test>
+</suite>

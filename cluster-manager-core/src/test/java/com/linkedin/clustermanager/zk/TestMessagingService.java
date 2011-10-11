@@ -1,5 +1,7 @@
-package com.linkedin.clustermanager;
+package com.linkedin.clustermanager.zk;
 
+import org.testng.annotations.Test;
+import org.testng.AssertJUnit;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.UUID;
@@ -7,6 +9,9 @@ import java.util.UUID;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import com.linkedin.clustermanager.Criteria;
+import com.linkedin.clustermanager.InstanceType;
+import com.linkedin.clustermanager.NotificationContext;
 import com.linkedin.clustermanager.messaging.AsyncCallback;
 import com.linkedin.clustermanager.messaging.handling.MessageHandler;
 import com.linkedin.clustermanager.messaging.handling.MessageHandlerFactory;
@@ -82,10 +87,10 @@ public class TestMessagingService extends ZkStandAloneCMHandler
     cr.setSessionSpecific(false);
 
     int nMsgs = _managerMap.get(hostSrc).getMessagingService().send(cr, msg);
-    Assert.assertTrue(nMsgs == 1);
+    AssertJUnit.assertTrue(nMsgs == 1);
     Thread.sleep(2500);
     // Thread.currentThread().join();
-    Assert.assertTrue(TestMessagingHandlerFactory._processedMsgIds
+    AssertJUnit.assertTrue(TestMessagingHandlerFactory._processedMsgIds
         .contains(para));
 
   }
@@ -178,16 +183,16 @@ public class TestMessagingService extends ZkStandAloneCMHandler
 
     Thread.sleep(2000);
     // Thread.currentThread().join();
-    Assert.assertTrue(TestAsyncCallback._replyedMessageContents
+    AssertJUnit.assertTrue(TestAsyncCallback._replyedMessageContents
         .contains("TestReplyMessage"));
-    Assert.assertTrue(callback.getMessageReplied().size() == 1);
+    AssertJUnit.assertTrue(callback.getMessageReplied().size() == 1);
 
     TestAsyncCallback callback2 = new TestAsyncCallback(500);
     _managerMap.get(hostSrc).getMessagingService().send(cr, msg, callback2, 500);
 
     Thread.sleep(3000);
     // Thread.currentThread().join();
-    Assert.assertTrue(callback2.isTimedOut());
+    AssertJUnit.assertTrue(callback2.isTimedOut());
 
   }
 
@@ -220,16 +225,16 @@ public class TestMessagingService extends ZkStandAloneCMHandler
     int messagesSent = _managerMap.get(hostSrc).getMessagingService()
         .sendAndWait(cr, msg, asyncCallback, 60000);
 
-    Assert.assertTrue(asyncCallback.getMessageReplied().get(0).getRecord()
+    AssertJUnit.assertTrue(asyncCallback.getMessageReplied().get(0).getRecord()
         .getMapField(Message.Attributes.MESSAGE_RESULT.toString())
         .get("ReplyMessage").equals("TestReplyMessage"));
-    Assert.assertTrue(asyncCallback.getMessageReplied().size() == 1);
+    AssertJUnit.assertTrue(asyncCallback.getMessageReplied().size() == 1);
 
     
     AsyncCallback asyncCallback2 = new MockAsyncCallback();
     messagesSent = _managerMap.get(hostSrc).getMessagingService()
         .sendAndWait(cr, msg, asyncCallback2, 500);
-    Assert.assertTrue(asyncCallback2.isTimedOut());
+    AssertJUnit.assertTrue(asyncCallback2.isTimedOut());
 
   }
 
@@ -264,27 +269,27 @@ public class TestMessagingService extends ZkStandAloneCMHandler
     int messageSent1 = _managerMap.get(hostSrc).getMessagingService()
         .sendAndWait(cr, msg, callback1, 2000);
 
-    Assert.assertTrue(callback1.getMessageReplied().get(0).getRecord()
+    AssertJUnit.assertTrue(callback1.getMessageReplied().get(0).getRecord()
         .getMapField(Message.Attributes.MESSAGE_RESULT.toString())
         .get("ReplyMessage").equals("TestReplyMessage"));
-    Assert.assertTrue(callback1.getMessageReplied().size() == NODE_NR - 1);
+    AssertJUnit.assertTrue(callback1.getMessageReplied().size() == NODE_NR - 1);
 
     AsyncCallback callback2 = new MockAsyncCallback();
     int messageSent2 = _managerMap.get(hostSrc).getMessagingService()
         .sendAndWait(cr, msg, callback2, 500);
-    Assert.assertTrue(callback2.isTimedOut());
+    AssertJUnit.assertTrue(callback2.isTimedOut());
 
     cr.setResourceKey("TestDB_17");
     AsyncCallback callback3 = new MockAsyncCallback();
     int messageSent3 = _managerMap.get(hostSrc).getMessagingService()
         .sendAndWait(cr, msg, callback3, 2000);
-    Assert.assertTrue(callback3.getMessageReplied().size() == 3);
+    AssertJUnit.assertTrue(callback3.getMessageReplied().size() == 3);
 
     cr.setResourceState("SLAVE");
     AsyncCallback callback4 = new MockAsyncCallback();
     int messageSent4 = _managerMap.get(hostSrc).getMessagingService()
         .sendAndWait(cr, msg, callback4, 2000);
-    Assert.assertTrue(callback4.getMessageReplied().size() == 2);
+    AssertJUnit.assertTrue(callback4.getMessageReplied().size() == 2);
 
   }
 
@@ -319,10 +324,10 @@ public class TestMessagingService extends ZkStandAloneCMHandler
     int messagesSent = _managerMap.get(hostSrc).getMessagingService()
         .sendAndWait(cr, msg, callback1, 2000);
 
-    Assert.assertTrue(callback1.getMessageReplied().get(0).getRecord()
+    AssertJUnit.assertTrue(callback1.getMessageReplied().get(0).getRecord()
         .getMapField(Message.Attributes.MESSAGE_RESULT.toString())
         .get("ControllerResult").indexOf(hostSrc) != -1);
-    Assert.assertTrue(callback1.getMessageReplied().size() == 1);
+    AssertJUnit.assertTrue(callback1.getMessageReplied().size() == 1);
 
     msgId = UUID.randomUUID().toString();
     msg.setMsgId(msgId);
@@ -330,11 +335,11 @@ public class TestMessagingService extends ZkStandAloneCMHandler
     AsyncCallback callback2 = new MockAsyncCallback();
     messagesSent = _managerMap.get(hostSrc).getMessagingService()
         .sendAndWait(cr, msg, callback2, 2000);
-    Assert.assertTrue(callback2.getMessageReplied().get(0).getRecord()
+    AssertJUnit.assertTrue(callback2.getMessageReplied().get(0).getRecord()
         .getMapField(Message.Attributes.MESSAGE_RESULT.toString())
         .get("ControllerResult").indexOf(hostSrc) != -1);
 
-    Assert.assertTrue(callback2.getMessageReplied().size() == 1);
+    AssertJUnit.assertTrue(callback2.getMessageReplied().size() == 1);
 
     msgId = UUID.randomUUID().toString();
     msg.setMsgId(msgId);
@@ -342,10 +347,10 @@ public class TestMessagingService extends ZkStandAloneCMHandler
     AsyncCallback callback3 = new MockAsyncCallback();
     messagesSent = _managerMap.get(hostSrc).getMessagingService()
         .sendAndWait(cr, msg, callback3, 2000);
-    Assert.assertTrue(callback3.getMessageReplied().get(0).getRecord()
+    AssertJUnit.assertTrue(callback3.getMessageReplied().get(0).getRecord()
         .getMapField(Message.Attributes.MESSAGE_RESULT.toString())
         .get("ControllerResult").indexOf(hostSrc) != -1);
 
-    Assert.assertTrue(callback3.getMessageReplied().size() == 1);
+    AssertJUnit.assertTrue(callback3.getMessageReplied().size() == 1);
   }
 }

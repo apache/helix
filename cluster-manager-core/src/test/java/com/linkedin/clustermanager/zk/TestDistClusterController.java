@@ -1,5 +1,7 @@
-package com.linkedin.clustermanager;
+package com.linkedin.clustermanager.zk;
 
+import org.testng.annotations.Test;
+import org.testng.AssertJUnit;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -8,6 +10,7 @@ import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import com.linkedin.clustermanager.TestHelper;
 import com.linkedin.clustermanager.TestHelper.DummyProcessResult;
 
 public class TestDistClusterController extends ZkDistCMHandler
@@ -76,7 +79,7 @@ public class TestDistClusterController extends ZkDistCMHandler
       {
         System.out.println("TestDistClusterController verification fails");
       }
-      Assert.assertTrue(result);
+      AssertJUnit.assertTrue(result);
     }
     catch (InterruptedException e)
     {

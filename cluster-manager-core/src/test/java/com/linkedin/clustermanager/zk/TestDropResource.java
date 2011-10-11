@@ -1,10 +1,14 @@
-package com.linkedin.clustermanager;
+package com.linkedin.clustermanager.zk;
 
+import org.testng.annotations.Test;
+import org.testng.AssertJUnit;
 import java.util.List;
 
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import com.linkedin.clustermanager.ClusterDataAccessor;
+import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.agent.zk.ZKDataAccessor;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
@@ -22,7 +26,7 @@ public class TestDropResource extends ZkStandAloneCMHandler
     Thread.sleep(10000);
     
     boolean result = ClusterStateVerifier.verifyClusterStates(ZK_ADDR, CLUSTER_NAME);
-    Assert.assertTrue(result);
+    AssertJUnit.assertTrue(result);
     
     _setupTool.dropResourceGroupToCluster(CLUSTER_NAME, "MyDB");
     Thread.sleep(10000);
@@ -51,7 +55,7 @@ public class TestDropResource extends ZkStandAloneCMHandler
         ZNRecord previousCurrentState = accessor.getInstanceProperty(instanceName, 
                               InstancePropertyType.CURRENTSTATES, previousSessionId, dbName);
 
-        Assert.assertEquals(previousCurrentState.getMapFields().size(), 0);
+        AssertJUnit.assertEquals(previousCurrentState.getMapFields().size(), 0);
       }
     }
   }

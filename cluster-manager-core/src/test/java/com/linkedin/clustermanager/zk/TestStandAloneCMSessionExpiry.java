@@ -1,5 +1,7 @@
-package com.linkedin.clustermanager;
+package com.linkedin.clustermanager.zk;
 
+import org.testng.annotations.Test;
+import org.testng.AssertJUnit;
 import java.io.IOException;
 import java.util.Date;
 
@@ -25,7 +27,7 @@ public class TestStandAloneCMSessionExpiry extends ZkStandAloneCMHandler
     _setupTool.rebalanceStorageCluster(CLUSTER_NAME, "MyDB", 3);
     Thread.sleep(8000);
     boolean result = ClusterStateVerifier.verifyClusterStates(ZK_ADDR, CLUSTER_NAME);
-    Assert.assertTrue(result);
+    AssertJUnit.assertTrue(result);
     logger.info("cluster:" + CLUSTER_NAME + " after pariticipant session expiry result:" + result);
 
     
@@ -35,7 +37,7 @@ public class TestStandAloneCMSessionExpiry extends ZkStandAloneCMHandler
     Thread.sleep(8000);
     
     result = ClusterStateVerifier.verifyClusterStates(ZK_ADDR, CLUSTER_NAME);
-    Assert.assertTrue(result);
+    AssertJUnit.assertTrue(result);
     logger.info("cluster:" + CLUSTER_NAME + " after controller session expiry result:" + result);
     
     logger.info("END at " + new Date(System.currentTimeMillis()));

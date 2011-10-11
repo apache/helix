@@ -1,11 +1,14 @@
-package com.linkedin.clustermanager;
+package com.linkedin.clustermanager.zk;
 
 import java.util.Date;
 
 import org.apache.log4j.Logger;
+import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import com.linkedin.clustermanager.TestHelper;
 import com.linkedin.clustermanager.controller.ClusterManagerMain;
+import com.linkedin.clustermanager.tools.ClusterStateVerifier;
 
 public class TestDistCMMain extends ZkDistCMHandler
 {
@@ -35,7 +38,33 @@ public class TestDistCMMain extends ZkDistCMHandler
       _threadMap.put(controller, thread);
     }
     
-    Thread.sleep(10000);
+    try
+    {
+      boolean result = false;
+      int i = 0;
+      for ( ; i < 24; i++)
+      {
+        Thread.sleep(2000);
+        result = ClusterStateVerifier.verifyClusterStates(ZK_ADDR, CONTROLLER_CLUSTER);
+        if (result == true)
+        {
+          break;
+        }
+      }
+      // debug
+      System.out.println("testDistCMMain(): wait " + ((i+1) * 2000) 
+                         + "s to verify (" + result + ") cluster:" + CONTROLLER_CLUSTER);
+      if (result == false)
+      {
+        System.out.println("testDistCMMain() verification fails");
+      }
+      Assert.assertTrue(result);
+    }
+    catch (InterruptedException e)
+    {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
     
     // stop controllers
     for (int i = 0; i < NODE_NR; i++)

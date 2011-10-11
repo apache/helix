@@ -1,4 +1,4 @@
-package com.linkedin.clustermanager;
+package com.linkedin.clustermanager.zk;
 
 import java.io.IOException;
 import java.util.Date;
@@ -7,7 +7,6 @@ import java.util.Map;
 
 import org.I0Itec.zkclient.IZkStateListener;
 import org.I0Itec.zkclient.ZkConnection;
-import org.I0Itec.zkclient.ZkServer;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
@@ -18,7 +17,10 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 
 import com.linkedin.clustermanager.ClusterDataAccessor.ControllerPropertyType;
+import com.linkedin.clustermanager.ClusterManager;
+import com.linkedin.clustermanager.TestHelper;
 import com.linkedin.clustermanager.TestHelper.DummyProcessResult;
+import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
 import com.linkedin.clustermanager.controller.ClusterManagerMain;
@@ -32,11 +34,9 @@ import com.linkedin.clustermanager.util.CMUtil;
  * start 5 dummy participants verify the current states at end
  */
 
-public class ZkStandAloneCMHandler
+public class ZkStandAloneCMHandler extends ZkTestBase
 {
   private static Logger logger = Logger.getLogger(ZkStandAloneCMHandler.class);
-  protected static final String ZK_ADDR = "localhost:2183";
-  // protected static final String CLUSTER_PREFIX = "ESPRESSO_STORAGE";
 
   protected static final int NODE_NR = 5;
   protected static final int START_PORT = 12918;
@@ -47,18 +47,21 @@ public class ZkStandAloneCMHandler
   protected ZkClient[] _participantZkClients = new ZkClient[NODE_NR];
   protected ClusterSetup _setupTool = null;
   protected final String CLASS_NAME = getShortClassName();
-  protected final String CLUSTER_NAME = "ESPRESSO_STORAGE_" + CLASS_NAME;
-  private ZkServer _zkServer = null;
+  protected final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + CLASS_NAME;
   private final Map<String, Thread> _threadMap = new HashMap<String, Thread>();
-  Map<String, ClusterManager> _managerMap = new HashMap<String, ClusterManager>();
+  protected Map<String, ClusterManager> _managerMap = new HashMap<String, ClusterManager>();
 
   @BeforeClass
   public void beforeClass() throws Exception
   {
+    // logger.info("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
+    System.out.println("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
     
-    logger.info("START at " + new Date(System.currentTimeMillis()) + " " + CLUSTER_NAME);
-    
-    _zkServer = TestHelper.startZkSever(ZK_ADDR, "/" + CLUSTER_NAME);
+    String namespace = "/" + CLUSTER_NAME;
+    if (_zkClient.exists(namespace))
+    {
+      _zkClient.deleteRecursive(namespace);
+    }
     _setupTool = new ClusterSetup(ZK_ADDR);
 
     // setup storage cluster
@@ -106,6 +109,8 @@ public class ZkStandAloneCMHandler
                                           _controllerZkClient);
     _threadMap.put(controllerName, thread);
     
+    // Thread.sleep(2000);
+    
     try
     {
       boolean result = false;
@@ -121,7 +126,7 @@ public class ZkStandAloneCMHandler
       }
       // debug
       System.out.println("ZkStandaloneCMHandler.beforeClass(): wait " + ((i+1) * 2000) 
-                         + "s to verify cluster:" + CLUSTER_NAME);
+                         + "ms to verify (" + result + ") cluster:" + CLUSTER_NAME);
       if (result == false)
       {
         System.out.println("ZkStandaloneCMHandler.beforeClass() verification fails");
@@ -138,18 +143,12 @@ public class ZkStandAloneCMHandler
   @AfterClass
   public void afterClass() throws Exception
   {
-    logger.info("END shutting down cluster managers at " + new Date(System.currentTimeMillis()));
+    // logger.info("END shutting down cluster managers at " + new Date(System.currentTimeMillis()));
 
     stopThread(_threadMap);
     Thread.sleep(3000);
-    logger.info("END at " + new Date(System.currentTimeMillis()));
-    TestHelper.stopZkServer(_zkServer);
-  }
-
-  private String getShortClassName()
-  {
-    String className = this.getClass().getName();
-    return className.substring(className.lastIndexOf('.') + 1);
+    // logger.info("END at " + new Date(System.currentTimeMillis()));
+    System.out.println("END " + CLASS_NAME + " at "+ new Date(System.currentTimeMillis()));
   }
 
   private void stopThread(Map<String, Thread> threadMap)

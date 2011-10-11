@@ -1,4 +1,4 @@
-package com.linkedin.clustermanager;
+package com.linkedin.clustermanager.zk;
 
 import java.util.Date;
 
@@ -6,6 +6,7 @@ import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import com.linkedin.clustermanager.TestHelper;
 import com.linkedin.clustermanager.TestHelper.DummyProcessResult;
 
 public class TestParticipantNameCollision extends ZkStandAloneCMHandler

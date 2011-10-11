@@ -386,16 +386,11 @@ public class ZKClusterManager implements ClusterManager
     long initialDelay = 30 * 60 * 1000;
     long period = 120 * 60 * 1000;
     int timeThresholdNoChange = 180 * 60 * 1000;
-    String path =
-        CMUtil.getInstancePropertyPath(_clusterName,
-                                       _instanceName,
-                                       InstancePropertyType.STATUSUPDATES);
-    List<String> paths = new ArrayList<String>();
-    paths.add(path);
+    
     if (_timer == null)
     {
       _timer = new Timer();
-      _timer.scheduleAtFixedRate(new ZKPathDataDumpTask(_zkClient, paths, timeThresholdNoChange),
+      _timer.scheduleAtFixedRate(new ZKPathDataDumpTask(this, _zkClient, timeThresholdNoChange),
                                  initialDelay,
                                  period);
     }
@@ -493,6 +488,7 @@ public class ZKClusterManager implements ClusterManager
       MessageHandlerFactory defaultControllerMsgHandlerFactory = new DefaultControllerMessageHandlerFactory();
       _messagingService.getExecutor().registerMessageHandlerFactory(
           defaultControllerMsgHandlerFactory.getMessageType(), defaultControllerMsgHandlerFactory);
+      startStatusUpdatedumpTask();
       if (_leaderElectionHandler == null)
       {
         final String path = CMUtil.getControllerPath(_clusterName);
@@ -546,7 +542,6 @@ public class ZKClusterManager implements ClusterManager
     }
     addLiveInstance();
     carryOverPreviousCurrentState();
-    startStatusUpdatedumpTask();
 
     // In case the cluster manager is running as a participant, setup message listener
     addMessageListener(_messagingService.getExecutor(), _instanceName);

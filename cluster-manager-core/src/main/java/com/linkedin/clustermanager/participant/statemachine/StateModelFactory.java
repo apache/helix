@@ -1,5 +1,6 @@
 package com.linkedin.clustermanager.participant.statemachine;
 
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -29,7 +30,7 @@ public abstract class StateModelFactory<T extends StateModel>
     return _stateModelMap.get(stateUnitKey);
   }
 
-  public ConcurrentMap<String, T> getStateModelMap()
+  public Map<String, T> getStateModelMap()
   {
     return _stateModelMap;
   }

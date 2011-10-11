@@ -1,5 +1,6 @@
 package com.linkedin.clustermanager.participant;
 
+import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 
 import org.apache.log4j.Logger;
@@ -35,7 +36,7 @@ public class StateMachineEngine<T extends StateModel> implements
 
   public void reset()
   {
-    ConcurrentMap<String, T> modelMap = _stateModelFactory.getStateModelMap();
+    Map<String, T> modelMap = _stateModelFactory.getStateModelMap();
     if (modelMap == null || modelMap.isEmpty())
     {
       return;

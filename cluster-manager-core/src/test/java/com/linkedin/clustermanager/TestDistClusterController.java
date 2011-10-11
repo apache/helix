@@ -50,7 +50,7 @@ public class TestDistClusterController extends ZkDistCMHandler
       }
     }
 
-    Thread.sleep(10000);
+    // Thread.sleep(10000);
 
     List<String> clusterNames = new ArrayList<String>();
     final String firstCluster = CLUSTER_PREFIX + "_" + CLASS_NAME + "_0";
@@ -61,16 +61,21 @@ public class TestDistClusterController extends ZkDistCMHandler
     {
       boolean result = false;
       int i = 0;
-      for ( ; i < 10; i++)
+      for ( ; i < 24; i++)
       {
-        Thread.sleep(5000);
+        Thread.sleep(2000);
          result = verifyIdealAndCurrentState(clusterNames);
         if (result == true)
         {
           break;
         }
       }
-      System.err.println("wait time=" + ((i+1) * 5000) + "s");
+      System.out.println("TestDistClusterController: wait " + ((i+1) * 2000) 
+                         + "s to verify cluster:" + firstCluster + ", " + secondCluster);
+      if (result == false)
+      {
+        System.out.println("TestDistClusterController verification fails");
+      }
       Assert.assertTrue(result);
     }
     catch (InterruptedException e)

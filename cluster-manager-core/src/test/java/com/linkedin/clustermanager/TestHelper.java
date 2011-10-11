@@ -33,7 +33,7 @@ public class TestHelper
 
   static public ZkServer startZkSever(final String zkAddress, final List<String> rootNamespaces)
   {
-    logger.info("Starting zookeeper at " +zkAddress + " in thread "+ Thread.currentThread().getName());
+    System.out.println("Starting zookeeper at " +zkAddress + " in thread "+ Thread.currentThread().getName());
     /*
     synchronized (lock)
     {
@@ -58,6 +58,7 @@ public class TestHelper
     try
     {
       available.acquire();
+      System.out.println("started zk for " + Thread.currentThread().getName());
     }
     catch (InterruptedException e1)
     {
@@ -106,7 +107,7 @@ public class TestHelper
     if (zkServer != null)
     {
       zkServer.shutdown();
-      logger.info("Shutting down ZK " + Thread.currentThread().getName());
+      System.out.println("Shutting down ZK " + Thread.currentThread().getName());
       /*
       synchronized (lock)
       {

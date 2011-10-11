@@ -239,7 +239,7 @@ public class ClusterStateVerifier
         countInCurrentStates++;
       }
     }
-    assert (countInIdealStates == countInCurrentStates);
+    // assert (countInIdealStates == countInCurrentStates);
 
     if (countInIdealStates != countInCurrentStates)
     {

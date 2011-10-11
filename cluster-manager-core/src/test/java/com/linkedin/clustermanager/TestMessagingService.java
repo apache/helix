@@ -267,7 +267,7 @@ public class TestMessagingService extends ZkStandAloneCMHandler
     Assert.assertTrue(callback1.getMessageReplied().get(0).getRecord()
         .getMapField(Message.Attributes.MESSAGE_RESULT.toString())
         .get("ReplyMessage").equals("TestReplyMessage"));
-    Assert.assertTrue(callback1.getMessageReplied().size() == NODE_NR);
+    Assert.assertTrue(callback1.getMessageReplied().size() == NODE_NR - 1);
 
     AsyncCallback callback2 = new MockAsyncCallback();
     int messageSent2 = _managerMap.get(hostSrc).getMessagingService()

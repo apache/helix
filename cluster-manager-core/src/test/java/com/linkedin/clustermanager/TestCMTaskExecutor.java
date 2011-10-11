@@ -1,6 +1,7 @@
 package com.linkedin.clustermanager;
 
 import org.testng.AssertJUnit;
+import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.Mocks.MockCMTaskExecutor;
 import com.linkedin.clustermanager.Mocks.MockManager;
@@ -13,8 +14,7 @@ import com.linkedin.clustermanager.model.Message.MessageType;
 public class TestCMTaskExecutor
 {
 
-  // @Test
-  // cause NPE, temp comment out 10/10/2011
+   @Test
   public void testInvocation() throws Exception
   {
     System.out.println("TestCMTaskHandler.testInvocation()");

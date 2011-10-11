@@ -224,7 +224,7 @@ public class ClusterStateVerifier
                 + " current:" + partitionNodeState + ", expected:" + nodePartitionState);
             success= false;
           }
-          assert (partitionNodeState.equals(nodePartitionState));
+          // assert (partitionNodeState.equals(nodePartitionState));
           return success;
         }
       }

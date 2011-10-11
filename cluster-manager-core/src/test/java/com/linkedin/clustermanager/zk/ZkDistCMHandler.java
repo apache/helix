@@ -1,4 +1,4 @@
-package com.linkedin.clustermanager;
+package com.linkedin.clustermanager.zk;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -6,14 +6,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.I0Itec.zkclient.ZkServer;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 
 import com.linkedin.clustermanager.ClusterDataAccessor.ControllerPropertyType;
+import com.linkedin.clustermanager.TestHelper;
 import com.linkedin.clustermanager.TestHelper.DummyProcessResult;
+import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
 import com.linkedin.clustermanager.controller.ClusterManagerMain;
@@ -31,11 +32,11 @@ import com.linkedin.clustermanager.util.CMUtil;
  * @author zzhang
  *
  */
-public class ZkDistCMHandler
+public class ZkDistCMHandler extends ZkTestBase
 {
   private static Logger logger = Logger.getLogger(ZkDistCMHandler.class);
-  protected static final String ZK_ADDR = "localhost:2183";
-  protected static final String CLUSTER_PREFIX = "ESPRESSO_STORAGE";
+  // protected static final String ZK_ADDR = "localhost:2183";
+  // protected static final String CLUSTER_PREFIX = "ESPRESSO_STORAGE";
   // protected static final String CONTROLLER_CLUSTER_PREFIX = "CONTROLLER_CLUSTER";
 
   protected static final int CLUSTER_NR = 10;
@@ -45,25 +46,32 @@ public class ZkDistCMHandler
   protected ClusterSetup _setupTool = null;
   protected Map<String, Thread> _threadMap = new HashMap<String, Thread>();
   protected final String CLASS_NAME = getShortClassName();
-  protected final String CONTROLLER_CLUSTER = "CONTROLLER_CLUSTER_" + CLASS_NAME;
+  protected final String CONTROLLER_CLUSTER = CONTROLLER_CLUSTER_PREFIX + "_" + CLASS_NAME;
   
   private static final String TEST_DB = "TestDB";
-  private ZkServer _zkServer = null;
+  // private ZkServer _zkServer = null;
 
   @BeforeClass
   public void beforeClass() throws Exception
   {
-    logger.info("START at " + new Date(System.currentTimeMillis()));
-    List<String> namespaces = new ArrayList<String>();
+    // logger.info("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
+    System.out.println("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
     
-    namespaces.add("/" + CONTROLLER_CLUSTER);
+    String namespace = "/" + CONTROLLER_CLUSTER; 
+    if (_zkClient.exists(namespace))
+    {
+      _zkClient.deleteRecursive(namespace);
+    }
     for (int i = 0; i < CLUSTER_NR; i++)
     {
-      String clusterName = CLUSTER_PREFIX + "_" + CLASS_NAME + "_" + i;
-      namespaces.add("/" + clusterName);
+      namespace = "/" + CLUSTER_PREFIX + "_" + CLASS_NAME + "_" + i;
+      if (_zkClient.exists(namespace))
+      {
+        _zkClient.deleteRecursive(namespace);
+      }
     }
     
-    _zkServer = TestHelper.startZkSever(ZK_ADDR, namespaces);
+    // _zkServer = TestHelper.startZkSever(ZK_ADDR, namespaces);
     _setupTool = new ClusterSetup(ZK_ADDR);
 
     // setup cluster of ESPRESSO_STORAGE clusters
@@ -116,6 +124,8 @@ public class ZkDistCMHandler
       }
     }
 
+    Thread.sleep(2000);
+    
     List<String> clusterNames = new ArrayList<String>();
     clusterNames.add(CONTROLLER_CLUSTER);
     clusterNames.add(firstCluster);
@@ -134,7 +144,7 @@ public class ZkDistCMHandler
       }
       // debug
       System.out.println("ZkDistCMHandler.beforeClass(): wait " + ((i+1) * 2000) 
-                         + "s to verify cluster:" + CONTROLLER_CLUSTER + ", " + firstCluster);
+                         + "ms to verify (" + result + ") cluster:" + CONTROLLER_CLUSTER + ", " + firstCluster);
       if (result == false)
       {
         System.out.println("ZkDistCMHandler.beforeClass() verification fails");
@@ -151,7 +161,7 @@ public class ZkDistCMHandler
   @AfterClass
   public void afterClass() throws Exception
   {
-    logger.info("END at " + new Date(System.currentTimeMillis()));
+    // logger.info("END at " + new Date(System.currentTimeMillis()));
     
     _setupTool.dropResourceGroupToCluster(CONTROLLER_CLUSTER, CLUSTER_PREFIX + "_" + CLASS_NAME);
     Thread.sleep(20000);
@@ -160,14 +170,11 @@ public class ZkDistCMHandler
     {
       entry.getValue().interrupt();
     }
+    
     Thread.sleep(3000);
-    TestHelper.stopZkServer(_zkServer);
-  }
-  
-  private String getShortClassName()
-  {
-    String className = this.getClass().getName();
-    return className.substring(className.lastIndexOf('.') + 1);
+    // logger.info("END " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
+    System.out.println("END " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
+    // TestHelper.stopZkServer(_zkServer);
   }
   
   protected void setupStorageCluster(ClusterSetup setupTool, String clusterName, 
@@ -197,11 +204,6 @@ public class ZkDistCMHandler
     return true;
   }
   
-  // protected boolean verifyEmptyCurrentState(String clusterName)
-  {
-    
-  }
-
   protected void stopCurrentLeader(String clusterName)
   {
     String leaderPath = CMUtil

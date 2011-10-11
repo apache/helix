@@ -2,8 +2,8 @@ package com.linkedin.clustermanager;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.Semaphore;
 
 import org.I0Itec.zkclient.IDefaultNameSpace;
 import org.I0Itec.zkclient.ZkServer;
@@ -20,9 +20,12 @@ import com.linkedin.clustermanager.util.ZKClientPool;
 public class TestHelper
 {
   private static final Logger logger = Logger.getLogger(TestHelper.class);
-  // volatile static boolean alreadyRunning = false;
-  // static Object lock = new Object();
-  private static final Semaphore available = new Semaphore(1, true);
+
+  static public ZkServer startZkSever(final String zkAddress)
+  {
+    List<String> empty = Collections.emptyList();
+    return TestHelper.startZkSever(zkAddress, empty);
+  }
 
   static public ZkServer startZkSever(final String zkAddress, final String rootNamespace)
   {
@@ -33,45 +36,10 @@ public class TestHelper
 
   static public ZkServer startZkSever(final String zkAddress, final List<String> rootNamespaces)
   {
-    logger.info("Starting zookeeper at " +zkAddress + " in thread "+ Thread.currentThread().getName());
-    /*
-    synchronized (lock)
-    {
-      logger.info("alreadyRunning: "+alreadyRunning+ " for " + Thread.currentThread().getName());
-      while (alreadyRunning)
-      {
-        try
-        {
-          logger.info("alreadyRunning: "+alreadyRunning+ ". Will wait. " + Thread.currentThread().getName());
-          lock.wait();
-          logger.info("Woke up " + Thread.currentThread().getName());
-        }
-        catch (InterruptedException e)
-        {
-          e.printStackTrace();
-        }
-      }
-      logger.info("started zk, alreadyRunning: "+alreadyRunning+ " for " + Thread.currentThread().getName());
-      alreadyRunning = true;
-    }
-    */
-    try
-    {
-      available.acquire();
-    }
-    catch (InterruptedException e1)
-    {
-      // TODO Auto-generated catch block
-      e1.printStackTrace();
-    }
+    System.out.println("Starting zookeeper at " + zkAddress + " in thread "+ Thread.currentThread().getName());
+    
     final String logDir = "/tmp/logs";
     final String dataDir = "/tmp/dataDir";
-
-    /*
-     * try { FileUtils.deleteDirectory(new File(dataDir)); FileUtils.deleteDirectory(new
-     * File(logDir)); } catch (IOException e) { logger.warn("fail to delete dir: " +
-     * dataDir + ", " + logDir + "\nexception:" + e); }
-     */
 
     ZKClientPool.reset();
 
@@ -106,15 +74,8 @@ public class TestHelper
     if (zkServer != null)
     {
       zkServer.shutdown();
-      logger.info("Shutting down ZK " + Thread.currentThread().getName());
-      /*
-      synchronized (lock)
-      {
-        alreadyRunning = false;
-        lock.notify();
-      }
-      */
-      available.release();
+      System.out.println("Shutting down ZK at port " + zkServer.getPort() 
+                         + " in thread " + Thread.currentThread().getName());
     }
   }
 

@@ -1,4 +1,4 @@
-package com.linkedin.clustermanager;
+package com.linkedin.clustermanager.zk;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -9,11 +9,11 @@ import java.util.Map;
 import org.I0Itec.zkclient.ZkServer;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
-import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.ClusterDataAccessor.IdealStateConfigProperty;
+import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
 import com.linkedin.clustermanager.tools.TestCommand;
@@ -23,12 +23,12 @@ import com.linkedin.clustermanager.tools.TestExecutor.ZnodePropertyType;
 import com.linkedin.clustermanager.tools.TestTrigger;
 import com.linkedin.clustermanager.tools.ZnodeOpArg;
 
-public class TestUsingTestFramework
+public class TestUsingTestFramework extends ZkTestBase
 {
   private static Logger logger = Logger.getLogger(TestUsingTestFramework.class);
   private static final String ZK_ADDR = "localhost:2183";
   private final String PREFIX = "/" + getShortClassName();
-  private ZkServer _zkServer = null; 
+  private final ZkServer _zkServer = null; 
 
   @Test
   public void testBasic() throws Exception
@@ -217,18 +217,24 @@ public class TestUsingTestFramework
     
   }
   
+  
   @BeforeClass
   public void beforeClass()
   {
-    _zkServer = TestHelper.startZkSever(ZK_ADDR, PREFIX);
+    // _zkServer = TestHelper.startZkSever(ZK_ADDR, PREFIX);
+    if (_zkClient.exists(PREFIX))
+    {
+      _zkClient.deleteRecursive(PREFIX);
+    }
     
   }
-  
+  /*
   @AfterClass
   public void afterClass()
   {
     TestHelper.stopZkServer(_zkServer);
   }
+  */
   
   private ZNRecord getExampleZNRecord()
   {
@@ -245,10 +251,5 @@ public class TestUsingTestFramework
     record.setListField("TestDB_0", list);
     return record;
   }
-  
-  private String getShortClassName()
-  {
-    String className = this.getClass().getName();
-    return className.substring(className.lastIndexOf('.') + 1);
-  }
+ 
 }

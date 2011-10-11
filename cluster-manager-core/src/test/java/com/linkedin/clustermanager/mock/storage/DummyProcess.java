@@ -130,7 +130,7 @@ public class DummyProcess
       {
         if (_transDelay > 0)
         {
-          Thread.currentThread().sleep(_transDelay);
+          Thread.sleep(_transDelay);
         }
       } catch (InterruptedException e)
       {
@@ -172,7 +172,7 @@ public class DummyProcess
     {
 
       sleep();
-      System.out.println("DummyStateModel.onBecomeOfflineFromSlave()");
+      logger.info("DummyStateModel.onBecomeOfflineFromSlave()");
 
     }
 
@@ -180,7 +180,7 @@ public class DummyProcess
     {
 
       sleep();
-      System.out.println("DummyStateModel.onBecomeDroppedFromOffline()");
+      logger.info("DummyStateModel.onBecomeDroppedFromOffline()");
 
     }
   }

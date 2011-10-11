@@ -4,13 +4,12 @@ import java.util.Date;
 
 import org.I0Itec.zkclient.ZkServer;
 import org.apache.log4j.Logger;
-import org.testng.annotations.Test;
 
 public class BasicTestUsingTestDriver
 {
   private static Logger LOG = Logger.getLogger(BasicTestUsingTestDriver.class);
   
-  @Test
+  // @Test
   public void testDriverExample() throws Exception
   {
     LOG.info("RUN at " + new Date(System.currentTimeMillis()));

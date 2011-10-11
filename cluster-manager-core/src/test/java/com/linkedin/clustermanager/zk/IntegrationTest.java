@@ -1,6 +1,6 @@
-package com.linkedin.clustermanager;
+package com.linkedin.clustermanager.zk;
 
-import org.testng.Assert;
+import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.tools.ClusterStateVerifier;
@@ -12,11 +12,12 @@ import com.linkedin.clustermanager.tools.ClusterStateVerifier;
  * @author kgopalak
  * 
  */
+
 public class IntegrationTest extends ZkStandAloneCMHandler
 {
   @Test
   public void integrationTest() throws Exception
   {
-    Assert.assertTrue(ClusterStateVerifier.verifyClusterStates(ZK_ADDR, CLUSTER_NAME));
+    AssertJUnit.assertTrue(ClusterStateVerifier.verifyClusterStates(ZK_ADDR, CLUSTER_NAME));
   }
 }

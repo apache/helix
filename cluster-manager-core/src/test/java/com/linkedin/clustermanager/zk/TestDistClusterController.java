@@ -1,5 +1,7 @@
-package com.linkedin.clustermanager;
+package com.linkedin.clustermanager.zk;
 
+import org.testng.annotations.Test;
+import org.testng.AssertJUnit;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -8,6 +10,7 @@ import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import com.linkedin.clustermanager.TestHelper;
 import com.linkedin.clustermanager.TestHelper.DummyProcessResult;
 
 public class TestDistClusterController extends ZkDistCMHandler
@@ -50,7 +53,7 @@ public class TestDistClusterController extends ZkDistCMHandler
       }
     }
 
-    Thread.sleep(10000);
+    // Thread.sleep(10000);
 
     List<String> clusterNames = new ArrayList<String>();
     final String firstCluster = CLUSTER_PREFIX + "_" + CLASS_NAME + "_0";
@@ -61,17 +64,22 @@ public class TestDistClusterController extends ZkDistCMHandler
     {
       boolean result = false;
       int i = 0;
-      for ( ; i < 10; i++)
+      for ( ; i < 24; i++)
       {
-        Thread.sleep(5000);
+        Thread.sleep(2000);
          result = verifyIdealAndCurrentState(clusterNames);
         if (result == true)
         {
           break;
         }
       }
-      System.err.println("wait time=" + ((i+1) * 5000) + "s");
-      Assert.assertTrue(result);
+      System.out.println("TestDistClusterController: wait " + ((i+1) * 2000) 
+                         + "s to verify cluster:" + firstCluster + ", " + secondCluster);
+      if (result == false)
+      {
+        System.out.println("TestDistClusterController verification fails");
+      }
+      AssertJUnit.assertTrue(result);
     }
     catch (InterruptedException e)
     {

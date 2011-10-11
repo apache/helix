@@ -41,6 +41,7 @@ public abstract class AsyncCallback
   public final void setTimeout(long timeout)
   {
     _logger.info("Setting time out to " + timeout + " ms");
+    _timeout = timeout;
 
   }
 
@@ -74,9 +75,12 @@ public abstract class AsyncCallback
         _logger.error(e);
       }
     }
-    if (isDone() && _timer != null)
+    if (isDone())
     {
-      _timer.cancel();
+      if(_timer != null)
+      {
+        _timer.cancel();
+      }
       notifyAll();
     }
   }

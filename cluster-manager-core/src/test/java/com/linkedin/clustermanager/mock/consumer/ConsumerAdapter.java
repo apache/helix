@@ -35,6 +35,7 @@ public class ConsumerAdapter implements ExternalViewChangeListener
 
     relayClusterManager = ClusterManagerFactory.getZKBasedManagerForSpectator(
         clusterName, zkServer);
+    relayClusterManager.connect();
     relayClusterManager.addExternalViewChangeListener(this);
 
   }

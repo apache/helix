@@ -212,7 +212,8 @@ public class TestHelper
         StateMachineEngine<DummyStateModel> genericStateMachineHandler 
           = new StateMachineEngine<DummyStateModel>(stateModelFactory);
         _manager.getMessagingService().registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(), genericStateMachineHandler);
-        
+
+        _manager.connect();
         Thread.currentThread().join();
       }
       catch (InterruptedException e)

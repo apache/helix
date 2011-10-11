@@ -108,6 +108,7 @@ public class BootstrapProcess
     manager.getMessagingService().registerMessageHandlerFactory(
         MessageType.USER_DEFINE_MSG.toString(),
         new CustomMessageHandlerFactory());
+    manager.connect();
     if (_file != null)
     {
       ClusterStateVerifier.VerifyFileBasedClusterStates(_file, instanceName,

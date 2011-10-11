@@ -61,7 +61,7 @@ class StorageAdapter
     StateMachineEngine genericStateMachineHandler = new StateMachineEngine(stateModelFactory);
     
     storageClusterManager.getMessagingService().registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(), genericStateMachineHandler);
-    
+    storageClusterManager.connect();
     storageClusterClient = storageClusterManager.getDataAccessor();
 
     consumerAdapter = new ConsumerAdapter(instanceName, zkConnectString,

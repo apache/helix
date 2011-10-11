@@ -120,7 +120,6 @@ public class ZKClusterManager implements ClusterManager
     _handlers = new ArrayList<CallbackHandler>();
     _zkClient = zkClient;
     _messagingService = new DefaultMessagingService(this);
-    connect();
   }
 
   private boolean isInstanceSetup()

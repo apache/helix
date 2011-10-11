@@ -129,6 +129,8 @@ public class MockRouterProcess
     {
       ClusterManager manager = ClusterManagerFactory
           .getZKBasedManagerForSpectator(clusterName, zkConnectString);
+
+      manager.connect();
       manager.addExternalViewChangeListener(_routingTableProvider);
     } catch (Exception e)
     {

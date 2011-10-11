@@ -162,6 +162,7 @@ public class TestZKCallback
     ClusterManager testClusterManager = ClusterManagerFactory
         .getZKBasedManagerForParticipant("storage-cluster-12345",
             "localhost_8900", _zkServerAddress);
+    testClusterManager.connect();
 
     TestZKCallback test = new TestZKCallback();
 
@@ -218,6 +219,7 @@ public class TestZKCallback
 
     testListener.Reset();
     Message message = new Message(MessageType.STATE_TRANSITION,UUID.randomUUID().toString());
+    message.setTgtSessionId("*");
     dataAccessor.setInstanceProperty("localhost_8900",
         InstancePropertyType.MESSAGES, message.getId(), message.getRecord());
     Thread.sleep(100);

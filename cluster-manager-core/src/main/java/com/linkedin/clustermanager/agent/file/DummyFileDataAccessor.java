@@ -221,4 +221,11 @@ public class DummyFileDataAccessor implements ClusterDataAccessor
     
   }
 
+  @Override
+  public ZNRecord getControllerProperty(ControllerPropertyType controllerProperty, String subPath)
+  {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
 }

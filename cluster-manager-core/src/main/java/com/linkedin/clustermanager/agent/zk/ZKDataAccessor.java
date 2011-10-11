@@ -404,6 +404,15 @@ public class ZKDataAccessor implements ClusterDataAccessor
   }
 
   @Override
+  public ZNRecord getControllerProperty(ControllerPropertyType controllerProperty, String subPath)
+  {
+    final String path =
+        CMUtil.getControllerPropertyPath(_clusterName, controllerProperty) + "/" + subPath;
+    ZNRecord record = _zkClient.<ZNRecord> readData(path, true);
+    return record;
+  }
+  
+  @Override
   public PropertyStore<ZNRecord> getStore()
   {
     // TODO Auto-generated method stub

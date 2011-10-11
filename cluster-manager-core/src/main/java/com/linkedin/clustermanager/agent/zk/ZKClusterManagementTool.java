@@ -18,7 +18,7 @@ import com.linkedin.clustermanager.util.CMUtil;
 public class ZKClusterManagementTool implements ClusterManagementService
 {
 
-  private ZkClient _zkClient;
+  private final ZkClient _zkClient;
 
   private static Logger logger = Logger
       .getLogger(ZKClusterManagementTool.class);
@@ -136,7 +136,8 @@ public class ZKClusterManagementTool implements ClusterManagementService
     final ZNRecord emptyHistory = new ZNRecord("HISTORY");
     final List<String> emptyList = new ArrayList<String>();
     emptyHistory.setListField(clusterName, emptyList);
-    _zkClient.createPersistent(path, emptyHistory);
+    _zkClient.createPersistent(path);
+    _zkClient.createPersistent(path + "/HISTORY", emptyHistory);
     
     path = CMUtil.getControllerPropertyPath(clusterName, 
         ControllerPropertyType.MESSAGES);
@@ -152,6 +153,7 @@ public class ZKClusterManagementTool implements ClusterManagementService
  
   }
 
+  @Override
   public List<String> getInstancesInCluster(String clusterName)
   {
     String memberInstancesPath = CMUtil.getMemberInstancesPath(clusterName);
@@ -187,6 +189,7 @@ public class ZKClusterManagementTool implements ClusterManagementService
     ZKUtil.createChildren(_zkClient, idealStatePath, idealState);
   }
 
+  @Override
   public List<String> getClusters()
   {
     List<String> zkToplevelPathes = _zkClient.getChildren("/");
@@ -201,6 +204,7 @@ public class ZKClusterManagementTool implements ClusterManagementService
     return result;
   }
 
+  @Override
   public List<String> getResourceGroupsInCluster(String clusterName)
   {
     return _zkClient.getChildren(CMUtil.getIdealStatePath(clusterName));
@@ -252,6 +256,7 @@ public class ZKClusterManagementTool implements ClusterManagementService
         ClusterPropertyType.IDEALSTATES, resourceGroup);
   }
   
+  @Override
   public List<String> getStateModelDefs(String clusterName)
   {
     return _zkClient.getChildren(CMUtil.getStateModelDefinitionPath(clusterName));

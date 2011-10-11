@@ -429,5 +429,12 @@ public class Mocks
       // TODO Auto-generated method stub
       
     }
+
+    @Override
+    public ZNRecord getControllerProperty(ControllerPropertyType controllerProperty, String subPath)
+    {
+      // TODO Auto-generated method stub
+      return null;
+    }
   }
 }

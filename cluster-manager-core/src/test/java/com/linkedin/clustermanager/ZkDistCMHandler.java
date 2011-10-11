@@ -116,20 +116,35 @@ public class ZkDistCMHandler
       }
     }
 
+    List<String> clusterNames = new ArrayList<String>();
+    clusterNames.add(CONTROLLER_CLUSTER);
+    clusterNames.add(firstCluster);
     try
     {
-      Thread.sleep(20000);
+      boolean result = false;
+      int i = 0;
+      for ( ; i < 12; i++)
+      {
+        Thread.sleep(5000);
+         result = verifyIdealAndCurrentState(clusterNames);
+        if (result == true)
+        {
+          break;
+        }
+      }
+      // debug
+      System.err.println("wait time=" + ((i+1) * 5000) + "s");
+      if (result == false)
+      {
+        System.out.println("ZkDistCMHandler.beforeClass() verification fails");
+      }
+      Assert.assertTrue(result);
     }
     catch (InterruptedException e)
     {
       // TODO Auto-generated catch block
       e.printStackTrace();
     }
-    
-    List<String> clusterNames = new ArrayList<String>();
-    clusterNames.add(CONTROLLER_CLUSTER);
-    clusterNames.add(firstCluster);
-    verifyIdealAndCurrentState(clusterNames);
   }
   
   @AfterClass
@@ -137,9 +152,8 @@ public class ZkDistCMHandler
   {
     logger.info("END at " + new Date(System.currentTimeMillis()));
     
-    _setupTool.dropResourceGroupToCluster(CONTROLLER_CLUSTER, 
-                   CLUSTER_PREFIX + "_" + CLASS_NAME);
-    Thread.sleep(10000);
+    _setupTool.dropResourceGroupToCluster(CONTROLLER_CLUSTER, CLUSTER_PREFIX + "_" + CLASS_NAME);
+    Thread.sleep(20000);
     
     for (Map.Entry<String, Thread> entry : _threadMap.entrySet())
     {
@@ -168,14 +182,24 @@ public class ZkDistCMHandler
     setupTool.rebalanceStorageCluster(clusterName, dbName, 3);
   }
   
-  protected void verifyIdealAndCurrentState(List<String> clusterNames)
+  protected boolean verifyIdealAndCurrentState(List<String> clusterNames)
   {
     for (String clusterName : clusterNames)
     {
       boolean result = ClusterStateVerifier.verifyClusterStates(ZK_ADDR, clusterName);
       logger.info("verify cluster: " + clusterName + ", result: " + result);
-      Assert.assertTrue(result);
+      // Assert.assertTrue(result);
+      if (result == false)
+      {
+        return result;
+      }
     }
+    return true;
+  }
+  
+  // protected boolean verifyEmptyCurrentState(String clusterName)
+  {
+    
   }
 
   protected void stopCurrentLeader(String clusterName)

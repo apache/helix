@@ -558,7 +558,7 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
       String id)
   {
     // TODO Auto-generated method stub
-    
+    throw new UnsupportedOperationException("removeControllerProperty() is not implemented for file-based cm");
   }
 
   @Override
@@ -566,7 +566,14 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
       String subPath, ZNRecord value, CreateMode mode)
   {
     // TODO Auto-generated method stub
-    
+    throw new UnsupportedOperationException("setControllerProperty() is not implemented for file-based cm");
+  }
+
+  @Override
+  public ZNRecord getControllerProperty(ControllerPropertyType controllerProperty, String subPath)
+  {
+    // TODO Auto-generated method stub
+    throw new UnsupportedOperationException("getControllerProperty() is not implemented for file-based cm");
   }
   
 }

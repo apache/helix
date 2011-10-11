@@ -109,7 +109,7 @@ public class DistClusterControllerElection implements ControllerChangeListener
 				    leaderRecord, CreateMode.EPHEMERAL);
 				// set controller history
 				ZNRecord histRecord = dataAccessor
-				    .getControllerProperty(ControllerPropertyType.HISTORY);
+				    .getControllerProperty(ControllerPropertyType.HISTORY, "HISTORY");
 
 				List<String> list = histRecord.getListField(clusterName);
 

@@ -5,6 +5,7 @@ import java.util.Date;
 import java.util.List;
 
 import org.apache.log4j.Logger;
+import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.TestHelper.DummyProcessResult;
@@ -55,7 +56,28 @@ public class TestDistClusterController extends ZkDistCMHandler
     final String firstCluster = CLUSTER_PREFIX + "_" + CLASS_NAME + "_0";
     clusterNames.add(firstCluster);
     clusterNames.add(secondCluster);
-    verifyIdealAndCurrentState(clusterNames);
+    
+    try
+    {
+      boolean result = false;
+      int i = 0;
+      for ( ; i < 10; i++)
+      {
+        Thread.sleep(5000);
+         result = verifyIdealAndCurrentState(clusterNames);
+        if (result == true)
+        {
+          break;
+        }
+      }
+      System.err.println("wait time=" + ((i+1) * 5000) + "s");
+      Assert.assertTrue(result);
+    }
+    catch (InterruptedException e)
+    {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
 
     logger.info("End at " + new Date(System.currentTimeMillis()));
   }

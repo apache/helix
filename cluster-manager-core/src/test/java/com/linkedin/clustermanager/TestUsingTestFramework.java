@@ -26,7 +26,7 @@ import com.linkedin.clustermanager.tools.ZnodeOpArg;
 public class TestUsingTestFramework
 {
   private static Logger logger = Logger.getLogger(TestUsingTestFramework.class);
-  private static final String ZK_ADDR = "localhost:2181";
+  private static final String ZK_ADDR = "localhost:2183";
   private final String PREFIX = "/" + getShortClassName();
   private ZkServer _zkServer = null; 
 

@@ -34,6 +34,12 @@ public class TestHelper
   static public ZkServer startZkSever(final String zkAddress, final List<String> rootNamespaces)
   {
     System.out.println("Starting zookeeper at " +zkAddress + " in thread "+ Thread.currentThread().getName());
+    for (String namespace : rootNamespaces)
+    {
+      System.out.print(namespace);
+    }
+    System.out.println();
+    
     /*
     synchronized (lock)
     {

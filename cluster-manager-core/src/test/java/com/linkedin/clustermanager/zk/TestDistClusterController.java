@@ -1,13 +1,10 @@
 package com.linkedin.clustermanager.zk;
 
-import org.testng.annotations.Test;
-import org.testng.AssertJUnit;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
 import org.apache.log4j.Logger;
-import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.TestHelper;
@@ -24,16 +21,16 @@ public class TestDistClusterController extends ZkDistCMHandler
 
     // stop the current cluster controller
     // final String controllerCluster = CONTROLLER_CLUSTER_PREFIX + "_" + CLASS_NAME;
-    stopCurrentLeader(CONTROLLER_CLUSTER);
+    stopCurrentLeader(CONTROLLER_CLUSTER, _threadMap, _managerMap);
 
-    Thread.sleep(3000);
+    // Thread.sleep(3000);
 
     // make sure a new leader is selected
-    assertLeader(CONTROLLER_CLUSTER);
+    // assertLeader(CONTROLLER_CLUSTER);
 
     // setup storage cluster: ESPRESSO_STORAGE_1
     final String secondCluster = CLUSTER_PREFIX + "_" + CLASS_NAME + "_1";
-    setupStorageCluster(_setupTool, secondCluster, "MyDB", 10, 13918, STATE_MODEL);
+    setupStorageCluster(_setupTool, secondCluster, "MyDB", 10, PARTICIPANT_PREFIX, 13918, STATE_MODEL);
 
     // start dummy participants for the second ESPRESSO_STORAGE cluster
     for (int i = 0; i < NODE_NR; i++)
@@ -46,10 +43,11 @@ public class TestDistClusterController extends ZkDistCMHandler
       }
       else
       {
-        Thread thread;
+        // Thread thread;
         DummyProcessResult result = TestHelper.startDummyProcess(ZK_ADDR, secondCluster, instanceName, null);
-        thread = result._thread;
-        _threadMap.put(instanceName, thread);
+        
+        _threadMap.put(instanceName, result._thread);
+        _managerMap.put(instanceName, result._manager);
       }
     }
 
@@ -59,7 +57,8 @@ public class TestDistClusterController extends ZkDistCMHandler
     final String firstCluster = CLUSTER_PREFIX + "_" + CLASS_NAME + "_0";
     clusterNames.add(firstCluster);
     clusterNames.add(secondCluster);
-    
+    verifyIdealAndCurrentStateTimeout(clusterNames);
+    /*
     try
     {
       boolean result = false;
@@ -86,7 +85,7 @@ public class TestDistClusterController extends ZkDistCMHandler
       // TODO Auto-generated catch block
       e.printStackTrace();
     }
-
+    */
     logger.info("End at " + new Date(System.currentTimeMillis()));
   }
 

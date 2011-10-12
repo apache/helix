@@ -227,7 +227,7 @@ public class ClusterManagerMain
       // ClusterManagerFactory.disconnectManagers(controllerName);
       logger.info("controller:" + controllerName + ", " + 
                     Thread.currentThread().getName() + " interrupted");
-      manager.disconnect();
+      // manager.disconnect();
     }
 
   }

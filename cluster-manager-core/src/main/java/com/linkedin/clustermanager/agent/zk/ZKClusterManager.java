@@ -273,6 +273,8 @@ public class ZKClusterManager implements ClusterManager
   public void disconnect()
   {
     logger.info("Cluster manager: " + _instanceName + " disconnected");
+    
+    
 
     for (CallbackHandler handler : _handlers)
     {

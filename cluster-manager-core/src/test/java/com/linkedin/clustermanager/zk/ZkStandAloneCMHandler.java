@@ -12,21 +12,16 @@ import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.ZooKeeper;
-import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 
-import com.linkedin.clustermanager.ClusterDataAccessor.ControllerPropertyType;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.TestHelper;
 import com.linkedin.clustermanager.TestHelper.DummyProcessResult;
-import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
 import com.linkedin.clustermanager.controller.ClusterManagerMain;
 import com.linkedin.clustermanager.tools.ClusterSetup;
-import com.linkedin.clustermanager.tools.ClusterStateVerifier;
-import com.linkedin.clustermanager.util.CMUtil;
 
 /**
  * 
@@ -48,8 +43,8 @@ public class ZkStandAloneCMHandler extends ZkTestBase
   protected ClusterSetup _setupTool = null;
   protected final String CLASS_NAME = getShortClassName();
   protected final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + CLASS_NAME;
-  private final Map<String, Thread> _threadMap = new HashMap<String, Thread>();
-  protected Map<String, ClusterManager> _managerMap = new HashMap<String, ClusterManager>();
+  protected final Map<String, Thread> _threadMap = new HashMap<String, Thread>();
+  protected final Map<String, ClusterManager> _managerMap = new HashMap<String, ClusterManager>();
 
   @BeforeClass
   public void beforeClass() throws Exception
@@ -101,16 +96,19 @@ public class ZkStandAloneCMHandler extends ZkTestBase
     // start controller
     String controllerName = "controller_0";
     _controllerZkClient = new ZkClient(ZK_ADDR, 3000, 10000, new ZNRecordSerializer());
-    thread =
+    DummyProcessResult startResult =
         TestHelper.startClusterController(CLUSTER_NAME,
                                           controllerName,
                                           ZK_ADDR,
                                           ClusterManagerMain.STANDALONE,
                                           _controllerZkClient);
-    _threadMap.put(controllerName, thread);
+    _threadMap.put(controllerName, startResult._thread);
+    _managerMap.put(controllerName, startResult._manager);
+    
+    verifyIdealAndCurrentStateTimeout(CLUSTER_NAME);
     
     // Thread.sleep(2000);
-    
+    /*
     try
     {
       boolean result = false;
@@ -138,6 +136,7 @@ public class ZkStandAloneCMHandler extends ZkTestBase
       // TODO Auto-generated catch block
       e.printStackTrace();
     }
+    */
   }
 
   @AfterClass
@@ -155,6 +154,8 @@ public class ZkStandAloneCMHandler extends ZkTestBase
   {
     for (Map.Entry<String, Thread> entry : threadMap.entrySet())
     {
+      ClusterManager manager = _managerMap.get(entry.getKey());
+      manager.disconnect();
       entry.getValue().interrupt();
     }
   }
@@ -205,6 +206,7 @@ public class ZkStandAloneCMHandler extends ZkTestBase
     logger.info("After session expiry sessionId = " + oldZookeeper.getSessionId());
   }
 
+  /*
   protected void stopCurrentLeader(String clusterName)
   {
     String leaderPath =
@@ -214,10 +216,15 @@ public class ZkStandAloneCMHandler extends ZkTestBase
     Assert.assertTrue(leaderRecord != null);
     String controller = leaderRecord.getSimpleField(ControllerPropertyType.LEADER.toString());
     logger.info("stop current leader:" + controller);
+    
     Assert.assertTrue(controller != null);
+    ClusterManager manager = _managerMap.remove(controller);
+    Assert.assertTrue(manager != null);
+    manager.disconnect();
+    
     Thread thread = _threadMap.remove(controller);
     Assert.assertTrue(thread != null);
     thread.interrupt();
   }
-
+  */
 }

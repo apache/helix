@@ -129,42 +129,13 @@ public class ZkDistCMHandler extends ZkTestBase
     clusterNames.add(CONTROLLER_CLUSTER);
     clusterNames.add(firstCluster);
     verifyIdealAndCurrentStateTimeout(clusterNames);
-
-    /*
-    try
-    {
-      boolean result = false;
-      int i = 0;
-      for ( ; i < 24; i++)
-      {
-        Thread.sleep(2000);
-        result = verifyIdealAndCurrentState(clusterNames);
-        if (result == true)
-        {
-          break;
-        }
-      }
-      // debug
-      System.out.println("ZkDistCMHandler.beforeClass(): wait " + ((i+1) * 2000) 
-                         + "ms to verify (" + result + ") cluster:" + CONTROLLER_CLUSTER + ", " + firstCluster);
-      if (result == false)
-      {
-        System.out.println("ZkDistCMHandler.beforeClass() verification fails");
-      }
-      Assert.assertTrue(result);
-    }
-    catch (InterruptedException e)
-    {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    }
-    */
   }
   
   @AfterClass
   public void afterClass() throws Exception
   {
     // logger.info("END at " + new Date(System.currentTimeMillis()));
+    System.out.println("Shutting down " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
     
     _setupTool.dropResourceGroupToCluster(CONTROLLER_CLUSTER, CLUSTER_PREFIX + "_" + CLASS_NAME);
     // Thread.sleep(20000);

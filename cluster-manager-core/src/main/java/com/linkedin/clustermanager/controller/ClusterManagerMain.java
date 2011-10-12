@@ -116,6 +116,8 @@ public class ClusterManagerMain
   {
     try
     {
+      // System.out.println("add listeners to controller: " + manager.getInstanceName());
+      
       manager.addConfigChangeListener(controller);
       manager.addLiveInstanceChangeListener(controller);
       manager.addIdealStateChangeListener(controller);

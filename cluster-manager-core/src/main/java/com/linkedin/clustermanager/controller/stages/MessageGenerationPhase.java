@@ -5,15 +5,12 @@ import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
 import java.util.UUID;
 
 import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
-import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.model.LiveInstance;
@@ -144,7 +141,7 @@ public class MessageGenerationPhase extends AbstractBaseStage
           e);
       // can ignore it,
     }
-    message.setSrcName(hostName);
+    message.setSrcName(manager.getInstanceName() + "_" + hostName);
     message.setTgtName(instanceName);
     message.setMsgState("new");
     message.setStateUnitKey(resourceKeyName);

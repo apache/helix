@@ -21,7 +21,7 @@ import com.linkedin.clustermanager.participant.statemachine.Transition;
 public class DistClusterControllerStateModel extends StateModel 
 {
   private static Logger logger = Logger.getLogger(DistClusterControllerStateModel.class);
-  private ConcurrentHashMap<String, ClusterManager> _controllers 
+  private final ConcurrentHashMap<String, ClusterManager> _controllers 
             = new ConcurrentHashMap<String, ClusterManager>();
   private final String _zkAddr;
   
@@ -49,13 +49,15 @@ public class DistClusterControllerStateModel extends StateModel
  
     ClusterManager manager = ClusterManagerFactory
         .getZKBasedManagerForController(clusterName, controllerName, _zkAddr);
-    manager.connect();
+    // manager.connect();
     _controllers.put(controllerName, manager);
+    manager.connect();
     
     DistClusterControllerElection leaderElection = new DistClusterControllerElection(_zkAddr);
+    // TODO need sync
     manager.addControllerListener(leaderElection);
     context.add(clusterName, leaderElection.getController());
-    // manager.connect();
+    
   }
   
   @Transition(to="STANDBY",from="LEADER")
@@ -65,8 +67,8 @@ public class DistClusterControllerStateModel extends StateModel
     String controllerName = message.getTgtName();
     
     logger.info(controllerName + " becoming standby from leader for cluster:" + clusterName);
-    ClusterManager manager = _controllers.remove(controllerName);
-    manager.disconnect();
+    // ClusterManager manager = _controllers.remove(controllerName);
+    // manager.disconnect();
   }
 
   @Transition(to="OFFLINE",from="STANDBY")
@@ -76,6 +78,10 @@ public class DistClusterControllerStateModel extends StateModel
     String controllerName = message.getTgtName();
 
     logger.info(controllerName + " becoming offline from standby for cluster:" + clusterName);
+    
+    // TODO fix it: manager.disconnect() is not thread-safe
+    // ClusterManager manager = _controllers.remove(controllerName);
+    // manager.disconnect();
   }
   
   @Transition(to="DROPPED",from="OFFLINE")

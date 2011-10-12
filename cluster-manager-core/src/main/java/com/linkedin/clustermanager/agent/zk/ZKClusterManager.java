@@ -272,10 +272,9 @@ public class ZKClusterManager implements ClusterManager
   @Override
   public void disconnect()
   {
-    logger.info("Cluster manager: " + _instanceName + " disconnected");
+    // logger.info("Cluster manager: " + _instanceName + " disconnected");
+    // System.out.println("Disconnecting cluster manager: " + _instanceName);
     
-    
-
     for (CallbackHandler handler : _handlers)
     {
       handler.reset();
@@ -283,6 +282,7 @@ public class ZKClusterManager implements ClusterManager
 
     if (_leaderElectionHandler != null)
     {
+      _leaderElectionHandler.reset();
       DistClusterControllerElection listener =
           (DistClusterControllerElection) _leaderElectionHandler.getListener();
       ClusterManager leader = listener.getLeader();
@@ -305,7 +305,7 @@ public class ZKClusterManager implements ClusterManager
     }
     
     _zkClient.close();
-
+    // System.out.println("Cluster manager: " + _instanceName + " disconnected");
   }
 
   @Override
@@ -335,12 +335,15 @@ public class ZKClusterManager implements ClusterManager
     CallbackHandler callbackHandler =
         createCallBackHandler(path, listener, new EventType[] { EventType.NodeChildrenChanged,
             EventType.NodeDeleted, EventType.NodeCreated }, ChangeType.CONTROLLER);
+    
+    // System.out.println("add controller listeners to " + _instanceName + " for " + _clusterName);
     _handlers.add(callbackHandler);
   }
 
   @Override
   public boolean removeListener(Object listener)
   {
+    System.out.println("remove handlers: " + _instanceName);
     removeListenerFromList(listener, _handlers);
     return true;
   }

@@ -47,12 +47,12 @@ public abstract class StateModel
 	}
 
 	/**
-	 * This metho
+	 * This method
 	 */
 	public void reset()
 	{
 		logger
-		    .error("Default reset method invoked. Either because the process longer own this resource or session timedout");
+		    .warn("Default reset method invoked. Either because the process longer own this resource or session timedout");
 	}
 
 }

@@ -222,9 +222,9 @@ public class TestDriver
     for (int i = 0; i < numController; i++)
     {
       String controllerName = CONTROLLER_PREFIX + "_" + i;
-      Thread thread = TestHelper.startClusterController(clusterName, controllerName,
+      DummyProcessResult result = TestHelper.startClusterController(clusterName, controllerName,
                                             ZK_ADDR, ClusterManagerMain.STANDALONE, null);
-      testInfo._threadMap.put(controllerName, thread);
+      testInfo._threadMap.put(controllerName, result._thread);
     }
   }
 

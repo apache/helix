@@ -1,7 +1,6 @@
 package com.linkedin.clustermanager;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -119,27 +118,31 @@ public class TestHelper
    * @param zkClient
    * @return
    */
-  public static Thread startClusterController(final String clusterName,
+  public static DummyProcessResult startClusterController(final String clusterName,
                                               final String controllerName,
                                               final String zkConnectString,
                                               final String controllerMode,
                                               final ZkClient zkClient)
   {
+    final DummyProcessResult result = new DummyProcessResult();
+    final ClusterManager manager =
+        ClusterManagerMain.startClusterManagerMain(zkConnectString,
+                                                   clusterName,
+                                                   controllerName,
+                                                   controllerMode,
+                                                   zkClient);
+    result._manager = manager;
+    
     Thread thread = new Thread(new Runnable()
     {
       @Override
       public void run()
       {
-        ClusterManager manager = null;
+        // ClusterManager manager = null;
 
         try
         {
-          manager =
-              ClusterManagerMain.startClusterManagerMain(zkConnectString,
-                                                         clusterName,
-                                                         controllerName,
-                                                         controllerMode,
-                                                         zkClient);
+         
           Thread.currentThread().join();
         }
         catch (InterruptedException e)
@@ -155,6 +158,7 @@ public class TestHelper
         {
           e.printStackTrace();
         }
+        /*
         finally
         {
           if (manager != null)
@@ -162,13 +166,16 @@ public class TestHelper
             manager.disconnect();
           }
         }
+        */
       }
     });
 
     thread.start();
-    return thread;
+    result._thread = thread;
+    return result;
   }
 
+  /*
   public static Thread startClusterController(final String args)
   {
     Thread thread = new Thread(new Runnable()
@@ -190,14 +197,17 @@ public class TestHelper
     thread.start();
     return thread;
   }
+  */
 
+  /*
   private static String[] createArgs(String str)
   {
     String[] split = str.split("[ ]+");
     logger.info("args=" + Arrays.toString(split));
     return split;
   }
-
+  */
+  
   public static class DummyProcessResult
   {
     public Thread _thread;
@@ -245,6 +255,7 @@ public class TestHelper
         // TODO Auto-generated catch block
         e.printStackTrace();
       }
+      /*
       finally
       {
         if (_manager != null)
@@ -252,6 +263,7 @@ public class TestHelper
           _manager.disconnect();
         }
       }
+      */
     }
   }
 }

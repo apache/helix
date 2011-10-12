@@ -1,14 +1,15 @@
 package com.linkedin.clustermanager.zk;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 import org.apache.log4j.Logger;
-import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.TestHelper;
+import com.linkedin.clustermanager.TestHelper.DummyProcessResult;
 import com.linkedin.clustermanager.controller.ClusterManagerMain;
-import com.linkedin.clustermanager.tools.ClusterStateVerifier;
 
 public class TestDistCMMain extends ZkDistCMHandler
 {
@@ -23,7 +24,7 @@ public class TestDistCMMain extends ZkDistCMHandler
     // add more controllers to controller cluster
     for (int i = 0; i < NODE_NR; i++)
     {
-      String controller = "controller:" + i;
+      String controller = CONTROLLER_PREFIX + ":" + (NODE_NR + i);
       _setupTool.addInstanceToCluster(CONTROLLER_CLUSTER, controller);
     }
     _setupTool.rebalanceStorageCluster(CONTROLLER_CLUSTER, 
@@ -32,12 +33,18 @@ public class TestDistCMMain extends ZkDistCMHandler
     // start extra cluster controllers in distributed mode
     for (int i = 0; i < 5; i++)
     {
-      String controller = "controller_" + i;
-      Thread thread = TestHelper.startClusterController("-zkSvr " + ZK_ADDR + " -cluster " + CONTROLLER_CLUSTER + 
-           " -mode " + ClusterManagerMain.DISTRIBUTED + " -controllerName " + controller);
-      _threadMap.put(controller, thread);
+      String controller = CONTROLLER_PREFIX + "_" + (NODE_NR + i);
+      // Thread thread = TestHelper.startClusterController("-zkSvr " + ZK_ADDR + " -cluster " + CONTROLLER_CLUSTER + 
+      //     " -mode " + ClusterManagerMain.DISTRIBUTED + " -controllerName " + controller);
+      
+      DummyProcessResult result = TestHelper
+          .startClusterController(CONTROLLER_CLUSTER, controller, ZK_ADDR, 
+                                  ClusterManagerMain.DISTRIBUTED, null);
+      _threadMap.put(controller, result._thread);
+      _managerMap.put(controller, result._manager);
     }
     
+    /*
     try
     {
       boolean result = false;
@@ -53,7 +60,7 @@ public class TestDistCMMain extends ZkDistCMHandler
       }
       // debug
       System.out.println("testDistCMMain(): wait " + ((i+1) * 2000) 
-                         + "s to verify (" + result + ") cluster:" + CONTROLLER_CLUSTER);
+                         + "ms to verify (" + result + ") cluster:" + CONTROLLER_CLUSTER);
       if (result == false)
       {
         System.out.println("testDistCMMain() verification fails");
@@ -65,15 +72,19 @@ public class TestDistCMMain extends ZkDistCMHandler
       // TODO Auto-generated catch block
       e.printStackTrace();
     }
+    */
+    List<String> clusterNames = new ArrayList<String>();
+    clusterNames.add(CONTROLLER_CLUSTER);
+    verifyIdealAndCurrentStateTimeout(clusterNames);
     
     // stop controllers
     for (int i = 0; i < NODE_NR; i++)
     {
-      stopCurrentLeader(CONTROLLER_CLUSTER);
-      Thread.sleep(5000);
+      stopCurrentLeader(CONTROLLER_CLUSTER, _threadMap, _managerMap);
+      // Thread.sleep(5000);
     }
     
-    assertLeader(CONTROLLER_CLUSTER);
+    // assertLeader(CONTROLLER_CLUSTER);
     logger.info("END at " + new Date(System.currentTimeMillis()));
   }
 }

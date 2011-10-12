@@ -1,16 +1,13 @@
 package com.linkedin.clustermanager.zk;
 
-import org.testng.annotations.Test;
-import org.testng.AssertJUnit;
 import java.util.Date;
 
 import org.apache.log4j.Logger;
-import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.TestHelper;
+import com.linkedin.clustermanager.TestHelper.DummyProcessResult;
 import com.linkedin.clustermanager.controller.ClusterManagerMain;
-import com.linkedin.clustermanager.tools.ClusterStateVerifier;
 
 public class TestStandAloneCMMain extends ZkStandAloneCMHandler
 {
@@ -21,16 +18,32 @@ public class TestStandAloneCMMain extends ZkStandAloneCMHandler
   {
     logger.info("Run at " + new Date(System.currentTimeMillis()));
     
-    TestHelper.startClusterController("-zkSvr " + ZK_ADDR + " -cluster " + CLUSTER_NAME +
-          " -mode " + ClusterManagerMain.STANDALONE + " -controllerName controller_1");
-    TestHelper.startClusterController("-zkSvr " + ZK_ADDR + " -cluster " + CLUSTER_NAME +
-          " -mode " + ClusterManagerMain.STANDALONE + " -controllerName controller_2");
+    // TestHelper.startClusterController("-zkSvr " + ZK_ADDR + " -cluster " + CLUSTER_NAME +
+    //      " -mode " + ClusterManagerMain.STANDALONE + " -controllerName controller_1");
+    // TestHelper.startClusterController("-zkSvr " + ZK_ADDR + " -cluster " + CLUSTER_NAME +
+    //      " -mode " + ClusterManagerMain.STANDALONE + " -controllerName controller_2");
     
-    stopCurrentLeader(CLUSTER_NAME);
+    for (int i = 1; i <= 2; i++)
+    {
+      String controllerName = "controller_" + i;
+      DummyProcessResult startResult =
+          TestHelper.startClusterController(CLUSTER_NAME,
+                                            controllerName,
+                                            ZK_ADDR,
+                                            ClusterManagerMain.STANDALONE,
+                                            null);
+      _threadMap.put(controllerName, startResult._thread);
+      _managerMap.put(controllerName, startResult._manager);
+    }
     
-    Thread.sleep(5000);
-    boolean result = ClusterStateVerifier.verifyClusterStates(ZK_ADDR, CLUSTER_NAME);
-    AssertJUnit.assertTrue(result);
+    Thread.sleep(2000);
+    
+    stopCurrentLeader(CLUSTER_NAME, _threadMap, _managerMap);
+    
+    // Thread.sleep(5000);
+    // boolean result = ClusterStateVerifier.verifyClusterStates(ZK_ADDR, CLUSTER_NAME);
+    // AssertJUnit.assertTrue(result);
+    verifyIdealAndCurrentStateTimeout(CLUSTER_NAME);
     
     logger.info("End at " + new Date(System.currentTimeMillis())); 
   }

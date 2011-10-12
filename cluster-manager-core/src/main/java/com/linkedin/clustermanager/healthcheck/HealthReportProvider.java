@@ -20,9 +20,4 @@ public abstract class HealthReportProvider
     return _defaultPerfCounters;
   }
 
-  public Map<String, Map<String, String>> getRecentPartitionHealthReport()
-  {
-    // TODO Auto-generated method stub
-    return null;
-  }
 }

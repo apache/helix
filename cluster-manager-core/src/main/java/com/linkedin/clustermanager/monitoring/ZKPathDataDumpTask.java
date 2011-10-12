@@ -1,7 +1,6 @@
 package com.linkedin.clustermanager.monitoring;
 
 import java.io.StringWriter;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.TimerTask;
@@ -11,7 +10,10 @@ import org.apache.zookeeper.data.Stat;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.SerializationConfig;
 
+import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
+import com.linkedin.clustermanager.ClusterDataAccessor.ControllerPropertyType;
 import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
+import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
@@ -22,42 +24,73 @@ public class ZKPathDataDumpTask extends TimerTask
   static Logger logger = Logger.getLogger(ZKPathDataDumpTask.class);
 
   private int _thresholdNoChangeInMs;
+  private ClusterManager _manager;
   private ZkClient _zkClient;
-  private List<String> _paths;
 
-  public ZKPathDataDumpTask(ZkClient zkClient, List<String> paths,
+  public ZKPathDataDumpTask(ClusterManager manager, ZkClient zkClient,
       int thresholdNoChangeInMs)
   {
+    _manager = manager;
     _zkClient = zkClient;
-    logger.info("Scannning paths " + paths + " thresholdNoChangeInMs: "
+    logger.info("Scannning cluster statusUpdate " + manager.getClusterName() + " thresholdNoChangeInMs: "
         + thresholdNoChangeInMs);
     _thresholdNoChangeInMs = thresholdNoChangeInMs;
-    _paths = paths;
   }
 
   @Override
   public void run()
   {
     // For each record in status update and error node
-    logger.info("Scannning paths ...");
-    for (String path : _paths)
+    // TODO: for now the status updates are dumped to cluster manager log4j log.
+    // We need to think if we should create per-instance log files that contains per-instance statusUpdates
+    // and errors 
+    logger.info("Scannning status updates ...");
+    try
     {
-      scanPath(path);
+      List<ZNRecord> instances = _manager.getDataAccessor()
+          .getClusterPropertyList(ClusterPropertyType.CONFIGS);
+      for (ZNRecord instance : instances)
+      {
+        String instanceName = instance.getId();
+        scanPath(CMUtil.getInstancePropertyPath(_manager.getClusterName(),
+            instanceName, InstancePropertyType.STATUSUPDATES),
+            _thresholdNoChangeInMs);
+        scanPath(CMUtil.getInstancePropertyPath(_manager.getClusterName(),
+            instanceName, InstancePropertyType.ERRORS),
+            _thresholdNoChangeInMs * 3);
+      }
+      scanPath(CMUtil.getControllerPropertyPath(_manager.getClusterName(),
+          ControllerPropertyType.STATUSUPDATES), _thresholdNoChangeInMs);
+      
+      scanPath(CMUtil.getControllerPropertyPath(_manager.getClusterName(),
+          ControllerPropertyType.ERRORS), _thresholdNoChangeInMs * 3);
+    } 
+    catch (Exception e)
+    {
+      logger.error(e);
     }
   }
 
-  void scanPath(String path)
+  void scanPath(String path, int thresholdNoChangeInMs)
   {
     logger.info("Scannning path " + path);
     List<String> subPaths = _zkClient.getChildren(path);
     for (String subPath : subPaths)
     {
-      String nextPath = path + "/" + subPath;
-      checkAndDump(nextPath);
+      try
+      {
+        String nextPath = path + "/" + subPath;
+        checkAndDump(nextPath, thresholdNoChangeInMs);
+        _zkClient.delete(nextPath);
+      } 
+      catch (Exception e)
+      {
+        logger.error(e);
+      }
     }
   }
 
-  void checkAndDump(String path)
+  void checkAndDump(String path, int thresholdNoChangeInMs)
   {
     List<String> subPaths = _zkClient.getChildren(path);
     for (String subPath : subPaths)
@@ -74,7 +107,7 @@ public class ZKPathDataDumpTask extends TimerTask
       if (nowInMs > lastModifiedTimeInMs)
       {
         long timeDiff = nowInMs - lastModifiedTimeInMs;
-        if (timeDiff > _thresholdNoChangeInMs)
+        if (timeDiff > thresholdNoChangeInMs)
         {
           logger.info("Dumping status update path " + fullPath + " " + timeDiff
               + "MS has passed");
@@ -93,6 +126,7 @@ public class ZKPathDataDumpTask extends TimerTask
           {
             mapper.writeValue(sw, record);
             logger.info(sw.toString());
+            System.out.println(sw.toString());
           } catch (Exception e)
           {
             logger
@@ -105,16 +139,5 @@ public class ZKPathDataDumpTask extends TimerTask
         }
       }
     }
-  }
-
-  public static void main(String args[])
-  {
-    ZkClient zkClient = new ZkClient("localhost:2181", 30000);
-    zkClient.setZkSerializer(new ZNRecordSerializer());
-    String path = CMUtil.getInstancePropertyPath("ESPRESSO_STORAGE",
-        "localhost_8901", InstancePropertyType.STATUSUPDATES);
-    List<String> paths = new ArrayList<String>();
-    paths.add(path);
-    new ZKPathDataDumpTask(zkClient, paths, 2000).run();
   }
 }

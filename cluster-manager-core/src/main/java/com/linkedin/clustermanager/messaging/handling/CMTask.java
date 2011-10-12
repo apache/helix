@@ -57,7 +57,7 @@ public class CMTask implements Callable<CMTaskResult>
         _handler.handleMessage(_message, _notificationContext, taskResult.getTaskResultMap());
         taskResult.setSuccess(true);
         
-        _statusUpdateUtil.logInfo(_message, CMStateTransitionHandler.class,
+        _statusUpdateUtil.logInfo(_message, _handler.getClass(),
             "Message handling task completed successfully", accessor);
       }
       catch(InterruptedException e)

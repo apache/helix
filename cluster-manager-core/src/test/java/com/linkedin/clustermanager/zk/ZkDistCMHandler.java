@@ -29,9 +29,6 @@ import com.linkedin.clustermanager.tools.ClusterSetup;
 public class ZkDistCMHandler extends ZkTestBase
 {
   private static Logger logger = Logger.getLogger(ZkDistCMHandler.class);
-  // protected static final String ZK_ADDR = "localhost:2183";
-  // protected static final String CLUSTER_PREFIX = "ESPRESSO_STORAGE";
-  // protected static final String CONTROLLER_CLUSTER_PREFIX = "CONTROLLER_CLUSTER";
 
   protected static final int CLUSTER_NR = 10;
   protected static final int NODE_NR = 5;
@@ -46,7 +43,6 @@ public class ZkDistCMHandler extends ZkTestBase
   protected final String PARTICIPANT_PREFIX = "localhost";
   
   private static final String TEST_DB = "TestDB";
-  // private ZkServer _zkServer = null;
 
   @BeforeClass
   public void beforeClass() throws Exception
@@ -68,7 +64,6 @@ public class ZkDistCMHandler extends ZkTestBase
       }
     }
     
-    // _zkServer = TestHelper.startZkSever(ZK_ADDR, namespaces);
     _setupTool = new ClusterSetup(ZK_ADDR);
 
     // setup cluster of ESPRESSO_STORAGE clusters

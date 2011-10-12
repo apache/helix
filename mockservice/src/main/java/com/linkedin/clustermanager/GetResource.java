@@ -3,6 +3,7 @@ package com.linkedin.clustermanager;
 import java.io.IOException;
 import java.util.List;
 
+import org.apache.log4j.Logger;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.restlet.Context;
@@ -17,6 +18,10 @@ import org.restlet.resource.Variant;
 import com.linkedin.clustermanager.tools.ClusterSetup;
 
 public class GetResource extends Resource {
+	
+	private static final Logger logger = Logger
+			.getLogger(GetResource.class);
+	
 	 public GetResource(Context context,
 	            Request request,
 	            Response response) 
@@ -52,7 +57,12 @@ public class GetResource extends Resource {
 	    try
 	    {
 	      String zkServer = (String)getContext().getAttributes().get(MockEspressoService.ZKSERVERADDRESS);
-	      String clusterName = (String)getRequest().getAttributes().get("clusterName");
+	      logger.debug("zkServer: "+zkServer);
+	      //Context currContext = getContext();
+	      //Request currReq = getRequest();
+	      //logger.debug("xxx");
+	      String clusterName = (String)getRequest().getAttributes().get(MockEspressoService.CLUSTERNAME);
+	      logger.debug("clusterName: "+clusterName);
 	      presentation = getClusterRepresentation(zkServer, clusterName);
 	    }
 	    
@@ -71,8 +81,8 @@ public class GetResource extends Resource {
 	    ClusterSetup setupTool = new ClusterSetup(zkServerAddress);
 	    List<String> instances = setupTool.getClusterManagementTool().getInstancesInCluster(clusterName);
 	    
-	    ZNRecord clusterSummayRecord = new ZNRecord();
-	    clusterSummayRecord.setId("cluster summary");
+	    ZNRecord clusterSummayRecord = new ZNRecord("cluster summary");
+	    //clusterSummayRecord.setId("cluster summary");
 	    clusterSummayRecord.setListField("instances", instances);
 	    
 	    List<String> hostedEntities = setupTool.getClusterManagementTool().getResourceGroupsInCluster(clusterName);

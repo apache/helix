@@ -134,6 +134,7 @@ public class ZkDistCMHandler extends ZkTestBase
     
     _setupTool.dropResourceGroupToCluster(CONTROLLER_CLUSTER, CLUSTER_PREFIX + "_" + CLASS_NAME);
     // Thread.sleep(20000);
+    Thread.sleep(5000);
     
     List<String> instanceNames = new ArrayList<String>();
     for (String instance : _threadMap.keySet())
@@ -165,7 +166,6 @@ public class ZkDistCMHandler extends ZkTestBase
     // Thread.sleep(3000);
     // logger.info("END " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
     System.out.println("END " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
-    // TestHelper.stopZkServer(_zkServer);
   }
   
   protected void setupStorageCluster(ClusterSetup setupTool, String clusterName, 

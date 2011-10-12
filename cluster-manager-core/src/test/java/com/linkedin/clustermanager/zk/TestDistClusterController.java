@@ -55,6 +55,7 @@ public class TestDistClusterController extends ZkDistCMHandler
     verifyIdealAndCurrentStateTimeout(clusterNames);
 
     logger.info("End at " + new Date(System.currentTimeMillis()));
+    // super.afterClass();
   }
 
 }

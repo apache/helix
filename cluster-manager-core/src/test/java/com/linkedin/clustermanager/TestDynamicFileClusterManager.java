@@ -22,7 +22,7 @@ public class TestDynamicFileClusterManager extends FileClusterManagerHandler
     // add a new db
     _mgmtTool.addResourceGroup(CLUSTER_NAME, "MyDB", 6, STATE_MODEL);
     rebalanceStorageCluster(CLUSTER_NAME, "MyDB", 0);
-    Thread.sleep(5000);
+    Thread.sleep(10000);
     
     // verify current state
     ZNRecord idealStates = _accessor.getClusterProperty(ClusterPropertyType.IDEALSTATES, "MyDB");

@@ -7,7 +7,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Callable;
 
 import org.apache.log4j.Logger;
 
@@ -22,9 +21,6 @@ import com.linkedin.clustermanager.NotificationContext;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.StateModelDefinition;
-import com.linkedin.clustermanager.model.Message.MessageType;
-import com.linkedin.clustermanager.monitoring.StateTransitionContext;
-import com.linkedin.clustermanager.monitoring.StateTransitionDataPoint;
 import com.linkedin.clustermanager.participant.statemachine.StateModel;
 import com.linkedin.clustermanager.participant.statemachine.StateModelParser;
 import com.linkedin.clustermanager.participant.statemachine.StateTransitionError;
@@ -35,7 +31,7 @@ public class CMStateTransitionHandler implements MessageHandler
   private static Logger logger = Logger.getLogger(CMStateTransitionHandler.class);
   private final StateModel _stateModel;
   StatusUpdateUtil _statusUpdateUtil;
-  private StateModelParser _transitionMethodFinder;
+  private final StateModelParser _transitionMethodFinder;
 
   public CMStateTransitionHandler(StateModel stateModel)
   {
@@ -140,11 +136,12 @@ public class CMStateTransitionHandler implements MessageHandler
         (fromState == null
         || !fromState.equalsIgnoreCase(_stateModel.getCurrentState())))
     {
-      String errorMessage = "Current state of stateModel does not match the fromState in Message "
-          + " Current State:"
-          + _stateModel.getCurrentState()
+      String errorMessage = "Current state of stateModel does not match the fromState in Message"
+          + ", Current State:" + _stateModel.getCurrentState()
           + ", message expected:" + fromState
-          +" partition: " + message.getStateUnitKey();
+          + ", partition: " + message.getStateUnitKey()
+          + ", from: " + message.getMsgSrc()
+          + ", to: " + message.getTgtName();
       
       _statusUpdateUtil.logError(message, CMStateTransitionHandler.class, errorMessage,
           accessor);

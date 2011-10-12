@@ -108,35 +108,6 @@ public class ZkStandAloneCMHandler extends ZkTestBase
     verifyIdealAndCurrentStateTimeout(CLUSTER_NAME);
     
     // Thread.sleep(2000);
-    /*
-    try
-    {
-      boolean result = false;
-      int i = 0;
-      for ( ; i < 24; i++)
-      {
-        Thread.sleep(2000);
-        result = ClusterStateVerifier.verifyClusterStates(ZK_ADDR, CLUSTER_NAME);
-        if (result == true)
-        {
-          break;
-        }
-      }
-      // debug
-      System.out.println("ZkStandaloneCMHandler.beforeClass(): wait " + ((i+1) * 2000) 
-                         + "ms to verify (" + result + ") cluster:" + CLUSTER_NAME);
-      if (result == false)
-      {
-        System.out.println("ZkStandaloneCMHandler.beforeClass() verification fails");
-      }
-      Assert.assertTrue(result);
-    }
-    catch (InterruptedException e)
-    {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    }
-    */
   }
 
   @AfterClass
@@ -206,25 +177,4 @@ public class ZkStandAloneCMHandler extends ZkTestBase
     logger.info("After session expiry sessionId = " + oldZookeeper.getSessionId());
   }
 
-  /*
-  protected void stopCurrentLeader(String clusterName)
-  {
-    String leaderPath =
-        CMUtil.getControllerPropertyPath(clusterName, ControllerPropertyType.LEADER);
-    final ZkClient zkClient = new ZkClient(ZK_ADDR, 3000, 10000, new ZNRecordSerializer());
-    ZNRecord leaderRecord = zkClient.<ZNRecord> readData(leaderPath);
-    Assert.assertTrue(leaderRecord != null);
-    String controller = leaderRecord.getSimpleField(ControllerPropertyType.LEADER.toString());
-    logger.info("stop current leader:" + controller);
-    
-    Assert.assertTrue(controller != null);
-    ClusterManager manager = _managerMap.remove(controller);
-    Assert.assertTrue(manager != null);
-    manager.disconnect();
-    
-    Thread thread = _threadMap.remove(controller);
-    Assert.assertTrue(thread != null);
-    thread.interrupt();
-  }
-  */
 }

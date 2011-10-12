@@ -20,13 +20,8 @@ public class TestDistClusterController extends ZkDistCMHandler
     logger.info("Run at " + new Date(System.currentTimeMillis()));
 
     // stop the current cluster controller
-    // final String controllerCluster = CONTROLLER_CLUSTER_PREFIX + "_" + CLASS_NAME;
+    Thread.sleep(5000);
     stopCurrentLeader(CONTROLLER_CLUSTER, _threadMap, _managerMap);
-
-    // Thread.sleep(3000);
-
-    // make sure a new leader is selected
-    // assertLeader(CONTROLLER_CLUSTER);
 
     // setup storage cluster: ESPRESSO_STORAGE_1
     final String secondCluster = CLUSTER_PREFIX + "_" + CLASS_NAME + "_1";
@@ -58,34 +53,7 @@ public class TestDistClusterController extends ZkDistCMHandler
     clusterNames.add(firstCluster);
     clusterNames.add(secondCluster);
     verifyIdealAndCurrentStateTimeout(clusterNames);
-    /*
-    try
-    {
-      boolean result = false;
-      int i = 0;
-      for ( ; i < 24; i++)
-      {
-        Thread.sleep(2000);
-         result = verifyIdealAndCurrentState(clusterNames);
-        if (result == true)
-        {
-          break;
-        }
-      }
-      System.out.println("TestDistClusterController: wait " + ((i+1) * 2000) 
-                         + "s to verify cluster:" + firstCluster + ", " + secondCluster);
-      if (result == false)
-      {
-        System.out.println("TestDistClusterController verification fails");
-      }
-      AssertJUnit.assertTrue(result);
-    }
-    catch (InterruptedException e)
-    {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    }
-    */
+
     logger.info("End at " + new Date(System.currentTimeMillis()));
   }
 

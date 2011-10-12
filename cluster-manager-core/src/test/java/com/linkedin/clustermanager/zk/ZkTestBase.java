@@ -40,7 +40,8 @@ public class ZkTestBase
   {
     _zkServer = TestHelper.startZkSever(ZK_ADDR);
     AssertJUnit.assertTrue(_zkServer != null);
-
+    ZKClientPool.reset();
+    
     _zkClient = ZKClientPool.getZkClient(ZK_ADDR);
     AssertJUnit.assertTrue(_zkClient != null);
   }
@@ -91,7 +92,7 @@ public class ZkTestBase
     boolean isNewLeaderElected = false;
     try
     {
-      Thread.sleep(2000);
+      // Thread.sleep(2000);
       for (int i = 0; i < 5; i++)
       {
         Thread.sleep(1000);

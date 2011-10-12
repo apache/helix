@@ -29,9 +29,6 @@ import com.linkedin.clustermanager.tools.ClusterSetup;
 public class ZkDistCMHandler extends ZkTestBase
 {
   private static Logger logger = Logger.getLogger(ZkDistCMHandler.class);
-  // protected static final String ZK_ADDR = "localhost:2183";
-  // protected static final String CLUSTER_PREFIX = "ESPRESSO_STORAGE";
-  // protected static final String CONTROLLER_CLUSTER_PREFIX = "CONTROLLER_CLUSTER";
 
   protected static final int CLUSTER_NR = 10;
   protected static final int NODE_NR = 5;
@@ -46,7 +43,6 @@ public class ZkDistCMHandler extends ZkTestBase
   protected final String PARTICIPANT_PREFIX = "localhost";
   
   private static final String TEST_DB = "TestDB";
-  // private ZkServer _zkServer = null;
 
   @BeforeClass
   public void beforeClass() throws Exception
@@ -68,7 +64,6 @@ public class ZkDistCMHandler extends ZkTestBase
       }
     }
     
-    // _zkServer = TestHelper.startZkSever(ZK_ADDR, namespaces);
     _setupTool = new ClusterSetup(ZK_ADDR);
 
     // setup cluster of ESPRESSO_STORAGE clusters
@@ -129,42 +124,13 @@ public class ZkDistCMHandler extends ZkTestBase
     clusterNames.add(CONTROLLER_CLUSTER);
     clusterNames.add(firstCluster);
     verifyIdealAndCurrentStateTimeout(clusterNames);
-
-    /*
-    try
-    {
-      boolean result = false;
-      int i = 0;
-      for ( ; i < 24; i++)
-      {
-        Thread.sleep(2000);
-        result = verifyIdealAndCurrentState(clusterNames);
-        if (result == true)
-        {
-          break;
-        }
-      }
-      // debug
-      System.out.println("ZkDistCMHandler.beforeClass(): wait " + ((i+1) * 2000) 
-                         + "ms to verify (" + result + ") cluster:" + CONTROLLER_CLUSTER + ", " + firstCluster);
-      if (result == false)
-      {
-        System.out.println("ZkDistCMHandler.beforeClass() verification fails");
-      }
-      Assert.assertTrue(result);
-    }
-    catch (InterruptedException e)
-    {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    }
-    */
   }
   
   @AfterClass
   public void afterClass() throws Exception
   {
     // logger.info("END at " + new Date(System.currentTimeMillis()));
+    System.out.println("Shutting down " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
     
     _setupTool.dropResourceGroupToCluster(CONTROLLER_CLUSTER, CLUSTER_PREFIX + "_" + CLASS_NAME);
     // Thread.sleep(20000);

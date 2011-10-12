@@ -168,7 +168,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
       if (changeContext.getType() == NotificationContext.Type.INIT)
       {
         _zkClient.subscribeChildChanges(this._path, this);
-      } else if (changeContext.getType() == NotificationContext.Type.INIT)
+      } else if (changeContext.getType() == NotificationContext.Type.FINALIZE)
       {
         _zkClient.unsubscribeChildChanges(this._path, this);
       }

@@ -193,6 +193,9 @@ public class ClusterSetup
     int partitions = Integer.parseInt(dbIdealState.getSimpleField("partitions"));
 
     ZkClient zkClient = ZKClientPool.getZkClient(_zkServerAddress);
+    // ZkClient zkClient = new ZkClient(_zkServerAddress);
+    // zkClient.setZkSerializer(new ZNRecordSerializer());
+    
     String idealStatePath = CMUtil.getIdealStatePath(clusterName, resourceGroupName);
     ZNRecord idealState = zkClient.<ZNRecord> readData(idealStatePath);
     String stateModelName = idealState.getSimpleField("state_model_def_ref");

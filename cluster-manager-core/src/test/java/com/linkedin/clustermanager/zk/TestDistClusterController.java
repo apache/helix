@@ -20,9 +20,8 @@ public class TestDistClusterController extends ZkDistCMHandler
     logger.info("Run at " + new Date(System.currentTimeMillis()));
 
     // stop the current cluster controller
+    Thread.sleep(5000);
     stopCurrentLeader(CONTROLLER_CLUSTER, _threadMap, _managerMap);
-
-    // Thread.sleep(3000);
 
     // setup storage cluster: ESPRESSO_STORAGE_1
     final String secondCluster = CLUSTER_PREFIX + "_" + CLASS_NAME + "_1";

@@ -456,7 +456,13 @@ public class ZKClusterManager implements ClusterManager
         _zkClient.exists(idealStatePath) && _zkClient.exists(CMUtil.getConfigPath(_clusterName))
             && _zkClient.exists(CMUtil.getLiveInstancesPath(_clusterName))
             && _zkClient.exists(CMUtil.getMemberInstancesPath(_clusterName))
-            && _zkClient.exists(CMUtil.getExternalViewPath(_clusterName));
+            && _zkClient.exists(CMUtil.getExternalViewPath(_clusterName))
+            && _zkClient.exists(CMUtil.getControllerPath(_clusterName))
+            && _zkClient.exists(CMUtil.getControllerPropertyPath(_clusterName, ControllerPropertyType.MESSAGES))
+            && _zkClient.exists(CMUtil.getControllerPropertyPath(_clusterName, ControllerPropertyType.STATUSUPDATES))
+            && _zkClient.exists(CMUtil.getControllerPropertyPath(_clusterName, ControllerPropertyType.ERRORS))
+            && _zkClient.exists(CMUtil.getControllerPropertyPath(_clusterName, ControllerPropertyType.HISTORY));
+    
     return isValid;
   }
 

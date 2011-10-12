@@ -10,6 +10,13 @@ public abstract class HealthReportProvider
   
   public abstract Map<String, String> getRecentHealthReport();
   
+  
+  public Map<String, Map<String, String>> getRecentPartitionHealthReport()
+  {
+	return null;
+  }
+  
+  
   public String getReportName()
   {
     return _defaultPerfCounters;

@@ -32,8 +32,6 @@ public class TestDistCMMain extends ZkDistCMHandler
     for (int i = 0; i < 5; i++)
     {
       String controller = CONTROLLER_PREFIX + "_" + (NODE_NR + i);
-      // Thread thread = TestHelper.startClusterController("-zkSvr " + ZK_ADDR + " -cluster " + CONTROLLER_CLUSTER + 
-      //     " -mode " + ClusterManagerMain.DISTRIBUTED + " -controllerName " + controller);
       
       DummyProcessResult result = TestHelper
           .startClusterController(CONTROLLER_CLUSTER, controller, ZK_ADDR, 
@@ -45,6 +43,7 @@ public class TestDistCMMain extends ZkDistCMHandler
     // List<String> clusterNames = new ArrayList<String>();
     // clusterNames.add(CONTROLLER_CLUSTER);
     verifyIdealAndCurrentStateTimeout(CONTROLLER_CLUSTER);
+    // Thread.sleep(5000);
     
     // stop controllers
     for (int i = 0; i < NODE_NR; i++)

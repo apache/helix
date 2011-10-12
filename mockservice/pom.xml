@@ -15,6 +15,13 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
+  <repositories>
+    <repository>
+       <id>maven-restlet</id>
+       <name>Public online Restlet repository</name>
+       <url>http://maven.restlet.org</url>
+    </repository>
+  </repositories>
   <dependencies>
     <dependency>
       <groupId>junit</groupId>
@@ -38,4 +45,21 @@
 			<version>1.1.10</version>
 		</dependency>
   </dependencies>
+   <build>
+    <plugins>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>appassembler-maven-plugin</artifactId>
+        <version>1.1.1</version>
+        <configuration>
+          <programs>
+            <program>
+              <mainClass>com.linkedin.clustermanager.MockEspressoService</mainClass>
+              <name>run-mock-espresso-service</name>
+            </program>         
+          </programs>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 </project>

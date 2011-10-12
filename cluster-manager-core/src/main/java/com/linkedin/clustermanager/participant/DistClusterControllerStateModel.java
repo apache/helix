@@ -1,8 +1,5 @@
 package com.linkedin.clustermanager.participant;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
 import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.ClusterManager;
@@ -21,8 +18,9 @@ import com.linkedin.clustermanager.participant.statemachine.Transition;
 public class DistClusterControllerStateModel extends StateModel 
 {
   private static Logger logger = Logger.getLogger(DistClusterControllerStateModel.class);
-  private final ConcurrentHashMap<String, ClusterManager> _controllers 
-            = new ConcurrentHashMap<String, ClusterManager>();
+  // private final ConcurrentHashMap<String, ClusterManager> _controllers 
+  //          = new ConcurrentHashMap<String, ClusterManager>();
+  private ClusterManager _controller = null;
   private final String _zkAddr;
   
   public DistClusterControllerStateModel(String zkAddr)
@@ -45,18 +43,29 @@ public class DistClusterControllerStateModel extends StateModel
     String clusterName = message.getStateUnitKey();
     String controllerName = message.getTgtName();
 
-    logger.info(controllerName + " becomes leader from standby for cluster:" + clusterName);
+    logger.info(controllerName + " becomes leader from standby for " + clusterName);
+    // System.out.println(controllerName + " becomes leader from standby for " + clusterName);
  
-    ClusterManager manager = ClusterManagerFactory
-        .getZKBasedManagerForController(clusterName, controllerName, _zkAddr);
-    // manager.connect();
-    _controllers.put(controllerName, manager);
-    manager.connect();
+    // ClusterManager manager 
+    if (_controller == null)
+    {
+      _controller = ClusterManagerFactory.getZKBasedManagerForController(clusterName, controllerName, _zkAddr);
+      // manager.connect();
+      // _controllers.put(controllerName, manager);
+      
+      _controller.connect();
     
-    DistClusterControllerElection leaderElection = new DistClusterControllerElection(_zkAddr);
-    // TODO need sync
-    manager.addControllerListener(leaderElection);
-    context.add(clusterName, leaderElection.getController());
+    
+      DistClusterControllerElection leaderElection = new DistClusterControllerElection(_zkAddr);
+      // TODO need sync
+      _controller.addControllerListener(leaderElection);
+      context.add(clusterName, leaderElection.getController());
+    }
+    else
+    {
+      logger.error("a controller already exists:" + _controller.getInstanceName() 
+                   + " for " + clusterName);
+    }
     
   }
   
@@ -66,9 +75,20 @@ public class DistClusterControllerStateModel extends StateModel
     String clusterName = message.getStateUnitKey();
     String controllerName = message.getTgtName();
     
-    logger.info(controllerName + " becoming standby from leader for cluster:" + clusterName);
+    logger.info(controllerName + " becoming standby from leader for " + clusterName);
+    // System.out.println(controllerName + " becoming standby from leader for " + clusterName);
     // ClusterManager manager = _controllers.remove(controllerName);
-    // manager.disconnect();
+  
+    if (_controller != null)
+    {
+      _controller.disconnect();
+      _controller = null;
+    }
+    else
+    {
+      logger.error("a controller doesn't exist:" + _controller.getInstanceName() 
+                   + " for " + clusterName);
+    }
   }
 
   @Transition(to="OFFLINE",from="STANDBY")
@@ -79,7 +99,6 @@ public class DistClusterControllerStateModel extends StateModel
 
     logger.info(controllerName + " becoming offline from standby for cluster:" + clusterName);
     
-    // TODO fix it: manager.disconnect() is not thread-safe
     // ClusterManager manager = _controllers.remove(controllerName);
     // manager.disconnect();
   }
@@ -106,24 +125,24 @@ public class DistClusterControllerStateModel extends StateModel
     
     logger.error(controllerName + " rollbacks on error for cluster:" + clusterName);
     
-    ClusterManager manager = _controllers.remove(controllerName);
-    if (manager != null)
+    // ClusterManager manager = _controllers.remove(controllerName);
+    if (_controller != null)
     {
       // do clean
       GenericClusterController listener = (GenericClusterController)context.get(clusterName);
       if (listener != null)
       {
         // TODO need sync
-        manager.removeListener(listener);
+        _controller.removeListener(listener);
       }
-      manager.disconnect();
+      _controller.disconnect();
     }
 
   }
   
-  public Map<String, ClusterManager> getControllers()
+  public ClusterManager getController()
   {
-    return _controllers;
+    return _controller;
   }
 
 }

@@ -12,6 +12,7 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Timer;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -47,8 +48,13 @@ import com.linkedin.clustermanager.healthcheck.ParticipantHealthReportCollector;
 import com.linkedin.clustermanager.healthcheck.ParticipantHealthReportCollectorImpl;
 import com.linkedin.clustermanager.messaging.DefaultMessagingService;
 import com.linkedin.clustermanager.messaging.handling.MessageHandlerFactory;
+import com.linkedin.clustermanager.model.Message.MessageType;
 import com.linkedin.clustermanager.monitoring.ZKPathDataDumpTask;
 import com.linkedin.clustermanager.participant.DistClusterControllerElection;
+import com.linkedin.clustermanager.participant.DistClusterControllerStateModel;
+import com.linkedin.clustermanager.participant.DistClusterControllerStateModelFactory;
+import com.linkedin.clustermanager.participant.StateMachineEngine;
+import com.linkedin.clustermanager.participant.statemachine.StateModelFactory;
 import com.linkedin.clustermanager.store.PropertySerializer;
 import com.linkedin.clustermanager.store.PropertyStore;
 import com.linkedin.clustermanager.store.zk.ZKPropertyStore;
@@ -290,7 +296,40 @@ public class ZKClusterManager implements ClusterManager
       {
         leader.disconnect();
       }
-
+    }
+    
+    // disconnect all managers instantiated in distributed cluster controller state model
+    if (_instanceType == InstanceType.CONTROLLER_PARTICIPANT)
+    {
+      MessageHandlerFactory factory = _messagingService.getExecutor()
+          .getMessageHanderFactory(MessageType.STATE_TRANSITION.toString());
+      if (factory instanceof StateMachineEngine)
+      {
+        StateModelFactory stateModelFactory =  ((StateMachineEngine) factory).getStateModelFactory();
+        if (stateModelFactory instanceof DistClusterControllerStateModelFactory)
+        {
+          Map<String, DistClusterControllerStateModel> stateModelMap 
+              = ((DistClusterControllerStateModelFactory)stateModelFactory).getStateModelMap();
+          for (Map.Entry<String, DistClusterControllerStateModel> entry : stateModelMap.entrySet())
+          {
+            ClusterManager controller = entry.getValue().getController();
+            if (controller != null)
+            {
+              System.out.println("disconnecting " + controller.getInstanceName() 
+                                 + " for " + controller.getClusterName());
+              controller.disconnect();
+            }
+          }
+        }
+        else
+        {
+          logger.error("stateModelFactory is not an instance of DistClusterControllerStateModelFactory");
+        }
+      }
+      else
+      {
+        logger.error("factory is not an instance of StateMachineEngine");
+      }
     }
     
     if (_participantHealthCheckInfoCollector != null)

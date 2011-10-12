@@ -6,27 +6,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.ClusterDataAccessor;
+import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerException;
 import com.linkedin.clustermanager.MessageListener;
 import com.linkedin.clustermanager.NotificationContext;
 import com.linkedin.clustermanager.NotificationContext.Type;
 import com.linkedin.clustermanager.ZNRecord;
-import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.Message.MessageType;
 import com.linkedin.clustermanager.monitoring.ParticipantMonitor;
 import com.linkedin.clustermanager.participant.StateMachineEngine;
-import com.linkedin.clustermanager.participant.statemachine.StateModel;
 import com.linkedin.clustermanager.util.StatusUpdateUtil;
 
 public class CMTaskExecutor implements MessageListener
@@ -75,6 +72,11 @@ public class CMTaskExecutor implements MessageListener
     {
       logger.warn("Ignoring duplicate msg factory for type " + type);
     }
+  }
+  
+  public MessageHandlerFactory getMessageHanderFactory(String type)
+  {
+    return _handlerFactoryMap.get(type);
   }
   
   public ParticipantMonitor getParticipantMonitor()
@@ -238,7 +240,7 @@ public class CMTaskExecutor implements MessageListener
         continue;
       }
       String sessionId = manager.getSessionId();
-      String tgtSessionId = ((Message) message).getTgtSessionId();
+      String tgtSessionId = message.getTgtSessionId();
       if (sessionId.equals(tgtSessionId) || tgtSessionId.equals("*"))
       {
         MessageHandler handler = null;

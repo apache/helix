@@ -8,7 +8,6 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.List;
 
-import com.linkedin.clustermanager.agent.zk.ZkClient;
 import org.I0Itec.zkclient.exception.ZkMarshallingError;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.commons.cli.CommandLine;
@@ -19,6 +18,8 @@ import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
+
+import com.linkedin.clustermanager.agent.zk.ZkClient;
 
 /**
  * Dumps the Zookeeper file structure on to Disk
@@ -60,27 +61,38 @@ public class ZKDumper
   {
     options = new Options();
     OptionGroup optionGroup = new OptionGroup();
+    
     Option d = OptionBuilder.withLongOpt("download")
         .withDescription("Download from ZK to File System").create();
     d.setArgs(0);
-
+    Option dSuffix = OptionBuilder.withLongOpt("addSuffix")
+        .withDescription("add suffix to every file downloaded from ZK").create();
+    dSuffix.setArgs(1);
+    dSuffix.setRequired(false);
+    
     Option u = OptionBuilder.withLongOpt("upload")
         .withDescription("Upload from File System to ZK").create();
     u.setArgs(0);
-
+    Option uSuffix = OptionBuilder.withLongOpt("removeSuffix")
+        .withDescription("remove suffix from every file uploaded to ZK").create();
+    uSuffix.setArgs(0);
+    uSuffix.setRequired(false);
+    
     Option del = OptionBuilder.withLongOpt("delete")
         .withDescription("Delete given path from ZK").create();
 
     optionGroup.setRequired(true);
-    optionGroup.addOption(d);
-    optionGroup.addOption(u);
     optionGroup.addOption(del);
+    optionGroup.addOption(u);
+    optionGroup.addOption(d);
     options.addOptionGroup(optionGroup);
     options.addOption("zkSvr", true, "Zookeeper address");
     options.addOption("zkpath", true, "Zookeeper path");
     options.addOption("fspath", true, "Path on local Filesystem to dump");
     options.addOption("h", "help", false, "Print this usage information");
     options.addOption("v", "verbose", false, "Print out VERBOSE information");
+    options.addOption(dSuffix);
+    options.addOption(uSuffix);
   }
 
   public ZKDumper(String zkAddress)
@@ -134,9 +146,9 @@ public class ZKDumper
     ZKDumper zkDump = new ZKDumper(zkAddress);
     if (download)
     {
-      if (cmd.hasOption("suffix"))
+      if (cmd.hasOption("addSuffix"))
       {
-        zkDump.suffix = cmd.getOptionValue("suffix");
+        zkDump.suffix = cmd.getOptionValue("addSuffix");
       }
       zkDump.download(zkPath, fsPath + zkPath);
     }
@@ -221,8 +233,7 @@ public class ZKDumper
 
   public void download(String zkPath, String fsPath) throws Exception
   {
-    System.out.println("Saving " + zkPath + " to "
-        + new File(fsPath).getCanonicalPath());
+    
     List<String> children = client.getChildren(zkPath);
     if (children != null && children.size() > 0)
     {
@@ -233,6 +244,8 @@ public class ZKDumper
       }
     } else
     {
+      System.out.println("Saving " + zkPath + " to "
+          + new File(fsPath + suffix).getCanonicalPath());
       FileWriter fileWriter = new FileWriter(fsPath + suffix);
       Object readData = client.readData(zkPath);
       if (readData != null)

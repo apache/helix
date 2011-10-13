@@ -2,6 +2,7 @@ package com.linkedin.clustermanager;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentMap;
 
@@ -53,7 +54,7 @@ public class EspressoStorageMockNode extends MockNode {
 				synchronized (_partitions) {
 					//logger.debug("Building partition map");
 					_partitions.clear();
-					ConcurrentMap<String, StateModel> stateModelMap = _stateModelFactory
+					Map<String, StateModel> stateModelMap = _stateModelFactory
 							.getStateModelMap();
 					for (String s: stateModelMap.keySet()) {
 						//logger.debug("adding key "+s);

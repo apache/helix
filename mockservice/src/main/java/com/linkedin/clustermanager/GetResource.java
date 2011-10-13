@@ -61,7 +61,7 @@ public class GetResource extends Resource {
 	      //Context currContext = getContext();
 	      //Request currReq = getRequest();
 	      //logger.debug("xxx");
-	      String clusterName = (String)getRequest().getAttributes().get(MockEspressoService.CLUSTERNAME);
+	      String clusterName = (String)getRequest().getAttributes().get(MockEspressoService.CLUSTER_NAME);
 	      logger.debug("clusterName: "+clusterName);
 	      presentation = getClusterRepresentation(zkServer, clusterName);
 	    }

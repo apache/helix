@@ -28,15 +28,22 @@ public class MockEspressoService extends Application
   private static final Logger logger = Logger.getLogger(MockEspressoService.class);
 	
   public static final String HELP = "help";
+  public static final String CLUSTERNAME = "clusterName";
   public static final String ZKSERVERADDRESS = "zkSvr";
   public static final String PORT = "port";
   public static final int DEFAULT_PORT = 8100;
   protected static final String NODE_TYPE = "EspressoStorage";
   String ZK_ADDR = "localhost:9999";
+  String CLUSTER_NAME = "";
   protected static final String INSTANCE_NAME = "localhost_1234";
-  protected static final String CLUSTER_NAME = "MockCluster";
   
+  public static final String DATABASENAME = "database";
+  public static final String TABLENAME = "table";
+  public static final String RESOURCENAME = "resource";
+  public static final String SUBRESOURCENAME = "subresource";
+ // protected static final String CLUSTER_NAME = "MockCluster";
   
+  public static EspressoStorageMockNode _mockNode;
   public MockEspressoService()
   {
     super();
@@ -47,12 +54,29 @@ public class MockEspressoService extends Application
     super(context);
   }
 
+  //TODO: probably need to format these responses to look more like Espresso
+  public static String doGet(String key) {
+	  String resp = _mockNode.doGet(key);
+	  if (resp == null) {
+		  return "404 NOT FOUND";
+	  }
+	  else {
+		  return "200 "+resp;
+	  }
+  }
+  
+  public static void doPut(String key, char[] value) {
+	  _mockNode.doPut(key, value);
+  }
+  
   @Override
   public Restlet createRoot()
   {
     Router router = new Router(getContext());
-    router.attach("/get", GetResource.class);
-   
+    router.attach("/get/{"+DATABASENAME+"}/{"+TABLENAME+"}/{"+RESOURCENAME+"}", GetResource.class); ///{"+SUBRESOURCENAME+"}", GetResource.class);
+    //TODO: make subresource optional
+    router.attach("/post/{"+DATABASENAME+"}/{"+TABLENAME+"}/{"+RESOURCENAME+"}", PostResource.class);
+    
 
     Restlet mainpage = new Restlet()
     {
@@ -102,6 +126,12 @@ public class MockEspressoService extends Application
     zkServerOption.setRequired(true);
     zkServerOption.setArgName("ZookeeperServerAddress(Required)");
     
+    Option clusterOption = OptionBuilder.withLongOpt(CLUSTERNAME)
+            .withDescription("Provide cluster name").create();
+        clusterOption.setArgs(1);
+        clusterOption.setRequired(true);
+        clusterOption.setArgName("Cluster name(Required)");
+    
     Option portOption = OptionBuilder.withLongOpt(PORT)
     .withDescription("Provide web service port").create();
     portOption.setArgs(1);
@@ -111,6 +141,7 @@ public class MockEspressoService extends Application
     Options options = new Options();
     options.addOption(helpOption);
     options.addOption(zkServerOption);
+    options.addOption(clusterOption);
     options.addOption(portOption);
     
     return options;
@@ -146,12 +177,17 @@ public class MockEspressoService extends Application
     if (cmd.hasOption(ZKSERVERADDRESS)) {
     	ZK_ADDR = cmd.getOptionValue(ZKSERVERADDRESS);
     }
+    if (cmd.hasOption(CLUSTERNAME)) {
+    	CLUSTER_NAME = cmd.getOptionValue(CLUSTERNAME);
+    	logger.debug("CLUSTER_NAME: "+CLUSTER_NAME);
+    }
     // start web server with the zkServer address
     Component component = new Component();
     component.getServers().add(Protocol.HTTP, port);
     Context applicationContext = component.getContext().createChildContext();
     applicationContext.getAttributes().put(ZKSERVERADDRESS, cmd.getOptionValue(ZKSERVERADDRESS));
-
+    applicationContext.getAttributes().put(CLUSTERNAME, cmd.getOptionValue(CLUSTERNAME));
+    
     MockEspressoService application = new MockEspressoService(
         applicationContext); 
     // Attach the application to the component and start it
@@ -172,9 +208,9 @@ public class MockEspressoService extends Application
 		  e.printStackTrace();
 		  System.exit(-1);
 	  }
-	  MockNode mock = MockNodeFactory.createMockNode(NODE_TYPE, cm);
-	  if (mock != null) {
-		  mock.run();
+	  _mockNode = (EspressoStorageMockNode)MockNodeFactory.createMockNode(NODE_TYPE, cm);
+	  if (_mockNode != null) {
+		  _mockNode.run();
 	  }
 	  else {
 		  logger.error("Unknown MockNode type "+NODE_TYPE);

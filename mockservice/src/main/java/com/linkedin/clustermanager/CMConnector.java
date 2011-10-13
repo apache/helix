@@ -11,6 +11,7 @@ public class CMConnector {
 		 _manager = null;
 		 _manager = ClusterManagerFactory
 		            .getZKBasedManagerForParticipant(clusterName, instanceName, zkAddr); //, zkClient);
+		 _manager.connect();
 	}
 	
 	public ClusterManager getManager() {

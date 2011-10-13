@@ -126,7 +126,6 @@ public class ZKPathDataDumpTask extends TimerTask
           {
             mapper.writeValue(sw, record);
             logger.info(sw.toString());
-            System.out.println(sw.toString());
           } catch (Exception e)
           {
             logger

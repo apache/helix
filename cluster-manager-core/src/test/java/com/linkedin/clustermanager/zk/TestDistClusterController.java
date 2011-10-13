@@ -54,7 +54,9 @@ public class TestDistClusterController extends ZkDistCMHandler
     clusterNames.add(secondCluster);
     verifyIdealAndCurrentStateTimeout(clusterNames);
 
+    Thread.sleep(5000);
     logger.info("End at " + new Date(System.currentTimeMillis()));
+    // super.afterClass();
   }
 
 }

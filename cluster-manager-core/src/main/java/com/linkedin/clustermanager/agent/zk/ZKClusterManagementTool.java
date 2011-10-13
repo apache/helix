@@ -176,7 +176,15 @@ public class ZKClusterManagementTool implements ClusterManagementService
     idealState.setSimpleField("partitions", String.valueOf(partitions));
     idealState.setSimpleField("state_model_def_ref", stateModelRef);
     idealState.setSimpleField("ideal_state_mode", idealStateMode);
-
+    
+    String stateModelDefPath = CMUtil.getClusterPropertyPath(clusterName, 
+        ClusterPropertyType.STATEMODELDEFS) + "/" + stateModelRef;
+    if(!_zkClient.exists(stateModelDefPath))
+    {
+      throw new ClusterManagerException("State model " + stateModelRef 
+          +" not found in the cluster STATEMODELDEFS path");
+    }
+    
     String idealStatePath = CMUtil.getIdealStatePath(clusterName);
     String dbIdealStatePath = idealStatePath + "/" + dbName;
     if (_zkClient.exists(dbIdealStatePath))
@@ -185,7 +193,6 @@ public class ZKClusterManagementTool implements ClusterManagementService
           + dbIdealStatePath);
       return;
     }
-
     ZKUtil.createChildren(_zkClient, idealStatePath, idealState);
   }
 

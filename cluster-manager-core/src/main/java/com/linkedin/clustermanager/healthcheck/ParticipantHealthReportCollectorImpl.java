@@ -116,8 +116,11 @@ public class ParticipantHealthReportCollectorImpl implements
           try
           {
             Map<String, String> report = provider.getRecentHealthReport();
+            Map<String, Map<String, String>> partitionReport = provider.getRecentPartitionHealthReport();
             ZNRecord record = new ZNRecord(provider.getReportName());
             record.setSimpleFields(report);
+            record.setMapFields(partitionReport);
+
 
             _clusterManager.getDataAccessor().setInstanceProperty(
                 _instanceName, InstancePropertyType.HEALTHREPORT,

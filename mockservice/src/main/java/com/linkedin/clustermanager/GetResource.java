@@ -56,19 +56,28 @@ public class GetResource extends Resource {
 	    StringRepresentation presentation = null;
 	    try
 	    {
-	      String zkServer = (String)getContext().getAttributes().get(MockEspressoService.ZKSERVERADDRESS);
-	      logger.debug("zkServer: "+zkServer);
+	      //String zkServer = (String)getContext().getAttributes().get(MockEspressoService.ZKSERVERADDRESS);
+	      //logger.debug("zkServer: "+zkServer);
 	      //Context currContext = getContext();
 	      //Request currReq = getRequest();
 	      //logger.debug("xxx");
-	      String clusterName = (String)getRequest().getAttributes().get(MockEspressoService.CLUSTERNAME);
-	      logger.debug("clusterName: "+clusterName);
-	      presentation = getClusterRepresentation(zkServer, clusterName);
+	      //String clusterName = (String)getRequest().getAttributes().get(MockEspressoService.CLUSTERNAME);
+	      //logger.debug("clusterName: "+clusterName);
+	      //presentation = getClusterRepresentation(zkServer, clusterName);
+	      String databaseId = (String)getRequest().getAttributes().get(MockEspressoService.DATABASENAME);
+	      String tableId = (String)getRequest().getAttributes().get(MockEspressoService.TABLENAME);
+	      String resourceId = (String)getRequest().getAttributes().get(MockEspressoService.RESOURCENAME);
+	      String subResourceId = (String)getRequest().getAttributes().get(MockEspressoService.SUBRESOURCENAME);
+	      logger.debug("Done getting request components");
+	      String composedKey = databaseId + tableId + resourceId + subResourceId;
+	      String response = MockEspressoService.doGet(composedKey);
+	      logger.debug("response: "+response);
+	      presentation = new StringRepresentation(response, MediaType.APPLICATION_JSON);
 	    }
 	    
 	    catch(Exception e)
 	    {
-	      String error = "error"; //ClusterRepresentationUtil.getErrorAsJsonStringFromException(e);
+	      String error = "Error with get"; //ClusterRepresentationUtil.getErrorAsJsonStringFromException(e);
 	      presentation = new StringRepresentation(error, MediaType.APPLICATION_JSON);
 	      
 	      e.printStackTrace();

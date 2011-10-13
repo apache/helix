@@ -29,33 +29,48 @@ import org.apache.commons.cli.PosixParser;
 @SuppressWarnings("static-access")
 public class ZKDumper
 {
-  private ZkClient       client;
+  private ZkClient client;
   private FilenameFilter filter;
-  static Options         options;
-  
-  private static final String SCHEMA_FILE_SUFFIX = ".json";
-  
+  static Options options;
+  private String suffix = "";
+  //enable by default
+  private boolean removeSuffix=true;
+
+  public String getSuffix()
+  {
+    return suffix;
+  }
+
+  public void setSuffix(String suffix)
+  {
+    this.suffix = suffix;
+  }
+
+  public boolean isRemoveSuffix()
+  {
+    return removeSuffix;
+  }
+
+  public void setRemoveSuffix(boolean removeSuffix)
+  {
+    this.removeSuffix = removeSuffix;
+  }
+
   static
   {
     options = new Options();
     OptionGroup optionGroup = new OptionGroup();
-    Option d =
-        OptionBuilder.withLongOpt("download")
-                     .withDescription("Download from ZK to File System")
-                     .create();
+    Option d = OptionBuilder.withLongOpt("download")
+        .withDescription("Download from ZK to File System").create();
     d.setArgs(0);
 
-    Option u =
-        OptionBuilder.withLongOpt("upload")
-                     .withDescription("Upload from File System to ZK")
-                     .create();
+    Option u = OptionBuilder.withLongOpt("upload")
+        .withDescription("Upload from File System to ZK").create();
     u.setArgs(0);
-    
-    Option del = 
-        OptionBuilder.withLongOpt("delete")
-                     .withDescription("Delete given path from ZK")
-                     .create();
-    
+
+    Option del = OptionBuilder.withLongOpt("delete")
+        .withDescription("Delete given path from ZK").create();
+
     optionGroup.setRequired(true);
     optionGroup.addOption(d);
     optionGroup.addOption(u);
@@ -115,14 +130,22 @@ public class ZKDumper
     String zkAddress = cmd.getOptionValue("zkSvr");
     String zkPath = cmd.getOptionValue("zkpath");
     String fsPath = cmd.getOptionValue("fspath");
-    
+
     ZKDumper zkDump = new ZKDumper(zkAddress);
     if (download)
     {
+      if (cmd.hasOption("suffix"))
+      {
+        zkDump.suffix = cmd.getOptionValue("suffix");
+      }
       zkDump.download(zkPath, fsPath + zkPath);
     }
     if (upload)
     {
+      if (cmd.hasOption("removeSuffix"))
+      {
+        zkDump.removeSuffix = true;
+      }
       zkDump.upload(zkPath, fsPath);
     }
     if (del)
@@ -134,30 +157,36 @@ public class ZKDumper
   private void delete(String zkPath)
   {
     client.deleteRecursive(zkPath);
-    
+
   }
 
   public void upload(String zkPath, String fsPath) throws Exception
   {
     File file = new File(fsPath);
-    System.out.println("Uploading " + file.getCanonicalPath() + " to " + zkPath);
-    
+    System.out
+        .println("Uploading " + file.getCanonicalPath() + " to " + zkPath);
+    zkPath = zkPath.replaceAll("[/]+", "/");
+    int index = -1;
+    if (removeSuffix && (index = file.getName().indexOf(".")) > -1)
+    {
+      zkPath = zkPath.replaceAll(file.getName().substring(index), "");
+    }
     if (file.isDirectory())
     {
       File[] children = file.listFiles(filter);
       client.createPersistent(zkPath, true);
       if (children != null && children.length > 0)
       {
-        
+
         for (File child : children)
         {
           upload(zkPath + "/" + child.getName(), fsPath + "/" + child.getName());
         }
-      }else{
-        
+      } else
+      {
+
       }
-    }
-    else
+    } else
     {
       BufferedReader bfr = null;
       try
@@ -165,27 +194,24 @@ public class ZKDumper
         bfr = new BufferedReader(new FileReader(file));
         StringBuilder sb = new StringBuilder();
         String line;
-        String recordDelimiter= "";
+        String recordDelimiter = "";
         while ((line = bfr.readLine()) != null)
         {
           sb.append(recordDelimiter).append(line);
           recordDelimiter = "\n";
         }
         client.createPersistent(zkPath, sb.toString());
-      }
-      catch (Exception e)
+      } catch (Exception e)
       {
         throw e;
-      }
-      finally
+      } finally
       {
         if (bfr != null)
         {
           try
           {
             bfr.close();
-          }
-          catch (IOException e)
+          } catch (IOException e)
           {
           }
         }
@@ -195,7 +221,8 @@ public class ZKDumper
 
   public void download(String zkPath, String fsPath) throws Exception
   {
-    System.out.println("Saving " + zkPath + " to " + new File(fsPath).getCanonicalPath());
+    System.out.println("Saving " + zkPath + " to "
+        + new File(fsPath).getCanonicalPath());
     List<String> children = client.getChildren(zkPath);
     if (children != null && children.size() > 0)
     {
@@ -204,12 +231,11 @@ public class ZKDumper
       {
         download(zkPath + "/" + child, fsPath + "/" + child);
       }
-    }
-    else
+    } else
     {
-      FileWriter fileWriter = new FileWriter(fsPath + SCHEMA_FILE_SUFFIX);
+      FileWriter fileWriter = new FileWriter(fsPath + suffix);
       Object readData = client.readData(zkPath);
-      if(readData != null)
+      if (readData != null)
       {
         fileWriter.write((String) readData);
       }

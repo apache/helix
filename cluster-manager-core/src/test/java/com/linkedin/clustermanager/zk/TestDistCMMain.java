@@ -52,7 +52,7 @@ public class TestDistCMMain extends ZkDistCMHandler
       stopCurrentLeader(CONTROLLER_CLUSTER, _threadMap, _managerMap);
     }
     
-    // assertLeader(CONTROLLER_CLUSTER);
+    Thread.sleep(5000);
     logger.info("END at " + new Date(System.currentTimeMillis()));
     // super.afterClass();
   }

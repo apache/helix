@@ -56,14 +56,18 @@ public class PerformanceHealthReportProvider extends HealthReportProvider {
 		requestCount += count;
 	}
 	
+	public void submitIncrementPartitionRequestCount(String partitionName) {
+		if (_partitionCountsMap.containsKey(partitionName)) {
+			int oldCount = Integer.parseInt((_partitionCountsMap.get(partitionName)).substring(1));
+			submitPartitionRequestCount(partitionName, oldCount+1);
+		}
+		else {
+			submitPartitionRequestCount(partitionName, 1);
+		}
+	}
+	
 	public void submitPartitionRequestCount(String partitionName, int count) {
-		//if (_partitionCountsMap.containsKey(partitionName)) {
-		//	int oldCount = Integer.parseInt((_partitionCountsMap.get(partitionName)).substring(1));
-		//	_partitionCountsMap.put(partitionName, ""+(oldCount+count));
-		//}
-		//else {
-			_partitionCountsMap.put(partitionName, ""+count);
-		//}
+		_partitionCountsMap.put(partitionName, ""+count);
 	}
 	
 	public String getReportName()

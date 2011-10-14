@@ -90,6 +90,7 @@ public class ClusterManagerMain
   public static void printUsage(Options cliOptions)
   {
     HelpFormatter helpFormatter = new HelpFormatter();
+    helpFormatter.setWidth(1000);
     helpFormatter.printHelp("java " + ClusterManagerMain.class.getName(), cliOptions);
   }
 

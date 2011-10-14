@@ -12,6 +12,7 @@ import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
+import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.log4j.Logger;
@@ -284,6 +285,7 @@ public class ClusterSetup
   public static void printUsage(Options cliOptions)
   {
     HelpFormatter helpFormatter = new HelpFormatter();
+    helpFormatter.setWidth(1000);
     helpFormatter.printHelp("java " + ClusterSetup.class.getName(), cliOptions);
   }
 
@@ -303,6 +305,8 @@ public class ClusterSetup
     zkServerOption.setRequired(true);
     zkServerOption.setArgName("ZookeeperServerAddress(Required)");
 
+  
+     
     Option listClustersOption =
         OptionBuilder.withLongOpt(listClusters).withDescription("List existing clusters").create();
     listClustersOption.setArgs(0);
@@ -426,27 +430,30 @@ public class ClusterSetup
     listStateModelOption.setRequired(false);
     listStateModelOption.setArgName("clusterName stateModelName");
 
+    OptionGroup group = new OptionGroup();
+    group.setRequired(true);
+    group.addOption(rebalanceOption);
+    group.addOption(addResourceGroupOption);
+    group.addOption(addClusterOption);
+    group.addOption(addInstanceOption);
+    group.addOption(listInstancesOption);
+    group.addOption(listResourceGroupOption);
+    group.addOption(listClustersOption);
+    group.addOption(addIdealStateOption);
+    group.addOption(rebalanceOption);
+    group.addOption(InstanceInfoOption);
+    group.addOption(clusterInfoOption);
+    group.addOption(resourceGroupInfoOption);
+    group.addOption(partitionInfoOption);
+    group.addOption(enableInstanceOption);
+    group.addOption(addStateModelDefOption);
+    group.addOption(listStateModelsOption);
+    group.addOption(listStateModelOption);
+    
     Options options = new Options();
     options.addOption(helpOption);
     options.addOption(zkServerOption);
-    options.addOption(rebalanceOption);
-    options.addOption(addResourceGroupOption);
-    options.addOption(addClusterOption);
-    options.addOption(addInstanceOption);
-    options.addOption(listInstancesOption);
-    options.addOption(listResourceGroupOption);
-    options.addOption(listClustersOption);
-    options.addOption(addIdealStateOption);
-    options.addOption(rebalanceOption);
-    options.addOption(InstanceInfoOption);
-    options.addOption(clusterInfoOption);
-    options.addOption(resourceGroupInfoOption);
-    options.addOption(partitionInfoOption);
-    options.addOption(enableInstanceOption);
-    options.addOption(addStateModelDefOption);
-    options.addOption(listStateModelsOption);
-    options.addOption(listStateModelOption);
-
+    options.addOptionGroup(group);
     return options;
   }
 
@@ -699,8 +706,9 @@ public class ClusterSetup
    */
   public static void main(String[] args) throws Exception
   {
-    if (args.length == 0)
+    if (args.length == 1 && args[0].equals("setup-test-cluster"))
     {
+      System.out.println("By default setting up ");
       new ClusterSetup("localhost:2181").setupTestCluster("storage-integration-cluster");
       new ClusterSetup("localhost:2181").setupTestCluster("relay-integration-cluster");
       System.exit(0);

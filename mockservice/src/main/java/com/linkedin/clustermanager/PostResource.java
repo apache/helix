@@ -72,9 +72,9 @@ public class PostResource extends Resource {
 	      //TODO: figure out how to actually get post body
 	      logger.debug("Done getting request components");
 	      String composedKey = databaseId + tableId + resourceId; // + subResourceId;
-	      String response = MockEspressoService.doGet(composedKey);
-	      logger.debug("response: "+response);
-	      presentation = new StringRepresentation(response, MediaType.APPLICATION_JSON);
+	      //String response = MockEspressoService.doGet(composedKey);
+	      //logger.debug("response: "+response);
+	      //presentation = new StringRepresentation(response, MediaType.APPLICATION_JSON);
 	    }
 	    
 	    catch(Exception e)
@@ -98,15 +98,24 @@ public class PostResource extends Resource {
 			 //char[] zzz = new char[100]; 
 			 //yyy.read(zzz);
 			 //TODO: accomodate post bodies that are arbitrarily long
+			 
+			 /*
 			 char[] postBody = new char[POST_BODY_BUFFER_SIZE];
 			 postBodyReader.read(postBody);
 			 logger.debug("postBodyBuffer: "+new String(postBody));
+			 */
+			 String postBody = "abc";
 			 
 			 String databaseId = (String)getRequest().getAttributes().get(MockEspressoService.DATABASENAME);
 			 String tableId = (String)getRequest().getAttributes().get(MockEspressoService.TABLENAME);
 			 String resourceId = (String)getRequest().getAttributes().get(MockEspressoService.RESOURCENAME);
 			 String composedKey = databaseId + tableId + resourceId; // + subResourceId;
-			 MockEspressoService.doPut(composedKey, postBody);
+			 //!!!MockEspressoService.doPut(composedKey, postBody);
+			 /*
+			 if (MockEspressoService._mockNode == null) {
+				 logger.debug("_mockNode is null");
+			 }
+			 */
 			 //logger.debug("response: "+response);
 			 String response = "Did put";
 			 presentation = new StringRepresentation(response, MediaType.APPLICATION_JSON);

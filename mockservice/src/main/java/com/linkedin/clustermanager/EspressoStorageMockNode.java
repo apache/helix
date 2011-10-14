@@ -54,6 +54,7 @@ public class EspressoStorageMockNode extends MockNode {
 		logger.debug("set partition getter thread to run");
 	}
 
+	//TODO: probably need to format these responses to look more like Espresso
 	public String doGet(String key) {
 		//TODO: compute what partition owns this key, increment a stat count for it
 		String partitionName = "xxx";
@@ -63,9 +64,9 @@ public class EspressoStorageMockNode extends MockNode {
 		return _keyValueMap.get(key);
 	}
 	
-	public void doPut(String key, char[] value) {
+	public void doPut(String key, String value) {
 		// TODO Auto-generated method stub
-		
+		_keyValueMap.put(key, value);
 	}
 	
 	class PartitionGetterThread implements Runnable {
@@ -102,7 +103,7 @@ public class EspressoStorageMockNode extends MockNode {
 		logger.debug("Done writing stats");
 
 		int i=0;
-		while (i<1000) {
+		while (true) {
 			//logger.debug("printing partition map");
 			synchronized (_partitions) {
 				for (String partition: _partitions) {
@@ -118,7 +119,7 @@ public class EspressoStorageMockNode extends MockNode {
 			}
 			i++;
 		}
-		logger.debug("Done!");
+		//logger.debug("Done!");
 	}
 
 	

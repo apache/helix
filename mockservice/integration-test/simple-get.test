@@ -1,0 +1,10 @@
+#!/bin/bash
+
+PORT="8900"
+METHOD="get"
+DB_NAME="TestDB"
+TABLE_NAME="TestTable"
+RESOURCE="rec1"
+SUBRESOURCE="subrec1"
+
+curl -s -H "Content-Type:avro/json" http://localhost:$PORT/$METHOD/$DB_NAME/$TABLE_NAME/$RESOURCE/

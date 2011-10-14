@@ -43,7 +43,9 @@ public class MockEspressoService extends Application
   public static final String SUBRESOURCENAME = "subresource";
  // protected static final String CLUSTER_NAME = "MockCluster";
   
-  public static EspressoStorageMockNode _mockNode;
+  Context _applicationContext;
+  int _serverPort;
+  public EspressoStorageMockNode _mockNode;
   public MockEspressoService()
   {
     super();
@@ -53,30 +55,11 @@ public class MockEspressoService extends Application
   {
     super(context);
   }
-
-  //TODO: probably need to format these responses to look more like Espresso
-  public static String doGet(String key) {
-	  String resp = _mockNode.doGet(key);
-	  if (resp == null) {
-		  return "404 NOT FOUND";
-	  }
-	  else {
-		  return "200 "+resp;
-	  }
-  }
-  
-  public static void doPut(String key, char[] value) {
-	  _mockNode.doPut(key, value);
-  }
-  
+ 
   @Override
   public Restlet createRoot()
   {
     Router router = new Router(getContext());
-    router.attach("/get/{"+DATABASENAME+"}/{"+TABLENAME+"}/{"+RESOURCENAME+"}", GetResource.class); ///{"+SUBRESOURCENAME+"}", GetResource.class);
-    //TODO: make subresource optional
-    router.attach("/post/{"+DATABASENAME+"}/{"+TABLENAME+"}/{"+RESOURCENAME+"}", PostResource.class);
-    
 
     Restlet mainpage = new Restlet()
     {
@@ -101,9 +84,21 @@ public class MockEspressoService extends Application
             MediaType.TEXT_HTML));
       }
     };
+    
+    if (_mockNode == null) {
+    	logger.debug("_mockNode in createRoot is null");
+    }
+    GetRestlet getter = new GetRestlet(getContext(), _mockNode);
+    PutRestlet putter = new PutRestlet(getContext(), _mockNode);
+    
     router.attach("", mainpage);
+    router.attach("/get/{"+DATABASENAME+"}/{"+TABLENAME+"}/{"+RESOURCENAME+"}", getter); ///{"+SUBRESOURCENAME+"}", GetResource.class);
+    //TODO: make subresource optional
+    router.attach("/post/{"+DATABASENAME+"}/{"+TABLENAME+"}/{"+RESOURCENAME+"}", putter);
     return router;
   }
+  
+  
   
   public static void printUsage(Options cliOptions)
   {
@@ -164,7 +159,7 @@ public class MockEspressoService extends Application
       printUsage(cliOptions);
       System.exit(1);
     }
-    int port = DEFAULT_PORT;
+    _serverPort = DEFAULT_PORT;
     if(cmd.hasOption(HELP))
     {
       printUsage(cliOptions);
@@ -172,7 +167,7 @@ public class MockEspressoService extends Application
     }
     else if(cmd.hasOption(PORT))
     {
-      port = Integer.parseInt(cmd.getOptionValue(PORT));
+      _serverPort = Integer.parseInt(cmd.getOptionValue(PORT));
     }
     if (cmd.hasOption(ZKSERVERADDRESS)) {
     	ZK_ADDR = cmd.getOptionValue(ZKSERVERADDRESS);
@@ -181,23 +176,25 @@ public class MockEspressoService extends Application
     	CLUSTER_NAME = cmd.getOptionValue(CLUSTERNAME);
     	logger.debug("CLUSTER_NAME: "+CLUSTER_NAME);
     }
+    /*
     // start web server with the zkServer address
     Component component = new Component();
-    component.getServers().add(Protocol.HTTP, port);
-    Context applicationContext = component.getContext().createChildContext();
-    applicationContext.getAttributes().put(ZKSERVERADDRESS, cmd.getOptionValue(ZKSERVERADDRESS));
-    applicationContext.getAttributes().put(CLUSTERNAME, cmd.getOptionValue(CLUSTERNAME));
+    component.getServers().add(Protocol.HTTP, _serverPort);
+    _applicationContext = component.getContext().createChildContext();
+    _applicationContext.getAttributes().put(ZKSERVERADDRESS, cmd.getOptionValue(ZKSERVERADDRESS));
+    _applicationContext.getAttributes().put(CLUSTERNAME, cmd.getOptionValue(CLUSTERNAME));
     
     MockEspressoService application = new MockEspressoService(
-        applicationContext); 
+        _applicationContext); 
     // Attach the application to the component and start it
     component.getDefaultHost().attach(application);
     component.start();
+    */
   }
   
-  public void run() {
+  public void run() throws Exception {
 	 
-	  
+	  logger.debug("Start of mock service run");
 	  CMConnector cm = null;
 	  try {
 		  logger.debug("xxx"+ZK_ADDR+"xxx");
@@ -209,13 +206,29 @@ public class MockEspressoService extends Application
 		  System.exit(-1);
 	  }
 	  _mockNode = (EspressoStorageMockNode)MockNodeFactory.createMockNode(NODE_TYPE, cm);
+	  if (_mockNode == null) {
+		  logger.debug("_mockNode null");
+	  }
+	  else {
+		  logger.debug("_mockNode not null");
+	  }
 	  if (_mockNode != null) {
+		  // start web server with the zkServer address
+		  Component component = new Component();
+		  component.getServers().add(Protocol.HTTP, _serverPort);
+		  //!!!MockEspressoService application = new MockEspressoService(
+			//	!!!  _applicationContext); 
+		  // Attach the application to the component and start it
+		  component.getDefaultHost().attach(this); //(application);
+		  component.start();
+		  //start mock espresso node
 		  _mockNode.run();
 	  }
 	  else {
 		  logger.error("Unknown MockNode type "+NODE_TYPE);
 		  System.exit(-1);
 	  }
+	  logger.debug("mock service done");
   }
   
   /**

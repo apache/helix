@@ -36,7 +36,7 @@ public class ZkStandAloneCMHandler extends ZkTestBase
   protected static final int NODE_NR = 5;
   protected static final int START_PORT = 12918;
   protected static final String STATE_MODEL = "MasterSlave";
-  private static final String TEST_DB = "TestDB";
+  protected static final String TEST_DB = "TestDB";
 
   protected ZkClient _controllerZkClient;
   protected ZkClient[] _participantZkClients = new ZkClient[NODE_NR];

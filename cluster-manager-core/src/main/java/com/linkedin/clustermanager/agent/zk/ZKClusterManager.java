@@ -248,30 +248,18 @@ public class ZKClusterManager implements ClusterManager
     logger.info("Clustermanager.connect()");
     if (_zkStateChangeListener.isConnected())
     {
+      logger.warn("Cluster manager " + _clusterName + " "+ _instanceName + " already connected");
       return;
     }
-    
     try
     {
       createClient(_zkConnectString, SESSIONTIMEOUT);
-  
-      if (!isClusterSetup())
-      {
-        throw new Exception("Initial cluster structure is not set up for cluster:" + _clusterName);
-      }
-      if (!isInstanceSetup())
-      {
-        throw new Exception("Initial cluster structure is not set up for instance:" + _instanceName
-            + " instanceType:" + _instanceType);
-      }
-    }
-    catch (ClusterManagerException e)
-    {
-      throw e;
     }
     catch (Exception e)
     {
-      ZKExceptionHandler.getInstance().handle(e);
+      logger.error(e);
+      disconnect();
+      throw e;
     }
   }
 
@@ -490,13 +478,14 @@ public class ZKClusterManager implements ClusterManager
 
   private boolean isClusterSetup()
   {
-    String idealStatePath = CMUtil.getIdealStatePath(_clusterName);
     boolean isValid =
-        _zkClient.exists(idealStatePath) && _zkClient.exists(CMUtil.getConfigPath(_clusterName))
+               _zkClient.exists(CMUtil.getIdealStatePath(_clusterName)) 
+            && _zkClient.exists(CMUtil.getConfigPath(_clusterName))
             && _zkClient.exists(CMUtil.getLiveInstancesPath(_clusterName))
             && _zkClient.exists(CMUtil.getMemberInstancesPath(_clusterName))
             && _zkClient.exists(CMUtil.getExternalViewPath(_clusterName))
             && _zkClient.exists(CMUtil.getControllerPath(_clusterName))
+            && _zkClient.exists(CMUtil.getStateModelDefinitionPath(_clusterName))
             && _zkClient.exists(CMUtil.getControllerPropertyPath(_clusterName, ControllerPropertyType.MESSAGES))
             && _zkClient.exists(CMUtil.getControllerPropertyPath(_clusterName, ControllerPropertyType.STATUSUPDATES))
             && _zkClient.exists(CMUtil.getControllerPropertyPath(_clusterName, ControllerPropertyType.ERRORS))
@@ -524,6 +513,18 @@ public class ZKClusterManager implements ClusterManager
     resetHandlers(_handlers);
 
     logger.info("Handling new session, session id:" + _sessionId + ", instance:" + _instanceName);
+    
+    if (!isClusterSetup())
+    {
+      throw new ClusterManagerException(
+          "Initial cluster structure is not set up for cluster:" + _clusterName);
+    }
+    if (!isInstanceSetup())
+    {
+      throw new ClusterManagerException(
+          "Initial cluster structure is not set up for instance:"
+              + _instanceName + " instanceType:" + _instanceType);
+    }
 
     if (_instanceType == InstanceType.PARTICIPANT
         || _instanceType == InstanceType.CONTROLLER_PARTICIPANT)

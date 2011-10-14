@@ -81,7 +81,6 @@ public class ZKPathDataDumpTask extends TimerTask
       {
         String nextPath = path + "/" + subPath;
         checkAndDump(nextPath, thresholdNoChangeInMs);
-        _zkClient.delete(nextPath);
       } 
       catch (Exception e)
       {
@@ -96,7 +95,6 @@ public class ZKPathDataDumpTask extends TimerTask
     for (String subPath : subPaths)
     {
       String fullPath = path + "/" + subPath;
-
       Stat pathStat = _zkClient.getStat(fullPath);
 
       long lastModifiedTimeInMs = pathStat.getMtime();
@@ -133,10 +131,14 @@ public class ZKPathDataDumpTask extends TimerTask
                     "Exception during serialization in ZKPathDataDumpTask.checkAndDump. This can mostly be ignored",
                     e);
           }
-          // Delete the path data
-          _zkClient.delete(fullPath);
+          // Delete the leaf data
+          _zkClient.deleteRecursive(fullPath);
         }
       }
+    }
+    if(_zkClient.getChildren(path).size() == 0)
+    {
+      _zkClient.delete(path);
     }
   }
 }

@@ -11,8 +11,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.I0Itec.zkclient.IDefaultNameSpace;
-import org.I0Itec.zkclient.ZkServer;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
 
@@ -32,7 +30,6 @@ import com.linkedin.clustermanager.tools.TestExecutor;
 import com.linkedin.clustermanager.tools.TestExecutor.ZnodePropertyType;
 import com.linkedin.clustermanager.tools.TestTrigger;
 import com.linkedin.clustermanager.tools.ZnodeOpArg;
-import com.linkedin.clustermanager.util.ZKClientPool;
 
 public class TestDriver
 {
@@ -75,6 +72,7 @@ public class TestDriver
     }
   }
   
+  /*
   public static ZkServer startZk()
   {
     ZKClientPool.reset();
@@ -111,7 +109,8 @@ public class TestDriver
     }
     _zkClient.set(null);
   }
-
+  */
+  
   public static void setupClusterWithoutRebalance(String uniqTestName,
                                   int numDb,
                                   int numPartitionPerDb,

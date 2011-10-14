@@ -136,13 +136,29 @@ public class DistClusterControllerStateModel extends StateModel
         _controller.removeListener(listener);
       }
       _controller.disconnect();
+      _controller = null;
     }
 
   }
   
-  public ClusterManager getController()
+  @Override
+  public void reset()
   {
-    return _controller;
+    
+    if (_controller != null)
+    {
+      System.out.println("disconnecting " + _controller.getInstanceName()
+                         + " for " + _controller.getClusterName());
+      _controller.disconnect();
+      _controller = null;
+    }
+    
   }
+  
+  
+//  public ClusterManager getController()
+//  {
+//    return _controller;
+//  }
 
 }

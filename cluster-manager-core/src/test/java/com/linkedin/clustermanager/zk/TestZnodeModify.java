@@ -23,9 +23,9 @@ import com.linkedin.clustermanager.tools.TestExecutor.ZnodePropertyType;
 import com.linkedin.clustermanager.tools.TestTrigger;
 import com.linkedin.clustermanager.tools.ZnodeOpArg;
 
-public class TestUsingTestFramework extends ZkTestBase
+public class TestZnodeModify extends ZkTestBase
 {
-  private static Logger logger = Logger.getLogger(TestUsingTestFramework.class);
+  private static Logger logger = Logger.getLogger(TestZnodeModify.class);
   private static final String ZK_ADDR = "localhost:2183";
   private final String PREFIX = "/" + getShortClassName();
   private final ZkServer _zkServer = null; 

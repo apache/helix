@@ -1,9 +1,10 @@
-package com.linkedin.clustermanager;
+package com.linkedin.clustermanager.zk;
 
 import java.util.Date;
 
-import org.I0Itec.zkclient.ZkServer;
 import org.apache.log4j.Logger;
+
+import com.linkedin.clustermanager.TestDriver;
 
 public class TestCustomIdealState
 {
@@ -15,7 +16,7 @@ public class TestCustomIdealState
     String uniqTestName = "test_customIS";
     logger.info("START " + uniqTestName + " @ "  + new Date(System.currentTimeMillis()));
 
-    ZkServer zkServer = TestDriver.startZk();
+    // ZkServer zkServer = TestDriver.startZk();
 
     TestDriver.setupClusterWithoutRebalance(uniqTestName, 1, 128, 10, 3);
     TestDriver.startDummyParticipants(uniqTestName, 10);
@@ -27,7 +28,7 @@ public class TestCustomIdealState
     TestDriver.stopCluster(uniqTestName);
  
     logger.info("END " + uniqTestName + " @ " + new Date(System.currentTimeMillis()));
-    TestDriver.stopZk(zkServer);
+    // TestDriver.stopZk(zkServer);
   }
 
 }

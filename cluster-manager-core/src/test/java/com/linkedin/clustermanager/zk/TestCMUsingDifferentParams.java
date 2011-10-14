@@ -1,15 +1,17 @@
-package com.linkedin.clustermanager;
+package com.linkedin.clustermanager.zk;
 
 import java.util.Date;
 
-import org.I0Itec.zkclient.ZkServer;
 import org.apache.log4j.Logger;
+import org.testng.annotations.Test;
 
-public class BasicTestUsingTestDriver
+import com.linkedin.clustermanager.TestDriver;
+
+public class TestCMUsingDifferentParams extends ZkTestBase
 {
-  private static Logger LOG = Logger.getLogger(BasicTestUsingTestDriver.class);
+  private static Logger LOG = Logger.getLogger(TestCMUsingDifferentParams.class);
   
-  // @Test
+  @Test
   public void testDriverExample() throws Exception
   {
     LOG.info("RUN at " + new Date(System.currentTimeMillis()));
@@ -19,7 +21,7 @@ public class BasicTestUsingTestDriver
     int numNodes[] = new int[] {5}; // , 10, 50, 100, 1000};
     int replicas[] = new int[] {2}; // , 3};  //, 4, 5};
     
-    ZkServer zkServer = TestDriver.startZk();
+    // ZkServer zkServer = TestDriver.startZk();
     
     for (int numDb : numDbs)
     {
@@ -31,8 +33,8 @@ public class BasicTestUsingTestDriver
           {
             String uniqTestName = "test_" + "db" + numDb + "_p" + numPartitionsPerDb 
                 + "_n" + numNode + "_r" + replica;
-            // System.err.println("START " + uniqTestName + "@" + new Date().getTime());
-            LOG.info("START " + uniqTestName + "@" + new Date().getTime());
+            System.out.println("START " + uniqTestName + " at " + new Date().getTime());
+            // LOG.info("START " + uniqTestName + " at " + new Date().getTime());
             
             TestDriver.setupCluster(uniqTestName, numDb, numPartitionsPerDb, numNode, replica);
             TestDriver.startDummyParticipants(uniqTestName, numNode);
@@ -40,8 +42,8 @@ public class BasicTestUsingTestDriver
             TestDriver.verifyCluster(uniqTestName);
             TestDriver.stopCluster(uniqTestName);
             
-            // System.err.println("END " + uniqTestName + "@" + new Date().getTime());
-            LOG.info("END " + uniqTestName + "@" + new Date().getTime());
+            System.out.println("END " + uniqTestName + " at " + new Date().getTime());
+            // LOG.info("END " + uniqTestName + " at " + new Date().getTime());
           }
         }
       }
@@ -49,6 +51,6 @@ public class BasicTestUsingTestDriver
 
     LOG.info("END at " + new Date(System.currentTimeMillis()));
     
-    TestDriver.stopZk(zkServer);
+    // TestDriver.stopZk(zkServer);
   }
 }

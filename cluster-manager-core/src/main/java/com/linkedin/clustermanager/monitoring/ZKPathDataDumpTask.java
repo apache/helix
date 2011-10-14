@@ -23,16 +23,16 @@ public class ZKPathDataDumpTask extends TimerTask
 {
   static Logger logger = Logger.getLogger(ZKPathDataDumpTask.class);
 
-  private int _thresholdNoChangeInMs;
-  private ClusterManager _manager;
-  private ZkClient _zkClient;
+  private final int _thresholdNoChangeInMs;
+  private final ClusterManager _manager;
+  private final ZkClient _zkClient;
 
   public ZKPathDataDumpTask(ClusterManager manager, ZkClient zkClient,
       int thresholdNoChangeInMs)
   {
     _manager = manager;
     _zkClient = zkClient;
-    logger.info("Scannning cluster statusUpdate " + manager.getClusterName() + " thresholdNoChangeInMs: "
+    logger.trace("Scannning cluster statusUpdate " + manager.getClusterName() + " thresholdNoChangeInMs: "
         + thresholdNoChangeInMs);
     _thresholdNoChangeInMs = thresholdNoChangeInMs;
   }
@@ -44,7 +44,7 @@ public class ZKPathDataDumpTask extends TimerTask
     // TODO: for now the status updates are dumped to cluster manager log4j log.
     // We need to think if we should create per-instance log files that contains per-instance statusUpdates
     // and errors 
-    logger.info("Scannning status updates ...");
+    logger.trace("Scannning status updates ...");
     try
     {
       List<ZNRecord> instances = _manager.getDataAccessor()
@@ -73,7 +73,7 @@ public class ZKPathDataDumpTask extends TimerTask
 
   void scanPath(String path, int thresholdNoChangeInMs)
   {
-    logger.info("Scannning path " + path);
+    logger.trace("Scannning path " + path);
     List<String> subPaths = _zkClient.getChildren(path);
     for (String subPath : subPaths)
     {

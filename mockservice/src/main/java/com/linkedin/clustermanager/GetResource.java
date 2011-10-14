@@ -70,9 +70,9 @@ public class GetResource extends Resource {
 	      String subResourceId = (String)getRequest().getAttributes().get(MockEspressoService.SUBRESOURCENAME);
 	      logger.debug("Done getting request components");
 	      String composedKey = databaseId + tableId + resourceId + subResourceId;
-	      String response = MockEspressoService.doGet(composedKey);
-	      logger.debug("response: "+response);
-	      presentation = new StringRepresentation(response, MediaType.APPLICATION_JSON);
+	      //!!String response = MockEspressoService.doGet(composedKey);
+	      //logger.debug("response: "+response);
+	      //presentation = new StringRepresentation(response, MediaType.APPLICATION_JSON);
 	    }
 	    
 	    catch(Exception e)

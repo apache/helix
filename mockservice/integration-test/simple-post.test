@@ -1,0 +1,11 @@
+#!/bin/bash
+
+PORT="8900"
+METHOD="post"
+DB_NAME="TestDB"
+TABLE_NAME="TestTable"
+RESOURCE="rec1"
+SUBRESOURCE="subrec1"
+SUBRESOURCE_VAL="val1"
+
+curl -s -H "Content-Type:application/json" -s -X PUT --data-binary '{"id":100, "name":"Jane Doe2"}' http://localhost:$PORT/$METHOD/$DB_NAME/$TABLE_NAME/$RESOURCE

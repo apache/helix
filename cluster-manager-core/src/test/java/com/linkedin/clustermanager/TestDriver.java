@@ -9,7 +9,6 @@ import java.util.Map.Entry;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.log4j.Logger;
 import org.testng.Assert;
@@ -37,8 +36,11 @@ public class TestDriver
   private static final String ZK_ADDR            = "localhost:2183";
   private static final String ZK_LOG_DIR         = "/tmp/logs";
   private static final String ZK_DATA_DIR        = "/tmp/dataDir";
-  private static final AtomicReference<ZkClient> _zkClient  = new AtomicReference<ZkClient>(null);
-
+  private static final int DEFAULT_SESSION_TIMEOUT = 30000;
+  private static final int DEFAULT_CONNECTION_TIMEOUT = Integer.MAX_VALUE;
+  private static final ZkClient _zkClient = new ZkClient(ZK_ADDR, DEFAULT_SESSION_TIMEOUT,
+                  DEFAULT_CONNECTION_TIMEOUT, new ZNRecordSerializer());
+              
   private static final String CLUSTER_PREFIX     = "ESPRESSO_STORAGE_TestDriver";
   private static final String STATE_MODEL        = "MasterSlave";
   private static final String TEST_DB_PREFIX     = "TestDB";
@@ -96,18 +98,13 @@ public class TestDriver
                                   int numNodes,
                                   int replica, boolean doRebalance) throws Exception
   {
-    if (_zkClient.compareAndSet(null, new ZkClient(ZK_ADDR)) == true)
-    {
-      LOG.info("zkClient is null, zk server may be started externally");
-      _zkClient.get().setZkSerializer(new ZNRecordSerializer());
-    }
 
     String clusterName = CLUSTER_PREFIX + "_" + uniqTestName;
-    if (_zkClient.get().exists("/" + clusterName))
+    if (_zkClient.exists("/" + clusterName))
     {
       LOG.warn("test cluster already exists:" + clusterName + ", test name:" + uniqTestName
           + " is not unique or test has been run without cleaning up zk; deleting it");
-      _zkClient.get().deleteRecursive("/" + clusterName);
+      _zkClient.deleteRecursive("/" + clusterName);
     }
 
     if (_testInfoMap.containsKey(uniqTestName))
@@ -201,9 +198,9 @@ public class TestDriver
     
     // verify external view
     String liveInstancePath = "/" + clusterName + "/" + ClusterPropertyType.LIVEINSTANCES.toString();
-    List<String> liveInstances = _zkClient.get().getChildren(liveInstancePath);
+    List<String> liveInstances = _zkClient.getChildren(liveInstancePath);
     String configInstancePath = "/" + clusterName + "/" + ClusterPropertyType.CONFIGS.toString();
-    List<String> instances = _zkClient.get().getChildren(configInstancePath);
+    List<String> instances = _zkClient.getChildren(configInstancePath);
     instances.removeAll(liveInstances);
     
     List<TestCommand> commandList = new ArrayList<TestCommand>();
@@ -212,7 +209,7 @@ public class TestDriver
     {
       String idealStatePath = "/" + clusterName + "/" + ClusterPropertyType.IDEALSTATES.toString() 
           + "/" + TEST_DB_PREFIX + i;
-      ZNRecord idealState = _zkClient.get().<ZNRecord>readData(idealStatePath);
+      ZNRecord idealState = _zkClient.<ZNRecord>readData(idealStatePath);
       ZNRecord externalView = calculateExternalViewFromIdealState(idealState, instances);
     
       String externalViewPath = "/" + clusterName + "/" + ClusterPropertyType.EXTERNALVIEW.toString() 
@@ -317,7 +314,7 @@ public class TestDriver
       destIS.setSimpleField("state_model_def_ref", STATE_MODEL);
       String idealStatePath = "/" + clusterName + "/" + ClusterPropertyType.IDEALSTATES.toString() 
           + "/" + TEST_DB_PREFIX + i;
-      ZNRecord initIS = _zkClient.get().<ZNRecord> readData(idealStatePath);
+      ZNRecord initIS = _zkClient.<ZNRecord> readData(idealStatePath);
       int totalStep = calcuateNumTransitions(initIS, destIS);
       LOG.info("initIS:" + initIS);
       LOG.info("destIS:" + destIS);

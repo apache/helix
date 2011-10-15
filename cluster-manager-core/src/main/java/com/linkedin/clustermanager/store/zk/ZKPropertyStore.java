@@ -19,6 +19,7 @@ import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
+import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 
 import com.linkedin.clustermanager.agent.zk.ZkClient;
@@ -61,6 +62,8 @@ implements PropertyStore<T>, IZkDataListener, IZkChildListener, IZkStateListener
     _zkClient = new ZkClient(_zkConnection);
     setPropertySerializer(serializer);
 
+    _zkClient.subscribeStateChanges(this);
+    
     // Strip off leading slash
     while (rootPath.startsWith("/"))
     {
@@ -675,6 +678,10 @@ implements PropertyStore<T>, IZkDataListener, IZkChildListener, IZkStateListener
   @Override
   public void handleNewSession() throws Exception
   {
+    ZkConnection connection = ((ZkConnection) _zkClient.getConnection());
+    ZooKeeper zookeeper = connection.getZookeeper();
+    LOG.info("handleNewSession:" + zookeeper.getSessionId());
+
     for (Map.Entry<String, Map<PropertyChangeListener<T>, ZkCallbackHandler<T>>> mapEntry : _handlerMap.entrySet())
     {
       String path = mapEntry.getKey();

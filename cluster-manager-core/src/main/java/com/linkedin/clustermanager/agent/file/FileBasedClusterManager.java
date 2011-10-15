@@ -46,7 +46,6 @@ import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.Message.MessageType;
 import com.linkedin.clustermanager.participant.statemachine.StateModel;
 import com.linkedin.clustermanager.participant.statemachine.StateModelFactory;
-import com.linkedin.clustermanager.store.PropertySerializer;
 import com.linkedin.clustermanager.store.PropertyStore;
 import com.linkedin.clustermanager.tools.ClusterViewSerializer;
 import com.linkedin.clustermanager.tools.IdealStateCalculatorByShuffling;
@@ -588,8 +587,7 @@ public class FileBasedClusterManager implements ClusterManager
   }
 
   @Override
-  public <T> PropertyStore<T> getPropertyStore(String rootNamespace,
-                                               PropertySerializer<T> serializer)
+  public PropertyStore<ZNRecord> getPropertyStore()
   {
     // TODO Auto-generated method stub
     return null;

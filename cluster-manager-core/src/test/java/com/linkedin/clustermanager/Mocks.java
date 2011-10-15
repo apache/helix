@@ -12,7 +12,6 @@ import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.participant.statemachine.StateModel;
 import com.linkedin.clustermanager.participant.statemachine.StateModelInfo;
 import com.linkedin.clustermanager.participant.statemachine.Transition;
-import com.linkedin.clustermanager.store.PropertySerializer;
 import com.linkedin.clustermanager.store.PropertyStore;
 
 public class Mocks
@@ -222,8 +221,7 @@ public class Mocks
     }
 
     @Override
-    public <T> PropertyStore<T> getPropertyStore(String rootNamespace,
-        PropertySerializer<T> serializer)
+    public PropertyStore<ZNRecord> getPropertyStore()
     {
       // TODO Auto-generated method stub
       return null;

@@ -6,6 +6,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
 
 import org.I0Itec.zkclient.IZkConnection;
 import org.I0Itec.zkclient.ZkConnection;
+import org.I0Itec.zkclient.exception.ZkInterruptedException;
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.zookeeper.data.Stat;
@@ -22,7 +23,7 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
 {
   public static String sessionId;
   public static String sessionPassword;
-  // TODO need to remove when connection closed/expired
+  // TODO need to remove when connection expired
   private static final Set<IZkConnection> zkConnections = new CopyOnWriteArraySet<IZkConnection>();
   
   public ZkClient(IZkConnection connection, int connectionTimeout,
@@ -74,8 +75,15 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
   {
   	return _connection;
   }
+
+  @Override
+  public void close() throws ZkInterruptedException 
+  {
+    zkConnections.remove(_connection);
+    super.close();
+  }
   
-  public int getNumberOfConnections()
+  public static int getNumberOfConnections()
   {
     return zkConnections.size();
   }

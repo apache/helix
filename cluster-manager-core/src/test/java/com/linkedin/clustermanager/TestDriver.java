@@ -72,45 +72,6 @@ public class TestDriver
     }
   }
   
-  /*
-  public static ZkServer startZk()
-  {
-    ZKClientPool.reset();
-
-    IDefaultNameSpace defaultNameSpace = new IDefaultNameSpace()
-    {
-      @Override
-      public void createDefaultNameSpace(org.I0Itec.zkclient.ZkClient zkClient)
-      {
-      }
-    };
-
-    int port = Integer.parseInt(ZK_ADDR.substring(ZK_ADDR.lastIndexOf(':') + 1));
-    ZkServer zkServer = new ZkServer(ZK_DATA_DIR, ZK_LOG_DIR, defaultNameSpace, port);
-    zkServer.start();
-    
-    if (_zkClient.compareAndSet(null, new ZkClient(ZK_ADDR)) == true)
-    {
-      _zkClient.get().setZkSerializer(new ZNRecordSerializer());
-    }
-    else
-    {
-      LOG.warn("zkClient has been initialized before zk starts");
-    }
-    
-    return zkServer;
-  }
-
-  public static void stopZk(ZkServer zkServer)
-  {
-    if (zkServer != null)
-    {
-      zkServer.shutdown();
-    }
-    _zkClient.set(null);
-  }
-  */
-  
   public static void setupClusterWithoutRebalance(String uniqTestName,
                                   int numDb,
                                   int numPartitionPerDb,

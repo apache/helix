@@ -1,12 +1,19 @@
 package com.linkedin.clustermanager.zk;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import org.I0Itec.zkclient.IZkStateListener;
+import org.I0Itec.zkclient.ZkConnection;
 import org.I0Itec.zkclient.ZkServer;
 import org.apache.log4j.Logger;
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.Watcher.Event.KeeperState;
+import org.apache.zookeeper.ZooKeeper;
 import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.AfterSuite;
@@ -28,7 +35,7 @@ public class ZkTestBase
 {
   private static Logger LOG = Logger.getLogger(ZkTestBase.class);
 
-  private static ZkServer _zkServer = null;
+  protected static ZkServer _zkServer = null;
   protected static ZkClient _zkClient = null;
 
   protected static final String ZK_ADDR = "localhost:2183";
@@ -41,7 +48,7 @@ public class ZkTestBase
     _zkServer = TestHelper.startZkSever(ZK_ADDR);
     AssertJUnit.assertTrue(_zkServer != null);
     ZKClientPool.reset();
-    
+
     _zkClient = ZKClientPool.getZkClient(ZK_ADDR);
     AssertJUnit.assertTrue(_zkClient != null);
   }
@@ -49,7 +56,11 @@ public class ZkTestBase
   @AfterSuite
   public void afterSuite()
   {
+    ZKClientPool.reset();
+    _zkClient.close();
+    _zkClient = null;
     TestHelper.stopZkServer(_zkServer);
+    _zkServer = null;
   }
 
   protected String getShortClassName()
@@ -237,5 +248,80 @@ public class ZkTestBase
       }
     }
     return true;
+  }
+
+  protected void simulateSessionExpiry(ZkConnection zkConnection) throws IOException,
+    InterruptedException
+  {
+    ZooKeeper oldZookeeper = zkConnection.getZookeeper();
+    LOG.info("Old sessionId = " + oldZookeeper.getSessionId());
+    
+    Watcher watcher = new Watcher()
+    {
+      @Override
+      public void process(WatchedEvent event)
+      {
+        LOG.info("In New connection, process event:" + event);
+      }
+    };
+
+    ZooKeeper newZookeeper =
+        new ZooKeeper(zkConnection.getServers(),
+                      oldZookeeper.getSessionTimeout(),
+                      watcher,
+                      oldZookeeper.getSessionId(),
+                      oldZookeeper.getSessionPasswd());
+    LOG.info("New sessionId = " + newZookeeper.getSessionId());
+    // Thread.sleep(3000);
+    newZookeeper.close();
+    Thread.sleep(10000);
+    oldZookeeper = zkConnection.getZookeeper();
+    LOG.info("After session expiry sessionId = " + oldZookeeper.getSessionId());
+  }
+  
+  protected void simulateSessionExpiry(ZkClient zkClient) throws IOException,
+      InterruptedException
+  {
+    IZkStateListener listener = new IZkStateListener()
+    {
+      @Override
+      public void handleStateChanged(KeeperState state) throws Exception
+      {
+        LOG.info("In Old connection, state changed:" + state);
+      }
+
+      @Override
+      public void handleNewSession() throws Exception
+      {
+        LOG.info("In Old connection, new session");
+      }
+    };
+    zkClient.subscribeStateChanges(listener);
+    ZkConnection connection = ((ZkConnection) zkClient.getConnection());
+    ZooKeeper oldZookeeper = connection.getZookeeper();
+    LOG.info("Old sessionId = " + oldZookeeper.getSessionId());
+
+    Watcher watcher = new Watcher()
+    {
+      @Override
+      public void process(WatchedEvent event)
+      {
+        LOG.info("In New connection, process event:" + event);
+      }
+    };
+
+    ZooKeeper newZookeeper =
+        new ZooKeeper(connection.getServers(),
+                      oldZookeeper.getSessionTimeout(),
+                      watcher,
+                      oldZookeeper.getSessionId(),
+                      oldZookeeper.getSessionPasswd());
+    LOG.info("New sessionId = " + newZookeeper.getSessionId());
+    // Thread.sleep(3000);
+    newZookeeper.close();
+    Thread.sleep(10000);
+    connection = (ZkConnection) zkClient.getConnection();
+    oldZookeeper = connection.getZookeeper();
+    LOG.info("After session expiry sessionId = " + oldZookeeper.getSessionId());
   }
 }

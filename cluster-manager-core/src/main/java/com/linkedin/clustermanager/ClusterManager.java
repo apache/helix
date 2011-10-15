@@ -6,7 +6,6 @@ import com.linkedin.clustermanager.controller.GenericClusterController;
 import com.linkedin.clustermanager.healthcheck.ParticipantHealthReportCollector;
 import com.linkedin.clustermanager.participant.StateMachineEngine;
 import com.linkedin.clustermanager.spectator.RoutingTableProvider;
-import com.linkedin.clustermanager.store.PropertySerializer;
 import com.linkedin.clustermanager.store.PropertyStore;
 
 /**
@@ -170,7 +169,7 @@ public interface ClusterManager
    * @param serializer
    * @return
    */
-  <T> PropertyStore<T> getPropertyStore(String rootNamespace, PropertySerializer<T> serializer);
+  PropertyStore<ZNRecord> getPropertyStore();
 
   /**
    * Messaging service which can be used to send cluster wide messages.

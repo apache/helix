@@ -49,6 +49,7 @@ import com.linkedin.clustermanager.messaging.DefaultMessagingService;
 import com.linkedin.clustermanager.messaging.handling.MessageHandlerFactory;
 import com.linkedin.clustermanager.monitoring.ZKPathDataDumpTask;
 import com.linkedin.clustermanager.participant.DistClusterControllerElection;
+import com.linkedin.clustermanager.store.PropertyJsonSerializer;
 import com.linkedin.clustermanager.store.PropertySerializer;
 import com.linkedin.clustermanager.store.PropertyStore;
 import com.linkedin.clustermanager.store.zk.ZKPropertyStore;
@@ -666,16 +667,16 @@ public class ZKClusterManager implements ClusterManager
   }
 
   @Override
-  public <T> PropertyStore<T> getPropertyStore(String rootNamespace,
-                                               PropertySerializer<T> serializer)
+  public PropertyStore<ZNRecord> getPropertyStore()
   {
-    String path = "/" + _clusterName + "/" + "PRPOPERTY_STORE" + "/" + rootNamespace;
+    String path = "/" + _clusterName + "/" + "PRPOPERTY_STORE";
     if (!_zkClient.exists(path))
     {
       _zkClient.createPersistent(path);
     }
 
-    return new ZKPropertyStore<T>((ZkConnection) _zkClient.getConnection(), serializer, path);
+    PropertySerializer<ZNRecord> serializer = new PropertyJsonSerializer<ZNRecord>(ZNRecord.class);
+    return new ZKPropertyStore<ZNRecord>((ZkConnection) _zkClient.getConnection(), serializer, path);
   }
 
   @Override

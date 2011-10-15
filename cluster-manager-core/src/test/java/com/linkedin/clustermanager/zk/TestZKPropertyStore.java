@@ -10,12 +10,12 @@ import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
+import com.linkedin.clustermanager.agent.zk.ZkClient;
 import com.linkedin.clustermanager.store.PropertyChangeListener;
 import com.linkedin.clustermanager.store.PropertyJsonComparator;
 import com.linkedin.clustermanager.store.PropertyJsonSerializer;
 import com.linkedin.clustermanager.store.PropertyStat;
 import com.linkedin.clustermanager.store.PropertyStoreException;
-import com.linkedin.clustermanager.store.zk.ZKConnectionFactory;
 import com.linkedin.clustermanager.store.zk.ZKPropertyStore;
 
 // TODO need to write multi-thread test cases
@@ -25,7 +25,7 @@ public class TestZKPropertyStore extends ZkTestBase
   private static final Logger LOG = Logger.getLogger(TestZKPropertyStore.class);
   // private List<ZkServer> _localZkServers;
 
-  public class TestPropertyChangeListener 
+  private class TestPropertyChangeListener 
   implements PropertyChangeListener<String>
   { 
     public boolean _propertyChangeReceived = false;
@@ -40,7 +40,7 @@ public class TestZKPropertyStore extends ZkTestBase
 
   }
   
-  public class TestUpdater implements DataUpdater<String>
+  private class TestUpdater implements DataUpdater<String>
   {
 
     @Override
@@ -55,20 +55,22 @@ public class TestZKPropertyStore extends ZkTestBase
   public void testInvocation() throws Exception
   {
     LOG.info("START " + getShortClassName() + " at " + new Date(System.currentTimeMillis()));
-    LOG.info("number of connections is " + _zkClient.getNumberOfConnections());
+    LOG.info("number of connections is " + ZkClient.getNumberOfConnections());
 
     try 
     {
-      String zkServers = "localhost:2183";
       String value = null;
       
       PropertyJsonSerializer<String> serializer = new PropertyJsonSerializer<String>(String.class);
       
-      ZkConnection zkConn = ZKConnectionFactory.<String>create(zkServers, serializer);
-      ZkConnection zkConnSame = ZKConnectionFactory.<String>create(zkServers, serializer);
-      AssertJUnit.assertEquals(zkConn, zkConnSame);
- 
-      final String propertyStoreRoot = "/testZKPropertyStore";
+      ZkConnection zkConn = new ZkConnection(ZK_ADDR);
+
+      final String propertyStoreRoot = "/" + getShortClassName();
+      if (_zkClient.exists(propertyStoreRoot))
+      {
+        _zkClient.deleteRecursive(propertyStoreRoot);
+      }
+
       ZKPropertyStore<String> zkPropertyStore = new ZKPropertyStore<String>(zkConn, serializer, propertyStoreRoot);
       
       // test remove recursive and get non exist property
@@ -208,6 +210,6 @@ public class TestZKPropertyStore extends ZkTestBase
       e.printStackTrace();
     }
     LOG.info("END " + getShortClassName() + " at " + new Date(System.currentTimeMillis()));
-    LOG.info("number of connections is " + _zkClient.getNumberOfConnections());
+    LOG.info("number of connections is " + ZkClient.getNumberOfConnections());
   }
 }

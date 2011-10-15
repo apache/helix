@@ -12,16 +12,14 @@ public class ZKConnectionFactory
 
   private static Map<String, ZkConnection> _zkConnectionMap = new ConcurrentHashMap<String, ZkConnection>();
 
-  public static <T extends Object> ZkConnection create(String zkServers, PropertySerializer<T> serializer)
+  // TODO can't reuse shared connection via ZkClient()
+  //  can reuse connections via ZooKeeper(), enable it later if useful
+  private static <T extends Object> ZkConnection create(String zkServers, PropertySerializer<T> serializer)
   {
-    
-    // String key = zkServers + "/" + serializer.getClass().getName();
     String key = zkServers + "/" + serializer.toString();
 
     if(_zkConnectionMap.containsKey(key))
     {
-      // TODO: if the ZKClient is eventually disconnected, 
-      // we should get notified and remove the zkClient from the map.
       return _zkConnectionMap.get(key);
     }
     else

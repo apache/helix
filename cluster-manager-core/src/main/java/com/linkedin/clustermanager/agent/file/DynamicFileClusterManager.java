@@ -37,7 +37,6 @@ import com.linkedin.clustermanager.MessageListener;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.healthcheck.ParticipantHealthReportCollector;
 import com.linkedin.clustermanager.messaging.DefaultMessagingService;
-import com.linkedin.clustermanager.store.PropertySerializer;
 import com.linkedin.clustermanager.store.PropertyStore;
 import com.linkedin.clustermanager.store.file.FilePropertyStore;
 import com.linkedin.clustermanager.util.CMUtil;
@@ -55,7 +54,7 @@ public class DynamicFileClusterManager implements ClusterManager
   private final InstanceType _instanceType;
   private final String _instanceName;
   private boolean _isConnected;
-  private List<CallbackHandlerForFile> _handlers;
+  private final List<CallbackHandlerForFile> _handlers;
   private final FileClusterManagementTool _mgmtTool;
 
   public static final String _sessionId = "12345";
@@ -287,8 +286,7 @@ public class DynamicFileClusterManager implements ClusterManager
   }
 
   @Override
-  public <T> PropertyStore<T> getPropertyStore(String rootNamespace,
-      PropertySerializer<T> serializer)
+  public PropertyStore<ZNRecord> getPropertyStore()
   {
     // TODO Auto-generated method stub
     return null;

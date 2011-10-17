@@ -8,7 +8,7 @@ import org.apache.log4j.Logger;
 import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.TestHelper;
-import com.linkedin.clustermanager.TestHelper.DummyProcessResult;
+import com.linkedin.clustermanager.TestHelper.StartCMResult;
 
 public class TestDistClusterController extends ZkDistCMHandler
 {
@@ -39,7 +39,7 @@ public class TestDistClusterController extends ZkDistCMHandler
       else
       {
         // Thread thread;
-        DummyProcessResult result = TestHelper.startDummyProcess(ZK_ADDR, secondCluster, instanceName, null);
+        StartCMResult result = TestHelper.startDummyProcess(ZK_ADDR, secondCluster, instanceName, null);
         
         _threadMap.put(instanceName, result._thread);
         _managerMap.put(instanceName, result._manager);

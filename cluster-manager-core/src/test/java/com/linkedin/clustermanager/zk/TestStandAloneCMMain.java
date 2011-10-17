@@ -6,7 +6,7 @@ import org.apache.log4j.Logger;
 import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.TestHelper;
-import com.linkedin.clustermanager.TestHelper.DummyProcessResult;
+import com.linkedin.clustermanager.TestHelper.StartCMResult;
 import com.linkedin.clustermanager.controller.ClusterManagerMain;
 
 public class TestStandAloneCMMain extends ZkStandAloneCMHandler
@@ -26,7 +26,7 @@ public class TestStandAloneCMMain extends ZkStandAloneCMHandler
     for (int i = 1; i <= 2; i++)
     {
       String controllerName = "controller_" + i;
-      DummyProcessResult startResult =
+      StartCMResult startResult =
           TestHelper.startClusterController(CLUSTER_NAME,
                                             controllerName,
                                             ZK_ADDR,

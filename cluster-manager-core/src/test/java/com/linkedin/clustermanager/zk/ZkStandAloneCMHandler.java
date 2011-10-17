@@ -10,7 +10,7 @@ import org.testng.annotations.BeforeClass;
 
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.TestHelper;
-import com.linkedin.clustermanager.TestHelper.DummyProcessResult;
+import com.linkedin.clustermanager.TestHelper.StartCMResult;
 import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
 import com.linkedin.clustermanager.controller.ClusterManagerMain;
@@ -75,7 +75,7 @@ public class ZkStandAloneCMHandler extends ZkTestBase
       else
       {
         _participantZkClients[i] = new ZkClient(ZK_ADDR, 3000, 10000, new ZNRecordSerializer());
-        DummyProcessResult result =
+        StartCMResult result =
             TestHelper.startDummyProcess(ZK_ADDR,
                                          CLUSTER_NAME,
                                          instanceName,
@@ -89,7 +89,7 @@ public class ZkStandAloneCMHandler extends ZkTestBase
     // start controller
     String controllerName = "controller_0";
     _controllerZkClient = new ZkClient(ZK_ADDR, 3000, 10000, new ZNRecordSerializer());
-    DummyProcessResult startResult =
+    StartCMResult startResult =
         TestHelper.startClusterController(CLUSTER_NAME,
                                           controllerName,
                                           ZK_ADDR,

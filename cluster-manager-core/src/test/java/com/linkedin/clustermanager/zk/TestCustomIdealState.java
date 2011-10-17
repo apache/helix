@@ -1,10 +1,6 @@
 package com.linkedin.clustermanager.zk;
 
-import java.util.Date;
-
 import org.apache.log4j.Logger;
-
-import com.linkedin.clustermanager.TestDriver;
 
 public class TestCustomIdealState
 {
@@ -13,6 +9,7 @@ public class TestCustomIdealState
   // @Test
   public void testFrameworkExample() throws Exception
   {
+    /*
     String uniqTestName = "test_customIS";
     logger.info("START " + uniqTestName + " @ "  + new Date(System.currentTimeMillis()));
 
@@ -29,6 +26,7 @@ public class TestCustomIdealState
  
     logger.info("END " + uniqTestName + " @ " + new Date(System.currentTimeMillis()));
     // TestDriver.stopZk(zkServer);
+    */
   }
 
 }

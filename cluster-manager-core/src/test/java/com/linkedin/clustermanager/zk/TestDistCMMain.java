@@ -6,7 +6,7 @@ import org.apache.log4j.Logger;
 import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.TestHelper;
-import com.linkedin.clustermanager.TestHelper.DummyProcessResult;
+import com.linkedin.clustermanager.TestHelper.StartCMResult;
 import com.linkedin.clustermanager.controller.ClusterManagerMain;
 
 public class TestDistCMMain extends ZkDistCMHandler
@@ -33,7 +33,7 @@ public class TestDistCMMain extends ZkDistCMHandler
     {
       String controller = CONTROLLER_PREFIX + "_" + (NODE_NR + i);
       
-      DummyProcessResult result = TestHelper
+      StartCMResult result = TestHelper
           .startClusterController(CONTROLLER_CLUSTER, controller, ZK_ADDR, 
                                   ClusterManagerMain.DISTRIBUTED, null);
       _threadMap.put(controller, result._thread);

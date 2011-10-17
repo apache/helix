@@ -1,5 +1,7 @@
 package com.linkedin.clustermanager.tools;
 
+import com.linkedin.clustermanager.ClusterManager;
+
 public class TestCommand
 {
   public enum CommandType 
@@ -10,10 +12,22 @@ public class TestCommand
     STOP
   }
   
+  public static class NodeOpArg
+  {
+    public ClusterManager _manager;
+    public Thread _thread;
+    
+    public NodeOpArg(ClusterManager manager, Thread thread)
+    {
+      _manager = manager;
+      _thread = thread;
+    }
+  }
+  
   public TestTrigger _trigger;
   public CommandType _commandType;
   public ZnodeOpArg _znodeOpArg;
-  public Thread _threadArg;
+  public NodeOpArg _nodeOpArg;
   
   /**
    * 
@@ -44,11 +58,11 @@ public class TestCommand
    * @param trigger
    * @param arg
    */
-  public TestCommand(CommandType type, TestTrigger trigger, Thread arg)
+  public TestCommand(CommandType type, TestTrigger trigger, NodeOpArg arg)
   {
     _commandType = type;
     _trigger = trigger;
-    _threadArg = arg;
+    _nodeOpArg = arg;
   }
   
   @Override
@@ -61,7 +75,7 @@ public class TestCommand
     }
     else if (_commandType == CommandType.START || _commandType == CommandType.STOP)
     {
-      ret += _commandType.toString() + "|" + _trigger.toString() + "|" + _threadArg.toString();
+      ret += _commandType.toString() + "|" + _trigger.toString() + "|" + _nodeOpArg.toString();
     }
     
     return ret;

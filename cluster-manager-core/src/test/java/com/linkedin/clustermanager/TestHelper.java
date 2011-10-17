@@ -89,12 +89,12 @@ public class TestHelper
    * @return
    * @throws Exception
    */
-  public static DummyProcessResult startDummyProcess(final String zkAddr,
+  public static StartCMResult startDummyProcess(final String zkAddr,
                                                      final String clusterName,
                                                      final String instanceName,
                                                      final ZkClient zkClient) throws Exception
   {
-    DummyProcessResult result = new DummyProcessResult();
+    StartCMResult result = new StartCMResult();
     ClusterManager manager = null;
     manager =
         ClusterManagerFactory.getZKBasedManagerForParticipant(clusterName,
@@ -118,13 +118,13 @@ public class TestHelper
    * @param zkClient
    * @return
    */
-  public static DummyProcessResult startClusterController(final String clusterName,
+  public static StartCMResult startClusterController(final String clusterName,
                                               final String controllerName,
                                               final String zkConnectString,
                                               final String controllerMode,
                                               final ZkClient zkClient)
   {
-    final DummyProcessResult result = new DummyProcessResult();
+    final StartCMResult result = new StartCMResult();
     final ClusterManager manager =
         ClusterManagerMain.startClusterManagerMain(zkConnectString,
                                                    clusterName,
@@ -174,41 +174,8 @@ public class TestHelper
     result._thread = thread;
     return result;
   }
-
-  /*
-  public static Thread startClusterController(final String args)
-  {
-    Thread thread = new Thread(new Runnable()
-    {
-      @Override
-      public void run()
-      {
-        try
-        {
-          ClusterManagerMain.main(createArgs(args));
-        }
-        catch (Exception e)
-        {
-          e.printStackTrace();
-        }
-      }
-    });
-
-    thread.start();
-    return thread;
-  }
-  */
-
-  /*
-  private static String[] createArgs(String str)
-  {
-    String[] split = str.split("[ ]+");
-    logger.info("args=" + Arrays.toString(split));
-    return split;
-  }
-  */
   
-  public static class DummyProcessResult
+  public static class StartCMResult
   {
     public Thread _thread;
     public ClusterManager _manager;
@@ -230,7 +197,6 @@ public class TestHelper
     {
       try
       {
-
         DummyStateModelFactory stateModelFactory = new DummyStateModelFactory(0);
         StateMachineEngine<DummyStateModel> genericStateMachineHandler =
             new StateMachineEngine<DummyStateModel>(stateModelFactory);

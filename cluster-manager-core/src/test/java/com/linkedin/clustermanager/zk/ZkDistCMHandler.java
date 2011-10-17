@@ -12,7 +12,7 @@ import org.testng.annotations.BeforeClass;
 
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.TestHelper;
-import com.linkedin.clustermanager.TestHelper.DummyProcessResult;
+import com.linkedin.clustermanager.TestHelper.StartCMResult;
 import com.linkedin.clustermanager.controller.ClusterManagerMain;
 import com.linkedin.clustermanager.tools.ClusterSetup;
 
@@ -93,7 +93,7 @@ public class ZkDistCMHandler extends ZkTestBase
       }
       else
       {
-        DummyProcessResult result = TestHelper.startDummyProcess(ZK_ADDR, firstCluster, instanceName, null);
+        StartCMResult result = TestHelper.startDummyProcess(ZK_ADDR, firstCluster, instanceName, null);
         thread = result._thread;
         _threadMap.put(instanceName, thread);
         _managerMap.put(instanceName, result._manager);
@@ -111,7 +111,7 @@ public class ZkDistCMHandler extends ZkTestBase
       }
       else
       {
-        DummyProcessResult result = TestHelper.startClusterController(CONTROLLER_CLUSTER, controllerName, ZK_ADDR, 
+        StartCMResult result = TestHelper.startClusterController(CONTROLLER_CLUSTER, controllerName, ZK_ADDR, 
            ClusterManagerMain.DISTRIBUTED, null);
         _threadMap.put(controllerName, result._thread);
         _managerMap.put(controllerName, result._manager);

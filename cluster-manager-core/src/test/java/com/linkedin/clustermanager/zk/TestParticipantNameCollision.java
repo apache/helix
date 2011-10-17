@@ -7,7 +7,7 @@ import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.TestHelper;
-import com.linkedin.clustermanager.TestHelper.DummyProcessResult;
+import com.linkedin.clustermanager.TestHelper.StartCMResult;
 
 public class TestParticipantNameCollision extends ZkStandAloneCMHandler
 {
@@ -19,7 +19,7 @@ public class TestParticipantNameCollision extends ZkStandAloneCMHandler
   {
     logger.info("RUN at " + new Date(System.currentTimeMillis()));
     
-    DummyProcessResult result = null;
+    StartCMResult result = null;
     // int i = 0;
     for (int i = 0; i < 1; i++)
     {

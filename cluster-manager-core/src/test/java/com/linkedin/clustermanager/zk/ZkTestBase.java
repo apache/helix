@@ -38,7 +38,7 @@ public class ZkTestBase
   protected static ZkServer _zkServer = null;
   protected static ZkClient _zkClient = null;
 
-  protected static final String ZK_ADDR = "localhost:2183";
+  public static final String ZK_ADDR = "localhost:2183";
   protected static final String CLUSTER_PREFIX = "ESPRESSO_STORAGE";
   protected static final String CONTROLLER_CLUSTER_PREFIX = "CONTROLLER_CLUSTER";
 

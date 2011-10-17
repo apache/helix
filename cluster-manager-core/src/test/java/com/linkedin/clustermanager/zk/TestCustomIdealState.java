@@ -1,32 +1,45 @@
 package com.linkedin.clustermanager.zk;
 
+import java.util.Date;
+
 import org.apache.log4j.Logger;
+import org.testng.annotations.Test;
 
-public class TestCustomIdealState
+import com.linkedin.clustermanager.TestDriver;
+
+public class TestCustomIdealState extends ZkTestBase
 {
-  private static Logger logger = Logger.getLogger(TestCustomIdealState.class);
+  private static Logger LOG = Logger.getLogger(TestCustomIdealState.class);
 
-  // @Test
-  public void testFrameworkExample() throws Exception
+  @Test
+  public void testCustomIdealState() throws Exception
   {
-    /*
-    String uniqTestName = "test_customIS";
-    logger.info("START " + uniqTestName + " @ "  + new Date(System.currentTimeMillis()));
+    
+    int numDb = 2;
+    int numPartitionsPerDb = 100;
+    int numNode = 5;
+    int replica = 3;
+    
+    String uniqTestName = "TestCustomIS_" + "db" + numDb + "_p" + numPartitionsPerDb + "_n"
+        + numNode + "_r" + replica;
+    System.out.println("START " + uniqTestName + " at " + new Date(System.currentTimeMillis()));
 
-    // ZkServer zkServer = TestDriver.startZk();
+    TestDriver.setupClusterWithoutRebalance(uniqTestName, numDb, numPartitionsPerDb, numNode, replica);
 
-    TestDriver.setupClusterWithoutRebalance(uniqTestName, 1, 128, 10, 3);
-    TestDriver.startDummyParticipants(uniqTestName, 10);
+    for (int i = 0; i < numNode; i++)
+    {
+      TestDriver.startDummyParticipant(uniqTestName, i);
+    }
     TestDriver.startController(uniqTestName);
     
-    TestDriver.randomFailWithCustomIdealState(uniqTestName, 1, 0, 30, 10000);
+    TestDriver.setIdealState(uniqTestName, 2000, 50);
     
     TestDriver.verifyCluster(uniqTestName);
     TestDriver.stopCluster(uniqTestName);
- 
-    logger.info("END " + uniqTestName + " @ " + new Date(System.currentTimeMillis()));
-    // TestDriver.stopZk(zkServer);
-    */
+
+    System.out.println("END " + uniqTestName + " at " + new Date(System.currentTimeMillis()));
+    
+
   }
 
 }

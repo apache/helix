@@ -17,10 +17,10 @@ public class TestCMUsingDifferentParams extends ZkTestBase
     System.out.println("START " + getShortClassName() + " at " 
         + new Date(System.currentTimeMillis()));
     
-    int numDbs[] = new int[] {1}; // , 2};    // , 3, 6};
+    int numDbs[] = new int[] {1, 2};    // , 3, 6};
     int numPartitionsPerDbs[] = new int[] {10, 20, 50, 100};    // , 1000};
-    int numNodes[] = new int[] {5}; // , 10, 50, 100, 1000};
-    int replicas[] = new int[] {2}; // , 3};  //, 4, 5};
+    int numNodes[] = new int[] {5, 10}; // , 50, 100, 1000};
+    int replicas[] = new int[] {2, 3};  //, 4, 5};
     
     for (int numDb : numDbs)
     {

@@ -13,6 +13,7 @@ import org.apache.log4j.Logger;
 import org.testng.AssertJUnit;
 
 import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
+import com.linkedin.clustermanager.ClusterDataAccessor.IdealStateConfigProperty;
 import com.linkedin.clustermanager.TestHelper.StartCMResult;
 import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
@@ -20,6 +21,7 @@ import com.linkedin.clustermanager.controller.ClusterManagerMain;
 import com.linkedin.clustermanager.store.PropertyJsonSerializer;
 import com.linkedin.clustermanager.store.PropertyStoreException;
 import com.linkedin.clustermanager.tools.ClusterSetup;
+import com.linkedin.clustermanager.tools.IdealStateCalculatorForStorageNode;
 import com.linkedin.clustermanager.tools.TestCommand;
 import com.linkedin.clustermanager.tools.TestCommand.CommandType;
 import com.linkedin.clustermanager.tools.TestCommand.NodeOpArg;
@@ -27,13 +29,14 @@ import com.linkedin.clustermanager.tools.TestExecutor;
 import com.linkedin.clustermanager.tools.TestExecutor.ZnodePropertyType;
 import com.linkedin.clustermanager.tools.TestTrigger;
 import com.linkedin.clustermanager.tools.ZnodeOpArg;
+import com.linkedin.clustermanager.zk.ZkTestBase;
 
 public class TestDriver
 {
   private static Logger LOG = Logger.getLogger(TestDriver.class);
-  private static final String ZK_ADDR = "localhost:2183";
-  private static final String ZK_LOG_DIR = "/tmp/logs";
-  private static final String ZK_DATA_DIR = "/tmp/dataDir";
+  private static final String ZK_ADDR = ZkTestBase.ZK_ADDR; // "localhost:2183";
+  // private static final String ZK_LOG_DIR = "/tmp/logs";
+  // private static final String ZK_DATA_DIR = "/tmp/dataDir";
   private static final int DEFAULT_SESSION_TIMEOUT = 30000;
   private static final int DEFAULT_CONNECTION_TIMEOUT = Integer.MAX_VALUE;
   private static final ZkClient _zkClient = new ZkClient(ZK_ADDR, DEFAULT_SESSION_TIMEOUT,
@@ -59,6 +62,7 @@ public class TestDriver
     public final int _numNode;
     public final int _replica;
 
+    public final Map<String, ZNRecord> _idealStateMap = new ConcurrentHashMap<String, ZNRecord>();
     public final Map<String, StartCMResult> _startCMResultMap = new ConcurrentHashMap<String, StartCMResult>();
 
     // public final CountDownLatch _instanceStarted;
@@ -104,9 +108,10 @@ public class TestDriver
           + " is not unique or test has been run without cleaning up test info map; removing it");
       _testInfoMap.remove(uniqTestName);
     }
-    _testInfoMap.put(uniqTestName, new TestInfo(clusterName, numDb, numPartitionPerDb, numNodes,
-        replica));
-
+    TestInfo testInfo = new TestInfo(clusterName, numDb, numPartitionPerDb, numNodes, replica);
+    _testInfoMap.put(uniqTestName, testInfo);
+    
+    
     ClusterSetup setupTool = new ClusterSetup(ZK_ADDR);
     setupTool.addCluster(clusterName, true);
 
@@ -123,6 +128,11 @@ public class TestDriver
       if (doRebalance)
       {
         setupTool.rebalanceStorageCluster(clusterName, dbName, replica);
+        
+        String idealStatePath = "/" + clusterName + "/" + ClusterPropertyType.IDEALSTATES.toString()
+            + "/" + dbName;
+        ZNRecord idealState = _zkClient.<ZNRecord> readData(idealStatePath);
+        testInfo._idealStateMap.put(dbName, idealState);
       }
     }
   }
@@ -213,17 +223,20 @@ public class TestDriver
         + ClusterPropertyType.LIVEINSTANCES.toString();
     List<String> liveInstances = _zkClient.getChildren(liveInstancePath);
     String configInstancePath = "/" + clusterName + "/" + ClusterPropertyType.CONFIGS.toString();
-    List<String> instances = _zkClient.getChildren(configInstancePath);
-    instances.removeAll(liveInstances); // get instances that are not live
+    List<String> failInstances = _zkClient.getChildren(configInstancePath);
+    failInstances.removeAll(liveInstances);
 
     List<TestCommand> commandList = new ArrayList<TestCommand>();
 
     for (int i = 0; i < testInfo._numDb; i++)
     {
-      String idealStatePath = "/" + clusterName + "/" + ClusterPropertyType.IDEALSTATES.toString()
-          + "/" + TEST_DB_PREFIX + i;
-      ZNRecord idealState = _zkClient.<ZNRecord> readData(idealStatePath);
-      ZNRecord externalView = calculateExternalViewFromIdealState(idealState, instances);
+      // String idealStatePath = "/" + clusterName + "/" + ClusterPropertyType.IDEALSTATES.toString()
+      //    + "/" + TEST_DB_PREFIX + i;
+      // ZNRecord idealState = _zkClient.<ZNRecord> readData(idealStatePath);
+      String dbName = TEST_DB_PREFIX + i;
+      ZNRecord idealState = testInfo._idealStateMap.get(dbName);
+
+      ZNRecord externalView = calculateExternalViewFromIdealState(idealState, failInstances);
 
       String externalViewPath = "/" + clusterName + "/"
           + ClusterPropertyType.EXTERNALVIEW.toString() + "/" + TEST_DB_PREFIX + i;
@@ -316,78 +329,63 @@ public class TestDriver
     }
   }
 
-  /*
-   * public static void randomFailWithCustomIdealState(String uniqTestName, int
-   * numFail, int numRecover, int percentage, long timeForEachStep) throws
-   * Exception { if (!_testInfoMap.containsKey(uniqTestName)) { String errMsg =
-   * "test info does NOT exists:" + uniqTestName; throw new Exception(errMsg); }
-   * 
-   * TestInfo testInfo = _testInfoMap.get(uniqTestName);
-   * testInfo._instanceStarted.await();
-   * 
-   * String clusterName = testInfo._clusterName;
-   * 
-   * if (testInfo._numDb > 1) { String errMsg =
-   * "TestDriver.randomFailWithCustomIs() currently doesn't support numDb > 1:"
-   * + uniqTestName; throw new UnsupportedOperationException(errMsg); }
-   * 
-   * List<String> instanceNames = new ArrayList<String>();
-   * 
-   * for (int i = 0; i < testInfo._numNode; i++) { int port = START_PORT + i;
-   * instanceNames.add(PARTICIPANT_PREFIX + "_" + port); }
-   * 
-   * // do the test TestCommand command; ZnodeOpArg arg; List<TestCommand>
-   * commandList = new ArrayList<TestCommand>();
-   * 
-   * // IS change commands for (int i = 0; i < testInfo._numDb; i++) { String
-   * dbName = TEST_DB_PREFIX + i; ZNRecord destIS =
-   * IdealStateCalculatorForStorageNode.calculateIdealState(instanceNames,
-   * testInfo._numPartitionsPerDb, testInfo._replica - 1, dbName, "MASTER",
-   * "SLAVE"); // destIS.setId(dbName);
-   * destIS.setSimpleField("ideal_state_mode",
-   * IdealStateConfigProperty.CUSTOMIZED.toString());
-   * destIS.setSimpleField("partitions",
-   * Integer.toString(testInfo._numPartitionsPerDb));
-   * destIS.setSimpleField("state_model_def_ref", STATE_MODEL); String
-   * idealStatePath = "/" + clusterName + "/" +
-   * ClusterPropertyType.IDEALSTATES.toString() + "/" + TEST_DB_PREFIX + i;
-   * ZNRecord initIS = _zkClient.<ZNRecord> readData(idealStatePath); int
-   * totalStep = calcuateNumTransitions(initIS, destIS); LOG.info("initIS:" +
-   * initIS); LOG.info("destIS:" + destIS); LOG.info("totalSteps:" + totalStep);
-   * 
-   * ZNRecord nextIS = initIS; int steps = totalStep * percentage / 100; long
-   * nextTriggerTime = 1000; while (totalStep > steps) { nextIS =
-   * nextIdealState(nextIS, destIS, steps); arg = new ZnodeOpArg(idealStatePath,
-   * ZnodePropertyType.ZNODE, "+", nextIS); command = new
-   * TestCommand(CommandType.MODIFY, new TestTrigger(nextTriggerTime), arg);
-   * commandList.add(command); totalStep -= steps; nextTriggerTime +=
-   * timeForEachStep; }
-   * 
-   * arg = new ZnodeOpArg(idealStatePath, ZnodePropertyType.ZNODE, "+", destIS);
-   * command = new TestCommand(CommandType.MODIFY, new
-   * TestTrigger(nextTriggerTime), arg); commandList.add(command); }
-   * 
-   * // fail commands if (numFail > 1) { String errMsg =
-   * "TestDriver.randomFailWithCustomIs() currently doesn't support numFail > 1:"
-   * + uniqTestName; throw new UnsupportedOperationException(errMsg); } for (int
-   * i = 0; i < numFail; i++) { String failHost = PARTICIPANT_PREFIX + "_" +
-   * (START_PORT + i); Thread thread = testInfo._threadMap.get(failHost); if
-   * (thread == null) { String errMsg =
-   * "TestDriver.randomFailWithCustomIs() fail thread is null, failHost:" +
-   * failHost; throw new Exception(errMsg); } command = new
-   * TestCommand(CommandType.STOP, new TestTrigger(timeForEachStep + 2000),
-   * thread); commandList.add(command); }
-   * 
-   * if (numRecover > 0) { String errMsg =
-   * "TestDriver.randomFailWithCustomIs() currently doesn't support numRecover > 0:"
-   * + uniqTestName; throw new UnsupportedOperationException(errMsg); }
-   * 
-   * // Map<String, Boolean> results = TestExecutor.executeTest(commandList,
-   * ZK_ADDR);
-   * 
-   * }
-   */
+  public static void setIdealState(String uniqTestName, long at, int percentage)
+  throws Exception
+  {
+    if (!_testInfoMap.containsKey(uniqTestName)) 
+    { 
+      String errMsg = "test cluster hasn't been setup:" + uniqTestName; 
+      throw new Exception(errMsg); 
+    }
+    TestInfo testInfo = _testInfoMap.get(uniqTestName);
+    String clusterName = testInfo._clusterName;
+    List<String> instanceNames = new ArrayList<String>();
+     
+    for (int i = 0; i < testInfo._numNode; i++) 
+    { 
+      int port = START_PORT + i;
+      instanceNames.add(PARTICIPANT_PREFIX + "_" + port); 
+    }
 
+    List<TestCommand> commandList = new ArrayList<TestCommand>();
+    for (int i = 0; i < testInfo._numDb; i++) 
+    { 
+      String dbName = TEST_DB_PREFIX + i; 
+      ZNRecord destIS = IdealStateCalculatorForStorageNode.calculateIdealState(instanceNames,
+              testInfo._numPartitionsPerDb, testInfo._replica - 1, dbName, "MASTER","SLAVE");
+      // destIS.setId(dbName);
+      destIS.setSimpleField("ideal_state_mode", IdealStateConfigProperty.CUSTOMIZED.toString());
+      destIS.setSimpleField("partitions", Integer.toString(testInfo._numPartitionsPerDb));
+      destIS.setSimpleField("state_model_def_ref", STATE_MODEL); 
+      String idealStatePath = "/" + clusterName 
+                            + "/" + ClusterPropertyType.IDEALSTATES.toString() 
+                            + "/" + TEST_DB_PREFIX + i;
+      ZNRecord initIS = new ZNRecord(dbName); // _zkClient.<ZNRecord> readData(idealStatePath);
+      initIS.setSimpleField("ideal_state_mode", IdealStateConfigProperty.CUSTOMIZED.toString());
+      initIS.setSimpleField("partitions", Integer.toString(testInfo._numPartitionsPerDb));
+      initIS.setSimpleField("state_model_def_ref", "MasterSlave");
+      int totalStep = calcuateNumTransitions(initIS, destIS); 
+      // LOG.info("initIS:" + initIS); 
+      // LOG.info("destIS:" + destIS); 
+      // LOG.info("totalSteps from initIS to destIS:" + totalStep);
+      System.out.println("initIS:" + initIS);
+      System.out.println("destIS:" + destIS);
+      System.out.println("totalSteps from initIS to destIS:" + totalStep);
+      
+
+      ZNRecord nextIS; 
+      int step = totalStep * percentage / 100;
+      nextIS = nextIdealState(initIS, destIS, step);
+      testInfo._idealStateMap.put(dbName, nextIS);
+      ZnodeOpArg arg = new ZnodeOpArg(idealStatePath, ZnodePropertyType.ZNODE, "+", nextIS);
+      TestCommand command = new TestCommand(CommandType.MODIFY, new TestTrigger(at), arg);
+      commandList.add(command);
+    }
+    
+    TestExecutor.executeTestAsync(commandList, ZK_ADDR);
+
+  }
+  
   private static ZNRecord calculateExternalViewFromIdealState(ZNRecord idealState,
       List<String> failInstances)
   {

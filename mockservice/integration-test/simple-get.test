@@ -7,4 +7,4 @@ TABLE_NAME="TestTable"
 RESOURCE="rec1"
 SUBRESOURCE="subrec1"
 
-curl -s -H "Content-Type:avro/json" http://localhost:$PORT/$METHOD/$DB_NAME/$TABLE_NAME/$RESOURCE/
+curl -s -H "Content-Type:avro/json" http://localhost:$PORT/$DB_NAME/$TABLE_NAME/$RESOURCE/

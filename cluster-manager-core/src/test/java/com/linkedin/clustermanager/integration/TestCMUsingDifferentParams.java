@@ -6,12 +6,11 @@ import org.apache.log4j.Logger;
 import org.testng.annotations.Test;
 
 
-@Test (groups = {"integrationTest"})
 public class TestCMUsingDifferentParams extends ZkIntegrationTestBase
 {
   private static Logger LOG = Logger.getLogger(TestCMUsingDifferentParams.class);
   
-  @Test
+  @Test (groups = {"integrationTest"})
   public void testCMUsingDifferentParams() throws Exception
   {
     System.out.println("START " + getShortClassName() + " at " 

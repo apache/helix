@@ -14,10 +14,9 @@ import com.linkedin.clustermanager.agent.file.FileBasedClusterManager;
 import com.linkedin.clustermanager.tools.ClusterViewSerializer;
 
 // TODO remove this test
-@Test (groups = {"integrationTest"})
 public class TestFileBasedClusterManager
 {
-  @Test
+  @Test (groups = {"integrationTest"})
   public void testFileBasedClusterManager() throws Exception
   {
     List<FileBasedClusterManager.DBParam> dbParams = new ArrayList<FileBasedClusterManager.DBParam>();

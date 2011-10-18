@@ -9,7 +9,6 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.TestHelper;
@@ -28,7 +27,6 @@ import com.linkedin.clustermanager.tools.ClusterSetup;
  *
  */
 
-@Test (groups = {"integrationTest"})
 public class ZkDistCMHandler extends ZkIntegrationTestBase
 {
   private static Logger logger = Logger.getLogger(ZkDistCMHandler.class);
@@ -47,7 +45,7 @@ public class ZkDistCMHandler extends ZkIntegrationTestBase
   
   private static final String TEST_DB = "TestDB";
 
-  @BeforeClass
+  @BeforeClass (groups = {"integrationTest"})
   public void beforeClass() throws Exception
   {
     // logger.info("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
@@ -129,7 +127,7 @@ public class ZkDistCMHandler extends ZkIntegrationTestBase
     verifyIdealAndCurrentStateTimeout(clusterNames);
   }
   
-  @AfterClass
+  @AfterClass (groups = {"integrationTest"})
   public void afterClass() throws Exception
   {
     // logger.info("END at " + new Date(System.currentTimeMillis()));

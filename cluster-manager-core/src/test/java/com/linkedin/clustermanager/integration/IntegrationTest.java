@@ -13,10 +13,9 @@ import com.linkedin.clustermanager.tools.ClusterStateVerifier;
  * 
  */
 
-@Test (groups = {"integrationTest"})
 public class IntegrationTest extends ZkStandAloneCMHandler
 {
-  @Test
+  @Test (groups = {"integrationTest"})
   public void integrationTest() throws Exception
   {
     AssertJUnit.assertTrue(ClusterStateVerifier.verifyClusterStates(ZK_ADDR, CLUSTER_NAME));

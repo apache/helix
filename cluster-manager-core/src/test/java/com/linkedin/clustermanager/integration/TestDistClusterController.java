@@ -10,12 +10,11 @@ import org.testng.annotations.Test;
 import com.linkedin.clustermanager.TestHelper;
 import com.linkedin.clustermanager.TestHelper.StartCMResult;
 
-@Test (groups = {"integrationTest"})
 public class TestDistClusterController extends ZkDistCMHandler
 {
   private static Logger logger = Logger.getLogger(TestDistClusterController.class);
 
-  @Test
+  @Test (groups = {"integrationTest"})
   public void testDistClusterController() throws Exception
   {
     logger.info("Run at " + new Date(System.currentTimeMillis()));

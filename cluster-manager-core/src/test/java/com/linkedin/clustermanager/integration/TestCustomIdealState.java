@@ -6,12 +6,11 @@ import org.apache.log4j.Logger;
 import org.testng.annotations.Test;
 
 
-@Test (groups = {"integrationTest"})
 public class TestCustomIdealState extends ZkIntegrationTestBase
 {
   private static Logger LOG = Logger.getLogger(TestCustomIdealState.class);
 
-  @Test
+  @Test (groups = {"integrationTest"})
   public void testCustomIdealState() throws Exception
   {
     

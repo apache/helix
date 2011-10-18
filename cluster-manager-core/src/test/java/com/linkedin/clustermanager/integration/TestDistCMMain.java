@@ -9,12 +9,11 @@ import com.linkedin.clustermanager.TestHelper;
 import com.linkedin.clustermanager.TestHelper.StartCMResult;
 import com.linkedin.clustermanager.controller.ClusterManagerMain;
 
-@Test (groups = {"integrationTest"})
 public class TestDistCMMain extends ZkDistCMHandler
 {
   private static Logger LOG = Logger.getLogger(TestDistCMMain.class);
   
-  @Test
+  @Test (groups = {"integrationTest"})
   public void testDistCMMain() throws Exception
   {
     LOG.info("RUN at " + new Date(System.currentTimeMillis()));

@@ -9,7 +9,6 @@ import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.ClusterDataAccessor.InstanceConfigProperty;
@@ -33,7 +32,6 @@ import com.linkedin.clustermanager.tools.IdealStateCalculatorForStorageNode;
  *
  */
 
-@Test (groups = {"integrationTest"})
 public class FileCMTestBase
 {
   private static Logger logger = Logger.getLogger(FileCMTestBase.class);
@@ -57,7 +55,7 @@ public class FileCMTestBase
        // = ClusterManagerFactory.getFileBasedManagerForController(CLUSTER_NAME, _accessor);
   protected ClusterManagementService _mgmtTool;   // = _manager.getClusterManagmentTool();
 
-  @BeforeClass
+  @BeforeClass (groups = {"integrationTest"})
   public void beforeClass()
   {
     _manager = ClusterManagerFactory.getFileBasedManagerForController(CLUSTER_NAME, _accessor);
@@ -129,7 +127,7 @@ public class FileCMTestBase
 
   }
   
-  @AfterClass
+  @AfterClass (groups = {"integrationTest"})
   public void afterClass() throws Exception
   {
     logger.info("END shutting down file-based cluster managers at " + 

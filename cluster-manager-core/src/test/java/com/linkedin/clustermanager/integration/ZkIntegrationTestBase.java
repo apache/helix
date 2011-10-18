@@ -18,7 +18,6 @@ import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeSuite;
-import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterDataAccessor.ControllerPropertyType;
@@ -32,7 +31,6 @@ import com.linkedin.clustermanager.tools.ClusterStateVerifier;
 import com.linkedin.clustermanager.util.CMUtil;
 import com.linkedin.clustermanager.util.ZKClientPool;
 
-@Test (groups = {"integrationTest"})
 public class ZkIntegrationTestBase
 {
   private static Logger LOG = Logger.getLogger(ZkIntegrationTestBase.class);
@@ -44,7 +42,7 @@ public class ZkIntegrationTestBase
   protected static final String CLUSTER_PREFIX = "ESPRESSO_STORAGE";
   protected static final String CONTROLLER_CLUSTER_PREFIX = "CONTROLLER_CLUSTER";
 
-  @BeforeSuite
+  @BeforeSuite (groups = {"integrationTest"})
   public void beforeSuite()
   {
     _zkServer = TestHelper.startZkSever(ZK_ADDR);
@@ -55,7 +53,7 @@ public class ZkIntegrationTestBase
     AssertJUnit.assertTrue(_zkClient != null);
   }
 
-  @AfterSuite
+  @AfterSuite (groups = {"integrationTest"})
   public void afterSuite()
   {
     ZKClientPool.reset();

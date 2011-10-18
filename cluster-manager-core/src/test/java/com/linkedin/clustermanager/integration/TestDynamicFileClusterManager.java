@@ -10,12 +10,11 @@ import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 
-@Test (groups = {"integrationTest"})
 public class TestDynamicFileClusterManager extends FileCMTestBase
 {
   private static Logger logger = Logger.getLogger(TestDynamicFileClusterManager.class);
   
-  @Test
+  @Test (groups = {"integrationTest"})
   public void testDynamicFileClusterManager() 
   throws InterruptedException 
   {

@@ -9,12 +9,11 @@ import com.linkedin.clustermanager.TestHelper;
 import com.linkedin.clustermanager.TestHelper.StartCMResult;
 import com.linkedin.clustermanager.controller.ClusterManagerMain;
 
-@Test (groups = {"integrationTest"})
 public class TestStandAloneCMMain extends ZkStandAloneCMHandler
 {
   private static Logger logger = Logger.getLogger(TestStandAloneCMMain.class);
   
-  @Test
+  @Test (groups = {"integrationTest"})
   public void testStandAloneCMMain() throws Exception
   {
     logger.info("Run at " + new Date(System.currentTimeMillis()));

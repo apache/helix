@@ -14,7 +14,6 @@ import com.linkedin.clustermanager.ClusterManagerFactory;
 import com.linkedin.clustermanager.tools.ClusterSetup;
 import com.linkedin.clustermanager.util.CMUtil;
 
-@Test (groups = {"integrationTest"})
 public class TestClusterManagerStartsup extends ZkStandAloneCMHandler
 {
   void setupCluster() throws ClusterManagerException
@@ -39,14 +38,15 @@ public class TestClusterManagerStartsup extends ZkStandAloneCMHandler
     _setupTool.rebalanceStorageCluster(CLUSTER_NAME, TEST_DB, 3);
   }
   
+  
   @Override
-  @BeforeClass
+  @BeforeClass (groups = {"integrationTest"})
   public void beforeClass() throws Exception
   {
     
   }
   
-  @Test
+  @Test (groups = {"integrationTest"})
   public void testParticipantStartUp() throws Exception
   {
     setupCluster();

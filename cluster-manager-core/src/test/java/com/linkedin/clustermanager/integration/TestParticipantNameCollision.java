@@ -9,13 +9,12 @@ import org.testng.annotations.Test;
 import com.linkedin.clustermanager.TestHelper;
 import com.linkedin.clustermanager.TestHelper.StartCMResult;
 
-@Test (groups = {"integrationTest"})
 public class TestParticipantNameCollision extends ZkStandAloneCMHandler
 {
   private static Logger logger = Logger.getLogger(TestParticipantNameCollision.class);
   // static final AtomicInteger _exceptionCounter = new AtomicInteger();
   
-  @Test
+  @Test (groups = {"integrationTest"})
   public void testParticiptantNameCollision() throws Exception
   {
     logger.info("RUN at " + new Date(System.currentTimeMillis()));

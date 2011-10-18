@@ -7,7 +7,6 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.TestHelper;
@@ -23,7 +22,6 @@ import com.linkedin.clustermanager.tools.ClusterSetup;
  * start 5 dummy participants verify the current states at end
  */
 
-@Test (groups = {"integrationTest"})
 public class ZkStandAloneCMHandler extends ZkIntegrationTestBase
 {
   private static Logger logger = Logger.getLogger(ZkStandAloneCMHandler.class);
@@ -41,7 +39,7 @@ public class ZkStandAloneCMHandler extends ZkIntegrationTestBase
   protected final Map<String, Thread> _threadMap = new HashMap<String, Thread>();
   protected final Map<String, ClusterManager> _managerMap = new HashMap<String, ClusterManager>();
 
-  @BeforeClass
+  @BeforeClass (groups = {"integrationTest"})
   public void beforeClass() throws Exception
   {
     // logger.info("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
@@ -105,7 +103,7 @@ public class ZkStandAloneCMHandler extends ZkIntegrationTestBase
     // Thread.sleep(2000);
   }
 
-  @AfterClass
+  @AfterClass (groups = {"integrationTest"})
   public void afterClass() throws Exception
   {
     // logger.info("END shutting down cluster managers at " + new Date(System.currentTimeMillis()));

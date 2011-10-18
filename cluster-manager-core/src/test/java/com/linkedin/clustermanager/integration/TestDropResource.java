@@ -5,10 +5,9 @@ import java.util.List;
 
 import org.testng.annotations.Test;
 
-@Test (groups = {"integrationTest"})
 public class TestDropResource extends ZkStandAloneCMHandler
 {
-  @Test
+  @Test (groups = {"integrationTest"})
   public void testDropResource() throws Exception
   {
     // add a resource group to be dropped

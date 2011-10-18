@@ -16,7 +16,6 @@ import com.linkedin.clustermanager.messaging.handling.MessageHandlerFactory;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.Message.MessageType;
 
-@Test (groups = {"integrationTest"})
 public class TestMessagingService extends ZkStandAloneCMHandler
 {
   public static class TestMessagingHandlerFactory implements
@@ -60,7 +59,7 @@ public class TestMessagingService extends ZkStandAloneCMHandler
     }
   }
 
-  @Test
+  @Test (groups = {"integrationTest"})
   public void TestMessageSimpleSend() throws Exception
   {
     String hostSrc = "localhost_" + START_PORT;
@@ -147,7 +146,7 @@ public class TestMessagingService extends ZkStandAloneCMHandler
 
   }
 
-  @Test
+  @Test (groups = {"integrationTest"})
   public void TestMessageSimpleSendReceiveAsync() throws Exception
   {
     String hostSrc = "localhost_" + START_PORT;
@@ -194,7 +193,7 @@ public class TestMessagingService extends ZkStandAloneCMHandler
 
   }
 
-  @Test
+  @Test (groups = {"integrationTest"})
   public void TestBlockingSendReceive() throws Exception
   {
     String hostSrc = "localhost_" + START_PORT;
@@ -236,7 +235,7 @@ public class TestMessagingService extends ZkStandAloneCMHandler
 
   }
 
-  @Test
+  @Test (groups = {"integrationTest"})
   public void TestMultiMessageCriteria() throws Exception
   {
     String hostSrc = "localhost_" + START_PORT;
@@ -291,7 +290,7 @@ public class TestMessagingService extends ZkStandAloneCMHandler
 
   }
 
-  @Test
+  @Test (groups = {"integrationTest"})
   public void TestControllerMessage() throws Exception
   {
     String hostSrc = "localhost_" + START_PORT;

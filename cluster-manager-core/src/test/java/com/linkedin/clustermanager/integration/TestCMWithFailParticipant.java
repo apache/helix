@@ -5,10 +5,9 @@ import java.util.Date;
 import org.testng.annotations.Test;
 
 
-@Test (groups = {"integrationTest"})
 public class TestCMWithFailParticipant extends ZkIntegrationTestBase
 {
-  @Test
+  @Test (groups = {"integrationTest"})
   public void testCMWithFailParticipant() throws Exception
   {
     int numDb = 1;

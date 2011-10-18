@@ -33,33 +33,46 @@ public class MockEspressoService extends Application
   public static final String PORT = "port";
   public static final int DEFAULT_PORT = 8100;
   protected static final String NODE_TYPE = "EspressoStorage";
-  String ZK_ADDR = "localhost:9999";
-  String CLUSTER_NAME = "";
   protected static final String INSTANCE_NAME = "localhost_1234";
   
   public static final String DATABASENAME = "database";
   public static final String TABLENAME = "table";
   public static final String RESOURCENAME = "resource";
   public static final String SUBRESOURCENAME = "subresource";
- // protected static final String CLUSTER_NAME = "MockCluster";
+  public static final String STOPSERVICECOMMAND = "stopservice";
+  
+  public static final String CONTEXT_MOCK_NODE_NAME = "mocknode";
+  public static final String COMPONENT_NAME = "component";
   
   Context _applicationContext;
-  int _serverPort;
+  static int _serverPort;
+  static String _zkAddr = "localhost:9999";
+  static String _clusterName = "";
+  public CMConnector _connector;
   public EspressoStorageMockNode _mockNode;
-  public MockEspressoService()
-  {
-    super();
-  }
+  static Context _context;
+  static Component _component;
 
   public MockEspressoService(Context context)
   {
-    super(context);
+    super(_context);
+    _connector = null;
+	  try {
+		  _connector = new CMConnector(_clusterName, INSTANCE_NAME, _zkAddr); //, zkClient);
+	  }
+	  catch (Exception e) {
+		  logger.error("Unable to initialize CMConnector: "+e);
+		  e.printStackTrace();
+		  System.exit(-1);
+	  }
+    _mockNode = (EspressoStorageMockNode)MockNodeFactory.createMockNode(NODE_TYPE, _connector);
+    context.getAttributes().put(CONTEXT_MOCK_NODE_NAME, (Object)_mockNode);
   }
  
   @Override
   public Restlet createRoot()
   {
-    Router router = new Router(getContext());
+	Router router = new Router(_context);
 
     Restlet mainpage = new Restlet()
     {
@@ -88,17 +101,17 @@ public class MockEspressoService extends Application
     if (_mockNode == null) {
     	logger.debug("_mockNode in createRoot is null");
     }
-    GetRestlet getter = new GetRestlet(getContext(), _mockNode);
-    PutRestlet putter = new PutRestlet(getContext(), _mockNode);
-    
     router.attach("", mainpage);
-    router.attach("/get/{"+DATABASENAME+"}/{"+TABLENAME+"}/{"+RESOURCENAME+"}", getter); ///{"+SUBRESOURCENAME+"}", GetResource.class);
-    //TODO: make subresource optional
-    router.attach("/post/{"+DATABASENAME+"}/{"+TABLENAME+"}/{"+RESOURCENAME+"}", putter);
+    
+    //Espresso handlers
+    router.attach("/{"+DATABASENAME+"}/{"+TABLENAME+"}/{"+RESOURCENAME+"}", EspressoResource.class);
+    router.attach("/{"+DATABASENAME+"}/{"+TABLENAME+"}/{"+RESOURCENAME+"}/{"+SUBRESOURCENAME+"}", EspressoResource.class);
+    
+    //Admin handlers
+    router.attach("/{"+STOPSERVICECOMMAND+"}", StopServiceResource.class);
+    
     return router;
   }
-  
-  
   
   public static void printUsage(Options cliOptions)
   {
@@ -142,7 +155,7 @@ public class MockEspressoService extends Application
     return options;
   }
   
-  public void processCommandLineArgs(String[] cliArgs) throws Exception
+  public static void processCommandLineArgs(String[] cliArgs) throws Exception
   {
     CommandLineParser cliParser = new GnuParser();
     Options cliOptions = constructCommandLineOptions();
@@ -170,42 +183,19 @@ public class MockEspressoService extends Application
       _serverPort = Integer.parseInt(cmd.getOptionValue(PORT));
     }
     if (cmd.hasOption(ZKSERVERADDRESS)) {
-    	ZK_ADDR = cmd.getOptionValue(ZKSERVERADDRESS);
+    	_zkAddr = cmd.getOptionValue(ZKSERVERADDRESS);
     }
     if (cmd.hasOption(CLUSTERNAME)) {
-    	CLUSTER_NAME = cmd.getOptionValue(CLUSTERNAME);
-    	logger.debug("CLUSTER_NAME: "+CLUSTER_NAME);
+    	_clusterName = cmd.getOptionValue(CLUSTERNAME);
+    	logger.debug("_clusterName: "+_clusterName);
     }
-    /*
-    // start web server with the zkServer address
-    Component component = new Component();
-    component.getServers().add(Protocol.HTTP, _serverPort);
-    _applicationContext = component.getContext().createChildContext();
-    _applicationContext.getAttributes().put(ZKSERVERADDRESS, cmd.getOptionValue(ZKSERVERADDRESS));
-    _applicationContext.getAttributes().put(CLUSTERNAME, cmd.getOptionValue(CLUSTERNAME));
-    
-    MockEspressoService application = new MockEspressoService(
-        _applicationContext); 
-    // Attach the application to the component and start it
-    component.getDefaultHost().attach(application);
-    component.start();
-    */
   }
   
   public void run() throws Exception {
 	 
 	  logger.debug("Start of mock service run");
-	  CMConnector cm = null;
-	  try {
-		  logger.debug("xxx"+ZK_ADDR+"xxx");
-		  cm = new CMConnector(CLUSTER_NAME, INSTANCE_NAME, ZK_ADDR); //, zkClient);
-	  }
-	  catch (Exception e) {
-		  logger.error("Unable to initialize CMConnector: "+e);
-		  e.printStackTrace();
-		  System.exit(-1);
-	  }
-	  _mockNode = (EspressoStorageMockNode)MockNodeFactory.createMockNode(NODE_TYPE, cm);
+	  
+	
 	  if (_mockNode == null) {
 		  logger.debug("_mockNode null");
 	  }
@@ -214,13 +204,12 @@ public class MockEspressoService extends Application
 	  }
 	  if (_mockNode != null) {
 		  // start web server with the zkServer address
-		  Component component = new Component();
-		  component.getServers().add(Protocol.HTTP, _serverPort);
-		  //!!!MockEspressoService application = new MockEspressoService(
-			//	!!!  _applicationContext); 
+		  _component = new Component();
+		  _component.getServers().add(Protocol.HTTP, _serverPort);
 		  // Attach the application to the component and start it
-		  component.getDefaultHost().attach(this); //(application);
-		  component.start();
+		  _component.getDefaultHost().attach(this); //(application);
+		  _context.getAttributes().put(COMPONENT_NAME, (Object)_component);
+		  _component.start();
 		  //start mock espresso node
 		  _mockNode.run();
 	  }
@@ -237,8 +226,9 @@ public class MockEspressoService extends Application
    */
   public static void main(String[] args) throws Exception
   {
-	  MockEspressoService service = new MockEspressoService();
-	  service.processCommandLineArgs(args);
+	  processCommandLineArgs(args);
+	  _context = new Context();
+	  MockEspressoService service = new MockEspressoService(_context);
 	  service.run();
 	  
   }

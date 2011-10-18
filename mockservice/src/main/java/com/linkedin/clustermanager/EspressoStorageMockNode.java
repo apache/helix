@@ -29,6 +29,8 @@ public class EspressoStorageMockNode extends MockNode {
 	HashSet<String>_partitions;
 	
 	HashMap<String, String> _keyValueMap;
+	FnvHashFunction _hashFunction;
+	int _numTotalEspressoPartitions = 0;
 	
 	public EspressoStorageMockNode(CMConnector cm) {
 		super(cm);
@@ -47,6 +49,7 @@ public class EspressoStorageMockNode extends MockNode {
 				.addHealthReportProvider(_healthProvider);
 		_partitions = new HashSet<String>();
 		_keyValueMap = new HashMap<String, String>();
+		_hashFunction = new FnvHashFunction();
 		
 		//start thread to keep checking what partitions this node owns
 		Thread partitionGetter = new Thread(new PartitionGetterThread());
@@ -58,6 +61,10 @@ public class EspressoStorageMockNode extends MockNode {
 	public String doGet(String key) {
 		//TODO: compute what partition owns this key, increment a stat count for it
 		String partitionName = "xxx";
+		int numPartitions = _partitions.size();
+		logger.debug("numPartitions: "+numPartitions);
+		long part = _hashFunction.hash(key.getBytes());
+		logger.debug("part: "+part);
 		//TODO: check if we own this partition...if not, return an error
 		//TODO: This node needs to know how many partitions there are...get from zk
 		//_healthProvider.submitIncrementPartitionRequestCount(partitionName);
@@ -79,8 +86,10 @@ public class EspressoStorageMockNode extends MockNode {
 					_partitions.clear();
 					Map<String, StateModel> stateModelMap = _stateModelFactory
 							.getStateModelMap();
+					_numTotalEspressoPartitions = stateModelMap.keySet().size();
+					logger.debug("_numTotalEspressoPartitions: "+_numTotalEspressoPartitions);
 					for (String s: stateModelMap.keySet()) {
-						//logger.debug("adding key "+s);
+						logger.debug("adding key "+s);
 						_partitions.add(s);
 					}
 				}

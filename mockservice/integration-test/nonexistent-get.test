@@ -1,0 +1,10 @@
+#!/bin/bash
+
+PORT="8900"
+METHOD="get"
+DB_NAME="TestDB"
+TABLE_NAME="TestTable"
+RESOURCE="rec_nonexistent"
+SUBRESOURCE="subrec1"
+
+curl -v -s -H "Content-Type:avro/json" http://localhost:$PORT/$DB_NAME/$TABLE_NAME/$RESOURCE/

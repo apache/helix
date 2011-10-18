@@ -11,10 +11,11 @@ import com.linkedin.clustermanager.messaging.handling.CMTask;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.Message.MessageType;
 
+@Test (groups = {"unitTest"})
 public class TestCMTaskHandler
 {
   @Test
-  public void testInvocation() throws Exception
+  public void testCMTaskHandler() throws Exception
   {
     System.out.println("TestCMTaskHandler.testInvocation()");
     Message message = new Message(MessageType.STATE_TRANSITION,"Some unique id");

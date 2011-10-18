@@ -1,13 +1,13 @@
-package com.linkedin.clustermanager.zk;
+package com.linkedin.clustermanager.integration;
 
 import java.util.Date;
 
 import org.apache.log4j.Logger;
 import org.testng.annotations.Test;
 
-import com.linkedin.clustermanager.TestDriver;
 
-public class TestCMUsingDifferentParams extends ZkTestBase
+@Test (groups = {"integrationTest"})
+public class TestCMUsingDifferentParams extends ZkIntegrationTestBase
 {
   private static Logger LOG = Logger.getLogger(TestCMUsingDifferentParams.class);
   

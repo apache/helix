@@ -1,7 +1,5 @@
 package com.linkedin.clustermanager;
 
-import org.testng.annotations.Test;
-import org.testng.AssertJUnit;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
@@ -11,19 +9,16 @@ import java.util.List;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
-
-import org.testng.annotations.Test;
 import org.testng.AssertJUnit;
-import org.testng.Assert;
-import org.testng.annotations.*;
+import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.tools.IdealCalculatorByConsistentHashing;
 import com.linkedin.clustermanager.tools.IdealStateCalculatorByRush;
 import com.linkedin.clustermanager.tools.IdealStateCalculatorByShuffling;
 
+@Test (groups = {"unitTest"})
 public class TestShuffledIdealState
 {
-  // public static void main(String[] args)
   @Test
   public void testInvocation() throws Exception
   {

@@ -1,12 +1,10 @@
-package com.linkedin.clustermanager.zk;
+package com.linkedin.clustermanager.integration;
 
-import org.testng.annotations.Test;
-import org.testng.AssertJUnit;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.UUID;
 
-import org.testng.Assert;
+import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.Criteria;
@@ -17,8 +15,8 @@ import com.linkedin.clustermanager.messaging.handling.MessageHandler;
 import com.linkedin.clustermanager.messaging.handling.MessageHandlerFactory;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.Message.MessageType;
-import com.linkedin.clustermanager.tools.ClusterStateVerifier;
 
+@Test (groups = {"integrationTest"})
 public class TestMessagingService extends ZkStandAloneCMHandler
 {
   public static class TestMessagingHandlerFactory implements

@@ -1,5 +1,6 @@
 package com.linkedin.clustermanager;
 
+import java.util.Date;
 import java.util.List;
 
 import org.I0Itec.zkclient.DataUpdater;
@@ -12,6 +13,7 @@ import com.linkedin.clustermanager.store.PropertyJsonComparator;
 import com.linkedin.clustermanager.store.PropertyJsonSerializer;
 import com.linkedin.clustermanager.store.file.FilePropertyStore;
 
+@Test (groups = {"unitTest"})
 public class TestFilePropertyStore
 {
   private static Logger logger = Logger.getLogger(TestFilePropertyStore.class);
@@ -41,9 +43,10 @@ public class TestFilePropertyStore
     
   }
   
-  @Test
   public void testFilePropertyStore() throws Exception
   {
+    logger.info("RUN testFilePropertyStore() at " + new Date(System.currentTimeMillis()));
+    
     final int SLEEP_TIME = 2000;
     PropertyJsonSerializer<String> serializer = new PropertyJsonSerializer<String>(String.class);
     PropertyJsonComparator<String> comparator = new PropertyJsonComparator<String>(String.class);

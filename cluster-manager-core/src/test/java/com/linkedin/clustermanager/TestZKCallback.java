@@ -21,6 +21,8 @@ import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.Message.MessageType;
 import com.linkedin.clustermanager.tools.ClusterSetup;
 
+// TODO inherit from ZkTestBase
+@Test (groups = {"unitTest"})
 public class TestZKCallback
 {
   private String _zkServerAddress;

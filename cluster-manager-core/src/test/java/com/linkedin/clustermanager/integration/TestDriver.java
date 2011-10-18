@@ -1,4 +1,4 @@
-package com.linkedin.clustermanager;
+package com.linkedin.clustermanager.integration;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -14,7 +14,10 @@ import org.testng.AssertJUnit;
 
 import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.ClusterDataAccessor.IdealStateConfigProperty;
+import com.linkedin.clustermanager.ClusterManager;
+import com.linkedin.clustermanager.TestHelper;
 import com.linkedin.clustermanager.TestHelper.StartCMResult;
+import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
 import com.linkedin.clustermanager.controller.ClusterManagerMain;
@@ -29,14 +32,11 @@ import com.linkedin.clustermanager.tools.TestExecutor;
 import com.linkedin.clustermanager.tools.TestExecutor.ZnodePropertyType;
 import com.linkedin.clustermanager.tools.TestTrigger;
 import com.linkedin.clustermanager.tools.ZnodeOpArg;
-import com.linkedin.clustermanager.zk.ZkTestBase;
 
 public class TestDriver
 {
   private static Logger LOG = Logger.getLogger(TestDriver.class);
-  private static final String ZK_ADDR = ZkTestBase.ZK_ADDR; // "localhost:2183";
-  // private static final String ZK_LOG_DIR = "/tmp/logs";
-  // private static final String ZK_DATA_DIR = "/tmp/dataDir";
+  private static final String ZK_ADDR = ZkIntegrationTestBase.ZK_ADDR; // "localhost:2183";
   private static final int DEFAULT_SESSION_TIMEOUT = 30000;
   private static final int DEFAULT_CONNECTION_TIMEOUT = Integer.MAX_VALUE;
   private static final ZkClient _zkClient = new ZkClient(ZK_ADDR, DEFAULT_SESSION_TIMEOUT,

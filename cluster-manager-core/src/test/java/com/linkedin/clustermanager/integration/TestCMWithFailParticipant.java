@@ -1,12 +1,12 @@
-package com.linkedin.clustermanager.zk;
+package com.linkedin.clustermanager.integration;
 
 import java.util.Date;
 
 import org.testng.annotations.Test;
 
-import com.linkedin.clustermanager.TestDriver;
 
-public class TestCMWithFailParticipant extends ZkTestBase
+@Test (groups = {"integrationTest"})
+public class TestCMWithFailParticipant extends ZkIntegrationTestBase
 {
   @Test
   public void testCMWithFailParticipant() throws Exception

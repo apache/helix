@@ -1,4 +1,4 @@
-package com.linkedin.clustermanager.zk;
+package com.linkedin.clustermanager.integration;
 
 import java.io.IOException;
 import java.util.Date;
@@ -6,6 +6,7 @@ import java.util.Date;
 import org.apache.log4j.Logger;
 import org.testng.annotations.Test;
 
+@Test (groups = {"integrationTest"})
 public class TestStandAloneCMSessionExpiry extends ZkStandAloneCMHandler
 {
   private static Logger logger = Logger.getLogger(TestStandAloneCMSessionExpiry.class);

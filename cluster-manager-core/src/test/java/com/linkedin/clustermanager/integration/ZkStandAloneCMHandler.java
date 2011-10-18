@@ -1,4 +1,4 @@
-package com.linkedin.clustermanager.zk;
+package com.linkedin.clustermanager.integration;
 
 import java.util.Date;
 import java.util.HashMap;
@@ -7,6 +7,7 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.TestHelper;
@@ -22,7 +23,8 @@ import com.linkedin.clustermanager.tools.ClusterSetup;
  * start 5 dummy participants verify the current states at end
  */
 
-public class ZkStandAloneCMHandler extends ZkTestBase
+@Test (groups = {"integrationTest"})
+public class ZkStandAloneCMHandler extends ZkIntegrationTestBase
 {
   private static Logger logger = Logger.getLogger(ZkStandAloneCMHandler.class);
 

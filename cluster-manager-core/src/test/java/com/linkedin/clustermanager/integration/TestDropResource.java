@@ -1,10 +1,11 @@
-package com.linkedin.clustermanager.zk;
+package com.linkedin.clustermanager.integration;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import org.testng.annotations.Test;
 
+@Test (groups = {"integrationTest"})
 public class TestDropResource extends ZkStandAloneCMHandler
 {
   @Test

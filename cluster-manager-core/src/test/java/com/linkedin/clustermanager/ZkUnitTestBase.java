@@ -1,4 +1,4 @@
-package com.linkedin.clustermanager.zk;
+package com.linkedin.clustermanager;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -18,27 +18,26 @@ import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeSuite;
+import org.testng.annotations.Test;
 
-import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterDataAccessor.ControllerPropertyType;
 import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
-import com.linkedin.clustermanager.ClusterManager;
-import com.linkedin.clustermanager.TestHelper;
-import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.agent.zk.ZKDataAccessor;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
 import com.linkedin.clustermanager.tools.ClusterStateVerifier;
 import com.linkedin.clustermanager.util.CMUtil;
 import com.linkedin.clustermanager.util.ZKClientPool;
 
-public class ZkTestBase
+// TODO merge code with ZkIntegrationTestBase
+@Test (groups = {"unitTest"})
+public class ZkUnitTestBase
 {
-  private static Logger LOG = Logger.getLogger(ZkTestBase.class);
+  private static Logger LOG = Logger.getLogger(ZkUnitTestBase.class);
 
   protected static ZkServer _zkServer = null;
   protected static ZkClient _zkClient = null;
 
-  public static final String ZK_ADDR = "localhost:2183";
+  public static final String ZK_ADDR = "localhost:2185";
   protected static final String CLUSTER_PREFIX = "ESPRESSO_STORAGE";
   protected static final String CONTROLLER_CLUSTER_PREFIX = "CONTROLLER_CLUSTER";
 

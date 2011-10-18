@@ -8,16 +8,13 @@ import java.util.Random;
 import java.util.Set;
 import java.util.TreeMap;
 
-import com.linkedin.clustermanager.agent.zk.ZkClient;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
-import com.linkedin.clustermanager.agent.zk.ZKUtil;
-import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
 import com.linkedin.clustermanager.controller.ExternalViewGenerator;
 import com.linkedin.clustermanager.model.Message;
-import com.linkedin.clustermanager.util.CMUtil;
 
+@Test (groups = {"unitTest"})
 public class TestZKRoutingInfoProvider
 {
   public Map<String, List<ZNRecord>> createCurrentStates(String[] dbNames,
@@ -63,7 +60,7 @@ public class TestZKRoutingInfoProvider
         int nodes = nodeNames.length;
         int master = randomArray.get(i) % nodes;
         String partitionName = dbNames[j] + ".partition-" + i;
-        Map<String, Map<String, String>> map = (Map<String, Map<String, String>>) (currentStates2
+        Map<String, Map<String, String>> map = (currentStates2
             .get(nodeNames[master]).get(dbNames[j]).getMapFields());
         assert (map != null);
         map.put(partitionName, stateMaster);
@@ -71,7 +68,7 @@ public class TestZKRoutingInfoProvider
         for (int k = 1; k <= replicas[j]; k++)
         {
           int slave = (master + k) % nodes;
-          Map<String, Map<String, String>> map2 = (Map<String, Map<String, String>>) currentStates2
+          Map<String, Map<String, String>> map2 = currentStates2
               .get(nodeNames[slave]).get(dbNames[j]).getMapFields();
 
           map2.put(partitionName, stateSlave);
@@ -104,9 +101,9 @@ public class TestZKRoutingInfoProvider
         Map<String, Map<String, String>> dbStateMap = dbState.getMapFields();
         for (String partitionName : dbStateMap.keySet())
         {
-          Map<String, String> stateMap = (Map<String, String>) dbStateMap
+          Map<String, String> stateMap = dbStateMap
               .get(partitionName);
-          String state = (String) stateMap
+          String state = stateMap
               .get(CMConstants.ZNAttribute.CURRENT_STATE.toString());
           AssertJUnit.assertTrue(routingMap.get(partitionName).get(state)
               .contains(nodeName));

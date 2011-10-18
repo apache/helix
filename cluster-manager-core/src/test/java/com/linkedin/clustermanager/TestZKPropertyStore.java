@@ -1,4 +1,4 @@
-package com.linkedin.clustermanager.zk;
+package com.linkedin.clustermanager;
 
 import java.util.Date;
 import java.util.List;
@@ -20,7 +20,8 @@ import com.linkedin.clustermanager.store.zk.ZKPropertyStore;
 
 // TODO need to write multi-thread test cases
 // TODO need to write performance test for zk-property store
-public class TestZKPropertyStore extends ZkTestBase
+@Test (groups = {"unitTest"})
+public class TestZKPropertyStore extends ZkUnitTestBase
 {
   private static final Logger LOG = Logger.getLogger(TestZKPropertyStore.class);
   // private List<ZkServer> _localZkServers;

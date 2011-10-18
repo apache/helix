@@ -1,4 +1,4 @@
-package com.linkedin.clustermanager.zk;
+package com.linkedin.clustermanager;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -6,14 +6,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.I0Itec.zkclient.ZkServer;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.ClusterDataAccessor.IdealStateConfigProperty;
-import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
 import com.linkedin.clustermanager.tools.TestCommand;
@@ -23,12 +21,13 @@ import com.linkedin.clustermanager.tools.TestExecutor.ZnodePropertyType;
 import com.linkedin.clustermanager.tools.TestTrigger;
 import com.linkedin.clustermanager.tools.ZnodeOpArg;
 
-public class TestZnodeModify extends ZkTestBase
+@Test (groups = {"unitTest"})
+public class TestZnodeModify extends ZkUnitTestBase
 {
   private static Logger logger = Logger.getLogger(TestZnodeModify.class);
-  private static final String ZK_ADDR = "localhost:2183";
+  // private static final String ZK_ADDR = "localhost:2183";
   private final String PREFIX = "/" + getShortClassName();
-  private final ZkServer _zkServer = null; 
+  // private final ZkServer _zkServer = null; 
 
   @Test
   public void testBasic() throws Exception

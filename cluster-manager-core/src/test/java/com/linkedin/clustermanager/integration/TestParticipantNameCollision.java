@@ -1,4 +1,4 @@
-package com.linkedin.clustermanager.zk;
+package com.linkedin.clustermanager.integration;
 
 import java.util.Date;
 
@@ -9,6 +9,7 @@ import org.testng.annotations.Test;
 import com.linkedin.clustermanager.TestHelper;
 import com.linkedin.clustermanager.TestHelper.StartCMResult;
 
+@Test (groups = {"integrationTest"})
 public class TestParticipantNameCollision extends ZkStandAloneCMHandler
 {
   private static Logger logger = Logger.getLogger(TestParticipantNameCollision.class);

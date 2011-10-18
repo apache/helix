@@ -1,4 +1,4 @@
-package com.linkedin.clustermanager.zk;
+package com.linkedin.clustermanager.integration;
 
 import java.util.Date;
 
@@ -9,6 +9,7 @@ import com.linkedin.clustermanager.TestHelper;
 import com.linkedin.clustermanager.TestHelper.StartCMResult;
 import com.linkedin.clustermanager.controller.ClusterManagerMain;
 
+@Test (groups = {"integrationTest"})
 public class TestStandAloneCMMain extends ZkStandAloneCMHandler
 {
   private static Logger logger = Logger.getLogger(TestStandAloneCMMain.class);

@@ -1,21 +1,17 @@
 package com.linkedin.clustermanager;
 
-import java.io.IOException;
-
-import org.I0Itec.zkclient.IZkConnection;
 import org.I0Itec.zkclient.IZkStateListener;
 import org.I0Itec.zkclient.ZkConnection;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
+import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import com.linkedin.clustermanager.agent.zk.ZkClient;
-
-public class TestZkClientWrapper extends ZKBaseTest
+@Test (groups = {"unitTest"})
+public class TestZkClientWrapper extends ZkUnitTestBase
 {
 	@Test
 	void testGetStat()

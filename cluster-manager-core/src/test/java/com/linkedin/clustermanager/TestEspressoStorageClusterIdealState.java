@@ -8,16 +8,16 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-import org.testng.annotations.Test;
 import org.testng.AssertJUnit;
+import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.tools.IdealStateCalculatorForStorageNode;
 
+@Test (groups = {"unitTest"})
 public class TestEspressoStorageClusterIdealState
 {
-//public static void main(String[] args)
   @Test
-  public void testInvocation() throws Exception
+  public void testEspressoStorageClusterIdealState() throws Exception
   {
     List<String> instanceNames = new ArrayList<String>();
     for(int i = 0;i < 5; i++)

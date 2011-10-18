@@ -1,4 +1,4 @@
-package com.linkedin.clustermanager;
+package com.linkedin.clustermanager.integration;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -8,13 +8,17 @@ import java.util.List;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
+import com.linkedin.clustermanager.ClusterView;
+import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.agent.file.FileBasedClusterManager;
 import com.linkedin.clustermanager.tools.ClusterViewSerializer;
 
+// TODO remove this test
+@Test (groups = {"integrationTest"})
 public class TestFileBasedClusterManager
 {
   @Test
-  public void testInvocation() throws Exception
+  public void testFileBasedClusterManager() throws Exception
   {
     List<FileBasedClusterManager.DBParam> dbParams = new ArrayList<FileBasedClusterManager.DBParam>();
     dbParams.add(new FileBasedClusterManager.DBParam("BizFollow", 1));

@@ -1,20 +1,29 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
-<suite name="ZkSuite" parallel="tests" thread-count="10">
-  <test name="ZkTest" preserve-order="false">
+<suite name="ZkIntegrationTestSuite" parallel="tests" thread-count="10">
+  <test name="ZkIntegrationTest" preserve-order="false">
     <classes>
-      <class name="com.linkedin.clustermanager.zk.IntegrationTest"/>
-      <class name="com.linkedin.clustermanager.zk.CustomIdealState"/>
-      <class name="com.linkedin.clustermanager.zk.TestCMUsingDifferentParams"/>
-      <class name="com.linkedin.clustermanager.zk.TestDistClusterController"/>
-      <class name="com.linkedin.clustermanager.zk.TestDistCMMain"/>
-      <class name="com.linkedin.clustermanager.zk.TestDropResource"/>      
-      <class name="com.linkedin.clustermanager.zk.TestMessagingService"/>
-	  <class name="com.linkedin.clustermanager.zk.TestParticipantNameCollision"/>
-      <class name="com.linkedin.clustermanager.zk.TestStandAloneCMMain"/>
-      <class name="com.linkedin.clustermanager.zk.TestStandAloneCMSessionExpiry"/>
-      <class name="com.linkedin.clustermanager.zk.TestZKPropertyStore"/>
-      <class name="com.linkedin.clustermanager.zk.TestZnodeModify"/>
+      <class name="com.linkedin.clustermanager.integration.IntegrationTest"/>
+      <class name="com.linkedin.clustermanager.integration.TestCMUsingDifferentParams"/>
+      <class name="com.linkedin.clustermanager.integration.TestDistClusterController"/>
+      <class name="com.linkedin.clustermanager.integration.TestDistCMMain"/>
+      <class name="com.linkedin.clustermanager.integration.TestDropResource"/>      
+      <class name="com.linkedin.clustermanager.integration.TestMessagingService"/>
+	    <class name="com.linkedin.clustermanager.integration.TestParticipantNameCollision"/>
+      <class name="com.linkedin.clustermanager.integration.TestStandAloneCMMain"/>
+      <class name="com.linkedin.clustermanager.integration.TestStandAloneCMSessionExpiry"/>
+    </classes>
+  </test>
+</suite>
+<suite name="ZkUnitTestSuite" parallel="tests" thread-count="10">
+  <test name="ZkUnitTest" preserve-order="false">
+    <classes>
+      <class name="com.linkedin.clustermanager.TestHierarchicalDataStore"/>
+      <class name="com.linkedin.clustermanager.TestZkClientWrapper"/>
+      <class name="com.linkedin.clustermanager.TestZkConnectionCount"/>
+      <class name="com.linkedin.clustermanager.TestZKPropertyStore"/>
+      <class name="com.linkedin.clustermanager.TestZkPropertyStoreSessionExpiry"/>
+      <class name="com.linkedin.clustermanager.TestZnodeModify"/>
     </classes>
   </test>
 </suite>

@@ -4,22 +4,27 @@ import java.io.FileFilter;
 
 import org.testng.Assert;
 import org.testng.annotations.Test;
-import com.linkedin.clustermanager.ZKBaseTest;
+
+import com.linkedin.clustermanager.agent.zk.ZkClient;
 import com.linkedin.clustermanager.controller.HierarchicalDataHolder;
 
-public class TestHierarchicalDataStore extends ZKBaseTest
+@Test (groups = {"unitTest"})
+public class TestHierarchicalDataStore extends ZkUnitTestBase
 {
+  protected static ZkClient _zkClientString = null;
+
   @Test
-  public void simpleTest()
+  public void testHierarchicalDataStore()
   {
+    _zkClientString = new ZkClient(ZK_ADDR, 1000, 3000);
 
     String path = "/tmp/testHierarchicalDataStore";
     FileFilter filter = null;
     // _zkClient.setZkSerializer(new ZNRecordSerializer());
 
-    _zkClient.deleteRecursive(path);
+    _zkClientString.deleteRecursive(path);
     HierarchicalDataHolder<ZNRecord> dataHolder = new HierarchicalDataHolder<ZNRecord>(
-        _zkClient, path, filter);
+        _zkClientString, path, filter);
     dataHolder.print();
     Assert.assertFalse(dataHolder.refreshData());
 
@@ -49,13 +54,13 @@ public class TestHierarchicalDataStore extends ZKBaseTest
 
   private void set(String path, String data)
   {
-    _zkClient.writeData(path, data);
+    _zkClientString.writeData(path, data);
   }
 
   private void add(String path, String data)
   {
-    _zkClient.createPersistent(path, true);
-    _zkClient.writeData(path, data);
+    _zkClientString.createPersistent(path, true);
+    _zkClientString.writeData(path, data);
   }
 
 }

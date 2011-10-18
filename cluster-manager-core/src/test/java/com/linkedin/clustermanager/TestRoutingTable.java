@@ -1,7 +1,6 @@
 package com.linkedin.clustermanager;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -21,6 +20,7 @@ import com.linkedin.clustermanager.Mocks.MockAccessor;
 import com.linkedin.clustermanager.model.InstanceConfig;
 import com.linkedin.clustermanager.spectator.RoutingTableProvider;
 
+@Test (groups = {"unitTest"})
 public class TestRoutingTable
 {
   NotificationContext changeContext = null;
@@ -42,6 +42,7 @@ public class TestRoutingTable
         {
           _mockAccessor = new Mocks.MockAccessor()
           {
+            @Override
             public List<ZNRecord> getClusterPropertyList(
                 ClusterPropertyType clusterProperty)
             {

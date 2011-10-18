@@ -1,4 +1,4 @@
-package com.linkedin.clustermanager;
+package com.linkedin.clustermanager.integration;
 
 import java.util.Date;
 
@@ -8,8 +8,10 @@ import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
+import com.linkedin.clustermanager.ZNRecord;
 
-public class TestDynamicFileClusterManager extends FileClusterManagerHandler
+@Test (groups = {"integrationTest"})
+public class TestDynamicFileClusterManager extends FileCMTestBase
 {
   private static Logger logger = Logger.getLogger(TestDynamicFileClusterManager.class);
   
@@ -17,7 +19,7 @@ public class TestDynamicFileClusterManager extends FileClusterManagerHandler
   public void testDynamicFileClusterManager() 
   throws InterruptedException 
   {
-    logger.info("RUN at " + new Date(System.currentTimeMillis()));
+    logger.info("RUN testDynamicFileClusterManager() at " + new Date(System.currentTimeMillis()));
 
     // add a new db
     _mgmtTool.addResourceGroup(CLUSTER_NAME, "MyDB", 6, STATE_MODEL);

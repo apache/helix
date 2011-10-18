@@ -1,4 +1,4 @@
-package com.linkedin.clustermanager.zk;
+package com.linkedin.clustermanager;
 
 import java.util.Date;
 
@@ -11,7 +11,8 @@ import com.linkedin.clustermanager.store.PropertyChangeListener;
 import com.linkedin.clustermanager.store.PropertyJsonSerializer;
 import com.linkedin.clustermanager.store.zk.ZKPropertyStore;
 
-public class TestZkPropertyStoreSessionExpiry extends ZkTestBase
+@Test (groups = {"unitTest"})
+public class TestZkPropertyStoreSessionExpiry extends ZkUnitTestBase
 {
   private static final Logger LOG = Logger.getLogger(TestZkPropertyStoreSessionExpiry.class);
 

@@ -1,4 +1,4 @@
-package com.linkedin.clustermanager;
+package com.linkedin.clustermanager.integration;
 
 import java.util.Date;
 import java.util.List;
@@ -9,10 +9,15 @@ import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.ClusterDataAccessor.InstanceConfigProperty;
 import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
+import com.linkedin.clustermanager.ClusterManagementService;
+import com.linkedin.clustermanager.ClusterManager;
+import com.linkedin.clustermanager.ClusterManagerFactory;
+import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.agent.file.FileBasedDataAccessor;
 import com.linkedin.clustermanager.controller.GenericClusterController;
 import com.linkedin.clustermanager.mock.storage.DummyProcess;
@@ -27,9 +32,11 @@ import com.linkedin.clustermanager.tools.IdealStateCalculatorForStorageNode;
  * @author zzhang
  *
  */
-public class FileClusterManagerHandler
+
+@Test (groups = {"integrationTest"})
+public class FileCMTestBase
 {
-  private static Logger logger = Logger.getLogger(FileClusterManagerHandler.class);
+  private static Logger logger = Logger.getLogger(FileCMTestBase.class);
   protected static final String CLUSTER_NAME = "ESPRESSO_STORAGE";
   private static final String TEST_DB = "TestDB";
   protected static final String STATE_MODEL = "MasterSlave";
@@ -46,14 +53,16 @@ public class FileClusterManagerHandler
       = new FilePropertyStore<ZNRecord>(serializer, ROOT_PATH, comparator);
   protected final FileBasedDataAccessor _accessor 
       = new FileBasedDataAccessor(_store, CLUSTER_NAME);
-  protected final ClusterManager _manager 
-      = ClusterManagerFactory.getFileBasedManagerForController(CLUSTER_NAME, _accessor);
-  protected final ClusterManagementService _mgmtTool = _manager.getClusterManagmentTool();
+  protected ClusterManager _manager;
+       // = ClusterManagerFactory.getFileBasedManagerForController(CLUSTER_NAME, _accessor);
+  protected ClusterManagementService _mgmtTool;   // = _manager.getClusterManagmentTool();
 
-  // static
   @BeforeClass
   public void beforeClass()
   {
+    _manager = ClusterManagerFactory.getFileBasedManagerForController(CLUSTER_NAME, _accessor);
+    _mgmtTool = _manager.getClusterManagmentTool();
+    
     // setup cluster
     _mgmtTool.addCluster(CLUSTER_NAME, true);
     _mgmtTool.addResourceGroup(CLUSTER_NAME, TEST_DB, 20, STATE_MODEL);

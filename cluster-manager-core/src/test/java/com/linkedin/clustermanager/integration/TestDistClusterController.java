@@ -1,4 +1,4 @@
-package com.linkedin.clustermanager.zk;
+package com.linkedin.clustermanager.integration;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -10,6 +10,7 @@ import org.testng.annotations.Test;
 import com.linkedin.clustermanager.TestHelper;
 import com.linkedin.clustermanager.TestHelper.StartCMResult;
 
+@Test (groups = {"integrationTest"})
 public class TestDistClusterController extends ZkDistCMHandler
 {
   private static Logger logger = Logger.getLogger(TestDistClusterController.class);

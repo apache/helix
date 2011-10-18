@@ -1,4 +1,4 @@
-package com.linkedin.clustermanager.zk;
+package com.linkedin.clustermanager.integration;
 
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
@@ -13,6 +13,7 @@ import com.linkedin.clustermanager.tools.ClusterStateVerifier;
  * 
  */
 
+@Test (groups = {"integrationTest"})
 public class IntegrationTest extends ZkStandAloneCMHandler
 {
   @Test

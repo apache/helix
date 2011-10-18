@@ -20,7 +20,6 @@ import com.linkedin.clustermanager.store.zk.ZKPropertyStore;
 
 // TODO need to write multi-thread test cases
 // TODO need to write performance test for zk-property store
-@Test (groups = {"unitTest"})
 public class TestZKPropertyStore extends ZkUnitTestBase
 {
   private static final Logger LOG = Logger.getLogger(TestZKPropertyStore.class);
@@ -52,7 +51,7 @@ public class TestZKPropertyStore extends ZkUnitTestBase
     
   }
   
-  @Test
+  @Test (groups = {"unitTest"})
   public void testInvocation() throws Exception
   {
     LOG.info("START " + getShortClassName() + " at " + new Date(System.currentTimeMillis()));

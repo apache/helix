@@ -22,7 +22,6 @@ import com.linkedin.clustermanager.model.Message.MessageType;
 import com.linkedin.clustermanager.tools.ClusterSetup;
 
 // TODO inherit from ZkTestBase
-@Test (groups = {"unitTest"})
 public class TestZKCallback
 {
   private String _zkServerAddress;
@@ -157,7 +156,7 @@ public class TestZKCallback
     }
   }
 
-  @Test
+  @Test (groups = {"unitTest"})
   public void testInvocation() throws Exception
   {
 
@@ -241,7 +240,7 @@ public class TestZKCallback
 
   }
 
-  @BeforeTest
+  @BeforeTest (groups = {"unitTest"})
   public void setup() throws IOException, Exception
   {
     List<Integer> localPorts = new ArrayList<Integer>();
@@ -272,7 +271,7 @@ public class TestZKCallback
         .processCommandLineArgs(createArgs("-zkSvr localhost:2300 -rebalance storage-cluster-12345 db-12345 3"));
   }
 
-  @AfterTest
+  @AfterTest (groups = {"unitTest"})
   public void tearDown()
   {
     stopLocalZookeeper(_localZkServers);

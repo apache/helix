@@ -12,13 +12,12 @@ import com.linkedin.clustermanager.controller.ClusterManagerMain;
 @Test (groups = {"integrationTest"})
 public class TestDistCMMain extends ZkDistCMHandler
 {
-  
-  private static Logger logger = Logger.getLogger(TestDistCMMain.class);
+  private static Logger LOG = Logger.getLogger(TestDistCMMain.class);
   
   @Test
   public void testDistCMMain() throws Exception
   {
-    logger.info("RUN at " + new Date(System.currentTimeMillis()));
+    LOG.info("RUN at " + new Date(System.currentTimeMillis()));
     
     // add more controllers to controller cluster
     for (int i = 0; i < NODE_NR; i++)
@@ -54,7 +53,7 @@ public class TestDistCMMain extends ZkDistCMHandler
     }
     
     Thread.sleep(5000);
-    logger.info("END at " + new Date(System.currentTimeMillis()));
+    LOG.info("END at " + new Date(System.currentTimeMillis()));
     // super.afterClass();
   }
 }

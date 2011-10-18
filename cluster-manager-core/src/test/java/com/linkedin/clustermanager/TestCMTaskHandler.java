@@ -11,10 +11,9 @@ import com.linkedin.clustermanager.messaging.handling.CMTask;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.Message.MessageType;
 
-@Test (groups = {"unitTest"})
 public class TestCMTaskHandler
 {
-  @Test
+  @Test (groups = {"unitTest"})
   public void testCMTaskHandler() throws Exception
   {
     System.out.println("TestCMTaskHandler.testInvocation()");
@@ -38,7 +37,7 @@ public class TestCMTaskHandler
     AssertJUnit.assertTrue(stateModel.stateModelInvoked);
   }
 
-  @Test
+  @Test (groups = {"unitTest"})
   public void testInvocationAnnotated() throws Exception
   {
     System.out.println("TestCMTaskHandler.testInvocationAnnotated()");

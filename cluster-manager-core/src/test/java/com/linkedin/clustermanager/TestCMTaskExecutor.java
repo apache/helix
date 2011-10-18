@@ -11,11 +11,10 @@ import com.linkedin.clustermanager.messaging.handling.CMStateTransitionHandler;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.Message.MessageType;
 
-@Test (groups = {"unitTest"})
 public class TestCMTaskExecutor
 {
 
-  @Test
+  @Test (groups = {"unitTest"})
   public void testCMTaskExecutor() throws Exception
   {
     System.out.println("TestCMTaskHandler.testInvocation()");

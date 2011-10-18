@@ -21,15 +21,12 @@ import com.linkedin.clustermanager.tools.TestExecutor.ZnodePropertyType;
 import com.linkedin.clustermanager.tools.TestTrigger;
 import com.linkedin.clustermanager.tools.ZnodeOpArg;
 
-@Test (groups = {"unitTest"})
 public class TestZnodeModify extends ZkUnitTestBase
 {
   private static Logger logger = Logger.getLogger(TestZnodeModify.class);
-  // private static final String ZK_ADDR = "localhost:2183";
   private final String PREFIX = "/" + getShortClassName();
-  // private final ZkServer _zkServer = null; 
 
-  @Test
+  @Test (groups = {"unitTest"})
   public void testBasic() throws Exception
   {
     logger.info("RUN: " + new Date(System.currentTimeMillis()));
@@ -78,7 +75,7 @@ public class TestZnodeModify extends ZkUnitTestBase
     logger.info("END: " + new Date(System.currentTimeMillis()));
   }
   
-  @Test
+  @Test (groups = {"unitTest"})
   public void testDataTrigger() throws Exception
   {
     logger.info("RUN: " + new Date(System.currentTimeMillis()));
@@ -126,7 +123,7 @@ public class TestZnodeModify extends ZkUnitTestBase
     logger.info("END: " + new Date(System.currentTimeMillis()));
   }
   
-  @Test
+  @Test (groups = {"unitTest"})
   public void testTimeout() throws Exception
   {
     logger.info("RUN: " + new Date(System.currentTimeMillis()));
@@ -165,7 +162,7 @@ public class TestZnodeModify extends ZkUnitTestBase
   }
   
   
-  @Test
+  @Test (groups = {"unitTest"})
   public void testDataTriggerWithTimeout() throws Exception
   {
     logger.info("RUN: " + new Date(System.currentTimeMillis()));
@@ -217,7 +214,7 @@ public class TestZnodeModify extends ZkUnitTestBase
   }
   
   
-  @BeforeClass
+  @BeforeClass (groups = {"unitTest"})
   public void beforeClass()
   {
     // _zkServer = TestHelper.startZkSever(ZK_ADDR, PREFIX);
@@ -227,6 +224,7 @@ public class TestZnodeModify extends ZkUnitTestBase
     }
     
   }
+  
   /*
   @AfterClass
   public void afterClass()

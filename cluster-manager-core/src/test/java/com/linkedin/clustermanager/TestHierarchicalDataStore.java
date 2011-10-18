@@ -8,12 +8,11 @@ import org.testng.annotations.Test;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
 import com.linkedin.clustermanager.controller.HierarchicalDataHolder;
 
-@Test (groups = {"unitTest"})
 public class TestHierarchicalDataStore extends ZkUnitTestBase
 {
   protected static ZkClient _zkClientString = null;
 
-  @Test
+  @Test (groups = {"unitTest"})
   public void testHierarchicalDataStore()
   {
     _zkClientString = new ZkClient(ZK_ADDR, 1000, 3000);

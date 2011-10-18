@@ -13,10 +13,10 @@ import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.tools.IdealStateCalculatorForStorageNode;
 
-@Test (groups = {"unitTest"})
+
 public class TestEspressoStorageClusterIdealState
 {
-  @Test
+  @Test (groups = {"unitTest"})
   public void testEspressoStorageClusterIdealState() throws Exception
   {
     List<String> instanceNames = new ArrayList<String>();

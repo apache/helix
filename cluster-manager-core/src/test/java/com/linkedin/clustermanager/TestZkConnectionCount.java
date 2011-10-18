@@ -3,12 +3,11 @@ package com.linkedin.clustermanager;
 import org.apache.log4j.Logger;
 
 // TODO fix this test
-// @Test (groups = {"unitTest"})
 public class TestZkConnectionCount extends ZkUnitTestBase
 {
   private static Logger LOG = Logger.getLogger(TestZkConnectionCount.class);
 
-  // @Test
+  // @Test (groups = {"unitTest"})
   public void testZkConnectionCount()
   {
     /*

@@ -37,8 +37,9 @@ public class TestHelper
   {
     System.out.println("Starting zookeeper at " + zkAddress + " in thread "+ Thread.currentThread().getName());
     
-    final String logDir = "/tmp/logs";
-    final String dataDir = "/tmp/dataDir";
+    String zkDir = zkAddress.replace(':', '_');
+    final String logDir = "/tmp/" + zkDir + "/logs";
+    final String dataDir = "/tmp/" + zkDir + "/dataDir";
 
     ZKClientPool.reset();
 

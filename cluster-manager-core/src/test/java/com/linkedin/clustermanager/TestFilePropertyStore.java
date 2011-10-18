@@ -13,7 +13,6 @@ import com.linkedin.clustermanager.store.PropertyJsonComparator;
 import com.linkedin.clustermanager.store.PropertyJsonSerializer;
 import com.linkedin.clustermanager.store.file.FilePropertyStore;
 
-@Test (groups = {"unitTest"})
 public class TestFilePropertyStore
 {
   private static Logger logger = Logger.getLogger(TestFilePropertyStore.class);
@@ -43,6 +42,7 @@ public class TestFilePropertyStore
     
   }
   
+  @Test (groups = {"unitTest"})
   public void testFilePropertyStore() throws Exception
   {
     logger.info("RUN testFilePropertyStore() at " + new Date(System.currentTimeMillis()));

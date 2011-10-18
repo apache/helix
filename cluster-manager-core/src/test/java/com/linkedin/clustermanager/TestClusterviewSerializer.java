@@ -11,10 +11,9 @@ import org.testng.annotations.Test;
 import com.linkedin.clustermanager.agent.file.FileBasedClusterManager;
 import com.linkedin.clustermanager.tools.ClusterViewSerializer;
 
-@Test (groups = {"unitTest"})
 public class TestClusterviewSerializer
 {
-  @Test
+  @Test (groups = {"unitTest"})
   public void testClusterviewSerializer() throws Exception
   {
     List<FileBasedClusterManager.DBParam> dbParams = new ArrayList<FileBasedClusterManager.DBParam>();

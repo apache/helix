@@ -10,10 +10,9 @@ import org.apache.zookeeper.data.Stat;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-@Test (groups = {"unitTest"})
 public class TestZkClientWrapper extends ZkUnitTestBase
 {
-	@Test
+    @Test (groups = {"unitTest"})
 	void testGetStat()
 	{
 		String path = "/tmp/getStatTest";
@@ -35,7 +34,7 @@ public class TestZkClientWrapper extends ZkUnitTestBase
 		Assert.assertNotSame(stat, newStat);
 	}
 
-	@Test
+    @Test (groups = {"unitTest"})
 	void testSessioExpire()
 	{
 		IZkStateListener listener = new IZkStateListener()

@@ -11,7 +11,6 @@ import com.linkedin.clustermanager.store.PropertyChangeListener;
 import com.linkedin.clustermanager.store.PropertyJsonSerializer;
 import com.linkedin.clustermanager.store.zk.ZKPropertyStore;
 
-@Test (groups = {"unitTest"})
 public class TestZkPropertyStoreSessionExpiry extends ZkUnitTestBase
 {
   private static final Logger LOG = Logger.getLogger(TestZkPropertyStoreSessionExpiry.class);
@@ -30,7 +29,7 @@ public class TestZkPropertyStoreSessionExpiry extends ZkUnitTestBase
     }
   }
 
-  @Test
+  @Test (groups = {"unitTest"})
   public void testZkPropertyStoreSessionExpiry() throws Exception
   {
     LOG.info("START " + getShortClassName() + " at " + new Date(System.currentTimeMillis()));

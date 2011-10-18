@@ -13,11 +13,10 @@ import com.linkedin.clustermanager.agent.zk.ZKDataAccessor;
  * 
  */
 
-@Test (groups = {"unitTest"})
 public class TestSample
 {
 
-  @Test
+  @Test (groups = {"unitTest"})
   public final void testCallbackHandler()
   {
     ZKDataAccessor client = null;
@@ -27,27 +26,27 @@ public class TestSample
 
   }
 
-  @BeforeMethod
+  @BeforeMethod (groups = {"unitTest"})
   public void asd()
   {
     System.out.println("In Set up");
   }
 
-  @Test
+  @Test (groups = {"unitTest"})
   public void testB()
   {
     System.out.println("In method testB");
 
   }
 
-  @Test
+  @Test (groups = {"unitTest"})
   public void testA()
   {
     System.out.println("In method testA");
 
   }
 
-  @AfterMethod
+  @AfterMethod (groups = {"unitTest"})
   public void sfds()
   {
     System.out.println("In tear down");

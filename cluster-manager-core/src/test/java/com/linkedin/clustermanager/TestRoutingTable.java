@@ -20,12 +20,11 @@ import com.linkedin.clustermanager.Mocks.MockAccessor;
 import com.linkedin.clustermanager.model.InstanceConfig;
 import com.linkedin.clustermanager.spectator.RoutingTableProvider;
 
-@Test (groups = {"unitTest"})
 public class TestRoutingTable
 {
   NotificationContext changeContext = null;
 
-  @BeforeTest
+  @BeforeTest (groups = {"unitTest"})
   public void setup()
   {
 
@@ -71,7 +70,7 @@ public class TestRoutingTable
     changeContext = new NotificationContext(manager);
   }
 
-  @Test
+  @Test (groups = {"unitTest"})
   public void testNullAndEmpty()
   {
 
@@ -82,7 +81,7 @@ public class TestRoutingTable
 
   }
 
-  @Test
+  @Test (groups = {"unitTest"})
   public void testSimple()
   {
     List<InstanceConfig> instances;
@@ -119,7 +118,7 @@ public class TestRoutingTable
     Assert.assertEquals(instances.size(), 1);
   }
 
-  @Test
+  @Test (groups = {"unitTest"})
   public void testStateUnitGroupDeletion()
   {
     List<InstanceConfig> instances;
@@ -142,7 +141,7 @@ public class TestRoutingTable
     Assert.assertEquals(instances.size(), 0);
   }
 
-  @Test
+  @Test (groups = {"unitTest"})
   public void testGetInstanceForAllStateUnits()
   {
     List<InstanceConfig> instancesList;
@@ -185,7 +184,7 @@ public class TestRoutingTable
 
   }
 
-  @Test
+  @Test (groups = {"unitTest"})
   public void testMultiThread() throws Exception
   {
     final RoutingTableProvider routingTable = new RoutingTableProvider();

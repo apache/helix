@@ -14,7 +14,6 @@ import org.testng.annotations.Test;
 import com.linkedin.clustermanager.controller.ExternalViewGenerator;
 import com.linkedin.clustermanager.model.Message;
 
-@Test (groups = {"unitTest"})
 public class TestZKRoutingInfoProvider
 {
   public Map<String, List<ZNRecord>> createCurrentStates(String[] dbNames,
@@ -124,7 +123,7 @@ public class TestZKRoutingInfoProvider
   }
 
   // public static void main(String[] args)
-  @Test
+  @Test (groups = {"unitTest"})
   public void testInvocation() throws Exception
   {
     String[] dbNames = new String[3];

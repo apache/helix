@@ -39,41 +39,6 @@ public class DistClusterControllerElection implements ControllerChangeListener
     return _leader;
   }
 
-  /*
-  private void doLeaderElection(ClusterManager manager) throws Exception
-  {
-    boolean isLeader = tryUpdateController(manager);
-    if (isLeader)
-    {
-      if (_controller == null)
-      {
-        _controller = new GenericClusterController();
-        InstanceType type = manager.getInstanceType();
-        if (type == InstanceType.CONTROLLER)
-        {
-          ClusterManagerMain.addListenersToController(manager, _controller);
-        }
-        else if (type == InstanceType.CONTROLLER_PARTICIPANT)
-        {
-          String clusterName = manager.getClusterName();
-          String controllerName = manager.getInstanceName();
-          _leader =
-              ClusterManagerFactory.getZKBasedManagerForController(clusterName,
-                                                                   controllerName,
-                                                                   _zkAddr);
-          _leader.connect();
-          ClusterManagerMain.addListenersToController(_leader, _controller);
-        }
-        else
-        {
-          logger.error("fail to setup a cluster controller: instanceType incorrect:"
-              + type.toString());
-        }
-      }
-    }
-  }
-  */
-
   @Override
   public void onControllerChange(NotificationContext changeContext)
   {

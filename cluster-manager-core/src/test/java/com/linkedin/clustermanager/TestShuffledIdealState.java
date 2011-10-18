@@ -16,10 +16,9 @@ import com.linkedin.clustermanager.tools.IdealCalculatorByConsistentHashing;
 import com.linkedin.clustermanager.tools.IdealStateCalculatorByRush;
 import com.linkedin.clustermanager.tools.IdealStateCalculatorByShuffling;
 
-@Test (groups = {"unitTest"})
 public class TestShuffledIdealState
 {
-  @Test
+  @Test (groups = {"unitTest"})
   public void testInvocation() throws Exception
   {
 

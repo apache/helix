@@ -11,4 +11,7 @@ public abstract class MockNode {
 
 	public abstract void run();
 	
+	public void disconnect() {
+		_cmConnector.disconnect();
+	}
 }

@@ -20,9 +20,30 @@ public class GetRestlet extends Restlet {
 		_mockNode = mockNode;
 	}
 	
+	public boolean allowGet()
+	  {
+	    return true;
+	  }
+	  
+	  public boolean allowPost()
+	  {
+	    return false;
+	  }
+	  
+	  public boolean allowPut()
+	  {
+	    return false;
+	  }
+	  
+	  public boolean allowDelete()
+	  {
+	    return false;
+	  }
+	
 	@Override
     public void handle(Request request, Response response)
     {
+		logger.debug("in GetRestlet handle");
 		String databaseId = (String)request.getAttributes().get(MockEspressoService.DATABASENAME);
 	      String tableId = (String)request.getAttributes().get(MockEspressoService.TABLENAME);
 	      String resourceId = (String)request.getAttributes().get(MockEspressoService.RESOURCENAME);

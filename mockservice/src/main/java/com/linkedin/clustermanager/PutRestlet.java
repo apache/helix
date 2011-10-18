@@ -26,6 +26,26 @@ public class PutRestlet extends Restlet {
 		_mockNode = mockNode;
 	}
 	
+	public boolean allowGet()
+	  {
+	    return false;
+	  }
+	  
+	  public boolean allowPost()
+	  {
+	    return true;
+	  }
+	  
+	  public boolean allowPut()
+	  {
+	    return true;
+	  }
+	  
+	  public boolean allowDelete()
+	  {
+	    return false;
+	  }
+	
 	@Override
 	public void handle(Request request, Response response)
 	{
@@ -42,7 +62,7 @@ public class PutRestlet extends Restlet {
 		try {
 			postBodyReader = request.getEntity().getReader();
 			 postBodyReader.read(postBody);
-			 logger.debug("postBodyBuffer: "+new String(postBody));
+			 logger.debug("postBody: "+new String(postBody));
 		} catch (IOException e) {
 			response.setStatus(Status.SERVER_ERROR_INTERNAL, "Could not read request body");
 			e.printStackTrace();

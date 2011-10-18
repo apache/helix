@@ -14,7 +14,9 @@ public class MockNodeFactory {
 		if (type.equals("EspressoStorage")) {
 			return new EspressoStorageMockNode(cm);
 		}
-		logger.error("Unknown MockNode type "+type);
-		return null;
+		else {
+			logger.error("Unknown MockNode type "+type);
+			return null;
+		}
 	}
 }

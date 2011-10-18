@@ -17,4 +17,8 @@ public class CMConnector {
 	public ClusterManager getManager() {
 		return _manager;
 	}
+	
+	public void disconnect() {
+		_manager.disconnect();
+	}
 }

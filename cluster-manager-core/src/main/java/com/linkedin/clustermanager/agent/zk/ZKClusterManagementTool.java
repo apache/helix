@@ -52,6 +52,33 @@ public class ZKClusterManagementTool implements ClusterManagementService
         CMUtil.getStatusUpdatesPath(clusterName, nodeId), true);
   }
 
+  public void dropInstance(String clusterName, ZNRecord instanceConfig) 
+  {
+	  String instanceConfigsPath = CMUtil.getConfigPath(clusterName);
+	  String nodeId = instanceConfig.getId();
+	  String instanceConfigPath = instanceConfigsPath + "/" + nodeId;
+	  String instancePath = CMUtil.getInstancePath(clusterName, nodeId);
+	  
+	  
+	  if (! _zkClient.exists(instanceConfigPath))
+	  {
+		  throw new ClusterManagerException("Node " + nodeId
+				  + " does not exist in config for cluster " + clusterName);
+	  }  
+	  
+	  if (! _zkClient.exists(instancePath))
+	  {
+		  throw new ClusterManagerException("Node " + nodeId
+				  + " does not exist in instances for cluster " + clusterName);
+	  }  
+	  
+	  //delete config path
+	  ZKUtil.dropChildren(_zkClient, instanceConfigsPath, instanceConfig);
+	  
+	  //delete instance path
+	  _zkClient.deleteRecursive(instancePath);
+  }
+
   @Override
   public ZNRecord getInstanceConfig(String clusterName, String instanceName)
   {

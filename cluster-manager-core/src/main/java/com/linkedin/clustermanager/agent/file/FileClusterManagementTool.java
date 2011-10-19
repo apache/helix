@@ -205,6 +205,24 @@ public class FileClusterManagementTool implements ClusterManagementService
   }
 
   @Override
+  public void dropInstance(String clusterName, ZNRecord nodeConfig) {
+	  String configsPath = CMUtil.getConfigPath(clusterName);
+	  String nodeId = nodeConfig.getId();
+	  String nodeConfigPath = configsPath + "/" + nodeId;
+  	
+	  try
+	    {
+	      // ZKUtil.createChildren(_zkClient, instanceConfigsPath, nodeConfig);
+	      _store.setProperty(nodeConfigPath, nodeConfig);
+	    }
+	    catch(Exception e)
+	    {
+	      logger.error("Fail to drop node, cluster:" + clusterName + 
+	          "\nexception: " + e);
+	    }
+  }
+  
+  @Override
   public ZNRecord getResourceGroupIdealState(String clusterName, String resourceGroupName)
   {    
     String resourceGroupPath = CMUtil.getClusterPropertyPath(clusterName, ClusterPropertyType.IDEALSTATES) + "/" + resourceGroupName;
@@ -350,4 +368,5 @@ public class FileClusterManagementTool implements ClusterManagementService
     throw new UnsupportedOperationException(
         "getResourceGroupExternalView() is NOT supported by FileClusterManagementTool");
   }
+
 }

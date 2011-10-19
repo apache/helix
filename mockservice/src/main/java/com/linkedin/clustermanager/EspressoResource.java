@@ -93,12 +93,12 @@ public class EspressoResource extends Resource {
 	    		postBodyReader = getRequest().getEntity().getReader();
 	    		postBodyReader.read(postBody);
 	    		logger.debug("postBody: "+new String(postBody));
-	    		mock.doPut(composedKey, new String(postBody));
+	    		mock.doPut(databaseId, composedKey, new String(postBody));
 	    		presentation = new StringRepresentation("Put succeeded", MediaType.APPLICATION_JSON);
 	    	}
 	    	else if (getRequest().getMethod() == Method.GET) {
 	    		logger.debug("processing GET");
-	    		String result = mock.doGet(composedKey);
+	    		String result = mock.doGet(databaseId, composedKey);
 			      logger.debug("result: "+result);
 			      if (result == null) {
 			    	  presentation = new StringRepresentation("Record not found", MediaType.APPLICATION_JSON);
@@ -152,12 +152,12 @@ public class EspressoResource extends Resource {
 		    		postBodyReader = getRequest().getEntity().getReader();
 		    		postBodyReader.read(postBody);
 		    		logger.debug("postBody: "+new String(postBody));
-		    		mock.doPut(composedKey, new String(postBody));
+		    		mock.doPut(databaseId, composedKey, new String(postBody));
 		    		presentation = new StringRepresentation("Put succeeded", MediaType.APPLICATION_JSON);
 		    	}
 		    	else if (getRequest().getMethod() == Method.GET) {
 		    		logger.debug("Processing GET");
-		    		String result = mock.doGet(composedKey);
+		    		String result = mock.doGet(databaseId, composedKey);
 				      logger.debug("result: "+result);
 				      if (result == null) {
 				    	  presentation = new StringRepresentation("Record not found", MediaType.APPLICATION_JSON);

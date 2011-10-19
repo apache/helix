@@ -110,4 +110,15 @@ public class IdealState
     }
     return getInstancePreferenceList(resourceKeyName, stateModelDef);
   }
+
+public int getNumPartitions() {
+	try {
+		return Integer.parseInt(_record.getSimpleField("partitions"));
+	}
+	catch (Exception e) {
+		logger.debug("Can't parse number of partitions: "+e);
+		return -1;
+	}
+	
+}
 }

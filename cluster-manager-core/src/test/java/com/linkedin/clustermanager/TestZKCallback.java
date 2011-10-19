@@ -101,7 +101,6 @@ public class TestZKCallback
     public void onExternalViewChange(List<ZNRecord> externalViewList,
         NotificationContext changeContext)
     {
-      // TODO Auto-generated method stub
       externalViewChangeReceived = true;
     }
 
@@ -109,7 +108,6 @@ public class TestZKCallback
     public void onStateChange(String instanceName, List<ZNRecord> statesInfo,
         NotificationContext changeContext)
     {
-      // TODO Auto-generated method stub
       currentStateChangeReceived = true;
     }
 
@@ -117,7 +115,6 @@ public class TestZKCallback
     public void onConfigChange(List<ZNRecord> configs,
         NotificationContext changeContext)
     {
-      // TODO Auto-generated method stub
       configChangeReceived = true;
     }
 
@@ -125,7 +122,6 @@ public class TestZKCallback
     public void onLiveInstanceChange(List<ZNRecord> liveInstances,
         NotificationContext changeContext)
     {
-      // TODO Auto-generated method stub
       liveInstanceChangeReceived = true;
     }
 
@@ -133,7 +129,6 @@ public class TestZKCallback
     public void onMessage(String instanceName, List<ZNRecord> messages,
         NotificationContext changeContext)
     {
-      // TODO Auto-generated method stub
       messageChangeReceived = true;
     }
 

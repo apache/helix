@@ -228,4 +228,47 @@ public class DummyFileDataAccessor implements ClusterDataAccessor
     return null;
   }
 
+  @Override
+  public boolean setProperty(PropertyType type, ZNRecord value, String... keys)
+  {
+    // TODO Auto-generated method stub
+    return false;
+  }
+
+  @Override
+  public boolean updateProperty(PropertyType type, ZNRecord value,
+      String... keys)
+  {
+    // TODO Auto-generated method stub
+    return false;
+  }
+
+  @Override
+  public ZNRecord getProperty(PropertyType type, String... keys)
+  {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public boolean removeProperty(PropertyType type, String... keys)
+  {
+    // TODO Auto-generated method stub
+    return false;
+  }
+
+  @Override
+  public List<String> getChildNames(PropertyType type, String... keys)
+  {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public List<ZNRecord> getChildValues(PropertyType type, String... keys)
+  {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
 }

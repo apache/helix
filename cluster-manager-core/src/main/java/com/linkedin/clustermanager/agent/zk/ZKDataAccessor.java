@@ -389,7 +389,7 @@ public class ZKDataAccessor implements ClusterDataAccessor
                                     CreateMode mode)
   {
     final String path =
-        CMUtil.getControllerPropertyPath(_clusterName, controllerProperty) + "/" + value.getId();
+        CMUtil.getControllerPropertyPath(_clusterName, controllerProperty);
     // _zkClient.create(path, mode);
     ZKUtil.createOrReplace(_zkClient, path, value, controllerProperty.isPersistent());
   }
@@ -468,7 +468,7 @@ public class ZKDataAccessor implements ClusterDataAccessor
       }
     }
     path =
-      CMUtil.getControllerPropertyPath(_clusterName, controllerProperty) + "/"+ subPath+"/"+ value.getId();
+      CMUtil.getControllerPropertyPath(_clusterName, controllerProperty) + "/"+ subPath;
     ZKUtil.createOrUpdate(_zkClient, path, value, controllerProperty.isPersistent(), controllerProperty.isMergeOnUpdate());
     
   }

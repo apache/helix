@@ -32,7 +32,7 @@ public class DefaultMessagingService implements ClusterMessagingService
       .getLogger(DefaultMessagingService.class);
 
   private final ClusterManager _manager;
-  private CriteriaEvaluator _evaluator;
+  private final CriteriaEvaluator _evaluator;
   private final CMTaskExecutor _taskExecutor;
   // TODO:rename to factory, this is not a service
   private final AsyncCallbackService _asyncCallbackService;
@@ -95,7 +95,7 @@ public class DefaultMessagingService implements ClusterMessagingService
         if (receiverType == InstanceType.CONTROLLER)
         {
           _manager.getDataAccessor().setControllerProperty(
-              ControllerPropertyType.MESSAGES, tempMessage.getRecord(),
+              ControllerPropertyType.MESSAGES, tempMessage.getId(), tempMessage.getRecord(),
               CreateMode.PERSISTENT);
         }
         if (receiverType == InstanceType.PARTICIPANT)
@@ -261,7 +261,7 @@ public class DefaultMessagingService implements ClusterMessagingService
         {
           noOPMsg.setTgtName("Controller");
           _manager.getDataAccessor().setControllerProperty(
-              ControllerPropertyType.MESSAGES, noOPMsg.getRecord(),
+              ControllerPropertyType.MESSAGES, noOPMsg.getId(), noOPMsg.getRecord(),
               CreateMode.PERSISTENT);
         }
         if (_manager.getInstanceType() == InstanceType.PARTICIPANT)

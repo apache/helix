@@ -136,8 +136,8 @@ public class ZKClusterManagementTool implements ClusterManagementService
     final ZNRecord emptyHistory = new ZNRecord("HISTORY");
     final List<String> emptyList = new ArrayList<String>();
     emptyHistory.setListField(clusterName, emptyList);
-    _zkClient.createPersistent(path);
-    _zkClient.createPersistent(path + "/HISTORY", emptyHistory);
+    // _zkClient.createPersistent(path);
+    _zkClient.createPersistent(path, emptyHistory);
     
     path = CMUtil.getControllerPropertyPath(clusterName, 
         ControllerPropertyType.MESSAGES);

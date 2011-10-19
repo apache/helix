@@ -39,7 +39,7 @@ public class ZkIntegrationTestBase
   protected static ZkClient _zkClient = null;
 
   public static final String ZK_ADDR = "localhost:2183";
-  protected static final String CLUSTER_PREFIX = "ESPRESSO_STORAGE";
+  protected static final String CLUSTER_PREFIX = "CLUSTER";
   protected static final String CONTROLLER_CLUSTER_PREFIX = "CONTROLLER_CLUSTER";
 
   @BeforeSuite (groups = {"integrationTest"})

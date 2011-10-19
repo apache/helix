@@ -167,7 +167,10 @@ public class ClusterSetup
   {
 	  ClusterManagementService managementTool = getClusterManagementTool();
 	  String instanceId = host + "_" + port;
-	  ZNRecord instanceConfig = new ZNRecord(instanceId);
+	  //ZNRecord instanceConfig = new ZNRecord(instanceId);
+	  ZkClient zkClient = ZKClientPool.getZkClient(_zkServerAddress);
+	  String instanceConfigPath = CMUtil.getConfigPath(clusterName, instanceId);
+	  ZNRecord instanceConfig = zkClient.<ZNRecord> readData(instanceConfigPath);
 	  
 	  //ensure node is disabled, or else fail
 	  String instanceEnabledField = instanceConfig.getSimpleField(InstanceConfigProperty.ENABLED.toString());

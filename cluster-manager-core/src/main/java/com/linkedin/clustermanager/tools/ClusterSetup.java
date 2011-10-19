@@ -41,12 +41,13 @@ public class ClusterSetup
   public static final String listResourceGroups    = "listResourceGroups";
   public static final String listInstances         = "listInstances";
 
-  // Add and rebalance
+  // Add, drop, and rebalance
   public static final String addCluster            = "addCluster";
   public static final String addInstance           = "addNode";
   public static final String addResourceGroup      = "addResourceGroup";
   public static final String addStateModelDef      = "addStateModelDef";
   public static final String addIdealState         = "addIdealState";
+  public static final String dropInstance		   = "dropNode";
   public static final String rebalance             = "rebalance";
 
   // Query info (TBD in V2)
@@ -134,6 +135,54 @@ public class ClusterSetup
     managementTool.addInstance(clusterName, instanceConfig);
   }
 
+  public void dropInstancesFromCluster(String clusterName, String[] InstanceInfoArray)
+  {
+    for (String InstanceInfo : InstanceInfoArray)
+    {
+      // the storage Instance info must be hostname:port format.
+      if (InstanceInfo.length() > 0)
+      {
+        dropInstanceFromCluster(clusterName, InstanceInfo);
+      }
+    }
+  }
+  
+  public void dropInstanceFromCluster(String clusterName, String InstanceAddress) 
+  {
+	  // InstanceAddress must be in host:port format
+	  int lastPos = InstanceAddress.lastIndexOf(":");
+	  if (lastPos <= 0)
+	  {
+		  String error = "Invalid storage Instance info format: " + InstanceAddress;
+		  _logger.warn(error);
+		  throw new ClusterManagerException(error);
+	  }
+	  String host = InstanceAddress.substring(0, lastPos);
+	  String portStr = InstanceAddress.substring(lastPos + 1);
+	  int port = Integer.parseInt(portStr);
+	  dropInstanceFromCluster(clusterName, host, port);
+  }
+  
+  public void dropInstanceFromCluster(String clusterName, String host, int port)
+  {
+	  ClusterManagementService managementTool = getClusterManagementTool();
+	  String instanceId = host + "_" + port;
+	  ZNRecord instanceConfig = new ZNRecord(instanceId);
+	  
+	  //ensure node is disabled, or else fail
+	  String instanceEnabledField = instanceConfig.getSimpleField(InstanceConfigProperty.ENABLED.toString());
+	  
+	  if (instanceEnabledField != null && instanceEnabledField.equals(true+""))
+	  {
+		  String error = "Node "+instanceId+" is enabled, cannot drop";
+		  _logger.warn(error);
+		  throw new ClusterManagerException(error);
+	  }
+	 	
+
+	  managementTool.dropInstance(clusterName, instanceConfig);
+  }
+  
   public ClusterManagementService getClusterManagementTool()
   {
     ZkClient zkClient = ZKClientPool.getZkClient(_zkServerAddress);
@@ -366,6 +415,15 @@ public class ClusterSetup
     addIdealStateOption.setRequired(false);
     addIdealStateOption.setArgName("clusterName reourceGroupName <filename>");
 
+    Option dropInstanceOption =
+        OptionBuilder.withLongOpt(dropInstance)
+                     .withDescription("Drop an existing Instance from a cluster")
+                     .create();
+    dropInstanceOption.setArgs(2);
+    dropInstanceOption.setRequired(false);
+    dropInstanceOption.setArgName("clusterName InstanceAddress(host:port)");
+
+    
     Option rebalanceOption =
         OptionBuilder.withLongOpt(rebalance)
                      .withDescription("Rebalance a resourceGroup in a cluster")
@@ -441,6 +499,7 @@ public class ClusterSetup
     group.addOption(listClustersOption);
     group.addOption(addIdealStateOption);
     group.addOption(rebalanceOption);
+    group.addOption(dropInstanceOption);
     group.addOption(InstanceInfoOption);
     group.addOption(clusterInfoOption);
     group.addOption(resourceGroupInfoOption);
@@ -528,6 +587,15 @@ public class ClusterSetup
       return 0;
     }
 
+    if (cmd.hasOption(dropInstance))
+    {
+      String clusterName = cmd.getOptionValues(dropInstance)[0];
+      String InstanceAddressInfo = cmd.getOptionValues(dropInstance)[1];
+      String[] InstanceAddresses = InstanceAddressInfo.split(";");
+      setupTool.dropInstancesFromCluster(clusterName, InstanceAddresses);
+      return 0;
+    }
+    
     if (cmd.hasOption(listClusters))
     {
       List<String> clusters = setupTool.getClusterManagementTool().getClusters();

@@ -4,16 +4,19 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import org.apache.log4j.Logger;
 
 //import com.linkedin.espresso.router.RoutingToken;
 
+import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.EspressoStorageMockStateModelFactory;
 import com.linkedin.clustermanager.EspressoStorageMockStateModelFactory.EspressoStorageMockStateModel;
 import com.linkedin.clustermanager.healthcheck.ParticipantHealthReportCollector;
 import com.linkedin.clustermanager.healthcheck.PerformanceHealthReportProvider;
+import com.linkedin.clustermanager.model.IdealState;
 import com.linkedin.clustermanager.model.Message.MessageType;
 import com.linkedin.clustermanager.participant.StateMachineEngine;
 import com.linkedin.clustermanager.participant.statemachine.StateModel;
@@ -23,12 +26,15 @@ public class EspressoStorageMockNode extends MockNode {
 	private static final Logger logger = Logger
 			.getLogger(EspressoStorageMockNode.class);
 
+	private final String GET_STAT_NAME = "get";
+	private final String SET_STAT_NAME = "set";
+	
 	PerformanceHealthReportProvider _healthProvider;
 	EspressoStorageMockStateModelFactory _stateModelFactory;
 
 	HashSet<String>_partitions;
 	
-	HashMap<String, String> _keyValueMap;
+	ConcurrentHashMap<String, String> _keyValueMap;
 	FnvHashFunction _hashFunction;
 	int _numTotalEspressoPartitions = 0;
 	
@@ -48,32 +54,67 @@ public class EspressoStorageMockNode extends MockNode {
 		_cmConnector.getManager().getHealthReportCollector()
 				.addHealthReportProvider(_healthProvider);
 		_partitions = new HashSet<String>();
-		_keyValueMap = new HashMap<String, String>();
+		_keyValueMap = new ConcurrentHashMap<String, String>();
 		_hashFunction = new FnvHashFunction();
 		
 		//start thread to keep checking what partitions this node owns
-		Thread partitionGetter = new Thread(new PartitionGetterThread());
-		partitionGetter.start();
-		logger.debug("set partition getter thread to run");
+		//Thread partitionGetter = new Thread(new PartitionGetterThread());
+		//partitionGetter.start();
+		//logger.debug("set partition getter thread to run");
 	}
 
-	//TODO: probably need to format these responses to look more like Espresso
-	public String doGet(String key) {
-		//TODO: compute what partition owns this key, increment a stat count for it
-		String partitionName = "xxx";
-		int numPartitions = _partitions.size();
-		logger.debug("numPartitions: "+numPartitions);
-		long part = _hashFunction.hash(key.getBytes());
-		logger.debug("part: "+part);
-		//TODO: check if we own this partition...if not, return an error
-		//TODO: This node needs to know how many partitions there are...get from zk
-		//_healthProvider.submitIncrementPartitionRequestCount(partitionName);
+	public String doGet(String dbId, String key) {
+		String partition = getPartitionName(dbId, getKeyPartition(dbId, key));
+		if (!isPartitionOwnedByNode(partition)) {
+			logger.error("Key "+key+" hashed to partition "+partition +" but this node does not own it.");
+			return null;
+		}
+
+		//_healthProvider.submitIncrementPartitionRequestCount(partition);
+		_healthProvider.incrementPartitionStat(GET_STAT_NAME, partition);
 		return _keyValueMap.get(key);
 	}
 	
-	public void doPut(String key, String value) {
-		// TODO Auto-generated method stub
+	public void doPut(String dbId, String key, String value) {
+		String partition = getPartitionName(dbId, getKeyPartition(dbId, key));
+		if (!isPartitionOwnedByNode(partition)) {
+			logger.error("Key "+key+" hashed to partition "+partition +" but this node does not own it.");
+			return;
+		}
+		
+		//_healthProvider.submitIncrementPartitionRequestCount(partition);
+		_healthProvider.incrementPartitionStat(SET_STAT_NAME, partition);
 		_keyValueMap.put(key, value);
+	}
+	
+	private String getPartitionName(String databaseName, int partitionNum) {
+		return databaseName+"_"+partitionNum;
+	}
+	
+	private boolean isPartitionOwnedByNode(String partitionName) {
+		Map<String, StateModel> stateModelMap = _stateModelFactory
+				.getStateModelMap();
+		logger.debug("size: "+stateModelMap.size());
+		
+		return (stateModelMap.keySet().contains(partitionName));
+	}
+	
+	private int getKeyPartition(String dbName, String key) {
+		int numPartitions = getNumPartitions(dbName);
+		logger.debug("numPartitions: "+numPartitions);
+		int part = Math.abs((int)_hashFunction.hash(key.getBytes(), numPartitions));
+		logger.debug("part: "+part);
+		return part;
+	}
+	
+	private int getNumPartitions(String dbName) {
+		logger.debug("dbName: "+dbName);
+		ZNRecord rec = _cmConnector.getManager().getDataAccessor().getClusterProperty(ClusterPropertyType.IDEALSTATES, dbName);
+		if (rec == null) {
+			logger.debug("rec is null");
+		}
+		IdealState state = new IdealState(rec);
+		return state.getNumPartitions();
 	}
 	
 	class PartitionGetterThread implements Runnable {
@@ -86,8 +127,6 @@ public class EspressoStorageMockNode extends MockNode {
 					_partitions.clear();
 					Map<String, StateModel> stateModelMap = _stateModelFactory
 							.getStateModelMap();
-					_numTotalEspressoPartitions = stateModelMap.keySet().size();
-					logger.debug("_numTotalEspressoPartitions: "+_numTotalEspressoPartitions);
 					for (String s: stateModelMap.keySet()) {
 						logger.debug("adding key "+s);
 						_partitions.add(s);
@@ -95,7 +134,7 @@ public class EspressoStorageMockNode extends MockNode {
 				}
 				//sleep for 60 seconds
 				try {
-					Thread.sleep(5000);
+					Thread.sleep(60000);
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -106,20 +145,23 @@ public class EspressoStorageMockNode extends MockNode {
 	
 	@Override
 	public void run() {
-		logger.debug("In Run");
+		//logger.debug("In Run");
 
-		_healthProvider.submitRequestCount(555);
-		logger.debug("Done writing stats");
+		//_healthProvider.submitRequestCount(555);
+		//logger.debug("Done writing stats");
 
-		int i=0;
+		//int i=0;
 		while (true) {
 			//logger.debug("printing partition map");
+			/*
 			synchronized (_partitions) {
 				for (String partition: _partitions) {
 					//logger.debug(partition);
 					_healthProvider.submitPartitionRequestCount(partition, i);
 				}
 			}
+			*/
+			/*
 			try {
 				Thread.sleep(5000);
 			} catch (InterruptedException e) {
@@ -127,9 +169,11 @@ public class EspressoStorageMockNode extends MockNode {
 				e.printStackTrace();
 			}
 			i++;
+			*/
 		}
 		//logger.debug("Done!");
 	}
+
 
 	
 

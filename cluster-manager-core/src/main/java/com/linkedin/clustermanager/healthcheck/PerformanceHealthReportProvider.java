@@ -22,7 +22,10 @@ public class PerformanceHealthReportProvider extends HealthReportProvider {
 	
 	public int requestCount = 0;
 	
-	private final Map<String, String> _partitionCountsMap = new HashMap<String, String>();
+	//private final Map<String, String> _partitionCountsMap = new HashMap<String, String>();
+	
+	
+	private final Map<String, HashMap<String,String>> _partitionStatMaps = new HashMap<String, HashMap<String,String>>();
 	
 	 public PerformanceHealthReportProvider()
 	 {}
@@ -43,7 +46,9 @@ public class PerformanceHealthReportProvider extends HealthReportProvider {
 	@Override
 	public Map<String, Map<String, String>> getRecentPartitionHealthReport() {
 		Map<String, Map<String, String>> result = new TreeMap<String, Map<String, String>>();
-		result.put(_partitionRequestCountStat, _partitionCountsMap);
+		for (String statName : _partitionStatMaps.keySet()) {
+			result.put(statName, _partitionStatMaps.get(statName));
+		}
 		return result;
 	}
 	
@@ -56,18 +61,49 @@ public class PerformanceHealthReportProvider extends HealthReportProvider {
 		requestCount += count;
 	}
 	
-	public void submitIncrementPartitionRequestCount(String partitionName) {
-		if (_partitionCountsMap.containsKey(partitionName)) {
-			int oldCount = Integer.parseInt((_partitionCountsMap.get(partitionName)).substring(1));
-			submitPartitionRequestCount(partitionName, oldCount+1);
+	public HashMap<String, String> getStatMap(String statName) {
+		//check if map for this stat exists.  if not, create it
+		HashMap<String, String> statMap;
+		if (! _partitionStatMaps.containsKey(statName)) {
+			statMap = new HashMap<String, String>();
+			_partitionStatMaps.put(statName, statMap);
 		}
 		else {
-			submitPartitionRequestCount(partitionName, 1);
+			statMap = _partitionStatMaps.get(statName);
 		}
+		return statMap;
+	}
+
+	//TODO:
+	//Currently participant is source of truth and updates ZK. We want ZK to be source of truth.
+	//Revise this approach the participant sends deltas of stats to controller (ZK?) and have controller do aggregation
+	//and update ZK.  Make sure to wipe the participant between uploads.
+	public String getPartitionStat(HashMap<String, String> partitionMap, String partitionName) {
+		return partitionMap.get(partitionName);
 	}
 	
-	public void submitPartitionRequestCount(String partitionName, int count) {
-		_partitionCountsMap.put(partitionName, ""+count);
+	public void setPartitionStat(HashMap<String, String> partitionMap, String partitionName, String value) {
+		partitionMap.put(partitionName, value);
+	}
+	
+	public void incrementPartitionStat(String statName, String partitionName) {
+		HashMap<String, String> statMap = getStatMap(statName);
+		String currValStr = getPartitionStat(statMap, partitionName);
+		double currVal;
+		if (currValStr == null) {
+			currVal = 1.0;
+		}
+		else {
+			currVal = Double.parseDouble(getPartitionStat(statMap, partitionName));
+			currVal++;
+		}		
+		setPartitionStat(statMap, partitionName, String.valueOf(currVal));
+	}
+	
+	public void submitPartitionStat(String statName, String partitionName, String value) 
+	{
+		HashMap<String, String> statMap = getStatMap(statName);
+		setPartitionStat(statMap, partitionName, value);
 	}
 	
 	public String getReportName()

@@ -23,6 +23,12 @@ public final class CMUtil
         + "/" + instanceName + "/" + type.toString();
   }
 
+  public static String getInstancePath(String clusterName, String instanceName)
+  {
+	return getClusterPropertyPath(clusterName, ClusterPropertyType.INSTANCES)
+		+ "/" + instanceName;
+  }
+  
   public static String getIdealStatePath(String clusterName,String stateUnitGroup)
   {
     return getClusterPropertyPath(clusterName, ClusterPropertyType.IDEALSTATES) + "/" + stateUnitGroup;
@@ -111,7 +117,7 @@ public final class CMUtil
   {
     return getClusterPropertyPath(clusterName, ClusterPropertyType.INSTANCES);
   }
-
+  
   public static String getErrorsPath(String clusterName, String instanceName)
   {
     return getInstancePropertyPath(clusterName, instanceName,

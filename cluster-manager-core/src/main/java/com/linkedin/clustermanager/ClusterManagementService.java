@@ -22,6 +22,8 @@ public interface ClusterManagementService
 
   void addInstance(String clusterName, ZNRecord instanceConfig);
 
+  void dropInstance(String clusterName, ZNRecord instanceConfig);
+  
   ZNRecord getResourceGroupIdealState(String clusterName, String dbName);
 
   void setResourceGroupIdealState(String clusterName, String resourceGroup, ZNRecord idealState);

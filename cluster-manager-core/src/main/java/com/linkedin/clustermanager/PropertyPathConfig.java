@@ -1,13 +1,17 @@
 package com.linkedin.clustermanager;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.log4j.Logger;
 
 public class PropertyPathConfig
 {
+  private static Logger logger = Logger.getLogger(PropertyPathConfig.class);
+
   static Map<PropertyType, Map<Integer, String>> templateMap = new HashMap<PropertyType, Map<Integer, String>>();
   static
   {
@@ -44,9 +48,9 @@ public class PropertyPathConfig
     addEntry(PropertyType.ERRORS_CONTROLLER,2,"/{clusterName}/CONTROLLER/ERRORS/{errorId}");
     addEntry(PropertyType.STATUSUPDATES_CONTROLLER,1,"/{clusterName}/CONTROLLER/STATUSUPDATES");
     addEntry(PropertyType.STATUSUPDATES_CONTROLLER,2,"/{clusterName}/CONTROLLER/STATUSUPDATES/{statusId}");
-    addEntry(PropertyType.LEADER,2,"/{clusterName}/CONTROLLER/LEADER");
-    addEntry(PropertyType.HISTORY,2,"/{clusterName}/CONTROLLER/HISTORY");
-    addEntry(PropertyType.PAUSE,2,"/{clusterName}/CONTROLLER/PAUSE");
+    addEntry(PropertyType.LEADER,1,"/{clusterName}/CONTROLLER/LEADER");
+    addEntry(PropertyType.HISTORY,1,"/{clusterName}/CONTROLLER/HISTORY");
+    addEntry(PropertyType.PAUSE,1,"/{clusterName}/CONTROLLER/PAUSE");
     //@formatter:on
 
   }
@@ -58,6 +62,8 @@ public class PropertyPathConfig
     {
       templateMap.put(type, new HashMap<Integer, String>());
     }
+    logger.info("Adding template for type:" + type.getType() + " arguments:"
+        + numKeys + " template:" + template);
     templateMap.get(type).put(numKeys, template);
   }
 
@@ -66,6 +72,7 @@ public class PropertyPathConfig
   {
     if (clusterName == null)
     {
+      logger.warn("Invalid clusterName:" + clusterName + " for type:" + type);
       return null;
     }
     if (keys == null)
@@ -92,14 +99,18 @@ public class PropertyPathConfig
         String var = matcher.group();
         if (count == 1)
         {
-          System.out.printf("Replacing %s with %s\n", var, clusterName);
           result = result.replace(var, clusterName);
         } else
         {
-          System.out.printf("Replacing %s with %s\n", var, keys[count - 2]);
           result = result.replace(var, keys[count - 2]);
         }
       }
+    }
+    if (result == null || result.indexOf('{') > -1 || result.indexOf('}') > -1)
+    {
+      logger.warn("Unable to instantiate template:" + template
+          + " using clusterName:" + clusterName + " and keys:"
+          + Arrays.toString(keys));
     }
     return result;
   }

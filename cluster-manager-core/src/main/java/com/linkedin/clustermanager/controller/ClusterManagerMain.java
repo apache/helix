@@ -25,9 +25,9 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.log4j.Logger;
 
-import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerFactory;
+import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
 import com.linkedin.clustermanager.model.Message.MessageType;
 import com.linkedin.clustermanager.monitoring.mbeans.ClusterStatusMonitor;
@@ -125,7 +125,7 @@ public class ClusterManagerMain
       manager.addExternalViewChangeListener(controller);
     
       ClusterStatusMonitor monitor = new ClusterStatusMonitor(manager.getClusterName(), 
-              manager.getDataAccessor().getClusterPropertyList(ClusterPropertyType.CONFIGS).size());
+              manager.getDataAccessor().getChildNames(PropertyType.CONFIGS).size());
       manager.addLiveInstanceChangeListener(monitor);
       manager.addExternalViewChangeListener(monitor);
     }

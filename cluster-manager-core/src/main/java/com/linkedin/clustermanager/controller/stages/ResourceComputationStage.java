@@ -6,14 +6,12 @@ import java.util.Map;
 
 import com.linkedin.clustermanager.CMConstants;
 import com.linkedin.clustermanager.ClusterDataAccessor;
-import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.ClusterManager;
-import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
+import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.model.IdealState;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.ResourceGroup;
-import com.linkedin.clustermanager.model.Message.Attributes;
 import com.linkedin.clustermanager.pipeline.AbstractBaseStage;
 import com.linkedin.clustermanager.pipeline.StageException;
 /**
@@ -39,7 +37,7 @@ public class ResourceComputationStage extends AbstractBaseStage
 
     // GET resource list from IdealState.
     List<ZNRecord> idealStates = dataAccessor
-        .getClusterPropertyList(ClusterPropertyType.IDEALSTATES);
+        .getChildValues(PropertyType.IDEALSTATES);
     Map<String, ResourceGroup> resourceGroupMap = new LinkedHashMap<String, ResourceGroup>();
     if (idealStates != null && idealStates.size() > 0)
     {
@@ -60,15 +58,15 @@ public class ResourceComputationStage extends AbstractBaseStage
     // Its important to get resourceKeys from CurrentState as well since the
     // idealState might be removed.
     List<ZNRecord> availableInstances = dataAccessor
-        .getClusterPropertyList(ClusterPropertyType.LIVEINSTANCES);
+        .getChildValues(PropertyType.LIVEINSTANCES);
     if (availableInstances != null && availableInstances.size() > 0)
     {
       for (ZNRecord instance : availableInstances)
       {
         String instanceName = instance.getId();
         String clientSessionId = instance.getSimpleField(CMConstants.ZNAttribute.SESSION_ID.toString());
-        List<ZNRecord> currentStates = dataAccessor.getInstancePropertyList(
-            instanceName, clientSessionId, InstancePropertyType.CURRENTSTATES);
+        List<ZNRecord> currentStates = dataAccessor.getChildValues(PropertyType.CURRENTSTATES,
+            instanceName, clientSessionId);
         if (currentStates == null || currentStates.size() == 0)
         {
           continue;

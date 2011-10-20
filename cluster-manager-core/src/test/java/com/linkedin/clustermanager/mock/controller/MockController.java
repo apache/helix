@@ -15,8 +15,8 @@ import org.codehaus.jackson.map.ObjectMapper;
 
 import com.linkedin.clustermanager.CMConstants;
 import com.linkedin.clustermanager.ClusterDataAccessor;
+import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
-import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.agent.zk.ZKDataAccessor;
 import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
@@ -43,7 +43,7 @@ public class MockController
       throws InterruptedException, JsonGenerationException,
       JsonMappingException, IOException
   {
-    Message message = new Message(MessageType.STATE_TRANSITION,msgId);
+    Message message = new Message(MessageType.STATE_TRANSITION, msgId);
     message.setMsgId(msgId);
     message.setSrcName(srcName);
     message.setTgtName(instanceName);
@@ -76,8 +76,7 @@ public class MockController
 
     ZNRecord externalView = computeRoutingTable(instanceNames, partitions,
         replicas, dbName, randomSeed);
-    dataAccessor.setClusterProperty(ClusterPropertyType.EXTERNALVIEW, dbName,
-        externalView);
+    dataAccessor.setProperty(PropertyType.EXTERNALVIEW, externalView, dbName);
   }
 
   public ZNRecord computeRoutingTable(List<String> instanceNames,

@@ -9,8 +9,8 @@ import java.util.Set;
 
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterManager;
+import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
-import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.ResourceGroup;
 import com.linkedin.clustermanager.model.ResourceKey;
@@ -31,7 +31,7 @@ public class MessageSelectionStage extends AbstractBaseStage
     }
     ClusterDataAccessor dataAccessor = manager.getDataAccessor();
     List<ZNRecord> stateModelDefs = dataAccessor
-        .getClusterPropertyList(ClusterPropertyType.STATEMODELDEFS);
+        .getChildValues(PropertyType.STATEMODELDEFS);
     Map<String, ResourceGroup> resourceGroupMap = event
         .getAttribute(AttributeName.RESOURCE_GROUPS.toString());
     MessageGenerationOutput messageGenOutput = event

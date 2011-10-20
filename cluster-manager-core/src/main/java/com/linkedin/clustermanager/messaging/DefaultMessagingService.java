@@ -10,13 +10,11 @@ import java.util.UUID;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 
-import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
-import com.linkedin.clustermanager.ClusterDataAccessor.ControllerPropertyType;
-import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterMessagingService;
 import com.linkedin.clustermanager.Criteria;
 import com.linkedin.clustermanager.InstanceType;
+import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.messaging.handling.AsyncCallbackService;
 import com.linkedin.clustermanager.messaging.handling.CMTaskExecutor;
@@ -69,7 +67,7 @@ public class DefaultMessagingService implements ClusterMessagingService
     String correlationId = null;
     if (callbackOnReply != null)
     {
-      if(timeOut < 0)
+      if (timeOut < 0)
       {
         timeOut = -1;
       }
@@ -94,15 +92,15 @@ public class DefaultMessagingService implements ClusterMessagingService
         }
         if (receiverType == InstanceType.CONTROLLER)
         {
-          _manager.getDataAccessor().setControllerProperty(
-              ControllerPropertyType.MESSAGES, tempMessage.getId(), tempMessage.getRecord(),
-              CreateMode.PERSISTENT);
+          _manager.getDataAccessor().setProperty(
+              PropertyType.MESSAGES_CONTROLLER, tempMessage.getRecord(),
+              tempMessage.getId());
         }
         if (receiverType == InstanceType.PARTICIPANT)
         {
-          _manager.getDataAccessor().setInstanceProperty(
-              tempMessage.getTgtName(), InstancePropertyType.MESSAGES,
-              tempMessage.getId(), tempMessage.getRecord());
+          _manager.getDataAccessor().setProperty(PropertyType.MESSAGES,
+              tempMessage.getRecord(), tempMessage.getTgtName(),
+              tempMessage.getId());
         }
       }
     }
@@ -125,7 +123,7 @@ public class DefaultMessagingService implements ClusterMessagingService
     {
       List<Message> messages = generateMessagesForController(message);
       messagesToSendMap.put(InstanceType.CONTROLLER, messages);
-      // _dataAccessor.setControllerProperty(ControllerPropertyType.MESSAGES,
+      // _dataAccessor.setControllerProperty(PropertyType.MESSAGES,
       // newMessage.getRecord(), CreateMode.PERSISTENT);
     } else if (instanceType == InstanceType.PARTICIPANT)
     {
@@ -141,7 +139,7 @@ public class DefaultMessagingService implements ClusterMessagingService
         if (recipientCriteria.isSessionSpecific())
         {
           List<ZNRecord> clusterPropertyList = _manager.getDataAccessor()
-              .getClusterPropertyList(ClusterPropertyType.LIVEINSTANCES);
+              .getChildValues(PropertyType.LIVEINSTANCES);
           for (ZNRecord znRecord : clusterPropertyList)
           {
             LiveInstance liveInstance = new LiveInstance(znRecord);
@@ -182,8 +180,8 @@ public class DefaultMessagingService implements ClusterMessagingService
   {
     // todo:optimize and read only resource groups needed
     List<Map<String, String>> rows = new ArrayList<Map<String, String>>();
-    List<ZNRecord> recordList = _manager.getDataAccessor()
-        .getClusterPropertyList(ClusterPropertyType.EXTERNALVIEW);
+    List<ZNRecord> recordList = _manager.getDataAccessor().getChildValues(
+        PropertyType.EXTERNALVIEW);
     for (ZNRecord record : recordList)
     {
       ExternalView view = new ExternalView(record);
@@ -212,17 +210,17 @@ public class DefaultMessagingService implements ClusterMessagingService
     }
     /*
      * List<ZNRecord> instances = _manager.getDataAccessor()
-     * .getClusterPropertyList(ClusterPropertyType.CONFIGS); for (ZNRecord
-     * record : instances) { InstanceConfig config = new InstanceConfig(record);
+     * .getChildValues(PropertyType.CONFIGS); for (ZNRecord record :
+     * instances) { InstanceConfig config = new InstanceConfig(record);
      * 
      * Map<String, String> row = new HashMap<String, String>();
      * row.put("source", "configs"); row.put("instanceName",
      * config.getInstanceName()); rows.add(row); } List<ZNRecord> liveInstances
      * = _manager.getDataAccessor()
-     * .getClusterPropertyList(ClusterPropertyType.LIVEINSTANCES); for (ZNRecord
-     * record : liveInstances) { LiveInstance liveInstance = new
-     * LiveInstance(record); Map<String, String> row = new HashMap<String,
-     * String>(); row.put("source", "liveInstances"); row.put("instanceName",
+     * .getChildValues(PropertyType.LIVEINSTANCES); for (ZNRecord record
+     * : liveInstances) { LiveInstance liveInstance = new LiveInstance(record);
+     * Map<String, String> row = new HashMap<String, String>();
+     * row.put("source", "liveInstances"); row.put("instanceName",
      * liveInstance.getInstanceName()); rows.add(row); }
      */
     return rows;
@@ -251,7 +249,7 @@ public class DefaultMessagingService implements ClusterMessagingService
     // we have a chance to process the message that we received with the new
     // added MessageHandlerFactory
     // before the factory is added.
-    if(_manager.isConnected())
+    if (_manager.isConnected())
     {
       try
       {
@@ -260,19 +258,17 @@ public class DefaultMessagingService implements ClusterMessagingService
         if (_manager.getInstanceType() == InstanceType.CONTROLLER)
         {
           noOPMsg.setTgtName("Controller");
-          _manager.getDataAccessor().setControllerProperty(
-              ControllerPropertyType.MESSAGES, noOPMsg.getId(), noOPMsg.getRecord(),
-              CreateMode.PERSISTENT);
+          _manager.getDataAccessor().setProperty(
+              PropertyType.MESSAGES_CONTROLLER, noOPMsg.getRecord(),noOPMsg.getId());
         }
         if (_manager.getInstanceType() == InstanceType.PARTICIPANT)
         {
           noOPMsg.setTgtName(_manager.getInstanceName());
-          _manager.getDataAccessor()
-              .setInstanceProperty(noOPMsg.getTgtName(),
-                  InstancePropertyType.MESSAGES, noOPMsg.getId(),
-                  noOPMsg.getRecord());
+          _manager.getDataAccessor().setProperty(PropertyType.MESSAGES,noOPMsg.getRecord(),noOPMsg.getTgtName(),
+               noOPMsg.getId()
+              );
         }
-  
+
       } catch (Exception e)
       {
         _logger.error(e);

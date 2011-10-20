@@ -5,22 +5,22 @@ import java.util.List;
 
 import org.I0Itec.zkclient.exception.ZkNodeExistsException;
 import org.apache.log4j.Logger;
-import org.apache.zookeeper.CreateMode;
 
 import com.linkedin.clustermanager.ClusterDataAccessor;
-import com.linkedin.clustermanager.ClusterDataAccessor.ControllerPropertyType;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerFactory;
 import com.linkedin.clustermanager.ControllerChangeListener;
 import com.linkedin.clustermanager.InstanceType;
 import com.linkedin.clustermanager.NotificationContext;
+import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.controller.ClusterManagerMain;
 import com.linkedin.clustermanager.controller.GenericClusterController;
 
 public class DistClusterControllerElection implements ControllerChangeListener
 {
-  private static Logger LOG = Logger.getLogger(DistClusterControllerElection.class);
+  private static Logger LOG = Logger
+      .getLogger(DistClusterControllerElection.class);
   private final String _zkAddr;
   private GenericClusterController _controller = null;
   private ClusterManager _leader = null;
@@ -71,10 +71,8 @@ public class DistClusterControllerElection implements ControllerChangeListener
             {
               String clusterName = manager.getClusterName();
               String controllerName = manager.getInstanceName();
-              _leader =
-                  ClusterManagerFactory.getZKBasedManagerForController(clusterName,
-                                                                       controllerName,
-                                                                       _zkAddr);
+              _leader = ClusterManagerFactory.getZKBasedManagerForController(
+                  clusterName, controllerName, _zkAddr);
               _leader.connect();
               ClusterManagerMain.addListenersToController(_leader, _controller);
             }
@@ -82,8 +80,7 @@ public class DistClusterControllerElection implements ControllerChangeListener
         }
       }
 
-    }
-    catch (Exception e)
+    } catch (Exception e)
     {
       LOG.error("Exception when trying to become leader, exception:" + e);
     }
@@ -95,22 +92,20 @@ public class DistClusterControllerElection implements ControllerChangeListener
     {
       String instanceName = manager.getInstanceName();
       String clusterName = manager.getClusterName();
-      final ZNRecord leaderRecord = new ZNRecord(ControllerPropertyType.LEADER.toString());
-      leaderRecord.setSimpleField(ControllerPropertyType.LEADER.toString(),
-                                  manager.getInstanceName());
+      final ZNRecord leaderRecord = new ZNRecord(PropertyType.LEADER.toString());
+      leaderRecord.setSimpleField(PropertyType.LEADER.toString(),
+          manager.getInstanceName());
       ClusterDataAccessor dataAccessor = manager.getDataAccessor();
-      ZNRecord currentleader = dataAccessor.getControllerProperty(ControllerPropertyType.LEADER);
+      ZNRecord currentleader = dataAccessor.getProperty(PropertyType.LEADER);
       if (currentleader == null)
       {
-        dataAccessor.createControllerProperty(ControllerPropertyType.LEADER,
-                                              leaderRecord,
-                                              CreateMode.EPHEMERAL);
+        dataAccessor.setProperty(PropertyType.LEADER, leaderRecord);
         // set controller history
-        ZNRecord histRecord =
-            dataAccessor.getControllerProperty(ControllerPropertyType.HISTORY);
+
+        ZNRecord histRecord = dataAccessor.getProperty(PropertyType.HISTORY);
         if (histRecord == null)
         {
-          histRecord = new ZNRecord(ControllerPropertyType.HISTORY.toString());
+          histRecord = new ZNRecord(PropertyType.HISTORY.toString());
         }
 
         List<String> list = histRecord.getListField(clusterName);
@@ -121,9 +116,7 @@ public class DistClusterControllerElection implements ControllerChangeListener
         }
 
         list.add(instanceName);
-        dataAccessor.setControllerProperty(ControllerPropertyType.HISTORY,
-                                           histRecord,
-                                           CreateMode.PERSISTENT);
+        dataAccessor.setProperty(PropertyType.HISTORY, histRecord);
         return true;
       } else
       {
@@ -133,7 +126,8 @@ public class DistClusterControllerElection implements ControllerChangeListener
 
     } catch (ZkNodeExistsException e)
     {
-      LOG.warn("Ignorable exception. Found that leader already exists, " + e.getMessage());
+      LOG.warn("Ignorable exception. Found that leader already exists, "
+          + e.getMessage());
     }
     return false;
   }

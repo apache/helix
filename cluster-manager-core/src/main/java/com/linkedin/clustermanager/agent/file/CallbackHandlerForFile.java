@@ -15,8 +15,6 @@ import org.apache.zookeeper.Watcher.Event.EventType;
 
 import com.linkedin.clustermanager.CMConstants.ChangeType;
 import com.linkedin.clustermanager.ClusterDataAccessor;
-import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
-import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ConfigChangeListener;
 import com.linkedin.clustermanager.ControllerChangeListener;
@@ -26,12 +24,12 @@ import com.linkedin.clustermanager.IdealStateChangeListener;
 import com.linkedin.clustermanager.LiveInstanceChangeListener;
 import com.linkedin.clustermanager.MessageListener;
 import com.linkedin.clustermanager.NotificationContext;
+import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.store.PropertyChangeListener;
 import com.linkedin.clustermanager.store.PropertyStoreException;
 import com.linkedin.clustermanager.store.file.FilePropertyStore;
 import com.linkedin.clustermanager.util.CMUtil;
-
 
 // TODO remove code duplication: CallbackHandler and CallbackHandlerForFile
 public class CallbackHandlerForFile implements PropertyChangeListener<ZNRecord>
@@ -48,7 +46,6 @@ public class CallbackHandlerForFile implements PropertyChangeListener<ZNRecord>
   private final AtomicLong lastNotificationTimeStamp;
   private final ClusterManager _manager;
   private final FilePropertyStore<ZNRecord> _store;
-  
 
   public CallbackHandlerForFile(ClusterManager manager, String path,
       Object listener, EventType[] eventTypes, ChangeType changeType)
@@ -59,9 +56,9 @@ public class CallbackHandlerForFile implements PropertyChangeListener<ZNRecord>
     this._listener = listener;
     this._eventTypes = eventTypes;
     this._changeType = changeType;
-    _store = (FilePropertyStore<ZNRecord>)_accessor.getStore();
+    _store = (FilePropertyStore<ZNRecord>) _accessor.getStore();
     lastNotificationTimeStamp = new AtomicLong(System.nanoTime());
-    
+
     init();
   }
 
@@ -91,7 +88,8 @@ public class CallbackHandlerForFile implements PropertyChangeListener<ZNRecord>
         // System.err.println("ideal state change");
         IdealStateChangeListener idealStateChangeListener = (IdealStateChangeListener) _listener;
         subscribeForChanges(changeContext, true, true);
-        List<ZNRecord> idealStates = _accessor.getClusterPropertyList(ClusterPropertyType.IDEALSTATES);
+        List<ZNRecord> idealStates = _accessor
+            .getChildValues(PropertyType.IDEALSTATES);
         idealStateChangeListener.onIdealStateChange(idealStates, changeContext);
 
       } else if (_changeType == CONFIG)
@@ -99,8 +97,7 @@ public class CallbackHandlerForFile implements PropertyChangeListener<ZNRecord>
 
         ConfigChangeListener configChangeListener = (ConfigChangeListener) _listener;
         subscribeForChanges(changeContext, true, true);
-        List<ZNRecord> configs = _accessor
-            .getClusterPropertyList(ClusterPropertyType.CONFIGS);
+        List<ZNRecord> configs = _accessor.getChildValues(PropertyType.CONFIGS);
         configChangeListener.onConfigChange(configs, changeContext);
 
       } else if (_changeType == LIVE_INSTANCE)
@@ -108,7 +105,7 @@ public class CallbackHandlerForFile implements PropertyChangeListener<ZNRecord>
         LiveInstanceChangeListener liveInstanceChangeListener = (LiveInstanceChangeListener) _listener;
         subscribeForChanges(changeContext, true, false);
         List<ZNRecord> liveInstances = _accessor
-            .getClusterPropertyList(ClusterPropertyType.LIVEINSTANCES);
+            .getChildValues(PropertyType.LIVEINSTANCES);
         liveInstanceChangeListener.onLiveInstanceChange(liveInstances,
             changeContext);
 
@@ -119,22 +116,23 @@ public class CallbackHandlerForFile implements PropertyChangeListener<ZNRecord>
         subscribeForChanges(changeContext, true, true);
         String instanceName = CMUtil.getInstanceNameFromPath(_path);
         String[] pathParts = _path.split("/");
-        List<ZNRecord> currentStates = _accessor.getInstancePropertyList(
-            instanceName, pathParts[pathParts.length - 1],
-            InstancePropertyType.CURRENTSTATES);
+        List<ZNRecord> currentStates = _accessor.getChildValues(
+            PropertyType.CURRENTSTATES, instanceName,
+            pathParts[pathParts.length - 1]);
         currentStateChangeListener.onStateChange(instanceName, currentStates,
             changeContext);
 
       } else if (_changeType == MESSAGE)
       {
-        // System.err.println("message change, instance:" + _manager.getInstanceName());
-        
+        // System.err.println("message change, instance:" +
+        // _manager.getInstanceName());
+
         MessageListener messageListener = (MessageListener) _listener;
         subscribeForChanges(changeContext, true, false);
         // String instanceName = CMUtil.getInstanceNameFromPath(_path);
         String instanceName = _manager.getInstanceName();
-        List<ZNRecord> messages = _accessor.getInstancePropertyList(
-            instanceName, InstancePropertyType.MESSAGES);
+        List<ZNRecord> messages = _accessor.getChildValues(
+            PropertyType.MESSAGES, instanceName);
         messageListener.onMessage(instanceName, messages, changeContext);
 
       } else if (_changeType == EXTERNAL_VIEW)
@@ -142,7 +140,7 @@ public class CallbackHandlerForFile implements PropertyChangeListener<ZNRecord>
         ExternalViewChangeListener externalViewListener = (ExternalViewChangeListener) _listener;
         subscribeForChanges(changeContext, true, true);
         List<ZNRecord> externalViewList = _accessor
-            .getClusterPropertyList(ClusterPropertyType.EXTERNALVIEW);
+            .getChildValues(PropertyType.EXTERNALVIEW);
         externalViewListener.onExternalViewChange(externalViewList,
             changeContext);
       } else if (_changeType == ChangeType.CONTROLLER)
@@ -199,7 +197,7 @@ public class CallbackHandlerForFile implements PropertyChangeListener<ZNRecord>
       // ZKExceptionHandler.getInstance().handle(e);
     }
   }
-  
+
   public void reset()
   {
     try
@@ -230,7 +228,7 @@ public class CallbackHandlerForFile implements PropertyChangeListener<ZNRecord>
       }
     }
   }
-  
+
   @Override
   public void onPropertyChange(String key)
   {
@@ -240,7 +238,7 @@ public class CallbackHandlerForFile implements PropertyChangeListener<ZNRecord>
       if (needToNotify(key))
       {
         // System.err.println("notified on property change, key:" + key);
-        
+
         updateNotificationTime(System.nanoTime());
         NotificationContext changeContext = new NotificationContext(_manager);
         changeContext.setType(NotificationContext.Type.CALLBACK);
@@ -257,7 +255,7 @@ public class CallbackHandlerForFile implements PropertyChangeListener<ZNRecord>
   private boolean needToNotify(String key)
   {
     boolean ret = false;
-    switch(_changeType)
+    switch (_changeType)
     {
     // both child/data changes matter
     case IDEAL_STATE:
@@ -274,7 +272,7 @@ public class CallbackHandlerForFile implements PropertyChangeListener<ZNRecord>
     default:
       break;
     }
-    
+
     return ret;
   }
 }

@@ -18,8 +18,8 @@ import org.apache.commons.cli.ParseException;
 import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.CMConstants;
-import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.ClusterView;
+import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
@@ -109,7 +109,7 @@ public class ClusterStateVerifier
     // ideal_state for instance with name $instanceName
     Map<String, String> instanceIdealStates = new HashMap<String, String>();
     for (ZNRecord idealStateItem : clusterView
-        .getClusterPropertyList(ClusterPropertyType.IDEALSTATES))
+        .getPropertyList(PropertyType.IDEALSTATES))
     {
       Map<String, Map<String, String>> idealStates = idealStateItem
           .getMapFields();

@@ -21,9 +21,8 @@ import org.restlet.resource.Representation;
 
 import com.linkedin.clustermanager.CMConstants.ZNAttribute;
 import com.linkedin.clustermanager.ClusterDataAccessor;
-import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
-import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.ClusterManagerException;
+import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.agent.zk.ZKDataAccessor;
 import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
@@ -48,16 +47,16 @@ public class ClusterRepresentationUtil
   public static final String _newModelDef = "newStateModelDef";
   public static final String _enabled = "enabled";
   
-  public static String getClusterPropertyAsString(String zkServer, String clusterName, ClusterPropertyType clusterProperty, String key, MediaType mediaType) throws JsonGenerationException, JsonMappingException, IOException
+  public static String getClusterPropertyAsString(String zkServer, String clusterName, PropertyType clusterProperty, String key, MediaType mediaType) throws JsonGenerationException, JsonMappingException, IOException
   {
     ZkClient zkClient = ZKClientPool.getZkClient(zkServer);
     ClusterDataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
     
-    ZNRecord record = accessor.getClusterProperty(clusterProperty, key);    
+    ZNRecord record = accessor.getProperty(clusterProperty, key);    
     return ZNRecordToJson(record);
   }
   
-  public static String getInstancePropertyListAsString(String zkServer, String clusterName, String instanceName, InstancePropertyType instanceProperty, String key, MediaType mediaType) throws JsonGenerationException, JsonMappingException, IOException
+  public static String getInstancePropertyListAsString(String zkServer, String clusterName, String instanceName, PropertyType instanceProperty, String key, MediaType mediaType) throws JsonGenerationException, JsonMappingException, IOException
   {
     ZkClient zkClient = ZKClientPool.getZkClient(zkServer);
     zkClient.setZkSerializer(new ZNRecordSerializer());
@@ -66,14 +65,14 @@ public class ClusterRepresentationUtil
     if(zkClient.exists(path))
     {
       ClusterDataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
-      List<ZNRecord> records = accessor.getInstancePropertyList(instanceName, key, instanceProperty);    
+      List<ZNRecord> records = accessor.getChildValues(instanceProperty,instanceName, key );    
       return ObjectToJson(records);
     }
     
     return ObjectToJson(new ArrayList<ZNRecord>());
   }
   
-  public static String getInstancePropertyNameListAsString(String zkServer, String clusterName, String instanceName, InstancePropertyType instanceProperty, String key, MediaType mediaType) throws JsonGenerationException, JsonMappingException, IOException
+  public static String getInstancePropertyNameListAsString(String zkServer, String clusterName, String instanceName, PropertyType instanceProperty, String key, MediaType mediaType) throws JsonGenerationException, JsonMappingException, IOException
   {
     ZkClient zkClient = ZKClientPool.getZkClient(zkServer);
     zkClient.setZkSerializer(new ZNRecordSerializer());
@@ -88,23 +87,23 @@ public class ClusterRepresentationUtil
     return ObjectToJson(new ArrayList<String>());
   }
   
-  public static String getInstancePropertyAsString(String zkServer, String clusterName, String instanceName, InstancePropertyType instanceProperty, String key, MediaType mediaType) throws JsonGenerationException, JsonMappingException, IOException
+  public static String getInstancePropertyAsString(String zkServer, String clusterName, String instanceName, PropertyType instanceProperty, String key, MediaType mediaType) throws JsonGenerationException, JsonMappingException, IOException
   {
     ZkClient zkClient = ZKClientPool.getZkClient(zkServer);
     zkClient.setZkSerializer(new ZNRecordSerializer());
     ClusterDataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
     
-    ZNRecord records = accessor.getInstanceProperty(instanceName, instanceProperty, key);    
+    ZNRecord records = accessor.getProperty(instanceProperty,instanceName, key);    
     return ZNRecordToJson(records);
   }
   
-  public static String getInstancePropertyListAsString(String zkServer, String clusterName, String instanceName, InstancePropertyType instanceProperty, MediaType mediaType) throws JsonGenerationException, JsonMappingException, IOException
+  public static String getInstancePropertyAsString(String zkServer, String clusterName, String instanceName, PropertyType instanceProperty, MediaType mediaType) throws JsonGenerationException, JsonMappingException, IOException
   {
     ZkClient zkClient = ZKClientPool.getZkClient(zkServer);
     zkClient.setZkSerializer(new ZNRecordSerializer());
     ClusterDataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
     
-    List<ZNRecord> records = accessor.getInstancePropertyList(instanceName, instanceProperty);    
+    List<ZNRecord> records = accessor.getChildValues(instanceProperty, instanceName);    
     return ObjectToJson(records);
   }
   
@@ -197,14 +196,14 @@ public class ClusterRepresentationUtil
     ZkClient zkClient = ZKClientPool.getZkClient(zkServerAddress);
     zkClient.setZkSerializer(new ZNRecordSerializer());
     ClusterDataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
-    ZNRecord liveInstance = accessor.getClusterProperty(ClusterPropertyType.LIVEINSTANCES, instanceName);
+    ZNRecord liveInstance = accessor.getProperty(PropertyType.LIVEINSTANCES, instanceName);
     
     return liveInstance.getSimpleField(ZNAttribute.SESSION_ID.toString());
   }
 
   public static List<String> getInstancePropertyList(String zkServerAddress,
       String clusterName, String instanceName,
-      InstancePropertyType property, String key)
+      PropertyType property, String key)
   {
     ZkClient zkClient = ZKClientPool.getZkClient(zkServerAddress);
     zkClient.setZkSerializer(new ZNRecordSerializer());

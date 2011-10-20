@@ -5,9 +5,9 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.ClusterDataAccessor;
-import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.NotificationContext;
+import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 
 public class ResourceGroupMonitor implements ResourceGroupMonitorMBean
@@ -55,7 +55,7 @@ public class ResourceGroupMonitor implements ResourceGroupMonitorMBean
     
     try
     {
-      idealState = accessor.getClusterProperty(ClusterPropertyType.IDEALSTATES, resourceGroup);
+      idealState = accessor.getProperty(PropertyType.IDEALSTATES, resourceGroup);
     }
     catch(Exception e)
     {

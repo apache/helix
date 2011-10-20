@@ -18,9 +18,8 @@ import com.linkedin.clustermanager.IdealStateChangeListener;
 import com.linkedin.clustermanager.LiveInstanceChangeListener;
 import com.linkedin.clustermanager.MessageListener;
 import com.linkedin.clustermanager.NotificationContext;
+import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
-import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
-import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.model.IdealState;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.StateModelDefinition;
@@ -31,7 +30,7 @@ import com.linkedin.clustermanager.model.StateModelDefinition;
  * state and scheduling new tasks to get cluster state to best possible ideal
  * state. Every instance of this class can control can control only one cluster
  */
-//Use GenericClusterController instead
+// Use GenericClusterController instead
 @Deprecated
 public class ClusterController implements ConfigChangeListener,
     IdealStateChangeListener, LiveInstanceChangeListener, MessageListener,
@@ -103,7 +102,8 @@ public class ClusterController implements ConfigChangeListener,
     for (ZNRecord instance : liveInstances)
     {
       String instanceName = instance.getId();
-      String clientSessionId  = instance.getSimpleField(CMConstants.ZNAttribute.SESSION_ID.toString());
+      String clientSessionId = instance
+          .getSimpleField(CMConstants.ZNAttribute.SESSION_ID.toString());
       if (!_instanceSubscriptionList.contains(instanceName))
       {
         try
@@ -171,8 +171,7 @@ public class ClusterController implements ConfigChangeListener,
     logger.info("START:ClusterController.runClusterRebalanceAlgo()");
     ClusterDataAccessor client = changeContext.getManager().getDataAccessor();
     List<ZNRecord> idealStates;
-    idealStates = client
-        .getClusterPropertyList(ClusterPropertyType.IDEALSTATES);
+    idealStates = client.getChildValues(PropertyType.IDEALSTATES);
     refreshData(changeContext);
     for (ZNRecord idealStateRecord : idealStates)
     {
@@ -190,8 +189,8 @@ public class ClusterController implements ConfigChangeListener,
         logger.info(i++ + ": Sending message to " + message.getTgtName()
             + " transition " + message.getStateUnitKey() + " from:"
             + message.getFromState() + " to:" + message.getToState());
-        client.setInstanceProperty(message.getTgtName(),
-            InstancePropertyType.MESSAGES, message.getId(), message.getRecord());
+        client.setProperty(PropertyType.MESSAGES, message.getRecord(),
+            message.getTgtName(), message.getId());
       }
     }
     logger.info("END:ClusterController.runClusterRebalanceAlgo()");
@@ -201,15 +200,15 @@ public class ClusterController implements ConfigChangeListener,
   {
     ClusterDataAccessor client = changeContext.getManager().getDataAccessor();
     List<ZNRecord> liveInstances = client
-        .getClusterPropertyList(ClusterPropertyType.LIVEINSTANCES);
+        .getChildValues(PropertyType.LIVEINSTANCES);
     _liveInstanceDataHolder.refresh(liveInstances);
     for (ZNRecord record : liveInstances)
     {
       String instanceName = record.getId();
       String sessionId = record
           .getSimpleField(CMConstants.ZNAttribute.SESSION_ID.toString());
-      List<ZNRecord> messages = client.getInstancePropertyList(instanceName,
-          InstancePropertyType.MESSAGES);
+      List<ZNRecord> messages = client.getChildValues(PropertyType.MESSAGES,
+          instanceName);
       Iterator<ZNRecord> msgIterator = messages.iterator();
       while (msgIterator.hasNext())
       {
@@ -218,14 +217,16 @@ public class ClusterController implements ConfigChangeListener,
         if (tgtSessionId == null || !tgtSessionId.equals(sessionId))
         {
           logger.info("Removing old message:" + message.getId());
-          client.removeInstanceProperty(instanceName,
-              InstancePropertyType.MESSAGES, message.getId());
+          client.removeProperty(PropertyType.MESSAGES, instanceName,
+              message.getId());
+          // TODO:why r we doing this
           msgIterator.remove();
         }
       }
       _messageHolder.update(instanceName, messages);
-      List<ZNRecord> currentStates = client.getInstancePropertyList(
-          instanceName, changeContext.getManager().getSessionId(), InstancePropertyType.CURRENTSTATES);
+      List<ZNRecord> currentStates = client.getChildValues(
+          PropertyType.CURRENTSTATES, instanceName, changeContext.getManager()
+              .getSessionId());
       _currentStateHolder.refresh(instanceName, currentStates);
     }
     return false;
@@ -253,7 +254,7 @@ public class ClusterController implements ConfigChangeListener,
     }
     ClusterDataAccessor client = changeContext.getManager().getDataAccessor();
     List<ZNRecord> idealStates = client
-        .getClusterPropertyList(ClusterPropertyType.IDEALSTATES);
+        .getChildValues(PropertyType.IDEALSTATES);
     List<ZNRecord> externalViewList;
     Map<String, List<ZNRecord>> currentStatesListMap = _currentStateHolder
         .getCurrentStatesListMap();
@@ -261,8 +262,7 @@ public class ClusterController implements ConfigChangeListener,
         currentStatesListMap, idealStates);
     for (ZNRecord subView : externalViewList)
     {
-      client.setClusterProperty(ClusterPropertyType.EXTERNALVIEW,
-          subView.getId(), subView);
+      client.setProperty(PropertyType.EXTERNALVIEW, subView, subView.getId());
     }
     logger.info("END:ClusterController.onStateChange()");
   }

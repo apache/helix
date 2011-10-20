@@ -5,10 +5,9 @@ import java.util.Map;
 
 import com.linkedin.clustermanager.CMConstants;
 import com.linkedin.clustermanager.ClusterDataAccessor;
-import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.ClusterManager;
+import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
-import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.model.CurrentState;
 import com.linkedin.clustermanager.model.LiveInstance;
 import com.linkedin.clustermanager.model.Message;
@@ -38,8 +37,7 @@ public class CurrentStateComputationStage extends AbstractBaseStage
     }
     ClusterDataAccessor dataAccessor = manager.getDataAccessor();
     List<ZNRecord> liveInstances;
-    liveInstances = dataAccessor
-        .getClusterPropertyList(ClusterPropertyType.LIVEINSTANCES);
+    liveInstances = dataAccessor.getChildValues(PropertyType.LIVEINSTANCES);
     CurrentStateOutput currentStateOutput = new CurrentStateOutput();
     Map<String, ResourceGroup> resourceGroupMap = event
         .getAttribute(AttributeName.RESOURCE_GROUPS.toString());
@@ -49,8 +47,8 @@ public class CurrentStateComputationStage extends AbstractBaseStage
       LiveInstance instance = new LiveInstance(record);
       String instanceName = record.getId();
       List<ZNRecord> instancePropertyList;
-      instancePropertyList = dataAccessor.getInstancePropertyList(instanceName,
-          InstancePropertyType.MESSAGES);
+      instancePropertyList = dataAccessor.getChildValues(PropertyType.MESSAGES,
+          instanceName);
       for (ZNRecord messageRecord : instancePropertyList)
       {
         Message message = new Message(messageRecord);
@@ -88,8 +86,8 @@ public class CurrentStateComputationStage extends AbstractBaseStage
       List<ZNRecord> instancePropertyList;
       String clientSessionId = record
           .getSimpleField(CMConstants.ZNAttribute.SESSION_ID.toString());
-      instancePropertyList = dataAccessor.getInstancePropertyList(instanceName,
-          clientSessionId, InstancePropertyType.CURRENTSTATES);
+      instancePropertyList = dataAccessor.getChildValues(
+          PropertyType.CURRENTSTATES, instanceName, clientSessionId);
       for (ZNRecord currStateRecord : instancePropertyList)
       {
         CurrentState currentState = new CurrentState(currStateRecord);

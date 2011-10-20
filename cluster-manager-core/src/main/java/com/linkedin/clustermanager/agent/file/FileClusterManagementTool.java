@@ -5,10 +5,11 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.ClusterDataAccessor.IdealStateConfigProperty;
 import com.linkedin.clustermanager.ClusterManagementService;
+import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.agent.zk.ZKDataAccessor;
 import com.linkedin.clustermanager.store.PropertyStoreException;
 import com.linkedin.clustermanager.store.file.FilePropertyStore;
 import com.linkedin.clustermanager.tools.StateModelConfigGenerator;
@@ -225,7 +226,11 @@ public class FileClusterManagementTool implements ClusterManagementService
   @Override
   public ZNRecord getResourceGroupIdealState(String clusterName, String resourceGroupName)
   {    
-    String resourceGroupPath = CMUtil.getClusterPropertyPath(clusterName, ClusterPropertyType.IDEALSTATES) + "/" + resourceGroupName;
+    return new FileBasedDataAccessor(_store, clusterName).getProperty(
+        PropertyType.IDEALSTATES, resourceGroupName);
+
+    /*
+    String resourceGroupPath = CMUtil.getPropertyPath(clusterName, PropertyType.IDEALSTATES) + "/" + resourceGroupName;
     try
     {
       ZNRecord idealState = _store.getProperty(resourceGroupPath);
@@ -238,13 +243,15 @@ public class FileClusterManagementTool implements ClusterManagementService
           "\nexception: " + e);
     }
     return null;
+    */
   }
 
   @Override
   public void setResourceGroupIdealState(String clusterName, String resourceGroupName,
-                                         ZNRecord newIdealState)
+                                         ZNRecord idealState)
   {
-    String resourceGroupPath = CMUtil.getClusterPropertyPath(clusterName, ClusterPropertyType.IDEALSTATES) + "/" + resourceGroupName;
+    /*
+    String resourceGroupPath = CMUtil.getPropertyPath(clusterName, PropertyType.IDEALSTATES) + "/" + resourceGroupName;
     try
     {
       _store.setProperty(resourceGroupPath, newIdealState);
@@ -255,6 +262,9 @@ public class FileClusterManagementTool implements ClusterManagementService
           " resourceGroup:" + resourceGroupName + 
           "\nexception: " + e);
     }
+    */
+    new FileBasedDataAccessor(_store, clusterName).setProperty(
+        PropertyType.IDEALSTATES, idealState, resourceGroupName);
 
   }
 
@@ -297,7 +307,8 @@ public class FileClusterManagementTool implements ClusterManagementService
   @Override
   public void dropResourceGroup(String clusterName, String resourceGroup)
   {
-    String path = CMUtil.getClusterPropertyPath(clusterName, ClusterPropertyType.IDEALSTATES)
+    /*
+    String path = CMUtil.getPropertyPath(clusterName, PropertyType.IDEALSTATES)
         + "/" + resourceGroup;
     
     if (_store.exists(path))
@@ -316,6 +327,10 @@ public class FileClusterManagementTool implements ClusterManagementService
     {
       logger.warn("No property to remove at path:" + path);
     }
+    */
+    new FileBasedDataAccessor(_store, clusterName).removeProperty(
+        PropertyType.IDEALSTATES, resourceGroup);
+
   }
 
   @Override

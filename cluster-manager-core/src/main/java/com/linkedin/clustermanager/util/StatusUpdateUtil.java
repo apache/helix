@@ -14,11 +14,11 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 
 import com.linkedin.clustermanager.ClusterDataAccessor;
-import com.linkedin.clustermanager.ClusterDataAccessor.ControllerPropertyType;
-import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
+import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.Message.MessageType;
+
 /**
  * Util class to create statusUpdates ZK records and error ZK records. These
  * message records are for diagnostics only, and they are stored on the
@@ -29,45 +29,50 @@ import com.linkedin.clustermanager.model.Message.MessageType;
 public class StatusUpdateUtil
 {
   static Logger _logger = Logger.getLogger(StatusUpdateUtil.class);
-  
+
   public enum Level
   {
     ERROR, WARNING, INFO
   }
- 
+
   /**
    * Creates an empty ZNRecord as the statusUpdate/error record
-   * @param id 
+   * 
+   * @param id
    */
   public ZNRecord createEmptyStatusUpdateRecord(String id)
   {
     return new ZNRecord(id);
   }
-  
+
   /**
-   * Create a ZNRecord for a message, which stores the content of the message (stored in simple fields)
-   * into the ZNRecord mapFields. In this way, the message update can be merged with the previous status
-   * update record in the zookeeper. See ZNRecord.merge() for more details.
+   * Create a ZNRecord for a message, which stores the content of the message
+   * (stored in simple fields) into the ZNRecord mapFields. In this way, the
+   * message update can be merged with the previous status update record in the
+   * zookeeper. See ZNRecord.merge() for more details.
    * */
   ZNRecord createMessageLogRecord(Message message)
   {
     ZNRecord result = new ZNRecord(getStatusUpdateRecordName(message));
     String mapFieldKey = "MESSAGE " + message.getMsgId();
     result.setMapField(mapFieldKey, new TreeMap<String, String>());
-    
-    // Store all the simple fields of the message in the new ZNRecord's map field.
-    for(String simpleFieldKey : message.getRecord().getSimpleFields().keySet())
+
+    // Store all the simple fields of the message in the new ZNRecord's map
+    // field.
+    for (String simpleFieldKey : message.getRecord().getSimpleFields().keySet())
     {
-      result.getMapField(mapFieldKey).put(simpleFieldKey, message.getRecord().getSimpleField(simpleFieldKey));
+      result.getMapField(mapFieldKey).put(simpleFieldKey,
+          message.getRecord().getSimpleField(simpleFieldKey));
     }
-    if(message.getResultMap()!= null)
+    if (message.getResultMap() != null)
     {
       result.setMapField("MessageResult", message.getResultMap());
     }
     return result;
   }
+
   Map<String, String> _recordedMessages = new ConcurrentHashMap<String, String>();
-  
+
   /**
    * Create a statusupdate that is related to a cluster manager message.
    * 
@@ -85,7 +90,7 @@ public class StatusUpdateUtil
   {
     ZNRecord result = createEmptyStatusUpdateRecord(getStatusUpdateRecordName(message));
     Map<String, String> contentMap = new TreeMap<String, String>();
-    
+
     contentMap.put("Message state", message.getMsgState());
     contentMap.put("AdditionalInfo", additionalInfo);
     contentMap.put("Class", classInfo.toString());
@@ -96,27 +101,26 @@ public class StatusUpdateUtil
 
     String id = String.format("%4s %26s ", level.toString(), time)
         + getRecordIdForMessage(message);
-    
+
     result.setMapField(id, contentMap);
-    
+
     return result;
   }
-  
+
   String getRecordIdForMessage(Message message)
   {
-    if(message.getMsgType().equals(MessageType.STATE_TRANSITION))
+    if (message.getMsgType().equals(MessageType.STATE_TRANSITION))
     {
       return message.getStateUnitKey() + " Trans:"
-        + message.getFromState().charAt(0) + "->"
-        + message.getToState().charAt(0) + "  "
-        + UUID.randomUUID().toString();
-    }
-    else
+          + message.getFromState().charAt(0) + "->"
+          + message.getToState().charAt(0) + "  "
+          + UUID.randomUUID().toString();
+    } else
     {
-      return message.getMsgType()
-        + UUID.randomUUID().toString();
+      return message.getMsgType() + UUID.randomUUID().toString();
     }
   }
+
   /**
    * Create a statusupdate that is related to a cluster manager message, then
    * record it to the zookeeper store.
@@ -139,14 +143,13 @@ public class StatusUpdateUtil
     try
     {
       ZNRecord record = createMessageStatusUpdateRecord(message, level,
-        classInfo, additionalInfo);
+          classInfo, additionalInfo);
       publishStatusUpdateRecord(record, message, level, accessor);
-    }
-    catch(Exception e)
+    } catch (Exception e)
     {
       _logger.error(e);
     }
-}
+  }
 
   public void logError(Message message, Class classInfo, String additionalInfo,
       ClusterDataAccessor accessor)
@@ -154,9 +157,9 @@ public class StatusUpdateUtil
     logMessageStatusUpdateRecord(message, Level.ERROR, classInfo,
         additionalInfo, accessor);
   }
-  
-  public void logError(Message message, Class classInfo, Exception e, String additionalInfo,
-      ClusterDataAccessor accessor)
+
+  public void logError(Message message, Class classInfo, Exception e,
+      String additionalInfo, ClusterDataAccessor accessor)
   {
     StringWriter sw = new StringWriter();
     PrintWriter pw = new PrintWriter(sw);
@@ -186,43 +189,44 @@ public class StatusUpdateUtil
    *          the status update record
    * @param message
    *          the message to be logged
-   * @param level 
+   * @param level
    *          the error level of the message update
    * @param accessor
    *          the zookeeper data accessor that writes the status update to
    *          zookeeper
    */
-  void publishStatusUpdateRecord(ZNRecord record, Message message,
-      Level level, ClusterDataAccessor accessor)
+  void publishStatusUpdateRecord(ZNRecord record, Message message, Level level,
+      ClusterDataAccessor accessor)
   {
     String instanceName = message.getTgtName();
     String statusUpdateSubPath = getStatusUpdateSubPath(message);
     String statusUpdateKey = getStatusUpdateKey(message);
-    
-    if(!_recordedMessages.containsKey(message.getMsgId()))
+
+    if (!_recordedMessages.containsKey(message.getMsgId()))
     {
-      if(instanceName.equalsIgnoreCase("Controller"))
+      if (instanceName.equalsIgnoreCase("Controller"))
       {
-        accessor.setControllerProperty(ControllerPropertyType.STATUSUPDATES, statusUpdateSubPath, createMessageLogRecord(message), CreateMode.PERSISTENT);
-      }
-      else
+        accessor.setProperty(PropertyType.STATUSUPDATES,
+            createMessageLogRecord(message), statusUpdateSubPath);
+      } else
       {
-        accessor.updateInstanceProperty(instanceName,    
-          InstancePropertyType.STATUSUPDATES, statusUpdateSubPath, statusUpdateKey, createMessageLogRecord(message));
+        accessor.updateProperty(PropertyType.STATUSUPDATES,
+            createMessageLogRecord(message), instanceName, statusUpdateSubPath,
+            statusUpdateKey);
       }
       _recordedMessages.put(message.getMsgId(), message.getMsgId());
       return;
     }
-      
-    if(instanceName.equalsIgnoreCase("Controller"))
+
+    if (instanceName.equalsIgnoreCase("Controller"))
     {
-      accessor.setControllerProperty(ControllerPropertyType.STATUSUPDATES, statusUpdateSubPath, record, CreateMode.PERSISTENT);
-      
-    }
-    else
+      accessor.setProperty(PropertyType.STATUSUPDATES, record,
+          statusUpdateSubPath);
+
+    } else
     {
-      accessor.updateInstanceProperty(instanceName,
-        InstancePropertyType.STATUSUPDATES, statusUpdateSubPath, statusUpdateKey, record);
+      accessor.updateProperty(PropertyType.STATUSUPDATES, record, instanceName,
+          statusUpdateSubPath, statusUpdateKey);
     }
     // If the error level is ERROR, also write the record to "ERROR" ZNode
     if (Level.ERROR == level)
@@ -230,10 +234,11 @@ public class StatusUpdateUtil
       publishErrorRecord(record, message, accessor);
     }
   }
-  
+
   private String getStatusUpdateKey(Message message)
   {
-    if(message.getMsgType().equalsIgnoreCase(MessageType.STATE_TRANSITION.toString()))
+    if (message.getMsgType().equalsIgnoreCase(
+        MessageType.STATE_TRANSITION.toString()))
     {
       return message.getStateUnitKey();
     }
@@ -246,19 +251,20 @@ public class StatusUpdateUtil
    */
   String getStatusUpdateSubPath(Message message)
   {
-    if(message.getMsgType().equalsIgnoreCase(MessageType.STATE_TRANSITION.toString()))
+    if (message.getMsgType().equalsIgnoreCase(
+        MessageType.STATE_TRANSITION.toString()))
     {
       return message.getTgtSessionId() + "__" + message.getStateUnitGroup();
-    }
-    else
+    } else
     {
       return message.getMsgType();
     }
   }
-  
+
   String getStatusUpdateRecordName(Message message)
   {
-    if(message.getMsgType().equalsIgnoreCase(MessageType.STATE_TRANSITION.toString()))
+    if (message.getMsgType().equalsIgnoreCase(
+        MessageType.STATE_TRANSITION.toString()))
     {
       return message.getTgtSessionId() + "__" + message.getStateUnitGroup();
     }
@@ -282,13 +288,15 @@ public class StatusUpdateUtil
     String instanceName = message.getTgtName();
     String statusUpdateSubPath = getStatusUpdateSubPath(message);
     String statusUpdateKey = getStatusUpdateKey(message);
-    
-    if(instanceName.equalsIgnoreCase("controller"))
+
+    if (instanceName.equalsIgnoreCase("controller"))
     {
-      accessor.setControllerProperty(ControllerPropertyType.ERRORS, statusUpdateSubPath, record,CreateMode.PERSISTENT);
-      return;
+      accessor.setProperty(PropertyType.ERRORS_CONTROLLER, record,
+          statusUpdateSubPath);
+    } else
+    {
+      accessor.updateProperty(PropertyType.ERRORS, record, instanceName,
+          statusUpdateSubPath, statusUpdateKey);
     }
-    accessor.updateInstanceProperty(instanceName, InstancePropertyType.ERRORS,
-        statusUpdateSubPath, statusUpdateKey, record);
   }
 }

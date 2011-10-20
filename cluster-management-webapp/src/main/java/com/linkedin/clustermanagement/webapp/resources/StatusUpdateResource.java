@@ -22,8 +22,7 @@ import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 
 import com.linkedin.clustermanagement.webapp.RestAdminApplication;
-import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
-import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
+import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.tools.ClusterSetup;
 
@@ -82,7 +81,7 @@ public class StatusUpdateResource extends Resource
   {
     String instanceSessionId = ClusterRepresentationUtil.getInstanceSessionId(zkServerAddress, clusterName, instanceName);
     String message = 
-        ClusterRepresentationUtil.getInstancePropertyListAsString(zkServerAddress, clusterName, instanceName, InstancePropertyType.STATUSUPDATES, instanceSessionId+"__"+resourceGroup, MediaType.APPLICATION_JSON);
+        ClusterRepresentationUtil.getInstancePropertyListAsString(zkServerAddress, clusterName, instanceName, PropertyType.STATUSUPDATES, instanceSessionId+"__"+resourceGroup, MediaType.APPLICATION_JSON);
     StringRepresentation representation = new StringRepresentation(message, MediaType.APPLICATION_JSON);
     return representation;
   }

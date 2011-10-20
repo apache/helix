@@ -10,10 +10,9 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.ClusterDataAccessor;
-import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.ClusterManager;
+import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
-import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.model.CurrentState;
 import com.linkedin.clustermanager.model.IdealState;
 import com.linkedin.clustermanager.model.InstanceConfig;
@@ -44,9 +43,9 @@ public class ReadClusterDataStage extends AbstractBaseStage
     }
     ClusterDataAccessor dataAccessor = manager.getDataAccessor();
     _cache.setIdealStateMap(retrieve(dataAccessor,
-        ClusterPropertyType.IDEALSTATES, IdealState.class));
+        PropertyType.IDEALSTATES, IdealState.class));
     Map<String, LiveInstance> liveInstanceMap = retrieve(dataAccessor,
-        ClusterPropertyType.LIVEINSTANCES, LiveInstance.class);
+        PropertyType.LIVEINSTANCES, LiveInstance.class);
     _cache.setLiveInstanceMap(liveInstanceMap);
     
     for(LiveInstance instance : liveInstanceMap.values())
@@ -54,34 +53,34 @@ public class ReadClusterDataStage extends AbstractBaseStage
       logger.trace("live instance: "+ instance.getInstanceName() + " " + instance.getSessionId());
     }
     _cache.setStateModelDefMap(retrieve(dataAccessor,
-        ClusterPropertyType.STATEMODELDEFS, StateModelDefinition.class));
+        PropertyType.STATEMODELDEFS, StateModelDefinition.class));
     _cache.setInstanceConfigMap(retrieve(dataAccessor,
-        ClusterPropertyType.CONFIGS, InstanceConfig.class));
+        PropertyType.CONFIGS, InstanceConfig.class));
     for (String instanceName : liveInstanceMap.keySet())
     {
-      retrieve(instanceName, dataAccessor, InstancePropertyType.CURRENTSTATES,
+      retrieve(instanceName, dataAccessor, PropertyType.CURRENTSTATES,
           CurrentState.class);
     }
     event.addAttribute("clusterDataCache", _cache);
   }
 
   private <T extends Object> Map<String, T> retrieve(String instanceName,
-      ClusterDataAccessor dataAccessor, InstancePropertyType type,
+      ClusterDataAccessor dataAccessor, PropertyType type,
       Class<T> clazz)
   {
-    List<ZNRecord> instancePropertyList = dataAccessor.getInstancePropertyList(
-        instanceName, type);
+    List<ZNRecord> instancePropertyList = dataAccessor.getChildValues(type,
+        instanceName);
     Map<String, T> map = ZNRecordUtil.convertListToTypedMap(
         instancePropertyList, clazz);
     return map;
   }
 
   private <T extends Object> Map<String, T> retrieve(
-      ClusterDataAccessor dataAccessor, ClusterPropertyType type, Class<T> clazz)
+      ClusterDataAccessor dataAccessor, PropertyType type, Class<T> clazz)
   {
 
     List<ZNRecord> clusterPropertyList;
-    clusterPropertyList = dataAccessor.getClusterPropertyList(type);
+    clusterPropertyList = dataAccessor.getChildValues(type);
     Map<String, T> map = ZNRecordUtil.convertListToTypedMap(
         clusterPropertyList, clazz);
     return map;

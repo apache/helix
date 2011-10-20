@@ -13,6 +13,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.testng.Assert;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
@@ -24,8 +25,8 @@ public class TestRoutingTable
 {
   NotificationContext changeContext = null;
 
-  @BeforeTest (groups = {"unitTest"})
-  public void setup()
+  @BeforeClass (groups = {"unitTest"})
+  public synchronized void setup()
   {
 
     final String[] array = new String[]
@@ -42,10 +43,10 @@ public class TestRoutingTable
           _mockAccessor = new Mocks.MockAccessor()
           {
             @Override
-            public List<ZNRecord> getClusterPropertyList(
-                ClusterPropertyType clusterProperty)
+            public List<ZNRecord> getChildValues(
+                PropertyType clusterProperty,String... keys)
             {
-              if (clusterProperty == ClusterPropertyType.CONFIGS)
+              if (clusterProperty == PropertyType.CONFIGS)
               {
                 List<ZNRecord> configs = new ArrayList<ZNRecord>();
                 for (String instanceName : array)

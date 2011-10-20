@@ -1,5 +1,6 @@
 package com.linkedin.clustermanager.participant;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.I0Itec.zkclient.exception.ZkNodeExistsException;
@@ -45,6 +46,14 @@ public class DistClusterControllerElection implements ControllerChangeListener
     ClusterManager manager = changeContext.getManager();
     try
     {
+      InstanceType type = manager.getInstanceType();
+      if (type != InstanceType.CONTROLLER && type != InstanceType.CONTROLLER_PARTICIPANT)
+      {
+        LOG.error("fail to setup a cluster controller: instanceType incorrect:"
+            + type.toString());
+        return;
+      }
+      
       if (changeContext.getType().equals(NotificationContext.Type.INIT)
           || changeContext.getType().equals(NotificationContext.Type.CALLBACK))
       {
@@ -54,7 +63,7 @@ public class DistClusterControllerElection implements ControllerChangeListener
           if (_controller == null)
           {
             _controller = new GenericClusterController();
-            InstanceType type = manager.getInstanceType();
+
             if (type == InstanceType.CONTROLLER)
             {
               ClusterManagerMain.addListenersToController(manager, _controller);
@@ -68,10 +77,6 @@ public class DistClusterControllerElection implements ControllerChangeListener
                                                                        _zkAddr);
               _leader.connect();
               ClusterManagerMain.addListenersToController(_leader, _controller);
-            } else
-            {
-              LOG.error("fail to setup a cluster controller: instanceType incorrect:"
-                  + type.toString());
             }
           }
         }
@@ -103,8 +108,17 @@ public class DistClusterControllerElection implements ControllerChangeListener
         // set controller history
         ZNRecord histRecord =
             dataAccessor.getControllerProperty(ControllerPropertyType.HISTORY);
+        if (histRecord == null)
+        {
+          histRecord = new ZNRecord(ControllerPropertyType.HISTORY.toString());
+        }
 
         List<String> list = histRecord.getListField(clusterName);
+        if (list == null)
+        {
+          list = new ArrayList<String>();
+          histRecord.setListField(clusterName, list);
+        }
 
         list.add(instanceName);
         dataAccessor.setControllerProperty(ControllerPropertyType.HISTORY,

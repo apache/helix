@@ -49,7 +49,7 @@ public class TestClusterManagerStartsup extends ZkStandAloneCMHandler
   public void testParticipantStartUp() throws Exception
   {
     setupCluster();
-    String controllerMsgPath = CMUtil.getControllerPropertyPath(CLUSTER_NAME, PropertyType.MESSAGES);
+    String controllerMsgPath = CMUtil.getControllerPropertyPath(CLUSTER_NAME, PropertyType.MESSAGES_CONTROLLER);
     _zkClient.deleteRecursive(controllerMsgPath);
     boolean exceptionThrown = false;
     ClusterManager manager = null;;

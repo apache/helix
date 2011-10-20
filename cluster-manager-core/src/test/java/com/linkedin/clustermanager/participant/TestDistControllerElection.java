@@ -42,7 +42,7 @@ public class TestDistControllerElection extends ZkUnitTestBase
     context.setType(NotificationContext.Type.INIT);
     election.onControllerChange(context);
 
-    path = PropertyPathConfig.getPath(PropertyType.CONTROLLER, clusterName, PropertyType.LEADER.toString());
+    path = PropertyPathConfig.getPath(PropertyType.LEADER, clusterName);
 
     ZNRecord leaderRecord = _zkClient.<ZNRecord> readData(path);
     AssertJUnit.assertEquals(controllerName, leaderRecord.getSimpleField("LEADER"));
@@ -86,7 +86,7 @@ public class TestDistControllerElection extends ZkUnitTestBase
     NotificationContext context = new NotificationContext(manager);
     context.setType(NotificationContext.Type.CALLBACK);
     election.onControllerChange(context);
-    path = PropertyPathConfig.getPath(PropertyType.CONTROLLER, clusterName, PropertyType.LEADER.toString());
+    path = PropertyPathConfig.getPath(PropertyType.LEADER, clusterName);
     ZNRecord leaderRecord = _zkClient.<ZNRecord> readData(path);
     AssertJUnit.assertEquals(controllerName, leaderRecord.getSimpleField("LEADER"));
     AssertJUnit.assertNotNull(election.getController());
@@ -129,7 +129,7 @@ public class TestDistControllerElection extends ZkUnitTestBase
     context.setType(NotificationContext.Type.INIT);
     election.onControllerChange(context);
 
-    path = PropertyPathConfig.getPath(PropertyType.CONTROLLER, clusterName, PropertyType.LEADER.toString());
+    path = PropertyPathConfig.getPath(PropertyType.LEADER, clusterName);
     ZNRecord leaderRecord = _zkClient.<ZNRecord> readData(path, true);
     AssertJUnit.assertNull(leaderRecord);
     AssertJUnit.assertNull(election.getController());

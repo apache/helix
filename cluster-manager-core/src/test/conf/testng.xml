@@ -24,6 +24,7 @@
       <class name="com.linkedin.clustermanager.TestZKPropertyStore"/>
       <class name="com.linkedin.clustermanager.TestZkPropertyStoreSessionExpiry"/>
       <class name="com.linkedin.clustermanager.TestZnodeModify"/>
+      <class name="com.linkedin.clustermanager.TestZKCallback"/>
     </classes>
   </test>
 </suite>

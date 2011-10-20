@@ -31,36 +31,35 @@ public class ZKDataAccessor implements ClusterDataAccessor
   }
 
   /*
-   * @Override public void setClusterProperty(PropertyType
-   * clusterProperty, String key, final ZNRecord value) { String zkPropertyPath
-   * = CMUtil.getPropertyPath(_clusterName, clusterProperty); String
+   * @Override public void setClusterProperty(PropertyType clusterProperty,
+   * String key, final ZNRecord value) { String zkPropertyPath =
+   * CMUtil.getPropertyPath(_clusterName, clusterProperty); String
    * targetValuePath = zkPropertyPath + "/" + key;
    * 
    * ZKUtil.createOrReplace(_zkClient, targetValuePath, value,
    * clusterProperty.isPersistent()); }
    * 
-   * @Override public void updateClusterProperty(PropertyType
-   * clusterProperty, String key, final ZNRecord value) { String
-   * clusterPropertyPath = CMUtil.getPropertyPath(_clusterName,
-   * clusterProperty); String targetValuePath = clusterPropertyPath + "/" + key;
-   * if (clusterProperty.isUpdateOnlyOnExists()) {
-   * ZKUtil.updateIfExists(_zkClient, targetValuePath, value,
-   * clusterProperty.isMergeOnUpdate()); } else {
+   * @Override public void updateClusterProperty(PropertyType clusterProperty,
+   * String key, final ZNRecord value) { String clusterPropertyPath =
+   * CMUtil.getPropertyPath(_clusterName, clusterProperty); String
+   * targetValuePath = clusterPropertyPath + "/" + key; if
+   * (clusterProperty.isUpdateOnlyOnExists()) { ZKUtil.updateIfExists(_zkClient,
+   * targetValuePath, value, clusterProperty.isMergeOnUpdate()); } else {
    * ZKUtil.createOrUpdate(_zkClient, targetValuePath, value,
    * clusterProperty.isPersistent(), clusterProperty.isMergeOnUpdate()); } }
    * 
-   * @Override public ZNRecord getProperty(PropertyType
-   * clusterProperty, String key) { String clusterPropertyPath =
-   * CMUtil.getPropertyPath(_clusterName, clusterProperty); String
-   * targetPath = clusterPropertyPath + "/" + key; ZNRecord nodeRecord =
-   * _zkClient.readData(targetPath, true); return nodeRecord; }
+   * @Override public ZNRecord getProperty(PropertyType clusterProperty, String
+   * key) { String clusterPropertyPath = CMUtil.getPropertyPath(_clusterName,
+   * clusterProperty); String targetPath = clusterPropertyPath + "/" + key;
+   * ZNRecord nodeRecord = _zkClient.readData(targetPath, true); return
+   * nodeRecord; }
    * 
    * @Override public List<ZNRecord> getPropertyList( PropertyType
    * clusterProperty) { String clusterPropertyPath =
-   * CMUtil.getPropertyPath(_clusterName, clusterProperty);
-   * List<ZNRecord> children; children = ZKUtil.getChildren(_zkClient,
-   * clusterPropertyPath); _clusterView.setClusterPropertyList(clusterProperty,
-   * children); return children; }
+   * CMUtil.getPropertyPath(_clusterName, clusterProperty); List<ZNRecord>
+   * children; children = ZKUtil.getChildren(_zkClient, clusterPropertyPath);
+   * _clusterView.setClusterPropertyList(clusterProperty, children); return
+   * children; }
    * 
    * @Override public void setInstanceProperty(String instanceName,
    * InstancePropertyType type, String key, final ZNRecord value) { String path
@@ -98,10 +97,10 @@ public class ZKDataAccessor implements ClusterDataAccessor
    * 
    * public ClusterView getClusterView() { return _clusterView; }
    * 
-   * @Override public void setClusterProperty(PropertyType
-   * clusterProperty, String key, final ZNRecord value, CreateMode mode) {
-   * String zkPropertyPath = CMUtil.getPropertyPath(_clusterName,
-   * clusterProperty); String targetValuePath = zkPropertyPath + "/" + key;
+   * @Override public void setClusterProperty(PropertyType clusterProperty,
+   * String key, final ZNRecord value, CreateMode mode) { String zkPropertyPath
+   * = CMUtil.getPropertyPath(_clusterName, clusterProperty); String
+   * targetValuePath = zkPropertyPath + "/" + key;
    * 
    * if (_zkClient.exists(targetValuePath)) { DataUpdater<ZNRecord> updater =
    * new DataUpdater<ZNRecord>() {
@@ -110,10 +109,10 @@ public class ZKDataAccessor implements ClusterDataAccessor
    * _zkClient.updateDataSerialized(targetValuePath, updater); } else {
    * _zkClient.create(targetValuePath, value, mode); } }
    * 
-   * @Override public void removeClusterProperty(PropertyType
-   * clusterProperty, String key) { String path =
-   * CMUtil.getPropertyPath(_clusterName, clusterProperty) + "/" + key;
-   * if (_zkClient.exists(path)) { boolean b = _zkClient.delete(path); if (!b) {
+   * @Override public void removeClusterProperty(PropertyType clusterProperty,
+   * String key) { String path = CMUtil.getPropertyPath(_clusterName,
+   * clusterProperty) + "/" + key; if (_zkClient.exists(path)) { boolean b =
+   * _zkClient.delete(path); if (!b) {
    * logger.warn("Unable to remove property at path:" + path); } } else {
    * logger.warn("No property to remove at path:" + path); } }
    * 
@@ -242,7 +241,11 @@ public class ZKDataAccessor implements ClusterDataAccessor
       String... keys)
   {
     String path = PropertyPathConfig.getPath(type, _clusterName, keys);
-
+    String parent = new File(path).getParent();
+    if (!_zkClient.exists(parent))
+    {
+      _zkClient.createPersistent(parent, true);
+    }
     if (_zkClient.exists(path))
     {
       DataUpdater<ZNRecord> updater = new DataUpdater<ZNRecord>()
@@ -256,7 +259,6 @@ public class ZKDataAccessor implements ClusterDataAccessor
       _zkClient.updateDataSerialized(path, updater);
     } else
     {
-      _zkClient.createPersistent(new File(path).getParent(), true);
       if (type.isPersistent())
       {
         _zkClient.createPersistent(path, value);
@@ -278,6 +280,12 @@ public class ZKDataAccessor implements ClusterDataAccessor
       ZKUtil.updateIfExists(_zkClient, path, value, type.isMergeOnUpdate());
     } else
     {
+      String parent = new File(path).getParent();
+
+      if (!_zkClient.exists(parent))
+      {
+        _zkClient.createPersistent(parent, true);
+      }
       ZKUtil.createOrUpdate(_zkClient, path, value, type.isPersistent(),
           type.isMergeOnUpdate());
     }
@@ -323,8 +331,8 @@ public class ZKDataAccessor implements ClusterDataAccessor
   @Override
   public PropertyStore<ZNRecord> getStore()
   {
-    // TODO Auto-generated method stub 
+    // TODO Auto-generated method stub
     return null;
-    
+
   }
 }

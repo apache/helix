@@ -23,6 +23,7 @@ public class TestCMTaskExecutor
    
     message.setMsgId(msgId);
     message.setSrcName("cm-instance-0");
+    message.setTgtName("cm-instance-1");
     message.setTgtSessionId("1234");
     message.setFromState("Offline");
     message.setToState("Slave");

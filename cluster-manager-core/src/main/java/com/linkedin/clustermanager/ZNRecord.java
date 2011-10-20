@@ -146,6 +146,9 @@ public class ZNRecord
    */
   public void merge(ZNRecord record)
   {
+    if(record == null){
+      return;
+    }
     simpleFields.putAll(record.simpleFields);
     for (String key : record.mapFields.keySet())
     {
@@ -170,7 +173,34 @@ public class ZNRecord
       }
     }
   }
-
+  @Override
+  public boolean equals(Object obj)
+  {
+    if(!(obj instanceof ZNRecord)){
+      return false;
+    }
+    ZNRecord that = (ZNRecord) obj;
+    if(this.getSimpleFields().size()!= that.getSimpleFields().size()){
+      return false;
+    }
+    if(this.getMapFields().size()!= that.getMapFields().size()){
+      return false;
+    }
+    if(this.getListFields().size()!= that.getListFields().size()){
+      return false;
+    }
+    if(!this.getSimpleFields().equals(that.getSimpleFields())){
+      return false;
+    }
+    if(!this.getMapFields().equals(that.getMapFields())){
+      return false;
+    }
+    if(!this.getListFields().equals(that.getListFields())){
+      return false;
+    }
+    
+    return true;
+  }
   public void substract(ZNRecord value)
   {
     for (String key : value.getSimpleFields().keySet())

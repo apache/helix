@@ -8,9 +8,9 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.ClusterDataAccessor;
-import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.ClusterDataAccessor.IdealStateConfigProperty;
 import com.linkedin.clustermanager.ClusterManager;
+import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.model.IdealState;
 import com.linkedin.clustermanager.model.ResourceGroup;
@@ -41,11 +41,11 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
     ClusterDataAccessor dataAccessor = manager.getDataAccessor();
     List<ZNRecord> liveInstances;
     liveInstances = dataAccessor
-        .getClusterPropertyList(ClusterPropertyType.LIVEINSTANCES);
+        .getChildValues(PropertyType.LIVEINSTANCES);
     List<ZNRecord> idealStates = dataAccessor
-        .getClusterPropertyList(ClusterPropertyType.IDEALSTATES);
+        .getChildValues(PropertyType.IDEALSTATES);
     List<ZNRecord> stateModelDefs = dataAccessor
-        .getClusterPropertyList(ClusterPropertyType.STATEMODELDEFS);
+        .getChildValues(PropertyType.STATEMODELDEFS);
     CurrentStateOutput currentStateOutput = event
         .getAttribute(AttributeName.CURRENT_STATE.toString());
     Map<String, ResourceGroup> resourceGroupMap = event

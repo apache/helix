@@ -1,8 +1,7 @@
 package com.linkedin.clustermanager.util;
 
-import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
-import com.linkedin.clustermanager.ClusterDataAccessor.ControllerPropertyType;
-import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
+import com.linkedin.clustermanager.PropertyPathConfig;
+import com.linkedin.clustermanager.PropertyType;
 
 public final class CMUtil
 {
@@ -10,43 +9,43 @@ public final class CMUtil
   {
   }
 
-  public static String getClusterPropertyPath(String clusterName,
-      ClusterPropertyType type)
+  public static String getPropertyPath(String clusterName,
+      PropertyType type)
   {
     return "/" + clusterName + "/" + type.toString();
   }
 
   public static String getInstancePropertyPath(String clusterName,
-      String instanceName, InstancePropertyType type)
+      String instanceName, PropertyType type)
   {
-    return getClusterPropertyPath(clusterName, ClusterPropertyType.INSTANCES)
+    return getPropertyPath(clusterName, PropertyType.INSTANCES)
         + "/" + instanceName + "/" + type.toString();
   }
 
   public static String getInstancePath(String clusterName, String instanceName)
   {
-	return getClusterPropertyPath(clusterName, ClusterPropertyType.INSTANCES)
+	return getPropertyPath(clusterName, PropertyType.INSTANCES)
 		+ "/" + instanceName;
   }
   
   public static String getIdealStatePath(String clusterName,String stateUnitGroup)
   {
-    return getClusterPropertyPath(clusterName, ClusterPropertyType.IDEALSTATES) + "/" + stateUnitGroup;
+    return getPropertyPath(clusterName, PropertyType.IDEALSTATES) + "/" + stateUnitGroup;
   }
   public static String getIdealStatePath(String clusterName)
   {
-    return getClusterPropertyPath(clusterName, ClusterPropertyType.IDEALSTATES);
+    return getPropertyPath(clusterName, PropertyType.IDEALSTATES);
   }
 
   public static String getLiveInstancesPath(String clusterName)
   {
-    return getClusterPropertyPath(clusterName,
-        ClusterPropertyType.LIVEINSTANCES);
+    return getPropertyPath(clusterName,
+        PropertyType.LIVEINSTANCES);
   }
 
   public static String getConfigPath(String clusterName)
   {
-    return getClusterPropertyPath(clusterName, ClusterPropertyType.CONFIGS);
+    return getPropertyPath(clusterName, PropertyType.CONFIGS);
   }
 
   public static String getConfigPath(String clusterName, String instanceName)
@@ -57,14 +56,14 @@ public final class CMUtil
   public static String getMessagePath(String clusterName, String instanceName)
   {
     return getInstancePropertyPath(clusterName, instanceName,
-        InstancePropertyType.MESSAGES);
+        PropertyType.MESSAGES);
   }
 
   public static String getCurrentStateBasePath(String clusterName,
       String instanceName)
   {
     return getInstancePropertyPath(clusterName, instanceName,
-        InstancePropertyType.CURRENTSTATES);
+        PropertyType.CURRENTSTATES);
   }
 
   /**
@@ -86,56 +85,56 @@ public final class CMUtil
       String instanceName, String sessionId, String stateUnitKey)
   {
     return getInstancePropertyPath(clusterName, instanceName,
-        InstancePropertyType.CURRENTSTATES) +"/" + sessionId + "/" + stateUnitKey;
+        PropertyType.CURRENTSTATES) +"/" + sessionId + "/" + stateUnitKey;
   }
 
   public static String getExternalViewPath(String clusterName)
   {
-    return getClusterPropertyPath(clusterName, ClusterPropertyType.EXTERNALVIEW);
+    return getPropertyPath(clusterName, PropertyType.EXTERNALVIEW);
   }
   
   public static String getStateModelDefinitionPath(String clusterName)
   {
-    return getClusterPropertyPath(clusterName, ClusterPropertyType.STATEMODELDEFS);
+    return getPropertyPath(clusterName, PropertyType.STATEMODELDEFS);
   }
 
   public static String getExternalViewPath(String clusterName,
       String stateUnitGroup)
   {
-    return getClusterPropertyPath(clusterName, ClusterPropertyType.EXTERNALVIEW)
+    return getPropertyPath(clusterName, PropertyType.EXTERNALVIEW)
         + "/" + stateUnitGroup;
   }
 
   public static String getLiveInstancePath(String clusterName,
       String instanceName)
   {
-    return getClusterPropertyPath(clusterName,
-        ClusterPropertyType.LIVEINSTANCES) + "/" + instanceName;
+    return getPropertyPath(clusterName,
+       PropertyType.LIVEINSTANCES) + "/" + instanceName;
   }
 
   public static String getMemberInstancesPath(String clusterName)
   {
-    return getClusterPropertyPath(clusterName, ClusterPropertyType.INSTANCES);
+    return getPropertyPath(clusterName, PropertyType.INSTANCES);
   }
   
   public static String getErrorsPath(String clusterName, String instanceName)
   {
     return getInstancePropertyPath(clusterName, instanceName,
-        InstancePropertyType.ERRORS);
+        PropertyType.ERRORS);
   }
 
   public static String getStatusUpdatesPath(String clusterName,
       String instanceName)
   {
     return getInstancePropertyPath(clusterName, instanceName,
-        InstancePropertyType.STATUSUPDATES);
+        PropertyType.STATUSUPDATES);
   }
 
   public static String getInstanceNameFromPath(String path)
   {
     // path structure
     // /<cluster_name>/instances/<instance_name>/[currentStates/messages]
-    if (path.contains("/" + ClusterPropertyType.INSTANCES + "/"))
+    if (path.contains("/" + PropertyType.INSTANCES + "/"))
     {
       String[] split = path.split("\\/");
       if (split.length > 3)
@@ -149,12 +148,12 @@ public final class CMUtil
   // distributed cluster controller
   public static String getControllerPath(String clusterName)
   {
-    return getClusterPropertyPath(clusterName, ClusterPropertyType.CONTROLLER);
+    return getPropertyPath(clusterName, PropertyType.CONTROLLER);
   }
   
   public static String getControllerPropertyPath(String clusterName, 
-                                                 ControllerPropertyType type) 
+                                                 PropertyType type) 
   {
-    return getControllerPath(clusterName) + "/" + type.toString();
+    return PropertyPathConfig.getPath(type, clusterName);
   }
 }

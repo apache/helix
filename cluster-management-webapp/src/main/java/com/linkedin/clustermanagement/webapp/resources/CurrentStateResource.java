@@ -5,6 +5,7 @@ import java.io.StringWriter;
 import java.util.List;
 import java.util.Map;
 
+import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
@@ -22,13 +23,12 @@ import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 
 import com.linkedin.clustermanagement.webapp.RestAdminApplication;
-import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
-import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.tools.ClusterSetup;
 
 public class CurrentStateResource extends Resource
 {
-  public CurrentStateResource(Context context, Request request, Response response)
+  public CurrentStateResource(Context context, Request request,
+      Response response)
   {
     super(context, request, response);
     getVariants().add(new Variant(MediaType.TEXT_PLAIN));
@@ -60,29 +60,40 @@ public class CurrentStateResource extends Resource
     StringRepresentation presentation = null;
     try
     {
-      String zkServer = (String) getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
-      String clusterName = (String) getRequest().getAttributes().get("clusterName");
-      String instanceName = (String) getRequest().getAttributes().get("instanceName");
-      String resourceGroup = (String) getRequest().getAttributes().get("resourceName");
-      
-      presentation = getInstanceCurrentStateRepresentation(zkServer, clusterName, instanceName, resourceGroup);
-    }
-    catch (Exception e)
+      String zkServer = (String) getContext().getAttributes().get(
+          RestAdminApplication.ZKSERVERADDRESS);
+      String clusterName = (String) getRequest().getAttributes().get(
+          "clusterName");
+      String instanceName = (String) getRequest().getAttributes().get(
+          "instanceName");
+      String resourceGroup = (String) getRequest().getAttributes().get(
+          "resourceName");
+
+      presentation = getInstanceCurrentStateRepresentation(zkServer,
+          clusterName, instanceName, resourceGroup);
+    } catch (Exception e)
     {
-      String error = ClusterRepresentationUtil.getErrorAsJsonStringFromException(e);
+      String error = ClusterRepresentationUtil
+          .getErrorAsJsonStringFromException(e);
       presentation = new StringRepresentation(error, MediaType.APPLICATION_JSON);
-      
+
       e.printStackTrace();
     }
     return presentation;
   }
 
-  StringRepresentation getInstanceCurrentStateRepresentation(String zkServerAddress, String clusterName, String instanceName, String resourceGroup) throws JsonGenerationException, JsonMappingException, IOException
+  StringRepresentation getInstanceCurrentStateRepresentation(
+      String zkServerAddress, String clusterName, String instanceName,
+      String resourceGroup) throws JsonGenerationException,
+      JsonMappingException, IOException
   {
-    String instanceSessionId = ClusterRepresentationUtil.getInstanceSessionId(zkServerAddress, clusterName, instanceName);
-    String message = 
-        ClusterRepresentationUtil.getInstancePropertyAsString(zkServerAddress, clusterName, instanceName, InstancePropertyType.CURRENTSTATES, instanceSessionId+"/"+resourceGroup, MediaType.APPLICATION_JSON);
-    StringRepresentation representation = new StringRepresentation(message, MediaType.APPLICATION_JSON);
+    String instanceSessionId = ClusterRepresentationUtil.getInstanceSessionId(
+        zkServerAddress, clusterName, instanceName);
+    String message = ClusterRepresentationUtil.getInstancePropertyAsString(
+        zkServerAddress, clusterName, instanceName, PropertyType.CURRENTSTATES,
+        instanceSessionId + "/" + resourceGroup, MediaType.APPLICATION_JSON);
+    StringRepresentation representation = new StringRepresentation(message,
+        MediaType.APPLICATION_JSON);
     return representation;
   }
 }

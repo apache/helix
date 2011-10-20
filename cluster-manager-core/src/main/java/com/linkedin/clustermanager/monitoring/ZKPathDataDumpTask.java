@@ -10,10 +10,8 @@ import org.apache.zookeeper.data.Stat;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.SerializationConfig;
 
-import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
-import com.linkedin.clustermanager.ClusterDataAccessor.ControllerPropertyType;
-import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.ClusterManager;
+import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
@@ -48,22 +46,22 @@ public class ZKPathDataDumpTask extends TimerTask
     try
     {
       List<ZNRecord> instances = _manager.getDataAccessor()
-          .getClusterPropertyList(ClusterPropertyType.CONFIGS);
+          .getChildValues(PropertyType.CONFIGS);
       for (ZNRecord instance : instances)
       {
         String instanceName = instance.getId();
         scanPath(CMUtil.getInstancePropertyPath(_manager.getClusterName(),
-            instanceName, InstancePropertyType.STATUSUPDATES),
+            instanceName, PropertyType.STATUSUPDATES),
             _thresholdNoChangeInMs);
         scanPath(CMUtil.getInstancePropertyPath(_manager.getClusterName(),
-            instanceName, InstancePropertyType.ERRORS),
+            instanceName, PropertyType.ERRORS),
             _thresholdNoChangeInMs * 3);
       }
       scanPath(CMUtil.getControllerPropertyPath(_manager.getClusterName(),
-          ControllerPropertyType.STATUSUPDATES), _thresholdNoChangeInMs);
+          PropertyType.STATUSUPDATES), _thresholdNoChangeInMs);
       
       scanPath(CMUtil.getControllerPropertyPath(_manager.getClusterName(),
-          ControllerPropertyType.ERRORS), _thresholdNoChangeInMs * 3);
+          PropertyType.ERRORS), _thresholdNoChangeInMs * 3);
     } 
     catch (Exception e)
     {

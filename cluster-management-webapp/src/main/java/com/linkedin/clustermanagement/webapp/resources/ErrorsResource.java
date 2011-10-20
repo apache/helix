@@ -1,30 +1,20 @@
 package com.linkedin.clustermanagement.webapp.resources;
 
 import java.io.IOException;
-import java.io.StringWriter;
-import java.util.List;
-import java.util.Map;
 
-import com.linkedin.clustermanager.agent.zk.ZkClient;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.map.SerializationConfig;
 import org.restlet.Context;
-import org.restlet.data.Form;
 import org.restlet.data.MediaType;
 import org.restlet.data.Request;
 import org.restlet.data.Response;
-import org.restlet.data.Status;
 import org.restlet.resource.Representation;
 import org.restlet.resource.Resource;
 import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 
 import com.linkedin.clustermanagement.webapp.RestAdminApplication;
-import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
-import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
-import com.linkedin.clustermanager.tools.ClusterSetup;
+import com.linkedin.clustermanager.PropertyType;
 
 public class ErrorsResource extends Resource
 {
@@ -79,7 +69,7 @@ public class ErrorsResource extends Resource
   {
       String instanceSessionId = ClusterRepresentationUtil.getInstanceSessionId(zkServerAddress, clusterName, instanceName);
       
-      String message = ClusterRepresentationUtil.getInstancePropertyNameListAsString(zkServerAddress, clusterName, instanceName, InstancePropertyType.CURRENTSTATES, instanceSessionId, MediaType.APPLICATION_JSON);
+      String message = ClusterRepresentationUtil.getInstancePropertyNameListAsString(zkServerAddress, clusterName, instanceName, PropertyType.CURRENTSTATES, instanceSessionId, MediaType.APPLICATION_JSON);
 
       StringRepresentation representation = new StringRepresentation(message, MediaType.APPLICATION_JSON);
 

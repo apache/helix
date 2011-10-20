@@ -11,12 +11,12 @@ import org.I0Itec.zkclient.IDefaultNameSpace;
 import org.I0Itec.zkclient.ZkServer;
 import org.apache.commons.io.FileUtils;
 import org.testng.AssertJUnit;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.AfterTest;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
-import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
-import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.Message.MessageType;
 import com.linkedin.clustermanager.tools.ClusterSetup;
@@ -101,7 +101,6 @@ public class TestZKCallback
     public void onExternalViewChange(List<ZNRecord> externalViewList,
         NotificationContext changeContext)
     {
-      // TODO Auto-generated method stub
       externalViewChangeReceived = true;
     }
 
@@ -109,7 +108,6 @@ public class TestZKCallback
     public void onStateChange(String instanceName, List<ZNRecord> statesInfo,
         NotificationContext changeContext)
     {
-      // TODO Auto-generated method stub
       currentStateChangeReceived = true;
     }
 
@@ -117,7 +115,6 @@ public class TestZKCallback
     public void onConfigChange(List<ZNRecord> configs,
         NotificationContext changeContext)
     {
-      // TODO Auto-generated method stub
       configChangeReceived = true;
     }
 
@@ -125,7 +122,6 @@ public class TestZKCallback
     public void onLiveInstanceChange(List<ZNRecord> liveInstances,
         NotificationContext changeContext)
     {
-      // TODO Auto-generated method stub
       liveInstanceChangeReceived = true;
     }
 
@@ -133,7 +129,6 @@ public class TestZKCallback
     public void onMessage(String instanceName, List<ZNRecord> messages,
         NotificationContext changeContext)
     {
-      // TODO Auto-generated method stub
       messageChangeReceived = true;
     }
 
@@ -156,7 +151,8 @@ public class TestZKCallback
     }
   }
 
-  @Test (groups = {"unitTest"})
+  @Test(groups =
+  { "unitTest" })
   public void testInvocation() throws Exception
   {
 
@@ -171,7 +167,7 @@ public class TestZKCallback
 
     testClusterManager.addMessageListener(testListener, "localhost_8900");
     testClusterManager.addCurrentStateChangeListener(testListener,
-        "localhost_8900",testClusterManager.getSessionId());
+        "localhost_8900", testClusterManager.getSessionId());
     testClusterManager.addConfigChangeListener(testListener);
     testClusterManager.addIdealStateChangeListener(testListener);
     testClusterManager.addExternalViewChangeListener(testListener);
@@ -188,47 +184,46 @@ public class TestZKCallback
     testListener.Reset();
     ClusterDataAccessor dataAccessor = testClusterManager.getDataAccessor();
     ZNRecord dummyRecord = new ZNRecord("db-12345");
-    dataAccessor.setClusterProperty(ClusterPropertyType.EXTERNALVIEW,
-        "db-12345", dummyRecord);
+    dataAccessor
+        .setProperty(PropertyType.EXTERNALVIEW, dummyRecord, "db-12345" );
     Thread.sleep(100);
     AssertJUnit.assertTrue(testListener.externalViewChangeReceived);
     testListener.Reset();
 
-    dataAccessor.setInstanceProperty("localhost_8900",
-        InstancePropertyType.CURRENTSTATES, testClusterManager.getSessionId(),dummyRecord.getId(), dummyRecord);
+    dataAccessor.setProperty(PropertyType.CURRENTSTATES,dummyRecord, "localhost_8900", 
+        testClusterManager.getSessionId(), dummyRecord.getId() );
     Thread.sleep(100);
     AssertJUnit.assertTrue(testListener.currentStateChangeReceived);
     testListener.Reset();
 
     dummyRecord = new ZNRecord("db-1234");
-    dataAccessor.setClusterProperty(ClusterPropertyType.IDEALSTATES, "db-1234",
-        dummyRecord);
+    dataAccessor.setProperty(PropertyType.IDEALSTATES, dummyRecord,"db-1234");
     Thread.sleep(100);
     AssertJUnit.assertTrue(testListener.idealStateChangeReceived);
     testListener.Reset();
 
     dummyRecord = new ZNRecord("db-12345");
-    dataAccessor.setClusterProperty(ClusterPropertyType.IDEALSTATES,
-        "db-12345", dummyRecord);
+    dataAccessor.setProperty(PropertyType.IDEALSTATES,dummyRecord, "db-12345" );
     Thread.sleep(100);
     AssertJUnit.assertTrue(testListener.idealStateChangeReceived);
     testListener.Reset();
-   
+
     dummyRecord = new ZNRecord("localhost:8900");
     List<ZNRecord> recList = new ArrayList<ZNRecord>();
     recList.add(dummyRecord);
 
     testListener.Reset();
-    Message message = new Message(MessageType.STATE_TRANSITION,UUID.randomUUID().toString());
+    Message message = new Message(MessageType.STATE_TRANSITION, UUID
+        .randomUUID().toString());
     message.setTgtSessionId("*");
-    dataAccessor.setInstanceProperty("localhost_8900",
-        InstancePropertyType.MESSAGES, message.getId(), message.getRecord());
+    dataAccessor.setProperty(PropertyType.MESSAGES, message.getRecord(),
+        "localhost_8900", message.getId());
     Thread.sleep(100);
     AssertJUnit.assertTrue(testListener.messageChangeReceived);
 
     dummyRecord = new ZNRecord("localhost_9801");
-    dataAccessor.setClusterProperty(ClusterPropertyType.LIVEINSTANCES,
-        "localhost_9801", dummyRecord);
+    dataAccessor.setProperty(PropertyType.LIVEINSTANCES, dummyRecord,
+        "localhost_9801");
     Thread.sleep(100);
     AssertJUnit.assertTrue(testListener.liveInstanceChangeReceived);
     testListener.Reset();
@@ -240,7 +235,8 @@ public class TestZKCallback
 
   }
 
-  @BeforeTest (groups = {"unitTest"})
+  @BeforeClass(groups =
+  { "unitTest" })
   public void setup() throws IOException, Exception
   {
     List<Integer> localPorts = new ArrayList<Integer>();
@@ -271,7 +267,8 @@ public class TestZKCallback
         .processCommandLineArgs(createArgs("-zkSvr localhost:2300 -rebalance storage-cluster-12345 db-12345 3"));
   }
 
-  @AfterTest (groups = {"unitTest"})
+  @AfterClass(groups =
+  { "unitTest" })
   public void tearDown()
   {
     stopLocalZookeeper(_localZkServers);

@@ -14,9 +14,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.ClusterDataAccessor;
-import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.ExternalViewChangeListener;
 import com.linkedin.clustermanager.NotificationContext;
+import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.model.InstanceConfig;
 import com.linkedin.clustermanager.util.ZNRecordUtil;
@@ -111,7 +111,7 @@ public class RoutingTableProvider implements ExternalViewChangeListener
 		ClusterDataAccessor dataAccessor = changeContext.getManager()
 		    .getDataAccessor();
 		List<ZNRecord> configList = dataAccessor
-		    .getClusterPropertyList(ClusterPropertyType.CONFIGS);
+		    .getChildValues(PropertyType.CONFIGS);
 		Map<String, InstanceConfig> instanceConfigMap = new HashMap<String, InstanceConfig>();
 		for (ZNRecord config : configList)
 		{

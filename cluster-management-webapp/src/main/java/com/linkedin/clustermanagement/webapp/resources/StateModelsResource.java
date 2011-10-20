@@ -24,8 +24,8 @@ import org.restlet.resource.Variant;
 
 import com.linkedin.clustermanagement.webapp.RestAdminApplication;
 import com.linkedin.clustermanager.ClusterDataAccessor;
-import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.ClusterManagerException;
+import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.tools.ClusterSetup;
 
@@ -114,9 +114,9 @@ public class StateModelsResource extends Resource
             ZNRecord.class);
         
         ClusterDataAccessor accessor = ClusterRepresentationUtil.getClusterDataAccessor(zkServer,  clusterName);
-        accessor.removeClusterProperty(ClusterPropertyType.STATEMODELDEFS, newStateModel.getId());
+        accessor.removeProperty(PropertyType.STATEMODELDEFS, newStateModel.getId());
         
-        accessor.setClusterProperty(ClusterPropertyType.STATEMODELDEFS, newStateModel.getId(), newStateModel);
+        accessor.setProperty(PropertyType.STATEMODELDEFS, newStateModel,newStateModel.getId() );
         getResponse().setEntity(getStateModelsRepresentation(zkServer, clusterName));
       }
       else

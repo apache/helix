@@ -5,6 +5,7 @@ import java.io.StringWriter;
 import java.util.List;
 import java.util.Map;
 
+import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
@@ -22,8 +23,6 @@ import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 
 import com.linkedin.clustermanagement.webapp.RestAdminApplication;
-import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
-import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.tools.ClusterSetup;
 
 public class CurrentStatesResource extends Resource
@@ -79,7 +78,7 @@ public class CurrentStatesResource extends Resource
   {
     String instanceSessionId = ClusterRepresentationUtil.getInstanceSessionId(zkServerAddress, clusterName, instanceName);
     
-    String message = ClusterRepresentationUtil.getInstancePropertyNameListAsString(zkServerAddress, clusterName, instanceName, InstancePropertyType.CURRENTSTATES, instanceSessionId, MediaType.APPLICATION_JSON);
+    String message = ClusterRepresentationUtil.getInstancePropertyNameListAsString(zkServerAddress, clusterName, instanceName, PropertyType.CURRENTSTATES, instanceSessionId, MediaType.APPLICATION_JSON);
 
     StringRepresentation representation = new StringRepresentation(message, MediaType.APPLICATION_JSON);
 

@@ -10,8 +10,8 @@ import java.util.UUID;
 import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.ClusterDataAccessor;
-import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.ClusterManager;
+import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.model.LiveInstance;
 import com.linkedin.clustermanager.model.Message;
@@ -40,7 +40,7 @@ public class MessageGenerationPhase extends AbstractBaseStage
     }
     ClusterDataAccessor dataAccessor = manager.getDataAccessor();
     List<ZNRecord> stateModelDefs = dataAccessor
-        .getClusterPropertyList(ClusterPropertyType.STATEMODELDEFS);
+        .getChildValues(PropertyType.STATEMODELDEFS);
     Map<String, ResourceGroup> resourceGroupMap = event
         .getAttribute(AttributeName.RESOURCE_GROUPS.toString());
 
@@ -50,7 +50,7 @@ public class MessageGenerationPhase extends AbstractBaseStage
     BestPossibleStateOutput bestPossibleStateOutput = event
         .getAttribute(AttributeName.BEST_POSSIBLE_STATE.toString());
     List<ZNRecord> liveInstances = dataAccessor
-        .getClusterPropertyList(ClusterPropertyType.LIVEINSTANCES);
+        .getChildValues(PropertyType.LIVEINSTANCES);
     Map<String, String> sessionIdMap = new HashMap<String, String>();
     for (ZNRecord record : liveInstances)
     {

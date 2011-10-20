@@ -11,7 +11,6 @@ import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.CMConstants;
 import com.linkedin.clustermanager.ClusterDataAccessor;
-import com.linkedin.clustermanager.ClusterDataAccessor.ControllerPropertyType;
 import com.linkedin.clustermanager.ConfigChangeListener;
 import com.linkedin.clustermanager.ControllerChangeListener;
 import com.linkedin.clustermanager.CurrentStateChangeListener;
@@ -20,6 +19,7 @@ import com.linkedin.clustermanager.IdealStateChangeListener;
 import com.linkedin.clustermanager.LiveInstanceChangeListener;
 import com.linkedin.clustermanager.MessageListener;
 import com.linkedin.clustermanager.NotificationContext;
+import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.controller.stages.BestPossibleStateCalcStage;
 import com.linkedin.clustermanager.controller.stages.ClusterEvent;
@@ -264,7 +264,7 @@ public class GenericClusterController implements ConfigChangeListener,
 		
 		// double check if this controller is the leader
 		ZNRecord leaderRecord = dataAccessor
-		    .getControllerProperty(ControllerPropertyType.LEADER);
+		    .getProperty(PropertyType.LEADER);
 		if (leaderRecord == null)
 		{
 		  logger.warn("No controller exists for cluster:" + 
@@ -274,7 +274,7 @@ public class GenericClusterController implements ConfigChangeListener,
 		else
 		{
   		  String leader = leaderRecord
-  		    .getSimpleField(ControllerPropertyType.LEADER.toString());
+  		    .getSimpleField(PropertyType.LEADER.toString());
   		  String name = changeContext.getManager().getInstanceName();
   		  if (leader == null || !leader.equals(name))
   		  {
@@ -285,7 +285,7 @@ public class GenericClusterController implements ConfigChangeListener,
 		}
 		
 		ZNRecord pauseSignal = dataAccessor
-		    .getControllerProperty(ControllerPropertyType.PAUSE);
+		    .getProperty(PropertyType.PAUSE);
 		if (pauseSignal != null)
 		{
 			_paused = true;

@@ -8,8 +8,8 @@ import java.util.TimerTask;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.ClusterManager;
+import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 
 public class ParticipantHealthReportCollectorImpl implements
@@ -116,15 +116,15 @@ public class ParticipantHealthReportCollectorImpl implements
           try
           {
             Map<String, String> report = provider.getRecentHealthReport();
-            Map<String, Map<String, String>> partitionReport = provider.getRecentPartitionHealthReport();
+            Map<String, Map<String, String>> partitionReport = provider
+                .getRecentPartitionHealthReport();
             ZNRecord record = new ZNRecord(provider.getReportName());
             record.setSimpleFields(report);
             record.setMapFields(partitionReport);
 
-
-            _clusterManager.getDataAccessor().setInstanceProperty(
-                _instanceName, InstancePropertyType.HEALTHREPORT,
-                record.getId(), record);
+            _clusterManager.getDataAccessor().setProperty(
+                PropertyType.HEALTHREPORT, record, _instanceName,
+                record.getId());
           } catch (Exception e)
           {
             _logger.error(e);

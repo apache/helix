@@ -1,6 +1,7 @@
 package com.linkedin.clustermanager.util;
 
 import java.lang.reflect.Constructor;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -70,5 +71,14 @@ public final class ZNRecordUtil
       }
     }
     return map;
+  }
+
+  public static <T extends Object>  List<T> convertMapToList(Map<String, T> map)
+  {
+    List<T> list = new ArrayList<T>();
+    for(T t: map.values()){
+      list.add(t);
+    }
+    return list;
   }
 }

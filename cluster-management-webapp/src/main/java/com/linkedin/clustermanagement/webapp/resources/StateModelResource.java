@@ -24,8 +24,8 @@ import org.restlet.resource.Variant;
 
 import com.linkedin.clustermanagement.webapp.RestAdminApplication;
 import com.linkedin.clustermanager.ClusterDataAccessor;
-import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.ClusterManagerException;
+import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.tools.ClusterSetup;
 
@@ -83,7 +83,7 @@ public class StateModelResource extends Resource
   
   StringRepresentation getStateModelRepresentation(String zkServerAddress, String clusterName, String modelName) throws JsonGenerationException, JsonMappingException, IOException
   {
-    String message = ClusterRepresentationUtil.getClusterPropertyAsString(zkServerAddress, clusterName, ClusterPropertyType.STATEMODELDEFS, modelName, MediaType.APPLICATION_JSON);
+    String message = ClusterRepresentationUtil.getClusterPropertyAsString(zkServerAddress, clusterName, PropertyType.STATEMODELDEFS, modelName, MediaType.APPLICATION_JSON);
     
     StringRepresentation representation = new StringRepresentation(message, MediaType.APPLICATION_JSON);
     
@@ -112,9 +112,9 @@ public class StateModelResource extends Resource
             ZNRecord.class);
         
         ClusterDataAccessor accessor = ClusterRepresentationUtil.getClusterDataAccessor(zkServer,  clusterName);
-        accessor.removeClusterProperty(ClusterPropertyType.STATEMODELDEFS, modelName);
+        accessor.removeProperty(PropertyType.STATEMODELDEFS, modelName);
         
-        accessor.setClusterProperty(ClusterPropertyType.STATEMODELDEFS, modelName, newIdealState);
+        accessor.setProperty(PropertyType.STATEMODELDEFS,newIdealState, modelName );
         
       }
       else

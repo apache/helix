@@ -41,6 +41,7 @@ public class Message
   {
     _record = new ZNRecord(msgId);
     _record.setSimpleField(Attributes.MSG_TYPE.toString(), type);
+    setMsgId(msgId);
     setMsgState("new");
   }
 

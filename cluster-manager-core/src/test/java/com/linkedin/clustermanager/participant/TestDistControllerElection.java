@@ -11,6 +11,7 @@ import com.linkedin.clustermanager.InstanceType;
 import com.linkedin.clustermanager.NotificationContext;
 import com.linkedin.clustermanager.PropertyPathConfig;
 import com.linkedin.clustermanager.PropertyType;
+import com.linkedin.clustermanager.TestHelper;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.ZkUnitTestBase;
 import com.linkedin.clustermanager.integration.TestDistCMMain;
@@ -31,7 +32,7 @@ public class TestDistControllerElection extends ZkUnitTestBase
     {
       _zkClient.deleteRecursive(path);
     }
-    setupEmptyCluster(clusterName);
+    TestHelper.setupEmptyCluster(_zkClient, clusterName);
 
     final String controllerName = "controller_0";
     ClusterManager manager =
@@ -76,7 +77,7 @@ public class TestDistControllerElection extends ZkUnitTestBase
     {
       _zkClient.deleteRecursive(path);
     }
-    setupEmptyCluster(clusterName);
+    TestHelper.setupEmptyCluster(_zkClient, clusterName);
 
     final String controllerName = "controller_0";
     ClusterManager manager =
@@ -118,7 +119,7 @@ public class TestDistControllerElection extends ZkUnitTestBase
     {
       _zkClient.deleteRecursive(path);
     }
-    setupEmptyCluster(clusterName);
+    TestHelper.setupEmptyCluster(_zkClient, clusterName);
 
     final String controllerName = "participant_0";
     ClusterManager manager =
@@ -134,25 +135,6 @@ public class TestDistControllerElection extends ZkUnitTestBase
     AssertJUnit.assertNull(leaderRecord);
     AssertJUnit.assertNull(election.getController());
     AssertJUnit.assertNull(election.getLeader());
-  }
-  
-  private void setupEmptyCluster(String clusterName)
-  {
-    String path = "/" + clusterName;
-    _zkClient.createPersistent(path);
-    _zkClient.createPersistent(path + "/" + PropertyType.STATEMODELDEFS.toString());
-    _zkClient.createPersistent(path + "/" + PropertyType.INSTANCES.toString());
-    _zkClient.createPersistent(path + "/" + PropertyType.CONFIGS.toString());
-    _zkClient.createPersistent(path + "/" + PropertyType.IDEALSTATES.toString());
-    _zkClient.createPersistent(path + "/" + PropertyType.EXTERNALVIEW.toString());
-    _zkClient.createPersistent(path + "/" + PropertyType.LIVEINSTANCES.toString());
-    _zkClient.createPersistent(path + "/" + PropertyType.CONTROLLER.toString());
-
-    path = path + "/" + PropertyType.CONTROLLER.toString();
-    _zkClient.createPersistent(path + "/" + PropertyType.MESSAGES.toString());
-    _zkClient.createPersistent(path + "/" + PropertyType.HISTORY.toString());
-    _zkClient.createPersistent(path + "/" + PropertyType.ERRORS.toString());
-    _zkClient.createPersistent(path + "/" + PropertyType.STATUSUPDATES.toString());
   }
 
 }

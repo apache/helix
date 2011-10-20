@@ -12,7 +12,8 @@ public enum PropertyType
   IDEALSTATES(Type.CLUSTER,false, false), 
   EXTERNALVIEW(Type.CLUSTER, true, false), 
   STATEMODELDEFS(Type.CLUSTER, true, false), 
-  CONTROLLER(Type.CLUSTER, true, false), 
+  CONTROLLER(Type.CLUSTER, true, false),
+  PROPERTYSTORE(Type.CLUSTER, true, false),
   //INSTANCE PROPERTIES
   MESSAGES(Type.INSTANCE, true, true, true), 
   CURRENTSTATES(Type.INSTANCE, true,true, false),

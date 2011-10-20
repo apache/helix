@@ -124,7 +124,7 @@
           <artifactId>maven-surefire-plugin</artifactId>
           <version>2.6</version>
           <configuration>
-            <groups>unitTest</groups>
+            <groups>unitTest, integrationTest</groups>
           </configuration>
         </plugin>
 

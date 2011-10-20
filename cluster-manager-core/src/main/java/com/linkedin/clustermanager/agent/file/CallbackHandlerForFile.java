@@ -193,8 +193,7 @@ public class CallbackHandlerForFile implements PropertyChangeListener<ZNRecord>
     } catch (Exception e)
     {
       // TODO handle exception
-      logger.error("fail to init" + "\nexception:" + e);
-      // ZKExceptionHandler.getInstance().handle(e);
+      logger.error("fail to init", e);
     }
   }
 

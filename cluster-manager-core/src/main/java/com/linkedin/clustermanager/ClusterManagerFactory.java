@@ -176,9 +176,9 @@ public final class ClusterManagerFactory
    * @return
    */
   public static ClusterManager getFileBasedManagerForController(String clusterName, 
-      FileBasedDataAccessor accessor)
+      String instanceName, FileBasedDataAccessor accessor)
   {
-    return new DynamicFileClusterManager(clusterName, null, InstanceType.CONTROLLER, 
+    return new DynamicFileClusterManager(clusterName, instanceName, InstanceType.CONTROLLER, 
         accessor);
   }
 }

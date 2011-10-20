@@ -11,7 +11,9 @@ import org.I0Itec.zkclient.IDefaultNameSpace;
 import org.I0Itec.zkclient.ZkServer;
 import org.apache.commons.io.FileUtils;
 import org.testng.AssertJUnit;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.AfterTest;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
@@ -233,7 +235,7 @@ public class TestZKCallback
 
   }
 
-  @BeforeTest(groups =
+  @BeforeClass(groups =
   { "unitTest" })
   public void setup() throws IOException, Exception
   {
@@ -265,7 +267,7 @@ public class TestZKCallback
         .processCommandLineArgs(createArgs("-zkSvr localhost:2300 -rebalance storage-cluster-12345 db-12345 3"));
   }
 
-  @AfterTest(groups =
+  @AfterClass(groups =
   { "unitTest" })
   public void tearDown()
   {

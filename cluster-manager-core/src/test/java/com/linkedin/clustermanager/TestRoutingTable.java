@@ -13,6 +13,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.testng.Assert;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
@@ -24,8 +25,8 @@ public class TestRoutingTable
 {
   NotificationContext changeContext = null;
 
-  @BeforeTest (groups = {"unitTest"})
-  public void setup()
+  @BeforeClass (groups = {"unitTest"})
+  public synchronized void setup()
   {
 
     final String[] array = new String[]

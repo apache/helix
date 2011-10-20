@@ -4,8 +4,7 @@ import java.io.File;
 import java.io.FileFilter;
 import java.util.ArrayList;
 
-import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
-import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.util.CMUtil;
 
 /**
@@ -24,14 +23,14 @@ public class ClusterDataProvider
   {
     this._clusterName = clusterName;
     final ArrayList<String> interestedPath = new ArrayList<String>();
-    interestedPath.add(CMUtil.getClusterPropertyPath(clusterName,
-        ClusterPropertyType.IDEALSTATES));
-    interestedPath.add(CMUtil.getClusterPropertyPath(clusterName,
-        ClusterPropertyType.CONFIGS));
-    interestedPath.add(CMUtil.getClusterPropertyPath(clusterName,
-        ClusterPropertyType.LIVEINSTANCES));
-    interestedPath.add(CMUtil.getClusterPropertyPath(clusterName,
-        ClusterPropertyType.INSTANCES));
+    interestedPath.add(CMUtil.getPropertyPath(clusterName,
+        PropertyType.IDEALSTATES));
+    interestedPath.add(CMUtil.getPropertyPath(clusterName,
+        PropertyType.CONFIGS));
+    interestedPath.add(CMUtil.getPropertyPath(clusterName,
+        PropertyType.LIVEINSTANCES));
+    interestedPath.add(CMUtil.getPropertyPath(clusterName,
+        PropertyType.INSTANCES));
     FileFilter fileFilter = new FileFilter()
     {
       @Override

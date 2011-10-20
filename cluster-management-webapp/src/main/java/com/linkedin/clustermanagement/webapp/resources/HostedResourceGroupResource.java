@@ -16,7 +16,7 @@ import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 
 import com.linkedin.clustermanagement.webapp.RestAdminApplication;
-import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
+import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.tools.ClusterSetup;
 
 public class HostedResourceGroupResource extends Resource
@@ -73,7 +73,7 @@ public class HostedResourceGroupResource extends Resource
   
   StringRepresentation getIdealStateRepresentation(String zkServerAddress, String clusterName, String resourceName) throws JsonGenerationException, JsonMappingException, IOException
   {
-    String message = ClusterRepresentationUtil.getClusterPropertyAsString(zkServerAddress, clusterName, ClusterPropertyType.IDEALSTATES, resourceName, MediaType.APPLICATION_JSON);
+    String message = ClusterRepresentationUtil.getClusterPropertyAsString(zkServerAddress, clusterName, PropertyType.IDEALSTATES, resourceName, MediaType.APPLICATION_JSON);
     
     StringRepresentation representation = new StringRepresentation(message, MediaType.APPLICATION_JSON);
     

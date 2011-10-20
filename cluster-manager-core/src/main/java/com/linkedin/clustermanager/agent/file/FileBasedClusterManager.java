@@ -23,8 +23,6 @@ import org.apache.zookeeper.Watcher.Event.EventType;
 import com.linkedin.clustermanager.CMConstants;
 import com.linkedin.clustermanager.CMConstants.ChangeType;
 import com.linkedin.clustermanager.ClusterDataAccessor;
-import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
-import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.ClusterManagementService;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerException;
@@ -39,6 +37,7 @@ import com.linkedin.clustermanager.InstanceType;
 import com.linkedin.clustermanager.LiveInstanceChangeListener;
 import com.linkedin.clustermanager.MessageListener;
 import com.linkedin.clustermanager.NotificationContext;
+import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.healthcheck.ParticipantHealthReportCollector;
 import com.linkedin.clustermanager.model.IdealState;
@@ -52,24 +51,22 @@ import com.linkedin.clustermanager.tools.IdealStateCalculatorByShuffling;
 
 public class FileBasedClusterManager implements ClusterManager
 {
-  private static final Logger       LOG        =
-                                                   Logger.getLogger(FileBasedClusterManager.class.getName());
+  private static final Logger LOG = Logger
+      .getLogger(FileBasedClusterManager.class.getName());
   // for backward compatibility
   // TODO remove it later
-  private final ClusterView         _clusterView;
+  private final ClusterView _clusterView;
   private final ClusterDataAccessor _fileDataAccessor;
-  private final String              _clusterName;
-  private final InstanceType        _instanceType;
-  private final String              _instanceName;
-  private boolean                   _isConnected;
+  private final String _clusterName;
+  private final InstanceType _instanceType;
+  private final String _instanceName;
+  private boolean _isConnected;
   // private final List<CallbackHandlerForFile> _handlers;
-  public static final String        _sessionId = "12345";
-  public static final String        configFile = "configFile";
+  public static final String _sessionId = "12345";
+  public static final String configFile = "configFile";
 
-  public FileBasedClusterManager(String clusterName,
-                                 String instanceName,
-                                 InstanceType instanceType,
-                                 String staticClusterConfigFile)
+  public FileBasedClusterManager(String clusterName, String instanceName,
+      InstanceType instanceType, String staticClusterConfigFile)
   {
     this._clusterName = clusterName;
     this._instanceName = instanceName;
@@ -77,17 +74,16 @@ public class FileBasedClusterManager implements ClusterManager
     // _handlers = new ArrayList<CallbackHandlerForFile>();
 
     _fileDataAccessor = new DummyFileDataAccessor();
-    this._clusterView = ClusterViewSerializer.deserialize(new File(staticClusterConfigFile));
+    this._clusterView = ClusterViewSerializer.deserialize(new File(
+        staticClusterConfigFile));
   }
 
   private static Message createSimpleMessage(ZNRecord idealStateRecord,
-                                             String stateUnitKey,
-                                             String instanceName,
-                                             String currentState,
-                                             String nextState)
+      String stateUnitKey, String instanceName, String currentState,
+      String nextState)
   {
     String uuid = UUID.randomUUID().toString();
-    Message message = new Message(MessageType.STATE_TRANSITION,uuid);
+    Message message = new Message(MessageType.STATE_TRANSITION, uuid);
     message.setMsgId(uuid);
     String hostName = "localhost"; // "UNKNOWN";
 
@@ -118,7 +114,8 @@ public class FileBasedClusterManager implements ClusterManager
   }
 
   // FIXIT
-  // reorder the messages to reduce the possibility that a S->M message for a given
+  // reorder the messages to reduce the possibility that a S->M message for a
+  // given
   // db partition gets executed before a O->S message
   private static void addMessageInOrder(List<ZNRecord> msgList, Message newMsg)
   {
@@ -133,9 +130,11 @@ public class FileBasedClusterManager implements ClusterManager
     }
   }
 
-  private static List<Message> computeMessagesForSimpleTransition(ZNRecord idealStateRecord)
+  private static List<Message> computeMessagesForSimpleTransition(
+      ZNRecord idealStateRecord)
   {
-    // Map<String, List<Message>> msgListMap = new HashMap<String, List<Message>>();
+    // Map<String, List<Message>> msgListMap = new HashMap<String,
+    // List<Message>>();
     // List<Message> offlineToSlaveMsg = new ArrayList<Message>();
     // List<Message> slaveToMasterMsg = new ArrayList<Message>();
     // msgListMap.put("O->S", offlineToSlaveMsg);
@@ -154,17 +153,16 @@ public class FileBasedClusterManager implements ClusterManager
 
         if (desiredState.equals("MASTER"))
         {
-          Message message =
-              createSimpleMessage(idealStateRecord, stateUnitKey, instanceName, "OFFLINE", "SLAVE");
+          Message message = createSimpleMessage(idealStateRecord, stateUnitKey,
+              instanceName, "OFFLINE", "SLAVE");
           msgList.add(message);
-          message =
-              createSimpleMessage(idealStateRecord, stateUnitKey, instanceName, "SLAVE", "MASTER");
+          message = createSimpleMessage(idealStateRecord, stateUnitKey,
+              instanceName, "SLAVE", "MASTER");
           msgList.add(message);
-        }
-        else
+        } else
         {
-          Message message =
-              createSimpleMessage(idealStateRecord, stateUnitKey, instanceName, "OFFLINE", "SLAVE");
+          Message message = createSimpleMessage(idealStateRecord, stateUnitKey,
+              instanceName, "OFFLINE", "SLAVE");
           msgList.add(message);
         }
 
@@ -177,7 +175,7 @@ public class FileBasedClusterManager implements ClusterManager
   public static class DBParam
   {
     public String name;
-    public int    partitions;
+    public int partitions;
 
     public DBParam(String n, int p)
     {
@@ -187,8 +185,7 @@ public class FileBasedClusterManager implements ClusterManager
   }
 
   public static ClusterView generateStaticConfigClusterView(String[] nodesInfo,
-                                                            List<DBParam> dbParams,
-                                                            int replica)
+      List<DBParam> dbParams, int replica)
   {
     // create mock cluster view
     ClusterView view = new ClusterView();
@@ -217,35 +214,36 @@ public class FileBasedClusterManager implements ClusterManager
       String nodeId = host + "_" + port;
       ZNRecord nodeConfig = new ZNRecord(nodeId);
 
-      nodeConfig.setSimpleField(ClusterDataAccessor.InstanceConfigProperty.ENABLED.toString(),
-                                Boolean.toString(true));
-      nodeConfig.setSimpleField(ClusterDataAccessor.InstanceConfigProperty.HOST.toString(), host);
-      nodeConfig.setSimpleField(ClusterDataAccessor.InstanceConfigProperty.PORT.toString(), port);
+      nodeConfig.setSimpleField(
+          ClusterDataAccessor.InstanceConfigProperty.ENABLED.toString(),
+          Boolean.toString(true));
+      nodeConfig.setSimpleField(
+          ClusterDataAccessor.InstanceConfigProperty.HOST.toString(), host);
+      nodeConfig.setSimpleField(
+          ClusterDataAccessor.InstanceConfigProperty.PORT.toString(), port);
 
       instanceNames.add(nodeId);
 
       nodeConfigList.add(nodeConfig);
     }
-    view.setClusterPropertyList(ClusterPropertyType.CONFIGS, nodeConfigList);
+    view.setClusterPropertyList(PropertyType.CONFIGS, nodeConfigList);
 
     // set IDEALSTATES
     // compute ideal states for each db
     List<ZNRecord> idealStates = new ArrayList<ZNRecord>();
     for (DBParam dbParam : dbParams)
     {
-      ZNRecord result =
-          IdealStateCalculatorByShuffling.calculateIdealState(instanceNames,
-                                                              dbParam.partitions,
-                                                              replica,
-                                                              dbParam.name);
+      ZNRecord result = IdealStateCalculatorByShuffling.calculateIdealState(
+          instanceNames, dbParam.partitions, replica, dbParam.name);
 
       idealStates.add(result);
     }
-    view.setClusterPropertyList(ClusterPropertyType.IDEALSTATES, idealStates);
+    view.setClusterPropertyList(PropertyType.IDEALSTATES, idealStates);
 
     // calculate messages for transition using naive algorithm
     Map<String, List<ZNRecord>> msgListForInstance = new HashMap<String, List<ZNRecord>>();
-    List<ZNRecord> idealStatesArray = view.getClusterPropertyList(ClusterPropertyType.IDEALSTATES);
+    List<ZNRecord> idealStatesArray = view
+        .getPropertyList(PropertyType.IDEALSTATES);
     for (ZNRecord idealStateRecord : idealStatesArray)
     {
       // IdealState idealState = new IdealState(idealStateRecord);
@@ -276,13 +274,14 @@ public class FileBasedClusterManager implements ClusterManager
     // set INSTANCES
     // put message lists into cluster view
     List<ClusterView.MemberInstance> insList = new ArrayList<ClusterView.MemberInstance>();
-    for (Map.Entry<String, List<ZNRecord>> entry : msgListForInstance.entrySet())
+    for (Map.Entry<String, List<ZNRecord>> entry : msgListForInstance
+        .entrySet())
     {
       String instance = entry.getKey();
       List<ZNRecord> msgList = entry.getValue();
 
       ClusterView.MemberInstance ins = view.getMemberInstance(instance, true);
-      ins.setInstanceProperty(InstancePropertyType.MESSAGES, msgList);
+      ins.setInstanceProperty(PropertyType.MESSAGES, msgList);
       // ins.setInstanceProperty(InstancePropertyType.CURRENTSTATES, null);
       // ins.setInstanceProperty(InstancePropertyType.ERRORS, null);
       // ins.setInstanceProperty(InstancePropertyType.STATUSUPDATES, null);
@@ -290,13 +289,15 @@ public class FileBasedClusterManager implements ClusterManager
     }
 
     // sort it
-    ClusterView.MemberInstance[] insArray = new ClusterView.MemberInstance[insList.size()];
+    ClusterView.MemberInstance[] insArray = new ClusterView.MemberInstance[insList
+        .size()];
     insArray = insList.toArray(insArray);
     Arrays.sort(insArray, new Comparator<ClusterView.MemberInstance>()
     {
 
       @Override
-      public int compare(ClusterView.MemberInstance ins1, ClusterView.MemberInstance ins2)
+      public int compare(ClusterView.MemberInstance ins1,
+          ClusterView.MemberInstance ins2)
       {
         return ins1.getInstanceName().compareTo(ins2.getInstanceName());
       }
@@ -321,21 +322,24 @@ public class FileBasedClusterManager implements ClusterManager
 
     NotificationContext context = new NotificationContext(this);
     context.setType(NotificationContext.Type.INIT);
-    listener.onIdealStateChange(this._clusterView.getClusterPropertyList(ClusterPropertyType.IDEALSTATES),
-                                context);
+    listener.onIdealStateChange(
+        this._clusterView.getPropertyList(PropertyType.IDEALSTATES),
+        context);
 
   }
 
   @Override
   public void addLiveInstanceChangeListener(LiveInstanceChangeListener listener)
   {
-    throw new UnsupportedOperationException("addLiveInstanceChangeListener is not supported by File Based cluster manager");
+    throw new UnsupportedOperationException(
+        "addLiveInstanceChangeListener is not supported by File Based cluster manager");
   }
 
   @Override
   public void addConfigChangeListener(ConfigChangeListener listener)
   {
-    throw new UnsupportedOperationException("addConfigChangeListener() is NOT supported by File Based cluster manager");
+    throw new UnsupportedOperationException(
+        "addConfigChangeListener() is NOT supported by File Based cluster manager");
   }
 
   @Override
@@ -344,24 +348,24 @@ public class FileBasedClusterManager implements ClusterManager
     NotificationContext context = new NotificationContext(this);
     context.setType(NotificationContext.Type.INIT);
     List<ZNRecord> messages;
-    messages =
-        _clusterView.getMemberInstance(instanceName, true)
-                    .getInstanceProperty(InstancePropertyType.MESSAGES);
+    messages = _clusterView.getMemberInstance(instanceName, true)
+        .getInstanceProperty(PropertyType.MESSAGES);
     listener.onMessage(instanceName, messages, context);
   }
 
   @Override
-  public void addCurrentStateChangeListener(CurrentStateChangeListener listener,
-                                            String instanceName,
-                                            String sessionId)
+  public void addCurrentStateChangeListener(
+      CurrentStateChangeListener listener, String instanceName, String sessionId)
   {
-    throw new UnsupportedOperationException("addCurrentStateChangeListener is not supported by File Based cluster manager");
+    throw new UnsupportedOperationException(
+        "addCurrentStateChangeListener is not supported by File Based cluster manager");
   }
 
   @Override
   public void addExternalViewChangeListener(ExternalViewChangeListener listener)
   {
-    throw new UnsupportedOperationException("addExternalViewChangeListener() is NOT supported by File Based cluster manager");
+    throw new UnsupportedOperationException(
+        "addExternalViewChangeListener() is NOT supported by File Based cluster manager");
   }
 
   @Override
@@ -396,10 +400,8 @@ public class FileBasedClusterManager implements ClusterManager
 
   private static Options constructCommandLineOptions()
   {
-    Option fileOption =
-        OptionBuilder.withLongOpt(configFile)
-                     .withDescription("Provide file to write states/messages")
-                     .create();
+    Option fileOption = OptionBuilder.withLongOpt(configFile)
+        .withDescription("Provide file to write states/messages").create();
     fileOption.setArgs(1);
     fileOption.setRequired(true);
     fileOption.setArgName("File to read states/messages (Required)");
@@ -410,7 +412,8 @@ public class FileBasedClusterManager implements ClusterManager
 
   }
 
-  public static CommandLine processCommandLineArgs(String[] cliArgs) throws Exception
+  public static CommandLine processCommandLineArgs(String[] cliArgs)
+      throws Exception
   {
     CommandLineParser cliParser = new GnuParser();
     Options cliOptions = constructCommandLineOptions();
@@ -419,11 +422,11 @@ public class FileBasedClusterManager implements ClusterManager
     try
     {
       return cliParser.parse(cliOptions, cliArgs);
-    }
-    catch (ParseException pe)
+    } catch (ParseException pe)
     {
-      System.err.println("CommandLineClient: failed to parse command-line options: "
-          + pe.toString());
+      System.err
+          .println("CommandLineClient: failed to parse command-line options: "
+              + pe.toString());
       // printUsage(cliOptions);
       System.exit(1);
     }
@@ -431,13 +434,14 @@ public class FileBasedClusterManager implements ClusterManager
   }
 
   public static ClusterView convertStateModelMapToClusterView(String outFile,
-                                                              String instanceName,
-                                                              StateModelFactory<StateModel> stateModelFactory)
+      String instanceName, StateModelFactory<StateModel> stateModelFactory)
   {
-    Map<String, StateModel> currentStateMap = stateModelFactory.getStateModelMap();
+    Map<String, StateModel> currentStateMap = stateModelFactory
+        .getStateModelMap();
     ClusterView curView = new ClusterView();
 
-    ClusterView.MemberInstance memberInstance = curView.getMemberInstance(instanceName, true);
+    ClusterView.MemberInstance memberInstance = curView.getMemberInstance(
+        instanceName, true);
     List<ZNRecord> curStateList = new ArrayList<ZNRecord>();
 
     for (Map.Entry<String, StateModel> entry : currentStateMap.entrySet())
@@ -449,8 +453,8 @@ public class FileBasedClusterManager implements ClusterManager
       curStateList.add(record);
     }
 
-    memberInstance.setInstanceProperty(ClusterDataAccessor.InstancePropertyType.CURRENTSTATES,
-                                       curStateList);
+    memberInstance.setInstanceProperty(
+        PropertyType.CURRENTSTATES, curStateList);
 
     // serialize to file
     // String outFile = "/tmp/curClusterView_" + instanceName +".json";
@@ -465,22 +469,25 @@ public class FileBasedClusterManager implements ClusterManager
   }
 
   public static boolean VerifyFileBasedClusterStates(String instanceName,
-                                                     String expectedFile,
-                                                     String curFile)
+      String expectedFile, String curFile)
   {
     boolean ret = true;
-    ClusterView expectedView = ClusterViewSerializer.deserialize(new File(expectedFile));
+    ClusterView expectedView = ClusterViewSerializer.deserialize(new File(
+        expectedFile));
     ClusterView curView = ClusterViewSerializer.deserialize(new File(curFile));
 
     // int nonOfflineNr = 0;
 
     // ideal_state for instance with the given instanceName
     Map<String, String> idealStates = new HashMap<String, String>();
-    for (ZNRecord idealStateItem : expectedView.getClusterPropertyList(ClusterPropertyType.IDEALSTATES))
+    for (ZNRecord idealStateItem : expectedView
+        .getPropertyList(PropertyType.IDEALSTATES))
     {
-      Map<String, Map<String, String>> allIdealStates = idealStateItem.getMapFields();
+      Map<String, Map<String, String>> allIdealStates = idealStateItem
+          .getMapFields();
 
-      for (Map.Entry<String, Map<String, String>> entry : allIdealStates.entrySet())
+      for (Map.Entry<String, Map<String, String>> entry : allIdealStates
+          .entrySet())
       {
         if (entry.getValue().containsKey(instanceName))
         {
@@ -490,14 +497,16 @@ public class FileBasedClusterManager implements ClusterManager
       }
     }
 
-    ClusterView.MemberInstance memberInstance = curView.getMemberInstance(instanceName, false);
-    List<ZNRecord> curStateList =
-        memberInstance.getInstanceProperty(ClusterDataAccessor.InstancePropertyType.CURRENTSTATES);
+    ClusterView.MemberInstance memberInstance = curView.getMemberInstance(
+        instanceName, false);
+    List<ZNRecord> curStateList = memberInstance
+        .getInstanceProperty(PropertyType.CURRENTSTATES);
 
     if (curStateList.size() != idealStates.size())
     {
-      LOG.error("Number of current states (" + curStateList.size() + ") mismatch "
-          + "number of ideal states (" + idealStates.size() + ")");
+      LOG.error("Number of current states (" + curStateList.size()
+          + ") mismatch " + "number of ideal states (" + idealStates.size()
+          + ")");
       return false;
     }
 
@@ -519,8 +528,9 @@ public class FileBasedClusterManager implements ClusterManager
       String idealState = idealStates.get(stateUnitKey);
       if (!curState.equalsIgnoreCase(idealState))
       {
-        LOG.error("State mismatch--unit_key:" + stateUnitKey + " cur:" + curState + " ideal:"
-            + idealState + " instance_name:" + instanceName);
+        LOG.error("State mismatch--unit_key:" + stateUnitKey + " cur:"
+            + curState + " ideal:" + idealState + " instance_name:"
+            + instanceName);
         ret = false;
         continue;
       }
@@ -541,11 +551,10 @@ public class FileBasedClusterManager implements ClusterManager
     // set it from the session
 
     ZNRecord metaData = new ZNRecord(_instanceName);
-    metaData.setSimpleField(CMConstants.ZNAttribute.SESSION_ID.toString(), _sessionId);
-    _fileDataAccessor.setClusterProperty(ClusterPropertyType.LIVEINSTANCES,
-                                         _instanceName,
-                                         metaData,
-                                         CreateMode.EPHEMERAL);
+    metaData.setSimpleField(CMConstants.ZNAttribute.SESSION_ID.toString(),
+        _sessionId);
+    _fileDataAccessor.setProperty(PropertyType.LIVEINSTANCES, metaData,
+        _instanceName);
   }
 
   @Override
@@ -557,7 +566,8 @@ public class FileBasedClusterManager implements ClusterManager
   @Override
   public void addControllerListener(ControllerChangeListener listener)
   {
-    throw new UnsupportedOperationException("addControllerListener() is NOT supported by File Based cluster manager");
+    throw new UnsupportedOperationException(
+        "addControllerListener() is NOT supported by File Based cluster manager");
   }
 
   @Override
@@ -568,15 +578,14 @@ public class FileBasedClusterManager implements ClusterManager
   }
 
   private CallbackHandlerForFile createCallBackHandler(String path,
-                                                       Object listener,
-                                                       EventType[] eventTypes,
-                                                       ChangeType changeType)
+      Object listener, EventType[] eventTypes, ChangeType changeType)
   {
     if (listener == null)
     {
       throw new ClusterManagerException("Listener cannot be null");
     }
-    return new CallbackHandlerForFile(this, path, listener, eventTypes, changeType);
+    return new CallbackHandlerForFile(this, path, listener, eventTypes,
+        changeType);
   }
 
   @Override
@@ -625,8 +634,7 @@ public class FileBasedClusterManager implements ClusterManager
     // file = cmd.getOptionValue(configFile);
 
     // create fake db names & nodes info
-    List<FileBasedClusterManager.DBParam> dbParams =
-        new ArrayList<FileBasedClusterManager.DBParam>();
+    List<FileBasedClusterManager.DBParam> dbParams = new ArrayList<FileBasedClusterManager.DBParam>();
     // dbParams.add(new FileBasedClusterManager.DBParam("BizFollow", 1));
     // dbParams.add(new FileBasedClusterManager.DBParam("BizProfile", 1));
     dbParams.add(new FileBasedClusterManager.DBParam("EspressoDB", 10));
@@ -634,7 +642,8 @@ public class FileBasedClusterManager implements ClusterManager
     dbParams.add(new FileBasedClusterManager.DBParam("MyDB", 8));
     dbParams.add(new FileBasedClusterManager.DBParam("schemata", 1));
 
-    String[] nodesInfo = { "localhost:8900", "localhost:8901" };
+    String[] nodesInfo =
+    { "localhost:8900", "localhost:8901" };
     // "localhost:8902",
     // "localhost:8903",
     // "localhost:8904" };
@@ -642,12 +651,14 @@ public class FileBasedClusterManager implements ClusterManager
     int replica = 0;
 
     // ClusterViewSerializer serializer = new ClusterViewSerializer(file);
-    ClusterView view = generateStaticConfigClusterView(nodesInfo, dbParams, replica);
+    ClusterView view = generateStaticConfigClusterView(nodesInfo, dbParams,
+        replica);
 
     ClusterViewSerializer.serialize(view, new File(file));
     // System.out.println(new String(bytes));
 
-    ClusterView restoredView = ClusterViewSerializer.deserialize(new File(file));
+    ClusterView restoredView = ClusterViewSerializer
+        .deserialize(new File(file));
     // System.out.println(restoredView);
 
     byte[] bytes = ClusterViewSerializer.serialize(restoredView);

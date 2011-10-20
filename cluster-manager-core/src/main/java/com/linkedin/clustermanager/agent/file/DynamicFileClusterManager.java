@@ -21,7 +21,6 @@ import org.apache.zookeeper.Watcher.Event.EventType;
 import com.linkedin.clustermanager.CMConstants;
 import com.linkedin.clustermanager.CMConstants.ChangeType;
 import com.linkedin.clustermanager.ClusterDataAccessor;
-import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.ClusterManagementService;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerException;
@@ -34,6 +33,7 @@ import com.linkedin.clustermanager.IdealStateChangeListener;
 import com.linkedin.clustermanager.InstanceType;
 import com.linkedin.clustermanager.LiveInstanceChangeListener;
 import com.linkedin.clustermanager.MessageListener;
+import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.healthcheck.ParticipantHealthReportCollector;
 import com.linkedin.clustermanager.messaging.DefaultMessagingService;
@@ -79,13 +79,13 @@ public class DynamicFileClusterManager implements ClusterManager
     FilePropertyStore<ZNRecord> store = (FilePropertyStore<ZNRecord>) _fileDataAccessor
         .getStore();
     _mgmtTool = new FileClusterManagementTool(store);
-    
+
     _messagingService = new DefaultMessagingService(this);
-    if(instanceType == InstanceType.PARTICIPANT)
+    if (instanceType == InstanceType.PARTICIPANT)
     {
       addMessageListener(_messagingService.getExecutor(), _instanceName);
     }
-    
+
     store.start();
 
   }
@@ -103,7 +103,7 @@ public class DynamicFileClusterManager implements ClusterManager
      * NotificationContext context = new NotificationContext(this);
      * context.setType(NotificationContext.Type.INIT);
      * listener.onIdealStateChange(this._clusterView
-     * .getClusterPropertyList(ClusterPropertyType.IDEALSTATES), context);
+     * .getPropertyList(PropertyType.IDEALSTATES), context);
      **/
     final String path = CMUtil.getIdealStatePath(_clusterName);
 
@@ -244,8 +244,8 @@ public class DynamicFileClusterManager implements ClusterManager
     ZNRecord metaData = new ZNRecord(_instanceName);
     metaData.setSimpleField(CMConstants.ZNAttribute.SESSION_ID.toString(),
         _sessionId);
-    _fileDataAccessor.setClusterProperty(ClusterPropertyType.LIVEINSTANCES,
-        _instanceName, metaData, CreateMode.EPHEMERAL);
+    _fileDataAccessor.setProperty(PropertyType.LIVEINSTANCES, metaData,
+        _instanceName);
   }
 
   @Override

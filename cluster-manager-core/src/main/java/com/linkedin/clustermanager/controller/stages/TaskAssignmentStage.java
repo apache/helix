@@ -6,8 +6,8 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.ClusterDataAccessor;
-import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.ClusterManager;
+import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.ResourceGroup;
 import com.linkedin.clustermanager.model.ResourceKey;
@@ -59,8 +59,8 @@ public class TaskAssignmentStage extends AbstractBaseStage
       logger.info(": Sending message to " + message.getTgtName()
           + " transition " + message.getStateUnitKey() + " from:"
           + message.getFromState() + " to:" + message.getToState());
-      dataAccessor.setInstanceProperty(message.getTgtName(),
-          InstancePropertyType.MESSAGES, message.getId(), message.getRecord());
+      dataAccessor.setProperty(PropertyType.MESSAGES, message.getRecord(),
+          message.getTgtName(), message.getId());
     }
   }
 }

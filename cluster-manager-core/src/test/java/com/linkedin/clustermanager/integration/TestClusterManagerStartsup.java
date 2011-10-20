@@ -6,11 +6,10 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import com.linkedin.clustermanager.ClusterDataAccessor.ControllerPropertyType;
-import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerException;
 import com.linkedin.clustermanager.ClusterManagerFactory;
+import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.tools.ClusterSetup;
 import com.linkedin.clustermanager.util.CMUtil;
 
@@ -50,7 +49,7 @@ public class TestClusterManagerStartsup extends ZkStandAloneCMHandler
   public void testParticipantStartUp() throws Exception
   {
     setupCluster();
-    String controllerMsgPath = CMUtil.getControllerPropertyPath(CLUSTER_NAME, ControllerPropertyType.MESSAGES);
+    String controllerMsgPath = CMUtil.getControllerPropertyPath(CLUSTER_NAME, PropertyType.MESSAGES);
     _zkClient.deleteRecursive(controllerMsgPath);
     boolean exceptionThrown = false;
     ClusterManager manager = null;;
@@ -111,7 +110,7 @@ public class TestClusterManagerStartsup extends ZkStandAloneCMHandler
     }
     
     setupCluster();
-    String instanceStatusUpdatePath = CMUtil.getInstancePropertyPath(CLUSTER_NAME, "localhost_" + (START_PORT + 1), InstancePropertyType.STATUSUPDATES);
+    String instanceStatusUpdatePath = CMUtil.getInstancePropertyPath(CLUSTER_NAME, "localhost_" + (START_PORT + 1), PropertyType.STATUSUPDATES);
     _zkClient.deleteRecursive(instanceStatusUpdatePath);
     
     try

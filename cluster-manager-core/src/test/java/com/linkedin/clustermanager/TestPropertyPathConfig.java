@@ -3,8 +3,6 @@ package com.linkedin.clustermanager;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import com.linkedin.clustermanager.ClusterDataAccessor.PropertyPathConfig;
-import com.linkedin.clustermanager.ClusterDataAccessor.PropertyType;
 
 @Test
 public class TestPropertyPathConfig

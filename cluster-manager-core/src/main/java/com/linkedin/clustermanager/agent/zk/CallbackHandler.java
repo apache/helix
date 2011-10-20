@@ -17,8 +17,6 @@ import org.apache.zookeeper.Watcher.Event.EventType;
 
 import com.linkedin.clustermanager.CMConstants.ChangeType;
 import com.linkedin.clustermanager.ClusterDataAccessor;
-import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
-import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ConfigChangeListener;
 import com.linkedin.clustermanager.ControllerChangeListener;
@@ -28,6 +26,7 @@ import com.linkedin.clustermanager.IdealStateChangeListener;
 import com.linkedin.clustermanager.LiveInstanceChangeListener;
 import com.linkedin.clustermanager.MessageListener;
 import com.linkedin.clustermanager.NotificationContext;
+import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.util.CMUtil;
 
@@ -78,17 +77,16 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
       if (logger.isDebugEnabled())
       {
         logger.debug(Thread.currentThread().getId() + " START:INVOKE "
-            // + changeContext.getPathChanged() 
-            + _path + " listener:"
-            + _listener.getClass().getCanonicalName());
+        // + changeContext.getPathChanged()
+            + _path + " listener:" + _listener.getClass().getCanonicalName());
       }
       if (_changeType == IDEAL_STATE)
       {
 
         IdealStateChangeListener idealStateChangeListener = (IdealStateChangeListener) _listener;
         subscribeForChanges(changeContext, true, true);
-        List<ZNRecord> idealStates = _accessor
-            .getClusterPropertyList(ClusterPropertyType.IDEALSTATES);
+        List<ZNRecord> idealStates;
+        idealStates = _accessor.getChildValues(PropertyType.IDEALSTATES);
         idealStateChangeListener.onIdealStateChange(idealStates, changeContext);
 
       } else if (_changeType == CONFIG)
@@ -96,8 +94,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
 
         ConfigChangeListener configChangeListener = (ConfigChangeListener) _listener;
         subscribeForChanges(changeContext, true, true);
-        List<ZNRecord> configs = _accessor
-            .getClusterPropertyList(ClusterPropertyType.CONFIGS);
+        List<ZNRecord> configs = _accessor.getChildValues(PropertyType.CONFIGS);
         configChangeListener.onConfigChange(configs, changeContext);
 
       } else if (_changeType == LIVE_INSTANCE)
@@ -105,7 +102,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
         LiveInstanceChangeListener liveInstanceChangeListener = (LiveInstanceChangeListener) _listener;
         subscribeForChanges(changeContext, true, false);
         List<ZNRecord> liveInstances = _accessor
-            .getClusterPropertyList(ClusterPropertyType.LIVEINSTANCES);
+            .getChildValues(PropertyType.LIVEINSTANCES);
         liveInstanceChangeListener.onLiveInstanceChange(liveInstances,
             changeContext);
 
@@ -116,9 +113,9 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
         subscribeForChanges(changeContext, true, true);
         String instanceName = CMUtil.getInstanceNameFromPath(_path);
         String[] pathParts = _path.split("/");
-        List<ZNRecord> currentStates = _accessor.getInstancePropertyList(
-            instanceName, pathParts[pathParts.length - 1],
-            InstancePropertyType.CURRENTSTATES);
+        List<ZNRecord> currentStates = _accessor.getChildValues(
+            PropertyType.CURRENTSTATES, instanceName,
+            pathParts[pathParts.length - 1]);
         currentStateChangeListener.onStateChange(instanceName, currentStates,
             changeContext);
 
@@ -139,7 +136,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
         ExternalViewChangeListener externalViewListener = (ExternalViewChangeListener) _listener;
         subscribeForChanges(changeContext, true, true);
         List<ZNRecord> externalViewList = _accessor
-            .getClusterPropertyList(ClusterPropertyType.EXTERNALVIEW);
+            .getChildValues(PropertyType.EXTERNALVIEW);
         externalViewListener.onExternalViewChange(externalViewList,
             changeContext);
       } else if (_changeType == ChangeType.CONTROLLER)
@@ -152,9 +149,8 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
       if (logger.isDebugEnabled())
       {
         logger.debug(Thread.currentThread().getId() + " END:INVOKE "
-            // + changeContext.getPathChanged() 
-            + _path + " listener:"
-            + _listener.getClass().getCanonicalName());
+        // + changeContext.getPathChanged()
+            + _path + " listener:" + _listener.getClass().getCanonicalName());
       }
     }
   }
@@ -219,8 +215,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
       NotificationContext changeContext = new NotificationContext(_manager);
       changeContext.setType(NotificationContext.Type.INIT);
       invoke(changeContext);
-    }
-    catch (Exception e)
+    } catch (Exception e)
     {
       ZKExceptionHandler.getInstance().handle(e);
     }
@@ -238,8 +233,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
         changeContext.setType(NotificationContext.Type.CALLBACK);
         invoke(changeContext);
       }
-    } 
-    catch (Exception e)
+    } catch (Exception e)
     {
       ZKExceptionHandler.getInstance().handle(e);
     }
@@ -258,8 +252,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
         _zkClient.unsubscribeChildChanges(dataPath, this);
         invoke(changeContext);
       }
-    } 
-    catch (Exception e)
+    } catch (Exception e)
     {
       ZKExceptionHandler.getInstance().handle(e);
     }
@@ -277,8 +270,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
         changeContext.setType(NotificationContext.Type.CALLBACK);
         invoke(changeContext);
       }
-    }
-    catch (Exception e)
+    } catch (Exception e)
     {
       ZKExceptionHandler.getInstance().handle(e);
     }
@@ -291,8 +283,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
       NotificationContext changeContext = new NotificationContext(_manager);
       changeContext.setType(NotificationContext.Type.FINALIZE);
       invoke(changeContext);
-    } 
-    catch (Exception e)
+    } catch (Exception e)
     {
       ZKExceptionHandler.getInstance().handle(e);
     }

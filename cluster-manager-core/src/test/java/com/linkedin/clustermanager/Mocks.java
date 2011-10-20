@@ -1,16 +1,8 @@
 package com.linkedin.clustermanager;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.Future;
 
-import org.apache.zookeeper.CreateMode;
-
-import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
-import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.healthcheck.ParticipantHealthReportCollector;
 import com.linkedin.clustermanager.messaging.handling.CMTaskExecutor;
 import com.linkedin.clustermanager.messaging.handling.CMTaskResult;
@@ -19,7 +11,6 @@ import com.linkedin.clustermanager.participant.statemachine.StateModel;
 import com.linkedin.clustermanager.participant.statemachine.StateModelInfo;
 import com.linkedin.clustermanager.participant.statemachine.Transition;
 import com.linkedin.clustermanager.store.PropertyStore;
-import com.linkedin.clustermanager.util.ZNRecordUtil;
 
 public class Mocks
 {
@@ -237,14 +228,14 @@ public class Mocks
 
   public static class MockAccessor implements ClusterDataAccessor
   {
-    Map<ClusterPropertyType, Map<String, ZNRecord>> clusterPropertyMap = new HashMap<ClusterPropertyType, Map<String, ZNRecord>>();
+   /* Map<PropertyType, Map<String, ZNRecord>> clusterPropertyMap = new HashMap<PropertyType, Map<String, ZNRecord>>();
     Map<InstancePropertyType, Map<String, ZNRecord>> instancePropertyMap = new HashMap<InstancePropertyType, Map<String, ZNRecord>>();
     Map<InstancePropertyType, Map<String, Map<String, ZNRecord>>> instancePropertyWithSubpathMap = new HashMap<InstancePropertyType, Map<String, Map<String, ZNRecord>>>();
     Map<ControllerPropertyType, Map<String, ZNRecord>> controllerPropertyMap = new HashMap<ControllerPropertyType, Map<String, ZNRecord>>();
     Map<ControllerPropertyType, Map<String, Map<String, ZNRecord>>> controllerPropertyWithSubpathMap = new HashMap<ControllerPropertyType, Map<String, Map<String, ZNRecord>>>();
 
     @Override
-    public void setClusterProperty(ClusterPropertyType clusterProperty,
+    public void setClusterProperty(PropertyType clusterProperty,
         String key, ZNRecord value)
     {
       if (!clusterPropertyMap.containsKey(clusterProperty))
@@ -256,7 +247,7 @@ public class Mocks
     }
 
     @Override
-    public void removeClusterProperty(ClusterPropertyType clusterProperty,
+    public void removeClusterProperty(PropertyType clusterProperty,
         String key)
     {
       clusterPropertyMap.remove(key);
@@ -264,14 +255,14 @@ public class Mocks
     }
 
     @Override
-    public void setClusterProperty(ClusterPropertyType clusterProperty,
+    public void setClusterProperty(PropertyType clusterProperty,
         String key, ZNRecord value, CreateMode mode)
     {
       setClusterProperty(clusterProperty, key, value);
     }
 
     @Override
-    public void updateClusterProperty(ClusterPropertyType clusterProperty,
+    public void updateClusterProperty(PropertyType clusterProperty,
         String key, ZNRecord value)
     {
       if (!clusterPropertyMap.containsKey(clusterProperty))
@@ -284,7 +275,7 @@ public class Mocks
     }
 
     @Override
-    public ZNRecord getClusterProperty(ClusterPropertyType clusterProperty,
+    public ZNRecord getProperty(PropertyType clusterProperty,
         String key)
     {
       if (!clusterPropertyMap.containsKey(clusterProperty))
@@ -296,8 +287,8 @@ public class Mocks
     }
 
     @Override
-    public List<ZNRecord> getClusterPropertyList(
-        ClusterPropertyType clusterProperty)
+    public List<ZNRecord> getPropertyList(
+        PropertyType clusterProperty)
     {
       if (clusterPropertyMap.containsKey(clusterProperty))
       {
@@ -526,7 +517,7 @@ public class Mocks
       // TODO Auto-generated method stub
       return null;
     }
-
+*/
     @Override
     public boolean setProperty(PropertyType type, ZNRecord value,
         String... keys)
@@ -566,6 +557,13 @@ public class Mocks
 
     @Override
     public List<ZNRecord> getChildValues(PropertyType type, String... keys)
+    {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    @Override
+    public PropertyStore<ZNRecord> getStore()
     {
       // TODO Auto-generated method stub
       return null;

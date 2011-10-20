@@ -13,12 +13,12 @@ import java.util.concurrent.Future;
 import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.ClusterDataAccessor;
-import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerException;
 import com.linkedin.clustermanager.MessageListener;
 import com.linkedin.clustermanager.NotificationContext;
 import com.linkedin.clustermanager.NotificationContext.Type;
+import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.Message.MessageType;
@@ -29,20 +29,18 @@ import com.linkedin.clustermanager.util.StatusUpdateUtil;
 public class CMTaskExecutor implements MessageListener
 {
   // TODO: we need to further design how to throttle this.
-  // From storage point of view, only bootstrap case is expensive 
+  // From storage point of view, only bootstrap case is expensive
   // and we need to throttle, which is mostly IO / network bounded.
   private static final int MAX_PARALLEL_TASKS = 4;
-  // TODO: create per-task type threadpool with customizable pool size 
+  // TODO: create per-task type threadpool with customizable pool size
   protected final Map<String, Future<CMTaskResult>> _taskMap;
   private final Object _lock;
   private final StatusUpdateUtil _statusUpdateUtil;
   private final ParticipantMonitor _monitor;
-  
-  private final ConcurrentHashMap<String, MessageHandlerFactory> _handlerFactoryMap 
-  = new ConcurrentHashMap<String, MessageHandlerFactory>();
-  
-  private final ConcurrentHashMap<String, ExecutorService> _threadpoolMap 
-  = new ConcurrentHashMap<String, ExecutorService>();
+
+  private final ConcurrentHashMap<String, MessageHandlerFactory> _handlerFactoryMap = new ConcurrentHashMap<String, MessageHandlerFactory>();
+
+  private final ConcurrentHashMap<String, ExecutorService> _threadpoolMap = new ConcurrentHashMap<String, ExecutorService>();
 
   private static Logger logger = Logger.getLogger(CMTaskExecutor.class);
 
@@ -54,36 +52,39 @@ public class CMTaskExecutor implements MessageListener
     _monitor = ParticipantMonitor.getInstance();
     startMonitorThread();
   }
-  
-  public void registerMessageHandlerFactory(String type, MessageHandlerFactory factory)
+
+  public void registerMessageHandlerFactory(String type,
+      MessageHandlerFactory factory)
   {
-    if(!_handlerFactoryMap.containsKey(type))
+    if (!_handlerFactoryMap.containsKey(type))
     {
-      if(!type.equalsIgnoreCase(factory.getMessageType()))
+      if (!type.equalsIgnoreCase(factory.getMessageType()))
       {
-        throw new ClusterManagerException("Message factory type mismatch. Type: "+ type+ " factory : "+ factory.getMessageType());
-        
+        throw new ClusterManagerException(
+            "Message factory type mismatch. Type: " + type + " factory : "
+                + factory.getMessageType());
+
       }
       _handlerFactoryMap.put(type, factory);
-      _threadpoolMap.put(type, Executors.newFixedThreadPool(MAX_PARALLEL_TASKS));
+      _threadpoolMap
+          .put(type, Executors.newFixedThreadPool(MAX_PARALLEL_TASKS));
       logger.info("adding msg factory for type " + type);
-    }
-    else
+    } else
     {
       logger.warn("Ignoring duplicate msg factory for type " + type);
     }
   }
-  
+
   public MessageHandlerFactory getMessageHanderFactory(String type)
   {
     return _handlerFactoryMap.get(type);
   }
-  
+
   public ParticipantMonitor getParticipantMonitor()
   {
     return _monitor;
   }
-  
+
   private void startMonitorThread()
   {
     // start a thread which monitors the completions of task
@@ -92,7 +93,7 @@ public class CMTaskExecutor implements MessageListener
   public void scheduleTask(Message message, MessageHandler handler,
       NotificationContext notificationContext)
   {
-    assert(handler != null);
+    assert (handler != null);
     synchronized (_lock)
     {
       try
@@ -101,34 +102,35 @@ public class CMTaskExecutor implements MessageListener
         _statusUpdateUtil.logInfo(message, CMTaskExecutor.class,
             "Message handling task scheduled", notificationContext.getManager()
                 .getDataAccessor());
-        
-        CMTask task = new CMTask(message, notificationContext, 
-            handler, this);
+
+        CMTask task = new CMTask(message, notificationContext, handler, this);
         if (!_taskMap.containsKey(message.getMsgId()))
         {
-          Future<CMTaskResult> future = _threadpoolMap.get(message.getMsgType()).submit(task);
+          Future<CMTaskResult> future = _threadpoolMap
+              .get(message.getMsgType()).submit(task);
           _taskMap.put(message.getMsgId(), future);
-        } 
-        else
+        } else
         {
-          _statusUpdateUtil.logWarning(message, CMTaskExecutor.class,
-              "Message handling task already sheduled for " + message.getMsgId(),
-              notificationContext.getManager().getDataAccessor());
+          _statusUpdateUtil.logWarning(
+              message,
+              CMTaskExecutor.class,
+              "Message handling task already sheduled for "
+                  + message.getMsgId(), notificationContext.getManager()
+                  .getDataAccessor());
         }
-      } 
-      catch (Exception e)
+      } catch (Exception e)
       {
         String errorMessage = "Error while executing task" + e;
         logger.error("Error while executing task." + message, e);
 
-        _statusUpdateUtil.logError(message, CMTaskExecutor.class, e, errorMessage,
-            notificationContext.getManager().getDataAccessor());
+        _statusUpdateUtil.logError(message, CMTaskExecutor.class, e,
+            errorMessage, notificationContext.getManager().getDataAccessor());
         // TODO add retry or update errors node
       }
     }
   }
-  
-  public void cancelTask(Message message, 
+
+  public void cancelTask(Message message,
       NotificationContext notificationContext)
   {
     synchronized (_lock)
@@ -139,25 +141,24 @@ public class CMTaskExecutor implements MessageListener
             "Trying to cancel the future for " + message.getMsgId(),
             notificationContext.getManager().getDataAccessor());
         Future<CMTaskResult> future = _taskMap.get(message.getMsgId());
-        
+
         // If the thread is still running it will be interrupted if cancel(true)
-        // is called. So state transition callbacks should implement logic to return 
+        // is called. So state transition callbacks should implement logic to
+        // return
         // if it is interrupted.
-        if(future.cancel(true))
+        if (future.cancel(true))
         {
-          _statusUpdateUtil.logInfo(message, CMTaskExecutor.class,
-              "Canceled " + message.getMsgId(),
-              notificationContext.getManager().getDataAccessor());
+          _statusUpdateUtil.logInfo(message, CMTaskExecutor.class, "Canceled "
+              + message.getMsgId(), notificationContext.getManager()
+              .getDataAccessor());
           _taskMap.remove(message.getMsgId());
-        }
-        else
+        } else
         {
           _statusUpdateUtil.logInfo(message, CMTaskExecutor.class,
               "false when trying to cancel the message " + message.getMsgId(),
               notificationContext.getManager().getDataAccessor());
         }
-      } 
-      else
+      } else
       {
         _statusUpdateUtil.logWarning(message, CMTaskExecutor.class,
             "Future not found when trying to cancel " + message.getMsgId(),
@@ -171,11 +172,10 @@ public class CMTaskExecutor implements MessageListener
     synchronized (_lock)
     {
       logger.info("message " + msgId + " finished");
-      if(_taskMap.containsKey(msgId))
+      if (_taskMap.containsKey(msgId))
       {
         _taskMap.remove(msgId);
-      }
-      else
+      } else
       {
         logger.warn("message " + msgId + "not found in task map");
       }
@@ -211,12 +211,12 @@ public class CMTaskExecutor implements MessageListener
   {
     ClusterManager manager = changeContext.getManager();
     ClusterDataAccessor client = manager.getDataAccessor();
-    
+
     // If FINALIZE notification comes, reset all handler factories
     // TODO: see if we should have a separate notification call for resetting
-    if(changeContext.getType() == Type.FINALIZE)
+    if (changeContext.getType() == Type.FINALIZE)
     {
-      for(MessageHandlerFactory factory : _handlerFactoryMap.values())
+      for (MessageHandlerFactory factory : _handlerFactoryMap.values())
       {
         factory.reset();
       }
@@ -226,7 +226,7 @@ public class CMTaskExecutor implements MessageListener
       logger.info("No Messages to process");
       return;
     }
-    //TODO: sort message based on timestamp
+    // TODO: sort message based on timestamp
     for (ZNRecord record : messages)
     {
       Message message = new Message(record);
@@ -234,9 +234,9 @@ public class CMTaskExecutor implements MessageListener
       // onMessage() call if needed.
       if (message.getMsgType().equalsIgnoreCase(MessageType.NO_OP.toString()))
       {
-        logger.info("Dropping NO-OP msg from "+ message.getMsgSrc());
-        client.removeInstanceProperty(instanceName,
-            InstancePropertyType.MESSAGES, message.getId());
+        logger.info("Dropping NO-OP msg from " + message.getMsgSrc());
+        client.removeProperty(PropertyType.MESSAGES, instanceName,
+            message.getId());
         continue;
       }
       String sessionId = manager.getSessionId();
@@ -248,40 +248,38 @@ public class CMTaskExecutor implements MessageListener
         {
           try
           {
-            logger.info("Creating handler for message "+ message.getMsgId());
+            logger.info("Creating handler for message " + message.getMsgId());
             handler = createMessageHandler(message, changeContext);
-            
-            if(handler == null)
+
+            if (handler == null)
             {
-              logger.warn("Message handler factory not found for message type "+ message.getMsgType());
+              logger.warn("Message handler factory not found for message type "
+                  + message.getMsgType());
               continue;
             }
-            
+
             _statusUpdateUtil.logInfo(message, StateMachineEngine.class,
-              "New Message", client);
+                "New Message", client);
             // update msgState to read
             message.setMsgState("read");
             message.setReadTimeStamp(new Date().getTime());
-  
-            client.updateInstanceProperty(instanceName,
-                InstancePropertyType.MESSAGES, message.getId(),
-                message.getRecord());
+
+            client.updateProperty(PropertyType.MESSAGES, message.getRecord(),
+                instanceName, message.getId());
             scheduleTask(message, handler, changeContext);
-          }
-          catch(Exception e)
+          } catch (Exception e)
           {
-            String error = "Failed to create message handler for " 
-              + message.getMsgId() + " exception: " + e;
-            
+            String error = "Failed to create message handler for "
+                + message.getMsgId() + " exception: " + e;
+
             _statusUpdateUtil.logError(message, StateMachineEngine.class, e,
                 error, client);
-            
-            client.removeInstanceProperty(instanceName,
-                InstancePropertyType.MESSAGES, message.getId());
+
+            client.removeProperty(PropertyType.MESSAGES, instanceName,
+                message.getId());
             continue;
           }
-        } 
-        else
+        } else
         {
           // This will happen because we dont delete the message as soon as we
           // read it.
@@ -292,36 +290,35 @@ public class CMTaskExecutor implements MessageListener
           // _statusUpdateUtil.logInfo(message, StateMachineEngine.class,
           // "Message already read", client);
         }
-      } 
-      else
+      } else
       {
         String warningMessage = "Session Id does not match.  current session id  Expected: "
             + sessionId + " sessionId from Message: " + tgtSessionId;
         logger.warn(warningMessage);
-        client.removeInstanceProperty(instanceName,
-            InstancePropertyType.MESSAGES, message.getId());
+        client.removeProperty(PropertyType.MESSAGES, instanceName,
+            message.getId());
         _statusUpdateUtil.logWarning(message, StateMachineEngine.class,
             warningMessage, client);
       }
     }
-    
+
   }
 
   private MessageHandler createMessageHandler(Message message,
       NotificationContext changeContext)
   {
     String msgType = message.getMsgType().toString();
-   
+
     MessageHandlerFactory handlerFactory = _handlerFactoryMap.get(msgType);
-    
-    if(handlerFactory == null)
+
+    if (handlerFactory == null)
     {
       logger.warn("Cannot find handler factory for msg type " + msgType
-          +" message:" + message.getMsgId());
+          + " message:" + message.getMsgId());
       return null;
     }
-    
+
     return handlerFactory.createHandler(message, changeContext);
-    
+
   }
 }

@@ -24,8 +24,8 @@ import org.restlet.resource.Variant;
 
 import com.linkedin.clustermanagement.webapp.RestAdminApplication;
 import com.linkedin.clustermanager.ClusterDataAccessor;
-import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.ClusterManagerException;
+import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.tools.ClusterSetup;
 
@@ -84,7 +84,7 @@ public class IdealStateResource extends Resource
   
   StringRepresentation getIdealStateRepresentation(String zkServerAddress, String clusterName, String resourceName) throws JsonGenerationException, JsonMappingException, IOException
   {
-    String message = ClusterRepresentationUtil.getClusterPropertyAsString(zkServerAddress, clusterName, ClusterPropertyType.IDEALSTATES, resourceName, MediaType.APPLICATION_JSON);
+    String message = ClusterRepresentationUtil.getClusterPropertyAsString(zkServerAddress, clusterName, PropertyType.IDEALSTATES, resourceName, MediaType.APPLICATION_JSON);
     
     StringRepresentation representation = new StringRepresentation(message, MediaType.APPLICATION_JSON);
     
@@ -113,9 +113,9 @@ public class IdealStateResource extends Resource
             ZNRecord.class);
         
         ClusterDataAccessor accessor = ClusterRepresentationUtil.getClusterDataAccessor(zkServer,  clusterName);
-        accessor.removeClusterProperty(ClusterPropertyType.IDEALSTATES, resourceName);
+        accessor.removeProperty(PropertyType.IDEALSTATES, resourceName);
         
-        accessor.setClusterProperty(ClusterPropertyType.IDEALSTATES, resourceName, newIdealState);
+        accessor.setProperty(PropertyType.IDEALSTATES, newIdealState,resourceName);
         
       }
       else if(paraMap.get(ClusterRepresentationUtil._managementCommand).equalsIgnoreCase(ClusterRepresentationUtil._rebalanceCommand))

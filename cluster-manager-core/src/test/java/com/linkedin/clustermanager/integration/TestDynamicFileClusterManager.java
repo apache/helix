@@ -6,8 +6,7 @@ import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
-import com.linkedin.clustermanager.ClusterDataAccessor.InstancePropertyType;
+import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 
 public class TestDynamicFileClusterManager extends FileCMTestBase
@@ -26,8 +25,8 @@ public class TestDynamicFileClusterManager extends FileCMTestBase
     Thread.sleep(10000);
     
     // verify current state
-    ZNRecord idealStates = _accessor.getClusterProperty(ClusterPropertyType.IDEALSTATES, "MyDB");
-    ZNRecord curStates =  _accessor.getInstanceProperty("localhost_12918", InstancePropertyType.CURRENTSTATES, 
+    ZNRecord idealStates = _accessor.getProperty(PropertyType.IDEALSTATES, "MyDB");
+    ZNRecord curStates =  _accessor.getProperty( PropertyType.CURRENTSTATES, "localhost_12918",
                                               _manager.getSessionId(), "MyDB");
     boolean result = verifyCurStateAndIdealState(curStates, idealStates, "localhost_12918", "MyDB");
     Assert.assertTrue(result);

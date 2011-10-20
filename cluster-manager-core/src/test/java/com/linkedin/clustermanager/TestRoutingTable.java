@@ -42,10 +42,10 @@ public class TestRoutingTable
           _mockAccessor = new Mocks.MockAccessor()
           {
             @Override
-            public List<ZNRecord> getClusterPropertyList(
-                ClusterPropertyType clusterProperty)
+            public List<ZNRecord> getChildValues(
+                PropertyType clusterProperty,String... keys)
             {
-              if (clusterProperty == ClusterPropertyType.CONFIGS)
+              if (clusterProperty == PropertyType.CONFIGS)
               {
                 List<ZNRecord> configs = new ArrayList<ZNRecord>();
                 for (String instanceName : array)

@@ -9,6 +9,8 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 
 import com.linkedin.clustermanager.ClusterDataAccessor;
+import com.linkedin.clustermanager.PropertyPathConfig;
+import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.store.PropertyStore;
 import com.linkedin.clustermanager.store.PropertyStoreException;
@@ -28,13 +30,16 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
     _clusterName = clusterName;
   }
   
+  /*
   @Override
-  public void setClusterProperty(ClusterPropertyType clusterProperty,
+  public void setClusterProperty(PropertyType clusterProperty,
       String key, ZNRecord value)
   {
     
-    String path = CMUtil.getClusterPropertyPath(_clusterName, clusterProperty);
-    path = path + "/" + key;
+    // String path = CMUtil.getPropertyPath(_clusterName, clusterProperty);
+    // path = path + "/" + key;String 
+    String path = PropertyPathConfig.getPath(type, _clusterName, keys);
+    
     try
     {
       _readWriteLock.writeLock().lock();
@@ -43,28 +48,35 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
     catch(PropertyStoreException e)
     {
       logger.error("Fail to set cluster property clusterName: " + _clusterName + 
-                " type:" + clusterProperty +
-                " key:" + key + "\nexception: " + e);
+                " type:" + type +
+                " keys:" + keys + "\nexception: " + e);
     }
     finally
     {
       _readWriteLock.writeLock().unlock();
     }
   }
-
+  */
+  
+  /*
   @Override
-  public void updateClusterProperty(ClusterPropertyType type, String key, ZNRecord value)
+  public void updateClusterProperty(PropertyType type, String key, ZNRecord value)
   {
     throw new UnsupportedOperationException(
       "updateClusterProperty() is NOT supported by FileDataAccessor");
 
   }
+  */
 
+  /*
   @Override
-  public ZNRecord getClusterProperty(ClusterPropertyType type, String key)
+  // public ZNRecord getProperty(PropertyType type, String key)
+  public ZNRecord getProperty(PropertyType type, String... keys)
   {
-    String path = CMUtil.getClusterPropertyPath(_clusterName, type);
-    path = path + "/" + key;
+    // String path = CMUtil.getPropertyPath(_clusterName, type);
+    // path = path + "/" + key;
+    String path = PropertyPathConfig.getPath(type, _clusterName, keys);
+
     try
     {
       _readWriteLock.readLock().lock();
@@ -74,7 +86,7 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
     {
       logger.error("Fail to get cluster property clusterName: " + _clusterName + 
                 " type:" + type +
-                " key:" + key + "\nexception: " + e);
+                " keys:" + keys + "\nexception: " + e);
     }
     finally
     {
@@ -82,11 +94,13 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
     }
     return null;
   }
-
+  */
+  
+  /*
   @Override
-  public List<ZNRecord> getClusterPropertyList(ClusterPropertyType clusterProperty)
+  public List<ZNRecord> getPropertyList(PropertyType clusterProperty)
   {
-    String path = CMUtil.getClusterPropertyPath(_clusterName, clusterProperty);
+    String path = CMUtil.getPropertyPath(_clusterName, clusterProperty);
     return getChildRecords(path);    
   }
 
@@ -171,15 +185,6 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
     }
 
   }
-
-  private void updateIfExists(String path, final ZNRecord record, boolean mergeOnUpdate) 
-  throws PropertyStoreException
-  {
-    if (_store.exists(path))
-    {
-      _store.setProperty(path, record);
-    }
-  }
   
   @Override
   public void updateInstanceProperty(String instanceName,
@@ -210,7 +215,7 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
   }
 
   @Override
-  public void removeClusterProperty(ClusterPropertyType type, String key)
+  public void removeClusterProperty(PropertyType type, String key)
   {
     // LOG.error("removeClusterProperty() NOT supported, type:" + type +
     //    " key:" + key);
@@ -220,7 +225,7 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
   }
 
   @Override
-  public void setClusterProperty(ClusterPropertyType type,
+  public void setClusterProperty(PropertyType type,
       String key, ZNRecord value, CreateMode mode)
   {
     setClusterProperty(type, key, value);
@@ -265,27 +270,6 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
     }
   }
 
-  private void createOrUpdate(String path, ZNRecord record, boolean mergeOnUpdate) 
-  throws PropertyStoreException
-  {
-    if (_store.exists(path))
-    {
-      ZNRecord curRecord = _store.getProperty(path);
-      if (mergeOnUpdate)
-      {
-        curRecord.merge(record);
-        _store.setProperty(path, curRecord);
-      }
-      else
-      {
-        _store.setProperty(path, record);
-      }
-    }
-    else
-    {
-      _store.setProperty(path, record);
-    }
-  }
   
   @Override
   public void updateInstanceProperty(String instanceName, InstancePropertyType type, 
@@ -510,43 +494,6 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
     return childRecords;
   }
   
-  /**
-  // hack
-  public void start()
-  {
-    if (_store != null)
-    {
-      _store.start();
-    }
-  }
-  
-  public void subscribeForPropertyChange(String path, PropertyChangeListener<ZNRecord> listener) 
-  throws PropertyStoreException
-  {
-    _store.subscribeForPropertyChange(path, listener);
-  }
-  
-  public ZNRecord getProperty(String key)
-  {
-    try 
-    {
-      _readWriteLock.readLock().lock();
-      return _store.getProperty(key);
-    }
-    catch (PropertyStoreException e)
-    {
-      LOG.error("Fail to get property, cluster:" + _clusterName +
-          " key:" + key);
-    }
-    finally
-    {
-      _readWriteLock.readLock().unlock();      
-    }
-    
-    return null;
-  }
-  **/
-  
   @Override
   public PropertyStore<ZNRecord> getStore()
   {
@@ -575,11 +522,29 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
     // TODO Auto-generated method stub
     throw new UnsupportedOperationException("getControllerProperty() is not implemented for file-based cm");
   }
-
+  */
+  
   @Override
   public boolean setProperty(PropertyType type, ZNRecord value, String... keys)
   {
-    // TODO Auto-generated method stub
+    String path = PropertyPathConfig.getPath(type, _clusterName, keys);
+    
+    try
+    {
+      _readWriteLock.writeLock().lock();
+      _store.setProperty(path, value);
+      return true;
+    }
+    catch(PropertyStoreException e)
+    {
+      logger.error("Fail to set cluster property clusterName: " + _clusterName + 
+                " type:" + type +
+                " keys:" + keys + "\nexception: " + e);
+    }
+    finally
+    {
+      _readWriteLock.writeLock().unlock();
+    }
     return false;
   }
 
@@ -587,21 +552,76 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
   public boolean updateProperty(PropertyType type, ZNRecord value,
       String... keys)
   {
-    // TODO Auto-generated method stub
+    try
+    {
+      _readWriteLock.writeLock().lock();
+      String path = PropertyPathConfig.getPath(type, _clusterName, keys); 
+     if (type.isUpdateOnlyOnExists())
+      {
+       updateIfExists(path, value, type.isMergeOnUpdate());
+      } else
+      {
+        createOrUpdate(path, value, type.isMergeOnUpdate());
+      }
+      return true;
+    }
+    catch (PropertyStoreException e)
+    {
+      logger.error("fail to update instance property, " + 
+          " type:" + type + " keys:" + keys + "\nexception:" + e);
+    }
+    finally
+    {
+      _readWriteLock.writeLock().unlock();
+    }
     return false;
+
   }
 
   @Override
   public ZNRecord getProperty(PropertyType type, String... keys)
   {
-    // TODO Auto-generated method stub
+    String path = PropertyPathConfig.getPath(type, _clusterName, keys);
+
+    try
+    {
+      _readWriteLock.readLock().lock();
+      return _store.getProperty(path);
+    }
+    catch(PropertyStoreException e)
+    {
+      logger.error("Fail to get cluster property clusterName: " + _clusterName + 
+                " type:" + type +
+                " keys:" + keys + "\nexception: " + e);
+    }
+    finally
+    {
+      _readWriteLock.readLock().unlock();
+    }
     return null;
   }
 
   @Override
   public boolean removeProperty(PropertyType type, String... keys)
   {
-    // TODO Auto-generated method stub
+    String path = PropertyPathConfig.getPath(type, _clusterName, keys);
+    
+    try
+    {
+      _readWriteLock.writeLock().lock();
+      _store.removeProperty(path);
+      return true;
+    }
+    catch (PropertyStoreException e)
+    {
+      logger.error("Fail to remove instance property, "  + 
+          " type:" + type + " keys:" + keys  + "\nexception:" + e);
+    }
+    finally
+    {
+      _readWriteLock.writeLock().unlock();
+    }
+
     return false;
   }
 
@@ -615,8 +635,77 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
   @Override
   public List<ZNRecord> getChildValues(PropertyType type, String... keys)
   {
-    // TODO Auto-generated method stub
-    return null;
+    List<ZNRecord> childRecords = new ArrayList<ZNRecord>();
+    String path = PropertyPathConfig.getPath(type, _clusterName, keys);
+    
+    try
+    {
+      _readWriteLock.readLock().lock();
+      
+      List<String> childs = _store.getPropertyNames(path);
+      if (childs == null)
+      {
+        return childRecords;
+      }
+      
+      for (String child : childs)
+      {
+        ZNRecord record = _store.getProperty(child);
+        if (record != null)
+        {
+          childRecords.add(record);
+        }
+      }
+      return childRecords;
+    }
+    catch(PropertyStoreException e)
+    {
+      logger.error("Fail to get child properties cluster:" + _clusterName + 
+          " parentPath:" + path + "\nexception: " + e);
+    }
+    finally
+    {
+      _readWriteLock.readLock().unlock();
+    }
+    
+    return childRecords;
+  }
+
+  @Override
+  public PropertyStore<ZNRecord> getStore()
+  {
+    return _store;
   }
   
+  private void updateIfExists(String path, final ZNRecord record, boolean mergeOnUpdate) 
+  throws PropertyStoreException
+  {
+    if (_store.exists(path))
+    {
+      _store.setProperty(path, record);
+    }
+  }
+  
+  private void createOrUpdate(String path, ZNRecord record, boolean mergeOnUpdate) 
+  throws PropertyStoreException
+  {
+    if (_store.exists(path))
+    {
+      ZNRecord curRecord = _store.getProperty(path);
+      if (mergeOnUpdate)
+      {
+        curRecord.merge(record);
+        _store.setProperty(path, curRecord);
+      }
+      else
+      {
+        _store.setProperty(path, record);
+      }
+    }
+    else
+    {
+      _store.setProperty(path, record);
+    }
+  }
+
 }

@@ -47,7 +47,7 @@ public class TestClusterviewSerializer
   
   public void VerifyClusterViews(ClusterView view1, ClusterView view2)
   {
-    AssertJUnit.assertEquals(view1.getClusterPropertyLists().size(), view2.getClusterPropertyLists().size());
+    AssertJUnit.assertEquals(view1.getPropertyLists().size(), view2.getPropertyLists().size());
     AssertJUnit.assertEquals(view1.getExternalView().size(), view2.getExternalView().size());
     AssertJUnit.assertEquals(view1.getMemberInstanceMap().size(), view2.getMemberInstanceMap().size());
     AssertJUnit.assertEquals(view1.getInstances().size(), view2.getInstances().size());

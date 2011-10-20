@@ -19,8 +19,8 @@ import org.restlet.resource.Variant;
 
 import com.linkedin.clustermanagement.webapp.RestAdminApplication;
 import com.linkedin.clustermanager.ClusterDataAccessor;
-import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.ClusterManagerException;
+import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.tools.ClusterSetup;
 import com.linkedin.clustermanager.util.ZNRecordUtil;
@@ -84,8 +84,8 @@ public class InstancesResource extends Resource
     List<String> instances = setupTool.getClusterManagementTool().getInstancesInCluster(clusterName);
     
     ClusterDataAccessor accessor = ClusterRepresentationUtil.getClusterDataAccessor(zkServerAddress,  clusterName);
-    List<ZNRecord> liveInstances = accessor.getClusterPropertyList(ClusterPropertyType.LIVEINSTANCES);
-    List<ZNRecord> instanceConfigs = accessor.getClusterPropertyList(ClusterPropertyType.CONFIGS);
+    List<ZNRecord> liveInstances = accessor.getChildValues(PropertyType.LIVEINSTANCES);
+    List<ZNRecord> instanceConfigs = accessor.getChildValues(PropertyType.CONFIGS);
     
     Map<String, ZNRecord> liveInstanceMap = ZNRecordUtil.convertListToMap(liveInstances);
     Map<String, ZNRecord> configsMap = ZNRecordUtil.convertListToMap(instanceConfigs);

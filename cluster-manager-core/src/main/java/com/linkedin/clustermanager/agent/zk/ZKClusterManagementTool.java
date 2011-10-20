@@ -6,12 +6,12 @@ import java.util.List;
 import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.ClusterDataAccessor;
-import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
-import com.linkedin.clustermanager.ClusterDataAccessor.ControllerPropertyType;
 import com.linkedin.clustermanager.ClusterDataAccessor.IdealStateConfigProperty;
 import com.linkedin.clustermanager.ClusterDataAccessor.InstanceConfigProperty;
 import com.linkedin.clustermanager.ClusterManagementService;
 import com.linkedin.clustermanager.ClusterManagerException;
+import com.linkedin.clustermanager.PropertyPathConfig;
+import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.util.CMUtil;
 
@@ -45,38 +45,37 @@ public class ZKClusterManagementTool implements ClusterManagementService
 
     _zkClient
         .createPersistent(CMUtil.getMessagePath(clusterName, nodeId), true);
-    _zkClient.createPersistent(CMUtil.getCurrentStateBasePath(clusterName, nodeId),
-        true);
+    _zkClient.createPersistent(
+        CMUtil.getCurrentStateBasePath(clusterName, nodeId), true);
     _zkClient.createPersistent(CMUtil.getErrorsPath(clusterName, nodeId), true);
     _zkClient.createPersistent(
         CMUtil.getStatusUpdatesPath(clusterName, nodeId), true);
   }
 
-  public void dropInstance(String clusterName, ZNRecord instanceConfig) 
+  public void dropInstance(String clusterName, ZNRecord instanceConfig)
   {
-	  String instanceConfigsPath = CMUtil.getConfigPath(clusterName);
-	  String nodeId = instanceConfig.getId();
-	  String instanceConfigPath = instanceConfigsPath + "/" + nodeId;
-	  String instancePath = CMUtil.getInstancePath(clusterName, nodeId);
-	  
-	  
-	  if (! _zkClient.exists(instanceConfigPath))
-	  {
-		  throw new ClusterManagerException("Node " + nodeId
-				  + " does not exist in config for cluster " + clusterName);
-	  }  
-	  
-	  if (! _zkClient.exists(instancePath))
-	  {
-		  throw new ClusterManagerException("Node " + nodeId
-				  + " does not exist in instances for cluster " + clusterName);
-	  }  
-	  
-	  //delete config path
-	  ZKUtil.dropChildren(_zkClient, instanceConfigsPath, instanceConfig);
-	  
-	  //delete instance path
-	  _zkClient.deleteRecursive(instancePath);
+    String instanceConfigsPath = CMUtil.getConfigPath(clusterName);
+    String nodeId = instanceConfig.getId();
+    String instanceConfigPath = instanceConfigsPath + "/" + nodeId;
+    String instancePath = CMUtil.getInstancePath(clusterName, nodeId);
+
+    if (!_zkClient.exists(instanceConfigPath))
+    {
+      throw new ClusterManagerException("Node " + nodeId
+          + " does not exist in config for cluster " + clusterName);
+    }
+
+    if (!_zkClient.exists(instancePath))
+    {
+      throw new ClusterManagerException("Node " + nodeId
+          + " does not exist in instances for cluster " + clusterName);
+    }
+
+    // delete config path
+    ZKUtil.dropChildren(_zkClient, instanceConfigsPath, instanceConfig);
+
+    // delete instance path
+    _zkClient.deleteRecursive(instancePath);
   }
 
   @Override
@@ -84,35 +83,34 @@ public class ZKClusterManagementTool implements ClusterManagementService
   {
     String instanceConfigsPath = CMUtil.getConfigPath(clusterName);
     String instanceConfigPath = instanceConfigsPath + "/" + instanceName;
-    
+
     if (!_zkClient.exists(instanceConfigPath))
     {
       throw new ClusterManagerException("instance" + instanceName
           + " does not exist in cluster " + clusterName);
     }
-    
+
     ClusterDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
-    return accessor.getClusterProperty(ClusterPropertyType.CONFIGS, instanceName);
+    return accessor.getProperty(PropertyType.CONFIGS, instanceName);
   }
 
   @Override
   public void enableInstance(String clusterName, String instanceName,
       boolean enable)
   {
-    String clusterPropertyPath = CMUtil.getClusterPropertyPath(clusterName,
-        ClusterPropertyType.CONFIGS);
+    String clusterPropertyPath = PropertyPathConfig.getPath(
+        PropertyType.CONFIGS, clusterName);
     String targetPath = clusterPropertyPath + "/" + instanceName;
 
     if (_zkClient.exists(targetPath))
     {
       ClusterDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
-      ZNRecord nodeConfig = accessor.getClusterProperty(
-          ClusterPropertyType.CONFIGS, instanceName);
+      ZNRecord nodeConfig = accessor.getProperty(PropertyType.CONFIGS,
+          instanceName);
 
       nodeConfig.setSimpleField(InstanceConfigProperty.ENABLED.toString(),
           enable + "");
-      accessor.setClusterProperty(ClusterPropertyType.CONFIGS, instanceName,
-          nodeConfig);
+      accessor.setProperty(PropertyType.CONFIGS, nodeConfig, instanceName);
     } else
     {
       throw new ClusterManagerException("Cluster " + clusterName
@@ -134,15 +132,15 @@ public class ZKClusterManagementTool implements ClusterManagementService
       if (overwritePrevRecord)
       {
         _zkClient.deleteRecursive(root);
-      } 
-      else
+      } else
       {
-        throw new ClusterManagerException("Cluster "+clusterName+" already exists");
+        throw new ClusterManagerException("Cluster " + clusterName
+            + " already exists");
       }
     }
-    
+
     _zkClient.createPersistent(root);
-    
+
     // IDEAL STATE
     _zkClient.createPersistent(CMUtil.getIdealStatePath(clusterName));
     // CONFIGURATIONS
@@ -158,26 +156,25 @@ public class ZKClusterManagementTool implements ClusterManagementService
 
     // controller
     _zkClient.createPersistent(CMUtil.getControllerPath(clusterName));
-    String path = CMUtil.getControllerPropertyPath(clusterName, 
-                                                         ControllerPropertyType.HISTORY);
+    String path = PropertyPathConfig.getPath(PropertyType.HISTORY, clusterName);
     final ZNRecord emptyHistory = new ZNRecord("HISTORY");
     final List<String> emptyList = new ArrayList<String>();
     emptyHistory.setListField(clusterName, emptyList);
     // _zkClient.createPersistent(path);
     _zkClient.createPersistent(path, emptyHistory);
-    
-    path = CMUtil.getControllerPropertyPath(clusterName, 
-        ControllerPropertyType.MESSAGES);
+
+    path = PropertyPathConfig.getPath(PropertyType.MESSAGES_CONTROLLER,
+        clusterName);
     _zkClient.createPersistent(path);
-    
-    path = CMUtil.getControllerPropertyPath(clusterName, 
-        ControllerPropertyType.STATUSUPDATES);
+
+    path = PropertyPathConfig.getPath(PropertyType.STATUSUPDATES_CONTROLLER,
+        clusterName);
     _zkClient.createPersistent(path);
-    
-    path = CMUtil.getControllerPropertyPath(clusterName, 
-        ControllerPropertyType.ERRORS);
+
+    path = PropertyPathConfig.getPath(PropertyType.ERRORS_CONTROLLER,
+        clusterName);
     _zkClient.createPersistent(path);
- 
+
   }
 
   @Override
@@ -191,10 +188,10 @@ public class ZKClusterManagementTool implements ClusterManagementService
   public void addResourceGroup(String clusterName, String dbName,
       int partitions, String stateModelRef)
   {
-    addResourceGroup(clusterName, dbName, partitions, stateModelRef, 
-                     IdealStateConfigProperty.AUTO.toString());
+    addResourceGroup(clusterName, dbName, partitions, stateModelRef,
+        IdealStateConfigProperty.AUTO.toString());
   }
-  
+
   @Override
   public void addResourceGroup(String clusterName, String dbName,
       int partitions, String stateModelRef, String idealStateMode)
@@ -203,15 +200,15 @@ public class ZKClusterManagementTool implements ClusterManagementService
     idealState.setSimpleField("partitions", String.valueOf(partitions));
     idealState.setSimpleField("state_model_def_ref", stateModelRef);
     idealState.setSimpleField("ideal_state_mode", idealStateMode);
-    
-    String stateModelDefPath = CMUtil.getClusterPropertyPath(clusterName, 
-        ClusterPropertyType.STATEMODELDEFS) + "/" + stateModelRef;
-    if(!_zkClient.exists(stateModelDefPath))
+
+    String stateModelDefPath = PropertyPathConfig.getPath(
+        PropertyType.STATEMODELDEFS, clusterName, stateModelRef);
+    if (!_zkClient.exists(stateModelDefPath))
     {
-      throw new ClusterManagerException("State model " + stateModelRef 
-          +" not found in the cluster STATEMODELDEFS path");
+      throw new ClusterManagerException("State model " + stateModelRef
+          + " not found in the cluster STATEMODELDEFS path");
     }
-    
+
     String idealStatePath = CMUtil.getIdealStatePath(clusterName);
     String dbIdealStatePath = idealStatePath + "/" + dbName;
     if (_zkClient.exists(dbIdealStatePath))
@@ -247,23 +244,24 @@ public class ZKClusterManagementTool implements ClusterManagementService
   @Override
   public ZNRecord getResourceGroupIdealState(String clusterName, String dbName)
   {
-    return new ZKDataAccessor(clusterName, _zkClient).getClusterProperty(
-        ClusterPropertyType.IDEALSTATES, dbName);
+    return new ZKDataAccessor(clusterName, _zkClient).getProperty(
+        PropertyType.IDEALSTATES, dbName);
   }
 
   @Override
   public void setResourceGroupIdealState(String clusterName, String dbName,
       ZNRecord idealState)
   {
-    new ZKDataAccessor(clusterName, _zkClient).setClusterProperty(
-        ClusterPropertyType.IDEALSTATES, dbName, idealState);
+    new ZKDataAccessor(clusterName, _zkClient).setProperty(
+        PropertyType.IDEALSTATES, idealState, dbName);
   }
-  
+
   @Override
-  public ZNRecord getResourceGroupExternalView(String clusterName, String resourceGroup)
+  public ZNRecord getResourceGroupExternalView(String clusterName,
+      String resourceGroup)
   {
-    return new ZKDataAccessor(clusterName, _zkClient).getClusterProperty(
-        ClusterPropertyType.EXTERNALVIEW, resourceGroup);
+    return new ZKDataAccessor(clusterName, _zkClient).getProperty(
+        PropertyType.EXTERNALVIEW, resourceGroup);
   }
 
   @Override
@@ -286,21 +284,21 @@ public class ZKClusterManagementTool implements ClusterManagementService
   @Override
   public void dropResourceGroup(String clusterName, String resourceGroup)
   {
-    new ZKDataAccessor(clusterName, _zkClient).removeClusterProperty(
-        ClusterPropertyType.IDEALSTATES, resourceGroup);
+    new ZKDataAccessor(clusterName, _zkClient).removeProperty(
+        PropertyType.IDEALSTATES, resourceGroup);
   }
-  
+
   @Override
   public List<String> getStateModelDefs(String clusterName)
   {
-    return _zkClient.getChildren(CMUtil.getStateModelDefinitionPath(clusterName));
+    return _zkClient.getChildren(CMUtil
+        .getStateModelDefinitionPath(clusterName));
   }
 
   @Override
   public ZNRecord getStateModelDef(String clusterName, String stateModelName)
   {
-    ZNRecord record = new ZKDataAccessor(clusterName, _zkClient).getClusterProperty(
-      ClusterPropertyType.STATEMODELDEFS, stateModelName);
-    return record;
+    return new ZKDataAccessor(clusterName, _zkClient).getProperty(
+        PropertyType.STATEMODELDEFS, stateModelName);
   }
 }

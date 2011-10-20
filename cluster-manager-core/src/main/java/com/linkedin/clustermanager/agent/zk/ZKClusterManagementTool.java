@@ -19,7 +19,7 @@ public class ZKClusterManagementTool implements ClusterManagementService
 {
 
   private final ZkClient _zkClient;
-
+  
   private static Logger logger = Logger
       .getLogger(ZKClusterManagementTool.class);
 
@@ -52,7 +52,8 @@ public class ZKClusterManagementTool implements ClusterManagementService
         CMUtil.getStatusUpdatesPath(clusterName, nodeId), true);
   }
 
-  public void dropInstance(String clusterName, ZNRecord instanceConfig)
+  @Override
+  public void dropInstance(String clusterName, ZNRecord instanceConfig) 
   {
     String instanceConfigsPath = CMUtil.getConfigPath(clusterName);
     String nodeId = instanceConfig.getId();
@@ -157,10 +158,9 @@ public class ZKClusterManagementTool implements ClusterManagementService
     // controller
     _zkClient.createPersistent(CMUtil.getControllerPath(clusterName));
     String path = PropertyPathConfig.getPath(PropertyType.HISTORY, clusterName);
-    final ZNRecord emptyHistory = new ZNRecord("HISTORY");
+    final ZNRecord emptyHistory = new ZNRecord(PropertyType.HISTORY.toString());
     final List<String> emptyList = new ArrayList<String>();
     emptyHistory.setListField(clusterName, emptyList);
-    // _zkClient.createPersistent(path);
     _zkClient.createPersistent(path, emptyHistory);
 
     path = PropertyPathConfig.getPath(PropertyType.MESSAGES_CONTROLLER,

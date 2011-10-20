@@ -1,8 +1,12 @@
 package com.linkedin.clustermanager;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Future;
 
+import org.apache.zookeeper.CreateMode;
+
+import com.linkedin.clustermanager.healthcheck.HealthReportProvider;
 import com.linkedin.clustermanager.healthcheck.ParticipantHealthReportCollector;
 import com.linkedin.clustermanager.messaging.handling.CMTaskExecutor;
 import com.linkedin.clustermanager.messaging.handling.CMTaskResult;
@@ -568,5 +572,16 @@ public class Mocks
       // TODO Auto-generated method stub
       return null;
     }
+  }
+  
+  public static class MockHealthReportProvider extends HealthReportProvider
+  {
+
+	@Override
+	public Map<String, String> getRecentHealthReport() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	  
   }
 }

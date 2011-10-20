@@ -52,19 +52,13 @@ public class PerformanceHealthReportProvider extends HealthReportProvider {
 		return result;
 	}
 	
-	public void submitReadLatency(double latency) {
-		readLatencyCount++;
-		readLatencySum+=latency;
-	}
-	
-	public void submitRequestCount(int count) {
-		requestCount += count;
-	}
-	
-	public HashMap<String, String> getStatMap(String statName) {
+	HashMap<String, String> getStatMap(String statName, boolean createIfMissing) {
 		//check if map for this stat exists.  if not, create it
 		HashMap<String, String> statMap;
 		if (! _partitionStatMaps.containsKey(statName)) {
+			if (!createIfMissing) {
+				return null;
+			}
 			statMap = new HashMap<String, String>();
 			_partitionStatMaps.put(statName, statMap);
 		}
@@ -78,16 +72,16 @@ public class PerformanceHealthReportProvider extends HealthReportProvider {
 	//Currently participant is source of truth and updates ZK. We want ZK to be source of truth.
 	//Revise this approach the participant sends deltas of stats to controller (ZK?) and have controller do aggregation
 	//and update ZK.  Make sure to wipe the participant between uploads.
-	public String getPartitionStat(HashMap<String, String> partitionMap, String partitionName) {
+	String getPartitionStat(HashMap<String, String> partitionMap, String partitionName) {
 		return partitionMap.get(partitionName);
 	}
 	
-	public void setPartitionStat(HashMap<String, String> partitionMap, String partitionName, String value) {
+	void setPartitionStat(HashMap<String, String> partitionMap, String partitionName, String value) {
 		partitionMap.put(partitionName, value);
 	}
 	
 	public void incrementPartitionStat(String statName, String partitionName) {
-		HashMap<String, String> statMap = getStatMap(statName);
+		HashMap<String, String> statMap = getStatMap(statName, true);
 		String currValStr = getPartitionStat(statMap, partitionName);
 		double currVal;
 		if (currValStr == null) {
@@ -102,8 +96,18 @@ public class PerformanceHealthReportProvider extends HealthReportProvider {
 	
 	public void submitPartitionStat(String statName, String partitionName, String value) 
 	{
-		HashMap<String, String> statMap = getStatMap(statName);
+		HashMap<String, String> statMap = getStatMap(statName, true);
 		setPartitionStat(statMap, partitionName, value);
+	}
+	
+	public String getPartitionStat(String statName, String partitionName) {
+		HashMap<String, String> statMap = getStatMap(statName, false);
+		if (statMap == null) {
+			return null;
+		}
+		else {
+			return statMap.get(partitionName);
+		}
 	}
 	
 	public String getReportName()

@@ -9,23 +9,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.GnuParser;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.OptionBuilder;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
 import org.apache.log4j.Logger;
-import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.Watcher.Event.EventType;
 
-import com.linkedin.clustermanager.CMConstants;
-import com.linkedin.clustermanager.CMConstants.ChangeType;
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterManagementService;
 import com.linkedin.clustermanager.ClusterManager;
-import com.linkedin.clustermanager.ClusterManagerException;
 import com.linkedin.clustermanager.ClusterMessagingService;
 import com.linkedin.clustermanager.ClusterView;
 import com.linkedin.clustermanager.ConfigChangeListener;
@@ -209,6 +197,11 @@ public class FileBasedClusterManager implements ClusterManager
     for (String nodeInfo : nodesInfo)
     {
       int lastPos = nodeInfo.lastIndexOf(":");
+      if (lastPos == -1)
+      {
+        throw new IllegalArgumentException("nodeInfo should be in format of host:port, " + nodeInfo);
+      }
+      
       String host = nodeInfo.substring(0, lastPos);
       String port = nodeInfo.substring(lastPos + 1);
       String nodeId = host + "_" + port;
@@ -398,6 +391,7 @@ public class FileBasedClusterManager implements ClusterManager
     return _sessionId;
   }
 
+  /*
   private static Options constructCommandLineOptions()
   {
     Option fileOption = OptionBuilder.withLongOpt(configFile)
@@ -432,7 +426,8 @@ public class FileBasedClusterManager implements ClusterManager
     }
     return null;
   }
-
+  */
+  
   public static ClusterView convertStateModelMapToClusterView(String outFile,
       String instanceName, StateModelFactory<StateModel> stateModelFactory)
   {
@@ -468,7 +463,7 @@ public class FileBasedClusterManager implements ClusterManager
     return curView;
   }
 
-  public static boolean VerifyFileBasedClusterStates(String instanceName,
+  public static boolean verifyFileBasedClusterStates(String instanceName,
       String expectedFile, String curFile)
   {
     boolean ret = true;
@@ -546,6 +541,7 @@ public class FileBasedClusterManager implements ClusterManager
     return _isConnected;
   }
 
+  /*
   private void addLiveInstance()
   {
     // set it from the session
@@ -556,7 +552,8 @@ public class FileBasedClusterManager implements ClusterManager
     _fileDataAccessor.setProperty(PropertyType.LIVEINSTANCES, metaData,
         _instanceName);
   }
-
+  */
+  
   @Override
   public long getLastNotificationTime()
   {
@@ -577,6 +574,7 @@ public class FileBasedClusterManager implements ClusterManager
     return false;
   }
 
+  /*
   private CallbackHandlerForFile createCallBackHandler(String path,
       Object listener, EventType[] eventTypes, ChangeType changeType)
   {
@@ -587,7 +585,8 @@ public class FileBasedClusterManager implements ClusterManager
     return new CallbackHandlerForFile(this, path, listener, eventTypes,
         changeType);
   }
-
+  */
+  
   @Override
   public ClusterManagementService getClusterManagmentTool()
   {
@@ -624,6 +623,7 @@ public class FileBasedClusterManager implements ClusterManager
 
   // TODO remove it
   // temp test
+  /*
   public static void main(String[] args) throws Exception
   {
     // for temporary test only
@@ -665,4 +665,5 @@ public class FileBasedClusterManager implements ClusterManager
     System.out.println(new String(bytes));
 
   }
+  */
 }

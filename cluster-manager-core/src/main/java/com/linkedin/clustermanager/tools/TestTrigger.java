@@ -1,7 +1,5 @@
 package com.linkedin.clustermanager.tools;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -89,6 +87,7 @@ public class TestTrigger
   }
 
   // TODO temp test; remove it
+  /*
   public static void main(String[] args) 
   {
     TestTrigger trigger = new TestTrigger(0, 0, "simpleValue0");
@@ -109,4 +108,5 @@ public class TestTrigger
     trigger = new TestTrigger();
     System.out.println("trigger=" + trigger);
   }
+  */
 }

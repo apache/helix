@@ -9,7 +9,6 @@ import com.linkedin.clustermanager.ClusterDataAccessor.IdealStateConfigProperty;
 import com.linkedin.clustermanager.ClusterManagementService;
 import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
-import com.linkedin.clustermanager.agent.zk.ZKDataAccessor;
 import com.linkedin.clustermanager.store.PropertyStoreException;
 import com.linkedin.clustermanager.store.file.FilePropertyStore;
 import com.linkedin.clustermanager.tools.StateModelConfigGenerator;
@@ -79,7 +78,7 @@ public class FileClusterManagementTool implements ClusterManagementService
   {
     try
     {
-      /**
+      /*
       if (_store.getProperty(path) != null)
       {
         LOG.warn("Target directory exists.Cleaning the target directory:" + path
@@ -93,7 +92,7 @@ public class FileClusterManagementTool implements ClusterManagementService
               "overwritePrevRecord: " + overwritePrevRecord);
         }
       }
-      **/
+      */
 
       _store.removeNamespace(clusterName);
       _store.createPropertyNamespace(clusterName);

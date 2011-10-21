@@ -10,6 +10,7 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.ClusterManager;
+import com.linkedin.clustermanager.ClusterMessagingService;
 import com.linkedin.clustermanager.Mocks;
 import com.linkedin.clustermanager.NotificationContext;
 import com.linkedin.clustermanager.ZNRecord;
@@ -18,13 +19,15 @@ import com.linkedin.clustermanager.model.Message.MessageType;
 
 public class TestCMTaskExecutor
 {
-  class MockClusterManager extends Mocks.MockManager
+  public static class MockClusterManager extends Mocks.MockManager
   {
     public String getSessionId()
     {
       return "123";
     }
   }
+  
+  
   
   class TestMessageHandlerFactory implements MessageHandlerFactory
   {
@@ -153,6 +156,8 @@ public class TestCMTaskExecutor
     {
       Message msg = new Message(factory.getMessageType(), UUID.randomUUID().toString());
       msg.setTgtSessionId(manager.getSessionId());
+      msg.setTgtName("Localhost_1123");
+      msg.setSrcName("127.101.1.23_2234");
       msgList.add(msg.getRecord());
     }
     
@@ -162,6 +167,9 @@ public class TestCMTaskExecutor
     {
       Message msg = new Message(factory2.getMessageType(), UUID.randomUUID().toString());
       msg.setTgtSessionId(manager.getSessionId());
+      msg.setTgtName("Localhost_1123");
+      msg.setSrcName("127.101.1.23_2234");
+      msg.setCorrelationId(UUID.randomUUID().toString());
       msgList.add(msg.getRecord());
     }
     executor.onMessage("someInstance", msgList, changeContext);
@@ -200,6 +208,8 @@ public class TestCMTaskExecutor
     {
       Message msg = new Message(factory.getMessageType(), UUID.randomUUID().toString());
       msg.setTgtSessionId(manager.getSessionId());
+      msg.setTgtName("Localhost_1123");
+      msg.setSrcName("127.101.1.23_2234");
       msgList.add(msg.getRecord());
     }
     
@@ -209,6 +219,8 @@ public class TestCMTaskExecutor
     {
       Message msg = new Message(factory2.getMessageType(), UUID.randomUUID().toString());
       msg.setTgtSessionId(manager.getSessionId());
+      msg.setTgtName("Localhost_1123");
+      msg.setSrcName("127.101.1.23_2234");
       msgList.add(msg.getRecord());
     }
     executor.onMessage("someInstance", msgList, changeContext);
@@ -251,6 +263,7 @@ public class TestCMTaskExecutor
     {
       Message msg = new Message(factory.getMessageType(), UUID.randomUUID().toString());
       msg.setTgtSessionId("*");
+      msg.setTgtName("");
       msgList.add(msg.getRecord());
     }
     
@@ -260,6 +273,7 @@ public class TestCMTaskExecutor
     {
       Message msg = new Message(factory2.getMessageType(), UUID.randomUUID().toString());
       msg.setTgtSessionId("some other session id");
+      msg.setTgtName("");
       msgList.add(msg.getRecord());
     }
     executor.onMessage("someInstance", msgList, changeContext);
@@ -299,6 +313,8 @@ public class TestCMTaskExecutor
     {
       Message msg = new Message(factory.getMessageType(), UUID.randomUUID().toString());
       msg.setTgtSessionId("*");
+      msg.setTgtName("Localhost_1123");
+      msg.setSrcName("127.101.1.23_2234");
       msgList.add(msg.getRecord());
     }
     
@@ -309,6 +325,8 @@ public class TestCMTaskExecutor
       Message msg = new Message(factory.getMessageType(), UUID.randomUUID().toString());
       msg.setTgtSessionId("*");
       msgList.add(msg.getRecord());
+      msg.setTgtName("Localhost_1123");
+      msg.setSrcName("127.101.1.23_2234");
       msgListToCancel.add(msg);
     }
     executor.onMessage("someInstance", msgList, changeContext);

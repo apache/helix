@@ -11,6 +11,6 @@ public class TestZkExceptionHandler
     final String msg = "testZkExceptionHandler: IGNORE THIS EXCEPTION.THIS IS PART OF UNIT TEST";
     InterruptedException e = new InterruptedException(msg);
     ZKExceptionHandler.getInstance().handle(new ZkInterruptedException(e));
-    ZKExceptionHandler.getInstance().handle(new Exception(e));
+    // ZKExceptionHandler.getInstance().handle(new Exception(e));
   }
 }

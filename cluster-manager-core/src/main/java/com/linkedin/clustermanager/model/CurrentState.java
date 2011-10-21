@@ -42,6 +42,10 @@ public class CurrentState
   {
     return record.getSimpleField(SESSION_ID.toString());
   }
+  public void setSessionId(String sessionId)
+  {
+    record.setSimpleField(SESSION_ID.toString(), sessionId);
+  }
 
   public String getState(String resourceKeyStr)
   {
@@ -72,5 +76,10 @@ public class CurrentState
     }
     record.getMapField(resourceKeyStr).put(CURRENT_STATE.toString(), state);
 
+  }
+
+  public ZNRecord getRecord()
+  {
+    return record;
   }
 }

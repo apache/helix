@@ -1,4 +1,4 @@
-package com.linkedin.clustermanager.participant;
+package com.linkedin.clustermanager.agent.file;
 
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterManagementService;
@@ -13,24 +13,24 @@ import com.linkedin.clustermanager.InstanceType;
 import com.linkedin.clustermanager.LiveInstanceChangeListener;
 import com.linkedin.clustermanager.MessageListener;
 import com.linkedin.clustermanager.ZNRecord;
-import com.linkedin.clustermanager.agent.zk.ZKDataAccessor;
-import com.linkedin.clustermanager.agent.zk.ZkClient;
 import com.linkedin.clustermanager.healthcheck.ParticipantHealthReportCollector;
 import com.linkedin.clustermanager.store.PropertyStore;
+import com.linkedin.clustermanager.store.file.FilePropertyStore;
 
-public class MockClusterManager implements ClusterManager
+public class MockFileClusterManager implements ClusterManager
 {
-  private final ZKDataAccessor _accessor;
+  private final FileBasedDataAccessor _accessor;
   private final String _instanceName;
   private final String _clusterName;
   private final InstanceType _type;
 
-  public MockClusterManager(String clusterName, String instanceName, InstanceType type, ZkClient zkClient)
+  public MockFileClusterManager(String clusterName, String instanceName, InstanceType type, 
+                              FilePropertyStore<ZNRecord> store)
   {
     _instanceName = instanceName;
     _clusterName = clusterName;
     _type = type;
-    _accessor = new ZKDataAccessor(clusterName, zkClient);
+    _accessor = new FileBasedDataAccessor(store, clusterName);
   }
   
   @Override

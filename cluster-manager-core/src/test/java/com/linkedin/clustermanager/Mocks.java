@@ -12,8 +12,10 @@ import org.apache.zookeeper.CreateMode;
 
 import com.linkedin.clustermanager.healthcheck.HealthReportProvider;
 import com.linkedin.clustermanager.healthcheck.ParticipantHealthReportCollector;
+import com.linkedin.clustermanager.messaging.AsyncCallback;
 import com.linkedin.clustermanager.messaging.handling.CMTaskExecutor;
 import com.linkedin.clustermanager.messaging.handling.CMTaskResult;
+import com.linkedin.clustermanager.messaging.handling.MessageHandlerFactory;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.participant.statemachine.StateModel;
 import com.linkedin.clustermanager.participant.statemachine.StateModelInfo;
@@ -85,6 +87,7 @@ public class Mocks
     private final String _clusterName;
     private final String sessionId;
     String _instanceName;
+    ClusterMessagingService _msgSvc ;
     public MockManager()
     {
       this("testCluster-" + Math.random() * 10000 % 999);
@@ -96,6 +99,7 @@ public class Mocks
       accessor = new MockAccessor(clusterName);
       sessionId =  UUID.randomUUID().toString();
       _instanceName = "testInstanceName";
+      _msgSvc = new MockClusterMessagingService();
     }
 
     @Override
@@ -222,7 +226,7 @@ public class Mocks
     public ClusterMessagingService getMessagingService()
     {
       // TODO Auto-generated method stub
-      return null;
+      return _msgSvc;
     }
 
     @Override
@@ -390,5 +394,41 @@ public class Mocks
       return null;
     }
 
+  }
+  
+  public static class MockClusterMessagingService implements ClusterMessagingService
+  {
+
+    @Override
+    public int send(Criteria recipientCriteria, Message message)
+    {
+      // TODO Auto-generated method stub
+      return 0;
+    }
+
+    @Override
+    public int send(Criteria receipientCriteria, Message message,
+        AsyncCallback callbackOnReply, int timeOut)
+    {
+      // TODO Auto-generated method stub
+      return 0;
+    }
+
+    @Override
+    public int sendAndWait(Criteria receipientCriteria, Message message,
+        AsyncCallback callbackOnReply, int timeOut)
+    {
+      // TODO Auto-generated method stub
+      return 0;
+    }
+
+    @Override
+    public void registerMessageHandlerFactory(String type,
+        MessageHandlerFactory factory)
+    {
+      // TODO Auto-generated method stub
+      
+    }
+    
   }
 }

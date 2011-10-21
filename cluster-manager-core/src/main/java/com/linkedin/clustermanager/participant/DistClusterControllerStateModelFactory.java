@@ -2,8 +2,7 @@ package com.linkedin.clustermanager.participant;
 
 import com.linkedin.clustermanager.participant.statemachine.StateModelFactory;
 
-public class DistClusterControllerStateModelFactory
-extends StateModelFactory<DistClusterControllerStateModel>
+public class DistClusterControllerStateModelFactory extends StateModelFactory<DistClusterControllerStateModel>
 {
   private final String _zkAddr;
   public DistClusterControllerStateModelFactory(String zkAddr)

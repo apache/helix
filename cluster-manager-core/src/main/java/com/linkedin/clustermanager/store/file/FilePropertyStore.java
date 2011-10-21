@@ -645,6 +645,7 @@ public class FilePropertyStore<T> implements PropertyStore<T>
     }
   }
   
+  
   @Override
   public List<String> getPropertyNames(String prefix) throws PropertyStoreException
   {
@@ -656,31 +657,10 @@ public class FilePropertyStore<T> implements PropertyStore<T>
       _readWriteLock.readLock().lock();
       doGetPropertyNames(path, propertyNames);
     }
-    catch (PropertyStoreException e)
-    {
-      
-    }
     finally
     {
       _readWriteLock.readLock().unlock();
     }
-    
-    /*
-    File file = new File(path);
-    _readWriteLock.readLock().lock();
-    List<String> names = new ArrayList<String>();
-    String[] children = file.list();
-    _readWriteLock.readLock().unlock();
-    
-    if (children == null)
-      return null;
-    
-    for (String child : children)
-    {
-      String pathToChild = path + "/" + child;
-      names.add(getRelativePath(pathToChild));
-    }
-    */
     
     return propertyNames;  
   }

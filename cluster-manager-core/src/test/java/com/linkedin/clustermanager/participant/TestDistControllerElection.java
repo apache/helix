@@ -36,7 +36,7 @@ public class TestDistControllerElection extends ZkUnitTestBase
 
     final String controllerName = "controller_0";
     ClusterManager manager =
-        new MockClusterManager(clusterName, controllerName, InstanceType.CONTROLLER, _zkClient);
+        new MockZkClusterManager(clusterName, controllerName, InstanceType.CONTROLLER, _zkClient);
 
     DistClusterControllerElection election = new DistClusterControllerElection(ZK_ADDR);
     NotificationContext context = new NotificationContext(manager);
@@ -51,7 +51,7 @@ public class TestDistControllerElection extends ZkUnitTestBase
     AssertJUnit.assertNull(election.getLeader());
 
     manager =
-        new MockClusterManager(clusterName, "controller_1", InstanceType.CONTROLLER, _zkClient);
+        new MockZkClusterManager(clusterName, "controller_1", InstanceType.CONTROLLER, _zkClient);
     election = new DistClusterControllerElection(ZK_ADDR);
     context = new NotificationContext(manager);
     context.setType(NotificationContext.Type.INIT);
@@ -81,7 +81,7 @@ public class TestDistControllerElection extends ZkUnitTestBase
 
     final String controllerName = "controller_0";
     ClusterManager manager =
-        new MockClusterManager(clusterName, controllerName, InstanceType.CONTROLLER_PARTICIPANT, _zkClient);
+        new MockZkClusterManager(clusterName, controllerName, InstanceType.CONTROLLER_PARTICIPANT, _zkClient);
 
     DistClusterControllerElection election = new DistClusterControllerElection(ZK_ADDR);
     NotificationContext context = new NotificationContext(manager);
@@ -94,7 +94,7 @@ public class TestDistControllerElection extends ZkUnitTestBase
     AssertJUnit.assertNotNull(election.getLeader());
     
     manager =
-        new MockClusterManager(clusterName, "controller_1", InstanceType.CONTROLLER_PARTICIPANT, _zkClient);
+        new MockZkClusterManager(clusterName, "controller_1", InstanceType.CONTROLLER_PARTICIPANT, _zkClient);
     election = new DistClusterControllerElection(ZK_ADDR);
     context = new NotificationContext(manager);
     context.setType(NotificationContext.Type.CALLBACK);
@@ -123,7 +123,7 @@ public class TestDistControllerElection extends ZkUnitTestBase
 
     final String controllerName = "participant_0";
     ClusterManager manager =
-        new MockClusterManager(clusterName, controllerName, InstanceType.PARTICIPANT, _zkClient);
+        new MockZkClusterManager(clusterName, controllerName, InstanceType.PARTICIPANT, _zkClient);
 
     DistClusterControllerElection election = new DistClusterControllerElection(ZK_ADDR);
     NotificationContext context = new NotificationContext(manager);

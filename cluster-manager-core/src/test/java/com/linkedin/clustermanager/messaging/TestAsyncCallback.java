@@ -44,7 +44,7 @@ public class TestAsyncCallback
     {
       messageSent.add(new Message("Test", UUID.randomUUID().toString()));
     }
-    Thread.sleep(50);
+
     callback.setMessagesSent(messageSent);
     
     for(int i = 0;i < nMsgs; i++)
@@ -55,21 +55,22 @@ public class TestAsyncCallback
     Assert.assertTrue(callback.isDone());
 
     Assert.assertTrue(callback._onTimeOutCalled == 0 );
-    Thread.sleep(50);
+    
+    sleep(50);
     callback = new AsyncCallbackSample();
     callback.setMessagesSent(messageSent);
     callback.setTimeout(1000);
-    Thread.sleep(50);
+    sleep(50);
     callback.startTimer();
     Assert.assertFalse(callback.isTimedOut());
     for(int i = 0;i < nMsgs - 1; i++)
     {
-      Thread.sleep(50);
+      sleep(50);
       Assert.assertFalse(callback.isDone());
       Assert.assertTrue(callback._onReplyMessageCalled == i);
       callback.onReply(new Message("TestReply", UUID.randomUUID().toString()));
     }
-    Thread.sleep(1000);
+    sleep(1000);
     Assert.assertTrue(callback.isTimedOut());
     Assert.assertTrue(callback._onTimeOutCalled == 1 );
     Assert.assertFalse(callback.isDone());
@@ -78,18 +79,30 @@ public class TestAsyncCallback
     callback.setMessagesSent(messageSent);
     callback.setTimeout(1000);
     callback.startTimer();
-    Thread.sleep(50);
+    sleep(50);
     Assert.assertFalse(callback.isTimedOut());
     for(int i = 0;i < nMsgs; i++)
     {
       Assert.assertFalse(callback.isDone());
-      Thread.currentThread().sleep(50);
+      sleep(50);
       Assert.assertTrue(callback._onReplyMessageCalled == i);
       callback.onReply(new Message("TestReply", UUID.randomUUID().toString()));
     }
     Assert.assertTrue(callback.isDone());
-    Thread.sleep(1300);
+    sleep(1300);
     Assert.assertFalse(callback.isTimedOut());
     Assert.assertTrue(callback._onTimeOutCalled == 0 );
+  }
+  
+  void sleep(int time)
+  {
+    try
+    {
+      Thread.currentThread().sleep(time);
+    }
+    catch(Exception e)
+    {
+      System.out.println(e);
+    }
   }
 }

@@ -21,7 +21,7 @@ import com.linkedin.clustermanager.pipeline.StageContext;
 import com.linkedin.clustermanager.tools.IdealStateCalculatorForStorageNode;
 
 @Test (groups = {"unitTest"})
-public class TestResourceComputationStage
+public class TestResourceComputationStage extends BaseStageTest
 {
   /**
    * Case where we have one resource group in IdealState
@@ -30,8 +30,6 @@ public class TestResourceComputationStage
    */
   public void testSimple() throws Exception
   {
-    ClusterEvent event = new ClusterEvent("sampleEvent");
-    ClusterManager manager = new Mocks.MockManager();
     int nodes = 5;
     List<String> instances = new ArrayList<String>();
     for (int i = 0; i < nodes; i++)
@@ -47,19 +45,8 @@ public class TestResourceComputationStage
     idealState.setStateModelDefRef("MasterSlave");
     manager.getDataAccessor().setProperty(PropertyType.IDEALSTATES,
         idealState.getRecord(), resourceGroupName);
-    event.addAttribute("clustermanager", manager);
     ResourceComputationStage stage = new ResourceComputationStage();
-    StageContext context = new StageContext();
-    stage.init(context);
-    stage.preProcess();
-    try
-    {
-      stage.process(event);
-    } catch (Exception e)
-    {
-      e.printStackTrace();
-    }
-    stage.postProcess();
+    runStage(event, stage);
 
     Map<String, ResourceGroup> resourceGroup = event
         .getAttribute(AttributeName.RESOURCE_GROUPS.toString());
@@ -77,8 +64,6 @@ public class TestResourceComputationStage
 
   public void testMultipleResourceGroups() throws Exception
   {
-    ClusterEvent event = new ClusterEvent("sampleEvent");
-    ClusterManager manager = new Mocks.MockManager();
     int nodes = 5;
     List<String> instances = new ArrayList<String>();
     for (int i = 0; i < nodes; i++)
@@ -102,19 +87,8 @@ public class TestResourceComputationStage
           idealState.getRecord(), resourceGroupName);
       idealStates.add(idealState);
     }
-    event.addAttribute("clustermanager", manager);
     ResourceComputationStage stage = new ResourceComputationStage();
-    StageContext context = new StageContext();
-    stage.init(context);
-    stage.preProcess();
-    try
-    {
-      stage.process(event);
-    } catch (Exception e)
-    {
-      e.printStackTrace();
-    }
-    stage.postProcess();
+    runStage(event, stage);
 
     Map<String, ResourceGroup> resourceGroupMap = event
         .getAttribute(AttributeName.RESOURCE_GROUPS.toString());
@@ -134,10 +108,10 @@ public class TestResourceComputationStage
     }
   }
 
+  
+
   public void testMultipleResourceGroupsWithSomeDropped() throws Exception
   {
-    ClusterEvent event = new ClusterEvent("sampleEvent");
-    ClusterManager manager = new Mocks.MockManager();
     int nodes = 5;
     List<String> instances = new ArrayList<String>();
     for (int i = 0; i < nodes; i++)
@@ -182,19 +156,8 @@ public class TestResourceComputationStage
     manager.getDataAccessor().setProperty(PropertyType.CURRENTSTATES,
         currentStateRecord, instanceName, sessionId, oldResourceGroup);
 
-    event.addAttribute("clustermanager", manager);
     ResourceComputationStage stage = new ResourceComputationStage();
-    StageContext context = new StageContext();
-    stage.init(context);
-    stage.preProcess();
-    try
-    {
-      stage.process(event);
-    } catch (Exception e)
-    {
-      e.printStackTrace();
-    }
-    stage.postProcess();
+    runStage(event, stage);
 
     Map<String, ResourceGroup> resourceGroupMap = event
         .getAttribute(AttributeName.RESOURCE_GROUPS.toString());

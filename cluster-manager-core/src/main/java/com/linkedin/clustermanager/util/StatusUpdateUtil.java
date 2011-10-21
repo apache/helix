@@ -146,7 +146,7 @@ public class StatusUpdateUtil
       publishStatusUpdateRecord(record, message, level, accessor);
     } catch (Exception e)
     {
-      _logger.error(e);
+      _logger.error("Exception while logging status update",e);
       // e.printStackTrace();
     }
   }

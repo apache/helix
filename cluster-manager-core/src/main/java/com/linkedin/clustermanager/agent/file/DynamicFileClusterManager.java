@@ -15,7 +15,6 @@ import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.log4j.Logger;
-import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.Watcher.Event.EventType;
 
 import com.linkedin.clustermanager.CMConstants;
@@ -99,12 +98,12 @@ public class DynamicFileClusterManager implements ClusterManager
   @Override
   public void addIdealStateChangeListener(IdealStateChangeListener listener)
   {
-    /**
+    /*
      * NotificationContext context = new NotificationContext(this);
      * context.setType(NotificationContext.Type.INIT);
      * listener.onIdealStateChange(this._clusterView
      * .getPropertyList(PropertyType.IDEALSTATES), context);
-     **/
+     */
     final String path = CMUtil.getIdealStatePath(_clusterName);
 
     CallbackHandlerForFile callbackHandler = createCallBackHandler(path,

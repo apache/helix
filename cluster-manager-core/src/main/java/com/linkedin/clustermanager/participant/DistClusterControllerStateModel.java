@@ -86,8 +86,7 @@ public class DistClusterControllerStateModel extends StateModel
     }
     else
     {
-      logger.error("a controller doesn't exist:" + _controller.getInstanceName() 
-                   + " for " + clusterName);
+      logger.error("No controller exists for " + clusterName);
     }
   }
 
@@ -123,7 +122,7 @@ public class DistClusterControllerStateModel extends StateModel
     String clusterName = message.getStateUnitKey();
     String controllerName = message.getTgtName();
     
-    logger.error(controllerName + " rollbacks on error for cluster:" + clusterName);
+    logger.error(controllerName + " rollbacks on error for " + clusterName);
     
     // ClusterManager manager = _controllers.remove(controllerName);
     if (_controller != null)

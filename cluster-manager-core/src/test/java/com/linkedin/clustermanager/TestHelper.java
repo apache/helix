@@ -233,4 +233,23 @@ public class TestHelper
       */
     }
   }
+  
+  public static void setupEmptyCluster(ZkClient zkClient, String clusterName)
+  {
+    String path = "/" + clusterName;
+    zkClient.createPersistent(path);
+    zkClient.createPersistent(path + "/" + PropertyType.STATEMODELDEFS.toString());
+    zkClient.createPersistent(path + "/" + PropertyType.INSTANCES.toString());
+    zkClient.createPersistent(path + "/" + PropertyType.CONFIGS.toString());
+    zkClient.createPersistent(path + "/" + PropertyType.IDEALSTATES.toString());
+    zkClient.createPersistent(path + "/" + PropertyType.EXTERNALVIEW.toString());
+    zkClient.createPersistent(path + "/" + PropertyType.LIVEINSTANCES.toString());
+    zkClient.createPersistent(path + "/" + PropertyType.CONTROLLER.toString());
+
+    path = path + "/" + PropertyType.CONTROLLER.toString();
+    zkClient.createPersistent(path + "/" + PropertyType.MESSAGES.toString());
+    zkClient.createPersistent(path + "/" + PropertyType.HISTORY.toString());
+    zkClient.createPersistent(path + "/" + PropertyType.ERRORS.toString());
+    zkClient.createPersistent(path + "/" + PropertyType.STATUSUPDATES.toString());
+  }
 }

@@ -31,6 +31,7 @@ public class TestDynamicFileClusterManager extends FileCMTestBase
     boolean result = verifyCurStateAndIdealState(curStates, idealStates, "localhost_12918", "MyDB");
     Assert.assertTrue(result);
     
+    /*
     // drop db
     _mgmtTool.dropResourceGroup(CLUSTER_NAME, "MyDB");
     Thread.sleep(10000);
@@ -40,7 +41,8 @@ public class TestDynamicFileClusterManager extends FileCMTestBase
       String instanceName = "localhost_" + (12918 + i);
       verifyEmptyCurrentState(instanceName, "MyDB");
     }
-
+    */
+    
     logger.info("END at " + new Date(System.currentTimeMillis()));
   }
   

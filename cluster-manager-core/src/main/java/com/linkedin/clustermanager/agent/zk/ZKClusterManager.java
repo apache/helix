@@ -16,7 +16,6 @@ import java.util.Timer;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import org.I0Itec.zkclient.ZkConnection;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.Watcher.Event.EventType;
@@ -46,10 +45,7 @@ import com.linkedin.clustermanager.messaging.DefaultMessagingService;
 import com.linkedin.clustermanager.messaging.handling.MessageHandlerFactory;
 import com.linkedin.clustermanager.monitoring.ZKPathDataDumpTask;
 import com.linkedin.clustermanager.participant.DistClusterControllerElection;
-import com.linkedin.clustermanager.store.PropertyJsonSerializer;
-import com.linkedin.clustermanager.store.PropertySerializer;
 import com.linkedin.clustermanager.store.PropertyStore;
-import com.linkedin.clustermanager.store.zk.ZKPropertyStore;
 import com.linkedin.clustermanager.util.CMUtil;
 
 public class ZKClusterManager implements ClusterManager
@@ -677,16 +673,12 @@ public class ZKClusterManager implements ClusterManager
   @Override
   public PropertyStore<ZNRecord> getPropertyStore()
   {
-    String path = "/" + _clusterName + "/" + "PRPOPERTY_STORE";
-    if (!_zkClient.exists(path))
+    if (_accessor != null)
     {
-      _zkClient.createPersistent(path);
+      return _accessor.getStore();
     }
-
-    PropertySerializer<ZNRecord> serializer = new PropertyJsonSerializer<ZNRecord>(
-        ZNRecord.class);
-    return new ZKPropertyStore<ZNRecord>(
-        (ZkConnection) _zkClient.getConnection(), serializer, path);
+    
+    return null;
   }
 
   @Override

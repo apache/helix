@@ -3,6 +3,7 @@ package com.linkedin.clustermanager.model;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 
 import static com.linkedin.clustermanager.CMConstants.ZNAttribute.*;
 import com.linkedin.clustermanager.ZNRecord;
@@ -51,10 +52,25 @@ public class CurrentState
     }
     return null;
   }
-  
+
+  public void setStateModelDefRef(String stateModelName)
+  {
+    record
+        .setSimpleField(Attributes.STATE_MODEL_DEF.toString(), stateModelName);
+  }
+
   public String getStateModelDefRef()
   {
     return record.getSimpleField(Attributes.STATE_MODEL_DEF.toString());
   }
 
+  public void setState(String resourceKeyStr, String state)
+  {
+    if (record.getMapField(resourceKeyStr) == null)
+    {
+      record.setMapField(resourceKeyStr, new TreeMap<String, String>());
+    }
+    record.getMapField(resourceKeyStr).put(CURRENT_STATE.toString(), state);
+
+  }
 }

@@ -61,7 +61,7 @@ public class FileCMTestBase
   public void beforeClass()
   {
     _manager = ClusterManagerFactory.getFileBasedManagerForController(
-        CLUSTER_NAME, _accessor);
+        CLUSTER_NAME, "controller_0", _accessor);
     _mgmtTool = _manager.getClusterManagmentTool();
 
     // setup cluster

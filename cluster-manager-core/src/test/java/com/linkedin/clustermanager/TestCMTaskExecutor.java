@@ -23,17 +23,20 @@ public class TestCMTaskExecutor
    
     message.setMsgId(msgId);
     message.setSrcName("cm-instance-0");
+    message.setTgtName("cm-instance-1");
     message.setTgtSessionId("1234");
     message.setFromState("Offline");
     message.setToState("Slave");
     message.setStateUnitKey("Teststateunitkey");
+    message.setStateUnitGroup("Teststateunitkey");
+    
     MockCMTaskExecutor executor = new MockCMTaskExecutor();
     MockStateModel stateModel = new MockStateModel();
     NotificationContext context;
     executor.registerMessageHandlerFactory(
         MessageType.TASK_REPLY.toString(), new AsyncCallbackService());
-    
-    context = new NotificationContext(new MockManager());
+    String clusterName =" testcluster";
+    context = new NotificationContext(new MockManager(clusterName));
     CMStateTransitionHandler handler = new CMStateTransitionHandler(stateModel);
     executor.scheduleTask(message, handler, context);
     while (!executor.isDone(msgId))

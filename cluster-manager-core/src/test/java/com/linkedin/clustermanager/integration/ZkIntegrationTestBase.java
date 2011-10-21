@@ -21,6 +21,7 @@ import org.testng.annotations.BeforeSuite;
 
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterManager;
+import com.linkedin.clustermanager.PropertyPathConfig;
 import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.TestHelper;
 import com.linkedin.clustermanager.ZNRecord;
@@ -72,8 +73,8 @@ public class ZkIntegrationTestBase
 
   protected String getCurrentLeader(String clusterName)
   {
-    String leaderPath = CMUtil.getControllerPropertyPath(clusterName,
-        PropertyType.LEADER);
+    String leaderPath = PropertyPathConfig.getPath(PropertyType.LEADER, clusterName);
+
     ZNRecord leaderRecord = _zkClient.<ZNRecord> readData(leaderPath);
     if (leaderRecord == null)
     {

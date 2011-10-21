@@ -1,29 +1,25 @@
 package com.linkedin.clustermanager;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
-import org.I0Itec.zkclient.IDefaultNameSpace;
-import org.I0Itec.zkclient.ZkServer;
-import org.apache.commons.io.FileUtils;
 import org.testng.AssertJUnit;
 import org.testng.annotations.AfterClass;
-import org.testng.annotations.AfterTest;
 import org.testng.annotations.BeforeClass;
-import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.Message.MessageType;
 import com.linkedin.clustermanager.tools.ClusterSetup;
 
-// TODO inherit from ZkTestBase
-public class TestZKCallback
+public class TestZKCallback extends ZkUnitTestBase
 {
+  private final String clusterName = CLUSTER_PREFIX + "_" + getShortClassName();
+  
+  /*
   private String _zkServerAddress;
   private List<ZkServer> _localZkServers;
 
@@ -77,7 +73,8 @@ public class TestZKCallback
       zkServer.shutdown();
     }
   }
-
+  */
+  
   private static String[] createArgs(String str)
   {
     String[] split = str.split("[ ]+");
@@ -157,8 +154,7 @@ public class TestZKCallback
   {
 
     ClusterManager testClusterManager = ClusterManagerFactory
-        .getZKBasedManagerForParticipant("storage-cluster-12345",
-            "localhost_8900", _zkServerAddress);
+        .getZKBasedManagerForParticipant(clusterName, "localhost_8900", ZK_ADDR);
     testClusterManager.connect();
 
     TestZKCallback test = new TestZKCallback();
@@ -239,6 +235,7 @@ public class TestZKCallback
   { "unitTest" })
   public void setup() throws IOException, Exception
   {
+    /*
     List<Integer> localPorts = new ArrayList<Integer>();
     localPorts.add(2300);
     localPorts.add(2301);
@@ -246,32 +243,37 @@ public class TestZKCallback
     _localZkServers = startLocalZookeeper(localPorts,
         System.getProperty("user.dir") + "/" + "zkdata", 2000);
     _zkServerAddress = "localhost:" + 2300;
-
+    */
+    if (_zkClient.exists("/" + clusterName))
+    {
+      _zkClient.deleteRecursive("/" + clusterName);
+    }
+    
     ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr localhost:2300 -addCluster storage-cluster-12345"));
+        .processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " -addCluster " + clusterName));
+    // ClusterSetup
+    //    .processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " -addCluster relay-cluster-12345"));
     ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr localhost:2300 -addCluster relay-cluster-12345"));
+        .processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " -addResourceGroup " + clusterName + " db-12345 120 MasterSlave"));
     ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr localhost:2300 -addResourceGroup storage-cluster-12345 db-12345 120 MasterSlave"));
+        .processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " -addNode " + clusterName + " localhost:8900"));
     ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr localhost:2300 -addNode storage-cluster-12345 localhost:8900"));
+        .processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " -addNode " + clusterName + " localhost:8901"));
     ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr localhost:2300 -addNode storage-cluster-12345 localhost:8901"));
+        .processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " -addNode " + clusterName + " localhost:8902"));
     ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr localhost:2300 -addNode storage-cluster-12345 localhost:8902"));
+        .processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " -addNode " + clusterName + " localhost:8903"));
     ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr localhost:2300 -addNode storage-cluster-12345 localhost:8903"));
+        .processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " -addNode " + clusterName + " localhost:8904"));
     ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr localhost:2300 -addNode storage-cluster-12345 localhost:8904"));
-    ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr localhost:2300 -rebalance storage-cluster-12345 db-12345 3"));
+        .processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " -rebalance " + clusterName + " db-12345 3"));
   }
 
   @AfterClass(groups =
   { "unitTest" })
   public void tearDown()
   {
-    stopLocalZookeeper(_localZkServers);
+    // stopLocalZookeeper(_localZkServers);
   }
 
 }

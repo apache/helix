@@ -18,7 +18,7 @@ import com.linkedin.clustermanager.model.Message.MessageType;
 
 public class TestCMTaskExecutor
 {
-  class MockClusterManager extends Mocks.MockManager
+  public static class MockClusterManager extends Mocks.MockManager
   {
     public String getSessionId()
     {

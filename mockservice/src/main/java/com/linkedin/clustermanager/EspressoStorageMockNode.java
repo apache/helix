@@ -1,20 +1,19 @@
 package com.linkedin.clustermanager;
 
-import java.util.HashMap;
+//import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Map.Entry;
+//import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+//import java.util.concurrent.ConcurrentMap;
 
 import org.apache.log4j.Logger;
 
 //import com.linkedin.espresso.router.RoutingToken;
 
-import com.linkedin.clustermanager.ClusterDataAccessor.ClusterPropertyType;
 import com.linkedin.clustermanager.EspressoStorageMockStateModelFactory;
-import com.linkedin.clustermanager.EspressoStorageMockStateModelFactory.EspressoStorageMockStateModel;
-import com.linkedin.clustermanager.healthcheck.ParticipantHealthReportCollector;
+//import com.linkedin.clustermanager.EspressoStorageMockStateModelFactory.EspressoStorageMockStateModel;
+//import com.linkedin.clustermanager.healthcheck.ParticipantHealthReportCollector;
 import com.linkedin.clustermanager.healthcheck.PerformanceHealthReportProvider;
 import com.linkedin.clustermanager.model.IdealState;
 import com.linkedin.clustermanager.model.Message.MessageType;
@@ -109,7 +108,7 @@ public class EspressoStorageMockNode extends MockNode {
 	
 	private int getNumPartitions(String dbName) {
 		logger.debug("dbName: "+dbName);
-		ZNRecord rec = _cmConnector.getManager().getDataAccessor().getClusterProperty(ClusterPropertyType.IDEALSTATES, dbName);
+		ZNRecord rec = _cmConnector.getManager().getDataAccessor().getProperty(PropertyType.IDEALSTATES, dbName);
 		if (rec == null) {
 			logger.debug("rec is null");
 		}

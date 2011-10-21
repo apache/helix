@@ -1,5 +1,8 @@
 package com.linkedin.clustermanager;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Future;
@@ -76,12 +79,24 @@ public class Mocks
 
   public static class MockManager implements ClusterManager
   {
-    MockAccessor accessor = new MockAccessor();
+    MockAccessor accessor;
+
+    private final String _clusterName;
+
+    public MockManager()
+    {
+      this("testCluster-" + Math.random() * 10000 % 999);
+    }
+
+    public MockManager(String clusterName)
+    {
+      _clusterName = clusterName;
+      accessor = new MockAccessor(clusterName);
+    }
 
     @Override
     public void disconnect()
     {
-      // TODO Auto-generated method stub
 
     }
 
@@ -232,49 +247,127 @@ public class Mocks
 
   public static class MockAccessor implements ClusterDataAccessor
   {
-   
+    private final String _clusterName;
+    Map<String, ZNRecord> data = new HashMap<String, ZNRecord>();
+
+    public MockAccessor()
+    {
+      this("testCluster-" + Math.random() * 10000 % 999);
+    }
+
+    public MockAccessor(String clusterName)
+    {
+      _clusterName = clusterName;
+    }
+
+    Map<String, ZNRecord> map = new HashMap<String, ZNRecord>();
+
     @Override
     public boolean setProperty(PropertyType type, ZNRecord value,
         String... keys)
     {
-      // TODO Auto-generated method stub
-      return false;
+      String path = PropertyPathConfig.getPath(type, _clusterName, keys);
+      data.put(path, value);
+      return true;
     }
 
     @Override
     public boolean updateProperty(PropertyType type, ZNRecord value,
         String... keys)
     {
-      // TODO Auto-generated method stub
-      return false;
+      String path = PropertyPathConfig.getPath(type, _clusterName, keys);
+      if (type.updateOnlyOnExists)
+      {
+        if (data.containsKey(path))
+        {
+          if (type.mergeOnUpdate)
+          {
+            ZNRecord znRecord = new ZNRecord(data.get(path));
+            znRecord.merge(value);
+            data.put(path, znRecord);
+          } else
+          {
+            data.put(path, value);
+          }
+        }
+      } else
+      {
+        if (type.mergeOnUpdate)
+        {
+          if (data.containsKey(path))
+          {
+            ZNRecord znRecord = new ZNRecord(data.get(path));
+            znRecord.merge(value);
+            data.put(path, znRecord);
+          } else
+          {
+            data.put(path, value);
+          }
+        } else
+        {
+          data.put(path, value);
+        }
+      }
+
+      return true;
     }
 
     @Override
     public ZNRecord getProperty(PropertyType type, String... keys)
     {
-      // TODO Auto-generated method stub
-      return null;
+      String path = PropertyPathConfig.getPath(type, _clusterName, keys);
+      return data.get(path);
     }
 
     @Override
     public boolean removeProperty(PropertyType type, String... keys)
     {
-      // TODO Auto-generated method stub
-      return false;
+      String path = PropertyPathConfig.getPath(type, _clusterName, keys);
+      data.remove(path);
+      return true;
     }
 
     @Override
     public List<String> getChildNames(PropertyType type, String... keys)
     {
-      // TODO Auto-generated method stub
-      return null;
+      List<String> child = new ArrayList<String>();
+      String path = PropertyPathConfig.getPath(type, _clusterName, keys);
+      for (String key : data.keySet())
+      {
+        if (key.startsWith(path))
+        {
+          String[] keySplit = key.split("\\/");
+          String[] pathSplit = path.split("\\/");
+          if (keySplit.length > pathSplit.length)
+          {
+            child.add(keySplit[pathSplit.length + 1]);
+          }
+        }
+      }
+      return child;
     }
 
     @Override
     public List<ZNRecord> getChildValues(PropertyType type, String... keys)
     {
-      // TODO Auto-generated method stub
-      return null;
+      List<ZNRecord> child = new ArrayList<ZNRecord>();
+      String path = PropertyPathConfig.getPath(type, _clusterName, keys);
+      for (String key : data.keySet())
+      {
+        if (key.startsWith(path))
+        {
+          String[] keySplit = key.split("\\/");
+          String[] pathSplit = path.split("\\/");
+          if (keySplit.length - pathSplit.length==1)
+          {
+            child.add(data.get(key));
+          }else{
+            System.out.println("keySplit:"+ Arrays.toString(keySplit) );
+            System.out.println("pathSplit:"+ Arrays.toString(pathSplit) );
+          }
+        }
+      }
+      return child;
     }
 
     @Override
@@ -284,15 +377,16 @@ public class Mocks
       return null;
     }
   }
-  
+
   public static class MockHealthReportProvider extends HealthReportProvider
   {
 
-	@Override
-	public Map<String, String> getRecentHealthReport() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	  
+    @Override
+    public Map<String, String> getRecentHealthReport()
+    {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
   }
 }

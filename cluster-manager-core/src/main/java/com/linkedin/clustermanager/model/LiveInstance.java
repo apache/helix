@@ -13,7 +13,9 @@ public class LiveInstance
     _record = record;
 
   }
-
+  public void setSessionId(String sessionId){
+    _record.setSimpleField(SESSION_ID.toString(), sessionId);
+  }
   public String getSessionId()
   {
     return _record.getSimpleField(SESSION_ID.toString());

@@ -29,8 +29,8 @@ public class TestCMTaskHandler
     MockStateModel stateModel = new MockStateModel();
     NotificationContext context;
     CMStateTransitionHandler stHandler = new CMStateTransitionHandler(stateModel);
-
-    context = new NotificationContext(new MockManager());
+    String clusterName="clusterName";
+    context = new NotificationContext(new MockManager(clusterName));
     CMTask handler;
     handler = new CMTask(message, context, stHandler, null);
     handler.call();
@@ -51,7 +51,6 @@ public class TestCMTaskHandler
     message.setTgtName("localhost");
     MockStateModelAnnotated stateModel = new MockStateModelAnnotated();
     NotificationContext context;
-
     context = new NotificationContext(new MockManager());
     CMTask handler;
     CMStateTransitionHandler stHandler = new CMStateTransitionHandler(stateModel);

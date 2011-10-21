@@ -12,8 +12,13 @@ import com.linkedin.clustermanager.ZNRecord;
 
 public class IdealState
 {
-  private static final Logger logger = Logger
-    .getLogger(IdealState.class.getName());
+  public ZNRecord getRecord()
+  {
+    return _record;
+  }
+
+  private static final Logger logger = Logger.getLogger(IdealState.class
+      .getName());
   private final ZNRecord _record;
   private final String _resourceGroup;
 
@@ -41,18 +46,20 @@ public class IdealState
     {
       return IdealStateConfigProperty.AUTO;
     }
-    
+
     String mode = _record.getSimpleField("ideal_state_mode");
-    if (mode == null || !mode.equalsIgnoreCase(IdealStateConfigProperty.CUSTOMIZED.toString()))
+    if (mode == null
+        || !mode.equalsIgnoreCase(IdealStateConfigProperty.CUSTOMIZED
+            .toString()))
     {
-      return IdealStateConfigProperty.AUTO;  
-    }
-    else
+      return IdealStateConfigProperty.AUTO;
+    } else
     {
       return IdealStateConfigProperty.CUSTOMIZED;
     }
-    
+
   }
+
   public void set(String key, String instanceName, String state)
   {
     Map<String, String> mapField = _record.getMapField(key);
@@ -84,17 +91,19 @@ public class IdealState
     return _record.getMapField(resourceKeyName);
   }
 
-  private List<String> getInstancePreferenceList(String resourceKeyName, StateModelDefinition stateModelDef)
+  private List<String> getInstancePreferenceList(String resourceKeyName,
+      StateModelDefinition stateModelDef)
   {
     List<String> instanceStateList = _record.getListField(resourceKeyName);
-    
-    if(instanceStateList != null)
+
+    if (instanceStateList != null)
     {
       return instanceStateList;
     }
-    logger.warn("State unit key "+ resourceKeyName + "does not have a pre-computed preference list.");
+    logger.warn("State unit key " + resourceKeyName
+        + "does not have a pre-computed preference list.");
     return null;
-    
+
   }
 
   public String getStateModelDefRef()
@@ -102,23 +111,31 @@ public class IdealState
     return _record.getSimpleField("state_model_def_ref");
   }
 
-  public List<String> getPreferenceList(String resourceKeyName, StateModelDefinition stateModelDef)
+  public void setStateModelDefRef(String stateModel)
   {
-    if(_record == null)
+    _record.setSimpleField("state_model_def_ref", stateModel);
+  }
+
+  public List<String> getPreferenceList(String resourceKeyName,
+      StateModelDefinition stateModelDef)
+  {
+    if (_record == null)
     {
       return null;
     }
     return getInstancePreferenceList(resourceKeyName, stateModelDef);
   }
 
-public int getNumPartitions() {
-	try {
-		return Integer.parseInt(_record.getSimpleField("partitions"));
-	}
-	catch (Exception e) {
-		logger.debug("Can't parse number of partitions: "+e);
-		return -1;
-	}
-	
-}
+  public int getNumPartitions()
+  {
+    try
+    {
+      return Integer.parseInt(_record.getSimpleField("partitions"));
+    } catch (Exception e)
+    {
+      logger.debug("Can't parse number of partitions: " + e);
+      return -1;
+    }
+
+  }
 }

@@ -64,7 +64,14 @@ public class TestAsyncCallback
     callback.setMessagesSent(messageSent);
     callback.setTimeout(1000);
     callback.startTimer();
-    Thread.sleep(50);
+    try
+    {
+      Thread.sleep(50);
+    } catch (InterruptedException e)
+    {
+      // ignore it
+    }
+    
     Assert.assertFalse(callback.isTimedOut());
     for(int i = 0;i < nMsgs - 1; i++)
     {

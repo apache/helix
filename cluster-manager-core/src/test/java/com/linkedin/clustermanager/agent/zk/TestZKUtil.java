@@ -28,6 +28,15 @@ public class TestZKUtil extends ZkUnitTestBase
     
     boolean result = ZKUtil.isClusterSetup(clusterName, _zkClient);
     AssertJUnit.assertFalse(result);
+    result = ZKUtil.isClusterSetup(null, _zkClient);
+    AssertJUnit.assertFalse(result);
+    
+    result = ZKUtil.isClusterSetup(null, null);
+    AssertJUnit.assertFalse(result);
+    
+    result = ZKUtil.isClusterSetup(clusterName, null);
+    AssertJUnit.assertFalse(result);
+    
     TestHelper.setupEmptyCluster(_zkClient, clusterName);
   }
 
@@ -78,5 +87,12 @@ public class TestZKUtil extends ZkUnitTestBase
     ZKUtil.substract(_zkClient, path, record);
     record = _zkClient.<ZNRecord>readData(path);
     AssertJUnit.assertNull(record.getSimpleField("key1"));
+  }
+  
+  @Test(groups = { "unitTest" })
+  public void testNullChildren()
+  {
+    String path = PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName, "id6");
+    ZKUtil.createChildren(_zkClient, path, (List<ZNRecord>) null);
   }
 }

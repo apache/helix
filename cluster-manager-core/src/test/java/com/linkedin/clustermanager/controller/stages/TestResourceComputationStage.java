@@ -6,7 +6,6 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.testng.Assert;
-import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.ClusterManager;
@@ -21,7 +20,7 @@ import com.linkedin.clustermanager.model.ResourceGroup;
 import com.linkedin.clustermanager.pipeline.StageContext;
 import com.linkedin.clustermanager.tools.IdealStateCalculatorForStorageNode;
 
-@Test
+@Test (groups = {"unitTest"})
 public class TestResourceComputationStage
 {
   /**
@@ -228,4 +227,46 @@ public class TestResourceComputationStage
     Assert.assertNotNull(resourceGroupMap.get(oldResourceGroup).getResourceKey("testResourceOld_2"));
     
   }
+  
+  public void testNull()
+  {
+    ClusterEvent event = new ClusterEvent("sampleEvent");
+    ResourceComputationStage stage = new ResourceComputationStage();
+    StageContext context = new StageContext();
+    stage.init(context);
+    stage.preProcess();
+    boolean exceptionCaught = false;
+    try
+    {
+      stage.process(event);
+    } catch (Exception e)
+    {
+      exceptionCaught = true;
+    }
+    Assert.assertTrue(exceptionCaught);
+    stage.postProcess();
+  }
+  
+  /*
+  public void testEmptyCluster()
+  {
+    ClusterEvent event = new ClusterEvent("sampleEvent");
+    ClusterManager manager = new Mocks.MockManager();
+    event.addAttribute("clustermanager", manager);
+    ResourceComputationStage stage = new ResourceComputationStage();
+    StageContext context = new StageContext();
+    stage.init(context);
+    stage.preProcess();
+    boolean exceptionCaught = false;
+    try
+    {
+      stage.process(event);
+    } catch (Exception e)
+    {
+      exceptionCaught = true;
+    }
+    Assert.assertTrue(exceptionCaught);
+    stage.postProcess();
+  }
+  */
 }

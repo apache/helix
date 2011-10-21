@@ -11,7 +11,6 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.log4j.Logger;
-import org.apache.zookeeper.CreateMode;
 
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.PropertyType;
@@ -148,6 +147,7 @@ public class StatusUpdateUtil
     } catch (Exception e)
     {
       _logger.error(e);
+      // e.printStackTrace();
     }
   }
 

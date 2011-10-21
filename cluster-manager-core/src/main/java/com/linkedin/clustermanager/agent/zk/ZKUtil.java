@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.I0Itec.zkclient.DataUpdater;
-import com.linkedin.clustermanager.agent.zk.ZkClient;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 
@@ -23,6 +22,11 @@ public final class ZKUtil
 
   public static boolean isClusterSetup(String clusterName, ZkClient zkClient)
   {
+    if (clusterName == null || zkClient == null)
+    { 
+      return false;
+    }
+    
     String idealStatePath = CMUtil.getIdealStatePath(clusterName);
     boolean isValid = zkClient.exists(idealStatePath)
         && zkClient.exists(CMUtil.getConfigPath(clusterName))
@@ -51,15 +55,8 @@ public final class ZKUtil
     client.createPersistent(parentPath, true);
 
     String id = nodeRecord.getId();
-    if (id != null)
-    {
-      String temp = parentPath + "/" + id;
-      client.createPersistent(temp, nodeRecord);
-    } else
-    {
-      logger.warn("Not creating child under " + parentPath
-          + " record data does not have id: ZNRecord:" + nodeRecord);
-    }
+    String temp = parentPath + "/" + id;
+    client.createPersistent(temp, nodeRecord);
   }
 
   public static void dropChildren(ZkClient client, String parentPath,

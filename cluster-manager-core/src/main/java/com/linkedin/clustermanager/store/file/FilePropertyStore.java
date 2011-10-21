@@ -31,7 +31,6 @@ import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.store.PropertyChangeListener;
 import com.linkedin.clustermanager.store.PropertyJsonComparator;
-import com.linkedin.clustermanager.store.PropertyJsonSerializer;
 import com.linkedin.clustermanager.store.PropertySerializer;
 import com.linkedin.clustermanager.store.PropertyStat;
 import com.linkedin.clustermanager.store.PropertyStore;
@@ -905,6 +904,7 @@ public class FilePropertyStore<T> implements PropertyStore<T>
   
   // TODO remove it
   // for temp test
+  /*
   public static void main(String[] args) 
   throws PropertyStoreException, IOException, InterruptedException
   {
@@ -986,5 +986,5 @@ public class FilePropertyStore<T> implements PropertyStore<T>
     store.stop();
     
   }
-
+  */
 }

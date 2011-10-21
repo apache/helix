@@ -51,7 +51,7 @@ public class CallbackHandlerForFile implements PropertyChangeListener<ZNRecord>
       Object listener, EventType[] eventTypes, ChangeType changeType)
   {
     this._manager = manager;
-    this._accessor = manager.getDataAccessor(); // (FileBasedDataAccessor)manager.getDataAccessor();
+    this._accessor = manager.getDataAccessor();
     this._path = path;
     this._listener = listener;
     this._eventTypes = eventTypes;

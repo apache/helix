@@ -28,6 +28,8 @@ public class TestCMTaskExecutor
     message.setFromState("Offline");
     message.setToState("Slave");
     message.setStateUnitKey("Teststateunitkey");
+    message.setStateUnitGroup("Teststateunitkey");
+    
     MockCMTaskExecutor executor = new MockCMTaskExecutor();
     MockStateModel stateModel = new MockStateModel();
     NotificationContext context;

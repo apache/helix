@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.Future;
 
 import org.apache.zookeeper.CreateMode;
@@ -82,7 +83,8 @@ public class Mocks
     MockAccessor accessor;
 
     private final String _clusterName;
-
+    private final String sessionId;
+    String _instanceName;
     public MockManager()
     {
       this("testCluster-" + Math.random() * 10000 % 999);
@@ -92,6 +94,8 @@ public class Mocks
     {
       _clusterName = clusterName;
       accessor = new MockAccessor(clusterName);
+      sessionId =  UUID.randomUUID().toString();
+      _instanceName = "testInstanceName";
     }
 
     @Override
@@ -163,8 +167,7 @@ public class Mocks
     @Override
     public String getInstanceName()
     {
-      // TODO Auto-generated method stub
-      return null;
+      return _instanceName;
     }
 
     @Override
@@ -177,8 +180,7 @@ public class Mocks
     @Override
     public String getSessionId()
     {
-      // TODO Auto-generated method stub
-      return null;
+      return sessionId;
     }
 
     @Override

@@ -68,7 +68,7 @@ public class CMTask implements Callable<CMTaskResult>
             + e;
         _statusUpdateUtil.logError(_message, CMTask.class, e, errorMessage,
             accessor);
-        logger.error(errorMessage);
+        logger.error(errorMessage,e);
         taskResult.setSuccess(false);
         taskResult.setMessage(e.getMessage());
       }

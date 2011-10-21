@@ -48,6 +48,7 @@ public class TestCMTaskHandler
     message.setToState("Slave");
     message.setStateUnitKey("Teststateunitkey");
     message.setMsgId("Some unique message id");
+    message.setStateUnitGroup("TeststateunitGroup");
     message.setTgtName("localhost");
     MockStateModelAnnotated stateModel = new MockStateModelAnnotated();
     NotificationContext context;

@@ -1,16 +1,12 @@
 package com.linkedin.clustermanager.messaging;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
-import java.util.Timer;
 import java.util.UUID;
 
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import com.linkedin.clustermanager.messaging.AsyncCallback;
-import com.linkedin.clustermanager.messaging.AsyncCallback.TimeoutTask;
 import com.linkedin.clustermanager.model.Message;
 
 public class TestAsyncCallback
@@ -48,7 +44,7 @@ public class TestAsyncCallback
     {
       messageSent.add(new Message("Test", UUID.randomUUID().toString()));
     }
-    
+    Thread.sleep(50);
     callback.setMessagesSent(messageSent);
     
     for(int i = 0;i < nMsgs; i++)
@@ -59,19 +55,12 @@ public class TestAsyncCallback
     Assert.assertTrue(callback.isDone());
 
     Assert.assertTrue(callback._onTimeOutCalled == 0 );
-    
+    Thread.sleep(50);
     callback = new AsyncCallbackSample();
     callback.setMessagesSent(messageSent);
     callback.setTimeout(1000);
+    Thread.sleep(50);
     callback.startTimer();
-    try
-    {
-      Thread.sleep(50);
-    } catch (InterruptedException e)
-    {
-      // ignore it
-    }
-    
     Assert.assertFalse(callback.isTimedOut());
     for(int i = 0;i < nMsgs - 1; i++)
     {

@@ -48,7 +48,7 @@ public class TestAsyncCallback
     {
       messageSent.add(new Message("Test", UUID.randomUUID().toString()));
     }
-    
+    Thread.sleep(50);
     callback.setMessagesSent(messageSent);
     
     for(int i = 0;i < nMsgs; i++)
@@ -59,10 +59,11 @@ public class TestAsyncCallback
     Assert.assertTrue(callback.isDone());
 
     Assert.assertTrue(callback._onTimeOutCalled == 0 );
-    
+    Thread.sleep(50);
     callback = new AsyncCallbackSample();
     callback.setMessagesSent(messageSent);
     callback.setTimeout(1000);
+    Thread.sleep(50);
     callback.startTimer();
     //Thread.sleep(50);
     Assert.assertFalse(callback.isTimedOut());

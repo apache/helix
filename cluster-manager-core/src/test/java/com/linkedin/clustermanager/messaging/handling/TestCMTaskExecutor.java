@@ -208,6 +208,8 @@ public class TestCMTaskExecutor
     {
       Message msg = new Message(factory.getMessageType(), UUID.randomUUID().toString());
       msg.setTgtSessionId(manager.getSessionId());
+      msg.setTgtName("Localhost_1123");
+      msg.setSrcName("127.101.1.23_2234");
       msgList.add(msg.getRecord());
     }
     
@@ -217,6 +219,8 @@ public class TestCMTaskExecutor
     {
       Message msg = new Message(factory2.getMessageType(), UUID.randomUUID().toString());
       msg.setTgtSessionId(manager.getSessionId());
+      msg.setTgtName("Localhost_1123");
+      msg.setSrcName("127.101.1.23_2234");
       msgList.add(msg.getRecord());
     }
     executor.onMessage("someInstance", msgList, changeContext);
@@ -259,6 +263,7 @@ public class TestCMTaskExecutor
     {
       Message msg = new Message(factory.getMessageType(), UUID.randomUUID().toString());
       msg.setTgtSessionId("*");
+      msg.setTgtName("");
       msgList.add(msg.getRecord());
     }
     
@@ -268,6 +273,7 @@ public class TestCMTaskExecutor
     {
       Message msg = new Message(factory2.getMessageType(), UUID.randomUUID().toString());
       msg.setTgtSessionId("some other session id");
+      msg.setTgtName("");
       msgList.add(msg.getRecord());
     }
     executor.onMessage("someInstance", msgList, changeContext);
@@ -307,6 +313,8 @@ public class TestCMTaskExecutor
     {
       Message msg = new Message(factory.getMessageType(), UUID.randomUUID().toString());
       msg.setTgtSessionId("*");
+      msg.setTgtName("Localhost_1123");
+      msg.setSrcName("127.101.1.23_2234");
       msgList.add(msg.getRecord());
     }
     
@@ -317,6 +325,8 @@ public class TestCMTaskExecutor
       Message msg = new Message(factory.getMessageType(), UUID.randomUUID().toString());
       msg.setTgtSessionId("*");
       msgList.add(msg.getRecord());
+      msg.setTgtName("Localhost_1123");
+      msg.setSrcName("127.101.1.23_2234");
       msgListToCancel.add(msg);
     }
     executor.onMessage("someInstance", msgList, changeContext);

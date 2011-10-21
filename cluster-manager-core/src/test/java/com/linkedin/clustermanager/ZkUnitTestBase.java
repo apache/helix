@@ -19,6 +19,7 @@ import org.testng.AssertJUnit;
 import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeSuite;
 
+import com.linkedin.clustermanager.ClusterDataAccessor.InstanceConfigProperty;
 import com.linkedin.clustermanager.agent.zk.ZKDataAccessor;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
 import com.linkedin.clustermanager.tools.ClusterStateVerifier;
@@ -243,6 +244,43 @@ public class ZkUnitTestBase
     return true;
   }
 
+  public void verifyInstance(String clusterName, String instance, boolean wantExists)
+	{
+		String instanceConfigsPath = CMUtil.getConfigPath(clusterName);
+	    String instanceConfigPath = instanceConfigsPath + "/" + instance;
+	    String instancePath = CMUtil.getInstancePath(clusterName, instance);
+	    AssertJUnit.assertEquals(wantExists, _zkClient.exists(instanceConfigPath));
+	    AssertJUnit.assertEquals(wantExists, _zkClient.exists(instancePath));
+	}
+	
+	public void verifyResource(String clusterName, String resource, boolean wantExists) 
+	{
+		String resourcePath = CMUtil.getIdealStatePath(clusterName)+"/"+resource;
+		AssertJUnit.assertEquals(wantExists, _zkClient.exists(resourcePath));
+	}
+	
+	public void verifyEnabled(String clusterName, String instance, boolean wantEnabled) {
+	    ClusterDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
+	    ZNRecord nodeConfig = accessor.getProperty(PropertyType.CONFIGS, instance);
+	    boolean isEnabled = Boolean.parseBoolean(nodeConfig.getSimpleField(
+	    		InstanceConfigProperty.ENABLED.toString()));
+	    AssertJUnit.assertEquals(wantEnabled, isEnabled);
+	}
+	
+	
+	public void verifyReplication(String clusterName, String resource, int repl) {
+		//String resourcePath = CMUtil.getIdealStatePath(CLUSTER_NAME)+"/"+TEST_DB;
+		 ClusterDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
+		 ZNRecord nodeConfig = accessor.getProperty(PropertyType.IDEALSTATES, resource);
+		 //get location map for each partition
+		 Map<String, Map<String, String>> partitionMap = nodeConfig.getMapFields();
+		 //for each partition's map, verify map has repl entries
+		 for (String partition : partitionMap.keySet()) {
+			 Map<String, String> partitionLocs = nodeConfig.getMapField(partition);
+			 AssertJUnit.assertEquals(repl, partitionLocs.size());
+		 }
+	}
+  
   protected void simulateSessionExpiry(ZkConnection zkConnection)
       throws IOException, InterruptedException
   {

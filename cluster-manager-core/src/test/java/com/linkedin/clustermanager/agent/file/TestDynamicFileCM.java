@@ -191,6 +191,16 @@ public class TestDynamicFileCM
     }
     Assert.assertTrue(exceptionCaught);
     
+    exceptionCaught = false;
+    try
+    {
+      tool.enableInstance(clusterName, "resourceGroup", false);
+    } catch (UnsupportedOperationException e)
+    {
+      exceptionCaught = true;
+    }
+    Assert.assertTrue(exceptionCaught);
+    
     tool.addCluster(clusterName, true);
     tool.addResourceGroup(clusterName, "resourceGroup", 10, "MasterSlave");
     ZNRecord nodeConfig = new ZNRecord("nodeConfig");
@@ -198,7 +208,13 @@ public class TestDynamicFileCM
     List<String> instances = tool.getInstancesInCluster(clusterName);
     Assert.assertEquals(1, instances.size());
     tool.dropInstance(clusterName, nodeConfig);
+    
+    ZNRecord isRecord = new ZNRecord("idealState");
+    tool.setResourceGroupIdealState(clusterName, "resourceGroup", isRecord);
+    isRecord = tool.getResourceGroupIdealState(clusterName, "resourceGroup");
+    Assert.assertEquals(isRecord.getId(), "idealState");
    
+    tool.dropResourceGroup(clusterName, "resourceGroup");
     store.stop();
   }
 }

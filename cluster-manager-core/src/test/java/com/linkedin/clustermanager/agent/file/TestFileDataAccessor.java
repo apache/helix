@@ -1,5 +1,7 @@
 package com.linkedin.clustermanager.agent.file;
 
+import java.util.List;
+
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -47,6 +49,19 @@ public class TestFileDataAccessor
     Assert.assertNull(record);
     Assert.assertNull(accessor.getChildNames(PropertyType.CONFIGS, "key0"));
     
+    ZNRecord leaderRecord = new ZNRecord("id2");
+    accessor.updateProperty(PropertyType.LEADER, leaderRecord);
+    record = accessor.getProperty(PropertyType.LEADER);
+    Assert.assertNull(record);
+    
+    accessor.setProperty(PropertyType.LEADER, leaderRecord);
+    ZNRecord newLeaderRecord = new ZNRecord("id3");
+    accessor.updateProperty(PropertyType.LEADER, newLeaderRecord);
+    record = accessor.getProperty(PropertyType.LEADER);
+    Assert.assertEquals("id3", newLeaderRecord.getId());
+    
+    List<ZNRecord> childs = accessor.getChildValues(PropertyType.HISTORY);
+    Assert.assertEquals(childs.size(), 0);
     
     store.stop();
   }

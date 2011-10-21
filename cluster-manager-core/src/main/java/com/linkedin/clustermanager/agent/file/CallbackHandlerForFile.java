@@ -266,6 +266,7 @@ public class CallbackHandlerForFile implements PropertyChangeListener<ZNRecord>
     case LIVE_INSTANCE:
     case MESSAGE:
     case EXTERNAL_VIEW:
+    case CONTROLLER:
       ret = key.equals(_path);
       break;
     default:

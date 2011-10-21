@@ -1,7 +1,5 @@
 package com.linkedin.clustermanager.tools;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -127,9 +125,10 @@ public class ZnodeOpArg
                  _updateValue + "}";
     return ret;
   }
-  
 
+  
   // TODO temp test; remove it
+  /*
   public static void main(String[] args) 
   {
     // null modification command
@@ -162,4 +161,5 @@ public class ZnodeOpArg
     command = new ZnodeOpArg("/testPath", ZnodePropertyType.ZNODE, "+", record);
     System.out.println(command);
   }
+  */
 }

@@ -7,13 +7,6 @@ import static com.linkedin.clustermanager.CMConstants.ChangeType.LIVE_INSTANCE;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.GnuParser;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.OptionBuilder;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.Watcher.Event.EventType;
 
@@ -196,6 +189,7 @@ public class DynamicFileClusterManager implements ClusterManager
     return _sessionId;
   }
 
+  /*
   private static Options constructCommandLineOptions()
   {
     Option fileOption = OptionBuilder.withLongOpt(configFile)
@@ -209,7 +203,7 @@ public class DynamicFileClusterManager implements ClusterManager
     return options;
 
   }
-
+  
   public static CommandLine processCommandLineArgs(String[] cliArgs)
       throws Exception
   {
@@ -230,7 +224,8 @@ public class DynamicFileClusterManager implements ClusterManager
     }
     return null;
   }
-
+  */
+  
   @Override
   public boolean isConnected()
   {

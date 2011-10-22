@@ -497,7 +497,15 @@ public class FileBasedClusterManager implements ClusterManager
     List<ZNRecord> curStateList = memberInstance
         .getInstanceProperty(PropertyType.CURRENTSTATES);
 
-    if (curStateList.size() != idealStates.size())
+    if (curStateList == null && idealStates.size() > 0)
+    {
+      LOG.error("current state is null");
+      return false;
+    } else if (curStateList == null && idealStates.size() == 0)
+    {
+      LOG.info("empty current state and ideal state");
+      return true;
+    } else if (curStateList.size() != idealStates.size())
     {
       LOG.error("Number of current states (" + curStateList.size()
           + ") mismatch " + "number of ideal states (" + idealStates.size()

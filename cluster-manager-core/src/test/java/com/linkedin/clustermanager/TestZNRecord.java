@@ -6,7 +6,7 @@ import java.util.HashMap;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-@Test
+@Test (groups = {"unitTest"})
 public class TestZNRecord
 {
 

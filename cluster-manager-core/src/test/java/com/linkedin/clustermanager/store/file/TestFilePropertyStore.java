@@ -1,4 +1,4 @@
-package com.linkedin.clustermanager;
+package com.linkedin.clustermanager.store.file;
 
 import java.util.Date;
 import java.util.List;

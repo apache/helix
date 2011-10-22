@@ -7,6 +7,7 @@ import org.testng.annotations.Test;
 import com.linkedin.clustermanager.CMConstants.ChangeType;
 import com.linkedin.clustermanager.InstanceType;
 import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.agent.MockListener;
 import com.linkedin.clustermanager.store.PropertyJsonComparator;
 import com.linkedin.clustermanager.store.PropertyJsonSerializer;
 import com.linkedin.clustermanager.store.PropertyStoreException;

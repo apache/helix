@@ -1,4 +1,4 @@
-package com.linkedin.clustermanager;
+package com.linkedin.clustermanager.store.zk;
 
 import java.util.Date;
 import java.util.List;
@@ -10,13 +10,13 @@ import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
+import com.linkedin.clustermanager.ZkUnitTestBase;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
 import com.linkedin.clustermanager.store.PropertyChangeListener;
 import com.linkedin.clustermanager.store.PropertyJsonComparator;
 import com.linkedin.clustermanager.store.PropertyJsonSerializer;
 import com.linkedin.clustermanager.store.PropertyStat;
 import com.linkedin.clustermanager.store.PropertyStoreException;
-import com.linkedin.clustermanager.store.zk.ZKPropertyStore;
 
 // TODO need to write multi-thread test cases
 // TODO need to write performance test for zk-property store
@@ -95,15 +95,42 @@ public class TestZKPropertyStore extends ZkUnitTestBase
       value = zkPropertyStore.getProperty("child1/grandchild1", propertyStat);
       AssertJUnit.assertEquals(value, "grandchild1");
       
-      /*
-      // test get property of a node without data
-      value = zkPropertyStore.getProperty("");
-      AssertJUnit.assertTrue(value == null);
   
       // test get property of a non-exist node
-      value = zkPropertyStore.getProperty("abc");
-      AssertJUnit.assertTrue(value == null);
-      */
+      value = zkPropertyStore.getProperty("nonExist");
+      AssertJUnit.assertNull(value);
+
+      zkPropertyStore.createPropertyNamespace("child3");
+      AssertJUnit.assertTrue(zkPropertyStore.exists("child3"));
+      _zkClient.createPersistent(propertyStoreRoot + "/child3/grandchild31", "grandchild31");
+      value = zkPropertyStore.getProperty("child3/grandchild31");
+      AssertJUnit.assertEquals("grandchild31", value);
+      _zkClient.writeData(propertyStoreRoot + "/child3/grandchild31", "new grandchild31");
+      Thread.sleep(1000);
+      value = zkPropertyStore.getProperty("child3/grandchild31");
+      AssertJUnit.assertEquals("new grandchild31", value);
+      _zkClient.delete(propertyStoreRoot + "/child3/grandchild31");
+      Thread.sleep(1000);
+      value = zkPropertyStore.getProperty("child3/grandchild31");
+      AssertJUnit.assertNull(value);
+      
+      String root = zkPropertyStore.getPropertyRootNamespace();
+      AssertJUnit.assertEquals(propertyStoreRoot, root);
+      
+      List<String> childs = zkPropertyStore.getPropertyNames("child4");
+      AssertJUnit.assertEquals(0, childs.size());
+      
+      boolean exceptionCaught = false;
+      try
+      {
+        zkPropertyStore.setPropertyDelimiter("/");
+      } catch (PropertyStoreException e)
+      {
+        exceptionCaught = true;
+      }
+      AssertJUnit.assertTrue(exceptionCaught);
+      AssertJUnit.assertFalse(zkPropertyStore.canParentStoreData());
+     
       
       // test subscribe property
       TestPropertyChangeListener listener = new TestPropertyChangeListener();
@@ -131,7 +158,7 @@ public class TestZKPropertyStore extends ZkUnitTestBase
       // test remove an existing property
       // this triggers child change at both child1/grandchild4 and child1
       listener._propertyChangeReceived = false;
-      zkPropertyStore.removeProperty("child1/grandchild4");  
+      zkPropertyStore.removeProperty("child1/grandchild4");
       Thread.sleep(100);
       AssertJUnit.assertTrue(listener._propertyChangeReceived);
       

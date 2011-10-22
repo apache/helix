@@ -258,12 +258,13 @@ public class CMTaskExecutor implements MessageListener
               continue;
             }
 
-            _statusUpdateUtil.logInfo(message, StateMachineEngine.class,
-                "New Message", client);
             // update msgState to read
             message.setMsgState("read");
             message.setReadTimeStamp(new Date().getTime());
+            message.setExecuteSessionId(changeContext.getManager().getSessionId());
 
+            _statusUpdateUtil.logInfo(message, StateMachineEngine.class,
+                "New Message", client);
             client.updateProperty(PropertyType.MESSAGES, message.getRecord(),
                 instanceName, message.getId());
             scheduleTask(message, handler, changeContext);

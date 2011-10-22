@@ -36,10 +36,10 @@ public class PropertyPathConfig
     addEntry(PropertyType.CURRENTSTATES,2,"/{clusterName}/INSTANCES/{instanceName}/CURRENTSTATES");
     addEntry(PropertyType.CURRENTSTATES,3,"/{clusterName}/INSTANCES/{instanceName}/CURRENTSTATES/{sessionId}");
     addEntry(PropertyType.CURRENTSTATES,4,"/{clusterName}/INSTANCES/{instanceName}/CURRENTSTATES/{sessionId}/{resourceGroupName}");
-    addEntry(PropertyType.STATUSUPDATES,2,"/{clusterName}/STATUSUPDATES/{instanceName}/STATUSUPDATES");
-    addEntry(PropertyType.STATUSUPDATES,4,"/{clusterName}/STATUSUPDATES/{instanceName}/STATUSUPDATES/{subPath}/{recordName}");
-    addEntry(PropertyType.ERRORS,2,"/{clusterName}/ERRORS/{instanceName}/ERRORS/");
-    addEntry(PropertyType.ERRORS,4,"/{clusterName}/ERRORS/{instanceName}/ERRORS/{subPath}/{recordName}");
+    addEntry(PropertyType.STATUSUPDATES,2,"/{clusterName}/INSTANCES/{instanceName}/STATUSUPDATES");
+    addEntry(PropertyType.STATUSUPDATES,4,"/{clusterName}/INSTANCES/{instanceName}/STATUSUPDATES/{subPath}/{recordName}");
+    addEntry(PropertyType.ERRORS,2,"/{clusterName}/INSTANCES/{instanceName}/ERRORS/");
+    addEntry(PropertyType.ERRORS,4,"/{clusterName}/INSTANCES/{instanceName}/ERRORS/{subPath}/{recordName}");
     addEntry(PropertyType.HEALTHREPORT,2,"/{clusterName}/HEALTHREPORT/{instanceName}/HEALTHREPORT");
     addEntry(PropertyType.HEALTHREPORT,3,"/{clusterName}/HEALTHREPORT/{instanceName}/HEALTHREPORT/{reportName}");
     //CONTROLLER
@@ -48,7 +48,7 @@ public class PropertyPathConfig
     addEntry(PropertyType.ERRORS_CONTROLLER,1,"/{clusterName}/CONTROLLER/ERRORS");
     addEntry(PropertyType.ERRORS_CONTROLLER,2,"/{clusterName}/CONTROLLER/ERRORS/{errorId}");
     addEntry(PropertyType.STATUSUPDATES_CONTROLLER,1,"/{clusterName}/CONTROLLER/STATUSUPDATES");
-    addEntry(PropertyType.STATUSUPDATES_CONTROLLER,2,"/{clusterName}/CONTROLLER/STATUSUPDATES/{statusId}");
+    addEntry(PropertyType.STATUSUPDATES_CONTROLLER,3,"/{clusterName}/CONTROLLER/STATUSUPDATES/{subPath}/{recordName}");
     addEntry(PropertyType.LEADER,1,"/{clusterName}/CONTROLLER/LEADER");
     addEntry(PropertyType.HISTORY,1,"/{clusterName}/CONTROLLER/HISTORY");
     addEntry(PropertyType.PAUSE,1,"/{clusterName}/CONTROLLER/PAUSE");

@@ -206,8 +206,8 @@ public class StatusUpdateUtil
     {
       if (instanceName.equalsIgnoreCase("Controller"))
       {
-        accessor.setProperty(PropertyType.STATUSUPDATES,
-            createMessageLogRecord(message), statusUpdateSubPath);
+        accessor.setProperty(PropertyType.STATUSUPDATES_CONTROLLER,
+            createMessageLogRecord(message), statusUpdateSubPath, statusUpdateKey);
       } else
       {
         accessor.updateProperty(PropertyType.STATUSUPDATES,
@@ -220,8 +220,8 @@ public class StatusUpdateUtil
 
     if (instanceName.equalsIgnoreCase("Controller"))
     {
-      accessor.setProperty(PropertyType.STATUSUPDATES, record,
-          statusUpdateSubPath);
+      accessor.setProperty(PropertyType.STATUSUPDATES_CONTROLLER, record,
+          statusUpdateSubPath, statusUpdateKey);
 
     } else
     {
@@ -255,9 +255,15 @@ public class StatusUpdateUtil
         MessageType.STATE_TRANSITION.toString()))
     {
       return message.getTgtSessionId() + "__" + message.getStateUnitGroup();
-    } else
+    } 
+    else
     {
-      return message.getMsgType();
+      String exeSessionId = message.getExecutionSessionId();
+      if(exeSessionId == null)
+      {
+        exeSessionId = "*";
+      }
+      return exeSessionId+"/"+message.getMsgType();
     }
   }
 

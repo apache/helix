@@ -29,7 +29,7 @@ public class Message
     MSG_ID, SRC_SESSION_ID, TGT_SESSION_ID, SRC_NAME, TGT_NAME, 
     MSG_STATE, STATE_UNIT_KEY, STATE_UNIT_GROUP, FROM_STATE, TO_STATE, 
     STATE_MODEL_DEF, READ_TIMESTAMP, EXECUTE_START_TIMESTAMP, MSG_TYPE, 
-    MSG_SUBTYPE, CORRELATION_ID, MESSAGE_RESULT;
+    MSG_SUBTYPE, CORRELATION_ID, MESSAGE_RESULT, EXE_SESSION_ID;
   }
 
   public Message(MessageType type, String msgId)
@@ -108,7 +108,18 @@ public class Message
   {
     _record.setSimpleField(Attributes.SRC_SESSION_ID.toString(), srcSessionId);
   }
+  
+  public String getExecutionSessionId()
+  {
+    return getSimpleFieldAsString(Attributes.EXE_SESSION_ID.toString());
+  }
 
+  public void setExecuteSessionId(String exeSessionId)
+  {
+    _record.setSimpleField(Attributes.EXE_SESSION_ID.toString(), exeSessionId);
+  }
+  
+  
   public String getMsgSrc()
   {
     return getSimpleFieldAsString(Attributes.SRC_NAME.toString());

@@ -27,7 +27,8 @@ public class BaseStageTest
   protected ClusterDataAccessor accessor;
   protected ClusterEvent event;
 
-  @BeforeMethod(groups = { "unitTest" })
+  @BeforeMethod(groups =
+  { "unitTest" })
   public void setup()
   {
     System.out.println("BaseStageTest.setup()");
@@ -38,9 +39,8 @@ public class BaseStageTest
 
   }
 
-  protected String[] setupIdealState(int nodes,
-                                     List<IdealState> idealStates,
-                                     String[] resourceGroups)
+  protected String[] setupIdealState(int nodes, List<IdealState> idealStates,
+      String[] resourceGroups)
   {
     List<String> instances = new ArrayList<String>();
     for (int i = 0; i < nodes; i++)
@@ -65,12 +65,14 @@ public class BaseStageTest
       }
       IdealState idealState = new IdealState(record);
       idealState.setStateModelDefRef("MasterSlave");
-      manager.getDataAccessor().setProperty(PropertyType.IDEALSTATES,
-                                            idealState.getRecord(),
-                                            resourceGroupName);
-      IdealState idealstate = new IdealState(record);
       idealState.setIdealStateMode(IdealStateConfigProperty.AUTO.toString());
+      idealState.setNumPartitions(partitions);
       idealStates.add(idealState);
+      
+      System.out.println(idealState.getRecord());
+      manager.getDataAccessor().setProperty(PropertyType.IDEALSTATES,
+          idealState.getRecord(), resourceGroupName);
+
     }
     return resourceGroups;
   }
@@ -84,7 +86,8 @@ public class BaseStageTest
       ZNRecord znRecord = new ZNRecord("localhost_" + i);
       LiveInstance liveInstance = new LiveInstance(znRecord);
       liveInstance.setSessionId("session_" + i);
-      accessor.setProperty(PropertyType.LIVEINSTANCES, znRecord, "localhost_" + i);
+      accessor.setProperty(PropertyType.LIVEINSTANCES, znRecord, "localhost_"
+          + i);
     }
   }
 
@@ -97,8 +100,7 @@ public class BaseStageTest
     try
     {
       stage.process(event);
-    }
-    catch (Exception e)
+    } catch (Exception e)
     {
       e.printStackTrace();
     }
@@ -107,12 +109,18 @@ public class BaseStageTest
 
   protected void setupStateModel()
   {
-    ZNRecord masterSlave = new StateModelConfigGenerator().generateConfigForMasterSlave();
-    accessor.setProperty(PropertyType.STATEMODELDEFS, masterSlave, masterSlave.getId());
-    ZNRecord leaderStandby = new StateModelConfigGenerator().generateConfigForLeaderStandby();
-    accessor.setProperty(PropertyType.STATEMODELDEFS, leaderStandby, leaderStandby.getId());
-    ZNRecord onlineOffline = new StateModelConfigGenerator().generateConfigForOnlineOffline();
-    accessor.setProperty(PropertyType.STATEMODELDEFS, onlineOffline, onlineOffline.getId());
+    ZNRecord masterSlave = new StateModelConfigGenerator()
+        .generateConfigForMasterSlave();
+    accessor.setProperty(PropertyType.STATEMODELDEFS, masterSlave,
+        masterSlave.getId());
+    ZNRecord leaderStandby = new StateModelConfigGenerator()
+        .generateConfigForLeaderStandby();
+    accessor.setProperty(PropertyType.STATEMODELDEFS, leaderStandby,
+        leaderStandby.getId());
+    ZNRecord onlineOffline = new StateModelConfigGenerator()
+        .generateConfigForOnlineOffline();
+    accessor.setProperty(PropertyType.STATEMODELDEFS, onlineOffline,
+        onlineOffline.getId());
   }
 
   protected Map<String, ResourceGroup> getResourceGroupMap()
@@ -126,7 +134,7 @@ public class BaseStageTest
     testResourceGroup.addResource("testResourceGroupName_3");
     testResourceGroup.addResource("testResourceGroupName_4");
     resourceGroupMap.put("testResourceGroupName", testResourceGroup);
-    
+
     return resourceGroupMap;
   }
 }

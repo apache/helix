@@ -20,7 +20,7 @@ public class TestBestPossibleStateCalcStage extends BaseStageTest
 
     List<IdealState> idealStates = new ArrayList<IdealState>();
 
-    String[] resourceGroups = new String[] { "testResourceGroup" };
+    String[] resourceGroups = new String[] { "testResourceGroupName" };
     setupIdealState(5, idealStates, resourceGroups);
     setupLiveInstances(5);
     setupStateModel();

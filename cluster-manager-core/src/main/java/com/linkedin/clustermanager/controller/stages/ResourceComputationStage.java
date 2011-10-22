@@ -4,8 +4,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
+
 import com.linkedin.clustermanager.CMConstants;
 import com.linkedin.clustermanager.ClusterDataAccessor;
+import com.linkedin.clustermanager.ClusterDataAccessor.IdealStateConfigProperty;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
@@ -14,16 +17,20 @@ import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.ResourceGroup;
 import com.linkedin.clustermanager.pipeline.AbstractBaseStage;
 import com.linkedin.clustermanager.pipeline.StageException;
+
 /**
- * This stage computes all the resources in a cluster.
- * The resources are computed from
- * IdealStates -> this gives all the resources currently active
- * CurrentState for liveInstance-> Helps in finding resources that are inactive and needs to be dropped
+ * This stage computes all the resources in a cluster. The resources are
+ * computed from IdealStates -> this gives all the resources currently active
+ * CurrentState for liveInstance-> Helps in finding resources that are inactive
+ * and needs to be dropped
+ * 
  * @author kgopalak
- *
+ * 
  */
 public class ResourceComputationStage extends AbstractBaseStage
 {
+  private static Logger logger = Logger
+      .getLogger(ResourceComputationStage.class);
 
   @Override
   public void process(ClusterEvent event) throws Exception
@@ -44,14 +51,33 @@ public class ResourceComputationStage extends AbstractBaseStage
       for (ZNRecord idealStateRec : idealStates)
       {
         IdealState idealState = new IdealState(idealStateRec);
-        String resourceGroupName = idealStateRec.getId();
-        Map<String, Map<String, String>> resourceMappings = idealStateRec
-            .getMapFields();
-        for (String resourceKey : resourceMappings.keySet())
+        if (idealState.getIdealStateMode() == IdealStateConfigProperty.AUTO)
         {
-          addResource(resourceKey, resourceGroupName, resourceGroupMap);
-          ResourceGroup resourceGroup = resourceGroupMap.get(resourceGroupName);
-          resourceGroup.setStateModelDefRef(idealState.getStateModelDefRef());
+          String resourceGroupName = idealStateRec.getId();
+          Map<String, List<String>> resourceList = idealStateRec
+              .getListFields();
+          for (String resourceKey : resourceList.keySet())
+          {
+            addResource(resourceKey, resourceGroupName, resourceGroupMap);
+            ResourceGroup resourceGroup = resourceGroupMap
+                .get(resourceGroupName);
+            resourceGroup.setStateModelDefRef(idealState.getStateModelDefRef());
+          }
+        } else if (idealState.getIdealStateMode() == IdealStateConfigProperty.CUSTOMIZED)
+        {
+          String resourceGroupName = idealStateRec.getId();
+          Map<String, Map<String, String>> resourceMappings = idealStateRec
+              .getMapFields();
+          for (String resourceKey : resourceMappings.keySet())
+          {
+            addResource(resourceKey, resourceGroupName, resourceGroupMap);
+            ResourceGroup resourceGroup = resourceGroupMap
+                .get(resourceGroupName);
+            resourceGroup.setStateModelDefRef(idealState.getStateModelDefRef());
+          }
+        } else
+        {
+          logger.warn("Invalid mode in idealstate:" + idealState.getRecord());
         }
       }
     }
@@ -64,9 +90,10 @@ public class ResourceComputationStage extends AbstractBaseStage
       for (ZNRecord instance : availableInstances)
       {
         String instanceName = instance.getId();
-        String clientSessionId = instance.getSimpleField(CMConstants.ZNAttribute.SESSION_ID.toString());
-        List<ZNRecord> currentStates = dataAccessor.getChildValues(PropertyType.CURRENTSTATES,
-            instanceName, clientSessionId);
+        String clientSessionId = instance
+            .getSimpleField(CMConstants.ZNAttribute.SESSION_ID.toString());
+        List<ZNRecord> currentStates = dataAccessor.getChildValues(
+            PropertyType.CURRENTSTATES, instanceName, clientSessionId);
         if (currentStates == null || currentStates.size() == 0)
         {
           continue;
@@ -79,7 +106,7 @@ public class ResourceComputationStage extends AbstractBaseStage
           {
             for (ZNRecord idealStateRec : idealStates)
             {
-              if(currentState.getId().equalsIgnoreCase(idealStateRec.getId()))
+              if (currentState.getId().equalsIgnoreCase(idealStateRec.getId()))
               {
                 idealStateExists = true;
               }
@@ -90,8 +117,10 @@ public class ResourceComputationStage extends AbstractBaseStage
           for (String resourceKey : mapFields.keySet())
           {
             addResource(resourceKey, resourceGroupName, resourceGroupMap);
-            ResourceGroup resourceGroup = resourceGroupMap.get(resourceGroupName);
-            resourceGroup.setStateModelDefRef(currentState.getSimpleField(Message.Attributes.STATE_MODEL_DEF.toString()));
+            ResourceGroup resourceGroup = resourceGroupMap
+                .get(resourceGroupName);
+            resourceGroup.setStateModelDefRef(currentState
+                .getSimpleField(Message.Attributes.STATE_MODEL_DEF.toString()));
           }
         }
       }

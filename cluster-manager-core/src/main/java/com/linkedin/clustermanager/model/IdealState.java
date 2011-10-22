@@ -17,8 +17,7 @@ public class IdealState
     return _record;
   }
 
-  private static final Logger logger = Logger.getLogger(IdealState.class
-      .getName());
+  private static final Logger logger = Logger.getLogger(IdealState.class.getName());
   private final ZNRecord _record;
   private final String _resourceGroup;
 
@@ -40,6 +39,11 @@ public class IdealState
 
   }
 
+  public void setIdealStateMode(String mode)
+  {
+    _record.setSimpleField("ideal_state_mode", mode);
+  }
+
   public IdealStateConfigProperty getIdealStateMode()
   {
     if (_record == null)
@@ -48,12 +52,11 @@ public class IdealState
     }
 
     String mode = _record.getSimpleField("ideal_state_mode");
-    if (mode == null
-        || !mode.equalsIgnoreCase(IdealStateConfigProperty.CUSTOMIZED
-            .toString()))
+    if (mode == null || !mode.equalsIgnoreCase(IdealStateConfigProperty.CUSTOMIZED.toString()))
     {
       return IdealStateConfigProperty.AUTO;
-    } else
+    }
+    else
     {
       return IdealStateConfigProperty.CUSTOMIZED;
     }
@@ -92,7 +95,7 @@ public class IdealState
   }
 
   private List<String> getInstancePreferenceList(String resourceKeyName,
-      StateModelDefinition stateModelDef)
+                                                 StateModelDefinition stateModelDef)
   {
     List<String> instanceStateList = _record.getListField(resourceKeyName);
 
@@ -116,8 +119,7 @@ public class IdealState
     _record.setSimpleField("state_model_def_ref", stateModel);
   }
 
-  public List<String> getPreferenceList(String resourceKeyName,
-      StateModelDefinition stateModelDef)
+  public List<String> getPreferenceList(String resourceKeyName, StateModelDefinition stateModelDef)
   {
     if (_record == null)
     {
@@ -131,7 +133,8 @@ public class IdealState
     try
     {
       return Integer.parseInt(_record.getSimpleField("partitions"));
-    } catch (Exception e)
+    }
+    catch (Exception e)
     {
       logger.debug("Can't parse number of partitions: " + e);
       return -1;

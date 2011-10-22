@@ -120,8 +120,10 @@ public class ParticipantHealthReportCollectorImpl implements
                 .getRecentPartitionHealthReport();
             ZNRecord record = new ZNRecord(provider.getReportName());
             record.setSimpleFields(report);
-            record.setMapFields(partitionReport);
-
+            if (partitionReport != null) {
+            	record.setMapFields(partitionReport);
+            }
+            
             _clusterManager.getDataAccessor().setProperty(
                 PropertyType.HEALTHREPORT, record, _instanceName,
                 record.getId());

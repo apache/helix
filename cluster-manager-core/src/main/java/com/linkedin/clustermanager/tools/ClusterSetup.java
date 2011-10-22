@@ -6,6 +6,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.List;
 
+import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.GnuParser;
@@ -16,6 +17,7 @@ import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.log4j.Logger;
+import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 
@@ -47,6 +49,7 @@ public class ClusterSetup
   public static final String addResourceGroup      = "addResourceGroup";
   public static final String addStateModelDef      = "addStateModelDef";
   public static final String addIdealState         = "addIdealState";
+  public static final String disableInstance       = "disableNode";
   public static final String dropInstance		   = "dropNode";
   public static final String rebalance             = "rebalance";
 
@@ -134,7 +137,7 @@ public class ClusterSetup
 
     managementTool.addInstance(clusterName, instanceConfig);
   }
-
+  
   public void dropInstancesFromCluster(String clusterName, String[] InstanceInfoArray)
   {
     for (String InstanceInfo : InstanceInfoArray)
@@ -170,8 +173,14 @@ public class ClusterSetup
 	  //ZNRecord instanceConfig = new ZNRecord(instanceId);
 	  ZkClient zkClient = ZKClientPool.getZkClient(_zkServerAddress);
 	  String instanceConfigPath = CMUtil.getConfigPath(clusterName, instanceId);
-	  ZNRecord instanceConfig = zkClient.<ZNRecord> readData(instanceConfigPath);
-	  
+	  ZNRecord instanceConfig = null;
+	  try {
+		  instanceConfig = zkClient.<ZNRecord> readData(instanceConfigPath);
+	  } catch (ZkNoNodeException e) {
+		  String error = "Node "+instanceId+" does not exist, cannot drop";
+		  _logger.warn(error);
+		  throw new ClusterManagerException(error);
+	  }
 	  //ensure node is disabled, or else fail
 	  String instanceEnabledField = instanceConfig.getSimpleField(InstanceConfigProperty.ENABLED.toString());
 	  
@@ -180,9 +189,7 @@ public class ClusterSetup
 		  String error = "Node "+instanceId+" is enabled, cannot drop";
 		  _logger.warn(error);
 		  throw new ClusterManagerException(error);
-	  }
-	 	
-
+	  }	
 	  managementTool.dropInstance(clusterName, instanceConfig);
   }
   
@@ -417,7 +424,7 @@ public class ClusterSetup
     addIdealStateOption.setArgs(3);
     addIdealStateOption.setRequired(false);
     addIdealStateOption.setArgName("clusterName reourceGroupName <filename>");
-
+    
     Option dropInstanceOption =
         OptionBuilder.withLongOpt(dropInstance)
                      .withDescription("Drop an existing Instance from a cluster")
@@ -589,7 +596,7 @@ public class ClusterSetup
       setupTool.rebalanceStorageCluster(clusterName, resourceGroupName, replicas);
       return 0;
     }
-
+    
     if (cmd.hasOption(dropInstance))
     {
       String clusterName = cmd.getOptionValues(dropInstance)[0];
@@ -699,7 +706,7 @@ public class ClusterSetup
     {
       String clusterName = cmd.getOptionValues(enableInstance)[0];
       String instanceName = cmd.getOptionValues(enableInstance)[1];
-      boolean enabled = Boolean.parseBoolean(cmd.getOptionValues(enableInstance)[1].toLowerCase());
+      boolean enabled = Boolean.parseBoolean(cmd.getOptionValues(enableInstance)[2].toLowerCase());
 
       setupTool.getClusterManagementTool().enableInstance(clusterName, instanceName, enabled);
       return 0;

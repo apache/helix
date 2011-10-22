@@ -1,8 +1,5 @@
 package com.linkedin.clustermanager.controller.stages;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.testng.Assert;
@@ -11,7 +8,6 @@ import org.testng.annotations.Test;
 import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.model.CurrentState;
-import com.linkedin.clustermanager.model.LiveInstance;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.ResourceGroup;
 import com.linkedin.clustermanager.model.ResourceKey;
@@ -23,15 +19,7 @@ public class TestCurrentStateComputationStage extends BaseStageTest
 
   public void testEmptyCS()
   {
-    Map<String, ResourceGroup> resourceGroupMap = new HashMap<String, ResourceGroup>();
-    ResourceGroup testResourceGroup = new ResourceGroup("testResourceGroupName");
-    testResourceGroup.setStateModelDefRef("MasterSlave");
-    testResourceGroup.addResource("testResourceGroupName_0");
-    testResourceGroup.addResource("testResourceGroupName_1");
-    testResourceGroup.addResource("testResourceGroupName_2");
-    testResourceGroup.addResource("testResourceGroupName_3");
-    testResourceGroup.addResource("testResourceGroupName_5");
-    resourceGroupMap.put("testResourceGroupName", testResourceGroup);
+    Map<String, ResourceGroup> resourceGroupMap = getResourceGroupMap();
     event.addAttribute(AttributeName.RESOURCE_GROUPS.toString(),
         resourceGroupMap);
     CurrentStateComputationStage stage = new CurrentStateComputationStage();
@@ -46,26 +34,9 @@ public class TestCurrentStateComputationStage extends BaseStageTest
   public void testSimpleCS()
   {
     // setup resource group
-    Map<String, ResourceGroup> resourceGroupMap = new HashMap<String, ResourceGroup>();
-    ResourceGroup testResourceGroup = new ResourceGroup("testResourceGroupName");
-    testResourceGroup.setStateModelDefRef("MasterSlave");
-    testResourceGroup.addResource("testResourceGroupName_0");
-    testResourceGroup.addResource("testResourceGroupName_1");
-    testResourceGroup.addResource("testResourceGroupName_2");
-    testResourceGroup.addResource("testResourceGroupName_3");
-    testResourceGroup.addResource("testResourceGroupName_5");
-    resourceGroupMap.put("testResourceGroupName", testResourceGroup);
+    Map<String, ResourceGroup> resourceGroupMap = getResourceGroupMap();
 
-    // setup liveInstances
-    int numLiveInstances = 5;
-    for (int i = 0; i < numLiveInstances; i++)
-    {
-      ZNRecord znRecord = new ZNRecord("localhost_" + i);
-      LiveInstance liveInstance = new LiveInstance(znRecord);
-      liveInstance.setSessionId("session_" + i);
-      accessor.setProperty(PropertyType.LIVEINSTANCES, znRecord, "localhost_"
-          + i);
-    }
+    setupLiveInstances(5);
 
     event.addAttribute(AttributeName.RESOURCE_GROUPS.toString(),
         resourceGroupMap);
@@ -120,4 +91,5 @@ public class TestCurrentStateComputationStage extends BaseStageTest
     Assert.assertEquals(currentState, "OFFLINE");
 
   }
+
 }

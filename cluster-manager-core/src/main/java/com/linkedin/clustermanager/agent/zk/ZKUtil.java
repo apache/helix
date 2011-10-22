@@ -62,31 +62,24 @@ public final class ZKUtil
   public static void dropChildren(ZkClient client, String parentPath,
 	  List<ZNRecord> list)
   {
-	 //TODO: check if parentPath exists
-	  
-	  if (list != null) {
-		  for (ZNRecord record : list)
-	      {
-	        dropChildren(client, parentPath, record);
-	      }
+	 //TODO: check if parentPath exists  
+	if (list != null) 
+	{
+	  for (ZNRecord record : list)
+	  {
+	    dropChildren(client, parentPath, record);
 	  }
+	}
   }
   
   public static void dropChildren(ZkClient client, String parentPath,
 	  ZNRecord nodeRecord) 
   {
-	  //TODO: check if parentPath exists
-	  
-	  String id = nodeRecord.getId();
-	  if (id != null)
-	  {
-		  String temp = parentPath + "/" + id;
-		  client.deleteRecursive(temp);
-	  } else
-	  {
-		  logger.warn("Not deleting under " + parentPath
-				  + " record data does not have id: ZNRecord:" + nodeRecord);
-	  }
+	//TODO: check if parentPath exists  
+	String id = nodeRecord.getId();
+	String temp = parentPath + "/" + id;
+    client.deleteRecursive(temp);
+	 
   }
   
   public static List<ZNRecord> getChildren(ZkClient client, String path)

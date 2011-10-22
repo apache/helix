@@ -58,9 +58,12 @@ public class TestZKUtil extends ZkUnitTestBase
     list = ZKUtil.getChildren(_zkClient, path);
     AssertJUnit.assertEquals(2, list.size());
     
+    ZKUtil.dropChildren(_zkClient, path, list);
     ZKUtil.dropChildren(_zkClient, path, new ZNRecord("id1"));
     list = ZKUtil.getChildren(_zkClient, path);
-    AssertJUnit.assertEquals(1, list.size());
+    AssertJUnit.assertEquals(0, list.size());
+    
+    ZKUtil.dropChildren(_zkClient, path, (List<ZNRecord>) null);
   }
   
   @Test(groups = { "unitTest" })
@@ -95,4 +98,13 @@ public class TestZKUtil extends ZkUnitTestBase
     String path = PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName, "id6");
     ZKUtil.createChildren(_zkClient, path, (List<ZNRecord>) null);
   }
+  
+  @Test(groups = { "unitTest" })
+  public void testCreateOrUpdate()
+  {
+    String path = PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName);
+    ZNRecord record = new ZNRecord("id7");
+    ZKUtil.createOrUpdate(_zkClient, path, record, true, true);
+  }
+  
 }

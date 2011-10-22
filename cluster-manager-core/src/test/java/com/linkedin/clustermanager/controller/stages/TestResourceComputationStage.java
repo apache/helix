@@ -8,8 +8,6 @@ import java.util.UUID;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import com.linkedin.clustermanager.ClusterManager;
-import com.linkedin.clustermanager.Mocks;
 import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.model.CurrentState;
@@ -64,29 +62,10 @@ public class TestResourceComputationStage extends BaseStageTest
 
   public void testMultipleResourceGroups() throws Exception
   {
-    int nodes = 5;
-    List<String> instances = new ArrayList<String>();
-    for (int i = 0; i < nodes; i++)
-    {
-      instances.add("localhost_" + i);
-    }
-    String[] resourceGroups = new String[]
-    { "testResourceGroup1", "testResourceGroup2" };
     List<IdealState> idealStates = new ArrayList<IdealState>();
-    for (int i = 0; i < resourceGroups.length; i++)
-    {
-      int partitions = 10;
-      int replicas = 1;
-      String resourceGroupName = resourceGroups[i];
-      ZNRecord record = IdealStateCalculatorForStorageNode
-          .calculateIdealState(instances, partitions, replicas,
-              resourceGroupName, "MASTER", "SLAVE");
-      IdealState idealState = new IdealState(record);
-      idealState.setStateModelDefRef("MasterSlave");
-      manager.getDataAccessor().setProperty(PropertyType.IDEALSTATES,
-          idealState.getRecord(), resourceGroupName);
-      idealStates.add(idealState);
-    }
+    String[] resourceGroups = new String[]
+        { "testResourceGroup1", "testResourceGroup2" };
+    setupIdealState(5, idealStates,resourceGroups);
     ResourceComputationStage stage = new ResourceComputationStage();
     runStage(event, stage);
 
@@ -107,6 +86,8 @@ public class TestResourceComputationStage extends BaseStageTest
           .getResourceKeys().size(), idealState.getNumPartitions());
     }
   }
+
+ 
 
   
 

@@ -9,12 +9,12 @@ public class ClusterEvent
 {
   private static final Logger logger = Logger.getLogger(ClusterEvent.class
       .getName());
-  private final String _name;
-  private Map<String, Object> _eventAttributeMap;
+  private final String _eventName;
+  private final Map<String, Object> _eventAttributeMap;
 
   public ClusterEvent(String name)
   {
-    _name = name;
+    _eventName = name;
     _eventAttributeMap = new HashMap<String, Object>();
   }
 
@@ -30,7 +30,7 @@ public class ClusterEvent
 
   public String getName()
   {
-    return _name;
+    return _eventName;
   }
 
   @SuppressWarnings("unchecked")
@@ -42,5 +42,15 @@ public class ClusterEvent
       return (T) ret;
     }
     return null;
+  }
+  @Override
+  public String toString()
+  {
+    StringBuilder sb = new StringBuilder();
+    sb.append("name:"+ _eventName).append("\n");
+    for(String key:_eventAttributeMap.keySet()){
+      sb.append(key).append(":").append(_eventAttributeMap.get(key)).append("\n");
+    }
+    return sb.toString();
   }
 }

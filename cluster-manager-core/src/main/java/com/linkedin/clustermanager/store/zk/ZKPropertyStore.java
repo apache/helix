@@ -128,13 +128,18 @@ implements PropertyStore<T>, IZkDataListener, IZkChildListener, IZkStateListener
         Stat stat = new Stat();
         T value = _zkClient.<T> readData(path, stat);
 
-        // cache it
-        _propertyCacheMap.put(path,
+        if (value == null)
+        {
+          _propertyCacheMap.remove(path);
+        } else
+        {
+          _propertyCacheMap.put(path,
             new PropertyInfo<T>(value, stat, stat.getVersion()));
+        }
       }
     } catch (ZkNoNodeException e)
     {
-      // This is OK
+      _propertyCacheMap.remove(path);
     }
   }
 
@@ -251,14 +256,9 @@ implements PropertyStore<T>, IZkDataListener, IZkChildListener, IZkStateListener
   {
     String path = getPath(key);
 
-    try
+    if (_zkClient.exists(path))
     {
       _zkClient.delete(path);
-    } catch (Exception e)
-    {
-      // System.err.println(e.getMessage());
-      LOG.warn(e.getMessage());
-      throw (new PropertyStoreException(e.getMessage()));
     }
     
     // update local cache immediately
@@ -603,6 +603,7 @@ implements PropertyStore<T>, IZkDataListener, IZkChildListener, IZkStateListener
   public void handleDataDeleted(String dataPath) throws Exception
   {
     LOG.info("update-cache: " + dataPath + ": data deleted");
+    updatePropertyCache(dataPath);
   }
 
   @Override

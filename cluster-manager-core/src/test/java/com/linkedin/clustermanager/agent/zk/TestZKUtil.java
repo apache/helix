@@ -102,9 +102,27 @@ public class TestZKUtil extends ZkUnitTestBase
   @Test(groups = { "unitTest" })
   public void testCreateOrUpdate()
   {
-    String path = PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName);
+    String path = PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName, "id7");
     ZNRecord record = new ZNRecord("id7");
     ZKUtil.createOrUpdate(_zkClient, path, record, true, true);
+    record = _zkClient.<ZNRecord>readData(path);
+    AssertJUnit.assertEquals("id7", record.getId());
   }
+  
+  @Test(groups = { "unitTest" })
+  public void testCreateOrReplace()
+  {
+    String path = PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName, "id8");
+    ZNRecord record = new ZNRecord("id8");
+    ZKUtil.createOrReplace(_zkClient, path, record, true);
+    record = _zkClient.<ZNRecord>readData(path);
+    AssertJUnit.assertEquals("id8", record.getId());
+    record = new ZNRecord("id9");
+    ZKUtil.createOrReplace(_zkClient, path, record, true);
+    record = _zkClient.<ZNRecord>readData(path);
+    AssertJUnit.assertEquals("id9", record.getId());
+    
+  }
+
   
 }

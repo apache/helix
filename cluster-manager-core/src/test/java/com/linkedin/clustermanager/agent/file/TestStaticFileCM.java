@@ -9,6 +9,7 @@ import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.ClusterView;
 import com.linkedin.clustermanager.InstanceType;
+import com.linkedin.clustermanager.agent.MockListener;
 import com.linkedin.clustermanager.agent.file.FileBasedClusterManager.DBParam;
 import com.linkedin.clustermanager.tools.ClusterViewSerializer;
 
@@ -45,6 +46,9 @@ public class TestStaticFileCM
     // byte[] bytes = ClusterViewSerializer.serialize(restoredView);
     // System.out.println(new String(bytes));
 
+    FileBasedClusterManager.verifyFileBasedClusterStates("localhost_8900",
+                                       configFile, configFile);
+    
     FileBasedClusterManager controller = new FileBasedClusterManager(clusterName, controllerName,
                                                      InstanceType.CONTROLLER, configFile);
     controller.disconnect();

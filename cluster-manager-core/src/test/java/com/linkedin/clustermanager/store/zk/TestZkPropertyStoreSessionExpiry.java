@@ -1,4 +1,4 @@
-package com.linkedin.clustermanager;
+package com.linkedin.clustermanager.store.zk;
 
 import java.util.Date;
 
@@ -7,6 +7,7 @@ import org.apache.log4j.Logger;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
+import com.linkedin.clustermanager.ZkUnitTestBase;
 import com.linkedin.clustermanager.store.PropertyChangeListener;
 import com.linkedin.clustermanager.store.PropertyJsonSerializer;
 import com.linkedin.clustermanager.store.zk.ZKPropertyStore;

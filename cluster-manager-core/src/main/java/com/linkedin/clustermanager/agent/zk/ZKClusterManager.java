@@ -295,6 +295,9 @@ public class ZKClusterManager implements ClusterManager
     }
 
     _zkClient.close();
+    
+    // HACK seems that zkClient is not sending DISCONNECT event
+    _zkStateChangeListener.disconnect();
     // System.out.println("Cluster manager: " + _instanceName +
     // " disconnected");
   }

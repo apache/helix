@@ -111,7 +111,7 @@ public class PerformanceHealthReportProvider extends HealthReportProvider {
 		}
 	}
 	
-	public void resetPartitionStats()
+	public void resetStats()
 	{
 		_partitionStatMaps.clear();
 	}

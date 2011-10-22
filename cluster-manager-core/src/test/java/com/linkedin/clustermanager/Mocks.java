@@ -394,6 +394,12 @@ public class Mocks
       return null;
     }
 
+	@Override
+	public void resetStats() {
+		// TODO Auto-generated method stub
+		
+	}
+
   }
   
   public static class MockClusterMessagingService implements ClusterMessagingService

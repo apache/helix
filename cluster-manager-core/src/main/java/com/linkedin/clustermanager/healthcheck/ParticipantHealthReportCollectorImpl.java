@@ -130,7 +130,7 @@ public class ParticipantHealthReportCollectorImpl implements
                 PropertyType.HEALTHREPORT, record, _instanceName,
                 record.getId());
             //reset stats (for now just the partition stats)
-            provider.resetPartitionStats();
+            provider.resetStats();
           } catch (Exception e)
           {
             _logger.error(e);

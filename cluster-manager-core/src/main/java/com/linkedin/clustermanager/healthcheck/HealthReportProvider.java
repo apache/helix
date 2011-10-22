@@ -14,10 +14,7 @@ public abstract class HealthReportProvider
 	return null;
   }
   
-  public void resetPartitionStats() 
-  {
-	  //default is do nothing
-  }
+  public abstract void resetStats(); 
   
   public String getReportName()
   {

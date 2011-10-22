@@ -7,21 +7,40 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
+import com.linkedin.clustermanager.Mocks.MockManager;
 import com.linkedin.clustermanager.healthcheck.PerformanceHealthReportProvider;
 
 public class TestPerformanceHealthReportProvider {
 	
-	 final String STAT_NAME = "Stat_123";
-	 final String PARTITION_NAME = "Partition_456";
-	 final String FAKE_STAT_NAME = "Stat_ABC";
-	 final String FAKE_PARTITION_NAME = "Partition_DEF";
-	 final String STORED_STAT = "789";
+	 protected static final String CLUSTER_NAME = "TestCluster";
+	 protected final String STAT_NAME = "Stat_123";
+	 protected final String PARTITION_NAME = "Partition_456";
+	 protected final String FAKE_STAT_NAME = "Stat_ABC";
+	 protected final String FAKE_PARTITION_NAME = "Partition_DEF";
+	 protected final String STORED_STAT = "789";
+	 protected final String INSTANCE_NAME = "instance:1";
 	
 	PerformanceHealthReportProvider _healthProvider;
+	MockManager _clusterManager;
 	
 	public void incrementPartitionStat() throws Exception
 	{
+		_clusterManager = new MockManager(CLUSTER_NAME);
 		_healthProvider.incrementPartitionStat(STAT_NAME, PARTITION_NAME);
+	}
+	
+	public void transmitReport() throws Exception
+	{
+		_clusterManager = new MockManager(CLUSTER_NAME);
+		 Map<String, Map<String, String>> partitionReport = _healthProvider
+	                .getRecentPartitionHealthReport();
+		 ZNRecord record = new ZNRecord(_healthProvider.getReportName());
+		 if (partitionReport != null) {
+         	record.setMapFields(partitionReport);
+         }
+		 _clusterManager.getDataAccessor().setProperty(
+	                PropertyType.HEALTHREPORT, record, INSTANCE_NAME,
+	                record.getId());
 	}
 	
 	@BeforeMethod (groups = {"unitTest"})
@@ -42,14 +61,18 @@ public class TestPerformanceHealthReportProvider {
 	 {
 		 //stat does not exist yet
 		 _healthProvider.incrementPartitionStat(STAT_NAME, PARTITION_NAME);
+		 transmitReport();
 		 //stat does exist
 		 _healthProvider.incrementPartitionStat(STAT_NAME, PARTITION_NAME);
+		 transmitReport();
 		 String retrievedStat = _healthProvider.getPartitionStat(STAT_NAME, PARTITION_NAME);
 		 AssertJUnit.assertEquals((double)2.0, Double.parseDouble(retrievedStat));
 		 
 		 //set to some other value
 		 _healthProvider.submitPartitionStat(STAT_NAME, PARTITION_NAME, STORED_STAT);
+		 transmitReport();
 		 _healthProvider.incrementPartitionStat(STAT_NAME, PARTITION_NAME);
+		 transmitReport();
 		 retrievedStat = _healthProvider.getPartitionStat(STAT_NAME, PARTITION_NAME);
 		 AssertJUnit.assertEquals(Double.parseDouble(retrievedStat), Double.parseDouble(STORED_STAT)+1);
 	 }
@@ -58,6 +81,7 @@ public class TestPerformanceHealthReportProvider {
 	 public void testSetGetPartitionStat() throws Exception
 	 {
 		 _healthProvider.submitPartitionStat(STAT_NAME, PARTITION_NAME, STORED_STAT);
+		 transmitReport();
 		 String retrievedStat = _healthProvider.getPartitionStat(STAT_NAME, PARTITION_NAME);
 		 //check on correct retrieval for real stat, real partition
 		 AssertJUnit.assertEquals(STORED_STAT, retrievedStat);
@@ -107,7 +131,8 @@ public class TestPerformanceHealthReportProvider {
 		 String retrievedStat = _healthProvider.getPartitionStat(STAT_NAME, PARTITION_NAME);
 		 AssertJUnit.assertEquals((double)1.0, Double.parseDouble(retrievedStat));
 		 //reset partition stats
-		 _healthProvider.resetPartitionStats();
+		 _healthProvider.resetStats();
+		 transmitReport();
 		 retrievedStat = _healthProvider.getPartitionStat(STAT_NAME, PARTITION_NAME);
 		 AssertJUnit.assertEquals(null, retrievedStat);
 	 }

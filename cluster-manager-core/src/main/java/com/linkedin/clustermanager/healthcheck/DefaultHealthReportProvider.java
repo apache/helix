@@ -56,4 +56,10 @@ class DefaultHealthReportProvider extends HealthReportProvider
     
     return result;
   }
+
+@Override
+public void resetStats() {
+	// TODO Auto-generated method stub
+	
+}
 }

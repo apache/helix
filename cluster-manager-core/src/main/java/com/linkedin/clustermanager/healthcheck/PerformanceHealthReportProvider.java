@@ -100,7 +100,8 @@ public class PerformanceHealthReportProvider extends HealthReportProvider {
 		setPartitionStat(statMap, partitionName, value);
 	}
 	
-	public String getPartitionStat(String statName, String partitionName) {
+	public String getPartitionStat(String statName, String partitionName) 
+	{
 		HashMap<String, String> statMap = getStatMap(statName, false);
 		if (statMap == null) {
 			return null;
@@ -108,6 +109,11 @@ public class PerformanceHealthReportProvider extends HealthReportProvider {
 		else {
 			return statMap.get(partitionName);
 		}
+	}
+	
+	public void resetPartitionStats()
+	{
+		_partitionStatMaps.clear();
 	}
 	
 	public String getReportName()

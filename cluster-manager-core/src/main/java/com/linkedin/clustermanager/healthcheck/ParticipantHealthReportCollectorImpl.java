@@ -119,7 +119,9 @@ public class ParticipantHealthReportCollectorImpl implements
             Map<String, Map<String, String>> partitionReport = provider
                 .getRecentPartitionHealthReport();
             ZNRecord record = new ZNRecord(provider.getReportName());
-            record.setSimpleFields(report);
+            if (report != null) {
+            	record.setSimpleFields(report);
+            }
             if (partitionReport != null) {
             	record.setMapFields(partitionReport);
             }
@@ -127,6 +129,8 @@ public class ParticipantHealthReportCollectorImpl implements
             _clusterManager.getDataAccessor().setProperty(
                 PropertyType.HEALTHREPORT, record, _instanceName,
                 record.getId());
+            //reset stats (for now just the partition stats)
+            provider.resetPartitionStats();
           } catch (Exception e)
           {
             _logger.error(e);

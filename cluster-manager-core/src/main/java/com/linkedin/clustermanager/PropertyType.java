@@ -19,7 +19,7 @@ public enum PropertyType
   CURRENTSTATES(Type.INSTANCE, true,true, false),
   STATUSUPDATES(Type.INSTANCE, true, true, false), 
   ERRORS(Type.INSTANCE, true, true), 
-  HEALTHREPORT(Type.INSTANCE, true, true,false), 
+  HEALTHREPORT(Type.INSTANCE, true, false,false), 
   //CONTROLLER PROPERTY
   LEADER(Type.CONTROLLER, false, false, true), 
   HISTORY(Type.CONTROLLER, true, true, true),

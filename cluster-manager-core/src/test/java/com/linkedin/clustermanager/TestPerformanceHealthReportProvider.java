@@ -19,6 +19,11 @@ public class TestPerformanceHealthReportProvider {
 	
 	PerformanceHealthReportProvider _healthProvider;
 	
+	public void incrementPartitionStat() throws Exception
+	{
+		_healthProvider.incrementPartitionStat(STAT_NAME, PARTITION_NAME);
+	}
+	
 	@BeforeMethod (groups = {"unitTest"})
 	public void setup()
 	{
@@ -92,6 +97,19 @@ public class TestPerformanceHealthReportProvider {
 		 //check stored val
 		 String statVal = statMap.get(PARTITION_NAME);
 		 AssertJUnit.assertEquals(statVal, STORED_STAT);
+	 }
+	 
+	 @Test (groups = {"unitTest"})
+	 public void testPartitionStatReset() throws Exception
+	 {
+		 incrementPartitionStat();
+		 //ensure stat appears
+		 String retrievedStat = _healthProvider.getPartitionStat(STAT_NAME, PARTITION_NAME);
+		 AssertJUnit.assertEquals((double)1.0, Double.parseDouble(retrievedStat));
+		 //reset partition stats
+		 _healthProvider.resetPartitionStats();
+		 retrievedStat = _healthProvider.getPartitionStat(STAT_NAME, PARTITION_NAME);
+		 AssertJUnit.assertEquals(null, retrievedStat);
 	 }
 	 
 	 @Test (groups = {"unitTest"})

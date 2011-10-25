@@ -1,5 +1,7 @@
 package com.linkedin.clustermanager.controller.stages;
 
+import org.testng.annotations.Test;
+import org.testng.AssertJUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +18,7 @@ import com.linkedin.clustermanager.model.ResourceKey;
 public class TestBestPossibleStateCalcStage extends BaseStageTest
 {
 
+  @Test
   public void testSimple()
   {
 
@@ -51,7 +54,7 @@ public class TestBestPossibleStateCalcStage extends BaseStageTest
     for (int p = 0; p < 5; p++)
     {
       ResourceKey resource = new ResourceKey("testResourceGroupName_" + p);
-      Assert.assertEquals(
+      AssertJUnit.assertEquals(
           "MASTER",
           output.getInstanceStateMap("testResourceGroupName", resource).get(
               "localhost_" + (p + 1) % 5));

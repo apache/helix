@@ -1,5 +1,7 @@
 package com.linkedin.clustermanager;
 
+import org.testng.annotations.Test;
+import org.testng.AssertJUnit;
 import java.io.FileFilter;
 
 import org.testng.Assert;
@@ -25,29 +27,29 @@ public class TestHierarchicalDataStore extends ZkUnitTestBase
     HierarchicalDataHolder<ZNRecord> dataHolder = new HierarchicalDataHolder<ZNRecord>(
         _zkClientString, path, filter);
     dataHolder.print();
-    Assert.assertFalse(dataHolder.refreshData());
+    AssertJUnit.assertFalse(dataHolder.refreshData());
 
     // write data
     add(path, "root data");
-    Assert.assertTrue(dataHolder.refreshData());
+    AssertJUnit.assertTrue(dataHolder.refreshData());
     dataHolder.print();
 
     // add some children
     add(path + "/child1", "child 1 data");
     add(path + "/child2", "child 2 data");
-    Assert.assertTrue(dataHolder.refreshData());
+    AssertJUnit.assertTrue(dataHolder.refreshData());
     dataHolder.print();
 
     // add some grandchildren
     add(path + "/child1" + "/grandchild1", "grand child 1 data");
     add(path + "/child1" + "/grandchild2", "grand child 2 data");
-    Assert.assertTrue(dataHolder.refreshData());
+    AssertJUnit.assertTrue(dataHolder.refreshData());
     dataHolder.print();
     
-    Assert.assertFalse(dataHolder.refreshData());
+    AssertJUnit.assertFalse(dataHolder.refreshData());
     
     set(path + "/child1", "new child 1 data");
-    Assert.assertTrue(dataHolder.refreshData());
+    AssertJUnit.assertTrue(dataHolder.refreshData());
     dataHolder.print();
   }
 

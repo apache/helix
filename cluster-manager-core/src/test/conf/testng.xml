@@ -1,30 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
-<suite name="ZkIntegrationTestSuite" parallel="tests" thread-count="10">
-  <test name="ZkIntegrationTest" preserve-order="false">
-    <classes>
-      <class name="com.linkedin.clustermanager.integration.IntegrationTest"/>
-      <class name="com.linkedin.clustermanager.integration.TestCMUsingDifferentParams"/>
-      <class name="com.linkedin.clustermanager.integration.TestDistClusterController"/>
-      <class name="com.linkedin.clustermanager.integration.TestDistCMMain"/>
-      <class name="com.linkedin.clustermanager.integration.TestDropResource"/>      
-      <class name="com.linkedin.clustermanager.integration.TestMessagingService"/>
-	    <class name="com.linkedin.clustermanager.integration.TestParticipantNameCollision"/>
-      <class name="com.linkedin.clustermanager.integration.TestStandAloneCMMain"/>
-      <class name="com.linkedin.clustermanager.integration.TestStandAloneCMSessionExpiry"/>
-    </classes>
-  </test>
-</suite>
-<suite name="ZkUnitTestSuite" parallel="tests" thread-count="10">
-  <test name="ZkUnitTest" preserve-order="false">
-    <classes>
-      <class name="com.linkedin.clustermanager.TestHierarchicalDataStore"/>
-      <class name="com.linkedin.clustermanager.TestZkClientWrapper"/>
-      <class name="com.linkedin.clustermanager.TestZkConnectionCount"/>
-      <class name="com.linkedin.clustermanager.TestZKPropertyStore"/>
-      <class name="com.linkedin.clustermanager.TestZkPropertyStoreSessionExpiry"/>
-      <class name="com.linkedin.clustermanager.TestZnodeModify"/>
-      <class name="com.linkedin.clustermanager.TestZKCallback"/>
-    </classes>
+<suite name="Suite" parallel="none">
+  <test name="Test" preserve-order="false">
+    <packages>
+      <package name="com.linkedin.clustermanager.messaging.handling"/>
+      <package name="com.linkedin.clustermanager.agent.file"/>
+      <package name="com.linkedin.clustermanager.monitoring"/>
+      <package name="com.linkedin.clustermanager.store.zk"/>
+      <package name="com.linkedin.clustermanager"/>
+      <package name="com.linkedin.clustermanager.monitoring.mbeans"/>
+      <package name="com.linkedin.clustermanager.integration"/>
+      <package name="com.linkedin.clustermanager.store"/>
+      <package name="com.linkedin.clustermanager.agent.zk"/>
+      <package name="com.linkedin.clustermanager.messaging"/>
+      <package name="com.linkedin.clustermanager.controller.stages"/>
+      <package name="com.linkedin.clustermanager.store.file"/>
+      <package name="com.linkedin.clustermanager.participant"/>
+    </packages>
   </test>
 </suite>

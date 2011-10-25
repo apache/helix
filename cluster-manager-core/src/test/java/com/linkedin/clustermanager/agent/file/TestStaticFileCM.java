@@ -1,5 +1,7 @@
 package com.linkedin.clustermanager.agent.file;
 
+import org.testng.annotations.Test;
+import org.testng.AssertJUnit;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,7 +37,7 @@ public class TestStaticFileCM
     {
       exceptionCaught = true;
     }
-    Assert.assertTrue(exceptionCaught);
+    AssertJUnit.assertTrue(exceptionCaught);
     String[] nodesInfo = {"localhost:8900", "localhost:8901", "localhost:8902"};
     view = FileBasedClusterManager.generateStaticConfigClusterView(nodesInfo, dbParams, 2);
     
@@ -52,30 +54,30 @@ public class TestStaticFileCM
     FileBasedClusterManager controller = new FileBasedClusterManager(clusterName, controllerName,
                                                      InstanceType.CONTROLLER, configFile);
     controller.disconnect();
-    Assert.assertFalse(controller.isConnected());
+    AssertJUnit.assertFalse(controller.isConnected());
     controller.connect();
-    Assert.assertTrue(controller.isConnected());
+    AssertJUnit.assertTrue(controller.isConnected());
     
     String sessionId = controller.getSessionId();
-    Assert.assertEquals(DynamicFileClusterManager._sessionId, sessionId);
-    Assert.assertEquals(clusterName, controller.getClusterName());
-    Assert.assertEquals(0, controller.getLastNotificationTime());
-    Assert.assertEquals(InstanceType.CONTROLLER, controller.getInstanceType());
-    Assert.assertNull(controller.getPropertyStore());
-    Assert.assertNull(controller.getHealthReportCollector());
-    Assert.assertEquals(controllerName, controller.getInstanceName());
-    Assert.assertNull(controller.getClusterManagmentTool());
-    Assert.assertNull(controller.getMessagingService());
+    AssertJUnit.assertEquals(DynamicFileClusterManager._sessionId, sessionId);
+    AssertJUnit.assertEquals(clusterName, controller.getClusterName());
+    AssertJUnit.assertEquals(0, controller.getLastNotificationTime());
+    AssertJUnit.assertEquals(InstanceType.CONTROLLER, controller.getInstanceType());
+    AssertJUnit.assertNull(controller.getPropertyStore());
+    AssertJUnit.assertNull(controller.getHealthReportCollector());
+    AssertJUnit.assertEquals(controllerName, controller.getInstanceName());
+    AssertJUnit.assertNull(controller.getClusterManagmentTool());
+    AssertJUnit.assertNull(controller.getMessagingService());
     
     MockListener controllerListener = new MockListener();
-    Assert.assertFalse(controller.removeListener(controllerListener));
+    AssertJUnit.assertFalse(controller.removeListener(controllerListener));
     controllerListener.reset();
     
     controller.addIdealStateChangeListener(controllerListener);
-    Assert.assertTrue(controllerListener.isIdealStateChangeListenerInvoked);
+    AssertJUnit.assertTrue(controllerListener.isIdealStateChangeListenerInvoked);
 
     controller.addMessageListener(controllerListener, "localhost_8900");
-    Assert.assertTrue(controllerListener.isMessageListenerInvoked);
+    AssertJUnit.assertTrue(controllerListener.isMessageListenerInvoked);
     
     exceptionCaught = false;
     try
@@ -85,7 +87,7 @@ public class TestStaticFileCM
     {
       exceptionCaught = true;
     }
-    Assert.assertTrue(exceptionCaught);
+    AssertJUnit.assertTrue(exceptionCaught);
 
     exceptionCaught = false;
     try
@@ -95,7 +97,7 @@ public class TestStaticFileCM
     {
       exceptionCaught = true;
     }
-    Assert.assertTrue(exceptionCaught);
+    AssertJUnit.assertTrue(exceptionCaught);
 
     exceptionCaught = false;
     try
@@ -105,7 +107,7 @@ public class TestStaticFileCM
     {
       exceptionCaught = true;
     }
-    Assert.assertTrue(exceptionCaught);
+    AssertJUnit.assertTrue(exceptionCaught);
 
     exceptionCaught = false;
     try
@@ -115,7 +117,7 @@ public class TestStaticFileCM
     {
       exceptionCaught = true;
     }
-    Assert.assertTrue(exceptionCaught);
+    AssertJUnit.assertTrue(exceptionCaught);
     
     exceptionCaught = false;
     try
@@ -125,7 +127,7 @@ public class TestStaticFileCM
     {
       exceptionCaught = true;
     }
-    Assert.assertTrue(exceptionCaught);
+    AssertJUnit.assertTrue(exceptionCaught);
 
   }
 

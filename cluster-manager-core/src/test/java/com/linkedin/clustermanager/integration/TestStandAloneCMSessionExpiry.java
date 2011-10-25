@@ -1,5 +1,6 @@
 package com.linkedin.clustermanager.integration;
 
+import org.testng.annotations.Test;
 import java.io.IOException;
 import java.util.Date;
 

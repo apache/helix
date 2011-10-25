@@ -1,5 +1,7 @@
 package com.linkedin.clustermanager.participant;
 
+import org.testng.annotations.Test;
+import org.testng.AssertJUnit;
 import java.util.Date;
 
 import org.apache.log4j.Logger;

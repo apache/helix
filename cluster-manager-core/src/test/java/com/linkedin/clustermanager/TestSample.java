@@ -1,5 +1,6 @@
 package com.linkedin.clustermanager;
 
+import org.testng.annotations.Test;
 import org.apache.zookeeper.Watcher.Event.EventType;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;

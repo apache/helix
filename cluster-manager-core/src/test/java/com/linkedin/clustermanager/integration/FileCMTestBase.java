@@ -1,5 +1,9 @@
 package com.linkedin.clustermanager.integration;
 
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.Test;
+import org.testng.annotations.BeforeClass;
+import org.testng.AssertJUnit;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -124,7 +128,7 @@ public class FileCMTestBase
           "localhost_" + (START_PORT + i), _manager.getSessionId(), TEST_DB);
       boolean result = verifyCurStateAndIdealState(curStates, idealStates,
           "localhost_" + (START_PORT + i), TEST_DB);
-      Assert.assertTrue(result);
+      AssertJUnit.assertTrue(result);
     }
 
   }
@@ -226,6 +230,7 @@ public class FileCMTestBase
   }
 
   // @Test
+  @Test
   public void testFileClusterManagerHandler()
   {
     logger.info("Dummy run at " + new Date(System.currentTimeMillis()));

@@ -1,5 +1,7 @@
 package com.linkedin.clustermanager.messaging.handling;
 
+import org.testng.annotations.Test;
+import org.testng.AssertJUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -176,15 +178,15 @@ public class TestCMTaskExecutor
     
     Thread.sleep(1000);
     
-    Assert.assertTrue(factory._processedMsgIds.size() == nMsgs1);
-    Assert.assertTrue(factory2._processedMsgIds.size() == nMsgs2);
-    Assert.assertTrue(factory._handlersCreated == nMsgs1);
-    Assert.assertTrue(factory2._handlersCreated == nMsgs2);
+    AssertJUnit.assertTrue(factory._processedMsgIds.size() == nMsgs1);
+    AssertJUnit.assertTrue(factory2._processedMsgIds.size() == nMsgs2);
+    AssertJUnit.assertTrue(factory._handlersCreated == nMsgs1);
+    AssertJUnit.assertTrue(factory2._handlersCreated == nMsgs2);
     
     for(ZNRecord record : msgList)
     {
-      Assert.assertTrue(factory._processedMsgIds.containsKey(record.getId()) || factory2._processedMsgIds.containsKey(record.getId()));
-      Assert.assertFalse(factory._processedMsgIds.containsKey(record.getId()) && factory2._processedMsgIds.containsKey(record.getId()));
+      AssertJUnit.assertTrue(factory._processedMsgIds.containsKey(record.getId()) || factory2._processedMsgIds.containsKey(record.getId()));
+      AssertJUnit.assertFalse(factory._processedMsgIds.containsKey(record.getId()) && factory2._processedMsgIds.containsKey(record.getId()));
       
     }
   }
@@ -227,17 +229,17 @@ public class TestCMTaskExecutor
     
     Thread.sleep(1000);
     
-    Assert.assertTrue(factory._processedMsgIds.size() == nMsgs1);
-    Assert.assertTrue(factory2._processedMsgIds.size() == 0);
-    Assert.assertTrue(factory._handlersCreated == nMsgs1);
-    Assert.assertTrue(factory2._handlersCreated == 0);
+    AssertJUnit.assertTrue(factory._processedMsgIds.size() == nMsgs1);
+    AssertJUnit.assertTrue(factory2._processedMsgIds.size() == 0);
+    AssertJUnit.assertTrue(factory._handlersCreated == nMsgs1);
+    AssertJUnit.assertTrue(factory2._handlersCreated == 0);
     
     for(ZNRecord record : msgList)
     {
       Message message = new Message(record);
       if(message.getMsgType().equalsIgnoreCase(factory.getMessageType()))
       {
-        Assert.assertTrue(factory._processedMsgIds.containsKey(record.getId()));
+        AssertJUnit.assertTrue(factory._processedMsgIds.containsKey(record.getId()));
       }
     }
   }
@@ -280,17 +282,17 @@ public class TestCMTaskExecutor
     
     Thread.sleep(1000);
     
-    Assert.assertTrue(factory._processedMsgIds.size() == nMsgs1);
-    Assert.assertTrue(factory2._processedMsgIds.size() == 0);
-    Assert.assertTrue(factory._handlersCreated == nMsgs1);
-    Assert.assertTrue(factory2._handlersCreated == 0);
+    AssertJUnit.assertTrue(factory._processedMsgIds.size() == nMsgs1);
+    AssertJUnit.assertTrue(factory2._processedMsgIds.size() == 0);
+    AssertJUnit.assertTrue(factory._handlersCreated == nMsgs1);
+    AssertJUnit.assertTrue(factory2._handlersCreated == 0);
     
     for(ZNRecord record : msgList)
     {
       Message message = new Message(record);
       if(message.getMsgType().equalsIgnoreCase(factory.getMessageType()))
       {
-        Assert.assertTrue(factory._processedMsgIds.containsKey(record.getId()));
+        AssertJUnit.assertTrue(factory._processedMsgIds.containsKey(record.getId()));
       }
     }
   }
@@ -337,17 +339,17 @@ public class TestCMTaskExecutor
     }
     Thread.sleep(1500);
     
-    Assert.assertTrue(factory._processedMsgIds.size() == nMsgs1);
-    Assert.assertTrue(factory._handlersCreated == nMsgs1 + nMsgs2);
+    AssertJUnit.assertTrue(factory._processedMsgIds.size() == nMsgs1);
+    AssertJUnit.assertTrue(factory._handlersCreated == nMsgs1 + nMsgs2);
 
-    Assert.assertTrue(factory._processingMsgIds.size() == nMsgs1 + nMsgs2);
+    AssertJUnit.assertTrue(factory._processingMsgIds.size() == nMsgs1 + nMsgs2);
     
     for(ZNRecord record : msgList)
     {
       Message message = new Message(record);
       if(message.getMsgType().equalsIgnoreCase(factory.getMessageType()))
       {
-        Assert.assertTrue(factory._processingMsgIds.containsKey(record.getId()));
+        AssertJUnit.assertTrue(factory._processingMsgIds.containsKey(record.getId()));
       }
     }
   }

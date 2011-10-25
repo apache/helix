@@ -1,5 +1,6 @@
 package com.linkedin.clustermanager.agent.zk;
 
+import org.testng.annotations.Test;
 import org.I0Itec.zkclient.exception.ZkInterruptedException;
 import org.testng.annotations.Test;
 

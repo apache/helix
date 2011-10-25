@@ -180,6 +180,7 @@ public class TestHelper
   {
     public Thread _thread;
     public ClusterManager _manager;
+    
   }
 
   static class DummyProcessThread implements Runnable

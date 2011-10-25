@@ -1,5 +1,7 @@
 package com.linkedin.clustermanager.integration;
 
+import org.testng.annotations.Test;
+import org.testng.AssertJUnit;
 import java.util.Date;
 
 import org.apache.log4j.Logger;
@@ -29,7 +31,7 @@ public class TestDynamicFileClusterManager extends FileCMTestBase
     ZNRecord curStates =  _accessor.getProperty( PropertyType.CURRENTSTATES, "localhost_12918",
                                               _manager.getSessionId(), "MyDB");
     boolean result = verifyCurStateAndIdealState(curStates, idealStates, "localhost_12918", "MyDB");
-    Assert.assertTrue(result);
+    AssertJUnit.assertTrue(result);
     
     /*
     // drop db

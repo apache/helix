@@ -1,5 +1,8 @@
 package com.linkedin.clustermanager;
 
+import org.testng.annotations.Test;
+import org.testng.annotations.BeforeClass;
+import org.testng.AssertJUnit;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -114,7 +117,7 @@ public class TestZnodeModify extends ZkUnitTestBase
     Map<String, Boolean> results = TestExecutor.executeTest(commandList, ZK_ADDR);
     
     boolean result = results.remove(command1.toString()).booleanValue();
-    Assert.assertFalse(result);
+    AssertJUnit.assertFalse(result);
     for (Map.Entry<String, Boolean> entry : results.entrySet())
     {
       Assert.assertTrue(entry.getValue());

@@ -1,5 +1,7 @@
 package com.linkedin.clustermanager.monitoring;
 
+import org.testng.annotations.Test;
+import org.testng.AssertJUnit;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -15,21 +17,21 @@ public class TestStatCollector
     {
       collector.addData(i*1000);
     }
-    Assert.assertEquals(collector.getNumDataPoints(), nPoints);
-    Assert.assertEquals((long)collector.getMax(), 99000);
-    Assert.assertEquals((long)collector.getTotalSum(), 4950000);
-    Assert.assertEquals((long)collector.getPercentile(40), 39400);
-    Assert.assertEquals((long)collector.getMean(), 49500);
-    Assert.assertEquals((long)collector.getMin(), 0);
+    AssertJUnit.assertEquals(collector.getNumDataPoints(), nPoints);
+    AssertJUnit.assertEquals((long)collector.getMax(), 99000);
+    AssertJUnit.assertEquals((long)collector.getTotalSum(), 4950000);
+    AssertJUnit.assertEquals((long)collector.getPercentile(40), 39400);
+    AssertJUnit.assertEquals((long)collector.getMean(), 49500);
+    AssertJUnit.assertEquals((long)collector.getMin(), 0);
     
     collector.reset();
     
-    Assert.assertEquals(collector.getNumDataPoints(), 0);
-    Assert.assertEquals((long)collector.getMax(), 0);
-    Assert.assertEquals((long)collector.getTotalSum(), 0);
-    Assert.assertEquals((long)collector.getPercentile(40), 0);
-    Assert.assertEquals((long)collector.getMean(), 0);
-    Assert.assertEquals((long)collector.getMin(), 0);
+    AssertJUnit.assertEquals(collector.getNumDataPoints(), 0);
+    AssertJUnit.assertEquals((long)collector.getMax(), 0);
+    AssertJUnit.assertEquals((long)collector.getTotalSum(), 0);
+    AssertJUnit.assertEquals((long)collector.getPercentile(40), 0);
+    AssertJUnit.assertEquals((long)collector.getMean(), 0);
+    AssertJUnit.assertEquals((long)collector.getMin(), 0);
     
   }
 }

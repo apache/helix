@@ -1,5 +1,7 @@
 package com.linkedin.clustermanager.agent.file;
 
+import org.testng.annotations.Test;
+import org.testng.AssertJUnit;
 import java.util.List;
 
 import org.testng.Assert;
@@ -46,32 +48,32 @@ public class TestDynamicFileCM
     DynamicFileClusterManager participant = new DynamicFileClusterManager(clusterName, instanceName,
                                     InstanceType.PARTICIPANT, accessor);
 
-    Assert.assertEquals(instanceName, participant.getInstanceName());
+    AssertJUnit.assertEquals(instanceName, participant.getInstanceName());
     
     controller.disconnect();
-    Assert.assertFalse(controller.isConnected());
+    AssertJUnit.assertFalse(controller.isConnected());
     controller.connect();
-    Assert.assertTrue(controller.isConnected());
+    AssertJUnit.assertTrue(controller.isConnected());
     
     String sessionId = controller.getSessionId();
-    Assert.assertEquals(DynamicFileClusterManager._sessionId, sessionId);
-    Assert.assertEquals(clusterName, controller.getClusterName());
-    Assert.assertEquals(0, controller.getLastNotificationTime());
-    Assert.assertEquals(InstanceType.CONTROLLER, controller.getInstanceType());
-    Assert.assertNull(controller.getPropertyStore());
-    Assert.assertNull(controller.getHealthReportCollector());
+    AssertJUnit.assertEquals(DynamicFileClusterManager._sessionId, sessionId);
+    AssertJUnit.assertEquals(clusterName, controller.getClusterName());
+    AssertJUnit.assertEquals(0, controller.getLastNotificationTime());
+    AssertJUnit.assertEquals(InstanceType.CONTROLLER, controller.getInstanceType());
+    AssertJUnit.assertNull(controller.getPropertyStore());
+    AssertJUnit.assertNull(controller.getHealthReportCollector());
     
     MockListener controllerListener = new MockListener();
     controllerListener.reset();
     
     controller.addIdealStateChangeListener(controllerListener);
-    Assert.assertTrue(controllerListener.isIdealStateChangeListenerInvoked);
+    AssertJUnit.assertTrue(controllerListener.isIdealStateChangeListenerInvoked);
     
     controller.addLiveInstanceChangeListener(controllerListener);
-    Assert.assertTrue(controllerListener.isLiveInstanceChangeListenerInvoked);
+    AssertJUnit.assertTrue(controllerListener.isLiveInstanceChangeListenerInvoked);
     
     controller.addCurrentStateChangeListener(controllerListener, controllerName, sessionId);
-    Assert.assertTrue(controllerListener.isCurrentStateChangeListenerInvoked);
+    AssertJUnit.assertTrue(controllerListener.isCurrentStateChangeListenerInvoked);
     
     boolean exceptionCaught = false;
     try
@@ -81,7 +83,7 @@ public class TestDynamicFileCM
     {
       exceptionCaught = true;
     }
-    Assert.assertTrue(exceptionCaught);
+    AssertJUnit.assertTrue(exceptionCaught);
     
     exceptionCaught = false;
     try
@@ -91,7 +93,7 @@ public class TestDynamicFileCM
     {
       exceptionCaught = true;
     }
-    Assert.assertTrue(exceptionCaught);
+    AssertJUnit.assertTrue(exceptionCaught);
     
     exceptionCaught = false;
     try
@@ -101,9 +103,9 @@ public class TestDynamicFileCM
     {
       exceptionCaught = true;
     }
-    Assert.assertTrue(exceptionCaught);
+    AssertJUnit.assertTrue(exceptionCaught);
     
-    Assert.assertFalse(controller.removeListener(controllerListener));
+    AssertJUnit.assertFalse(controller.removeListener(controllerListener));
     
     exceptionCaught = false;
     try
@@ -113,7 +115,7 @@ public class TestDynamicFileCM
     {
       exceptionCaught = true;
     }
-    Assert.assertTrue(exceptionCaught);
+    AssertJUnit.assertTrue(exceptionCaught);
     
     // test message service
     ClusterMessagingService msgService = controller.getMessagingService();
@@ -129,7 +131,7 @@ public class TestDynamicFileCM
     {
       exceptionCaught = true;
     }
-    Assert.assertTrue(exceptionCaught);
+    AssertJUnit.assertTrue(exceptionCaught);
     
     exceptionCaught = false;
     try
@@ -139,7 +141,7 @@ public class TestDynamicFileCM
     {
       exceptionCaught = true;
     }
-    Assert.assertTrue(exceptionCaught);
+    AssertJUnit.assertTrue(exceptionCaught);
 
     exceptionCaught = false;
     try
@@ -150,7 +152,7 @@ public class TestDynamicFileCM
     {
       exceptionCaught = true;
     }
-    Assert.assertTrue(exceptionCaught);
+    AssertJUnit.assertTrue(exceptionCaught);
 
     exceptionCaught = false;
     try
@@ -160,7 +162,7 @@ public class TestDynamicFileCM
     {
       exceptionCaught = true;
     }
-    Assert.assertTrue(exceptionCaught);
+    AssertJUnit.assertTrue(exceptionCaught);
 
     exceptionCaught = false;
     try
@@ -170,7 +172,7 @@ public class TestDynamicFileCM
     {
       exceptionCaught = true;
     }
-    Assert.assertTrue(exceptionCaught);
+    AssertJUnit.assertTrue(exceptionCaught);
     
     exceptionCaught = false;
     try
@@ -180,7 +182,7 @@ public class TestDynamicFileCM
     {
       exceptionCaught = true;
     }
-    Assert.assertTrue(exceptionCaught);
+    AssertJUnit.assertTrue(exceptionCaught);
 
     exceptionCaught = false;
     try
@@ -190,7 +192,7 @@ public class TestDynamicFileCM
     {
       exceptionCaught = true;
     }
-    Assert.assertTrue(exceptionCaught);
+    AssertJUnit.assertTrue(exceptionCaught);
     
     exceptionCaught = false;
     try
@@ -200,20 +202,20 @@ public class TestDynamicFileCM
     {
       exceptionCaught = true;
     }
-    Assert.assertTrue(exceptionCaught);
+    AssertJUnit.assertTrue(exceptionCaught);
     
     tool.addCluster(clusterName, true);
     tool.addResourceGroup(clusterName, "resourceGroup", 10, "MasterSlave");
     ZNRecord nodeConfig = new ZNRecord("nodeConfig");
     tool.addInstance(clusterName, nodeConfig);
     List<String> instances = tool.getInstancesInCluster(clusterName);
-    Assert.assertEquals(1, instances.size());
+    AssertJUnit.assertEquals(1, instances.size());
     tool.dropInstance(clusterName, nodeConfig);
     
     ZNRecord isRecord = new ZNRecord("idealState");
     tool.setResourceGroupIdealState(clusterName, "resourceGroup", isRecord);
     isRecord = tool.getResourceGroupIdealState(clusterName, "resourceGroup");
-    Assert.assertEquals(isRecord.getId(), "idealState");
+    AssertJUnit.assertEquals(isRecord.getId(), "idealState");
    
     tool.dropResourceGroup(clusterName, "resourceGroup");
     store.stop();

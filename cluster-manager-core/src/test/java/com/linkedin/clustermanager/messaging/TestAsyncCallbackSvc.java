@@ -1,5 +1,7 @@
 package com.linkedin.clustermanager.messaging;
 
+import org.testng.annotations.Test;
+import org.testng.AssertJUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -64,7 +66,7 @@ public class TestAsyncCallbackSvc
     }
     catch(ClusterManagerException e)
     {
-      Assert.assertTrue(e.getMessage().indexOf(msg.getMsgId())!= -1);
+      AssertJUnit.assertTrue(e.getMessage().indexOf(msg.getMsgId())!= -1);
     }
     Message msg2 = new Message("RandomType", UUID.randomUUID().toString());
     msg2.setTgtSessionId(manager.getSessionId());
@@ -74,7 +76,7 @@ public class TestAsyncCallbackSvc
     }
     catch(ClusterManagerException e)
     {
-      Assert.assertTrue(e.getMessage().indexOf(msg2.getMsgId())!= -1);
+      AssertJUnit.assertTrue(e.getMessage().indexOf(msg2.getMsgId())!= -1);
     }
     Message msg3 = new Message(svc.getMessageType(), UUID.randomUUID().toString());
     msg3.setTgtSessionId(manager.getSessionId());
@@ -85,7 +87,7 @@ public class TestAsyncCallbackSvc
     }
     catch(ClusterManagerException e)
     {
-      Assert.assertTrue(e.getMessage().indexOf(msg3.getMsgId())!= -1);
+      AssertJUnit.assertTrue(e.getMessage().indexOf(msg3.getMsgId())!= -1);
     }
     
     TestAsyncCallback callback = new TestAsyncCallback();
@@ -105,7 +107,7 @@ public class TestAsyncCallbackSvc
     Map<String, String> resultMap = new HashMap<String, String>();
     aHandler.handleMessage(msg, changeContext, resultMap);
     
-    Assert.assertTrue(callback.isDone());
-    Assert.assertTrue(callback._repliedMessageId.contains(msg.getMsgId()));
+    AssertJUnit.assertTrue(callback.isDone());
+    AssertJUnit.assertTrue(callback._repliedMessageId.contains(msg.getMsgId()));
   }
 }

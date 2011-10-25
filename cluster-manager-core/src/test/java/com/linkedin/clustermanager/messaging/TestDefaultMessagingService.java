@@ -1,5 +1,7 @@
 package com.linkedin.clustermanager.messaging;
 
+import org.testng.annotations.Test;
+import org.testng.AssertJUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -146,35 +148,35 @@ public class TestDefaultMessagingService
     recipientCriteria.setSelfExcluded(true);
     
     Message template = new Message(factory.getMessageType(), UUID.randomUUID().toString());
-    Assert.assertEquals(0, svc.send(recipientCriteria, template));
+    AssertJUnit.assertEquals(0, svc.send(recipientCriteria, template));
     
     recipientCriteria.setSelfExcluded(false);
-    Assert.assertEquals(1, svc.send(recipientCriteria, template));
+    AssertJUnit.assertEquals(1, svc.send(recipientCriteria, template));
     
     
     recipientCriteria.setSelfExcluded(false);
     recipientCriteria.setInstanceName("*");
     recipientCriteria.setResourceGroup("DB");
     recipientCriteria.setResourceKey("*");
-    Assert.assertEquals(200, svc.send(recipientCriteria, template));
+    AssertJUnit.assertEquals(200, svc.send(recipientCriteria, template));
     
     recipientCriteria.setSelfExcluded(true);
     recipientCriteria.setInstanceName("*");
     recipientCriteria.setResourceGroup("DB");
     recipientCriteria.setResourceKey("*");
-    Assert.assertEquals(159, svc.send(recipientCriteria, template));
+    AssertJUnit.assertEquals(159, svc.send(recipientCriteria, template));
     
     recipientCriteria.setSelfExcluded(true);
     recipientCriteria.setInstanceName("*");
     recipientCriteria.setResourceGroup("DB");
     recipientCriteria.setResourceKey("*");
-    Assert.assertEquals(159, svc.send(recipientCriteria, template));
+    AssertJUnit.assertEquals(159, svc.send(recipientCriteria, template));
     
     recipientCriteria.setSelfExcluded(true);
     recipientCriteria.setInstanceName("localhost_12920");
     recipientCriteria.setResourceGroup("DB");
     recipientCriteria.setResourceKey("*");
-    Assert.assertEquals(39, svc.send(recipientCriteria, template));
+    AssertJUnit.assertEquals(39, svc.send(recipientCriteria, template));
     
     
     recipientCriteria.setSelfExcluded(true);
@@ -182,6 +184,6 @@ public class TestDefaultMessagingService
     recipientCriteria.setRecipientInstanceType(InstanceType.CONTROLLER);
     recipientCriteria.setResourceGroup("DB");
     recipientCriteria.setResourceKey("*");
-    Assert.assertEquals(1, svc.send(recipientCriteria, template));
+    AssertJUnit.assertEquals(1, svc.send(recipientCriteria, template));
   }
 }

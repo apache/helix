@@ -1,5 +1,7 @@
 package com.linkedin.clustermanager.store.file;
 
+import org.testng.annotations.Test;
+import org.testng.AssertJUnit;
 import java.util.Date;
 import java.util.List;
 
@@ -66,16 +68,16 @@ public class TestFilePropertyStore
 
     // test get-names
     List<String> names = store.getPropertyNames("/child1");
-    Assert.assertEquals(names.size(), 3);
-    Assert.assertTrue(names.contains("/child1/grandchild1"));
-    Assert.assertTrue(names.contains("/child1/grandchild2"));
-    Assert.assertTrue(names.contains("/child1/grandchild3/grandgrandchild1"));
+    AssertJUnit.assertEquals(names.size(), 3);
+    AssertJUnit.assertTrue(names.contains("/child1/grandchild1"));
+    AssertJUnit.assertTrue(names.contains("/child1/grandchild2"));
+    AssertJUnit.assertTrue(names.contains("/child1/grandchild3/grandgrandchild1"));
     
     // test get
     String value = store.getProperty("nonExist");
-    Assert.assertEquals(value, null);
+    AssertJUnit.assertEquals(value, null);
     value = store.getProperty("/child1/grandchild2");
-    Assert.assertEquals(value, "grandchild2\n");
+    AssertJUnit.assertEquals(value, "grandchild2\n");
     Thread.sleep(SLEEP_TIME);
     
     // test subscribe
@@ -88,8 +90,8 @@ public class TestFilePropertyStore
     
     store.setProperty("/child1/grandchild2", "grandchild2-new\n");
     Thread.sleep(SLEEP_TIME);
-    Assert.assertEquals(listener1._propertyChangeReceived, true);
-    Assert.assertEquals(listener2._propertyChangeReceived, true);
+    AssertJUnit.assertEquals(listener1._propertyChangeReceived, true);
+    AssertJUnit.assertEquals(listener2._propertyChangeReceived, true);
     
     listener1._propertyChangeReceived = false;
     listener2._propertyChangeReceived = false;
@@ -99,32 +101,32 @@ public class TestFilePropertyStore
     store.setProperty("/child1/grandchild3/grandgrandchild1", "grandgrandchild1-new\n");
     Thread.sleep(SLEEP_TIME);
     
-    Assert.assertEquals(listener1._propertyChangeReceived, false);
-    Assert.assertEquals(listener2._propertyChangeReceived, true);
+    AssertJUnit.assertEquals(listener1._propertyChangeReceived, false);
+    AssertJUnit.assertEquals(listener2._propertyChangeReceived, true);
     
     listener2._propertyChangeReceived = false;
 
     // test update property
     store.updatePropertyUntilSucceed("child1/grandchild2", new TestUpdater());
     value = store.getProperty("child1/grandchild2");
-    Assert.assertEquals(value, "new grandchild2-new\n");
+    AssertJUnit.assertEquals(value, "new grandchild2-new\n");
     
     // test remove
     store.removeProperty("/child1/grandchild2");
     value = store.getProperty("/child1/grandchild2");
-    Assert.assertEquals(value, null);
+    AssertJUnit.assertEquals(value, null);
     Thread.sleep(SLEEP_TIME);
-    Assert.assertEquals(listener2._propertyChangeReceived, true);
+    AssertJUnit.assertEquals(listener2._propertyChangeReceived, true);
     listener2._propertyChangeReceived = false;
     
     // test compare and set
     boolean success = store.compareAndSet("/child1/grandchild1", "grandchild1-old\n", 
                                           "grandchild1-new\n", comparator);
-    Assert.assertEquals(success, false);
+    AssertJUnit.assertEquals(success, false);
     
     success = store.compareAndSet("/child1/grandchild1", "grandchild1\n", 
                                   "grandchild1-new\n", comparator);
-    Assert.assertEquals(success, true);
+    AssertJUnit.assertEquals(success, true);
     
     store.unsubscribeForPropertyChange("/child1", listener2);
     store.stop();

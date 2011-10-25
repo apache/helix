@@ -1,5 +1,7 @@
 package com.linkedin.clustermanager.monitoring.mbeans;
 
+import org.testng.annotations.Test;
+import org.testng.AssertJUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -100,10 +102,10 @@ public class TestResourceGroupMonitor
     ZNRecord externalView = new ZNRecord(manager.getDataAccessor().getProperty(PropertyType.EXTERNALVIEW, _dbName));
     monitor.onExternalViewChange(externalView, manager);
     
-    Assert.assertEquals(monitor.getDifferenceWithIdealStateGauge(), 0);
-    Assert.assertEquals(monitor.getErrorResouceKeyGauge(), 0);
-    Assert.assertEquals(monitor.getExternalViewResourceKeyGauge(), _partitions);
-    Assert.assertEquals(monitor.getResourceKeyGauge(), _partitions);
+    AssertJUnit.assertEquals(monitor.getDifferenceWithIdealStateGauge(), 0);
+    AssertJUnit.assertEquals(monitor.getErrorResouceKeyGauge(), 0);
+    AssertJUnit.assertEquals(monitor.getExternalViewResourceKeyGauge(), _partitions);
+    AssertJUnit.assertEquals(monitor.getResourceKeyGauge(), _partitions);
     monitor.getBeanName();
     
     int n = 4;
@@ -117,10 +119,10 @@ public class TestResourceGroupMonitor
     
     
     monitor.onExternalViewChange(externalView, manager);
-    Assert.assertEquals(monitor.getDifferenceWithIdealStateGauge(), 0);
-    Assert.assertEquals(monitor.getErrorResouceKeyGauge(), n);
-    Assert.assertEquals(monitor.getExternalViewResourceKeyGauge(), _partitions);
-    Assert.assertEquals(monitor.getResourceKeyGauge(), _partitions);
+    AssertJUnit.assertEquals(monitor.getDifferenceWithIdealStateGauge(), 0);
+    AssertJUnit.assertEquals(monitor.getErrorResouceKeyGauge(), n);
+    AssertJUnit.assertEquals(monitor.getExternalViewResourceKeyGauge(), _partitions);
+    AssertJUnit.assertEquals(monitor.getResourceKeyGauge(), _partitions);
     
     n = 5;
     for(int i = 0;i<n; i++)
@@ -129,9 +131,9 @@ public class TestResourceGroupMonitor
     }
     
     monitor.onExternalViewChange(externalView, manager);
-    Assert.assertEquals(monitor.getDifferenceWithIdealStateGauge(), n*(_replicas + 1));
-    Assert.assertEquals(monitor.getErrorResouceKeyGauge(), 3);
-    Assert.assertEquals(monitor.getExternalViewResourceKeyGauge(), _partitions - n);
-    Assert.assertEquals(monitor.getResourceKeyGauge(), _partitions);
+    AssertJUnit.assertEquals(monitor.getDifferenceWithIdealStateGauge(), n*(_replicas + 1));
+    AssertJUnit.assertEquals(monitor.getErrorResouceKeyGauge(), 3);
+    AssertJUnit.assertEquals(monitor.getExternalViewResourceKeyGauge(), _partitions - n);
+    AssertJUnit.assertEquals(monitor.getResourceKeyGauge(), _partitions);
   }
 }

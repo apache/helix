@@ -1,5 +1,7 @@
 package com.linkedin.clustermanager;
 
+import org.testng.annotations.Test;
+import org.testng.AssertJUnit;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;

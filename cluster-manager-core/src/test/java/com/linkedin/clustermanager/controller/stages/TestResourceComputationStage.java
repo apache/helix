@@ -1,5 +1,7 @@
 package com.linkedin.clustermanager.controller.stages;
 
+import org.testng.annotations.Test;
+import org.testng.AssertJUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +28,7 @@ public class TestResourceComputationStage extends BaseStageTest
    * 
    * @throws Exception
    */
+  @Test
   public void testSimple() throws Exception
   {
     int nodes = 5;
@@ -49,18 +52,19 @@ public class TestResourceComputationStage extends BaseStageTest
 
     Map<String, ResourceGroup> resourceGroup = event
         .getAttribute(AttributeName.RESOURCE_GROUPS.toString());
-    Assert.assertEquals(1, resourceGroup.size());
+    AssertJUnit.assertEquals(1, resourceGroup.size());
 
-    Assert.assertEquals(resourceGroup.keySet().iterator().next(),
+    AssertJUnit.assertEquals(resourceGroup.keySet().iterator().next(),
         resourceGroupName);
-    Assert.assertEquals(resourceGroup.values().iterator().next()
+    AssertJUnit.assertEquals(resourceGroup.values().iterator().next()
         .getResourceGroupId(), resourceGroupName);
-    Assert.assertEquals(resourceGroup.values().iterator().next()
+    AssertJUnit.assertEquals(resourceGroup.values().iterator().next()
         .getStateModelDefRef(), idealState.getStateModelDefRef());
-    Assert.assertEquals(resourceGroup.values().iterator().next()
+    AssertJUnit.assertEquals(resourceGroup.values().iterator().next()
         .getResourceKeys().size(), partitions);
   }
 
+  @Test
   public void testMultipleResourceGroups() throws Exception
   {
     List<IdealState> idealStates = new ArrayList<IdealState>();
@@ -73,18 +77,18 @@ public class TestResourceComputationStage extends BaseStageTest
 
     Map<String, ResourceGroup> resourceGroupMap = event
         .getAttribute(AttributeName.RESOURCE_GROUPS.toString());
-    Assert.assertEquals(resourceGroups.length, resourceGroupMap.size());
+    AssertJUnit.assertEquals(resourceGroups.length, resourceGroupMap.size());
 
     for (int i = 0; i < resourceGroups.length; i++)
     {
       String resourceGroupName = resourceGroups[i];
       IdealState idealState = idealStates.get(i);
-      Assert.assertTrue(resourceGroupMap.containsKey(resourceGroupName));
-      Assert.assertEquals(resourceGroupMap.get(resourceGroupName)
+      AssertJUnit.assertTrue(resourceGroupMap.containsKey(resourceGroupName));
+      AssertJUnit.assertEquals(resourceGroupMap.get(resourceGroupName)
           .getResourceGroupId(), resourceGroupName);
-      Assert.assertEquals(resourceGroupMap.get(resourceGroupName)
+      AssertJUnit.assertEquals(resourceGroupMap.get(resourceGroupName)
           .getStateModelDefRef(), idealState.getStateModelDefRef());
-      Assert.assertEquals(resourceGroupMap.get(resourceGroupName)
+      AssertJUnit.assertEquals(resourceGroupMap.get(resourceGroupName)
           .getResourceKeys().size(), idealState.getNumPartitions());
     }
   }
@@ -93,6 +97,7 @@ public class TestResourceComputationStage extends BaseStageTest
 
   
 
+  @Test
   public void testMultipleResourceGroupsWithSomeDropped() throws Exception
   {
     int nodes = 5;
@@ -146,35 +151,36 @@ public class TestResourceComputationStage extends BaseStageTest
     Map<String, ResourceGroup> resourceGroupMap = event
         .getAttribute(AttributeName.RESOURCE_GROUPS.toString());
     // +1 because it will have one for current state
-    Assert.assertEquals(resourceGroups.length + 1, resourceGroupMap.size());
+    AssertJUnit.assertEquals(resourceGroups.length + 1, resourceGroupMap.size());
 
     for (int i = 0; i < resourceGroups.length; i++)
     {
       String resourceGroupName = resourceGroups[i];
       IdealState idealState = idealStates.get(i);
-      Assert.assertTrue(resourceGroupMap.containsKey(resourceGroupName));
-      Assert.assertEquals(resourceGroupMap.get(resourceGroupName)
+      AssertJUnit.assertTrue(resourceGroupMap.containsKey(resourceGroupName));
+      AssertJUnit.assertEquals(resourceGroupMap.get(resourceGroupName)
           .getResourceGroupId(), resourceGroupName);
-      Assert.assertEquals(resourceGroupMap.get(resourceGroupName)
+      AssertJUnit.assertEquals(resourceGroupMap.get(resourceGroupName)
           .getStateModelDefRef(), idealState.getStateModelDefRef());
-      Assert.assertEquals(resourceGroupMap.get(resourceGroupName)
+      AssertJUnit.assertEquals(resourceGroupMap.get(resourceGroupName)
           .getResourceKeys().size(), idealState.getNumPartitions());
     }
     // Test the data derived from CurrentState
-    Assert.assertTrue(resourceGroupMap.containsKey(oldResourceGroup));
-    Assert.assertEquals(resourceGroupMap.get(oldResourceGroup)
+    AssertJUnit.assertTrue(resourceGroupMap.containsKey(oldResourceGroup));
+    AssertJUnit.assertEquals(resourceGroupMap.get(oldResourceGroup)
         .getResourceGroupId(), oldResourceGroup);
-    Assert.assertEquals(resourceGroupMap.get(oldResourceGroup)
+    AssertJUnit.assertEquals(resourceGroupMap.get(oldResourceGroup)
         .getStateModelDefRef(), currentState.getStateModelDefRef());
-    Assert
+    AssertJUnit
         .assertEquals(resourceGroupMap.get(oldResourceGroup).getResourceKeys()
             .size(), currentState.getResourceKeyStateMap().size());
-    Assert.assertNotNull(resourceGroupMap.get(oldResourceGroup).getResourceKey("testResourceOld_0"));
-    Assert.assertNotNull(resourceGroupMap.get(oldResourceGroup).getResourceKey("testResourceOld_1"));
-    Assert.assertNotNull(resourceGroupMap.get(oldResourceGroup).getResourceKey("testResourceOld_2"));
+    AssertJUnit.assertNotNull(resourceGroupMap.get(oldResourceGroup).getResourceKey("testResourceOld_0"));
+    AssertJUnit.assertNotNull(resourceGroupMap.get(oldResourceGroup).getResourceKey("testResourceOld_1"));
+    AssertJUnit.assertNotNull(resourceGroupMap.get(oldResourceGroup).getResourceKey("testResourceOld_2"));
     
   }
   
+  @Test
   public void testNull()
   {
     ClusterEvent event = new ClusterEvent("sampleEvent");
@@ -190,7 +196,7 @@ public class TestResourceComputationStage extends BaseStageTest
     {
       exceptionCaught = true;
     }
-    Assert.assertTrue(exceptionCaught);
+    AssertJUnit.assertTrue(exceptionCaught);
     stage.postProcess();
   }
   

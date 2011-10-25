@@ -1,5 +1,7 @@
 package com.linkedin.clustermanager.agent.file;
 
+import org.testng.annotations.Test;
+import org.testng.AssertJUnit;
 import java.util.List;
 
 import org.testng.Assert;
@@ -37,31 +39,31 @@ public class TestFileDataAccessor
     ZNRecord record = new ZNRecord("id0");
     accessor.setProperty(PropertyType.CONFIGS, record, "key0");
     record = accessor.getProperty(PropertyType.CONFIGS, "key0");
-    Assert.assertEquals("id0", record.getId());
+    AssertJUnit.assertEquals("id0", record.getId());
     
     ZNRecord newRecord = new ZNRecord("id1");
     accessor.updateProperty(PropertyType.CONFIGS, newRecord,"key0");
     record = accessor.getProperty(PropertyType.CONFIGS, "key0");
-    Assert.assertEquals("id1", record.getId());
+    AssertJUnit.assertEquals("id1", record.getId());
     
     accessor.removeProperty(PropertyType.CONFIGS, "key0");
     record = accessor.getProperty(PropertyType.CONFIGS, "key0");
-    Assert.assertNull(record);
-    Assert.assertNull(accessor.getChildNames(PropertyType.CONFIGS, "key0"));
+    AssertJUnit.assertNull(record);
+    AssertJUnit.assertNull(accessor.getChildNames(PropertyType.CONFIGS, "key0"));
     
     ZNRecord leaderRecord = new ZNRecord("id2");
     accessor.updateProperty(PropertyType.LEADER, leaderRecord);
     record = accessor.getProperty(PropertyType.LEADER);
-    Assert.assertNull(record);
+    AssertJUnit.assertNull(record);
     
     accessor.setProperty(PropertyType.LEADER, leaderRecord);
     ZNRecord newLeaderRecord = new ZNRecord("id3");
     accessor.updateProperty(PropertyType.LEADER, newLeaderRecord);
     record = accessor.getProperty(PropertyType.LEADER);
-    Assert.assertEquals("id3", newLeaderRecord.getId());
+    AssertJUnit.assertEquals("id3", newLeaderRecord.getId());
     
     List<ZNRecord> childs = accessor.getChildValues(PropertyType.HISTORY);
-    Assert.assertEquals(childs.size(), 0);
+    AssertJUnit.assertEquals(childs.size(), 0);
     
     store.stop();
   }

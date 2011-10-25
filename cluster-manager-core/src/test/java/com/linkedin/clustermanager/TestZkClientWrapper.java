@@ -1,5 +1,7 @@
 package com.linkedin.clustermanager;
 
+import org.testng.annotations.Test;
+import org.testng.AssertJUnit;
 import org.I0Itec.zkclient.IZkStateListener;
 import org.I0Itec.zkclient.ZkConnection;
 import org.apache.zookeeper.WatchedEvent;
@@ -20,18 +22,18 @@ public class TestZkClientWrapper extends ZkUnitTestBase
 
 		Stat stat, newStat;
 		stat = _zkClient.getStat(path);
-		Assert.assertNull(stat);
+		AssertJUnit.assertNull(stat);
 		_zkClient.createPersistent(path, true);
 
 		stat = _zkClient.getStat(path);
-		Assert.assertNotNull(stat);
+		AssertJUnit.assertNotNull(stat);
 
 		newStat = _zkClient.getStat(path);
-		Assert.assertEquals(stat, newStat);
+		AssertJUnit.assertEquals(stat, newStat);
 
 		_zkClient.writeData(path, "Test".getBytes());
 		newStat = _zkClient.getStat(path);
-		Assert.assertNotSame(stat, newStat);
+		AssertJUnit.assertNotSame(stat, newStat);
 	}
 
     @Test (groups = {"unitTest"})

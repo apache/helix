@@ -1,6 +1,8 @@
 package com.linkedin.clustermanager.agent.file;
 
 
+import org.testng.annotations.Test;
+import org.testng.AssertJUnit;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -14,13 +16,13 @@ public class TestDummyFileDataAccessor
   {
     DummyFileDataAccessor accessor = new DummyFileDataAccessor();
     ZNRecord record = new ZNRecord("id1");
-    Assert.assertFalse(accessor.setProperty(PropertyType.CONFIGS, record));
-    Assert.assertFalse(accessor.updateProperty(PropertyType.CONFIGS, record));
-    Assert.assertNull(accessor.getProperty(PropertyType.CONFIGS, "key1"));
-    Assert.assertFalse(accessor.removeProperty(PropertyType.CONFIGS, "key1"));
-    Assert.assertNull(accessor.getChildNames(PropertyType.CONFIGS, "key1"));
-    Assert.assertNull(accessor.getChildValues(PropertyType.CONFIGS, "key1"));
-    Assert.assertNull(accessor.getStore());
+    AssertJUnit.assertFalse(accessor.setProperty(PropertyType.CONFIGS, record));
+    AssertJUnit.assertFalse(accessor.updateProperty(PropertyType.CONFIGS, record));
+    AssertJUnit.assertNull(accessor.getProperty(PropertyType.CONFIGS, "key1"));
+    AssertJUnit.assertFalse(accessor.removeProperty(PropertyType.CONFIGS, "key1"));
+    AssertJUnit.assertNull(accessor.getChildNames(PropertyType.CONFIGS, "key1"));
+    AssertJUnit.assertNull(accessor.getChildValues(PropertyType.CONFIGS, "key1"));
+    AssertJUnit.assertNull(accessor.getStore());
   }
 
 }

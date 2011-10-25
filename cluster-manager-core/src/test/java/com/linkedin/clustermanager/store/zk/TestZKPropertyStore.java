@@ -1,5 +1,7 @@
 package com.linkedin.clustermanager.store.zk;
 
+import org.testng.annotations.Test;
+import org.testng.AssertJUnit;
 import java.util.Date;
 import java.util.List;
 
@@ -187,7 +189,7 @@ public class TestZKPropertyStore extends ZkUnitTestBase
                                                         "grandchild1", 
                                                         "new new grandchild1", 
                                                         new PropertyJsonComparator<String>(String.class));
-      Assert.assertEquals(isSucceed, false);
+      AssertJUnit.assertEquals(isSucceed, false);
       
       value = zkPropertyStore.getProperty("child1/grandchild1");
       AssertJUnit.assertTrue(value.equals("new grandchild1"));
@@ -196,7 +198,7 @@ public class TestZKPropertyStore extends ZkUnitTestBase
                                                 "new grandchild1", 
                                                 "new new grandchild1", 
                                                 new PropertyJsonComparator<String>(String.class));
-      Assert.assertEquals(isSucceed, true);
+      AssertJUnit.assertEquals(isSucceed, true);
       
       value = zkPropertyStore.getProperty("child1/grandchild1");
       AssertJUnit.assertTrue(value.equals("new new grandchild1"));
@@ -208,7 +210,7 @@ public class TestZKPropertyStore extends ZkUnitTestBase
                                                 new PropertyJsonComparator<String>(String.class),
                                                 true);
       // Thread.sleep(100); // wait cache to be updated by callback
-      Assert.assertEquals(isSucceed, true);
+      AssertJUnit.assertEquals(isSucceed, true);
       
       value = zkPropertyStore.getProperty("/child2/grandchild5");
       AssertJUnit.assertEquals(value, "grandchild5");

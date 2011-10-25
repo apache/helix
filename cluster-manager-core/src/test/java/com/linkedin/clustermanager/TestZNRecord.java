@@ -1,5 +1,7 @@
 package com.linkedin.clustermanager;
 
+import org.testng.annotations.Test;
+import org.testng.AssertJUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -10,6 +12,7 @@ import org.testng.annotations.Test;
 public class TestZNRecord
 {
 
+  @Test
   public void testEquals(){
     ZNRecord record1 = new ZNRecord("id");
     record1.setSimpleField("k1","v1");
@@ -25,8 +28,8 @@ public class TestZNRecord
     record2.getListField("l1").add("v1");
 
     
-    Assert.assertEquals(record1,record2);
+    AssertJUnit.assertEquals(record1,record2);
     record2.setSimpleField("k2","v1");
-    Assert.assertNotSame(record1,record2);
+    AssertJUnit.assertNotSame(record1,record2);
   }
 }

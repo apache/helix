@@ -1,5 +1,8 @@
 package com.linkedin.clustermanager.integration;
 
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.Test;
+import org.testng.annotations.BeforeClass;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -183,6 +186,7 @@ public class ZkDistCMHandler extends ZkIntegrationTestBase
   
   
   // @Test
+  @Test
   public void testZkDistCMHandler()
   {
     logger.info("dummy start at " + new Date(System.currentTimeMillis()));

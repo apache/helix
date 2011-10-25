@@ -1,5 +1,8 @@
 package com.linkedin.clustermanagement.webapp.test;
 
+import org.testng.annotations.AfterMethod;
+import org.testng.annotations.Test;
+import org.testng.AssertJUnit;
 import org.restlet.Client;
 import org.restlet.Component;
 import org.restlet.data.MediaType;
@@ -151,6 +154,7 @@ public class TestClusterManagementWebapp
     System.out.println("WebApp started!!");
   }
 
+  @AfterMethod
   @AfterTest
   public void tearDown() throws Exception
   {

@@ -1,5 +1,9 @@
 package com.linkedin.clustermanager.agent.zk;
 
+import org.testng.annotations.AfterMethod;
+import org.testng.annotations.Test;
+import org.testng.annotations.BeforeClass;
+import org.testng.AssertJUnit;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
@@ -32,17 +36,17 @@ public class TestZKDataAccessor extends ZkUnitTestBase
     ZNRecord record = new ZNRecord(resourceGroup);
     record.setSimpleField("testField", "testValue");
     boolean success = _accessor.setProperty(PropertyType.IDEALSTATES, record, resourceGroup);
-    Assert.assertTrue(success);
+    AssertJUnit.assertTrue(success);
     // String path = "/"+_clusterName +"/IDEALSTATES/"+resourceGroup;
     String path = PropertyPathConfig.getPath(PropertyType.IDEALSTATES, _clusterName, resourceGroup);
-    Assert.assertTrue(_zkClient.exists(path));
-    Assert.assertEquals(record ,_zkClient.readData(path));
+    AssertJUnit.assertTrue(_zkClient.exists(path));
+    AssertJUnit.assertEquals(record ,_zkClient.readData(path));
         
     record.setSimpleField("partitions", "20");
     success = _accessor.setProperty(PropertyType.IDEALSTATES, record, resourceGroup);
-    Assert.assertTrue(success);
-    Assert.assertTrue(_zkClient.exists(path));
-    Assert.assertEquals(record ,_zkClient.readData(path));
+    AssertJUnit.assertTrue(success);
+    AssertJUnit.assertTrue(_zkClient.exists(path));
+    AssertJUnit.assertEquals(record ,_zkClient.readData(path));
     
   }
   
@@ -58,8 +62,8 @@ public class TestZKDataAccessor extends ZkUnitTestBase
     _zkClient.createPersistent(new File(path).getParent(), true);
     _zkClient.createPersistent(path, record);
     ZNRecord value = _accessor.getProperty(PropertyType.IDEALSTATES, resourceGroup);
-    Assert.assertNotNull(value);
-    Assert.assertEquals(record, value);
+    AssertJUnit.assertNotNull(value);
+    AssertJUnit.assertEquals(record, value);
   }
  
   @Test (groups = { "unitTest" })
@@ -74,10 +78,10 @@ public class TestZKDataAccessor extends ZkUnitTestBase
     _zkClient.createPersistent(new File(path).getParent(), true);
     _zkClient.createPersistent(path, record);
     boolean success = _accessor.removeProperty(PropertyType.IDEALSTATES, resourceGroup);
-    Assert.assertTrue(success);
-    Assert.assertFalse(_zkClient.exists(path));
+    AssertJUnit.assertTrue(success);
+    AssertJUnit.assertFalse(_zkClient.exists(path));
     ZNRecord value = _accessor.getProperty(PropertyType.IDEALSTATES, resourceGroup);
-    Assert.assertNull(value);
+    AssertJUnit.assertNull(value);
 
   }
   
@@ -96,15 +100,15 @@ public class TestZKDataAccessor extends ZkUnitTestBase
     
     record.setSimpleField("testField", "newValue");
     boolean success = _accessor.updateProperty(PropertyType.IDEALSTATES, record,resourceGroup);
-    Assert.assertTrue(success);
-    Assert.assertTrue(_zkClient.exists(path));
+    AssertJUnit.assertTrue(success);
+    AssertJUnit.assertTrue(_zkClient.exists(path));
     ZNRecord value = _zkClient.readData(path);
-    Assert.assertEquals(record,value);
+    AssertJUnit.assertEquals(record,value);
     Stat newstat = _zkClient.getStat(path);
     
-    Assert.assertEquals(stat.getCtime(), newstat.getCtime());
-    Assert.assertNotSame(stat.getMtime(), newstat.getMtime());
-    Assert.assertTrue(stat.getMtime() < newstat.getMtime());
+    AssertJUnit.assertEquals(stat.getCtime(), newstat.getCtime());
+    AssertJUnit.assertNotSame(stat.getMtime(), newstat.getMtime());
+    AssertJUnit.assertTrue(stat.getMtime() < newstat.getMtime());
   }
 
   @Test (groups = { "unitTest" })
@@ -212,6 +216,7 @@ public class TestZKDataAccessor extends ZkUnitTestBase
     _accessor = new ZKDataAccessor(_clusterName, _zkClient);
   }
 
+  @AfterMethod
   @AfterClass(groups = { "unitTest" })
   public void tearDown()
   {

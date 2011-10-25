@@ -1,5 +1,7 @@
 package com.linkedin.clustermanager.controller.stages;
 
+import org.testng.annotations.Test;
+import org.testng.AssertJUnit;
 import java.util.Map;
 
 import org.testng.Assert;
@@ -17,6 +19,7 @@ import com.linkedin.clustermanager.model.ResourceKey;
 public class TestCurrentStateComputationStage extends BaseStageTest
 {
 
+  @Test
   public void testEmptyCS()
   {
     Map<String, ResourceGroup> resourceGroupMap = getResourceGroupMap();
@@ -27,11 +30,12 @@ public class TestCurrentStateComputationStage extends BaseStageTest
     runStage(event, stage);
     CurrentStateOutput output = event.getAttribute(AttributeName.CURRENT_STATE
         .toString());
-    Assert.assertEquals(
+    AssertJUnit.assertEquals(
         output.getCurrentStateMap("testResourceGroupName",
             new ResourceKey("testResourceGroupName_0")).size(), 0);
   }
 
+  @Test
   public void testSimpleCS()
   {
     // setup resource group
@@ -46,7 +50,7 @@ public class TestCurrentStateComputationStage extends BaseStageTest
     runStage(event, stage);
     CurrentStateOutput output1 = event.getAttribute(AttributeName.CURRENT_STATE
         .toString());
-    Assert.assertEquals(
+    AssertJUnit.assertEquals(
         output1.getCurrentStateMap("testResourceGroupName",
             new ResourceKey("testResourceGroupName_0")).size(), 0);
 
@@ -66,7 +70,7 @@ public class TestCurrentStateComputationStage extends BaseStageTest
         .toString());
     String pendingState = output2.getPendingState("testResourceGroupName",
         new ResourceKey("testResourceGroupName_1"), "localhost_3");
-    Assert.assertEquals(pendingState, "SLAVE");
+    AssertJUnit.assertEquals(pendingState, "SLAVE");
 
     ZNRecord record1 = new ZNRecord("testResourceGroupName");
     // Add a current state that matches sessionId and one that does not match
@@ -92,7 +96,7 @@ public class TestCurrentStateComputationStage extends BaseStageTest
         .toString());
     String currentState = output3.getCurrentState("testResourceGroupName",
         new ResourceKey("testResourceGroupName_1"), "localhost_3");
-    Assert.assertEquals(currentState, "OFFLINE");
+    AssertJUnit.assertEquals(currentState, "OFFLINE");
 
   }
 

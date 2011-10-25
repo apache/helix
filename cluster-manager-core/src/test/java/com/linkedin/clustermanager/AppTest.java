@@ -1,5 +1,6 @@
 package com.linkedin.clustermanager;
 
+import org.testng.annotations.Test;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -36,7 +37,8 @@ public class AppTest
 	{
 	}
 
-	private static void testChrootWithZkClient() throws Exception
+	@Test(enabled = false)
+  private static void testChrootWithZkClient() throws Exception
 	{
 		ZkClient client = new ZkClient("localhost:2181/foo");
 		IZkStateListener stateChangeListener = new IZkStateListener()
@@ -68,7 +70,8 @@ public class AppTest
 		Thread.currentThread().join();
 	}
 
-	private static void testChroot() throws Exception
+	@Test(enabled = false)
+  private static void testChroot() throws Exception
 	{
 		Watcher watcher = new Watcher()
 		{
@@ -88,7 +91,8 @@ public class AppTest
 		Thread.currentThread().join();
 	}
 
-	private static void testZKClient() throws InterruptedException
+	@Test(enabled = false)
+  private static void testZKClient() throws InterruptedException
 	{
 		IDefaultNameSpace defaultNameSpace = new IDefaultNameSpace()
 		{

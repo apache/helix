@@ -1,5 +1,7 @@
 package com.linkedin.clustermanager.agent.file;
 
+import org.testng.annotations.Test;
+import org.testng.AssertJUnit;
 import org.apache.zookeeper.Watcher.Event.EventType;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -49,9 +51,9 @@ public class TestFileCallbackHandler
                                    new EventType[] { EventType.NodeChildrenChanged,
                                        EventType.NodeDeleted, EventType.NodeCreated },
                                    ChangeType.CONFIG);
-    Assert.assertEquals(listener, handler.getListener());
-    Assert.assertEquals(rootNamespace, handler.getPath());
-    Assert.assertTrue(listener.isConfigChangeListenerInvoked);
+    AssertJUnit.assertEquals(listener, handler.getListener());
+    AssertJUnit.assertEquals(rootNamespace, handler.getPath());
+    AssertJUnit.assertTrue(listener.isConfigChangeListenerInvoked);
 
     handler =
         new CallbackHandlerForFile(manager,
@@ -60,7 +62,7 @@ public class TestFileCallbackHandler
                                    new EventType[] { EventType.NodeChildrenChanged,
                                        EventType.NodeDeleted, EventType.NodeCreated },
                                    ChangeType.EXTERNAL_VIEW);
-    Assert.assertTrue(listener.isExternalViewChangeListenerInvoked);
+    AssertJUnit.assertTrue(listener.isExternalViewChangeListenerInvoked);
 
     EventType[] eventTypes = new EventType[] { EventType.NodeChildrenChanged,
         EventType.NodeDeleted, EventType.NodeCreated };
@@ -70,16 +72,16 @@ public class TestFileCallbackHandler
                                    listener,
                                    eventTypes,
                                    ChangeType.CONTROLLER);
-    Assert.assertEquals(handler.getEventTypes(), eventTypes);
-    Assert.assertTrue(listener.isControllerChangeListenerInvoked);
+    AssertJUnit.assertEquals(handler.getEventTypes(), eventTypes);
+    AssertJUnit.assertTrue(listener.isControllerChangeListenerInvoked);
     
     listener.reset();
     handler.reset();
-    Assert.assertTrue(listener.isControllerChangeListenerInvoked);
+    AssertJUnit.assertTrue(listener.isControllerChangeListenerInvoked);
 
     listener.reset();
     handler.onPropertyChange(rootNamespace);
-    Assert.assertTrue(listener.isControllerChangeListenerInvoked);
+    AssertJUnit.assertTrue(listener.isControllerChangeListenerInvoked);
 
     store.stop();
   }

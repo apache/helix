@@ -1,5 +1,8 @@
 package com.linkedin.clustermanager;
 
+import org.testng.annotations.Test;
+import org.testng.annotations.BeforeClass;
+import org.testng.AssertJUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -95,8 +98,8 @@ public class TestRoutingTable
     routingTable.onExternalViewChange(externalViewList, changeContext);
 
     instances = routingTable.getInstances("TESTDB", "TESTDB_0", "MASTER");
-    Assert.assertNotNull(instances);
-    Assert.assertEquals(instances.size(), 1);
+    AssertJUnit.assertNotNull(instances);
+    AssertJUnit.assertEquals(instances.size(), 1);
 
     // additions
     add(record, "TESTDB_0", "localhost_8901", "MASTER");
@@ -104,19 +107,19 @@ public class TestRoutingTable
 
     routingTable.onExternalViewChange(externalViewList, changeContext);
     instances = routingTable.getInstances("TESTDB", "TESTDB_0", "MASTER");
-    Assert.assertNotNull(instances);
-    Assert.assertEquals(instances.size(), 2);
+    AssertJUnit.assertNotNull(instances);
+    AssertJUnit.assertEquals(instances.size(), 2);
 
     instances = routingTable.getInstances("TESTDB", "TESTDB_1", "SLAVE");
-    Assert.assertNotNull(instances);
-    Assert.assertEquals(instances.size(), 1);
+    AssertJUnit.assertNotNull(instances);
+    AssertJUnit.assertEquals(instances.size(), 1);
 
     // updates
     add(record, "TESTDB_0", "localhost_8901", "SLAVE");
     routingTable.onExternalViewChange(externalViewList, changeContext);
     instances = routingTable.getInstances("TESTDB", "TESTDB_0", "SLAVE");
-    Assert.assertNotNull(instances);
-    Assert.assertEquals(instances.size(), 1);
+    AssertJUnit.assertNotNull(instances);
+    AssertJUnit.assertEquals(instances.size(), 1);
   }
 
   @Test (groups = {"unitTest"})
@@ -132,14 +135,14 @@ public class TestRoutingTable
     add(record, "TESTDB_0", "localhost_8900", "MASTER");
     routingTable.onExternalViewChange(externalViewList, changeContext);
     instances = routingTable.getInstances("TESTDB", "TESTDB_0", "MASTER");
-    Assert.assertNotNull(instances);
-    Assert.assertEquals(instances.size(), 1);
+    AssertJUnit.assertNotNull(instances);
+    AssertJUnit.assertEquals(instances.size(), 1);
 
     externalViewList.clear();
     routingTable.onExternalViewChange(externalViewList, changeContext);
     instances = routingTable.getInstances("TESTDB", "TESTDB_0", "MASTER");
-    Assert.assertNotNull(instances);
-    Assert.assertEquals(instances.size(), 0);
+    AssertJUnit.assertNotNull(instances);
+    AssertJUnit.assertEquals(instances.size(), 0);
   }
 
   @Test (groups = {"unitTest"})
@@ -168,20 +171,20 @@ public class TestRoutingTable
     add(record, "TESTDB_5", "localhost_8901", "MASTER");
     routingTable.onExternalViewChange(externalViewList, changeContext);
     instancesList = routingTable.getInstances("TESTDB", "TESTDB_0", "MASTER");
-    Assert.assertNotNull(instancesList);
-    Assert.assertEquals(instancesList.size(), 1);
+    AssertJUnit.assertNotNull(instancesList);
+    AssertJUnit.assertEquals(instancesList.size(), 1);
     instancesSet = routingTable.getInstances("TESTDB", "MASTER");
-    Assert.assertNotNull(instancesSet);
-    Assert.assertEquals(instancesSet.size(), 2);
+    AssertJUnit.assertNotNull(instancesSet);
+    AssertJUnit.assertEquals(instancesSet.size(), 2);
     instancesSet = routingTable.getInstances("TESTDB", "SLAVE");
-    Assert.assertNotNull(instancesSet);
-    Assert.assertEquals(instancesSet.size(), 2);
+    AssertJUnit.assertNotNull(instancesSet);
+    AssertJUnit.assertEquals(instancesSet.size(), 2);
     instancesArray = new InstanceConfig[instancesSet.size()];
     instancesSet.toArray(instancesArray);
-    Assert.assertEquals(instancesArray[0].getHostName(), "localhost");
-    Assert.assertEquals(instancesArray[0].getPort(), "8900");
-    Assert.assertEquals(instancesArray[1].getHostName(), "localhost");
-    Assert.assertEquals(instancesArray[1].getPort(), "8901");
+    AssertJUnit.assertEquals(instancesArray[0].getHostName(), "localhost");
+    AssertJUnit.assertEquals(instancesArray[0].getPort(), "8900");
+    AssertJUnit.assertEquals(instancesArray[1].getHostName(), "localhost");
+    AssertJUnit.assertEquals(instancesArray[1].getPort(), "8901");
 
   }
 
@@ -210,7 +213,7 @@ public class TestRoutingTable
           {
             List<InstanceConfig> instancesList = routingTable.getInstances(
                 "TESTDB", "TESTDB_0", "MASTER");
-            Assert.assertEquals(instancesList.size(), 1);
+            AssertJUnit.assertEquals(instancesList.size(), 1);
             // System.out.println(System.currentTimeMillis() + "-->"
             // + instancesList.size());
 
@@ -243,7 +246,7 @@ public class TestRoutingTable
     }
 
     Boolean result = submit.get(60, TimeUnit.SECONDS);
-    Assert.assertEquals(result, Boolean.TRUE);
+    AssertJUnit.assertEquals(result, Boolean.TRUE);
 
   }
 

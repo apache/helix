@@ -1,6 +1,8 @@
 package com.linkedin.clustermanager.agent.zk;
 
 
+import org.testng.annotations.Test;
+import org.testng.AssertJUnit;
 import java.util.List;
 
 import org.testng.Assert;
@@ -25,11 +27,11 @@ public class TestZkClusterManagementTool extends ZkUnitTestBase
     
     ZKClusterManagementTool tool = new ZKClusterManagementTool(_zkClient);
     tool.addCluster(clusterName, true);
-    Assert.assertTrue(_zkClient.exists("/" + clusterName));
+    AssertJUnit.assertTrue(_zkClient.exists("/" + clusterName));
     tool.addCluster(clusterName, true);
     
     List<String> list = tool.getClusters();
-    Assert.assertTrue(list.size() > 0);
+    AssertJUnit.assertTrue(list.size() > 0);
     
     boolean exceptionCaught = false;
     try
@@ -39,13 +41,13 @@ public class TestZkClusterManagementTool extends ZkUnitTestBase
     {
       exceptionCaught = true;
     }
-    Assert.assertTrue(exceptionCaught);
+    AssertJUnit.assertTrue(exceptionCaught);
     
     ZNRecord nodeRecord = new ZNRecord("id0");
     tool.addInstance(clusterName, nodeRecord);
     tool.enableInstance(clusterName, "id0", true);
     String path = PropertyPathConfig.getPath(PropertyType.INSTANCES, clusterName, "id0");
-    Assert.assertTrue(_zkClient.exists(path));
+    AssertJUnit.assertTrue(_zkClient.exists(path));
     
     exceptionCaught = false;
     try
@@ -55,10 +57,10 @@ public class TestZkClusterManagementTool extends ZkUnitTestBase
     {
       exceptionCaught = true;
     }
-    Assert.assertTrue(exceptionCaught);
+    AssertJUnit.assertTrue(exceptionCaught);
     
     nodeRecord = tool.getInstanceConfig(clusterName, "id0");
-    Assert.assertEquals(nodeRecord.getId(), "id0");
+    AssertJUnit.assertEquals(nodeRecord.getId(), "id0");
     
     tool.dropInstance(clusterName, nodeRecord);
     exceptionCaught = false;
@@ -69,7 +71,7 @@ public class TestZkClusterManagementTool extends ZkUnitTestBase
     {
       exceptionCaught = true;
     }
-    Assert.assertTrue(exceptionCaught);
+    AssertJUnit.assertTrue(exceptionCaught);
     
     exceptionCaught = false;
     try
@@ -79,7 +81,7 @@ public class TestZkClusterManagementTool extends ZkUnitTestBase
     {
       exceptionCaught = true;
     }
-    Assert.assertTrue(exceptionCaught);
+    AssertJUnit.assertTrue(exceptionCaught);
     
     exceptionCaught = false;
     try
@@ -89,12 +91,12 @@ public class TestZkClusterManagementTool extends ZkUnitTestBase
     {
       exceptionCaught = true;
     }
-    Assert.assertTrue(exceptionCaught);
+    AssertJUnit.assertTrue(exceptionCaught);
     
     ZNRecord stateModelRecord = new ZNRecord("id1");
     tool.addStateModelDef(clusterName, "id1", stateModelRecord);
     path = PropertyPathConfig.getPath(PropertyType.STATEMODELDEFS, clusterName, "id1");
-    Assert.assertTrue(_zkClient.exists(path));
+    AssertJUnit.assertTrue(_zkClient.exists(path));
     
     exceptionCaught = false;
     try
@@ -104,10 +106,10 @@ public class TestZkClusterManagementTool extends ZkUnitTestBase
     {
       exceptionCaught = true;
     }
-    Assert.assertTrue(exceptionCaught);
+    AssertJUnit.assertTrue(exceptionCaught);
 
     list = tool.getStateModelDefs(clusterName);
-    Assert.assertEquals(list.size(), 1);
+    AssertJUnit.assertEquals(list.size(), 1);
     
     exceptionCaught = false;
     try
@@ -117,18 +119,18 @@ public class TestZkClusterManagementTool extends ZkUnitTestBase
     {
       exceptionCaught = true;
     }
-    Assert.assertTrue(exceptionCaught);
+    AssertJUnit.assertTrue(exceptionCaught);
     
     tool.addResourceGroup(clusterName, "resourceGroup", 10, "id1");
     list = tool.getResourceGroupsInCluster(clusterName);
-    Assert.assertEquals(list.size(), 1);
+    AssertJUnit.assertEquals(list.size(), 1);
     
     tool.addResourceGroup(clusterName, "resourceGroup", 10, "id1");
     list = tool.getResourceGroupsInCluster(clusterName);
-    Assert.assertEquals(list.size(), 1);
+    AssertJUnit.assertEquals(list.size(), 1);
 
     ZNRecord resourceGroupExternalViewRecord = tool.getResourceGroupExternalView(clusterName, "resourceGroup");
-    Assert.assertNull(resourceGroupExternalViewRecord);
+    AssertJUnit.assertNull(resourceGroupExternalViewRecord);
   }
 
 }

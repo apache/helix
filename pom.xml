@@ -124,7 +124,9 @@
           <artifactId>maven-surefire-plugin</artifactId>
           <version>2.6</version>
           <configuration>
-            <groups>unitTest, integrationTest</groups>
+            <suiteXmlFiles>
+              <suiteXmlFile>src/test/conf/testng.xml</suiteXmlFile>
+            </suiteXmlFiles>
           </configuration>
         </plugin>
 

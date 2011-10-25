@@ -1,5 +1,9 @@
 package com.linkedin.clustermanager;
 
+import org.testng.annotations.AfterMethod;
+import org.testng.annotations.Test;
+import org.testng.annotations.BeforeClass;
+import org.testng.AssertJUnit;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -269,6 +273,7 @@ public class TestZKCallback extends ZkUnitTestBase
         .processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " -rebalance " + clusterName + " db-12345 3"));
   }
 
+  @AfterMethod
   @AfterClass(groups =
   { "unitTest" })
   public void tearDown()

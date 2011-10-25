@@ -7,10 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterManager;
-import com.linkedin.clustermanager.PropertyType;
-import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.ResourceGroup;
 import com.linkedin.clustermanager.model.ResourceKey;
@@ -29,9 +26,8 @@ public class MessageSelectionStage extends AbstractBaseStage
     {
       throw new StageException("ClusterManager attribute value is null");
     }
-    ClusterDataAccessor dataAccessor = manager.getDataAccessor();
-    List<ZNRecord> stateModelDefs = dataAccessor
-        .getChildValues(PropertyType.STATEMODELDEFS);
+    ClusterDataCache cache = event.getAttribute("ClusterDataCache");
+
     Map<String, ResourceGroup> resourceGroupMap = event
         .getAttribute(AttributeName.RESOURCE_GROUPS.toString());
     MessageGenerationOutput messageGenOutput = event
@@ -40,8 +36,7 @@ public class MessageSelectionStage extends AbstractBaseStage
     for (String resourceGroupName : resourceGroupMap.keySet())
     {
       ResourceGroup resourceGroup = resourceGroupMap.get(resourceGroupName);
-      StateModelDefinition stateModelDef = lookupStateModel(
-          resourceGroup.getStateModelDefRef(), stateModelDefs);
+      StateModelDefinition stateModelDef = cache.getStateModelDef(resourceGroup.getStateModelDefRef()); 
       for (ResourceKey resource : resourceGroup.getResourceKeys())
       {
         List<Message> messages = messageGenOutput.getMessages(
@@ -95,16 +90,5 @@ public class MessageSelectionStage extends AbstractBaseStage
     return Collections.emptyList();
   }
 
-  private StateModelDefinition lookupStateModel(String stateModelDefRef,
-      List<ZNRecord> stateModelDefs)
-  {
-    for (ZNRecord record : stateModelDefs)
-    {
-      if (record.getId().equals(stateModelDefRef))
-      {
-        return new StateModelDefinition(record);
-      }
-    }
-    return null;
-  }
+ 
 }

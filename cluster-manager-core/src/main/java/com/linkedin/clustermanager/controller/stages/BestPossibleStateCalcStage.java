@@ -7,18 +7,16 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterDataAccessor.IdealStateConfigProperty;
 import com.linkedin.clustermanager.ClusterManager;
-import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.model.IdealState;
+import com.linkedin.clustermanager.model.LiveInstance;
 import com.linkedin.clustermanager.model.ResourceGroup;
 import com.linkedin.clustermanager.model.ResourceKey;
 import com.linkedin.clustermanager.model.StateModelDefinition;
 import com.linkedin.clustermanager.pipeline.AbstractBaseStage;
 import com.linkedin.clustermanager.pipeline.StageException;
-import com.linkedin.clustermanager.util.ZNRecordUtil;
 
 /**
  * For resourceKey compute best possible (instance,state) pair based on
@@ -44,31 +42,30 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
       throw new StageException("Missing attributes in event:" + event
           + " .Requires clustermanager|CURRENT_STATE|RESOURCE_GROUPS");
     }
-    ClusterDataAccessor dataAccessor = manager.getDataAccessor();
-    List<ZNRecord> liveInstances;
-    liveInstances = dataAccessor.getChildValues(PropertyType.LIVEINSTANCES);
-    List<ZNRecord> idealStates = dataAccessor.getChildValues(PropertyType.IDEALSTATES);
-    List<ZNRecord> stateModelDefs = dataAccessor.getChildValues(PropertyType.STATEMODELDEFS);
+    ClusterDataCache cache = event.getAttribute("ClusterDataCache");
+    // List<ZNRecord> liveInstances;
+    // liveInstances = cache.getLiveInstances();
+    // List<ZNRecord> idealStates = cache.getIdealStates();
+    // List<ZNRecord> stateModelDefs = cache.getStateModelDefs();
 
     BestPossibleStateOutput bestPossibleStateOutput =
-        compute(resourceGroupMap, liveInstances, idealStates, stateModelDefs, currentStateOutput);
+        compute(cache, resourceGroupMap, currentStateOutput);
     event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.toString(), bestPossibleStateOutput);
   }
 
-  protected BestPossibleStateOutput compute(Map<String, ResourceGroup> resourceGroupMap,
-                                            List<ZNRecord> liveInstances,
-                                            List<ZNRecord> idealStates,
-                                            List<ZNRecord> stateModelDefs,
-                                            CurrentStateOutput currentStateOutput)
+  private BestPossibleStateOutput compute(ClusterDataCache cache,
+		Map<String, ResourceGroup> resourceGroupMap,
+		CurrentStateOutput currentStateOutput) 
   {
     // for each ideal state
     // read the state model def
     // for each resource
     // get the preference list
     // for each instanceName check if its alive then assign a state
-    Map<String, ZNRecord> liveInstancesMap = ZNRecordUtil.convertListToMap(liveInstances);
+	  
+    // Map<String, ZNRecord> liveInstancesMap = ZNRecordUtil.convertListToMap(liveInstances);
 
-    Map<String, ZNRecord> idealStatesMap = ZNRecordUtil.convertListToMap(idealStates);
+    // Map<String, ZNRecord> idealStatesMap = ZNRecordUtil.convertListToMap(idealStates);
     BestPossibleStateOutput output = new BestPossibleStateOutput();
 
     for (String resourceGroupName : resourceGroupMap.keySet())
@@ -78,24 +75,23 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
       ResourceGroup resourceGroup = resourceGroupMap.get(resourceGroupName);
       // Ideal state may be gone. In that case we need to get the state model name
       // from the current state
-      IdealState idealState;
-      boolean idealStateExists = idealStatesMap.containsKey(resourceGroupName);
-      if (!idealStateExists)
+      IdealState idealState = cache.getIdealState(resourceGroupName);
+
+      String stateModelDefName;
+
+      if (idealState == null)
       {
+          // if ideal state is deleted, use a empty ZnRecord
         logger.info(" resourceGroup:" + resourceGroupName + " does not exist anymore");
+        stateModelDefName = currentStateOutput.getResourceGroupStateModelDef(resourceGroupName);
         idealState = new IdealState(new ZNRecord(resourceGroupName));
-      }
-      else
+      } else
       {
-        // if ideal state is deleted, use a empty ZnRecord
-        idealState = new IdealState(idealStatesMap.get(resourceGroupName));
+    	  stateModelDefName = idealState.getStateModelDefRef();
       }
+      
+      StateModelDefinition stateModelDef = cache.getStateModelDef(stateModelDefName); 
 
-      String stateModelDefName =
-          idealStateExists ? idealState.getStateModelDefRef()
-              : currentStateOutput.getResourceGroupStateModelDef(resourceGroupName);
-
-      StateModelDefinition stateModelDef = lookupStateModel(stateModelDefName, stateModelDefs);
       for (ResourceKey resource : resourceGroup.getResourceKeys())
       {
         Map<String, String> currentStateMap =
@@ -110,11 +106,11 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
         else
         {
           List<String> instancePreferenceList =
-              getPreferenceList(resource, idealState, liveInstances, stateModelDef);
+              getPreferenceList(cache, resource, idealState, stateModelDef);
           bestStateForResource =
-              computeBestStateForResource(stateModelDef,
+              computeBestStateForResource(cache, stateModelDef,
                                           instancePreferenceList,
-                                          liveInstancesMap,
+                                          // liveInstancesMap,
                                           currentStateMap);
         }
 
@@ -124,9 +120,10 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
     return output;
   }
 
-  private Map<String, String> computeBestStateForResource(StateModelDefinition stateModelDef,
+  private Map<String, String> computeBestStateForResource(ClusterDataCache cache, 
+  																											  StateModelDefinition stateModelDef,
                                                           List<String> instancePreferenceList,
-                                                          Map<String, ZNRecord> liveInstancesMap,
+                                                          // Map<String, ZNRecord> liveInstancesMap,
                                                           Map<String, String> currentStateMap)
   {
     Map<String, String> instanceStateMap = new HashMap<String, String>();
@@ -152,6 +149,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
     List<String> statesPriorityList = stateModelDef.getStatesPriorityList();
     boolean assigned[] = new boolean[instancePreferenceList.size()];
 
+    Map<String, LiveInstance> liveInstancesMap = cache.getLiveInstances();
     for (String state : statesPriorityList)
     {
       String num = stateModelDef.getNumInstancesPerState(state);
@@ -200,35 +198,28 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
     return instanceStateMap;
   }
 
-  private List<String> getPreferenceList(ResourceKey resource,
-                                         IdealState idealState,
-                                         List<ZNRecord> liveInstances,
+  private List<String> getPreferenceList(ClusterDataCache cache, ResourceKey resource,
+                                         IdealState idealState, 
+                                         // List<ZNRecord> liveInstances,
                                          StateModelDefinition stateModelDef)
   {
     List<String> listField =
         idealState.getPreferenceList(resource.getResourceKeyName(), stateModelDef);
+    Map<String, LiveInstance> liveInstances = cache.getLiveInstances();
     if (listField != null && listField.size() == 1 && "".equals(listField.get(0)))
     {
+      
       ArrayList<String> list = new ArrayList<String>(liveInstances.size());
-      for (ZNRecord liveInstance : liveInstances)
+//      for (ZNRecord liveInstance : liveInstances)
+      for (String instanceName : liveInstances.keySet())
       {
-        list.add(liveInstance.getId());
+//        list.add(liveInstance.getId());
+    	  list.add(instanceName);
       }
       return list;
+
     }
     return listField;
   }
 
-  private StateModelDefinition lookupStateModel(String stateModelDefRef,
-                                                List<ZNRecord> stateModelDefs)
-  {
-    for (ZNRecord record : stateModelDefs)
-    {
-      if (record.getId().equals(stateModelDefRef))
-      {
-        return new StateModelDefinition(record);
-      }
-    }
-    return null;
-  }
 }

@@ -1,5 +1,6 @@
 package com.linkedin.clustermanager.model;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -75,20 +76,20 @@ public class IdealState
     _record.getMapField(key).put(instanceName, state);
   }
 
-  public String get(String key, String instanceName)
+  
+  public Set<String> getResourceKeySet()
   {
-
-    Map<String, String> mapField = _record.getMapField(key);
-    if (mapField != null)
+  	if (getIdealStateMode() == IdealStateConfigProperty.AUTO)
+  	{
+  		return _record.getListFields().keySet();
+  	} else if (getIdealStateMode() == IdealStateConfigProperty.CUSTOMIZED)
+  	{
+  		return _record.getMapFields().keySet();
+  	} else
     {
-      return mapField.get(instanceName);
+  		logger.warn("Invalid mode in idealstate:" + getResourceGroup());
+      return Collections.emptySet();
     }
-    return null;
-  }
-
-  public Set<String> stateUnitSet()
-  {
-    return _record.getMapFields().keySet();
   }
 
   public Map<String, String> getInstanceStateMap(String resourceKeyName)

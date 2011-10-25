@@ -3,16 +3,12 @@ package com.linkedin.clustermanager.controller.stages;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterManager;
-import com.linkedin.clustermanager.PropertyType;
-import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.model.LiveInstance;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.Message.MessageType;
@@ -38,9 +34,8 @@ public class MessageGenerationPhase extends AbstractBaseStage
     {
       throw new StageException("ClusterManager attribute value is null");
     }
-    ClusterDataAccessor dataAccessor = manager.getDataAccessor();
-    List<ZNRecord> stateModelDefs = dataAccessor
-        .getChildValues(PropertyType.STATEMODELDEFS);
+    ClusterDataCache cache = event.getAttribute("ClusterDataCache");
+
     Map<String, ResourceGroup> resourceGroupMap = event
         .getAttribute(AttributeName.RESOURCE_GROUPS.toString());
 
@@ -49,12 +44,13 @@ public class MessageGenerationPhase extends AbstractBaseStage
 
     BestPossibleStateOutput bestPossibleStateOutput = event
         .getAttribute(AttributeName.BEST_POSSIBLE_STATE.toString());
-    List<ZNRecord> liveInstances = dataAccessor
-        .getChildValues(PropertyType.LIVEINSTANCES);
+    Map<String, LiveInstance> liveInstances = cache.getLiveInstances();
+
     Map<String, String> sessionIdMap = new HashMap<String, String>();
-    for (ZNRecord record : liveInstances)
+    // for (ZNRecord record : liveInstances)
+    for (LiveInstance liveInstance : liveInstances.values())
     {
-      LiveInstance liveInstance = new LiveInstance(record);
+      // LiveInstance liveInstance = new LiveInstance(record);
       sessionIdMap.put(liveInstance.getInstanceName(),
           liveInstance.getSessionId());
     }
@@ -63,8 +59,7 @@ public class MessageGenerationPhase extends AbstractBaseStage
     for (String resourceGroupName : resourceGroupMap.keySet())
     {
       ResourceGroup resourceGroup = resourceGroupMap.get(resourceGroupName);
-      StateModelDefinition stateModelDef = lookupStateModel(
-          resourceGroup.getStateModelDefRef(), stateModelDefs);
+      StateModelDefinition stateModelDef = cache.getStateModelDef(resourceGroup.getStateModelDefRef());
       for (ResourceKey resource : resourceGroup.getResourceKeys())
       {
         Map<String, String> instanceStateMap = bestPossibleStateOutput
@@ -152,18 +147,5 @@ public class MessageGenerationPhase extends AbstractBaseStage
     message.setSrcSessionId(manager.getSessionId());
     message.setStateModelDef(stateModelDefName);
     return message;
-  }
-
-  private StateModelDefinition lookupStateModel(String stateModelDefRef,
-      List<ZNRecord> stateModelDefs)
-  {
-    for (ZNRecord record : stateModelDefs)
-    {
-      if (record.getId().equals(stateModelDefRef))
-      {
-        return new StateModelDefinition(record);
-      }
-    }
-    return null;
   }
 }

@@ -45,6 +45,32 @@ public final class ZNRecordUtil
     return recordMap;
   }
 
+  public static <T extends Object> List<T> convertListToTypedList(
+      List<ZNRecord> recordList, Class<T> clazz)
+      {
+  	 List<T> list = new ArrayList<T>();
+     for (ZNRecord record : recordList)
+     {
+       if (record.getId() == null)
+       {
+         logger.error("Invalid record: Id missing in " + record);
+         continue;
+       }
+       try
+       {
+
+         Constructor<T> constructor = clazz.getConstructor(new Class[]
+         { ZNRecord.class });
+         T instance = constructor.newInstance(record);
+         list.add(instance);
+       } catch (Exception e)
+       {
+         logger.error(
+             "Error creating an Object of type:" + clazz.getCanonicalName(), e);
+       }
+     }
+     return list;
+      }
   public static <T extends Object> Map<String, T> convertListToTypedMap(
       List<ZNRecord> recordList, Class<T> clazz)
   {

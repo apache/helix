@@ -131,13 +131,15 @@ public class FileBasedClusterManager implements ClusterManager
 
     // messages = new ArrayList<Message>();
     IdealState idealState = new IdealState(idealStateRecord);
-    for (String stateUnitKey : idealState.stateUnitSet())
+    for (String stateUnitKey : idealState.getResourceKeySet())
     {
       Map<String, String> instanceStateMap;
       instanceStateMap = idealState.getInstanceStateMap(stateUnitKey);
       for (String instanceName : instanceStateMap.keySet())
       {
+        /*
         String desiredState = idealState.get(stateUnitKey, instanceName);
+        
 
         if (desiredState.equals("MASTER"))
         {
@@ -153,6 +155,7 @@ public class FileBasedClusterManager implements ClusterManager
               instanceName, "OFFLINE", "SLAVE");
           msgList.add(message);
         }
+        */
 
       }
     }

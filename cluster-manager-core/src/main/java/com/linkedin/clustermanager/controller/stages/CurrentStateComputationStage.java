@@ -3,11 +3,7 @@ package com.linkedin.clustermanager.controller.stages;
 import java.util.List;
 import java.util.Map;
 
-import com.linkedin.clustermanager.CMConstants;
-import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterManager;
-import com.linkedin.clustermanager.PropertyType;
-import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.model.CurrentState;
 import com.linkedin.clustermanager.model.LiveInstance;
 import com.linkedin.clustermanager.model.Message;
@@ -35,23 +31,23 @@ public class CurrentStateComputationStage extends AbstractBaseStage
     {
       throw new StageException("clustermanager attribute value is null");
     }
-    ClusterDataAccessor dataAccessor = manager.getDataAccessor();
-    List<ZNRecord> liveInstances;
-    liveInstances = dataAccessor.getChildValues(PropertyType.LIVEINSTANCES);
+    ClusterDataCache cache = event.getAttribute("ClusterDataCache");
+
+    // List<ZNRecord> liveInstances;
+    Map<String, LiveInstance> liveInstances = cache.getLiveInstances();
     CurrentStateOutput currentStateOutput = new CurrentStateOutput();
     Map<String, ResourceGroup> resourceGroupMap = event
         .getAttribute(AttributeName.RESOURCE_GROUPS.toString());
 
-    for (ZNRecord record : liveInstances)
+    // for (ZNRecord record : liveInstances)
+    for (LiveInstance instance : liveInstances.values())
     {
-      LiveInstance instance = new LiveInstance(record);
-      String instanceName = record.getId();
-      List<ZNRecord> instancePropertyList;
-      instancePropertyList = dataAccessor.getChildValues(PropertyType.MESSAGES,
-          instanceName);
-      for (ZNRecord messageRecord : instancePropertyList)
+      // LiveInstance instance = new LiveInstance(record);
+      String instanceName = instance.getInstanceName(); // record.getId();
+      List<Message> instanceMessages;
+      instanceMessages = cache.getMessages(instanceName);
+      for (Message message  : instanceMessages)
       {
-        Message message = new Message(messageRecord);
         if (!MessageType.STATE_TRANSITION.toString().equalsIgnoreCase(
             message.getMsgType()))
         {
@@ -79,18 +75,16 @@ public class CurrentStateComputationStage extends AbstractBaseStage
         }
       }
     }
-    for (ZNRecord record : liveInstances)
+    // for (ZNRecord record : liveInstances)
+    for (LiveInstance instance : liveInstances.values())
     {
-      LiveInstance instance = new LiveInstance(record);
-      String instanceName = record.getId();
-      List<ZNRecord> instancePropertyList;
-      String clientSessionId = record
-          .getSimpleField(CMConstants.ZNAttribute.SESSION_ID.toString());
-      instancePropertyList = dataAccessor.getChildValues(
-          PropertyType.CURRENTSTATES, instanceName, clientSessionId);
-      for (ZNRecord currStateRecord : instancePropertyList)
+      // LiveInstance instance = new LiveInstance(record);
+      String instanceName = instance.getInstanceName();	// record.getId();
+      
+      String clientSessionId = instance.getSessionId();
+      Map<String, CurrentState> currentStateMap = cache.getCurrentState(instanceName, clientSessionId);
+      for (CurrentState currentState : currentStateMap.values())
       {
-        CurrentState currentState = new CurrentState(currStateRecord);
 
         if (!instance.getSessionId().equals(currentState.getSessionId()))
         {

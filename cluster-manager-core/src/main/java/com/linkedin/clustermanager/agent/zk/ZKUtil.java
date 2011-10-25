@@ -145,7 +145,16 @@ public final class ZKUtil
         {
           CreateMode mode = (persistent) ? CreateMode.PERSISTENT
               : CreateMode.EPHEMERAL;
-          client.create(path, record, mode);
+          if(record.getDeltaList().size() > 0)
+          {
+            ZNRecord value = new ZNRecord(record.getId());
+            value.merge(record);
+            client.create(path, value, mode);
+          }
+          else
+          {
+            client.create(path, record, mode);
+          }
         }
         break;
       } catch (Exception e)

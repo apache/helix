@@ -3,7 +3,15 @@ package com.linkedin.clustermanager.integration;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
+
+import com.linkedin.clustermanager.ClusterDataAccessor;
+import com.linkedin.clustermanager.PropertyType;
+import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.agent.zk.ZKDataAccessor;
+import com.linkedin.clustermanager.agent.zk.ZkClient;
+import com.linkedin.clustermanager.util.CMUtil;
 
 public class TestDropResource extends ZkStandAloneCMHandler
 {
@@ -29,38 +37,38 @@ public class TestDropResource extends ZkStandAloneCMHandler
     }
     verifyEmtpyCurrentStateTimeout(CLUSTER_NAME, "MyDB", instanceNames);
     
-    /*
-    Thread.sleep(10000);
     
+    Thread.sleep(10000);
+    //Thread.currentThread().join();
     for (int i = 0; i < NODE_NR; i++)
     {
       verifyEmptyCurrentState(_controllerZkClient, CLUSTER_NAME, 
                               "localhost_" + (START_PORT + i), "MyDB");
     }
-    */
+    
   }
 
-  /*
+  
   protected void verifyEmptyCurrentState(ZkClient zkClient, String clusterName, 
                       String instanceName, String dbName)
   {
     ClusterDataAccessor accessor = new ZKDataAccessor(CLUSTER_NAME, zkClient);
     String path = CMUtil
-        .getInstancePropertyPath(clusterName, instanceName, InstancePropertyType.CURRENTSTATES);
+        .getInstancePropertyPath(clusterName, instanceName, PropertyType.CURRENTSTATES);
     
     List<String> subPaths = accessor
-        .getInstancePropertySubPaths(instanceName, InstancePropertyType.CURRENTSTATES);
+        .getChildNames( PropertyType.CURRENTSTATES, instanceName);
     
     for (String previousSessionId : subPaths)
     {
       if (zkClient.exists(path+ "/" + previousSessionId + "/" + dbName))
       {
-        ZNRecord previousCurrentState = accessor.getInstanceProperty(instanceName, 
-                              InstancePropertyType.CURRENTSTATES, previousSessionId, dbName);
+        ZNRecord previousCurrentState = accessor.getProperty(PropertyType.CURRENTSTATES, instanceName, 
+             previousSessionId, dbName);
 
         AssertJUnit.assertEquals(previousCurrentState.getMapFields().size(), 0);
       }
     }
   }
-  */
+  
 }

@@ -1,12 +1,16 @@
 package com.linkedin.clustermanager;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.apache.log4j.Logger;
 import org.codehaus.jackson.annotate.JsonCreator;
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 import org.codehaus.jackson.annotate.JsonProperty;
+
+import com.linkedin.clustermanager.ZNRecordDelta.MERGEOPERATION;
 
 /**
  * Generic Record Format to store data at a Node This can be used to store
@@ -15,8 +19,9 @@ import org.codehaus.jackson.annotate.JsonProperty;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ZNRecord
 {
-
+  static Logger _logger = Logger.getLogger(ZNRecord.class);
   private final String id;
+  private List<ZNRecordDelta> _deltaList = new ArrayList<ZNRecordDelta>();
   private Map<String, String> simpleFields;
   private Map<String, Map<String, String>> mapFields;
   private Map<String, List<String>> listFields;
@@ -30,6 +35,17 @@ public class ZNRecord
     listFields = new TreeMap<String, List<String>>();
   }
 
+  public void setDeltaList(List<ZNRecordDelta> deltaList)
+  {
+    _deltaList = deltaList;
+  }
+  
+  @JsonProperty
+  public List<ZNRecordDelta> getDeltaList()
+  {
+    return _deltaList;
+  }
+  
   public ZNRecord(ZNRecord record)
   {
     this(record.getId());
@@ -144,9 +160,16 @@ public class ZNRecord
    * 
    * @param record
    */
-  public void merge(ZNRecord record)
+ public void merge(ZNRecord record)
   {
     if(record == null){
+      return;
+    }
+    
+    if(record.getDeltaList().size() > 0)
+    {
+      _logger.info("Merging with delta list, recordId = " + id+ " other:"+record.getId());
+      merge(record.getDeltaList());
       return;
     }
     simpleFields.putAll(record.simpleFields);
@@ -173,6 +196,27 @@ public class ZNRecord
       }
     }
   }
+ 
+  void merge(ZNRecordDelta delta)
+  {
+    if(delta.getMergeOperation() == MERGEOPERATION.ADD)
+    {
+      merge(delta.getRecord());
+    }
+    else if (delta.getMergeOperation() == MERGEOPERATION.SUBSTRACT)
+    {
+      substract(delta.getRecord());
+    }
+  }
+  
+  void merge(List<ZNRecordDelta> deltaList)
+  {
+    for(ZNRecordDelta delta : deltaList)
+    {
+      merge(delta);
+    }
+  }
+  
   @Override
   public boolean equals(Object obj)
   {

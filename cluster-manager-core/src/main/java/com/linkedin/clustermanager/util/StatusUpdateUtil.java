@@ -201,17 +201,26 @@ public class StatusUpdateUtil
     String instanceName = message.getTgtName();
     String statusUpdateSubPath = getStatusUpdateSubPath(message);
     String statusUpdateKey = getStatusUpdateKey(message);
+    String sessionId = message.getExecutionSessionId();
+    if(sessionId == null)
+    {
+      sessionId = message.getTgtSessionId();
+    }
+    if(sessionId == null)
+    {
+      sessionId = "*";
+    }
 
     if (!_recordedMessages.containsKey(message.getMsgId()))
     {
       if (instanceName.equalsIgnoreCase("Controller"))
       {
         accessor.setProperty(PropertyType.STATUSUPDATES_CONTROLLER,
-            createMessageLogRecord(message), statusUpdateSubPath, statusUpdateKey);
+            createMessageLogRecord(message), sessionId, statusUpdateSubPath, statusUpdateKey);
       } else
       {
         accessor.updateProperty(PropertyType.STATUSUPDATES,
-            createMessageLogRecord(message), instanceName, statusUpdateSubPath,
+            createMessageLogRecord(message), instanceName, sessionId,statusUpdateSubPath,
             statusUpdateKey);
       }
       _recordedMessages.put(message.getMsgId(), message.getMsgId());
@@ -220,12 +229,12 @@ public class StatusUpdateUtil
 
     if (instanceName.equalsIgnoreCase("Controller"))
     {
-      accessor.setProperty(PropertyType.STATUSUPDATES_CONTROLLER, record,
+      accessor.setProperty(PropertyType.STATUSUPDATES_CONTROLLER, record, sessionId,
           statusUpdateSubPath, statusUpdateKey);
 
     } else
     {
-      accessor.updateProperty(PropertyType.STATUSUPDATES, record, instanceName,
+      accessor.updateProperty(PropertyType.STATUSUPDATES, record, instanceName, sessionId,
           statusUpdateSubPath, statusUpdateKey);
     }
     // If the error level is ERROR, also write the record to "ERROR" ZNode
@@ -254,16 +263,11 @@ public class StatusUpdateUtil
     if (message.getMsgType().equalsIgnoreCase(
         MessageType.STATE_TRANSITION.toString()))
     {
-      return message.getTgtSessionId() + "__" + message.getStateUnitGroup();
+      return  message.getStateUnitGroup();
     } 
     else
     {
-      String exeSessionId = message.getExecutionSessionId();
-      if(exeSessionId == null)
-      {
-        exeSessionId = "*";
-      }
-      return exeSessionId+"/"+message.getMsgType();
+      return message.getMsgType();
     }
   }
 
@@ -294,14 +298,23 @@ public class StatusUpdateUtil
     String instanceName = message.getTgtName();
     String statusUpdateSubPath = getStatusUpdateSubPath(message);
     String statusUpdateKey = getStatusUpdateKey(message);
+    String sessionId = message.getExecutionSessionId();
+    if(sessionId == null)
+    {
+      sessionId = message.getTgtSessionId();
+    }
+    if(sessionId == null)
+    {
+      sessionId = "*";
+    }
 
     if (instanceName.equalsIgnoreCase("controller"))
     {
-      accessor.setProperty(PropertyType.ERRORS_CONTROLLER, record,
+      accessor.setProperty(PropertyType.ERRORS_CONTROLLER, record, sessionId,
           statusUpdateSubPath);
     } else
     {
-      accessor.updateProperty(PropertyType.ERRORS, record, instanceName,
+      accessor.updateProperty(PropertyType.ERRORS, record, instanceName, sessionId,
           statusUpdateSubPath, statusUpdateKey);
     }
   }

@@ -2,6 +2,7 @@ package com.linkedin.clustermanager.messaging.handling;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
@@ -18,6 +19,8 @@ import com.linkedin.clustermanager.ClusterManagerException;
 import com.linkedin.clustermanager.NotificationContext;
 import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.ZNRecordDelta;
+import com.linkedin.clustermanager.ZNRecordDelta.MERGEOPERATION;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.StateModelDefinition;
 import com.linkedin.clustermanager.participant.statemachine.StateModel;
@@ -222,10 +225,13 @@ public class CMStateTransitionHandler implements MessageHandler
       {// for "OnOfflineToDROPPED" message, we need to remove the resource key
        // record from
        // the current state of the instance because the resource key is dropped.
-       // TODO:: can we set here
-//        accessor.substractInstanceProperty(PropertyType.CURRENTSTATES,
-//            instanceName, manager.getSessionId(), stateUnitGroup,
-//            currentStateDelta);
+        ZNRecordDelta delta = new ZNRecordDelta(currentStateDelta, MERGEOPERATION.SUBSTRACT);
+        List<ZNRecordDelta> deltaList = new ArrayList<ZNRecordDelta>();
+        deltaList.add(delta);
+        ZNRecord updateRecord = new ZNRecord(currentStateDelta.getId());
+        updateRecord.setDeltaList(deltaList);
+        accessor.updateProperty(PropertyType.CURRENTSTATES, updateRecord,
+            instanceName, manager.getSessionId(), stateUnitGroup);
       } else
       {
         // based on task result update the current state of the node.

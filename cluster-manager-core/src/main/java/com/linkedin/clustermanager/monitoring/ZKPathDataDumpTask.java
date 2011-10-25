@@ -58,14 +58,15 @@ public class ZKPathDataDumpTask extends TimerTask
             _thresholdNoChangeInMs * 3);
       }
       scanPath(CMUtil.getControllerPropertyPath(_manager.getClusterName(),
-          PropertyType.STATUSUPDATES), _thresholdNoChangeInMs);
+          PropertyType.STATUSUPDATES_CONTROLLER), _thresholdNoChangeInMs);
       
       scanPath(CMUtil.getControllerPropertyPath(_manager.getClusterName(),
-          PropertyType.ERRORS), _thresholdNoChangeInMs * 3);
+          PropertyType.ERRORS_CONTROLLER), _thresholdNoChangeInMs * 3);
     } 
     catch (Exception e)
     {
       logger.error(e);
+      e.printStackTrace();
     }
   }
 
@@ -78,8 +79,19 @@ public class ZKPathDataDumpTask extends TimerTask
       try
       {
         String nextPath = path + "/" + subPath;
-        checkAndDump(nextPath, thresholdNoChangeInMs);
-      } 
+        List<String> subSubPaths = _zkClient.getChildren(nextPath);
+        for(String subsubPath : subSubPaths)
+        {
+          try
+          {
+            checkAndDump(nextPath + "/" + subsubPath, thresholdNoChangeInMs);
+          }
+          catch (Exception e)
+          {
+            logger.error(e);
+          }
+        } 
+      }
       catch (Exception e)
       {
         logger.error(e);
@@ -97,7 +109,7 @@ public class ZKPathDataDumpTask extends TimerTask
 
       long lastModifiedTimeInMs = pathStat.getMtime();
       long nowInMs = new Date().getTime();
-      logger.info(nowInMs + " " + lastModifiedTimeInMs + " " + fullPath);
+      //logger.info(nowInMs + " " + lastModifiedTimeInMs + " " + fullPath);
 
       // Check the last modified time
       if (nowInMs > lastModifiedTimeInMs)
@@ -133,10 +145,6 @@ public class ZKPathDataDumpTask extends TimerTask
           _zkClient.deleteRecursive(fullPath);
         }
       }
-    }
-    if(_zkClient.getChildren(path).size() == 0)
-    {
-      _zkClient.delete(path);
     }
   }
 }

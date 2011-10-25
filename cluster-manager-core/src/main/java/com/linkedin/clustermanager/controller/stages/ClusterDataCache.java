@@ -1,5 +1,6 @@
 package com.linkedin.clustermanager.controller.stages;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,20 +25,21 @@ import com.linkedin.clustermanager.util.ZNRecordUtil;
  * @author kgopalak
  * 
  */
-public class ClusterDataCache {
-	private Map<String, LiveInstance> _liveInstanceMap;
-	private Map<String, IdealState> _idealStateMap;
-	private Map<String, StateModelDefinition> _stateModelDefMap;
-	private Map<String, InstanceConfig> _instanceConfigMap;
-	private Map<String, Map<String, Map<String, CurrentState>>> _currentStateMap;
-	private Map<String, List<Message>> _messageMap;
+public class ClusterDataCache
+{
+  private Map<String, LiveInstance> _liveInstanceMap;
+  private Map<String, IdealState> _idealStateMap;
+  private Map<String, StateModelDefinition> _stateModelDefMap;
+  private Map<String, InstanceConfig> _instanceConfigMap;
+  private Map<String, Map<String, Map<String, CurrentState>>> _currentStateMap;
+  private Map<String, List<Message>> _messageMap;
 
-  private static final Logger logger = Logger
-      .getLogger(ClusterDataCache.class.getName());
+  private static final Logger logger = Logger.getLogger(ClusterDataCache.class
+      .getName());
 
   private <T extends Object> Map<String, T> retrieve(
-	      ClusterDataAccessor dataAccessor, PropertyType type,
-	      Class<T> clazz, String... keys)
+      ClusterDataAccessor dataAccessor, PropertyType type, Class<T> clazz,
+      String... keys)
   {
     List<ZNRecord> instancePropertyList = dataAccessor.getChildValues(type,
         keys);
@@ -45,7 +47,7 @@ public class ClusterDataCache {
         instancePropertyList, clazz);
     return map;
   }
-  
+
   private <T extends Object> Map<String, T> retrieve(
       ClusterDataAccessor dataAccessor, PropertyType type, Class<T> clazz)
   {
@@ -56,79 +58,96 @@ public class ClusterDataCache {
         clusterPropertyList, clazz);
     return map;
   }
-  
-	public boolean refresh(ClusterDataAccessor dataAccessor)
-	{
-		_idealStateMap = retrieve(dataAccessor,
-	        PropertyType.IDEALSTATES, IdealState.class);
-		_liveInstanceMap = retrieve(dataAccessor,
-	        PropertyType.LIVEINSTANCES, LiveInstance.class);
 
-	    for(LiveInstance instance : _liveInstanceMap.values())
-	    {
-	      logger.trace("live instance: "+ instance.getInstanceName() + " " + instance.getSessionId());
-	    }
-	    _stateModelDefMap = retrieve(dataAccessor,
-	        PropertyType.STATEMODELDEFS, StateModelDefinition.class);
-	    _instanceConfigMap = retrieve(dataAccessor,
-	        PropertyType.CONFIGS, InstanceConfig.class);
-	    
-	    _messageMap = new HashMap<String, List<Message>>();
-	    for (String instanceName : _instanceConfigMap.keySet())
-	    {
-	    	List<ZNRecord> childValues = dataAccessor.getChildValues(PropertyType.MESSAGES, instanceName);
-				List<Message> messages = ZNRecordUtil.convertListToTypedList(childValues, Message.class);
-				_messageMap.put(instanceName, messages);
-	    }
-	    
-	    for (String instanceName : _liveInstanceMap.keySet())
-	    {
-	    	LiveInstance liveInstance = _liveInstanceMap.get(instanceName);
-	    	String sessionId = liveInstance.getSessionId();
-	    	Map<String, CurrentState> resourceGroupStateMap = retrieve(dataAccessor, PropertyType.CURRENTSTATES,
-	          CurrentState.class, instanceName, sessionId);
-	    	if (!_currentStateMap.containsKey(instanceName))
-	    	{
-	    		_currentStateMap.put(instanceName, new HashMap<String, Map<String,CurrentState>>());
-	    	} 
-	    	if (!_currentStateMap.get(instanceName).containsKey(sessionId))
-	    	{
-	    		_currentStateMap.get(instanceName).put(sessionId, resourceGroupStateMap);
-	    	}
-	    	
-	    }
+  public boolean refresh(ClusterDataAccessor dataAccessor)
+  {
+    _idealStateMap = retrieve(dataAccessor, PropertyType.IDEALSTATES,
+        IdealState.class);
+    _liveInstanceMap = retrieve(dataAccessor, PropertyType.LIVEINSTANCES,
+        LiveInstance.class);
 
-	    
-	    return true;
-	}
+    for (LiveInstance instance : _liveInstanceMap.values())
+    {
+      logger.trace("live instance: " + instance.getInstanceName() + " "
+          + instance.getSessionId());
+    }
+    _stateModelDefMap = retrieve(dataAccessor, PropertyType.STATEMODELDEFS,
+        StateModelDefinition.class);
+    _instanceConfigMap = retrieve(dataAccessor, PropertyType.CONFIGS,
+        InstanceConfig.class);
 
-	public Map<String, IdealState> getIdealStates() {
-  	return _idealStateMap;
-	}
+    _messageMap = new HashMap<String, List<Message>>();
+    for (String instanceName : _liveInstanceMap.keySet())
+    {
+      List<ZNRecord> childValues = dataAccessor.getChildValues(
+          PropertyType.MESSAGES, instanceName);
+      List<Message> messages = ZNRecordUtil.convertListToTypedList(childValues,
+          Message.class);
+      _messageMap.put(instanceName, messages);
+    }
 
-	public Map<String, LiveInstance> getLiveInstances() {
-		return _liveInstanceMap;
-	}
+    _currentStateMap = new HashMap<String, Map<String, Map<String, CurrentState>>>();
+    for (String instanceName : _liveInstanceMap.keySet())
+    {
+      LiveInstance liveInstance = _liveInstanceMap.get(instanceName);
+      String sessionId = liveInstance.getSessionId();
+      Map<String, CurrentState> resourceGroupStateMap = retrieve(dataAccessor,
+          PropertyType.CURRENTSTATES, CurrentState.class, instanceName,
+          sessionId);
+      if (!_currentStateMap.containsKey(instanceName))
+      {
+        _currentStateMap.put(instanceName,
+            new HashMap<String, Map<String, CurrentState>>());
+      }
+      if (!_currentStateMap.get(instanceName).containsKey(sessionId))
+      {
+        _currentStateMap.get(instanceName)
+            .put(sessionId, resourceGroupStateMap);
+      }
 
-	public Map<String, CurrentState> getCurrentState(String instanceName,
-			String clientSessionId) {
-		return _currentStateMap.get(instanceName).get(clientSessionId);
-	}
+    }
 
+    return true;
+  }
 
-	public List<Message> getMessages(String instanceName) {
+  public Map<String, IdealState> getIdealStates()
+  {
+    return _idealStateMap;
+  }
 
-		return _messageMap.get(instanceName);
-	}
+  public Map<String, LiveInstance> getLiveInstances()
+  {
+    return _liveInstanceMap;
+  }
 
-	public StateModelDefinition getStateModelDef(String stateModelDefRef) {
-		
-		return _stateModelDefMap.get(stateModelDefRef);
-	}
+  public Map<String, CurrentState> getCurrentState(String instanceName,
+      String clientSessionId)
+  {
+    return _currentStateMap.get(instanceName).get(clientSessionId);
+  }
 
-	public IdealState getIdealState(String resourceGroupName) {
-		return _idealStateMap.get(resourceGroupName);
-	}
+  public List<Message> getMessages(String instanceName)
+  {
 
+    List<Message> list = _messageMap.get(instanceName);
+    if (list != null)
+    {
+      return list;
+    } else
+    {
+      return Collections.emptyList();
+    }
+  }
+
+  public StateModelDefinition getStateModelDef(String stateModelDefRef)
+  {
+
+    return _stateModelDefMap.get(stateModelDefRef);
+  }
+
+  public IdealState getIdealState(String resourceGroupName)
+  {
+    return _idealStateMap.get(resourceGroupName);
+  }
 
 }

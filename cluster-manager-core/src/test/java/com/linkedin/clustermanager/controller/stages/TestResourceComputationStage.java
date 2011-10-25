@@ -44,6 +44,7 @@ public class TestResourceComputationStage extends BaseStageTest
     manager.getDataAccessor().setProperty(PropertyType.IDEALSTATES,
         idealState.getRecord(), resourceGroupName);
     ResourceComputationStage stage = new ResourceComputationStage();
+    runStage(event, new ReadClusterDataStage());
     runStage(event, stage);
 
     Map<String, ResourceGroup> resourceGroup = event
@@ -67,6 +68,7 @@ public class TestResourceComputationStage extends BaseStageTest
         { "testResourceGroup1", "testResourceGroup2" };
     setupIdealState(5, idealStates,resourceGroups);
     ResourceComputationStage stage = new ResourceComputationStage();
+    runStage(event, new ReadClusterDataStage());
     runStage(event, stage);
 
     Map<String, ResourceGroup> resourceGroupMap = event
@@ -138,6 +140,7 @@ public class TestResourceComputationStage extends BaseStageTest
         currentStateRecord, instanceName, sessionId, oldResourceGroup);
 
     ResourceComputationStage stage = new ResourceComputationStage();
+    runStage(event, new ReadClusterDataStage());
     runStage(event, stage);
 
     Map<String, ResourceGroup> resourceGroupMap = event

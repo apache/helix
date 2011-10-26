@@ -21,7 +21,7 @@ public enum PropertyType
   ERRORS(Type.INSTANCE, true, true), 
   HEALTHREPORT(Type.INSTANCE, true, false,false), 
   //CONTROLLER PROPERTY
-  LEADER(Type.CONTROLLER, false, false, true), 
+  LEADER(Type.CONTROLLER, false, false, true, true), 
   HISTORY(Type.CONTROLLER, true, true, true),
   PAUSE(Type.CONTROLLER, false,false, true),
   MESSAGES_CONTROLLER(Type.CONTROLLER, true, false, true), 
@@ -35,18 +35,33 @@ public enum PropertyType
 
   boolean updateOnlyOnExists;
 
+  boolean createIfAbsent;
+
+  
   private PropertyType(Type type, boolean isPersistent, boolean mergeOnUpdate)
   {
     this(type, isPersistent, mergeOnUpdate, false);
   }
 
-  private PropertyType(Type type, boolean isPersistent,
-      boolean mergeOnUpdate, boolean updateOnlyOnExists)
+  public boolean isCreateIfAbsent() {
+		return createIfAbsent;
+	}
+
+	public void setCreateIfAbsent(boolean createIfAbsent) {
+		this.createIfAbsent = createIfAbsent;
+	}
+	private PropertyType(Type type, boolean isPersistent,
+      boolean mergeOnUpdate, boolean updateOnlyOnExists){
+	   this(type, isPersistent, mergeOnUpdate, false, false);
+	}
+	private PropertyType(Type type, boolean isPersistent,
+      boolean mergeOnUpdate, boolean updateOnlyOnExists,boolean createIfAbsent)
   {
     this.type = type;
     this.isPersistent = isPersistent;
     this.mergeOnUpdate = mergeOnUpdate;
     this.updateOnlyOnExists = updateOnlyOnExists;
+		this.createIfAbsent = createIfAbsent;
   }
 
   public Type getType()

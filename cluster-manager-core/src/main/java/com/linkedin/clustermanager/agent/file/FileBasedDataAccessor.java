@@ -1,12 +1,12 @@
 package com.linkedin.clustermanager.agent.file;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.log4j.Logger;
-import org.apache.zookeeper.CreateMode;
 
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.PropertyPathConfig;
@@ -15,7 +15,6 @@ import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.store.PropertyStore;
 import com.linkedin.clustermanager.store.PropertyStoreException;
 import com.linkedin.clustermanager.store.file.FilePropertyStore;
-import com.linkedin.clustermanager.util.CMUtil;
 
 public class FileBasedDataAccessor implements ClusterDataAccessor
 {
@@ -628,8 +627,27 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
   @Override
   public List<String> getChildNames(PropertyType type, String... keys)
   {
-    // TODO Auto-generated method stub
-    return null;
+    // List<String> childNames = new ArrayList<String>();
+    String path = PropertyPathConfig.getPath(type, _clusterName, keys);
+    
+    try
+    {
+      _readWriteLock.readLock().lock();
+      
+      List<String> childs = _store.getPropertyNames(path);
+      return childs;
+    }
+    catch(PropertyStoreException e)
+    {
+      logger.error("Fail to get child names:" + _clusterName + 
+          " parentPath:" + path + "\nexception: " + e);
+    }
+    finally
+    {
+      _readWriteLock.readLock().unlock();
+    }
+    
+    return Collections.emptyList();
   }
 
   @Override

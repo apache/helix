@@ -1,17 +1,11 @@
-package com.linkedin.clustermanager.integration;
+	package com.linkedin.clustermanager.integration;
 
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.Test;
-import org.testng.annotations.BeforeClass;
-import org.testng.AssertJUnit;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
-import org.testng.Assert;
 import org.testng.AssertJUnit;
-import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 
 import com.linkedin.clustermanager.ClusterDataAccessor.InstanceConfigProperty;
@@ -108,6 +102,7 @@ public class FileCMTestBase
           + "\nexception:" + e);
     }
 
+    /*
     // wait until all transitions finished
     // TODO replace sleep with verifier
     try
@@ -118,31 +113,58 @@ public class FileCMTestBase
       // TODO Auto-generated catch block
       e.printStackTrace();
     }
-
+	  */
+    
     // verify current state
     ZNRecord idealStates = _accessor.getProperty(PropertyType.IDEALSTATES,
         TEST_DB);
     for (int i = 0; i < NODE_NR; i++)
     {
-      ZNRecord curStates = _accessor.getProperty(PropertyType.CURRENTSTATES,
-          "localhost_" + (START_PORT + i), _manager.getSessionId(), TEST_DB);
-      boolean result = verifyCurStateAndIdealState(curStates, idealStates,
-          "localhost_" + (START_PORT + i), TEST_DB);
-      AssertJUnit.assertTrue(result);
+      try
+      {
+        boolean result = false;
+        int j = 0;
+        for (; j < 24; j++)
+        {
+          Thread.sleep(2000);
+          ZNRecord curStates = _accessor.getProperty(PropertyType.CURRENTSTATES,
+              "localhost_" + (START_PORT + i), _manager.getSessionId(), TEST_DB);
+          result = verifyCurStateAndIdealState(curStates, idealStates,
+              "localhost_" + (START_PORT + i), TEST_DB);
+          if (result == true)
+          {
+            break;
+          }
+        }
+        // debug
+        System.err.println("verifyIdealAndCurrentState(): wait "
+            + ((j + 1) * 2000) + "ms to verify (" + result + ") participant:"
+            + "localhost_" + (START_PORT + i));
+
+        if (result == false)
+        {
+          System.err.println("verifyIdealAndCurrentState() fails for participant:"
+              + "localhost_" + (START_PORT + i));
+        }
+        AssertJUnit.assertTrue(result);
+      } catch (InterruptedException e)
+      {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      }
     }
 
   }
 
-  @AfterClass(groups =
-  { "integrationTest" })
+  // @AfterClass(groups = { "integrationTest" })
   public void afterClass() throws Exception
   {
-    logger.info("END shutting down file-based cluster managers at "
+    logger.info("START afterClass FileCMTestBase shutting down file-based cluster managers at "
         + new Date(System.currentTimeMillis()));
 
     // Thread.sleep(3000);
     _store.stop();
-    logger.info("END at " + new Date(System.currentTimeMillis()));
+    logger.info("END afterClass FileCMTestBase at " + new Date(System.currentTimeMillis()));
 
   }
 
@@ -194,6 +216,11 @@ public class FileCMTestBase
       if (!instance.equals(instanceName))
         continue;
 
+      if (curStates == null || curStates.getMapFields() == null)
+      {
+      	return false;
+      }
+      
       for (Map.Entry<String, Map<String, String>> curStateEntry : curStates
           .getMapFields().entrySet())
       {
@@ -209,12 +236,18 @@ public class FileCMTestBase
     return true;
   }
 
-  protected void verifyEmptyCurrentState(String instanceName,
+  protected boolean verifyEmptyCurrentState(String instanceName,
       String resourceGroup)
   {
     List<String> subPaths = _accessor.getChildNames(PropertyType.CURRENTSTATES,
         instanceName);
 
+    if (subPaths == null)
+    {
+    	return false;
+    }
+    // System.err.println("subPaths=" + Arrays.toString(subPaths.toArray()));
+    
     for (String prevSession : subPaths)
     {
       if (_store.exists(prevSession + "/" + resourceGroup))
@@ -224,16 +257,14 @@ public class FileCMTestBase
         ZNRecord prevCurrentState = _accessor.getProperty(
             PropertyType.CURRENTSTATES, instanceName, prevSessionId,
             resourceGroup);
-        AssertJUnit.assertTrue(prevCurrentState.getMapFields().size() == 0);
+        boolean result = prevCurrentState.getMapFields().size() == 0;
+        if (result == false)
+        {
+        	return false;
+        }
       }
     }
-  }
-
-  // @Test
-  @Test
-  public void testFileClusterManagerHandler()
-  {
-    logger.info("Dummy run at " + new Date(System.currentTimeMillis()));
+    return true;
   }
 
 }

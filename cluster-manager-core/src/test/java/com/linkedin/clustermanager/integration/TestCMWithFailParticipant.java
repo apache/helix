@@ -1,13 +1,32 @@
 package com.linkedin.clustermanager.integration;
 
-import org.testng.annotations.Test;
 import java.util.Date;
 
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+
+import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
+import com.linkedin.clustermanager.agent.zk.ZkClient;
 
 
 public class TestCMWithFailParticipant extends ZkIntegrationTestBase
 {
+  ZkClient _zkClient;
+  @BeforeClass (groups = {"integrationTest"})
+  public void beforeClass() throws Exception
+  {
+  	_zkClient = new ZkClient(ZK_ADDR);
+  	_zkClient.setZkSerializer(new ZNRecordSerializer());
+  }
+  
+  
+	@AfterClass
+  public void afterClass()
+  {
+  	_zkClient.close();
+  }
+	
   @Test (groups = {"integrationTest"})
   public void testCMWithFailParticipant() throws Exception
   {
@@ -20,7 +39,7 @@ public class TestCMWithFailParticipant extends ZkIntegrationTestBase
         + numNode + "_r" + replica;
     System.out.println("START " + uniqTestName + " at " + new Date(System.currentTimeMillis()));
 
-    TestDriver.setupCluster(uniqTestName, numDb, numPartitionsPerDb, numNode, replica);
+    TestDriver.setupCluster(uniqTestName, _zkClient, numDb, numPartitionsPerDb, numNode, replica);
 
     for (int i = 0; i < numNode; i++)
     {

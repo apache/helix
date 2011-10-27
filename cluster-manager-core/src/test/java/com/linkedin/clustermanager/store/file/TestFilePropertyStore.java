@@ -1,19 +1,16 @@
 package com.linkedin.clustermanager.store.file;
 
-import org.testng.annotations.Test;
-import org.testng.AssertJUnit;
 import java.util.Date;
 import java.util.List;
 
 import org.I0Itec.zkclient.DataUpdater;
 import org.apache.log4j.Logger;
-import org.testng.Assert;
+import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.store.PropertyChangeListener;
 import com.linkedin.clustermanager.store.PropertyJsonComparator;
 import com.linkedin.clustermanager.store.PropertyJsonSerializer;
-import com.linkedin.clustermanager.store.file.FilePropertyStore;
 
 public class TestFilePropertyStore
 {
@@ -47,7 +44,7 @@ public class TestFilePropertyStore
   @Test (groups = {"unitTest"})
   public void testFilePropertyStore() throws Exception
   {
-    logger.info("RUN testFilePropertyStore() at " + new Date(System.currentTimeMillis()));
+    System.out.println("START TestFilePropertyStore at " + new Date(System.currentTimeMillis()));
     
     final int SLEEP_TIME = 2000;
     PropertyJsonSerializer<String> serializer = new PropertyJsonSerializer<String>(String.class);
@@ -130,5 +127,6 @@ public class TestFilePropertyStore
     
     store.unsubscribeForPropertyChange("/child1", listener2);
     store.stop();
+    System.out.println("END TestFilePropertyStore at " + new Date(System.currentTimeMillis()));
   }
 }

@@ -1,12 +1,11 @@
 package com.linkedin.clustermanager.messaging;
 
-import org.testng.annotations.Test;
-import org.testng.AssertJUnit;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
-import org.testng.Assert;
+import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.model.Message;
@@ -30,10 +29,12 @@ public class TestAsyncCallback
       _onReplyMessageCalled++;
     }
   }
+  
   @Test(groups =
   { "unitTest" })
   public void testAsyncCallback() throws Exception
   {
+    System.out.println("START TestAsyncCallback at" + new Date(System.currentTimeMillis()));
     AsyncCallbackSample callback = new AsyncCallbackSample();
     AssertJUnit.assertFalse(callback.isInterrupted());
     AssertJUnit.assertFalse(callback.isTimedOut());
@@ -94,13 +95,14 @@ public class TestAsyncCallback
     sleep(1300);
     AssertJUnit.assertFalse(callback.isTimedOut());
     AssertJUnit.assertTrue(callback._onTimeOutCalled == 0 );
+    System.out.println("END TestAsyncCallback at" + new Date(System.currentTimeMillis()));
   }
   
   void sleep(int time)
   {
     try
     {
-      Thread.currentThread().sleep(time);
+      Thread.sleep(time);
     }
     catch(Exception e)
     {

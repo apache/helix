@@ -18,7 +18,6 @@ import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.TestHelper;
 import com.linkedin.clustermanager.TestHelper.StartCMResult;
 import com.linkedin.clustermanager.ZNRecord;
-import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
 import com.linkedin.clustermanager.controller.ClusterManagerMain;
 import com.linkedin.clustermanager.store.PropertyJsonSerializer;
@@ -37,10 +36,10 @@ public class TestDriver
 {
   private static Logger LOG = Logger.getLogger(TestDriver.class);
   private static final String ZK_ADDR = ZkIntegrationTestBase.ZK_ADDR; // "localhost:2183";
-  private static final int DEFAULT_SESSION_TIMEOUT = 30000;
-  private static final int DEFAULT_CONNECTION_TIMEOUT = Integer.MAX_VALUE;
-  private static final ZkClient _zkClient = new ZkClient(ZK_ADDR, DEFAULT_SESSION_TIMEOUT,
-      DEFAULT_CONNECTION_TIMEOUT, new ZNRecordSerializer());
+  // private static final int DEFAULT_SESSION_TIMEOUT = 30000;
+  // private static final int DEFAULT_CONNECTION_TIMEOUT = Integer.MAX_VALUE;
+  // private static final ZkClient _zkClient = new ZkClient(ZK_ADDR, DEFAULT_SESSION_TIMEOUT,
+  //    DEFAULT_CONNECTION_TIMEOUT, new ZNRecordSerializer());
 
   private static final String CLUSTER_PREFIX = "TestDriver";
   private static final String STATE_MODEL = "MasterSlave";
@@ -56,6 +55,7 @@ public class TestDriver
 
   private static class TestInfo
   {
+  	public final ZkClient _zkClient;
     public final String _clusterName;
     public final int _numDb;
     public final int _numPartitionsPerDb;
@@ -67,39 +67,40 @@ public class TestDriver
 
     // public final CountDownLatch _instanceStarted;
 
-    public TestInfo(String clusterName, int numDb, int numPartitionsPerDb, int numNode, int replica)
+    public TestInfo(String clusterName, ZkClient zkClient, int numDb, int numPartitionsPerDb, int numNode, int replica)
     {
-      _clusterName = clusterName;
-      _numDb = numDb;
-      _numPartitionsPerDb = numPartitionsPerDb;
-      _numNode = numNode;
-      _replica = replica;
+			this._clusterName = clusterName;
+			this._zkClient = zkClient;
+      this._numDb = numDb;
+      this._numPartitionsPerDb = numPartitionsPerDb;
+      this._numNode = numNode;
+      this._replica = replica;
       // _instanceStarted = new CountDownLatch(_numNode);
     }
   }
 
-  public static void setupClusterWithoutRebalance(String uniqTestName, int numDb,
-      int numPartitionPerDb, int numNodes, int replica) throws Exception
+  public static void setupClusterWithoutRebalance(String uniqTestName, ZkClient zkClient, 
+  		int numDb, int numPartitionPerDb, int numNodes, int replica) throws Exception
   {
-    setupCluster(uniqTestName, numDb, numPartitionPerDb, numNodes, replica, false);
+    setupCluster(uniqTestName, zkClient, numDb, numPartitionPerDb, numNodes, replica, false);
   }
 
-  public static void setupCluster(String uniqTestName, int numDb, int numPartitionPerDb,
-      int numNodes, int replica) throws Exception
+  public static void setupCluster(String uniqTestName, ZkClient zkClient, int numDb, 
+  		int numPartitionPerDb, int numNodes, int replica) throws Exception
   {
-    setupCluster(uniqTestName, numDb, numPartitionPerDb, numNodes, replica, true);
+    setupCluster(uniqTestName, zkClient, numDb, numPartitionPerDb, numNodes, replica, true);
   }
 
-  public static void setupCluster(String uniqTestName, int numDb, int numPartitionPerDb,
-      int numNodes, int replica, boolean doRebalance) throws Exception
+  public static void setupCluster(String uniqTestName, ZkClient zkClient, int numDb, 
+  		int numPartitionPerDb, int numNodes, int replica, boolean doRebalance) throws Exception
   {
 
     String clusterName = CLUSTER_PREFIX + "_" + uniqTestName;
-    if (_zkClient.exists("/" + clusterName))
+    if (zkClient.exists("/" + clusterName))
     {
       LOG.warn("test cluster already exists:" + clusterName + ", test name:" + uniqTestName
           + " is not unique or test has been run without cleaning up zk; deleting it");
-      _zkClient.deleteRecursive("/" + clusterName);
+      zkClient.deleteRecursive("/" + clusterName);
     }
 
     if (_testInfoMap.containsKey(uniqTestName))
@@ -108,7 +109,8 @@ public class TestDriver
           + " is not unique or test has been run without cleaning up test info map; removing it");
       _testInfoMap.remove(uniqTestName);
     }
-    TestInfo testInfo = new TestInfo(clusterName, numDb, numPartitionPerDb, numNodes, replica);
+    TestInfo testInfo = new TestInfo(clusterName, zkClient, numDb, numPartitionPerDb, 
+    		numNodes, replica);
     _testInfoMap.put(uniqTestName, testInfo);
     
     
@@ -131,7 +133,7 @@ public class TestDriver
         
         String idealStatePath = "/" + clusterName + "/" + PropertyType.IDEALSTATES.toString()
             + "/" + dbName;
-        ZNRecord idealState = _zkClient.<ZNRecord> readData(idealStatePath);
+        ZNRecord idealState = zkClient.<ZNRecord> readData(idealStatePath);
         testInfo._idealStateMap.put(dbName, idealState);
       }
     }
@@ -217,13 +219,14 @@ public class TestDriver
 
     TestInfo testInfo = _testInfoMap.get(uniqTestName);
     String clusterName = testInfo._clusterName;
+    ZkClient zkClient = testInfo._zkClient;
 
     // verify external view
     String liveInstancePath = "/" + clusterName + "/"
         + PropertyType.LIVEINSTANCES.toString();
-    List<String> liveInstances = _zkClient.getChildren(liveInstancePath);
+    List<String> liveInstances = zkClient.getChildren(liveInstancePath);
     String configInstancePath = "/" + clusterName + "/" + PropertyType.CONFIGS.toString();
-    List<String> failInstances = _zkClient.getChildren(configInstancePath);
+    List<String> failInstances = zkClient.getChildren(configInstancePath);
     failInstances.removeAll(liveInstances);
 
     List<TestCommand> commandList = new ArrayList<TestCommand>();
@@ -368,8 +371,8 @@ public class TestDriver
       // LOG.info("initIS:" + initIS); 
       // LOG.info("destIS:" + destIS); 
       // LOG.info("totalSteps from initIS to destIS:" + totalStep);
-      System.out.println("initIS:" + initIS);
-      System.out.println("destIS:" + destIS);
+      // System.out.println("initIS:" + initIS);
+      // System.out.println("destIS:" + destIS);
       System.out.println("totalSteps from initIS to destIS:" + totalStep);
       
 

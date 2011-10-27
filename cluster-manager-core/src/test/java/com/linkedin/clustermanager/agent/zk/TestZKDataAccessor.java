@@ -1,15 +1,11 @@
 package com.linkedin.clustermanager.agent.zk;
 
-import org.testng.annotations.AfterMethod;
-import org.testng.annotations.Test;
-import org.testng.annotations.BeforeClass;
-import org.testng.AssertJUnit;
 import java.io.File;
 import java.io.IOException;
+import java.util.Date;
 import java.util.List;
 
 import org.apache.zookeeper.data.Stat;
-import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -26,10 +22,13 @@ import com.linkedin.clustermanager.store.PropertyStoreException;
 
 public class TestZKDataAccessor extends ZkUnitTestBase
 {
+	
   private ClusterDataAccessor _accessor;
-  private String _clusterName;
+  private String _clusterName; 
   private final String resourceGroup = "resourceGroup";
 
+	ZkClient _zkClient;
+	
   @Test (groups = { "unitTest" })
   public void testSet()
   {
@@ -137,65 +136,9 @@ public class TestZKDataAccessor extends ZkUnitTestBase
   // private String _zkServerAddress;
   // private List<ZkServer> _localZkServers;
   // private ZkClient _zkClient;
-
-
-  /*
-  public static List<ZkServer> startLocalZookeeper(
-      List<Integer> localPortsList, String zkTestDataRootDir, int tickTime)
-      throws IOException
-  {
-    List<ZkServer> localZkServers = new ArrayList<ZkServer>();
-
-    int count = 0;
-    for (int port : localPortsList)
-    {
-      ZkServer zkServer = startZkServer(zkTestDataRootDir, count++, port,
-          tickTime);
-      localZkServers.add(zkServer);
-    }
-    return localZkServers;
-  }
-
-  public static ZkServer startZkServer(String zkTestDataRootDir, int machineId,
-      int port, int tickTime) throws IOException
-  {
-    File zkTestDataRootDirFile = new File(zkTestDataRootDir);
-    zkTestDataRootDirFile.mkdirs();
-
-    String dataPath = zkTestDataRootDir + "/" + machineId + "/" + port
-        + "/data";
-    String logPath = zkTestDataRootDir + "/" + machineId + "/" + port + "/log";
-
-    FileUtils.deleteDirectory(new File(dataPath));
-    FileUtils.deleteDirectory(new File(logPath));
-
-    IDefaultNameSpace mockDefaultNameSpace = new IDefaultNameSpace()
-    {
-
-      @Override
-      public void createDefaultNameSpace(org.I0Itec.zkclient.ZkClient zkClient)
-      {
-      }
-    };
-
-    ZkServer zkServer = new ZkServer(dataPath, logPath, mockDefaultNameSpace,
-        port, tickTime);
-    zkServer.start();
-
-    return zkServer;
-  }
-
-  private static void stopLocalZookeeper(List<ZkServer> localZkServers)
-  {
-    for (ZkServer zkServer : localZkServers)
-    {
-      zkServer.shutdown();
-    }
-  }
-  */
   
-  @BeforeClass(groups = { "unitTest" })
-  public void setup() throws IOException, Exception
+  @BeforeClass
+  public void beforeClass() throws IOException, Exception
   {
     // List<Integer> localPorts = new ArrayList<Integer>();
     // localPorts.add(2300);
@@ -209,6 +152,10 @@ public class TestZKDataAccessor extends ZkUnitTestBase
     // _zkClient.setZkSerializer(new ZNRecordSerializer());
     _clusterName = CLUSTER_PREFIX + "_" + getShortClassName();  // testCluster";
     
+		System.out.println("START TestZKDataAccessor.beforeClass() at " + new Date(System.currentTimeMillis()));
+		_zkClient = new ZkClient(ZK_ADDR);
+		_zkClient.setZkSerializer(new ZNRecordSerializer());
+    
     if (_zkClient.exists("/" + _clusterName))
     {
       _zkClient.deleteRecursive("/" + _clusterName);
@@ -216,11 +163,11 @@ public class TestZKDataAccessor extends ZkUnitTestBase
     _accessor = new ZKDataAccessor(_clusterName, _zkClient);
   }
 
-  @AfterMethod
-  @AfterClass(groups = { "unitTest" })
-  public void tearDown()
+  @AfterClass
+  public void afterClass()
   {
-    // stopLocalZookeeper(_localZkServers);
+		_zkClient.close();
+		System.out.println("END TestZKDataAccessor.beforeClass() at " + new Date(System.currentTimeMillis()));
   }
-
+  
 }

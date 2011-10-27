@@ -1,21 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
 <suite name="Suite" parallel="none">
-  <test name="Test" preserve-order="false">
+  <test name="Test" preserve-order="true">
     <packages>
       <package name="com.linkedin.clustermanager.messaging.handling"/>
       <package name="com.linkedin.clustermanager.agent.file"/>
       <package name="com.linkedin.clustermanager.monitoring"/>
       <package name="com.linkedin.clustermanager.store.zk"/>
-      <package name="com.linkedin.clustermanager"/>
-      <package name="com.linkedin.clustermanager.monitoring.mbeans"/>
-      <package name="com.linkedin.clustermanager.integration"/>
-      <package name="com.linkedin.clustermanager.store"/>
-      <package name="com.linkedin.clustermanager.agent.zk"/>
       <package name="com.linkedin.clustermanager.messaging"/>
       <package name="com.linkedin.clustermanager.controller.stages"/>
       <package name="com.linkedin.clustermanager.store.file"/>
+      <package name="com.linkedin.clustermanager.store"/>
+      <package name="com.linkedin.clustermanager.monitoring.mbeans"/>
       <package name="com.linkedin.clustermanager.participant"/>
+      <package name="com.linkedin.clustermanager"/>
+      <package name="com.linkedin.clustermanager.agent.zk"/>
+      <package name="com.linkedin.clustermanager.integration"/>
     </packages>
   </test>
-</suite>
+</suite>	

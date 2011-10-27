@@ -1,9 +1,7 @@
 package com.linkedin.clustermanager.agent.file;
 
 
-import org.testng.annotations.Test;
 import org.testng.AssertJUnit;
-import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.PropertyType;
@@ -14,6 +12,7 @@ public class TestDummyFileDataAccessor
   @Test(groups = { "unitTest" })
   public void testDummyFileDataAccessor()
   {
+  	System.out.println("START TestDummyFileDataAccessor");
     DummyFileDataAccessor accessor = new DummyFileDataAccessor();
     ZNRecord record = new ZNRecord("id1");
     AssertJUnit.assertFalse(accessor.setProperty(PropertyType.CONFIGS, record));
@@ -23,6 +22,7 @@ public class TestDummyFileDataAccessor
     AssertJUnit.assertNull(accessor.getChildNames(PropertyType.CONFIGS, "key1"));
     AssertJUnit.assertNull(accessor.getChildValues(PropertyType.CONFIGS, "key1"));
     AssertJUnit.assertNull(accessor.getStore());
+    System.out.println("END TestDummyFileDataAccessor");
   }
 
 }

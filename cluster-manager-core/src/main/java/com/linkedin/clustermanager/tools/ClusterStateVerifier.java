@@ -157,7 +157,7 @@ public class ClusterStateVerifier
       String curState = currentStateMap.get(stateUnitKey).getCurrentState();
       if (!idealState.equalsIgnoreCase(curState))
       {
-        _logger.error("State mismatch--unit_key:" + stateUnitKey + " cur:"
+        _logger.info("State mismatch--unit_key:" + stateUnitKey + " cur:"
             + curState + " ideal:" + idealState + " instance_name:"
             + instanceName);
         // return false;
@@ -243,7 +243,7 @@ public class ClusterStateVerifier
 
     if (countInIdealStates != countInCurrentStates)
     {
-      _logger.error("countInIdealStates:" + countInIdealStates
+      _logger.info("countInIdealStates:" + countInIdealStates
           + "countInCurrentStates: " + countInCurrentStates);
     }
     return countInIdealStates == countInCurrentStates;

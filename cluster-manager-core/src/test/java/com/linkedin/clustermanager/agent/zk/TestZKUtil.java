@@ -1,13 +1,11 @@
 package com.linkedin.clustermanager.agent.zk;
 
-import org.testng.annotations.Test;
-import org.testng.annotations.BeforeClass;
-import org.testng.AssertJUnit;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.testng.AssertJUnit;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -20,10 +18,13 @@ import com.linkedin.clustermanager.ZkUnitTestBase;
 public class TestZKUtil extends ZkUnitTestBase
 {
   String clusterName = CLUSTER_PREFIX + "_" + getShortClassName();
+  ZkClient _zkClient;
   
   @BeforeClass(groups = { "unitTest" })
-  public void setup() throws IOException, Exception
+  public void beforeClass() throws IOException, Exception
   {
+  	_zkClient = new ZkClient(ZK_ADDR);
+  	_zkClient.setZkSerializer(new ZNRecordSerializer());
     if (_zkClient.exists("/" + clusterName))
     {
       _zkClient.deleteRecursive("/" + clusterName);
@@ -43,6 +44,12 @@ public class TestZKUtil extends ZkUnitTestBase
     TestHelper.setupEmptyCluster(_zkClient, clusterName);
   }
 
+  @AfterClass(groups = { "unitTest" })
+  public void afterClass()
+  {
+  	_zkClient.close();
+  }
+  
   @Test(groups = { "unitTest" })
   public void testIsClusterSetup()
   {

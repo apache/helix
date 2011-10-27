@@ -1,8 +1,5 @@
 package com.linkedin.clustermanager;
 
-import org.testng.annotations.Test;
-import org.testng.annotations.BeforeClass;
-import org.testng.AssertJUnit;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -11,6 +8,8 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 import org.testng.Assert;
+import org.testng.AssertJUnit;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -216,11 +215,13 @@ public class TestZnodeModify extends ZkUnitTestBase
     
   }
   
+  ZkClient _zkClient;
   
   @BeforeClass (groups = {"unitTest"})
   public void beforeClass()
   {
-    // _zkServer = TestHelper.startZkSever(ZK_ADDR, PREFIX);
+    _zkClient = new ZkClient(ZK_ADDR);
+    _zkClient.setZkSerializer(new ZNRecordSerializer());
     if (_zkClient.exists(PREFIX))
     {
       _zkClient.deleteRecursive(PREFIX);
@@ -228,13 +229,13 @@ public class TestZnodeModify extends ZkUnitTestBase
     
   }
   
-  /*
+  
   @AfterClass
   public void afterClass()
   {
-    TestHelper.stopZkServer(_zkServer);
+  	_zkClient.close();
   }
-  */
+  
   
   private ZNRecord getExampleZNRecord()
   {

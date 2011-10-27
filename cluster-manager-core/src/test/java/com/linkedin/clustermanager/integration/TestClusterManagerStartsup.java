@@ -1,11 +1,9 @@
 package com.linkedin.clustermanager.integration;
 
-import org.testng.annotations.Test;
-import org.testng.annotations.BeforeClass;
-import org.testng.AssertJUnit;
 import java.util.Date;
 
-import org.testng.Assert;
+import org.testng.AssertJUnit;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -13,6 +11,7 @@ import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerException;
 import com.linkedin.clustermanager.ClusterManagerFactory;
 import com.linkedin.clustermanager.PropertyType;
+import com.linkedin.clustermanager.agent.zk.ZkClient;
 import com.linkedin.clustermanager.tools.ClusterSetup;
 import com.linkedin.clustermanager.util.CMUtil;
 
@@ -45,7 +44,14 @@ public class TestClusterManagerStartsup extends ZkStandAloneCMHandler
   @BeforeClass (groups = {"integrationTest"})
   public void beforeClass() throws Exception
   {
-    
+  	_zkClient = new ZkClient(ZK_ADDR);
+  }
+  
+  @Override
+	@AfterClass
+  public void afterClass()
+  {
+  	_zkClient.close();
   }
   
   @Test (groups = {"integrationTest"})

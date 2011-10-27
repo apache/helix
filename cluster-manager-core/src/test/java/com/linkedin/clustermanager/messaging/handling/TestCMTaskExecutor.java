@@ -1,29 +1,26 @@
 package com.linkedin.clustermanager.messaging.handling;
 
-import org.testng.annotations.Test;
-import org.testng.AssertJUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.testng.Assert;
+import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.ClusterManager;
-import com.linkedin.clustermanager.ClusterMessagingService;
 import com.linkedin.clustermanager.Mocks;
 import com.linkedin.clustermanager.NotificationContext;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.model.Message;
-import com.linkedin.clustermanager.model.Message.MessageType;
 
 public class TestCMTaskExecutor
 {
   public static class MockClusterManager extends Mocks.MockManager
   {
-    public String getSessionId()
+    @Override
+		public String getSessionId()
     {
       return "123";
     }
@@ -141,6 +138,7 @@ public class TestCMTaskExecutor
   @Test (groups = {"unitTest"})
   public void TestNormalMsgExecution() throws InterruptedException
   {
+  	System.out.println("START TestCMTaskExecutor.TestNormalMsgExecution()");
     CMTaskExecutor executor = new CMTaskExecutor();
     ClusterManager manager = new MockClusterManager();
     
@@ -189,6 +187,7 @@ public class TestCMTaskExecutor
       AssertJUnit.assertFalse(factory._processedMsgIds.containsKey(record.getId()) && factory2._processedMsgIds.containsKey(record.getId()));
       
     }
+    System.out.println("END TestCMTaskExecutor.TestNormalMsgExecution()");
   }
   
   @Test (groups = {"unitTest"})

@@ -48,7 +48,7 @@ public class TestDistCMMain extends ZkDistCMHandler
     for (int i = 0; i < NODE_NR; i++)
     {
       Thread.sleep(10000);
-      stopCurrentLeader(CONTROLLER_CLUSTER, _threadMap, _managerMap);
+      stopCurrentLeader(_zkClient, CONTROLLER_CLUSTER, _threadMap, _managerMap);
     }
     
     // Thread.sleep(5000);

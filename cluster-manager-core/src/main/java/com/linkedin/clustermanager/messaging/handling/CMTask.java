@@ -129,7 +129,7 @@ public class CMTask implements Callable<CMTaskResult>
       recipientCriteria.setRecipientInstanceType(message.getMsgSrc()
           .equalsIgnoreCase("controller") ? InstanceType.CONTROLLER
           : InstanceType.PARTICIPANT);
-      recipientCriteria.setSessionSpecific(false);
+      recipientCriteria.setSessionSpecific(true);
       int nMsgs = _manager.getMessagingService().send(recipientCriteria,
           replyMessage);
       _statusUpdateUtil.logInfo(message, CMTask.class, nMsgs

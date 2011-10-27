@@ -1,12 +1,15 @@
 package com.linkedin.clustermanager.participant;
 
-import org.testng.annotations.Test;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.NotificationContext;
 import com.linkedin.clustermanager.TestHelper;
 import com.linkedin.clustermanager.ZkUnitTestBase;
+import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
+import com.linkedin.clustermanager.agent.zk.ZkClient;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.Message.MessageType;
 
@@ -14,7 +17,21 @@ public class TestDistControllerStateModel extends ZkUnitTestBase
 {
   final String clusterName = CLUSTER_PREFIX + "_" + getShortClassName();
   DistClusterControllerStateModel stateModel = null;
-
+	ZkClient _zkClient;
+	
+	@BeforeClass
+	public void beforeClass()
+	{
+		_zkClient = new ZkClient(ZK_ADDR);
+		_zkClient.setZkSerializer(new ZNRecordSerializer());
+	}
+	
+	@AfterClass
+	public void afterClass()
+	{
+		_zkClient.close();
+	}
+	
   @BeforeMethod(groups = { "unitTest" })
   public void beforeMethod()
   {

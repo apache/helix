@@ -13,6 +13,8 @@ import org.testng.annotations.BeforeClass;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.TestHelper;
 import com.linkedin.clustermanager.TestHelper.StartCMResult;
+import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
+import com.linkedin.clustermanager.agent.zk.ZkClient;
 import com.linkedin.clustermanager.controller.ClusterManagerMain;
 import com.linkedin.clustermanager.tools.ClusterSetup;
 
@@ -44,12 +46,15 @@ public class ZkDistCMHandler extends ZkIntegrationTestBase
   protected final String PARTICIPANT_PREFIX = "localhost";
   
   private static final String TEST_DB = "TestDB";
-
+  ZkClient _zkClient;
+  
   @BeforeClass (groups = {"integrationTest"})
   public void beforeClass() throws Exception
   {
     // logger.info("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
     System.out.println("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
+    _zkClient = new ZkClient(ZK_ADDR);
+    _zkClient.setZkSerializer(new ZNRecordSerializer());
     
     String namespace = "/" + CONTROLLER_CLUSTER; 
     if (_zkClient.exists(namespace))
@@ -147,7 +152,7 @@ public class ZkDistCMHandler extends ZkIntegrationTestBase
     }
     verifyEmtpyCurrentStateTimeout(CONTROLLER_CLUSTER, CLUSTER_PREFIX + "_" + CLASS_NAME, instanceNames);
     */
-    String leader = getCurrentLeader(CONTROLLER_CLUSTER);
+    String leader = getCurrentLeader(_zkClient, CONTROLLER_CLUSTER);
     
     for (Map.Entry<String, Thread> entry : _threadMap.entrySet())
     {
@@ -163,7 +168,7 @@ public class ZkDistCMHandler extends ZkIntegrationTestBase
     _managerMap.get(leader).disconnect();
     _threadMap.get(leader).interrupt();
     
-    
+    _zkClient.close();
     // Thread.sleep(3000);
     // logger.info("END " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
     System.out.println("END " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));

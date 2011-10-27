@@ -1,6 +1,5 @@
 package com.linkedin.clustermanager.integration;
 
-import org.testng.annotations.Test;
 import java.util.Date;
 
 import org.apache.log4j.Logger;
@@ -39,7 +38,7 @@ public class TestStandAloneCMMain extends ZkStandAloneCMHandler
     
     Thread.sleep(2000);
     
-    stopCurrentLeader(CLUSTER_NAME, _threadMap, _managerMap);
+    stopCurrentLeader(_zkClient, CLUSTER_NAME, _threadMap, _managerMap);
     
     // Thread.sleep(5000);
     // boolean result = ClusterStateVerifier.verifyClusterStates(ZK_ADDR, CLUSTER_NAME);

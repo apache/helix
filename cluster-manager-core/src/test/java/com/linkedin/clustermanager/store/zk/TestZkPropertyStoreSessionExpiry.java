@@ -1,18 +1,19 @@
 package com.linkedin.clustermanager.store.zk;
 
-import org.testng.annotations.Test;
-import org.testng.AssertJUnit;
 import java.util.Date;
 
 import org.I0Itec.zkclient.ZkConnection;
 import org.apache.log4j.Logger;
 import org.testng.AssertJUnit;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.ZkUnitTestBase;
+import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
+import com.linkedin.clustermanager.agent.zk.ZkClient;
 import com.linkedin.clustermanager.store.PropertyChangeListener;
 import com.linkedin.clustermanager.store.PropertyJsonSerializer;
-import com.linkedin.clustermanager.store.zk.ZKPropertyStore;
 
 public class TestZkPropertyStoreSessionExpiry extends ZkUnitTestBase
 {
@@ -32,6 +33,22 @@ public class TestZkPropertyStoreSessionExpiry extends ZkUnitTestBase
     }
   }
 
+	ZkClient _zkClient;
+	
+	@BeforeClass
+	public void beforeClass()
+	{
+		_zkClient = new ZkClient(ZK_ADDR);
+		_zkClient.setZkSerializer(new ZNRecordSerializer());
+	}
+	
+	@AfterClass
+	public void afterClass()
+	{
+		_zkClient.close();
+	}
+	
+	
   @Test (groups = {"unitTest"})
   public void testZkPropertyStoreSessionExpiry() throws Exception
   {

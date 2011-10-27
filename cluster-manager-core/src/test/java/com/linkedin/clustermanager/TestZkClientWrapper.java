@@ -1,7 +1,5 @@
 package com.linkedin.clustermanager;
 
-import org.testng.annotations.Test;
-import org.testng.AssertJUnit;
 import org.I0Itec.zkclient.IZkStateListener;
 import org.I0Itec.zkclient.ZkConnection;
 import org.apache.zookeeper.WatchedEvent;
@@ -9,12 +7,32 @@ import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
-import org.testng.Assert;
+import org.testng.AssertJUnit;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+
+import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
+import com.linkedin.clustermanager.agent.zk.ZkClient;
 
 public class TestZkClientWrapper extends ZkUnitTestBase
 {
-    @Test (groups = {"unitTest"})
+	ZkClient _zkClient;
+	
+	@BeforeClass
+	public void beforeClass()
+	{
+		_zkClient = new ZkClient(ZK_ADDR);
+		_zkClient.setZkSerializer(new ZNRecordSerializer());
+	}
+	
+	@AfterClass
+	public void afterClass()
+	{
+		_zkClient.close();
+	}
+	
+	@Test (groups = {"unitTest"})
 	void testGetStat()
 	{
 		String path = "/tmp/getStatTest";
@@ -36,7 +54,7 @@ public class TestZkClientWrapper extends ZkUnitTestBase
 		AssertJUnit.assertNotSame(stat, newStat);
 	}
 
-    @Test (groups = {"unitTest"})
+  @Test (groups = {"unitTest"})
 	void testSessioExpire()
 	{
 		IZkStateListener listener = new IZkStateListener()

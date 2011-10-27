@@ -39,12 +39,15 @@ public class ZkStandAloneCMHandler extends ZkIntegrationTestBase
   protected final Map<String, Thread> _threadMap = new HashMap<String, Thread>();
   protected final Map<String, ClusterManager> _managerMap = new HashMap<String, ClusterManager>();
 
+  ZkClient _zkClient;
   @BeforeClass (groups = {"integrationTest"})
   public void beforeClass() throws Exception
   {
     // logger.info("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
     System.out.println("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
     
+    _zkClient = new ZkClient(ZK_ADDR);
+    _zkClient.setZkSerializer(new ZNRecordSerializer());
     String namespace = "/" + CLUSTER_NAME;
     if (_zkClient.exists(namespace))
     {
@@ -110,6 +113,7 @@ public class ZkStandAloneCMHandler extends ZkIntegrationTestBase
 
     stopThread(_threadMap);
     Thread.sleep(3000);
+    _zkClient.close();
     // logger.info("END at " + new Date(System.currentTimeMillis()));
     System.out.println("END " + CLASS_NAME + " at "+ new Date(System.currentTimeMillis()));
   }

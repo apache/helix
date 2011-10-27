@@ -36,7 +36,7 @@ public class ZkIntegrationTestBase
   private static Logger LOG = Logger.getLogger(ZkIntegrationTestBase.class);
 
   protected static ZkServer _zkServer = null;
-  protected static ZkClient _zkClient = null;
+  // protected static ZkClient _zkClient = null;
 
   public static final String ZK_ADDR = "localhost:2183";
   protected static final String CLUSTER_PREFIX = "CLUSTER";
@@ -50,8 +50,8 @@ public class ZkIntegrationTestBase
     AssertJUnit.assertTrue(_zkServer != null);
     ZKClientPool.reset();
 
-    _zkClient = ZKClientPool.getZkClient(ZK_ADDR);
-    AssertJUnit.assertTrue(_zkClient != null);
+    // _zkClient = ZKClientPool.getZkClient(ZK_ADDR);
+    // AssertJUnit.assertTrue(_zkClient != null);
   }
 
   @AfterSuite(groups =
@@ -59,8 +59,8 @@ public class ZkIntegrationTestBase
   public void afterSuite()
   {
     ZKClientPool.reset();
-    _zkClient.close();
-    _zkClient = null;
+    // _zkClient.close();
+    // _zkClient = null;
     TestHelper.stopZkServer(_zkServer);
     _zkServer = null;
   }
@@ -71,11 +71,11 @@ public class ZkIntegrationTestBase
     return className.substring(className.lastIndexOf('.') + 1);
   }
 
-  protected String getCurrentLeader(String clusterName)
+  protected String getCurrentLeader(ZkClient zkClient, String clusterName)
   {
     String leaderPath = PropertyPathConfig.getPath(PropertyType.LEADER, clusterName);
 
-    ZNRecord leaderRecord = _zkClient.<ZNRecord> readData(leaderPath, true);
+    ZNRecord leaderRecord = zkClient.<ZNRecord> readData(leaderPath, true);
     if (leaderRecord == null)
     {
       return null;
@@ -85,10 +85,10 @@ public class ZkIntegrationTestBase
     return leader;
   }
 
-  protected void stopCurrentLeader(String clusterName,
+  protected void stopCurrentLeader(ZkClient zkClient, String clusterName,
       Map<String, Thread> threadMap, Map<String, ClusterManager> managerMap)
   {
-    String leader = getCurrentLeader(clusterName);
+    String leader = getCurrentLeader(zkClient, clusterName);
     Assert.assertTrue(leader != null);
     System.out.println("stop leader:" + leader + " in " + clusterName);
     Assert.assertTrue(leader != null);
@@ -108,7 +108,7 @@ public class ZkIntegrationTestBase
       for (int i = 0; i < 5; i++)
       {
         Thread.sleep(1000);
-        String newLeader = getCurrentLeader(clusterName);
+        String newLeader = getCurrentLeader(zkClient, clusterName);
         if (!newLeader.equals(leader))
         {
           isNewLeaderElected = true;
@@ -184,7 +184,7 @@ public class ZkIntegrationTestBase
     return true;
   }
 
-  protected void verifyEmtpyCurrentStateTimeout(String clusterName,
+  protected void verifyEmtpyCurrentStateTimeout(ZkClient zkClient, String clusterName,
       String resourceGroupName, List<String> instanceNames)
   {
     try
@@ -194,7 +194,7 @@ public class ZkIntegrationTestBase
       for (; i < 24; i++)
       {
         Thread.sleep(2000);
-        result = verifyEmptyCurrentState(clusterName, resourceGroupName,
+        result = verifyEmptyCurrentState(zkClient, clusterName, resourceGroupName,
             instanceNames);
         if (result == true)
         {
@@ -216,10 +216,10 @@ public class ZkIntegrationTestBase
     }
   }
 
-  private boolean verifyEmptyCurrentState(String clusterName,
+  private boolean verifyEmptyCurrentState(ZkClient zkClient, String clusterName,
       String resourceGroupName, List<String> instanceNames)
   {
-    ClusterDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
+    ClusterDataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
 
     for (String instanceName : instanceNames)
     {
@@ -231,7 +231,7 @@ public class ZkIntegrationTestBase
 
       for (String previousSessionId : subPaths)
       {
-        if (_zkClient.exists(path + "/" + previousSessionId + "/"
+        if (zkClient.exists(path + "/" + previousSessionId + "/"
             + resourceGroupName))
         {
           ZNRecord previousCurrentState = accessor.getProperty(

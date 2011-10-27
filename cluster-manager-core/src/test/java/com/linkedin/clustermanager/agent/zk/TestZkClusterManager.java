@@ -1,9 +1,6 @@
 package com.linkedin.clustermanager.agent.zk;
 
-import org.testng.annotations.Test;
 import org.testng.AssertJUnit;
-import org.testng.AssertJUnit;
-import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.ClusterManagerException;
 import com.linkedin.clustermanager.InstanceType;
@@ -15,7 +12,34 @@ import com.linkedin.clustermanager.store.PropertyStore;
 
 public class TestZkClusterManager extends ZkUnitTestBase
 {
-  @Test(groups = { "unitTest" })
+	ZkClient _zkClient;
+	
+	// @BeforeClass
+	public void beforeClass()
+	{
+		
+		System.err.println("create zkclient in TestZkClusterManager in " + Thread.currentThread().getName());
+		// System.err.println("zkclient shutdown trigger: " + _zkServer.getZkClient().getShutdownTrigger());
+		try
+		{
+			_zkClient = new ZkClient(ZK_ADDR);
+			_zkClient.setZkSerializer(new ZNRecordSerializer());
+		} catch (Exception e)
+		{
+			System.err.println("is thread interrupted:" + Thread.currentThread().isInterrupted());
+			e.printStackTrace();
+		}
+		
+	}
+	
+	// @AfterClass
+	public void afterClass()
+	{
+		System.err.println("close zkClient in " + Thread.currentThread().getName());
+		_zkClient.close();
+	}
+	
+  // @Test(groups = { "unitTest" })
   public void testZkClusterManager()
   {
     final String clusterName = CLUSTER_PREFIX + "_" + getShortClassName();

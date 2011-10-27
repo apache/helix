@@ -1,7 +1,5 @@
 package com.linkedin.clustermanager.integration;
 
-import org.testng.annotations.Test;
-import org.testng.AssertJUnit;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -37,7 +35,7 @@ public class TestDropResource extends ZkStandAloneCMHandler
     {
       instanceNames.add("localhost_" + (START_PORT + i));
     }
-    verifyEmtpyCurrentStateTimeout(CLUSTER_NAME, "MyDB", instanceNames);
+    verifyEmtpyCurrentStateTimeout(_zkClient, CLUSTER_NAME, "MyDB", instanceNames);
     
     
     Thread.sleep(10000);

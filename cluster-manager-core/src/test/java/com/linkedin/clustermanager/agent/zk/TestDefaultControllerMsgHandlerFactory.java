@@ -1,7 +1,5 @@
 package com.linkedin.clustermanager.agent.zk;
 
-import org.testng.annotations.Test;
-import org.testng.AssertJUnit;
 import java.util.HashMap;
 import java.util.Map;
 

@@ -1,18 +1,18 @@
 package com.linkedin.clustermanager.store.zk;
 
-import org.testng.annotations.Test;
-import org.testng.AssertJUnit;
 import java.util.Date;
 import java.util.List;
 
 import org.I0Itec.zkclient.DataUpdater;
 import org.I0Itec.zkclient.ZkConnection;
 import org.apache.log4j.Logger;
-import org.testng.Assert;
 import org.testng.AssertJUnit;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.ZkUnitTestBase;
+import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
 import com.linkedin.clustermanager.store.PropertyChangeListener;
 import com.linkedin.clustermanager.store.PropertyJsonComparator;
@@ -53,10 +53,26 @@ public class TestZKPropertyStore extends ZkUnitTestBase
     
   }
   
+	ZkClient _zkClient;
+	
+	@BeforeClass
+	public void beforeClass()
+	{
+		_zkClient = new ZkClient(ZK_ADDR);
+		_zkClient.setZkSerializer(new ZNRecordSerializer());
+	}
+	
+	@AfterClass
+	public void afterClass()
+	{
+		_zkClient.close();
+	}
+	
+	
   @Test (groups = {"unitTest"})
   public void testInvocation() throws Exception
   {
-    LOG.info("START " + getShortClassName() + " at " + new Date(System.currentTimeMillis()));
+  	System.out.println("START TestZKPropertyStore at" + new Date(System.currentTimeMillis()));
     LOG.info("number of connections is " + ZkClient.getNumberOfConnections());
 
     try 
@@ -238,7 +254,8 @@ public class TestZKPropertyStore extends ZkUnitTestBase
     {
       e.printStackTrace();
     }
-    LOG.info("END " + getShortClassName() + " at " + new Date(System.currentTimeMillis()));
+    
+    System.out.println("END TestZKPropertyStore at" + new Date(System.currentTimeMillis()));
     LOG.info("number of connections is " + ZkClient.getNumberOfConnections());
   }
 }

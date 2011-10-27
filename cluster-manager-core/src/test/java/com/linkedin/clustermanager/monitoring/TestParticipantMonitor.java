@@ -1,13 +1,10 @@
 package com.linkedin.clustermanager.monitoring;
 
-import org.testng.annotations.Test;
-import org.testng.AssertJUnit;
 import java.util.HashSet;
 
-import org.testng.Assert;
+import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
-import com.linkedin.clustermanager.monitoring.TestParticipantMonitor.ParticipantMonitorListener;
 import com.linkedin.clustermanager.monitoring.mbeans.StateTransitionStatMonitor;
 import com.linkedin.clustermanager.monitoring.mbeans.TransStatMonitorChangedListener;
 
@@ -29,6 +26,7 @@ public class TestParticipantMonitor
   @Test(groups={ "unitTest" })
   public void TestReportData()
   {
+  	System.out.println("START TestParticipantMonitor");
     ParticipantMonitor monitor = ParticipantMonitor.getInstance();
     
     ParticipantMonitorListener monitorListener = new ParticipantMonitorListener();
@@ -62,5 +60,6 @@ public class TestParticipantMonitor
     
     monitor.addTransStatMonitorChangedListener(monitorListener2);
     AssertJUnit.assertTrue(monitorListener2._monitors.size() == monitorNum + 2);
+    System.out.println("END TestParticipantMonitor");
   }
 }

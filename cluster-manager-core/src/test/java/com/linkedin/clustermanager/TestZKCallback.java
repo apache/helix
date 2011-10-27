@@ -1,9 +1,5 @@
 package com.linkedin.clustermanager;
 
-import org.testng.annotations.AfterMethod;
-import org.testng.annotations.Test;
-import org.testng.annotations.BeforeClass;
-import org.testng.AssertJUnit;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -15,6 +11,8 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
+import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
+import com.linkedin.clustermanager.agent.zk.ZkClient;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.Message.MessageType;
 import com.linkedin.clustermanager.tools.ClusterSetup;
@@ -78,6 +76,8 @@ public class TestZKCallback extends ZkUnitTestBase
     }
   }
   */
+  
+  ZkClient _zkClient;
   
   private static String[] createArgs(String str)
   {
@@ -235,9 +235,8 @@ public class TestZKCallback extends ZkUnitTestBase
 
   }
 
-  @BeforeClass(groups =
-  { "unitTest" })
-  public void setup() throws IOException, Exception
+  @BeforeClass(groups = { "unitTest" })
+  public void beforeClass() throws IOException, Exception
   {
     /*
     List<Integer> localPorts = new ArrayList<Integer>();
@@ -248,6 +247,8 @@ public class TestZKCallback extends ZkUnitTestBase
         System.getProperty("user.dir") + "/" + "zkdata", 2000);
     _zkServerAddress = "localhost:" + 2300;
     */
+  	_zkClient = new ZkClient(ZK_ADDR);
+  	_zkClient.setZkSerializer(new ZNRecordSerializer());
     if (_zkClient.exists("/" + clusterName))
     {
       _zkClient.deleteRecursive("/" + clusterName);
@@ -273,11 +274,10 @@ public class TestZKCallback extends ZkUnitTestBase
         .processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " -rebalance " + clusterName + " db-12345 3"));
   }
 
-  @AfterMethod
-  @AfterClass(groups =
-  { "unitTest" })
-  public void tearDown()
+  @AfterClass(groups = { "unitTest" })
+  public void afterClass()
   {
+  	_zkClient.close();
     // stopLocalZookeeper(_localZkServers);
   }
 

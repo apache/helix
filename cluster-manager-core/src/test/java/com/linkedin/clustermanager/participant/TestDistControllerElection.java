@@ -1,11 +1,11 @@
 package com.linkedin.clustermanager.participant;
 
-import org.testng.annotations.Test;
-import org.testng.AssertJUnit;
 import java.util.Date;
 
 import org.apache.log4j.Logger;
 import org.testng.AssertJUnit;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.ClusterManager;
@@ -16,17 +16,34 @@ import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.TestHelper;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.ZkUnitTestBase;
+import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
+import com.linkedin.clustermanager.agent.zk.ZkClient;
 import com.linkedin.clustermanager.integration.TestDistCMMain;
 
 public class TestDistControllerElection extends ZkUnitTestBase
 {
   private static Logger LOG = Logger.getLogger(TestDistCMMain.class);
 
+	ZkClient _zkClient;
+	
+	@BeforeClass
+	public void beforeClass()
+	{
+		_zkClient = new ZkClient(ZK_ADDR);
+		_zkClient.setZkSerializer(new ZNRecordSerializer());
+	}
+	
+	@AfterClass
+	public void afterClass()
+	{
+		_zkClient.close();
+	}
+	
   @Test(groups = { "unitTest" })
   public void testController() throws Exception
   {
+  	System.out.println("START TestDistControllerElection at " + new Date(System.currentTimeMillis()));
     String className = getShortClassName();
-    LOG.info("RUN " + className + " at " + new Date(System.currentTimeMillis()));
 
     final String clusterName = CLUSTER_PREFIX + "_" + className + "_" + "testController";
     String path = "/" + clusterName;
@@ -63,7 +80,7 @@ public class TestDistControllerElection extends ZkUnitTestBase
     AssertJUnit.assertNull(election.getController());
     AssertJUnit.assertNull(election.getLeader());
     
-    LOG.info("END " + getShortClassName() + " at " + new Date(System.currentTimeMillis()));
+    System.out.println("END TestDistControllerElection at " + new Date(System.currentTimeMillis()));
   }
 
   @Test(groups = { "unitTest" })

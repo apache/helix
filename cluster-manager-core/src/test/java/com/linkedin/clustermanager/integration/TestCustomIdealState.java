@@ -1,15 +1,33 @@
 package com.linkedin.clustermanager.integration;
 
-import org.testng.annotations.Test;
 import java.util.Date;
 
 import org.apache.log4j.Logger;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+
+import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
+import com.linkedin.clustermanager.agent.zk.ZkClient;
 
 
 public class TestCustomIdealState extends ZkIntegrationTestBase
 {
   private static Logger LOG = Logger.getLogger(TestCustomIdealState.class);
+  ZkClient _zkClient;
+  @BeforeClass (groups = {"integrationTest"})
+  public void beforeClass() throws Exception
+  {
+  	_zkClient = new ZkClient(ZK_ADDR);
+  	_zkClient.setZkSerializer(new ZNRecordSerializer());
+  }
+  
+  
+	@AfterClass
+  public void afterClass()
+  {
+  	_zkClient.close();
+  }
 
   @Test (groups = {"integrationTest"})
   public void testCustomIdealState() throws Exception
@@ -24,7 +42,7 @@ public class TestCustomIdealState extends ZkIntegrationTestBase
         + numNode + "_r" + replica;
     System.out.println("START " + uniqTestName + " at " + new Date(System.currentTimeMillis()));
 
-    TestDriver.setupClusterWithoutRebalance(uniqTestName, numDb, numPartitionsPerDb, numNode, replica);
+    TestDriver.setupClusterWithoutRebalance(uniqTestName, _zkClient, numDb, numPartitionsPerDb, numNode, replica);
 
     for (int i = 0; i < numNode; i++)
     {

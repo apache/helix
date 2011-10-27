@@ -1,11 +1,11 @@
 package com.linkedin.clustermanager.agent.zk;
 
 
-import org.testng.annotations.Test;
-import org.testng.AssertJUnit;
 import java.util.List;
 
-import org.testng.Assert;
+import org.testng.AssertJUnit;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.ClusterManagerException;
@@ -16,6 +16,21 @@ import com.linkedin.clustermanager.ZkUnitTestBase;
 
 public class TestZkClusterManagementTool extends ZkUnitTestBase
 {
+	ZkClient _zkClient;
+	
+	@BeforeClass
+	public void beforeClass()
+	{
+		_zkClient = new ZkClient(ZK_ADDR);
+		_zkClient.setZkSerializer(new ZNRecordSerializer());
+	}
+	
+	@AfterClass
+	public void afterClass()
+	{
+		_zkClient.close();
+	}
+	
   @Test (groups = { "unitTest" })
   public void testZkClusterManagementTool()
   {

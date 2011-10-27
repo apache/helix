@@ -1,7 +1,7 @@
 package com.linkedin.clustermanager.monitoring.mbeans;
 
-import org.testng.annotations.Test;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
@@ -63,7 +63,8 @@ public class TestClusterStatusMonitor
   {
     MockDataAccessor _accessor = new MockDataAccessor();
     
-    public ClusterDataAccessor getDataAccessor()
+    @Override
+		public ClusterDataAccessor getDataAccessor()
     {
       return _accessor;
     }
@@ -72,6 +73,7 @@ public class TestClusterStatusMonitor
   @Test(groups={ "unitTest" })
   public void TestReportData()
   {
+  	System.out.println("START TestClusterStatusMonitor at" + new Date(System.currentTimeMillis()));
     List<String> _instances;
     List<ZNRecord> _liveInstances = new ArrayList<ZNRecord>();
     String _db = "DB";
@@ -105,6 +107,6 @@ public class TestClusterStatusMonitor
     monitor.onExternalViewChange(externalViews, context);
     
     monitor.onLiveInstanceChange(_liveInstances, context);
-    
+    System.out.println("END TestClusterStatusMonitor at" + new Date(System.currentTimeMillis()));
   }
 }

@@ -1,6 +1,5 @@
 package com.linkedin.clustermanager.integration;
 
-import org.testng.annotations.Test;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -14,7 +13,8 @@ import com.linkedin.clustermanager.TestHelper.StartCMResult;
 public class TestDistClusterController extends ZkDistCMHandler
 {
   private static Logger logger = Logger.getLogger(TestDistClusterController.class);
-
+  
+	
   @Test (groups = {"integrationTest"})
   public void testDistClusterController() throws Exception
   {
@@ -22,7 +22,7 @@ public class TestDistClusterController extends ZkDistCMHandler
 
     // stop the current cluster controller
     Thread.sleep(5000);
-    stopCurrentLeader(CONTROLLER_CLUSTER, _threadMap, _managerMap);
+    stopCurrentLeader(_zkClient, CONTROLLER_CLUSTER, _threadMap, _managerMap);
 
     // setup storage cluster: ESPRESSO_STORAGE_1
     final String secondCluster = CLUSTER_PREFIX + "_" + CLASS_NAME + "_1";

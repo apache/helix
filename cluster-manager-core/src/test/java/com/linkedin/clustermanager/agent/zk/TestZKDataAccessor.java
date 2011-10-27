@@ -1,17 +1,13 @@
 package com.linkedin.clustermanager.agent.zk;
 
-import org.testng.annotations.AfterMethod;
-import org.testng.annotations.Test;
-import org.testng.annotations.BeforeClass;
-import org.testng.AssertJUnit;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
 import org.apache.zookeeper.data.Stat;
-import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.AfterClass;
+import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -30,6 +26,21 @@ public class TestZKDataAccessor extends ZkUnitTestBase
   private String _clusterName;
   private final String resourceGroup = "resourceGroup";
 
+	ZkClient _zkClient;
+	
+	@BeforeClass
+	public void beforeClass()
+	{
+		_zkClient = new ZkClient(ZK_ADDR);
+		_zkClient.setZkSerializer(new ZNRecordSerializer());
+	}
+	
+	@AfterClass
+	public void afterClass()
+	{
+		_zkClient.close();
+	}
+	
   @Test (groups = { "unitTest" })
   public void testSet()
   {

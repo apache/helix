@@ -1,12 +1,11 @@
 package com.linkedin.clustermanager.controller.stages;
 
-import org.testng.annotations.Test;
-import org.testng.AssertJUnit;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
-import org.testng.Assert;
+import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.model.IdealState;
@@ -21,7 +20,7 @@ public class TestBestPossibleStateCalcStage extends BaseStageTest
   @Test
   public void testSimple()
   {
-
+  	System.out.println("START TestBestPossibleStateCalcStage at " + new Date(System.currentTimeMillis()));
     List<IdealState> idealStates = new ArrayList<IdealState>();
 
     String[] resourceGroups = new String[]
@@ -59,6 +58,6 @@ public class TestBestPossibleStateCalcStage extends BaseStageTest
           output.getInstanceStateMap("testResourceGroupName", resource).get(
               "localhost_" + (p + 1) % 5));
     }
-
+    System.out.println("END TestBestPossibleStateCalcStage at " + new Date(System.currentTimeMillis()));
   }
 }

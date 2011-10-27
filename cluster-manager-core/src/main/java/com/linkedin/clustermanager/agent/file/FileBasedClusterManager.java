@@ -502,7 +502,7 @@ public class FileBasedClusterManager implements ClusterManager
 
     if (curStateList == null && idealStates.size() > 0)
     {
-      LOG.error("current state is null");
+      LOG.info("current state is null");
       return false;
     } else if (curStateList == null && idealStates.size() == 0)
     {
@@ -510,7 +510,7 @@ public class FileBasedClusterManager implements ClusterManager
       return true;
     } else if (curStateList.size() != idealStates.size())
     {
-      LOG.error("Number of current states (" + curStateList.size()
+      LOG.info("Number of current states (" + curStateList.size()
           + ") mismatch " + "number of ideal states (" + idealStates.size()
           + ")");
       return false;

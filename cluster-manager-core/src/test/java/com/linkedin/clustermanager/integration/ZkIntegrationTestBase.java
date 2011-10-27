@@ -75,7 +75,7 @@ public class ZkIntegrationTestBase
   {
     String leaderPath = PropertyPathConfig.getPath(PropertyType.LEADER, clusterName);
 
-    ZNRecord leaderRecord = _zkClient.<ZNRecord> readData(leaderPath);
+    ZNRecord leaderRecord = _zkClient.<ZNRecord> readData(leaderPath, true);
     if (leaderRecord == null)
     {
       return null;

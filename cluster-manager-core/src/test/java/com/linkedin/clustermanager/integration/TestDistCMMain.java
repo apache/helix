@@ -1,6 +1,5 @@
 package com.linkedin.clustermanager.integration;
 
-import org.testng.annotations.Test;
 import java.util.Date;
 
 import org.apache.log4j.Logger;
@@ -14,7 +13,7 @@ public class TestDistCMMain extends ZkDistCMHandler
 {
   private static Logger LOG = Logger.getLogger(TestDistCMMain.class);
   
- // @Test (groups = {"integrationTest"})
+  @Test (groups = {"integrationTest"})
   public void testDistCMMain() throws Exception
   {
     LOG.info("RUN at " + new Date(System.currentTimeMillis()));
@@ -48,12 +47,12 @@ public class TestDistCMMain extends ZkDistCMHandler
     // stop controllers
     for (int i = 0; i < NODE_NR; i++)
     {
-      Thread.sleep(5000);
+      Thread.sleep(10000);
       stopCurrentLeader(CONTROLLER_CLUSTER, _threadMap, _managerMap);
     }
     
-    Thread.sleep(5000);
+    // Thread.sleep(5000);
     LOG.info("END at " + new Date(System.currentTimeMillis()));
-    // super.afterClass();
+    
   }
 }

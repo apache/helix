@@ -3,7 +3,6 @@ package com.linkedin.clustermanager.participant;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.I0Itec.zkclient.exception.ZkNodeExistsException;
 import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.ClusterDataAccessor;
@@ -17,119 +16,104 @@ import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.controller.ClusterManagerMain;
 import com.linkedin.clustermanager.controller.GenericClusterController;
 
-public class DistClusterControllerElection implements ControllerChangeListener
-{
-  private static Logger LOG = Logger
-      .getLogger(DistClusterControllerElection.class);
-  private final String _zkAddr;
-  private GenericClusterController _controller = null;
-  private ClusterManager _leader = null;
+public class DistClusterControllerElection implements ControllerChangeListener {
+	private static Logger LOG = Logger
+			.getLogger(DistClusterControllerElection.class);
+	private final String _zkAddr;
+	private GenericClusterController _controller = null;
+	private ClusterManager _leader = null;
 
-  public DistClusterControllerElection(String zkAddr)
-  {
-    _zkAddr = zkAddr;
-  }
+	public DistClusterControllerElection(String zkAddr) {
+		_zkAddr = zkAddr;
+	}
 
-  public GenericClusterController getController()
-  {
-    return _controller;
-  }
+	public GenericClusterController getController() {
+		return _controller;
+	}
 
-  public ClusterManager getLeader()
-  {
-    return _leader;
-  }
+	public ClusterManager getLeader() {
+		return _leader;
+	}
 
-  @Override
-  public void onControllerChange(NotificationContext changeContext)
-  {
-    ClusterManager manager = changeContext.getManager();
-    try
-    {
-      InstanceType type = manager.getInstanceType();
-      if (type != InstanceType.CONTROLLER && type != InstanceType.CONTROLLER_PARTICIPANT)
-      {
-        LOG.error("fail to setup a cluster controller: instanceType incorrect:"
-            + type.toString());
-        return;
-      }
-      
-      if (changeContext.getType().equals(NotificationContext.Type.INIT)
-          || changeContext.getType().equals(NotificationContext.Type.CALLBACK))
-      {
-        boolean isLeader = tryUpdateController(manager);
-        if (isLeader)
-        {
-          if (_controller == null)
-          {
-            _controller = new GenericClusterController();
+	@Override
+	public void onControllerChange(NotificationContext changeContext) {
+		ClusterManager manager = changeContext.getManager();
+		try {
+			InstanceType type = manager.getInstanceType();
+			if (type != InstanceType.CONTROLLER
+					&& type != InstanceType.CONTROLLER_PARTICIPANT) {
+				LOG.error("fail to setup a cluster controller: instanceType incorrect:"
+						+ type.toString());
+				return;
+			}
 
-            if (type == InstanceType.CONTROLLER)
-            {
-              ClusterManagerMain.addListenersToController(manager, _controller);
-            } else if (type == InstanceType.CONTROLLER_PARTICIPANT)
-            {
-              String clusterName = manager.getClusterName();
-              String controllerName = manager.getInstanceName();
-              _leader = ClusterManagerFactory.getZKBasedManagerForController(
-                  clusterName, controllerName, _zkAddr);
-              _leader.connect();
-              ClusterManagerMain.addListenersToController(_leader, _controller);
-            }
-          }
-        }
-      }
+			if (changeContext.getType().equals(NotificationContext.Type.INIT)
+					|| changeContext.getType().equals(NotificationContext.Type.CALLBACK)) {
+				boolean isLeader = tryUpdateController(manager);
+				if (isLeader) {
+					if (_controller == null) {
+						_controller = new GenericClusterController();
 
-    } catch (Exception e)
-    {
-      LOG.error("Exception when trying to become leader, exception:" + e);
-    }
-  }
+						if (type == InstanceType.CONTROLLER) {
+							ClusterManagerMain.addListenersToController(manager, _controller);
+						} else if (type == InstanceType.CONTROLLER_PARTICIPANT) {
+							String clusterName = manager.getClusterName();
+							String controllerName = manager.getInstanceName();
+							_leader = ClusterManagerFactory.getZKBasedManagerForController(
+									clusterName, controllerName, _zkAddr);
+							_leader.connect();
+							ClusterManagerMain.addListenersToController(_leader, _controller);
+						}
+					}
+				}
+			}
 
-  private boolean tryUpdateController(ClusterManager manager)
-  {
-    try
-    {
-      String instanceName = manager.getInstanceName();
-      String clusterName = manager.getClusterName();
-      final ZNRecord leaderRecord = new ZNRecord(PropertyType.LEADER.toString());
-      leaderRecord.setSimpleField(PropertyType.LEADER.toString(),
-          manager.getInstanceName());
-      ClusterDataAccessor dataAccessor = manager.getDataAccessor();
-      ZNRecord currentleader = dataAccessor.getProperty(PropertyType.LEADER);
-      if (currentleader == null)
-      {
-        dataAccessor.setProperty(PropertyType.LEADER, leaderRecord);
-        // set controller history
+		} catch (Exception e) {
+			LOG.error("Exception when trying to become leader, exception:" + e);
+		}
+	}
 
-        ZNRecord histRecord = dataAccessor.getProperty(PropertyType.HISTORY);
-        if (histRecord == null)
-        {
-          histRecord = new ZNRecord(PropertyType.HISTORY.toString());
-        }
+	private boolean tryUpdateController(ClusterManager manager) {
 
-        List<String> list = histRecord.getListField(clusterName);
-        if (list == null)
-        {
-          list = new ArrayList<String>();
-          histRecord.setListField(clusterName, list);
-        }
+		String instanceName = manager.getInstanceName();
+		String clusterName = manager.getClusterName();
+		final ZNRecord leaderRecord = new ZNRecord(PropertyType.LEADER.toString());
+		leaderRecord.setSimpleField(PropertyType.LEADER.toString(),
+				manager.getInstanceName());
+		ClusterDataAccessor dataAccessor = manager.getDataAccessor();
+		ZNRecord currentleader;
+		do {
+			currentleader = dataAccessor.getProperty(PropertyType.LEADER);
+			if (currentleader == null) {
+				boolean success = dataAccessor.setProperty(PropertyType.LEADER,
+						leaderRecord);
+			
+				if (success) {
+					ZNRecord histRecord = dataAccessor.getProperty(PropertyType.HISTORY);
+					// set controller history
+					if (histRecord == null) {
+						histRecord = new ZNRecord(PropertyType.HISTORY.toString());
+					}
 
-        list.add(instanceName);
-        dataAccessor.setProperty(PropertyType.HISTORY, histRecord);
-        return true;
-      } else
-      {
-        LOG.info("Leader exists for cluster:" + clusterName + " currentLeader:"
-            + currentleader.getId());
-      }
+					List<String> list = histRecord.getListField(clusterName);
+					if (list == null) {
+						list = new ArrayList<String>();
+						histRecord.setListField(clusterName, list);
+					}
 
-    } catch (ZkNodeExistsException e)
-    {
-      LOG.warn("Ignorable exception. Found that leader already exists, "
-          + e.getMessage());
-    }
-    return false;
-  }
+					list.add(instanceName);
+					dataAccessor.setProperty(PropertyType.HISTORY, histRecord);
+					return true;
+				} else {
+					LOG.info("Unable to become leader probably some other controller became the leader");
+				}
+			} else {
+				LOG.info("Leader exists for cluster:" + clusterName + " currentLeader:"
+						+ currentleader.getId());
+			}
+		} while ((currentleader == null));
+
+		return false;
+	}
 
 }

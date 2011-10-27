@@ -1,8 +1,5 @@
 package com.linkedin.clustermanager.integration;
 
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.Test;
-import org.testng.annotations.BeforeClass;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -136,8 +133,8 @@ public class ZkDistCMHandler extends ZkIntegrationTestBase
     // logger.info("END at " + new Date(System.currentTimeMillis()));
     System.out.println("Shutting down " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
     
-    _setupTool.dropResourceGroupToCluster(CONTROLLER_CLUSTER, CLUSTER_PREFIX + "_" + CLASS_NAME);
-    Thread.sleep(10000);
+    // _setupTool.dropResourceGroupToCluster(CONTROLLER_CLUSTER, CLUSTER_PREFIX + "_" + CLASS_NAME);
+    // Thread.sleep(10000);
     
     /*
     List<String> instanceNames = new ArrayList<String>();
@@ -162,7 +159,7 @@ public class ZkDistCMHandler extends ZkIntegrationTestBase
       }
     }
     
-    Thread.sleep(2000);
+    Thread.sleep(10000);
     _managerMap.get(leader).disconnect();
     _threadMap.get(leader).interrupt();
     
@@ -185,10 +182,4 @@ public class ZkDistCMHandler extends ZkIntegrationTestBase
   }
   
   
-  // @Test
-  @Test
-  public void testZkDistCMHandler()
-  {
-    logger.info("dummy start at " + new Date(System.currentTimeMillis()));
-  }
 }

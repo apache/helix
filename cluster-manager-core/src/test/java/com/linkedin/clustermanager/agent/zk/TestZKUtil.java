@@ -5,6 +5,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.testng.AssertJUnit;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.PropertyPathConfig;
 import com.linkedin.clustermanager.PropertyType;
@@ -17,7 +20,7 @@ public class TestZKUtil extends ZkUnitTestBase
   String clusterName = CLUSTER_PREFIX + "_" + getShortClassName();
   ZkClient _zkClient;
   
-  // @BeforeClass(groups = { "unitTest" })
+  @BeforeClass(groups = { "unitTest" })
   public void beforeClass() throws IOException, Exception
   {
   	_zkClient = new ZkClient(ZK_ADDR);
@@ -41,20 +44,20 @@ public class TestZKUtil extends ZkUnitTestBase
     TestHelper.setupEmptyCluster(_zkClient, clusterName);
   }
 
-  // @AfterClass(groups = { "unitTest" })
+  @AfterClass(groups = { "unitTest" })
   public void afterClass()
   {
   	_zkClient.close();
   }
   
-  // @Test(groups = { "unitTest" })
+  @Test(groups = { "unitTest" })
   public void testIsClusterSetup()
   {
     boolean result = ZKUtil.isClusterSetup(clusterName, _zkClient);
     AssertJUnit.assertTrue(result);
   }
   
-  // @Test(groups = { "unitTest" })
+  @Test(groups = { "unitTest" })
   public void testChildrenOperations()
   {
     List<ZNRecord> list = new ArrayList<ZNRecord>();
@@ -73,7 +76,7 @@ public class TestZKUtil extends ZkUnitTestBase
     ZKUtil.dropChildren(_zkClient, path, (List<ZNRecord>) null);
   }
   
-  // @Test(groups = { "unitTest" })
+  @Test(groups = { "unitTest" })
   public void testUpdateIfExists()
   {
     String path = PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName, "id3");
@@ -87,7 +90,7 @@ public class TestZKUtil extends ZkUnitTestBase
     AssertJUnit.assertEquals("id4", record.getId());
   }
   
-  // @Test(groups = { "unitTest" })
+  @Test(groups = { "unitTest" })
   public void testSubstract()
   {
     String path = PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName, "id5");
@@ -99,14 +102,14 @@ public class TestZKUtil extends ZkUnitTestBase
     AssertJUnit.assertNull(record.getSimpleField("key1"));
   }
   
-  // @Test(groups = { "unitTest" })
+  @Test(groups = { "unitTest" })
   public void testNullChildren()
   {
     String path = PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName, "id6");
     ZKUtil.createChildren(_zkClient, path, (List<ZNRecord>) null);
   }
   
-  // @Test(groups = { "unitTest" })
+  @Test(groups = { "unitTest" })
   public void testCreateOrUpdate()
   {
     String path = PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName, "id7");
@@ -116,7 +119,7 @@ public class TestZKUtil extends ZkUnitTestBase
     AssertJUnit.assertEquals("id7", record.getId());
   }
   
-  // @Test(groups = { "unitTest" })
+  @Test(groups = { "unitTest" })
   public void testCreateOrReplace()
   {
     String path = PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName, "id8");

@@ -1,6 +1,11 @@
 package com.linkedin.clustermanager.agent.zk;
 
+import java.util.Date;
+
 import org.testng.AssertJUnit;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.ClusterManagerException;
 import com.linkedin.clustermanager.InstanceType;
@@ -14,32 +19,22 @@ public class TestZkClusterManager extends ZkUnitTestBase
 {
 	ZkClient _zkClient;
 	
-	// @BeforeClass
+	@BeforeClass
 	public void beforeClass()
 	{
-		
-		System.err.println("create zkclient in TestZkClusterManager in " + Thread.currentThread().getName());
-		// System.err.println("zkclient shutdown trigger: " + _zkServer.getZkClient().getShutdownTrigger());
-		try
-		{
-			_zkClient = new ZkClient(ZK_ADDR);
-			_zkClient.setZkSerializer(new ZNRecordSerializer());
-		} catch (Exception e)
-		{
-			System.err.println("is thread interrupted:" + Thread.currentThread().isInterrupted());
-			e.printStackTrace();
-		}
-		
-	}
+		System.out.println("START TestZkClusterManager.beforeClass() at " + new Date(System.currentTimeMillis()));
+	  _zkClient = new ZkClient(ZK_ADDR);
+		_zkClient.setZkSerializer(new ZNRecordSerializer());
+  }
 	
-	// @AfterClass
+	@AfterClass
 	public void afterClass()
 	{
-		System.err.println("close zkClient in " + Thread.currentThread().getName());
 		_zkClient.close();
+		System.out.println("END TestZkClusterManager.beforeClass() at " + new Date(System.currentTimeMillis()));
 	}
 	
-  // @Test(groups = { "unitTest" })
+  @Test(groups = { "unitTest" })
   public void testZkClusterManager()
   {
     final String clusterName = CLUSTER_PREFIX + "_" + getShortClassName();

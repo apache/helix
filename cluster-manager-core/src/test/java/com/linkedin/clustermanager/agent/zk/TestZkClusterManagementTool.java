@@ -1,6 +1,7 @@
 package com.linkedin.clustermanager.agent.zk;
 
 
+import java.util.Date;
 import java.util.List;
 
 import org.testng.AssertJUnit;
@@ -21,6 +22,7 @@ public class TestZkClusterManagementTool extends ZkUnitTestBase
 	@BeforeClass
 	public void beforeClass()
 	{
+		System.out.println("START TestZkClusterManagementTool.beforeClass() at " + new Date(System.currentTimeMillis()));
 		_zkClient = new ZkClient(ZK_ADDR);
 		_zkClient.setZkSerializer(new ZNRecordSerializer());
 	}
@@ -29,6 +31,7 @@ public class TestZkClusterManagementTool extends ZkUnitTestBase
 	public void afterClass()
 	{
 		_zkClient.close();
+		System.out.println("END TestZkClusterManagementTool.afterClass() at " + new Date(System.currentTimeMillis()));
 	}
 	
   @Test (groups = { "unitTest" })

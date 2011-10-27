@@ -1,5 +1,6 @@
 package com.linkedin.clustermanager.agent.zk;
 
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -18,6 +19,8 @@ public class TestDefaultControllerMsgHandlerFactory
   @Test(groups = { "unitTest" })
   public void testDefaultControllerMsgHandlerFactory()
   {
+  	System.out.println("START TestDefaultControllerMsgHandlerFactory at " + new Date(System.currentTimeMillis()));
+
     DefaultControllerMessageHandlerFactory facotry = new DefaultControllerMessageHandlerFactory();
     
     Message message = new Message(MessageType.NO_OP, "0");
@@ -76,7 +79,7 @@ public class TestDefaultControllerMsgHandlerFactory
       e.printStackTrace();
     }
     AssertJUnit.assertFalse(exceptionCaught);
-    
+    System.out.println("END TestDefaultControllerMsgHandlerFactory at " + new Date(System.currentTimeMillis()));
   }
 
 }

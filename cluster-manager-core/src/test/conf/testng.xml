@@ -14,7 +14,7 @@
       <package name="com.linkedin.clustermanager.monitoring.mbeans"/>
       <package name="com.linkedin.clustermanager.participant"/>
       <package name="com.linkedin.clustermanager"/>
-<!--      <package name="com.linkedin.clustermanager.agent.zk"/> -->
+      <package name="com.linkedin.clustermanager.agent.zk"/>
       <package name="com.linkedin.clustermanager.integration"/>
     </packages>
   </test>

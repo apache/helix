@@ -13,7 +13,7 @@ public abstract class DerivedStat extends Stat {
 		return 0;
 	}
 
-	public boolean contains(RawStat rs) 
+	public boolean contains(Stat s) 
 	{
 		//TODO
 		//for each rawstat component, see if this contains that component or the component

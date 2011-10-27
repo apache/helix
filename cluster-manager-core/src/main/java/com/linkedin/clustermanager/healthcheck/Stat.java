@@ -40,4 +40,10 @@ public abstract class Stat implements Comparable<Stat> {
 	{
 		return creationTime;
 	}
+	
+	public void addAlert(long value)
+	{
+		//some stats with complicated structures may need to overload this
+	}
+	
 }

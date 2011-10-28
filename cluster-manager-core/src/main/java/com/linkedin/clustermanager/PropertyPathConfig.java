@@ -44,8 +44,8 @@ public class PropertyPathConfig
     addEntry(PropertyType.ERRORS,3,"/{clusterName}/INSTANCES/{instanceName}/ERRORS/{sessionId}");
     addEntry(PropertyType.ERRORS,4,"/{clusterName}/INSTANCES/{instanceName}/ERRORS/{sessionId}/{subPath}");
     addEntry(PropertyType.ERRORS,5,"/{clusterName}/INSTANCES/{instanceName}/ERRORS/{sessionId}/{subPath}/{recordName}");
-    addEntry(PropertyType.HEALTHREPORT,2,"/{clusterName}/HEALTHREPORT/{instanceName}/HEALTHREPORT");
-    addEntry(PropertyType.HEALTHREPORT,3,"/{clusterName}/HEALTHREPORT/{instanceName}/HEALTHREPORT/{reportName}");
+    addEntry(PropertyType.HEALTHREPORT,2,"/{clusterName}/INSTANCES/{instanceName}/HEALTHREPORT/");
+    addEntry(PropertyType.HEALTHREPORT,3,"/{clusterName}/INSTANCES/{instanceName}/HEALTHREPORT/{reportName}");
     //CONTROLLER
     addEntry(PropertyType.MESSAGES_CONTROLLER,1,"/{clusterName}/CONTROLLER/MESSAGES");
     addEntry(PropertyType.MESSAGES_CONTROLLER,2,"/{clusterName}/CONTROLLER/MESSAGES/{msgId}");

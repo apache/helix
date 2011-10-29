@@ -118,12 +118,13 @@ public class TestHelper
    * @param zkConnectString
    * @param zkClient
    * @return
+ * @throws Exception 
    */
   public static StartCMResult startClusterController(final String clusterName,
                                               final String controllerName,
                                               final String zkConnectString,
                                               final String controllerMode,
-                                              final ZkClient zkClient)
+                                              final ZkClient zkClient) throws Exception
   {
     final StartCMResult result = new StartCMResult();
     final ClusterManager manager =
@@ -132,6 +133,7 @@ public class TestHelper
                                                    controllerName,
                                                    controllerMode,
                                                    zkClient);
+    manager.connect();
     result._manager = manager;
     
     Thread thread = new Thread(new Runnable()
@@ -199,6 +201,7 @@ public class TestHelper
     {
       try
       {
+        _manager.connect();
         DummyStateModelFactory stateModelFactory = new DummyStateModelFactory(0);
         StateMachineEngine<DummyStateModel> genericStateMachineHandler =
             new StateMachineEngine<DummyStateModel>(stateModelFactory);
@@ -206,7 +209,6 @@ public class TestHelper
                 .registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(),
                                                genericStateMachineHandler);
 
-        _manager.connect();
         Thread.currentThread().join();
       }
       catch (InterruptedException e)

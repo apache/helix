@@ -164,13 +164,13 @@ public class ClusterManagerMain
       {
         manager = ClusterManagerFactory.getZKBasedManagerForControllerParticipant(clusterName, 
                    controllerName, zkConnectString);
-      
+        manager.connect();
         DistClusterControllerStateModelFactory stateModelFactory 
            = new DistClusterControllerStateModelFactory(zkConnectString);
         StateMachineEngine<DistClusterControllerStateModel> genericStateMachineHandler 
            = new StateMachineEngine<DistClusterControllerStateModel>(stateModelFactory);
         manager.getMessagingService().registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(), genericStateMachineHandler);
-        manager.connect();
+       
       }
       else
       {

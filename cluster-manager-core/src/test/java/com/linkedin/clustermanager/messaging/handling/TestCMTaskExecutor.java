@@ -5,7 +5,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
 
+import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
@@ -20,7 +22,7 @@ public class TestCMTaskExecutor
   public static class MockClusterManager extends Mocks.MockManager
   {
     @Override
-		public String getSessionId()
+    public String getSessionId()
     {
       return "123";
     }
@@ -41,6 +43,7 @@ public class TestCMTaskExecutor
       {
         // TODO Auto-generated method stub
         _processedMsgIds.put(message.getMsgId(), message.getMsgId());
+        Thread.currentThread().sleep(100);
       }
       
     }
@@ -98,7 +101,6 @@ public class TestCMTaskExecutor
           for (int i = 0; i < 10; i++)
           {
             Thread.sleep(100);
-
           }
         } catch (InterruptedException e)
         {
@@ -138,7 +140,7 @@ public class TestCMTaskExecutor
   @Test (groups = {"unitTest"})
   public void TestNormalMsgExecution() throws InterruptedException
   {
-  	System.out.println("START TestCMTaskExecutor.TestNormalMsgExecution()");
+    System.out.println("START TestCMTaskExecutor.TestNormalMsgExecution()");
     CMTaskExecutor executor = new CMTaskExecutor();
     ClusterManager manager = new MockClusterManager();
     
@@ -353,4 +355,65 @@ public class TestCMTaskExecutor
     }
   }
   
+
+  @Test (groups = {"unitTest"})
+  public void testShutdown() throws InterruptedException
+  {
+     System.out.println("START TestCMTaskExecutor.TestNormalMsgExecution()");
+     CMTaskExecutor executor = new CMTaskExecutor();
+      ClusterManager manager = new MockClusterManager();
+      
+      TestMessageHandlerFactory factory = new TestMessageHandlerFactory();
+      executor.registerMessageHandlerFactory(factory.getMessageType(), factory);
+      
+      TestMessageHandlerFactory2 factory2 = new TestMessageHandlerFactory2();
+      executor.registerMessageHandlerFactory(factory2.getMessageType(), factory2);
+      
+      CancellableHandlerFactory factory3 = new CancellableHandlerFactory();
+      executor.registerMessageHandlerFactory(factory3.getMessageType(), factory3);
+      int nMsg1 = 10, nMsg2 = 10, nMsg3 = 10;
+      List<ZNRecord> msgList = new ArrayList<ZNRecord>();
+      
+      for(int i = 0; i < nMsg1; i++)
+      {
+        Message msg = new Message(factory.getMessageType(), UUID.randomUUID().toString());
+        msg.setTgtSessionId("*");
+        msg.setTgtName("Localhost_1123");
+        msg.setSrcName("127.101.1.23_2234");
+        msgList.add(msg.getRecord());
+      }
+      
+      for(int i = 0; i < nMsg2; i++)
+      {
+        Message msg = new Message(factory2.getMessageType(), UUID.randomUUID().toString());
+        msg.setTgtSessionId("*");
+        msgList.add(msg.getRecord());
+        msg.setTgtName("Localhost_1123");
+        msg.setSrcName("127.101.1.23_2234");
+        msgList.add(msg.getRecord());
+      }
+      
+      for(int i = 0; i < nMsg3; i++)
+      {
+        Message msg = new Message(factory3.getMessageType(), UUID.randomUUID().toString());
+        msg.setTgtSessionId("*");
+        msgList.add(msg.getRecord());
+        msg.setTgtName("Localhost_1123");
+        msg.setSrcName("127.101.1.23_2234");
+        msgList.add(msg.getRecord());
+      }
+      NotificationContext changeContext = new NotificationContext(manager);
+      executor.onMessage("some", msgList, changeContext);
+      Thread.currentThread().sleep(500);
+      for(ExecutorService svc : executor._threadpoolMap.values())
+      {
+        Assert.assertFalse(svc.isShutdown());
+        }
+      Assert.assertTrue(factory._processedMsgIds.size() > 0);
+      executor.shutDown();
+      for(ExecutorService svc : executor._threadpoolMap.values())
+      {
+        Assert.assertTrue(svc.isShutdown());
+      }
+  }
 }

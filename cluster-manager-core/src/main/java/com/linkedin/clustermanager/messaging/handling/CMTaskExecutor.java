@@ -9,6 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Logger;
 
@@ -38,9 +39,9 @@ public class CMTaskExecutor implements MessageListener
   private final StatusUpdateUtil _statusUpdateUtil;
   private final ParticipantMonitor _monitor;
 
-  private final ConcurrentHashMap<String, MessageHandlerFactory> _handlerFactoryMap = new ConcurrentHashMap<String, MessageHandlerFactory>();
+  final ConcurrentHashMap<String, MessageHandlerFactory> _handlerFactoryMap = new ConcurrentHashMap<String, MessageHandlerFactory>();
 
-  private final ConcurrentHashMap<String, ExecutorService> _threadpoolMap = new ConcurrentHashMap<String, ExecutorService>();
+  final ConcurrentHashMap<String, ExecutorService> _threadpoolMap = new ConcurrentHashMap<String, ExecutorService>();
 
   private static Logger logger = Logger.getLogger(CMTaskExecutor.class);
 
@@ -186,8 +187,6 @@ public class CMTaskExecutor implements MessageListener
   {
     ExecutorService pool = Executors.newFixedThreadPool(MAX_PARALLEL_TASKS);
     Future<CMTaskResult> future;
-    // pool.shutdown();
-    // pool.awaitTermination(5, TimeUnit.SECONDS);
     future = pool.submit(new Callable<CMTaskResult>()
     {
 
@@ -209,18 +208,22 @@ public class CMTaskExecutor implements MessageListener
   public void onMessage(String instanceName, List<ZNRecord> messages,
       NotificationContext changeContext)
   {
-    ClusterManager manager = changeContext.getManager();
-    ClusterDataAccessor client = manager.getDataAccessor();
-
     // If FINALIZE notification comes, reset all handler factories
+    // and terminate all the thread pools
     // TODO: see if we should have a separate notification call for resetting
     if (changeContext.getType() == Type.FINALIZE)
     {
+      logger.info("Get FINALIZE notification");
       for (MessageHandlerFactory factory : _handlerFactoryMap.values())
       {
         factory.reset();
       }
+      return;
     }
+
+    ClusterManager manager = changeContext.getManager();
+    ClusterDataAccessor client = manager.getDataAccessor();
+
     if (messages == null || messages.size() == 0)
     {
       logger.info("No Messages to process");
@@ -320,6 +323,33 @@ public class CMTaskExecutor implements MessageListener
     }
 
     return handlerFactory.createHandler(message, changeContext);
-
+  }
+  
+  public void shutDown()
+  {
+    logger.info("shutting down TaskExecutor");
+    synchronized(_lock)
+    {
+      for(String msgType : _threadpoolMap.keySet())
+      {
+        List<Runnable> tasksLeft = _threadpoolMap.get(msgType).shutdownNow();
+        logger.info(tasksLeft.size() + " tasks are still in the threadpool for msgType " + msgType);
+      }
+      for(String msgType : _threadpoolMap.keySet())
+      {
+        try
+        {
+          if(!_threadpoolMap.get(msgType).awaitTermination(200, TimeUnit.MILLISECONDS))
+          {
+            logger.warn(msgType + " is not fuly termimated in 200 MS");
+          }
+        }
+        catch (InterruptedException e)
+        {
+          logger.error("Interrupted", e);
+        }
+      }
+    }
+    logger.info("shutdown finished");
   }
 }

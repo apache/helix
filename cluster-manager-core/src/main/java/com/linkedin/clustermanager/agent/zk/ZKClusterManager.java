@@ -137,6 +137,7 @@ public class ZKClusterManager implements ClusterManager
   public void addIdealStateChangeListener(
       final IdealStateChangeListener listener) throws Exception
   {
+    checkConnected();
     final String path = CMUtil.getIdealStatePath(_clusterName);
     CallbackHandler callbackHandler = createCallBackHandler(path, listener,
         new EventType[]
@@ -149,6 +150,7 @@ public class ZKClusterManager implements ClusterManager
   public void addLiveInstanceChangeListener(LiveInstanceChangeListener listener)
       throws Exception
   {
+    checkConnected();
     final String path = CMUtil.getLiveInstancesPath(_clusterName);
     CallbackHandler callbackHandler = createCallBackHandler(path, listener,
         new EventType[]
@@ -160,6 +162,7 @@ public class ZKClusterManager implements ClusterManager
   @Override
   public void addConfigChangeListener(ConfigChangeListener listener)
   {
+    checkConnected();
     final String path = CMUtil.getConfigPath(_clusterName);
 
     CallbackHandler callbackHandler = createCallBackHandler(path, listener,
@@ -173,6 +176,7 @@ public class ZKClusterManager implements ClusterManager
   @Override
   public void addMessageListener(MessageListener listener, String instanceName)
   {
+    checkConnected();
     final String path = CMUtil.getMessagePath(_clusterName, instanceName);
 
     CallbackHandler callbackHandler = createCallBackHandler(path, listener,
@@ -184,6 +188,7 @@ public class ZKClusterManager implements ClusterManager
 
   void addControllerMessageListener(MessageListener listener)
   {
+    checkConnected();
     final String path = CMUtil.getControllerPropertyPath(_clusterName,
         PropertyType.MESSAGES_CONTROLLER);
 
@@ -198,6 +203,7 @@ public class ZKClusterManager implements ClusterManager
   public void addCurrentStateChangeListener(
       CurrentStateChangeListener listener, String instanceName, String sessionId)
   {
+    checkConnected();
     final String path = CMUtil.getCurrentStateBasePath(_clusterName,
         instanceName) + "/" + sessionId;
 
@@ -211,7 +217,7 @@ public class ZKClusterManager implements ClusterManager
   @Override
   public void addExternalViewChangeListener(ExternalViewChangeListener listener)
   {
-
+    checkConnected();
     final String path = CMUtil.getExternalViewPath(_clusterName);
 
     CallbackHandler callbackHandler = createCallBackHandler(path, listener,
@@ -224,6 +230,7 @@ public class ZKClusterManager implements ClusterManager
   @Override
   public ClusterDataAccessor getDataAccessor()
   {
+    checkConnected();
     return _accessor;
   }
 
@@ -263,14 +270,12 @@ public class ZKClusterManager implements ClusterManager
   @Override
   public void disconnect()
   {
-    // logger.info("Cluster manager: " + _instanceName + " disconnected");
-    // System.out.println("Disconnecting cluster manager: " + _instanceName);
-
+    logger.info("Cluster manager: " + _instanceName + " disconnecting");
     for (CallbackHandler handler : _handlers)
     {
       handler.reset();
     }
-
+    _messagingService.getExecutor().shutDown();
     if (_leaderElectionHandler != null)
     {
       _leaderElectionHandler.reset();
@@ -298,13 +303,14 @@ public class ZKClusterManager implements ClusterManager
     
     // HACK seems that zkClient is not sending DISCONNECT event
     _zkStateChangeListener.disconnect();
-    // System.out.println("Cluster manager: " + _instanceName +
-    // " disconnected");
+    logger.info("Cluster manager: " + _instanceName +
+     " disconnected");
   }
 
   @Override
   public String getSessionId()
   {
+    checkConnected();
     return _sessionId;
   }
 
@@ -324,6 +330,7 @@ public class ZKClusterManager implements ClusterManager
   @Override
   public void addControllerListener(ControllerChangeListener listener)
   {
+    checkConnected();
     final String path = CMUtil.getControllerPath(_clusterName);
     logger.info("Add controller listener at: " + path);
     CallbackHandler callbackHandler = createCallBackHandler(path, listener,
@@ -414,8 +421,8 @@ public class ZKClusterManager implements ClusterManager
       try
       {
         _zkClient.waitUntilConnected(sessionTimeout, TimeUnit.MILLISECONDS);
-        _zkStateChangeListener.handleNewSession();
         _zkStateChangeListener.handleStateChanged(KeeperState.SyncConnected);
+        _zkStateChangeListener.handleNewSession();
         break;
       } catch (ClusterManagerException e)
       {
@@ -631,7 +638,6 @@ public class ZKClusterManager implements ClusterManager
 
   private void carryOverPreviousCurrentState()
   {
-
     List<String> subPaths = _accessor.getChildNames(PropertyType.CURRENTSTATES,
         _instanceName);
     for (String previousSessionId : subPaths)
@@ -676,6 +682,7 @@ public class ZKClusterManager implements ClusterManager
   @Override
   public PropertyStore<ZNRecord> getPropertyStore()
   {
+    checkConnected();
     if (_accessor != null)
     {
       return _accessor.getStore();
@@ -687,6 +694,7 @@ public class ZKClusterManager implements ClusterManager
   @Override
   public synchronized ClusterManagementService getClusterManagmentTool()
   {
+    checkConnected();
     if (_managementTool == null)
     {
       if (_zkClient != null)
@@ -703,12 +711,14 @@ public class ZKClusterManager implements ClusterManager
   @Override
   public ClusterMessagingService getMessagingService()
   {
+    checkConnected();
     return _messagingService;
   }
 
   @Override
   public ParticipantHealthReportCollector getHealthReportCollector()
   {
+    checkConnected();
     return _participantHealthCheckInfoCollector;
   }
 
@@ -716,6 +726,14 @@ public class ZKClusterManager implements ClusterManager
   public InstanceType getInstanceType()
   {
     return _instanceType;
+  }
+  
+  private void checkConnected()
+  {
+    if(!isConnected())
+    {
+      throw new ClusterManagerException("ClusterManager not connected. Call clusterManager.connect()");
+    }
   }
 
 }

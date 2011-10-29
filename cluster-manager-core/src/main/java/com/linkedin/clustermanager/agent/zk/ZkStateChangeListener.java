@@ -21,6 +21,11 @@ public class ZkStateChangeListener implements IZkStateListener
   @Override
   public void handleNewSession()
   {
+    //TODO:bug in zkclient . 
+    //zkclient does not invoke handleStateChanged when a session expires but 
+    //directly invokes handleNewSession 
+    _isConnected = true;
+    _hasSessionExpired = false;
     _zkClusterManager.handleNewSession();
   }
 

@@ -1,11 +1,14 @@
 package com.linkedin.clustermanager;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 import org.I0Itec.zkclient.IDefaultNameSpace;
 import org.I0Itec.zkclient.ZkServer;
+import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.agent.zk.ZkClient;
@@ -20,27 +23,28 @@ public class TestHelper
 {
   private static final Logger logger = Logger.getLogger(TestHelper.class);
 
-  static public ZkServer startZkSever(final String zkAddress)
+  static public ZkServer startZkSever(final String zkAddress) throws Exception
   {
     List<String> empty = Collections.emptyList();
     return TestHelper.startZkSever(zkAddress, empty);
   }
 
-  static public ZkServer startZkSever(final String zkAddress, final String rootNamespace)
+  static public ZkServer startZkSever(final String zkAddress, final String rootNamespace) throws Exception
   {
     List<String> rootNamespaces = new ArrayList<String>();
     rootNamespaces.add(rootNamespace);
     return TestHelper.startZkSever(zkAddress, rootNamespaces);
   }
 
-  static public ZkServer startZkSever(final String zkAddress, final List<String> rootNamespaces)
+  static public ZkServer startZkSever(final String zkAddress, final List<String> rootNamespaces) throws Exception
   {
     System.out.println("Starting zookeeper at " + zkAddress + " in thread "+ Thread.currentThread().getName());
     
     String zkDir = zkAddress.replace(':', '_');
     final String logDir = "/tmp/" + zkDir + "/logs";
     final String dataDir = "/tmp/" + zkDir + "/dataDir";
-
+    FileUtils.deleteDirectory(new File(dataDir));
+    FileUtils.deleteDirectory(new File(logDir));
     ZKClientPool.reset();
 
     IDefaultNameSpace defaultNameSpace = new IDefaultNameSpace()

@@ -39,7 +39,7 @@ public class ZkUnitTestBase
 
   
   @BeforeSuite (alwaysRun = true)
-  public void beforeSuite()
+  public void beforeSuite() throws Exception
   {
   	// System.out.println("START beforeSuite() in UnitTest");
     _zkServer = TestHelper.startZkSever(ZK_ADDR);

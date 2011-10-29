@@ -47,7 +47,7 @@ public class TestDistClusterController extends ZkDistCMHandler
       }
     }
 
-    // Thread.sleep(10000);
+    //Thread.sleep(10000);
 
     List<String> clusterNames = new ArrayList<String>();
     final String firstCluster = CLUSTER_PREFIX + "_" + CLASS_NAME + "_0";

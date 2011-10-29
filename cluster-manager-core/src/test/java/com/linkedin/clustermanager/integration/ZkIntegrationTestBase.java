@@ -45,7 +45,7 @@ public class ZkIntegrationTestBase
 
   @BeforeSuite(groups =
   { "integrationTest" })
-  public void beforeSuite()
+  public void beforeSuite() throws Exception
   {
     _zkServer = TestHelper.startZkSever(ZK_ADDR);
     AssertJUnit.assertTrue(_zkServer != null);

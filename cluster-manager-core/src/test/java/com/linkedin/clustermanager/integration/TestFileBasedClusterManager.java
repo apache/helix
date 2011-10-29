@@ -40,10 +40,10 @@ public class TestFileBasedClusterManager
     ClusterViewSerializer.serialize(view, new File(file));
     ClusterView restoredView = ClusterViewSerializer.deserialize(new File(file));
     
-    VerifyClusterViews(view, restoredView);
+    verifyClusterViews(view, restoredView);
   }
   
-  public void VerifyClusterViews(ClusterView view1, ClusterView view2)
+  public void verifyClusterViews(ClusterView view1, ClusterView view2)
   {
     AssertJUnit.assertEquals(view1.getPropertyLists().size(), view2.getPropertyLists().size());
     AssertJUnit.assertEquals(view1.getExternalView().size(), view2.getExternalView().size());

@@ -310,6 +310,8 @@ public class FilePropertyStore<T> implements PropertyStore<T>
     this.createRootNamespace();
   }
 
+  
+  @Override
   public boolean start()
   {
     // check if start has already been invoked
@@ -345,9 +347,23 @@ public class FilePropertyStore<T> implements PropertyStore<T>
     return true;
   }
 
+  @Override
   public boolean stop()
   {
-    _stopRefreshThread.set(true);
+    if (_stopRefreshThread.compareAndSet(false, true))
+    {
+      // _stopRefreshThread.set(true);
+      if (_refreshThread != null)
+      {
+        try
+        {
+          _refreshThread.join();
+        }
+        catch (InterruptedException e)
+        {
+        }
+      }
+    }
     return true;
   }
   

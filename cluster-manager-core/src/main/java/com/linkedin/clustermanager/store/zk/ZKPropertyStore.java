@@ -710,4 +710,18 @@ implements PropertyStore<T>, IZkDataListener, IZkChildListener, IZkStateListener
     }
   }
 
+  @Override
+  public boolean start()
+  {
+    // TODO Auto-generated method stub
+    return false;
+  }
+
+  @Override
+  public boolean stop()
+  {
+    // TODO Auto-generated method stub
+    return false;
+  }
+
 }

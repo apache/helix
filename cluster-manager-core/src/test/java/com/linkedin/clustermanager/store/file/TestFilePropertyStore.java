@@ -125,8 +125,16 @@ public class TestFilePropertyStore
                                   "grandchild1-new\n", comparator);
     AssertJUnit.assertEquals(success, true);
     
-    store.unsubscribeForPropertyChange("/child1", listener2);
     store.stop();
+    
+    // test stop
+    listener2._propertyChangeReceived = false;
+    store.setProperty("/child1/grandchild3/grandgrandchild1", "grandgrandchild1-new-new\n");
+    Thread.sleep(SLEEP_TIME);
+    AssertJUnit.assertEquals(listener2._propertyChangeReceived, false);
+    
+    store.unsubscribeForPropertyChange("/child1", listener2);
+    // store.stop();
     System.out.println("END TestFilePropertyStore at " + new Date(System.currentTimeMillis()));
   }
 }

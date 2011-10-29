@@ -2,6 +2,8 @@ package com.linkedin.clustermanager.agent.zk;
 
 import java.io.ByteArrayInputStream;
 import java.io.StringWriter;
+import java.util.Map;
+import java.util.TreeMap;
 
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.log4j.Logger;
@@ -10,6 +12,8 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.SerializationConfig;
 
 import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.ZNRecordDelta;
+import com.linkedin.clustermanager.model.Message;
 
 public class ZNRecordSerializer implements ZkSerializer
 {
@@ -67,7 +71,7 @@ public class ZNRecordSerializer implements ZkSerializer
     return null;
   }
 
-  /*
+  
   public static void main(String[] args)
   {
     ZNRecord record = new ZNRecord("asdsa");
@@ -76,6 +80,8 @@ public class ZNRecordSerializer implements ZkSerializer
     record.setSimpleField("asdsa", "adasdsdasd");
     // record.setSimpleField("asdsa", "adasdsdasd");
     record.setMapField("db.partion-0", v);
+    ZNRecordDelta deltaRecord = new ZNRecordDelta(record);
+    
     Message message = new Message(record);
 
     ZNRecordSerializer serializer = new ZNRecordSerializer();
@@ -95,5 +101,5 @@ public class ZNRecordSerializer implements ZkSerializer
         .readData("/test-cluster/instances/localhost_8900/currentStates/test_DB.partition-2");
     System.out.println(readData);
   }
-  */
+  
 }

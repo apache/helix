@@ -3,6 +3,7 @@ package com.linkedin.clustermanager.integration;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -140,9 +141,12 @@ public class ZkIntegrationTestBase
   {
     try
     {
+      System.out
+          .println("START:ZkIntegrationTestBase.verifyIdealAndCurrentStateTimeout():"+ new Date());
+      
       boolean result = false;
       int i = 0;
-      for (; i < 24; i++)
+      for (; i < 60; i++)
       {
         Thread.sleep(2000);
         result = verifyIdealAndCurrentState(clusterNames);
@@ -151,6 +155,8 @@ public class ZkIntegrationTestBase
           break;
         }
       }
+      System.out
+      .println("END ZkIntegrationTestBase.verifyIdealAndCurrentStateTimeout():"+ new Date());
       // debug
       System.out.println("verifyIdealAndCurrentState(): wait "
           + ((i + 1) * 2000) + "ms to verify (" + result + ") clusters:"
@@ -162,6 +168,7 @@ public class ZkIntegrationTestBase
             + Arrays.toString(clusterNames.toArray()));
       }
       AssertJUnit.assertTrue(result);
+     
     } catch (InterruptedException e)
     {
       // TODO Auto-generated catch block

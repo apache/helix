@@ -7,6 +7,7 @@ import java.util.TreeMap;
 
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.annotate.JsonCreator;
+import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 import org.codehaus.jackson.annotate.JsonProperty;
 
@@ -21,6 +22,10 @@ public class ZNRecord
 {
   static Logger _logger = Logger.getLogger(ZNRecord.class);
   private final String id;
+  /**
+   * We don't want the delta to be serialized and deserialized
+   */
+  @JsonIgnore
   private List<ZNRecordDelta> _deltaList = new ArrayList<ZNRecordDelta>();
   private Map<String, String> simpleFields;
   private Map<String, Map<String, String>> mapFields;
@@ -40,7 +45,7 @@ public class ZNRecord
     _deltaList = deltaList;
   }
   
-  @JsonProperty
+  
   public List<ZNRecordDelta> getDeltaList()
   {
     return _deltaList;

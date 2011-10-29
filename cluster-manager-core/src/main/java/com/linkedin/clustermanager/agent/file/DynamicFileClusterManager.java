@@ -38,9 +38,6 @@ public class DynamicFileClusterManager implements ClusterManager
   private static final Logger LOG = Logger
       .getLogger(FileBasedClusterManager.class.getName());
   private final ClusterDataAccessor _fileDataAccessor;
-  // private final FileBasedDataAccessor _fileDataAccessor;
-  // private final String _rootNamespace =
-  // "/tmp/testFilePropertyStoreIntegration";
 
   private final String _clusterName;
   private final InstanceType _instanceType;
@@ -52,6 +49,7 @@ public class DynamicFileClusterManager implements ClusterManager
   public static final String _sessionId = "12345";
   public static final String configFile = "configFile";
   private final DefaultMessagingService _messagingService;
+  private final FilePropertyStore<ZNRecord> _store;
 
   public DynamicFileClusterManager(String clusterName, String instanceName,
       InstanceType instanceType, ClusterDataAccessor accessor)
@@ -68,9 +66,8 @@ public class DynamicFileClusterManager implements ClusterManager
       addLiveInstance();
     }
 
-    FilePropertyStore<ZNRecord> store = (FilePropertyStore<ZNRecord>) _fileDataAccessor
-        .getStore();
-    _mgmtTool = new FileClusterManagementTool(store);
+    _store = (FilePropertyStore<ZNRecord>) _fileDataAccessor.getStore();
+    _mgmtTool = new FileClusterManagementTool(_store);
 
     _messagingService = new DefaultMessagingService(this);
     if (instanceType == InstanceType.PARTICIPANT)
@@ -78,13 +75,14 @@ public class DynamicFileClusterManager implements ClusterManager
       addMessageListener(_messagingService.getExecutor(), _instanceName);
     }
 
-    store.start();
+    _store.start();
 
   }
 
   @Override
   public void disconnect()
   {
+    _store.stop();
     _isConnected = false;
   }
 

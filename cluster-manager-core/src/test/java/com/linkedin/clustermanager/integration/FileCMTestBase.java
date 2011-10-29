@@ -163,7 +163,10 @@ public class FileCMTestBase
         + new Date(System.currentTimeMillis()));
 
     // Thread.sleep(3000);
-    _store.stop();
+    // _store.stop();
+    _manager.disconnect();
+    _manager.disconnect();
+    
     logger.info("END afterClass FileCMTestBase at " + new Date(System.currentTimeMillis()));
 
   }

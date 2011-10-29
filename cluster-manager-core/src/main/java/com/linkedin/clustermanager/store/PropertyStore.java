@@ -169,4 +169,16 @@ public interface PropertyStore<T>
   public boolean compareAndSet(String key, T expected, T update, Comparator<T> comparator);
   public boolean compareAndSet(String key, T expected, T update, Comparator<T> comparator, boolean createIfAbsent);
 
+  /**
+   * start 
+   * @return
+   */
+  public boolean start();
+
+  /**
+   * do clean up
+   * @return true
+   */
+  public boolean stop();
+
 }

@@ -8,7 +8,6 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.log4j.Logger;
-import org.apache.zookeeper.CreateMode;
 
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterMessagingService;
@@ -255,13 +254,15 @@ public class DefaultMessagingService implements ClusterMessagingService
       {
         Message noOPMsg = new Message(MessageType.NO_OP, UUID.randomUUID()
             .toString());
-        if (_manager.getInstanceType() == InstanceType.CONTROLLER)
+        if (_manager.getInstanceType() == InstanceType.CONTROLLER
+            || _manager.getInstanceType() == InstanceType.CONTROLLER_PARTICIPANT)
         {
           noOPMsg.setTgtName("Controller");
           _manager.getDataAccessor().setProperty(
               PropertyType.MESSAGES_CONTROLLER, noOPMsg.getRecord(),noOPMsg.getId());
         }
-        if (_manager.getInstanceType() == InstanceType.PARTICIPANT)
+        if (_manager.getInstanceType() == InstanceType.PARTICIPANT 
+            || _manager.getInstanceType() == InstanceType.CONTROLLER_PARTICIPANT)
         {
           noOPMsg.setTgtName(_manager.getInstanceName());
           _manager.getDataAccessor().setProperty(PropertyType.MESSAGES,noOPMsg.getRecord(),noOPMsg.getTgtName(),

@@ -48,7 +48,7 @@ public class ZkDistCMHandler extends ZkIntegrationTestBase
   private static final String TEST_DB = "TestDB";
   ZkClient _zkClient;
   
-  @BeforeClass (groups = {"integrationTest"})
+  @BeforeClass
   public void beforeClass() throws Exception
   {
     // logger.info("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
@@ -132,7 +132,7 @@ public class ZkDistCMHandler extends ZkIntegrationTestBase
     verifyIdealAndCurrentStateTimeout(clusterNames);
   }
   
-  @AfterClass (groups = {"integrationTest"})
+  @AfterClass
   public void afterClass() throws Exception
   {
     // logger.info("END at " + new Date(System.currentTimeMillis()));

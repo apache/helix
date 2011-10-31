@@ -5,7 +5,6 @@ import java.util.Date;
 import java.util.List;
 
 import org.apache.log4j.Logger;
-import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.TestHelper;
 import com.linkedin.clustermanager.TestHelper.StartCMResult;
@@ -15,7 +14,7 @@ public class TestDistClusterController extends ZkDistCMHandler
   private static Logger logger = Logger.getLogger(TestDistClusterController.class);
   
 	
-  @Test (groups = {"integrationTest"})
+  // @Test (groups = {"integrationTest"})
   public void testDistClusterController() throws Exception
   {
     logger.info("Run at " + new Date(System.currentTimeMillis()));

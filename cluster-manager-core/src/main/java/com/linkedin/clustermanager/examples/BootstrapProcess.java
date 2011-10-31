@@ -246,7 +246,7 @@ public class BootstrapProcess
   public static void printUsage(Options cliOptions)
   {
     HelpFormatter helpFormatter = new HelpFormatter();
-    helpFormatter.printHelp("java " + ClusterSetup.class.getName(), cliOptions);
+    helpFormatter.printHelp("java " + BootstrapProcess.class.getName(), cliOptions);
   }
 
   public static CommandLine processCommandLineArgs(String[] cliArgs)

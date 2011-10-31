@@ -12,13 +12,6 @@ public class ZKClientPool
   
   public static ZkClient getZkClient(String zkServer)
   {
-  	if (true)
-  	{
-      ZkClient zkClient = new ZkClient(zkServer);
-      zkClient.setZkSerializer(new ZNRecordSerializer());
-      return zkClient;
-  	}
-  	
     if(_zkClientMap.containsKey(zkServer))
     {
       // TODO: if the ZKClient is eventually disconnected, 

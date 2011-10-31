@@ -66,24 +66,24 @@ public class ClusterSetup
   public static final String help                  = "help";
   static Logger              _logger               = Logger.getLogger(ClusterSetup.class);
   String                     _zkServerAddress;
+  ZkClient _zkClient;
+  ClusterManagementService _managementService;
 
   public ClusterSetup(String zkServerAddress)
   {
     _zkServerAddress = zkServerAddress;
+    _zkClient  = ZKClientPool.getZkClient(_zkServerAddress);
+    _managementService = new ZKClusterManagementTool(_zkClient);
   }
 
   public void addCluster(String clusterName, boolean overwritePrevious)
   {
-    ClusterManagementService managementTool = getClusterManagementTool();
-
-    managementTool.addCluster(clusterName, overwritePrevious);
+    _managementService.addCluster(clusterName, overwritePrevious);
+    
     StateModelConfigGenerator generator = new StateModelConfigGenerator();
     addStateModelDef(clusterName, "MasterSlave", generator.generateConfigForMasterSlave());
-
     addStateModelDef(clusterName, "LeaderStandby", generator.generateConfigForLeaderStandby());
-
     addStateModelDef(clusterName, "StorageSchemata", generator.generateConfigForStorageSchemata());
-
     addStateModelDef(clusterName, "OnlineOffline", generator.generateConfigForOnlineOffline());
   }
 
@@ -92,8 +92,7 @@ public class ClusterSetup
                          String stateModDefName,
                          ZNRecord stateModDef)
   {
-    ClusterManagementService managementTool = getClusterManagementTool();
-    managementTool.addCluster(clusterName, overwritePrevious);
+    _managementService.addCluster(clusterName, overwritePrevious);
     addStateModelDef(clusterName, stateModDefName, stateModDef);
   }
 
@@ -127,7 +126,6 @@ public class ClusterSetup
 
   public void addInstanceToCluster(String clusterName, String host, int port)
   {
-    ClusterManagementService managementTool = getClusterManagementTool();
     String instanceId = host + "_" + port;
     ZNRecord instanceConfig = new ZNRecord(instanceId);
     
@@ -135,7 +133,7 @@ public class ClusterSetup
     instanceConfig.setSimpleField(InstanceConfigProperty.PORT.toString(), "" + port);
     instanceConfig.setSimpleField(InstanceConfigProperty.ENABLED.toString(), true + "");
 
-    managementTool.addInstance(clusterName, instanceConfig);
+    _managementService.addInstance(clusterName, instanceConfig);
   }
   
   public void dropInstancesFromCluster(String clusterName, String[] InstanceInfoArray)
@@ -168,7 +166,6 @@ public class ClusterSetup
   
   public void dropInstanceFromCluster(String clusterName, String host, int port)
   {
-	  ClusterManagementService managementTool = getClusterManagementTool();
 	  String instanceId = host + "_" + port;
 	  //ZNRecord instanceConfig = new ZNRecord(instanceId);
 	  ZkClient zkClient = ZKClientPool.getZkClient(_zkServerAddress);
@@ -190,19 +187,17 @@ public class ClusterSetup
 		  _logger.warn(error);
 		  throw new ClusterManagerException(error);
 	  }	
-	  managementTool.dropInstance(clusterName, instanceConfig);
+	  _managementService.dropInstance(clusterName, instanceConfig);
   }
   
   public ClusterManagementService getClusterManagementTool()
   {
-    ZkClient zkClient = ZKClientPool.getZkClient(_zkServerAddress);
-    return new ZKClusterManagementTool(zkClient);
+    return _managementService;
   }
 
   public void addStateModelDef(String clusterName, String stateModelDef, ZNRecord record)
   {
-    ClusterManagementService managementTool = getClusterManagementTool();
-    managementTool.addStateModelDef(clusterName, stateModelDef, record);
+    _managementService.addStateModelDef(clusterName, stateModelDef, record);
   }
 
   public void addResourceGroupToCluster(String clusterName,
@@ -228,8 +223,7 @@ public class ClusterSetup
       logger.info("ideal state mode is configured to auto for " + resourceGroup);
       idealStateMode = IdealStateConfigProperty.AUTO.toString();
     }
-    ClusterManagementService managementTool = getClusterManagementTool();
-    managementTool.addResourceGroup(clusterName,
+    _managementService.addResourceGroup(clusterName,
                                     resourceGroup,
                                     numResources,
                                     stateModelRef,
@@ -238,28 +232,22 @@ public class ClusterSetup
 
   public void dropResourceGroupToCluster(String clusterName, String resourceGroup)
   {
-    ClusterManagementService managementTool = getClusterManagementTool();
-    managementTool.dropResourceGroup(clusterName, resourceGroup);
+    _managementService.dropResourceGroup(clusterName, resourceGroup);
   }
 
   public void rebalanceStorageCluster(String clusterName, String resourceGroupName, int replica)
   {
     replica--;
-    ClusterManagementService managementTool = getClusterManagementTool();
-    List<String> InstanceNames = managementTool.getInstancesInCluster(clusterName);
+    List<String> InstanceNames = _managementService.getInstancesInCluster(clusterName);
 
     ZNRecord dbIdealState =
-        managementTool.getResourceGroupIdealState(clusterName, resourceGroupName);
+      _managementService.getResourceGroupIdealState(clusterName, resourceGroupName);
     int partitions = Integer.parseInt(dbIdealState.getSimpleField("partitions"));
 
-    ZkClient zkClient = ZKClientPool.getZkClient(_zkServerAddress);
-    // ZkClient zkClient = new ZkClient(_zkServerAddress);
-    // zkClient.setZkSerializer(new ZNRecordSerializer());
-    
     String idealStatePath = CMUtil.getIdealStatePath(clusterName, resourceGroupName);
-    ZNRecord idealState = zkClient.<ZNRecord> readData(idealStatePath);
+    ZNRecord idealState = _zkClient.<ZNRecord> readData(idealStatePath);
     String stateModelName = idealState.getSimpleField("state_model_def_ref");
-    ZNRecord stateModDef = managementTool.getStateModelDef(clusterName, stateModelName);
+    ZNRecord stateModDef = _managementService.getStateModelDef(clusterName, stateModelName);
 
     if (stateModDef == null)
     {
@@ -319,7 +307,7 @@ public class ClusterSetup
                                                                masterStateValue,
                                                                slaveStateValue);
     idealState.setSimpleFields(dbIdealState.getSimpleFields());
-    managementTool.setResourceGroupIdealState(clusterName, resourceGroupName, idealState);
+    _managementService.setResourceGroupIdealState(clusterName, resourceGroupName, idealState);
   }
 
   /**

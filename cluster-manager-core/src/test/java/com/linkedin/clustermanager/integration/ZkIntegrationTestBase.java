@@ -43,8 +43,7 @@ public class ZkIntegrationTestBase
   protected static final String CLUSTER_PREFIX = "CLUSTER";
   protected static final String CONTROLLER_CLUSTER_PREFIX = "CONTROLLER_CLUSTER";
 
-  @BeforeSuite(groups =
-  { "integrationTest" })
+  @BeforeSuite
   public void beforeSuite() throws Exception
   {
     _zkServer = TestHelper.startZkSever(ZK_ADDR);
@@ -55,8 +54,7 @@ public class ZkIntegrationTestBase
     // AssertJUnit.assertTrue(_zkClient != null);
   }
 
-  @AfterSuite(groups =
-  { "integrationTest" })
+  @AfterSuite
   public void afterSuite()
   {
     ZKClientPool.reset();
@@ -146,7 +144,7 @@ public class ZkIntegrationTestBase
       
       boolean result = false;
       int i = 0;
-      for (; i < 60; i++)
+      for (; i < 3; i++)
       {
         Thread.sleep(2000);
         result = verifyIdealAndCurrentState(clusterNames);

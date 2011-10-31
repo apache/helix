@@ -3,13 +3,13 @@
   <parent>
     <groupId>com.linkedin.clustermanager</groupId>
     <artifactId>cluster-manager</artifactId>
-    <version>0.3.4</version>
+    <version>0.3.5</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.linkedin.clustermanager</groupId>
   <artifactId>cluster-manager-core</artifactId>
-  <version>0.3.4</version>
+  <version>0.3.5</version>
   <packaging>jar</packaging>
 
   <name>cluster-manager-core</name>

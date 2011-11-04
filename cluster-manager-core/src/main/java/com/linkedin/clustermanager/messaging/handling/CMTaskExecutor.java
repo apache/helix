@@ -238,8 +238,16 @@ public class CMTaskExecutor implements MessageListener
       if (message.getMsgType().equalsIgnoreCase(MessageType.NO_OP.toString()))
       {
         logger.info("Dropping NO-OP msg from " + message.getMsgSrc());
-        client.removeProperty(PropertyType.MESSAGES, instanceName,
+        if(message.getTgtName().equalsIgnoreCase("controller"))
+        {
+          client.removeProperty(PropertyType.MESSAGES_CONTROLLER,
             message.getId());
+        }
+        else
+        {
+          client.removeProperty(PropertyType.MESSAGES, instanceName,
+            message.getId());
+        }
         continue;
       }
       String sessionId = manager.getSessionId();

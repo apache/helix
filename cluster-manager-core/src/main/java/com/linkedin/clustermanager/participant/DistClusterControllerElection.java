@@ -19,6 +19,8 @@ import com.linkedin.clustermanager.controller.GenericClusterController;
 public class DistClusterControllerElection implements ControllerChangeListener {
 	private static Logger LOG = Logger
 			.getLogger(DistClusterControllerElection.class);
+	private final static int HISTORY_SIZE = 8;
+
 	private final String _zkAddr;
 	private GenericClusterController _controller = null;
 	private ClusterManager _leader = null;
@@ -87,7 +89,7 @@ public class DistClusterControllerElection implements ControllerChangeListener {
 			if (currentleader == null) {
 				boolean success = dataAccessor.setProperty(PropertyType.LEADER,
 						leaderRecord);
-			
+
 				if (success) {
 					ZNRecord histRecord = dataAccessor.getProperty(PropertyType.HISTORY);
 					// set controller history
@@ -101,6 +103,11 @@ public class DistClusterControllerElection implements ControllerChangeListener {
 						histRecord.setListField(clusterName, list);
 					}
 
+					// record up to HISTORY_SIZE number of leaders in FIFO order
+					if (list.size() == HISTORY_SIZE)
+					{
+					  list.remove(0);
+					}
 					list.add(instanceName);
 					dataAccessor.setProperty(PropertyType.HISTORY, histRecord);
 					return true;

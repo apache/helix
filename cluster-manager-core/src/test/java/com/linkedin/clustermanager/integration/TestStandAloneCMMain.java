@@ -9,20 +9,15 @@ import com.linkedin.clustermanager.TestHelper;
 import com.linkedin.clustermanager.TestHelper.StartCMResult;
 import com.linkedin.clustermanager.controller.ClusterManagerMain;
 
-public class TestStandAloneCMMain extends ZkStandAloneCMHandler
+public class TestStandAloneCMMain extends ZkStandAloneCMTestBase
 {
   private static Logger logger = Logger.getLogger(TestStandAloneCMMain.class);
-  
-  @Test (groups = {"integrationTest"})
+
+  @Test()
   public void testStandAloneCMMain() throws Exception
   {
     logger.info("Run at " + new Date(System.currentTimeMillis()));
-    
-    // TestHelper.startClusterController("-zkSvr " + ZK_ADDR + " -cluster " + CLUSTER_NAME +
-    //      " -mode " + ClusterManagerMain.STANDALONE + " -controllerName controller_1");
-    // TestHelper.startClusterController("-zkSvr " + ZK_ADDR + " -cluster " + CLUSTER_NAME +
-    //      " -mode " + ClusterManagerMain.STANDALONE + " -controllerName controller_2");
-    
+
     for (int i = 1; i <= 2; i++)
     {
       String controllerName = "controller_" + i;
@@ -32,20 +27,16 @@ public class TestStandAloneCMMain extends ZkStandAloneCMHandler
                                             ZK_ADDR,
                                             ClusterManagerMain.STANDALONE,
                                             null);
-      _threadMap.put(controllerName, startResult._thread);
-      _managerMap.put(controllerName, startResult._manager);
+      _startCMResultMap.put(controllerName, startResult);
     }
-    
+
     Thread.sleep(2000);
-    
-    stopCurrentLeader(_zkClient, CLUSTER_NAME, _threadMap, _managerMap);
-    
-    // Thread.sleep(5000);
-    // boolean result = ClusterStateVerifier.verifyClusterStates(ZK_ADDR, CLUSTER_NAME);
-    // AssertJUnit.assertTrue(result);
+
+    stopCurrentLeader(_zkClient, CLUSTER_NAME, _startCMResultMap);
+
     verifyIdealAndCurrentStateTimeout(CLUSTER_NAME);
-    
-    logger.info("End at " + new Date(System.currentTimeMillis())); 
+
+    logger.info("End at " + new Date(System.currentTimeMillis()));
   }
 
 }

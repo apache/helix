@@ -46,7 +46,7 @@ public class ClusterStateVerifier
 
     // Make a copy of the current states
     List<String> instanceNames = zkClient.getChildren(instancesPath);
-    
+
     Map<String, Map<String, ZNRecord>> currentStates = new TreeMap<String, Map<String, ZNRecord>>();
 
     for (String instanceName : instanceNames)
@@ -129,7 +129,7 @@ public class ClusterStateVerifier
 
     if (currentStateMap.size() != instanceIdealStates.size())
     {
-      _logger.error("Number of current states (" + currentStateMap.size()
+      _logger.warn("Number of current states (" + currentStateMap.size()
           + ") mismatch " + "number of ideal states ("
           + instanceIdealStates.size() + ")");
       return false;
@@ -148,7 +148,7 @@ public class ClusterStateVerifier
 
       if (!currentStateMap.containsKey(stateUnitKey))
       {
-        _logger.error("Current state does not contain " + stateUnitKey);
+        _logger.warn("Current state does not contain " + stateUnitKey);
         // return false;
         ret = false;
         continue;
@@ -186,7 +186,7 @@ public class ClusterStateVerifier
     for (ZNRecord idealState : idealStates)
     {
       String stateUnitGroup = idealState.getId();
-      
+
       Map<String, Map<String, String>> statesMap = idealState.getMapFields();
       for (String stateUnitKey : statesMap.keySet())
       {
@@ -197,19 +197,19 @@ public class ClusterStateVerifier
           String nodePartitionState = partitionNodeStates.get(nodeName);
           if (!currentStates.containsKey(nodeName))
           {
-            _logger.error("Current state does not contain " + nodeName);
+            _logger.warn("Current state does not contain " + nodeName);
             return false;
           }
           if (!currentStates.get(nodeName).containsKey(stateUnitGroup))
           {
-            _logger.error("Current state for " + nodeName + " does not contain "
+            _logger.warn("Current state for " + nodeName + " does not contain "
                 + stateUnitGroup);
             return false;
           }
           if (!currentStates.get(nodeName).get(stateUnitGroup).getMapFields()
               .containsKey(stateUnitKey))
           {
-            _logger.error("Current state for" + nodeName + "with "+stateUnitGroup+" does not contain "
+            _logger.warn("Current state for" + nodeName + "with "+stateUnitGroup+" does not contain "
                 + stateUnitKey);
             return false;
           }
@@ -220,11 +220,10 @@ public class ClusterStateVerifier
           boolean success =true;
           if (!partitionNodeState.equals(nodePartitionState))
           {
-            _logger.error("State mismatch " + stateUnitGroup + " " + stateUnitKey + " " +nodeName
+            _logger.warn("State mismatch " + stateUnitGroup + " " + stateUnitKey + " " +nodeName
                 + " current:" + partitionNodeState + ", expected:" + nodePartitionState);
             success= false;
           }
-          // assert (partitionNodeState.equals(nodePartitionState));
           return success;
         }
       }
@@ -236,7 +235,9 @@ public class ClusterStateVerifier
       for (String stateUnitGroup : nodeCurrentStates.keySet())
       {
         for(String stateUnitKey : nodeCurrentStates.get(stateUnitGroup).getMapFields().keySet())
-        countInCurrentStates++;
+        {
+          countInCurrentStates++;
+        }
       }
     }
     // assert (countInIdealStates == countInCurrentStates);

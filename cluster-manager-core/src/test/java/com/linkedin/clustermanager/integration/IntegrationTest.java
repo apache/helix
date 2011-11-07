@@ -15,7 +15,7 @@ import com.linkedin.clustermanager.tools.ClusterStateVerifier;
  * 
  */
 
-public class IntegrationTest extends ZkStandAloneCMHandler
+public class IntegrationTest extends ZkStandAloneCMTestBase
 {
   @Test (groups = {"integrationTest"})
   public void integrationTest() throws Exception

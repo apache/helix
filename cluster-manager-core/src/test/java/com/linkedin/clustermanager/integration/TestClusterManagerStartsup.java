@@ -15,7 +15,7 @@ import com.linkedin.clustermanager.agent.zk.ZkClient;
 import com.linkedin.clustermanager.tools.ClusterSetup;
 import com.linkedin.clustermanager.util.CMUtil;
 
-public class TestClusterManagerStartsup extends ZkStandAloneCMHandler
+public class TestClusterManagerStartsup extends ZkStandAloneCMTestBase
 {
   void setupCluster() throws ClusterManagerException
   {

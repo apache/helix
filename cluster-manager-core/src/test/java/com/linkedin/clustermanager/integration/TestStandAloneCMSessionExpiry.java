@@ -7,7 +7,7 @@ import java.util.Date;
 import org.apache.log4j.Logger;
 import org.testng.annotations.Test;
 
-public class TestStandAloneCMSessionExpiry extends ZkStandAloneCMHandler
+public class TestStandAloneCMSessionExpiry extends ZkStandAloneCMTestBase
 {
   private static Logger logger = Logger.getLogger(TestStandAloneCMSessionExpiry.class);
   

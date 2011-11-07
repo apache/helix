@@ -21,10 +21,10 @@ import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeSuite;
 
 import com.linkedin.clustermanager.ClusterDataAccessor;
-import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.PropertyPathConfig;
 import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.TestHelper;
+import com.linkedin.clustermanager.TestHelper.StartCMResult;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.agent.zk.ZKDataAccessor;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
@@ -85,25 +85,23 @@ public class ZkIntegrationTestBase
   }
 
   protected void stopCurrentLeader(ZkClient zkClient, String clusterName,
-      Map<String, Thread> threadMap, Map<String, ClusterManager> managerMap)
+                                   Map<String, StartCMResult> startCMResultMap)
   {
     String leader = getCurrentLeader(zkClient, clusterName);
     Assert.assertTrue(leader != null);
     System.out.println("stop leader:" + leader + " in " + clusterName);
     Assert.assertTrue(leader != null);
 
-    ClusterManager manager = managerMap.remove(leader);
-    Assert.assertTrue(manager != null);
-    manager.disconnect();
+    StartCMResult result = startCMResultMap.remove(leader);
+    Assert.assertTrue(result._manager != null);
+    result._manager.disconnect();
 
-    Thread thread = threadMap.remove(leader);
-    Assert.assertTrue(thread != null);
-    thread.interrupt();
+    Assert.assertTrue(result._thread != null);
+    result._thread.interrupt();
 
     boolean isNewLeaderElected = false;
     try
     {
-      // Thread.sleep(2000);
       for (int i = 0; i < 5; i++)
       {
         Thread.sleep(1000);
@@ -116,14 +114,14 @@ public class ZkIntegrationTestBase
           break;
         }
       }
-    } catch (InterruptedException e)
+    }
+    catch (InterruptedException e)
     {
       e.printStackTrace();
     }
     if (isNewLeaderElected == false)
     {
-      System.out
-          .println("fail to elect a new leader elected in " + clusterName);
+      System.out.println("fail to elect a new leader in " + clusterName);
     }
     AssertJUnit.assertTrue(isNewLeaderElected);
   }
@@ -141,7 +139,7 @@ public class ZkIntegrationTestBase
     {
       System.out
           .println("START:ZkIntegrationTestBase.verifyIdealAndCurrentStateTimeout():"+ new Date());
-      
+
       boolean result = false;
       int i = 0;
       for (; i < 3; i++)
@@ -166,7 +164,7 @@ public class ZkIntegrationTestBase
             + Arrays.toString(clusterNames.toArray()));
       }
       AssertJUnit.assertTrue(result);
-     
+
     } catch (InterruptedException e)
     {
       // TODO Auto-generated catch block
@@ -214,7 +212,8 @@ public class ZkIntegrationTestBase
         System.out.println("verifyEmtpyCurrentState() fails");
       }
       Assert.assertTrue(result);
-    } catch (InterruptedException e)
+    }
+    catch (InterruptedException e)
     {
       // TODO Auto-generated catch block
       e.printStackTrace();

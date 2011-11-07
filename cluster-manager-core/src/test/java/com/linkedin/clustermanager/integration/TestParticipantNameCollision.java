@@ -11,7 +11,7 @@ import org.testng.annotations.Test;
 import com.linkedin.clustermanager.TestHelper;
 import com.linkedin.clustermanager.TestHelper.StartCMResult;
 
-public class TestParticipantNameCollision extends ZkStandAloneCMHandler
+public class TestParticipantNameCollision extends ZkStandAloneCMTestBase
 {
   private static Logger logger = Logger.getLogger(TestParticipantNameCollision.class);
   // static final AtomicInteger _exceptionCounter = new AtomicInteger();

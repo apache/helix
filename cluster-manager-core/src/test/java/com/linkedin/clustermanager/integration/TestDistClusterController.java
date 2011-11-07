@@ -10,43 +10,36 @@ import org.testng.annotations.Test;
 import com.linkedin.clustermanager.TestHelper;
 import com.linkedin.clustermanager.TestHelper.StartCMResult;
 
-public class TestDistClusterController extends ZkDistCMHandler
+public class TestDistClusterController extends ZkDistCMTestBase
 {
   private static Logger logger = Logger.getLogger(TestDistClusterController.class);
-  	
-  @Test
+
+  @Test()
   public void testDistClusterController() throws Exception
   {
     logger.info("Run at " + new Date(System.currentTimeMillis()));
-
-    // stop the current cluster controller
     Thread.sleep(5000);
-    stopCurrentLeader(_zkClient, CONTROLLER_CLUSTER, _threadMap, _managerMap);
+    stopCurrentLeader(_zkClient, CONTROLLER_CLUSTER, _startCMResultMap);
 
-    // setup storage cluster: ESPRESSO_STORAGE_1
+    // setup the second cluster
     final String secondCluster = CLUSTER_PREFIX + "_" + CLASS_NAME + "_1";
     setupStorageCluster(_setupTool, secondCluster, "MyDB", 10, PARTICIPANT_PREFIX, 13918, STATE_MODEL);
 
-    // start dummy participants for the second ESPRESSO_STORAGE cluster
+    // start dummy participants on the second cluster
     for (int i = 0; i < NODE_NR; i++)
     {
       String instanceName = "localhost_" + (13918 + i);
-      if (_threadMap.get(instanceName) != null)
+      if (_startCMResultMap.get(instanceName) != null)
       {
         logger.error("fail to start participant:" + instanceName
-            + " because there is already a thread with same instanceName running");
+                     + "(participant with the same name already running)");
       }
       else
       {
-        // Thread thread;
         StartCMResult result = TestHelper.startDummyProcess(ZK_ADDR, secondCluster, instanceName, null);
-        
-        _threadMap.put(instanceName, result._thread);
-        _managerMap.put(instanceName, result._manager);
+        _startCMResultMap.put(instanceName, result);
       }
     }
-
-    //Thread.sleep(10000);
 
     List<String> clusterNames = new ArrayList<String>();
     final String firstCluster = CLUSTER_PREFIX + "_" + CLASS_NAME + "_0";
@@ -54,9 +47,7 @@ public class TestDistClusterController extends ZkDistCMHandler
     clusterNames.add(secondCluster);
     verifyIdealAndCurrentStateTimeout(clusterNames);
 
-    Thread.sleep(5000);
     logger.info("End at " + new Date(System.currentTimeMillis()));
-    // super.afterClass();
   }
 
 }

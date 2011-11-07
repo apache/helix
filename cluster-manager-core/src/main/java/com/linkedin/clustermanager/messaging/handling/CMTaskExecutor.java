@@ -332,7 +332,7 @@ public class CMTaskExecutor implements MessageListener
 
     return handlerFactory.createHandler(message, changeContext);
   }
-  
+
   public void shutDown()
   {
     logger.info("shutting down TaskExecutor");
@@ -349,7 +349,8 @@ public class CMTaskExecutor implements MessageListener
         {
           if(!_threadpoolMap.get(msgType).awaitTermination(200, TimeUnit.MILLISECONDS))
           {
-            logger.warn(msgType + " is not fuly termimated in 200 MS");
+            logger.warn(msgType + " is not fully termimated in 200 MS");
+            System.out.println(msgType + " is not fully termimated in 200 MS");
           }
         }
         catch (InterruptedException e)

@@ -13,7 +13,7 @@ import com.linkedin.clustermanager.agent.zk.ZKDataAccessor;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
 import com.linkedin.clustermanager.util.CMUtil;
 
-public class TestDropResource extends ZkStandAloneCMHandler
+public class TestDropResource extends ZkStandAloneCMTestBase
 {
   @Test (groups = {"integrationTest"})
   public void testDropResource() throws Exception

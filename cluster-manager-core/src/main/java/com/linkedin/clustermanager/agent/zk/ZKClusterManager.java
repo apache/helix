@@ -300,7 +300,7 @@ public class ZKClusterManager implements ClusterManager
     }
 
     _zkClient.close();
-    
+
     // HACK seems that zkClient is not sending DISCONNECT event
     _zkStateChangeListener.disconnect();
     logger.info("Cluster manager: " + _instanceName +
@@ -338,8 +338,7 @@ public class ZKClusterManager implements ClusterManager
         { EventType.NodeChildrenChanged, EventType.NodeDeleted,
             EventType.NodeCreated }, ChangeType.CONTROLLER);
 
-    // System.out.println("add controller listeners to " + _instanceName +
-    // " for " + _clusterName);
+    // System.out.println("add controller listeners to " + _instanceName + " for " + _clusterName);
     _handlers.add(callbackHandler);
   }
 
@@ -473,7 +472,7 @@ public class ZKClusterManager implements ClusterManager
 
   /**
    * This will be invoked when ever a new session is created<br/>
-   * 
+   *
    * case 1: the cluster manager was a participant carry over current state, add
    * live instance, and invoke message listener; case 2: the cluster manager was
    * controller and was a leader before do leader election, and if it becomes
@@ -687,7 +686,7 @@ public class ZKClusterManager implements ClusterManager
     {
       return _accessor.getStore();
     }
-    
+
     return null;
   }
 
@@ -727,7 +726,7 @@ public class ZKClusterManager implements ClusterManager
   {
     return _instanceType;
   }
-  
+
   private void checkConnected()
   {
     if(!isConnected())

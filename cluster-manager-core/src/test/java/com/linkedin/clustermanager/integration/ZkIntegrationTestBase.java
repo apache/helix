@@ -3,7 +3,6 @@ package com.linkedin.clustermanager.integration;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -37,11 +36,13 @@ public class ZkIntegrationTestBase
   private static Logger LOG = Logger.getLogger(ZkIntegrationTestBase.class);
 
   protected static ZkServer _zkServer = null;
-  // protected static ZkClient _zkClient = null;
 
   public static final String ZK_ADDR = "localhost:2183";
   protected static final String CLUSTER_PREFIX = "CLUSTER";
   protected static final String CONTROLLER_CLUSTER_PREFIX = "CONTROLLER_CLUSTER";
+
+  protected final String CONTROLLER_PREFIX = "controller";
+  protected final String PARTICIPANT_PREFIX = "localhost";
 
   @BeforeSuite
   public void beforeSuite() throws Exception
@@ -50,16 +51,12 @@ public class ZkIntegrationTestBase
     AssertJUnit.assertTrue(_zkServer != null);
     ZKClientPool.reset();
 
-    // _zkClient = ZKClientPool.getZkClient(ZK_ADDR);
-    // AssertJUnit.assertTrue(_zkClient != null);
   }
 
   @AfterSuite
   public void afterSuite()
   {
     ZKClientPool.reset();
-    // _zkClient.close();
-    // _zkClient = null;
     TestHelper.stopZkServer(_zkServer);
     _zkServer = null;
   }
@@ -137,22 +134,23 @@ public class ZkIntegrationTestBase
   {
     try
     {
-      System.out
-          .println("START:ZkIntegrationTestBase.verifyIdealAndCurrentStateTimeout():"+ new Date());
+//      System.out
+//          .println("START:ZkIntegrationTestBase.verifyIdealAndCurrentStateTimeout():"+ new Date());
 
       boolean result = false;
       int i = 0;
-      for (; i < 3; i++)
+      for (; i < 30; i++)
       {
-        Thread.sleep(2000);
+        Thread.sleep(1000);
         result = verifyIdealAndCurrentState(clusterNames);
         if (result == true)
         {
           break;
         }
       }
-      System.out
-      .println("END ZkIntegrationTestBase.verifyIdealAndCurrentStateTimeout():"+ new Date());
+//      System.out
+//      .println("END ZkIntegrationTestBase.verifyIdealAndCurrentStateTimeout():"+ new Date());
+
       // debug
       System.out.println("verifyIdealAndCurrentState(): wait "
           + ((i + 1) * 2000) + "ms to verify (" + result + ") clusters:"
@@ -194,9 +192,9 @@ public class ZkIntegrationTestBase
     {
       boolean result = false;
       int i = 0;
-      for (; i < 24; i++)
+      for (; i < 30; i++)
       {
-        Thread.sleep(2000);
+        Thread.sleep(1000);
         result = verifyEmptyCurrentState(zkClient, clusterName, resourceGroupName,
             instanceNames);
         if (result == true)

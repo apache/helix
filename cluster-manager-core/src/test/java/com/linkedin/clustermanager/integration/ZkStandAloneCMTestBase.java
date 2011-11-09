@@ -2,7 +2,9 @@ package com.linkedin.clustermanager.integration;
 
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.log4j.Logger;
 import org.testng.annotations.AfterClass;
@@ -59,7 +61,7 @@ public class ZkStandAloneCMTestBase extends ZkIntegrationTestBase
     _setupTool.addResourceGroupToCluster(CLUSTER_NAME, TEST_DB, 20, STATE_MODEL);
     for (int i = 0; i < NODE_NR; i++)
     {
-      String storageNodeName = "localhost:" + (START_PORT + i);
+      String storageNodeName = PARTICIPANT_PREFIX + ":" + (START_PORT + i);
       _setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
     }
     _setupTool.rebalanceStorageCluster(CLUSTER_NAME, TEST_DB, 3);
@@ -67,7 +69,7 @@ public class ZkStandAloneCMTestBase extends ZkIntegrationTestBase
     // start dummy participants
     for (int i = 0; i < NODE_NR; i++)
     {
-      String instanceName = "localhost_" + (START_PORT + i);
+      String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
       if (_startCMResultMap.get(instanceName) != null)
       {
         logger.error("fail to start particpant:" + instanceName
@@ -85,7 +87,7 @@ public class ZkStandAloneCMTestBase extends ZkIntegrationTestBase
     }
 
     // start controller
-    String controllerName = "controller_0";
+    String controllerName = CONTROLLER_PREFIX + "_0";
     _controllerZkClient = new ZkClient(ZK_ADDR, 3000, 10000, new ZNRecordSerializer());
     StartCMResult startResult = TestHelper.startClusterController(CLUSTER_NAME,
                                                                   controllerName,
@@ -100,14 +102,46 @@ public class ZkStandAloneCMTestBase extends ZkIntegrationTestBase
   @AfterClass
   public void afterClass() throws Exception
   {
-    stopThread(_startCMResultMap);
-    Thread.sleep(3000);
+    // stopThread(_startCMResultMap);
+    // Thread.sleep(3000);
+
+    /**
+     * shutdown order:
+     *   1) disconnect the controller
+     *   2) disconnect participants
+     */
+
+    StartCMResult result;
+    Iterator<Entry<String, StartCMResult>> it = _startCMResultMap.entrySet().iterator();
+    while (it.hasNext())
+    {
+      String instanceName = it.next().getKey();
+      if (instanceName.startsWith(CONTROLLER_PREFIX))
+      {
+        result = _startCMResultMap.get(instanceName);
+        result._manager.disconnect();
+        result._thread.interrupt();
+        it.remove();
+      }
+    }
+
+    it = _startCMResultMap.entrySet().iterator();
+    while (it.hasNext())
+    {
+      String instanceName = it.next().getKey();
+      result = _startCMResultMap.get(instanceName);
+      result._manager.disconnect();
+      result._thread.interrupt();
+      it.remove();
+    }
+
     _zkClient.close();
 
     // logger.info("END at " + new Date(System.currentTimeMillis()));
     System.out.println("END " + CLASS_NAME + " at "+ new Date(System.currentTimeMillis()));
   }
 
+  /*
   private void stopThread(Map<String, StartCMResult> startCMResultMap)
   {
     for (Map.Entry<String, StartCMResult> entry : startCMResultMap.entrySet())
@@ -116,5 +150,5 @@ public class ZkStandAloneCMTestBase extends ZkIntegrationTestBase
       entry.getValue()._thread.interrupt();
     }
   }
-
+  */
 }

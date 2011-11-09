@@ -135,11 +135,11 @@ public class DistClusterControllerStateModel extends StateModel
   @Override
   public void reset()
   {
-
     if (_controller != null)
     {
-      System.out.println("disconnecting " + _controller.getInstanceName()
-                         + " for " + _controller.getClusterName());
+//      System.out.println("disconnect " + _controller.getInstanceName()
+//                         + "(" + _controller.getInstanceType()
+//                         + ") from " + _controller.getClusterName());
       _controller.disconnect();
       _controller = null;
     }

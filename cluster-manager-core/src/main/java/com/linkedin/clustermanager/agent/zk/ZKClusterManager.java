@@ -270,22 +270,24 @@ public class ZKClusterManager implements ClusterManager
   @Override
   public void disconnect()
   {
-    logger.info("Cluster manager: " + _instanceName + " disconnecting");
+    // logger.info("Cluster manager: " + _instanceName + " disconnecting");
+    System.out.println("disconnect " + _instanceName + "("
+        + _instanceType + ") from " + _clusterName);
+
+    /**
+     * shutdown thread pool first to avoid reset() being invoked
+     *   in the middle of state transition
+     */
+    _messagingService.getExecutor().shutDown();
+
     for (CallbackHandler handler : _handlers)
     {
       handler.reset();
     }
-    _messagingService.getExecutor().shutDown();
+
     if (_leaderElectionHandler != null)
     {
       _leaderElectionHandler.reset();
-      DistClusterControllerElection listener = (DistClusterControllerElection) _leaderElectionHandler
-          .getListener();
-      ClusterManager leader = listener.getLeader();
-      if (leader != null)
-      {
-        leader.disconnect();
-      }
     }
 
     if (_participantHealthCheckInfoCollector != null)

@@ -41,6 +41,18 @@ public class SensorContextTags
     return anotherTagsMeta.containsAll(_tagsMeta) || _tagsMeta.containsAll(anotherTagsMeta);
   }
   
+  public boolean containsTags(Map<String, String> anotherTag)
+  {
+    for(String key : anotherTag.keySet())
+    {
+      if(!_tagPairs.containsKey(key) || !_tagPairs.get(key).equalsIgnoreCase(anotherTag.get(key)))
+      {
+        return false;
+      }
+    }
+    return true;
+  }
+  
   String toStringInternal()
   {
     List<String> tagMetaList = new ArrayList<String>();
@@ -50,22 +62,42 @@ public class SensorContextTags
     }
     Collections.sort(tagMetaList);
     StringBuffer sb = new StringBuffer();
-    sb.append("{");
     for (String tagMeta : tagMetaList)
     {
-      sb.append("\""+tagMeta+"\":");
-      sb.append("\""+_tagPairs.get(tagMeta)+"\"");
+      sb.append(tagMeta);
+      sb.append("=");
+      sb.append(_tagPairs.get(tagMeta));
       if(tagMeta != tagMetaList.get(tagMetaList.size()-1))
       {
         sb.append(",");
       }
-    }
-    sb.append("}");
+    }    
     return sb.toString(); 
   }
   
+  @Override
   public String toString()
   {
     return _strRepresentation;
+  }
+  
+  @Override
+  public int hashCode()
+  {
+    return _strRepresentation.hashCode();
+  }
+  
+  public static SensorContextTags fromString(String str)
+  {
+    HashMap<String, String> result = new HashMap<String, String>();
+    String[] pairs = str.split(",");
+    for(String pair : pairs)
+    {
+      int pos = pair.indexOf("=");
+      String key = pair.substring(0,pos);
+      String value = pair.substring(pos+1);
+      result.put(key, value);
+    }
+    return new SensorContextTags(result);
   }
 }

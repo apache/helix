@@ -116,7 +116,7 @@ public class ZKClusterManager implements ClusterManager
 
   private boolean isInstanceSetup()
   {
-    if (_instanceType == InstanceType.PARTICIPANT)
+    if (_instanceType == InstanceType.PARTICIPANT || _instanceType == InstanceType.CONTROLLER_PARTICIPANT)
     {
       boolean isValid = _zkClient.exists(CMUtil.getConfigPath(_clusterName,
           _instanceName))

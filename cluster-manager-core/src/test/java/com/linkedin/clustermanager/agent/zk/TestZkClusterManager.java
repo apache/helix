@@ -18,7 +18,7 @@ import com.linkedin.clustermanager.store.PropertyStore;
 public class TestZkClusterManager extends ZkUnitTestBase
 {
 	ZkClient _zkClient;
-	
+
 	@BeforeClass
 	public void beforeClass()
 	{
@@ -26,14 +26,14 @@ public class TestZkClusterManager extends ZkUnitTestBase
 	  _zkClient = new ZkClient(ZK_ADDR);
 		_zkClient.setZkSerializer(new ZNRecordSerializer());
   }
-	
+
 	@AfterClass
 	public void afterClass()
 	{
 		_zkClient.close();
 		System.out.println("END TestZkClusterManager.beforeClass() at " + new Date(System.currentTimeMillis()));
 	}
-	
+
   @Test(groups = { "unitTest" })
   public void testZkClusterManager()
   {
@@ -44,20 +44,20 @@ public class TestZkClusterManager extends ZkUnitTestBase
       {
         _zkClient.deleteRecursive("/" + clusterName);
       }
-      
+
       TestHelper.setupEmptyCluster(_zkClient, clusterName);
-      ZKClusterManager controller = new ZKClusterManager(clusterName, InstanceType.CONTROLLER, 
+      ZKClusterManager controller = new ZKClusterManager(clusterName, InstanceType.CONTROLLER,
                                                          ZK_ADDR);
-      
+
       AssertJUnit.assertEquals(-1, controller.getLastNotificationTime());
       controller.connect();
       AssertJUnit.assertTrue(controller.isConnected());
       controller.connect();
       AssertJUnit.assertTrue(controller.isConnected());
-      
+
       MockListener listener = new MockListener();
       listener.reset();
-      
+
       boolean exceptionCaught = false;
       try
       {
@@ -67,21 +67,21 @@ public class TestZkClusterManager extends ZkUnitTestBase
         exceptionCaught = true;
       }
       AssertJUnit.assertTrue(exceptionCaught);
-      
+
       controller.addControllerListener(listener);
       AssertJUnit.assertTrue(listener.isControllerChangeListenerInvoked);
       controller.removeListener(listener);
-      
+
       PropertyStore<ZNRecord> store = controller.getPropertyStore();
       ZNRecord record = new ZNRecord("id1");
       store.setProperty("key1", record);
       record = store.getProperty("key1");
       AssertJUnit.assertEquals("id1", record.getId());
-      
+
       controller.getMessagingService();
       controller.getHealthReportCollector();
       controller.getClusterManagmentTool();
-      
+
       controller.handleNewSession();
       controller.disconnect();
       AssertJUnit.assertFalse(controller.isConnected());

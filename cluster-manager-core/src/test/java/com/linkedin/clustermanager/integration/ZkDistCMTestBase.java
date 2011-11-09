@@ -3,15 +3,20 @@ package com.linkedin.clustermanager.integration;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.log4j.Logger;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 
+import com.linkedin.clustermanager.ClusterDataAccessor;
+import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.TestHelper;
 import com.linkedin.clustermanager.TestHelper.StartCMResult;
+import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
 import com.linkedin.clustermanager.controller.ClusterManagerMain;
@@ -41,8 +46,6 @@ public class ZkDistCMTestBase extends ZkIntegrationTestBase
 
   protected final String CLASS_NAME = getShortClassName();
   protected final String CONTROLLER_CLUSTER = CONTROLLER_CLUSTER_PREFIX + "_" + CLASS_NAME;
-  protected final String CONTROLLER_PREFIX = "controller";
-  protected final String PARTICIPANT_PREFIX = "localhost";
 
   private static final String TEST_DB = "TestDB";
   ZkClient _zkClient;
@@ -131,8 +134,7 @@ public class ZkDistCMTestBase extends ZkIntegrationTestBase
   @AfterClass
   public void afterClass() throws Exception
   {
-    // logger.info("END at " + new Date(System.currentTimeMillis()));
-    System.out.println("Shutting down " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
+    System.out.println("AFTERCLASS " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
 
     // _setupTool.dropResourceGroupToCluster(CONTROLLER_CLUSTER, CLUSTER_PREFIX + "_" + CLASS_NAME);
     // Thread.sleep(10000);
@@ -148,26 +150,56 @@ public class ZkDistCMTestBase extends ZkIntegrationTestBase
     }
     verifyEmtpyCurrentStateTimeout(CONTROLLER_CLUSTER, CLUSTER_PREFIX + "_" + CLASS_NAME, instanceNames);
     */
-    String leader = getCurrentLeader(_zkClient, CONTROLLER_CLUSTER);
 
-    // for (Map.Entry<String, Thread> entry : _threadMap.entrySet())
-    for (Map.Entry<String, StartCMResult> entry : _startCMResultMap.entrySet())
+    /**
+     * shutdown order:
+     *   1) pause the leader
+     *   2) disconnect all controllers
+     *   3) disconnect leader/disconnect participant
+     */
+    String leader = getCurrentLeader(_zkClient, CONTROLLER_CLUSTER);
+    pauseController(_startCMResultMap.get(leader)._manager.getDataAccessor());
+
+    StartCMResult result;
+
+    Iterator<Entry<String, StartCMResult>> it = _startCMResultMap.entrySet().iterator();
+
+    while (it.hasNext())
     {
-      String controller = entry.getKey();
-      if (!controller.equals(leader))
+      String instanceName = it.next().getKey();
+      if (!instanceName.equals(leader) && instanceName.startsWith(CONTROLLER_PREFIX))
       {
-        _startCMResultMap.get(controller)._manager.disconnect();
-        _startCMResultMap.get(controller)._thread.interrupt();
+        result = _startCMResultMap.get(instanceName);
+        result._manager.disconnect();
+        result._thread.interrupt();
+        it.remove();
       }
     }
 
-    Thread.sleep(10000);
-    _startCMResultMap.get(leader)._manager.disconnect();
-    _startCMResultMap.get(leader)._thread.interrupt();
+    // Thread.sleep(10000);
+    result = _startCMResultMap.remove(leader);
+    result._manager.disconnect();
+    result._thread.interrupt();
+
+    it = _startCMResultMap.entrySet().iterator();
+    while (it.hasNext())
+    {
+      String instanceName = it.next().getKey();
+      result = _startCMResultMap.get(instanceName);
+      result._manager.disconnect();
+      result._thread.interrupt();
+      it.remove();
+    }
+
     _zkClient.close();
 
     // logger.info("END " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
     System.out.println("END " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
+  }
+
+  protected void pauseController(ClusterDataAccessor clusterDataAccessor)
+  {
+    clusterDataAccessor.setProperty(PropertyType.PAUSE, new ZNRecord("pause"));
   }
 
   protected void setupStorageCluster(ClusterSetup setupTool, String clusterName,

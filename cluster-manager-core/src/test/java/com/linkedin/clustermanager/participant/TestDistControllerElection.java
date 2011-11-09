@@ -25,20 +25,20 @@ public class TestDistControllerElection extends ZkUnitTestBase
   private static Logger LOG = Logger.getLogger(TestDistCMMain.class);
 
 	ZkClient _zkClient;
-	
+
 	@BeforeClass
 	public void beforeClass()
 	{
 		_zkClient = new ZkClient(ZK_ADDR);
 		_zkClient.setZkSerializer(new ZNRecordSerializer());
 	}
-	
+
 	@AfterClass
 	public void afterClass()
 	{
 		_zkClient.close();
 	}
-	
+
   @Test(groups = { "unitTest" })
   public void testController() throws Exception
   {
@@ -79,7 +79,7 @@ public class TestDistControllerElection extends ZkUnitTestBase
     AssertJUnit.assertEquals(controllerName, leaderRecord.getSimpleField("LEADER"));
     AssertJUnit.assertNull(election.getController());
     AssertJUnit.assertNull(election.getLeader());
-    
+
     System.out.println("END TestDistControllerElection at " + new Date(System.currentTimeMillis()));
   }
 
@@ -89,7 +89,7 @@ public class TestDistControllerElection extends ZkUnitTestBase
     String className = getShortClassName();
     LOG.info("RUN " + className + " at " + new Date(System.currentTimeMillis()));
 
-    final String clusterName = CONTROLLER_CLUSTER_PREFIX + "_" + className 
+    final String clusterName = CONTROLLER_CLUSTER_PREFIX + "_" + className
                              + "_" + "testControllerParticipant";
     String path = "/" + clusterName;
     if (_zkClient.exists(path))
@@ -111,7 +111,7 @@ public class TestDistControllerElection extends ZkUnitTestBase
     AssertJUnit.assertEquals(controllerName, leaderRecord.getSimpleField("LEADER"));
     AssertJUnit.assertNotNull(election.getController());
     AssertJUnit.assertNotNull(election.getLeader());
-    
+
     manager =
         new MockZkClusterManager(clusterName, "controller_1", InstanceType.CONTROLLER_PARTICIPANT, _zkClient);
     election = new DistClusterControllerElection(ZK_ADDR);
@@ -122,7 +122,7 @@ public class TestDistControllerElection extends ZkUnitTestBase
     AssertJUnit.assertEquals(controllerName, leaderRecord.getSimpleField("LEADER"));
     AssertJUnit.assertNull(election.getController());
     AssertJUnit.assertNull(election.getLeader());
-    
+
     LOG.info("END " + getShortClassName() + " at " + new Date(System.currentTimeMillis()));
   }
 

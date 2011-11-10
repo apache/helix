@@ -451,27 +451,6 @@ public class ZKClusterManager implements ClusterManager
         changeType);
   }
 
-  private boolean isClusterSetup()
-  {
-    boolean isValid = _zkClient.exists(CMUtil.getIdealStatePath(_clusterName))
-        && _zkClient.exists(CMUtil.getConfigPath(_clusterName))
-        && _zkClient.exists(CMUtil.getLiveInstancesPath(_clusterName))
-        && _zkClient.exists(CMUtil.getMemberInstancesPath(_clusterName))
-        && _zkClient.exists(CMUtil.getExternalViewPath(_clusterName))
-        && _zkClient.exists(CMUtil.getControllerPath(_clusterName))
-        && _zkClient.exists(CMUtil.getStateModelDefinitionPath(_clusterName))
-        && _zkClient.exists(CMUtil.getControllerPropertyPath(_clusterName,
-            PropertyType.MESSAGES_CONTROLLER))
-        && _zkClient.exists(CMUtil.getControllerPropertyPath(_clusterName,
-            PropertyType.STATUSUPDATES_CONTROLLER))
-        && _zkClient.exists(CMUtil.getControllerPropertyPath(_clusterName,
-            PropertyType.ERRORS_CONTROLLER))
-        && _zkClient.exists(CMUtil.getControllerPropertyPath(_clusterName,
-            PropertyType.HISTORY));
-
-    return isValid;
-  }
-
   /**
    * This will be invoked when ever a new session is created<br/>
    *
@@ -494,7 +473,7 @@ public class ZKClusterManager implements ClusterManager
     logger.info("Handling new session, session id:" + _sessionId
         + ", instance:" + _instanceName);
 
-    if (!isClusterSetup())
+    if (!ZKUtil.isClusterSetup(_clusterName, _zkClient))
     {
       throw new ClusterManagerException(
           "Initial cluster structure is not set up for cluster:" + _clusterName);

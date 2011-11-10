@@ -42,6 +42,7 @@ public class SensorRegistry<T extends DataCollector>
        SensorContextTags filteredTags = filter.getFilteredTags(tags);
        if(!_sensors.containsKey(filteredTags))
        {
+         // Create a sensor if not exist
          try
          {
            _sensors.put(filteredTags, new Sensor<T>(_clazz.newInstance(), filteredTags));

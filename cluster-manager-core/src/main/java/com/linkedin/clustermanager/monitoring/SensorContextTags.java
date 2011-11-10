@@ -33,7 +33,7 @@ public class SensorContextTags
   
   public boolean matches(String format)
   {
-    return false;
+    return new TagFilter(SensorContextTags.fromString(format).getTags()).matchs(this);
   }
   
   public boolean matches(Set<String> anotherTagsMeta)
@@ -69,7 +69,7 @@ public class SensorContextTags
       sb.append(_tagPairs.get(tagMeta));
       if(tagMeta != tagMetaList.get(tagMetaList.size()-1))
       {
-        sb.append(",");
+        sb.append(", ");
       }
     }    
     return sb.toString(); 
@@ -94,8 +94,8 @@ public class SensorContextTags
     for(String pair : pairs)
     {
       int pos = pair.indexOf("=");
-      String key = pair.substring(0,pos);
-      String value = pair.substring(pos+1);
+      String key = pair.substring(0,pos).trim();
+      String value = pair.substring(pos+1).trim();
       result.put(key, value);
     }
     return new SensorContextTags(result);

@@ -31,6 +31,11 @@ public class ZKClusterManagementTool implements ClusterManagementService
   @Override
   public void addInstance(String clusterName, ZNRecord instanceConfig)
   {
+    if(!ZKUtil.isClusterSetup(clusterName, _zkClient))
+    {
+      throw new ClusterManagerException("cluster " + clusterName 
+         + " is not setup yet");
+    }
     String instanceConfigsPath = CMUtil.getConfigPath(clusterName);
     String nodeId = instanceConfig.getId();
     String instanceConfigPath = instanceConfigsPath + "/" + nodeId;
@@ -174,9 +179,8 @@ public class ZKClusterManagementTool implements ClusterManagementService
     path = PropertyPathConfig.getPath(PropertyType.ERRORS_CONTROLLER,
         clusterName);
     _zkClient.createPersistent(path);
-
   }
-
+  
   @Override
   public List<String> getInstancesInCluster(String clusterName)
   {
@@ -196,6 +200,11 @@ public class ZKClusterManagementTool implements ClusterManagementService
   public void addResourceGroup(String clusterName, String dbName,
       int partitions, String stateModelRef, String idealStateMode)
   {
+    if(!ZKUtil.isClusterSetup(clusterName, _zkClient))
+    {
+      throw new ClusterManagerException("cluster " + clusterName 
+         + " is not setup yet");
+    }
     ZNRecord idealState = new ZNRecord(dbName);
     idealState.setSimpleField("partitions", String.valueOf(partitions));
     idealState.setSimpleField("state_model_def_ref", stateModelRef);
@@ -268,6 +277,11 @@ public class ZKClusterManagementTool implements ClusterManagementService
   public void addStateModelDef(String clusterName, String stateModelDef,
       ZNRecord record)
   {
+    if(!ZKUtil.isClusterSetup(clusterName, _zkClient))
+    {
+      throw new ClusterManagerException("cluster " + clusterName 
+         + " is not setup yet");
+    }
     String stateModelDefPath = CMUtil.getStateModelDefinitionPath(clusterName);
     String stateModelPath = stateModelDefPath + "/" + stateModelDef;
     if (_zkClient.exists(stateModelPath))

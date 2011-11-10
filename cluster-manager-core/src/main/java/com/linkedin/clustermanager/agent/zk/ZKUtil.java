@@ -7,6 +7,7 @@ import org.I0Itec.zkclient.DataUpdater;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 
+import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.util.CMUtil;
 
@@ -27,12 +28,22 @@ public final class ZKUtil
       return false;
     }
     
-    String idealStatePath = CMUtil.getIdealStatePath(clusterName);
-    boolean isValid = zkClient.exists(idealStatePath)
+    boolean isValid = zkClient.exists(CMUtil.getIdealStatePath(clusterName))
         && zkClient.exists(CMUtil.getConfigPath(clusterName))
         && zkClient.exists(CMUtil.getLiveInstancesPath(clusterName))
         && zkClient.exists(CMUtil.getMemberInstancesPath(clusterName))
-        && zkClient.exists(CMUtil.getExternalViewPath(clusterName));
+        && zkClient.exists(CMUtil.getExternalViewPath(clusterName))
+        && zkClient.exists(CMUtil.getControllerPath(clusterName))
+        && zkClient.exists(CMUtil.getStateModelDefinitionPath(clusterName))
+        && zkClient.exists(CMUtil.getControllerPropertyPath(clusterName,
+            PropertyType.MESSAGES_CONTROLLER))
+        && zkClient.exists(CMUtil.getControllerPropertyPath(clusterName,
+            PropertyType.STATUSUPDATES_CONTROLLER))
+        && zkClient.exists(CMUtil.getControllerPropertyPath(clusterName,
+            PropertyType.ERRORS_CONTROLLER))
+        && zkClient.exists(CMUtil.getControllerPropertyPath(clusterName,
+            PropertyType.HISTORY));
+
     return isValid;
   }
 

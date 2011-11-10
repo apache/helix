@@ -7,9 +7,9 @@ import org.I0Itec.zkclient.DataUpdater;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 
+import com.linkedin.clustermanager.PropertyPathConfig;
 import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
-import com.linkedin.clustermanager.util.CMUtil;
 
 public final class ZKUtil
 {
@@ -24,25 +24,38 @@ public final class ZKUtil
   public static boolean isClusterSetup(String clusterName, ZkClient zkClient)
   {
     if (clusterName == null || zkClient == null)
-    { 
+    {
       return false;
     }
-    
-    boolean isValid = zkClient.exists(CMUtil.getIdealStatePath(clusterName))
-        && zkClient.exists(CMUtil.getConfigPath(clusterName))
-        && zkClient.exists(CMUtil.getLiveInstancesPath(clusterName))
-        && zkClient.exists(CMUtil.getMemberInstancesPath(clusterName))
-        && zkClient.exists(CMUtil.getExternalViewPath(clusterName))
-        && zkClient.exists(CMUtil.getControllerPath(clusterName))
-        && zkClient.exists(CMUtil.getStateModelDefinitionPath(clusterName))
-        && zkClient.exists(CMUtil.getControllerPropertyPath(clusterName,
-            PropertyType.MESSAGES_CONTROLLER))
-        && zkClient.exists(CMUtil.getControllerPropertyPath(clusterName,
-            PropertyType.STATUSUPDATES_CONTROLLER))
-        && zkClient.exists(CMUtil.getControllerPropertyPath(clusterName,
-            PropertyType.ERRORS_CONTROLLER))
-        && zkClient.exists(CMUtil.getControllerPropertyPath(clusterName,
-            PropertyType.HISTORY));
+
+
+//    boolean isValid = zkClient.exists(CMUtil.getIdealStatePath(clusterName))
+//        && zkClient.exists(CMUtil.getConfigPath(clusterName))
+//        && zkClient.exists(CMUtil.getLiveInstancesPath(clusterName))
+//        && zkClient.exists(CMUtil.getMemberInstancesPath(clusterName))
+//        && zkClient.exists(CMUtil.getExternalViewPath(clusterName))
+//        && zkClient.exists(CMUtil.getControllerPath(clusterName))
+//        && zkClient.exists(CMUtil.getStateModelDefinitionPath(clusterName))
+//        && zkClient.exists(CMUtil.getControllerPropertyPath(clusterName,
+//            PropertyType.MESSAGES_CONTROLLER))
+//        && zkClient.exists(CMUtil.getControllerPropertyPath(clusterName,
+//            PropertyType.STATUSUPDATES_CONTROLLER))
+//        && zkClient.exists(CMUtil.getControllerPropertyPath(clusterName,
+//            PropertyType.ERRORS_CONTROLLER))
+//        && zkClient.exists(CMUtil.getControllerPropertyPath(clusterName,
+//            PropertyType.HISTORY));
+
+    boolean isValid = zkClient.exists(PropertyPathConfig.getPath(PropertyType.IDEALSTATES, clusterName))
+            && zkClient.exists(PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName))
+            && zkClient.exists(PropertyPathConfig.getPath(PropertyType.LIVEINSTANCES, clusterName))
+            && zkClient.exists(PropertyPathConfig.getPath(PropertyType.INSTANCES, clusterName))
+            && zkClient.exists(PropertyPathConfig.getPath(PropertyType.EXTERNALVIEW, clusterName))
+            && zkClient.exists(PropertyPathConfig.getPath(PropertyType.CONTROLLER, clusterName))
+            && zkClient.exists(PropertyPathConfig.getPath(PropertyType.STATEMODELDEFS, clusterName))
+            && zkClient.exists(PropertyPathConfig.getPath(PropertyType.MESSAGES_CONTROLLER, clusterName))
+            && zkClient.exists(PropertyPathConfig.getPath(PropertyType.ERRORS_CONTROLLER, clusterName))
+            && zkClient.exists(PropertyPathConfig.getPath(PropertyType.STATUSUPDATES_CONTROLLER, clusterName))
+            && zkClient.exists(PropertyPathConfig.getPath(PropertyType.HISTORY, clusterName));
 
     return isValid;
   }
@@ -73,8 +86,8 @@ public final class ZKUtil
   public static void dropChildren(ZkClient client, String parentPath,
 	  List<ZNRecord> list)
   {
-	 //TODO: check if parentPath exists  
-	if (list != null) 
+	 //TODO: check if parentPath exists
+	if (list != null)
 	{
 	  for (ZNRecord record : list)
 	  {
@@ -82,17 +95,17 @@ public final class ZKUtil
 	  }
 	}
   }
-  
+
   public static void dropChildren(ZkClient client, String parentPath,
-	  ZNRecord nodeRecord) 
+	  ZNRecord nodeRecord)
   {
-	//TODO: check if parentPath exists  
+	//TODO: check if parentPath exists
 	String id = nodeRecord.getId();
 	String temp = parentPath + "/" + id;
     client.deleteRecursive(temp);
-	 
+
   }
-  
+
   public static List<ZNRecord> getChildren(ZkClient client, String path)
   {
     // parent watch will be set by zkClient
@@ -243,6 +256,6 @@ public final class ZKUtil
         e.printStackTrace();
       }
     }
-    
+
   }
 }

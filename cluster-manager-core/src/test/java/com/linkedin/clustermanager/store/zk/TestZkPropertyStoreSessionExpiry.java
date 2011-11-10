@@ -19,9 +19,9 @@ public class TestZkPropertyStoreSessionExpiry extends ZkUnitTestBase
 {
   private static final Logger LOG = Logger.getLogger(TestZkPropertyStoreSessionExpiry.class);
 
-  private class TestPropertyChangeListener 
+  private class TestPropertyChangeListener
   implements PropertyChangeListener<String>
-  { 
+  {
     public boolean _propertyChangeReceived = false;
 
     @Override
@@ -34,28 +34,28 @@ public class TestZkPropertyStoreSessionExpiry extends ZkUnitTestBase
   }
 
 	ZkClient _zkClient;
-	
+
 	@BeforeClass
 	public void beforeClass()
 	{
 		_zkClient = new ZkClient(ZK_ADDR);
 		_zkClient.setZkSerializer(new ZNRecordSerializer());
 	}
-	
+
 	@AfterClass
 	public void afterClass()
 	{
 		_zkClient.close();
 	}
-	
-	
-  @Test (groups = {"unitTest"})
+
+
+  @Test()
   public void testZkPropertyStoreSessionExpiry() throws Exception
   {
     LOG.info("START " + getShortClassName() + " at " + new Date(System.currentTimeMillis()));
 
     PropertyJsonSerializer<String> serializer = new PropertyJsonSerializer<String>(String.class);
-    
+
     ZkConnection zkConn = new ZkConnection(ZK_ADDR);
 
     final String propertyStoreRoot = "/" + getShortClassName();
@@ -65,10 +65,10 @@ public class TestZkPropertyStoreSessionExpiry extends ZkUnitTestBase
     }
 
     ZKPropertyStore<String> zkPropertyStore = new ZKPropertyStore<String>(zkConn, serializer, propertyStoreRoot);
-    
+
     zkPropertyStore.setProperty("/child1/grandchild1", "grandchild1");
     zkPropertyStore.setProperty("/child1/grandchild2", "grandchild2");
-    
+
     TestPropertyChangeListener listener = new TestPropertyChangeListener();
     zkPropertyStore.subscribeForRootPropertyChange(listener);
 
@@ -78,7 +78,7 @@ public class TestZkPropertyStoreSessionExpiry extends ZkUnitTestBase
     AssertJUnit.assertEquals(listener._propertyChangeReceived, true);
 
     simulateSessionExpiry(zkConn);
-    
+
     listener._propertyChangeReceived = false;
     zkPropertyStore.setProperty("/child2/grandchild4", "grandchild4");
     Thread.sleep(100);

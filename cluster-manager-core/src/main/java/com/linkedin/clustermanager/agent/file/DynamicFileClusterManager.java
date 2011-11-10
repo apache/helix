@@ -83,6 +83,8 @@ public class DynamicFileClusterManager implements ClusterManager
   public void disconnect()
   {
     _store.stop();
+    _messagingService.getExecutor().shutDown();
+
     _isConnected = false;
   }
 
@@ -187,43 +189,6 @@ public class DynamicFileClusterManager implements ClusterManager
     return _sessionId;
   }
 
-  /*
-  private static Options constructCommandLineOptions()
-  {
-    Option fileOption = OptionBuilder.withLongOpt(configFile)
-        .withDescription("Provide file to write states/messages").create();
-    fileOption.setArgs(1);
-    fileOption.setRequired(true);
-    fileOption.setArgName("File to read states/messages (Required)");
-
-    Options options = new Options();
-    options.addOption(fileOption);
-    return options;
-
-  }
-  
-  public static CommandLine processCommandLineArgs(String[] cliArgs)
-      throws Exception
-  {
-    CommandLineParser cliParser = new GnuParser();
-    Options cliOptions = constructCommandLineOptions();
-    // CommandLine cmd = null;
-
-    try
-    {
-      return cliParser.parse(cliOptions, cliArgs);
-    } catch (ParseException pe)
-    {
-      System.err
-          .println("CommandLineClient: failed to parse command-line options: "
-              + pe.toString());
-      // printUsage(cliOptions);
-      System.exit(1);
-    }
-    return null;
-  }
-  */
-  
   @Override
   public boolean isConnected()
   {

@@ -102,9 +102,6 @@ public class ZkStandAloneCMTestBase extends ZkIntegrationTestBase
   @AfterClass
   public void afterClass() throws Exception
   {
-    // stopThread(_startCMResultMap);
-    // Thread.sleep(3000);
-
     /**
      * shutdown order:
      *   1) disconnect the controller
@@ -141,14 +138,4 @@ public class ZkStandAloneCMTestBase extends ZkIntegrationTestBase
     System.out.println("END " + CLASS_NAME + " at "+ new Date(System.currentTimeMillis()));
   }
 
-  /*
-  private void stopThread(Map<String, StartCMResult> startCMResultMap)
-  {
-    for (Map.Entry<String, StartCMResult> entry : startCMResultMap.entrySet())
-    {
-      entry.getValue()._manager.disconnect();
-      entry.getValue()._thread.interrupt();
-    }
-  }
-  */
 }

@@ -1,10 +1,8 @@
 package com.linkedin.clustermanager.integration;
 
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -35,7 +33,7 @@ import com.linkedin.clustermanager.tools.ClusterSetup;
 
 public class ZkDistCMTestBase extends ZkIntegrationTestBase
 {
-  private static Logger logger = Logger.getLogger(ZkDistCMTestBase.class);
+  private static Logger LOG = Logger.getLogger(ZkDistCMTestBase.class);
 
   protected static final int CLUSTER_NR = 10;
   protected static final int NODE_NR = 5;
@@ -47,7 +45,7 @@ public class ZkDistCMTestBase extends ZkIntegrationTestBase
   protected final String CLASS_NAME = getShortClassName();
   protected final String CONTROLLER_CLUSTER = CONTROLLER_CLUSTER_PREFIX + "_" + CLASS_NAME;
 
-  private static final String TEST_DB = "TestDB";
+  protected static final String TEST_DB = "TestDB";
   ZkClient _zkClient;
 
   @BeforeClass
@@ -84,13 +82,13 @@ public class ZkDistCMTestBase extends ZkIntegrationTestBase
 
     final String firstCluster = CLUSTER_PREFIX + "_" + CLASS_NAME + "_0";
     setupStorageCluster(_setupTool, firstCluster, TEST_DB, 20, PARTICIPANT_PREFIX,
-                        START_PORT, STATE_MODEL);
+                        START_PORT, STATE_MODEL, 3);
 
     // setup CONTROLLER_CLUSTER
     _setupTool.addCluster(CONTROLLER_CLUSTER, true);
     setupStorageCluster(_setupTool, CONTROLLER_CLUSTER,
                         CLUSTER_PREFIX + "_" + CLASS_NAME, CLUSTER_NR,
-                        CONTROLLER_PREFIX, 0, "LeaderStandby");
+                        CONTROLLER_PREFIX, 0, "LeaderStandby", 3);
 
     // start dummy participants for the first cluster
     for (int i = 0; i < NODE_NR; i++)
@@ -98,7 +96,7 @@ public class ZkDistCMTestBase extends ZkIntegrationTestBase
       String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
       if (_startCMResultMap.get(instanceName) != null)
       {
-        logger.error("fail to start participant:" + instanceName
+        LOG.error("fail to start participant:" + instanceName
                      + "(participant with same name already running");
       }
       else
@@ -114,7 +112,7 @@ public class ZkDistCMTestBase extends ZkIntegrationTestBase
       String controllerName = CONTROLLER_PREFIX + "_" + i;
       if (_startCMResultMap.get(controllerName) != null)
       {
-        logger.error("fail to start controller:" + controllerName
+        LOG.error("fail to start controller:" + controllerName
                      + "(controller with the same name already running");
       }
       else
@@ -125,10 +123,7 @@ public class ZkDistCMTestBase extends ZkIntegrationTestBase
       }
     }
 
-    List<String> clusterNames = new ArrayList<String>();
-    clusterNames.add(CONTROLLER_CLUSTER);
-    clusterNames.add(firstCluster);
-    verifyIdealAndCurrentStateTimeout(clusterNames);
+    verifyClusters();
   }
 
   @AfterClass
@@ -136,29 +131,14 @@ public class ZkDistCMTestBase extends ZkIntegrationTestBase
   {
     System.out.println("AFTERCLASS " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
 
-    // _setupTool.dropResourceGroupToCluster(CONTROLLER_CLUSTER, CLUSTER_PREFIX + "_" + CLASS_NAME);
-    // Thread.sleep(10000);
-
-    /*
-    List<String> instanceNames = new ArrayList<String>();
-    for (String instance : _threadMap.keySet())
-    {
-      if (instance.startsWith(CONTROLLER_PREFIX))
-      {
-        instanceNames.add(instance);
-      }
-    }
-    verifyEmtpyCurrentStateTimeout(CONTROLLER_CLUSTER, CLUSTER_PREFIX + "_" + CLASS_NAME, instanceNames);
-    */
-
     /**
      * shutdown order:
-     *   1) pause the leader
+     *   1) pause the leader (optional)
      *   2) disconnect all controllers
      *   3) disconnect leader/disconnect participant
      */
     String leader = getCurrentLeader(_zkClient, CONTROLLER_CLUSTER);
-    pauseController(_startCMResultMap.get(leader)._manager.getDataAccessor());
+    // pauseController(_startCMResultMap.get(leader)._manager.getDataAccessor());
 
     StartCMResult result;
 
@@ -174,9 +154,9 @@ public class ZkDistCMTestBase extends ZkIntegrationTestBase
         result._thread.interrupt();
         it.remove();
       }
+      verifyClusters();
     }
 
-    // Thread.sleep(10000);
     result = _startCMResultMap.remove(leader);
     result._manager.disconnect();
     result._thread.interrupt();
@@ -197,13 +177,35 @@ public class ZkDistCMTestBase extends ZkIntegrationTestBase
     System.out.println("END " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
   }
 
+
+  /**
+   * verify the external view (against the best possible state)
+   *   in the controller cluster and the first cluster
+   */
+  protected void verifyClusters()
+  {
+    TestHelper.verifyWithTimeout("verifyBestPossAndExtView",
+                                 CLUSTER_PREFIX + "_" + CLASS_NAME,
+                                 CLUSTER_NR,
+                                 "LeaderStandby",
+                                 TestHelper.<String>setOf(CONTROLLER_CLUSTER),
+                                 _zkClient);
+
+    TestHelper.verifyWithTimeout("verifyBestPossAndExtView",
+                                 TEST_DB,
+                                 20,
+                                 "MasterSlave",
+                                 TestHelper.<String>setOf(CLUSTER_PREFIX + "_" + CLASS_NAME + "_0"),
+                                 _zkClient);
+  }
+
   protected void pauseController(ClusterDataAccessor clusterDataAccessor)
   {
     clusterDataAccessor.setProperty(PropertyType.PAUSE, new ZNRecord("pause"));
   }
 
   protected void setupStorageCluster(ClusterSetup setupTool, String clusterName,
-       String dbName, int partitionNr, String prefix, int startPort, String stateModel)
+       String dbName, int partitionNr, String prefix, int startPort, String stateModel, int replica)
   {
     setupTool.addResourceGroupToCluster(clusterName, dbName, partitionNr, stateModel);
     for (int i = 0; i < NODE_NR; i++)
@@ -211,6 +213,6 @@ public class ZkDistCMTestBase extends ZkIntegrationTestBase
       String instanceName = prefix + ":" + (startPort + i);
       setupTool.addInstanceToCluster(clusterName, instanceName);
     }
-    setupTool.rebalanceStorageCluster(clusterName, dbName, 3);
+    setupTool.rebalanceStorageCluster(clusterName, dbName, replica);
   }
 }

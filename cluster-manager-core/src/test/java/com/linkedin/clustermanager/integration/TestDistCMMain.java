@@ -16,7 +16,9 @@ public class TestDistCMMain extends ZkDistCMTestBase
   @Test
   public void testDistCMMain() throws Exception
   {
-    LOG.info("RUN at " + new Date(System.currentTimeMillis()));
+    LOG.info("RUN testDistCMMain() at " + new Date(System.currentTimeMillis()));
+
+    verifyClusters();
 
     // add more controllers to controller cluster
     for (int i = 0; i < NODE_NR; i++)
@@ -39,16 +41,15 @@ public class TestDistCMMain extends ZkDistCMTestBase
       _startCMResultMap.put(controller, result);
     }
 
-    verifyIdealAndCurrentStateTimeout(CONTROLLER_CLUSTER);
+    verifyClusters();
 
     for (int i = 0; i < NODE_NR; i++)
     {
-      Thread.sleep(10000);
       stopCurrentLeader(_zkClient, CONTROLLER_CLUSTER, _startCMResultMap);
+      verifyClusters();
     }
 
-    // Thread.sleep(5000);
-    LOG.info("END at " + new Date(System.currentTimeMillis()));
+    LOG.info("STOP testDistCMMain() at " + new Date(System.currentTimeMillis()));
 
   }
 }

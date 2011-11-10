@@ -19,5 +19,13 @@ public class IntegrationTest extends ZkStandAloneCMTestBase
   public void integrationTest() throws Exception
   {
     AssertJUnit.assertTrue(ClusterStateVerifier.verifyClusterStates(ZK_ADDR, CLUSTER_NAME));
+
+//    ClusterManager manager = _startCMResultMap.get("controller_0")._manager;
+//    boolean result = verifyBestPossibleAndExternalView(TEST_DB, 20, manager);
+//    System.out.println("verifyBestPossibleAndExternalView() result:" + result);
+//    System.out.println("STOP integrationTest() at " + new Date(System.currentTimeMillis()));
   }
+
+
+
 }

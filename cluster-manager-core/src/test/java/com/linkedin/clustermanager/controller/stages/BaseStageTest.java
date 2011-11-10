@@ -27,8 +27,7 @@ public class BaseStageTest
   protected ClusterDataAccessor accessor;
   protected ClusterEvent event;
 
-  @BeforeMethod(groups =
-  { "unitTest" })
+  @BeforeMethod()
   public void setup()
   {
     System.out.println("BaseStageTest.setup()");
@@ -68,7 +67,7 @@ public class BaseStageTest
       idealState.setIdealStateMode(IdealStateConfigProperty.AUTO.toString());
       idealState.setNumPartitions(partitions);
       idealStates.add(idealState);
-      
+
       System.out.println(idealState.getRecord());
       manager.getDataAccessor().setProperty(PropertyType.IDEALSTATES,
           idealState.getRecord(), resourceGroupName);

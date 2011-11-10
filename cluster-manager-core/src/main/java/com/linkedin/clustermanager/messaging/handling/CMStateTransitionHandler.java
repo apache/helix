@@ -288,9 +288,9 @@ public class CMStateTransitionHandler implements MessageHandler
         {
           String errorMessage = "Exception while executing a state transition task"
               + e;
+          logger.error(errorMessage, e);
           _statusUpdateUtil.logError(message, CMStateTransitionHandler.class,
               e, errorMessage, accessor);
-          logger.error(errorMessage);
           taskResult.setSuccess(false);
           exception = e;
         }

@@ -64,11 +64,10 @@ public class CMTask implements Callable<CMTaskResult>
         throw e;
       } catch (Exception e)
       {
-        String errorMessage = "Exception while executing a state transition task"
-            + e;
-        _statusUpdateUtil.logError(_message, CMTask.class, e, errorMessage,
-            accessor);
-        logger.error(errorMessage,e);
+        String errorMessage = "Exception while executing a state transition task" + e;
+
+        logger.error(errorMessage, e);
+        _statusUpdateUtil.logError(_message, CMTask.class, e, errorMessage, accessor);
         taskResult.setSuccess(false);
         taskResult.setMessage(e.getMessage());
       }

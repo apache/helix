@@ -28,16 +28,9 @@ public class TestBestPossibleStateCalcStage extends BaseStageTest
     setupIdealState(5, idealStates, resourceGroups);
     setupLiveInstances(5);
     setupStateModel();
+
     Map<String, ResourceGroup> resourceGroupMap = getResourceGroupMap();
     CurrentStateOutput currentStateOutput = new CurrentStateOutput();
-    // for(int p=0;p<5;p++){
-    // output.setCurrentState("testResourceGroup", new
-    // ResourceKey("testResourceGroup_"+
-    // p), "localhost_"+ (p+1)%5, "OFFLINE");
-    // output.setPendingState("testResourceGroup", new
-    // ResourceKey("testResourceGroup_"+
-    // p), "localhost_"+ (p+1)%5, "SLAVE");
-    // }
     event.addAttribute(AttributeName.RESOURCE_GROUPS.toString(),
         resourceGroupMap);
     event.addAttribute(AttributeName.CURRENT_STATE.toString(),

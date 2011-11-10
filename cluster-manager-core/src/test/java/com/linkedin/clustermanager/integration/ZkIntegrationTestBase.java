@@ -33,16 +33,17 @@ import com.linkedin.clustermanager.util.ZKClientPool;
 
 public class ZkIntegrationTestBase
 {
-  private static Logger LOG = Logger.getLogger(ZkIntegrationTestBase.class);
+  private static Logger         LOG                       =
+                                                              Logger.getLogger(ZkIntegrationTestBase.class);
 
-  protected static ZkServer _zkServer = null;
+  protected static ZkServer     _zkServer                 = null;
 
-  public static final String ZK_ADDR = "localhost:2183";
-  protected static final String CLUSTER_PREFIX = "CLUSTER";
+  public static final String    ZK_ADDR                   = "localhost:2183";
+  protected static final String CLUSTER_PREFIX            = "CLUSTER";
   protected static final String CONTROLLER_CLUSTER_PREFIX = "CONTROLLER_CLUSTER";
 
-  protected final String CONTROLLER_PREFIX = "controller";
-  protected final String PARTICIPANT_PREFIX = "localhost";
+  protected final String        CONTROLLER_PREFIX         = "controller";
+  protected final String        PARTICIPANT_PREFIX        = "localhost";
 
   @BeforeSuite
   public void beforeSuite() throws Exception
@@ -81,8 +82,16 @@ public class ZkIntegrationTestBase
     return leader;
   }
 
-  protected void stopCurrentLeader(ZkClient zkClient, String clusterName,
-                                   Map<String, StartCMResult> startCMResultMap)
+  /**
+   * Stop current leader and returns the new leader
+   * @param zkClient
+   * @param clusterName
+   * @param startCMResultMap
+   * @return
+   */
+  protected String stopCurrentLeader(ZkClient zkClient,
+                                     String clusterName,
+                                     Map<String, StartCMResult> startCMResultMap)
   {
     String leader = getCurrentLeader(zkClient, clusterName);
     Assert.assertTrue(leader != null);
@@ -97,17 +106,17 @@ public class ZkIntegrationTestBase
     result._thread.interrupt();
 
     boolean isNewLeaderElected = false;
+    String newLeader = null;
     try
     {
       for (int i = 0; i < 5; i++)
       {
         Thread.sleep(1000);
-        String newLeader = getCurrentLeader(zkClient, clusterName);
+        newLeader = getCurrentLeader(zkClient, clusterName);
         if (!newLeader.equals(leader))
         {
           isNewLeaderElected = true;
-          System.out.println("new leader elected: " + newLeader + " in "
-              + clusterName);
+          System.out.println("new leader elected: " + newLeader + " in " + clusterName);
           break;
         }
       }
@@ -121,6 +130,7 @@ public class ZkIntegrationTestBase
       System.out.println("fail to elect a new leader in " + clusterName);
     }
     AssertJUnit.assertTrue(isNewLeaderElected);
+    return newLeader;
   }
 
   protected void verifyIdealAndCurrentStateTimeout(String clusterName)
@@ -134,8 +144,9 @@ public class ZkIntegrationTestBase
   {
     try
     {
-//      System.out
-//          .println("START:ZkIntegrationTestBase.verifyIdealAndCurrentStateTimeout():"+ new Date());
+      // System.out
+      // .println("START:ZkIntegrationTestBase.verifyIdealAndCurrentStateTimeout():"+ new
+      // Date());
 
       boolean result = false;
       int i = 0;
@@ -148,12 +159,13 @@ public class ZkIntegrationTestBase
           break;
         }
       }
-//      System.out
-//      .println("END ZkIntegrationTestBase.verifyIdealAndCurrentStateTimeout():"+ new Date());
+      // System.out
+      // .println("END ZkIntegrationTestBase.verifyIdealAndCurrentStateTimeout():"+ new
+      // Date());
 
       // debug
-      System.out.println("verifyIdealAndCurrentState(): wait "
-          + ((i + 1) * 2000) + "ms to verify (" + result + ") clusters:"
+      System.out.println("verifyIdealAndCurrentState(): wait " + ((i + 1) * 1000)
+          + "ms to verify (" + result + ") clusters:"
           + Arrays.toString(clusterNames.toArray()));
 
       if (result == false)
@@ -163,7 +175,8 @@ public class ZkIntegrationTestBase
       }
       AssertJUnit.assertTrue(result);
 
-    } catch (InterruptedException e)
+    }
+    catch (InterruptedException e)
     {
       // TODO Auto-generated catch block
       e.printStackTrace();
@@ -174,8 +187,7 @@ public class ZkIntegrationTestBase
   {
     for (String clusterName : clusterNames)
     {
-      boolean result = ClusterStateVerifier.verifyClusterStates(ZK_ADDR,
-          clusterName);
+      boolean result = ClusterStateVerifier.verifyClusterStates(ZK_ADDR, clusterName);
       LOG.info("verify cluster: " + clusterName + ", result: " + result);
       if (result == false)
       {
@@ -185,8 +197,10 @@ public class ZkIntegrationTestBase
     return true;
   }
 
-  protected void verifyEmtpyCurrentStateTimeout(ZkClient zkClient, String clusterName,
-      String resourceGroupName, List<String> instanceNames)
+  protected void verifyEmtpyCurrentStateTimeout(ZkClient zkClient,
+                                                String clusterName,
+                                                String resourceGroupName,
+                                                List<String> instanceNames)
   {
     try
     {
@@ -195,15 +209,18 @@ public class ZkIntegrationTestBase
       for (; i < 30; i++)
       {
         Thread.sleep(1000);
-        result = verifyEmptyCurrentState(zkClient, clusterName, resourceGroupName,
-            instanceNames);
+        result =
+            verifyEmptyCurrentState(zkClient,
+                                    clusterName,
+                                    resourceGroupName,
+                                    instanceNames);
         if (result == true)
         {
           break;
         }
       }
       // debug
-      System.out.println("verifyEmtpyCurrentState(): wait " + ((i + 1) * 2000)
+      System.out.println("verifyEmtpyCurrentState(): wait " + ((i + 1) * 1000)
           + "ms to verify (" + result + ") cluster:" + clusterName);
       if (result == false)
       {
@@ -218,27 +235,32 @@ public class ZkIntegrationTestBase
     }
   }
 
-  private boolean verifyEmptyCurrentState(ZkClient zkClient, String clusterName,
-      String resourceGroupName, List<String> instanceNames)
+  private boolean verifyEmptyCurrentState(ZkClient zkClient,
+                                          String clusterName,
+                                          String resourceGroupName,
+                                          List<String> instanceNames)
   {
     ClusterDataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
 
     for (String instanceName : instanceNames)
     {
-      String path = CMUtil.getInstancePropertyPath(clusterName, instanceName,
-          PropertyType.CURRENTSTATES);
+      String path =
+          CMUtil.getInstancePropertyPath(clusterName,
+                                         instanceName,
+                                         PropertyType.CURRENTSTATES);
 
-      List<String> subPaths = accessor.getChildNames(
-          PropertyType.CURRENTSTATES, instanceName);
+      List<String> subPaths =
+          accessor.getChildNames(PropertyType.CURRENTSTATES, instanceName);
 
       for (String previousSessionId : subPaths)
       {
-        if (zkClient.exists(path + "/" + previousSessionId + "/"
-            + resourceGroupName))
+        if (zkClient.exists(path + "/" + previousSessionId + "/" + resourceGroupName))
         {
-          ZNRecord previousCurrentState = accessor.getProperty(
-              PropertyType.CURRENTSTATES, instanceName, previousSessionId,
-              resourceGroupName);
+          ZNRecord previousCurrentState =
+              accessor.getProperty(PropertyType.CURRENTSTATES,
+                                   instanceName,
+                                   previousSessionId,
+                                   resourceGroupName);
 
           if (previousCurrentState.getMapFields().size() != 0)
           {
@@ -250,8 +272,15 @@ public class ZkIntegrationTestBase
     return true;
   }
 
-  protected void simulateSessionExpiry(ZkConnection zkConnection)
-      throws IOException, InterruptedException
+  /**
+   * simulate session expiry
+   *
+   * @param zkConnection
+   * @throws IOException
+   * @throws InterruptedException
+   */
+  protected void simulateSessionExpiry(ZkConnection zkConnection) throws IOException,
+      InterruptedException
   {
     ZooKeeper oldZookeeper = zkConnection.getZookeeper();
     LOG.info("Old sessionId = " + oldZookeeper.getSessionId());
@@ -265,9 +294,12 @@ public class ZkIntegrationTestBase
       }
     };
 
-    ZooKeeper newZookeeper = new ZooKeeper(zkConnection.getServers(),
-        oldZookeeper.getSessionTimeout(), watcher, oldZookeeper.getSessionId(),
-        oldZookeeper.getSessionPasswd());
+    ZooKeeper newZookeeper =
+        new ZooKeeper(zkConnection.getServers(),
+                      oldZookeeper.getSessionTimeout(),
+                      watcher,
+                      oldZookeeper.getSessionId(),
+                      oldZookeeper.getSessionPasswd());
     LOG.info("New sessionId = " + newZookeeper.getSessionId());
     // Thread.sleep(3000);
     newZookeeper.close();
@@ -307,9 +339,12 @@ public class ZkIntegrationTestBase
       }
     };
 
-    ZooKeeper newZookeeper = new ZooKeeper(connection.getServers(),
-        oldZookeeper.getSessionTimeout(), watcher, oldZookeeper.getSessionId(),
-        oldZookeeper.getSessionPasswd());
+    ZooKeeper newZookeeper =
+        new ZooKeeper(connection.getServers(),
+                      oldZookeeper.getSessionTimeout(),
+                      watcher,
+                      oldZookeeper.getSessionId(),
+                      oldZookeeper.getSessionPasswd());
     LOG.info("New sessionId = " + newZookeeper.getSessionId());
     // Thread.sleep(3000);
     newZookeeper.close();

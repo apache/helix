@@ -38,6 +38,17 @@ public class BestPossibleStateOutput
     return Collections.emptyMap();
   }
 
+  public Map<ResourceKey, Map<String, String>> getResourceGroupMap(String resourceGroupName)
+  {
+    Map<ResourceKey, Map<String, String>> map = _dataMap.get(resourceGroupName);
+    if (map != null)
+    {
+      return map;
+    }
+    return Collections.emptyMap();
+  }
+
+  @Override
   public String toString()
   {
     return _dataMap.toString();

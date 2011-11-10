@@ -76,7 +76,7 @@ public class IdealState
     _record.getMapField(key).put(instanceName, state);
   }
 
-  
+
   public Set<String> getResourceKeySet()
   {
   	if (getIdealStateMode() == IdealStateConfigProperty.AUTO)
@@ -106,8 +106,8 @@ public class IdealState
     {
       return instanceStateList;
     }
-    logger.warn("State unit key " + resourceKeyName
-        + "does not have a pre-computed preference list.");
+    logger.warn("Resource unit key:" + resourceKeyName
+        + " does not have a pre-computed preference list.");
     return null;
 
   }

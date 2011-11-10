@@ -1,27 +1,44 @@
 package com.linkedin.clustermanager;
 
 import java.io.File;
-import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.I0Itec.zkclient.IDefaultNameSpace;
 import org.I0Itec.zkclient.ZkServer;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
+import org.testng.Assert;
 
+import com.linkedin.clustermanager.agent.zk.ZKDataAccessor;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
 import com.linkedin.clustermanager.controller.ClusterManagerMain;
+import com.linkedin.clustermanager.controller.stages.AttributeName;
+import com.linkedin.clustermanager.controller.stages.BestPossibleStateCalcStage;
+import com.linkedin.clustermanager.controller.stages.BestPossibleStateOutput;
+import com.linkedin.clustermanager.controller.stages.ClusterDataCache;
+import com.linkedin.clustermanager.controller.stages.ClusterEvent;
+import com.linkedin.clustermanager.controller.stages.CurrentStateOutput;
 import com.linkedin.clustermanager.mock.storage.DummyProcess.DummyStateModel;
 import com.linkedin.clustermanager.mock.storage.DummyProcess.DummyStateModelFactory;
 import com.linkedin.clustermanager.model.Message.MessageType;
+import com.linkedin.clustermanager.model.ResourceGroup;
+import com.linkedin.clustermanager.model.ResourceKey;
 import com.linkedin.clustermanager.participant.StateMachineEngine;
+import com.linkedin.clustermanager.pipeline.Stage;
+import com.linkedin.clustermanager.pipeline.StageContext;
 import com.linkedin.clustermanager.util.ZKClientPool;
 
 public class TestHelper
 {
-  private static final Logger logger = Logger.getLogger(TestHelper.class);
+  private static final Logger LOG = Logger.getLogger(TestHelper.class);
 
   static public ZkServer startZkSever(final String zkAddress) throws Exception
   {
@@ -39,7 +56,7 @@ public class TestHelper
   static public ZkServer startZkSever(final String zkAddress, final List<String> rootNamespaces) throws Exception
   {
     System.out.println("Starting zookeeper at " + zkAddress + " in thread "+ Thread.currentThread().getName());
-    
+
     String zkDir = zkAddress.replace(':', '_');
     final String logDir = "/tmp/" + zkDir + "/logs";
     final String dataDir = "/tmp/" + zkDir + "/dataDir";
@@ -60,7 +77,7 @@ public class TestHelper
           }
           catch (Exception e)
           {
-            logger.error("fail to deleteRecursive path:" + rootNamespace + "\nexception:" + e);
+            LOG.error("fail to deleteRecursive path:" + rootNamespace + "\nexception:" + e);
           }
         }
       }
@@ -78,7 +95,7 @@ public class TestHelper
     if (zkServer != null)
     {
       zkServer.shutdown();
-      System.out.println("Shutting down ZK at port " + zkServer.getPort() 
+      System.out.println("Shutting down ZK at port " + zkServer.getPort()
                          + " in thread " + Thread.currentThread().getName());
     }
   }
@@ -86,7 +103,7 @@ public class TestHelper
   /**
    * start dummy cluster participant with a pre-created zkClient for testing session
    * expiry
-   * 
+   *
    * @param zkAddr
    * @param clusterName
    * @param instanceName
@@ -116,13 +133,13 @@ public class TestHelper
 
   /**
    * start cluster controller with a pre-created zkClient for testing session expiry
-   * 
+   *
    * @param clusterName
    * @param controllerName
    * @param zkConnectString
    * @param zkClient
    * @return
- * @throws Exception 
+ * @throws Exception
    */
   public static StartCMResult startClusterController(final String clusterName,
                                               final String controllerName,
@@ -139,7 +156,7 @@ public class TestHelper
                                                    zkClient);
     manager.connect();
     result._manager = manager;
-    
+
     Thread thread = new Thread(new Runnable()
     {
       @Override
@@ -149,7 +166,7 @@ public class TestHelper
 
         try
         {
-         
+
           Thread.currentThread().join();
         }
         catch (InterruptedException e)
@@ -157,7 +174,7 @@ public class TestHelper
           String msg =
               "controller:" + controllerName + ", " + Thread.currentThread().getName()
                   + " interrupted";
-          logger.info(msg);
+          LOG.info(msg);
           // System.err.println(msg);
 
         }
@@ -181,12 +198,12 @@ public class TestHelper
     result._thread = thread;
     return result;
   }
-  
+
   public static class StartCMResult
   {
     public Thread _thread;
     public ClusterManager _manager;
-    
+
   }
 
   static class DummyProcessThread implements Runnable
@@ -220,7 +237,7 @@ public class TestHelper
         String msg =
             "participant:" + _instanceName + ", " + Thread.currentThread().getName()
                 + " interrupted";
-        logger.info(msg);
+        LOG.info(msg);
         // System.err.println(msg);
 
       }
@@ -240,7 +257,7 @@ public class TestHelper
       */
     }
   }
-  
+
   public static void setupEmptyCluster(ZkClient zkClient, String clusterName)
   {
     String path = "/" + clusterName;
@@ -259,4 +276,261 @@ public class TestHelper
     zkClient.createPersistent(path + "/" + PropertyType.ERRORS.toString());
     zkClient.createPersistent(path + "/" + PropertyType.STATUSUPDATES.toString());
   }
+
+  /**
+   * compare two maps
+   * @param map1
+   * @param map2
+   * @return
+   */
+  public static <K,V> boolean compareMap(Map<K,V> map1, Map<K,V> map2)
+  {
+    boolean isEqual = true;
+    if (map1 == null && map2 == null)
+    {
+      // OK
+    }
+    else if (map1 == null && map2 != null)
+    {
+      if (!map2.isEmpty())
+      {
+        isEqual = false;
+      }
+    }
+    else if (map1 != null && map2 == null)
+    {
+      if (!map1.isEmpty())
+      {
+        isEqual = false;
+      }
+    }
+    else
+    {
+      // every entry in map1 is contained in map2
+      for (Map.Entry<K, V> entry : map1.entrySet())
+      {
+        K key = entry.getKey();
+        V value = entry.getValue();
+        if (!map2.containsKey(key))
+        {
+          LOG.debug("missing value for key:" + key + "(map1:" + value + ", map2:null)");
+          isEqual = false;
+        }
+        else
+        {
+          if (!value.equals(map2.get(key)))
+          {
+            LOG.debug("different value for key:" + key + "(map1:" + value
+                               + ", map2:" + map2.get(key) + ")");
+            isEqual = false;
+          }
+        }
+      }
+
+      // every entry in map2 is contained in map1
+      for (Map.Entry<K, V> entry : map2.entrySet())
+      {
+        K key = entry.getKey();
+        V value = entry.getValue();
+        if (!map1.containsKey(key))
+        {
+          LOG.debug("missing value for key:" + key + "(map1:null, map2:" + value + ")");
+          isEqual = false;
+        }
+        else
+        {
+          if (!value.equals(map1.get(key)))
+          {
+            LOG.debug("different value for key:" + key + "(map1:" + map1.get(key)
+                               + ", map2:" + value + ")");
+            isEqual = false;
+          }
+        }
+      }
+
+    }
+    return isEqual;
+  }
+
+  /**
+   * convert T[] to set<T>
+   * @param s
+   * @return
+   */
+  public static <T> Set<T> setOf(T... s)
+  {
+    Set<T> set = new HashSet<T>(Arrays.asList(s));
+    return set;
+  }
+
+  /**
+   * generic method for verification with a timeout
+   * @param verifierName
+   * @param args
+   */
+  public static void verifyWithTimeout(String verifierName, Object... args)
+  {
+    final long sleepInterval = 1000;  // in ms
+    try
+    {
+      boolean result = false;
+      int i = 0;
+      for (; i < 30; i++)
+      {
+        Thread.sleep(sleepInterval);
+        // verifier should be static method
+        result = (Boolean) TestHelper.getMethod(verifierName).invoke(null, args);
+
+        if (result == true)
+        {
+          break;
+        }
+      }
+
+      // debug
+      LOG.info(verifierName + ": wait " + ((i + 1) * 1000)
+                         + "ms to verify (" + result + ")");
+      LOG.debug("args:" + Arrays.toString(args));
+
+      if (result == false)
+      {
+        LOG.error(verifierName + " fails");
+        LOG.error("args:" + Arrays.toString(args));
+      }
+
+      Assert.assertTrue(result);
+    }
+    catch (Exception e)
+    {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+  }
+
+  private static Method getMethod(String name)
+  {
+    Method[] methods = TestHelper.class.getMethods();
+    for (Method method : methods)
+    {
+      if (name.equals(method.getName()))
+      {
+        return method;
+      }
+    }
+    return null;
+  }
+
+  public static boolean verifyBestPossAndExtView(String resourceGroupName,
+                                                 int partitions,
+                                                 String stateModelName,
+                                                 Set<String> clusterNameSet,
+                                                 ZkClient zkClient)
+  {
+    for(String clusterName : clusterNameSet)
+    {
+      ClusterDataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
+      ZNRecord extView = accessor.getProperty(PropertyType.EXTERNALVIEW, resourceGroupName);
+      BestPossibleStateOutput bestPossOutput =
+        calcBestPossState(resourceGroupName, partitions, stateModelName, clusterName, accessor);
+
+      // System.out.println("extView:" + externalView.getMapFields());
+      // System.out.println("BestPoss:" + output);
+
+      // every entry in external view is contained in best possible state
+      for (Map.Entry<String, Map<String, String>> entry : extView.getMapFields().entrySet())
+      {
+        String resourceKey = entry.getKey();
+        Map<String, String> evInstanceMap = entry.getValue();
+
+        Map<String, String> bpInstanceMap =
+         bestPossOutput.getInstanceStateMap(resourceGroupName, new ResourceKey(resourceKey));
+
+        boolean result = TestHelper.<String,String>compareMap(evInstanceMap, bpInstanceMap);
+        if (result == false)
+        {
+          LOG.info("verifyBestPossAndExtView() fails for cluster:" + clusterName);
+          return false;
+        }
+      }
+
+      // every entry in best possible state is contained in external view
+      for (Map.Entry<ResourceKey, Map<String, String>> entry
+          : bestPossOutput.getResourceGroupMap(resourceGroupName).entrySet())
+      {
+        String resourceKey = entry.getKey().getResourceKeyName();
+        Map<String, String> bpInstanceMap = entry.getValue();
+
+        Map<String, String> evInstanceMap = extView.getMapField(resourceKey);
+
+        boolean result = TestHelper.<String,String>compareMap(evInstanceMap, bpInstanceMap);
+        if (result == false)
+        {
+          LOG.info("verifyBestPossAndExtView() fails for cluster:" + clusterName);
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  private static BestPossibleStateOutput calcBestPossState(String resourceGroupName,
+                                                          int partitions,
+                                                          String stateModelName,
+                                                          String clusterName,
+                                                          ClusterDataAccessor accessor)
+  {
+    Map<String, ResourceGroup> resourceGroupMap =
+        getResourceGroupMap(resourceGroupName, partitions, stateModelName);
+    CurrentStateOutput currentStateOutput = new CurrentStateOutput();
+    ClusterEvent event = new ClusterEvent("sampleEvent");
+
+    event.addAttribute(AttributeName.RESOURCE_GROUPS.toString(), resourceGroupMap);
+    event.addAttribute(AttributeName.CURRENT_STATE.toString(), currentStateOutput);
+
+    ClusterDataCache cache = new ClusterDataCache();
+    cache.refresh(accessor);
+    event.addAttribute("ClusterDataCache", cache);
+
+    BestPossibleStateCalcStage stage = new BestPossibleStateCalcStage();
+    runStage(event, stage);
+
+    BestPossibleStateOutput output =
+        event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.toString());
+
+    // System.out.println("output:" + output);
+    return output;
+  }
+
+  private static Map<String, ResourceGroup> getResourceGroupMap(String resourceGroupName,
+                                                                int partitions,
+                                                                String stateModelName)
+  {
+    Map<String, ResourceGroup> resourceGroupMap = new HashMap<String, ResourceGroup>();
+    ResourceGroup resourceGroup = new ResourceGroup(resourceGroupName);
+    resourceGroup.setStateModelDefRef(stateModelName);
+    for (int i = 0; i < partitions; i++)
+    {
+      resourceGroup.addResource(resourceGroupName + "_" + i);
+    }
+    resourceGroupMap.put(resourceGroupName, resourceGroup);
+
+    return resourceGroupMap;
+  }
+
+  private static void runStage(ClusterEvent event, Stage stage)
+  {
+    StageContext context = new StageContext();
+    stage.init(context);
+    stage.preProcess();
+    try
+    {
+      stage.process(event);
+    }
+    catch (Exception e)
+    {
+      e.printStackTrace();
+    }
+    stage.postProcess();
+  }
+
 }

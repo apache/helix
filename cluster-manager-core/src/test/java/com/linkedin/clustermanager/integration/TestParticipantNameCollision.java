@@ -1,11 +1,8 @@
 package com.linkedin.clustermanager.integration;
 
-import org.testng.annotations.Test;
-import org.testng.AssertJUnit;
 import java.util.Date;
 
 import org.apache.log4j.Logger;
-import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.TestHelper;
@@ -14,15 +11,13 @@ import com.linkedin.clustermanager.TestHelper.StartCMResult;
 public class TestParticipantNameCollision extends ZkStandAloneCMTestBase
 {
   private static Logger logger = Logger.getLogger(TestParticipantNameCollision.class);
-  // static final AtomicInteger _exceptionCounter = new AtomicInteger();
-  
-  @Test (groups = {"integrationTest"})
+
+  @Test()
   public void testParticiptantNameCollision() throws Exception
   {
-    logger.info("RUN at " + new Date(System.currentTimeMillis()));
-    
+    logger.info("RUN TestParticipantNameCollision() at " + new Date(System.currentTimeMillis()));
+
     StartCMResult result = null;
-    // int i = 0;
     for (int i = 0; i < 1; i++)
     {
       String instanceName = "localhost_" + (START_PORT + i);
@@ -37,37 +32,11 @@ public class TestParticipantNameCollision extends ZkStandAloneCMTestBase
         e.printStackTrace();
       }
     }
-    
-    Thread.sleep(20000);
-  
-    try
-    {
-      boolean isConnected = false;
-      int i = 0;
-      for (i = 0; i < 24; i++)
-      {
-        Thread.sleep(2000);
-        isConnected = result._manager.isConnected();
-        if (isConnected == false)
-        {
-          break;
-        }
-      }
-      // debug
-      System.out.println("testParticiptantNameCollision(): wait " + ((i + 1) * 2000) + "ms to detect name collision ("
-          + !isConnected + ") cluster:" + CLUSTER_NAME);
-      if (isConnected == true)
-      {
-        System.out.println("testParticiptantNameCollision() fails");
-      }
-      AssertJUnit.assertFalse(isConnected);
-    }
-    catch (InterruptedException e)
-    {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    }
-    
-    logger.info("END at " + new Date(System.currentTimeMillis()));
+
+
+    Thread.sleep(30000);
+    TestHelper.verifyWithTimeout("verifyNotConnected", result._manager);
+
+    logger.info("STOP TestParticipantNameCollision() at " + new Date(System.currentTimeMillis()));
   }
 }

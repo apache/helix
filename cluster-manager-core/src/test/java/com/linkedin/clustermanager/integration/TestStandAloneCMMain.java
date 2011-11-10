@@ -16,7 +16,7 @@ public class TestStandAloneCMMain extends ZkStandAloneCMTestBase
   @Test()
   public void testStandAloneCMMain() throws Exception
   {
-    logger.info("Run at " + new Date(System.currentTimeMillis()));
+    logger.info("RUN testStandAloneCMMain() at " + new Date(System.currentTimeMillis()));
 
     for (int i = 1; i <= 2; i++)
     {
@@ -30,13 +30,10 @@ public class TestStandAloneCMMain extends ZkStandAloneCMTestBase
       _startCMResultMap.put(controllerName, startResult);
     }
 
-    Thread.sleep(2000);
-
     stopCurrentLeader(_zkClient, CLUSTER_NAME, _startCMResultMap);
+    verifyCluster();
 
-    verifyIdealAndCurrentStateTimeout(CLUSTER_NAME);
-
-    logger.info("End at " + new Date(System.currentTimeMillis()));
+    logger.info("STOP testStandAloneCMMain() at " + new Date(System.currentTimeMillis()));
   }
 
 }

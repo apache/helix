@@ -20,7 +20,7 @@ public class TestClusterManagerStartsup extends ZkStandAloneCMTestBase
   void setupCluster() throws ClusterManagerException
   {
     System.out.println("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
-    
+
     String namespace = "/" + CLUSTER_NAME;
     if (_zkClient.exists(namespace))
     {
@@ -38,23 +38,23 @@ public class TestClusterManagerStartsup extends ZkStandAloneCMTestBase
     }
     _setupTool.rebalanceStorageCluster(CLUSTER_NAME, TEST_DB, 3);
   }
-  
-  
+
+
   @Override
-  @BeforeClass (groups = {"integrationTest"})
+  @BeforeClass()
   public void beforeClass() throws Exception
   {
   	_zkClient = new ZkClient(ZK_ADDR);
   }
-  
+
   @Override
-	@AfterClass
+	@AfterClass()
   public void afterClass()
   {
   	_zkClient.close();
   }
-  
-  @Test (groups = {"integrationTest"})
+
+  @Test()
   public void testParticipantStartUp() throws Exception
   {
     setupCluster();
@@ -62,7 +62,7 @@ public class TestClusterManagerStartsup extends ZkStandAloneCMTestBase
     _zkClient.deleteRecursive(controllerMsgPath);
     boolean exceptionThrown = false;
     ClusterManager manager = null;;
-    
+
     try
     {
       manager = ClusterManagerFactory.getZKBasedManagerForParticipant(CLUSTER_NAME, "localhost_" + (START_PORT + 1), ZK_ADDR);
@@ -79,7 +79,7 @@ public class TestClusterManagerStartsup extends ZkStandAloneCMTestBase
       AssertJUnit.assertFalse(manager.isConnected());
     }
     exceptionThrown = false;
-    
+
     try
     {
       manager = ClusterManagerFactory.getZKBasedManagerForController(CLUSTER_NAME, "localhost_" + (START_PORT + 3), ZK_ADDR);
@@ -96,11 +96,11 @@ public class TestClusterManagerStartsup extends ZkStandAloneCMTestBase
     {
       AssertJUnit.assertFalse(manager.isConnected());
     }
-    
+
     setupCluster();
     String stateModelPath = CMUtil.getStateModelDefinitionPath(CLUSTER_NAME);
     _zkClient.deleteRecursive(stateModelPath);
-    
+
     try
     {
       manager = ClusterManagerFactory.getZKBasedManagerForParticipant(CLUSTER_NAME, "localhost_" + (START_PORT + 1), ZK_ADDR);
@@ -117,11 +117,11 @@ public class TestClusterManagerStartsup extends ZkStandAloneCMTestBase
     {
       AssertJUnit.assertFalse(manager.isConnected());
     }
-    
+
     setupCluster();
     String instanceStatusUpdatePath = CMUtil.getInstancePropertyPath(CLUSTER_NAME, "localhost_" + (START_PORT + 1), PropertyType.STATUSUPDATES);
     _zkClient.deleteRecursive(instanceStatusUpdatePath);
-    
+
     try
     {
       manager = ClusterManagerFactory.getZKBasedManagerForParticipant(CLUSTER_NAME, "localhost_" + (START_PORT + 1), ZK_ADDR);
@@ -138,6 +138,6 @@ public class TestClusterManagerStartsup extends ZkStandAloneCMTestBase
     {
       AssertJUnit.assertFalse(manager.isConnected());
     }
-  
+
   }
 }

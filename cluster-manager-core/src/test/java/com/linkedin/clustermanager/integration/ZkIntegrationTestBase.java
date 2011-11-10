@@ -1,9 +1,6 @@
 package com.linkedin.clustermanager.integration;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 
 import org.I0Itec.zkclient.IZkStateListener;
@@ -19,16 +16,12 @@ import org.testng.AssertJUnit;
 import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeSuite;
 
-import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.PropertyPathConfig;
 import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.TestHelper;
 import com.linkedin.clustermanager.TestHelper.StartCMResult;
 import com.linkedin.clustermanager.ZNRecord;
-import com.linkedin.clustermanager.agent.zk.ZKDataAccessor;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
-import com.linkedin.clustermanager.tools.ClusterStateVerifier;
-import com.linkedin.clustermanager.util.CMUtil;
 import com.linkedin.clustermanager.util.ZKClientPool;
 
 public class ZkIntegrationTestBase
@@ -131,145 +124,6 @@ public class ZkIntegrationTestBase
     }
     AssertJUnit.assertTrue(isNewLeaderElected);
     return newLeader;
-  }
-
-  protected void verifyIdealAndCurrentStateTimeout(String clusterName)
-  {
-    List<String> clusterNames = new ArrayList<String>();
-    clusterNames.add(clusterName);
-    verifyIdealAndCurrentStateTimeout(clusterNames);
-  }
-
-  protected void verifyIdealAndCurrentStateTimeout(List<String> clusterNames)
-  {
-    try
-    {
-      // System.out
-      // .println("START:ZkIntegrationTestBase.verifyIdealAndCurrentStateTimeout():"+ new
-      // Date());
-
-      boolean result = false;
-      int i = 0;
-      for (; i < 30; i++)
-      {
-        Thread.sleep(1000);
-        result = verifyIdealAndCurrentState(clusterNames);
-        if (result == true)
-        {
-          break;
-        }
-      }
-      // System.out
-      // .println("END ZkIntegrationTestBase.verifyIdealAndCurrentStateTimeout():"+ new
-      // Date());
-
-      // debug
-      System.out.println("verifyIdealAndCurrentState(): wait " + ((i + 1) * 1000)
-          + "ms to verify (" + result + ") clusters:"
-          + Arrays.toString(clusterNames.toArray()));
-
-      if (result == false)
-      {
-        System.out.println("verifyIdealAndCurrentState() fails for clusters:"
-            + Arrays.toString(clusterNames.toArray()));
-      }
-      AssertJUnit.assertTrue(result);
-
-    }
-    catch (InterruptedException e)
-    {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    }
-  }
-
-  private boolean verifyIdealAndCurrentState(List<String> clusterNames)
-  {
-    for (String clusterName : clusterNames)
-    {
-      boolean result = ClusterStateVerifier.verifyClusterStates(ZK_ADDR, clusterName);
-      LOG.info("verify cluster: " + clusterName + ", result: " + result);
-      if (result == false)
-      {
-        return result;
-      }
-    }
-    return true;
-  }
-
-  protected void verifyEmtpyCurrentStateTimeout(ZkClient zkClient,
-                                                String clusterName,
-                                                String resourceGroupName,
-                                                List<String> instanceNames)
-  {
-    try
-    {
-      boolean result = false;
-      int i = 0;
-      for (; i < 30; i++)
-      {
-        Thread.sleep(1000);
-        result =
-            verifyEmptyCurrentState(zkClient,
-                                    clusterName,
-                                    resourceGroupName,
-                                    instanceNames);
-        if (result == true)
-        {
-          break;
-        }
-      }
-      // debug
-      System.out.println("verifyEmtpyCurrentState(): wait " + ((i + 1) * 1000)
-          + "ms to verify (" + result + ") cluster:" + clusterName);
-      if (result == false)
-      {
-        System.out.println("verifyEmtpyCurrentState() fails");
-      }
-      Assert.assertTrue(result);
-    }
-    catch (InterruptedException e)
-    {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    }
-  }
-
-  private boolean verifyEmptyCurrentState(ZkClient zkClient,
-                                          String clusterName,
-                                          String resourceGroupName,
-                                          List<String> instanceNames)
-  {
-    ClusterDataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
-
-    for (String instanceName : instanceNames)
-    {
-      String path =
-          CMUtil.getInstancePropertyPath(clusterName,
-                                         instanceName,
-                                         PropertyType.CURRENTSTATES);
-
-      List<String> subPaths =
-          accessor.getChildNames(PropertyType.CURRENTSTATES, instanceName);
-
-      for (String previousSessionId : subPaths)
-      {
-        if (zkClient.exists(path + "/" + previousSessionId + "/" + resourceGroupName))
-        {
-          ZNRecord previousCurrentState =
-              accessor.getProperty(PropertyType.CURRENTSTATES,
-                                   instanceName,
-                                   previousSessionId,
-                                   resourceGroupName);
-
-          if (previousCurrentState.getMapFields().size() != 0)
-          {
-            return false;
-          }
-        }
-      }
-    }
-    return true;
   }
 
   /**

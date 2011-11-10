@@ -59,7 +59,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBase
     }
   }
 
-  @Test (groups = {"integrationTest"})
+  @Test()
   public void TestMessageSimpleSend() throws Exception
   {
     String hostSrc = "localhost_" + START_PORT;
@@ -146,7 +146,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBase
 
   }
 
-  @Test (groups = {"integrationTest"})
+  @Test()
   public void TestMessageSimpleSendReceiveAsync() throws Exception
   {
     String hostSrc = "localhost_" + START_PORT;
@@ -193,7 +193,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBase
 
   }
 
-  @Test (groups = {"integrationTest"})
+  @Test()
   public void TestBlockingSendReceive() throws Exception
   {
     String hostSrc = "localhost_" + START_PORT;
@@ -235,7 +235,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBase
 
   }
 
-  @Test (groups = {"integrationTest"})
+  @Test()
   public void TestMultiMessageCriteria() throws Exception
   {
     String hostSrc = "localhost_" + START_PORT;
@@ -290,7 +290,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBase
 
   }
 
-  @Test (groups = {"integrationTest"})
+  @Test()
   public void TestControllerMessage() throws Exception
   {
     String hostSrc = "localhost_" + START_PORT;

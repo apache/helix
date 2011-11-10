@@ -96,7 +96,7 @@ public class ZkStandAloneCMTestBase extends ZkIntegrationTestBase
                                                                   _controllerZkClient);
     _startCMResultMap.put(controllerName, startResult);
 
-    verifyIdealAndCurrentStateTimeout(CLUSTER_NAME);
+    verifyCluster();
   }
 
   @AfterClass
@@ -138,4 +138,13 @@ public class ZkStandAloneCMTestBase extends ZkIntegrationTestBase
     System.out.println("END " + CLASS_NAME + " at "+ new Date(System.currentTimeMillis()));
   }
 
+  protected void verifyCluster()
+  {
+    TestHelper.verifyWithTimeout("verifyBestPossAndExtView",
+                                 TEST_DB,
+                                 20,
+                                 "MasterSlave",
+                                 TestHelper.<String>setOf(CLUSTER_NAME),
+                                 _zkClient);
+  }
 }

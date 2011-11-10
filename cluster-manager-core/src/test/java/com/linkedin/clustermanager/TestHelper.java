@@ -34,6 +34,7 @@ import com.linkedin.clustermanager.model.ResourceKey;
 import com.linkedin.clustermanager.participant.StateMachineEngine;
 import com.linkedin.clustermanager.pipeline.Stage;
 import com.linkedin.clustermanager.pipeline.StageContext;
+import com.linkedin.clustermanager.tools.ClusterStateVerifier;
 import com.linkedin.clustermanager.util.ZKClientPool;
 
 public class TestHelper
@@ -277,6 +278,7 @@ public class TestHelper
     zkClient.createPersistent(path + "/" + PropertyType.STATUSUPDATES.toString());
   }
 
+
   /**
    * compare two maps
    * @param map1
@@ -388,9 +390,10 @@ public class TestHelper
       }
 
       // debug
-      LOG.info(verifierName + ": wait " + ((i + 1) * 1000)
-                         + "ms to verify (" + result + ")");
+      // LOG.info(verifierName + ": wait " + ((i + 1) * 1000) + "ms to verify (" + result + ")");
+      System.err.println(verifierName + ": wait " + ((i + 1) * 1000) + "ms to verify (" + result + ")");
       LOG.debug("args:" + Arrays.toString(args));
+      // System.err.println("args:" + Arrays.toString(args));
 
       if (result == false)
       {
@@ -433,6 +436,11 @@ public class TestHelper
       BestPossibleStateOutput bestPossOutput =
         calcBestPossState(resourceGroupName, partitions, stateModelName, clusterName, accessor);
 
+      // external view not yet generated
+      if (extView == null)
+      {
+        return false;
+      }
       // System.out.println("extView:" + externalView.getMapFields());
       // System.out.println("BestPoss:" + output);
 
@@ -531,6 +539,60 @@ public class TestHelper
       e.printStackTrace();
     }
     stage.postProcess();
+  }
+
+  public static boolean verifyEmptyCurState(String clusterName,
+                                            String resourceGroupName,
+                                            Set<String> instanceNames,
+                                            ZkClient zkClient)
+  {
+    ClusterDataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
+
+    for (String instanceName : instanceNames)
+    {
+      String path = PropertyPathConfig.getPath(PropertyType.CURRENTSTATES,
+                                               clusterName,
+                                               instanceName);
+      List<String> subPaths =
+          accessor.getChildNames(PropertyType.CURRENTSTATES, instanceName);
+
+      for (String previousSessionId : subPaths)
+      {
+        if (zkClient.exists(path + "/" + previousSessionId + "/" + resourceGroupName))
+        {
+          ZNRecord previousCurrentState =
+              accessor.getProperty(PropertyType.CURRENTSTATES,
+                                   instanceName,
+                                   previousSessionId,
+                                   resourceGroupName);
+
+          if (previousCurrentState.getMapFields().size() != 0)
+          {
+            return false;
+          }
+        }
+      }
+    }
+    return true;
+  }
+
+  public static boolean verifyNotConnected(ClusterManager manager)
+  {
+    return !manager.isConnected();
+  }
+  
+  public static boolean verifyIdealAndCurState(Set<String> clusterNameSet,
+                                               String zkAddr)
+  {
+    for (String clusterName : clusterNameSet)
+    {
+      boolean result = ClusterStateVerifier.verifyClusterStates(zkAddr, clusterName);
+      if (result == false)
+      {
+        return result;
+      }
+    }
+    return true;
   }
 
 }

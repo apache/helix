@@ -1,5 +1,7 @@
 package com.linkedin.clustermanager.monitoring.mbeans;
 
+import com.linkedin.clustermanager.monitoring.annotations.Description;
+
 public interface ResourceGroupMonitorMBean
 {
   @Description("Number of total resource keys")

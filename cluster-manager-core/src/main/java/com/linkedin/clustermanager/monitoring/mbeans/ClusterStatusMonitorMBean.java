@@ -1,5 +1,7 @@
 package com.linkedin.clustermanager.monitoring.mbeans;
 
+import com.linkedin.clustermanager.monitoring.annotations.Description;
+
 public interface ClusterStatusMonitorMBean
 {
   @Description("Number of live instances")

@@ -15,6 +15,7 @@ import com.linkedin.clustermanager.ExternalViewChangeListener;
 import com.linkedin.clustermanager.LiveInstanceChangeListener;
 import com.linkedin.clustermanager.NotificationContext;
 import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.monitoring.annotations.HelixSensorAttribute;
 
 
 public class ClusterStatusMonitor 
@@ -85,13 +86,13 @@ public class ClusterStatusMonitor
     return "ClusterStatus "+_clusterName;
   }
   
-  @Override
+  @HelixSensorAttribute(description = "Get the total live instance")
   public long getLiveInstanceGauge()
   {
     return _numOfLiveInstances;
   }
 
-  @Override
+  @HelixSensorAttribute(description = "Get the total instance")
   public long getInstancesGauge()
   {
     return _numOfInstances;

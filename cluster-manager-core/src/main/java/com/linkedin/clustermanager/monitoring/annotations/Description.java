@@ -1,4 +1,4 @@
-package com.linkedin.clustermanager.monitoring.mbeans;
+package com.linkedin.clustermanager.monitoring.annotations;
 
 public @interface Description
 {

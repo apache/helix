@@ -2,6 +2,7 @@ package com.linkedin.clustermanager.model;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 import com.linkedin.clustermanager.ZNRecord;
 
@@ -13,6 +14,15 @@ public class ExternalView
   public ExternalView(ZNRecord record)
   {
     _record = record;
+  }
+
+  public void setState(String resourceKeyName, String instance, String state)
+  {
+    if (_record.getMapField(resourceKeyName) == null)
+    {
+      _record.setMapField(resourceKeyName, new TreeMap<String, String>());
+    }
+    _record.getMapField(resourceKeyName).put(instance, state);
   }
 
   public void setStateMap(String resourceKeyName,

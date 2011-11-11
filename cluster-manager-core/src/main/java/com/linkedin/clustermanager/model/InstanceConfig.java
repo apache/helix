@@ -1,6 +1,7 @@
 package com.linkedin.clustermanager.model;
 
 import com.linkedin.clustermanager.CMConstants;
+import com.linkedin.clustermanager.ClusterDataAccessor.InstanceConfigProperty;
 import com.linkedin.clustermanager.ZNRecord;
 
 public class InstanceConfig
@@ -30,6 +31,12 @@ public class InstanceConfig
   public void setPort(String port)
   {
     _record.setSimpleField(CMConstants.ZNAttribute.HOST.toString(), port);
+  }
+
+  public boolean getEnabled()
+  {
+    String isEnabled = _record.getSimpleField(InstanceConfigProperty.ENABLED.toString());
+    return Boolean.parseBoolean(isEnabled);
   }
 
   @Override

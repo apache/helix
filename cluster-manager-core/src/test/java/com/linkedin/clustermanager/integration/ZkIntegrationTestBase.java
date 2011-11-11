@@ -26,17 +26,16 @@ import com.linkedin.clustermanager.util.ZKClientPool;
 
 public class ZkIntegrationTestBase
 {
-  private static Logger         LOG                       =
-                                                              Logger.getLogger(ZkIntegrationTestBase.class);
+  private static Logger LOG = Logger.getLogger(ZkIntegrationTestBase.class);
 
-  protected static ZkServer     _zkServer                 = null;
+  protected static ZkServer _zkServer = null;
 
-  public static final String    ZK_ADDR                   = "localhost:2183";
-  protected static final String CLUSTER_PREFIX            = "CLUSTER";
+  public static final String ZK_ADDR = "localhost:2183";
+  protected static final String CLUSTER_PREFIX = "CLUSTER";
   protected static final String CONTROLLER_CLUSTER_PREFIX = "CONTROLLER_CLUSTER";
 
-  protected final String        CONTROLLER_PREFIX         = "controller";
-  protected final String        PARTICIPANT_PREFIX        = "localhost";
+  protected final String CONTROLLER_PREFIX = "controller";
+  protected final String PARTICIPANT_PREFIX = "localhost";
 
   @BeforeSuite
   public void beforeSuite() throws Exception
@@ -77,6 +76,7 @@ public class ZkIntegrationTestBase
 
   /**
    * Stop current leader and returns the new leader
+   *
    * @param zkClient
    * @param clusterName
    * @param startCMResultMap

@@ -56,7 +56,8 @@ public class TestHelper
 
   static public ZkServer startZkSever(final String zkAddress, final List<String> rootNamespaces) throws Exception
   {
-    System.out.println("Starting zookeeper at " + zkAddress + " in thread "+ Thread.currentThread().getName());
+    System.out.println("Start zookeeper at " + zkAddress
+                       + " in thread " + Thread.currentThread().getName());
 
     String zkDir = zkAddress.replace(':', '_');
     final String logDir = "/tmp/" + zkDir + "/logs";
@@ -96,7 +97,7 @@ public class TestHelper
     if (zkServer != null)
     {
       zkServer.shutdown();
-      System.out.println("Shutting down ZK at port " + zkServer.getPort()
+      System.out.println("Shut down zookeeper at port " + zkServer.getPort()
                          + " in thread " + Thread.currentThread().getName());
     }
   }
@@ -423,6 +424,17 @@ public class TestHelper
     return null;
   }
 
+  /**
+   * verify the best possible state and external view
+   *   note that DROPPED states are not checked since when kick off the BestPossibleStateCalcStage
+   *   we are providing an empty current state map
+   * @param resourceGroupName
+   * @param partitions
+   * @param stateModelName
+   * @param clusterNameSet
+   * @param zkClient
+   * @return
+   */
   public static boolean verifyBestPossAndExtView(String resourceGroupName,
                                                  int partitions,
                                                  String stateModelName,
@@ -580,7 +592,7 @@ public class TestHelper
   {
     return !manager.isConnected();
   }
-  
+
   public static boolean verifyIdealAndCurState(Set<String> clusterNameSet,
                                                String zkAddr)
   {

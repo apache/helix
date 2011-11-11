@@ -12,19 +12,15 @@ import com.linkedin.clustermanager.model.IdealState;
 import com.linkedin.clustermanager.model.ResourceGroup;
 import com.linkedin.clustermanager.model.ResourceKey;
 
-@Test(groups =
-{ "unitTest" })
 public class TestBestPossibleStateCalcStage extends BaseStageTest
 {
-
   @Test
   public void testSimple()
   {
   	System.out.println("START TestBestPossibleStateCalcStage at " + new Date(System.currentTimeMillis()));
     List<IdealState> idealStates = new ArrayList<IdealState>();
 
-    String[] resourceGroups = new String[]
-    { "testResourceGroupName" };
+    String[] resourceGroups = new String[]{ "testResourceGroupName" };
     setupIdealState(5, idealStates, resourceGroups);
     setupLiveInstances(5);
     setupStateModel();

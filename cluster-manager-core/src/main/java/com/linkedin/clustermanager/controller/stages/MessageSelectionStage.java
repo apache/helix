@@ -7,13 +7,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.ResourceGroup;
 import com.linkedin.clustermanager.model.ResourceKey;
 import com.linkedin.clustermanager.model.StateModelDefinition;
 import com.linkedin.clustermanager.pipeline.AbstractBaseStage;
-import com.linkedin.clustermanager.pipeline.StageException;
 
 public class MessageSelectionStage extends AbstractBaseStage
 {
@@ -21,11 +19,11 @@ public class MessageSelectionStage extends AbstractBaseStage
   @Override
   public void process(ClusterEvent event) throws Exception
   {
-    ClusterManager manager = event.getAttribute("clustermanager");
-    if (manager == null)
-    {
-      throw new StageException("ClusterManager attribute value is null");
-    }
+//    ClusterManager manager = event.getAttribute("clustermanager");
+//    if (manager == null)
+//    {
+//      throw new StageException("ClusterManager attribute value is null");
+//    }
     ClusterDataCache cache = event.getAttribute("ClusterDataCache");
 
     Map<String, ResourceGroup> resourceGroupMap = event
@@ -36,7 +34,7 @@ public class MessageSelectionStage extends AbstractBaseStage
     for (String resourceGroupName : resourceGroupMap.keySet())
     {
       ResourceGroup resourceGroup = resourceGroupMap.get(resourceGroupName);
-      StateModelDefinition stateModelDef = cache.getStateModelDef(resourceGroup.getStateModelDefRef()); 
+      StateModelDefinition stateModelDef = cache.getStateModelDef(resourceGroup.getStateModelDefRef());
       for (ResourceKey resource : resourceGroup.getResourceKeys())
       {
         List<Message> messages = messageGenOutput.getMessages(
@@ -55,7 +53,7 @@ public class MessageSelectionStage extends AbstractBaseStage
     {
       return Collections.emptyList();
     }
-    
+
     Set<String> possibleTransitions = new HashSet<String>();
     for (Message message : messages)
     {
@@ -65,7 +63,7 @@ public class MessageSelectionStage extends AbstractBaseStage
     String preferredTransition = null;
     List<String> stateTransitionPriorityList = stateModelDef
         .getStateTransitionPriorityList();
-    
+
     for (String transition : stateTransitionPriorityList)
     {
       if (possibleTransitions.contains(transition.toUpperCase()))
@@ -90,5 +88,5 @@ public class MessageSelectionStage extends AbstractBaseStage
     return Collections.emptyList();
   }
 
- 
+
 }

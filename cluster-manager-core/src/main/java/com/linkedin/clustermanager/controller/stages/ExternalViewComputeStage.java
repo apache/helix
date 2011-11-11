@@ -9,6 +9,7 @@ import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.model.ExternalView;
+import com.linkedin.clustermanager.model.InstanceConfig;
 import com.linkedin.clustermanager.model.ResourceGroup;
 import com.linkedin.clustermanager.model.ResourceKey;
 import com.linkedin.clustermanager.pipeline.AbstractBaseStage;
@@ -21,19 +22,20 @@ public class ExternalViewComputeStage extends AbstractBaseStage
   @Override
   public void process(ClusterEvent event) throws Exception
   {
-    ClusterManager manager = event.getAttribute("clustermanager");
-    if (manager == null)
-    {
-      throw new StageException("ClusterManager attribute value is null");
-    }
     log.info("START ExternalViewComputeStage.process()");
-    ClusterDataAccessor dataAccessor = manager.getDataAccessor();
+
+    ClusterManager manager = event.getAttribute("clustermanager");
     Map<String, ResourceGroup> resourceGroupMap = event
         .getAttribute(AttributeName.RESOURCE_GROUPS.toString());
-    if (resourceGroupMap == null)
+    ClusterDataCache cache = event.getAttribute("ClusterDataCache");
+
+    if (manager == null || resourceGroupMap == null || cache == null)
     {
-      throw new StageException("ResourceGroupMap attribute value is null");
+      throw new StageException("Missing attributes in event:" + event
+           + ". Requires ClusterManager|RESOURCE_GROUPS|DataCache");
     }
+    ClusterDataAccessor dataAccessor = manager.getDataAccessor();
+    Map<String, InstanceConfig> configMap = cache.getInstanceConfigMap();
 
     CurrentStateOutput currentStateOutput = event
         .getAttribute(AttributeName.CURRENT_STATE.toString());
@@ -48,13 +50,23 @@ public class ExternalViewComputeStage extends AbstractBaseStage
             .getCurrentStateMap(resourceGroupName, resource);
         if (currentStateMap != null && currentStateMap.size() > 0)
         {
-          view.setStateMap(resource.getResourceKeyName(), currentStateMap);
+          // when set external view, ignore all disabled nodes
+          for (String instance : currentStateMap.keySet())
+          {
+            boolean isDisabled = configMap != null && configMap.containsKey(instance)
+                && configMap.get(instance).getEnabled() == false;
+            if (!isDisabled)
+            {
+              view.setState(resource.getResourceKeyName(), instance, currentStateMap.get(instance));
+            }
+          }
+          // view.setStateMap(resource.getResourceKeyName(), currentStateMap);
         }
       }
       dataAccessor.setProperty(PropertyType.EXTERNALVIEW,
           view.getRecord(), resourceGroupName);
     }
-    log.info("START ExternalViewComputeStage.process()");
+    log.info("END ExternalViewComputeStage.process()");
   }
 
 }

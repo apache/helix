@@ -7,7 +7,6 @@ import org.apache.log4j.Logger;
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.PropertyType;
-import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.model.ExternalView;
 import com.linkedin.clustermanager.model.InstanceConfig;
 import com.linkedin.clustermanager.model.ResourceGroup;
@@ -34,6 +33,7 @@ public class ExternalViewComputeStage extends AbstractBaseStage
       throw new StageException("Missing attributes in event:" + event
            + ". Requires ClusterManager|RESOURCE_GROUPS|DataCache");
     }
+
     ClusterDataAccessor dataAccessor = manager.getDataAccessor();
     Map<String, InstanceConfig> configMap = cache.getInstanceConfigMap();
 
@@ -41,8 +41,7 @@ public class ExternalViewComputeStage extends AbstractBaseStage
         .getAttribute(AttributeName.CURRENT_STATE.toString());
     for (String resourceGroupName : resourceGroupMap.keySet())
     {
-      ZNRecord viewRecord = new ZNRecord(resourceGroupName);
-      ExternalView view = new ExternalView(viewRecord);
+      ExternalView view = new ExternalView(resourceGroupName);
       ResourceGroup resourceGroup = resourceGroupMap.get(resourceGroupName);
       for (ResourceKey resource : resourceGroup.getResourceKeys())
       {

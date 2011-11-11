@@ -8,7 +8,6 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.ClusterDataAccessor.IdealStateConfigProperty;
-import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.model.IdealState;
 import com.linkedin.clustermanager.model.InstanceConfig;
 import com.linkedin.clustermanager.model.LiveInstance;
@@ -64,7 +63,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
 
     for (String resourceGroupName : resourceGroupMap.keySet())
     {
-      logger.info("Processing resourceGroup:" + resourceGroupName);
+      logger.debug("Processing resourceGroup:" + resourceGroupName);
 
       ResourceGroup resourceGroup = resourceGroupMap.get(resourceGroupName);
       // Ideal state may be gone. In that case we need to get the state model name
@@ -75,10 +74,10 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
 
       if (idealState == null)
       {
-        // if ideal state is deleted, use an empty ZNRecord
-        logger.info(" resourceGroup:" + resourceGroupName + " does not exist anymore");
+        // if ideal state is deleted, use an empty one
+        logger.info("resourceGroup:" + resourceGroupName + " does not exist anymore");
         stateModelDefName = currentStateOutput.getResourceGroupStateModelDef(resourceGroupName);
-        idealState = new IdealState(new ZNRecord(resourceGroupName));
+        idealState = new IdealState(resourceGroupName);
       } else
       {
     	  stateModelDefName = idealState.getStateModelDefRef();

@@ -12,6 +12,7 @@ import com.linkedin.clustermanager.model.ResourceGroup;
 import com.linkedin.clustermanager.model.ResourceKey;
 import com.linkedin.clustermanager.model.StateModelDefinition;
 import com.linkedin.clustermanager.pipeline.AbstractBaseStage;
+import com.linkedin.clustermanager.pipeline.StageException;
 
 public class MessageSelectionStage extends AbstractBaseStage
 {
@@ -19,18 +20,19 @@ public class MessageSelectionStage extends AbstractBaseStage
   @Override
   public void process(ClusterEvent event) throws Exception
   {
-//    ClusterManager manager = event.getAttribute("clustermanager");
-//    if (manager == null)
-//    {
-//      throw new StageException("ClusterManager attribute value is null");
-//    }
     ClusterDataCache cache = event.getAttribute("ClusterDataCache");
-
     Map<String, ResourceGroup> resourceGroupMap = event
         .getAttribute(AttributeName.RESOURCE_GROUPS.toString());
     MessageGenerationOutput messageGenOutput = event
         .getAttribute(AttributeName.MESSAGES_ALL.toString());
+    if (cache == null || resourceGroupMap == null || messageGenOutput == null)
+    {
+      throw new StageException("Missing attributes in event:" + event
+          + ". Requires DataCache|RESOURCE_GROUPS|MESSAGES_ALL");
+    }
+
     MessageSelectionStageOutput output = new MessageSelectionStageOutput();
+
     for (String resourceGroupName : resourceGroupMap.keySet())
     {
       ResourceGroup resourceGroup = resourceGroupMap.get(resourceGroupName);

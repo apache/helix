@@ -22,19 +22,19 @@ public class TaskAssignmentStage extends AbstractBaseStage
   public void process(ClusterEvent event) throws Exception
   {
     ClusterManager manager = event.getAttribute("clustermanager");
-    if (manager == null)
-    {
-      throw new StageException("ClusterManager attribute value is null");
-    }
-    ClusterDataAccessor dataAccessor = manager.getDataAccessor();
     Map<String, ResourceGroup> resourceGroupMap = event
         .getAttribute(AttributeName.RESOURCE_GROUPS.toString());
-    if (resourceGroupMap == null)
-    {
-      throw new StageException("ResourceGroupMap attribute value is null");
-    }
     MessageSelectionStageOutput messageSelectionStageOutput = event
         .getAttribute(AttributeName.MESSAGES_SELECTED.toString());
+
+    if (manager == null || resourceGroupMap == null
+        || messageSelectionStageOutput == null)
+    {
+      throw new StageException("Missing attributes in event:" + event
+          + ". Requires ClusterManager|RESOURCE_GROUPS|MESSAGES_SELECTED");
+    }
+
+    ClusterDataAccessor dataAccessor = manager.getDataAccessor();
     for (String resourceGroupName : resourceGroupMap.keySet())
     {
       ResourceGroup resourceGroup = resourceGroupMap.get(resourceGroupName);

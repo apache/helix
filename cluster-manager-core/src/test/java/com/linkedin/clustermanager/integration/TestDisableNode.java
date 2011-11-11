@@ -13,5 +13,8 @@ public class TestDisableNode extends ZkStandAloneCMTestBase
     ZKClusterManagementTool tool = new ZKClusterManagementTool(_zkClient);
     tool.enableInstance(CLUSTER_NAME, PARTICIPANT_PREFIX + "_12918", false);
     verifyCluster();
+
+    tool.enableInstance(CLUSTER_NAME, PARTICIPANT_PREFIX + "_12918", true);
+    verifyCluster();
   }
 }

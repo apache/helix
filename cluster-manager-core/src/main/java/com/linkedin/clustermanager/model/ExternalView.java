@@ -8,8 +8,12 @@ import com.linkedin.clustermanager.ZNRecord;
 
 public class ExternalView
 {
-
   private final ZNRecord _record;
+
+  public ExternalView(String resourceGroup)
+  {
+    _record = new ZNRecord(resourceGroup);
+  }
 
   public ExternalView(ZNRecord record)
   {
@@ -18,7 +22,7 @@ public class ExternalView
 
   public void setState(String resourceKeyName, String instance, String state)
   {
-    if (_record.getMapField(resourceKeyName) == null)
+    if(_record.getMapField(resourceKeyName) == null)
     {
       _record.setMapField(resourceKeyName, new TreeMap<String, String>());
     }

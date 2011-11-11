@@ -30,22 +30,21 @@ public class MessageGenerationPhase extends AbstractBaseStage
   public void process(ClusterEvent event) throws Exception
   {
     ClusterManager manager = event.getAttribute("clustermanager");
-    if (manager == null)
-    {
-      throw new StageException("ClusterManager attribute value is null");
-    }
     ClusterDataCache cache = event.getAttribute("ClusterDataCache");
-
     Map<String, ResourceGroup> resourceGroupMap = event
         .getAttribute(AttributeName.RESOURCE_GROUPS.toString());
-
     CurrentStateOutput currentStateOutput = event
         .getAttribute(AttributeName.CURRENT_STATE.toString());
-
     BestPossibleStateOutput bestPossibleStateOutput = event
         .getAttribute(AttributeName.BEST_POSSIBLE_STATE.toString());
-    Map<String, LiveInstance> liveInstances = cache.getLiveInstances();
+    if (manager == null || cache == null || resourceGroupMap == null
+        || currentStateOutput == null || bestPossibleStateOutput == null)
+    {
+      throw new StageException("Missing attributes in event:" + event
+       + ". Requires ClusterManager|DataCache|RESOURCE_GROUPS|CURRENT_STATE|BEST_POSSIBLE_STATE");
+    }
 
+    Map<String, LiveInstance> liveInstances = cache.getLiveInstances();
     Map<String, String> sessionIdMap = new HashMap<String, String>();
 
     for (LiveInstance liveInstance : liveInstances.values())

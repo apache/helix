@@ -10,6 +10,7 @@ import com.linkedin.clustermanager.model.Message.MessageType;
 import com.linkedin.clustermanager.model.ResourceGroup;
 import com.linkedin.clustermanager.model.ResourceKey;
 import com.linkedin.clustermanager.pipeline.AbstractBaseStage;
+import com.linkedin.clustermanager.pipeline.StageException;
 
 /**
  * For each LiveInstances select currentState and message whose sessionId
@@ -25,6 +26,11 @@ public class CurrentStateComputationStage extends AbstractBaseStage
   public void process(ClusterEvent event) throws Exception
   {
     ClusterDataCache cache = event.getAttribute("ClusterDataCache");
+    if (cache == null)
+    {
+      throw new StageException("Missing attributes in event:" + event
+          + ". Requires DataCache");
+    }
 
     Map<String, LiveInstance> liveInstances = cache.getLiveInstances();
     CurrentStateOutput currentStateOutput = new CurrentStateOutput();

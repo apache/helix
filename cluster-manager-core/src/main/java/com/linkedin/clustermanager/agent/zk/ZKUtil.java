@@ -28,23 +28,6 @@ public final class ZKUtil
       return false;
     }
 
-
-//    boolean isValid = zkClient.exists(CMUtil.getIdealStatePath(clusterName))
-//        && zkClient.exists(CMUtil.getConfigPath(clusterName))
-//        && zkClient.exists(CMUtil.getLiveInstancesPath(clusterName))
-//        && zkClient.exists(CMUtil.getMemberInstancesPath(clusterName))
-//        && zkClient.exists(CMUtil.getExternalViewPath(clusterName))
-//        && zkClient.exists(CMUtil.getControllerPath(clusterName))
-//        && zkClient.exists(CMUtil.getStateModelDefinitionPath(clusterName))
-//        && zkClient.exists(CMUtil.getControllerPropertyPath(clusterName,
-//            PropertyType.MESSAGES_CONTROLLER))
-//        && zkClient.exists(CMUtil.getControllerPropertyPath(clusterName,
-//            PropertyType.STATUSUPDATES_CONTROLLER))
-//        && zkClient.exists(CMUtil.getControllerPropertyPath(clusterName,
-//            PropertyType.ERRORS_CONTROLLER))
-//        && zkClient.exists(CMUtil.getControllerPropertyPath(clusterName,
-//            PropertyType.HISTORY));
-
     boolean isValid = zkClient.exists(PropertyPathConfig.getPath(PropertyType.IDEALSTATES, clusterName))
             && zkClient.exists(PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName))
             && zkClient.exists(PropertyPathConfig.getPath(PropertyType.LIVEINSTANCES, clusterName))

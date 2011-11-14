@@ -76,11 +76,6 @@ public class CMTaskExecutor implements MessageListener
     }
   }
 
-  public MessageHandlerFactory getMessageHanderFactory(String type)
-  {
-    return _handlerFactoryMap.get(type);
-  }
-
   public ParticipantMonitor getParticipantMonitor()
   {
     return _monitor;

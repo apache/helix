@@ -42,7 +42,7 @@ public class TestSensorContextTags
     filterMap.put("instanceName", "localhost_2181");
     filterMap.put("clusterName", "ESPRESSO_STORAGE");
     filterMap.put("resourceGroup", "*");
-    TagFilter filter = new TagFilter(filterMap);
+    SensorTagFilter filter = new SensorTagFilter(filterMap);
     Assert.assertTrue(filter.matchs(tags2));
     
     SensorContextTags filteredTags = filter.getFilteredTags(tags2);
@@ -50,7 +50,7 @@ public class TestSensorContextTags
     Assert.assertTrue(tags2.containsTags(filteredTags.getTags()));
     
     filterMap.put("key", "value");
-    filter = new TagFilter(filterMap);
+    filter = new SensorTagFilter(filterMap);
     Assert.assertFalse(filter.matchs(tags2));
   }
 }

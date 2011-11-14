@@ -15,7 +15,7 @@ public class SensorRegistry<T extends DataCollector>
    static Logger _logger = Logger.getLogger(SensorRegistry.class);
    final ConcurrentHashMap<SensorContextTags, Sensor<T>> _sensors 
      = new ConcurrentHashMap<SensorContextTags, Sensor<T>>();
-   final Set<TagFilter> _filters = new ConcurrentSkipListSet<TagFilter>();
+   final Set<SensorTagFilter> _filters = new ConcurrentSkipListSet<SensorTagFilter>();
    final Set<SensorRegistryListener> _listeners = new ConcurrentSkipListSet<SensorRegistryListener>();
    
    public SensorRegistry(Class<T> clazz)
@@ -28,10 +28,10 @@ public class SensorRegistry<T extends DataCollector>
      if(!_listeners.contains(listener))
      {
        _listeners.add(listener);
-       List<TagFilter> filterList = listener.getContextTagFilterList();
+       List<SensorTagFilter> filterList = listener.getContextTagFilterList();
        for(SensorContextTags tag : _sensors.keySet())
        {
-         for(TagFilter filter : filterList)
+         for(SensorTagFilter filter : filterList)
          {
            if(filter.matchs(tag))
            {
@@ -51,7 +51,7 @@ public class SensorRegistry<T extends DataCollector>
      }
    }
    
-   public void addFilter(TagFilter filter)
+   public void addFilter(SensorTagFilter filter)
    {
      if(!_filters.contains(filter))
      {
@@ -60,7 +60,7 @@ public class SensorRegistry<T extends DataCollector>
    }
    
    
-   public void removeFilter(TagFilter filter)
+   public void removeFilter(SensorTagFilter filter)
    {
      _filters.remove(filter);
    }
@@ -68,7 +68,7 @@ public class SensorRegistry<T extends DataCollector>
    public Map<SensorContextTags, Sensor<T>> getMatchedSensors(SensorContextTags tags)
    {
      Map<SensorContextTags, Sensor<T>> result = new HashMap<SensorContextTags, Sensor<T>>();
-     for(TagFilter filter : _filters)
+     for(SensorTagFilter filter : _filters)
      {
        SensorContextTags filteredTags = filter.getFilteredTags(tags);
        if(!_sensors.containsKey(filteredTags))

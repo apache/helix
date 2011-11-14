@@ -9,7 +9,7 @@ import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.NotificationContext;
 import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
-import com.linkedin.clustermanager.monitoring.annotations.HelixSensorAttribute;
+import com.linkedin.clustermanager.monitoring.annotations.HelixMetric;
 
 public class ResourceGroupMonitor implements ResourceGroupMonitorMBean
 {
@@ -26,19 +26,19 @@ public class ResourceGroupMonitor implements ResourceGroupMonitorMBean
     _resourceGroup = resourceGroup;
   }
   
-  @HelixSensorAttribute(description = "Get the total number of resource keys")
+  @HelixMetric(description = "Get the total number of resource keys")
   public long getResourceKeyGauge()
   {
     return _numOfResourceKeys;
   }
 
-  @HelixSensorAttribute(description = "Get the total number of error resource keys")
+  @HelixMetric(description = "Get the total number of error resource keys")
   public long getErrorResouceKeyGauge()
   {
     return _numOfErrorResourceKeys;
   }
 
-  @HelixSensorAttribute(description = "Get the diff number between ideal state and external view")
+  @HelixMetric(description = "Get the diff number between ideal state and external view")
   public long getDifferenceWithIdealStateGauge()
   {
     return _externalViewIdealStateDiff;
@@ -121,7 +121,7 @@ public class ResourceGroupMonitor implements ResourceGroupMonitorMBean
     _numOfResourceKeysInExternalView = externalView.getMapFields().size();
   }
   
-  @HelixSensorAttribute(description = "Get the total number of resource keys in external view")
+  @HelixMetric(description = "Get the total number of resource keys in external view")
   public long getExternalViewResourceKeyGauge()
   {
     return _numOfResourceKeysInExternalView;

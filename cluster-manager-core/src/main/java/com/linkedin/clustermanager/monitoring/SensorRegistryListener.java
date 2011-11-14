@@ -6,5 +6,5 @@ public interface SensorRegistryListener
 {
   void onSensorAdded(Sensor<?> sensor);
   
-  List<TagFilter> getContextTagFilterList();
+  List<SensorTagFilter> getContextTagFilterList();
 }

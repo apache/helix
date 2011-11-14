@@ -4,7 +4,7 @@ import java.lang.annotation.*;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
-public @interface HelixSensorAttribute
+public @interface HelixMetric
 {
   public String description();
 

@@ -33,7 +33,7 @@ public class SensorContextTags
   
   public boolean matches(String format)
   {
-    return new TagFilter(SensorContextTags.fromString(format).getTags()).matchs(this);
+    return new SensorTagFilter(SensorContextTags.fromString(format).getTags()).matchs(this);
   }
   
   public boolean matches(Set<String> anotherTagsMeta)

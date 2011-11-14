@@ -37,6 +37,7 @@ import com.linkedin.clustermanager.IdealStateChangeListener;
 import com.linkedin.clustermanager.InstanceType;
 import com.linkedin.clustermanager.LiveInstanceChangeListener;
 import com.linkedin.clustermanager.MessageListener;
+import com.linkedin.clustermanager.PropertyPathConfig;
 import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.healthcheck.ParticipantHealthReportCollector;
@@ -118,16 +119,23 @@ public class ZKClusterManager implements ClusterManager
   {
     if (_instanceType == InstanceType.PARTICIPANT || _instanceType == InstanceType.CONTROLLER_PARTICIPANT)
     {
-      boolean isValid = _zkClient.exists(CMUtil.getConfigPath(_clusterName,
-          _instanceName))
-          && _zkClient.exists(CMUtil
-              .getMessagePath(_clusterName, _instanceName))
-          && _zkClient.exists(CMUtil.getCurrentStateBasePath(_clusterName,
-              _instanceName))
-          && _zkClient.exists(CMUtil.getStatusUpdatesPath(_clusterName,
-              _instanceName))
-          && _zkClient
-              .exists(CMUtil.getErrorsPath(_clusterName, _instanceName));
+//      boolean isValid = _zkClient.exists(CMUtil.getConfigPath(_clusterName,
+//          _instanceName))
+//          && _zkClient.exists(CMUtil
+//              .getMessagePath(_clusterName, _instanceName))
+//          && _zkClient.exists(CMUtil.getCurrentStateBasePath(_clusterName,
+//              _instanceName))
+//          && _zkClient.exists(CMUtil.getStatusUpdatesPath(_clusterName,
+//              _instanceName))
+//          && _zkClient
+//              .exists(CMUtil.getErrorsPath(_clusterName, _instanceName));
+
+      boolean isValid = _zkClient.exists(PropertyPathConfig.getPath(PropertyType.CONFIGS, _clusterName, _instanceName))
+          && _zkClient.exists(PropertyPathConfig.getPath(PropertyType.MESSAGES, _clusterName, _instanceName))
+          && _zkClient.exists(PropertyPathConfig.getPath(PropertyType.CURRENTSTATES, _clusterName, _instanceName))
+          && _zkClient.exists(PropertyPathConfig.getPath(PropertyType.STATUSUPDATES, _clusterName, _instanceName))
+          && _zkClient.exists(PropertyPathConfig.getPath(PropertyType.ERRORS, _clusterName, _instanceName));
+
       return isValid;
     }
     return true;
@@ -138,7 +146,8 @@ public class ZKClusterManager implements ClusterManager
       final IdealStateChangeListener listener) throws Exception
   {
     checkConnected();
-    final String path = CMUtil.getIdealStatePath(_clusterName);
+//    final String path = CMUtil.getIdealStatePath(_clusterName);
+    final String path = PropertyPathConfig.getPath(PropertyType.IDEALSTATES, _clusterName);
     CallbackHandler callbackHandler = createCallBackHandler(path, listener,
         new EventType[]
         { EventType.NodeDataChanged, EventType.NodeDeleted,

@@ -3,7 +3,6 @@ package com.linkedin.clustermanager.controller.stages;
 import java.util.List;
 import java.util.Map;
 
-import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.model.CurrentState;
 import com.linkedin.clustermanager.model.LiveInstance;
 import com.linkedin.clustermanager.model.Message;
@@ -17,33 +16,30 @@ import com.linkedin.clustermanager.pipeline.StageException;
  * For each LiveInstances select currentState and message whose sessionId
  * matches sessionId from LiveInstance Get ResourceKey,State for all the
  * resources computed in previous State [ResourceComputationStage]
- * 
+ *
  * @author kgopalak
- * 
+ *
  */
 public class CurrentStateComputationStage extends AbstractBaseStage
 {
   @Override
   public void process(ClusterEvent event) throws Exception
   {
-    ClusterManager manager = event.getAttribute("clustermanager");
-    if (manager == null)
-    {
-      throw new StageException("clustermanager attribute value is null");
-    }
     ClusterDataCache cache = event.getAttribute("ClusterDataCache");
+    if (cache == null)
+    {
+      throw new StageException("Missing attributes in event:" + event
+          + ". Requires DataCache");
+    }
 
-    // List<ZNRecord> liveInstances;
     Map<String, LiveInstance> liveInstances = cache.getLiveInstances();
     CurrentStateOutput currentStateOutput = new CurrentStateOutput();
     Map<String, ResourceGroup> resourceGroupMap = event
         .getAttribute(AttributeName.RESOURCE_GROUPS.toString());
 
-    // for (ZNRecord record : liveInstances)
     for (LiveInstance instance : liveInstances.values())
     {
-      // LiveInstance instance = new LiveInstance(record);
-      String instanceName = instance.getInstanceName(); // record.getId();
+      String instanceName = instance.getInstanceName();
       List<Message> instanceMessages;
       instanceMessages = cache.getMessages(instanceName);
       for (Message message  : instanceMessages)
@@ -75,12 +71,10 @@ public class CurrentStateComputationStage extends AbstractBaseStage
         }
       }
     }
-    // for (ZNRecord record : liveInstances)
     for (LiveInstance instance : liveInstances.values())
     {
-      // LiveInstance instance = new LiveInstance(record);
-      String instanceName = instance.getInstanceName();	// record.getId();
-      
+      String instanceName = instance.getInstanceName();
+
       String clientSessionId = instance.getSessionId();
       Map<String, CurrentState> currentStateMap = cache.getCurrentState(instanceName, clientSessionId);
       for (CurrentState currentState : currentStateMap.values())

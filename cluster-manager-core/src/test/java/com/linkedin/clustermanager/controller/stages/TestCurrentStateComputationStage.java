@@ -1,10 +1,8 @@
 package com.linkedin.clustermanager.controller.stages;
 
-import org.testng.annotations.Test;
-import org.testng.AssertJUnit;
 import java.util.Map;
 
-import org.testng.Assert;
+import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.PropertyType;
@@ -14,8 +12,6 @@ import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.ResourceGroup;
 import com.linkedin.clustermanager.model.ResourceKey;
 
-@Test(groups =
-{ "unitTest" })
 public class TestCurrentStateComputationStage extends BaseStageTest
 {
 

@@ -25,7 +25,7 @@ import com.linkedin.clustermanager.tools.ClusterSetup;
 
 public class ZkStandAloneCMTestBase extends ZkIntegrationTestBase
 {
-  private static Logger logger = Logger.getLogger(ZkStandAloneCMTestBase.class);
+  private static Logger LOG = Logger.getLogger(ZkStandAloneCMTestBase.class);
 
   protected static final int NODE_NR = 5;
   protected static final int START_PORT = 12918;
@@ -72,7 +72,7 @@ public class ZkStandAloneCMTestBase extends ZkIntegrationTestBase
       String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
       if (_startCMResultMap.get(instanceName) != null)
       {
-        logger.error("fail to start particpant:" + instanceName
+        LOG.error("fail to start particpant:" + instanceName
                      + "(participant with same name already exists)");
       }
       else

@@ -40,7 +40,7 @@ public class PropertyPathConfig
     addEntry(PropertyType.STATUSUPDATES,3,"/{clusterName}/INSTANCES/{instanceName}/STATUSUPDATES/{sessionId}");
     addEntry(PropertyType.STATUSUPDATES,4,"/{clusterName}/INSTANCES/{instanceName}/STATUSUPDATES/{sessionId}/{subPath}");
     addEntry(PropertyType.STATUSUPDATES,5,"/{clusterName}/INSTANCES/{instanceName}/STATUSUPDATES/{sessionId}/{subPath}/{recordName}");
-    addEntry(PropertyType.ERRORS,2,"/{clusterName}/INSTANCES/{instanceName}/ERRORS/");
+    addEntry(PropertyType.ERRORS,2,"/{clusterName}/INSTANCES/{instanceName}/ERRORS");
     addEntry(PropertyType.ERRORS,3,"/{clusterName}/INSTANCES/{instanceName}/ERRORS/{sessionId}");
     addEntry(PropertyType.ERRORS,4,"/{clusterName}/INSTANCES/{instanceName}/ERRORS/{sessionId}/{subPath}");
     addEntry(PropertyType.ERRORS,5,"/{clusterName}/INSTANCES/{instanceName}/ERRORS/{sessionId}/{subPath}/{recordName}");

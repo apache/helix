@@ -58,16 +58,16 @@ public class GenericClusterController implements
     ExternalViewChangeListener,
     ControllerChangeListener
 {
-  private static final Logger         logger =
-                                                 Logger.getLogger(GenericClusterController.class.getName());
-  volatile boolean                    init   = false;
-  private final PipelineRegistry      _registry;
+  private static final Logger logger =
+      Logger.getLogger(GenericClusterController.class.getName());
+  volatile boolean init = false;
+  private final PipelineRegistry _registry;
 
   /**
    * Since instance current state is per-session-id, we need to track the session-ids of
    * the current states that the ClusterController is observing.
    */
-  private final Set<String>           _instanceCurrentStateChangeSubscriptionList;
+  private final Set<String> _instanceCurrentStateChangeSubscriptionList;
   private final ExternalViewGenerator _externalViewGenerator;
 
   /**
@@ -75,7 +75,7 @@ public class GenericClusterController implements
    * handleEvent() will be no-op. Other event handling logic keeps the same when the flag
    * is set.
    */
-  private boolean                     _paused;
+  private boolean _paused;
 
   /**
    * Default constructor that creates a default pipeline registry. This is sufficient in

@@ -14,8 +14,8 @@ import org.codehaus.jackson.annotate.JsonProperty;
 import com.linkedin.clustermanager.ZNRecordDelta.MERGEOPERATION;
 
 /**
- * Generic Record Format to store data at a Node This can be used to store
- * simpleFields mapFields listFields
+ * Generic Record Format to store data at a Node This can be used to store simpleFields
+ * mapFields listFields
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ZNRecord
@@ -44,13 +44,12 @@ public class ZNRecord
   {
     _deltaList = deltaList;
   }
-  
-  
+
   public List<ZNRecordDelta> getDeltaList()
   {
     return _deltaList;
   }
-  
+
   public ZNRecord(ZNRecord record)
   {
     this(record.getId());
@@ -58,7 +57,7 @@ public class ZNRecord
     mapFields.putAll(record.getMapFields());
     listFields.putAll(record.getListFields());
   }
-  
+
   public ZNRecord(ZNRecord record, String id)
   {
     this(id);
@@ -140,6 +139,7 @@ public class ZNRecord
     return listFields.get(k);
   }
 
+  @Override
   public String toString()
   {
     StringBuffer sb = new StringBuffer();
@@ -159,21 +159,23 @@ public class ZNRecord
   }
 
   /**
-   * merge functionality is used to merge multiple znrecord into a single one.
-   * This will make use of the id of each ZNRecord and append it to every key
-   * thus making key unique. This is needed to optimize on the watches.
-   * 
+   * merge functionality is used to merge multiple znrecord into a single one. This will
+   * make use of the id of each ZNRecord and append it to every key thus making key
+   * unique. This is needed to optimize on the watches.
+   *
    * @param record
    */
- public void merge(ZNRecord record)
+  public void merge(ZNRecord record)
   {
-    if(record == null){
+    if (record == null)
+    {
       return;
     }
-    
-    if(record.getDeltaList().size() > 0)
+
+    if (record.getDeltaList().size() > 0)
     {
-      _logger.info("Merging with delta list, recordId = " + id+ " other:"+record.getId());
+      _logger.info("Merging with delta list, recordId = " + id + " other:"
+          + record.getId());
       merge(record.getDeltaList());
       return;
     }
@@ -184,7 +186,8 @@ public class ZNRecord
       if (map != null)
       {
         map.putAll(record.mapFields.get(key));
-      } else
+      }
+      else
       {
         mapFields.put(key, record.mapFields.get(key));
       }
@@ -195,16 +198,17 @@ public class ZNRecord
       if (list != null)
       {
         list.addAll(record.listFields.get(key));
-      } else
+      }
+      else
       {
         listFields.put(key, record.listFields.get(key));
       }
     }
   }
- 
+
   void merge(ZNRecordDelta delta)
   {
-    if(delta.getMergeOperation() == MERGEOPERATION.ADD)
+    if (delta.getMergeOperation() == MERGEOPERATION.ADD)
     {
       merge(delta.getRecord());
     }
@@ -213,43 +217,51 @@ public class ZNRecord
       substract(delta.getRecord());
     }
   }
-  
+
   void merge(List<ZNRecordDelta> deltaList)
   {
-    for(ZNRecordDelta delta : deltaList)
+    for (ZNRecordDelta delta : deltaList)
     {
       merge(delta);
     }
   }
-  
+
   @Override
   public boolean equals(Object obj)
   {
-    if(!(obj instanceof ZNRecord)){
+    if (!(obj instanceof ZNRecord))
+    {
       return false;
     }
     ZNRecord that = (ZNRecord) obj;
-    if(this.getSimpleFields().size()!= that.getSimpleFields().size()){
+    if (this.getSimpleFields().size() != that.getSimpleFields().size())
+    {
       return false;
     }
-    if(this.getMapFields().size()!= that.getMapFields().size()){
+    if (this.getMapFields().size() != that.getMapFields().size())
+    {
       return false;
     }
-    if(this.getListFields().size()!= that.getListFields().size()){
+    if (this.getListFields().size() != that.getListFields().size())
+    {
       return false;
     }
-    if(!this.getSimpleFields().equals(that.getSimpleFields())){
+    if (!this.getSimpleFields().equals(that.getSimpleFields()))
+    {
       return false;
     }
-    if(!this.getMapFields().equals(that.getMapFields())){
+    if (!this.getMapFields().equals(that.getMapFields()))
+    {
       return false;
     }
-    if(!this.getListFields().equals(that.getListFields())){
+    if (!this.getListFields().equals(that.getListFields()))
+    {
       return false;
     }
-    
+
     return true;
   }
+
   public void substract(ZNRecord value)
   {
     for (String key : value.getSimpleFields().keySet())

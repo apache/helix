@@ -21,9 +21,9 @@ import com.linkedin.clustermanager.util.ZNRecordUtil;
 /**
  * Reads the data from the cluster using data accessor. This output ClusterData
  * which provides useful methods to search/lookup properties
- * 
+ *
  * @author kgopalak
- * 
+ *
  */
 public class ClusterDataCache
 {
@@ -150,4 +150,8 @@ public class ClusterDataCache
     return _idealStateMap.get(resourceGroupName);
   }
 
+  public Map<String, InstanceConfig> getInstanceConfigMap()
+  {
+    return _instanceConfigMap;
+  }
 }

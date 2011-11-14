@@ -1,11 +1,12 @@
 package com.linkedin.clustermanager.model;
 
-import java.util.Collections;
+import static com.linkedin.clustermanager.CMConstants.ZNAttribute.CURRENT_STATE;
+import static com.linkedin.clustermanager.CMConstants.ZNAttribute.SESSION_ID;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
-import static com.linkedin.clustermanager.CMConstants.ZNAttribute.*;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.model.Message.Attributes;
 

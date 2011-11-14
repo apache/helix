@@ -13,15 +13,14 @@ import com.linkedin.clustermanager.ZNRecord;
 
 public class IdealState
 {
+  private static final Logger logger = Logger.getLogger(IdealState.class.getName());
+  private final ZNRecord _record;
+  private final String _resourceGroup;
+
   public ZNRecord getRecord()
   {
     return _record;
   }
-
-  private static final Logger logger = Logger.getLogger(IdealState.class
-      .getName());
-  private final ZNRecord _record;
-  private final String _resourceGroup;
 
   public String getResourceGroup()
   {
@@ -38,7 +37,6 @@ public class IdealState
   {
     _resourceGroup = record.getId();
     this._record = record;
-
   }
 
   public void setIdealStateMode(String mode)
@@ -55,11 +53,11 @@ public class IdealState
 
     String mode = _record.getSimpleField("ideal_state_mode");
     if (mode == null
-        || !mode.equalsIgnoreCase(IdealStateConfigProperty.CUSTOMIZED
-            .toString()))
+        || !mode.equalsIgnoreCase(IdealStateConfigProperty.CUSTOMIZED.toString()))
     {
       return IdealStateConfigProperty.AUTO;
-    } else
+    }
+    else
     {
       return IdealStateConfigProperty.CUSTOMIZED;
     }
@@ -76,18 +74,19 @@ public class IdealState
     _record.getMapField(key).put(instanceName, state);
   }
 
-
   public Set<String> getResourceKeySet()
   {
-  	if (getIdealStateMode() == IdealStateConfigProperty.AUTO)
-  	{
-  		return _record.getListFields().keySet();
-  	} else if (getIdealStateMode() == IdealStateConfigProperty.CUSTOMIZED)
-  	{
-  		return _record.getMapFields().keySet();
-  	} else
+    if (getIdealStateMode() == IdealStateConfigProperty.AUTO)
     {
-  		logger.warn("Invalid mode in idealstate:" + getResourceGroup());
+      return _record.getListFields().keySet();
+    }
+    else if (getIdealStateMode() == IdealStateConfigProperty.CUSTOMIZED)
+    {
+      return _record.getMapFields().keySet();
+    }
+    else
+    {
+      logger.warn("Invalid mode in idealstate:" + getResourceGroup());
       return Collections.emptySet();
     }
   }
@@ -98,7 +97,7 @@ public class IdealState
   }
 
   private List<String> getInstancePreferenceList(String resourceKeyName,
-      StateModelDefinition stateModelDef)
+                                                 StateModelDefinition stateModelDef)
   {
     List<String> instanceStateList = _record.getListField(resourceKeyName);
 
@@ -109,7 +108,6 @@ public class IdealState
     logger.warn("Resource unit key:" + resourceKeyName
         + " does not have a pre-computed preference list.");
     return null;
-
   }
 
   public String getStateModelDefRef()
@@ -123,7 +121,7 @@ public class IdealState
   }
 
   public List<String> getPreferenceList(String resourceKeyName,
-      StateModelDefinition stateModelDef)
+                                        StateModelDefinition stateModelDef)
   {
     if (_record == null)
     {
@@ -142,7 +140,8 @@ public class IdealState
     try
     {
       return Integer.parseInt(_record.getSimpleField("partitions"));
-    } catch (Exception e)
+    }
+    catch (Exception e)
     {
       logger.debug("Can't parse number of partitions: " + e);
       return -1;

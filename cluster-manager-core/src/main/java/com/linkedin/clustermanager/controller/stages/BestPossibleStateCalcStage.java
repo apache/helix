@@ -8,8 +8,8 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.ClusterDataAccessor.IdealStateConfigProperty;
-import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.model.IdealState;
+import com.linkedin.clustermanager.model.InstanceConfig;
 import com.linkedin.clustermanager.model.LiveInstance;
 import com.linkedin.clustermanager.model.ResourceGroup;
 import com.linkedin.clustermanager.model.ResourceKey;
@@ -35,12 +35,14 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
         event.getAttribute(AttributeName.CURRENT_STATE.toString());
     Map<String, ResourceGroup> resourceGroupMap =
         event.getAttribute(AttributeName.RESOURCE_GROUPS.toString());
-    if (currentStateOutput == null || resourceGroupMap == null)
+    ClusterDataCache cache = event.getAttribute("ClusterDataCache");
+
+    if (currentStateOutput == null || resourceGroupMap == null || cache == null)
     {
       throw new StageException("Missing attributes in event:" + event
-          + ". Requires CURRENT_STATE|RESOURCE_GROUPS");
+          + ". Requires CURRENT_STATE|RESOURCE_GROUPS|DataCache");
     }
-    ClusterDataCache cache = event.getAttribute("ClusterDataCache");
+
 
     BestPossibleStateOutput bestPossibleStateOutput =
         compute(cache, resourceGroupMap, currentStateOutput);
@@ -61,7 +63,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
 
     for (String resourceGroupName : resourceGroupMap.keySet())
     {
-      logger.info("Processing resourceGroup:" + resourceGroupName);
+      logger.debug("Processing resourceGroup:" + resourceGroupName);
 
       ResourceGroup resourceGroup = resourceGroupMap.get(resourceGroupName);
       // Ideal state may be gone. In that case we need to get the state model name
@@ -72,10 +74,10 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
 
       if (idealState == null)
       {
-        // if ideal state is deleted, use an empty ZNRecord
-        logger.info(" resourceGroup:" + resourceGroupName + " does not exist anymore");
+        // if ideal state is deleted, use an empty one
+        logger.info("resourceGroup:" + resourceGroupName + " does not exist anymore");
         stateModelDefName = currentStateOutput.getResourceGroupStateModelDef(resourceGroupName);
-        idealState = new IdealState(new ZNRecord(resourceGroupName));
+        idealState = new IdealState(resourceGroupName);
       } else
       {
     	  stateModelDefName = idealState.getStateModelDefRef();
@@ -92,6 +94,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
         if (idealState.getIdealStateMode() == IdealStateConfigProperty.CUSTOMIZED)
         {
           // TODO add computerBestStateForResourceInCustomizedMode()
+          //  e.g. exclude non-alive instance
           bestStateForResource = idealState.getInstanceStateMap(resource.getResourceKeyName());
         }
         else
@@ -116,22 +119,29 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
                                                           Map<String, String> currentStateMap)
   {
     Map<String, String> instanceStateMap = new HashMap<String, String>();
+    Map<String, InstanceConfig> configMap = cache.getInstanceConfigMap();
 
     // if the ideal state is deleted, instancePreferenceList will be empty and
     // we should drop all resources.
-
     if (currentStateMap != null)
     {
       for (String instance : currentStateMap.keySet())
       {
+        boolean isDisabled = configMap != null && configMap.containsKey(instance)
+            && configMap.get(instance).getEnabled() == false;
         if (instancePreferenceList == null || !instancePreferenceList.contains(instance))
         {
           instanceStateMap.put(instance, "DROPPED");
         }
+        else if (isDisabled)
+        {
+          instanceStateMap.put(instance, stateModelDef.getInitialState());
+        }
+
       }
     }
 
-    // use customized ideal states
+    // ideal state is deleted or use customized ideal states
     if (instancePreferenceList == null)
     {
       return instanceStateMap;
@@ -141,13 +151,15 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
     boolean assigned[] = new boolean[instancePreferenceList.size()];
 
     Map<String, LiveInstance> liveInstancesMap = cache.getLiveInstances();
+
     for (String state : statesPriorityList)
     {
       String num = stateModelDef.getNumInstancesPerState(state);
       int stateCount = -1;
       if ("N".equals(num))
       {
-        stateCount = liveInstancesMap.size();
+        // stateCount = liveInstancesMap.size();
+        stateCount = getNumOfInstanceAliveAndEnabled(cache);
       }
       else if ("R".equals(num))
       {
@@ -173,7 +185,12 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
 
           boolean notInErrorState =
               currentStateMap == null || !"ERROR".equals(currentStateMap.get(instanceName));
-          if (liveInstancesMap.containsKey(instanceName) && !assigned[i] && notInErrorState)
+
+          // instance is disabled only if it's ENABLED set to false
+          boolean isDisabled = configMap != null && configMap.containsKey(instanceName)
+                              && configMap.get(instanceName).getEnabled() == false;
+          if (liveInstancesMap.containsKey(instanceName) && !assigned[i] && notInErrorState
+              && !isDisabled)
           {
             instanceStateMap.put(instanceName, state);
             count = count + 1;
@@ -210,4 +227,21 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
     return listField;
   }
 
+  private int getNumOfInstanceAliveAndEnabled(ClusterDataCache cache)
+  {
+    int cnt = 0;
+    Map<String, LiveInstance> liveInstancesMap = cache.getLiveInstances();
+    Map<String, InstanceConfig> configMap = cache.getInstanceConfigMap();
+    for(String instanceName : liveInstancesMap.keySet())
+    {
+      boolean isDisabled = configMap != null && configMap.containsKey(instanceName)
+          && configMap.get(instanceName).getEnabled() == false;
+
+      if (!isDisabled)
+      {
+        cnt++;
+      }
+    }
+    return cnt;
+  }
 }

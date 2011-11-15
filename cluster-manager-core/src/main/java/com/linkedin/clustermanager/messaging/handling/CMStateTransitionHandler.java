@@ -44,18 +44,18 @@ public class CMStateTransitionHandler implements MessageHandler
   }
 
   // TODO replace with util from espresso or linkedin
-  private boolean isNullorEmpty(String data)
+  private boolean isNullOrEmpty(String data)
   {
     return data == null || data.length() == 0 || data.trim().length() == 0;
   }
 
   private boolean validateMessage(Message message)
   {
-    boolean isValid = isNullorEmpty(message.getFromState())
-        || isNullorEmpty(message.getToState())
-        || isNullorEmpty(message.getToState())
-        || isNullorEmpty(message.getStateUnitKey())
-        || isNullorEmpty(message.getToState());
+    boolean isValid = isNullOrEmpty(message.getFromState())
+        || isNullOrEmpty(message.getToState())
+        || isNullOrEmpty(message.getToState())
+        || isNullOrEmpty(message.getStateUnitKey())
+        || isNullOrEmpty(message.getToState());
     return !isValid;
   }
 
@@ -222,9 +222,10 @@ public class CMStateTransitionHandler implements MessageHandler
       currentStateDelta.setMapField(stateUnitKey, map);
 
       if (taskResult.isSucess() && toState.equals("DROPPED"))
-      {// for "OnOfflineToDROPPED" message, we need to remove the resource key
-       // record from
-       // the current state of the instance because the resource key is dropped.
+      {
+        // for "OnOfflineToDROPPED" message, we need to remove the resource key
+        // record from
+        // the current state of the instance because the resource key is dropped.
         ZNRecordDelta delta = new ZNRecordDelta(currentStateDelta, MERGEOPERATION.SUBSTRACT);
         List<ZNRecordDelta> deltaList = new ArrayList<ZNRecordDelta>();
         deltaList.add(delta);

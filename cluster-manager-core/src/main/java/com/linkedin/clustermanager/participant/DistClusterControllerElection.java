@@ -160,6 +160,10 @@ public class DistClusterControllerElection implements ControllerChangeListener
     }
     while ((currentleader == null));
 
+    // TODO
+    //  read leader property
+    //  compare with this.manager.name
+
     return false;
   }
 

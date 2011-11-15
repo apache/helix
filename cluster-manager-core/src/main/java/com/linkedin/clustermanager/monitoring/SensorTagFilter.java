@@ -42,4 +42,14 @@ public class SensorTagFilter extends SensorContextTags
     }
     return new SensorContextTags(resultTags);
   }
+  
+  public static SensorTagFilter fromString(String str)
+  {
+    SensorContextTags tags = SensorContextTags.fromString(str);
+    if(tags!=null)
+    {
+      return new SensorTagFilter(tags.getTags());
+    }
+    return null;
+  }
 }

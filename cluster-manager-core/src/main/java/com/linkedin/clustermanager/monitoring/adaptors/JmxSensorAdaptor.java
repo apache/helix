@@ -81,6 +81,7 @@ public class JmxSensorAdaptor
   }
   public static ModelMBeanOperationInfo[] buildModelMBeanOperationInfo(Sensor<?> sensor)  
   { 
+    // TODO: expose operations like getPercentileLatency()
     Set<String> metricNames = sensor.getMetricNames();
     ModelMBeanOperationInfo[] result = new ModelMBeanOperationInfo[metricNames.size()]; 
     int n = 0;

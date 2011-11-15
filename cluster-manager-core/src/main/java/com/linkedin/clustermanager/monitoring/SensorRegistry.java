@@ -71,16 +71,21 @@ public class SensorRegistry<T extends DataCollector>
      for(SensorTagFilter filter : _filters)
      {
        SensorContextTags filteredTags = filter.getFilteredTags(tags);
-       if(!_sensors.containsKey(filteredTags))
+       if(filteredTags != null )
        {
-         // Create a sensor if not exist
          try
          {
-           _sensors.put(filteredTags, new Sensor<T>(_clazz.newInstance(), filteredTags));
-           for(SensorRegistryListener listener : _listeners)
+           if(!_sensors.containsKey(filteredTags))
            {
-             listener.onSensorAdded(_sensors.get(filteredTags));
+             // Create a sensor if not exist
+             _logger.info("Adding sensor " + _clazz.getName()+ " with tag "+ filteredTags);
+             _sensors.put(filteredTags, new Sensor<T>(_clazz.newInstance(), filteredTags));
+             for(SensorRegistryListener listener : _listeners)
+             {
+               listener.onSensorAdded(_sensors.get(filteredTags));
+             }
            }
+           result.put(filteredTags, _sensors.get(filteredTags));
          } 
          catch (InstantiationException e)
          {
@@ -93,7 +98,6 @@ public class SensorRegistry<T extends DataCollector>
            _logger.warn("error", e);
          }
        }
-       result.put(filteredTags, _sensors.get(filteredTags));
      }
      return result;
    }

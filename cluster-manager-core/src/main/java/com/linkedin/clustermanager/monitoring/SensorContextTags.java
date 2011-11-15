@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class SensorContextTags
+public class SensorContextTags implements Comparable<SensorContextTags>
 {
   final Map<String, String> _tagPairs;
   final Set<String> _tagsMeta;
@@ -87,6 +87,19 @@ public class SensorContextTags
     return _strRepresentation.hashCode();
   }
   
+  @Override
+  public boolean equals(Object other)
+  {
+    if(! (other instanceof SensorContextTags))
+    {
+      return false;
+    }
+    
+    SensorContextTags otherTags = (SensorContextTags) other;  
+    
+    return toString().equals(otherTags.toString());
+  }
+  
   public static SensorContextTags fromString(String str)
   {
     HashMap<String, String> result = new HashMap<String, String>();
@@ -99,5 +112,11 @@ public class SensorContextTags
       result.put(key, value);
     }
     return new SensorContextTags(result);
+  }
+
+  @Override
+  public int compareTo(SensorContextTags o)
+  {
+    return toString().compareTo(o.toString());
   }
 }

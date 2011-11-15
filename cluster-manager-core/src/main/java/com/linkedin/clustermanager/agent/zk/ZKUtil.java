@@ -18,7 +18,6 @@ public final class ZKUtil
 
   private ZKUtil()
   {
-
   }
 
   public static boolean isClusterSetup(String clusterName, ZkClient zkClient)

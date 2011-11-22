@@ -39,7 +39,7 @@ public class ZKDataAccessor implements ClusterDataAccessor
     }
     if (_zkClient.exists(path))
     {
-      if (type.isCreateIfAbsent())
+      if (type.isCreateOnlyIfAbsent())
       {
         return false;
       }

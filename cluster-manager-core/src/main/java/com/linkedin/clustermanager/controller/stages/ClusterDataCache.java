@@ -11,6 +11,7 @@ import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.model.CurrentState;
+import com.linkedin.clustermanager.model.HealthStat;
 import com.linkedin.clustermanager.model.IdealState;
 import com.linkedin.clustermanager.model.InstanceConfig;
 import com.linkedin.clustermanager.model.LiveInstance;
@@ -33,6 +34,8 @@ public class ClusterDataCache
   private Map<String, InstanceConfig> _instanceConfigMap;
   private Map<String, Map<String, Map<String, CurrentState>>> _currentStateMap;
   private Map<String, List<Message>> _messageMap;
+  private Map<String, List<HealthStat>> _healthStatMap;
+  private HealthStat _globalStats;
 
   private static final Logger logger = Logger.getLogger(ClusterDataCache.class
       .getName());
@@ -107,6 +110,25 @@ public class ClusterDataCache
 
     }
 
+    _healthStatMap = new HashMap<String, List<HealthStat>>();
+    for (String instanceName : _liveInstanceMap.keySet())
+    {
+    	List<ZNRecord> childValues = dataAccessor.getChildValues(
+    			PropertyType.HEALTHREPORT, instanceName);
+    	List<HealthStat> stats = ZNRecordUtil.convertListToTypedList(
+    			childValues, HealthStat.class);
+    	_healthStatMap.put(instanceName, stats);
+    }
+
+    try {
+    	ZNRecord global = dataAccessor.getProperty(PropertyType.GLOBALSTATS);
+    	if (global != null) {
+    		_globalStats = new HealthStat(global);
+    	}
+    } catch (Exception e) {
+    	logger.debug("No global stats found: "+e);
+    }
+
     return true;
   }
 
@@ -139,6 +161,24 @@ public class ClusterDataCache
     }
   }
 
+  public HealthStat getGlobalStats()
+  {
+	  return _globalStats;
+  }
+  
+  public List<HealthStat> getHealthStats(String instanceName)
+  {
+	  List<HealthStat> list = _healthStatMap.get(instanceName);
+	  if (list != null)
+	    {
+	      return list;
+	    } else
+	    {
+	      return Collections.emptyList();
+	    }
+	  
+  }
+  
   public StateModelDefinition getStateModelDef(String stateModelDefRef)
   {
 

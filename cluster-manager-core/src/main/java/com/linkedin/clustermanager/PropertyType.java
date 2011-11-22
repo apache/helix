@@ -24,6 +24,7 @@ public enum PropertyType
   LEADER(Type.CONTROLLER, false, false, true, true), 
   HISTORY(Type.CONTROLLER, true, true, true),
   PAUSE(Type.CONTROLLER, false,false, true),
+  GLOBALSTATS(Type.CONTROLLER, true, false, false, false),
   MESSAGES_CONTROLLER(Type.CONTROLLER, true, false, true), 
   STATUSUPDATES_CONTROLLER(Type.CONTROLLER, true, true, true), 
   ERRORS_CONTROLLER(Type.CONTROLLER,true, true, true);
@@ -35,7 +36,7 @@ public enum PropertyType
 
   boolean updateOnlyOnExists;
 
-  boolean createIfAbsent;
+  boolean createOnlyIfAbsent;
 
   
   private PropertyType(Type type, boolean isPersistent, boolean mergeOnUpdate)
@@ -43,25 +44,25 @@ public enum PropertyType
     this(type, isPersistent, mergeOnUpdate, false);
   }
 
-  public boolean isCreateIfAbsent() {
-		return createIfAbsent;
+  public boolean isCreateOnlyIfAbsent() {
+		return createOnlyIfAbsent;
 	}
 
-	public void setCreateIfAbsent(boolean createIfAbsent) {
-		this.createIfAbsent = createIfAbsent;
+	public void setCreateOnlyIfAbsent(boolean createOnlyIfAbsent) {
+		this.createOnlyIfAbsent = createOnlyIfAbsent;
 	}
 	private PropertyType(Type type, boolean isPersistent,
       boolean mergeOnUpdate, boolean updateOnlyOnExists){
 	   this(type, isPersistent, mergeOnUpdate, false, false);
 	}
 	private PropertyType(Type type, boolean isPersistent,
-      boolean mergeOnUpdate, boolean updateOnlyOnExists,boolean createIfAbsent)
+      boolean mergeOnUpdate, boolean updateOnlyOnExists,boolean createOnlyIfAbsent)
   {
     this.type = type;
     this.isPersistent = isPersistent;
     this.mergeOnUpdate = mergeOnUpdate;
     this.updateOnlyOnExists = updateOnlyOnExists;
-		this.createIfAbsent = createIfAbsent;
+		this.createOnlyIfAbsent = createOnlyIfAbsent;
   }
 
   public Type getType()

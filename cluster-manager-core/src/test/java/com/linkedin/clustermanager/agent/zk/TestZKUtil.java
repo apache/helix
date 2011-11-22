@@ -149,50 +149,50 @@ public class TestZKUtil extends ZkUnitTestBase
     _zkClient.createPersistent(idealStatPath + "/is2", record2);
 
     Map<String, IdealState> records = new HashMap<String, IdealState>();
-    ZKUtil.<IdealState>getChildsIfDataChanged(_zkClient, idealStatPath, records, IdealState.class);
+    ZKUtil.<IdealState>refreshChildren(_zkClient, idealStatPath, records, IdealState.class);
 
     // do one more read, since it seems zk update stat even though no data change for the first two reads
-    ZKUtil.<IdealState>getChildsIfDataChanged(_zkClient, idealStatPath, records, IdealState.class);
+    ZKUtil.<IdealState>refreshChildren(_zkClient, idealStatPath, records, IdealState.class);
     LOG.debug("records:" + records);
     Assert.assertEquals(records.get("is1").getRecord().getId(), "is1");
     Assert.assertEquals(records.get("is2").getRecord().getId(), "is2");
 
     // no data change
-    boolean dataChanged = ZKUtil.<IdealState>getChildsIfDataChanged(_zkClient, idealStatPath, records, IdealState.class);
+    boolean dataChanged = ZKUtil.<IdealState>refreshChildren(_zkClient, idealStatPath, records, IdealState.class);
     LOG.debug("records:" + records);
     Assert.assertFalse(dataChanged, "Stat should not change since no data change");
 
     // change value of an existing znode
     record2.setSimpleField("key1", "value1");
     _zkClient.writeData(idealStatPath + "/is2", record2);
-    dataChanged = ZKUtil.<IdealState>getChildsIfDataChanged(_zkClient, idealStatPath, records, IdealState.class);
+    dataChanged = ZKUtil.<IdealState>refreshChildren(_zkClient, idealStatPath, records, IdealState.class);
     LOG.debug("records:" + records);
     Assert.assertEquals(records.get("is2").getRecord().getSimpleField("key1"), "value1");
     Assert.assertTrue(dataChanged, "Stat should change, since data changed");
 
-    dataChanged = ZKUtil.<IdealState>getChildsIfDataChanged(_zkClient, idealStatPath, records, IdealState.class);
+    dataChanged = ZKUtil.<IdealState>refreshChildren(_zkClient, idealStatPath, records, IdealState.class);
     LOG.debug("records:" + records);
     Assert.assertFalse(dataChanged, "Stat should not change, since no data change");
 
     // add a new child
     _zkClient.createPersistent(idealStatPath + "/is3", new ZNRecord("is3"));
-    dataChanged = ZKUtil.<IdealState>getChildsIfDataChanged(_zkClient, idealStatPath, records, IdealState.class);
+    dataChanged = ZKUtil.<IdealState>refreshChildren(_zkClient, idealStatPath, records, IdealState.class);
     LOG.debug("records:" + records);
     Assert.assertEquals(records.get("is3").getRecord().getId(), "is3");
     Assert.assertTrue(dataChanged, "Stat should change, since new node added");
 
-    dataChanged = ZKUtil.<IdealState>getChildsIfDataChanged(_zkClient, idealStatPath, records, IdealState.class);
+    dataChanged = ZKUtil.<IdealState>refreshChildren(_zkClient, idealStatPath, records, IdealState.class);
     LOG.debug("records:" + records);
     Assert.assertFalse(dataChanged, "Stat should not change, since no data change");
 
     // delete a child
     _zkClient.delete(idealStatPath + "/is2");
-    dataChanged = ZKUtil.<IdealState>getChildsIfDataChanged(_zkClient, idealStatPath, records, IdealState.class);
+    dataChanged = ZKUtil.<IdealState>refreshChildren(_zkClient, idealStatPath, records, IdealState.class);
     LOG.debug("records:" + records);
     Assert.assertNull(records.get("is2"), "Should be null, since is2 has been deleted");
     Assert.assertTrue(dataChanged, "Stat should change, since a node is deleted");
 
-    dataChanged = ZKUtil.<IdealState>getChildsIfDataChanged(_zkClient, idealStatPath, records, IdealState.class);
+    dataChanged = ZKUtil.<IdealState>refreshChildren(_zkClient, idealStatPath, records, IdealState.class);
     LOG.debug("records:" + records);
     Assert.assertFalse(dataChanged, "Stat should not change, since no data change");
   }

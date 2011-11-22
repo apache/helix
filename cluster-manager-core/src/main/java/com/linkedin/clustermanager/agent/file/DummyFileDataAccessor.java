@@ -1,18 +1,16 @@
 package com.linkedin.clustermanager.agent.file;
 
 import java.util.List;
-
-import org.apache.zookeeper.CreateMode;
+import java.util.Map;
 
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.ZNRecordAndStat;
 import com.linkedin.clustermanager.store.PropertyStore;
 
 public class DummyFileDataAccessor implements ClusterDataAccessor
 {
-
-
   @Override
   public boolean setProperty(PropertyType type, ZNRecord value, String... keys)
   {
@@ -61,6 +59,13 @@ public class DummyFileDataAccessor implements ClusterDataAccessor
   {
     // TODO Auto-generated method stub
     return null;
+  }
+
+  @Override
+  public <T extends ZNRecordAndStat> void refreshChildValues(Map<String, T> childValues,
+         Class<T> clazz, PropertyType type, String... keys)
+  {
+    // TODO Auto-generated method stub
   }
 
 }

@@ -2,18 +2,21 @@ package com.linkedin.clustermanager.model;
 
 import java.util.Map;
 
+import org.apache.zookeeper.data.Stat;
+
 import com.linkedin.clustermanager.ClusterManagerException;
 import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.ZNRecordAndStat;
 
 /**
  * Message class basically extends ZNRecord but provides additional fields
- * 
+ *
  * @author kgopalak
  */
 
-public class Message
+public class Message extends ZNRecordAndStat
 {
-  private final ZNRecord _record;
+//  private final ZNRecord _record;
 
   public enum MessageType
   {
@@ -26,20 +29,21 @@ public class Message
 
   public enum Attributes
   {
-    MSG_ID, SRC_SESSION_ID, TGT_SESSION_ID, SRC_NAME, TGT_NAME, 
-    MSG_STATE, STATE_UNIT_KEY, STATE_UNIT_GROUP, FROM_STATE, TO_STATE, 
-    STATE_MODEL_DEF, READ_TIMESTAMP, EXECUTE_START_TIMESTAMP, MSG_TYPE, 
+    MSG_ID, SRC_SESSION_ID, TGT_SESSION_ID, SRC_NAME, TGT_NAME,
+    MSG_STATE, STATE_UNIT_KEY, STATE_UNIT_GROUP, FROM_STATE, TO_STATE,
+    STATE_MODEL_DEF, READ_TIMESTAMP, EXECUTE_START_TIMESTAMP, MSG_TYPE,
     MSG_SUBTYPE, CORRELATION_ID, MESSAGE_RESULT, EXE_SESSION_ID;
   }
 
   public Message(MessageType type, String msgId)
   {
-    this(type.toString(),msgId);
+    this(type.toString(), msgId);
   }
-  
-  public Message(String type,String msgId)
+
+  public Message(String type, String msgId)
   {
-    _record = new ZNRecord(msgId);
+    super(new ZNRecord(msgId));
+//    _record = new ZNRecord(msgId);
     _record.setSimpleField(Attributes.MSG_TYPE.toString(), type);
     setMsgId(msgId);
     setMsgState("new");
@@ -47,16 +51,28 @@ public class Message
 
   public Message(ZNRecord record)
   {
-    _record = new ZNRecord(record);
+    super(new ZNRecord(record), null);
+    if(getMsgState() == null)
+    {
+      setMsgState("new");
+    }
+
+  }
+
+  public Message(ZNRecord record, Stat stat)
+  {
+    super(new ZNRecord(record), stat);
+//    _record = new ZNRecord(record);
     if(getMsgState() == null)
     {
       setMsgState("new");
     }
   }
-  
+
   public Message(ZNRecord record, String id)
   {
-    _record = new ZNRecord(record, id);
+    super(new ZNRecord(record, id));
+//    _record = new ZNRecord(record, id);
     setMsgId(id);
     if(getMsgState() == null)
     {
@@ -68,22 +84,22 @@ public class Message
   {
     return _record.getId();
   }
-  
+
   public void setMsgSubType(String subType)
   {
     _record.setSimpleField(Attributes.MSG_SUBTYPE.toString(), subType);
   }
-  
+
   public String getMsgSubType()
   {
     return getSimpleFieldAsString(Attributes.MSG_SUBTYPE.toString());
   }
-  
+
   void setMsgType(MessageType type)
   {
     _record.setSimpleField(Attributes.MSG_TYPE.toString(), type.toString());
   }
-  
+
   public String getMsgType()
   {
     return getSimpleFieldAsString(Attributes.MSG_TYPE.toString());
@@ -108,7 +124,7 @@ public class Message
   {
     _record.setSimpleField(Attributes.SRC_SESSION_ID.toString(), srcSessionId);
   }
-  
+
   public String getExecutionSessionId()
   {
     return getSimpleFieldAsString(Attributes.EXE_SESSION_ID.toString());
@@ -118,8 +134,8 @@ public class Message
   {
     _record.setSimpleField(Attributes.EXE_SESSION_ID.toString(), exeSessionId);
   }
-  
-  
+
+
   public String getMsgSrc()
   {
     return getSimpleFieldAsString(Attributes.SRC_NAME.toString());
@@ -283,10 +299,11 @@ public class Message
     }
   }
 
-  public ZNRecord getRecord()
-  {
-    return _record;
-  }
+//  @Override
+//  public ZNRecord getRecord()
+//  {
+//    return _record;
+//  }
 
   public void setCorrelationId(String correlationId)
   {
@@ -297,12 +314,12 @@ public class Message
   {
     return getSimpleFieldAsString(Attributes.CORRELATION_ID.toString());
   }
-  
+
   public Map<String, String> getResultMap()
   {
     return _record.getMapField(Attributes.MESSAGE_RESULT.toString());
   }
-  
+
   public void setResultMap(Map<String, String> resultMap)
   {
     _record.setMapField(Attributes.MESSAGE_RESULT.toString(), resultMap);
@@ -321,7 +338,7 @@ public class Message
     replyMessage.setResultMap(taskResultMap);
     replyMessage.setTgtSessionId("*");
     replyMessage.setMsgState("new");
-    
+
     return replyMessage;
   }
 }

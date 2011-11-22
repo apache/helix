@@ -1,17 +1,21 @@
 package com.linkedin.clustermanager.agent.file;
 
+import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.log4j.Logger;
+import org.apache.zookeeper.data.Stat;
 
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.PropertyPathConfig;
 import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.ZNRecordAndStat;
 import com.linkedin.clustermanager.store.PropertyStore;
 import com.linkedin.clustermanager.store.PropertyStoreException;
 import com.linkedin.clustermanager.store.file.FilePropertyStore;
@@ -196,6 +200,33 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
   }
 
   @Override
+  public <T extends ZNRecordAndStat> void refreshChildValues(Map<String, T> childValues,
+         Class<T> clazz, PropertyType type, String... keys)
+  {
+    // file doesn't have versions, so do normal get children
+    if (childValues == null)
+    {
+      throw new IllegalArgumentException("should provide non-null map that holds old child records "
+          + " (empty map if no old values)");
+    }
+
+    childValues.clear();
+    List<ZNRecord> childRecords = this.getChildValues(type, keys);
+    for (ZNRecord record : childRecords)
+    {
+      try
+      {
+        Constructor<T> constructor = clazz.getConstructor(new Class[] { ZNRecord.class, Stat.class });
+        childValues.put(record.getId(), constructor.newInstance(record, null));
+      }
+      catch (Exception e)
+      {
+        logger.error("Error creating an Object of type:" + clazz.getCanonicalName(), e);
+      }
+    }
+  }
+
+  @Override
   public PropertyStore<ZNRecord> getStore()
   {
     return _store;
@@ -231,5 +262,4 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
       _store.setProperty(path, record);
     }
   }
-
 }

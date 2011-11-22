@@ -3,6 +3,7 @@ package com.linkedin.clustermanager.agent.zk;
 import java.io.File;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import org.I0Itec.zkclient.ZkConnection;
 import org.apache.log4j.Logger;
@@ -11,6 +12,7 @@ import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.PropertyPathConfig;
 import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.ZNRecordAndStat;
 import com.linkedin.clustermanager.store.PropertyJsonSerializer;
 import com.linkedin.clustermanager.store.PropertySerializer;
 import com.linkedin.clustermanager.store.PropertyStore;
@@ -132,6 +134,22 @@ public class ZKDataAccessor implements ClusterDataAccessor
       return Collections.emptyList();
     }
   }
+
+  @Override
+  public <T extends ZNRecordAndStat> void refreshChildValues(Map<String, T> childValues,
+           Class<T> clazz, PropertyType type, String... keys)
+  {
+    String path = PropertyPathConfig.getPath(type, _clusterName, keys);
+    if (_zkClient.exists(path))
+    {
+      ZKUtil.refreshChildren(_zkClient, path, childValues, clazz);
+    }
+    else
+    {
+      childValues.clear();
+    }
+  }
+
 
   @Override
   public PropertyStore<ZNRecord> getStore()

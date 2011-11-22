@@ -1,13 +1,11 @@
 package com.linkedin.clustermanager.controller.stages;
 
-import org.testng.annotations.Test;
-import org.testng.AssertJUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import org.testng.Assert;
+import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.PropertyType;
@@ -20,12 +18,11 @@ import com.linkedin.clustermanager.model.ResourceGroup;
 import com.linkedin.clustermanager.pipeline.StageContext;
 import com.linkedin.clustermanager.tools.IdealStateCalculatorForStorageNode;
 
-@Test (groups = {"unitTest"})
 public class TestResourceComputationStage extends BaseStageTest
 {
   /**
    * Case where we have one resource group in IdealState
-   * 
+   *
    * @throws Exception
    */
   @Test
@@ -93,9 +90,9 @@ public class TestResourceComputationStage extends BaseStageTest
     }
   }
 
- 
 
-  
+
+
 
   @Test
   public void testMultipleResourceGroupsWithSomeDropped() throws Exception
@@ -177,9 +174,9 @@ public class TestResourceComputationStage extends BaseStageTest
     AssertJUnit.assertNotNull(resourceGroupMap.get(oldResourceGroup).getResourceKey("testResourceOld_0"));
     AssertJUnit.assertNotNull(resourceGroupMap.get(oldResourceGroup).getResourceKey("testResourceOld_1"));
     AssertJUnit.assertNotNull(resourceGroupMap.get(oldResourceGroup).getResourceKey("testResourceOld_2"));
-    
+
   }
-  
+
   @Test
   public void testNull()
   {
@@ -199,27 +196,27 @@ public class TestResourceComputationStage extends BaseStageTest
     AssertJUnit.assertTrue(exceptionCaught);
     stage.postProcess();
   }
-  
-  /*
-  public void testEmptyCluster()
-  {
-    ClusterEvent event = new ClusterEvent("sampleEvent");
-    ClusterManager manager = new Mocks.MockManager();
-    event.addAttribute("clustermanager", manager);
-    ResourceComputationStage stage = new ResourceComputationStage();
-    StageContext context = new StageContext();
-    stage.init(context);
-    stage.preProcess();
-    boolean exceptionCaught = false;
-    try
-    {
-      stage.process(event);
-    } catch (Exception e)
-    {
-      exceptionCaught = true;
-    }
-    Assert.assertTrue(exceptionCaught);
-    stage.postProcess();
-  }
-  */
+
+
+//  public void testEmptyCluster()
+//  {
+//    ClusterEvent event = new ClusterEvent("sampleEvent");
+//    ClusterManager manager = new Mocks.MockManager();
+//    event.addAttribute("clustermanager", manager);
+//    ResourceComputationStage stage = new ResourceComputationStage();
+//    StageContext context = new StageContext();
+//    stage.init(context);
+//    stage.preProcess();
+//    boolean exceptionCaught = false;
+//    try
+//    {
+//      stage.process(event);
+//    } catch (Exception e)
+//    {
+//      exceptionCaught = true;
+//    }
+//    Assert.assertTrue(exceptionCaught);
+//    stage.postProcess();
+//  }
+
 }

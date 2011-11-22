@@ -1,15 +1,20 @@
 package com.linkedin.clustermanager.agent.zk;
 
+import java.lang.reflect.Constructor;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import org.I0Itec.zkclient.DataUpdater;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.data.Stat;
 
 import com.linkedin.clustermanager.PropertyPathConfig;
 import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.ZNRecordInterface;
 
 public final class ZKUtil
 {
@@ -103,6 +108,97 @@ public final class ZKUtil
       }
     }
     return childRecords;
+  }
+
+  /**
+   * read a znode only if it's data has been changed since last read
+   * this method is not thread-safe
+   * @param zkClient
+   * @param parentPath
+   * @param childRecords
+   * @param clazz
+   * @return
+   */
+  public static <T extends ZNRecordInterface> boolean getChildsIfDataChanged(ZkClient zkClient,
+    String parentPath, Map<String, T> childRecords, Class<T> clazz)
+  {
+    if (childRecords == null)
+    {
+      throw new IllegalArgumentException("should provide non-null map holding old child records " +
+      		                               " (empty map for no old values)");
+    }
+
+    Stat newStat = new Stat();
+    List<String> childs = zkClient.getChildren(parentPath);
+    if (childs == null || childs.size() == 0)
+    {
+      if (childRecords.size() == 0)
+      {
+        return false;
+      }
+      else
+      {
+        childRecords.clear();
+        return true;
+      }
+    }
+
+    boolean dataChanged = false;
+    // first remove records that have been removed from zk
+    Iterator<String> keyIter = childRecords.keySet().iterator();
+    while (keyIter.hasNext())
+    {
+      String key = keyIter.next();
+      if (!childs.contains(key))
+      {
+        keyIter.remove();
+        dataChanged = true;
+      }
+    }
+
+    // then update
+    try
+    {
+      for (String child : childs)
+      {
+        String childPath = parentPath + "/" + child;
+
+        // assume record.id should be the last part of zk path
+        if (!childRecords.containsKey(child))
+        {
+          ZNRecord record = zkClient.readData(childPath, newStat);
+          Constructor<T> constructor = clazz.getConstructor(new Class[] { ZNRecord.class, Stat.class });
+          childRecords.put(child, constructor.newInstance(record, newStat));
+          dataChanged = true;
+        }
+        else
+        {
+          T oldChild = childRecords.get(child);
+          Stat oldStat = oldChild.getStat();
+          newStat = zkClient.getStat(childPath);
+//          System.out.print(child + " oldStat:" + oldStat);
+//          System.out.print(child + " newStat:" + newStat);
+
+          if (oldStat == null || !oldStat.equals(newStat))
+          {
+            ZNRecord record = zkClient.readData(childPath, newStat);
+            Constructor<T> constructor = clazz.getConstructor(new Class[] { ZNRecord.class, Stat.class });
+            childRecords.put(child, constructor.newInstance(record, newStat));
+            dataChanged = true;
+          }
+          else  // if (newStat.equals(oldStat))
+          {
+            // no need to update record
+          }
+        }
+      }
+    }
+    catch (Exception e)
+    {
+      logger.error("Error creating an Object of type:" + clazz.getCanonicalName(), e);
+    }
+
+    return dataChanged;
   }
 
   public static void updateIfExists(ZkClient client, String path,

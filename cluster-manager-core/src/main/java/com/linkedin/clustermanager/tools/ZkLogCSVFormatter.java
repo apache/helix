@@ -73,7 +73,8 @@ public class ZkLogCSVFormatter
       {
         if (parts[i].startsWith(attribute))
         {
-          return parts[i];
+          String val = parts[i].substring(attribute.length());
+          return val;
         }
       }
     }
@@ -119,25 +120,28 @@ public class ZkLogCSVFormatter
           new FileOutputStream(outputDir + "/" + "liveInstances.csv");
       BufferedWriter liBw = new BufferedWriter(new OutputStreamWriter(liFos));
 
-      formatter(cfgBw, "instanceName", "host", "port", "enabled");
+      formatter(cfgBw, "timestamp", "instanceName", "host", "port", "enabled");
       formatter(isBw,
+                "timestamp",
                 "resourceGroup",
                 "partitionNumber",
                 "mode",
                 "partition",
                 "instanceName",
                 "priority");
-      formatter(evBw, "resourceGroup", "partition", "instanceName", "state");
-      formatter(smdCntBw, "stateModel", "state", "count");
-      formatter(smdNextBw, "stateModel", "from", "to", "next");
-      formatter(liBw, "instanceName", "sessionId", "Operation");
+      formatter(evBw, "timestamp", "resourceGroup", "partition", "instanceName", "state");
+      formatter(smdCntBw, "timestamp", "stateModel", "state", "count");
+      formatter(smdNextBw, "timestamp", "stateModel", "from", "to", "next");
+      formatter(liBw, "timestamp", "instanceName", "sessionId", "Operation");
       formatter(csBw,
+                "timestamp",
                 "resourceGroupName",
                 "partition",
                 "instanceName",
                 "sessionId",
                 "state");
       formatter(msgBw,
+                "timestamp",
                 "resourceGroupName",
                 "partition",
                 "instanceName",
@@ -147,6 +151,7 @@ public class ZkLogCSVFormatter
                 "messageType",
                 "messageState");
       formatter(hrPerfBw,
+                "timestamp",
                 "instanceName",
                 "availableCPUs",
                 "averageSystemLoad",
@@ -166,11 +171,13 @@ public class ZkLogCSVFormatter
           pos = inputLine.indexOf("data:{", pos);
           if (pos != -1)
           {
+            String timestamp = getAttributeValue(inputLine, "time:");
             ZNRecord record =
                 (ZNRecord) _deserializer.deserialize(inputLine.substring(pos + 5)
                                                               .getBytes());
 
             formatter(cfgBw,
+                      timestamp,
                       record.getId(),
                       record.getSimpleField("HOST"),
                       record.getSimpleField("PORT"),
@@ -184,6 +191,7 @@ public class ZkLogCSVFormatter
           pos = inputLine.indexOf("data:{", pos);
           if (pos != -1)
           {
+            String timestamp = getAttributeValue(inputLine, "time:");
             ZNRecord record =
                 (ZNRecord) _deserializer.deserialize(inputLine.substring(pos + 5)
                                                               .getBytes());
@@ -195,6 +203,7 @@ public class ZkLogCSVFormatter
               {
                 String instance = preferenceList.get(i);
                 formatter(isBw,
+                          timestamp,
                           record.getId(),
                           record.getSimpleField("partitions"),
                           record.getSimpleField("ideal_state_mode"),
@@ -211,11 +220,12 @@ public class ZkLogCSVFormatter
           pos = inputLine.indexOf("data:{", pos);
           if (pos != -1)
           {
+            String timestamp = getAttributeValue(inputLine, "time:");
             ZNRecord record =
                 (ZNRecord) _deserializer.deserialize(inputLine.substring(pos + 5)
                                                               .getBytes());
-            formatter(liBw, record.getId(), record.getSimpleField("SESSION_ID"), "ADD");
-            String zkSessionId = getAttributeValue(inputLine, "session:0x");
+            formatter(liBw, timestamp, record.getId(), record.getSimpleField("SESSION_ID"), "ADD");
+            String zkSessionId = getAttributeValue(inputLine, "session:");
             if (zkSessionId == null)
             {
               System.err.println("no zk session id associated with the adding of live instance: "
@@ -234,6 +244,7 @@ public class ZkLogCSVFormatter
           pos = inputLine.indexOf("data:{", pos);
           if (pos != -1)
           {
+            String timestamp = getAttributeValue(inputLine, "time:");
             ZNRecord record =
                 (ZNRecord) _deserializer.deserialize(inputLine.substring(pos + 5)
                                                               .getBytes());
@@ -244,7 +255,7 @@ public class ZkLogCSVFormatter
               for (String instance : stateMap.keySet())
               {
                 String state = stateMap.get(instance);
-                formatter(evBw, record.getId(), partition, instance, state);
+                formatter(evBw, timestamp, record.getId(), partition, instance, state);
               }
             }
           }
@@ -255,6 +266,7 @@ public class ZkLogCSVFormatter
           pos = inputLine.indexOf("data:{", pos);
           if (pos != -1)
           {
+            String timestamp = getAttributeValue(inputLine, "time:");
             ZNRecord record =
                 (ZNRecord) _deserializer.deserialize(inputLine.substring(pos + 5)
                                                               .getBytes());
@@ -265,6 +277,7 @@ public class ZkLogCSVFormatter
               {
                 Map<String, String> metaMap = record.getMapFields().get(stateInfo);
                 formatter(smdCntBw,
+                          timestamp,
                           record.getId(),
                           stateInfo.substring(0, stateInfo.indexOf('.')),
                           metaMap.get("count"));
@@ -275,6 +288,7 @@ public class ZkLogCSVFormatter
                 for (String destState : nextMap.keySet())
                 {
                   formatter(smdNextBw,
+                            timestamp,
                             record.getId(),
                             stateInfo.substring(0, stateInfo.indexOf('.')),
                             destState,
@@ -290,6 +304,7 @@ public class ZkLogCSVFormatter
           pos = inputLine.indexOf("data:{", pos);
           if (pos != -1)
           {
+            String timestamp = getAttributeValue(inputLine, "time:");
             ZNRecord record =
                 (ZNRecord) _deserializer.deserialize(inputLine.substring(pos + 5)
                                                               .getBytes());
@@ -297,11 +312,12 @@ public class ZkLogCSVFormatter
             for (String partition : record.getMapFields().keySet())
             {
               Map<String, String> stateMap = record.getMapFields().get(partition);
-              String path = getAttributeValue(inputLine, "path:/");
+              String path = getAttributeValue(inputLine, "path:");
               if (path != null)
               {
                 String instance = CMUtil.getInstanceNameFromPath(path);
                 formatter(csBw,
+                          timestamp,
                           record.getId(),
                           partition,
                           instance,
@@ -317,11 +333,13 @@ public class ZkLogCSVFormatter
           pos = inputLine.indexOf("data:{", pos);
           if (pos != -1)
           {
+            String timestamp = getAttributeValue(inputLine, "time:");
             ZNRecord record =
                 (ZNRecord) _deserializer.deserialize(inputLine.substring(pos + 5)
                                                               .getBytes());
 
             formatter(msgBw,
+                      timestamp,
                       record.getSimpleField("STATE_UNIT_GROUP"),
                       record.getSimpleField("STATE_UNIT_KEY"),
                       record.getSimpleField("TGT_NAME"),
@@ -335,7 +353,7 @@ public class ZkLogCSVFormatter
         }
         else if (inputLine.indexOf("closeSession") != -1)
         {
-          String zkSessionId = getAttributeValue(inputLine, "session:0x");
+          String zkSessionId = getAttributeValue(inputLine, "session:");
           if (zkSessionId == null)
           {
             System.err.println("no zk session id associated with the closing of zk session: "
@@ -347,7 +365,9 @@ public class ZkLogCSVFormatter
             // System.err.println("zkSessionId:" + zkSessionId + ", record:" + record);
             if (record != null)
             {
+              String timestamp = getAttributeValue(inputLine, "time:");
               formatter(liBw,
+                        timestamp,
                         record.getId(),
                         record.getSimpleField("SESSION_ID"),
                         "DELETE");
@@ -360,15 +380,17 @@ public class ZkLogCSVFormatter
           pos = inputLine.indexOf("data:{", pos);
           if (pos != -1)
           {
+            String timestamp = getAttributeValue(inputLine, "time:");
             ZNRecord record =
                 (ZNRecord) _deserializer.deserialize(inputLine.substring(pos + 5)
                                                               .getBytes());
 
-            String path = getAttributeValue(inputLine, "path:/");
+            String path = getAttributeValue(inputLine, "path:");
             if (path != null)
             {
               String instance = CMUtil.getInstanceNameFromPath(path);
               formatter(hrPerfBw,
+                        timestamp,
                         instance,
                         record.getSimpleField("availableCPUs"),
                         record.getSimpleField("averageSystemLoad"),

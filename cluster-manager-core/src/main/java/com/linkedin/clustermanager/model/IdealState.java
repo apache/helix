@@ -7,16 +7,20 @@ import java.util.Set;
 import java.util.TreeMap;
 
 import org.apache.log4j.Logger;
+import org.apache.zookeeper.data.Stat;
 
 import com.linkedin.clustermanager.ClusterDataAccessor.IdealStateConfigProperty;
 import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.ZNRecordInterface;
 
-public class IdealState
+public class IdealState implements ZNRecordInterface
 {
   private static final Logger logger = Logger.getLogger(IdealState.class.getName());
   private final ZNRecord _record;
   private final String _resourceGroup;
+  private final Stat _stat;
 
+  @Override
   public ZNRecord getRecord()
   {
     return _record;
@@ -31,12 +35,21 @@ public class IdealState
   {
     _resourceGroup = resourceGroup;
     _record = new ZNRecord(resourceGroup);
+    _stat = null;
   }
 
   public IdealState(ZNRecord record)
   {
     _resourceGroup = record.getId();
     this._record = record;
+    _stat = null;
+  }
+
+  public IdealState(ZNRecord record, Stat stat)
+  {
+    _resourceGroup = record.getId();
+    this._record = record;
+    _stat = stat;
   }
 
   public void setIdealStateMode(String mode)
@@ -147,5 +160,11 @@ public class IdealState
       return -1;
     }
 
+  }
+
+  @Override
+  public Stat getStat()
+  {
+    return _stat;
   }
 }

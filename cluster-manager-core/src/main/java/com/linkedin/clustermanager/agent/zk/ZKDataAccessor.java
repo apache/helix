@@ -20,14 +20,12 @@ public class ZKDataAccessor implements ClusterDataAccessor
 {
   private static Logger logger = Logger.getLogger(ZKDataAccessor.class);
   private final String _clusterName;
-//  private final ClusterView _clusterView;
   private final ZkClient _zkClient;
 
   public ZKDataAccessor(String clusterName, ZkClient zkClient)
   {
     this._clusterName = clusterName;
     this._zkClient = zkClient;
-//    this._clusterView = new ClusterView();
   }
 
   @Override

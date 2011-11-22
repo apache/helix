@@ -2,17 +2,15 @@
 
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.log4j.Logger;
-import org.testng.AssertJUnit;
 import org.testng.annotations.BeforeClass;
 
 import com.linkedin.clustermanager.ClusterDataAccessor.InstanceConfigProperty;
 import com.linkedin.clustermanager.ClusterManagementService;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerFactory;
-import com.linkedin.clustermanager.PropertyType;
+import com.linkedin.clustermanager.TestHelper;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.agent.file.FileBasedDataAccessor;
 import com.linkedin.clustermanager.controller.GenericClusterController;
@@ -23,10 +21,10 @@ import com.linkedin.clustermanager.store.file.FilePropertyStore;
 import com.linkedin.clustermanager.tools.IdealStateCalculatorForStorageNode;
 
 /**
- * Base test for dynamic file-based cluster manager
- * 
+ * Test base for dynamic file-based cluster manager
+ *
  * @author zzhang
- * 
+ *
  */
 
 public class FileCMTestBase
@@ -44,18 +42,14 @@ public class FileCMTestBase
   private static final PropertyJsonComparator<ZNRecord> comparator = new PropertyJsonComparator<ZNRecord>(
       ZNRecord.class);
 
-  private final FilePropertyStore<ZNRecord> _store = new FilePropertyStore<ZNRecord>(
+  protected final FilePropertyStore<ZNRecord> _store = new FilePropertyStore<ZNRecord>(
       serializer, ROOT_PATH, comparator);
   protected final FileBasedDataAccessor _accessor = new FileBasedDataAccessor(
       _store, CLUSTER_NAME);
   protected ClusterManager _manager;
-  // = ClusterManagerFactory.getFileBasedManagerForController(CLUSTER_NAME,
-  // _accessor);
-  protected ClusterManagementService _mgmtTool; // =
-                                                // _manager.getClusterManagmentTool();
+  protected ClusterManagementService _mgmtTool;
 
-  @BeforeClass(groups =
-  { "integrationTest" })
+  @BeforeClass()
   public void beforeClass()
   {
     _manager = ClusterManagerFactory.getFileBasedManagerForController(
@@ -102,58 +96,7 @@ public class FileCMTestBase
           + "\nexception:" + e);
     }
 
-    /*
-    // wait until all transitions finished
-    // TODO replace sleep with verifier
-    try
-    {
-      Thread.sleep(20000);
-    } catch (InterruptedException e)
-    {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    }
-	  */
-    
-    // verify current state
-    ZNRecord idealStates = _accessor.getProperty(PropertyType.IDEALSTATES,
-        TEST_DB);
-    for (int i = 0; i < NODE_NR; i++)
-    {
-      try
-      {
-        boolean result = false;
-        int j = 0;
-        for (; j < 24; j++)
-        {
-          Thread.sleep(2000);
-          ZNRecord curStates = _accessor.getProperty(PropertyType.CURRENTSTATES,
-              "localhost_" + (START_PORT + i), _manager.getSessionId(), TEST_DB);
-          result = verifyCurStateAndIdealState(curStates, idealStates,
-              "localhost_" + (START_PORT + i), TEST_DB);
-          if (result == true)
-          {
-            break;
-          }
-        }
-        // debug
-        System.err.println("verifyIdealAndCurrentState(): wait "
-            + ((j + 1) * 2000) + "ms to verify (" + result + ") participant:"
-            + "localhost_" + (START_PORT + i));
-
-        if (result == false)
-        {
-          System.err.println("verifyIdealAndCurrentState() fails for participant:"
-              + "localhost_" + (START_PORT + i));
-        }
-        AssertJUnit.assertTrue(result);
-      } catch (InterruptedException e)
-      {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
-      }
-    }
-
+    verifyCluster();
   }
 
   // @AfterClass(groups = { "integrationTest" })
@@ -165,8 +108,8 @@ public class FileCMTestBase
     // Thread.sleep(3000);
     // _store.stop();
     _manager.disconnect();
-    _manager.disconnect();
-    
+    _manager.disconnect();  // test if disconnect() can be called twice
+
     logger.info("END afterClass FileCMTestBase at " + new Date(System.currentTimeMillis()));
 
   }
@@ -208,66 +151,76 @@ public class FileCMTestBase
         newIdealState);
   }
 
-  protected static boolean verifyCurStateAndIdealState(ZNRecord curStates,
-      ZNRecord idealStates, String instanceName, String resourceGroupName)
+  protected void verifyCluster()
   {
-    for (Map.Entry<String, List<String>> idealStateEntry : idealStates
-        .getListFields().entrySet())
-    {
-      String dbTablet = idealStateEntry.getKey();
-      String instance = idealStateEntry.getValue().get(0);
-      if (!instance.equals(instanceName))
-        continue;
-
-      if (curStates == null || curStates.getMapFields() == null)
-      {
-      	return false;
-      }
-      
-      for (Map.Entry<String, Map<String, String>> curStateEntry : curStates
-          .getMapFields().entrySet())
-      {
-        if (dbTablet.equals(curStateEntry.getKey()))
-        {
-          String curState = curStateEntry.getValue().get("CURRENT_STATE");
-          if (curState == null || !curState.equals("MASTER"))
-            return false;
-        }
-
-      }
-    }
-    return true;
+    TestHelper.verifyWithTimeout("verifyBestPossAndExtViewFile",
+                                 TEST_DB,
+                                 20,
+                                 "MasterSlave",
+                                 TestHelper.<String>setOf(CLUSTER_NAME),
+                                 _store);
   }
 
-  protected boolean verifyEmptyCurrentState(String instanceName,
-      String resourceGroup)
-  {
-    List<String> subPaths = _accessor.getChildNames(PropertyType.CURRENTSTATES,
-        instanceName);
+//  protected static boolean verifyCurStateAndIdealState(ZNRecord curStates,
+//      ZNRecord idealStates, String instanceName, String resourceGroupName)
+//  {
+//    for (Map.Entry<String, List<String>> idealStateEntry : idealStates
+//        .getListFields().entrySet())
+//    {
+//      String dbTablet = idealStateEntry.getKey();
+//      String instance = idealStateEntry.getValue().get(0);
+//      if (!instance.equals(instanceName))
+//        continue;
+//
+//      if (curStates == null || curStates.getMapFields() == null)
+//      {
+//      	return false;
+//      }
+//
+//      for (Map.Entry<String, Map<String, String>> curStateEntry : curStates
+//          .getMapFields().entrySet())
+//      {
+//        if (dbTablet.equals(curStateEntry.getKey()))
+//        {
+//          String curState = curStateEntry.getValue().get("CURRENT_STATE");
+//          if (curState == null || !curState.equals("MASTER"))
+//            return false;
+//        }
+//
+//      }
+//    }
+//    return true;
+//  }
 
-    if (subPaths == null)
-    {
-    	return false;
-    }
-    // System.err.println("subPaths=" + Arrays.toString(subPaths.toArray()));
-    
-    for (String prevSession : subPaths)
-    {
-      if (_store.exists(prevSession + "/" + resourceGroup))
-      {
-        String prevSessionId = prevSession.substring(prevSession
-            .lastIndexOf('/') + 1);
-        ZNRecord prevCurrentState = _accessor.getProperty(
-            PropertyType.CURRENTSTATES, instanceName, prevSessionId,
-            resourceGroup);
-        boolean result = prevCurrentState.getMapFields().size() == 0;
-        if (result == false)
-        {
-        	return false;
-        }
-      }
-    }
-    return true;
-  }
+//  protected boolean verifyEmptyCurrentState(String instanceName,
+//      String resourceGroup)
+//  {
+//    List<String> subPaths = _accessor.getChildNames(PropertyType.CURRENTSTATES,
+//        instanceName);
+//
+//    if (subPaths == null)
+//    {
+//    	return false;
+//    }
+//    // System.err.println("subPaths=" + Arrays.toString(subPaths.toArray()));
+//
+//    for (String prevSession : subPaths)
+//    {
+//      if (_store.exists(prevSession + "/" + resourceGroup))
+//      {
+//        String prevSessionId = prevSession.substring(prevSession
+//            .lastIndexOf('/') + 1);
+//        ZNRecord prevCurrentState = _accessor.getProperty(
+//            PropertyType.CURRENTSTATES, instanceName, prevSessionId,
+//            resourceGroup);
+//        boolean result = prevCurrentState.getMapFields().size() == 0;
+//        if (result == false)
+//        {
+//        	return false;
+//        }
+//      }
+//    }
+//    return true;
+//  }
 
 }

@@ -17,6 +17,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
 
+import com.linkedin.clustermanager.agent.file.FileBasedDataAccessor;
 import com.linkedin.clustermanager.agent.zk.ZKDataAccessor;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
 import com.linkedin.clustermanager.controller.ClusterManagerMain;
@@ -34,6 +35,7 @@ import com.linkedin.clustermanager.model.ResourceKey;
 import com.linkedin.clustermanager.participant.StateMachineEngine;
 import com.linkedin.clustermanager.pipeline.Stage;
 import com.linkedin.clustermanager.pipeline.StageContext;
+import com.linkedin.clustermanager.store.file.FilePropertyStore;
 import com.linkedin.clustermanager.tools.ClusterStateVerifier;
 import com.linkedin.clustermanager.util.ZKClientPool;
 
@@ -493,6 +495,65 @@ public class TestHelper
     return true;
   }
 
+  // for file-based cluster manager
+  public static boolean verifyBestPossAndExtViewFile(String resourceGroupName,
+                                                     int partitions,
+                                                     String stateModelName,
+                                                     Set<String> clusterNameSet,
+                                                     FilePropertyStore<ZNRecord> filePropertyStore)
+  {
+    for(String clusterName : clusterNameSet)
+    {
+      ClusterDataAccessor accessor = new FileBasedDataAccessor(filePropertyStore, clusterName);
+      ZNRecord extView = accessor.getProperty(PropertyType.EXTERNALVIEW, resourceGroupName);
+      BestPossibleStateOutput bestPossOutput =
+        calcBestPossState(resourceGroupName, partitions, stateModelName, clusterName, accessor);
+
+      // external view not yet generated
+      if (extView == null)
+      {
+        return false;
+      }
+      // System.out.println("extView:" + externalView.getMapFields());
+      // System.out.println("BestPoss:" + output);
+
+      // every entry in external view is contained in best possible state
+      for (Map.Entry<String, Map<String, String>> entry : extView.getMapFields().entrySet())
+      {
+        String resourceKey = entry.getKey();
+        Map<String, String> evInstanceMap = entry.getValue();
+
+        Map<String, String> bpInstanceMap =
+         bestPossOutput.getInstanceStateMap(resourceGroupName, new ResourceKey(resourceKey));
+
+        boolean result = TestHelper.<String,String>compareMap(evInstanceMap, bpInstanceMap);
+        if (result == false)
+        {
+          LOG.info("verifyBestPossAndExtView() fails for cluster:" + clusterName);
+          return false;
+        }
+      }
+
+      // every entry in best possible state is contained in external view
+      for (Map.Entry<ResourceKey, Map<String, String>> entry
+          : bestPossOutput.getResourceGroupMap(resourceGroupName).entrySet())
+      {
+        String resourceKey = entry.getKey().getResourceKeyName();
+        Map<String, String> bpInstanceMap = entry.getValue();
+
+        Map<String, String> evInstanceMap = extView.getMapField(resourceKey);
+
+        boolean result = TestHelper.<String,String>compareMap(evInstanceMap, bpInstanceMap);
+        if (result == false)
+        {
+          LOG.info("verifyBestPossAndExtView() fails for cluster:" + clusterName);
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
   private static BestPossibleStateOutput calcBestPossState(String resourceGroupName,
                                                           int partitions,
                                                           String stateModelName,
@@ -551,6 +612,42 @@ public class TestHelper
       e.printStackTrace();
     }
     stage.postProcess();
+  }
+
+  // for file-based cluster manager
+  public static boolean verifyEmptyCurStateFile(String clusterName,
+                                                String resourceGroupName,
+                                                Set<String> instanceNames,
+                                                FilePropertyStore<ZNRecord> filePropertyStore)
+  {
+    ClusterDataAccessor accessor = new FileBasedDataAccessor(filePropertyStore, clusterName);
+
+    for (String instanceName : instanceNames)
+    {
+      String path = PropertyPathConfig.getPath(PropertyType.CURRENTSTATES,
+                                               clusterName,
+                                               instanceName);
+      List<String> subPaths =
+          accessor.getChildNames(PropertyType.CURRENTSTATES, instanceName);
+
+      for (String previousSessionId : subPaths)
+      {
+        if (filePropertyStore.exists(path + "/" + previousSessionId + "/" + resourceGroupName))
+        {
+          ZNRecord previousCurrentState =
+              accessor.getProperty(PropertyType.CURRENTSTATES,
+                                   instanceName,
+                                   previousSessionId,
+                                   resourceGroupName);
+
+          if (previousCurrentState.getMapFields().size() != 0)
+          {
+            return false;
+          }
+        }
+      }
+    }
+    return true;
   }
 
   public static boolean verifyEmptyCurState(String clusterName,

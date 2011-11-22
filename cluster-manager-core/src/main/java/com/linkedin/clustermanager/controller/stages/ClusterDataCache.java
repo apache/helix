@@ -29,7 +29,6 @@ public class ClusterDataCache
   private final Map<String, StateModelDefinition> _stateModelDefMap = new HashMap<String, StateModelDefinition>();
   private final Map<String, InstanceConfig> _instanceConfigMap = new HashMap<String, InstanceConfig>();
   private final Map<String, Map<String, Map<String, CurrentState>>> _currentStateMap = new HashMap<String, Map<String, Map<String, CurrentState>>>();
-//  private final Map<String, List<Message>> _messageMap = new HashMap<String, List<Message>>();
   private final Map<String, Map<String, Message>> _messageMap = new HashMap<String, Map<String, Message>>();
 
   private static final Logger logger = Logger.getLogger(ClusterDataCache.class
@@ -65,7 +64,7 @@ public class ClusterDataCache
 
 //    _liveInstanceMap = retrieve(dataAccessor, PropertyType.LIVEINSTANCES,
 //        LiveInstance.class);
-    dataAccessor.<LiveInstance>refreshChildValues(_liveInstanceMap, LiveInstance.class, PropertyType.LIVEINSTANCES);
+    dataAccessor.refreshChildValues(_liveInstanceMap, LiveInstance.class, PropertyType.LIVEINSTANCES);
 
     for (LiveInstance instance : _liveInstanceMap.values())
     {

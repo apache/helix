@@ -127,7 +127,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
     {
       for (String instance : currentStateMap.keySet())
       {
-        boolean isDisabled = configMap != null && configMap.containsKey(instance)
+        boolean isDisabled = configMap.containsKey(instance)
             && configMap.get(instance).getEnabled() == false;
         if (instancePreferenceList == null || !instancePreferenceList.contains(instance))
         {
@@ -135,6 +135,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
         }
         else if (isDisabled)
         {
+          // if a node is disabled, put it into initial state (OFFLINE)
           instanceStateMap.put(instance, stateModelDef.getInitialState());
         }
 
@@ -234,7 +235,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
     Map<String, InstanceConfig> configMap = cache.getInstanceConfigMap();
     for(String instanceName : liveInstancesMap.keySet())
     {
-      boolean isDisabled = configMap != null && configMap.containsKey(instanceName)
+      boolean isDisabled = configMap.containsKey(instanceName)
           && configMap.get(instanceName).getEnabled() == false;
 
       if (!isDisabled)

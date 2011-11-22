@@ -52,7 +52,7 @@ public class ExternalViewComputeStage extends AbstractBaseStage
           // when set external view, ignore all disabled nodes
           for (String instance : currentStateMap.keySet())
           {
-            boolean isDisabled = configMap != null && configMap.containsKey(instance)
+            boolean isDisabled = configMap.containsKey(instance)
                 && configMap.get(instance).getEnabled() == false;
             if (!isDisabled)
             {

@@ -1,2 +1,3 @@
 Cluster Manager provides a way to manage many nodes in a cluster. It's main use case is in distributed systems where fault tolerance, scalability and availability is of utmost importance.
 
+TEST

@@ -2,7 +2,9 @@ package com.linkedin.clustermanager.controller.stages;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.log4j.Logger;
 
@@ -168,5 +170,20 @@ public class ClusterDataCache
   public Map<String, InstanceConfig> getInstanceConfigMap()
   {
     return _instanceConfigMap;
+  }
+
+  public Set<String> getDisabledInstancesForResource(String resource)
+  {
+    Set<String> disabledInstancesSet = new HashSet<String>();
+    for (String instance : _instanceConfigMap.keySet())
+    {
+      InstanceConfig config = _instanceConfigMap.get(instance);
+      if (config.getInstanceEnabled() == false
+          || config.getInstanceEnabledForResource(resource) == false)
+      {
+        disabledInstancesSet.add(instance);
+      }
+    }
+    return disabledInstancesSet;
   }
 }

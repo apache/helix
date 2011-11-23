@@ -92,7 +92,7 @@ public interface ClusterDataAccessor
 
    public enum InstanceConfigProperty
    {
-     HOST, PORT, ENABLED
+     HOST, PORT, ENABLED, DISABLED_PARTITION
    }
 
    public enum IdealStateConfigProperty

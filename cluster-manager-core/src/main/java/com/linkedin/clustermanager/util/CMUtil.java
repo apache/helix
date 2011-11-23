@@ -130,6 +130,11 @@ public final class CMUtil
         PropertyType.STATUSUPDATES);
   }
 
+  public static String getHealthPath(String clusterName, String instanceName)
+  {
+	   return PropertyPathConfig.getPath(PropertyType.HEALTHREPORT, clusterName, instanceName);
+  }
+  
   public static String getInstanceNameFromPath(String path)
   {
     // path structure

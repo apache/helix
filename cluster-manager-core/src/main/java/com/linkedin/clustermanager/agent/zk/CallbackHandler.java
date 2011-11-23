@@ -22,6 +22,7 @@ import com.linkedin.clustermanager.ConfigChangeListener;
 import com.linkedin.clustermanager.ControllerChangeListener;
 import com.linkedin.clustermanager.CurrentStateChangeListener;
 import com.linkedin.clustermanager.ExternalViewChangeListener;
+import com.linkedin.clustermanager.HealthStateChangeListener;
 import com.linkedin.clustermanager.IdealStateChangeListener;
 import com.linkedin.clustermanager.LiveInstanceChangeListener;
 import com.linkedin.clustermanager.MessageListener;
@@ -144,6 +145,13 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
         ControllerChangeListener controllerChangelistener = (ControllerChangeListener) _listener;
         subscribeForChanges(changeContext, true, false);
         controllerChangelistener.onControllerChange(changeContext);
+      } else if (_changeType == ChangeType.HEALTH)
+      {
+    	HealthStateChangeListener healthStateChangeListener = (HealthStateChangeListener) _listener;
+    	subscribeForChanges(changeContext, true, true); //TODO: figure out settings here
+    	String instanceName = CMUtil.getInstanceNameFromPath(_path);
+    	List<ZNRecord> reports = ZKUtil.getChildren(_zkClient, _path);
+    	healthStateChangeListener.onHealthChange(instanceName, reports, changeContext);
       }
 
       if (logger.isDebugEnabled())

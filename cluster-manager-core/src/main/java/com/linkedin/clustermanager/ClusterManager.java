@@ -101,6 +101,15 @@ public interface ClusterManager
       String instanceName, String sessionId) throws Exception;
 
   /**
+   * @see HealthStateChangeListener#onHealthChange(String, List, 
+   * 		NotificationContext)
+   * @param listener
+   * @param instanceName
+   */
+  void addHealthStateChangeListener(HealthStateChangeListener listener,
+  		  String instanceName) throws Exception;
+  
+  /**
    * @see ExternalViewChangeListener#onExternalViewChange(List,
    *      NotificationContext)
    * @param listener

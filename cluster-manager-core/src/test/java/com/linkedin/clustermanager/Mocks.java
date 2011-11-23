@@ -249,6 +249,14 @@ public class Mocks
       // TODO Auto-generated method stub
       return null;
     }
+
+	@Override
+	public void addHealthStateChangeListener(
+			HealthStateChangeListener listener, String instanceName)
+			throws Exception {
+		// TODO Auto-generated method stub
+		
+	}
   }
 
   public static class MockAccessor implements ClusterDataAccessor

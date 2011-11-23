@@ -11,6 +11,6 @@ public interface CMConstants
   enum ChangeType
   {
     IDEAL_STATE, CONFIG, LIVE_INSTANCE, CURRENT_STATE, MESSAGE, EXTERNAL_VIEW, 
-    CONTROLLER
+    CONTROLLER, HEALTH
   }
 }

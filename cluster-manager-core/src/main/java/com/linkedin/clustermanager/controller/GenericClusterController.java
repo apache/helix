@@ -15,6 +15,7 @@ import com.linkedin.clustermanager.ConfigChangeListener;
 import com.linkedin.clustermanager.ControllerChangeListener;
 import com.linkedin.clustermanager.CurrentStateChangeListener;
 import com.linkedin.clustermanager.ExternalViewChangeListener;
+import com.linkedin.clustermanager.HealthStateChangeListener;
 import com.linkedin.clustermanager.IdealStateChangeListener;
 import com.linkedin.clustermanager.LiveInstanceChangeListener;
 import com.linkedin.clustermanager.MessageListener;
@@ -29,6 +30,7 @@ import com.linkedin.clustermanager.controller.stages.MessageGenerationPhase;
 import com.linkedin.clustermanager.controller.stages.MessageSelectionStage;
 import com.linkedin.clustermanager.controller.stages.ReadClusterDataStage;
 import com.linkedin.clustermanager.controller.stages.ResourceComputationStage;
+import com.linkedin.clustermanager.controller.stages.StatsAggregationStage;
 import com.linkedin.clustermanager.controller.stages.TaskAssignmentStage;
 import com.linkedin.clustermanager.pipeline.Pipeline;
 import com.linkedin.clustermanager.pipeline.PipelineRegistry;
@@ -56,7 +58,8 @@ public class GenericClusterController implements
     MessageListener,
     CurrentStateChangeListener,
     ExternalViewChangeListener,
-    ControllerChangeListener
+    ControllerChangeListener,
+    HealthStateChangeListener
 {
   private static final Logger logger =
       Logger.getLogger(GenericClusterController.class.getName());
@@ -126,6 +129,11 @@ public class GenericClusterController implements
       registry.register("externalView", dataRefresh);
       registry.register("resume", dataRefresh, rebalancePipeline, externalViewPipeline);
 
+      // health stats pipeline
+   	  Pipeline healthStatsAggregationPipeline = new Pipeline();
+   	  healthStatsAggregationPipeline.addStage(new StatsAggregationStage());
+   	  registry.register("healthChange", dataRefresh, healthStatsAggregationPipeline);
+      
       return registry;
     }
   }
@@ -202,6 +210,20 @@ public class GenericClusterController implements
     logger.info("END: GenericClusterController.onStateChange()");
   }
 
+  @Override
+	public void onHealthChange(String instanceName, List<ZNRecord> reports,
+	    NotificationContext changeContext)
+	{
+		logger.info("START: GenericClusterController.onHealthChange()");
+		ClusterEvent event = new ClusterEvent("healthChange");
+		event.addAttribute("clustermanager", changeContext.getManager());
+		event.addAttribute("instanceName", instanceName);
+		event.addAttribute("changeContext", changeContext);
+		event.addAttribute("eventData", reports);
+		handleEvent(event);
+		logger.info("END: GenericClusterController.onHealthChange()");
+	}
+  
   @Override
   public void onMessage(String instanceName,
                         List<ZNRecord> messages,
@@ -338,6 +360,7 @@ public class GenericClusterController implements
                                                                    instanceName,
                                                                    clientSessionId);
           changeContext.getManager().addMessageListener(this, instanceName);
+          changeContext.getManager().addHealthStateChangeListener(this, instanceName);
         }
         catch (Exception e)
         {

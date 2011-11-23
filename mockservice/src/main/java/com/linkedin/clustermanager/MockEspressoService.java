@@ -1,5 +1,7 @@
 package com.linkedin.clustermanager;
 
+import java.net.InetAddress;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.GnuParser;
@@ -29,11 +31,12 @@ public class MockEspressoService extends Application
 	
   public static final String HELP = "help";
   public static final String CLUSTERNAME = "clusterName";
+  public static final String INSTANCENAME = "instanceName";
   public static final String ZKSERVERADDRESS = "zkSvr";
   public static final String PORT = "port";
   public static final int DEFAULT_PORT = 8100;
   protected static final String NODE_TYPE = "EspressoStorage";
-  protected static final String INSTANCE_NAME = "localhost_1234";
+  //protected static final String INSTANCE_NAME = "localhost_1234";
   
   public static final String DATABASENAME = "database";
   public static final String TABLENAME = "table";
@@ -47,6 +50,7 @@ public class MockEspressoService extends Application
   Context _applicationContext;
   static int _serverPort;
   static String _zkAddr = "localhost:9999";
+  static String _instanceName = "localhost";
   static String _clusterName = "";
   public CMConnector _connector;
   public EspressoStorageMockNode _mockNode;
@@ -55,18 +59,20 @@ public class MockEspressoService extends Application
 
   public MockEspressoService(Context context)
   {
-    super(_context);
-    _connector = null;
+	  super(_context);
+	  _connector = null;
+
+
 	  try {
-		  _connector = new CMConnector(_clusterName, INSTANCE_NAME, _zkAddr); //, zkClient);
+		  _connector = new CMConnector(_clusterName, _instanceName, _zkAddr); //, zkClient);
 	  }
 	  catch (Exception e) {
 		  logger.error("Unable to initialize CMConnector: "+e);
 		  e.printStackTrace();
 		  System.exit(-1);
 	  }
-    _mockNode = (EspressoStorageMockNode)MockNodeFactory.createMockNode(NODE_TYPE, _connector);
-    context.getAttributes().put(CONTEXT_MOCK_NODE_NAME, (Object)_mockNode);
+	  _mockNode = (EspressoStorageMockNode)MockNodeFactory.createMockNode(NODE_TYPE, _connector);
+	  context.getAttributes().put(CONTEXT_MOCK_NODE_NAME, (Object)_mockNode);
   }
  
   @Override
@@ -135,11 +141,17 @@ public class MockEspressoService extends Application
     zkServerOption.setArgName("ZookeeperServerAddress(Required)");
     
     Option clusterOption = OptionBuilder.withLongOpt(CLUSTERNAME)
-            .withDescription("Provide cluster name").create();
-        clusterOption.setArgs(1);
-        clusterOption.setRequired(true);
-        clusterOption.setArgName("Cluster name(Required)");
-    
+    		.withDescription("Provide cluster name").create();
+    clusterOption.setArgs(1);
+    clusterOption.setRequired(true);
+    clusterOption.setArgName("Cluster name(Required)");
+
+    Option instanceOption = OptionBuilder.withLongOpt(INSTANCENAME)
+    		.withDescription("Provide name for this instance").create();
+    instanceOption.setArgs(1);
+    instanceOption.setRequired(false);
+    instanceOption.setArgName("Instance name(Optional, defaults to localhost)");
+
     Option portOption = OptionBuilder.withLongOpt(PORT)
     .withDescription("Provide web service port").create();
     portOption.setArgs(1);
@@ -150,6 +162,7 @@ public class MockEspressoService extends Application
     options.addOption(helpOption);
     options.addOption(zkServerOption);
     options.addOption(clusterOption);
+    options.addOption(instanceOption);
     options.addOption(portOption);
     
     return options;
@@ -189,6 +202,11 @@ public class MockEspressoService extends Application
     	_clusterName = cmd.getOptionValue(CLUSTERNAME);
     	logger.debug("_clusterName: "+_clusterName);
     }
+    if (cmd.hasOption(INSTANCENAME)) {
+    	_instanceName = cmd.getOptionValue(INSTANCENAME);
+    	_instanceName = _instanceName.replace(':', '_');
+    	logger.debug("_instanceName: "+_instanceName);
+    }
   }
   
   public void run() throws Exception {
@@ -209,9 +227,10 @@ public class MockEspressoService extends Application
 		  // Attach the application to the component and start it
 		  _component.getDefaultHost().attach(this); //(application);
 		  _context.getAttributes().put(COMPONENT_NAME, (Object)_component);
+		 // _context.getParameters().set("maxTotalConnections", "16",true); 
 		  _component.start();
 		  //start mock espresso node
-		  _mockNode.run();
+		  //!!!_mockNode.run();
 	  }
 	  else {
 		  logger.error("Unknown MockNode type "+NODE_TYPE);

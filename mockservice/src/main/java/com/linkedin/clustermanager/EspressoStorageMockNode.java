@@ -15,6 +15,7 @@ import com.linkedin.clustermanager.EspressoStorageMockStateModelFactory;
 //import com.linkedin.clustermanager.EspressoStorageMockStateModelFactory.EspressoStorageMockStateModel;
 //import com.linkedin.clustermanager.healthcheck.ParticipantHealthReportCollector;
 import com.linkedin.clustermanager.healthcheck.PerformanceHealthReportProvider;
+import com.linkedin.clustermanager.healthcheck.StatHealthReportProvider;
 import com.linkedin.clustermanager.model.IdealState;
 import com.linkedin.clustermanager.model.Message.MessageType;
 import com.linkedin.clustermanager.participant.StateMachineEngine;
@@ -27,8 +28,10 @@ public class EspressoStorageMockNode extends MockNode {
 
 	private final String GET_STAT_NAME = "get";
 	private final String SET_STAT_NAME = "set";
+	private final String COUNT_STAT_TYPE = "count";
+	private final String REPORT_NAME = "ParticipantStats";
 	
-	PerformanceHealthReportProvider _healthProvider;
+	StatHealthReportProvider _healthProvider;
 	EspressoStorageMockStateModelFactory _stateModelFactory;
 
 	HashSet<String>_partitions;
@@ -49,7 +52,8 @@ public class EspressoStorageMockNode extends MockNode {
 				.registerMessageHandlerFactory(
 						MessageType.STATE_TRANSITION.toString(),
 						genericStateMachineHandler);
-		_healthProvider = new PerformanceHealthReportProvider();
+		_healthProvider = new StatHealthReportProvider();
+		_healthProvider.setReportName(REPORT_NAME);
 		_cmConnector.getManager().getHealthReportCollector()
 				.addHealthReportProvider(_healthProvider);
 		_partitions = new HashSet<String>();
@@ -70,7 +74,7 @@ public class EspressoStorageMockNode extends MockNode {
 		}
 
 		//_healthProvider.submitIncrementPartitionRequestCount(partition);
-		_healthProvider.incrementPartitionStat(GET_STAT_NAME, partition);
+		//_healthProvider.incrementPartitionStat(GET_STAT_NAME, partition);
 		return _keyValueMap.get(key);
 	}
 	
@@ -82,7 +86,9 @@ public class EspressoStorageMockNode extends MockNode {
 		}
 		
 		//_healthProvider.submitIncrementPartitionRequestCount(partition);
-		_healthProvider.incrementPartitionStat(SET_STAT_NAME, partition);
+		//_healthProvider.incrementPartitionStat(SET_STAT_NAME, partition);
+		_healthProvider.incrementStat(SET_STAT_NAME, COUNT_STAT_TYPE, 
+				dbId, partition, "FIXMENODENAME", String.valueOf(System.currentTimeMillis()));
 		_keyValueMap.put(key, value);
 	}
 	
@@ -144,33 +150,7 @@ public class EspressoStorageMockNode extends MockNode {
 	
 	@Override
 	public void run() {
-		//logger.debug("In Run");
-
-		//_healthProvider.submitRequestCount(555);
-		//logger.debug("Done writing stats");
-
-		//int i=0;
-		while (true) {
-			//logger.debug("printing partition map");
-			/*
-			synchronized (_partitions) {
-				for (String partition: _partitions) {
-					//logger.debug(partition);
-					_healthProvider.submitPartitionRequestCount(partition, i);
-				}
-			}
-			*/
-			/*
-			try {
-				Thread.sleep(5000);
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			i++;
-			*/
-		}
-		//logger.debug("Done!");
+		
 	}
 
 

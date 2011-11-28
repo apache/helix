@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.I0Itec.zkclient.DataUpdater;
+import org.I0Itec.zkclient.exception.ZkInterruptedException;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.data.Stat;
@@ -215,7 +216,14 @@ public final class ZKUtil
       }
       catch (Exception e)
       {
-        logger.error("Error creating an Object of type:" + clazz.getCanonicalName(), e);
+        if (e instanceof ZkInterruptedException)
+        {
+          logger.warn("thread or zk connection interrupted, exception:" + e);
+        }
+        else
+        {
+          logger.error("Error creating an Object of type:" + clazz.getCanonicalName(), e);
+        }
       }
     }
 

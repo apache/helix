@@ -58,6 +58,16 @@ public class MessageGenerationPhase extends AbstractBaseStage
     {
       ResourceGroup resourceGroup = resourceGroupMap.get(resourceGroupName);
       StateModelDefinition stateModelDef = cache.getStateModelDef(resourceGroup.getStateModelDefRef());
+
+      // debug, remove it
+      if (resourceGroup.getStateModelDefRef() == null)
+      {
+        logger.error("state model def is null. " + "resourceGroup:" + resourceGroup.getResourceGroupId()
+                         + ", stateModelDef:" + resourceGroup.getStateModelDefRef()
+                         + ", resourceKeys: " + resourceGroup.getResourceKeys());
+
+      }
+
       for (ResourceKey resource : resourceGroup.getResourceKeys())
       {
         Map<String, String> instanceStateMap = bestPossibleStateOutput

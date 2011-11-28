@@ -103,7 +103,7 @@ public class ZKClusterManagementTool implements ClusterManagementService
 
   @Override
   public void enableInstance(String clusterName, String instanceName,
-      boolean enable)
+      boolean enabled)
   {
     String targetPath = PropertyPathConfig.getPath(
         PropertyType.CONFIGS, clusterName, instanceName);
@@ -116,7 +116,7 @@ public class ZKClusterManagementTool implements ClusterManagementService
           instanceName);
 
       nodeConfig.setSimpleField(InstanceConfigProperty.ENABLED.toString(),
-          enable + "");
+          enabled + "");
       accessor.setProperty(PropertyType.CONFIGS, nodeConfig, instanceName);
     } else
     {
@@ -125,9 +125,9 @@ public class ZKClusterManagementTool implements ClusterManagementService
     }
   }
 
-//  @Override
+  @Override
   public void enablePartition(String clusterName, String instanceName, String partition,
-      boolean enable)
+      boolean enabled)
   {
     String path = PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName, instanceName);
     if (_zkClient.exists(path))
@@ -140,7 +140,7 @@ public class ZKClusterManagementTool implements ClusterManagementService
         nodeConfig.setMapField(InstanceConfigProperty.DISABLED_PARTITION.toString(),
                                new HashMap<String, String>());
       }
-      if (enable == true)
+      if (enabled == true)
       {
         nodeConfig.getMapField(InstanceConfigProperty.DISABLED_PARTITION.toString())
                   .remove(partition);

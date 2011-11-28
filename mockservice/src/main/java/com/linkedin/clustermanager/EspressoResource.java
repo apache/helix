@@ -179,5 +179,8 @@ public class EspressoResource extends Resource {
 		    	presentation = new StringRepresentation(error, MediaType.APPLICATION_JSON);	      
 		    	e.printStackTrace();
 		    }  
+		    finally {
+		    	entity.release();
+		    }
 	 }
 }

@@ -1,5 +1,7 @@
 package com.linkedin.clustermanager.model;
 
+import java.util.Map;
+
 import org.apache.zookeeper.data.Stat;
 
 import com.linkedin.clustermanager.CMConstants;
@@ -42,10 +44,23 @@ public class InstanceConfig extends ZNRecordAndStat
     _record.setSimpleField(CMConstants.ZNAttribute.HOST.toString(), port);
   }
 
-  public boolean getEnabled()
+  public boolean getInstanceEnabled()
   {
     String isEnabled = _record.getSimpleField(InstanceConfigProperty.ENABLED.toString());
     return Boolean.parseBoolean(isEnabled);
+  }
+
+  public boolean getInstanceEnabledForResource(String resource)
+  {
+    Map<String, String> disabledPartitionMap = _record.getMapField(InstanceConfigProperty.DISABLED_PARTITION.toString());
+    if (disabledPartitionMap != null && disabledPartitionMap.containsKey(resource))
+    {
+      return false;
+    }
+    else
+    {
+      return true;
+    }
   }
 
   @Override

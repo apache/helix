@@ -15,29 +15,30 @@ public class TestCustomIdealState extends ZkIntegrationTestBase
 {
   private static Logger LOG = Logger.getLogger(TestCustomIdealState.class);
   ZkClient _zkClient;
-  @BeforeClass (groups = {"integrationTest"})
+
+  @BeforeClass
   public void beforeClass() throws Exception
   {
   	_zkClient = new ZkClient(ZK_ADDR);
   	_zkClient.setZkSerializer(new ZNRecordSerializer());
   }
-  
-  
+
+
 	@AfterClass
   public void afterClass()
   {
   	_zkClient.close();
   }
 
-  @Test (groups = {"integrationTest"})
+  @Test
   public void testCustomIdealState() throws Exception
   {
-    
+
     int numDb = 2;
     int numPartitionsPerDb = 100;
     int numNode = 5;
     int replica = 3;
-    
+
     String uniqTestName = "TestCustomIS_" + "db" + numDb + "_p" + numPartitionsPerDb + "_n"
         + numNode + "_r" + replica;
     System.out.println("START " + uniqTestName + " at " + new Date(System.currentTimeMillis()));
@@ -49,15 +50,13 @@ public class TestCustomIdealState extends ZkIntegrationTestBase
       TestDriver.startDummyParticipant(uniqTestName, i);
     }
     TestDriver.startController(uniqTestName);
-    
+
     TestDriver.setIdealState(uniqTestName, 2000, 50);
-    
+
     TestDriver.verifyCluster(uniqTestName);
     TestDriver.stopCluster(uniqTestName);
 
-    System.out.println("END " + uniqTestName + " at " + new Date(System.currentTimeMillis()));
-    
-
+    System.out.println("STOP " + uniqTestName + " at " + new Date(System.currentTimeMillis()));
   }
 
 }

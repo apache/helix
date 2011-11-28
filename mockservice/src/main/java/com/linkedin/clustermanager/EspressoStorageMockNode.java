@@ -15,7 +15,6 @@ import com.linkedin.clustermanager.EspressoStorageMockStateModelFactory;
 //import com.linkedin.clustermanager.EspressoStorageMockStateModelFactory.EspressoStorageMockStateModel;
 //import com.linkedin.clustermanager.healthcheck.ParticipantHealthReportCollector;
 import com.linkedin.clustermanager.healthcheck.PerformanceHealthReportProvider;
-//import com.linkedin.clustermanager.healthcheck.StatHealthReportProvider;
 import com.linkedin.clustermanager.model.IdealState;
 import com.linkedin.clustermanager.model.Message.MessageType;
 import com.linkedin.clustermanager.participant.StateMachineEngine;
@@ -52,8 +51,10 @@ public class EspressoStorageMockNode extends MockNode {
 				.registerMessageHandlerFactory(
 						MessageType.STATE_TRANSITION.toString(),
 						genericStateMachineHandler);
+
 		_healthProvider = new PerformanceHealthReportProvider();
 		//_healthProvider.setReportName(REPORT_NAME);
+
 		_cmConnector.getManager().getHealthReportCollector()
 				.addHealthReportProvider(_healthProvider);
 		_partitions = new HashSet<String>();

@@ -1,6 +1,7 @@
 package com.linkedin.clustermanager.agent.zk;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import org.apache.log4j.Logger;
@@ -19,7 +20,7 @@ public class ZKClusterManagementTool implements ClusterManagementService
 {
 
   private final ZkClient _zkClient;
-  
+
   private static Logger logger = Logger
       .getLogger(ZKClusterManagementTool.class);
 
@@ -33,7 +34,7 @@ public class ZKClusterManagementTool implements ClusterManagementService
   {
     if(!ZKUtil.isClusterSetup(clusterName, _zkClient))
     {
-      throw new ClusterManagerException("cluster " + clusterName 
+      throw new ClusterManagerException("cluster " + clusterName
          + " is not setup yet");
     }
     String instanceConfigsPath = CMUtil.getConfigPath(clusterName);
@@ -58,7 +59,7 @@ public class ZKClusterManagementTool implements ClusterManagementService
   }
 
   @Override
-  public void dropInstance(String clusterName, ZNRecord instanceConfig) 
+  public void dropInstance(String clusterName, ZNRecord instanceConfig)
   {
     String instanceConfigsPath = CMUtil.getConfigPath(clusterName);
     String nodeId = instanceConfig.getId();
@@ -102,11 +103,11 @@ public class ZKClusterManagementTool implements ClusterManagementService
 
   @Override
   public void enableInstance(String clusterName, String instanceName,
-      boolean enable)
+      boolean enabled)
   {
-    String clusterPropertyPath = PropertyPathConfig.getPath(
-        PropertyType.CONFIGS, clusterName);
-    String targetPath = clusterPropertyPath + "/" + instanceName;
+    String targetPath = PropertyPathConfig.getPath(
+        PropertyType.CONFIGS, clusterName, instanceName);
+    // String targetPath = clusterPropertyPath + "/" + instanceName;
 
     if (_zkClient.exists(targetPath))
     {
@@ -115,9 +116,43 @@ public class ZKClusterManagementTool implements ClusterManagementService
           instanceName);
 
       nodeConfig.setSimpleField(InstanceConfigProperty.ENABLED.toString(),
-          enable + "");
+          enabled + "");
       accessor.setProperty(PropertyType.CONFIGS, nodeConfig, instanceName);
     } else
+    {
+      throw new ClusterManagerException("Cluster " + clusterName
+          + ", instance " + instanceName + " does not exist");
+    }
+  }
+
+  @Override
+  public void enablePartition(String clusterName, String instanceName, String partition,
+      boolean enabled)
+  {
+    String path = PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName, instanceName);
+    if (_zkClient.exists(path))
+    {
+      ClusterDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
+      ZNRecord nodeConfig = accessor.getProperty(PropertyType.CONFIGS, instanceName);
+
+      if (nodeConfig.getMapField(InstanceConfigProperty.DISABLED_PARTITION.toString()) == null)
+      {
+        nodeConfig.setMapField(InstanceConfigProperty.DISABLED_PARTITION.toString(),
+                               new HashMap<String, String>());
+      }
+      if (enabled == true)
+      {
+        nodeConfig.getMapField(InstanceConfigProperty.DISABLED_PARTITION.toString())
+                  .remove(partition);
+      }
+      else
+      {
+        nodeConfig.getMapField(InstanceConfigProperty.DISABLED_PARTITION.toString())
+                  .put(partition, false + "");
+      }
+      accessor.setProperty(PropertyType.CONFIGS, nodeConfig, instanceName);
+    }
+    else
     {
       throw new ClusterManagerException("Cluster " + clusterName
           + ", instance " + instanceName + " does not exist");
@@ -180,7 +215,7 @@ public class ZKClusterManagementTool implements ClusterManagementService
         clusterName);
     _zkClient.createPersistent(path);
   }
-  
+
   @Override
   public List<String> getInstancesInCluster(String clusterName)
   {
@@ -202,7 +237,7 @@ public class ZKClusterManagementTool implements ClusterManagementService
   {
     if(!ZKUtil.isClusterSetup(clusterName, _zkClient))
     {
-      throw new ClusterManagerException("cluster " + clusterName 
+      throw new ClusterManagerException("cluster " + clusterName
          + " is not setup yet");
     }
     ZNRecord idealState = new ZNRecord(dbName);
@@ -279,7 +314,7 @@ public class ZKClusterManagementTool implements ClusterManagementService
   {
     if(!ZKUtil.isClusterSetup(clusterName, _zkClient))
     {
-      throw new ClusterManagerException("cluster " + clusterName 
+      throw new ClusterManagerException("cluster " + clusterName
          + " is not setup yet");
     }
     String stateModelDefPath = CMUtil.getStateModelDefinitionPath(clusterName);

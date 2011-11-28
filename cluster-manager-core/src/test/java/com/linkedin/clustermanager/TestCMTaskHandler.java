@@ -1,7 +1,5 @@
 package com.linkedin.clustermanager;
 
-import org.testng.annotations.Test;
-import org.testng.AssertJUnit;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
@@ -15,7 +13,7 @@ import com.linkedin.clustermanager.model.Message.MessageType;
 
 public class TestCMTaskHandler
 {
-  @Test (groups = {"unitTest"})
+  @Test ()
   public void testCMTaskHandler() throws Exception
   {
     System.out.println("TestCMTaskHandler.testInvocation()");
@@ -39,7 +37,7 @@ public class TestCMTaskHandler
     AssertJUnit.assertTrue(stateModel.stateModelInvoked);
   }
 
-  @Test (groups = {"unitTest"})
+  @Test ()
   public void testInvocationAnnotated() throws Exception
   {
     System.out.println("TestCMTaskHandler.testInvocationAnnotated()");

@@ -1,7 +1,5 @@
 package com.linkedin.clustermanager;
 
-import org.testng.annotations.Test;
-import org.testng.AssertJUnit;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
@@ -16,13 +14,13 @@ import com.linkedin.clustermanager.model.Message.MessageType;
 public class TestCMTaskExecutor
 {
 
-  @Test (groups = {"unitTest"})
+  @Test ()
   public void testCMTaskExecutor() throws Exception
   {
     System.out.println("TestCMTaskHandler.testInvocation()");
     String msgId = "TestMessageId";
     Message message = new Message(MessageType.TASK_REPLY,msgId);
-   
+
     message.setMsgId(msgId);
     message.setSrcName("cm-instance-0");
     message.setTgtName("cm-instance-1");
@@ -31,7 +29,7 @@ public class TestCMTaskExecutor
     message.setToState("Slave");
     message.setStateUnitKey("Teststateunitkey");
     message.setStateUnitGroup("Teststateunitkey");
-    
+
     MockCMTaskExecutor executor = new MockCMTaskExecutor();
     MockStateModel stateModel = new MockStateModel();
     NotificationContext context;

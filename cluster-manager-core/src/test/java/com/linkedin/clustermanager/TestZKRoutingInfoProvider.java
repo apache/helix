@@ -1,7 +1,5 @@
 package com.linkedin.clustermanager;
 
-import org.testng.annotations.Test;
-import org.testng.AssertJUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -125,7 +123,7 @@ public class TestZKRoutingInfoProvider
   }
 
   // public static void main(String[] args)
-  @Test (groups = {"unitTest"})
+  @Test ()
   public void testInvocation() throws Exception
   {
     String[] dbNames = new String[3];
@@ -173,19 +171,19 @@ public class TestZKRoutingInfoProvider
      * String clusterName = "test-cluster44"; ZkClient zkClient = new
      * ZkClient("localhost:2181"); zkClient.setZkSerializer(new
      * ZNRecordSerializer());
-     * 
+     *
      * for(String nodeName : currentStates.keySet()) {
      * if(zkClient.exists(CMUtil.getCurrentStatePath(clusterName, nodeName))) {
      * zkClient.deleteRecursive(CMUtil.getCurrentStatePath(clusterName,
      * nodeName)); } ZKUtil.createChildren(zkClient,CMUtil.getCurrentStatePath
      * (clusterName, nodeName), currentStates.get(nodeName)); }
-     * 
+     *
      * //List<ZNRecord> externalView =
      * ZKRoutingInfoProvider.computeExternalView(currentStates); String
      * routingTablePath = CMUtil.getExternalViewPath(clusterName);
      * if(zkClient.exists(routingTablePath)) {
      * zkClient.deleteRecursive(routingTablePath); }
-     * 
+     *
      * ZKUtil.createChildren(zkClient, CMUtil.getExternalViewPath(clusterName),
      * externalView);
      */

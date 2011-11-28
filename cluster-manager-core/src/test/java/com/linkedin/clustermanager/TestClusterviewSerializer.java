@@ -1,7 +1,5 @@
 package com.linkedin.clustermanager;
 
-import org.testng.annotations.Test;
-import org.testng.AssertJUnit;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -15,7 +13,7 @@ import com.linkedin.clustermanager.tools.ClusterViewSerializer;
 
 public class TestClusterviewSerializer
 {
-  @Test (groups = {"unitTest"})
+  @Test ()
   public void testClusterviewSerializer() throws Exception
   {
     List<FileBasedClusterManager.DBParam> dbParams = new ArrayList<FileBasedClusterManager.DBParam>();
@@ -43,10 +41,10 @@ public class TestClusterviewSerializer
     // logger.info(restoredView);
 
     // byte[] bytes2 = serializer.serialize(restoredView);
-    
+
     VerifyClusterViews(view, restoredView);
   }
-  
+
   public void VerifyClusterViews(ClusterView view1, ClusterView view2)
   {
     AssertJUnit.assertEquals(view1.getPropertyLists().size(), view2.getPropertyLists().size());
@@ -54,5 +52,5 @@ public class TestClusterviewSerializer
     AssertJUnit.assertEquals(view1.getMemberInstanceMap().size(), view2.getMemberInstanceMap().size());
     AssertJUnit.assertEquals(view1.getInstances().size(), view2.getInstances().size());
   }
-    
+
 }

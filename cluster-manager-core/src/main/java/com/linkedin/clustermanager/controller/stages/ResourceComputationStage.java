@@ -52,6 +52,13 @@ public class ResourceComputationStage extends AbstractBaseStage
           addResource(resourceKey, resourceGroupName, resourceGroupMap);
           ResourceGroup resourceGroup = resourceGroupMap.get(resourceGroupName);
           resourceGroup.setStateModelDefRef(idealState.getStateModelDefRef());
+
+          // debug, remove it
+          if (idealState.getStateModelDefRef() == null)
+          {
+            logger.error("state model def is null."
+                + "resourceGroup:" + resourceGroup.getResourceGroupId());
+          }
         }
 
       }

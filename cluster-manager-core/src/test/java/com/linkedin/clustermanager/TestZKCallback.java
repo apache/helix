@@ -20,65 +20,9 @@ import com.linkedin.clustermanager.tools.ClusterSetup;
 public class TestZKCallback extends ZkUnitTestBase
 {
   private final String clusterName = CLUSTER_PREFIX + "_" + getShortClassName();
-  
-  /*
-  private String _zkServerAddress;
-  private List<ZkServer> _localZkServers;
 
-  public static List<ZkServer> startLocalZookeeper(
-      List<Integer> localPortsList, String zkTestDataRootDir, int tickTime)
-      throws IOException
-  {
-    List<ZkServer> localZkServers = new ArrayList<ZkServer>();
-
-    int count = 0;
-    for (int port : localPortsList)
-    {
-      ZkServer zkServer = startZkServer(zkTestDataRootDir, count++, port,
-          tickTime);
-      localZkServers.add(zkServer);
-    }
-    return localZkServers;
-  }
-
-  public static ZkServer startZkServer(String zkTestDataRootDir, int machineId,
-      int port, int tickTime) throws IOException
-  {
-    File zkTestDataRootDirFile = new File(zkTestDataRootDir);
-    zkTestDataRootDirFile.mkdirs();
-
-    String dataPath = zkTestDataRootDir + "/" + machineId + "/" + port
-        + "/data";
-    String logPath = zkTestDataRootDir + "/" + machineId + "/" + port + "/log";
-
-    FileUtils.deleteDirectory(new File(dataPath));
-    FileUtils.deleteDirectory(new File(logPath));
-
-    IDefaultNameSpace mockDefaultNameSpace = new IDefaultNameSpace()
-    {
-      @Override
-      public void createDefaultNameSpace(org.I0Itec.zkclient.ZkClient zkClient)
-      {
-      }
-    };
-
-    ZkServer zkServer = new ZkServer(dataPath, logPath, mockDefaultNameSpace,
-        port, tickTime);
-    zkServer.start();
-    return zkServer;
-  }
-
-  public static void stopLocalZookeeper(List<ZkServer> localZkServers)
-  {
-    for (ZkServer zkServer : localZkServers)
-    {
-      zkServer.shutdown();
-    }
-  }
-  */
-  
   ZkClient _zkClient;
-  
+
   private static String[] createArgs(String str)
   {
     String[] split = str.split("[ ]+");
@@ -152,8 +96,7 @@ public class TestZKCallback extends ZkUnitTestBase
     }
   }
 
-  @Test(groups =
-  { "unitTest" })
+  @Test()
   public void testInvocation() throws Exception
   {
 
@@ -190,7 +133,7 @@ public class TestZKCallback extends ZkUnitTestBase
     AssertJUnit.assertTrue(testListener.externalViewChangeReceived);
     testListener.Reset();
 
-    dataAccessor.setProperty(PropertyType.CURRENTSTATES,dummyRecord, "localhost_8900", 
+    dataAccessor.setProperty(PropertyType.CURRENTSTATES,dummyRecord, "localhost_8900",
         testClusterManager.getSessionId(), dummyRecord.getId() );
     Thread.sleep(100);
     AssertJUnit.assertTrue(testListener.currentStateChangeReceived);
@@ -235,7 +178,7 @@ public class TestZKCallback extends ZkUnitTestBase
 
   }
 
-  @BeforeClass(groups = { "unitTest" })
+  @BeforeClass()
   public void beforeClass() throws IOException, Exception
   {
     /*
@@ -253,7 +196,7 @@ public class TestZKCallback extends ZkUnitTestBase
     {
       _zkClient.deleteRecursive("/" + clusterName);
     }
-    
+
     ClusterSetup
         .processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " -addCluster " + clusterName));
     // ClusterSetup
@@ -274,7 +217,7 @@ public class TestZKCallback extends ZkUnitTestBase
         .processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " -rebalance " + clusterName + " db-12345 3"));
   }
 
-  @AfterClass(groups = { "unitTest" })
+  @AfterClass()
   public void afterClass()
   {
   	_zkClient.close();

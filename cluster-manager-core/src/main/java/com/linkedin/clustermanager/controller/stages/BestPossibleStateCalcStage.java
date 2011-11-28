@@ -123,7 +123,6 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
                                                           Set<String> disabledInstancesForResource)
   {
     Map<String, String> instanceStateMap = new HashMap<String, String>();
-//    Map<String, InstanceConfig> configMap = cache.getInstanceConfigMap();
 
     // if the ideal state is deleted, instancePreferenceList will be empty and
     // we should drop all resources.
@@ -131,8 +130,6 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
     {
       for (String instance : currentStateMap.keySet())
       {
-//        boolean isDisabled = configMap.containsKey(instance)
-//            && configMap.get(instance).getEnabled() == false;
         if (instancePreferenceList == null || !instancePreferenceList.contains(instance))
         {
           instanceStateMap.put(instance, "DROPPED");
@@ -193,8 +190,6 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
           boolean notInErrorState =
               currentStateMap == null || !"ERROR".equals(currentStateMap.get(instanceName));
 
-//          boolean isDisabled = configMap.containsKey(instanceName)
-//                              && configMap.get(instanceName).getEnabled() == false;
           if (liveInstancesMap.containsKey(instanceName) && !assigned[i] && notInErrorState
               && !disabledInstancesForResource.contains(instanceName))
           {

@@ -537,7 +537,7 @@ public class ZKClusterManager implements ClusterManager
     // In case there is a live instance record on zookeeper
     if (_accessor.getProperty(PropertyType.LIVEINSTANCES, _instanceName) != null)
     {
-      logger.warn("Found another instance with instanceName: " + _instanceName
+      logger.warn("Found another instance with same instanceName: " + _instanceName
           + " in cluster " + _clusterName);
       // Wait for a while, in case previous storage node exits unexpectedly
       // and its liveinstance

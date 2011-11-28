@@ -1,6 +1,5 @@
 package com.linkedin.clustermanager;
 
-import org.testng.annotations.Test;
 import org.apache.zookeeper.Watcher.Event.EventType;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
@@ -9,15 +8,15 @@ import org.testng.annotations.Test;
 import com.linkedin.clustermanager.agent.zk.ZKDataAccessor;
 
 /**
- * 
+ *
  * @author kgopalak
- * 
+ *
  */
 
 public class TestSample
 {
 
-  @Test (groups = {"unitTest"})
+  @Test ()
   public final void testCallbackHandler()
   {
     ZKDataAccessor client = null;
@@ -27,27 +26,27 @@ public class TestSample
 
   }
 
-  @BeforeMethod (groups = {"unitTest"})
+  @BeforeMethod ()
   public void asd()
   {
     System.out.println("In Set up");
   }
 
-  @Test (groups = {"unitTest"})
+  @Test ()
   public void testB()
   {
     System.out.println("In method testB");
 
   }
 
-  @Test (groups = {"unitTest"})
+  @Test ()
   public void testA()
   {
     System.out.println("In method testA");
 
   }
 
-  @AfterMethod (groups = {"unitTest"})
+  @AfterMethod ()
   public void sfds()
   {
     System.out.println("In tear down");

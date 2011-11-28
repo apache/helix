@@ -60,12 +60,7 @@ public class ClusterDataCache
 
   public boolean refresh(ClusterDataAccessor dataAccessor)
   {
-//    _idealStateMap = retrieve(dataAccessor, PropertyType.IDEALSTATES,
-//        IdealState.class);
     dataAccessor.<IdealState>refreshChildValues(_idealStateMap, IdealState.class, PropertyType.IDEALSTATES);
-
-//    _liveInstanceMap = retrieve(dataAccessor, PropertyType.LIVEINSTANCES,
-//        LiveInstance.class);
     dataAccessor.refreshChildValues(_liveInstanceMap, LiveInstance.class, PropertyType.LIVEINSTANCES);
 
     for (LiveInstance instance : _liveInstanceMap.values())
@@ -74,15 +69,9 @@ public class ClusterDataCache
           + instance.getSessionId());
     }
 
-//    _stateModelDefMap = retrieve(dataAccessor, PropertyType.STATEMODELDEFS,
-//        StateModelDefinition.class);
     dataAccessor.<StateModelDefinition>refreshChildValues(_stateModelDefMap, StateModelDefinition.class, PropertyType.STATEMODELDEFS);
-
-//    _instanceConfigMap = retrieve(dataAccessor, PropertyType.CONFIGS,
-//        InstanceConfig.class);
     dataAccessor.<InstanceConfig>refreshChildValues(_instanceConfigMap, InstanceConfig.class, PropertyType.CONFIGS);
 
-    // _messageMap = new HashMap<String, List<Message>>();
     for (String instanceName : _liveInstanceMap.keySet())
     {
       if (!_messageMap.containsKey(instanceName))
@@ -90,22 +79,12 @@ public class ClusterDataCache
         _messageMap.put(instanceName, new HashMap<String, Message>());
       }
       dataAccessor.<Message>refreshChildValues(_messageMap.get(instanceName), Message.class, PropertyType.MESSAGES, instanceName);
-
-//      List<ZNRecord> childValues = dataAccessor.getChildValues(
-//          PropertyType.MESSAGES, instanceName);
-//      List<Message> messages = ZNRecordUtil.convertListToTypedList(childValues,
-//          Message.class);
-//      _messageMap.put(instanceName, messages);
     }
 
-//    _currentStateMap = new HashMap<String, Map<String, Map<String, CurrentState>>>();
     for (String instanceName : _liveInstanceMap.keySet())
     {
       LiveInstance liveInstance = _liveInstanceMap.get(instanceName);
       String sessionId = liveInstance.getSessionId();
-//      Map<String, CurrentState> resourceGroupStateMap = retrieve(dataAccessor,
-//          PropertyType.CURRENTSTATES, CurrentState.class, instanceName,
-//          sessionId);
       if (!_currentStateMap.containsKey(instanceName))
       {
         _currentStateMap.put(instanceName,
@@ -118,7 +97,6 @@ public class ClusterDataCache
       }
       dataAccessor.<CurrentState>refreshChildValues(_currentStateMap.get(instanceName).get(sessionId),
                     CurrentState.class, PropertyType.CURRENTSTATES, instanceName, sessionId);
-
     }
 
     return true;
@@ -140,11 +118,8 @@ public class ClusterDataCache
     return _currentStateMap.get(instanceName).get(clientSessionId);
   }
 
-//  public List<Message> getMessages(String instanceName)
   public Map<String, Message> getMessages(String instanceName)
   {
-
-//    List<Message> list = _messageMap.get(instanceName);
     Map<String, Message> map = _messageMap.get(instanceName);
     if (map != null)
     {

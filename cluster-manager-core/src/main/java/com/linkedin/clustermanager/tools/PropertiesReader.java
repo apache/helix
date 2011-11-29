@@ -4,10 +4,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 
-import org.testng.Assert;
+import org.apache.log4j.Logger;
 
 public class PropertiesReader
 {
+  private static final Logger LOG = Logger
+      .getLogger(PropertiesReader.class.getName());
+
   private final Properties _properties = new Properties();
 
   public PropertiesReader(String propertyFileName)
@@ -20,7 +23,9 @@ public class PropertiesReader
     }
     catch (IOException e)
     {
-      Assert.fail("could not open properties file:" + propertyFileName, e);
+      String errMsg = "could not open properties file:" + propertyFileName;
+      // LOG.error(errMsg, e);
+      throw new IllegalArgumentException(errMsg, e);
     }
   }
 

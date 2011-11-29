@@ -90,10 +90,6 @@ public class TestResourceComputationStage extends BaseStageTest
     }
   }
 
-
-
-
-
   @Test
   public void testMultipleResourceGroupsWithSomeDropped() throws Exception
   {

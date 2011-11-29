@@ -86,9 +86,11 @@ public class Mocks
     MockAccessor accessor;
 
     private final String _clusterName;
-    private final String sessionId;
+    private final String _sessionId;
     String _instanceName;
     ClusterMessagingService _msgSvc ;
+    private String _version;
+
     public MockManager()
     {
       this("testCluster-" + Math.random() * 10000 % 999);
@@ -98,7 +100,7 @@ public class Mocks
     {
       _clusterName = clusterName;
       accessor = new MockAccessor(clusterName);
-      sessionId =  UUID.randomUUID().toString();
+      _sessionId =  UUID.randomUUID().toString();
       _instanceName = "testInstanceName";
       _msgSvc = new MockClusterMessagingService();
     }
@@ -185,7 +187,7 @@ public class Mocks
     @Override
     public String getSessionId()
     {
-      return sessionId;
+      return _sessionId;
     }
 
     @Override
@@ -254,8 +256,12 @@ public class Mocks
     @Override
     public String getVersion()
     {
-      // TODO Auto-generated method stub
-      return null;
+      return _version;
+    }
+
+    public void setVersion(String version)
+    {
+      _version = version;
     }
   }
 

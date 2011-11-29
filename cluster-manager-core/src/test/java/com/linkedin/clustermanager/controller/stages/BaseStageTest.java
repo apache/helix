@@ -79,7 +79,6 @@ public class BaseStageTest
   protected void setupLiveInstances(int numLiveInstances)
   {
     // setup liveInstances
-
     for (int i = 0; i < numLiveInstances; i++)
     {
       ZNRecord znRecord = new ZNRecord("localhost_" + i);

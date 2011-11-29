@@ -24,7 +24,7 @@ public class MockFileClusterManager implements ClusterManager
   private final String _clusterName;
   private final InstanceType _type;
 
-  public MockFileClusterManager(String clusterName, String instanceName, InstanceType type, 
+  public MockFileClusterManager(String clusterName, String instanceName, InstanceType type,
                               FilePropertyStore<ZNRecord> store)
   {
     _instanceName = instanceName;
@@ -32,12 +32,12 @@ public class MockFileClusterManager implements ClusterManager
     _type = type;
     _accessor = new FileBasedDataAccessor(store, clusterName);
   }
-  
+
   @Override
   public void connect() throws Exception
   {
     // TODO Auto-generated method stub
-    
+
   }
 
   @Override
@@ -51,35 +51,35 @@ public class MockFileClusterManager implements ClusterManager
   public void disconnect()
   {
     // TODO Auto-generated method stub
-    
+
   }
 
   @Override
   public void addIdealStateChangeListener(IdealStateChangeListener listener) throws Exception
   {
     // TODO Auto-generated method stub
-    
+
   }
 
   @Override
   public void addLiveInstanceChangeListener(LiveInstanceChangeListener listener) throws Exception
   {
     // TODO Auto-generated method stub
-    
+
   }
 
   @Override
   public void addConfigChangeListener(ConfigChangeListener listener) throws Exception
   {
     // TODO Auto-generated method stub
-    
+
   }
 
   @Override
   public void addMessageListener(MessageListener listener, String instanceName) throws Exception
   {
     // TODO Auto-generated method stub
-    
+
   }
 
   @Override
@@ -88,14 +88,14 @@ public class MockFileClusterManager implements ClusterManager
                                             String sessionId) throws Exception
   {
     // TODO Auto-generated method stub
-    
+
   }
 
   @Override
   public void addExternalViewChangeListener(ExternalViewChangeListener listener) throws Exception
   {
     // TODO Auto-generated method stub
-    
+
   }
 
   @Override
@@ -141,7 +141,7 @@ public class MockFileClusterManager implements ClusterManager
   public void addControllerListener(ControllerChangeListener listener)
   {
     // TODO Auto-generated method stub
-    
+
   }
 
   @Override
@@ -176,6 +176,13 @@ public class MockFileClusterManager implements ClusterManager
   public InstanceType getInstanceType()
   {
     return _type;
+  }
+
+  @Override
+  public String getVersion()
+  {
+    // TODO Auto-generated method stub
+    return null;
   }
 
 }

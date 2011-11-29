@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 
+import com.linkedin.clustermanager.CMConstants;
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerFactory;
@@ -112,7 +113,10 @@ public class DistClusterControllerElection implements ControllerChangeListener
     String instanceName = manager.getInstanceName();
     String clusterName = manager.getClusterName();
     final ZNRecord leaderRecord = new ZNRecord(PropertyType.LEADER.toString());
-    leaderRecord.setSimpleField(PropertyType.LEADER.toString(), manager.getInstanceName());
+    leaderRecord.setSimpleField(CMConstants.ZNAttribute.LEADER.toString(), manager.getInstanceName());
+    leaderRecord.setSimpleField(CMConstants.ZNAttribute.CLUSTER_MANAGER_VERSION.toString(), manager.getVersion());
+    leaderRecord.setSimpleField(CMConstants.ZNAttribute.SESSION_ID.toString(), manager.getSessionId());
+
     ClusterDataAccessor dataAccessor = manager.getDataAccessor();
     ZNRecord currentleader;
     do

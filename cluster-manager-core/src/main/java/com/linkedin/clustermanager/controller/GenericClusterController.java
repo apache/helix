@@ -23,6 +23,7 @@ import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.controller.stages.BestPossibleStateCalcStage;
 import com.linkedin.clustermanager.controller.stages.ClusterEvent;
+import com.linkedin.clustermanager.controller.stages.CompatibilityCheckStage;
 import com.linkedin.clustermanager.controller.stages.CurrentStateComputationStage;
 import com.linkedin.clustermanager.controller.stages.ExternalViewComputeStage;
 import com.linkedin.clustermanager.controller.stages.MessageGenerationPhase;
@@ -111,6 +112,10 @@ public class GenericClusterController implements
       Pipeline externalViewPipeline = new Pipeline();
       externalViewPipeline.addStage(new ExternalViewComputeStage());
 
+      // backward compatibility check
+      Pipeline liveInstancePipeline = new Pipeline();
+      liveInstancePipeline.addStage(new CompatibilityCheckStage());
+
       registry.register("idealStateChange", dataRefresh, rebalancePipeline);
       registry.register("currentStateChange",
                         dataRefresh,
@@ -119,6 +124,7 @@ public class GenericClusterController implements
       registry.register("configChange", dataRefresh, rebalancePipeline);
       registry.register("liveInstanceChange",
                         dataRefresh,
+                        liveInstancePipeline,
                         rebalancePipeline,
                         externalViewPipeline);
 

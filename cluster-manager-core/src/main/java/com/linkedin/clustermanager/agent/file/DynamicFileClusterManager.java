@@ -268,4 +268,11 @@ public class DynamicFileClusterManager implements ClusterManager
     return _instanceType;
   }
 
+  @Override
+  public String getVersion()
+  {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
 }

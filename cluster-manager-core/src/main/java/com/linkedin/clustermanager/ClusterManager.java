@@ -10,22 +10,22 @@ import com.linkedin.clustermanager.store.PropertyStore;
 
 /**
  * First class Object any process will interact with<br/>
- * General flow 
+ * General flow
  * <blockquote>
- * <pre> 
+ * <pre>
  * manager = ClusterManagerFactory.getManagerFor<ROLE>(); ROLE can be participant, spectator or a controller<br/>
  * manager.connect();
- * manager.addSOMEListener(); 
- * manager.start() 
- * After start is invoked the subsequent interactions will be via listener onChange callbacks 
- * There will be 3 scenarios for onChange callback, which can be determined using NotificationContext.type 
+ * manager.addSOMEListener();
+ * manager.start()
+ * After start is invoked the subsequent interactions will be via listener onChange callbacks
+ * There will be 3 scenarios for onChange callback, which can be determined using NotificationContext.type
  * INIT -> will be invoked the first time the listener is added
  * CALLBACK -> will be invoked due to datachange in the property value
  * FINALIZE -> will be invoked when listener is removed or session expires
  * manager.disconnect()
  * </pre>
  * </blockquote>
- * Default implementations available 
+ * Default implementations available
  * @see StateMachineEngine for participant
  * @see RoutingTableProvider for spectator
  * @see GenericClusterController  for controller
@@ -38,7 +38,7 @@ public interface ClusterManager
    * Start participating in the cluster operations. All listeners will be
    * initialized and will be notified for every cluster state change This method
    * is not re-entrant. One cannot call this method twice.
-   * 
+   *
    * @throws Exception
    */
   void connect() throws Exception;
@@ -48,7 +48,7 @@ public interface ClusterManager
    * always do this if( manager.isConnected()){ //custom code } This will
    * prevent client in doing anything when its disconnected from the cluster.
    * There is no need to invoke connect again if isConnected return false.
-   * 
+   *
    * @return
    */
   boolean isConnected();
@@ -120,21 +120,21 @@ public interface ClusterManager
   /**
    * Return the client to perform read/write operations on the cluster data
    * store
-   * 
+   *
    * @return ClusterDataAccessor
    */
   ClusterDataAccessor getDataAccessor();
 
   /**
    * Returns the cluster name associated with this cluster manager
-   * 
+   *
    * @return
    */
   String getClusterName();
 
   /**
    * Returns the instanceName used to connect to the cluster
-   * 
+   *
    * @return
    */
 
@@ -144,14 +144,14 @@ public interface ClusterManager
    * Get the sessionId associated with the connection to cluster data store.
    */
   String getSessionId();
-  
+
   /**
    * The time stamp is always updated when a notification is received.
    * This can be used to check if there was any new notification when previous notification was being processed.
    * This is updated based on the notifications from listeners registered.
    */
   long getLastNotificationTime();
-  
+
   // distributed cluster controller
   /**
    * Add listener for controller change
@@ -173,20 +173,26 @@ public interface ClusterManager
 
   /**
    * Messaging service which can be used to send cluster wide messages.
-   * 
+   *
    */
   ClusterMessagingService getMessagingService();
-  
+
   /**
-   * Participant only component that periodically update participant health report to cluster 
+   * Participant only component that periodically update participant health report to cluster
    * manager server.
-   * 
+   *
    */
   ParticipantHealthReportCollector getHealthReportCollector();
-  
+
   /**
-   * 
+   *
    * @return
    */
   InstanceType getInstanceType();
+
+  /**
+   *
+   * @return the cluster manager version
+   */
+  String getVersion();
 }

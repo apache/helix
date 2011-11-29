@@ -87,7 +87,7 @@ public class TestZKRoutingInfoProvider
     return currentStates;
   }
 
-  public void Verify(Map<String, List<ZNRecord>> currentStates,
+  private void verify(Map<String, List<ZNRecord>> currentStates,
       Map<String, Map<String, Set<String>>> routingMap)
   {
     int counter1 = 0;
@@ -164,7 +164,7 @@ public class TestZKRoutingInfoProvider
     Map<String, Map<String, Set<String>>> routingMap = provider
         .getRouterMapFromExternalView(externalView);
 
-    Verify(currentStates, routingMap);
+    verify(currentStates, routingMap);
 
     /* write current state and external view to ZK */
     /*

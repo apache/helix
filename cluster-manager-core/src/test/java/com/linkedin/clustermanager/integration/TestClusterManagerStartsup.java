@@ -2,6 +2,7 @@ package com.linkedin.clustermanager.integration;
 
 import java.util.Date;
 
+import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -60,38 +61,42 @@ public class TestClusterManagerStartsup extends ZkStandAloneCMTestBase
     setupCluster();
     String controllerMsgPath = CMUtil.getControllerPropertyPath(CLUSTER_NAME, PropertyType.MESSAGES_CONTROLLER);
     _zkClient.deleteRecursive(controllerMsgPath);
-    boolean exceptionThrown = false;
+//    boolean exceptionThrown = false;
     ClusterManager manager = null;;
 
     try
     {
       manager = ClusterManagerFactory.getZKBasedManagerForParticipant(CLUSTER_NAME, "localhost_" + (START_PORT + 1), ZK_ADDR);
       manager.connect();
+      Assert.fail("Should fail on connect() since cluster structure is not set up");
     }
     catch(ClusterManagerException e)
     {
-      exceptionThrown = true;
-      AssertJUnit.assertTrue(e.getMessage().indexOf("Initial cluster structure is not set up for cluster") != -1);
+//      exceptionThrown = true;
+//      AssertJUnit.assertTrue(e.getMessage().indexOf("Initial cluster structure is not set up for cluster") != -1);
+      // OK
     }
-    AssertJUnit.assertTrue(exceptionThrown);
+//    AssertJUnit.assertTrue(exceptionThrown);
     if(manager != null)
     {
       AssertJUnit.assertFalse(manager.isConnected());
     }
-    exceptionThrown = false;
+//    exceptionThrown = false;
 
     try
     {
       manager = ClusterManagerFactory.getZKBasedManagerForController(CLUSTER_NAME, "localhost_" + (START_PORT + 3), ZK_ADDR);
       manager.connect();
+      Assert.fail("Should fail on connect() since cluster structure is not set up");
     }
     catch(ClusterManagerException e)
     {
-      exceptionThrown = true;
-      AssertJUnit.assertTrue(e.getMessage().indexOf("Initial cluster structure is not set up for cluster") != -1);
+//      exceptionThrown = true;
+//      AssertJUnit.assertTrue(e.getMessage().indexOf("Initial cluster structure is not set up for cluster") != -1);
+      // OK
     }
-    AssertJUnit.assertTrue(exceptionThrown);
-    exceptionThrown = false;
+//    AssertJUnit.assertTrue(exceptionThrown);
+//    exceptionThrown = false;
     if(manager != null)
     {
       AssertJUnit.assertFalse(manager.isConnected());
@@ -105,14 +110,16 @@ public class TestClusterManagerStartsup extends ZkStandAloneCMTestBase
     {
       manager = ClusterManagerFactory.getZKBasedManagerForParticipant(CLUSTER_NAME, "localhost_" + (START_PORT + 1), ZK_ADDR);
       manager.connect();
+      Assert.fail("Should fail on connect() since cluster structure is not set up");
     }
     catch(ClusterManagerException e)
     {
-      exceptionThrown = true;
-      AssertJUnit.assertTrue(e.getMessage().indexOf("Initial cluster structure is not set up for cluster") != -1);
+//      exceptionThrown = true;
+//      AssertJUnit.assertTrue(e.getMessage().indexOf("Initial cluster structure is not set up for cluster") != -1);
+      // OK
     }
-    AssertJUnit.assertTrue(exceptionThrown);
-    exceptionThrown = false;
+//    AssertJUnit.assertTrue(exceptionThrown);
+//    exceptionThrown = false;
     if(manager != null)
     {
       AssertJUnit.assertFalse(manager.isConnected());
@@ -126,14 +133,16 @@ public class TestClusterManagerStartsup extends ZkStandAloneCMTestBase
     {
       manager = ClusterManagerFactory.getZKBasedManagerForParticipant(CLUSTER_NAME, "localhost_" + (START_PORT + 1), ZK_ADDR);
       manager.connect();
+      Assert.fail("Should fail on connect() since cluster structure is not set up");
     }
     catch(ClusterManagerException e)
     {
-      exceptionThrown = true;
-      AssertJUnit.assertTrue(e.getMessage().indexOf("Initial cluster structure is not set up for instance") != -1);
+//      exceptionThrown = true;
+//      AssertJUnit.assertTrue(e.getMessage().indexOf("Initial cluster structure is not set up for instance") != -1);
+      // OK
     }
-    AssertJUnit.assertTrue(exceptionThrown);
-    exceptionThrown = false;
+//    AssertJUnit.assertTrue(exceptionThrown);
+//    exceptionThrown = false;
     if(manager != null)
     {
       AssertJUnit.assertFalse(manager.isConnected());

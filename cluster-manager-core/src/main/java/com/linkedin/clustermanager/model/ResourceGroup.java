@@ -2,17 +2,16 @@ package com.linkedin.clustermanager.model;
 
 import java.util.Collection;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.Map;
-import java.util.Set;
+
+import org.apache.log4j.Logger;
 
 public class ResourceGroup
 {
+  private static Logger LOG = Logger.getLogger(ResourceGroup.class);
 
   private final String _resourceGroupId;
-
   private final Map<String, ResourceKey> _resourceKeyMap;
-
   private String _stateModelDefRef;
 
   public ResourceGroup(String resourceGroupId)
@@ -25,11 +24,27 @@ public class ResourceGroup
 
   public String getStateModelDefRef()
   {
+    // TODO: debug, remove if block
+    if (_stateModelDefRef == null)
+    {
+      LOG.error("state model def is null. " + "resourceGroup:" + _resourceGroupId
+              + ", resourceKeys: " + _resourceKeyMap.values());
+      new Exception().printStackTrace();
+    }
+
     return _stateModelDefRef;
   }
 
   public void setStateModelDefRef(String stateModelDefRef)
   {
+    // TODO: debug, remove if block
+    if (stateModelDefRef == null)
+    {
+      LOG.error("state model def is null." + "resourceGroup:" + _resourceGroupId
+              + ", resourceKeys: " + _resourceKeyMap.values());
+      new Exception().printStackTrace();
+    }
+
     _stateModelDefRef = stateModelDefRef;
   }
 

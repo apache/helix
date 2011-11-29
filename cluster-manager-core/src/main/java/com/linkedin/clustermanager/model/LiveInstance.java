@@ -1,5 +1,6 @@
 package com.linkedin.clustermanager.model;
 
+import static com.linkedin.clustermanager.CMConstants.ZNAttribute.CLUSTER_MANAGER_VERSION;
 import static com.linkedin.clustermanager.CMConstants.ZNAttribute.SESSION_ID;
 
 import org.apache.zookeeper.data.Stat;
@@ -37,4 +38,8 @@ public class LiveInstance extends ZNRecordAndStat
     return _record.getId();
   }
 
+  public String getVersion()
+  {
+    return _record.getSimpleField(CLUSTER_MANAGER_VERSION.toString());
+  }
 }

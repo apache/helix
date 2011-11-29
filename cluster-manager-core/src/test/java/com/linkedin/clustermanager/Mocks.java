@@ -250,6 +250,13 @@ public class Mocks
       // TODO Auto-generated method stub
       return null;
     }
+
+    @Override
+    public String getVersion()
+    {
+      // TODO Auto-generated method stub
+      return null;
+    }
   }
 
   public static class MockAccessor implements ClusterDataAccessor

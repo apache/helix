@@ -24,7 +24,7 @@ public class ResourceGroup
 
   public String getStateModelDefRef()
   {
-    // TODO: debug, remove if block
+    // TODO: debug, remove it later
     if (_stateModelDefRef == null)
     {
       LOG.error("state model def is null. " + "resourceGroup:" + _resourceGroupId
@@ -37,7 +37,7 @@ public class ResourceGroup
 
   public void setStateModelDefRef(String stateModelDefRef)
   {
-    // TODO: debug, remove if block
+    // TODO: debug, remove it later
     if (stateModelDefRef == null)
     {
       LOG.error("state model def is null." + "resourceGroup:" + _resourceGroupId

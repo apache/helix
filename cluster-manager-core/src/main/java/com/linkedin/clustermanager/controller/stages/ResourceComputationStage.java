@@ -23,7 +23,7 @@ import com.linkedin.clustermanager.pipeline.StageException;
  */
 public class ResourceComputationStage extends AbstractBaseStage
 {
-  private static Logger logger = Logger.getLogger(ResourceComputationStage.class);
+  private static Logger LOG = Logger.getLogger(ResourceComputationStage.class);
 
   @Override
   public void process(ClusterEvent event) throws Exception
@@ -82,6 +82,16 @@ public class ResourceComputationStage extends AbstractBaseStage
           {
             addResource(resourceKey, resourceGroupName, resourceGroupMap);
             ResourceGroup resourceGroup = resourceGroupMap.get(resourceGroupName);
+
+            // TODO: debug, remove it later
+            if (currentState.getStateModelDefRef() == null)
+            {
+              LOG.error("state model def is null." + "resourceGroup:" + currentState.getResourceGroupName()
+                      + ", resourceKeys: " + currentState.getResourceKeyStateMap().keySet()
+                      + ", states: " + currentState.getResourceKeyStateMap().values());
+              new Exception().printStackTrace();
+            }
+
             resourceGroup.setStateModelDefRef(currentState.getStateModelDefRef());
           }
         }

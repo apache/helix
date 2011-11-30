@@ -4,33 +4,36 @@ import com.linkedin.clustermanager.ClusterManager;
 
 public class TestCommand
 {
-  public enum CommandType 
+  public enum CommandType
   {
     MODIFY,
     VERIFY,
     START,
     STOP
   }
-  
+
   public static class NodeOpArg
   {
     public ClusterManager _manager;
     public Thread _thread;
-    
+
     public NodeOpArg(ClusterManager manager, Thread thread)
     {
       _manager = manager;
       _thread = thread;
     }
   }
-  
+
   public TestTrigger _trigger;
   public CommandType _commandType;
   public ZnodeOpArg _znodeOpArg;
   public NodeOpArg _nodeOpArg;
-  
+
+  public long _startTimestamp;
+  public long _finishTimestamp;
+
   /**
-   * 
+   *
    * @param type
    * @param arg
    */
@@ -38,9 +41,9 @@ public class TestCommand
   {
     this(type, new TestTrigger(), arg);
   }
-  
+
   /**
-   * 
+   *
    * @param type
    * @param trigger
    * @param arg
@@ -51,9 +54,9 @@ public class TestCommand
     _trigger = trigger;
     _znodeOpArg = arg;
   }
-  
+
   /**
-   * 
+   *
    * @param type
    * @param trigger
    * @param arg
@@ -64,11 +67,13 @@ public class TestCommand
     _trigger = trigger;
     _nodeOpArg = arg;
   }
-  
+
   @Override
   public String toString()
   {
-    String ret = super.toString().substring(super.toString().lastIndexOf(".") + 1) + " ";
+    String ret = super.toString().substring(super.toString().lastIndexOf(".") + 1) + " "
+               + "FINISH@" + _finishTimestamp + "-START@" + _startTimestamp
+               + "=" + (_finishTimestamp - _startTimestamp) + "ms ";
     if (_commandType == CommandType.MODIFY || _commandType == CommandType.VERIFY)
     {
       ret += _commandType.toString() + "|" + _trigger.toString() + "|" + _znodeOpArg.toString();
@@ -77,7 +82,7 @@ public class TestCommand
     {
       ret += _commandType.toString() + "|" + _trigger.toString() + "|" + _nodeOpArg.toString();
     }
-    
+
     return ret;
   }
 }

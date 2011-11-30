@@ -107,7 +107,6 @@ public class ZKClusterManagementTool implements ClusterManagementService
   {
     String targetPath = PropertyPathConfig.getPath(
         PropertyType.CONFIGS, clusterName, instanceName);
-    // String targetPath = clusterPropertyPath + "/" + instanceName;
 
     if (_zkClient.exists(targetPath))
     {

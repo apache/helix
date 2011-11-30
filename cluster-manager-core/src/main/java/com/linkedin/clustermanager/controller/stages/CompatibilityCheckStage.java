@@ -1,5 +1,7 @@
 package com.linkedin.clustermanager.controller.stages;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
@@ -14,10 +16,48 @@ public class CompatibilityCheckStage extends AbstractBaseStage
   private static final Logger LOG = Logger
       .getLogger(CompatibilityCheckStage.class.getName());
 
+  /**
+   * INCOMPATIBLE_MAP stores primary version pairs:
+   *  {controllerPrimaryVersion, participantPrimaryVersion}
+   *  that are incompatible
+   */
+  private static final Map<String, Boolean> INCOMPATIBLE_MAP;
+  static
+  {
+      Map<String, Boolean> map = new HashMap<String, Boolean>();
+      /**
+       * {controllerPrimaryVersion, participantPrimaryVersion} -> false
+       */
+      map.put("0.4,0.3", false);
+      INCOMPATIBLE_MAP = Collections.unmodifiableMap(map);
+  }
+
   private boolean isCompatible(String controllerVersion, String participantVersion)
   {
-    // TODO add compatible check logic here
-    return controllerVersion.compareTo(participantVersion) >= 0;
+    if (participantVersion == null)
+    {
+      LOG.warn("Missing version of participant. Skip version check.");
+      return true;
+    }
+
+    // get the primary version
+    int idx = controllerVersion.indexOf('.', controllerVersion.indexOf('.') + 1);
+    String ctrlPrimVersion = controllerVersion.substring(0, idx);
+    idx = participantVersion.indexOf('.', participantVersion.indexOf('.') + 1);
+    String partPrimVersion = participantVersion.substring(0, idx);
+    if (ctrlPrimVersion.compareTo(partPrimVersion) < 0)
+    {
+      LOG.info("Controller primary version is less than participant primary version.");
+      return false;
+    }
+    else
+    {
+      if (INCOMPATIBLE_MAP.containsKey(ctrlPrimVersion + "," + partPrimVersion))
+      {
+        return false;
+      }
+      return true;
+    }
   }
 
   @Override
@@ -31,31 +71,24 @@ public class CompatibilityCheckStage extends AbstractBaseStage
           + ". Requires ClusterManager | DataCache");
     }
 
-    String version = manager.getVersion();
-    if (version == null)
+    String controllerVersion = manager.getVersion();
+    if (controllerVersion == null)
     {
-      // ignore version check
-      LOG.warn("no version information set in controller (cluster manager version < 0.4.0):"
-             + manager.getInstanceName()
-             + ", ignore version check");
-      return;
+      String errorMsg = "Missing version of controller: " + manager.getInstanceName()
+          + ". Pipeline will not continue.";
+      LOG.error(errorMsg);
+      throw new StageException(errorMsg);
     }
 
     Map<String, LiveInstance> liveInstanceMap = cache.getLiveInstances();
     for (LiveInstance liveInstance : liveInstanceMap.values())
     {
       String participantVersion = liveInstance.getVersion();
-      if (participantVersion == null)
-      {
-        // ignore version check
-        LOG.warn("no version information set in participant (cluster manager version < 0.4.0):"
-               + liveInstance.getInstanceName()
-               + ", ignore version check");
-      }
-      else if (!isCompatible(version, participantVersion))
+      if (!isCompatible(controllerVersion, participantVersion))
       {
         String errorMsg = "cluster manager versions are incompatible; pipeline will not continue. "
-                        + "controllerVersion:" + version + ", participantVersion:" + participantVersion;
+                        + "controller:" + manager.getInstanceName() + ", controllerVersion:" + controllerVersion
+                        + "; participant:" + liveInstance.getInstanceName() + ", participantVersion:" + participantVersion;
         LOG.error(errorMsg);
         throw new StageException(errorMsg);
       }

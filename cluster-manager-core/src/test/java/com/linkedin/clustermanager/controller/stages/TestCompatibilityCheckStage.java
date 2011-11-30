@@ -17,8 +17,7 @@ import com.linkedin.clustermanager.tools.IdealStateCalculatorForStorageNode;
 
 public class TestCompatibilityCheckStage extends BaseStageTest
 {
-  @Test
-  public void testCompatible()
+  private void prepare(String controllerVersion, String participantVersion)
   {
     List<String> instances = Arrays.asList("localhost_0", "localhost_1",
                                            "localhost_2", "localhost_3", "localhost_4");
@@ -36,17 +35,28 @@ public class TestCompatibilityCheckStage extends BaseStageTest
 
     // set live instances
     record = new ZNRecord("localhost_0");
-    record.setSimpleField(CMConstants.ZNAttribute.CLUSTER_MANAGER_VERSION.toString(), "0.4.0");
+    if (participantVersion != null)
+    {
+      record.setSimpleField(CMConstants.ZNAttribute.CLUSTER_MANAGER_VERSION.toString(), participantVersion);
+    }
     LiveInstance liveInstance = new LiveInstance(record);
     liveInstance.setSessionId("session_0");
 
     accessor.setProperty(PropertyType.LIVEINSTANCES, record, "localhost_0");
 
-    ((Mocks.MockManager)manager).setVersion("0.4.4");
-    CompatibilityCheckStage stage = new CompatibilityCheckStage();
-    runStage(event, new ReadClusterDataStage());
-
+    if (controllerVersion != null)
+    {
+      ((Mocks.MockManager)manager).setVersion(controllerVersion);
+    }
     event.addAttribute("clustermanager", manager);
+    runStage(event, new ReadClusterDataStage());
+  }
+
+  @Test
+  public void testCompatible()
+  {
+    prepare("0.4.0", "0.4.0");
+    CompatibilityCheckStage stage = new CompatibilityCheckStage();
     StageContext context = new StageContext();
     stage.init(context);
     stage.preProcess();
@@ -62,33 +72,10 @@ public class TestCompatibilityCheckStage extends BaseStageTest
   }
 
   @Test
-  public void testNullVersion()
+  public void testNullParticipantVersion()
   {
-    List<String> instances = Arrays.asList("localhost_0", "localhost_1",
-                                           "localhost_2", "localhost_3", "localhost_4");
-    int partitions = 10;
-    int replicas = 1;
-
-
-    // set ideal state
-    String resourceGroupName = "testResourceGroup";
-    ZNRecord record = IdealStateCalculatorForStorageNode.calculateIdealState(
-        instances, partitions, replicas, resourceGroupName, "MASTER", "SLAVE");
-    IdealState idealState = new IdealState(record);
-    idealState.setStateModelDefRef("MasterSlave");
-    accessor.setProperty(PropertyType.IDEALSTATES,
-        idealState.getRecord(), resourceGroupName);
-
-    // set live instances
-    record = new ZNRecord("localhost_0");
-    LiveInstance liveInstance = new LiveInstance(record);
-    liveInstance.setSessionId("session_0");
-    accessor.setProperty(PropertyType.LIVEINSTANCES, record, "localhost_0");
-
+    prepare("0.4.0", null);
     CompatibilityCheckStage stage = new CompatibilityCheckStage();
-    runStage(event, new ReadClusterDataStage());
-
-    event.addAttribute("clustermanager", manager);
     StageContext context = new StageContext();
     stage.init(context);
     stage.preProcess();
@@ -98,7 +85,47 @@ public class TestCompatibilityCheckStage extends BaseStageTest
     }
     catch (Exception e)
     {
-      Assert.fail("Should not fail since versions are null");
+      Assert.fail("Should not fail since only participant version is null");
+    }
+    stage.postProcess();
+  }
+
+  @Test
+  public void testNullControllerVersion()
+  {
+    prepare(null, "0.4.0");
+    CompatibilityCheckStage stage = new CompatibilityCheckStage();
+    StageContext context = new StageContext();
+    stage.init(context);
+    stage.preProcess();
+    try
+    {
+      stage.process(event);
+      Assert.fail("Should fail since controller version is null");
+    }
+    catch (Exception e)
+    {
+      // OK
+    }
+    stage.postProcess();
+  }
+
+  @Test
+  public void testControllerVersionLessThanParticipantVersion()
+  {
+    prepare("0.2.12", "0.3.4");
+    CompatibilityCheckStage stage = new CompatibilityCheckStage();
+    StageContext context = new StageContext();
+    stage.init(context);
+    stage.preProcess();
+    try
+    {
+      stage.process(event);
+      Assert.fail("Should fail since controller primary version is less than participant primary version");
+    }
+    catch (Exception e)
+    {
+      // OK
     }
     stage.postProcess();
   }
@@ -106,41 +133,15 @@ public class TestCompatibilityCheckStage extends BaseStageTest
   @Test
   public void testIncompatible()
   {
-    List<String> instances = Arrays.asList("localhost_0", "localhost_1",
-                                           "localhost_2", "localhost_3", "localhost_4");
-    int partitions = 10;
-    int replicas = 1;
-
-
-    // set ideal state
-    String resourceGroupName = "testResourceGroup";
-    ZNRecord record = IdealStateCalculatorForStorageNode.calculateIdealState(
-        instances, partitions, replicas, resourceGroupName, "MASTER", "SLAVE");
-    IdealState idealState = new IdealState(record);
-    idealState.setStateModelDefRef("MasterSlave");
-    accessor.setProperty(PropertyType.IDEALSTATES,
-        idealState.getRecord(), resourceGroupName);
-
-    // set live instances
-    record = new ZNRecord("localhost_0");
-    record.setSimpleField(CMConstants.ZNAttribute.CLUSTER_MANAGER_VERSION.toString(), "0.3.4");
-    LiveInstance liveInstance = new LiveInstance(record);
-    liveInstance.setSessionId("session_0");
-
-    accessor.setProperty(PropertyType.LIVEINSTANCES, record, "localhost_0");
-
-    ((Mocks.MockManager)manager).setVersion("0.2.12");
+    prepare("0.4.12", "0.3.4");
     CompatibilityCheckStage stage = new CompatibilityCheckStage();
-    runStage(event, new ReadClusterDataStage());
-
-    event.addAttribute("clustermanager", manager);
     StageContext context = new StageContext();
     stage.init(context);
     stage.preProcess();
     try
     {
       stage.process(event);
-      Assert.fail("Should fail since versions are incompatible");
+      Assert.fail("Should fail since controller primary version is incompatible with participant primary version");
     }
     catch (Exception e)
     {

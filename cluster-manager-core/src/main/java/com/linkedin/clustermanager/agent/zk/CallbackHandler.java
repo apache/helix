@@ -177,12 +177,6 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
         for (String child : children)
         {
           String childPath = _path + "/" + child;
-          /*
-           * if (watchChild) { // its ok to subscribe changes multiple times
-           * since zkclient // checks the existence
-           * 
-           * _zkClient.subscribeDataChanges(childPath, this); }
-           */
           if (changeContext.getType() == NotificationContext.Type.INIT
               || changeContext.getType() == NotificationContext.Type.CALLBACK)
           {

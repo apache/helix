@@ -17,7 +17,7 @@ public class TestCMTaskExecutor
   @Test ()
   public void testCMTaskExecutor() throws Exception
   {
-    System.out.println("TestCMTaskHandler.testInvocation()");
+    System.out.println("START TestCMTaskExecutor");
     String msgId = "TestMessageId";
     Message message = new Message(MessageType.TASK_REPLY,msgId);
 
@@ -29,6 +29,7 @@ public class TestCMTaskExecutor
     message.setToState("Slave");
     message.setStateUnitKey("Teststateunitkey");
     message.setStateUnitGroup("Teststateunitkey");
+    message.setStateModelDef("MasterSlave");
 
     MockCMTaskExecutor executor = new MockCMTaskExecutor();
     MockStateModel stateModel = new MockStateModel();
@@ -44,6 +45,7 @@ public class TestCMTaskExecutor
       Thread.sleep(500);
     }
     AssertJUnit.assertTrue(stateModel.stateModelInvoked);
+    System.out.println("END TestCMTaskExecutor");
   }
 
 }

@@ -383,8 +383,6 @@ public class ZKClusterManager implements ClusterManager
         + " Session id:" + _sessionId);
 
     _accessor.setProperty(PropertyType.LIVEINSTANCES, metaData, _instanceName);
-//    String currentStatePathParent = CMUtil.getCurrentStateBasePath(
-//        _clusterName, _instanceName) + "/" + getSessionId();
     String currentStatePathParent = PropertyPathConfig.getPath(PropertyType.CURRENTSTATES,
                                         _clusterName, _instanceName, getSessionId());
 
@@ -507,7 +505,6 @@ public class ZKClusterManager implements ClusterManager
       startStatusUpdatedumpTask();
       if (_leaderElectionHandler == null)
       {
-//        final String path = CMUtil.getControllerPath(_clusterName);
         final String path = PropertyPathConfig.getPath(PropertyType.CONTROLLER, _clusterName);
 
         _leaderElectionHandler = createCallBackHandler(path,

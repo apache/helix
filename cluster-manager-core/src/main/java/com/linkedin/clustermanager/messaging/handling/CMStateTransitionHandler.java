@@ -97,7 +97,8 @@ public class CMStateTransitionHandler implements MessageHandler
 
     ZNRecord currentState = accessor.getProperty(PropertyType.CURRENTSTATES,
         instanceName, manager.getSessionId(), stateUnitGroup);
-    // Set a empty current state record if it is null
+
+    // Set an empty current state record if it is null
     if (currentState == null)
     {
       currentState = new ZNRecord(stateUnitGroup);
@@ -107,19 +108,18 @@ public class CMStateTransitionHandler implements MessageHandler
       accessor.updateProperty(PropertyType.CURRENTSTATES, currentState,
           instanceName, manager.getSessionId(), stateUnitGroup);
     }
-    Map<String, String> map;
 
-    // For resource unit that does not have state before, init it to offline
+    // For resource unit that does not have a state, initialize it to OFFLINE
     if (!currentState.getMapFields().containsKey(stateUnitKey))
     {
-      map = new HashMap<String, String>();
-      map.put(ZNAttribute.CURRENT_STATE.toString(), initStateValue); // "OFFLINE");
+      Map<String, String> map = new HashMap<String, String>();
+      map.put(ZNAttribute.CURRENT_STATE.toString(), initStateValue);
 
       ZNRecord currentStateDelta = new ZNRecord(stateUnitGroup);
       currentStateDelta.setMapField(stateUnitKey, map);
 
       logger.info("Setting initial state for partition: " + stateUnitKey
-          + " to offline");
+          + " to OFFLINE");
 
       accessor.updateProperty(PropertyType.CURRENTSTATES, currentStateDelta,
           instanceName, manager.getSessionId(), stateUnitGroup);
@@ -143,6 +143,17 @@ public class CMStateTransitionHandler implements MessageHandler
             instanceName, manager.getSessionId(), stateUnitGroup);
       }
     }
+
+    // TODO: debug, remove it later
+    ZNRecord newCurrentState = accessor.getProperty(PropertyType.CURRENTSTATES,
+                             instanceName, manager.getSessionId(), stateUnitGroup);
+    if (newCurrentState.getSimpleFields().get(Message.Attributes.STATE_MODEL_DEF.toString()) == null)
+    {
+      logger.error("state model def is null in message:" + message.getStateUnitGroup() + " "
+                   + message.getStateUnitKey() + " " + message.getSrcSessionId());
+      new Exception().printStackTrace();
+    }
+
     // Verify the fromState and current state of the stateModel
     if (!fromState.equals("*")
         && (fromState == null || !fromState.equalsIgnoreCase(_stateModel

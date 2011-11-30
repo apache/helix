@@ -15,7 +15,7 @@ public class TestDynamicFileClusterManager extends FileCMTestBase
   public void testDynamicFileClusterManager()
   throws Exception
   {
-    LOG.info("RUN testDynamicFileClusterManager() at " + new Date(System.currentTimeMillis()));
+    System.out.println("RUN testDynamicFileClusterManager() at " + new Date(System.currentTimeMillis()));
 
     // add a new db
     _mgmtTool.addResourceGroup(CLUSTER_NAME, "MyDB", 6, STATE_MODEL);
@@ -42,7 +42,7 @@ public class TestDynamicFileClusterManager extends FileCMTestBase
                                                           "localhost_12922"),
                                  _store);
 
-    LOG.info("STOP testDynamicFileClusterManager() at " + new Date(System.currentTimeMillis()));
+    System.out.println("STOP testDynamicFileClusterManager() at " + new Date(System.currentTimeMillis()));
     super.afterClass();
   }
 

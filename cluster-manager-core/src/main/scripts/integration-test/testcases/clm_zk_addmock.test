@@ -18,8 +18,7 @@ $SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr localhost:2188 -a
 $SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr localhost:2188 -addCluster relay-cluster-12345"
 
 #./clm_console.sh -zkSvr localhost:2188 -addResourceGroup storage-cluster-12345 db-12345 120
-$SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr localhost:2188 -addCluster relay-cluster-12345"
-./clm_console.sh -zkSvr localhost:2188 -addResourceGroup storage-cluster-12345 db-12345 120
+$SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr localhost:2188 -addResourceGroup storage-cluster-12345 db-12345 120"
 
 #./clm_console.sh -zkSvr localhost:2188 -addNode storage-cluster-12345 localhost:8900
 $SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr localhost:2188 -addNode storage-cluster-12345 localhost:8900"
@@ -34,16 +33,17 @@ $SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr localhost:2188 -a
 $SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr localhost:2188 -rebalance storage-cluster-12345 db-12345 2"
 
 #Launch mock storage nodes
-$SCRIPT_DIR/cm_driver.py -c mock-storage -o start -l "integration-test/config/log4j.properties" --cmdline_args="-zkSvr localhost:2188 -cluster storage-cluster-12345 -host localhost -port 8900 -relayCluster relay-cluster-12345" 
+$SCRIPT_DIR/cm_driver.py -c mock-storage -o start -l $VIEW_ROOT/integration-test/config/log4j-info.properties --cmdline_args="-zkSvr localhost:2188 -cluster storage-cluster-12345 -host localhost -port 8900 -relayCluster relay-cluster-12345" 
 
-$SCRIPT_DIR/cm_driver.py -c mock-storage -o start -l "integration-test/config/log4j.properties" --cmdline_args="-zkSvr localhost:2188 -cluster storage-cluster-12345 -host localhost -port 8901 -relayCluster relay-cluster-12345" 
+$SCRIPT_DIR/cm_driver.py -c mock-storage -o start -l $VIEW_ROOT/integration-test/config/log4j-info.properties --cmdline_args="-zkSvr localhost:2188 -cluster storage-cluster-12345 -host localhost -port 8901 -relayCluster relay-cluster-12345" 
 
-$SCRIPT_DIR/cm_driver.py -c mock-storage -o start -l "integration-test/config/log4j.properties" --cmdline_args="-zkSvr localhost:2188 -cluster storage-cluster-12345 -host localhost -port 8902 -relayCluster relay-cluster-12345" 
+$SCRIPT_DIR/cm_driver.py -c mock-storage -o start -l $VIEW_ROOT/integration-test/config/log4j-info.properties --cmdline_args="-zkSvr localhost:2188 -cluster storage-cluster-12345 -host localhost -port 8902 -relayCluster relay-cluster-12345" 
 #Launch the cluster manager
 sleep 2
 
-$SCRIPT_DIR/cm_driver.py -c cluster-manager -o start -l "integration-test/config/log4j.properties" --cmdline_args="-zkSvr localhost:2188 -cluster storage-cluster-12345"
+$SCRIPT_DIR/cm_driver.py -c cluster-manager -o start -l $VIEW_ROOT/integration-test/config/log4j-info.properties --cmdline_args="-zkSvr localhost:2188 -cluster storage-cluster-12345"
 
+exit 0
 sleep 6
 
 $SCRIPT_DIR/cm_driver.py -c cluster-manager -o stop

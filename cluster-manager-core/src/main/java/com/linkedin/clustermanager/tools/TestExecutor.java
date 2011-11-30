@@ -31,18 +31,18 @@ import com.linkedin.clustermanager.tools.TestCommand.CommandType;
  * a test is structured logically as a list of commands a command has three
  * parts: COMMAND | TRIGGER | ARG'S COMMAND could be: modify, verify, start,
  * stop
- * 
+ *
  * TRIGGER is optional and consists of start-time, timeout, and expect-value
  * which means the COMMAND is triggered between [start-time, start-time +
  * timeout] and is triggered when the value in concern equals to expect-value
- * 
+ *
  * ARG's format depends on COMMAND if COMMAND is modify/verify, arg is in form
  * of: <znode-path, property-type (SIMPLE, LIST, or MAP), operation(+, -, ==,
  * !=), key, update-value> in which key is k1 for SIMPLE, k1|index for LIST, and
  * k1|k2 for MAP field if COMMAND is start/stop, arg is a thread handler
- * 
+ *
  * @author zzhang
- * 
+ *
  */
 
 public class TestExecutor
@@ -585,10 +585,10 @@ public class TestExecutor
     private Future _timeoutTask = null;
     private final ZkClient _zkClient;
     private final CountDownLatch _countDown;
-    private final Map<String, Boolean> _testResults;
+    private final Map<TestCommand, Boolean> _testResults;
 
     public DataChangeListener(TestCommand command, CountDownLatch countDown, ZkClient zkClient,
-        Map<String, Boolean> testResults)
+        Map<TestCommand, Boolean> testResults)
     {
       _command = command;
       _zkClient = zkClient;
@@ -618,8 +618,9 @@ public class TestExecutor
 
         if (compareAndSetZnode(expectValue, arg, _zkClient) == true)
         {
+          _command._finishTimestamp = System.currentTimeMillis();
           logger.info("result:" + true + ", " + _command.toString());
-          _testResults.put(_command.toString(), true);
+          _testResults.put(_command, true);
 
           _zkClient.unsubscribeDataChanges(dataPath, this);
           if (_task != null)
@@ -639,8 +640,9 @@ public class TestExecutor
         boolean result = executeVerifier(record, _command);
         if (result == true)
         {
+          _command._finishTimestamp = System.currentTimeMillis();
           logger.info("result:" + true + ", " + _command.toString());
-          _testResults.put(_command.toString(), true);
+          _testResults.put(_command, true);
 
           _zkClient.unsubscribeDataChanges(dataPath, this);
           if (_task != null)
@@ -680,16 +682,16 @@ public class TestExecutor
     private Future _timeoutTask = null;
     private final ZkClient _zkClient;
     private final CountDownLatch _countDown;
-    private final Map<String, Boolean> _testResults;
+    private final Map<TestCommand, Boolean> _testResults;
 
     public ExecuteCommand(TestCommand command, CountDownLatch countDown, ZkClient zkClient,
-        Map<String, Boolean> testResults)
+        Map<TestCommand, Boolean> testResults)
     {
       this(command, countDown, zkClient, testResults, null);
     }
 
     public ExecuteCommand(TestCommand command, CountDownLatch countDown, ZkClient zkClient,
-        Map<String, Boolean> testResults, DataChangeListener listener)
+        Map<TestCommand, Boolean> testResults, DataChangeListener listener)
     {
       _command = command;
       _countDown = countDown;
@@ -718,8 +720,9 @@ public class TestExecutor
         result = compareAndSetZnode(expectValue, arg, _zkClient);
         if (result == true)
         {
+          _command._finishTimestamp = System.currentTimeMillis();
           logger.info("result:" + result + ", " + _command.toString());
-          _testResults.put(_command.toString(), true);
+          _testResults.put(_command, true);
 
           if (expectValue != null && _listener != null)
           {
@@ -734,6 +737,7 @@ public class TestExecutor
         {
           if (dataTriggerTimeout == 0)
           {
+            _command._finishTimestamp = System.currentTimeMillis();
             logger.warn("fail to execute command (timeout=0):" + _command.toString());
             _countDown.countDown();
           }
@@ -750,8 +754,9 @@ public class TestExecutor
         result = executeVerifier(record, _command);
         if (result == true)
         {
+          _command._finishTimestamp = System.currentTimeMillis();
           logger.info("result:" + result + ", " + _command.toString());
-          _testResults.put(_command.toString(), true);
+          _testResults.put(_command, true);
           if (_listener != null)
           {
             _zkClient.unsubscribeDataChanges(znodePath, _listener);
@@ -767,6 +772,7 @@ public class TestExecutor
         {
           if (dataTriggerTimeout == 0)
           {
+            _command._finishTimestamp = System.currentTimeMillis();
             logger.warn("fail to verify (timeout=0):" + _command.toString());
             _countDown.countDown();
           }
@@ -777,8 +783,9 @@ public class TestExecutor
         Thread thread = _command._nodeOpArg._thread;
         thread.start();
 
+        _command._finishTimestamp = System.currentTimeMillis();
         logger.info("result:" + result + ", " + _command.toString());
-        _testResults.put(_command.toString(), true);
+        _testResults.put(_command, true);
         _countDown.countDown();
       } else if (_command._commandType == CommandType.STOP)
       {
@@ -789,8 +796,9 @@ public class TestExecutor
         thread.interrupt();
 
         // System.err.println("stop " + _command._nodeOpArg._manager.getInstanceName());
+        _command._finishTimestamp = System.currentTimeMillis();
         logger.info("result:" + result + ", " + _command.toString());
-        _testResults.put(_command.toString(), true);
+        _testResults.put(_command, true);
         _countDown.countDown();
       } else
       {
@@ -831,10 +839,10 @@ public class TestExecutor
     }
   };
 
-  private static Map<String, Boolean> executeTestHelper(List<TestCommand> commandList, 
+  private static Map<TestCommand, Boolean> executeTestHelper(List<TestCommand> commandList,
       String zkAddr, CountDownLatch countDown)
   {
-    final Map<String, Boolean> testResults = new ConcurrentHashMap<String, Boolean>();
+    final Map<TestCommand, Boolean> testResults = new ConcurrentHashMap<TestCommand, Boolean>();
     final ScheduledExecutorService executor = Executors.newScheduledThreadPool(MAX_PARALLEL_TASKS);
     final ScheduledExecutorService timeoutExecutor = Executors
         .newScheduledThreadPool(MAX_PARALLEL_TASKS);
@@ -853,9 +861,10 @@ public class TestExecutor
 
     for (TestCommand command : commandList)
     {
-      testResults.put(command.toString(), new Boolean(false));
+      testResults.put(command, new Boolean(false));
 
       TestTrigger trigger = command._trigger;
+      command._startTimestamp = System.currentTimeMillis() + trigger._startTime;
       if (trigger._expectValue == null || (trigger._expectValue != null && trigger._timeout == 0))
       {
         executor.schedule(new ExecuteCommand(command, countDown, zkClient, testResults),
@@ -883,7 +892,7 @@ public class TestExecutor
         cmdExecutor.setTimeoutTask(timeoutTask);
       }
     }
-    
+
     return testResults;
   }
 
@@ -894,11 +903,11 @@ public class TestExecutor
     executeTestHelper(commandList, zkAddr, countDown);
   }
 
-  public static Map<String, Boolean> executeTest(List<TestCommand> commandList, String zkAddr)
+  public static Map<TestCommand, Boolean> executeTest(List<TestCommand> commandList, String zkAddr)
       throws InterruptedException
   {
     final CountDownLatch countDown = new CountDownLatch(commandList.size());
-    Map<String, Boolean> testResults = executeTestHelper(commandList, zkAddr, countDown);
+    Map<TestCommand, Boolean> testResults = executeTestHelper(commandList, zkAddr, countDown);
 
     // TODO add timeout
     countDown.await();

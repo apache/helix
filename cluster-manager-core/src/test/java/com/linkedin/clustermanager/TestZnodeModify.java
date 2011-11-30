@@ -68,8 +68,8 @@ public class TestZnodeModify extends ZkUnitTestBase
     command = new TestCommand(CommandType.VERIFY, new TestTrigger(100, 0, record), arg);
     commandList.add(command);
 
-    Map<String, Boolean> results = TestExecutor.executeTest(commandList, ZK_ADDR);
-    for (Map.Entry<String, Boolean> entry : results.entrySet())
+    Map<TestCommand, Boolean> results = TestExecutor.executeTest(commandList, ZK_ADDR);
+    for (Map.Entry<TestCommand, Boolean> entry : results.entrySet())
     {
       Assert.assertTrue(entry.getValue());
     }
@@ -113,11 +113,11 @@ public class TestZnodeModify extends ZkUnitTestBase
     command = new TestCommand(CommandType.VERIFY, new TestTrigger(3100, 0, recordNew), arg);
     commandList.add(command);
 
-    Map<String, Boolean> results = TestExecutor.executeTest(commandList, ZK_ADDR);
+    Map<TestCommand, Boolean> results = TestExecutor.executeTest(commandList, ZK_ADDR);
 
-    boolean result = results.remove(command1.toString()).booleanValue();
+    boolean result = results.remove(command1).booleanValue();
     AssertJUnit.assertFalse(result);
-    for (Map.Entry<String, Boolean> entry : results.entrySet())
+    for (Map.Entry<TestCommand, Boolean> entry : results.entrySet())
     {
       Assert.assertTrue(entry.getValue());
     }
@@ -154,8 +154,8 @@ public class TestZnodeModify extends ZkUnitTestBase
     command1 = new TestCommand(CommandType.VERIFY, new TestTrigger(1000, 500, recordNew), arg1);
     commandList.add(command1);
 
-    Map<String, Boolean> results = TestExecutor.executeTest(commandList, ZK_ADDR);
-    for (Map.Entry<String, Boolean> entry : results.entrySet())
+    Map<TestCommand, Boolean> results = TestExecutor.executeTest(commandList, ZK_ADDR);
+    for (Map.Entry<TestCommand, Boolean> entry : results.entrySet())
     {
       Assert.assertFalse(entry.getValue());
     }
@@ -206,8 +206,8 @@ public class TestZnodeModify extends ZkUnitTestBase
       }
     }.start();
 
-    Map<String, Boolean> results = TestExecutor.executeTest(commandList, ZK_ADDR);
-    for (Map.Entry<String, Boolean> entry : results.entrySet())
+    Map<TestCommand, Boolean> results = TestExecutor.executeTest(commandList, ZK_ADDR);
+    for (Map.Entry<TestCommand, Boolean> entry : results.entrySet())
     {
       Assert.assertTrue(entry.getValue());
       // System.out.println(entry.getValue() + ":" + entry.getKey());

@@ -30,16 +30,6 @@ public class DistClusterControllerElection implements ControllerChangeListener
     _zkAddr = zkAddr;
   }
 
-//  public GenericClusterController getController()
-//  {
-//    return _controller;
-//  }
-
-//  public ClusterManager getLeader()
-//  {
-//    return _leader;
-//  }
-
   /**
    * may be accessed by multiple threads:
    * zk-client thread and ZkClusterManager.disconnect()->reset()
@@ -70,9 +60,6 @@ public class DistClusterControllerElection implements ControllerChangeListener
         boolean isLeader = tryUpdateController(manager);
         if (isLeader)
         {
-//          if (_controller == null && _leader == null)
-//          {
-//            _controller = new GenericClusterController();
           if (type == InstanceType.CONTROLLER)
           {
             ClusterManagerMain.addListenersToController(manager, _controller);
@@ -102,7 +89,6 @@ public class DistClusterControllerElection implements ControllerChangeListener
 //                             + _leader.getClusterName());
           _leader.disconnect();
           _leader = null;
-//          _controller = null;
         }
       }
 

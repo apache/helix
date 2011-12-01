@@ -55,7 +55,8 @@ public class CMStateTransitionHandler implements MessageHandler
         || isNullOrEmpty(message.getToState())
         || isNullOrEmpty(message.getToState())
         || isNullOrEmpty(message.getStateUnitKey())
-        || isNullOrEmpty(message.getToState());
+        || isNullOrEmpty(message.getToState())
+        || isNullOrEmpty(message.getStateModelDef());
     return !isValid;
   }
 
@@ -109,20 +110,26 @@ public class CMStateTransitionHandler implements MessageHandler
           instanceName, manager.getSessionId(), stateUnitGroup);
     }
 
-    // For resource unit that does not have a state, initialize it to OFFLINE
+    /**
+     * For resource unit that does not have a state, initialize it to OFFLINE
+     * If current state does not have a state model def, set it.
+     * Do the two updates together, otherwise controller may view a current state
+     * with a NULL state model def
+     */
+
+    ZNRecord currentStateDelta = new ZNRecord(stateUnitGroup);
     if (!currentState.getMapFields().containsKey(stateUnitKey))
     {
       Map<String, String> map = new HashMap<String, String>();
       map.put(ZNAttribute.CURRENT_STATE.toString(), initStateValue);
 
-      ZNRecord currentStateDelta = new ZNRecord(stateUnitGroup);
       currentStateDelta.setMapField(stateUnitKey, map);
 
       logger.info("Setting initial state for partition: " + stateUnitKey
           + " to OFFLINE");
 
-      accessor.updateProperty(PropertyType.CURRENTSTATES, currentStateDelta,
-          instanceName, manager.getSessionId(), stateUnitGroup);
+//      accessor.updateProperty(PropertyType.CURRENTSTATES, currentStateDelta,
+//          instanceName, manager.getSessionId(), stateUnitGroup);
     }
 
     // Set the state model def to current state
@@ -134,25 +141,17 @@ public class CMStateTransitionHandler implements MessageHandler
       {
         logger.info("Setting state model def on current state: "
             + message.getStateModelDef());
-        ZNRecord currentStateDelta = new ZNRecord(stateUnitGroup);
+//        ZNRecord currentStateDelta = new ZNRecord(stateUnitGroup);
         currentStateDelta.setSimpleField(
             Message.Attributes.STATE_MODEL_DEF.toString(),
             message.getStateModelDef());
 
-        accessor.updateProperty(PropertyType.CURRENTSTATES, currentStateDelta,
-            instanceName, manager.getSessionId(), stateUnitGroup);
+//        accessor.updateProperty(PropertyType.CURRENTSTATES, currentStateDelta,
+//            instanceName, manager.getSessionId(), stateUnitGroup);
       }
     }
-
-    // TODO: debug, remove it later
-    ZNRecord newCurrentState = accessor.getProperty(PropertyType.CURRENTSTATES,
-                             instanceName, manager.getSessionId(), stateUnitGroup);
-    if (newCurrentState.getSimpleFields().get(Message.Attributes.STATE_MODEL_DEF.toString()) == null)
-    {
-      logger.error("state model def is null in message:" + message.getStateUnitGroup() + " "
-                   + message.getStateUnitKey() + " " + message.getSrcSessionId());
-      new Exception().printStackTrace();
-    }
+    accessor.updateProperty(PropertyType.CURRENTSTATES, currentStateDelta,
+                            instanceName, manager.getSessionId(), stateUnitGroup);
 
     // Verify the fromState and current state of the stateModel
     if (!fromState.equals("*")

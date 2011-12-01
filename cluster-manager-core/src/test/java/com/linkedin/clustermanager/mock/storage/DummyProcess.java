@@ -42,7 +42,7 @@ public class DummyProcess
   // private ClusterManager _manager = null;
   private DummyStateModelFactory stateModelFactory;
   private StateMachineEngine genericStateMachineHandler;
-  
+
   // private final FilePropertyStore<ClusterView> _store;
   private final FileBasedDataAccessor _accessor;
 
@@ -54,7 +54,7 @@ public class DummyProcess
   {
     this(zkConnectString, clusterName, instanceName, file, delay, null);
   }
-                  
+
   public DummyProcess(String zkConnectString, String clusterName,
       String instanceName, String file, int delay, FileBasedDataAccessor accessor)
   {
@@ -83,9 +83,9 @@ public class DummyProcess
 
     stateModelFactory = new DummyStateModelFactory(_transDelayInMs);
     genericStateMachineHandler = new StateMachineEngine(stateModelFactory);
-    
-    manager.getMessagingService().registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(), genericStateMachineHandler);
+
     manager.connect();
+    manager.getMessagingService().registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(), genericStateMachineHandler);
     /*
     if (_file != null)
     {
@@ -145,7 +145,7 @@ public class DummyProcess
       String db = message.getStateUnitKey();
       String instanceName = context.getManager().getInstanceName();
       sleep();
-      logger.info("DummyStateModel.onBecomeSlaveFromOffline(), instance:" + instanceName 
+      logger.info("DummyStateModel.onBecomeSlaveFromOffline(), instance:" + instanceName
                          + ", db:" + db);
     }
 
@@ -324,7 +324,7 @@ public class DummyProcess
     DummyProcess process = new DummyProcess(zkConnectString, clusterName,
         instanceName, file, delay);
     ClusterManager manager = process.start();
-    
+
     try
     {
       Thread.currentThread().join();
@@ -332,7 +332,7 @@ public class DummyProcess
     catch (InterruptedException e)
     {
       // ClusterManagerFactory.disconnectManagers(instanceName);
-      logger.info("participant:" + instanceName + ", " + 
+      logger.info("participant:" + instanceName + ", " +
                    Thread.currentThread().getName() + " interrupted");
       if (manager != null)
       {

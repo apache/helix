@@ -47,11 +47,6 @@ public class DistClusterControllerStateModel extends StateModel
     {
       _controller = ClusterManagerFactory.getZKBasedManagerForController(clusterName, controllerName, _zkAddr);
       _controller.connect();
-
-//      DistClusterControllerElection leaderElection = new DistClusterControllerElection(_zkAddr);
-      // TODO need sync
-//      _controller.addControllerListener(leaderElection);
-//      context.add(clusterName, leaderElection.getController());
     }
     else
     {
@@ -118,12 +113,6 @@ public class DistClusterControllerStateModel extends StateModel
 
     if (_controller != null)
     {
-//      GenericClusterController listener = (GenericClusterController)context.get(clusterName);
-//      if (listener != null)
-//      {
-//        // TODO need sync
-//        _controller.removeListener(listener);
-//      }
       _controller.disconnect();
       _controller = null;
     }

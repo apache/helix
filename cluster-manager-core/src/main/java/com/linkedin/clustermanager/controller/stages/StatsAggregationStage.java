@@ -57,7 +57,7 @@ public class StatsAggregationStage extends AbstractBaseStage
       }
       
       ClusterDataAccessor accessor = manager.getDataAccessor();
-      boolean retVal = accessor.setProperty(PropertyType.GLOBALSTATS,
+      boolean retVal = accessor.setProperty(PropertyType.PERSISTENTSTATS,
               record);
       if (retVal == false) {
     	  logger.error("attempt to persist derived stats failed");

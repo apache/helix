@@ -5,6 +5,7 @@ import org.testng.AssertJUnit;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import com.linkedin.clustermanager.ClusterManagerException;
 import com.linkedin.clustermanager.alerts.ExpressionParser;
 import com.linkedin.clustermanager.alerts.ExpressionOperatorType;
 
@@ -19,7 +20,7 @@ public class TestBaseStatsExtraction {
 	    String statName = "window(5)(dbFoo.partition10.latency)";
 	    try {
 			actual = ExpressionParser.getBaseStats(statName);
-		} catch (Exception e) {		
+		} catch (ClusterManagerException e) {		
 			e.printStackTrace();
 		}
 	    AssertJUnit.assertEquals(statName, actual[0]);
@@ -34,7 +35,7 @@ public class TestBaseStatsExtraction {
 	    boolean caughtException = false;
 	    try {
 			actual = ExpressionParser.getBaseStats(statName);
-		} catch (Exception e) {		
+		} catch (ClusterManagerException e) {		
 			caughtException = true;
 			//e.printStackTrace();
 		}
@@ -50,7 +51,7 @@ public class TestBaseStatsExtraction {
 	    String statName = "accumulate()(dbFoo.partition*.latency)";
 	    try {
 			actual = ExpressionParser.getBaseStats(statName);
-		} catch (Exception e) {		
+		} catch (ClusterManagerException e) {		
 			e.printStackTrace();
 		}
 	    AssertJUnit.assertEquals(statName, actual[0]);
@@ -64,7 +65,7 @@ public class TestBaseStatsExtraction {
 	    String expression = "accumulate()(dbFoo.partition10.latency, dbFoo.partition10.count)";
 	    try {
 			actual = ExpressionParser.getBaseStats(expression);
-		} catch (Exception e) {		
+		} catch (ClusterManagerException e) {		
 			e.printStackTrace();
 		}
 	    AssertJUnit.assertEquals("accumulate()(dbFoo.partition10.latency)",actual[0]);
@@ -83,7 +84,7 @@ public class TestBaseStatsExtraction {
 	    String expression = "accumulate()(dbFoo.partition*.latency)|SUM";
 	    try {
 			actual = ExpressionParser.getBaseStats(expression);
-		} catch (Exception e) {		
+		} catch (ClusterManagerException e) {		
 			e.printStackTrace();
 		}
 	    AssertJUnit.assertEquals("accumulate()(dbFoo.partition*.latency)", actual[0]);
@@ -97,7 +98,7 @@ public class TestBaseStatsExtraction {
 	    String expression = "window(5)(dbFoo.partition10.latency, dbFoo.partition11.latency)|SUM";
 	    try {
 			actual = ExpressionParser.getBaseStats(expression);
-		} catch (Exception e) {		
+		} catch (ClusterManagerException e) {		
 			e.printStackTrace();
 		}
 	    AssertJUnit.assertEquals("window(5)(dbFoo.partition10.latency)", actual[0]);
@@ -112,7 +113,7 @@ public class TestBaseStatsExtraction {
 	    String expression = "accumulate()(dbFoo.partition*.latency, dbFoo.partition*.count)|EACH";
 	    try {
 			actual = ExpressionParser.getBaseStats(expression);
-		} catch (Exception e) {		
+		} catch (ClusterManagerException e) {		
 			e.printStackTrace();
 		}
 	    AssertJUnit.assertEquals("accumulate()(dbFoo.partition*.latency)", actual[0]);
@@ -127,7 +128,7 @@ public class TestBaseStatsExtraction {
 	    String expression = "accumulate()(dbFoo.partition10.latency)|ACCUMULATE";
 	    try {
 			actual = ExpressionParser.getBaseStats(expression);
-		} catch (Exception e) {		
+		} catch (ClusterManagerException e) {		
 			e.printStackTrace();
 		}
 	    AssertJUnit.assertEquals("accumulate()(dbFoo.partition10.latency)", actual[0]);
@@ -141,7 +142,7 @@ public class TestBaseStatsExtraction {
 	    String expression = "window(5)(dbFoo.partition*.latency)|EACH|ACCUMULATE";
 	    try {
 			actual = ExpressionParser.getBaseStats(expression);
-		} catch (Exception e) {		
+		} catch (ClusterManagerException e) {		
 			e.printStackTrace();
 		}
 	    AssertJUnit.assertEquals("window(5)(dbFoo.partition*.latency)", actual[0]);
@@ -155,7 +156,7 @@ public class TestBaseStatsExtraction {
 	    String expression = "accumulate()(dbFoo.partition*.latency, dbFoo.partition*.count)|EACH|ACCUMULATE|DIVIDE";
 	    try {
 			actual = ExpressionParser.getBaseStats(expression);
-		} catch (Exception e) {		
+		} catch (ClusterManagerException e) {		
 			e.printStackTrace();
 		}
 	    AssertJUnit.assertEquals("accumulate()(dbFoo.partition*.latency)", actual[0]);

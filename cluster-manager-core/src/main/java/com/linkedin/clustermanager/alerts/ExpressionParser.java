@@ -9,6 +9,8 @@ import java.util.regex.Pattern;
 
 import org.apache.log4j.Logger;
 
+import com.linkedin.clustermanager.ClusterManagerException;
+
 public class ExpressionParser {
 	private static Logger logger = Logger.getLogger(ExpressionParser.class);
 	
@@ -23,8 +25,10 @@ public class ExpressionParser {
 	
 	  static
 	  {
+		  
 		  addOperatorEntry("EXPAND", new ExpandOperator());
 		  
+		  addAggregatorEntry("ACCUMULATE", new AccumulateAggregator());
 		  addAggregatorEntry("WINDOW", new WindowAggregator());
 		  /*
 		  addEntry("EACH", ExpressionOperatorType.EACH);
@@ -47,9 +51,9 @@ public class ExpressionParser {
 	  
 	  private static void addAggregatorEntry(String label, Aggregator agg)
 	  {
-		  if (!aggregatorMap.containsKey(label))
+		  if (!aggregatorMap.containsKey(label.toUpperCase()))
 		    {
-		      aggregatorMap.put(label, agg);
+		      aggregatorMap.put(label.toUpperCase(), agg);
 		    }
 		    logger.info("Adding aggregator: "+agg);
 	  }
@@ -122,41 +126,48 @@ public class ExpressionParser {
 	   * 
 	   * TODO: extract agg type and validate it exists.  validate number of args passed in
 	   */
-	  public static void validateAggregator(String expression) throws Exception
+	  public static void validateAggregatorFormat(String expression) throws ClusterManagerException
 	  {
 		  logger.debug("validating aggregator for expression: "+expression);
 		  //have 0 or more args, 1 or more stats
 		  Pattern pattern = Pattern.compile("\\(.*?\\)\\(.+?\\)");
 		  Matcher matcher = pattern.matcher(expression);
 		  if (!matcher.find()) {
-			  throw new Exception(expression +" does not have correct parenthesis");
+			  throw new ClusterManagerException(expression +" does not have correct parenthesis");
 		  }
 		  logger.debug("found valid aggregator "+matcher.group());
 		  int patternEnd = matcher.end();
 		  if (expression.length() > patternEnd+1) { //if more, check for what follows
 		  if (expression.substring(patternEnd+1).contains("(") || 
 		  	expression.substring(patternEnd+1).contains(")")) {
-			  	throw new Exception(expression +" has extra parenthesis");
+			  	throw new ClusterManagerException(expression +" has extra parenthesis");
 		  	}
 		  }
 	  }
 	  
-	  public static String getAggregator(String expression) throws Exception 
+	  public static String getAggregator(String expression) throws ClusterManagerException 
 	  {
 		  if (!expression.contains("(")) {
-			  throw new Exception(expression+" does not contain a valid aggregator.  No parentheses found");
+			  throw new ClusterManagerException(expression+" does not contain a valid aggregator.  No parentheses found");
 		  }
-		  return expression.substring(0,expression.indexOf("("));
+		  String aggName = expression.substring(0,expression.indexOf("("));
+		  if (!aggregatorMap.containsKey(aggName.toUpperCase())) {
+			  throw new ClusterManagerException("aggregator <"+aggName+"> is unknown type");
+		  }
+		  return aggName;
 	  }
 	  
-	  public static String[] getAggregatorArgs(String expression) throws Exception
+	  public static String[] getAggregatorArgs(String expression) throws ClusterManagerException
 	  {
+		  String aggregator = getAggregator(expression);
 		  String[] argList = (expression.substring(expression.indexOf("(")+1, expression.indexOf(")"))).split(argDelim);
-		  /*
-		  if (argList.length < 1) {
-			  throw new Exception(expression+" does not contain any aggregator args");
+		  //verify correct number of args
+		  int requiredNumArgs = aggregatorMap.get(aggregator.toUpperCase()).getRequiredNumArgs();
+		  if (argList.length != requiredNumArgs)
+		  {
+			  throw new ClusterManagerException(
+					  expression+" contains "+argList.length+" arguments, but requires "+requiredNumArgs);
 		  }
-		  */
 		  return argList;
 	  }
 	  
@@ -165,22 +176,22 @@ public class ExpressionParser {
 		  return expression.substring(expression.indexOf("("), expression.indexOf(")")+1);
 	  }
 	  
-	  public static String[] getAggregatorStats(String expression) throws Exception
+	  public static String[] getAggregatorStats(String expression) throws ClusterManagerException
 	  {
 		  String[] statList = (expression.substring(expression.lastIndexOf("(")+1, expression.lastIndexOf(")"))).split(argDelim);
 		  if (statList.length < 1) {
-			  throw new Exception(expression+" does not contain any aggregator stats");
+			  throw new ClusterManagerException(expression+" does not contain any aggregator stats");
 		  }
 		  return statList;
 	  }
 	  
 	  //XXX: each op type should have number of inputs, number of outputs.  do validation.
 	  //(dbFoo.partition*.latency, dbFoo.partition*.count)|EACH|ACCUMULATE|DIVIDE
-	  public static String[] getBaseStats(String expression) throws Exception
+	  public static String[] getBaseStats(String expression) throws ClusterManagerException
 	  {
 		  expression = expression.replaceAll("\\s+", ""); //remove white space
 		  
-		  validateAggregator(expression);
+		  validateAggregatorFormat(expression);
 			
 		  String aggName = getAggregator(expression);
 		  String[] aggArgs = getAggregatorArgs(expression);

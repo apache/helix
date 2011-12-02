@@ -99,7 +99,7 @@ public class EspressoStorageMockNode extends MockNode {
 	private boolean isPartitionOwnedByNode(String partitionName) {
 		Map<String, StateModel> stateModelMap = _stateModelFactory
 				.getStateModelMap();
-		logger.debug("size: "+stateModelMap.size());
+		logger.debug("state model map size: "+stateModelMap.size());
 		
 		return (stateModelMap.keySet().contains(partitionName));
 	}

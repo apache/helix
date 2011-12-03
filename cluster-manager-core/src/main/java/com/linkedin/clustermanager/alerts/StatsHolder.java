@@ -55,12 +55,38 @@ public class StatsHolder {
 	{
 		return null;
 	}
-	
-	public void applyStat(String stat)
+
+	public Map<String,String> mergeStats(String statName, Map<String,String> existingStat, Map<String,String> incomingStat)
 	{
-		
+		//TODO: write the merging logic.
+		return null;
 	}
 	
+	/*
+	 * Find all persisted stats this stat matches.  Update those stats
+	 */
+	public void applyStat(String incomingStatName, Map<String,String> statFields)
+	{
+		refreshStats();
+		
+		//traverse through all persistent stats
+		for (String key : _statMap.keySet()) {
+			//exact match, just update
+			if (incomingStatName.equals(key)) {
+				Map<String,String> mergedStat = mergeStats(key, _statMap.get(key), statFields);
+				_statMap.put(key, mergedStat);
+			}
+			//wildcard match
+			if (ExpressionParser.isWildcardMatch(key, incomingStatName)) {
+				//make sure incoming stat doesn't already exist
+				if (! _statMap.containsKey(incomingStatName)) {
+					//add this stat to persisted stats
+					_statMap.put(incomingStatName, statFields); //XXX: just add, or some massaging of fields needed?
+				}
+			}
+		}
+		persistStats();
+	}
 	
 	//add parsing of stat (or is that in expression holder?)  at least add validate
 	public void addStat(String exp) throws Exception

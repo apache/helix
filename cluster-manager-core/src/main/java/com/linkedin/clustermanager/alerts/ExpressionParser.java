@@ -145,6 +145,23 @@ public class ExpressionParser {
 		  }
 	  }
 	  
+	  /*
+	   * Return true if stat name matches exactly...incomingStat has no agg type currentStat can have any
+	   */
+	  public static boolean isExactMatch(String incomingStat, String currentStat)
+	  {
+		  //TODO: implement this
+		  return false;
+	  }
+	  /*
+	   * Return true if incomingStat matches wildcardStat except currentStat has 1+ fields with "*"
+	   */
+	  public static boolean isWildcardMatch(String incomingStat, String currentStat)
+	  {
+		  //TODO: implement this
+		  return false;
+	  }
+	  
 	  public static String getAggregator(String expression) throws ClusterManagerException 
 	  {
 		  if (!expression.contains("(")) {

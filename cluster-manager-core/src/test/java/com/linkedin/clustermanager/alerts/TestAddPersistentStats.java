@@ -12,7 +12,7 @@ import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.healthcheck.PerformanceHealthReportProvider;
 
-public class TestStatAdd {
+public class TestAddPersistentStats {
 
 	protected static final String CLUSTER_NAME = "TestCluster";
 	

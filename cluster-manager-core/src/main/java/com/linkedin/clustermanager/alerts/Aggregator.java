@@ -9,8 +9,12 @@ public abstract class Aggregator {
 		
 	}
 	
-	public abstract Tuple merge(Tuple oldVal, Tuple newVal, String... args);
-
+	/*
+	 * Take curr and new values.  Update curr.
+	 */
+	public abstract void merge(Tuple<String> currVal, Tuple<String> newVal, 
+			Tuple<String> currTime, Tuple<String> newTime, String... args);
+	
 	public int getRequiredNumArgs()
 	{
 		return _numArgs;

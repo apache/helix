@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.StringTokenizer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -16,6 +17,8 @@ public class ExpressionParser {
 	
 	final static String opDelim = "|";
 	final static String argDelim = ",";
+	final static String statFieldDelim = ".";
+	final static String wildcardChar = "*";
 	
 	//static Map<String, ExpressionOperatorType> operatorMap = new HashMap<String, ExpressionOperatorType>();
 	
@@ -129,7 +132,7 @@ public class ExpressionParser {
 	  public static void validateAggregatorFormat(String expression) throws ClusterManagerException
 	  {
 		  logger.debug("validating aggregator for expression: "+expression);
-		  //have 0 or more args, 1 or more stats
+		  //have 0 or more args, 1 or more stats...e.g. ()(x) or (2)(x,y)
 		  Pattern pattern = Pattern.compile("\\(.*?\\)\\(.+?\\)");
 		  Matcher matcher = pattern.matcher(expression);
 		  if (!matcher.find()) {
@@ -148,21 +151,71 @@ public class ExpressionParser {
 	  /*
 	   * Return true if stat name matches exactly...incomingStat has no agg type currentStat can have any
 	   */
-	  public static boolean isExactMatch(String incomingStat, String currentStat)
+	  public static boolean isExactMatch(String currentStat, String incomingStat)
 	  {
-		  //TODO: implement this
-		  return false;
+		  String currentStatName = getSingleAggregatorStat(currentStat);
+		  currentStatName = currentStatName.replaceAll("\\s+", ""); //remove white space
+		  String incomingStatName = incomingStat.replaceAll("\\s+", ""); //remove whitespace
+		  return (incomingStatName.equals(currentStatName));
 	  }
 	  /*
 	   * Return true if incomingStat matches wildcardStat except currentStat has 1+ fields with "*"
+	   * a*.c* matches a5.c7    a*.c* does not match a5.b6.c7
 	   */
-	  public static boolean isWildcardMatch(String incomingStat, String currentStat)
+	  public static boolean isWildcardMatch(String currentStat, String incomingStat)
 	  {
 		  //TODO: implement this
-		  return false;
+		  String currentStatName = getSingleAggregatorStat(currentStat);
+		  currentStatName = currentStatName.replaceAll("\\s+", ""); //remove white space
+		  String incomingStatName = incomingStat.replaceAll("\\s+", ""); //remove whitespace
+		  
+		  if (! currentStatName.contains(wildcardChar)) { //no wildcards in stat name
+			  return false;
+		  }
+		  StringTokenizer currentStatTok = new StringTokenizer(currentStatName, statFieldDelim);
+		  StringTokenizer incomingStatTok = new StringTokenizer(incomingStatName, statFieldDelim);
+		  if (currentStatTok.countTokens() != incomingStatTok.countTokens()) { //stat names different numbers of fields
+			  return false;
+		  }
+		  //for each token, if not wildcarded, must be an exact match
+		  while (currentStatTok.hasMoreTokens()) {
+			  String currTok = currentStatTok.nextToken();
+			  String incomingTok = incomingStatTok.nextToken();
+			  logger.debug("curTok: "+currTok);
+			  logger.debug("incomingTok: "+incomingTok);
+			  if (!currTok.contains(wildcardChar)) { //no wildcard, but have exact match
+				  if (!currTok.equals(incomingTok)) { //not exact match
+					  return false;
+				  }
+			  }
+			  else { //currTok has a wildcard
+				  if (currTok.indexOf(wildcardChar) != currTok.length()-1 ||
+						  currTok.lastIndexOf(wildcardChar) != currTok.length()-1) {
+					  throw new ClusterManagerException(currTok+" is illegal stat name.  Single wildcard must appear at end.");
+				  }
+				  String currTokPreWildcard = currTok.substring(0,currTok.length()-1);
+				  Pattern pattern = Pattern.compile(currTokPreWildcard+".+");  //form pattern...wildcard part can be anything
+				  Matcher matcher = pattern.matcher(incomingTok); //see if incomingTok matches
+				  if (!matcher.find()) { //no match on one tok, return false
+					  return false;
+				  }
+			  }
+		  }
+		  //all fields match or wildcard match...return true!
+		  return true;
 	  }
 	  
-	  public static String getAggregator(String expression) throws ClusterManagerException 
+	  public static Aggregator getAggregator(String aggStr) throws ClusterManagerException
+	  {
+		  aggStr = aggStr.toUpperCase();
+		  Aggregator agg = aggregatorMap.get(aggStr);
+		  if (agg == null) {
+			  throw new ClusterManagerException("Unknown aggregator type "+aggStr);
+		  }
+		  return agg;
+	  }
+	  
+	  public static String getAggregatorStr(String expression) throws ClusterManagerException 
 	  {
 		  if (!expression.contains("(")) {
 			  throw new ClusterManagerException(expression+" does not contain a valid aggregator.  No parentheses found");
@@ -176,21 +229,33 @@ public class ExpressionParser {
 	  
 	  public static String[] getAggregatorArgs(String expression) throws ClusterManagerException
 	  {
-		  String aggregator = getAggregator(expression);
-		  String[] argList = (expression.substring(expression.indexOf("(")+1, expression.indexOf(")"))).split(argDelim);
+		  String aggregator = getAggregatorStr(expression);
+		  String argsStr = getAggregatorArgsStr(expression);
+		  String[] args = argsStr.split(argDelim);
+		  logger.debug("args size: "+args.length);
+		  int numArgs = (argsStr.length() == 0) ? 0 : args.length; 
+		  //String[] argList = (expression.substring(expression.indexOf("(")+1, expression.indexOf(")"))).split(argDelim);
 		  //verify correct number of args
 		  int requiredNumArgs = aggregatorMap.get(aggregator.toUpperCase()).getRequiredNumArgs();
-		  if (argList.length != requiredNumArgs)
+		  if (numArgs != requiredNumArgs)
 		  {
 			  throw new ClusterManagerException(
-					  expression+" contains "+argList.length+" arguments, but requires "+requiredNumArgs);
+					  expression+" contains "+args.length+" arguments, but requires "+requiredNumArgs);
 		  }
-		  return argList;
+		  return args;
 	  }
 	  
-	  public static String getAggregatorArgsList(String expression)
+	  /*
+	  public static String[] getAggregatorArgsList(String expression) {
+		  String argsStr = getAggregatorArgsStr(expression);
+		  String[] args = argsStr.split(argDelim);
+		  return args;
+	  }
+	  */
+	  
+	  public static String getAggregatorArgsStr(String expression)
 	  {
-		  return expression.substring(expression.indexOf("("), expression.indexOf(")")+1);
+		  return expression.substring(expression.indexOf("(")+1, expression.indexOf(")"));
 	  }
 	  
 	  public static String[] getAggregatorStats(String expression) throws ClusterManagerException
@@ -202,6 +267,29 @@ public class ExpressionParser {
 		  return statList;
 	  }
 	  
+	  public static String getSingleAggregatorStat(String expression) throws ClusterManagerException
+	  {
+		  String[] stats = getAggregatorStats(expression);
+		  if (stats.length > 1) {
+			  throw new ClusterManagerException(expression+" contains more than 1 stat");
+		  }
+		  return stats[0];
+	  }
+	  
+	  public static String getWildcardStatSubstitution(String wildcardStat, String fixedStat)
+	  {
+		  int lastOpenParenLoc = wildcardStat.lastIndexOf("(");
+		  int lastCloseParenLoc = wildcardStat.lastIndexOf(")");
+		  StringBuilder builder = new StringBuilder();
+		  builder.append(wildcardStat.substring(0,lastOpenParenLoc+1));
+		  builder.append(fixedStat);
+		  builder.append(")");
+		  logger.debug("wildcardStat: "+wildcardStat);
+		  logger.debug("fixedStat: "+fixedStat);
+		  logger.debug("subbedStat: "+builder.toString());
+		  return builder.toString();
+	  }
+	  
 	  //XXX: each op type should have number of inputs, number of outputs.  do validation.
 	  //(dbFoo.partition*.latency, dbFoo.partition*.count)|EACH|ACCUMULATE|DIVIDE
 	  public static String[] getBaseStats(String expression) throws ClusterManagerException
@@ -210,18 +298,20 @@ public class ExpressionParser {
 		  
 		  validateAggregatorFormat(expression);
 			
-		  String aggName = getAggregator(expression);
+		  String aggName = getAggregatorStr(expression);
 		  String[] aggArgs = getAggregatorArgs(expression);
 		  String[] aggStats = getAggregatorStats(expression);
 		  
 		  //form aggArgs
-		  String aggArgList = getAggregatorArgsList(expression);
+		  String aggArgList = getAggregatorArgsStr(expression);
 		  
 		  String[] baseStats = new String[aggStats.length];
 		  for (int i=0; i<aggStats.length;i++) {
 			  StringBuilder stat = new StringBuilder();
 			  stat.append(aggName);
+			  stat.append("(");
 			  stat.append(aggArgList);
+			  stat.append(")");
 			  stat.append("(");
 			  stat.append(aggStats[i]);
 			  stat.append(")");

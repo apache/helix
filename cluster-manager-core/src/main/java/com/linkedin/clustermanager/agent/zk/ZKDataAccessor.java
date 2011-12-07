@@ -118,7 +118,14 @@ public class ZKDataAccessor implements ClusterDataAccessor
   public List<String> getChildNames(PropertyType type, String... keys)
   {
     String path = PropertyPathConfig.getPath(type, _clusterName, keys);
-    return _zkClient.getChildren(path);
+    if (_zkClient.exists(path))
+    {
+      return _zkClient.getChildren(path);
+    }
+    else
+    {
+      return Collections.emptyList();
+    }
   }
 
   @Override

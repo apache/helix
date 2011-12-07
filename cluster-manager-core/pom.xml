@@ -132,6 +132,10 @@
               <name>zk-log-parser</name>
             </program>
             <program>
+              <mainClass>com.linkedin.clustermanager.tools.ZkLogCSVFormatter</mainClass>
+              <name>zk-log-csv-formatter</name>
+            </program>
+            <program>
               <mainClass>com.linkedin.clustermanager.examples.ExampleProcess</mainClass>
               <name>start-example-process</name>
             </program>

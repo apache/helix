@@ -670,9 +670,7 @@ public class TestExecutor
     public void handleDataDeleted(String dataPath) throws Exception
     {
       // TODO Auto-generated method stub
-
     }
-
   };
 
   private static class ExecuteCommand implements Runnable
@@ -833,6 +831,7 @@ public class TestExecutor
       String znodePath = _command._znodeOpArg._znodePath;
       _zkClient.unsubscribeDataChanges(znodePath, _listener);
       _task.cancel(true);
+      _command._finishTimestamp = System.currentTimeMillis();
       _countDown.countDown();
 
       logger.warn("fail to execute command (timeout):" + _command.toString());

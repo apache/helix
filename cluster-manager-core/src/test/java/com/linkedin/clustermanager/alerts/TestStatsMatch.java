@@ -25,7 +25,7 @@ public class TestStatsMatch {
 	    
 	    String persistedStatName = "window(5)(dbFoo.partition*.latency)";
 	    String incomingStatName = "dbFoo.partition10.latency";
-	    AssertJUnit.assertTrue(ExpressionParser.isExactMatch(persistedStatName, incomingStatName));
+	    AssertJUnit.assertTrue(ExpressionParser.isWildcardMatch(persistedStatName, incomingStatName));
 	  }
 	
 	@Test
@@ -34,7 +34,7 @@ public class TestStatsMatch {
 	    
 	    String persistedStatName = "window(5)(db*.partition*.latency)";
 	    String incomingStatName = "dbFoo.partition10.latency";
-	    AssertJUnit.assertTrue(ExpressionParser.isExactMatch(persistedStatName, incomingStatName));
+	    AssertJUnit.assertTrue(ExpressionParser.isWildcardMatch(persistedStatName, incomingStatName));
 	  }
 	
 	@Test

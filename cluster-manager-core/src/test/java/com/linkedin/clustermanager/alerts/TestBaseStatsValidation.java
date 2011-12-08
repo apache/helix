@@ -10,7 +10,7 @@ import com.linkedin.clustermanager.alerts.ExpressionParser;
 import com.linkedin.clustermanager.alerts.ExpressionOperatorType;
 
 @Test
-public class TestBaseStatsExtraction {
+public class TestBaseStatsValidation {
 	
 	 @Test
 	  public void testParseSingletonExpression()

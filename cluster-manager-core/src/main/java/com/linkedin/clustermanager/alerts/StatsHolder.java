@@ -2,6 +2,8 @@ package com.linkedin.clustermanager.alerts;
 
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
@@ -149,7 +151,7 @@ public class StatsHolder {
 	}
 	
 	//add parsing of stat (or is that in expression holder?)  at least add validate
-	public void addStat(String exp) throws Exception
+	public void addStat(String exp) throws ClusterManagerException
 	{
 		refreshStats(); //get current stats
 
@@ -172,5 +174,18 @@ public class StatsHolder {
 		statFields.put(TIMESTAMP_NAME, "");
 		statFields.put(VALUE_NAME, "");
 		return statFields;
+	}
+	
+	public List<Stat> getStatsList()
+	{
+		List<Stat> stats = new LinkedList<Stat>();
+		for (String stat : _statMap.keySet()) {
+			Map<String,String> statFields = _statMap.get(stat);
+			Tuple<String> valTup = Tuple.fromString(statFields.get(VALUE_NAME));
+			Tuple<String> timeTup = Tuple.fromString(statFields.get(TIMESTAMP_NAME));
+			Stat s = new Stat(stat, valTup, timeTup);
+			stats.add(s);
+		}
+		return stats;
 	}
 }

@@ -37,6 +37,7 @@ public class ClusterDataCache
   private Map<String, List<HealthStat>> _healthStatMap;
   private HealthStat _globalStats;
   private Map<String, Map<String, String>> _persistentStats;
+  private Map<String, Map<String, String>> _alerts;
 
   private static final Logger logger = Logger.getLogger(ClusterDataCache.class
       .getName());
@@ -138,6 +139,15 @@ public class ClusterDataCache
     } catch (Exception e) {
     	logger.debug("No global stats found: "+e);
     }
+    
+    try {
+    	ZNRecord alertsRec = dataAccessor.getProperty(PropertyType.ALERTS);
+    	if (alertsRec != null) {
+    		_alerts = alertsRec.getMapFields();
+    	}
+    } catch (Exception e) {
+    	logger.debug("No global stats found: "+e);
+    }
 
     return true;
   }
@@ -179,6 +189,11 @@ public class ClusterDataCache
   public Map<String,Map<String,String>> getPersistentStats() 
   {
 	  return _persistentStats;
+  }
+  
+  public Map<String,Map<String,String>> getAlerts()
+  {
+	  return _alerts;
   }
   
   public List<HealthStat> getHealthStats(String instanceName)

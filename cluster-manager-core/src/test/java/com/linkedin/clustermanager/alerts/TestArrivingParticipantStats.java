@@ -329,7 +329,7 @@ public class TestArrivingParticipantStats {
 				  }
 				
 				
-				//test merging 2 window stats
+				//test merging 2 window stats, new is applied
 				@Test (groups = {"unitTest"})
 				  public void testMergeTwoWindowsYesMerge() throws Exception
 				  {
@@ -356,7 +356,7 @@ public class TestArrivingParticipantStats {
 						AssertJUnit.assertTrue(statRecordHasTimestamp(rec, persistentStat, "2.0,3.0,4.0"));
 				  }
 				
-				//test merging 2 window stats
+				//test merging 2 window stats, new is ignored
 				@Test (groups = {"unitTest"})
 				  public void testMergeTwoWindowsNoMerge() throws Exception
 				  {

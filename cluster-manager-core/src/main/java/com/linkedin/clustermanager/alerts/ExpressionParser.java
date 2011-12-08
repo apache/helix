@@ -16,6 +16,7 @@ public class ExpressionParser {
 	private static Logger logger = Logger.getLogger(ExpressionParser.class);
 	
 	final static String opDelim = "|";
+	final static String opDelimForSplit = "\\|";
 	final static String argDelim = ",";
 	final static String statFieldDelim = ".";
 	final static String wildcardChar = "*";
@@ -30,6 +31,9 @@ public class ExpressionParser {
 	  {
 		  
 		  addOperatorEntry("EXPAND", new ExpandOperator());
+		  addOperatorEntry("DIVIDE", new DivideOperator());
+		  addOperatorEntry("SUM", new SumOperator());
+		  addOperatorEntry("SUMALL", new SumAllOperator());
 		  
 		  addAggregatorEntry("ACCUMULATE", new AccumulateAggregator());
 		  addAggregatorEntry("WINDOW", new WindowAggregator());
@@ -76,6 +80,7 @@ public class ExpressionParser {
 		  return expression.contains("(");
 	  }
 	  
+	  /*
 	  public static Operator getOperatorType(String expression) throws Exception
 	  {
 		  String op = expression.substring(0,expression.indexOf("("));
@@ -84,6 +89,7 @@ public class ExpressionParser {
 		  }
 		  return operatorMap.get(op);
 	  }
+	  */
 	  
 	  public static String getInnerExpression(String expression) 
 	  {
@@ -119,15 +125,11 @@ public class ExpressionParser {
 	  }
 	  */
 	  
-	  public static void validateOperators(String expression) throws Exception
-	  {
-		  
-	  }
-	   
 	  /*
 	   * Validate 2 sets of parenthesis exist, all before first opDelim
 	   * 
 	   * TODO: extract agg type and validate it exists.  validate number of args passed in
+	   * 
 	   */
 	  public static void validateAggregatorFormat(String expression) throws ClusterManagerException
 	  {
@@ -146,6 +148,7 @@ public class ExpressionParser {
 			  	throw new ClusterManagerException(expression +" has extra parenthesis");
 		  	}
 		  }
+		  
 	  }
 	  
 	  /*
@@ -318,90 +321,48 @@ public class ExpressionParser {
 			  baseStats[i] = stat.toString();
 		  }
 		  return baseStats;
-		  
-		  
-		  //String[] opNames = null;
-		  
-		  
-		  
-		  
-		  //return null;
-		  
-		  //confirm this is a true agg type
-		  //parse out args for agg type and the stat names.
-		  //generate the new stat names.
-		  
-		  //XXX: how do I know number of args
-		  
-		  /*
-		  String[] statNames = null;
-		  String statList = expression;
-		  String[] opNames = null;
-		  //parse apart stats from ops
-		  if (statList.contains(opDelim)) {
-			  statList = expression.substring(0,expression.indexOf(opDelim));
-			  logger.debug("statList: "+statList);
-			  String opList = expression.substring(expression.indexOf(opDelim)+1);
-			  logger.debug("opList: "+opList);
-			  String splitter = "\\"+opDelim;
-			  opNames = opList.split(splitter);
-		  }
-		  if (statList.contains("(")) {
-			  statList = statList.substring(expression.indexOf("(")+1, expression.indexOf(")"));
-		  }
-		  statNames = statList.split(statDelim);
-		  
-		  if (opNames == null) {  //done, no need to take on op names
-			  return statNames;
-		  }
-
-		  //build new set of ops, but only base ones, add to each stat
-		  StringBuilder baseOnlyOps = new StringBuilder();
-		  logger.debug("opNames size: "+opNames.length);
-		  for (String op : opNames) {
-			  logger.debug("op: "+op);
-			  op = op.toUpperCase();
-			  if (!operatorMap.containsKey(op)) {
-				  throw new Exception(op + " not a valid op type");
-			  }
-			  if (operatorMap.get(op).isBaseOp()) {
-				  baseOnlyOps.append(opDelim);
-				  baseOnlyOps.append(op);
-			  }
-		  }
-		  String baseOpsList = baseOnlyOps.toString();
-		  for (int i=0; i<statNames.length; i++) {
-			  statNames[i] = statNames[i].concat(baseOpsList);
-		  }
-		  return statNames;
-		  */
 	  }
 	  
+	  public static String[] validateOperators(String expression) throws ClusterManagerException
+	  {
+		  String[] ops = null;
+		  int numAggStats = (getAggregatorStats(expression)).length;
+		  int opDelimLoc = expression.indexOf(opDelim);
+		  if (opDelimLoc < 0) {
+			  return null;
+		  }
+		  logger.debug("ops str: "+expression.substring(opDelimLoc+1));
+		  ops = expression.substring(opDelimLoc+1).split(opDelimForSplit);
+		 
+		  //validate this string of ops 
+		  //verify each op exists
+		  //take num input tuples sets and verify ops will output exactly 1 tuple sets
+		  int currNumTuples = numAggStats;
+		  for (String op : ops) {
+			  logger.debug("op: "+op);
+			  if (!operatorMap.containsKey(op.toUpperCase())) {
+				  throw new ClusterManagerException("<"+op+"> is not a valid operator type");
+			  }
+			  Operator currOpType = operatorMap.get(op.toUpperCase());
+			  if (currNumTuples < currOpType.minInputTupleLists || currNumTuples > currOpType.maxInputTupleLists) {
+				  throw new ClusterManagerException("<"+op+"> cannot process "+currNumTuples+" input tuples");
+			  }
+			  //reset num tuples to this op's output size
+			  if (! currOpType.inputOutputTupleListsCountsEqual) { //if equal, this number does not change
+				  currNumTuples = currOpType.numOutputTupleLists;
+			  }
+		  }
+		  if (currNumTuples != 1) {
+			  throw new ClusterManagerException(expression+" does not terminate in a single tuple set");
+		  }
+		  return ops;
+	  }
 	  
-	  /*
-	  //1) parse expression to get args...picking out key words is open problem
-	   //need to parse to first "(" and to last ")".  then parse on comma...without going deeper into "("
-	  //2) check number of args, and expression against templatemap and make sure there is entry..else error
-	  //3) this perhaps need to be done recursively...in fact, this function should return next level args, 
-	  //which may themselves be expressions
-	public static String[] getArgs(String expression) 
-	{
-		String type = null; //get outer most thing
-		
-		
-		String template = null;
-	    if (templateMap.containsKey(type))
-	    {
-	      template = templateMap.get(type).get(keys.length);
-	    }
-
-	    String result[] = new String[1];
-	    
-	    if (template != null)
-	    {
-	    }
-	    result[0] = template;
-	    return result;
-	}
-	*/
+	  public static void validateExpression(String expression) throws ClusterManagerException
+	  {
+		  //1. extract stats part and validate
+		  validateAggregatorFormat(expression);
+		  //2. extract ops part and validate the ops exist and the inputs/outputs are correct
+		  validateOperators(expression);
+	  }
 }

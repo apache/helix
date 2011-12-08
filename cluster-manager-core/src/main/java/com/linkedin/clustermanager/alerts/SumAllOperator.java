@@ -3,12 +3,13 @@ package com.linkedin.clustermanager.alerts;
 import java.util.Iterator;
 import java.util.List;
 
-public class ExpandOperator extends Operator {
+public class SumAllOperator extends Operator {
 
-	public ExpandOperator() {
+	public SumAllOperator() {
 		minInputTupleLists = 1;
 		maxInputTupleLists = Integer.MAX_VALUE;
 		inputOutputTupleListsCountsEqual = true;
+		numOutputTupleLists = -1;
 	}
 
 	@Override

@@ -25,6 +25,7 @@ public enum PropertyType
   HISTORY(Type.CONTROLLER, true, true, true),
   PAUSE(Type.CONTROLLER, false,false, true),
   PERSISTENTSTATS(Type.CONTROLLER, true, false, false, false),
+  ALERTS(Type.CONTROLLER, true, false, false, false),
   MESSAGES_CONTROLLER(Type.CONTROLLER, true, false, true), 
   STATUSUPDATES_CONTROLLER(Type.CONTROLLER, true, true, true), 
   ERRORS_CONTROLLER(Type.CONTROLLER,true, true, true);

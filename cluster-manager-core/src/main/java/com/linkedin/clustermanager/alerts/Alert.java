@@ -6,9 +6,9 @@ public class Alert {
 	
 	String _expression;
 	String _comparator;
-	String _constant;
+	Tuple<String> _constant;
 	
-	public Alert(String name, String expression, String comparator, String constant)
+	public Alert(String name, String expression, String comparator, Tuple<String> constant)
 	{
 		_name=name;
 		_expression=expression;
@@ -31,7 +31,7 @@ public class Alert {
 		return _comparator;
 	}
 	
-	public String getConstant() 
+	public Tuple<String> getConstant() 
 	{
 		return _constant;
 	}

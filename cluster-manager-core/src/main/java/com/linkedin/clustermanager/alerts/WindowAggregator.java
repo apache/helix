@@ -30,10 +30,10 @@ public class WindowAggregator extends Aggregator {
 		Tuple<String> mergedTimeTuple = new Tuple<String>();
 		Tuple<String> mergedValTuple = new Tuple<String>();
 		
-		Iterator<String> currTimeIter = currTimeTup.getIterator();
-		Iterator<String> currValIter = currValTup.getIterator();
-		Iterator<String> newTimeIter = newTimeTup.getIterator();
-		Iterator<String> newValIter = newValTup.getIterator();
+		Iterator<String> currTimeIter = currTimeTup.iterator();
+		Iterator<String> currValIter = currValTup.iterator();
+		Iterator<String> newTimeIter = newTimeTup.iterator();
+		Iterator<String> newValIter = newValTup.iterator();
 		int currCtr = 0;
 		//traverse current vals
 		double currTime = -1;

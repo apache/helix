@@ -1,5 +1,6 @@
 package com.linkedin.clustermanager.alerts;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -151,12 +152,25 @@ public class ExpressionParser {
 		  
 	  }
 	  
+	  public static boolean statContainsWildcards(String stat)
+	  {
+		  return stat.contains(wildcardChar);
+	  }
+	  
 	  /*
 	   * Return true if stat name matches exactly...incomingStat has no agg type currentStat can have any
+	   * 
+	   * Function can match for 2 cases
+	   * extractStatFromAgg=false.  Match accumulate()(dbFoo.partition10.latency) with accumulate()(dbFoo.partition10.latency)...trival
+	   * extractStatFromAgg=true.  Match accumulate()(dbFoo.partition10.latency) with dbFoo.partition10.latency
+	   * 
 	   */
-	  public static boolean isExactMatch(String currentStat, String incomingStat)
+	  public static boolean isExactMatch(String currentStat, String incomingStat, boolean extractStatFromAgg)
 	  {
-		  String currentStatName = getSingleAggregatorStat(currentStat);
+		  String currentStatName = currentStat;
+		  if (extractStatFromAgg) {
+			  currentStatName = getSingleAggregatorStat(currentStat);
+		  }
 		  currentStatName = currentStatName.replaceAll("\\s+", ""); //remove white space
 		  String incomingStatName = incomingStat.replaceAll("\\s+", ""); //remove whitespace
 		  return (incomingStatName.equals(currentStatName));
@@ -164,11 +178,18 @@ public class ExpressionParser {
 	  /*
 	   * Return true if incomingStat matches wildcardStat except currentStat has 1+ fields with "*"
 	   * a*.c* matches a5.c7    a*.c* does not match a5.b6.c7
+	   * 
+	   * Function can match for 2 cases
+	   * extractStatFromAgg=false.  Match accumulate()(dbFoo.partition*.latency) with accumulate()(dbFoo.partition10.latency)
+	   * extractStatFromAgg=true.  Match accumulate()(dbFoo.partition*.latency) with dbFoo.partition10.latency
 	   */
-	  public static boolean isWildcardMatch(String currentStat, String incomingStat)
+	  public static boolean isWildcardMatch(String currentStat, String incomingStat, boolean extractStatFromAgg, ArrayList<String> bindings)
 	  {
 		  //TODO: implement this
-		  String currentStatName = getSingleAggregatorStat(currentStat);
+		  String currentStatName = currentStat;
+		  if (extractStatFromAgg) {
+			  currentStatName = getSingleAggregatorStat(currentStat);
+		  }
 		  currentStatName = currentStatName.replaceAll("\\s+", ""); //remove white space
 		  String incomingStatName = incomingStat.replaceAll("\\s+", ""); //remove whitespace
 		  
@@ -202,12 +223,52 @@ public class ExpressionParser {
 				  if (!matcher.find()) { //no match on one tok, return false
 					  return false;
 				  }
+				  //get the binding
+				  
+				  if (bindings != null) {
+					  //TODO: debug me!
+					  String wildcardBinding = incomingTok.substring(incomingTok.indexOf(currTokPreWildcard)+currTokPreWildcard.length());
+					  bindings.add(wildcardBinding);
+				  }
 			  }
 		  }
 		  //all fields match or wildcard match...return true!
 		  return true;
 	  }
 	  
+	  /*
+	   * For checking if an incoming stat (no agg type defined) matches a persisted stat (with agg type defined)
+	   */
+	  public static boolean isIncomingStatExactMatch(String currentStat, String incomingStat)
+	  {
+		  return isExactMatch(currentStat, incomingStat, true);
+	  }
+	  
+	  /*
+	   * For checking if an incoming stat (no agg type defined) wildcard matches a persisted stat (with agg type defined)
+	   * The persisted stat may have wildcards
+	   */
+	  public static boolean isIncomingStatWildcardMatch(String currentStat, String incomingStat)
+	  {
+		  return isWildcardMatch(currentStat, incomingStat, true, null);
+	  }
+	  
+	  /*
+	   * For checking if a persisted stat matches a stat defined in an alert
+	   */
+	  public static boolean isAlertStatExactMatch(String alertStat, String currentStat)
+	  {
+		  return isExactMatch(alertStat, currentStat, false);
+	  }
+	  
+	  /*
+	   * For checking if a maintained stat wildcard matches a stat defined in an alert.  The alert may have wildcards
+	   */
+	  public static boolean isAlertStatWildcardMatch(String alertStat, String currentStat, ArrayList<String> wildcardBindings)
+	  {
+		  return isWildcardMatch(alertStat, currentStat, false, wildcardBindings);
+	  }
+	 
 	  public static Aggregator getAggregator(String aggStr) throws ClusterManagerException
 	  {
 		  aggStr = aggStr.toUpperCase();
@@ -323,7 +384,7 @@ public class ExpressionParser {
 		  return baseStats;
 	  }
 	  
-	  public static String[] validateOperators(String expression) throws ClusterManagerException
+	  public static String[] getOperators(String expression) throws ClusterManagerException
 	  {
 		  String[] ops = null;
 		  int numAggStats = (getAggregatorStats(expression)).length;
@@ -356,6 +417,20 @@ public class ExpressionParser {
 			  throw new ClusterManagerException(expression+" does not terminate in a single tuple set");
 		  }
 		  return ops;
+	  }
+	  
+	  public static void validateOperators(String expression) throws ClusterManagerException
+	  {
+		  getOperators(expression);
+	  }
+	  
+	  public static Operator getOperator(String opName) throws ClusterManagerException
+	  {
+		  opName = opName.replaceAll("\\s+", ""); //remove white space
+		  if (!operatorMap.containsKey(opName)) {
+			 throw new ClusterManagerException(opName + " is unknown op type");
+		  }
+		  return operatorMap.get(opName);
 	  }
 	  
 	  public static void validateExpression(String expression) throws ClusterManagerException

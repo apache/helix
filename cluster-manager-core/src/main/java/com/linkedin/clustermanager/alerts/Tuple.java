@@ -29,7 +29,7 @@ public class Tuple<T> {
 		elements.addAll(incoming.getElements());
 	}
 	
-	public Iterator<T> getIterator()
+	public Iterator<T> iterator()
 	{
 		return elements.listIterator();
 	}
@@ -59,7 +59,7 @@ public class Tuple<T> {
 	public String toString() 
 	{
 		StringBuilder out = new StringBuilder();
-		Iterator<T> it = getIterator();
+		Iterator<T> it = iterator();
 		boolean outEmpty=true;
 		while (it.hasNext()) {
 			if (!outEmpty) {

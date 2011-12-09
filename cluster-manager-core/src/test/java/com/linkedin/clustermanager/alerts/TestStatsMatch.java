@@ -16,7 +16,7 @@ public class TestStatsMatch {
 	    
 	    String persistedStatName = "window(5)(dbFoo.partition10.latency)";
 	    String incomingStatName = "dbFoo.partition10.latency";
-	    AssertJUnit.assertTrue(ExpressionParser.isExactMatch(persistedStatName, incomingStatName));
+	    AssertJUnit.assertTrue(ExpressionParser.isIncomingStatExactMatch(persistedStatName, incomingStatName));
 	  }
 	
 	@Test
@@ -25,7 +25,7 @@ public class TestStatsMatch {
 	    
 	    String persistedStatName = "window(5)(dbFoo.partition*.latency)";
 	    String incomingStatName = "dbFoo.partition10.latency";
-	    AssertJUnit.assertTrue(ExpressionParser.isWildcardMatch(persistedStatName, incomingStatName));
+	    AssertJUnit.assertTrue(ExpressionParser.isIncomingStatWildcardMatch(persistedStatName, incomingStatName));
 	  }
 	
 	@Test
@@ -34,7 +34,7 @@ public class TestStatsMatch {
 	    
 	    String persistedStatName = "window(5)(db*.partition*.latency)";
 	    String incomingStatName = "dbFoo.partition10.latency";
-	    AssertJUnit.assertTrue(ExpressionParser.isWildcardMatch(persistedStatName, incomingStatName));
+	    AssertJUnit.assertTrue(ExpressionParser.isIncomingStatWildcardMatch(persistedStatName, incomingStatName));
 	  }
 	
 	@Test
@@ -43,7 +43,7 @@ public class TestStatsMatch {
 	    
 	    String persistedStatName = "window(5)(dbFoo.partition10.latency)";
 	    String incomingStatName = "dbFoo.partition10.latency";
-	    AssertJUnit.assertFalse(ExpressionParser.isWildcardMatch(persistedStatName, incomingStatName));
+	    AssertJUnit.assertFalse(ExpressionParser.isIncomingStatWildcardMatch(persistedStatName, incomingStatName));
 	  }
 	
 	@Test
@@ -52,7 +52,7 @@ public class TestStatsMatch {
 	    
 	    String persistedStatName = "window(5)(dbFoo.partition*.latency)";
 	    String incomingStatName = "dbFoo.tableBar.partition10.latency";
-	    AssertJUnit.assertFalse(ExpressionParser.isWildcardMatch(persistedStatName, incomingStatName));
+	    AssertJUnit.assertFalse(ExpressionParser.isIncomingStatWildcardMatch(persistedStatName, incomingStatName));
 	  }
 	
 	@Test
@@ -61,7 +61,7 @@ public class TestStatsMatch {
 	    
 	    String persistedStatName = "window(5)(dbFoo.partition*.latency)";
 	    String incomingStatName = "dbFoo.latency";
-	    AssertJUnit.assertFalse(ExpressionParser.isWildcardMatch(persistedStatName, incomingStatName));
+	    AssertJUnit.assertFalse(ExpressionParser.isIncomingStatWildcardMatch(persistedStatName, incomingStatName));
 	  }
 	
 
@@ -73,7 +73,7 @@ public class TestStatsMatch {
 	    String incomingStatName = "dbFoo.partition10.latency";
 	    boolean caughtException = false;
 	    try {
-	    	boolean match = ExpressionParser.isWildcardMatch(persistedStatName, incomingStatName);
+	    	boolean match = ExpressionParser.isIncomingStatWildcardMatch(persistedStatName, incomingStatName);
 	    } catch (ClusterManagerException e) {
 	    	caughtException = true;
 	    }
@@ -88,7 +88,7 @@ public class TestStatsMatch {
 	    String incomingStatName = "dbFoo.partition10.latency";
 	    boolean caughtException = false;
 	    try {
-	    	boolean match = ExpressionParser.isWildcardMatch(persistedStatName, incomingStatName);
+	    	boolean match = ExpressionParser.isIncomingStatWildcardMatch(persistedStatName, incomingStatName);
 	    } catch (ClusterManagerException e) {
 	    	caughtException = true;
 	    }

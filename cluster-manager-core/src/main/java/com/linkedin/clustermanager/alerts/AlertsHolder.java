@@ -100,7 +100,7 @@ public class AlertsHolder {
 			Map<String,String> alertFields = _alertsMap.get(alert);
 			String exp = alertFields.get(AlertParser.EXPRESSION_NAME);
 			String comp = alertFields.get(AlertParser.COMPARATOR_NAME);
-			String con = alertFields.get(AlertParser.CONSTANT_NAME);
+			Tuple<String> con = Tuple.fromString(alertFields.get(AlertParser.CONSTANT_NAME));
 			//TODO: test the fields for null and fail if needed
 			
 			Alert a = new Alert(alert, exp, comp, con);

@@ -31,6 +31,15 @@ public class AlertParser {
 		    logger.info("Adding comparator: "+comp);
 	  }
 	
+	public static AlertComparator getComparator(String compName)
+	{
+		compName = compName.replaceAll("\\s+", ""); //remove white space
+		if (!comparatorMap.containsKey(compName)) {
+			throw new ClusterManagerException("Comparator type <"+compName+"> unknown");
+		}
+		return comparatorMap.get(compName);
+	}
+	 
 	public static String getComponent(String component, String alert) throws ClusterManagerException
 	{
 		//find EXP and keep going until paren are closed

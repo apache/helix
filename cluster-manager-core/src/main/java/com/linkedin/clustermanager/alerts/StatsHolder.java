@@ -126,13 +126,13 @@ public class StatsHolder {
 		//traverse through all persistent stats
 		for (String key : _statMap.keySet()) {
 			//exact match on stat and stat portion of persisted stat, just update
-			if (ExpressionParser.isExactMatch(key, incomingStatName)) {
+			if (ExpressionParser.isIncomingStatExactMatch(key, incomingStatName)) {
 				Map<String,String> mergedStat = mergeStats(key, _statMap.get(key), statFields);
 				//update in place, no problem with hash map
 				_statMap.put(key, mergedStat);
 			}
 			//wildcard match
-			else if (ExpressionParser.isWildcardMatch(key, incomingStatName)) {
+			else if (ExpressionParser.isIncomingStatWildcardMatch(key, incomingStatName)) {
 				//make sure incoming stat doesn't already exist, either in previous round or this round
 				//form new key (incomingStatName with agg type from the wildcarded stat)
 				String statToAdd = ExpressionParser.getWildcardStatSubstitution(key, incomingStatName);

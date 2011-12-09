@@ -13,8 +13,8 @@ public class ExpandOperator extends Operator {
 
 	@Override
 	public List<Iterator<Tuple<String>>> execute(List<Iterator<Tuple<String>>> input) {
-		// TODO Auto-generated method stub
-		return null;
+		//TODO: confirm this is a no-op operator
+		return input;
 	}
 
 }

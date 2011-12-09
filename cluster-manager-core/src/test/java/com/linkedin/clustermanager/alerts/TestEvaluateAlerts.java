@@ -40,33 +40,97 @@ public class TestEvaluateAlerts {
 		return statMap;
 	}
 	
-	public void addSimpleStat() throws ClusterManagerException
+	public String addSimpleStat() throws ClusterManagerException
 	{
 		String stat = "accumulate()(dbFoo.partition10.latency)";
 		_statsHolder.addStat(stat);
+		return stat;
 	}
 	
-	public void addSimpleAlert() throws ClusterManagerException
+	public String addWildcardStat() throws ClusterManagerException
+	{
+		String stat = "accumulate()(dbFoo.partition*.latency)";
+		_statsHolder.addStat(stat);
+		return stat;
+	}
+	
+	public String addSimpleAlert() throws ClusterManagerException
 	{
 		String alert = EXP + "(accumulate()(dbFoo.partition10.latency))"
 				+ CMP + "(GREATER)" + CON + "(100)";
 	     _alertsHolder.addAlert(alert);
+	     return alert;
+	}
+	
+	public String addWildcardAlert() throws ClusterManagerException
+	{
+		String alert = EXP + "(accumulate()(dbFoo.partition*.latency))"
+				+ CMP + "(GREATER)" + CON + "(100)";
+	     _alertsHolder.addAlert(alert);
+	     return alert;
 	}
 
-	public void addArrivingSimpleStat() throws ClusterManagerException
+	public String addExpandWildcardAlert() throws ClusterManagerException
+	{
+		String alert = EXP + "(accumulate()(dbFoo.partition*.latency)|EXPAND)"
+				+ CMP + "(GREATER)" + CON + "(100)";
+	     _alertsHolder.addAlert(alert);
+	     return alert;
+	}
+	
+	public String addArrivingSimpleStat() throws ClusterManagerException
 	{
 		String incomingStatName = "dbFoo.partition10.latency";
 		Map<String, String> statFields = getStatFields("110","0");
 		_statsHolder.applyStat(incomingStatName, statFields);
+		return incomingStatName;
 	}
 	
 	@Test (groups = {"unitTest"})
 	public void testSimpleAlertFires()
 	{
-		addSimpleStat();
-		addSimpleAlert();
+		String stat = addSimpleStat();
+		String alert = addSimpleAlert();
 		addArrivingSimpleStat();
-		AlertProcessor.executeAllAlerts(_alertsHolder.getAlertList(), _statsHolder.getStatsList());
+		Map<String, Map<String, Boolean>> alertResult = AlertProcessor.executeAllAlerts(_alertsHolder.getAlertList(), _statsHolder.getStatsList());
+		boolean alertFired = alertResult.get(alert).get(stat);
+		 AssertJUnit.assertTrue(alertFired);
 	}
+	
+	@Test (groups = {"unitTest"})
+	public void testWildcardAlertFires()
+	{
+		String stat = addWildcardStat();
+		String alert = addWildcardAlert();
+		addArrivingSimpleStat();
+		Map<String, Map<String, Boolean>> alertResult = AlertProcessor.executeAllAlerts(_alertsHolder.getAlertList(), _statsHolder.getStatsList());
+		String wildcardBinding = "10";
+		boolean alertFired = alertResult.get(alert).get(wildcardBinding);
+		AssertJUnit.assertTrue(alertFired);	
+	}
+	
+	@Test (groups = {"unitTest"})
+	public void testExpandOperatorWildcardAlertFires()
+	{
+		String stat = addWildcardStat();
+		String alert = addExpandWildcardAlert();
+		addArrivingSimpleStat();
+		Map<String, Map<String, Boolean>> alertResult = AlertProcessor.executeAllAlerts(_alertsHolder.getAlertList(), _statsHolder.getStatsList());
+		String wildcardBinding = "10";
+		boolean alertFired = alertResult.get(alert).get(wildcardBinding);
+		AssertJUnit.assertTrue(alertFired);	
+	}
+	
+	//test with multiple stats no wildcard (need to implement an operator for it)
+	//test with multiple stats and wildcard, some fire, some don't
+	//test with multiple stats, and multiple stats added.
+	//test with multiple ops, collapsing from 2+ list width to 1
+	//test non-fired alerts
+	//test multiple different stats, make sure they all appear
+	//test using sumall
+	//anything else, look around at the code
+	
+	//next: review all older tests
+	//next: actually write the fired alerts to ZK
 	
 }

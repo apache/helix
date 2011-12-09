@@ -30,11 +30,11 @@ public class AccumulateAggregator extends Aggregator {
 		
 		//old tuples may be empty, indicating no value/time exist
 		if (currValTup.size() > 0 && currTimeTup.size() > 0) {
-			currVal = Double.parseDouble(currValTup.getIterator().next());
-			currTime = Double.parseDouble(currTimeTup.getIterator().next());
+			currVal = Double.parseDouble(currValTup.iterator().next());
+			currTime = Double.parseDouble(currTimeTup.iterator().next());
 		}
-		newVal = Double.parseDouble(newValTup.getIterator().next());
-		newTime = Double.parseDouble(newTimeTup.getIterator().next());
+		newVal = Double.parseDouble(newValTup.iterator().next());
+		newTime = Double.parseDouble(newTimeTup.iterator().next());
 		
 		if (newTime > currTime) { //if old doesn't exist, we end up here
 			mergedVal = currVal+newVal; //if old doesn't exist, it has value "0"

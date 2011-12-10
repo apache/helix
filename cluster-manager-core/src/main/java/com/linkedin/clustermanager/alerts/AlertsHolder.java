@@ -25,11 +25,13 @@ public class AlertsHolder {
 	ClusterDataCache _cache;
 	Map<String, Map<String,String>> _alertsMap; //not sure if map or set yet
 	HashSet<String> alerts;
+	StatsHolder _statsHolder;
 	
 	public AlertsHolder(ClusterManager manager) 
 	{
 		_accessor = manager.getDataAccessor();
 		_cache = new ClusterDataCache();
+		_statsHolder = new StatsHolder(manager);
 	}
 	
 	public void refreshAlerts()
@@ -73,6 +75,9 @@ public class AlertsHolder {
 				AlertParser.getComponent(AlertParser.COMPARATOR_NAME, alert));
 		alertFields.put(AlertParser.CONSTANT_NAME, 
 				AlertParser.getComponent(AlertParser.CONSTANT_NAME, alert));
+		//store the expression as stat
+		_statsHolder.addStat(alertFields.get(AlertParser.EXPRESSION_NAME));
+		
 		//naming the alert with the full name
 		_alertsMap.put(alert, alertFields); 
 		persistAlerts();

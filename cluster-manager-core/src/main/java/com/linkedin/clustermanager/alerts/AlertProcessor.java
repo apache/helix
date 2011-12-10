@@ -18,7 +18,7 @@ public class AlertProcessor {
 	private static Logger logger = Logger.getLogger(AlertProcessor.class);
 	
 	private static final String bindingDelim = ",";
-	private static final String unknownAlertKey = "---";
+	public static final String noWildcardAlertKey = "*";
 	
 	StatsHolder _statsHolder;
 	//AlertsHolder _alertsHolder;
@@ -105,30 +105,62 @@ public class AlertProcessor {
 						ExpressionParser.isAlertStatWildcardMatch(alertStat, persistentStat.getName(), wildcardBindings)) {
 					String alertKey;
 					if (wildcardBindings.size() == 0) {
-						alertKey = alertStat;
+						alertKey = noWildcardAlertKey;
 					}
 					else {
 						alertKey = formAlertKey(wildcardBindings);
 					}
-					if (!tupleSets.containsKey(alertKey)) {
-						ArrayList<Tuple<String>> tuples = new ArrayList<Tuple<String>>(3);
-						tupleSets.put(alertKey, tuples);
+					if (!tupleSets.containsKey(alertKey)) { //don't have an entry for alertKey yet, create one
+						ArrayList<Tuple<String>> tuples = new ArrayList<Tuple<String>>(alertStats.length);
+						for (int j=0;j<alertStats.length;j++) { //init all entries to null
+							tuples.add(j,null);
+						}
+						tupleSets.put(alertKey, tuples); //add to map
 					}
-					tupleSets.get(alertKey).add(i, persistentStat.getValue());
+					tupleSets.get(alertKey).set(i, persistentStat.getValue());
 				}
 			}
 		}
+		
+		//post-processing step to discard any rows with null vals...
+		//TODO: decide if this is best thing to do with incomplete rows
+		for (String setKey : tupleSets.keySet()) {
+			ArrayList<Tuple<String>> tupleSet = tupleSets.get(setKey);
+			for (Tuple<String> tup : tupleSet) {
+				if (tup == null) {
+					tupleSets.remove(setKey);
+					break; //move on to next setKey
+				}
+			}
+		}
+		
+		//convert above to a series of iterators
+		
+		
 		return tupleSets;
 	}
 	
-	public static List<Iterator<Tuple<String>>> convertTupleSetsToTupleIterators(Map<String, ArrayList<Tuple<String>>> tupleMap) 
+	public static List<Iterator<Tuple<String>>> convertTupleRowsToTupleColumns(Map<String, ArrayList<Tuple<String>>> tupleMap) 
 	{
-		List<Iterator<Tuple<String>>> tupleIters = new ArrayList<Iterator<Tuple<String>>>();
+		//input is a map of key -> list of tuples.  each tuple list is same length
+		//output should be a list of iterators.  each column in input becomes iterator in output
+		
+		ArrayList<ArrayList<Tuple<String>>> columns = new ArrayList<ArrayList<Tuple<String>>>();
+		ArrayList<Iterator<Tuple<String>>> columnIters = new ArrayList<Iterator<Tuple<String>>>();
 		for (String currStat : tupleMap.keySet()) {
 			List<Tuple<String>> currSet = tupleMap.get(currStat);
-			tupleIters.add(currSet.iterator());
+			for (int i=0;i<currSet.size();i++) {
+				if (columns.size() < (i+1)) {
+					ArrayList<Tuple<String>> col = new ArrayList<Tuple<String>>();
+					columns.add(col);
+				}
+				columns.get(i).add(currSet.get(i));
+			}	
 		}
-		return tupleIters;
+		for (ArrayList<Tuple<String>> al : columns) {
+			columnIters.add(al.iterator());
+		}
+		return columnIters;
 		
 	}
 	
@@ -193,7 +225,7 @@ public class AlertProcessor {
 		if (alertStatBindings.size() != evalResults.size()) {
 			//can't match up alerts bindings to results
 			while (resultIter.hasNext()) {
-				resultMap.put(unknownAlertKey, resultIter.next());
+				resultMap.put(noWildcardAlertKey, resultIter.next());
 			}
 		}
 		else {
@@ -213,8 +245,12 @@ public class AlertProcessor {
 		String[] alertStats = ExpressionParser.getBaseStats(alert.getExpression());
 		
 		Map<String, ArrayList<Tuple<String>>> alertsToTupleRows = populateAlertStatTuples(alertStats, persistedStats); //TODO: not sure I am being careful enough with sticking stats that match each other in this list!
+		
+		if (alertsToTupleRows.size() == 0) {
+			return null;
+		}
 		//convert to operator friendly format
-		List<Iterator<Tuple<String>>> tupleIters = convertTupleSetsToTupleIterators(alertsToTupleRows);
+		List<Iterator<Tuple<String>>> tupleIters = convertTupleRowsToTupleColumns(alertsToTupleRows);
 		//get the operators
 		String[] operators = ExpressionParser.getOperators(alert.getExpression());
 		//do operator pipeline
@@ -237,6 +273,7 @@ public class AlertProcessor {
 		
 		for (Alert alert : alerts) {
 			HashMap<String, Boolean> result = executeAlert(alert, stats);
+			//TODO: decide if sticking null results in here is ok
 			alertsResults.put(alert.getName(), result);
 		}
 		

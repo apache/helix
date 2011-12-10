@@ -34,7 +34,7 @@ public class ExpressionParser {
 		  addOperatorEntry("EXPAND", new ExpandOperator());
 		  addOperatorEntry("DIVIDE", new DivideOperator());
 		  addOperatorEntry("SUM", new SumOperator());
-		  addOperatorEntry("SUMALL", new SumAllOperator());
+		  addOperatorEntry("SUMEACH", new SumEachOperator());
 		  
 		  addAggregatorEntry("ACCUMULATE", new AccumulateAggregator());
 		  addAggregatorEntry("WINDOW", new WindowAggregator());

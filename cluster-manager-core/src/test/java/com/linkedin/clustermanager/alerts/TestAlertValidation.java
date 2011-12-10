@@ -89,9 +89,9 @@ public class TestAlertValidation {
 	}
 
 	@Test
-	public void testSumAll() {
+	public void testSumEach() {
 		String alertName = EXP
-				+ "(accumulate()(dbFoo.partition*.latency, dbFoo.partition*.count)|EXPAND|SUMALL|DIVIDE) "
+				+ "(accumulate()(dbFoo.partition*.latency, dbFoo.partition*.count)|EXPAND|SUMEACH|DIVIDE) "
 				+ CMP + "(GREATER) " + CON + "(10)";
 		boolean caughtException = false;
 		try {

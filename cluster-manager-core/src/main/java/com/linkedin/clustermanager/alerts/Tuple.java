@@ -1,5 +1,6 @@
 package com.linkedin.clustermanager.alerts;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -11,7 +12,7 @@ public class Tuple<T> {
 	
 	public Tuple() 
 	{
-		elements = new LinkedList<T>();
+		elements = new ArrayList<T>();
 	}
 	
 	public int size()
@@ -32,6 +33,11 @@ public class Tuple<T> {
 	public Iterator<T> iterator()
 	{
 		return elements.listIterator();
+	}
+	
+	public T getElement(int ind)
+	{
+		return elements.get(ind);
 	}
 	
 	public List<T> getElements()

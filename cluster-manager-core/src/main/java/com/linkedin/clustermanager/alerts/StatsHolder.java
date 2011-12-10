@@ -33,16 +33,21 @@ public class StatsHolder {
 	{
 		_accessor = manager.getDataAccessor();
 		_cache = new ClusterDataCache();
+		_statMap = new HashMap<String,Map<String,String>>();
 	}
 	
 	public void refreshStats()
 	{
 		_cache.refresh(_accessor);
-		_statMap = _cache.getPersistentStats();
+		if (_cache.getPersistentStats() != null) {
+			_statMap = _cache.getPersistentStats();
+		}
 		//TODO: confirm this a good place to init the _statMap when null
+		/*
 		if (_statMap == null) {
 			_statMap = new HashMap<String, Map<String, String>>();
 		}
+		*/
 	}
 	
 	public void persistStats() 

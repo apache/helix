@@ -18,21 +18,21 @@ import com.linkedin.clustermanager.agent.zk.ZkClient;
 public class TestZkClientWrapper extends ZkUnitTestBase
 {
 	ZkClient _zkClient;
-	
+
 	@BeforeClass
 	public void beforeClass()
 	{
 		_zkClient = new ZkClient(ZK_ADDR);
 		_zkClient.setZkSerializer(new ZNRecordSerializer());
 	}
-	
+
 	@AfterClass
 	public void afterClass()
 	{
 		_zkClient.close();
 	}
-	
-	@Test (groups = {"unitTest"})
+
+	@Test ()
 	void testGetStat()
 	{
 		String path = "/tmp/getStatTest";
@@ -54,7 +54,7 @@ public class TestZkClientWrapper extends ZkUnitTestBase
 		AssertJUnit.assertNotSame(stat, newStat);
 	}
 
-  @Test (groups = {"unitTest"})
+  @Test ()
 	void testSessioExpire()
 	{
 		IZkStateListener listener = new IZkStateListener()

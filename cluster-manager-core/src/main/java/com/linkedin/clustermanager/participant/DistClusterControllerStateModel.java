@@ -5,7 +5,6 @@ import org.apache.log4j.Logger;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerFactory;
 import com.linkedin.clustermanager.NotificationContext;
-import com.linkedin.clustermanager.controller.GenericClusterController;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.participant.statemachine.StateModel;
 import com.linkedin.clustermanager.participant.statemachine.StateModelInfo;
@@ -48,15 +47,10 @@ public class DistClusterControllerStateModel extends StateModel
     {
       _controller = ClusterManagerFactory.getZKBasedManagerForController(clusterName, controllerName, _zkAddr);
       _controller.connect();
-
-      DistClusterControllerElection leaderElection = new DistClusterControllerElection(_zkAddr);
-      // TODO need sync
-      _controller.addControllerListener(leaderElection);
-      context.add(clusterName, leaderElection.getController());
     }
     else
     {
-      logger.error("a controller already exists:" + _controller.getInstanceName()
+      logger.error("controller already exists:" + _controller.getInstanceName()
                    + " for " + clusterName);
     }
 
@@ -119,13 +113,6 @@ public class DistClusterControllerStateModel extends StateModel
 
     if (_controller != null)
     {
-      // do clean
-      GenericClusterController listener = (GenericClusterController)context.get(clusterName);
-      if (listener != null)
-      {
-        // TODO need sync
-        _controller.removeListener(listener);
-      }
       _controller.disconnect();
       _controller = null;
     }

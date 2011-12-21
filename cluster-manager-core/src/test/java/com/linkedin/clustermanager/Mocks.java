@@ -1,5 +1,6 @@
 package com.linkedin.clustermanager;
 
+import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -8,7 +9,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Future;
 
-import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.data.Stat;
 
 import com.linkedin.clustermanager.healthcheck.HealthReportProvider;
 import com.linkedin.clustermanager.healthcheck.ParticipantHealthReportCollector;
@@ -85,9 +86,11 @@ public class Mocks
     MockAccessor accessor;
 
     private final String _clusterName;
-    private final String sessionId;
+    private final String _sessionId;
     String _instanceName;
     ClusterMessagingService _msgSvc ;
+    private String _version;
+
     public MockManager()
     {
       this("testCluster-" + Math.random() * 10000 % 999);
@@ -97,7 +100,7 @@ public class Mocks
     {
       _clusterName = clusterName;
       accessor = new MockAccessor(clusterName);
-      sessionId =  UUID.randomUUID().toString();
+      _sessionId =  UUID.randomUUID().toString();
       _instanceName = "testInstanceName";
       _msgSvc = new MockClusterMessagingService();
     }
@@ -184,7 +187,7 @@ public class Mocks
     @Override
     public String getSessionId()
     {
-      return sessionId;
+      return _sessionId;
     }
 
     @Override
@@ -250,6 +253,19 @@ public class Mocks
       return null;
     }
 
+	
+
+    @Override
+    public String getVersion()
+    {
+      return _version;
+    }
+
+    public void setVersion(String version)
+    {
+      _version = version;
+    }
+
 	@Override
 	public void addHealthStateChangeListener(
 			HealthStateChangeListener listener, String instanceName)
@@ -257,6 +273,7 @@ public class Mocks
 		// TODO Auto-generated method stub
 		
 	}
+    
   }
 
   public static class MockAccessor implements ClusterDataAccessor
@@ -390,6 +407,33 @@ public class Mocks
       // TODO Auto-generated method stub
       return null;
     }
+
+    @Override
+    public <T extends ZNRecordAndStat> void refreshChildValues(Map<String, T> childValues,
+        Class<T> clazz, PropertyType type, String... keys)
+    {
+      if (childValues == null)
+      {
+        throw new IllegalArgumentException("should provide non-null map that holds old child records "
+            + " (empty map if no old values)");
+      }
+
+      childValues.clear();
+      List<ZNRecord> childRecords = this.getChildValues(type, keys);
+      for (ZNRecord record : childRecords)
+      {
+        try
+        {
+          Constructor<T> constructor = clazz.getConstructor(new Class[] { ZNRecord.class, Stat.class });
+          childValues.put(record.getId(), constructor.newInstance(record, null));
+        }
+        catch (Exception e)
+        {
+          // logger.error("Error creating an Object of type:" + clazz.getCanonicalName(), e);
+          e.printStackTrace();
+        }
+      }
+    }
   }
 
   public static class MockHealthReportProvider extends HealthReportProvider
@@ -405,11 +449,11 @@ public class Mocks
 	@Override
 	public void resetStats() {
 		// TODO Auto-generated method stub
-		
+
 	}
 
   }
-  
+
   public static class MockClusterMessagingService implements ClusterMessagingService
   {
 
@@ -441,8 +485,8 @@ public class Mocks
         MessageHandlerFactory factory)
     {
       // TODO Auto-generated method stub
-      
+
     }
-    
+
   }
 }

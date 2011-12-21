@@ -45,6 +45,7 @@ $SCRIPT_DIR/cm_driver.py -c dummy-process -o start -l "integration-test/config/l
 #Launch the cluster manager
 $SCRIPT_DIR/cm_driver.py -c cluster-manager -o start -l "integration-test/config/log4j.properties" --cmdline_args="-zkSvr localhost:2188 -cluster storage-cluster-12345"
 
+exit 0
 sleep 6
 
 #$SCRIPT_DIR/cm_driver.py -c cluster-manager -o stop 

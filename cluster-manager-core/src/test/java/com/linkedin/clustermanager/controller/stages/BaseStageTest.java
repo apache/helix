@@ -1,11 +1,14 @@
 package com.linkedin.clustermanager.controller.stages;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 
 import com.linkedin.clustermanager.ClusterDataAccessor;
@@ -27,15 +30,29 @@ public class BaseStageTest
   protected ClusterDataAccessor accessor;
   protected ClusterEvent event;
 
+  @BeforeClass()
+  public void beforeClass()
+  {
+    String className = this.getClass().getName();
+    System.out.println("START " + className.substring(className.lastIndexOf('.') + 1)
+                       + " at "+ new Date(System.currentTimeMillis()));
+  }
+
+  @AfterClass()
+  public void afterClass()
+  {
+    String className = this.getClass().getName();
+    System.out.println("END " + className.substring(className.lastIndexOf('.') + 1)
+                       + " at "+ new Date(System.currentTimeMillis()));
+  }
+
   @BeforeMethod()
   public void setup()
   {
-    System.out.println("BaseStageTest.setup()");
     String clusterName = "testCluster-" + UUID.randomUUID().toString();
     manager = new Mocks.MockManager(clusterName);
     accessor = manager.getDataAccessor();
     event = new ClusterEvent("sampleEvent");
-
   }
 
   protected String[] setupIdealState(int nodes, List<IdealState> idealStates,
@@ -79,7 +96,6 @@ public class BaseStageTest
   protected void setupLiveInstances(int numLiveInstances)
   {
     // setup liveInstances
-
     for (int i = 0; i < numLiveInstances; i++)
     {
       ZNRecord znRecord = new ZNRecord("localhost_" + i);

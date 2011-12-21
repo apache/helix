@@ -2,17 +2,16 @@ package com.linkedin.clustermanager.model;
 
 import java.util.Collection;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.Map;
-import java.util.Set;
+
+import org.apache.log4j.Logger;
 
 public class ResourceGroup
 {
+  private static Logger LOG = Logger.getLogger(ResourceGroup.class);
 
   private final String _resourceGroupId;
-
   private final Map<String, ResourceKey> _resourceKeyMap;
-
   private String _stateModelDefRef;
 
   public ResourceGroup(String resourceGroupId)

@@ -2,14 +2,22 @@ package com.linkedin.clustermanager.model;
 
 import java.util.Map;
 
-import com.linkedin.clustermanager.ZNRecord;
+import org.apache.zookeeper.data.Stat;
 
-public class HealthStat {
-	private final ZNRecord _record;
+import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.ZNRecordAndStat;
+
+public class HealthStat extends ZNRecordAndStat {
+	//private final ZNRecord _record;
 
 	public HealthStat(ZNRecord record)
 	{
-		_record = new ZNRecord(record);
+		this(record, null);
+	}
+	
+	public HealthStat(ZNRecord record, Stat stat)
+	{
+		super(record, stat);
 	}
 	
 	public String getId()

@@ -4,12 +4,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.ClusterDataAccessor.IdealStateConfigProperty;
 import com.linkedin.clustermanager.model.IdealState;
-import com.linkedin.clustermanager.model.InstanceConfig;
 import com.linkedin.clustermanager.model.LiveInstance;
 import com.linkedin.clustermanager.model.ResourceGroup;
 import com.linkedin.clustermanager.model.ResourceKey;
@@ -99,12 +99,15 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
         }
         else
         {
-          List<String> instancePreferenceList =
-              getPreferenceList(cache, resource, idealState, stateModelDef);
+          List<String> instancePreferenceList
+            = getPreferenceList(cache, resource, idealState, stateModelDef);
+          Set<String> disabledInstancesForResource
+            = cache.getDisabledInstancesForResource(resource.toString());
           bestStateForResource =
               computeBestStateForResource(cache, stateModelDef,
                                           instancePreferenceList,
-                                          currentStateMap);
+                                          currentStateMap,
+                                          disabledInstancesForResource);
         }
 
         output.setState(resourceGroupName, resource, bestStateForResource);
@@ -116,10 +119,10 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
   private Map<String, String> computeBestStateForResource(ClusterDataCache cache,
   																											  StateModelDefinition stateModelDef,
                                                           List<String> instancePreferenceList,
-                                                          Map<String, String> currentStateMap)
+                                                          Map<String, String> currentStateMap,
+                                                          Set<String> disabledInstancesForResource)
   {
     Map<String, String> instanceStateMap = new HashMap<String, String>();
-    Map<String, InstanceConfig> configMap = cache.getInstanceConfigMap();
 
     // if the ideal state is deleted, instancePreferenceList will be empty and
     // we should drop all resources.
@@ -127,14 +130,13 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
     {
       for (String instance : currentStateMap.keySet())
       {
-        boolean isDisabled = configMap != null && configMap.containsKey(instance)
-            && configMap.get(instance).getEnabled() == false;
         if (instancePreferenceList == null || !instancePreferenceList.contains(instance))
         {
           instanceStateMap.put(instance, "DROPPED");
         }
-        else if (isDisabled)
+        else if (disabledInstancesForResource.contains(instance))
         {
+          // if a node is disabled, put it into initial state (OFFLINE)
           instanceStateMap.put(instance, stateModelDef.getInitialState());
         }
 
@@ -159,7 +161,9 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
       if ("N".equals(num))
       {
         // stateCount = liveInstancesMap.size();
-        stateCount = getNumOfInstanceAliveAndEnabled(cache);
+        Set<String> enabledInstances = liveInstancesMap.keySet();
+        enabledInstances.removeAll(disabledInstancesForResource);
+        stateCount = enabledInstances.size();
       }
       else if ("R".equals(num))
       {
@@ -186,11 +190,8 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
           boolean notInErrorState =
               currentStateMap == null || !"ERROR".equals(currentStateMap.get(instanceName));
 
-          // instance is disabled only if it's ENABLED set to false
-          boolean isDisabled = configMap != null && configMap.containsKey(instanceName)
-                              && configMap.get(instanceName).getEnabled() == false;
           if (liveInstancesMap.containsKey(instanceName) && !assigned[i] && notInErrorState
-              && !isDisabled)
+              && !disabledInstancesForResource.contains(instanceName))
           {
             instanceStateMap.put(instanceName, state);
             count = count + 1;
@@ -227,21 +228,40 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
     return listField;
   }
 
-  private int getNumOfInstanceAliveAndEnabled(ClusterDataCache cache)
-  {
-    int cnt = 0;
-    Map<String, LiveInstance> liveInstancesMap = cache.getLiveInstances();
-    Map<String, InstanceConfig> configMap = cache.getInstanceConfigMap();
-    for(String instanceName : liveInstancesMap.keySet())
-    {
-      boolean isDisabled = configMap != null && configMap.containsKey(instanceName)
-          && configMap.get(instanceName).getEnabled() == false;
+//  private int getNumOfInstanceAliveAndEnabled(ClusterDataCache cache)
+//  {
+//    int cnt = 0;
+//    Map<String, LiveInstance> liveInstancesMap = cache.getLiveInstances();
+//    Map<String, InstanceConfig> configMap = cache.getInstanceConfigMap();
+//    for(String instanceName : liveInstancesMap.keySet())
+//    {
+//      boolean isDisabled = configMap.containsKey(instanceName)
+//          && configMap.get(instanceName).getInstanceEnabled() == false;
+//
+//      if (!isDisabled)
+//      {
+//        cnt++;
+//      }
+//    }
+//    return cnt;
+//  }
 
-      if (!isDisabled)
-      {
-        cnt++;
-      }
-    }
-    return cnt;
-  }
+//  private Set<String> getDisabledInstancesForResource(Map<String, InstanceConfig> configMap,
+//                                                  String resource)
+//  {
+//    Set<String> disabledInstancesSet = new HashSet<String>();
+//    for (String instance : configMap.keySet())
+//    {
+//      if (configMap.containsKey(instance))
+//      {
+//        InstanceConfig config = configMap.get(instance);
+//        if (config.getInstanceEnabled() == false
+//            || config.getInstanceEnabledForResource(resource) == false)
+//        {
+//          disabledInstancesSet.add(instance);
+//        }
+//      }
+//    }
+//    return disabledInstancesSet;
+//  }
 }

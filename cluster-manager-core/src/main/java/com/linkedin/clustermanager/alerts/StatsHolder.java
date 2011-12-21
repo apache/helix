@@ -16,6 +16,7 @@ import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.controller.stages.ClusterDataCache;
 import com.linkedin.clustermanager.controller.stages.StatsAggregationStage;
 import com.linkedin.clustermanager.model.HealthStat;
+import com.linkedin.clustermanager.model.PersistentStats;
 
 public class StatsHolder {
 
@@ -27,21 +28,33 @@ public class StatsHolder {
 	
 	ClusterDataAccessor _accessor;
 	ClusterDataCache _cache;
-	Map<String, Map<String, String>> _statMap;
+	Map<String, Map<String,String>> _statMap;
+	//PersistentStats _persistentStats
+	;
 	
 	public StatsHolder(ClusterManager manager)
 	{
 		_accessor = manager.getDataAccessor();
 		_cache = new ClusterDataCache();
-		_statMap = new HashMap<String,Map<String,String>>();
+		//_statMap = new HashMap<String,PersistentStat>();
 	}
 	
 	public void refreshStats()
 	{
 		_cache.refresh(_accessor);
+		PersistentStats persistentStatRecord = _cache.getPersistentStats();
+		if (persistentStatRecord != null) {
+			_statMap = persistentStatRecord.getMapFields();
+		}
+		else {
+			_statMap = new HashMap<String,Map<String,String>>();
+		}
+		/*
 		if (_cache.getPersistentStats() != null) {
+			
 			_statMap = _cache.getPersistentStats();
 		}
+		*/
 		//TODO: confirm this a good place to init the _statMap when null
 		/*
 		if (_statMap == null) {
@@ -55,11 +68,11 @@ public class StatsHolder {
 		//XXX: Am I using _accessor too directly here?
 		ZNRecord statsRec = _accessor.getProperty(PropertyType.PERSISTENTSTATS);
 		if (statsRec == null) {
-			statsRec = new ZNRecord("PersistentStats"); //TODO: fix naming of this record, if it matters
+			statsRec = new ZNRecord(PersistentStats.nodeName); //TODO: fix naming of this record, if it matters
 		}
 		statsRec.setMapFields(_statMap);
 		 boolean retVal = _accessor.setProperty(PropertyType.PERSISTENTSTATS, statsRec);
-		 logger.debug("persistStats retVal: "+retVal);
+		 //logger.debug("persistStats retVal: "+retVal);
 	}
 	
 	public Iterator<String> getAllStats() 
@@ -173,7 +186,22 @@ public class StatsHolder {
 				 
 	}
 	
-	public Map<String, String> getEmptyStat() 
+	public static Map<String,Map<String,String>> parseStat(String exp) throws ClusterManagerException
+	{
+		String[] parsedStats = ExpressionParser.getBaseStats(exp);
+		Map<String,Map<String,String>> statMap = new HashMap<String,Map<String,String>>();
+		
+		for (String stat : parsedStats) {
+			if (statMap.containsKey(stat)) {
+				logger.debug("Stat "+stat+" already exists; not adding");
+				continue;
+			}		
+			statMap.put(stat, getEmptyStat()); //add new stat to map
+		}
+		return statMap;
+	}
+	
+	public static Map<String, String> getEmptyStat() 
 	{
 		Map<String, String> statFields = new HashMap<String, String>();
 		statFields.put(TIMESTAMP_NAME, "");
@@ -183,6 +211,7 @@ public class StatsHolder {
 	
 	public List<Stat> getStatsList()
 	{
+		refreshStats();
 		List<Stat> stats = new LinkedList<Stat>();
 		for (String stat : _statMap.keySet()) {
 			Map<String,String> statFields = _statMap.get(stat);

@@ -16,7 +16,7 @@ public class ZKExceptionHandler
   {
     if (e instanceof ZkInterruptedException)
     {
-      logger.warn("zk connection is interrupted, exception" + e);
+      logger.warn("zk connection is interrupted, exception:" + e);
     }
     else
     {

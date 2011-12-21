@@ -1,6 +1,7 @@
 package com.linkedin.clustermanager;
 
 import java.util.List;
+import java.util.Map;
 
 import com.linkedin.clustermanager.store.PropertyStore;
 
@@ -71,17 +72,31 @@ public interface ClusterDataAccessor
    */
    List<ZNRecord> getChildValues(PropertyType type, String... keys);
 
+   /**
+    *
+    * @return
+    */
+   PropertyStore<ZNRecord> getStore();
 
-  PropertyStore<ZNRecord> getStore();
 
-  public enum InstanceConfigProperty
-  {
-    HOST, PORT, ENABLED
-  }
+   /**
+    *
+    * @param childValues: input/output
+    * @param clazz
+    * @param type
+    * @param keys
+    * @return
+    */
+   public <T extends ZNRecordAndStat> void refreshChildValues(Map<String, T> childValues,
+      Class<T> clazz, PropertyType type, String... keys);
 
-  public enum IdealStateConfigProperty
-  {
-    AUTO, CUSTOMIZED
-  }
+   public enum InstanceConfigProperty
+   {
+     HOST, PORT, ENABLED, DISABLED_PARTITION
+   }
 
+   public enum IdealStateConfigProperty
+   {
+     AUTO, CUSTOMIZED
+   }
 }

@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 
+import com.linkedin.clustermanager.CMConstants;
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerFactory;
@@ -18,61 +19,54 @@ import com.linkedin.clustermanager.controller.GenericClusterController;
 
 public class DistClusterControllerElection implements ControllerChangeListener
 {
-  private static Logger            LOG          =
-                                                    Logger.getLogger(DistClusterControllerElection.class);
-  private final static int         HISTORY_SIZE = 8;
-
-  private final String             _zkAddr;
-  private GenericClusterController _controller  = null;
-  private ClusterManager           _leader      = null;
+  private static Logger LOG = Logger.getLogger(DistClusterControllerElection.class);
+  private final static int HISTORY_SIZE = 8;
+  private final String _zkAddr;
+  private final GenericClusterController _controller = new GenericClusterController();
+  private ClusterManager _leader = null;
 
   public DistClusterControllerElection(String zkAddr)
   {
     _zkAddr = zkAddr;
   }
 
-  public GenericClusterController getController()
-  {
-    return _controller;
-  }
-
-  public ClusterManager getLeader()
-  {
-    return _leader;
-  }
-
   /**
-   * can be called by either zk-client thread or ZkClusterManager::disconnect()->reset()
+   * may be accessed by multiple threads:
+   * zk-client thread and ZkClusterManager.disconnect()->reset()
    */
   @Override
   public synchronized void onControllerChange(NotificationContext changeContext)
   {
     ClusterManager manager = changeContext.getManager();
+    if (manager == null)
+    {
+      LOG.error("missing attributes in changeContext. requires ClusterManager");
+      return;
+    }
+
+    InstanceType type = manager.getInstanceType();
+    if (type != InstanceType.CONTROLLER && type != InstanceType.CONTROLLER_PARTICIPANT)
+    {
+      LOG.error("fail to become controller because incorrect instanceType (was "
+          + type.toString() + ", required CONTROLLER | CONTROLLER_PARTICIPANT)");
+      return;
+    }
+
     try
     {
-      InstanceType type = manager.getInstanceType();
-      if (type != InstanceType.CONTROLLER && type != InstanceType.CONTROLLER_PARTICIPANT)
-      {
-        LOG.error("fail to setup controller because incorrect instanceType (was "
-            + type.toString() + ")");
-        return;
-      }
-
       if (changeContext.getType().equals(NotificationContext.Type.INIT)
           || changeContext.getType().equals(NotificationContext.Type.CALLBACK))
       {
         boolean isLeader = tryUpdateController(manager);
         if (isLeader)
         {
-          if (_controller == null && _leader == null)
+          if (type == InstanceType.CONTROLLER)
           {
-            _controller = new GenericClusterController();
-
-            if (type == InstanceType.CONTROLLER)
-            {
-              ClusterManagerMain.addListenersToController(manager, _controller);
-            }
-            else if (type == InstanceType.CONTROLLER_PARTICIPANT)
+            ClusterManagerMain.addListenersToController(manager, _controller);
+          }
+          else if (type == InstanceType.CONTROLLER_PARTICIPANT)
+          {
+            if (_leader == null)
             {
               String clusterName = manager.getClusterName();
               String controllerName = manager.getInstanceName();
@@ -95,7 +89,6 @@ public class DistClusterControllerElection implements ControllerChangeListener
 //                             + _leader.getClusterName());
           _leader.disconnect();
           _leader = null;
-          _controller = null;
         }
       }
 
@@ -112,7 +105,10 @@ public class DistClusterControllerElection implements ControllerChangeListener
     String instanceName = manager.getInstanceName();
     String clusterName = manager.getClusterName();
     final ZNRecord leaderRecord = new ZNRecord(PropertyType.LEADER.toString());
-    leaderRecord.setSimpleField(PropertyType.LEADER.toString(), manager.getInstanceName());
+    leaderRecord.setSimpleField(CMConstants.ZNAttribute.LEADER.toString(), manager.getInstanceName());
+    leaderRecord.setSimpleField(CMConstants.ZNAttribute.CLUSTER_MANAGER_VERSION.toString(), manager.getVersion());
+    leaderRecord.setSimpleField(CMConstants.ZNAttribute.SESSION_ID.toString(), manager.getSessionId());
+
     ClusterDataAccessor dataAccessor = manager.getDataAccessor();
     ZNRecord currentleader;
     do
@@ -166,5 +162,4 @@ public class DistClusterControllerElection implements ControllerChangeListener
 
     return false;
   }
-
 }

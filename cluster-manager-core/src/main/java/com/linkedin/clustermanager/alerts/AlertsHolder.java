@@ -15,6 +15,8 @@ import com.linkedin.clustermanager.ClusterManagerException;
 import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.controller.stages.ClusterDataCache;
+import com.linkedin.clustermanager.model.Alerts;
+import com.linkedin.clustermanager.model.PersistentStats;
 
 public class AlertsHolder {
 	
@@ -24,6 +26,7 @@ public class AlertsHolder {
 	ClusterDataAccessor _accessor;
 	ClusterDataCache _cache;
 	Map<String, Map<String,String>> _alertsMap; //not sure if map or set yet
+	//Alerts _alerts;
 	HashSet<String> alerts;
 	StatsHolder _statsHolder;
 	
@@ -37,11 +40,21 @@ public class AlertsHolder {
 	public void refreshAlerts()
 	{
 		_cache.refresh(_accessor);
+		
+		Alerts alertsRecord = _cache.getAlerts();
+		if (alertsRecord != null) {
+		_alertsMap = alertsRecord.getMapFields();
+		}
+		else {
+			_alertsMap = new HashMap<String, Map<String,String>>();
+		}
+		
+		/*
 		_alertsMap = _cache.getAlerts();
 		//TODO: confirm this a good place to init the _statMap when null
 		if (_alertsMap == null) {
 			_alertsMap = new HashMap<String, Map<String,String>>();
-		}
+		}\*/
 	}
 	
 	public void persistAlerts() 
@@ -49,7 +62,7 @@ public class AlertsHolder {
 		//XXX: Am I using _accessor too directly here?
 		ZNRecord alertsRec = _accessor.getProperty(PropertyType.ALERTS);
 		if (alertsRec == null) {
-			alertsRec = new ZNRecord("PersistentStats"); //TODO: fix naming of this record, if it matters
+			alertsRec = new ZNRecord(Alerts.nodeName); //TODO: fix naming of this record, if it matters
 		}
 		alertsRec.setMapFields(_alertsMap);
 		 boolean retVal = _accessor.setProperty(PropertyType.ALERTS, alertsRec);
@@ -83,6 +96,21 @@ public class AlertsHolder {
 		persistAlerts();
 	}
 	
+	public static void parseAlert(String alert, StringBuilder statsName, 
+			Map<String,String> alertFields) throws ClusterManagerException
+	{
+		alert = alert.replaceAll("\\s+", ""); //remove white space
+		AlertParser.validateAlert(alert);
+		//alertFields = new HashMap<String,String>();
+		alertFields.put(AlertParser.EXPRESSION_NAME, 
+				AlertParser.getComponent(AlertParser.EXPRESSION_NAME, alert));
+		alertFields.put(AlertParser.COMPARATOR_NAME, 
+				AlertParser.getComponent(AlertParser.COMPARATOR_NAME, alert));
+		alertFields.put(AlertParser.CONSTANT_NAME, 
+				AlertParser.getComponent(AlertParser.CONSTANT_NAME, alert));	
+		statsName.append(alertFields.get(AlertParser.EXPRESSION_NAME));
+	}
+	
 	/*
 	public void evaluateAllAlerts() 
 	{
@@ -100,6 +128,7 @@ public class AlertsHolder {
 	
 	public List<Alert> getAlertList()
 	{
+		refreshAlerts();
 		List<Alert> alerts = new LinkedList<Alert>();
 		for (String alert : _alertsMap.keySet()) {
 			Map<String,String> alertFields = _alertsMap.get(alert);

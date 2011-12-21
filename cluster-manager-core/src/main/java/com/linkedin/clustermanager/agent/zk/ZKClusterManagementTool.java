@@ -1,7 +1,9 @@
 package com.linkedin.clustermanager.agent.zk;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.log4j.Logger;
 
@@ -9,17 +11,22 @@ import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterDataAccessor.IdealStateConfigProperty;
 import com.linkedin.clustermanager.ClusterDataAccessor.InstanceConfigProperty;
 import com.linkedin.clustermanager.ClusterManagementService;
+import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerException;
 import com.linkedin.clustermanager.PropertyPathConfig;
 import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.alerts.AlertsHolder;
+import com.linkedin.clustermanager.alerts.StatsHolder;
+import com.linkedin.clustermanager.model.Alerts;
+import com.linkedin.clustermanager.model.PersistentStats;
 import com.linkedin.clustermanager.util.CMUtil;
 
 public class ZKClusterManagementTool implements ClusterManagementService
 {
 
   private final ZkClient _zkClient;
-  
+
   private static Logger logger = Logger
       .getLogger(ZKClusterManagementTool.class);
 
@@ -33,7 +40,7 @@ public class ZKClusterManagementTool implements ClusterManagementService
   {
     if(!ZKUtil.isClusterSetup(clusterName, _zkClient))
     {
-      throw new ClusterManagerException("cluster " + clusterName 
+      throw new ClusterManagerException("cluster " + clusterName
          + " is not setup yet");
     }
     String instanceConfigsPath = CMUtil.getConfigPath(clusterName);
@@ -58,7 +65,7 @@ public class ZKClusterManagementTool implements ClusterManagementService
   }
 
   @Override
-  public void dropInstance(String clusterName, ZNRecord instanceConfig) 
+  public void dropInstance(String clusterName, ZNRecord instanceConfig)
   {
     String instanceConfigsPath = CMUtil.getConfigPath(clusterName);
     String nodeId = instanceConfig.getId();
@@ -102,11 +109,10 @@ public class ZKClusterManagementTool implements ClusterManagementService
 
   @Override
   public void enableInstance(String clusterName, String instanceName,
-      boolean enable)
+      boolean enabled)
   {
-    String clusterPropertyPath = PropertyPathConfig.getPath(
-        PropertyType.CONFIGS, clusterName);
-    String targetPath = clusterPropertyPath + "/" + instanceName;
+    String targetPath = PropertyPathConfig.getPath(
+        PropertyType.CONFIGS, clusterName, instanceName);
 
     if (_zkClient.exists(targetPath))
     {
@@ -115,9 +121,43 @@ public class ZKClusterManagementTool implements ClusterManagementService
           instanceName);
 
       nodeConfig.setSimpleField(InstanceConfigProperty.ENABLED.toString(),
-          enable + "");
+          enabled + "");
       accessor.setProperty(PropertyType.CONFIGS, nodeConfig, instanceName);
     } else
+    {
+      throw new ClusterManagerException("Cluster " + clusterName
+          + ", instance " + instanceName + " does not exist");
+    }
+  }
+
+  @Override
+  public void enablePartition(String clusterName, String instanceName, String partition,
+      boolean enabled)
+  {
+    String path = PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName, instanceName);
+    if (_zkClient.exists(path))
+    {
+      ClusterDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
+      ZNRecord nodeConfig = accessor.getProperty(PropertyType.CONFIGS, instanceName);
+
+      if (nodeConfig.getMapField(InstanceConfigProperty.DISABLED_PARTITION.toString()) == null)
+      {
+        nodeConfig.setMapField(InstanceConfigProperty.DISABLED_PARTITION.toString(),
+                               new HashMap<String, String>());
+      }
+      if (enabled == true)
+      {
+        nodeConfig.getMapField(InstanceConfigProperty.DISABLED_PARTITION.toString())
+                  .remove(partition);
+      }
+      else
+      {
+        nodeConfig.getMapField(InstanceConfigProperty.DISABLED_PARTITION.toString())
+                  .put(partition, false + "");
+      }
+      accessor.setProperty(PropertyType.CONFIGS, nodeConfig, instanceName);
+    }
+    else
     {
       throw new ClusterManagerException("Cluster " + clusterName
           + ", instance " + instanceName + " does not exist");
@@ -180,7 +220,7 @@ public class ZKClusterManagementTool implements ClusterManagementService
         clusterName);
     _zkClient.createPersistent(path);
   }
-  
+
   @Override
   public List<String> getInstancesInCluster(String clusterName)
   {
@@ -202,7 +242,7 @@ public class ZKClusterManagementTool implements ClusterManagementService
   {
     if(!ZKUtil.isClusterSetup(clusterName, _zkClient))
     {
-      throw new ClusterManagerException("cluster " + clusterName 
+      throw new ClusterManagerException("cluster " + clusterName
          + " is not setup yet");
     }
     ZNRecord idealState = new ZNRecord(dbName);
@@ -279,7 +319,7 @@ public class ZKClusterManagementTool implements ClusterManagementService
   {
     if(!ZKUtil.isClusterSetup(clusterName, _zkClient))
     {
-      throw new ClusterManagerException("cluster " + clusterName 
+      throw new ClusterManagerException("cluster " + clusterName
          + " is not setup yet");
     }
     String stateModelDefPath = CMUtil.getStateModelDefinitionPath(clusterName);
@@ -315,4 +355,72 @@ public class ZKClusterManagementTool implements ClusterManagementService
     return new ZKDataAccessor(clusterName, _zkClient).getProperty(
         PropertyType.STATEMODELDEFS, stateModelName);
   }
-}
+
+  @Override
+  public void addStat(String clusterName, String statName)
+  {
+	  if(!ZKUtil.isClusterSetup(clusterName, _zkClient))
+	  {
+		  throw new ClusterManagerException("cluster " + clusterName
+				  + " is not setup yet");
+	  }
+	  
+	  String persistentStatsPath = CMUtil.getPersistentStatsPath(clusterName);
+	  ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
+	  if (!_zkClient.exists(persistentStatsPath)) {		  
+		  //ZKUtil.createChildren(_zkClient, persistentStatsPath, statsRec);
+		  _zkClient.createPersistent(persistentStatsPath);
+	  }
+	  ZNRecord statsRec = accessor.getProperty(PropertyType.PERSISTENTSTATS);
+	  if (statsRec == null) {
+		  statsRec = new ZNRecord(PersistentStats.nodeName); //TODO: fix naming of this record, if it matters
+	  }
+	  
+	  Map<String,Map<String,String>> currStatMap = statsRec.getMapFields();
+	  Map<String,Map<String,String>> newStatMap = StatsHolder.parseStat(statName);
+	  for (String newStat : newStatMap.keySet()) {
+		 if (!currStatMap.containsKey(newStat)) {
+			 currStatMap.put(newStat, newStatMap.get(newStat));
+		 }
+	  }
+	  statsRec.setMapFields(currStatMap);
+	  accessor.setProperty(PropertyType.PERSISTENTSTATS, statsRec); 
+	}
+
+  @Override
+  public void addAlert(String clusterName, String alertName) 
+  {
+	  if(!ZKUtil.isClusterSetup(clusterName, _zkClient))
+	  {
+		  throw new ClusterManagerException("cluster " + clusterName
+				  + " is not setup yet");
+	  }
+	  
+	  String alertsPath = CMUtil.getAlertsPath(clusterName);
+	  ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
+	  if (!_zkClient.exists(alertsPath)) {		  
+		  //ZKUtil.createChildren(_zkClient, alertsPath, alertsRec);
+		  _zkClient.createPersistent(alertsPath);
+	  }
+	  ZNRecord alertsRec = accessor.getProperty(PropertyType.ALERTS);
+	  if (alertsRec == null)
+	  {
+		  alertsRec = new ZNRecord(Alerts.nodeName); //TODO: fix naming of this record, if it matters
+	  }
+	  
+	  Map<String,Map<String,String>> currAlertMap = alertsRec.getMapFields();
+	  StringBuilder newStatName = new StringBuilder();
+	  Map<String,String> newAlertMap = new HashMap<String,String>();
+	  //use AlertsHolder to get map of new stats and map for this alert
+	  AlertsHolder.parseAlert(alertName, newStatName, newAlertMap);
+	  
+	  //add stat
+	  addStat(clusterName, newStatName.toString());
+	  //add alert
+	  currAlertMap.put(alertName, newAlertMap);
+	  
+	  alertsRec.setMapFields(currAlertMap);
+	  accessor.setProperty(PropertyType.ALERTS, alertsRec); 
+  }
+  
+  }

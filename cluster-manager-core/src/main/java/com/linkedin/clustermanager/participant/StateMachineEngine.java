@@ -1,7 +1,6 @@
 package com.linkedin.clustermanager.participant;
 
 import java.util.Map;
-import java.util.concurrent.ConcurrentMap;
 
 import org.apache.log4j.Logger;
 
@@ -34,6 +33,7 @@ public class StateMachineEngine<T extends StateModel> implements
     _stateModelParser = new StateModelParser();
   }
 
+  @Override
   public void reset()
   {
     Map<String, T> modelMap = _stateModelFactory.getStateModelMap();
@@ -58,16 +58,15 @@ public class StateMachineEngine<T extends StateModel> implements
       NotificationContext context)
   {
     String type = message.getMsgType();
-    
+
     if(!type.equals(MessageType.STATE_TRANSITION.toString()))
     {
       throw new ClusterManagerException("Unexpected msg type for message "+message.getMsgId()
           +" type:" + message.getMsgType());
     }
-    
+
     String stateUnitKey = message.getStateUnitKey();
     StateModelFactory<T> stateModelFactory = getStateModelFactory();
-    // StateModel stateModel;
     T stateModel = stateModelFactory.getStateModel(stateUnitKey);
     if (stateModel == null)
     {

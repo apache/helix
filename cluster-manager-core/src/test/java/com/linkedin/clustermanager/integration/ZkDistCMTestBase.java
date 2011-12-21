@@ -82,7 +82,7 @@ public class ZkDistCMTestBase extends ZkIntegrationTestBase
 
     final String firstCluster = CLUSTER_PREFIX + "_" + CLASS_NAME + "_0";
     setupStorageCluster(_setupTool, firstCluster, TEST_DB, 20, PARTICIPANT_PREFIX,
-                        START_PORT, STATE_MODEL, 3);
+                        START_PORT, "MasterSlave", 3);
 
     // setup CONTROLLER_CLUSTER
     _setupTool.addCluster(CONTROLLER_CLUSTER, true);
@@ -91,13 +91,13 @@ public class ZkDistCMTestBase extends ZkIntegrationTestBase
                         CONTROLLER_PREFIX, 0, "LeaderStandby", 3);
 
     // start dummy participants for the first cluster
-    for (int i = 0; i < NODE_NR; i++)
+    for (int i = 0; i < 5; i++)
     {
       String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
       if (_startCMResultMap.get(instanceName) != null)
       {
         LOG.error("fail to start participant:" + instanceName
-                     + "(participant with same name already running");
+                     + "(participant with the same name already running");
       }
       else
       {
@@ -107,7 +107,7 @@ public class ZkDistCMTestBase extends ZkIntegrationTestBase
     }
 
     // start distributed cluster controllers
-    for (int i = 0; i < NODE_NR; i++)
+    for (int i = 0; i < 5; i++)
     {
       String controllerName = CONTROLLER_PREFIX + "_" + i;
       if (_startCMResultMap.get(controllerName) != null)

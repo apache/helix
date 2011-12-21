@@ -33,12 +33,12 @@ public class MockZkClusterManager implements ClusterManager
     _type = type;
     _accessor = new ZKDataAccessor(clusterName, zkClient);
   }
-  
+
   @Override
   public void connect() throws Exception
   {
     // TODO Auto-generated method stub
-    
+
   }
 
   @Override
@@ -52,35 +52,35 @@ public class MockZkClusterManager implements ClusterManager
   public void disconnect()
   {
     // TODO Auto-generated method stub
-    
+
   }
 
   @Override
   public void addIdealStateChangeListener(IdealStateChangeListener listener) throws Exception
   {
     // TODO Auto-generated method stub
-    
+
   }
 
   @Override
   public void addLiveInstanceChangeListener(LiveInstanceChangeListener listener) throws Exception
   {
     // TODO Auto-generated method stub
-    
+
   }
 
   @Override
   public void addConfigChangeListener(ConfigChangeListener listener) throws Exception
   {
     // TODO Auto-generated method stub
-    
+
   }
 
   @Override
   public void addMessageListener(MessageListener listener, String instanceName) throws Exception
   {
     // TODO Auto-generated method stub
-    
+
   }
 
   @Override
@@ -89,14 +89,14 @@ public class MockZkClusterManager implements ClusterManager
                                             String sessionId) throws Exception
   {
     // TODO Auto-generated method stub
-    
+
   }
 
   @Override
   public void addExternalViewChangeListener(ExternalViewChangeListener listener) throws Exception
   {
     // TODO Auto-generated method stub
-    
+
   }
 
   @Override
@@ -142,7 +142,7 @@ public class MockZkClusterManager implements ClusterManager
   public void addControllerListener(ControllerChangeListener listener)
   {
     // TODO Auto-generated method stub
-    
+
   }
 
   @Override
@@ -185,5 +185,13 @@ public void addHealthStateChangeListener(HealthStateChangeListener listener,
 	// TODO Auto-generated method stub
 	
 }
+
+  @Override
+  public String getVersion()
+  {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
 
 }

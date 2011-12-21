@@ -207,9 +207,12 @@ class cmd_thread(threading.Thread):
 
 def cmd_call_capture_java_call():
     ''' this one depends on the ivy path and ps length. may not work for all '''
-    short_class_name=cmd_dict[options.component]["stop"].split("grep ")[-1].split(" ")[0]
+    if options.capture_java_call!="auto":
+      short_class_name=options.capture_java_call
+    else:
+      short_class_name=cmd_dict[options.component]["stop"].split("grep ")[-1].split(" ")[0]
     ret = wait_for_condition('sys_pipe_call("ps -ef | grep java | grep -v grep | grep %s")' % short_class_name, 20)
-    java_ps_call = sys_pipe_call("ps -ef | grep java | grep -v grep | grep %s" % short_class_name)
+    java_ps_call = sys_pipe_call('ps -ef | grep "/java -d64" | grep -v grep | grep -v capture_java_call| grep %s' % short_class_name)
     #java_ps_call = tmp_str
     ivy_dir=get_ivy_dir()     # espresso has different ivy
     dbg_print("ivy_dir = %s, java_ps_call=%s" % (ivy_dir,java_ps_call))
@@ -227,7 +230,7 @@ def cmd_call_capture_java_call():
       if re.search(view_root,jar_path): 
         sub_dir= view_root 
         sub_str = "VIEW_ROOT"
-      class_path_list.append('"%s"' % re.sub(sub_dir,sub_str,jar_path))
+      class_path_list.append('\"%s\"' % re.sub(sub_dir,sub_str,jar_path))
     class_path_list.sort()
     class_path = "[\n      %s\n]" % "\n      ,".join(class_path_list)
     class_name = java_ps_call.split(short_class_name)[0].split(" ")[-1] + short_class_name
@@ -342,18 +345,20 @@ def run_cmd_add_option(cmd, option_name, value=None, check_exist=False):
     if not getattr(options, option_name): return cmd  # not such option
     if not value: value = getattr(options,option_name) 
     dbg_print("after option_name = %s, value = %s" % (option_name, value))
+    #pdb.set_trace()
     if check_exist:
       full_path = file_exists(value)
       if not full_path: my_error("File does not exists! %s" % value)
       value=full_path
-    if isinstance(value, str) and value[0]!='"' and not (option_name in ["cmdline_args"] and options.enable_direct_java_call):   # do not quote the cmdline args
+    is_jvm_option = re.search("jvm_",option_name)
+    if isinstance(value, str) and value[0]!='"' and not (option_name in ["cmdline_args"] or is_jvm_option) and options.enable_direct_java_call:   # do not quote the cmdline args
       #value = value.replace(' ','\\ ')     # escape the white space
       value = '"%s"' % value   # quote it 
     if options.enable_direct_java_call:
       option_mapping = direct_java_call_option_mapping
       option_prefix = ""
       option_assign = ""
-      if re.search("^jvm_",option_name) or option_name in direct_java_call_jvm_args:  # must start with jvm
+      if is_jvm_option or option_name in direct_java_call_jvm_args:  # must start with jvm
         #pdb.set_trace()
         direct_java_call_jvm_args[option_name][1]=value  # overide the default value
         dbg_print("direct_java_call_jvm_args[%s]=%s" % (option_name,direct_java_call_jvm_args[option_name]))
@@ -392,6 +397,7 @@ def run_cmd_get_return_pattern():
     ret_pattern = None
     pattern_key = "%s_%s" % (options.component, options.operation)
     if pattern_key in cmd_ret_pattern: ret_pattern = cmd_ret_pattern[pattern_key]
+    if options.wait_pattern: ret_pattern = re.compile(options.wait_pattern)
     dbg_print("ret_pattern = %s" % ret_pattern)
     return ret_pattern
 
@@ -402,25 +408,33 @@ def run_cmd_setup():
       else: consumer_host = "localhost"
       dbg_print("consumer_host= %s" % consumer_host)
 
+# need to remove from ant_call_option_mapping and run_cmd_add_option to avoid invalid option name 
 def run_cmd_add_config(cmd):
     if options.operation in ["start","clean_log","default"]: 
-      pass_down_options=ant_call_option_mapping.keys()
+      if options.enable_direct_java_call:
+        pass_down_options=direct_java_call_option_mapping.keys()
+        pass_down_options.extend(direct_java_call_jvm_args.keys())
+        #pass_down_options.extend(direct_java_call_jvm_args_ordered)
+      else:
+        pass_down_options=ant_call_option_mapping.keys()
+      #option_mapping = options.enable_direct_java_call and direct_java_call_option_mapping or ant_call_option_mapping
+      #if options.enable_direct_java_call: pass_down_options.append("jvm_args")
       if options.config: 
         if not remote_run: 
           cmd = run_cmd_add_option(cmd, "config", options.config, check_exist=True)      # check exist will figure out
         else: 
           cmd = run_cmd_add_option(cmd, "config", os.path.join(get_remote_view_root(), options.config), check_exist=False)  
       run_cmd_view_root = remote_run and get_remote_view_root() or get_view_root()
-      cmd = run_cmd_add_option(cmd, "dump_file", options.dump_file and os.path.join(run_cmd_view_root, options.dump_file) or None)
-      cmd = run_cmd_add_option(cmd, "value_file", options.value_file and os.path.join(run_cmd_view_root, options.value_file) or None)
-      cmd = run_cmd_add_option(cmd, "log4j_file", options.log4j_file and os.path.join(run_cmd_view_root, options.log4j_file) or None)
-      cmd = run_cmd_add_option(cmd, "jvm_direct_memory_size")
-      cmd = run_cmd_add_option(cmd, "jvm_max_heap_size")
-      cmd = run_cmd_add_option(cmd, "jvm_gc_log")
-      cmd = run_cmd_add_option(cmd, "jvm_args")
-      cmd = run_cmd_add_option(cmd, "db_config_file")
-      cmd = run_cmd_add_option(cmd, "cmdline_props")
-      cmd = run_cmd_add_option(cmd, "filter_conf_file")
+      #cmd = run_cmd_add_option(cmd, "dump_file", options.dump_file and os.path.join(run_cmd_view_root, options.dump_file) or None)
+      #cmd = run_cmd_add_option(cmd, "value_file", options.value_file and os.path.join(run_cmd_view_root, options.value_file) or None)
+      #cmd = run_cmd_add_option(cmd, "log4j_file", options.log4j_file and os.path.join(run_cmd_view_root, options.log4j_file) or None)
+      #cmd = run_cmd_add_option(cmd, "jvm_direct_memory_size")
+      #cmd = run_cmd_add_option(cmd, "jvm_max_heap_size")
+      #cmd = run_cmd_add_option(cmd, "jvm_gc_log")
+      #cmd = run_cmd_add_option(cmd, "jvm_args")
+      #cmd = run_cmd_add_option(cmd, "db_config_file")
+      #cmd = run_cmd_add_option(cmd, "cmdline_props")
+#      cmd = run_cmd_add_option(cmd, "filter_conf_file")
 
       if options.checkpoint_dir: 
          if options.checkpoint_dir == "auto":
@@ -439,21 +453,23 @@ def run_cmd_add_config(cmd):
         if not options.relay_port and "relay_port" in remote_component_properties: options.relay_port = remote_component_properties["relay_port"]
         if not options.bootstrap_host and "bootstrap_host" in remote_component_properties: options.bootstrap_host = remote_component_properties["bootstrap_host"]
         if not options.bootstrap_port and "bootstrap_port" in remote_component_properties: options.bootstrap_port = remote_component_properties["bootstrap_port"]
-      cmd = run_cmd_add_option(cmd, "relay_host")
-      cmd = run_cmd_add_option(cmd, "relay_port")
-      cmd = run_cmd_add_option(cmd, "bootstrap_host")
-      cmd = run_cmd_add_option(cmd, "bootstrap_port")
-      cmd = run_cmd_add_option(cmd, "consumer_event_pattern")
+      #cmd = run_cmd_add_option(cmd, "relay_host")
+      #cmd = run_cmd_add_option(cmd, "relay_port")
+      #cmd = run_cmd_add_option(cmd, "bootstrap_host")
+      #cmd = run_cmd_add_option(cmd, "bootstrap_port")
+      #cmd = run_cmd_add_option(cmd, "consumer_event_pattern")
       if re.search("_consumer",options.component): 
         # next available port
         if options.http_port: http_port = options.http_port
         else: http_port = next_available_port(consumer_host, consumer_http_start_port)   
-        cmd = run_cmd_add_option(cmd, "http_port", http_port)
-        cmd = run_cmd_add_option(cmd, "jmx_service_port", next_available_port(consumer_host, consumer_jmx_service_start_port))   
+        #cmd = run_cmd_add_option(cmd, "http_port", http_port)
+        #cmd = run_cmd_add_option(cmd, "jmx_service_port", next_available_port(consumer_host, consumer_jmx_service_start_port))   
+      # this will take care of the passdown, no need for run_cmd_add_directly
       for option in [x for x in pass_down_options if x not in run_cmd_added_options]:
         cmd = run_cmd_add_option(cmd, option)
         
     if options.enable_direct_java_call: 
+      #cmd = re.sub("java -classpath","java -d64 -ea %s -classpath" % " ".join([x[0]+x[1] for x in [direct_java_call_jvm_args[y] for y in direct_java_call_jvm_args_ordered] if x[1]]) ,cmd) # d64 here
       cmd = re.sub("java -classpath","java -d64 -ea %s -classpath" % " ".join([x[0]+x[1] for x in direct_java_call_jvm_args.values() if x[1]]) ,cmd) # d64 here
     dbg_print("cmd = %s" % cmd)
     return cmd
@@ -466,11 +482,14 @@ def run_cmd_add_ant_debug(cmd):
 def run_cmd_direct_java_call(cmd, component): 
     ''' this needs to be consistent with adding option 
         currently ant -f ; will mess up if there are options
-    '''
+    ''' 
+
     if not component in cmd_direct_call:
       options.enable_direct_java_call = False   # disable direct java call if classpath not given
       return cmd
-    if re.search("^ant", cmd): # only component in has class path given will be 
+    #if re.search("^ant", cmd): # only component in has class path given will be 
+    #if True: # every thing
+    if re.search("ant ", cmd): # only component in has class path given will be 
       ivy_dir = get_ivy_dir()
       view_root = get_view_root()
       class_path_list=[]
@@ -495,8 +514,8 @@ def run_cmd_direct_java_call(cmd, component):
               print "==found " + new_jar_path
             class_path_list[class_path_list.index(jar_file)] = new_jar_path
       direct_call_cmd = "java -classpath %s %s" % (":".join(class_path_list), cmd_direct_call[component]["class_name"])
-      if re.search("^ant.*;",cmd): cmd = re.sub("^ant.*;","%s" % direcdt_call_cmd, cmd)
-      else: cmd = re.sub("^ant.*$",direct_call_cmd, cmd)
+      if re.search("ant .*;",cmd): cmd = re.sub("ant .*;","%s" % direct_call_cmd, cmd)
+      else: cmd = re.sub("ant .*$",direct_call_cmd, cmd)
     dbg_print("cmd = %s" % cmd)
     return cmd
 
@@ -548,8 +567,8 @@ def setup_rmi(oper="start"):
       ret = wait_for_condition('setup_rmi_cond("%s")' % oper)
 
 def setup_env():
-    setup_work_dir()
     #setup_rmi()
+    pass
 
 def get_outf():
     outf = sys.stdout
@@ -714,10 +733,13 @@ def conf_and_deploy_1_find_extservice_name(ant_target, screen_out):
 
 
 from xml.dom.minidom import parse
+from xml.dom.minidom import Element
 def conf_and_deploy_1_add_conf(file_name):
     dom1 = parse(file_name)
+    map_element=[x for x in dom1.getElementsByTagName("map")][0]
     for prop in options.extservice_props: 
-      props = prop.split(";")
+      #props = prop.split(";")
+      props = prop.split("=")
       len_props = len(props)
       if len_props not in (2,3): 
         print "WARNING: prop %s is not a valid setting. IGNORED" % prop
@@ -726,7 +748,13 @@ def conf_and_deploy_1_add_conf(file_name):
       find_keys=[x for x in dom1.getElementsByTagName("entry") if x.attributes["key"].value == props[0]]
       dbg_print("find_keys = %s" % find_keys)
       if not find_keys: 
-        print "WARNING: prop %s part %s is not in file %s. IGNORED" % (prop, props[0], file_name)
+        print "WARNING: prop %s part %s is not in file %s. " % (prop, props[0], file_name)
+        if is_top_level:  # only add when is top level
+          print "WARNING: prop %s part %s is added to file %s. " % (prop, props[0], file_name)
+          new_entry=Element("entry")
+          new_entry.setAttribute("key", props[0])
+          new_entry.setAttribute("value", props[1])
+          map_element.appendChild(new_entry)
         continue
       keyNode = find_keys[0] 
       if is_top_level: 
@@ -777,7 +805,7 @@ zookeeper_server_dir=None
 zookeeper_server_ids=None
 
 #possible_ivy_dir=[os.path.join(os.environ["HOME"],".ivy2/lin-cache/ivy-cache"),os.path.join(os.environ["HOME"],".ivy2/lin-cache"),"/ivy/.ivy2/ivy-cache","/ivy/.ivy2"]
-possible_ivy_dir=[os.path.join(os.environ["HOME"],".m2/repository"), os.path.join(os.environ["HOME"],".ivy2/lin-cache/"),"/ivy/.ivy2"]
+#possible_ivy_dir=[os.path.join(os.environ["HOME"],".m2/repository"), os.path.join(os.environ["HOME"],".ivy2/lin-cache/"),"/ivy/.ivy2"]
 def get_ivy_dir():
     for ivy_dir in possible_ivy_dir:
       if os.path.exists(ivy_dir): break
@@ -786,21 +814,24 @@ def get_ivy_dir():
  
 def zookeeper_setup(oper):
     ''' may need to do a find later. find $HOME/.ivy2/lin-cache -name zookeeper-3.3.0.jar '''
-    global zookeeper_cmd, zookeeper_server_ports, zookeeper_server_dir, zookeeper_server_ids
+    global zookeeper_cmd, zookeeper_server_ports, zookeeper_server_dir, zookeeper_server_ids, zookeeper_classpath
     #possible_ivy_home_dir=[os.path.join(os.environ["HOME"],".ivy2/lin-cache/"),"/ivy/.ivy2"]
     possible_ivy_home_dir=[os.path.join(os.environ["HOME"],".m2/repository/"), os.path.join(os.environ["HOME"],".ivy2/lin-cache/"),"/ivy/.ivy2"]
     ivy_dir = get_ivy_dir()
     zookeeper_class= (oper=="start") and  "org.apache.zookeeper.server.quorum.QuorumPeerMain" or "org.apache.zookeeper.ZooKeeperMain"
     log4j_file=os.path.join(get_view_root(),"integration-test/config/zookeeper-log4j2file.properties")
-    # REMOVE
-    #ivy_dir=os.path.join(os.environ["HOME"],".ivy2/lin-cache")
-    #zookeeper_classpath="%s/org.apache.zookeeper/zookeeper/3.3.0/zookeeper-3.3.0.jar:%s/log4j/log4j/1.2.15/log4j-1.2.15.jar %s" % (ivy_dir, ivy_dir)
-    zookeeper_classpath="%s/org/apache/zookeeper/zookeeper/3.3.0/zookeeper-3.3.0.jar:%s/log4j/log4j/1.2.15/log4j-1.2.15.jar" % (ivy_dir, ivy_dir)
+    dbg_print("zookeeper_classpath = %s" % zookeeper_classpath)
+    if not "zookeeper_classpath" in globals(): 
+      zookeeper_classpath="IVY_DIR/org/apache/zookeeper/zookeeper/3.3.0/zookeeper-3.3.0.jar:IVY_DIR/log4j/log4j/1.2.15/log4j-1.2.15.jar"
+    if re.search("IVY_DIR",zookeeper_classpath): zookeeper_classpath=re.sub("IVY_DIR", ivy_dir,zookeeper_classpath)
+    if re.search("VIEW_ROOT",zookeeper_classpath): zookeeper_classpath=re.sub("VIEW_ROOT", view_root,zookeeper_classpath)
     zookeeper_cmd="java -d64 -Xmx512m -Dlog4j.configuration=file://%s -cp %s %s" % (log4j_file, zookeeper_classpath, zookeeper_class)
     dbg_print("zookeeper_cmd=%s" % (zookeeper_cmd))
     zookeeper_server_ports= options.zookeeper_server_ports and options.zookeeper_server_ports or "localhost:2181"
     zookeeper_server_dir=os.path.join(get_work_dir(),"zookeeper_data")
-    zookeeper_server_ids= options.zookeeper_server_ids and [int(x) for x in options.zookeeper_server_ids.split(",")] or range(1,len(zookeeper_server_ports.split(","))+1)
+    dbg_print("zookeeper_server_dir=%s" % (zookeeper_server_dir))
+    #zookeeper_server_ids= options.zookeeper_server_ids and [int(x) for x in options.zookeeper_server_ids.split(",")] or range(1,len(zookeeper_server_ports.split(","))+1)
+    zookeeper_server_ids= options.zookeeper_server_ids and [int(x) for x in options.zookeeper_server_ids.split(",")] or range(len(zookeeper_server_ports.split(",")))
     dbg_print("zookeeper_server_ids=%s" % (zookeeper_server_ids))
 
 def zookeeper_opers_start_create_conf(zookeeper_server_ports_split):
@@ -818,18 +849,21 @@ def zookeeper_opers_start_create_conf(zookeeper_server_ports_split):
     zookeeper_internal_conf=""
     for k in server_conf: zookeeper_internal_conf+="%s=%s\n" % (k, server_conf[k])
     dbg_print("zookeeper_internal_conf = %s" % zookeeper_internal_conf)
-    for server_id in range(1,zookeeper_num_servers+1):
-      zookeeper_host = zookeeper_server_ports_split[server_id-1].split(":")[0]
-      zookeeper_internal_port_1 = zookeeper_internal_port_1_start + server_id -1 
-      zookeeper_internal_port_2 = zookeeper_internal_port_2_start +  server_id -1
-      zookeeper_internal_conf += "server.%s=%s:%s:%s\n" % (server_id, zookeeper_host, zookeeper_internal_port_1, zookeeper_internal_port_2) 
+    #for server_id in range(1,zookeeper_num_servers+1):
+    for server_id in range(zookeeper_num_servers):
+      zookeeper_host = zookeeper_server_ports_split[server_id].split(":")[0]
+      zookeeper_internal_port_1 = zookeeper_internal_port_1_start + server_id  
+      zookeeper_internal_port_2 = zookeeper_internal_port_2_start +  server_id 
+      if zookeeper_num_servers>1:
+        zookeeper_internal_conf += "server.%s=%s:%s:%s\n" % (server_id, zookeeper_host, zookeeper_internal_port_1, zookeeper_internal_port_2) 
     dbg_print("zookeeper_internal_conf = %s" % zookeeper_internal_conf)
 
-    for server_id in range(1,zookeeper_num_servers+1):
+    #for server_id in range(1,zookeeper_num_servers+1):
+    for server_id in range(zookeeper_num_servers):
       if server_id not in zookeeper_server_ids: continue
       conf_file = os.path.join(zookeeper_server_dir,"conf_%s" % server_id)
       dataDir=os.path.join(zookeeper_server_dir,str(server_id))
-      zookeeper_port = zookeeper_server_ports_split[server_id-1].split(":")[1]
+      zookeeper_port = zookeeper_server_ports_split[server_id].split(":")[1]
       conf_file_p = open(conf_file, "w")
       conf_file_p.write("clientPort=%s\n" % zookeeper_port)
       conf_file_p.write("dataDir=%s\n" % dataDir)
@@ -840,15 +874,18 @@ def zookeeper_opers_start_create_conf(zookeeper_server_ports_split):
     return zookeeper_server_conf_files
 
 def zookeeper_opers_start_create_dirs(zookeeper_server_ports_split):
-    for server_id in range(1,len(zookeeper_server_ports_split)+1):
+    #for server_id in range(1,len(zookeeper_server_ports_split)+1):
+    for server_id in range(len(zookeeper_server_ports_split)):
       if server_id not in zookeeper_server_ids: continue
       current_server_dir=os.path.join(zookeeper_server_dir,str(server_id))
       dbg_print("current_server_dir = %s" % current_server_dir)
       if os.path.exists(current_server_dir): 
         if not options.zookeeper_reset: continue
         distutils.dir_util.remove_tree(current_server_dir)
-      distutils.dir_util.mkpath(current_server_dir)
+      try: distutils.dir_util.mkpath(current_server_dir)
+      except Exception as e: print ("ERROR: Exception = %s" % e)
       my_id_file=os.path.join(current_server_dir, "myid")
+      dbg_print("my_id_file = %s" % my_id_file)
       open(my_id_file,"w").write("%s\n" % server_id)
     
 def zookeeper_opers_start():
@@ -858,7 +895,10 @@ def zookeeper_opers_start():
     for conf_file in conf_files:
       # no log file for now
       #cmd = run_cmd_add_log_file(cmd)
-      ret = cmd_call("%s %s" % (zookeeper_cmd, conf_file), 60, re.compile("My election bind port"))
+      search_str=len(conf_files)>1 and "My election bind port" or "binding to port"
+      cmd = "%s %s" % (zookeeper_cmd, conf_file)
+      cmd = run_cmd_add_log_file(cmd)
+      ret = cmd_call(cmd, 60, re.compile(search_str))
     
 def zookeeper_opers_stop():
     # may be better to use pid, but somehow it is not in the datadir
@@ -885,6 +925,8 @@ def main(argv):
                        help="%s" % cmd_dict.keys())
     parser.add_option("-o", "--operation", action="store", dest="operation", default=None, choices=allowed_opers,
                        help="%s" % allowed_opers)
+    parser.add_option("--wait_pattern", action="store", dest="wait_pattern", default=None,
+                       help="the pattern to wait for the operation to finish")
     parser.add_option("", "--output", action="store", dest="output", default=None,
                        help="Output file name. Default to stdout")
     parser.add_option("", "--logfile", action="store", dest="logfile", default=None,
@@ -894,9 +936,11 @@ def main(argv):
 
     jvm_group = OptionGroup(parser, "jvm options", "")
     jvm_group.add_option("", "--jvm_direct_memory_size", action="store", dest="jvm_direct_memory_size", default = None,
-                       help="Set the jvm direct memory size. e.g., 2048m. Default using the one in ant file.")
+                       help="Set the jvm direct memory size. e.g., 2048m. Default using the one driver_cmd_dict.")
     jvm_group.add_option("", "--jvm_max_heap_size", action="store", dest="jvm_max_heap_size", default = None,
-                       help="Set the jvm head size. e.g., 1024m. Default using the one in ant file.")
+                       help="Set the jvm max heap size. e.g., 1024m. Default using the one in driver_cmd_dict.")
+    jvm_group.add_option("", "--jvm_min_heap_size", action="store", dest="jvm_min_heap_size", default = None,
+                       help="Set the jvm min heap size. e.g., 1024m. Default using the one in driver_cmd_dict.")
     jvm_group.add_option("", "--jvm_args", action="store", dest="jvm_args", default = None,
                        help="Other jvm args. e.g., '-Xms24m -Xmx50m'")
     jvm_group.add_option("", "--jvm_gc_log", action="store", dest="jvm_gc_log", default = None,
@@ -940,8 +984,8 @@ def main(argv):
                        help="debug mode")
     debug_group.add_option("--ant_debug", action="store_true", dest="ant_debug", default = False,
                        help="ant debug mode")
-    debug_group.add_option("--capture_java_call", action="store_true", dest="capture_java_call", default = False,
-                       help="capture the java call")
+    debug_group.add_option("--capture_java_call", action="store", dest="capture_java_call", default = None,
+                       help="capture the java call. give the class name or auto")
     debug_group.add_option("--enable_direct_java_call", action="store_true", dest="enable_direct_java_call", default = True,
     #debug_group.add_option("--enable_direct_java_call", action="store_true", dest="enable_direct_java_call", default = False,
                        help="enable direct java call. ")
@@ -977,6 +1021,16 @@ def main(argv):
       parser.exit()
 
     setup_env()
+    if (not options.testname):
+      options.testname = "TEST_NAME" in os.environ and os.environ["TEST_NAME"] or "default"
+    os.environ["TEST_NAME"]= options.testname;
+    
+    if (not "WORK_SUB_DIR" in os.environ): 
+        os.environ["WORK_SUB_DIR"] = "log"
+    if (not "LOG_SUB_DIR" in os.environ):
+        os.environ["LOG_SUB_DIR"] = "log"
+    setup_work_dir()
+
     if options.testcase:
       ret = run_testcase(options.testcase)
       if ret!=0: ret=1     # workaround a issue that ret of 256 will become 0 after sys.exit

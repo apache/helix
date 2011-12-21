@@ -35,8 +35,8 @@ public class StatHealthReportProvider extends HealthReportProvider {
 	
 	
 	//private final Map<String, HashMap<String,String>> _partitionStatMaps = new HashMap<String, HashMap<String,String>>();
-	private final ConcurrentHashMap<Stat, String> _statsToValues = new ConcurrentHashMap<Stat, String>(); 
-	private final ConcurrentHashMap<Stat, String> _statsToTimestamps = new ConcurrentHashMap<Stat, String>(); 
+	private final ConcurrentHashMap<String, String> _statsToValues = new ConcurrentHashMap<String, String>(); 
+	private final ConcurrentHashMap<String, String> _statsToTimestamps = new ConcurrentHashMap<String, String>(); 
 	
 	
 	 public StatHealthReportProvider()
@@ -52,8 +52,9 @@ public class StatHealthReportProvider extends HealthReportProvider {
 	@Override
 	public Map<String, Map<String, String>> getRecentPartitionHealthReport() {
 		Map<String, Map<String, String>> result = new HashMap<String, Map<String, String>>();
-		for (Stat stat : _statsToValues.keySet()) {
+		for (String stat : _statsToValues.keySet()) {
 			Map<String, String> currStat = new HashMap<String, String>();
+			/*
 			currStat.put(Stat.OP_TYPE, stat._opType);
 			currStat.put(Stat.MEASUREMENT_TYPE, stat._measurementType);
 			currStat.put(Stat.NODE_NAME, stat._nodeName);
@@ -62,9 +63,10 @@ public class StatHealthReportProvider extends HealthReportProvider {
 			currStat.put(Stat.RETURN_STATUS, stat._returnStatus);
 			currStat.put(Stat.METRIC_NAME, stat._metricName);
 			currStat.put(Stat.AGG_TYPE, stat._aggTypeName);
+			*/
 			currStat.put(TIMESTAMP, _statsToTimestamps.get(stat));
 			currStat.put(STAT_VALUE, _statsToValues.get(stat));
-			result.put(stat.toString(), currStat); 
+			result.put(stat, currStat); 
 		}		
 		return result;
 	}
@@ -74,7 +76,7 @@ public class StatHealthReportProvider extends HealthReportProvider {
 		return _statsToValues.containsKey(inStat);
 	}
 	
-	public Set<Stat> keySet() 
+	public Set<String> keySet() 
 	{
 		return _statsToValues.keySet();
 	}
@@ -89,6 +91,7 @@ public class StatHealthReportProvider extends HealthReportProvider {
 		return Long.parseLong(_statsToTimestamps.get(inStat));
 	}
 	
+	/*
 	public String getStatValue(String opType, String measurementType, String resourceName,
 			String partitionName, String nodeName, boolean createIfMissing)
 	{
@@ -101,13 +104,15 @@ public class StatHealthReportProvider extends HealthReportProvider {
 		}
 		return val;
 	}
+	*/
 	
-	public void writeStat(Stat es, String val, String timestamp)
+	public void writeStat(String statName, String val, String timestamp)
 	{
-		_statsToValues.put(es, val);
-		_statsToTimestamps.put(es, timestamp);
+		_statsToValues.put(statName, val);
+		_statsToTimestamps.put(statName, timestamp);
 	}
 	
+	/*
 	public void setStat(Stat es, String val, String timestamp)
 	{
 		writeStat(es, val, timestamp);
@@ -120,21 +125,20 @@ public class StatHealthReportProvider extends HealthReportProvider {
 				nodeName);
 		writeStat(rs, String.valueOf(val), timestamp);
 	}
+	*/
 	
-	
-	public void incrementStat(String opType, String measurementType, String resourceName,
-			String partitionName, String nodeName, String timestamp)
+	public void incrementStat(String statName, String timestamp)
 	{
-		Stat rs = new Stat(opType, measurementType, resourceName, partitionName,
-				nodeName);
-		String val = _statsToValues.get(rs);
+		//Stat rs = new Stat(opType, measurementType, resourceName, partitionName,
+		//		nodeName);
+		String val = _statsToValues.get(statName);
 		if (val == null) {
 			val = "0";
 		}
 		else {
 			val = String.valueOf(Double.parseDouble(val)+1);			
 		}
-		writeStat(rs, val, timestamp);
+		writeStat(statName, val, timestamp);
 	}
 	
 	public int size() 

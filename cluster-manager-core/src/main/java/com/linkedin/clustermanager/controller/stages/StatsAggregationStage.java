@@ -9,6 +9,9 @@ import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.alerts.AlertProcessor;
+import com.linkedin.clustermanager.alerts.AlertsHolder;
+import com.linkedin.clustermanager.alerts.StatsHolder;
 import com.linkedin.clustermanager.healthcheck.AggregationType;
 import com.linkedin.clustermanager.healthcheck.AggregationTypeFactory;
 import com.linkedin.clustermanager.healthcheck.Stat;
@@ -32,16 +35,19 @@ public class StatsAggregationStage extends AbstractBaseStage
   private static final Logger logger = Logger
 		    .getLogger(StatsAggregationStage.class.getName());
 	
+  StatsHolder _statsHolder;
+  AlertsHolder _alertsHolder;
+  
   public final String PARTICIPANT_STAT_REPORT_NAME = StatHealthReportProvider.REPORT_NAME;
   public final String REPORT_NAME = "AggStats";
   //public final String DEFAULT_AGG_TYPE = "decay";
   //public final String DEFAULT_DECAY_PARAM = "0.1";
-  public final String DEFAULT_AGG_TYPE = "window";
-  public final String DEFAULT_DECAY_PARAM = "5";
+  //public final String DEFAULT_AGG_TYPE = "window";
+  //public final String DEFAULT_DECAY_PARAM = "5";
  
   public StatHealthReportProvider _aggStatsProvider;
   
-  public AggregationType _defaultAggType;
+  //public AggregationType _defaultAggType;
   
   public void persistAggStats(ClusterManager manager)
   {
@@ -63,7 +69,8 @@ public class StatsAggregationStage extends AbstractBaseStage
     	  logger.error("attempt to persist derived stats failed");
       }
   }
-  
+ 
+  /*
   public void addAggStat(Map<String, String> statName, String statVal, String statTimestamp)
   {
 	  Stat es = new Stat(statName);
@@ -75,10 +82,14 @@ public class StatsAggregationStage extends AbstractBaseStage
   {
 	  _aggStatsProvider.setStat(aggStat, statVal, statTimestamp);
   }
+  */
+  
   
   /*
    * Reconcile participant stat with set of agg stats
    */
+  
+  /*
   public void applyParticipantStat(Map<String, String> participantStatName, String participantStatVal, 
 		  String participantStatTimestamp)
   {
@@ -106,6 +117,7 @@ public class StatsAggregationStage extends AbstractBaseStage
 	  if (!_aggStatsProvider.contains(participantStat)) {
 		  addAggStat(participantStatName, participantStatVal, participantStatTimestamp);
 	  }
+	  */
 	  
 	  /*
 	  //check if we have agg stat matching this participant stat
@@ -129,8 +141,9 @@ public class StatsAggregationStage extends AbstractBaseStage
 		  addAggStat(participantStatName, participantStatVal, participantStatTimestamp);
 	  }
 	  */
-  }
+  //}
   
+  /*
   public void initAggStats(ClusterDataCache cache) 
   {
 	  _aggStatsProvider = new StatHealthReportProvider();
@@ -146,6 +159,7 @@ public class StatsAggregationStage extends AbstractBaseStage
 		  }
 	  }
   }
+  */
   
   @Override
   public void init(StageContext context) 
@@ -155,20 +169,24 @@ public class StatsAggregationStage extends AbstractBaseStage
   @Override
   public void process(ClusterEvent event) throws Exception
   {
-	System.out.println("HealthStatsAggregationStage.process()");
+	System.out.println("StatsAggregationStage.process()");
 	
-	String aggTypeName = DEFAULT_AGG_TYPE+AggregationType.DELIM+DEFAULT_DECAY_PARAM;
-	_defaultAggType = AggregationTypeFactory.getAggregationType(aggTypeName);
+	//String aggTypeName = DEFAULT_AGG_TYPE+AggregationType.DELIM+DEFAULT_DECAY_PARAM;
+	//_defaultAggType = AggregationTypeFactory.getAggregationType(aggTypeName);
 	
     ClusterManager manager = event.getAttribute("clustermanager");
     if (manager == null)
     {
       throw new StageException("clustermanager attribute value is null");
     }
+    
+    _statsHolder = new StatsHolder(manager);
+    _alertsHolder = new AlertsHolder(manager);
+    
     ClusterDataCache cache = event.getAttribute("ClusterDataCache");
 
     //init agg stats from cache
-    initAggStats(cache);
+    //initAggStats(cache);
     
     Map<String, LiveInstance> liveInstances = cache.getLiveInstances();
     
@@ -177,25 +195,42 @@ public class StatsAggregationStage extends AbstractBaseStage
     {
       String instanceName = instance.getInstanceName();
       logger.debug("instanceName: "+instanceName);
-      List<HealthStat> stats;
+      //XXX: now have map of HealthStats, so no need to traverse them...verify correctness
+      Map<String, HealthStat> stats;
       stats = cache.getHealthStats(instanceName);
-      //find participants stats 
-      for (HealthStat hs : stats) {
-    	  if (hs.getId().equals(PARTICIPANT_STAT_REPORT_NAME)) {
-    		  Map<String, Map<String, String>> statMap = hs.getMapFields();
+      //find participants stats
+      HealthStat participantStat = stats.get(PARTICIPANT_STAT_REPORT_NAME);
+      //for (HealthStat hs : stats) {
+    //	  if (hs.getId().equals(PARTICIPANT_STAT_REPORT_NAME)) {
+    		  Map<String, Map<String, String>> statMap = participantStat.getMapFields();
     		  for (String key : statMap.keySet()) {
+    			  _statsHolder.applyStat(key, statMap.get(key));
+    			  /*
     			  //get current participant stat
     			  Map<String, String> currStat = statMap.get(key);
     			  //apply participant stat with agg stats
     			  applyParticipantStat(currStat, 
     					  currStat.get(StatHealthReportProvider.STAT_VALUE),
     					  currStat.get(StatHealthReportProvider.TIMESTAMP));
+    			  */
     		  }
     		  
-    	  }
-      }
+    	//  }
+      //}
       //persist the agg stats
-      persistAggStats(manager);
+      //persistAggStats(manager);
+    }
+    
+    //execute alerts
+    Map<String, Map<String, Boolean>> alertStatus = AlertProcessor.executeAllAlerts(_alertsHolder.getAlertList(), _statsHolder.getStatsList());
+    
+    //logging alert status
+    for (String alertOuterKey : alertStatus.keySet()) {
+    	logger.debug("Alert Outer Key: "+alertOuterKey);
+    	Map<String, Boolean>alertInnerMap = alertStatus.get(alertOuterKey);
+    	for (String alertInnerKey: alertInnerMap.keySet()) {
+    		logger.debug("  "+alertInnerKey+": "+alertInnerMap.get(alertInnerKey));
+    	}
     }
   }
 }

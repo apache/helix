@@ -135,6 +135,16 @@ public final class CMUtil
 	   return PropertyPathConfig.getPath(PropertyType.HEALTHREPORT, clusterName, instanceName);
   }
   
+  public static String getPersistentStatsPath(String clusterName)
+  {
+	  return PropertyPathConfig.getPath(PropertyType.PERSISTENTSTATS, clusterName);
+  }
+  
+  public static String getAlertsPath(String clusterName)
+  {
+	  return PropertyPathConfig.getPath(PropertyType.ALERTS, clusterName);
+  }
+  
   public static String getInstanceNameFromPath(String path)
   {
     // path structure

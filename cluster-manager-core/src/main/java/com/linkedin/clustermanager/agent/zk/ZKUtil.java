@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.I0Itec.zkclient.DataUpdater;
+import org.I0Itec.zkclient.exception.ZkInterruptedException;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.data.Stat;
@@ -14,7 +15,7 @@ import org.apache.zookeeper.data.Stat;
 import com.linkedin.clustermanager.PropertyPathConfig;
 import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
-import com.linkedin.clustermanager.ZNRecordInterface;
+import com.linkedin.clustermanager.ZNRecordAndStat;
 
 public final class ZKUtil
 {
@@ -119,13 +120,13 @@ public final class ZKUtil
    * @param clazz
    * @return
    */
-  public static <T extends ZNRecordInterface> boolean getChildsIfDataChanged(ZkClient zkClient,
+  public static <T extends ZNRecordAndStat> boolean refreshChildren(ZkClient zkClient,
     String parentPath, Map<String, T> childRecords, Class<T> clazz)
   {
     if (childRecords == null)
     {
-      throw new IllegalArgumentException("should provide non-null map holding old child records " +
-      		                               " (empty map for no old values)");
+      throw new IllegalArgumentException("should provide non-null map that holds old child records "
+                                      + " (empty map if no old values)");
     }
 
     Stat newStat = new Stat();
@@ -157,18 +158,25 @@ public final class ZKUtil
     }
 
     // then update
-    try
+    for (String child : childs)
     {
-      for (String child : childs)
-      {
-        String childPath = parentPath + "/" + child;
+      String childPath = parentPath + "/" + child;
 
+      try
+      {
         // assume record.id should be the last part of zk path
         if (!childRecords.containsKey(child))
         {
-          ZNRecord record = zkClient.readData(childPath, newStat);
-          Constructor<T> constructor = clazz.getConstructor(new Class[] { ZNRecord.class, Stat.class });
-          childRecords.put(child, constructor.newInstance(record, newStat));
+          ZNRecord record = zkClient.readDataAndStat(childPath, newStat, true);
+          if (record != null)
+          {
+            Constructor<T> constructor = clazz.getConstructor(new Class[] { ZNRecord.class, Stat.class });
+            childRecords.put(child, constructor.newInstance(record, newStat));
+          }
+          else
+          {
+            childRecords.remove(child);
+          }
           dataChanged = true;
         }
         else
@@ -176,26 +184,47 @@ public final class ZKUtil
           T oldChild = childRecords.get(child);
           Stat oldStat = oldChild.getStat();
           newStat = zkClient.getStat(childPath);
+          if (newStat == null)
+          {
+            childRecords.remove(child);
+          }
+          else
+          {
 //          System.out.print(child + " oldStat:" + oldStat);
 //          System.out.print(child + " newStat:" + newStat);
 
-          if (oldStat == null || !oldStat.equals(newStat))
-          {
-            ZNRecord record = zkClient.readData(childPath, newStat);
-            Constructor<T> constructor = clazz.getConstructor(new Class[] { ZNRecord.class, Stat.class });
-            childRecords.put(child, constructor.newInstance(record, newStat));
-            dataChanged = true;
-          }
-          else  // if (newStat.equals(oldStat))
-          {
-            // no need to update record
+            if (oldStat == null || !oldStat.equals(newStat))
+            {
+              ZNRecord record = zkClient.readDataAndStat(childPath, newStat, true);
+              if (record != null)
+              {
+                Constructor<T> constructor = clazz.getConstructor(new Class[] { ZNRecord.class, Stat.class });
+                childRecords.put(child, constructor.newInstance(record, newStat));
+              }
+              else
+              {
+                childRecords.remove(child);
+              }
+              dataChanged = true;
+            }
+            else  // if (newStat.equals(oldStat))
+            {
+              // no need to update record
+            }
           }
         }
       }
-    }
-    catch (Exception e)
-    {
-      logger.error("Error creating an Object of type:" + clazz.getCanonicalName(), e);
+      catch (Exception e)
+      {
+        if (e instanceof ZkInterruptedException)
+        {
+          logger.warn("thread or zk connection interrupted, exception:" + e);
+        }
+        else
+        {
+          logger.error("Error creating an Object of type:" + clazz.getCanonicalName(), e);
+        }
+      }
     }
 
     return dataChanged;

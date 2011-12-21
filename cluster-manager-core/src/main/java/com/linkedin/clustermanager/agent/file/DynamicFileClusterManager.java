@@ -32,6 +32,7 @@ import com.linkedin.clustermanager.healthcheck.ParticipantHealthReportCollector;
 import com.linkedin.clustermanager.messaging.DefaultMessagingService;
 import com.linkedin.clustermanager.store.PropertyStore;
 import com.linkedin.clustermanager.store.file.FilePropertyStore;
+import com.linkedin.clustermanager.tools.PropertiesReader;
 import com.linkedin.clustermanager.util.CMUtil;
 
 public class DynamicFileClusterManager implements ClusterManager
@@ -51,6 +52,7 @@ public class DynamicFileClusterManager implements ClusterManager
   public static final String configFile = "configFile";
   private final DefaultMessagingService _messagingService;
   private final FilePropertyStore<ZNRecord> _store;
+  private final String _version;
 
   public DynamicFileClusterManager(String clusterName, String instanceName,
       InstanceType instanceType, ClusterDataAccessor accessor)
@@ -78,6 +80,8 @@ public class DynamicFileClusterManager implements ClusterManager
 
     _store.start();
 
+    _version = new PropertiesReader("cluster-manager-version.properties")
+    .getProperty("clustermanager.version");
   }
 
   @Override
@@ -269,11 +273,18 @@ public class DynamicFileClusterManager implements ClusterManager
     return _instanceType;
   }
 
+
 @Override
 public void addHealthStateChangeListener(HealthStateChangeListener listener,
 		String instanceName) throws Exception {
 	// TODO Auto-generated method stub
 	
 }
+
+  @Override
+  public String getVersion()
+  {
+    return _version;
+  }
 
 }

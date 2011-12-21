@@ -66,41 +66,36 @@ else:
 
 # functions
 def setup_view_root():
-    global view_root, test_name
+    global view_root
     if "VIEW_ROOT" in os.environ: view_root = os.environ["VIEW_ROOT"]
     else: view_root= os.path.abspath("%s/../../" % this_file_dirname)
-    if "TEST_NAME" in os.environ:  test_name=os.environ["TEST_NAME"]
     #print("view_root = %s" % view_root)
+    #print("test_name=%s" % test_name)
     os.chdir(view_root)
     os.environ["VIEW_ROOT"]=view_root
 
 def get_view_root(): return view_root
 
 def setup_work_dir():
-    global var_dir, work_dir, log_dir, testcase_dir
+    global var_dir, work_dir, log_dir, test_name
     var_dir= var_dir_template % (view_root)
-    testcase_dir= testcase_dir_template % (view_root)
     import distutils.dir_util
-    distutils.dir_util.mkpath(var_dir)
-    
-    sub_work_dirs=["log","work"]
-    #print "test_name=", test_name
-    #pdb.set_trace()
-    if test_name:
-        work_dir=os.path.join(var_dir,"work",test_name)
-        log_dir=os.path.join(var_dir,"log",test_name)
-        sub_work_dirs.append(os.path.join("log",test_name))
-        sub_work_dirs.append(os.path.join("work",test_name))
-    else:
-        work_dir=os.path.join(var_dir,"work")
-        log_dir=os.path.join(var_dir,"log")
-    for d in sub_work_dirs:
-      try: distutils.dir_util.mkpath(os.path.join(var_dir,d))  
-      except: pass
+    distutils.dir_util.mkpath(var_dir, verbose=1)
 
+    if "TEST_NAME" in os.environ: test_name=os.environ["TEST_NAME"]
+    else: assert False, "TEST NAME Not Defined"
+    if "WORK_SUB_DIR" in os.environ: work_dir=os.path.join(var_dir,os.environ["WORK_SUB_DIR"],test_name)
+    else: assert False, "Work Dir Not Defined"
+    if "LOG_SUB_DIR" in os.environ: log_dir=os.path.join(var_dir, os.environ["LOG_SUB_DIR"], test_name)
+    else: assert False, "Work Dir Not Defined"
+    distutils.dir_util.mkpath(work_dir, verbose=1)  
+    distutils.dir_util.mkpath(log_dir, verbose=1)  
+
+def get_test_name(): return test_name
 def get_work_dir(): return work_dir
 def get_log_dir(): return log_dir
 def get_var_dir(): return var_dir
+def get_script_dir(): return get_this_file_dirname()
 def get_testcase_dir(): return testcase_dir
 def get_cwd(): return cwd_dir
 
@@ -227,9 +222,10 @@ def my_error(s):
       sys.exit(1)
 
 def my_warning(s):
-    if debug_enabled.debug:
+    if debug_enabled:
         print ("== " + sys._getframe(1).f_code.co_name + " == " + str(s))
-    #logger.warning(s)
+    else: 
+      print "WARNING: %s" % s
 
 def enter_func():
     dbg_print ("Entering == " + sys._getframe(1).f_code.co_name + " == ")
@@ -529,6 +525,24 @@ class RetCode:
   TIMEOUT=2
   DIFF=3
   ZERO_SIZE=4
+
+# wait utility
+def wait_for_condition_1(cond_func, timeout=60, sleep_interval = 0.1):
+  ''' wait for a certain cond. cond could be a function. 
+     This cannot be in utility. Because it needs to see the cond function '''
+  #dbg_print("cond = %s" % cond)
+  if sys_call_debug: return RetCode.OK
+  sleep_cnt = 0
+  ret = RetCode.TIMEOUT
+  while (sleep_cnt * sleep_interval < timeout):
+    dbg_print("attempt %s " % sleep_cnt)
+    if cond_func():
+      dbg_print("success")
+      ret = RetCode.OK
+      break
+    time.sleep(sleep_interval)
+    sleep_cnt += 1
+  return ret
 
 #====End of Utilties============
 

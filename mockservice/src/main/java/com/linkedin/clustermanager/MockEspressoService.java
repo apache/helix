@@ -227,8 +227,6 @@ public class MockEspressoService extends Application
 		  // Attach the application to the component and start it
 		  _component.getDefaultHost().attach(this); //(application);
 		  _context.getAttributes().put(COMPONENT_NAME, (Object)_component);
-		 // _context.getParameters().set("maxWaitTimeMs", "1", true);
-		 
 		 // _context.getParameters().set("maxTotalConnections", "16",true); 
 		  _component.start();
 		  //start mock espresso node

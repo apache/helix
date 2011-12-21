@@ -101,6 +101,22 @@ public class TestEvaluateAlerts {
 	     return alert;
 	}
 	
+	public String addExpandSumEachWildcardAlert() throws ClusterManagerException
+	{
+		String alert = EXP + "(accumulate()(dbFoo.partition*.success,dbFoo.partition*.failure)|EXPAND|SUMEACH)"
+				+ CMP + "(GREATER)" + CON + "(100)";
+	     _alertsHolder.addAlert(alert);
+	     return alert;
+	}
+	
+	public String addExpandSumEachSumWildcardAlert() throws ClusterManagerException
+	{
+		String alert = EXP + "(accumulate()(dbFoo.partition*.success,dbFoo.partition*.failure)|EXPAND|SUMEACH|SUM)"
+				+ CMP + "(GREATER)" + CON + "(100)";
+	     _alertsHolder.addAlert(alert);
+	     return alert;
+	}
+	
 	public String addArrivingSimpleStat() throws ClusterManagerException
 	{
 		String incomingStatName = "dbFoo.partition10.latency";
@@ -200,7 +216,31 @@ public class TestEvaluateAlerts {
 		alertFired = alertResult.get(alert).get("11"); //11 should not fire
 		AssertJUnit.assertFalse(alertFired);	
 	}
-
+	
+	@Test (groups = {"unitTest"})
+	public void testExpandSumEachSumOperatorWildcardAlert()
+	{
+		String alert = addExpandSumEachSumWildcardAlert();
+		String stat = AlertParser.getComponent(AlertParser.EXPRESSION_NAME, alert);
+		String part10SuccStat = "dbFoo.partition10.success";
+		String part10FailStat = "dbFoo.partition10.failure";
+		String part11SuccStat = "dbFoo.partition11.success";
+		String part11FailStat = "dbFoo.partition11.failure";
+		
+		
+		Map<String, String> statFields = getStatFields("50","0");
+		_statsHolder.applyStat(part10SuccStat, statFields);
+		statFields = getStatFields("51","0");
+		_statsHolder.applyStat(part10FailStat, statFields);
+		statFields = getStatFields("50","0");
+		_statsHolder.applyStat(part11SuccStat, statFields);
+		statFields = getStatFields("49","0");
+		_statsHolder.applyStat(part11FailStat, statFields);
+		Map<String, Map<String, Boolean>> alertResult = AlertProcessor.executeAllAlerts(_alertsHolder.getAlertList(), _statsHolder.getStatsList());
+		boolean alertFired = alertResult.get(alert).get(AlertProcessor.noWildcardAlertKey); //10 should fire
+		AssertJUnit.assertTrue(alertFired);	
+	}
+	
 	@Test (groups = {"unitTest"})
 	public void testTwoAlerts()
 	{

@@ -140,7 +140,7 @@ public class FileBasedClusterManager implements ClusterManager
       {
         /*
         String desiredState = idealState.get(stateUnitKey, instanceName);
-        
+
 
         if (desiredState.equals("MASTER"))
         {
@@ -205,7 +205,7 @@ public class FileBasedClusterManager implements ClusterManager
       {
         throw new IllegalArgumentException("nodeInfo should be in format of host:port, " + nodeInfo);
       }
-      
+
       String host = nodeInfo.substring(0, lastPos);
       String port = nodeInfo.substring(lastPos + 1);
       String nodeId = host + "_" + port;
@@ -431,7 +431,7 @@ public class FileBasedClusterManager implements ClusterManager
     return null;
   }
   */
-  
+
   public static ClusterView convertStateModelMapToClusterView(String outFile,
       String instanceName, StateModelFactory<StateModel> stateModelFactory)
   {
@@ -565,7 +565,7 @@ public class FileBasedClusterManager implements ClusterManager
         _instanceName);
   }
   */
-  
+
   @Override
   public long getLastNotificationTime()
   {
@@ -598,7 +598,7 @@ public class FileBasedClusterManager implements ClusterManager
         changeType);
   }
   */
-  
+
   @Override
   public ClusterManagementService getClusterManagmentTool()
   {
@@ -640,49 +640,9 @@ public void addHealthStateChangeListener(HealthStateChangeListener listener,
 	
 }
 
-  // TODO remove it
-  // temp test
-  /*
-  public static void main(String[] args) throws Exception
+@Override
+public String getVersion()
   {
-    // for temporary test only
-    System.out.println("Generate static config file for cluster");
-    String file = "/tmp/clusterView.json";
-
-    // CommandLine cmd = processCommandLineArgs(args);
-    // file = cmd.getOptionValue(configFile);
-
-    // create fake db names & nodes info
-    List<FileBasedClusterManager.DBParam> dbParams = new ArrayList<FileBasedClusterManager.DBParam>();
-    // dbParams.add(new FileBasedClusterManager.DBParam("BizFollow", 1));
-    // dbParams.add(new FileBasedClusterManager.DBParam("BizProfile", 1));
-    dbParams.add(new FileBasedClusterManager.DBParam("EspressoDB", 10));
-    // dbParams.add(new FileBasedClusterManager.DBParam("MailboxDB", 128));
-    dbParams.add(new FileBasedClusterManager.DBParam("MyDB", 8));
-    dbParams.add(new FileBasedClusterManager.DBParam("schemata", 1));
-
-    String[] nodesInfo =
-    { "localhost:8900", "localhost:8901" };
-    // "localhost:8902",
-    // "localhost:8903",
-    // "localhost:8904" };
-
-    int replica = 0;
-
-    // ClusterViewSerializer serializer = new ClusterViewSerializer(file);
-    ClusterView view = generateStaticConfigClusterView(nodesInfo, dbParams,
-        replica);
-
-    ClusterViewSerializer.serialize(view, new File(file));
-    // System.out.println(new String(bytes));
-
-    ClusterView restoredView = ClusterViewSerializer
-        .deserialize(new File(file));
-    // System.out.println(restoredView);
-
-    byte[] bytes = ClusterViewSerializer.serialize(restoredView);
-    System.out.println(new String(bytes));
-
+    throw new UnsupportedOperationException("getVersion() not implemented in FileClusterManager");
   }
-  */
 }

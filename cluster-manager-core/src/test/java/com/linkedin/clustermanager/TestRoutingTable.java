@@ -1,8 +1,5 @@
 package com.linkedin.clustermanager;
 
-import org.testng.annotations.Test;
-import org.testng.annotations.BeforeClass;
-import org.testng.AssertJUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -15,9 +12,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import org.testng.Assert;
+import org.testng.AssertJUnit;
 import org.testng.annotations.BeforeClass;
-import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.Mocks.MockAccessor;
@@ -28,7 +24,7 @@ public class TestRoutingTable
 {
   NotificationContext changeContext = null;
 
-  @BeforeClass (groups = {"unitTest"})
+  @BeforeClass ()
   public synchronized void setup()
   {
 
@@ -74,7 +70,7 @@ public class TestRoutingTable
     changeContext = new NotificationContext(manager);
   }
 
-  @Test (groups = {"unitTest"})
+  @Test ()
   public void testNullAndEmpty()
   {
 
@@ -85,7 +81,7 @@ public class TestRoutingTable
 
   }
 
-  @Test (groups = {"unitTest"})
+  @Test ()
   public void testSimple()
   {
     List<InstanceConfig> instances;
@@ -122,7 +118,7 @@ public class TestRoutingTable
     AssertJUnit.assertEquals(instances.size(), 1);
   }
 
-  @Test (groups = {"unitTest"})
+  @Test ()
   public void testStateUnitGroupDeletion()
   {
     List<InstanceConfig> instances;
@@ -145,7 +141,7 @@ public class TestRoutingTable
     AssertJUnit.assertEquals(instances.size(), 0);
   }
 
-  @Test (groups = {"unitTest"})
+  @Test ()
   public void testGetInstanceForAllStateUnits()
   {
     List<InstanceConfig> instancesList;
@@ -188,7 +184,7 @@ public class TestRoutingTable
 
   }
 
-  @Test (groups = {"unitTest"})
+  @Test ()
   public void testMultiThread() throws Exception
   {
     final RoutingTableProvider routingTable = new RoutingTableProvider();

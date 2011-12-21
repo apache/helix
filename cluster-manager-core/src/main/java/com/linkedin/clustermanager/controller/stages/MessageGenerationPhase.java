@@ -58,6 +58,7 @@ public class MessageGenerationPhase extends AbstractBaseStage
     {
       ResourceGroup resourceGroup = resourceGroupMap.get(resourceGroupName);
       StateModelDefinition stateModelDef = cache.getStateModelDef(resourceGroup.getStateModelDefRef());
+
       for (ResourceKey resource : resourceGroup.getResourceKeys())
       {
         Map<String, String> instanceStateMap = bestPossibleStateOutput

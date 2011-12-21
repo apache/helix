@@ -11,20 +11,20 @@ import org.apache.zookeeper.data.Stat;
 
 import com.linkedin.clustermanager.ClusterDataAccessor.IdealStateConfigProperty;
 import com.linkedin.clustermanager.ZNRecord;
-import com.linkedin.clustermanager.ZNRecordInterface;
+import com.linkedin.clustermanager.ZNRecordAndStat;
 
-public class IdealState implements ZNRecordInterface
+public class IdealState extends ZNRecordAndStat
 {
   private static final Logger logger = Logger.getLogger(IdealState.class.getName());
-  private final ZNRecord _record;
+//  private final ZNRecord _record;
   private final String _resourceGroup;
-  private final Stat _stat;
+//  private final Stat _stat;
 
-  @Override
-  public ZNRecord getRecord()
-  {
-    return _record;
-  }
+//  @Override
+//  public ZNRecord getRecord()
+//  {
+//    return _record;
+//  }
 
   public String getResourceGroup()
   {
@@ -33,23 +33,26 @@ public class IdealState implements ZNRecordInterface
 
   public IdealState(String resourceGroup)
   {
+    super(new ZNRecord(resourceGroup), null);
     _resourceGroup = resourceGroup;
-    _record = new ZNRecord(resourceGroup);
-    _stat = null;
+//    _record = new ZNRecord(resourceGroup);
+//    _stat = null;
   }
 
   public IdealState(ZNRecord record)
   {
+    super(record, null);
     _resourceGroup = record.getId();
-    this._record = record;
-    _stat = null;
+//    this._record = record;
+//    _stat = null;
   }
 
   public IdealState(ZNRecord record, Stat stat)
   {
+    super(record, stat);
     _resourceGroup = record.getId();
-    this._record = record;
-    _stat = stat;
+//    this._record = record;
+//    _stat = stat;
   }
 
   public void setIdealStateMode(String mode)
@@ -162,9 +165,9 @@ public class IdealState implements ZNRecordInterface
 
   }
 
-  @Override
-  public Stat getStat()
-  {
-    return _stat;
-  }
+//  @Override
+//  public Stat getStat()
+//  {
+//    return _stat;
+//  }
 }

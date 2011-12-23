@@ -12,4 +12,5 @@ public interface ParticipantHealthReportCollector
 
   public abstract void reportHealthReportMessage(ZNRecord healthReport);
 
+  public abstract void transmitHealthReports();
 }

@@ -222,7 +222,7 @@ public class HealthCheckStateModel extends StateModel
 					_provider.writeStat(statName, currValue, String.valueOf(currTimestamp));
 				}
 			}
-			//!!!!!!_manager.getHealthReportCollector().
+			_manager.getHealthReportCollector().transmitHealthReports();
 		}
 
 		_countdown.countDown();

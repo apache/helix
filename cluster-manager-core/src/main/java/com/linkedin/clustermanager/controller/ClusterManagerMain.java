@@ -166,8 +166,11 @@ public class ClusterManagerMain
         manager.connect();
         DistClusterControllerStateModelFactory stateModelFactory
            = new DistClusterControllerStateModelFactory(zkConnectString);
-        StateMachineEngine<DistClusterControllerStateModel> genericStateMachineHandler
-           = new StateMachineEngine<DistClusterControllerStateModel>(stateModelFactory);
+
+        StateMachineEngine genericStateMachineHandler = new StateMachineEngine();
+        genericStateMachineHandler.registerStateModelFactory("LeaderStandby", stateModelFactory);
+        //StateMachineEngine<DistClusterControllerStateModel> genericStateMachineHandler 
+        //   = new StateMachineEngine<DistClusterControllerStateModel>(stateModelFactory);
         manager.getMessagingService().registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(), genericStateMachineHandler);
 
       }

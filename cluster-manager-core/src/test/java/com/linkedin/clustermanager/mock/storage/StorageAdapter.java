@@ -58,7 +58,8 @@ class StorageAdapter
         .getZKBasedManagerForParticipant(clusterName, instanceName,
             zkConnectString);
     stateModelFactory = new StorageStateModelFactory(this);
-    StateMachineEngine genericStateMachineHandler = new StateMachineEngine(stateModelFactory);
+    StateMachineEngine genericStateMachineHandler = new StateMachineEngine();
+    genericStateMachineHandler.registerStateModelFactory("MasterSlave", stateModelFactory);
     
     storageClusterManager.getMessagingService().registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(), genericStateMachineHandler);
     storageClusterManager.connect();

@@ -82,7 +82,13 @@ public class DummyProcess
       throw new Exception("Illeagal arguments");
 
     stateModelFactory = new DummyStateModelFactory(_transDelayInMs);
-    genericStateMachineHandler = new StateMachineEngine(stateModelFactory);
+    DummyLeaderStandbyStateModelFactory stateModelFactory1 = new DummyLeaderStandbyStateModelFactory(_transDelayInMs);
+    DummyOnlineOfflineStateModelFactory stateModelFactory2 = new DummyOnlineOfflineStateModelFactory(_transDelayInMs);
+    genericStateMachineHandler = new StateMachineEngine();
+    genericStateMachineHandler.registerStateModelFactory("MasterSlave", stateModelFactory);
+
+    genericStateMachineHandler.registerStateModelFactory("LeaderStandby", stateModelFactory1);
+    genericStateMachineHandler.registerStateModelFactory("OnlineOffline", stateModelFactory2);
 
     manager.connect();
     manager.getMessagingService().registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(), genericStateMachineHandler);
@@ -114,7 +120,42 @@ public class DummyProcess
       return model;
     }
   }
+  
+  public static class DummyLeaderStandbyStateModelFactory extends StateModelFactory<DummyLeaderStandbyStateModel>
+  {
+    int _delay;
 
+    public DummyLeaderStandbyStateModelFactory(int delay)
+    {
+      _delay = delay;
+    }
+
+    @Override
+    public DummyLeaderStandbyStateModel createNewStateModel(String stateUnitKey)
+    {
+      DummyLeaderStandbyStateModel model = new DummyLeaderStandbyStateModel();
+      model.setDelay(_delay);
+      return model;
+    }
+  }
+  
+  public static class DummyOnlineOfflineStateModelFactory extends StateModelFactory<DummyOnlineOfflineStateModel>
+  {
+    int _delay;
+
+    public DummyOnlineOfflineStateModelFactory(int delay)
+    {
+      _delay = delay;
+    }
+
+    @Override
+    public DummyOnlineOfflineStateModel createNewStateModel(String stateUnitKey)
+    {
+      DummyOnlineOfflineStateModel model = new DummyOnlineOfflineStateModel();
+      model.setDelay(_delay);
+      return model;
+    }
+  }
   public static class DummyStateModel extends StateModel
   {
     int _transDelay = 0;
@@ -181,6 +222,125 @@ public class DummyProcess
 
       sleep();
       logger.info("DummyStateModel.onBecomeDroppedFromOffline()");
+
+    }
+  }
+
+
+  public static class DummyOnlineOfflineStateModel extends StateModel
+  {
+    int _transDelay = 0;
+
+    public void setDelay(int delay)
+    {
+      _transDelay = delay > 0 ? delay : 0;
+    }
+
+    void sleep()
+    {
+      try
+      {
+        if (_transDelay > 0)
+        {
+          Thread.sleep(_transDelay);
+        }
+      } catch (InterruptedException e)
+      {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      }
+    }
+
+    public void onBecomeOnlineFromOffline(Message message,
+        NotificationContext context)
+    {
+      String db = message.getStateUnitKey();
+      String instanceName = context.getManager().getInstanceName();
+      sleep();
+      logger.info("DummyStateModel.onBecomeOnlineFromOffline(), instance:" + instanceName
+                         + ", db:" + db);
+    }
+
+    public void onBecomeOfflineFromOnline(Message message,
+        NotificationContext context)
+    {
+
+      sleep();
+      logger.info("DummyStateModel.onBecomeOfflineFromOnline()");
+
+    }
+    public void onBecomeDroppedFromOffline(Message message, NotificationContext context)
+    {
+
+      sleep();
+      logger.info("DummyStateModel.onBecomeDroppedFromOffline()");
+
+    }
+  }
+  
+  public static class DummyLeaderStandbyStateModel extends StateModel
+  {
+    int _transDelay = 0;
+
+    public void setDelay(int delay)
+    {
+      _transDelay = delay > 0 ? delay : 0;
+    }
+
+    void sleep()
+    {
+      try
+      {
+        if (_transDelay > 0)
+        {
+          Thread.sleep(_transDelay);
+        }
+      } catch (InterruptedException e)
+      {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      }
+    }
+
+    public void onBecomeLeaderFromStandby(Message message,
+        NotificationContext context)
+    {
+      String db = message.getStateUnitKey();
+      String instanceName = context.getManager().getInstanceName();
+      sleep();
+      logger.info("DummyLeaderStandbyStateModel.onBecomeLeaderFromStandby(), instance:" + instanceName
+                         + ", db:" + db);
+    }
+
+    public void onBecomeStandbyFromLeader(Message message,
+        NotificationContext context)
+    {
+
+      sleep();
+      logger.info("DummyLeaderStandbyStateModel.onBecomeStandbyFromLeader()");
+
+    }
+    public void onBecomeDroppedFromOffline(Message message, NotificationContext context)
+    {
+
+      sleep();
+      logger.info("DummyLeaderStandbyStateModel.onBecomeDroppedFromOffline()");
+
+    }
+    
+    public void onBecomeStandbyFromOffline(Message message, NotificationContext context)
+    {
+
+      sleep();
+      logger.info("DummyLeaderStandbyStateModel.onBecomeStandbyFromOffline()");
+
+    }
+    
+    public void onBecomeOfflineFromStandby(Message message, NotificationContext context)
+    {
+
+      sleep();
+      logger.info("DummyLeaderStandbyStateModel.onBecomeOfflineFromStandby()");
 
     }
   }

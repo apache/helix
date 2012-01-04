@@ -40,7 +40,7 @@ public class DummyRelayProcess
   private final String instanceName;
   private ClusterManager manager;
   private DummyStateModelFactory stateModelFactory;
-  private StateMachineEngine<StateModel> genericStateMachineHandler;
+  private StateMachineEngine genericStateMachineHandler;
 
   private String _file = null;
 
@@ -63,6 +63,7 @@ public class DummyRelayProcess
           clusterName, instanceName, _file);
 
     stateModelFactory = new DummyStateModelFactory();
+    genericStateMachineHandler.registerStateModelFactory("OnlineOffline", stateModelFactory);
     manager.getMessagingService().registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(), genericStateMachineHandler);
     manager.connect();
     if (_file != null)

@@ -1,5 +1,6 @@
 package com.linkedin.clustermanager.model;
 
+import java.util.Date;
 import java.util.Map;
 
 import org.apache.zookeeper.data.Stat;
@@ -17,7 +18,6 @@ import com.linkedin.clustermanager.ZNRecordAndStat;
 public class Message extends ZNRecordAndStat
 {
 //  private final ZNRecord _record;
-
   public enum MessageType
   {
     STATE_TRANSITION,
@@ -29,9 +29,9 @@ public class Message extends ZNRecordAndStat
 
   public enum Attributes
   {
-    MSG_ID, SRC_SESSION_ID, TGT_SESSION_ID, SRC_NAME, TGT_NAME,
-    MSG_STATE, STATE_UNIT_KEY, STATE_UNIT_GROUP, FROM_STATE, TO_STATE,
-    STATE_MODEL_DEF, READ_TIMESTAMP, EXECUTE_START_TIMESTAMP, MSG_TYPE,
+    MSG_ID, SRC_SESSION_ID, TGT_SESSION_ID, SRC_NAME, TGT_NAME, 
+    MSG_STATE, STATE_UNIT_KEY, STATE_UNIT_GROUP, FROM_STATE, TO_STATE, 
+    STATE_MODEL_DEF, CREATE_TIMESTAMP, READ_TIMESTAMP, EXECUTE_START_TIMESTAMP, MSG_TYPE, 
     MSG_SUBTYPE, CORRELATION_ID, MESSAGE_RESULT, EXE_SESSION_ID;
   }
 
@@ -47,6 +47,8 @@ public class Message extends ZNRecordAndStat
     _record.setSimpleField(Attributes.MSG_TYPE.toString(), type);
     setMsgId(msgId);
     setMsgState("new");
+    _record.setSimpleField(Attributes.CREATE_TIMESTAMP.toString(), ""
+        + new Date().getTime());
   }
 
   public Message(ZNRecord record)
@@ -67,6 +69,11 @@ public class Message extends ZNRecordAndStat
     {
       setMsgState("new");
     }
+    if(getCreateTimeStamp() == 0)
+    {
+      _record.setSimpleField(Attributes.CREATE_TIMESTAMP.toString(), ""
+          + new Date().getTime());
+    }
   }
 
   public Message(ZNRecord record, String id)
@@ -74,10 +81,6 @@ public class Message extends ZNRecordAndStat
     super(new ZNRecord(record, id));
 //    _record = new ZNRecord(record, id);
     setMsgId(id);
-    if(getMsgState() == null)
-    {
-      setMsgState("new");
-    }
   }
 
   public String getId()
@@ -293,6 +296,22 @@ public class Message extends ZNRecordAndStat
     {
       return Long.parseLong(_record
           .getSimpleField(Attributes.EXECUTE_START_TIMESTAMP.toString()));
+    } catch (Exception e)
+    {
+      return 0;
+    }
+  }
+  
+  public long getCreateTimeStamp()
+  {
+    if (_record.getSimpleField(Attributes.CREATE_TIMESTAMP.toString()) == null)
+    {
+      return 0;
+    }
+    try
+    {
+      return Long.parseLong(_record
+          .getSimpleField(Attributes.CREATE_TIMESTAMP.toString()));
     } catch (Exception e)
     {
       return 0;

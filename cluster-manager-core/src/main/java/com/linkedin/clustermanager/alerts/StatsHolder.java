@@ -222,4 +222,17 @@ public class StatsHolder {
 		}
 		return stats;
 	}
+	
+	public Map<String, Tuple<String>> getStatsMap()
+	{
+		refreshStats();
+		HashMap<String, Tuple<String>> stats = new HashMap<String, Tuple<String>>();
+		for (String stat : _statMap.keySet()) {
+			Map<String,String> statFields = _statMap.get(stat);
+			Tuple<String> valTup = Tuple.fromString(statFields.get(VALUE_NAME));
+			Tuple<String> timeTup = Tuple.fromString(statFields.get(TIMESTAMP_NAME));
+			stats.put(stat, valTup);
+		}
+		return stats;
+	}
 }

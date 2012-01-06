@@ -87,6 +87,7 @@ public class AlertProcessor {
 		return alertKey.toString();
 	}
 	
+	//XXX: major change here.  return ArrayList of Stats instead of ArrayList of Tuple<String>'s
 	public static Map<String, ArrayList<Tuple<String>>> populateAlertStatTuples(String[] alertStats, List<Stat> persistentStats)
 	{
 		Map<String,ArrayList<Tuple<String>>> tupleSets = new HashMap<String,ArrayList<Tuple<String>>>();
@@ -185,13 +186,16 @@ public class AlertProcessor {
 	/*
 	 * TODO: consider returning actual values, rather than bools.  Could just return the triggered alerts
 	 */
-	public static ArrayList<Boolean> executeComparator(Iterator<Tuple<String>> tuples, String comparatorName, Tuple<String> constant)
+	public static ArrayList<AlertValueAndStatus> executeComparator(Iterator<Tuple<String>> tuples, String comparatorName, Tuple<String> constant)
 	{
-		ArrayList<Boolean> results = new ArrayList<Boolean>();
+		ArrayList<AlertValueAndStatus> results = new ArrayList<AlertValueAndStatus>();
 		AlertComparator cmp = AlertParser.getComparator(comparatorName);
 		
 		while (tuples.hasNext()) {
-			results.add(cmp.evaluate(tuples.next(), constant));
+			Tuple<String> currTup = tuples.next();
+			boolean fired = cmp.evaluate(currTup, constant);
+			results.add(new AlertValueAndStatus(currTup, fired));
+			//results.add(cmp.evaluate(currTup, constant));
 		}
 		return results;
 		
@@ -217,11 +221,11 @@ public class AlertProcessor {
 	}
 	*/
 	
-	public static HashMap<String, Boolean> generateResultMap(Set<String> alertStatBindings ,ArrayList<Boolean> evalResults)
+	public static HashMap<String, AlertValueAndStatus> generateResultMap(Set<String> alertStatBindings ,ArrayList<AlertValueAndStatus> evalResults)
 	{
-		HashMap<String, Boolean> resultMap = new HashMap<String,Boolean>();
+		HashMap<String, AlertValueAndStatus> resultMap = new HashMap<String,AlertValueAndStatus>();
 		Iterator<String> bindingIter = alertStatBindings.iterator();
-		Iterator<Boolean> resultIter = evalResults.iterator();
+		Iterator<AlertValueAndStatus> resultIter = evalResults.iterator();
 		if (alertStatBindings.size() != evalResults.size()) {
 			//can't match up alerts bindings to results
 			while (resultIter.hasNext()) {
@@ -237,14 +241,14 @@ public class AlertProcessor {
 		return resultMap;
 	}
 	
-	public static HashMap<String, Boolean> executeAlert(Alert alert, List<Stat> persistedStats)
+	public static HashMap<String, AlertValueAndStatus> executeAlert(Alert alert, List<Stat> persistedStats)
 	{
 		//init tuple lists and populate them
 		//Map<String,List<Tuple<String>>> alertStatTupleSets = initAlertStatTuples(alert);
 		
 		String[] alertStats = ExpressionParser.getBaseStats(alert.getExpression());
 		
-		Map<String, ArrayList<Tuple<String>>> alertsToTupleRows = populateAlertStatTuples(alertStats, persistedStats); //TODO: not sure I am being careful enough with sticking stats that match each other in this list!
+		Map<String, ArrayList<Tuple<String>>> alertsToTupleRows = populateAlertStatTuples(alertStats, persistedStats);
 		
 		if (alertsToTupleRows.size() == 0) {
 			return null;
@@ -256,23 +260,23 @@ public class AlertProcessor {
 		//do operator pipeline
 		Iterator<Tuple<String>> opResultTuples = executeOperatorPipeline(tupleIters, operators);
 		//execute comparator for tuple list
-		ArrayList<Boolean> evalResults = executeComparator(opResultTuples, alert.getComparator(), alert.getConstant()); 
+		ArrayList<AlertValueAndStatus> evalResults = executeComparator(opResultTuples, alert.getComparator(), alert.getConstant()); 
 		
 		//stitch alert bindings back together with final result
 		//XXX: need to verify that processing is order preserving here!
-		HashMap<String, Boolean> alertBindingsToResult = generateResultMap(alertsToTupleRows.keySet(), evalResults);
+		HashMap<String, AlertValueAndStatus> alertBindingsToResult = generateResultMap(alertsToTupleRows.keySet(), evalResults);
 		
 		return alertBindingsToResult;
 		
 		
 	}
 	
-	public static Map<String, Map<String, Boolean>> executeAllAlerts(List<Alert> alerts, List<Stat> stats)
+	public static Map<String, Map<String, AlertValueAndStatus>> executeAllAlerts(List<Alert> alerts, List<Stat> stats)
 	{
-		Map<String, Map<String, Boolean>> alertsResults = new HashMap<String, Map<String,Boolean>>();
+		Map<String, Map<String, AlertValueAndStatus>> alertsResults = new HashMap<String, Map<String,AlertValueAndStatus>>();
 		
 		for (Alert alert : alerts) {
-			HashMap<String, Boolean> result = executeAlert(alert, stats);
+			HashMap<String, AlertValueAndStatus> result = executeAlert(alert, stats);
 			//TODO: decide if sticking null results in here is ok
 			alertsResults.put(alert.getName(), result);
 		}

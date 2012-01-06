@@ -137,7 +137,8 @@ public class GenericClusterController implements
 
       // health stats pipeline
    	  Pipeline healthStatsAggregationPipeline = new Pipeline();
-   	  healthStatsAggregationPipeline.addStage(new StatsAggregationStage());
+   	  StatsAggregationStage statsStage = new StatsAggregationStage();
+   	  healthStatsAggregationPipeline.addStage(statsStage);
    	  registry.register("healthChange", dataRefresh, healthStatsAggregationPipeline);
       
       return registry;

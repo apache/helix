@@ -21,8 +21,6 @@ public class SumOperator extends Operator {
 		return out;
 	}
 	
-	
-	
 	@Override
 	public List<Iterator<Tuple<String>>> execute(List<Iterator<Tuple<String>>> input) {
 		ArrayList<Tuple<String>> output = new ArrayList<Tuple<String>>();
@@ -40,5 +38,4 @@ public class SumOperator extends Operator {
 			output.add(rowSum);
 		}
 	}
-
 }

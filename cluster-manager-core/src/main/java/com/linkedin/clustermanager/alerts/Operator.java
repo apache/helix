@@ -97,3 +97,4 @@ public abstract class Operator {
 	
 	public abstract List<Iterator<Tuple<String>>> execute(List<Iterator<Tuple<String>>> input);
 }
+

@@ -142,8 +142,8 @@ public class TestEvaluateAlerts {
 		String alert = addSimpleAlert();
 		String stat = AlertParser.getComponent(AlertParser.EXPRESSION_NAME, alert);
 		addArrivingSimpleStat();
-		Map<String, Map<String, Boolean>> alertResult = AlertProcessor.executeAllAlerts(_alertsHolder.getAlertList(), _statsHolder.getStatsList());
-		boolean alertFired = alertResult.get(alert).get(AlertProcessor.noWildcardAlertKey);
+		Map<String, Map<String, AlertValueAndStatus>> alertResult = AlertProcessor.executeAllAlerts(_alertsHolder.getAlertList(), _statsHolder.getStatsList());
+		boolean alertFired = alertResult.get(alert).get(AlertProcessor.noWildcardAlertKey).isFired();
 		 AssertJUnit.assertTrue(alertFired);
 	}
 	
@@ -152,7 +152,7 @@ public class TestEvaluateAlerts {
 	{
 		String alert = addSimpleAlert();
 		String stat = AlertParser.getComponent(AlertParser.EXPRESSION_NAME, alert);
-		Map<String, Map<String, Boolean>> alertResult = AlertProcessor.executeAllAlerts(_alertsHolder.getAlertList(), _statsHolder.getStatsList());
+		Map<String, Map<String, AlertValueAndStatus>> alertResult = AlertProcessor.executeAllAlerts(_alertsHolder.getAlertList(), _statsHolder.getStatsList());
 		AssertJUnit.assertEquals(null, alertResult.get(AlertProcessor.noWildcardAlertKey));
 	}
 	
@@ -162,9 +162,9 @@ public class TestEvaluateAlerts {
 		String alert = addWildcardAlert();
 		String stat = AlertParser.getComponent(AlertParser.EXPRESSION_NAME, alert);
 		addArrivingSimpleStat();
-		Map<String, Map<String, Boolean>> alertResult = AlertProcessor.executeAllAlerts(_alertsHolder.getAlertList(), _statsHolder.getStatsList());
+		Map<String, Map<String, AlertValueAndStatus>> alertResult = AlertProcessor.executeAllAlerts(_alertsHolder.getAlertList(), _statsHolder.getStatsList());
 		String wildcardBinding = "10";
-		boolean alertFired = alertResult.get(alert).get(wildcardBinding);
+		boolean alertFired = alertResult.get(alert).get(wildcardBinding).isFired();
 		AssertJUnit.assertTrue(alertFired);	
 	}
 	
@@ -174,9 +174,9 @@ public class TestEvaluateAlerts {
 		String alert = addExpandWildcardAlert();
 		String stat = AlertParser.getComponent(AlertParser.EXPRESSION_NAME, alert);
 		addArrivingSimpleStat();
-		Map<String, Map<String, Boolean>> alertResult = AlertProcessor.executeAllAlerts(_alertsHolder.getAlertList(), _statsHolder.getStatsList());
+		Map<String, Map<String, AlertValueAndStatus>> alertResult = AlertProcessor.executeAllAlerts(_alertsHolder.getAlertList(), _statsHolder.getStatsList());
 		String wildcardBinding = "10";
-		boolean alertFired = alertResult.get(alert).get(wildcardBinding);
+		boolean alertFired = alertResult.get(alert).get(wildcardBinding).isFired();
 		AssertJUnit.assertTrue(alertFired);	
 	}
 	
@@ -186,8 +186,8 @@ public class TestEvaluateAlerts {
 		String alert = addExpandSumAlert();
 		String stat = AlertParser.getComponent(AlertParser.EXPRESSION_NAME, alert);
 		addArrivingPairOfStats();
-		Map<String, Map<String, Boolean>> alertResult = AlertProcessor.executeAllAlerts(_alertsHolder.getAlertList(), _statsHolder.getStatsList());
-		boolean alertFired = alertResult.get(alert).get(AlertProcessor.noWildcardAlertKey);
+		Map<String, Map<String, AlertValueAndStatus>> alertResult = AlertProcessor.executeAllAlerts(_alertsHolder.getAlertList(), _statsHolder.getStatsList());
+		boolean alertFired = alertResult.get(alert).get(AlertProcessor.noWildcardAlertKey).isFired();
 		AssertJUnit.assertTrue(alertFired);	
 	}
 	
@@ -210,10 +210,10 @@ public class TestEvaluateAlerts {
 		_statsHolder.applyStat(part11SuccStat, statFields);
 		statFields = getStatFields("49","0");
 		_statsHolder.applyStat(part11FailStat, statFields);
-		Map<String, Map<String, Boolean>> alertResult = AlertProcessor.executeAllAlerts(_alertsHolder.getAlertList(), _statsHolder.getStatsList());
-		boolean alertFired = alertResult.get(alert).get("10"); //10 should fire
+		Map<String, Map<String, AlertValueAndStatus>> alertResult = AlertProcessor.executeAllAlerts(_alertsHolder.getAlertList(), _statsHolder.getStatsList());
+		boolean alertFired = alertResult.get(alert).get("10").isFired(); //10 should fire
 		AssertJUnit.assertTrue(alertFired);	
-		alertFired = alertResult.get(alert).get("11"); //11 should not fire
+		alertFired = alertResult.get(alert).get("11").isFired(); //11 should not fire
 		AssertJUnit.assertFalse(alertFired);	
 	}
 	
@@ -236,8 +236,8 @@ public class TestEvaluateAlerts {
 		_statsHolder.applyStat(part11SuccStat, statFields);
 		statFields = getStatFields("49","0");
 		_statsHolder.applyStat(part11FailStat, statFields);
-		Map<String, Map<String, Boolean>> alertResult = AlertProcessor.executeAllAlerts(_alertsHolder.getAlertList(), _statsHolder.getStatsList());
-		boolean alertFired = alertResult.get(alert).get(AlertProcessor.noWildcardAlertKey); //10 should fire
+		Map<String, Map<String, AlertValueAndStatus>> alertResult = AlertProcessor.executeAllAlerts(_alertsHolder.getAlertList(), _statsHolder.getStatsList());
+		boolean alertFired = alertResult.get(alert).get(AlertProcessor.noWildcardAlertKey).isFired(); //10 should fire
 		AssertJUnit.assertTrue(alertFired);	
 	}
 	
@@ -266,16 +266,16 @@ public class TestEvaluateAlerts {
 		_statsHolder.applyStat(part11SuccStat, statFields);
 		statFields = getStatFields("49","0");
 		_statsHolder.applyStat(part11FailStat, statFields);
-		Map<String, Map<String, Boolean>> alertResult = AlertProcessor.executeAllAlerts(_alertsHolder.getAlertList(), _statsHolder.getStatsList());
+		Map<String, Map<String, AlertValueAndStatus>> alertResult = AlertProcessor.executeAllAlerts(_alertsHolder.getAlertList(), _statsHolder.getStatsList());
 
 		//alert 1 check
-		boolean alertFired = alertResult.get(alert1).get(AlertProcessor.noWildcardAlertKey);
+		boolean alertFired = alertResult.get(alert1).get(AlertProcessor.noWildcardAlertKey).isFired();
 		AssertJUnit.assertTrue(alertFired);
 		
 		//alert 2 check
-		alertFired = alertResult.get(alert2).get("10"); //10 should fire
+		alertFired = alertResult.get(alert2).get("10").isFired(); //10 should fire
 		AssertJUnit.assertTrue(alertFired);	
-		alertFired = alertResult.get(alert2).get("11"); //11 should not fire
+		alertFired = alertResult.get(alert2).get("11").isFired(); //11 should not fire
 		AssertJUnit.assertFalse(alertFired);	
 		
 	}

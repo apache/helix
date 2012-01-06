@@ -1,5 +1,6 @@
 package com.linkedin.clustermanager.controller.stages;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -10,8 +11,10 @@ import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.alerts.AlertProcessor;
+import com.linkedin.clustermanager.alerts.AlertValueAndStatus;
 import com.linkedin.clustermanager.alerts.AlertsHolder;
 import com.linkedin.clustermanager.alerts.StatsHolder;
+import com.linkedin.clustermanager.alerts.Tuple;
 import com.linkedin.clustermanager.healthcheck.AggregationType;
 import com.linkedin.clustermanager.healthcheck.AggregationTypeFactory;
 import com.linkedin.clustermanager.healthcheck.Stat;
@@ -37,6 +40,8 @@ public class StatsAggregationStage extends AbstractBaseStage
 	
   StatsHolder _statsHolder;
   AlertsHolder _alertsHolder;
+  Map<String, Map<String, AlertValueAndStatus>> _alertStatus;
+  Map<String, Tuple<String>> _statStatus;
   
   public final String PARTICIPANT_STAT_REPORT_NAME = StatHealthReportProvider.REPORT_NAME;
   public final String REPORT_NAME = "AggStats";
@@ -48,8 +53,18 @@ public class StatsAggregationStage extends AbstractBaseStage
   public StatHealthReportProvider _aggStatsProvider;
   
   //public AggregationType _defaultAggType;
+ 
+  public Map<String, Map<String, AlertValueAndStatus>> getAlertStatus() 
+  {
+	  return _alertStatus;
+  }
   
-  public void persistAggStats(ClusterManager manager)
+  public Map<String, Tuple<String>> getStatStatus() 
+  {
+	return _statStatus;
+  }
+
+public void persistAggStats(ClusterManager manager)
   {
 	  Map<String, String> report = _aggStatsProvider.getRecentHealthReport();
       Map<String, Map<String, String>> partitionReport = _aggStatsProvider
@@ -190,9 +205,14 @@ public class StatsAggregationStage extends AbstractBaseStage
     
     Map<String, LiveInstance> liveInstances = cache.getLiveInstances();
     
+    long currTime = System.currentTimeMillis();
     //for each live node, read node's stats
     for (LiveInstance instance : liveInstances.values())
     {
+      long modifiedTime = instance.getStat().getMtime();
+      if (currTime - modifiedTime > 120000) { //TODO: make this number configurable
+    	  //TODO: raise alarm here for participant not reporting stats.
+      }
       String instanceName = instance.getInstanceName();
       logger.debug("instanceName: "+instanceName);
       //XXX: now have map of HealthStats, so no need to traverse them...verify correctness
@@ -221,15 +241,21 @@ public class StatsAggregationStage extends AbstractBaseStage
       //persistAggStats(manager);
     }
     
-    //execute alerts
-    Map<String, Map<String, Boolean>> alertStatus = AlertProcessor.executeAllAlerts(_alertsHolder.getAlertList(), _statsHolder.getStatsList());
+    //populate _statStatus
+    _statStatus = _statsHolder.getStatsMap();
+   
+    //execute alerts, populate _alertStatus
+    _alertStatus = AlertProcessor.executeAllAlerts(_alertsHolder.getAlertList(), _statsHolder.getStatsList());
+    
+    //TODO: access the 2 status variables from somewhere to populate graphs
     
     //logging alert status
-    for (String alertOuterKey : alertStatus.keySet()) {
+    for (String alertOuterKey : _alertStatus.keySet()) {
     	logger.debug("Alert Outer Key: "+alertOuterKey);
-    	Map<String, Boolean>alertInnerMap = alertStatus.get(alertOuterKey);
+    	Map<String, AlertValueAndStatus>alertInnerMap = _alertStatus.get(alertOuterKey);
     	for (String alertInnerKey: alertInnerMap.keySet()) {
-    		logger.debug("  "+alertInnerKey+": "+alertInnerMap.get(alertInnerKey));
+    		logger.debug("  "+alertInnerKey+" value: "+alertInnerMap.get(alertInnerKey).getValue()+
+    				", status: "+alertInnerMap.get(alertInnerKey).isFired());
     	}
     }
   }

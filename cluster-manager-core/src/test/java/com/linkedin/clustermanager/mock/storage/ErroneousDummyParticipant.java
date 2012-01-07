@@ -11,6 +11,8 @@ import org.apache.log4j.Logger;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerFactory;
 import com.linkedin.clustermanager.NotificationContext;
+import com.linkedin.clustermanager.mock.storage.DummyProcess.DummyLeaderStandbyStateModelFactory;
+import com.linkedin.clustermanager.mock.storage.DummyProcess.DummyOnlineOfflineStateModelFactory;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.Message.MessageType;
 import com.linkedin.clustermanager.participant.StateMachineEngine;
@@ -163,10 +165,18 @@ public class ErroneousDummyParticipant implements Stoppable, Runnable
                                                                 _zkAddr,
                                                                 null);
       _manager.connect();
-      StateMachineEngine<ErroneousDummyStateModel> handler =
-          new StateMachineEngine<ErroneousDummyStateModel>(_stateModelFacotry);
+
+      StateMachineEngine genericStateMachineHandler = new StateMachineEngine();
+      genericStateMachineHandler.registerStateModelFactory("MasterSlave", _stateModelFacotry);
+
+      DummyLeaderStandbyStateModelFactory leaderStandbyMF = new DummyLeaderStandbyStateModelFactory(10);
+      DummyOnlineOfflineStateModelFactory onOfflineMF = new DummyOnlineOfflineStateModelFactory(10);
+      genericStateMachineHandler.registerStateModelFactory("LeaderStandby", leaderStandbyMF);
+      genericStateMachineHandler.registerStateModelFactory("OnlineOffline", onOfflineMF);
+
       _manager.getMessagingService()
-          .registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(), handler);
+              .registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(),
+                                             genericStateMachineHandler);
 
       _countDown.await();
     }

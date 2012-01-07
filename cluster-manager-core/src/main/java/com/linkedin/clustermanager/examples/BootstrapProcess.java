@@ -75,7 +75,7 @@ public class BootstrapProcess
   private final String stateModelType;
   private ClusterManager manager;
 
-  private StateMachineEngine<StateModel> genericStateMachineHandler;
+  private StateMachineEngine genericStateMachineHandler;
 
   private String _file = null;
   private StateModelFactory<StateModel> stateModelFactory;
@@ -101,8 +101,8 @@ public class BootstrapProcess
       manager = ClusterManagerFactory.getFileBasedManagerForParticipant(
           clusterName, instanceName, _file);
     stateModelFactory = new BootstrapHandler();
-    genericStateMachineHandler = new StateMachineEngine<StateModel>(
-        stateModelFactory);
+    genericStateMachineHandler = new StateMachineEngine();
+    genericStateMachineHandler.registerStateModelFactory("MasterSlave", stateModelFactory);
     manager.getMessagingService().registerMessageHandlerFactory(
         MessageType.STATE_TRANSITION.toString(), genericStateMachineHandler);
     manager.getMessagingService().registerMessageHandlerFactory(

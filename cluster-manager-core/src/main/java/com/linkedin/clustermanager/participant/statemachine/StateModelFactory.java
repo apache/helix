@@ -24,6 +24,11 @@ public abstract class StateModelFactory<T extends StateModel>
   {
     _stateModelMap.put(stateUnitKey, stateModel);
   }
+  
+  public void createAndAddStateModel(String stateUnitKey)
+  {
+    _stateModelMap.put(stateUnitKey, createNewStateModel(stateUnitKey));
+  }
 
   public T getStateModel(String stateUnitKey)
   {

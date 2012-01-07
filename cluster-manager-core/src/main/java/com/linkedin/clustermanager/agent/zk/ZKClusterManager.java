@@ -6,6 +6,7 @@ import static com.linkedin.clustermanager.CMConstants.ChangeType.EXTERNAL_VIEW;
 import static com.linkedin.clustermanager.CMConstants.ChangeType.IDEAL_STATE;
 import static com.linkedin.clustermanager.CMConstants.ChangeType.LIVE_INSTANCE;
 import static com.linkedin.clustermanager.CMConstants.ChangeType.MESSAGE;
+import static com.linkedin.clustermanager.CMConstants.ChangeType.MESSAGES_CONTROLLER;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -21,9 +22,7 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
 
-import com.linkedin.clustermanager.CMConstants;
 import com.linkedin.clustermanager.CMConstants.ChangeType;
-import com.linkedin.clustermanager.CMConstants.ZNAttribute;
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterManagementService;
 import com.linkedin.clustermanager.ClusterManager;
@@ -44,6 +43,8 @@ import com.linkedin.clustermanager.healthcheck.ParticipantHealthReportCollector;
 import com.linkedin.clustermanager.healthcheck.ParticipantHealthReportCollectorImpl;
 import com.linkedin.clustermanager.messaging.DefaultMessagingService;
 import com.linkedin.clustermanager.messaging.handling.MessageHandlerFactory;
+import com.linkedin.clustermanager.model.CurrentState;
+import com.linkedin.clustermanager.model.LiveInstance;
 import com.linkedin.clustermanager.monitoring.ZKPathDataDumpTask;
 import com.linkedin.clustermanager.participant.DistClusterControllerElection;
 import com.linkedin.clustermanager.store.PropertyStore;
@@ -196,7 +197,7 @@ public class ZKClusterManager implements ClusterManager
     CallbackHandler callbackHandler = createCallBackHandler(path, listener,
         new EventType[]
         { EventType.NodeChildrenChanged, EventType.NodeDeleted,
-            EventType.NodeCreated }, MESSAGE);
+            EventType.NodeCreated }, MESSAGES_CONTROLLER);
     _handlers.add(callbackHandler);
   }
 
@@ -327,7 +328,6 @@ public class ZKClusterManager implements ClusterManager
   public long getLastNotificationTime()
   {
     return -1;
-    // return _zkClient.;
   }
 
   @Override
@@ -374,15 +374,13 @@ public class ZKClusterManager implements ClusterManager
 
   private void addLiveInstance()
   {
-    ZNRecord metaData = new ZNRecord(_instanceName);
-    metaData.setSimpleField(CMConstants.ZNAttribute.SESSION_ID.toString(),
-        _sessionId);
-    metaData.setSimpleField(CMConstants.ZNAttribute.CLUSTER_MANAGER_VERSION.toString(), _version);
+    LiveInstance liveInstance = new LiveInstance(_instanceName);
+    liveInstance.setSessionId(_sessionId);
+    liveInstance.setClusterManagerVersion(_version);
 
     logger.info("Add live instance: InstanceName: " + _instanceName
         + " Session id:" + _sessionId);
-
-    _accessor.setProperty(PropertyType.LIVEINSTANCES, metaData, _instanceName);
+    _accessor.setProperty(PropertyType.LIVEINSTANCES, liveInstance, _instanceName);
     String currentStatePathParent = PropertyPathConfig.getPath(PropertyType.CURRENTSTATES,
                                         _clusterName, _instanceName, getSessionId());
 
@@ -471,6 +469,8 @@ public class ZKClusterManager implements ClusterManager
   protected void handleNewSession()
   {
     _sessionId = UUID.randomUUID().toString();
+    _accessor.reset();
+
     resetHandlers(_handlers);
 
     logger.info("Handling new session, session id:" + _sessionId
@@ -600,23 +600,20 @@ public class ZKClusterManager implements ClusterManager
 
   private boolean isLeader()
   {
-    boolean ret = true;
-
-    ZNRecord leaderRecord = _accessor.getProperty(PropertyType.LEADER);
-    if (leaderRecord == null)
+    LiveInstance leader = _accessor.getProperty(LiveInstance.class, PropertyType.LEADER);
+    if (leader == null)
     {
-      ret = false;
-    } else
+      return false;
+    }
+    else
     {
-      String leader = leaderRecord.getSimpleField(PropertyType.LEADER
-          .toString());
-
-      if (leader == null || !leader.equals(_instanceName))
+      String leaderName = leader.getLeader();
+      if (leaderName == null || !leaderName.equals(_instanceName))
       {
-        ret = false;
+        return false;
       }
     }
-    return ret;
+    return true;
   }
 
   private void carryOverPreviousCurrentState()
@@ -625,26 +622,27 @@ public class ZKClusterManager implements ClusterManager
         _instanceName);
     for (String previousSessionId : subPaths)
     {
-      List<ZNRecord> previousCurrentStates = _accessor.getChildValues(
-          PropertyType.CURRENTSTATES, _instanceName, previousSessionId);
-      for (ZNRecord previousCurrentState : previousCurrentStates)
+      List<CurrentState> previousCurrentStates = _accessor.getChildValues(CurrentState.class,
+                                                                          PropertyType.CURRENTSTATES,
+                                                                          _instanceName, previousSessionId);
+
+      for (CurrentState previousCurrentState : previousCurrentStates)
       {
         if (!previousSessionId.equalsIgnoreCase(_sessionId))
         {
           logger.info("Carrying over old session:" + previousSessionId
               + " resource " + previousCurrentState.getId()
               + " to new session:" + _sessionId);
-          for (String resourceKey : previousCurrentState.getMapFields()
-              .keySet())
+          for (String resourceKey : previousCurrentState.getResourceKeyStateMap().keySet())
           {
-            previousCurrentState.getMapField(resourceKey).put(
-                ZNAttribute.CURRENT_STATE.toString(), "OFFLINE");
+            previousCurrentState.setState(resourceKey, "OFFLINE");
           }
-          previousCurrentState.setSimpleField(
-              CMConstants.ZNAttribute.SESSION_ID.toString(), _sessionId);
+          previousCurrentState.setSessionId(_sessionId);
           _accessor.setProperty(PropertyType.CURRENTSTATES,
-              previousCurrentState, _instanceName, _sessionId,
-              previousCurrentState.getId());
+                                previousCurrentState,
+                                _instanceName,
+                                _sessionId,
+                                previousCurrentState.getId());
         }
       }
     }
@@ -666,9 +664,10 @@ public class ZKClusterManager implements ClusterManager
   public PropertyStore<ZNRecord> getPropertyStore()
   {
     checkConnected();
+
     if (_accessor != null)
     {
-      return _accessor.getStore();
+      return _accessor.getPropertyStore();
     }
 
     return null;

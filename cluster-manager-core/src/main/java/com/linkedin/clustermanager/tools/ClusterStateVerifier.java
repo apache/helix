@@ -17,12 +17,13 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.log4j.Logger;
 
-import com.linkedin.clustermanager.CMConstants;
 import com.linkedin.clustermanager.ClusterView;
 import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
+import com.linkedin.clustermanager.model.CurrentState.CurrentStateProperty;
+import com.linkedin.clustermanager.model.LiveInstance.LiveInstanceProperty;
 import com.linkedin.clustermanager.participant.statemachine.StateModel;
 import com.linkedin.clustermanager.participant.statemachine.StateModelFactory;
 import com.linkedin.clustermanager.util.CMUtil;
@@ -58,7 +59,7 @@ public class ClusterStateVerifier
         currentStates.put(instanceName, new TreeMap<String, ZNRecord>());
       }
       String currentStatePath = CMUtil.getCurrentStateBasePath(clusterName,
-          instanceName)+"/"+ liveInstanceRecord.getSimpleField(CMConstants.ZNAttribute.SESSION_ID.toString());
+          instanceName)+"/"+ liveInstanceRecord.getSimpleField(LiveInstanceProperty.SESSION_ID.toString());
       List<String> partitionStatePaths = zkClient.getChildren(currentStatePath);
       for (String stateUnitKey : partitionStatePaths)
       {
@@ -216,7 +217,7 @@ public class ClusterStateVerifier
 
           String partitionNodeState = currentStates.get(nodeName)
               .get(stateUnitGroup).getMapFields().get(stateUnitKey)
-              .get(CMConstants.ZNAttribute.CURRENT_STATE.toString());
+              .get(CurrentStateProperty.CURRENT_STATE.toString());
           boolean success =true;
           if (!partitionNodeState.equals(nodePartitionState))
           {

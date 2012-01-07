@@ -2,15 +2,10 @@ package com.linkedin.clustermanager;
 
 public interface CMConstants
 {
-
-  enum ZNAttribute
-  {
-    SESSION_ID, CURRENT_STATE, HOST, PORT, CLUSTER_MANAGER_VERSION, LEADER
-  }
-
+  // TODO duplicated; remove this; use PropertyType instead
   enum ChangeType
   {
     IDEAL_STATE, CONFIG, LIVE_INSTANCE, CURRENT_STATE, MESSAGE, EXTERNAL_VIEW,
-    CONTROLLER
+    CONTROLLER, MESSAGES_CONTROLLER
   }
 }

@@ -10,6 +10,7 @@ import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.PropertyType;
+import com.linkedin.clustermanager.ZNRecordDecorator;
 import com.linkedin.clustermanager.model.CurrentState;
 import com.linkedin.clustermanager.model.IdealState;
 import com.linkedin.clustermanager.model.InstanceConfig;
@@ -26,42 +27,24 @@ import com.linkedin.clustermanager.model.StateModelDefinition;
  */
 public class ClusterDataCache
 {
-  private final Map<String, LiveInstance> _liveInstanceMap = new HashMap<String, LiveInstance>();
-  private final Map<String, IdealState> _idealStateMap = new HashMap<String, IdealState>();
-  private final Map<String, StateModelDefinition> _stateModelDefMap = new HashMap<String, StateModelDefinition>();
-  private final Map<String, InstanceConfig> _instanceConfigMap = new HashMap<String, InstanceConfig>();
+  private Map<String, LiveInstance> _liveInstanceMap;
+  private Map<String, IdealState> _idealStateMap;
+  private Map<String, StateModelDefinition> _stateModelDefMap;
+  private Map<String, InstanceConfig> _instanceConfigMap;
   private final Map<String, Map<String, Map<String, CurrentState>>> _currentStateMap = new HashMap<String, Map<String, Map<String, CurrentState>>>();
   private final Map<String, Map<String, Message>> _messageMap = new HashMap<String, Map<String, Message>>();
 
-  private static final Logger logger = Logger.getLogger(ClusterDataCache.class
-      .getName());
-
-//  private <T extends Object> Map<String, T> retrieve(
-//      ClusterDataAccessor dataAccessor, PropertyType type, Class<T> clazz,
-//      String... keys)
-//  {
-//    List<ZNRecord> instancePropertyList = dataAccessor.getChildValues(type,
-//        keys);
-//    Map<String, T> map = ZNRecordUtil.convertListToTypedMap(
-//        instancePropertyList, clazz);
-//    return map;
-//  }
-//
-//  private <T extends Object> Map<String, T> retrieve(
-//      ClusterDataAccessor dataAccessor, PropertyType type, Class<T> clazz)
-//  {
-//
-//    List<ZNRecord> clusterPropertyList;
-//    clusterPropertyList = dataAccessor.getChildValues(type);
-//    Map<String, T> map = ZNRecordUtil.convertListToTypedMap(
-//        clusterPropertyList, clazz);
-//    return map;
-//  }
+  private static final Logger logger = Logger.getLogger(ClusterDataCache.class.getName());
 
   public boolean refresh(ClusterDataAccessor dataAccessor)
   {
-    dataAccessor.<IdealState>refreshChildValues(_idealStateMap, IdealState.class, PropertyType.IDEALSTATES);
-    dataAccessor.refreshChildValues(_liveInstanceMap, LiveInstance.class, PropertyType.LIVEINSTANCES);
+    _idealStateMap = ZNRecordDecorator
+        .convertTypedListToTypedMap(dataAccessor.getChildValues(IdealState.class,
+                                                                PropertyType.IDEALSTATES));
+    _liveInstanceMap = ZNRecordDecorator
+        .convertTypedListToTypedMap(dataAccessor.getChildValues(LiveInstance.class,
+                                                                PropertyType.LIVEINSTANCES));
+
 
     for (LiveInstance instance : _liveInstanceMap.values())
     {
@@ -69,16 +52,19 @@ public class ClusterDataCache
           + instance.getSessionId());
     }
 
-    dataAccessor.<StateModelDefinition>refreshChildValues(_stateModelDefMap, StateModelDefinition.class, PropertyType.STATEMODELDEFS);
-    dataAccessor.<InstanceConfig>refreshChildValues(_instanceConfigMap, InstanceConfig.class, PropertyType.CONFIGS);
+    _stateModelDefMap = ZNRecordDecorator
+        .convertTypedListToTypedMap(dataAccessor.getChildValues(StateModelDefinition.class,
+                                                                PropertyType.STATEMODELDEFS));
+    _instanceConfigMap = ZNRecordDecorator
+        .convertTypedListToTypedMap(dataAccessor.getChildValues(InstanceConfig.class,
+                                                                PropertyType.CONFIGS));
 
     for (String instanceName : _liveInstanceMap.keySet())
     {
-      if (!_messageMap.containsKey(instanceName))
-      {
-        _messageMap.put(instanceName, new HashMap<String, Message>());
-      }
-      dataAccessor.<Message>refreshChildValues(_messageMap.get(instanceName), Message.class, PropertyType.MESSAGES, instanceName);
+      _messageMap.put(instanceName, ZNRecordDecorator
+                      .convertTypedListToTypedMap(dataAccessor.getChildValues(Message.class,
+                                                                              PropertyType.MESSAGES,
+                                                                              instanceName)));
     }
 
     for (String instanceName : _liveInstanceMap.keySet())
@@ -87,16 +73,13 @@ public class ClusterDataCache
       String sessionId = liveInstance.getSessionId();
       if (!_currentStateMap.containsKey(instanceName))
       {
-        _currentStateMap.put(instanceName,
-            new HashMap<String, Map<String, CurrentState>>());
+        _currentStateMap.put(instanceName, new HashMap<String, Map<String, CurrentState>>());
       }
-      if (!_currentStateMap.get(instanceName).containsKey(sessionId))
-      {
-        _currentStateMap.get(instanceName)
-            .put(sessionId, new HashMap<String, CurrentState>());
-      }
-      dataAccessor.<CurrentState>refreshChildValues(_currentStateMap.get(instanceName).get(sessionId),
-                    CurrentState.class, PropertyType.CURRENTSTATES, instanceName, sessionId);
+        _currentStateMap.get(instanceName).put(sessionId, ZNRecordDecorator
+                        .convertTypedListToTypedMap(dataAccessor.getChildValues(CurrentState.class,
+                                                                                PropertyType.CURRENTSTATES,
+                                                                                instanceName,
+                                                                                sessionId)));
     }
 
     return true;

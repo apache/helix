@@ -12,12 +12,12 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 
 import com.linkedin.clustermanager.ClusterDataAccessor;
-import com.linkedin.clustermanager.ClusterDataAccessor.IdealStateConfigProperty;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.Mocks;
 import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.model.IdealState;
+import com.linkedin.clustermanager.model.IdealState.IdealStateModeProperty;
 import com.linkedin.clustermanager.model.LiveInstance;
 import com.linkedin.clustermanager.model.ResourceGroup;
 import com.linkedin.clustermanager.pipeline.Stage;
@@ -81,14 +81,14 @@ public class BaseStageTest
       }
       IdealState idealState = new IdealState(record);
       idealState.setStateModelDefRef("MasterSlave");
-      idealState.setIdealStateMode(IdealStateConfigProperty.AUTO.toString());
+      idealState.setIdealStateMode(IdealStateModeProperty.AUTO.toString());
       idealState.setNumPartitions(partitions);
       idealStates.add(idealState);
 
-      System.out.println(idealState.getRecord());
+//      System.out.println(idealState);
       manager.getDataAccessor().setProperty(PropertyType.IDEALSTATES,
-          idealState.getRecord(), resourceGroupName);
-
+                                            idealState,
+                                            resourceGroupName);
     }
     return resourceGroups;
   }
@@ -98,11 +98,9 @@ public class BaseStageTest
     // setup liveInstances
     for (int i = 0; i < numLiveInstances; i++)
     {
-      ZNRecord znRecord = new ZNRecord("localhost_" + i);
-      LiveInstance liveInstance = new LiveInstance(znRecord);
+      LiveInstance liveInstance = new LiveInstance("localhost_" + i);
       liveInstance.setSessionId("session_" + i);
-      accessor.setProperty(PropertyType.LIVEINSTANCES, znRecord, "localhost_"
-          + i);
+      accessor.setProperty(PropertyType.LIVEINSTANCES, liveInstance, "localhost_" + i);
     }
   }
 
@@ -126,16 +124,21 @@ public class BaseStageTest
   {
     ZNRecord masterSlave = new StateModelConfigGenerator()
         .generateConfigForMasterSlave();
-    accessor.setProperty(PropertyType.STATEMODELDEFS, masterSlave,
-        masterSlave.getId());
+    accessor.setProperty(PropertyType.STATEMODELDEFS, masterSlave, masterSlave.getId());
+//    accessor.setProperty(PropertyType.STATEMODELDEFS, new StateModelDefinition(masterSlave),
+//        masterSlave.getId());
     ZNRecord leaderStandby = new StateModelConfigGenerator()
         .generateConfigForLeaderStandby();
-    accessor.setProperty(PropertyType.STATEMODELDEFS, leaderStandby,
-        leaderStandby.getId());
+    accessor.setProperty(PropertyType.STATEMODELDEFS, leaderStandby, leaderStandby.getId());
+//    accessor.setProperty(PropertyType.STATEMODELDEFS, new StateModelDefinition(leaderStandby),
+//                         leaderStandby.getId());
+
     ZNRecord onlineOffline = new StateModelConfigGenerator()
         .generateConfigForOnlineOffline();
-    accessor.setProperty(PropertyType.STATEMODELDEFS, onlineOffline,
-        onlineOffline.getId());
+    accessor.setProperty(PropertyType.STATEMODELDEFS, onlineOffline, onlineOffline.getId());
+//    accessor.setProperty(PropertyType.STATEMODELDEFS, new StateModelDefinition(onlineOffline),
+//                         onlineOffline.getId());
+
   }
 
   protected Map<String, ResourceGroup> getResourceGroupMap()

@@ -41,15 +41,13 @@ public class ZKPathDataDumpTask extends TimerTask
     // For each record in status update and error node
     // TODO: for now the status updates are dumped to cluster manager log4j log.
     // We need to think if we should create per-instance log files that contains per-instance statusUpdates
-    // and errors 
+    // and errors
     logger.trace("Scannning status updates ...");
     try
     {
-      List<ZNRecord> instances = _manager.getDataAccessor()
-          .getChildValues(PropertyType.CONFIGS);
-      for (ZNRecord instance : instances)
+      List<String> instances = _manager.getDataAccessor().getChildNames(PropertyType.CONFIGS);
+      for (String instanceName : instances)
       {
-        String instanceName = instance.getId();
         scanPath(CMUtil.getInstancePropertyPath(_manager.getClusterName(),
             instanceName, PropertyType.STATUSUPDATES),
             _thresholdNoChangeInMs);
@@ -59,10 +57,10 @@ public class ZKPathDataDumpTask extends TimerTask
       }
       scanPath(CMUtil.getControllerPropertyPath(_manager.getClusterName(),
           PropertyType.STATUSUPDATES_CONTROLLER), _thresholdNoChangeInMs);
-      
+
       scanPath(CMUtil.getControllerPropertyPath(_manager.getClusterName(),
           PropertyType.ERRORS_CONTROLLER), _thresholdNoChangeInMs * 3);
-    } 
+    }
     catch (Exception e)
     {
       logger.error(e);
@@ -90,7 +88,7 @@ public class ZKPathDataDumpTask extends TimerTask
           {
             logger.error(e);
           }
-        } 
+        }
       }
       catch (Exception e)
       {

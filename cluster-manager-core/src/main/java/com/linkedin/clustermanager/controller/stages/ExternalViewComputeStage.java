@@ -54,8 +54,6 @@ public class ExternalViewComputeStage extends AbstractBaseStage
           // when set external view, ignore all disabled nodes
           for (String instance : currentStateMap.keySet())
           {
-//            boolean isDisabled = configMap.containsKey(instance)
-//                && configMap.get(instance).getInstanceEnabled() == false;
             if (!disabledInstances.contains(instance))
             {
               view.setState(resource.getResourceKeyName(), instance, currentStateMap.get(instance));
@@ -64,8 +62,7 @@ public class ExternalViewComputeStage extends AbstractBaseStage
           // view.setStateMap(resource.getResourceKeyName(), currentStateMap);
         }
       }
-      dataAccessor.setProperty(PropertyType.EXTERNALVIEW,
-          view.getRecord(), resourceGroupName);
+      dataAccessor.setProperty(PropertyType.EXTERNALVIEW, view, resourceGroupName);
     }
     log.info("END ExternalViewComputeStage.process()");
   }

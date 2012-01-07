@@ -14,10 +14,10 @@ import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.TestHelper;
 import com.linkedin.clustermanager.TestHelper.StartCMResult;
-import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
 import com.linkedin.clustermanager.controller.ClusterManagerMain;
+import com.linkedin.clustermanager.model.PauseSignal;
 import com.linkedin.clustermanager.tools.ClusterSetup;
 
 /**
@@ -201,7 +201,7 @@ public class ZkDistCMTestBase extends ZkIntegrationTestBase
 
   protected void pauseController(ClusterDataAccessor clusterDataAccessor)
   {
-    clusterDataAccessor.setProperty(PropertyType.PAUSE, new ZNRecord("pause"));
+    clusterDataAccessor.setProperty(PropertyType.PAUSE, new PauseSignal("pause"));
   }
 
   protected void setupStorageCluster(ClusterSetup setupTool, String clusterName,

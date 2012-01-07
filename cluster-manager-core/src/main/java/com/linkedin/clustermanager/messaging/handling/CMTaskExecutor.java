@@ -20,7 +20,6 @@ import com.linkedin.clustermanager.MessageListener;
 import com.linkedin.clustermanager.NotificationContext;
 import com.linkedin.clustermanager.NotificationContext.Type;
 import com.linkedin.clustermanager.PropertyType;
-import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.Message.MessageType;
 import com.linkedin.clustermanager.monitoring.ParticipantMonitor;
@@ -200,7 +199,7 @@ public class CMTaskExecutor implements MessageListener
   }
 
   @Override
-  public void onMessage(String instanceName, List<ZNRecord> messages,
+  public void onMessage(String instanceName, List<Message> messages,
       NotificationContext changeContext)
   {
     // If FINALIZE notification comes, reset all handler factories
@@ -217,7 +216,7 @@ public class CMTaskExecutor implements MessageListener
     }
 
     ClusterManager manager = changeContext.getManager();
-    ClusterDataAccessor client = manager.getDataAccessor();
+    ClusterDataAccessor accessor = manager.getDataAccessor();
 
     if (messages == null || messages.size() == 0)
     {
@@ -225,9 +224,8 @@ public class CMTaskExecutor implements MessageListener
       return;
     }
     // TODO: sort message based on timestamp
-    for (ZNRecord record : messages)
+    for (Message message : messages)
     {
-      Message message = new Message(record);
       // NO_OP messages are removed with nothing done. It is used to trigger the
       // onMessage() call if needed.
       if (message.getMsgType().equalsIgnoreCase(MessageType.NO_OP.toString()))
@@ -235,12 +233,12 @@ public class CMTaskExecutor implements MessageListener
         logger.info("Dropping NO-OP msg from " + message.getMsgSrc());
         if(message.getTgtName().equalsIgnoreCase("controller"))
         {
-          client.removeProperty(PropertyType.MESSAGES_CONTROLLER,
+          accessor.removeProperty(PropertyType.MESSAGES_CONTROLLER,
             message.getId());
         }
         else
         {
-          client.removeProperty(PropertyType.MESSAGES, instanceName,
+          accessor.removeProperty(PropertyType.MESSAGES, instanceName,
             message.getId());
         }
         continue;
@@ -270,9 +268,21 @@ public class CMTaskExecutor implements MessageListener
             message.setExecuteSessionId(changeContext.getManager().getSessionId());
 
             _statusUpdateUtil.logInfo(message, StateMachineEngine.class,
-                "New Message", client);
-            client.updateProperty(PropertyType.MESSAGES, message.getRecord(),
-                instanceName, message.getId());
+                "New Message", accessor);
+            if(message.getTgtName().equalsIgnoreCase("controller"))
+            {
+              accessor.updateProperty(PropertyType.MESSAGES_CONTROLLER,
+                                      message,
+                                      message.getId());
+            }
+            else
+            {
+              accessor.updateProperty(PropertyType.MESSAGES,
+                                      message,
+                                      instanceName,
+                                      message.getId());
+
+            }
             scheduleTask(message, handler, changeContext);
           } catch (Exception e)
           {
@@ -280,15 +290,15 @@ public class CMTaskExecutor implements MessageListener
                 + message.getMsgId() + " exception: " + e;
 
             _statusUpdateUtil.logError(message, StateMachineEngine.class, e,
-                error, client);
+                error, accessor);
 
-            client.removeProperty(PropertyType.MESSAGES, instanceName,
+            accessor.removeProperty(PropertyType.MESSAGES, instanceName,
                 message.getId());
             continue;
           }
         } else
         {
-          // This will happen because we dont delete the message as soon as we
+          // This will happen because we don't delete the message as soon as we
           // read it.
           // We keep it until the current state is changed.
           // We will read the message again if there is a new message but we
@@ -302,10 +312,10 @@ public class CMTaskExecutor implements MessageListener
         String warningMessage = "Session Id does not match.  current session id  Expected: "
             + sessionId + " sessionId from Message: " + tgtSessionId;
         logger.warn(warningMessage);
-        client.removeProperty(PropertyType.MESSAGES, instanceName,
+        accessor.removeProperty(PropertyType.MESSAGES, instanceName,
             message.getId());
         _statusUpdateUtil.logWarning(message, StateMachineEngine.class,
-            warningMessage, client);
+            warningMessage, accessor);
       }
     }
 

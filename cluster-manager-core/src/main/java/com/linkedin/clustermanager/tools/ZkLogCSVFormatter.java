@@ -15,6 +15,7 @@ import java.util.Map;
 
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
+import com.linkedin.clustermanager.model.IdealState.IdealStateProperty;
 import com.linkedin.clustermanager.util.CMUtil;
 
 public class ZkLogCSVFormatter
@@ -212,8 +213,8 @@ public class ZkLogCSVFormatter
                 formatter(isBw,
                           timestamp,
                           record.getId(),
-                          record.getSimpleField("partitions"),
-                          record.getSimpleField("ideal_state_mode"),
+                          record.getSimpleField(IdealStateProperty.RESOURCES.toString()),
+                          record.getSimpleField(IdealStateProperty.IDEAL_STATE_MODE.toString()),
                           partition,
                           instance,
                           Integer.toString(i));

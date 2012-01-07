@@ -3,7 +3,6 @@ package com.linkedin.clustermanager.tools;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -12,7 +11,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 import com.linkedin.clustermanager.ZNRecord;
-import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
+import com.linkedin.clustermanager.model.IdealState.IdealStateProperty;
 
 public class IdealCalculatorByConsistentHashing
 {
@@ -70,7 +69,7 @@ public class IdealCalculatorByConsistentHashing
   /**
    * Calculate the ideal state for list of instances clusters using consistent
    * hashing.
-   * 
+   *
    * @param instanceNames
    *          List of instance names.
    * @param partitions
@@ -91,7 +90,7 @@ public class IdealCalculatorByConsistentHashing
   /**
    * Calculate the ideal state for list of instances clusters using consistent
    * hashing.
-   * 
+   *
    * @param instanceNames
    *          List of instance names.
    * @param partitions
@@ -111,7 +110,7 @@ public class IdealCalculatorByConsistentHashing
     ZNRecord result = new ZNRecord(dbName);
 
     int[] hashRing = generateEvenHashRing(instanceNames, hashRingSize);
-    result.setSimpleField("partitions", String.valueOf(partitions));
+    result.setSimpleField(IdealStateProperty.RESOURCES.toString(), String.valueOf(partitions));
     Random rand = new Random(0xc0ffee);
     for (int i = 0; i < partitions; i++)
     {
@@ -148,7 +147,7 @@ public class IdealCalculatorByConsistentHashing
 
   /**
    * Generate the has ring for consistent hashing.
-   * 
+   *
    * @param instanceNames
    *          List of instance names.
    * @param hashringSize
@@ -206,6 +205,7 @@ public class IdealCalculatorByConsistentHashing
     }
     class ListComparator implements Comparator<List<Integer>>
     {
+      @Override
       public int compare(List<Integer> o1, List<Integer> o2)
       {
         return (o1.size() > o2.size() ? -1 : (o1.size() == o2.size() ? 0 : 1));
@@ -280,7 +280,7 @@ public class IdealCalculatorByConsistentHashing
   /**
    * Uniformly put node values on the hash ring. Derived from the shuffling
    * algorithm
-   * 
+   *
    * @param result
    *          the hash ring array.
    * @param nodeValue
@@ -465,7 +465,7 @@ public class IdealCalculatorByConsistentHashing
     /*
      * int steps = 10; int stepLen = (maxCount - minCount)/steps; List<Integer>
      * histogram = new ArrayList<Integer>((maxCount - minCount)/stepLen + 1);
-     * 
+     *
      * for(int i = 0; i< (maxCount - minCount)/stepLen + 1; i++) {
      * histogram.add(0); } for(String k :countsMap.keySet()) { int count =
      * countsMap.get(k); int stepNo = (count - minCount)/stepLen;
@@ -581,25 +581,25 @@ public class IdealCalculatorByConsistentHashing
      * ZNRecordSerializer serializer = new ZNRecordSerializer(); byte[] bytes;
      * bytes = serializer.serialize(result); // System.out.println(new
      * String(bytes));
-     * 
+     *
      * List<String> instanceNames2 = new ArrayList<String>(); for(int i = 0;i <
      * 40; i++) { instanceNames2.add("localhost_123"+i); }
-     * 
+     *
      * ZNRecord result2 =
      * IdealCalculatorByConsistentHashing.calculateIdealState( instanceNames2,
      * partitions, replicas, dbName, new
      * IdealCalculatorByConsistentHashing.FnvHash());
-     * 
+     *
      * printDiff(result, result2);
-     * 
+     *
      * //IdealCalculatorByConsistentHashing.printIdealStateStats(result2);
-     * 
-     * 
-     * 
+     *
+     *
+     *
      * int[] ring2 =
      * IdealCalculatorByConsistentHashing.generateHashRing(instanceNames2,
      * 30000);
-     * 
+     *
      * IdealCalculatorByConsistentHashing.compareHashrings(ring1, ring2);
      * //printNodeStats(result); //printNodeStats(result2); bytes =
      * serializer.serialize(result2); printHashRingStat(ring2); //

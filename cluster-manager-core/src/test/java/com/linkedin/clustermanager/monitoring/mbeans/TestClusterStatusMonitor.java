@@ -7,12 +7,15 @@ import java.util.UUID;
 
 import org.testng.annotations.Test;
 
-import com.linkedin.clustermanager.CMConstants;
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.Mocks;
 import com.linkedin.clustermanager.NotificationContext;
 import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.ZNRecordDecorator;
+import com.linkedin.clustermanager.model.ExternalView;
+import com.linkedin.clustermanager.model.LiveInstance;
+import com.linkedin.clustermanager.model.LiveInstance.LiveInstanceProperty;
 import com.linkedin.clustermanager.tools.IdealStateCalculatorForStorageNode;
 
 
@@ -24,8 +27,8 @@ public class TestClusterStatusMonitor
   String _db2 = "TestDB";
   int _replicas = 3;
   int _partitions = 50;
-  ZNRecord _externalView, _externalView2; 
-  
+  ZNRecord _externalView, _externalView2;
+
   class MockDataAccessor extends Mocks.MockAccessor
   {
     public MockDataAccessor()
@@ -38,10 +41,10 @@ public class TestClusterStatusMonitor
       }
       ZNRecord externalView = IdealStateCalculatorForStorageNode.calculateIdealState(
           _instances, _partitions, _replicas, _db, "MASTER", "SLAVE");
-      
+
       ZNRecord externalView2 = IdealStateCalculatorForStorageNode.calculateIdealState(
           _instances, 80, 2, _db2, "MASTER", "SLAVE");
-      
+
     }
     public ZNRecord getProperty(PropertyType type, String resourceGroup)
     {
@@ -62,15 +65,15 @@ public class TestClusterStatusMonitor
   class MockClusterManager extends Mocks.MockManager
   {
     MockDataAccessor _accessor = new MockDataAccessor();
-    
+
     @Override
 		public ClusterDataAccessor getDataAccessor()
     {
       return _accessor;
     }
-    
+
   }
-  @Test(groups={ "unitTest" })
+  @Test()
   public void TestReportData()
   {
   	System.out.println("START TestClusterStatusMonitor at" + new Date(System.currentTimeMillis()));
@@ -79,34 +82,34 @@ public class TestClusterStatusMonitor
     String _db = "DB";
     int _replicas = 3;
     int _partitions = 50;
-    
+
     _instances = new ArrayList<String>();
     for(int i = 0;i < 5; i++)
     {
       String instance = "localhost_"+(12918+i);
       _instances.add(instance);
       ZNRecord metaData = new ZNRecord(instance);
-      metaData.setSimpleField(CMConstants.ZNAttribute.SESSION_ID.toString(),
+      metaData.setSimpleField(LiveInstanceProperty.SESSION_ID.toString(),
           UUID.randomUUID().toString());
       _liveInstances.add(metaData);
     }
     ZNRecord externalView = IdealStateCalculatorForStorageNode.calculateIdealState(
         _instances, _partitions, _replicas, _db, "MASTER", "SLAVE");
-    
+
     ZNRecord externalView2 = IdealStateCalculatorForStorageNode.calculateIdealState(
         _instances, 80, 2, "TestDB", "MASTER", "SLAVE");
-    
+
     List<ZNRecord> externalViews = new ArrayList<ZNRecord>();
     externalViews.add(externalView);
     externalViews.add(externalView2);
-    
+
     ClusterStatusMonitor monitor = new ClusterStatusMonitor("cluster1", _instances.size());
     MockClusterManager manager = new MockClusterManager();
     NotificationContext context = new NotificationContext(manager);
-    
-    monitor.onExternalViewChange(externalViews, context);
-    
-    monitor.onLiveInstanceChange(_liveInstances, context);
+
+    monitor.onExternalViewChange(ZNRecordDecorator.convertToTypedList(ExternalView.class, externalViews), context);
+
+    monitor.onLiveInstanceChange(ZNRecordDecorator.convertToTypedList(LiveInstance.class, _liveInstances), context);
     System.out.println("END TestClusterStatusMonitor at" + new Date(System.currentTimeMillis()));
   }
 }

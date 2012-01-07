@@ -19,7 +19,7 @@ public class ParticipantHealthReportCollectorImpl implements
   private Timer _timer;
   private static final Logger _logger = Logger
       .getLogger(ParticipantHealthReportCollectorImpl.class);
-  private ClusterManager _clusterManager;
+  private final ClusterManager _clusterManager;
   String _instanceName;
   public final static int DEFAULT_REPORT_LATENCY = 60 * 1000;
 
@@ -125,10 +125,10 @@ public class ParticipantHealthReportCollectorImpl implements
             if (partitionReport != null) {
             	record.setMapFields(partitionReport);
             }
-            
-            _clusterManager.getDataAccessor().setProperty(
-                PropertyType.HEALTHREPORT, record, _instanceName,
-                record.getId());
+            _clusterManager.getDataAccessor().setProperty(PropertyType.HEALTHREPORT,
+                                                          record,
+                                                          _instanceName,
+                                                          record.getId());
             //reset stats (for now just the partition stats)
             provider.resetStats();
           } catch (Exception e)

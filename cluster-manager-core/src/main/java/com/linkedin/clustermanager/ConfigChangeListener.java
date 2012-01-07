@@ -1,6 +1,8 @@
 package com.linkedin.clustermanager;
 
 import java.util.List;
+
+import com.linkedin.clustermanager.model.InstanceConfig;
 /**
  * @author kgopalak
  *
@@ -8,7 +10,7 @@ import java.util.List;
 public interface ConfigChangeListener
 {
 
-  public void onConfigChange(List<ZNRecord> configs,
+  public void onConfigChange(List<InstanceConfig> configs,
       NotificationContext changeContext);
 
 }

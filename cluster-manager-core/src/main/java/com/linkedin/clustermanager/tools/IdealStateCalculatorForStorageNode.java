@@ -9,6 +9,7 @@ import java.util.TreeMap;
 
 import com.linkedin.clustermanager.ClusterManagerException;
 import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.model.IdealState.IdealStateProperty;
 
 /**
  * IdealStateCalculatorForStorageNode tries to optimally allocate master/slave partitions among
@@ -96,7 +97,7 @@ public class IdealStateCalculatorForStorageNode
     int partitions = (Integer)(result.get("partitions"));
 
     ZNRecord idealState = new ZNRecord(stateUnitGroup);
-    idealState.setSimpleField("partitions", String.valueOf(partitions));
+    idealState.setSimpleField(IdealStateProperty.RESOURCES.toString(), String.valueOf(partitions));
 
 
     for(String instanceName : nodeMasterAssignmentMap.keySet())
@@ -150,7 +151,7 @@ public class IdealStateCalculatorForStorageNode
       idealState.setListField(partitionId, partitionAssignmentPriorityList);
     }
     assert(result.containsKey("replicas"));
-    idealState.setSimpleField("replicas", result.get("replicas").toString());
+    idealState.setSimpleField(IdealStateProperty.REPLICAS.toString(), result.get("replicas").toString());
     return idealState;
   }
   /**

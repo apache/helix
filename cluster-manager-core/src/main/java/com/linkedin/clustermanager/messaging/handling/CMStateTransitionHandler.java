@@ -5,22 +5,19 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.clustermanager.CMConstants;
-import com.linkedin.clustermanager.CMConstants.ZNAttribute;
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerException;
 import com.linkedin.clustermanager.NotificationContext;
 import com.linkedin.clustermanager.PropertyType;
-import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.ZNRecordDelta;
 import com.linkedin.clustermanager.ZNRecordDelta.MERGEOPERATION;
+import com.linkedin.clustermanager.model.CurrentState;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.StateModelDefinition;
 import com.linkedin.clustermanager.participant.statemachine.StateModel;
@@ -82,8 +79,9 @@ public class CMStateTransitionHandler implements MessageHandler
     String fromState = message.getFromState();
     String toState = message.getToState();
 
-    List<ZNRecord> stateModelDefs = accessor
-        .getChildValues(PropertyType.STATEMODELDEFS);
+    List<StateModelDefinition> stateModelDefs = accessor.getChildValues(StateModelDefinition.class,
+                                                                        PropertyType.STATEMODELDEFS);
+
     String initStateValue = "OFFLINE";
     if (stateModelDefs != null)
     {
@@ -96,18 +94,22 @@ public class CMStateTransitionHandler implements MessageHandler
       }
     }
 
-    ZNRecord currentState = accessor.getProperty(PropertyType.CURRENTSTATES,
-        instanceName, manager.getSessionId(), stateUnitGroup);
+    CurrentState currentState = accessor.getProperty(CurrentState.class,
+                                                     PropertyType.CURRENTSTATES,
+                                                     instanceName,
+                                                     manager.getSessionId(),
+                                                     stateUnitGroup);
 
     // Set an empty current state record if it is null
     if (currentState == null)
     {
-      currentState = new ZNRecord(stateUnitGroup);
-      currentState
-          .setSimpleField(CMConstants.ZNAttribute.SESSION_ID.toString(),
-              manager.getSessionId());
-      accessor.updateProperty(PropertyType.CURRENTSTATES, currentState,
-          instanceName, manager.getSessionId(), stateUnitGroup);
+      currentState = new CurrentState(stateUnitGroup);
+      currentState.setSessionId(manager.getSessionId());
+      accessor.updateProperty(PropertyType.CURRENTSTATES,
+                              currentState,
+                              instanceName,
+                              manager.getSessionId(),
+                              stateUnitGroup);
     }
 
     /**
@@ -117,50 +119,40 @@ public class CMStateTransitionHandler implements MessageHandler
      * with a NULL state model def
      */
 
-    ZNRecord currentStateDelta = new ZNRecord(stateUnitGroup);
-    if (!currentState.getMapFields().containsKey(stateUnitKey))
+    CurrentState currentStateDelta = new CurrentState(stateUnitGroup);
+    if (currentState.getState(stateUnitKey) == null)
     {
-      Map<String, String> map = new HashMap<String, String>();
-      map.put(ZNAttribute.CURRENT_STATE.toString(), initStateValue);
-
-      currentStateDelta.setMapField(stateUnitKey, map);
+      currentStateDelta.setState(stateUnitKey, initStateValue);
+      currentState.setState(stateUnitKey, initStateValue);
 
       logger.info("Setting initial state for partition: " + stateUnitKey
-          + " to OFFLINE");
-
-//      accessor.updateProperty(PropertyType.CURRENTSTATES, currentStateDelta,
-//          instanceName, manager.getSessionId(), stateUnitGroup);
+          + " to " + initStateValue);
     }
 
     // Set the state model def to current state
-    if (!currentState.getSimpleFields().containsKey(
-        Message.Attributes.STATE_MODEL_DEF.toString()))
+    if (currentState.getStateModelDefRef() == null)
     {
-      if (message.getRecord().getSimpleFields()
-          .containsKey(Message.Attributes.STATE_MODEL_DEF.toString()))
+
+      if (message.getStateModelDef() != null)
       {
         logger.info("Setting state model def on current state: "
-            + message.getStateModelDef());
-//        ZNRecord currentStateDelta = new ZNRecord(stateUnitGroup);
-        currentStateDelta.setSimpleField(
-            Message.Attributes.STATE_MODEL_DEF.toString(),
-            message.getStateModelDef());
-
-//        accessor.updateProperty(PropertyType.CURRENTSTATES, currentStateDelta,
-//            instanceName, manager.getSessionId(), stateUnitGroup);
+                   + message.getStateModelDef());
+        currentStateDelta.setStateModelDefRef(message.getStateModelDef());
       }
     }
-    accessor.updateProperty(PropertyType.CURRENTSTATES, currentStateDelta,
-                            instanceName, manager.getSessionId(), stateUnitGroup);
+    accessor.updateProperty(PropertyType.CURRENTSTATES,
+                            currentStateDelta,
+                            instanceName,
+                            manager.getSessionId(),
+                            stateUnitGroup);
 
     // Verify the fromState and current state of the stateModel
-    if (!fromState.equals("*")
-        && (fromState == null || !fromState.equalsIgnoreCase(_stateModel
-            .getCurrentState())))
+    String state = currentState.getState(stateUnitKey);
+    if (!fromState.equals("*") && (fromState == null || !fromState.equalsIgnoreCase(state)))
     {
       String errorMessage = "Current state of stateModel does not match the fromState in Message"
           + ", Current State:"
-          + _stateModel.getCurrentState()
+          + state
           + ", message expected:"
           + fromState
           + ", partition: "
@@ -189,65 +181,72 @@ public class CMStateTransitionHandler implements MessageHandler
 
       String fromState = message.getFromState();
       String toState = message.getToState();
-      ZNRecord currentState = accessor.getProperty(PropertyType.CURRENTSTATES,
-          instanceName, manager.getSessionId(), stateUnitGroup);
+      CurrentState currentState = accessor.getProperty(CurrentState.class,
+                                                       PropertyType.CURRENTSTATES,
+                                                       instanceName,
+                                                       manager.getSessionId(),
+                                                       stateUnitGroup);
 
-      Map<String, String> map = new HashMap<String, String>();
       if (currentState != null)
       {
-        map = currentState.getMapField(stateUnitKey);
-      } else
+//        map = currentState.getMapField(stateUnitKey);
+      }
+      else
       {
         logger
-            .warn("currentState is null. Storage node should be working with file based clm.");
+            .warn("currentState is null. Storage node should be working with file based cluster manager.");
       }
-      map.put(Message.Attributes.STATE_UNIT_GROUP.toString(),
-          message.getStateUnitGroup());
 
       // TODO verify that fromState is same as currentState this task
       // was
       // called at.
       // Verify that no one has edited this field
-      ZNRecord currentStateDelta = new ZNRecord(stateUnitGroup);
+      CurrentState currentStateDelta = new CurrentState(stateUnitGroup);
       if (taskResult.isSucess())
       {
         if (!toState.equalsIgnoreCase("DROPPED"))
         {
           // If a resource key is dropped, it is ok to leave it "offline"
-          map.put(ZNAttribute.CURRENT_STATE.toString(), toState);
+          currentStateDelta.setState(stateUnitKey, toState);
           _stateModel.updateState(toState);
         }
-      } else
+      }
+      else
       {
         StateTransitionError error = new StateTransitionError(
             StateTransitionError.ErrorCode.INTERNAL, exception);
         _stateModel.rollbackOnError(message, context, error);
-        map.put(ZNAttribute.CURRENT_STATE.toString(), "ERROR");
+        currentStateDelta.setState(stateUnitKey, "ERROR");
         _stateModel.updateState("ERROR");
       }
 
-      map.put(Message.Attributes.STATE_UNIT_GROUP.toString(),
-          message.getStateUnitGroup());
+      currentStateDelta.setResourceGroup(stateUnitKey, message.getStateUnitGroup());
 
-      currentStateDelta.setMapField(stateUnitKey, map);
 
       if (taskResult.isSucess() && toState.equals("DROPPED"))
       {
         // for "OnOfflineToDROPPED" message, we need to remove the resource key
         // record from
         // the current state of the instance because the resource key is dropped.
-        ZNRecordDelta delta = new ZNRecordDelta(currentStateDelta, MERGEOPERATION.SUBSTRACT);
+        ZNRecordDelta delta = new ZNRecordDelta(currentStateDelta.getRecord(), MERGEOPERATION.SUBSTRACT);
         List<ZNRecordDelta> deltaList = new ArrayList<ZNRecordDelta>();
         deltaList.add(delta);
-        ZNRecord updateRecord = new ZNRecord(currentStateDelta.getId());
-        updateRecord.setDeltaList(deltaList);
-        accessor.updateProperty(PropertyType.CURRENTSTATES, updateRecord,
-            instanceName, manager.getSessionId(), stateUnitGroup);
-      } else
+        CurrentState currentStateUpdate = new CurrentState(stateUnitGroup);
+        currentStateUpdate.setDeltaList(deltaList);
+        accessor.updateProperty(PropertyType.CURRENTSTATES,
+                                currentStateUpdate,
+                                instanceName,
+                                manager.getSessionId(),
+                                stateUnitGroup);
+      }
+      else
       {
         // based on task result update the current state of the node.
-        accessor.updateProperty(PropertyType.CURRENTSTATES, currentStateDelta,
-            instanceName, manager.getSessionId(), stateUnitGroup);
+        accessor.updateProperty(PropertyType.CURRENTSTATES,
+                                currentStateDelta,
+                                instanceName,
+                                manager.getSessionId(),
+                                stateUnitGroup);
       }
     } catch (Exception e)
     {
@@ -292,24 +291,36 @@ public class CMStateTransitionHandler implements MessageHandler
         try
         {
           invoke(accessor, context, taskResult, message);
-        } catch (InterruptedException e)
+        }
+        catch (Exception e)
         {
-          throw e;
-        } catch (Exception e)
-        {
-          String errorMessage = "Exception while executing a state transition task"
+          String errorMessage = "Exception while executing a state transition task. "
               + e;
-          logger.error(errorMessage, e);
-          _statusUpdateUtil.logError(message, CMStateTransitionHandler.class,
-              e, errorMessage, accessor);
+
+          // Hack: avoid throwing mock exception for testing code
+          if (e instanceof InvocationTargetException && e.getCause().getMessage().startsWith("IGNORABLE"))
+          {
+            logger.error(errorMessage + ". Cause:" + e.getCause().getMessage());
+          }
+          else
+          {
+            logger.error(errorMessage, e);
+          }
+          _statusUpdateUtil.logError(message,
+                                     CMStateTransitionHandler.class,
+                                     e,
+                                     errorMessage,
+                                     accessor);
           taskResult.setSuccess(false);
           exception = e;
+
         }
 
         postExecutionMessage(manager, message, context, taskResult, exception);
 
         return taskResult;
-      } catch (InterruptedException e)
+      }
+      catch (InterruptedException e)
       {
         _statusUpdateUtil.logError(message, CMStateTransitionHandler.class, e,
             "State transition interrupted", accessor);
@@ -355,13 +366,13 @@ public class CMStateTransitionHandler implements MessageHandler
   }
 
   private StateModelDefinition lookupStateModel(String stateModelDefRef,
-      List<ZNRecord> stateModelDefs)
+      List<StateModelDefinition> stateModelDefs)
   {
-    for (ZNRecord record : stateModelDefs)
+    for (StateModelDefinition def : stateModelDefs)
     {
-      if (record.getId().equals(stateModelDefRef))
+      if (def.getId().equals(stateModelDefRef))
       {
-        return new StateModelDefinition(record);
+        return def;
       }
     }
     return null;

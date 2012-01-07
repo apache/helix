@@ -39,9 +39,6 @@ public class CurrentStateComputationStage extends AbstractBaseStage
     for (LiveInstance instance : liveInstances.values())
     {
       String instanceName = instance.getInstanceName();
-//      List<Message> instanceMessages;
-//      instanceMessages = cache.getMessages(instanceName);
-//      for (Message message  : instanceMessages)
       Map<String, Message> instanceMessages = cache.getMessages(instanceName);
       for (Message message : instanceMessages.values())
       {

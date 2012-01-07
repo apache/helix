@@ -1,16 +1,13 @@
 package com.linkedin.clustermanager.messaging;
 
-import org.testng.annotations.Test;
-import org.testng.AssertJUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import org.testng.Assert;
+import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
-import com.linkedin.clustermanager.CMConstants;
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.Criteria;
@@ -21,6 +18,7 @@ import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.messaging.handling.MessageHandler;
 import com.linkedin.clustermanager.messaging.handling.MessageHandlerFactory;
+import com.linkedin.clustermanager.model.LiveInstance.LiveInstanceProperty;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.tools.IdealStateCalculatorForStorageNode;
 
@@ -32,22 +30,28 @@ public class TestDefaultMessagingService
     {
       @Override
       public List<ZNRecord> getChildValues(PropertyType type, String... keys)
+//      public <T extends ZNRecordDecorator> List<T> getChildValues(Class<T> clazz, PropertyType type,
+//                                                                  String... keys)
       {
         List<ZNRecord> result = new ArrayList<ZNRecord>();
+//        List<T> result = new ArrayList<T>();
+
         if(type == PropertyType.EXTERNALVIEW)
         {
+//          result.add(ZNRecordDecorator.convertInstance(clazz, _externalView));
           result.add(_externalView);
           return result;
         }
         else if(type == PropertyType.LIVEINSTANCES)
         {
+//          return ZNRecordDecorator.convertList(clazz, _liveInstances);
           return _liveInstances;
         }
-        
+
         return result;
       }
     }
-    
+
     ClusterDataAccessor _accessor = new MockDataAccessor();
     ZNRecord _externalView;
     List<String> _instances;
@@ -65,37 +69,41 @@ public class TestDefaultMessagingService
         String instance = "localhost_"+(12918+i);
         _instances.add(instance);
         ZNRecord metaData = new ZNRecord(instance);
-        metaData.setSimpleField(CMConstants.ZNAttribute.SESSION_ID.toString(),
+        metaData.setSimpleField(LiveInstanceProperty.SESSION_ID.toString(),
             UUID.randomUUID().toString());
-        
+
       }
       _externalView = IdealStateCalculatorForStorageNode.calculateIdealState(
           _instances, _partitions, _replicas, _db, "MASTER", "SLAVE");
-      
+
     }
-    
+
+    @Override
     public boolean isConnected()
     {
       return true;
     }
-    
+
+    @Override
     public ClusterDataAccessor getDataAccessor()
     {
       return _accessor;
     }
-    
-    
+
+
+    @Override
     public String getInstanceName()
     {
       return "localhost_12919";
     }
-    
+
+    @Override
     public InstanceType getInstanceType()
     {
       return InstanceType.PARTICIPANT;
     }
   }
-  
+
   class TestMessageHandlerFactory implements MessageHandlerFactory
   {
     class TestMessageHandler implements MessageHandler
@@ -106,9 +114,9 @@ public class TestDefaultMessagingService
           Map<String, String> resultMap) throws InterruptedException
       {
         // TODO Auto-generated method stub
-        
+
       }
-      
+
     }
     @Override
     public MessageHandler createHandler(Message message,
@@ -129,56 +137,55 @@ public class TestDefaultMessagingService
     public void reset()
     {
       // TODO Auto-generated method stub
-      
+
     }
   }
-  
-  @Test(groups =
-  { "unitTest" })
+
+  @Test()
   public void TestMessageSend()
   {
     ClusterManager manager = new MockClusterManager();
     DefaultMessagingService svc = new DefaultMessagingService(manager);
     TestMessageHandlerFactory factory = new TestMessageHandlerFactory();
     svc.registerMessageHandlerFactory(factory.getMessageType(), factory);
-    
+
     Criteria recipientCriteria = new Criteria();
     recipientCriteria.setInstanceName("localhost_12919");
     recipientCriteria.setRecipientInstanceType(InstanceType.PARTICIPANT);
     recipientCriteria.setSelfExcluded(true);
-    
+
     Message template = new Message(factory.getMessageType(), UUID.randomUUID().toString());
     AssertJUnit.assertEquals(0, svc.send(recipientCriteria, template));
-    
+
     recipientCriteria.setSelfExcluded(false);
     AssertJUnit.assertEquals(1, svc.send(recipientCriteria, template));
-    
-    
+
+
     recipientCriteria.setSelfExcluded(false);
     recipientCriteria.setInstanceName("*");
     recipientCriteria.setResourceGroup("DB");
     recipientCriteria.setResourceKey("*");
     AssertJUnit.assertEquals(200, svc.send(recipientCriteria, template));
-    
+
     recipientCriteria.setSelfExcluded(true);
     recipientCriteria.setInstanceName("*");
     recipientCriteria.setResourceGroup("DB");
     recipientCriteria.setResourceKey("*");
     AssertJUnit.assertEquals(159, svc.send(recipientCriteria, template));
-    
+
     recipientCriteria.setSelfExcluded(true);
     recipientCriteria.setInstanceName("*");
     recipientCriteria.setResourceGroup("DB");
     recipientCriteria.setResourceKey("*");
     AssertJUnit.assertEquals(159, svc.send(recipientCriteria, template));
-    
+
     recipientCriteria.setSelfExcluded(true);
     recipientCriteria.setInstanceName("localhost_12920");
     recipientCriteria.setResourceGroup("DB");
     recipientCriteria.setResourceKey("*");
     AssertJUnit.assertEquals(39, svc.send(recipientCriteria, template));
-    
-    
+
+
     recipientCriteria.setSelfExcluded(true);
     recipientCriteria.setInstanceName("localhost_12920");
     recipientCriteria.setRecipientInstanceType(InstanceType.CONTROLLER);

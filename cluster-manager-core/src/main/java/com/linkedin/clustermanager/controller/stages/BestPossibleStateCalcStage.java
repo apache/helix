@@ -8,8 +8,8 @@ import java.util.Set;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.clustermanager.ClusterDataAccessor.IdealStateConfigProperty;
 import com.linkedin.clustermanager.model.IdealState;
+import com.linkedin.clustermanager.model.IdealState.IdealStateModeProperty;
 import com.linkedin.clustermanager.model.LiveInstance;
 import com.linkedin.clustermanager.model.ResourceGroup;
 import com.linkedin.clustermanager.model.ResourceKey;
@@ -91,7 +91,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
             currentStateOutput.getCurrentStateMap(resourceGroupName, resource);
 
         Map<String, String> bestStateForResource;
-        if (idealState.getIdealStateMode() == IdealStateConfigProperty.CUSTOMIZED)
+        if (idealState.getIdealStateMode() == IdealStateModeProperty.CUSTOMIZED)
         {
           // TODO add computerBestStateForResourceInCustomizedMode()
           //  e.g. exclude non-alive instance
@@ -227,41 +227,4 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
     }
     return listField;
   }
-
-//  private int getNumOfInstanceAliveAndEnabled(ClusterDataCache cache)
-//  {
-//    int cnt = 0;
-//    Map<String, LiveInstance> liveInstancesMap = cache.getLiveInstances();
-//    Map<String, InstanceConfig> configMap = cache.getInstanceConfigMap();
-//    for(String instanceName : liveInstancesMap.keySet())
-//    {
-//      boolean isDisabled = configMap.containsKey(instanceName)
-//          && configMap.get(instanceName).getInstanceEnabled() == false;
-//
-//      if (!isDisabled)
-//      {
-//        cnt++;
-//      }
-//    }
-//    return cnt;
-//  }
-
-//  private Set<String> getDisabledInstancesForResource(Map<String, InstanceConfig> configMap,
-//                                                  String resource)
-//  {
-//    Set<String> disabledInstancesSet = new HashSet<String>();
-//    for (String instance : configMap.keySet())
-//    {
-//      if (configMap.containsKey(instance))
-//      {
-//        InstanceConfig config = configMap.get(instance);
-//        if (config.getInstanceEnabled() == false
-//            || config.getInstanceEnabledForResource(resource) == false)
-//        {
-//          disabledInstancesSet.add(instance);
-//        }
-//      }
-//    }
-//    return disabledInstancesSet;
-//  }
 }

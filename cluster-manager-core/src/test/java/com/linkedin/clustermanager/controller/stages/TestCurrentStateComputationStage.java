@@ -58,8 +58,9 @@ public class TestCurrentStateComputationStage extends BaseStageTest
     message.setStateUnitKey("testResourceGroupName_1");
     message.setTgtName("localhost_3");
     message.setTgtSessionId("session_3");
-    accessor.setProperty(PropertyType.MESSAGES, message.getRecord(),
-        "localhost_" + 3, message.getId());
+    accessor.setProperty(PropertyType.MESSAGES, message,
+                         "localhost_" + 3, message.getId());
+
     runStage(event, new ReadClusterDataStage());
     runStage(event, stage);
     CurrentStateOutput output2 = event.getAttribute(AttributeName.CURRENT_STATE
@@ -81,11 +82,11 @@ public class TestCurrentStateComputationStage extends BaseStageTest
     stateWithDeadSession.setState("testResourceGroupName_1", "MASTER");
 
     accessor.setProperty(PropertyType.CURRENTSTATES,
-        stateWithLiveSession.getRecord(), "localhost_3", "session_3",
-        "testResourceGroupName");
+                         stateWithLiveSession, "localhost_3", "session_3",
+                         "testResourceGroupName");
     accessor.setProperty(PropertyType.CURRENTSTATES,
-        stateWithDeadSession.getRecord(), "localhost_3", "session_dead",
-        "testResourceGroupName");
+                         stateWithDeadSession, "localhost_3", "session_dead",
+                         "testResourceGroupName");
     runStage(event, new ReadClusterDataStage());
     runStage(event, stage);
     CurrentStateOutput output3 = event.getAttribute(AttributeName.CURRENT_STATE

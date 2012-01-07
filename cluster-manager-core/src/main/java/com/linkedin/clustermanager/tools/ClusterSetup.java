@@ -6,7 +6,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.List;
 
-import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.GnuParser;
@@ -17,20 +16,22 @@ import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.log4j.Logger;
-import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 
-import com.linkedin.clustermanager.ClusterDataAccessor.IdealStateConfigProperty;
-import com.linkedin.clustermanager.ClusterDataAccessor.InstanceConfigProperty;
 import com.linkedin.clustermanager.ClusterManagementService;
 import com.linkedin.clustermanager.ClusterManagerException;
+import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.agent.zk.ZKClusterManagementTool;
+import com.linkedin.clustermanager.agent.zk.ZKDataAccessor;
 import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
+import com.linkedin.clustermanager.model.ExternalView;
+import com.linkedin.clustermanager.model.IdealState;
+import com.linkedin.clustermanager.model.IdealState.IdealStateModeProperty;
+import com.linkedin.clustermanager.model.InstanceConfig;
 import com.linkedin.clustermanager.model.StateModelDefinition;
-import com.linkedin.clustermanager.util.CMUtil;
 import com.linkedin.clustermanager.util.ZKClientPool;
 
 public class ClusterSetup
@@ -79,18 +80,18 @@ public class ClusterSetup
   public void addCluster(String clusterName, boolean overwritePrevious)
   {
     _managementService.addCluster(clusterName, overwritePrevious);
-    
+
     StateModelConfigGenerator generator = new StateModelConfigGenerator();
-    addStateModelDef(clusterName, "MasterSlave", generator.generateConfigForMasterSlave());
-    addStateModelDef(clusterName, "LeaderStandby", generator.generateConfigForLeaderStandby());
-    addStateModelDef(clusterName, "StorageSchemata", generator.generateConfigForStorageSchemata());
-    addStateModelDef(clusterName, "OnlineOffline", generator.generateConfigForOnlineOffline());
+    addStateModelDef(clusterName, "MasterSlave", new StateModelDefinition(generator.generateConfigForMasterSlave()));
+    addStateModelDef(clusterName, "LeaderStandby", new StateModelDefinition(generator.generateConfigForLeaderStandby()));
+    addStateModelDef(clusterName, "StorageSchemata", new StateModelDefinition(generator.generateConfigForStorageSchemata()));
+    addStateModelDef(clusterName, "OnlineOffline", new StateModelDefinition(generator.generateConfigForOnlineOffline()));
   }
 
   public void addCluster(String clusterName,
                          boolean overwritePrevious,
                          String stateModDefName,
-                         ZNRecord stateModDef)
+                         StateModelDefinition stateModDef)
   {
     _managementService.addCluster(clusterName, overwritePrevious);
     addStateModelDef(clusterName, stateModDefName, stateModDef);
@@ -127,15 +128,13 @@ public class ClusterSetup
   public void addInstanceToCluster(String clusterName, String host, int port)
   {
     String instanceId = host + "_" + port;
-    ZNRecord instanceConfig = new ZNRecord(instanceId);
-    
-    instanceConfig.setSimpleField(InstanceConfigProperty.HOST.toString(), host);
-    instanceConfig.setSimpleField(InstanceConfigProperty.PORT.toString(), "" + port);
-    instanceConfig.setSimpleField(InstanceConfigProperty.ENABLED.toString(), true + "");
-
-    _managementService.addInstance(clusterName, instanceConfig);
+    InstanceConfig config = new InstanceConfig(instanceId);
+    config.setHostName(host);
+    config.setPort(Integer.toString(port));
+    config.setInstanceEnabled(true);
+    _managementService.addInstance(clusterName, config);
   }
-  
+
   public void dropInstancesFromCluster(String clusterName, String[] InstanceInfoArray)
   {
     for (String InstanceInfo : InstanceInfoArray)
@@ -147,8 +146,8 @@ public class ClusterSetup
       }
     }
   }
-  
-  public void dropInstanceFromCluster(String clusterName, String InstanceAddress) 
+
+  public void dropInstanceFromCluster(String clusterName, String InstanceAddress)
   {
 	  // InstanceAddress must be in host:port format
 	  int lastPos = InstanceAddress.lastIndexOf(":");
@@ -163,39 +162,38 @@ public class ClusterSetup
 	  int port = Integer.parseInt(portStr);
 	  dropInstanceFromCluster(clusterName, host, port);
   }
-  
+
   public void dropInstanceFromCluster(String clusterName, String host, int port)
   {
 	  String instanceId = host + "_" + port;
-	  //ZNRecord instanceConfig = new ZNRecord(instanceId);
+
 	  ZkClient zkClient = ZKClientPool.getZkClient(_zkServerAddress);
-	  String instanceConfigPath = CMUtil.getConfigPath(clusterName, instanceId);
-	  ZNRecord instanceConfig = null;
-	  try {
-		  instanceConfig = zkClient.<ZNRecord> readData(instanceConfigPath);
-	  } catch (ZkNoNodeException e) {
-		  String error = "Node "+instanceId+" does not exist, cannot drop";
-		  _logger.warn(error);
-		  throw new ClusterManagerException(error);
-	  }
-	  //ensure node is disabled, or else fail
-	  String instanceEnabledField = instanceConfig.getSimpleField(InstanceConfigProperty.ENABLED.toString());
-	  
-	  if (instanceEnabledField != null && instanceEnabledField.equals(true+""))
-	  {
-		  String error = "Node "+instanceId+" is enabled, cannot drop";
-		  _logger.warn(error);
-		  throw new ClusterManagerException(error);
-	  }	
-	  _managementService.dropInstance(clusterName, instanceConfig);
+    InstanceConfig config = new ZKDataAccessor(clusterName, zkClient).getProperty(InstanceConfig.class,
+                                                                                  PropertyType.CONFIGS,
+                                                                                  instanceId);
+    if (config == null)
+    {
+      String error = "Node "+instanceId+" does not exist, cannot drop";
+      _logger.warn(error);
+      throw new ClusterManagerException(error);
+    }
+
+    // ensure node is disabled, otherwise fail
+    if (config.getInstanceEnabled())
+    {
+      String error = "Node " + instanceId + " is enabled, cannot drop";
+      _logger.warn(error);
+      throw new ClusterManagerException(error);
+    }
+    _managementService.dropInstance(clusterName, config);
   }
-  
+
   public ClusterManagementService getClusterManagementTool()
   {
     return _managementService;
   }
 
-  public void addStateModelDef(String clusterName, String stateModelDef, ZNRecord record)
+  public void addStateModelDef(String clusterName, String stateModelDef, StateModelDefinition record)
   {
     _managementService.addStateModelDef(clusterName, stateModelDef, record);
   }
@@ -209,7 +207,7 @@ public class ClusterSetup
                               resourceGroup,
                               numResources,
                               stateModelRef,
-                              IdealStateConfigProperty.AUTO.toString());
+                              IdealStateModeProperty.AUTO.toString());
   }
 
   public void addResourceGroupToCluster(String clusterName,
@@ -218,10 +216,10 @@ public class ClusterSetup
                                         String stateModelRef,
                                         String idealStateMode)
   {
-    if (!idealStateMode.equalsIgnoreCase(IdealStateConfigProperty.CUSTOMIZED.toString()))
+    if (!idealStateMode.equalsIgnoreCase(IdealStateModeProperty.CUSTOMIZED.toString()))
     {
       logger.info("ideal state mode is configured to auto for " + resourceGroup);
-      idealStateMode = IdealStateConfigProperty.AUTO.toString();
+      idealStateMode = IdealStateModeProperty.AUTO.toString();
     }
     _managementService.addResourceGroup(clusterName,
                                     resourceGroup,
@@ -237,32 +235,30 @@ public class ClusterSetup
 
   public void rebalanceStorageCluster(String clusterName, String resourceGroupName, int replica)
   {
-    replica--;
     List<String> InstanceNames = _managementService.getInstancesInCluster(clusterName);
 
-    ZNRecord dbIdealState =
+    IdealState idealState =
       _managementService.getResourceGroupIdealState(clusterName, resourceGroupName);
-    int partitions = Integer.parseInt(dbIdealState.getSimpleField("partitions"));
-
-    String idealStatePath = CMUtil.getIdealStatePath(clusterName, resourceGroupName);
-    ZNRecord idealState = _zkClient.<ZNRecord> readData(idealStatePath);
-    String stateModelName = idealState.getSimpleField("state_model_def_ref");
-    ZNRecord stateModDef = _managementService.getStateModelDef(clusterName, stateModelName);
+    idealState.setReplicas(replica);
+    int partitions = idealState.getNumPartitions();
+    String stateModelName = idealState.getStateModelDefRef();
+    StateModelDefinition stateModDef = _managementService.getStateModelDef(clusterName, stateModelName);
 
     if (stateModDef == null)
     {
-      throw new ClusterManagerException("cannot find state model " + stateModelName);
+      throw new ClusterManagerException("cannot find state model: " + stateModelName);
     }
-    StateModelDefinition def = new StateModelDefinition(stateModDef);
+//    StateModelDefinition def = new StateModelDefinition(stateModDef);
 
-    List<String> statePriorityList = def.getStatesPriorityList();
+    List<String> statePriorityList = stateModDef.getStatesPriorityList();
 
     String masterStateValue = null;
     String slaveStateValue = null;
+    replica--;
 
     for (String state : statePriorityList)
     {
-      String count = def.getNumInstancesPerState(state);
+      String count = stateModDef.getNumInstancesPerState(state);
       if (count.equals("1"))
       {
         if (masterStateValue != null)
@@ -299,21 +295,22 @@ public class ClusterSetup
       masterStateValue = slaveStateValue;
     }
 
-    idealState =
+    ZNRecord newIdealState =
         IdealStateCalculatorForStorageNode.calculateIdealState(InstanceNames,
                                                                partitions,
                                                                replica,
                                                                resourceGroupName,
                                                                masterStateValue,
                                                                slaveStateValue);
-    idealState.setSimpleFields(dbIdealState.getSimpleFields());
+    idealState.getRecord().setMapFields(newIdealState.getMapFields());
+    idealState.getRecord().setListFields(newIdealState.getListFields());
     _managementService.setResourceGroupIdealState(clusterName, resourceGroupName, idealState);
   }
 
   /**
    * Sets up a cluster with 6 Instances[localhost:8900 to localhost:8905], 1
    * resourceGroup[EspressoDB] with a replication factor of 3
-   * 
+   *
    * @param clusterName
    */
   public void setupTestCluster(String clusterName)
@@ -352,8 +349,8 @@ public class ClusterSetup
     zkServerOption.setRequired(true);
     zkServerOption.setArgName("ZookeeperServerAddress(Required)");
 
-  
-     
+
+
     Option listClustersOption =
         OptionBuilder.withLongOpt(listClusters).withDescription("List existing clusters").create();
     listClustersOption.setArgs(0);
@@ -412,7 +409,7 @@ public class ClusterSetup
     addIdealStateOption.setArgs(3);
     addIdealStateOption.setRequired(false);
     addIdealStateOption.setArgName("clusterName reourceGroupName <filename>");
-    
+
     Option dropInstanceOption =
         OptionBuilder.withLongOpt(dropInstance)
                      .withDescription("Drop an existing Instance from a cluster")
@@ -421,7 +418,7 @@ public class ClusterSetup
     dropInstanceOption.setRequired(false);
     dropInstanceOption.setArgName("clusterName InstanceAddress(host:port)");
 
-    
+
     Option rebalanceOption =
         OptionBuilder.withLongOpt(rebalance)
                      .withDescription("Rebalance a resourceGroup in a cluster")
@@ -506,7 +503,7 @@ public class ClusterSetup
     group.addOption(addStateModelDefOption);
     group.addOption(listStateModelsOption);
     group.addOption(listStateModelOption);
-    
+
     Options options = new Options();
     options.addOption(helpOption);
     options.addOption(zkServerOption);
@@ -584,7 +581,7 @@ public class ClusterSetup
       setupTool.rebalanceStorageCluster(clusterName, resourceGroupName, replicas);
       return 0;
     }
-    
+
     if (cmd.hasOption(dropInstance))
     {
       String clusterName = cmd.getOptionValues(dropInstance)[0];
@@ -593,7 +590,7 @@ public class ClusterSetup
       setupTool.dropInstancesFromCluster(clusterName, InstanceAddresses);
       return 0;
     }
-    
+
     if (cmd.hasOption(listClusters))
     {
       List<String> clusters = setupTool.getClusterManagementTool().getClusters();
@@ -657,11 +654,11 @@ public class ClusterSetup
     {
       String clusterName = cmd.getOptionValues(listInstanceInfo)[0];
       String instanceName = cmd.getOptionValues(listInstanceInfo)[1];
-      ZNRecord record =
+      InstanceConfig config =
           setupTool.getClusterManagementTool().getInstanceConfig(clusterName, instanceName);
 
-      String result = new String(new ZNRecordSerializer().serialize(record));
-      System.out.println(result);
+      String result = new String(new ZNRecordSerializer().serialize(config.getRecord()));
+      System.out.println("InstanceConfig: " + result);
       return 0;
     }
     else if (cmd.hasOption(listResourceGroupInfo))
@@ -670,19 +667,19 @@ public class ClusterSetup
       // Also the ideal states and current states
       String clusterName = cmd.getOptionValues(listResourceGroupInfo)[0];
       String resourceGroupName = cmd.getOptionValues(listResourceGroupInfo)[1];
-      ZNRecord idealState =
+      IdealState idealState =
           setupTool.getClusterManagementTool().getResourceGroupIdealState(clusterName,
                                                                           resourceGroupName);
-      ZNRecord externalView =
+      ExternalView externalView =
           setupTool.getClusterManagementTool().getResourceGroupExternalView(clusterName,
                                                                             resourceGroupName);
 
       System.out.println("IdealState for " + resourceGroupName + ":");
-      System.out.println(new String(new ZNRecordSerializer().serialize(idealState)));
+      System.out.println(new String(new ZNRecordSerializer().serialize(idealState.getRecord())));
 
       System.out.println();
       System.out.println("External view for " + resourceGroupName + ":");
-      System.out.println(new String(new ZNRecordSerializer().serialize(externalView)));
+      System.out.println(new String(new ZNRecordSerializer().serialize(externalView.getRecord())));
       return 0;
 
     }
@@ -717,10 +714,10 @@ public class ClusterSetup
     {
       String clusterName = cmd.getOptionValues(listStateModel)[0];
       String stateModel = cmd.getOptionValues(listStateModel)[1];
-      ZNRecord record =
+      StateModelDefinition stateModelDef =
           setupTool.getClusterManagementTool().getStateModelDef(clusterName, stateModel);
-      String result = new String(new ZNRecordSerializer().serialize(record));
-      System.out.println(result);
+      String result = new String(new ZNRecordSerializer().serialize(stateModelDef.getRecord()));
+      System.out.println("StateModelDefinition: " + result);
       return 0;
     }
     else if (cmd.hasOption(addStateModelDef))
@@ -736,7 +733,7 @@ public class ClusterSetup
       }
       setupTool.getClusterManagementTool().addStateModelDef(clusterName,
                                                             stateModelRecord.getId(),
-                                                            stateModelRecord);
+                                                            new StateModelDefinition(stateModelRecord));
       return 0;
     }
     else if (cmd.hasOption(addIdealState))
@@ -753,7 +750,7 @@ public class ClusterSetup
       }
       setupTool.getClusterManagementTool().setResourceGroupIdealState(clusterName,
                                                                       resourceGroupName,
-                                                                      idealStateRecord);
+                                                                      new IdealState(idealStateRecord));
       return 0;
     }
     else if (cmd.hasOption(help))

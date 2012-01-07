@@ -1,20 +1,19 @@
 package com.linkedin.clustermanager.agent.file;
 
-import org.testng.annotations.Test;
-import org.testng.AssertJUnit;
 import java.util.List;
 
-import org.testng.Assert;
+import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
-import com.linkedin.clustermanager.ClusterDataAccessor;
-import com.linkedin.clustermanager.ClusterDataAccessor.IdealStateConfigProperty;
 import com.linkedin.clustermanager.ClusterManagementService;
 import com.linkedin.clustermanager.ClusterManagerException;
 import com.linkedin.clustermanager.ClusterMessagingService;
 import com.linkedin.clustermanager.InstanceType;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.agent.MockListener;
+import com.linkedin.clustermanager.model.IdealState;
+import com.linkedin.clustermanager.model.IdealState.IdealStateModeProperty;
+import com.linkedin.clustermanager.model.InstanceConfig;
 import com.linkedin.clustermanager.store.PropertyJsonComparator;
 import com.linkedin.clustermanager.store.PropertyJsonSerializer;
 import com.linkedin.clustermanager.store.PropertyStoreException;
@@ -22,7 +21,7 @@ import com.linkedin.clustermanager.store.file.FilePropertyStore;
 
 public class TestDynamicFileCM
 {
-  @Test(groups = { "unitTest" })
+  @Test()
   public void testDynmaicFileCM()
   {
     String clusterName = "TestDynamicFileCM";
@@ -41,20 +40,20 @@ public class TestDynamicFileCM
       // TODO Auto-generated catch block
       e.printStackTrace();
     }
-    ClusterDataAccessor accessor = new FileBasedDataAccessor(store, clusterName);
+    FileBasedDataAccessor accessor = new FileBasedDataAccessor(store, clusterName);
     DynamicFileClusterManager controller = new DynamicFileClusterManager(clusterName, controllerName,
                                     InstanceType.CONTROLLER, accessor);
-    
+
     DynamicFileClusterManager participant = new DynamicFileClusterManager(clusterName, instanceName,
                                     InstanceType.PARTICIPANT, accessor);
 
     AssertJUnit.assertEquals(instanceName, participant.getInstanceName());
-    
+
     controller.disconnect();
     AssertJUnit.assertFalse(controller.isConnected());
     controller.connect();
     AssertJUnit.assertTrue(controller.isConnected());
-    
+
     String sessionId = controller.getSessionId();
     AssertJUnit.assertEquals(DynamicFileClusterManager._sessionId, sessionId);
     AssertJUnit.assertEquals(clusterName, controller.getClusterName());
@@ -62,19 +61,19 @@ public class TestDynamicFileCM
     AssertJUnit.assertEquals(InstanceType.CONTROLLER, controller.getInstanceType());
     AssertJUnit.assertNull(controller.getPropertyStore());
     AssertJUnit.assertNull(controller.getHealthReportCollector());
-    
+
     MockListener controllerListener = new MockListener();
     controllerListener.reset();
-    
+
     controller.addIdealStateChangeListener(controllerListener);
     AssertJUnit.assertTrue(controllerListener.isIdealStateChangeListenerInvoked);
-    
+
     controller.addLiveInstanceChangeListener(controllerListener);
     AssertJUnit.assertTrue(controllerListener.isLiveInstanceChangeListenerInvoked);
-    
+
     controller.addCurrentStateChangeListener(controllerListener, controllerName, sessionId);
     AssertJUnit.assertTrue(controllerListener.isCurrentStateChangeListenerInvoked);
-    
+
     boolean exceptionCaught = false;
     try
     {
@@ -84,7 +83,7 @@ public class TestDynamicFileCM
       exceptionCaught = true;
     }
     AssertJUnit.assertTrue(exceptionCaught);
-    
+
     exceptionCaught = false;
     try
     {
@@ -94,7 +93,7 @@ public class TestDynamicFileCM
       exceptionCaught = true;
     }
     AssertJUnit.assertTrue(exceptionCaught);
-    
+
     exceptionCaught = false;
     try
     {
@@ -104,9 +103,9 @@ public class TestDynamicFileCM
       exceptionCaught = true;
     }
     AssertJUnit.assertTrue(exceptionCaught);
-    
+
     AssertJUnit.assertFalse(controller.removeListener(controllerListener));
-    
+
     exceptionCaught = false;
     try
     {
@@ -116,13 +115,13 @@ public class TestDynamicFileCM
       exceptionCaught = true;
     }
     AssertJUnit.assertTrue(exceptionCaught);
-    
+
     // test message service
     ClusterMessagingService msgService = controller.getMessagingService();
-    
+
     // test file management tool
     ClusterManagementService tool = controller.getClusterManagmentTool();
-    
+
     exceptionCaught = false;
     try
     {
@@ -132,7 +131,7 @@ public class TestDynamicFileCM
       exceptionCaught = true;
     }
     AssertJUnit.assertTrue(exceptionCaught);
-    
+
     exceptionCaught = false;
     try
     {
@@ -146,8 +145,8 @@ public class TestDynamicFileCM
     exceptionCaught = false;
     try
     {
-      tool.addResourceGroup(clusterName, "resourceGroup", 10, "MasterSlave", 
-                            IdealStateConfigProperty.AUTO.toString());
+      tool.addResourceGroup(clusterName, "resourceGroup", 10, "MasterSlave",
+                            IdealStateModeProperty.AUTO.toString());
     } catch (UnsupportedOperationException e)
     {
       exceptionCaught = true;
@@ -173,7 +172,7 @@ public class TestDynamicFileCM
       exceptionCaught = true;
     }
     AssertJUnit.assertTrue(exceptionCaught);
-    
+
     exceptionCaught = false;
     try
     {
@@ -193,7 +192,7 @@ public class TestDynamicFileCM
       exceptionCaught = true;
     }
     AssertJUnit.assertTrue(exceptionCaught);
-    
+
     exceptionCaught = false;
     try
     {
@@ -203,20 +202,20 @@ public class TestDynamicFileCM
       exceptionCaught = true;
     }
     AssertJUnit.assertTrue(exceptionCaught);
-    
+
     tool.addCluster(clusterName, true);
     tool.addResourceGroup(clusterName, "resourceGroup", 10, "MasterSlave");
-    ZNRecord nodeConfig = new ZNRecord("nodeConfig");
-    tool.addInstance(clusterName, nodeConfig);
+    InstanceConfig config = new InstanceConfig("nodeConfig");
+    tool.addInstance(clusterName, config);
     List<String> instances = tool.getInstancesInCluster(clusterName);
     AssertJUnit.assertEquals(1, instances.size());
-    tool.dropInstance(clusterName, nodeConfig);
-    
-    ZNRecord isRecord = new ZNRecord("idealState");
-    tool.setResourceGroupIdealState(clusterName, "resourceGroup", isRecord);
-    isRecord = tool.getResourceGroupIdealState(clusterName, "resourceGroup");
-    AssertJUnit.assertEquals(isRecord.getId(), "idealState");
-   
+    tool.dropInstance(clusterName, config);
+
+    IdealState idealState = new IdealState("idealState");
+    tool.setResourceGroupIdealState(clusterName, "resourceGroup", idealState);
+    idealState = tool.getResourceGroupIdealState(clusterName, "resourceGroup");
+    AssertJUnit.assertEquals(idealState.getId(), "idealState");
+
     tool.dropResourceGroup(clusterName, "resourceGroup");
     store.stop();
   }

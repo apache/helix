@@ -1,6 +1,5 @@
 package com.linkedin.clustermanager;
 
-import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -8,8 +7,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Future;
-
-import org.apache.zookeeper.data.Stat;
 
 import com.linkedin.clustermanager.healthcheck.HealthReportProvider;
 import com.linkedin.clustermanager.healthcheck.ParticipantHealthReportCollector;
@@ -34,8 +31,7 @@ public class Mocks
       stateModelInvoked = true;
     }
 
-    public void onBecomeSlaveFromOffline(Message msg,
-        NotificationContext context)
+    public void onBecomeSlaveFromOffline(Message msg, NotificationContext context)
     {
       stateModelInvoked = true;
     }
@@ -88,7 +84,7 @@ public class Mocks
     private final String _clusterName;
     private final String _sessionId;
     String _instanceName;
-    ClusterMessagingService _msgSvc ;
+    ClusterMessagingService _msgSvc;
     private String _version;
 
     public MockManager()
@@ -100,7 +96,7 @@ public class Mocks
     {
       _clusterName = clusterName;
       accessor = new MockAccessor(clusterName);
-      _sessionId =  UUID.randomUUID().toString();
+      _sessionId = UUID.randomUUID().toString();
       _instanceName = "testInstanceName";
       _msgSvc = new MockClusterMessagingService();
     }
@@ -112,16 +108,14 @@ public class Mocks
     }
 
     @Override
-    public void addIdealStateChangeListener(IdealStateChangeListener listener)
-        throws Exception
+    public void addIdealStateChangeListener(IdealStateChangeListener listener) throws Exception
     {
       // TODO Auto-generated method stub
 
     }
 
     @Override
-    public void addLiveInstanceChangeListener(
-        LiveInstanceChangeListener listener)
+    public void addLiveInstanceChangeListener(LiveInstanceChangeListener listener)
     {
       // TODO Auto-generated method stub
 
@@ -142,17 +136,16 @@ public class Mocks
     }
 
     @Override
-    public void addCurrentStateChangeListener(
-        CurrentStateChangeListener listener, String instanceName,
-        String sessionId)
+    public void addCurrentStateChangeListener(CurrentStateChangeListener listener,
+                                              String instanceName,
+                                              String sessionId)
     {
       // TODO Auto-generated method stub
 
     }
 
     @Override
-    public void addExternalViewChangeListener(
-        ExternalViewChangeListener listener)
+    public void addExternalViewChangeListener(ExternalViewChangeListener listener)
     {
       // TODO Auto-generated method stub
 
@@ -283,8 +276,13 @@ public class Mocks
     Map<String, ZNRecord> map = new HashMap<String, ZNRecord>();
 
     @Override
-    public boolean setProperty(PropertyType type, ZNRecord value,
-        String... keys)
+    public boolean setProperty(PropertyType type, ZNRecordDecorator value, String... keys)
+    {
+      return setProperty(type, value.getRecord(), keys);
+    }
+
+    @Override
+    public boolean setProperty(PropertyType type, ZNRecord value, String... keys)
     {
       String path = PropertyPathConfig.getPath(type, _clusterName, keys);
       data.put(path, value);
@@ -292,8 +290,17 @@ public class Mocks
     }
 
     @Override
-    public boolean updateProperty(PropertyType type, ZNRecord value,
-        String... keys)
+    public boolean updateProperty(PropertyType type,
+                                  ZNRecordDecorator value,
+                                  String... keys)
+    {
+      return updateProperty(type, value.getRecord(), keys);
+    }
+
+    @Override
+    public boolean updateProperty(PropertyType type,
+                                  ZNRecord value,
+                                  String... keys)
     {
       String path = PropertyPathConfig.getPath(type, _clusterName, keys);
       if (type.updateOnlyOnExists)
@@ -305,12 +312,14 @@ public class Mocks
             ZNRecord znRecord = new ZNRecord(data.get(path));
             znRecord.merge(value);
             data.put(path, znRecord);
-          } else
+          }
+          else
           {
             data.put(path, value);
           }
         }
-      } else
+      }
+      else
       {
         if (type.mergeOnUpdate)
         {
@@ -319,17 +328,32 @@ public class Mocks
             ZNRecord znRecord = new ZNRecord(data.get(path));
             znRecord.merge(value);
             data.put(path, znRecord);
-          } else
+          }
+          else
           {
             data.put(path, value);
           }
-        } else
+        }
+        else
         {
           data.put(path, value);
         }
       }
 
       return true;
+    }
+
+    @Override
+    public <T extends ZNRecordDecorator> T getProperty(Class<T> clazz,
+                                                       PropertyType type,
+                                                       String... keys)
+    {
+      ZNRecord record = getProperty(type, keys);
+      if (record == null)
+      {
+        return null;
+      }
+      return ZNRecordDecorator.convertToTypedInstance(clazz, record);
     }
 
     @Override
@@ -367,10 +391,20 @@ public class Mocks
       return child;
     }
 
+
+    @Override
+    public <T extends ZNRecordDecorator> List<T> getChildValues(Class<T> clazz,
+                                                                PropertyType type,
+                                                                String... keys)
+    {
+      List<ZNRecord> list = getChildValues(type, keys);
+      return ZNRecordDecorator.convertToTypedList(clazz, list);
+    }
+
     @Override
     public List<ZNRecord> getChildValues(PropertyType type, String... keys)
     {
-      List<ZNRecord> child = new ArrayList<ZNRecord>();
+      List<ZNRecord> childs = new ArrayList<ZNRecord>();
       String path = PropertyPathConfig.getPath(type, _clusterName, keys);
       for (String key : data.keySet())
       {
@@ -378,50 +412,29 @@ public class Mocks
         {
           String[] keySplit = key.split("\\/");
           String[] pathSplit = path.split("\\/");
-          if (keySplit.length - pathSplit.length==1)
+          if (keySplit.length - pathSplit.length == 1)
           {
-            child.add(data.get(key));
-          }else{
-            System.out.println("keySplit:"+ Arrays.toString(keySplit) );
-            System.out.println("pathSplit:"+ Arrays.toString(pathSplit) );
+            ZNRecord record = data.get(key);
+            if (record != null)
+            {
+              childs.add(record);
+            }
+          }
+          else
+          {
+            System.out.println("keySplit:" + Arrays.toString(keySplit));
+            System.out.println("pathSplit:" + Arrays.toString(pathSplit));
           }
         }
       }
-      return child;
+      return childs;
     }
 
     @Override
-    public PropertyStore<ZNRecord> getStore()
+    public PropertyStore<ZNRecord> getPropertyStore()
     {
       // TODO Auto-generated method stub
       return null;
-    }
-
-    @Override
-    public <T extends ZNRecordAndStat> void refreshChildValues(Map<String, T> childValues,
-        Class<T> clazz, PropertyType type, String... keys)
-    {
-      if (childValues == null)
-      {
-        throw new IllegalArgumentException("should provide non-null map that holds old child records "
-            + " (empty map if no old values)");
-      }
-
-      childValues.clear();
-      List<ZNRecord> childRecords = this.getChildValues(type, keys);
-      for (ZNRecord record : childRecords)
-      {
-        try
-        {
-          Constructor<T> constructor = clazz.getConstructor(new Class[] { ZNRecord.class, Stat.class });
-          childValues.put(record.getId(), constructor.newInstance(record, null));
-        }
-        catch (Exception e)
-        {
-          // logger.error("Error creating an Object of type:" + clazz.getCanonicalName(), e);
-          e.printStackTrace();
-        }
-      }
     }
   }
 
@@ -435,11 +448,12 @@ public class Mocks
       return null;
     }
 
-	@Override
-	public void resetStats() {
-		// TODO Auto-generated method stub
+    @Override
+    public void resetStats()
+    {
+      // TODO Auto-generated method stub
 
-	}
+    }
 
   }
 
@@ -454,24 +468,27 @@ public class Mocks
     }
 
     @Override
-    public int send(Criteria receipientCriteria, Message message,
-        AsyncCallback callbackOnReply, int timeOut)
+    public int send(Criteria receipientCriteria,
+                    Message message,
+                    AsyncCallback callbackOnReply,
+                    int timeOut)
     {
       // TODO Auto-generated method stub
       return 0;
     }
 
     @Override
-    public int sendAndWait(Criteria receipientCriteria, Message message,
-        AsyncCallback callbackOnReply, int timeOut)
+    public int sendAndWait(Criteria receipientCriteria,
+                           Message message,
+                           AsyncCallback callbackOnReply,
+                           int timeOut)
     {
       // TODO Auto-generated method stub
       return 0;
     }
 
     @Override
-    public void registerMessageHandlerFactory(String type,
-        MessageHandlerFactory factory)
+    public void registerMessageHandlerFactory(String type, MessageHandlerFactory factory)
     {
       // TODO Auto-generated method stub
 

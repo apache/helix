@@ -5,19 +5,22 @@ import java.util.Set;
 import java.util.TreeMap;
 
 import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.ZNRecordDecorator;
 
-public class ExternalView
+/**
+ * External view is an aggregation (across all instances)
+ *  of current states for the resources in a resource group
+ */
+public class ExternalView extends ZNRecordDecorator
 {
-  private final ZNRecord _record;
-
   public ExternalView(String resourceGroup)
   {
-    _record = new ZNRecord(resourceGroup);
+    super(new ZNRecord(resourceGroup));
   }
 
   public ExternalView(ZNRecord record)
   {
-    _record = record;
+    super(record);
   }
 
   public void setState(String resourceKeyName, String instance, String state)
@@ -33,11 +36,6 @@ public class ExternalView
       Map<String, String> currentStateMap)
   {
     _record.setMapField(resourceKeyName, currentStateMap);
-  }
-
-  public ZNRecord getRecord()
-  {
-    return _record;
   }
 
   public Set<String> getResourceKeys()

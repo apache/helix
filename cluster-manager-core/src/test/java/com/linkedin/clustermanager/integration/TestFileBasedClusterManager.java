@@ -12,7 +12,7 @@ import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.ClusterView;
 import com.linkedin.clustermanager.ZNRecord;
-import com.linkedin.clustermanager.agent.file.FileBasedClusterManager;
+import com.linkedin.clustermanager.agent.file.StaticFileClusterManager;
 import com.linkedin.clustermanager.tools.ClusterViewSerializer;
 
 // TODO remove this test
@@ -21,13 +21,13 @@ public class TestFileBasedClusterManager
   @Test (groups = {"integrationTest"})
   public void testFileBasedClusterManager() throws Exception
   {
-    List<FileBasedClusterManager.DBParam> dbParams = new ArrayList<FileBasedClusterManager.DBParam>();
-    dbParams.add(new FileBasedClusterManager.DBParam("BizFollow", 1));
-    dbParams.add(new FileBasedClusterManager.DBParam("BizProfile", 1));
-    dbParams.add(new FileBasedClusterManager.DBParam("EspressoDB", 10));
-    dbParams.add(new FileBasedClusterManager.DBParam("MailboxDB", 128));
-    dbParams.add(new FileBasedClusterManager.DBParam("MyDB", 8));
-    dbParams.add(new FileBasedClusterManager.DBParam("schemata", 1));
+    List<StaticFileClusterManager.DBParam> dbParams = new ArrayList<StaticFileClusterManager.DBParam>();
+    dbParams.add(new StaticFileClusterManager.DBParam("BizFollow", 1));
+    dbParams.add(new StaticFileClusterManager.DBParam("BizProfile", 1));
+    dbParams.add(new StaticFileClusterManager.DBParam("EspressoDB", 10));
+    dbParams.add(new StaticFileClusterManager.DBParam("MailboxDB", 128));
+    dbParams.add(new StaticFileClusterManager.DBParam("MyDB", 8));
+    dbParams.add(new StaticFileClusterManager.DBParam("schemata", 1));
     String[] nodesInfo =
     { "localhost:8900", "localhost:8901", "localhost:8902", "localhost:8903",
         "localhost:8904" };
@@ -35,7 +35,7 @@ public class TestFileBasedClusterManager
     String file = "/tmp/clusterView.json";
     int replica = 0;
     // ClusterViewSerializer serializer = new ClusterViewSerializer(file);
-    ClusterView view = FileBasedClusterManager.generateStaticConfigClusterView(nodesInfo, dbParams, replica);
+    ClusterView view = StaticFileClusterManager.generateStaticConfigClusterView(nodesInfo, dbParams, replica);
     view.setExternalView(new LinkedList<ZNRecord>());
     ClusterViewSerializer.serialize(view, new File(file));
     ClusterView restoredView = ClusterViewSerializer.deserialize(new File(file));

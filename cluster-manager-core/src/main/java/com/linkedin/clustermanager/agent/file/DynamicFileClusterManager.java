@@ -10,7 +10,6 @@ import java.util.List;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.Watcher.Event.EventType;
 
-import com.linkedin.clustermanager.CMConstants;
 import com.linkedin.clustermanager.CMConstants.ChangeType;
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterManagementService;
@@ -29,6 +28,7 @@ import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.healthcheck.ParticipantHealthReportCollector;
 import com.linkedin.clustermanager.messaging.DefaultMessagingService;
+import com.linkedin.clustermanager.model.LiveInstance;
 import com.linkedin.clustermanager.store.PropertyStore;
 import com.linkedin.clustermanager.store.file.FilePropertyStore;
 import com.linkedin.clustermanager.tools.PropertiesReader;
@@ -37,8 +37,8 @@ import com.linkedin.clustermanager.util.CMUtil;
 public class DynamicFileClusterManager implements ClusterManager
 {
   private static final Logger LOG = Logger
-      .getLogger(FileBasedClusterManager.class.getName());
-  private final ClusterDataAccessor _fileDataAccessor;
+      .getLogger(StaticFileClusterManager.class.getName());
+  private final FileBasedDataAccessor _fileDataAccessor;
 
   private final String _clusterName;
   private final InstanceType _instanceType;
@@ -53,8 +53,9 @@ public class DynamicFileClusterManager implements ClusterManager
   private final FilePropertyStore<ZNRecord> _store;
   private final String _version;
 
+  // TODO change accessor to pass property store
   public DynamicFileClusterManager(String clusterName, String instanceName,
-      InstanceType instanceType, ClusterDataAccessor accessor)
+      InstanceType instanceType, FileBasedDataAccessor accessor)
   {
     this._clusterName = clusterName;
     this._instanceName = instanceName;
@@ -68,6 +69,7 @@ public class DynamicFileClusterManager implements ClusterManager
       addLiveInstance();
     }
 
+    // TODO fix it
     _store = (FilePropertyStore<ZNRecord>) _fileDataAccessor.getStore();
     _mgmtTool = new FileClusterManagementTool(_store);
 
@@ -201,12 +203,10 @@ public class DynamicFileClusterManager implements ClusterManager
 
   private void addLiveInstance()
   {
-    // set it from the session
-    ZNRecord metaData = new ZNRecord(_instanceName);
-    metaData.setSimpleField(CMConstants.ZNAttribute.SESSION_ID.toString(),
-        _sessionId);
-    _fileDataAccessor.setProperty(PropertyType.LIVEINSTANCES, metaData,
-        _instanceName);
+    LiveInstance liveInstance = new LiveInstance(_instanceName);
+    liveInstance.setSessionId(_sessionId);
+    _fileDataAccessor.setProperty(PropertyType.LIVEINSTANCES, liveInstance.getRecord(), _instanceName);
+//    _fileDataAccessor.setProperty(PropertyType.LIVEINSTANCES, liveInstance, _instanceName);
   }
 
   @Override

@@ -10,10 +10,15 @@ import com.linkedin.clustermanager.IdealStateChangeListener;
 import com.linkedin.clustermanager.LiveInstanceChangeListener;
 import com.linkedin.clustermanager.MessageListener;
 import com.linkedin.clustermanager.NotificationContext;
-import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.model.CurrentState;
+import com.linkedin.clustermanager.model.ExternalView;
+import com.linkedin.clustermanager.model.IdealState;
+import com.linkedin.clustermanager.model.InstanceConfig;
+import com.linkedin.clustermanager.model.LiveInstance;
+import com.linkedin.clustermanager.model.Message;
 
-public class MockListener implements IdealStateChangeListener, LiveInstanceChangeListener, 
-    ConfigChangeListener, CurrentStateChangeListener, ExternalViewChangeListener, 
+public class MockListener implements IdealStateChangeListener, LiveInstanceChangeListener,
+    ConfigChangeListener, CurrentStateChangeListener, ExternalViewChangeListener,
     ControllerChangeListener, MessageListener
 
 {
@@ -24,7 +29,7 @@ public class MockListener implements IdealStateChangeListener, LiveInstanceChang
   public boolean isConfigChangeListenerInvoked = false;
   public boolean isExternalViewChangeListenerInvoked = false;
   public boolean isControllerChangeListenerInvoked = false;
-  
+
   public void reset()
   {
     isIdealStateChangeListenerInvoked = false;
@@ -35,35 +40,35 @@ public class MockListener implements IdealStateChangeListener, LiveInstanceChang
     isExternalViewChangeListenerInvoked = false;
     isControllerChangeListenerInvoked = false;
   }
-  
+
   @Override
-  public void onIdealStateChange(List<ZNRecord> idealState, NotificationContext changeContext)
+  public void onIdealStateChange(List<IdealState> idealState, NotificationContext changeContext)
   {
-    isIdealStateChangeListenerInvoked = true; 
+    isIdealStateChangeListenerInvoked = true;
   }
 
   @Override
-  public void onLiveInstanceChange(List<ZNRecord> liveInstances, NotificationContext changeContext)
+  public void onLiveInstanceChange(List<LiveInstance> liveInstances, NotificationContext changeContext)
   {
     isLiveInstanceChangeListenerInvoked = true;
   }
 
   @Override
-  public void onConfigChange(List<ZNRecord> configs, NotificationContext changeContext)
+  public void onConfigChange(List<InstanceConfig> configs, NotificationContext changeContext)
   {
     isConfigChangeListenerInvoked = true;
   }
 
   @Override
   public void onStateChange(String instanceName,
-                            List<ZNRecord> statesInfo,
+                            List<CurrentState> statesInfo,
                             NotificationContext changeContext)
   {
-    isCurrentStateChangeListenerInvoked = true;    
+    isCurrentStateChangeListenerInvoked = true;
   }
 
   @Override
-  public void onExternalViewChange(List<ZNRecord> externalViewList,
+  public void onExternalViewChange(List<ExternalView> externalViewList,
                                    NotificationContext changeContext)
   {
     isExternalViewChangeListenerInvoked = true;
@@ -77,10 +82,9 @@ public class MockListener implements IdealStateChangeListener, LiveInstanceChang
 
   @Override
   public void onMessage(String instanceName,
-                        List<ZNRecord> messages,
+                        List<Message> messages,
                         NotificationContext changeContext)
   {
-    isMessageListenerInvoked = true;    
+    isMessageListenerInvoked = true;
   }
-
 }

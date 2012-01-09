@@ -7,6 +7,7 @@ import java.util.Map;
 
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
+import com.linkedin.clustermanager.model.StateModelDefinition.StateModelDefinitionProperty;
 
 public class StateModelConfigGenerator
 {
@@ -29,7 +30,7 @@ public class StateModelConfigGenerator
   public ZNRecord generateConfigForStorageSchemata()
   {
     ZNRecord record = new ZNRecord("STORAGE_DEFAULT_SM_SCHEMATA");
-    record.setSimpleField("INITIAL_STATE", "OFFLINE");
+    record.setSimpleField(StateModelDefinitionProperty.INITIAL_STATE.toString(), "OFFLINE");
     List<String> statePriorityList = new ArrayList<String>();
     statePriorityList.add("MASTER");
     statePriorityList.add("OFFLINE");
@@ -91,7 +92,7 @@ public class StateModelConfigGenerator
   public ZNRecord generateConfigForMasterSlave()
   {
     ZNRecord record = new ZNRecord("MasterSlave");
-    record.setSimpleField("INITIAL_STATE", "OFFLINE");
+    record.setSimpleField(StateModelDefinitionProperty.INITIAL_STATE.toString(), "OFFLINE");
     List<String> statePriorityList = new ArrayList<String>();
     statePriorityList.add("MASTER");
     statePriorityList.add("SLAVE");
@@ -171,11 +172,11 @@ public class StateModelConfigGenerator
     // ZNRecordSerializer serializer = new ZNRecordSerializer();
     // System.out.println(new String(serializer.serialize(record)));
   }
-  
+
   public ZNRecord generateConfigForLeaderStandby()
   {
     ZNRecord record = new ZNRecord("LeaderStandby");
-    record.setSimpleField("INITIAL_STATE", "OFFLINE");
+    record.setSimpleField(StateModelDefinitionProperty.INITIAL_STATE.toString(), "OFFLINE");
     List<String> statePriorityList = new ArrayList<String>();
     statePriorityList.add("LEADER");
     statePriorityList.add("STANDBY");
@@ -208,7 +209,7 @@ public class StateModelConfigGenerator
       }
 
     }
-    
+
     for (String state : statePriorityList)
     {
       String key = state + ".next";
@@ -251,12 +252,12 @@ public class StateModelConfigGenerator
     // ZNRecordSerializer serializer = new ZNRecordSerializer();
     // System.out.println(new String(serializer.serialize(record)));
   }
-  
+
 
   public ZNRecord generateConfigForOnlineOffline()
   {
     ZNRecord record = new ZNRecord("OnlineOffline");
-    record.setSimpleField("INITIAL_STATE", "OFFLINE");
+    record.setSimpleField(StateModelDefinitionProperty.INITIAL_STATE.toString(), "OFFLINE");
     List<String> statePriorityList = new ArrayList<String>();
     statePriorityList.add("ONLINE");
     statePriorityList.add("OFFLINE");
@@ -282,7 +283,7 @@ public class StateModelConfigGenerator
         record.setMapField(key, metadata);
       }
     }
-    
+
     for (String state : statePriorityList)
     {
       String key = state + ".next";

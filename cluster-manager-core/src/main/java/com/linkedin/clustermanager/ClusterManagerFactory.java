@@ -9,7 +9,7 @@ package com.linkedin.clustermanager;
 import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.agent.file.DynamicFileClusterManager;
-import com.linkedin.clustermanager.agent.file.FileBasedClusterManager;
+import com.linkedin.clustermanager.agent.file.StaticFileClusterManager;
 import com.linkedin.clustermanager.agent.file.FileBasedDataAccessor;
 import com.linkedin.clustermanager.agent.zk.ZKClusterManager;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
@@ -149,7 +149,7 @@ public final class ClusterManagerFactory
   public static ClusterManager getFileBasedManagerForParticipant(
       String clusterName, String instanceName, String file) throws Exception
   {
-    return new FileBasedClusterManager(clusterName, instanceName,
+    return new StaticFileClusterManager(clusterName, instanceName,
         InstanceType.PARTICIPANT, file);
   }
 

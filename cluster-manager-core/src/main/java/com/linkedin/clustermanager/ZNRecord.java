@@ -21,15 +21,22 @@ import com.linkedin.clustermanager.ZNRecordDelta.MERGEOPERATION;
 public class ZNRecord
 {
   static Logger _logger = Logger.getLogger(ZNRecord.class);
+
   private final String id;
+
   /**
-   * We don't want the delta to be serialized and deserialized
+   * We don't want the _deltaList to be serialized and deserialized
    */
-  @JsonIgnore
   private List<ZNRecordDelta> _deltaList = new ArrayList<ZNRecordDelta>();
+
   private Map<String, String> simpleFields;
   private Map<String, Map<String, String>> mapFields;
   private Map<String, List<String>> listFields;
+
+  /**
+   * the version field of zookeeper Stat
+   */
+  private int _version;
 
   @JsonCreator
   public ZNRecord(@JsonProperty("id") String id)
@@ -40,22 +47,9 @@ public class ZNRecord
     listFields = new TreeMap<String, List<String>>();
   }
 
-  public void setDeltaList(List<ZNRecordDelta> deltaList)
-  {
-    _deltaList = deltaList;
-  }
-
-  public List<ZNRecordDelta> getDeltaList()
-  {
-    return _deltaList;
-  }
-
   public ZNRecord(ZNRecord record)
   {
-    this(record.getId());
-    simpleFields.putAll(record.getSimpleFields());
-    mapFields.putAll(record.getMapFields());
-    listFields.putAll(record.getListFields());
+    this(record, record.getId());
   }
 
   public ZNRecord(ZNRecord record, String id)
@@ -64,6 +58,24 @@ public class ZNRecord
     simpleFields.putAll(record.getSimpleFields());
     mapFields.putAll(record.getMapFields());
     listFields.putAll(record.getListFields());
+  }
+
+  public ZNRecord(ZNRecord record, int version)
+  {
+    this(record);
+    _version = version;
+  }
+
+  @JsonIgnore(true)
+  public void setDeltaList(List<ZNRecordDelta> deltaList)
+  {
+    _deltaList = deltaList;
+  }
+
+  @JsonIgnore(true)
+  public List<ZNRecordDelta> getDeltaList()
+  {
+    return _deltaList;
   }
 
   @JsonProperty
@@ -214,7 +226,7 @@ public class ZNRecord
     }
     else if (delta.getMergeOperation() == MERGEOPERATION.SUBSTRACT)
     {
-      substract(delta.getRecord());
+      subtract(delta.getRecord());
     }
   }
 
@@ -262,7 +274,11 @@ public class ZNRecord
     return true;
   }
 
-  public void substract(ZNRecord value)
+  /**
+   *  Note: does not support subtract in each list in list fields
+   *  or map in mapFields
+   */
+  public void subtract(ZNRecord value)
   {
     for (String key : value.getSimpleFields().keySet())
     {
@@ -271,8 +287,7 @@ public class ZNRecord
         simpleFields.remove(key);
       }
     }
-    // Note: does not support substract in each list in list fields
-    // or map in mapFields
+
     for (String key : value.getListFields().keySet())
     {
       if (listFields.containsKey(key))
@@ -289,4 +304,17 @@ public class ZNRecord
       }
     }
   }
+
+  @JsonIgnore(true)
+  public int getVersion()
+  {
+    return _version;
+  }
+
+  @JsonIgnore(true)
+  public void setVersion(int version)
+  {
+    _version = version;
+  }
+
 }

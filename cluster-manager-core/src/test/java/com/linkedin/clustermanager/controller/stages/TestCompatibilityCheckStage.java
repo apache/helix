@@ -6,12 +6,12 @@ import java.util.List;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import com.linkedin.clustermanager.CMConstants;
 import com.linkedin.clustermanager.Mocks;
 import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.model.IdealState;
 import com.linkedin.clustermanager.model.LiveInstance;
+import com.linkedin.clustermanager.model.LiveInstance.LiveInstanceProperty;
 import com.linkedin.clustermanager.pipeline.StageContext;
 import com.linkedin.clustermanager.tools.IdealStateCalculatorForStorageNode;
 
@@ -30,19 +30,17 @@ public class TestCompatibilityCheckStage extends BaseStageTest
         instances, partitions, replicas, resourceGroupName, "MASTER", "SLAVE");
     IdealState idealState = new IdealState(record);
     idealState.setStateModelDefRef("MasterSlave");
-    accessor.setProperty(PropertyType.IDEALSTATES,
-        idealState.getRecord(), resourceGroupName);
+    accessor.setProperty(PropertyType.IDEALSTATES, idealState, resourceGroupName);
 
     // set live instances
     record = new ZNRecord("localhost_0");
     if (participantVersion != null)
     {
-      record.setSimpleField(CMConstants.ZNAttribute.CLUSTER_MANAGER_VERSION.toString(), participantVersion);
+      record.setSimpleField(LiveInstanceProperty.CLUSTER_MANAGER_VERSION.toString(), participantVersion);
     }
     LiveInstance liveInstance = new LiveInstance(record);
     liveInstance.setSessionId("session_0");
-
-    accessor.setProperty(PropertyType.LIVEINSTANCES, record, "localhost_0");
+    accessor.setProperty(PropertyType.LIVEINSTANCES, liveInstance, "localhost_0");
 
     if (controllerVersion != null)
     {

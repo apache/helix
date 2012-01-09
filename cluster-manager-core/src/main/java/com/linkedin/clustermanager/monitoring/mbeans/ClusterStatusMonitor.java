@@ -14,25 +14,26 @@ import org.apache.log4j.Logger;
 import com.linkedin.clustermanager.ExternalViewChangeListener;
 import com.linkedin.clustermanager.LiveInstanceChangeListener;
 import com.linkedin.clustermanager.NotificationContext;
-import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.model.ExternalView;
+import com.linkedin.clustermanager.model.LiveInstance;
 import com.linkedin.clustermanager.monitoring.annotations.HelixMetric;
 
 
-public class ClusterStatusMonitor 
+public class ClusterStatusMonitor
   implements ClusterStatusMonitorMBean,LiveInstanceChangeListener, ExternalViewChangeListener
 {
   private static final Logger LOG = Logger.getLogger(ClusterStatusMonitor.class);
 
   private final MBeanServer _beanServer;
-  
+
   private int _numOfLiveInstances;
-  private int _numOfInstances;
-  private ConcurrentHashMap<String, ResourceGroupMonitor> _resourceGroupMbeanMap 
+  private final int _numOfInstances;
+  private final ConcurrentHashMap<String, ResourceGroupMonitor> _resourceGroupMbeanMap
     = new ConcurrentHashMap<String, ResourceGroupMonitor>();
   private String _clusterName = "";
-  
-  private List<ResourceGroupMonitorChangedListener> _listeners = new ArrayList<ResourceGroupMonitorChangedListener>() ;
-  
+
+  private final List<ResourceGroupMonitorChangedListener> _listeners = new ArrayList<ResourceGroupMonitorChangedListener>() ;
+
   public void addResourceGroupMonitorChangedListener(ResourceGroupMonitorChangedListener listener)
   {
     synchronized(_listeners)
@@ -47,7 +48,7 @@ public class ClusterStatusMonitor
       }
     }
   }
-  
+
   private void notifyListeners(ResourceGroupMonitor newResourceGroupMonitor)
   {
     synchronized(_listeners)
@@ -58,7 +59,7 @@ public class ClusterStatusMonitor
       }
     }
   }
-  
+
   public ClusterStatusMonitor(String clusterName, int nInstances)
   {
     _clusterName = clusterName;
@@ -74,30 +75,32 @@ public class ClusterStatusMonitor
       e.printStackTrace();
     }
   }
-  
+
   public ObjectName getObjectName(String name) throws MalformedObjectNameException
   {
     return new ObjectName("ClusterStatus: "+name);
   }
-  
+
   // Used by other external JMX consumers like ingraph
   public String getBeanName()
   {
     return "ClusterStatus "+_clusterName;
   }
-  
+
+  @Override
   @HelixMetric(description = "Get the total live instance")
   public long getLiveInstanceGauge()
   {
     return _numOfLiveInstances;
   }
 
+  @Override
   @HelixMetric(description = "Get the total instance")
   public long getInstancesGauge()
   {
     return _numOfInstances;
   }
-  
+
   private void register(Object bean, ObjectName name)
   {
     try
@@ -120,7 +123,7 @@ public class ClusterStatusMonitor
   }
 
   @Override
-  public void onLiveInstanceChange(List<ZNRecord> liveInstances,
+  public void onLiveInstanceChange(List<LiveInstance> liveInstances,
       NotificationContext changeContext)
   {
     try
@@ -135,12 +138,12 @@ public class ClusterStatusMonitor
   }
 
   @Override
-  public void onExternalViewChange(List<ZNRecord> externalViewList,
+  public void onExternalViewChange(List<ExternalView> externalViewList,
       NotificationContext changeContext)
   {
     try
     {
-      for(ZNRecord externalView : externalViewList)
+      for(ExternalView externalView : externalViewList)
       {
         String resourceGroup = externalView.getId();
         if(!_resourceGroupMbeanMap.containsKey(resourceGroup))
@@ -165,6 +168,6 @@ public class ClusterStatusMonitor
       LOG.warn(e);
       //e.printStackTrace();
     }
-    
+
   }
 }

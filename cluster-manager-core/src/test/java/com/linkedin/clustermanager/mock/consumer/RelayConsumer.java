@@ -1,18 +1,9 @@
 package com.linkedin.clustermanager.mock.consumer;
 
-import java.util.List;
-import java.util.Map.Entry;
-import java.util.TreeMap;
-
 import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterManager;
-import com.linkedin.clustermanager.ClusterManagerFactory;
-import com.linkedin.clustermanager.ExternalViewChangeListener;
-import com.linkedin.clustermanager.MessageListener;
-import com.linkedin.clustermanager.NotificationContext;
-import com.linkedin.clustermanager.ZNRecord;
 
 public class RelayConsumer
 {
@@ -97,7 +88,6 @@ public class RelayConsumer
     {
       logger.info("Reading (flush) from relay " + relay);
     }
-
   }
 
 }

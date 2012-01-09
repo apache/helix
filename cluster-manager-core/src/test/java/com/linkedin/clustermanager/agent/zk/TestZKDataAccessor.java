@@ -16,111 +16,107 @@ import com.linkedin.clustermanager.PropertyPathConfig;
 import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.ZkUnitTestBase;
+import com.linkedin.clustermanager.model.ExternalView;
+import com.linkedin.clustermanager.model.IdealState;
+import com.linkedin.clustermanager.model.IdealState.IdealStateModeProperty;
 import com.linkedin.clustermanager.store.PropertyStore;
 import com.linkedin.clustermanager.store.PropertyStoreException;
 
 
 public class TestZKDataAccessor extends ZkUnitTestBase
 {
-	
   private ClusterDataAccessor _accessor;
-  private String _clusterName; 
+  private String _clusterName;
   private final String resourceGroup = "resourceGroup";
+	private ZkClient _zkClient;
 
-	ZkClient _zkClient;
-	
-  @Test (groups = { "unitTest" })
+  @Test ()
   public void testSet()
   {
-    ZNRecord record = new ZNRecord(resourceGroup);
-    record.setSimpleField("testField", "testValue");
-    boolean success = _accessor.setProperty(PropertyType.IDEALSTATES, record, resourceGroup);
+    IdealState idealState = new IdealState(resourceGroup);
+    idealState.setIdealStateMode(IdealStateModeProperty.AUTO.toString());
+    boolean success = _accessor.setProperty(PropertyType.IDEALSTATES, idealState, resourceGroup);
     AssertJUnit.assertTrue(success);
-    // String path = "/"+_clusterName +"/IDEALSTATES/"+resourceGroup;
     String path = PropertyPathConfig.getPath(PropertyType.IDEALSTATES, _clusterName, resourceGroup);
     AssertJUnit.assertTrue(_zkClient.exists(path));
-    AssertJUnit.assertEquals(record ,_zkClient.readData(path));
-        
-    record.setSimpleField("partitions", "20");
-    success = _accessor.setProperty(PropertyType.IDEALSTATES, record, resourceGroup);
+    AssertJUnit.assertEquals(idealState.getRecord(), _zkClient.readData(path));
+
+    idealState.setNumPartitions(20);
+    success = _accessor.setProperty(PropertyType.IDEALSTATES, idealState, resourceGroup);
     AssertJUnit.assertTrue(success);
     AssertJUnit.assertTrue(_zkClient.exists(path));
-    AssertJUnit.assertEquals(record ,_zkClient.readData(path));
-    
+    AssertJUnit.assertEquals(idealState.getRecord(), _zkClient.readData(path));
   }
-  
-  @Test (groups = { "unitTest" })
+
+  @Test ()
   public void testGet()
   {
-    // String resourceGroup = "resourceGroup";
-    // String path = "/"+_clusterName +"/IDEALSTATES/"+resourceGroup;
     String path = PropertyPathConfig.getPath(PropertyType.IDEALSTATES, _clusterName, resourceGroup);
-    ZNRecord record = new ZNRecord(resourceGroup);
-    record.setSimpleField("testField", "testValue");
+    IdealState idealState = new IdealState(resourceGroup);
+    idealState.setIdealStateMode(IdealStateModeProperty.AUTO.toString());
+
     _zkClient.delete(path);
     _zkClient.createPersistent(new File(path).getParent(), true);
-    _zkClient.createPersistent(path, record);
-    ZNRecord value = _accessor.getProperty(PropertyType.IDEALSTATES, resourceGroup);
-    AssertJUnit.assertNotNull(value);
-    AssertJUnit.assertEquals(record, value);
+    _zkClient.createPersistent(path, idealState.getRecord());
+    IdealState idealStateRead = _accessor.getProperty(IdealState.class, PropertyType.IDEALSTATES, resourceGroup);
+    AssertJUnit.assertEquals(idealState.getRecord(), idealStateRead.getRecord());
   }
- 
-  @Test (groups = { "unitTest" })
+
+  @Test ()
   public void testRemove()
   {
-    // String resourceGroup = "resourceGroup";
-    // String path = "/"+_clusterName +"/IDEALSTATES/"+resourceGroup;
     String path = PropertyPathConfig.getPath(PropertyType.IDEALSTATES, _clusterName, resourceGroup);
-    ZNRecord record = new ZNRecord(resourceGroup);
-    record.setSimpleField("testField", "testValue");
+    IdealState idealState = new IdealState(resourceGroup);
+    idealState.setIdealStateMode(IdealStateModeProperty.AUTO.toString());
+
     _zkClient.delete(path);
     _zkClient.createPersistent(new File(path).getParent(), true);
-    _zkClient.createPersistent(path, record);
+    _zkClient.createPersistent(path, idealState.getRecord());
     boolean success = _accessor.removeProperty(PropertyType.IDEALSTATES, resourceGroup);
     AssertJUnit.assertTrue(success);
     AssertJUnit.assertFalse(_zkClient.exists(path));
-    ZNRecord value = _accessor.getProperty(PropertyType.IDEALSTATES, resourceGroup);
-    AssertJUnit.assertNull(value);
+    IdealState idealStateRead = _accessor.getProperty(IdealState.class, PropertyType.IDEALSTATES, resourceGroup);
+    AssertJUnit.assertNull(idealStateRead);
 
   }
-  
-  @Test (groups = { "unitTest" })
+
+  @Test ()
   public void testUpdate()
   {
-    // String resourceGroup = "resourceGroup";
-    // String path = "/"+_clusterName +"/IDEALSTATES/"+resourceGroup;
     String path = PropertyPathConfig.getPath(PropertyType.IDEALSTATES, _clusterName, resourceGroup);
-    ZNRecord record = new ZNRecord(resourceGroup);
-    record.setSimpleField("testField", "testValue");
+    IdealState idealState = new IdealState(resourceGroup);
+    idealState.setIdealStateMode(IdealStateModeProperty.AUTO.toString());
+
     _zkClient.delete(path);
     _zkClient.createPersistent(new File(path).getParent(), true);
-    _zkClient.createPersistent(path, record);
+    _zkClient.createPersistent(path, idealState.getRecord());
     Stat stat = _zkClient.getStat(path);
-    
-    record.setSimpleField("testField", "newValue");
-    boolean success = _accessor.updateProperty(PropertyType.IDEALSTATES, record,resourceGroup);
+
+    idealState.setIdealStateMode(IdealStateModeProperty.CUSTOMIZED.toString());
+
+    boolean success = _accessor.updateProperty(PropertyType.IDEALSTATES, idealState, resourceGroup);
     AssertJUnit.assertTrue(success);
     AssertJUnit.assertTrue(_zkClient.exists(path));
     ZNRecord value = _zkClient.readData(path);
-    AssertJUnit.assertEquals(record,value);
+    AssertJUnit.assertEquals(idealState.getRecord(), value);
     Stat newstat = _zkClient.getStat(path);
-    
+
     AssertJUnit.assertEquals(stat.getCtime(), newstat.getCtime());
     AssertJUnit.assertNotSame(stat.getMtime(), newstat.getMtime());
     AssertJUnit.assertTrue(stat.getMtime() < newstat.getMtime());
   }
 
-  @Test (groups = { "unitTest" })
+  @Test ()
   public void testGetChildValues()
   {
-    List<ZNRecord> list = _accessor.getChildValues(PropertyType.EXTERNALVIEW, _clusterName);
+    List<ExternalView> list = _accessor.getChildValues(ExternalView.class, PropertyType.EXTERNALVIEW, _clusterName);
     AssertJUnit.assertEquals(0, list.size());
   }
-  
-  @Test (groups = { "unitTest" })
+
+  @Test ()
   public void testGetPropertyStore()
   {
-    PropertyStore<ZNRecord> store = _accessor.getStore();
+    PropertyStore<ZNRecord> store = _accessor.getPropertyStore();
     try
     {
       store.setProperty("child1", new ZNRecord("child1"));
@@ -131,31 +127,16 @@ public class TestZKDataAccessor extends ZkUnitTestBase
       e.printStackTrace();
     }
   }
-  
-  // START STANDARD STUFF TO START ZK SERVER
-  // private String _zkServerAddress;
-  // private List<ZkServer> _localZkServers;
-  // private ZkClient _zkClient;
-  
+
   @BeforeClass
   public void beforeClass() throws IOException, Exception
   {
-    // List<Integer> localPorts = new ArrayList<Integer>();
-    // localPorts.add(2300);
-    // localPorts.add(2301);
+    _clusterName = CLUSTER_PREFIX + "_" + getShortClassName();
 
-    // _localZkServers = startLocalZookeeper(localPorts,
-    //    System.getProperty("user.dir") + "/" + "zkdata", 2000);
-    // _zkServerAddress = "localhost:" + 2301;
-
-    // _zkClient = new ZkClient(_zkServerAddress);
-    // _zkClient.setZkSerializer(new ZNRecordSerializer());
-    _clusterName = CLUSTER_PREFIX + "_" + getShortClassName();  // testCluster";
-    
-		System.out.println("START TestZKDataAccessor.beforeClass() at " + new Date(System.currentTimeMillis()));
+		System.out.println("START TestZKDataAccessor at " + new Date(System.currentTimeMillis()));
 		_zkClient = new ZkClient(ZK_ADDR);
 		_zkClient.setZkSerializer(new ZNRecordSerializer());
-    
+
     if (_zkClient.exists("/" + _clusterName))
     {
       _zkClient.deleteRecursive("/" + _clusterName);
@@ -167,7 +148,6 @@ public class TestZKDataAccessor extends ZkUnitTestBase
   public void afterClass()
   {
 		_zkClient.close();
-		System.out.println("END TestZKDataAccessor.beforeClass() at " + new Date(System.currentTimeMillis()));
+		System.out.println("END TestZKDataAccessor at " + new Date(System.currentTimeMillis()));
   }
-  
 }

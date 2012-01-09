@@ -1,21 +1,16 @@
 package com.linkedin.clustermanager.agent.zk;
 
-import java.lang.reflect.Constructor;
 import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 import org.I0Itec.zkclient.DataUpdater;
-import org.I0Itec.zkclient.exception.ZkInterruptedException;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.data.Stat;
 
 import com.linkedin.clustermanager.PropertyPathConfig;
 import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
-import com.linkedin.clustermanager.ZNRecordAndStat;
 
 public final class ZKUtil
 {
@@ -74,30 +69,34 @@ public final class ZKUtil
   public static void dropChildren(ZkClient client, String parentPath,
 	  List<ZNRecord> list)
   {
-	 //TODO: check if parentPath exists
-	if (list != null)
-	{
-	  for (ZNRecord record : list)
-	  {
-	    dropChildren(client, parentPath, record);
-	  }
-	}
+    //TODO: check if parentPath exists
+  	if (list != null)
+  	{
+  	  for (ZNRecord record : list)
+  	  {
+  	    dropChildren(client, parentPath, record);
+  	  }
+  	}
   }
 
   public static void dropChildren(ZkClient client, String parentPath,
 	  ZNRecord nodeRecord)
   {
-	//TODO: check if parentPath exists
-	String id = nodeRecord.getId();
-	String temp = parentPath + "/" + id;
+  	//TODO: check if parentPath exists
+  	String id = nodeRecord.getId();
+  	String temp = parentPath + "/" + id;
     client.deleteRecursive(temp);
-
   }
 
   public static List<ZNRecord> getChildren(ZkClient client, String path)
   {
     // parent watch will be set by zkClient
     List<String> children = client.getChildren(path);
+    if (children == null || children.size() == 0)
+    {
+      return Collections.emptyList();
+    }
+
     List<ZNRecord> childRecords = new ArrayList<ZNRecord>();
     for (String child : children)
     {
@@ -109,125 +108,6 @@ public final class ZKUtil
       }
     }
     return childRecords;
-  }
-
-  /**
-   * read a znode only if it's data has been changed since last read
-   * this method is not thread-safe
-   * @param zkClient
-   * @param parentPath
-   * @param childRecords
-   * @param clazz
-   * @return
-   */
-  public static <T extends ZNRecordAndStat> boolean refreshChildren(ZkClient zkClient,
-    String parentPath, Map<String, T> childRecords, Class<T> clazz)
-  {
-    if (childRecords == null)
-    {
-      throw new IllegalArgumentException("should provide non-null map that holds old child records "
-                                      + " (empty map if no old values)");
-    }
-
-    Stat newStat = new Stat();
-    List<String> childs = zkClient.getChildren(parentPath);
-    if (childs == null || childs.size() == 0)
-    {
-      if (childRecords.size() == 0)
-      {
-        return false;
-      }
-      else
-      {
-        childRecords.clear();
-        return true;
-      }
-    }
-
-    boolean dataChanged = false;
-    // first remove records that have been removed from zk
-    Iterator<String> keyIter = childRecords.keySet().iterator();
-    while (keyIter.hasNext())
-    {
-      String key = keyIter.next();
-      if (!childs.contains(key))
-      {
-        keyIter.remove();
-        dataChanged = true;
-      }
-    }
-
-    // then update
-    for (String child : childs)
-    {
-      String childPath = parentPath + "/" + child;
-
-      try
-      {
-        // assume record.id should be the last part of zk path
-        if (!childRecords.containsKey(child))
-        {
-          ZNRecord record = zkClient.readDataAndStat(childPath, newStat, true);
-          if (record != null)
-          {
-            Constructor<T> constructor = clazz.getConstructor(new Class[] { ZNRecord.class, Stat.class });
-            childRecords.put(child, constructor.newInstance(record, newStat));
-          }
-          else
-          {
-            childRecords.remove(child);
-          }
-          dataChanged = true;
-        }
-        else
-        {
-          T oldChild = childRecords.get(child);
-          Stat oldStat = oldChild.getStat();
-          newStat = zkClient.getStat(childPath);
-          if (newStat == null)
-          {
-            childRecords.remove(child);
-          }
-          else
-          {
-//          System.out.print(child + " oldStat:" + oldStat);
-//          System.out.print(child + " newStat:" + newStat);
-
-            if (oldStat == null || !oldStat.equals(newStat))
-            {
-              ZNRecord record = zkClient.readDataAndStat(childPath, newStat, true);
-              if (record != null)
-              {
-                Constructor<T> constructor = clazz.getConstructor(new Class[] { ZNRecord.class, Stat.class });
-                childRecords.put(child, constructor.newInstance(record, newStat));
-              }
-              else
-              {
-                childRecords.remove(child);
-              }
-              dataChanged = true;
-            }
-            else  // if (newStat.equals(oldStat))
-            {
-              // no need to update record
-            }
-          }
-        }
-      }
-      catch (Exception e)
-      {
-        if (e instanceof ZkInterruptedException)
-        {
-          logger.warn("thread or zk connection interrupted, exception:" + e);
-        }
-        else
-        {
-          logger.error("Error creating an Object of type:" + clazz.getCanonicalName(), e);
-        }
-      }
-    }
-
-    return dataChanged;
   }
 
   public static void updateIfExists(ZkClient client, String path,
@@ -332,7 +212,7 @@ public final class ZKUtil
     }
   }
 
-  public static void substract(
+  public static void subtract(
       ZkClient client,
       String path, final ZNRecord recordTosubtract)
   {
@@ -348,7 +228,7 @@ public final class ZKUtil
             @Override
             public ZNRecord update(ZNRecord currentData)
             {
-              currentData.substract(recordTosubtract);
+              currentData.subtract(recordTosubtract);
               return currentData;
             }
           };

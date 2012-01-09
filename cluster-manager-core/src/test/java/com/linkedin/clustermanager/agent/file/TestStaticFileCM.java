@@ -12,7 +12,7 @@ import org.testng.annotations.Test;
 import com.linkedin.clustermanager.ClusterView;
 import com.linkedin.clustermanager.InstanceType;
 import com.linkedin.clustermanager.agent.MockListener;
-import com.linkedin.clustermanager.agent.file.FileBasedClusterManager.DBParam;
+import com.linkedin.clustermanager.agent.file.StaticFileClusterManager.DBParam;
 import com.linkedin.clustermanager.tools.ClusterViewSerializer;
 
 public class TestStaticFileCM
@@ -32,14 +32,14 @@ public class TestStaticFileCM
     boolean exceptionCaught = false;
     try
     {
-      view = FileBasedClusterManager.generateStaticConfigClusterView(illegalNodesInfo, dbParams, 3);
+      view = StaticFileClusterManager.generateStaticConfigClusterView(illegalNodesInfo, dbParams, 3);
     } catch (IllegalArgumentException e)
     {
       exceptionCaught = true;
     }
     AssertJUnit.assertTrue(exceptionCaught);
     String[] nodesInfo = {"localhost:8900", "localhost:8901", "localhost:8902"};
-    view = FileBasedClusterManager.generateStaticConfigClusterView(nodesInfo, dbParams, 2);
+    view = StaticFileClusterManager.generateStaticConfigClusterView(nodesInfo, dbParams, 2);
     
     String configFile = "/tmp/" + clusterName;
     ClusterViewSerializer.serialize(view, new File(configFile));
@@ -48,10 +48,10 @@ public class TestStaticFileCM
     // byte[] bytes = ClusterViewSerializer.serialize(restoredView);
     // System.out.println(new String(bytes));
 
-    FileBasedClusterManager.verifyFileBasedClusterStates("localhost_8900",
+    StaticFileClusterManager.verifyFileBasedClusterStates("localhost_8900",
                                        configFile, configFile);
     
-    FileBasedClusterManager controller = new FileBasedClusterManager(clusterName, controllerName,
+    StaticFileClusterManager controller = new StaticFileClusterManager(clusterName, controllerName,
                                                      InstanceType.CONTROLLER, configFile);
     controller.disconnect();
     AssertJUnit.assertFalse(controller.isConnected());

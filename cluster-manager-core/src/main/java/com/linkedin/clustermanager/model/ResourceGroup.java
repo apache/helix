@@ -6,6 +6,9 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 
+/**
+ * A resource group contains a number of resources
+ */
 public class ResourceGroup
 {
   private static Logger LOG = Logger.getLogger(ResourceGroup.class);

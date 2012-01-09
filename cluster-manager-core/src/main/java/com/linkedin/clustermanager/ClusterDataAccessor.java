@@ -1,7 +1,6 @@
 package com.linkedin.clustermanager;
 
 import java.util.List;
-import java.util.Map;
 
 import com.linkedin.clustermanager.store.PropertyStore;
 
@@ -20,7 +19,8 @@ public interface ClusterDataAccessor
    * @param keys
    * @true if the operation was successful
    */
-   boolean setProperty(PropertyType type, ZNRecord value, String... keys);
+  boolean setProperty(PropertyType type, ZNRecord value, String... keys);
+  boolean setProperty(PropertyType type, ZNRecordDecorator value, String... keys);
 
   /**
    * Updates a property, either overwrite or merge based on the
@@ -32,8 +32,8 @@ public interface ClusterDataAccessor
    * @param keys
    * @return true if the update was successful
    */
-   boolean updateProperty(PropertyType type, ZNRecord value,
-      String... keys);
+  boolean updateProperty(PropertyType type, ZNRecord value, String... keys);
+  boolean updateProperty(PropertyType type, ZNRecordDecorator value, String... keys);
 
   /**
    * Return the property value, it must be a leaf
@@ -43,7 +43,8 @@ public interface ClusterDataAccessor
    *          one or more keys used to get the path of znode
    * @return value, Null if absent or on error
    */
-   ZNRecord getProperty(PropertyType type, String... keys);
+  ZNRecord getProperty(PropertyType type, String... keys);
+  <T extends ZNRecordDecorator> T getProperty(Class<T> clazz, PropertyType type, String... keys);
 
   /**
    * Removes the property
@@ -71,32 +72,10 @@ public interface ClusterDataAccessor
    * @return subPropertyValues
    */
    List<ZNRecord> getChildValues(PropertyType type, String... keys);
+   <T extends ZNRecordDecorator> List<T> getChildValues(Class<T> clazz, PropertyType type, String... keys);
 
    /**
-    *
-    * @return
+    * @return a property store
     */
-   PropertyStore<ZNRecord> getStore();
-
-
-   /**
-    *
-    * @param childValues: input/output
-    * @param clazz
-    * @param type
-    * @param keys
-    * @return
-    */
-   public <T extends ZNRecordAndStat> void refreshChildValues(Map<String, T> childValues,
-      Class<T> clazz, PropertyType type, String... keys);
-
-   public enum InstanceConfigProperty
-   {
-     HOST, PORT, ENABLED, DISABLED_PARTITION
-   }
-
-   public enum IdealStateConfigProperty
-   {
-     AUTO, CUSTOMIZED
-   }
+   PropertyStore<ZNRecord> getPropertyStore();
 }

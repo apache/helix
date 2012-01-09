@@ -14,33 +14,33 @@ import com.linkedin.clustermanager.agent.zk.ZkClient;
 public class TestCMUsingDifferentParams extends ZkIntegrationTestBase
 {
   private static Logger LOG = Logger.getLogger(TestCMUsingDifferentParams.class);
-  
+
   ZkClient _zkClient;
-  @BeforeClass (groups = {"integrationTest"})
+  @BeforeClass ()
   public void beforeClass() throws Exception
   {
   	_zkClient = new ZkClient(ZK_ADDR);
   	_zkClient.setZkSerializer(new ZNRecordSerializer());
   }
-  
-  
+
+
 	@AfterClass
   public void afterClass()
   {
   	_zkClient.close();
   }
-  
+
   @Test (groups = {"integrationTest"})
   public void testCMUsingDifferentParams() throws Exception
   {
-    System.out.println("START " + getShortClassName() + " at " 
+    System.out.println("START " + getShortClassName() + " at "
         + new Date(System.currentTimeMillis()));
-    
+
     int numDbs[] = new int[] {1};   // , 2};    // , 3, 6};
     int numPartitionsPerDbs[] = new int[] {10}; // , 20, 50, 100};    // , 1000};
     int numNodes[] = new int[] {5}; // , 10}; // , 50, 100, 1000};
     int replicas[] = new int[] {2}; // , 3};  //, 4, 5};
-    
+
     for (int numDb : numDbs)
     {
       for (int numPartitionsPerDb : numPartitionsPerDbs)
@@ -49,30 +49,30 @@ public class TestCMUsingDifferentParams extends ZkIntegrationTestBase
         {
           for (int replica : replicas)
           {
-            String uniqTestName = "TestDiffParam_" + "db" + numDb + "_p" + numPartitionsPerDb 
+            String uniqTestName = "TestDiffParam_" + "db" + numDb + "_p" + numPartitionsPerDb
                 + "_n" + numNode + "_r" + replica;
-            System.out.println("START " + uniqTestName + " at " 
+            System.out.println("START " + uniqTestName + " at "
                 + new Date(System.currentTimeMillis()));
 
             TestDriver.setupCluster(uniqTestName, _zkClient, numDb, numPartitionsPerDb, numNode, replica);
-            
+
             for (int i = 0; i < numNode; i++)
             {
               TestDriver.startDummyParticipant(uniqTestName, i);
             }
-            
+
             TestDriver.startController(uniqTestName);
             TestDriver.verifyCluster(uniqTestName);
             TestDriver.stopCluster(uniqTestName);
-            
-            System.out.println("END " + uniqTestName + " at " 
+
+            System.out.println("END " + uniqTestName + " at "
                 + new Date(System.currentTimeMillis()));
           }
         }
       }
     }
 
-    System.out.println("END " + getShortClassName() + " at " 
+    System.out.println("END " + getShortClassName() + " at "
         + new Date(System.currentTimeMillis()));
   }
 }

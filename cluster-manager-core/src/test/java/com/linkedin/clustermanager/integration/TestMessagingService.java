@@ -50,7 +50,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBase
           Map<String, String> resultMap) throws InterruptedException
       {
         // TODO Auto-generated method stub
-        Thread.currentThread().sleep(1000);
+        Thread.sleep(1000);
         System.out.println("TestMessagingHandler " + message.getMsgId());
         _processedMsgIds.add(message.getRecord().getSimpleField(
             "TestMessagingPara"));

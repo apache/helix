@@ -1,12 +1,8 @@
 package com.linkedin.clustermanager.mock.storage;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.NotificationContext;
-import com.linkedin.clustermanager.mock.consumer.ConsumerAdapter;
 import com.linkedin.clustermanager.mock.consumer.RelayConfig;
 import com.linkedin.clustermanager.mock.consumer.RelayConsumer;
 import com.linkedin.clustermanager.model.Message;
@@ -18,7 +14,7 @@ public class StorageStateModel extends StateModel
   // private Map<Integer, RelayConsumer> relayConsumersMap;
   private RelayConsumer consumer = null;
   private RelayConfig relayConfig;
-  private StorageAdapter storage;
+  private final StorageAdapter storage;
 
   private static Logger logger = Logger.getLogger(StorageStateModel.class);
 
@@ -42,7 +38,7 @@ public class StorageStateModel extends StateModel
   void checkDebug(Message task) throws Exception
   {
     // For debugging purposes
-    if ((Boolean) task.getDebug() == true)
+    if (task.getDebug() == true)
     {
       throw new Exception("Exception for debug");
     }
@@ -57,7 +53,7 @@ public class StorageStateModel extends StateModel
 
     checkDebug(task);
 
-    String partition = (String) task.getStateUnitKey();
+    String partition = task.getStateUnitKey();
     String[] pdata = partition.split("\\.");
     String dbName = pdata[0];
 
@@ -83,7 +79,7 @@ public class StorageStateModel extends StateModel
 
     checkDebug(task);
 
-    String partition = (String) task.getStateUnitKey();
+    String partition = task.getStateUnitKey();
     String[] pdata = partition.split("\\.");
     String dbName = pdata[0];
     storage.setPermissions(partition, "READONLY");
@@ -104,7 +100,7 @@ public class StorageStateModel extends StateModel
 
     checkDebug(task);
 
-    String partition = (String) task.getStateUnitKey();
+    String partition = task.getStateUnitKey();
 
     // stop consumer and refetch from all so all changes are drained
     consumer.flush(); // blocking call
@@ -116,7 +112,7 @@ public class StorageStateModel extends StateModel
     consumer = null;
 
     // set generation in storage
-    Integer generationId = (Integer) task.getGeneration();
+    Integer generationId = task.getGeneration();
     storage.setGeneration(partition, generationId);
 
     storage.setPermissions(partition, "READWRITE");
@@ -133,7 +129,7 @@ public class StorageStateModel extends StateModel
 
     checkDebug(task);
 
-    String partition = (String) task.getStateUnitKey();
+    String partition = task.getStateUnitKey();
 
     consumer.stop();
     storage.removeConsumer(partition);

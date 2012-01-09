@@ -9,7 +9,6 @@ import java.util.Set;
 import org.I0Itec.zkclient.exception.ZkInterruptedException;
 import org.apache.log4j.Logger;
 
-import com.linkedin.clustermanager.CMConstants;
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ConfigChangeListener;
 import com.linkedin.clustermanager.ControllerChangeListener;
@@ -20,7 +19,6 @@ import com.linkedin.clustermanager.LiveInstanceChangeListener;
 import com.linkedin.clustermanager.MessageListener;
 import com.linkedin.clustermanager.NotificationContext;
 import com.linkedin.clustermanager.PropertyType;
-import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.controller.stages.BestPossibleStateCalcStage;
 import com.linkedin.clustermanager.controller.stages.ClusterEvent;
 import com.linkedin.clustermanager.controller.stages.CompatibilityCheckStage;
@@ -31,6 +29,13 @@ import com.linkedin.clustermanager.controller.stages.MessageSelectionStage;
 import com.linkedin.clustermanager.controller.stages.ReadClusterDataStage;
 import com.linkedin.clustermanager.controller.stages.ResourceComputationStage;
 import com.linkedin.clustermanager.controller.stages.TaskAssignmentStage;
+import com.linkedin.clustermanager.model.CurrentState;
+import com.linkedin.clustermanager.model.ExternalView;
+import com.linkedin.clustermanager.model.IdealState;
+import com.linkedin.clustermanager.model.InstanceConfig;
+import com.linkedin.clustermanager.model.LiveInstance;
+import com.linkedin.clustermanager.model.Message;
+import com.linkedin.clustermanager.model.PauseSignal;
 import com.linkedin.clustermanager.pipeline.Pipeline;
 import com.linkedin.clustermanager.pipeline.PipelineRegistry;
 
@@ -180,8 +185,10 @@ public class GenericClusterController implements
     }
   }
 
+  // TODO since we read data in pipeline, we can get rid of reading from zookeeper in callback
+
   @Override
-  public void onExternalViewChange(List<ZNRecord> externalViewList,
+  public void onExternalViewChange(List<ExternalView> externalViewList,
                                    NotificationContext changeContext)
   {
     logger.info("START: GenericClusterController.onExternalViewChange()");
@@ -195,7 +202,7 @@ public class GenericClusterController implements
 
   @Override
   public void onStateChange(String instanceName,
-                            List<ZNRecord> statesInfo,
+                            List<CurrentState> statesInfo,
                             NotificationContext changeContext)
   {
     logger.info("START: GenericClusterController.onStateChange()");
@@ -210,7 +217,7 @@ public class GenericClusterController implements
 
   @Override
   public void onMessage(String instanceName,
-                        List<ZNRecord> messages,
+                        List<Message> messages,
                         NotificationContext changeContext)
   {
     logger.info("START: GenericClusterController.onMessage()");
@@ -224,7 +231,7 @@ public class GenericClusterController implements
   }
 
   @Override
-  public void onLiveInstanceChange(List<ZNRecord> liveInstances,
+  public void onLiveInstanceChange(List<LiveInstance> liveInstances,
                                    NotificationContext changeContext)
   {
     logger.info("START: Generic GenericClusterController.onLiveInstanceChange()");
@@ -245,7 +252,7 @@ public class GenericClusterController implements
   }
 
   @Override
-  public void onIdealStateChange(List<ZNRecord> idealStates,
+  public void onIdealStateChange(List<IdealState> idealStates,
                                  NotificationContext changeContext)
   {
     logger.info("START: Generic GenericClusterController.onIdealStateChange()");
@@ -258,7 +265,7 @@ public class GenericClusterController implements
   }
 
   @Override
-  public void onConfigChange(List<ZNRecord> configs, NotificationContext changeContext)
+  public void onConfigChange(List<InstanceConfig> configs, NotificationContext changeContext)
   {
     logger.info("START: GenericClusterController.onConfigChange()");
     ClusterEvent event = new ClusterEvent("configChange");
@@ -276,8 +283,8 @@ public class GenericClusterController implements
     ClusterDataAccessor dataAccessor = changeContext.getManager().getDataAccessor();
 
     // double check if this controller is the leader
-    ZNRecord leaderRecord = dataAccessor.getProperty(PropertyType.LEADER);
-    if (leaderRecord == null)
+    LiveInstance leader = dataAccessor.getProperty(LiveInstance.class, PropertyType.LEADER);
+    if (leader == null)
     {
       logger.warn("No controller exists for cluster:"
           + changeContext.getManager().getClusterName());
@@ -285,16 +292,17 @@ public class GenericClusterController implements
     }
     else
     {
-      String leader = leaderRecord.getSimpleField(PropertyType.LEADER.toString());
-      String name = changeContext.getManager().getInstanceName();
-      if (leader == null || !leader.equals(name))
+      String leaderName = leader.getLeader();
+
+      String instanceName = changeContext.getManager().getInstanceName();
+      if (leaderName == null || !leaderName.equals(instanceName))
       {
-        logger.warn("leader name does NOT match, my name:" + name + ", leader:" + leader);
+        logger.warn("leader name does NOT match, my name:" + instanceName + ", leader:" + leader);
         return;
       }
     }
 
-    ZNRecord pauseSignal = dataAccessor.getProperty(PropertyType.PAUSE);
+    PauseSignal pauseSignal = dataAccessor.getProperty(PauseSignal.class, PropertyType.PAUSE);
     if (pauseSignal != null)
     {
       _paused = true;
@@ -327,14 +335,13 @@ public class GenericClusterController implements
    * change, the observation is tied to the session id of each live instance.
    *
    */
-  protected void checkLiveInstancesObservation(List<ZNRecord> liveInstances,
+  protected void checkLiveInstancesObservation(List<LiveInstance> liveInstances,
                                                NotificationContext changeContext)
   {
-    for (ZNRecord instance : liveInstances)
+    for (LiveInstance instance : liveInstances)
     {
       String instanceName = instance.getId();
-      String clientSessionId =
-          instance.getSimpleField(CMConstants.ZNAttribute.SESSION_ID.toString());
+      String clientSessionId = instance.getSessionId();
 
       if (!_instanceCurrentStateChangeSubscriptionList.contains(clientSessionId))
       {

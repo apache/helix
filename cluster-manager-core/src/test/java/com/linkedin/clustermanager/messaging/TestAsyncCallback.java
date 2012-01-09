@@ -29,19 +29,18 @@ public class TestAsyncCallback
       _onReplyMessageCalled++;
     }
   }
-  
-  @Test(groups =
-  { "unitTest" })
+
+  @Test()
   public void testAsyncCallback() throws Exception
   {
-    System.out.println("START TestAsyncCallback at" + new Date(System.currentTimeMillis()));
+    System.out.println("START TestAsyncCallback at " + new Date(System.currentTimeMillis()));
     AsyncCallbackSample callback = new AsyncCallbackSample();
     AssertJUnit.assertFalse(callback.isInterrupted());
     AssertJUnit.assertFalse(callback.isTimedOut());
     AssertJUnit.assertTrue(callback.getMessageReplied().size() == 0);
 
     int nMsgs = 5;
-    
+
     List<Message> messageSent = new ArrayList<Message>();
     for(int i = 0;i < nMsgs; i++)
     {
@@ -49,7 +48,7 @@ public class TestAsyncCallback
     }
 
     callback.setMessagesSent(messageSent);
-    
+
     for(int i = 0;i < nMsgs; i++)
     {
       AssertJUnit.assertFalse(callback.isDone());
@@ -58,7 +57,7 @@ public class TestAsyncCallback
     AssertJUnit.assertTrue(callback.isDone());
 
     AssertJUnit.assertTrue(callback._onTimeOutCalled == 0 );
-    
+
     sleep(50);
     callback = new AsyncCallbackSample();
     callback.setMessagesSent(messageSent);
@@ -77,7 +76,7 @@ public class TestAsyncCallback
     AssertJUnit.assertTrue(callback.isTimedOut());
     AssertJUnit.assertTrue(callback._onTimeOutCalled == 1 );
     AssertJUnit.assertFalse(callback.isDone());
-    
+
     callback = new AsyncCallbackSample();
     callback.setMessagesSent(messageSent);
     callback.setTimeout(1000);
@@ -95,9 +94,9 @@ public class TestAsyncCallback
     sleep(1300);
     AssertJUnit.assertFalse(callback.isTimedOut());
     AssertJUnit.assertTrue(callback._onTimeOutCalled == 0 );
-    System.out.println("END TestAsyncCallback at" + new Date(System.currentTimeMillis()));
+    System.out.println("END TestAsyncCallback at " + new Date(System.currentTimeMillis()));
   }
-  
+
   void sleep(int time)
   {
     try

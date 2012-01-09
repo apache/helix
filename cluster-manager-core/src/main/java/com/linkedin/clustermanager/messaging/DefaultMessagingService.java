@@ -14,7 +14,6 @@ import com.linkedin.clustermanager.ClusterMessagingService;
 import com.linkedin.clustermanager.Criteria;
 import com.linkedin.clustermanager.InstanceType;
 import com.linkedin.clustermanager.PropertyType;
-import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.messaging.handling.AsyncCallbackService;
 import com.linkedin.clustermanager.messaging.handling.CMTaskExecutor;
 import com.linkedin.clustermanager.messaging.handling.MessageHandlerFactory;
@@ -91,15 +90,17 @@ public class DefaultMessagingService implements ClusterMessagingService
         }
         if (receiverType == InstanceType.CONTROLLER)
         {
-          _manager.getDataAccessor().setProperty(
-              PropertyType.MESSAGES_CONTROLLER, tempMessage.getRecord(),
-              tempMessage.getId());
+            _manager.getDataAccessor().setProperty(PropertyType.MESSAGES_CONTROLLER,
+                                                   tempMessage,
+                                                   tempMessage.getId());
+
         }
         if (receiverType == InstanceType.PARTICIPANT)
         {
           _manager.getDataAccessor().setProperty(PropertyType.MESSAGES,
-              tempMessage.getRecord(), tempMessage.getTgtName(),
-              tempMessage.getId());
+                                                 tempMessage,
+                                                 tempMessage.getTgtName(),
+                                                 tempMessage.getId());
         }
       }
     }
@@ -137,11 +138,11 @@ public class DefaultMessagingService implements ClusterMessagingService
         Map<String, String> sessionIdMap = new HashMap<String, String>();
         if (recipientCriteria.isSessionSpecific())
         {
-          List<ZNRecord> clusterPropertyList = _manager.getDataAccessor()
-              .getChildValues(PropertyType.LIVEINSTANCES);
-          for (ZNRecord znRecord : clusterPropertyList)
+          List<LiveInstance> liveInstances = _manager.getDataAccessor().getChildValues(LiveInstance.class,
+                                                                                       PropertyType.LIVEINSTANCES);
+
+          for (LiveInstance liveInstance : liveInstances)
           {
-            LiveInstance liveInstance = new LiveInstance(znRecord);
             sessionIdMap.put(liveInstance.getInstanceName(),
                 liveInstance.getSessionId());
           }
@@ -177,13 +178,12 @@ public class DefaultMessagingService implements ClusterMessagingService
   private List<Map<String, String>> prepareInputFromClusterData(
       Criteria criteria)
   {
-    // todo:optimize and read only resource groups needed
+    // TODO:optimize and read only resource groups needed
     List<Map<String, String>> rows = new ArrayList<Map<String, String>>();
-    List<ZNRecord> recordList = _manager.getDataAccessor().getChildValues(
-        PropertyType.EXTERNALVIEW);
-    for (ZNRecord record : recordList)
+    List<ExternalView> extViews = _manager.getDataAccessor().getChildValues(ExternalView.class,
+                                                                            PropertyType.EXTERNALVIEW);
+    for (ExternalView view : extViews)
     {
-      ExternalView view = new ExternalView(record);
       Set<String> resourceKeys = view.getResourceKeys();
       for (String resourceKeyName : resourceKeys)
       {
@@ -211,7 +211,7 @@ public class DefaultMessagingService implements ClusterMessagingService
      * List<ZNRecord> instances = _manager.getDataAccessor()
      * .getChildValues(PropertyType.CONFIGS); for (ZNRecord record :
      * instances) { InstanceConfig config = new InstanceConfig(record);
-     * 
+     *
      * Map<String, String> row = new HashMap<String, String>();
      * row.put("source", "configs"); row.put("instanceName",
      * config.getInstanceName()); rows.add(row); } List<ZNRecord> liveInstances
@@ -258,16 +258,18 @@ public class DefaultMessagingService implements ClusterMessagingService
             || _manager.getInstanceType() == InstanceType.CONTROLLER_PARTICIPANT)
         {
           noOPMsg.setTgtName("Controller");
-          _manager.getDataAccessor().setProperty(
-              PropertyType.MESSAGES_CONTROLLER, noOPMsg.getRecord(),noOPMsg.getId());
+          _manager.getDataAccessor().setProperty(PropertyType.MESSAGES_CONTROLLER,
+                                                 noOPMsg,
+                                                 noOPMsg.getId());
         }
-        if (_manager.getInstanceType() == InstanceType.PARTICIPANT 
+        if (_manager.getInstanceType() == InstanceType.PARTICIPANT
             || _manager.getInstanceType() == InstanceType.CONTROLLER_PARTICIPANT)
         {
           noOPMsg.setTgtName(_manager.getInstanceName());
-          _manager.getDataAccessor().setProperty(PropertyType.MESSAGES,noOPMsg.getRecord(),noOPMsg.getTgtName(),
-               noOPMsg.getId()
-              );
+          _manager.getDataAccessor().setProperty(PropertyType.MESSAGES,
+                                                 noOPMsg,
+                                                 noOPMsg.getTgtName(),
+                                                 noOPMsg.getId());
         }
 
       } catch (Exception e)

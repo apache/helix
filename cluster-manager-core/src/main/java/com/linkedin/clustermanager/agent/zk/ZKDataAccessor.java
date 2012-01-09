@@ -1,18 +1,23 @@
 package com.linkedin.clustermanager.agent.zk;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.I0Itec.zkclient.ZkConnection;
 import org.apache.log4j.Logger;
+import org.apache.zookeeper.data.Stat;
 
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.PropertyPathConfig;
 import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
-import com.linkedin.clustermanager.ZNRecordAndStat;
+import com.linkedin.clustermanager.ZNRecordDecorator;
 import com.linkedin.clustermanager.store.PropertyJsonSerializer;
 import com.linkedin.clustermanager.store.PropertySerializer;
 import com.linkedin.clustermanager.store.PropertyStore;
@@ -21,24 +26,40 @@ import com.linkedin.clustermanager.store.zk.ZKPropertyStore;
 public class ZKDataAccessor implements ClusterDataAccessor
 {
   private static Logger logger = Logger.getLogger(ZKDataAccessor.class);
-  private final String _clusterName;
-  private final ZkClient _zkClient;
+
+  protected final String _clusterName;
+  protected final ZkClient _zkClient;
+
+  /**
+   * If a PropertyType has children (e.g. CONFIGS), then the parent path is the first key
+   * and child path is the second key;
+   * If a PropertyType has no child (e.g. LEADER), then no cache
+   */
+  private final Map<String, Map<String, ZNRecord>> _cache = new ConcurrentHashMap<String, Map<String, ZNRecord>>();
 
   public ZKDataAccessor(String clusterName, ZkClient zkClient)
   {
-    this._clusterName = clusterName;
-    this._zkClient = zkClient;
+    _clusterName = clusterName;
+    _zkClient = zkClient;
   }
 
   @Override
-  public boolean setProperty(PropertyType type, final ZNRecord value, String... keys)
+  public boolean setProperty(PropertyType type, ZNRecordDecorator value, String... keys)
+  {
+    return setProperty(type, value.getRecord(), keys);
+  }
+
+  @Override
+  public boolean setProperty(PropertyType type, ZNRecord value, String... keys)
   {
     String path = PropertyPathConfig.getPath(type, _clusterName, keys);
+
     String parent = new File(path).getParent();
     if (!_zkClient.exists(parent))
     {
       _zkClient.createPersistent(parent, true);
     }
+
     if (_zkClient.exists(path))
     {
       if (type.isCreateIfAbsent())
@@ -74,6 +95,12 @@ public class ZKDataAccessor implements ClusterDataAccessor
   }
 
   @Override
+  public boolean updateProperty(PropertyType type, ZNRecordDecorator value, String... keys)
+  {
+    return updateProperty(type, value.getRecord(), keys);
+  }
+
+  @Override
   public boolean updateProperty(PropertyType type, ZNRecord value, String... keys)
   {
     String path = PropertyPathConfig.getPath(type, _clusterName, keys);
@@ -100,11 +127,35 @@ public class ZKDataAccessor implements ClusterDataAccessor
   }
 
   @Override
+  public <T extends ZNRecordDecorator> T getProperty(Class<T> clazz, PropertyType type, String... keys)
+  {
+    return ZNRecordDecorator.convertToTypedInstance(clazz, getProperty(type, keys));
+  }
+
+  @Override
   public ZNRecord getProperty(PropertyType type, String... keys)
   {
     String path = PropertyPathConfig.getPath(type, _clusterName, keys);
-    ZNRecord record = _zkClient.readData(path, true);
-    return record;
+
+    if (!type.isCached())
+    {
+      return _zkClient.readData(path, true);
+    }
+    else
+    {
+      int len = keys.length;
+      if (len == 0)
+      {
+        return _zkClient.readData(path, true);
+      }
+      else
+      {
+        String[] subkeys = Arrays.copyOfRange(keys, 0, len - 1);
+        Map<String, ZNRecord> newChilds = refreshChildValuesCache(type, subkeys);
+        return newChilds.get(keys[len - 1]);
+      }
+    }
+
   }
 
   @Override
@@ -129,37 +180,41 @@ public class ZKDataAccessor implements ClusterDataAccessor
   }
 
   @Override
+  public <T extends ZNRecordDecorator> List<T> getChildValues(Class<T> clazz,
+                                                              PropertyType type,
+                                                              String... keys)
+  {
+    List<ZNRecord> newChilds = getChildValues(type, keys);
+    if (newChilds.size() > 0)
+    {
+      return ZNRecordDecorator.convertToTypedList(clazz, newChilds);
+    }
+    return Collections.emptyList();
+  }
+
+  @Override
   public List<ZNRecord> getChildValues(PropertyType type, String... keys)
+
   {
     String path = PropertyPathConfig.getPath(type, _clusterName, keys);
     if (_zkClient.exists(path))
     {
-      return ZKUtil.getChildren(_zkClient, path);
+      if (!type.isCached())
+      {
+        return ZKUtil.getChildren(_zkClient, path);
+      }
+      else
+      {
+        Map<String, ZNRecord> newChilds = refreshChildValuesCache(type, keys);
+        return new ArrayList<ZNRecord>(newChilds.values());
+      }
     }
-    else
-    {
-      return Collections.emptyList();
-    }
+
+    return Collections.emptyList();
   }
 
   @Override
-  public <T extends ZNRecordAndStat> void refreshChildValues(Map<String, T> childValues,
-           Class<T> clazz, PropertyType type, String... keys)
-  {
-    String path = PropertyPathConfig.getPath(type, _clusterName, keys);
-    if (_zkClient.exists(path))
-    {
-      ZKUtil.refreshChildren(_zkClient, path, childValues, clazz);
-    }
-    else
-    {
-      childValues.clear();
-    }
-  }
-
-
-  @Override
-  public PropertyStore<ZNRecord> getStore()
+  public PropertyStore<ZNRecord> getPropertyStore()
   {
     String path = PropertyPathConfig.getPath(PropertyType.PROPERTYSTORE, _clusterName);
     if (!_zkClient.exists(path))
@@ -171,6 +226,131 @@ public class ZKDataAccessor implements ClusterDataAccessor
     PropertySerializer<ZNRecord> serializer =
         new PropertyJsonSerializer<ZNRecord>(ZNRecord.class);
     return new ZKPropertyStore<ZNRecord>(new ZkConnection(zkAddr), serializer, path);
-
   }
+
+  public void reset()
+  {
+    _cache.clear();
+  }
+
+  private Map<String, ZNRecord> refreshChildValuesCache(PropertyType type, String... keys)
+  {
+    if (!type.isCached())
+    {
+      throw new IllegalArgumentException("Type:" + type + " is NOT cached");
+    }
+
+    String path = PropertyPathConfig.getPath(type, _clusterName, keys);
+
+    Map<String, ZNRecord> newChilds = refreshChildValues(path, _cache.get(path));
+    if (newChilds != null && newChilds.size() > 0)
+    {
+      _cache.put(path, newChilds);
+      return newChilds;
+    }
+    else
+    {
+      _cache.remove(path);
+      return Collections.emptyMap();
+    }
+  }
+
+  /**
+   * Read a zookeeper node only if it's data has been changed since last read
+   *
+   * @param parentPath
+   * @param oldChildRecords
+   * @return newChildRecords
+   */
+  private Map<String, ZNRecord> refreshChildValues(String parentPath,
+                                                   Map<String, ZNRecord> oldChildRecords)
+  {
+    List<String> childs = _zkClient.getChildren(parentPath);
+    if (childs == null || childs.size() == 0)
+    {
+      return Collections.emptyMap();
+    }
+
+    Stat newStat = new Stat();
+    Map<String, ZNRecord> newChildRecords = new HashMap<String, ZNRecord>();
+    for (String child : childs)
+    {
+      String childPath = parentPath + "/" + child;
+
+      // assume record.id should be the last part of zookeeper path
+      if (oldChildRecords == null || !oldChildRecords.containsKey(child))
+      {
+        ZNRecord record = _zkClient.readDataAndStat(childPath, newStat, true);
+        if (record != null)
+        {
+          record.setVersion(newStat.getVersion());
+          newChildRecords.put(child, record);
+        }
+      }
+      else
+      {
+        ZNRecord oldChild = oldChildRecords.get(child);
+
+        int oldVersion = oldChild.getVersion();
+        newStat = _zkClient.getStat(childPath);
+        if (newStat != null)
+        {
+//          System.out.print(child + " oldStat:" + oldStat);
+//          System.out.print(child + " newStat:" + newStat);
+
+          if (oldVersion < newStat.getVersion())
+          {
+            ZNRecord record = _zkClient.readDataAndStat(childPath, newStat, true);
+            if (record != null)
+            {
+              record.setVersion(newStat.getVersion());
+              newChildRecords.put(child, record);
+            }
+          }
+          else
+          {
+            newChildRecords.put(child, oldChild);
+          }
+        }
+      }
+    }
+
+    return newChildRecords;
+  }
+
+//  static ZNRecord refreshValue(ZkClient zkClient, String path, ZNRecord record)
+//  {
+//    Stat newStat = new Stat();
+//    ZNRecord newRecord = null;
+//    if (record == null)
+//    {
+//      newRecord = zkClient.readDataAndStat(path, newStat, true);
+//      if (newRecord != null)
+//      {
+//        newRecord.setVersion(newStat.getVersion());
+//      }
+//    }
+//    else
+//    {
+//      int oldVersion = record.getVersion();
+//      newStat = zkClient.getStat(path);
+//      if (newStat != null)
+//      {
+//        if (oldVersion < newStat.getVersion())
+//        {
+//          newRecord = zkClient.readDataAndStat(path, newStat, true);
+//          if (newRecord != null)
+//          {
+//            newRecord.setVersion(newStat.getVersion());
+//          }
+//        }
+//        else
+//        {
+//          newRecord = new ZNRecord(record);
+//        }
+//      }
+//    }
+//    return newRecord;
+//  }
+
 }

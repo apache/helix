@@ -13,9 +13,10 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import com.linkedin.clustermanager.ClusterDataAccessor.IdealStateConfigProperty;
 import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
+import com.linkedin.clustermanager.model.IdealState.IdealStateModeProperty;
+import com.linkedin.clustermanager.model.IdealState.IdealStateProperty;
 import com.linkedin.clustermanager.tools.TestCommand;
 import com.linkedin.clustermanager.tools.TestCommand.CommandType;
 import com.linkedin.clustermanager.tools.TestExecutor;
@@ -96,7 +97,7 @@ public class TestZnodeModify extends ZkUnitTestBase
 
     ZNRecord record = getExampleZNRecord();
     ZNRecord recordNew = new ZNRecord(record);
-    recordNew.setSimpleField("ideal_state_mode", IdealStateConfigProperty.AUTO.toString());
+    recordNew.setSimpleField(IdealStateProperty.IDEAL_STATE_MODE.toString(), IdealStateModeProperty.AUTO.toString());
     arg = new ZnodeOpArg(pathChild2, ZnodePropertyType.ZNODE, "+", recordNew);
     command = new TestCommand(CommandType.MODIFY, new TestTrigger(0, 3000, record), arg);
     commandList.add(command);
@@ -141,7 +142,7 @@ public class TestZnodeModify extends ZkUnitTestBase
 
     ZNRecord record = getExampleZNRecord();
     ZNRecord recordNew = new ZNRecord(record);
-    recordNew.setSimpleField("ideal_state_mode", IdealStateConfigProperty.AUTO.toString());
+    recordNew.setSimpleField(IdealStateProperty.IDEAL_STATE_MODE.toString(), IdealStateModeProperty.AUTO.toString());
     arg1 = new ZnodeOpArg(pathChild2, ZnodePropertyType.ZNODE, "+", recordNew);
     command1 = new TestCommand(CommandType.MODIFY, new TestTrigger(0, 500, record), arg1);
     commandList.add(command1);
@@ -175,7 +176,7 @@ public class TestZnodeModify extends ZkUnitTestBase
 
     final ZNRecord record = getExampleZNRecord();
     ZNRecord recordNew = new ZNRecord(record);
-    recordNew.setSimpleField("ideal_state_mode", IdealStateConfigProperty.AUTO.toString());
+    recordNew.setSimpleField(IdealStateProperty.IDEAL_STATE_MODE.toString(), IdealStateModeProperty.AUTO.toString());
     ZnodeOpArg arg1 = new ZnodeOpArg(pathChild1, ZnodePropertyType.ZNODE, "+", recordNew);
     TestCommand command1 = new TestCommand(CommandType.MODIFY, new TestTrigger(0, 8000, record), arg1);
     commandList.add(command1);
@@ -240,7 +241,7 @@ public class TestZnodeModify extends ZkUnitTestBase
   private ZNRecord getExampleZNRecord()
   {
     ZNRecord record = new ZNRecord("TestDB");
-    record.setSimpleField("ideal_state_mode", IdealStateConfigProperty.CUSTOMIZED.toString());
+    record.setSimpleField(IdealStateProperty.IDEAL_STATE_MODE.toString(), IdealStateModeProperty.CUSTOMIZED.toString());
     Map<String, String> map = new HashMap<String, String>();
     map.put("localhost_12918", "MASTER");
     map.put("localhost_12919", "SLAVE");

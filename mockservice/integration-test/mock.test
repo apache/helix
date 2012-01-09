@@ -11,11 +11,12 @@ BASE_DIR=/home/express1/workspace/cluster-manager-0.4.0/cluster-manager-core/tar
 CLUSTER_ADMIN=$BASE_DIR/cluster-admin
 RUN_CLUSTER_MANAGER=$BASE_DIR/run-cluster-manager
 
-USERS=(express1 express2)
-NODES=(express1-md express2-md)
-PORTS=(16918 16920)
+USERS=(express1 express2 express3 express4 express5)
+NODES=(express1-md express2-md express3-md express4-md express5-md)
+START_PORT=16918
+PORT_NR=20
 RESOURCE_GROUP=TestDB
-PARTITION_NR=10
+PARTITION_NR=128
 STATE_MODEL_DEF=MasterSlave
 REPLICA=3
 
@@ -54,7 +55,7 @@ function startZookeeper
   ZK_LOG_DIR=/home/$ZKUSER/workspace/zookeeper-log/$ZKPORT
   ssh $ZKUSER@$ZKUSER-md rm -rf $ZK_LOG_DIR
   ssh $ZKUSER@$ZKUSER-md mkdir -p $ZK_LOG_DIR/data
-  ssh $ZKUSER@$ZKUSER-md $START_ZOOKEEPER start > /dev/null &
+  ssh $ZKUSER@$ZKUSER-md $START_ZOOKEEPER start > /dev/null 2>&1 &
   sleep 1
   ps aux | grep $START_ZOOKEEPER | grep -v "grep" | awk '{print$2}' | xargs kill
 }
@@ -138,12 +139,18 @@ function startNodes
         if [ -n "$pid" ]; then
           kill $pid
         fi
+
+        #check node is running
+#        pid=`ssh $user@$node ps aux | grep MockEspressoService | grep $CLUSTER_NAME | grep $node:$port | awk '{print $2}'`
+#        if [ -z "$pid" ]; then
+#          cecho "FAIL to start participant $node:$port on $CLUSTER_NAME" $red
+#        fi
       else
         cecho "FAIL to start participant $node:$port on $CLUSTER_NAME, since it's already running" $red
       fi
     done
   done
-  sleep 20
+#  sleep 30
   #END
 }
 
@@ -175,7 +182,7 @@ function killRandomAndRestart
     echo -e "Select partiticipant to kill:\t${PROC_TAB[$i]}"
     KILL_PROC_TAB=("${KILL_PROC_TAB[@]}" "${PROC_TAB[$i]}")
   done
-  echo -e "KILL_PROC_TAB:\t${KILL_PROC_TAB[@]}"
+  echo -e "KILL_PROC_TAB(usr:node:port):\t${KILL_PROC_TAB[@]}"
 
   for kill_proc in ${KILL_PROC_TAB[*]}
   do
@@ -195,7 +202,7 @@ function killRandomAndRestart
   echo "Session timeout for ${KILL_PROC_TAB[*]}"
   #END
 
-  sleep 10  
+  sleep 30  
   
   #restart killed participant process
   #: <<'END'
@@ -230,6 +237,7 @@ function cleanup
   else
     echo "Killing controller process $pid on $CLUSTER_NAME"
     ssh express1@express1-md kill -9 $pid
+    sleep 1
   fi
   #END
 
@@ -247,31 +255,43 @@ function cleanup
     else
       echo "Killing participant pid:$pid $node:$port on $CLUSTER_NAME"
       ssh $user@$node kill -9 $pid
+      sleep 1
     fi
     done
   done
   #END
 }
 
+#########################
 # execution starts here
-startZookeeper
+#########################
+#: <<'END'
 
+#PORTS=(16918 16920)
+END_PORT=$START_PORT+$PORT_NR*2
+for (( k=$START_PORT; k<$END_PORT; k+=2 ))
+{
+  PORTS=("${PORTS[@]}" "$k")
+}
+echo -e "PORTS:\t${PORTS[@]}"
+
+startZookeeper
 setupCluster
 
 startNodes
+sleep 180
 
 #do test
-for (( k=0; k<2; k++ ))
+for (( k=0; k<60; k++ ))
 do
   cecho ">>Test round_$k" $green
   killRandomAndRestart
-  sleep 10
+  sleep 30
 done
 
 cleanup
-
 stopZookeeper
-
+#END
 
 
 

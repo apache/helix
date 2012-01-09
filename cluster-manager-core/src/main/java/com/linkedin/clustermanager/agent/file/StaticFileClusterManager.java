@@ -27,8 +27,10 @@ import com.linkedin.clustermanager.MessageListener;
 import com.linkedin.clustermanager.NotificationContext;
 import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.ZNRecordDecorator;
 import com.linkedin.clustermanager.healthcheck.ParticipantHealthReportCollector;
 import com.linkedin.clustermanager.model.IdealState;
+import com.linkedin.clustermanager.model.InstanceConfig.InstanceConfigProperty;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.Message.MessageType;
 import com.linkedin.clustermanager.participant.statemachine.StateModel;
@@ -37,14 +39,13 @@ import com.linkedin.clustermanager.store.PropertyStore;
 import com.linkedin.clustermanager.tools.ClusterViewSerializer;
 import com.linkedin.clustermanager.tools.IdealStateCalculatorByShuffling;
 
-public class FileBasedClusterManager implements ClusterManager
+public class StaticFileClusterManager implements ClusterManager
 {
   private static final Logger LOG = Logger
-      .getLogger(FileBasedClusterManager.class.getName());
+      .getLogger(StaticFileClusterManager.class.getName());
   // for backward compatibility
   // TODO remove it later
   private final ClusterView _clusterView;
-  private final ClusterDataAccessor _fileDataAccessor;
   private final String _clusterName;
   private final InstanceType _instanceType;
   private final String _instanceName;
@@ -53,7 +54,7 @@ public class FileBasedClusterManager implements ClusterManager
   public static final String _sessionId = "12345";
   public static final String configFile = "configFile";
 
-  public FileBasedClusterManager(String clusterName, String instanceName,
+  public StaticFileClusterManager(String clusterName, String instanceName,
       InstanceType instanceType, String staticClusterConfigFile)
   {
     this._clusterName = clusterName;
@@ -61,7 +62,6 @@ public class FileBasedClusterManager implements ClusterManager
     this._instanceType = instanceType;
     // _handlers = new ArrayList<CallbackHandlerForFile>();
 
-    _fileDataAccessor = new DummyFileDataAccessor();
     this._clusterView = ClusterViewSerializer.deserialize(new File(
         staticClusterConfigFile));
   }
@@ -75,17 +75,6 @@ public class FileBasedClusterManager implements ClusterManager
     message.setMsgId(uuid);
     String hostName = "localhost"; // "UNKNOWN";
 
-    // try
-    // {
-    // hostName = InetAddress.getLocalHost().getCanonicalHostName();
-    // }
-    // catch (UnknownHostException e)
-    // {
-    // logger.info("Unable to get Host name. Will set it to UNKNOWN, mostly ignorable",
-    // e);
-    // can ignore it,
-    // }
-
     message.setSrcName(hostName);
     message.setTgtName(instanceName);
     message.setMsgState("new");
@@ -97,7 +86,7 @@ public class FileBasedClusterManager implements ClusterManager
     // String sessionId =
     // _liveInstanceDataHolder.getSessionId(instanceName);
     // message.setTgtSessionId(sessionId);
-    message.setTgtSessionId(FileBasedClusterManager._sessionId);
+    message.setTgtSessionId(StaticFileClusterManager._sessionId);
     return message;
   }
 
@@ -137,26 +126,24 @@ public class FileBasedClusterManager implements ClusterManager
       instanceStateMap = idealState.getInstanceStateMap(stateUnitKey);
       for (String instanceName : instanceStateMap.keySet())
       {
-        /*
-        String desiredState = idealState.get(stateUnitKey, instanceName);
 
-
-        if (desiredState.equals("MASTER"))
-        {
-          Message message = createSimpleMessage(idealStateRecord, stateUnitKey,
-              instanceName, "OFFLINE", "SLAVE");
-          msgList.add(message);
-          message = createSimpleMessage(idealStateRecord, stateUnitKey,
-              instanceName, "SLAVE", "MASTER");
-          msgList.add(message);
-        } else
-        {
-          Message message = createSimpleMessage(idealStateRecord, stateUnitKey,
-              instanceName, "OFFLINE", "SLAVE");
-          msgList.add(message);
-        }
-        */
-
+//        String desiredState = idealState.get(stateUnitKey, instanceName);
+//
+//
+//        if (desiredState.equals("MASTER"))
+//        {
+//          Message message = createSimpleMessage(idealStateRecord, stateUnitKey,
+//              instanceName, "OFFLINE", "SLAVE");
+//          msgList.add(message);
+//          message = createSimpleMessage(idealStateRecord, stateUnitKey,
+//              instanceName, "SLAVE", "MASTER");
+//          msgList.add(message);
+//        } else
+//        {
+//          Message message = createSimpleMessage(idealStateRecord, stateUnitKey,
+//              instanceName, "OFFLINE", "SLAVE");
+//          msgList.add(message);
+//        }
       }
     }
 
@@ -210,13 +197,9 @@ public class FileBasedClusterManager implements ClusterManager
       String nodeId = host + "_" + port;
       ZNRecord nodeConfig = new ZNRecord(nodeId);
 
-      nodeConfig.setSimpleField(
-          ClusterDataAccessor.InstanceConfigProperty.ENABLED.toString(),
-          Boolean.toString(true));
-      nodeConfig.setSimpleField(
-          ClusterDataAccessor.InstanceConfigProperty.HOST.toString(), host);
-      nodeConfig.setSimpleField(
-          ClusterDataAccessor.InstanceConfigProperty.PORT.toString(), port);
+      nodeConfig.setSimpleField(InstanceConfigProperty.ENABLED.toString(), Boolean.toString(true));
+      nodeConfig.setSimpleField(InstanceConfigProperty.HOST.toString(), host);
+      nodeConfig.setSimpleField(InstanceConfigProperty.PORT.toString(), port);
 
       instanceNames.add(nodeId);
 
@@ -318,10 +301,9 @@ public class FileBasedClusterManager implements ClusterManager
 
     NotificationContext context = new NotificationContext(this);
     context.setType(NotificationContext.Type.INIT);
-    listener.onIdealStateChange(
-        this._clusterView.getPropertyList(PropertyType.IDEALSTATES),
-        context);
-
+    List<ZNRecord> idealStates = _clusterView.getPropertyList(PropertyType.IDEALSTATES);
+    listener.onIdealStateChange(ZNRecordDecorator.convertToTypedList(IdealState.class, idealStates),
+                                context);
   }
 
   @Override
@@ -346,7 +328,8 @@ public class FileBasedClusterManager implements ClusterManager
     List<ZNRecord> messages;
     messages = _clusterView.getMemberInstance(instanceName, true)
         .getInstanceProperty(PropertyType.MESSAGES);
-    listener.onMessage(instanceName, messages, context);
+    listener.onMessage(instanceName, ZNRecordDecorator.convertToTypedList(Message.class, messages),
+                       context);
   }
 
   @Override
@@ -367,7 +350,7 @@ public class FileBasedClusterManager implements ClusterManager
   @Override
   public ClusterDataAccessor getDataAccessor()
   {
-    return _fileDataAccessor;
+    return null;
   }
 
   @Override
@@ -393,43 +376,6 @@ public class FileBasedClusterManager implements ClusterManager
   {
     return _sessionId;
   }
-
-  /*
-  private static Options constructCommandLineOptions()
-  {
-    Option fileOption = OptionBuilder.withLongOpt(configFile)
-        .withDescription("Provide file to write states/messages").create();
-    fileOption.setArgs(1);
-    fileOption.setRequired(true);
-    fileOption.setArgName("File to read states/messages (Required)");
-
-    Options options = new Options();
-    options.addOption(fileOption);
-    return options;
-
-  }
-
-  public static CommandLine processCommandLineArgs(String[] cliArgs)
-      throws Exception
-  {
-    CommandLineParser cliParser = new GnuParser();
-    Options cliOptions = constructCommandLineOptions();
-    // CommandLine cmd = null;
-
-    try
-    {
-      return cliParser.parse(cliOptions, cliArgs);
-    } catch (ParseException pe)
-    {
-      System.err
-          .println("CommandLineClient: failed to parse command-line options: "
-              + pe.toString());
-      // printUsage(cliOptions);
-      System.exit(1);
-    }
-    return null;
-  }
-  */
 
   public static ClusterView convertStateModelMapToClusterView(String outFile,
       String instanceName, StateModelFactory<StateModel> stateModelFactory)
@@ -473,8 +419,6 @@ public class FileBasedClusterManager implements ClusterManager
     ClusterView expectedView = ClusterViewSerializer.deserialize(new File(
         expectedFile));
     ClusterView curView = ClusterViewSerializer.deserialize(new File(curFile));
-
-    // int nonOfflineNr = 0;
 
     // ideal_state for instance with the given instanceName
     Map<String, String> idealStates = new HashMap<String, String>();
@@ -552,19 +496,6 @@ public class FileBasedClusterManager implements ClusterManager
     return _isConnected;
   }
 
-  /*
-  private void addLiveInstance()
-  {
-    // set it from the session
-
-    ZNRecord metaData = new ZNRecord(_instanceName);
-    metaData.setSimpleField(CMConstants.ZNAttribute.SESSION_ID.toString(),
-        _sessionId);
-    _fileDataAccessor.setProperty(PropertyType.LIVEINSTANCES, metaData,
-        _instanceName);
-  }
-  */
-
   @Override
   public long getLastNotificationTime()
   {
@@ -584,19 +515,6 @@ public class FileBasedClusterManager implements ClusterManager
     // TODO Auto-generated method stub
     return false;
   }
-
-  /*
-  private CallbackHandlerForFile createCallBackHandler(String path,
-      Object listener, EventType[] eventTypes, ChangeType changeType)
-  {
-    if (listener == null)
-    {
-      throw new ClusterManagerException("Listener cannot be null");
-    }
-    return new CallbackHandlerForFile(this, path, listener, eventTypes,
-        changeType);
-  }
-  */
 
   @Override
   public ClusterManagementService getClusterManagmentTool()

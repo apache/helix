@@ -1,19 +1,24 @@
 package com.linkedin.clustermanager.agent.zk;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.ClusterDataAccessor;
-import com.linkedin.clustermanager.ClusterDataAccessor.IdealStateConfigProperty;
-import com.linkedin.clustermanager.ClusterDataAccessor.InstanceConfigProperty;
 import com.linkedin.clustermanager.ClusterManagementService;
 import com.linkedin.clustermanager.ClusterManagerException;
 import com.linkedin.clustermanager.PropertyPathConfig;
 import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.model.CurrentState;
+import com.linkedin.clustermanager.model.ExternalView;
+import com.linkedin.clustermanager.model.IdealState;
+import com.linkedin.clustermanager.model.IdealState.IdealStateModeProperty;
+import com.linkedin.clustermanager.model.IdealState.IdealStateProperty;
+import com.linkedin.clustermanager.model.InstanceConfig;
+import com.linkedin.clustermanager.model.LiveInstance;
+import com.linkedin.clustermanager.model.StateModelDefinition;
 import com.linkedin.clustermanager.util.CMUtil;
 
 public class ZKClusterManagementTool implements ClusterManagementService
@@ -30,7 +35,7 @@ public class ZKClusterManagementTool implements ClusterManagementService
   }
 
   @Override
-  public void addInstance(String clusterName, ZNRecord instanceConfig)
+  public void addInstance(String clusterName, InstanceConfig instanceConfig)
   {
     if(!ZKUtil.isClusterSetup(clusterName, _zkClient))
     {
@@ -47,7 +52,7 @@ public class ZKClusterManagementTool implements ClusterManagementService
           + " already exists in cluster " + clusterName);
     }
 
-    ZKUtil.createChildren(_zkClient, instanceConfigsPath, instanceConfig);
+    ZKUtil.createChildren(_zkClient, instanceConfigsPath, instanceConfig.getRecord());
 
     _zkClient
         .createPersistent(CMUtil.getMessagePath(clusterName, nodeId), true);
@@ -59,7 +64,7 @@ public class ZKClusterManagementTool implements ClusterManagementService
   }
 
   @Override
-  public void dropInstance(String clusterName, ZNRecord instanceConfig)
+  public void dropInstance(String clusterName, InstanceConfig instanceConfig)
   {
     String instanceConfigsPath = CMUtil.getConfigPath(clusterName);
     String nodeId = instanceConfig.getId();
@@ -79,14 +84,14 @@ public class ZKClusterManagementTool implements ClusterManagementService
     }
 
     // delete config path
-    ZKUtil.dropChildren(_zkClient, instanceConfigsPath, instanceConfig);
+    ZKUtil.dropChildren(_zkClient, instanceConfigsPath, instanceConfig.getRecord());
 
     // delete instance path
     _zkClient.deleteRecursive(instancePath);
   }
 
   @Override
-  public ZNRecord getInstanceConfig(String clusterName, String instanceName)
+  public InstanceConfig getInstanceConfig(String clusterName, String instanceName)
   {
     String instanceConfigsPath = CMUtil.getConfigPath(clusterName);
     String instanceConfigPath = instanceConfigsPath + "/" + instanceName;
@@ -98,7 +103,7 @@ public class ZKClusterManagementTool implements ClusterManagementService
     }
 
     ClusterDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
-    return accessor.getProperty(PropertyType.CONFIGS, instanceName);
+    return accessor.getProperty(InstanceConfig.class, PropertyType.CONFIGS, instanceName);
   }
 
   @Override
@@ -111,11 +116,11 @@ public class ZKClusterManagementTool implements ClusterManagementService
     if (_zkClient.exists(targetPath))
     {
       ClusterDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
-      ZNRecord nodeConfig = accessor.getProperty(PropertyType.CONFIGS,
-          instanceName);
+      InstanceConfig nodeConfig = accessor.getProperty(InstanceConfig.class,
+                                                       PropertyType.CONFIGS,
+                                                       instanceName);
 
-      nodeConfig.setSimpleField(InstanceConfigProperty.ENABLED.toString(),
-          enabled + "");
+      nodeConfig.setInstanceEnabled(enabled);
       accessor.setProperty(PropertyType.CONFIGS, nodeConfig, instanceName);
     } else
     {
@@ -132,23 +137,11 @@ public class ZKClusterManagementTool implements ClusterManagementService
     if (_zkClient.exists(path))
     {
       ClusterDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
-      ZNRecord nodeConfig = accessor.getProperty(PropertyType.CONFIGS, instanceName);
+      InstanceConfig nodeConfig = accessor.getProperty(InstanceConfig.class,
+                                                       PropertyType.CONFIGS,
+                                                       instanceName);
 
-      if (nodeConfig.getMapField(InstanceConfigProperty.DISABLED_PARTITION.toString()) == null)
-      {
-        nodeConfig.setMapField(InstanceConfigProperty.DISABLED_PARTITION.toString(),
-                               new HashMap<String, String>());
-      }
-      if (enabled == true)
-      {
-        nodeConfig.getMapField(InstanceConfigProperty.DISABLED_PARTITION.toString())
-                  .remove(partition);
-      }
-      else
-      {
-        nodeConfig.getMapField(InstanceConfigProperty.DISABLED_PARTITION.toString())
-                  .put(partition, false + "");
-      }
+      nodeConfig.setInstanceEnabledForResource(partition, enabled);
       accessor.setProperty(PropertyType.CONFIGS, nodeConfig, instanceName);
     }
     else
@@ -156,6 +149,28 @@ public class ZKClusterManagementTool implements ClusterManagementService
       throw new ClusterManagerException("Cluster " + clusterName
           + ", instance " + instanceName + " does not exist");
     }
+  }
+
+  @Override
+  public void resetPartition(String clusterName, String instanceName, String resourceGroupName,
+                             String partition)
+  {
+    ClusterDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
+    LiveInstance liveInstance = accessor.getProperty(LiveInstance.class, PropertyType.LIVEINSTANCES, instanceName);
+
+    if (liveInstance == null)
+    {
+      throw new IllegalArgumentException("Can't reset resource state " + partition + ", because instance is not alive");
+    }
+
+    String sessionId = liveInstance.getSessionId();
+    CurrentState curState = accessor.getProperty(CurrentState.class,
+                                                 PropertyType.CURRENTSTATES,
+                                                 instanceName,
+                                                 sessionId,
+                                                 resourceGroupName);
+    curState.resetState(partition);
+    accessor.setProperty(PropertyType.CURRENTSTATES, curState, instanceName, sessionId, resourceGroupName);
   }
 
   @Override
@@ -227,7 +242,7 @@ public class ZKClusterManagementTool implements ClusterManagementService
       int partitions, String stateModelRef)
   {
     addResourceGroup(clusterName, dbName, partitions, stateModelRef,
-        IdealStateConfigProperty.AUTO.toString());
+        IdealStateModeProperty.AUTO.toString());
   }
 
   @Override
@@ -240,9 +255,9 @@ public class ZKClusterManagementTool implements ClusterManagementService
          + " is not setup yet");
     }
     ZNRecord idealState = new ZNRecord(dbName);
-    idealState.setSimpleField("partitions", String.valueOf(partitions));
-    idealState.setSimpleField("state_model_def_ref", stateModelRef);
-    idealState.setSimpleField("ideal_state_mode", idealStateMode);
+    idealState.setSimpleField(IdealStateProperty.RESOURCES.toString(), String.valueOf(partitions));
+    idealState.setSimpleField(IdealStateProperty.STATE_MODEL_DEF_REF.toString(), stateModelRef);
+    idealState.setSimpleField(IdealStateProperty.IDEAL_STATE_MODE.toString(), idealStateMode);
 
     String stateModelDefPath = PropertyPathConfig.getPath(
         PropertyType.STATEMODELDEFS, clusterName, stateModelRef);
@@ -285,31 +300,32 @@ public class ZKClusterManagementTool implements ClusterManagementService
   }
 
   @Override
-  public ZNRecord getResourceGroupIdealState(String clusterName, String dbName)
+  public IdealState getResourceGroupIdealState(String clusterName, String dbName)
   {
-    return new ZKDataAccessor(clusterName, _zkClient).getProperty(
-        PropertyType.IDEALSTATES, dbName);
+    ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
+    return accessor.getProperty(IdealState.class, PropertyType.IDEALSTATES, dbName);
   }
 
   @Override
   public void setResourceGroupIdealState(String clusterName, String dbName,
-      ZNRecord idealState)
+      IdealState idealState)
   {
-    new ZKDataAccessor(clusterName, _zkClient).setProperty(
-        PropertyType.IDEALSTATES, idealState, dbName);
+    new ZKDataAccessor(clusterName, _zkClient).setProperty(PropertyType.IDEALSTATES,
+                                                           idealState,
+                                                           dbName);
   }
 
   @Override
-  public ZNRecord getResourceGroupExternalView(String clusterName,
+  public ExternalView getResourceGroupExternalView(String clusterName,
       String resourceGroup)
   {
-    return new ZKDataAccessor(clusterName, _zkClient).getProperty(
-        PropertyType.EXTERNALVIEW, resourceGroup);
+    ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
+    return accessor.getProperty(ExternalView.class, PropertyType.EXTERNALVIEW, resourceGroup);
   }
 
   @Override
   public void addStateModelDef(String clusterName, String stateModelDef,
-      ZNRecord record)
+      StateModelDefinition stateModel)
   {
     if(!ZKUtil.isClusterSetup(clusterName, _zkClient))
     {
@@ -326,7 +342,7 @@ public class ZKClusterManagementTool implements ClusterManagementService
           + " already exists.");
     }
 
-    ZKUtil.createChildren(_zkClient, stateModelDefPath, record);
+    ZKUtil.createChildren(_zkClient, stateModelDefPath, stateModel.getRecord());
   }
 
   @Override
@@ -344,9 +360,11 @@ public class ZKClusterManagementTool implements ClusterManagementService
   }
 
   @Override
-  public ZNRecord getStateModelDef(String clusterName, String stateModelName)
+  public StateModelDefinition getStateModelDef(String clusterName, String stateModelName)
   {
-    return new ZKDataAccessor(clusterName, _zkClient).getProperty(
-        PropertyType.STATEMODELDEFS, stateModelName);
+    ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
+    return accessor.getProperty(StateModelDefinition.class,
+                                PropertyType.STATEMODELDEFS,
+                                stateModelName);
   }
 }

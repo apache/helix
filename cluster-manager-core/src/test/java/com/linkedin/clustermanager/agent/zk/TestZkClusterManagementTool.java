@@ -14,6 +14,9 @@ import com.linkedin.clustermanager.PropertyPathConfig;
 import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.ZkUnitTestBase;
+import com.linkedin.clustermanager.model.ExternalView;
+import com.linkedin.clustermanager.model.InstanceConfig;
+import com.linkedin.clustermanager.model.StateModelDefinition;
 
 public class TestZkClusterManagementTool extends ZkUnitTestBase
 {
@@ -64,15 +67,15 @@ public class TestZkClusterManagementTool extends ZkUnitTestBase
       // OK
     }
 
-    ZNRecord nodeRecord = new ZNRecord("id0");
-    tool.addInstance(clusterName, nodeRecord);
+    InstanceConfig config = new InstanceConfig("id0");
+    tool.addInstance(clusterName, config);
     tool.enableInstance(clusterName, "id0", true);
     String path = PropertyPathConfig.getPath(PropertyType.INSTANCES, clusterName, "id0");
     AssertJUnit.assertTrue(_zkClient.exists(path));
 
     try
     {
-      tool.addInstance(clusterName, nodeRecord);
+      tool.addInstance(clusterName, config);
       Assert.fail("should fail if add an alredy-existing instance");
     }
     catch (ClusterManagerException e)
@@ -80,10 +83,10 @@ public class TestZkClusterManagementTool extends ZkUnitTestBase
       // OK
     }
 
-    nodeRecord = tool.getInstanceConfig(clusterName, "id0");
-    AssertJUnit.assertEquals(nodeRecord.getId(), "id0");
+    config = tool.getInstanceConfig(clusterName, "id0");
+    AssertJUnit.assertEquals(config.getId(), "id0");
 
-    tool.dropInstance(clusterName, nodeRecord);
+    tool.dropInstance(clusterName, config);
     try
     {
       tool.getInstanceConfig(clusterName, "id0");
@@ -96,7 +99,7 @@ public class TestZkClusterManagementTool extends ZkUnitTestBase
 
     try
     {
-      tool.dropInstance(clusterName, nodeRecord);
+      tool.dropInstance(clusterName, config);
       Assert.fail("should fail if drop on a non-existent instance");
     }
     catch (ClusterManagerException e)
@@ -115,13 +118,13 @@ public class TestZkClusterManagementTool extends ZkUnitTestBase
     }
 
     ZNRecord stateModelRecord = new ZNRecord("id1");
-    tool.addStateModelDef(clusterName, "id1", stateModelRecord);
+    tool.addStateModelDef(clusterName, "id1", new StateModelDefinition(stateModelRecord));
     path = PropertyPathConfig.getPath(PropertyType.STATEMODELDEFS, clusterName, "id1");
     AssertJUnit.assertTrue(_zkClient.exists(path));
 
     try
     {
-      tool.addStateModelDef(clusterName, "id1", stateModelRecord);
+      tool.addStateModelDef(clusterName, "id1", new StateModelDefinition(stateModelRecord));
       Assert.fail("should fail if add an already-existing state model");
     }
     catch (ClusterManagerException e)
@@ -150,9 +153,9 @@ public class TestZkClusterManagementTool extends ZkUnitTestBase
     list = tool.getResourceGroupsInCluster(clusterName);
     AssertJUnit.assertEquals(list.size(), 1);
 
-    ZNRecord resourceGroupExternalViewRecord =
+    ExternalView resourceGroupExternalView =
         tool.getResourceGroupExternalView(clusterName, "resourceGroup");
-    AssertJUnit.assertNull(resourceGroupExternalViewRecord);
+    AssertJUnit.assertNull(resourceGroupExternalView);
   }
 
 }

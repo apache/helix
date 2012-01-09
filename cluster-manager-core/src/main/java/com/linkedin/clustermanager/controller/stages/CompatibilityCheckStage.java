@@ -83,7 +83,7 @@ public class CompatibilityCheckStage extends AbstractBaseStage
     Map<String, LiveInstance> liveInstanceMap = cache.getLiveInstances();
     for (LiveInstance liveInstance : liveInstanceMap.values())
     {
-      String participantVersion = liveInstance.getVersion();
+      String participantVersion = liveInstance.getClusterManagerVersion();
       if (!isCompatible(controllerVersion, participantVersion))
       {
         String errorMsg = "cluster manager versions are incompatible; pipeline will not continue. "

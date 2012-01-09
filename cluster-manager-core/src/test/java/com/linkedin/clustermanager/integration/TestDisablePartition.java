@@ -1,10 +1,13 @@
 package com.linkedin.clustermanager.integration;
 
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.log4j.Logger;
 import org.testng.annotations.Test;
 
+import com.linkedin.clustermanager.TestHelper;
 import com.linkedin.clustermanager.agent.zk.ZKClusterManagementTool;
 
 public class TestDisablePartition extends ZkStandAloneCMTestBase
@@ -19,7 +22,21 @@ public class TestDisablePartition extends ZkStandAloneCMTestBase
     // localhost_12919 is MASTER for TestDB_0
     ZKClusterManagementTool tool = new ZKClusterManagementTool(_zkClient);
     tool.enablePartition(CLUSTER_NAME, "localhost_12919", "TestDB_0", false);
-    verifyCluster();
+    Map<String, String> disabledPartMap = new HashMap<String, String>()
+    {
+      {
+        put("TestDB_0", "localhost_12919");
+      }
+    };
+    TestHelper.verifyWithTimeout("verifyBestPossAndExtViewExtended",
+                                 "TestDB",
+                                 20,
+                                 "MasterSlave",
+                                 TestHelper.<String>setOf(CLUSTER_NAME),
+                                 _zkClient,
+                                 null,
+                                 disabledPartMap,
+                                 null);
 
     tool.enablePartition(CLUSTER_NAME, "localhost_12919", "TestDB_0", true);
     verifyCluster();

@@ -1,7 +1,6 @@
 package com.linkedin.clustermanager.tools;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -9,7 +8,7 @@ import java.util.Random;
 import java.util.TreeMap;
 
 import com.linkedin.clustermanager.ZNRecord;
-import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
+import com.linkedin.clustermanager.model.IdealState.IdealStateProperty;
 
 public class IdealStateCalculatorByRush
 {
@@ -17,7 +16,7 @@ public class IdealStateCalculatorByRush
    * Build the config map for RUSH algorithm. The input of RUSH algorithm groups
    * nodes into "cluster"s, and different clusters can be assigned with
    * different weights.
-   * 
+   *
    * @param numClusters
    *          number of node clusters
    * @param instancesPerCluster
@@ -61,7 +60,7 @@ public class IdealStateCalculatorByRush
 
   /**
    * Calculate the ideal state for list of instances clusters.
-   * 
+   *
    * @param numClusters
    *          number of node clusters
    * @param instanceClusters
@@ -111,7 +110,7 @@ public class IdealStateCalculatorByRush
         }
       }
       Map<String, String> partitionAssignment = new TreeMap<String, String>();
-      
+
       for (int j = 0; j < nodeNames.size(); j++)
       {
         partitionAssignment.put(nodeNames.get(j), "SLAVE");
@@ -119,14 +118,14 @@ public class IdealStateCalculatorByRush
       int master = r.nextInt(nodeNames.size());
       //master = nodeNames.size()/2;
       partitionAssignment.put(nodeNames.get(master), "MASTER");
-      
+
 
       result.setMapField(partitionName, partitionAssignment);
     }
-    result.setSimpleField("partitions", String.valueOf(partitions));
+    result.setSimpleField(IdealStateProperty.RESOURCES.toString(), String.valueOf(partitions));
     return result;
   }
-  
+
   public static ZNRecord calculateIdealState(
       List<String> instanceClusters,
       int instanceClusterWeight, int partitions, int replicas,
@@ -134,10 +133,10 @@ public class IdealStateCalculatorByRush
   {
     List<List<String>> instanceClustersList = new ArrayList<List<String>>();
     instanceClustersList.add(instanceClusters);
-    
+
     List<Integer> instanceClusterWeightList = new ArrayList<Integer>();
     instanceClusterWeightList.add(instanceClusterWeight);
-    
+
     return calculateIdealState(
         instanceClustersList,
         instanceClusterWeightList, partitions, replicas,
@@ -161,7 +160,7 @@ public class IdealStateCalculatorByRush
         if (!map2.containsKey(k))
         {
           diffCount++;
-        } 
+        }
         else if (!map1.get(k).equalsIgnoreCase(map2.get(k)))
         {
           diffCountMaster++;
@@ -188,7 +187,7 @@ public class IdealStateCalculatorByRush
         if (!countsMap.containsKey(k))
         {
           countsMap.put(k, new Integer(0));
-        }   
+        }
         else
         {
           countsMap.put(k, countsMap.get(k).intValue() + 1);
@@ -196,8 +195,8 @@ public class IdealStateCalculatorByRush
         if (!masterCountsMap.containsKey(k))
         {
           masterCountsMap.put(k, new Integer(0));
-          
-        }   
+
+        }
         else if (map1.get(k).equalsIgnoreCase("MASTER"))
         {
           masterCountsMap.put(k, masterCountsMap.get(k).intValue() + 1);

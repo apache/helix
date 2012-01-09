@@ -16,16 +16,16 @@ import com.linkedin.clustermanager.model.Message.MessageType;
 
 public class TestDefaultControllerMsgHandlerFactory
 {
-  @Test(groups = { "unitTest" })
+  @Test()
   public void testDefaultControllerMsgHandlerFactory()
   {
   	System.out.println("START TestDefaultControllerMsgHandlerFactory at " + new Date(System.currentTimeMillis()));
 
     DefaultControllerMessageHandlerFactory facotry = new DefaultControllerMessageHandlerFactory();
-    
+
     Message message = new Message(MessageType.NO_OP, "0");
     NotificationContext context = new NotificationContext(null);
-    
+
     boolean exceptionCaught = false;
     try
     {
@@ -35,7 +35,7 @@ public class TestDefaultControllerMsgHandlerFactory
       exceptionCaught = true;
     }
     AssertJUnit.assertTrue(exceptionCaught);
-    
+
     message = new Message(MessageType.CONTROLLER_MSG, "1");
     exceptionCaught = false;
     try
@@ -46,7 +46,7 @@ public class TestDefaultControllerMsgHandlerFactory
       exceptionCaught = true;
     }
     AssertJUnit.assertFalse(exceptionCaught);
-    
+
     DefaultControllerMessageHandler defaultHandler = new DefaultControllerMessageHandler();
     Map<String, String> resultMap = new HashMap<String, String>();
     message = new Message(MessageType.NO_OP, "3");
@@ -63,7 +63,7 @@ public class TestDefaultControllerMsgHandlerFactory
       e.printStackTrace();
     }
     AssertJUnit.assertTrue(exceptionCaught);
-    
+
     message = new Message(MessageType.CONTROLLER_MSG, "4");
     exceptionCaught = false;
     try

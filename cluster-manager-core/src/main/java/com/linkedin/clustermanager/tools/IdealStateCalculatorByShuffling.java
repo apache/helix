@@ -1,8 +1,5 @@
 package com.linkedin.clustermanager.tools;
 
-import java.io.IOException;
-import java.io.StringReader;
-import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -10,12 +7,8 @@ import java.util.Map;
 import java.util.Random;
 import java.util.TreeMap;
 
-import org.codehaus.jackson.JsonGenerationException;
-import org.codehaus.jackson.JsonParseException;
-import org.codehaus.jackson.map.JsonMappingException;
-import org.codehaus.jackson.map.ObjectMapper;
-
 import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.model.IdealState.IdealStateProperty;
 
 /*
  * Ideal state calculator for the cluster manager V1. The ideal state is
@@ -35,10 +28,10 @@ public class IdealStateCalculatorByShuffling
    * 1. construct Arraylist partitionList, with partitionList[i] = i; 2. Shuffle
    * the partitions array 3. Scan the shuffled array, then assign
    * partitionList[i] to node (i % nodes)
-   * 
+   *
    * for the slave partitions, simply put them in the node after the node that
    * contains the master partition.
-   * 
+   *
    * The result of the method is a ZNRecord, which contains a list of maps; each
    * map is from the name of nodes to either "MASTER" or "SLAVE".
    */
@@ -84,7 +77,7 @@ public class IdealStateCalculatorByShuffling
       String partitionName = dbName + "_" + partitionId;
       result.setMapField(partitionName, partitionAssignment);
     }
-    result.setSimpleField("partitions", String.valueOf(partitions));
+    result.setSimpleField(IdealStateProperty.RESOURCES.toString(), String.valueOf(partitions));
     return result;
   }
 

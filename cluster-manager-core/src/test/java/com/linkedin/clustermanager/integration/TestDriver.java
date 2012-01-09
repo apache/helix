@@ -12,7 +12,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.log4j.Logger;
 import org.testng.AssertJUnit;
 
-import com.linkedin.clustermanager.ClusterDataAccessor.IdealStateConfigProperty;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.TestHelper;
@@ -20,6 +19,8 @@ import com.linkedin.clustermanager.TestHelper.StartCMResult;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
 import com.linkedin.clustermanager.controller.ClusterManagerMain;
+import com.linkedin.clustermanager.model.IdealState.IdealStateModeProperty;
+import com.linkedin.clustermanager.model.IdealState.IdealStateProperty;
 import com.linkedin.clustermanager.store.PropertyJsonSerializer;
 import com.linkedin.clustermanager.store.PropertyStoreException;
 import com.linkedin.clustermanager.tools.ClusterSetup;
@@ -53,7 +54,7 @@ public class TestDriver
 
   private static final Map<String, TestInfo> _testInfoMap = new ConcurrentHashMap<String, TestInfo>();
 
-  private static class TestInfo
+  public static class TestInfo
   {
   	public final ZkClient _zkClient;
     public final String _clusterName;
@@ -65,8 +66,6 @@ public class TestDriver
     public final Map<String, ZNRecord> _idealStateMap = new ConcurrentHashMap<String, ZNRecord>();
     public final Map<String, StartCMResult> _startCMResultMap = new ConcurrentHashMap<String, StartCMResult>();
 
-    // public final CountDownLatch _instanceStarted;
-
     public TestInfo(String clusterName, ZkClient zkClient, int numDb, int numPartitionsPerDb, int numNode, int replica)
     {
 			this._clusterName = clusterName;
@@ -75,8 +74,19 @@ public class TestDriver
       this._numPartitionsPerDb = numPartitionsPerDb;
       this._numNode = numNode;
       this._replica = replica;
-      // _instanceStarted = new CountDownLatch(_numNode);
     }
+  }
+
+  public static TestInfo getTestInfo(String uniqTestName)
+  {
+    if (!_testInfoMap.containsKey(uniqTestName))
+    {
+      String errMsg = "Cluster hasn't been setup for " + uniqTestName;
+      throw new IllegalArgumentException(errMsg);
+    }
+
+    TestInfo testInfo = _testInfoMap.get(uniqTestName);
+    return testInfo;
   }
 
   public static void setupClusterWithoutRebalance(String uniqTestName, ZkClient zkClient,
@@ -332,6 +342,7 @@ public class TestDriver
     }
   }
 
+
   public static void setIdealState(String uniqTestName, long at, int percentage)
   throws Exception
   {
@@ -357,16 +368,16 @@ public class TestDriver
       ZNRecord destIS = IdealStateCalculatorForStorageNode.calculateIdealState(instanceNames,
               testInfo._numPartitionsPerDb, testInfo._replica - 1, dbName, "MASTER","SLAVE");
       // destIS.setId(dbName);
-      destIS.setSimpleField("ideal_state_mode", IdealStateConfigProperty.CUSTOMIZED.toString());
-      destIS.setSimpleField("partitions", Integer.toString(testInfo._numPartitionsPerDb));
-      destIS.setSimpleField("state_model_def_ref", STATE_MODEL);
+      destIS.setSimpleField(IdealStateProperty.IDEAL_STATE_MODE.toString(), IdealStateModeProperty.CUSTOMIZED.toString());
+      destIS.setSimpleField(IdealStateProperty.RESOURCES.toString(), Integer.toString(testInfo._numPartitionsPerDb));
+      destIS.setSimpleField(IdealStateProperty.STATE_MODEL_DEF_REF.toString(), STATE_MODEL);
       String idealStatePath = "/" + clusterName
                             + "/" + PropertyType.IDEALSTATES.toString()
                             + "/" + TEST_DB_PREFIX + i;
       ZNRecord initIS = new ZNRecord(dbName); // _zkClient.<ZNRecord> readData(idealStatePath);
-      initIS.setSimpleField("ideal_state_mode", IdealStateConfigProperty.CUSTOMIZED.toString());
-      initIS.setSimpleField("partitions", Integer.toString(testInfo._numPartitionsPerDb));
-      initIS.setSimpleField("state_model_def_ref", "MasterSlave");
+      initIS.setSimpleField(IdealStateProperty.IDEAL_STATE_MODE.toString(), IdealStateModeProperty.CUSTOMIZED.toString());
+      initIS.setSimpleField(IdealStateProperty.RESOURCES.toString(), Integer.toString(testInfo._numPartitionsPerDb));
+      initIS.setSimpleField(IdealStateProperty.STATE_MODEL_DEF_REF.toString(), "MasterSlave");
       int totalStep = calcuateNumTransitions(initIS, destIS);
       // LOG.info("initIS:" + initIS);
       // LOG.info("destIS:" + destIS);

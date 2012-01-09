@@ -8,7 +8,7 @@ import java.util.List;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
-import com.linkedin.clustermanager.agent.file.FileBasedClusterManager;
+import com.linkedin.clustermanager.agent.file.StaticFileClusterManager;
 import com.linkedin.clustermanager.tools.ClusterViewSerializer;
 
 public class TestClusterviewSerializer
@@ -16,9 +16,9 @@ public class TestClusterviewSerializer
   @Test ()
   public void testClusterviewSerializer() throws Exception
   {
-    List<FileBasedClusterManager.DBParam> dbParams = new ArrayList<FileBasedClusterManager.DBParam>();
+    List<StaticFileClusterManager.DBParam> dbParams = new ArrayList<StaticFileClusterManager.DBParam>();
     // dbParams.add(new FileBasedClusterManager.DBParam("BizFollow", 1));
-    dbParams.add(new FileBasedClusterManager.DBParam("BizProfile", 1));
+    dbParams.add(new StaticFileClusterManager.DBParam("BizProfile", 1));
     // dbParams.add(new FileBasedClusterManager.DBParam("EspressoDB", 10));
     // dbParams.add(new FileBasedClusterManager.DBParam("MailboxDB", 128));
     // dbParams.add(new FileBasedClusterManager.DBParam("MyDB", 8));
@@ -29,7 +29,7 @@ public class TestClusterviewSerializer
     String[] nodesInfo = { "localhost:12918" };
     int replication = 0;
 
-    ClusterView view = FileBasedClusterManager.generateStaticConfigClusterView(nodesInfo, dbParams, replication);
+    ClusterView view = StaticFileClusterManager.generateStaticConfigClusterView(nodesInfo, dbParams, replication);
     view.setExternalView(new LinkedList<ZNRecord>());
     String file = "/tmp/clusterView.json";
     // ClusterViewSerializer serializer = new ClusterViewSerializer(file);

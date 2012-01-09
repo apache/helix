@@ -10,20 +10,20 @@ import java.util.TreeSet;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.clustermanager.CMConstants;
 import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.model.CurrentState.CurrentStateProperty;
 import com.linkedin.clustermanager.model.Message;
 
 /*
  * ZKRoutingInfoProvider keeps a copy of the routing table. Given a partition id,
- * it will return 
- * 
- * 1. The list of partition that can be read 
+ * it will return
+ *
+ * 1. The list of partition that can be read
  * 2. the master partition, for write operation
- * 
+ *
  * The routing table is constructed from the currentState of each storage nodes.
  * The current state is a list of following pairs: partition-id:State(MASTER / SLAVE)
- * 
+ *
  * TODO: move the code as part of router process
  * TODO: add listeners to node current state changes
  * */
@@ -34,13 +34,13 @@ public class ExternalViewGenerator
   /*
    * Given a list of external view ZNRecord nodes(one for each cluster),
    * calculate the routing map.
-   * 
+   *
    * The format of the routing map is like this:
-   * 
+   *
    * Map<String, Map<String, Set<String>>> maps from a partitionName to its
    * states Map<String, List<String>> The second Map maps from a state
    * ("MASTER", "SLAVE"...) to a list of nodeNames
-   * 
+   *
    * So that the we can query the map for the list of nodes by providing the
    * partition name and the expected state.
    */
@@ -62,7 +62,7 @@ public class ExternalViewGenerator
         Map<String, String> nodeStateMap = dbNodeStateMap.get(partitionId);
         for (String nodeName : nodeStateMap.keySet())
         {
-          String state = (String) nodeStateMap.get(nodeName);
+          String state = nodeStateMap.get(nodeName);
           if (!result.get(partitionId).containsKey(state))
           {
             result.get(partitionId).put(state, new TreeSet<String>());
@@ -117,8 +117,7 @@ public class ExternalViewGenerator
             partitionStatus = new ZNRecord(dbName);
             resultRoutingTable.put(dbName, partitionStatus);
           }
-          String currentStateKey = CMConstants.ZNAttribute.CURRENT_STATE
-              .toString();
+          String currentStateKey = CurrentStateProperty.CURRENT_STATE.toString();
 
           if (!partitionStatus.getMapFields().containsKey(stateUnitKey))
           {

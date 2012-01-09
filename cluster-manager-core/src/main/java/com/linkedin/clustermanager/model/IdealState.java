@@ -7,77 +7,63 @@ import java.util.Set;
 import java.util.TreeMap;
 
 import org.apache.log4j.Logger;
-import org.apache.zookeeper.data.Stat;
 
-import com.linkedin.clustermanager.ClusterDataAccessor.IdealStateConfigProperty;
 import com.linkedin.clustermanager.ZNRecord;
-import com.linkedin.clustermanager.ZNRecordAndStat;
+import com.linkedin.clustermanager.ZNRecordDecorator;
 
-public class IdealState extends ZNRecordAndStat
+/**
+ * The ideal states of all resources in a resource group
+ */
+public class IdealState extends ZNRecordDecorator
 {
-  private static final Logger logger = Logger.getLogger(IdealState.class.getName());
-//  private final ZNRecord _record;
-  private final String _resourceGroup;
-//  private final Stat _stat;
-
-//  @Override
-//  public ZNRecord getRecord()
-//  {
-//    return _record;
-//  }
-
-  public String getResourceGroup()
+  public enum IdealStateProperty
   {
-    return _resourceGroup;
+    RESOURCES,
+    STATE_MODEL_DEF_REF,
+    REPLICAS,
+    IDEAL_STATE_MODE
   }
+
+  public enum IdealStateModeProperty
+  {
+    AUTO,
+    CUSTOMIZED
+  }
+
+  private static final Logger logger = Logger.getLogger(IdealState.class.getName());
 
   public IdealState(String resourceGroup)
   {
-    super(new ZNRecord(resourceGroup), null);
-    _resourceGroup = resourceGroup;
-//    _record = new ZNRecord(resourceGroup);
-//    _stat = null;
+    super(resourceGroup);
   }
 
   public IdealState(ZNRecord record)
   {
-    super(record, null);
-    _resourceGroup = record.getId();
-//    this._record = record;
-//    _stat = null;
+    super(record);
   }
 
-  public IdealState(ZNRecord record, Stat stat)
+  public String getResourceGroup()
   {
-    super(record, stat);
-    _resourceGroup = record.getId();
-//    this._record = record;
-//    _stat = stat;
+    return _record.getId();
   }
 
   public void setIdealStateMode(String mode)
   {
-    _record.setSimpleField("ideal_state_mode", mode);
+    _record.setSimpleField(IdealStateProperty.IDEAL_STATE_MODE.toString(), mode);
   }
 
-  public IdealStateConfigProperty getIdealStateMode()
+  public IdealStateModeProperty getIdealStateMode()
   {
-    if (_record == null)
-    {
-      return IdealStateConfigProperty.AUTO;
-    }
-
-    String mode = _record.getSimpleField("ideal_state_mode");
+    String mode = _record.getSimpleField(IdealStateProperty.IDEAL_STATE_MODE.toString());
     if (mode == null
-        || !mode.equalsIgnoreCase(IdealStateConfigProperty.CUSTOMIZED.toString()))
+      || !mode.equalsIgnoreCase(IdealStateModeProperty.CUSTOMIZED.toString()))
     {
-      return IdealStateConfigProperty.AUTO;
+      return IdealStateModeProperty.AUTO;
     }
     else
     {
-      return IdealStateConfigProperty.CUSTOMIZED;
+      return IdealStateModeProperty.CUSTOMIZED;
     }
-
   }
 
   public void set(String key, String instanceName, String state)
@@ -92,17 +78,17 @@ public class IdealState extends ZNRecordAndStat
 
   public Set<String> getResourceKeySet()
   {
-    if (getIdealStateMode() == IdealStateConfigProperty.AUTO)
+    if (getIdealStateMode() == IdealStateModeProperty.AUTO)
     {
       return _record.getListFields().keySet();
     }
-    else if (getIdealStateMode() == IdealStateConfigProperty.CUSTOMIZED)
+    else if (getIdealStateMode() == IdealStateModeProperty.CUSTOMIZED)
     {
       return _record.getMapFields().keySet();
     }
     else
     {
-      logger.warn("Invalid mode in idealstate:" + getResourceGroup());
+      logger.error("Invalid ideal state mode:" + getResourceGroup());
       return Collections.emptySet();
     }
   }
@@ -121,53 +107,47 @@ public class IdealState extends ZNRecordAndStat
     {
       return instanceStateList;
     }
-    logger.warn("Resource unit key:" + resourceKeyName
+    logger.warn("Resource key:" + resourceKeyName
         + " does not have a pre-computed preference list.");
     return null;
   }
 
   public String getStateModelDefRef()
   {
-    return _record.getSimpleField("state_model_def_ref");
+    return _record.getSimpleField(IdealStateProperty.STATE_MODEL_DEF_REF.toString());
   }
 
   public void setStateModelDefRef(String stateModel)
   {
-    _record.setSimpleField("state_model_def_ref", stateModel);
+    _record.setSimpleField(IdealStateProperty.STATE_MODEL_DEF_REF.toString(), stateModel);
   }
 
   public List<String> getPreferenceList(String resourceKeyName,
                                         StateModelDefinition stateModelDef)
   {
-    if (_record == null)
-    {
-      return null;
-    }
     return getInstancePreferenceList(resourceKeyName, stateModelDef);
   }
 
   public void setNumPartitions(int numPartitions)
   {
-    _record.setSimpleField("partitions", String.valueOf(numPartitions));
+    _record.setSimpleField(IdealStateProperty.RESOURCES.toString(), String.valueOf(numPartitions));
   }
 
   public int getNumPartitions()
   {
     try
     {
-      return Integer.parseInt(_record.getSimpleField("partitions"));
+      return Integer.parseInt(_record.getSimpleField(IdealStateProperty.RESOURCES.toString()));
     }
     catch (Exception e)
     {
       logger.debug("Can't parse number of partitions: " + e);
       return -1;
     }
-
   }
 
-//  @Override
-//  public Stat getStat()
-//  {
-//    return _stat;
-//  }
+  public void setReplicas(int replicas)
+  {
+    _record.setSimpleField(IdealStateProperty.REPLICAS.toString(), Integer.toString(replicas));
+  }
 }

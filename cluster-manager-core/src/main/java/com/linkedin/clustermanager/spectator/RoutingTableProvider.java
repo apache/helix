@@ -18,6 +18,7 @@ import com.linkedin.clustermanager.ExternalViewChangeListener;
 import com.linkedin.clustermanager.NotificationContext;
 import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.model.ExternalView;
 import com.linkedin.clustermanager.model.InstanceConfig;
 import com.linkedin.clustermanager.util.ZNRecordUtil;
 
@@ -25,9 +26,7 @@ public class RoutingTableProvider implements ExternalViewChangeListener
 {
 	private static final Logger logger = Logger
 	    .getLogger(RoutingTableProvider.class);
-	private AtomicReference<RoutingTable> _routingTableRef;
-
-	// AtomicReference<V>
+	private final AtomicReference<RoutingTable> _routingTableRef;
 
 	public RoutingTableProvider()
 	{
@@ -39,7 +38,7 @@ public class RoutingTableProvider implements ExternalViewChangeListener
 	/**
 	 * returns the instances for {stateUnitgroup,stateUnitKey} pair that are in a
 	 * specific {state}
-	 * 
+	 *
 	 * @param stateUnitGroup
 	 *          -
 	 * @param stateUnitKey
@@ -69,7 +68,7 @@ public class RoutingTableProvider implements ExternalViewChangeListener
 
 	/**
 	 * returns all instances for {stateUnitgroup} that are in a specific {state}
-	 * 
+	 *
 	 * @param stateUnitGroup
 	 * @param state
 	 * @return empty list if there is no instance in a given state
@@ -91,7 +90,7 @@ public class RoutingTableProvider implements ExternalViewChangeListener
 	}
 
 	@Override
-	public void onExternalViewChange(List<ZNRecord> externalViewList,
+	public void onExternalViewChange(List<ExternalView> externalViewList,
 	    NotificationContext changeContext)
 	{
     //session has expired clean up the routing table
@@ -105,34 +104,29 @@ public class RoutingTableProvider implements ExternalViewChangeListener
 		refresh(externalViewList, changeContext);
 	}
 
-	private void refresh(List<ZNRecord> externalViewList,
+	private void refresh(List<ExternalView> externalViewList,
 	    NotificationContext changeContext)
 	{
-		ClusterDataAccessor dataAccessor = changeContext.getManager()
-		    .getDataAccessor();
-		List<ZNRecord> configList = dataAccessor
-		    .getChildValues(PropertyType.CONFIGS);
+		ClusterDataAccessor dataAccessor = changeContext.getManager().getDataAccessor();
+		List<InstanceConfig> configList = dataAccessor.getChildValues(InstanceConfig.class,
+		                                                              PropertyType.CONFIGS);
 		Map<String, InstanceConfig> instanceConfigMap = new HashMap<String, InstanceConfig>();
-		for (ZNRecord config : configList)
+    for (InstanceConfig config : configList)
 		{
-			instanceConfigMap.put(config.getId(), new InstanceConfig(config));
+      instanceConfigMap.put(config.getId(), config);
 		}
 		RoutingTable newRoutingTable = new RoutingTable();
 		if (externalViewList != null)
 		{
-			for (ZNRecord record : externalViewList)
+      for (ExternalView extView : externalViewList)
 			{
-				String stateUnitGroupName = record.getId();
-				Map<String, Map<String, String>> stateUnitKeysMap = record
-				    .getMapFields();
-				for (String stateUnitKey : stateUnitKeysMap.keySet())
+				String stateUnitGroupName = extView.getId();
+				for (String stateUnitKey : extView.getResourceKeys())
 				{
-
-					Map<String, String> stateUnitData = stateUnitKeysMap
-					    .get(stateUnitKey);
-					for (String instanceName : stateUnitData.keySet())
+				  Map<String, String> stateMap = extView.getStateMap(stateUnitKey);
+				  for (String instanceName : stateMap.keySet())
 					{
-						String currentState = stateUnitData.get(instanceName);
+						String currentState = stateMap.get(instanceName);
 						if (instanceConfigMap.containsKey(instanceName))
 						{
 							InstanceConfig instanceConfig = instanceConfigMap
@@ -205,7 +199,7 @@ public class RoutingTableProvider implements ExternalViewChangeListener
 
 	class RoutingTable
 	{
-		private HashMap<String, StateUnitGroupInfo> groupInfoMap;
+		private final HashMap<String, StateUnitGroupInfo> groupInfoMap;
 
 		public RoutingTable()
 		{

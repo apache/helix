@@ -4,15 +4,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.zookeeper.data.Stat;
-
 import com.linkedin.clustermanager.ZNRecord;
-import com.linkedin.clustermanager.ZNRecordAndStat;
+import com.linkedin.clustermanager.ZNRecordDecorator;
 
-public class StateModelDefinition extends ZNRecordAndStat
+/**
+ * Describe the state model
+ */
+public class StateModelDefinition extends ZNRecordDecorator
 {
-
-//  private final ZNRecord _record;
+  public enum StateModelDefinitionProperty
+  {
+    INITIAL_STATE
+  }
 
   /**
    * State Names in priority order. Indicates the order in which states are
@@ -22,7 +25,7 @@ public class StateModelDefinition extends ZNRecordAndStat
 
   /**
    * Specifies the number of instances for a given state <br>
-   * -1 dont care, dont try to keep any resource in this state on any instance <br>
+   * -1 don't care, don't try to keep any resource in this state on any instance <br>
    * >0 any integer number greater than 0 specifies the number of instances
    * needed to be in this state <br>
    * R all instances in the preference list can be in this state <br>
@@ -41,13 +44,8 @@ public class StateModelDefinition extends ZNRecordAndStat
 
   public StateModelDefinition(ZNRecord record)
   {
-    this(record, null);
-  }
+    super(record);
 
-  public StateModelDefinition(ZNRecord record, Stat stat)
-  {
-    super(record, stat);
-//    _record = record;
     _statesPriorityList = record.getListField("statesPriorityList");
     _stateTransitionPriorityList = record
         .getListField("stateTransitionPriorityList");
@@ -93,16 +91,11 @@ public class StateModelDefinition extends ZNRecordAndStat
 
   public String getInitialState()
   {
-    return _record.getSimpleField("INITIAL_STATE");
+    return _record.getSimpleField(StateModelDefinitionProperty.INITIAL_STATE.toString());
   }
 
   public String getNumInstancesPerState(String state)
   {
     return _statesCountMap.get(state);
-  }
-
-  public String getId()
-  {
-    return _record.getId();
   }
 }

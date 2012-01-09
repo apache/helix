@@ -32,7 +32,7 @@ public class Message extends ZNRecordAndStat
     MSG_ID, SRC_SESSION_ID, TGT_SESSION_ID, SRC_NAME, TGT_NAME, 
     MSG_STATE, STATE_UNIT_KEY, STATE_UNIT_GROUP, FROM_STATE, TO_STATE, 
     STATE_MODEL_DEF, CREATE_TIMESTAMP, READ_TIMESTAMP, EXECUTE_START_TIMESTAMP, MSG_TYPE, 
-    MSG_SUBTYPE, CORRELATION_ID, MESSAGE_RESULT, EXE_SESSION_ID;
+    MSG_SUBTYPE, CORRELATION_ID, MESSAGE_RESULT, EXE_SESSION_ID, MESSAGE_TIMEOUT;
   }
 
   public Message(MessageType type, String msgId)
@@ -332,6 +332,26 @@ public class Message extends ZNRecordAndStat
   public String getCorrelationId()
   {
     return getSimpleFieldAsString(Attributes.CORRELATION_ID.toString());
+  }
+  
+  public int getExecutionTimeout()
+  {
+    if(!_record.getSimpleFields().containsKey(Attributes.MESSAGE_TIMEOUT.toString()))
+    {
+      return -1;
+    }
+    try
+    {
+      return Integer.parseInt(_record.getSimpleField(Attributes.MESSAGE_TIMEOUT.toString()));
+    }
+    catch(Exception e)
+    {} 
+    return -1;
+  }
+  
+  public void setExecutionTimeout(int timeout)
+  {
+    _record.setSimpleField(Attributes.MESSAGE_TIMEOUT.toString(), "" + timeout);
   }
 
   public Map<String, String> getResultMap()

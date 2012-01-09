@@ -9,12 +9,23 @@ public class CMTaskResult
   private boolean _success;
   private String _message;
   private Map<String, String> _taskResultMap = new HashMap<String, String>();
-
+  private boolean _interrupted = false;
+  
   public boolean isSucess()
   {
     return _success;
   }
-
+  
+  public boolean isInterrupted()
+  {
+    return _interrupted; 
+  }
+  
+  public void setInterrupted(boolean interrupted)
+  {
+    _interrupted = interrupted;
+  }
+  
   public void setSuccess(boolean success)
   {
     this._success = success;

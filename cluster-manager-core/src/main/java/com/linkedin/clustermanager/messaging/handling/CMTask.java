@@ -1,6 +1,8 @@
 package com.linkedin.clustermanager.messaging.handling;
 
 import java.util.Date;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.Callable;
 
 import org.apache.log4j.Logger;
@@ -26,6 +28,28 @@ public class CMTask implements Callable<CMTaskResult>
   private final ClusterManager _manager;
   StatusUpdateUtil _statusUpdateUtil;
   CMTaskExecutor _executor;
+  boolean _isTimeout = false;
+  
+  public class TimeoutCancelTask extends TimerTask
+  {
+    CMTaskExecutor _executor;
+    Message _message;
+    NotificationContext _context;
+    public TimeoutCancelTask(CMTaskExecutor executor, Message message, NotificationContext context)
+    {
+      _executor = executor;
+      _message = message;
+      _context = context;
+    }
+    @Override
+    public void run()
+    {
+      _isTimeout = true;
+      logger.warn("Message time out, canceling. id:" + _message.getMsgId() + " timeout : " + _message.getExecutionTimeout());
+      _executor.cancelTask(_message, _context);
+    }
+    
+  }
 
   public CMTask(Message message, NotificationContext notificationContext,
       MessageHandler handler, CMTaskExecutor executor) throws Exception
@@ -41,10 +65,20 @@ public class CMTask implements Callable<CMTaskResult>
   @Override
   public CMTaskResult call()
   {
+    Timer timer = null;
+    if(_message.getExecutionTimeout() > 0)
+    {
+      timer = new Timer();
+      timer.schedule(new TimeoutCancelTask(_executor, _message, _notificationContext),
+            _message.getExecutionTimeout());
+    }
+    else
+    {
+      logger.info("Message does not have timeout");
+    }
     CMTaskResult taskResult = new CMTaskResult();
     taskResult.setSuccess(false);
     ClusterDataAccessor accessor = _manager.getDataAccessor();
-    String instanceName = _manager.getInstanceName();
     try
     {
       _statusUpdateUtil.logInfo(_message, CMTask.class,
@@ -71,13 +105,20 @@ public class CMTask implements Callable<CMTaskResult>
         taskResult.setSuccess(false);
         taskResult.setMessage(e.getMessage());
       }
-    } catch (InterruptedException e)
+    } 
+    catch (InterruptedException e)
     {
       _statusUpdateUtil.logError(_message, CMTask.class, e,
           "State transition interrupted", accessor);
       logger.info("Message " + _message.getMsgId() + " is interrupted");
-    } finally
+      taskResult.setInterrupted(true);
+    } 
+    finally
     {
+      if(timer != null)
+      {
+        timer.cancel();
+      }
       reportMessgeStat(_manager, _message, taskResult);
 
       removeMessage(accessor, _message);
@@ -88,7 +129,7 @@ public class CMTask implements Callable<CMTaskResult>
       }
 
       sendReply(accessor, _message, taskResult);
-      return taskResult;
+      return taskResult; 
     }
   }
 
@@ -116,6 +157,7 @@ public class CMTask implements Callable<CMTaskResult>
           accessor);
 
       taskResult.getTaskResultMap().put("SUCCESS", "" + taskResult.isSucess());
+      taskResult.getTaskResultMap().put("INTERRUPTED", "" + taskResult.isInterrupted());
       if (!taskResult.isSucess())
       {
         taskResult.getTaskResultMap().put("ERRORINFO", taskResult.getMessage());

@@ -29,7 +29,7 @@ public class Message extends ZNRecordDecorator
     MSG_ID, SRC_SESSION_ID, TGT_SESSION_ID, SRC_NAME, TGT_NAME,
     MSG_STATE, STATE_UNIT_KEY, STATE_UNIT_GROUP, FROM_STATE, TO_STATE,
     STATE_MODEL_DEF, CREATE_TIMESTAMP, READ_TIMESTAMP, EXECUTE_START_TIMESTAMP, MSG_TYPE,
-    MSG_SUBTYPE, CORRELATION_ID, MESSAGE_RESULT, EXE_SESSION_ID;
+    MSG_SUBTYPE, CORRELATION_ID, MESSAGE_RESULT, EXE_SESSION_ID, MESSAGE_TIMEOUT, RETRY_COUNT;
   }
 
   public Message(MessageType type, String msgId)
@@ -306,6 +306,46 @@ public class Message extends ZNRecordDecorator
   {
     return getSimpleFieldAsString(Attributes.CORRELATION_ID.toString());
   }
+  
+  public int getExecutionTimeout()
+  {
+    if(!_record.getSimpleFields().containsKey(Attributes.MESSAGE_TIMEOUT.toString()))
+    {
+      return -1;
+    }
+    try
+    {
+      return Integer.parseInt(_record.getSimpleField(Attributes.MESSAGE_TIMEOUT.toString()));
+    }
+    catch(Exception e)
+    {} 
+    return -1;
+  }
+  
+  public void setExecutionTimeout(int timeout)
+  {
+    _record.setSimpleField(Attributes.MESSAGE_TIMEOUT.toString(), "" + timeout);
+  }
+  
+  public void setRetryCount(int retryCount)
+  {
+    _record.setSimpleField(Attributes.RETRY_COUNT.toString(), "" + retryCount);
+  }
+  
+  public int getRetryCount()
+  {
+    if(!_record.getSimpleFields().containsKey(Attributes.RETRY_COUNT.toString()))
+    {
+      return 1;
+    }
+    try
+    {
+      return Integer.parseInt(_record.getSimpleField(Attributes.RETRY_COUNT.toString()));
+    }
+    catch(Exception e)
+    {} 
+    return 1;
+  }
 
   public Map<String, String> getResultMap()
   {
@@ -333,5 +373,13 @@ public class Message extends ZNRecordDecorator
     replyMessage.setMsgState("new");
 
     return replyMessage;
+  }
+
+  @Override
+  public boolean isValid()
+  {
+    // TODO: refactor message to state transition message and task-message and 
+    // implemement this function separately
+    return true;
   }
 }

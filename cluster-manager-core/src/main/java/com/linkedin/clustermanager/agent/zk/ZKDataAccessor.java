@@ -14,6 +14,7 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.data.Stat;
 
 import com.linkedin.clustermanager.ClusterDataAccessor;
+import com.linkedin.clustermanager.ClusterManagerException;
 import com.linkedin.clustermanager.PropertyPathConfig;
 import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
@@ -46,6 +47,10 @@ public class ZKDataAccessor implements ClusterDataAccessor
   @Override
   public boolean setProperty(PropertyType type, ZNRecordDecorator value, String... keys)
   {
+    if(!value.isValid())
+    {
+      throw new ClusterManagerException("The ZNRecord for "+ type+" is not valid.");
+    }
     return setProperty(type, value.getRecord(), keys);
   }
 

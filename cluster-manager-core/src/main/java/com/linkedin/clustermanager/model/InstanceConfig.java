@@ -3,6 +3,9 @@ package com.linkedin.clustermanager.model;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.apache.log4j.Logger;
+
+import com.linkedin.clustermanager.ClusterManagerException;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.ZNRecordDecorator;
 
@@ -18,7 +21,8 @@ public class InstanceConfig extends ZNRecordDecorator
     ENABLED,
     DISABLED_PARTITION
   }
-
+  private static final Logger _logger = Logger.getLogger(InstanceConfig.class.getName());
+  
   public InstanceConfig(String id)
   {
     super(id);
@@ -120,5 +124,21 @@ public class InstanceConfig extends ZNRecordDecorator
   public String getInstanceName()
   {
     return _record.getId();
+  }
+
+  @Override
+  public boolean isValid()
+  {
+    if(getHostName() == null)
+    {
+      _logger.error("instanceconfig does not have host name. id:" + _record.getId());
+      return false;
+    }
+    if(getPort() == null)
+    {
+      _logger.error("instanceconfig does not have host port. id:" + _record.getId());
+      return false;
+    }
+    return true;
   }
 }

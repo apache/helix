@@ -14,4 +14,10 @@ public class PauseSignal extends ZNRecordDecorator
   {
     super(record);
   }
+
+  @Override
+  public boolean isValid()
+  { 
+    return true;
+  }
 }

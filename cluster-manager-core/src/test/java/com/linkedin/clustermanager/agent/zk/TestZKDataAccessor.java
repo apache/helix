@@ -34,6 +34,9 @@ public class TestZKDataAccessor extends ZkUnitTestBase
   public void testSet()
   {
     IdealState idealState = new IdealState(resourceGroup);
+    idealState.setNumPartitions(20);
+    idealState.setReplicas(2);
+    idealState.setStateModelDefRef("StateModel1");
     idealState.setIdealStateMode(IdealStateModeProperty.AUTO.toString());
     boolean success = _accessor.setProperty(PropertyType.IDEALSTATES, idealState, resourceGroup);
     AssertJUnit.assertTrue(success);

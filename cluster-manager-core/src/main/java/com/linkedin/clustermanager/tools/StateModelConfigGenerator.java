@@ -34,7 +34,7 @@ public class StateModelConfigGenerator
     List<String> statePriorityList = new ArrayList<String>();
     statePriorityList.add("MASTER");
     statePriorityList.add("OFFLINE");
-    record.setListField("statesPriorityList", statePriorityList);
+    record.setListField(StateModelDefinitionProperty.STATE_PRIORITY_LIST.toString(), statePriorityList);
     for (String state : statePriorityList)
     {
       String key = state + ".meta";
@@ -84,7 +84,7 @@ public class StateModelConfigGenerator
     stateTransitionPriorityList.add("SLAVE-MASTER");
     stateTransitionPriorityList.add("OFFLINE-SLAVE");
     stateTransitionPriorityList.add("SLAVE-OFFLINE");
-    record.setListField("stateTransitionPriorityList",
+    record.setListField(StateModelDefinitionProperty.STATE_TRANSITION_PRIORITYLIST.toString(),
         stateTransitionPriorityList);
     return record;
   }
@@ -98,7 +98,7 @@ public class StateModelConfigGenerator
     statePriorityList.add("SLAVE");
     statePriorityList.add("OFFLINE");
     statePriorityList.add("DROPPED");
-    record.setListField("statesPriorityList", statePriorityList);
+    record.setListField(StateModelDefinitionProperty.STATE_PRIORITY_LIST.toString(), statePriorityList);
     for (String state : statePriorityList)
     {
       String key = state + ".meta";
@@ -166,7 +166,7 @@ public class StateModelConfigGenerator
     stateTransitionPriorityList.add("OFFLINE-SLAVE");
     stateTransitionPriorityList.add("SLAVE-OFFLINE");
     stateTransitionPriorityList.add("OFFLINE-DROPPED");
-    record.setListField("stateTransitionPriorityList",
+    record.setListField(StateModelDefinitionProperty.STATE_TRANSITION_PRIORITYLIST.toString(),
         stateTransitionPriorityList);
     return record;
     // ZNRecordSerializer serializer = new ZNRecordSerializer();
@@ -182,7 +182,7 @@ public class StateModelConfigGenerator
     statePriorityList.add("STANDBY");
     statePriorityList.add("OFFLINE");
     statePriorityList.add("DROPPED");
-    record.setListField("statesPriorityList", statePriorityList);
+    record.setListField(StateModelDefinitionProperty.STATE_PRIORITY_LIST.toString(), statePriorityList);
     for (String state : statePriorityList)
     {
       String key = state + ".meta";
@@ -246,7 +246,7 @@ public class StateModelConfigGenerator
     stateTransitionPriorityList.add("STANDBY-OFFLINE");
     stateTransitionPriorityList.add("OFFLINE-DROPPED");
 
-    record.setListField("stateTransitionPriorityList",
+    record.setListField(StateModelDefinitionProperty.STATE_TRANSITION_PRIORITYLIST.toString(),
         stateTransitionPriorityList);
     return record;
     // ZNRecordSerializer serializer = new ZNRecordSerializer();
@@ -262,7 +262,7 @@ public class StateModelConfigGenerator
     statePriorityList.add("ONLINE");
     statePriorityList.add("OFFLINE");
     statePriorityList.add("DROPPED");
-    record.setListField("statesPriorityList", statePriorityList);
+    record.setListField(StateModelDefinitionProperty.STATE_PRIORITY_LIST.toString(), statePriorityList);
     for (String state : statePriorityList)
     {
       String key = state + ".meta";
@@ -307,7 +307,7 @@ public class StateModelConfigGenerator
     stateTransitionPriorityList.add("ONLINE-OFFLINE");
     stateTransitionPriorityList.add("OFFLINE-DROPPED");
 
-    record.setListField("stateTransitionPriorityList",
+    record.setListField(StateModelDefinitionProperty.STATE_TRANSITION_PRIORITYLIST.toString(),
         stateTransitionPriorityList);
     return record;
     // ZNRecordSerializer serializer = new ZNRecordSerializer();

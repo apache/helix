@@ -104,6 +104,7 @@ public class DistClusterControllerElection implements ControllerChangeListener
     {
       leader.setLeader(manager.getInstanceName());
       leader.setSessionId(manager.getSessionId());
+      leader.setClusterManagerVersion(manager.getVersion());
       boolean success = dataAccessor.setProperty(PropertyType.LEADER, leader);
       if (success)
       {

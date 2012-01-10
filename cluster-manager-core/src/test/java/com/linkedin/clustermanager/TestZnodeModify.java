@@ -58,15 +58,15 @@ public class TestZnodeModify extends ZkUnitTestBase
     commandList.add(command);
 
     arg = new ZnodeOpArg(pathChild1, ZnodePropertyType.SIMPLE, "==", "key1");
-    command = new TestCommand(CommandType.VERIFY, new TestTrigger(100, 0, "simpleValue1"), arg);
+    command = new TestCommand(CommandType.VERIFY, new TestTrigger(1000, 0, "simpleValue1"), arg);
     commandList.add(command);
 
     arg = new ZnodeOpArg(pathChild1, ZnodePropertyType.LIST, "==", "key2");
-    command = new TestCommand(CommandType.VERIFY, new TestTrigger(100, 0, list), arg);
+    command = new TestCommand(CommandType.VERIFY, new TestTrigger(1000, 0, list), arg);
     commandList.add(command);
 
     arg = new ZnodeOpArg(pathChild2, ZnodePropertyType.ZNODE, "==");
-    command = new TestCommand(CommandType.VERIFY, new TestTrigger(100, 0, record), arg);
+    command = new TestCommand(CommandType.VERIFY, new TestTrigger(1000, 0, record), arg);
     commandList.add(command);
 
     Map<TestCommand, Boolean> results = TestExecutor.executeTest(commandList, ZK_ADDR);
@@ -218,9 +218,12 @@ public class TestZnodeModify extends ZkUnitTestBase
 
   ZkClient _zkClient;
 
-  @BeforeClass (groups = {"unitTest"})
+  @BeforeClass ()
   public void beforeClass()
   {
+    System.out.println("START " + getShortClassName() + " at "
+        + new Date(System.currentTimeMillis()));
+
     _zkClient = new ZkClient(ZK_ADDR);
     _zkClient.setZkSerializer(new ZNRecordSerializer());
     if (_zkClient.exists(PREFIX))
@@ -230,13 +233,15 @@ public class TestZnodeModify extends ZkUnitTestBase
 
   }
 
-
   @AfterClass
   public void afterClass()
   {
   	_zkClient.close();
-  }
 
+    System.out.println("END " + getShortClassName() + " at "
+        + new Date(System.currentTimeMillis()));
+
+  }
 
   private ZNRecord getExampleZNRecord()
   {

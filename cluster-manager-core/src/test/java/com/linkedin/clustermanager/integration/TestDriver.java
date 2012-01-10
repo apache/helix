@@ -255,7 +255,7 @@ public class TestDriver
           + PropertyType.EXTERNALVIEW.toString() + "/" + TEST_DB_PREFIX + i;
 
       ZnodeOpArg arg = new ZnodeOpArg(externalViewPath, ZnodePropertyType.ZNODE, "==");
-      TestCommand command = new TestCommand(CommandType.VERIFY, new TestTrigger(1000, 120 * 1000,
+      TestCommand command = new TestCommand(CommandType.VERIFY, new TestTrigger(1000, 60 * 1000,
           externalView), arg);
       commandList.add(command);
     }
@@ -384,11 +384,11 @@ public class TestDriver
       // LOG.info("totalSteps from initIS to destIS:" + totalStep);
       // System.out.println("initIS:" + initIS);
       // System.out.println("destIS:" + destIS);
-      System.out.println("totalSteps from initIS to destIS:" + totalStep);
-
 
       ZNRecord nextIS;
       int step = totalStep * percentage / 100;
+      System.out.println("Resource:" + dbName + ", totalSteps from initIS to destIS:" + totalStep
+                         + ", walk " + step + " steps(" + percentage + "%)");
       nextIS = nextIdealState(initIS, destIS, step);
       testInfo._idealStateMap.put(dbName, nextIS);
       ZnodeOpArg arg = new ZnodeOpArg(idealStatePath, ZnodePropertyType.ZNODE, "+", nextIS);

@@ -317,40 +317,4 @@ public class ZKDataAccessor implements ClusterDataAccessor
 
     return newChildRecords;
   }
-
-//  static ZNRecord refreshValue(ZkClient zkClient, String path, ZNRecord record)
-//  {
-//    Stat newStat = new Stat();
-//    ZNRecord newRecord = null;
-//    if (record == null)
-//    {
-//      newRecord = zkClient.readDataAndStat(path, newStat, true);
-//      if (newRecord != null)
-//      {
-//        newRecord.setVersion(newStat.getVersion());
-//      }
-//    }
-//    else
-//    {
-//      int oldVersion = record.getVersion();
-//      newStat = zkClient.getStat(path);
-//      if (newStat != null)
-//      {
-//        if (oldVersion < newStat.getVersion())
-//        {
-//          newRecord = zkClient.readDataAndStat(path, newStat, true);
-//          if (newRecord != null)
-//          {
-//            newRecord.setVersion(newStat.getVersion());
-//          }
-//        }
-//        else
-//        {
-//          newRecord = new ZNRecord(record);
-//        }
-//      }
-//    }
-//    return newRecord;
-//  }
-
 }

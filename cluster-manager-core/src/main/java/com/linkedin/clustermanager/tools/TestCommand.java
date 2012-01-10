@@ -71,9 +71,12 @@ public class TestCommand
   @Override
   public String toString()
   {
-    String ret = super.toString().substring(super.toString().lastIndexOf(".") + 1) + " "
-               + "FINISH@" + _finishTimestamp + "-START@" + _startTimestamp
+    String ret = super.toString().substring(super.toString().lastIndexOf(".") + 1) + " ";
+    if (_finishTimestamp > 0)
+    {
+      ret += "FINISH@" + _finishTimestamp + "-START@" + _startTimestamp
                + "=" + (_finishTimestamp - _startTimestamp) + "ms ";
+    }
     if (_commandType == CommandType.MODIFY || _commandType == CommandType.VERIFY)
     {
       ret += _commandType.toString() + "|" + _trigger.toString() + "|" + _znodeOpArg.toString();

@@ -40,4 +40,10 @@ public class LeaderHistory extends ZNRecordDecorator
     }
     list.add(instanceName);
   }
+
+  @Override
+  public boolean isValid()
+  {
+    return true;
+  }
 }

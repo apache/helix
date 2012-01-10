@@ -28,6 +28,7 @@ public class CMTask implements Callable<CMTaskResult>
   private final ClusterManager _manager;
   StatusUpdateUtil _statusUpdateUtil;
   CMTaskExecutor _executor;
+  boolean _isTimeout = false;
   
   public class TimeoutCancelTask extends TimerTask
   {
@@ -43,6 +44,7 @@ public class CMTask implements Callable<CMTaskResult>
     @Override
     public void run()
     {
+      _isTimeout = true;
       logger.warn("Message time out, canceling. id:" + _message.getMsgId() + " timeout : " + _message.getExecutionTimeout());
       _executor.cancelTask(_message, _context);
     }

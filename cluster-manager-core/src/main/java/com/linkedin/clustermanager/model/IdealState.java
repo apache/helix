@@ -8,6 +8,7 @@ import java.util.TreeMap;
 
 import org.apache.log4j.Logger;
 
+import com.linkedin.clustermanager.ClusterManagerException;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.ZNRecordDecorator;
 
@@ -149,5 +150,37 @@ public class IdealState extends ZNRecordDecorator
   public void setReplicas(int replicas)
   {
     _record.setSimpleField(IdealStateProperty.REPLICAS.toString(), Integer.toString(replicas));
+  }
+  
+  public int getReplicas()
+  {
+    try
+    {
+      return Integer.parseInt(_record.getSimpleField(IdealStateProperty.REPLICAS.toString()));
+    }
+    catch(Exception e)
+    {}
+    return -1;
+  }
+
+  @Override
+  public boolean isValid()
+  {
+    if(getNumPartitions() < 0)
+    {
+      logger.error("idealStates does not have number of partitions. IS:" + _record.getId());
+      return false;
+    }
+    if(getReplicas() < 0)
+    {
+      logger.error("idealStates does not have replicas. IS:" + _record.getId());
+      return false;
+    }
+    if(getStateModelDefRef() == null)
+    {
+      logger.error("idealStates does not have state model def. IS:" + _record.getId());
+      return false;
+    }
+    return true;
   }
 }

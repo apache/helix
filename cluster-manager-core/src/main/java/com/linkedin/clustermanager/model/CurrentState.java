@@ -6,6 +6,7 @@ import java.util.TreeMap;
 
 import org.apache.log4j.Logger;
 
+import com.linkedin.clustermanager.ClusterManagerException;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.ZNRecordDecorator;
 import com.linkedin.clustermanager.agent.zk.ZKClusterManagementTool;
@@ -15,7 +16,7 @@ import com.linkedin.clustermanager.agent.zk.ZKClusterManagementTool;
  */
 public class CurrentState extends ZNRecordDecorator
 {
-  private static Logger LOG = Logger.getLogger(ZKClusterManagementTool.class);
+  private static Logger LOG = Logger.getLogger(CurrentState.class);
 
   public enum CurrentStateProperty
   {
@@ -129,6 +130,22 @@ public class CurrentState extends ZNRecordDecorator
     }
     mapFields.get(resourceKey).put(CurrentStateProperty.RESOURCE_GROUP.toString(), resourceGroup);
 
+  }
+
+  @Override
+  public boolean isValid()
+  {
+    if(getStateModelDefRef() == null)
+    {
+      LOG.error("Current state does not contain state model ref. id:" + getResourceGroupName());
+      return false;
+    }
+    if(getSessionId() == null)
+    {
+      LOG.error("CurrentState does not contain session id, id : " + getResourceGroupName());
+      return false;
+    }
+    return true;
   }
 
 }

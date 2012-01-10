@@ -52,4 +52,10 @@ public class ExternalView extends ZNRecordDecorator
   {
     return _record.getId();
   }
+
+  @Override
+  public boolean isValid()
+  {
+    return true;
+  }
 }

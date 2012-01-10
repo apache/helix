@@ -1,5 +1,7 @@
 package com.linkedin.clustermanager.participant;
 
+import java.util.UUID;
+
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterManagementService;
 import com.linkedin.clustermanager.ClusterManager;
@@ -127,7 +129,7 @@ public class MockZkClusterManager implements ClusterManager
   public String getSessionId()
   {
     // TODO Auto-generated method stub
-    return null;
+    return UUID.randomUUID().toString();
   }
 
   @Override
@@ -182,7 +184,7 @@ public class MockZkClusterManager implements ClusterManager
   public String getVersion()
   {
     // TODO Auto-generated method stub
-    return null;
+    return UUID.randomUUID().toString();
   }
 
 }

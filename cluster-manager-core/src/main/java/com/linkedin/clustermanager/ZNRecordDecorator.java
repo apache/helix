@@ -109,4 +109,6 @@ public abstract class ZNRecordDecorator
     }
     return decorators;
   }
+  
+  public abstract boolean isValid();
 }

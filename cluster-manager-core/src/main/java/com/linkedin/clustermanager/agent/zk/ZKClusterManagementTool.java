@@ -258,6 +258,7 @@ public class ZKClusterManagementTool implements ClusterManagementService
     idealState.setSimpleField(IdealStateProperty.RESOURCES.toString(), String.valueOf(partitions));
     idealState.setSimpleField(IdealStateProperty.STATE_MODEL_DEF_REF.toString(), stateModelRef);
     idealState.setSimpleField(IdealStateProperty.IDEAL_STATE_MODE.toString(), idealStateMode);
+    idealState.setSimpleField(IdealStateProperty.REPLICAS.toString(), 0+"");
 
     String stateModelDefPath = PropertyPathConfig.getPath(
         PropertyType.STATEMODELDEFS, clusterName, stateModelRef);

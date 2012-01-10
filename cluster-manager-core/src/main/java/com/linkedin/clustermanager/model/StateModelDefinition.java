@@ -4,6 +4,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
+
+import com.linkedin.clustermanager.ClusterManagerException;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.ZNRecordDecorator;
 
@@ -14,9 +17,11 @@ public class StateModelDefinition extends ZNRecordDecorator
 {
   public enum StateModelDefinitionProperty
   {
-    INITIAL_STATE
+    INITIAL_STATE,
+    STATE_TRANSITION_PRIORITYLIST,
+    STATE_PRIORITY_LIST
   }
-
+  private static final Logger _logger = Logger.getLogger(StateModelDefinition.class.getName());
   /**
    * State Names in priority order. Indicates the order in which states are
    * fulfilled
@@ -46,9 +51,9 @@ public class StateModelDefinition extends ZNRecordDecorator
   {
     super(record);
 
-    _statesPriorityList = record.getListField("statesPriorityList");
+    _statesPriorityList = record.getListField(StateModelDefinitionProperty.STATE_PRIORITY_LIST.toString());
     _stateTransitionPriorityList = record
-        .getListField("stateTransitionPriorityList");
+        .getListField(StateModelDefinitionProperty.STATE_TRANSITION_PRIORITYLIST.toString());
     _stateTransitionTable = new HashMap<String, Map<String, String>>();
     _statesCountMap = new HashMap<String, String>();
     if (_statesPriorityList != null)
@@ -97,5 +102,26 @@ public class StateModelDefinition extends ZNRecordDecorator
   public String getNumInstancesPerState(String state)
   {
     return _statesCountMap.get(state);
+  }
+
+  @Override
+  public boolean isValid()
+  {
+    if(getInitialState() == null)
+    {
+      _logger.error("State model does not contain init state, statemodel:" + _record.getId());
+      return false;
+    }
+    if(_record.getListField(StateModelDefinitionProperty.STATE_PRIORITY_LIST.toString()) == null)
+    {
+      _logger.error("CurrentState does not contain StatesPriorityList, state model : " + _record.getId());
+      return false;
+    }
+    if(_record.getListField(StateModelDefinitionProperty.STATE_TRANSITION_PRIORITYLIST.toString()) == null)
+    {
+      _logger.error("CurrentState does not contain StateTransitionPriorityList, state model : " + _record.getId());
+      return false;
+    }
+    return true;
   }
 }

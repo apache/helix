@@ -1,5 +1,8 @@
 package com.linkedin.clustermanager.model;
 
+import org.apache.log4j.Logger;
+
+import com.linkedin.clustermanager.ClusterManagerException;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.ZNRecordDecorator;
 
@@ -14,7 +17,9 @@ public class LiveInstance extends ZNRecordDecorator
     CLUSTER_MANAGER_VERSION,
     LEADER
   }
-
+  
+  private static final Logger _logger = Logger.getLogger(LiveInstance.class.getName());
+  
   public LiveInstance(String id)
   {
     super(id);
@@ -58,6 +63,27 @@ public class LiveInstance extends ZNRecordDecorator
   public void setLeader(String leader)
   {
     _record.setSimpleField(LiveInstanceProperty.LEADER.toString(), leader);
+  }
+
+  @Override
+  public boolean isValid()
+  {
+    if(getInstanceName() == null)
+    {
+      _logger.error("liveInstance does not have instance name. id:" + _record.getId());
+      return false;
+    }
+    if(getSessionId() == null)
+    {
+      _logger.error("liveInstance does not have session id. id:" + _record.getId());
+      return false;
+    }
+    if(getClusterManagerVersion() == null)
+    {
+      _logger.error("liveInstance does not have CLM verion. id:" + _record.getId());
+      return false;
+    }
+    return true;
   }
 
 }

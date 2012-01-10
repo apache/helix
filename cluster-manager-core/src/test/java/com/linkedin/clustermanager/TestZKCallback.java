@@ -137,6 +137,8 @@ public class TestZKCallback extends ZkUnitTestBase
     testListener.Reset();
 
     CurrentState curState = new CurrentState("db-12345");
+    curState.setSessionId("sessionId");
+    curState.setStateModelDefRef("StateModelDef");
     dataAccessor.setProperty(PropertyType.CURRENTSTATES, curState, "localhost_8900",
                              testClusterManager.getSessionId(), curState.getId() );
     Thread.sleep(100);
@@ -144,6 +146,9 @@ public class TestZKCallback extends ZkUnitTestBase
     testListener.Reset();
 
     IdealState idealState = new IdealState("db-1234");
+    idealState.setNumPartitions(400);
+    idealState.setReplicas(2);
+    idealState.setStateModelDefRef("StateModeldef");
     dataAccessor.setProperty(PropertyType.IDEALSTATES, idealState,"db-1234");
     Thread.sleep(100);
     AssertJUnit.assertTrue(testListener.idealStateChangeReceived);
@@ -168,6 +173,8 @@ public class TestZKCallback extends ZkUnitTestBase
 
 //    dummyRecord = new ZNRecord("localhost_9801");
     LiveInstance liveInstance = new LiveInstance("localhost_9801");
+    liveInstance.setSessionId(UUID.randomUUID().toString());
+    liveInstance.setClusterManagerVersion(UUID.randomUUID().toString());
     dataAccessor.setProperty(PropertyType.LIVEINSTANCES, liveInstance, "localhost_9801");
     Thread.sleep(100);
     AssertJUnit.assertTrue(testListener.liveInstanceChangeReceived);

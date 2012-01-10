@@ -67,10 +67,12 @@ public class TestZkClusterManagementTool extends ZkUnitTestBase
       // OK
     }
 
-    InstanceConfig config = new InstanceConfig("id0");
+    InstanceConfig config = new InstanceConfig("host1_9999");
+    config.setHostName("host1");
+    config.setPort("9999");
     tool.addInstance(clusterName, config);
-    tool.enableInstance(clusterName, "id0", true);
-    String path = PropertyPathConfig.getPath(PropertyType.INSTANCES, clusterName, "id0");
+    tool.enableInstance(clusterName, "host1_9999", true);
+    String path = PropertyPathConfig.getPath(PropertyType.INSTANCES, clusterName, "host1_9999");
     AssertJUnit.assertTrue(_zkClient.exists(path));
 
     try
@@ -83,13 +85,13 @@ public class TestZkClusterManagementTool extends ZkUnitTestBase
       // OK
     }
 
-    config = tool.getInstanceConfig(clusterName, "id0");
-    AssertJUnit.assertEquals(config.getId(), "id0");
+    config = tool.getInstanceConfig(clusterName, "host1_9999");
+    AssertJUnit.assertEquals(config.getId(), "host1_9999");
 
     tool.dropInstance(clusterName, config);
     try
     {
-      tool.getInstanceConfig(clusterName, "id0");
+      tool.getInstanceConfig(clusterName, "host1_9999");
       Assert.fail("should fail if get a non-existent instance");
     }
     catch (ClusterManagerException e)
@@ -109,7 +111,7 @@ public class TestZkClusterManagementTool extends ZkUnitTestBase
 
     try
     {
-      tool.enableInstance(clusterName, "id0", false);
+      tool.enableInstance(clusterName, "host1_9999", false);
       Assert.fail("should fail if enable a non-existent instance");
     }
     catch (ClusterManagerException e)

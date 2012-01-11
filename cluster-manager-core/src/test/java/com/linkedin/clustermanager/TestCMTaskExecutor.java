@@ -10,6 +10,8 @@ import com.linkedin.clustermanager.messaging.handling.AsyncCallbackService;
 import com.linkedin.clustermanager.messaging.handling.CMStateTransitionHandler;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.Message.MessageType;
+import com.linkedin.clustermanager.model.StateModelDefinition;
+import com.linkedin.clustermanager.tools.StateModelConfigGenerator;
 
 public class TestCMTaskExecutor
 {
@@ -36,8 +38,13 @@ public class TestCMTaskExecutor
     NotificationContext context;
     executor.registerMessageHandlerFactory(
         MessageType.TASK_REPLY.toString(), new AsyncCallbackService());
-    String clusterName =" testcluster";
-    context = new NotificationContext(new MockManager(clusterName));
+    MockManager manager = new MockManager("testcluster");
+    ClusterDataAccessor accessor = manager.getDataAccessor();
+    StateModelConfigGenerator generator = new StateModelConfigGenerator();
+    StateModelDefinition stateModelDef = new StateModelDefinition(generator.generateConfigForMasterSlave());
+    accessor.setProperty(PropertyType.STATEMODELDEFS, stateModelDef, "MasterSlave");
+
+    context = new NotificationContext(manager);
     CMStateTransitionHandler handler = new CMStateTransitionHandler(stateModel);
     executor.scheduleTask(message, handler, context);
     while (!executor.isDone(msgId))

@@ -1,5 +1,7 @@
 package com.linkedin.clustermanager;
 
+import java.util.Date;
+
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
@@ -10,14 +12,16 @@ import com.linkedin.clustermanager.messaging.handling.CMStateTransitionHandler;
 import com.linkedin.clustermanager.messaging.handling.CMTask;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.Message.MessageType;
+import com.linkedin.clustermanager.model.StateModelDefinition;
+import com.linkedin.clustermanager.tools.StateModelConfigGenerator;
 
 public class TestCMTaskHandler
 {
-  @Test ()
+  @Test()
   public void testInvocation() throws Exception
   {
-    System.out.println("START TestCMTaskHandler.testInvocation()");
-    Message message = new Message(MessageType.STATE_TRANSITION,"Some unique id");
+    System.out.println("START TestCMTaskHandler.testInvocation() at "+ new Date(System.currentTimeMillis()));
+    Message message = new Message(MessageType.STATE_TRANSITION, "Some unique id");
     message.setSrcName("cm-instance-0");
     message.setTgtSessionId("1234");
     message.setFromState("Offline");
@@ -30,20 +34,25 @@ public class TestCMTaskHandler
     MockStateModel stateModel = new MockStateModel();
     NotificationContext context;
     CMStateTransitionHandler stHandler = new CMStateTransitionHandler(stateModel);
-    String clusterName="clusterName";
-    context = new NotificationContext(new MockManager(clusterName));
+    MockManager manager = new MockManager("clusterName");
+    ClusterDataAccessor accessor = manager.getDataAccessor();
+    StateModelConfigGenerator generator = new StateModelConfigGenerator();
+    StateModelDefinition stateModelDef = new StateModelDefinition(generator.generateConfigForMasterSlave());
+    accessor.setProperty(PropertyType.STATEMODELDEFS, stateModelDef, "MasterSlave");
+
+    context = new NotificationContext(manager);
     CMTask handler;
     handler = new CMTask(message, context, stHandler, null);
     handler.call();
     AssertJUnit.assertTrue(stateModel.stateModelInvoked);
-    System.out.println("END TestCMTaskHandler.testInvocation()");
+    System.out.println("END TestCMTaskHandler.testInvocation() at " + new Date(System.currentTimeMillis()));
   }
 
-  @Test ()
+  @Test()
   public void testInvocationAnnotated() throws Exception
   {
-    System.out.println("START TestCMTaskHandler.testInvocationAnnotated()");
-    Message message = new Message(MessageType.STATE_TRANSITION,"Some unique id");
+    System.out.println("START TestCMTaskHandler.testInvocationAnnotated() at " + new Date(System.currentTimeMillis()));
+    Message message = new Message(MessageType.STATE_TRANSITION, "Some unique id");
     message.setSrcName("cm-instance-0");
     message.setTgtSessionId("1234");
     message.setFromState("Offline");
@@ -55,14 +64,21 @@ public class TestCMTaskHandler
     message.setStateModelDef("MasterSlave");
     MockStateModelAnnotated stateModel = new MockStateModelAnnotated();
     NotificationContext context;
-    context = new NotificationContext(new MockManager());
+
+    MockManager manager = new MockManager("clusterName");
+    ClusterDataAccessor accessor = manager.getDataAccessor();
+    StateModelConfigGenerator generator = new StateModelConfigGenerator();
+    StateModelDefinition stateModelDef = new StateModelDefinition(generator.generateConfigForMasterSlave());
+    accessor.setProperty(PropertyType.STATEMODELDEFS, stateModelDef, "MasterSlave");
+
+    context = new NotificationContext(manager);
     CMTask handler;
     CMStateTransitionHandler stHandler = new CMStateTransitionHandler(stateModel);
 
     handler = new CMTask(message, context, stHandler, null);
     handler.call();
     AssertJUnit.assertTrue(stateModel.stateModelInvoked);
-    System.out.println("END TestCMTaskHandler.testInvocationAnnotated()");
+    System.out.println("END TestCMTaskHandler.testInvocationAnnotated() at "+ new Date(System.currentTimeMillis()));
   }
 
 }

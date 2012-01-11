@@ -27,8 +27,7 @@ import com.linkedin.clustermanager.util.StatusUpdateUtil;
 
 public class CMStateTransitionHandler implements MessageHandler
 {
-  private static Logger logger = Logger
-      .getLogger(CMStateTransitionHandler.class);
+  private static Logger logger = Logger.getLogger(CMStateTransitionHandler.class);
   private final StateModel _stateModel;
   StatusUpdateUtil _statusUpdateUtil;
   private final StateModelParser _transitionMethodFinder;
@@ -48,26 +47,28 @@ public class CMStateTransitionHandler implements MessageHandler
 
   private boolean validateMessage(Message message)
   {
-    boolean isValid = isNullOrEmpty(message.getFromState())
-        || isNullOrEmpty(message.getToState())
-        || isNullOrEmpty(message.getToState())
-        || isNullOrEmpty(message.getStateUnitKey())
-        || isNullOrEmpty(message.getToState())
-        || isNullOrEmpty(message.getStateModelDef());
+    boolean isValid =
+        isNullOrEmpty(message.getFromState()) || isNullOrEmpty(message.getToState())
+            || isNullOrEmpty(message.getToState())
+            || isNullOrEmpty(message.getStateUnitKey())
+            || isNullOrEmpty(message.getToState())
+            || isNullOrEmpty(message.getStateModelDef());
     return !isValid;
   }
 
-  private void prepareMessageExecution(ClusterManager manager, Message message)
-      throws ClusterManagerException
+  private void prepareMessageExecution(ClusterManager manager, Message message) throws ClusterManagerException
   {
     if (!validateMessage(message))
     {
-      String errorMessage = "Invalid Message, ensure that message: " + message
-          + " has all the required fields: "
-          + Arrays.toString(Message.Attributes.values());
+      String errorMessage =
+          "Invalid Message, ensure that message: " + message
+              + " has all the required fields: "
+              + Arrays.toString(Message.Attributes.values());
 
-      _statusUpdateUtil.logError(message, CMStateTransitionHandler.class,
-          errorMessage, manager.getDataAccessor());
+      _statusUpdateUtil.logError(message,
+                                 CMStateTransitionHandler.class,
+                                 errorMessage,
+                                 manager.getDataAccessor());
       logger.error(errorMessage);
       throw new ClusterManagerException(errorMessage);
     }
@@ -79,26 +80,24 @@ public class CMStateTransitionHandler implements MessageHandler
     String fromState = message.getFromState();
     String toState = message.getToState();
 
-    List<StateModelDefinition> stateModelDefs = accessor.getChildValues(StateModelDefinition.class,
-                                                                        PropertyType.STATEMODELDEFS);
+    List<StateModelDefinition> stateModelDefs =
+        accessor.getChildValues(StateModelDefinition.class, PropertyType.STATEMODELDEFS);
 
-    String initStateValue = "OFFLINE";
-    if (stateModelDefs != null)
+    StateModelDefinition stateModelDef =
+        lookupStateModel(message.getStateModelDef(), stateModelDefs);
+
+    String initStateValue;
+    if (stateModelDef == null)
     {
-      StateModelDefinition stateModelDef = lookupStateModel(
-          message.getStateModelDef(), stateModelDefs);
-
-      if (stateModelDef != null)
-      {
-        initStateValue = stateModelDef.getInitialState();
-      }
+      throw new ClusterManagerException("No State Model Defined for "+ message.getStateModelDef());
     }
-
-    CurrentState currentState = accessor.getProperty(CurrentState.class,
-                                                     PropertyType.CURRENTSTATES,
-                                                     instanceName,
-                                                     manager.getSessionId(),
-                                                     stateUnitGroup);
+    initStateValue = stateModelDef.getInitialState();
+    CurrentState currentState =
+        accessor.getProperty(CurrentState.class,
+                             PropertyType.CURRENTSTATES,
+                             instanceName,
+                             manager.getSessionId(),
+                             stateUnitGroup);
 
     // Set an empty current state record if it is null
     if (currentState == null)
@@ -113,10 +112,9 @@ public class CMStateTransitionHandler implements MessageHandler
     }
 
     /**
-     * For resource unit that does not have a state, initialize it to OFFLINE
-     * If current state does not have a state model def, set it.
-     * Do the two updates together, otherwise controller may view a current state
-     * with a NULL state model def
+     * For resource unit that does not have a state, initialize it to OFFLINE If current
+     * state does not have a state model def, set it. Do the two updates together,
+     * otherwise controller may view a current state with a NULL state model def
      */
 
     CurrentState currentStateDelta = new CurrentState(stateUnitGroup);
@@ -125,8 +123,8 @@ public class CMStateTransitionHandler implements MessageHandler
       currentStateDelta.setState(stateUnitKey, initStateValue);
       currentState.setState(stateUnitKey, initStateValue);
 
-      logger.info("Setting initial state for partition: " + stateUnitKey
-          + " to " + initStateValue);
+      logger.info("Setting initial state for partition: " + stateUnitKey + " to "
+          + initStateValue);
     }
 
     // Set the state model def to current state
@@ -136,7 +134,7 @@ public class CMStateTransitionHandler implements MessageHandler
       if (message.getStateModelDef() != null)
       {
         logger.info("Setting state model def on current state: "
-                   + message.getStateModelDef());
+            + message.getStateModelDef());
         currentStateDelta.setStateModelDefRef(message.getStateModelDef());
       }
     }
@@ -148,29 +146,29 @@ public class CMStateTransitionHandler implements MessageHandler
 
     // Verify the fromState and current state of the stateModel
     String state = currentState.getState(stateUnitKey);
-    if (!fromState.equals("*") && (fromState == null || !fromState.equalsIgnoreCase(state)))
+    if (!fromState.equals("*")
+        && (fromState == null || !fromState.equalsIgnoreCase(state)))
     {
-      String errorMessage = "Current state of stateModel does not match the fromState in Message"
-          + ", Current State:"
-          + state
-          + ", message expected:"
-          + fromState
-          + ", partition: "
-          + message.getStateUnitKey()
-          + ", from: "
-          + message.getMsgSrc()
-          + ", to: " + message.getTgtName();
+      String errorMessage =
+          "Current state of stateModel does not match the fromState in Message"
+              + ", Current State:" + state + ", message expected:" + fromState
+              + ", partition: " + message.getStateUnitKey() + ", from: "
+              + message.getMsgSrc() + ", to: " + message.getTgtName();
 
-      _statusUpdateUtil.logError(message, CMStateTransitionHandler.class,
-          errorMessage, accessor);
+      _statusUpdateUtil.logError(message,
+                                 CMStateTransitionHandler.class,
+                                 errorMessage,
+                                 accessor);
       logger.error(errorMessage);
       throw new ClusterManagerException(errorMessage);
     }
   }
 
-  void postExecutionMessage(ClusterManager manager, Message message,
-      NotificationContext context, CMTaskResult taskResult, Exception exception)
-      throws InterruptedException
+  void postExecutionMessage(ClusterManager manager,
+                            Message message,
+                            NotificationContext context,
+                            CMTaskResult taskResult,
+                            Exception exception) throws InterruptedException
   {
     ClusterDataAccessor accessor = manager.getDataAccessor();
     try
@@ -181,20 +179,20 @@ public class CMStateTransitionHandler implements MessageHandler
 
       String fromState = message.getFromState();
       String toState = message.getToState();
-      CurrentState currentState = accessor.getProperty(CurrentState.class,
-                                                       PropertyType.CURRENTSTATES,
-                                                       instanceName,
-                                                       manager.getSessionId(),
-                                                       stateUnitGroup);
+      CurrentState currentState =
+          accessor.getProperty(CurrentState.class,
+                               PropertyType.CURRENTSTATES,
+                               instanceName,
+                               manager.getSessionId(),
+                               stateUnitGroup);
 
       if (currentState != null)
       {
-//        map = currentState.getMapField(stateUnitKey);
+        // map = currentState.getMapField(stateUnitKey);
       }
       else
       {
-        logger
-            .warn("currentState is null. Storage node should be working with file based cluster manager.");
+        logger.warn("currentState is null. Storage node should be working with file based cluster manager.");
       }
 
       // TODO verify that fromState is same as currentState this task
@@ -213,8 +211,8 @@ public class CMStateTransitionHandler implements MessageHandler
       }
       else
       {
-        StateTransitionError error = new StateTransitionError(
-            StateTransitionError.ErrorCode.INTERNAL, exception);
+        StateTransitionError error =
+            new StateTransitionError(StateTransitionError.ErrorCode.INTERNAL, exception);
         _stateModel.rollbackOnError(message, context, error);
         currentStateDelta.setState(stateUnitKey, "ERROR");
         _stateModel.updateState("ERROR");
@@ -222,13 +220,13 @@ public class CMStateTransitionHandler implements MessageHandler
 
       currentStateDelta.setResourceGroup(stateUnitKey, message.getStateUnitGroup());
 
-
       if (taskResult.isSucess() && toState.equals("DROPPED"))
       {
         // for "OnOfflineToDROPPED" message, we need to remove the resource key
         // record from
         // the current state of the instance because the resource key is dropped.
-        ZNRecordDelta delta = new ZNRecordDelta(currentStateDelta.getRecord(), MERGEOPERATION.SUBSTRACT);
+        ZNRecordDelta delta =
+            new ZNRecordDelta(currentStateDelta.getRecord(), MERGEOPERATION.SUBSTRACT);
         List<ZNRecordDelta> deltaList = new ArrayList<ZNRecordDelta>();
         deltaList.add(delta);
         CurrentState currentStateUpdate = new CurrentState(stateUnitGroup);
@@ -248,22 +246,25 @@ public class CMStateTransitionHandler implements MessageHandler
                                 manager.getSessionId(),
                                 stateUnitGroup);
       }
-    } catch (Exception e)
+    }
+    catch (Exception e)
     {
       logger.error("Error when updating the state ", e);
-      StateTransitionError error = new StateTransitionError(
-          StateTransitionError.ErrorCode.FRAMEWORK, e);
+      StateTransitionError error =
+          new StateTransitionError(StateTransitionError.ErrorCode.FRAMEWORK, e);
       _stateModel.rollbackOnError(message, context, error);
-      _statusUpdateUtil.logError(message, CMStateTransitionHandler.class, e,
-          "Error when update the state ", accessor);
+      _statusUpdateUtil.logError(message,
+                                 CMStateTransitionHandler.class,
+                                 e,
+                                 "Error when update the state ",
+                                 accessor);
     }
   }
 
   // TODO: decide if handleMessage() should return a value CMTaskResult; this
   // part need to integrate with
   // send reply message
-  public CMTaskResult handleMessageInternal(Message message,
-      NotificationContext context)
+  public CMTaskResult handleMessageInternal(Message message, NotificationContext context)
   {
     synchronized (_stateModel)
     {
@@ -273,13 +274,16 @@ public class CMStateTransitionHandler implements MessageHandler
       String instanceName = manager.getInstanceName();
       try
       {
-        _statusUpdateUtil.logInfo(message, CMStateTransitionHandler.class,
-            "Message handling task begin execute", accessor);
+        _statusUpdateUtil.logInfo(message,
+                                  CMStateTransitionHandler.class,
+                                  "Message handling task begin execute",
+                                  accessor);
         message.setExecuteStartTimeStamp(new Date().getTime());
         try
         {
           prepareMessageExecution(manager, message);
-        } catch (ClusterManagerException e)
+        }
+        catch (ClusterManagerException e)
         {
           taskResult.setSuccess(false);
           taskResult.setMessage(e.getMessage());
@@ -294,11 +298,11 @@ public class CMStateTransitionHandler implements MessageHandler
         }
         catch (Exception e)
         {
-          String errorMessage = "Exception while executing a state transition task. "
-              + e;
+          String errorMessage = "Exception while executing a state transition task. " + e;
 
           // Hack: avoid throwing mock exception for testing code
-          if (e instanceof InvocationTargetException && e.getCause().getMessage().startsWith("IGNORABLE"))
+          if (e instanceof InvocationTargetException
+              && e.getCause().getMessage().startsWith("IGNORABLE"))
           {
             logger.error(errorMessage + ". Cause:" + e.getCause().getMessage());
           }
@@ -322,12 +326,15 @@ public class CMStateTransitionHandler implements MessageHandler
       }
       catch (InterruptedException e)
       {
-        _statusUpdateUtil.logError(message, CMStateTransitionHandler.class, e,
-            "State transition interrupted", accessor);
+        _statusUpdateUtil.logError(message,
+                                   CMStateTransitionHandler.class,
+                                   e,
+                                   "State transition interrupted",
+                                   accessor);
         logger.info("Message " + message.getMsgId() + " is interrupted");
 
-        StateTransitionError error = new StateTransitionError(
-            StateTransitionError.ErrorCode.FRAMEWORK, e);
+        StateTransitionError error =
+            new StateTransitionError(StateTransitionError.ErrorCode.FRAMEWORK, e);
         _stateModel.rollbackOnError(message, context, error);
         return taskResult;
       }
@@ -335,38 +342,48 @@ public class CMStateTransitionHandler implements MessageHandler
   }
 
   private void invoke(ClusterDataAccessor accessor,
-      NotificationContext context, CMTaskResult taskResult, Message message)
-      throws IllegalAccessException, InvocationTargetException,
+                      NotificationContext context,
+                      CMTaskResult taskResult,
+                      Message message) throws IllegalAccessException,
+      InvocationTargetException,
       InterruptedException
   {
     Method methodToInvoke = null;
     String fromState = message.getFromState();
     String toState = message.getToState();
-    methodToInvoke = _transitionMethodFinder.getMethodForTransition(
-        _stateModel.getClass(), fromState, toState, new Class[]
-        { Message.class, NotificationContext.class });
-    _statusUpdateUtil.logInfo(message, CMStateTransitionHandler.class,
-        "Message handling invoking", accessor);
+    methodToInvoke =
+        _transitionMethodFinder.getMethodForTransition(_stateModel.getClass(),
+                                                       fromState,
+                                                       toState,
+                                                       new Class[] { Message.class,
+                                                           NotificationContext.class });
+    _statusUpdateUtil.logInfo(message,
+                              CMStateTransitionHandler.class,
+                              "Message handling invoking",
+                              accessor);
     if (methodToInvoke != null)
     {
-      methodToInvoke.invoke(_stateModel, new Object[]
-      { message, context });
+      methodToInvoke.invoke(_stateModel, new Object[] { message, context });
       taskResult.setSuccess(true);
-    } else
+    }
+    else
     {
-      String errorMessage = "Unable to find method for transition from "
-          + fromState + " to " + toState + "in " + _stateModel.getClass();
+      String errorMessage =
+          "Unable to find method for transition from " + fromState + " to " + toState
+              + "in " + _stateModel.getClass();
       logger.error(errorMessage);
       taskResult.setSuccess(false);
 
       System.out.println(errorMessage);
-      _statusUpdateUtil.logError(message, CMStateTransitionHandler.class,
-          errorMessage, accessor);
+      _statusUpdateUtil.logError(message,
+                                 CMStateTransitionHandler.class,
+                                 errorMessage,
+                                 accessor);
     }
   }
 
   private StateModelDefinition lookupStateModel(String stateModelDefRef,
-      List<StateModelDefinition> stateModelDefs)
+                                                List<StateModelDefinition> stateModelDefs)
   {
     for (StateModelDefinition def : stateModelDefs)
     {
@@ -379,8 +396,9 @@ public class CMStateTransitionHandler implements MessageHandler
   }
 
   @Override
-  public void handleMessage(Message message, NotificationContext context,
-      Map<String, String> resultMap) throws InterruptedException
+  public void handleMessage(Message message,
+                            NotificationContext context,
+                            Map<String, String> resultMap) throws InterruptedException
   {
     handleMessageInternal(message, context);
 

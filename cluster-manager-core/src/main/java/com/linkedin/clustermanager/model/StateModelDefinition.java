@@ -6,7 +6,6 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.clustermanager.ClusterManagerException;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.ZNRecordDecorator;
 
@@ -117,11 +116,13 @@ public class StateModelDefinition extends ZNRecordDecorator
       _logger.error("CurrentState does not contain StatesPriorityList, state model : " + _record.getId());
       return false;
     }
-    if(_record.getListField(StateModelDefinitionProperty.STATE_TRANSITION_PRIORITYLIST.toString()) == null)
-    {
-      _logger.error("CurrentState does not contain StateTransitionPriorityList, state model : " + _record.getId());
-      return false;
-    }
+
+    // STATE_TRANSITION_PRIORITYLIST is optional
+//    if(_record.getListField(StateModelDefinitionProperty.STATE_TRANSITION_PRIORITYLIST.toString()) == null)
+//    {
+//      _logger.error("CurrentState does not contain StateTransitionPriorityList, state model : " + _record.getId());
+//      return false;
+//    }
     return true;
   }
 }

@@ -45,6 +45,7 @@ import com.linkedin.clustermanager.messaging.DefaultMessagingService;
 import com.linkedin.clustermanager.messaging.handling.MessageHandlerFactory;
 import com.linkedin.clustermanager.model.CurrentState;
 import com.linkedin.clustermanager.model.LiveInstance;
+import com.linkedin.clustermanager.model.StateModelDefinition;
 import com.linkedin.clustermanager.monitoring.ZKPathDataDumpTask;
 import com.linkedin.clustermanager.participant.DistClusterControllerElection;
 import com.linkedin.clustermanager.store.PropertyStore;
@@ -464,7 +465,7 @@ public class ZKClusterManager implements ClusterManager
 
   /**
    * This will be invoked when ever a new session is created<br/>
-   * 
+   *
    * case 1: the cluster manager was a participant carry over current state, add
    * live instance, and invoke message listener; case 2: the cluster manager was
    * controller and was a leader before do leader election, and if it becomes
@@ -644,10 +645,13 @@ public class ZKClusterManager implements ClusterManager
           logger.info("Carrying over old session:" + previousSessionId
               + " resource " + previousCurrentState.getId()
               + " to new session:" + _sessionId);
+          String stateModelDefRef = previousCurrentState.getStateModelDefRef();
+          StateModelDefinition stateModel = _accessor.getProperty(StateModelDefinition.class, PropertyType.STATEMODELDEFS, stateModelDefRef);
           for (String resourceKey : previousCurrentState
               .getResourceKeyStateMap().keySet())
           {
-            previousCurrentState.setState(resourceKey, "OFFLINE");
+
+            previousCurrentState.setState(resourceKey, stateModel.getInitialState());
           }
           previousCurrentState.setSessionId(_sessionId);
           _accessor.setProperty(PropertyType.CURRENTSTATES,

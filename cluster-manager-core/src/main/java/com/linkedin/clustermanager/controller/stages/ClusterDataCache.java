@@ -27,12 +27,12 @@ import com.linkedin.clustermanager.model.StateModelDefinition;
  */
 public class ClusterDataCache
 {
-  private Map<String, LiveInstance> _liveInstanceMap;
-  private Map<String, IdealState> _idealStateMap;
-  private Map<String, StateModelDefinition> _stateModelDefMap;
-  private Map<String, InstanceConfig> _instanceConfigMap;
-  private final Map<String, Map<String, Map<String, CurrentState>>> _currentStateMap = new HashMap<String, Map<String, Map<String, CurrentState>>>();
-  private final Map<String, Map<String, Message>> _messageMap = new HashMap<String, Map<String, Message>>();
+  Map<String, LiveInstance> _liveInstanceMap;
+  Map<String, IdealState> _idealStateMap;
+  Map<String, StateModelDefinition> _stateModelDefMap;
+  Map<String, InstanceConfig> _instanceConfigMap;
+  final Map<String, Map<String, Map<String, CurrentState>>> _currentStateMap = new HashMap<String, Map<String, Map<String, CurrentState>>>();
+  final Map<String, Map<String, Message>> _messageMap = new HashMap<String, Map<String, Message>>();
 
   private static final Logger logger = Logger.getLogger(ClusterDataCache.class.getName());
 

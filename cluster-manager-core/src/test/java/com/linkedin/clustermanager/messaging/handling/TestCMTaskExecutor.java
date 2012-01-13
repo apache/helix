@@ -112,11 +112,10 @@ public class TestCMTaskExecutor
       public CMTaskResult handleMessage() throws InterruptedException
       {
         CMTaskResult result = new CMTaskResult();
-        int sleepTimes = 18;
-        if(_message.getRecord().getSimpleFields().containsKey("Canceled"))
+        int sleepTimes = 15;
+        if(_message.getRecord().getSimpleFields().containsKey("Cancelcount"))
         {
-          sleepTimes = 7;
-          _message.getRecord().setSimpleField("2nd", "true");
+          sleepTimes = 10;
         }
         _processingMsgIds.put(_message.getMsgId(), _message.getMsgId());
         try
@@ -125,11 +124,21 @@ public class TestCMTaskExecutor
           {
             Thread.sleep(100);
           }
-        } catch (InterruptedException e)
+        } 
+        catch (InterruptedException e)
         {
           _interrupted = true;
+          _timedOutMsgIds.put(_message.getMsgId(), "");
           result.setInterrupted(true);
-          _message.getRecord().setSimpleField("Canceled", "Canceled");
+          if(!_message.getRecord().getSimpleFields().containsKey("Cancelcount"))
+          {
+            _message.getRecord().setSimpleField("Cancelcount", "1");
+          }
+          else
+          {
+            int c = Integer.parseInt( _message.getRecord().getSimpleField("Cancelcount"));
+            _message.getRecord().setSimpleField("Cancelcount", ""+(c + 1));
+          }
           throw e;
         }
         _processedMsgIds.put(_message.getMsgId(), _message.getMsgId());
@@ -479,13 +488,13 @@ public class TestCMTaskExecutor
     Thread.sleep(4000);
 
     AssertJUnit.assertTrue(factory._handlersCreated ==  nMsgs2);
-    AssertJUnit.assertTrue(factory._timedOutMsgIds.size() == nMsgs2 - 1);
-    AssertJUnit.assertFalse(msgList.get(3).getRecord().getSimpleFields().containsKey("Canceled"));
-    for(int i = 0; i<nMsgs2 - 1; i++)
+    AssertJUnit.assertEquals(factory._timedOutMsgIds.size() , 2);
+    //AssertJUnit.assertFalse(msgList.get(0).getRecord().getSimpleFields().containsKey("TimeOut"));
+    for(int i = 0; i<nMsgs2 - 2; i++)
     {
       if(msgList.get(i).getMsgType().equalsIgnoreCase(factory.getMessageType()))
       {
-        AssertJUnit.assertTrue(msgList.get(i).getRecord().getSimpleFields().containsKey("Canceled"));
+        AssertJUnit.assertTrue(msgList.get(i).getRecord().getSimpleFields().containsKey("Cancelcount"));
         AssertJUnit.assertTrue(factory._timedOutMsgIds.containsKey(msgList.get(i).getId()));
       }
     }
@@ -499,31 +508,16 @@ public class TestCMTaskExecutor
       msg.setTgtSessionId("*");
       msg.setTgtName("Localhost_1123");
       msg.setSrcName("127.101.1.23_2234");
-      msg.setExecutionTimeout((i+1) * 500);
+      msg.setExecutionTimeout((i+1) * 600);
       msg.setRetryCount(1);
       msgList.add(msg);
     }
     executor.onMessage("someInstance", msgList, changeContext);
-    Thread.sleep(2500);
-    AssertJUnit.assertTrue(factory._timedOutMsgIds.containsKey(msgList.get(0).getMsgId()));
-    for(int i = 1; i < nMsgs2; i++)
-    {
-      System.out.println(i);
-      if(msgList.get(i).getMsgType().equalsIgnoreCase(factory.getMessageType()))
-      {
-        AssertJUnit.assertFalse(factory._timedOutMsgIds.containsKey(msgList.get(i).getMsgId()));
-        AssertJUnit.assertTrue(factory._processedMsgIds.containsKey(msgList.get(i).getMsgId()));
-        if(i<3)
-        {
-          AssertJUnit.assertTrue(msgList.get(i).getRecord().getSimpleFields().containsKey("Canceled"));
-        }
-        else
-        {
-          AssertJUnit.assertFalse(msgList.get(i).getRecord().getSimpleFields().containsKey("Canceled"));
-        }
-      }
-    }
-    AssertJUnit.assertTrue(factory._timedOutMsgIds.containsKey(msgList.get(0).getMsgId()));
+    Thread.sleep(3500);
+    AssertJUnit.assertEquals(factory._processedMsgIds.size(),3);
+    AssertJUnit.assertTrue(msgList.get(0).getRecord().getSimpleField("Cancelcount").equals("2"));
+    AssertJUnit.assertTrue(msgList.get(1).getRecord().getSimpleField("Cancelcount").equals("1"));
+    AssertJUnit.assertEquals(factory._timedOutMsgIds.size(),2);
     AssertJUnit.assertTrue(executor._taskMap.size() == 0);
     
   }

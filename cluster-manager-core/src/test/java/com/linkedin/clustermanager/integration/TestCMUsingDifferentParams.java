@@ -30,7 +30,7 @@ public class TestCMUsingDifferentParams extends ZkIntegrationTestBase
   	_zkClient.close();
   }
 
-  @Test (groups = {"integrationTest"})
+  @Test ()
   public void testCMUsingDifferentParams() throws Exception
   {
     System.out.println("START " + getShortClassName() + " at "
@@ -62,7 +62,7 @@ public class TestCMUsingDifferentParams extends ZkIntegrationTestBase
             }
 
             TestDriver.startController(uniqTestName);
-            TestDriver.verifyCluster(uniqTestName);
+            TestDriver.verifyCluster(uniqTestName, 1000);
             TestDriver.stopCluster(uniqTestName);
 
             System.out.println("END " + uniqTestName + " at "

@@ -1,6 +1,5 @@
 package com.linkedin.clustermanager.tools;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 
@@ -21,7 +20,7 @@ public class PropertiesReader
           .getResourceAsStream(propertyFileName);
       _properties.load(stream);
     }
-    catch (IOException e)
+    catch (Exception e)
     {
       String errMsg = "could not open properties file:" + propertyFileName;
       // LOG.error(errMsg, e);

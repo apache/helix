@@ -55,9 +55,12 @@ public class BaseStageTest
     event = new ClusterEvent("sampleEvent");
   }
 
-  protected String[] setupIdealState(int nodes, List<IdealState> idealStates,
-      String[] resourceGroups)
+//  protected String[] setupIdealState(int nodes, List<IdealState> idealStates,
+//      String[] resourceGroups)
+  protected List<IdealState> setupIdealState(int nodes, String[] resourceGroups,
+                                             int partitions, int replicas)
   {
+    List<IdealState> idealStates = new ArrayList<IdealState>();
     List<String> instances = new ArrayList<String>();
     for (int i = 0; i < nodes; i++)
     {
@@ -66,8 +69,8 @@ public class BaseStageTest
 
     for (int i = 0; i < resourceGroups.length; i++)
     {
-      int partitions = 10;
-      int replicas = 1;
+//      int partitions = 10;
+//      int replicas = 1;
       String resourceGroupName = resourceGroups[i];
       ZNRecord record = new ZNRecord(resourceGroupName);
       for (int p = 0; p < partitions; p++)
@@ -86,11 +89,11 @@ public class BaseStageTest
       idealStates.add(idealState);
 
 //      System.out.println(idealState);
-      manager.getDataAccessor().setProperty(PropertyType.IDEALSTATES,
-                                            idealState,
-                                            resourceGroupName);
+      accessor.setProperty(PropertyType.IDEALSTATES,
+                           idealState,
+                           resourceGroupName);
     }
-    return resourceGroups;
+    return idealStates;
   }
 
   protected void setupLiveInstances(int numLiveInstances)

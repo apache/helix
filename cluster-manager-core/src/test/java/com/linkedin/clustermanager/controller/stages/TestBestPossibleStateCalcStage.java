@@ -1,14 +1,11 @@
 package com.linkedin.clustermanager.controller.stages;
 
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 import java.util.Map;
 
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
-import com.linkedin.clustermanager.model.IdealState;
 import com.linkedin.clustermanager.model.ResourceGroup;
 import com.linkedin.clustermanager.model.ResourceKey;
 
@@ -18,10 +15,10 @@ public class TestBestPossibleStateCalcStage extends BaseStageTest
   public void testSimple()
   {
   	System.out.println("START TestBestPossibleStateCalcStage at " + new Date(System.currentTimeMillis()));
-    List<IdealState> idealStates = new ArrayList<IdealState>();
+//    List<IdealState> idealStates = new ArrayList<IdealState>();
 
     String[] resourceGroups = new String[]{ "testResourceGroupName" };
-    setupIdealState(5, idealStates, resourceGroups);
+    setupIdealState(5, resourceGroups, 10, 1);
     setupLiveInstances(5);
     setupStateModel();
 

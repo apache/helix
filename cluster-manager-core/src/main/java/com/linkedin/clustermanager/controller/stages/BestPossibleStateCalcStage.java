@@ -91,23 +91,26 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
             currentStateOutput.getCurrentStateMap(resourceGroupName, resource);
 
         Map<String, String> bestStateForResource;
+        Set<String> disabledInstancesForResource
+          = cache.getDisabledInstancesForResource(resource.toString());
+
         if (idealState.getIdealStateMode() == IdealStateModeProperty.CUSTOMIZED)
         {
-          // TODO add computerBestStateForResourceInCustomizedMode()
-          //  e.g. exclude non-alive instance
-          bestStateForResource = idealState.getInstanceStateMap(resource.getResourceKeyName());
+          Map<String, String> idealStateMap = idealState.getInstanceStateMap(resource.getResourceKeyName());
+          bestStateForResource = computeCustomizedBestStateForResource(cache, stateModelDef,
+                                                                       idealStateMap,
+                                                                       currentStateMap,
+                                                                       disabledInstancesForResource);
         }
         else
         {
           List<String> instancePreferenceList
             = getPreferenceList(cache, resource, idealState, stateModelDef);
-          Set<String> disabledInstancesForResource
-            = cache.getDisabledInstancesForResource(resource.toString());
           bestStateForResource =
-              computeBestStateForResource(cache, stateModelDef,
-                                          instancePreferenceList,
-                                          currentStateMap,
-                                          disabledInstancesForResource);
+              computeAutoBestStateForResource(cache, stateModelDef,
+                                              instancePreferenceList,
+                                              currentStateMap,
+                                              disabledInstancesForResource);
         }
 
         output.setState(resourceGroupName, resource, bestStateForResource);
@@ -116,11 +119,20 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
     return output;
   }
 
-  private Map<String, String> computeBestStateForResource(ClusterDataCache cache,
-  																											  StateModelDefinition stateModelDef,
-                                                          List<String> instancePreferenceList,
-                                                          Map<String, String> currentStateMap,
-                                                          Set<String> disabledInstancesForResource)
+  /**
+   * compute best state for resource in AUTO ideal state mode
+   * @param cache
+   * @param stateModelDef
+   * @param instancePreferenceList
+   * @param currentStateMap
+   * @param disabledInstancesForResource
+   * @return
+   */
+  private Map<String, String> computeAutoBestStateForResource(ClusterDataCache cache,
+                                                              StateModelDefinition stateModelDef,
+                                                              List<String> instancePreferenceList,
+                                                              Map<String, String> currentStateMap,
+                                                              Set<String> disabledInstancesForResource)
   {
     Map<String, String> instanceStateMap = new HashMap<String, String>();
 
@@ -143,7 +155,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
       }
     }
 
-    // ideal state is deleted or use customized ideal states
+    // ideal state is deleted
     if (instancePreferenceList == null)
     {
       return instanceStateMap;
@@ -207,6 +219,65 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
     return instanceStateMap;
   }
 
+
+  /**
+   * compute best state for resource in CUSTOMIZED ideal state mode
+   * @param cache
+   * @param stateModelDef
+   * @param idealStateMap
+   * @param currentStateMap
+   * @param disabledInstancesForResource
+   * @return
+   */
+  private Map<String, String> computeCustomizedBestStateForResource(ClusterDataCache cache,
+                                                                    StateModelDefinition stateModelDef,
+                                                                    Map<String, String> idealStateMap,
+                                                                    Map<String, String> currentStateMap,
+                                                                    Set<String> disabledInstancesForResource)
+  {
+    Map<String, String> instanceStateMap = new HashMap<String, String>();
+
+    // if the ideal state is deleted, idealStateMap will be null/empty and
+    // we should drop all resources.
+    if (currentStateMap != null)
+    {
+      for (String instance : currentStateMap.keySet())
+      {
+        if (idealStateMap == null || !idealStateMap.containsKey(instance))
+        {
+          instanceStateMap.put(instance, "DROPPED");
+        }
+        else if (disabledInstancesForResource.contains(instance))
+        {
+          // if a node is disabled, put it into initial state (OFFLINE)
+          instanceStateMap.put(instance, stateModelDef.getInitialState());
+        }
+      }
+    }
+
+    // ideal state is deleted
+    if (idealStateMap == null)
+    {
+      return instanceStateMap;
+    }
+
+    Map<String, LiveInstance> liveInstancesMap = cache.getLiveInstances();
+    for (String instance : idealStateMap.keySet())
+    {
+      boolean notInErrorState =
+          currentStateMap == null || !"ERROR".equals(currentStateMap.get(instance));
+
+      if (liveInstancesMap.containsKey(instance) && notInErrorState
+          && !disabledInstancesForResource.contains(instance))
+      {
+        instanceStateMap.put(instance, idealStateMap.get(instance));
+      }
+    }
+
+    return instanceStateMap;
+  }
+
+
   private List<String> getPreferenceList(ClusterDataCache cache, ResourceKey resource,
                                          IdealState idealState,
                                          StateModelDefinition stateModelDef)
@@ -223,8 +294,8 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
     	  list.add(instanceName);
       }
       return list;
-
     }
+
     return listField;
   }
 }

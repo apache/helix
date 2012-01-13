@@ -64,10 +64,10 @@ public class TestResourceComputationStage extends BaseStageTest
   @Test
   public void testMultipleResourceGroups() throws Exception
   {
-    List<IdealState> idealStates = new ArrayList<IdealState>();
+//    List<IdealState> idealStates = new ArrayList<IdealState>();
     String[] resourceGroups = new String[]
         { "testResourceGroup1", "testResourceGroup2" };
-    setupIdealState(5, idealStates,resourceGroups);
+    List<IdealState> idealStates = setupIdealState(5, resourceGroups, 10, 1);
     ResourceComputationStage stage = new ResourceComputationStage();
     runStage(event, new ReadClusterDataStage());
     runStage(event, stage);

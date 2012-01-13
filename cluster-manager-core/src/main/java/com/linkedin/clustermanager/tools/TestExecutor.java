@@ -839,7 +839,7 @@ public class TestExecutor
             }
             else
             {
-//              logger.debug("result:" + result + ", diff:" + diff);
+//              logger.error("result:" + result + ", diff:" + diff);
             }
           }
           else if (_command._commandType == CommandType.START)
@@ -848,6 +848,7 @@ public class TestExecutor
             Thread thread = _command._nodeOpArg._thread;
             thread.start();
 
+            result = true;
             _command._finishTimestamp = System.currentTimeMillis();
             logger.info("result:" + result + ", " + _command.toString());
             _testResults.put(_command, true);
@@ -862,6 +863,7 @@ public class TestExecutor
             thread.interrupt();
 
             // System.err.println("stop " + _command._nodeOpArg._manager.getInstanceName());
+            result = true;
             _command._finishTimestamp = System.currentTimeMillis();
             logger.info("result:" + result + ", " + _command.toString());
             _testResults.put(_command, true);
@@ -869,8 +871,8 @@ public class TestExecutor
           }
           else
           {
-            logger.error("unsupport command");
-            break;
+            throw new IllegalArgumentException("Unsupport command type (was "
+                                             + _command._commandType + ")");
           }
 
           Thread.sleep(SLEEP_TIME);
@@ -885,6 +887,11 @@ public class TestExecutor
       }
       finally
       {
+        if (result == false)
+        {
+          _command._finishTimestamp = System.currentTimeMillis();
+          logger.error("result:" + result + ", diff: " + diff);
+        }
         _countDown.countDown();
       }
     }

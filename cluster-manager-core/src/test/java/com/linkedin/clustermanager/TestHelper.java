@@ -378,19 +378,25 @@ public class TestHelper
     return set;
   }
 
+  public static void verifyWithTimeout(String verifierName, Object... args)
+  {
+    verifyWithTimeout(verifierName, 30 * 1000, args);
+  }
+
   /**
    * generic method for verification with a timeout
    * @param verifierName
    * @param args
    */
-  public static void verifyWithTimeout(String verifierName, Object... args)
+  public static void verifyWithTimeout(String verifierName, long timeout, Object... args)
   {
     final long sleepInterval = 1000;  // in ms
+    final int loop = (int) (timeout / sleepInterval) + 1;
     try
     {
       boolean result = false;
       int i = 0;
-      for (; i < 30; i++)
+      for (; i < loop; i++)
       {
         Thread.sleep(sleepInterval);
         // verifier should be static method
@@ -483,7 +489,7 @@ public class TestHelper
       }
 
       BestPossibleStateOutput bestPossOutput =
-        calcBestPossState(resourceGroupName, partitions, stateModelName, clusterName, accessor);
+        TestHelper.calcBestPossState(resourceGroupName, partitions, stateModelName, clusterName, accessor);
 
 //      System.out.println("extView:" + extView.getMapFields());
 //      System.out.println("BestPoss:" + bestPossOutput);

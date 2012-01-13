@@ -55,6 +55,13 @@ public class DefaultMessagingService implements ClusterMessagingService
   public int send(final Criteria recipientCriteria, final Message message,
       AsyncCallback callbackOnReply, int timeOut)
   {
+    return send(recipientCriteria, message, callbackOnReply, timeOut, 0);
+  }
+  
+  @Override
+  public int send(final Criteria recipientCriteria, final Message message,
+      AsyncCallback callbackOnReply, int timeOut, int retryCount)
+  {
     Map<InstanceType, List<Message>> generateMessage = generateMessage(
         recipientCriteria, message);
     int totalMessageCount = 0;
@@ -65,11 +72,12 @@ public class DefaultMessagingService implements ClusterMessagingService
     String correlationId = null;
     if (callbackOnReply != null)
     {
-      if (timeOut < 0)
+      int totalTimeout = timeOut * (retryCount + 1);
+      if (totalTimeout < 0)
       {
-        timeOut = -1;
+        totalTimeout = -1;
       }
-      callbackOnReply.setTimeout(timeOut);
+      callbackOnReply.setTimeout(totalTimeout);
       correlationId = UUID.randomUUID().toString();
       for (List<Message> messages : generateMessage.values())
       {
@@ -84,6 +92,8 @@ public class DefaultMessagingService implements ClusterMessagingService
       List<Message> list = generateMessage.get(receiverType);
       for (Message tempMessage : list)
       {
+        tempMessage.setRetryCount(retryCount);
+        tempMessage.setExecutionTimeout(timeOut);
         if (correlationId != null)
         {
           tempMessage.setCorrelationId(correlationId);
@@ -254,6 +264,8 @@ public class DefaultMessagingService implements ClusterMessagingService
       {
         Message noOPMsg = new Message(MessageType.NO_OP, UUID.randomUUID()
             .toString());
+        noOPMsg.setSrcName(_manager.getInstanceName());
+        
         if (_manager.getInstanceType() == InstanceType.CONTROLLER
             || _manager.getInstanceType() == InstanceType.CONTROLLER_PARTICIPANT)
         {
@@ -286,9 +298,9 @@ public class DefaultMessagingService implements ClusterMessagingService
 
   @Override
   public int sendAndWait(Criteria receipientCriteria, Message message,
-      AsyncCallback asyncCallback, int timeOut)
+      AsyncCallback asyncCallback, int timeOut, int retryCount)
   {
-    int messagesSent = send(receipientCriteria, message, asyncCallback, timeOut);
+    int messagesSent = send(receipientCriteria, message, asyncCallback, timeOut, retryCount);
     if (messagesSent > 0)
     {
       while (!asyncCallback.isDone() && !asyncCallback.isTimedOut())
@@ -311,5 +323,12 @@ public class DefaultMessagingService implements ClusterMessagingService
       logger.warn("No messages sent. For Criteria:" + receipientCriteria);
     }
     return messagesSent;
+  }
+  
+  @Override
+  public int sendAndWait(Criteria recipientCriteria, Message message,
+      AsyncCallback asyncCallback, int timeOut)
+  {
+    return sendAndWait(recipientCriteria, message, asyncCallback, timeOut, 0);
   }
 }

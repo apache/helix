@@ -494,5 +494,21 @@ public class Mocks
 
     }
 
+    @Override
+    public int send(Criteria receipientCriteria, Message message,
+        AsyncCallback callbackOnReply, int timeOut, int retryCount)
+    {
+      // TODO Auto-generated method stub
+      return 0;
+    }
+
+    @Override
+    public int sendAndWait(Criteria receipientCriteria, Message message,
+        AsyncCallback callbackOnReply, int timeOut, int retryCount)
+    {
+      // TODO Auto-generated method stub
+      return 0;
+    }
+
   }
 }

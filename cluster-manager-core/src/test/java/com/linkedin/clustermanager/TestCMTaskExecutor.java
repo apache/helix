@@ -38,7 +38,7 @@ public class TestCMTaskExecutor
         MessageType.TASK_REPLY.toString(), new AsyncCallbackService());
     String clusterName =" testcluster";
     context = new NotificationContext(new MockManager(clusterName));
-    CMStateTransitionHandler handler = new CMStateTransitionHandler(stateModel);
+    CMStateTransitionHandler handler = new CMStateTransitionHandler(stateModel, message, context);
     executor.scheduleTask(message, handler, context);
     while (!executor.isDone(msgId))
     {

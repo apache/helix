@@ -24,7 +24,10 @@ import com.linkedin.clustermanager.Criteria;
 import com.linkedin.clustermanager.NotificationContext;
 import com.linkedin.clustermanager.messaging.AsyncCallback;
 import com.linkedin.clustermanager.messaging.handling.CMTaskExecutor;
+import com.linkedin.clustermanager.messaging.handling.CMTaskResult;
 import com.linkedin.clustermanager.messaging.handling.MessageHandler;
+import com.linkedin.clustermanager.messaging.handling.MessageHandler.ErrorCode;
+import com.linkedin.clustermanager.messaging.handling.MessageHandler.ErrorType;
 import com.linkedin.clustermanager.messaging.handling.MessageHandlerFactory;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.Message.MessageType;
@@ -126,7 +129,7 @@ public class BootstrapProcess
         NotificationContext context)
     {
       
-      return new CustomMessageHandler();
+      return new CustomMessageHandler(message, context);
     }
 
     @Override
@@ -141,14 +144,20 @@ public class BootstrapProcess
 
     }
 
-    static class CustomMessageHandler implements MessageHandler
+    static class CustomMessageHandler extends MessageHandler
     {
 
+      public CustomMessageHandler(Message message, NotificationContext context)
+      {
+        super(message, context);
+        // TODO Auto-generated constructor stub
+      }
+
       @Override
-      public void handleMessage(Message message, NotificationContext context,
-          Map<String, String> resultMap) throws InterruptedException
+      public CMTaskResult handleMessage() throws InterruptedException
       {
         String hostName;
+        CMTaskResult result = new CMTaskResult();
         try
         {
           hostName = InetAddress.getLocalHost().getCanonicalHostName();
@@ -157,20 +166,29 @@ public class BootstrapProcess
           hostName = "UNKNOWN";
         }
         String port = "2134";
-        String msgSubType = message.getMsgSubType();
+        String msgSubType = _message.getMsgSubType();
         if (msgSubType.equals(REQUEST_BOOTSTRAP_URL))
         {
-          resultMap.put(
+          result.getTaskResultMap().put(
               "BOOTSTRAP_URL",
               "http://" + hostName + ":" + port
                   + "/getFile?path=/data/bootstrap/"
-                  + message.getResourceGroupName() + "/"
-                  + message.getResourceKey() + ".tar");
+                  + _message.getResourceGroupName() + "/"
+                  + _message.getResourceKey() + ".tar");
           
-          resultMap.put(
+          result.getTaskResultMap().put(
               "BOOTSTRAP_TIME",
               ""+new Date().getTime());
         }
+        
+        result.setSuccess(true);
+        return result;
+      }
+
+      @Override
+      public void onError( Exception e, ErrorCode code, ErrorType type)
+      {
+        e.printStackTrace();
       }
     }
   }

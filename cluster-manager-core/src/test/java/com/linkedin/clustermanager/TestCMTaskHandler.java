@@ -8,6 +8,7 @@ import com.linkedin.clustermanager.Mocks.MockStateModel;
 import com.linkedin.clustermanager.Mocks.MockStateModelAnnotated;
 import com.linkedin.clustermanager.messaging.handling.CMStateTransitionHandler;
 import com.linkedin.clustermanager.messaging.handling.CMTask;
+import com.linkedin.clustermanager.messaging.handling.CMTaskExecutor;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.Message.MessageType;
 
@@ -16,6 +17,7 @@ public class TestCMTaskHandler
   @Test ()
   public void testInvocation() throws Exception
   {
+    CMTaskExecutor executor = new CMTaskExecutor();
     System.out.println("START TestCMTaskHandler.testInvocation()");
     Message message = new Message(MessageType.STATE_TRANSITION,"Some unique id");
     message.setSrcName("cm-instance-0");
@@ -29,11 +31,11 @@ public class TestCMTaskHandler
     message.setStateModelDef("MasterSlave");
     MockStateModel stateModel = new MockStateModel();
     NotificationContext context;
-    CMStateTransitionHandler stHandler = new CMStateTransitionHandler(stateModel);
     String clusterName="clusterName";
     context = new NotificationContext(new MockManager(clusterName));
+    CMStateTransitionHandler stHandler = new CMStateTransitionHandler(stateModel, message, context);
     CMTask handler;
-    handler = new CMTask(message, context, stHandler, null);
+    handler = new CMTask(message, context, stHandler, executor);
     handler.call();
     AssertJUnit.assertTrue(stateModel.stateModelInvoked);
     System.out.println("END TestCMTaskHandler.testInvocation()");
@@ -43,6 +45,7 @@ public class TestCMTaskHandler
   public void testInvocationAnnotated() throws Exception
   {
     System.out.println("START TestCMTaskHandler.testInvocationAnnotated()");
+    CMTaskExecutor executor = new CMTaskExecutor();
     Message message = new Message(MessageType.STATE_TRANSITION,"Some unique id");
     message.setSrcName("cm-instance-0");
     message.setTgtSessionId("1234");
@@ -57,9 +60,9 @@ public class TestCMTaskHandler
     NotificationContext context;
     context = new NotificationContext(new MockManager());
     CMTask handler;
-    CMStateTransitionHandler stHandler = new CMStateTransitionHandler(stateModel);
+    CMStateTransitionHandler stHandler = new CMStateTransitionHandler(stateModel, message, context);
 
-    handler = new CMTask(message, context, stHandler, null);
+    handler = new CMTask(message, context, stHandler, executor);
     handler.call();
     AssertJUnit.assertTrue(stateModel.stateModelInvoked);
     System.out.println("END TestCMTaskHandler.testInvocationAnnotated()");

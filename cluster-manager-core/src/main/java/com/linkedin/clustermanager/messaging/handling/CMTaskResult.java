@@ -7,9 +7,10 @@ public class CMTaskResult
 {
 
   private boolean _success;
-  private String _message;
+  private String _message = "";
   private Map<String, String> _taskResultMap = new HashMap<String, String>();
   private boolean _interrupted = false;
+  Exception _exception = null;
   
   public boolean isSucess()
   {
@@ -44,5 +45,15 @@ public class CMTaskResult
   public Map<String, String> getTaskResultMap()
   {
     return _taskResultMap;
+  }
+  
+  public void setException(Exception e)
+  {
+    _exception = e;
+  }
+  
+  public Exception getException()
+  {
+    return _exception;
   }
 }

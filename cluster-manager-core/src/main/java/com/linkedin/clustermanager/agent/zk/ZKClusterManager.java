@@ -388,8 +388,14 @@ public class ZKClusterManager implements ClusterManager
 
     logger.info("Add live instance: InstanceName: " + _instanceName
         + " Session id:" + _sessionId);
-    _accessor.setProperty(PropertyType.LIVEINSTANCES, liveInstance,
-        _instanceName);
+    if(!_accessor.setProperty(PropertyType.LIVEINSTANCES, liveInstance,
+        _instanceName))
+    {
+      String errorMsg = "Fail to create live instance node after waiting, so quit. instance:" + _instanceName;
+      logger.warn(errorMsg);
+      throw new ClusterManagerException(errorMsg);
+      
+    }
     String currentStatePathParent = PropertyPathConfig
         .getPath(PropertyType.CURRENTSTATES, _clusterName, _instanceName,
             getSessionId());
@@ -552,7 +558,7 @@ public class ZKClusterManager implements ClusterManager
         Thread.sleep(SESSIONTIMEOUT + 5000);
       } catch (InterruptedException e)
       {
-        e.printStackTrace();
+        logger.warn("Sleep interrupted while waiting for previous liveinstance to go away.", e );
       }
 
       if (_accessor.getProperty(PropertyType.LIVEINSTANCES, _instanceName) != null)

@@ -2,9 +2,15 @@ package com.linkedin.clustermanager.agent.zk;
 
 import java.util.Map;
 
+import org.apache.log4j.Logger;
+
 import com.linkedin.clustermanager.ClusterManagerException;
 import com.linkedin.clustermanager.NotificationContext;
+import com.linkedin.clustermanager.messaging.handling.AsyncCallbackService;
+import com.linkedin.clustermanager.messaging.handling.CMTaskResult;
 import com.linkedin.clustermanager.messaging.handling.MessageHandler;
+import com.linkedin.clustermanager.messaging.handling.MessageHandler.ErrorCode;
+import com.linkedin.clustermanager.messaging.handling.MessageHandler.ErrorType;
 import com.linkedin.clustermanager.messaging.handling.MessageHandlerFactory;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.Message.MessageType;
@@ -12,7 +18,7 @@ import com.linkedin.clustermanager.model.Message.MessageType;
 public class DefaultControllerMessageHandlerFactory implements
     MessageHandlerFactory
 {
-
+  private static Logger _logger = Logger.getLogger(DefaultControllerMessageHandlerFactory.class);
   @Override
   public MessageHandler createHandler(Message message,
       NotificationContext context)
@@ -25,7 +31,7 @@ public class DefaultControllerMessageHandlerFactory implements
           +" type:" + message.getMsgType());
     }
     
-    return new DefaultControllerMessageHandler();
+    return new DefaultControllerMessageHandler(message, context);
   }
 
   @Override
@@ -40,23 +46,33 @@ public class DefaultControllerMessageHandlerFactory implements
 
   }
   
-  public static class DefaultControllerMessageHandler implements MessageHandler
+  public static class DefaultControllerMessageHandler extends MessageHandler
   {
+    public DefaultControllerMessageHandler(Message message,
+        NotificationContext context)
+    {
+      super(message, context);
+      // TODO Auto-generated constructor stub
+    }
 
     @Override
-    public void handleMessage(Message message, NotificationContext context,
-        Map<String, String> resultMap) throws InterruptedException
+    public CMTaskResult handleMessage() throws InterruptedException
     {
-      String type = message.getMsgType();
-      
+      String type = _message.getMsgType();
+      CMTaskResult result = new CMTaskResult();
       if(!type.equals(MessageType.CONTROLLER_MSG.toString()))
       {
-        throw new ClusterManagerException("Unexpected msg type for message "+message.getMsgId()
-            +" type:" + message.getMsgType());
+        throw new ClusterManagerException("Unexpected msg type for message "+_message.getMsgId()
+            +" type:" + _message.getMsgType());
       }
-      
-      resultMap.put("ControllerResult", "msg "+ message.getMsgId() + " from "+message.getMsgSrc() + " processed");
+      result.getTaskResultMap().put("ControllerResult", "msg "+ _message.getMsgId() + " from "+_message.getMsgSrc() + " processed");
+      return result;
     }
-    
+
+    @Override
+    public void onError(Exception e, ErrorCode code, ErrorType type)
+    {
+      _logger.error("Message handling pipeline get an exception. MsgId:" + _message.getMsgId(), e);
+    }
   }
 }

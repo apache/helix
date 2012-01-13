@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.log4j.Logger;
 
@@ -25,7 +24,7 @@ import com.linkedin.clustermanager.participant.statemachine.StateModelParser;
 import com.linkedin.clustermanager.participant.statemachine.StateTransitionError;
 import com.linkedin.clustermanager.util.StatusUpdateUtil;
 
-public class CMStateTransitionHandler implements MessageHandler
+public class CMStateTransitionHandler extends MessageHandler
 {
   private static Logger logger = Logger
       .getLogger(CMStateTransitionHandler.class);
@@ -33,8 +32,9 @@ public class CMStateTransitionHandler implements MessageHandler
   StatusUpdateUtil _statusUpdateUtil;
   private final StateModelParser _transitionMethodFinder;
 
-  public CMStateTransitionHandler(StateModel stateModel)
+  public CMStateTransitionHandler(StateModel stateModel, Message message, NotificationContext context)
   {
+    super(message, context);
     this._stateModel = stateModel;
     _statusUpdateUtil = new StatusUpdateUtil();
     _transitionMethodFinder = new StateModelParser();
@@ -193,8 +193,7 @@ public class CMStateTransitionHandler implements MessageHandler
       }
       else
       {
-        logger
-            .warn("currentState is null. Storage node should be working with file based cluster manager.");
+        logger.warn("currentState is null. Storage node should be working with file based cluster manager.");
       }
 
       // TODO verify that fromState is same as currentState this task
@@ -214,7 +213,7 @@ public class CMStateTransitionHandler implements MessageHandler
       else
       {
         StateTransitionError error = new StateTransitionError(
-            StateTransitionError.ErrorCode.INTERNAL, exception);
+            ErrorType.INTERNAL, ErrorCode.ERROR, exception);
         _stateModel.rollbackOnError(message, context, error);
         currentStateDelta.setState(stateUnitKey, "ERROR");
         _stateModel.updateState("ERROR");
@@ -248,20 +247,18 @@ public class CMStateTransitionHandler implements MessageHandler
                                 manager.getSessionId(),
                                 stateUnitGroup);
       }
-    } catch (Exception e)
+    } 
+    catch (Exception e)
     {
       logger.error("Error when updating the state ", e);
       StateTransitionError error = new StateTransitionError(
-          StateTransitionError.ErrorCode.FRAMEWORK, e);
+          ErrorType.FRAMEWORK, ErrorCode.ERROR,e);
       _stateModel.rollbackOnError(message, context, error);
       _statusUpdateUtil.logError(message, CMStateTransitionHandler.class, e,
           "Error when update the state ", accessor);
     }
   }
 
-  // TODO: decide if handleMessage() should return a value CMTaskResult; this
-  // part need to integrate with
-  // send reply message
   public CMTaskResult handleMessageInternal(Message message,
       NotificationContext context)
   {
@@ -270,27 +267,21 @@ public class CMStateTransitionHandler implements MessageHandler
       CMTaskResult taskResult = new CMTaskResult();
       ClusterManager manager = context.getManager();
       ClusterDataAccessor accessor = manager.getDataAccessor();
-      String instanceName = manager.getInstanceName();
       try
       {
         _statusUpdateUtil.logInfo(message, CMStateTransitionHandler.class,
             "Message handling task begin execute", accessor);
         message.setExecuteStartTimeStamp(new Date().getTime());
-        try
-        {
-          prepareMessageExecution(manager, message);
-        } catch (ClusterManagerException e)
-        {
-          taskResult.setSuccess(false);
-          taskResult.setMessage(e.getMessage());
-          logger.error("prepareMessageExecution failed", e);
-          return taskResult;
-        }
-
+                
         Exception exception = null;
         try
         {
+          prepareMessageExecution(manager, message);
           invoke(accessor, context, taskResult, message);
+        }
+        catch(InterruptedException e)
+        {
+          throw e;
         }
         catch (Exception e)
         {
@@ -312,12 +303,12 @@ public class CMStateTransitionHandler implements MessageHandler
                                      errorMessage,
                                      accessor);
           taskResult.setSuccess(false);
+          taskResult.setMessage(e.toString());
+          taskResult.setException(e);
+          
           exception = e;
-
         }
-
         postExecutionMessage(manager, message, context, taskResult, exception);
-
         return taskResult;
       }
       catch (InterruptedException e)
@@ -327,8 +318,12 @@ public class CMStateTransitionHandler implements MessageHandler
         logger.info("Message " + message.getMsgId() + " is interrupted");
 
         StateTransitionError error = new StateTransitionError(
-            StateTransitionError.ErrorCode.FRAMEWORK, e);
+            ErrorType.FRAMEWORK, ErrorCode.CANCEL, e);
         _stateModel.rollbackOnError(message, context, error);
+        // We have handled the cancel case here, so no need to let outside know
+        //taskResult.setInterrupted(true);
+        //taskResult.setException(e);
+        taskResult.setSuccess(false);
         return taskResult;
       }
     }
@@ -379,10 +374,36 @@ public class CMStateTransitionHandler implements MessageHandler
   }
 
   @Override
-  public void handleMessage(Message message, NotificationContext context,
-      Map<String, String> resultMap) throws InterruptedException
+  public CMTaskResult handleMessage() throws InterruptedException
   {
-    handleMessageInternal(message, context);
+    return handleMessageInternal(_message, _notificationContext);
+  }
 
+  @Override
+  public void onError( Exception e, ErrorCode code, ErrorType type)
+  {
+    ClusterManager manager = _notificationContext.getManager();
+    ClusterDataAccessor accessor = manager.getDataAccessor();
+    String instanceName = manager.getInstanceName();
+    String stateUnitKey = _message.getStateUnitKey();
+    String stateUnitGroup = _message.getStateUnitGroup();
+    CurrentState currentStateDelta = new CurrentState(stateUnitGroup);
+    
+    StateTransitionError error = new StateTransitionError(
+        type, code, e);
+    _stateModel.rollbackOnError(_message, _notificationContext, error);
+    // if the transition is not canceled, it should go into error state
+    if(code == ErrorCode.ERROR)
+    {
+      currentStateDelta.setState(stateUnitKey, "ERROR");
+      _stateModel.updateState("ERROR");
+  
+      currentStateDelta.setResourceGroup(stateUnitKey, _message.getStateUnitGroup());
+      accessor.updateProperty(PropertyType.CURRENTSTATES,
+          currentStateDelta,
+          instanceName,
+          manager.getSessionId(),
+          stateUnitGroup);
+    }
   }
 };

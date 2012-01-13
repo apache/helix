@@ -7,7 +7,7 @@ public enum PropertyType
   // @formatter:off
   // CLUSTER PROPERTIES
   CONFIGS(Type.CLUSTER, true, false, false, false, true),
-  LIVEINSTANCES(Type.CLUSTER, false, false, false, false, true),
+  LIVEINSTANCES(Type.CLUSTER, false, false, false, true, true),
   INSTANCES(Type.CLUSTER, true, false),
   IDEALSTATES(Type.CLUSTER, false, false, false, false, true),
   EXTERNALVIEW(Type.CLUSTER, true, false),
@@ -56,24 +56,24 @@ public enum PropertyType
 	}
 
 	private PropertyType(Type type, boolean isPersistent,
-      boolean mergeOnUpdate, boolean updateOnlyOnExists, boolean createIfAbsent)
+      boolean mergeOnUpdate, boolean updateOnlyOnExists, boolean createOnlyIfAbsent)
 	{
-	  this(type, isPersistent, mergeOnUpdate, updateOnlyOnExists, createIfAbsent, false);
+	  this(type, isPersistent, mergeOnUpdate, updateOnlyOnExists, createOnlyIfAbsent, false);
 	}
 
 	 private PropertyType(Type type, boolean isPersistent,
-	                      boolean mergeOnUpdate, boolean updateOnlyOnExists, boolean createIfAbsent,
+	                      boolean mergeOnUpdate, boolean updateOnlyOnExists, boolean createOnlyIfAbsent,
 	                      boolean isCached)
   {
     this.type = type;
     this.isPersistent = isPersistent;
     this.mergeOnUpdate = mergeOnUpdate;
     this.updateOnlyOnExists = updateOnlyOnExists;
-		this.createOnlyIfAbsent = createIfAbsent;
+		this.createOnlyIfAbsent = createOnlyIfAbsent;
 		this.isCached = isCached;
   }
 
-  public boolean isCreateIfAbsent()
+  public boolean isCreateOnlyIfAbsent()
   {
     return createOnlyIfAbsent;
   }

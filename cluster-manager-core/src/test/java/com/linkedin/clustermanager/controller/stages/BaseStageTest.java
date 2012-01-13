@@ -55,8 +55,6 @@ public class BaseStageTest
     event = new ClusterEvent("sampleEvent");
   }
 
-//  protected String[] setupIdealState(int nodes, List<IdealState> idealStates,
-//      String[] resourceGroups)
   protected List<IdealState> setupIdealState(int nodes, String[] resourceGroups,
                                              int partitions, int replicas)
   {
@@ -69,8 +67,6 @@ public class BaseStageTest
 
     for (int i = 0; i < resourceGroups.length; i++)
     {
-//      int partitions = 10;
-//      int replicas = 1;
       String resourceGroupName = resourceGroups[i];
       ZNRecord record = new ZNRecord(resourceGroupName);
       for (int p = 0; p < partitions; p++)
@@ -128,20 +124,12 @@ public class BaseStageTest
     ZNRecord masterSlave = new StateModelConfigGenerator()
         .generateConfigForMasterSlave();
     accessor.setProperty(PropertyType.STATEMODELDEFS, masterSlave, masterSlave.getId());
-//    accessor.setProperty(PropertyType.STATEMODELDEFS, new StateModelDefinition(masterSlave),
-//        masterSlave.getId());
     ZNRecord leaderStandby = new StateModelConfigGenerator()
         .generateConfigForLeaderStandby();
     accessor.setProperty(PropertyType.STATEMODELDEFS, leaderStandby, leaderStandby.getId());
-//    accessor.setProperty(PropertyType.STATEMODELDEFS, new StateModelDefinition(leaderStandby),
-//                         leaderStandby.getId());
-
     ZNRecord onlineOffline = new StateModelConfigGenerator()
         .generateConfigForOnlineOffline();
     accessor.setProperty(PropertyType.STATEMODELDEFS, onlineOffline, onlineOffline.getId());
-//    accessor.setProperty(PropertyType.STATEMODELDEFS, new StateModelDefinition(onlineOffline),
-//                         onlineOffline.getId());
-
   }
 
   protected Map<String, ResourceGroup> getResourceGroupMap()

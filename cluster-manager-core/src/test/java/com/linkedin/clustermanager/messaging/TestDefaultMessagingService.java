@@ -16,7 +16,10 @@ import com.linkedin.clustermanager.Mocks;
 import com.linkedin.clustermanager.NotificationContext;
 import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.messaging.handling.CMTaskResult;
 import com.linkedin.clustermanager.messaging.handling.MessageHandler;
+import com.linkedin.clustermanager.messaging.handling.MessageHandler.ErrorCode;
+import com.linkedin.clustermanager.messaging.handling.MessageHandler.ErrorType;
 import com.linkedin.clustermanager.messaging.handling.MessageHandlerFactory;
 import com.linkedin.clustermanager.model.LiveInstance.LiveInstanceProperty;
 import com.linkedin.clustermanager.model.Message;
@@ -106,24 +109,36 @@ public class TestDefaultMessagingService
 
   class TestMessageHandlerFactory implements MessageHandlerFactory
   {
-    class TestMessageHandler implements MessageHandler
+    class TestMessageHandler extends MessageHandler
     {
 
-      @Override
-      public void handleMessage(Message message, NotificationContext context,
-          Map<String, String> resultMap) throws InterruptedException
+      public TestMessageHandler(Message message, NotificationContext context)
       {
-        // TODO Auto-generated method stub
-
+        super(message, context);
+        // TODO Auto-generated constructor stub
       }
 
+      @Override
+      public CMTaskResult handleMessage() throws InterruptedException
+      {
+        CMTaskResult result = new CMTaskResult();
+        result.setSuccess(true);
+        return result;
+      }
+
+      @Override
+      public void onError( Exception e, ErrorCode code, ErrorType type)
+      {
+        // TODO Auto-generated method stub
+        
+      }
     }
     @Override
     public MessageHandler createHandler(Message message,
         NotificationContext context)
     {
       // TODO Auto-generated method stub
-      return new TestMessageHandler();
+      return new TestMessageHandler(message, context);
     }
 
     @Override

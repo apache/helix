@@ -123,7 +123,6 @@ public class CMTaskExecutor implements MessageListener
 
         _statusUpdateUtil.logError(message, CMTaskExecutor.class, e,
             errorMessage, notificationContext.getManager().getDataAccessor());
-        // TODO add retry or update errors node
       }
     }
   }

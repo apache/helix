@@ -334,17 +334,14 @@ public class Message extends ZNRecordDecorator
   
   public int getRetryCount()
   {
-    if(!_record.getSimpleFields().containsKey(Attributes.RETRY_COUNT.toString()))
-    {
-      return 1;
-    }
     try
     {
       return Integer.parseInt(_record.getSimpleField(Attributes.RETRY_COUNT.toString()));
     }
     catch(Exception e)
     {} 
-    return 1;
+    // Default to 0, and there is no retry if timeout happens
+    return 0;
   }
 
   public Map<String, String> getResultMap()

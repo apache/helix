@@ -14,6 +14,8 @@ import org.testng.annotations.Test;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.Mocks;
 import com.linkedin.clustermanager.NotificationContext;
+import com.linkedin.clustermanager.messaging.handling.MessageHandler.ErrorCode;
+import com.linkedin.clustermanager.messaging.handling.MessageHandler.ErrorType;
 import com.linkedin.clustermanager.model.Message;
 
 public class TestCMTaskExecutor
@@ -31,18 +33,30 @@ public class TestCMTaskExecutor
   {
     int _handlersCreated = 0;
     ConcurrentHashMap<String, String> _processedMsgIds = new ConcurrentHashMap<String, String>();
-    class TestMessageHandler implements MessageHandler
+    class TestMessageHandler extends MessageHandler
     {
-
-      @Override
-      public void handleMessage(Message message, NotificationContext context,
-          Map<String, String> resultMap) throws InterruptedException
+      public TestMessageHandler(Message message, NotificationContext context)
       {
-        // TODO Auto-generated method stub
-        _processedMsgIds.put(message.getMsgId(), message.getMsgId());
-        Thread.currentThread().sleep(100);
+        super(message, context);
+        // TODO Auto-generated constructor stub
       }
 
+      @Override
+      public CMTaskResult handleMessage() throws InterruptedException
+      {
+        CMTaskResult result = new CMTaskResult();
+        _processedMsgIds.put(_message.getMsgId(), _message.getMsgId());
+        Thread.currentThread().sleep(100);
+        result.setSuccess(true);
+        return result;
+      }
+
+      @Override
+      public void onError(Exception e, ErrorCode code, ErrorType type)
+      {
+        // TODO Auto-generated method stub
+        
+      }
     }
     @Override
     public MessageHandler createHandler(Message message,
@@ -50,7 +64,7 @@ public class TestCMTaskExecutor
     {
       // TODO Auto-generated method stub
       _handlersCreated++;
-      return new TestMessageHandler();
+      return new TestMessageHandler(message, context);
     }
 
     @Override
@@ -76,6 +90,7 @@ public class TestCMTaskExecutor
       // TODO Auto-generated method stub
       return "TestingMessageHandler2";
     }
+    
   }
 
   class CancellableHandlerFactory implements MessageHandlerFactory
@@ -84,30 +99,58 @@ public class TestCMTaskExecutor
     int _handlersCreated = 0;
     ConcurrentHashMap<String, String> _processedMsgIds = new ConcurrentHashMap<String, String>();
     ConcurrentHashMap<String, String> _processingMsgIds = new ConcurrentHashMap<String, String>();
-    class CancellableHandler implements MessageHandler
+    ConcurrentHashMap<String, String> _timedOutMsgIds = new ConcurrentHashMap<String, String>();
+    class CancellableHandler extends MessageHandler
     {
+      public CancellableHandler(Message message, NotificationContext context)
+      {
+        super(message, context);
+        // TODO Auto-generated constructor stub
+      }
       public boolean _interrupted = false;
       @Override
-      public void handleMessage(Message message, NotificationContext context,
-          Map<String, String> resultMap) throws InterruptedException
+      public CMTaskResult handleMessage() throws InterruptedException
       {
-        // TODO Auto-generated method stub
-        _processingMsgIds.put(message.getMsgId(), message.getMsgId());
+        CMTaskResult result = new CMTaskResult();
+        int sleepTimes = 15;
+        if(_message.getRecord().getSimpleFields().containsKey("Cancelcount"))
+        {
+          sleepTimes = 10;
+        }
+        _processingMsgIds.put(_message.getMsgId(), _message.getMsgId());
         try
         {
-          for (int i = 0; i < 10; i++)
+          for (int i = 0; i < sleepTimes; i++)
           {
             Thread.sleep(100);
           }
-        } catch (InterruptedException e)
+        } 
+        catch (InterruptedException e)
         {
           _interrupted = true;
-          message.getRecord().setSimpleField("Canceled", "Canceled");
+          _timedOutMsgIds.put(_message.getMsgId(), "");
+          result.setInterrupted(true);
+          if(!_message.getRecord().getSimpleFields().containsKey("Cancelcount"))
+          {
+            _message.getRecord().setSimpleField("Cancelcount", "1");
+          }
+          else
+          {
+            int c = Integer.parseInt( _message.getRecord().getSimpleField("Cancelcount"));
+            _message.getRecord().setSimpleField("Cancelcount", ""+(c + 1));
+          }
           throw e;
         }
-        _processedMsgIds.put(message.getMsgId(), message.getMsgId());
+        _processedMsgIds.put(_message.getMsgId(), _message.getMsgId());
+        result.setSuccess(true);
+        return result;
       }
-
+      @Override
+      public void onError(Exception e, ErrorCode code, ErrorType type)
+      {
+        // TODO Auto-generated method stub
+        _message.getRecord().setSimpleField("exception", e.getMessage());
+      }
     }
     @Override
     public MessageHandler createHandler(Message message,
@@ -115,7 +158,7 @@ public class TestCMTaskExecutor
     {
       // TODO Auto-generated method stub
       _handlersCreated++;
-      return new CancellableHandler();
+      return new CancellableHandler(message, context);
     }
 
     @Override
@@ -129,7 +172,10 @@ public class TestCMTaskExecutor
     public void reset()
     {
       // TODO Auto-generated method stub
-
+      _handlersCreated = 0;
+      _processedMsgIds.clear();
+       _processingMsgIds.clear();
+      _timedOutMsgIds.clear();
     }
   }
 
@@ -156,11 +202,12 @@ public class TestCMTaskExecutor
       msg.setTgtSessionId(manager.getSessionId());
       msg.setTgtName("Localhost_1123");
       msg.setSrcName("127.101.1.23_2234");
+      msg.setCorrelationId(UUID.randomUUID().toString());
       msgList.add(msg);
     }
 
 
-    int nMsgs2 = 4;
+    int nMsgs2 = 6;
     for(int i = 0; i < nMsgs2; i++)
     {
       Message msg = new Message(factory2.getMessageType(), UUID.randomUUID().toString());
@@ -352,7 +399,7 @@ public class TestCMTaskExecutor
   @Test ()
   public void testShutdown() throws InterruptedException
   {
-     System.out.println("START TestCMTaskExecutor.TestNormalMsgExecution()");
+     System.out.println("START TestCMTaskExecutor.testShutdown()");
      CMTaskExecutor executor = new CMTaskExecutor();
       ClusterManager manager = new MockClusterManager();
 
@@ -408,5 +455,70 @@ public class TestCMTaskExecutor
       {
         Assert.assertTrue(svc.isShutdown());
       }
+      System.out.println("END TestCMTaskExecutor.testShutdown()");
+  }
+  
+  @Test ()
+  public void testRetryCount() throws InterruptedException
+  {
+    String p = "test_";
+    System.out.println(p.substring(p.lastIndexOf('_')+1));
+    CMTaskExecutor executor = new CMTaskExecutor();
+    ClusterManager manager = new MockClusterManager();
+
+    CancellableHandlerFactory factory = new CancellableHandlerFactory();
+    executor.registerMessageHandlerFactory(factory.getMessageType(), factory);
+
+    NotificationContext changeContext = new NotificationContext(manager);
+
+    List<Message> msgList = new ArrayList<Message>();
+    int nMsgs2 = 4;
+    // Test the case in which retry = 0
+    for(int i = 0; i < nMsgs2; i++)
+    {
+      Message msg = new Message(factory.getMessageType(), UUID.randomUUID().toString());
+      msg.setTgtSessionId("*");
+      msg.setTgtName("Localhost_1123");
+      msg.setSrcName("127.101.1.23_2234");
+      msg.setExecutionTimeout((i+1) * 600);
+      msgList.add(msg);
+    }
+    executor.onMessage("someInstance", msgList, changeContext);
+    
+    Thread.sleep(4000);
+
+    AssertJUnit.assertTrue(factory._handlersCreated ==  nMsgs2);
+    AssertJUnit.assertEquals(factory._timedOutMsgIds.size() , 2);
+    //AssertJUnit.assertFalse(msgList.get(0).getRecord().getSimpleFields().containsKey("TimeOut"));
+    for(int i = 0; i<nMsgs2 - 2; i++)
+    {
+      if(msgList.get(i).getMsgType().equalsIgnoreCase(factory.getMessageType()))
+      {
+        AssertJUnit.assertTrue(msgList.get(i).getRecord().getSimpleFields().containsKey("Cancelcount"));
+        AssertJUnit.assertTrue(factory._timedOutMsgIds.containsKey(msgList.get(i).getId()));
+      }
+    }
+    factory.reset();
+    msgList.clear();
+    // Test the case that the message are executed for the second time
+    nMsgs2 = 4;
+    for(int i = 0; i < nMsgs2; i++)
+    {
+      Message msg = new Message(factory.getMessageType(), UUID.randomUUID().toString());
+      msg.setTgtSessionId("*");
+      msg.setTgtName("Localhost_1123");
+      msg.setSrcName("127.101.1.23_2234");
+      msg.setExecutionTimeout((i+1) * 600);
+      msg.setRetryCount(1);
+      msgList.add(msg);
+    }
+    executor.onMessage("someInstance", msgList, changeContext);
+    Thread.sleep(3500);
+    AssertJUnit.assertEquals(factory._processedMsgIds.size(),3);
+    AssertJUnit.assertTrue(msgList.get(0).getRecord().getSimpleField("Cancelcount").equals("2"));
+    AssertJUnit.assertTrue(msgList.get(1).getRecord().getSimpleField("Cancelcount").equals("1"));
+    AssertJUnit.assertEquals(factory._timedOutMsgIds.size(),2);
+    AssertJUnit.assertTrue(executor._taskMap.size() == 0);
+    
   }
 }

@@ -41,10 +41,15 @@ public interface ClusterMessagingService
    * @param receipientCriteria
    * @param message
    * @param callbackOnReply
+   * @param timeOut
+   * @param retryCount
    * @return
    */
   int send(Criteria receipientCriteria, Message message,
       AsyncCallback callbackOnReply, int timeOut);
+  
+  int send(Criteria receipientCriteria, Message message,
+      AsyncCallback callbackOnReply, int timeOut, int retryCount);
 
   /**
    * This will send the message to all instances matching the criteria<br>
@@ -58,10 +63,15 @@ public interface ClusterMessagingService
    * @param receipientCriteria
    * @param message
    * @param callbackOnReply
+   * @param timeOut
+   * @param retryCount
    * @return
    */
   int sendAndWait(Criteria receipientCriteria, Message message,
       AsyncCallback callbackOnReply, int timeOut); 
+  
+  int sendAndWait(Criteria receipientCriteria, Message message,
+      AsyncCallback callbackOnReply, int timeOut, int retryCount); 
 
   /**
    * This will register a message handler factory to create handlers for

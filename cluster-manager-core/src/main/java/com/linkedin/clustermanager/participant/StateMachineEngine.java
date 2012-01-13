@@ -132,7 +132,7 @@ public class StateMachineEngine implements
       stateModelFactory.createAndAddStateModel(stateUnitKey);
       stateModel = stateModelFactory.getStateModel(stateUnitKey);
     }
-    return new CMStateTransitionHandler(stateModel);
+    return new CMStateTransitionHandler(stateModel, message, context);
   }
 
   @Override

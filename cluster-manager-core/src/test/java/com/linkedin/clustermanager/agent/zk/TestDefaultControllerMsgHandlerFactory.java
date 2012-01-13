@@ -47,12 +47,12 @@ public class TestDefaultControllerMsgHandlerFactory
     }
     AssertJUnit.assertFalse(exceptionCaught);
 
-    DefaultControllerMessageHandler defaultHandler = new DefaultControllerMessageHandler();
     Map<String, String> resultMap = new HashMap<String, String>();
     message = new Message(MessageType.NO_OP, "3");
+    DefaultControllerMessageHandler defaultHandler = new DefaultControllerMessageHandler(message, context);
     try
     {
-      defaultHandler.handleMessage(message, context, resultMap);
+      defaultHandler.handleMessage();
     } catch (ClusterManagerException e)
     {
       exceptionCaught = true;
@@ -65,10 +65,11 @@ public class TestDefaultControllerMsgHandlerFactory
     AssertJUnit.assertTrue(exceptionCaught);
 
     message = new Message(MessageType.CONTROLLER_MSG, "4");
+    defaultHandler = new DefaultControllerMessageHandler(message, context);
     exceptionCaught = false;
     try
     {
-      defaultHandler.handleMessage(message, context, resultMap);
+      defaultHandler.handleMessage();
     } catch (ClusterManagerException e)
     {
       exceptionCaught = true;

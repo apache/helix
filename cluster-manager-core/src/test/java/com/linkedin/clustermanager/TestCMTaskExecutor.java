@@ -32,20 +32,22 @@ public class TestCMTaskExecutor
     message.setStateUnitKey("Teststateunitkey");
     message.setStateUnitGroup("Teststateunitkey");
     message.setStateModelDef("MasterSlave");
-
+   
+    MockManager manager = new MockManager("clusterName");
+    ClusterDataAccessor accessor = manager.getDataAccessor();
+    StateModelConfigGenerator generator = new StateModelConfigGenerator();
+    StateModelDefinition stateModelDef = new StateModelDefinition(generator.generateConfigForMasterSlave());
+    accessor.setProperty(PropertyType.STATEMODELDEFS, stateModelDef, "MasterSlave");
+    
     MockCMTaskExecutor executor = new MockCMTaskExecutor();
     MockStateModel stateModel = new MockStateModel();
     NotificationContext context;
     executor.registerMessageHandlerFactory(
         MessageType.TASK_REPLY.toString(), new AsyncCallbackService());
-    MockManager manager = new MockManager("testcluster");
-    ClusterDataAccessor accessor = manager.getDataAccessor();
-    StateModelConfigGenerator generator = new StateModelConfigGenerator();
-    StateModelDefinition stateModelDef = new StateModelDefinition(generator.generateConfigForMasterSlave());
-    accessor.setProperty(PropertyType.STATEMODELDEFS, stateModelDef, "MasterSlave");
-
+    String clusterName =" testcluster";
     context = new NotificationContext(manager);
-    CMStateTransitionHandler handler = new CMStateTransitionHandler(stateModel);
+    CMStateTransitionHandler handler = new CMStateTransitionHandler(stateModel, message, context);
+
     executor.scheduleTask(message, handler, context);
     while (!executor.isDone(msgId))
     {

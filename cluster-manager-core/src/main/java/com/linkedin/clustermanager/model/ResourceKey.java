@@ -1,8 +1,10 @@
 package com.linkedin.clustermanager.model;
 
+/**
+ * The name of a resource
+ */
 public class ResourceKey
 {
-
   private final String _resourceKeyName;
 
   public String getResourceKeyName()
@@ -21,7 +23,7 @@ public class ResourceKey
     if(obj == null || !(obj instanceof ResourceKey)){
       return false;
     }
-    
+
     ResourceKey that = (ResourceKey)obj;
     return _resourceKeyName.equals(that.getResourceKeyName());
   }
@@ -31,6 +33,7 @@ public class ResourceKey
   {
     return _resourceKeyName.hashCode();
   }
+
   @Override
   public String toString()
   {

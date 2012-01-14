@@ -17,6 +17,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.Mocks.MockAccessor;
+import com.linkedin.clustermanager.model.ExternalView;
 import com.linkedin.clustermanager.model.InstanceConfig;
 import com.linkedin.clustermanager.spectator.RoutingTableProvider;
 
@@ -42,21 +43,18 @@ public class TestRoutingTable
           _mockAccessor = new Mocks.MockAccessor()
           {
             @Override
-            public List<ZNRecord> getChildValues(
-                PropertyType clusterProperty,String... keys)
+            public List<ZNRecord> getChildValues(PropertyType type, String... keys)
             {
-              if (clusterProperty == PropertyType.CONFIGS)
+              if (type == PropertyType.CONFIGS)
               {
                 List<ZNRecord> configs = new ArrayList<ZNRecord>();
                 for (String instanceName : array)
                 {
-                  ZNRecord config = new ZNRecord(instanceName);
+                  InstanceConfig config = new InstanceConfig(instanceName);
                   String[] splits = instanceName.split("_");
-                  config.setSimpleField(
-                      CMConstants.ZNAttribute.HOST.toString(), splits[0]);
-                  config.setSimpleField(
-                      CMConstants.ZNAttribute.PORT.toString(), splits[1]);
-                  configs.add(config);
+                  config.setHostName(splits[0]);
+                  config.setPort(splits[1]);
+                  configs.add(config.getRecord());
                 }
                 return configs;
               }
@@ -76,7 +74,7 @@ public class TestRoutingTable
 
     RoutingTableProvider routingTable = new RoutingTableProvider();
     routingTable.onExternalViewChange(null, changeContext);
-    List<ZNRecord> list = Collections.emptyList();
+    List<ExternalView> list = Collections.emptyList();
     routingTable.onExternalViewChange(list, changeContext);
 
   }
@@ -86,11 +84,12 @@ public class TestRoutingTable
   {
     List<InstanceConfig> instances;
     RoutingTableProvider routingTable = new RoutingTableProvider();
-    List<ZNRecord> externalViewList = new ArrayList<ZNRecord>();
     ZNRecord record = new ZNRecord("TESTDB");
-    externalViewList.add(record);
+
     // one master
     add(record, "TESTDB_0", "localhost_8900", "MASTER");
+    List<ExternalView> externalViewList = new ArrayList<ExternalView>();
+    externalViewList.add(new ExternalView(record));
     routingTable.onExternalViewChange(externalViewList, changeContext);
 
     instances = routingTable.getInstances("TESTDB", "TESTDB_0", "MASTER");
@@ -101,6 +100,8 @@ public class TestRoutingTable
     add(record, "TESTDB_0", "localhost_8901", "MASTER");
     add(record, "TESTDB_1", "localhost_8900", "SLAVE");
 
+    externalViewList = new ArrayList<ExternalView>();
+    externalViewList.add(new ExternalView(record));
     routingTable.onExternalViewChange(externalViewList, changeContext);
     instances = routingTable.getInstances("TESTDB", "TESTDB_0", "MASTER");
     AssertJUnit.assertNotNull(instances);
@@ -112,6 +113,8 @@ public class TestRoutingTable
 
     // updates
     add(record, "TESTDB_0", "localhost_8901", "SLAVE");
+    externalViewList = new ArrayList<ExternalView>();
+    externalViewList.add(new ExternalView(record));
     routingTable.onExternalViewChange(externalViewList, changeContext);
     instances = routingTable.getInstances("TESTDB", "TESTDB_0", "SLAVE");
     AssertJUnit.assertNotNull(instances);
@@ -124,11 +127,12 @@ public class TestRoutingTable
     List<InstanceConfig> instances;
     RoutingTableProvider routingTable = new RoutingTableProvider();
 
-    List<ZNRecord> externalViewList = new ArrayList<ZNRecord>();
+    List<ExternalView> externalViewList = new ArrayList<ExternalView>();
     ZNRecord record = new ZNRecord("TESTDB");
-    externalViewList.add(record);
+
     // one master
     add(record, "TESTDB_0", "localhost_8900", "MASTER");
+    externalViewList.add(new ExternalView(record));
     routingTable.onExternalViewChange(externalViewList, changeContext);
     instances = routingTable.getInstances("TESTDB", "TESTDB_0", "MASTER");
     AssertJUnit.assertNotNull(instances);
@@ -148,9 +152,9 @@ public class TestRoutingTable
     Set<InstanceConfig> instancesSet;
     InstanceConfig instancesArray[];
     RoutingTableProvider routingTable = new RoutingTableProvider();
-    List<ZNRecord> externalViewList = new ArrayList<ZNRecord>();
+    List<ExternalView> externalViewList = new ArrayList<ExternalView>();
     ZNRecord record = new ZNRecord("TESTDB");
-    externalViewList.add(record);
+
     // one master
     add(record, "TESTDB_0", "localhost_8900", "MASTER");
     add(record, "TESTDB_1", "localhost_8900", "MASTER");
@@ -165,6 +169,8 @@ public class TestRoutingTable
     add(record, "TESTDB_3", "localhost_8901", "MASTER");
     add(record, "TESTDB_4", "localhost_8901", "MASTER");
     add(record, "TESTDB_5", "localhost_8901", "MASTER");
+
+    externalViewList.add(new ExternalView(record));
     routingTable.onExternalViewChange(externalViewList, changeContext);
     instancesList = routingTable.getInstances("TESTDB", "TESTDB_0", "MASTER");
     AssertJUnit.assertNotNull(instancesList);
@@ -181,20 +187,19 @@ public class TestRoutingTable
     AssertJUnit.assertEquals(instancesArray[0].getPort(), "8900");
     AssertJUnit.assertEquals(instancesArray[1].getHostName(), "localhost");
     AssertJUnit.assertEquals(instancesArray[1].getPort(), "8901");
-
   }
 
   @Test ()
   public void testMultiThread() throws Exception
   {
     final RoutingTableProvider routingTable = new RoutingTableProvider();
-    List<ZNRecord> externalViewList = new ArrayList<ZNRecord>();
+    List<ExternalView> externalViewList = new ArrayList<ExternalView>();
     ZNRecord record = new ZNRecord("TESTDB");
-    externalViewList.add(record);
     for (int i = 0; i < 1000; i++)
     {
       add(record, "TESTDB_" + i, "localhost_8900", "MASTER");
     }
+    externalViewList.add(new ExternalView(record));
     routingTable.onExternalViewChange(externalViewList, changeContext);
     Callable<Boolean> runnable = new Callable<Boolean>()
     {

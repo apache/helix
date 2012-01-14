@@ -5,10 +5,14 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.clustermanager.ClusterDataAccessor.IdealStateConfigProperty;
 import com.linkedin.clustermanager.ClusterManagementService;
 import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.model.ExternalView;
+import com.linkedin.clustermanager.model.IdealState;
+import com.linkedin.clustermanager.model.IdealState.IdealStateModeProperty;
+import com.linkedin.clustermanager.model.InstanceConfig;
+import com.linkedin.clustermanager.model.StateModelDefinition;
 import com.linkedin.clustermanager.store.PropertyStoreException;
 import com.linkedin.clustermanager.store.file.FilePropertyStore;
 import com.linkedin.clustermanager.tools.StateModelConfigGenerator;
@@ -27,8 +31,6 @@ public class FileClusterManagementTool implements ClusterManagementService
   @Override
   public List<String> getClusters()
   {
-    // TODO Auto-generated method stub
-    // return null;
     throw new UnsupportedOperationException(
       "getClusters() is NOT supported by FileClusterManagementTool");
 
@@ -37,8 +39,6 @@ public class FileClusterManagementTool implements ClusterManagementService
   @Override
   public List<String> getInstancesInCluster(String clusterName)
   {
-    // this diverts from zk one
-    // String memberInstancesPath = CMUtil.getMemberInstancesPath(clusterName);
     String path = CMUtil.getConfigPath(clusterName);
 
     List<String> childs = null;
@@ -56,8 +56,7 @@ public class FileClusterManagementTool implements ClusterManagementService
     }
     catch (PropertyStoreException e)
     {
-      logger.error("Fail to getInstancesInCluster, cluster " + clusterName +
-          "\nexception: " + e);
+      logger.error("Fail to getInstancesInCluster, cluster " + clusterName, e);
     }
 
     return null;
@@ -78,40 +77,34 @@ public class FileClusterManagementTool implements ClusterManagementService
   {
     try
     {
-      /*
-      if (_store.getProperty(path) != null)
-      {
-        LOG.warn("Target directory exists.Cleaning the target directory:" + path
-            + " overwritePrevRecord: " + overwritePrevRecord);
-        if (overwritePrevRecord)
-        {
-          _store.removeProperty(path);
-        } else
-        {
-          throw new PropertyStoreException("Target directory already exists, " +
-              "overwritePrevRecord: " + overwritePrevRecord);
-        }
-      }
-      */
+//      if (_store.getProperty(path) != null)
+//      {
+//        LOG.warn("Target directory exists.Cleaning the target directory:" + path
+//            + " overwritePrevRecord: " + overwritePrevRecord);
+//        if (overwritePrevRecord)
+//        {
+//          _store.removeProperty(path);
+//        } else
+//        {
+//          throw new PropertyStoreException("Target directory already exists, " +
+//              "overwritePrevRecord: " + overwritePrevRecord);
+//        }
+//      }
 
       _store.removeNamespace(clusterName);
       _store.createPropertyNamespace(clusterName);
 
-      // IDEAL STATE
       _store.createPropertyNamespace(CMUtil.getIdealStatePath(clusterName));
-      // CONFIGURATIONS
       _store.createPropertyNamespace(CMUtil.getConfigPath(clusterName));
-      // LIVE INSTANCES
       _store.createPropertyNamespace(CMUtil.getLiveInstancesPath(clusterName));
-      // MEMBER INSTANCES
       _store.createPropertyNamespace(CMUtil.getMemberInstancesPath(clusterName));
-      // External view
       _store.createPropertyNamespace(CMUtil.getExternalViewPath(clusterName));
-      // State model definition
       _store.createPropertyNamespace(CMUtil.getStateModelDefinitionPath(clusterName));
 
       StateModelConfigGenerator generator = new StateModelConfigGenerator();
-      addStateModelDef(clusterName, "MasterSlave", generator.generateConfigForMasterSlave());
+      addStateModelDef(clusterName,
+                       "MasterSlave",
+                       new StateModelDefinition(generator.generateConfigForMasterSlave()));
 
     }
     catch(PropertyStoreException e)
@@ -130,23 +123,20 @@ public class FileClusterManagementTool implements ClusterManagementService
     String idealStatePath = CMUtil.getIdealStatePath(clusterName);
     String resourceGroupIdealStatePath = idealStatePath + "/" + resourceGroup;
 
-    /**
-    if (_zkClient.exists(dbIdealStatePath))
-    {
-      logger.warn("Skip the operation. DB ideal state directory exists:"
-          + dbIdealStatePath);
-      return;
-    }
-    **/
+//    if (_zkClient.exists(dbIdealStatePath))
+//    {
+//      logger.warn("Skip the operation. DB ideal state directory exists:"
+//          + dbIdealStatePath);
+//      return;
+//    }
 
-    ZNRecord idealState = new ZNRecord(resourceGroup);
-    idealState.setSimpleField("partitions", String.valueOf(numResources));
-    idealState.setSimpleField("state_model_def_ref", stateModelRef);
-    idealState.setSimpleField("ideal_state_mode", IdealStateConfigProperty.AUTO.toString());
-
+    IdealState idealState = new IdealState(resourceGroup);
+    idealState.setNumPartitions(numResources);
+    idealState.setStateModelDefRef(stateModelRef);
+    idealState.setIdealStateMode(IdealStateModeProperty.AUTO.toString());
     try
     {
-      _store.setProperty(resourceGroupIdealStatePath, idealState);
+      _store.setProperty(resourceGroupIdealStatePath, idealState.getRecord());
     }
     catch (PropertyStoreException e)
     {
@@ -165,35 +155,18 @@ public class FileClusterManagementTool implements ClusterManagementService
   }
 
   @Override
-  public void addInstance(String clusterName, ZNRecord nodeConfig)
+  public void addInstance(String clusterName, InstanceConfig config)
   {
     String configsPath = CMUtil.getConfigPath(clusterName);
-    String nodeId = nodeConfig.getId();
+    String nodeId = config.getId();
     String nodeConfigPath = configsPath + "/" + nodeId;
-
-    /**
-    if (_zkClient.exists(instanceConfigPath))
-    {
-      throw new ClusterManagerException("Node " + nodeId
-          + " already exists in cluster " + clusterName);
-    }
-    **/
 
     try
     {
-      // ZKUtil.createChildren(_zkClient, instanceConfigsPath, nodeConfig);
-      _store.setProperty(nodeConfigPath, nodeConfig);
-
-      // _zkClient.createPersistent(CMUtil.getMessagePath(clusterName, nodeId), true);
+      _store.setProperty(nodeConfigPath, config.getRecord());
       _store.createPropertyNamespace(CMUtil.getMessagePath(clusterName, nodeId));
-
-      // _zkClient.createPersistent(CMUtil.getCurrentStateBasePath(clusterName, nodeId), true);
       _store.createPropertyNamespace(CMUtil.getCurrentStateBasePath(clusterName, nodeId));
-
-      // _zkClient.createPersistent(CMUtil.getErrorsPath(clusterName, nodeId), true);
       _store.createPropertyNamespace(CMUtil.getErrorsPath(clusterName, nodeId));
-
-      // _zkClient.createPersistent(CMUtil.getStatusUpdatesPath(clusterName, nodeId), true);
       _store.createPropertyNamespace(CMUtil.getStatusUpdatesPath(clusterName, nodeId));
     }
     catch(Exception e)
@@ -205,66 +178,36 @@ public class FileClusterManagementTool implements ClusterManagementService
   }
 
   @Override
-  public void dropInstance(String clusterName, ZNRecord nodeConfig) {
+  public void dropInstance(String clusterName, InstanceConfig config) {
 	  String configsPath = CMUtil.getConfigPath(clusterName);
-	  String nodeId = nodeConfig.getId();
+	  String nodeId = config.getId();
 	  String nodeConfigPath = configsPath + "/" + nodeId;
 
 	  try
-	    {
-	      // ZKUtil.createChildren(_zkClient, instanceConfigsPath, nodeConfig);
-	      _store.setProperty(nodeConfigPath, nodeConfig);
-	    }
-	    catch(Exception e)
-	    {
-	      logger.error("Fail to drop node, cluster:" + clusterName +
-	          "\nexception: " + e);
-	    }
+    {
+      _store.setProperty(nodeConfigPath, config.getRecord());
+    }
+    catch(Exception e)
+    {
+      logger.error("Fail to drop node, cluster:" + clusterName, e);
+    }
   }
 
   @Override
-  public ZNRecord getResourceGroupIdealState(String clusterName, String resourceGroupName)
+  public IdealState getResourceGroupIdealState(String clusterName, String resourceGroupName)
   {
-    return new FileBasedDataAccessor(_store, clusterName).getProperty(
-        PropertyType.IDEALSTATES, resourceGroupName);
-
-    /*
-    String resourceGroupPath = CMUtil.getPropertyPath(clusterName, PropertyType.IDEALSTATES) + "/" + resourceGroupName;
-    try
-    {
-      ZNRecord idealState = _store.getProperty(resourceGroupPath);
-      return idealState;
-    }
-    catch (Exception e)
-    {
-      logger.error("Fail to getResourceGroupIdealState, cluster:" + clusterName +
-          " resourceGroup:" + resourceGroupName +
-          "\nexception: " + e);
-    }
-    return null;
-    */
+    return new FileBasedDataAccessor(_store, clusterName).getProperty(IdealState.class,
+                                                                      PropertyType.IDEALSTATES,
+                                                                      resourceGroupName);
   }
 
   @Override
   public void setResourceGroupIdealState(String clusterName, String resourceGroupName,
-                                         ZNRecord idealState)
+                                         IdealState idealState)
   {
-    /*
-    String resourceGroupPath = CMUtil.getPropertyPath(clusterName, PropertyType.IDEALSTATES) + "/" + resourceGroupName;
-    try
-    {
-      _store.setProperty(resourceGroupPath, newIdealState);
-    }
-    catch (Exception e)
-    {
-      logger.error("Fail to setResourceGroupIdealState, cluster:" + clusterName +
-          " resourceGroup:" + resourceGroupName +
-          "\nexception: " + e);
-    }
-    */
-    new FileBasedDataAccessor(_store, clusterName).setProperty(
-        PropertyType.IDEALSTATES, idealState, resourceGroupName);
-
+    new FileBasedDataAccessor(_store, clusterName).setProperty(PropertyType.IDEALSTATES,
+                                                               idealState,
+                                                               resourceGroupName);
   }
 
   @Override
@@ -275,30 +218,21 @@ public class FileClusterManagementTool implements ClusterManagementService
   }
 
   @Override
-  public void addStateModelDef(String clusterName, String stateModelDef, ZNRecord record)
+  public void addStateModelDef(String clusterName, String stateModelDef,
+                               StateModelDefinition stateModel)
   {
 
     String stateModelDefPath = CMUtil.getStateModelDefinitionPath(clusterName);
     String stateModelPath = stateModelDefPath + "/" + stateModelDef;
-    /**
-    if (_zkClient.exists(stateModelPath))
-    {
-      logger.warn("Skip the operation.State Model directory exists:"
-          + stateModelPath);
-      throw new ClusterManagerException("State model path " + stateModelPath
-          + " already exists.");
-    }
-    **/
 
     try
     {
-      _store.setProperty(stateModelPath, record);
+      _store.setProperty(stateModelPath, stateModel.getRecord());
     }
     catch (PropertyStoreException e)
     {
       logger.error("Fail to addStateModelDef, cluster:" + clusterName +
-          " stateModelDef:" + stateModelDef +
-          "\nexception: " + e);
+          " stateModelDef:" + stateModelDef, e);
     }
 
   }
@@ -306,27 +240,6 @@ public class FileClusterManagementTool implements ClusterManagementService
   @Override
   public void dropResourceGroup(String clusterName, String resourceGroup)
   {
-    /*
-    String path = CMUtil.getPropertyPath(clusterName, PropertyType.IDEALSTATES)
-        + "/" + resourceGroup;
-
-    if (_store.exists(path))
-    {
-      try
-      {
-        _store.removeProperty(path);
-      }
-      catch (PropertyStoreException e)
-      {
-        logger.warn("Faile to remove property at path:" + path +
-                    "\nexception:" + e);
-      }
-    }
-    else
-    {
-      logger.warn("No property to remove at path:" + path);
-    }
-    */
     new FileBasedDataAccessor(_store, clusterName).removeProperty(
         PropertyType.IDEALSTATES, resourceGroup);
 
@@ -335,49 +248,26 @@ public class FileClusterManagementTool implements ClusterManagementService
   @Override
   public List<String> getStateModelDefs(String clusterName)
   {
-    // TODO Auto-generated method stub
-    // return null;
     throw new UnsupportedOperationException(
       "getStateModelDefs() is NOT supported by FileClusterManagementTool");
   }
 
-  /**
   @Override
-  public List<String> getInstancesInCluster(String clusterName)
-  {
-    throw new UnsupportedOperationException(
-        "getInstancesInCluster() is NOT supported by FileClusterManagementTool");
-  }
-  **/
-
-  @Override
-  public ZNRecord getInstanceConfig(String clusterName, String instanceName)
+  public InstanceConfig getInstanceConfig(String clusterName, String instanceName)
   {
     throw new UnsupportedOperationException(
         "getInstanceConfig() is NOT supported by FileClusterManagementTool");
   }
 
-  /**
   @Override
-  public void addInstance(String clusterName, ZNRecord instanceConfig)
-  {
-    // TODO Auto-generated method stub
-    throw new UnsupportedOperationException(
-        "addInstance() is NOT supported by FileClusterManagementTool");
-  }
-  **/
-
-  @Override
-  public ZNRecord getStateModelDef(String clusterName, String stateModelName)
+  public StateModelDefinition getStateModelDef(String clusterName, String stateModelName)
   {
     throw new UnsupportedOperationException(
       "getStateModelDef() is NOT supported by FileClusterManagementTool");
-
-    // return null;
   }
 
   @Override
-  public ZNRecord getResourceGroupExternalView(String clusterName, String resourceGroup)
+  public ExternalView getResourceGroupExternalView(String clusterName, String resourceGroup)
   {
     throw new UnsupportedOperationException(
         "getResourceGroupExternalView() is NOT supported by FileClusterManagementTool");
@@ -393,18 +283,29 @@ public class FileClusterManagementTool implements ClusterManagementService
         "enablePartition() is NOT supported by FileClusterManagementTool");
   }
 
-@Override
-public void addStat(String clusterName, String statName) {
-	throw new UnsupportedOperationException(
-			"addStat() is NOT supported by FileClusterManagementTool");
-	
-}
+  @Override
+  public void resetPartition(String clusterName,
+		  String instanceName,
+		  String resourceGroupName,
+		  String partition)
+  {
+	  // TODO Auto-generated method stub
+	  throw new UnsupportedOperationException(
+			  "resetPartition() is NOT supported by FileClusterManagementTool");
+  }
 
-@Override
-public void addAlert(String clusterName, String alertName) {
-	throw new UnsupportedOperationException(
-			"addAlert() is NOT supported by FileClusterManagementTool");
-	
-}
+  @Override
+  public void addStat(String clusterName, String statName) {
+	  throw new UnsupportedOperationException(
+			  "addStat() is NOT supported by FileClusterManagementTool");
+
+  }
+
+  @Override
+  public void addAlert(String clusterName, String alertName) {
+	  throw new UnsupportedOperationException(
+			  "addAlert() is NOT supported by FileClusterManagementTool");
+
+  }
 
 }

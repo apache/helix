@@ -37,9 +37,10 @@ public class TestPerformanceHealthReportProvider {
 		 if (partitionReport != null) {
          	record.setMapFields(partitionReport);
          }
-		 _clusterManager.getDataAccessor().setProperty(
-	                PropertyType.HEALTHREPORT, record, INSTANCE_NAME,
-	                record.getId());
+		 _clusterManager.getDataAccessor().setProperty(PropertyType.HEALTHREPORT,
+		                                               record,
+		                                               INSTANCE_NAME,
+		                                               record.getId());
 	}
 
 	@BeforeMethod ()

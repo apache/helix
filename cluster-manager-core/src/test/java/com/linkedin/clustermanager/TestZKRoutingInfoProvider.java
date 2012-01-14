@@ -12,6 +12,7 @@ import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
 import com.linkedin.clustermanager.controller.ExternalViewGenerator;
+import com.linkedin.clustermanager.model.CurrentState.CurrentStateProperty;
 import com.linkedin.clustermanager.model.Message;
 
 public class TestZKRoutingInfoProvider
@@ -23,10 +24,10 @@ public class TestZKRoutingInfoProvider
     Map<String, Map<String, ZNRecord>> currentStates2 = new TreeMap<String, Map<String, ZNRecord>>();
 
     Map<String, String> stateMaster = new TreeMap<String, String>();
-    stateMaster.put(CMConstants.ZNAttribute.CURRENT_STATE.toString(), "MASTER");
+    stateMaster.put(CurrentStateProperty.CURRENT_STATE.toString(), "MASTER");
 
     Map<String, String> stateSlave = new TreeMap<String, String>();
-    stateSlave.put(CMConstants.ZNAttribute.CURRENT_STATE.toString(), "SLAVE");
+    stateSlave.put(CurrentStateProperty.CURRENT_STATE.toString(), "SLAVE");
 
     for (int i = 0; i < nodeNames.length; i++)
     {
@@ -103,7 +104,7 @@ public class TestZKRoutingInfoProvider
           Map<String, String> stateMap = dbStateMap
               .get(partitionName);
           String state = stateMap
-              .get(CMConstants.ZNAttribute.CURRENT_STATE.toString());
+              .get(CurrentStateProperty.CURRENT_STATE.toString());
           AssertJUnit.assertTrue(routingMap.get(partitionName).get(state)
               .contains(nodeName));
           counter1++;

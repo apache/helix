@@ -12,12 +12,12 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 
 import com.linkedin.clustermanager.ClusterDataAccessor;
-import com.linkedin.clustermanager.ClusterDataAccessor.IdealStateConfigProperty;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.Mocks;
 import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.model.IdealState;
+import com.linkedin.clustermanager.model.IdealState.IdealStateModeProperty;
 import com.linkedin.clustermanager.model.LiveInstance;
 import com.linkedin.clustermanager.model.ResourceGroup;
 import com.linkedin.clustermanager.pipeline.Stage;
@@ -55,9 +55,10 @@ public class BaseStageTest
     event = new ClusterEvent("sampleEvent");
   }
 
-  protected String[] setupIdealState(int nodes, List<IdealState> idealStates,
-      String[] resourceGroups)
+  protected List<IdealState> setupIdealState(int nodes, String[] resourceGroups,
+                                             int partitions, int replicas)
   {
+    List<IdealState> idealStates = new ArrayList<IdealState>();
     List<String> instances = new ArrayList<String>();
     for (int i = 0; i < nodes; i++)
     {
@@ -66,8 +67,6 @@ public class BaseStageTest
 
     for (int i = 0; i < resourceGroups.length; i++)
     {
-      int partitions = 10;
-      int replicas = 1;
       String resourceGroupName = resourceGroups[i];
       ZNRecord record = new ZNRecord(resourceGroupName);
       for (int p = 0; p < partitions; p++)
@@ -81,16 +80,16 @@ public class BaseStageTest
       }
       IdealState idealState = new IdealState(record);
       idealState.setStateModelDefRef("MasterSlave");
-      idealState.setIdealStateMode(IdealStateConfigProperty.AUTO.toString());
+      idealState.setIdealStateMode(IdealStateModeProperty.AUTO.toString());
       idealState.setNumPartitions(partitions);
       idealStates.add(idealState);
 
-      System.out.println(idealState.getRecord());
-      manager.getDataAccessor().setProperty(PropertyType.IDEALSTATES,
-          idealState.getRecord(), resourceGroupName);
-
+//      System.out.println(idealState);
+      accessor.setProperty(PropertyType.IDEALSTATES,
+                           idealState,
+                           resourceGroupName);
     }
-    return resourceGroups;
+    return idealStates;
   }
 
   protected void setupLiveInstances(int numLiveInstances)
@@ -98,11 +97,9 @@ public class BaseStageTest
     // setup liveInstances
     for (int i = 0; i < numLiveInstances; i++)
     {
-      ZNRecord znRecord = new ZNRecord("localhost_" + i);
-      LiveInstance liveInstance = new LiveInstance(znRecord);
+      LiveInstance liveInstance = new LiveInstance("localhost_" + i);
       liveInstance.setSessionId("session_" + i);
-      accessor.setProperty(PropertyType.LIVEINSTANCES, znRecord, "localhost_"
-          + i);
+      accessor.setProperty(PropertyType.LIVEINSTANCES, liveInstance, "localhost_" + i);
     }
   }
 
@@ -126,16 +123,13 @@ public class BaseStageTest
   {
     ZNRecord masterSlave = new StateModelConfigGenerator()
         .generateConfigForMasterSlave();
-    accessor.setProperty(PropertyType.STATEMODELDEFS, masterSlave,
-        masterSlave.getId());
+    accessor.setProperty(PropertyType.STATEMODELDEFS, masterSlave, masterSlave.getId());
     ZNRecord leaderStandby = new StateModelConfigGenerator()
         .generateConfigForLeaderStandby();
-    accessor.setProperty(PropertyType.STATEMODELDEFS, leaderStandby,
-        leaderStandby.getId());
+    accessor.setProperty(PropertyType.STATEMODELDEFS, leaderStandby, leaderStandby.getId());
     ZNRecord onlineOffline = new StateModelConfigGenerator()
         .generateConfigForOnlineOffline();
-    accessor.setProperty(PropertyType.STATEMODELDEFS, onlineOffline,
-        onlineOffline.getId());
+    accessor.setProperty(PropertyType.STATEMODELDEFS, onlineOffline, onlineOffline.getId());
   }
 
   protected Map<String, ResourceGroup> getResourceGroupMap()

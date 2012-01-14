@@ -185,7 +185,8 @@ public void persistAggStats(ClusterManager manager)
   {
 	  //TODO: put the stat name encoding somewhere easier to find
 	  String statName = "instance"+instance.getInstanceName()+"."+"reportingage";
-	  long modifiedTime = instance.getStat().getMtime();
+	  //TODO: call to get modifiedTime is a stub right now
+	  long modifiedTime = Long.parseLong(instance.getModifiedTime());
 	  long age = currTime - modifiedTime; //XXX: ensure this is in seconds
 	  Map<String, String> ageStatMap = new HashMap<String, String>();
 	  ageStatMap.put(StatsHolder.TIMESTAMP_NAME, String.valueOf(currTime));
@@ -230,7 +231,7 @@ public void persistAggStats(ClusterManager manager)
     	//find participants stats
     	HealthStat participantStat = stats.get(PARTICIPANT_STAT_REPORT_NAME);
 
-    	Map<String, Map<String, String>> statMap = participantStat.getMapFields();
+    	Map<String, Map<String, String>> statMap = participantStat.getHealthFields();
     	for (String key : statMap.keySet()) {
     		_statsHolder.applyStat(key, statMap.get(key));
 

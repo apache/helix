@@ -3,13 +3,13 @@
 	<parent>
 		<groupId>com.linkedin.clustermanager</groupId>
 		<artifactId>cluster-manager</artifactId>
-		<version>0.4.0</version>
+		<version>0.4.2</version>
 	</parent>
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.linkedin.clustermanager.webapp</groupId>
 	<artifactId>cluster-management-webapp</artifactId>
 	<packaging>jar</packaging>
-	<version>0.4.0</version>
+	<version>0.4.2</version>
 	<name>cluster-management-webapp</name>
 	<url>http://maven.apache.org</url>
 	<repositories>
@@ -23,7 +23,7 @@
 		<dependency>
 			<groupId>com.linkedin.clustermanager</groupId>
 			<artifactId>cluster-manager-core</artifactId>
-			<version>0.4.0</version>
+			<version>0.4.2</version>
 		</dependency>
 		<dependency>
 			<groupId>org.restlet</groupId>
@@ -43,12 +43,12 @@
 		<dependency>
 			<groupId>org.codehaus.jackson</groupId>
 			<artifactId>jackson-core-asl</artifactId>
-			<version>1.4.2</version>
+			<version>1.8.5</version>
 		</dependency>
 		<dependency>
 			<groupId>org.codehaus.jackson</groupId>
 			<artifactId>jackson-mapper-asl</artifactId>
-			<version>1.4.2</version>
+			<version>1.8.5</version>
 		</dependency>
 		<dependency>
 			<groupId>commons-cli</groupId>

@@ -1,12 +1,9 @@
 package com.linkedin.clustermanager.tools;
 
-import java.io.StringWriter;
-
-import com.linkedin.clustermanager.agent.zk.ZkClient;
-
-import com.linkedin.clustermanager.CMConstants;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
+import com.linkedin.clustermanager.agent.zk.ZkClient;
+import com.linkedin.clustermanager.model.LiveInstance.LiveInstanceProperty;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.Message.MessageType;
 import com.linkedin.clustermanager.util.CMUtil;
@@ -42,7 +39,7 @@ public class MessagePoster
     ZNRecord record = client.readData(CMUtil.getLiveInstancePath(clusterName,
         instanceName));
     message.setTgtSessionId(record.getSimpleField(
-        CMConstants.ZNAttribute.SESSION_ID.toString()).toString());
+        LiveInstanceProperty.SESSION_ID.toString()).toString());
     client.createPersistent(path, message);
   }
 }

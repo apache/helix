@@ -1,47 +1,56 @@
 package com.linkedin.clustermanager.model;
 
 import java.util.Map;
+import java.util.TreeMap;
 
-import org.apache.zookeeper.data.Stat;
+import org.apache.log4j.Logger;
 
-import com.linkedin.clustermanager.CMConstants;
-import com.linkedin.clustermanager.ClusterDataAccessor.InstanceConfigProperty;
+import com.linkedin.clustermanager.ClusterManagerException;
 import com.linkedin.clustermanager.ZNRecord;
-import com.linkedin.clustermanager.ZNRecordAndStat;
+import com.linkedin.clustermanager.ZNRecordDecorator;
 
-public class InstanceConfig extends ZNRecordAndStat
+/**
+ * Instance configurations
+ */
+public class InstanceConfig extends ZNRecordDecorator
 {
-//  private final ZNRecord _record;
+  public enum InstanceConfigProperty
+  {
+    HOST,
+    PORT,
+    ENABLED,
+    DISABLED_PARTITION
+  }
+  private static final Logger _logger = Logger.getLogger(InstanceConfig.class.getName());
+  
+  public InstanceConfig(String id)
+  {
+    super(id);
+  }
 
   public InstanceConfig(ZNRecord record)
   {
-    this(record, null);
-  }
-
-  public InstanceConfig(ZNRecord record, Stat stat)
-  {
-    super(record, stat);
-//    _record = record;
+    super(record);
   }
 
   public String getHostName()
   {
-    return _record.getSimpleField(CMConstants.ZNAttribute.HOST.toString());
+    return _record.getSimpleField(InstanceConfigProperty.HOST.toString());
   }
 
   public void setHostName(String hostName)
   {
-    _record.setSimpleField(CMConstants.ZNAttribute.HOST.toString(), hostName);
+    _record.setSimpleField(InstanceConfigProperty.HOST.toString(), hostName);
   }
 
   public String getPort()
   {
-    return _record.getSimpleField(CMConstants.ZNAttribute.PORT.toString());
+    return _record.getSimpleField(InstanceConfigProperty.PORT.toString());
   }
 
   public void setPort(String port)
   {
-    _record.setSimpleField(CMConstants.ZNAttribute.HOST.toString(), port);
+    _record.setSimpleField(InstanceConfigProperty.PORT.toString(), port);
   }
 
   public boolean getInstanceEnabled()
@@ -49,6 +58,12 @@ public class InstanceConfig extends ZNRecordAndStat
     String isEnabled = _record.getSimpleField(InstanceConfigProperty.ENABLED.toString());
     return Boolean.parseBoolean(isEnabled);
   }
+
+  public void setInstanceEnabled(boolean enabled)
+  {
+    _record.setSimpleField(InstanceConfigProperty.ENABLED.toString(), Boolean.toString(enabled));
+  }
+
 
   public boolean getInstanceEnabledForResource(String resource)
   {
@@ -60,6 +75,23 @@ public class InstanceConfig extends ZNRecordAndStat
     else
     {
       return true;
+    }
+  }
+
+  public void setInstanceEnabledForResource(String resource, boolean enabled)
+  {
+    if (_record.getMapField(InstanceConfigProperty.DISABLED_PARTITION.toString()) == null)
+    {
+      _record.setMapField(InstanceConfigProperty.DISABLED_PARTITION.toString(),
+                             new TreeMap<String, String>());
+    }
+    if (enabled == true)
+    {
+      _record.getMapField(InstanceConfigProperty.DISABLED_PARTITION.toString()).remove(resource);
+    }
+    else
+    {
+      _record.getMapField(InstanceConfigProperty.DISABLED_PARTITION.toString()).put(resource, Boolean.toString(false));
     }
   }
 
@@ -92,5 +124,21 @@ public class InstanceConfig extends ZNRecordAndStat
   public String getInstanceName()
   {
     return _record.getId();
+  }
+
+  @Override
+  public boolean isValid()
+  {
+    if(getHostName() == null)
+    {
+      _logger.error("instanceconfig does not have host name. id:" + _record.getId());
+      return false;
+    }
+    if(getPort() == null)
+    {
+      _logger.error("instanceconfig does not have host port. id:" + _record.getId());
+      return false;
+    }
+    return true;
   }
 }

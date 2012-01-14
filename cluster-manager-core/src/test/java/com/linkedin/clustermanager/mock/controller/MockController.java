@@ -13,22 +13,24 @@ import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
 
-import com.linkedin.clustermanager.CMConstants;
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.agent.zk.ZKDataAccessor;
 import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
+import com.linkedin.clustermanager.model.ExternalView;
+import com.linkedin.clustermanager.model.IdealState.IdealStateProperty;
+import com.linkedin.clustermanager.model.LiveInstance.LiveInstanceProperty;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.Message.MessageType;
 import com.linkedin.clustermanager.util.CMUtil;
 
 public class MockController
 {
-  private ZkClient client;
-  private String srcName;
-  private String clusterName;
+  private final ZkClient client;
+  private final String srcName;
+  private final String clusterName;
 
   public MockController(String src, String zkServer, String cluster)
   {
@@ -65,7 +67,7 @@ public class MockController
     ZNRecord record = client.readData(CMUtil.getLiveInstancePath(clusterName,
         instanceName));
     message.setTgtSessionId(record.getSimpleField(
-        CMConstants.ZNAttribute.SESSION_ID.toString()).toString());
+        LiveInstanceProperty.SESSION_ID.toString()).toString());
     client.createPersistent(path, message);
   }
 
@@ -74,8 +76,9 @@ public class MockController
   {
     ClusterDataAccessor dataAccessor = new ZKDataAccessor(clusterName, client);
 
-    ZNRecord externalView = computeRoutingTable(instanceNames, partitions,
-        replicas, dbName, randomSeed);
+    ExternalView externalView = new ExternalView(computeRoutingTable(instanceNames, partitions,
+                                                                     replicas, dbName, randomSeed));
+
     dataAccessor.setProperty(PropertyType.EXTERNALVIEW, externalView, dbName);
   }
 
@@ -115,11 +118,9 @@ public class MockController
                 "SLAVE");
       }
       String partitionName = dbName + ".partition-" + partitionId;
-      // externalView.put(partitionName, partitionAssignment);
       result.setMapField(partitionName, partitionAssignment);
     }
-    // result.setMapField(dbName, externalView);
-    result.setSimpleField("partitions", "" + partitions);
+    result.setSimpleField(IdealStateProperty.RESOURCES.toString(), "" + partitions);
     return result;
   }
 }

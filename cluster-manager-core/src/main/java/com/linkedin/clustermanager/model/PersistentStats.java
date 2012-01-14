@@ -1,23 +1,38 @@
 package com.linkedin.clustermanager.model;
 
-import static com.linkedin.clustermanager.CMConstants.ZNAttribute.CLUSTER_MANAGER_VERSION;
-import static com.linkedin.clustermanager.CMConstants.ZNAttribute.SESSION_ID;
+//import static com.linkedin.clustermanager.CMConstants.ZNAttribute.CLUSTER_MANAGER_VERSION;
+//import static com.linkedin.clustermanager.CMConstants.ZNAttribute.SESSION_ID;
 
 import java.util.Map;
 
+import org.apache.log4j.Logger;
 import org.apache.zookeeper.data.Stat;
 
 import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
-import com.linkedin.clustermanager.ZNRecordAndStat;
+//import com.linkedin.clustermanager.ZNRecordAndStat;
+import com.linkedin.clustermanager.ZNRecordDecorator;
 
-public class PersistentStats extends ZNRecordAndStat
+public class PersistentStats extends ZNRecordDecorator
 {
 
+	public enum PersistentStatsProperty
+	  {
+	    SESSION_ID,
+	    FIELDS
+	  }
+	
 //  private final ZNRecord _record;
 	
   public final static String nodeName = "PersistentStats";
 	
+  private static final Logger _logger = Logger.getLogger(PersistentStats.class.getName());
+  
+  public PersistentStats(String id)
+  {
+    super(id);
+  }
+  
   public PersistentStats(ZNRecord record)
   {
 //    _record = record;
@@ -25,17 +40,19 @@ public class PersistentStats extends ZNRecordAndStat
 
   }
 
+  /*
   public PersistentStats(ZNRecord record, Stat stat)
   {
     super(record, stat);
   }
+*/
 
   public void setSessionId(String sessionId){
-    _record.setSimpleField(SESSION_ID.toString(), sessionId);
+    _record.setSimpleField(PersistentStatsProperty.SESSION_ID.toString(), sessionId);
   }
   public String getSessionId()
   {
-    return _record.getSimpleField(SESSION_ID.toString());
+    return _record.getSimpleField(PersistentStatsProperty.SESSION_ID.toString());
   }
 
   public String getInstanceName()
@@ -43,11 +60,12 @@ public class PersistentStats extends ZNRecordAndStat
     return _record.getId();
   }
 
+  /*
   public String getVersion()
   {
     return _record.getSimpleField(CLUSTER_MANAGER_VERSION.toString());
   }
-  
+  */
   
   
   public Map<String, Map<String, String>> getMapFields() {
@@ -58,6 +76,12 @@ public class PersistentStats extends ZNRecordAndStat
   public Map<String, String> getStatFields(String statName) {
 	  return _record.getMapField(statName);
   }
+
+@Override
+public boolean isValid() {
+	// TODO Auto-generated method stub
+	return false;
+}
   
 }
 

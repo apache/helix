@@ -13,7 +13,6 @@ import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.model.CurrentState;
 import com.linkedin.clustermanager.model.IdealState;
 import com.linkedin.clustermanager.model.LiveInstance;
-import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.ResourceGroup;
 import com.linkedin.clustermanager.pipeline.StageContext;
 import com.linkedin.clustermanager.tools.IdealStateCalculatorForStorageNode;
@@ -42,7 +41,8 @@ public class TestResourceComputationStage extends BaseStageTest
     IdealState idealState = new IdealState(record);
     idealState.setStateModelDefRef("MasterSlave");
     manager.getDataAccessor().setProperty(PropertyType.IDEALSTATES,
-        idealState.getRecord(), resourceGroupName);
+                                          idealState,
+                                          resourceGroupName);
     ResourceComputationStage stage = new ResourceComputationStage();
     runStage(event, new ReadClusterDataStage());
     runStage(event, stage);
@@ -64,10 +64,10 @@ public class TestResourceComputationStage extends BaseStageTest
   @Test
   public void testMultipleResourceGroups() throws Exception
   {
-    List<IdealState> idealStates = new ArrayList<IdealState>();
+//    List<IdealState> idealStates = new ArrayList<IdealState>();
     String[] resourceGroups = new String[]
         { "testResourceGroup1", "testResourceGroup2" };
-    setupIdealState(5, idealStates,resourceGroups);
+    List<IdealState> idealStates = setupIdealState(5, resourceGroups, 10, 1);
     ResourceComputationStage stage = new ResourceComputationStage();
     runStage(event, new ReadClusterDataStage());
     runStage(event, stage);
@@ -113,29 +113,32 @@ public class TestResourceComputationStage extends BaseStageTest
       IdealState idealState = new IdealState(record);
       idealState.setStateModelDefRef("MasterSlave");
       manager.getDataAccessor().setProperty(PropertyType.IDEALSTATES,
-          idealState.getRecord(), resourceGroupName);
+                                            idealState,
+                                            resourceGroupName);
+
       idealStates.add(idealState);
     }
     // ADD A LIVE INSTANCE WITH A CURRENT STATE THAT CONTAINS RESOURCE WHICH NO
     // LONGER EXISTS IN IDEALSTATE
     String instanceName = "localhost_" + 3;
-    ZNRecord liveInstanceRecord = new ZNRecord(instanceName);
-    LiveInstance liveInstance = new LiveInstance(liveInstanceRecord);
+    LiveInstance liveInstance = new LiveInstance(instanceName);
     String sessionId = UUID.randomUUID().toString();
     liveInstance.setSessionId(sessionId);
     manager.getDataAccessor().setProperty(PropertyType.LIVEINSTANCES,
-        liveInstanceRecord, instanceName);
+                                          liveInstance,
+                                          instanceName);
 
     String oldResourceGroup = "testResourceOld";
-    ZNRecord currentStateRecord = new ZNRecord(oldResourceGroup);
-    CurrentState currentState = new CurrentState(currentStateRecord);
+    CurrentState currentState = new CurrentState(oldResourceGroup);
     currentState.setState("testResourceOld_0", "OFFLINE");
     currentState.setState("testResourceOld_1", "SLAVE");
     currentState.setState("testResourceOld_2", "MASTER");
-    currentStateRecord.setSimpleField(
-        Message.Attributes.STATE_MODEL_DEF.toString(), "MasterSlave");
+    currentState.setStateModelDefRef("MasterSlave");
     manager.getDataAccessor().setProperty(PropertyType.CURRENTSTATES,
-        currentStateRecord, instanceName, sessionId, oldResourceGroup);
+                                          currentState,
+                                          instanceName,
+                                          sessionId,
+                                          oldResourceGroup);
 
     ResourceComputationStage stage = new ResourceComputationStage();
     runStage(event, new ReadClusterDataStage());

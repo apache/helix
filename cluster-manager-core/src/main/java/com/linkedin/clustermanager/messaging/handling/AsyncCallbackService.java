@@ -13,6 +13,8 @@ import org.apache.log4j.Logger;
 import com.linkedin.clustermanager.ClusterManagerException;
 import com.linkedin.clustermanager.NotificationContext;
 import com.linkedin.clustermanager.messaging.AsyncCallback;
+import com.linkedin.clustermanager.messaging.handling.MessageHandler.ErrorCode;
+import com.linkedin.clustermanager.messaging.handling.MessageHandler.ErrorType;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.Message.MessageType;
 import com.linkedin.clustermanager.participant.StateMachineEngine;
@@ -20,7 +22,7 @@ import com.linkedin.clustermanager.participant.StateMachineEngine;
 public class AsyncCallbackService implements MessageHandlerFactory
 {
   private final ConcurrentHashMap<String, AsyncCallback> _callbackMap = new ConcurrentHashMap<String, AsyncCallback>();
-  private static Logger _logger = Logger.getLogger(StateMachineEngine.class);
+  private static Logger _logger = Logger.getLogger(AsyncCallbackService.class);
 
   public AsyncCallbackService()
   {
@@ -74,7 +76,7 @@ public class AsyncCallbackService implements MessageHandlerFactory
       NotificationContext context)
   {
     verifyMessage(message);
-    return new AsyncCallbackMessageHandler(message.getCorrelationId());
+    return new AsyncCallbackMessageHandler(message.getCorrelationId(),message, context);
   }
 
   @Override
@@ -89,28 +91,29 @@ public class AsyncCallbackService implements MessageHandlerFactory
 
   }
 
-  public class AsyncCallbackMessageHandler implements MessageHandler
+  public class AsyncCallbackMessageHandler extends MessageHandler
   {
     private final String _correlationId;
 
-    public AsyncCallbackMessageHandler(String correlationId)
+    public AsyncCallbackMessageHandler(String correlationId, Message message, NotificationContext context)
     {
+      super(message, context);
       _correlationId = correlationId;
     }
 
     @Override
-    public void handleMessage(Message message, NotificationContext context,
-        Map<String, String> resultMap) throws InterruptedException
+    public CMTaskResult handleMessage() throws InterruptedException
     {
-      verifyMessage(message);
-      assert (_correlationId.equalsIgnoreCase(message.getCorrelationId()));
-      _logger.info("invoking reply message " + message.getMsgId()
+      verifyMessage(_message);
+      CMTaskResult result = new CMTaskResult();
+      assert (_correlationId.equalsIgnoreCase(_message.getCorrelationId()));
+      _logger.info("invoking reply message " + _message.getMsgId()
           + ", correlationid:" + _correlationId);
 
       AsyncCallback callback = _callbackMap.get(_correlationId);
       synchronized (callback)
       {
-        callback.onReply(message);
+        callback.onReply(_message);
         if (callback.isDone())
         {
           _logger.info("Removing finished callback, correlationid:"
@@ -118,7 +121,14 @@ public class AsyncCallbackService implements MessageHandlerFactory
           _callbackMap.remove(_correlationId);
         }
       }
+      result.setSuccess(true);
+      return result;
+    }
 
+    @Override
+    public void onError(Exception e, ErrorCode code, ErrorType type)
+    {
+      _logger.error("Message handling pipeline get an exception. MsgId:" + _message.getMsgId(), e);
     }
   }
 }

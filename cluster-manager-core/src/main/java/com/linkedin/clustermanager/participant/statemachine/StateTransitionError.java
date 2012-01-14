@@ -1,13 +1,18 @@
 package com.linkedin.clustermanager.participant.statemachine;
 
+import com.linkedin.clustermanager.messaging.handling.MessageHandler.ErrorCode;
+import com.linkedin.clustermanager.messaging.handling.MessageHandler.ErrorType;
+
 public class StateTransitionError
 {
   private final Exception _exception;
   private final ErrorCode _code;
+  private final ErrorType _type;
 
-  public StateTransitionError(ErrorCode code, Exception e)
+  public StateTransitionError(ErrorType type, ErrorCode code, Exception e)
   {
-    this._code = code;
+    _type = type;
+    _code = code;
     _exception = e;
   }
 
@@ -19,10 +24,5 @@ public class StateTransitionError
   public ErrorCode getCode()
   {
     return _code;
-  }
-
-  public enum ErrorCode
-  {
-    FRAMEWORK, INTERNAL
   }
 }

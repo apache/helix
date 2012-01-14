@@ -14,7 +14,6 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.Watcher.Event.EventType;
 
 import com.linkedin.clustermanager.CMConstants.ChangeType;
-import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ConfigChangeListener;
 import com.linkedin.clustermanager.ControllerChangeListener;
@@ -26,6 +25,12 @@ import com.linkedin.clustermanager.MessageListener;
 import com.linkedin.clustermanager.NotificationContext;
 import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.model.CurrentState;
+import com.linkedin.clustermanager.model.ExternalView;
+import com.linkedin.clustermanager.model.IdealState;
+import com.linkedin.clustermanager.model.InstanceConfig;
+import com.linkedin.clustermanager.model.LiveInstance;
+import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.store.PropertyChangeListener;
 import com.linkedin.clustermanager.store.PropertyStoreException;
 import com.linkedin.clustermanager.store.file.FilePropertyStore;
@@ -41,8 +46,7 @@ public class CallbackHandlerForFile implements PropertyChangeListener<ZNRecord>
   private final Object _listener;
   private final EventType[] _eventTypes;
   private final ChangeType _changeType;
-  // private final FileBasedDataAccessor _accessor;
-  private final ClusterDataAccessor _accessor;
+  private final FileBasedDataAccessor _accessor;
   private final AtomicLong lastNotificationTimeStamp;
   private final ClusterManager _manager;
   private final FilePropertyStore<ZNRecord> _store;
@@ -51,12 +55,12 @@ public class CallbackHandlerForFile implements PropertyChangeListener<ZNRecord>
       Object listener, EventType[] eventTypes, ChangeType changeType)
   {
     this._manager = manager;
-    this._accessor = manager.getDataAccessor();
+    this._accessor = (FileBasedDataAccessor)manager.getDataAccessor();
     this._path = path;
     this._listener = listener;
     this._eventTypes = eventTypes;
     this._changeType = changeType;
-    _store = (FilePropertyStore<ZNRecord>) _accessor.getStore();
+    this._store = (FilePropertyStore<ZNRecord>) _accessor.getStore();
     lastNotificationTimeStamp = new AtomicLong(System.nanoTime());
 
     init();
@@ -88,8 +92,7 @@ public class CallbackHandlerForFile implements PropertyChangeListener<ZNRecord>
         // System.err.println("ideal state change");
         IdealStateChangeListener idealStateChangeListener = (IdealStateChangeListener) _listener;
         subscribeForChanges(changeContext, true, true);
-        List<ZNRecord> idealStates = _accessor
-            .getChildValues(PropertyType.IDEALSTATES);
+        List<IdealState> idealStates = _accessor.getChildValues(IdealState.class, PropertyType.IDEALSTATES);
         idealStateChangeListener.onIdealStateChange(idealStates, changeContext);
 
       } else if (_changeType == CONFIG)
@@ -97,17 +100,16 @@ public class CallbackHandlerForFile implements PropertyChangeListener<ZNRecord>
 
         ConfigChangeListener configChangeListener = (ConfigChangeListener) _listener;
         subscribeForChanges(changeContext, true, true);
-        List<ZNRecord> configs = _accessor.getChildValues(PropertyType.CONFIGS);
+        List<InstanceConfig> configs = _accessor.getChildValues(InstanceConfig.class, PropertyType.CONFIGS);
         configChangeListener.onConfigChange(configs, changeContext);
 
       } else if (_changeType == LIVE_INSTANCE)
       {
         LiveInstanceChangeListener liveInstanceChangeListener = (LiveInstanceChangeListener) _listener;
         subscribeForChanges(changeContext, true, false);
-        List<ZNRecord> liveInstances = _accessor
-            .getChildValues(PropertyType.LIVEINSTANCES);
-        liveInstanceChangeListener.onLiveInstanceChange(liveInstances,
-            changeContext);
+        List<LiveInstance> liveInstances = _accessor.getChildValues(LiveInstance.class,
+                                                                    PropertyType.LIVEINSTANCES);
+        liveInstanceChangeListener.onLiveInstanceChange(liveInstances, changeContext);
 
       } else if (_changeType == CURRENT_STATE)
       {
@@ -116,33 +118,26 @@ public class CallbackHandlerForFile implements PropertyChangeListener<ZNRecord>
         subscribeForChanges(changeContext, true, true);
         String instanceName = CMUtil.getInstanceNameFromPath(_path);
         String[] pathParts = _path.split("/");
-        List<ZNRecord> currentStates = _accessor.getChildValues(
-            PropertyType.CURRENTSTATES, instanceName,
-            pathParts[pathParts.length - 1]);
-        currentStateChangeListener.onStateChange(instanceName, currentStates,
-            changeContext);
+        List<CurrentState> currentStates = _accessor.getChildValues(CurrentState.class,
+                                                                    PropertyType.CURRENTSTATES,
+                                                                    instanceName,
+                                                                    pathParts[pathParts.length - 1]);
+        currentStateChangeListener.onStateChange(instanceName, currentStates, changeContext);
 
       } else if (_changeType == MESSAGE)
       {
-        // System.err.println("message change, instance:" +
-        // _manager.getInstanceName());
-
         MessageListener messageListener = (MessageListener) _listener;
         subscribeForChanges(changeContext, true, false);
-        // String instanceName = CMUtil.getInstanceNameFromPath(_path);
         String instanceName = _manager.getInstanceName();
-        List<ZNRecord> messages = _accessor.getChildValues(
-            PropertyType.MESSAGES, instanceName);
+        List<Message> messages = _accessor.getChildValues(Message.class, PropertyType.MESSAGES, instanceName);
         messageListener.onMessage(instanceName, messages, changeContext);
-
       } else if (_changeType == EXTERNAL_VIEW)
       {
         ExternalViewChangeListener externalViewListener = (ExternalViewChangeListener) _listener;
         subscribeForChanges(changeContext, true, true);
-        List<ZNRecord> externalViewList = _accessor
-            .getChildValues(PropertyType.EXTERNALVIEW);
-        externalViewListener.onExternalViewChange(externalViewList,
-            changeContext);
+        List<ExternalView> externalViewList = _accessor.getChildValues(ExternalView.class,
+                                                                       PropertyType.EXTERNALVIEW);
+        externalViewListener.onExternalViewChange(externalViewList, changeContext);
       } else if (_changeType == ChangeType.CONTROLLER)
       {
         ControllerChangeListener controllerChangelistener = (ControllerChangeListener) _listener;

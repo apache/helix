@@ -54,13 +54,16 @@ public class TaskAssignmentStage extends AbstractBaseStage
     {
       return;
     }
+
     for (Message message : messages)
     {
-      logger.info(": Sending message to " + message.getTgtName()
+      logger.info("Sending message to " + message.getTgtName()
           + " transition " + message.getStateUnitKey() + " from:"
           + message.getFromState() + " to:" + message.getToState());
-      dataAccessor.setProperty(PropertyType.MESSAGES, message.getRecord(),
-          message.getTgtName(), message.getId());
+      dataAccessor.setProperty(PropertyType.MESSAGES,
+                               message,
+                               message.getTgtName(),
+                               message.getId());
     }
   }
 }

@@ -11,7 +11,10 @@ import com.linkedin.clustermanager.Criteria;
 import com.linkedin.clustermanager.InstanceType;
 import com.linkedin.clustermanager.NotificationContext;
 import com.linkedin.clustermanager.messaging.AsyncCallback;
+import com.linkedin.clustermanager.messaging.handling.CMTaskResult;
 import com.linkedin.clustermanager.messaging.handling.MessageHandler;
+import com.linkedin.clustermanager.messaging.handling.MessageHandler.ErrorCode;
+import com.linkedin.clustermanager.messaging.handling.MessageHandler.ErrorType;
 import com.linkedin.clustermanager.messaging.handling.MessageHandlerFactory;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.Message.MessageType;
@@ -27,7 +30,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBase
     public MessageHandler createHandler(Message message,
         NotificationContext context)
     {
-      return new TestMessagingHandler();
+      return new TestMessagingHandler(message, context);
     }
 
     @Override
@@ -43,18 +46,33 @@ public class TestMessagingService extends ZkStandAloneCMTestBase
 
     }
 
-    public static class TestMessagingHandler implements MessageHandler
+    public static class TestMessagingHandler extends MessageHandler
     {
+      public TestMessagingHandler(Message message, NotificationContext context)
+      {
+        super(message, context);
+        // TODO Auto-generated constructor stub
+      }
+
       @Override
-      public void handleMessage(Message message, NotificationContext context,
-          Map<String, String> resultMap) throws InterruptedException
+      public CMTaskResult handleMessage() throws InterruptedException
+      {
+        CMTaskResult result = new CMTaskResult();
+        result.setSuccess(true);
+        Thread.sleep(1000);
+        System.out.println("TestMessagingHandler " + _message.getMsgId());
+        _processedMsgIds.add(_message.getRecord().getSimpleField(
+            "TestMessagingPara"));
+        result.getTaskResultMap().put("ReplyMessage", "TestReplyMessage");
+        return result;
+      }
+
+
+      @Override
+      public void onError( Exception e, ErrorCode code, ErrorType type)
       {
         // TODO Auto-generated method stub
-        Thread.currentThread().sleep(1000);
-        System.out.println("TestMessagingHandler " + message.getMsgId());
-        _processedMsgIds.add(message.getRecord().getSimpleField(
-            "TestMessagingPara"));
-        resultMap.put("ReplyMessage", "TestReplyMessage");
+        
       }
     }
   }

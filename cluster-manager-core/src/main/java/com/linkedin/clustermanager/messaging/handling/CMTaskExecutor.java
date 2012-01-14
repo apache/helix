@@ -1,5 +1,7 @@
 package com.linkedin.clustermanager.messaging.handling;
 
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -20,8 +22,8 @@ import com.linkedin.clustermanager.MessageListener;
 import com.linkedin.clustermanager.NotificationContext;
 import com.linkedin.clustermanager.NotificationContext.Type;
 import com.linkedin.clustermanager.PropertyType;
-import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.model.Message;
+import com.linkedin.clustermanager.model.Message.Attributes;
 import com.linkedin.clustermanager.model.Message.MessageType;
 import com.linkedin.clustermanager.monitoring.ParticipantMonitor;
 import com.linkedin.clustermanager.participant.StateMachineEngine;
@@ -121,7 +123,6 @@ public class CMTaskExecutor implements MessageListener
 
         _statusUpdateUtil.logError(message, CMTaskExecutor.class, e,
             errorMessage, notificationContext.getManager().getDataAccessor());
-        // TODO add retry or update errors node
       }
     }
   }
@@ -200,7 +201,7 @@ public class CMTaskExecutor implements MessageListener
   }
 
   @Override
-  public void onMessage(String instanceName, List<ZNRecord> messages,
+  public void onMessage(String instanceName, List<Message> messages,
       NotificationContext changeContext)
   {
     // If FINALIZE notification comes, reset all handler factories
@@ -217,17 +218,55 @@ public class CMTaskExecutor implements MessageListener
     }
 
     ClusterManager manager = changeContext.getManager();
-    ClusterDataAccessor client = manager.getDataAccessor();
+    ClusterDataAccessor accessor = manager.getDataAccessor();
 
     if (messages == null || messages.size() == 0)
     {
       logger.info("No Messages to process");
       return;
     }
-    // TODO: sort message based on timestamp
-    for (ZNRecord record : messages)
+
+    // Sort message based on creation timestamp
+    class MessageTimeComparator implements Comparator<Message>
     {
-      Message message = new Message(record);
+      @Override
+      public int compare(Message message1, Message message2)
+      {
+        long messageCreateTime1 = 0, messageCreateTime2 = 0;
+        String time1 = message1.getRecord().getSimpleField(Attributes.CREATE_TIMESTAMP.toString());
+        String time2 = message2.getRecord().getSimpleField(Attributes.CREATE_TIMESTAMP.toString());
+        try
+        {
+          messageCreateTime1 = Long.parseLong(time1);
+        }
+        catch(Exception e)
+        {
+          logger.warn("failed to parse creation time for msg "+ message1.getId());
+        }
+        try
+        {
+          messageCreateTime2 = Long.parseLong(time2);
+        }
+        catch(Exception e)
+        {
+          logger.warn("failed to parse creation time for msg "+ message2.getId());
+        }
+
+        if(messageCreateTime1 > messageCreateTime2)
+        {
+          return 1;
+        }
+        else if (messageCreateTime1 < messageCreateTime2)
+        {
+          return -1;
+        }
+        return 0;
+      }
+    }
+    Collections.sort(messages, new MessageTimeComparator());
+
+    for (Message message : messages)
+    {
       // NO_OP messages are removed with nothing done. It is used to trigger the
       // onMessage() call if needed.
       if (message.getMsgType().equalsIgnoreCase(MessageType.NO_OP.toString()))
@@ -235,12 +274,12 @@ public class CMTaskExecutor implements MessageListener
         logger.info("Dropping NO-OP msg from " + message.getMsgSrc());
         if(message.getTgtName().equalsIgnoreCase("controller"))
         {
-          client.removeProperty(PropertyType.MESSAGES_CONTROLLER,
+          accessor.removeProperty(PropertyType.MESSAGES_CONTROLLER,
             message.getId());
         }
         else
         {
-          client.removeProperty(PropertyType.MESSAGES, instanceName,
+          accessor.removeProperty(PropertyType.MESSAGES, instanceName,
             message.getId());
         }
         continue;
@@ -270,9 +309,21 @@ public class CMTaskExecutor implements MessageListener
             message.setExecuteSessionId(changeContext.getManager().getSessionId());
 
             _statusUpdateUtil.logInfo(message, StateMachineEngine.class,
-                "New Message", client);
-            client.updateProperty(PropertyType.MESSAGES, message.getRecord(),
-                instanceName, message.getId());
+                "New Message", accessor);
+            if(message.getTgtName().equalsIgnoreCase("controller"))
+            {
+              accessor.updateProperty(PropertyType.MESSAGES_CONTROLLER,
+                                      message,
+                                      message.getId());
+            }
+            else
+            {
+              accessor.updateProperty(PropertyType.MESSAGES,
+                                      message,
+                                      instanceName,
+                                      message.getId());
+
+            }
             scheduleTask(message, handler, changeContext);
           } catch (Exception e)
           {
@@ -280,15 +331,15 @@ public class CMTaskExecutor implements MessageListener
                 + message.getMsgId() + " exception: " + e;
 
             _statusUpdateUtil.logError(message, StateMachineEngine.class, e,
-                error, client);
+                error, accessor);
 
-            client.removeProperty(PropertyType.MESSAGES, instanceName,
+            accessor.removeProperty(PropertyType.MESSAGES, instanceName,
                 message.getId());
             continue;
           }
         } else
         {
-          // This will happen because we dont delete the message as soon as we
+          // This will happen because we don't delete the message as soon as we
           // read it.
           // We keep it until the current state is changed.
           // We will read the message again if there is a new message but we
@@ -302,10 +353,10 @@ public class CMTaskExecutor implements MessageListener
         String warningMessage = "Session Id does not match.  current session id  Expected: "
             + sessionId + " sessionId from Message: " + tgtSessionId;
         logger.warn(warningMessage);
-        client.removeProperty(PropertyType.MESSAGES, instanceName,
+        accessor.removeProperty(PropertyType.MESSAGES, instanceName,
             message.getId());
         _statusUpdateUtil.logWarning(message, StateMachineEngine.class,
-            warningMessage, client);
+            warningMessage, accessor);
       }
     }
 

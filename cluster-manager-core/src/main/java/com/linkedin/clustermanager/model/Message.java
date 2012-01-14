@@ -1,12 +1,11 @@
 package com.linkedin.clustermanager.model;
 
+import java.util.Date;
 import java.util.Map;
-
-import org.apache.zookeeper.data.Stat;
 
 import com.linkedin.clustermanager.ClusterManagerException;
 import com.linkedin.clustermanager.ZNRecord;
-import com.linkedin.clustermanager.ZNRecordAndStat;
+import com.linkedin.clustermanager.ZNRecordDecorator;
 
 /**
  * Message class basically extends ZNRecord but provides additional fields
@@ -14,10 +13,8 @@ import com.linkedin.clustermanager.ZNRecordAndStat;
  * @author kgopalak
  */
 
-public class Message extends ZNRecordAndStat
+public class Message extends ZNRecordDecorator
 {
-//  private final ZNRecord _record;
-
   public enum MessageType
   {
     STATE_TRANSITION,
@@ -31,8 +28,8 @@ public class Message extends ZNRecordAndStat
   {
     MSG_ID, SRC_SESSION_ID, TGT_SESSION_ID, SRC_NAME, TGT_NAME,
     MSG_STATE, STATE_UNIT_KEY, STATE_UNIT_GROUP, FROM_STATE, TO_STATE,
-    STATE_MODEL_DEF, READ_TIMESTAMP, EXECUTE_START_TIMESTAMP, MSG_TYPE,
-    MSG_SUBTYPE, CORRELATION_ID, MESSAGE_RESULT, EXE_SESSION_ID;
+    STATE_MODEL_DEF, CREATE_TIMESTAMP, READ_TIMESTAMP, EXECUTE_START_TIMESTAMP, MSG_TYPE,
+    MSG_SUBTYPE, CORRELATION_ID, MESSAGE_RESULT, EXE_SESSION_ID, MESSAGE_TIMEOUT, RETRY_COUNT;
   }
 
   public Message(MessageType type, String msgId)
@@ -43,46 +40,31 @@ public class Message extends ZNRecordAndStat
   public Message(String type, String msgId)
   {
     super(new ZNRecord(msgId));
-//    _record = new ZNRecord(msgId);
     _record.setSimpleField(Attributes.MSG_TYPE.toString(), type);
     setMsgId(msgId);
     setMsgState("new");
+    _record.setSimpleField(Attributes.CREATE_TIMESTAMP.toString(), ""
+        + new Date().getTime());
   }
 
   public Message(ZNRecord record)
   {
-    super(new ZNRecord(record), null);
+    super(record);
     if(getMsgState() == null)
     {
       setMsgState("new");
     }
-
-  }
-
-  public Message(ZNRecord record, Stat stat)
-  {
-    super(new ZNRecord(record), stat);
-//    _record = new ZNRecord(record);
-    if(getMsgState() == null)
+    if(getCreateTimeStamp() == 0)
     {
-      setMsgState("new");
+      _record.setSimpleField(Attributes.CREATE_TIMESTAMP.toString(), ""
+          + new Date().getTime());
     }
   }
 
   public Message(ZNRecord record, String id)
   {
     super(new ZNRecord(record, id));
-//    _record = new ZNRecord(record, id);
     setMsgId(id);
-    if(getMsgState() == null)
-    {
-      setMsgState("new");
-    }
-  }
-
-  public String getId()
-  {
-    return _record.getId();
   }
 
   public void setMsgSubType(String subType)
@@ -134,7 +116,6 @@ public class Message extends ZNRecordAndStat
   {
     _record.setSimpleField(Attributes.EXE_SESSION_ID.toString(), exeSessionId);
   }
-
 
   public String getMsgSrc()
   {
@@ -201,6 +182,7 @@ public class Message extends ZNRecordAndStat
     return getSimpleFieldAsString(Attributes.TO_STATE.toString());
   }
 
+  // TODO why do we need this?
   private String getSimpleFieldAsString(String key)
   {
     Object ret = _record.getSimpleField(key);
@@ -226,7 +208,6 @@ public class Message extends ZNRecordAndStat
   {
     _record.setSimpleField(Attributes.STATE_UNIT_GROUP.toString(),
         stateUnitGroup);
-
   }
 
   public String getStateUnitGroup()
@@ -268,14 +249,14 @@ public class Message extends ZNRecordAndStat
 
   public long getReadTimeStamp()
   {
-    if (_record.getSimpleField(Attributes.READ_TIMESTAMP.toString()) == null)
+    String timestamp = _record.getSimpleField(Attributes.READ_TIMESTAMP.toString());
+    if (timestamp == null)
     {
       return 0;
     }
     try
     {
-      return Long.parseLong(_record.getSimpleField(Attributes.READ_TIMESTAMP
-          .toString()));
+      return Long.parseLong(timestamp);
     } catch (Exception e)
     {
       return 0;
@@ -285,25 +266,36 @@ public class Message extends ZNRecordAndStat
 
   public long getExecuteStartTimeStamp()
   {
-    if (_record.getSimpleField(Attributes.EXECUTE_START_TIMESTAMP.toString()) == null)
+    String timestamp = _record.getSimpleField(Attributes.EXECUTE_START_TIMESTAMP.toString());
+    if (timestamp == null)
+    {
+      return 0;
+    }
+    try
+    {
+      return Long.parseLong(timestamp);
+    }
+    catch (Exception e)
+    {
+      return 0;
+    }
+  }
+
+  public long getCreateTimeStamp()
+  {
+    if (_record.getSimpleField(Attributes.CREATE_TIMESTAMP.toString()) == null)
     {
       return 0;
     }
     try
     {
       return Long.parseLong(_record
-          .getSimpleField(Attributes.EXECUTE_START_TIMESTAMP.toString()));
+          .getSimpleField(Attributes.CREATE_TIMESTAMP.toString()));
     } catch (Exception e)
     {
       return 0;
     }
   }
-
-//  @Override
-//  public ZNRecord getRecord()
-//  {
-//    return _record;
-//  }
 
   public void setCorrelationId(String correlationId)
   {
@@ -313,6 +305,43 @@ public class Message extends ZNRecordAndStat
   public String getCorrelationId()
   {
     return getSimpleFieldAsString(Attributes.CORRELATION_ID.toString());
+  }
+  
+  public int getExecutionTimeout()
+  {
+    if(!_record.getSimpleFields().containsKey(Attributes.MESSAGE_TIMEOUT.toString()))
+    {
+      return -1;
+    }
+    try
+    {
+      return Integer.parseInt(_record.getSimpleField(Attributes.MESSAGE_TIMEOUT.toString()));
+    }
+    catch(Exception e)
+    {} 
+    return -1;
+  }
+  
+  public void setExecutionTimeout(int timeout)
+  {
+    _record.setSimpleField(Attributes.MESSAGE_TIMEOUT.toString(), "" + timeout);
+  }
+  
+  public void setRetryCount(int retryCount)
+  {
+    _record.setSimpleField(Attributes.RETRY_COUNT.toString(), "" + retryCount);
+  }
+  
+  public int getRetryCount()
+  {
+    try
+    {
+      return Integer.parseInt(_record.getSimpleField(Attributes.RETRY_COUNT.toString()));
+    }
+    catch(Exception e)
+    {} 
+    // Default to 0, and there is no retry if timeout happens
+    return 0;
   }
 
   public Map<String, String> getResultMap()
@@ -330,7 +359,8 @@ public class Message extends ZNRecordAndStat
   {
     if(srcMessage.getCorrelationId() == null)
     {
-      throw new ClusterManagerException("Message "+ srcMessage.getMsgId()+" does not contain correlation id");
+      throw new ClusterManagerException("Message " + srcMessage.getMsgId()
+                                      + " does not contain correlation id");
     }
     Message replyMessage = new Message(MessageType.TASK_REPLY,"TEMPLATE");
     replyMessage.setCorrelationId(srcMessage.getCorrelationId());
@@ -340,5 +370,13 @@ public class Message extends ZNRecordAndStat
     replyMessage.setMsgState("new");
 
     return replyMessage;
+  }
+
+  @Override
+  public boolean isValid()
+  {
+    // TODO: refactor message to state transition message and task-message and 
+    // implemement this function separately
+    return true;
   }
 }

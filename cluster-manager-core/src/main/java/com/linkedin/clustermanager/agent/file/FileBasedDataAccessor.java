@@ -1,28 +1,28 @@
 package com.linkedin.clustermanager.agent.file;
 
-import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.log4j.Logger;
-import org.apache.zookeeper.data.Stat;
 
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.PropertyPathConfig;
 import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
-import com.linkedin.clustermanager.ZNRecordAndStat;
+import com.linkedin.clustermanager.ZNRecordDecorator;
+import com.linkedin.clustermanager.store.PropertyJsonComparator;
+import com.linkedin.clustermanager.store.PropertyJsonSerializer;
+import com.linkedin.clustermanager.store.PropertySerializer;
 import com.linkedin.clustermanager.store.PropertyStore;
 import com.linkedin.clustermanager.store.PropertyStoreException;
 import com.linkedin.clustermanager.store.file.FilePropertyStore;
 
 public class FileBasedDataAccessor implements ClusterDataAccessor
 {
-  private static Logger logger = Logger.getLogger(FileBasedDataAccessor.class);
+  private static Logger LOG = Logger.getLogger(FileBasedDataAccessor.class);
   private final FilePropertyStore<ZNRecord> _store;
   private final String _clusterName;
   private final ReadWriteLock _readWriteLock = new ReentrantReadWriteLock();
@@ -31,6 +31,12 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
   {
     _store = store;
     _clusterName = clusterName;
+  }
+
+  @Override
+  public boolean setProperty(PropertyType type, ZNRecordDecorator value, String... keys)
+  {
+    return setProperty(type, value.getRecord(), keys);
   }
 
   @Override
@@ -46,7 +52,7 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
     }
     catch(PropertyStoreException e)
     {
-      logger.error("Fail to set cluster property clusterName: " + _clusterName +
+      LOG.error("Fail to set cluster property clusterName: " + _clusterName +
                 " type:" + type +
                 " keys:" + keys + "\nexception: " + e);
     }
@@ -58,17 +64,23 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
   }
 
   @Override
-  public boolean updateProperty(PropertyType type, ZNRecord value,
-      String... keys)
+  public boolean updateProperty(PropertyType type, ZNRecordDecorator value, String... keys)
+  {
+    return updateProperty(type, value.getRecord(), keys);
+  }
+
+  @Override
+  public boolean updateProperty(PropertyType type, ZNRecord value, String... keys)
   {
     try
     {
       _readWriteLock.writeLock().lock();
       String path = PropertyPathConfig.getPath(type, _clusterName, keys);
-     if (type.isUpdateOnlyOnExists())
+      if (type.isUpdateOnlyOnExists())
       {
-       updateIfExists(path, value, type.isMergeOnUpdate());
-      } else
+        updateIfExists(path, value, type.isMergeOnUpdate());
+      }
+      else
       {
         createOrUpdate(path, value, type.isMergeOnUpdate());
       }
@@ -76,8 +88,8 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
     }
     catch (PropertyStoreException e)
     {
-      logger.error("fail to update instance property, " +
-          " type:" + type + " keys:" + keys + "\nexception:" + e);
+      LOG.error("fail to update instance property, " +
+          " type:" + type + " keys:" + keys, e);
     }
     finally
     {
@@ -85,6 +97,17 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
     }
     return false;
 
+  }
+
+  @Override
+  public <T extends ZNRecordDecorator> T getProperty(Class<T> clazz, PropertyType type, String... keys)
+  {
+    ZNRecord record = getProperty(type, keys);
+    if (record == null)
+    {
+      return null;
+    }
+    return ZNRecordDecorator.convertToTypedInstance(clazz, record);
   }
 
   @Override
@@ -99,7 +122,7 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
     }
     catch(PropertyStoreException e)
     {
-      logger.error("Fail to get cluster property clusterName: " + _clusterName +
+      LOG.error("Fail to get cluster property clusterName: " + _clusterName +
                 " type:" + type +
                 " keys:" + keys + "\nexception: " + e);
     }
@@ -123,7 +146,7 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
     }
     catch (PropertyStoreException e)
     {
-      logger.error("Fail to remove instance property, "  +
+      LOG.error("Fail to remove instance property, "  +
           " type:" + type + " keys:" + keys  + "\nexception:" + e);
     }
     finally
@@ -137,7 +160,6 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
   @Override
   public List<String> getChildNames(PropertyType type, String... keys)
   {
-    // List<String> childNames = new ArrayList<String>();
     String path = PropertyPathConfig.getPath(type, _clusterName, keys);
 
     try
@@ -149,7 +171,7 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
     }
     catch(PropertyStoreException e)
     {
-      logger.error("Fail to get child names:" + _clusterName +
+      LOG.error("Fail to get child names:" + _clusterName +
           " parentPath:" + path + "\nexception: " + e);
     }
     finally
@@ -161,19 +183,27 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
   }
 
   @Override
+  public <T extends ZNRecordDecorator> List<T> getChildValues(Class<T> clazz,
+                                                              PropertyType type,
+                                                              String... keys)
+  {
+    List<ZNRecord> list = getChildValues(type, keys);
+    return ZNRecordDecorator.convertToTypedList(clazz, list);
+  }
+
+  @Override
   public List<ZNRecord> getChildValues(PropertyType type, String... keys)
   {
-    List<ZNRecord> childRecords = new ArrayList<ZNRecord>();
     String path = PropertyPathConfig.getPath(type, _clusterName, keys);
-
+    List<ZNRecord> records = new ArrayList<ZNRecord>();
     try
     {
       _readWriteLock.readLock().lock();
 
       List<String> childs = _store.getPropertyNames(path);
-      if (childs == null)
+      if (childs == null || childs.size() == 0)
       {
-        return childRecords;
+        return Collections.emptyList();
       }
 
       for (String child : childs)
@@ -181,59 +211,43 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
         ZNRecord record = _store.getProperty(child);
         if (record != null)
         {
-          childRecords.add(record);
+          records.add(record);
         }
       }
-      return childRecords;
     }
     catch(PropertyStoreException e)
     {
-      logger.error("Fail to get child properties cluster:" + _clusterName +
+      LOG.error("Fail to get child properties cluster:" + _clusterName +
           " parentPath:" + path + "\nexception: " + e);
     }
     finally
     {
       _readWriteLock.readLock().unlock();
     }
-
-    return childRecords;
+    return records;
   }
 
   @Override
-  public <T extends ZNRecordAndStat> void refreshChildValues(Map<String, T> childValues,
-         Class<T> clazz, PropertyType type, String... keys)
+  public PropertyStore<ZNRecord> getPropertyStore()
   {
-    // file doesn't have versions, so do normal get children
-    if (childValues == null)
+    String path = PropertyPathConfig.getPath(PropertyType.PROPERTYSTORE, _clusterName);
+    if (!_store.exists(path))
     {
-      throw new IllegalArgumentException("should provide non-null map that holds old child records "
-          + " (empty map if no old values)");
+      _store.createPropertyNamespace(path);
     }
 
-    childValues.clear();
-    List<ZNRecord> childRecords = this.getChildValues(type, keys);
-    for (ZNRecord record : childRecords)
-    {
-      try
-      {
-        Constructor<T> constructor = clazz.getConstructor(new Class[] { ZNRecord.class, Stat.class });
-        childValues.put(record.getId(), constructor.newInstance(record, null));
-      }
-      catch (Exception e)
-      {
-        logger.error("Error creating an Object of type:" + clazz.getCanonicalName(), e);
-      }
-    }
+    PropertySerializer<ZNRecord> serializer = new PropertyJsonSerializer<ZNRecord>(ZNRecord.class);
+    return new FilePropertyStore<ZNRecord>(serializer, path, new PropertyJsonComparator<ZNRecord>(ZNRecord.class));
   }
 
-  @Override
+  // HACK remove it later
   public PropertyStore<ZNRecord> getStore()
   {
     return _store;
   }
 
   private void updateIfExists(String path, final ZNRecord record, boolean mergeOnUpdate)
-  throws PropertyStoreException
+      throws PropertyStoreException
   {
     if (_store.exists(path))
     {
@@ -242,7 +256,7 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
   }
 
   private void createOrUpdate(String path, ZNRecord record, boolean mergeOnUpdate)
-  throws PropertyStoreException
+      throws PropertyStoreException
   {
     if (_store.exists(path))
     {

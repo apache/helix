@@ -24,294 +24,481 @@ import com.linkedin.clustermanager.participant.statemachine.StateModel;
 import com.linkedin.clustermanager.participant.statemachine.StateModelFactory;
 import com.linkedin.clustermanager.tools.ClusterSetup;
 
-public class DummyProcess {
-	private static final Logger logger = Logger.getLogger(DummyProcess.class);
-	public static final String zkServer = "zkSvr";
-	public static final String cluster = "cluster";
-	public static final String hostAddress = "host";
-	public static final String hostPort = "port";
-	public static final String relayCluster = "relayCluster";
-	public static final String help = "help";
-	public static final String configFile = "configFile";
-	public static final String transDelay = "transDelay";
+public class DummyProcess
+{
+  private static final Logger logger = Logger.getLogger(DummyProcess.class);
+  public static final String zkServer = "zkSvr";
+  public static final String cluster = "cluster";
+  public static final String hostAddress = "host";
+  public static final String hostPort = "port";
+  public static final String relayCluster = "relayCluster";
+  public static final String help = "help";
+  public static final String configFile = "configFile";
+  public static final String transDelay = "transDelay";
 
-	private final String zkConnectString;
-	private final String clusterName;
-	private final String instanceName;
-	// private ClusterManager _manager = null;
-	private DummyStateModelFactory stateModelFactory;
-	private StateMachineEngine genericStateMachineHandler;
+  private final String zkConnectString;
+  private final String clusterName;
+  private final String instanceName;
+  // private ClusterManager _manager = null;
+  private DummyStateModelFactory stateModelFactory;
+  private StateMachineEngine genericStateMachineHandler;
 
-	// private final FilePropertyStore<ClusterView> _store;
-	private final FileBasedDataAccessor _accessor;
+  // private final FilePropertyStore<ClusterView> _store;
+  private final FileBasedDataAccessor _accessor;
 
-	private String _file = null;
-	private int _transDelayInMs = 0;
+  private String _file = null;
+  private int _transDelayInMs = 0;
 
-	public DummyProcess(String zkConnectString, String clusterName,
-			String instanceName, String file, int delay) {
-		this(zkConnectString, clusterName, instanceName, file, delay, null);
-	}
+  public DummyProcess(String zkConnectString, String clusterName,
+                      String instanceName, String file, int delay)
+  {
+    this(zkConnectString, clusterName, instanceName, file, delay, null);
+  }
 
-	public DummyProcess(String zkConnectString, String clusterName,
-			String instanceName, String file, int delay,
-			FileBasedDataAccessor accessor) {
-		this.zkConnectString = zkConnectString;
-		this.clusterName = clusterName;
-		this.instanceName = instanceName;
-		this._file = file;
-		_transDelayInMs = delay > 0 ? delay : 0;
-		_accessor = accessor;
-	}
+  public DummyProcess(String zkConnectString, String clusterName,
+      String instanceName, String file, int delay, FileBasedDataAccessor accessor)
+  {
+    this.zkConnectString = zkConnectString;
+    this.clusterName = clusterName;
+    this.instanceName = instanceName;
+    this._file = file;
+    _transDelayInMs = delay > 0 ? delay : 0;
+    _accessor = accessor;
+  }
 
-	public ClusterManager start() throws Exception {
-		ClusterManager manager = null;
-		if (_file == null && _accessor == null)
-			manager = ClusterManagerFactory.getZKBasedManagerForParticipant(
-					clusterName, instanceName, zkConnectString);
-		else if (_file != null && _accessor == null) // static file cluster
-														// manager
-			manager = ClusterManagerFactory.getFileBasedManagerForParticipant(
-					clusterName, instanceName, _file);
-		else if (_file == null && _accessor != null) // dynamic file cluster
-														// manager
-			manager = ClusterManagerFactory.getFileBasedManagerForParticipant(
-					clusterName, instanceName, _accessor);
-		else
-			throw new Exception("Illeagal arguments");
+  public ClusterManager start() throws Exception
+  {
+    ClusterManager manager = null;
+    if (_file == null && _accessor == null)
+      manager = ClusterManagerFactory.getZKBasedManagerForParticipant(
+          clusterName, instanceName, zkConnectString);
+    else if (_file != null && _accessor == null)  // static file cluster manager
+      manager = ClusterManagerFactory.getFileBasedManagerForParticipant(
+          clusterName, instanceName, _file);
+    else if (_file == null && _accessor != null)  // dynamic file cluster manager
+      manager = ClusterManagerFactory.getFileBasedManagerForParticipant(
+          clusterName, instanceName, _accessor);
+    else
+      throw new Exception("Illeagal arguments");
 
-		stateModelFactory = new DummyStateModelFactory(_transDelayInMs);
-		genericStateMachineHandler = new StateMachineEngine(stateModelFactory);
+    stateModelFactory = new DummyStateModelFactory(_transDelayInMs);
+    DummyLeaderStandbyStateModelFactory stateModelFactory1 = new DummyLeaderStandbyStateModelFactory(_transDelayInMs);
+    DummyOnlineOfflineStateModelFactory stateModelFactory2 = new DummyOnlineOfflineStateModelFactory(_transDelayInMs);
+    genericStateMachineHandler = new StateMachineEngine();
+    genericStateMachineHandler.registerStateModelFactory("MasterSlave", stateModelFactory);
 
-		manager.connect();
-		manager.getMessagingService().registerMessageHandlerFactory(
-				MessageType.STATE_TRANSITION.toString(),
-				genericStateMachineHandler);
-		/*
-		 * if (_file != null) {
-		 * ClusterStateVerifier.VerifyFileBasedClusterStates(_file,
-		 * instanceName, stateModelFactory);
-		 * 
-		 * }
-		 */
-		return manager;
-	}
+    genericStateMachineHandler.registerStateModelFactory("LeaderStandby", stateModelFactory1);
+    genericStateMachineHandler.registerStateModelFactory("OnlineOffline", stateModelFactory2);
 
-	public static class DummyStateModelFactory extends
-			StateModelFactory<DummyStateModel> {
-		int _delay;
+    manager.connect();
+    manager.getMessagingService().registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(), genericStateMachineHandler);
+    /*
+    if (_file != null)
+    {
+      ClusterStateVerifier.VerifyFileBasedClusterStates(_file, instanceName,
+          stateModelFactory);
 
-		public DummyStateModelFactory(int delay) {
-			_delay = delay;
-		}
+    }
+    */
+    return manager;
+  }
 
-		@Override
-		public DummyStateModel createNewStateModel(String stateUnitKey) {
-			DummyStateModel model = new DummyStateModel();
-			model.setDelay(_delay);
-			return model;
-		}
-	}
+  public static class DummyStateModelFactory extends StateModelFactory<DummyStateModel>
+  {
+    int _delay;
 
-	public static class DummyStateModel extends StateModel {
-		int _transDelay = 0;
+    public DummyStateModelFactory(int delay)
+    {
+      _delay = delay;
+    }
 
-		public void setDelay(int delay) {
-			_transDelay = delay > 0 ? delay : 0;
-		}
+    @Override
+    public DummyStateModel createNewStateModel(String stateUnitKey)
+    {
+      DummyStateModel model = new DummyStateModel();
+      model.setDelay(_delay);
+      return model;
+    }
+  }
+  
+  public static class DummyLeaderStandbyStateModelFactory extends StateModelFactory<DummyLeaderStandbyStateModel>
+  {
+    int _delay;
 
-		void sleep() {
-			try {
-				if (_transDelay > 0) {
-					Thread.sleep(_transDelay);
-				}
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
+    public DummyLeaderStandbyStateModelFactory(int delay)
+    {
+      _delay = delay;
+    }
 
-		public void onBecomeSlaveFromOffline(Message message,
-				NotificationContext context) {
-			String db = message.getStateUnitKey();
-			String instanceName = context.getManager().getInstanceName();
-			sleep();
-			logger.info("DummyStateModel.onBecomeSlaveFromOffline(), instance:"
-					+ instanceName + ", db:" + db);
-		}
+    @Override
+    public DummyLeaderStandbyStateModel createNewStateModel(String stateUnitKey)
+    {
+      DummyLeaderStandbyStateModel model = new DummyLeaderStandbyStateModel();
+      model.setDelay(_delay);
+      return model;
+    }
+  }
+  
+  public static class DummyOnlineOfflineStateModelFactory extends StateModelFactory<DummyOnlineOfflineStateModel>
+  {
+    int _delay;
 
-		public void onBecomeSlaveFromMaster(Message message,
-				NotificationContext context) {
+    public DummyOnlineOfflineStateModelFactory(int delay)
+    {
+      _delay = delay;
+    }
 
-			sleep();
-			logger.info("DummyStateModel.onBecomeSlaveFromMaster()");
+    @Override
+    public DummyOnlineOfflineStateModel createNewStateModel(String stateUnitKey)
+    {
+      DummyOnlineOfflineStateModel model = new DummyOnlineOfflineStateModel();
+      model.setDelay(_delay);
+      return model;
+    }
+  }
+  public static class DummyStateModel extends StateModel
+  {
+    int _transDelay = 0;
 
-		}
+    public void setDelay(int delay)
+    {
+      _transDelay = delay > 0 ? delay : 0;
+    }
 
-		public void onBecomeMasterFromSlave(Message message,
-				NotificationContext context) {
+    void sleep()
+    {
+      try
+      {
+        if (_transDelay > 0)
+        {
+          Thread.sleep(_transDelay);
+        }
+      } catch (InterruptedException e)
+      {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      }
+    }
 
-			sleep();
-			logger.info("DummyStateModel.onBecomeMasterFromSlave()");
+    public void onBecomeSlaveFromOffline(Message message,
+        NotificationContext context)
+    {
+      String db = message.getStateUnitKey();
+      String instanceName = context.getManager().getInstanceName();
+      sleep();
+      logger.info("DummyStateModel.onBecomeSlaveFromOffline(), instance:" + instanceName
+                         + ", db:" + db);
+    }
 
-		}
+    public void onBecomeSlaveFromMaster(Message message,
+        NotificationContext context)
+    {
 
-		public void onBecomeOfflineFromSlave(Message message,
-				NotificationContext context) {
+      sleep();
+      logger.info("DummyStateModel.onBecomeSlaveFromMaster()");
 
-			sleep();
-			logger.info("DummyStateModel.onBecomeOfflineFromSlave()");
+    }
 
-		}
+    public void onBecomeMasterFromSlave(Message message,
+        NotificationContext context)
+    {
 
-		public void onBecomeDroppedFromOffline(Message message,
-				NotificationContext context) {
+      sleep();
+      logger.info("DummyStateModel.onBecomeMasterFromSlave()");
 
-			sleep();
-			logger.info("DummyStateModel.onBecomeDroppedFromOffline()");
+    }
 
-		}
-	}
+    public void onBecomeOfflineFromSlave(Message message,
+        NotificationContext context)
+    {
 
-	// TODO hack OptionBuilder is not thread safe
-	@SuppressWarnings("static-access")
-	synchronized private static Options constructCommandLineOptions() {
-		Option helpOption = OptionBuilder.withLongOpt(help)
-				.withDescription("Prints command-line options info").create();
+      sleep();
+      logger.info("DummyStateModel.onBecomeOfflineFromSlave()");
 
-		Option zkServerOption = OptionBuilder.withLongOpt(zkServer)
-				.withDescription("Provide zookeeper address").create();
-		zkServerOption.setArgs(1);
-		zkServerOption.setRequired(true);
-		zkServerOption.setArgName("ZookeeperServerAddress(Required)");
+    }
 
-		Option clusterOption = OptionBuilder.withLongOpt(cluster)
-				.withDescription("Provide cluster name").create();
-		clusterOption.setArgs(1);
-		clusterOption.setRequired(true);
-		clusterOption.setArgName("Cluster name (Required)");
+    public void onBecomeDroppedFromOffline(Message message, NotificationContext context)
+    {
 
-		Option hostOption = OptionBuilder.withLongOpt(hostAddress)
-				.withDescription("Provide host name").create();
-		hostOption.setArgs(1);
-		hostOption.setRequired(true);
-		hostOption.setArgName("Host name (Required)");
+      sleep();
+      logger.info("DummyStateModel.onBecomeDroppedFromOffline()");
 
-		Option portOption = OptionBuilder.withLongOpt(hostPort)
-				.withDescription("Provide host port").create();
-		portOption.setArgs(1);
-		portOption.setRequired(true);
-		portOption.setArgName("Host port (Required)");
+    }
+  }
 
-		// add an option group including either --zkSvr or --configFile
-		Option fileOption = OptionBuilder.withLongOpt(configFile)
-				.withDescription("Provide file to read states/messages")
-				.create();
-		fileOption.setArgs(1);
-		fileOption.setRequired(true);
-		fileOption.setArgName("File to read states/messages (Optional)");
 
-		Option transDelayOption = OptionBuilder.withLongOpt(transDelay)
-				.withDescription("Provide state trans delay").create();
-		transDelayOption.setArgs(1);
-		transDelayOption.setRequired(false);
-		transDelayOption.setArgName("Delay time in state transition, in MS");
+  public static class DummyOnlineOfflineStateModel extends StateModel
+  {
+    int _transDelay = 0;
 
-		OptionGroup optionGroup = new OptionGroup();
-		optionGroup.addOption(zkServerOption);
-		optionGroup.addOption(fileOption);
+    public void setDelay(int delay)
+    {
+      _transDelay = delay > 0 ? delay : 0;
+    }
 
-		Options options = new Options();
-		options.addOption(helpOption);
-		// options.addOption(zkServerOption);
-		options.addOption(clusterOption);
-		options.addOption(hostOption);
-		options.addOption(portOption);
-		options.addOption(transDelayOption);
+    void sleep()
+    {
+      try
+      {
+        if (_transDelay > 0)
+        {
+          Thread.sleep(_transDelay);
+        }
+      } catch (InterruptedException e)
+      {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      }
+    }
 
-		options.addOptionGroup(optionGroup);
+    public void onBecomeOnlineFromOffline(Message message,
+        NotificationContext context)
+    {
+      String db = message.getStateUnitKey();
+      String instanceName = context.getManager().getInstanceName();
+      sleep();
+      logger.info("DummyStateModel.onBecomeOnlineFromOffline(), instance:" + instanceName
+                         + ", db:" + db);
+    }
 
-		return options;
-	}
+    public void onBecomeOfflineFromOnline(Message message,
+        NotificationContext context)
+    {
 
-	public static void printUsage(Options cliOptions) {
-		HelpFormatter helpFormatter = new HelpFormatter();
-		helpFormatter.printHelp("java " + ClusterSetup.class.getName(),
-				cliOptions);
-	}
+      sleep();
+      logger.info("DummyStateModel.onBecomeOfflineFromOnline()");
 
-	public static CommandLine processCommandLineArgs(String[] cliArgs)
-			throws Exception {
-		CommandLineParser cliParser = new GnuParser();
-		Options cliOptions = constructCommandLineOptions();
-		// CommandLine cmd = null;
+    }
+    public void onBecomeDroppedFromOffline(Message message, NotificationContext context)
+    {
 
-		try {
-			return cliParser.parse(cliOptions, cliArgs);
-		} catch (ParseException pe) {
-			System.err
-					.println("CommandLineClient: failed to parse command-line options: "
-							+ pe.toString());
-			printUsage(cliOptions);
-			System.exit(1);
-		}
-		return null;
-	}
+      sleep();
+      logger.info("DummyStateModel.onBecomeDroppedFromOffline()");
 
-	public static void main(String[] args) throws Exception {
-		String zkConnectString = "localhost:2181";
-		String clusterName = "test-cluster";
-		String instanceName = "localhost_8900";
-		String file = null;
-		int delay = 0;
+    }
+  }
+  
+  public static class DummyLeaderStandbyStateModel extends StateModel
+  {
+    int _transDelay = 0;
 
-		if (args.length > 0) {
-			CommandLine cmd = processCommandLineArgs(args);
-			zkConnectString = cmd.getOptionValue(zkServer);
-			clusterName = cmd.getOptionValue(cluster);
+    public void setDelay(int delay)
+    {
+      _transDelay = delay > 0 ? delay : 0;
+    }
 
-			String host = cmd.getOptionValue(hostAddress);
-			String portString = cmd.getOptionValue(hostPort);
-			int port = Integer.parseInt(portString);
-			instanceName = host + "_" + port;
+    void sleep()
+    {
+      try
+      {
+        if (_transDelay > 0)
+        {
+          Thread.sleep(_transDelay);
+        }
+      } catch (InterruptedException e)
+      {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      }
+    }
 
-			file = cmd.getOptionValue(configFile);
-			if (file != null) {
-				File f = new File(file);
-				if (!f.exists()) {
-					System.err.println("static config file doesn't exist");
-					System.exit(1);
-				}
-			}
-			if (cmd.hasOption(transDelay)) {
-				try {
-					delay = Integer.parseInt(cmd.getOptionValue(transDelay));
-					if (delay < 0) {
-						throw new Exception("delay must be positive");
-					}
-				} catch (Exception e) {
-					e.printStackTrace();
-					delay = 0;
-				}
-			}
-		}
-		// Espresso_driver.py will consume this
-		logger.info("Dummy process started, instanceName:" + instanceName);
+    public void onBecomeLeaderFromStandby(Message message,
+        NotificationContext context)
+    {
+      String db = message.getStateUnitKey();
+      String instanceName = context.getManager().getInstanceName();
+      sleep();
+      logger.info("DummyLeaderStandbyStateModel.onBecomeLeaderFromStandby(), instance:" + instanceName
+                         + ", db:" + db);
+    }
 
-		DummyProcess process = new DummyProcess(zkConnectString, clusterName,
-				instanceName, file, delay);
-		ClusterManager manager = process.start();
+    public void onBecomeStandbyFromLeader(Message message,
+        NotificationContext context)
+    {
 
-		try {
-			Thread.currentThread().join();
-		} catch (InterruptedException e) {
-			// ClusterManagerFactory.disconnectManagers(instanceName);
-			logger.info("participant:" + instanceName + ", "
-					+ Thread.currentThread().getName() + " interrupted");
-			if (manager != null) {
-				manager.disconnect();
-			}
-		}
+      sleep();
+      logger.info("DummyLeaderStandbyStateModel.onBecomeStandbyFromLeader()");
 
-	}
+    }
+    public void onBecomeDroppedFromOffline(Message message, NotificationContext context)
+    {
+
+      sleep();
+      logger.info("DummyLeaderStandbyStateModel.onBecomeDroppedFromOffline()");
+
+    }
+    
+    public void onBecomeStandbyFromOffline(Message message, NotificationContext context)
+    {
+
+      sleep();
+      logger.info("DummyLeaderStandbyStateModel.onBecomeStandbyFromOffline()");
+
+    }
+    
+    public void onBecomeOfflineFromStandby(Message message, NotificationContext context)
+    {
+
+      sleep();
+      logger.info("DummyLeaderStandbyStateModel.onBecomeOfflineFromStandby()");
+
+    }
+  }
+
+  // TODO hack OptionBuilder is not thread safe
+  @SuppressWarnings("static-access")
+  synchronized private static Options constructCommandLineOptions()
+  {
+    Option helpOption = OptionBuilder.withLongOpt(help)
+        .withDescription("Prints command-line options info").create();
+
+    Option zkServerOption = OptionBuilder.withLongOpt(zkServer)
+        .withDescription("Provide zookeeper address").create();
+    zkServerOption.setArgs(1);
+    zkServerOption.setRequired(true);
+    zkServerOption.setArgName("ZookeeperServerAddress(Required)");
+
+    Option clusterOption = OptionBuilder.withLongOpt(cluster)
+        .withDescription("Provide cluster name").create();
+    clusterOption.setArgs(1);
+    clusterOption.setRequired(true);
+    clusterOption.setArgName("Cluster name (Required)");
+
+    Option hostOption = OptionBuilder.withLongOpt(hostAddress)
+        .withDescription("Provide host name").create();
+    hostOption.setArgs(1);
+    hostOption.setRequired(true);
+    hostOption.setArgName("Host name (Required)");
+
+    Option portOption = OptionBuilder.withLongOpt(hostPort)
+        .withDescription("Provide host port").create();
+    portOption.setArgs(1);
+    portOption.setRequired(true);
+    portOption.setArgName("Host port (Required)");
+
+    // add an option group including either --zkSvr or --configFile
+    Option fileOption = OptionBuilder.withLongOpt(configFile)
+        .withDescription("Provide file to read states/messages").create();
+    fileOption.setArgs(1);
+    fileOption.setRequired(true);
+    fileOption.setArgName("File to read states/messages (Optional)");
+
+    Option transDelayOption = OptionBuilder.withLongOpt(transDelay)
+        .withDescription("Provide state trans delay").create();
+    transDelayOption.setArgs(1);
+    transDelayOption.setRequired(false);
+    transDelayOption.setArgName("Delay time in state transition, in MS");
+
+    OptionGroup optionGroup = new OptionGroup();
+    optionGroup.addOption(zkServerOption);
+    optionGroup.addOption(fileOption);
+
+    Options options = new Options();
+    options.addOption(helpOption);
+    // options.addOption(zkServerOption);
+    options.addOption(clusterOption);
+    options.addOption(hostOption);
+    options.addOption(portOption);
+    options.addOption(transDelayOption);
+
+    options.addOptionGroup(optionGroup);
+
+    return options;
+  }
+
+  public static void printUsage(Options cliOptions)
+  {
+    HelpFormatter helpFormatter = new HelpFormatter();
+    helpFormatter.printHelp("java " + ClusterSetup.class.getName(), cliOptions);
+  }
+
+  public static CommandLine processCommandLineArgs(String[] cliArgs)
+      throws Exception
+  {
+    CommandLineParser cliParser = new GnuParser();
+    Options cliOptions = constructCommandLineOptions();
+    // CommandLine cmd = null;
+
+    try
+    {
+      return cliParser.parse(cliOptions, cliArgs);
+    } catch (ParseException pe)
+    {
+      System.err
+          .println("CommandLineClient: failed to parse command-line options: "
+              + pe.toString());
+      printUsage(cliOptions);
+      System.exit(1);
+    }
+    return null;
+  }
+
+  public static void main(String[] args) throws Exception
+  {
+    String zkConnectString = "localhost:2181";
+    String clusterName = "test-cluster";
+    String instanceName = "localhost_8900";
+    String file = null;
+    int delay = 0;
+
+    if (args.length > 0)
+    {
+      CommandLine cmd = processCommandLineArgs(args);
+      zkConnectString = cmd.getOptionValue(zkServer);
+      clusterName = cmd.getOptionValue(cluster);
+
+      String host = cmd.getOptionValue(hostAddress);
+      String portString = cmd.getOptionValue(hostPort);
+      int port = Integer.parseInt(portString);
+      instanceName = host + "_" + port;
+
+      file = cmd.getOptionValue(configFile);
+      if (file != null)
+      {
+        File f = new File(file);
+        if (!f.exists())
+        {
+          System.err.println("static config file doesn't exist");
+          System.exit(1);
+        }
+      }
+      if (cmd.hasOption(transDelay))
+      {
+        try
+        {
+          delay = Integer.parseInt(cmd.getOptionValue(transDelay));
+          if (delay < 0)
+          {
+            throw new Exception("delay must be positive");
+          }
+        } catch (Exception e)
+        {
+          e.printStackTrace();
+          delay = 0;
+        }
+      }
+    }
+    // Espresso_driver.py will consume this
+    logger.info("Dummy process started, instanceName:" + instanceName);
+
+    DummyProcess process = new DummyProcess(zkConnectString, clusterName,
+        instanceName, file, delay);
+    ClusterManager manager = process.start();
+
+    try
+    {
+      Thread.currentThread().join();
+    }
+    catch (InterruptedException e)
+    {
+      // ClusterManagerFactory.disconnectManagers(instanceName);
+      logger.info("participant:" + instanceName + ", " +
+                   Thread.currentThread().getName() + " interrupted");
+      if (manager != null)
+      {
+        manager.disconnect();
+      }
+    }
+
+  }
 }

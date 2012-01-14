@@ -1,31 +1,39 @@
 package com.linkedin.clustermanager.model;
 
-import static com.linkedin.clustermanager.CMConstants.ZNAttribute.CURRENT_STATE;
-import static com.linkedin.clustermanager.CMConstants.ZNAttribute.SESSION_ID;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.apache.zookeeper.data.Stat;
+import org.apache.log4j.Logger;
 
+import com.linkedin.clustermanager.ClusterManagerException;
 import com.linkedin.clustermanager.ZNRecord;
-import com.linkedin.clustermanager.ZNRecordAndStat;
-import com.linkedin.clustermanager.model.Message.Attributes;
+import com.linkedin.clustermanager.ZNRecordDecorator;
+import com.linkedin.clustermanager.agent.zk.ZKClusterManagementTool;
 
-public class CurrentState extends ZNRecordAndStat
+/**
+ * Current states for resources in a resource group
+ */
+public class CurrentState extends ZNRecordDecorator
 {
-//  private final ZNRecord record;
+  private static Logger LOG = Logger.getLogger(CurrentState.class);
+
+  public enum CurrentStateProperty
+  {
+    SESSION_ID,
+    CURRENT_STATE,
+    STATE_MODEL_DEF,
+    RESOURCE_GROUP
+  }
+
+  public CurrentState(String id)
+  {
+    super(id);
+  }
 
   public CurrentState(ZNRecord record)
   {
-    this(record, null);
-  }
-
-  public CurrentState(ZNRecord record, Stat stat)
-  {
-    super(record, stat);
-//    this.record = record;
+    super(record);
   }
 
   public String getResourceGroupName()
@@ -42,7 +50,7 @@ public class CurrentState extends ZNRecordAndStat
       Map<String, String> tempMap = mapFields.get(resourceKey);
       if (tempMap != null)
       {
-        map.put(resourceKey, tempMap.get(CURRENT_STATE.toString()));
+        map.put(resourceKey, tempMap.get(CurrentStateProperty.CURRENT_STATE.toString()));
       }
     }
     return map;
@@ -50,47 +58,94 @@ public class CurrentState extends ZNRecordAndStat
 
   public String getSessionId()
   {
-    return _record.getSimpleField(SESSION_ID.toString());
+    return _record.getSimpleField(CurrentStateProperty.SESSION_ID.toString());
   }
   public void setSessionId(String sessionId)
   {
-    _record.setSimpleField(SESSION_ID.toString(), sessionId);
+    _record.setSimpleField(CurrentStateProperty.SESSION_ID.toString(), sessionId);
   }
 
   public String getState(String resourceKeyStr)
   {
-    Map<String, String> mapField = _record.getMapField(resourceKeyStr);
+    Map<String, Map<String, String>> mapFields = _record.getMapFields();
+    Map<String, String> mapField = mapFields.get(resourceKeyStr);
     if (mapField != null)
     {
-      return mapField.get(CURRENT_STATE.toString());
+      return mapField.get(CurrentStateProperty.CURRENT_STATE.toString());
     }
     return null;
   }
 
   public void setStateModelDefRef(String stateModelName)
   {
-    _record
-        .setSimpleField(Attributes.STATE_MODEL_DEF.toString(), stateModelName);
+    _record.setSimpleField(CurrentStateProperty.STATE_MODEL_DEF.toString(), stateModelName);
   }
 
   public String getStateModelDefRef()
   {
-    return _record.getSimpleField(Attributes.STATE_MODEL_DEF.toString());
+    return _record.getSimpleField(CurrentStateProperty.STATE_MODEL_DEF.toString());
   }
 
   public void setState(String resourceKeyStr, String state)
   {
-    if (_record.getMapField(resourceKeyStr) == null)
+    Map<String, Map<String, String>> mapFields = _record.getMapFields();
+    if (mapFields.get(resourceKeyStr) == null)
     {
-      _record.setMapField(resourceKeyStr, new TreeMap<String, String>());
+      mapFields.put(resourceKeyStr, new TreeMap<String, String>());
     }
-    _record.getMapField(resourceKeyStr).put(CURRENT_STATE.toString(), state);
+    mapFields.get(resourceKeyStr).put(CurrentStateProperty.CURRENT_STATE.toString(), state);
+  }
+
+  public void resetState(String resourceKey)
+  {
+    Map<String, String> mapField = _record.getMapField(resourceKey);
+    if (mapField != null)
+    {
+      String state = mapField.get(CurrentStateProperty.CURRENT_STATE.toString());
+      if (state.equals("ERROR"))
+      {
+        _record.getMapFields().remove(resourceKey);
+      }
+      else
+      {
+        LOG.error("Skip resetting resource state " + resourceKey
+                  + "; because it's current state is not ERROR ( was " + state + ")");
+      }
+    }
+    else
+    {
+      LOG.error("Skip resetting resource state " + resourceKey
+                + "; because it's current state does NOT exist");
+    }
 
   }
 
-//  @Override
-//  public ZNRecord getRecord()
-//  {
-//    return record;
-//  }
+
+  public void setResourceGroup(String resourceKey, String resourceGroup)
+  {
+    Map<String, Map<String, String>> mapFields = _record.getMapFields();
+    if (mapFields.get(resourceKey) == null)
+    {
+      mapFields.put(resourceKey, new TreeMap<String, String>());
+    }
+    mapFields.get(resourceKey).put(CurrentStateProperty.RESOURCE_GROUP.toString(), resourceGroup);
+
+  }
+
+  @Override
+  public boolean isValid()
+  {
+    if(getStateModelDefRef() == null)
+    {
+      LOG.error("Current state does not contain state model ref. id:" + getResourceGroupName());
+      return false;
+    }
+    if(getSessionId() == null)
+    {
+      LOG.error("CurrentState does not contain session id, id : " + getResourceGroupName());
+      return false;
+    }
+    return true;
+  }
+
 }

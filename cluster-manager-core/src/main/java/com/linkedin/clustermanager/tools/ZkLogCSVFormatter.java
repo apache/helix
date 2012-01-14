@@ -2,6 +2,7 @@ package com.linkedin.clustermanager.tools;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -14,24 +15,31 @@ import java.util.Map;
 
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
+import com.linkedin.clustermanager.model.IdealState.IdealStateProperty;
 import com.linkedin.clustermanager.util.CMUtil;
 
 public class ZkLogCSVFormatter
 {
   private static final ZNRecordSerializer _deserializer = new ZNRecordSerializer();
-  private static String _fieldDelim = ",\t";
+  private static String _fieldDelim = ",";
 
   /**
    * @param args
    */
   public static void main(String[] args) throws Exception
   {
-    if (args.length != 1)
+    if (args.length != 2)
     {
-      System.err.println("USAGE: ZkLogCSVFormatter log_file");
+      System.err.println("USAGE: ZkLogCSVFormatter log_file output_dir");
       System.exit(2);
     }
-    format(args[0], "/tmp/zk-log-csv");
+    File outputDir = new File(args[1]);
+    if (!outputDir.exists() || !outputDir.isDirectory())
+    {
+      System.err.println(outputDir.getAbsolutePath() + " does NOT exist or is NOT a directory");
+      System.exit(2);
+    }
+    format(args[0], args[1]);
   }
 
   private static void formatter(BufferedWriter bw, String... args)
@@ -205,8 +213,8 @@ public class ZkLogCSVFormatter
                 formatter(isBw,
                           timestamp,
                           record.getId(),
-                          record.getSimpleField("partitions"),
-                          record.getSimpleField("ideal_state_mode"),
+                          record.getSimpleField(IdealStateProperty.RESOURCES.toString()),
+                          record.getSimpleField(IdealStateProperty.IDEAL_STATE_MODE.toString()),
                           partition,
                           instance,
                           Integer.toString(i));

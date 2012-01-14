@@ -3,13 +3,13 @@
   <parent>
     <groupId>com.linkedin.clustermanager</groupId>
     <artifactId>cluster-manager</artifactId>
-    <version>0.4.0</version>
+    <version>0.4.2</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.linkedin.clustermanager</groupId>
   <artifactId>cluster-manager-core</artifactId>
-  <version>0.4.0</version>
+  <version>0.4.2</version>
   <packaging>jar</packaging>
 
   <name>cluster-manager-core</name>
@@ -130,6 +130,10 @@
             <program>
               <mainClass>com.linkedin.clustermanager.tools.ZKLogFormatter</mainClass>
               <name>zk-log-parser</name>
+            </program>
+            <program>
+              <mainClass>com.linkedin.clustermanager.tools.ZkLogCSVFormatter</mainClass>
+              <name>zk-log-csv-formatter</name>
             </program>
             <program>
               <mainClass>com.linkedin.clustermanager.examples.ExampleProcess</mainClass>

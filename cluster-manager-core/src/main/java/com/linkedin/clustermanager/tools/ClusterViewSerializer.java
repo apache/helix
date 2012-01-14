@@ -15,7 +15,7 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.SerializationConfig;
 
 import com.linkedin.clustermanager.ClusterView;
-import com.linkedin.clustermanager.agent.file.FileBasedClusterManager;
+import com.linkedin.clustermanager.agent.file.StaticFileClusterManager;
 
 public class ClusterViewSerializer
 {
@@ -127,9 +127,9 @@ public class ClusterViewSerializer
   {
     // temporary test only
     // create fake db names and nodes
-    List<FileBasedClusterManager.DBParam> dbParams = new ArrayList<FileBasedClusterManager.DBParam>();
+    List<StaticFileClusterManager.DBParam> dbParams = new ArrayList<StaticFileClusterManager.DBParam>();
     // dbParams.add(new FileBasedClusterManager.DBParam("BizFollow", 1));
-    dbParams.add(new FileBasedClusterManager.DBParam("BizProfile_qatest218a", 128));
+    dbParams.add(new StaticFileClusterManager.DBParam("BizProfile_qatest218a", 128));
     // dbParams.add(new FileBasedClusterManager.DBParam("EspressoDB", 10));
     // dbParams.add(new FileBasedClusterManager.DBParam("MailboxDB", 128));
     // dbParams.add(new FileBasedClusterManager.DBParam("MyDB", 8));
@@ -140,7 +140,7 @@ public class ClusterViewSerializer
     // String[] nodesInfo = { "esv4-app75.stg.linkedin.com:12918" };
     int replica = 0;
 
-    ClusterView view = FileBasedClusterManager.generateStaticConfigClusterView(nodesInfo, dbParams, replica);
+    ClusterView view = StaticFileClusterManager.generateStaticConfigClusterView(nodesInfo, dbParams, replica);
     String file = "/tmp/cluster-view-bizprofile.json";
     // ClusterViewSerializer serializer = new ClusterViewSerializer(file);
 

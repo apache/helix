@@ -16,9 +16,10 @@ import org.testng.AssertJUnit;
 import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeSuite;
 
-import com.linkedin.clustermanager.ClusterDataAccessor.InstanceConfigProperty;
 import com.linkedin.clustermanager.agent.zk.ZKDataAccessor;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
+import com.linkedin.clustermanager.model.IdealState;
+import com.linkedin.clustermanager.model.InstanceConfig;
 import com.linkedin.clustermanager.util.CMUtil;
 
 // TODO merge code with ZkIntegrationTestBase
@@ -128,23 +129,18 @@ public class ZkUnitTestBase
 	public void verifyEnabled(ZkClient zkClient, String clusterName, String instance, boolean wantEnabled)
 	{
 	    ClusterDataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
-	    ZNRecord nodeConfig = accessor.getProperty(PropertyType.CONFIGS, instance);
-	    boolean isEnabled = Boolean.parseBoolean(nodeConfig.getSimpleField(
-	    		InstanceConfigProperty.ENABLED.toString()));
-	    AssertJUnit.assertEquals(wantEnabled, isEnabled);
+	    InstanceConfig config = accessor.getProperty(InstanceConfig.class, PropertyType.CONFIGS, instance);
+	    AssertJUnit.assertEquals(wantEnabled, config.getInstanceEnabled());
 	}
 
 
-	public void verifyReplication(ZkClient zkClient, String clusterName, String resource, int repl) {
-		//String resourcePath = CMUtil.getIdealStatePath(CLUSTER_NAME)+"/"+TEST_DB;
+	public void verifyReplication(ZkClient zkClient, String clusterName, String resource, int repl)
+	{
 		 ClusterDataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
-		 ZNRecord nodeConfig = accessor.getProperty(PropertyType.IDEALSTATES, resource);
-		 //get location map for each partition
-		 Map<String, Map<String, String>> partitionMap = nodeConfig.getMapFields();
-		 //for each partition's map, verify map has repl entries
-		 for (String partition : partitionMap.keySet()) {
-			 Map<String, String> partitionLocs = nodeConfig.getMapField(partition);
-			 AssertJUnit.assertEquals(repl, partitionLocs.size());
+		 IdealState idealState = accessor.getProperty(IdealState.class, PropertyType.IDEALSTATES, resource);
+		 for (String resourceKey : idealState.getResourceKeySet())
+		 {
+			 AssertJUnit.assertEquals(repl, idealState.getInstanceStateMap(resourceKey).size());
 		 }
 	}
 

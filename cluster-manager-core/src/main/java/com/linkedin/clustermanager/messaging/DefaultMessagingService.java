@@ -14,7 +14,6 @@ import com.linkedin.clustermanager.ClusterMessagingService;
 import com.linkedin.clustermanager.Criteria;
 import com.linkedin.clustermanager.InstanceType;
 import com.linkedin.clustermanager.PropertyType;
-import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.messaging.handling.AsyncCallbackService;
 import com.linkedin.clustermanager.messaging.handling.CMTaskExecutor;
 import com.linkedin.clustermanager.messaging.handling.MessageHandlerFactory;
@@ -56,6 +55,13 @@ public class DefaultMessagingService implements ClusterMessagingService
   public int send(final Criteria recipientCriteria, final Message message,
       AsyncCallback callbackOnReply, int timeOut)
   {
+    return send(recipientCriteria, message, callbackOnReply, timeOut, 0);
+  }
+  
+  @Override
+  public int send(final Criteria recipientCriteria, final Message message,
+      AsyncCallback callbackOnReply, int timeOut, int retryCount)
+  {
     Map<InstanceType, List<Message>> generateMessage = generateMessage(
         recipientCriteria, message);
     int totalMessageCount = 0;
@@ -66,11 +72,12 @@ public class DefaultMessagingService implements ClusterMessagingService
     String correlationId = null;
     if (callbackOnReply != null)
     {
-      if (timeOut < 0)
+      int totalTimeout = timeOut * (retryCount + 1);
+      if (totalTimeout < 0)
       {
-        timeOut = -1;
+        totalTimeout = -1;
       }
-      callbackOnReply.setTimeout(timeOut);
+      callbackOnReply.setTimeout(totalTimeout);
       correlationId = UUID.randomUUID().toString();
       for (List<Message> messages : generateMessage.values())
       {
@@ -85,21 +92,25 @@ public class DefaultMessagingService implements ClusterMessagingService
       List<Message> list = generateMessage.get(receiverType);
       for (Message tempMessage : list)
       {
+        tempMessage.setRetryCount(retryCount);
+        tempMessage.setExecutionTimeout(timeOut);
         if (correlationId != null)
         {
           tempMessage.setCorrelationId(correlationId);
         }
         if (receiverType == InstanceType.CONTROLLER)
         {
-          _manager.getDataAccessor().setProperty(
-              PropertyType.MESSAGES_CONTROLLER, tempMessage.getRecord(),
-              tempMessage.getId());
+            _manager.getDataAccessor().setProperty(PropertyType.MESSAGES_CONTROLLER,
+                                                   tempMessage,
+                                                   tempMessage.getId());
+
         }
         if (receiverType == InstanceType.PARTICIPANT)
         {
           _manager.getDataAccessor().setProperty(PropertyType.MESSAGES,
-              tempMessage.getRecord(), tempMessage.getTgtName(),
-              tempMessage.getId());
+                                                 tempMessage,
+                                                 tempMessage.getTgtName(),
+                                                 tempMessage.getId());
         }
       }
     }
@@ -137,11 +148,11 @@ public class DefaultMessagingService implements ClusterMessagingService
         Map<String, String> sessionIdMap = new HashMap<String, String>();
         if (recipientCriteria.isSessionSpecific())
         {
-          List<ZNRecord> clusterPropertyList = _manager.getDataAccessor()
-              .getChildValues(PropertyType.LIVEINSTANCES);
-          for (ZNRecord znRecord : clusterPropertyList)
+          List<LiveInstance> liveInstances = _manager.getDataAccessor().getChildValues(LiveInstance.class,
+                                                                                       PropertyType.LIVEINSTANCES);
+
+          for (LiveInstance liveInstance : liveInstances)
           {
-            LiveInstance liveInstance = new LiveInstance(znRecord);
             sessionIdMap.put(liveInstance.getInstanceName(),
                 liveInstance.getSessionId());
           }
@@ -177,13 +188,12 @@ public class DefaultMessagingService implements ClusterMessagingService
   private List<Map<String, String>> prepareInputFromClusterData(
       Criteria criteria)
   {
-    // todo:optimize and read only resource groups needed
+    // TODO:optimize and read only resource groups needed
     List<Map<String, String>> rows = new ArrayList<Map<String, String>>();
-    List<ZNRecord> recordList = _manager.getDataAccessor().getChildValues(
-        PropertyType.EXTERNALVIEW);
-    for (ZNRecord record : recordList)
+    List<ExternalView> extViews = _manager.getDataAccessor().getChildValues(ExternalView.class,
+                                                                            PropertyType.EXTERNALVIEW);
+    for (ExternalView view : extViews)
     {
-      ExternalView view = new ExternalView(record);
       Set<String> resourceKeys = view.getResourceKeys();
       for (String resourceKeyName : resourceKeys)
       {
@@ -211,7 +221,7 @@ public class DefaultMessagingService implements ClusterMessagingService
      * List<ZNRecord> instances = _manager.getDataAccessor()
      * .getChildValues(PropertyType.CONFIGS); for (ZNRecord record :
      * instances) { InstanceConfig config = new InstanceConfig(record);
-     * 
+     *
      * Map<String, String> row = new HashMap<String, String>();
      * row.put("source", "configs"); row.put("instanceName",
      * config.getInstanceName()); rows.add(row); } List<ZNRecord> liveInstances
@@ -254,20 +264,24 @@ public class DefaultMessagingService implements ClusterMessagingService
       {
         Message noOPMsg = new Message(MessageType.NO_OP, UUID.randomUUID()
             .toString());
+        noOPMsg.setSrcName(_manager.getInstanceName());
+        
         if (_manager.getInstanceType() == InstanceType.CONTROLLER
             || _manager.getInstanceType() == InstanceType.CONTROLLER_PARTICIPANT)
         {
           noOPMsg.setTgtName("Controller");
-          _manager.getDataAccessor().setProperty(
-              PropertyType.MESSAGES_CONTROLLER, noOPMsg.getRecord(),noOPMsg.getId());
+          _manager.getDataAccessor().setProperty(PropertyType.MESSAGES_CONTROLLER,
+                                                 noOPMsg,
+                                                 noOPMsg.getId());
         }
-        if (_manager.getInstanceType() == InstanceType.PARTICIPANT 
+        if (_manager.getInstanceType() == InstanceType.PARTICIPANT
             || _manager.getInstanceType() == InstanceType.CONTROLLER_PARTICIPANT)
         {
           noOPMsg.setTgtName(_manager.getInstanceName());
-          _manager.getDataAccessor().setProperty(PropertyType.MESSAGES,noOPMsg.getRecord(),noOPMsg.getTgtName(),
-               noOPMsg.getId()
-              );
+          _manager.getDataAccessor().setProperty(PropertyType.MESSAGES,
+                                                 noOPMsg,
+                                                 noOPMsg.getTgtName(),
+                                                 noOPMsg.getId());
         }
 
       } catch (Exception e)
@@ -284,9 +298,9 @@ public class DefaultMessagingService implements ClusterMessagingService
 
   @Override
   public int sendAndWait(Criteria receipientCriteria, Message message,
-      AsyncCallback asyncCallback, int timeOut)
+      AsyncCallback asyncCallback, int timeOut, int retryCount)
   {
-    int messagesSent = send(receipientCriteria, message, asyncCallback, timeOut);
+    int messagesSent = send(receipientCriteria, message, asyncCallback, timeOut, retryCount);
     if (messagesSent > 0)
     {
       while (!asyncCallback.isDone() && !asyncCallback.isTimedOut())
@@ -309,5 +323,12 @@ public class DefaultMessagingService implements ClusterMessagingService
       logger.warn("No messages sent. For Criteria:" + receipientCriteria);
     }
     return messagesSent;
+  }
+  
+  @Override
+  public int sendAndWait(Criteria recipientCriteria, Message message,
+      AsyncCallback asyncCallback, int timeOut)
+  {
+    return sendAndWait(recipientCriteria, message, asyncCallback, timeOut, 0);
   }
 }

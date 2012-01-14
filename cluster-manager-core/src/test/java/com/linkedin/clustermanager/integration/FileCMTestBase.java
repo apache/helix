@@ -6,7 +6,6 @@ import java.util.List;
 import org.apache.log4j.Logger;
 import org.testng.annotations.BeforeClass;
 
-import com.linkedin.clustermanager.ClusterDataAccessor.InstanceConfigProperty;
 import com.linkedin.clustermanager.ClusterManagementService;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerFactory;
@@ -15,6 +14,9 @@ import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.agent.file.FileBasedDataAccessor;
 import com.linkedin.clustermanager.controller.GenericClusterController;
 import com.linkedin.clustermanager.mock.storage.DummyProcess;
+import com.linkedin.clustermanager.model.IdealState;
+import com.linkedin.clustermanager.model.InstanceConfig;
+import com.linkedin.clustermanager.model.InstanceConfig.InstanceConfigProperty;
 import com.linkedin.clustermanager.store.PropertyJsonComparator;
 import com.linkedin.clustermanager.store.PropertyJsonSerializer;
 import com.linkedin.clustermanager.store.file.FilePropertyStore;
@@ -76,8 +78,7 @@ public class FileCMTestBase
       } catch (Exception e)
       {
         logger
-            .error("fail to start dummy stroage node for file-based cluster-manager"
-                + "\nexception:" + e);
+            .error("fail to start dummy stroage node for file-based cluster-manager", e);
       }
     }
 
@@ -99,7 +100,7 @@ public class FileCMTestBase
     verifyCluster();
   }
 
-  // @AfterClass(groups = { "integrationTest" })
+  // @AfterClass()
   public void afterClass() throws Exception
   {
     logger.info("START afterClass FileCMTestBase shutting down file-based cluster managers at "
@@ -130,7 +131,7 @@ public class FileCMTestBase
         Integer.toString(port));
     nodeConfig.setSimpleField(InstanceConfigProperty.ENABLED.toString(),
         Boolean.toString(true));
-    _mgmtTool.addInstance(CLUSTER_NAME, nodeConfig);
+    _mgmtTool.addInstance(CLUSTER_NAME, new InstanceConfig(nodeConfig));
   }
 
   protected void rebalanceStorageCluster(String clusterName,
@@ -138,17 +139,15 @@ public class FileCMTestBase
   {
     List<String> nodeNames = _mgmtTool.getInstancesInCluster(clusterName);
 
-    ZNRecord idealState = _mgmtTool.getResourceGroupIdealState(clusterName,
-        resourceGroupName);
-    int partitions = Integer.parseInt(idealState.getSimpleField("partitions"));
+    IdealState idealState = _mgmtTool.getResourceGroupIdealState(clusterName, resourceGroupName);
+    int partitions = idealState.getNumPartitions();
 
     ZNRecord newIdealState = IdealStateCalculatorForStorageNode
         .calculateIdealState(nodeNames, partitions, replica, resourceGroupName,
             "MASTER", "SLAVE");
 
-    newIdealState.merge(idealState);
-    _mgmtTool.setResourceGroupIdealState(clusterName, resourceGroupName,
-        newIdealState);
+    newIdealState.merge(idealState.getRecord());
+    _mgmtTool.setResourceGroupIdealState(clusterName, resourceGroupName, new IdealState(newIdealState));
   }
 
   protected void verifyCluster()

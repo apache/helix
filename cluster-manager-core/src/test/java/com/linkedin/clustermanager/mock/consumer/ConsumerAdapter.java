@@ -1,10 +1,8 @@
 package com.linkedin.clustermanager.mock.consumer;
 
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -16,20 +14,20 @@ import com.linkedin.clustermanager.ClusterManagerFactory;
 import com.linkedin.clustermanager.ExternalViewChangeListener;
 import com.linkedin.clustermanager.NotificationContext;
 import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.model.ExternalView;
 
 public class ConsumerAdapter implements ExternalViewChangeListener
 {
 
   ClusterManager relayClusterManager;
   ClusterDataAccessor relayClusterClient;
-  private ConcurrentHashMap<String, RelayConsumer> relayConsumers;
-  private ConcurrentHashMap<String, RelayConfig> relayConfigs;
+  private final ConcurrentHashMap<String, RelayConsumer> relayConsumers;
+  private final ConcurrentHashMap<String, RelayConfig> relayConfigs;
   private static Logger logger = Logger.getLogger(ConsumerAdapter.class);
 
   public ConsumerAdapter(String instanceName, String zkServer,
       String clusterName) throws Exception
   {
-
     relayConsumers = new ConcurrentHashMap<String, RelayConsumer>();
     relayConfigs = new ConcurrentHashMap<String, RelayConfig>();
 
@@ -53,14 +51,14 @@ public class ConsumerAdapter implements ExternalViewChangeListener
   }
 
   @Override
-  public void onExternalViewChange(List<ZNRecord> externalViewList,
+  public void onExternalViewChange(List<ExternalView> externalViewList,
       NotificationContext changeContext)
   {
     logger.info("onExternalViewChange invoked");
 
-    for (ZNRecord subview : externalViewList)
+    for (ExternalView subview : externalViewList)
     {
-      Map<String, Map<String, String>> partitions = subview.getMapFields();
+      Map<String, Map<String, String>> partitions = subview.getRecord().getMapFields();
 
       for (Entry<String, Map<String, String>> partitionConsumer : partitions
           .entrySet())

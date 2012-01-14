@@ -4,16 +4,23 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.zookeeper.data.Stat;
+import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.ZNRecord;
-import com.linkedin.clustermanager.ZNRecordAndStat;
+import com.linkedin.clustermanager.ZNRecordDecorator;
 
-public class StateModelDefinition extends ZNRecordAndStat
+/**
+ * Describe the state model
+ */
+public class StateModelDefinition extends ZNRecordDecorator
 {
-
-//  private final ZNRecord _record;
-
+  public enum StateModelDefinitionProperty
+  {
+    INITIAL_STATE,
+    STATE_TRANSITION_PRIORITYLIST,
+    STATE_PRIORITY_LIST
+  }
+  private static final Logger _logger = Logger.getLogger(StateModelDefinition.class.getName());
   /**
    * State Names in priority order. Indicates the order in which states are
    * fulfilled
@@ -22,7 +29,7 @@ public class StateModelDefinition extends ZNRecordAndStat
 
   /**
    * Specifies the number of instances for a given state <br>
-   * -1 dont care, dont try to keep any resource in this state on any instance <br>
+   * -1 don't care, don't try to keep any resource in this state on any instance <br>
    * >0 any integer number greater than 0 specifies the number of instances
    * needed to be in this state <br>
    * R all instances in the preference list can be in this state <br>
@@ -41,16 +48,11 @@ public class StateModelDefinition extends ZNRecordAndStat
 
   public StateModelDefinition(ZNRecord record)
   {
-    this(record, null);
-  }
+    super(record);
 
-  public StateModelDefinition(ZNRecord record, Stat stat)
-  {
-    super(record, stat);
-//    _record = record;
-    _statesPriorityList = record.getListField("statesPriorityList");
+    _statesPriorityList = record.getListField(StateModelDefinitionProperty.STATE_PRIORITY_LIST.toString());
     _stateTransitionPriorityList = record
-        .getListField("stateTransitionPriorityList");
+        .getListField(StateModelDefinitionProperty.STATE_TRANSITION_PRIORITYLIST.toString());
     _stateTransitionTable = new HashMap<String, Map<String, String>>();
     _statesCountMap = new HashMap<String, String>();
     if (_statesPriorityList != null)
@@ -93,7 +95,7 @@ public class StateModelDefinition extends ZNRecordAndStat
 
   public String getInitialState()
   {
-    return _record.getSimpleField("INITIAL_STATE");
+    return _record.getSimpleField(StateModelDefinitionProperty.INITIAL_STATE.toString());
   }
 
   public String getNumInstancesPerState(String state)
@@ -101,8 +103,26 @@ public class StateModelDefinition extends ZNRecordAndStat
     return _statesCountMap.get(state);
   }
 
-  public String getId()
+  @Override
+  public boolean isValid()
   {
-    return _record.getId();
+    if(getInitialState() == null)
+    {
+      _logger.error("State model does not contain init state, statemodel:" + _record.getId());
+      return false;
+    }
+    if(_record.getListField(StateModelDefinitionProperty.STATE_PRIORITY_LIST.toString()) == null)
+    {
+      _logger.error("CurrentState does not contain StatesPriorityList, state model : " + _record.getId());
+      return false;
+    }
+
+    // STATE_TRANSITION_PRIORITYLIST is optional
+//    if(_record.getListField(StateModelDefinitionProperty.STATE_TRANSITION_PRIORITYLIST.toString()) == null)
+//    {
+//      _logger.error("CurrentState does not contain StateTransitionPriorityList, state model : " + _record.getId());
+//      return false;
+//    }
+    return true;
   }
 }

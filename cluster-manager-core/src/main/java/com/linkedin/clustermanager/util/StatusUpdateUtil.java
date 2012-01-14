@@ -22,8 +22,8 @@ import com.linkedin.clustermanager.model.Message.MessageType;
  * Util class to create statusUpdates ZK records and error ZK records. These
  * message records are for diagnostics only, and they are stored on the
  * "StatusUpdates" and "errors" ZNodes in the zookeeper instances.
- * 
- * 
+ *
+ *
  * */
 public class StatusUpdateUtil
 {
@@ -36,7 +36,7 @@ public class StatusUpdateUtil
 
   /**
    * Creates an empty ZNRecord as the statusUpdate/error record
-   * 
+   *
    * @param id
    */
   public ZNRecord createEmptyStatusUpdateRecord(String id)
@@ -74,7 +74,7 @@ public class StatusUpdateUtil
 
   /**
    * Create a statusupdate that is related to a cluster manager message.
-   * 
+   *
    * @param message
    *          the related cluster manager message
    * @param level
@@ -123,7 +123,7 @@ public class StatusUpdateUtil
   /**
    * Create a statusupdate that is related to a cluster manager message, then
    * record it to the zookeeper store.
-   * 
+   *
    * @param message
    *          the related cluster manager message
    * @param level
@@ -184,7 +184,7 @@ public class StatusUpdateUtil
 
   /**
    * Write a status update record to zookeeper to the zookeeper store.
-   * 
+   *
    * @param record
    *          the status update record
    * @param message
@@ -213,15 +213,19 @@ public class StatusUpdateUtil
 
     if (!_recordedMessages.containsKey(message.getMsgId()))
     {
+      // TODO instanceName of a controller might be any string
       if (instanceName.equalsIgnoreCase("Controller"))
       {
         accessor.setProperty(PropertyType.STATUSUPDATES_CONTROLLER,
-            createMessageLogRecord(message), sessionId, statusUpdateSubPath, statusUpdateKey);
+                             createMessageLogRecord(message),
+                             sessionId, statusUpdateSubPath, statusUpdateKey);
+
       } else
       {
         accessor.updateProperty(PropertyType.STATUSUPDATES,
-            createMessageLogRecord(message), instanceName, sessionId,statusUpdateSubPath,
-            statusUpdateKey);
+                                createMessageLogRecord(message),
+                                instanceName, sessionId,statusUpdateSubPath,
+                                statusUpdateKey);
       }
       _recordedMessages.put(message.getMsgId(), message.getMsgId());
       return;
@@ -229,13 +233,19 @@ public class StatusUpdateUtil
 
     if (instanceName.equalsIgnoreCase("Controller"))
     {
-      accessor.setProperty(PropertyType.STATUSUPDATES_CONTROLLER, record, sessionId,
-          statusUpdateSubPath, statusUpdateKey);
-
+      accessor.setProperty(PropertyType.STATUSUPDATES_CONTROLLER,
+                           record,
+                           sessionId,
+                           statusUpdateSubPath,
+                           statusUpdateKey);
     } else
     {
-      accessor.updateProperty(PropertyType.STATUSUPDATES, record, instanceName, sessionId,
-          statusUpdateSubPath, statusUpdateKey);
+      accessor.updateProperty(PropertyType.STATUSUPDATES,
+                              record,
+                              instanceName,
+                              sessionId,
+                              statusUpdateSubPath,
+                              statusUpdateKey);
     }
     // If the error level is ERROR, also write the record to "ERROR" ZNode
     if (Level.ERROR == level)
@@ -256,7 +266,7 @@ public class StatusUpdateUtil
 
   /**
    * Generate the sub-path under STATUSUPDATE or ERROR path for a status update
-   * 
+   *
    */
   String getStatusUpdateSubPath(Message message)
   {
@@ -264,7 +274,7 @@ public class StatusUpdateUtil
         MessageType.STATE_TRANSITION.toString()))
     {
       return  message.getStateUnitGroup();
-    } 
+    }
     else
     {
       return message.getMsgType();
@@ -283,7 +293,7 @@ public class StatusUpdateUtil
 
   /**
    * Write an error record to zookeeper to the zookeeper store.
-   * 
+   *
    * @param record
    *          the status update record
    * @param message
@@ -308,14 +318,14 @@ public class StatusUpdateUtil
       sessionId = "*";
     }
 
+    // TODO remove the hard code: "controller"
     if (instanceName.equalsIgnoreCase("controller"))
     {
-      accessor.setProperty(PropertyType.ERRORS_CONTROLLER, record, sessionId,
-          statusUpdateSubPath);
+      // TODO need to fix: ERRORS_CONTROLLER doesn't have a form of ../{sessionId}/{subPath}
+      accessor.setProperty(PropertyType.ERRORS_CONTROLLER, record, sessionId, statusUpdateSubPath);
     } else
     {
-      accessor.updateProperty(PropertyType.ERRORS, record, instanceName, sessionId,
-          statusUpdateSubPath, statusUpdateKey);
+      accessor.updateProperty(PropertyType.ERRORS, record, instanceName, sessionId, statusUpdateSubPath, statusUpdateKey);
     }
   }
 }

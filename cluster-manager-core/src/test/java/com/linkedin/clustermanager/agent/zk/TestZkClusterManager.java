@@ -34,7 +34,7 @@ public class TestZkClusterManager extends ZkUnitTestBase
 		System.out.println("END TestZkClusterManager.beforeClass() at " + new Date(System.currentTimeMillis()));
 	}
 
-  @Test(groups = { "unitTest" })
+  @Test()
   public void testZkClusterManager()
   {
     final String clusterName = CLUSTER_PREFIX + "_" + getShortClassName();

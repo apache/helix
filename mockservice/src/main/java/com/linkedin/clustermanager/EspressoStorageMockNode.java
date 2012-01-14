@@ -45,8 +45,8 @@ public class EspressoStorageMockNode extends MockNode {
 		super(cm);
 		_stateModelFactory = new EspressoStorageMockStateModelFactory(0);
 
-		StateMachineEngine<StateModel> genericStateMachineHandler = new StateMachineEngine<StateModel>(
-				_stateModelFactory);
+		StateMachineEngine genericStateMachineHandler = new StateMachineEngine();
+		genericStateMachineHandler.registerStateModelFactory("MasterSlave", _stateModelFactory);
 		_cmConnector
 				.getManager()
 				.getMessagingService()

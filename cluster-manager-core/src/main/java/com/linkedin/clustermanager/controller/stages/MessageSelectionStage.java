@@ -21,10 +21,10 @@ public class MessageSelectionStage extends AbstractBaseStage
   public void process(ClusterEvent event) throws Exception
   {
     ClusterDataCache cache = event.getAttribute("ClusterDataCache");
-    Map<String, ResourceGroup> resourceGroupMap = event
-        .getAttribute(AttributeName.RESOURCE_GROUPS.toString());
-    MessageGenerationOutput messageGenOutput = event
-        .getAttribute(AttributeName.MESSAGES_ALL.toString());
+    Map<String, ResourceGroup> resourceGroupMap =
+        event.getAttribute(AttributeName.RESOURCE_GROUPS.toString());
+    MessageGenerationOutput messageGenOutput =
+        event.getAttribute(AttributeName.MESSAGES_ALL.toString());
     if (cache == null || resourceGroupMap == null || messageGenOutput == null)
     {
       throw new StageException("Missing attributes in event:" + event
@@ -36,11 +36,12 @@ public class MessageSelectionStage extends AbstractBaseStage
     for (String resourceGroupName : resourceGroupMap.keySet())
     {
       ResourceGroup resourceGroup = resourceGroupMap.get(resourceGroupName);
-      StateModelDefinition stateModelDef = cache.getStateModelDef(resourceGroup.getStateModelDefRef());
+      StateModelDefinition stateModelDef =
+          cache.getStateModelDef(resourceGroup.getStateModelDefRef());
       for (ResourceKey resource : resourceGroup.getResourceKeys())
       {
-        List<Message> messages = messageGenOutput.getMessages(
-            resourceGroupName, resource);
+        List<Message> messages =
+            messageGenOutput.getMessages(resourceGroupName, resource);
         List<Message> selectedMessages = selectMessages(messages, stateModelDef);
         output.addMessages(resourceGroupName, resource, selectedMessages);
       }
@@ -49,13 +50,19 @@ public class MessageSelectionStage extends AbstractBaseStage
   }
 
   protected List<Message> selectMessages(List<Message> messages,
-      StateModelDefinition stateModelDef)
+                                         StateModelDefinition stateModelDef)
   {
     if (messages == null || messages.size() == 0)
     {
       return Collections.emptyList();
     }
-
+    List<String> stateTransitionPriorityList =
+        stateModelDef.getStateTransitionPriorityList();
+    //todo change this and add validation logic so that state model constraints are not violated.
+    if (stateTransitionPriorityList == null || stateTransitionPriorityList.isEmpty())
+    {
+      return messages;
+    }
     Set<String> possibleTransitions = new HashSet<String>();
     for (Message message : messages)
     {
@@ -63,8 +70,6 @@ public class MessageSelectionStage extends AbstractBaseStage
       possibleTransitions.add(transition.toUpperCase());
     }
     String preferredTransition = null;
-    List<String> stateTransitionPriorityList = stateModelDef
-        .getStateTransitionPriorityList();
 
     for (String transition : stateTransitionPriorityList)
     {
@@ -89,6 +94,5 @@ public class MessageSelectionStage extends AbstractBaseStage
     }
     return Collections.emptyList();
   }
-
 
 }

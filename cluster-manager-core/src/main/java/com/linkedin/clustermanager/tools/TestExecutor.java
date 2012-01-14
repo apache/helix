@@ -1,18 +1,15 @@
 package com.linkedin.clustermanager.tools;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
-import org.I0Itec.zkclient.IZkDataListener;
 import org.I0Itec.zkclient.exception.ZkBadVersionException;
 import org.I0Itec.zkclient.exception.ZkNodeExistsException;
 import org.apache.log4j.Logger;
@@ -51,16 +48,18 @@ public class TestExecutor
    * SIMPLE: simple field change LIST: list field change MAP: map field change
    * ZNODE: entire znode change
    */
-  public enum ZnodePropertyType {
+  public enum ZnodePropertyType
+  {
     SIMPLE, LIST, MAP, ZNODE
   }
 
-  private enum ZnodeModValueType {
+  private enum ZnodeModValueType
+  {
     INVALID, SINGLE_VALUE, LIST_VALUE, MAP_VALUE, ZNODE_VALUE
   }
 
   private static Logger logger = Logger.getLogger(TestExecutor.class);
-  private static final int MAX_PARALLEL_TASKS = 1;
+  private static final long SLEEP_TIME = 500;  // in ms
 
   private final static PropertyJsonComparator<String> STRING_COMPARATOR = new PropertyJsonComparator<String>(
       String.class);
@@ -192,6 +191,10 @@ public class TestExecutor
 
   private static List<String> getListValue(ZNRecord record, String key)
   {
+    if (record == null)
+    {
+      return null;
+    }
     return record.getListField(key);
   }
 
@@ -201,122 +204,294 @@ public class TestExecutor
   }
 
   // comparator's for single/list/map-value
-  private static boolean compareSingleValue(String value, String expect)
+  private static boolean compareSingleValue(String actual, String expect, String key, ZNRecord diff)
   {
-    return STRING_COMPARATOR.compare(value, expect) == 0;
+    boolean ret = (STRING_COMPARATOR.compare(actual, expect) == 0);
+
+    if (diff != null)
+    {
+      diff.setSimpleField(key + "/expect", expect);
+      diff.setSimpleField(key + "/actual", actual);
+    }
+    return ret;
   }
 
-  private static boolean compareListValue(List<String> valueList, List<String> expectList)
+  private static boolean compareListValue(List<String> actualList, List<String> expectList,
+                                          String key, ZNRecord diff)
   {
-    if (valueList == null && expectList == null)
+    boolean ret = true;
+    if (actualList == null && expectList == null)
     {
-      return true;
-    } else if (valueList == null && expectList != null)
+      ret = true;
+    }
+    else if (actualList == null && expectList != null)
     {
-      return false;
-    } else if (valueList != null && expectList == null)
-    {
-      return false;
-    } else
-    {
-      if (valueList.size() != expectList.size())
+      ret = false;
+      if (diff != null)
       {
-        return false;
+        diff.setListField(key + "/expect", expectList);
+      }
+    } else if (actualList != null && expectList == null)
+    {
+      ret = false;
+      if (diff != null)
+      {
+        diff.setListField(key + "/actual", actualList);
+      }
+    }
+    else
+    {
+      Iterator<String> itrActual = actualList.iterator();
+      Iterator<String> itrExpect = expectList.iterator();
+      if (diff != null && diff.getListField(key + "/expect") == null)
+      {
+        diff.setListField(key + "/expect", new ArrayList<String>());
       }
 
-      Iterator<String> itr1 = valueList.iterator();
-      Iterator<String> itr2 = expectList.iterator();
-      while (itr1.hasNext() && itr2.hasNext())
+      if (diff != null && diff.getListField(key + "/actual") == null)
       {
-        String value = itr1.next();
-        String expect = itr2.next();
+        diff.setListField(key + "/actual", new ArrayList<String>());
+      }
 
-        if (STRING_COMPARATOR.compare(value, expect) != 0)
+      while (itrActual.hasNext() && itrExpect.hasNext())
+      {
+        String actual = itrActual.next();
+        String expect = itrExpect.next();
+
+        if (STRING_COMPARATOR.compare(actual, expect) != 0)
         {
-          return false;
+          ret = false;
+          if (diff != null)
+          {
+            diff.getListField(key + "/expect").add(expect);
+            diff.getListField(key + "/actual").add(actual);
+          }
         }
       }
-      return true;
+
+      while (itrActual.hasNext())
+      {
+        String actual = itrActual.next();
+        if (diff != null)
+        {
+          diff.getListField(key + "/actual").add(actual);
+        }
+      }
+
+      while (itrExpect.hasNext())
+      {
+        String expect = itrExpect.next();
+        if (diff != null)
+        {
+          diff.getListField(key + "/expect").add(expect);
+        }
+      }
     }
+    return ret;
   }
 
-  private static boolean compareMapValue(Map<String, String> valueMap, Map<String, String> expectMap)
+  private static void setMapField(ZNRecord record, String key1, String key2, String value)
   {
-    if (valueMap == null && expectMap == null)
+    if (record.getMapField(key1) == null)
     {
-      return true;
-    } else if (valueMap == null && expectMap != null)
+      record.setMapField(key1, new TreeMap<String, String>());
+    }
+    record.getMapField(key1).put(key2, value);
+  }
+
+  private static boolean compareMapValue(Map<String, String> actualMap, Map<String, String> expectMap,
+                                         String mapKey, ZNRecord diff)
+  {
+    boolean ret = true;
+    if (actualMap == null && expectMap == null)
     {
-      return false;
-    } else if (valueMap != null && expectMap == null)
+      ret = true;
+    }
+    else if (actualMap == null && expectMap != null)
     {
-      return false;
-    } else
-    {
-      if (valueMap.size() != expectMap.size())
+      ret = false;
+      if (diff != null)
       {
-        return false;
+        diff.setMapField(mapKey + "/expect", expectMap);
       }
-      for (Map.Entry<String, String> entry : valueMap.entrySet())
+    }
+    else if (actualMap != null && expectMap == null)
+    {
+      ret = false;
+      if (diff != null)
       {
-        String key = entry.getKey();
-        String value = entry.getValue();
+        diff.setMapField(mapKey + "/actual", actualMap);
+      }
+
+    }
+    else
+    {
+      for (String key : actualMap.keySet())
+      {
+        String actual = actualMap.get(key);
         if (!expectMap.containsKey(key))
         {
-          return false;
+          ret = false;
+
+          if (diff != null)
+          {
+            setMapField(diff, mapKey + "/actual", key, actual);
+          }
         }
-        String expect = expectMap.get(key);
-        if (STRING_COMPARATOR.compare(value, expect) != 0)
+        else
         {
-          return false;
+          String expect = expectMap.get(key);
+          if (STRING_COMPARATOR.compare(actual, expect) != 0)
+          {
+            ret = false;
+            if (diff != null)
+            {
+              setMapField(diff, mapKey + "/actual", key, actual);
+              setMapField(diff, mapKey + "/expect", key, expect);
+            }
+          }
         }
       }
-      return true;
+
+      for (String key : expectMap.keySet())
+      {
+        String expect = expectMap.get(key);
+        if (!actualMap.containsKey(key))
+        {
+          ret = false;
+
+          if (diff != null)
+          {
+            setMapField(diff, mapKey + "/expect", key, expect);
+          }
+        }
+        else
+        {
+          String actual = actualMap.get(key);
+          if (STRING_COMPARATOR.compare(actual, expect) != 0)
+          {
+            ret = false;
+            if (diff != null)
+            {
+              setMapField(diff, mapKey + "/actual", key, actual);
+              setMapField(diff, mapKey + "/expect", key, expect);
+            }
+          }
+        }
+      }
+    }
+    return ret;
+  }
+
+  private static void setZNRecord(ZNRecord diff, ZNRecord record, String keySuffix)
+  {
+    if (diff == null || record == null)
+    {
+      return;
+    }
+
+    for (String key : record.getSimpleFields().keySet())
+    {
+      diff.setSimpleField(key + "/" + keySuffix, record.getSimpleField(key));
+    }
+
+    for (String key : record.getListFields().keySet())
+    {
+      diff.setListField(key + "/" + keySuffix, record.getListField(key));
+    }
+
+    for (String key : record.getMapFields().keySet())
+    {
+      diff.setMapField(key + "/" + keySuffix, record.getMapField(key));
     }
   }
 
-  private static boolean compareZnodeValue(ZNRecord value, ZNRecord expect)
+  private static boolean compareZnodeValue(ZNRecord actual, ZNRecord expect, ZNRecord diff)
   {
-    if (value == null && expect == null)
+    boolean ret = true;
+    if (actual == null && expect == null)
     {
-      return true;
-    } else if (value == null && expect != null)
+      ret = true;
+    }
+    else if (actual == null && expect != null)
     {
-      return false;
-    } else if (value != null && expect == null)
-    {
-      return false;
-    } else
-    {
-      if (!compareMapValue(value.getSimpleFields(), expect.getSimpleFields()))
+      ret = false;
+      if (diff != null)
       {
-        return false;
+        setZNRecord(diff, expect, "expect");
+      }
+    }
+    else if (actual != null && expect == null)
+    {
+      ret = false;
+      if (diff != null)
+      {
+        setZNRecord(diff, actual, "actual");
+      }
+    }
+    else
+    {
+      for (String key : actual.getSimpleFields().keySet())
+      {
+        if (compareSingleValue(actual.getSimpleField(key), expect.getSimpleField(key), key, diff) == false)
+        {
+          ret = false;
+        }
       }
 
-      if (value.getMapFields().size() != expect.getMapFields().size())
+      for (String key : expect.getMapFields().keySet())
       {
-        return false;
+        if (!actual.getMapFields().containsKey(key))
+        {
+          if (diff != null)
+          {
+            ret = false;
+            diff.setMapField(key + "/expect", expect.getMapField(key));
+          }
+        }
+        else
+        {
+          if (compareMapValue(actual.getMapField(key), expect.getMapField(key), key, diff) == false)
+          {
+            ret = false;
+          }
+        }
       }
-      for (Map.Entry<String, Map<String, String>> entry : value.getMapFields().entrySet())
+
+      for (String key : actual.getMapFields().keySet())
       {
-        String key = entry.getKey();
-        Map<String, String> mapValue = entry.getValue();
         if (!expect.getMapFields().containsKey(key))
         {
-          return false;
+          if (diff != null)
+          {
+            ret = false;
+            diff.setMapField(key + "/actual", actual.getMapField(key));
+          }
         }
-        Map<String, String> mapExpect = expect.getMapFields().get(key);
-        if (!compareMapValue(mapValue, mapExpect))
+        else
         {
-          return false;
+          if (compareMapValue(actual.getMapField(key), expect.getMapField(key), key, diff) == false)
+          {
+            ret = false;
+          }
         }
       }
-      return true;
+    }
+    return ret;
+  }
+
+  private static void resetZNRecord(ZNRecord record)
+  {
+    if (record != null)
+    {
+      record.getSimpleFields().clear();
+      record.getListFields().clear();
+      record.getMapFields().clear();
     }
   }
 
   private static boolean isValueExpected(ZNRecord current, ZnodePropertyType type, String key,
-      ZnodeValue expect)
+      ZnodeValue expect, ZNRecord diff)
   {
     // expect value = null means not expect any value
     if (expect == null)
@@ -325,23 +500,24 @@ public class TestExecutor
     }
 
     boolean result = false;
+    resetZNRecord(diff);
     ZnodeModValueType valueType = getValueType(type, key);
     switch (valueType)
     {
     case SINGLE_VALUE:
       String singleValue = getSingleValue(current, type, key);
-      result = compareSingleValue(singleValue, expect._singleValue);
+      result = compareSingleValue(singleValue, expect._singleValue, key, diff);
       break;
     case LIST_VALUE:
       List<String> listValue = getListValue(current, key);
-      result = compareListValue(listValue, expect._listValue);
+      result = compareListValue(listValue, expect._listValue, key, diff);
       break;
     case MAP_VALUE:
       Map<String, String> mapValue = getMapValue(current, key);
-      result = compareMapValue(mapValue, expect._mapValue);
+      result = compareMapValue(mapValue, expect._mapValue, key, diff);
       break;
     case ZNODE_VALUE:
-      result = compareZnodeValue(current, expect._znodeValue);
+      result = compareZnodeValue(current, expect._znodeValue, diff);
       break;
     case INVALID:
       break;
@@ -446,17 +622,18 @@ public class TestExecutor
     record.getMapFields().remove(key);
   }
 
-  private static boolean executeVerifier(ZNRecord record, TestCommand command)
+  private static boolean executeVerifier(ZNRecord actual, TestCommand command, ZNRecord diff)
   {
     final ZnodeOpArg arg = command._znodeOpArg;
     final ZnodeValue expectValue = command._trigger._expectValue;
 
-    boolean result = isValueExpected(record, arg._propertyType, arg._key, expectValue);
+    boolean result = isValueExpected(actual, arg._propertyType, arg._key, expectValue, diff);
     String operation = arg._operation;
     if (operation.equals("!="))
     {
       result = !result;
-    } else if (!operation.equals("=="))
+    }
+    else if (!operation.equals("=="))
     {
       logger.warn("fail to execute (unsupport operation=" + operation + "):" + operation);
       result = false;
@@ -465,388 +642,265 @@ public class TestExecutor
     return result;
   }
 
-  private static boolean compareAndSetZnode(ZnodeValue expect, ZnodeOpArg arg, ZkClient zkClient)
+  private static boolean compareAndSetZnode(ZnodeValue expect, ZnodeOpArg arg, ZkClient zkClient,
+                                            ZNRecord diff)
   {
     String path = arg._znodePath;
     ZnodePropertyType type = arg._propertyType;
     String key = arg._key;
     boolean success = true;
 
-    if (!zkClient.exists(path))
+    // retry 3 times in case there are write conflicts
+    long backoffTime = 20; // ms
+    for (int i = 0; i < 3; i++)
     {
-      if (expect != null)
+      try
       {
-        return false;
+        Stat stat = new Stat();
+        ZNRecord record = zkClient.<ZNRecord> readDataAndStat(path, stat, true);
+
+        if (isValueExpected(record, type, key, expect, diff))
+        {
+          if (arg._operation.compareTo("+") == 0)
+          {
+            if (record == null)
+            {
+              record = new ZNRecord("default");
+            }
+            ZnodeModValueType valueType = getValueType(arg._propertyType, arg._key);
+            switch (valueType)
+            {
+            case SINGLE_VALUE:
+              setSingleValue(record, arg._propertyType, arg._key, arg._updateValue._singleValue);
+              break;
+            case LIST_VALUE:
+              setListValue(record, arg._key, arg._updateValue._listValue);
+              break;
+            case MAP_VALUE:
+              setMapValue(record, arg._key, arg._updateValue._mapValue);
+              break;
+            case ZNODE_VALUE:
+              // deep copy
+              record = ZNRECORD_SERIALIZER.deserialize(ZNRECORD_SERIALIZER
+                  .serialize(arg._updateValue._znodeValue));
+              break;
+            case INVALID:
+              break;
+            default:
+              break;
+            }
+          }
+          else if (arg._operation.compareTo("-") == 0)
+          {
+            ZnodeModValueType valueType = getValueType(arg._propertyType, arg._key);
+            switch (valueType)
+            {
+            case SINGLE_VALUE:
+              removeSingleValue(record, arg._propertyType, arg._key);
+              break;
+            case LIST_VALUE:
+              removeListValue(record, arg._key);
+              break;
+            case MAP_VALUE:
+              removeMapValue(record, arg._key);
+              break;
+            case ZNODE_VALUE:
+              record = null;
+              break;
+            case INVALID:
+              break;
+            default:
+              break;
+            }
+          }
+          else
+          {
+            logger.warn("fail to execute (unsupport operation): " + arg._operation);
+            success = false;
+          }
+
+          if (success == true)
+          {
+            if (record == null)
+            {
+              zkClient.delete(path);
+            }
+            else
+            {
+              try
+              {
+                zkClient.createPersistent(path, true);
+              }
+              catch (ZkNodeExistsException e)
+              {
+                // OK
+              }
+              zkClient.writeData(path, record, stat.getVersion());
+            }
+            return true;
+          }
+          else
+          {
+            return false;
+          }
+        }
+      }
+      catch (ZkBadVersionException e)
+      {
+//      e.printStackTrace();
+      }
+      catch (PropertyStoreException e)
+      {
+//      e.printStackTrace();
       }
 
       try
       {
-        zkClient.createPersistent(path, true);
-      } catch (ZkNodeExistsException e)
-      {
-        // OK
+        Thread.sleep(backoffTime);
       }
-    }
-
-    try
-    {
-      Stat stat = new Stat();
-      ZNRecord record = zkClient.<ZNRecord> readData(path, stat);
-
-      if (isValueExpected(record, type, key, expect))
+      catch (InterruptedException e)
       {
-        if (arg._operation.compareTo("+") == 0)
-        {
-          if (record == null)
-          {
-            record = new ZNRecord("default");
-          }
-          ZnodeModValueType valueType = getValueType(arg._propertyType, arg._key);
-          switch (valueType)
-          {
-          case SINGLE_VALUE:
-            setSingleValue(record, arg._propertyType, arg._key, arg._updateValue._singleValue);
-            break;
-          case LIST_VALUE:
-            setListValue(record, arg._key, arg._updateValue._listValue);
-            break;
-          case MAP_VALUE:
-            setMapValue(record, arg._key, arg._updateValue._mapValue);
-            break;
-          case ZNODE_VALUE:
-            // deep copy
-            record = ZNRECORD_SERIALIZER.deserialize(ZNRECORD_SERIALIZER
-                .serialize(arg._updateValue._znodeValue));
-            break;
-          case INVALID:
-            break;
-          default:
-            break;
-          }
-        } else if (arg._operation.compareTo("-") == 0)
-        {
-          ZnodeModValueType valueType = getValueType(arg._propertyType, arg._key);
-          switch (valueType)
-          {
-          case SINGLE_VALUE:
-            removeSingleValue(record, arg._propertyType, arg._key);
-            break;
-          case LIST_VALUE:
-            removeListValue(record, arg._key);
-            break;
-          case MAP_VALUE:
-            removeMapValue(record, arg._key);
-            break;
-          case ZNODE_VALUE:
-            record = null;
-            // zkClient.delete(path);
-            break;
-          case INVALID:
-            break;
-          default:
-            break;
-          }
-        } else
-        {
-          logger.warn("fail to execute (unsupport operation): " + arg._operation);
-          success = false;
-        }
-
-        if (success == true)
-        {
-          if (record == null)
-          {
-            zkClient.delete(path);
-          } else
-          {
-            zkClient.writeData(path, record, stat.getVersion());
-          }
-          return true;
-        } else
-        {
-          return false;
-        }
+        // TODO Auto-generated catch block
+        e.printStackTrace();
       }
-    } catch (ZkBadVersionException e)
-    {
-      // return false;
-    } catch (PropertyStoreException e)
-    {
-      // return false;
+      backoffTime *= 2;
     }
 
     return false;
   }
 
-  private static class DataChangeListener implements IZkDataListener
-  {
-    private final TestCommand _command;
-    private Future _task = null;
-    private Future _timeoutTask = null;
-    private final ZkClient _zkClient;
-    private final CountDownLatch _countDown;
-    private final Map<TestCommand, Boolean> _testResults;
-
-    public DataChangeListener(TestCommand command, CountDownLatch countDown, ZkClient zkClient,
-        Map<TestCommand, Boolean> testResults)
-    {
-      _command = command;
-      _zkClient = zkClient;
-      _countDown = countDown;
-      _testResults = testResults;
-    }
-
-    public void setTask(Future task)
-    {
-      _task = task;
-    }
-
-    public void setTimeoutTask(Future timeoutTask)
-    {
-      _timeoutTask = timeoutTask;
-    }
-
-    @Override
-    public void handleDataChange(String dataPath, Object data) throws Exception
-    {
-      if (_command._commandType == CommandType.MODIFY)
-      {
-        ZnodeOpArg arg = _command._znodeOpArg;
-        // final String znodePath = arg.getZnodePath();
-        final ZnodeValue expectValue = _command._trigger._expectValue;
-        // final long dataTriggerTimeout = _command._trigger.getTimeout();
-
-        if (compareAndSetZnode(expectValue, arg, _zkClient) == true)
-        {
-          _command._finishTimestamp = System.currentTimeMillis();
-          logger.info("result:" + true + ", " + _command.toString());
-          _testResults.put(_command, true);
-
-          _zkClient.unsubscribeDataChanges(dataPath, this);
-          if (_task != null)
-          {
-            _task.cancel(true);
-          }
-
-          if (_timeoutTask != null)
-          {
-            _timeoutTask.cancel(true);
-          }
-          _countDown.countDown();
-        }
-      } else if (_command._commandType == CommandType.VERIFY)
-      {
-        ZNRecord record = (ZNRecord) data;
-        boolean result = executeVerifier(record, _command);
-        if (result == true)
-        {
-          _command._finishTimestamp = System.currentTimeMillis();
-          logger.info("result:" + true + ", " + _command.toString());
-          _testResults.put(_command, true);
-
-          _zkClient.unsubscribeDataChanges(dataPath, this);
-          if (_task != null)
-          {
-            _task.cancel(true);
-          }
-
-          if (_timeoutTask != null)
-          {
-            _timeoutTask.cancel(true);
-          }
-
-          _countDown.countDown();
-        }
-      } else
-      // if (_command._commandType == CommandType.START)
-      {
-        throw new UnsupportedOperationException("command type:" + _command._commandType
-            + " for data trigger not supported");
-      }
-
-    }
-
-    @Override
-    public void handleDataDeleted(String dataPath) throws Exception
-    {
-      // TODO Auto-generated method stub
-
-    }
-
-  };
-
   private static class ExecuteCommand implements Runnable
   {
     private final TestCommand _command;
-    private final DataChangeListener _listener;
-    private Future _timeoutTask = null;
+    private final long _startTime;
     private final ZkClient _zkClient;
     private final CountDownLatch _countDown;
     private final Map<TestCommand, Boolean> _testResults;
 
-    public ExecuteCommand(TestCommand command, CountDownLatch countDown, ZkClient zkClient,
-        Map<TestCommand, Boolean> testResults)
+    public ExecuteCommand(long startTime, TestCommand command, CountDownLatch countDown,
+                          ZkClient zkClient,
+                          Map<TestCommand, Boolean> testResults)
     {
-      this(command, countDown, zkClient, testResults, null);
-    }
-
-    public ExecuteCommand(TestCommand command, CountDownLatch countDown, ZkClient zkClient,
-        Map<TestCommand, Boolean> testResults, DataChangeListener listener)
-    {
+      _startTime = startTime;
       _command = command;
       _countDown = countDown;
-      _listener = listener;
       _zkClient = zkClient;
       _testResults = testResults;
-    }
-
-    public void setTimeoutTask(Future timeoutTask)
-    {
-      _timeoutTask = timeoutTask;
     }
 
     @Override
     public void run()
     {
       boolean result = false;
-
-      if (_command._commandType == CommandType.MODIFY)
+      long now = System.currentTimeMillis();
+      final long timeout = now + _command._trigger._timeout;
+      ZNRecord diff = new  ZNRecord("diff");
+      try
       {
-        ZnodeOpArg arg = _command._znodeOpArg;
-        final String znodePath = arg._znodePath;
-        final ZnodeValue expectValue = _command._trigger._expectValue;
-        final long dataTriggerTimeout = _command._trigger._timeout;
+        if (now < _startTime)
+        {
+          Thread.sleep(_startTime - now);
+        }
 
-        result = compareAndSetZnode(expectValue, arg, _zkClient);
-        if (result == true)
+        do
+        {
+          if (_command._commandType == CommandType.MODIFY)
+          {
+            ZnodeOpArg arg = _command._znodeOpArg;
+            final ZnodeValue expectValue = _command._trigger._expectValue;
+            result = compareAndSetZnode(expectValue, arg, _zkClient, diff);
+//            logger.error("result:" + result + ", " + _command);
+
+            if (result == true)
+            {
+              _command._finishTimestamp = System.currentTimeMillis();
+              _testResults.put(_command, true);
+
+              break;
+            }
+            else
+            {
+//              logger.error("result:" + result + ", diff:" + diff);
+            }
+          }
+          else if (_command._commandType == CommandType.VERIFY)
+          {
+            ZnodeOpArg arg = _command._znodeOpArg;
+            final String znodePath = arg._znodePath;
+            ZNRecord record = _zkClient.<ZNRecord>readData(znodePath, true);
+
+            result = executeVerifier(record, _command, diff);
+//            logger.error("result:" + result + ", " + _command.toString());
+            if (result == true)
+            {
+              _command._finishTimestamp = System.currentTimeMillis();
+              _testResults.put(_command, true);
+              break;
+            }
+            else
+            {
+//              logger.error("result:" + result + ", diff:" + diff);
+            }
+          }
+          else if (_command._commandType == CommandType.START)
+          {
+            // TODO add data trigger for START command
+            Thread thread = _command._nodeOpArg._thread;
+            thread.start();
+
+            result = true;
+            _command._finishTimestamp = System.currentTimeMillis();
+            logger.info("result:" + result + ", " + _command.toString());
+            _testResults.put(_command, true);
+            break;
+          }
+          else if (_command._commandType == CommandType.STOP)
+          {
+            // TODO add data trigger for STOP command
+            ClusterManager manager = _command._nodeOpArg._manager;
+            manager.disconnect();
+            Thread thread = _command._nodeOpArg._thread;
+            thread.interrupt();
+
+            // System.err.println("stop " + _command._nodeOpArg._manager.getInstanceName());
+            result = true;
+            _command._finishTimestamp = System.currentTimeMillis();
+            logger.info("result:" + result + ", " + _command.toString());
+            _testResults.put(_command, true);
+            break;
+          }
+          else
+          {
+            throw new IllegalArgumentException("Unsupport command type (was "
+                                             + _command._commandType + ")");
+          }
+
+          Thread.sleep(SLEEP_TIME);
+
+          now = System.currentTimeMillis();
+        } while (now <= timeout);
+      }
+      catch (Exception e)
+      {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      }
+      finally
+      {
+        if (result == false)
         {
           _command._finishTimestamp = System.currentTimeMillis();
-          logger.info("result:" + result + ", " + _command.toString());
-          _testResults.put(_command, true);
-
-          if (expectValue != null && _listener != null)
-          {
-            _zkClient.unsubscribeDataChanges(znodePath, _listener);
-          }
-          if (dataTriggerTimeout > 0 && _timeoutTask != null)
-          {
-            _timeoutTask.cancel(true);
-          }
-          _countDown.countDown();
-        } else
-        {
-          if (dataTriggerTimeout == 0)
-          {
-            _command._finishTimestamp = System.currentTimeMillis();
-            logger.warn("fail to execute command (timeout=0):" + _command.toString());
-            _countDown.countDown();
-          }
+          logger.error("result:" + result + ", diff: " + diff);
         }
-      } else if (_command._commandType == CommandType.VERIFY)
-      {
-        ZnodeOpArg arg = _command._znodeOpArg;
-        final String znodePath = arg._znodePath;
-        // final ZnodeModValue expectValue = _command._trigger.getExpectValue();
-        final long dataTriggerTimeout = _command._trigger._timeout;
-
-        ZNRecord record = _zkClient.<ZNRecord> readData(znodePath, true);
-
-        result = executeVerifier(record, _command);
-        if (result == true)
-        {
-          _command._finishTimestamp = System.currentTimeMillis();
-          logger.info("result:" + result + ", " + _command.toString());
-          _testResults.put(_command, true);
-          if (_listener != null)
-          {
-            _zkClient.unsubscribeDataChanges(znodePath, _listener);
-          }
-
-          if (dataTriggerTimeout > 0 && _timeoutTask != null)
-          {
-            _timeoutTask.cancel(true);
-          }
-
-          _countDown.countDown();
-        } else
-        {
-          if (dataTriggerTimeout == 0)
-          {
-            _command._finishTimestamp = System.currentTimeMillis();
-            logger.warn("fail to verify (timeout=0):" + _command.toString());
-            _countDown.countDown();
-          }
-        }
-      } else if (_command._commandType == CommandType.START)
-      {
-        // TODO add data trigger for START command
-        Thread thread = _command._nodeOpArg._thread;
-        thread.start();
-
-        _command._finishTimestamp = System.currentTimeMillis();
-        logger.info("result:" + result + ", " + _command.toString());
-        _testResults.put(_command, true);
         _countDown.countDown();
-      } else if (_command._commandType == CommandType.STOP)
-      {
-        // TODO add data trigger for STOP command
-        ClusterManager manager = _command._nodeOpArg._manager;
-        manager.disconnect();
-        Thread thread = _command._nodeOpArg._thread;
-        thread.interrupt();
-
-        // System.err.println("stop " + _command._nodeOpArg._manager.getInstanceName());
-        _command._finishTimestamp = System.currentTimeMillis();
-        logger.info("result:" + result + ", " + _command.toString());
-        _testResults.put(_command, true);
-        _countDown.countDown();
-      } else
-      {
-        logger.error("unsupport command");
       }
     }
   }
-
-  private static class CancelExecuteCommand implements Runnable
-  {
-    private final TestCommand _command;
-    private final DataChangeListener _listener;
-    private final Future _task;
-    private final ZkClient _zkClient;
-    private final CountDownLatch _countDown;
-
-    // private final Map<String, Boolean> _testResult;
-
-    public CancelExecuteCommand(TestCommand command, CountDownLatch countDown,
-        DataChangeListener listener, Future task, ZkClient zkClient)
-    {
-      _command = command;
-      _countDown = countDown;
-      _listener = listener;
-      _task = task;
-      _zkClient = zkClient;
-    }
-
-    @Override
-    public void run()
-    {
-      String znodePath = _command._znodeOpArg._znodePath;
-      _zkClient.unsubscribeDataChanges(znodePath, _listener);
-      _task.cancel(true);
-      _countDown.countDown();
-
-      logger.warn("fail to execute command (timeout):" + _command.toString());
-    }
-  };
 
   private static Map<TestCommand, Boolean> executeTestHelper(List<TestCommand> commandList,
       String zkAddr, CountDownLatch countDown)
   {
     final Map<TestCommand, Boolean> testResults = new ConcurrentHashMap<TestCommand, Boolean>();
-    final ScheduledExecutorService executor = Executors.newScheduledThreadPool(MAX_PARALLEL_TASKS);
-    final ScheduledExecutorService timeoutExecutor = Executors
-        .newScheduledThreadPool(MAX_PARALLEL_TASKS);
-
     final ZkClient zkClient = new ZkClient(zkAddr);
     zkClient.setZkSerializer(new ZNRecordSerializer());
 
@@ -865,32 +919,8 @@ public class TestExecutor
 
       TestTrigger trigger = command._trigger;
       command._startTimestamp = System.currentTimeMillis() + trigger._startTime;
-      if (trigger._expectValue == null || (trigger._expectValue != null && trigger._timeout == 0))
-      {
-        executor.schedule(new ExecuteCommand(command, countDown, zkClient, testResults),
-            trigger._startTime, TimeUnit.MILLISECONDS);
-        // no timeout task for command without data-trigger
-      } else if (trigger._expectValue != null && trigger._timeout > 0)
-      {
-        // set watcher before test the value so we can't miss any data change
-        DataChangeListener listener = new DataChangeListener(command, countDown, zkClient,
-            testResults);
-        String znodePath = command._znodeOpArg._znodePath;
-        zkClient.subscribeDataChanges(znodePath, listener);
-
-        // TODO possible that listener callback happens and succeeds before task
-        // is scheduled
-        ExecuteCommand cmdExecutor = new ExecuteCommand(command, countDown, zkClient, testResults,
-            listener);
-        Future task = executor.schedule(cmdExecutor, trigger._startTime, TimeUnit.MILLISECONDS);
-        listener.setTask(task);
-
-        Future timeoutTask = timeoutExecutor
-            .schedule(new CancelExecuteCommand(command, countDown, listener, task, zkClient),
-                trigger._startTime + trigger._timeout, TimeUnit.MILLISECONDS);
-        listener.setTimeoutTask(timeoutTask);
-        cmdExecutor.setTimeoutTask(timeoutTask);
-      }
+      new Thread(new ExecuteCommand(command._startTimestamp,
+                                    command, countDown, zkClient, testResults)).start();
     }
 
     return testResults;
@@ -916,3 +946,4 @@ public class TestExecutor
   }
 
 }
+

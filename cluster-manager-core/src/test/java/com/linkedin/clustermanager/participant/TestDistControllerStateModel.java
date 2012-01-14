@@ -18,21 +18,21 @@ public class TestDistControllerStateModel extends ZkUnitTestBase
   final String clusterName = CLUSTER_PREFIX + "_" + getShortClassName();
   DistClusterControllerStateModel stateModel = null;
 	ZkClient _zkClient;
-	
+
 	@BeforeClass
 	public void beforeClass()
 	{
 		_zkClient = new ZkClient(ZK_ADDR);
 		_zkClient.setZkSerializer(new ZNRecordSerializer());
 	}
-	
+
 	@AfterClass
 	public void afterClass()
 	{
 		_zkClient.close();
 	}
-	
-  @BeforeMethod(groups = { "unitTest" })
+
+  @BeforeMethod()
   public void beforeMethod()
   {
     stateModel = new DistClusterControllerStateModel(ZK_ADDR);
@@ -42,14 +42,14 @@ public class TestDistControllerStateModel extends ZkUnitTestBase
     }
     TestHelper.setupEmptyCluster(_zkClient, clusterName);
   }
-  
-  @Test(groups = { "unitTest" })
+
+  @Test()
   public void testOnBecomeStandbyFromOffline()
   {
     stateModel.onBecomeStandbyFromOffline(null, null);
   }
-  
-  @Test(groups = { "unitTest" })
+
+  @Test()
   public void testOnBecomeLeaderFromStandby()
   {
     Message message = new Message(MessageType.STATE_TRANSITION, "0");
@@ -66,8 +66,8 @@ public class TestDistControllerStateModel extends ZkUnitTestBase
     }
     stateModel.onBecomeStandbyFromLeader(message, new NotificationContext(null));
   }
-  
-  @Test(groups = { "unitTest" })
+
+  @Test()
   public void testOnBecomeStandbyFromLeader()
   {
     Message message = new Message(MessageType.STATE_TRANSITION, "0");
@@ -75,8 +75,8 @@ public class TestDistControllerStateModel extends ZkUnitTestBase
     message.setTgtName("controller_0");
     stateModel.onBecomeStandbyFromLeader(message, new NotificationContext(null));
   }
-  
-  @Test(groups = { "unitTest" })
+
+  @Test()
   public void testOnBecomeOfflineFromStandby()
   {
     Message message = new Message(MessageType.STATE_TRANSITION, "0");
@@ -85,20 +85,20 @@ public class TestDistControllerStateModel extends ZkUnitTestBase
 
     stateModel.onBecomeOfflineFromStandby(message, null);
   }
-  
-  @Test(groups = { "unitTest" })
+
+  @Test()
   public void testOnBecomeDroppedFromOffline()
   {
     stateModel.onBecomeDroppedFromOffline(null, null);
   }
 
-  @Test(groups = { "unitTest" })
+  @Test()
   public void testOnBecomeOfflineFromDropped()
   {
     stateModel.onBecomeOfflineFromDropped(null, null);
   }
- 
-  @Test(groups = { "unitTest" })
+
+  @Test()
   public void testRollbackOnError()
   {
     Message message = new Message(MessageType.STATE_TRANSITION, "0");
@@ -116,7 +116,7 @@ public class TestDistControllerStateModel extends ZkUnitTestBase
     stateModel.rollbackOnError(message, new NotificationContext(null), null);
   }
 
-  @Test(groups = { "unitTest" })
+  @Test()
   public void testReset()
   {
     Message message = new Message(MessageType.STATE_TRANSITION, "0");

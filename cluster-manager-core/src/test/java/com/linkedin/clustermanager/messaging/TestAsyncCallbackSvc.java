@@ -105,7 +105,7 @@ public class TestAsyncCallbackSvc
     
     MessageHandler aHandler = svc.createHandler(msg, changeContext);
     Map<String, String> resultMap = new HashMap<String, String>();
-    aHandler.handleMessage(msg, changeContext, resultMap);
+    aHandler.handleMessage();
     
     AssertJUnit.assertTrue(callback.isDone());
     AssertJUnit.assertTrue(callback._repliedMessageId.contains(msg.getMsgId()));

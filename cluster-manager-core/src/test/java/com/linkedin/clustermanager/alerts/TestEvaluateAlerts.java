@@ -2,6 +2,7 @@ package com.linkedin.clustermanager.alerts;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import org.testng.AssertJUnit;
 import org.testng.annotations.BeforeMethod;
@@ -279,6 +280,25 @@ public class TestEvaluateAlerts {
 		AssertJUnit.assertFalse(alertFired);	
 		
 	}
+	
+	@Test (groups = {"unitTest"})
+	  public void testAddWildcardInFirstStatToken() throws Exception
+	  {
+		String alert = "EXP(decay(1)(instance*.reportingage))CMP(GREATER)CON(300)";
+		 _alertsHolder.addAlert(alert);
+		
+		 
+		 
+		 //generate incoming stat
+		 String incomingStatName = "instance10.reportingage";
+		 Map<String, String> statFields = getStatFields("301","10");
+		 _statsHolder.applyStat(incomingStatName, statFields);
+	
+		 Map<String, Map<String, AlertValueAndStatus>> alertResult = AlertProcessor.executeAllAlerts(_alertsHolder.getAlertList(), _statsHolder.getStatsList());
+		 String wildcardBinding = "10";
+		 boolean alertFired = alertResult.get(alert).get(wildcardBinding).isFired();
+		 AssertJUnit.assertTrue(alertFired);	 
+	  }
 	
 	//test using sumall
 	//test using rows where some tuples are null (no stat sent)

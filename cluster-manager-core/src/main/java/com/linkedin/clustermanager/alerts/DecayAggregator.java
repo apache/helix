@@ -45,7 +45,7 @@ public class DecayAggregator extends Aggregator {
 		newTime = Double.parseDouble(newTimeTup.iterator().next());
 		
 		if (newTime > currTime) { //if old doesn't exist, we end up here
-			mergedVal = _decayWeight*currVal+(1-_decayWeight)*newVal; //if old doesn't exist, it has value "0"
+			mergedVal = (1-_decayWeight)*currVal+_decayWeight*newVal; //if old doesn't exist, it has value "0"
 			mergedTime = newTime;
 		}
 		else {

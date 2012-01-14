@@ -37,6 +37,7 @@ public class ExpressionParser {
 		  addOperatorEntry("SUMEACH", new SumEachOperator());
 		  
 		  addAggregatorEntry("ACCUMULATE", new AccumulateAggregator());
+		  addAggregatorEntry("DECAY", new DecayAggregator());
 		  addAggregatorEntry("WINDOW", new WindowAggregator());
 		  /*
 		  addEntry("EACH", ExpressionOperatorType.EACH);
@@ -185,7 +186,6 @@ public class ExpressionParser {
 	   */
 	  public static boolean isWildcardMatch(String currentStat, String incomingStat, boolean extractStatFromAgg, ArrayList<String> bindings)
 	  {
-		  //TODO: implement this
 		  String currentStatName = currentStat;
 		  if (extractStatFromAgg) {
 			  currentStatName = getSingleAggregatorStat(currentStat);
@@ -217,10 +217,17 @@ public class ExpressionParser {
 						  currTok.lastIndexOf(wildcardChar) != currTok.length()-1) {
 					  throw new ClusterManagerException(currTok+" is illegal stat name.  Single wildcard must appear at end.");
 				  }
+				  //for wildcard matching, need to escape parentheses on currTok, so regex works
+				  //currTok = currTok.replace("(", "\\(");
+				  //currTok = currTok.replace(")", "\\)");
+				  //incomingTok = incomingTok.replace("(", "\\(");
+				  //incomingTok = incomingTok.replace(")", "\\)");
 				  String currTokPreWildcard = currTok.substring(0,currTok.length()-1);
-				  Pattern pattern = Pattern.compile(currTokPreWildcard+".+");  //form pattern...wildcard part can be anything
-				  Matcher matcher = pattern.matcher(incomingTok); //see if incomingTok matches
-				  if (!matcher.find()) { //no match on one tok, return false
+				  //TODO: if current token has a "(" in it, pattern compiling throws error
+				  //Pattern pattern = Pattern.compile(currTokPreWildcard+".+");  //form pattern...wildcard part can be anything
+				  //Matcher matcher = pattern.matcher(incomingTok); //see if incomingTok matches
+				  if (incomingTok.indexOf(currTokPreWildcard) != 0) {
+				  //if (!matcher.find()) { //no match on one tok, return false
 					  return false;
 				  }
 				  //get the binding

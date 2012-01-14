@@ -181,11 +181,21 @@ public void persistAggStats(ClusterManager manager)
   {
   }
   
+  public void reportAgeStat(LiveInstance instance, long currTime)
+  {
+	  //TODO: put the stat name encoding somewhere easier to find
+	  String statName = "instance"+instance.getInstanceName()+"."+"reportingage";
+	  long modifiedTime = instance.getStat().getMtime();
+	  long age = currTime - modifiedTime; //XXX: ensure this is in seconds
+	  Map<String, String> ageStatMap = new HashMap<String, String>();
+	  ageStatMap.put(StatsHolder.TIMESTAMP_NAME, String.valueOf(currTime));
+	  ageStatMap.put(StatsHolder.VALUE_NAME, String.valueOf(age));
+	  _statsHolder.applyStat(statName, ageStatMap);
+  }
+  
   @Override
   public void process(ClusterEvent event) throws Exception
   {
-	System.out.println("StatsAggregationStage.process()");
-	
 	//String aggTypeName = DEFAULT_AGG_TYPE+AggregationType.DELIM+DEFAULT_DECAY_PARAM;
 	//_defaultAggType = AggregationTypeFactory.getAggregationType(aggTypeName);
 	
@@ -205,40 +215,26 @@ public void persistAggStats(ClusterManager manager)
     
     Map<String, LiveInstance> liveInstances = cache.getLiveInstances();
     
-    long currTime = System.currentTimeMillis();
+    long currTime = System.currentTimeMillis()/1000;
     //for each live node, read node's stats
     for (LiveInstance instance : liveInstances.values())
     {
-      long modifiedTime = instance.getStat().getMtime();
-      if (currTime - modifiedTime > 120000) { //TODO: make this number configurable
-    	  //TODO: raise alarm here for participant not reporting stats.
-      }
-      String instanceName = instance.getInstanceName();
-      logger.debug("instanceName: "+instanceName);
-      //XXX: now have map of HealthStats, so no need to traverse them...verify correctness
-      Map<String, HealthStat> stats;
-      stats = cache.getHealthStats(instanceName);
-      //find participants stats
-      HealthStat participantStat = stats.get(PARTICIPANT_STAT_REPORT_NAME);
-      //for (HealthStat hs : stats) {
-    //	  if (hs.getId().equals(PARTICIPANT_STAT_REPORT_NAME)) {
-    		  Map<String, Map<String, String>> statMap = participantStat.getMapFields();
-    		  for (String key : statMap.keySet()) {
-    			  _statsHolder.applyStat(key, statMap.get(key));
-    			  /*
-    			  //get current participant stat
-    			  Map<String, String> currStat = statMap.get(key);
-    			  //apply participant stat with agg stats
-    			  applyParticipantStat(currStat, 
-    					  currStat.get(StatHealthReportProvider.STAT_VALUE),
-    					  currStat.get(StatHealthReportProvider.TIMESTAMP));
-    			  */
-    		  }
-    		  
-    	//  }
-      //}
-      //persist the agg stats
-      //persistAggStats(manager);
+    	//generate and report stats for how old this node's report is
+    	reportAgeStat(instance, currTime);
+
+    	String instanceName = instance.getInstanceName();
+    	logger.debug("instanceName: "+instanceName);
+    	//XXX: now have map of HealthStats, so no need to traverse them...verify correctness
+    	Map<String, HealthStat> stats;
+    	stats = cache.getHealthStats(instanceName);
+    	//find participants stats
+    	HealthStat participantStat = stats.get(PARTICIPANT_STAT_REPORT_NAME);
+
+    	Map<String, Map<String, String>> statMap = participantStat.getMapFields();
+    	for (String key : statMap.keySet()) {
+    		_statsHolder.applyStat(key, statMap.get(key));
+
+    	}
     }
     
     //populate _statStatus

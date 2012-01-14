@@ -193,6 +193,27 @@ public class TestArrivingParticipantStats {
 					 AssertJUnit.assertTrue(statRecordHasTimestamp(rec, persistentStat, "0.0"));
 				  }
 		
+				@Test (groups = {"unitTest"})
+				  public void testAddWildcardInFirstStatToken() throws Exception
+				  {
+					String persistentWildcardStat = "accumulate()(instance*.reportingage)";
+					_statsHolder.addStat(persistentWildcardStat);
+					
+					 //generate incoming stat
+					 String incomingStatName = "instance10.reportingage";
+					 Map<String, String> statFields = getStatFields("1","10");
+					 _statsHolder.applyStat(incomingStatName, statFields);
+					
+					 //check persistent stats
+					 ZNRecord rec = _clusterManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
+					 
+					 System.out.println("rec: "+rec.toString());
+					 String persistentStat = "accumulate()(instance10.reportingage)";
+					 AssertJUnit.assertTrue(statRecordHasValue(rec, persistentStat, "1.0"));
+					 AssertJUnit.assertTrue(statRecordHasTimestamp(rec, persistentStat, "10.0"));
+					 
+				  }
+				
 		//test to add report to same wildcard stat, different actual stat
 				@Test (groups = {"unitTest"})
 				  public void testAddTwoDistinctParticipantStatsToSameWildCard() throws Exception

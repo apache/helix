@@ -127,8 +127,6 @@ public class MockRouterProcess
 
     try
     {
-//      ClusterManager manager = ClusterManagerFactory
-//          .getZKBasedManagerForSpectator(clusterName, zkConnectString);
       ClusterManager manager = ClusterManagerFactory.getZKClusterManager(clusterName,
                                                                          null,
                                                                          InstanceType.SPECTATOR,

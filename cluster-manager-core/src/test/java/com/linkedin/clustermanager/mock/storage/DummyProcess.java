@@ -43,22 +43,14 @@ public class DummyProcess
   private final String _zkConnectString;
   private final String _clusterName;
   private final String _instanceName;
-  // private ClusterManager _manager = null;
   private DummyStateModelFactory stateModelFactory;
   private StateMachineEngine genericStateMachineHandler;
 
   private final FilePropertyStore<ZNRecord> _fileStore;
-//  private final FileBasedDataAccessor _accessor;
 
   private final String _clusterViewFile;
   private int _transDelayInMs = 0;
   private final String _clusterMangerType;
-
-//  public DummyProcess(String zkConnectString, String clusterName,
-//                      String instanceName, String file, int delay)
-//  {
-//    this(zkConnectString, clusterName, instanceName, file, delay, null);
-//  }
 
   public DummyProcess(String zkConnectString,
                       String clusterName,
@@ -77,7 +69,6 @@ public class DummyProcess
                       String clusterViewFile,
                       int delay,
                       FilePropertyStore<ZNRecord> fileStore)
-//                      FileBasedDataAccessor accessor)
   {
     _zkConnectString = zkConnectString;
     _clusterName = clusterName;
@@ -85,7 +76,6 @@ public class DummyProcess
     _clusterViewFile = clusterViewFile;
     _clusterMangerType = clusterMangerType;
     _transDelayInMs = delay > 0 ? delay : 0;
-//    _accessor = accessor;
     _fileStore = fileStore;
   }
 
@@ -109,22 +99,16 @@ public class DummyProcess
   {
     ClusterManager manager = null;
     // zk cluster manager
-//    if (_file == null && _accessor == null)
     if (_clusterMangerType.equalsIgnoreCase("zk"))
     {
-//      manager = ClusterManagerFactory.getZKBasedManagerForParticipant(
-//          clusterName, instanceName, zkConnectString);
       manager = ClusterManagerFactory.getZKClusterManager(_clusterName,
                                                           _instanceName,
                                                           InstanceType.PARTICIPANT,
                                                           _zkConnectString);
     }
     // static file cluster manager
-//    else if (_file != null && _accessor == null)
     else if (_clusterMangerType.equalsIgnoreCase("static-file"))
     {
-//      manager = ClusterManagerFactory.getFileBasedManagerForParticipant(
-//          clusterName, instanceName, _file);
       manager = ClusterManagerFactory.getStaticFileClusterManager(_clusterName,
                                                                   _instanceName,
                                                                   InstanceType.PARTICIPANT,
@@ -132,7 +116,6 @@ public class DummyProcess
 
     }
     // dynamic file cluster manager
-//    else if (_file == null && _accessor != null)
     else if (_clusterMangerType.equalsIgnoreCase("dynamic-file"))
     {
       manager = ClusterManagerFactory.getDynamicFileClusterManager(_clusterName,
@@ -156,14 +139,6 @@ public class DummyProcess
 
     manager.connect();
     manager.getMessagingService().registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(), genericStateMachineHandler);
-//    /*
-//    if (_file != null)
-//    {
-//      ClusterStateVerifier.VerifyFileBasedClusterStates(_file, instanceName,
-//          stateModelFactory);
-//
-//    }
-//    */
     return manager;
   }
 
@@ -229,27 +204,11 @@ public class DummyProcess
       _transDelay = delay > 0 ? delay : 0;
     }
 
-//    void sleep()
-//    {
-//      try
-//      {
-//        if (_transDelay > 0)
-//        {
-//          Thread.sleep(_transDelay);
-//        }
-//      } catch (InterruptedException e)
-//      {
-//        // TODO Auto-generated catch block
-//        e.printStackTrace();
-//      }
-//    }
-
     public void onBecomeSlaveFromOffline(Message message,
         NotificationContext context)
     {
       String db = message.getStateUnitKey();
       String instanceName = context.getManager().getInstanceName();
-//      sleep();
       DummyProcess.sleep(_transDelay);
 
       logger.info("DummyStateModel.onBecomeSlaveFromOffline(), instance:" + instanceName
@@ -259,8 +218,6 @@ public class DummyProcess
     public void onBecomeSlaveFromMaster(Message message,
         NotificationContext context)
     {
-
-//      sleep();
       DummyProcess.sleep(_transDelay);
 
       logger.info("DummyStateModel.onBecomeSlaveFromMaster()");
@@ -270,7 +227,6 @@ public class DummyProcess
     public void onBecomeMasterFromSlave(Message message,
         NotificationContext context)
     {
-//      sleep();
       DummyProcess.sleep(_transDelay);
 
       logger.info("DummyStateModel.onBecomeMasterFromSlave()");
@@ -280,7 +236,6 @@ public class DummyProcess
     public void onBecomeOfflineFromSlave(Message message,
         NotificationContext context)
     {
-//      sleep();
       DummyProcess.sleep(_transDelay);
 
       logger.info("DummyStateModel.onBecomeOfflineFromSlave()");
@@ -289,7 +244,6 @@ public class DummyProcess
 
     public void onBecomeDroppedFromOffline(Message message, NotificationContext context)
     {
-//      sleep();
       DummyProcess.sleep(_transDelay);
 
       logger.info("DummyStateModel.onBecomeDroppedFromOffline()");
@@ -307,27 +261,11 @@ public class DummyProcess
       _transDelay = delay > 0 ? delay : 0;
     }
 
-//    void sleep()
-//    {
-//      try
-//      {
-//        if (_transDelay > 0)
-//        {
-//          Thread.sleep(_transDelay);
-//        }
-//      } catch (InterruptedException e)
-//      {
-//        // TODO Auto-generated catch block
-//        e.printStackTrace();
-//      }
-//    }
-
     public void onBecomeOnlineFromOffline(Message message,
         NotificationContext context)
     {
       String db = message.getStateUnitKey();
       String instanceName = context.getManager().getInstanceName();
-//      sleep();
       DummyProcess.sleep(_transDelay);
 
       logger.info("DummyStateModel.onBecomeOnlineFromOffline(), instance:" + instanceName
@@ -337,7 +275,6 @@ public class DummyProcess
     public void onBecomeOfflineFromOnline(Message message,
         NotificationContext context)
     {
-//      sleep();
       DummyProcess.sleep(_transDelay);
 
       logger.info("DummyStateModel.onBecomeOfflineFromOnline()");
@@ -345,7 +282,6 @@ public class DummyProcess
     }
     public void onBecomeDroppedFromOffline(Message message, NotificationContext context)
     {
-//      sleep();
       DummyProcess.sleep(_transDelay);
 
       logger.info("DummyStateModel.onBecomeDroppedFromOffline()");
@@ -362,27 +298,11 @@ public class DummyProcess
       _transDelay = delay > 0 ? delay : 0;
     }
 
-//    void sleep()
-//    {
-//      try
-//      {
-//        if (_transDelay > 0)
-//        {
-//          Thread.sleep(_transDelay);
-//        }
-//      } catch (InterruptedException e)
-//      {
-//        // TODO Auto-generated catch block
-//        e.printStackTrace();
-//      }
-//    }
-
     public void onBecomeLeaderFromStandby(Message message,
         NotificationContext context)
     {
       String db = message.getStateUnitKey();
       String instanceName = context.getManager().getInstanceName();
-//      sleep();
       DummyProcess.sleep(_transDelay);
       logger.info("DummyLeaderStandbyStateModel.onBecomeLeaderFromStandby(), instance:" + instanceName
                          + ", db:" + db);
@@ -391,8 +311,6 @@ public class DummyProcess
     public void onBecomeStandbyFromLeader(Message message,
         NotificationContext context)
     {
-
-//    sleep();
       DummyProcess.sleep(_transDelay);
 
       logger.info("DummyLeaderStandbyStateModel.onBecomeStandbyFromLeader()");
@@ -400,8 +318,6 @@ public class DummyProcess
     }
     public void onBecomeDroppedFromOffline(Message message, NotificationContext context)
     {
-
-//      sleep();
       DummyProcess.sleep(_transDelay);
 
       logger.info("DummyLeaderStandbyStateModel.onBecomeDroppedFromOffline()");
@@ -410,8 +326,6 @@ public class DummyProcess
 
     public void onBecomeStandbyFromOffline(Message message, NotificationContext context)
     {
-
-//      sleep();
       DummyProcess.sleep(_transDelay);
 
       logger.info("DummyLeaderStandbyStateModel.onBecomeStandbyFromOffline()");
@@ -420,8 +334,6 @@ public class DummyProcess
 
     public void onBecomeOfflineFromStandby(Message message, NotificationContext context)
     {
-
-//      sleep();
       DummyProcess.sleep(_transDelay);
 
       logger.info("DummyLeaderStandbyStateModel.onBecomeOfflineFromStandby()");
@@ -435,12 +347,6 @@ public class DummyProcess
   {
     Option helpOption = OptionBuilder.withLongOpt(help)
         .withDescription("Prints command-line options info").create();
-
-//    Option zkServerOption = OptionBuilder.withLongOpt(zkServer)
-//        .withDescription("Provide zookeeper address").create();
-//    zkServerOption.setArgs(1);
-//    zkServerOption.setRequired(true);
-//    zkServerOption.setArgName("ZookeeperServerAddress(Required)");
 
     Option clusterOption = OptionBuilder.withLongOpt(cluster)
         .withDescription("Provide cluster name").create();
@@ -560,14 +466,9 @@ public class DummyProcess
 
       if (cmd.hasOption(clusterViewFile))
       {
-//      if (cvFile != null)
-//      {
         cvFileStr = cmd.getOptionValue(clusterViewFile);
-//        File f = new File(cvFileStr);
         if (!new File(cvFileStr).exists())
         {
-//          System.err.println("static config file doesn't exist");
-//          System.exit(1);
           throw new IllegalArgumentException("Cluster-view file:" + cvFileStr
                                              + " does NOT exist");
         }
@@ -603,8 +504,6 @@ public class DummyProcess
                                             cmType,
                                             cvFileStr,
                                             delay);
-//    DummyProcess process = new DummyProcess(zkConnectString, clusterName,
-//        instanceName, file, delay);
     ClusterManager manager = process.start();
 
     try

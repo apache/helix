@@ -40,7 +40,6 @@ public class TestDynamicFileCM
       // TODO Auto-generated catch block
       e.printStackTrace();
     }
-//    FileBasedDataAccessor accessor = new FileBasedDataAccessor(store, clusterName);
     DynamicFileClusterManager controller = new DynamicFileClusterManager(clusterName,
                                                                          controllerName,
                                                                          InstanceType.CONTROLLER,

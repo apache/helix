@@ -57,8 +57,6 @@ public class DummyRelayProcess
   {
     if (_clusterViewFile == null)
     {
-//      manager = ClusterManagerFactory.getZKBasedManagerForParticipant(
-//          clusterName, instanceName, zkConnectString);
       manager = ClusterManagerFactory.getZKClusterManager(clusterName,
                                                           instanceName,
                                                           InstanceType.PARTICIPANT,
@@ -66,9 +64,6 @@ public class DummyRelayProcess
     }
     else
     {
-//      manager = ClusterManagerFactory.getFileBasedManagerForParticipant(
-//          clusterName, instanceName, _file);
-
       manager = ClusterManagerFactory.getStaticFileClusterManager(clusterName,
                                                                   instanceName,
                                                                   InstanceType.PARTICIPANT,

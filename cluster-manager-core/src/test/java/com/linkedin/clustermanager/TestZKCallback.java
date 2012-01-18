@@ -105,7 +105,6 @@ public class TestZKCallback extends ZkUnitTestBase
   {
 
     ClusterManager testClusterManager = ClusterManagerFactory
-//        .getZKBasedManagerForParticipant(clusterName, "localhost_8900", ZK_ADDR);
         .getZKClusterManager(clusterName, "localhost_8900",
                              InstanceType.PARTICIPANT,
                              ZK_ADDR);

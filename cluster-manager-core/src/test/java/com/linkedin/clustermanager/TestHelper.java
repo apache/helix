@@ -108,21 +108,6 @@ public class TestHelper
     }
   }
 
-//  /**
-//   * start dummy cluster participant with a pre-created zkClient for testing session
-//   * expiry
-//   *
-//   * @param zkAddr
-//   * @param clusterName
-//   * @param instanceName
-//   * @param zkClient
-//   * @return
-//   * @throws Exception
-//   */
-//  public static StartCMResult startDummyProcess(final String zkAddr,
-//                                                     final String clusterName,
-//                                                     final String instanceName,
-//                                                     final ZkClient zkClient) throws Exception
   public static StartCMResult startDummyProcess(final String zkAddr,
                                                 final String clusterName,
                                                 final String instanceName)
@@ -142,37 +127,6 @@ public class TestHelper
     return result;
   }
 
-//  public static StartCMResult startDummyProcess(final String zkAddr,
-//                                                final String clusterName,
-//                                                final String instanceName,
-//                                                final ClusterManager manager)
-//    throws Exception
-//  {
-//    StartCMResult result = new StartCMResult();
-//    result._manager = manager;
-//    Thread thread = new Thread(new DummyProcessThread(manager, instanceName));
-//    result._thread = thread;
-//    thread.start();
-//
-//    return result;
-//  }
-
-
-//  /**
-//   * start cluster controller with a pre-created zkClient for testing session expiry
-//   *
-//   * @param clusterName
-//   * @param controllerName
-//   * @param zkConnectString
-//   * @param zkClient
-//   * @return
-//   * @throws Exception
-//   */
-//  public static StartCMResult startClusterController(final String clusterName,
-//                                              final String controllerName,
-//                                              final String zkConnectString,
-//                                              final String controllerMode,
-//                                              final ZkClient zkClient) throws Exception
   public static StartCMResult startClusterController(final String clusterName,
                                                      final String controllerName,
                                                      final String zkConnectString,

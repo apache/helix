@@ -66,7 +66,6 @@ public class TestClusterManagerStartsup extends ZkStandAloneCMTestBase
 
     try
     {
-//      manager = ClusterManagerFactory.getZKBasedManagerForParticipant(CLUSTER_NAME, "localhost_" + (START_PORT + 1), ZK_ADDR);
       manager = ClusterManagerFactory.getZKClusterManager(CLUSTER_NAME,
                                                           "localhost_" + (START_PORT + 1),
                                                           InstanceType.PARTICIPANT,
@@ -86,7 +85,6 @@ public class TestClusterManagerStartsup extends ZkStandAloneCMTestBase
 
     try
     {
-//      manager = ClusterManagerFactory.getZKBasedManagerForController(CLUSTER_NAME, "localhost_" + (START_PORT + 3), ZK_ADDR);
       manager = ClusterManagerFactory.getZKClusterManager(CLUSTER_NAME,
                                                           "localhost_" + (START_PORT + 3),
                                                           InstanceType.PARTICIPANT,
@@ -110,7 +108,6 @@ public class TestClusterManagerStartsup extends ZkStandAloneCMTestBase
 
     try
     {
-//      manager = ClusterManagerFactory.getZKBasedManagerForParticipant(CLUSTER_NAME, "localhost_" + (START_PORT + 1), ZK_ADDR);
       manager = ClusterManagerFactory.getZKClusterManager(CLUSTER_NAME,
                                                           "localhost_" + (START_PORT + 1),
                                                           InstanceType.PARTICIPANT,
@@ -133,7 +130,6 @@ public class TestClusterManagerStartsup extends ZkStandAloneCMTestBase
 
     try
     {
-//      manager = ClusterManagerFactory.getZKBasedManagerForParticipant(CLUSTER_NAME, "localhost_" + (START_PORT + 1), ZK_ADDR);
       manager = ClusterManagerFactory.getZKClusterManager(CLUSTER_NAME,
                                                           "localhost_" + (START_PORT + 1),
                                                           InstanceType.PARTICIPANT,

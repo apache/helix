@@ -41,43 +41,18 @@ public class FileCMTestBase
   protected static final int START_PORT = 12918;
   private final String ROOT_PATH = "/tmp/" + getShortClassName();
 
-//  private static final PropertyJsonSerializer<ZNRecord> serializer = new PropertyJsonSerializer<ZNRecord>(
-//      ZNRecord.class);
-//  private static final PropertyJsonComparator<ZNRecord> comparator = new PropertyJsonComparator<ZNRecord>(
-//      ZNRecord.class);
-//
   protected final FilePropertyStore<ZNRecord> _fileStore
     = new FilePropertyStore<ZNRecord>(new PropertyJsonSerializer<ZNRecord>(ZNRecord.class),
                                       ROOT_PATH,
                                       new PropertyJsonComparator<ZNRecord>(ZNRecord.class));
-//  protected final FileBasedDataAccessor _accessor = new FileBasedDataAccessor(
-//      _store, CLUSTER_NAME);
-
   protected ClusterManager _manager;
   protected ClusterManagementService _mgmtTool;
 
   @BeforeClass()
   public void beforeClass() throws Exception
   {
-//    _manager = ClusterManagerFactory.getFileBasedManagerForController(
-//        CLUSTER_NAME, "controller_0", _accessor);
-//    try
-//    {
-//      _manager = ClusterManagerFactory.getDynamicFileClusterManager(CLUSTER_NAME,
-//                                                                    "controller_0",
-//                                                                    InstanceType.CONTROLLER,
-//                                                                    _fileStore);
-//    }
-//    catch (Exception e)
-//    {
-//      // TODO Auto-generated catch block
-//      e.printStackTrace();
-//    }
-
+    // setup test cluster
     _mgmtTool = new FileClusterManagementTool(_fileStore);
-        // _manager.getClusterManagmentTool();
-
-    // setup cluster
     _mgmtTool.addCluster(CLUSTER_NAME, true);
     _mgmtTool.addResourceGroup(CLUSTER_NAME, TEST_DB, 10, STATE_MODEL);
     for (int i = 0; i < NODE_NR; i++)
@@ -89,8 +64,6 @@ public class FileCMTestBase
     // start dummy storage nodes
     for (int i = 0; i < NODE_NR; i++)
     {
-//      DummyProcess process = new DummyProcess(null, CLUSTER_NAME, "localhost_"
-//          + (START_PORT + i), null, 0, _accessor);
       DummyProcess process = new DummyProcess(null,
                                               CLUSTER_NAME,
                                               "localhost_" + (START_PORT + i),

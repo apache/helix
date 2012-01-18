@@ -38,7 +38,6 @@ public class TestStandAloneCMSessionExpiry extends ZkIntegrationTestBase
     }
   }
 
-  // TODO fix it
   @Test()
   public void testStandAloneCMSessionExpiry()
     throws Exception
@@ -49,23 +48,6 @@ public class TestStandAloneCMSessionExpiry extends ZkIntegrationTestBase
     ZkClient zkClient = new ZkClient(ZK_ADDR);
     zkClient.setZkSerializer(new ZNRecordSerializer());
     ClusterSetup setupTool = new ClusterSetup(ZK_ADDR);
-
-//    String namespace = "/" + CLUSTER_NAME;
-//    if (_zkClient.exists(namespace))
-//    {
-//      _zkClient.deleteRecursive(namespace);
-//    }
-//    _setupTool = new ClusterSetup(ZK_ADDR);
-//
-//    // setup storage cluster
-//    _setupTool.addCluster(CLUSTER_NAME, true);
-//    _setupTool.addResourceGroupToCluster(CLUSTER_NAME, TEST_DB, 20, STATE_MODEL);
-//    for (int i = 0; i < NODE_NR; i++)
-//    {
-//      String storageNodeName = PARTICIPANT_PREFIX + ":" + (START_PORT + i);
-//      _setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
-//    }
-//    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, TEST_DB, 3);
 
     TestHelper.setupCluster(CLUSTER_NAME,
                             ZK_ADDR,
@@ -83,8 +65,6 @@ public class TestStandAloneCMSessionExpiry extends ZkIntegrationTestBase
     for (int i = 0; i < NODE_NR; i++)
     {
       String instanceName = "localhost_" + (12918 + i);
-//      StartCMResult result = TestHelper.startDummyProcess(ZK_ADDR, CLUSTER_NAME, instanceName);
-//      _startCMResultMap.put(instanceName, result);
       ZkClusterManagerWithSessionExpiry manager = new ZkClusterManagerWithSessionExpiry(CLUSTER_NAME,
                                                                                         instanceName,
                                                                                         InstanceType.PARTICIPANT,
@@ -104,13 +84,6 @@ public class TestStandAloneCMSessionExpiry extends ZkIntegrationTestBase
     manager.connect();
     managers.put(controllerName, manager);
 
-//    _controllerZkClient = new ZkClient(ZK_ADDR, 3000, 10000, new ZNRecordSerializer());
-//    StartCMResult startResult = TestHelper.startClusterController(CLUSTER_NAME,
-//                                                                  controllerName,
-//                                                                  ZK_ADDR,
-//                                                                  ClusterManagerMain.STANDALONE);
-//    _startCMResultMap.put(controllerName, startResult);
-
     TestHelper.verifyWithTimeout("verifyBestPossAndExtView",
                                  "TestDB0",
                                  20,
@@ -120,11 +93,9 @@ public class TestStandAloneCMSessionExpiry extends ZkIntegrationTestBase
 
     managers.get("localhost_12918").expireSession();
 
-//    simulateSessionExpiry(_participantZkClients[0]);
-//
     setupTool.addResourceGroupToCluster(CLUSTER_NAME, "MyDB", 10, "MasterSlave");
     setupTool.rebalanceStorageCluster(CLUSTER_NAME, "MyDB", 3);
-//    verifyCluster();
+
     TestHelper.verifyWithTimeout("verifyBestPossAndExtView",
                                  "TestDB0",
                                  20,
@@ -139,7 +110,6 @@ public class TestStandAloneCMSessionExpiry extends ZkIntegrationTestBase
                                  TestHelper.<String>setOf(CLUSTER_NAME),
                                  zkClient);
 
-//    simulateSessionExpiry(_controllerZkClient);
     managers.get(controllerName).expireSession();
 
     setupTool.addResourceGroupToCluster(CLUSTER_NAME, "MyDB2", 8, "MasterSlave");
@@ -159,14 +129,14 @@ public class TestStandAloneCMSessionExpiry extends ZkIntegrationTestBase
                                  "MasterSlave",
                                  TestHelper.<String>setOf(CLUSTER_NAME),
                                  zkClient);
-//
+
     TestHelper.verifyWithTimeout("verifyBestPossAndExtView",
                                  "MyDB2",
                                  8,
                                  "MasterSlave",
                                  TestHelper.<String>setOf(CLUSTER_NAME),
                                  zkClient);
-//
+
     System.out.println("STOP testStandAloneCMSessionExpiry() at " + new Date(System.currentTimeMillis()));
   }
 

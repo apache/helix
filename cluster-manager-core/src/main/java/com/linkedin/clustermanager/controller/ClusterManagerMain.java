@@ -141,32 +141,19 @@ public class ClusterManagerMain
   public static ClusterManager startClusterManagerMain(final String zkConnectString,
        final String clusterName, final String controllerName, final String controllerMode)
   {
-//    return startClusterManagerMain(zkConnectString, clusterName, controllerName,
-//                            controllerMode, null);
-//  }
-//
-//  public static ClusterManager startClusterManagerMain(final String zkConnectString,
-//       final String clusterName, final String controllerName, final String controllerMode,
-//       final ZkClient zkClient)
-//  {
     ClusterManager manager = null;
     try
     {
       if (controllerMode.equalsIgnoreCase(STANDALONE))
       {
-//        manager = ClusterManagerFactory.getZKBasedManagerForController(clusterName,
-//                   controllerName, zkConnectString, zkClient);
-      manager = ClusterManagerFactory.getZKClusterManager(clusterName,
-                                                          controllerName,
-                                                          InstanceType.CONTROLLER,
-                                                          zkConnectString);
-
+        manager = ClusterManagerFactory.getZKClusterManager(clusterName,
+                                                            controllerName,
+                                                            InstanceType.CONTROLLER,
+                                                            zkConnectString);
         manager.connect();
       }
       else if (controllerMode.equalsIgnoreCase(DISTRIBUTED))
       {
-//        manager = ClusterManagerFactory.getZKBasedManagerForControllerParticipant(clusterName,
-//                   controllerName, zkConnectString);
         manager = ClusterManagerFactory.getZKClusterManager(clusterName,
                                                             controllerName,
                                                             InstanceType.CONTROLLER_PARTICIPANT,
@@ -178,8 +165,6 @@ public class ClusterManagerMain
 
         StateMachineEngine genericStateMachineHandler = new StateMachineEngine();
         genericStateMachineHandler.registerStateModelFactory("LeaderStandby", stateModelFactory);
-        //StateMachineEngine<DistClusterControllerStateModel> genericStateMachineHandler
-        //   = new StateMachineEngine<DistClusterControllerStateModel>(stateModelFactory);
         manager.getMessagingService().registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(), genericStateMachineHandler);
 
       }

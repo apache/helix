@@ -69,9 +69,6 @@ public class DistClusterControllerElection implements ControllerChangeListener
               String clusterName = manager.getClusterName();
               String controllerName = manager.getInstanceName();
               _leader =
-//                  ClusterManagerFactory.getZKBasedManagerForController(clusterName,
-//                                                                       controllerName,
-//                                                                       _zkAddr);
                   ClusterManagerFactory.getZKClusterManager(clusterName,
                                                             controllerName,
                                                             InstanceType.CONTROLLER,

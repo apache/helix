@@ -41,7 +41,6 @@ public class TestDynamicFileClusterManager extends FileCMTestBase
                                                           _fileStore);
 
     System.out.println("STOP testDynamicFileClusterManager() at " + new Date(System.currentTimeMillis()));
-//    super.afterClass();
   }
 
 }

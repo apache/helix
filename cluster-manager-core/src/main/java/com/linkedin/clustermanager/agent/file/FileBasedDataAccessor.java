@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import org.I0Itec.zkclient.DataUpdater;
 import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.ClusterDataAccessor;
@@ -255,26 +256,54 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
     }
   }
 
-  private void createOrUpdate(String path, ZNRecord record, boolean mergeOnUpdate)
+  private void createOrUpdate(String path, final ZNRecord record, final boolean mergeOnUpdate)
       throws PropertyStoreException
   {
-    // TODO use PropertyStore's updateUntilSucceed() instead
-    if (_store.exists(path))
+    final int RETRYLIMIT = 3;
+    int retryCount = 0;
+    while (retryCount < RETRYLIMIT)
     {
-      ZNRecord curRecord = _store.getProperty(path);
-      if (mergeOnUpdate)
+      try
       {
-        curRecord.merge(record);
-        _store.setProperty(path, curRecord);
+        if (_store.exists(path))
+        {
+          DataUpdater<ZNRecord> updater = new DataUpdater<ZNRecord>()
+          {
+            @Override
+            public ZNRecord update(ZNRecord currentData)
+            {
+              if(mergeOnUpdate)
+              {
+                currentData.merge(record);
+                return currentData;
+              }
+              return record;
+            }
+          };
+          _store.updatePropertyUntilSucceed(path, updater);
+
+        }
+        else
+        {
+          if(record.getDeltaList().size() > 0)
+          {
+            ZNRecord newRecord = new ZNRecord(record.getId());
+            newRecord.merge(record);
+            _store.setProperty(path, newRecord);
+          }
+          else
+          {
+            _store.setProperty(path, record);
+          }
+        }
+        break;
       }
-      else
+      catch (Exception e)
       {
-        _store.setProperty(path, record);
+        retryCount = retryCount + 1;
+        LOG.warn("Exception trying to update " + path + " Exception:"
+            + e.getMessage() + ". Will retry.");
       }
-    }
-    else
-    {
-      _store.setProperty(path, record);
     }
   }
 }

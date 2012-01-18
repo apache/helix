@@ -88,6 +88,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
         // + changeContext.getPathChanged()
             + _path + " listener:" + _listener.getClass().getCanonicalName());
       }
+
       if (_changeType == IDEAL_STATE)
       {
 
@@ -96,7 +97,8 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
         List<IdealState> idealStates = _accessor.getChildValues(IdealState.class, PropertyType.IDEALSTATES);
         idealStateChangeListener.onIdealStateChange(idealStates, changeContext);
 
-      } else if (_changeType == CONFIG)
+      }
+      else if (_changeType == CONFIG)
       {
 
         ConfigChangeListener configChangeListener = (ConfigChangeListener) _listener;
@@ -104,14 +106,16 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
         List<InstanceConfig> configs = _accessor.getChildValues(InstanceConfig.class, PropertyType.CONFIGS);
         configChangeListener.onConfigChange(configs, changeContext);
 
-      } else if (_changeType == LIVE_INSTANCE)
+      }
+      else if (_changeType == LIVE_INSTANCE)
       {
         LiveInstanceChangeListener liveInstanceChangeListener = (LiveInstanceChangeListener) _listener;
         subscribeForChanges(changeContext, true, false);
         List<LiveInstance> liveInstances = _accessor.getChildValues(LiveInstance.class, PropertyType.LIVEINSTANCES);
         liveInstanceChangeListener.onLiveInstanceChange(liveInstances, changeContext);
 
-      } else if (_changeType == CURRENT_STATE)
+      }
+      else if (_changeType == CURRENT_STATE)
       {
         CurrentStateChangeListener currentStateChangeListener;
         currentStateChangeListener = (CurrentStateChangeListener) _listener;
@@ -125,22 +129,24 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
 
         currentStateChangeListener.onStateChange(instanceName, currentStates, changeContext);
 
-      } else if (_changeType == MESSAGE)
+      }
+      else if (_changeType == MESSAGE)
       {
         MessageListener messageListener = (MessageListener) _listener;
         subscribeForChanges(changeContext, true, false);
         String instanceName = CMUtil.getInstanceNameFromPath(_path);
         List<Message> messages =  _accessor.getChildValues(Message.class, PropertyType.MESSAGES, instanceName);
 
-        // TODO remove this, enforce a zk manager to have an id always
-        if (instanceName == null)
-        {
-          logger.error("Instance does NOT have a name; use CONTROLLER");
-          instanceName = "CONTROLLER";
-        }
+//        // TODO remove this, enforce a zk manager to have an id always
+//        if (instanceName == null)
+//        {
+//          logger.error("Instance does NOT have a name; use CONTROLLER");
+//          instanceName = "CONTROLLER";
+//        }
         messageListener.onMessage(instanceName, messages, changeContext);
 
-      } else if (_changeType == MESSAGES_CONTROLLER)
+      }
+      else if (_changeType == MESSAGES_CONTROLLER)
       {
         MessageListener messageListener = (MessageListener) _listener;
         subscribeForChanges(changeContext, true, false);
@@ -149,7 +155,8 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
         // TODO enforce a zk manager to have an id
         messageListener.onMessage(null, messages, changeContext);
 
-      }else if (_changeType == EXTERNAL_VIEW)
+      }
+      else if (_changeType == EXTERNAL_VIEW)
       {
         ExternalViewChangeListener externalViewListener = (ExternalViewChangeListener) _listener;
         subscribeForChanges(changeContext, true, true);
@@ -157,20 +164,25 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
                                                                        PropertyType.EXTERNALVIEW);
 
         externalViewListener.onExternalViewChange(externalViewList, changeContext);
-      } else if (_changeType == ChangeType.CONTROLLER)
+      }
+      else if (_changeType == ChangeType.CONTROLLER)
       {
         ControllerChangeListener controllerChangelistener = (ControllerChangeListener) _listener;
         subscribeForChanges(changeContext, true, false);
         controllerChangelistener.onControllerChange(changeContext);
-      } else if (_changeType == ChangeType.HEALTH)
+      }
+      else if (_changeType == ChangeType.HEALTH)
       {
-    	HealthStateChangeListener healthStateChangeListener = (HealthStateChangeListener) _listener;
-    	subscribeForChanges(changeContext, true, true); //TODO: figure out settings here
-    	List<HealthStat> healthReportList = _accessor.getChildValues(HealthStat.class,
-    																   PropertyType.HEALTHREPORT);
-    	String instanceName = CMUtil.getInstanceNameFromPath(_path);
-    	//List<ZNRecord> reports = ZKUtil.getChildren(_zkClient, _path);
-    	healthStateChangeListener.onHealthChange(instanceName, healthReportList, changeContext);
+        HealthStateChangeListener healthStateChangeListener = (HealthStateChangeListener) _listener;
+        subscribeForChanges(changeContext, true, true); // TODO: figure out settings here
+        String instanceName = CMUtil.getInstanceNameFromPath(_path);
+        List<HealthStat> healthReportList = _accessor.getChildValues(HealthStat.class,
+                                                                     PropertyType.HEALTHREPORT,
+                                                                     instanceName);
+        // List<ZNRecord> reports = ZKUtil.getChildren(_zkClient, _path);
+        healthStateChangeListener.onHealthChange(instanceName,
+                                                 healthReportList,
+                                                 changeContext);
       }
 
       if (logger.isDebugEnabled())

@@ -65,6 +65,12 @@ public class LiveInstance extends ZNRecordDecorator
     _record.setSimpleField(LiveInstanceProperty.LEADER.toString(), leader);
   }
 
+  public String getModifiedTime()
+  {
+	  //TODO: unstub this
+	  return "0";
+  }
+  
   @Override
   public boolean isValid()
   {

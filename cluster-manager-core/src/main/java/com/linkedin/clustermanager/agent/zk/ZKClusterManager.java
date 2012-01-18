@@ -7,6 +7,7 @@ import static com.linkedin.clustermanager.CMConstants.ChangeType.IDEAL_STATE;
 import static com.linkedin.clustermanager.CMConstants.ChangeType.LIVE_INSTANCE;
 import static com.linkedin.clustermanager.CMConstants.ChangeType.MESSAGE;
 import static com.linkedin.clustermanager.CMConstants.ChangeType.MESSAGES_CONTROLLER;
+import static com.linkedin.clustermanager.CMConstants.ChangeType.HEALTH;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -32,6 +33,7 @@ import com.linkedin.clustermanager.ConfigChangeListener;
 import com.linkedin.clustermanager.ControllerChangeListener;
 import com.linkedin.clustermanager.CurrentStateChangeListener;
 import com.linkedin.clustermanager.ExternalViewChangeListener;
+import com.linkedin.clustermanager.HealthStateChangeListener;
 import com.linkedin.clustermanager.IdealStateChangeListener;
 import com.linkedin.clustermanager.InstanceType;
 import com.linkedin.clustermanager.LiveInstanceChangeListener;
@@ -226,6 +228,21 @@ public class ZKClusterManager implements ClusterManager
     _handlers.add(callbackHandler);
   }
 
+  @Override
+  public void addHealthStateChangeListener(
+	  HealthStateChangeListener listener, String instanceName) 
+  {
+	  System.out.println("ZKClusterManager.addHealthStateChangeListener()");
+	  //TODO: re-form this for stats checking
+	  final String path = CMUtil.getHealthPath(_clusterName, instanceName);
+
+	    CallbackHandler callbackHandler = createCallBackHandler(path, listener,
+	        new EventType[]
+	        { EventType.NodeChildrenChanged, EventType.NodeDataChanged, 
+	    		EventType.NodeDeleted, EventType.NodeCreated }, HEALTH);
+	    _handlers.add(callbackHandler);
+  }
+  
   @Override
   public void addExternalViewChangeListener(ExternalViewChangeListener listener)
   {

@@ -246,6 +246,8 @@ public class Mocks
       return null;
     }
 
+	
+
     @Override
     public String getVersion()
     {
@@ -256,6 +258,15 @@ public class Mocks
     {
       _version = version;
     }
+
+	@Override
+	public void addHealthStateChangeListener(
+			HealthStateChangeListener listener, String instanceName)
+			throws Exception {
+		// TODO Auto-generated method stub
+		
+	}
+    
   }
 
   public static class MockAccessor implements ClusterDataAccessor

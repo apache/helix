@@ -14,11 +14,13 @@ import com.linkedin.clustermanager.ConfigChangeListener;
 import com.linkedin.clustermanager.ControllerChangeListener;
 import com.linkedin.clustermanager.CurrentStateChangeListener;
 import com.linkedin.clustermanager.ExternalViewChangeListener;
+import com.linkedin.clustermanager.HealthStateChangeListener;
 import com.linkedin.clustermanager.IdealStateChangeListener;
 import com.linkedin.clustermanager.LiveInstanceChangeListener;
 import com.linkedin.clustermanager.MessageListener;
 import com.linkedin.clustermanager.NotificationContext;
 import com.linkedin.clustermanager.PropertyType;
+import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.controller.stages.BestPossibleStateCalcStage;
 import com.linkedin.clustermanager.controller.stages.ClusterEvent;
 import com.linkedin.clustermanager.controller.stages.CompatibilityCheckStage;
@@ -28,9 +30,11 @@ import com.linkedin.clustermanager.controller.stages.MessageGenerationPhase;
 import com.linkedin.clustermanager.controller.stages.MessageSelectionStage;
 import com.linkedin.clustermanager.controller.stages.ReadClusterDataStage;
 import com.linkedin.clustermanager.controller.stages.ResourceComputationStage;
+import com.linkedin.clustermanager.controller.stages.StatsAggregationStage;
 import com.linkedin.clustermanager.controller.stages.TaskAssignmentStage;
 import com.linkedin.clustermanager.model.CurrentState;
 import com.linkedin.clustermanager.model.ExternalView;
+import com.linkedin.clustermanager.model.HealthStat;
 import com.linkedin.clustermanager.model.IdealState;
 import com.linkedin.clustermanager.model.InstanceConfig;
 import com.linkedin.clustermanager.model.LiveInstance;
@@ -62,7 +66,8 @@ public class GenericClusterController implements
     MessageListener,
     CurrentStateChangeListener,
     ExternalViewChangeListener,
-    ControllerChangeListener
+    ControllerChangeListener,
+    HealthStateChangeListener
 {
   private static final Logger logger =
       Logger.getLogger(GenericClusterController.class.getName());
@@ -137,6 +142,14 @@ public class GenericClusterController implements
       registry.register("externalView", dataRefresh);
       registry.register("resume", dataRefresh, rebalancePipeline, externalViewPipeline);
 
+      //XXX: Alert pipeline commented out while merging with trunk
+      /*
+      // health stats pipeline
+   	  Pipeline healthStatsAggregationPipeline = new Pipeline();
+   	  StatsAggregationStage statsStage = new StatsAggregationStage();
+   	  healthStatsAggregationPipeline.addStage(statsStage);
+   	  registry.register("healthChange", dataRefresh, healthStatsAggregationPipeline);
+      */
       return registry;
     }
   }
@@ -215,6 +228,20 @@ public class GenericClusterController implements
     logger.info("END: GenericClusterController.onStateChange()");
   }
 
+  @Override
+	public void onHealthChange(String instanceName, List<HealthStat> reports,
+	    NotificationContext changeContext)
+	{
+		logger.info("START: GenericClusterController.onHealthChange()");
+		ClusterEvent event = new ClusterEvent("healthChange");
+		event.addAttribute("clustermanager", changeContext.getManager());
+		event.addAttribute("instanceName", instanceName);
+		event.addAttribute("changeContext", changeContext);
+		event.addAttribute("eventData", reports);
+		handleEvent(event);
+		logger.info("END: GenericClusterController.onHealthChange()");
+	}
+  
   @Override
   public void onMessage(String instanceName,
                         List<Message> messages,
@@ -351,6 +378,7 @@ public class GenericClusterController implements
                                                                    instanceName,
                                                                    clientSessionId);
           changeContext.getManager().addMessageListener(this, instanceName);
+          changeContext.getManager().addHealthStateChangeListener(this, instanceName);
         }
         catch (Exception e)
         {
@@ -365,4 +393,5 @@ public class GenericClusterController implements
       // TODO shi call removeListener
     }
   }
+
 }

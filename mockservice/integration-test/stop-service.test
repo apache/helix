@@ -1,6 +1,6 @@
 #!/bin/bash
 
-PORT="8900"
+PORT="12918"
 COMMAND="stopservice"
 
 curl -s -H "Content-Type:avro/json" http://localhost:$PORT/$COMMAND/

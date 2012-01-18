@@ -26,7 +26,9 @@ public enum PropertyType
   PAUSE(Type.CONTROLLER, false, false, true),
   MESSAGES_CONTROLLER(Type.CONTROLLER, true, false, true),
   STATUSUPDATES_CONTROLLER(Type.CONTROLLER, true, true, true),
-  ERRORS_CONTROLLER(Type.CONTROLLER,true, true, true);
+  ERRORS_CONTROLLER(Type.CONTROLLER,true, true, true),
+  PERSISTENTSTATS(Type.CONTROLLER, true, false, false, false),
+  ALERTS(Type.CONTROLLER, true, false, false, false);
   // @formatter:on
 
   Type type;
@@ -69,8 +71,8 @@ public enum PropertyType
     this.isPersistent = isPersistent;
     this.mergeOnUpdate = mergeOnUpdate;
     this.updateOnlyOnExists = updateOnlyOnExists;
-		this.createOnlyIfAbsent = createOnlyIfAbsent;
-		this.isCached = isCached;
+	this.createOnlyIfAbsent = createOnlyIfAbsent;
+	this.isCached = isCached;
   }
 
   public boolean isCreateOnlyIfAbsent()

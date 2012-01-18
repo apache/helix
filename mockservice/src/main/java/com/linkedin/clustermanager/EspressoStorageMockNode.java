@@ -15,6 +15,7 @@ import com.linkedin.clustermanager.EspressoStorageMockStateModelFactory;
 //import com.linkedin.clustermanager.EspressoStorageMockStateModelFactory.EspressoStorageMockStateModel;
 //import com.linkedin.clustermanager.healthcheck.ParticipantHealthReportCollector;
 import com.linkedin.clustermanager.healthcheck.PerformanceHealthReportProvider;
+import com.linkedin.clustermanager.healthcheck.StatHealthReportProvider;
 import com.linkedin.clustermanager.model.IdealState;
 import com.linkedin.clustermanager.model.Message.MessageType;
 import com.linkedin.clustermanager.participant.StateMachineEngine;
@@ -30,7 +31,8 @@ public class EspressoStorageMockNode extends MockNode {
 	private final String COUNT_STAT_TYPE = "count";
 	private final String REPORT_NAME = "ParticipantStats";
 	
-	PerformanceHealthReportProvider _healthProvider;
+	StatHealthReportProvider _healthProvider;
+	//PerformanceHealthReportProvider _healthProvider;
 	EspressoStorageMockStateModelFactory _stateModelFactory;
 
 	HashSet<String>_partitions;
@@ -51,8 +53,12 @@ public class EspressoStorageMockNode extends MockNode {
 				.registerMessageHandlerFactory(
 						MessageType.STATE_TRANSITION.toString(),
 						genericStateMachineHandler);
+        /*
+		_healthProvider = new StatHealthReportProvider();
+		_healthProvider.setReportName(REPORT_NAME);
+       */
 
-		_healthProvider = new PerformanceHealthReportProvider();
+		_healthProvider = new StatHealthReportProvider();
 		//_healthProvider.setReportName(REPORT_NAME);
 
 		_cmConnector.getManager().getHealthReportCollector()
@@ -67,6 +73,14 @@ public class EspressoStorageMockNode extends MockNode {
 		//logger.debug("set partition getter thread to run");
 	}
 
+	public String formStatName(String dbName, String partitionName, String metricName)
+	{
+		String statName;
+		statName = "db"+dbName+".partition"+partitionName+"."+metricName;
+		return statName;
+		
+	}
+	
 	public String doGet(String dbId, String key) {
 		String partition = getPartitionName(dbId, getKeyPartition(dbId, key));
 		if (!isPartitionOwnedByNode(partition)) {
@@ -76,6 +90,7 @@ public class EspressoStorageMockNode extends MockNode {
 
 		//_healthProvider.submitIncrementPartitionRequestCount(partition);
 		//_healthProvider.incrementPartitionStat(GET_STAT_NAME, partition);
+		_healthProvider.incrementStat(formStatName(dbId, partition, "getCount"), String.valueOf(System.currentTimeMillis()));
 		return _keyValueMap.get(key);
 	}
 	
@@ -90,6 +105,8 @@ public class EspressoStorageMockNode extends MockNode {
 		//_healthProvider.incrementPartitionStat(SET_STAT_NAME, partition);
 		//_healthProvider.incrementStat(SET_STAT_NAME, COUNT_STAT_TYPE, 
 		//		dbId, partition, "FIXMENODENAME", String.valueOf(System.currentTimeMillis()));
+		_healthProvider.incrementStat(formStatName(dbId, partition, "putCount"), String.valueOf(System.currentTimeMillis()));
+		
 		_keyValueMap.put(key, value);
 	}
 	
@@ -100,7 +117,7 @@ public class EspressoStorageMockNode extends MockNode {
 	private boolean isPartitionOwnedByNode(String partitionName) {
 		Map<String, StateModel> stateModelMap = _stateModelFactory
 				.getStateModelMap();
-		logger.debug("size: "+stateModelMap.size());
+		logger.debug("state model map size: "+stateModelMap.size());
 		
 		return (stateModelMap.keySet().contains(partitionName));
 	}

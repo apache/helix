@@ -2,11 +2,14 @@ package com.linkedin.clustermanager.agent.zk;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 
 import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterManagementService;
+import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerException;
 import com.linkedin.clustermanager.PropertyPathConfig;
 import com.linkedin.clustermanager.PropertyType;
@@ -20,6 +23,10 @@ import com.linkedin.clustermanager.model.InstanceConfig;
 import com.linkedin.clustermanager.model.LiveInstance;
 import com.linkedin.clustermanager.model.StateModelDefinition;
 import com.linkedin.clustermanager.util.CMUtil;
+import com.linkedin.clustermanager.alerts.AlertsHolder;
+import com.linkedin.clustermanager.alerts.StatsHolder;
+import com.linkedin.clustermanager.model.Alerts;
+import com.linkedin.clustermanager.model.PersistentStats;
 
 public class ZKClusterManagementTool implements ClusterManagementService
 {
@@ -368,4 +375,72 @@ public class ZKClusterManagementTool implements ClusterManagementService
                                 PropertyType.STATEMODELDEFS,
                                 stateModelName);
   }
-}
+
+  @Override
+  public void addStat(String clusterName, String statName)
+  {
+	  if(!ZKUtil.isClusterSetup(clusterName, _zkClient))
+	  {
+		  throw new ClusterManagerException("cluster " + clusterName
+				  + " is not setup yet");
+	  }
+	  
+	  String persistentStatsPath = CMUtil.getPersistentStatsPath(clusterName);
+	  ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
+	  if (!_zkClient.exists(persistentStatsPath)) {		  
+		  //ZKUtil.createChildren(_zkClient, persistentStatsPath, statsRec);
+		  _zkClient.createPersistent(persistentStatsPath);
+	  }
+	  ZNRecord statsRec = accessor.getProperty(PropertyType.PERSISTENTSTATS);
+	  if (statsRec == null) {
+		  statsRec = new ZNRecord(PersistentStats.nodeName); //TODO: fix naming of this record, if it matters
+	  }
+	  
+	  Map<String,Map<String,String>> currStatMap = statsRec.getMapFields();
+	  Map<String,Map<String,String>> newStatMap = StatsHolder.parseStat(statName);
+	  for (String newStat : newStatMap.keySet()) {
+		 if (!currStatMap.containsKey(newStat)) {
+			 currStatMap.put(newStat, newStatMap.get(newStat));
+		 }
+	  }
+	  statsRec.setMapFields(currStatMap);
+	  accessor.setProperty(PropertyType.PERSISTENTSTATS, statsRec); 
+	}
+
+  @Override
+  public void addAlert(String clusterName, String alertName) 
+  {
+	  if(!ZKUtil.isClusterSetup(clusterName, _zkClient))
+	  {
+		  throw new ClusterManagerException("cluster " + clusterName
+				  + " is not setup yet");
+	  }
+	  
+	  String alertsPath = CMUtil.getAlertsPath(clusterName);
+	  ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
+	  if (!_zkClient.exists(alertsPath)) {		  
+		  //ZKUtil.createChildren(_zkClient, alertsPath, alertsRec);
+		  _zkClient.createPersistent(alertsPath);
+	  }
+	  ZNRecord alertsRec = accessor.getProperty(PropertyType.ALERTS);
+	  if (alertsRec == null)
+	  {
+		  alertsRec = new ZNRecord(Alerts.nodeName); //TODO: fix naming of this record, if it matters
+	  }
+	  
+	  Map<String,Map<String,String>> currAlertMap = alertsRec.getMapFields();
+	  StringBuilder newStatName = new StringBuilder();
+	  Map<String,String> newAlertMap = new HashMap<String,String>();
+	  //use AlertsHolder to get map of new stats and map for this alert
+	  AlertsHolder.parseAlert(alertName, newStatName, newAlertMap);
+	  
+	  //add stat
+	  addStat(clusterName, newStatName.toString());
+	  //add alert
+	  currAlertMap.put(alertName, newAlertMap);
+	  
+	  alertsRec.setMapFields(currAlertMap);
+	  accessor.setProperty(PropertyType.ALERTS, alertsRec); 
+  }
+  
+  }

@@ -44,6 +44,10 @@ public interface ClusterManagementService
 
   void dropResourceGroup(String clusterName, String resourceGroup);
 
+  void addStat(String clusterName, String statName);
+  
+  void addAlert(String clusterName, String alertName);
+  
   List<String> getStateModelDefs(String clusterName);
 
   StateModelDefinition getStateModelDef(String clusterName, String stateModelName);

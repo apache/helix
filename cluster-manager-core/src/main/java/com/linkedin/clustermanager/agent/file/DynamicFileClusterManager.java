@@ -20,6 +20,7 @@ import com.linkedin.clustermanager.ConfigChangeListener;
 import com.linkedin.clustermanager.ControllerChangeListener;
 import com.linkedin.clustermanager.CurrentStateChangeListener;
 import com.linkedin.clustermanager.ExternalViewChangeListener;
+import com.linkedin.clustermanager.HealthStateChangeListener;
 import com.linkedin.clustermanager.IdealStateChangeListener;
 import com.linkedin.clustermanager.InstanceType;
 import com.linkedin.clustermanager.LiveInstanceChangeListener;
@@ -278,6 +279,14 @@ public class DynamicFileClusterManager implements ClusterManager
   {
     return _instanceType;
   }
+
+
+@Override
+public void addHealthStateChangeListener(HealthStateChangeListener listener,
+		String instanceName) throws Exception {
+	// TODO Auto-generated method stub
+	
+}
 
   @Override
   public String getVersion()

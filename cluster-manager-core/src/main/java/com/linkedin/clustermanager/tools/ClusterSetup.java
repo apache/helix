@@ -65,6 +65,11 @@ public class ClusterSetup
   // enable / disable Instances
   public static final String enableInstance        = "enableInstance";
   public static final String help                  = "help";
+  
+  // stats /alerts
+  public static final String addStat               = "addStat";
+  public static final String addAlert              = "addAlert";
+  
   static Logger              _logger               = Logger.getLogger(ClusterSetup.class);
   String                     _zkServerAddress;
   ZkClient _zkClient;
@@ -482,6 +487,21 @@ public class ClusterSetup
     listStateModelOption.setArgs(2);
     listStateModelOption.setRequired(false);
     listStateModelOption.setArgName("clusterName stateModelName");
+    
+    Option addStatOption =
+            OptionBuilder.withLongOpt(addStat)
+                         .withDescription("Add a persistent stat")
+                         .create();
+        addStatOption.setArgs(2);
+        addStatOption.setRequired(false);
+        addStatOption.setArgName("clusterName statName");
+    Option addAlertOption =
+    		OptionBuilder.withLongOpt(addAlert)
+    		.withDescription("Add an alert")
+    		.create();
+    addAlertOption.setArgs(2);
+    addAlertOption.setRequired(false);
+    addAlertOption.setArgName("clusterName alertName");
 
     OptionGroup group = new OptionGroup();
     group.setRequired(true);
@@ -503,7 +523,9 @@ public class ClusterSetup
     group.addOption(addStateModelDefOption);
     group.addOption(listStateModelsOption);
     group.addOption(listStateModelOption);
-
+    group.addOption(addStatOption);
+    group.addOption(addAlertOption);
+    
     Options options = new Options();
     options.addOption(helpOption);
     options.addOption(zkServerOption);
@@ -752,6 +774,20 @@ public class ClusterSetup
                                                                       resourceGroupName,
                                                                       new IdealState(idealStateRecord));
       return 0;
+    }
+    else if (cmd.hasOption(addStat))
+    {
+    	String clusterName = cmd.getOptionValues(addStat)[0];
+    	String statName = cmd.getOptionValues(addStat)[1];
+    	
+    	setupTool.getClusterManagementTool().addStat(clusterName, statName);
+    }
+    else if (cmd.hasOption(addAlert))
+    {
+    	String clusterName = cmd.getOptionValues(addAlert)[0];
+    	String alertName = cmd.getOptionValues(addAlert)[1];
+    	
+    	setupTool.getClusterManagementTool().addAlert(clusterName, alertName);
     }
     else if (cmd.hasOption(help))
     {

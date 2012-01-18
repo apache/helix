@@ -6,11 +6,13 @@ import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.channels.ReadableByteChannel;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.restlet.Context;
+import org.restlet.data.Form;
 import org.restlet.data.MediaType;
 import org.restlet.data.Method;
 import org.restlet.data.Request;
@@ -132,7 +134,18 @@ public class EspressoResource extends Resource {
 	 public void storeRepresentation(Representation entity) throws ResourceException {
 		 logger.debug("in storeRepresentation");
 		 StringRepresentation presentation = null;
-		    try
+		// try {
+		 Form requestHeaders = (Form) getRequest().getAttributes().get("org.restlet.http.headers");
+		 Map<String, String> headerMap = requestHeaders.getValuesMap();
+		 logger.debug("HEADERS MAP");
+		 for (String key : headerMap.keySet()) {
+			 logger.debug(key+" : "+headerMap.get(key));
+		 }
+	//	} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			//e1.printStackTrace();
+		//}   
+		 try
 		    {
 		    	logger.debug("in PutResource handle");
 		    	String databaseId = (String)getRequest().getAttributes().get(MockEspressoService.DATABASENAME);

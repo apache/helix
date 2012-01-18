@@ -85,10 +85,11 @@ public class ParticipantHealthReportCollectorImpl implements
     }
   }
 
+  //XXX: think about getting rid of method argument
   @Override
   public void reportHealthReportMessage(ZNRecord healthCheckInfoUpdate)
   {
-    // Send message to cluster manager server
+    transmitHealthReports();
   }
 
   public void stop()
@@ -104,11 +105,45 @@ public class ParticipantHealthReportCollectorImpl implements
     }
   }
 
+  public synchronized void transmitHealthReports()
+  {
+	  synchronized (_healthReportProviderList)
+      {
+        for (HealthReportProvider provider : _healthReportProviderList)
+        {
+          try
+          {
+            Map<String, String> report = provider.getRecentHealthReport();
+            Map<String, Map<String, String>> partitionReport = provider
+                .getRecentPartitionHealthReport();
+            ZNRecord record = new ZNRecord(provider.getReportName());
+            if (report != null) {
+            	record.setSimpleFields(report);
+            }
+            if (partitionReport != null) {
+            	record.setMapFields(partitionReport);
+            }
+            
+            _clusterManager.getDataAccessor().setProperty(
+                PropertyType.HEALTHREPORT, record, _instanceName,
+                record.getId());
+            //reset stats (for now just the partition stats)
+            provider.resetStats();
+          } catch (Exception e)
+          {
+            _logger.error(e);
+          }
+        }
+      }
+  }
+  
   class HealthCheckInfoReportingTask extends TimerTask
   {
     @Override
     public void run()
     {
+    	transmitHealthReports();
+    	/*
       synchronized (_healthReportProviderList)
       {
         for (HealthReportProvider provider : _healthReportProviderList)
@@ -137,6 +172,7 @@ public class ParticipantHealthReportCollectorImpl implements
           }
         }
       }
+      */
     }
   }
 }

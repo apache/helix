@@ -3,6 +3,7 @@ package com.linkedin.clustermanager.controller.stages;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -10,12 +11,16 @@ import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.PropertyType;
+import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.model.Alerts;
 import com.linkedin.clustermanager.ZNRecordDecorator;
 import com.linkedin.clustermanager.model.CurrentState;
+import com.linkedin.clustermanager.model.HealthStat;
 import com.linkedin.clustermanager.model.IdealState;
 import com.linkedin.clustermanager.model.InstanceConfig;
 import com.linkedin.clustermanager.model.LiveInstance;
 import com.linkedin.clustermanager.model.Message;
+import com.linkedin.clustermanager.model.PersistentStats;
 import com.linkedin.clustermanager.model.StateModelDefinition;
 
 /**
@@ -27,12 +32,17 @@ import com.linkedin.clustermanager.model.StateModelDefinition;
  */
 public class ClusterDataCache
 {
+
   Map<String, LiveInstance> _liveInstanceMap;
   Map<String, IdealState> _idealStateMap;
   Map<String, StateModelDefinition> _stateModelDefMap;
   Map<String, InstanceConfig> _instanceConfigMap;
   final Map<String, Map<String, Map<String, CurrentState>>> _currentStateMap = new HashMap<String, Map<String, Map<String, CurrentState>>>();
   final Map<String, Map<String, Message>> _messageMap = new HashMap<String, Map<String, Message>>();
+  final Map<String, Map<String, HealthStat>> _healthStatMap = new HashMap<String, Map<String, HealthStat>>();
+  private HealthStat _globalStats;  //DON'T THINK I WILL USE THIS ANYMORE
+  private PersistentStats _persistentStats;
+  private Alerts _alerts;
 
   private static final Logger logger = Logger.getLogger(ClusterDataCache.class.getName());
 
@@ -82,6 +92,53 @@ public class ClusterDataCache
                                                                                 sessionId)));
     }
 
+    //_healthStatMap = new HashMap<String, List<HealthStat>>();
+    for (String instanceName : _liveInstanceMap.keySet())
+    {
+    	
+    	 _healthStatMap.put(instanceName, ZNRecordDecorator
+                 .convertTypedListToTypedMap(dataAccessor.getChildValues(HealthStat.class,
+                                                                         PropertyType.HEALTHREPORT,
+                                                                         instanceName)));
+    	/*
+    	LiveInstance liveInstance = _liveInstanceMap.get(instanceName);
+        String sessionId = liveInstance.getSessionId();
+        if (!_healthStatMap.containsKey(instanceName))
+        {
+          _healthStatMap.put(instanceName, new HashMap<String, HealthStat>());
+        }
+        _healthStatMap.get(instanceName).put(sessionId,  ZNRecordDecorator
+        		      .convertTypedListToTypedMap(dataAccessor.getChildValues(HealthStat.class,
+        		    		  												  PropertyType.HEALTHREPORT,
+        		    		  												  instanceName,
+        		    		  												  sessionId)));
+        
+        dataAccessor.<HealthStat>refreshChildValues(_healthStatMap.get(instanceName),
+                HealthStat.class, PropertyType.HEALTHREPORT, instanceName);
+        */        
+    }
+
+    //TODO: get rid of ZNRecord here!
+    try {
+    	ZNRecord statsRec = dataAccessor.getProperty(PropertyType.PERSISTENTSTATS);
+    	if (statsRec != null) {
+    		_persistentStats = new PersistentStats(statsRec);
+    	}
+    } catch (Exception e) {
+    	logger.debug("No persistent stats found: "+e);
+    }
+    
+
+    try {
+    	ZNRecord alertsRec = dataAccessor.getProperty(PropertyType.ALERTS);
+    	if (alertsRec != null) {
+    		_alerts = new Alerts(alertsRec);
+    	}
+    } catch (Exception e) {
+    	logger.debug("No alerts found: "+e);
+    }
+     
+
     return true;
   }
 
@@ -114,6 +171,35 @@ public class ClusterDataCache
     }
   }
 
+  public HealthStat getGlobalStats()
+  {
+	  return _globalStats;
+  }
+
+  public PersistentStats getPersistentStats() 
+  {
+	  return _persistentStats;
+  }
+  
+  public Alerts getAlerts()
+  {
+	  return _alerts;
+  }
+  
+  public Map<String, HealthStat> getHealthStats(String instanceName)
+  {
+	  Map<String, HealthStat> list = _healthStatMap.get(instanceName);
+	  if (list != null)
+	    {
+	      return list;
+	    } else
+	    {
+	      //return Collections.emptyList();
+	      return Collections.emptyMap();
+	    }
+	  
+  }
+  
   public StateModelDefinition getStateModelDef(String stateModelDefRef)
   {
 

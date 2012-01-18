@@ -285,13 +285,27 @@ public class FileClusterManagementTool implements ClusterManagementService
 
   @Override
   public void resetPartition(String clusterName,
-                             String instanceName,
-                             String resourceGroupName,
-                             String partition)
+		  String instanceName,
+		  String resourceGroupName,
+		  String partition)
   {
-    // TODO Auto-generated method stub
-    throw new UnsupportedOperationException(
-        "resetPartition() is NOT supported by FileClusterManagementTool");
+	  // TODO Auto-generated method stub
+	  throw new UnsupportedOperationException(
+			  "resetPartition() is NOT supported by FileClusterManagementTool");
+  }
+
+  @Override
+  public void addStat(String clusterName, String statName) {
+	  throw new UnsupportedOperationException(
+			  "addStat() is NOT supported by FileClusterManagementTool");
+
+  }
+
+  @Override
+  public void addAlert(String clusterName, String alertName) {
+	  throw new UnsupportedOperationException(
+			  "addAlert() is NOT supported by FileClusterManagementTool");
+
   }
 
 }

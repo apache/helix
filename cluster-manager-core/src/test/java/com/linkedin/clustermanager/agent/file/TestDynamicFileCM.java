@@ -40,12 +40,16 @@ public class TestDynamicFileCM
       // TODO Auto-generated catch block
       e.printStackTrace();
     }
-    FileBasedDataAccessor accessor = new FileBasedDataAccessor(store, clusterName);
-    DynamicFileClusterManager controller = new DynamicFileClusterManager(clusterName, controllerName,
-                                    InstanceType.CONTROLLER, accessor);
+//    FileBasedDataAccessor accessor = new FileBasedDataAccessor(store, clusterName);
+    DynamicFileClusterManager controller = new DynamicFileClusterManager(clusterName,
+                                                                         controllerName,
+                                                                         InstanceType.CONTROLLER,
+                                                                         store);
 
-    DynamicFileClusterManager participant = new DynamicFileClusterManager(clusterName, instanceName,
-                                    InstanceType.PARTICIPANT, accessor);
+    DynamicFileClusterManager participant = new DynamicFileClusterManager(clusterName,
+                                                                          instanceName,
+                                                                          InstanceType.PARTICIPANT,
+                                                                          store);
 
     AssertJUnit.assertEquals(instanceName, participant.getInstanceName());
 

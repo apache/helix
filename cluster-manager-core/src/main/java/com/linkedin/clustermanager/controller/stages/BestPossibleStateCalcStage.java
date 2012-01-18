@@ -149,6 +149,8 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
         else if (disabledInstancesForResource.contains(instance))
         {
           // if a node is disabled, put it into initial state (OFFLINE)
+          // TODO if the node or resource on the node is in ERROR state
+          //  shall we reset the current state or let participant provide ERROR->OFFLINE transition?
           instanceStateMap.put(instance, stateModelDef.getInitialState());
         }
 

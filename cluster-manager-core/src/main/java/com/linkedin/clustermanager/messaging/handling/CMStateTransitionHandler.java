@@ -213,7 +213,7 @@ public class CMStateTransitionHandler extends MessageHandler
       {
         StateTransitionError error = new StateTransitionError(
             ErrorType.INTERNAL, ErrorCode.ERROR, exception);
-        
+
         _stateModel.rollbackOnError(message, context, error);
         currentStateDelta.setState(stateUnitKey, "ERROR");
         _stateModel.updateState("ERROR");
@@ -247,7 +247,7 @@ public class CMStateTransitionHandler extends MessageHandler
                                 manager.getSessionId(),
                                 stateUnitGroup);
       }
-    } 
+    }
     catch (Exception e)
     {
       logger.error("Error when updating the state ", e);
@@ -276,7 +276,7 @@ public class CMStateTransitionHandler extends MessageHandler
                                   "Message handling task begin execute",
                                   accessor);
         message.setExecuteStartTimeStamp(new Date().getTime());
-                
+
         Exception exception = null;
         try
         {
@@ -289,18 +289,8 @@ public class CMStateTransitionHandler extends MessageHandler
         }
         catch (Exception e)
         {
-          String errorMessage = "Exception while executing a state transition task. " + e;
-
-          // Hack: avoid throwing mock exception for testing code
-          if (e instanceof InvocationTargetException
-              && e.getCause().getMessage().startsWith("IGNORABLE"))
-          {
-            logger.error(errorMessage + ". Cause:" + e.getCause().getMessage());
-          }
-          else
-          {
-            logger.error(errorMessage, e);
-          }
+          String errorMessage = "Exception while executing a state transition task. ";
+          logger.error(errorMessage + ". " + e.getMessage(), e);
           _statusUpdateUtil.logError(message,
                                      CMStateTransitionHandler.class,
                                      e,
@@ -309,7 +299,7 @@ public class CMStateTransitionHandler extends MessageHandler
           taskResult.setSuccess(false);
           taskResult.setMessage(e.toString());
           taskResult.setException(e);
-          
+
           exception = e;
         }
         postExecutionMessage(manager, message, context, taskResult, exception);
@@ -406,7 +396,7 @@ public class CMStateTransitionHandler extends MessageHandler
     String stateUnitKey = _message.getStateUnitKey();
     String stateUnitGroup = _message.getStateUnitGroup();
     CurrentState currentStateDelta = new CurrentState(stateUnitGroup);
-    
+
     StateTransitionError error = new StateTransitionError(
         type, code, e);
     _stateModel.rollbackOnError(_message, _notificationContext, error);
@@ -415,7 +405,7 @@ public class CMStateTransitionHandler extends MessageHandler
     {
       currentStateDelta.setState(stateUnitKey, "ERROR");
       _stateModel.updateState("ERROR");
-  
+
       currentStateDelta.setResourceGroup(stateUnitKey, _message.getStateUnitGroup());
       accessor.updateProperty(PropertyType.CURRENTSTATES,
           currentStateDelta,

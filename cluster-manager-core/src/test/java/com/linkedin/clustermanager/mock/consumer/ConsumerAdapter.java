@@ -12,6 +12,7 @@ import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerFactory;
 import com.linkedin.clustermanager.ExternalViewChangeListener;
+import com.linkedin.clustermanager.InstanceType;
 import com.linkedin.clustermanager.NotificationContext;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.model.ExternalView;
@@ -31,8 +32,13 @@ public class ConsumerAdapter implements ExternalViewChangeListener
     relayConsumers = new ConcurrentHashMap<String, RelayConsumer>();
     relayConfigs = new ConcurrentHashMap<String, RelayConfig>();
 
-    relayClusterManager = ClusterManagerFactory.getZKBasedManagerForSpectator(
-        clusterName, zkServer);
+//    relayClusterManager = ClusterManagerFactory.getZKBasedManagerForSpectator(
+//        clusterName, zkServer);
+    relayClusterManager = ClusterManagerFactory.getZKClusterManager(clusterName,
+                                                                    null,
+                                                                    InstanceType.SPECTATOR,
+                                                                    zkServer);
+
     relayClusterManager.connect();
     relayClusterManager.addExternalViewChangeListener(this);
 

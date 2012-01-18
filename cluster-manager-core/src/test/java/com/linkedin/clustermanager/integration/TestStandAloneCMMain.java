@@ -25,8 +25,7 @@ public class TestStandAloneCMMain extends ZkStandAloneCMTestBase
           TestHelper.startClusterController(CLUSTER_NAME,
                                             controllerName,
                                             ZK_ADDR,
-                                            ClusterManagerMain.STANDALONE,
-                                            null);
+                                            ClusterManagerMain.STANDALONE);
       _startCMResultMap.put(controllerName, startResult);
     }
 

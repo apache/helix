@@ -7,7 +7,6 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import org.apache.log4j.Logger;
 
@@ -32,7 +31,6 @@ import com.linkedin.clustermanager.healthcheck.ParticipantHealthReportCollector;
 import com.linkedin.clustermanager.model.IdealState;
 import com.linkedin.clustermanager.model.InstanceConfig.InstanceConfigProperty;
 import com.linkedin.clustermanager.model.Message;
-import com.linkedin.clustermanager.model.Message.MessageType;
 import com.linkedin.clustermanager.participant.statemachine.StateModel;
 import com.linkedin.clustermanager.participant.statemachine.StateModelFactory;
 import com.linkedin.clustermanager.store.PropertyStore;
@@ -55,40 +53,40 @@ public class StaticFileClusterManager implements ClusterManager
   public static final String configFile = "configFile";
 
   public StaticFileClusterManager(String clusterName, String instanceName,
-      InstanceType instanceType, String staticClusterConfigFile)
+      InstanceType instanceType, String clusterViewFile)
   {
-    this._clusterName = clusterName;
-    this._instanceName = instanceName;
-    this._instanceType = instanceType;
+    _clusterName = clusterName;
+    _instanceName = instanceName;
+    _instanceType = instanceType;
     // _handlers = new ArrayList<CallbackHandlerForFile>();
 
-    this._clusterView = ClusterViewSerializer.deserialize(new File(
-        staticClusterConfigFile));
+    _clusterView = ClusterViewSerializer
+        .deserialize(new File(clusterViewFile));
   }
 
-  private static Message createSimpleMessage(ZNRecord idealStateRecord,
-      String stateUnitKey, String instanceName, String currentState,
-      String nextState)
-  {
-    String uuid = UUID.randomUUID().toString();
-    Message message = new Message(MessageType.STATE_TRANSITION, uuid);
-    message.setMsgId(uuid);
-    String hostName = "localhost"; // "UNKNOWN";
-
-    message.setSrcName(hostName);
-    message.setTgtName(instanceName);
-    message.setMsgState("new");
-    message.setStateUnitKey(stateUnitKey);
-    message.setStateUnitGroup(idealStateRecord.getId());
-    message.setFromState(currentState);
-    message.setToState(nextState);
-
-    // String sessionId =
-    // _liveInstanceDataHolder.getSessionId(instanceName);
-    // message.setTgtSessionId(sessionId);
-    message.setTgtSessionId(StaticFileClusterManager._sessionId);
-    return message;
-  }
+//  private static Message createSimpleMessage(ZNRecord idealStateRecord,
+//      String stateUnitKey, String instanceName, String currentState,
+//      String nextState)
+//  {
+//    String uuid = UUID.randomUUID().toString();
+//    Message message = new Message(MessageType.STATE_TRANSITION, uuid);
+//    message.setMsgId(uuid);
+//    String hostName = "localhost"; // "UNKNOWN";
+//
+//    message.setSrcName(hostName);
+//    message.setTgtName(instanceName);
+//    message.setMsgState("new");
+//    message.setStateUnitKey(stateUnitKey);
+//    message.setStateUnitGroup(idealStateRecord.getId());
+//    message.setFromState(currentState);
+//    message.setToState(nextState);
+//
+//    // String sessionId =
+//    // _liveInstanceDataHolder.getSessionId(instanceName);
+//    // message.setTgtSessionId(sessionId);
+//    message.setTgtSessionId(StaticFileClusterManager._sessionId);
+//    return message;
+//  }
 
   // FIXIT
   // reorder the messages to reduce the possibility that a S->M message for a

@@ -124,7 +124,7 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
     {
       LOG.error("Fail to get cluster property clusterName: " + _clusterName +
                 " type:" + type +
-                " keys:" + keys + "\nexception: " + e);
+                " keys:" + keys, e);
     }
     finally
     {
@@ -147,7 +147,7 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
     catch (PropertyStoreException e)
     {
       LOG.error("Fail to remove instance property, "  +
-          " type:" + type + " keys:" + keys  + "\nexception:" + e);
+          " type:" + type + " keys:" + keys, e);
     }
     finally
     {
@@ -258,6 +258,7 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
   private void createOrUpdate(String path, ZNRecord record, boolean mergeOnUpdate)
       throws PropertyStoreException
   {
+    // TODO use PropertyStore's updateUntilSucceed() instead
     if (_store.exists(path))
     {
       ZNRecord curRecord = _store.getProperty(path);

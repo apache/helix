@@ -162,7 +162,7 @@ public class ZkIntegrationTestBase
     LOG.info("After session expiry sessionId = " + oldZookeeper.getSessionId());
   }
 
-  protected void simulateSessionExpiry(ZkClient zkClient) throws IOException,
+  protected static void simulateSessionExpiry(ZkClient zkClient) throws IOException,
       InterruptedException
   {
     IZkStateListener listener = new IZkStateListener()

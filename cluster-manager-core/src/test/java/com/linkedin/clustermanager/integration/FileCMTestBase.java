@@ -4,14 +4,16 @@ import java.util.Date;
 import java.util.List;
 
 import org.apache.log4j.Logger;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 
 import com.linkedin.clustermanager.ClusterManagementService;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerFactory;
+import com.linkedin.clustermanager.InstanceType;
 import com.linkedin.clustermanager.TestHelper;
 import com.linkedin.clustermanager.ZNRecord;
-import com.linkedin.clustermanager.agent.file.FileBasedDataAccessor;
+import com.linkedin.clustermanager.agent.file.FileClusterManagementTool;
 import com.linkedin.clustermanager.controller.GenericClusterController;
 import com.linkedin.clustermanager.mock.storage.DummyProcess;
 import com.linkedin.clustermanager.model.IdealState;
@@ -32,54 +34,86 @@ import com.linkedin.clustermanager.tools.IdealStateCalculatorForStorageNode;
 public class FileCMTestBase
 {
   private static Logger logger = Logger.getLogger(FileCMTestBase.class);
-  protected static final String CLUSTER_NAME = "ESPRESSO_STORAGE";
+  protected final String CLUSTER_NAME = "CLUSTER_" + getShortClassName();
   private static final String TEST_DB = "TestDB";
   protected static final String STATE_MODEL = "MasterSlave";
   protected static final int NODE_NR = 5;
   protected static final int START_PORT = 12918;
   private final String ROOT_PATH = "/tmp/" + getShortClassName();
 
-  private static final PropertyJsonSerializer<ZNRecord> serializer = new PropertyJsonSerializer<ZNRecord>(
-      ZNRecord.class);
-  private static final PropertyJsonComparator<ZNRecord> comparator = new PropertyJsonComparator<ZNRecord>(
-      ZNRecord.class);
+//  private static final PropertyJsonSerializer<ZNRecord> serializer = new PropertyJsonSerializer<ZNRecord>(
+//      ZNRecord.class);
+//  private static final PropertyJsonComparator<ZNRecord> comparator = new PropertyJsonComparator<ZNRecord>(
+//      ZNRecord.class);
+//
+  protected final FilePropertyStore<ZNRecord> _fileStore
+    = new FilePropertyStore<ZNRecord>(new PropertyJsonSerializer<ZNRecord>(ZNRecord.class),
+                                      ROOT_PATH,
+                                      new PropertyJsonComparator<ZNRecord>(ZNRecord.class));
+//  protected final FileBasedDataAccessor _accessor = new FileBasedDataAccessor(
+//      _store, CLUSTER_NAME);
 
-  protected final FilePropertyStore<ZNRecord> _store = new FilePropertyStore<ZNRecord>(
-      serializer, ROOT_PATH, comparator);
-  protected final FileBasedDataAccessor _accessor = new FileBasedDataAccessor(
-      _store, CLUSTER_NAME);
   protected ClusterManager _manager;
   protected ClusterManagementService _mgmtTool;
 
   @BeforeClass()
-  public void beforeClass()
+  public void beforeClass() throws Exception
   {
-    _manager = ClusterManagerFactory.getFileBasedManagerForController(
-        CLUSTER_NAME, "controller_0", _accessor);
-    _mgmtTool = _manager.getClusterManagmentTool();
+//    _manager = ClusterManagerFactory.getFileBasedManagerForController(
+//        CLUSTER_NAME, "controller_0", _accessor);
+//    try
+//    {
+//      _manager = ClusterManagerFactory.getDynamicFileClusterManager(CLUSTER_NAME,
+//                                                                    "controller_0",
+//                                                                    InstanceType.CONTROLLER,
+//                                                                    _fileStore);
+//    }
+//    catch (Exception e)
+//    {
+//      // TODO Auto-generated catch block
+//      e.printStackTrace();
+//    }
+
+    _mgmtTool = new FileClusterManagementTool(_fileStore);
+        // _manager.getClusterManagmentTool();
 
     // setup cluster
     _mgmtTool.addCluster(CLUSTER_NAME, true);
-    _mgmtTool.addResourceGroup(CLUSTER_NAME, TEST_DB, 20, STATE_MODEL);
+    _mgmtTool.addResourceGroup(CLUSTER_NAME, TEST_DB, 10, STATE_MODEL);
     for (int i = 0; i < NODE_NR; i++)
     {
       addNodeToCluster(CLUSTER_NAME, "localhost", START_PORT + i);
     }
-    rebalanceStorageCluster(CLUSTER_NAME, TEST_DB, 3);
+    rebalanceStorageCluster(CLUSTER_NAME, TEST_DB, 2);
 
     // start dummy storage nodes
     for (int i = 0; i < NODE_NR; i++)
     {
-      DummyProcess process = new DummyProcess(null, CLUSTER_NAME, "localhost_"
-          + (START_PORT + i), null, 0, _accessor);
+//      DummyProcess process = new DummyProcess(null, CLUSTER_NAME, "localhost_"
+//          + (START_PORT + i), null, 0, _accessor);
+      DummyProcess process = new DummyProcess(null,
+                                              CLUSTER_NAME,
+                                              "localhost_" + (START_PORT + i),
+                                              "dynamic-file",
+                                              null,
+                                              0,
+                                              _fileStore);
       try
       {
         process.start();
-      } catch (Exception e)
+      }
+      catch (Exception e)
       {
         logger
-            .error("fail to start dummy stroage node for file-based cluster-manager", e);
+            .error("fail to start dummy participant using dynmaic file-based cluster-manager", e);
       }
+
+      _manager =
+          ClusterManagerFactory.getDynamicFileClusterManager(CLUSTER_NAME,
+                                                             "controller_0",
+                                                             InstanceType.CONTROLLER,
+                                                             _fileStore);
+
     }
 
     // start cluster manager controller
@@ -93,14 +127,13 @@ public class FileCMTestBase
       _manager.connect();
     } catch (Exception e)
     {
-      logger.error("fail to start file-based cluster-manager controller"
-          + "\nexception:" + e);
+      logger.error("fail to start controller using dynamic file-based cluster-manager ", e);
     }
 
     verifyCluster();
   }
 
-  // @AfterClass()
+  @AfterClass()
   public void afterClass() throws Exception
   {
     logger.info("START afterClass FileCMTestBase shutting down file-based cluster managers at "
@@ -154,9 +187,9 @@ public class FileCMTestBase
   {
     TestHelper.verifyWithTimeout("verifyBestPossAndExtViewFile",
                                  TEST_DB,
-                                 20,
+                                 10,
                                  "MasterSlave",
                                  TestHelper.<String>setOf(CLUSTER_NAME),
-                                 _store);
+                                 _fileStore);
   }
 }

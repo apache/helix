@@ -14,6 +14,7 @@ import org.apache.commons.cli.ParseException;
 
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerFactory;
+import com.linkedin.clustermanager.InstanceType;
 import com.linkedin.clustermanager.model.Message.MessageType;
 import com.linkedin.clustermanager.participant.StateMachineEngine;
 import com.linkedin.clustermanager.participant.statemachine.StateModel;
@@ -59,11 +60,22 @@ public class ExampleProcess
   public void start() throws Exception
   {
     if (_file == null)
-      manager = ClusterManagerFactory.getZKBasedManagerForParticipant(
-          clusterName, instanceName, zkConnectString);
+    {
+      manager = ClusterManagerFactory.getZKClusterManager(clusterName,
+                                                          instanceName,
+                                                          InstanceType.PARTICIPANT,
+                                                          zkConnectString);
+
+    }
     else
-      manager = ClusterManagerFactory.getFileBasedManagerForParticipant(
-          clusterName, instanceName, _file);
+    {
+      manager = ClusterManagerFactory.getStaticFileClusterManager(clusterName,
+                                                                  instanceName,
+                                                                  InstanceType.PARTICIPANT,
+                                                                  _file);
+
+    }
+
     if ("MasterSlave".equalsIgnoreCase(stateModelType))
     {
       stateModelFactory = new MasterSlaveStateModelFactory(delay);

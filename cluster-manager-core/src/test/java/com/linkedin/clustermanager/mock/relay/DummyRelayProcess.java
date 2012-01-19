@@ -14,8 +14,8 @@ import org.apache.commons.cli.ParseException;
 
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerFactory;
+import com.linkedin.clustermanager.InstanceType;
 import com.linkedin.clustermanager.NotificationContext;
-import com.linkedin.clustermanager.messaging.handling.CMTaskExecutor;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.Message.MessageType;
 import com.linkedin.clustermanager.participant.StateMachineEngine;
@@ -42,33 +42,42 @@ public class DummyRelayProcess
   private DummyStateModelFactory stateModelFactory;
   private StateMachineEngine genericStateMachineHandler;
 
-  private String _file = null;
+  private final String _clusterViewFile;
 
   public DummyRelayProcess(String zkConnectString, String clusterName,
-      String instanceName, String file)
+      String instanceName, String clusterViewFile)
   {
     this.zkConnectString = zkConnectString;
     this.clusterName = clusterName;
     this.instanceName = instanceName;
-    this._file = file;
+    this._clusterViewFile = clusterViewFile;
   }
 
   public void start() throws Exception
   {
-    if (_file == null)
-      manager = ClusterManagerFactory.getZKBasedManagerForParticipant(
-          clusterName, instanceName, zkConnectString);
+    if (_clusterViewFile == null)
+    {
+      manager = ClusterManagerFactory.getZKClusterManager(clusterName,
+                                                          instanceName,
+                                                          InstanceType.PARTICIPANT,
+                                                          zkConnectString);
+    }
     else
-      manager = ClusterManagerFactory.getFileBasedManagerForParticipant(
-          clusterName, instanceName, _file);
+    {
+      manager = ClusterManagerFactory.getStaticFileClusterManager(clusterName,
+                                                                  instanceName,
+                                                                  InstanceType.PARTICIPANT,
+                                                                  _clusterViewFile);
+
+    }
 
     stateModelFactory = new DummyStateModelFactory();
     genericStateMachineHandler.registerStateModelFactory("OnlineOffline", stateModelFactory);
     manager.getMessagingService().registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(), genericStateMachineHandler);
     manager.connect();
-    if (_file != null)
+    if (_clusterViewFile != null)
     {
-      ClusterStateVerifier.verifyFileBasedClusterStates(_file, instanceName,
+      ClusterStateVerifier.verifyFileBasedClusterStates(_clusterViewFile, instanceName,
           stateModelFactory);
 
     }

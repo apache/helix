@@ -10,6 +10,7 @@ import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerFactory;
+import com.linkedin.clustermanager.InstanceType;
 import com.linkedin.clustermanager.NotificationContext;
 import com.linkedin.clustermanager.mock.storage.DummyProcess.DummyLeaderStandbyStateModelFactory;
 import com.linkedin.clustermanager.mock.storage.DummyProcess.DummyOnlineOfflineStateModelFactory;
@@ -47,20 +48,20 @@ public class ErroneousDummyParticipant implements Stoppable, Runnable
     }
 
     private void throwExceptionInTransition(String fromState, String toState)
-        throws InterruptedException
+        throws RuntimeException
     {
       String transition = fromState + "-" + toState;
       if (_erroneousTransitions.contains(transition))
       {
-        String errMsg = "IGNORABLE: test throwing exception for partition " + _partition + " transitting from "
+        String errMsg = "IGNORABLE: testing throwing exception for partition " + _partition + " transitting from "
             + fromState + " to " + toState;
-        throw new InterruptedException(errMsg);
+        throw new RuntimeException(errMsg);
       }
     }
 
     @Transition(to="SLAVE",from="OFFLINE")
     public void onBecomeSlaveFromOffline(Message message, NotificationContext context)
-        throws InterruptedException
+        throws RuntimeException
     {
       LOG.info("Becoming SLAVE from OFFLINE");
       throwExceptionInTransition("OFFLINE", "SLAVE");
@@ -68,7 +69,7 @@ public class ErroneousDummyParticipant implements Stoppable, Runnable
 
     @Transition(to="MASTER",from="SLAVE")
     public void onBecomeMasterFromSlave(Message message, NotificationContext context)
-        throws InterruptedException
+        throws RuntimeException
     {
       LOG.info("Becoming MASTER from SLAVE");
       throwExceptionInTransition("SLAVE", "MASTER");
@@ -76,7 +77,7 @@ public class ErroneousDummyParticipant implements Stoppable, Runnable
 
     @Transition(to="SLAVE",from="MASTER")
     public void onBecomeSlaveFromMaster(Message message, NotificationContext context)
-        throws InterruptedException
+        throws RuntimeException
     {
       LOG.info("Becoming SLAVE from MASTER");
       throwExceptionInTransition("MASTER", "SLAVE");
@@ -84,7 +85,7 @@ public class ErroneousDummyParticipant implements Stoppable, Runnable
 
     @Transition(to="OFFLINE",from="SLAVE")
     public void onBecomeOfflineFromSlave(Message message, NotificationContext context)
-        throws InterruptedException
+        throws RuntimeException
     {
       LOG.info("Becoming OFFLINE from SLAVE");
       throwExceptionInTransition("SLAVE", "OFFLINE");
@@ -159,11 +160,10 @@ public class ErroneousDummyParticipant implements Stoppable, Runnable
   {
     try
     {
-      _manager =
-          ClusterManagerFactory.getZKBasedManagerForParticipant(_clusterName,
-                                                                _instanceName,
-                                                                _zkAddr,
-                                                                null);
+      _manager = ClusterManagerFactory.getZKClusterManager(_clusterName,
+                                                           _instanceName,
+                                                           InstanceType.PARTICIPANT,
+                                                           _zkAddr);
       _manager.connect();
 
       StateMachineEngine genericStateMachineHandler = new StateMachineEngine();

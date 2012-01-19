@@ -11,6 +11,7 @@ import org.testng.annotations.Test;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerException;
 import com.linkedin.clustermanager.ClusterManagerFactory;
+import com.linkedin.clustermanager.InstanceType;
 import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
 import com.linkedin.clustermanager.tools.ClusterSetup;
@@ -61,42 +62,41 @@ public class TestClusterManagerStartsup extends ZkStandAloneCMTestBase
     setupCluster();
     String controllerMsgPath = CMUtil.getControllerPropertyPath(CLUSTER_NAME, PropertyType.MESSAGES_CONTROLLER);
     _zkClient.deleteRecursive(controllerMsgPath);
-//    boolean exceptionThrown = false;
     ClusterManager manager = null;;
 
     try
     {
-      manager = ClusterManagerFactory.getZKBasedManagerForParticipant(CLUSTER_NAME, "localhost_" + (START_PORT + 1), ZK_ADDR);
+      manager = ClusterManagerFactory.getZKClusterManager(CLUSTER_NAME,
+                                                          "localhost_" + (START_PORT + 1),
+                                                          InstanceType.PARTICIPANT,
+                                                          ZK_ADDR);
       manager.connect();
       Assert.fail("Should fail on connect() since cluster structure is not set up");
     }
     catch(ClusterManagerException e)
     {
-//      exceptionThrown = true;
-//      AssertJUnit.assertTrue(e.getMessage().indexOf("Initial cluster structure is not set up for cluster") != -1);
       // OK
     }
-//    AssertJUnit.assertTrue(exceptionThrown);
+
     if(manager != null)
     {
       AssertJUnit.assertFalse(manager.isConnected());
     }
-//    exceptionThrown = false;
 
     try
     {
-      manager = ClusterManagerFactory.getZKBasedManagerForController(CLUSTER_NAME, "localhost_" + (START_PORT + 3), ZK_ADDR);
+      manager = ClusterManagerFactory.getZKClusterManager(CLUSTER_NAME,
+                                                          "localhost_" + (START_PORT + 3),
+                                                          InstanceType.PARTICIPANT,
+                                                          ZK_ADDR);
       manager.connect();
       Assert.fail("Should fail on connect() since cluster structure is not set up");
     }
     catch(ClusterManagerException e)
     {
-//      exceptionThrown = true;
-//      AssertJUnit.assertTrue(e.getMessage().indexOf("Initial cluster structure is not set up for cluster") != -1);
       // OK
     }
-//    AssertJUnit.assertTrue(exceptionThrown);
-//    exceptionThrown = false;
+
     if(manager != null)
     {
       AssertJUnit.assertFalse(manager.isConnected());
@@ -108,18 +108,17 @@ public class TestClusterManagerStartsup extends ZkStandAloneCMTestBase
 
     try
     {
-      manager = ClusterManagerFactory.getZKBasedManagerForParticipant(CLUSTER_NAME, "localhost_" + (START_PORT + 1), ZK_ADDR);
+      manager = ClusterManagerFactory.getZKClusterManager(CLUSTER_NAME,
+                                                          "localhost_" + (START_PORT + 1),
+                                                          InstanceType.PARTICIPANT,
+                                                          ZK_ADDR);
       manager.connect();
       Assert.fail("Should fail on connect() since cluster structure is not set up");
     }
     catch(ClusterManagerException e)
     {
-//      exceptionThrown = true;
-//      AssertJUnit.assertTrue(e.getMessage().indexOf("Initial cluster structure is not set up for cluster") != -1);
       // OK
     }
-//    AssertJUnit.assertTrue(exceptionThrown);
-//    exceptionThrown = false;
     if(manager != null)
     {
       AssertJUnit.assertFalse(manager.isConnected());
@@ -131,18 +130,17 @@ public class TestClusterManagerStartsup extends ZkStandAloneCMTestBase
 
     try
     {
-      manager = ClusterManagerFactory.getZKBasedManagerForParticipant(CLUSTER_NAME, "localhost_" + (START_PORT + 1), ZK_ADDR);
+      manager = ClusterManagerFactory.getZKClusterManager(CLUSTER_NAME,
+                                                          "localhost_" + (START_PORT + 1),
+                                                          InstanceType.PARTICIPANT,
+                                                          ZK_ADDR);
       manager.connect();
       Assert.fail("Should fail on connect() since cluster structure is not set up");
     }
     catch(ClusterManagerException e)
     {
-//      exceptionThrown = true;
-//      AssertJUnit.assertTrue(e.getMessage().indexOf("Initial cluster structure is not set up for instance") != -1);
       // OK
     }
-//    AssertJUnit.assertTrue(exceptionThrown);
-//    exceptionThrown = false;
     if(manager != null)
     {
       AssertJUnit.assertFalse(manager.isConnected());

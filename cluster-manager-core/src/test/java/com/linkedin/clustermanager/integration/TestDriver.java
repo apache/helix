@@ -175,8 +175,7 @@ public class TestDriver
         LOG.warn("Dummy participant:" + instanceName + " has already started; skip starting it");
       } else
       {
-        StartCMResult result = TestHelper.startDummyProcess(ZK_ADDR, clusterName, instanceName,
-            null);
+        StartCMResult result = TestHelper.startDummyProcess(ZK_ADDR, clusterName, instanceName);
         testInfo._startCMResultMap.put(instanceName, result);
         // testInfo._instanceStarted.countDown();
       }
@@ -208,7 +207,8 @@ public class TestDriver
       } else
       {
         StartCMResult result = TestHelper.startClusterController(clusterName, controllerName,
-            ZK_ADDR, ClusterManagerMain.STANDALONE, null);
+                                                                 ZK_ADDR,
+                                                                 ClusterManagerMain.STANDALONE);
         testInfo._startCMResultMap.put(controllerName, result);
       }
     }

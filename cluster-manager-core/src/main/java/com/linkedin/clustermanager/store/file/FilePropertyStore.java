@@ -5,6 +5,9 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -29,6 +32,7 @@ import org.apache.commons.io.DirectoryWalker;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 
+import com.linkedin.clustermanager.agent.file.CallbackHandlerForFile;
 import com.linkedin.clustermanager.store.PropertyChangeListener;
 import com.linkedin.clustermanager.store.PropertyJsonComparator;
 import com.linkedin.clustermanager.store.PropertySerializer;
@@ -136,7 +140,7 @@ public class FilePropertyStore<T> implements PropertyStore<T>
           _curModifiedFiles.put(path, newValue);
         }
 
-        logger.debug("file: " + file.getAbsolutePath() + " changed at " + file.lastModified() + " (" +
+        logger.debug("file: " + file.getAbsolutePath() + " changed@" + file.lastModified() + " (" +
             new Date(file.lastModified()) + ")");
         results.add(file);
       }
@@ -154,9 +158,10 @@ public class FilePropertyStore<T> implements PropertyStore<T>
         try
         {
           newValue = getProperty(path);
-        } catch (PropertyStoreException e)
+        }
+        catch (PropertyStoreException e)
         {
-          logger.error("fail to get property, path:" + path +"\nexception:" + e);
+          logger.error("fail to get property, path:" + path, e);
         }
 
         if (dir.lastModified() == _lastNotifiedTime && _lastModifiedFiles.containsKey(path))
@@ -185,7 +190,7 @@ public class FilePropertyStore<T> implements PropertyStore<T>
           _curModifiedFiles.put(path, newValue);
         }
 
-        logger.debug("dir: " + dir.getAbsolutePath() + " changed at " + dir.lastModified() +
+        logger.debug("dir: " + dir.getAbsolutePath() + " changed@" + dir.lastModified() +
             " (" + new Date(dir.lastModified()) + ")");
         results.add(dir);
 
@@ -204,8 +209,7 @@ public class FilePropertyStore<T> implements PropertyStore<T>
         }
         catch (IOException e)
         {
-          logger.error("IO exception when walking through dir:" + _propertyStoreRootDir +
-              "\nexception:" + e);
+          logger.error("IO exception when walking through dir:" + _propertyStoreRootDir, e);
         }
         finally
         {
@@ -235,8 +239,6 @@ public class FilePropertyStore<T> implements PropertyStore<T>
         for (int i = 0; i < fileArray.length; i++)
         {
           File file = fileArray[i];
-          // logger.debug("notification of " + file.getAbsolutePath());
-
           for (Map.Entry< String, CopyOnWriteArraySet<PropertyChangeListener<T> > > entry : _fileChangeListeners.entrySet())
           {
             String absPath = file.getAbsolutePath();
@@ -244,6 +246,11 @@ public class FilePropertyStore<T> implements PropertyStore<T>
             {
               for (PropertyChangeListener<T> listener : entry.getValue())
               {
+                if (listener instanceof CallbackHandlerForFile)
+                {
+                  CallbackHandlerForFile handler = (CallbackHandlerForFile) listener;
+//                  logger.debug("Sending notification of " + file.getAbsolutePath() + " to listener:" + handler.getListener());
+                }
                 listener.onPropertyChange(getRelativePath(absPath));
               }
             }
@@ -262,12 +269,13 @@ public class FilePropertyStore<T> implements PropertyStore<T>
     {
       while (!_stopRefreshThread.get())
       {
-        this._dirWalker.walk();
+        _dirWalker.walk();
         _firstRefreshCounter.countDown();
 
         try
         {
           Thread.sleep(REFRESH_PERIOD);
+//          System.out.println("refresh thread is running");
         }
         catch (InterruptedException ie)
         {
@@ -742,12 +750,12 @@ public class FilePropertyStore<T> implements PropertyStore<T>
   @Override
   public void updatePropertyUntilSucceed(String key, DataUpdater<T> updater)
   {
-    // throw new UnsupportedOperationException(
-    //  "updatePropertyUntilSucceed() is NOT supported by FilePropertyStore");
     String path = getPath(key);
     File file = new File(path);
-    FileInputStream fin = null;
-    FileOutputStream fout = null;
+//    FileInputStream fin = null;
+//    FileOutputStream fout = null;
+    RandomAccessFile raFile = null;
+    FileLock fLock = null;
 
     try
     {
@@ -758,13 +766,19 @@ public class FilePropertyStore<T> implements PropertyStore<T>
         FileUtils.touch(file);
       }
 
-      fin = new FileInputStream(file);
+//      fin = new FileInputStream(file);
+//      FileChannel fChannel = // fin.getChannel();
+//      fLock = fChannel.lock();
+//      fout = new FileOutputStream(file);
+      raFile = new RandomAccessFile(file, "rw");
+      FileChannel fChannel = raFile.getChannel();
+      fLock = fChannel.lock();
 
-      T current = this.getProperty(key);
+      T current = getProperty(key);
       T update = updater.update(current);
-      fout = new FileOutputStream(file);
-      byte[] bytes = _serializer.serialize(update);
-      fout.write(bytes);
+//      byte[] bytes = _serializer.serialize(update);
+//      fout.write(bytes);
+      setProperty(key, update);
     }
     catch (Exception e)
     {
@@ -775,22 +789,29 @@ public class FilePropertyStore<T> implements PropertyStore<T>
       _readWriteLock.writeLock().unlock();
       try
       {
-        // if (fLock != null && fLock.isValid())
-        //   fLock.release();
-        if (fin != null)
+        if (fLock != null && fLock.isValid())
         {
-          fin.close();
+           fLock.release();
         }
 
-        if (fout != null)
+        if (raFile != null)
         {
-          fout.close();
+          raFile.close();
         }
+
+//        if (fin != null)
+//        {
+//          fin.close();
+//        }
+
+//        if (fout != null)
+//        {
+//          fout.close();
+//        }
       }
       catch (IOException e)
       {
-        logger.error("fail to close file, path:" + path +
-            "\nio excpetion" + e);
+        logger.error("fail to close file, path:" + path, e);
       }
     }
   }
@@ -816,8 +837,10 @@ public class FilePropertyStore<T> implements PropertyStore<T>
   {
     String path = getPath(key);
     File file = new File(path);
-    FileInputStream fin = null;
-    FileOutputStream fout = null;
+//    FileInputStream fin = null;
+//    FileOutputStream fout = null;
+    RandomAccessFile raFile = null;
+    FileLock fLock = null;
 
     try
     {
@@ -828,15 +851,20 @@ public class FilePropertyStore<T> implements PropertyStore<T>
         file.createNewFile();
       }
 
-      fin = new FileInputStream(file);
+//      fin = new FileInputStream(file);
+//      FileChannel fChannel = fin.getChannel();
+      raFile = new RandomAccessFile(file, "rw");
+      FileChannel fChannel = raFile.getChannel();
+      fLock = fChannel.lock();
 
-      T current = this.getProperty(key);
+      T current = getProperty(key);
       if (comparator.compare(current, expected) == 0)
       {
-        fout = new FileOutputStream(file);
-
-        byte[] bytes = _serializer.serialize(update);
-        fout.write(bytes);
+//        fout = new FileOutputStream(file);
+//
+//        byte[] bytes = _serializer.serialize(update);
+//        fout.write(bytes);
+        setProperty(key, update);
         return true;
       }
 
@@ -857,17 +885,25 @@ public class FilePropertyStore<T> implements PropertyStore<T>
       _readWriteLock.writeLock().unlock();
       try
       {
-        // if (fLock != null && fLock.isValid())
-        //   fLock.release();
-        if (fin != null)
+        if (fLock != null && fLock.isValid())
         {
-          fin.close();
+           fLock.release();
         }
 
-        if (fout != null)
+        if (raFile != null)
         {
-          fout.close();
+          raFile.close();
         }
+
+//        if (fin != null)
+//        {
+//          fin.close();
+//        }
+//
+//        if (fout != null)
+//        {
+//          fout.close();
+//        }
       }
       catch (IOException e)
       {

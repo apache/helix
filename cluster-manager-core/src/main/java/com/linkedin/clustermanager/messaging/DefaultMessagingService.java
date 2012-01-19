@@ -57,7 +57,7 @@ public class DefaultMessagingService implements ClusterMessagingService
   {
     return send(recipientCriteria, message, callbackOnReply, timeOut, 0);
   }
-  
+
   @Override
   public int send(final Criteria recipientCriteria, final Message message,
       AsyncCallback callbackOnReply, int timeOut, int retryCount)
@@ -265,7 +265,7 @@ public class DefaultMessagingService implements ClusterMessagingService
         Message noOPMsg = new Message(MessageType.NO_OP, UUID.randomUUID()
             .toString());
         noOPMsg.setSrcName(_manager.getInstanceName());
-        
+
         if (_manager.getInstanceType() == InstanceType.CONTROLLER
             || _manager.getInstanceType() == InstanceType.CONTROLLER_PARTICIPANT)
         {
@@ -324,7 +324,7 @@ public class DefaultMessagingService implements ClusterMessagingService
     }
     return messagesSent;
   }
-  
+
   @Override
   public int sendAndWait(Criteria recipientCriteria, Message message,
       AsyncCallback asyncCallback, int timeOut)

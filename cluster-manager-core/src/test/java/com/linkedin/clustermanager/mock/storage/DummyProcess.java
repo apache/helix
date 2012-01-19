@@ -15,13 +15,15 @@ import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerFactory;
+import com.linkedin.clustermanager.InstanceType;
 import com.linkedin.clustermanager.NotificationContext;
-import com.linkedin.clustermanager.agent.file.FileBasedDataAccessor;
+import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.Message.MessageType;
 import com.linkedin.clustermanager.participant.StateMachineEngine;
 import com.linkedin.clustermanager.participant.statemachine.StateModel;
 import com.linkedin.clustermanager.participant.statemachine.StateModelFactory;
+import com.linkedin.clustermanager.store.file.FilePropertyStore;
 import com.linkedin.clustermanager.tools.ClusterSetup;
 
 public class DummyProcess
@@ -33,53 +35,98 @@ public class DummyProcess
   public static final String hostPort = "port";
   public static final String relayCluster = "relayCluster";
   public static final String help = "help";
-  public static final String configFile = "configFile";
+  public static final String clusterViewFile = "clusterViewFile";
   public static final String transDelay = "transDelay";
+  public static final String clusterManagerType = "clusterManagerType";
+//  public static final String rootNamespace = "rootNamespace";
 
-  private final String zkConnectString;
-  private final String clusterName;
-  private final String instanceName;
-  // private ClusterManager _manager = null;
+  private final String _zkConnectString;
+  private final String _clusterName;
+  private final String _instanceName;
   private DummyStateModelFactory stateModelFactory;
   private StateMachineEngine genericStateMachineHandler;
 
-  // private final FilePropertyStore<ClusterView> _store;
-  private final FileBasedDataAccessor _accessor;
+  private final FilePropertyStore<ZNRecord> _fileStore;
 
-  private String _file = null;
+  private final String _clusterViewFile;
   private int _transDelayInMs = 0;
+  private final String _clusterMangerType;
 
-  public DummyProcess(String zkConnectString, String clusterName,
-                      String instanceName, String file, int delay)
+  public DummyProcess(String zkConnectString,
+                      String clusterName,
+                      String instanceName,
+                      String clusterMangerType,
+                      String clusterViewFile,
+                      int delay)
   {
-    this(zkConnectString, clusterName, instanceName, file, delay, null);
+    this(zkConnectString, clusterName, instanceName, clusterManagerType, clusterViewFile, delay, null);
   }
 
-  public DummyProcess(String zkConnectString, String clusterName,
-      String instanceName, String file, int delay, FileBasedDataAccessor accessor)
+  public DummyProcess(String zkConnectString,
+                      String clusterName,
+                      String instanceName,
+                      String clusterMangerType,
+                      String clusterViewFile,
+                      int delay,
+                      FilePropertyStore<ZNRecord> fileStore)
   {
-    this.zkConnectString = zkConnectString;
-    this.clusterName = clusterName;
-    this.instanceName = instanceName;
-    this._file = file;
+    _zkConnectString = zkConnectString;
+    _clusterName = clusterName;
+    _instanceName = instanceName;
+    _clusterViewFile = clusterViewFile;
+    _clusterMangerType = clusterMangerType;
     _transDelayInMs = delay > 0 ? delay : 0;
-    _accessor = accessor;
+    _fileStore = fileStore;
+  }
+
+  static void sleep(long transDelay)
+  {
+    try
+    {
+      if (transDelay > 0)
+      {
+        Thread.sleep(transDelay);
+      }
+    }
+    catch (InterruptedException e)
+    {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
   }
 
   public ClusterManager start() throws Exception
   {
     ClusterManager manager = null;
-    if (_file == null && _accessor == null)
-      manager = ClusterManagerFactory.getZKBasedManagerForParticipant(
-          clusterName, instanceName, zkConnectString);
-    else if (_file != null && _accessor == null)  // static file cluster manager
-      manager = ClusterManagerFactory.getFileBasedManagerForParticipant(
-          clusterName, instanceName, _file);
-    else if (_file == null && _accessor != null)  // dynamic file cluster manager
-      manager = ClusterManagerFactory.getFileBasedManagerForParticipant(
-          clusterName, instanceName, _accessor);
+    // zk cluster manager
+    if (_clusterMangerType.equalsIgnoreCase("zk"))
+    {
+      manager = ClusterManagerFactory.getZKClusterManager(_clusterName,
+                                                          _instanceName,
+                                                          InstanceType.PARTICIPANT,
+                                                          _zkConnectString);
+    }
+    // static file cluster manager
+    else if (_clusterMangerType.equalsIgnoreCase("static-file"))
+    {
+      manager = ClusterManagerFactory.getStaticFileClusterManager(_clusterName,
+                                                                  _instanceName,
+                                                                  InstanceType.PARTICIPANT,
+                                                                  _clusterViewFile);
+
+    }
+    // dynamic file cluster manager
+    else if (_clusterMangerType.equalsIgnoreCase("dynamic-file"))
+    {
+      manager = ClusterManagerFactory.getDynamicFileClusterManager(_clusterName,
+                                                                   _instanceName,
+                                                                   InstanceType.PARTICIPANT,
+                                                                   _fileStore);
+    }
     else
-      throw new Exception("Illeagal arguments");
+    {
+      throw new IllegalArgumentException("Unsupported cluster manager type:" + _clusterMangerType);
+    }
 
     stateModelFactory = new DummyStateModelFactory(_transDelayInMs);
     DummyLeaderStandbyStateModelFactory stateModelFactory1 = new DummyLeaderStandbyStateModelFactory(_transDelayInMs);
@@ -92,14 +139,6 @@ public class DummyProcess
 
     manager.connect();
     manager.getMessagingService().registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(), genericStateMachineHandler);
-    /*
-    if (_file != null)
-    {
-      ClusterStateVerifier.VerifyFileBasedClusterStates(_file, instanceName,
-          stateModelFactory);
-
-    }
-    */
     return manager;
   }
 
@@ -120,7 +159,7 @@ public class DummyProcess
       return model;
     }
   }
-  
+
   public static class DummyLeaderStandbyStateModelFactory extends StateModelFactory<DummyLeaderStandbyStateModel>
   {
     int _delay;
@@ -138,7 +177,7 @@ public class DummyProcess
       return model;
     }
   }
-  
+
   public static class DummyOnlineOfflineStateModelFactory extends StateModelFactory<DummyOnlineOfflineStateModel>
   {
     int _delay;
@@ -165,27 +204,13 @@ public class DummyProcess
       _transDelay = delay > 0 ? delay : 0;
     }
 
-    void sleep()
-    {
-      try
-      {
-        if (_transDelay > 0)
-        {
-          Thread.sleep(_transDelay);
-        }
-      } catch (InterruptedException e)
-      {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
-      }
-    }
-
     public void onBecomeSlaveFromOffline(Message message,
         NotificationContext context)
     {
       String db = message.getStateUnitKey();
       String instanceName = context.getManager().getInstanceName();
-      sleep();
+      DummyProcess.sleep(_transDelay);
+
       logger.info("DummyStateModel.onBecomeSlaveFromOffline(), instance:" + instanceName
                          + ", db:" + db);
     }
@@ -193,8 +218,8 @@ public class DummyProcess
     public void onBecomeSlaveFromMaster(Message message,
         NotificationContext context)
     {
+      DummyProcess.sleep(_transDelay);
 
-      sleep();
       logger.info("DummyStateModel.onBecomeSlaveFromMaster()");
 
     }
@@ -202,8 +227,8 @@ public class DummyProcess
     public void onBecomeMasterFromSlave(Message message,
         NotificationContext context)
     {
+      DummyProcess.sleep(_transDelay);
 
-      sleep();
       logger.info("DummyStateModel.onBecomeMasterFromSlave()");
 
     }
@@ -211,16 +236,16 @@ public class DummyProcess
     public void onBecomeOfflineFromSlave(Message message,
         NotificationContext context)
     {
+      DummyProcess.sleep(_transDelay);
 
-      sleep();
       logger.info("DummyStateModel.onBecomeOfflineFromSlave()");
 
     }
 
     public void onBecomeDroppedFromOffline(Message message, NotificationContext context)
     {
+      DummyProcess.sleep(_transDelay);
 
-      sleep();
       logger.info("DummyStateModel.onBecomeDroppedFromOffline()");
 
     }
@@ -236,27 +261,13 @@ public class DummyProcess
       _transDelay = delay > 0 ? delay : 0;
     }
 
-    void sleep()
-    {
-      try
-      {
-        if (_transDelay > 0)
-        {
-          Thread.sleep(_transDelay);
-        }
-      } catch (InterruptedException e)
-      {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
-      }
-    }
-
     public void onBecomeOnlineFromOffline(Message message,
         NotificationContext context)
     {
       String db = message.getStateUnitKey();
       String instanceName = context.getManager().getInstanceName();
-      sleep();
+      DummyProcess.sleep(_transDelay);
+
       logger.info("DummyStateModel.onBecomeOnlineFromOffline(), instance:" + instanceName
                          + ", db:" + db);
     }
@@ -264,20 +275,20 @@ public class DummyProcess
     public void onBecomeOfflineFromOnline(Message message,
         NotificationContext context)
     {
+      DummyProcess.sleep(_transDelay);
 
-      sleep();
       logger.info("DummyStateModel.onBecomeOfflineFromOnline()");
 
     }
     public void onBecomeDroppedFromOffline(Message message, NotificationContext context)
     {
+      DummyProcess.sleep(_transDelay);
 
-      sleep();
       logger.info("DummyStateModel.onBecomeDroppedFromOffline()");
 
     }
   }
-  
+
   public static class DummyLeaderStandbyStateModel extends StateModel
   {
     int _transDelay = 0;
@@ -287,27 +298,12 @@ public class DummyProcess
       _transDelay = delay > 0 ? delay : 0;
     }
 
-    void sleep()
-    {
-      try
-      {
-        if (_transDelay > 0)
-        {
-          Thread.sleep(_transDelay);
-        }
-      } catch (InterruptedException e)
-      {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
-      }
-    }
-
     public void onBecomeLeaderFromStandby(Message message,
         NotificationContext context)
     {
       String db = message.getStateUnitKey();
       String instanceName = context.getManager().getInstanceName();
-      sleep();
+      DummyProcess.sleep(_transDelay);
       logger.info("DummyLeaderStandbyStateModel.onBecomeLeaderFromStandby(), instance:" + instanceName
                          + ", db:" + db);
     }
@@ -315,31 +311,31 @@ public class DummyProcess
     public void onBecomeStandbyFromLeader(Message message,
         NotificationContext context)
     {
+      DummyProcess.sleep(_transDelay);
 
-      sleep();
       logger.info("DummyLeaderStandbyStateModel.onBecomeStandbyFromLeader()");
 
     }
     public void onBecomeDroppedFromOffline(Message message, NotificationContext context)
     {
+      DummyProcess.sleep(_transDelay);
 
-      sleep();
       logger.info("DummyLeaderStandbyStateModel.onBecomeDroppedFromOffline()");
 
     }
-    
+
     public void onBecomeStandbyFromOffline(Message message, NotificationContext context)
     {
+      DummyProcess.sleep(_transDelay);
 
-      sleep();
       logger.info("DummyLeaderStandbyStateModel.onBecomeStandbyFromOffline()");
 
     }
-    
+
     public void onBecomeOfflineFromStandby(Message message, NotificationContext context)
     {
+      DummyProcess.sleep(_transDelay);
 
-      sleep();
       logger.info("DummyLeaderStandbyStateModel.onBecomeOfflineFromStandby()");
 
     }
@@ -351,12 +347,6 @@ public class DummyProcess
   {
     Option helpOption = OptionBuilder.withLongOpt(help)
         .withDescription("Prints command-line options info").create();
-
-    Option zkServerOption = OptionBuilder.withLongOpt(zkServer)
-        .withDescription("Provide zookeeper address").create();
-    zkServerOption.setArgs(1);
-    zkServerOption.setRequired(true);
-    zkServerOption.setArgName("ZookeeperServerAddress(Required)");
 
     Option clusterOption = OptionBuilder.withLongOpt(cluster)
         .withDescription("Provide cluster name").create();
@@ -376,12 +366,31 @@ public class DummyProcess
     portOption.setRequired(true);
     portOption.setArgName("Host port (Required)");
 
-    // add an option group including either --zkSvr or --configFile
-    Option fileOption = OptionBuilder.withLongOpt(configFile)
-        .withDescription("Provide file to read states/messages").create();
+    Option cmTypeOption = OptionBuilder.withLongOpt(clusterManagerType)
+        .withDescription("Provide cluster manager type (e.g. 'zk', 'static-file', or 'dynamic-file'").create();
+    cmTypeOption.setArgs(1);
+    cmTypeOption.setRequired(true);
+    cmTypeOption.setArgName("Clsuter manager type (e.g. 'zk', 'static-file', or 'dynamic-file') (Required)");
+
+    // add an option group including either --zkSvr or --clusterViewFile
+    Option fileOption = OptionBuilder.withLongOpt(clusterViewFile)
+        .withDescription("Provide a cluster-view file for static-file based cluster manager").create();
     fileOption.setArgs(1);
     fileOption.setRequired(true);
-    fileOption.setArgName("File to read states/messages (Optional)");
+    fileOption.setArgName("Cluster-view file (Required for static-file based cluster manager)");
+
+    Option zkServerOption = OptionBuilder.withLongOpt(zkServer)
+      .withDescription("Provide zookeeper address").create();
+    zkServerOption.setArgs(1);
+    zkServerOption.setRequired(true);
+    zkServerOption.setArgName("ZookeeperServerAddress(Required for zk-based cluster manager)");
+
+//    Option rootNsOption = OptionBuilder.withLongOpt(rootNamespace)
+//        .withDescription("Provide root namespace for dynamic-file based cluster manager").create();
+//    rootNsOption.setArgs(1);
+//    rootNsOption.setRequired(true);
+//    rootNsOption.setArgName("Root namespace (Required for dynamic-file based cluster manager)");
+
 
     Option transDelayOption = OptionBuilder.withLongOpt(transDelay)
         .withDescription("Provide state trans delay").create();
@@ -392,10 +401,10 @@ public class DummyProcess
     OptionGroup optionGroup = new OptionGroup();
     optionGroup.addOption(zkServerOption);
     optionGroup.addOption(fileOption);
+//    optionGroup.addOption(rootNsOption);
 
     Options options = new Options();
     options.addOption(helpOption);
-    // options.addOption(zkServerOption);
     options.addOption(clusterOption);
     options.addOption(hostOption);
     options.addOption(portOption);
@@ -435,10 +444,12 @@ public class DummyProcess
 
   public static void main(String[] args) throws Exception
   {
+    String cmType = "zk";
     String zkConnectString = "localhost:2181";
-    String clusterName = "test-cluster";
+    String clusterName = "testCluster";
     String instanceName = "localhost_8900";
-    String file = null;
+    String cvFileStr = null;
+//    String rootNs = null;
     int delay = 0;
 
     if (args.length > 0)
@@ -451,17 +462,23 @@ public class DummyProcess
       String portString = cmd.getOptionValue(hostPort);
       int port = Integer.parseInt(portString);
       instanceName = host + "_" + port;
+      cmType = cmd.getOptionValue(clusterManagerType);
 
-      file = cmd.getOptionValue(configFile);
-      if (file != null)
+      if (cmd.hasOption(clusterViewFile))
       {
-        File f = new File(file);
-        if (!f.exists())
+        cvFileStr = cmd.getOptionValue(clusterViewFile);
+        if (!new File(cvFileStr).exists())
         {
-          System.err.println("static config file doesn't exist");
-          System.exit(1);
+          throw new IllegalArgumentException("Cluster-view file:" + cvFileStr
+                                             + " does NOT exist");
         }
       }
+
+//      if (cmd.hasOption(rootNamespace))
+//      {
+//        rootNs = cmd.getOptionValue(rootNamespace);
+//      }
+
       if (cmd.hasOption(transDelay))
       {
         try
@@ -481,8 +498,12 @@ public class DummyProcess
     // Espresso_driver.py will consume this
     logger.info("Dummy process started, instanceName:" + instanceName);
 
-    DummyProcess process = new DummyProcess(zkConnectString, clusterName,
-        instanceName, file, delay);
+    DummyProcess process = new DummyProcess(zkConnectString,
+                                            clusterName,
+                                            instanceName,
+                                            cmType,
+                                            cvFileStr,
+                                            delay);
     ClusterManager manager = process.start();
 
     try
@@ -494,6 +515,13 @@ public class DummyProcess
       // ClusterManagerFactory.disconnectManagers(instanceName);
       logger.info("participant:" + instanceName + ", " +
                    Thread.currentThread().getName() + " interrupted");
+//      if (manager != null)
+//      {
+//        manager.disconnect();
+//      }
+    }
+    finally
+    {
       if (manager != null)
       {
         manager.disconnect();

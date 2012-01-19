@@ -202,6 +202,11 @@ public class ZKDataAccessor implements ClusterDataAccessor
 
   {
     String path = PropertyPathConfig.getPath(type, _clusterName, keys);
+//    if (path == null)
+//    {
+//      System.err.println("path is null");
+//    }
+
     if (_zkClient.exists(path))
     {
       if (!type.isCached())

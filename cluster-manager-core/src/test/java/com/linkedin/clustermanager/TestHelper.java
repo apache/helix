@@ -108,29 +108,17 @@ public class TestHelper
     }
   }
 
-  /**
-   * start dummy cluster participant with a pre-created zkClient for testing session
-   * expiry
-   *
-   * @param zkAddr
-   * @param clusterName
-   * @param instanceName
-   * @param zkClient
-   * @return
-   * @throws Exception
-   */
   public static StartCMResult startDummyProcess(final String zkAddr,
-                                                     final String clusterName,
-                                                     final String instanceName,
-                                                     final ZkClient zkClient) throws Exception
+                                                final String clusterName,
+                                                final String instanceName)
+    throws Exception
   {
     StartCMResult result = new StartCMResult();
     ClusterManager manager = null;
-    manager =
-        ClusterManagerFactory.getZKBasedManagerForParticipant(clusterName,
-                                                              instanceName,
-                                                              zkAddr,
-                                                              zkClient);
+    manager = ClusterManagerFactory.getZKClusterManager(clusterName,
+                                                        instanceName,
+                                                        InstanceType.PARTICIPANT,
+                                                        zkAddr);
     result._manager = manager;
     Thread thread = new Thread(new DummyProcessThread(manager, instanceName));
     result._thread = thread;
@@ -139,29 +127,18 @@ public class TestHelper
     return result;
   }
 
-  /**
-   * start cluster controller with a pre-created zkClient for testing session expiry
-   *
-   * @param clusterName
-   * @param controllerName
-   * @param zkConnectString
-   * @param zkClient
-   * @return
- * @throws Exception
-   */
   public static StartCMResult startClusterController(final String clusterName,
-                                              final String controllerName,
-                                              final String zkConnectString,
-                                              final String controllerMode,
-                                              final ZkClient zkClient) throws Exception
+                                                     final String controllerName,
+                                                     final String zkConnectString,
+                                                     final String controllerMode)
+    throws Exception
   {
     final StartCMResult result = new StartCMResult();
     final ClusterManager manager =
         ClusterManagerMain.startClusterManagerMain(zkConnectString,
                                                    clusterName,
                                                    controllerName,
-                                                   controllerMode,
-                                                   zkClient);
+                                                   controllerMode);
     manager.connect();
     result._manager = manager;
 
@@ -184,21 +161,11 @@ public class TestHelper
                   + " interrupted";
           LOG.info(msg);
           // System.err.println(msg);
-
         }
         catch (Exception e)
         {
           e.printStackTrace();
         }
-        /*
-        finally
-        {
-          if (manager != null)
-          {
-            manager.disconnect();
-          }
-        }
-        */
       }
     });
 
@@ -214,7 +181,7 @@ public class TestHelper
 
   }
 
-  static class DummyProcessThread implements Runnable
+  static public class DummyProcessThread implements Runnable
   {
     ClusterManager _manager;
     String _instanceName;
@@ -253,22 +220,12 @@ public class TestHelper
                 + " interrupted";
         LOG.info(msg);
         // System.err.println(msg);
-
       }
       catch (Exception e)
       {
         // TODO Auto-generated catch block
         e.printStackTrace();
       }
-      /*
-      finally
-      {
-        if (_manager != null)
-        {
-          _manager.disconnect();
-        }
-      }
-      */
     }
   }
 

@@ -4,6 +4,7 @@ import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerFactory;
+import com.linkedin.clustermanager.InstanceType;
 import com.linkedin.clustermanager.NotificationContext;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.participant.statemachine.StateModel;
@@ -45,7 +46,8 @@ public class DistClusterControllerStateModel extends StateModel
 
     if (_controller == null)
     {
-      _controller = ClusterManagerFactory.getZKBasedManagerForController(clusterName, controllerName, _zkAddr);
+      _controller = ClusterManagerFactory
+          .getZKClusterManager(clusterName, controllerName, InstanceType.CONTROLLER, _zkAddr);
       _controller.connect();
     }
     else

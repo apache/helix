@@ -1,5 +1,6 @@
 package com.linkedin.clustermanager.model;
 
+import java.util.Date;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
@@ -7,7 +8,9 @@ import org.apache.log4j.Logger;
 
 //import com.linkedin.clustermanager.ZNRecord;
 //import com.linkedin.clustermanager.ZNRecordAndStat;
+import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.ZNRecordDecorator;
+import com.linkedin.clustermanager.model.Message.Attributes;
 
 public class HealthStat extends ZNRecordDecorator {
 	//private final ZNRecord _record;
@@ -23,6 +26,32 @@ public class HealthStat extends ZNRecordDecorator {
 		super(id);
 	}
 
+	public HealthStat(ZNRecord record)
+	  {
+	    super(record);
+	    if(getCreateTimeStamp() == 0)
+	    {
+	      _record.setSimpleField(Attributes.CREATE_TIMESTAMP.toString(), ""
+	          + new Date().getTime());
+	    }
+	  }
+	
+	 public long getCreateTimeStamp()
+	  {
+	    if (_record.getSimpleField(Attributes.CREATE_TIMESTAMP.toString()) == null)
+	    {
+	      return 0;
+	    }
+	    try
+	    {
+	      return Long.parseLong(_record
+	          .getSimpleField(Attributes.CREATE_TIMESTAMP.toString()));
+	    } catch (Exception e)
+	    {
+	      return 0;
+	    }
+	  }
+	
 	/*
 	public HealthStat(ZNRecord record)
 	{

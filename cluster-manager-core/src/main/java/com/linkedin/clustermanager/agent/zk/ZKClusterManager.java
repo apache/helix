@@ -3,11 +3,11 @@ package com.linkedin.clustermanager.agent.zk;
 import static com.linkedin.clustermanager.CMConstants.ChangeType.CONFIG;
 import static com.linkedin.clustermanager.CMConstants.ChangeType.CURRENT_STATE;
 import static com.linkedin.clustermanager.CMConstants.ChangeType.EXTERNAL_VIEW;
+import static com.linkedin.clustermanager.CMConstants.ChangeType.HEALTH;
 import static com.linkedin.clustermanager.CMConstants.ChangeType.IDEAL_STATE;
 import static com.linkedin.clustermanager.CMConstants.ChangeType.LIVE_INSTANCE;
 import static com.linkedin.clustermanager.CMConstants.ChangeType.MESSAGE;
 import static com.linkedin.clustermanager.CMConstants.ChangeType.MESSAGES_CONTROLLER;
-import static com.linkedin.clustermanager.CMConstants.ChangeType.HEALTH;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -64,60 +64,47 @@ public class ZKClusterManager implements ClusterManager
   private final String _zkConnectString;
   private static final int SESSIONTIMEOUT = 30000;
   private ZKDataAccessor _accessor;
-  private ZkClient _zkClient = null;
+  protected ZkClient _zkClient;
   private final List<CallbackHandler> _handlers;
   private final ZkStateChangeListener _zkStateChangeListener;
   private final InstanceType _instanceType;
   private String _sessionId;
   private Timer _timer;
-  private CallbackHandler _leaderElectionHandler = null;
-  private ParticipantHealthReportCollectorImpl _participantHealthCheckInfoCollector = null;
+  private CallbackHandler _leaderElectionHandler;
+  private ParticipantHealthReportCollectorImpl _participantHealthCheckInfoCollector;
   private final DefaultMessagingService _messagingService;
-  private ZKClusterManagementTool _managementTool = null;
+  private ZKClusterManagementTool _managementTool;
   private final String _version;
-
-  public ZKClusterManager(String clusterName, InstanceType instanceType,
-      String zkConnectString) throws Exception
-  {
-    this(clusterName, null, instanceType, zkConnectString);
-  }
 
   public ZKClusterManager(String clusterName, String instanceName,
       InstanceType instanceType, String zkConnectString) throws Exception
   {
-    this(clusterName, instanceName, instanceType, zkConnectString, null);
-  }
-
-  public ZKClusterManager(String clusterName, String instanceName,
-      InstanceType instanceType, String zkConnectString, ZkClient zkClient)
-      throws Exception
-  {
-    logger.info("Cluster manager created: " + clusterName + " instance: "
-        + instanceName + " type:" + instanceType + " zkSvr:" + zkConnectString);
+    logger.info("Create a zk-based cluster manager. clusterName:" + clusterName
+                + ", instanceName:" + instanceName
+                + ", type:" + instanceType
+                + ", zkSvr:" + zkConnectString);
     if (instanceName == null)
     {
       try
       {
-        instanceName = InetAddress.getLocalHost().getCanonicalHostName();
-      } catch (UnknownHostException e)
+        instanceName = InetAddress.getLocalHost().getCanonicalHostName()
+                       + "-" + instanceType.toString();
+      }
+      catch (UnknownHostException e)
       {
-        logger
-            .info(
-                "Unable to get host name. Will set it to UNKNOWN, mostly ignorable",
-                e);
+        // can ignore it
+        logger.info("Unable to get host name. Will set it to UNKNOWN, mostly ignorable", e);
         instanceName = "UNKNOWN";
-        // can ignore it,
       }
     }
 
     _clusterName = clusterName;
     _instanceName = instanceName;
-    this._instanceType = instanceType;
+    _instanceType = instanceType;
     _zkConnectString = zkConnectString;
     _zkStateChangeListener = new ZkStateChangeListener(this);
     _timer = null;
     _handlers = new ArrayList<CallbackHandler>();
-    _zkClient = zkClient;
     _messagingService = new DefaultMessagingService(this);
 
     _version = new PropertiesReader("cluster-manager-version.properties")
@@ -229,19 +216,19 @@ public class ZKClusterManager implements ClusterManager
 
   @Override
   public void addHealthStateChangeListener(
-	  HealthStateChangeListener listener, String instanceName) 
+	  HealthStateChangeListener listener, String instanceName)
   {
-	  System.out.println("ZKClusterManager.addHealthStateChangeListener()");
+//	  System.out.println("ZKClusterManager.addHealthStateChangeListener()");
 	  //TODO: re-form this for stats checking
 	  final String path = CMUtil.getHealthPath(_clusterName, instanceName);
 
 	    CallbackHandler callbackHandler = createCallBackHandler(path, listener,
 	        new EventType[]
-	        { EventType.NodeChildrenChanged, EventType.NodeDataChanged, 
+	        { EventType.NodeChildrenChanged, EventType.NodeDataChanged,
 	    		EventType.NodeDeleted, EventType.NodeCreated }, HEALTH);
 	    _handlers.add(callbackHandler);
   }
-  
+
   @Override
   public void addExternalViewChangeListener(ExternalViewChangeListener listener)
   {
@@ -412,7 +399,7 @@ public class ZKClusterManager implements ClusterManager
       String errorMsg = "Fail to create live instance node after waiting, so quit. instance:" + _instanceName;
       logger.warn(errorMsg);
       throw new ClusterManagerException(errorMsg);
-      
+
     }
     String currentStatePathParent = PropertyPathConfig
         .getPath(PropertyType.CURRENTSTATES, _clusterName, _instanceName,
@@ -442,12 +429,9 @@ public class ZKClusterManager implements ClusterManager
   private void createClient(String zkServers, int sessionTimeout)
       throws Exception
   {
-    if (_zkClient == null)
-    {
-      ZkSerializer zkSerializer = new ZNRecordSerializer();
-      _zkClient = new ZkClient(zkServers, sessionTimeout, CONNECTIONTIMEOUT,
+    ZkSerializer zkSerializer = new ZNRecordSerializer();
+    _zkClient = new ZkClient(zkServers, sessionTimeout, CONNECTIONTIMEOUT,
           zkSerializer);
-    }
     _accessor = new ZKDataAccessor(_clusterName, _zkClient);
     int retryCount = 0;
 
@@ -714,16 +698,15 @@ public class ZKClusterManager implements ClusterManager
   public synchronized ClusterManagementService getClusterManagmentTool()
   {
     checkConnected();
-    if (_managementTool == null)
+    if (_zkClient != null)
     {
-      if (_zkClient != null)
-      {
-        _managementTool = new ZKClusterManagementTool(_zkClient);
-      } else
-      {
-        logger.warn("_zkClient is still null");
-      }
+      _managementTool = new ZKClusterManagementTool(_zkClient);
     }
+    else
+    {
+      logger.error("Couldn't get ZKClusterManagementTool because zkClient is null");
+    }
+
     return _managementTool;
   }
 

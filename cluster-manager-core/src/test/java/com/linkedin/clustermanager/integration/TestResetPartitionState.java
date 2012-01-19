@@ -44,7 +44,7 @@ public class TestResetPartitionState extends ZkIntegrationTestBase
                             1, 10, 5, 3, "MasterSlave", true);
 
     TestHelper.startClusterController(clusterName, "controller_0",
-                                      ZK_ADDR, ClusterManagerMain.STANDALONE, null);
+                                      ZK_ADDR, ClusterManagerMain.STANDALONE);
     for (int i = 0; i < 5; i++)
     {
       String instanceName = PARTICIPANT_PREFIX + "_" + (12918 + i);

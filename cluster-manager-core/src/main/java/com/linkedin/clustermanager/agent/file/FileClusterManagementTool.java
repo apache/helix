@@ -308,4 +308,11 @@ public class FileClusterManagementTool implements ClusterManagementService
 
   }
 
+  @Override
+  public void deleteCluster(String clusterName)
+  {
+    // TODO Auto-generated method stub
+    
+  }
+
 }

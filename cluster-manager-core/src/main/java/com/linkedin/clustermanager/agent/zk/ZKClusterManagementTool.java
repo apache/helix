@@ -351,6 +351,8 @@ public class ZKClusterManagementTool implements ClusterManagementService
     }
 
     ZKUtil.createChildren(_zkClient, stateModelDefPath, stateModel.getRecord());
+    new ZKDataAccessor(clusterName, _zkClient).setProperty(
+        PropertyType.STATEMODELDEFS, stateModel, stateModel.getId());
   }
 
   @Override
@@ -444,7 +446,7 @@ public class ZKClusterManagementTool implements ClusterManagementService
   }
 
   @Override
-  public void deleteCluster(String clusterName)
+  public void dropCluster(String clusterName)
   {
     logger.info("Deleting cluster "+clusterName);
     String root = "/" + clusterName;

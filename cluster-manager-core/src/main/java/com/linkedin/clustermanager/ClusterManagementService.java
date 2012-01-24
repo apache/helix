@@ -54,5 +54,5 @@ public interface ClusterManagementService
 
   ExternalView getResourceGroupExternalView(String clusterName, String resourceGroup);
 
-  void deleteCluster(String clusterName);
+  void dropCluster(String clusterName);
 }

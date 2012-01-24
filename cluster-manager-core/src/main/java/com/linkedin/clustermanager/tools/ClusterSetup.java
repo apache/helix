@@ -46,7 +46,7 @@ public class ClusterSetup
 
   // Add, drop, and rebalance
   public static final String addCluster            = "addCluster";
-  public static final String deleteCluster         = "deleteCluster";
+  public static final String dropCluster         = "dropCluster";
   public static final String addInstance           = "addNode";
   public static final String addResourceGroup      = "addResourceGroup";
   public static final String addStateModelDef      = "addStateModelDef";
@@ -96,7 +96,7 @@ public class ClusterSetup
   
   public void deleteCluster(String clusterName)
   {
-    _managementService.deleteCluster(clusterName);
+    _managementService.dropCluster(clusterName);
   }
 
   public void addCluster(String clusterName,
@@ -398,7 +398,7 @@ public class ClusterSetup
     addClusterOption.setArgName("clusterName");
     
     Option deleteClusterOption =
-        OptionBuilder.withLongOpt(deleteCluster).withDescription("Delete a cluster").create();
+        OptionBuilder.withLongOpt(dropCluster).withDescription("Delete a cluster").create();
     deleteClusterOption.setArgs(1);
     deleteClusterOption.setRequired(false);
     deleteClusterOption.setArgName("clusterName");
@@ -597,9 +597,9 @@ public class ClusterSetup
       return 0;
     }
     
-    if (cmd.hasOption(deleteCluster))
+    if (cmd.hasOption(dropCluster))
     {
-      String clusterName = cmd.getOptionValue(deleteCluster);
+      String clusterName = cmd.getOptionValue(dropCluster);
       setupTool.deleteCluster(clusterName);
       return 0;
     }

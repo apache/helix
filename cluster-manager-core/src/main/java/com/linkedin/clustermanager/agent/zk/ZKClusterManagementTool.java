@@ -350,7 +350,6 @@ public class ZKClusterManagementTool implements ClusterManagementService
           + " already exists.");
     }
 
-    ZKUtil.createChildren(_zkClient, stateModelDefPath, stateModel.getRecord());
     new ZKDataAccessor(clusterName, _zkClient).setProperty(
         PropertyType.STATEMODELDEFS, stateModel, stateModel.getId());
   }

@@ -36,8 +36,14 @@ public class IdealStateCalculatorByShuffling
    * map is from the name of nodes to either "MASTER" or "SLAVE".
    */
 
+
   public static ZNRecord calculateIdealState(List<String> instanceNames,
       int partitions, int replicas, String dbName, long randomSeed)
+  {
+    return calculateIdealState(instanceNames, partitions, replicas, dbName, randomSeed, "MASTER", "SLAVE");
+  }
+  public static ZNRecord calculateIdealState(List<String> instanceNames,
+      int partitions, int replicas, String dbName, long randomSeed, String masterValue, String slaveValue)
   {
     if (instanceNames.size() <= replicas)
     {
@@ -64,7 +70,7 @@ public class IdealStateCalculatorByShuffling
       Map<String, String> partitionAssignment = new TreeMap<String, String>();
       int masterNode = i % instanceNames.size();
       // the first in the list is the node that contains the master
-      partitionAssignment.put(instanceNames.get(masterNode), "MASTER");
+      partitionAssignment.put(instanceNames.get(masterNode), masterValue);
 
       // for the jth replica, we put it on (masterNode + j) % nodes-th
       // node
@@ -72,7 +78,7 @@ public class IdealStateCalculatorByShuffling
       {
         partitionAssignment
             .put(instanceNames.get((masterNode + j) % instanceNames.size()),
-                "SLAVE");
+                slaveValue);
       }
       String partitionName = dbName + "_" + partitionId;
       result.setMapField(partitionName, partitionAssignment);

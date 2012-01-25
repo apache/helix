@@ -6,101 +6,105 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+import org.apache.log4j.Logger;
+import org.josql.Query;
+import org.josql.QueryExecutionException;
+import org.josql.QueryParseException;
+import org.josql.QueryResults;
+
+import com.linkedin.clustermanager.ClusterDataAccessor;
+import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.Criteria;
+import com.linkedin.clustermanager.Criteria.DataSource;
+import com.linkedin.clustermanager.PropertyType;
+import com.linkedin.clustermanager.ZNRecord;
+import com.linkedin.clustermanager.josql.ClusterJosqlQueryProcessor;
+import com.linkedin.clustermanager.josql.ZNRecordRow;
 
 public class CriteriaEvaluator
 {
-
-  public List<Map<String, String>> evaluateCriteria(
-      List<Map<String, String>> rows, Criteria recipientCriteria)
+  private static Logger logger = Logger.getLogger(CriteriaEvaluator.class);
+  
+  public List<Map<String, String>> evaluateCriteria(Criteria recipientCriteria, ClusterManager manager)
   {
     List<Map<String, String>> selected = new ArrayList<Map<String, String>>();
-    HashSet<String> selectedSet = new HashSet<String>();
-    String instanceName = recipientCriteria.getInstanceName();
     String resourceGroup = recipientCriteria.getResourceGroup();
-    String resourceKey = recipientCriteria.getResourceKey();
-    String state = recipientCriteria.getResourceState();
-
-    boolean anyInstance = (instanceName == null || instanceName.equals("*"));
-    boolean anyResourceGroup = (resourceGroup == null || resourceGroup
-        .equals("*"));
-    boolean anyResourceKey = (resourceKey == null || resourceKey.equals("*"));
-    boolean anyState = (state == null || state.equals("*"));
-    for (Map<String, String> row : rows)
+    ClusterDataAccessor accessor = manager.getDataAccessor();     
+    // ClusterJosqlQueryProcessor is per resourceGroup
+    List<String> resourceGroups = new ArrayList<String>();
+    
+    // Find out the resource groups that we need to process
+    // If the resource group is not specified, we will try all resource groups
+    List<ZNRecord> idealStates = accessor.getChildValues(PropertyType.IDEALSTATES);
+    if(resourceGroup.equals(""))
     {
-      HashMap<String, String> resultRow = new HashMap<String, String>();
-      if (!anyInstance
-          && !instanceName.equalsIgnoreCase(row.get("instanceName")))
+      resourceGroup = "%";
+    }
+    String sqlForResourceGroups = "SELECT id FROM com.linkedin.clustermanager.ZNRecord WHERE id LIKE '" + resourceGroup+"'";
+    Query q = new Query();
+    try
+    {
+      q.parse(sqlForResourceGroups);
+      QueryResults qr = q.execute(idealStates);
+      for(Object o : qr.getResults())
       {
-        continue;
+        resourceGroups.add(((List<String>)o).get(0));
       }
-      else
-      {
-        if(instanceName != null)
-        {
-          resultRow.put("instanceName", row.get("instanceName"));
-        }
-      }
+    } 
+    catch (Exception e)
+    {
+      logger.error("", e);
+      return selected;
+    } 
+    
+    for(String resource : resourceGroups)
+    {
+      logger.info("Checking resourceGroup " + resource);
+
+      String queryFields = 
+          (!recipientCriteria.getInstanceName().equals("")  ? " " + ZNRecordRow.MAP_SUBKEY  : " ''") +","+
+          (!recipientCriteria.getResourceGroup().equals("") ? " " + ZNRecordRow.ZNRECORD_ID : " ''") +","+
+          (!recipientCriteria.getResourceKey().equals("")   ? " " + ZNRecordRow.MAP_KEY   : " ''") +","+
+          (!recipientCriteria.getResourceState().equals("") ? " " + ZNRecordRow.MAP_VALUE : " '' ");
       
-      if (!anyResourceGroup
-          && !resourceGroup.equalsIgnoreCase(row.get("resourceGroup")))
-      {
-        continue;
-      }
-      else
-      {
-        if(resourceGroup!=null)
-        {
-          resultRow.put("resourceGroup", row.get("resourceGroup"));
-        }
-      }
+      String matchCondition = 
+          ZNRecordRow.MAP_SUBKEY   + " LIKE '" + (!recipientCriteria.getInstanceName().equals("") ? (recipientCriteria.getInstanceName() +"'") :   "%' ") + " AND "+
+          ZNRecordRow.ZNRECORD_ID+ " LIKE '" + (!recipientCriteria.getResourceGroup().equals("") ? (recipientCriteria.getResourceGroup() +"'") : "%' ") + " AND "+
+          ZNRecordRow.MAP_KEY   + " LIKE '" + (!recipientCriteria.getResourceKey().equals("")   ? (recipientCriteria.getResourceKey()  +"'") :  "%' ") + " AND "+
+          ZNRecordRow.MAP_VALUE  + " LIKE '" + (!recipientCriteria.getResourceState().equals("") ? (recipientCriteria.getResourceState()+"'") :  "%' ") + " AND "+
+          ZNRecordRow.MAP_SUBKEY   + " IN ((SELECT [*]id FROM :LIVEINSTANCES))";
+          
       
-      if (!anyResourceKey
-          && !resourceKey.equalsIgnoreCase(row.get("resourceKey")))
-      {
-        continue;
-      }
-      else
-      {
-        if(resourceKey != null)
-        {
-          resultRow.put("resourceKey", row.get("resourceKey"));
-        }
-      }
+      String queryTarget = recipientCriteria.getDataSource().toString() + ClusterJosqlQueryProcessor.FLATTABLE;
       
-      if (!anyState && !state.equalsIgnoreCase(row.get("state")))
+      String josql = "SELECT DISTINCT " + queryFields
+                   + " FROM " + queryTarget + " WHERE "
+                   + matchCondition;
+      ClusterJosqlQueryProcessor p = new ClusterJosqlQueryProcessor(manager);
+      List<Object> result = new ArrayList<Object>();
+      try
       {
-        continue;
-      }
-      else
+        result = p.runJoSqlQuery(josql, resource, null);
+      } 
+      catch (Exception e)
       {
-        if(state!=null)
-        {
-          resultRow.put("state", row.get("state"));
-        }
-      }
-      String mapString = getMapString(resultRow);
-      if(!selectedSet.contains(mapString))
+        logger.error("", e);
+        return selected;
+      } 
+      
+      for(Object o : result)
       {
-        selectedSet.add(mapString);
+        Map<String, String> resultRow = new HashMap<String, String>();
+        List<Object> row = (List<Object>)o;
+        resultRow.put("instanceName", (String)(row.get(0)));
+        resultRow.put("resourceGroup", (String)(row.get(1)));
+        resultRow.put("resourceKey", (String)(row.get(2)));
+        resultRow.put("resourceState", (String)(row.get(3)));
         selected.add(resultRow);
       }
     }
     return selected;
-  }
-  
-  private String getMapString(Map<String, String> map)
-  {
-    String result = "";
-    
-    String[] keys = new String[map.size()];
-    map.keySet().toArray(keys);
-    Arrays.sort(keys);
-    for(String key : keys)
-    {
-      result = result + key + ":" + map.get(key) + ";";
-    }
-    return result;
   }
 }

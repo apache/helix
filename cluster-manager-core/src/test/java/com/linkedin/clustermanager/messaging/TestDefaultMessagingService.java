@@ -14,6 +14,7 @@ import com.linkedin.clustermanager.Criteria;
 import com.linkedin.clustermanager.InstanceType;
 import com.linkedin.clustermanager.Mocks;
 import com.linkedin.clustermanager.NotificationContext;
+import com.linkedin.clustermanager.PropertyPathConfig;
 import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.messaging.handling.CMTaskResult;
@@ -32,6 +33,16 @@ public class TestDefaultMessagingService
     class MockDataAccessor extends Mocks.MockAccessor
     {
       @Override
+      public ZNRecord getProperty(PropertyType type, String... keys)
+      {
+        if(type == PropertyType.EXTERNALVIEW || type == PropertyType.IDEALSTATES)
+        {
+          return _externalView;
+        }
+        return null;
+      }
+
+      @Override
       public List<ZNRecord> getChildValues(PropertyType type, String... keys)
 //      public <T extends ZNRecordDecorator> List<T> getChildValues(Class<T> clazz, PropertyType type,
 //                                                                  String... keys)
@@ -39,7 +50,7 @@ public class TestDefaultMessagingService
         List<ZNRecord> result = new ArrayList<ZNRecord>();
 //        List<T> result = new ArrayList<T>();
 
-        if(type == PropertyType.EXTERNALVIEW)
+        if(type == PropertyType.EXTERNALVIEW || type == PropertyType.IDEALSTATES)
         {
 //          result.add(ZNRecordDecorator.convertInstance(clazz, _externalView));
           result.add(_externalView);
@@ -74,7 +85,7 @@ public class TestDefaultMessagingService
         ZNRecord metaData = new ZNRecord(instance);
         metaData.setSimpleField(LiveInstanceProperty.SESSION_ID.toString(),
             UUID.randomUUID().toString());
-
+        _liveInstances.add(metaData);
       }
       _externalView = IdealStateCalculatorForStorageNode.calculateIdealState(
           _instances, _partitions, _replicas, _db, "MASTER", "SLAVE");
@@ -177,27 +188,27 @@ public class TestDefaultMessagingService
 
 
     recipientCriteria.setSelfExcluded(false);
-    recipientCriteria.setInstanceName("*");
+    recipientCriteria.setInstanceName("%");
     recipientCriteria.setResourceGroup("DB");
-    recipientCriteria.setResourceKey("*");
+    recipientCriteria.setResourceKey("%");
     AssertJUnit.assertEquals(200, svc.send(recipientCriteria, template));
 
     recipientCriteria.setSelfExcluded(true);
-    recipientCriteria.setInstanceName("*");
+    recipientCriteria.setInstanceName("%");
     recipientCriteria.setResourceGroup("DB");
-    recipientCriteria.setResourceKey("*");
+    recipientCriteria.setResourceKey("%");
     AssertJUnit.assertEquals(159, svc.send(recipientCriteria, template));
 
     recipientCriteria.setSelfExcluded(true);
-    recipientCriteria.setInstanceName("*");
+    recipientCriteria.setInstanceName("%");
     recipientCriteria.setResourceGroup("DB");
-    recipientCriteria.setResourceKey("*");
+    recipientCriteria.setResourceKey("%");
     AssertJUnit.assertEquals(159, svc.send(recipientCriteria, template));
 
     recipientCriteria.setSelfExcluded(true);
     recipientCriteria.setInstanceName("localhost_12920");
     recipientCriteria.setResourceGroup("DB");
-    recipientCriteria.setResourceKey("*");
+    recipientCriteria.setResourceKey("%");
     AssertJUnit.assertEquals(39, svc.send(recipientCriteria, template));
 
 
@@ -205,7 +216,7 @@ public class TestDefaultMessagingService
     recipientCriteria.setInstanceName("localhost_12920");
     recipientCriteria.setRecipientInstanceType(InstanceType.CONTROLLER);
     recipientCriteria.setResourceGroup("DB");
-    recipientCriteria.setResourceKey("*");
+    recipientCriteria.setResourceKey("%");
     AssertJUnit.assertEquals(1, svc.send(recipientCriteria, template));
   }
 }

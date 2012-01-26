@@ -47,6 +47,12 @@ public abstract class ZNRecordDecorator
     _record.setDeltaList(deltaList);
   }
 
+  @Override
+  public String toString()
+  {
+    return _record.toString();
+  }
+  
   /**
    * static method that convert ZNRecord to an instance that subclasses ZNRecordDecorator
    * @param clazz

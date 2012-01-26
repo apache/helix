@@ -64,7 +64,8 @@ public class TestZkPropertyStoreSessionExpiry extends ZkUnitTestBase
       _zkClient.deleteRecursive(propertyStoreRoot);
     }
 
-    ZKPropertyStore<String> zkPropertyStore = new ZKPropertyStore<String>(zkConn, serializer, propertyStoreRoot);
+    ZKPropertyStore<String> zkPropertyStore 
+      = new ZKPropertyStore<String>(new ZkClient(zkConn), serializer, propertyStoreRoot);
 
     zkPropertyStore.setProperty("/child1/grandchild1", "grandchild1");
     zkPropertyStore.setProperty("/child1/grandchild2", "grandchild2");

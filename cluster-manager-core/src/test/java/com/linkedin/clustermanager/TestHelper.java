@@ -32,6 +32,7 @@ import com.linkedin.clustermanager.mock.storage.DummyProcess.DummyOnlineOfflineS
 import com.linkedin.clustermanager.mock.storage.DummyProcess.DummyStateModelFactory;
 import com.linkedin.clustermanager.model.CurrentState;
 import com.linkedin.clustermanager.model.ExternalView;
+import com.linkedin.clustermanager.model.LiveInstance;
 import com.linkedin.clustermanager.model.Message.MessageType;
 import com.linkedin.clustermanager.model.ResourceGroup;
 import com.linkedin.clustermanager.model.ResourceKey;
@@ -508,7 +509,7 @@ public class TestHelper
       }
 
       /**
-       * check ERROR state and remove them from external view
+       * check ERROR state and remove them from the comparison against external view
        */
       if (errorStateMap != null)
       {
@@ -565,7 +566,48 @@ public class TestHelper
           return false;
         }
       }
+      
+      // verify that no status updates contain ERROR
+      List<LiveInstance> instances = accessor.getChildValues(LiveInstance.class, 
+                                                             PropertyType.LIVEINSTANCES);
+      for (LiveInstance instance : instances)
+      {
+        String sessionId = instance.getSessionId();
+        String instanceName = instance.getInstanceName();
+        List<String> partitionKeys = accessor.getChildNames(PropertyType.STATUSUPDATES, 
+                                                           instanceName,
+                                                           sessionId,
+                                                           resourceGroupName);
+        if (partitionKeys != null && partitionKeys.size() > 0)
+        {
+          for (String partitionKey : partitionKeys)
+          {
+            // skip error partitions
+            if (errorStateMap != null && errorStateMap.containsKey(partitionKey))
+            {
+              if (errorStateMap.get(partitionKey).equals(instanceName))
+              {
+                continue;
+              }
+            }
+            ZNRecord update = accessor.getProperty(PropertyType.STATUSUPDATES, 
+                                                   instanceName,
+                                                   sessionId,
+                                                   resourceGroupName,
+                                                   partitionKey);
+            String updateStr = update.toString().toLowerCase();
+            if (updateStr.indexOf("error") != -1)
+            {
+              LOG.error("ERROR in statusUpdate. instance:" + instance 
+                  + ", resourceGroup:" + resourceGroupName + ", partitionKey:" + partitionKey 
+                  + ", statusUpdate:" + update);
+              return false;
+            }
+          }
+        }       
+      }
     }
+    
     return true;
   }
 
@@ -636,13 +678,11 @@ public class TestHelper
                                                           String clusterName,
                                                           ClusterDataAccessor accessor)
   {
-    Map<String, ResourceGroup> resourceGroupMap =
-        getResourceGroupMap(resourceGroupName, partitions, stateModelName);
-//    CurrentStateOutput currentStateOutput = new CurrentStateOutput();
+    Map<String, ResourceGroup> resourceGroupMap 
+        = getResourceGroupMap(resourceGroupName, partitions, stateModelName);
     ClusterEvent event = new ClusterEvent("sampleEvent");
 
     event.addAttribute(AttributeName.RESOURCE_GROUPS.toString(), resourceGroupMap);
-//    event.addAttribute(AttributeName.CURRENT_STATE.toString(), currentStateOutput);
 
     ClusterDataCache cache = new ClusterDataCache();
     cache.refresh(accessor);

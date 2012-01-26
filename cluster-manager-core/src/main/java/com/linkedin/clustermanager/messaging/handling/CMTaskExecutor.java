@@ -299,8 +299,8 @@ public class CMTaskExecutor implements MessageListener
 
             if (handler == null)
             {
-              logger.error("Message handler factory not found for message type "
-                  + message.getMsgType());
+              logger.error("Message handler factory not found for message type:"
+                  + message.getMsgType() + ", message:" + message);
               continue;
             }
 

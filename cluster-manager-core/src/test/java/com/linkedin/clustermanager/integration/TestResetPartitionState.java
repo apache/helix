@@ -8,13 +8,17 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
+import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.TestHelper;
 import com.linkedin.clustermanager.agent.zk.ZKClusterManagementTool;
+import com.linkedin.clustermanager.agent.zk.ZKDataAccessor;
 import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
 import com.linkedin.clustermanager.controller.ClusterManagerMain;
 import com.linkedin.clustermanager.mock.storage.ErroneousDummyParticipant;
+import com.linkedin.clustermanager.model.LiveInstance;
 
+// TODO need to rewrite reset logic and this test
 public class TestResetPartitionState extends ZkIntegrationTestBase
 {
   ZkClient _zkClient;
@@ -57,7 +61,6 @@ public class TestResetPartitionState extends ZkIntegrationTestBase
       new Thread(participants[i]).start();
     }
 
-
     Map<String, String> errorStateMap = new HashMap<String, String>()
     {
       {
@@ -75,10 +78,20 @@ public class TestResetPartitionState extends ZkIntegrationTestBase
                                  null,
                                  errorStateMap);
 
-
     // correct state model and reset partition
     participants[0].setIsErroneous("TestDB0_0", "SLAVE", "MASTER", false);
 
+    // clear status update for error partition to avoid confusing the verifier
+    ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
+    LiveInstance localhost12918 = accessor.getProperty(LiveInstance.class, 
+                                                       PropertyType.LIVEINSTANCES,
+                                                       "localhost_12918");
+    accessor.removeProperty(PropertyType.STATUSUPDATES, 
+                            "localhost_12918", 
+                            localhost12918.getSessionId(),
+                            "TestDB0",
+                            "TestDB0_0");
+    
     ZKClusterManagementTool tool = new ZKClusterManagementTool(_zkClient);
     tool.resetPartition(clusterName, "localhost_12918", "TestDB0", "TestDB0_0");
 

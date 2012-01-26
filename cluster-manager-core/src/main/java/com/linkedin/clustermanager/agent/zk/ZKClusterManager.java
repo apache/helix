@@ -12,6 +12,7 @@ import static com.linkedin.clustermanager.CMConstants.ChangeType.MESSAGES_CONTRO
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Timer;
@@ -104,7 +105,7 @@ public class ZKClusterManager implements ClusterManager
     _zkConnectString = zkConnectString;
     _zkStateChangeListener = new ZkStateChangeListener(this);
     _timer = null;
-    _handlers = new ArrayList<CallbackHandler>();
+    _handlers = Collections.synchronizedList(new ArrayList<CallbackHandler>());
     _messagingService = new DefaultMessagingService(this);
 
     _version = new PropertiesReader("cluster-manager-version.properties")
@@ -295,6 +296,7 @@ public class ZKClusterManager implements ClusterManager
      */
     _messagingService.getExecutor().shutDown();
 
+    
     for (CallbackHandler handler : _handlers)
     {
       handler.reset();

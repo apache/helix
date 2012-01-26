@@ -1,7 +1,6 @@
 package com.linkedin.clustermanager.store;
 
-import org.I0Itec.zkclient.ZkConnection;
-
+import com.linkedin.clustermanager.agent.zk.ZkClient;
 import com.linkedin.clustermanager.store.file.FilePropertyStore;
 import com.linkedin.clustermanager.store.zk.ZKPropertyStore;
 
@@ -15,8 +14,8 @@ public class PropertyStoreFactory
       throw new IllegalArgumentException("arguments can't be null");
     }
     
-    ZkConnection zkConn = new ZkConnection(zkAddress);
-    return new ZKPropertyStore<T>(zkConn, serializer, rootNamespace);
+//    ZkConnection zkConn = new ZkConnection(zkAddress);
+    return new ZKPropertyStore<T>(new ZkClient(zkAddress), serializer, rootNamespace);
   }
 
   public static <T extends Object> PropertyStore<T> getFilePropertyStore(

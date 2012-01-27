@@ -7,6 +7,7 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 import org.testng.annotations.Test;
 
+import com.linkedin.clustermanager.DummyProcessThread;
 import com.linkedin.clustermanager.InstanceType;
 import com.linkedin.clustermanager.TestHelper;
 import com.linkedin.clustermanager.TestHelper.StartCMResult;
@@ -70,7 +71,7 @@ public class TestStandAloneCMSessionExpiry extends ZkIntegrationTestBase
                                                                                         InstanceType.PARTICIPANT,
                                                                                         ZK_ADDR);
       managers.put(instanceName, manager);
-      Thread thread = new Thread(new TestHelper.DummyProcessThread(manager, instanceName));
+      Thread thread = new Thread(new DummyProcessThread(manager, instanceName));
       thread.start();
     }
 

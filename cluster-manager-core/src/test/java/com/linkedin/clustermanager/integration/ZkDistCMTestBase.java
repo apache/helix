@@ -118,7 +118,7 @@ public class ZkDistCMTestBase extends ZkIntegrationTestBase
       }
       else
       {
-        StartCMResult result = TestHelper.startClusterController(CONTROLLER_CLUSTER,
+        StartCMResult result = TestHelper.startController(CONTROLLER_CLUSTER,
                                                                  controllerName,
                                                                  ZK_ADDR,
                                                                  ClusterManagerMain.DISTRIBUTED);

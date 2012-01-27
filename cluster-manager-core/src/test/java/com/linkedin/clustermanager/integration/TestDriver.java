@@ -206,7 +206,7 @@ public class TestDriver
         LOG.warn("Controller:" + controllerName + " has already started; skip starting it");
       } else
       {
-        StartCMResult result = TestHelper.startClusterController(clusterName, controllerName,
+        StartCMResult result = TestHelper.startController(clusterName, controllerName,
                                                                  ZK_ADDR,
                                                                  ClusterManagerMain.STANDALONE);
         testInfo._startCMResultMap.put(controllerName, result);

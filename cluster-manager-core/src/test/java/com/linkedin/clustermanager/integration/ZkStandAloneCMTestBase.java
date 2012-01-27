@@ -84,7 +84,7 @@ public class ZkStandAloneCMTestBase extends ZkIntegrationTestBase
 
     // start controller
     String controllerName = CONTROLLER_PREFIX + "_0";
-    StartCMResult startResult = TestHelper.startClusterController(CLUSTER_NAME,
+    StartCMResult startResult = TestHelper.startController(CLUSTER_NAME,
                                                                   controllerName,
                                                                   ZK_ADDR,
                                                                   ClusterManagerMain.STANDALONE);

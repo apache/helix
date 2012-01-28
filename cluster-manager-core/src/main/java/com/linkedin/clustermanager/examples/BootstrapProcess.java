@@ -4,8 +4,6 @@ import java.io.File;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Date;
-import java.util.Map;
-import java.util.UUID;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -19,24 +17,17 @@ import org.apache.commons.cli.ParseException;
 
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerFactory;
-import com.linkedin.clustermanager.ClusterMessagingService;
-import com.linkedin.clustermanager.Criteria;
+import com.linkedin.clustermanager.InstanceType;
 import com.linkedin.clustermanager.NotificationContext;
 import com.linkedin.clustermanager.messaging.AsyncCallback;
-import com.linkedin.clustermanager.messaging.handling.CMTaskExecutor;
 import com.linkedin.clustermanager.messaging.handling.CMTaskResult;
 import com.linkedin.clustermanager.messaging.handling.MessageHandler;
-import com.linkedin.clustermanager.messaging.handling.MessageHandler.ErrorCode;
-import com.linkedin.clustermanager.messaging.handling.MessageHandler.ErrorType;
 import com.linkedin.clustermanager.messaging.handling.MessageHandlerFactory;
 import com.linkedin.clustermanager.model.Message;
 import com.linkedin.clustermanager.model.Message.MessageType;
 import com.linkedin.clustermanager.participant.StateMachineEngine;
 import com.linkedin.clustermanager.participant.statemachine.StateModel;
 import com.linkedin.clustermanager.participant.statemachine.StateModelFactory;
-import com.linkedin.clustermanager.participant.statemachine.StateModelInfo;
-import com.linkedin.clustermanager.participant.statemachine.Transition;
-import com.linkedin.clustermanager.tools.ClusterSetup;
 import com.linkedin.clustermanager.tools.ClusterStateVerifier;
 
 /**
@@ -55,9 +46,9 @@ import com.linkedin.clustermanager.tools.ClusterStateVerifier;
  * <li>Once it gets a response from other nodes in the cluster the process can
  * decide which back up it wants to use to bootstrap</li>
  * </ul>
- * 
+ *
  * @author kgopalak
- * 
+ *
  */
 public class BootstrapProcess
 {
@@ -98,11 +89,21 @@ public class BootstrapProcess
   public void start() throws Exception
   {
     if (_file == null)
-      manager = ClusterManagerFactory.getZKBasedManagerForParticipant(
-          clusterName, instanceName, zkConnectString);
+    {
+      manager = ClusterManagerFactory.getZKClusterManager(clusterName,
+                                                          instanceName,
+                                                          InstanceType.PARTICIPANT,
+                                                          zkConnectString);
+
+    }
     else
-      manager = ClusterManagerFactory.getFileBasedManagerForParticipant(
-          clusterName, instanceName, _file);
+    {
+      manager = ClusterManagerFactory.getStaticFileClusterManager(clusterName,
+                                                                  instanceName,
+                                                                  InstanceType.PARTICIPANT,
+                                                                  _file);
+
+    }
     stateModelFactory = new BootstrapHandler();
     genericStateMachineHandler = new StateMachineEngine();
     genericStateMachineHandler.registerStateModelFactory("MasterSlave", stateModelFactory);
@@ -128,7 +129,7 @@ public class BootstrapProcess
     public MessageHandler createHandler(Message message,
         NotificationContext context)
     {
-      
+
       return new CustomMessageHandler(message, context);
     }
 
@@ -175,12 +176,12 @@ public class BootstrapProcess
                   + "/getFile?path=/data/bootstrap/"
                   + _message.getResourceGroupName() + "/"
                   + _message.getResourceKey() + ".tar");
-          
+
           result.getTaskResultMap().put(
               "BOOTSTRAP_TIME",
               ""+new Date().getTime());
         }
-        
+
         result.setSuccess(true);
         return result;
       }

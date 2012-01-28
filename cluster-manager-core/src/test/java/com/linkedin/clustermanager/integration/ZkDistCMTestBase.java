@@ -101,7 +101,8 @@ public class ZkDistCMTestBase extends ZkIntegrationTestBase
       }
       else
       {
-        StartCMResult result = TestHelper.startDummyProcess(ZK_ADDR, firstCluster, instanceName, null);
+        StartCMResult result = TestHelper.startDummyProcess(ZK_ADDR, firstCluster,
+                                                            instanceName);
         _startCMResultMap.put(instanceName, result);
       }
     }
@@ -117,8 +118,10 @@ public class ZkDistCMTestBase extends ZkIntegrationTestBase
       }
       else
       {
-        StartCMResult result = TestHelper.startClusterController(CONTROLLER_CLUSTER, controllerName, ZK_ADDR,
-           ClusterManagerMain.DISTRIBUTED, null);
+        StartCMResult result = TestHelper.startController(CONTROLLER_CLUSTER,
+                                                                 controllerName,
+                                                                 ZK_ADDR,
+                                                                 ClusterManagerMain.DISTRIBUTED);
         _startCMResultMap.put(controllerName, result);
       }
     }

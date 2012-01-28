@@ -155,6 +155,7 @@ public class ZNRecord
   public String toString()
   {
     StringBuffer sb = new StringBuffer();
+    sb.append(id + ", ");
     if (simpleFields != null)
     {
       sb.append(simpleFields);

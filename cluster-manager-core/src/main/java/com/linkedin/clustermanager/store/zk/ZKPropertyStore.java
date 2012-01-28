@@ -38,7 +38,7 @@ implements PropertyStore<T>, IZkDataListener, IZkChildListener, IZkStateListener
   private volatile boolean _isConnected = false;
   private volatile boolean _hasSessionExpired = false;
 
-  protected final ZkConnection _zkConnection;
+//  protected final ZkConnection _zkConnection;
   protected final ZkClient _zkClient;
   protected final PropertySerializer<T> _serializer;
   protected final String _rootPath;
@@ -48,18 +48,26 @@ implements PropertyStore<T>, IZkDataListener, IZkChildListener, IZkStateListener
   // TODO property cache needs to have a bounded capacity
   private final Map<String, PropertyInfo<T>> _propertyCacheMap = new ConcurrentHashMap<String, PropertyInfo<T>>();
 
-  public ZKPropertyStore(ZkConnection zkConnection,
-      final PropertySerializer<T> serializer)
-  {
-    this(zkConnection, serializer, "/");
-  }
+//  public ZKPropertyStore(ZkConnection zkConnection,
+//      final PropertySerializer<T> serializer)
+//  {
+//    this(zkConnection, serializer, "/");
+//  }
 
-  public ZKPropertyStore(ZkConnection zkConnection,
+  public ZKPropertyStore(ZkClient zkClient, final PropertySerializer<T> serializer)
+  {
+    this(zkClient, serializer, "/");
+  }
+  
+//  public ZKPropertyStore(ZkConnection zkConnection,
+//      final PropertySerializer<T> serializer, String rootPath)
+  public ZKPropertyStore(ZkClient zkClient,
       final PropertySerializer<T> serializer, String rootPath)
   {
     _serializer = serializer;
-    _zkConnection = zkConnection;
-    _zkClient = new ZkClient(_zkConnection);
+//    _zkConnection = zkConnection;
+//    _zkClient = new ZkClient(_zkConnection);
+    _zkClient = zkClient;
     setPropertySerializer(serializer);
 
     _zkClient.subscribeStateChanges(this);

@@ -27,11 +27,10 @@ import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerFactory;
+import com.linkedin.clustermanager.InstanceType;
 import com.linkedin.clustermanager.PropertyType;
-import com.linkedin.clustermanager.agent.zk.ZkClient;
 import com.linkedin.clustermanager.model.Message.MessageType;
 import com.linkedin.clustermanager.monitoring.mbeans.ClusterStatusMonitor;
-import com.linkedin.clustermanager.participant.DistClusterControllerStateModel;
 import com.linkedin.clustermanager.participant.DistClusterControllerStateModelFactory;
 import com.linkedin.clustermanager.participant.StateMachineEngine;
 
@@ -142,35 +141,30 @@ public class ClusterManagerMain
   public static ClusterManager startClusterManagerMain(final String zkConnectString,
        final String clusterName, final String controllerName, final String controllerMode)
   {
-    return startClusterManagerMain(zkConnectString, clusterName, controllerName,
-                            controllerMode, null);
-  }
-
-  public static ClusterManager startClusterManagerMain(final String zkConnectString,
-       final String clusterName, final String controllerName, final String controllerMode,
-       final ZkClient zkClient)
-  {
     ClusterManager manager = null;
     try
     {
       if (controllerMode.equalsIgnoreCase(STANDALONE))
       {
-        manager = ClusterManagerFactory.getZKBasedManagerForController(clusterName,
-                   controllerName, zkConnectString, zkClient);
+        manager = ClusterManagerFactory.getZKClusterManager(clusterName,
+                                                            controllerName,
+                                                            InstanceType.CONTROLLER,
+                                                            zkConnectString);
         manager.connect();
       }
       else if (controllerMode.equalsIgnoreCase(DISTRIBUTED))
       {
-        manager = ClusterManagerFactory.getZKBasedManagerForControllerParticipant(clusterName,
-                   controllerName, zkConnectString);
+        manager = ClusterManagerFactory.getZKClusterManager(clusterName,
+                                                            controllerName,
+                                                            InstanceType.CONTROLLER_PARTICIPANT,
+                                                            zkConnectString);
+
         manager.connect();
         DistClusterControllerStateModelFactory stateModelFactory
            = new DistClusterControllerStateModelFactory(zkConnectString);
 
         StateMachineEngine genericStateMachineHandler = new StateMachineEngine();
         genericStateMachineHandler.registerStateModelFactory("LeaderStandby", stateModelFactory);
-        //StateMachineEngine<DistClusterControllerStateModel> genericStateMachineHandler 
-        //   = new StateMachineEngine<DistClusterControllerStateModel>(stateModelFactory);
         manager.getMessagingService().registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(), genericStateMachineHandler);
 
       }

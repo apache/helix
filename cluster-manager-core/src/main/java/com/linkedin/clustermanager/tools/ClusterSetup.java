@@ -46,12 +46,13 @@ public class ClusterSetup
 
   // Add, drop, and rebalance
   public static final String addCluster            = "addCluster";
+  public static final String dropCluster         = "dropCluster";
   public static final String addInstance           = "addNode";
   public static final String addResourceGroup      = "addResourceGroup";
   public static final String addStateModelDef      = "addStateModelDef";
   public static final String addIdealState         = "addIdealState";
   public static final String disableInstance       = "disableNode";
-  public static final String dropInstance		   = "dropNode";
+  public static final String dropInstance       = "dropNode";
   public static final String rebalance             = "rebalance";
 
   // Query info (TBD in V2)
@@ -92,6 +93,11 @@ public class ClusterSetup
     addStateModelDef(clusterName, "StorageSchemata", new StateModelDefinition(generator.generateConfigForStorageSchemata()));
     addStateModelDef(clusterName, "OnlineOffline", new StateModelDefinition(generator.generateConfigForOnlineOffline()));
   }
+  
+  public void deleteCluster(String clusterName)
+  {
+    _managementService.dropCluster(clusterName);
+  }
 
   public void addCluster(String clusterName,
                          boolean overwritePrevious,
@@ -117,8 +123,12 @@ public class ClusterSetup
   public void addInstanceToCluster(String clusterName, String InstanceAddress)
   {
     // InstanceAddress must be in host:port format
-    int lastPos = InstanceAddress.lastIndexOf(":");
+    int lastPos = InstanceAddress.lastIndexOf("_");
     if (lastPos <= 0)
+    {
+      lastPos = InstanceAddress.lastIndexOf(":");
+    }
+    if(lastPos <= 0)
     {
       String error = "Invalid storage Instance info format: " + InstanceAddress;
       _logger.warn(error);
@@ -154,25 +164,29 @@ public class ClusterSetup
 
   public void dropInstanceFromCluster(String clusterName, String InstanceAddress)
   {
-	  // InstanceAddress must be in host:port format
-	  int lastPos = InstanceAddress.lastIndexOf(":");
-	  if (lastPos <= 0)
-	  {
-		  String error = "Invalid storage Instance info format: " + InstanceAddress;
-		  _logger.warn(error);
-		  throw new ClusterManagerException(error);
-	  }
-	  String host = InstanceAddress.substring(0, lastPos);
-	  String portStr = InstanceAddress.substring(lastPos + 1);
-	  int port = Integer.parseInt(portStr);
-	  dropInstanceFromCluster(clusterName, host, port);
+    // InstanceAddress must be in host:port format
+    int lastPos = InstanceAddress.lastIndexOf("_");
+    if (lastPos <= 0)
+    {
+      lastPos = InstanceAddress.lastIndexOf(":");
+    }
+    if (lastPos <= 0)
+    {
+      String error = "Invalid storage Instance info format: " + InstanceAddress;
+      _logger.warn(error);
+      throw new ClusterManagerException(error);
+    }
+    String host = InstanceAddress.substring(0, lastPos);
+    String portStr = InstanceAddress.substring(lastPos + 1);
+    int port = Integer.parseInt(portStr);
+    dropInstanceFromCluster(clusterName, host, port);
   }
 
   public void dropInstanceFromCluster(String clusterName, String host, int port)
   {
-	  String instanceId = host + "_" + port;
+    String instanceId = host + "_" + port;
 
-	  ZkClient zkClient = ZKClientPool.getZkClient(_zkServerAddress);
+    ZkClient zkClient = ZKClientPool.getZkClient(_zkServerAddress);
     InstanceConfig config = new ZKDataAccessor(clusterName, zkClient).getProperty(InstanceConfig.class,
                                                                                   PropertyType.CONFIGS,
                                                                                   instanceId);
@@ -382,6 +396,12 @@ public class ClusterSetup
     addClusterOption.setArgs(1);
     addClusterOption.setRequired(false);
     addClusterOption.setArgName("clusterName");
+    
+    Option deleteClusterOption =
+        OptionBuilder.withLongOpt(dropCluster).withDescription("Delete a cluster").create();
+    deleteClusterOption.setArgs(1);
+    deleteClusterOption.setRequired(false);
+    deleteClusterOption.setArgName("clusterName");
 
     Option addInstanceOption =
         OptionBuilder.withLongOpt(addInstance)
@@ -496,9 +516,9 @@ public class ClusterSetup
         addStatOption.setRequired(false);
         addStatOption.setArgName("clusterName statName");
     Option addAlertOption =
-    		OptionBuilder.withLongOpt(addAlert)
-    		.withDescription("Add an alert")
-    		.create();
+        OptionBuilder.withLongOpt(addAlert)
+        .withDescription("Add an alert")
+        .create();
     addAlertOption.setArgs(2);
     addAlertOption.setRequired(false);
     addAlertOption.setArgName("clusterName alertName");
@@ -508,6 +528,7 @@ public class ClusterSetup
     group.addOption(rebalanceOption);
     group.addOption(addResourceGroupOption);
     group.addOption(addClusterOption);
+    group.addOption(deleteClusterOption);
     group.addOption(addInstanceOption);
     group.addOption(listInstancesOption);
     group.addOption(listResourceGroupOption);
@@ -573,6 +594,13 @@ public class ClusterSetup
     {
       String clusterName = cmd.getOptionValue(addCluster);
       setupTool.addCluster(clusterName, false);
+      return 0;
+    }
+    
+    if (cmd.hasOption(dropCluster))
+    {
+      String clusterName = cmd.getOptionValue(dropCluster);
+      setupTool.deleteCluster(clusterName);
       return 0;
     }
 
@@ -777,17 +805,17 @@ public class ClusterSetup
     }
     else if (cmd.hasOption(addStat))
     {
-    	String clusterName = cmd.getOptionValues(addStat)[0];
-    	String statName = cmd.getOptionValues(addStat)[1];
-    	
-    	setupTool.getClusterManagementTool().addStat(clusterName, statName);
+      String clusterName = cmd.getOptionValues(addStat)[0];
+      String statName = cmd.getOptionValues(addStat)[1];
+      
+      setupTool.getClusterManagementTool().addStat(clusterName, statName);
     }
     else if (cmd.hasOption(addAlert))
     {
-    	String clusterName = cmd.getOptionValues(addAlert)[0];
-    	String alertName = cmd.getOptionValues(addAlert)[1];
-    	
-    	setupTool.getClusterManagementTool().addAlert(clusterName, alertName);
+      String clusterName = cmd.getOptionValues(addAlert)[0];
+      String alertName = cmd.getOptionValues(addAlert)[1];
+      
+      setupTool.getClusterManagementTool().addAlert(clusterName, alertName);
     }
     else if (cmd.hasOption(help))
     {

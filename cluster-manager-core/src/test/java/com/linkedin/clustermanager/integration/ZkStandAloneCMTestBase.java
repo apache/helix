@@ -32,8 +32,6 @@ public class ZkStandAloneCMTestBase extends ZkIntegrationTestBase
   protected static final String STATE_MODEL = "MasterSlave";
   protected static final String TEST_DB = "TestDB";
 
-  protected ZkClient _controllerZkClient;
-  protected ZkClient[] _participantZkClients = new ZkClient[NODE_NR];
   protected ClusterSetup _setupTool = null;
   protected final String CLASS_NAME = getShortClassName();
   protected final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + CLASS_NAME;
@@ -77,23 +75,19 @@ public class ZkStandAloneCMTestBase extends ZkIntegrationTestBase
       }
       else
       {
-        _participantZkClients[i] = new ZkClient(ZK_ADDR, 3000, 10000, new ZNRecordSerializer());
         StartCMResult result = TestHelper.startDummyProcess(ZK_ADDR,
                                                             CLUSTER_NAME,
-                                                            instanceName,
-                                                            _participantZkClients[i]);
+                                                            instanceName);
         _startCMResultMap.put(instanceName, result);
       }
     }
 
     // start controller
     String controllerName = CONTROLLER_PREFIX + "_0";
-    _controllerZkClient = new ZkClient(ZK_ADDR, 3000, 10000, new ZNRecordSerializer());
-    StartCMResult startResult = TestHelper.startClusterController(CLUSTER_NAME,
+    StartCMResult startResult = TestHelper.startController(CLUSTER_NAME,
                                                                   controllerName,
                                                                   ZK_ADDR,
-                                                                  ClusterManagerMain.STANDALONE,
-                                                                  _controllerZkClient);
+                                                                  ClusterManagerMain.STANDALONE);
     _startCMResultMap.put(controllerName, startResult);
 
     verifyCluster();

@@ -57,7 +57,7 @@ public class DefaultMessagingService implements ClusterMessagingService
   {
     return send(recipientCriteria, message, callbackOnReply, timeOut, 0);
   }
-  
+
   @Override
   public int send(final Criteria recipientCriteria, final Message message,
       AsyncCallback callbackOnReply, int timeOut, int retryCount)
@@ -138,10 +138,8 @@ public class DefaultMessagingService implements ClusterMessagingService
     } else if (instanceType == InstanceType.PARTICIPANT)
     {
       List<Message> messages = new ArrayList<Message>();
-      List<Map<String, String>> clusterData = prepareInputFromClusterData(recipientCriteria);
-
       List<Map<String, String>> matchedList = _evaluator.evaluateCriteria(
-          clusterData, recipientCriteria);
+           recipientCriteria, _manager);
 
       if (!matchedList.isEmpty())
       {
@@ -184,57 +182,7 @@ public class DefaultMessagingService implements ClusterMessagingService
     }
     return messagesToSendMap;
   }
-
-  private List<Map<String, String>> prepareInputFromClusterData(
-      Criteria criteria)
-  {
-    // TODO:optimize and read only resource groups needed
-    List<Map<String, String>> rows = new ArrayList<Map<String, String>>();
-    List<ExternalView> extViews = _manager.getDataAccessor().getChildValues(ExternalView.class,
-                                                                            PropertyType.EXTERNALVIEW);
-    for (ExternalView view : extViews)
-    {
-      Set<String> resourceKeys = view.getResourceKeys();
-      for (String resourceKeyName : resourceKeys)
-      {
-        Map<String, String> stateMap = view.getStateMap(resourceKeyName);
-        for (String name : stateMap.keySet())
-        {
-          Map<String, String> row = new HashMap<String, String>();
-          row.put("source", "externalView");
-          row.put("instanceName", name);
-          row.put("resourceGroup", view.getResourceGroup());
-          row.put("state", stateMap.get(name));
-          row.put("resourceKey", resourceKeyName);
-          if (name.equalsIgnoreCase(_manager.getInstanceName()))
-          {
-            row.put("isSender", "true");
-          } else
-          {
-            row.put("isSender", "false");
-          }
-          rows.add(row);
-        }
-      }
-    }
-    /*
-     * List<ZNRecord> instances = _manager.getDataAccessor()
-     * .getChildValues(PropertyType.CONFIGS); for (ZNRecord record :
-     * instances) { InstanceConfig config = new InstanceConfig(record);
-     *
-     * Map<String, String> row = new HashMap<String, String>();
-     * row.put("source", "configs"); row.put("instanceName",
-     * config.getInstanceName()); rows.add(row); } List<ZNRecord> liveInstances
-     * = _manager.getDataAccessor()
-     * .getChildValues(PropertyType.LIVEINSTANCES); for (ZNRecord record
-     * : liveInstances) { LiveInstance liveInstance = new LiveInstance(record);
-     * Map<String, String> row = new HashMap<String, String>();
-     * row.put("source", "liveInstances"); row.put("instanceName",
-     * liveInstance.getInstanceName()); rows.add(row); }
-     */
-    return rows;
-  }
-
+  
   private List<Message> generateMessagesForController(Message message)
   {
     List<Message> messages = new ArrayList<Message>();
@@ -265,7 +213,7 @@ public class DefaultMessagingService implements ClusterMessagingService
         Message noOPMsg = new Message(MessageType.NO_OP, UUID.randomUUID()
             .toString());
         noOPMsg.setSrcName(_manager.getInstanceName());
-        
+
         if (_manager.getInstanceType() == InstanceType.CONTROLLER
             || _manager.getInstanceType() == InstanceType.CONTROLLER_PARTICIPANT)
         {
@@ -324,7 +272,7 @@ public class DefaultMessagingService implements ClusterMessagingService
     }
     return messagesSent;
   }
-  
+
   @Override
   public int sendAndWait(Criteria recipientCriteria, Message message,
       AsyncCallback asyncCallback, int timeOut)

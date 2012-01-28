@@ -33,7 +33,7 @@ public class TestDistClusterController extends ZkDistCMTestBase
       }
       else
       {
-        StartCMResult result = TestHelper.startDummyProcess(ZK_ADDR, secondCluster, instanceName, null);
+        StartCMResult result = TestHelper.startDummyProcess(ZK_ADDR, secondCluster, instanceName);
         _startCMResultMap.put(instanceName, result);
       }
     }

@@ -27,15 +27,11 @@ import com.linkedin.clustermanager.controller.stages.BestPossibleStateOutput;
 import com.linkedin.clustermanager.controller.stages.ClusterDataCache;
 import com.linkedin.clustermanager.controller.stages.ClusterEvent;
 import com.linkedin.clustermanager.controller.stages.CurrentStateComputationStage;
-import com.linkedin.clustermanager.mock.storage.DummyProcess.DummyLeaderStandbyStateModelFactory;
-import com.linkedin.clustermanager.mock.storage.DummyProcess.DummyOnlineOfflineStateModelFactory;
-import com.linkedin.clustermanager.mock.storage.DummyProcess.DummyStateModelFactory;
 import com.linkedin.clustermanager.model.CurrentState;
 import com.linkedin.clustermanager.model.ExternalView;
-import com.linkedin.clustermanager.model.Message.MessageType;
+import com.linkedin.clustermanager.model.LiveInstance;
 import com.linkedin.clustermanager.model.ResourceGroup;
 import com.linkedin.clustermanager.model.ResourceKey;
-import com.linkedin.clustermanager.participant.StateMachineEngine;
 import com.linkedin.clustermanager.pipeline.Stage;
 import com.linkedin.clustermanager.pipeline.StageContext;
 import com.linkedin.clustermanager.store.file.FilePropertyStore;
@@ -108,29 +104,17 @@ public class TestHelper
     }
   }
 
-  /**
-   * start dummy cluster participant with a pre-created zkClient for testing session
-   * expiry
-   *
-   * @param zkAddr
-   * @param clusterName
-   * @param instanceName
-   * @param zkClient
-   * @return
-   * @throws Exception
-   */
   public static StartCMResult startDummyProcess(final String zkAddr,
-                                                     final String clusterName,
-                                                     final String instanceName,
-                                                     final ZkClient zkClient) throws Exception
+                                                final String clusterName,
+                                                final String instanceName)
+    throws Exception
   {
     StartCMResult result = new StartCMResult();
     ClusterManager manager = null;
-    manager =
-        ClusterManagerFactory.getZKBasedManagerForParticipant(clusterName,
-                                                              instanceName,
-                                                              zkAddr,
-                                                              zkClient);
+    manager = ClusterManagerFactory.getZKClusterManager(clusterName,
+                                                        instanceName,
+                                                        InstanceType.PARTICIPANT,
+                                                        zkAddr);
     result._manager = manager;
     Thread thread = new Thread(new DummyProcessThread(manager, instanceName));
     result._thread = thread;
@@ -139,29 +123,18 @@ public class TestHelper
     return result;
   }
 
-  /**
-   * start cluster controller with a pre-created zkClient for testing session expiry
-   *
-   * @param clusterName
-   * @param controllerName
-   * @param zkConnectString
-   * @param zkClient
-   * @return
- * @throws Exception
-   */
-  public static StartCMResult startClusterController(final String clusterName,
+  public static StartCMResult startController(final String clusterName,
                                               final String controllerName,
                                               final String zkConnectString,
-                                              final String controllerMode,
-                                              final ZkClient zkClient) throws Exception
+                                              final String controllerMode)
+    throws Exception
   {
     final StartCMResult result = new StartCMResult();
     final ClusterManager manager =
         ClusterManagerMain.startClusterManagerMain(zkConnectString,
                                                    clusterName,
                                                    controllerName,
-                                                   controllerMode,
-                                                   zkClient);
+                                                   controllerMode);
     manager.connect();
     result._manager = manager;
 
@@ -184,21 +157,11 @@ public class TestHelper
                   + " interrupted";
           LOG.info(msg);
           // System.err.println(msg);
-
         }
         catch (Exception e)
         {
           e.printStackTrace();
         }
-        /*
-        finally
-        {
-          if (manager != null)
-          {
-            manager.disconnect();
-          }
-        }
-        */
       }
     });
 
@@ -214,63 +177,9 @@ public class TestHelper
 
   }
 
-  static class DummyProcessThread implements Runnable
-  {
-    ClusterManager _manager;
-    String _instanceName;
-
-    public DummyProcessThread(ClusterManager manager, String instanceName)
-    {
-      _manager = manager;
-      _instanceName = instanceName;
-    }
-
-    @Override
-    public void run()
-    {
-      try
-      {
-        _manager.connect();
-        DummyStateModelFactory stateModelFactory = new DummyStateModelFactory(0);
-        StateMachineEngine genericStateMachineHandler =
-            new StateMachineEngine();
-        genericStateMachineHandler.registerStateModelFactory("MasterSlave", stateModelFactory);
-
-        DummyLeaderStandbyStateModelFactory stateModelFactory1 = new DummyLeaderStandbyStateModelFactory(10);
-        DummyOnlineOfflineStateModelFactory stateModelFactory2 = new DummyOnlineOfflineStateModelFactory(10);
-        genericStateMachineHandler.registerStateModelFactory("LeaderStandby", stateModelFactory1);
-        genericStateMachineHandler.registerStateModelFactory("OnlineOffline", stateModelFactory2);
-        _manager.getMessagingService()
-                .registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(),
-                                               genericStateMachineHandler);
-
-        Thread.currentThread().join();
-      }
-      catch (InterruptedException e)
-      {
-        String msg =
-            "participant:" + _instanceName + ", " + Thread.currentThread().getName()
-                + " interrupted";
-        LOG.info(msg);
-        // System.err.println(msg);
-
-      }
-      catch (Exception e)
-      {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
-      }
-      /*
-      finally
-      {
-        if (_manager != null)
-        {
-          _manager.disconnect();
-        }
-      }
-      */
-    }
-  }
+//  static public class DummyProcessThread implements Runnable
+//  {
+//  }
 
   public static void setupEmptyCluster(ZkClient zkClient, String clusterName)
   {
@@ -551,7 +460,7 @@ public class TestHelper
       }
 
       /**
-       * check ERROR state and remove them from external view
+       * check ERROR state and remove them from the comparison against external view
        */
       if (errorStateMap != null)
       {
@@ -608,7 +517,48 @@ public class TestHelper
           return false;
         }
       }
+      
+      // verify that no status updates contain ERROR
+      List<LiveInstance> instances = accessor.getChildValues(LiveInstance.class, 
+                                                             PropertyType.LIVEINSTANCES);
+      for (LiveInstance instance : instances)
+      {
+        String sessionId = instance.getSessionId();
+        String instanceName = instance.getInstanceName();
+        List<String> partitionKeys = accessor.getChildNames(PropertyType.STATUSUPDATES, 
+                                                           instanceName,
+                                                           sessionId,
+                                                           resourceGroupName);
+        if (partitionKeys != null && partitionKeys.size() > 0)
+        {
+          for (String partitionKey : partitionKeys)
+          {
+            // skip error partitions
+            if (errorStateMap != null && errorStateMap.containsKey(partitionKey))
+            {
+              if (errorStateMap.get(partitionKey).equals(instanceName))
+              {
+                continue;
+              }
+            }
+            ZNRecord update = accessor.getProperty(PropertyType.STATUSUPDATES, 
+                                                   instanceName,
+                                                   sessionId,
+                                                   resourceGroupName,
+                                                   partitionKey);
+            String updateStr = update.toString().toLowerCase();
+            if (updateStr.indexOf("error") != -1)
+            {
+              LOG.error("ERROR in statusUpdate. instance:" + instance 
+                  + ", resourceGroup:" + resourceGroupName + ", partitionKey:" + partitionKey 
+                  + ", statusUpdate:" + update);
+              return false;
+            }
+          }
+        }       
+      }
     }
+    
     return true;
   }
 
@@ -679,13 +629,11 @@ public class TestHelper
                                                           String clusterName,
                                                           ClusterDataAccessor accessor)
   {
-    Map<String, ResourceGroup> resourceGroupMap =
-        getResourceGroupMap(resourceGroupName, partitions, stateModelName);
-//    CurrentStateOutput currentStateOutput = new CurrentStateOutput();
+    Map<String, ResourceGroup> resourceGroupMap 
+        = getResourceGroupMap(resourceGroupName, partitions, stateModelName);
     ClusterEvent event = new ClusterEvent("sampleEvent");
 
     event.addAttribute(AttributeName.RESOURCE_GROUPS.toString(), resourceGroupMap);
-//    event.addAttribute(AttributeName.CURRENT_STATE.toString(), currentStateOutput);
 
     ClusterDataCache cache = new ClusterDataCache();
     cache.refresh(accessor);

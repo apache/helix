@@ -284,6 +284,7 @@ public class CMTaskExecutor implements MessageListener
         }
         continue;
       }
+
       String sessionId = manager.getSessionId();
       String tgtSessionId = message.getTgtSessionId();
       if (sessionId.equals(tgtSessionId) || tgtSessionId.equals("*"))
@@ -298,8 +299,8 @@ public class CMTaskExecutor implements MessageListener
 
             if (handler == null)
             {
-              logger.warn("Message handler factory not found for message type "
-                  + message.getMsgType());
+              logger.error("Message handler factory not found for message type:"
+                  + message.getMsgType() + ", message:" + message);
               continue;
             }
 
@@ -325,7 +326,8 @@ public class CMTaskExecutor implements MessageListener
 
             }
             scheduleTask(message, handler, changeContext);
-          } catch (Exception e)
+          }
+          catch (Exception e)
           {
             String error = "Failed to create message handler for "
                 + message.getMsgId() + " exception: " + e;
@@ -352,7 +354,7 @@ public class CMTaskExecutor implements MessageListener
       {
         String warningMessage = "Session Id does not match.  current session id  Expected: "
             + sessionId + " sessionId from Message: " + tgtSessionId;
-        logger.warn(warningMessage);
+        logger.error(warningMessage);
         accessor.removeProperty(PropertyType.MESSAGES, instanceName,
             message.getId());
         _statusUpdateUtil.logWarning(message, StateMachineEngine.class,

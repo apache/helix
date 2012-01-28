@@ -10,8 +10,8 @@ import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerFactory;
 import com.linkedin.clustermanager.ExternalViewChangeListener;
+import com.linkedin.clustermanager.InstanceType;
 import com.linkedin.clustermanager.MessageListener;
-import com.linkedin.clustermanager.messaging.handling.CMTaskExecutor;
 import com.linkedin.clustermanager.mock.consumer.ConsumerAdapter;
 import com.linkedin.clustermanager.mock.consumer.RelayConfig;
 import com.linkedin.clustermanager.mock.consumer.RelayConsumer;
@@ -30,8 +30,8 @@ class StorageAdapter
   private MessageListener messageListener;
 
   // Map<Object, RelayConsumer> relayConsumersMap;
-  private ConsumerAdapter consumerAdapter;
-  private StorageStateModelFactory stateModelFactory;
+  private final ConsumerAdapter consumerAdapter;
+  private final StorageStateModelFactory stateModelFactory;
 
   class partitionData
   {
@@ -55,12 +55,12 @@ class StorageAdapter
     hostedPartitions = new ConcurrentHashMap<String, partitionData>();
 
     storageClusterManager = ClusterManagerFactory
-        .getZKBasedManagerForParticipant(clusterName, instanceName,
-            zkConnectString);
+        .getZKClusterManager(clusterName, instanceName, InstanceType.PARTICIPANT,
+                             zkConnectString);
     stateModelFactory = new StorageStateModelFactory(this);
     StateMachineEngine genericStateMachineHandler = new StateMachineEngine();
     genericStateMachineHandler.registerStateModelFactory("MasterSlave", stateModelFactory);
-    
+
     storageClusterManager.getMessagingService().registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(), genericStateMachineHandler);
     storageClusterManager.connect();
     storageClusterClient = storageClusterManager.getDataAccessor();
@@ -96,7 +96,7 @@ class StorageAdapter
 
   /*
    * During replication set up which will happen when there is state transition
-   * 
+   *
    * @return
    */
   Map<Integer, RelayConfig> getReplicatedPartitions()

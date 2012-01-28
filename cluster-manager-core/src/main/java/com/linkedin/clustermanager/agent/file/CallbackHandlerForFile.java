@@ -51,11 +51,11 @@ public class CallbackHandlerForFile implements PropertyChangeListener<ZNRecord>
   private final ClusterManager _manager;
   private final FilePropertyStore<ZNRecord> _store;
 
-  public CallbackHandlerForFile(ClusterManager manager, String path,
-      Object listener, EventType[] eventTypes, ChangeType changeType)
+  public CallbackHandlerForFile(ClusterManager manager, String path, Object listener,
+                                EventType[] eventTypes, ChangeType changeType)
   {
     this._manager = manager;
-    this._accessor = (FileBasedDataAccessor)manager.getDataAccessor();
+    this._accessor = (FileBasedDataAccessor) manager.getDataAccessor();
     this._path = path;
     this._listener = listener;
     this._eventTypes = eventTypes;
@@ -90,57 +90,73 @@ public class CallbackHandlerForFile implements PropertyChangeListener<ZNRecord>
       if (_changeType == IDEAL_STATE)
       {
         // System.err.println("ideal state change");
-        IdealStateChangeListener idealStateChangeListener = (IdealStateChangeListener) _listener;
+        IdealStateChangeListener idealStateChangeListener =
+            (IdealStateChangeListener) _listener;
         subscribeForChanges(changeContext, true, true);
-        List<IdealState> idealStates = _accessor.getChildValues(IdealState.class, PropertyType.IDEALSTATES);
+        List<IdealState> idealStates =
+            _accessor.getChildValues(IdealState.class, PropertyType.IDEALSTATES);
         idealStateChangeListener.onIdealStateChange(idealStates, changeContext);
 
-      } else if (_changeType == CONFIG)
+      }
+      else if (_changeType == CONFIG)
       {
 
         ConfigChangeListener configChangeListener = (ConfigChangeListener) _listener;
         subscribeForChanges(changeContext, true, true);
-        List<InstanceConfig> configs = _accessor.getChildValues(InstanceConfig.class, PropertyType.CONFIGS);
+        List<InstanceConfig> configs =
+            _accessor.getChildValues(InstanceConfig.class, PropertyType.CONFIGS);
         configChangeListener.onConfigChange(configs, changeContext);
 
-      } else if (_changeType == LIVE_INSTANCE)
+      }
+      else if (_changeType == LIVE_INSTANCE)
       {
-        LiveInstanceChangeListener liveInstanceChangeListener = (LiveInstanceChangeListener) _listener;
+        LiveInstanceChangeListener liveInstanceChangeListener =
+            (LiveInstanceChangeListener) _listener;
         subscribeForChanges(changeContext, true, false);
-        List<LiveInstance> liveInstances = _accessor.getChildValues(LiveInstance.class,
-                                                                    PropertyType.LIVEINSTANCES);
+        List<LiveInstance> liveInstances =
+            _accessor.getChildValues(LiveInstance.class, PropertyType.LIVEINSTANCES);
         liveInstanceChangeListener.onLiveInstanceChange(liveInstances, changeContext);
 
-      } else if (_changeType == CURRENT_STATE)
+      }
+      else if (_changeType == CURRENT_STATE)
       {
         CurrentStateChangeListener currentStateChangeListener;
         currentStateChangeListener = (CurrentStateChangeListener) _listener;
         subscribeForChanges(changeContext, true, true);
         String instanceName = CMUtil.getInstanceNameFromPath(_path);
         String[] pathParts = _path.split("/");
-        List<CurrentState> currentStates = _accessor.getChildValues(CurrentState.class,
-                                                                    PropertyType.CURRENTSTATES,
-                                                                    instanceName,
-                                                                    pathParts[pathParts.length - 1]);
-        currentStateChangeListener.onStateChange(instanceName, currentStates, changeContext);
+        List<CurrentState> currentStates =
+            _accessor.getChildValues(CurrentState.class,
+                                     PropertyType.CURRENTSTATES,
+                                     instanceName,
+                                     pathParts[pathParts.length - 1]);
+        currentStateChangeListener.onStateChange(instanceName,
+                                                 currentStates,
+                                                 changeContext);
 
-      } else if (_changeType == MESSAGE)
+      }
+      else if (_changeType == MESSAGE)
       {
         MessageListener messageListener = (MessageListener) _listener;
         subscribeForChanges(changeContext, true, false);
         String instanceName = _manager.getInstanceName();
-        List<Message> messages = _accessor.getChildValues(Message.class, PropertyType.MESSAGES, instanceName);
+        List<Message> messages =
+            _accessor.getChildValues(Message.class, PropertyType.MESSAGES, instanceName);
         messageListener.onMessage(instanceName, messages, changeContext);
-      } else if (_changeType == EXTERNAL_VIEW)
+      }
+      else if (_changeType == EXTERNAL_VIEW)
       {
-        ExternalViewChangeListener externalViewListener = (ExternalViewChangeListener) _listener;
+        ExternalViewChangeListener externalViewListener =
+            (ExternalViewChangeListener) _listener;
         subscribeForChanges(changeContext, true, true);
-        List<ExternalView> externalViewList = _accessor.getChildValues(ExternalView.class,
-                                                                       PropertyType.EXTERNALVIEW);
+        List<ExternalView> externalViewList =
+            _accessor.getChildValues(ExternalView.class, PropertyType.EXTERNALVIEW);
         externalViewListener.onExternalViewChange(externalViewList, changeContext);
-      } else if (_changeType == ChangeType.CONTROLLER)
+      }
+      else if (_changeType == ChangeType.CONTROLLER)
       {
-        ControllerChangeListener controllerChangelistener = (ControllerChangeListener) _listener;
+        ControllerChangeListener controllerChangelistener =
+            (ControllerChangeListener) _listener;
         subscribeForChanges(changeContext, true, false);
         controllerChangelistener.onControllerChange(changeContext);
       }
@@ -155,7 +171,8 @@ public class CallbackHandlerForFile implements PropertyChangeListener<ZNRecord>
   }
 
   private void subscribeForChanges(NotificationContext changeContext,
-      boolean watchParent, boolean watchChild)
+                                   boolean watchParent,
+                                   boolean watchChild)
   {
     if (changeContext.getType() == NotificationContext.Type.INIT)
     {
@@ -163,7 +180,8 @@ public class CallbackHandlerForFile implements PropertyChangeListener<ZNRecord>
       {
         // _accessor.subscribeForPropertyChange(_path, this);
         _store.subscribeForPropertyChange(_path, this);
-      } catch (PropertyStoreException e)
+      }
+      catch (PropertyStoreException e)
       {
         logger.error("fail to subscribe for changes" + "\nexception:" + e);
       }
@@ -185,7 +203,8 @@ public class CallbackHandlerForFile implements PropertyChangeListener<ZNRecord>
       NotificationContext changeContext = new NotificationContext(_manager);
       changeContext.setType(NotificationContext.Type.INIT);
       invoke(changeContext);
-    } catch (Exception e)
+    }
+    catch (Exception e)
     {
       // TODO handle exception
       logger.error("fail to init", e);
@@ -199,7 +218,8 @@ public class CallbackHandlerForFile implements PropertyChangeListener<ZNRecord>
       NotificationContext changeContext = new NotificationContext(_manager);
       changeContext.setType(NotificationContext.Type.FINALIZE);
       invoke(changeContext);
-    } catch (Exception e)
+    }
+    catch (Exception e)
     {
       // TODO handle exception
       logger.error("fail to reset" + "\nexception:" + e);
@@ -216,7 +236,8 @@ public class CallbackHandlerForFile implements PropertyChangeListener<ZNRecord>
       if (b)
       {
         break;
-      } else
+      }
+      else
       {
         l = lastNotificationTimeStamp.get();
       }
@@ -226,23 +247,25 @@ public class CallbackHandlerForFile implements PropertyChangeListener<ZNRecord>
   @Override
   public void onPropertyChange(String key)
   {
-    // System.err.println("on property change, key:" + key);
+    // System.err.println("on property change, key:" + key + ", path:" + _path);
     try
     {
       if (needToNotify(key))
       {
-        // System.err.println("notified on property change, key:" + key);
+        // System.err.println("notified on property change, key:" + key + ", path:" +
+        // path);
 
         updateNotificationTime(System.nanoTime());
         NotificationContext changeContext = new NotificationContext(_manager);
         changeContext.setType(NotificationContext.Type.CALLBACK);
         invoke(changeContext);
       }
-    } catch (Exception e)
+    }
+    catch (Exception e)
     {
       // TODO handle exception
       // ZKExceptionHandler.getInstance().handle(e);
-      logger.error("fail onPropertyChange" + "\nexception:" + e);
+      logger.error("fail onPropertyChange", e);
     }
   }
 
@@ -262,7 +285,8 @@ public class CallbackHandlerForFile implements PropertyChangeListener<ZNRecord>
     case MESSAGE:
     case EXTERNAL_VIEW:
     case CONTROLLER:
-      ret = key.equals(_path);
+      // ret = key.equals(_path);
+      ret = key.startsWith(_path);
       break;
     default:
       break;

@@ -22,11 +22,10 @@ public class TestStandAloneCMMain extends ZkStandAloneCMTestBase
     {
       String controllerName = "controller_" + i;
       StartCMResult startResult =
-          TestHelper.startClusterController(CLUSTER_NAME,
+          TestHelper.startController(CLUSTER_NAME,
                                             controllerName,
                                             ZK_ADDR,
-                                            ClusterManagerMain.STANDALONE,
-                                            null);
+                                            ClusterManagerMain.STANDALONE);
       _startCMResultMap.put(controllerName, startResult);
     }
 

@@ -27,9 +27,7 @@ public class TestDynamicFileClusterManager extends FileCMTestBase
                                  6,
                                  "MasterSlave",
                                  TestHelper.<String>setOf(CLUSTER_NAME),
-                                 _store);
-
-
+                                 _fileStore);
 
     // drop db
     _mgmtTool.dropResourceGroup(CLUSTER_NAME, "MyDB");
@@ -40,10 +38,9 @@ public class TestDynamicFileClusterManager extends FileCMTestBase
                                  TestHelper.<String>setOf("localhost_12918", "localhost_12919",
                                                           "localhost_12920", "localhost_12921",
                                                           "localhost_12922"),
-                                 _store);
+                                                          _fileStore);
 
     System.out.println("STOP testDynamicFileClusterManager() at " + new Date(System.currentTimeMillis()));
-    super.afterClass();
   }
 
 }

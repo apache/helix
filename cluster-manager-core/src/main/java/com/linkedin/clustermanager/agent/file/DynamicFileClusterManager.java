@@ -54,36 +54,32 @@ public class DynamicFileClusterManager implements ClusterManager
   private final FilePropertyStore<ZNRecord> _store;
   private final String _version;
 
-  // TODO change accessor to pass property store
-  public DynamicFileClusterManager(String clusterName, String instanceName,
-      InstanceType instanceType, FileBasedDataAccessor accessor)
+  public DynamicFileClusterManager(String clusterName,
+                                   String instanceName,
+                                   InstanceType instanceType,
+                                   FilePropertyStore<ZNRecord> store)
   {
-    this._clusterName = clusterName;
-    this._instanceName = instanceName;
-    this._instanceType = instanceType;
+    _clusterName = clusterName;
+    _instanceName = instanceName;
+    _instanceType = instanceType;
 
     _handlers = new ArrayList<CallbackHandlerForFile>();
-    _fileDataAccessor = accessor;
 
-    if (_instanceType == InstanceType.PARTICIPANT)
-    {
-      addLiveInstance();
-    }
+    _store = store;
+    _fileDataAccessor = new FileBasedDataAccessor(_store, clusterName); // accessor;
 
-    // TODO fix it
-    _store = (FilePropertyStore<ZNRecord>) _fileDataAccessor.getStore();
     _mgmtTool = new FileClusterManagementTool(_store);
-
     _messagingService = new DefaultMessagingService(this);
     if (instanceType == InstanceType.PARTICIPANT)
     {
+      addLiveInstance();
       addMessageListener(_messagingService.getExecutor(), _instanceName);
     }
 
-    _store.start();
+//    _store.start();
 
     _version = new PropertiesReader("cluster-manager-version.properties")
-    .getProperty("clustermanager.version");
+                                .getProperty("clustermanager.version");
   }
 
   @Override
@@ -98,12 +94,6 @@ public class DynamicFileClusterManager implements ClusterManager
   @Override
   public void addIdealStateChangeListener(IdealStateChangeListener listener)
   {
-    /*
-     * NotificationContext context = new NotificationContext(this);
-     * context.setType(NotificationContext.Type.INIT);
-     * listener.onIdealStateChange(this._clusterView
-     * .getPropertyList(PropertyType.IDEALSTATES), context);
-     */
     final String path = CMUtil.getIdealStatePath(_clusterName);
 
     CallbackHandlerForFile callbackHandler = createCallBackHandler(path,
@@ -187,6 +177,7 @@ public class DynamicFileClusterManager implements ClusterManager
   @Override
   public void connect()
   {
+    _store.start();
     _isConnected = true;
   }
 
@@ -207,7 +198,6 @@ public class DynamicFileClusterManager implements ClusterManager
     LiveInstance liveInstance = new LiveInstance(_instanceName);
     liveInstance.setSessionId(_sessionId);
     _fileDataAccessor.setProperty(PropertyType.LIVEINSTANCES, liveInstance.getRecord(), _instanceName);
-//    _fileDataAccessor.setProperty(PropertyType.LIVEINSTANCES, liveInstance, _instanceName);
   }
 
   @Override
@@ -278,7 +268,7 @@ public class DynamicFileClusterManager implements ClusterManager
 public void addHealthStateChangeListener(HealthStateChangeListener listener,
 		String instanceName) throws Exception {
 	// TODO Auto-generated method stub
-	
+
 }
 
   @Override

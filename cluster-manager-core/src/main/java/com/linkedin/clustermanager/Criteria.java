@@ -2,6 +2,10 @@ package com.linkedin.clustermanager;
 
 public class Criteria
 {
+  public enum DataSource
+  {
+    IDEALSTATES, EXTERNALVIEW
+  }
   /**
    * This can be CONTROLLER, PARTICIPANT, ROUTER Cannot be null
    */
@@ -15,25 +19,39 @@ public class Criteria
   /**
    * applicable only in case PARTICIPANT use * to broadcast to all instances
    */
-  String instanceName;
+  String instanceName = "";
   /**
    * Name of the resourceGroup. Use * to send message to all resource groups
    * owned by an instance.
    */
-  String resourceGroup;
+  String resourceGroup = "";
   /**
    * Resource partition. Use * to send message to all partitions of a given
    * resourceGroup
    */
-  String resourceKey;
+  String resourceKey = "";
   /**
    * State of the resource
    */
-  String resourceState;
+  String resourceState = "";
   /**
    * Exclude sending message to your self. True by default
    */
   boolean selfExcluded = true;
+  /**
+   * Determine if use external view or ideal state as source of truth
+   */
+  DataSource _dataSource = DataSource.EXTERNALVIEW;
+  
+  public DataSource getDataSource()
+  {
+    return _dataSource;
+  }
+  
+  public void setDataSource(DataSource source)
+  {
+    _dataSource = source;
+  }
 
   public boolean isSelfExcluded()
   {

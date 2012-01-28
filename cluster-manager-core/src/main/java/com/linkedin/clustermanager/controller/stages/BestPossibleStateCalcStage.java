@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.log4j.Logger;
+import org.apache.log4j.Logger; 
 
 import com.linkedin.clustermanager.model.IdealState;
 import com.linkedin.clustermanager.model.IdealState.IdealStateModeProperty;
@@ -149,6 +149,8 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
         else if (disabledInstancesForResource.contains(instance))
         {
           // if a node is disabled, put it into initial state (OFFLINE)
+          // TODO if the node or resource on the node is in ERROR state
+          //  shall we reset the current state or let participant provide ERROR->OFFLINE transition?
           instanceStateMap.put(instance, stateModelDef.getInitialState());
         }
 

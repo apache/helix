@@ -3,11 +3,11 @@ package com.linkedin.clustermanager.mock.router;
 import java.util.List;
 
 import org.I0Itec.zkclient.IDefaultNameSpace;
-import com.linkedin.clustermanager.agent.zk.ZkClient;
 import org.I0Itec.zkclient.ZkServer;
 
 import com.linkedin.clustermanager.ClusterManager;
 import com.linkedin.clustermanager.ClusterManagerFactory;
+import com.linkedin.clustermanager.InstanceType;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
 import com.linkedin.clustermanager.model.InstanceConfig;
@@ -18,9 +18,9 @@ import com.linkedin.clustermanager.util.CMUtil;
 /**
  * A MockRouter process to demonstrate the integration with cluster manager.
  * This uses Zookeeper in local mode and runs at port 2188
- * 
+ *
  * @author kgopalak
- * 
+ *
  */
 public class MockRouterProcess
 {
@@ -34,7 +34,7 @@ public class MockRouterProcess
 
   static String zkConnectString = "localhost:2188";
 
-  private RoutingTableProvider _routingTableProvider;
+  private final RoutingTableProvider _routingTableProvider;
   private static ZkServer zkServer;
 
   public MockRouterProcess()
@@ -55,7 +55,7 @@ public class MockRouterProcess
     process.start();
     //try to route, there is no master or slave available
     process.routeRequest("TestDB", "TestDB_1");
-    
+
     //update the externalview on zookeeper
     zkServer.getZkClient().createPersistent(externalViewPath,record);
     //sleep for sometime so that the ZK Callback is received.
@@ -127,8 +127,11 @@ public class MockRouterProcess
 
     try
     {
-      ClusterManager manager = ClusterManagerFactory
-          .getZKBasedManagerForSpectator(clusterName, zkConnectString);
+      ClusterManager manager = ClusterManagerFactory.getZKClusterManager(clusterName,
+                                                                         null,
+                                                                         InstanceType.SPECTATOR,
+                                                                         zkConnectString);
+
 
       manager.connect();
       manager.addExternalViewChangeListener(_routingTableProvider);

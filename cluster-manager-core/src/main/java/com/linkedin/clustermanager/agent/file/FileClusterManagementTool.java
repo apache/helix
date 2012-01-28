@@ -308,4 +308,11 @@ public class FileClusterManagementTool implements ClusterManagementService
 
   }
 
+  @Override
+  public void dropCluster(String clusterName)
+  {
+    // TODO Auto-generated method stub
+    
+  }
+
 }

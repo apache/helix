@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
 import org.josql.Query;
 import org.josql.QueryExecutionException;
 import org.josql.QueryParseException;
@@ -20,8 +21,12 @@ import com.linkedin.clustermanager.model.LiveInstance.LiveInstanceProperty;
 public class ClusterJosqlQueryProcessor
 {
   public static final String PARTITIONS = "PARTITIONS";
+  public static final String FLATTABLE = ".Table";
 
   ClusterManager _manager;
+  private static Logger _logger = Logger
+  .getLogger(ClusterJosqlQueryProcessor.class);
+
 
   public ClusterJosqlQueryProcessor(ClusterManager manager)
   {
@@ -57,9 +62,19 @@ public class ClusterJosqlQueryProcessor
     }
     return fromTarget;
   }
-
-  public List<Object> runJoSqlQuery(String josql, String resourceGroupName, Map<String, Object> bindVariables)
-      throws QueryParseException, QueryExecutionException
+  
+  public List<Object> runJoSqlQuery(String josql, String resourceGroupName, Map<String, Object> bindVariables, List queryTarget)
+    throws QueryParseException, QueryExecutionException
+  {
+    Query josqlQuery = prepareQuery(resourceGroupName, bindVariables);    
+    
+    josqlQuery.parse(josql);
+    QueryResults qr = josqlQuery.execute(queryTarget);
+    
+    return qr.getResults();
+  }
+  
+  Query prepareQuery(String resourceGroupName, Map<String, Object> bindVariables)
   {
     ClusterDataAccessor accessor = _manager.getDataAccessor();
     List<ZNRecord> instanceConfigs = accessor.getChildValues(PropertyType.CONFIGS);
@@ -81,10 +96,17 @@ public class ClusterJosqlQueryProcessor
     {
       String host = instance.getId();
       String sessionId = instance.getSimpleField(LiveInstanceProperty.SESSION_ID.toString());
-      currentStates.put(host, accessor.getProperty(PropertyType.CURRENTSTATES, host, sessionId, resourceGroupName));
+      ZNRecord currentState = accessor.getProperty(PropertyType.CURRENTSTATES, host, sessionId, resourceGroupName);
+      if(currentState == null)
+      {
+        _logger.warn("ResourceGroup "+ resourceGroupName +" has null currentState");
+        currentState = new ZNRecord(resourceGroupName);
+      }
+      currentStates.put(host, currentState);
     }
-
+    
     Query josqlQuery = new Query();
+
     // Set the default bind variables
     josqlQuery.setVariable(PropertyType.CONFIGS.toString(), instanceConfigs);
     josqlQuery.setVariable(PropertyType.IDEALSTATES.toString(), idealState);
@@ -92,7 +114,16 @@ public class ClusterJosqlQueryProcessor
     josqlQuery.setVariable(PropertyType.STATEMODELDEFS.toString(), stateModelDefs);
     josqlQuery.setVariable(PropertyType.EXTERNALVIEW.toString(), externalView);
     josqlQuery.setVariable(PropertyType.CURRENTSTATES.toString(), currentStates);
-
+    josqlQuery.setVariable(PARTITIONS, partitions);
+    
+    // Flat version of ZNRecords
+    josqlQuery.setVariable(PropertyType.CONFIGS.toString()+FLATTABLE, ZNRecordRow.flat(instanceConfigs));
+    josqlQuery.setVariable(PropertyType.IDEALSTATES.toString()+FLATTABLE, ZNRecordRow.flat(idealState));
+    josqlQuery.setVariable(PropertyType.LIVEINSTANCES.toString()+FLATTABLE, ZNRecordRow.flat(liveInstances));
+    josqlQuery.setVariable(PropertyType.STATEMODELDEFS.toString()+FLATTABLE, ZNRecordRow.flat(stateModelDefs));
+    josqlQuery.setVariable(PropertyType.EXTERNALVIEW.toString()+FLATTABLE, ZNRecordRow.flat(externalView));
+    josqlQuery.setVariable(PropertyType.CURRENTSTATES.toString()+FLATTABLE, ZNRecordRow.flat(currentStates.values()));
+    josqlQuery.setVariable(PARTITIONS+FLATTABLE, ZNRecordRow.flat(partitions));
     // Set additional bind variables
     if(bindVariables != null)
     {
@@ -102,44 +133,76 @@ public class ClusterJosqlQueryProcessor
       }
     }
 
+    josqlQuery.addFunctionHandler(new ZNRecordJosqlFunctionHandler());
+    josqlQuery.addFunctionHandler(new ZNRecordRow());
+    return josqlQuery;
+  }
+  public List<Object> runJoSqlQuery(String josql, String resourceGroupName, Map<String, Object> bindVariables)
+      throws QueryParseException, QueryExecutionException
+  {
+    Query josqlQuery = prepareQuery(resourceGroupName, bindVariables);    
+    
     // Per JoSql, select FROM <target> the target must be a object class that corresponds to a "table row",
     // while the table (list of Objects) are put in the query by query.execute(List<Object>). In the input,
     // In out case, the row is always a ZNRecord. But in SQL, the from target is a "table name".
 
     String fromTargetString = parseFromTarget(josql);
 
-    // Per JoSql, select FROM <target> the target must be a object class that corresponds to a "table row"
-    // In out case, the row is always a ZNRecord
-    josql = josql.replaceFirst(fromTargetString, "com.linkedin.clustermanager.ZNRecord");
-    List<ZNRecord> fromTarget = null;
+    List fromTarget = null;
     if(fromTargetString.equalsIgnoreCase(PARTITIONS))
     {
-      fromTarget = partitions;
+      fromTarget  = (List<ZNRecord>)(josqlQuery.getVariable(PARTITIONS.toString()));
     }
     else if(fromTargetString.equalsIgnoreCase(PropertyType.LIVEINSTANCES.toString()))
     {
-      fromTarget = liveInstances;
+      fromTarget = (List<ZNRecord>)(josqlQuery.getVariable(PropertyType.LIVEINSTANCES.toString()));
     }
     else if(fromTargetString.equalsIgnoreCase(PropertyType.CONFIGS.toString()))
     {
-      fromTarget = instanceConfigs;
+      fromTarget = (List<ZNRecord>)(josqlQuery.getVariable(PropertyType.CONFIGS.toString()));
     }
     else if (fromTargetString.equalsIgnoreCase(PropertyType.STATEMODELDEFS.toString()))
     {
-      fromTarget = stateModelDefs;
+      fromTarget = (List<ZNRecord>)(josqlQuery.getVariable(PropertyType.STATEMODELDEFS.toString()));
+    }
+    else if (fromTargetString.equalsIgnoreCase(PropertyType.EXTERNALVIEW.toString()))
+    {
+      fromTarget = (List<ZNRecord>)(josqlQuery.getVariable(PropertyType.EXTERNALVIEW.toString()));
+    }
+    else if(fromTargetString.equalsIgnoreCase(PARTITIONS+FLATTABLE))
+    {
+      fromTarget  = (List<ZNRecordRow>)(josqlQuery.getVariable(PARTITIONS.toString()+FLATTABLE));
+    }
+    else if(fromTargetString.equalsIgnoreCase(PropertyType.LIVEINSTANCES.toString()+FLATTABLE))
+    {
+      fromTarget = (List<ZNRecordRow>)(josqlQuery.getVariable(PropertyType.LIVEINSTANCES.toString()+FLATTABLE));
+    }
+    else if(fromTargetString.equalsIgnoreCase(PropertyType.CONFIGS.toString()+FLATTABLE))
+    {
+      fromTarget = (List<ZNRecordRow>)(josqlQuery.getVariable(PropertyType.CONFIGS.toString()+FLATTABLE));
+    }
+    else if (fromTargetString.equalsIgnoreCase(PropertyType.STATEMODELDEFS.toString()+FLATTABLE))
+    {
+      fromTarget = (List<ZNRecordRow>)(josqlQuery.getVariable(PropertyType.STATEMODELDEFS.toString()+FLATTABLE));
+    }
+    else if (fromTargetString.equalsIgnoreCase(PropertyType.EXTERNALVIEW.toString()+FLATTABLE))
+    {
+      fromTarget = (List<ZNRecordRow>)(josqlQuery.getVariable(PropertyType.EXTERNALVIEW.toString()+FLATTABLE));
     }
     else
     {
       throw new ClusterManagerException("Unknown query target " + fromTargetString
-          + ". Target should be PARTITIONS, LIVEINSTANCES, CONFIGS, STATEMODELDEFS");
+          + ". Target should be PARTITIONS, LIVEINSTANCES, CONFIGS, STATEMODELDEFS and corresponding flat Tables");
     }
 
-    // Add function handler that takes care of ZNRecord operation functions
-    // We should further investigate if it is possible to directly call parametric member
-    // functions of ZNRecord
-    josqlQuery.addFunctionHandler(new ZNRecordJosqlFunctionHandler());
+    // Per JoSql, select FROM <target> the target must be a object class that corresponds to a "table row"
+    // In out case, the row is always a ZNRecord
+    josql = josql.replaceFirst(fromTargetString, fromTargetString.endsWith(FLATTABLE) ? 
+        "com.linkedin.clustermanager.josql.ZNRecordRow" :"com.linkedin.clustermanager.ZNRecord");
     josqlQuery.parse(josql);
     QueryResults qr = josqlQuery.execute(fromTarget);
     return qr.getResults();
   }
+  
+  
 }

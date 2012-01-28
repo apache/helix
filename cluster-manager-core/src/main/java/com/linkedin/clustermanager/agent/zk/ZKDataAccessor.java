@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.I0Itec.zkclient.ZkConnection;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.data.Stat;
 
@@ -202,6 +201,11 @@ public class ZKDataAccessor implements ClusterDataAccessor
 
   {
     String path = PropertyPathConfig.getPath(type, _clusterName, keys);
+//    if (path == null)
+//    {
+//      System.err.println("path is null");
+//    }
+
     if (_zkClient.exists(path))
     {
       if (!type.isCached())
@@ -227,10 +231,11 @@ public class ZKDataAccessor implements ClusterDataAccessor
       _zkClient.createPersistent(path);
     }
 
-    String zkAddr = _zkClient.getConnection().getServers();
+//    String zkAddr = _zkClient.getConnection().getServers();
     PropertySerializer<ZNRecord> serializer =
         new PropertyJsonSerializer<ZNRecord>(ZNRecord.class);
-    return new ZKPropertyStore<ZNRecord>(new ZkConnection(zkAddr), serializer, path);
+//    return new ZKPropertyStore<ZNRecord>(new ZkConnection(zkAddr), serializer, path);
+    return new ZKPropertyStore<ZNRecord>(_zkClient, serializer, path);
   }
 
   public void reset()

@@ -350,7 +350,8 @@ public class ZKClusterManagementTool implements ClusterManagementService
           + " already exists.");
     }
 
-    ZKUtil.createChildren(_zkClient, stateModelDefPath, stateModel.getRecord());
+    new ZKDataAccessor(clusterName, _zkClient).setProperty(
+        PropertyType.STATEMODELDEFS, stateModel, stateModel.getId());
   }
 
   @Override
@@ -379,68 +380,75 @@ public class ZKClusterManagementTool implements ClusterManagementService
   @Override
   public void addStat(String clusterName, String statName)
   {
-	  if(!ZKUtil.isClusterSetup(clusterName, _zkClient))
-	  {
-		  throw new ClusterManagerException("cluster " + clusterName
-				  + " is not setup yet");
-	  }
-	  
-	  String persistentStatsPath = CMUtil.getPersistentStatsPath(clusterName);
-	  ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
-	  if (!_zkClient.exists(persistentStatsPath)) {		  
-		  //ZKUtil.createChildren(_zkClient, persistentStatsPath, statsRec);
-		  _zkClient.createPersistent(persistentStatsPath);
-	  }
-	  ZNRecord statsRec = accessor.getProperty(PropertyType.PERSISTENTSTATS);
-	  if (statsRec == null) {
-		  statsRec = new ZNRecord(PersistentStats.nodeName); //TODO: fix naming of this record, if it matters
-	  }
-	  
-	  Map<String,Map<String,String>> currStatMap = statsRec.getMapFields();
-	  Map<String,Map<String,String>> newStatMap = StatsHolder.parseStat(statName);
-	  for (String newStat : newStatMap.keySet()) {
-		 if (!currStatMap.containsKey(newStat)) {
-			 currStatMap.put(newStat, newStatMap.get(newStat));
-		 }
-	  }
-	  statsRec.setMapFields(currStatMap);
-	  accessor.setProperty(PropertyType.PERSISTENTSTATS, statsRec); 
-	}
+    if(!ZKUtil.isClusterSetup(clusterName, _zkClient))
+    {
+      throw new ClusterManagerException("cluster " + clusterName
+          + " is not setup yet");
+    }
+    
+    String persistentStatsPath = CMUtil.getPersistentStatsPath(clusterName);
+    ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
+    if (!_zkClient.exists(persistentStatsPath)) {      
+      //ZKUtil.createChildren(_zkClient, persistentStatsPath, statsRec);
+      _zkClient.createPersistent(persistentStatsPath);
+    }
+    ZNRecord statsRec = accessor.getProperty(PropertyType.PERSISTENTSTATS);
+    if (statsRec == null) {
+      statsRec = new ZNRecord(PersistentStats.nodeName); //TODO: fix naming of this record, if it matters
+    }
+    
+    Map<String,Map<String,String>> currStatMap = statsRec.getMapFields();
+    Map<String,Map<String,String>> newStatMap = StatsHolder.parseStat(statName);
+    for (String newStat : newStatMap.keySet()) {
+     if (!currStatMap.containsKey(newStat)) {
+       currStatMap.put(newStat, newStatMap.get(newStat));
+     }
+    }
+    statsRec.setMapFields(currStatMap);
+    accessor.setProperty(PropertyType.PERSISTENTSTATS, statsRec); 
+  }
 
   @Override
   public void addAlert(String clusterName, String alertName) 
   {
-	  if(!ZKUtil.isClusterSetup(clusterName, _zkClient))
-	  {
-		  throw new ClusterManagerException("cluster " + clusterName
-				  + " is not setup yet");
-	  }
-	  
-	  String alertsPath = CMUtil.getAlertsPath(clusterName);
-	  ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
-	  if (!_zkClient.exists(alertsPath)) {		  
-		  //ZKUtil.createChildren(_zkClient, alertsPath, alertsRec);
-		  _zkClient.createPersistent(alertsPath);
-	  }
-	  ZNRecord alertsRec = accessor.getProperty(PropertyType.ALERTS);
-	  if (alertsRec == null)
-	  {
-		  alertsRec = new ZNRecord(Alerts.nodeName); //TODO: fix naming of this record, if it matters
-	  }
-	  
-	  Map<String,Map<String,String>> currAlertMap = alertsRec.getMapFields();
-	  StringBuilder newStatName = new StringBuilder();
-	  Map<String,String> newAlertMap = new HashMap<String,String>();
-	  //use AlertsHolder to get map of new stats and map for this alert
-	  AlertsHolder.parseAlert(alertName, newStatName, newAlertMap);
-	  
-	  //add stat
-	  addStat(clusterName, newStatName.toString());
-	  //add alert
-	  currAlertMap.put(alertName, newAlertMap);
-	  
-	  alertsRec.setMapFields(currAlertMap);
-	  accessor.setProperty(PropertyType.ALERTS, alertsRec); 
+    if(!ZKUtil.isClusterSetup(clusterName, _zkClient))
+    {
+      throw new ClusterManagerException("cluster " + clusterName
+          + " is not setup yet");
+    }
+    
+    String alertsPath = CMUtil.getAlertsPath(clusterName);
+    ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
+    if (!_zkClient.exists(alertsPath)) {      
+      //ZKUtil.createChildren(_zkClient, alertsPath, alertsRec);
+      _zkClient.createPersistent(alertsPath);
+    }
+    ZNRecord alertsRec = accessor.getProperty(PropertyType.ALERTS);
+    if (alertsRec == null)
+    {
+      alertsRec = new ZNRecord(Alerts.nodeName); //TODO: fix naming of this record, if it matters
+    }
+    
+    Map<String,Map<String,String>> currAlertMap = alertsRec.getMapFields();
+    StringBuilder newStatName = new StringBuilder();
+    Map<String,String> newAlertMap = new HashMap<String,String>();
+    //use AlertsHolder to get map of new stats and map for this alert
+    AlertsHolder.parseAlert(alertName, newStatName, newAlertMap);
+    
+    //add stat
+    addStat(clusterName, newStatName.toString());
+    //add alert
+    currAlertMap.put(alertName, newAlertMap);
+    
+    alertsRec.setMapFields(currAlertMap);
+    accessor.setProperty(PropertyType.ALERTS, alertsRec); 
   }
-  
-  }
+
+  @Override
+  public void dropCluster(String clusterName)
+  {
+    logger.info("Deleting cluster "+clusterName);
+    String root = "/" + clusterName;
+    _zkClient.deleteRecursive(root);
+  }  
+}

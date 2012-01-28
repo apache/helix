@@ -7,7 +7,6 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import org.apache.log4j.Logger;
 
@@ -33,7 +32,6 @@ import com.linkedin.clustermanager.healthcheck.ParticipantHealthReportCollector;
 import com.linkedin.clustermanager.model.IdealState;
 import com.linkedin.clustermanager.model.InstanceConfig.InstanceConfigProperty;
 import com.linkedin.clustermanager.model.Message;
-import com.linkedin.clustermanager.model.Message.MessageType;
 import com.linkedin.clustermanager.participant.statemachine.StateModel;
 import com.linkedin.clustermanager.participant.statemachine.StateModelFactory;
 import com.linkedin.clustermanager.store.PropertyStore;
@@ -51,44 +49,17 @@ public class StaticFileClusterManager implements ClusterManager
   private final InstanceType _instanceType;
   private final String _instanceName;
   private boolean _isConnected;
-  // private final List<CallbackHandlerForFile> _handlers;
   public static final String _sessionId = "12345";
   public static final String configFile = "configFile";
 
   public StaticFileClusterManager(String clusterName, String instanceName,
-      InstanceType instanceType, String staticClusterConfigFile)
+      InstanceType instanceType, String clusterViewFile)
   {
-    this._clusterName = clusterName;
-    this._instanceName = instanceName;
-    this._instanceType = instanceType;
-    // _handlers = new ArrayList<CallbackHandlerForFile>();
-
-    this._clusterView = ClusterViewSerializer.deserialize(new File(
-        staticClusterConfigFile));
-  }
-
-  private static Message createSimpleMessage(ZNRecord idealStateRecord,
-      String stateUnitKey, String instanceName, String currentState,
-      String nextState)
-  {
-    String uuid = UUID.randomUUID().toString();
-    Message message = new Message(MessageType.STATE_TRANSITION, uuid);
-    message.setMsgId(uuid);
-    String hostName = "localhost"; // "UNKNOWN";
-
-    message.setSrcName(hostName);
-    message.setTgtName(instanceName);
-    message.setMsgState("new");
-    message.setStateUnitKey(stateUnitKey);
-    message.setStateUnitGroup(idealStateRecord.getId());
-    message.setFromState(currentState);
-    message.setToState(nextState);
-
-    // String sessionId =
-    // _liveInstanceDataHolder.getSessionId(instanceName);
-    // message.setTgtSessionId(sessionId);
-    message.setTgtSessionId(StaticFileClusterManager._sessionId);
-    return message;
+    _clusterName = clusterName;
+    _instanceName = instanceName;
+    _instanceType = instanceType;
+    _clusterView = ClusterViewSerializer
+        .deserialize(new File(clusterViewFile));
   }
 
   // FIXIT
@@ -111,41 +82,13 @@ public class StaticFileClusterManager implements ClusterManager
   private static List<Message> computeMessagesForSimpleTransition(
       ZNRecord idealStateRecord)
   {
-    // Map<String, List<Message>> msgListMap = new HashMap<String,
-    // List<Message>>();
-    // List<Message> offlineToSlaveMsg = new ArrayList<Message>();
-    // List<Message> slaveToMasterMsg = new ArrayList<Message>();
-    // msgListMap.put("O->S", offlineToSlaveMsg);
-    // msgListMap.put("S->M", slaveToMasterMsg);
     List<Message> msgList = new ArrayList<Message>();
 
-    // messages = new ArrayList<Message>();
     IdealState idealState = new IdealState(idealStateRecord);
     for (String stateUnitKey : idealState.getResourceKeySet())
     {
       Map<String, String> instanceStateMap;
       instanceStateMap = idealState.getInstanceStateMap(stateUnitKey);
-      for (String instanceName : instanceStateMap.keySet())
-      {
-
-//        String desiredState = idealState.get(stateUnitKey, instanceName);
-//
-//
-//        if (desiredState.equals("MASTER"))
-//        {
-//          Message message = createSimpleMessage(idealStateRecord, stateUnitKey,
-//              instanceName, "OFFLINE", "SLAVE");
-//          msgList.add(message);
-//          message = createSimpleMessage(idealStateRecord, stateUnitKey,
-//              instanceName, "SLAVE", "MASTER");
-//          msgList.add(message);
-//        } else
-//        {
-//          Message message = createSimpleMessage(idealStateRecord, stateUnitKey,
-//              instanceName, "OFFLINE", "SLAVE");
-//          msgList.add(message);
-//        }
-      }
     }
 
     return msgList;
@@ -555,7 +498,7 @@ public class StaticFileClusterManager implements ClusterManager
 public void addHealthStateChangeListener(HealthStateChangeListener listener,
 		String instanceName) throws Exception {
 	// TODO Auto-generated method stub
-	
+
 }
 
 @Override

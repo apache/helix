@@ -25,7 +25,7 @@ public class TestParticipantNameCollision extends ZkStandAloneCMTestBase
       {
         // the call fails on getClusterManagerForParticipant()
         // no threads start
-        result = TestHelper.startDummyProcess(ZK_ADDR, CLUSTER_NAME, instanceName, null);
+        result = TestHelper.startDummyProcess(ZK_ADDR, CLUSTER_NAME, instanceName);
       }
       catch (Exception e)
       {

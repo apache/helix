@@ -277,7 +277,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBase
     msg.getRecord().setSimpleField("TestMessagingPara", para);
 
     Criteria cr = new Criteria();
-    cr.setInstanceName("*");
+    cr.setInstanceName("%");
     cr.setRecipientInstanceType(InstanceType.PARTICIPANT);
     cr.setSessionSpecific(false);
     AsyncCallback callback1 = new MockAsyncCallback();

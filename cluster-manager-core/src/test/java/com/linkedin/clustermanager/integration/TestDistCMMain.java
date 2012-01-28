@@ -34,10 +34,9 @@ public class TestDistCMMain extends ZkDistCMTestBase
     {
       String controller = CONTROLLER_PREFIX + "_" + (NODE_NR + i);
 
-      StartCMResult result = TestHelper.startClusterController(CONTROLLER_CLUSTER,
+      StartCMResult result = TestHelper.startController(CONTROLLER_CLUSTER,
                                                                controller, ZK_ADDR,
-                                                               ClusterManagerMain.DISTRIBUTED,
-                                                               null);
+                                                               ClusterManagerMain.DISTRIBUTED);
       _startCMResultMap.put(controller, result);
     }
 

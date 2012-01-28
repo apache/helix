@@ -3,7 +3,6 @@ package com.linkedin.clustermanager.controller.stages;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -12,8 +11,8 @@ import org.apache.log4j.Logger;
 import com.linkedin.clustermanager.ClusterDataAccessor;
 import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.ZNRecord;
-import com.linkedin.clustermanager.model.Alerts;
 import com.linkedin.clustermanager.ZNRecordDecorator;
+import com.linkedin.clustermanager.model.Alerts;
 import com.linkedin.clustermanager.model.CurrentState;
 import com.linkedin.clustermanager.model.HealthStat;
 import com.linkedin.clustermanager.model.IdealState;
@@ -215,5 +214,18 @@ public class ClusterDataCache
       }
     }
     return disabledInstancesSet;
+  }
+  
+  @Override
+  public String toString()
+  {
+    StringBuilder sb = new StringBuilder();
+    sb.append("liveInstaceMap:" + _liveInstanceMap).append("/n");
+    sb.append("idealStateMap:" + _idealStateMap).append("/n");
+    sb.append("stateModelDefMap:" + _stateModelDefMap).append("/n");
+    sb.append("instanceConfigMap:" + _instanceConfigMap).append("/n");
+    sb.append("messageMap:" + _messageMap).append("\n");
+    
+    return sb.toString();
   }
 }

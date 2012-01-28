@@ -53,4 +53,6 @@ public interface ClusterManagementService
   StateModelDefinition getStateModelDef(String clusterName, String stateModelName);
 
   ExternalView getResourceGroupExternalView(String clusterName, String resourceGroup);
+
+  void dropCluster(String clusterName);
 }

@@ -46,7 +46,8 @@ public class TestZkClusterManager extends ZkUnitTestBase
       }
 
       TestHelper.setupEmptyCluster(_zkClient, clusterName);
-      ZKClusterManager controller = new ZKClusterManager(clusterName, InstanceType.CONTROLLER,
+      ZKClusterManager controller = new ZKClusterManager(clusterName, null,
+                                                         InstanceType.CONTROLLER,
                                                          ZK_ADDR);
 
       AssertJUnit.assertEquals(-1, controller.getLastNotificationTime());

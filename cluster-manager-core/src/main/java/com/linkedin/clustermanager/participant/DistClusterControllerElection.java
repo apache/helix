@@ -54,7 +54,6 @@ public class DistClusterControllerElection implements ControllerChangeListener
           || changeContext.getType().equals(NotificationContext.Type.CALLBACK))
       {
         ClusterDataAccessor dataAccessor = manager.getDataAccessor();
-//        while (dataAccessor.getProperty(LiveInstance.class, PropertyType.LEADER) == null)
         while (dataAccessor.getProperty(PropertyType.LEADER) == null)
         {
           boolean success = tryUpdateController(manager);
@@ -70,9 +69,11 @@ public class DistClusterControllerElection implements ControllerChangeListener
               String clusterName = manager.getClusterName();
               String controllerName = manager.getInstanceName();
               _leader =
-                  ClusterManagerFactory.getZKBasedManagerForController(clusterName,
-                                                                       controllerName,
-                                                                       _zkAddr);
+                  ClusterManagerFactory.getZKClusterManager(clusterName,
+                                                            controllerName,
+                                                            InstanceType.CONTROLLER,
+                                                            _zkAddr);
+
               _leader.connect();
               ClusterManagerMain.addListenersToController(_leader, _controller);
             }

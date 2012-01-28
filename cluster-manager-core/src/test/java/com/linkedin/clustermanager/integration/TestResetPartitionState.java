@@ -8,23 +8,28 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
+import com.linkedin.clustermanager.PropertyType;
 import com.linkedin.clustermanager.TestHelper;
 import com.linkedin.clustermanager.agent.zk.ZKClusterManagementTool;
+import com.linkedin.clustermanager.agent.zk.ZKDataAccessor;
 import com.linkedin.clustermanager.agent.zk.ZNRecordSerializer;
 import com.linkedin.clustermanager.agent.zk.ZkClient;
 import com.linkedin.clustermanager.controller.ClusterManagerMain;
-import com.linkedin.clustermanager.mock.storage.ErroneousDummyParticipant;
+import com.linkedin.clustermanager.mock.storage.MockParticipant;
+import com.linkedin.clustermanager.mock.storage.MockParticipant.ErrTransition;
+import com.linkedin.clustermanager.model.LiveInstance;
 
+// TODO need to rewrite reset logic and this test
 public class TestResetPartitionState extends ZkIntegrationTestBase
 {
   ZkClient _zkClient;
+  
   @BeforeClass ()
   public void beforeClass() throws Exception
   {
     _zkClient = new ZkClient(ZK_ADDR);
     _zkClient.setZkSerializer(new ZNRecordSerializer());
   }
-
 
   @AfterClass
   public void afterClass()
@@ -36,27 +41,30 @@ public class TestResetPartitionState extends ZkIntegrationTestBase
   public void testResetPartitionState() throws Exception
   {
     String clusterName = getShortClassName();
-    ErroneousDummyParticipant[] participants = new ErroneousDummyParticipant[5];
+    MockParticipant[] participants = new MockParticipant[5];
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, "localhost", "TestDB",
                             1, 10, 5, 3, "MasterSlave", true);
 
-    TestHelper.startClusterController(clusterName, "controller_0",
-                                      ZK_ADDR, ClusterManagerMain.STANDALONE, null);
+    TestHelper.startController(clusterName, "controller_0",
+                                      ZK_ADDR, ClusterManagerMain.STANDALONE);
     for (int i = 0; i < 5; i++)
     {
       String instanceName = PARTICIPANT_PREFIX + "_" + (12918 + i);
 
-      participants[i] = new ErroneousDummyParticipant(clusterName, instanceName, ZK_ADDR);
       if (i == 0)
       {
-        participants[0].setIsErroneous("TestDB0_0", "SLAVE", "MASTER", true);
+        participants[i] = new MockParticipant(clusterName, instanceName, ZK_ADDR,
+            new ErrTransition("SLAVE", "MASTER", TestHelper.setOf("TestDB0_0")));
+      }
+      else
+      {
+        participants[i] = new MockParticipant(clusterName, instanceName, ZK_ADDR);
       }
       new Thread(participants[i]).start();
     }
-
 
     Map<String, String> errorStateMap = new HashMap<String, String>()
     {
@@ -75,10 +83,20 @@ public class TestResetPartitionState extends ZkIntegrationTestBase
                                  null,
                                  errorStateMap);
 
+    // reset state model
+    participants[0].resetTransition();
 
-    // correct state model and reset partition
-    participants[0].setIsErroneous("TestDB0_0", "SLAVE", "MASTER", false);
-
+    // clear status update for error partition to avoid confusing the verifier
+    ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
+    LiveInstance localhost12918 = accessor.getProperty(LiveInstance.class, 
+                                                       PropertyType.LIVEINSTANCES,
+                                                       "localhost_12918");
+    accessor.removeProperty(PropertyType.STATUSUPDATES, 
+                            "localhost_12918", 
+                            localhost12918.getSessionId(),
+                            "TestDB0",
+                            "TestDB0_0");
+    
     ZKClusterManagementTool tool = new ZKClusterManagementTool(_zkClient);
     tool.resetPartition(clusterName, "localhost_12918", "TestDB0", "TestDB0_0");
 

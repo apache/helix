@@ -181,6 +181,7 @@ public void persistAggStats(ClusterManager manager)
   {
   }
   
+  //currTime in seconds
   public void reportAgeStat(LiveInstance instance, long currTime)
   {
 	  //TODO: put the stat name encoding somewhere easier to find
@@ -191,6 +192,7 @@ public void persistAggStats(ClusterManager manager)
 	  Map<String, String> ageStatMap = new HashMap<String, String>();
 	  ageStatMap.put(StatsHolder.TIMESTAMP_NAME, String.valueOf(currTime));
 	  ageStatMap.put(StatsHolder.VALUE_NAME, String.valueOf(age));
+	 //note that applyStat will only work if alert already added
 	  _statsHolder.applyStat(statName, ageStatMap);
   }
   
@@ -240,6 +242,10 @@ public void persistAggStats(ClusterManager manager)
     
     //populate _statStatus
     _statStatus = _statsHolder.getStatsMap();
+    
+    for (String statKey : _statStatus.keySet()) {
+    	logger.debug("Stat key, value: "+statKey+": "+_statStatus.get(statKey));
+    }
    
     //execute alerts, populate _alertStatus
     _alertStatus = AlertProcessor.executeAllAlerts(_alertsHolder.getAlertList(), _statsHolder.getStatsList());
@@ -250,6 +256,10 @@ public void persistAggStats(ClusterManager manager)
     for (String alertOuterKey : _alertStatus.keySet()) {
     	logger.debug("Alert Outer Key: "+alertOuterKey);
     	Map<String, AlertValueAndStatus>alertInnerMap = _alertStatus.get(alertOuterKey);
+    	if (alertInnerMap == null) {
+    		logger.debug(alertOuterKey + " has no alerts to report.");
+    		continue;
+    	}
     	for (String alertInnerKey: alertInnerMap.keySet()) {
     		logger.debug("  "+alertInnerKey+" value: "+alertInnerMap.get(alertInnerKey).getValue()+
     				", status: "+alertInnerMap.get(alertInnerKey).isFired());

@@ -92,7 +92,6 @@ public class ClusterDataCache
                                                                                 sessionId)));
     }
 
-    //_healthStatMap = new HashMap<String, List<HealthStat>>();
     for (String instanceName : _liveInstanceMap.keySet())
     {
     	
@@ -100,29 +99,15 @@ public class ClusterDataCache
                  .convertTypedListToTypedMap(dataAccessor.getChildValues(HealthStat.class,
                                                                          PropertyType.HEALTHREPORT,
                                                                          instanceName)));
-    	/*
-    	LiveInstance liveInstance = _liveInstanceMap.get(instanceName);
-        String sessionId = liveInstance.getSessionId();
-        if (!_healthStatMap.containsKey(instanceName))
-        {
-          _healthStatMap.put(instanceName, new HashMap<String, HealthStat>());
-        }
-        _healthStatMap.get(instanceName).put(sessionId,  ZNRecordDecorator
-        		      .convertTypedListToTypedMap(dataAccessor.getChildValues(HealthStat.class,
-        		    		  												  PropertyType.HEALTHREPORT,
-        		    		  												  instanceName,
-        		    		  												  sessionId)));
-        
-        dataAccessor.<HealthStat>refreshChildValues(_healthStatMap.get(instanceName),
-                HealthStat.class, PropertyType.HEALTHREPORT, instanceName);
-        */        
     }
 
-    //TODO: get rid of ZNRecord here!
     try {
-    	ZNRecord statsRec = dataAccessor.getProperty(PropertyType.PERSISTENTSTATS);
+    	
+    	ZNRecordDecorator statsRec = dataAccessor.getProperty(PersistentStats.class, 
+    														  PropertyType.PERSISTENTSTATS);
+    	
     	if (statsRec != null) {
-    		_persistentStats = new PersistentStats(statsRec);
+    		_persistentStats = new PersistentStats(statsRec.getRecord());
     	}
     } catch (Exception e) {
     	logger.debug("No persistent stats found: "+e);
@@ -130,9 +115,10 @@ public class ClusterDataCache
     
 
     try {
-    	ZNRecord alertsRec = dataAccessor.getProperty(PropertyType.ALERTS);
+    	ZNRecordDecorator alertsRec = dataAccessor.getProperty(Alerts.class,
+    														   PropertyType.ALERTS);
     	if (alertsRec != null) {
-    		_alerts = new Alerts(alertsRec);
+    		_alerts = new Alerts(alertsRec.getRecord());
     	}
     } catch (Exception e) {
     	logger.debug("No alerts found: "+e);

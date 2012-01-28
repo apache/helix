@@ -166,9 +166,10 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
       {
     	HealthStateChangeListener healthStateChangeListener = (HealthStateChangeListener) _listener;
     	subscribeForChanges(changeContext, true, true); //TODO: figure out settings here
-    	List<HealthStat> healthReportList = _accessor.getChildValues(HealthStat.class,
-    																   PropertyType.HEALTHREPORT);
     	String instanceName = CMUtil.getInstanceNameFromPath(_path);
+    	List<HealthStat> healthReportList = _accessor.getChildValues(HealthStat.class,
+    																   PropertyType.HEALTHREPORT, 
+    																   instanceName);
     	//List<ZNRecord> reports = ZKUtil.getChildren(_zkClient, _path);
     	healthStateChangeListener.onHealthChange(instanceName, healthReportList, changeContext);
       }

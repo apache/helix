@@ -78,6 +78,15 @@ public class TestEvaluateAlerts {
 	     return alert;
 	}
 
+	public String addTwoWildcardAlert() throws ClusterManagerException
+	{
+		String alert = EXP + "(accumulate()(dbFoo.partition*.put*))"
+				+ CMP + "(GREATER)" + CON + "(100)";
+	     _alertsHolder.addAlert(alert);
+	     return alert;
+	}
+
+	
 	public String addExpandWildcardAlert() throws ClusterManagerException
 	{
 		String alert = EXP + "(accumulate()(dbFoo.partition*.latency)|EXPAND)"
@@ -299,6 +308,38 @@ public class TestEvaluateAlerts {
 		 boolean alertFired = alertResult.get(alert).get(wildcardBinding).isFired();
 		 AssertJUnit.assertTrue(alertFired);	 
 	  }
+	
+	@Test (groups = {"unitTest"})
+	public void testTwoWildcardAlertFires()
+	{
+		//error is with * and )
+		String alert = addTwoWildcardAlert();
+		String stat = AlertParser.getComponent(AlertParser.EXPRESSION_NAME, alert);
+		String incomingStatName = "dbFoo.partition10.putCount";
+		Map<String, String> statFields = getStatFields("110","0");
+		_statsHolder.applyStat(incomingStatName, statFields);
+		Map<String, Map<String, AlertValueAndStatus>> alertResult = AlertProcessor.executeAllAlerts(_alertsHolder.getAlertList(), _statsHolder.getStatsList());
+		String wildcardBinding = "10,Count"; //XXX: this is not going to work...need "Count" in here too.
+		boolean alertFired = alertResult.get(alert).get(wildcardBinding).isFired();
+		AssertJUnit.assertTrue(alertFired);	
+	}
+	
+	/* only supporting wildcards at end of components right now
+	@Test (groups = {"unitTest"})
+	public void testTwoWildcardsNotAtEndFires()
+	{
+		String alert = EXP + "(accumulate()(dbFoo.partition*.*Count))"
+				+ CMP + "(GREATER)" + CON + "(100)";
+		_alertsHolder.addAlert(alert);
+		String incomingStatName = "dbFoo.partition10.putCount";
+		Map<String, String> statFields = getStatFields("110","0");
+		_statsHolder.applyStat(incomingStatName, statFields);
+		Map<String, Map<String, AlertValueAndStatus>> alertResult = AlertProcessor.executeAllAlerts(_alertsHolder.getAlertList(), _statsHolder.getStatsList());
+		String wildcardBinding = "10,put"; //XXX: this is not going to work...need "Count" in here too.
+		boolean alertFired = alertResult.get(alert).get(wildcardBinding).isFired();
+		AssertJUnit.assertTrue(alertFired);	
+	}
+	*/
 	
 	//test using sumall
 	//test using rows where some tuples are null (no stat sent)

@@ -184,14 +184,21 @@ public class ExpressionParser {
 	   * extractStatFromAgg=false.  Match accumulate()(dbFoo.partition*.latency) with accumulate()(dbFoo.partition10.latency)
 	   * extractStatFromAgg=true.  Match accumulate()(dbFoo.partition*.latency) with dbFoo.partition10.latency
 	   */
-	  public static boolean isWildcardMatch(String currentStat, String incomingStat, boolean extractStatFromAgg, ArrayList<String> bindings)
+	  public static boolean isWildcardMatch(String currentStat, String incomingStat, boolean statCompareOnly, ArrayList<String> bindings)
 	  {
-		  String currentStatName = currentStat;
-		  if (extractStatFromAgg) {
-			  currentStatName = getSingleAggregatorStat(currentStat);
+		  if (!statCompareOnly) { //need to check for match on agg type and stat
+			  String currentStatAggType = (currentStat.split("\\)"))[0];
+			  String incomingStatAggType = (incomingStat.split("\\)"))[0];
+			  if (!currentStatAggType.equals(incomingStatAggType)) {
+				  return false;
+			  }
 		  }
+		  //now just get the stats
+		  String currentStatName = getSingleAggregatorStat(currentStat);
+		  String incomingStatName = getSingleAggregatorStat(incomingStat);
+		  
 		  currentStatName = currentStatName.replaceAll("\\s+", ""); //remove white space
-		  String incomingStatName = incomingStat.replaceAll("\\s+", ""); //remove whitespace
+		  incomingStatName = incomingStatName.replaceAll("\\s+", ""); //remove whitespace
 		  
 		  if (! currentStatName.contains(wildcardChar)) { //no wildcards in stat name
 			  return false;
@@ -331,7 +338,11 @@ public class ExpressionParser {
 	  
 	  public static String[] getAggregatorStats(String expression) throws ClusterManagerException
 	  {
-		  String[] statList = (expression.substring(expression.lastIndexOf("(")+1, expression.lastIndexOf(")"))).split(argDelim);
+		  String justStats = expression;
+		  if (expression.contains("(") && expression.contains(")")) {
+			  justStats = (expression.substring(expression.lastIndexOf("(")+1, expression.lastIndexOf(")")));
+		  }
+		  String[] statList = justStats.split(argDelim);
 		  if (statList.length < 1) {
 			  throw new ClusterManagerException(expression+" does not contain any aggregator stats");
 		  }
@@ -340,6 +351,7 @@ public class ExpressionParser {
 	  
 	  public static String getSingleAggregatorStat(String expression) throws ClusterManagerException
 	  {
+		  
 		  String[] stats = getAggregatorStats(expression);
 		  if (stats.length > 1) {
 			  throw new ClusterManagerException(expression+" contains more than 1 stat");

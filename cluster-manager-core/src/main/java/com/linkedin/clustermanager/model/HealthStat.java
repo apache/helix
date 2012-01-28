@@ -4,17 +4,13 @@ import java.util.Date;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
-//import org.apache.zookeeper.data.Stat;
 
-//import com.linkedin.clustermanager.ZNRecord;
-//import com.linkedin.clustermanager.ZNRecordAndStat;
 import com.linkedin.clustermanager.ZNRecord;
 import com.linkedin.clustermanager.ZNRecordDecorator;
 import com.linkedin.clustermanager.model.Message.Attributes;
 
-public class HealthStat extends ZNRecordDecorator {
-	//private final ZNRecord _record;
-
+public class HealthStat extends ZNRecordDecorator 
+{
 	public enum HealthStatProperty
 	{
 		FIELDS
@@ -36,40 +32,20 @@ public class HealthStat extends ZNRecordDecorator {
 	    }
 	  }
 	
-	 public long getCreateTimeStamp()
-	  {
-	    if (_record.getSimpleField(Attributes.CREATE_TIMESTAMP.toString()) == null)
-	    {
-	      return 0;
-	    }
-	    try
-	    {
-	      return Long.parseLong(_record
-	          .getSimpleField(Attributes.CREATE_TIMESTAMP.toString()));
-	    } catch (Exception e)
-	    {
-	      return 0;
-	    }
-	  }
-	
-	/*
-	public HealthStat(ZNRecord record)
-	{
-		this(record, null);
-	}
-	
-	public HealthStat(ZNRecord record, Stat stat)
-	{
-		super(record, stat);
-	}
-	*/
-	
-	/*
-	public String getId()
-	{
-		return _record.getId();
-	}
-	*/
+  public long getCreateTimeStamp()
+  {
+    if (_record.getSimpleField(Attributes.CREATE_TIMESTAMP.toString()) == null)
+    {
+      return 0;
+    }
+    try
+    {
+      return Long.parseLong(_record.getSimpleField(Attributes.CREATE_TIMESTAMP.toString()));
+    } catch (Exception e)
+    {
+      return 0;
+    }
+  }
 	
 	public String getTestField()
 	{

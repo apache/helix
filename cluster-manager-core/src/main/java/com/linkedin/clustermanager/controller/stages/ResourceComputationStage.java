@@ -32,7 +32,7 @@ public class ResourceComputationStage extends AbstractBaseStage
     if (cache == null)
     {
       throw new StageException("Missing attributes in event:" + event
-          + ". Requires DataCache");
+                             + ". Requires DataCache");
     }
 
     Map<String, IdealState> idealStates = cache.getIdealStates();
@@ -77,7 +77,8 @@ public class ResourceComputationStage extends AbstractBaseStage
         {
           String resourceGroupName = currentState.getResourceGroupName();
           Map<String, String> resourceStateMap = currentState.getResourceKeyStateMap();
-
+          addResourceGroup(resourceGroupName, resourceGroupMap);
+          
           for (String resourceKey : resourceStateMap.keySet())
           {
             addResource(resourceKey, resourceGroupName, resourceGroupMap);
@@ -100,6 +101,19 @@ public class ResourceComputationStage extends AbstractBaseStage
     event.addAttribute(AttributeName.RESOURCE_GROUPS.toString(), resourceGroupMap);
   }
 
+  private void addResourceGroup(String resGroup, Map<String, ResourceGroup> resGroupMap)
+  {
+    if (resGroup == null || resGroupMap == null)
+    {
+      return;
+    }
+    
+    if (!resGroupMap.containsKey(resGroup))
+    {
+      resGroupMap.put(resGroup, new ResourceGroup(resGroup));
+    }
+  }
+  
   private void addResource(String resourceKey,
                            String resourceGroupName,
                            Map<String, ResourceGroup> resourceGroupMap)

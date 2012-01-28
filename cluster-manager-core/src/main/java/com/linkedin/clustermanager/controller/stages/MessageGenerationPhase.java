@@ -106,7 +106,7 @@ public class MessageGenerationPhase extends AbstractBaseStage
             } else
             {
               logger
-                  .warn("Unable to find a next state from stateModelDefinition"
+                  .error("Unable to find a next state from stateModelDefinition"
                       + stateModelDef.getClass() + " from:" + currentState
                       + " to:" + desiredState);
             }

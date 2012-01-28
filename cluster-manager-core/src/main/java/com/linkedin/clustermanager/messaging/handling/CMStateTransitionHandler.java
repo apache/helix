@@ -227,7 +227,7 @@ public class CMStateTransitionHandler extends MessageHandler
         // record from
         // the current state of the instance because the resource key is dropped.
         ZNRecordDelta delta =
-            new ZNRecordDelta(currentStateDelta.getRecord(), MERGEOPERATION.SUBSTRACT);
+            new ZNRecordDelta(currentStateDelta.getRecord(), MERGEOPERATION.SUBTRACT);
         List<ZNRecordDelta> deltaList = new ArrayList<ZNRecordDelta>();
         deltaList.add(delta);
         CurrentState currentStateUpdate = new CurrentState(stateUnitGroup);

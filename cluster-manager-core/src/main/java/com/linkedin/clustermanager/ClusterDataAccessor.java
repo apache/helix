@@ -1,6 +1,7 @@
 package com.linkedin.clustermanager;
 
 import java.util.List;
+import java.util.Map;
 
 import com.linkedin.clustermanager.store.PropertyStore;
 
@@ -73,7 +74,8 @@ public interface ClusterDataAccessor
    */
    List<ZNRecord> getChildValues(PropertyType type, String... keys);
    <T extends ZNRecordDecorator> List<T> getChildValues(Class<T> clazz, PropertyType type, String... keys);
-
+   <T extends ZNRecordDecorator> Map<String, T> getChildValuesMap(Class<T> clazz, PropertyType type, String... keys);
+   
    /**
     * @return a property store
     */

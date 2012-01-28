@@ -48,10 +48,10 @@ public class ClusterDataCache
   public boolean refresh(ClusterDataAccessor dataAccessor)
   {
     _idealStateMap = ZNRecordDecorator
-        .convertTypedListToTypedMap(dataAccessor.getChildValues(IdealState.class,
+        .convertListToMap(dataAccessor.getChildValues(IdealState.class,
                                                                 PropertyType.IDEALSTATES));
     _liveInstanceMap = ZNRecordDecorator
-        .convertTypedListToTypedMap(dataAccessor.getChildValues(LiveInstance.class,
+        .convertListToMap(dataAccessor.getChildValues(LiveInstance.class,
                                                                 PropertyType.LIVEINSTANCES));
 
 
@@ -62,16 +62,16 @@ public class ClusterDataCache
     }
 
     _stateModelDefMap = ZNRecordDecorator
-        .convertTypedListToTypedMap(dataAccessor.getChildValues(StateModelDefinition.class,
+        .convertListToMap(dataAccessor.getChildValues(StateModelDefinition.class,
                                                                 PropertyType.STATEMODELDEFS));
     _instanceConfigMap = ZNRecordDecorator
-        .convertTypedListToTypedMap(dataAccessor.getChildValues(InstanceConfig.class,
+        .convertListToMap(dataAccessor.getChildValues(InstanceConfig.class,
                                                                 PropertyType.CONFIGS));
 
     for (String instanceName : _liveInstanceMap.keySet())
     {
       _messageMap.put(instanceName, ZNRecordDecorator
-                      .convertTypedListToTypedMap(dataAccessor.getChildValues(Message.class,
+                      .convertListToMap(dataAccessor.getChildValues(Message.class,
                                                                               PropertyType.MESSAGES,
                                                                               instanceName)));
     }
@@ -85,7 +85,7 @@ public class ClusterDataCache
         _currentStateMap.put(instanceName, new HashMap<String, Map<String, CurrentState>>());
       }
         _currentStateMap.get(instanceName).put(sessionId, ZNRecordDecorator
-                        .convertTypedListToTypedMap(dataAccessor.getChildValues(CurrentState.class,
+                        .convertListToMap(dataAccessor.getChildValues(CurrentState.class,
                                                                                 PropertyType.CURRENTSTATES,
                                                                                 instanceName,
                                                                                 sessionId)));
@@ -96,7 +96,7 @@ public class ClusterDataCache
     {
     	
     	 _healthStatMap.put(instanceName, ZNRecordDecorator
-                 .convertTypedListToTypedMap(dataAccessor.getChildValues(HealthStat.class,
+                 .convertListToMap(dataAccessor.getChildValues(HealthStat.class,
                                                                          PropertyType.HEALTHREPORT,
                                                                          instanceName)));
     	/*

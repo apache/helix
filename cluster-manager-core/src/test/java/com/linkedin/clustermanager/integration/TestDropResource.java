@@ -23,7 +23,7 @@ public class TestDropResource extends ZkStandAloneCMTestBase
 
     _setupTool.dropResourceGroupToCluster(CLUSTER_NAME, "MyDB");
 
-    TestHelper.verifyWithTimeout("verifyEmptyCurState",
+    TestHelper.verifyWithTimeout("verifyEmptyCurStateAndExtView",
                                  CLUSTER_NAME,
                                  "MyDB",
                                  TestHelper.<String>setOf("localhost_12918", "localhost_12919",

@@ -20,9 +20,7 @@ public class ResourceGroup
   public ResourceGroup(String resourceGroupId)
   {
     this._resourceGroupId = resourceGroupId;
-
     this._resourceKeyMap = new LinkedHashMap<String, ResourceKey>();
-
   }
 
   public String getStateModelDefRef()
@@ -55,4 +53,14 @@ public class ResourceGroup
     return _resourceKeyMap.get(resourceKeyStr);
   }
 
+  @Override
+  public String toString()
+  {
+    StringBuilder sb = new StringBuilder();
+    sb.append("resourceGroupId:").append(_resourceGroupId);
+    sb.append(", stateModelDef:").append(_stateModelDefRef);
+    sb.append(", resourceKeyMap:").append(_resourceKeyMap);
+    
+    return sb.toString();
+  }
 }

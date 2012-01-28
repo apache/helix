@@ -2,11 +2,12 @@ package com.linkedin.clustermanager.controller.stages;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.log4j.Logger; 
+import org.apache.log4j.Logger;
 
 import com.linkedin.clustermanager.model.IdealState;
 import com.linkedin.clustermanager.model.IdealState.IdealStateModeProperty;
@@ -174,10 +175,9 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
       int stateCount = -1;
       if ("N".equals(num))
       {
-        // stateCount = liveInstancesMap.size();
-        Set<String> enabledInstances = liveInstancesMap.keySet();
-        enabledInstances.removeAll(disabledInstancesForResource);
-        stateCount = enabledInstances.size();
+        Set<String> liveAndEnabled = new HashSet<String>(liveInstancesMap.keySet());
+        liveAndEnabled.removeAll(disabledInstancesForResource);
+        stateCount = liveAndEnabled.size();
       }
       else if ("R".equals(num))
       {

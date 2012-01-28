@@ -447,6 +447,14 @@ public class Mocks
       // TODO Auto-generated method stub
       return null;
     }
+
+    @Override
+    public <T extends ZNRecordDecorator> Map<String, T> getChildValuesMap(Class<T> clazz,
+        PropertyType type, String... keys)
+    {
+      List<T> list = getChildValues(clazz, type, keys);
+      return ZNRecordDecorator.convertListToMap(list);
+    }
   }
 
   public static class MockHealthReportProvider extends HealthReportProvider

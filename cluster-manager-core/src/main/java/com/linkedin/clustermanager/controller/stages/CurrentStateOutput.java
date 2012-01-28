@@ -107,11 +107,12 @@ public class CurrentStateOutput
     return Collections.emptyMap();
   }
 
+  @Override
   public String toString()
   {
     StringBuilder sb = new StringBuilder();
     sb.append("current state= ").append(_currentStateMap);
-    sb.append("pending state= ").append(_pendingStateMap);
+    sb.append(", pending state= ").append(_pendingStateMap);
     return sb.toString();
 
   }

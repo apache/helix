@@ -2,7 +2,7 @@ package com.linkedin.clustermanager;
 
 public class ZNRecordDelta
 {
-  public enum MERGEOPERATION {ADD, SUBSTRACT};
+  public enum MERGEOPERATION {ADD, SUBTRACT};
   public ZNRecord _record;
   public MERGEOPERATION _mergeOperation;
 

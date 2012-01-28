@@ -3,6 +3,7 @@ package com.linkedin.clustermanager.agent.file;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -101,7 +102,8 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
   }
 
   @Override
-  public <T extends ZNRecordDecorator> T getProperty(Class<T> clazz, PropertyType type, String... keys)
+  public <T extends ZNRecordDecorator> 
+    T getProperty(Class<T> clazz, PropertyType type, String... keys)
   {
     ZNRecord record = getProperty(type, keys);
     if (record == null)
@@ -184,9 +186,8 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
   }
 
   @Override
-  public <T extends ZNRecordDecorator> List<T> getChildValues(Class<T> clazz,
-                                                              PropertyType type,
-                                                              String... keys)
+  public <T extends ZNRecordDecorator> 
+    List<T> getChildValues(Class<T> clazz, PropertyType type, String... keys)
   {
     List<ZNRecord> list = getChildValues(type, keys);
     return ZNRecordDecorator.convertToTypedList(clazz, list);
@@ -305,5 +306,13 @@ public class FileBasedDataAccessor implements ClusterDataAccessor
             + e.getMessage() + ". Will retry.");
       }
     }
+  }
+
+  @Override
+  public <T extends ZNRecordDecorator> Map<String, T> getChildValuesMap(Class<T> clazz,
+      PropertyType type, String... keys)
+  {
+    List<T> list = getChildValues(clazz, type, keys);
+    return ZNRecordDecorator.convertListToMap(list);
   }
 }

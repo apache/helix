@@ -131,7 +131,8 @@ public class ZKDataAccessor implements ClusterDataAccessor
   }
 
   @Override
-  public <T extends ZNRecordDecorator> T getProperty(Class<T> clazz, PropertyType type, String... keys)
+  public <T extends ZNRecordDecorator> 
+    T getProperty(Class<T> clazz, PropertyType type, String... keys)
   {
     return ZNRecordDecorator.convertToTypedInstance(clazz, getProperty(type, keys));
   }
@@ -184,9 +185,8 @@ public class ZKDataAccessor implements ClusterDataAccessor
   }
 
   @Override
-  public <T extends ZNRecordDecorator> List<T> getChildValues(Class<T> clazz,
-                                                              PropertyType type,
-                                                              String... keys)
+  public <T extends ZNRecordDecorator> 
+    List<T> getChildValues(Class<T> clazz, PropertyType type, String... keys)
   {
     List<ZNRecord> newChilds = getChildValues(type, keys);
     if (newChilds.size() > 0)
@@ -230,11 +230,8 @@ public class ZKDataAccessor implements ClusterDataAccessor
     {
       _zkClient.createPersistent(path);
     }
-
-//    String zkAddr = _zkClient.getConnection().getServers();
     PropertySerializer<ZNRecord> serializer =
         new PropertyJsonSerializer<ZNRecord>(ZNRecord.class);
-//    return new ZKPropertyStore<ZNRecord>(new ZkConnection(zkAddr), serializer, path);
     return new ZKPropertyStore<ZNRecord>(_zkClient, serializer, path);
   }
 
@@ -272,8 +269,8 @@ public class ZKDataAccessor implements ClusterDataAccessor
    * @param oldChildRecords
    * @return newChildRecords
    */
-  private Map<String, ZNRecord> refreshChildValues(String parentPath,
-                                                   Map<String, ZNRecord> oldChildRecords)
+  private Map<String, ZNRecord>
+    refreshChildValues(String parentPath, Map<String, ZNRecord> oldChildRecords)
   {
     List<String> childs = _zkClient.getChildren(parentPath);
     if (childs == null || childs.size() == 0)
@@ -325,6 +322,14 @@ public class ZKDataAccessor implements ClusterDataAccessor
       }
     }
 
-    return newChildRecords;
+    return Collections.unmodifiableMap(newChildRecords);
+  }
+
+  @Override
+  public <T extends ZNRecordDecorator> 
+    Map<String, T> getChildValuesMap(Class<T> clazz, PropertyType type, String... keys)
+  {
+    List<T> list = getChildValues(clazz, type, keys);
+    return ZNRecordDecorator.convertListToMap(list);
   }
 }

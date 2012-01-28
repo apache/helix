@@ -225,7 +225,7 @@ public class ZNRecord
     {
       merge(delta.getRecord());
     }
-    else if (delta.getMergeOperation() == MERGEOPERATION.SUBSTRACT)
+    else if (delta.getMergeOperation() == MERGEOPERATION.SUBTRACT)
     {
       subtract(delta.getRecord());
     }

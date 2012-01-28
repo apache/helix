@@ -97,7 +97,7 @@ public class TestDummyAlerts extends ZkIntegrationTestBase
                                "controller_0",
                                ZK_ADDR, 
                                ClusterManagerMain.STANDALONE);
-    // start partiticpants
+    // start participants
     for (int i = 0; i < 5; i++)
     {
       String instanceName = "localhost_" + (12918 + i);
@@ -129,7 +129,6 @@ public class TestDummyAlerts extends ZkIntegrationTestBase
       Assert.assertEquals(record.getId(), "mockAlerts4");
     }
     
-
     System.out.println("END TestDummyAlerts at " + new Date(System.currentTimeMillis()));
   }
 }

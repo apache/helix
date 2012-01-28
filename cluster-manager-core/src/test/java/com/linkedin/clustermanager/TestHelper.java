@@ -721,39 +721,43 @@ public class TestHelper
     return true;
   }
 
-  public static boolean verifyEmptyCurState(String clusterName,
-                                            String resourceGroupName,
-                                            Set<String> instanceNames,
-                                            ZkClient zkClient)
+  public static boolean verifyEmptyCurStateAndExtView(String clusterName,
+                                                      String resourceGroupName,
+                                                      Set<String> instanceNames,
+                                                      ZkClient zkClient)
   {
-    ClusterDataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
+    ZKDataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
 
     for (String instanceName : instanceNames)
     {
-      String path = PropertyPathConfig.getPath(PropertyType.CURRENTSTATES,
-                                               clusterName,
-                                               instanceName);
-      List<String> subPaths =
-          accessor.getChildNames(PropertyType.CURRENTSTATES, instanceName);
+      List<String> sessionIds = accessor.getChildNames(PropertyType.CURRENTSTATES, 
+                                                       instanceName);
 
-      for (String previousSessionId : subPaths)
+      for (String sessionId : sessionIds)
       {
-        if (zkClient.exists(path + "/" + previousSessionId + "/" + resourceGroupName))
-        {
-          CurrentState previousCurrentState =
-              accessor.getProperty(CurrentState.class,
-                                   PropertyType.CURRENTSTATES,
-                                   instanceName,
-                                   previousSessionId,
-                                   resourceGroupName);
+        CurrentState curState = accessor.getProperty(CurrentState.class,
+                                                     PropertyType.CURRENTSTATES,
+                                                     instanceName,
+                                                     sessionId,
+                                                     resourceGroupName);
 
-          if (previousCurrentState.getRecord().getMapFields().size() != 0)
-          {
-            return false;
-          }
+        if (curState != null && curState.getRecord().getMapFields().size() != 0)
+        {
+          return false;
         }
       }
+      
+      ExternalView extView = accessor.getProperty(ExternalView.class, 
+                                                  PropertyType.EXTERNALVIEW, 
+                                                  resourceGroupName);
+      
+      if (extView != null && extView.getRecord().getMapFields().size() != 0)
+      {
+        return false;
+      }
+
     }
+    
     return true;
   }
 

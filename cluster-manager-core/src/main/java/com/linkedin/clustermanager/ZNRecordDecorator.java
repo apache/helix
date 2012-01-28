@@ -59,8 +59,8 @@ public abstract class ZNRecordDecorator
    * @param record
    * @return
    */
-  public static <T extends ZNRecordDecorator> T convertToTypedInstance(Class<T> clazz,
-                                                                       ZNRecord record)
+  public static <T extends ZNRecordDecorator> 
+    T convertToTypedInstance(Class<T> clazz, ZNRecord record)
   {
     if (record == null)
     {
@@ -81,8 +81,8 @@ public abstract class ZNRecordDecorator
     return null;
   }
 
-  public static <T extends ZNRecordDecorator> List<T> convertToTypedList(Class<T> clazz,
-                                                                         Collection<ZNRecord> records)
+  public static <T extends ZNRecordDecorator> 
+    List<T> convertToTypedList(Class<T> clazz, Collection<ZNRecord> records)
   {
     if (records == null)
     {
@@ -101,7 +101,8 @@ public abstract class ZNRecordDecorator
     return decorators;
   }
 
-  public static <T extends ZNRecordDecorator> Map<String, T> convertTypedListToTypedMap(List<T> records)
+  public static <T extends ZNRecordDecorator> 
+    Map<String, T> convertListToMap(List<T> records)
   {
     if (records == null)
     {

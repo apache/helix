@@ -136,13 +136,6 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
         subscribeForChanges(changeContext, true, false);
         String instanceName = CMUtil.getInstanceNameFromPath(_path);
         List<Message> messages =  _accessor.getChildValues(Message.class, PropertyType.MESSAGES, instanceName);
-
-//        // TODO remove this, enforce a zk manager to have an id always
-//        if (instanceName == null)
-//        {
-//          logger.error("Instance does NOT have a name; use CONTROLLER");
-//          instanceName = "CONTROLLER";
-//        }
         messageListener.onMessage(instanceName, messages, changeContext);
 
       }

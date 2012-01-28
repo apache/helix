@@ -70,4 +70,19 @@ protected static final String CLUSTER_NAME = "TestCluster";
 		 AssertJUnit.assertTrue(alertRecordContains(rec,alert2));
 		 AssertJUnit.assertEquals(2, alertsSize(rec));
 	  }
+	
+	@Test (groups = {"unitTest"})
+	  public void testAddTwoWildcardAlert() throws Exception
+	  {
+		 String alert1 = EXP + "(accumulate()(dbFoo.partition*.put*))"
+					+ CMP + "(GREATER)" + CON + "(10)";
+		 _alertsHolder.addAlert(alert1);
+		 ZNRecord rec = _clusterManager.getDataAccessor().getProperty(PropertyType.ALERTS);
+		 //System.out.println("alert: "+alert1);
+		 System.out.println("rec: "+rec.toString());
+		 AssertJUnit.assertTrue(alertRecordContains(rec,alert1));
+		 AssertJUnit.assertEquals(1, alertsSize(rec));
+	  }
+	
+	//add 2 wildcard alert here
 }

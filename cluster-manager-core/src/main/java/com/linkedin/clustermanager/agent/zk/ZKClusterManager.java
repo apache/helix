@@ -221,6 +221,7 @@ public class ZKClusterManager implements ClusterManager
   {
 //	  System.out.println("ZKClusterManager.addHealthStateChangeListener()");
 	  //TODO: re-form this for stats checking
+	  checkConnected();
 	  final String path = CMUtil.getHealthPath(_clusterName, instanceName);
 
 	    CallbackHandler callbackHandler = createCallBackHandler(path, listener,

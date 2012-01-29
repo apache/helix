@@ -198,7 +198,7 @@ public class ClusterJosqlQueryProcessor
     // Per JoSql, select FROM <target> the target must be a object class that corresponds to a "table row"
     // In out case, the row is always a ZNRecord
     josql = josql.replaceFirst(fromTargetString, fromTargetString.endsWith(FLATTABLE) ? 
-        "com.linkedin.clustermanager.josql.ZNRecordRow" :"com.linkedin.clustermanager.ZNRecord");
+        ZNRecordRow.class.getCanonicalName():ZNRecord.class.getCanonicalName());
     josqlQuery.parse(josql);
     QueryResults qr = josqlQuery.execute(fromTarget);
     return qr.getResults();

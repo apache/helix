@@ -42,7 +42,7 @@ public class CriteriaEvaluator
     {
       resourceGroup = "%";
     }
-    String sqlForResourceGroups = "SELECT id FROM com.linkedin.clustermanager.ZNRecord WHERE id LIKE '" + resourceGroup+"'";
+    String sqlForResourceGroups = "SELECT id FROM "+ZNRecord.class.getCanonicalName() +" WHERE id LIKE '" + resourceGroup+"'";
     Query q = new Query();
     try
     {

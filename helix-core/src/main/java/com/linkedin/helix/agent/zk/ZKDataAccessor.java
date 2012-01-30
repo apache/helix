@@ -330,6 +330,6 @@ public class ZKDataAccessor implements ClusterDataAccessor
     Map<String, T> getChildValuesMap(Class<T> clazz, PropertyType type, String... keys)
   {
     List<T> list = getChildValues(clazz, type, keys);
-    return ZNRecordDecorator.convertListToMap(list);
+    return Collections.unmodifiableMap(ZNRecordDecorator.convertListToMap(list));
   }
 }

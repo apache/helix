@@ -10,8 +10,6 @@ import org.apache.log4j.Logger;
 
 import com.linkedin.helix.ClusterDataAccessor;
 import com.linkedin.helix.PropertyType;
-import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.ZNRecordDecorator;
 import com.linkedin.helix.model.Alerts;
 import com.linkedin.helix.model.CurrentState;
 import com.linkedin.helix.model.HealthStat;
@@ -36,93 +34,76 @@ public class ClusterDataCache
   Map<String, IdealState> _idealStateMap;
   Map<String, StateModelDefinition> _stateModelDefMap;
   Map<String, InstanceConfig> _instanceConfigMap;
-  final Map<String, Map<String, Map<String, CurrentState>>> _currentStateMap = new HashMap<String, Map<String, Map<String, CurrentState>>>();
-  final Map<String, Map<String, Message>> _messageMap = new HashMap<String, Map<String, Message>>();
-  final Map<String, Map<String, HealthStat>> _healthStatMap = new HashMap<String, Map<String, HealthStat>>();
+  Map<String, Map<String, Map<String, CurrentState>>> _currentStateMap;
+  Map<String, Map<String, Message>> _messageMap;
+  
+  Map<String, Map<String, HealthStat>> _healthStatMap;
   private HealthStat _globalStats;  //DON'T THINK I WILL USE THIS ANYMORE
   private PersistentStats _persistentStats;
   private Alerts _alerts;
 
-  private static final Logger logger = Logger.getLogger(ClusterDataCache.class.getName());
+  private static final Logger LOG = Logger.getLogger(ClusterDataCache.class.getName());
 
-  public boolean refresh(ClusterDataAccessor dataAccessor)
+  public boolean refresh(ClusterDataAccessor accessor)
   {
-    _idealStateMap = ZNRecordDecorator
-        .convertListToMap(dataAccessor.getChildValues(IdealState.class,
-                                                                PropertyType.IDEALSTATES));
-    _liveInstanceMap = ZNRecordDecorator
-        .convertListToMap(dataAccessor.getChildValues(LiveInstance.class,
-                                                                PropertyType.LIVEINSTANCES));
-
+    _idealStateMap = accessor.getChildValuesMap(IdealState.class, 
+                                                PropertyType.IDEALSTATES);  
+    _liveInstanceMap = accessor.getChildValuesMap(LiveInstance.class, 
+                                                  PropertyType.LIVEINSTANCES);
 
     for (LiveInstance instance : _liveInstanceMap.values())
     {
-      logger.trace("live instance: " + instance.getInstanceName() + " "
+      LOG.trace("live instance: " + instance.getInstanceName() + " "
           + instance.getSessionId());
     }
 
-    _stateModelDefMap = ZNRecordDecorator
-        .convertListToMap(dataAccessor.getChildValues(StateModelDefinition.class,
-                                                                PropertyType.STATEMODELDEFS));
-    _instanceConfigMap = ZNRecordDecorator
-        .convertListToMap(dataAccessor.getChildValues(InstanceConfig.class,
-                                                                PropertyType.CONFIGS));
-
+    _stateModelDefMap = accessor.getChildValuesMap(StateModelDefinition.class, 
+                                                   PropertyType.STATEMODELDEFS);
+    _instanceConfigMap = accessor.getChildValuesMap(InstanceConfig.class, 
+                                                    PropertyType.CONFIGS);
+    Map<String, Map<String, Message>> msgMap = new HashMap<String, Map<String, Message>>();
     for (String instanceName : _liveInstanceMap.keySet())
     {
-      _messageMap.put(instanceName, ZNRecordDecorator
-                      .convertListToMap(dataAccessor.getChildValues(Message.class,
-                                                                              PropertyType.MESSAGES,
-                                                                              instanceName)));
+      msgMap.put(instanceName, accessor.getChildValuesMap(Message.class, 
+                                                          PropertyType.MESSAGES, 
+                                                          instanceName));
     }
+    _messageMap = Collections.unmodifiableMap(msgMap);
 
+    Map<String, Map<String, Map<String, CurrentState>>> allCurStateMap
+      = new HashMap<String, Map<String, Map<String, CurrentState>>>();
     for (String instanceName : _liveInstanceMap.keySet())
     {
       LiveInstance liveInstance = _liveInstanceMap.get(instanceName);
       String sessionId = liveInstance.getSessionId();
-      if (!_currentStateMap.containsKey(instanceName))
+      if (!allCurStateMap.containsKey(instanceName))
       {
-        _currentStateMap.put(instanceName, new HashMap<String, Map<String, CurrentState>>());
+        allCurStateMap.put(instanceName, new HashMap<String, Map<String, CurrentState>>());
       }
-        _currentStateMap.get(instanceName).put(sessionId, ZNRecordDecorator
-                        .convertListToMap(dataAccessor.getChildValues(CurrentState.class,
-                                                                                PropertyType.CURRENTSTATES,
-                                                                                instanceName,
-                                                                                sessionId)));
-    }
-
-    for (String instanceName : _liveInstanceMap.keySet())
-    {
-    	
-    	 _healthStatMap.put(instanceName, ZNRecordDecorator
-                 .convertListToMap(dataAccessor.getChildValues(HealthStat.class,
-                                                                         PropertyType.HEALTHREPORT,
-                                                                         instanceName)));
-    }
-
-    try {
-    	
-    	ZNRecordDecorator statsRec = dataAccessor.getProperty(PersistentStats.class, 
-    														  PropertyType.PERSISTENTSTATS);
-    	
-    	if (statsRec != null) {
-    		_persistentStats = new PersistentStats(statsRec.getRecord());
-    	}
-    } catch (Exception e) {
-    	logger.debug("No persistent stats found: "+e);
+      Map<String, Map<String, CurrentState>> curStateMap = allCurStateMap.get(instanceName);
+      curStateMap.put(sessionId, accessor.getChildValuesMap(CurrentState.class, 
+                                                            PropertyType.CURRENTSTATES, 
+                                                            instanceName, 
+                                                            sessionId));
     }
     
-
-    try {
-    	ZNRecordDecorator alertsRec = dataAccessor.getProperty(Alerts.class,
-    														   PropertyType.ALERTS);
-    	if (alertsRec != null) {
-    		_alerts = new Alerts(alertsRec.getRecord());
-    	}
-    } catch (Exception e) {
-    	logger.debug("No alerts found: "+e);
+    for (String instance : allCurStateMap.keySet())
+    {
+      allCurStateMap.put(instance, Collections.unmodifiableMap(allCurStateMap.get(instance)));
     }
-     
+    _currentStateMap = Collections.unmodifiableMap(allCurStateMap);
+
+    Map<String, Map<String, HealthStat>> hsMap = new HashMap<String, Map<String, HealthStat>>();
+    for (String instanceName : _liveInstanceMap.keySet())
+    {
+    	hsMap.put(instanceName, accessor.getChildValuesMap(HealthStat.class, 
+    	                                                   PropertyType.HEALTHREPORT,
+    	                                                   instanceName));
+    }
+    _healthStatMap = Collections.unmodifiableMap(hsMap);
+    _persistentStats = accessor.getProperty(PersistentStats.class,
+                                            PropertyType.PERSISTENTSTATS);
+    _alerts = accessor.getProperty(Alerts.class, PropertyType.ALERTS);
 
     return true;
   }
@@ -173,16 +154,14 @@ public class ClusterDataCache
   
   public Map<String, HealthStat> getHealthStats(String instanceName)
   {
-	  Map<String, HealthStat> list = _healthStatMap.get(instanceName);
-	  if (list != null)
-	    {
-	      return list;
-	    } else
-	    {
-	      //return Collections.emptyList();
-	      return Collections.emptyMap();
-	    }
-	  
+	  Map<String, HealthStat> map = _healthStatMap.get(instanceName);
+    if (map != null)
+    {
+      return map;
+    } else
+    {
+      return Collections.emptyMap();
+    }
   }
   
   public StateModelDefinition getStateModelDef(String stateModelDefRef)
@@ -220,10 +199,10 @@ public class ClusterDataCache
   public String toString()
   {
     StringBuilder sb = new StringBuilder();
-    sb.append("liveInstaceMap:" + _liveInstanceMap).append("/n");
-    sb.append("idealStateMap:" + _idealStateMap).append("/n");
-    sb.append("stateModelDefMap:" + _stateModelDefMap).append("/n");
-    sb.append("instanceConfigMap:" + _instanceConfigMap).append("/n");
+    sb.append("liveInstaceMap:" + _liveInstanceMap).append("\n");
+    sb.append("idealStateMap:" + _idealStateMap).append("\n");
+    sb.append("stateModelDefMap:" + _stateModelDefMap).append("\n");
+    sb.append("instanceConfigMap:" + _instanceConfigMap).append("\n");
     sb.append("messageMap:" + _messageMap).append("\n");
     
     return sb.toString();

@@ -44,7 +44,7 @@ public class TestDistClusterController extends ZkDistCMTestBase
                                  10,
                                  "MasterSlave",
                                  TestHelper.<String>setOf(CLUSTER_PREFIX + "_" + CLASS_NAME + "_1"),
-                                 _zkClient);
+                                 ZK_ADDR);
 
     LOG.info("STOP testDistClusterController() at " + new Date(System.currentTimeMillis()));
   }

@@ -115,7 +115,7 @@ public class TestDummyAlerts extends ZkIntegrationTestBase
                                  10,
                                  "MasterSlave",
                                  TestHelper.<String>setOf(clusterName),
-                                 _zkClient,
+                                 ZK_ADDR,
                                  null,
                                  null,
                                  null);

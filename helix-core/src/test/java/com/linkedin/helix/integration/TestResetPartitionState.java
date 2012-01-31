@@ -79,7 +79,7 @@ public class TestResetPartitionState extends ZkIntegrationTestBase
                                  10,
                                  "MasterSlave",
                                  TestHelper.<String>setOf(clusterName),
-                                 _zkClient,
+                                 ZK_ADDR,
                                  null,
                                  null,
                                  errorStateMap);
@@ -106,7 +106,7 @@ public class TestResetPartitionState extends ZkIntegrationTestBase
                                  10,
                                  "MasterSlave",
                                  TestHelper.<String>setOf(clusterName),
-                                 _zkClient);
+                                 ZK_ADDR);
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
 

@@ -18,7 +18,7 @@ public class TestDropResource extends ZkStandAloneCMTestBase
                                  6,
                                  "MasterSlave",
                                  TestHelper.<String>setOf(CLUSTER_NAME),
-                                 _zkClient);
+                                 ZK_ADDR);
 
 
     _setupTool.dropResourceGroupToCluster(CLUSTER_NAME, "MyDB");
@@ -29,6 +29,6 @@ public class TestDropResource extends ZkStandAloneCMTestBase
                                  TestHelper.<String>setOf("localhost_12918", "localhost_12919",
                                                           "localhost_12920", "localhost_12921",
                                                           "localhost_12922"),
-                                 _zkClient);
+                                 ZK_ADDR);
   }
 }

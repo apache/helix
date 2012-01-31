@@ -135,7 +135,7 @@ public class TestCustomIdealState extends ZkIntegrationTestBase
                                                           "localhost_12920", 
                                                           "localhost_12921",
                                                           "localhost_12922"),
-                                 _zkClient);
+                                 ZK_ADDR);
   
     System.out.println("STOP " + uniqTestName + " at " + new Date(System.currentTimeMillis()));
   }

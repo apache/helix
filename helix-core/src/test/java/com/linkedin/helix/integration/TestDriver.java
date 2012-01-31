@@ -14,8 +14,8 @@ import org.apache.log4j.Logger;
 import com.linkedin.helix.ClusterManager;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.TestHelper;
-import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.TestHelper.StartCMResult;
+import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.agent.zk.ZkClient;
 import com.linkedin.helix.controller.ClusterManagerMain;
 import com.linkedin.helix.model.IdealState.IdealStateModeProperty;
@@ -25,12 +25,12 @@ import com.linkedin.helix.store.PropertyStoreException;
 import com.linkedin.helix.tools.ClusterSetup;
 import com.linkedin.helix.tools.IdealStateCalculatorForStorageNode;
 import com.linkedin.helix.tools.TestCommand;
-import com.linkedin.helix.tools.TestExecutor;
-import com.linkedin.helix.tools.TestTrigger;
-import com.linkedin.helix.tools.ZnodeOpArg;
 import com.linkedin.helix.tools.TestCommand.CommandType;
 import com.linkedin.helix.tools.TestCommand.NodeOpArg;
+import com.linkedin.helix.tools.TestExecutor;
 import com.linkedin.helix.tools.TestExecutor.ZnodePropertyType;
+import com.linkedin.helix.tools.TestTrigger;
+import com.linkedin.helix.tools.ZnodeOpArg;
 
 public class TestDriver
 {
@@ -238,7 +238,7 @@ public class TestDriver
                                    testInfo._numPartitionsPerDb,
                                    "MasterSlave",
                                    TestHelper.<String>setOf(clusterName),
-                                   zkClient,
+                                   ZK_ADDR,
                                    null,
                                    null,
                                    null);

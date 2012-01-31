@@ -29,14 +29,14 @@ public class MockParticipant implements Stoppable, Runnable
 
   private final CountDownLatch _countDown = new CountDownLatch(1);
   private ClusterManager _manager;
-  private final MockSMModelFactory _smModelFacotry;
+  private final MockMSModelFactory _msModelFacotry;
 
-  
+  // mock master-slave state model
   @StateModelInfo(initialState = "OFFLINE", states = { "MASTER", "SLAVE" })
-  public class MockSMStateModel extends StateModel
+  public class MockMSStateModel extends StateModel
   {
     private MockTransitionIntf _transition;
-    public MockSMStateModel(MockTransitionIntf transition)
+    public MockMSStateModel(MockTransitionIntf transition)
     {
       _transition = transition;
     }
@@ -92,17 +92,18 @@ public class MockParticipant implements Stoppable, Runnable
     }
   }
 
-  public class MockSMModelFactory
-    extends StateModelFactory<MockSMStateModel>
+  // mock master slave state model factory
+  public class MockMSModelFactory
+    extends StateModelFactory<MockMSStateModel>
   {
     private MockTransitionIntf _transition;
     
-    public MockSMModelFactory()
+    public MockMSModelFactory()
     {
       this(null);
     }
     
-    public MockSMModelFactory(MockTransitionIntf transition)
+    public MockMSModelFactory(MockTransitionIntf transition)
     {
       _transition = transition;
     }
@@ -110,17 +111,17 @@ public class MockParticipant implements Stoppable, Runnable
     public void resetTrasition()
     {
       _transition = null;
-      Map<String, MockSMStateModel> stateModelMap = getStateModelMap();
-      for (MockSMStateModel stateModel : stateModelMap.values())
+      Map<String, MockMSStateModel> stateModelMap = getStateModelMap();
+      for (MockMSStateModel stateModel : stateModelMap.values())
       {
         stateModel.resetTransition();
       }
     }
 
     @Override
-    public MockSMStateModel createNewStateModel(String partitionKey)
+    public MockMSStateModel createNewStateModel(String partitionKey)
     {
-      MockSMStateModel model = new MockSMStateModel(_transition);
+      MockMSStateModel model = new MockMSStateModel(_transition);
 
       return model;
     }  
@@ -195,13 +196,14 @@ public class MockParticipant implements Stoppable, Runnable
     _clusterName = clusterName;
     _instanceName = instanceName;
     _zkAddr = zkAddr;
-    _smModelFacotry = new MockSMModelFactory(transition);
+    _msModelFacotry = new MockMSModelFactory(transition);
   }
 
   public void resetTransition()
   {
-    _smModelFacotry.resetTrasition();
+    _msModelFacotry.resetTrasition();
   }
+  
   
   @Override
   public void stop()
@@ -222,7 +224,7 @@ public class MockParticipant implements Stoppable, Runnable
       _manager.connect();
 
       StateMachineEngine stateMachine = new StateMachineEngine();
-      stateMachine.registerStateModelFactory("MasterSlave", _smModelFacotry);
+      stateMachine.registerStateModelFactory("MasterSlave", _msModelFacotry);
 
       DummyLeaderStandbyStateModelFactory lsModelFactory = new DummyLeaderStandbyStateModelFactory(10);
       DummyOnlineOfflineStateModelFactory ofModelFactory = new DummyOnlineOfflineStateModelFactory(10);

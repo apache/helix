@@ -90,7 +90,7 @@ public class TestStandAloneCMSessionExpiry extends ZkIntegrationTestBase
                                  20,
                                  "MasterSlave",
                                  TestHelper.<String>setOf(CLUSTER_NAME),
-                                 zkClient);
+                                 ZK_ADDR);
 
     managers.get("localhost_12918").expireSession();
 
@@ -102,14 +102,14 @@ public class TestStandAloneCMSessionExpiry extends ZkIntegrationTestBase
                                  20,
                                  "MasterSlave",
                                  TestHelper.<String>setOf(CLUSTER_NAME),
-                                 zkClient);
+                                 ZK_ADDR);
 
     TestHelper.verifyWithTimeout("verifyBestPossAndExtView",
                                  "MyDB",
                                  10,
                                  "MasterSlave",
                                  TestHelper.<String>setOf(CLUSTER_NAME),
-                                 zkClient);
+                                 ZK_ADDR);
 
     managers.get(controllerName).expireSession();
 
@@ -121,7 +121,7 @@ public class TestStandAloneCMSessionExpiry extends ZkIntegrationTestBase
                                  20,
                                  "MasterSlave",
                                  TestHelper.<String>setOf(CLUSTER_NAME),
-                                 zkClient);
+                                 ZK_ADDR);
 
 
     TestHelper.verifyWithTimeout("verifyBestPossAndExtView",
@@ -129,14 +129,14 @@ public class TestStandAloneCMSessionExpiry extends ZkIntegrationTestBase
                                  10,
                                  "MasterSlave",
                                  TestHelper.<String>setOf(CLUSTER_NAME),
-                                 zkClient);
+                                 ZK_ADDR);
 
     TestHelper.verifyWithTimeout("verifyBestPossAndExtView",
                                  "MyDB2",
                                  8,
                                  "MasterSlave",
                                  TestHelper.<String>setOf(CLUSTER_NAME),
-                                 zkClient);
+                                 ZK_ADDR);
 
     System.out.println("STOP testStandAloneCMSessionExpiry() at " + new Date(System.currentTimeMillis()));
   }

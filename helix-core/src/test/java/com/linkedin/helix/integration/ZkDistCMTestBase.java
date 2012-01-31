@@ -192,14 +192,14 @@ public class ZkDistCMTestBase extends ZkIntegrationTestBase
                                  CLUSTER_NR,
                                  "LeaderStandby",
                                  TestHelper.<String>setOf(CONTROLLER_CLUSTER),
-                                 _zkClient);
+                                 ZK_ADDR);
 
     TestHelper.verifyWithTimeout("verifyBestPossAndExtView",
                                  TEST_DB,
                                  20,
                                  "MasterSlave",
                                  TestHelper.<String>setOf(CLUSTER_PREFIX + "_" + CLASS_NAME + "_0"),
-                                 _zkClient);
+                                 ZK_ADDR);
   }
 
   protected void pauseController(ClusterDataAccessor clusterDataAccessor)

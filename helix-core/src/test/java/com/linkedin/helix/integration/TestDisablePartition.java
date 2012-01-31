@@ -34,7 +34,7 @@ public class TestDisablePartition extends ZkStandAloneCMTestBase
                                  20,
                                  "MasterSlave",
                                  TestHelper.<String>setOf(CLUSTER_NAME),
-                                 _zkClient,
+                                 ZK_ADDR,
                                  null,
                                  disabledPartMap,
                                  null);

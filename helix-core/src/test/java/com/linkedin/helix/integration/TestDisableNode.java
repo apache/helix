@@ -18,7 +18,7 @@ public class TestDisableNode extends ZkStandAloneCMTestBase
                                  20,
                                  "MasterSlave",
                                  TestHelper.<String>setOf(CLUSTER_NAME),
-                                 _zkClient,
+                                 ZK_ADDR,
                                  TestHelper.<String>setOf(PARTICIPANT_PREFIX + "_12918"),
                                  null,
                                  null);

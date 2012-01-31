@@ -17,13 +17,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
 
-import com.linkedin.helix.ClusterDataAccessor;
-import com.linkedin.helix.ClusterManager;
-import com.linkedin.helix.ClusterManagerFactory;
-import com.linkedin.helix.InstanceType;
-import com.linkedin.helix.PropertyPathConfig;
-import com.linkedin.helix.PropertyType;
-import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.agent.file.FileBasedDataAccessor;
 import com.linkedin.helix.agent.zk.ZKDataAccessor;
 import com.linkedin.helix.agent.zk.ZkClient;
@@ -183,10 +176,6 @@ public class TestHelper
     public ClusterManager _manager;
 
   }
-
-//  static public class DummyProcessThread implements Runnable
-//  {
-//  }
 
   public static void setupEmptyCluster(ZkClient zkClient, String clusterName)
   {
@@ -391,8 +380,8 @@ public class TestHelper
                                                          Set<String> clusterNameSet,
                                                          ZkClient zkClient,
                                                          Set<String> disabledInstances,
-                                                         Map<String, String> disabledPartitions,
-                                                         Map<String, String> errorStateMap)
+                                                         Map<String, Set<String>> disabledPartitions,
+                                                         Map<String, Set<String>> errorStateMap)
   {
     for(String clusterName : clusterNameSet)
     {
@@ -446,23 +435,26 @@ public class TestHelper
       {
         for (String resourceKey : disabledPartitions.keySet())
         {
-          String instance = disabledPartitions.get(resourceKey);
-
-          Map<String, String> bpInstanceMap = bestPossOutput.getResourceGroupMap(resourceGroupName)
-                                                            .get(new ResourceKey(resourceKey));
-          if (bpInstanceMap == null || !bpInstanceMap.containsKey(instance))
+          for (String instance : disabledPartitions.get(resourceKey))
           {
-            LOG.error("Best possible states does NOT contains states for " + resourceGroupName + ":" + resourceKey
-                    + " -> " + instance);
-            return false;
-          }
+//          String instance = disabledPartitions.get(resourceKey);
 
-          // TODO use state model def's initial state instead
-          if (!bpInstanceMap.get(instance).equals("OFFLINE"))
-          {
-            return false;
+            Map<String, String> bpInstanceMap = bestPossOutput.getResourceGroupMap(resourceGroupName)
+                                                              .get(new ResourceKey(resourceKey));
+            if (bpInstanceMap == null || !bpInstanceMap.containsKey(instance))
+            {
+              LOG.error("Best possible states does NOT contains states for " + resourceGroupName + ":" + resourceKey
+                      + " -> " + instance);
+              return false;
+            }
+  
+            // TODO use state model def's initial state instead
+            if (!bpInstanceMap.get(instance).equals("OFFLINE"))
+            {
+              return false;
+            }
+            bpInstanceMap.remove(instance);
           }
-          bpInstanceMap.remove(instance);
         }
       }
 
@@ -471,23 +463,27 @@ public class TestHelper
        */
       if (errorStateMap != null)
       {
-        for (Map.Entry<String, String> entry : errorStateMap.entrySet())
+//        for (Map.Entry<String, String> entry : errorStateMap.entrySet())
+        for (String resourceKey : errorStateMap.keySet())
         {
-          String resourceKey = entry.getKey();
-          String instance = entry.getValue();
-
-          Map<String, String> evInstanceMap = extView.getStateMap(resourceKey);
-          if (evInstanceMap == null || !evInstanceMap.containsKey(instance))
+//          String resourceKey = entry.getKey();
+//          String instance = entry.getValue();
+          for (String instance : errorStateMap.get(resourceKey))
           {
-            LOG.error("External view does NOT contains states for " + resourceGroupName + ":" + resourceKey
-                    + " -> " + instance);
-            return false;
+            Map<String, String> evInstanceMap = extView.getStateMap(resourceKey);
+            if (evInstanceMap == null || !evInstanceMap.containsKey(instance))
+            {
+              LOG.error("External view does NOT contains states for " 
+                      + resourceGroupName + ":" + resourceKey
+                      + " -> " + instance);
+              return false;
+            }
+            if (!evInstanceMap.get(instance).equals("ERROR"))
+            {
+              return false;
+            }
+            evInstanceMap.remove(instance);
           }
-          if (!evInstanceMap.get(instance).equals("ERROR"))
-          {
-            return false;
-          }
-          evInstanceMap.remove(instance);
         }
       }
 
@@ -543,7 +539,7 @@ public class TestHelper
             // skip error partitions
             if (errorStateMap != null && errorStateMap.containsKey(partitionKey))
             {
-              if (errorStateMap.get(partitionKey).equals(instanceName))
+              if (errorStateMap.get(partitionKey).contains(instanceName))
               {
                 continue;
               }

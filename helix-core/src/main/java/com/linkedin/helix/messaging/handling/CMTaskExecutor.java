@@ -20,8 +20,8 @@ import com.linkedin.helix.ClusterManager;
 import com.linkedin.helix.ClusterManagerException;
 import com.linkedin.helix.MessageListener;
 import com.linkedin.helix.NotificationContext;
-import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.NotificationContext.Type;
+import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.model.Message;
 import com.linkedin.helix.model.Message.Attributes;
 import com.linkedin.helix.model.Message.MessageType;
@@ -352,8 +352,8 @@ public class CMTaskExecutor implements MessageListener
         }
       } else
       {
-        String warningMessage = "Session Id does not match.  current session id  Expected: "
-            + sessionId + " sessionId from Message: " + tgtSessionId;
+        String warningMessage = "Session Id does not match. Expected sessionId: "
+            + sessionId + ", sessionId from Message: " + tgtSessionId;
         logger.error(warningMessage);
         accessor.removeProperty(PropertyType.MESSAGES, instanceName,
             message.getId());

@@ -3,6 +3,7 @@ package com.linkedin.helix.integration;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -66,10 +67,10 @@ public class TestResetPartitionState extends ZkIntegrationTestBase
       new Thread(participants[i]).start();
     }
 
-    Map<String, String> errorStateMap = new HashMap<String, String>()
+    Map<String, Set<String>> errorStateMap = new HashMap<String, Set<String>>()
     {
       {
-        put("TestDB0_0", "localhost_12918");
+        put("TestDB0_0", TestHelper.setOf("localhost_12918"));
       }
     };
 

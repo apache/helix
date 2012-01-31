@@ -3,6 +3,7 @@ package com.linkedin.helix.integration;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.log4j.Logger;
 import org.testng.annotations.Test;
@@ -22,10 +23,10 @@ public class TestDisablePartition extends ZkStandAloneCMTestBase
     // localhost_12919 is MASTER for TestDB_0
     ZKClusterManagementTool tool = new ZKClusterManagementTool(_zkClient);
     tool.enablePartition(CLUSTER_NAME, "localhost_12919", "TestDB_0", false);
-    Map<String, String> disabledPartMap = new HashMap<String, String>()
+    Map<String, Set<String>> disabledPartMap = new HashMap<String, Set<String>>()
     {
       {
-        put("TestDB_0", "localhost_12919");
+        put("TestDB_0", TestHelper.setOf("localhost_12919"));
       }
     };
     TestHelper.verifyWithTimeout("verifyBestPossAndExtViewExtended",

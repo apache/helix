@@ -57,36 +57,30 @@ MasterSlaveStateModel extends HelixStateModel {
 }
 
 Helix uses Zookeeper for maintaining the cluster state and change notification.
-
----------------------
-TRY IT OUT
-----------------------
+-----------
+TRY IT
+-----------
 
 Install/Start zookeeper
-
+-----------------------
 http://zookeeper.apache.org/doc/r3.3.3/zookeeperStarted.html
 Zookeeper can be started in standalone mode or replicated node more info at http://zookeeper.apache.org/doc/trunk/zookeeperAdmin.html#sc_zkMulitServerSetup
-<code>
+
 bin/zkServer.sh start or
 java -cp zookeeper-3.3.3.jar:lib/log4j-1.2.15.jar:conf org.apache.zookeeper.server.quorum.QuorumPeerMain conf/zoo_multi.cfg
-<code>
 
-Cluster Manager Package
+BUILD Helix
+-----------
+git clone git@github.com:linkedin/helix.git
+cd helix-core
+mvn install package appassemble:assemble -Dmaven.test.skip=true 
+cd target/helix-core-pkg/bin
 
-    * There is one jar which can be used to do
-          o cluster management operations: Add cluster, Add Database, Add Nodes, Rebalance
-          o Launch the cluster manager process
-    * Download the package from hudson OR
-    * Use the build command cluster-manager-core
-          o mvn clean package appassembler:assemble assembly:single
-          o Find the package under target/cluster-manager-pkg
-          o chmod +x target/cluster-manager-pkg/bin/*
-          o cd target/cluster-manager-pkg/bin
 
 Cluster setup
+-------------
 
- #Create a cluster <mycluster>, use a name that does not exist
- cluster-admin -zkSvr <zookeeper_address> -addCluster <mycluster>
+cluster-admin -zkSvr <zookeeper_address> -addCluster <mycluster>
 
  #Create a database
  cluster-admin -zkSvr <zookeeper_address> -addResourceGroup <mycluster> <myDB> <numpartitions> <statemodel>
@@ -99,33 +93,27 @@ Cluster setup
  cluster-manager-admin --rebalance <mycluster> <myDB> <replication_factor>
 
 Start Cluster Manager
+---------------------
 
-    * TODO: Provide ant commands to generate the cluster manager package.
-
-      #This will start the cluster manager which will manage <mycluster>
-      run-cluster-manager --zkSvr <zookeeper_address> --cluster <mycluster>
+#This will start the cluster manager which will manage <mycluster>
+run-cluster-manager --zkSvr <zookeeper_address> --cluster <mycluster>
 
 Start Example Process
-
-    * We have some mock process written to test the support for various state models
-          o MasterSlave
-          o LeaderStandby
-          o OnlineOffline
-
-            cd target/cluster-manager-core-pkg/bin
-            chmod \+x *
-            ./start-example-process --help
-            #start process 1 process corresponding to every host port added during cluster setup
-            ./start-example-process --cluster <mycluster> --host <hostname1> --port <port1> --stateModelType MasterSlave
-            ./start-example-process --cluster <mycluster> --host <hostname2> --port <port2> --stateModelType MasterSlave
-            ./start-example-process --cluster <mycluster> --host <hostname3> --port <port3> --stateModelType MasterSlave
+---------------------
+cd target/cluster-manager-core-pkg/bin
+chmod \+x *
+./start-example-process --help
+#start process 1 process corresponding to every host port added during cluster setup
+./start-example-process --cluster <mycluster> --host <hostname1> --port <port1> --stateModelType MasterSlave
+./start-example-process --cluster <mycluster> --host <hostname2> --port <port2> --stateModelType MasterSlave
+./start-example-process --cluster <mycluster> --host <hostname3> --port <port3> --stateModelType MasterSlave
 
 Inspect Cluster Data
-
-    * Currently use ZooInspector that comes with zookeeper[]
-    * To start zooinspector
-          o java -cp zookeeper-3.3.3-ZooInspector.jar:lib/jtoaster-1.0.4.jar:../../lib/log4j-1.2.15.jar:../../zookeeper-3.3.3.jar org.apache.zookeeper.inspector.ZooInspector
-          o Click and connect and provide the zookeeper address to inspect. If zookeeper is running locally use localhost:2181
+--------------------
+* Use ZooInspector that comes with zookeeper to inspect the data
+* To start zooinspector
+   java -cp zookeeper-3.3.3-ZooInspector.jar:lib/jtoaster-1.0.4.jar:../../lib/log4j-1.2.15.jar:../../zookeeper-3.3.3.jar org.apache.zookeeper.inspector.ZooInspector
+   Click and connect and provide the zookeeper address to inspect. If zookeeper is running locally use localhost:2181
 
 
 

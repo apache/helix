@@ -117,11 +117,11 @@
           <programs>
             <program>
               <mainClass>com.linkedin.helix.controller.ClusterManagerMain</mainClass>
-              <name>run-cluster-manager</name>
+              <name>run-helix-core</name>
             </program>
             <program>
               <mainClass>com.linkedin.helix.tools.ClusterSetup</mainClass>
-              <name>cluster-admin</name>
+              <name>helix-admin</name>
             </program>
             <program>
               <mainClass>com.linkedin.helix.tools.ZKDumper</mainClass>
@@ -137,7 +137,7 @@
             </program>
             <program>
               <mainClass>com.linkedin.helix.examples.ExampleProcess</mainClass>
-              <name>start-example-process</name>
+              <name>start-helix-participant</name>
             </program>
           </programs>
         </configuration>

@@ -85,6 +85,7 @@ Zookeeper can be started in standalone mode or replicated mode.
 More can info is available at http://zookeeper.apache.org/doc/r3.3.3/zookeeperStarted.html
 and  http://zookeeper.apache.org/doc/trunk/zookeeperAdmin.html#sc_zkMulitServerSetup
 After downloading Zookeeper go to zookeeper directory and run  
+    
     bin/zkServer.sh start // standalone mode
     java -cp zookeeper-3.3.3.jar:lib/log4j-1.2.15.jar:conf org.apache.zookeeper.server.quorum.QuorumPeerMain conf/zoo_multi.cfg //clustered mode
 
@@ -95,44 +96,53 @@ BUILD Helix
     cd helix-core
     mvn install package appassembler:assemble -Dmaven.test.skip=true 
     cd target/helix-core-pkg/bin //This folder contains all the scripts used in following sections
+    chmod \+x *
 
 Cluster setup
 -------------
-cluster-admin script can be used for cluster administration tasks. Apart from command line interface Helix supports a REST interface.
+cluster-admin tool is used for cluster administration tasks. Apart from command line interface Helix supports a REST interface.
 
 zookeeper_address is of the format host:port e.g localhost:2181 for standalone or host1:port,host2:port for multi node.
 
-    helix-admin -zkSvr <zookeeper_address> -addCluster <mycluster> 
+In the following section we will see how one can set up a mock cluster with 
+* mycluster as cluster name
+* 3 nodes running on localhost at 12913, 12914,12915 
+* One database named MyDB with 6 partitions
+* Each partition will have 1 master, 2 slaves
+* zookeeper running locally at localhost:2181
+
+    #create the cluster mycluster
+    helix-admin -zkSvr localhost:2181 -addCluster mycluster 
 
     #Create a database
-    helix-admin -zkSvr <zookeeper_address> -addResourceGroup <mycluster> <myDB> <numpartitions> <statemodel>
+    helix-admin -zkSvr localhost:2181  -addResourceGroup mycluster myDB 6 MasterSlave
     #Add nodes to the cluster, in this case we add three nodes, hostname:port is host and port on which the service will start
-    helix-admin -zkSvr <zookeeper_address> -addNode <mycluster> <hostname:port1>
-    helix-admin -zkSvr <zookeeper_address> -addNode <mycluster> <hostname:port2>
-    helix-admin -zkSvr <zookeeper_address> -addNode <mycluster> <hostname:port3>
+    helix-admin -zkSvr localhost:2181  -addNode mycluster localhost:12913
+    helix-admin -zkSvr localhost:2181  -addNode mycluster localhost:12914
+    helix-admin -zkSvr localhost:2181  -addNode mycluster localhost:12915
 
-    #After adding nodes assign partitions to nodes. By default there will be one MASTER per partition, use replication_factor to specif number of SLAVES for each partition
-    helix-admin --rebalance <mycluster> <myDB> <replication_factor>
+    # After adding nodes assign partitions to nodes.
+    # helix-admin --rebalance <clustername> <resourceName> <replication factor>
+    helix-admin --rebalance mycluster myDB 3
 
 Start Helix Controller
 ---------------------
 
 
     #This will start the cluster manager which will manage <mycluster>
-    run-helix-controller --zkSvr <zookeeper_address> --cluster <mycluster>
+    run-helix-controller --zkSvr localhost:2181 --cluster mycluster
 
 
 
 Start Example Participant
 -------------------------
 
-    cd target/cluster-manager-core-pkg/bin
-    chmod \+x *
+   
     ./start-helix-participant --help
     #start process 1 process corresponding to every host port added during cluster setup
-    ./start-helix-participant --cluster <mycluster> --host <hostname1> --port <port1> --stateModelType MasterSlave
-    ./start-helix-participant --cluster <mycluster> --host <hostname2> --port <port2> --stateModelType MasterSlave
-    ./start-helix-participant --cluster <mycluster> --host <hostname3> --port <port3> --stateModelType MasterSlave
+    ./start-helix-participant --cluster mycluster --host localhost --port 12913 --stateModelType MasterSlave
+    ./start-helix-participant --cluster mycluster --host localhost --port 12914 --stateModelType MasterSlave
+    ./start-helix-participant --cluster mycluster --host localhost --port 12915 --stateModelType MasterSlave
 
 
 Inspect Cluster Data

@@ -102,37 +102,37 @@ cluster-admin script can be used for cluster administration tasks. Apart from co
 
 zookeeper_address is of the format host:port e.g localhost:2181 for standalone or host1:port,host2:port for multi node.
 
-    cluster-admin -zkSvr <zookeeper_address> -addCluster <mycluster> 
+    helix-admin -zkSvr <zookeeper_address> -addCluster <mycluster> 
 
     #Create a database
-    cluster-admin -zkSvr <zookeeper_address> -addResourceGroup <mycluster> <myDB> <numpartitions> <statemodel>
+    helix-admin -zkSvr <zookeeper_address> -addResourceGroup <mycluster> <myDB> <numpartitions> <statemodel>
     #Add nodes to the cluster, in this case we add three nodes, hostname:port is host and port on which the service will start
-    cluster-admin -zkSvr <zookeeper_address> -addNode <mycluster> <hostname:port1>
-    cluster-admin -zkSvr <zookeeper_address> -addNode <mycluster> <hostname:port2>
-    cluster-admin -zkSvr <zookeeper_address> -addNode <mycluster> <hostname:port3>
+    helix-admin -zkSvr <zookeeper_address> -addNode <mycluster> <hostname:port1>
+    helix-admin -zkSvr <zookeeper_address> -addNode <mycluster> <hostname:port2>
+    helix-admin -zkSvr <zookeeper_address> -addNode <mycluster> <hostname:port3>
 
     #After adding nodes assign partitions to nodes. By default there will be one MASTER per partition, use replication_factor to specif number of SLAVES for each partition
-    cluster-manager-admin --rebalance <mycluster> <myDB> <replication_factor>
+    helix-admin --rebalance <mycluster> <myDB> <replication_factor>
 
-Start Cluster Manager
+Start Helix Controller
 ---------------------
 
 
     #This will start the cluster manager which will manage <mycluster>
-    run-cluster-manager --zkSvr <zookeeper_address> --cluster <mycluster>
+    run-helix-controller --zkSvr <zookeeper_address> --cluster <mycluster>
 
 
 
-Start Example Process
----------------------
+Start Example Participant
+-------------------------
 
     cd target/cluster-manager-core-pkg/bin
     chmod \+x *
-    ./start-example-process --help
+    ./start-helix-participant --help
     #start process 1 process corresponding to every host port added during cluster setup
-    ./start-example-process --cluster <mycluster> --host <hostname1> --port <port1> --stateModelType MasterSlave
-    ./start-example-process --cluster <mycluster> --host <hostname2> --port <port2> --stateModelType MasterSlave
-    ./start-example-process --cluster <mycluster> --host <hostname3> --port <port3> --stateModelType MasterSlave
+    ./start-helix-participant --cluster <mycluster> --host <hostname1> --port <port1> --stateModelType MasterSlave
+    ./start-helix-participant --cluster <mycluster> --host <hostname2> --port <port2> --stateModelType MasterSlave
+    ./start-helix-participant --cluster <mycluster> --host <hostname3> --port <port3> --stateModelType MasterSlave
 
 
 Inspect Cluster Data

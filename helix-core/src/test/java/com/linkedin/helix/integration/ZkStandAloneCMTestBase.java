@@ -140,6 +140,6 @@ public class ZkStandAloneCMTestBase extends ZkIntegrationTestBase
                                  20,
                                  "MasterSlave",
                                  TestHelper.<String>setOf(CLUSTER_NAME),
-                                 _zkClient);
+                                 ZK_ADDR);
   }
 }

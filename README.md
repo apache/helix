@@ -79,61 +79,61 @@ TRY IT
 Install/Start zookeeper
 -----------------------
 
-http://zookeeper.apache.org/doc/r3.3.3/zookeeperStarted.html
 
-Zookeeper can be started in standalone mode or replicated node more info at http://zookeeper.apache.org/doc/trunk/zookeeperAdmin.html#sc_zkMulitServerSetup
-<pre>
-bin/zkServer.sh start or
-java -cp zookeeper-3.3.3.jar:lib/log4j-1.2.15.jar:conf org.apache.zookeeper.server.quorum.QuorumPeerMain conf/zoo_multi.cfg
-</pre>
+Zookeeper can be started in standalone mode or replicated mode.
+
+More can info is available at http://zookeeper.apache.org/doc/r3.3.3/zookeeperStarted.html
+and  http://zookeeper.apache.org/doc/trunk/zookeeperAdmin.html#sc_zkMulitServerSetup
+After downloading Zookeeper go to zookeeper directory and run  
+    bin/zkServer.sh start // standalone mode
+    java -cp zookeeper-3.3.3.jar:lib/log4j-1.2.15.jar:conf org.apache.zookeeper.server.quorum.QuorumPeerMain conf/zoo_multi.cfg //clustered mode
 
 BUILD Helix
 -----------
-<pre>
-git clone git@github.com:linkedin/helix.git
-cd helix-core
-mvn install package appassembler:assemble -Dmaven.test.skip=true 
-cd target/helix-core-pkg/bin
-</pre>
+
+    git clone git@github.com:linkedin/helix.git
+    cd helix-core
+    mvn install package appassembler:assemble -Dmaven.test.skip=true 
+    cd target/helix-core-pkg/bin //This folder contains all the scripts used in following sections
 
 Cluster setup
 -------------
-<pre><code>
-cluster-admin -zkSvr <zookeeper_address> -addCluster <mycluster>
+cluster-admin script can be used for cluster administration tasks. Apart from command line interface Helix supports a REST interface.
 
- #Create a database
- cluster-admin -zkSvr <zookeeper_address> -addResourceGroup <mycluster> <myDB> <numpartitions> <statemodel>
- #Add nodes to the cluster, in this case we add three nodes, hostname:port is host and port on which the service will start
- cluster-admin -zkSvr <zookeeper_address> -addNode <mycluster> <hostname:port1>
- cluster-admin -zkSvr <zookeeper_address> -addNode <mycluster> <hostname:port2>
- cluster-admin -zkSvr <zookeeper_address> -addNode <mycluster> <hostname:port3>
+zookeeper_address is of the format host:port e.g localhost:2181 for standalone or host1:port,host2:port for multi node.
 
- #After adding nodes assign partitions to nodes. By default there will be one MASTER per partition, use replication_factor to specif number of SLAVES for each partition
- cluster-manager-admin --rebalance <mycluster> <myDB> <replication_factor>
-</code></pre>
+    cluster-admin -zkSvr <zookeeper_address> -addCluster <mycluster> 
+
+    #Create a database
+    cluster-admin -zkSvr <zookeeper_address> -addResourceGroup <mycluster> <myDB> <numpartitions> <statemodel>
+    #Add nodes to the cluster, in this case we add three nodes, hostname:port is host and port on which the service will start
+    cluster-admin -zkSvr <zookeeper_address> -addNode <mycluster> <hostname:port1>
+    cluster-admin -zkSvr <zookeeper_address> -addNode <mycluster> <hostname:port2>
+    cluster-admin -zkSvr <zookeeper_address> -addNode <mycluster> <hostname:port3>
+
+    #After adding nodes assign partitions to nodes. By default there will be one MASTER per partition, use replication_factor to specif number of SLAVES for each partition
+    cluster-manager-admin --rebalance <mycluster> <myDB> <replication_factor>
 
 Start Cluster Manager
 ---------------------
-<pre><code>
 
-#This will start the cluster manager which will manage <mycluster>
-run-cluster-manager --zkSvr <zookeeper_address> --cluster <mycluster>
 
-</code></pre>
+    #This will start the cluster manager which will manage <mycluster>
+    run-cluster-manager --zkSvr <zookeeper_address> --cluster <mycluster>
+
+
 
 Start Example Process
 ---------------------
-<pre><code>
 
-cd target/cluster-manager-core-pkg/bin
-chmod \+x *
-./start-example-process --help
-#start process 1 process corresponding to every host port added during cluster setup
-./start-example-process --cluster <mycluster> --host <hostname1> --port <port1> --stateModelType MasterSlave
-./start-example-process --cluster <mycluster> --host <hostname2> --port <port2> --stateModelType MasterSlave
-./start-example-process --cluster <mycluster> --host <hostname3> --port <port3> --stateModelType MasterSlave
+    cd target/cluster-manager-core-pkg/bin
+    chmod \+x *
+    ./start-example-process --help
+    #start process 1 process corresponding to every host port added during cluster setup
+    ./start-example-process --cluster <mycluster> --host <hostname1> --port <port1> --stateModelType MasterSlave
+    ./start-example-process --cluster <mycluster> --host <hostname2> --port <port2> --stateModelType MasterSlave
+    ./start-example-process --cluster <mycluster> --host <hostname3> --port <port3> --stateModelType MasterSlave
 
-</code></pre>
 
 Inspect Cluster Data
 --------------------

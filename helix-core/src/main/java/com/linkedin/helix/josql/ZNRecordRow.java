@@ -19,11 +19,13 @@ public class ZNRecordRow
   
   public static final String LIST_KEY = "listKey";
   public static final String LIST_VALUE = "listValue";
+  public static final String LIST_VALUE_INDEX = "listValueIndex";
   
   public static final String MAP_KEY = "mapKey";
   public static final String MAP_SUBKEY = "mapSubKey";
   public static final String MAP_VALUE = "mapValue";
   public static final String ZNRECORD_ID = "recordId";
+  // ZNRECORD path ? 
   
   
   final Map<String, String> _rowDataMap = new HashMap<String, String>();
@@ -34,6 +36,7 @@ public class ZNRecordRow
     _rowDataMap.put(SIMPLE_VALUE, "");
     _rowDataMap.put(LIST_KEY, "");
     _rowDataMap.put(LIST_VALUE, "");
+    _rowDataMap.put(LIST_VALUE_INDEX, "");
     _rowDataMap.put(MAP_KEY, "");
     _rowDataMap.put(MAP_SUBKEY, "");
     _rowDataMap.put(MAP_VALUE, "");
@@ -49,7 +52,10 @@ public class ZNRecordRow
   {
     _rowDataMap.put(fieldName, fieldValue);
   }
-  
+  public String getListValueIndex()
+  {
+    return getField(LIST_VALUE_INDEX);
+  }
   public String getSimpleKey()
   {
     return getField(SIMPLE_KEY);
@@ -115,12 +121,15 @@ public class ZNRecordRow
     List<ZNRecordRow> result = new ArrayList<ZNRecordRow>();
     for(String key : record.getListFields().keySet())
     {
+      int order = 0;
       for(String value : record.getListField(key))
       {
         ZNRecordRow row = new ZNRecordRow();
         row.putField(ZNRECORD_ID, record.getId());
         row.putField(LIST_KEY, key);
         row.putField(LIST_VALUE, record.getSimpleField(key));
+        row.putField(LIST_VALUE_INDEX, ""+order);
+        order++;
         result.add(row);
       }
     }
@@ -145,7 +154,7 @@ public class ZNRecordRow
     return result;
   }
   
-  public static List<ZNRecordRow> flat(ZNRecord record)
+  public static List<ZNRecordRow> flatten(ZNRecord record)
   {
     List<ZNRecordRow> result = convertMapFields(record);
     result.addAll(convertListFields(record));
@@ -153,13 +162,18 @@ public class ZNRecordRow
     return result;
   }
   
-  public static List<ZNRecordRow> flat(Collection<ZNRecord> recordList)
+  public static List<ZNRecordRow> flatten(Collection<ZNRecord> recordList)
   {
     List<ZNRecordRow> result = new ArrayList<ZNRecordRow>();
     for(ZNRecord record : recordList)
     {
-      result.addAll(flat(record));
+      result.addAll(flatten(record));
     }
     return result;
+  }
+  
+  public static List<ZNRecordRow> getRowListFromMap(Map<String, List<ZNRecordRow>> rowMap, String key)
+  {
+    return rowMap.get(key);
   }
 }

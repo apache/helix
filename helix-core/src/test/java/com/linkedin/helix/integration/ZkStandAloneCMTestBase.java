@@ -31,6 +31,7 @@ public class ZkStandAloneCMTestBase extends ZkIntegrationTestBase
   protected static final int START_PORT = 12918;
   protected static final String STATE_MODEL = "MasterSlave";
   protected static final String TEST_DB = "TestDB";
+  protected static final int _PARTITIONS = 20;
 
   protected ClusterSetup _setupTool = null;
   protected final String CLASS_NAME = getShortClassName();
@@ -56,7 +57,7 @@ public class ZkStandAloneCMTestBase extends ZkIntegrationTestBase
 
     // setup storage cluster
     _setupTool.addCluster(CLUSTER_NAME, true);
-    _setupTool.addResourceGroupToCluster(CLUSTER_NAME, TEST_DB, 20, STATE_MODEL);
+    _setupTool.addResourceGroupToCluster(CLUSTER_NAME, TEST_DB, _PARTITIONS, STATE_MODEL);
     for (int i = 0; i < NODE_NR; i++)
     {
       String storageNodeName = PARTICIPANT_PREFIX + ":" + (START_PORT + i);
@@ -139,6 +140,6 @@ public class ZkStandAloneCMTestBase extends ZkIntegrationTestBase
                                  20,
                                  "MasterSlave",
                                  TestHelper.<String>setOf(CLUSTER_NAME),
-                                 ZK_ADDR);
+                                 _zkClient);
   }
 }

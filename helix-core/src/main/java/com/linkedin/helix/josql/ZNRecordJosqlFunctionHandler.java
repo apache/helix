@@ -6,6 +6,7 @@ import org.josql.functions.AbstractFunctionHandler;
 
 import com.linkedin.helix.ZNRecord;
 
+
 public class ZNRecordJosqlFunctionHandler extends AbstractFunctionHandler
 {
   public boolean hasSimpleField(ZNRecord record, String fieldName, String field)
@@ -65,5 +66,10 @@ public class ZNRecordJosqlFunctionHandler extends AbstractFunctionHandler
   public ZNRecord getZNRecordFromMap(Map<String, ZNRecord> recordMap, String key)
   {
     return recordMap.get(key);
+  }
+  
+  public ZNRecord getZNRecordFromMap(Map<String, Map<String, ZNRecord>> recordMap, String key, String subKey)
+  {
+    return recordMap.get(key).get(subKey);
   }
 }

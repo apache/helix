@@ -20,7 +20,7 @@ Each partition of a resource can have a state associated with it. Here are some 
 
 Helix manages the state of a resource by supporting a pluggable distributed state machine. One can define the state machine table along with the constraints for each state. For example in case of a MasterSlave state model one can specify the state machine as
 
-<code>
+<pre><code>
           OFFLINE  | SLAVE  |  MASTER  
          _____________________________
         |          |        |         |
@@ -33,12 +33,14 @@ SLAVE   |  OFFLINE |   N/A  | MASTER  |
 MASTER  | SLAVE    | SLAVE  |   N/A   |
         |__________|________|_________|
 
-</code>
+</code></pre>
+
 Helix also supports the ability to provide constraints on each state. For example in a MasterSlave state model with a replication factor of 3 one can say MASTER:1 SLAVE:2
 
 Helix will automatically try to maintain 1 Master and 2 Slaves by initiating appropriate state transitions in the cluster. 
 
 Each transition results in a Partition moving from its CURRENT state state to an NEW state. These transitions are triggered on changes in the cluster state like 
+
 * Node start up
 * Node soft and hard failures 
 * Addition of resources
@@ -76,25 +78,27 @@ TRY IT
 
 Install/Start zookeeper
 -----------------------
+
 http://zookeeper.apache.org/doc/r3.3.3/zookeeperStarted.html
+
 Zookeeper can be started in standalone mode or replicated node more info at http://zookeeper.apache.org/doc/trunk/zookeeperAdmin.html#sc_zkMulitServerSetup
-<code>
+<pre>
 bin/zkServer.sh start or
 java -cp zookeeper-3.3.3.jar:lib/log4j-1.2.15.jar:conf org.apache.zookeeper.server.quorum.QuorumPeerMain conf/zoo_multi.cfg
-</code>
+</pre>
 
 BUILD Helix
 -----------
-<code>
+<pre>
 git clone git@github.com:linkedin/helix.git
 cd helix-core
 mvn install package appassemble:assemble -Dmaven.test.skip=true 
 cd target/helix-core-pkg/bin
-</code>
+</pre>
 
 Cluster setup
 -------------
-<code>
+<pre>
 cluster-admin -zkSvr <zookeeper_address> -addCluster <mycluster>
 
  #Create a database
@@ -106,20 +110,20 @@ cluster-admin -zkSvr <zookeeper_address> -addCluster <mycluster>
 
  #After adding nodes assign partitions to nodes. By default there will be one MASTER per partition, use replication_factor to specif number of SLAVES for each partition
  cluster-manager-admin --rebalance <mycluster> <myDB> <replication_factor>
-</code>
+</pre>
 
 Start Cluster Manager
 ---------------------
-<code>
+<pre>
 
 #This will start the cluster manager which will manage <mycluster>
 run-cluster-manager --zkSvr <zookeeper_address> --cluster <mycluster>
 
-</code>
+</pre>
 
 Start Example Process
 ---------------------
-<code>
+<pre>
 
 cd target/cluster-manager-core-pkg/bin
 chmod \+x *
@@ -129,7 +133,7 @@ chmod \+x *
 ./start-example-process --cluster <mycluster> --host <hostname2> --port <port2> --stateModelType MasterSlave
 ./start-example-process --cluster <mycluster> --host <hostname3> --port <port3> --stateModelType MasterSlave
 
-</code>
+</pre>
 
 Inspect Cluster Data
 --------------------

@@ -92,13 +92,13 @@ BUILD Helix
 <pre>
 git clone git@github.com:linkedin/helix.git
 cd helix-core
-mvn install package appassemble:assemble -Dmaven.test.skip=true 
+mvn install package appassembler:assemble -Dmaven.test.skip=true 
 cd target/helix-core-pkg/bin
 </pre>
 
 Cluster setup
 -------------
-<pre>
+<pre><code>
 cluster-admin -zkSvr <zookeeper_address> -addCluster <mycluster>
 
  #Create a database
@@ -110,20 +110,20 @@ cluster-admin -zkSvr <zookeeper_address> -addCluster <mycluster>
 
  #After adding nodes assign partitions to nodes. By default there will be one MASTER per partition, use replication_factor to specif number of SLAVES for each partition
  cluster-manager-admin --rebalance <mycluster> <myDB> <replication_factor>
-</pre>
+</code></pre>
 
 Start Cluster Manager
 ---------------------
-<pre>
+<pre><code>
 
 #This will start the cluster manager which will manage <mycluster>
 run-cluster-manager --zkSvr <zookeeper_address> --cluster <mycluster>
 
-</pre>
+</code></pre>
 
 Start Example Process
 ---------------------
-<pre>
+<pre><code>
 
 cd target/cluster-manager-core-pkg/bin
 chmod \+x *
@@ -133,7 +133,7 @@ chmod \+x *
 ./start-example-process --cluster <mycluster> --host <hostname2> --port <port2> --stateModelType MasterSlave
 ./start-example-process --cluster <mycluster> --host <hostname3> --port <port3> --stateModelType MasterSlave
 
-</pre>
+</code></pre>
 
 Inspect Cluster Data
 --------------------

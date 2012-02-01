@@ -263,7 +263,9 @@ public class AlertProcessor {
 		ArrayList<AlertValueAndStatus> evalResults = executeComparator(opResultTuples, alert.getComparator(), alert.getConstant()); 
 		
 		//stitch alert bindings back together with final result
-		//XXX: need to verify that processing is order preserving here!
+		//XXX: there is a non-critical bug here.  if we have an aggregating operator, but that operator only takes one input,
+		//we bind to original wildcard binding, instead of to "*"
+		
 		HashMap<String, AlertValueAndStatus> alertBindingsToResult = generateResultMap(alertsToTupleRows.keySet(), evalResults);
 		
 		return alertBindingsToResult;

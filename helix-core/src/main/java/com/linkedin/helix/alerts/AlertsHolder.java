@@ -15,6 +15,7 @@ import com.linkedin.helix.ClusterManagerException;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.controller.stages.ClusterDataCache;
+import com.linkedin.helix.model.AlertStatus;
 import com.linkedin.helix.model.Alerts;
 import com.linkedin.helix.model.PersistentStats;
 
@@ -26,6 +27,7 @@ public class AlertsHolder {
 	ClusterDataAccessor _accessor;
 	ClusterDataCache _cache;
 	Map<String, Map<String,String>> _alertsMap; //not sure if map or set yet
+	Map<String, Map<String,String>> _alertStatusMap;
 	//Alerts _alerts;
 	HashSet<String> alerts;
 	StatsHolder _statsHolder;
@@ -49,12 +51,24 @@ public class AlertsHolder {
 			_alertsMap = new HashMap<String, Map<String,String>>();
 		}
 		
+		
 		/*
 		_alertsMap = _cache.getAlerts();
 		//TODO: confirm this a good place to init the _statMap when null
 		if (_alertsMap == null) {
 			_alertsMap = new HashMap<String, Map<String,String>>();
 		}\*/
+	}
+	
+	public void refreshAlertStatus() 
+	{
+		AlertStatus alertStatusRecord = _cache.getAlertStatus();
+		if (alertStatusRecord != null) {
+		_alertStatusMap = alertStatusRecord.getMapFields();
+		}
+		else {
+			_alertStatusMap = new HashMap<String, Map<String,String>>();
+		}
 	}
 	
 	public void persistAlerts() 
@@ -67,6 +81,18 @@ public class AlertsHolder {
 		alertsRec.setMapFields(_alertsMap);
 		 boolean retVal = _accessor.setProperty(PropertyType.ALERTS, alertsRec);
 		 logger.debug("persistAlerts retVal: "+retVal);
+	}
+	
+	public void persistAlertStatus()
+	{
+		//XXX: Am I using _accessor too directly here?
+		ZNRecord alertStatusRec = _accessor.getProperty(PropertyType.ALERT_STATUS);
+		if (alertStatusRec == null) {
+			alertStatusRec = new ZNRecord(AlertStatus.nodeName); //TODO: fix naming of this record, if it matters
+		}
+		alertStatusRec.setMapFields(_alertStatusMap);
+		boolean retVal = _accessor.setProperty(PropertyType.ALERT_STATUS, alertStatusRec);
+		logger.debug("persistAlerts retVal: "+retVal);
 	}
 	
 	//read alerts from cm state
@@ -96,6 +122,64 @@ public class AlertsHolder {
 		persistAlerts();
 	}
 	
+	/*
+	public void updateAlert(String alert, Map<String, String> settings) throws ClusterManagerException
+	{
+		refreshAlerts();
+		Map<String,String> alertFields = _alertsMap.get(alert);
+		if (alertFields == null) {
+			alertFields = new HashMap<String,String>();
+			//throw new ClusterManagerException("Alert "+alert+" does not exist");
+		}
+		alertFields.putAll(settings);
+		_alertsMap.put(alert, alertFields);
+		persistAlerts();
+	}
+	*/
+	
+	/*
+	 * Add a set of alert statuses to ZK
+	 */
+	public void addAlertStatusSet(Map<String, Map<String, AlertValueAndStatus>> statusSet) throws ClusterManagerException
+	{
+		if (_alertStatusMap == null) {
+			_alertStatusMap = new HashMap<String, Map<String,String>>();
+		}
+		_alertStatusMap.clear(); //clear map.  all alerts overwrite old alerts
+		for (String alert : statusSet.keySet()) {  
+	    	Map<String,AlertValueAndStatus> currStatus = statusSet.get(alert);
+	    	if (currStatus != null) {
+	    		addAlertStatus(alert, currStatus);
+	    	}
+	    }
+		persistAlertStatus(); //save statuses in zk
+	}
+	
+	private void addAlertStatus(String parentAlertKey, Map<String,AlertValueAndStatus> alertStatus) throws ClusterManagerException
+	{
+		_alertStatusMap = new HashMap<String,Map<String,String>>();
+		for (String alertName : alertStatus.keySet()) {
+			String mapAlertKey;
+			mapAlertKey = parentAlertKey+" : ("+alertName+")";
+			AlertValueAndStatus vs = alertStatus.get(alertName);
+			Map<String,String> alertFields = new HashMap<String,String>();
+			alertFields.put(AlertValueAndStatus.VALUE_NAME, vs.getValue().toString());
+			alertFields.put(AlertValueAndStatus.FIRED_NAME, String.valueOf(vs.isFired()));
+			_alertStatusMap.put(mapAlertKey, alertFields);
+		}
+	}
+	
+	public AlertValueAndStatus getAlertValueAndStatus(String alertName)
+	{
+		Map<String,String> alertFields = _alertStatusMap.get(alertName);
+		String val = alertFields.get(AlertValueAndStatus.VALUE_NAME);
+		Tuple<String> valTup = new Tuple<String>();
+		valTup.add(val);
+		boolean fired = Boolean.valueOf(alertFields.get(AlertValueAndStatus.FIRED_NAME));
+		AlertValueAndStatus vs = new AlertValueAndStatus(valTup, fired);
+		return vs;
+	}
+	
 	public static void parseAlert(String alert, StringBuilder statsName, 
 			Map<String,String> alertFields) throws ClusterManagerException
 	{
@@ -110,6 +194,7 @@ public class AlertsHolder {
 				AlertParser.getComponent(AlertParser.CONSTANT_NAME, alert));	
 		statsName.append(alertFields.get(AlertParser.EXPRESSION_NAME));
 	}
+	
 	
 	/*
 	public void evaluateAllAlerts() 

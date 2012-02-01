@@ -28,7 +28,8 @@ public enum PropertyType
   STATUSUPDATES_CONTROLLER(Type.CONTROLLER, true, true, true),
   ERRORS_CONTROLLER(Type.CONTROLLER,true, true, true),
   PERSISTENTSTATS(Type.CONTROLLER, true, false, false, false),
-  ALERTS(Type.CONTROLLER, true, false, false, false);
+  ALERTS(Type.CONTROLLER, true, false, false, false),
+  ALERT_STATUS(Type.CONTROLLER, true, false, false, false);
   // @formatter:on
 
   Type type;

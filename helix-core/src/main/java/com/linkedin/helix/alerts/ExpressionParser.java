@@ -19,7 +19,7 @@ public class ExpressionParser {
 	final static String opDelim = "|";
 	final static String opDelimForSplit = "\\|";
 	final static String argDelim = ",";
-	final static String statFieldDelim = ".";
+	final public static String statFieldDelim = ".";
 	final static String wildcardChar = "*";
 	
 	//static Map<String, ExpressionOperatorType> operatorMap = new HashMap<String, ExpressionOperatorType>();
@@ -151,6 +151,17 @@ public class ExpressionParser {
 		  	}
 		  }
 		  
+		  //check wildcard locations.  each part can have at most 1 wildcard, and must be at end
+		  StringTokenizer fieldTok = new StringTokenizer(expression, statFieldDelim);
+		  while (fieldTok.hasMoreTokens()) {
+			  String currTok = fieldTok.nextToken();
+			  if (currTok.contains(wildcardChar)) {
+				  if (currTok.indexOf(wildcardChar) != currTok.length()-1 ||
+						  currTok.lastIndexOf(wildcardChar) != currTok.length()-1) {
+					  throw new ClusterManagerException(currTok+" is illegal stat name.  Single wildcard must appear at end.");
+				  }
+			  }
+		  }
 	  }
 	  
 	  public static boolean statContainsWildcards(String stat)

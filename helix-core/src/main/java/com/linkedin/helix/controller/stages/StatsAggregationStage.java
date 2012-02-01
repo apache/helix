@@ -20,6 +20,7 @@ import com.linkedin.helix.controller.pipeline.StageContext;
 import com.linkedin.helix.controller.pipeline.StageException;
 import com.linkedin.helix.healthcheck.AggregationType;
 import com.linkedin.helix.healthcheck.AggregationTypeFactory;
+import com.linkedin.helix.healthcheck.PerformanceHealthReportProvider;
 import com.linkedin.helix.healthcheck.Stat;
 import com.linkedin.helix.healthcheck.StatHealthReportProvider;
 import com.linkedin.helix.model.HealthStat;
@@ -44,6 +45,7 @@ public class StatsAggregationStage extends AbstractBaseStage
   Map<String, Tuple<String>> _statStatus;
   
   public final String PARTICIPANT_STAT_REPORT_NAME = StatHealthReportProvider.REPORT_NAME;
+  public final String ESPRESSO_STAT_REPORT_NAME = "RestQueryStats";
   public final String REPORT_NAME = "AggStats";
   //public final String DEFAULT_AGG_TYPE = "decay";
   //public final String DEFAULT_DECAY_PARAM = "0.1";
@@ -231,11 +233,17 @@ public void persistAggStats(ClusterManager manager)
     	Map<String, HealthStat> stats;
     	stats = cache.getHealthStats(instanceName);
     	//find participants stats
-    	HealthStat participantStat = stats.get(PARTICIPANT_STAT_REPORT_NAME);
+    	HealthStat participantStat = stats.get(ESPRESSO_STAT_REPORT_NAME);
 
-    	Map<String, Map<String, String>> statMap = participantStat.getHealthFields();
-    	for (String key : statMap.keySet()) {
-    		_statsHolder.applyStat(key, statMap.get(key));
+    	//XXX: need to convert participantStat to a better format
+    	//need to get instanceName in here
+    	
+    	if (participantStat != null) {
+    		String timestamp = instance.getModifiedTime();
+    		Map<String, Map<String, String>> statMap = participantStat.getHealthFields(instanceName,timestamp);
+    		for (String key : statMap.keySet()) {
+    			_statsHolder.applyStat(key, statMap.get(key));
+    		}
 
     	}
     }
@@ -249,6 +257,9 @@ public void persistAggStats(ClusterManager manager)
    
     //execute alerts, populate _alertStatus
     _alertStatus = AlertProcessor.executeAllAlerts(_alertsHolder.getAlertList(), _statsHolder.getStatsList());
+    
+    //write out alert status (to zk)
+    _alertsHolder.addAlertStatusSet(_alertStatus);
     
     //TODO: access the 2 status variables from somewhere to populate graphs
     

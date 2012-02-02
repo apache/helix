@@ -25,7 +25,7 @@ import com.linkedin.helix.messaging.handling.MessageHandler;
 import com.linkedin.helix.messaging.handling.MessageHandlerFactory;
 import com.linkedin.helix.model.Message;
 import com.linkedin.helix.model.Message.MessageType;
-import com.linkedin.helix.participant.StateMachineEngine;
+import com.linkedin.helix.participant.StateMachEngine;
 import com.linkedin.helix.participant.statemachine.StateModel;
 import com.linkedin.helix.participant.statemachine.StateModelFactory;
 import com.linkedin.helix.tools.ClusterStateVerifier;
@@ -69,7 +69,7 @@ public class BootstrapProcess
   private final String stateModelType;
   private ClusterManager manager;
 
-  private StateMachineEngine genericStateMachineHandler;
+//  private StateMachineEngine genericStateMachineHandler;
 
   private String _file = null;
   private StateModelFactory<StateModel> stateModelFactory;
@@ -105,10 +105,14 @@ public class BootstrapProcess
 
     }
     stateModelFactory = new BootstrapHandler();
-    genericStateMachineHandler = new StateMachineEngine();
-    genericStateMachineHandler.registerStateModelFactory("MasterSlave", stateModelFactory);
+//    genericStateMachineHandler = new StateMachineEngine();
+//    genericStateMachineHandler.registerStateModelFactory("MasterSlave", stateModelFactory);
+    
+    StateMachEngine stateMach = manager.getStateMachineEngine();
+    stateMach.registerStateModelFactory("MasterSlave", stateModelFactory);
+    
     manager.getMessagingService().registerMessageHandlerFactory(
-        MessageType.STATE_TRANSITION.toString(), genericStateMachineHandler);
+        MessageType.STATE_TRANSITION.toString(), stateMach);
     manager.getMessagingService().registerMessageHandlerFactory(
         MessageType.USER_DEFINE_MSG.toString(),
         new CustomMessageHandlerFactory());

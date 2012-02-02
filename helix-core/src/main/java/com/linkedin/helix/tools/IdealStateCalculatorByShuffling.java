@@ -83,7 +83,7 @@ public class IdealStateCalculatorByShuffling
       String partitionName = dbName + "_" + partitionId;
       result.setMapField(partitionName, partitionAssignment);
     }
-    result.setSimpleField(IdealStateProperty.RESOURCES.toString(), String.valueOf(partitions));
+    result.setSimpleField(IdealStateProperty.PARTITIONS.toString(), String.valueOf(partitions));
     return result;
   }
 

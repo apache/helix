@@ -26,7 +26,7 @@ import com.linkedin.helix.model.Message;
 import com.linkedin.helix.model.Message.Attributes;
 import com.linkedin.helix.model.Message.MessageType;
 import com.linkedin.helix.monitoring.ParticipantMonitor;
-import com.linkedin.helix.participant.StateMachineEngine;
+import com.linkedin.helix.participant.StateMachEngineImpl;
 import com.linkedin.helix.util.StatusUpdateUtil;
 
 public class CMTaskExecutor implements MessageListener
@@ -72,9 +72,10 @@ public class CMTaskExecutor implements MessageListener
       _threadpoolMap
           .put(type, Executors.newFixedThreadPool(MAX_PARALLEL_TASKS));
       logger.info("adding msg factory for type " + type);
-    } else
+    } 
+    else
     {
-      logger.warn("Ignoring duplicate msg factory for type " + type);
+      logger.error("Ignoring duplicate msg handler factory for type " + type);
     }
   }
 
@@ -309,7 +310,7 @@ public class CMTaskExecutor implements MessageListener
             message.setReadTimeStamp(new Date().getTime());
             message.setExecuteSessionId(changeContext.getManager().getSessionId());
 
-            _statusUpdateUtil.logInfo(message, StateMachineEngine.class,
+            _statusUpdateUtil.logInfo(message, StateMachEngineImpl.class,
                 "New Message", accessor);
             if(message.getTgtName().equalsIgnoreCase("controller"))
             {
@@ -332,7 +333,7 @@ public class CMTaskExecutor implements MessageListener
             String error = "Failed to create message handler for "
                 + message.getMsgId() + " exception: " + e;
 
-            _statusUpdateUtil.logError(message, StateMachineEngine.class, e,
+            _statusUpdateUtil.logError(message, StateMachEngineImpl.class, e,
                 error, accessor);
 
             accessor.removeProperty(PropertyType.MESSAGES, instanceName,
@@ -357,7 +358,7 @@ public class CMTaskExecutor implements MessageListener
         logger.error(warningMessage);
         accessor.removeProperty(PropertyType.MESSAGES, instanceName,
             message.getId());
-        _statusUpdateUtil.logWarning(message, StateMachineEngine.class,
+        _statusUpdateUtil.logWarning(message, StateMachEngineImpl.class,
             warningMessage, accessor);
       }
     }

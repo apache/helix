@@ -75,11 +75,9 @@ public class TestResetPartitionState extends ZkIntegrationTestBase
     };
 
     TestHelper.verifyWithTimeout("verifyBestPossAndExtViewExtended",
-                                 "TestDB0",
-                                 10,
-                                 "MasterSlave",
-                                 TestHelper.<String>setOf(clusterName),
                                  ZK_ADDR,
+                                 TestHelper.<String>setOf(clusterName),
+                                 TestHelper.<String>setOf("TestDB0"),
                                  null,
                                  null,
                                  errorStateMap);
@@ -102,11 +100,9 @@ public class TestResetPartitionState extends ZkIntegrationTestBase
     tool.resetPartition(clusterName, "localhost_12918", "TestDB0", "TestDB0_0");
 
     TestHelper.verifyWithTimeout("verifyBestPossAndExtView",
-                                 "TestDB0",
-                                 10,
-                                 "MasterSlave",
+                                 ZK_ADDR,
                                  TestHelper.<String>setOf(clusterName),
-                                 ZK_ADDR);
+                                 TestHelper.<String>setOf("TestDB0"));
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
 

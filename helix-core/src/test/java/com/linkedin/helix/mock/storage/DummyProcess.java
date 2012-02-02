@@ -19,8 +19,7 @@ import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.model.Message;
-import com.linkedin.helix.model.Message.MessageType;
-import com.linkedin.helix.participant.StateMachineEngine;
+import com.linkedin.helix.participant.StateMachEngine;
 import com.linkedin.helix.participant.statemachine.StateModel;
 import com.linkedin.helix.participant.statemachine.StateModelFactory;
 import com.linkedin.helix.store.file.FilePropertyStore;
@@ -44,7 +43,7 @@ public class DummyProcess
   private final String _clusterName;
   private final String _instanceName;
   private DummyStateModelFactory stateModelFactory;
-  private StateMachineEngine genericStateMachineHandler;
+//  private StateMachineEngine genericStateMachineHandler;
 
   private final FilePropertyStore<ZNRecord> _fileStore;
 
@@ -131,14 +130,14 @@ public class DummyProcess
     stateModelFactory = new DummyStateModelFactory(_transDelayInMs);
     DummyLeaderStandbyStateModelFactory stateModelFactory1 = new DummyLeaderStandbyStateModelFactory(_transDelayInMs);
     DummyOnlineOfflineStateModelFactory stateModelFactory2 = new DummyOnlineOfflineStateModelFactory(_transDelayInMs);
-    genericStateMachineHandler = new StateMachineEngine();
-    genericStateMachineHandler.registerStateModelFactory("MasterSlave", stateModelFactory);
-
-    genericStateMachineHandler.registerStateModelFactory("LeaderStandby", stateModelFactory1);
-    genericStateMachineHandler.registerStateModelFactory("OnlineOffline", stateModelFactory2);
+//    genericStateMachineHandler = new StateMachineEngine();
+    StateMachEngine stateMach = manager.getStateMachineEngine();
+    stateMach.registerStateModelFactory("MasterSlave", stateModelFactory);
+    stateMach.registerStateModelFactory("LeaderStandby", stateModelFactory1);
+    stateMach.registerStateModelFactory("OnlineOffline", stateModelFactory2);
 
     manager.connect();
-    manager.getMessagingService().registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(), genericStateMachineHandler);
+//    manager.getMessagingService().registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(), genericStateMachineHandler);
     return manager;
   }
 

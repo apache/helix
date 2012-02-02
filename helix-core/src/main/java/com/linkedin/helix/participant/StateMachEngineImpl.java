@@ -5,69 +5,87 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.log4j.Logger;
 
+import com.linkedin.helix.ClusterManager;
 import com.linkedin.helix.ClusterManagerException;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.messaging.handling.CMStateTransitionHandler;
 import com.linkedin.helix.messaging.handling.MessageHandler;
-import com.linkedin.helix.messaging.handling.MessageHandlerFactory;
 import com.linkedin.helix.model.Message;
 import com.linkedin.helix.model.Message.MessageType;
 import com.linkedin.helix.participant.statemachine.StateModel;
 import com.linkedin.helix.participant.statemachine.StateModelFactory;
 import com.linkedin.helix.participant.statemachine.StateModelParser;
 
-public class StateMachineEngine implements
-    MessageHandlerFactory
+public class StateMachEngineImpl implements StateMachEngine
 {
-  private static Logger logger = Logger.getLogger(StateMachineEngine.class);
+  private static Logger logger = Logger.getLogger(StateMachEngineImpl.class);
   private final Map<String, StateModelFactory<? extends StateModel>> _stateModelFactoryMap
      = new ConcurrentHashMap<String, StateModelFactory<? extends StateModel>>();
   StateModelParser _stateModelParser;
-  final static char SEPARATOR = '^'; 
- 
+  final static char SEPARATOR = '^';
+  private final ClusterManager _manager;
+  
   public StateModelFactory<? extends StateModel> getStateModelFactory(String stateModelName)
   {
     return _stateModelFactoryMap.get(stateModelName);
   }
 
-  public StateMachineEngine()
+  public StateMachEngineImpl(ClusterManager manager)
   {
     _stateModelParser = new StateModelParser();
+    _manager = manager;
   }
 
+  @Override
   public boolean registerStateModelFactory(String stateModelDef, StateModelFactory<? extends StateModel> factory)
   {
-    if(stateModelDef.contains(""+SEPARATOR))
-    {
-      throw new ClusterManagerException("stateModelName cannot contain character "+SEPARATOR);
-    }
-    logger.info("Registering state model factory for state model "+ stateModelDef + " with "+ factory);
-    if(_stateModelFactoryMap.containsKey(stateModelDef))
-    {
-      logger.warn("State model " + stateModelDef + " already registered");
-      return false;
-    }
-    _stateModelFactoryMap.put(stateModelDef, factory);
-    return true;
+//    if(stateModelDef.contains("" + SEPARATOR))
+//    {
+//      throw new ClusterManagerException("stateModelName cannot contain character " + SEPARATOR);
+//    }
+//    logger.info("Registering state model factory for state model " + stateModelDef 
+//              + " with "+ factory);
+//    if(_stateModelFactoryMap.containsKey(stateModelDef))
+//    {
+//      logger.warn("State model " + stateModelDef + " already registered");
+//      return false;
+//    }
+//    _stateModelFactoryMap.put(stateModelDef, factory);
+//    return true;
+    return registerStateModelFactory(stateModelDef, null, factory);
   }
   
-  public boolean registerStateModelFactory(String stateModelDef, String resourceGroupName, StateModelFactory<? extends StateModel> factory)
+  @Override
+  public boolean registerStateModelFactory(String stateModelDef, String resourceGroupName, 
+      StateModelFactory<? extends StateModel> factory)
   {
-    if(stateModelDef.contains(""+SEPARATOR))
+    if (_manager.isConnected())
     {
-      throw new ClusterManagerException("stateModelName cannot contain character "+SEPARATOR);
+      throw new ClusterManagerException("stateModelFactory cannot be registered after manager is connected");
     }
-    if(resourceGroupName.contains(""+SEPARATOR))
+    
+    if (stateModelDef == null || stateModelDef.contains("" + SEPARATOR))
     {
-      throw new ClusterManagerException("resourceGroupName cannot contain character "+SEPARATOR);
+      throw new ClusterManagerException("stateModelDef cannot be null or contains character " 
+          + SEPARATOR + " (was " + stateModelDef + ")");
     }
-    logger.info("Registering state model factory for state model "+ stateModelDef + " for resource group " + resourceGroupName+ " with "+ factory);
-    String key = stateModelDef + SEPARATOR + resourceGroupName;
-    if(_stateModelFactoryMap.containsKey(key))
+    
+    if (resourceGroupName != null && resourceGroupName.contains("" + SEPARATOR))
     {
-      logger.warn("Statemodel/resourceGroup key " + key + " already registered");
+      throw new ClusterManagerException("resourceGroupName cannot contain character " 
+          + SEPARATOR + " (was " + resourceGroupName + ")");
+    }
+    
+    logger.info("Register state model factory for state model " + stateModelDef 
+              + " for resource group " + resourceGroupName + " with " +  factory);
+    
+    String key = stateModelDef + (resourceGroupName == null? "" : SEPARATOR + resourceGroupName);
+    if (_stateModelFactoryMap.containsKey(key))
+    {
+      logger.warn("StateModelFactory for " + key + " has already been registered.");
       return false;
     }
+    
     _stateModelFactoryMap.put(key, factory);
     return true;
   }
@@ -75,7 +93,7 @@ public class StateMachineEngine implements
   @Override
   public void reset()
   {
-    for(StateModelFactory<? extends StateModel> stateModelFactory : _stateModelFactoryMap.values())
+    for (StateModelFactory<? extends StateModel> stateModelFactory : _stateModelFactoryMap.values())
     {
       Map<String, ? extends StateModel> modelMap = stateModelFactory.getStateModelMap();
       if (modelMap == null || modelMap.isEmpty())
@@ -86,8 +104,7 @@ public class StateMachineEngine implements
       {
         StateModel stateModel = modelMap.get(resourceKey);
         stateModel.reset();
-        String initialState = _stateModelParser.getInitialState(stateModel
-            .getClass());
+        String initialState = _stateModelParser.getInitialState(stateModel.getClass());
         stateModel.updateState(initialState);
         // todo probably should update the state on ZK. Shi confirm what needs to
         // be done here.
@@ -101,28 +118,30 @@ public class StateMachineEngine implements
   {
     String type = message.getMsgType();
 
-    if(!type.equals(MessageType.STATE_TRANSITION.toString()))
+    if (!type.equals(MessageType.STATE_TRANSITION.toString()))
     {
-      throw new ClusterManagerException("Unexpected msg type for message "+message.getMsgId()
-          +" type:" + message.getMsgType());
+      throw new ClusterManagerException("Unexpected msg type for message " + message.getMsgId()
+          + " type:" + message.getMsgType());
     }
 
     String stateUnitKey = message.getStateUnitKey();
     String stateModelName = message.getStateModelDef();
     String resourceGroupName = message.getResourceGroupName();
-    if(stateModelName == null)
+    if (stateModelName == null)
     {
       logger.warn("message does not contain stateModelDef");
       return null;
-    }// StateModel stateModel;
+    }
+    
     String key = stateModelName + SEPARATOR + resourceGroupName;
     StateModelFactory stateModelFactory = getStateModelFactory(key);
-    if(stateModelFactory == null)
+    if (stateModelFactory == null)
     {
       stateModelFactory = getStateModelFactory(stateModelName);
       if(stateModelFactory == null)
       {
-        logger.warn("Cannot find stateModelFactory for model "+stateModelName + " resourceGroup "+ resourceGroupName);
+        logger.warn("Cannot find stateModelFactory for model " + stateModelName 
+            + " resourceGroup " + resourceGroupName);
         return null;
       }
     }

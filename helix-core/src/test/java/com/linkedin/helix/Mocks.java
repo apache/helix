@@ -8,25 +8,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Future;
 
-import com.linkedin.helix.ClusterDataAccessor;
-import com.linkedin.helix.ClusterManagementService;
-import com.linkedin.helix.ClusterManager;
-import com.linkedin.helix.ClusterMessagingService;
-import com.linkedin.helix.ConfigChangeListener;
-import com.linkedin.helix.ControllerChangeListener;
-import com.linkedin.helix.Criteria;
-import com.linkedin.helix.CurrentStateChangeListener;
-import com.linkedin.helix.ExternalViewChangeListener;
-import com.linkedin.helix.HealthStateChangeListener;
-import com.linkedin.helix.IdealStateChangeListener;
-import com.linkedin.helix.InstanceType;
-import com.linkedin.helix.LiveInstanceChangeListener;
-import com.linkedin.helix.MessageListener;
-import com.linkedin.helix.NotificationContext;
-import com.linkedin.helix.PropertyPathConfig;
-import com.linkedin.helix.PropertyType;
-import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.ZNRecordDecorator;
 import com.linkedin.helix.healthcheck.HealthReportProvider;
 import com.linkedin.helix.healthcheck.ParticipantHealthReportCollector;
 import com.linkedin.helix.messaging.AsyncCallback;
@@ -34,6 +15,7 @@ import com.linkedin.helix.messaging.handling.CMTaskExecutor;
 import com.linkedin.helix.messaging.handling.CMTaskResult;
 import com.linkedin.helix.messaging.handling.MessageHandlerFactory;
 import com.linkedin.helix.model.Message;
+import com.linkedin.helix.participant.StateMachEngine;
 import com.linkedin.helix.participant.statemachine.StateModel;
 import com.linkedin.helix.participant.statemachine.StateModelInfo;
 import com.linkedin.helix.participant.statemachine.Transition;
@@ -156,8 +138,7 @@ public class Mocks
 
     @Override
     public void addCurrentStateChangeListener(CurrentStateChangeListener listener,
-                                              String instanceName,
-                                              String sessionId)
+        String instanceName, String sessionId)
     {
       // TODO Auto-generated method stub
 
@@ -265,8 +246,6 @@ public class Mocks
       return null;
     }
 
-	
-
     @Override
     public String getVersion()
     {
@@ -278,14 +257,21 @@ public class Mocks
       _version = version;
     }
 
-	@Override
-	public void addHealthStateChangeListener(
-			HealthStateChangeListener listener, String instanceName)
-			throws Exception {
-		// TODO Auto-generated method stub
-		
-	}
-    
+    @Override
+    public void addHealthStateChangeListener(HealthStateChangeListener listener, String instanceName)
+        throws Exception
+    {
+      // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public StateMachEngine getStateMachineEngine()
+    {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
   }
 
   public static class MockAccessor implements ClusterDataAccessor
@@ -320,17 +306,13 @@ public class Mocks
     }
 
     @Override
-    public boolean updateProperty(PropertyType type,
-                                  ZNRecordDecorator value,
-                                  String... keys)
+    public boolean updateProperty(PropertyType type, ZNRecordDecorator value, String... keys)
     {
       return updateProperty(type, value.getRecord(), keys);
     }
 
     @Override
-    public boolean updateProperty(PropertyType type,
-                                  ZNRecord value,
-                                  String... keys)
+    public boolean updateProperty(PropertyType type, ZNRecord value, String... keys)
     {
       String path = PropertyPathConfig.getPath(type, _clusterName, keys);
       if (type.updateOnlyOnExists)
@@ -342,14 +324,12 @@ public class Mocks
             ZNRecord znRecord = new ZNRecord(data.get(path));
             znRecord.merge(value);
             data.put(path, znRecord);
-          }
-          else
+          } else
           {
             data.put(path, value);
           }
         }
-      }
-      else
+      } else
       {
         if (type.mergeOnUpdate)
         {
@@ -358,13 +338,11 @@ public class Mocks
             ZNRecord znRecord = new ZNRecord(data.get(path));
             znRecord.merge(value);
             data.put(path, znRecord);
-          }
-          else
+          } else
           {
             data.put(path, value);
           }
-        }
-        else
+        } else
         {
           data.put(path, value);
         }
@@ -374,9 +352,8 @@ public class Mocks
     }
 
     @Override
-    public <T extends ZNRecordDecorator> T getProperty(Class<T> clazz,
-                                                       PropertyType type,
-                                                       String... keys)
+    public <T extends ZNRecordDecorator> T getProperty(Class<T> clazz, PropertyType type,
+        String... keys)
     {
       ZNRecord record = getProperty(type, keys);
       if (record == null)
@@ -421,11 +398,9 @@ public class Mocks
       return child;
     }
 
-
     @Override
-    public <T extends ZNRecordDecorator> List<T> getChildValues(Class<T> clazz,
-                                                                PropertyType type,
-                                                                String... keys)
+    public <T extends ZNRecordDecorator> List<T> getChildValues(Class<T> clazz, PropertyType type,
+        String... keys)
     {
       List<ZNRecord> list = getChildValues(type, keys);
       return ZNRecordDecorator.convertToTypedList(clazz, list);
@@ -449,8 +424,7 @@ public class Mocks
             {
               childs.add(record);
             }
-          }
-          else
+          } else
           {
             System.out.println("keySplit:" + Arrays.toString(keySplit));
             System.out.println("pathSplit:" + Arrays.toString(pathSplit));
@@ -506,20 +480,16 @@ public class Mocks
     }
 
     @Override
-    public int send(Criteria receipientCriteria,
-                    Message message,
-                    AsyncCallback callbackOnReply,
-                    int timeOut)
+    public int send(Criteria receipientCriteria, Message message, AsyncCallback callbackOnReply,
+        int timeOut)
     {
       // TODO Auto-generated method stub
       return 0;
     }
 
     @Override
-    public int sendAndWait(Criteria receipientCriteria,
-                           Message message,
-                           AsyncCallback callbackOnReply,
-                           int timeOut)
+    public int sendAndWait(Criteria receipientCriteria, Message message,
+        AsyncCallback callbackOnReply, int timeOut)
     {
       // TODO Auto-generated method stub
       return 0;
@@ -533,8 +503,8 @@ public class Mocks
     }
 
     @Override
-    public int send(Criteria receipientCriteria, Message message,
-        AsyncCallback callbackOnReply, int timeOut, int retryCount)
+    public int send(Criteria receipientCriteria, Message message, AsyncCallback callbackOnReply,
+        int timeOut, int retryCount)
     {
       // TODO Auto-generated method stub
       return 0;

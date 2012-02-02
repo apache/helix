@@ -14,11 +14,9 @@ public class TestDropResource extends ZkStandAloneCMTestBase
     _setupTool.rebalanceStorageCluster(CLUSTER_NAME, "MyDB", 3);
     verifyCluster();
     TestHelper.verifyWithTimeout("verifyBestPossAndExtView",
-                                 "MyDB",
-                                 6,
-                                 "MasterSlave",
+                                 ZK_ADDR,
                                  TestHelper.<String>setOf(CLUSTER_NAME),
-                                 ZK_ADDR);
+                                 TestHelper.<String>setOf("MyDB"));
 
 
     _setupTool.dropResourceGroupToCluster(CLUSTER_NAME, "MyDB");

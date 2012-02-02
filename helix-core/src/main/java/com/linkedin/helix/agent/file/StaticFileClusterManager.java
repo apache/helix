@@ -30,8 +30,9 @@ import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.ZNRecordDecorator;
 import com.linkedin.helix.healthcheck.ParticipantHealthReportCollector;
 import com.linkedin.helix.model.IdealState;
-import com.linkedin.helix.model.Message;
 import com.linkedin.helix.model.InstanceConfig.InstanceConfigProperty;
+import com.linkedin.helix.model.Message;
+import com.linkedin.helix.participant.StateMachEngine;
 import com.linkedin.helix.participant.statemachine.StateModel;
 import com.linkedin.helix.participant.statemachine.StateModelFactory;
 import com.linkedin.helix.store.PropertyStore;
@@ -494,16 +495,23 @@ public class StaticFileClusterManager implements ClusterManager
     return _instanceType;
   }
 
-@Override
-public void addHealthStateChangeListener(HealthStateChangeListener listener,
-		String instanceName) throws Exception {
-	// TODO Auto-generated method stub
+  @Override
+  public void addHealthStateChangeListener(HealthStateChangeListener listener,
+  		String instanceName) throws Exception {
+  	// TODO Auto-generated method stub
+  
+  }
 
-}
-
-@Override
-public String getVersion()
+  @Override
+  public String getVersion()
   {
     throw new UnsupportedOperationException("getVersion() not implemented in FileClusterManager");
+  }
+
+  @Override
+  public StateMachEngine getStateMachineEngine()
+  {
+    // TODO Auto-generated method stub
+    return null;
   }
 }

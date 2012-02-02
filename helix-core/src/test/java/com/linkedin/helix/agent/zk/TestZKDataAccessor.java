@@ -16,9 +16,6 @@ import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.ZkUnitTestBase;
-import com.linkedin.helix.agent.zk.ZKDataAccessor;
-import com.linkedin.helix.agent.zk.ZNRecordSerializer;
-import com.linkedin.helix.agent.zk.ZkClient;
 import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.model.IdealState.IdealStateModeProperty;
@@ -38,7 +35,7 @@ public class TestZKDataAccessor extends ZkUnitTestBase
   {
     IdealState idealState = new IdealState(resourceGroup);
     idealState.setNumPartitions(20);
-    idealState.setReplicas(2);
+    idealState.setReplicas(Integer.toString(2));
     idealState.setStateModelDefRef("StateModel1");
     idealState.setIdealStateMode(IdealStateModeProperty.AUTO.toString());
     boolean success = _accessor.setProperty(PropertyType.IDEALSTATES, idealState, resourceGroup);

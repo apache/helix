@@ -29,9 +29,9 @@ import com.linkedin.helix.agent.zk.ZNRecordSerializer;
 import com.linkedin.helix.agent.zk.ZkClient;
 import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.IdealState;
+import com.linkedin.helix.model.IdealState.IdealStateModeProperty;
 import com.linkedin.helix.model.InstanceConfig;
 import com.linkedin.helix.model.StateModelDefinition;
-import com.linkedin.helix.model.IdealState.IdealStateModeProperty;
 import com.linkedin.helix.util.ZKClientPool;
 
 public class ClusterSetup
@@ -258,7 +258,7 @@ public class ClusterSetup
 
     IdealState idealState =
       _managementService.getResourceGroupIdealState(clusterName, resourceGroupName);
-    idealState.setReplicas(replica);
+    idealState.setReplicas(Integer.toString(replica));
     int partitions = idealState.getNumPartitions();
     String stateModelName = idealState.getStateModelDefRef();
     StateModelDefinition stateModDef = _managementService.getStateModelDef(clusterName, stateModelName);

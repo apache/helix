@@ -10,18 +10,6 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import com.linkedin.helix.ClusterDataAccessor;
-import com.linkedin.helix.ClusterManager;
-import com.linkedin.helix.ClusterManagerFactory;
-import com.linkedin.helix.ConfigChangeListener;
-import com.linkedin.helix.CurrentStateChangeListener;
-import com.linkedin.helix.ExternalViewChangeListener;
-import com.linkedin.helix.IdealStateChangeListener;
-import com.linkedin.helix.InstanceType;
-import com.linkedin.helix.LiveInstanceChangeListener;
-import com.linkedin.helix.MessageListener;
-import com.linkedin.helix.NotificationContext;
-import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.agent.zk.ZNRecordSerializer;
 import com.linkedin.helix.agent.zk.ZkClient;
 import com.linkedin.helix.model.CurrentState;
@@ -161,7 +149,7 @@ public class TestZKCallback extends ZkUnitTestBase
 
     IdealState idealState = new IdealState("db-1234");
     idealState.setNumPartitions(400);
-    idealState.setReplicas(2);
+    idealState.setReplicas(Integer.toString(2));
     idealState.setStateModelDefRef("StateModeldef");
     dataAccessor.setProperty(PropertyType.IDEALSTATES, idealState,"db-1234");
     Thread.sleep(100);

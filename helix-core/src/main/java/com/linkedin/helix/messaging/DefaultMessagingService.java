@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 import org.apache.log4j.Logger;
@@ -17,7 +16,6 @@ import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.messaging.handling.AsyncCallbackService;
 import com.linkedin.helix.messaging.handling.CMTaskExecutor;
 import com.linkedin.helix.messaging.handling.MessageHandlerFactory;
-import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.model.Message;
 import com.linkedin.helix.model.Message.MessageType;
@@ -206,33 +204,72 @@ public class DefaultMessagingService implements ClusterMessagingService
     // we have a chance to process the message that we received with the new
     // added MessageHandlerFactory
     // before the factory is added.
+    sendNopMessage();
+
+//    if (_manager.isConnected())
+//    {
+//      try
+//      {
+//        Message noOPMsg = new Message(MessageType.NO_OP, UUID.randomUUID()
+//            .toString());
+//        noOPMsg.setSrcName(_manager.getInstanceName());
+//
+//        if (_manager.getInstanceType() == InstanceType.CONTROLLER
+//            || _manager.getInstanceType() == InstanceType.CONTROLLER_PARTICIPANT)
+//        {
+//          noOPMsg.setTgtName("Controller");
+//          _manager.getDataAccessor().setProperty(PropertyType.MESSAGES_CONTROLLER,
+//                                                 noOPMsg,
+//                                                 noOPMsg.getId());
+//        }
+//        if (_manager.getInstanceType() == InstanceType.PARTICIPANT
+//            || _manager.getInstanceType() == InstanceType.CONTROLLER_PARTICIPANT)
+//        {
+//          noOPMsg.setTgtName(_manager.getInstanceName());
+//          _manager.getDataAccessor().setProperty(PropertyType.MESSAGES,
+//                                                 noOPMsg,
+//                                                 noOPMsg.getTgtName(),
+//                                                 noOPMsg.getId());
+//        }
+//
+//      } catch (Exception e)
+//      {
+//        _logger.error(e);
+//      }
+//    }
+  }
+  
+  public void sendNopMessage()
+  {
     if (_manager.isConnected())
     {
       try
       {
-        Message noOPMsg = new Message(MessageType.NO_OP, UUID.randomUUID()
+        Message nopMsg = new Message(MessageType.NO_OP, UUID.randomUUID()
             .toString());
-        noOPMsg.setSrcName(_manager.getInstanceName());
+        nopMsg.setSrcName(_manager.getInstanceName());
 
         if (_manager.getInstanceType() == InstanceType.CONTROLLER
             || _manager.getInstanceType() == InstanceType.CONTROLLER_PARTICIPANT)
         {
-          noOPMsg.setTgtName("Controller");
+          nopMsg.setTgtName("Controller");
           _manager.getDataAccessor().setProperty(PropertyType.MESSAGES_CONTROLLER,
-                                                 noOPMsg,
-                                                 noOPMsg.getId());
+                                                 nopMsg,
+                                                 nopMsg.getId());
         }
+        
         if (_manager.getInstanceType() == InstanceType.PARTICIPANT
             || _manager.getInstanceType() == InstanceType.CONTROLLER_PARTICIPANT)
         {
-          noOPMsg.setTgtName(_manager.getInstanceName());
+          nopMsg.setTgtName(_manager.getInstanceName());
           _manager.getDataAccessor().setProperty(PropertyType.MESSAGES,
-                                                 noOPMsg,
-                                                 noOPMsg.getTgtName(),
-                                                 noOPMsg.getId());
+                                                 nopMsg,
+                                                 nopMsg.getTgtName(),
+                                                 nopMsg.getId());
         }
 
-      } catch (Exception e)
+      } 
+      catch (Exception e)
       {
         _logger.error(e);
       }

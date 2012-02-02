@@ -8,7 +8,6 @@ import java.util.TreeMap;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.ClusterManagerException;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.ZNRecordDecorator;
 
@@ -19,7 +18,7 @@ public class IdealState extends ZNRecordDecorator
 {
   public enum IdealStateProperty
   {
-    RESOURCES,
+    PARTITIONS,
     STATE_MODEL_DEF_REF,
     REPLICAS,
     IDEAL_STATE_MODE
@@ -131,14 +130,14 @@ public class IdealState extends ZNRecordDecorator
 
   public void setNumPartitions(int numPartitions)
   {
-    _record.setSimpleField(IdealStateProperty.RESOURCES.toString(), String.valueOf(numPartitions));
+    _record.setSimpleField(IdealStateProperty.PARTITIONS.toString(), String.valueOf(numPartitions));
   }
 
   public int getNumPartitions()
   {
     try
     {
-      return Integer.parseInt(_record.getSimpleField(IdealStateProperty.RESOURCES.toString()));
+      return Integer.parseInt(_record.getSimpleField(IdealStateProperty.PARTITIONS.toString()));
     }
     catch (Exception e)
     {
@@ -147,38 +146,42 @@ public class IdealState extends ZNRecordDecorator
     }
   }
 
-  public void setReplicas(int replicas)
+  public void setReplicas(String replicas)
   {
-    _record.setSimpleField(IdealStateProperty.REPLICAS.toString(), Integer.toString(replicas));
+    _record.setSimpleField(IdealStateProperty.REPLICAS.toString(), replicas);
   }
   
-  public int getReplicas()
+  public String getReplicas()
   {
-    try
-    {
-      return Integer.parseInt(_record.getSimpleField(IdealStateProperty.REPLICAS.toString()));
-    }
-    catch(Exception e)
-    {}
-    return -1;
+//    try
+//    {
+//      return Integer.parseInt(_record.getSimpleField(IdealStateProperty.REPLICAS.toString()));
+//    }
+//    catch(Exception e)
+//    {}
+//    return -1;
+    return _record.getSimpleField(IdealStateProperty.REPLICAS.toString());
   }
 
   @Override
   public boolean isValid()
   {
-    if(getNumPartitions() < 0)
+    if (getNumPartitions() < 0)
     {
-      logger.error("idealStates does not have number of partitions. IS:" + _record.getId());
+      logger.error("idealState:" + _record
+          + " does not have number of partitions (was " + getNumPartitions() + ").");
       return false;
     }
-    if(getReplicas() < 0)
+    
+//    if(getReplicas() < 0)
+//    {
+//      logger.error("idealStates does not have replicas. IS:" + _record.getId());
+//      return false;
+//    }
+    
+    if (getStateModelDefRef() == null)
     {
-      logger.error("idealStates does not have replicas. IS:" + _record.getId());
-      return false;
-    }
-    if(getStateModelDefRef() == null)
-    {
-      logger.error("idealStates does not have state model def. IS:" + _record.getId());
+      logger.error("idealStates:" + _record + " does not have state model definition.");
       return false;
     }
     return true;

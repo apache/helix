@@ -8,6 +8,7 @@ import java.util.Set;
 
 import org.apache.log4j.Logger;
 
+import com.linkedin.helix.CMConstants.StateModelToken;
 import com.linkedin.helix.ClusterDataAccessor;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.model.Alerts;
@@ -193,6 +194,27 @@ public class ClusterDataCache
       }
     }
     return disabledInstancesSet;
+  }
+  
+  public int getReplicas(String resourceGroup)
+  {
+    String replicasStr = _idealStateMap.get(resourceGroup).getReplicas();
+    int replicas;
+    if (replicasStr.equals(StateModelToken.ANY_LIVEINSTANCE.toString()))
+    {
+      replicas = _liveInstanceMap.size();
+    }
+    else
+    {
+      try
+      {
+        replicas = Integer.parseInt(replicasStr);
+      } catch (Exception e)
+      {
+        replicas = -1;
+      }
+    }
+    return replicas;
   }
   
   @Override

@@ -18,7 +18,7 @@ import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.model.Message;
 import com.linkedin.helix.model.Message.MessageType;
-import com.linkedin.helix.participant.StateMachineEngine;
+import com.linkedin.helix.participant.StateMachEngineImpl;
 import com.linkedin.helix.participant.statemachine.StateModel;
 import com.linkedin.helix.participant.statemachine.StateModelFactory;
 import com.linkedin.helix.tools.ClusterSetup;
@@ -40,7 +40,7 @@ public class DummyRelayProcess
   private final String instanceName;
   private ClusterManager manager;
   private DummyStateModelFactory stateModelFactory;
-  private StateMachineEngine genericStateMachineHandler;
+  private StateMachEngineImpl genericStateMachineHandler;
 
   private final String _clusterViewFile;
 

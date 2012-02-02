@@ -1,6 +1,7 @@
 package com.linkedin.helix.controller.stages;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -9,14 +10,15 @@ import java.util.Set;
 
 import org.apache.log4j.Logger;
 
+import com.linkedin.helix.CMConstants.StateModelToken;
 import com.linkedin.helix.controller.pipeline.AbstractBaseStage;
 import com.linkedin.helix.controller.pipeline.StageException;
 import com.linkedin.helix.model.IdealState;
+import com.linkedin.helix.model.IdealState.IdealStateModeProperty;
 import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.model.ResourceGroup;
 import com.linkedin.helix.model.ResourceKey;
 import com.linkedin.helix.model.StateModelDefinition;
-import com.linkedin.helix.model.IdealState.IdealStateModeProperty;
 
 /**
  * For resourceKey compute best possible (instance,state) pair based on
@@ -285,19 +287,27 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
                                          StateModelDefinition stateModelDef)
   {
     List<String> listField =
-        idealState.getPreferenceList(resource.getResourceKeyName(), stateModelDef);
-    Map<String, LiveInstance> liveInstances = cache.getLiveInstances();
-    if (listField != null && listField.size() == 1 && "".equals(listField.get(0)))
+        idealState.getPreferenceList(resource.getResourceKeyName(), stateModelDef);    
+    
+//    Map<String, LiveInstance> liveInstances = cache.getLiveInstances();
+//    if (listField != null && listField.size() == 1 && "".equals(listField.get(0)))
+    if (listField != null && listField.size() == 1 
+        && StateModelToken.ANY_LIVEINSTANCE.toString().equals(listField.get(0)))
     {
-
-      ArrayList<String> list = new ArrayList<String>(liveInstances.size());
-      for (String instanceName : liveInstances.keySet())
-      {
-    	  list.add(instanceName);
-      }
-      return list;
+//      ArrayList<String> list = new ArrayList<String>(liveInstances.size());
+//      for (String instanceName : liveInstances.keySet())
+//      {
+//    	  list.add(instanceName);
+//      }
+//      return list;
+      Map<String, LiveInstance> liveInstances = cache.getLiveInstances();
+      List<String> prefList = new ArrayList<String>(liveInstances.keySet());
+      Collections.sort(prefList);
+      return prefList;
     }
-
-    return listField;
+    else
+    {
+      return listField;
+    }
   }
 }

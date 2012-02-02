@@ -110,7 +110,7 @@ public class IdealCalculatorByConsistentHashing
     ZNRecord result = new ZNRecord(dbName);
 
     int[] hashRing = generateEvenHashRing(instanceNames, hashRingSize);
-    result.setSimpleField(IdealStateProperty.RESOURCES.toString(), String.valueOf(partitions));
+    result.setSimpleField(IdealStateProperty.PARTITIONS.toString(), String.valueOf(partitions));
     Random rand = new Random(0xc0ffee);
     for (int i = 0; i < partitions; i++)
     {

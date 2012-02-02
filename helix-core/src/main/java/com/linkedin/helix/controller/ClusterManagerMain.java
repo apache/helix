@@ -29,10 +29,9 @@ import com.linkedin.helix.ClusterManager;
 import com.linkedin.helix.ClusterManagerFactory;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.PropertyType;
-import com.linkedin.helix.model.Message.MessageType;
 import com.linkedin.helix.monitoring.mbeans.ClusterStatusMonitor;
 import com.linkedin.helix.participant.DistClusterControllerStateModelFactory;
-import com.linkedin.helix.participant.StateMachineEngine;
+import com.linkedin.helix.participant.StateMachEngine;
 
 public class ClusterManagerMain
 {
@@ -159,14 +158,14 @@ public class ClusterManagerMain
                                                             InstanceType.CONTROLLER_PARTICIPANT,
                                                             zkConnectString);
 
-        manager.connect();
         DistClusterControllerStateModelFactory stateModelFactory
            = new DistClusterControllerStateModelFactory(zkConnectString);
 
-        StateMachineEngine genericStateMachineHandler = new StateMachineEngine();
-        genericStateMachineHandler.registerStateModelFactory("LeaderStandby", stateModelFactory);
-        manager.getMessagingService().registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(), genericStateMachineHandler);
-
+//        StateMachineEngine genericStateMachineHandler = new StateMachineEngine();
+        StateMachEngine stateMach = manager.getStateMachineEngine();
+        stateMach.registerStateModelFactory("LeaderStandby", stateModelFactory);
+//        manager.getMessagingService().registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(), genericStateMachineHandler);
+        manager.connect();
       }
       else
       {

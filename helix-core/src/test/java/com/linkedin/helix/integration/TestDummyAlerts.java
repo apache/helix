@@ -111,11 +111,9 @@ public class TestDummyAlerts extends ZkIntegrationTestBase
 
     TestHelper.verifyWithTimeout("verifyBestPossAndExtViewExtended",
                                  15000,  // timeout in millisecond
-                                 "TestDB0",
-                                 10,
-                                 "MasterSlave",
-                                 TestHelper.<String>setOf(clusterName),
                                  ZK_ADDR,
+                                 TestHelper.<String>setOf(clusterName),
+                                 TestHelper.<String>setOf("TestDB0"),
                                  null,
                                  null,
                                  null);

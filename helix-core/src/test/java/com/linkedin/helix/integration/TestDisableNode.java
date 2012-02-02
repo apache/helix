@@ -14,11 +14,9 @@ public class TestDisableNode extends ZkStandAloneCMTestBase
     ZKClusterManagementTool tool = new ZKClusterManagementTool(_zkClient);
     tool.enableInstance(CLUSTER_NAME, PARTICIPANT_PREFIX + "_12918", false);
     TestHelper.verifyWithTimeout("verifyBestPossAndExtViewExtended",
-                                 "TestDB",
-                                 20,
-                                 "MasterSlave",
-                                 TestHelper.<String>setOf(CLUSTER_NAME),
                                  ZK_ADDR,
+                                 TestHelper.<String>setOf(CLUSTER_NAME),
+                                 TestHelper.<String>setOf("TestDB"),
                                  TestHelper.<String>setOf(PARTICIPANT_PREFIX + "_12918"),
                                  null,
                                  null);

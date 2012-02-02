@@ -234,11 +234,9 @@ public class TestDriver
       String dbName = TEST_DB_PREFIX + i;
       TestHelper.verifyWithTimeout("verifyBestPossAndExtViewExtended",
                                    60 * 1000,
-                                   dbName,
-                                   testInfo._numPartitionsPerDb,
-                                   "MasterSlave",
-                                   TestHelper.<String>setOf(clusterName),
                                    ZK_ADDR,
+                                   TestHelper.<String>setOf(clusterName),
+                                   TestHelper.<String>setOf(dbName),
                                    null,
                                    null,
                                    null);
@@ -340,14 +338,14 @@ public class TestDriver
               testInfo._numPartitionsPerDb, testInfo._replica - 1, dbName, "MASTER","SLAVE");
       // destIS.setId(dbName);
       destIS.setSimpleField(IdealStateProperty.IDEAL_STATE_MODE.toString(), IdealStateModeProperty.CUSTOMIZED.toString());
-      destIS.setSimpleField(IdealStateProperty.RESOURCES.toString(), Integer.toString(testInfo._numPartitionsPerDb));
+      destIS.setSimpleField(IdealStateProperty.PARTITIONS.toString(), Integer.toString(testInfo._numPartitionsPerDb));
       destIS.setSimpleField(IdealStateProperty.STATE_MODEL_DEF_REF.toString(), STATE_MODEL);
       String idealStatePath = "/" + clusterName
                             + "/" + PropertyType.IDEALSTATES.toString()
                             + "/" + TEST_DB_PREFIX + i;
       ZNRecord initIS = new ZNRecord(dbName); // _zkClient.<ZNRecord> readData(idealStatePath);
       initIS.setSimpleField(IdealStateProperty.IDEAL_STATE_MODE.toString(), IdealStateModeProperty.CUSTOMIZED.toString());
-      initIS.setSimpleField(IdealStateProperty.RESOURCES.toString(), Integer.toString(testInfo._numPartitionsPerDb));
+      initIS.setSimpleField(IdealStateProperty.PARTITIONS.toString(), Integer.toString(testInfo._numPartitionsPerDb));
       initIS.setSimpleField(IdealStateProperty.STATE_MODEL_DEF_REF.toString(), "MasterSlave");
       int totalStep = calcuateNumTransitions(initIS, destIS);
       // LOG.info("initIS:" + initIS);

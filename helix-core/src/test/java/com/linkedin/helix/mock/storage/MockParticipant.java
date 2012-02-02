@@ -13,8 +13,7 @@ import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.mock.storage.DummyProcess.DummyLeaderStandbyStateModelFactory;
 import com.linkedin.helix.mock.storage.DummyProcess.DummyOnlineOfflineStateModelFactory;
 import com.linkedin.helix.model.Message;
-import com.linkedin.helix.model.Message.MessageType;
-import com.linkedin.helix.participant.StateMachineEngine;
+import com.linkedin.helix.participant.StateMachEngine;
 import com.linkedin.helix.participant.statemachine.StateModel;
 import com.linkedin.helix.participant.statemachine.StateModelFactory;
 import com.linkedin.helix.participant.statemachine.StateModelInfo;
@@ -28,8 +27,9 @@ public class MockParticipant implements Stoppable, Runnable
   private final String _zkAddr;
 
   private final CountDownLatch _countDown = new CountDownLatch(1);
-  private ClusterManager _manager;
+  private final ClusterManager _manager;
   private final MockMSModelFactory _msModelFacotry;
+  private final MockJobIntf _job;
 
   // mock master-slave state model
   @StateModelInfo(initialState = "OFFLINE", states = { "MASTER", "SLAVE" })
@@ -185,18 +185,33 @@ public class MockParticipant implements Stoppable, Runnable
     } 
   }
  
-  public MockParticipant(String clusterName, String instanceName, String zkAddr)
+  public MockParticipant(String clusterName, String instanceName, String zkAddr) 
+    throws Exception
   {
-    this(clusterName, instanceName, zkAddr, null);
+    this(clusterName, instanceName, zkAddr, null, null);
   }
 
   public MockParticipant(String clusterName, String instanceName, String zkAddr, 
-                          MockTransitionIntf transition)
+                          MockTransitionIntf transition) 
+    throws Exception
+  {
+    this(clusterName, instanceName, zkAddr, transition, null);
+  }
+  
+  public MockParticipant(String clusterName, String instanceName, String zkAddr, 
+      MockTransitionIntf transition, MockJobIntf job) 
+    throws Exception
   {
     _clusterName = clusterName;
     _instanceName = instanceName;
     _zkAddr = zkAddr;
     _msModelFacotry = new MockMSModelFactory(transition);
+    
+    _manager = ClusterManagerFactory.getZKClusterManager(_clusterName,
+        _instanceName,
+        InstanceType.PARTICIPANT,
+        _zkAddr);
+    _job = job;
   }
 
   public void resetTransition()
@@ -204,6 +219,10 @@ public class MockParticipant implements Stoppable, Runnable
     _msModelFacotry.resetTrasition();
   }
   
+  public ClusterManager getManager()
+  {
+    return _manager;
+  }
   
   @Override
   public void stop()
@@ -217,24 +236,26 @@ public class MockParticipant implements Stoppable, Runnable
   {
     try
     {
-      _manager = ClusterManagerFactory.getZKClusterManager(_clusterName,
-                                                           _instanceName,
-                                                           InstanceType.PARTICIPANT,
-                                                           _zkAddr);
-      _manager.connect();
-
-      StateMachineEngine stateMachine = new StateMachineEngine();
-      stateMachine.registerStateModelFactory("MasterSlave", _msModelFacotry);
+      StateMachEngine stateMach = _manager.getStateMachineEngine();
+      stateMach.registerStateModelFactory("MasterSlave", _msModelFacotry);
 
       DummyLeaderStandbyStateModelFactory lsModelFactory = new DummyLeaderStandbyStateModelFactory(10);
       DummyOnlineOfflineStateModelFactory ofModelFactory = new DummyOnlineOfflineStateModelFactory(10);
-      stateMachine.registerStateModelFactory("LeaderStandby", lsModelFactory);
-      stateMachine.registerStateModelFactory("OnlineOffline", ofModelFactory);
+      stateMach.registerStateModelFactory("LeaderStandby", lsModelFactory);
+      stateMach.registerStateModelFactory("OnlineOffline", ofModelFactory);
 
-      _manager.getMessagingService()
-              .registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(),
-                                             stateMachine);
-
+      if (_job != null)
+      {
+        _job.doPreConnectJob(_manager);
+      }
+      
+      _manager.connect();
+      
+      if (_job != null)
+      {
+        _job.doPostConnectJob(_manager);
+      }
+      
       _countDown.await();
     }
     catch (InterruptedException e)

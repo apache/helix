@@ -30,11 +30,9 @@ public class TestDisablePartition extends ZkStandAloneCMTestBase
       }
     };
     TestHelper.verifyWithTimeout("verifyBestPossAndExtViewExtended",
-                                 "TestDB",
-                                 20,
-                                 "MasterSlave",
-                                 TestHelper.<String>setOf(CLUSTER_NAME),
                                  ZK_ADDR,
+                                 TestHelper.<String>setOf(CLUSTER_NAME),
+                                 TestHelper.<String>setOf("TestDB"),
                                  null,
                                  disabledPartMap,
                                  null);

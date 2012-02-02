@@ -16,6 +16,7 @@ import org.I0Itec.zkclient.IZkDataListener;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.Watcher.Event.EventType;
 
+import com.linkedin.helix.CMConstants.ChangeType;
 import com.linkedin.helix.ClusterDataAccessor;
 import com.linkedin.helix.ClusterManager;
 import com.linkedin.helix.ConfigChangeListener;
@@ -28,7 +29,6 @@ import com.linkedin.helix.LiveInstanceChangeListener;
 import com.linkedin.helix.MessageListener;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.PropertyType;
-import com.linkedin.helix.CMConstants.ChangeType;
 import com.linkedin.helix.model.CurrentState;
 import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.HealthStat;
@@ -144,9 +144,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
         MessageListener messageListener = (MessageListener) _listener;
         subscribeForChanges(changeContext, true, false);
         List<Message> messages =  _accessor.getChildValues(Message.class, PropertyType.MESSAGES_CONTROLLER);
-
-        // TODO enforce a zk manager to have an id
-        messageListener.onMessage(null, messages, changeContext);
+        messageListener.onMessage(_manager.getInstanceName(), messages, changeContext);
 
       }
       else if (_changeType == EXTERNAL_VIEW)

@@ -323,6 +323,7 @@ public class ClusterSetup
                                                                slaveStateValue);
     idealState.getRecord().setMapFields(newIdealState.getMapFields());
     idealState.getRecord().setListFields(newIdealState.getListFields());
+    idealState.setIdealStateMode("CUSTOMIZED");
     _managementService.setResourceGroupIdealState(clusterName, resourceGroupName, idealState);
   }
 

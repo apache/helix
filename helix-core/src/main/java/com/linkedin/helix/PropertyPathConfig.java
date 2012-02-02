@@ -60,6 +60,7 @@ public class PropertyPathConfig
     addEntry(PropertyType.PAUSE,1,"/{clusterName}/CONTROLLER/PAUSE");
     addEntry(PropertyType.PERSISTENTSTATS,1,"/{clusterName}/CONTROLLER/PERSISTENTSTATS");
     addEntry(PropertyType.ALERTS,1,"/{clusterName}/CONTROLLER/ALERTS");
+    addEntry(PropertyType.ALERT_STATUS,1,"/{clusterName}/CONTROLLER/ALERT_STATUS");
     //@formatter:on
 
   }

@@ -1,6 +1,9 @@
 package com.linkedin.helix.alerts;
 
 public class AlertValueAndStatus {
+	public final static String VALUE_NAME = "value";
+	public final static String FIRED_NAME = "fired";
+	
 	private Tuple<String> value;
 	private boolean fired;
 	

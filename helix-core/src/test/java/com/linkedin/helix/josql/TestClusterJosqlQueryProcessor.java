@@ -23,7 +23,7 @@ import com.linkedin.helix.tools.IdealStateCalculatorForStorageNode;
 public class TestClusterJosqlQueryProcessor
 {
   @Test (groups = {"unitTest"})
-  public void TestQueryClusterData() 
+  public void queryClusterDataSample() 
   {
     List<ZNRecord> liveInstances = new ArrayList<ZNRecord>();
     Map<String, ZNRecord> liveInstanceMap = new HashMap<String, ZNRecord>();
@@ -40,7 +40,6 @@ public class TestClusterJosqlQueryProcessor
       liveInstanceMap.put(instance, metaData);
     }
     
-    
     //liveInstances.remove(0);
     ZNRecord externalView = IdealStateCalculatorForStorageNode.calculateIdealState(
         instances, 21, 3, "TestDB", "MASTER", "SLAVE");
@@ -54,25 +53,27 @@ public class TestClusterJosqlQueryProcessor
     criteria.setResourceState("SLAVE");
     
     String josql = 
-      " SELECT DISTINCT '', mapSubKey, mapValue, '' " +
+      " SELECT DISTINCT mapSubKey AS 'subkey', mapValue AS 'mapValue' , getSimpleFieldValue(getZNRecordFromMap(:LIVEINSTANCESMAP, mapSubKey), 'SCN') AS 'SCN'" +
       " FROM com.linkedin.clustermanager.josql.ZNRecordRow " + 
       " WHERE mapKey LIKE 'TestDB_2%' " +
         " AND mapSubKey LIKE '%' " +
         " AND mapValue LIKE 'SLAVE' " +
-        " AND mapSubKey IN ((SELECT [*]id FROM :LIVEINSTANCES))" +
-        " ORDER BY  getSimpleFieldValue(getZNRecordFromMap(:LIVEINSTANCESMAP, mapSubKey), 'SCN')";
+        " AND mapSubKey IN ((SELECT [*]id FROM :LIVEINSTANCES)) " +
+        " ORDER BY parseInt(getSimpleFieldValue(getZNRecordFromMap(:LIVEINSTANCESMAP, mapSubKey), 'SCN'))";
     
     Query josqlQuery = new Query();
     josqlQuery.setVariable("LIVEINSTANCES", liveInstances);
     josqlQuery.setVariable("LIVEINSTANCESMAP", liveInstanceMap);
     josqlQuery.addFunctionHandler(new ZNRecordRow());
     josqlQuery.addFunctionHandler(new ZNRecordJosqlFunctionHandler());
+    josqlQuery.addFunctionHandler(new Integer(0));
     try
     {
       josqlQuery.parse(josql);
       QueryResults qr = josqlQuery.execute(ZNRecordRow.convertMapFields(externalView));
       @SuppressWarnings({ "unchecked", "unused" })
       List<Object> result = qr.getResults();
+      
     } 
     catch (QueryParseException e)
     {

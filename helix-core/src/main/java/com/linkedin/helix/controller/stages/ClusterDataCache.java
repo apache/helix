@@ -11,6 +11,7 @@ import org.apache.log4j.Logger;
 import com.linkedin.helix.CMConstants.StateModelToken;
 import com.linkedin.helix.ClusterDataAccessor;
 import com.linkedin.helix.PropertyType;
+import com.linkedin.helix.model.AlertStatus;
 import com.linkedin.helix.model.Alerts;
 import com.linkedin.helix.model.CurrentState;
 import com.linkedin.helix.model.HealthStat;
@@ -42,6 +43,7 @@ public class ClusterDataCache
   private HealthStat _globalStats;  //DON'T THINK I WILL USE THIS ANYMORE
   private PersistentStats _persistentStats;
   private Alerts _alerts;
+  private AlertStatus _alertStatus;
 
   private static final Logger LOG = Logger.getLogger(ClusterDataCache.class.getName());
 
@@ -105,6 +107,7 @@ public class ClusterDataCache
     _persistentStats = accessor.getProperty(PersistentStats.class,
                                             PropertyType.PERSISTENTSTATS);
     _alerts = accessor.getProperty(Alerts.class, PropertyType.ALERTS);
+    _alertStatus = accessor.getProperty(AlertStatus.class, PropertyType.ALERT_STATUS);
 
     return true;
   }
@@ -151,6 +154,11 @@ public class ClusterDataCache
   public Alerts getAlerts()
   {
 	  return _alerts;
+  }
+  
+  public AlertStatus getAlertStatus()
+  {
+	  return _alertStatus;
   }
   
   public Map<String, HealthStat> getHealthStats(String instanceName)

@@ -311,6 +311,8 @@ public class ZKDataAccessor implements ClusterDataAccessor
             if (record != null)
             {
               record.setVersion(newStat.getVersion());
+              record.setCreationTime(newStat.getCtime());
+              record.setModifiedTime(newStat.getMtime());
               newChildRecords.put(child, record);
             }
           }

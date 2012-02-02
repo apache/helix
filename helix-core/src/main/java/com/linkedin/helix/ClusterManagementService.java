@@ -48,6 +48,10 @@ public interface ClusterManagementService
   
   void addAlert(String clusterName, String alertName);
   
+void dropStat(String clusterName, String statName);
+  
+  void dropAlert(String clusterName, String alertName);
+  
   List<String> getStateModelDefs(String clusterName);
 
   StateModelDefinition getStateModelDef(String clusterName, String stateModelName);

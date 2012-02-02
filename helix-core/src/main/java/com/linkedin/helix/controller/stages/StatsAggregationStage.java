@@ -13,6 +13,7 @@ import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.alerts.AlertProcessor;
 import com.linkedin.helix.alerts.AlertValueAndStatus;
 import com.linkedin.helix.alerts.AlertsHolder;
+import com.linkedin.helix.alerts.ExpressionParser;
 import com.linkedin.helix.alerts.StatsHolder;
 import com.linkedin.helix.alerts.Tuple;
 import com.linkedin.helix.controller.pipeline.AbstractBaseStage;
@@ -20,6 +21,7 @@ import com.linkedin.helix.controller.pipeline.StageContext;
 import com.linkedin.helix.controller.pipeline.StageException;
 import com.linkedin.helix.healthcheck.AggregationType;
 import com.linkedin.helix.healthcheck.AggregationTypeFactory;
+import com.linkedin.helix.healthcheck.PerformanceHealthReportProvider;
 import com.linkedin.helix.healthcheck.Stat;
 import com.linkedin.helix.healthcheck.StatHealthReportProvider;
 import com.linkedin.helix.model.HealthStat;
@@ -44,6 +46,7 @@ public class StatsAggregationStage extends AbstractBaseStage
   Map<String, Tuple<String>> _statStatus;
   
   public final String PARTICIPANT_STAT_REPORT_NAME = StatHealthReportProvider.REPORT_NAME;
+  public final String ESPRESSO_STAT_REPORT_NAME = "RestQueryStats";
   public final String REPORT_NAME = "AggStats";
   //public final String DEFAULT_AGG_TYPE = "decay";
   //public final String DEFAULT_DECAY_PARAM = "0.1";
@@ -181,13 +184,17 @@ public void persistAggStats(ClusterManager manager)
   {
   }
   
+  public String getAgeStatName(String instance)
+  {
+	  return instance + ExpressionParser.statFieldDelim + "reportingage";
+  }
+  
   //currTime in seconds
   public void reportAgeStat(LiveInstance instance, long currTime)
   {
-	  //TODO: put the stat name encoding somewhere easier to find
-	  String statName = "instance"+instance.getInstanceName()+"."+"reportingage";
+	  String statName = getAgeStatName(instance.getInstanceName());
 	  //TODO: call to get modifiedTime is a stub right now
-	  long modifiedTime = Long.parseLong(instance.getModifiedTime());
+	  long modifiedTime = instance.getModifiedTime();
 	  long age = currTime - modifiedTime; //XXX: ensure this is in seconds
 	  Map<String, String> ageStatMap = new HashMap<String, String>();
 	  ageStatMap.put(StatsHolder.TIMESTAMP_NAME, String.valueOf(currTime));
@@ -231,11 +238,17 @@ public void persistAggStats(ClusterManager manager)
     	Map<String, HealthStat> stats;
     	stats = cache.getHealthStats(instanceName);
     	//find participants stats
-    	HealthStat participantStat = stats.get(PARTICIPANT_STAT_REPORT_NAME);
+    	HealthStat participantStat = stats.get(ESPRESSO_STAT_REPORT_NAME);
 
-    	Map<String, Map<String, String>> statMap = participantStat.getHealthFields();
-    	for (String key : statMap.keySet()) {
-    		_statsHolder.applyStat(key, statMap.get(key));
+    	//XXX: need to convert participantStat to a better format
+    	//need to get instanceName in here
+    	
+    	if (participantStat != null) {
+    		String timestamp = String.valueOf(instance.getModifiedTime());
+    		Map<String, Map<String, String>> statMap = participantStat.getHealthFields(instanceName,timestamp);
+    		for (String key : statMap.keySet()) {
+    			_statsHolder.applyStat(key, statMap.get(key));
+    		}
 
     	}
     }
@@ -249,6 +262,9 @@ public void persistAggStats(ClusterManager manager)
    
     //execute alerts, populate _alertStatus
     _alertStatus = AlertProcessor.executeAllAlerts(_alertsHolder.getAlertList(), _statsHolder.getStatsList());
+    
+    //write out alert status (to zk)
+    _alertsHolder.addAlertStatusSet(_alertStatus);
     
     //TODO: access the 2 status variables from somewhere to populate graphs
     

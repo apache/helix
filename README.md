@@ -112,25 +112,25 @@ In the following section we will see how one can set up a mock cluster with
 * zookeeper running locally at localhost:2181
 
     #create the cluster mycluster
-    helix-admin -zkSvr localhost:2181 -addCluster mycluster 
+    ./helix-admin --zkSvr localhost:2181 --addCluster mycluster 
 
     #Create a database
-    helix-admin -zkSvr localhost:2181  -addResourceGroup mycluster myDB 6 MasterSlave
+    ./helix-admin --zkSvr localhost:2181  --addResourceGroup mycluster myDB 6 MasterSlave
     #Add nodes to the cluster, in this case we add three nodes, hostname:port is host and port on which the service will start
-    helix-admin -zkSvr localhost:2181  -addNode mycluster localhost:12913
-    helix-admin -zkSvr localhost:2181  -addNode mycluster localhost:12914
-    helix-admin -zkSvr localhost:2181  -addNode mycluster localhost:12915
+    ./helix-admin --zkSvr localhost:2181  --addNode mycluster localhost:12913
+    ./helix-admin --zkSvr localhost:2181  --addNode mycluster localhost:12914
+    ./helix-admin --zkSvr localhost:2181  --addNode mycluster localhost:12915
 
     # After adding nodes assign partitions to nodes.
     # helix-admin --rebalance <clustername> <resourceName> <replication factor>
-    helix-admin --rebalance mycluster myDB 3
+    ./helix-admin --zkSvr localhost:2181 --rebalance mycluster myDB 3
 
 Start Helix Controller
 ---------------------
 
 
     #This will start the cluster manager which will manage <mycluster>
-    run-helix-controller --zkSvr localhost:2181 --cluster mycluster
+    ./run-helix-controller --zkSvr localhost:2181 --cluster mycluster
 
 
 
@@ -140,9 +140,9 @@ Start Example Participant
    
     ./start-helix-participant --help
     #start process 1 process corresponding to every host port added during cluster setup
-    ./start-helix-participant --cluster mycluster --host localhost --port 12913 --stateModelType MasterSlave
-    ./start-helix-participant --cluster mycluster --host localhost --port 12914 --stateModelType MasterSlave
-    ./start-helix-participant --cluster mycluster --host localhost --port 12915 --stateModelType MasterSlave
+    ./start-helix-participant --zkSvr localhost:2181 --cluster mycluster --host localhost --port 12913 --stateModelType MasterSlave
+    ./start-helix-participant --zkSvr localhost:2181 --cluster mycluster --host localhost --port 12914 --stateModelType MasterSlave
+    ./start-helix-participant --zkSvr localhost:2181 --cluster mycluster --host localhost --port 12915 --stateModelType MasterSlave
 
 
 Inspect Cluster Data

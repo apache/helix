@@ -86,11 +86,9 @@ public class TestStandAloneCMSessionExpiry extends ZkIntegrationTestBase
     managers.put(controllerName, manager);
 
     TestHelper.verifyWithTimeout("verifyBestPossAndExtView",
-                                 "TestDB0",
-                                 20,
-                                 "MasterSlave",
+                                 ZK_ADDR,
                                  TestHelper.<String>setOf(CLUSTER_NAME),
-                                 ZK_ADDR);
+                                 TestHelper.<String>setOf("TestDB0"));
 
     managers.get("localhost_12918").expireSession();
 
@@ -98,18 +96,16 @@ public class TestStandAloneCMSessionExpiry extends ZkIntegrationTestBase
     setupTool.rebalanceStorageCluster(CLUSTER_NAME, "MyDB", 3);
 
     TestHelper.verifyWithTimeout("verifyBestPossAndExtView",
-                                 "TestDB0",
-                                 20,
-                                 "MasterSlave",
+                                 ZK_ADDR,
                                  TestHelper.<String>setOf(CLUSTER_NAME),
-                                 ZK_ADDR);
+                                 TestHelper.<String>setOf("TestDB0", "MyDB"));
 
-    TestHelper.verifyWithTimeout("verifyBestPossAndExtView",
-                                 "MyDB",
-                                 10,
-                                 "MasterSlave",
-                                 TestHelper.<String>setOf(CLUSTER_NAME),
-                                 ZK_ADDR);
+//    TestHelper.verifyWithTimeout("verifyBestPossAndExtView",
+//                                 "MyDB",
+//                                 10,
+//                                 "MasterSlave",
+//                                 TestHelper.<String>setOf(CLUSTER_NAME),
+//                                 ZK_ADDR);
 
     managers.get(controllerName).expireSession();
 
@@ -117,26 +113,23 @@ public class TestStandAloneCMSessionExpiry extends ZkIntegrationTestBase
     setupTool.rebalanceStorageCluster(CLUSTER_NAME, "MyDB2", 3);
 
     TestHelper.verifyWithTimeout("verifyBestPossAndExtView",
-                                 "TestDB0",
-                                 20,
-                                 "MasterSlave",
+                                 ZK_ADDR,
                                  TestHelper.<String>setOf(CLUSTER_NAME),
-                                 ZK_ADDR);
+                                 TestHelper.<String>setOf("TestDB0", "MyDB", "MyDB2"));
 
-
-    TestHelper.verifyWithTimeout("verifyBestPossAndExtView",
-                                 "MyDB",
-                                 10,
-                                 "MasterSlave",
-                                 TestHelper.<String>setOf(CLUSTER_NAME),
-                                 ZK_ADDR);
-
-    TestHelper.verifyWithTimeout("verifyBestPossAndExtView",
-                                 "MyDB2",
-                                 8,
-                                 "MasterSlave",
-                                 TestHelper.<String>setOf(CLUSTER_NAME),
-                                 ZK_ADDR);
+//    TestHelper.verifyWithTimeout("verifyBestPossAndExtView",
+//                                 "MyDB",
+//                                 10,
+//                                 "MasterSlave",
+//                                 TestHelper.<String>setOf(CLUSTER_NAME),
+//                                 ZK_ADDR);
+//
+//    TestHelper.verifyWithTimeout("verifyBestPossAndExtView",
+//                                 "MyDB2",
+//                                 8,
+//                                 "MasterSlave",
+//                                 TestHelper.<String>setOf(CLUSTER_NAME),
+//                                 ZK_ADDR);
 
     System.out.println("STOP testStandAloneCMSessionExpiry() at " + new Date(System.currentTimeMillis()));
   }

@@ -12,7 +12,7 @@ public class RelayIdealStateGenerator
   public static void main(String[] args)
   {
     ZNRecord record = new ZNRecord("SdrRelay");
-    record.setSimpleField(IdealStateProperty.RESOURCES.toString(), "28");
+    record.setSimpleField(IdealStateProperty.PARTITIONS.toString(), "28");
     for (int i = 22; i < 28; i++)
     {
       String key = "ela4-db-sdr.prod.linkedin.com_1521,sdr1,sdr_people_search_,p"

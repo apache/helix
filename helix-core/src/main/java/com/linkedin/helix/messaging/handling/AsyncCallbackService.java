@@ -17,7 +17,7 @@ import com.linkedin.helix.messaging.handling.MessageHandler.ErrorCode;
 import com.linkedin.helix.messaging.handling.MessageHandler.ErrorType;
 import com.linkedin.helix.model.Message;
 import com.linkedin.helix.model.Message.MessageType;
-import com.linkedin.helix.participant.StateMachineEngine;
+import com.linkedin.helix.participant.StateMachEngineImpl;
 
 public class AsyncCallbackService implements MessageHandlerFactory
 {

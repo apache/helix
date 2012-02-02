@@ -195,5 +195,12 @@ public void addHealthStateChangeListener(HealthStateChangeListener listener,
     return UUID.randomUUID().toString();
   }
 
+  @Override
+  public StateMachEngine getStateMachineEngine()
+  {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
 
 }

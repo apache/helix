@@ -145,6 +145,11 @@ public final class CMUtil
 	  return PropertyPathConfig.getPath(PropertyType.ALERTS, clusterName);
   }
   
+  public static String getAlertStatusPath(String clusterName)
+  {
+	  return PropertyPathConfig.getPath(PropertyType.ALERT_STATUS, clusterName);
+  }
+  
   public static String getInstanceNameFromPath(String path)
   {
     // path structure

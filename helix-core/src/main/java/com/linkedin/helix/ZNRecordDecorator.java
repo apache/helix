@@ -8,10 +8,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-
 /**
- * A wrapper class for ZNRecord.
- * Used as a parent class for IdealState, CurrentState, etc.
+ * A wrapper class for ZNRecord. Used as a parent class for IdealState,
+ * CurrentState, etc.
  */
 public abstract class ZNRecordDecorator
 {
@@ -37,11 +36,6 @@ public abstract class ZNRecordDecorator
     return _record;
   }
 
-  public final int getVersion()
-  {
-    return _record.getVersion();
-  }
-
   public final void setDeltaList(List<ZNRecordDelta> deltaList)
   {
     _record.setDeltaList(deltaList);
@@ -52,15 +46,17 @@ public abstract class ZNRecordDecorator
   {
     return _record.toString();
   }
-  
+
   /**
-   * static method that convert ZNRecord to an instance that subclasses ZNRecordDecorator
+   * static method that convert ZNRecord to an instance that subclasses
+   * ZNRecordDecorator
+   * 
    * @param clazz
    * @param record
    * @return
    */
-  public static <T extends ZNRecordDecorator> 
-    T convertToTypedInstance(Class<T> clazz, ZNRecord record)
+  public static <T extends ZNRecordDecorator> T convertToTypedInstance(
+      Class<T> clazz, ZNRecord record)
   {
     if (record == null)
     {
@@ -69,10 +65,10 @@ public abstract class ZNRecordDecorator
 
     try
     {
-      Constructor<T> constructor = clazz.getConstructor(new Class[] { ZNRecord.class });
+      Constructor<T> constructor = clazz.getConstructor(new Class[]
+      { ZNRecord.class });
       return constructor.newInstance(record);
-    }
-    catch (Exception e)
+    } catch (Exception e)
     {
       // TODO Auto-generated catch block
       e.printStackTrace();
@@ -81,8 +77,8 @@ public abstract class ZNRecordDecorator
     return null;
   }
 
-  public static <T extends ZNRecordDecorator> 
-    List<T> convertToTypedList(Class<T> clazz, Collection<ZNRecord> records)
+  public static <T extends ZNRecordDecorator> List<T> convertToTypedList(
+      Class<T> clazz, Collection<ZNRecord> records)
   {
     if (records == null)
     {
@@ -101,8 +97,8 @@ public abstract class ZNRecordDecorator
     return decorators;
   }
 
-  public static <T extends ZNRecordDecorator> 
-    Map<String, T> convertListToMap(List<T> records)
+  public static <T extends ZNRecordDecorator> Map<String, T> convertListToMap(
+      List<T> records)
   {
     if (records == null)
     {
@@ -116,6 +112,6 @@ public abstract class ZNRecordDecorator
     }
     return decorators;
   }
-  
+
   public abstract boolean isValid();
 }

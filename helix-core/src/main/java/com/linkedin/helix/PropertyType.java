@@ -9,7 +9,7 @@ public enum PropertyType
   CONFIGS(Type.CLUSTER, true, false, false, false, true),
   LIVEINSTANCES(Type.CLUSTER, false, false, false, true, true),
   INSTANCES(Type.CLUSTER, true, false),
-  IDEALSTATES(Type.CLUSTER, false, false, false, false, true),
+  IDEALSTATES(Type.CLUSTER, true, false, false, false, true),
   EXTERNALVIEW(Type.CLUSTER, true, false),
   STATEMODELDEFS(Type.CLUSTER, true, false, false, false, true),
   CONTROLLER(Type.CLUSTER, true, false),
@@ -28,7 +28,8 @@ public enum PropertyType
   STATUSUPDATES_CONTROLLER(Type.CONTROLLER, true, true, true),
   ERRORS_CONTROLLER(Type.CONTROLLER,true, true, true),
   PERSISTENTSTATS(Type.CONTROLLER, true, false, false, false),
-  ALERTS(Type.CONTROLLER, true, false, false, false);
+  ALERTS(Type.CONTROLLER, true, false, false, false),
+  ALERT_STATUS(Type.CONTROLLER, true, false, false, false);
   // @formatter:on
 
   Type type;

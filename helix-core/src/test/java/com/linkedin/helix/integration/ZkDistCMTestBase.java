@@ -188,18 +188,14 @@ public class ZkDistCMTestBase extends ZkIntegrationTestBase
   protected void verifyClusters()
   {
     TestHelper.verifyWithTimeout("verifyBestPossAndExtView",
-                                 CLUSTER_PREFIX + "_" + CLASS_NAME,
-                                 CLUSTER_NR,
-                                 "LeaderStandby",
+                                 ZK_ADDR,
                                  TestHelper.<String>setOf(CONTROLLER_CLUSTER),
-                                 ZK_ADDR);
+                                 TestHelper.<String>setOf(CLUSTER_PREFIX + "_" + CLASS_NAME));
 
     TestHelper.verifyWithTimeout("verifyBestPossAndExtView",
-                                 TEST_DB,
-                                 20,
-                                 "MasterSlave",
+                                 ZK_ADDR,
                                  TestHelper.<String>setOf(CLUSTER_PREFIX + "_" + CLASS_NAME + "_0"),
-                                 ZK_ADDR);
+                                 TestHelper.<String>setOf(TEST_DB));
   }
 
   protected void pauseController(ClusterDataAccessor clusterDataAccessor)

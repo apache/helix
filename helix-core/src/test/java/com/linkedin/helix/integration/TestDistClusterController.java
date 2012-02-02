@@ -40,11 +40,9 @@ public class TestDistClusterController extends ZkDistCMTestBase
 
     verifyClusters();
     TestHelper.verifyWithTimeout("verifyBestPossAndExtView",
-                                 "MyDB",
-                                 10,
-                                 "MasterSlave",
+                                 ZK_ADDR,
                                  TestHelper.<String>setOf(CLUSTER_PREFIX + "_" + CLASS_NAME + "_1"),
-                                 ZK_ADDR);
+                                 TestHelper.<String>setOf("MyDB"));
 
     LOG.info("STOP testDistClusterController() at " + new Date(System.currentTimeMillis()));
   }

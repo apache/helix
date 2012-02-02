@@ -2,12 +2,10 @@ package com.linkedin.helix;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.ClusterManager;
 import com.linkedin.helix.mock.storage.DummyProcess.DummyLeaderStandbyStateModelFactory;
 import com.linkedin.helix.mock.storage.DummyProcess.DummyOnlineOfflineStateModelFactory;
 import com.linkedin.helix.mock.storage.DummyProcess.DummyStateModelFactory;
-import com.linkedin.helix.model.Message.MessageType;
-import com.linkedin.helix.participant.StateMachineEngine;
+import com.linkedin.helix.participant.StateMachEngine;
 
 public class DummyProcessThread implements Runnable
 {
@@ -27,20 +25,21 @@ public class DummyProcessThread implements Runnable
   {
     try
     {
-      _manager.connect();
       DummyStateModelFactory stateModelFactory = new DummyStateModelFactory(0);
-      StateMachineEngine genericStateMachineHandler =
-          new StateMachineEngine();
-      genericStateMachineHandler.registerStateModelFactory("MasterSlave", stateModelFactory);
+//      StateMachineEngine genericStateMachineHandler =
+//          new StateMachineEngine();
+      StateMachEngine stateMach = _manager.getStateMachineEngine();
+      stateMach.registerStateModelFactory("MasterSlave", stateModelFactory);
 
       DummyLeaderStandbyStateModelFactory stateModelFactory1 = new DummyLeaderStandbyStateModelFactory(10);
       DummyOnlineOfflineStateModelFactory stateModelFactory2 = new DummyOnlineOfflineStateModelFactory(10);
-      genericStateMachineHandler.registerStateModelFactory("LeaderStandby", stateModelFactory1);
-      genericStateMachineHandler.registerStateModelFactory("OnlineOffline", stateModelFactory2);
-      _manager.getMessagingService()
-              .registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(),
-                                             genericStateMachineHandler);
+      stateMach.registerStateModelFactory("LeaderStandby", stateModelFactory1);
+      stateMach.registerStateModelFactory("OnlineOffline", stateModelFactory2);
+//      _manager.getMessagingService()
+//              .registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(),
+//                                             genericStateMachineHandler);
 
+      _manager.connect();
       Thread.currentThread().join();
     }
     catch (InterruptedException e)

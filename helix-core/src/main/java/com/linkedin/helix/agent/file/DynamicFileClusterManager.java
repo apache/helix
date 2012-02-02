@@ -6,10 +6,12 @@ import static com.linkedin.helix.CMConstants.ChangeType.LIVE_INSTANCE;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.Watcher.Event.EventType;
 
+import com.linkedin.helix.CMConstants.ChangeType;
 import com.linkedin.helix.ClusterDataAccessor;
 import com.linkedin.helix.ClusterManagementService;
 import com.linkedin.helix.ClusterManager;
@@ -26,10 +28,12 @@ import com.linkedin.helix.LiveInstanceChangeListener;
 import com.linkedin.helix.MessageListener;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.CMConstants.ChangeType;
 import com.linkedin.helix.healthcheck.ParticipantHealthReportCollector;
 import com.linkedin.helix.messaging.DefaultMessagingService;
 import com.linkedin.helix.model.LiveInstance;
+import com.linkedin.helix.model.Message.MessageType;
+import com.linkedin.helix.participant.StateMachEngine;
+import com.linkedin.helix.participant.StateMachEngineImpl;
 import com.linkedin.helix.store.PropertyStore;
 import com.linkedin.helix.store.file.FilePropertyStore;
 import com.linkedin.helix.tools.PropertiesReader;
@@ -48,11 +52,12 @@ public class DynamicFileClusterManager implements ClusterManager
   private final List<CallbackHandlerForFile> _handlers;
   private final FileClusterManagementTool _mgmtTool;
 
-  public static final String _sessionId = "12345";
+  private final String _sessionId;  // = "12345";
   public static final String configFile = "configFile";
   private final DefaultMessagingService _messagingService;
   private final FilePropertyStore<ZNRecord> _store;
   private final String _version;
+  private final StateMachEngine _stateMachEngine;
 
   public DynamicFileClusterManager(String clusterName,
                                    String instanceName,
@@ -70,6 +75,7 @@ public class DynamicFileClusterManager implements ClusterManager
 
     _mgmtTool = new FileClusterManagementTool(_store);
     _messagingService = new DefaultMessagingService(this);
+    _sessionId = UUID.randomUUID().toString();
     if (instanceType == InstanceType.PARTICIPANT)
     {
       addLiveInstance();
@@ -80,6 +86,10 @@ public class DynamicFileClusterManager implements ClusterManager
 
     _version = new PropertiesReader("cluster-manager-version.properties")
                                 .getProperty("clustermanager.version");
+    
+    _stateMachEngine = new StateMachEngineImpl(this);
+    _messagingService.registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(),
+                                                    _stateMachEngine);
   }
 
   @Override
@@ -146,6 +156,7 @@ public class DynamicFileClusterManager implements ClusterManager
         listener, new EventType[]
         { EventType.NodeChildrenChanged, EventType.NodeDeleted,
             EventType.NodeCreated }, CURRENT_STATE);
+    
     _handlers.add(callbackHandler);
   }
 
@@ -275,6 +286,12 @@ public void addHealthStateChangeListener(HealthStateChangeListener listener,
   public String getVersion()
   {
     return _version;
+  }
+
+  @Override
+  public StateMachEngine getStateMachineEngine()
+  {
+    return _stateMachEngine;
   }
 
 }

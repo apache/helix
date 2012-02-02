@@ -1,7 +1,5 @@
 package com.linkedin.helix.integration;
 
-import org.testng.annotations.Test;
-import org.testng.AssertJUnit;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -18,7 +16,7 @@ import com.linkedin.helix.tools.ClusterViewSerializer;
 // TODO remove this test
 public class TestFileBasedClusterManager
 {
-  @Test (groups = {"integrationTest"})
+  @Test ()
   public void testFileBasedClusterManager() throws Exception
   {
     List<StaticFileClusterManager.DBParam> dbParams = new ArrayList<StaticFileClusterManager.DBParam>();

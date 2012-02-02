@@ -262,7 +262,7 @@ public class ZKClusterManagementTool implements ClusterManagementService
          + " is not setup yet");
     }
     ZNRecord idealState = new ZNRecord(dbName);
-    idealState.setSimpleField(IdealStateProperty.RESOURCES.toString(), String.valueOf(partitions));
+    idealState.setSimpleField(IdealStateProperty.PARTITIONS.toString(), String.valueOf(partitions));
     idealState.setSimpleField(IdealStateProperty.STATE_MODEL_DEF_REF.toString(), stateModelRef);
     idealState.setSimpleField(IdealStateProperty.IDEAL_STATE_MODE.toString(), idealStateMode);
     idealState.setSimpleField(IdealStateProperty.REPLICAS.toString(), 0+"");
@@ -450,5 +450,17 @@ public class ZKClusterManagementTool implements ClusterManagementService
     logger.info("Deleting cluster "+clusterName);
     String root = "/" + clusterName;
     _zkClient.deleteRecursive(root);
+  }
+
+  @Override
+  public void dropStat(String clusterName, String statName) {
+	  // TODO Auto-generated method stub
+
+  }
+
+  @Override
+  public void dropAlert(String clusterName, String alertName) {
+	  // TODO Auto-generated method stub
+
   }  
 }

@@ -213,7 +213,7 @@ public class ZkLogCSVFormatter
                 formatter(isBw,
                           timestamp,
                           record.getId(),
-                          record.getSimpleField(IdealStateProperty.RESOURCES.toString()),
+                          record.getSimpleField(IdealStateProperty.PARTITIONS.toString()),
                           record.getSimpleField(IdealStateProperty.IDEAL_STATE_MODE.toString()),
                           partition,
                           instance,

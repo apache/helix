@@ -29,9 +29,9 @@ import com.linkedin.helix.agent.zk.ZNRecordSerializer;
 import com.linkedin.helix.agent.zk.ZkClient;
 import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.IdealState;
+import com.linkedin.helix.model.IdealState.IdealStateModeProperty;
 import com.linkedin.helix.model.InstanceConfig;
 import com.linkedin.helix.model.StateModelDefinition;
-import com.linkedin.helix.model.IdealState.IdealStateModeProperty;
 import com.linkedin.helix.util.ZKClientPool;
 
 public class ClusterSetup
@@ -70,6 +70,8 @@ public class ClusterSetup
   // stats /alerts
   public static final String addStat               = "addStat";
   public static final String addAlert              = "addAlert";
+  public static final String dropStat              = "dropStat";
+  public static final String dropAlert             = "dropAlert";
   
   static Logger              _logger               = Logger.getLogger(ClusterSetup.class);
   String                     _zkServerAddress;
@@ -258,7 +260,7 @@ public class ClusterSetup
 
     IdealState idealState =
       _managementService.getResourceGroupIdealState(clusterName, resourceGroupName);
-    idealState.setReplicas(replica);
+    idealState.setReplicas(Integer.toString(replica));
     int partitions = idealState.getNumPartitions();
     String stateModelName = idealState.getStateModelDefRef();
     StateModelDefinition stateModDef = _managementService.getStateModelDef(clusterName, stateModelName);
@@ -523,6 +525,21 @@ public class ClusterSetup
     addAlertOption.setArgs(2);
     addAlertOption.setRequired(false);
     addAlertOption.setArgName("clusterName alertName");
+    
+    Option dropStatOption =
+            OptionBuilder.withLongOpt(dropStat)
+                         .withDescription("Drop a persistent stat")
+                         .create();
+        dropStatOption.setArgs(2);
+        dropStatOption.setRequired(false);
+        dropStatOption.setArgName("clusterName statName");
+    Option dropAlertOption =
+        OptionBuilder.withLongOpt(dropAlert)
+        .withDescription("Drop an alert")
+        .create();
+    dropAlertOption.setArgs(2);
+    dropAlertOption.setRequired(false);
+    dropAlertOption.setArgName("clusterName alertName");
 
     OptionGroup group = new OptionGroup();
     group.setRequired(true);
@@ -547,6 +564,8 @@ public class ClusterSetup
     group.addOption(listStateModelOption);
     group.addOption(addStatOption);
     group.addOption(addAlertOption);
+    group.addOption(dropStatOption);
+    group.addOption(dropAlertOption);
     
     Options options = new Options();
     options.addOption(helpOption);
@@ -817,6 +836,20 @@ public class ClusterSetup
       String alertName = cmd.getOptionValues(addAlert)[1];
       
       setupTool.getClusterManagementTool().addAlert(clusterName, alertName);
+    }
+    else if (cmd.hasOption(dropStat))
+    {
+      String clusterName = cmd.getOptionValues(dropStat)[0];
+      String statName = cmd.getOptionValues(dropStat)[1];
+      
+      setupTool.getClusterManagementTool().dropStat(clusterName, statName);
+    }
+    else if (cmd.hasOption(dropAlert))
+    {
+      String clusterName = cmd.getOptionValues(dropAlert)[0];
+      String alertName = cmd.getOptionValues(dropAlert)[1];
+      
+      setupTool.getClusterManagementTool().dropAlert(clusterName, alertName);
     }
     else if (cmd.hasOption(help))
     {

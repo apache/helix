@@ -24,6 +24,7 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
 
+import com.linkedin.helix.CMConstants.ChangeType;
 import com.linkedin.helix.ClusterDataAccessor;
 import com.linkedin.helix.ClusterManagementService;
 import com.linkedin.helix.ClusterManager;
@@ -41,16 +42,18 @@ import com.linkedin.helix.MessageListener;
 import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.CMConstants.ChangeType;
 import com.linkedin.helix.healthcheck.ParticipantHealthReportCollector;
 import com.linkedin.helix.healthcheck.ParticipantHealthReportCollectorImpl;
 import com.linkedin.helix.messaging.DefaultMessagingService;
 import com.linkedin.helix.messaging.handling.MessageHandlerFactory;
 import com.linkedin.helix.model.CurrentState;
 import com.linkedin.helix.model.LiveInstance;
+import com.linkedin.helix.model.Message.MessageType;
 import com.linkedin.helix.model.StateModelDefinition;
 import com.linkedin.helix.monitoring.ZKPathDataDumpTask;
 import com.linkedin.helix.participant.DistClusterControllerElection;
+import com.linkedin.helix.participant.StateMachEngine;
+import com.linkedin.helix.participant.StateMachEngineImpl;
 import com.linkedin.helix.store.PropertyStore;
 import com.linkedin.helix.tools.PropertiesReader;
 import com.linkedin.helix.util.CMUtil;
@@ -76,6 +79,7 @@ public class ZKClusterManager implements ClusterManager
   private final DefaultMessagingService _messagingService;
   private ZKClusterManagementTool _managementTool;
   private final String _version;
+  private final StateMachEngine _stateMachEngine;
 
   public ZKClusterManager(String clusterName, String instanceName,
       InstanceType instanceType, String zkConnectString) throws Exception
@@ -110,6 +114,8 @@ public class ZKClusterManager implements ClusterManager
 
     _version = new PropertiesReader("cluster-manager-version.properties")
         .getProperty("clustermanager.version");
+
+    _stateMachEngine = new StateMachEngineImpl(this);
   }
 
   private boolean isInstanceSetup()
@@ -266,16 +272,21 @@ public class ZKClusterManager implements ClusterManager
   @Override
   public void connect() throws Exception
   {
-    logger.info("Clustermanager.connect()");
+    logger.info("ClusterManager.connect()");
     if (_zkStateChangeListener.isConnected())
     {
       logger.warn("Cluster manager " + _clusterName + " " + _instanceName
           + " already connected");
       return;
     }
+
     try
     {
       createClient(_zkConnectString, SESSIONTIMEOUT);
+
+      _messagingService.registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(),
+          _stateMachEngine);
+
     } catch (Exception e)
     {
       logger.error(e);
@@ -296,12 +307,7 @@ public class ZKClusterManager implements ClusterManager
      * of state transition
      */
     _messagingService.getExecutor().shutDown();
-
-    
-    for (CallbackHandler handler : _handlers)
-    {
-      handler.reset();
-    }
+    resetHandlers();
 
     if (_leaderElectionHandler != null)
     {
@@ -365,20 +371,14 @@ public class ZKClusterManager implements ClusterManager
   public boolean removeListener(Object listener)
   {
     System.out.println("remove handlers: " + _instanceName);
-    removeListenerFromList(listener, _handlers);
-    return true;
-  }
 
-  private void removeListenerFromList(Object listener,
-      List<CallbackHandler> handlers)
-  {
-    if (handlers != null && handlers.size() > 0)
+    synchronized(_handlers)
     {
-      Iterator<CallbackHandler> iterator = handlers.iterator();
+      Iterator<CallbackHandler> iterator = _handlers.iterator();
       while (iterator.hasNext())
       {
         CallbackHandler handler = iterator.next();
-        // simply compare ref
+        // simply compare reference
         if (handler.getListener().equals(listener))
         {
           handler.reset();
@@ -386,6 +386,8 @@ public class ZKClusterManager implements ClusterManager
         }
       }
     }
+
+    return true;
   }
 
   private void addLiveInstance()
@@ -492,7 +494,7 @@ public class ZKClusterManager implements ClusterManager
     _sessionId = UUID.randomUUID().toString();
     _accessor.reset();
 
-    resetHandlers(_handlers);
+    resetHandlers();
 
     logger.info("Handling new session, session id:" + _sessionId
         + ", instance:" + _instanceName);
@@ -544,7 +546,7 @@ public class ZKClusterManager implements ClusterManager
         || _instanceType == InstanceType.CONTROLLER_PARTICIPANT
         || (_instanceType == InstanceType.CONTROLLER && isLeader()))
     {
-      initHandlers(_handlers);
+      initHandlers();
     }
   }
 
@@ -598,22 +600,22 @@ public class ZKClusterManager implements ClusterManager
     }
   }
 
-  private void resetHandlers(List<CallbackHandler> handlers)
+  private void resetHandlers()
   {
-    if (handlers != null && handlers.size() > 0)
+    synchronized (_handlers)
     {
-      for (CallbackHandler handler : handlers)
+      for (CallbackHandler handler : _handlers)
       {
         handler.reset();
       }
     }
   }
 
-  private void initHandlers(List<CallbackHandler> handlers)
+  private void initHandlers()
   {
-    if (handlers != null && handlers.size() > 0)
+    synchronized (_handlers)
     {
-      for (CallbackHandler handler : handlers)
+      for (CallbackHandler handler : _handlers)
       {
         handler.init();
       }
@@ -748,4 +750,9 @@ public class ZKClusterManager implements ClusterManager
     return _version;
   }
 
+  @Override
+  public StateMachEngine getStateMachineEngine()
+  {
+    return _stateMachEngine;
+  }
 }

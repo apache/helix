@@ -118,7 +118,7 @@ public class IdealStateCalculatorForStorageNode
     int partitions = (Integer)(result.get("partitions"));
 
     ZNRecord idealState = new ZNRecord(stateUnitGroup);
-    idealState.setSimpleField(IdealStateProperty.RESOURCES.toString(), String.valueOf(partitions));
+    idealState.setSimpleField(IdealStateProperty.PARTITIONS.toString(), String.valueOf(partitions));
 
 
     for(String instanceName : nodeMasterAssignmentMap.keySet())

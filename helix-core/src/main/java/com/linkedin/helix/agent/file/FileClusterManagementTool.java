@@ -307,6 +307,20 @@ public class FileClusterManagementTool implements ClusterManagementService
 			  "addAlert() is NOT supported by FileClusterManagementTool");
 
   }
+  
+  @Override
+  public void dropStat(String clusterName, String statName) {
+	  throw new UnsupportedOperationException(
+			  "dropStat() is NOT supported by FileClusterManagementTool");
+
+  }
+
+  @Override
+  public void dropAlert(String clusterName, String alertName) {
+	  throw new UnsupportedOperationException(
+			  "dropAlert() is NOT supported by FileClusterManagementTool");
+
+  }
 
   @Override
   public void dropCluster(String clusterName)

@@ -16,7 +16,7 @@ import com.linkedin.helix.ClusterManager;
 import com.linkedin.helix.ClusterManagerFactory;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.model.Message.MessageType;
-import com.linkedin.helix.participant.StateMachineEngine;
+import com.linkedin.helix.participant.StateMachEngine;
 import com.linkedin.helix.participant.statemachine.StateModel;
 import com.linkedin.helix.participant.statemachine.StateModelFactory;
 import com.linkedin.helix.tools.ClusterStateVerifier;
@@ -40,7 +40,7 @@ public class ExampleProcess
   private final String stateModelType;
   private ClusterManager manager;
 
-  private StateMachineEngine genericStateMachineHandler;
+//  private StateMachineEngine genericStateMachineHandler;
 
   private String _file = null;
   private StateModelFactory<StateModel> stateModelFactory;
@@ -86,11 +86,14 @@ public class ExampleProcess
     {
       stateModelFactory = new LeaderStandbyStateModelFactory(delay);
     }
-    genericStateMachineHandler = new StateMachineEngine();
-    genericStateMachineHandler.registerStateModelFactory(stateModelType, stateModelFactory);
+//    genericStateMachineHandler = new StateMachineEngine();
+//    genericStateMachineHandler.registerStateModelFactory(stateModelType, stateModelFactory);
+    
+    StateMachEngine stateMach = manager.getStateMachineEngine();
+    stateMach.registerStateModelFactory(stateModelType, stateModelFactory);
     manager.connect();
     manager.getMessagingService().registerMessageHandlerFactory(
-        MessageType.STATE_TRANSITION.toString(), genericStateMachineHandler);
+        MessageType.STATE_TRANSITION.toString(), stateMach);
     if (_file != null)
     {
       ClusterStateVerifier.verifyFileBasedClusterStates(_file, instanceName,

@@ -14,8 +14,8 @@ import org.codehaus.jackson.annotate.JsonProperty;
 import com.linkedin.helix.ZNRecordDelta.MERGEOPERATION;
 
 /**
- * Generic Record Format to store data at a Node This can be used to store simpleFields
- * mapFields listFields
+ * Generic Record Format to store data at a Node This can be used to store
+ * simpleFields mapFields listFields
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ZNRecord
@@ -37,6 +37,10 @@ public class ZNRecord
    * the version field of zookeeper Stat
    */
   private int _version;
+
+  private long _creationTime;
+
+  private long _modifiedTime;
 
   @JsonCreator
   public ZNRecord(@JsonProperty("id") String id)
@@ -172,10 +176,10 @@ public class ZNRecord
   }
 
   /**
-   * merge functionality is used to merge multiple znrecord into a single one. This will
-   * make use of the id of each ZNRecord and append it to every key thus making key
-   * unique. This is needed to optimize on the watches.
-   *
+   * merge functionality is used to merge multiple znrecord into a single one.
+   * This will make use of the id of each ZNRecord and append it to every key
+   * thus making key unique. This is needed to optimize on the watches.
+   * 
    * @param record
    */
   public void merge(ZNRecord record)
@@ -199,8 +203,7 @@ public class ZNRecord
       if (map != null)
       {
         map.putAll(record.mapFields.get(key));
-      }
-      else
+      } else
       {
         mapFields.put(key, record.mapFields.get(key));
       }
@@ -211,8 +214,7 @@ public class ZNRecord
       if (list != null)
       {
         list.addAll(record.listFields.get(key));
-      }
-      else
+      } else
       {
         listFields.put(key, record.listFields.get(key));
       }
@@ -224,8 +226,7 @@ public class ZNRecord
     if (delta.getMergeOperation() == MERGEOPERATION.ADD)
     {
       merge(delta.getRecord());
-    }
-    else if (delta.getMergeOperation() == MERGEOPERATION.SUBTRACT)
+    } else if (delta.getMergeOperation() == MERGEOPERATION.SUBTRACT)
     {
       subtract(delta.getRecord());
     }
@@ -276,8 +277,8 @@ public class ZNRecord
   }
 
   /**
-   *  Note: does not support subtract in each list in list fields
-   *  or map in mapFields
+   * Note: does not support subtract in each list in list fields or map in
+   * mapFields
    */
   public void subtract(ZNRecord value)
   {
@@ -316,6 +317,30 @@ public class ZNRecord
   public void setVersion(int version)
   {
     _version = version;
+  }
+
+  @JsonIgnore(true)
+  public long getCreationTime()
+  {
+    return _creationTime;
+  }
+
+  @JsonIgnore(true)
+  public void setCreationTime(long creationTime)
+  {
+    _creationTime = creationTime;
+  }
+
+  @JsonIgnore(true)
+  public long getModifiedTime()
+  {
+    return _modifiedTime;
+  }
+
+  @JsonIgnore(true)
+  public void setModifiedTime(long modifiedTime)
+  {
+    _modifiedTime = modifiedTime;
   }
 
 }

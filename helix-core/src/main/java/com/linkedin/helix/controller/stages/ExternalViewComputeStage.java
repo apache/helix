@@ -35,10 +35,10 @@ public class ExternalViewComputeStage extends AbstractBaseStage
     }
 
     ClusterDataAccessor dataAccessor = manager.getDataAccessor();
-//    Map<String, InstanceConfig> configMap = cache.getInstanceConfigMap();
 
     CurrentStateOutput currentStateOutput = event
         .getAttribute(AttributeName.CURRENT_STATE.toString());
+    
     for (String resourceGroupName : resourceGroupMap.keySet())
     {
       ExternalView view = new ExternalView(resourceGroupName);

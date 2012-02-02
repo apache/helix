@@ -140,8 +140,9 @@ public class FilePropertyStore<T> implements PropertyStore<T>
           _curModifiedFiles.put(path, newValue);
         }
 
-        logger.debug("file: " + file.getAbsolutePath() + " changed@" + file.lastModified() + " (" +
-            new Date(file.lastModified()) + ")");
+        // debug
+//        logger.error("file: " + file.getAbsolutePath() + " changed@" + file.lastModified() + " (" +
+//            new Date(file.lastModified()) + ")");
         results.add(file);
       }
 
@@ -235,10 +236,15 @@ public class FilePropertyStore<T> implements PropertyStore<T>
 
         });
 
+        
         // notify listeners
         for (int i = 0; i < fileArray.length; i++)
         {
           File file = fileArray[i];
+          
+          // debug
+//          logger.error("Before send notification of " + file.getAbsolutePath() + " to listeners " + _fileChangeListeners);
+
           for (Map.Entry< String, CopyOnWriteArraySet<PropertyChangeListener<T> > > entry : _fileChangeListeners.entrySet())
           {
             String absPath = file.getAbsolutePath();
@@ -249,7 +255,9 @@ public class FilePropertyStore<T> implements PropertyStore<T>
                 if (listener instanceof CallbackHandlerForFile)
                 {
                   CallbackHandlerForFile handler = (CallbackHandlerForFile) listener;
-//                  logger.debug("Sending notification of " + file.getAbsolutePath() + " to listener:" + handler.getListener());
+                  
+                  // debug
+//                  logger.error("Send notification of " + file.getAbsolutePath() + " to listener:" + handler.getListener());
                 }
                 listener.onPropertyChange(getRelativePath(absPath));
               }

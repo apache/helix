@@ -66,7 +66,7 @@ public class ZKClusterManager implements ClusterManager
   private final String _clusterName;
   private final String _instanceName;
   private final String _zkConnectString;
-  private static final int SESSIONTIMEOUT = 30000;
+  private static final int DEFAULT_SESSION_TIMEOUT = 30000;
   private ZKDataAccessor _accessor;
   protected ZkClient _zkClient;
   private final List<CallbackHandler> _handlers;
@@ -80,6 +80,7 @@ public class ZKClusterManager implements ClusterManager
   private ZKClusterManagementTool _managementTool;
   private final String _version;
   private final StateMachEngine _stateMachEngine;
+  private int _sessionTimeout;
 
   public ZKClusterManager(String clusterName, String instanceName,
       InstanceType instanceType, String zkConnectString) throws Exception
@@ -88,6 +89,17 @@ public class ZKClusterManager implements ClusterManager
                 + ", instanceName:" + instanceName
                 + ", type:" + instanceType
                 + ", zkSvr:" + zkConnectString);
+    int sessionTimeoutInt  = -1;
+    try{
+      sessionTimeoutInt = Integer.parseInt(System.getProperty("zk.session.timeout", ""+ DEFAULT_SESSION_TIMEOUT));
+    }catch(NumberFormatException e){
+      logger.warn("Exception while parsing session timeout: "+ System.getProperty("zk.session.timeout", ""+ DEFAULT_SESSION_TIMEOUT));
+    }
+    if( sessionTimeoutInt>0){
+      _sessionTimeout = sessionTimeoutInt;
+    }else{
+      _sessionTimeout =DEFAULT_SESSION_TIMEOUT;
+    }
     if (instanceName == null)
     {
       try
@@ -282,7 +294,7 @@ public class ZKClusterManager implements ClusterManager
 
     try
     {
-      createClient(_zkConnectString, SESSIONTIMEOUT);
+      createClient(_zkConnectString);
 
       _messagingService.registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(),
           _stateMachEngine);
@@ -431,11 +443,11 @@ public class ZKClusterManager implements ClusterManager
     }
   }
 
-  private void createClient(String zkServers, int sessionTimeout)
+  private void createClient(String zkServers)
       throws Exception
   {
     ZkSerializer zkSerializer = new ZNRecordSerializer();
-    _zkClient = new ZkClient(zkServers, sessionTimeout, CONNECTIONTIMEOUT,
+    _zkClient = new ZkClient(zkServers, _sessionTimeout, CONNECTIONTIMEOUT,
           zkSerializer);
     _accessor = new ZKDataAccessor(_clusterName, _zkClient);
     int retryCount = 0;
@@ -445,7 +457,7 @@ public class ZKClusterManager implements ClusterManager
     {
       try
       {
-        _zkClient.waitUntilConnected(sessionTimeout, TimeUnit.MILLISECONDS);
+        _zkClient.waitUntilConnected(_sessionTimeout, TimeUnit.MILLISECONDS);
         _zkStateChangeListener.handleStateChanged(KeeperState.SyncConnected);
         _zkStateChangeListener.handleNewSession();
         break;
@@ -562,7 +574,7 @@ public class ZKClusterManager implements ClusterManager
       // still hangs around until session timeout happens
       try
       {
-        Thread.sleep(SESSIONTIMEOUT + 5000);
+        Thread.sleep(_sessionTimeout + 5000);
       } catch (InterruptedException e)
       {
         logger.warn("Sleep interrupted while waiting for previous liveinstance to go away.", e );

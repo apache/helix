@@ -114,7 +114,7 @@ public class ZKClusterManager implements ClusterManager
 
     _version = new PropertiesReader("cluster-manager-version.properties")
         .getProperty("clustermanager.version");
-    
+
     _stateMachEngine = new StateMachEngineImpl(this);
   }
 
@@ -279,11 +279,11 @@ public class ZKClusterManager implements ClusterManager
           + " already connected");
       return;
     }
-    
+
     try
     {
       createClient(_zkConnectString, SESSIONTIMEOUT);
-      
+
       _messagingService.registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(),
           _stateMachEngine);
 
@@ -307,14 +307,6 @@ public class ZKClusterManager implements ClusterManager
      * of state transition
      */
     _messagingService.getExecutor().shutDown();
-
-//    synchronized(_handlers)
-//    {
-//      for (CallbackHandler handler : _handlers)
-//      {
-//        handler.reset();
-//      }
-//    }
     resetHandlers();
 
     if (_leaderElectionHandler != null)
@@ -379,7 +371,7 @@ public class ZKClusterManager implements ClusterManager
   public boolean removeListener(Object listener)
   {
     System.out.println("remove handlers: " + _instanceName);
-    
+
     synchronized(_handlers)
     {
       Iterator<CallbackHandler> iterator = _handlers.iterator();
@@ -605,7 +597,7 @@ public class ZKClusterManager implements ClusterManager
     {
       _zkClient.createPersistent(healthCheckInfoPath);
       logger.info("Creating healthcheck info path " + healthCheckInfoPath);
-    }    
+    }
   }
 
   private void resetHandlers()
@@ -757,7 +749,7 @@ public class ZKClusterManager implements ClusterManager
   {
     return _version;
   }
-  
+
   @Override
   public StateMachEngine getStateMachineEngine()
   {

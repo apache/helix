@@ -180,7 +180,7 @@ public class DefaultMessagingService implements ClusterMessagingService
     }
     return messagesToSendMap;
   }
-  
+
   private List<Message> generateMessagesForController(Message message)
   {
     List<Message> messages = new ArrayList<Message>();
@@ -205,40 +205,8 @@ public class DefaultMessagingService implements ClusterMessagingService
     // added MessageHandlerFactory
     // before the factory is added.
     sendNopMessage();
-
-//    if (_manager.isConnected())
-//    {
-//      try
-//      {
-//        Message noOPMsg = new Message(MessageType.NO_OP, UUID.randomUUID()
-//            .toString());
-//        noOPMsg.setSrcName(_manager.getInstanceName());
-//
-//        if (_manager.getInstanceType() == InstanceType.CONTROLLER
-//            || _manager.getInstanceType() == InstanceType.CONTROLLER_PARTICIPANT)
-//        {
-//          noOPMsg.setTgtName("Controller");
-//          _manager.getDataAccessor().setProperty(PropertyType.MESSAGES_CONTROLLER,
-//                                                 noOPMsg,
-//                                                 noOPMsg.getId());
-//        }
-//        if (_manager.getInstanceType() == InstanceType.PARTICIPANT
-//            || _manager.getInstanceType() == InstanceType.CONTROLLER_PARTICIPANT)
-//        {
-//          noOPMsg.setTgtName(_manager.getInstanceName());
-//          _manager.getDataAccessor().setProperty(PropertyType.MESSAGES,
-//                                                 noOPMsg,
-//                                                 noOPMsg.getTgtName(),
-//                                                 noOPMsg.getId());
-//        }
-//
-//      } catch (Exception e)
-//      {
-//        _logger.error(e);
-//      }
-//    }
   }
-  
+
   public void sendNopMessage()
   {
     if (_manager.isConnected())
@@ -257,7 +225,7 @@ public class DefaultMessagingService implements ClusterMessagingService
                                                  nopMsg,
                                                  nopMsg.getId());
         }
-        
+
         if (_manager.getInstanceType() == InstanceType.PARTICIPANT
             || _manager.getInstanceType() == InstanceType.CONTROLLER_PARTICIPANT)
         {
@@ -268,7 +236,7 @@ public class DefaultMessagingService implements ClusterMessagingService
                                                  nopMsg.getId());
         }
 
-      } 
+      }
       catch (Exception e)
       {
         _logger.error(e);

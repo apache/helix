@@ -24,7 +24,7 @@ public class StateMachEngineImpl implements StateMachEngine
   StateModelParser _stateModelParser;
   final static char SEPARATOR = '^';
   private final ClusterManager _manager;
-  
+
   public StateModelFactory<? extends StateModel> getStateModelFactory(String stateModelName)
   {
     return _stateModelFactoryMap.get(stateModelName);
@@ -39,57 +39,44 @@ public class StateMachEngineImpl implements StateMachEngine
   @Override
   public boolean registerStateModelFactory(String stateModelDef, StateModelFactory<? extends StateModel> factory)
   {
-//    if(stateModelDef.contains("" + SEPARATOR))
-//    {
-//      throw new ClusterManagerException("stateModelName cannot contain character " + SEPARATOR);
-//    }
-//    logger.info("Registering state model factory for state model " + stateModelDef 
-//              + " with "+ factory);
-//    if(_stateModelFactoryMap.containsKey(stateModelDef))
-//    {
-//      logger.warn("State model " + stateModelDef + " already registered");
-//      return false;
-//    }
-//    _stateModelFactoryMap.put(stateModelDef, factory);
-//    return true;
     return registerStateModelFactory(stateModelDef, null, factory);
   }
-  
+
   @Override
-  public boolean registerStateModelFactory(String stateModelDef, String resourceGroupName, 
+  public boolean registerStateModelFactory(String stateModelDef, String resourceGroupName,
       StateModelFactory<? extends StateModel> factory)
   {
     if (_manager.isConnected())
     {
       throw new ClusterManagerException("stateModelFactory cannot be registered after manager is connected");
     }
-    
+
     if (stateModelDef == null || stateModelDef.contains("" + SEPARATOR))
     {
-      throw new ClusterManagerException("stateModelDef cannot be null or contains character " 
+      throw new ClusterManagerException("stateModelDef cannot be null or contains character "
           + SEPARATOR + " (was " + stateModelDef + ")");
     }
-    
+
     if (resourceGroupName != null && resourceGroupName.contains("" + SEPARATOR))
     {
-      throw new ClusterManagerException("resourceGroupName cannot contain character " 
+      throw new ClusterManagerException("resourceGroupName cannot contain character "
           + SEPARATOR + " (was " + resourceGroupName + ")");
     }
-    
-    logger.info("Register state model factory for state model " + stateModelDef 
+
+    logger.info("Register state model factory for state model " + stateModelDef
               + " for resource group " + resourceGroupName + " with " +  factory);
-    
+
     String key = stateModelDef + (resourceGroupName == null? "" : SEPARATOR + resourceGroupName);
     if (_stateModelFactoryMap.containsKey(key))
     {
       logger.warn("StateModelFactory for " + key + " has already been registered.");
       return false;
     }
-    
+
     _stateModelFactoryMap.put(key, factory);
     return true;
   }
-  
+
   @Override
   public void reset()
   {
@@ -132,7 +119,7 @@ public class StateMachEngineImpl implements StateMachEngine
       logger.warn("message does not contain stateModelDef");
       return null;
     }
-    
+
     String key = stateModelName + SEPARATOR + resourceGroupName;
     StateModelFactory stateModelFactory = getStateModelFactory(key);
     if (stateModelFactory == null)
@@ -140,7 +127,7 @@ public class StateMachEngineImpl implements StateMachEngine
       stateModelFactory = getStateModelFactory(stateModelName);
       if(stateModelFactory == null)
       {
-        logger.warn("Cannot find stateModelFactory for model " + stateModelName 
+        logger.warn("Cannot find stateModelFactory for model " + stateModelName
             + " resourceGroup " + resourceGroupName);
         return null;
       }

@@ -117,7 +117,7 @@
           <programs>
             <program>
               <mainClass>com.linkedin.helix.controller.ClusterManagerMain</mainClass>
-              <name>run-helix-core</name>
+              <name>run-helix-controller</name>
             </program>
             <program>
               <mainClass>com.linkedin.helix.tools.ClusterSetup</mainClass>
@@ -138,6 +138,10 @@
             <program>
               <mainClass>com.linkedin.helix.examples.ExampleProcess</mainClass>
               <name>start-helix-participant</name>
+            </program>
+            <program>
+              <mainClass>com.linkedin.helix.tools.LocalZKServer</mainClass>
+              <name>start-standalone-zookeeper</name>
             </program>
           </programs>
         </configuration>

@@ -450,5 +450,17 @@ public class ZKClusterManagementTool implements ClusterManagementService
     logger.info("Deleting cluster "+clusterName);
     String root = "/" + clusterName;
     _zkClient.deleteRecursive(root);
+  }
+
+  @Override
+  public void dropStat(String clusterName, String statName) {
+	  // TODO Auto-generated method stub
+
+  }
+
+  @Override
+  public void dropAlert(String clusterName, String alertName) {
+	  // TODO Auto-generated method stub
+
   }  
 }

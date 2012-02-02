@@ -13,6 +13,7 @@ import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.alerts.AlertProcessor;
 import com.linkedin.helix.alerts.AlertValueAndStatus;
 import com.linkedin.helix.alerts.AlertsHolder;
+import com.linkedin.helix.alerts.ExpressionParser;
 import com.linkedin.helix.alerts.StatsHolder;
 import com.linkedin.helix.alerts.Tuple;
 import com.linkedin.helix.controller.pipeline.AbstractBaseStage;
@@ -183,13 +184,17 @@ public void persistAggStats(ClusterManager manager)
   {
   }
   
+  public String getAgeStatName(String instance)
+  {
+	  return instance + ExpressionParser.statFieldDelim + "reportingage";
+  }
+  
   //currTime in seconds
   public void reportAgeStat(LiveInstance instance, long currTime)
   {
-	  //TODO: put the stat name encoding somewhere easier to find
-	  String statName = "instance"+instance.getInstanceName()+"."+"reportingage";
+	  String statName = getAgeStatName(instance.getInstanceName());
 	  //TODO: call to get modifiedTime is a stub right now
-	  long modifiedTime = Long.parseLong(instance.getModifiedTime());
+	  long modifiedTime = instance.getModifiedTime();
 	  long age = currTime - modifiedTime; //XXX: ensure this is in seconds
 	  Map<String, String> ageStatMap = new HashMap<String, String>();
 	  ageStatMap.put(StatsHolder.TIMESTAMP_NAME, String.valueOf(currTime));
@@ -239,7 +244,7 @@ public void persistAggStats(ClusterManager manager)
     	//need to get instanceName in here
     	
     	if (participantStat != null) {
-    		String timestamp = instance.getModifiedTime();
+    		String timestamp = String.valueOf(instance.getModifiedTime());
     		Map<String, Map<String, String>> statMap = participantStat.getHealthFields(instanceName,timestamp);
     		for (String key : statMap.keySet()) {
     			_statsHolder.applyStat(key, statMap.get(key));

@@ -65,10 +65,9 @@ public class LiveInstance extends ZNRecordDecorator
     _record.setSimpleField(LiveInstanceProperty.LEADER.toString(), leader);
   }
 
-  public String getModifiedTime()
+  public long getModifiedTime()
   {
-	  //TODO: unstub this
-	  return "0";
+	  return _record.getModifiedTime();
   }
   
   @Override

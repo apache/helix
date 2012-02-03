@@ -9,7 +9,6 @@ import com.linkedin.helix.ClusterManager;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.IdealState;
-import com.linkedin.helix.monitoring.annotations.HelixMetric;
 
 public class ResourceGroupMonitor implements ResourceGroupMonitorMBean
 {
@@ -27,21 +26,18 @@ public class ResourceGroupMonitor implements ResourceGroupMonitorMBean
   }
 
   @Override
-  @HelixMetric(description = "Get the total number of resource keys")
   public long getResourceKeyGauge()
   {
     return _numOfResourceKeys;
   }
 
   @Override
-  @HelixMetric(description = "Get the total number of error resource keys")
   public long getErrorResouceKeyGauge()
   {
     return _numOfErrorResourceKeys;
   }
 
   @Override
-  @HelixMetric(description = "Get the diff number between ideal state and external view")
   public long getDifferenceWithIdealStateGauge()
   {
     return _externalViewIdealStateDiff;
@@ -128,7 +124,6 @@ public class ResourceGroupMonitor implements ResourceGroupMonitorMBean
   }
 
   @Override
-  @HelixMetric(description = "Get the total number of resource keys in external view")
   public long getExternalViewResourceKeyGauge()
   {
     return _numOfResourceKeysInExternalView;

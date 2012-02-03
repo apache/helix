@@ -3,76 +3,72 @@ package com.linkedin.helix.integration;
 import java.util.Date;
 
 import org.apache.log4j.Logger;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
-
-import com.linkedin.helix.agent.zk.ZNRecordSerializer;
-import com.linkedin.helix.agent.zk.ZkClient;
-
 
 public class TestCMUsingDifferentParams extends ZkIntegrationTestBase
 {
   private static Logger LOG = Logger.getLogger(TestCMUsingDifferentParams.class);
 
-  ZkClient _zkClient;
-  @BeforeClass ()
-  public void beforeClass() throws Exception
-  {
-  	_zkClient = new ZkClient(ZK_ADDR);
-  	_zkClient.setZkSerializer(new ZNRecordSerializer());
-  }
+  // ZkClient _zkClient;
+  // @BeforeClass ()
+  // public void beforeClass() throws Exception
+  // {
+  // _zkClient = new ZkClient(ZK_ADDR);
+  // _zkClient.setZkSerializer(new ZNRecordSerializer());
+  // }
+  //
+  //
+  // @AfterClass
+  // public void afterClass()
+  // {
+  // _zkClient.close();
+  // }
 
-
-	@AfterClass
-  public void afterClass()
-  {
-  	_zkClient.close();
-  }
-
-  @Test ()
+  @Test()
   public void testCMUsingDifferentParams() throws Exception
   {
     System.out.println("START " + getShortClassName() + " at "
         + new Date(System.currentTimeMillis()));
 
-    int numDbs[] = new int[] {1};   // , 2};    // , 3, 6};
-    int numPartitionsPerDbs[] = new int[] {10}; // , 20, 50, 100};    // , 1000};
-    int numNodes[] = new int[] {5}; // , 10}; // , 50, 100, 1000};
-    int replicas[] = new int[] {2}; // , 3};  //, 4, 5};
+    int numResGroups[] = new int[] { 1 }; // , 2}; // , 3, 6};
+    int numPartitionsPerResGroups[] = new int[] { 10 }; // , 20, 50, 100}; // ,
+                                                        // 1000};
+    int numInstances[] = new int[] { 5 }; // , 10}; // , 50, 100, 1000};
+    int replicas[] = new int[] { 2 }; // , 3}; //, 4, 5};
 
-    for (int numDb : numDbs)
+    for (int numResGroup : numResGroups)
     {
-      for (int numPartitionsPerDb : numPartitionsPerDbs)
+      for (int numPartitionsPerResGroup : numPartitionsPerResGroups)
       {
-        for (int numNode : numNodes)
+        for (int numInstance : numInstances)
         {
           for (int replica : replicas)
           {
-            String uniqTestName = "TestDiffParam_" + "db" + numDb + "_p" + numPartitionsPerDb
-                + "_n" + numNode + "_r" + replica;
-            System.out.println("START " + uniqTestName + " at "
+            String uniqClusterName = "TestDiffParam_" + "rg" + numResGroup + "_p"
+                + numPartitionsPerResGroup + "_n" + numInstance + "_r" + replica;
+            System.out.println("START " + uniqClusterName + " at "
                 + new Date(System.currentTimeMillis()));
 
-            TestDriver.setupCluster(uniqTestName, _zkClient, numDb, numPartitionsPerDb, numNode, replica);
+            TestDriver.setupCluster(uniqClusterName, ZK_ADDR, numResGroup,
+                numPartitionsPerResGroup, numInstance, replica);
 
-            for (int i = 0; i < numNode; i++)
+            for (int i = 0; i < numInstance; i++)
             {
-              TestDriver.startDummyParticipant(uniqTestName, i);
+              TestDriver.startDummyParticipant(uniqClusterName, i);
             }
 
-            TestDriver.startController(uniqTestName);
-            TestDriver.verifyCluster(uniqTestName, 1000);
-            TestDriver.stopCluster(uniqTestName);
+            TestDriver.startController(uniqClusterName);
+            TestDriver.verifyCluster(uniqClusterName, 1000, 50 * 1000);
+            TestDriver.stopCluster(uniqClusterName);
 
-            System.out.println("END " + uniqTestName + " at "
+            System.out.println("END " + uniqClusterName + " at "
                 + new Date(System.currentTimeMillis()));
           }
         }
       }
     }
 
-    System.out.println("END " + getShortClassName() + " at "
-        + new Date(System.currentTimeMillis()));
+    System.out
+        .println("END " + getShortClassName() + " at " + new Date(System.currentTimeMillis()));
   }
 }

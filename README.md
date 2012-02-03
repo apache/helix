@@ -84,10 +84,8 @@ Zookeeper can be started in standalone mode or replicated mode.
 
 More can info is available at http://zookeeper.apache.org/doc/r3.3.3/zookeeperStarted.html
 and  http://zookeeper.apache.org/doc/trunk/zookeeperAdmin.html#sc_zkMulitServerSetup
-After downloading Zookeeper go to zookeeper directory and run  
-    
-    bin/zkServer.sh start // standalone mode
-    java -cp zookeeper-3.3.3.jar:lib/log4j-1.2.15.jar:conf org.apache.zookeeper.server.quorum.QuorumPeerMain conf/zoo_multi.cfg //clustered mode
+
+In this example, we will start zookeeper in local mode.
 
 BUILD Helix
 -----------
@@ -102,35 +100,39 @@ Cluster setup
 -------------
 cluster-admin tool is used for cluster administration tasks. Apart from command line interface Helix supports a REST interface.
 
-zookeeper_address is of the format host:port e.g localhost:2181 for standalone or host1:port,host2:port for multi node.
+zookeeper_address is of the format host:port e.g localhost:2199 for standalone or host1:port,host2:port for multi node.
 
 In the following section we will see how one can set up a mock cluster with 
+
 * mycluster as cluster name
 * 3 nodes running on localhost at 12913, 12914,12915 
 * One database named MyDB with 6 partitions
 * Each partition will have 1 master, 2 slaves
-* zookeeper running locally at localhost:2181
+* zookeeper running locally at localhost:2199
+
+    #start zookeeper locally at port 2199
+    ./start-standalone-zookeeper 2199 &
 
     #create the cluster mycluster
-    helix-admin -zkSvr localhost:2181 -addCluster mycluster 
+    ./helix-admin --zkSvr localhost:2199 --addCluster mycluster 
 
     #Create a database
-    helix-admin -zkSvr localhost:2181  -addResourceGroup mycluster myDB 6 MasterSlave
+    ./helix-admin --zkSvr localhost:2199  --addResourceGroup mycluster myDB 6 MasterSlave
     #Add nodes to the cluster, in this case we add three nodes, hostname:port is host and port on which the service will start
-    helix-admin -zkSvr localhost:2181  -addNode mycluster localhost:12913
-    helix-admin -zkSvr localhost:2181  -addNode mycluster localhost:12914
-    helix-admin -zkSvr localhost:2181  -addNode mycluster localhost:12915
+    ./helix-admin --zkSvr localhost:2199  --addNode mycluster localhost:12913
+    ./helix-admin --zkSvr localhost:2199  --addNode mycluster localhost:12914
+    ./helix-admin --zkSvr localhost:2199  --addNode mycluster localhost:12915
 
     # After adding nodes assign partitions to nodes.
     # helix-admin --rebalance <clustername> <resourceName> <replication factor>
-    helix-admin --rebalance mycluster myDB 3
+    ./helix-admin --zkSvr localhost:2199 --rebalance mycluster myDB 3
 
 Start Helix Controller
 ---------------------
 
 
     #This will start the cluster manager which will manage <mycluster>
-    run-helix-controller --zkSvr localhost:2181 --cluster mycluster
+    ./run-helix-controller --zkSvr localhost:2199 --cluster mycluster
 
 
 
@@ -140,23 +142,24 @@ Start Example Participant
    
     ./start-helix-participant --help
     #start process 1 process corresponding to every host port added during cluster setup
-    ./start-helix-participant --cluster mycluster --host localhost --port 12913 --stateModelType MasterSlave
-    ./start-helix-participant --cluster mycluster --host localhost --port 12914 --stateModelType MasterSlave
-    ./start-helix-participant --cluster mycluster --host localhost --port 12915 --stateModelType MasterSlave
+    ./start-helix-participant --zkSvr localhost:2199 --cluster mycluster --host localhost --port 12913 --stateModelType MasterSlave
+    ./start-helix-participant --zkSvr localhost:2199 --cluster mycluster --host localhost --port 12914 --stateModelType MasterSlave
+    ./start-helix-participant --zkSvr localhost:2199 --cluster mycluster --host localhost --port 12915 --stateModelType MasterSlave
 
 
 Inspect Cluster Data
 --------------------
 
+We can see the cluster state on zookeeper and know the partition assignment and current state of each parition.
+
+CLI
+   ./helix-admin -listResourceGroupInfo mycluster myDB
+
+ZOOINSPECTOR
+
 * Use ZooInspector that comes with zookeeper to inspect the data
 * To start zooinspector
    java -cp zookeeper-3.3.3-ZooInspector.jar:lib/jtoaster-1.0.4.jar:../../lib/log4j-1.2.15.jar:../../zookeeper-3.3.3.jar org.apache.zookeeper.inspector.ZooInspector
-   Click and connect and provide the zookeeper address to inspect. If zookeeper is running locally use localhost:2181
-
-
-
-
-
-
+   Click and connect and provide the zookeeper address to inspect. If zookeeper is running locally use localhost:2199
 
 

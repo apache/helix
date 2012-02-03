@@ -98,7 +98,7 @@ BUILD Helix
 
 Cluster setup
 -------------
-cluster-admin tool is used for cluster administration tasks. Apart from command line interface Helix supports a REST interface.
+cluster-admin tool is used for cluster administration tasks. apart from command line interface Helix supports a REST interface.
 
 zookeeper_address is of the format host:port e.g localhost:2199 for standalone or host1:port,host2:port for multi node.
 
@@ -141,7 +141,7 @@ Start Example Participant
 
    
     ./start-helix-participant --help
-    #start process 1 process corresponding to every host port added during cluster setup
+    # start process 1 process corresponding to every host port added during cluster setup
     ./start-helix-participant --zkSvr localhost:2199 --cluster mycluster --host localhost --port 12913 --stateModelType MasterSlave
     ./start-helix-participant --zkSvr localhost:2199 --cluster mycluster --host localhost --port 12914 --stateModelType MasterSlave
     ./start-helix-participant --zkSvr localhost:2199 --cluster mycluster --host localhost --port 12915 --stateModelType MasterSlave
@@ -152,8 +152,33 @@ Inspect Cluster Data
 
 We can see the cluster state on zookeeper and know the partition assignment and current state of each parition.
 
-CLI
-   ./helix-admin -listResourceGroupInfo mycluster myDB
+Command line 
+   # List existing clusters
+   ./helix-admin --zkSvr localhost:2199 --listClusters        
+                                       
+   # Query info of a cluster
+   ./helix-admin --zkSvr localhost:2199 --listClusterInfo <clusterName> 
+
+   # Query info of a Instance in a cluster
+   ./helix-admin --zkSvr localhost:2199 --listInstanceInfo <clusterName InstanceName>    
+
+   # List Instances in a cluster
+   ./helix-admin --zkSvr localhost:2199 --listInstances <clusterName>
+
+   # Query info of a resourceGroup
+   ./helix-admin --zkSvr localhost:2199 --listResourceGroupInfo <clusterName resourceGroupName> 
+
+   # List resourceGroups hosted in a cluster
+   ./helix-admin --zkSvr localhost:2199 --listResourceGroups <clusterName>
+
+   # Query info about a resource key   
+   ./helix-admin --zkSvr localhost:2199 --listResourceInfo <clusterName reourceKeyName> 
+   
+   # Query info about a state model in a cluster
+   ./helix-admin --zkSvr localhost:2199 --listStateModel <clusterName stateModelName>
+   
+   # List all state models in the cluster
+   ./helix-admin --zkSvr localhost:2199 --listStateModels <clusterName> 
 
 ZOOINSPECTOR
 

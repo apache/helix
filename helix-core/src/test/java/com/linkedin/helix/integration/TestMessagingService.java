@@ -157,6 +157,12 @@ public class TestMessagingService extends ZkStandAloneCMTestBase
           + message.getRecord()
               .getMapField(Message.Attributes.MESSAGE_RESULT.toString())
               .get("ReplyMessage"));
+      if(message.getRecord()
+          .getMapField(Message.Attributes.MESSAGE_RESULT.toString())
+          .get("ReplyMessage") == null)
+      {
+        int x = 0;
+      }
       _replyedMessageContents.add(message.getRecord()
           .getMapField(Message.Attributes.MESSAGE_RESULT.toString())
           .get("ReplyMessage"));
@@ -305,7 +311,44 @@ public class TestMessagingService extends ZkStandAloneCMTestBase
     int messageSent4 = _startCMResultMap.get(hostSrc)._manager.getMessagingService()
         .sendAndWait(cr, msg, callback4, 2000);
     AssertJUnit.assertTrue(callback4.getMessageReplied().size() == 2);
+  }
+  
+  @Test()
+  public void sendSelfMsg()
+  {
+    String hostSrc = "localhost_" + START_PORT;
 
+    for (int i = 0; i < NODE_NR; i++)
+    {
+      TestMessagingHandlerFactory factory = new TestMessagingHandlerFactory();
+      String hostDest = "localhost_" + (START_PORT + i);
+      _startCMResultMap.get(hostDest)._manager.getMessagingService()
+          .registerMessageHandlerFactory(factory.getMessageType(), factory);
+    }
+    String msgId = new UUID(123, 456).toString();
+    Message msg = new Message(
+        new TestMessagingHandlerFactory().getMessageType(),msgId);
+    msg.setMsgId(msgId);
+    msg.setSrcName(hostSrc);
+
+    msg.setTgtSessionId("*");
+    msg.setMsgState("new");
+    String para = "Testing messaging para";
+    msg.getRecord().setSimpleField("TestMessagingPara", para);
+
+    Criteria cr = new Criteria();
+    cr.setInstanceName("%");
+    cr.setRecipientInstanceType(InstanceType.PARTICIPANT);
+    cr.setSessionSpecific(false);
+    cr.setSelfExcluded(false);
+    AsyncCallback callback1 = new MockAsyncCallback();
+    int messageSent1 = _startCMResultMap.get(hostSrc)._manager.getMessagingService()
+        .sendAndWait(cr, msg, callback1, 2000);
+
+    AssertJUnit.assertTrue(callback1.getMessageReplied().get(0).getRecord()
+        .getMapField(Message.Attributes.MESSAGE_RESULT.toString())
+        .get("ReplyMessage").equals("TestReplyMessage"));
+    AssertJUnit.assertTrue(callback1.getMessageReplied().size() == NODE_NR);
   }
 
   @Test()

@@ -16,7 +16,6 @@ import com.linkedin.helix.LiveInstanceChangeListener;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.LiveInstance;
-import com.linkedin.helix.monitoring.annotations.HelixMetric;
 
 
 public class ClusterStatusMonitor
@@ -88,14 +87,12 @@ public class ClusterStatusMonitor
   }
 
   @Override
-  @HelixMetric(description = "Get the total live instance")
   public long getLiveInstanceGauge()
   {
     return _numOfLiveInstances;
   }
 
   @Override
-  @HelixMetric(description = "Get the total instance")
   public long getInstancesGauge()
   {
     return _numOfInstances;

@@ -26,6 +26,7 @@ import com.linkedin.helix.healthcheck.Stat;
 import com.linkedin.helix.healthcheck.StatHealthReportProvider;
 import com.linkedin.helix.model.HealthStat;
 import com.linkedin.helix.model.LiveInstance;
+import com.linkedin.helix.monitoring.mbeans.ClusterAlertMBeanCollection;
 
 /**
  * For each LiveInstances select currentState and message whose sessionId
@@ -44,6 +45,7 @@ public class StatsAggregationStage extends AbstractBaseStage
   AlertsHolder _alertsHolder;
   Map<String, Map<String, AlertValueAndStatus>> _alertStatus;
   Map<String, Tuple<String>> _statStatus;
+  ClusterAlertMBeanCollection _alertBeanCollection = new ClusterAlertMBeanCollection();
   
   public final String PARTICIPANT_STAT_REPORT_NAME = StatHealthReportProvider.REPORT_NAME;
   public final String ESPRESSO_STAT_REPORT_NAME = "RestQueryStats";
@@ -262,7 +264,10 @@ public void persistAggStats(ClusterManager manager)
    
     //execute alerts, populate _alertStatus
     _alertStatus = AlertProcessor.executeAllAlerts(_alertsHolder.getAlertList(), _statsHolder.getStatsList());
-    
+    for(String originAlertName : _alertStatus.keySet())
+    {
+      _alertBeanCollection.setAlerts(originAlertName, _alertStatus.get(originAlertName));
+    }
     //write out alert status (to zk)
     _alertsHolder.addAlertStatusSet(_alertStatus);
     

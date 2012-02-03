@@ -17,6 +17,7 @@ import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import com.linkedin.helix.alerts.AlertValueAndStatus;
 import com.linkedin.helix.monitoring.mbeans.ClusterAlertMBeanCollection;
 import com.linkedin.helix.monitoring.mbeans.ClusterMBeanObserver;
 
@@ -71,12 +72,13 @@ public class TestClusterAlertItemMBeanCollection
     ClusterAlertMBeanCollection beanCollection = new ClusterAlertMBeanCollection();
     int nAlerts = 22;
     TestClusterMBeanObserver observer1 = new TestClusterMBeanObserver(ClusterAlertMBeanCollection.DOMAIN_ALERT);
-    Map<String, Integer> alertsMap1 = new HashMap<String, Integer>();
+    Map<String, AlertValueAndStatus> alertsMap1 = new HashMap<String, AlertValueAndStatus>();
     for (int i = 0;i < nAlerts; i++)
     {
-      alertsMap1.put("Alert"+i, i%2);
+      
+//      alertsMap1.put("Alert"+i, i%2);
     }
-    beanCollection.setAlerts(alertsMap1);
+ //   beanCollection.setAlerts(alertsMap1);
     try
     {
       Thread.sleep(1000);

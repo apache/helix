@@ -15,6 +15,8 @@ import javax.management.ObjectName;
 
 import org.apache.log4j.Logger;
 
+import com.linkedin.helix.alerts.AlertValueAndStatus;
+
 public class ClusterAlertMBeanCollection
 {
   public static String DOMAIN_ALERT = "HelixAlerts";
@@ -44,33 +46,39 @@ public class ClusterAlertMBeanCollection
   {
     try
     {
-      _logger.info("alert bean " + bean.getAlertName()+" exposed to jmx");
-      ObjectName objectName =  new ObjectName(DOMAIN_ALERT+":alert="+bean.getAlertName());
+      _logger.info("alert bean " + bean.getName()+" exposed to jmx");
+      System.out.println("alert bean " + bean.getName()+" exposed to jmx");
+      ObjectName objectName =  new ObjectName(DOMAIN_ALERT+":alert="+bean.getName());
       register(bean, objectName);
-      
-      // for testing only
-      // ObjectName objectName2 =  new ObjectName(DOMAIN_ALERT+".clone:alert="+bean.getAlertName());
-      // register(bean, objectName2);
     } 
     catch (Exception e)
     {
       _logger.error("", e);
+      e.printStackTrace();
     }
   }
   
-  public void setAlerts(Map<String, Integer> alertResultMap)
+  public void setAlerts(String originAlert, Map<String, AlertValueAndStatus> alertResultMap)
   {
+    if(alertResultMap == null)
+    {
+      _logger.warn("null alertResultMap");
+      return;
+    }
     for(String alertName : alertResultMap.keySet())
     {
-      if(!_alertBeans.containsKey(alertName))
+      String beanName = originAlert+"--("+ alertName+")";
+      beanName = beanName.replace('*', '%').replace('=', '#');
+      
+      if(!_alertBeans.containsKey(beanName))
       {
-        ClusterAlertItem item = new ClusterAlertItem(alertName, alertResultMap.get(alertName));
+        ClusterAlertItem item = new ClusterAlertItem(beanName, alertResultMap.get(alertName));
         onNewAlertMbeanAdded(item);
-        _alertBeans.put(alertName, item);
+        _alertBeans.put(beanName, item);
       }
       else
       {
-        _alertBeans.get(alertName).setValue(alertResultMap.get(alertName));
+        _alertBeans.get(beanName).setValueMap(alertResultMap.get(alertName));
       }
     }
   }
@@ -90,7 +98,7 @@ public class ClusterAlertMBeanCollection
     }
     catch (Exception e)
     {
-      _logger.warn("Could not register MBean", e);
+      _logger.error("Could not register MBean", e);
     }
   }
 }

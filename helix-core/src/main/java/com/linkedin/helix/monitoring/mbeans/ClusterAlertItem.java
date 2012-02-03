@@ -1,28 +1,47 @@
 package com.linkedin.helix.monitoring.mbeans;
 
+
+import com.linkedin.helix.alerts.AlertValueAndStatus;
+
 public class ClusterAlertItem implements ClusterAlertItemMBean
 {
-  public ClusterAlertItem(String name, int value)
-  {
-    _alertItemName = name;
-    _alertValue = value;
-  }
   String _alertItemName;
-  int _alertValue;
+  double  _alertValue;
+  int _alertFired;
+  AlertValueAndStatus _valueAndStatus;
+  
+  public ClusterAlertItem(String name, AlertValueAndStatus valueAndStatus)
+  {
+    _valueAndStatus = valueAndStatus;
+    _alertItemName = name;
+    refreshValues();
+  }
   @Override
-  public String getAlertName()
+  public String getName()
   {
     return _alertItemName;
   }
 
   @Override
-  public int getAlertValue()
+  public double getAlertValue()
   {
     return _alertValue;
   }
   
-  void setValue(int value)
+  public void setValueMap(AlertValueAndStatus valueAndStatus)
   {
-    _alertValue = value;
+    _valueAndStatus = valueAndStatus;
+    refreshValues();
+  }
+  
+  void refreshValues()
+  {
+    _alertValue = Double.parseDouble(_valueAndStatus.getValue().getElements().get(0));
+    _alertFired = _valueAndStatus.isFired() ?  1 : 0;
+  }
+  @Override
+  public int getAlertFired()
+  {
+    return _alertFired;
   }
 }

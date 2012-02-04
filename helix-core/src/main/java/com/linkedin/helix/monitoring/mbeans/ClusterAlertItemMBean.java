@@ -2,7 +2,7 @@ package com.linkedin.helix.monitoring.mbeans;
 
 public interface ClusterAlertItemMBean
 {
-  String getName();
+  String getSensorName();
   
   double getAlertValue();
   

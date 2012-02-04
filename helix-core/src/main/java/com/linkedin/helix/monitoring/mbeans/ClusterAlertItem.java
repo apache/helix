@@ -17,7 +17,7 @@ public class ClusterAlertItem implements ClusterAlertItemMBean
     refreshValues();
   }
   @Override
-  public String getName()
+  public String getSensorName()
   {
     return _alertItemName;
   }

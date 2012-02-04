@@ -46,9 +46,9 @@ public class ClusterAlertMBeanCollection
   {
     try
     {
-      _logger.info("alert bean " + bean.getName()+" exposed to jmx");
-      System.out.println("alert bean " + bean.getName()+" exposed to jmx");
-      ObjectName objectName =  new ObjectName(DOMAIN_ALERT+":alert="+bean.getName());
+      _logger.info("alert bean " + bean.getSensorName()+" exposed to jmx");
+      System.out.println("alert bean " + bean.getSensorName()+" exposed to jmx");
+      ObjectName objectName =  new ObjectName(DOMAIN_ALERT+":alert="+bean.getSensorName());
       register(bean, objectName);
     } 
     catch (Exception e)

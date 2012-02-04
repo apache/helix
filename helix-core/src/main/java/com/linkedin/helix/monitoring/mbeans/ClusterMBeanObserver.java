@@ -26,8 +26,8 @@ import org.apache.log4j.Logger;
  * **/
 public abstract class ClusterMBeanObserver implements NotificationListener
 {
-  final String _domain;
-  MBeanServerConnection _server;
+  protected final String _domain;
+  protected MBeanServerConnection _server;
   private static final Logger _logger = Logger.getLogger(ClusterMBeanObserver.class);
       
   public ClusterMBeanObserver(String domain) 

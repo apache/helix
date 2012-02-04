@@ -1,9 +1,19 @@
 package com.linkedin.helix.integration;
 
+import java.io.IOException;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import javax.management.InstanceNotFoundException;
+import javax.management.MBeanAttributeInfo;
+import javax.management.MBeanInfo;
+import javax.management.MBeanServerConnection;
+import javax.management.MBeanServerNotification;
+import javax.management.MalformedObjectNameException;
+
+import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -26,10 +36,55 @@ import com.linkedin.helix.mock.storage.MockEspressoHealthReportProvider;
 import com.linkedin.helix.mock.storage.MockParticipant;
 import com.linkedin.helix.mock.storage.MockTransitionIntf;
 import com.linkedin.helix.model.Message;
+import com.linkedin.helix.monitoring.mbeans.ClusterAlertMBeanCollection;
+import com.linkedin.helix.monitoring.mbeans.ClusterMBeanObserver;
 import com.linkedin.helix.tools.ClusterSetup;
 
-public class TestWildcardAlert extends ZkIntegrationTestBase
+public class TestWildcardAlert extends ZkIntegrationTestBase 
 {
+  class TestClusterMBeanObserver extends ClusterMBeanObserver
+  {
+    Map<String, Map<String, Object>> _beanValueMap = new HashMap<String, Map<String, Object>>();
+    
+    public TestClusterMBeanObserver(String domain)
+        throws InstanceNotFoundException, IOException,
+        MalformedObjectNameException, NullPointerException
+    {
+      super(domain);
+    }
+
+    @Override
+    public void onMBeanRegistered(MBeanServerConnection server,
+        MBeanServerNotification mbsNotification)
+    {
+      try
+      {
+        MBeanInfo info = _server.getMBeanInfo(mbsNotification.getMBeanName());
+        MBeanAttributeInfo[] infos = info.getAttributes();
+        _beanValueMap.put(mbsNotification.getMBeanName().toString(), new HashMap<String, Object>());
+        for(MBeanAttributeInfo infoItem : infos)
+        {
+          Object val = _server.getAttribute(mbsNotification.getMBeanName(), infoItem.getName());
+          System.out.println("         " + infoItem.getName() + " : " + _server.getAttribute(mbsNotification.getMBeanName(), infoItem.getName()) + " type : " + infoItem.getType());
+          _beanValueMap.get(mbsNotification.getMBeanName().toString()).put(infoItem.getName(), val);
+        }
+      } 
+      catch (Exception e)
+      {
+        _logger.error("Error getting bean info, domain="+_domain, e);
+      } 
+    }
+
+    @Override
+    public void onMBeanUnRegistered(MBeanServerConnection server,
+        MBeanServerNotification mbsNotification)
+    {
+      
+    }
+    
+  }
+
+  private static final Logger _logger = Logger.getLogger(TestWildcardAlert.class);
   ZkClient _zkClient;
   protected ClusterSetup _setupTool = null;
   protected final String _alertStr = "EXP(accumulate()(localhost_*.RestQueryStats@DBName=TestDB0.latency)|EXPAND|SUMEACH)CMP(GREATER)CON(10)";
@@ -141,6 +196,8 @@ public class TestWildcardAlert extends ZkIntegrationTestBase
       new Thread(participants[i]).start();
     }
 
+    TestClusterMBeanObserver jmxMBeanObserver = new TestClusterMBeanObserver(ClusterAlertMBeanCollection.DOMAIN_ALERT);
+    
     TestHelper.verifyWithTimeout("verifyBestPossAndExtViewExtended",
                                  15000,  // timeout in millisecond //was 15000
                                  ZK_ADDR,
@@ -148,24 +205,33 @@ public class TestWildcardAlert extends ZkIntegrationTestBase
                                  TestHelper.<String>setOf(_dbName),
                                  null,
                                  null,
-                                 null);
-
-    // other verifications go here
+                                 null);// other verifications go here
     ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
     //for (int i = 0; i < 1; i++) //change 1 back to 5
     //{
-      //String instance = "localhost_" + (12918 + i);
-      //String instance = "localhost_12918";
-      ZNRecord record = accessor.getProperty(PropertyType.ALERT_STATUS);
-      Map<String, Map<String,String>> recMap = record.getMapFields();
-      Set<String> keySet = recMap.keySet();
-      Map<String,String> alertStatusMap = recMap.get(_alertStatusStr);
-      String val = alertStatusMap.get(AlertValueAndStatus.VALUE_NAME);
-      boolean fired = Boolean.parseBoolean(alertStatusMap.get(AlertValueAndStatus.FIRED_NAME));
-      Assert.assertEquals(Double.parseDouble(val), Double.parseDouble("75.0"));
-      Assert.assertTrue(fired);
-    //}
-
+    //String instance = "localhost_" + (12918 + i);
+    //String instance = "localhost_12918";
+    ZNRecord record = accessor.getProperty(PropertyType.ALERT_STATUS);
+    Map<String, Map<String,String>> recMap = record.getMapFields();
+    Set<String> keySet = recMap.keySet();
+    Map<String,String> alertStatusMap = recMap.get(_alertStatusStr);
+    String val = alertStatusMap.get(AlertValueAndStatus.VALUE_NAME);
+    boolean fired = Boolean.parseBoolean(alertStatusMap.get(AlertValueAndStatus.FIRED_NAME));
+    Assert.assertEquals(Double.parseDouble(val), Double.parseDouble("75.0"));
+    Assert.assertTrue(fired);
+    
+    // Make sure that the jmxObserver has received all the jmx bean value that is corresponding to the alerts.
+    Assert.assertTrue(jmxMBeanObserver._beanValueMap.size() == 1);
+    String beanName = "HelixAlerts:alert=EXP(accumulate()(localhost_%.RestQueryStats@DBName#TestDB0.latency)|EXPAND|SUMEACH)CMP(GREATER)CON(10)--(%)";
+    Assert.assertTrue(jmxMBeanObserver._beanValueMap.containsKey(beanName));
+    
+    Map<String, Object> beanValueMap = jmxMBeanObserver._beanValueMap.get(beanName);
+    Assert.assertEquals(beanValueMap.size(),3);
+    Assert.assertEquals((Integer)(beanValueMap.get("AlertFired")), new Integer(1));
+    Assert.assertEquals((Double)(beanValueMap.get("AlertValue")), new Double(75.0));
+    Assert.assertEquals((String)(beanValueMap.get("SensorName")), "EXP(accumulate()(localhost_%.RestQueryStats@DBName#TestDB0.latency)|EXPAND|SUMEACH)CMP(GREATER)CON(10)--(%)");
+  //}
+    
     System.out.println("END TestWildcardAlert at " + new Date(System.currentTimeMillis()));
   }
 }

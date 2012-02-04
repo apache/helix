@@ -88,97 +88,6 @@ public void persistAggStats(ClusterManager manager)
       }
   }
  
-  /*
-  public void addAggStat(Map<String, String> statName, String statVal, String statTimestamp)
-  {
-	  Stat es = new Stat(statName);
-	  es.setAggType(_defaultAggType);
-	  _aggStatsProvider.setStat(es, statVal, statTimestamp);
-  }
-  
-  public void updateAggStat(Stat aggStat, String statVal, String statTimestamp)
-  {
-	  _aggStatsProvider.setStat(aggStat, statVal, statTimestamp);
-  }
-  */
-  
-  
-  /*
-   * Reconcile participant stat with set of agg stats
-   */
-  
-  /*
-  public void applyParticipantStat(Map<String, String> participantStatName, String participantStatVal, 
-		  String participantStatTimestamp)
-  {
-	  
-	  Stat participantStat = new Stat(participantStatName);
-	  //check each agg stat to see if "contains"/equal to participant stat
-	  for (Stat aggStat : _aggStatsProvider.keySet()) {
-		  if (participantStat.equals(aggStat)) {
-			  //check if participant stat is newer than agg stat
-			  long currAggTimestamp = _aggStatsProvider.getStatTimestamp(aggStat);
-			  if (Long.parseLong(participantStatTimestamp) > currAggTimestamp) {
-				  //apply the stat
-				  String currAggVal = _aggStatsProvider.getStatValue(participantStat);
-				  AggregationType aggType = AggregationTypeFactory.getAggregationType(aggStat._aggTypeName);
-				  String aggStatVal = aggType.merge(
-				    participantStatVal, currAggVal, currAggTimestamp);
-				  updateAggStat(aggStat, aggStatVal, participantStatTimestamp);
-			  }
-			  else {
-				  //participant stat already applied, do nothing
-			  }
-		  }
-	  }
-	  //check if aggStats contains participant stat exactly.  if not, add.
-	  if (!_aggStatsProvider.contains(participantStat)) {
-		  addAggStat(participantStatName, participantStatVal, participantStatTimestamp);
-	  }
-	  */
-	  
-	  /*
-	  //check if we have agg stat matching this participant stat
-	  if (_aggStatsProvider.contains(participantStat)) {
-		  //check if participant stat is newer than agg stat
-		  long currAggTimestamp = _aggStatsProvider.getStatTimestamp(participantStat);
-		  if (Long.parseLong(participantStatTimestamp) > currAggTimestamp) {
-			  //apply the stat
-			  //AggregationType agg = !!!!!!!!
-			  double currAggVal = _aggStatsProvider.getStatValue(participantStat);
-			  //TODO: something other than simple accumulation			  
-			  String aggStatVal = String.valueOf(currAggVal + Double.parseDouble(participantStatVal));
-			  addAggStat(participantStatName, aggStatVal, participantStatTimestamp);
-		  }
-		  else {
-			  //participant stat already applied, do nothing
-		  }
-	  }
-	  else {
-		  //no agg stat for this participant stat yet
-		  addAggStat(participantStatName, participantStatVal, participantStatTimestamp);
-	  }
-	  */
-  //}
-  
-  /*
-  public void initAggStats(ClusterDataCache cache) 
-  {
-	  _aggStatsProvider = new StatHealthReportProvider();
-	  _aggStatsProvider.setReportName(REPORT_NAME);
-	  HealthStat hs = cache.getGlobalStats();
-	  if (hs != null) {
-		  Map<String, Map<String, String>> derivedStatsMap = hs.getMapFields();
-		  //most of map becomes the "stat", except value which becomes value, timestamp becomes timestamp
-		  for (String key : derivedStatsMap.keySet()) {
-			  addAggStat(derivedStatsMap.get(key), 
-					  derivedStatsMap.get(key).get(StatHealthReportProvider.STAT_VALUE),
-					  derivedStatsMap.get(key).get(StatHealthReportProvider.TIMESTAMP));		  
-		  }
-	  }
-  }
-  */
-  
   @Override
   public void init(StageContext context) 
   {
@@ -239,7 +148,9 @@ public void persistAggStats(ClusterManager manager)
     	stats = cache.getHealthStats(instanceName);
     	//find participants stats
     	HealthStat participantStat = stats.get(ESPRESSO_STAT_REPORT_NAME);
-
+    	long modTime = -1;
+    	if (participantStat != null) {modTime = participantStat.getLastModifiedTimeStamp();}
+    	//System.out.println(modTime);
     	//XXX: need to convert participantStat to a better format
     	//need to get instanceName in here
     	

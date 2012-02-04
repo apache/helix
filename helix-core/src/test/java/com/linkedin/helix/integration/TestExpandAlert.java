@@ -28,13 +28,12 @@ import com.linkedin.helix.mock.storage.MockTransitionIntf;
 import com.linkedin.helix.model.Message;
 import com.linkedin.helix.tools.ClusterSetup;
 
-public class TestWildcardAlert extends ZkIntegrationTestBase
+public class TestExpandAlert extends ZkIntegrationTestBase
 {
   ZkClient _zkClient;
   protected ClusterSetup _setupTool = null;
-  protected final String _alertStr = "EXP(accumulate()(localhost_*.RestQueryStats@DBName=TestDB0.latency)|EXPAND|SUMEACH)CMP(GREATER)CON(10)";
-  //protected final String _alertStr = "EXP(accumulate()(localhost_*.RestQueryStats@DBName=TestDB0.latency))CMP(GREATER)CON(10)";
-  protected final String _alertStatusStr = _alertStr; //+" : (*)";
+  protected final String _alertStr = "EXP(accumulate()(localhost_*.RestQueryStats@DBName=TestDB0.latency))CMP(GREATER)CON(16)";
+  protected final String _alertStatusStr = _alertStr+" : (12918)";
   protected final String _dbName = "TestDB0";
   
   @BeforeClass ()
@@ -52,7 +51,7 @@ public class TestWildcardAlert extends ZkIntegrationTestBase
     _zkClient.close();
   }
 
-  public class WildcardAlertTransition implements MockTransitionIntf
+  public class ExpandAlertTransition implements MockTransitionIntf
   {
     @Override
     public void doTrasition(Message message, NotificationContext context) 
@@ -102,12 +101,12 @@ public class TestWildcardAlert extends ZkIntegrationTestBase
   }
   
   @Test()
-  public void testWildcardAlert() throws Exception
+  public void testExpandAlert() throws Exception
   {
     String clusterName = getShortClassName();
     MockParticipant[] participants = new MockParticipant[5];
 
-    System.out.println("START TestWildcardAlert at " + new Date(System.currentTimeMillis()));
+    System.out.println("START TestExpandAlert at " + new Date(System.currentTimeMillis()));
 
     TestHelper.setupCluster(clusterName, 
                             ZK_ADDR, 
@@ -135,7 +134,7 @@ public class TestWildcardAlert extends ZkIntegrationTestBase
       participants[i] = new MockParticipant(clusterName, 
                                             instanceName, 
                                             ZK_ADDR,
-                                            new WildcardAlertTransition());
+                                            new ExpandAlertTransition());
       new Thread(participants[i]).start();
     }
 
@@ -162,10 +161,10 @@ public class TestWildcardAlert extends ZkIntegrationTestBase
       Map<String,String> alertStatusMap = recMap.get(_alertStatusStr);
       String val = alertStatusMap.get(AlertValueAndStatus.VALUE_NAME);
       boolean fired = Boolean.parseBoolean(alertStatusMap.get(AlertValueAndStatus.FIRED_NAME));
-      Assert.assertEquals(Double.parseDouble(val), Double.parseDouble("75.0"));
-      Assert.assertTrue(fired);
+      Assert.assertEquals(Double.parseDouble(val), Double.parseDouble("15.0"));
+      Assert.assertFalse(fired);
     //}
     
-    System.out.println("END TestWildcardAlert at " + new Date(System.currentTimeMillis()));
+    System.out.println("END TestExpandAlert at " + new Date(System.currentTimeMillis()));
   }
 }

@@ -33,7 +33,7 @@ public class TestSimpleAlert extends ZkIntegrationTestBase
   ZkClient _zkClient;
   protected ClusterSetup _setupTool = null;
   protected final String _alertStr = "EXP(accumulate()(localhost_12918.RestQueryStats@DBName=TestDB0.latency))CMP(GREATER)CON(10)";
-  protected final String _alertStatusStr = _alertStr+" : (*)";
+  protected final String _alertStatusStr = _alertStr; //+" : (*)";
   protected final String _dbName = "TestDB0";
   
   @BeforeClass ()

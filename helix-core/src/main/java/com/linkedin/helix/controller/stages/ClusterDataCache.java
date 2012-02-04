@@ -98,6 +98,7 @@ public class ClusterDataCache
     Map<String, Map<String, HealthStat>> hsMap = new HashMap<String, Map<String, HealthStat>>();
     for (String instanceName : _liveInstanceMap.keySet())
     {
+    	//xxx clearly getting znodes for the instance here...so get the timestamp!
     	hsMap.put(instanceName, accessor.getChildValuesMap(HealthStat.class, 
     	                                                   PropertyType.HEALTHREPORT,
     	                                                   instanceName));

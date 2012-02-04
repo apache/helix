@@ -160,7 +160,10 @@ public class AlertsHolder {
 		_alertStatusMap = new HashMap<String,Map<String,String>>();
 		for (String alertName : alertStatus.keySet()) {
 			String mapAlertKey;
-			mapAlertKey = parentAlertKey+" : ("+alertName+")";
+			mapAlertKey = parentAlertKey;
+			if (!alertName.equals(ExpressionParser.wildcardChar)) {
+				mapAlertKey = mapAlertKey+" : ("+alertName+")";
+			}
 			AlertValueAndStatus vs = alertStatus.get(alertName);
 			Map<String,String> alertFields = new HashMap<String,String>();
 			alertFields.put(AlertValueAndStatus.VALUE_NAME, vs.getValue().toString());

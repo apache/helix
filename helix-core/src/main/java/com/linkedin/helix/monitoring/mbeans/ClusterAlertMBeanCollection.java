@@ -68,7 +68,7 @@ public class ClusterAlertMBeanCollection
     for(String alertName : alertResultMap.keySet())
     {
       String beanName = originAlert+"--("+ alertName+")";
-      beanName = beanName.replace('*', '%').replace('=', '#');
+      beanName = beanName.replace('*', '%').replace('=', '#').replace(',', ';');
       
       if(!_alertBeans.containsKey(beanName))
       {

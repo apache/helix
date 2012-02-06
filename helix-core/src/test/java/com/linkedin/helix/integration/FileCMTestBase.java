@@ -51,6 +51,8 @@ public class FileCMTestBase
   @BeforeClass()
   public void beforeClass() throws Exception
   {
+    System.out.println("START BEFORECLASS FileCMTestBase at " + new Date(System.currentTimeMillis()));
+
     // setup test cluster
     _mgmtTool = new FileClusterManagementTool(_fileStore);
     _mgmtTool.addCluster(CLUSTER_NAME, true);
@@ -104,6 +106,8 @@ public class FileCMTestBase
     }
 
     verifyCluster();
+    
+    System.out.println("END BEFORECLASS FileCMTestBase at " + new Date(System.currentTimeMillis()));
   }
 
   @AfterClass()
@@ -159,6 +163,7 @@ public class FileCMTestBase
   protected void verifyCluster()
   {
     TestHelper.verifyWithTimeout("verifyBestPossAndExtViewFile",
+                                 30 * 1000,
                                  TEST_DB,
                                  10,
                                  "MasterSlave",

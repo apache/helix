@@ -175,7 +175,8 @@ public class MessageSelectionAlgo
         max = cache.getLiveInstances().size();
       } else if ("R".equals(numInstancesPerState))
       {
-        max = idealState.getReplicas();
+//        max = idealState.getReplicas();
+        max = cache.getReplicas(idealState.getResourceGroup());
       } else
       {
         try
@@ -221,8 +222,8 @@ public class MessageSelectionAlgo
   {
 
     private final TreeMap<String, String> _map;
-    private Map<String, Integer> stateCountMap = new HashMap<String, Integer>();
-    private String _toString;
+    private final Map<String, Integer> stateCountMap = new HashMap<String, Integer>();
+    private final String _toString;
 
     public ResourceStateMap(Map<String, String> map)
     {

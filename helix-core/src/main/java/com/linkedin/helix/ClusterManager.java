@@ -4,7 +4,8 @@ import java.util.List;
 
 import com.linkedin.helix.controller.GenericClusterController;
 import com.linkedin.helix.healthcheck.ParticipantHealthReportCollector;
-import com.linkedin.helix.participant.StateMachineEngine;
+import com.linkedin.helix.participant.StateMachEngine;
+import com.linkedin.helix.participant.StateMachEngineImpl;
 import com.linkedin.helix.spectator.RoutingTableProvider;
 import com.linkedin.helix.store.PropertyStore;
 
@@ -26,7 +27,7 @@ import com.linkedin.helix.store.PropertyStore;
  * </pre>
  * </blockquote>
  * Default implementations available
- * @see StateMachineEngine for participant
+ * @see StateMachEngineImpl for participant
  * @see RoutingTableProvider for spectator
  * @see GenericClusterController  for controller
  * @author kgopalak
@@ -126,6 +127,10 @@ public interface ClusterManager
    * @return
    */
   boolean removeListener(Object listener);
+  
+//  Generic interface to add a listener
+//  void addListener(PropertyType type, Object listener, String... keys);
+  
   /**
    * Return the client to perform read/write operations on the cluster data
    * store
@@ -204,4 +209,6 @@ public interface ClusterManager
    * @return the cluster manager version
    */
   String getVersion();
+  
+  StateMachEngine getStateMachineEngine();
 }

@@ -20,7 +20,7 @@ import com.linkedin.helix.healthcheck.PerformanceHealthReportProvider;
 import com.linkedin.helix.healthcheck.StatHealthReportProvider;
 import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.model.Message.MessageType;
-import com.linkedin.helix.participant.StateMachineEngine;
+import com.linkedin.helix.participant.StateMachEngine;
 import com.linkedin.helix.participant.statemachine.StateModel;
 
 public class EspressoStorageMockNode extends MockNode {
@@ -32,29 +32,30 @@ public class EspressoStorageMockNode extends MockNode {
 	private final String SET_STAT_NAME = "set";
 	private final String COUNT_STAT_TYPE = "count";
 	private final String REPORT_NAME = "ParticipantStats";
-	
+
 	StatHealthReportProvider _healthProvider;
 	//PerformanceHealthReportProvider _healthProvider;
 	EspressoStorageMockStateModelFactory _stateModelFactory;
 
 	HashSet<String>_partitions;
-	
+
 	ConcurrentHashMap<String, String> _keyValueMap;
 	FnvHashFunction _hashFunction;
 	int _numTotalEspressoPartitions = 0;
-	
+
 	public EspressoStorageMockNode(CMConnector cm) {
 		super(cm);
 		_stateModelFactory = new EspressoStorageMockStateModelFactory(0);
 
-		StateMachineEngine genericStateMachineHandler = new StateMachineEngine();
-		genericStateMachineHandler.registerStateModelFactory("MasterSlave", _stateModelFactory);
-		_cmConnector
-				.getManager()
-				.getMessagingService()
-				.registerMessageHandlerFactory(
-						MessageType.STATE_TRANSITION.toString(),
-						genericStateMachineHandler);
+//		StateMachineEngine genericStateMachineHandler = new StateMachineEngine();
+		StateMachEngine stateMach = _cmConnector.getManager().getStateMachineEngine();
+		stateMach.registerStateModelFactory("MasterSlave", _stateModelFactory);
+//		_cmConnector
+//				.getManager()
+//				.getMessagingService()
+//				.registerMessageHandlerFactory(
+//						MessageType.STATE_TRANSITION.toString(),
+//						genericStateMachineHandler);
         /*
 		_healthProvider = new StatHealthReportProvider();
 		_healthProvider.setReportName(REPORT_NAME);
@@ -68,7 +69,7 @@ public class EspressoStorageMockNode extends MockNode {
 		_partitions = new HashSet<String>();
 		_keyValueMap = new ConcurrentHashMap<String, String>();
 		_hashFunction = new FnvHashFunction();
-		
+
 		//start thread to keep checking what partitions this node owns
 		//Thread partitionGetter = new Thread(new PartitionGetterThread());
 		//partitionGetter.start();
@@ -80,9 +81,9 @@ public class EspressoStorageMockNode extends MockNode {
 		String statName;
 		statName = "db"+dbName+".partition"+partitionName+"."+metricName;
 		return statName;
-		
+
 	}
-	
+
 	public String doGet(String dbId, String key) {
 		String partition = getPartitionName(dbId, getKeyPartition(dbId, key));
 		if (!isPartitionOwnedByNode(partition)) {
@@ -95,35 +96,35 @@ public class EspressoStorageMockNode extends MockNode {
 		_healthProvider.incrementStat(formStatName(dbId, partition, "getCount"), String.valueOf(System.currentTimeMillis()));
 		return _keyValueMap.get(key);
 	}
-	
+
 	public void doPut(String dbId, String key, String value) {
 		String partition = getPartitionName(dbId, getKeyPartition(dbId, key));
 		if (!isPartitionOwnedByNode(partition)) {
 			logger.error("Key "+key+" hashed to partition "+partition +" but this node does not own it.");
 			return;
 		}
-		
+
 		//_healthProvider.submitIncrementPartitionRequestCount(partition);
 		//_healthProvider.incrementPartitionStat(SET_STAT_NAME, partition);
-		//_healthProvider.incrementStat(SET_STAT_NAME, COUNT_STAT_TYPE, 
+		//_healthProvider.incrementStat(SET_STAT_NAME, COUNT_STAT_TYPE,
 		//		dbId, partition, "FIXMENODENAME", String.valueOf(System.currentTimeMillis()));
 		_healthProvider.incrementStat(formStatName(dbId, partition, "putCount"), String.valueOf(System.currentTimeMillis()));
-		
+
 		_keyValueMap.put(key, value);
 	}
-	
+
 	private String getPartitionName(String databaseName, int partitionNum) {
 		return databaseName+"_"+partitionNum;
 	}
-	
+
 	private boolean isPartitionOwnedByNode(String partitionName) {
 		Map<String, StateModel> stateModelMap = _stateModelFactory
 				.getStateModelMap();
 		logger.debug("state model map size: "+stateModelMap.size());
-		
+
 		return (stateModelMap.keySet().contains(partitionName));
 	}
-	
+
 	private int getKeyPartition(String dbName, String key) {
 		int numPartitions = getNumPartitions(dbName);
 		logger.debug("numPartitions: "+numPartitions);
@@ -131,7 +132,7 @@ public class EspressoStorageMockNode extends MockNode {
 		logger.debug("part: "+part);
 		return part;
 	}
-	
+
 	private int getNumPartitions(String dbName) {
 		logger.debug("dbName: "+dbName);
 		ZNRecord rec = _cmConnector.getManager().getDataAccessor().getProperty(PropertyType.IDEALSTATES, dbName);
@@ -141,7 +142,7 @@ public class EspressoStorageMockNode extends MockNode {
 		IdealState state = new IdealState(rec);
 		return state.getNumPartitions();
 	}
-	
+
 	class PartitionGetterThread implements Runnable {
 
 		@Override
@@ -163,17 +164,17 @@ public class EspressoStorageMockNode extends MockNode {
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
-				}		
+				}
 			}
 		}
 	}
-	
+
 	@Override
 	public void run() {
-		
+
 	}
 
 
-	
+
 
 }

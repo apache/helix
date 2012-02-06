@@ -226,7 +226,7 @@ public class CMTask implements Callable<CMTaskResult>
           _manager.getInstanceName(), taskResult.getTaskResultMap());
       Criteria recipientCriteria = new Criteria();
       recipientCriteria.setInstanceName(replyMessage.getTgtName());
-
+      recipientCriteria.setSelfExcluded(false);
       recipientCriteria.setRecipientInstanceType(message.getMsgSrc()
           .equalsIgnoreCase("controller") ? InstanceType.CONTROLLER
           : InstanceType.PARTICIPANT);

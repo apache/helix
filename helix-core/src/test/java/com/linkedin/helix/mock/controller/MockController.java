@@ -120,7 +120,7 @@ public class MockController
       String partitionName = dbName + ".partition-" + partitionId;
       result.setMapField(partitionName, partitionAssignment);
     }
-    result.setSimpleField(IdealStateProperty.RESOURCES.toString(), "" + partitions);
+    result.setSimpleField(IdealStateProperty.PARTITIONS.toString(), "" + partitions);
     return result;
   }
 }

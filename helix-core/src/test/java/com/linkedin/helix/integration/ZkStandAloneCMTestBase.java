@@ -136,10 +136,8 @@ public class ZkStandAloneCMTestBase extends ZkIntegrationTestBase
   protected void verifyCluster()
   {
     TestHelper.verifyWithTimeout("verifyBestPossAndExtView",
-                                 TEST_DB,
-                                 20,
-                                 "MasterSlave",
+                                 ZK_ADDR,
                                  TestHelper.<String>setOf(CLUSTER_NAME),
-                                 ZK_ADDR);
+                                 TestHelper.<String>setOf(TEST_DB));
   }
 }

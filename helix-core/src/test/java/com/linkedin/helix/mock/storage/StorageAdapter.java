@@ -16,7 +16,7 @@ import com.linkedin.helix.mock.consumer.ConsumerAdapter;
 import com.linkedin.helix.mock.consumer.RelayConfig;
 import com.linkedin.helix.mock.consumer.RelayConsumer;
 import com.linkedin.helix.model.Message.MessageType;
-import com.linkedin.helix.participant.StateMachineEngine;
+import com.linkedin.helix.participant.StateMachEngine;
 
 class StorageAdapter
 {
@@ -58,10 +58,12 @@ class StorageAdapter
         .getZKClusterManager(clusterName, instanceName, InstanceType.PARTICIPANT,
                              zkConnectString);
     stateModelFactory = new StorageStateModelFactory(this);
-    StateMachineEngine genericStateMachineHandler = new StateMachineEngine();
-    genericStateMachineHandler.registerStateModelFactory("MasterSlave", stateModelFactory);
+//    StateMachineEngine genericStateMachineHandler = new StateMachineEngine();
+    StateMachEngine stateMach = storageClusterManager.getStateMachineEngine();
+    stateMach.registerStateModelFactory("MasterSlave", stateModelFactory);
 
-    storageClusterManager.getMessagingService().registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(), genericStateMachineHandler);
+    storageClusterManager.getMessagingService()
+      .registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(), stateMach);
     storageClusterManager.connect();
     storageClusterClient = storageClusterManager.getDataAccessor();
 

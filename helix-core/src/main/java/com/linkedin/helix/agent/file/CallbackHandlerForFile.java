@@ -13,6 +13,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.Watcher.Event.EventType;
 
+import com.linkedin.helix.CMConstants.ChangeType;
 import com.linkedin.helix.ClusterManager;
 import com.linkedin.helix.ConfigChangeListener;
 import com.linkedin.helix.ControllerChangeListener;
@@ -24,7 +25,6 @@ import com.linkedin.helix.MessageListener;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.CMConstants.ChangeType;
 import com.linkedin.helix.model.CurrentState;
 import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.IdealState;
@@ -40,7 +40,7 @@ import com.linkedin.helix.util.CMUtil;
 public class CallbackHandlerForFile implements PropertyChangeListener<ZNRecord>
 {
 
-  private static Logger logger = Logger.getLogger(CallbackHandlerForFile.class);
+  private static Logger LOG = Logger.getLogger(CallbackHandlerForFile.class);
 
   private final String _path;
   private final Object _listener;
@@ -81,9 +81,9 @@ public class CallbackHandlerForFile implements PropertyChangeListener<ZNRecord>
     // This allows the listener to work with one change at a time
     synchronized (_listener)
     {
-      if (logger.isDebugEnabled())
+      if (LOG.isDebugEnabled())
       {
-        logger.debug(Thread.currentThread().getId() + " START:INVOKE "
+        LOG.debug(Thread.currentThread().getId() + " START:INVOKE "
             + changeContext.getPathChanged() + " listener:"
             + _listener.getClass().getCanonicalName());
       }
@@ -161,9 +161,9 @@ public class CallbackHandlerForFile implements PropertyChangeListener<ZNRecord>
         controllerChangelistener.onControllerChange(changeContext);
       }
 
-      if (logger.isDebugEnabled())
+      if (LOG.isDebugEnabled())
       {
-        logger.debug(Thread.currentThread().getId() + " END:INVOKE "
+        LOG.debug(Thread.currentThread().getId() + " END:INVOKE "
             + changeContext.getPathChanged() + " listener:"
             + _listener.getClass().getCanonicalName());
       }
@@ -183,7 +183,7 @@ public class CallbackHandlerForFile implements PropertyChangeListener<ZNRecord>
       }
       catch (PropertyStoreException e)
       {
-        logger.error("fail to subscribe for changes" + "\nexception:" + e);
+        LOG.error("fail to subscribe for changes" + "\nexception:" + e);
       }
     }
   }
@@ -207,7 +207,7 @@ public class CallbackHandlerForFile implements PropertyChangeListener<ZNRecord>
     catch (Exception e)
     {
       // TODO handle exception
-      logger.error("fail to init", e);
+      LOG.error("fail to init", e);
     }
   }
 
@@ -222,7 +222,7 @@ public class CallbackHandlerForFile implements PropertyChangeListener<ZNRecord>
     catch (Exception e)
     {
       // TODO handle exception
-      logger.error("fail to reset" + "\nexception:" + e);
+      LOG.error("fail to reset" + "\nexception:" + e);
       // ZKExceptionHandler.getInstance().handle(e);
     }
   }
@@ -247,11 +247,14 @@ public class CallbackHandlerForFile implements PropertyChangeListener<ZNRecord>
   @Override
   public void onPropertyChange(String key)
   {
-    // System.err.println("on property change, key:" + key + ", path:" + _path);
+    // debug
+//      LOG.error("on property change, key:" + key + ", path:" + _path);
+    
     try
     {
       if (needToNotify(key))
       {
+        // debug
         // System.err.println("notified on property change, key:" + key + ", path:" +
         // path);
 
@@ -265,7 +268,7 @@ public class CallbackHandlerForFile implements PropertyChangeListener<ZNRecord>
     {
       // TODO handle exception
       // ZKExceptionHandler.getInstance().handle(e);
-      logger.error("fail onPropertyChange", e);
+      LOG.error("fail onPropertyChange", e);
     }
   }
 

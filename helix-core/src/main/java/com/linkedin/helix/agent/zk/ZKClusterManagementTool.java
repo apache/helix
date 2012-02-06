@@ -262,7 +262,7 @@ public class ZKClusterManagementTool implements ClusterManagementService
          + " is not setup yet");
     }
     ZNRecord idealState = new ZNRecord(dbName);
-    idealState.setSimpleField(IdealStateProperty.RESOURCES.toString(), String.valueOf(partitions));
+    idealState.setSimpleField(IdealStateProperty.PARTITIONS.toString(), String.valueOf(partitions));
     idealState.setSimpleField(IdealStateProperty.STATE_MODEL_DEF_REF.toString(), stateModelRef);
     idealState.setSimpleField(IdealStateProperty.IDEAL_STATE_MODE.toString(), idealStateMode);
     idealState.setSimpleField(IdealStateProperty.REPLICAS.toString(), 0+"");
@@ -454,13 +454,56 @@ public class ZKClusterManagementTool implements ClusterManagementService
 
   @Override
   public void dropStat(String clusterName, String statName) {
-	  // TODO Auto-generated method stub
-
+	  if(!ZKUtil.isClusterSetup(clusterName, _zkClient))
+	    {
+	      throw new ClusterManagerException("cluster " + clusterName
+	          + " is not setup yet");
+	    }
+	    
+	    String persistentStatsPath = CMUtil.getPersistentStatsPath(clusterName);
+	    ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
+	    if (!_zkClient.exists(persistentStatsPath)) {      
+	      throw new ClusterManagerException("No stats node in ZK, nothing to drop");
+	    }
+	    ZNRecord statsRec = accessor.getProperty(PropertyType.PERSISTENTSTATS);
+	    if (statsRec == null) {
+	    	throw new ClusterManagerException("No stats record in ZK, nothing to drop");
+	    }
+	    Map<String,Map<String,String>> currStatMap = statsRec.getMapFields();
+	    Map<String,Map<String,String>> newStatMap = StatsHolder.parseStat(statName);
+	    //delete each stat from stat map
+	    for (String newStat : newStatMap.keySet()) {
+	     if (currStatMap.containsKey(newStat)) {
+	       currStatMap.remove(newStat);
+	     }
+	    }
+	    statsRec.setMapFields(currStatMap);
+	    accessor.setProperty(PropertyType.PERSISTENTSTATS, statsRec); 
   }
 
   @Override
   public void dropAlert(String clusterName, String alertName) {
-	  // TODO Auto-generated method stub
-
+	  if(!ZKUtil.isClusterSetup(clusterName, _zkClient))
+	    {
+	      throw new ClusterManagerException("cluster " + clusterName
+	          + " is not setup yet");
+	    }
+	    
+	    String alertsPath = CMUtil.getAlertsPath(clusterName);
+	    ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
+	    if (!_zkClient.exists(alertsPath)) {      
+	    	throw new ClusterManagerException("No alerts node in ZK, nothing to drop");
+	    }
+	    ZNRecord alertsRec = accessor.getProperty(PropertyType.ALERTS);
+	    if (alertsRec == null)
+	    {
+	        throw new ClusterManagerException("No alerts record in ZK, nothing to drop");
+	    }
+	    
+	    Map<String,Map<String,String>> currAlertMap = alertsRec.getMapFields();
+	    currAlertMap.remove(alertName);
+	    
+	    alertsRec.setMapFields(currAlertMap);
+	    accessor.setProperty(PropertyType.ALERTS, alertsRec); 
   }  
 }

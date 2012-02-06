@@ -2,6 +2,7 @@ package com.linkedin.helix.integration;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -12,10 +13,13 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.log4j.Logger;
 
 import com.linkedin.helix.ClusterManager;
+import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.TestHelper.StartCMResult;
 import com.linkedin.helix.ZNRecord;
+import com.linkedin.helix.agent.zk.ZKDataAccessor;
+import com.linkedin.helix.agent.zk.ZNRecordSerializer;
 import com.linkedin.helix.agent.zk.ZkClient;
 import com.linkedin.helix.controller.ClusterManagerMain;
 import com.linkedin.helix.model.IdealState.IdealStateModeProperty;
@@ -37,7 +41,7 @@ public class TestDriver
   private static Logger LOG = Logger.getLogger(TestDriver.class);
   private static final String ZK_ADDR = ZkIntegrationTestBase.ZK_ADDR;
 
-  private static final String CLUSTER_PREFIX = "TestDriver";
+  // private static final String CLUSTER_PREFIX = "TestDriver";
   private static final String STATE_MODEL = "MasterSlave";
   private static final String TEST_DB_PREFIX = "TestDB";
   private static final int START_PORT = 12918;
@@ -51,20 +55,22 @@ public class TestDriver
 
   public static class TestInfo
   {
-  	public final ZkClient _zkClient;
+    public final ZkClient _zkClient;
     public final String _clusterName;
     public final int _numDb;
     public final int _numPartitionsPerDb;
     public final int _numNode;
     public final int _replica;
 
-    public final Map<String, ZNRecord> _idealStateMap = new ConcurrentHashMap<String, ZNRecord>();
+    // public final Map<String, ZNRecord> _idealStateMap = new
+    // ConcurrentHashMap<String, ZNRecord>();
     public final Map<String, StartCMResult> _startCMResultMap = new ConcurrentHashMap<String, StartCMResult>();
 
-    public TestInfo(String clusterName, ZkClient zkClient, int numDb, int numPartitionsPerDb, int numNode, int replica)
+    public TestInfo(String clusterName, ZkClient zkClient, int numDb, int numPartitionsPerDb,
+        int numNode, int replica)
     {
-			this._clusterName = clusterName;
-			this._zkClient = zkClient;
+      this._clusterName = clusterName;
+      this._zkClient = zkClient;
       this._numDb = numDb;
       this._numPartitionsPerDb = numPartitionsPerDb;
       this._numNode = numNode;
@@ -72,101 +78,114 @@ public class TestDriver
     }
   }
 
-  public static TestInfo getTestInfo(String uniqTestName)
+  public static TestInfo getTestInfo(String uniqClusterName)
   {
-    if (!_testInfoMap.containsKey(uniqTestName))
+    if (!_testInfoMap.containsKey(uniqClusterName))
     {
-      String errMsg = "Cluster hasn't been setup for " + uniqTestName;
+      String errMsg = "Cluster hasn't been setup for " + uniqClusterName;
       throw new IllegalArgumentException(errMsg);
     }
 
-    TestInfo testInfo = _testInfoMap.get(uniqTestName);
+    TestInfo testInfo = _testInfoMap.get(uniqClusterName);
     return testInfo;
   }
 
-  public static void setupClusterWithoutRebalance(String uniqTestName, ZkClient zkClient,
-  		int numDb, int numPartitionPerDb, int numNodes, int replica) throws Exception
+  public static void setupClusterWithoutRebalance(String uniqClusterName, String zkAddr,
+      int numResGroups, int numPartitionsPerResGroup, int numInstances, int replica)
+      throws Exception
   {
-    setupCluster(uniqTestName, zkClient, numDb, numPartitionPerDb, numNodes, replica, false);
+    setupCluster(uniqClusterName, zkAddr, numResGroups, numPartitionsPerResGroup, numInstances,
+        replica, false);
   }
 
-  public static void setupCluster(String uniqTestName, ZkClient zkClient, int numDb,
-  		int numPartitionPerDb, int numNodes, int replica) throws Exception
+  public static void setupCluster(String uniqClusterName, String zkAddr, int numResGroups,
+      int numPartitionsPerResGroup, int numInstances, int replica) throws Exception
   {
-    setupCluster(uniqTestName, zkClient, numDb, numPartitionPerDb, numNodes, replica, true);
+    setupCluster(uniqClusterName, zkAddr, numResGroups, numPartitionsPerResGroup, numInstances,
+        replica, true);
   }
 
-  public static void setupCluster(String uniqTestName, ZkClient zkClient, int numDb,
-  		int numPartitionPerDb, int numNodes, int replica, boolean doRebalance) throws Exception
+  // public static void setupCluster(String uniqTestName, ZkClient zkClient, int
+  // numDb,
+  // int numPartitionPerDb, int numNodes, int replica, boolean doRebalance)
+  // throws Exception
+  public static void setupCluster(String uniqClusterName, String zkAddr, int numResGroups,
+      int numPartitionsPerResGroup, int numInstances, int replica, boolean doRebalance)
+      throws Exception
   {
+    ZkClient zkClient = new ZkClient(zkAddr);
+    zkClient.setZkSerializer(new ZNRecordSerializer());
 
-    String clusterName = CLUSTER_PREFIX + "_" + uniqTestName;
+    // String clusterName = CLUSTER_PREFIX + "_" + uniqClusterName;
+    String clusterName = uniqClusterName;
     if (zkClient.exists("/" + clusterName))
     {
-      LOG.warn("test cluster already exists:" + clusterName + ", test name:" + uniqTestName
+      LOG.warn("test cluster already exists:" + clusterName + ", test name:" + uniqClusterName
           + " is not unique or test has been run without cleaning up zk; deleting it");
       zkClient.deleteRecursive("/" + clusterName);
     }
 
-    if (_testInfoMap.containsKey(uniqTestName))
+    if (_testInfoMap.containsKey(uniqClusterName))
     {
-      LOG.warn("test info already exists:" + uniqTestName
+      LOG.warn("test info already exists:" + uniqClusterName
           + " is not unique or test has been run without cleaning up test info map; removing it");
-      _testInfoMap.remove(uniqTestName);
+      _testInfoMap.remove(uniqClusterName);
     }
-    TestInfo testInfo = new TestInfo(clusterName, zkClient, numDb, numPartitionPerDb,
-    		numNodes, replica);
-    _testInfoMap.put(uniqTestName, testInfo);
+    TestInfo testInfo = new TestInfo(clusterName, zkClient, numResGroups, numPartitionsPerResGroup,
+        numInstances, replica);
+    _testInfoMap.put(uniqClusterName, testInfo);
 
-
-    ClusterSetup setupTool = new ClusterSetup(ZK_ADDR);
+    ClusterSetup setupTool = new ClusterSetup(zkAddr);
     setupTool.addCluster(clusterName, true);
 
-    for (int i = 0; i < numNodes; i++)
+    for (int i = 0; i < numInstances; i++)
     {
       int port = START_PORT + i;
       setupTool.addInstanceToCluster(clusterName, PARTICIPANT_PREFIX + ":" + port);
     }
 
-    for (int i = 0; i < numDb; i++)
+    for (int i = 0; i < numResGroups; i++)
     {
       String dbName = TEST_DB_PREFIX + i;
-      setupTool.addResourceGroupToCluster(clusterName, dbName, numPartitionPerDb, STATE_MODEL);
+      setupTool.addResourceGroupToCluster(clusterName, dbName, numPartitionsPerResGroup,
+          STATE_MODEL);
       if (doRebalance)
       {
         setupTool.rebalanceStorageCluster(clusterName, dbName, replica);
 
-        String idealStatePath = "/" + clusterName + "/" + PropertyType.IDEALSTATES.toString()
-            + "/" + dbName;
-        ZNRecord idealState = zkClient.<ZNRecord> readData(idealStatePath);
-        testInfo._idealStateMap.put(dbName, idealState);
+        // String idealStatePath = "/" + clusterName + "/" +
+        // PropertyType.IDEALSTATES.toString() + "/"
+        // + dbName;
+        // ZNRecord idealState = zkClient.<ZNRecord> readData(idealStatePath);
+        // testInfo._idealStateMap.put(dbName, idealState);
       }
     }
   }
 
   /**
    * starting a dummy participant with a given id
-   *
+   * 
    * @param uniqueTestName
-   * @param nodeId
+   * @param instanceId
    */
-  public static void startDummyParticipant(String uniqTestName, int nodeId) throws Exception
+  public static void startDummyParticipant(String uniqClusterName, int instanceId) throws Exception
   {
-    startDummyParticipants(uniqTestName, new int[] { nodeId });
+    startDummyParticipants(uniqClusterName, new int[] { instanceId });
   }
 
-  public static void startDummyParticipants(String uniqTestName, int[] nodeIds) throws Exception
+  public static void startDummyParticipants(String uniqClusterName, int[] instanceIds)
+      throws Exception
   {
-    if (!_testInfoMap.containsKey(uniqTestName))
+    if (!_testInfoMap.containsKey(uniqClusterName))
     {
-      String errMsg = "test cluster hasn't been setup:" + uniqTestName;
-      throw new Exception(errMsg);
+      String errMsg = "test cluster hasn't been setup:" + uniqClusterName;
+      throw new IllegalArgumentException(errMsg);
     }
 
-    TestInfo testInfo = _testInfoMap.get(uniqTestName);
+    TestInfo testInfo = _testInfoMap.get(uniqClusterName);
     String clusterName = testInfo._clusterName;
 
-    for (int id : nodeIds)
+    for (int id : instanceIds)
     {
       String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + id);
 
@@ -182,20 +201,20 @@ public class TestDriver
     }
   }
 
-  public static void startController(String uniqTestName) throws Exception
+  public static void startController(String uniqClusterName) throws Exception
   {
-    startController(uniqTestName, new int[] { 0 });
+    startController(uniqClusterName, new int[] { 0 });
   }
 
-  public static void startController(String uniqTestName, int[] nodeIds) throws Exception
+  public static void startController(String uniqClusterName, int[] nodeIds) throws Exception
   {
-    if (!_testInfoMap.containsKey(uniqTestName))
+    if (!_testInfoMap.containsKey(uniqClusterName))
     {
-      String errMsg = "test cluster hasn't been setup:" + uniqTestName;
-      throw new Exception(errMsg);
+      String errMsg = "test cluster hasn't been setup:" + uniqClusterName;
+      throw new IllegalArgumentException(errMsg);
     }
 
-    TestInfo testInfo = _testInfoMap.get(uniqTestName);
+    TestInfo testInfo = _testInfoMap.get(uniqClusterName);
     String clusterName = testInfo._clusterName;
 
     for (int id : nodeIds)
@@ -206,53 +225,51 @@ public class TestDriver
         LOG.warn("Controller:" + controllerName + " has already started; skip starting it");
       } else
       {
-        StartCMResult result = TestHelper.startController(clusterName, controllerName,
-                                                                 ZK_ADDR,
-                                                                 ClusterManagerMain.STANDALONE);
+        StartCMResult result = TestHelper.startController(clusterName, controllerName, ZK_ADDR,
+            ClusterManagerMain.STANDALONE);
         testInfo._startCMResultMap.put(controllerName, result);
       }
     }
   }
 
-  public static void verifyCluster(String uniqTestName, long at) throws Exception
+  public static void verifyCluster(String uniqClusterName, long beginTime, long timeout)
+      throws Exception
   {
-    Thread.sleep(at);
+    Thread.sleep(beginTime);
 
-    if (!_testInfoMap.containsKey(uniqTestName))
+    if (!_testInfoMap.containsKey(uniqClusterName))
     {
-      String errMsg = "test cluster hasn't been setup:" + uniqTestName;
-      throw new Exception(errMsg);
+      String errMsg = "test cluster hasn't been setup:" + uniqClusterName;
+      throw new IllegalArgumentException(errMsg);
     }
 
-    TestInfo testInfo = _testInfoMap.get(uniqTestName);
+    TestInfo testInfo = _testInfoMap.get(uniqClusterName);
     String clusterName = testInfo._clusterName;
-    ZkClient zkClient = testInfo._zkClient;
+    // ZkClient zkClient = testInfo._zkClient;
+    ZKDataAccessor accessor = new ZKDataAccessor(uniqClusterName, testInfo._zkClient);
+    List<String> idealStates = accessor.getChildNames(PropertyType.IDEALSTATES);
+    TestHelper.verifyWithTimeout("verifyBestPossAndExtViewExtended", timeout, ZK_ADDR,
+        TestHelper.<String> setOf(clusterName), new HashSet<String>(idealStates), null, null, null);
 
-
-    for (int i = 0; i < testInfo._numDb; i++)
-    {
-      String dbName = TEST_DB_PREFIX + i;
-      TestHelper.verifyWithTimeout("verifyBestPossAndExtViewExtended",
-                                   60 * 1000,
-                                   dbName,
-                                   testInfo._numPartitionsPerDb,
-                                   "MasterSlave",
-                                   TestHelper.<String>setOf(clusterName),
-                                   ZK_ADDR,
-                                   null,
-                                   null,
-                                   null);
-    }
+    // for (int i = 0; i < testInfo._numDb; i++)
+    // {
+    // String dbName = TEST_DB_PREFIX + i;
+    // TestHelper.verifyWithTimeout("verifyBestPossAndExtViewExtended", timeout,
+    // ZK_ADDR,
+    // TestHelper.<String> setOf(clusterName), TestHelper.<String>
+    // setOf(dbName), null, null,
+    // null);
+    // }
   }
 
-  public static void stopCluster(String uniqTestName) throws Exception
+  public static void stopCluster(String uniqClusterName) throws Exception
   {
-    if (!_testInfoMap.containsKey(uniqTestName))
+    if (!_testInfoMap.containsKey(uniqClusterName))
     {
-      String errMsg = "test cluster hasn't been setup:" + uniqTestName;
-      throw new Exception(errMsg);
+      String errMsg = "test cluster hasn't been setup:" + uniqClusterName;
+      throw new IllegalArgumentException(errMsg);
     }
-    TestInfo testInfo = _testInfoMap.remove(uniqTestName);
+    TestInfo testInfo = _testInfoMap.remove(uniqClusterName);
 
     // stop controller first
     for (Iterator<Entry<String, StartCMResult>> it = testInfo._startCMResultMap.entrySet()
@@ -280,21 +297,24 @@ public class TestDriver
       Thread thread = entry.getValue()._thread;
       thread.interrupt();
     }
+
+    testInfo._zkClient.close();
   }
 
-  public static void stopDummyParticipant(String uniqTestName, long at, int nodeId)
+  public static void stopDummyParticipant(String uniqClusterName, long beginTime, int instanceId)
       throws Exception
   {
-    if (!_testInfoMap.containsKey(uniqTestName))
+    if (!_testInfoMap.containsKey(uniqClusterName))
     {
-      String errMsg = "test cluster hasn't been setup:" + uniqTestName;
+
+      String errMsg = "test cluster hasn't been setup:" + uniqClusterName;
       throw new Exception(errMsg);
     }
 
-    TestInfo testInfo = _testInfoMap.get(uniqTestName);
+    TestInfo testInfo = _testInfoMap.get(uniqClusterName);
     // String clusterName = testInfo._clusterName;
 
-    String failHost = PARTICIPANT_PREFIX + "_" + (START_PORT + nodeId);
+    String failHost = PARTICIPANT_PREFIX + "_" + (START_PORT + instanceId);
     StartCMResult result = testInfo._startCMResultMap.remove(failHost);
 
     // TODO need sync
@@ -302,27 +322,27 @@ public class TestDriver
     {
       String errMsg = "Dummy participant:" + failHost + " seems not running";
       LOG.error(errMsg);
-    }
-    else
+    } else
     {
-      // System.err.println("try to stop participant: " + result._manager.getInstanceName());
+      // System.err.println("try to stop participant: " +
+      // result._manager.getInstanceName());
       NodeOpArg arg = new NodeOpArg(result._manager, result._thread);
-      TestCommand command = new TestCommand(CommandType.STOP, new TestTrigger(at), arg);
+      TestCommand command = new TestCommand(CommandType.STOP, new TestTrigger(beginTime), arg);
       List<TestCommand> commandList = new ArrayList<TestCommand>();
       commandList.add(command);
       TestExecutor.executeTestAsync(commandList, ZK_ADDR);
     }
   }
 
-  public static void setIdealState(String uniqTestName, long at, int percentage)
-  throws Exception
+  public static void setIdealState(String uniqClusterName, long beginTime, int percentage)
+      throws Exception
   {
-    if (!_testInfoMap.containsKey(uniqTestName))
+    if (!_testInfoMap.containsKey(uniqClusterName))
     {
-      String errMsg = "test cluster hasn't been setup:" + uniqTestName;
-      throw new Exception(errMsg);
+      String errMsg = "test cluster hasn't been setup:" + uniqClusterName;
+      throw new IllegalArgumentException(errMsg);
     }
-    TestInfo testInfo = _testInfoMap.get(uniqTestName);
+    TestInfo testInfo = _testInfoMap.get(uniqClusterName);
     String clusterName = testInfo._clusterName;
     List<String> instanceNames = new ArrayList<String>();
 
@@ -337,18 +357,23 @@ public class TestDriver
     {
       String dbName = TEST_DB_PREFIX + i;
       ZNRecord destIS = IdealStateCalculatorForStorageNode.calculateIdealState(instanceNames,
-              testInfo._numPartitionsPerDb, testInfo._replica - 1, dbName, "MASTER","SLAVE");
+          testInfo._numPartitionsPerDb, testInfo._replica - 1, dbName, "MASTER", "SLAVE");
       // destIS.setId(dbName);
-      destIS.setSimpleField(IdealStateProperty.IDEAL_STATE_MODE.toString(), IdealStateModeProperty.CUSTOMIZED.toString());
-      destIS.setSimpleField(IdealStateProperty.RESOURCES.toString(), Integer.toString(testInfo._numPartitionsPerDb));
+      destIS.setSimpleField(IdealStateProperty.IDEAL_STATE_MODE.toString(),
+          IdealStateModeProperty.CUSTOMIZED.toString());
+      destIS.setSimpleField(IdealStateProperty.PARTITIONS.toString(),
+          Integer.toString(testInfo._numPartitionsPerDb));
       destIS.setSimpleField(IdealStateProperty.STATE_MODEL_DEF_REF.toString(), STATE_MODEL);
-      String idealStatePath = "/" + clusterName
-                            + "/" + PropertyType.IDEALSTATES.toString()
-                            + "/" + TEST_DB_PREFIX + i;
-      ZNRecord initIS = new ZNRecord(dbName); // _zkClient.<ZNRecord> readData(idealStatePath);
-      initIS.setSimpleField(IdealStateProperty.IDEAL_STATE_MODE.toString(), IdealStateModeProperty.CUSTOMIZED.toString());
-      initIS.setSimpleField(IdealStateProperty.RESOURCES.toString(), Integer.toString(testInfo._numPartitionsPerDb));
-      initIS.setSimpleField(IdealStateProperty.STATE_MODEL_DEF_REF.toString(), "MasterSlave");
+      // String idealStatePath = "/" + clusterName + "/" +
+      // PropertyType.IDEALSTATES.toString() + "/"
+      // + TEST_DB_PREFIX + i;
+      ZNRecord initIS = new ZNRecord(dbName); // _zkClient.<ZNRecord>
+                                              // readData(idealStatePath);
+      initIS.setSimpleField(IdealStateProperty.IDEAL_STATE_MODE.toString(),
+          IdealStateModeProperty.CUSTOMIZED.toString());
+      initIS.setSimpleField(IdealStateProperty.PARTITIONS.toString(),
+          Integer.toString(testInfo._numPartitionsPerDb));
+      initIS.setSimpleField(IdealStateProperty.STATE_MODEL_DEF_REF.toString(), STATE_MODEL);
       int totalStep = calcuateNumTransitions(initIS, destIS);
       // LOG.info("initIS:" + initIS);
       // LOG.info("destIS:" + destIS);
@@ -359,11 +384,13 @@ public class TestDriver
       ZNRecord nextIS;
       int step = totalStep * percentage / 100;
       System.out.println("Resource:" + dbName + ", totalSteps from initIS to destIS:" + totalStep
-                         + ", walk " + step + " steps(" + percentage + "%)");
+          + ", walk " + step + " steps(" + percentage + "%)");
       nextIS = nextIdealState(initIS, destIS, step);
-      testInfo._idealStateMap.put(dbName, nextIS);
+      // testInfo._idealStateMap.put(dbName, nextIS);
+      String idealStatePath = PropertyPathConfig.getPath(PropertyType.IDEALSTATES, clusterName,
+          TEST_DB_PREFIX + i);
       ZnodeOpArg arg = new ZnodeOpArg(idealStatePath, ZnodePropertyType.ZNODE, "+", nextIS);
-      TestCommand command = new TestCommand(CommandType.MODIFY, new TestTrigger(at), arg);
+      TestCommand command = new TestCommand(CommandType.MODIFY, new TestTrigger(beginTime), arg);
       commandList.add(command);
     }
 

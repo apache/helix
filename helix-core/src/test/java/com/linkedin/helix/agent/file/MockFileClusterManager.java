@@ -14,8 +14,8 @@ import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.LiveInstanceChangeListener;
 import com.linkedin.helix.MessageListener;
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.agent.file.FileBasedDataAccessor;
 import com.linkedin.helix.healthcheck.ParticipantHealthReportCollector;
+import com.linkedin.helix.participant.StateMachEngine;
 import com.linkedin.helix.store.PropertyStore;
 import com.linkedin.helix.store.file.FilePropertyStore;
 
@@ -190,6 +190,13 @@ public void addHealthStateChangeListener(HealthStateChangeListener listener,
 
   @Override
   public String getVersion()
+  {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public StateMachEngine getStateMachineEngine()
   {
     // TODO Auto-generated method stub
     return null;

@@ -2,57 +2,52 @@ package com.linkedin.helix.integration;
 
 import java.util.Date;
 
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
-
-import com.linkedin.helix.agent.zk.ZNRecordSerializer;
-import com.linkedin.helix.agent.zk.ZkClient;
-
 
 public class TestCMWithFailParticipant extends ZkIntegrationTestBase
 {
-  ZkClient _zkClient;
+  // ZkClient _zkClient;
+  //
+  // @BeforeClass ()
+  // public void beforeClass() throws Exception
+  // {
+  // _zkClient = new ZkClient(ZK_ADDR);
+  // _zkClient.setZkSerializer(new ZNRecordSerializer());
+  // }
+  //
+  //
+  // @AfterClass
+  // public void afterClass()
+  // {
+  // _zkClient.close();
+  // }
 
-  @BeforeClass ()
-  public void beforeClass() throws Exception
-  {
-  	_zkClient = new ZkClient(ZK_ADDR);
-  	_zkClient.setZkSerializer(new ZNRecordSerializer());
-  }
-
-
-	@AfterClass
-  public void afterClass()
-  {
-  	_zkClient.close();
-  }
-
-  @Test ()
+  @Test()
   public void testCMWithFailParticipant() throws Exception
   {
-    int numDb = 1;
-    int numPartitionsPerDb = 10;
-    int numNode = 5;
+    int numResGroup = 1;
+    int numPartitionsPerResGroup = 10;
+    int numInstance = 5;
     int replica = 3;
 
-    String uniqTestName = "TestFail_" + "db" + numDb + "_p" + numPartitionsPerDb + "_n"
-        + numNode + "_r" + replica;
-    System.out.println("START " + uniqTestName + " at " + new Date(System.currentTimeMillis()));
+    String uniqClusterName = "TestFail_" + "rg" + numResGroup + "_p" + numPartitionsPerResGroup
+        + "_n" + numInstance + "_r" + replica;
+    System.out.println("START " + uniqClusterName + " at " + new Date(System.currentTimeMillis()));
 
-    TestDriver.setupCluster(uniqTestName, _zkClient, numDb, numPartitionsPerDb, numNode, replica);
+    TestDriver.setupCluster(uniqClusterName, ZK_ADDR, numResGroup, numPartitionsPerResGroup,
+        numInstance, replica);
 
-    for (int i = 0; i < numNode; i++)
+    for (int i = 0; i < numInstance; i++)
     {
-      TestDriver.startDummyParticipant(uniqTestName, i);
+      TestDriver.startDummyParticipant(uniqClusterName, i);
     }
-    TestDriver.startController(uniqTestName);
+    TestDriver.startController(uniqClusterName);
 
-    TestDriver.stopDummyParticipant(uniqTestName, 2000, 0);
-    TestDriver.verifyCluster(uniqTestName, 3000);
-    TestDriver.stopCluster(uniqTestName);
+    TestDriver.stopDummyParticipant(uniqClusterName, 2000, 0);
+    TestDriver.verifyCluster(uniqClusterName, 3000, 50 * 1000);
+    TestDriver.stopCluster(uniqClusterName);
 
-    System.out.println("END " + uniqTestName + " at " + new Date(System.currentTimeMillis()));
+    System.out.println("END " + uniqClusterName + " at " + new Date(System.currentTimeMillis()));
 
   }
 }

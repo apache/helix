@@ -123,9 +123,7 @@ public class ZKClusterManager implements ClusterManager
     _zkConnectString = zkConnectString;
     _zkStateChangeListener = new ZkStateChangeListener(this);
     _timer = null;
-    // TODO: access to _handlers need to be sync'ed without causing deadlock
-    // _handlers = Collections.synchronizedList(new
-    // ArrayList<CallbackHandler>());
+
     _handlers = new ArrayList<CallbackHandler>();
     _messagingService = new DefaultMessagingService(this);
 
@@ -163,7 +161,8 @@ public class ZKClusterManager implements ClusterManager
     final String path = PropertyPathConfig.getPath(PropertyType.IDEALSTATES, _clusterName);
     CallbackHandler callbackHandler = createCallBackHandler(path, listener, new EventType[] {
         EventType.NodeDataChanged, EventType.NodeDeleted, EventType.NodeCreated }, IDEAL_STATE);
-    _handlers.add(callbackHandler);
+    // _handlers.add(callbackHandler);
+    addListener(callbackHandler);
   }
 
   @Override
@@ -174,7 +173,8 @@ public class ZKClusterManager implements ClusterManager
     CallbackHandler callbackHandler = createCallBackHandler(path, listener, new EventType[] {
         EventType.NodeChildrenChanged, EventType.NodeDeleted, EventType.NodeCreated },
         LIVE_INSTANCE);
-    _handlers.add(callbackHandler);
+    // _handlers.add(callbackHandler);
+    addListener(callbackHandler);
   }
 
   @Override
@@ -185,7 +185,9 @@ public class ZKClusterManager implements ClusterManager
 
     CallbackHandler callbackHandler = createCallBackHandler(path, listener,
         new EventType[] { EventType.NodeChildrenChanged }, CONFIG);
-    _handlers.add(callbackHandler);
+    // _handlers.add(callbackHandler);
+    addListener(callbackHandler);
+
   }
 
   // TODO: Decide if do we still need this since we are exposing
@@ -198,7 +200,8 @@ public class ZKClusterManager implements ClusterManager
 
     CallbackHandler callbackHandler = createCallBackHandler(path, listener, new EventType[] {
         EventType.NodeChildrenChanged, EventType.NodeDeleted, EventType.NodeCreated }, MESSAGE);
-    _handlers.add(callbackHandler);
+    // _handlers.add(callbackHandler);
+    addListener(callbackHandler);
   }
 
   void addControllerMessageListener(MessageListener listener)
@@ -210,7 +213,8 @@ public class ZKClusterManager implements ClusterManager
     CallbackHandler callbackHandler = createCallBackHandler(path, listener, new EventType[] {
         EventType.NodeChildrenChanged, EventType.NodeDeleted, EventType.NodeCreated },
         MESSAGES_CONTROLLER);
-    _handlers.add(callbackHandler);
+    // _handlers.add(callbackHandler);
+    addListener(callbackHandler);
   }
 
   @Override
@@ -224,7 +228,8 @@ public class ZKClusterManager implements ClusterManager
     CallbackHandler callbackHandler = createCallBackHandler(path, listener, new EventType[] {
         EventType.NodeChildrenChanged, EventType.NodeDeleted, EventType.NodeCreated },
         CURRENT_STATE);
-    _handlers.add(callbackHandler);
+    // _handlers.add(callbackHandler);
+    addListener(callbackHandler);
   }
 
   @Override
@@ -238,7 +243,8 @@ public class ZKClusterManager implements ClusterManager
     CallbackHandler callbackHandler = createCallBackHandler(path, listener, new EventType[] {
         EventType.NodeChildrenChanged, EventType.NodeDataChanged, EventType.NodeDeleted,
         EventType.NodeCreated }, HEALTH);
-    _handlers.add(callbackHandler);
+    // _handlers.add(callbackHandler);
+    addListener(callbackHandler);
   }
 
   @Override
@@ -249,7 +255,8 @@ public class ZKClusterManager implements ClusterManager
 
     CallbackHandler callbackHandler = createCallBackHandler(path, listener, new EventType[] {
         EventType.NodeDataChanged, EventType.NodeDeleted, EventType.NodeCreated }, EXTERNAL_VIEW);
-    _handlers.add(callbackHandler);
+    // _handlers.add(callbackHandler);
+    addListener(callbackHandler);
   }
 
   @Override
@@ -364,7 +371,8 @@ public class ZKClusterManager implements ClusterManager
 
     // System.out.println("add controller listeners to " + _instanceName +
     // " for " + _clusterName);
-    _handlers.add(callbackHandler);
+    // _handlers.add(callbackHandler);
+    addListener(callbackHandler);
   }
 
   @Override
@@ -372,7 +380,7 @@ public class ZKClusterManager implements ClusterManager
   {
     System.out.println("remove handlers: " + _instanceName);
 
-    synchronized (_handlers)
+    synchronized (this)
     {
       Iterator<CallbackHandler> iterator = _handlers.iterator();
       while (iterator.hasNext())
@@ -591,23 +599,31 @@ public class ZKClusterManager implements ClusterManager
 
   private void resetHandlers()
   {
-    // synchronized (_handlers)
-    // {
-    for (CallbackHandler handler : _handlers)
+    synchronized (this)
     {
-      handler.reset();
+      for (CallbackHandler handler : _handlers)
+      {
+        handler.reset();
+      }
     }
-    // }
   }
 
   private void initHandlers()
   {
-    // synchronized (_handlers)
-    // {
-    for (CallbackHandler handler : _handlers)
+    synchronized (this)
     {
-      handler.init();
-      // }
+      for (CallbackHandler handler : _handlers)
+      {
+        handler.init();
+      }
+    }
+  }
+
+  private void addListener(CallbackHandler handler)
+  {
+    synchronized (this)
+    {
+      _handlers.add(handler);
     }
   }
 

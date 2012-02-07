@@ -11,6 +11,7 @@ import java.nio.channels.FileLock;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
@@ -236,12 +237,12 @@ public class FilePropertyStore<T> implements PropertyStore<T>
 
         });
 
-        
+
         // notify listeners
         for (int i = 0; i < fileArray.length; i++)
         {
           File file = fileArray[i];
-          
+
           // debug
 //          logger.error("Before send notification of " + file.getAbsolutePath() + " to listeners " + _fileChangeListeners);
 
@@ -255,7 +256,7 @@ public class FilePropertyStore<T> implements PropertyStore<T>
                 if (listener instanceof CallbackHandlerForFile)
                 {
                   CallbackHandlerForFile handler = (CallbackHandlerForFile) listener;
-                  
+
                   // debug
 //                  logger.error("Send notification of " + file.getAbsolutePath() + " to listener:" + handler.getListener());
                 }
@@ -688,6 +689,9 @@ public class FilePropertyStore<T> implements PropertyStore<T>
     {
       _readWriteLock.readLock().unlock();
     }
+
+    // sort it to get deterministic order
+    Collections.sort(propertyNames);
 
     return propertyNames;
   }

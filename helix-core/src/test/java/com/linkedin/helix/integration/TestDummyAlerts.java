@@ -24,8 +24,8 @@ import com.linkedin.helix.model.Message;
 public class TestDummyAlerts extends ZkIntegrationTestBase
 {
   ZkClient _zkClient;
-  
-  @BeforeClass ()
+
+  @BeforeClass()
   public void beforeClass() throws Exception
   {
     _zkClient = new ZkClient(ZK_ADDR);
@@ -41,7 +41,7 @@ public class TestDummyAlerts extends ZkIntegrationTestBase
   public class DummyAlertsTransition implements MockTransitionIntf
   {
     @Override
-    public void doTrasition(Message message, NotificationContext context) 
+    public void doTrasition(Message message, NotificationContext context)
     {
       ClusterManager manager = context.getManager();
       ClusterDataAccessor accessor = manager.getDataAccessor();
@@ -49,30 +49,26 @@ public class TestDummyAlerts extends ZkIntegrationTestBase
       String toState = message.getToState();
       String instance = message.getTgtName();
       String partition = message.getStateUnitKey();
-      
-      if (fromState.equalsIgnoreCase("SLAVE")
-          && toState.equalsIgnoreCase("MASTER"))
+
+      if (fromState.equalsIgnoreCase("SLAVE") && toState.equalsIgnoreCase("MASTER"))
       {
         for (int i = 0; i < 5; i++)
         {
-          accessor.setProperty(PropertyType.HEALTHREPORT, 
-                               new ZNRecord("mockAlerts" + i), 
-                               instance,
-                               "mockAlerts");
+          accessor.setProperty(PropertyType.HEALTHREPORT, new ZNRecord("mockAlerts" + i), instance,
+              "mockAlerts");
           try
           {
             Thread.sleep(1000);
-          } 
-          catch (InterruptedException e)
+          } catch (InterruptedException e)
           {
             // TODO Auto-generated catch block
             e.printStackTrace();
           }
         }
       }
-    } 
+    }
   }
-  
+
   @Test()
   public void testDummyAlerts() throws Exception
   {
@@ -81,43 +77,32 @@ public class TestDummyAlerts extends ZkIntegrationTestBase
 
     System.out.println("START TestDummyAlerts at " + new Date(System.currentTimeMillis()));
 
-    TestHelper.setupCluster(clusterName, 
-                            ZK_ADDR, 
-                            12918,        // participant start port
-                            "localhost",  // participant name prefix
-                            "TestDB",     // resource group name prefix
-                            1,            // resource groups
-                            10,           // partitions per resource group
-                            5,            // number of nodes
-                            3,            // replicas
-                            "MasterSlave", 
-                            true);        // do rebalance
+    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant start
+                                                         // port
+        "localhost", // participant name prefix
+        "TestDB", // resource group name prefix
+        1, // resource groups
+        10, // partitions per resource group
+        5, // number of nodes
+        3, // replicas
+        "MasterSlave", true); // do rebalance
 
-    TestHelper.startController(clusterName, 
-                               "controller_0",
-                               ZK_ADDR, 
-                               ClusterManagerMain.STANDALONE);
+    TestHelper.startController(clusterName, "controller_0", ZK_ADDR, ClusterManagerMain.STANDALONE);
     // start participants
     for (int i = 0; i < 5; i++)
     {
       String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipant(clusterName, 
-                                            instanceName, 
-                                            ZK_ADDR,
-                                            new DummyAlertsTransition());
+      participants[i] = new MockParticipant(clusterName, instanceName, ZK_ADDR,
+          new DummyAlertsTransition());
       new Thread(participants[i]).start();
     }
 
     TestHelper.verifyWithTimeout("verifyBestPossAndExtViewExtended",
-                                 15000,  // timeout in millisecond
-                                 ZK_ADDR,
-                                 TestHelper.<String>setOf(clusterName),
-                                 TestHelper.<String>setOf("TestDB0"),
-                                 null,
-                                 null,
-                                 null);
-    
+        30 * 1000, // timeout in millisecond
+        ZK_ADDR, TestHelper.<String> setOf(clusterName), TestHelper.<String> setOf("TestDB0"),
+        null, null, null);
+
     // other verifications go here
     ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
     for (int i = 0; i < 5; i++)
@@ -126,7 +111,7 @@ public class TestDummyAlerts extends ZkIntegrationTestBase
       ZNRecord record = accessor.getProperty(PropertyType.HEALTHREPORT, instance, "mockAlerts");
       Assert.assertEquals(record.getId(), "mockAlerts4");
     }
-    
+
     System.out.println("END TestDummyAlerts at " + new Date(System.currentTimeMillis()));
   }
 }

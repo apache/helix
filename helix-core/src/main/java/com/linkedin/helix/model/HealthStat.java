@@ -34,7 +34,12 @@ public class HealthStat extends ZNRecordDecorator
 	          + new Date().getTime());
 	    }
 	  }
-	
+
+	public long getLastModifiedTimeStamp()
+	{
+		return _record.getModifiedTime();
+	}
+
   public long getCreateTimeStamp()
   {
     if (_record.getSimpleField(Attributes.CREATE_TIMESTAMP.toString()) == null)

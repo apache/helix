@@ -87,10 +87,8 @@ public class TestWildcardAlert extends ZkIntegrationTestBase
   private static final Logger _logger = Logger.getLogger(TestWildcardAlert.class);
   ZkClient _zkClient;
   protected ClusterSetup _setupTool = null;
-  protected final String _alertStr = "EXP(accumulate()(localhost_*.RestQueryStats@DBName=TestDB0.latency)|EXPAND|SUMEACH)CMP(GREATER)CON(10)";
-  //protected final String _alertStr2 = "EXP(accumulate()(localhost_*.RestQueryStats@DBName=TestDB0.latency))CMP(GREATER)CON(10)";
-  
-  protected final String _alertStatusStr = _alertStr+" : (*)";
+  protected final String _alertStr = "EXP(accumulate()(localhost_*.RestQueryStats@DBName=TestDB0.latency)|EXPAND|SUMEACH)CMP(GREATER)CON(10)";  
+  protected final String _alertStatusStr = _alertStr; //+" : (*)";
   protected final String _dbName = "TestDB0";
 
   @BeforeClass ()

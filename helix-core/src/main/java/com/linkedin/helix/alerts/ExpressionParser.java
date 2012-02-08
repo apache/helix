@@ -127,23 +127,81 @@ public class ExpressionParser {
 	  }
 	  */
 	  
+	  
 	  /*
 	   * Validate 2 sets of parenthesis exist, all before first opDelim
 	   * 
-	   * TODO: extract agg type and validate it exists.  validate number of args passed in
+	   * extract agg type and validate it exists.  validate number of args passed in
 	   * 
 	   */
 	  public static void validateAggregatorFormat(String expression) throws ClusterManagerException
 	  {
 		  logger.debug("validating aggregator for expression: "+expression);
 		  //have 0 or more args, 1 or more stats...e.g. ()(x) or (2)(x,y)
-		  Pattern pattern = Pattern.compile("\\(.*?\\)\\(.+?\\)");
+		  Pattern pattern = Pattern.compile("\\(.*?\\)");
 		  Matcher matcher = pattern.matcher(expression);
+		  String aggComponent=null;
+		  String statComponent=null;
+		  int lastMatchEnd = -1;
+		  if (matcher.find()) {
+			  aggComponent = matcher.group();
+			  aggComponent = aggComponent.substring(1,aggComponent.length()-1);
+			  if (aggComponent.contains(")") || aggComponent.contains("(")) {
+				  throw new ClusterManagerException(expression +" has invalid aggregate component");
+			  }
+		  }
+		  else {
+			  throw new ClusterManagerException(expression +" has invalid aggregate component");
+		  }
+		  if (matcher.find()) {
+			  statComponent = matcher.group();
+			  statComponent = statComponent.substring(1, statComponent.length()-1);
+			  //statComponent must have at least 1 arg between paren
+			  if (statComponent.contains(")") || statComponent.contains("(")  || statComponent.length() == 0) {
+				  throw new ClusterManagerException(expression +" has invalid stat component");
+			  }
+			  lastMatchEnd = matcher.end();
+		  }
+		  else {
+			  throw new ClusterManagerException(expression +" has invalid stat component");
+		  }
+		  if (matcher.find()) {
+			  throw new ClusterManagerException(expression +" has too many parenthesis components");
+		  }
+		 
+		  if (expression.length() >= lastMatchEnd+1) { //lastMatchEnd is pos 1 past the pattern.  check if there are paren there
+			  if (expression.substring(lastMatchEnd).contains("(") || 
+			  	expression.substring(lastMatchEnd).contains(")")) {
+				  	throw new ClusterManagerException(expression +" has extra parenthesis");
+			  	}
+			  }
+		  
+		  //check wildcard locations.  each part can have at most 1 wildcard, and must be at end
+		  //String expStatNamePart = expression.substring(expression.)
+		  StringTokenizer fieldTok = new StringTokenizer(statComponent, statFieldDelim);
+		  while (fieldTok.hasMoreTokens()) {
+			  String currTok = fieldTok.nextToken();
+			  if (currTok.contains(wildcardChar)) {
+				  if (currTok.indexOf(wildcardChar) != currTok.length()-1 ||
+						  currTok.lastIndexOf(wildcardChar) != currTok.length()-1) {
+					  throw new ClusterManagerException(currTok+" is illegal stat name.  Single wildcard must appear at end.");
+				  }
+			  }
+		  }
+		  
+		  
+		  //Pattern pattern = Pattern.compile("^\\(.*?\\)\\(.+?\\)$");
+		  //Pattern pattern = Pattern.compile("\\(\\({0}.*?\\({0}\\)\\){0}\\(\\({0}.+?\\({0}\\)"); //trying to add in no nested parentheses allowed
+		 /*
+			  Matcher matcher = pattern.matcher(expression);
 		  if (!matcher.find()) {
 			  throw new ClusterManagerException(expression +" does not have correct parenthesis");
 		  }
 		  logger.debug("found valid aggregator "+matcher.group());
 		  int patternEnd = matcher.end();
+		  
+		  
+		  
 		  if (expression.length() > patternEnd+1) { //if more, check for what follows
 		  if (expression.substring(patternEnd+1).contains("(") || 
 		  	expression.substring(patternEnd+1).contains(")")) {
@@ -152,6 +210,7 @@ public class ExpressionParser {
 		  }
 		  
 		  //check wildcard locations.  each part can have at most 1 wildcard, and must be at end
+		  //String expStatNamePart = expression.substring(expression.)
 		  StringTokenizer fieldTok = new StringTokenizer(expression, statFieldDelim);
 		  while (fieldTok.hasMoreTokens()) {
 			  String currTok = fieldTok.nextToken();
@@ -162,6 +221,7 @@ public class ExpressionParser {
 				  }
 			  }
 		  }
+		  */
 	  }
 	  
 	  public static boolean statContainsWildcards(String stat)

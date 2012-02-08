@@ -1,6 +1,7 @@
 package com.linkedin.helix.store.zk;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -29,11 +30,11 @@ import com.linkedin.helix.store.PropertyStat;
 import com.linkedin.helix.store.PropertyStore;
 import com.linkedin.helix.store.PropertyStoreException;
 
-public class ZKPropertyStore<T> 
+public class ZKPropertyStore<T>
 implements PropertyStore<T>, IZkDataListener, IZkChildListener, IZkStateListener
 {
   private static Logger LOG = Logger.getLogger(ZKPropertyStore.class);
-  
+
   private final String ROOT = "/";
   private volatile boolean _isConnected = false;
   private volatile boolean _hasSessionExpired = false;
@@ -43,35 +44,25 @@ implements PropertyStore<T>, IZkDataListener, IZkChildListener, IZkStateListener
   protected final PropertySerializer<T> _serializer;
   protected final String _rootPath;
 
-  private final Map<String, Map<PropertyChangeListener<T>, ZkCallbackHandler<T>>> _handlerMap 
+  private final Map<String, Map<PropertyChangeListener<T>, ZkCallbackHandler<T>>> _handlerMap
       = new ConcurrentHashMap<String, Map<PropertyChangeListener<T>, ZkCallbackHandler<T>>>();
   // TODO property cache needs to have a bounded capacity
   private final Map<String, PropertyInfo<T>> _propertyCacheMap = new ConcurrentHashMap<String, PropertyInfo<T>>();
-
-//  public ZKPropertyStore(ZkConnection zkConnection,
-//      final PropertySerializer<T> serializer)
-//  {
-//    this(zkConnection, serializer, "/");
-//  }
 
   public ZKPropertyStore(ZkClient zkClient, final PropertySerializer<T> serializer)
   {
     this(zkClient, serializer, "/");
   }
-  
-//  public ZKPropertyStore(ZkConnection zkConnection,
-//      final PropertySerializer<T> serializer, String rootPath)
+
   public ZKPropertyStore(ZkClient zkClient,
       final PropertySerializer<T> serializer, String rootPath)
   {
     _serializer = serializer;
-//    _zkConnection = zkConnection;
-//    _zkClient = new ZkClient(_zkConnection);
     _zkClient = zkClient;
     setPropertySerializer(serializer);
 
     _zkClient.subscribeStateChanges(this);
-    
+
     // Strip off leading slash
     while (rootPath.startsWith("/"))
     {
@@ -95,7 +86,7 @@ implements PropertyStore<T>, IZkDataListener, IZkChildListener, IZkStateListener
     }
     return pathToChild;
   }
-  
+
   private String getPath(String key)
   {
     // Strip off leading slash
@@ -126,7 +117,7 @@ implements PropertyStore<T>, IZkDataListener, IZkChildListener, IZkStateListener
     return path;
   }
 
-  private void updatePropertyCache(String path) 
+  private void updatePropertyCache(String path)
   {
     try
     {
@@ -170,7 +161,7 @@ implements PropertyStore<T>, IZkDataListener, IZkChildListener, IZkStateListener
 
     // it depends on the serializer to handle value == null
     _zkClient.writeData(path, value);
-   
+
     // update cache immediately
     updatePropertyCache(path);
   }
@@ -268,7 +259,7 @@ implements PropertyStore<T>, IZkDataListener, IZkChildListener, IZkStateListener
     {
       _zkClient.delete(path);
     }
-    
+
     // update local cache immediately
     synchronized(_propertyCacheMap)
     {
@@ -296,27 +287,27 @@ implements PropertyStore<T>, IZkDataListener, IZkChildListener, IZkStateListener
     // removePropertyRecursive() triggers listeners which refresh cache
   }
 
-  private void doGetPropertyNames(String path, List<String> leafNodes) 
+  private void doGetPropertyNames(String path, List<String> leafNodes)
   throws PropertyStoreException
   {
     if (!_zkClient.exists(path))
     {
       return;
     }
-    
+
     List<String> childs = _zkClient.getChildren(path);
     if (childs == null)
     {
       return;
     }
-    
+
     if (childs.size() == 0)
     {
       getProperty(getRelativePath(path));
       leafNodes.add(getRelativePath(path));
       return;
     }
-    
+
     for (String child : childs)
     {
       String pathToChild = getPathToChild(path, child);
@@ -331,7 +322,10 @@ implements PropertyStore<T>, IZkDataListener, IZkChildListener, IZkStateListener
     String path = getPath(prefix);
     List<String> propertyNames = new ArrayList<String>();
     doGetPropertyNames(path, propertyNames);
-    
+
+    // sort it to get deterministic order
+    Collections.sort(propertyNames);
+
     return propertyNames;
   }
 
@@ -355,13 +349,13 @@ implements PropertyStore<T>, IZkDataListener, IZkChildListener, IZkStateListener
       final PropertyChangeListener<T> listener) throws PropertyStoreException
   {
     String path = getPath(prefix);
-    
+
     Map<PropertyChangeListener<T>, ZkCallbackHandler<T>> handlers;
     ZkCallbackHandler<T> handler = null;
-    synchronized (_handlerMap) 
+    synchronized (_handlerMap)
     {
         handlers = _handlerMap.get(path);
-        if (handlers == null) 
+        if (handlers == null)
         {
            handlers = new HashMap<PropertyChangeListener<T>, ZkCallbackHandler<T>>();
            _handlerMap.put(path, handlers);
@@ -377,7 +371,7 @@ implements PropertyStore<T>, IZkDataListener, IZkChildListener, IZkStateListener
     {
       _zkClient.subscribeDataChanges(path, handler);
       _zkClient.subscribeChildChanges(path, handler);
-      
+
       // do initial invocation
       try
       {
@@ -399,7 +393,7 @@ implements PropertyStore<T>, IZkDataListener, IZkChildListener, IZkStateListener
     {
       return;
     }
-    
+
     _zkClient.unsubscribeDataChanges(path, handler);
     _zkClient.unsubscribeChildChanges(path, handler);
 
@@ -408,7 +402,7 @@ implements PropertyStore<T>, IZkDataListener, IZkChildListener, IZkStateListener
     {
       return;
     }
-        
+
     for (String child : childs)
     {
       String pathToChild = getPathToChild(path, child);
@@ -416,7 +410,7 @@ implements PropertyStore<T>, IZkDataListener, IZkChildListener, IZkStateListener
     }
   }
 
-  public void unsubscribeForRootPropertyChange(PropertyChangeListener<T> listener) 
+  public void unsubscribeForRootPropertyChange(PropertyChangeListener<T> listener)
       throws PropertyStoreException
   {
     unsubscribeForPropertyChange(ROOT, listener);
@@ -438,7 +432,7 @@ implements PropertyStore<T>, IZkDataListener, IZkChildListener, IZkStateListener
           _handlerMap.remove(path);
       }
     }
-    
+
     if (handler != null)
     {
       doUnsubscribeForPropertyChange(path, handler);
@@ -513,9 +507,9 @@ implements PropertyStore<T>, IZkDataListener, IZkChildListener, IZkStateListener
         _zkClient.createPersistent(path, true);
       }
     }
-  
+
     _zkClient.<T>updateDataSerialized(path, updater);
-    
+
     // update cache immediately
     updatePropertyCache(path);
   }
@@ -527,26 +521,26 @@ implements PropertyStore<T>, IZkDataListener, IZkChildListener, IZkStateListener
   }
 
   /*
-  @Override 
+  @Override
   public boolean updateProperty(String key, DataUpdater<T> updater)
-  { 
-    String path = getPath(key); 
-    if (!_zkClient.exists(path)) 
+  {
+    String path = getPath(key);
+    if (!_zkClient.exists(path))
        return false;
-    Stat stat = new Stat(); 
+    Stat stat = new Stat();
     boolean isSucceed = false;
-    
-    try 
-    { 
-      T oldData = _zkClient.<T>readData(path, stat); 
-      T newData = updater.update(oldData); 
+
+    try
+    {
+      T oldData = _zkClient.<T>readData(path, stat);
+      T newData = updater.update(oldData);
       _zkClient.writeData(path, newData,
-      stat.getVersion()); // callback will update cache isSucceed = true; 
-    } catch (ZkBadVersionException e) 
-    { 
-      isSucceed = false; 
+      stat.getVersion()); // callback will update cache isSucceed = true;
+    } catch (ZkBadVersionException e)
+    {
+      isSucceed = false;
     }
-    return isSucceed; 
+    return isSucceed;
   }
   */
 
@@ -585,10 +579,10 @@ implements PropertyStore<T>, IZkDataListener, IZkChildListener, IZkStateListener
       if (comparator.compare(current, expected) == 0)
       {
         _zkClient.writeData(path, update, stat.getVersion());
-        
+
         // update local cache immediately
         updatePropertyCache(path);
-        
+
         isSucceed = true;
       }
     } catch (ZkBadVersionException e)
@@ -615,28 +609,28 @@ implements PropertyStore<T>, IZkDataListener, IZkChildListener, IZkStateListener
   }
 
   @Override
-  public void handleChildChange(String parentPath, List<String> currentChilds) 
+  public void handleChildChange(String parentPath, List<String> currentChilds)
   throws Exception
   {
     synchronized (_propertyCacheMap)
     {
-      
+
       if (currentChilds == null)
       {
           // race condition:
           // 1) thread-1 reads from ZK and not yet put the value to map
           // 2) thread-2 deletes it from ZK and remove it from map
           // 3) thread-1 put the value to map
-       
+
           _propertyCacheMap.remove(parentPath);
       }
       else
       {
-        // iterate cache map 
+        // iterate cache map
         // remove all values with keys starting with parentPath
         // add all currentChilds to cache map
         Iterator iter = _propertyCacheMap.entrySet().iterator();
-        while (iter.hasNext()) 
+        while (iter.hasNext())
         {
           Map.Entry<String, PropertyInfo<T>> entry = (Map.Entry)iter.next();
           String key = entry.getKey();
@@ -644,22 +638,22 @@ implements PropertyStore<T>, IZkDataListener, IZkChildListener, IZkStateListener
           {
             iter.remove();
           }
-          
+
         }
-        
+
         for(String child : currentChilds)
         {
           String childPath = getPathToChild(parentPath, child);
           updatePropertyCache(childPath);
         }
-  
+
       }
     }
-    
+
   }
 
   @Override
-  public boolean exists(String key) 
+  public boolean exists(String key)
   {
     String path = getPath(key);
     return _zkClient.exists(path);
@@ -669,7 +663,7 @@ implements PropertyStore<T>, IZkDataListener, IZkChildListener, IZkStateListener
   public void handleStateChanged(KeeperState state) throws Exception
   {
     LOG.info("KeeperState:" + state);
-    switch (state) 
+    switch (state)
     {
     case SyncConnected:
         _isConnected = true;
@@ -681,7 +675,7 @@ implements PropertyStore<T>, IZkDataListener, IZkChildListener, IZkStateListener
         _isConnected = false;
         _hasSessionExpired = true;
         break;
-    }    
+    }
   }
 
   @Override
@@ -697,12 +691,12 @@ implements PropertyStore<T>, IZkDataListener, IZkChildListener, IZkStateListener
       for (Map.Entry<PropertyChangeListener<T>, ZkCallbackHandler<T>> entry : mapEntry.getValue().entrySet())
       {
         ZkCallbackHandler<T> handler = entry.getValue();
-        
+
         if (handler != null)
         {
           _zkClient.subscribeDataChanges(path, handler);
           _zkClient.subscribeChildChanges(path, handler);
-          
+
           // do initial invocation
           try
           {

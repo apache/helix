@@ -62,6 +62,9 @@ public class ZNRecord
     simpleFields.putAll(record.getSimpleFields());
     mapFields.putAll(record.getMapFields());
     listFields.putAll(record.getListFields());
+    _version = record.getVersion();
+    _creationTime = record.getCreationTime();
+    _modifiedTime = record.getModifiedTime();
   }
 
   public ZNRecord(ZNRecord record, int version)

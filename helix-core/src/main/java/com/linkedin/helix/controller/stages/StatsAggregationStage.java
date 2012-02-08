@@ -101,12 +101,10 @@ public void persistAggStats(ClusterManager manager)
   }
   
   //currTime in seconds
-  public void reportAgeStat(LiveInstance instance, long currTime)
+  public void reportAgeStat(LiveInstance instance, long modifiedTime, long currTime)
   {
 	  String statName = getAgeStatName(instance.getInstanceName());
-	  //TODO: call to get modifiedTime is a stub right now
-	  long modifiedTime = instance.getModifiedTime();
-	  long age = currTime - modifiedTime; //XXX: ensure this is in seconds
+	  long age = (currTime - modifiedTime)/1000; //XXX: ensure this is in seconds
 	  Map<String, String> ageStatMap = new HashMap<String, String>();
 	  ageStatMap.put(StatsHolder.TIMESTAMP_NAME, String.valueOf(currTime));
 	  ageStatMap.put(StatsHolder.VALUE_NAME, String.valueOf(age));
@@ -136,13 +134,10 @@ public void persistAggStats(ClusterManager manager)
     
     Map<String, LiveInstance> liveInstances = cache.getLiveInstances();
     
-    long currTime = System.currentTimeMillis()/1000;
+    long currTime = System.currentTimeMillis();
     //for each live node, read node's stats
     for (LiveInstance instance : liveInstances.values())
     {
-    	//generate and report stats for how old this node's report is
-    	reportAgeStat(instance, currTime);
-
     	String instanceName = instance.getInstanceName();
     	logger.debug("instanceName: "+instanceName);
     	//XXX: now have map of HealthStats, so no need to traverse them...verify correctness
@@ -151,7 +146,11 @@ public void persistAggStats(ClusterManager manager)
     	//find participants stats
     	HealthStat participantStat = stats.get(ESPRESSO_STAT_REPORT_NAME);
     	long modTime = -1;
-    	if (participantStat != null) {modTime = participantStat.getLastModifiedTimeStamp();}
+    	if (participantStat != null) {
+    		//generate and report stats for how old this node's report is
+    		modTime = participantStat.getLastModifiedTimeStamp();
+    		reportAgeStat(instance, modTime, currTime);
+    	}
     	//System.out.println(modTime);
     	//XXX: need to convert participantStat to a better format
     	//need to get instanceName in here
@@ -175,10 +174,14 @@ public void persistAggStats(ClusterManager manager)
    
     //execute alerts, populate _alertStatus
     _alertStatus = AlertProcessor.executeAllAlerts(_alertsHolder.getAlertList(), _statsHolder.getStatsList());
+    
+    /* Commenting out Shi's stuff for now!
     for(String originAlertName : _alertStatus.keySet())
     {
       _alertBeanCollection.setAlerts(originAlertName, _alertStatus.get(originAlertName));
     }
+    */
+    
     //write out alert status (to zk)
     _alertsHolder.addAlertStatusSet(_alertStatus);
     

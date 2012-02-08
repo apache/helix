@@ -28,7 +28,7 @@ public class TestAlertValidation {
 		}
 		AssertJUnit.assertFalse(caughtException);
 	}
-
+	
 	@Test
 	public void testSingleInSingleOut() {
 		String alertName = EXP

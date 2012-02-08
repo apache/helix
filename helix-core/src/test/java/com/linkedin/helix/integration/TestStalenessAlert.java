@@ -28,11 +28,11 @@ import com.linkedin.helix.mock.storage.MockTransitionIntf;
 import com.linkedin.helix.model.Message;
 import com.linkedin.helix.tools.ClusterSetup;
 
-public class TestExpandAlert extends ZkIntegrationTestBase
+public class TestStalenessAlert extends ZkIntegrationTestBase
 {
   ZkClient _zkClient;
   protected ClusterSetup _setupTool = null;
-  protected final String _alertStr = "EXP(accumulate()(localhost_*.RestQueryStats@DBName=TestDB0.latency))CMP(GREATER)CON(16)";
+  protected final String _alertStr = "EXP(decay(1)(localhost_*.reportingage))CMP(GREATER)CON(600)";
   protected final String _alertStatusStr = _alertStr+" : (12918)";
   protected final String _dbName = "TestDB0";
   
@@ -51,7 +51,7 @@ public class TestExpandAlert extends ZkIntegrationTestBase
     _zkClient.close();
   }
 
-  public class ExpandAlertTransition implements MockTransitionIntf
+  public class StalenessAlertTransition implements MockTransitionIntf
   {
     @Override
     public void doTrasition(Message message, NotificationContext context) 
@@ -77,8 +77,7 @@ public class TestExpandAlert extends ZkIntegrationTestBase
     	String statName = "latency";
     	provider.setStat(_dbName, statName,"15");
      	reporter.transmitHealthReports();
-    	
-     	
+    	 
     	/*
         for (int i = 0; i < 5; i++)
         {
@@ -102,12 +101,12 @@ public class TestExpandAlert extends ZkIntegrationTestBase
   }
   
   @Test()
-  public void testExpandAlert() throws Exception
+  public void testStalenessAlert() throws Exception
   {
     String clusterName = getShortClassName();
     MockParticipant[] participants = new MockParticipant[5];
 
-    System.out.println("START TestExpandAlert at " + new Date(System.currentTimeMillis()));
+    System.out.println("START TestStalenessAlert at " + new Date(System.currentTimeMillis()));
 
     TestHelper.setupCluster(clusterName, 
                             ZK_ADDR, 
@@ -135,22 +134,13 @@ public class TestExpandAlert extends ZkIntegrationTestBase
       participants[i] = new MockParticipant(clusterName, 
                                             instanceName, 
                                             ZK_ADDR,
-                                            new ExpandAlertTransition());
+                                            new StalenessAlertTransition());
       new Thread(participants[i]).start();
     }
 
-    TestHelper.verifyWithTimeout("verifyBestPossAndExtViewExtended",
-            15000,  // timeout in millisecond //was 15000
-            ZK_ADDR,
-            TestHelper.<String>setOf(clusterName),
-            TestHelper.<String>setOf(_dbName),
-            null,
-            null,
-            null);
-    
     /*
     TestHelper.verifyWithTimeout("verifyBestPossAndExtViewExtended",
-                                 15000,  // timeout in millisecond //was 15000
+                                 1500000,  // timeout in millisecond //was 15000
                                  _dbName,
                                  10,
                                  "MasterSlave",
@@ -160,6 +150,15 @@ public class TestExpandAlert extends ZkIntegrationTestBase
                                  null,
                                  null);
     */
+    
+    TestHelper.verifyWithTimeout("verifyBestPossAndExtViewExtended",
+            15000,  // timeout in millisecond //was 15000
+            ZK_ADDR,
+            TestHelper.<String>setOf(clusterName),
+            TestHelper.<String>setOf(_dbName),
+            null,
+            null,
+            null);
     
     // other verifications go here
     ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
@@ -173,10 +172,10 @@ public class TestExpandAlert extends ZkIntegrationTestBase
       Map<String,String> alertStatusMap = recMap.get(_alertStatusStr);
       String val = alertStatusMap.get(AlertValueAndStatus.VALUE_NAME);
       boolean fired = Boolean.parseBoolean(alertStatusMap.get(AlertValueAndStatus.FIRED_NAME));
-      Assert.assertEquals(Double.parseDouble(val), Double.parseDouble("15.0"));
+      //Assert.assertEquals(Double.parseDouble(val), Double.parseDouble("75.0"));
       Assert.assertFalse(fired);
     //}
     
-    System.out.println("END TestExpandAlert at " + new Date(System.currentTimeMillis()));
+    System.out.println("END TestStalenessAlert at " + new Date(System.currentTimeMillis()));
   }
 }

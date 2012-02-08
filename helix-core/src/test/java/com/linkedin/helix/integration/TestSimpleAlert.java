@@ -115,8 +115,8 @@ public class TestSimpleAlert extends ZkIntegrationTestBase
                             "TestDB",     // resource group name prefix
                             1,            // resource groups
                             10,           // partitions per resource group
-                            1,            // number of nodes //change back to 5!!!
-                            1,            // replicas //change back to 3!!!
+                            5,            // number of nodes //change back to 5!!!
+                            3,            // replicas //change back to 3!!!
                             "MasterSlave",
                             true);        // do rebalance
 
@@ -127,7 +127,7 @@ public class TestSimpleAlert extends ZkIntegrationTestBase
                                ZK_ADDR,
                                ClusterManagerMain.STANDALONE);
     // start participants
-    for (int i = 0; i < 1; i++) //!!!change back to 5
+    for (int i = 0; i < 5; i++) //!!!change back to 5
     {
       String instanceName = "localhost_" + (12918 + i);
 
@@ -139,7 +139,7 @@ public class TestSimpleAlert extends ZkIntegrationTestBase
     }
 
     TestHelper.verifyWithTimeout("verifyBestPossAndExtViewExtended",
-                                 1500000,  // timeout in millisecond //was 15000
+                                 15000,  // timeout in millisecond //was 15000
                                  ZK_ADDR,
                                  TestHelper.<String>setOf(clusterName),
                                  TestHelper.<String>setOf(_dbName),

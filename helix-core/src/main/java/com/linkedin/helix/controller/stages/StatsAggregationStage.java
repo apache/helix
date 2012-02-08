@@ -175,12 +175,12 @@ public void persistAggStats(ClusterManager manager)
     //execute alerts, populate _alertStatus
     _alertStatus = AlertProcessor.executeAllAlerts(_alertsHolder.getAlertList(), _statsHolder.getStatsList());
     
-    /* Commenting out Shi's stuff for now!
+    
     for(String originAlertName : _alertStatus.keySet())
     {
       _alertBeanCollection.setAlerts(originAlertName, _alertStatus.get(originAlertName));
     }
-    */
+    
     
     //write out alert status (to zk)
     _alertsHolder.addAlertStatusSet(_alertStatus);

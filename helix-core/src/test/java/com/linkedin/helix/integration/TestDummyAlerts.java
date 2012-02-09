@@ -18,7 +18,7 @@ import com.linkedin.helix.agent.zk.ZNRecordSerializer;
 import com.linkedin.helix.agent.zk.ZkClient;
 import com.linkedin.helix.controller.ClusterManagerMain;
 import com.linkedin.helix.mock.storage.MockParticipant;
-import com.linkedin.helix.mock.storage.MockTransitionIntf;
+import com.linkedin.helix.mock.storage.MockTransition;
 import com.linkedin.helix.model.Message;
 
 public class TestDummyAlerts extends ZkIntegrationTestBase
@@ -38,10 +38,10 @@ public class TestDummyAlerts extends ZkIntegrationTestBase
     _zkClient.close();
   }
 
-  public class DummyAlertsTransition implements MockTransitionIntf
+  public class DummyAlertsTransition extends MockTransition
   {
     @Override
-    public void doTrasition(Message message, NotificationContext context)
+    public void doTransition(Message message, NotificationContext context)
     {
       ClusterManager manager = context.getManager();
       ClusterDataAccessor accessor = manager.getDataAccessor();
@@ -67,6 +67,7 @@ public class TestDummyAlerts extends ZkIntegrationTestBase
         }
       }
     }
+
   }
 
   @Test()

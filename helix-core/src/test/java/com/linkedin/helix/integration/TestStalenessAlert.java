@@ -21,10 +21,9 @@ import com.linkedin.helix.agent.zk.ZkClient;
 import com.linkedin.helix.alerts.AlertValueAndStatus;
 import com.linkedin.helix.controller.ClusterManagerMain;
 import com.linkedin.helix.healthcheck.ParticipantHealthReportCollectorImpl;
-import com.linkedin.helix.healthcheck.PerformanceHealthReportProvider;
 import com.linkedin.helix.mock.storage.MockEspressoHealthReportProvider;
 import com.linkedin.helix.mock.storage.MockParticipant;
-import com.linkedin.helix.mock.storage.MockTransitionIntf;
+import com.linkedin.helix.mock.storage.MockTransition;
 import com.linkedin.helix.model.Message;
 import com.linkedin.helix.tools.ClusterSetup;
 
@@ -35,26 +34,26 @@ public class TestStalenessAlert extends ZkIntegrationTestBase
   protected final String _alertStr = "EXP(decay(1)(localhost_*.reportingage))CMP(GREATER)CON(600)";
   protected final String _alertStatusStr = _alertStr+" : (12918)";
   protected final String _dbName = "TestDB0";
-  
+
   @BeforeClass ()
   public void beforeClass() throws Exception
   {
     _zkClient = new ZkClient(ZK_ADDR);
     _zkClient.setZkSerializer(new ZNRecordSerializer());
-    
+
     _setupTool = new ClusterSetup(ZK_ADDR);
   }
-    
+
   @AfterClass
   public void afterClass()
   {
     _zkClient.close();
   }
 
-  public class StalenessAlertTransition implements MockTransitionIntf
+  public class StalenessAlertTransition extends MockTransition
   {
     @Override
-    public void doTrasition(Message message, NotificationContext context) 
+    public void doTransition(Message message, NotificationContext context)
     {
       ClusterManager manager = context.getManager();
       ClusterDataAccessor accessor = manager.getDataAccessor();
@@ -62,14 +61,14 @@ public class TestStalenessAlert extends ZkIntegrationTestBase
       String toState = message.getToState();
       String instance = message.getTgtName();
       String partition = message.getStateUnitKey();
-      
+
       if (fromState.equalsIgnoreCase("SLAVE")
           && toState.equalsIgnoreCase("MASTER"))
       {
-    	
+
     	//add a stat and report to ZK
     	//perhaps should keep reporter per instance...
-    	ParticipantHealthReportCollectorImpl reporter = 
+    	ParticipantHealthReportCollectorImpl reporter =
     			new ParticipantHealthReportCollectorImpl(manager, instance);
     	MockEspressoHealthReportProvider provider = new
     			MockEspressoHealthReportProvider();
@@ -77,18 +76,18 @@ public class TestStalenessAlert extends ZkIntegrationTestBase
     	String statName = "latency";
     	provider.setStat(_dbName, statName,"15");
      	reporter.transmitHealthReports();
-    	 
+
     	/*
         for (int i = 0; i < 5; i++)
         {
-          accessor.setProperty(PropertyType.HEALTHREPORT, 
-                               new ZNRecord("mockAlerts" + i), 
+          accessor.setProperty(PropertyType.HEALTHREPORT,
+                               new ZNRecord("mockAlerts" + i),
                                instance,
                                "mockAlerts");
           try
           {
             Thread.sleep(1000);
-          } 
+          }
           catch (InterruptedException e)
           {
             // TODO Auto-generated catch block
@@ -97,9 +96,10 @@ public class TestStalenessAlert extends ZkIntegrationTestBase
         }
         */
       }
-    } 
+    }
+
   }
-  
+
   @Test()
   public void testStalenessAlert() throws Exception
   {
@@ -108,8 +108,8 @@ public class TestStalenessAlert extends ZkIntegrationTestBase
 
     System.out.println("START TestStalenessAlert at " + new Date(System.currentTimeMillis()));
 
-    TestHelper.setupCluster(clusterName, 
-                            ZK_ADDR, 
+    TestHelper.setupCluster(clusterName,
+                            ZK_ADDR,
                             12918,        // participant start port
                             "localhost",  // participant name prefix
                             "TestDB",     // resource group name prefix
@@ -117,22 +117,22 @@ public class TestStalenessAlert extends ZkIntegrationTestBase
                             10,           // partitions per resource group
                             5,            // number of nodes //change back to 5!!!
                             3,            // replicas //change back to 3!!!
-                            "MasterSlave", 
+                            "MasterSlave",
                             true);        // do rebalance
 
     _setupTool.getClusterManagementTool().addAlert(clusterName, _alertStr);
-    
-    TestHelper.startController(clusterName, 
+
+    TestHelper.startController(clusterName,
                                "controller_0",
-                               ZK_ADDR, 
+                               ZK_ADDR,
                                ClusterManagerMain.STANDALONE);
     // start participants
     for (int i = 0; i < 5; i++) //!!!change back to 5
     {
       String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipant(clusterName, 
-                                            instanceName, 
+      participants[i] = new MockParticipant(clusterName,
+                                            instanceName,
                                             ZK_ADDR,
                                             new StalenessAlertTransition());
       new Thread(participants[i]).start();
@@ -150,7 +150,7 @@ public class TestStalenessAlert extends ZkIntegrationTestBase
                                  null,
                                  null);
     */
-    
+
     TestHelper.verifyWithTimeout("verifyBestPossAndExtViewExtended",
             15000,  // timeout in millisecond //was 15000
             ZK_ADDR,
@@ -159,7 +159,7 @@ public class TestStalenessAlert extends ZkIntegrationTestBase
             null,
             null,
             null);
-    
+
     // other verifications go here
     ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
     //for (int i = 0; i < 1; i++) //change 1 back to 5
@@ -175,7 +175,7 @@ public class TestStalenessAlert extends ZkIntegrationTestBase
       //Assert.assertEquals(Double.parseDouble(val), Double.parseDouble("75.0"));
       Assert.assertFalse(fired);
     //}
-    
+
     System.out.println("END TestStalenessAlert at " + new Date(System.currentTimeMillis()));
   }
 }

@@ -26,6 +26,11 @@ public class Message extends ZNRecordDecorator
     NO_OP
   };
 
+  public enum MessageSubType
+  {
+    RESET
+  };
+
   public enum Attributes
   {
     MSG_ID, SRC_SESSION_ID, TGT_SESSION_ID, SRC_NAME, TGT_NAME, SRC_INSTANCE_TYPE,
@@ -123,12 +128,12 @@ public class Message extends ZNRecordDecorator
   {
     return getSimpleFieldAsString(Attributes.SRC_NAME.toString());
   }
-  
+
   public void setSrcInstanceType(InstanceType type)
   {
     _record.setSimpleField(Attributes.SRC_INSTANCE_TYPE.toString(), type.toString());
   }
-  
+
   public InstanceType getSrcInstanceType()
   {
     if(_record.getSimpleFields().containsKey(Attributes.SRC_INSTANCE_TYPE.toString()))
@@ -137,7 +142,7 @@ public class Message extends ZNRecordDecorator
     }
     return InstanceType.PARTICIPANT;
   }
-  
+
   public void setSrcName(String msgSrc)
   {
     _record.setSimpleField(Attributes.SRC_NAME.toString(), msgSrc);
@@ -322,7 +327,7 @@ public class Message extends ZNRecordDecorator
   {
     return getSimpleFieldAsString(Attributes.CORRELATION_ID.toString());
   }
-  
+
   public int getExecutionTimeout()
   {
     if(!_record.getSimpleFields().containsKey(Attributes.MESSAGE_TIMEOUT.toString()))
@@ -334,20 +339,20 @@ public class Message extends ZNRecordDecorator
       return Integer.parseInt(_record.getSimpleField(Attributes.MESSAGE_TIMEOUT.toString()));
     }
     catch(Exception e)
-    {} 
+    {}
     return -1;
   }
-  
+
   public void setExecutionTimeout(int timeout)
   {
     _record.setSimpleField(Attributes.MESSAGE_TIMEOUT.toString(), "" + timeout);
   }
-  
+
   public void setRetryCount(int retryCount)
   {
     _record.setSimpleField(Attributes.RETRY_COUNT.toString(), "" + retryCount);
   }
-  
+
   public int getRetryCount()
   {
     try
@@ -355,7 +360,7 @@ public class Message extends ZNRecordDecorator
       return Integer.parseInt(_record.getSimpleField(Attributes.RETRY_COUNT.toString()));
     }
     catch(Exception e)
-    {} 
+    {}
     // Default to 0, and there is no retry if timeout happens
     return 0;
   }
@@ -388,11 +393,39 @@ public class Message extends ZNRecordDecorator
     return replyMessage;
   }
 
+  // TODO replace with util from espresso or linkedin
+  private boolean isNullOrEmpty(String data)
+  {
+    return data == null || data.length() == 0 || data.trim().length() == 0;
+  }
+
   @Override
   public boolean isValid()
   {
-    // TODO: refactor message to state transition message and task-message and 
+    // TODO: refactor message to state transition message and task-message and
     // implemement this function separately
+
+    if (getMsgType().equals(MessageType.STATE_TRANSITION.toString()))
+    {
+      boolean isNotValid =
+          isNullOrEmpty(getTgtName()) || isNullOrEmpty(getStateUnitKey())
+              || isNullOrEmpty(getStateUnitGroup()) || isNullOrEmpty(getStateModelDef())
+              || isNullOrEmpty(getToState());
+      if (getMsgSubType() == null)
+      {
+        isNotValid = isNotValid || isNullOrEmpty(getFromState());
+        return !isNotValid;
+      }
+      else if (getMsgSubType().equals(MessageSubType.RESET.toString()))
+      {
+        return !isNotValid;
+      }
+      else
+      {
+        return false;
+      }
+    }
+
     return true;
   }
 }

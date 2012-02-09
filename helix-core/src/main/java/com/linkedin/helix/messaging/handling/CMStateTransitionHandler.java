@@ -18,6 +18,7 @@ import com.linkedin.helix.ZNRecordDelta;
 import com.linkedin.helix.ZNRecordDelta.MERGEOPERATION;
 import com.linkedin.helix.model.CurrentState;
 import com.linkedin.helix.model.Message;
+import com.linkedin.helix.model.Message.MessageSubType;
 import com.linkedin.helix.model.StateModelDefinition;
 import com.linkedin.helix.participant.statemachine.StateModel;
 import com.linkedin.helix.participant.statemachine.StateModelParser;
@@ -39,26 +40,27 @@ public class CMStateTransitionHandler extends MessageHandler
     _transitionMethodFinder = new StateModelParser();
   }
 
-  // TODO replace with util from espresso or linkedin
-  private boolean isNullOrEmpty(String data)
-  {
-    return data == null || data.length() == 0 || data.trim().length() == 0;
-  }
-
-  private boolean validateMessage(Message message)
-  {
-    boolean isValid =
-        isNullOrEmpty(message.getFromState()) || isNullOrEmpty(message.getToState())
-            || isNullOrEmpty(message.getToState())
-            || isNullOrEmpty(message.getStateUnitKey())
-            || isNullOrEmpty(message.getToState())
-            || isNullOrEmpty(message.getStateModelDef());
-    return !isValid;
-  }
+  // // TODO replace with util from espresso or linkedin
+  // private boolean isNullOrEmpty(String data)
+  // {
+  // return data == null || data.length() == 0 || data.trim().length() == 0;
+  // }
+  //
+  // private boolean validateMessage(Message message)
+  // {
+  // boolean isValid =
+  // isNullOrEmpty(message.getFromState()) || isNullOrEmpty(message.getToState())
+  // || isNullOrEmpty(message.getToState())
+  // || isNullOrEmpty(message.getStateUnitKey())
+  // || isNullOrEmpty(message.getToState())
+  // || isNullOrEmpty(message.getStateModelDef());
+  // return !isValid;
+  // }
 
   private void prepareMessageExecution(ClusterManager manager, Message message) throws ClusterManagerException
   {
-    if (!validateMessage(message))
+    // if (!validateMessage(message))
+    if (!message.isValid())
     {
       String errorMessage =
           "Invalid Message, ensure that message: " + message
@@ -73,8 +75,8 @@ public class CMStateTransitionHandler extends MessageHandler
       throw new ClusterManagerException(errorMessage);
     }
     ClusterDataAccessor accessor = manager.getDataAccessor();
-    String stateUnitKey = message.getStateUnitKey();
-    String stateUnitGroup = message.getStateUnitGroup();
+    String partitionKey = message.getStateUnitKey();
+    String resourceGroup = message.getStateUnitGroup();
     String instanceName = manager.getInstanceName();
 
     String fromState = message.getFromState();
@@ -86,29 +88,28 @@ public class CMStateTransitionHandler extends MessageHandler
     StateModelDefinition stateModelDef =
         lookupStateModel(message.getStateModelDef(), stateModelDefs);
 
-    String initStateValue;
     if (stateModelDef == null)
     {
       throw new ClusterManagerException("No State Model Defined for "+ message.getStateModelDef());
     }
-    initStateValue = stateModelDef.getInitialState();
+    String initStateValue = stateModelDef.getInitialState();
     CurrentState currentState =
         accessor.getProperty(CurrentState.class,
                              PropertyType.CURRENTSTATES,
                              instanceName,
                              manager.getSessionId(),
-                             stateUnitGroup);
+                             resourceGroup);
 
     // Set an empty current state record if it is null
     if (currentState == null)
     {
-      currentState = new CurrentState(stateUnitGroup);
+      currentState = new CurrentState(resourceGroup);
       currentState.setSessionId(manager.getSessionId());
       accessor.updateProperty(PropertyType.CURRENTSTATES,
                               currentState,
                               instanceName,
                               manager.getSessionId(),
-                              stateUnitGroup);
+                              resourceGroup);
     }
 
     /**
@@ -117,13 +118,13 @@ public class CMStateTransitionHandler extends MessageHandler
      * otherwise controller may view a current state with a NULL state model def
      */
 
-    CurrentState currentStateDelta = new CurrentState(stateUnitGroup);
-    if (currentState.getState(stateUnitKey) == null)
+    CurrentState currentStateDelta = new CurrentState(resourceGroup);
+    if (currentState.getState(partitionKey) == null)
     {
-      currentStateDelta.setState(stateUnitKey, initStateValue);
-      currentState.setState(stateUnitKey, initStateValue);
+      currentStateDelta.setState(partitionKey, initStateValue);
+      currentState.setState(partitionKey, initStateValue);
 
-      logger.info("Setting initial state for partition: " + stateUnitKey + " to "
+      logger.info("Setting initial state for partition: " + partitionKey + " to "
           + initStateValue);
     }
 
@@ -142,17 +143,18 @@ public class CMStateTransitionHandler extends MessageHandler
                             currentStateDelta,
                             instanceName,
                             manager.getSessionId(),
-                            stateUnitGroup);
+                            resourceGroup);
 
     // Verify the fromState and current state of the stateModel
-    String state = currentState.getState(stateUnitKey);
-    if (!fromState.equals("*")
-        && (fromState == null || !fromState.equalsIgnoreCase(state)))
+    String state = currentState.getState(partitionKey);
+    // if (!fromState.equals("*")
+    // && (fromState == null || !fromState.equalsIgnoreCase(state)))
+    if (fromState != null && !fromState.equals("*") && !fromState.equalsIgnoreCase(state))
     {
       String errorMessage =
           "Current state of stateModel does not match the fromState in Message"
               + ", Current State:" + state + ", message expected:" + fromState
-              + ", partition: " + message.getStateUnitKey() + ", from: "
+              + ", partition: " + partitionKey + ", from: "
               + message.getMsgSrc() + ", to: " + message.getTgtName();
 
       _statusUpdateUtil.logError(message,
@@ -173,39 +175,49 @@ public class CMStateTransitionHandler extends MessageHandler
     ClusterDataAccessor accessor = manager.getDataAccessor();
     try
     {
-      String stateUnitKey = message.getStateUnitKey();
-      String stateUnitGroup = message.getStateUnitGroup();
+      String partitionKey = message.getStateUnitKey();
+      String resourceGroup = message.getStateUnitGroup();
       String instanceName = manager.getInstanceName();
 
-      String fromState = message.getFromState();
-      String toState = message.getToState();
       CurrentState currentState =
           accessor.getProperty(CurrentState.class,
                                PropertyType.CURRENTSTATES,
                                instanceName,
                                manager.getSessionId(),
-                               stateUnitGroup);
+                               resourceGroup);
 
-      if (currentState != null)
+      if (currentState == null)
       {
-        // map = currentState.getMapField(stateUnitKey);
-      }
-      else
-      {
-        logger.warn("currentState is null. Storage node should be working with file based cluster manager.");
+        logger.warn("currentState is null. Storage node should be working with static file based cluster manager.");
       }
 
       // TODO verify that fromState is same as currentState this task
       // was
       // called at.
       // Verify that no one has edited this field
-      CurrentState currentStateDelta = new CurrentState(stateUnitGroup);
+      CurrentState currentStateDelta = new CurrentState(resourceGroup);
+      currentStateDelta.setResourceGroup(partitionKey, resourceGroup);
+
       if (taskResult.isSucess())
       {
-        if (!toState.equalsIgnoreCase("DROPPED"))
+//        String fromState = message.getFromState();
+        String toState = message.getToState();
+
+        if (toState.equalsIgnoreCase("DROPPED"))
+        {
+          // for "OnOfflineToDROPPED" message, we need to remove the resource key
+          // record from
+          // the current state of the instance because the resource key is dropped.
+          ZNRecordDelta delta =
+              new ZNRecordDelta(currentStateDelta.getRecord(), MERGEOPERATION.SUBTRACT);
+          List<ZNRecordDelta> deltaList = new ArrayList<ZNRecordDelta>();
+          deltaList.add(delta);
+          currentStateDelta.setDeltaList(deltaList);
+        }
+        else
         {
           // If a resource key is dropped, it is ok to leave it "offline"
-          currentStateDelta.setState(stateUnitKey, toState);
+          currentStateDelta.setState(partitionKey, toState);
           _stateModel.updateState(toState);
         }
       }
@@ -215,38 +227,17 @@ public class CMStateTransitionHandler extends MessageHandler
             ErrorType.INTERNAL, ErrorCode.ERROR, exception);
 
         _stateModel.rollbackOnError(message, context, error);
-        currentStateDelta.setState(stateUnitKey, "ERROR");
+        currentStateDelta.setState(partitionKey, "ERROR");
         _stateModel.updateState("ERROR");
+
       }
 
-      currentStateDelta.setResourceGroup(stateUnitKey, message.getStateUnitGroup());
-
-      if (taskResult.isSucess() && toState.equals("DROPPED"))
-      {
-        // for "OnOfflineToDROPPED" message, we need to remove the resource key
-        // record from
-        // the current state of the instance because the resource key is dropped.
-        ZNRecordDelta delta =
-            new ZNRecordDelta(currentStateDelta.getRecord(), MERGEOPERATION.SUBTRACT);
-        List<ZNRecordDelta> deltaList = new ArrayList<ZNRecordDelta>();
-        deltaList.add(delta);
-        CurrentState currentStateUpdate = new CurrentState(stateUnitGroup);
-        currentStateUpdate.setDeltaList(deltaList);
-        accessor.updateProperty(PropertyType.CURRENTSTATES,
-                                currentStateUpdate,
-                                instanceName,
-                                manager.getSessionId(),
-                                stateUnitGroup);
-      }
-      else
-      {
-        // based on task result update the current state of the node.
-        accessor.updateProperty(PropertyType.CURRENTSTATES,
-                                currentStateDelta,
-                                instanceName,
-                                manager.getSessionId(),
-                                stateUnitGroup);
-      }
+      // based on task result update the current state of the node.
+      accessor.updateProperty(PropertyType.CURRENTSTATES,
+                              currentStateDelta,
+                              instanceName,
+                              manager.getSessionId(),
+                              resourceGroup);
     }
     catch (Exception e)
     {
@@ -334,6 +325,20 @@ public class CMStateTransitionHandler extends MessageHandler
       InvocationTargetException,
       InterruptedException
   {
+    _statusUpdateUtil.logInfo(message,
+                              CMStateTransitionHandler.class,
+                              "Message handling invoking",
+                              accessor);
+
+    if (message.getMsgSubType() != null
+        && message.getMsgSubType().equals(MessageSubType.RESET.toString()))
+    {
+      _stateModel.reset();
+      taskResult.setSuccess(true);
+      return;
+    }
+
+    // by default, we invoke state transition function in state model
     Method methodToInvoke = null;
     String fromState = message.getFromState();
     String toState = message.getToState();
@@ -343,10 +348,6 @@ public class CMStateTransitionHandler extends MessageHandler
                                                        toState,
                                                        new Class[] { Message.class,
                                                            NotificationContext.class });
-    _statusUpdateUtil.logInfo(message,
-                              CMStateTransitionHandler.class,
-                              "Message handling invoking",
-                              accessor);
     if (methodToInvoke != null)
     {
       methodToInvoke.invoke(_stateModel, new Object[] { message, context });

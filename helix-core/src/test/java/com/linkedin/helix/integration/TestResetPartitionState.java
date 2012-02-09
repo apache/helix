@@ -5,39 +5,39 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
+import org.testng.Assert;
+import org.testng.annotations.Test;
 
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.agent.zk.ZKClusterManagementTool;
 import com.linkedin.helix.agent.zk.ZKDataAccessor;
-import com.linkedin.helix.agent.zk.ZNRecordSerializer;
-import com.linkedin.helix.agent.zk.ZkClient;
 import com.linkedin.helix.controller.ClusterManagerMain;
 import com.linkedin.helix.mock.storage.MockParticipant;
 import com.linkedin.helix.mock.storage.MockParticipant.ErrTransition;
 import com.linkedin.helix.model.LiveInstance;
 
-// TODO need to rewrite reset logic and this test
 public class TestResetPartitionState extends ZkIntegrationTestBase
 {
-  ZkClient _zkClient;
+  boolean _resetInvoked = false;
 
-  @BeforeClass ()
-  public void beforeClass() throws Exception
+  class ErrTransitionWithReset extends ErrTransition
   {
-    _zkClient = new ZkClient(ZK_ADDR);
-    _zkClient.setZkSerializer(new ZNRecordSerializer());
+    public ErrTransitionWithReset(Map<String, Set<String>> errPartitions)
+    {
+      super(errPartitions);
+    }
+
+    @Override
+    public void doReset()
+    {
+      // System.err.println("doRest() invoked");
+      _resetInvoked = true;
+    }
+
   }
 
-  @AfterClass
-  public void afterClass()
-  {
-    _zkClient.close();
-  }
-
-  // @Test()
+  @Test()
   public void testResetPartitionState() throws Exception
   {
     String clusterName = getShortClassName();
@@ -50,6 +50,13 @@ public class TestResetPartitionState extends ZkIntegrationTestBase
 
     TestHelper.startController(clusterName, "controller_0",
                                       ZK_ADDR, ClusterManagerMain.STANDALONE);
+    Map<String, Set<String>> errPartitions = new HashMap<String, Set<String>>()
+    {
+      {
+        put("SLAVE-MASTER", TestHelper.setOf("TestDB0_0"));
+        put("OFFLINE-SLAVE", TestHelper.setOf("TestDB0_8"));
+      }
+    };
     for (int i = 0; i < 5; i++)
     {
       String instanceName = PARTICIPANT_PREFIX + "_" + (12918 + i);
@@ -57,7 +64,7 @@ public class TestResetPartitionState extends ZkIntegrationTestBase
       if (i == 0)
       {
         participants[i] = new MockParticipant(clusterName, instanceName, ZK_ADDR,
-            new ErrTransition("SLAVE", "MASTER", TestHelper.setOf("TestDB0_0")));
+                                new ErrTransition(errPartitions));
       }
       else
       {
@@ -70,6 +77,7 @@ public class TestResetPartitionState extends ZkIntegrationTestBase
     {
       {
         put("TestDB0_0", TestHelper.setOf("localhost_12918"));
+        put("TestDB0_8", TestHelper.setOf("localhost_12918"));
       }
     };
 
@@ -81,29 +89,58 @@ public class TestResetPartitionState extends ZkIntegrationTestBase
                                  null,
                                  errorStateMap);
 
-    // reset state model
-    participants[0].resetTransition();
-
-    // clear status update for error partition to avoid confusing the verifier
-    ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
-    LiveInstance localhost12918 = accessor.getProperty(LiveInstance.class,
-                                                       PropertyType.LIVEINSTANCES,
-                                                       "localhost_12918");
-    accessor.removeProperty(PropertyType.STATUSUPDATES,
-                            "localhost_12918",
-                            localhost12918.getSessionId(),
-                            "TestDB0",
-                            "TestDB0_0");
-
+    // reset one error partition
+    errPartitions.remove("SLAVE-MASTER");
+    participants[0].setTransition(new ErrTransitionWithReset(errPartitions));
+    clearStatusUpdate(clusterName, "localhost_12918", "TestDB0", "TestDB0_0");
+    _resetInvoked = false;
     ZKClusterManagementTool tool = new ZKClusterManagementTool(_zkClient);
     tool.resetPartition(clusterName, "localhost_12918", "TestDB0", "TestDB0_0");
 
-    TestHelper.verifyWithTimeout("verifyBestPossAndExtView",
+    errorStateMap.remove("TestDB0_0");
+    TestHelper.verifyWithTimeout("verifyBestPossAndExtViewExtended",
                                  ZK_ADDR,
                                  TestHelper.<String>setOf(clusterName),
-                                 TestHelper.<String>setOf("TestDB0"));
+                                 TestHelper.<String> setOf("TestDB0"),
+                                 null,
+                                 null,
+                                 errorStateMap);
+    Assert.assertTrue(_resetInvoked);
+
+    // reset the other error partition
+    participants[0].setTransition(new ErrTransitionWithReset(null));
+    clearStatusUpdate(clusterName, "localhost_12918", "TestDB0", "TestDB0_8");
+    _resetInvoked = false;
+    tool.resetPartition(clusterName, "localhost_12918", "TestDB0", "TestDB0_8");
+
+    TestHelper.verifyWithTimeout("verifyBestPossAndExtViewExtended",
+                                 ZK_ADDR,
+                                 TestHelper.<String> setOf(clusterName),
+                                 TestHelper.<String> setOf("TestDB0"),
+                                 null,
+                                 null,
+                                 null);
+    Assert.assertTrue(_resetInvoked);
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
   }
+
+  private void clearStatusUpdate(String clusterName,
+                            String instance,
+                            String resourceGroup,
+                            String partition)
+  {
+    // clear status update for error partition so verify() will not fail on old error
+    ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
+    LiveInstance liveInstance =
+        accessor.getProperty(LiveInstance.class, PropertyType.LIVEINSTANCES, instance);
+    accessor.removeProperty(PropertyType.STATUSUPDATES,
+                            instance,
+                            liveInstance.getSessionId(),
+                            resourceGroup,
+                            partition);
+
+  }
+  // TODO: throw exception in reset()
 }

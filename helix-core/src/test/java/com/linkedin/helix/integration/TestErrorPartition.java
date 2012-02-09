@@ -35,8 +35,14 @@ public class TestErrorPartition extends ZkIntegrationTestBase
 
       if (i == 0)
       {
+        Map<String, Set<String>> errPartitions = new HashMap<String, Set<String>>()
+        {
+          {
+            put("SLAVE-MASTER", TestHelper.setOf("TestDB0_0"));
+          }
+        };
         participants[i] = new MockParticipant(clusterName, instanceName, ZK_ADDR,
-            new ErrTransition("SLAVE", "MASTER", TestHelper.setOf("TestDB0_0")));
+                                new ErrTransition(errPartitions));
       }
       else
       {

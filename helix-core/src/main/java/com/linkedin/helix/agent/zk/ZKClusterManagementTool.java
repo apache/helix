@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.log4j.Logger;
 
@@ -16,13 +17,15 @@ import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.alerts.AlertsHolder;
 import com.linkedin.helix.alerts.StatsHolder;
 import com.linkedin.helix.model.Alerts;
-import com.linkedin.helix.model.CurrentState;
 import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.model.IdealState.IdealStateModeProperty;
 import com.linkedin.helix.model.IdealState.IdealStateProperty;
 import com.linkedin.helix.model.InstanceConfig;
 import com.linkedin.helix.model.LiveInstance;
+import com.linkedin.helix.model.Message;
+import com.linkedin.helix.model.Message.MessageSubType;
+import com.linkedin.helix.model.Message.MessageType;
 import com.linkedin.helix.model.PersistentStats;
 import com.linkedin.helix.model.StateModelDefinition;
 import com.linkedin.helix.util.CMUtil;
@@ -169,17 +172,58 @@ public class ZKClusterManagementTool implements ClusterManagementService
 
     if (liveInstance == null)
     {
-      throw new IllegalArgumentException("Can't reset resource state " + partition + ", because instance is not alive");
+      throw new IllegalArgumentException("Can't reset state for " + resourceGroupName
+          + "/" + partition + " on " + instanceName + ", because " + instanceName
+          + " is not alive");
     }
 
     String sessionId = liveInstance.getSessionId();
-    CurrentState curState = accessor.getProperty(CurrentState.class,
-                                                 PropertyType.CURRENTSTATES,
-                                                 instanceName,
-                                                 sessionId,
-                                                 resourceGroupName);
-    curState.resetState(partition);
-    accessor.setProperty(PropertyType.CURRENTSTATES, curState, instanceName, sessionId, resourceGroupName);
+
+    LiveInstance controller =
+        accessor.getProperty(LiveInstance.class, PropertyType.LEADER);
+
+    if (controller == null)
+    {
+      throw new IllegalArgumentException("Can't reset state for " + resourceGroupName
+          + "/" + partition + " on " + instanceName + ", because controller is not alive");
+    }
+
+    IdealState idealState =
+        accessor.getProperty(IdealState.class,
+                             PropertyType.IDEALSTATES,
+                             resourceGroupName);
+
+    if (idealState == null)
+    {
+      throw new IllegalArgumentException("Can't reset state for " + resourceGroupName
+          + "/" + partition + " on " + instanceName + ", because " + resourceGroupName
+          + " is not added");
+    }
+
+    String stateModelDef = idealState.getStateModelDefRef();
+    StateModelDefinition stateModel = accessor.getProperty(StateModelDefinition.class, PropertyType.STATEMODELDEFS, stateModelDef);
+
+    if (stateModel == null)
+    {
+      throw new IllegalArgumentException("Can't reset state for " + resourceGroupName
+          + "/" + partition + " on " + instanceName + ", because " + stateModelDef
+          + " is not found");
+    }
+
+    String msgId = UUID.randomUUID().toString();
+    Message message = new Message(MessageType.STATE_TRANSITION, msgId);
+    message.setSrcName(controller.getInstanceName());
+    message.setTgtName(instanceName);
+    message.setMsgState("new");
+    message.setStateUnitKey(partition);
+    message.setStateUnitGroup(resourceGroupName);
+    message.setTgtSessionId(sessionId);
+    message.setSrcSessionId(controller.getSessionId());
+    message.setStateModelDef(stateModelDef);
+    message.setToState(stateModel.getInitialState());
+    message.setMsgSubType(MessageSubType.RESET.toString());
+
+    accessor.setProperty(PropertyType.MESSAGES, message, instanceName, message.getId());
   }
 
   @Override
@@ -461,10 +505,10 @@ public class ZKClusterManagementTool implements ClusterManagementService
 	      throw new ClusterManagerException("cluster " + clusterName
 	          + " is not setup yet");
 	    }
-	    
+
 	    String persistentStatsPath = CMUtil.getPersistentStatsPath(clusterName);
 	    ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
-	    if (!_zkClient.exists(persistentStatsPath)) {      
+	    if (!_zkClient.exists(persistentStatsPath)) {
 	      throw new ClusterManagerException("No stats node in ZK, nothing to drop");
 	    }
 	    ZNRecord statsRec = accessor.getProperty(PropertyType.PERSISTENTSTATS);
@@ -480,7 +524,7 @@ public class ZKClusterManagementTool implements ClusterManagementService
 	     }
 	    }
 	    statsRec.setMapFields(currStatMap);
-	    accessor.setProperty(PropertyType.PERSISTENTSTATS, statsRec); 
+	    accessor.setProperty(PropertyType.PERSISTENTSTATS, statsRec);
   }
 
   @Override
@@ -491,10 +535,10 @@ public class ZKClusterManagementTool implements ClusterManagementService
 	      throw new ClusterManagerException("cluster " + clusterName
 	          + " is not setup yet");
 	    }
-	    
+
 	    String alertsPath = CMUtil.getAlertsPath(clusterName);
 	    ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
-	    if (!_zkClient.exists(alertsPath)) {      
+	    if (!_zkClient.exists(alertsPath)) {
 	    	throw new ClusterManagerException("No alerts node in ZK, nothing to drop");
 	    }
 	    ZNRecord alertsRec = accessor.getProperty(PropertyType.ALERTS);
@@ -502,11 +546,11 @@ public class ZKClusterManagementTool implements ClusterManagementService
 	    {
 	        throw new ClusterManagerException("No alerts record in ZK, nothing to drop");
 	    }
-	    
+
 	    Map<String,Map<String,String>> currAlertMap = alertsRec.getMapFields();
 	    currAlertMap.remove(alertName);
-	    
+
 	    alertsRec.setMapFields(currAlertMap);
-	    accessor.setProperty(PropertyType.ALERTS, alertsRec); 
-  }  
+	    accessor.setProperty(PropertyType.ALERTS, alertsRec);
+  }
 }

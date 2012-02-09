@@ -132,7 +132,7 @@ public class TestWildcardAlert extends ZkIntegrationTestBase
     	String statName = "latency";
     	provider.setStat(_dbName, statName,"15");
      	reporter.transmitHealthReports();
-
+     	
     	/*
         for (int i = 0; i < 5; i++)
         {
@@ -197,13 +197,17 @@ public class TestWildcardAlert extends ZkIntegrationTestBase
     TestClusterMBeanObserver jmxMBeanObserver = new TestClusterMBeanObserver(ClusterAlertMBeanCollection.DOMAIN_ALERT);
     
     TestHelper.verifyWithTimeout("verifyBestPossAndExtViewExtended",
-                                 15000,  // timeout in millisecond //was 15000
+                                 1500000,  // timeout in millisecond //was 15000
                                  ZK_ADDR,
                                  TestHelper.<String>setOf(clusterName),
                                  TestHelper.<String>setOf(_dbName),
                                  null,
                                  null,
                                  null);// other verifications go here
+    
+    //sleep for a few seconds to give stats stage time to trigger
+    Thread.sleep(5000);
+    
     ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
     //for (int i = 0; i < 1; i++) //change 1 back to 5
     //{

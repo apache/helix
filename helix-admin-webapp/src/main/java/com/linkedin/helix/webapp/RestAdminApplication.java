@@ -33,6 +33,7 @@ import com.linkedin.helix.webapp.resources.HostedResourceGroupsResource;
 import com.linkedin.helix.webapp.resources.IdealStateResource;
 import com.linkedin.helix.webapp.resources.InstanceResource;
 import com.linkedin.helix.webapp.resources.InstancesResource;
+import com.linkedin.helix.webapp.resources.SchedulerTasksResource;
 import com.linkedin.helix.webapp.resources.StateModelResource;
 import com.linkedin.helix.webapp.resources.StateModelsResource;
 import com.linkedin.helix.webapp.resources.StatusUpdateResource;
@@ -75,6 +76,8 @@ public class RestAdminApplication extends Application
     router.attach("/clusters/{clusterName}/resourceGroups/{resourceName}/externalView", ExternalViewResource.class);
     router.attach("/clusters/{clusterName}/StateModelDefs/{modelName}", StateModelResource.class);
     router.attach("/clusters/{clusterName}/StateModelDefs", StateModelsResource.class);
+    router.attach("/clusters/{clusterName}/SchedulerTasks", SchedulerTasksResource.class);
+    
 
     Restlet mainpage = new Restlet()
     {

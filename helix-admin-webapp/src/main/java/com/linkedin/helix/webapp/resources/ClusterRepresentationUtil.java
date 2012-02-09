@@ -128,7 +128,15 @@ public class ClusterRepresentationUtil
     zkClient.setZkSerializer(new ZNRecordSerializer());
     return new ZKDataAccessor(clusterName, zkClient);
   }
+  
+  public static <T extends Object> T JsonToObject(Class<T> clazz, String jsonString) throws JsonParseException, JsonMappingException, IOException
+  {
+    StringReader sr = new StringReader(jsonString);
+    ObjectMapper mapper = new ObjectMapper();
+    return mapper.readValue(sr, clazz);
 
+  }
+  
   public static Map<String, String> JsonToMap(String jsonString) throws JsonParseException, JsonMappingException, IOException
   {
     StringReader sr = new StringReader(jsonString);
@@ -146,6 +154,24 @@ public class ClusterRepresentationUtil
   {
     String jsonPayload = form.getFirstValue(_jsonParameters, true);
     return  ClusterRepresentationUtil.JsonToMap(jsonPayload);
+  }
+  
+
+  public static Map<String, String> getFormJsonParameters(Form form, String key) throws JsonParseException, JsonMappingException, IOException
+  {
+    String jsonPayload = form.getFirstValue(key, true);
+    return  ClusterRepresentationUtil.JsonToMap(jsonPayload);
+  }
+
+  
+  public static String getFormJsonParameterString(Form form, String key) throws JsonParseException, JsonMappingException, IOException
+  {
+    return form.getFirstValue(key, true);
+  }
+  
+  public static <T extends Object> T getFormJsonParameters(Class<T> clazz, Form form, String key) throws JsonParseException, JsonMappingException, IOException
+  {
+    return JsonToObject(clazz, form.getFirstValue(key, true));
   }
 
   public static Map<String, String> getFormJsonParametersWithCommandVerified(Form form, String commandValue) throws JsonParseException, JsonMappingException, IOException

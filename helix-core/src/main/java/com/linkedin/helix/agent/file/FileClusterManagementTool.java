@@ -10,9 +10,9 @@ import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.IdealState;
+import com.linkedin.helix.model.IdealState.IdealStateModeProperty;
 import com.linkedin.helix.model.InstanceConfig;
 import com.linkedin.helix.model.StateModelDefinition;
-import com.linkedin.helix.model.IdealState.IdealStateModeProperty;
 import com.linkedin.helix.store.PropertyStoreException;
 import com.linkedin.helix.store.file.FilePropertyStore;
 import com.linkedin.helix.tools.StateModelConfigGenerator;
@@ -276,6 +276,7 @@ public class FileClusterManagementTool implements ClusterManagementService
   @Override
   public void enablePartition(String clusterName,
                               String instanceName,
+                              String resourceGroupName,
                               String partition,
                               boolean enabled)
   {
@@ -307,7 +308,7 @@ public class FileClusterManagementTool implements ClusterManagementService
 			  "addAlert() is NOT supported by FileClusterManagementTool");
 
   }
-  
+
   @Override
   public void dropStat(String clusterName, String statName) {
 	  throw new UnsupportedOperationException(
@@ -326,7 +327,7 @@ public class FileClusterManagementTool implements ClusterManagementService
   public void dropCluster(String clusterName)
   {
     // TODO Auto-generated method stub
-    
+
   }
 
 }

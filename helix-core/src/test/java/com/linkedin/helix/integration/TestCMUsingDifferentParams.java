@@ -9,21 +9,6 @@ public class TestCMUsingDifferentParams extends ZkIntegrationTestBase
 {
   private static Logger LOG = Logger.getLogger(TestCMUsingDifferentParams.class);
 
-  // ZkClient _zkClient;
-  // @BeforeClass ()
-  // public void beforeClass() throws Exception
-  // {
-  // _zkClient = new ZkClient(ZK_ADDR);
-  // _zkClient.setZkSerializer(new ZNRecordSerializer());
-  // }
-  //
-  //
-  // @AfterClass
-  // public void afterClass()
-  // {
-  // _zkClient.close();
-  // }
-
   @Test()
   public void testCMUsingDifferentParams() throws Exception
   {

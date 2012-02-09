@@ -95,7 +95,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
 
         Map<String, String> bestStateForResource;
         Set<String> disabledInstancesForResource
-          = cache.getDisabledInstancesForResource(resource.toString());
+          = cache.getDisabledInstancesForPartition(resource.toString());
 
         if (idealState.getIdealStateMode() == IdealStateModeProperty.CUSTOMIZED)
         {
@@ -124,18 +124,20 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
 
   /**
    * compute best state for resource in AUTO ideal state mode
+   *
    * @param cache
    * @param stateModelDef
    * @param instancePreferenceList
    * @param currentStateMap
-   * @param disabledInstancesForResource
+   *          : instance->state for each partition
+   * @param disabledInstancesForPartition
    * @return
    */
   private Map<String, String> computeAutoBestStateForResource(ClusterDataCache cache,
                                                               StateModelDefinition stateModelDef,
                                                               List<String> instancePreferenceList,
                                                               Map<String, String> currentStateMap,
-                                                              Set<String> disabledInstancesForResource)
+                                                              Set<String> disabledInstancesForPartition)
   {
     Map<String, String> instanceStateMap = new HashMap<String, String>();
 
@@ -149,14 +151,12 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
         {
           instanceStateMap.put(instance, "DROPPED");
         }
-        else if (disabledInstancesForResource.contains(instance))
+        else if (!"ERROR".equals(currentStateMap.get(instance))
+            && disabledInstancesForPartition.contains(instance))
         {
-          // if a node is disabled, put it into initial state (OFFLINE)
-          // TODO if the node or resource on the node is in ERROR state
-          //  shall we reset the current state or let participant provide ERROR->OFFLINE transition?
+          // if a non-error node is disabled, put it into initial state (OFFLINE)
           instanceStateMap.put(instance, stateModelDef.getInitialState());
         }
-
       }
     }
 
@@ -178,7 +178,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
       if ("N".equals(num))
       {
         Set<String> liveAndEnabled = new HashSet<String>(liveInstancesMap.keySet());
-        liveAndEnabled.removeAll(disabledInstancesForResource);
+        liveAndEnabled.removeAll(disabledInstancesForPartition);
         stateCount = liveAndEnabled.size();
       }
       else if ("R".equals(num))
@@ -207,7 +207,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
               currentStateMap == null || !"ERROR".equals(currentStateMap.get(instanceName));
 
           if (liveInstancesMap.containsKey(instanceName) && !assigned[i] && notInErrorState
-              && !disabledInstancesForResource.contains(instanceName))
+              && !disabledInstancesForPartition.contains(instanceName))
           {
             instanceStateMap.put(instanceName, state);
             count = count + 1;
@@ -251,9 +251,10 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
         {
           instanceStateMap.put(instance, "DROPPED");
         }
-        else if (disabledInstancesForResource.contains(instance))
+        else if (!"ERROR".equals(currentStateMap.get(instance))
+            && disabledInstancesForResource.contains(instance))
         {
-          // if a node is disabled, put it into initial state (OFFLINE)
+          // if a non-error node is disabled, put it into initial state (OFFLINE)
           instanceStateMap.put(instance, stateModelDef.getInitialState());
         }
       }
@@ -287,19 +288,11 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
                                          StateModelDefinition stateModelDef)
   {
     List<String> listField =
-        idealState.getPreferenceList(resource.getResourceKeyName(), stateModelDef);    
-    
-//    Map<String, LiveInstance> liveInstances = cache.getLiveInstances();
-//    if (listField != null && listField.size() == 1 && "".equals(listField.get(0)))
-    if (listField != null && listField.size() == 1 
+        idealState.getPreferenceList(resource.getResourceKeyName(), stateModelDef);
+
+    if (listField != null && listField.size() == 1
         && StateModelToken.ANY_LIVEINSTANCE.toString().equals(listField.get(0)))
     {
-//      ArrayList<String> list = new ArrayList<String>(liveInstances.size());
-//      for (String instanceName : liveInstances.keySet())
-//      {
-//    	  list.add(instanceName);
-//      }
-//      return list;
       Map<String, LiveInstance> liveInstances = cache.getLiveInstances();
       List<String> prefList = new ArrayList<String>(liveInstances.keySet());
       Collections.sort(prefList);

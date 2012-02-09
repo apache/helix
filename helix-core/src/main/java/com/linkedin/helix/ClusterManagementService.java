@@ -35,7 +35,10 @@ public interface ClusterManagementService
 
   void enableInstance(String clusterName, String instanceName, boolean enabled);
 
-  void enablePartition(String clusterName, String instanceName, String partition,
+  void enablePartition(String clusterName,
+                       String instanceName,
+                       String resourceGroupName,
+                       String partition,
                        boolean enabled);
 
   void resetPartition(String clusterName, String instanceName, String resourceGroupName, String partition);
@@ -45,13 +48,13 @@ public interface ClusterManagementService
   void dropResourceGroup(String clusterName, String resourceGroup);
 
   void addStat(String clusterName, String statName);
-  
+
   void addAlert(String clusterName, String alertName);
-  
+
 void dropStat(String clusterName, String statName);
-  
+
   void dropAlert(String clusterName, String alertName);
-  
+
   List<String> getStateModelDefs(String clusterName);
 
   StateModelDefinition getStateModelDef(String clusterName, String stateModelName);

@@ -7,6 +7,7 @@ import java.util.List;
 import org.I0Itec.zkclient.DataUpdater;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.data.Stat;
 
 import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
@@ -101,10 +102,14 @@ public final class ZKUtil
     for (String child : children)
     {
       String childPath = path + "/" + child;
-      ZNRecord record = client.readData(childPath, true);
+      Stat newStat = new Stat();
+      ZNRecord record = client.readDataAndStat(childPath, newStat, true);
       if (record != null)
       {
-        childRecords.add(record);
+    	  record.setVersion(newStat.getVersion());
+    	  record.setCreationTime(newStat.getCtime());
+    	  record.setModifiedTime(newStat.getMtime());
+    	  childRecords.add(record);
       }
     }
     return childRecords;

@@ -216,9 +216,9 @@ public class StatusUpdateUtil
       // TODO instanceName of a controller might be any string
       if (instanceName.equalsIgnoreCase("Controller"))
       {
-        accessor.setProperty(PropertyType.STATUSUPDATES_CONTROLLER,
+        accessor.updateProperty(PropertyType.STATUSUPDATES_CONTROLLER,
                              createMessageLogRecord(message),
-                             sessionId, statusUpdateSubPath, statusUpdateKey);
+                             statusUpdateSubPath, statusUpdateKey);
 
       } else
       {
@@ -233,9 +233,9 @@ public class StatusUpdateUtil
 
     if (instanceName.equalsIgnoreCase("Controller"))
     {
-      accessor.setProperty(PropertyType.STATUSUPDATES_CONTROLLER,
+      accessor.updateProperty(PropertyType.STATUSUPDATES_CONTROLLER,
                            record,
-                           sessionId,
+                           
                            statusUpdateSubPath,
                            statusUpdateKey);
     } else
@@ -322,7 +322,7 @@ public class StatusUpdateUtil
     if (instanceName.equalsIgnoreCase("controller"))
     {
       // TODO need to fix: ERRORS_CONTROLLER doesn't have a form of ../{sessionId}/{subPath}
-      accessor.setProperty(PropertyType.ERRORS_CONTROLLER, record, sessionId, statusUpdateSubPath);
+      accessor.setProperty(PropertyType.ERRORS_CONTROLLER, record, statusUpdateSubPath);
     } else
     {
       accessor.updateProperty(PropertyType.ERRORS, record, instanceName, sessionId, statusUpdateSubPath, statusUpdateKey);

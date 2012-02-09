@@ -525,6 +525,10 @@ public class ZKClusterManager implements ClusterManager
       MessageHandlerFactory defaultControllerMsgHandlerFactory = new DefaultControllerMessageHandlerFactory();
       _messagingService.getExecutor().registerMessageHandlerFactory(
           defaultControllerMsgHandlerFactory.getMessageType(), defaultControllerMsgHandlerFactory);
+      MessageHandlerFactory defaultSchedulerMsgHandlerFactory = new DefaultSchedulerMessageHandlerFactory(this);
+      _messagingService.getExecutor().registerMessageHandlerFactory(
+          defaultSchedulerMsgHandlerFactory.getMessageType(), defaultSchedulerMsgHandlerFactory);
+      
       startStatusUpdatedumpTask();
       if (_leaderElectionHandler == null)
       {

@@ -28,7 +28,7 @@ import com.linkedin.helix.mock.storage.MockTransitionIntf;
 import com.linkedin.helix.model.Message;
 import com.linkedin.helix.tools.ClusterSetup;
 
-public class TestSimpleAlert extends ZkIntegrationTestBase
+public class TestAddDropAlert extends ZkIntegrationTestBase
 {
   ZkClient _zkClient;
   protected ClusterSetup _setupTool = null;
@@ -51,7 +51,7 @@ public class TestSimpleAlert extends ZkIntegrationTestBase
     _zkClient.close();
   }
 
-  public class SimpleAlertTransition implements MockTransitionIntf
+  public class AddDropAlertTransition implements MockTransitionIntf
   {
     @Override
     public void doTrasition(Message message, NotificationContext context)
@@ -77,6 +77,17 @@ public class TestSimpleAlert extends ZkIntegrationTestBase
     	String statName = "latency";
     	provider.setStat(_dbName, statName,"15");
     	reporter.transmitHealthReports();
+    	
+    	//sleep long enough for first set of alerts to report and alert to get deleted
+    	//then change reported data
+    	try {
+			Thread.sleep(10000);
+		} catch (InterruptedException e) {
+			System.err.println("Error sleeping");
+		}
+    	provider.setStat(_dbName, statName,"1");
+    	reporter.transmitHealthReports();
+    	
 
     	/*
         for (int i = 0; i < 5; i++)
@@ -101,12 +112,12 @@ public class TestSimpleAlert extends ZkIntegrationTestBase
   }
 
   @Test()
-  public void testSimpleAlert() throws Exception
+  public void testAddDropAlert() throws Exception
   {
     String clusterName = getShortClassName();
     MockParticipant[] participants = new MockParticipant[5];
 
-    System.out.println("START TestSimpleAlert at " + new Date(System.currentTimeMillis()));
+    System.out.println("START TestAddDropAlert at " + new Date(System.currentTimeMillis()));
 
     TestHelper.setupCluster(clusterName,
                             ZK_ADDR,
@@ -134,9 +145,15 @@ public class TestSimpleAlert extends ZkIntegrationTestBase
       participants[i] = new MockParticipant(clusterName,
                                             instanceName,
                                             ZK_ADDR,
-                                            new SimpleAlertTransition());
+                                            new AddDropAlertTransition());
       new Thread(participants[i]).start();
     }
+    
+    
+    //drop alert soon after adding, but leave enough time for alert to fire once
+    Thread.sleep(5000);
+    _setupTool.getClusterManagementTool().dropAlert(clusterName, _alertStr);
+    
 
     TestHelper.verifyWithTimeout("verifyBestPossAndExtViewExtended",
                                  15000,  // timeout in millisecond //was 15000
@@ -156,13 +173,9 @@ public class TestSimpleAlert extends ZkIntegrationTestBase
       ZNRecord record = accessor.getProperty(PropertyType.ALERT_STATUS);
       Map<String, Map<String,String>> recMap = record.getMapFields();
       Set<String> keySet = recMap.keySet();
-      Map<String,String> alertStatusMap = recMap.get(_alertStatusStr);
-      String val = alertStatusMap.get(AlertValueAndStatus.VALUE_NAME);
-      boolean fired = Boolean.parseBoolean(alertStatusMap.get(AlertValueAndStatus.FIRED_NAME));
-      Assert.assertEquals(Double.parseDouble(val), Double.parseDouble("15.0"));
-      Assert.assertTrue(fired);
+      Assert.assertEquals(keySet.size(), 0);
     //}
 
-    System.out.println("END TestSimpleAlert at " + new Date(System.currentTimeMillis()));
+    System.out.println("END TestAddDropAlert at " + new Date(System.currentTimeMillis()));
   }
 }

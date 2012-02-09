@@ -142,9 +142,6 @@ public class GenericClusterController implements
       registry.register("externalView", dataRefresh);
       registry.register("resume", dataRefresh, rebalancePipeline, externalViewPipeline);
 
-      //XXX: Alert pipeline commented out while merging with trunk
-      
-      
       // health stats pipeline
    	  Pipeline healthStatsAggregationPipeline = new Pipeline();
    	  StatsAggregationStage statsStage = new StatsAggregationStage();

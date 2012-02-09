@@ -90,97 +90,6 @@ public void persistAggStats(ClusterManager manager)
       }
   }
  
-  /*
-  public void addAggStat(Map<String, String> statName, String statVal, String statTimestamp)
-  {
-	  Stat es = new Stat(statName);
-	  es.setAggType(_defaultAggType);
-	  _aggStatsProvider.setStat(es, statVal, statTimestamp);
-  }
-  
-  public void updateAggStat(Stat aggStat, String statVal, String statTimestamp)
-  {
-	  _aggStatsProvider.setStat(aggStat, statVal, statTimestamp);
-  }
-  */
-  
-  
-  /*
-   * Reconcile participant stat with set of agg stats
-   */
-  
-  /*
-  public void applyParticipantStat(Map<String, String> participantStatName, String participantStatVal, 
-		  String participantStatTimestamp)
-  {
-	  
-	  Stat participantStat = new Stat(participantStatName);
-	  //check each agg stat to see if "contains"/equal to participant stat
-	  for (Stat aggStat : _aggStatsProvider.keySet()) {
-		  if (participantStat.equals(aggStat)) {
-			  //check if participant stat is newer than agg stat
-			  long currAggTimestamp = _aggStatsProvider.getStatTimestamp(aggStat);
-			  if (Long.parseLong(participantStatTimestamp) > currAggTimestamp) {
-				  //apply the stat
-				  String currAggVal = _aggStatsProvider.getStatValue(participantStat);
-				  AggregationType aggType = AggregationTypeFactory.getAggregationType(aggStat._aggTypeName);
-				  String aggStatVal = aggType.merge(
-				    participantStatVal, currAggVal, currAggTimestamp);
-				  updateAggStat(aggStat, aggStatVal, participantStatTimestamp);
-			  }
-			  else {
-				  //participant stat already applied, do nothing
-			  }
-		  }
-	  }
-	  //check if aggStats contains participant stat exactly.  if not, add.
-	  if (!_aggStatsProvider.contains(participantStat)) {
-		  addAggStat(participantStatName, participantStatVal, participantStatTimestamp);
-	  }
-	  */
-	  
-	  /*
-	  //check if we have agg stat matching this participant stat
-	  if (_aggStatsProvider.contains(participantStat)) {
-		  //check if participant stat is newer than agg stat
-		  long currAggTimestamp = _aggStatsProvider.getStatTimestamp(participantStat);
-		  if (Long.parseLong(participantStatTimestamp) > currAggTimestamp) {
-			  //apply the stat
-			  //AggregationType agg = !!!!!!!!
-			  double currAggVal = _aggStatsProvider.getStatValue(participantStat);
-			  //TODO: something other than simple accumulation			  
-			  String aggStatVal = String.valueOf(currAggVal + Double.parseDouble(participantStatVal));
-			  addAggStat(participantStatName, aggStatVal, participantStatTimestamp);
-		  }
-		  else {
-			  //participant stat already applied, do nothing
-		  }
-	  }
-	  else {
-		  //no agg stat for this participant stat yet
-		  addAggStat(participantStatName, participantStatVal, participantStatTimestamp);
-	  }
-	  */
-  //}
-  
-  /*
-  public void initAggStats(ClusterDataCache cache) 
-  {
-	  _aggStatsProvider = new StatHealthReportProvider();
-	  _aggStatsProvider.setReportName(REPORT_NAME);
-	  HealthStat hs = cache.getGlobalStats();
-	  if (hs != null) {
-		  Map<String, Map<String, String>> derivedStatsMap = hs.getMapFields();
-		  //most of map becomes the "stat", except value which becomes value, timestamp becomes timestamp
-		  for (String key : derivedStatsMap.keySet()) {
-			  addAggStat(derivedStatsMap.get(key), 
-					  derivedStatsMap.get(key).get(StatHealthReportProvider.STAT_VALUE),
-					  derivedStatsMap.get(key).get(StatHealthReportProvider.TIMESTAMP));		  
-		  }
-	  }
-  }
-  */
-  
   @Override
   public void init(StageContext context) 
   {
@@ -192,12 +101,10 @@ public void persistAggStats(ClusterManager manager)
   }
   
   //currTime in seconds
-  public void reportAgeStat(LiveInstance instance, long currTime)
+  public void reportAgeStat(LiveInstance instance, long modifiedTime, long currTime)
   {
 	  String statName = getAgeStatName(instance.getInstanceName());
-	  //TODO: call to get modifiedTime is a stub right now
-	  long modifiedTime = instance.getModifiedTime();
-	  long age = currTime - modifiedTime; //XXX: ensure this is in seconds
+	  long age = (currTime - modifiedTime)/1000; //XXX: ensure this is in seconds
 	  Map<String, String> ageStatMap = new HashMap<String, String>();
 	  ageStatMap.put(StatsHolder.TIMESTAMP_NAME, String.valueOf(currTime));
 	  ageStatMap.put(StatsHolder.VALUE_NAME, String.valueOf(age));
@@ -227,13 +134,10 @@ public void persistAggStats(ClusterManager manager)
     
     Map<String, LiveInstance> liveInstances = cache.getLiveInstances();
     
-    long currTime = System.currentTimeMillis()/1000;
+    long currTime = System.currentTimeMillis();
     //for each live node, read node's stats
     for (LiveInstance instance : liveInstances.values())
     {
-    	//generate and report stats for how old this node's report is
-    	reportAgeStat(instance, currTime);
-
     	String instanceName = instance.getInstanceName();
     	logger.debug("instanceName: "+instanceName);
     	//XXX: now have map of HealthStats, so no need to traverse them...verify correctness
@@ -241,7 +145,13 @@ public void persistAggStats(ClusterManager manager)
     	stats = cache.getHealthStats(instanceName);
     	//find participants stats
     	HealthStat participantStat = stats.get(ESPRESSO_STAT_REPORT_NAME);
-
+    	long modTime = -1;
+    	if (participantStat != null) {
+    		//generate and report stats for how old this node's report is
+    		modTime = participantStat.getLastModifiedTimeStamp();
+    		reportAgeStat(instance, modTime, currTime);
+    	}
+    	//System.out.println(modTime);
     	//XXX: need to convert participantStat to a better format
     	//need to get instanceName in here
     	
@@ -264,10 +174,14 @@ public void persistAggStats(ClusterManager manager)
    
     //execute alerts, populate _alertStatus
     _alertStatus = AlertProcessor.executeAllAlerts(_alertsHolder.getAlertList(), _statsHolder.getStatsList());
+    
+    
     for(String originAlertName : _alertStatus.keySet())
     {
       _alertBeanCollection.setAlerts(originAlertName, _alertStatus.get(originAlertName));
     }
+    
+    
     //write out alert status (to zk)
     _alertsHolder.addAlertStatusSet(_alertStatus);
     

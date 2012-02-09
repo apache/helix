@@ -4,6 +4,7 @@ import java.util.Date;
 import java.util.Map;
 
 import com.linkedin.helix.ClusterManagerException;
+import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.ZNRecordDecorator;
 
@@ -18,6 +19,7 @@ public class Message extends ZNRecordDecorator
   public enum MessageType
   {
     STATE_TRANSITION,
+    SCHEDULER_MSG,
     USER_DEFINE_MSG,
     CONTROLLER_MSG,
     TASK_REPLY,
@@ -26,7 +28,7 @@ public class Message extends ZNRecordDecorator
 
   public enum Attributes
   {
-    MSG_ID, SRC_SESSION_ID, TGT_SESSION_ID, SRC_NAME, TGT_NAME,
+    MSG_ID, SRC_SESSION_ID, TGT_SESSION_ID, SRC_NAME, TGT_NAME, SRC_INSTANCE_TYPE,
     MSG_STATE, STATE_UNIT_KEY, STATE_UNIT_GROUP, FROM_STATE, TO_STATE,
     STATE_MODEL_DEF, CREATE_TIMESTAMP, READ_TIMESTAMP, EXECUTE_START_TIMESTAMP, MSG_TYPE,
     MSG_SUBTYPE, CORRELATION_ID, MESSAGE_RESULT, EXE_SESSION_ID, MESSAGE_TIMEOUT, RETRY_COUNT;
@@ -121,7 +123,21 @@ public class Message extends ZNRecordDecorator
   {
     return getSimpleFieldAsString(Attributes.SRC_NAME.toString());
   }
-
+  
+  public void setSrcInstanceType(InstanceType type)
+  {
+    _record.setSimpleField(Attributes.SRC_INSTANCE_TYPE.toString(), type.toString());
+  }
+  
+  public InstanceType getSrcInstanceType()
+  {
+    if(_record.getSimpleFields().containsKey(Attributes.SRC_INSTANCE_TYPE.toString()))
+    {
+      return InstanceType.valueOf( _record.getSimpleField(Attributes.SRC_INSTANCE_TYPE.toString()));
+    }
+    return InstanceType.PARTICIPANT;
+  }
+  
   public void setSrcName(String msgSrc)
   {
     _record.setSimpleField(Attributes.SRC_NAME.toString(), msgSrc);

@@ -228,7 +228,6 @@ public class StatusUpdateUtil
                                 statusUpdateKey);
       }
       _recordedMessages.put(message.getMsgId(), message.getMsgId());
-      return;
     }
 
     if (instanceName.equalsIgnoreCase("Controller"))

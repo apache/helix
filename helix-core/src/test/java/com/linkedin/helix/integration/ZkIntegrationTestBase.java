@@ -19,8 +19,9 @@ import org.testng.annotations.BeforeSuite;
 import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.TestHelper;
-import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.TestHelper.StartCMResult;
+import com.linkedin.helix.ZNRecord;
+import com.linkedin.helix.agent.zk.ZNRecordSerializer;
 import com.linkedin.helix.agent.zk.ZkClient;
 import com.linkedin.helix.util.ZKClientPool;
 
@@ -28,7 +29,8 @@ public class ZkIntegrationTestBase
 {
   private static Logger LOG = Logger.getLogger(ZkIntegrationTestBase.class);
 
-  protected static ZkServer _zkServer = null;
+  protected static ZkServer _zkServer;
+  protected static ZkClient _zkClient;
 
   public static final String ZK_ADDR = "localhost:2183";
   protected static final String CLUSTER_PREFIX = "CLUSTER";
@@ -44,6 +46,8 @@ public class ZkIntegrationTestBase
     AssertJUnit.assertTrue(_zkServer != null);
     ZKClientPool.reset();
 
+    _zkClient = new ZkClient(ZK_ADDR);
+    _zkClient.setZkSerializer(new ZNRecordSerializer());
   }
 
   @AfterSuite
@@ -51,7 +55,8 @@ public class ZkIntegrationTestBase
   {
     ZKClientPool.reset();
     TestHelper.stopZkServer(_zkServer);
-    _zkServer = null;
+    // _zkServer = null;
+    _zkClient.close();
   }
 
   protected String getShortClassName()

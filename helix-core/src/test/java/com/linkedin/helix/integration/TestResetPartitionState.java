@@ -7,7 +7,6 @@ import java.util.Set;
 
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
 
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.TestHelper;
@@ -24,7 +23,7 @@ import com.linkedin.helix.model.LiveInstance;
 public class TestResetPartitionState extends ZkIntegrationTestBase
 {
   ZkClient _zkClient;
-  
+
   @BeforeClass ()
   public void beforeClass() throws Exception
   {
@@ -38,7 +37,7 @@ public class TestResetPartitionState extends ZkIntegrationTestBase
     _zkClient.close();
   }
 
-  @Test()
+  // @Test()
   public void testResetPartitionState() throws Exception
   {
     String clusterName = getShortClassName();
@@ -87,15 +86,15 @@ public class TestResetPartitionState extends ZkIntegrationTestBase
 
     // clear status update for error partition to avoid confusing the verifier
     ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
-    LiveInstance localhost12918 = accessor.getProperty(LiveInstance.class, 
+    LiveInstance localhost12918 = accessor.getProperty(LiveInstance.class,
                                                        PropertyType.LIVEINSTANCES,
                                                        "localhost_12918");
-    accessor.removeProperty(PropertyType.STATUSUPDATES, 
-                            "localhost_12918", 
+    accessor.removeProperty(PropertyType.STATUSUPDATES,
+                            "localhost_12918",
                             localhost12918.getSessionId(),
                             "TestDB0",
                             "TestDB0_0");
-    
+
     ZKClusterManagementTool tool = new ZKClusterManagementTool(_zkClient);
     tool.resetPartition(clusterName, "localhost_12918", "TestDB0", "TestDB0_0");
 

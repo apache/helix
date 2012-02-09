@@ -22,7 +22,7 @@ public class TestDisablePartition extends ZkStandAloneCMTestBase
 
     // localhost_12919 is MASTER for TestDB_0
     ZKClusterManagementTool tool = new ZKClusterManagementTool(_zkClient);
-    tool.enablePartition(CLUSTER_NAME, "localhost_12919", "TestDB_0", false);
+    tool.enablePartition(CLUSTER_NAME, "localhost_12919", "TestDB", "TestDB_0", false);
     Map<String, Set<String>> disabledPartMap = new HashMap<String, Set<String>>()
     {
       {
@@ -36,8 +36,9 @@ public class TestDisablePartition extends ZkStandAloneCMTestBase
                                  null,
                                  disabledPartMap,
                                  null);
+    TestHelper.verifyState(CLUSTER_NAME, ZK_ADDR, disabledPartMap, "OFFLINE");
 
-    tool.enablePartition(CLUSTER_NAME, "localhost_12919", "TestDB_0", true);
+    tool.enablePartition(CLUSTER_NAME, "localhost_12919", "TestDB", "TestDB_0", true);
     verifyCluster();
     LOG.info("STOP testDisablePartition() at " + new Date(System.currentTimeMillis()));
 

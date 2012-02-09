@@ -8,6 +8,7 @@ import com.linkedin.helix.model.ResourceKey;
 
 public class BestPossibleStateOutput
 {
+  // resourceGroup->partitionKey->instance->state
   Map<String, Map<ResourceKey, Map<String, String>>> _dataMap;
 
   public BestPossibleStateOutput()

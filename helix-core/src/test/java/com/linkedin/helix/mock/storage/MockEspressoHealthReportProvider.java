@@ -3,6 +3,7 @@ package com.linkedin.helix.mock.storage;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.linkedin.helix.alerts.StatsHolder;
 import com.linkedin.helix.healthcheck.HealthReportProvider;
 
 public class MockEspressoHealthReportProvider extends HealthReportProvider {
@@ -24,6 +25,15 @@ public class MockEspressoHealthReportProvider extends HealthReportProvider {
 	
 	public void setStat(String dbName, String statName, String statVal)
 	{
+		String currTime = String.valueOf(System.currentTimeMillis());
+		setStat(dbName, statName, statVal, currTime);
+	}
+	
+	/*
+	 * This version takes a fixed timestamp to ease with testing
+	 */
+	public void setStat(String dbName, String statName, String statVal, String timestamp)
+	{
 		String key = buildMapKey(dbName);
 		Map<String, String> dbStatMap = _statMap.get(key);
 		if (dbStatMap == null) {
@@ -31,6 +41,7 @@ public class MockEspressoHealthReportProvider extends HealthReportProvider {
 			_statMap.put(key, dbStatMap);
 		}
 		dbStatMap.put(statName,  statVal);
+		dbStatMap.put(StatsHolder.TIMESTAMP_NAME, timestamp);
 	}
 	
 	@Override

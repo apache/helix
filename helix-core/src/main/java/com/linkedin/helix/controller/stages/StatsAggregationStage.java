@@ -156,8 +156,8 @@ public void persistAggStats(HelixAgent manager)
     	//need to get instanceName in here
     	
     	if (participantStat != null) {
-    		String timestamp = String.valueOf(instance.getModifiedTime());
-    		Map<String, Map<String, String>> statMap = participantStat.getHealthFields(instanceName,timestamp);
+    		//String timestamp = String.valueOf(instance.getModifiedTime()); WANT REPORT LEVEL TS
+    		Map<String, Map<String, String>> statMap = participantStat.getHealthFields(instanceName);
     		for (String key : statMap.keySet()) {
     			_statsHolder.applyStat(key, statMap.get(key));
     		}

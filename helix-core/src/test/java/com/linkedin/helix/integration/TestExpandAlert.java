@@ -160,7 +160,10 @@ public class TestExpandAlert extends ZkIntegrationTestBase
                                  null,
                                  null);
     */
-
+    
+  //sleep for a few seconds to give stats stage time to trigger
+    Thread.sleep(5000);
+    
     // other verifications go here
     ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
     //for (int i = 0; i < 1; i++) //change 1 back to 5

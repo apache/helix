@@ -26,6 +26,7 @@ import com.linkedin.helix.IdealStateChangeListener;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.LiveInstanceChangeListener;
 import com.linkedin.helix.MessageListener;
+import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.healthcheck.ParticipantHealthReportCollector;
@@ -52,17 +53,15 @@ public class DynamicFileClusterManager implements HelixAgent
   private final List<CallbackHandlerForFile> _handlers;
   private final FileClusterManagementTool _mgmtTool;
 
-  private final String _sessionId;  // = "12345";
+  private final String _sessionId; // = "12345";
   public static final String configFile = "configFile";
   private final DefaultMessagingService _messagingService;
   private final FilePropertyStore<ZNRecord> _store;
   private final String _version;
   private final StateMachineEngine _stateMachEngine;
 
-  public DynamicFileClusterManager(String clusterName,
-                                   String instanceName,
-                                   InstanceType instanceType,
-                                   FilePropertyStore<ZNRecord> store)
+  public DynamicFileClusterManager(String clusterName, String instanceName,
+      InstanceType instanceType, FilePropertyStore<ZNRecord> store)
   {
     _clusterName = clusterName;
     _instanceName = instanceName;
@@ -82,14 +81,13 @@ public class DynamicFileClusterManager implements HelixAgent
       addMessageListener(_messagingService.getExecutor(), _instanceName);
     }
 
-//    _store.start();
-
     _version = new PropertiesReader("cluster-manager-version.properties")
-                                .getProperty("clustermanager.version");
-    
+        .getProperty("clustermanager.version");
+
     _stateMachEngine = new HelixStateMachineEngine(this);
-    _messagingService.registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(),
-                                                    _stateMachEngine);
+
+    _messagingService.registerMessageHandlerFactory(
+        MessageType.STATE_TRANSITION.toString(), _stateMachEngine);
   }
 
   @Override
@@ -156,7 +154,7 @@ public class DynamicFileClusterManager implements HelixAgent
         listener, new EventType[]
         { EventType.NodeChildrenChanged, EventType.NodeDeleted,
             EventType.NodeCreated }, CURRENT_STATE);
-    
+
     _handlers.add(callbackHandler);
   }
 
@@ -204,11 +202,78 @@ public class DynamicFileClusterManager implements HelixAgent
     return _isConnected;
   }
 
+  private boolean isClusterSetup(String clusterName)
+  {
+    if (clusterName == null || _store == null)
+    {
+      return false;
+    }
+
+    boolean isValid = _store.exists(PropertyPathConfig.getPath(
+        PropertyType.IDEALSTATES, clusterName))
+        && _store.exists(PropertyPathConfig.getPath(PropertyType.CONFIGS,
+            clusterName))
+        && _store.exists(PropertyPathConfig.getPath(PropertyType.LIVEINSTANCES,
+            clusterName))
+        && _store.exists(PropertyPathConfig.getPath(PropertyType.INSTANCES,
+            clusterName))
+        && _store.exists(PropertyPathConfig.getPath(PropertyType.EXTERNALVIEW,
+            clusterName))
+        && _store.exists(PropertyPathConfig.getPath(PropertyType.CONTROLLER,
+            clusterName))
+        && _store.exists(PropertyPathConfig.getPath(
+            PropertyType.STATEMODELDEFS, clusterName))
+        && _store.exists(PropertyPathConfig.getPath(
+            PropertyType.MESSAGES_CONTROLLER, clusterName))
+        && _store.exists(PropertyPathConfig.getPath(
+            PropertyType.ERRORS_CONTROLLER, clusterName))
+        && _store.exists(PropertyPathConfig.getPath(
+            PropertyType.STATUSUPDATES_CONTROLLER, clusterName))
+        && _store.exists(PropertyPathConfig.getPath(PropertyType.HISTORY,
+            clusterName));
+
+    return isValid;
+  }
+
+  private boolean isInstanceSetup()
+  {
+    if (_instanceType == InstanceType.PARTICIPANT
+        || _instanceType == InstanceType.CONTROLLER_PARTICIPANT)
+    {
+      boolean isValid = _store.exists(PropertyPathConfig.getPath(
+          PropertyType.CONFIGS, _clusterName, _instanceName))
+          && _store.exists(PropertyPathConfig.getPath(PropertyType.MESSAGES,
+              _clusterName, _instanceName))
+          && _store.exists(PropertyPathConfig.getPath(
+              PropertyType.CURRENTSTATES, _clusterName, _instanceName))
+          && _store.exists(PropertyPathConfig.getPath(
+              PropertyType.STATUSUPDATES, _clusterName, _instanceName))
+          && _store.exists(PropertyPathConfig.getPath(PropertyType.ERRORS,
+              _clusterName, _instanceName));
+
+      return isValid;
+    }
+    return true;
+  }
+
   private void addLiveInstance()
   {
+    if (!isClusterSetup(_clusterName))
+    {
+      throw new HelixException(
+          "Initial cluster structure is not set up for cluster:" + _clusterName);
+    }
+
+    if (!isInstanceSetup())
+    {
+      throw new HelixException("Instance is not configured for instance:"
+          + _instanceName + " instanceType:" + _instanceType);
+    }
+
     LiveInstance liveInstance = new LiveInstance(_instanceName);
     liveInstance.setSessionId(_sessionId);
-    _fileDataAccessor.setProperty(PropertyType.LIVEINSTANCES, liveInstance.getRecord(), _instanceName);
+    _fileDataAccessor.setProperty(PropertyType.LIVEINSTANCES,
+        liveInstance.getRecord(), _instanceName);
   }
 
   @Override
@@ -274,13 +339,13 @@ public class DynamicFileClusterManager implements HelixAgent
     return _instanceType;
   }
 
+  @Override
+  public void addHealthStateChangeListener(HealthStateChangeListener listener,
+      String instanceName) throws Exception
+  {
+    // TODO Auto-generated method stub
 
-@Override
-public void addHealthStateChangeListener(HealthStateChangeListener listener,
-		String instanceName) throws Exception {
-	// TODO Auto-generated method stub
-
-}
+  }
 
   @Override
   public String getVersion()

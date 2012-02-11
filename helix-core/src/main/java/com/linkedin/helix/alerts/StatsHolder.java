@@ -24,7 +24,7 @@ public class StatsHolder {
 		    .getLogger(StatsHolder.class.getName());
 
 	public static final String VALUE_NAME = "value";
-    public static final String TIMESTAMP_NAME = "timestamp";
+    public static final String TIMESTAMP_NAME = "TimeStamp";
 	
 	DataAccessor _accessor;
 	ClusterDataCache _cache;

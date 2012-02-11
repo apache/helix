@@ -6,12 +6,17 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import javax.management.AttributeNotFoundException;
 import javax.management.InstanceNotFoundException;
+import javax.management.IntrospectionException;
 import javax.management.MBeanAttributeInfo;
+import javax.management.MBeanException;
 import javax.management.MBeanInfo;
 import javax.management.MBeanServerConnection;
 import javax.management.MBeanServerNotification;
 import javax.management.MalformedObjectNameException;
+import javax.management.ObjectName;
+import javax.management.ReflectionException;
 
 import org.apache.log4j.Logger;
 import org.testng.Assert;
@@ -79,6 +84,23 @@ public class TestWildcardAlert extends ZkIntegrationTestBase
         MBeanServerNotification mbsNotification)
     {
 
+    }
+    
+    public void refresh() throws MalformedObjectNameException, NullPointerException, InstanceNotFoundException, IntrospectionException, ReflectionException, IOException, AttributeNotFoundException, MBeanException
+    {
+      for(String beanName: _beanValueMap.keySet())
+      {
+        ObjectName objName = new ObjectName(beanName);
+        MBeanInfo info = _server.getMBeanInfo(objName);
+        MBeanAttributeInfo[] infos = info.getAttributes();
+        _beanValueMap.put(objName.toString(), new HashMap<String, Object>());
+        for(MBeanAttributeInfo infoItem : infos)
+        {
+          Object val = _server.getAttribute(objName, infoItem.getName());
+          System.out.println("         " + infoItem.getName() + " : " + _server.getAttribute(objName, infoItem.getName()) + " type : " + infoItem.getType());
+          _beanValueMap.get(objName.toString()).put(infoItem.getName(), val);
+        }
+      }
     }
 
   }
@@ -197,6 +219,7 @@ public class TestWildcardAlert extends ZkIntegrationTestBase
 
     // Make sure that the jmxObserver has received all the jmx bean value that
     // is corresponding to the alerts.
+    jmxMBeanObserver.refresh();
     Assert.assertTrue(jmxMBeanObserver._beanValueMap.size() == 1);
     String beanName = "HelixAlerts:alert=EXP(accumulate()(localhost_%.RestQueryStats@DBName#TestDB0.latency)|EXPAND|SUMEACH)CMP(GREATER)CON(10)--(%)";
     Assert.assertTrue(jmxMBeanObserver._beanValueMap.containsKey(beanName));

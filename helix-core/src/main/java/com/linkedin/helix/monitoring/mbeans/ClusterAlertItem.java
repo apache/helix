@@ -39,8 +39,6 @@ public class ClusterAlertItem implements ClusterAlertItemMBean
     if(_valueAndStatus.getValue().getElements().size() > 0)
     {
       _alertValue = Double.parseDouble(_valueAndStatus.getValue().getElements().get(0));
-      System.out.println("_alertName: "+_alertItemName);
-      System.out.println("_alertValue: "+_alertValue);
     }
     else
     {

@@ -10,9 +10,9 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.ClusterDataAccessor;
-import com.linkedin.helix.ClusterManagementService;
-import com.linkedin.helix.ClusterManager;
+import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixAdmin;
+import com.linkedin.helix.HelixAgent;
 import com.linkedin.helix.ClusterMessagingService;
 import com.linkedin.helix.ClusterView;
 import com.linkedin.helix.ConfigChangeListener;
@@ -32,14 +32,14 @@ import com.linkedin.helix.healthcheck.ParticipantHealthReportCollector;
 import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.model.InstanceConfig.InstanceConfigProperty;
 import com.linkedin.helix.model.Message;
-import com.linkedin.helix.participant.StateMachEngine;
+import com.linkedin.helix.participant.StateMachineEngine;
 import com.linkedin.helix.participant.statemachine.StateModel;
 import com.linkedin.helix.participant.statemachine.StateModelFactory;
 import com.linkedin.helix.store.PropertyStore;
 import com.linkedin.helix.tools.ClusterViewSerializer;
 import com.linkedin.helix.tools.IdealStateCalculatorByShuffling;
 
-public class StaticFileClusterManager implements ClusterManager
+public class StaticFileClusterManager implements HelixAgent
 {
   private static final Logger LOG = Logger
       .getLogger(StaticFileClusterManager.class.getName());
@@ -59,8 +59,7 @@ public class StaticFileClusterManager implements ClusterManager
     _clusterName = clusterName;
     _instanceName = instanceName;
     _instanceType = instanceType;
-    _clusterView = ClusterViewSerializer
-        .deserialize(new File(clusterViewFile));
+    _clusterView = ClusterViewSerializer.deserialize(new File(clusterViewFile));
   }
 
   // FIXIT
@@ -134,7 +133,8 @@ public class StaticFileClusterManager implements ClusterManager
       int lastPos = nodeInfo.lastIndexOf(":");
       if (lastPos == -1)
       {
-        throw new IllegalArgumentException("nodeInfo should be in format of host:port, " + nodeInfo);
+        throw new IllegalArgumentException(
+            "nodeInfo should be in format of host:port, " + nodeInfo);
       }
 
       String host = nodeInfo.substring(0, lastPos);
@@ -142,7 +142,8 @@ public class StaticFileClusterManager implements ClusterManager
       String nodeId = host + "_" + port;
       ZNRecord nodeConfig = new ZNRecord(nodeId);
 
-      nodeConfig.setSimpleField(InstanceConfigProperty.ENABLED.toString(), Boolean.toString(true));
+      nodeConfig.setSimpleField(InstanceConfigProperty.ENABLED.toString(),
+          Boolean.toString(true));
       nodeConfig.setSimpleField(InstanceConfigProperty.HOST.toString(), host);
       nodeConfig.setSimpleField(InstanceConfigProperty.PORT.toString(), port);
 
@@ -206,9 +207,11 @@ public class StaticFileClusterManager implements ClusterManager
 
       ClusterView.MemberInstance ins = view.getMemberInstance(instance, true);
       ins.setInstanceProperty(PropertyType.MESSAGES, msgList);
-      // ins.setInstanceProperty(InstancePropertyType.CURRENTSTATES, null);
+      // ins.setInstanceProperty(InstancePropertyType.CURRENTSTATES,
+      // null);
       // ins.setInstanceProperty(InstancePropertyType.ERRORS, null);
-      // ins.setInstanceProperty(InstancePropertyType.STATUSUPDATES, null);
+      // ins.setInstanceProperty(InstancePropertyType.STATUSUPDATES,
+      // null);
       insList.add(ins);
     }
 
@@ -246,9 +249,11 @@ public class StaticFileClusterManager implements ClusterManager
 
     NotificationContext context = new NotificationContext(this);
     context.setType(NotificationContext.Type.INIT);
-    List<ZNRecord> idealStates = _clusterView.getPropertyList(PropertyType.IDEALSTATES);
-    listener.onIdealStateChange(ZNRecordDecorator.convertToTypedList(IdealState.class, idealStates),
-                                context);
+    List<ZNRecord> idealStates = _clusterView
+        .getPropertyList(PropertyType.IDEALSTATES);
+    listener.onIdealStateChange(
+        ZNRecordDecorator.convertToTypedList(IdealState.class, idealStates),
+        context);
   }
 
   @Override
@@ -273,8 +278,8 @@ public class StaticFileClusterManager implements ClusterManager
     List<ZNRecord> messages;
     messages = _clusterView.getMemberInstance(instanceName, true)
         .getInstanceProperty(PropertyType.MESSAGES);
-    listener.onMessage(instanceName, ZNRecordDecorator.convertToTypedList(Message.class, messages),
-                       context);
+    listener.onMessage(instanceName,
+        ZNRecordDecorator.convertToTypedList(Message.class, messages), context);
   }
 
   @Override
@@ -293,7 +298,7 @@ public class StaticFileClusterManager implements ClusterManager
   }
 
   @Override
-  public ClusterDataAccessor getDataAccessor()
+  public DataAccessor getDataAccessor()
   {
     return null;
   }
@@ -342,14 +347,15 @@ public class StaticFileClusterManager implements ClusterManager
       curStateList.add(record);
     }
 
-    memberInstance.setInstanceProperty(
-        PropertyType.CURRENTSTATES, curStateList);
+    memberInstance
+        .setInstanceProperty(PropertyType.CURRENTSTATES, curStateList);
 
     // serialize to file
     // String outFile = "/tmp/curClusterView_" + instanceName +".json";
     if (outFile != null)
     {
-      // ClusterViewSerializer serializer = new ClusterViewSerializer(outFile);
+      // ClusterViewSerializer serializer = new
+      // ClusterViewSerializer(outFile);
       // serializer.serialize(curView);
       ClusterViewSerializer.serialize(curView, new File(outFile));
     }
@@ -462,7 +468,7 @@ public class StaticFileClusterManager implements ClusterManager
   }
 
   @Override
-  public ClusterManagementService getClusterManagmentTool()
+  public HelixAdmin getClusterManagmentTool()
   {
     // TODO Auto-generated method stub
     return null;
@@ -497,19 +503,21 @@ public class StaticFileClusterManager implements ClusterManager
 
   @Override
   public void addHealthStateChangeListener(HealthStateChangeListener listener,
-  		String instanceName) throws Exception {
-  	// TODO Auto-generated method stub
-  
+      String instanceName) throws Exception
+  {
+    // TODO Auto-generated method stub
+
   }
 
   @Override
   public String getVersion()
   {
-    throw new UnsupportedOperationException("getVersion() not implemented in FileClusterManager");
+    throw new UnsupportedOperationException(
+        "getVersion() not implemented in FileClusterManager");
   }
 
   @Override
-  public StateMachEngine getStateMachineEngine()
+  public StateMachineEngine getStateMachineEngine()
   {
     // TODO Auto-generated method stub
     return null;

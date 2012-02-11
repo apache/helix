@@ -8,9 +8,9 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import com.linkedin.helix.ClusterManager;
-import com.linkedin.helix.ClusterManagerException;
-import com.linkedin.helix.ClusterManagerFactory;
+import com.linkedin.helix.HelixAgent;
+import com.linkedin.helix.HelixException;
+import com.linkedin.helix.HelixAgentFactory;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.agent.zk.ZkClient;
@@ -19,7 +19,7 @@ import com.linkedin.helix.util.CMUtil;
 
 public class TestClusterManagerStartsup extends ZkStandAloneCMTestBase
 {
-  void setupCluster() throws ClusterManagerException
+  void setupCluster() throws HelixException
   {
     System.out.println("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
 
@@ -62,18 +62,18 @@ public class TestClusterManagerStartsup extends ZkStandAloneCMTestBase
     setupCluster();
     String controllerMsgPath = CMUtil.getControllerPropertyPath(CLUSTER_NAME, PropertyType.MESSAGES_CONTROLLER);
     _zkClient.deleteRecursive(controllerMsgPath);
-    ClusterManager manager = null;;
+    HelixAgent manager = null;;
 
     try
     {
-      manager = ClusterManagerFactory.getZKClusterManager(CLUSTER_NAME,
+      manager = HelixAgentFactory.getZKHelixAgent(CLUSTER_NAME,
                                                           "localhost_" + (START_PORT + 1),
                                                           InstanceType.PARTICIPANT,
                                                           ZK_ADDR);
       manager.connect();
       Assert.fail("Should fail on connect() since cluster structure is not set up");
     }
-    catch(ClusterManagerException e)
+    catch(HelixException e)
     {
       // OK
     }
@@ -85,14 +85,14 @@ public class TestClusterManagerStartsup extends ZkStandAloneCMTestBase
 
     try
     {
-      manager = ClusterManagerFactory.getZKClusterManager(CLUSTER_NAME,
+      manager = HelixAgentFactory.getZKHelixAgent(CLUSTER_NAME,
                                                           "localhost_" + (START_PORT + 3),
                                                           InstanceType.PARTICIPANT,
                                                           ZK_ADDR);
       manager.connect();
       Assert.fail("Should fail on connect() since cluster structure is not set up");
     }
-    catch(ClusterManagerException e)
+    catch(HelixException e)
     {
       // OK
     }
@@ -108,14 +108,14 @@ public class TestClusterManagerStartsup extends ZkStandAloneCMTestBase
 
     try
     {
-      manager = ClusterManagerFactory.getZKClusterManager(CLUSTER_NAME,
+      manager = HelixAgentFactory.getZKHelixAgent(CLUSTER_NAME,
                                                           "localhost_" + (START_PORT + 1),
                                                           InstanceType.PARTICIPANT,
                                                           ZK_ADDR);
       manager.connect();
       Assert.fail("Should fail on connect() since cluster structure is not set up");
     }
-    catch(ClusterManagerException e)
+    catch(HelixException e)
     {
       // OK
     }
@@ -130,14 +130,14 @@ public class TestClusterManagerStartsup extends ZkStandAloneCMTestBase
 
     try
     {
-      manager = ClusterManagerFactory.getZKClusterManager(CLUSTER_NAME,
+      manager = HelixAgentFactory.getZKHelixAgent(CLUSTER_NAME,
                                                           "localhost_" + (START_PORT + 1),
                                                           InstanceType.PARTICIPANT,
                                                           ZK_ADDR);
       manager.connect();
       Assert.fail("Should fail on connect() since cluster structure is not set up");
     }
-    catch(ClusterManagerException e)
+    catch(HelixException e)
     {
       // OK
     }

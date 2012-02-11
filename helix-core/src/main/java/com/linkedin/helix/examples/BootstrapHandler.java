@@ -2,7 +2,7 @@ package com.linkedin.helix.examples;
 
 import java.util.UUID;
 
-import com.linkedin.helix.ClusterManager;
+import com.linkedin.helix.HelixAgent;
 import com.linkedin.helix.ClusterMessagingService;
 import com.linkedin.helix.Criteria;
 import com.linkedin.helix.InstanceType;
@@ -44,7 +44,7 @@ public class BootstrapHandler extends StateModelFactory<StateModel>
     {
       System.out
           .println("BootstrapProcess.BootstrapStateModel.offlineToSlave()");
-      ClusterManager manager = context.getManager();
+      HelixAgent manager = context.getManager();
       ClusterMessagingService messagingService = manager.getMessagingService();
       Message requestBackupUriRequest = new Message(
           MessageType.USER_DEFINE_MSG, UUID.randomUUID().toString());

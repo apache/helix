@@ -9,9 +9,9 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.ClusterDataAccessor;
-import com.linkedin.helix.ClusterManager;
-import com.linkedin.helix.ClusterManagerException;
+import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixAgent;
+import com.linkedin.helix.HelixException;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecordDelta;
@@ -57,7 +57,7 @@ public class CMStateTransitionHandler extends MessageHandler
   // return !isValid;
   // }
 
-  private void prepareMessageExecution(ClusterManager manager, Message message) throws ClusterManagerException
+  private void prepareMessageExecution(HelixAgent manager, Message message) throws HelixException
   {
     // if (!validateMessage(message))
     if (!message.isValid())
@@ -72,9 +72,9 @@ public class CMStateTransitionHandler extends MessageHandler
                                  errorMessage,
                                  manager.getDataAccessor());
       logger.error(errorMessage);
-      throw new ClusterManagerException(errorMessage);
+      throw new HelixException(errorMessage);
     }
-    ClusterDataAccessor accessor = manager.getDataAccessor();
+    DataAccessor accessor = manager.getDataAccessor();
     String partitionKey = message.getStateUnitKey();
     String resourceGroup = message.getStateUnitGroup();
     String instanceName = manager.getInstanceName();
@@ -90,7 +90,7 @@ public class CMStateTransitionHandler extends MessageHandler
 
     if (stateModelDef == null)
     {
-      throw new ClusterManagerException("No State Model Defined for "+ message.getStateModelDef());
+      throw new HelixException("No State Model Defined for "+ message.getStateModelDef());
     }
     String initStateValue = stateModelDef.getInitialState();
     CurrentState currentState =
@@ -162,17 +162,17 @@ public class CMStateTransitionHandler extends MessageHandler
                                  errorMessage,
                                  accessor);
       logger.error(errorMessage);
-      throw new ClusterManagerException(errorMessage);
+      throw new HelixException(errorMessage);
     }
   }
 
-  void postExecutionMessage(ClusterManager manager,
+  void postExecutionMessage(HelixAgent manager,
                             Message message,
                             NotificationContext context,
                             CMTaskResult taskResult,
                             Exception exception) throws InterruptedException
   {
-    ClusterDataAccessor accessor = manager.getDataAccessor();
+    DataAccessor accessor = manager.getDataAccessor();
     try
     {
       String partitionKey = message.getStateUnitKey();
@@ -258,8 +258,8 @@ public class CMStateTransitionHandler extends MessageHandler
     synchronized (_stateModel)
     {
       CMTaskResult taskResult = new CMTaskResult();
-      ClusterManager manager = context.getManager();
-      ClusterDataAccessor accessor = manager.getDataAccessor();
+      HelixAgent manager = context.getManager();
+      DataAccessor accessor = manager.getDataAccessor();
       try
       {
         _statusUpdateUtil.logInfo(message,
@@ -318,7 +318,7 @@ public class CMStateTransitionHandler extends MessageHandler
     }
   }
 
-  private void invoke(ClusterDataAccessor accessor,
+  private void invoke(DataAccessor accessor,
                       NotificationContext context,
                       CMTaskResult taskResult,
                       Message message) throws IllegalAccessException,
@@ -391,8 +391,8 @@ public class CMStateTransitionHandler extends MessageHandler
   @Override
   public void onError( Exception e, ErrorCode code, ErrorType type)
   {
-    ClusterManager manager = _notificationContext.getManager();
-    ClusterDataAccessor accessor = manager.getDataAccessor();
+    HelixAgent manager = _notificationContext.getManager();
+    DataAccessor accessor = manager.getDataAccessor();
     String instanceName = manager.getInstanceName();
     String stateUnitKey = _message.getStateUnitKey();
     String stateUnitGroup = _message.getStateUnitGroup();

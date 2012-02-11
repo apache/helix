@@ -11,7 +11,7 @@ import java.util.regex.Pattern;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.ClusterManagerException;
+import com.linkedin.helix.HelixException;
 
 public class ExpressionParser {
 	private static Logger logger = Logger.getLogger(ExpressionParser.class);
@@ -134,7 +134,7 @@ public class ExpressionParser {
 	   * extract agg type and validate it exists.  validate number of args passed in
 	   * 
 	   */
-	  public static void validateAggregatorFormat(String expression) throws ClusterManagerException
+	  public static void validateAggregatorFormat(String expression) throws HelixException
 	  {
 		  logger.debug("validating aggregator for expression: "+expression);
 		  //have 0 or more args, 1 or more stats...e.g. ()(x) or (2)(x,y)
@@ -147,32 +147,32 @@ public class ExpressionParser {
 			  aggComponent = matcher.group();
 			  aggComponent = aggComponent.substring(1,aggComponent.length()-1);
 			  if (aggComponent.contains(")") || aggComponent.contains("(")) {
-				  throw new ClusterManagerException(expression +" has invalid aggregate component");
+				  throw new HelixException(expression +" has invalid aggregate component");
 			  }
 		  }
 		  else {
-			  throw new ClusterManagerException(expression +" has invalid aggregate component");
+			  throw new HelixException(expression +" has invalid aggregate component");
 		  }
 		  if (matcher.find()) {
 			  statComponent = matcher.group();
 			  statComponent = statComponent.substring(1, statComponent.length()-1);
 			  //statComponent must have at least 1 arg between paren
 			  if (statComponent.contains(")") || statComponent.contains("(")  || statComponent.length() == 0) {
-				  throw new ClusterManagerException(expression +" has invalid stat component");
+				  throw new HelixException(expression +" has invalid stat component");
 			  }
 			  lastMatchEnd = matcher.end();
 		  }
 		  else {
-			  throw new ClusterManagerException(expression +" has invalid stat component");
+			  throw new HelixException(expression +" has invalid stat component");
 		  }
 		  if (matcher.find()) {
-			  throw new ClusterManagerException(expression +" has too many parenthesis components");
+			  throw new HelixException(expression +" has too many parenthesis components");
 		  }
 		 
 		  if (expression.length() >= lastMatchEnd+1) { //lastMatchEnd is pos 1 past the pattern.  check if there are paren there
 			  if (expression.substring(lastMatchEnd).contains("(") || 
 			  	expression.substring(lastMatchEnd).contains(")")) {
-				  	throw new ClusterManagerException(expression +" has extra parenthesis");
+				  	throw new HelixException(expression +" has extra parenthesis");
 			  	}
 			  }
 		  
@@ -184,7 +184,7 @@ public class ExpressionParser {
 			  if (currTok.contains(wildcardChar)) {
 				  if (currTok.indexOf(wildcardChar) != currTok.length()-1 ||
 						  currTok.lastIndexOf(wildcardChar) != currTok.length()-1) {
-					  throw new ClusterManagerException(currTok+" is illegal stat name.  Single wildcard must appear at end.");
+					  throw new HelixException(currTok+" is illegal stat name.  Single wildcard must appear at end.");
 				  }
 			  }
 		  }
@@ -293,7 +293,7 @@ public class ExpressionParser {
 			  else { //currTok has a wildcard
 				  if (currTok.indexOf(wildcardChar) != currTok.length()-1 ||
 						  currTok.lastIndexOf(wildcardChar) != currTok.length()-1) {
-					  throw new ClusterManagerException(currTok+" is illegal stat name.  Single wildcard must appear at end.");
+					  throw new HelixException(currTok+" is illegal stat name.  Single wildcard must appear at end.");
 				  }
 				  //for wildcard matching, need to escape parentheses on currTok, so regex works
 				  //currTok = currTok.replace("(", "\\(");
@@ -354,29 +354,29 @@ public class ExpressionParser {
 		  return isWildcardMatch(alertStat, currentStat, false, wildcardBindings);
 	  }
 	 
-	  public static Aggregator getAggregator(String aggStr) throws ClusterManagerException
+	  public static Aggregator getAggregator(String aggStr) throws HelixException
 	  {
 		  aggStr = aggStr.toUpperCase();
 		  Aggregator agg = aggregatorMap.get(aggStr);
 		  if (agg == null) {
-			  throw new ClusterManagerException("Unknown aggregator type "+aggStr);
+			  throw new HelixException("Unknown aggregator type "+aggStr);
 		  }
 		  return agg;
 	  }
 	  
-	  public static String getAggregatorStr(String expression) throws ClusterManagerException 
+	  public static String getAggregatorStr(String expression) throws HelixException 
 	  {
 		  if (!expression.contains("(")) {
-			  throw new ClusterManagerException(expression+" does not contain a valid aggregator.  No parentheses found");
+			  throw new HelixException(expression+" does not contain a valid aggregator.  No parentheses found");
 		  }
 		  String aggName = expression.substring(0,expression.indexOf("("));
 		  if (!aggregatorMap.containsKey(aggName.toUpperCase())) {
-			  throw new ClusterManagerException("aggregator <"+aggName+"> is unknown type");
+			  throw new HelixException("aggregator <"+aggName+"> is unknown type");
 		  }
 		  return aggName;
 	  }
 	  
-	  public static String[] getAggregatorArgs(String expression) throws ClusterManagerException
+	  public static String[] getAggregatorArgs(String expression) throws HelixException
 	  {
 		  String aggregator = getAggregatorStr(expression);
 		  String argsStr = getAggregatorArgsStr(expression);
@@ -388,7 +388,7 @@ public class ExpressionParser {
 		  int requiredNumArgs = aggregatorMap.get(aggregator.toUpperCase()).getRequiredNumArgs();
 		  if (numArgs != requiredNumArgs)
 		  {
-			  throw new ClusterManagerException(
+			  throw new HelixException(
 					  expression+" contains "+args.length+" arguments, but requires "+requiredNumArgs);
 		  }
 		  return args;
@@ -407,7 +407,7 @@ public class ExpressionParser {
 		  return expression.substring(expression.indexOf("(")+1, expression.indexOf(")"));
 	  }
 	  
-	  public static String[] getAggregatorStats(String expression) throws ClusterManagerException
+	  public static String[] getAggregatorStats(String expression) throws HelixException
 	  {
 		  String justStats = expression;
 		  if (expression.contains("(") && expression.contains(")")) {
@@ -415,17 +415,17 @@ public class ExpressionParser {
 		  }
 		  String[] statList = justStats.split(argDelim);
 		  if (statList.length < 1) {
-			  throw new ClusterManagerException(expression+" does not contain any aggregator stats");
+			  throw new HelixException(expression+" does not contain any aggregator stats");
 		  }
 		  return statList;
 	  }
 	  
-	  public static String getSingleAggregatorStat(String expression) throws ClusterManagerException
+	  public static String getSingleAggregatorStat(String expression) throws HelixException
 	  {
 		  
 		  String[] stats = getAggregatorStats(expression);
 		  if (stats.length > 1) {
-			  throw new ClusterManagerException(expression+" contains more than 1 stat");
+			  throw new HelixException(expression+" contains more than 1 stat");
 		  }
 		  return stats[0];
 	  }
@@ -446,7 +446,7 @@ public class ExpressionParser {
 	  
 	  //XXX: each op type should have number of inputs, number of outputs.  do validation.
 	  //(dbFoo.partition*.latency, dbFoo.partition*.count)|EACH|ACCUMULATE|DIVIDE
-	  public static String[] getBaseStats(String expression) throws ClusterManagerException
+	  public static String[] getBaseStats(String expression) throws HelixException
 	  {
 		  expression = expression.replaceAll("\\s+", ""); //remove white space
 		  
@@ -474,7 +474,7 @@ public class ExpressionParser {
 		  return baseStats;
 	  }
 	  
-	  public static String[] getOperators(String expression) throws ClusterManagerException
+	  public static String[] getOperators(String expression) throws HelixException
 	  {
 		  String[] ops = null;
 		  int numAggStats = (getAggregatorStats(expression)).length;
@@ -492,11 +492,11 @@ public class ExpressionParser {
 		  for (String op : ops) {
 			  logger.debug("op: "+op);
 			  if (!operatorMap.containsKey(op.toUpperCase())) {
-				  throw new ClusterManagerException("<"+op+"> is not a valid operator type");
+				  throw new HelixException("<"+op+"> is not a valid operator type");
 			  }
 			  Operator currOpType = operatorMap.get(op.toUpperCase());
 			  if (currNumTuples < currOpType.minInputTupleLists || currNumTuples > currOpType.maxInputTupleLists) {
-				  throw new ClusterManagerException("<"+op+"> cannot process "+currNumTuples+" input tuples");
+				  throw new HelixException("<"+op+"> cannot process "+currNumTuples+" input tuples");
 			  }
 			  //reset num tuples to this op's output size
 			  if (! currOpType.inputOutputTupleListsCountsEqual) { //if equal, this number does not change
@@ -504,26 +504,26 @@ public class ExpressionParser {
 			  }
 		  }
 		  if (currNumTuples != 1) {
-			  throw new ClusterManagerException(expression+" does not terminate in a single tuple set");
+			  throw new HelixException(expression+" does not terminate in a single tuple set");
 		  }
 		  return ops;
 	  }
 	  
-	  public static void validateOperators(String expression) throws ClusterManagerException
+	  public static void validateOperators(String expression) throws HelixException
 	  {
 		  getOperators(expression);
 	  }
 	  
-	  public static Operator getOperator(String opName) throws ClusterManagerException
+	  public static Operator getOperator(String opName) throws HelixException
 	  {
 		  opName = opName.replaceAll("\\s+", ""); //remove white space
 		  if (!operatorMap.containsKey(opName)) {
-			 throw new ClusterManagerException(opName + " is unknown op type");
+			 throw new HelixException(opName + " is unknown op type");
 		  }
 		  return operatorMap.get(opName);
 	  }
 	  
-	  public static void validateExpression(String expression) throws ClusterManagerException
+	  public static void validateExpression(String expression) throws HelixException
 	  {
 		  //1. extract stats part and validate
 		  validateAggregatorFormat(expression);

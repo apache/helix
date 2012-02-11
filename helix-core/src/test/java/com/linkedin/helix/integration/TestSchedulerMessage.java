@@ -11,7 +11,7 @@ import org.codehaus.jackson.map.SerializationConfig;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import com.linkedin.helix.ClusterManager;
+import com.linkedin.helix.HelixAgent;
 import com.linkedin.helix.Criteria;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.NotificationContext;
@@ -89,7 +89,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBase
   public void TestSchedulerMsg() throws Exception
   {
     TestMessagingHandlerFactory factory = new TestMessagingHandlerFactory();
-    ClusterManager manager = null;
+    HelixAgent manager = null;
     for(int i = 0; i < NODE_NR; i++)
     {
       String hostDest = "localhost_" + (START_PORT + i);

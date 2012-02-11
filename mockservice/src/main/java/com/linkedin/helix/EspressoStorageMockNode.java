@@ -20,7 +20,7 @@ import com.linkedin.helix.healthcheck.PerformanceHealthReportProvider;
 import com.linkedin.helix.healthcheck.StatHealthReportProvider;
 import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.model.Message.MessageType;
-import com.linkedin.helix.participant.StateMachEngine;
+import com.linkedin.helix.participant.StateMachineEngine;
 import com.linkedin.helix.participant.statemachine.StateModel;
 
 public class EspressoStorageMockNode extends MockNode {
@@ -48,7 +48,7 @@ public class EspressoStorageMockNode extends MockNode {
 		_stateModelFactory = new EspressoStorageMockStateModelFactory(0);
 
 //		StateMachineEngine genericStateMachineHandler = new StateMachineEngine();
-		StateMachEngine stateMach = _cmConnector.getManager().getStateMachineEngine();
+		StateMachineEngine stateMach = _cmConnector.getManager().getStateMachineEngine();
 		stateMach.registerStateModelFactory("MasterSlave", _stateModelFactory);
 //		_cmConnector
 //				.getManager()

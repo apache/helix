@@ -10,14 +10,14 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.ClusterManagerException;
+import com.linkedin.helix.HelixException;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.messaging.AsyncCallback;
 import com.linkedin.helix.messaging.handling.MessageHandler.ErrorCode;
 import com.linkedin.helix.messaging.handling.MessageHandler.ErrorType;
 import com.linkedin.helix.model.Message;
 import com.linkedin.helix.model.Message.MessageType;
-import com.linkedin.helix.participant.StateMachEngineImpl;
+import com.linkedin.helix.participant.HelixStateMachineEngine;
 
 public class AsyncCallbackService implements MessageHandlerFactory
 {
@@ -47,7 +47,7 @@ public class AsyncCallbackService implements MessageHandlerFactory
           + " type:" + message.getMsgType() + " Expected : "
           + MessageType.TASK_REPLY;
       _logger.error(errorMsg);
-      throw new ClusterManagerException(errorMsg);
+      throw new HelixException(errorMsg);
     }
     String correlationId = message.getCorrelationId();
     if (correlationId == null)
@@ -55,7 +55,7 @@ public class AsyncCallbackService implements MessageHandlerFactory
       String errorMsg = "Message " + message.getMsgId()
           + " does not have correlation id";
       _logger.error(errorMsg);
-      throw new ClusterManagerException(errorMsg);
+      throw new HelixException(errorMsg);
     }
 
     if (!_callbackMap.containsKey(correlationId))
@@ -65,7 +65,7 @@ public class AsyncCallbackService implements MessageHandlerFactory
           + " does not have correponding callback. Probably timed out already. Correlation id: "
           + correlationId;
       _logger.error(errorMsg);
-      throw new ClusterManagerException(errorMsg);
+      throw new HelixException(errorMsg);
     }
     _logger.info("Verified reply message " + message.getMsgId()
         + " correlation:" + correlationId);

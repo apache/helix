@@ -2,7 +2,7 @@ package com.linkedin.helix.alerts;
 
 import java.util.Iterator;
 
-import com.linkedin.helix.ClusterManagerException;
+import com.linkedin.helix.HelixException;
 
 public class WindowAggregator extends Aggregator {
 

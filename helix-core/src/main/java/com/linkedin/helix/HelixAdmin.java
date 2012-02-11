@@ -7,7 +7,7 @@ import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.model.InstanceConfig;
 import com.linkedin.helix.model.StateModelDefinition;
 
-public interface ClusterManagementService
+public interface HelixAdmin
 {
   List<String> getClusters();
 

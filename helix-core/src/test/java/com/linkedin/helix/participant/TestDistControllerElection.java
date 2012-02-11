@@ -8,7 +8,7 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import com.linkedin.helix.ClusterManager;
+import com.linkedin.helix.HelixAgent;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.PropertyPathConfig;
@@ -55,7 +55,7 @@ public class TestDistControllerElection extends ZkUnitTestBase
     TestHelper.setupEmptyCluster(_zkClient, clusterName);
 
     final String controllerName = "controller_0";
-    ClusterManager manager =
+    HelixAgent manager =
         new MockZkClusterManager(clusterName, controllerName, InstanceType.CONTROLLER, _zkClient);
 
     DistClusterControllerElection election = new DistClusterControllerElection(ZK_ADDR);
@@ -100,7 +100,7 @@ public class TestDistControllerElection extends ZkUnitTestBase
     TestHelper.setupEmptyCluster(_zkClient, clusterName);
 
     final String controllerName = "controller_0";
-    ClusterManager manager =
+    HelixAgent manager =
         new MockZkClusterManager(clusterName, controllerName, InstanceType.CONTROLLER_PARTICIPANT, _zkClient);
 
     DistClusterControllerElection election = new DistClusterControllerElection(ZK_ADDR);
@@ -142,7 +142,7 @@ public class TestDistControllerElection extends ZkUnitTestBase
     TestHelper.setupEmptyCluster(_zkClient, clusterName);
 
     final String controllerName = "participant_0";
-    ClusterManager manager =
+    HelixAgent manager =
         new MockZkClusterManager(clusterName, controllerName, InstanceType.PARTICIPANT, _zkClient);
 
     DistClusterControllerElection election = new DistClusterControllerElection(ZK_ADDR);

@@ -21,8 +21,8 @@ import org.restlet.resource.Resource;
 import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 
-import com.linkedin.helix.ClusterDataAccessor;
-import com.linkedin.helix.ClusterManagerException;
+import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixException;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.agent.zk.ZkClient;
@@ -113,7 +113,7 @@ public class StateModelsResource extends Resource
         ZNRecord newStateModel = mapper.readValue(new StringReader(newStateModelString),
             ZNRecord.class);
         
-        ClusterDataAccessor accessor = ClusterRepresentationUtil.getClusterDataAccessor(zkServer,  clusterName);
+        DataAccessor accessor = ClusterRepresentationUtil.getClusterDataAccessor(zkServer,  clusterName);
         accessor.removeProperty(PropertyType.STATEMODELDEFS, newStateModel.getId());
         
         accessor.setProperty(PropertyType.STATEMODELDEFS, newStateModel,newStateModel.getId() );
@@ -121,7 +121,7 @@ public class StateModelsResource extends Resource
       }
       else
       {
-    	  throw new ClusterManagerException("Management command should be "+ ClusterRepresentationUtil._addStateModelCommand);
+    	  throw new HelixException("Management command should be "+ ClusterRepresentationUtil._addStateModelCommand);
       }
       
       getResponse().setStatus(Status.SUCCESS_OK);

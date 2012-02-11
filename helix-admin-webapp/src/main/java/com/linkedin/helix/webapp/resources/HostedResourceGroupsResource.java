@@ -17,7 +17,7 @@ import org.restlet.resource.Resource;
 import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 
-import com.linkedin.helix.ClusterManagerException;
+import com.linkedin.helix.HelixException;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.tools.ClusterSetup;
 import com.linkedin.helix.webapp.RestAdminApplication;
@@ -103,15 +103,15 @@ public class HostedResourceGroupsResource extends Resource
     
       if(!paraMap.containsKey(_resourceGroupName))
       {
-        throw new ClusterManagerException("Json paramaters does not contain '"+_resourceGroupName+"'");
+        throw new HelixException("Json paramaters does not contain '"+_resourceGroupName+"'");
       }
       else if(!paraMap.containsKey(_partitions))
       {
-        throw new ClusterManagerException("Json paramaters does not contain '"+_partitions+"'");
+        throw new HelixException("Json paramaters does not contain '"+_partitions+"'");
       }
       else if(!paraMap.containsKey(_stateModelDefRef))
       {
-        throw new ClusterManagerException("Json paramaters does not contain '"+_stateModelDefRef+"'");
+        throw new HelixException("Json paramaters does not contain '"+_stateModelDefRef+"'");
       }
       
       String entityName = paraMap.get(_resourceGroupName);

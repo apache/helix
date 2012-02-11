@@ -2,7 +2,7 @@ package com.linkedin.helix.participant;
 
 import java.util.List;
 
-import com.linkedin.helix.CMConstants.ChangeType;
+import com.linkedin.helix.HelixConstants.ChangeType;
 import com.linkedin.helix.participant.statemachine.StateModelFactory;
 
 public class ParticipantLeaderStateModelFactory 

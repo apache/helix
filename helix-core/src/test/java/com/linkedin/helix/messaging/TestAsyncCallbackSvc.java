@@ -12,8 +12,8 @@ import java.util.UUID;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import com.linkedin.helix.ClusterManager;
-import com.linkedin.helix.ClusterManagerException;
+import com.linkedin.helix.HelixAgent;
+import com.linkedin.helix.HelixException;
 import com.linkedin.helix.Mocks;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.messaging.AsyncCallback;
@@ -55,7 +55,7 @@ public class TestAsyncCallbackSvc
   public void testAsyncCallbackSvc() throws Exception
   {
     AsyncCallbackService svc = new AsyncCallbackService();
-    ClusterManager manager = new MockClusterManager();
+    HelixAgent manager = new MockClusterManager();
     NotificationContext changeContext = new NotificationContext(manager);
     
     Message msg = new Message(svc.getMessageType(), UUID.randomUUID().toString());
@@ -64,7 +64,7 @@ public class TestAsyncCallbackSvc
     {
       MessageHandler aHandler = svc.createHandler(msg, changeContext);
     }
-    catch(ClusterManagerException e)
+    catch(HelixException e)
     {
       AssertJUnit.assertTrue(e.getMessage().indexOf(msg.getMsgId())!= -1);
     }
@@ -74,7 +74,7 @@ public class TestAsyncCallbackSvc
     {
       MessageHandler aHandler = svc.createHandler(msg2, changeContext);
     }
-    catch(ClusterManagerException e)
+    catch(HelixException e)
     {
       AssertJUnit.assertTrue(e.getMessage().indexOf(msg2.getMsgId())!= -1);
     }
@@ -85,7 +85,7 @@ public class TestAsyncCallbackSvc
     {
       MessageHandler aHandler = svc.createHandler(msg3, changeContext);
     }
-    catch(ClusterManagerException e)
+    catch(HelixException e)
     {
       AssertJUnit.assertTrue(e.getMessage().indexOf(msg3.getMsgId())!= -1);
     }

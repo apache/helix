@@ -4,8 +4,8 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.ClusterDataAccessor;
-import com.linkedin.helix.ClusterManager;
+import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixAgent;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.IdealState;
@@ -43,7 +43,7 @@ public class ResourceGroupMonitor implements ResourceGroupMonitorMBean
     return _externalViewIdealStateDiff;
   }
 
-  public void onExternalViewChange(ExternalView externalView, ClusterManager manager)
+  public void onExternalViewChange(ExternalView externalView, HelixAgent manager)
   {
     if(externalView == null)
     {
@@ -51,7 +51,7 @@ public class ResourceGroupMonitor implements ResourceGroupMonitorMBean
       return;
     }
     String resourceGroup = externalView.getId();
-    ClusterDataAccessor accessor = manager.getDataAccessor();
+    DataAccessor accessor = manager.getDataAccessor();
     IdealState idealState = null;
 
     try

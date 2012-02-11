@@ -1,6 +1,6 @@
 package com.linkedin.helix.tools;
 
-import com.linkedin.helix.ClusterManager;
+import com.linkedin.helix.HelixAgent;
 
 public class TestCommand
 {
@@ -14,10 +14,10 @@ public class TestCommand
 
   public static class NodeOpArg
   {
-    public ClusterManager _manager;
+    public HelixAgent _manager;
     public Thread _thread;
 
-    public NodeOpArg(ClusterManager manager, Thread thread)
+    public NodeOpArg(HelixAgent manager, Thread thread)
     {
       _manager = manager;
       _thread = thread;

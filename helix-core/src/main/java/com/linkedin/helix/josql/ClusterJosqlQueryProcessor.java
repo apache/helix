@@ -11,9 +11,9 @@ import org.josql.QueryExecutionException;
 import org.josql.QueryParseException;
 import org.josql.QueryResults;
 
-import com.linkedin.helix.ClusterDataAccessor;
-import com.linkedin.helix.ClusterManager;
-import com.linkedin.helix.ClusterManagerException;
+import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixAgent;
+import com.linkedin.helix.HelixException;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.model.LiveInstance.LiveInstanceProperty;
@@ -23,12 +23,12 @@ public class ClusterJosqlQueryProcessor
   public static final String PARTITIONS = "PARTITIONS";
   public static final String FLATTABLE = ".Table";
 
-  ClusterManager _manager;
+  HelixAgent _manager;
   private static Logger _logger = Logger
   .getLogger(ClusterJosqlQueryProcessor.class);
 
 
-  public ClusterJosqlQueryProcessor(ClusterManager manager)
+  public ClusterJosqlQueryProcessor(HelixAgent manager)
   {
     _manager = manager;
   }
@@ -39,7 +39,7 @@ public class ClusterJosqlQueryProcessor
     int fromIndex = sql.indexOf("FROM");
     if(fromIndex == -1)
     {
-      throw new ClusterManagerException("Query must contain FROM target. Query: "+ sql);
+      throw new HelixException("Query must contain FROM target. Query: "+ sql);
     }
     // Per JoSql, select FROM <target> the target must be a object class that corresponds to a "table row"
     // In out case, the row is always a ZNRecord
@@ -58,7 +58,7 @@ public class ClusterJosqlQueryProcessor
 
     if(fromTarget.length() == 0)
     {
-      throw new ClusterManagerException("FROM target in the query cannot be empty. Query: " + sql);
+      throw new HelixException("FROM target in the query cannot be empty. Query: " + sql);
     }
     return fromTarget;
   }
@@ -79,7 +79,7 @@ public class ClusterJosqlQueryProcessor
   
   Query prepareQuery(Map<String, Object> bindVariables,  List<Object> additionalFunctionHandlers)
   {
-    ClusterDataAccessor accessor = _manager.getDataAccessor();
+    DataAccessor accessor = _manager.getDataAccessor();
     // Get all the ZNRecords in the cluster and set them as bind variables
     List<ZNRecord> instanceConfigs = accessor.getChildValues(PropertyType.CONFIGS);
     List<ZNRecord> liveInstances = accessor.getChildValues(PropertyType.LIVEINSTANCES);
@@ -229,7 +229,7 @@ public class ClusterJosqlQueryProcessor
     }
     else
     {
-      throw new ClusterManagerException("Unknown query target " + fromTargetString
+      throw new HelixException("Unknown query target " + fromTargetString
           + ". Target should be PARTITIONS, LIVEINSTANCES, CONFIGS, STATEMODELDEFS and corresponding flat Tables");
     }
     

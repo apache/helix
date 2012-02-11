@@ -8,8 +8,8 @@ import java.util.UUID;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
-import com.linkedin.helix.ClusterDataAccessor;
-import com.linkedin.helix.ClusterManager;
+import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixAgent;
 import com.linkedin.helix.Criteria;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.Mocks;
@@ -67,7 +67,7 @@ public class TestDefaultMessagingService
       }
     }
 
-    ClusterDataAccessor _accessor = new MockDataAccessor();
+    DataAccessor _accessor = new MockDataAccessor();
     ZNRecord _externalView;
     List<String> _instances;
     List<ZNRecord> _liveInstances;
@@ -100,7 +100,7 @@ public class TestDefaultMessagingService
     }
 
     @Override
-    public ClusterDataAccessor getDataAccessor()
+    public DataAccessor getDataAccessor()
     {
       return _accessor;
     }
@@ -171,7 +171,7 @@ public class TestDefaultMessagingService
   @Test()
   public void TestMessageSend()
   {
-    ClusterManager manager = new MockClusterManager();
+    HelixAgent manager = new MockClusterManager();
     DefaultMessagingService svc = new DefaultMessagingService(manager);
     TestMessageHandlerFactory factory = new TestMessageHandlerFactory();
     svc.registerMessageHandlerFactory(factory.getMessageType(), factory);

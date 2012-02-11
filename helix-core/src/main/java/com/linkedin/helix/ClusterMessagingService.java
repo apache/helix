@@ -47,7 +47,7 @@ public interface ClusterMessagingService
    */
   int send(Criteria receipientCriteria, Message message,
       AsyncCallback callbackOnReply, int timeOut);
-  
+
   int send(Criteria receipientCriteria, Message message,
       AsyncCallback callbackOnReply, int timeOut, int retryCount);
 
@@ -57,9 +57,11 @@ public interface ClusterMessagingService
    * invoked. Application can specify a timeout on AsyncCallback. After every
    * reply is processed AsyncCallback.isDone will be invoked.<br>
    * This method will return only after the AsyncCallback.isDone() returns true <br>
-   * This is useful when message need to be sent and current thread has to
-   * wait for response. <br>
-   * The current thread can use callbackOnReply instance to store application specific data.
+   * This is useful when message need to be sent and current thread has to wait
+   * for response. <br>
+   * The current thread can use callbackOnReply instance to store application
+   * specific data.
+   * 
    * @param receipientCriteria
    * @param message
    * @param callbackOnReply
@@ -68,10 +70,10 @@ public interface ClusterMessagingService
    * @return
    */
   int sendAndWait(Criteria receipientCriteria, Message message,
-      AsyncCallback callbackOnReply, int timeOut); 
-  
+      AsyncCallback callbackOnReply, int timeOut);
+
   int sendAndWait(Criteria receipientCriteria, Message message,
-      AsyncCallback callbackOnReply, int timeOut, int retryCount); 
+      AsyncCallback callbackOnReply, int timeOut, int retryCount);
 
   /**
    * This will register a message handler factory to create handlers for
@@ -81,8 +83,8 @@ public interface ClusterMessagingService
    * and cluster manager will call the factory to create handler, and the
    * handler is called in the threadpool.
    * 
-   * Note that only one message handler factory can be registered with one message
-   * type.
+   * Note that only one message handler factory can be registered with one
+   * message type.
    * 
    * @param type
    *          The message type that the factory will create handler for

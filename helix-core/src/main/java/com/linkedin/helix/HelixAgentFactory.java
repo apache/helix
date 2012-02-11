@@ -10,12 +10,12 @@ import org.apache.log4j.Logger;
 
 import com.linkedin.helix.agent.file.DynamicFileClusterManager;
 import com.linkedin.helix.agent.file.StaticFileClusterManager;
-import com.linkedin.helix.agent.zk.ZKClusterManager;
+import com.linkedin.helix.agent.zk.ZKHelixAgent;
 import com.linkedin.helix.store.file.FilePropertyStore;
 
-public final class ClusterManagerFactory
+public final class HelixAgentFactory
 {
-  private static final Logger logger = Logger.getLogger(ClusterManagerFactory.class);
+  private static final Logger logger = Logger.getLogger(HelixAgentFactory.class);
 
   /**
    * Construct a zk-based cluster manager
@@ -27,13 +27,13 @@ public final class ClusterManagerFactory
    * @return
    * @throws Exception
    */
-  public static ClusterManager getZKClusterManager(String clusterName,
+  public static HelixAgent getZKHelixAgent(String clusterName,
                                                    String instanceName,
                                                    InstanceType type,
                                                    String zkAddr)
   throws Exception
   {
-    return new ZKClusterManager(clusterName, instanceName, type, zkAddr);
+    return new ZKHelixAgent(clusterName, instanceName, type, zkAddr);
   }
 
   /**
@@ -47,7 +47,7 @@ public final class ClusterManagerFactory
    * @return
    * @throws Exception
    */
-  public static ClusterManager getStaticFileClusterManager(String clusterName,
+  public static HelixAgent getStaticFileHelixAgent(String clusterName,
                                                            String instanceName,
                                                            InstanceType type,
                                                            String clusterViewFile)
@@ -73,7 +73,7 @@ public final class ClusterManagerFactory
    * @return
    * @throws Exception
    */
-  public static ClusterManager getDynamicFileClusterManager(String clusterName,
+  public static HelixAgent getDynamicFileHelixAgent(String clusterName,
                                                             String instanceName,
                                                             InstanceType type,
                                                             FilePropertyStore<ZNRecord> store)

@@ -7,7 +7,7 @@ import java.util.UUID;
 
 import org.testng.annotations.Test;
 
-import com.linkedin.helix.ClusterDataAccessor;
+import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.Mocks;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.PropertyType;
@@ -68,7 +68,7 @@ public class TestClusterStatusMonitor
     MockDataAccessor _accessor = new MockDataAccessor();
 
     @Override
-		public ClusterDataAccessor getDataAccessor()
+		public DataAccessor getDataAccessor()
     {
       return _accessor;
     }

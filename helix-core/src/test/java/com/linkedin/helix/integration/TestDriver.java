@@ -12,7 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.ClusterManager;
+import com.linkedin.helix.HelixAgent;
 import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.TestHelper;
@@ -274,7 +274,7 @@ public class TestDriver
       if (instanceName.startsWith(CONTROLLER_PREFIX))
       {
         it.remove();
-        ClusterManager manager = entry.getValue()._manager;
+        HelixAgent manager = entry.getValue()._manager;
         manager.disconnect();
         Thread thread = entry.getValue()._thread;
         thread.interrupt();
@@ -286,7 +286,7 @@ public class TestDriver
     // stop the rest
     for (Map.Entry<String, StartCMResult> entry : testInfo._startCMResultMap.entrySet())
     {
-      ClusterManager manager = entry.getValue()._manager;
+      HelixAgent manager = entry.getValue()._manager;
       manager.disconnect();
       Thread thread = entry.getValue()._thread;
       thread.interrupt();

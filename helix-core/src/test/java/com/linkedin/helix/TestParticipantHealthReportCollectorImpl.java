@@ -6,14 +6,14 @@ import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 import org.testng.AssertJUnit;
 
-import com.linkedin.helix.ClusterManager;
+import com.linkedin.helix.HelixAgent;
 import com.linkedin.helix.Mocks.MockHealthReportProvider;
 import com.linkedin.helix.Mocks.MockManager;
 import com.linkedin.helix.healthcheck.*;
 public class TestParticipantHealthReportCollectorImpl {
 
 	protected ParticipantHealthReportCollectorImpl _providerImpl;
-	protected ClusterManager _manager;
+	protected HelixAgent _manager;
 	protected MockHealthReportProvider _mockProvider;
 	
 	 @BeforeMethod (groups = {"unitTest"})

@@ -1,8 +1,8 @@
 package com.linkedin.helix.agent.file;
 
-import com.linkedin.helix.ClusterDataAccessor;
-import com.linkedin.helix.ClusterManagementService;
-import com.linkedin.helix.ClusterManager;
+import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixAdmin;
+import com.linkedin.helix.HelixAgent;
 import com.linkedin.helix.ClusterMessagingService;
 import com.linkedin.helix.ConfigChangeListener;
 import com.linkedin.helix.ControllerChangeListener;
@@ -15,11 +15,11 @@ import com.linkedin.helix.LiveInstanceChangeListener;
 import com.linkedin.helix.MessageListener;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.healthcheck.ParticipantHealthReportCollector;
-import com.linkedin.helix.participant.StateMachEngine;
+import com.linkedin.helix.participant.StateMachineEngine;
 import com.linkedin.helix.store.PropertyStore;
 import com.linkedin.helix.store.file.FilePropertyStore;
 
-public class MockFileClusterManager implements ClusterManager
+public class MockFileClusterManager implements HelixAgent
 {
   private final FileBasedDataAccessor _accessor;
   private final String _instanceName;
@@ -108,7 +108,7 @@ public class MockFileClusterManager implements ClusterManager
   }
 
   @Override
-  public ClusterDataAccessor getDataAccessor()
+  public DataAccessor getDataAccessor()
   {
     return _accessor;
   }
@@ -147,7 +147,7 @@ public class MockFileClusterManager implements ClusterManager
   }
 
   @Override
-  public ClusterManagementService getClusterManagmentTool()
+  public HelixAdmin getClusterManagmentTool()
   {
     // TODO Auto-generated method stub
     return null;
@@ -196,7 +196,7 @@ public void addHealthStateChangeListener(HealthStateChangeListener listener,
   }
 
   @Override
-  public StateMachEngine getStateMachineEngine()
+  public StateMachineEngine getStateMachineEngine()
   {
     // TODO Auto-generated method stub
     return null;

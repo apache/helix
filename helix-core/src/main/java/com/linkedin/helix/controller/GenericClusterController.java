@@ -9,7 +9,7 @@ import java.util.Set;
 import org.I0Itec.zkclient.exception.ZkInterruptedException;
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.ClusterDataAccessor;
+import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.ConfigChangeListener;
 import com.linkedin.helix.ControllerChangeListener;
 import com.linkedin.helix.CurrentStateChangeListener;
@@ -306,7 +306,7 @@ public class GenericClusterController implements
   public void onControllerChange(NotificationContext changeContext)
   {
     logger.info("START: GenericClusterController.onControllerChange()");
-    ClusterDataAccessor dataAccessor = changeContext.getManager().getDataAccessor();
+    DataAccessor dataAccessor = changeContext.getManager().getDataAccessor();
 
     // double check if this controller is the leader
     LiveInstance leader = dataAccessor.getProperty(LiveInstance.class, PropertyType.LEADER);

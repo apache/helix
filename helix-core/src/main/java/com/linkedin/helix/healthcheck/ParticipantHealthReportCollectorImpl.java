@@ -8,7 +8,7 @@ import java.util.TimerTask;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.ClusterManager;
+import com.linkedin.helix.HelixAgent;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 
@@ -19,11 +19,11 @@ public class ParticipantHealthReportCollectorImpl implements
   private Timer _timer;
   private static final Logger _logger = Logger
       .getLogger(ParticipantHealthReportCollectorImpl.class);
-  private final ClusterManager _clusterManager;
+  private final HelixAgent _clusterManager;
   String _instanceName;
   public final static int DEFAULT_REPORT_LATENCY = 60 * 1000;
 
-  public ParticipantHealthReportCollectorImpl(ClusterManager clusterManager,
+  public ParticipantHealthReportCollectorImpl(HelixAgent clusterManager,
       String instanceName)
   {
     _clusterManager = clusterManager;

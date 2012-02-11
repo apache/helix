@@ -114,4 +114,22 @@ public abstract class ZNRecordDecorator
   }
 
   public abstract boolean isValid();
+
+  @Override
+  public boolean equals(Object obj)
+  {
+    if (obj == null)
+    {
+      return false;
+    }
+    if (obj instanceof ZNRecordDecorator)
+    {
+      ZNRecordDecorator that = (ZNRecordDecorator) obj;
+      if (that.getRecord() != null)
+      {
+        return that.getRecord().equals(this.getRecord());
+      }
+    }
+    return false;
+  }
 }

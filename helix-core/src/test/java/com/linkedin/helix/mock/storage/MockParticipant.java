@@ -8,14 +8,14 @@ import java.util.concurrent.CountDownLatch;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.ClusterManager;
-import com.linkedin.helix.ClusterManagerFactory;
+import com.linkedin.helix.HelixAgent;
+import com.linkedin.helix.HelixAgentFactory;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.mock.storage.DummyProcess.DummyLeaderStandbyStateModelFactory;
 import com.linkedin.helix.mock.storage.DummyProcess.DummyOnlineOfflineStateModelFactory;
 import com.linkedin.helix.model.Message;
-import com.linkedin.helix.participant.StateMachEngine;
+import com.linkedin.helix.participant.StateMachineEngine;
 import com.linkedin.helix.participant.statemachine.StateModel;
 import com.linkedin.helix.participant.statemachine.StateModelFactory;
 import com.linkedin.helix.participant.statemachine.StateModelInfo;
@@ -29,7 +29,7 @@ public class MockParticipant implements Stoppable, Runnable
   private final String _zkAddr;
 
   private final CountDownLatch _countDown = new CountDownLatch(1);
-  private final ClusterManager _manager;
+  private final HelixAgent _manager;
   private final MockMSModelFactory _msModelFacotry;
   private final MockJobIntf _job;
 
@@ -226,7 +226,7 @@ public class MockParticipant implements Stoppable, Runnable
     _zkAddr = zkAddr;
     _msModelFacotry = new MockMSModelFactory(transition);
 
-    _manager = ClusterManagerFactory.getZKClusterManager(_clusterName,
+    _manager = HelixAgentFactory.getZKHelixAgent(_clusterName,
         _instanceName,
         InstanceType.PARTICIPANT,
         _zkAddr);
@@ -238,7 +238,7 @@ public class MockParticipant implements Stoppable, Runnable
     _msModelFacotry.setTrasition(transition);
   }
 
-  public ClusterManager getManager()
+  public HelixAgent getManager()
   {
     return _manager;
   }
@@ -255,7 +255,7 @@ public class MockParticipant implements Stoppable, Runnable
   {
     try
     {
-      StateMachEngine stateMach = _manager.getStateMachineEngine();
+      StateMachineEngine stateMach = _manager.getStateMachineEngine();
       stateMach.registerStateModelFactory("MasterSlave", _msModelFacotry);
 
       DummyLeaderStandbyStateModelFactory lsModelFactory = new DummyLeaderStandbyStateModelFactory(10);

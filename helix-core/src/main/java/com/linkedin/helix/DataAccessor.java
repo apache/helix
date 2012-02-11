@@ -5,7 +5,7 @@ import java.util.Map;
 
 import com.linkedin.helix.store.PropertyStore;
 
-public interface ClusterDataAccessor
+public interface DataAccessor
 {
   public enum Type
   {

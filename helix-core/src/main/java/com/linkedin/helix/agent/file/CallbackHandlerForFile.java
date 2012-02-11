@@ -1,11 +1,11 @@
 package com.linkedin.helix.agent.file;
 
-import static com.linkedin.helix.CMConstants.ChangeType.CONFIG;
-import static com.linkedin.helix.CMConstants.ChangeType.CURRENT_STATE;
-import static com.linkedin.helix.CMConstants.ChangeType.EXTERNAL_VIEW;
-import static com.linkedin.helix.CMConstants.ChangeType.IDEAL_STATE;
-import static com.linkedin.helix.CMConstants.ChangeType.LIVE_INSTANCE;
-import static com.linkedin.helix.CMConstants.ChangeType.MESSAGE;
+import static com.linkedin.helix.HelixConstants.ChangeType.CONFIG;
+import static com.linkedin.helix.HelixConstants.ChangeType.CURRENT_STATE;
+import static com.linkedin.helix.HelixConstants.ChangeType.EXTERNAL_VIEW;
+import static com.linkedin.helix.HelixConstants.ChangeType.IDEAL_STATE;
+import static com.linkedin.helix.HelixConstants.ChangeType.LIVE_INSTANCE;
+import static com.linkedin.helix.HelixConstants.ChangeType.MESSAGE;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
@@ -13,8 +13,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.Watcher.Event.EventType;
 
-import com.linkedin.helix.CMConstants.ChangeType;
-import com.linkedin.helix.ClusterManager;
+import com.linkedin.helix.HelixConstants.ChangeType;
+import com.linkedin.helix.HelixAgent;
 import com.linkedin.helix.ConfigChangeListener;
 import com.linkedin.helix.ControllerChangeListener;
 import com.linkedin.helix.CurrentStateChangeListener;
@@ -48,10 +48,10 @@ public class CallbackHandlerForFile implements PropertyChangeListener<ZNRecord>
   private final ChangeType _changeType;
   private final FileBasedDataAccessor _accessor;
   private final AtomicLong lastNotificationTimeStamp;
-  private final ClusterManager _manager;
+  private final HelixAgent _manager;
   private final FilePropertyStore<ZNRecord> _store;
 
-  public CallbackHandlerForFile(ClusterManager manager, String path, Object listener,
+  public CallbackHandlerForFile(HelixAgent manager, String path, Object listener,
                                 EventType[] eventTypes, ChangeType changeType)
   {
     this._manager = manager;

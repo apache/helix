@@ -10,7 +10,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.I0Itec.zkclient.DataUpdater;
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.ClusterDataAccessor;
+import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
@@ -22,7 +22,7 @@ import com.linkedin.helix.store.PropertyStore;
 import com.linkedin.helix.store.PropertyStoreException;
 import com.linkedin.helix.store.file.FilePropertyStore;
 
-public class FileBasedDataAccessor implements ClusterDataAccessor
+public class FileBasedDataAccessor implements DataAccessor
 {
   private static Logger LOG = Logger.getLogger(FileBasedDataAccessor.class);
   private final FilePropertyStore<ZNRecord> _store;

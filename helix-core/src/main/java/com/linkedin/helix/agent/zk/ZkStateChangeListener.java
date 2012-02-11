@@ -8,11 +8,11 @@ public class ZkStateChangeListener implements IZkStateListener
 {
   private volatile boolean _isConnected;
   private volatile boolean _hasSessionExpired;
-  private final ZKClusterManager _zkClusterManager;
+  private final ZKHelixAgent _zkClusterManager;
 
   private static Logger logger = Logger.getLogger(ZkStateChangeListener.class);
 
-  public ZkStateChangeListener(ZKClusterManager zkClusterManager)
+  public ZkStateChangeListener(ZKHelixAgent zkClusterManager)
   {
     this._zkClusterManager = zkClusterManager;
 

@@ -18,8 +18,8 @@ import org.codehaus.jackson.type.TypeReference;
 import org.restlet.data.Form;
 import org.restlet.data.MediaType;
 
-import com.linkedin.helix.ClusterDataAccessor;
-import com.linkedin.helix.ClusterManagerException;
+import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixException;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.agent.zk.ZKDataAccessor;
@@ -48,7 +48,7 @@ public class ClusterRepresentationUtil
   public static String getClusterPropertyAsString(String zkServer, String clusterName, PropertyType clusterProperty, String key, MediaType mediaType) throws JsonGenerationException, JsonMappingException, IOException
   {
     ZkClient zkClient = ZKClientPool.getZkClient(zkServer);
-    ClusterDataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
+    DataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
 
     ZNRecord record = accessor.getProperty(clusterProperty, key);
     return ZNRecordToJson(record);
@@ -62,7 +62,7 @@ public class ClusterRepresentationUtil
     String path = CMUtil.getInstancePropertyPath(clusterName, instanceName, instanceProperty) + "/"+key;
     if(zkClient.exists(path))
     {
-      ClusterDataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
+      DataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
       List<ZNRecord> records = accessor.getChildValues(instanceProperty,instanceName, key );
       return ObjectToJson(records);
     }
@@ -89,7 +89,7 @@ public class ClusterRepresentationUtil
   {
     ZkClient zkClient = ZKClientPool.getZkClient(zkServer);
     zkClient.setZkSerializer(new ZNRecordSerializer());
-    ClusterDataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
+    DataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
 
     ZNRecord records = accessor.getProperty(instanceProperty,instanceName, key);
     return ZNRecordToJson(records);
@@ -99,7 +99,7 @@ public class ClusterRepresentationUtil
   {
     ZkClient zkClient = ZKClientPool.getZkClient(zkServer);
     zkClient.setZkSerializer(new ZNRecordSerializer());
-    ClusterDataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
+    DataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
 
     List<ZNRecord> records = accessor.getChildValues(instanceProperty, instanceName);
     return ObjectToJson(records);
@@ -122,7 +122,7 @@ public class ClusterRepresentationUtil
     return sw.toString();
   }
 
-  public static ClusterDataAccessor getClusterDataAccessor( String zkServer, String clusterName)
+  public static DataAccessor getClusterDataAccessor( String zkServer, String clusterName)
   {
     ZkClient zkClient = ZKClientPool.getZkClient(zkServer);
     zkClient.setZkSerializer(new ZNRecordSerializer());
@@ -179,16 +179,16 @@ public class ClusterRepresentationUtil
     String jsonPayload = form.getFirstValue(_jsonParameters, true);
     if(jsonPayload == null || jsonPayload.isEmpty())
     {
-      throw new ClusterManagerException("'"+_jsonParameters+"' in the POST body is empty");
+      throw new HelixException("'"+_jsonParameters+"' in the POST body is empty");
     }
     Map<String, String> paraMap = ClusterRepresentationUtil.JsonToMap(jsonPayload);
     if(!paraMap.containsKey(_managementCommand))
     {
-      throw new ClusterManagerException("Missing management paramater '"+_managementCommand +"'");
+      throw new HelixException("Missing management paramater '"+_managementCommand +"'");
     }
     if(!paraMap.get(_managementCommand).equalsIgnoreCase(commandValue))
     {
-      throw new ClusterManagerException(_managementCommand +" must be '"+commandValue +"'");
+      throw new HelixException(_managementCommand +" must be '"+commandValue +"'");
     }
     return paraMap;
   }
@@ -219,7 +219,7 @@ public class ClusterRepresentationUtil
   {
     ZkClient zkClient = ZKClientPool.getZkClient(zkServerAddress);
     zkClient.setZkSerializer(new ZNRecordSerializer());
-    ClusterDataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
+    DataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
     ZNRecord liveInstance = accessor.getProperty(PropertyType.LIVEINSTANCES, instanceName);
 
     return liveInstance.getSimpleField(LiveInstanceProperty.SESSION_ID.toString());

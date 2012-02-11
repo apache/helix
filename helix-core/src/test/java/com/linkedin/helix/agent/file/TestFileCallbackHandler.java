@@ -8,7 +8,7 @@ import org.testng.annotations.Test;
 
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.CMConstants.ChangeType;
+import com.linkedin.helix.HelixConstants.ChangeType;
 import com.linkedin.helix.agent.MockListener;
 import com.linkedin.helix.agent.file.CallbackHandlerForFile;
 import com.linkedin.helix.store.PropertyJsonComparator;

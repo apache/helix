@@ -10,7 +10,7 @@ import java.util.Set;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.CMConstants.StateModelToken;
+import com.linkedin.helix.HelixConstants.StateModelToken;
 import com.linkedin.helix.controller.pipeline.AbstractBaseStage;
 import com.linkedin.helix.controller.pipeline.StageException;
 import com.linkedin.helix.model.IdealState;

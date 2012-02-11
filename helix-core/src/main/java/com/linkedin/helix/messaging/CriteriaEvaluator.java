@@ -14,8 +14,8 @@ import org.josql.QueryExecutionException;
 import org.josql.QueryParseException;
 import org.josql.QueryResults;
 
-import com.linkedin.helix.ClusterDataAccessor;
-import com.linkedin.helix.ClusterManager;
+import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixAgent;
 import com.linkedin.helix.Criteria;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
@@ -27,7 +27,7 @@ public class CriteriaEvaluator
 {
   private static Logger logger = Logger.getLogger(CriteriaEvaluator.class);
   
-  public List<Map<String, String>> evaluateCriteria(Criteria recipientCriteria, ClusterManager manager)
+  public List<Map<String, String>> evaluateCriteria(Criteria recipientCriteria, HelixAgent manager)
   {
     List<Map<String, String>> selected = new ArrayList<Map<String, String>>();
     

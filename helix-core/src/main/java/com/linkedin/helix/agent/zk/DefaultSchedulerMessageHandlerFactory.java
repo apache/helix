@@ -4,8 +4,8 @@ import java.io.StringReader;
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.map.ObjectMapper;
 
-import com.linkedin.helix.ClusterManager;
-import com.linkedin.helix.ClusterManagerException;
+import com.linkedin.helix.HelixAgent;
+import com.linkedin.helix.HelixException;
 import com.linkedin.helix.Criteria;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.ZNRecord;
@@ -28,8 +28,8 @@ public class DefaultSchedulerMessageHandlerFactory implements
   {
     StatusUpdateUtil _statusUpdateUtil = new StatusUpdateUtil();
     Message _originalMessage;
-    ClusterManager _manager;
-    public SchedulerAsyncCallback(Message originalMessage, ClusterManager manager)
+    HelixAgent _manager;
+    public SchedulerAsyncCallback(Message originalMessage, HelixAgent manager)
     {
       _originalMessage = originalMessage;
       _manager = manager;
@@ -53,8 +53,8 @@ public class DefaultSchedulerMessageHandlerFactory implements
   }
   
   private static Logger _logger = Logger.getLogger(DefaultSchedulerMessageHandlerFactory.class);
-  ClusterManager _manager;
-  public DefaultSchedulerMessageHandlerFactory(ClusterManager manager)
+  HelixAgent _manager;
+  public DefaultSchedulerMessageHandlerFactory(HelixAgent manager)
   {
     _manager = manager;
   }
@@ -67,7 +67,7 @@ public class DefaultSchedulerMessageHandlerFactory implements
     
     if(!type.equals(getMessageType()))
     {
-      throw new ClusterManagerException("Unexpected msg type for message "+message.getMsgId()
+      throw new HelixException("Unexpected msg type for message "+message.getMsgId()
           +" type:" + message.getMsgType());
     }
     
@@ -87,9 +87,9 @@ public class DefaultSchedulerMessageHandlerFactory implements
   
   public static class DefaultSchedulerMessageHandler extends MessageHandler
   {
-    ClusterManager _manager;
+    HelixAgent _manager;
     public DefaultSchedulerMessageHandler(Message message,
-        NotificationContext context, ClusterManager manager)
+        NotificationContext context, HelixAgent manager)
     {
       super(message, context);
       _manager = manager;
@@ -102,7 +102,7 @@ public class DefaultSchedulerMessageHandlerFactory implements
       CMTaskResult result = new CMTaskResult();
       if(!type.equals(MessageType.SCHEDULER_MSG.toString()))
       {
-        throw new ClusterManagerException("Unexpected msg type for message "+_message.getMsgId()
+        throw new HelixException("Unexpected msg type for message "+_message.getMsgId()
             +" type:" + _message.getMsgType());
       }
       // Parse timeout value

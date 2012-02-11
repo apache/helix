@@ -4,7 +4,7 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.ClusterManagerException;
+import com.linkedin.helix.HelixException;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.messaging.handling.AsyncCallbackService;
 import com.linkedin.helix.messaging.handling.CMTaskResult;
@@ -27,7 +27,7 @@ public class DefaultControllerMessageHandlerFactory implements
     
     if(!type.equals(getMessageType()))
     {
-      throw new ClusterManagerException("Unexpected msg type for message "+message.getMsgId()
+      throw new HelixException("Unexpected msg type for message "+message.getMsgId()
           +" type:" + message.getMsgType());
     }
     
@@ -62,7 +62,7 @@ public class DefaultControllerMessageHandlerFactory implements
       CMTaskResult result = new CMTaskResult();
       if(!type.equals(MessageType.CONTROLLER_MSG.toString()))
       {
-        throw new ClusterManagerException("Unexpected msg type for message "+_message.getMsgId()
+        throw new HelixException("Unexpected msg type for message "+_message.getMsgId()
             +" type:" + _message.getMsgType());
       }
       result.getTaskResultMap().put("ControllerResult", "msg "+ _message.getMsgId() + " from "+_message.getMsgSrc() + " processed");

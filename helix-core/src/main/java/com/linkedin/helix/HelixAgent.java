@@ -4,8 +4,8 @@ import java.util.List;
 
 import com.linkedin.helix.controller.GenericClusterController;
 import com.linkedin.helix.healthcheck.ParticipantHealthReportCollector;
-import com.linkedin.helix.participant.StateMachEngine;
-import com.linkedin.helix.participant.StateMachEngineImpl;
+import com.linkedin.helix.participant.StateMachineEngine;
+import com.linkedin.helix.participant.HelixStateMachineEngine;
 import com.linkedin.helix.spectator.RoutingTableProvider;
 import com.linkedin.helix.store.PropertyStore;
 
@@ -27,12 +27,12 @@ import com.linkedin.helix.store.PropertyStore;
  * </pre>
  * </blockquote>
  * Default implementations available
- * @see StateMachEngineImpl for participant
+ * @see HelixStateMachineEngine for participant
  * @see RoutingTableProvider for spectator
  * @see GenericClusterController  for controller
  * @author kgopalak
  */
-public interface ClusterManager
+public interface HelixAgent
 {
 
   /**
@@ -137,7 +137,7 @@ public interface ClusterManager
    *
    * @return ClusterDataAccessor
    */
-  ClusterDataAccessor getDataAccessor();
+  DataAccessor getDataAccessor();
 
   /**
    * Returns the cluster name associated with this cluster manager
@@ -175,7 +175,7 @@ public interface ClusterManager
    * Provides admin interface to setup and modify cluster.
    * @return
    */
-  ClusterManagementService getClusterManagmentTool();
+  HelixAdmin getClusterManagmentTool();
 
   /**
    * Provide get property store for a cluster
@@ -210,5 +210,5 @@ public interface ClusterManager
    */
   String getVersion();
   
-  StateMachEngine getStateMachineEngine();
+  StateMachineEngine getStateMachineEngine();
 }

@@ -9,7 +9,7 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import com.linkedin.helix.ClusterManagerException;
+import com.linkedin.helix.HelixException;
 import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
@@ -66,7 +66,7 @@ public class TestZkClusterManagementTool extends ZkUnitTestBase
     {
       tool.addCluster(clusterName, false);
       Assert.fail("should fail if add an already existing cluster");
-    } catch (ClusterManagerException e)
+    } catch (HelixException e)
     {
       exceptionThrown = true;
     }
@@ -86,7 +86,7 @@ public class TestZkClusterManagementTool extends ZkUnitTestBase
     {
       tool.addInstance(clusterName, config);
       Assert.fail("should fail if add an alredy-existing instance");
-    } catch (ClusterManagerException e)
+    } catch (HelixException e)
     {
       exceptionThrown = true;
     }
@@ -100,7 +100,7 @@ public class TestZkClusterManagementTool extends ZkUnitTestBase
     {
       tool.getInstanceConfig(clusterName, "host1_9999");
       Assert.fail("should fail if get a non-existent instance");
-    } catch (ClusterManagerException e)
+    } catch (HelixException e)
     {
       exceptionThrown = true;
     }
@@ -110,7 +110,7 @@ public class TestZkClusterManagementTool extends ZkUnitTestBase
     {
       tool.dropInstance(clusterName, config);
       Assert.fail("should fail if drop on a non-existent instance");
-    } catch (ClusterManagerException e)
+    } catch (HelixException e)
     {
       exceptionThrown = true;
     }
@@ -120,7 +120,7 @@ public class TestZkClusterManagementTool extends ZkUnitTestBase
     {
       tool.enableInstance(clusterName, "host1_9999", false);
       Assert.fail("should fail if enable a non-existent instance");
-    } catch (ClusterManagerException e)
+    } catch (HelixException e)
     {
       exceptionThrown = true;
     }
@@ -134,7 +134,7 @@ public class TestZkClusterManagementTool extends ZkUnitTestBase
       path = PropertyPathConfig.getPath(PropertyType.STATEMODELDEFS,
           clusterName, "id1");
       AssertJUnit.assertTrue(_zkClient.exists(path));
-    } catch (ClusterManagerException e)
+    } catch (HelixException e)
     {
       exceptionThrown = true;
     }
@@ -145,7 +145,7 @@ public class TestZkClusterManagementTool extends ZkUnitTestBase
       tool.addStateModelDef(clusterName, "id1", new StateModelDefinition(
           stateModelRecord));
       Assert.fail("should fail if add an already-existing state model");
-    } catch (ClusterManagerException e)
+    } catch (HelixException e)
     {
       exceptionThrown = true;
     }
@@ -160,7 +160,7 @@ public class TestZkClusterManagementTool extends ZkUnitTestBase
           "nonexistStateModelDef");
       Assert
           .fail("should fail if add a resource group without an existing state model");
-    } catch (ClusterManagerException e)
+    } catch (HelixException e)
     {
       exceptionThrown = true;
     }
@@ -169,7 +169,7 @@ public class TestZkClusterManagementTool extends ZkUnitTestBase
     try
     {
       tool.addResourceGroup(clusterName, "resourceGroup", 10, "id1");
-    } catch (ClusterManagerException e)
+    } catch (HelixException e)
     {
       exceptionThrown = true;
     }
@@ -180,7 +180,7 @@ public class TestZkClusterManagementTool extends ZkUnitTestBase
     try
     {
       tool.addResourceGroup(clusterName, "resourceGroup", 10, "id1");
-    } catch (ClusterManagerException e)
+    } catch (HelixException e)
     {
       exceptionThrown = true;
     }

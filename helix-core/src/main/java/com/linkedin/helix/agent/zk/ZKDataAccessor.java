@@ -12,8 +12,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.data.Stat;
 
-import com.linkedin.helix.ClusterDataAccessor;
-import com.linkedin.helix.ClusterManagerException;
+import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixException;
 import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
@@ -23,7 +23,7 @@ import com.linkedin.helix.store.PropertySerializer;
 import com.linkedin.helix.store.PropertyStore;
 import com.linkedin.helix.store.zk.ZKPropertyStore;
 
-public class ZKDataAccessor implements ClusterDataAccessor
+public class ZKDataAccessor implements DataAccessor
 {
   private static Logger logger = Logger.getLogger(ZKDataAccessor.class);
 
@@ -48,7 +48,7 @@ public class ZKDataAccessor implements ClusterDataAccessor
   {
     if(!value.isValid())
     {
-      throw new ClusterManagerException("The ZNRecord for "+ type+" is not valid.");
+      throw new HelixException("The ZNRecord for "+ type+" is not valid.");
     }
     return setProperty(type, value.getRecord(), keys);
   }

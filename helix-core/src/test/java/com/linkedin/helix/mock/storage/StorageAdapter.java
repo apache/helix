@@ -6,9 +6,9 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.ClusterDataAccessor;
-import com.linkedin.helix.ClusterManager;
-import com.linkedin.helix.ClusterManagerFactory;
+import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixAgent;
+import com.linkedin.helix.HelixAgentFactory;
 import com.linkedin.helix.ExternalViewChangeListener;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.MessageListener;
@@ -16,15 +16,15 @@ import com.linkedin.helix.mock.consumer.ConsumerAdapter;
 import com.linkedin.helix.mock.consumer.RelayConfig;
 import com.linkedin.helix.mock.consumer.RelayConsumer;
 import com.linkedin.helix.model.Message.MessageType;
-import com.linkedin.helix.participant.StateMachEngine;
+import com.linkedin.helix.participant.StateMachineEngine;
 
 class StorageAdapter
 {
-  ClusterManager relayClusterManager;
-  ClusterManager storageClusterManager;
+  HelixAgent relayClusterManager;
+  HelixAgent storageClusterManager;
 
-  ClusterDataAccessor relayClusterClient;
-  ClusterDataAccessor storageClusterClient;
+  DataAccessor relayClusterClient;
+  DataAccessor storageClusterClient;
 
   private ExternalViewChangeListener relayViewHolder;
   private MessageListener messageListener;
@@ -54,12 +54,12 @@ class StorageAdapter
 
     hostedPartitions = new ConcurrentHashMap<String, partitionData>();
 
-    storageClusterManager = ClusterManagerFactory
-        .getZKClusterManager(clusterName, instanceName, InstanceType.PARTICIPANT,
+    storageClusterManager = HelixAgentFactory
+        .getZKHelixAgent(clusterName, instanceName, InstanceType.PARTICIPANT,
                              zkConnectString);
     stateModelFactory = new StorageStateModelFactory(this);
 //    StateMachineEngine genericStateMachineHandler = new StateMachineEngine();
-    StateMachEngine stateMach = storageClusterManager.getStateMachineEngine();
+    StateMachineEngine stateMach = storageClusterManager.getStateMachineEngine();
     stateMach.registerStateModelFactory("MasterSlave", stateModelFactory);
 
     storageClusterManager.getMessagingService()

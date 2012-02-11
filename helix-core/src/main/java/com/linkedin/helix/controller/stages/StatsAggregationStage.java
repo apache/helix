@@ -6,8 +6,8 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.ClusterDataAccessor;
-import com.linkedin.helix.ClusterManager;
+import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixAgent;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.alerts.AlertProcessor;
@@ -69,7 +69,7 @@ public class StatsAggregationStage extends AbstractBaseStage
 	return _statStatus;
   }
 
-public void persistAggStats(ClusterManager manager)
+public void persistAggStats(HelixAgent manager)
   {
 	  Map<String, String> report = _aggStatsProvider.getRecentHealthReport();
       Map<String, Map<String, String>> partitionReport = _aggStatsProvider
@@ -82,7 +82,7 @@ public void persistAggStats(ClusterManager manager)
       	record.setMapFields(partitionReport);
       }
       
-      ClusterDataAccessor accessor = manager.getDataAccessor();
+      DataAccessor accessor = manager.getDataAccessor();
       boolean retVal = accessor.setProperty(PropertyType.PERSISTENTSTATS,
               record);
       if (retVal == false) {
@@ -118,7 +118,7 @@ public void persistAggStats(ClusterManager manager)
 	//String aggTypeName = DEFAULT_AGG_TYPE+AggregationType.DELIM+DEFAULT_DECAY_PARAM;
 	//_defaultAggType = AggregationTypeFactory.getAggregationType(aggTypeName);
 	
-    ClusterManager manager = event.getAttribute("clustermanager");
+    HelixAgent manager = event.getAttribute("clustermanager");
     if (manager == null)
     {
       throw new StageException("clustermanager attribute value is null");

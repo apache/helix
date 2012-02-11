@@ -8,7 +8,7 @@ import java.util.UUID;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.ClusterManager;
+import com.linkedin.helix.HelixAgent;
 import com.linkedin.helix.ClusterMessagingService;
 import com.linkedin.helix.Criteria;
 import com.linkedin.helix.InstanceType;
@@ -22,7 +22,7 @@ import com.linkedin.helix.model.Message.MessageType;
 
 public class DefaultMessagingService implements ClusterMessagingService
 {
-  private final ClusterManager _manager;
+  private final HelixAgent _manager;
   private final CriteriaEvaluator _evaluator;
   private final CMTaskExecutor _taskExecutor;
   // TODO:rename to factory, this is not a service
@@ -30,7 +30,7 @@ public class DefaultMessagingService implements ClusterMessagingService
   private static Logger _logger = Logger
       .getLogger(DefaultMessagingService.class);
 
-  public DefaultMessagingService(ClusterManager manager)
+  public DefaultMessagingService(HelixAgent manager)
   {
     _manager = manager;
     _evaluator = new CriteriaEvaluator();

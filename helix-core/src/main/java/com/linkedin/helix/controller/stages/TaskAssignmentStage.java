@@ -5,8 +5,8 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.ClusterDataAccessor;
-import com.linkedin.helix.ClusterManager;
+import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixAgent;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.controller.pipeline.AbstractBaseStage;
 import com.linkedin.helix.controller.pipeline.StageException;
@@ -21,7 +21,7 @@ public class TaskAssignmentStage extends AbstractBaseStage
   @Override
   public void process(ClusterEvent event) throws Exception
   {
-    ClusterManager manager = event.getAttribute("clustermanager");
+    HelixAgent manager = event.getAttribute("clustermanager");
     Map<String, ResourceGroup> resourceGroupMap = event
         .getAttribute(AttributeName.RESOURCE_GROUPS.toString());
     MessageSelectionStageOutput messageSelectionStageOutput = event
@@ -34,7 +34,7 @@ public class TaskAssignmentStage extends AbstractBaseStage
           + ". Requires ClusterManager|RESOURCE_GROUPS|MESSAGES_SELECTED");
     }
 
-    ClusterDataAccessor dataAccessor = manager.getDataAccessor();
+    DataAccessor dataAccessor = manager.getDataAccessor();
     for (String resourceGroupName : resourceGroupMap.keySet())
     {
       ResourceGroup resourceGroup = resourceGroupMap.get(resourceGroupName);
@@ -47,7 +47,7 @@ public class TaskAssignmentStage extends AbstractBaseStage
     }
   }
 
-  protected void sendMessages(ClusterDataAccessor dataAccessor,
+  protected void sendMessages(DataAccessor dataAccessor,
       List<Message> messages)
   {
     if (messages == null || messages.size() == 0)

@@ -1,11 +1,8 @@
 package com.linkedin.helix.model;
 
-//import static com.linkedin.clustermanager.CMConstants.ZNAttribute.CLUSTER_MANAGER_VERSION;
-//import static com.linkedin.clustermanager.CMConstants.ZNAttribute.SESSION_ID;
 
 import java.util.Map;
 
-import org.apache.zookeeper.data.Stat;
 
 //import com.linkedin.clustermanager.ZNRecordAndStat;
 import com.linkedin.helix.ZNRecord;
@@ -14,7 +11,6 @@ import com.linkedin.helix.ZNRecordDecorator;
 public class AlertStatus extends ZNRecordDecorator
 {
 
-//  private final ZNRecord _record;
 
 	
 	
@@ -27,7 +23,6 @@ public class AlertStatus extends ZNRecordDecorator
 	    FIELDS
 	  }
 	
-//private final ZNRecord _record;
 	
 	public AlertStatus(String id) 
 	{

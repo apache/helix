@@ -13,7 +13,7 @@ import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
 
-import com.linkedin.helix.ClusterDataAccessor;
+import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.agent.zk.ZKDataAccessor;
@@ -74,7 +74,7 @@ public class MockController
   public void createExternalView(List<String> instanceNames, int partitions,
       int replicas, String dbName, long randomSeed)
   {
-    ClusterDataAccessor dataAccessor = new ZKDataAccessor(clusterName, client);
+    DataAccessor dataAccessor = new ZKDataAccessor(clusterName, client);
 
     ExternalView externalView = new ExternalView(computeRoutingTable(instanceNames, partitions,
                                                                      replicas, dbName, randomSeed));

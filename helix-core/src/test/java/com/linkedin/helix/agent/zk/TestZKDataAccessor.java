@@ -11,7 +11,7 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import com.linkedin.helix.ClusterDataAccessor;
+import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
@@ -25,7 +25,7 @@ import com.linkedin.helix.store.PropertyStoreException;
 
 public class TestZKDataAccessor extends ZkUnitTestBase
 {
-  private ClusterDataAccessor _accessor;
+  private DataAccessor _accessor;
   private String _clusterName;
   private final String resourceGroup = "resourceGroup";
 	private ZkClient _zkClient;

@@ -5,7 +5,7 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.ClusterManagerException;
+import com.linkedin.helix.HelixException;
 
 public class AlertParser {
 	private static Logger logger = Logger.getLogger(AlertParser.class);
@@ -35,17 +35,17 @@ public class AlertParser {
 	{
 		compName = compName.replaceAll("\\s+", ""); //remove white space
 		if (!comparatorMap.containsKey(compName)) {
-			throw new ClusterManagerException("Comparator type <"+compName+"> unknown");
+			throw new HelixException("Comparator type <"+compName+"> unknown");
 		}
 		return comparatorMap.get(compName);
 	}
 	 
-	public static String getComponent(String component, String alert) throws ClusterManagerException
+	public static String getComponent(String component, String alert) throws HelixException
 	{
 		//find EXP and keep going until paren are closed
 		int expStartPos = alert.indexOf(component);
 		if (expStartPos < 0) {
-			throw new ClusterManagerException(alert+" does not contain component "+component);
+			throw new HelixException(alert+" does not contain component "+component);
 		}
 		expStartPos += (component.length()+1); //advance length of string and one for open paren
 		int expEndPos = expStartPos;
@@ -60,14 +60,14 @@ public class AlertParser {
 			expEndPos++;
 		}
 		if (openParenCount != 0) {
-			throw new ClusterManagerException(alert+" does not contain valid "+component+" component, " +
+			throw new HelixException(alert+" does not contain valid "+component+" component, " +
 					"parentheses do not close");
 		}
 		//return what is in between paren
 		return alert.substring(expStartPos, expEndPos-1);
 	}
 	
-	public static boolean validateAlert(String alert) throws ClusterManagerException
+	public static boolean validateAlert(String alert) throws HelixException
 	{
 		//TODO: decide if toUpperCase is going to cause problems with stuff like db name
 		alert = alert.replaceAll("\\s+", ""); //remove white space
@@ -83,7 +83,7 @@ public class AlertParser {
 		
 		//validate comparator
 		if (!comparatorMap.containsKey(cmp.toUpperCase())) {
-			throw new ClusterManagerException("Unknown comparator type "+cmp);
+			throw new HelixException("Unknown comparator type "+cmp);
 		}
 		
 		//ValParser.  Probably don't need this.  Just make sure it's a valid tuple.  But would also be good

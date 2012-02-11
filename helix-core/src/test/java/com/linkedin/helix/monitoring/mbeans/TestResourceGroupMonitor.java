@@ -8,7 +8,7 @@ import java.util.UUID;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
-import com.linkedin.helix.ClusterDataAccessor;
+import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.Mocks;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
@@ -60,7 +60,7 @@ public class TestResourceGroupMonitor
       }
     }
 
-    ClusterDataAccessor _accessor = new MockDataAccessor();
+    DataAccessor _accessor = new MockDataAccessor();
     ZNRecord _idealState;
     ZNRecord _externalView;
     List<String> _instances;
@@ -90,7 +90,7 @@ public class TestResourceGroupMonitor
     }
 
     @Override
-    public ClusterDataAccessor getDataAccessor()
+    public DataAccessor getDataAccessor()
     {
       return _accessor;
     }

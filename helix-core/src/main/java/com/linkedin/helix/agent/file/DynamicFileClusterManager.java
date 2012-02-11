@@ -1,8 +1,8 @@
 package com.linkedin.helix.agent.file;
 
-import static com.linkedin.helix.CMConstants.ChangeType.CURRENT_STATE;
-import static com.linkedin.helix.CMConstants.ChangeType.IDEAL_STATE;
-import static com.linkedin.helix.CMConstants.ChangeType.LIVE_INSTANCE;
+import static com.linkedin.helix.HelixConstants.ChangeType.CURRENT_STATE;
+import static com.linkedin.helix.HelixConstants.ChangeType.IDEAL_STATE;
+import static com.linkedin.helix.HelixConstants.ChangeType.LIVE_INSTANCE;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,11 +11,11 @@ import java.util.UUID;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.Watcher.Event.EventType;
 
-import com.linkedin.helix.CMConstants.ChangeType;
-import com.linkedin.helix.ClusterDataAccessor;
-import com.linkedin.helix.ClusterManagementService;
-import com.linkedin.helix.ClusterManager;
-import com.linkedin.helix.ClusterManagerException;
+import com.linkedin.helix.HelixConstants.ChangeType;
+import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixAdmin;
+import com.linkedin.helix.HelixAgent;
+import com.linkedin.helix.HelixException;
 import com.linkedin.helix.ClusterMessagingService;
 import com.linkedin.helix.ConfigChangeListener;
 import com.linkedin.helix.ControllerChangeListener;
@@ -32,14 +32,14 @@ import com.linkedin.helix.healthcheck.ParticipantHealthReportCollector;
 import com.linkedin.helix.messaging.DefaultMessagingService;
 import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.model.Message.MessageType;
-import com.linkedin.helix.participant.StateMachEngine;
-import com.linkedin.helix.participant.StateMachEngineImpl;
+import com.linkedin.helix.participant.StateMachineEngine;
+import com.linkedin.helix.participant.HelixStateMachineEngine;
 import com.linkedin.helix.store.PropertyStore;
 import com.linkedin.helix.store.file.FilePropertyStore;
 import com.linkedin.helix.tools.PropertiesReader;
 import com.linkedin.helix.util.CMUtil;
 
-public class DynamicFileClusterManager implements ClusterManager
+public class DynamicFileClusterManager implements HelixAgent
 {
   private static final Logger LOG = Logger
       .getLogger(StaticFileClusterManager.class.getName());
@@ -57,7 +57,7 @@ public class DynamicFileClusterManager implements ClusterManager
   private final DefaultMessagingService _messagingService;
   private final FilePropertyStore<ZNRecord> _store;
   private final String _version;
-  private final StateMachEngine _stateMachEngine;
+  private final StateMachineEngine _stateMachEngine;
 
   public DynamicFileClusterManager(String clusterName,
                                    String instanceName,
@@ -87,7 +87,7 @@ public class DynamicFileClusterManager implements ClusterManager
     _version = new PropertiesReader("cluster-manager-version.properties")
                                 .getProperty("clustermanager.version");
     
-    _stateMachEngine = new StateMachEngineImpl(this);
+    _stateMachEngine = new HelixStateMachineEngine(this);
     _messagingService.registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(),
                                                     _stateMachEngine);
   }
@@ -168,7 +168,7 @@ public class DynamicFileClusterManager implements ClusterManager
   }
 
   @Override
-  public ClusterDataAccessor getDataAccessor()
+  public DataAccessor getDataAccessor()
   {
     return _fileDataAccessor;
   }
@@ -236,14 +236,14 @@ public class DynamicFileClusterManager implements ClusterManager
   {
     if (listener == null)
     {
-      throw new ClusterManagerException("Listener cannot be null");
+      throw new HelixException("Listener cannot be null");
     }
     return new CallbackHandlerForFile(this, path, listener, eventTypes,
         changeType);
   }
 
   @Override
-  public ClusterManagementService getClusterManagmentTool()
+  public HelixAdmin getClusterManagmentTool()
   {
     return _mgmtTool;
   }
@@ -289,7 +289,7 @@ public void addHealthStateChangeListener(HealthStateChangeListener listener,
   }
 
   @Override
-  public StateMachEngine getStateMachineEngine()
+  public StateMachineEngine getStateMachineEngine()
   {
     return _stateMachEngine;
   }

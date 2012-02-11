@@ -113,8 +113,8 @@ public class TestHelper
     throws Exception
   {
     StartCMResult result = new StartCMResult();
-    ClusterManager manager = null;
-    manager = ClusterManagerFactory.getZKClusterManager(clusterName,
+    HelixAgent manager = null;
+    manager = HelixAgentFactory.getZKHelixAgent(clusterName,
                                                         instanceName,
                                                         InstanceType.PARTICIPANT,
                                                         zkAddr);
@@ -133,7 +133,7 @@ public class TestHelper
     throws Exception
   {
     final StartCMResult result = new StartCMResult();
-    final ClusterManager manager =
+    final HelixAgent manager =
         ClusterManagerMain.startClusterManagerMain(zkConnectString,
                                                    clusterName,
                                                    controllerName,
@@ -175,7 +175,7 @@ public class TestHelper
   public static class StartCMResult
   {
     public Thread _thread;
-    public ClusterManager _manager;
+    public HelixAgent _manager;
 
   }
 
@@ -398,7 +398,7 @@ public class TestHelper
     {
       for (String clusterName : clusterNameSet)
       {
-        ClusterDataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
+        DataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
 
         for (String resourceGroupName : resourceGroupNameSet)
         {
@@ -622,7 +622,7 @@ public class TestHelper
   {
     for(String clusterName : clusterNameSet)
     {
-      ClusterDataAccessor accessor = new FileBasedDataAccessor(filePropertyStore, clusterName);
+      DataAccessor accessor = new FileBasedDataAccessor(filePropertyStore, clusterName);
 
       ExternalView extView = accessor.getProperty(ExternalView.class, PropertyType.EXTERNALVIEW, resourceGroupName);
       // external view not yet generated
@@ -694,7 +694,7 @@ public class TestHelper
                                                            int partitions,
                                                            String stateModelName,
                                                            String clusterName,
-                                                           ClusterDataAccessor accessor,
+                                                           DataAccessor accessor,
                                                            Map<String, Set<String>> errorStateMap)
   {
     Map<String, ResourceGroup> resourceGroupMap
@@ -772,7 +772,7 @@ public class TestHelper
                                                 Set<String> instanceNames,
                                                 FilePropertyStore<ZNRecord> filePropertyStore)
   {
-    ClusterDataAccessor accessor = new FileBasedDataAccessor(filePropertyStore, clusterName);
+    DataAccessor accessor = new FileBasedDataAccessor(filePropertyStore, clusterName);
 
     for (String instanceName : instanceNames)
     {
@@ -853,7 +853,7 @@ public class TestHelper
     }
   }
 
-  public static boolean verifyNotConnected(ClusterManager manager)
+  public static boolean verifyNotConnected(HelixAgent manager)
   {
     return !manager.isConnected();
   }

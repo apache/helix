@@ -3,7 +3,7 @@ package com.linkedin.helix.model;
 import java.util.Date;
 import java.util.Map;
 
-import com.linkedin.helix.ClusterManagerException;
+import com.linkedin.helix.HelixException;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.ZNRecordDecorator;
@@ -380,7 +380,7 @@ public class Message extends ZNRecordDecorator
   {
     if(srcMessage.getCorrelationId() == null)
     {
-      throw new ClusterManagerException("Message " + srcMessage.getMsgId()
+      throw new HelixException("Message " + srcMessage.getMsgId()
                                       + " does not contain correlation id");
     }
     Message replyMessage = new Message(MessageType.TASK_REPLY,"TEMPLATE");

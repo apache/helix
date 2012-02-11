@@ -7,13 +7,13 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import com.linkedin.helix.ClusterManagerException;
+import com.linkedin.helix.HelixException;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.ZkUnitTestBase;
 import com.linkedin.helix.agent.MockListener;
-import com.linkedin.helix.agent.zk.ZKClusterManager;
+import com.linkedin.helix.agent.zk.ZKHelixAgent;
 import com.linkedin.helix.agent.zk.ZNRecordSerializer;
 import com.linkedin.helix.agent.zk.ZkClient;
 import com.linkedin.helix.store.PropertyStore;
@@ -49,7 +49,7 @@ public class TestZkClusterManager extends ZkUnitTestBase
       }
 
       TestHelper.setupEmptyCluster(_zkClient, clusterName);
-      ZKClusterManager controller = new ZKClusterManager(clusterName, null,
+      ZKHelixAgent controller = new ZKHelixAgent(clusterName, null,
                                                          InstanceType.CONTROLLER,
                                                          ZK_ADDR);
 
@@ -66,7 +66,7 @@ public class TestZkClusterManager extends ZkUnitTestBase
       try
       {
         controller.addControllerListener(null);
-      } catch (ClusterManagerException e)
+      } catch (HelixException e)
       {
         exceptionCaught = true;
       }

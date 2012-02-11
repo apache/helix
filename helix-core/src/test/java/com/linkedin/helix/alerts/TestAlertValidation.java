@@ -5,7 +5,7 @@ import org.testng.AssertJUnit;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import com.linkedin.helix.ClusterManagerException;
+import com.linkedin.helix.HelixException;
 import com.linkedin.helix.alerts.AlertParser;
 
 @Test
@@ -22,7 +22,7 @@ public class TestAlertValidation {
 		boolean caughtException = false;
 		try {
 			AlertParser.validateAlert(alertName);
-		} catch (ClusterManagerException e) {
+		} catch (HelixException e) {
 			caughtException = true;
 			e.printStackTrace();
 		}
@@ -37,7 +37,7 @@ public class TestAlertValidation {
 		boolean caughtException = false;
 		try {
 			AlertParser.validateAlert(alertName);
-		} catch (ClusterManagerException e) {
+		} catch (HelixException e) {
 			caughtException = true;
 			e.printStackTrace();
 		}
@@ -52,7 +52,7 @@ public class TestAlertValidation {
 		boolean caughtException = false;
 		try {
 			AlertParser.validateAlert(alertName);
-		} catch (ClusterManagerException e) {
+		} catch (HelixException e) {
 			caughtException = true;
 			e.printStackTrace();
 		}
@@ -67,7 +67,7 @@ public class TestAlertValidation {
 		boolean caughtException = false;
 		try {
 			AlertParser.validateAlert(alertName);
-		} catch (ClusterManagerException e) {
+		} catch (HelixException e) {
 			caughtException = true;
 			e.printStackTrace();
 		}
@@ -82,7 +82,7 @@ public class TestAlertValidation {
 		boolean caughtException = false;
 		try {
 			AlertParser.validateAlert(alertName);
-		} catch (ClusterManagerException e) {
+		} catch (HelixException e) {
 			caughtException = true;
 			e.printStackTrace();
 		}
@@ -97,7 +97,7 @@ public class TestAlertValidation {
 		boolean caughtException = false;
 		try {
 			AlertParser.validateAlert(alertName);
-		} catch (ClusterManagerException e) {
+		} catch (HelixException e) {
 			caughtException = true;
 			e.printStackTrace();
 		}
@@ -112,7 +112,7 @@ public class TestAlertValidation {
 		boolean caughtException = false;
 		try {
 			AlertParser.validateAlert(alertName);
-		} catch (ClusterManagerException e) {
+		} catch (HelixException e) {
 			caughtException = true;
 			e.printStackTrace();
 		}
@@ -126,7 +126,7 @@ public class TestAlertValidation {
 		boolean caughtException = false;
 		try {
 			AlertParser.validateAlert(alertName);
-		} catch (ClusterManagerException e) {
+		} catch (HelixException e) {
 			caughtException = true;
 			e.printStackTrace();
 		}
@@ -141,7 +141,7 @@ public class TestAlertValidation {
 		boolean caughtException = false;
 		try {
 			AlertParser.validateAlert(alertName);
-		} catch (ClusterManagerException e) {
+		} catch (HelixException e) {
 			caughtException = true;
 			e.printStackTrace();
 		}

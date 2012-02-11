@@ -8,9 +8,9 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.ClusterDataAccessor;
-import com.linkedin.helix.ClusterManager;
-import com.linkedin.helix.ClusterManagerException;
+import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixAgent;
+import com.linkedin.helix.HelixException;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.controller.stages.ClusterDataCache;
@@ -26,13 +26,13 @@ public class StatsHolder {
 	public static final String VALUE_NAME = "value";
     public static final String TIMESTAMP_NAME = "timestamp";
 	
-	ClusterDataAccessor _accessor;
+	DataAccessor _accessor;
 	ClusterDataCache _cache;
 	Map<String, Map<String,String>> _statMap;
 	//PersistentStats _persistentStats
 	;
 	
-	public StatsHolder(ClusterManager manager)
+	public StatsHolder(HelixAgent manager)
 	{
 		_accessor = manager.getDataAccessor();
 		_cache = new ClusterDataCache();
@@ -84,13 +84,13 @@ public class StatsHolder {
 	 * TODO: figure out pre-conditions here.  I think not allowing anything to be null on input
 	 */
 	public Map<String,String> mergeStats(String statName, Map<String,String> existingStat, 
-			Map<String,String> incomingStat) throws ClusterManagerException
+			Map<String,String> incomingStat) throws HelixException
 	{
 		if (existingStat == null) {
-			throw new ClusterManagerException("existing stat for merge is null");
+			throw new HelixException("existing stat for merge is null");
 		}
 		if (incomingStat == null) {
-			throw new ClusterManagerException("incoming stat for merge is null");
+			throw new HelixException("incoming stat for merge is null");
 		}
 		//get agg type and arguments, then get agg object
 		String aggTypeStr = ExpressionParser.getAggregatorStr(statName);
@@ -115,10 +115,10 @@ public class StatsHolder {
 		//put merged tuples back in map
 		Map<String,String> mergedMap = new HashMap<String,String>();
 		if (existingTimeTuple.size() == 0) {
-			throw new ClusterManagerException("merged time tuple has size zero");
+			throw new HelixException("merged time tuple has size zero");
 		}
 		if (existingValueTuple.size() == 0) {
-			throw new ClusterManagerException("merged value tuple has size zero");
+			throw new HelixException("merged value tuple has size zero");
 		}
 		
 		mergedMap.put(TIMESTAMP_NAME, existingTimeTuple.toString());
@@ -169,7 +169,7 @@ public class StatsHolder {
 	}
 	
 	//add parsing of stat (or is that in expression holder?)  at least add validate
-	public void addStat(String exp) throws ClusterManagerException
+	public void addStat(String exp) throws HelixException
 	{
 		refreshStats(); //get current stats
 
@@ -186,7 +186,7 @@ public class StatsHolder {
 				 
 	}
 	
-	public static Map<String,Map<String,String>> parseStat(String exp) throws ClusterManagerException
+	public static Map<String,Map<String,String>> parseStat(String exp) throws HelixException
 	{
 		String[] parsedStats = ExpressionParser.getBaseStats(exp);
 		Map<String,Map<String,String>> statMap = new HashMap<String,Map<String,String>>();

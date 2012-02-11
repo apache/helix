@@ -9,9 +9,9 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.ClusterDataAccessor;
-import com.linkedin.helix.ClusterManager;
-import com.linkedin.helix.ClusterManagerException;
+import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixAgent;
+import com.linkedin.helix.HelixException;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.controller.stages.ClusterDataCache;
@@ -24,7 +24,7 @@ public class AlertsHolder {
 	private static final Logger logger = Logger
 		    .getLogger(AlertsHolder.class.getName());
 	
-	ClusterDataAccessor _accessor;
+	DataAccessor _accessor;
 	ClusterDataCache _cache;
 	Map<String, Map<String,String>> _alertsMap; //not sure if map or set yet
 	Map<String, Map<String,String>> _alertStatusMap;
@@ -32,7 +32,7 @@ public class AlertsHolder {
 	HashSet<String> alerts;
 	StatsHolder _statsHolder;
 	
-	public AlertsHolder(ClusterManager manager) 
+	public AlertsHolder(HelixAgent manager) 
 	{
 		_accessor = manager.getDataAccessor();
 		_cache = new ClusterDataCache();
@@ -101,7 +101,7 @@ public class AlertsHolder {
 		
 	}
 	
-	public void addAlert(String alert) throws ClusterManagerException
+	public void addAlert(String alert) throws HelixException
 	{
 		alert = alert.replaceAll("\\s+", ""); //remove white space
 		AlertParser.validateAlert(alert);
@@ -140,7 +140,7 @@ public class AlertsHolder {
 	/*
 	 * Add a set of alert statuses to ZK
 	 */
-	public void addAlertStatusSet(Map<String, Map<String, AlertValueAndStatus>> statusSet) throws ClusterManagerException
+	public void addAlertStatusSet(Map<String, Map<String, AlertValueAndStatus>> statusSet) throws HelixException
 	{
 		if (_alertStatusMap == null) {
 			_alertStatusMap = new HashMap<String, Map<String,String>>();
@@ -155,7 +155,7 @@ public class AlertsHolder {
 		persistAlertStatus(); //save statuses in zk
 	}
 	
-	private void addAlertStatus(String parentAlertKey, Map<String,AlertValueAndStatus> alertStatus) throws ClusterManagerException
+	private void addAlertStatus(String parentAlertKey, Map<String,AlertValueAndStatus> alertStatus) throws HelixException
 	{
 		_alertStatusMap = new HashMap<String,Map<String,String>>();
 		for (String alertName : alertStatus.keySet()) {
@@ -184,7 +184,7 @@ public class AlertsHolder {
 	}
 	
 	public static void parseAlert(String alert, StringBuilder statsName, 
-			Map<String,String> alertFields) throws ClusterManagerException
+			Map<String,String> alertFields) throws HelixException
 	{
 		alert = alert.replaceAll("\\s+", ""); //remove white space
 		AlertParser.validateAlert(alert);

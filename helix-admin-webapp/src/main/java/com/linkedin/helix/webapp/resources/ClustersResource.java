@@ -16,7 +16,7 @@ import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 import org.restlet.resource.Resource;
 
-import com.linkedin.helix.ClusterManagerException;
+import com.linkedin.helix.HelixException;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.tools.ClusterSetup;
 import com.linkedin.helix.webapp.RestAdminApplication;
@@ -92,7 +92,7 @@ public class ClustersResource extends Resource
       
       if(! jsonParameters.containsKey(_clusterName))
       {
-        throw new ClusterManagerException("Json parameters does not contain '"+ _clusterName + "'");
+        throw new HelixException("Json parameters does not contain '"+ _clusterName + "'");
       }
       ClusterSetup setupTool = new ClusterSetup(zkServer);
       setupTool.addCluster(jsonParameters.get(_clusterName), false);

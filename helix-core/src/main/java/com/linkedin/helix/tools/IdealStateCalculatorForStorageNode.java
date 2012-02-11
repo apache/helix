@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.TreeMap;
 
-import com.linkedin.helix.ClusterManagerException;
+import com.linkedin.helix.HelixException;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.model.IdealState.IdealStateProperty;
 
@@ -54,7 +54,7 @@ public class IdealStateCalculatorForStorageNode
   {
     if(instanceNames.size() < replicas + 1)
     {
-      throw new ClusterManagerException("Number of instances must not be less than replicas + 1. "
+      throw new HelixException("Number of instances must not be less than replicas + 1. "
                                       + "instanceNr:" + instanceNames.size()
                                       + ", replicas:" + replicas);
     }

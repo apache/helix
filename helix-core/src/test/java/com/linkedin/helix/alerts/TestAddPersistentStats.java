@@ -6,7 +6,7 @@ import org.testng.AssertJUnit;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-import com.linkedin.helix.ClusterManagerException;
+import com.linkedin.helix.HelixException;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.Mocks.MockManager;
@@ -107,7 +107,7 @@ public class TestAddPersistentStats {
 		boolean caughtException = false;
 		try {
 			_statsHolder.addStat(exp);
-		} catch (ClusterManagerException e) {
+		} catch (HelixException e) {
 			caughtException = true;
 			e.printStackTrace();
 		}
@@ -121,7 +121,7 @@ public class TestAddPersistentStats {
 		boolean caughtException = false;
 		try {
 			_statsHolder.addStat(exp);
-		} catch (ClusterManagerException e) {
+		} catch (HelixException e) {
 			caughtException = true;
 			e.printStackTrace();
 		}
@@ -135,7 +135,7 @@ public class TestAddPersistentStats {
 		boolean caughtException = false;
 		try {
 			_statsHolder.addStat(exp);
-		} catch (ClusterManagerException e) {
+		} catch (HelixException e) {
 			caughtException = true;
 			e.printStackTrace();
 		}
@@ -149,7 +149,7 @@ public class TestAddPersistentStats {
 		boolean caughtException = false;
 		try {
 			_statsHolder.addStat(exp);
-		} catch (ClusterManagerException e) {
+		} catch (HelixException e) {
 			caughtException = true;
 			e.printStackTrace();
 		}

@@ -10,7 +10,7 @@ import org.apache.log4j.Logger;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 
-import com.linkedin.helix.ClusterDataAccessor;
+import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.TestHelper.StartCMResult;
@@ -198,7 +198,7 @@ public class ZkDistCMTestBase extends ZkIntegrationTestBase
                                  TestHelper.<String>setOf(TEST_DB));
   }
 
-  protected void pauseController(ClusterDataAccessor clusterDataAccessor)
+  protected void pauseController(DataAccessor clusterDataAccessor)
   {
     clusterDataAccessor.setProperty(PropertyType.PAUSE, new PauseSignal("pause"));
   }

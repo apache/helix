@@ -17,8 +17,8 @@ import org.restlet.resource.Resource;
 import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 
-import com.linkedin.helix.ClusterDataAccessor;
-import com.linkedin.helix.ClusterManagerException;
+import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixException;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.tools.ClusterSetup;
@@ -83,7 +83,7 @@ public class InstancesResource extends Resource
     ClusterSetup setupTool = new ClusterSetup(zkServerAddress);
     List<String> instances = setupTool.getClusterManagementTool().getInstancesInCluster(clusterName);
     
-    ClusterDataAccessor accessor = ClusterRepresentationUtil.getClusterDataAccessor(zkServerAddress,  clusterName);
+    DataAccessor accessor = ClusterRepresentationUtil.getClusterDataAccessor(zkServerAddress,  clusterName);
     List<ZNRecord> liveInstances = accessor.getChildValues(PropertyType.LIVEINSTANCES);
     List<ZNRecord> instanceConfigs = accessor.getChildValues(PropertyType.CONFIGS);
     
@@ -124,7 +124,7 @@ public class InstancesResource extends Resource
       }
       else
       {
-        throw new ClusterManagerException("Json paramaters does not contain '"+_instanceName+"' or '"+_instanceNames+"' ");
+        throw new HelixException("Json paramaters does not contain '"+_instanceName+"' or '"+_instanceNames+"' ");
       }
       
       // add cluster

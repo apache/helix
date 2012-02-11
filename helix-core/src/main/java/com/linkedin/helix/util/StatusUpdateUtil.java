@@ -12,7 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.ClusterDataAccessor;
+import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.model.Message;
@@ -137,7 +137,7 @@ public class StatusUpdateUtil
    *          zookeeper
    */
   public void logMessageStatusUpdateRecord(Message message, Level level,
-      Class classInfo, String additionalInfo, ClusterDataAccessor accessor)
+      Class classInfo, String additionalInfo, DataAccessor accessor)
   {
     try
     {
@@ -152,14 +152,14 @@ public class StatusUpdateUtil
   }
 
   public void logError(Message message, Class classInfo, String additionalInfo,
-      ClusterDataAccessor accessor)
+      DataAccessor accessor)
   {
     logMessageStatusUpdateRecord(message, Level.ERROR, classInfo,
         additionalInfo, accessor);
   }
 
   public void logError(Message message, Class classInfo, Exception e,
-      String additionalInfo, ClusterDataAccessor accessor)
+      String additionalInfo, DataAccessor accessor)
   {
     StringWriter sw = new StringWriter();
     PrintWriter pw = new PrintWriter(sw);
@@ -169,14 +169,14 @@ public class StatusUpdateUtil
   }
 
   public void logInfo(Message message, Class classInfo, String additionalInfo,
-      ClusterDataAccessor accessor)
+      DataAccessor accessor)
   {
     logMessageStatusUpdateRecord(message, Level.INFO, classInfo,
         additionalInfo, accessor);
   }
 
   public void logWarning(Message message, Class classInfo,
-      String additionalInfo, ClusterDataAccessor accessor)
+      String additionalInfo, DataAccessor accessor)
   {
     logMessageStatusUpdateRecord(message, Level.WARNING, classInfo,
         additionalInfo, accessor);
@@ -196,7 +196,7 @@ public class StatusUpdateUtil
    *          zookeeper
    */
   void publishStatusUpdateRecord(ZNRecord record, Message message, Level level,
-      ClusterDataAccessor accessor)
+      DataAccessor accessor)
   {
     String instanceName = message.getTgtName();
     String statusUpdateSubPath = getStatusUpdateSubPath(message);
@@ -302,7 +302,7 @@ public class StatusUpdateUtil
    *          zookeeper
    */
   void publishErrorRecord(ZNRecord record, Message message,
-      ClusterDataAccessor accessor)
+      DataAccessor accessor)
   {
     String instanceName = message.getTgtName();
     String statusUpdateSubPath = getStatusUpdateSubPath(message);

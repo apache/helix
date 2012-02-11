@@ -16,8 +16,8 @@ import org.testng.AssertJUnit;
 import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeSuite;
 
-import com.linkedin.helix.ClusterDataAccessor;
-import com.linkedin.helix.ClusterManager;
+import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixAgent;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.agent.zk.ZKDataAccessor;
@@ -72,14 +72,14 @@ public class ZkUnitTestBase
   }
 
   protected void stopCurrentLeader(ZkClient zkClient, String clusterName,
-      Map<String, Thread> threadMap, Map<String, ClusterManager> managerMap)
+      Map<String, Thread> threadMap, Map<String, HelixAgent> managerMap)
   {
     String leader = getCurrentLeader(zkClient, clusterName);
     Assert.assertTrue(leader != null);
     System.out.println("stop leader:" + leader + " in " + clusterName);
     Assert.assertTrue(leader != null);
 
-    ClusterManager manager = managerMap.remove(leader);
+    HelixAgent manager = managerMap.remove(leader);
     Assert.assertTrue(manager != null);
     manager.disconnect();
 
@@ -132,7 +132,7 @@ public class ZkUnitTestBase
 
 	public void verifyEnabled(ZkClient zkClient, String clusterName, String instance, boolean wantEnabled)
 	{
-	    ClusterDataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
+	    DataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
 	    InstanceConfig config = accessor.getProperty(InstanceConfig.class, PropertyType.CONFIGS, instance);
 	    AssertJUnit.assertEquals(wantEnabled, config.getInstanceEnabled());
 	}
@@ -140,7 +140,7 @@ public class ZkUnitTestBase
 
 	public void verifyReplication(ZkClient zkClient, String clusterName, String resource, int repl)
 	{
-		 ClusterDataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
+		 DataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
 		 IdealState idealState = accessor.getProperty(IdealState.class, PropertyType.IDEALSTATES, resource);
 		 for (String resourceKey : idealState.getResourceKeySet())
 		 {

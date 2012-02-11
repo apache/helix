@@ -8,9 +8,9 @@ import java.util.UUID;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.ClusterDataAccessor;
-import com.linkedin.helix.ClusterManagementService;
-import com.linkedin.helix.ClusterManagerException;
+import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixAdmin;
+import com.linkedin.helix.HelixException;
 import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
@@ -30,7 +30,7 @@ import com.linkedin.helix.model.PersistentStats;
 import com.linkedin.helix.model.StateModelDefinition;
 import com.linkedin.helix.util.CMUtil;
 
-public class ZKClusterManagementTool implements ClusterManagementService
+public class ZKClusterManagementTool implements HelixAdmin
 {
 
   private final ZkClient _zkClient;
@@ -48,7 +48,7 @@ public class ZKClusterManagementTool implements ClusterManagementService
   {
     if(!ZKUtil.isClusterSetup(clusterName, _zkClient))
     {
-      throw new ClusterManagerException("cluster " + clusterName
+      throw new HelixException("cluster " + clusterName
          + " is not setup yet");
     }
     String instanceConfigsPath = CMUtil.getConfigPath(clusterName);
@@ -57,7 +57,7 @@ public class ZKClusterManagementTool implements ClusterManagementService
 
     if (_zkClient.exists(instanceConfigPath))
     {
-      throw new ClusterManagerException("Node " + nodeId
+      throw new HelixException("Node " + nodeId
           + " already exists in cluster " + clusterName);
     }
 
@@ -82,13 +82,13 @@ public class ZKClusterManagementTool implements ClusterManagementService
 
     if (!_zkClient.exists(instanceConfigPath))
     {
-      throw new ClusterManagerException("Node " + nodeId
+      throw new HelixException("Node " + nodeId
           + " does not exist in config for cluster " + clusterName);
     }
 
     if (!_zkClient.exists(instancePath))
     {
-      throw new ClusterManagerException("Node " + nodeId
+      throw new HelixException("Node " + nodeId
           + " does not exist in instances for cluster " + clusterName);
     }
 
@@ -107,11 +107,11 @@ public class ZKClusterManagementTool implements ClusterManagementService
 
     if (!_zkClient.exists(instanceConfigPath))
     {
-      throw new ClusterManagerException("instance" + instanceName
+      throw new HelixException("instance" + instanceName
           + " does not exist in cluster " + clusterName);
     }
 
-    ClusterDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
+    DataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
     return accessor.getProperty(InstanceConfig.class, PropertyType.CONFIGS, instanceName);
   }
 
@@ -124,7 +124,7 @@ public class ZKClusterManagementTool implements ClusterManagementService
 
     if (_zkClient.exists(targetPath))
     {
-      ClusterDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
+      DataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
       InstanceConfig nodeConfig = accessor.getProperty(InstanceConfig.class,
                                                        PropertyType.CONFIGS,
                                                        instanceName);
@@ -133,7 +133,7 @@ public class ZKClusterManagementTool implements ClusterManagementService
       accessor.setProperty(PropertyType.CONFIGS, nodeConfig, instanceName);
     } else
     {
-      throw new ClusterManagerException("Cluster " + clusterName
+      throw new HelixException("Cluster " + clusterName
           + ", instance " + instanceName + " does not exist");
     }
   }
@@ -148,7 +148,7 @@ public class ZKClusterManagementTool implements ClusterManagementService
     String path = PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName, instanceName);
     if (_zkClient.exists(path))
     {
-      ClusterDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
+      DataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
       InstanceConfig nodeConfig = accessor.getProperty(InstanceConfig.class,
                                                        PropertyType.CONFIGS,
                                                        instanceName);
@@ -158,7 +158,7 @@ public class ZKClusterManagementTool implements ClusterManagementService
     }
     else
     {
-      throw new ClusterManagerException("Cluster " + clusterName
+      throw new HelixException("Cluster " + clusterName
           + ", instance " + instanceName + " does not exist");
     }
   }
@@ -167,7 +167,7 @@ public class ZKClusterManagementTool implements ClusterManagementService
   public void resetPartition(String clusterName, String instanceName, String resourceGroupName,
                              String partition)
   {
-    ClusterDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
+    DataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
     LiveInstance liveInstance = accessor.getProperty(LiveInstance.class, PropertyType.LIVEINSTANCES, instanceName);
 
     if (liveInstance == null)
@@ -242,7 +242,7 @@ public class ZKClusterManagementTool implements ClusterManagementService
         _zkClient.deleteRecursive(root);
       } else
       {
-        throw new ClusterManagerException("Cluster " + clusterName
+        throw new HelixException("Cluster " + clusterName
             + " already exists");
       }
     }
@@ -304,7 +304,7 @@ public class ZKClusterManagementTool implements ClusterManagementService
   {
     if(!ZKUtil.isClusterSetup(clusterName, _zkClient))
     {
-      throw new ClusterManagerException("cluster " + clusterName
+      throw new HelixException("cluster " + clusterName
          + " is not setup yet");
     }
     ZNRecord idealState = new ZNRecord(dbName);
@@ -317,7 +317,7 @@ public class ZKClusterManagementTool implements ClusterManagementService
         PropertyType.STATEMODELDEFS, clusterName, stateModelRef);
     if (!_zkClient.exists(stateModelDefPath))
     {
-      throw new ClusterManagerException("State model " + stateModelRef
+      throw new HelixException("State model " + stateModelRef
           + " not found in the cluster STATEMODELDEFS path");
     }
 
@@ -383,7 +383,7 @@ public class ZKClusterManagementTool implements ClusterManagementService
   {
     if(!ZKUtil.isClusterSetup(clusterName, _zkClient))
     {
-      throw new ClusterManagerException("cluster " + clusterName
+      throw new HelixException("cluster " + clusterName
          + " is not setup yet");
     }
     String stateModelDefPath = CMUtil.getStateModelDefinitionPath(clusterName);
@@ -392,7 +392,7 @@ public class ZKClusterManagementTool implements ClusterManagementService
     {
       logger.warn("Skip the operation.State Model directory exists:"
           + stateModelPath);
-      throw new ClusterManagerException("State model path " + stateModelPath
+      throw new HelixException("State model path " + stateModelPath
           + " already exists.");
     }
 
@@ -428,7 +428,7 @@ public class ZKClusterManagementTool implements ClusterManagementService
   {
     if(!ZKUtil.isClusterSetup(clusterName, _zkClient))
     {
-      throw new ClusterManagerException("cluster " + clusterName
+      throw new HelixException("cluster " + clusterName
           + " is not setup yet");
     }
 
@@ -459,7 +459,7 @@ public class ZKClusterManagementTool implements ClusterManagementService
   {
     if(!ZKUtil.isClusterSetup(clusterName, _zkClient))
     {
-      throw new ClusterManagerException("cluster " + clusterName
+      throw new HelixException("cluster " + clusterName
           + " is not setup yet");
     }
 
@@ -502,18 +502,18 @@ public class ZKClusterManagementTool implements ClusterManagementService
   public void dropStat(String clusterName, String statName) {
 	  if(!ZKUtil.isClusterSetup(clusterName, _zkClient))
 	    {
-	      throw new ClusterManagerException("cluster " + clusterName
+	      throw new HelixException("cluster " + clusterName
 	          + " is not setup yet");
 	    }
 
 	    String persistentStatsPath = CMUtil.getPersistentStatsPath(clusterName);
 	    ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
 	    if (!_zkClient.exists(persistentStatsPath)) {
-	      throw new ClusterManagerException("No stats node in ZK, nothing to drop");
+	      throw new HelixException("No stats node in ZK, nothing to drop");
 	    }
 	    ZNRecord statsRec = accessor.getProperty(PropertyType.PERSISTENTSTATS);
 	    if (statsRec == null) {
-	    	throw new ClusterManagerException("No stats record in ZK, nothing to drop");
+	    	throw new HelixException("No stats record in ZK, nothing to drop");
 	    }
 	    Map<String,Map<String,String>> currStatMap = statsRec.getMapFields();
 	    Map<String,Map<String,String>> newStatMap = StatsHolder.parseStat(statName);
@@ -532,19 +532,19 @@ public class ZKClusterManagementTool implements ClusterManagementService
 
 	  if(!ZKUtil.isClusterSetup(clusterName, _zkClient))
 	    {
-	      throw new ClusterManagerException("cluster " + clusterName
+	      throw new HelixException("cluster " + clusterName
 	          + " is not setup yet");
 	    }
 
 	    String alertsPath = CMUtil.getAlertsPath(clusterName);
 	    ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
 	    if (!_zkClient.exists(alertsPath)) {
-	    	throw new ClusterManagerException("No alerts node in ZK, nothing to drop");
+	    	throw new HelixException("No alerts node in ZK, nothing to drop");
 	    }
 	    ZNRecord alertsRec = accessor.getProperty(PropertyType.ALERTS);
 	    if (alertsRec == null)
 	    {
-	        throw new ClusterManagerException("No alerts record in ZK, nothing to drop");
+	        throw new HelixException("No alerts record in ZK, nothing to drop");
 	    }
 
 	    Map<String,Map<String,String>> currAlertMap = alertsRec.getMapFields();

@@ -9,8 +9,8 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import com.linkedin.helix.ClusterDataAccessor;
-import com.linkedin.helix.ClusterManager;
+import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixAgent;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.TestHelper;
@@ -55,8 +55,8 @@ public class TestExpandAlert extends ZkIntegrationTestBase
     @Override
     public void doTransition(Message message, NotificationContext context)
     {
-      ClusterManager manager = context.getManager();
-      ClusterDataAccessor accessor = manager.getDataAccessor();
+      HelixAgent manager = context.getManager();
+      DataAccessor accessor = manager.getDataAccessor();
       String fromState = message.getFromState();
       String toState = message.getToState();
       String instance = message.getTgtName();

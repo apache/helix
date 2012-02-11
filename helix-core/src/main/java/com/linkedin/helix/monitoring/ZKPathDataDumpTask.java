@@ -10,7 +10,7 @@ import org.apache.zookeeper.data.Stat;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.SerializationConfig;
 
-import com.linkedin.helix.ClusterManager;
+import com.linkedin.helix.HelixAgent;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.agent.zk.ZNRecordSerializer;
@@ -22,10 +22,10 @@ public class ZKPathDataDumpTask extends TimerTask
   static Logger logger = Logger.getLogger(ZKPathDataDumpTask.class);
 
   private final int _thresholdNoChangeInMs;
-  private final ClusterManager _manager;
+  private final HelixAgent _manager;
   private final ZkClient _zkClient;
 
-  public ZKPathDataDumpTask(ClusterManager manager, ZkClient zkClient,
+  public ZKPathDataDumpTask(HelixAgent manager, ZkClient zkClient,
       int thresholdNoChangeInMs)
   {
     _manager = manager;

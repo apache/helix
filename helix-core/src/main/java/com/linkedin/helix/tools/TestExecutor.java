@@ -15,7 +15,7 @@ import org.I0Itec.zkclient.exception.ZkNodeExistsException;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.data.Stat;
 
-import com.linkedin.helix.ClusterManager;
+import com.linkedin.helix.HelixAgent;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.agent.zk.ZNRecordSerializer;
 import com.linkedin.helix.agent.zk.ZkClient;
@@ -857,7 +857,7 @@ public class TestExecutor
           else if (_command._commandType == CommandType.STOP)
           {
             // TODO add data trigger for STOP command
-            ClusterManager manager = _command._nodeOpArg._manager;
+            HelixAgent manager = _command._nodeOpArg._manager;
             manager.disconnect();
             Thread thread = _command._nodeOpArg._thread;
             thread.interrupt();

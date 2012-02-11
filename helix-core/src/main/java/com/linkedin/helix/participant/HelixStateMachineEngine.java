@@ -5,8 +5,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.ClusterManager;
-import com.linkedin.helix.ClusterManagerException;
+import com.linkedin.helix.HelixAgent;
+import com.linkedin.helix.HelixException;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.messaging.handling.CMStateTransitionHandler;
 import com.linkedin.helix.messaging.handling.MessageHandler;
@@ -16,21 +16,21 @@ import com.linkedin.helix.participant.statemachine.StateModel;
 import com.linkedin.helix.participant.statemachine.StateModelFactory;
 import com.linkedin.helix.participant.statemachine.StateModelParser;
 
-public class StateMachEngineImpl implements StateMachEngine
+public class HelixStateMachineEngine implements StateMachineEngine
 {
-  private static Logger logger = Logger.getLogger(StateMachEngineImpl.class);
+  private static Logger logger = Logger.getLogger(HelixStateMachineEngine.class);
   private final Map<String, StateModelFactory<? extends StateModel>> _stateModelFactoryMap
      = new ConcurrentHashMap<String, StateModelFactory<? extends StateModel>>();
   StateModelParser _stateModelParser;
   final static char SEPARATOR = '^';
-  private final ClusterManager _manager;
+  private final HelixAgent _manager;
 
   public StateModelFactory<? extends StateModel> getStateModelFactory(String stateModelName)
   {
     return _stateModelFactoryMap.get(stateModelName);
   }
 
-  public StateMachEngineImpl(ClusterManager manager)
+  public HelixStateMachineEngine(HelixAgent manager)
   {
     _stateModelParser = new StateModelParser();
     _manager = manager;
@@ -48,18 +48,18 @@ public class StateMachEngineImpl implements StateMachEngine
   {
     if (_manager.isConnected())
     {
-      throw new ClusterManagerException("stateModelFactory cannot be registered after manager is connected");
+      throw new HelixException("stateModelFactory cannot be registered after manager is connected");
     }
 
     if (stateModelDef == null || stateModelDef.contains("" + SEPARATOR))
     {
-      throw new ClusterManagerException("stateModelDef cannot be null or contains character "
+      throw new HelixException("stateModelDef cannot be null or contains character "
           + SEPARATOR + " (was " + stateModelDef + ")");
     }
 
     if (resourceGroupName != null && resourceGroupName.contains("" + SEPARATOR))
     {
-      throw new ClusterManagerException("resourceGroupName cannot contain character "
+      throw new HelixException("resourceGroupName cannot contain character "
           + SEPARATOR + " (was " + resourceGroupName + ")");
     }
 
@@ -107,7 +107,7 @@ public class StateMachEngineImpl implements StateMachEngine
 
     if (!type.equals(MessageType.STATE_TRANSITION.toString()))
     {
-      throw new ClusterManagerException("Unexpected msg type for message " + message.getMsgId()
+      throw new HelixException("Unexpected msg type for message " + message.getMsgId()
           + " type:" + message.getMsgType());
     }
 

@@ -2,7 +2,7 @@ package com.linkedin.helix.model;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.ClusterManagerException;
+import com.linkedin.helix.HelixException;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.ZNRecordDecorator;
 

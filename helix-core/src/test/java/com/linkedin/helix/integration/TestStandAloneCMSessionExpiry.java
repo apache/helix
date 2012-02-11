@@ -11,7 +11,7 @@ import com.linkedin.helix.DummyProcessThread;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.TestHelper.StartCMResult;
-import com.linkedin.helix.agent.zk.ZKClusterManager;
+import com.linkedin.helix.agent.zk.ZKHelixAgent;
 import com.linkedin.helix.agent.zk.ZNRecordSerializer;
 import com.linkedin.helix.agent.zk.ZkClient;
 import com.linkedin.helix.tools.ClusterSetup;
@@ -23,7 +23,7 @@ public class TestStandAloneCMSessionExpiry extends ZkIntegrationTestBase
   protected static final int NODE_NR = 5;
   protected Map<String, StartCMResult> _startCMResultMap = new HashMap<String, StartCMResult>();
 
-  class ZkClusterManagerWithSessionExpiry extends ZKClusterManager
+  class ZkClusterManagerWithSessionExpiry extends ZKHelixAgent
   {
     public ZkClusterManagerWithSessionExpiry(String clusterName, String instanceName,
                                              InstanceType instanceType,

@@ -5,7 +5,7 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.ClusterManagementService;
+import com.linkedin.helix.HelixAdmin;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.model.ExternalView;
@@ -18,7 +18,7 @@ import com.linkedin.helix.store.file.FilePropertyStore;
 import com.linkedin.helix.tools.StateModelConfigGenerator;
 import com.linkedin.helix.util.CMUtil;
 
-public class FileClusterManagementTool implements ClusterManagementService
+public class FileClusterManagementTool implements HelixAdmin
 {
   private static Logger logger = Logger.getLogger(FileClusterManagementTool.class);
   private final FilePropertyStore<ZNRecord> _store;

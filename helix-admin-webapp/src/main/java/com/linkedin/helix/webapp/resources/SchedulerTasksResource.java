@@ -18,8 +18,8 @@ import org.restlet.resource.Resource;
 import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 
-import com.linkedin.helix.ClusterDataAccessor;
-import com.linkedin.helix.ClusterManagerException;
+import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixException;
 import com.linkedin.helix.Criteria;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.PropertyType;
@@ -94,7 +94,7 @@ public class SchedulerTasksResource extends Resource
     ClusterSetup setupTool = new ClusterSetup(zkServerAddress);
     List<String> instances = setupTool.getClusterManagementTool().getInstancesInCluster(clusterName);
     
-    ClusterDataAccessor accessor = ClusterRepresentationUtil.getClusterDataAccessor(zkServerAddress,  clusterName);
+    DataAccessor accessor = ClusterRepresentationUtil.getClusterDataAccessor(zkServerAddress,  clusterName);
     LiveInstance liveInstance = accessor.getProperty(LiveInstance.class, PropertyType.LIVEINSTANCES, instanceName);
     String sessionId = liveInstance.getSessionId();
     
@@ -114,14 +114,14 @@ public class SchedulerTasksResource extends Resource
       String msgTemplateString = ClusterRepresentationUtil.getFormJsonParameterString(form, MESSAGETEMPLATE);
       if(msgTemplateString == null)
       {
-        throw new ClusterManagerException("SchedulerTasksResource need to have MessageTemplate specified.");
+        throw new HelixException("SchedulerTasksResource need to have MessageTemplate specified.");
       }
       Map<String, String> messageTemplate = ClusterRepresentationUtil.getFormJsonParameters(form, MESSAGETEMPLATE);
       Criteria criteria = ClusterRepresentationUtil.getFormJsonParameters(Criteria.class, form, CRITERIA);
       String criteriaString = ClusterRepresentationUtil.getFormJsonParameterString(form, CRITERIA);
       if(criteriaString == null)
       {
-        throw new ClusterManagerException("SchedulerTasksResource need to have Criteria specified.");
+        throw new HelixException("SchedulerTasksResource need to have Criteria specified.");
       }
       Message schedulerMessage = new Message(MessageType.SCHEDULER_MSG, UUID.randomUUID().toString());
       schedulerMessage.getRecord().getSimpleFields().put(CRITERIA, criteriaString);
@@ -132,7 +132,7 @@ public class SchedulerTasksResource extends Resource
       schedulerMessage.setTgtName("CONTROLLER");
       schedulerMessage.setSrcInstanceType(InstanceType.CONTROLLER);
       
-      ClusterDataAccessor accessor = ClusterRepresentationUtil.getClusterDataAccessor(zkServerAddress,  clusterName);
+      DataAccessor accessor = ClusterRepresentationUtil.getClusterDataAccessor(zkServerAddress,  clusterName);
       accessor.setProperty(PropertyType.MESSAGES_CONTROLLER, schedulerMessage, schedulerMessage.getMsgId());
       
       getResponse().setEntity("");

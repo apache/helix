@@ -15,7 +15,7 @@ import com.linkedin.helix.messaging.handling.CMTaskExecutor;
 import com.linkedin.helix.messaging.handling.CMTaskResult;
 import com.linkedin.helix.messaging.handling.MessageHandlerFactory;
 import com.linkedin.helix.model.Message;
-import com.linkedin.helix.participant.StateMachEngine;
+import com.linkedin.helix.participant.StateMachineEngine;
 import com.linkedin.helix.participant.statemachine.StateModel;
 import com.linkedin.helix.participant.statemachine.StateModelInfo;
 import com.linkedin.helix.participant.statemachine.Transition;
@@ -78,7 +78,7 @@ public class Mocks
     }
   }
 
-  public static class MockManager implements ClusterManager
+  public static class MockManager implements HelixAgent
   {
     MockAccessor accessor;
 
@@ -152,7 +152,7 @@ public class Mocks
     }
 
     @Override
-    public ClusterDataAccessor getDataAccessor()
+    public DataAccessor getDataAccessor()
     {
       return accessor;
     }
@@ -212,7 +212,7 @@ public class Mocks
     }
 
     @Override
-    public ClusterManagementService getClusterManagmentTool()
+    public HelixAdmin getClusterManagmentTool()
     {
       // TODO Auto-generated method stub
       return null;
@@ -266,7 +266,7 @@ public class Mocks
     }
 
     @Override
-    public StateMachEngine getStateMachineEngine()
+    public StateMachineEngine getStateMachineEngine()
     {
       // TODO Auto-generated method stub
       return null;
@@ -274,7 +274,7 @@ public class Mocks
 
   }
 
-  public static class MockAccessor implements ClusterDataAccessor
+  public static class MockAccessor implements DataAccessor
   {
     private final String _clusterName;
     Map<String, ZNRecord> data = new HashMap<String, ZNRecord>();

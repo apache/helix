@@ -2,8 +2,8 @@ package com.linkedin.helix.participant;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.ClusterManager;
-import com.linkedin.helix.ClusterManagerFactory;
+import com.linkedin.helix.HelixAgent;
+import com.linkedin.helix.HelixAgentFactory;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.model.Message;
@@ -18,7 +18,7 @@ import com.linkedin.helix.participant.statemachine.Transition;
 public class DistClusterControllerStateModel extends StateModel
 {
   private static Logger logger = Logger.getLogger(DistClusterControllerStateModel.class);
-  private ClusterManager _controller = null;
+  private HelixAgent _controller = null;
   private final String _zkAddr;
 
   public DistClusterControllerStateModel(String zkAddr)
@@ -46,8 +46,8 @@ public class DistClusterControllerStateModel extends StateModel
 
     if (_controller == null)
     {
-      _controller = ClusterManagerFactory
-          .getZKClusterManager(clusterName, controllerName, InstanceType.CONTROLLER, _zkAddr);
+      _controller = HelixAgentFactory
+          .getZKHelixAgent(clusterName, controllerName, InstanceType.CONTROLLER, _zkAddr);
       _controller.connect();
     }
     else

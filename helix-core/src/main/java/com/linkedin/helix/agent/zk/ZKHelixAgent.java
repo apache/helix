@@ -1,13 +1,13 @@
 package com.linkedin.helix.agent.zk;
 
-import static com.linkedin.helix.CMConstants.ChangeType.CONFIG;
-import static com.linkedin.helix.CMConstants.ChangeType.CURRENT_STATE;
-import static com.linkedin.helix.CMConstants.ChangeType.EXTERNAL_VIEW;
-import static com.linkedin.helix.CMConstants.ChangeType.HEALTH;
-import static com.linkedin.helix.CMConstants.ChangeType.IDEAL_STATE;
-import static com.linkedin.helix.CMConstants.ChangeType.LIVE_INSTANCE;
-import static com.linkedin.helix.CMConstants.ChangeType.MESSAGE;
-import static com.linkedin.helix.CMConstants.ChangeType.MESSAGES_CONTROLLER;
+import static com.linkedin.helix.HelixConstants.ChangeType.CONFIG;
+import static com.linkedin.helix.HelixConstants.ChangeType.CURRENT_STATE;
+import static com.linkedin.helix.HelixConstants.ChangeType.EXTERNAL_VIEW;
+import static com.linkedin.helix.HelixConstants.ChangeType.HEALTH;
+import static com.linkedin.helix.HelixConstants.ChangeType.IDEAL_STATE;
+import static com.linkedin.helix.HelixConstants.ChangeType.LIVE_INSTANCE;
+import static com.linkedin.helix.HelixConstants.ChangeType.MESSAGE;
+import static com.linkedin.helix.HelixConstants.ChangeType.MESSAGES_CONTROLLER;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -23,11 +23,11 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
 
-import com.linkedin.helix.CMConstants.ChangeType;
-import com.linkedin.helix.ClusterDataAccessor;
-import com.linkedin.helix.ClusterManagementService;
-import com.linkedin.helix.ClusterManager;
-import com.linkedin.helix.ClusterManagerException;
+import com.linkedin.helix.HelixConstants.ChangeType;
+import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixAdmin;
+import com.linkedin.helix.HelixAgent;
+import com.linkedin.helix.HelixException;
 import com.linkedin.helix.ClusterMessagingService;
 import com.linkedin.helix.ConfigChangeListener;
 import com.linkedin.helix.ControllerChangeListener;
@@ -51,15 +51,15 @@ import com.linkedin.helix.model.Message.MessageType;
 import com.linkedin.helix.model.StateModelDefinition;
 import com.linkedin.helix.monitoring.ZKPathDataDumpTask;
 import com.linkedin.helix.participant.DistClusterControllerElection;
-import com.linkedin.helix.participant.StateMachEngine;
-import com.linkedin.helix.participant.StateMachEngineImpl;
+import com.linkedin.helix.participant.StateMachineEngine;
+import com.linkedin.helix.participant.HelixStateMachineEngine;
 import com.linkedin.helix.store.PropertyStore;
 import com.linkedin.helix.tools.PropertiesReader;
 import com.linkedin.helix.util.CMUtil;
 
-public class ZKClusterManager implements ClusterManager
+public class ZKHelixAgent implements HelixAgent
 {
-  private static Logger logger = Logger.getLogger(ZKClusterManager.class);
+  private static Logger logger = Logger.getLogger(ZKHelixAgent.class);
   private static final int RETRY_LIMIT = 3;
   private static final int CONNECTIONTIMEOUT = 10000;
   private final String _clusterName;
@@ -78,10 +78,10 @@ public class ZKClusterManager implements ClusterManager
   private final DefaultMessagingService _messagingService;
   private ZKClusterManagementTool _managementTool;
   private final String _version;
-  private final StateMachEngine _stateMachEngine;
+  private final StateMachineEngine _stateMachEngine;
   private int _sessionTimeout;
 
-  public ZKClusterManager(String clusterName, String instanceName, InstanceType instanceType,
+  public ZKHelixAgent(String clusterName, String instanceName, InstanceType instanceType,
       String zkConnectString) throws Exception
   {
     logger.info("Create a zk-based cluster manager. clusterName:" + clusterName + ", instanceName:"
@@ -130,7 +130,7 @@ public class ZKClusterManager implements ClusterManager
     _version = new PropertiesReader("cluster-manager-version.properties")
         .getProperty("clustermanager.version");
 
-    _stateMachEngine = new StateMachEngineImpl(this);
+    _stateMachEngine = new HelixStateMachineEngine(this);
   }
 
   private boolean isInstanceSetup()
@@ -260,7 +260,7 @@ public class ZKClusterManager implements ClusterManager
   }
 
   @Override
-  public ClusterDataAccessor getDataAccessor()
+  public DataAccessor getDataAccessor()
   {
     checkConnected();
     return _accessor;
@@ -415,7 +415,7 @@ public class ZKClusterManager implements ClusterManager
       String errorMsg = "Fail to create live instance node after waiting, so quit. instance:"
           + _instanceName;
       logger.warn(errorMsg);
-      throw new ClusterManagerException(errorMsg);
+      throw new HelixException(errorMsg);
 
     }
     String currentStatePathParent = PropertyPathConfig.getPath(PropertyType.CURRENTSTATES,
@@ -458,7 +458,7 @@ public class ZKClusterManager implements ClusterManager
         _zkStateChangeListener.handleStateChanged(KeeperState.SyncConnected);
         _zkStateChangeListener.handleNewSession();
         break;
-      } catch (ClusterManagerException e)
+      } catch (HelixException e)
       {
         throw e;
       } catch (Exception e)
@@ -478,7 +478,7 @@ public class ZKClusterManager implements ClusterManager
   {
     if (listener == null)
     {
-      throw new ClusterManagerException("Listener cannot be null");
+      throw new HelixException("Listener cannot be null");
     }
     return new CallbackHandler(this, _zkClient, path, listener, eventTypes, changeType);
   }
@@ -508,12 +508,12 @@ public class ZKClusterManager implements ClusterManager
 
     if (!ZKUtil.isClusterSetup(_clusterName, _zkClient))
     {
-      throw new ClusterManagerException("Initial cluster structure is not set up for cluster:"
+      throw new HelixException("Initial cluster structure is not set up for cluster:"
           + _clusterName);
     }
     if (!isInstanceSetup())
     {
-      throw new ClusterManagerException("Initial cluster structure is not set up for instance:"
+      throw new HelixException("Initial cluster structure is not set up for instance:"
           + _instanceName + " instanceType:" + _instanceType);
     }
 
@@ -579,7 +579,7 @@ public class ZKClusterManager implements ClusterManager
         String errorMessage = "instance " + _instanceName
             + " already has a liveinstance in cluster " + _clusterName;
         logger.error(errorMessage);
-        throw new ClusterManagerException(errorMessage);
+        throw new HelixException(errorMessage);
       }
     }
     addLiveInstance();
@@ -708,7 +708,7 @@ public class ZKClusterManager implements ClusterManager
   }
 
   @Override
-  public synchronized ClusterManagementService getClusterManagmentTool()
+  public synchronized HelixAdmin getClusterManagmentTool()
   {
     checkConnected();
     if (_zkClient != null)
@@ -746,7 +746,7 @@ public class ZKClusterManager implements ClusterManager
   {
     if (!isConnected())
     {
-      throw new ClusterManagerException(
+      throw new HelixException(
           "ClusterManager not connected. Call clusterManager.connect()");
     }
   }
@@ -758,7 +758,7 @@ public class ZKClusterManager implements ClusterManager
   }
 
   @Override
-  public StateMachEngine getStateMachineEngine()
+  public StateMachineEngine getStateMachineEngine()
   {
     return _stateMachEngine;
   }

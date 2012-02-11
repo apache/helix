@@ -8,9 +8,9 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.ClusterDataAccessor;
-import com.linkedin.helix.ClusterManager;
-import com.linkedin.helix.ClusterManagerFactory;
+import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixAgent;
+import com.linkedin.helix.HelixAgentFactory;
 import com.linkedin.helix.ExternalViewChangeListener;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.NotificationContext;
@@ -20,8 +20,8 @@ import com.linkedin.helix.model.ExternalView;
 public class ConsumerAdapter implements ExternalViewChangeListener
 {
 
-  ClusterManager relayClusterManager;
-  ClusterDataAccessor relayClusterClient;
+  HelixAgent relayClusterManager;
+  DataAccessor relayClusterClient;
   private final ConcurrentHashMap<String, RelayConsumer> relayConsumers;
   private final ConcurrentHashMap<String, RelayConfig> relayConfigs;
   private static Logger logger = Logger.getLogger(ConsumerAdapter.class);
@@ -34,7 +34,7 @@ public class ConsumerAdapter implements ExternalViewChangeListener
 
 //    relayClusterManager = ClusterManagerFactory.getZKBasedManagerForSpectator(
 //        clusterName, zkServer);
-    relayClusterManager = ClusterManagerFactory.getZKClusterManager(clusterName,
+    relayClusterManager = HelixAgentFactory.getZKHelixAgent(clusterName,
                                                                     null,
                                                                     InstanceType.SPECTATOR,
                                                                     zkServer);

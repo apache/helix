@@ -5,8 +5,8 @@ import java.util.List;
 import org.I0Itec.zkclient.IDefaultNameSpace;
 import org.I0Itec.zkclient.ZkServer;
 
-import com.linkedin.helix.ClusterManager;
-import com.linkedin.helix.ClusterManagerFactory;
+import com.linkedin.helix.HelixAgent;
+import com.linkedin.helix.HelixAgentFactory;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.agent.zk.ZNRecordSerializer;
@@ -127,7 +127,7 @@ public class MockRouterProcess
 
     try
     {
-      ClusterManager manager = ClusterManagerFactory.getZKClusterManager(clusterName,
+      HelixAgent manager = HelixAgentFactory.getZKHelixAgent(clusterName,
                                                                          null,
                                                                          InstanceType.SPECTATOR,
                                                                          zkConnectString);

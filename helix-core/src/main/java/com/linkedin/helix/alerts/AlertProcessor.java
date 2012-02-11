@@ -11,7 +11,7 @@ import java.util.Set;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.ClusterManagerException;
+import com.linkedin.helix.HelixException;
 import com.linkedin.helix.healthcheck.StatHealthReportProvider;
 
 public class AlertProcessor {
@@ -176,7 +176,7 @@ public class AlertProcessor {
 		}
 		
 		if (nextIters.size() != 1) {
-			throw new ClusterManagerException("operator pipeline produced "
+			throw new HelixException("operator pipeline produced "
 					+nextIters.size()+" tuple sets instead of exactly 1");
 		}
 		

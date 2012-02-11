@@ -16,8 +16,8 @@ import org.testng.AssertJUnit;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import com.linkedin.helix.ClusterDataAccessor;
-import com.linkedin.helix.ClusterManager;
+import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixAgent;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
@@ -36,12 +36,12 @@ public class TestRoutingTable
 
     final String[] array = new String[]
     { "localhost_8900", "localhost_8901" };
-    ClusterManager manager = new Mocks.MockManager()
+    HelixAgent manager = new Mocks.MockManager()
     {
       private MockAccessor _mockAccessor;
 
       @Override
-      public ClusterDataAccessor getDataAccessor()
+      public DataAccessor getDataAccessor()
       {
         if (_mockAccessor == null)
         {

@@ -6,7 +6,7 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.ClusterManager;
+import com.linkedin.helix.HelixAgent;
 import com.linkedin.helix.controller.pipeline.AbstractBaseStage;
 import com.linkedin.helix.controller.pipeline.StageException;
 import com.linkedin.helix.model.LiveInstance;
@@ -63,7 +63,7 @@ public class CompatibilityCheckStage extends AbstractBaseStage
   @Override
   public void process(ClusterEvent event) throws Exception
   {
-    ClusterManager manager = event.getAttribute("clustermanager");
+    HelixAgent manager = event.getAttribute("clustermanager");
     ClusterDataCache cache = event.getAttribute("ClusterDataCache");
     if (manager == null || cache == null)
     {

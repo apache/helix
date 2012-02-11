@@ -146,6 +146,7 @@
           </programs>
         </configuration>
       </plugin>
+
     </plugins>
   </build>
   <reporting>

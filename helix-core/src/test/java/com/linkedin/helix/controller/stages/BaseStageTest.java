@@ -11,8 +11,8 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 
-import com.linkedin.helix.ClusterDataAccessor;
-import com.linkedin.helix.ClusterManager;
+import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixAgent;
 import com.linkedin.helix.Mocks;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
@@ -27,8 +27,8 @@ import com.linkedin.helix.tools.StateModelConfigGenerator;
 
 public class BaseStageTest
 {
-  protected ClusterManager manager;
-  protected ClusterDataAccessor accessor;
+  protected HelixAgent manager;
+  protected DataAccessor accessor;
   protected ClusterEvent event;
 
   @BeforeClass()

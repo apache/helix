@@ -20,8 +20,8 @@ import org.apache.log4j.Logger;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 
-import com.linkedin.helix.ClusterManagementService;
-import com.linkedin.helix.ClusterManagerException;
+import com.linkedin.helix.HelixAdmin;
+import com.linkedin.helix.HelixException;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.agent.zk.ZKClusterManagementTool;
@@ -77,7 +77,7 @@ public class ClusterSetup
   static Logger _logger = Logger.getLogger(ClusterSetup.class);
   String _zkServerAddress;
   ZkClient _zkClient;
-  ClusterManagementService _managementService;
+  HelixAdmin _managementService;
 
   public ClusterSetup(String zkServerAddress)
   {
@@ -137,7 +137,7 @@ public class ClusterSetup
     {
       String error = "Invalid storage Instance info format: " + InstanceAddress;
       _logger.warn(error);
-      throw new ClusterManagerException(error);
+      throw new HelixException(error);
     }
     String host = InstanceAddress.substring(0, lastPos);
     String portStr = InstanceAddress.substring(lastPos + 1);
@@ -179,7 +179,7 @@ public class ClusterSetup
     {
       String error = "Invalid storage Instance info format: " + InstanceAddress;
       _logger.warn(error);
-      throw new ClusterManagerException(error);
+      throw new HelixException(error);
     }
     String host = InstanceAddress.substring(0, lastPos);
     String portStr = InstanceAddress.substring(lastPos + 1);
@@ -198,7 +198,7 @@ public class ClusterSetup
     {
       String error = "Node " + instanceId + " does not exist, cannot drop";
       _logger.warn(error);
-      throw new ClusterManagerException(error);
+      throw new HelixException(error);
     }
 
     // ensure node is disabled, otherwise fail
@@ -206,12 +206,12 @@ public class ClusterSetup
     {
       String error = "Node " + instanceId + " is enabled, cannot drop";
       _logger.warn(error);
-      throw new ClusterManagerException(error);
+      throw new HelixException(error);
     }
     _managementService.dropInstance(clusterName, config);
   }
 
-  public ClusterManagementService getClusterManagementTool()
+  public HelixAdmin getClusterManagementTool()
   {
     return _managementService;
   }
@@ -259,7 +259,7 @@ public class ClusterSetup
 
     if (stateModDef == null)
     {
-      throw new ClusterManagerException("cannot find state model: " + stateModelName);
+      throw new HelixException("cannot find state model: " + stateModelName);
     }
     // StateModelDefinition def = new StateModelDefinition(stateModDef);
 
@@ -276,21 +276,21 @@ public class ClusterSetup
       {
         if (masterStateValue != null)
         {
-          throw new ClusterManagerException("Invalid or unsupported state model definition");
+          throw new HelixException("Invalid or unsupported state model definition");
         }
         masterStateValue = state;
       } else if (count.equalsIgnoreCase("R"))
       {
         if (slaveStateValue != null)
         {
-          throw new ClusterManagerException("Invalid or unsupported state model definition");
+          throw new HelixException("Invalid or unsupported state model definition");
         }
         slaveStateValue = state;
       } else if (count.equalsIgnoreCase("N"))
       {
         if (!(masterStateValue == null && slaveStateValue == null))
         {
-          throw new ClusterManagerException("Invalid or unsupported state model definition");
+          throw new HelixException("Invalid or unsupported state model definition");
         }
         replica = InstanceNames.size() - 1;
         masterStateValue = slaveStateValue = state;
@@ -298,7 +298,7 @@ public class ClusterSetup
     }
     if (masterStateValue == null && slaveStateValue == null)
     {
-      throw new ClusterManagerException("Invalid or unsupported state model definition");
+      throw new HelixException("Invalid or unsupported state model definition");
     }
 
     if (masterStateValue == null)

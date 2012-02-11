@@ -1,12 +1,12 @@
 package com.linkedin.helix.agent.zk;
 
-import static com.linkedin.helix.CMConstants.ChangeType.CONFIG;
-import static com.linkedin.helix.CMConstants.ChangeType.CURRENT_STATE;
-import static com.linkedin.helix.CMConstants.ChangeType.EXTERNAL_VIEW;
-import static com.linkedin.helix.CMConstants.ChangeType.IDEAL_STATE;
-import static com.linkedin.helix.CMConstants.ChangeType.LIVE_INSTANCE;
-import static com.linkedin.helix.CMConstants.ChangeType.MESSAGE;
-import static com.linkedin.helix.CMConstants.ChangeType.MESSAGES_CONTROLLER;
+import static com.linkedin.helix.HelixConstants.ChangeType.CONFIG;
+import static com.linkedin.helix.HelixConstants.ChangeType.CURRENT_STATE;
+import static com.linkedin.helix.HelixConstants.ChangeType.EXTERNAL_VIEW;
+import static com.linkedin.helix.HelixConstants.ChangeType.IDEAL_STATE;
+import static com.linkedin.helix.HelixConstants.ChangeType.LIVE_INSTANCE;
+import static com.linkedin.helix.HelixConstants.ChangeType.MESSAGE;
+import static com.linkedin.helix.HelixConstants.ChangeType.MESSAGES_CONTROLLER;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
@@ -16,9 +16,9 @@ import org.I0Itec.zkclient.IZkDataListener;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.Watcher.Event.EventType;
 
-import com.linkedin.helix.CMConstants.ChangeType;
-import com.linkedin.helix.ClusterDataAccessor;
-import com.linkedin.helix.ClusterManager;
+import com.linkedin.helix.HelixConstants.ChangeType;
+import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixAgent;
 import com.linkedin.helix.ConfigChangeListener;
 import com.linkedin.helix.ControllerChangeListener;
 import com.linkedin.helix.CurrentStateChangeListener;
@@ -47,13 +47,13 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
   private final String _path;
   private final Object _listener;
   private final EventType[] _eventTypes;
-  private final ClusterDataAccessor _accessor;
+  private final DataAccessor _accessor;
   private final ChangeType _changeType;
   private final ZkClient _zkClient;
   private final AtomicLong lastNotificationTimeStamp;
-  private final ClusterManager _manager;
+  private final HelixAgent _manager;
 
-  public CallbackHandler(ClusterManager manager, ZkClient client, String path, Object listener,
+  public CallbackHandler(HelixAgent manager, ZkClient client, String path, Object listener,
       EventType[] eventTypes, ChangeType changeType)
   {
     this._manager = manager;

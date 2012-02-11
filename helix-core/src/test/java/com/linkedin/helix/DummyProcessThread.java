@@ -5,16 +5,16 @@ import org.apache.log4j.Logger;
 import com.linkedin.helix.mock.storage.DummyProcess.DummyLeaderStandbyStateModelFactory;
 import com.linkedin.helix.mock.storage.DummyProcess.DummyOnlineOfflineStateModelFactory;
 import com.linkedin.helix.mock.storage.DummyProcess.DummyStateModelFactory;
-import com.linkedin.helix.participant.StateMachEngine;
+import com.linkedin.helix.participant.StateMachineEngine;
 
 public class DummyProcessThread implements Runnable
 {
   private static final Logger LOG = Logger.getLogger(DummyProcessThread.class);
 
-  ClusterManager _manager;
+  HelixAgent _manager;
   String _instanceName;
 
-  public DummyProcessThread(ClusterManager manager, String instanceName)
+  public DummyProcessThread(HelixAgent manager, String instanceName)
   {
     _manager = manager;
     _instanceName = instanceName;
@@ -28,7 +28,7 @@ public class DummyProcessThread implements Runnable
       DummyStateModelFactory stateModelFactory = new DummyStateModelFactory(0);
 //      StateMachineEngine genericStateMachineHandler =
 //          new StateMachineEngine();
-      StateMachEngine stateMach = _manager.getStateMachineEngine();
+      StateMachineEngine stateMach = _manager.getStateMachineEngine();
       stateMach.registerStateModelFactory("MasterSlave", stateModelFactory);
 
       DummyLeaderStandbyStateModelFactory stateModelFactory1 = new DummyLeaderStandbyStateModelFactory(10);

@@ -11,7 +11,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-import com.linkedin.helix.ClusterManagerException;
+import com.linkedin.helix.HelixException;
 import com.linkedin.helix.agent.zk.ZNRecordSerializer;
 import com.linkedin.helix.agent.zk.ZkClient;
 import com.linkedin.helix.tools.ClusterSetup;
@@ -36,7 +36,7 @@ public class TestClusterSetup extends ZkUnitTestBase
     {
       String error = "Invalid storage Instance info format: " + colonFormat;
       LOG.warn(error);
-      throw new ClusterManagerException(error);
+      throw new HelixException(error);
     }
     String host = colonFormat.substring(0, lastPos);
     String portStr = colonFormat.substring(lastPos + 1);
@@ -111,7 +111,7 @@ public class TestClusterSetup extends ZkUnitTestBase
     {
       _clusterSetup.addInstanceToCluster(CLUSTER_NAME, nextInstanceAddress);
     }
-    catch (ClusterManagerException e)
+    catch (HelixException e)
     {
       caughtException = true;
     }
@@ -124,7 +124,7 @@ public class TestClusterSetup extends ZkUnitTestBase
     {
       _clusterSetup.addInstanceToCluster(CLUSTER_NAME, badFormatInstance);
     }
-    catch (ClusterManagerException e)
+    catch (HelixException e)
     {
       caughtException = true;
     }
@@ -150,7 +150,7 @@ public class TestClusterSetup extends ZkUnitTestBase
     {
       _clusterSetup.dropInstanceFromCluster(CLUSTER_NAME, nextInstanceAddress);
     }
-    catch (ClusterManagerException e)
+    catch (HelixException e)
     {
       caughtException = true;
     }
@@ -179,7 +179,7 @@ public class TestClusterSetup extends ZkUnitTestBase
     {
       _clusterSetup.dropInstanceFromCluster(CLUSTER_NAME, nextInstanceAddress);
     }
-    catch (ClusterManagerException e)
+    catch (HelixException e)
     {
       caughtException = true;
     }
@@ -199,7 +199,7 @@ public class TestClusterSetup extends ZkUnitTestBase
                                                               badFormatInstance,
                                                               false);
     }
-    catch (ClusterManagerException e)
+    catch (HelixException e)
     {
       caughtException = true;
     }
@@ -210,7 +210,7 @@ public class TestClusterSetup extends ZkUnitTestBase
     {
       _clusterSetup.dropInstanceFromCluster(CLUSTER_NAME, badFormatInstance);
     }
-    catch (ClusterManagerException e)
+    catch (HelixException e)
     {
       caughtException = true;
     }

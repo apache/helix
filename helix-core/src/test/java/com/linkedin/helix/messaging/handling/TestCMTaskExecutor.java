@@ -11,7 +11,7 @@ import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
-import com.linkedin.helix.ClusterManager;
+import com.linkedin.helix.HelixAgent;
 import com.linkedin.helix.Mocks;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.messaging.handling.CMTaskExecutor;
@@ -188,7 +188,7 @@ public class TestCMTaskExecutor
   {
     System.out.println("START TestCMTaskExecutor.TestNormalMsgExecution()");
     CMTaskExecutor executor = new CMTaskExecutor();
-    ClusterManager manager = new MockClusterManager();
+    HelixAgent manager = new MockClusterManager();
 
     TestMessageHandlerFactory factory = new TestMessageHandlerFactory();
     executor.registerMessageHandlerFactory(factory.getMessageType(), factory);
@@ -243,7 +243,7 @@ public class TestCMTaskExecutor
   public void TestUnknownTypeMsgExecution() throws InterruptedException
   {
     CMTaskExecutor executor = new CMTaskExecutor();
-    ClusterManager manager = new MockClusterManager();
+    HelixAgent manager = new MockClusterManager();
 
     TestMessageHandlerFactory factory = new TestMessageHandlerFactory();
     executor.registerMessageHandlerFactory(factory.getMessageType(), factory);
@@ -296,7 +296,7 @@ public class TestCMTaskExecutor
   public void TestMsgSessionId() throws InterruptedException
   {
     CMTaskExecutor executor = new CMTaskExecutor();
-    ClusterManager manager = new MockClusterManager();
+    HelixAgent manager = new MockClusterManager();
 
     TestMessageHandlerFactory factory = new TestMessageHandlerFactory();
     executor.registerMessageHandlerFactory(factory.getMessageType(), factory);
@@ -348,7 +348,7 @@ public class TestCMTaskExecutor
   public void TestTaskCancellation() throws InterruptedException
   {
     CMTaskExecutor executor = new CMTaskExecutor();
-    ClusterManager manager = new MockClusterManager();
+    HelixAgent manager = new MockClusterManager();
 
     CancellableHandlerFactory factory = new CancellableHandlerFactory();
     executor.registerMessageHandlerFactory(factory.getMessageType(), factory);
@@ -405,7 +405,7 @@ public class TestCMTaskExecutor
   {
      System.out.println("START TestCMTaskExecutor.testShutdown()");
      CMTaskExecutor executor = new CMTaskExecutor();
-      ClusterManager manager = new MockClusterManager();
+      HelixAgent manager = new MockClusterManager();
 
       TestMessageHandlerFactory factory = new TestMessageHandlerFactory();
       executor.registerMessageHandlerFactory(factory.getMessageType(), factory);
@@ -468,7 +468,7 @@ public class TestCMTaskExecutor
     String p = "test_";
     System.out.println(p.substring(p.lastIndexOf('_')+1));
     CMTaskExecutor executor = new CMTaskExecutor();
-    ClusterManager manager = new MockClusterManager();
+    HelixAgent manager = new MockClusterManager();
 
     CancellableHandlerFactory factory = new CancellableHandlerFactory();
     executor.registerMessageHandlerFactory(factory.getMessageType(), factory);

@@ -8,7 +8,7 @@ import org.testng.AssertJUnit;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-import com.linkedin.helix.ClusterManagerException;
+import com.linkedin.helix.HelixException;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.Mocks.MockManager;
@@ -46,28 +46,28 @@ public class TestEvaluateAlerts {
 		return statMap;
 	}
 
-	public String getSimpleStat() throws ClusterManagerException
+	public String getSimpleStat() throws HelixException
 	{
 		String stat = "accumulate()(dbFoo.partition10.latency)";
 		//_statsHolder.addStat(stat);
 		return stat;
 	}
 
-	public String addPairOfStats() throws ClusterManagerException
+	public String addPairOfStats() throws HelixException
 	{
 		String stat = "accumulate()(dbFoo.partition10.latency, dbFoo.partition11.latency)";
 		_statsHolder.addStat(stat);
 		return stat;
 	}
 
-	public String getWildcardStat() throws ClusterManagerException
+	public String getWildcardStat() throws HelixException
 	{
 		String stat = "accumulate()(dbFoo.partition*.latency)";
 		//_statsHolder.addStat(stat);
 		return stat;
 	}
 
-	public String addSimpleAlert() throws ClusterManagerException
+	public String addSimpleAlert() throws HelixException
 	{
 		String alert = EXP + "(accumulate()(dbFoo.partition10.latency))"
 				+ CMP + "(GREATER)" + CON + "(100)";
@@ -75,7 +75,7 @@ public class TestEvaluateAlerts {
 	     return alert;
 	}
 
-	public String addWildcardAlert() throws ClusterManagerException
+	public String addWildcardAlert() throws HelixException
 	{
 		String alert = EXP + "(accumulate()(dbFoo.partition*.latency))"
 				+ CMP + "(GREATER)" + CON + "(100)";
@@ -83,7 +83,7 @@ public class TestEvaluateAlerts {
 	     return alert;
 	}
 
-	public String addTwoWildcardAlert() throws ClusterManagerException
+	public String addTwoWildcardAlert() throws HelixException
 	{
 		String alert = EXP + "(accumulate()(dbFoo.partition*.put*))"
 				+ CMP + "(GREATER)" + CON + "(100)";
@@ -92,7 +92,7 @@ public class TestEvaluateAlerts {
 	}
 
 
-	public String addExpandWildcardAlert() throws ClusterManagerException
+	public String addExpandWildcardAlert() throws HelixException
 	{
 		String alert = EXP + "(accumulate()(dbFoo.partition*.latency)|EXPAND)"
 				+ CMP + "(GREATER)" + CON + "(100)";
@@ -100,7 +100,7 @@ public class TestEvaluateAlerts {
 	     return alert;
 	}
 
-	public String addExpandSumAlert() throws ClusterManagerException
+	public String addExpandSumAlert() throws HelixException
 	{
 		String alert = EXP + "(accumulate()(dbFoo.partition10.latency,dbFoo.partition11.latency)|EXPAND|SUM)"
 				+ CMP + "(GREATER)" + CON + "(100)";
@@ -108,7 +108,7 @@ public class TestEvaluateAlerts {
 	     return alert;
 	}
 
-	public String addExpandSumWildcardAlert() throws ClusterManagerException
+	public String addExpandSumWildcardAlert() throws HelixException
 	{
 		String alert = EXP + "(accumulate()(dbFoo.partition*.success,dbFoo.partition*.failure)|EXPAND|SUM)"
 				+ CMP + "(GREATER)" + CON + "(100)";
@@ -116,7 +116,7 @@ public class TestEvaluateAlerts {
 	     return alert;
 	}
 
-	public String addExpandSumEachWildcardAlert() throws ClusterManagerException
+	public String addExpandSumEachWildcardAlert() throws HelixException
 	{
 		String alert = EXP + "(accumulate()(dbFoo.partition*.success,dbFoo.partition*.failure)|EXPAND|SUMEACH)"
 				+ CMP + "(GREATER)" + CON + "(100)";
@@ -124,7 +124,7 @@ public class TestEvaluateAlerts {
 	     return alert;
 	}
 
-	public String addExpandSumEachSumWildcardAlert() throws ClusterManagerException
+	public String addExpandSumEachSumWildcardAlert() throws HelixException
 	{
 		String alert = EXP + "(accumulate()(dbFoo.partition*.success,dbFoo.partition*.failure)|EXPAND|SUMEACH|SUM)"
 				+ CMP + "(GREATER)" + CON + "(100)";
@@ -132,7 +132,7 @@ public class TestEvaluateAlerts {
 	     return alert;
 	}
 
-	public String addArrivingSimpleStat() throws ClusterManagerException
+	public String addArrivingSimpleStat() throws HelixException
 	{
 		String incomingStatName = "dbFoo.partition10.latency";
 		Map<String, String> statFields = getStatFields("110","0");
@@ -140,7 +140,7 @@ public class TestEvaluateAlerts {
 		return incomingStatName;
 	}
 
-	public String addArrivingPairOfStats() throws ClusterManagerException
+	public String addArrivingPairOfStats() throws HelixException
 	{
 		String incomingStatName1 = "dbFoo.partition10.latency";
 		String incomingStatName2 = "dbFoo.partition11.latency";

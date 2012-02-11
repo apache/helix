@@ -6,10 +6,10 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.CMConstants.ChangeType;
-import com.linkedin.helix.CMConstants.StateModelToken;
-import com.linkedin.helix.ClusterDataAccessor;
-import com.linkedin.helix.ClusterManager;
+import com.linkedin.helix.HelixConstants.ChangeType;
+import com.linkedin.helix.HelixConstants.StateModelToken;
+import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixAgent;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.agent.zk.ZKDataAccessor;
 import com.linkedin.helix.agent.zk.ZNRecordSerializer;
@@ -25,10 +25,10 @@ public class ParticipantCodeBuilder
   private ParticipantLeaderCallback _callback;
   private List<ChangeType> _notificationTypes;
   private String _resGroupName;
-  private final ClusterManager _manager;
+  private final HelixAgent _manager;
   private final String _zkAddr;
 
-  public ParticipantCodeBuilder(ClusterManager manager, String zkAddr)
+  public ParticipantCodeBuilder(HelixAgent manager, String zkAddr)
   {
     _manager = manager;
     _zkAddr = zkAddr;
@@ -64,13 +64,13 @@ public class ParticipantCodeBuilder
     ParticipantLeaderStateModelFactory stateModelFty
       = new ParticipantLeaderStateModelFactory(_callback, _notificationTypes);
 
-    StateMachEngine stateMach = _manager.getStateMachineEngine();
+    StateMachineEngine stateMach = _manager.getStateMachineEngine();
     stateMach.registerStateModelFactory("LeaderStandby", _resGroupName, stateModelFty);
 
     // manually add ideal state for participant leader using LeaderStandby model
     ZkClient zkClient = new ZkClient(_zkAddr);
     zkClient.setZkSerializer(new ZNRecordSerializer());
-    ClusterDataAccessor accessor = new ZKDataAccessor(_manager.getClusterName(), zkClient);
+    DataAccessor accessor = new ZKDataAccessor(_manager.getClusterName(), zkClient);
 
     IdealState idealState = new IdealState(_resGroupName);
     idealState.setIdealStateMode(IdealStateModeProperty.AUTO.toString());

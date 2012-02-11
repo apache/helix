@@ -5,9 +5,9 @@ import java.util.Date;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import com.linkedin.helix.CMConstants.ChangeType;
-import com.linkedin.helix.ClusterDataAccessor;
-import com.linkedin.helix.ClusterManager;
+import com.linkedin.helix.HelixConstants.ChangeType;
+import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixAgent;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.NotificationContext.Type;
 import com.linkedin.helix.PropertyType;
@@ -36,7 +36,7 @@ public class TestParticipantCodeBuilder extends ZkIntegrationTestBase
     @Override
     public void onCallback(NotificationContext context)
     {
-      ClusterManager manager = context.getManager();
+      HelixAgent manager = context.getManager();
       Type type = context.getType();
       _isCallbackInvoked = true;
 //      System.out.println(type + ": TestCallback invoked on " + manager.getInstanceName());
@@ -47,7 +47,7 @@ public class TestParticipantCodeBuilder extends ZkIntegrationTestBase
   class MockJob implements MockJobIntf
   {
     @Override
-    public void doPreConnectJob(ClusterManager manager)
+    public void doPreConnectJob(HelixAgent manager)
     {
       try
       {
@@ -71,7 +71,7 @@ public class TestParticipantCodeBuilder extends ZkIntegrationTestBase
     }
 
     @Override
-    public void doPostConnectJob(ClusterManager manager)
+    public void doPostConnectJob(HelixAgent manager)
     {
       // TODO Auto-generated method stub
       
@@ -127,7 +127,7 @@ public class TestParticipantCodeBuilder extends ZkIntegrationTestBase
     // add a new live instance
     ZkClient zkClient = new ZkClient(ZK_ADDR);
     zkClient.setZkSerializer(new ZNRecordSerializer());
-    ClusterDataAccessor accessor = new ZKDataAccessor(_clusterName, zkClient);
+    DataAccessor accessor = new ZKDataAccessor(_clusterName, zkClient);
     LiveInstance newLiveIns = new LiveInstance("newLiveInstance");
     newLiveIns.setClusterManagerVersion("0.0.0");
     newLiveIns.setSessionId("randomSessionId");

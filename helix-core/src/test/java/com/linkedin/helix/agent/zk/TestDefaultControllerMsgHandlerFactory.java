@@ -7,7 +7,7 @@ import java.util.Map;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
-import com.linkedin.helix.ClusterManagerException;
+import com.linkedin.helix.HelixException;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.agent.zk.DefaultControllerMessageHandlerFactory;
 import com.linkedin.helix.agent.zk.DefaultControllerMessageHandlerFactory.DefaultControllerMessageHandler;
@@ -31,7 +31,7 @@ public class TestDefaultControllerMsgHandlerFactory
     try
     {
       MessageHandler handler = facotry.createHandler(message, context);
-    } catch (ClusterManagerException e)
+    } catch (HelixException e)
     {
       exceptionCaught = true;
     }
@@ -42,7 +42,7 @@ public class TestDefaultControllerMsgHandlerFactory
     try
     {
       MessageHandler handler = facotry.createHandler(message, context);
-    } catch (ClusterManagerException e)
+    } catch (HelixException e)
     {
       exceptionCaught = true;
     }
@@ -54,7 +54,7 @@ public class TestDefaultControllerMsgHandlerFactory
     try
     {
       defaultHandler.handleMessage();
-    } catch (ClusterManagerException e)
+    } catch (HelixException e)
     {
       exceptionCaught = true;
     }
@@ -71,7 +71,7 @@ public class TestDefaultControllerMsgHandlerFactory
     try
     {
       defaultHandler.handleMessage();
-    } catch (ClusterManagerException e)
+    } catch (HelixException e)
     {
       exceptionCaught = true;
     }

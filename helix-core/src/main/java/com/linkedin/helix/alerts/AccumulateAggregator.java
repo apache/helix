@@ -2,7 +2,7 @@ package com.linkedin.helix.alerts;
 
 import java.util.Iterator;
 
-import com.linkedin.helix.ClusterManagerException;
+import com.linkedin.helix.HelixException;
 
 public class AccumulateAggregator extends Aggregator {
 
@@ -25,7 +25,7 @@ public class AccumulateAggregator extends Aggregator {
 		
 		if (currValTup == null || newValTup == null || currTimeTup == null ||
 				newTimeTup == null) {
-			throw new ClusterManagerException("Tuples cannot be null");
+			throw new HelixException("Tuples cannot be null");
 		}
 		
 		//old tuples may be empty, indicating no value/time exist

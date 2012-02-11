@@ -2,9 +2,9 @@ package com.linkedin.helix.participant;
 
 import java.util.UUID;
 
-import com.linkedin.helix.ClusterDataAccessor;
-import com.linkedin.helix.ClusterManagementService;
-import com.linkedin.helix.ClusterManager;
+import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixAdmin;
+import com.linkedin.helix.HelixAgent;
 import com.linkedin.helix.ClusterMessagingService;
 import com.linkedin.helix.ConfigChangeListener;
 import com.linkedin.helix.ControllerChangeListener;
@@ -21,7 +21,7 @@ import com.linkedin.helix.agent.zk.ZkClient;
 import com.linkedin.helix.healthcheck.ParticipantHealthReportCollector;
 import com.linkedin.helix.store.PropertyStore;
 
-public class MockZkClusterManager implements ClusterManager
+public class MockZkClusterManager implements HelixAgent
 {
   private final ZKDataAccessor _accessor;
   private final String _instanceName;
@@ -109,7 +109,7 @@ public class MockZkClusterManager implements ClusterManager
   }
 
   @Override
-  public ClusterDataAccessor getDataAccessor()
+  public DataAccessor getDataAccessor()
   {
     return _accessor;
   }
@@ -148,7 +148,7 @@ public class MockZkClusterManager implements ClusterManager
   }
 
   @Override
-  public ClusterManagementService getClusterManagmentTool()
+  public HelixAdmin getClusterManagmentTool()
   {
     // TODO Auto-generated method stub
     return null;
@@ -196,7 +196,7 @@ public void addHealthStateChangeListener(HealthStateChangeListener listener,
   }
 
   @Override
-  public StateMachEngine getStateMachineEngine()
+  public StateMachineEngine getStateMachineEngine()
   {
     // TODO Auto-generated method stub
     return null;

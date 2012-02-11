@@ -2,13 +2,13 @@ package com.linkedin.helix.mock.consumer;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.ClusterDataAccessor;
-import com.linkedin.helix.ClusterManager;
+import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixAgent;
 
 public class RelayConsumer
 {
-  ClusterManager relayClusterManager;
-  ClusterDataAccessor relayClusterClient;
+  HelixAgent relayClusterManager;
+  DataAccessor relayClusterClient;
   private final String partition;
   private RelayConfig currentRelay;
   private static Logger logger = Logger.getLogger(RelayConsumer.class);

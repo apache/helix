@@ -5,8 +5,8 @@ import java.util.List;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
-import com.linkedin.helix.ClusterManagementService;
-import com.linkedin.helix.ClusterManagerException;
+import com.linkedin.helix.HelixAdmin;
+import com.linkedin.helix.HelixException;
 import com.linkedin.helix.ClusterMessagingService;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.ZNRecord;
@@ -113,7 +113,7 @@ public class TestDynamicFileCM
     try
     {
       controller.addIdealStateChangeListener(null);
-    } catch (ClusterManagerException e)
+    } catch (HelixException e)
     {
       exceptionCaught = true;
     }
@@ -123,7 +123,7 @@ public class TestDynamicFileCM
     ClusterMessagingService msgService = controller.getMessagingService();
 
     // test file management tool
-    ClusterManagementService tool = controller.getClusterManagmentTool();
+    HelixAdmin tool = controller.getClusterManagmentTool();
 
     exceptionCaught = false;
     try

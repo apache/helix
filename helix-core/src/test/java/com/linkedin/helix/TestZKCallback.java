@@ -104,8 +104,8 @@ public class TestZKCallback extends ZkUnitTestBase
   public void testInvocation() throws Exception
   {
 
-    ClusterManager testClusterManager = ClusterManagerFactory
-        .getZKClusterManager(clusterName, "localhost_8900",
+    HelixAgent testClusterManager = HelixAgentFactory
+        .getZKHelixAgent(clusterName, "localhost_8900",
                              InstanceType.PARTICIPANT,
                              ZK_ADDR);
     testClusterManager.connect();
@@ -131,7 +131,7 @@ public class TestZKCallback extends ZkUnitTestBase
         & testListener.messageChangeReceived);
 
     testListener.Reset();
-    ClusterDataAccessor dataAccessor = testClusterManager.getDataAccessor();
+    DataAccessor dataAccessor = testClusterManager.getDataAccessor();
     ExternalView extView = new ExternalView("db-12345");
     dataAccessor.setProperty(PropertyType.EXTERNALVIEW, extView, "db-12345" );
     Thread.sleep(100);

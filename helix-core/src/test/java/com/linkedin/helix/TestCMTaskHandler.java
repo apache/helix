@@ -5,7 +5,7 @@ import java.util.Date;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
-import com.linkedin.helix.ClusterDataAccessor;
+import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.Mocks.MockManager;
@@ -40,7 +40,7 @@ public class TestCMTaskHandler
     MockStateModel stateModel = new MockStateModel();
     NotificationContext context;
     MockManager manager = new MockManager("clusterName");
-    ClusterDataAccessor accessor = manager.getDataAccessor();
+    DataAccessor accessor = manager.getDataAccessor();
     StateModelConfigGenerator generator = new StateModelConfigGenerator();
     StateModelDefinition stateModelDef = new StateModelDefinition(generator.generateConfigForMasterSlave());
     accessor.setProperty(PropertyType.STATEMODELDEFS, stateModelDef, "MasterSlave");
@@ -73,7 +73,7 @@ public class TestCMTaskHandler
     NotificationContext context;
 
     MockManager manager = new MockManager("clusterName");
-    ClusterDataAccessor accessor = manager.getDataAccessor();
+    DataAccessor accessor = manager.getDataAccessor();
     StateModelConfigGenerator generator = new StateModelConfigGenerator();
     StateModelDefinition stateModelDef = new StateModelDefinition(generator.generateConfigForMasterSlave());
     accessor.setProperty(PropertyType.STATEMODELDEFS, stateModelDef, "MasterSlave");

@@ -8,8 +8,8 @@ import java.util.Set;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.CMConstants.StateModelToken;
-import com.linkedin.helix.ClusterDataAccessor;
+import com.linkedin.helix.HelixConstants.StateModelToken;
+import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.model.AlertStatus;
 import com.linkedin.helix.model.Alerts;
@@ -47,7 +47,7 @@ public class ClusterDataCache
 
   private static final Logger LOG = Logger.getLogger(ClusterDataCache.class.getName());
 
-  public boolean refresh(ClusterDataAccessor accessor)
+  public boolean refresh(DataAccessor accessor)
   {
     _idealStateMap = accessor.getChildValuesMap(IdealState.class, 
                                                 PropertyType.IDEALSTATES);  

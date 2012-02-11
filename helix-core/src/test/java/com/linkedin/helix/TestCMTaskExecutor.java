@@ -3,7 +3,7 @@ package com.linkedin.helix;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
-import com.linkedin.helix.ClusterDataAccessor;
+import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.Mocks.MockCMTaskExecutor;
@@ -37,7 +37,7 @@ public class TestCMTaskExecutor
     message.setStateModelDef("MasterSlave");
    
     MockManager manager = new MockManager("clusterName");
-    ClusterDataAccessor accessor = manager.getDataAccessor();
+    DataAccessor accessor = manager.getDataAccessor();
     StateModelConfigGenerator generator = new StateModelConfigGenerator();
     StateModelDefinition stateModelDef = new StateModelDefinition(generator.generateConfigForMasterSlave());
     accessor.setProperty(PropertyType.STATEMODELDEFS, stateModelDef, "MasterSlave");

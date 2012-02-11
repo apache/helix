@@ -7,8 +7,8 @@ import java.util.concurrent.Callable;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.ClusterDataAccessor;
-import com.linkedin.helix.ClusterManager;
+import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixAgent;
 import com.linkedin.helix.Criteria;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.NotificationContext;
@@ -27,7 +27,7 @@ public class CMTask implements Callable<CMTaskResult>
   private final Message _message;
   private final MessageHandler _handler;
   private final NotificationContext _notificationContext;
-  private final ClusterManager _manager;
+  private final HelixAgent _manager;
   StatusUpdateUtil _statusUpdateUtil;
   CMTaskExecutor _executor;
   volatile boolean _isTimeout = false;
@@ -87,7 +87,7 @@ public class CMTask implements Callable<CMTaskResult>
     ErrorType type = null;
     ErrorCode code = null;
 
-    ClusterDataAccessor accessor = _manager.getDataAccessor();
+    DataAccessor accessor = _manager.getDataAccessor();
     _statusUpdateUtil.logInfo(_message, CMTask.class,
         "Message handling task begin execute", accessor);
     _message.setExecuteStartTimeStamp(new Date().getTime());
@@ -193,7 +193,7 @@ public class CMTask implements Callable<CMTaskResult>
     return taskResult;
   }
 
-  private void removeMessageFromZk(ClusterDataAccessor accessor, Message message)
+  private void removeMessageFromZk(DataAccessor accessor, Message message)
   {
     if (message.getTgtName().equalsIgnoreCase("controller"))
     {
@@ -206,7 +206,7 @@ public class CMTask implements Callable<CMTaskResult>
     }
   }
 
-  private void sendReply(ClusterDataAccessor accessor, Message message,
+  private void sendReply(DataAccessor accessor, Message message,
       CMTaskResult taskResult)
   {
     if (_message.getCorrelationId() != null
@@ -236,7 +236,7 @@ public class CMTask implements Callable<CMTaskResult>
     }
   }
 
-  private void reportMessageStat(ClusterManager manager, Message message,
+  private void reportMessageStat(HelixAgent manager, Message message,
       CMTaskResult taskResult)
   {
     // report stat

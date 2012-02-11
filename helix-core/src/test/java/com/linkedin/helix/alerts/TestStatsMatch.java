@@ -5,7 +5,7 @@ import org.testng.AssertJUnit;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import com.linkedin.helix.ClusterManagerException;
+import com.linkedin.helix.HelixException;
 import com.linkedin.helix.alerts.ExpressionParser;
 
 @Test
@@ -75,7 +75,7 @@ public class TestStatsMatch {
 	    boolean caughtException = false;
 	    try {
 	    	boolean match = ExpressionParser.isIncomingStatWildcardMatch(persistedStatName, incomingStatName);
-	    } catch (ClusterManagerException e) {
+	    } catch (HelixException e) {
 	    	caughtException = true;
 	    }
 	    AssertJUnit.assertTrue(caughtException);
@@ -90,7 +90,7 @@ public class TestStatsMatch {
 	    boolean caughtException = false;
 	    try {
 	    	boolean match = ExpressionParser.isIncomingStatWildcardMatch(persistedStatName, incomingStatName);
-	    } catch (ClusterManagerException e) {
+	    } catch (HelixException e) {
 	    	caughtException = true;
 	    }
 	    AssertJUnit.assertTrue(caughtException);

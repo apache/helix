@@ -7,7 +7,7 @@ public class NotificationContext
 {
   private Map<String, Object> _map;
 
-  private ClusterManager _manager;
+  private HelixAgent _manager;
   private Type _type;
   private String _pathChanged;
   private String _eventName;
@@ -22,13 +22,13 @@ public class NotificationContext
     _eventName = eventName;
   }
 
-  public NotificationContext(ClusterManager manager)
+  public NotificationContext(HelixAgent manager)
   {
     this._manager = manager;
     _map = new HashMap<String, Object>();
   }
 
-  public ClusterManager getManager()
+  public HelixAgent getManager()
   {
     return _manager;
   }
@@ -43,7 +43,7 @@ public class NotificationContext
     return _type;
   }
 
-  public void setManager(ClusterManager manager)
+  public void setManager(HelixAgent manager)
   {
     this._manager = manager;
   }

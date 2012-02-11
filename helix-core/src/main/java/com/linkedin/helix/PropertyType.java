@@ -1,6 +1,6 @@
 package com.linkedin.helix;
 
-import com.linkedin.helix.ClusterDataAccessor.Type;
+import com.linkedin.helix.DataAccessor.Type;
 
 public enum PropertyType
 {

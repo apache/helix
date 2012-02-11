@@ -13,13 +13,13 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.ClusterManager;
-import com.linkedin.helix.ClusterManagerFactory;
+import com.linkedin.helix.HelixAgent;
+import com.linkedin.helix.HelixAgentFactory;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.model.Message;
-import com.linkedin.helix.participant.StateMachEngine;
+import com.linkedin.helix.participant.StateMachineEngine;
 import com.linkedin.helix.participant.statemachine.StateModel;
 import com.linkedin.helix.participant.statemachine.StateModelFactory;
 import com.linkedin.helix.store.file.FilePropertyStore;
@@ -94,13 +94,13 @@ public class DummyProcess
     }
   }
 
-  public ClusterManager start() throws Exception
+  public HelixAgent start() throws Exception
   {
-    ClusterManager manager = null;
+    HelixAgent manager = null;
     // zk cluster manager
     if (_clusterMangerType.equalsIgnoreCase("zk"))
     {
-      manager = ClusterManagerFactory.getZKClusterManager(_clusterName,
+      manager = HelixAgentFactory.getZKHelixAgent(_clusterName,
                                                           _instanceName,
                                                           InstanceType.PARTICIPANT,
                                                           _zkConnectString);
@@ -108,7 +108,7 @@ public class DummyProcess
     // static file cluster manager
     else if (_clusterMangerType.equalsIgnoreCase("static-file"))
     {
-      manager = ClusterManagerFactory.getStaticFileClusterManager(_clusterName,
+      manager = HelixAgentFactory.getStaticFileHelixAgent(_clusterName,
                                                                   _instanceName,
                                                                   InstanceType.PARTICIPANT,
                                                                   _clusterViewFile);
@@ -117,7 +117,7 @@ public class DummyProcess
     // dynamic file cluster manager
     else if (_clusterMangerType.equalsIgnoreCase("dynamic-file"))
     {
-      manager = ClusterManagerFactory.getDynamicFileClusterManager(_clusterName,
+      manager = HelixAgentFactory.getDynamicFileHelixAgent(_clusterName,
                                                                    _instanceName,
                                                                    InstanceType.PARTICIPANT,
                                                                    _fileStore);
@@ -131,7 +131,7 @@ public class DummyProcess
     DummyLeaderStandbyStateModelFactory stateModelFactory1 = new DummyLeaderStandbyStateModelFactory(_transDelayInMs);
     DummyOnlineOfflineStateModelFactory stateModelFactory2 = new DummyOnlineOfflineStateModelFactory(_transDelayInMs);
 //    genericStateMachineHandler = new StateMachineEngine();
-    StateMachEngine stateMach = manager.getStateMachineEngine();
+    StateMachineEngine stateMach = manager.getStateMachineEngine();
     stateMach.registerStateModelFactory("MasterSlave", stateModelFactory);
     stateMach.registerStateModelFactory("LeaderStandby", stateModelFactory1);
     stateMach.registerStateModelFactory("OnlineOffline", stateModelFactory2);
@@ -503,7 +503,7 @@ public class DummyProcess
                                             cmType,
                                             cvFileStr,
                                             delay);
-    ClusterManager manager = process.start();
+    HelixAgent manager = process.start();
 
     try
     {

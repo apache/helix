@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.ClusterDataAccessor;
+import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.ExternalViewChangeListener;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.PropertyType;
@@ -107,7 +107,7 @@ public class RoutingTableProvider implements ExternalViewChangeListener
 	private void refresh(List<ExternalView> externalViewList,
 	    NotificationContext changeContext)
 	{
-		ClusterDataAccessor dataAccessor = changeContext.getManager().getDataAccessor();
+		DataAccessor dataAccessor = changeContext.getManager().getDataAccessor();
 		List<InstanceConfig> configList = dataAccessor.getChildValues(InstanceConfig.class,
 		                                                              PropertyType.CONFIGS);
 		Map<String, InstanceConfig> instanceConfigMap = new HashMap<String, InstanceConfig>();

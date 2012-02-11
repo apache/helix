@@ -12,11 +12,11 @@ import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
-import com.linkedin.helix.ClusterManager;
-import com.linkedin.helix.ClusterManagerFactory;
+import com.linkedin.helix.HelixAgent;
+import com.linkedin.helix.HelixAgentFactory;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.model.Message.MessageType;
-import com.linkedin.helix.participant.StateMachEngine;
+import com.linkedin.helix.participant.StateMachineEngine;
 import com.linkedin.helix.participant.statemachine.StateModel;
 import com.linkedin.helix.participant.statemachine.StateModelFactory;
 import com.linkedin.helix.tools.ClusterStateVerifier;
@@ -38,7 +38,7 @@ public class ExampleProcess
   private final String clusterName;
   private final String instanceName;
   private final String stateModelType;
-  private ClusterManager manager;
+  private HelixAgent manager;
 
 //  private StateMachineEngine genericStateMachineHandler;
 
@@ -61,7 +61,7 @@ public class ExampleProcess
   {
     if (_file == null)
     {
-      manager = ClusterManagerFactory.getZKClusterManager(clusterName,
+      manager = HelixAgentFactory.getZKHelixAgent(clusterName,
                                                           instanceName,
                                                           InstanceType.PARTICIPANT,
                                                           zkConnectString);
@@ -69,7 +69,7 @@ public class ExampleProcess
     }
     else
     {
-      manager = ClusterManagerFactory.getStaticFileClusterManager(clusterName,
+      manager = HelixAgentFactory.getStaticFileHelixAgent(clusterName,
                                                                   instanceName,
                                                                   InstanceType.PARTICIPANT,
                                                                   _file);
@@ -89,7 +89,7 @@ public class ExampleProcess
 //    genericStateMachineHandler = new StateMachineEngine();
 //    genericStateMachineHandler.registerStateModelFactory(stateModelType, stateModelFactory);
     
-    StateMachEngine stateMach = manager.getStateMachineEngine();
+    StateMachineEngine stateMach = manager.getStateMachineEngine();
     stateMach.registerStateModelFactory(stateModelType, stateModelFactory);
     manager.connect();
     manager.getMessagingService().registerMessageHandlerFactory(

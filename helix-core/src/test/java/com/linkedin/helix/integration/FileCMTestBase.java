@@ -7,9 +7,9 @@ import org.apache.log4j.Logger;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 
-import com.linkedin.helix.ClusterManagementService;
-import com.linkedin.helix.ClusterManager;
-import com.linkedin.helix.ClusterManagerFactory;
+import com.linkedin.helix.HelixAdmin;
+import com.linkedin.helix.HelixAgent;
+import com.linkedin.helix.HelixAgentFactory;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.ZNRecord;
@@ -45,8 +45,8 @@ public class FileCMTestBase
     = new FilePropertyStore<ZNRecord>(new PropertyJsonSerializer<ZNRecord>(ZNRecord.class),
                                       ROOT_PATH,
                                       new PropertyJsonComparator<ZNRecord>(ZNRecord.class));
-  protected ClusterManager _manager;
-  protected ClusterManagementService _mgmtTool;
+  protected HelixAgent _manager;
+  protected HelixAdmin _mgmtTool;
 
   @BeforeClass()
   public void beforeClass() throws Exception
@@ -84,7 +84,7 @@ public class FileCMTestBase
       }
 
       _manager =
-          ClusterManagerFactory.getDynamicFileClusterManager(CLUSTER_NAME,
+          HelixAgentFactory.getDynamicFileHelixAgent(CLUSTER_NAME,
                                                              "controller_0",
                                                              InstanceType.CONTROLLER,
                                                              _fileStore);

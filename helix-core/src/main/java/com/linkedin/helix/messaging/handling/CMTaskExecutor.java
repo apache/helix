@@ -15,9 +15,9 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.ClusterDataAccessor;
-import com.linkedin.helix.ClusterManager;
-import com.linkedin.helix.ClusterManagerException;
+import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixAgent;
+import com.linkedin.helix.HelixException;
 import com.linkedin.helix.MessageListener;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.NotificationContext.Type;
@@ -26,7 +26,7 @@ import com.linkedin.helix.model.Message;
 import com.linkedin.helix.model.Message.Attributes;
 import com.linkedin.helix.model.Message.MessageType;
 import com.linkedin.helix.monitoring.ParticipantMonitor;
-import com.linkedin.helix.participant.StateMachEngineImpl;
+import com.linkedin.helix.participant.HelixStateMachineEngine;
 import com.linkedin.helix.util.StatusUpdateUtil;
 
 public class CMTaskExecutor implements MessageListener
@@ -63,7 +63,7 @@ public class CMTaskExecutor implements MessageListener
     {
       if (!type.equalsIgnoreCase(factory.getMessageType()))
       {
-        throw new ClusterManagerException(
+        throw new HelixException(
             "Message factory type mismatch. Type: " + type + " factory : "
                 + factory.getMessageType());
 
@@ -218,8 +218,8 @@ public class CMTaskExecutor implements MessageListener
       return;
     }
 
-    ClusterManager manager = changeContext.getManager();
-    ClusterDataAccessor accessor = manager.getDataAccessor();
+    HelixAgent manager = changeContext.getManager();
+    DataAccessor accessor = manager.getDataAccessor();
 
     if (messages == null || messages.size() == 0)
     {
@@ -310,7 +310,7 @@ public class CMTaskExecutor implements MessageListener
             message.setReadTimeStamp(new Date().getTime());
             message.setExecuteSessionId(changeContext.getManager().getSessionId());
 
-            _statusUpdateUtil.logInfo(message, StateMachEngineImpl.class,
+            _statusUpdateUtil.logInfo(message, HelixStateMachineEngine.class,
                 "New Message", accessor);
             if(message.getTgtName().equalsIgnoreCase("controller"))
             {
@@ -333,7 +333,7 @@ public class CMTaskExecutor implements MessageListener
             String error = "Failed to create message handler for "
                 + message.getMsgId() + " exception: " + e;
 
-            _statusUpdateUtil.logError(message, StateMachEngineImpl.class, e,
+            _statusUpdateUtil.logError(message, HelixStateMachineEngine.class, e,
                 error, accessor);
 
             accessor.removeProperty(PropertyType.MESSAGES, instanceName,
@@ -358,7 +358,7 @@ public class CMTaskExecutor implements MessageListener
         logger.error(warningMessage);
         accessor.removeProperty(PropertyType.MESSAGES, instanceName,
             message.getId());
-        _statusUpdateUtil.logWarning(message, StateMachEngineImpl.class,
+        _statusUpdateUtil.logWarning(message, HelixStateMachineEngine.class,
             warningMessage, accessor);
       }
     }

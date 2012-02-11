@@ -25,13 +25,13 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.ClusterManager;
-import com.linkedin.helix.ClusterManagerFactory;
+import com.linkedin.helix.HelixAgent;
+import com.linkedin.helix.HelixAgentFactory;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.monitoring.mbeans.ClusterStatusMonitor;
 import com.linkedin.helix.participant.DistClusterControllerStateModelFactory;
-import com.linkedin.helix.participant.StateMachEngine;
+import com.linkedin.helix.participant.StateMachineEngine;
 
 public class ClusterManagerMain
 {
@@ -110,7 +110,7 @@ public class ClusterManagerMain
     return null;
   }
 
-  public static void addListenersToController(ClusterManager manager,
+  public static void addListenersToController(HelixAgent manager,
      GenericClusterController controller)
   {
     try
@@ -137,15 +137,15 @@ public class ClusterManagerMain
     }
   }
 
-  public static ClusterManager startClusterManagerMain(final String zkConnectString,
+  public static HelixAgent startClusterManagerMain(final String zkConnectString,
        final String clusterName, final String controllerName, final String controllerMode)
   {
-    ClusterManager manager = null;
+    HelixAgent manager = null;
     try
     {
       if (controllerMode.equalsIgnoreCase(STANDALONE))
       {
-        manager = ClusterManagerFactory.getZKClusterManager(clusterName,
+        manager = HelixAgentFactory.getZKHelixAgent(clusterName,
                                                             controllerName,
                                                             InstanceType.CONTROLLER,
                                                             zkConnectString);
@@ -153,7 +153,7 @@ public class ClusterManagerMain
       }
       else if (controllerMode.equalsIgnoreCase(DISTRIBUTED))
       {
-        manager = ClusterManagerFactory.getZKClusterManager(clusterName,
+        manager = HelixAgentFactory.getZKHelixAgent(clusterName,
                                                             controllerName,
                                                             InstanceType.CONTROLLER_PARTICIPANT,
                                                             zkConnectString);
@@ -162,7 +162,7 @@ public class ClusterManagerMain
            = new DistClusterControllerStateModelFactory(zkConnectString);
 
 //        StateMachineEngine genericStateMachineHandler = new StateMachineEngine();
-        StateMachEngine stateMach = manager.getStateMachineEngine();
+        StateMachineEngine stateMach = manager.getStateMachineEngine();
         stateMach.registerStateModelFactory("LeaderStandby", stateModelFactory);
 //        manager.getMessagingService().registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(), genericStateMachineHandler);
         manager.connect();
@@ -214,7 +214,7 @@ public class ClusterManagerMain
         ", clusterName:" + clusterName + ", controllerName:" + controllerName +
         ", mode:" + controllerMode);
 
-    ClusterManager manager = startClusterManagerMain(zkConnectString, clusterName,
+    HelixAgent manager = startClusterManagerMain(zkConnectString, clusterName,
                               controllerName, controllerMode);
     try
     {

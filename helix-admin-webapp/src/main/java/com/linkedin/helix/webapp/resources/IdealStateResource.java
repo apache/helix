@@ -21,8 +21,8 @@ import org.restlet.resource.Resource;
 import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 
-import com.linkedin.helix.ClusterDataAccessor;
-import com.linkedin.helix.ClusterManagerException;
+import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixException;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.agent.zk.ZkClient;
@@ -112,7 +112,7 @@ public class IdealStateResource extends Resource
         ZNRecord newIdealState = mapper.readValue(new StringReader(newIdealStateString),
             ZNRecord.class);
         
-        ClusterDataAccessor accessor = ClusterRepresentationUtil.getClusterDataAccessor(zkServer,  clusterName);
+        DataAccessor accessor = ClusterRepresentationUtil.getClusterDataAccessor(zkServer,  clusterName);
         accessor.removeProperty(PropertyType.IDEALSTATES, resourceName);
         
         accessor.setProperty(PropertyType.IDEALSTATES, newIdealState,resourceName);
@@ -126,7 +126,7 @@ public class IdealStateResource extends Resource
       }
       else
       {
-        new ClusterManagerException("Missing '"+ ClusterRepresentationUtil._alterIdealStateCommand+"' or '"+ClusterRepresentationUtil._rebalanceCommand+"' command");
+        new HelixException("Missing '"+ ClusterRepresentationUtil._alterIdealStateCommand+"' or '"+ClusterRepresentationUtil._rebalanceCommand+"' command");
       }
       getResponse().setEntity(getIdealStateRepresentation(zkServer, clusterName, resourceName));
       getResponse().setStatus(Status.SUCCESS_OK);

@@ -21,10 +21,9 @@ import com.linkedin.helix.agent.zk.ZkClient;
 import com.linkedin.helix.alerts.AlertValueAndStatus;
 import com.linkedin.helix.controller.ClusterManagerMain;
 import com.linkedin.helix.healthcheck.ParticipantHealthReportCollectorImpl;
-import com.linkedin.helix.healthcheck.PerformanceHealthReportProvider;
 import com.linkedin.helix.mock.storage.MockEspressoHealthReportProvider;
 import com.linkedin.helix.mock.storage.MockParticipant;
-import com.linkedin.helix.mock.storage.MockTransitionIntf;
+import com.linkedin.helix.mock.storage.MockTransition;
 import com.linkedin.helix.model.Message;
 import com.linkedin.helix.tools.ClusterSetup;
 
@@ -51,10 +50,10 @@ public class TestSimpleAlert extends ZkIntegrationTestBase
     _zkClient.close();
   }
 
-  public class SimpleAlertTransition implements MockTransitionIntf
+  public class SimpleAlertTransition extends MockTransition
   {
     @Override
-    public void doTrasition(Message message, NotificationContext context)
+    public void doTransition(Message message, NotificationContext context)
     {
       ClusterManager manager = context.getManager();
       ClusterDataAccessor accessor = manager.getDataAccessor();
@@ -98,6 +97,7 @@ public class TestSimpleAlert extends ZkIntegrationTestBase
         */
       }
     }
+
   }
 
   @Test()

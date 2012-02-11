@@ -1,5 +1,7 @@
 package com.linkedin.helix.mock.storage;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -35,17 +37,17 @@ public class MockParticipant implements Stoppable, Runnable
   @StateModelInfo(initialState = "OFFLINE", states = { "MASTER", "SLAVE" })
   public class MockMSStateModel extends StateModel
   {
-    private MockTransitionIntf _transition;
-    public MockMSStateModel(MockTransitionIntf transition)
+    private MockTransition _transition;
+    public MockMSStateModel(MockTransition transition)
     {
       _transition = transition;
     }
 
-    public void resetTransition()
+    public void setTransition(MockTransition transition)
     {
-      _transition = null;
+      _transition = transition;
     }
-    
+
     @Transition(to="SLAVE",from="OFFLINE")
     public void onBecomeSlaveFromOffline(Message message, NotificationContext context)
         throws RuntimeException
@@ -53,8 +55,8 @@ public class MockParticipant implements Stoppable, Runnable
       LOG.info("Become SLAVE from OFFLINE");
       if (_transition != null)
       {
-        _transition.doTrasition(message, context);
-        
+        _transition.doTransition(message, context);
+
       }
     }
 
@@ -65,7 +67,7 @@ public class MockParticipant implements Stoppable, Runnable
       LOG.info("Become MASTER from SLAVE");
       if (_transition != null)
       {
-        _transition.doTrasition(message, context);
+        _transition.doTransition(message, context);
       }
     }
 
@@ -76,7 +78,7 @@ public class MockParticipant implements Stoppable, Runnable
       LOG.info("Become SLAVE from MASTER");
       if (_transition != null)
       {
-        _transition.doTrasition(message, context);
+        _transition.doTransition(message, context);
       }
     }
 
@@ -87,7 +89,17 @@ public class MockParticipant implements Stoppable, Runnable
       LOG.info("Become OFFLINE from SLAVE");
       if (_transition != null)
       {
-        _transition.doTrasition(message, context);
+        _transition.doTransition(message, context);
+      }
+    }
+
+    @Override
+    public void reset()
+    {
+      LOG.error("Default MockMSStateModel.reset() invoked");
+      if (_transition != null)
+      {
+        _transition.doReset();
       }
     }
   }
@@ -96,25 +108,24 @@ public class MockParticipant implements Stoppable, Runnable
   public class MockMSModelFactory
     extends StateModelFactory<MockMSStateModel>
   {
-    private MockTransitionIntf _transition;
-    
+    private final MockTransition _transition;
+
     public MockMSModelFactory()
     {
       this(null);
     }
-    
-    public MockMSModelFactory(MockTransitionIntf transition)
+
+    public MockMSModelFactory(MockTransition transition)
     {
       _transition = transition;
     }
-    
-    public void resetTrasition()
+
+    public void setTrasition(MockTransition transition)
     {
-      _transition = null;
       Map<String, MockMSStateModel> stateModelMap = getStateModelMap();
       for (MockMSStateModel stateModel : stateModelMap.values())
       {
-        stateModel.resetTransition();
+        stateModel.setTransition(transition);
       }
     }
 
@@ -124,89 +135,97 @@ public class MockParticipant implements Stoppable, Runnable
       MockMSStateModel model = new MockMSStateModel(_transition);
 
       return model;
-    }  
+    }
   }
 
   // simulate error transition
-  public static class ErrTransition implements MockTransitionIntf
+  public static class ErrTransition extends MockTransition
   {
-    private final String _fromState;
-    private final String _toState;
-    private final Set<String> _errPartitions;
-    
-    public ErrTransition(String fromState, String toState, Set<String> errPartitions)
+    private final Map<String, Set<String>> _errPartitions;
+
+    public ErrTransition(Map<String, Set<String>> errPartitions)
     {
-      _fromState = fromState;
-      _toState = toState;
-      _errPartitions = errPartitions;
+      if (errPartitions != null)
+      {
+        // change key to upper case
+        _errPartitions = new HashMap<String, Set<String>>();
+        for (String key : errPartitions.keySet())
+        {
+          String upperKey = key.toUpperCase();
+          _errPartitions.put(upperKey, errPartitions.get(key));
+        }
+      }
+      else
+      {
+        _errPartitions = Collections.emptyMap();
+      }
     }
-    
+
     @Override
-    public void doTrasition(Message message, NotificationContext context)
+    public void doTransition(Message message, NotificationContext context)
     {
       String fromState = message.getFromState();
       String toState = message.getToState();
       String partition = message.getStateUnitKey();
-      
-      if (_errPartitions.contains(partition)
-          && fromState.equalsIgnoreCase(_fromState)
-          && toState.equalsIgnoreCase(_toState))
+
+      String key = (fromState + "-" + toState).toUpperCase();
+      if (_errPartitions.containsKey(key) && _errPartitions.get(key).contains(partition))
       {
-        String errMsg = "IGNORABLE: test throw exception for " 
-                      + partition + " transit from "
-                      + fromState + " to " + toState;
+        String errMsg =
+            "IGNORABLE: test throw exception for " + partition + " transit from "
+                + fromState + " to " + toState;
         throw new RuntimeException(errMsg);
       }
-    } 
+    }
   }
-  
+
   // simulate long transition
-  public static class SleepTransition implements MockTransitionIntf
+  public static class SleepTransition extends MockTransition
   {
     private final long _delay;
-    
+
     public SleepTransition(long delay)
     {
       _delay = delay > 0 ? delay : 0;
     }
-    
+
     @Override
-    public void doTrasition(Message message, NotificationContext context)
+    public void doTransition(Message message, NotificationContext context)
     {
       try
       {
         Thread.sleep(_delay);
-      } 
+      }
       catch (InterruptedException e)
       {
         // TODO Auto-generated catch block
         e.printStackTrace();
       }
-    } 
+    }
   }
- 
-  public MockParticipant(String clusterName, String instanceName, String zkAddr) 
+
+  public MockParticipant(String clusterName, String instanceName, String zkAddr)
     throws Exception
   {
     this(clusterName, instanceName, zkAddr, null, null);
   }
 
-  public MockParticipant(String clusterName, String instanceName, String zkAddr, 
-                          MockTransitionIntf transition) 
+  public MockParticipant(String clusterName, String instanceName, String zkAddr,
+                          MockTransition transition)
     throws Exception
   {
     this(clusterName, instanceName, zkAddr, transition, null);
   }
-  
-  public MockParticipant(String clusterName, String instanceName, String zkAddr, 
-      MockTransitionIntf transition, MockJobIntf job) 
+
+  public MockParticipant(String clusterName, String instanceName, String zkAddr,
+      MockTransition transition, MockJobIntf job)
     throws Exception
   {
     _clusterName = clusterName;
     _instanceName = instanceName;
     _zkAddr = zkAddr;
     _msModelFacotry = new MockMSModelFactory(transition);
-    
+
     _manager = ClusterManagerFactory.getZKClusterManager(_clusterName,
         _instanceName,
         InstanceType.PARTICIPANT,
@@ -214,16 +233,16 @@ public class MockParticipant implements Stoppable, Runnable
     _job = job;
   }
 
-  public void resetTransition()
+  public void setTransition(MockTransition transition)
   {
-    _msModelFacotry.resetTrasition();
+    _msModelFacotry.setTrasition(transition);
   }
-  
+
   public ClusterManager getManager()
   {
     return _manager;
   }
-  
+
   @Override
   public void stop()
   {
@@ -248,19 +267,19 @@ public class MockParticipant implements Stoppable, Runnable
       {
         _job.doPreConnectJob(_manager);
       }
-      
+
       _manager.connect();
-      
+
       if (_job != null)
       {
         _job.doPostConnectJob(_manager);
       }
-      
+
       _countDown.await();
     }
     catch (InterruptedException e)
     {
-      String msg = "participant:" + _instanceName + ", " 
+      String msg = "participant:" + _instanceName + ", "
                   + Thread.currentThread().getName()
                   + " interrupted";
       LOG.info(msg);

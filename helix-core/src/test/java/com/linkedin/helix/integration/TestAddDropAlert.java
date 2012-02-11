@@ -18,13 +18,11 @@ import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.agent.zk.ZKDataAccessor;
 import com.linkedin.helix.agent.zk.ZNRecordSerializer;
 import com.linkedin.helix.agent.zk.ZkClient;
-import com.linkedin.helix.alerts.AlertValueAndStatus;
 import com.linkedin.helix.controller.ClusterManagerMain;
 import com.linkedin.helix.healthcheck.ParticipantHealthReportCollectorImpl;
-import com.linkedin.helix.healthcheck.PerformanceHealthReportProvider;
 import com.linkedin.helix.mock.storage.MockEspressoHealthReportProvider;
 import com.linkedin.helix.mock.storage.MockParticipant;
-import com.linkedin.helix.mock.storage.MockTransitionIntf;
+import com.linkedin.helix.mock.storage.MockTransition;
 import com.linkedin.helix.model.Message;
 import com.linkedin.helix.tools.ClusterSetup;
 
@@ -51,10 +49,10 @@ public class TestAddDropAlert extends ZkIntegrationTestBase
     _zkClient.close();
   }
 
-  public class AddDropAlertTransition implements MockTransitionIntf
+  public class AddDropAlertTransition extends MockTransition
   {
     @Override
-    public void doTrasition(Message message, NotificationContext context)
+    public void doTransition(Message message, NotificationContext context)
     {
       ClusterManager manager = context.getManager();
       ClusterDataAccessor accessor = manager.getDataAccessor();
@@ -77,7 +75,7 @@ public class TestAddDropAlert extends ZkIntegrationTestBase
     	String statName = "latency";
     	provider.setStat(_dbName, statName,"15");
     	reporter.transmitHealthReports();
-    	
+
     	//sleep long enough for first set of alerts to report and alert to get deleted
     	//then change reported data
     	try {
@@ -87,7 +85,7 @@ public class TestAddDropAlert extends ZkIntegrationTestBase
 		}
     	provider.setStat(_dbName, statName,"1");
     	reporter.transmitHealthReports();
-    	
+
 
     	/*
         for (int i = 0; i < 5; i++)
@@ -148,12 +146,12 @@ public class TestAddDropAlert extends ZkIntegrationTestBase
                                             new AddDropAlertTransition());
       new Thread(participants[i]).start();
     }
-    
-    
+
+
     //drop alert soon after adding, but leave enough time for alert to fire once
     Thread.sleep(5000);
     _setupTool.getClusterManagementTool().dropAlert(clusterName, _alertStr);
-    
+
 
     TestHelper.verifyWithTimeout("verifyBestPossAndExtViewExtended",
                                  15000,  // timeout in millisecond //was 15000

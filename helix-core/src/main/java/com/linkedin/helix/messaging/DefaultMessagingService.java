@@ -22,9 +22,6 @@ import com.linkedin.helix.model.Message.MessageType;
 
 public class DefaultMessagingService implements ClusterMessagingService
 {
-  private static Logger logger = Logger
-      .getLogger(DefaultMessagingService.class);
-
   private final ClusterManager _manager;
   private final CriteriaEvaluator _evaluator;
   private final CMTaskExecutor _taskExecutor;
@@ -92,6 +89,7 @@ public class DefaultMessagingService implements ClusterMessagingService
       {
         tempMessage.setRetryCount(retryCount);
         tempMessage.setExecutionTimeout(timeOut);
+        tempMessage.setSrcInstanceType(_manager.getInstanceType());
         if (correlationId != null)
         {
           tempMessage.setCorrelationId(correlationId);
@@ -273,7 +271,7 @@ public class DefaultMessagingService implements ClusterMessagingService
       }
     } else
     {
-      logger.warn("No messages sent. For Criteria:" + receipientCriteria);
+      _logger.warn("No messages sent. For Criteria:" + receipientCriteria);
     }
     return messagesSent;
   }
@@ -283,5 +281,24 @@ public class DefaultMessagingService implements ClusterMessagingService
       AsyncCallback asyncCallback, int timeOut)
   {
     return sendAndWait(recipientCriteria, message, asyncCallback, timeOut, 0);
+  }
+  
+  public static void main(String[] args) throws Exception
+  {
+    try
+    {
+      throw new Exception();
+    }
+    catch(Exception e)
+    {
+      int c = 0;
+      c++;
+      throw e;
+    }
+    finally
+    {
+      int x = 0;
+      x++;
+    }
   }
 }

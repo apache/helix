@@ -65,10 +65,10 @@ public class InstanceConfig extends ZNRecordDecorator
   }
 
 
-  public boolean getInstanceEnabledForResource(String resource)
+  public boolean getInstanceEnabledForPartition(String partition)
   {
     Map<String, String> disabledPartitionMap = _record.getMapField(InstanceConfigProperty.DISABLED_PARTITION.toString());
-    if (disabledPartitionMap != null && disabledPartitionMap.containsKey(resource))
+    if (disabledPartitionMap != null && disabledPartitionMap.containsKey(partition))
     {
       return false;
     }
@@ -78,7 +78,7 @@ public class InstanceConfig extends ZNRecordDecorator
     }
   }
 
-  public void setInstanceEnabledForResource(String resource, boolean enabled)
+  public void setInstanceEnabledForPartition(String partition, boolean enabled)
   {
     if (_record.getMapField(InstanceConfigProperty.DISABLED_PARTITION.toString()) == null)
     {
@@ -87,11 +87,11 @@ public class InstanceConfig extends ZNRecordDecorator
     }
     if (enabled == true)
     {
-      _record.getMapField(InstanceConfigProperty.DISABLED_PARTITION.toString()).remove(resource);
+      _record.getMapField(InstanceConfigProperty.DISABLED_PARTITION.toString()).remove(partition);
     }
     else
     {
-      _record.getMapField(InstanceConfigProperty.DISABLED_PARTITION.toString()).put(resource, Boolean.toString(false));
+      _record.getMapField(InstanceConfigProperty.DISABLED_PARTITION.toString()).put(partition, Boolean.toString(false));
     }
   }
 

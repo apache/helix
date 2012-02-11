@@ -1,7 +1,6 @@
 package com.linkedin.helix.controller.stages;
 
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.log4j.Logger;
 
@@ -38,7 +37,7 @@ public class ExternalViewComputeStage extends AbstractBaseStage
 
     CurrentStateOutput currentStateOutput = event
         .getAttribute(AttributeName.CURRENT_STATE.toString());
-    
+
     for (String resourceGroupName : resourceGroupMap.keySet())
     {
       ExternalView view = new ExternalView(resourceGroupName);
@@ -49,15 +48,14 @@ public class ExternalViewComputeStage extends AbstractBaseStage
             .getCurrentStateMap(resourceGroupName, resource);
         if (currentStateMap != null && currentStateMap.size() > 0)
         {
-          Set<String> disabledInstances
-            = cache.getDisabledInstancesForResource(resource.toString());
-          // when set external view, ignore all disabled nodes
+          // Set<String> disabledInstances
+          // = cache.getDisabledInstancesForResource(resource.toString());
           for (String instance : currentStateMap.keySet())
           {
-            if (!disabledInstances.contains(instance))
-            {
+            // if (!disabledInstances.contains(instance))
+            // {
               view.setState(resource.getResourceKeyName(), instance, currentStateMap.get(instance));
-            }
+            // }
           }
           // view.setStateMap(resource.getResourceKeyName(), currentStateMap);
         }

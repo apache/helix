@@ -4,6 +4,7 @@ import java.util.Date;
 import java.util.Map;
 
 import com.linkedin.helix.ClusterManagerException;
+import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.ZNRecordDecorator;
 
@@ -18,15 +19,21 @@ public class Message extends ZNRecordDecorator
   public enum MessageType
   {
     STATE_TRANSITION,
+    SCHEDULER_MSG,
     USER_DEFINE_MSG,
     CONTROLLER_MSG,
     TASK_REPLY,
     NO_OP
   };
 
+  public enum MessageSubType
+  {
+    RESET
+  };
+
   public enum Attributes
   {
-    MSG_ID, SRC_SESSION_ID, TGT_SESSION_ID, SRC_NAME, TGT_NAME,
+    MSG_ID, SRC_SESSION_ID, TGT_SESSION_ID, SRC_NAME, TGT_NAME, SRC_INSTANCE_TYPE,
     MSG_STATE, STATE_UNIT_KEY, STATE_UNIT_GROUP, FROM_STATE, TO_STATE,
     STATE_MODEL_DEF, CREATE_TIMESTAMP, READ_TIMESTAMP, EXECUTE_START_TIMESTAMP, MSG_TYPE,
     MSG_SUBTYPE, CORRELATION_ID, MESSAGE_RESULT, EXE_SESSION_ID, MESSAGE_TIMEOUT, RETRY_COUNT;
@@ -120,6 +127,20 @@ public class Message extends ZNRecordDecorator
   public String getMsgSrc()
   {
     return getSimpleFieldAsString(Attributes.SRC_NAME.toString());
+  }
+
+  public void setSrcInstanceType(InstanceType type)
+  {
+    _record.setSimpleField(Attributes.SRC_INSTANCE_TYPE.toString(), type.toString());
+  }
+
+  public InstanceType getSrcInstanceType()
+  {
+    if(_record.getSimpleFields().containsKey(Attributes.SRC_INSTANCE_TYPE.toString()))
+    {
+      return InstanceType.valueOf( _record.getSimpleField(Attributes.SRC_INSTANCE_TYPE.toString()));
+    }
+    return InstanceType.PARTICIPANT;
   }
 
   public void setSrcName(String msgSrc)
@@ -306,7 +327,7 @@ public class Message extends ZNRecordDecorator
   {
     return getSimpleFieldAsString(Attributes.CORRELATION_ID.toString());
   }
-  
+
   public int getExecutionTimeout()
   {
     if(!_record.getSimpleFields().containsKey(Attributes.MESSAGE_TIMEOUT.toString()))
@@ -318,20 +339,20 @@ public class Message extends ZNRecordDecorator
       return Integer.parseInt(_record.getSimpleField(Attributes.MESSAGE_TIMEOUT.toString()));
     }
     catch(Exception e)
-    {} 
+    {}
     return -1;
   }
-  
+
   public void setExecutionTimeout(int timeout)
   {
     _record.setSimpleField(Attributes.MESSAGE_TIMEOUT.toString(), "" + timeout);
   }
-  
+
   public void setRetryCount(int retryCount)
   {
     _record.setSimpleField(Attributes.RETRY_COUNT.toString(), "" + retryCount);
   }
-  
+
   public int getRetryCount()
   {
     try
@@ -339,7 +360,7 @@ public class Message extends ZNRecordDecorator
       return Integer.parseInt(_record.getSimpleField(Attributes.RETRY_COUNT.toString()));
     }
     catch(Exception e)
-    {} 
+    {}
     // Default to 0, and there is no retry if timeout happens
     return 0;
   }
@@ -372,11 +393,39 @@ public class Message extends ZNRecordDecorator
     return replyMessage;
   }
 
+  // TODO replace with util from espresso or linkedin
+  private boolean isNullOrEmpty(String data)
+  {
+    return data == null || data.length() == 0 || data.trim().length() == 0;
+  }
+
   @Override
   public boolean isValid()
   {
-    // TODO: refactor message to state transition message and task-message and 
+    // TODO: refactor message to state transition message and task-message and
     // implemement this function separately
+
+    if (getMsgType().equals(MessageType.STATE_TRANSITION.toString()))
+    {
+      boolean isNotValid =
+          isNullOrEmpty(getTgtName()) || isNullOrEmpty(getStateUnitKey())
+              || isNullOrEmpty(getStateUnitGroup()) || isNullOrEmpty(getStateModelDef())
+              || isNullOrEmpty(getToState());
+      if (getMsgSubType() == null)
+      {
+        isNotValid = isNotValid || isNullOrEmpty(getFromState());
+        return !isNotValid;
+      }
+      else if (getMsgSubType().equals(MessageSubType.RESET.toString()))
+      {
+        return !isNotValid;
+      }
+      else
+      {
+        return false;
+      }
+    }
+
     return true;
   }
 }

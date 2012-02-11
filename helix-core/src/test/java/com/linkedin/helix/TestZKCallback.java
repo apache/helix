@@ -169,6 +169,13 @@ public class TestZKCallback extends ZkUnitTestBase
     testListener.Reset();
     Message message = new Message(MessageType.STATE_TRANSITION, UUID.randomUUID().toString());
     message.setTgtSessionId("*");
+    message.setStateUnitGroup("testResourceGroup");
+    message.setStateUnitKey("testPartitionKey");
+    message.setStateModelDef("MasterSlave");
+    message.setToState("toState");
+    message.setFromState("fromState");
+    message.setTgtName("testTarget");
+
     dataAccessor.setProperty(PropertyType.MESSAGES, message, "localhost_8900", message.getId());
     Thread.sleep(100);
     AssertJUnit.assertTrue(testListener.messageChangeReceived);

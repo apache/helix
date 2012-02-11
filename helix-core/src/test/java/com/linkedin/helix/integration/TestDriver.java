@@ -164,7 +164,7 @@ public class TestDriver
 
   /**
    * starting a dummy participant with a given id
-   * 
+   *
    * @param uniqueTestName
    * @param instanceId
    */
@@ -249,17 +249,11 @@ public class TestDriver
     ZKDataAccessor accessor = new ZKDataAccessor(uniqClusterName, testInfo._zkClient);
     List<String> idealStates = accessor.getChildNames(PropertyType.IDEALSTATES);
     TestHelper.verifyWithTimeout("verifyBestPossAndExtViewExtended", timeout, ZK_ADDR,
-        TestHelper.<String> setOf(clusterName), new HashSet<String>(idealStates), null, null, null);
-
-    // for (int i = 0; i < testInfo._numDb; i++)
-    // {
-    // String dbName = TEST_DB_PREFIX + i;
-    // TestHelper.verifyWithTimeout("verifyBestPossAndExtViewExtended", timeout,
-    // ZK_ADDR,
-    // TestHelper.<String> setOf(clusterName), TestHelper.<String>
-    // setOf(dbName), null, null,
-    // null);
-    // }
+                                 TestHelper.<String> setOf(clusterName),
+                                 new HashSet<String>(idealStates),
+                                 null,
+                                 null,
+                                 null);
   }
 
   public static void stopCluster(String uniqClusterName) throws Exception

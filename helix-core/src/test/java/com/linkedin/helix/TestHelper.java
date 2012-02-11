@@ -138,7 +138,6 @@ public class TestHelper
                                                    clusterName,
                                                    controllerName,
                                                    controllerMode);
-//    manager.connect();
     result._manager = manager;
 
     Thread thread = new Thread(new Runnable()
@@ -318,7 +317,7 @@ public class TestHelper
 
       // debug
       // LOG.info(verifierName + ": wait " + ((i + 1) * 1000) + "ms to verify (" + result + ")");
-      System.err.println(verifierName + ": wait " + ((i + 1) * 1000) 
+      System.err.println(verifierName + ": wait " + ((i + 1) * 1000)
           + "ms to verify " + " (" + result + ")");
       LOG.debug("args:" + Arrays.toString(args));
       // System.err.println("args:" + Arrays.toString(args));
@@ -352,16 +351,16 @@ public class TestHelper
   }
 
   /**
-   * verify the best possible state and external view
-   *   note that DROPPED states are not checked since when kick off the BestPossibleStateCalcStage
-   *   we are providing an empty current state map
-   * @param resourceGroupName
-   * @param partitions
-   * @param stateModelName
+   * verify the best possible state and external view note that DROPPED states are not
+   * checked since when kick off the BestPossibleStateCalcStage we are providing an empty
+   * current state map
+   *
+   * @param zkAddr
    * @param clusterNameSet
-   * @param zkClient
+   * @param resourceGroupNameSet
    * @return
    */
+
   public static boolean verifyBestPossAndExtView(String zkAddr,
                                                  Set<String> clusterNameSet,
                                                  Set<String> resourceGroupNameSet)
@@ -374,6 +373,17 @@ public class TestHelper
                                             null);
   }
 
+  /**
+   *
+   * @param zkAddr
+   * @param clusterNameSet
+   * @param resourceGroupNameSet
+   * @param disabledInstances
+   * @param disabledPartitions
+   * @param errorStateMap
+   *          : "ResourceGroup/partitionKey" -> setOf(instances)
+   * @return
+   */
   public static boolean verifyBestPossAndExtViewExtended(String zkAddr,
                                                          Set<String> clusterNameSet,
                                                          Set<String> resourceGroupNameSet,
@@ -398,8 +408,8 @@ public class TestHelper
           {
             return false;
           }
-    
-          Map<String, IdealState> idealStates 
+
+          Map<String, IdealState> idealStates
             = accessor.getChildValuesMap(IdealState.class, PropertyType.IDEALSTATES);
           if (!idealStates.containsKey(resourceGroupName))
           {
@@ -409,10 +419,10 @@ public class TestHelper
           IdealState idealState = idealStates.get(resourceGroupName);
           int partitions = idealState.getNumPartitions();
           String stateModelName = idealState.getStateModelDefRef();
-          
-          Map<String, StateModelDefinition> stateModelDefs 
+
+          Map<String, StateModelDefinition> stateModelDefs
             = accessor.getChildValuesMap(StateModelDefinition.class, PropertyType.STATEMODELDEFS);
-          
+
           if (!stateModelDefs.containsKey(stateModelName))
           {
             LOG.error("No state model definition " + stateModelName);
@@ -422,108 +432,112 @@ public class TestHelper
           String initState = stateModelDef.getInitialState();
 
           BestPossibleStateOutput bestPossOutput =
-            TestHelper.calcBestPossState(resourceGroupName, partitions, stateModelName, clusterName, accessor);
-    
+              TestHelper.calcBestPossState(resourceGroupName,
+                                           partitions,
+                                           stateModelName,
+                                           clusterName,
+                                           accessor,
+                                           errorStateMap);
+
     //      System.out.println("extView:" + extView.getMapFields());
     //      System.out.println("BestPoss:" + bestPossOutput);
-    
-          /**
-           * check disabled instances
-           */
+
+          // check disabled instances
           if (disabledInstances != null)
           {
             for (ResourceKey resourceKey
                 : bestPossOutput.getResourceGroupMap(resourceGroupName).keySet())
             {
-              Map<String, String> bpInstanceMap = bestPossOutput.getResourceGroupMap(resourceGroupName).get(resourceKey);
+              Map<String, String> bpInstanceMap =
+                  bestPossOutput.getInstanceStateMap(resourceGroupName, resourceKey);
               for (String instance : disabledInstances)
               {
                 if (bpInstanceMap.containsKey(instance))
                 {
-                  // TODO use state model def's initial state instead
                   if (!bpInstanceMap.get(instance).equals(initState))
                   {
-                    LOG.error("Best possible states should set " + initState 
-                            + " for instance:" + instance
-                            + " (was " + bpInstanceMap.get(instance) + ")");
+                    LOG.error("Best possible states should set " + resourceGroupName
+                        + "/" + resourceKey.getResourceKeyName() + " to " + initState
+                        + " for " + instance + " (was " + bpInstanceMap.get(instance)
+                        + ")");
                     return false;
                   }
-                  bpInstanceMap.remove(instance);
                 }
               }
             }
           }
-    
+
     //      System.out.println("extView:" + extView.getMapFields());
     //      System.out.println("BestPoss:" + bestPossOutput);
-    
-          /**
-           * check disabled <partition, instance>
-           */
+
+          // check disabled <partition, setOf(instance)>
           if (disabledPartitions != null)
           {
-            for (String resourceKey : disabledPartitions.keySet())
+            for (String resGroupPartitionKey : disabledPartitions.keySet())
             {
-              for (String instance : disabledPartitions.get(resourceKey))
+              Map<String, String> retMap =
+                  getResourceGroupAndPartitionKey(resGroupPartitionKey);
+              String resGroup = retMap.get("RESOURCEGROUP");
+              String partitionKey = retMap.get("PARTITION");
+
+              if (resourceGroupName.equals(resGroup))
               {
-                Map<String, String> bpInstanceMap 
-                  = bestPossOutput.getResourceGroupMap(resourceGroupName)
-                                  .get(new ResourceKey(resourceKey));
-                if (bpInstanceMap == null || !bpInstanceMap.containsKey(instance))
+                for (String instance : disabledPartitions.get(partitionKey))
                 {
-                  LOG.error("Best possible states does NOT contains states for " 
-                          + resourceGroupName + ":" + resourceKey
-                          + " -> " + instance);
-                  return false;
+                  ResourceKey resourceKey = new ResourceKey(partitionKey);
+                  Map<String, String> bpInstanceMap =
+                      bestPossOutput.getInstanceStateMap(resourceGroupName, resourceKey);
+                  if (bpInstanceMap.containsKey(instance))
+                  {
+                    if (!initState.equals(bpInstanceMap.get(instance)))
+                    {
+                      LOG.error("Best possible states should set " + resGroup + "/"
+                          + partitionKey + " to " + initState + " for " + instance
+                          + " (was "
+                          + bpInstanceMap.get(instance) + ")");
+                      return false;
+                    }
+                  }
                 }
-      
-                if (!bpInstanceMap.get(instance).equals(initState))
-                {
-                  LOG.error("Best possible state for disabled instance:" + instance
-                      + " is not in initState:" + initState 
-                      + " (was " + bpInstanceMap.get(instance) + " )");
-                  return false;
-                }
-                bpInstanceMap.remove(instance);
               }
             }
           }
-    
+
           /**
            * check ERROR state and remove them from the comparison against external view
            */
           if (errorStateMap != null)
           {
-            for (String resourceKey : errorStateMap.keySet())
+            for (String resGroupPartitionKey : errorStateMap.keySet())
             {
-              for (String instance : errorStateMap.get(resourceKey))
+              Map<String, String> retMap =
+                  getResourceGroupAndPartitionKey(resGroupPartitionKey);
+              String resGroup = retMap.get("RESOURCEGROUP");
+              String partitionKey = retMap.get("PARTITION");
+
+              if (resGroup.equals(resourceGroupName))
               {
-                Map<String, String> evInstanceMap = extView.getStateMap(resourceKey);
-                if (evInstanceMap == null || !evInstanceMap.containsKey(instance))
+                for (String instance : errorStateMap.get(partitionKey))
                 {
-                  LOG.error("External view does NOT contains states for " 
-                          + resourceGroupName + ":" + resourceKey
-                          + " -> " + instance);
-                  return false;
+                  ResourceKey resourceKey = new ResourceKey(partitionKey);
+                  Map<String, String> stateMap =
+                      bestPossOutput.getInstanceStateMap(resourceGroupName, resourceKey);
+                  stateMap.put(instance, "ERROR");
+                  bestPossOutput.setState(resourceGroupName, resourceKey, stateMap);
                 }
-                if (!evInstanceMap.get(instance).equals("ERROR"))
-                {
-                  return false;
-                }
-                evInstanceMap.remove(instance);
               }
             }
           }
-    
+
           // every entry in external view is contained in best possible state
           for (Map.Entry<String, Map<String, String>> entry : extView.getRecord().getMapFields().entrySet())
           {
             String resourceKey = entry.getKey();
             Map<String, String> evInstanceMap = entry.getValue();
-    
+
             Map<String, String> bpInstanceMap =
              bestPossOutput.getInstanceStateMap(resourceGroupName, new ResourceKey(resourceKey));
-    
+
             boolean result = TestHelper.<String,String>compareMap(evInstanceMap, bpInstanceMap);
             if (result == false)
             {
@@ -531,16 +545,16 @@ public class TestHelper
               return false;
             }
           }
-    
+
           // every entry in best possible state is contained in external view
           for (Map.Entry<ResourceKey, Map<String, String>> entry
               : bestPossOutput.getResourceGroupMap(resourceGroupName).entrySet())
           {
             String resourceKey = entry.getKey().getResourceKeyName();
             Map<String, String> bpInstanceMap = entry.getValue();
-    
+
             Map<String, String> evInstanceMap = extView.getStateMap(resourceKey);
-    
+
             boolean result = TestHelper.<String,String>compareMap(evInstanceMap, bpInstanceMap);
             if (result == false)
             {
@@ -548,15 +562,15 @@ public class TestHelper
               return false;
             }
           }
-          
+
           // verify that no status updates contain ERROR
-          List<LiveInstance> instances = accessor.getChildValues(LiveInstance.class, 
+          List<LiveInstance> instances = accessor.getChildValues(LiveInstance.class,
                                                                  PropertyType.LIVEINSTANCES);
           for (LiveInstance instance : instances)
           {
             String sessionId = instance.getSessionId();
             String instanceName = instance.getInstanceName();
-            List<String> partitionKeys = accessor.getChildNames(PropertyType.STATUSUPDATES, 
+            List<String> partitionKeys = accessor.getChildNames(PropertyType.STATUSUPDATES,
                                                                instanceName,
                                                                sessionId,
                                                                resourceGroupName);
@@ -572,7 +586,7 @@ public class TestHelper
                     continue;
                   }
                 }
-                ZNRecord update = accessor.getProperty(PropertyType.STATUSUPDATES, 
+                ZNRecord update = accessor.getProperty(PropertyType.STATUSUPDATES,
                                                        instanceName,
                                                        sessionId,
                                                        resourceGroupName,
@@ -580,17 +594,17 @@ public class TestHelper
                 String updateStr = update.toString().toLowerCase();
                 if (updateStr.indexOf("error") != -1)
                 {
-                  LOG.error("ERROR in statusUpdate. instance:" + instance 
-                      + ", resourceGroup:" + resourceGroupName + ", partitionKey:" + partitionKey 
+                  LOG.error("ERROR in statusUpdate. instance:" + instance
+                      + ", resourceGroup:" + resourceGroupName + ", partitionKey:" + partitionKey
                       + ", statusUpdate:" + update);
                   return false;
                 }
               }
-            }       
+            }
           }
         }
       }
-      
+
       return true;
     }
     finally
@@ -618,7 +632,12 @@ public class TestHelper
       }
 
       BestPossibleStateOutput bestPossOutput =
-        calcBestPossState(resourceGroupName, partitions, stateModelName, clusterName, accessor);
+          calcBestPossState(resourceGroupName,
+                            partitions,
+                            stateModelName,
+                            clusterName,
+                            accessor,
+                            null);
 
       // System.out.println("extView:" + externalView.getMapFields());
       // System.out.println("BestPoss:" + output);
@@ -660,13 +679,25 @@ public class TestHelper
     return true;
   }
 
+  /**
+   *
+   * @param resourceGroupName
+   * @param partitions
+   * @param stateModelName
+   * @param clusterName
+   * @param accessor
+   * @param errorStateMap
+   *          : partition->setOf(instances)
+   * @return
+   */
   private static BestPossibleStateOutput calcBestPossState(String resourceGroupName,
-                                                          int partitions,
-                                                          String stateModelName,
-                                                          String clusterName,
-                                                          ClusterDataAccessor accessor)
+                                                           int partitions,
+                                                           String stateModelName,
+                                                           String clusterName,
+                                                           ClusterDataAccessor accessor,
+                                                           Map<String, Set<String>> errorStateMap)
   {
-    Map<String, ResourceGroup> resourceGroupMap 
+    Map<String, ResourceGroup> resourceGroupMap
         = getResourceGroupMap(resourceGroupName, partitions, stateModelName);
     ClusterEvent event = new ClusterEvent("sampleEvent");
 
@@ -674,6 +705,20 @@ public class TestHelper
 
     ClusterDataCache cache = new ClusterDataCache();
     cache.refresh(accessor);
+
+    if (errorStateMap != null)
+    {
+      for (String partition : errorStateMap.keySet())
+      {
+        for (String instance : errorStateMap.get(partition))
+        {
+          String sessionId = cache.getLiveInstances().get(instance).getSessionId();
+          cache.getCurrentState(instance, sessionId)
+               .get(resourceGroupName)
+               .setState(partition, "ERROR");
+        }
+      }
+    }
     event.addAttribute("ClusterDataCache", cache);
 
     CurrentStateComputationStage csStage = new CurrentStateComputationStage();
@@ -769,12 +814,12 @@ public class TestHelper
     try
     {
       ZKDataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
-  
+
       for (String instanceName : instanceNames)
       {
-        List<String> sessionIds = accessor.getChildNames(PropertyType.CURRENTSTATES, 
+        List<String> sessionIds = accessor.getChildNames(PropertyType.CURRENTSTATES,
                                                          instanceName);
-  
+
         for (String sessionId : sessionIds)
         {
           CurrentState curState = accessor.getProperty(CurrentState.class,
@@ -782,24 +827,24 @@ public class TestHelper
                                                        instanceName,
                                                        sessionId,
                                                        resourceGroupName);
-  
+
           if (curState != null && curState.getRecord().getMapFields().size() != 0)
           {
             return false;
           }
         }
-        
-        ExternalView extView = accessor.getProperty(ExternalView.class, 
-                                                    PropertyType.EXTERNALVIEW, 
+
+        ExternalView extView = accessor.getProperty(ExternalView.class,
+                                                    PropertyType.EXTERNALVIEW,
                                                     resourceGroupName);
-        
+
         if (extView != null && extView.getRecord().getMapFields().size() != 0)
         {
           return false;
         }
-  
+
       }
-      
+
       return true;
     }
     finally
@@ -869,5 +914,81 @@ public class TestHelper
       }
     }
     zkClient.close();
+  }
+
+  /**
+   *
+   * @param stateMap
+   *          : "ResourceGroupName/partitionKey" -> setOf(instances)
+   * @param state
+   *          : MASTER|SLAVE|ERROR...
+   */
+  public static void verifyState(String clusterName,
+                                 String zkAddr,
+                                 Map<String, Set<String>> stateMap,
+                                 String state)
+  {
+    ZkClient zkClient = new ZkClient(zkAddr);
+    zkClient.setZkSerializer(new ZNRecordSerializer());
+
+    try
+    {
+      ZKDataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
+
+      for (String resGroupPartitionKey : stateMap.keySet())
+      {
+        Map<String, String> retMap =
+            getResourceGroupAndPartitionKey(resGroupPartitionKey);
+        String resGroup = retMap.get("RESOURCEGROUP");
+        String partitionKey = retMap.get("PARTITION");
+
+        ExternalView extView =
+            accessor.getProperty(ExternalView.class, PropertyType.EXTERNALVIEW, resGroup);
+        for (String instance : stateMap.get(resGroupPartitionKey))
+        {
+          String actualState = extView.getStateMap(partitionKey).get(instance);
+          Assert.assertNotNull(actualState, "externalView doesn't contain state for " + resGroup + "/"
+                + partitionKey + " on " + instance + " (expect " + state + ")");
+
+          Assert.assertEquals(actualState, state,
+          "externalView for " + resGroup + "/" + partitionKey + " on "
+                + instance + " is " + actualState + " (expect " + state + ")");
+        }
+      }
+    }
+    finally
+    {
+      zkClient.close();
+    }
+  }
+
+  /**
+   *
+   * @param resGroupPartitionKey
+   *          : key is in form of "resourceGroup/partitionKey" or "resourceGroup_x"
+   *
+   * @return
+   */
+  private static Map<String, String> getResourceGroupAndPartitionKey(String resGroupPartitionKey)
+  {
+    String resGroup;
+    String partitionKey;
+    int idx = resGroupPartitionKey.indexOf('/');
+    if (idx > -1)
+    {
+      resGroup = resGroupPartitionKey.substring(0, idx);
+      partitionKey = resGroupPartitionKey.substring(idx + 1);
+    }
+    else
+    {
+      idx = resGroupPartitionKey.lastIndexOf('_');
+      resGroup = resGroupPartitionKey.substring(0, idx);
+      partitionKey = resGroupPartitionKey;
+    }
+
+    Map<String, String> retMap = new HashMap<String, String>();
+    retMap.put("RESOURCEGROUP", resGroup);
+    retMap.put("PARTITION", partitionKey);
+    return retMap;
   }
 }

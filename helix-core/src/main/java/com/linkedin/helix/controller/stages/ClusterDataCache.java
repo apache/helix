@@ -190,14 +190,14 @@ public class ClusterDataCache
     return _instanceConfigMap;
   }
 
-  public Set<String> getDisabledInstancesForResource(String resource)
+  public Set<String> getDisabledInstancesForPartition(String partition)
   {
     Set<String> disabledInstancesSet = new HashSet<String>();
     for (String instance : _instanceConfigMap.keySet())
     {
       InstanceConfig config = _instanceConfigMap.get(instance);
       if (config.getInstanceEnabled() == false
-          || config.getInstanceEnabledForResource(resource) == false)
+          || config.getInstanceEnabledForPartition(partition) == false)
       {
         disabledInstancesSet.add(instance);
       }

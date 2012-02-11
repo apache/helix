@@ -310,6 +310,11 @@ public class ZKClusterManager implements ClusterManager
     System.out.println("disconnect " + _instanceName + "(" + _instanceType + ") from "
         + _clusterName);
 
+    if (!isConnected())
+    {
+      logger.warn("ClusterManager " + _instanceName + " already disconnected");
+      return;
+    }
     /**
      * shutdown thread pool first to avoid reset() being invoked in the middle
      * of state transition
@@ -480,7 +485,7 @@ public class ZKClusterManager implements ClusterManager
 
   /**
    * This will be invoked when ever a new session is created<br/>
-   * 
+   *
    * case 1: the cluster manager was a participant carry over current state, add
    * live instance, and invoke message listener; case 2: the cluster manager was
    * controller and was a leader before do leader election, and if it becomes
@@ -525,6 +530,10 @@ public class ZKClusterManager implements ClusterManager
       MessageHandlerFactory defaultControllerMsgHandlerFactory = new DefaultControllerMessageHandlerFactory();
       _messagingService.getExecutor().registerMessageHandlerFactory(
           defaultControllerMsgHandlerFactory.getMessageType(), defaultControllerMsgHandlerFactory);
+      MessageHandlerFactory defaultSchedulerMsgHandlerFactory = new DefaultSchedulerMessageHandlerFactory(this);
+      _messagingService.getExecutor().registerMessageHandlerFactory(
+          defaultSchedulerMsgHandlerFactory.getMessageType(), defaultSchedulerMsgHandlerFactory);
+
       startStatusUpdatedumpTask();
       if (_leaderElectionHandler == null)
       {

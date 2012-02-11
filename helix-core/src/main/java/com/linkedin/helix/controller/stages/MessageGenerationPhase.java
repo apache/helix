@@ -1,7 +1,5 @@
 package com.linkedin.helix.controller.stages;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -13,10 +11,10 @@ import com.linkedin.helix.controller.pipeline.AbstractBaseStage;
 import com.linkedin.helix.controller.pipeline.StageException;
 import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.model.Message;
+import com.linkedin.helix.model.Message.MessageType;
 import com.linkedin.helix.model.ResourceGroup;
 import com.linkedin.helix.model.ResourceKey;
 import com.linkedin.helix.model.StateModelDefinition;
-import com.linkedin.helix.model.Message.MessageType;
 /**
  * Compares the currentState,pendingState with IdealState and generate messages
  * @author kgopalak
@@ -124,17 +122,8 @@ public class MessageGenerationPhase extends AbstractBaseStage
   {
     String uuid = UUID.randomUUID().toString();
     Message message = new Message(MessageType.STATE_TRANSITION,uuid);
-    message.setMsgId(uuid);
-    String hostName = "UNKNOWN";
-    try
-    {
-      hostName = InetAddress.getLocalHost().getCanonicalHostName();
-    } catch (UnknownHostException e)
-    {
-      logger.info("Unable to get Host name. Will set it to UNKNOWN, mostly ignorable", e);
-      // can ignore it,
-    }
-    message.setSrcName(manager.getInstanceName() + "_" + hostName);
+    // message.setMsgId(uuid);
+    message.setSrcName(manager.getInstanceName());
     message.setTgtName(instanceName);
     message.setMsgState("new");
     message.setStateUnitKey(resourceKeyName);

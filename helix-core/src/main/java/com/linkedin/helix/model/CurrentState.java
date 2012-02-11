@@ -6,10 +6,8 @@ import java.util.TreeMap;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.ClusterManagerException;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.ZNRecordDecorator;
-import com.linkedin.helix.agent.zk.ZKClusterManagementTool;
 
 /**
  * Current states for resources in a resource group
@@ -96,29 +94,29 @@ public class CurrentState extends ZNRecordDecorator
     mapFields.get(resourceKeyStr).put(CurrentStateProperty.CURRENT_STATE.toString(), state);
   }
 
-  public void resetState(String resourceKey)
-  {
-    Map<String, String> mapField = _record.getMapField(resourceKey);
-    if (mapField != null)
-    {
-      String state = mapField.get(CurrentStateProperty.CURRENT_STATE.toString());
-      if (state.equals("ERROR"))
-      {
-        _record.getMapFields().remove(resourceKey);
-      }
-      else
-      {
-        LOG.error("Skip resetting resource state " + resourceKey
-                  + "; because it's current state is not ERROR ( was " + state + ")");
-      }
-    }
-    else
-    {
-      LOG.error("Skip resetting resource state " + resourceKey
-                + "; because it's current state does NOT exist");
-    }
-
-  }
+  // public void resetState(String resourceKey)
+  // {
+  // Map<String, String> mapField = _record.getMapField(resourceKey);
+  // if (mapField != null)
+  // {
+  // String state = mapField.get(CurrentStateProperty.CURRENT_STATE.toString());
+  // if (state.equals("ERROR"))
+  // {
+  // _record.getMapFields().remove(resourceKey);
+  // }
+  // else
+  // {
+  // LOG.error("Skip resetting resource state " + resourceKey
+  // + "; because it's current state is not ERROR ( was " + state + ")");
+  // }
+  // }
+  // else
+  // {
+  // LOG.error("Skip resetting resource state " + resourceKey
+  // + "; because it's current state does NOT exist");
+  // }
+  //
+  // }
 
 
   public void setResourceGroup(String resourceKey, String resourceGroup)

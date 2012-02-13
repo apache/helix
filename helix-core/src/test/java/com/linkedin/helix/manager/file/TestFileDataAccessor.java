@@ -6,7 +6,7 @@ import org.testng.annotations.Test;
 import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.manager.file.FileBasedDataAccessor;
+import com.linkedin.helix.manager.file.FileDataAccessor;
 import com.linkedin.helix.model.InstanceConfig;
 import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.store.PropertyJsonComparator;
@@ -33,7 +33,7 @@ public class TestFileDataAccessor
       // TODO Auto-generated catch block
       e.printStackTrace();
     }
-    DataAccessor accessor = new FileBasedDataAccessor(store, clusterName);
+    DataAccessor accessor = new FileDataAccessor(store, clusterName);
 
     InstanceConfig config = new InstanceConfig("id0");
     accessor.setProperty(PropertyType.CONFIGS, config, "key0");

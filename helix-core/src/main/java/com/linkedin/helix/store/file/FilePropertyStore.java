@@ -33,7 +33,7 @@ import org.apache.commons.io.DirectoryWalker;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.manager.file.CallbackHandlerForFile;
+import com.linkedin.helix.manager.file.FileCallbackHandler;
 import com.linkedin.helix.store.PropertyChangeListener;
 import com.linkedin.helix.store.PropertyJsonComparator;
 import com.linkedin.helix.store.PropertySerializer;
@@ -253,9 +253,9 @@ public class FilePropertyStore<T> implements PropertyStore<T>
             {
               for (PropertyChangeListener<T> listener : entry.getValue())
               {
-                if (listener instanceof CallbackHandlerForFile)
+                if (listener instanceof FileCallbackHandler)
                 {
-                  CallbackHandlerForFile handler = (CallbackHandlerForFile) listener;
+                  FileCallbackHandler handler = (FileCallbackHandler) listener;
 
                   // debug
 //                  logger.error("Send notification of " + file.getAbsolutePath() + " to listener:" + handler.getListener());

@@ -15,14 +15,14 @@ import com.linkedin.helix.LiveInstanceChangeListener;
 import com.linkedin.helix.MessageListener;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.healthcheck.ParticipantHealthReportCollector;
-import com.linkedin.helix.manager.file.FileBasedDataAccessor;
+import com.linkedin.helix.manager.file.FileDataAccessor;
 import com.linkedin.helix.participant.StateMachineEngine;
 import com.linkedin.helix.store.PropertyStore;
 import com.linkedin.helix.store.file.FilePropertyStore;
 
 public class MockFileHelixManager implements HelixManager
 {
-  private final FileBasedDataAccessor _accessor;
+  private final FileDataAccessor _accessor;
   private final String _instanceName;
   private final String _clusterName;
   private final InstanceType _type;
@@ -33,7 +33,7 @@ public class MockFileHelixManager implements HelixManager
     _instanceName = instanceName;
     _clusterName = clusterName;
     _type = type;
-    _accessor = new FileBasedDataAccessor(store, clusterName);
+    _accessor = new FileDataAccessor(store, clusterName);
   }
 
   @Override

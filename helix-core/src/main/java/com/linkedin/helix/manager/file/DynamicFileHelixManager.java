@@ -44,13 +44,13 @@ public class DynamicFileHelixManager implements HelixManager
 {
   private static final Logger LOG = Logger
       .getLogger(StaticFileHelixManager.class.getName());
-  private final FileBasedDataAccessor _fileDataAccessor;
+  private final FileDataAccessor _fileDataAccessor;
 
   private final String _clusterName;
   private final InstanceType _instanceType;
   private final String _instanceName;
   private boolean _isConnected;
-  private final List<CallbackHandlerForFile> _handlers;
+  private final List<FileCallbackHandler> _handlers;
   private final FileHelixAdmin _mgmtTool;
 
   private final String _sessionId; // = "12345";
@@ -67,10 +67,10 @@ public class DynamicFileHelixManager implements HelixManager
     _instanceName = instanceName;
     _instanceType = instanceType;
 
-    _handlers = new ArrayList<CallbackHandlerForFile>();
+    _handlers = new ArrayList<FileCallbackHandler>();
 
     _store = store;
-    _fileDataAccessor = new FileBasedDataAccessor(_store, clusterName); // accessor;
+    _fileDataAccessor = new FileDataAccessor(_store, clusterName); // accessor;
 
     _mgmtTool = new FileHelixAdmin(_store);
     _messagingService = new DefaultMessagingService(this);
@@ -104,7 +104,7 @@ public class DynamicFileHelixManager implements HelixManager
   {
     final String path = HelixUtil.getIdealStatePath(_clusterName);
 
-    CallbackHandlerForFile callbackHandler = createCallBackHandler(path,
+    FileCallbackHandler callbackHandler = createCallBackHandler(path,
         listener, new EventType[]
         { EventType.NodeDataChanged, EventType.NodeDeleted,
             EventType.NodeCreated }, IDEAL_STATE);
@@ -116,7 +116,7 @@ public class DynamicFileHelixManager implements HelixManager
   public void addLiveInstanceChangeListener(LiveInstanceChangeListener listener)
   {
     final String path = HelixUtil.getLiveInstancesPath(_clusterName);
-    CallbackHandlerForFile callbackHandler = createCallBackHandler(path,
+    FileCallbackHandler callbackHandler = createCallBackHandler(path,
         listener, new EventType[]
         { EventType.NodeChildrenChanged, EventType.NodeDeleted,
             EventType.NodeCreated }, LIVE_INSTANCE);
@@ -135,7 +135,7 @@ public class DynamicFileHelixManager implements HelixManager
   {
     final String path = HelixUtil.getMessagePath(_clusterName, instanceName);
 
-    CallbackHandlerForFile callbackHandler = createCallBackHandler(path,
+    FileCallbackHandler callbackHandler = createCallBackHandler(path,
         listener, new EventType[]
         { EventType.NodeDataChanged, EventType.NodeDeleted,
             EventType.NodeCreated }, ChangeType.MESSAGE);
@@ -150,7 +150,7 @@ public class DynamicFileHelixManager implements HelixManager
     final String path = HelixUtil.getCurrentStateBasePath(_clusterName,
         instanceName) + "/" + sessionId;
 
-    CallbackHandlerForFile callbackHandler = createCallBackHandler(path,
+    FileCallbackHandler callbackHandler = createCallBackHandler(path,
         listener, new EventType[]
         { EventType.NodeChildrenChanged, EventType.NodeDeleted,
             EventType.NodeCreated }, CURRENT_STATE);
@@ -296,14 +296,14 @@ public class DynamicFileHelixManager implements HelixManager
     return false;
   }
 
-  private CallbackHandlerForFile createCallBackHandler(String path,
+  private FileCallbackHandler createCallBackHandler(String path,
       Object listener, EventType[] eventTypes, ChangeType changeType)
   {
     if (listener == null)
     {
       throw new HelixException("Listener cannot be null");
     }
-    return new CallbackHandlerForFile(this, path, listener, eventTypes,
+    return new FileCallbackHandler(this, path, listener, eventTypes,
         changeType);
   }
 

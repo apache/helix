@@ -207,7 +207,7 @@ public class FileHelixAdmin implements HelixAdmin
   @Override
   public IdealState getResourceGroupIdealState(String clusterName, String resourceGroupName)
   {
-    return new FileBasedDataAccessor(_store, clusterName).getProperty(IdealState.class,
+    return new FileDataAccessor(_store, clusterName).getProperty(IdealState.class,
         PropertyType.IDEALSTATES, resourceGroupName);
   }
 
@@ -215,7 +215,7 @@ public class FileHelixAdmin implements HelixAdmin
   public void setResourceGroupIdealState(String clusterName, String resourceGroupName,
       IdealState idealState)
   {
-    new FileBasedDataAccessor(_store, clusterName).setProperty(PropertyType.IDEALSTATES,
+    new FileDataAccessor(_store, clusterName).setProperty(PropertyType.IDEALSTATES,
         idealState, resourceGroupName);
   }
 
@@ -248,7 +248,7 @@ public class FileHelixAdmin implements HelixAdmin
   @Override
   public void dropResourceGroup(String clusterName, String resourceGroup)
   {
-    new FileBasedDataAccessor(_store, clusterName).removeProperty(PropertyType.IDEALSTATES,
+    new FileDataAccessor(_store, clusterName).removeProperty(PropertyType.IDEALSTATES,
         resourceGroup);
 
   }

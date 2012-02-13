@@ -10,7 +10,7 @@ import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.HelixConstants.ChangeType;
 import com.linkedin.helix.manager.MockListener;
-import com.linkedin.helix.manager.file.CallbackHandlerForFile;
+import com.linkedin.helix.manager.file.FileCallbackHandler;
 import com.linkedin.helix.store.PropertyJsonComparator;
 import com.linkedin.helix.store.PropertyJsonSerializer;
 import com.linkedin.helix.store.PropertyStoreException;
@@ -45,8 +45,8 @@ public class TestFileCallbackHandler
     listener.reset();
     MockFileHelixManager manager =
         new MockFileHelixManager(clusterName, instanceName, InstanceType.CONTROLLER, store);
-    CallbackHandlerForFile handler =
-        new CallbackHandlerForFile(manager,
+    FileCallbackHandler handler =
+        new FileCallbackHandler(manager,
                                    rootNamespace,
                                    listener,
                                    new EventType[] { EventType.NodeChildrenChanged,
@@ -57,7 +57,7 @@ public class TestFileCallbackHandler
     AssertJUnit.assertTrue(listener.isConfigChangeListenerInvoked);
 
     handler =
-        new CallbackHandlerForFile(manager,
+        new FileCallbackHandler(manager,
                                    rootNamespace,
                                    listener,
                                    new EventType[] { EventType.NodeChildrenChanged,
@@ -68,7 +68,7 @@ public class TestFileCallbackHandler
     EventType[] eventTypes = new EventType[] { EventType.NodeChildrenChanged,
         EventType.NodeDeleted, EventType.NodeCreated };
     handler =
-        new CallbackHandlerForFile(manager,
+        new FileCallbackHandler(manager,
                                    rootNamespace,
                                    listener,
                                    eventTypes,

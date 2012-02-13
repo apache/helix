@@ -37,25 +37,25 @@ import com.linkedin.helix.store.file.FilePropertyStore;
 import com.linkedin.helix.util.HelixUtil;
 
 // TODO remove code duplication: CallbackHandler and CallbackHandlerForFile
-public class CallbackHandlerForFile implements PropertyChangeListener<ZNRecord>
+public class FileCallbackHandler implements PropertyChangeListener<ZNRecord>
 {
 
-  private static Logger LOG = Logger.getLogger(CallbackHandlerForFile.class);
+  private static Logger LOG = Logger.getLogger(FileCallbackHandler.class);
 
   private final String _path;
   private final Object _listener;
   private final EventType[] _eventTypes;
   private final ChangeType _changeType;
-  private final FileBasedDataAccessor _accessor;
+  private final FileDataAccessor _accessor;
   private final AtomicLong lastNotificationTimeStamp;
   private final HelixManager _manager;
   private final FilePropertyStore<ZNRecord> _store;
 
-  public CallbackHandlerForFile(HelixManager manager, String path, Object listener,
+  public FileCallbackHandler(HelixManager manager, String path, Object listener,
                                 EventType[] eventTypes, ChangeType changeType)
   {
     this._manager = manager;
-    this._accessor = (FileBasedDataAccessor) manager.getDataAccessor();
+    this._accessor = (FileDataAccessor) manager.getDataAccessor();
     this._path = path;
     this._listener = listener;
     this._eventTypes = eventTypes;

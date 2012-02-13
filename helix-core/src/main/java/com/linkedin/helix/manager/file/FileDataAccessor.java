@@ -22,14 +22,14 @@ import com.linkedin.helix.store.PropertyStore;
 import com.linkedin.helix.store.PropertyStoreException;
 import com.linkedin.helix.store.file.FilePropertyStore;
 
-public class FileBasedDataAccessor implements DataAccessor
+public class FileDataAccessor implements DataAccessor
 {
-  private static Logger LOG = Logger.getLogger(FileBasedDataAccessor.class);
+  private static Logger LOG = Logger.getLogger(FileDataAccessor.class);
   private final FilePropertyStore<ZNRecord> _store;
   private final String _clusterName;
   private final ReadWriteLock _readWriteLock = new ReentrantReadWriteLock();
 
-  public FileBasedDataAccessor(FilePropertyStore<ZNRecord> store, String clusterName)
+  public FileDataAccessor(FilePropertyStore<ZNRecord> store, String clusterName)
   {
     _store = store;
     _clusterName = clusterName;

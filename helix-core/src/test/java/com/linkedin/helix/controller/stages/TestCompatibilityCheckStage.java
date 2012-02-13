@@ -38,7 +38,7 @@ public class TestCompatibilityCheckStage extends BaseStageTest
     record = new ZNRecord("localhost_0");
     if (participantVersion != null)
     {
-      record.setSimpleField(LiveInstanceProperty.CLUSTER_MANAGER_VERSION.toString(), participantVersion);
+      record.setSimpleField(LiveInstanceProperty.HELIX_VERSION.toString(), participantVersion);
     }
     LiveInstance liveInstance = new LiveInstance(record);
     liveInstance.setSessionId("session_0");

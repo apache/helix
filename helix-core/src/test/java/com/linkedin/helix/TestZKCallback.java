@@ -10,8 +10,8 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import com.linkedin.helix.agent.zk.ZNRecordSerializer;
-import com.linkedin.helix.agent.zk.ZkClient;
+import com.linkedin.helix.manager.zk.ZNRecordSerializer;
+import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.model.CurrentState;
 import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.IdealState;
@@ -104,23 +104,23 @@ public class TestZKCallback extends ZkUnitTestBase
   public void testInvocation() throws Exception
   {
 
-    HelixAgent testClusterManager = HelixAgentFactory
-        .getZKHelixAgent(clusterName, "localhost_8900",
+    HelixManager testHelixManager = HelixManagerFactory
+        .getZKHelixManager(clusterName, "localhost_8900",
                              InstanceType.PARTICIPANT,
                              ZK_ADDR);
-    testClusterManager.connect();
+    testHelixManager.connect();
 
     TestZKCallback test = new TestZKCallback();
 
     TestZKCallback.TestCallbackListener testListener = test.new TestCallbackListener();
 
-    testClusterManager.addMessageListener(testListener, "localhost_8900");
-    testClusterManager.addCurrentStateChangeListener(testListener,
-        "localhost_8900", testClusterManager.getSessionId());
-    testClusterManager.addConfigChangeListener(testListener);
-    testClusterManager.addIdealStateChangeListener(testListener);
-    testClusterManager.addExternalViewChangeListener(testListener);
-    testClusterManager.addLiveInstanceChangeListener(testListener);
+    testHelixManager.addMessageListener(testListener, "localhost_8900");
+    testHelixManager.addCurrentStateChangeListener(testListener,
+        "localhost_8900", testHelixManager.getSessionId());
+    testHelixManager.addConfigChangeListener(testListener);
+    testHelixManager.addIdealStateChangeListener(testListener);
+    testHelixManager.addExternalViewChangeListener(testListener);
+    testHelixManager.addLiveInstanceChangeListener(testListener);
     // Initial add listener should trigger the first execution of the
     // listener callbacks
     AssertJUnit.assertTrue(testListener.configChangeReceived
@@ -131,7 +131,7 @@ public class TestZKCallback extends ZkUnitTestBase
         & testListener.messageChangeReceived);
 
     testListener.Reset();
-    DataAccessor dataAccessor = testClusterManager.getDataAccessor();
+    DataAccessor dataAccessor = testHelixManager.getDataAccessor();
     ExternalView extView = new ExternalView("db-12345");
     dataAccessor.setProperty(PropertyType.EXTERNALVIEW, extView, "db-12345" );
     Thread.sleep(100);
@@ -142,7 +142,7 @@ public class TestZKCallback extends ZkUnitTestBase
     curState.setSessionId("sessionId");
     curState.setStateModelDefRef("StateModelDef");
     dataAccessor.setProperty(PropertyType.CURRENTSTATES, curState, "localhost_8900",
-                             testClusterManager.getSessionId(), curState.getId() );
+                             testHelixManager.getSessionId(), curState.getId() );
     Thread.sleep(100);
     AssertJUnit.assertTrue(testListener.currentStateChangeReceived);
     testListener.Reset();
@@ -183,7 +183,7 @@ public class TestZKCallback extends ZkUnitTestBase
 //    dummyRecord = new ZNRecord("localhost_9801");
     LiveInstance liveInstance = new LiveInstance("localhost_9801");
     liveInstance.setSessionId(UUID.randomUUID().toString());
-    liveInstance.setClusterManagerVersion(UUID.randomUUID().toString());
+    liveInstance.setHelixVersion(UUID.randomUUID().toString());
     dataAccessor.setProperty(PropertyType.LIVEINSTANCES, liveInstance, "localhost_9801");
     Thread.sleep(100);
     AssertJUnit.assertTrue(testListener.liveInstanceChangeReceived);

@@ -15,12 +15,12 @@ import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
-import com.linkedin.helix.HelixAgent;
-import com.linkedin.helix.HelixAgentFactory;
+import com.linkedin.helix.HelixManager;
+import com.linkedin.helix.HelixManagerFactory;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.messaging.AsyncCallback;
-import com.linkedin.helix.messaging.handling.CMTaskResult;
+import com.linkedin.helix.messaging.handling.HelixTaskResult;
 import com.linkedin.helix.messaging.handling.MessageHandler;
 import com.linkedin.helix.messaging.handling.MessageHandlerFactory;
 import com.linkedin.helix.model.Message;
@@ -67,7 +67,7 @@ public class BootstrapProcess
   private final String clusterName;
   private final String instanceName;
   private final String stateModelType;
-  private HelixAgent manager;
+  private HelixManager manager;
 
 //  private StateMachineEngine genericStateMachineHandler;
 
@@ -90,7 +90,7 @@ public class BootstrapProcess
   {
     if (_file == null)
     {
-      manager = HelixAgentFactory.getZKHelixAgent(clusterName,
+      manager = HelixManagerFactory.getZKHelixManager(clusterName,
                                                           instanceName,
                                                           InstanceType.PARTICIPANT,
                                                           zkConnectString);
@@ -98,7 +98,7 @@ public class BootstrapProcess
     }
     else
     {
-      manager = HelixAgentFactory.getStaticFileHelixAgent(clusterName,
+      manager = HelixManagerFactory.getStaticFileHelixManager(clusterName,
                                                                   instanceName,
                                                                   InstanceType.PARTICIPANT,
                                                                   _file);
@@ -159,10 +159,10 @@ public class BootstrapProcess
       }
 
       @Override
-      public CMTaskResult handleMessage() throws InterruptedException
+      public HelixTaskResult handleMessage() throws InterruptedException
       {
         String hostName;
-        CMTaskResult result = new CMTaskResult();
+        HelixTaskResult result = new HelixTaskResult();
         try
         {
           hostName = InetAddress.getLocalHost().getCanonicalHostName();

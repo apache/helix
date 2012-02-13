@@ -11,7 +11,7 @@ import com.linkedin.helix.Criteria;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.messaging.AsyncCallback;
-import com.linkedin.helix.messaging.handling.CMTaskResult;
+import com.linkedin.helix.messaging.handling.HelixTaskResult;
 import com.linkedin.helix.messaging.handling.MessageHandler;
 import com.linkedin.helix.messaging.handling.MessageHandlerFactory;
 import com.linkedin.helix.messaging.handling.MessageHandler.ErrorCode;
@@ -55,9 +55,9 @@ public class TestMessagingService extends ZkStandAloneCMTestBase
       }
 
       @Override
-      public CMTaskResult handleMessage() throws InterruptedException
+      public HelixTaskResult handleMessage() throws InterruptedException
       {
-        CMTaskResult result = new CMTaskResult();
+        HelixTaskResult result = new HelixTaskResult();
         result.setSuccess(true);
         Thread.sleep(1000);
         System.out.println("TestMessagingHandler " + _message.getMsgId());

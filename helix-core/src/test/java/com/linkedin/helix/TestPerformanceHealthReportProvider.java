@@ -22,24 +22,24 @@ public class TestPerformanceHealthReportProvider {
 	 protected final String INSTANCE_NAME = "instance:1";
 
 	PerformanceHealthReportProvider _healthProvider;
-	MockManager _clusterManager;
+	MockManager _helixManager;
 
 	public void incrementPartitionStat() throws Exception
 	{
-		_clusterManager = new MockManager(CLUSTER_NAME);
+		_helixManager = new MockManager(CLUSTER_NAME);
 		_healthProvider.incrementPartitionStat(STAT_NAME, PARTITION_NAME);
 	}
 
 	public void transmitReport() throws Exception
 	{
-		_clusterManager = new MockManager(CLUSTER_NAME);
+		_helixManager = new MockManager(CLUSTER_NAME);
 		 Map<String, Map<String, String>> partitionReport = _healthProvider
 	                .getRecentPartitionHealthReport();
 		 ZNRecord record = new ZNRecord(_healthProvider.getReportName());
 		 if (partitionReport != null) {
          	record.setMapFields(partitionReport);
          }
-		 _clusterManager.getDataAccessor().setProperty(PropertyType.HEALTHREPORT,
+		 _helixManager.getDataAccessor().setProperty(PropertyType.HEALTHREPORT,
 		                                               record,
 		                                               INSTANCE_NAME,
 		                                               record.getId());

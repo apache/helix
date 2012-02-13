@@ -8,8 +8,8 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import com.linkedin.helix.TestHelper;
-import com.linkedin.helix.agent.zk.ZNRecordSerializer;
-import com.linkedin.helix.agent.zk.ZkClient;
+import com.linkedin.helix.manager.zk.ZNRecordSerializer;
+import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.tools.ClusterSetup;
 
 public class TestCustomIdealState extends ZkIntegrationTestBase

@@ -8,13 +8,13 @@ import java.util.UUID;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.HelixAgent;
+import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.ClusterMessagingService;
 import com.linkedin.helix.Criteria;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.messaging.handling.AsyncCallbackService;
-import com.linkedin.helix.messaging.handling.CMTaskExecutor;
+import com.linkedin.helix.messaging.handling.HelixTaskExecutor;
 import com.linkedin.helix.messaging.handling.MessageHandlerFactory;
 import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.model.Message;
@@ -22,19 +22,19 @@ import com.linkedin.helix.model.Message.MessageType;
 
 public class DefaultMessagingService implements ClusterMessagingService
 {
-  private final HelixAgent _manager;
+  private final HelixManager _manager;
   private final CriteriaEvaluator _evaluator;
-  private final CMTaskExecutor _taskExecutor;
+  private final HelixTaskExecutor _taskExecutor;
   // TODO:rename to factory, this is not a service
   private final AsyncCallbackService _asyncCallbackService;
   private static Logger _logger = Logger
       .getLogger(DefaultMessagingService.class);
 
-  public DefaultMessagingService(HelixAgent manager)
+  public DefaultMessagingService(HelixManager manager)
   {
     _manager = manager;
     _evaluator = new CriteriaEvaluator();
-    _taskExecutor = new CMTaskExecutor();
+    _taskExecutor = new HelixTaskExecutor();
     _asyncCallbackService = new AsyncCallbackService();
     _taskExecutor.registerMessageHandlerFactory(
         MessageType.TASK_REPLY.toString(), _asyncCallbackService);
@@ -242,7 +242,7 @@ public class DefaultMessagingService implements ClusterMessagingService
     }
   }
 
-  public CMTaskExecutor getExecutor()
+  public HelixTaskExecutor getExecutor()
   {
     return _taskExecutor;
   }

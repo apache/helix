@@ -1,23 +1,23 @@
 package com.linkedin.helix;
 
-import com.linkedin.helix.HelixAgent;
-import com.linkedin.helix.HelixAgentFactory;
+import com.linkedin.helix.HelixManager;
+import com.linkedin.helix.HelixManagerFactory;
 import com.linkedin.helix.InstanceType;
 
 
 public class CMConnector {
 
-	HelixAgent _manager;
+	HelixManager _manager;
 
 	public CMConnector(final String clusterName, final String instanceName, final String zkAddr) throws Exception //, final ZkClient zkClient) throws Exception
 	{
 		 _manager = null;
-		 _manager = HelixAgentFactory
-		            .getZKHelixAgent(clusterName, instanceName, InstanceType.PARTICIPANT, zkAddr); //, zkClient);
+		 _manager = HelixManagerFactory
+		            .getZKHelixManager(clusterName, instanceName, InstanceType.PARTICIPANT, zkAddr); //, zkClient);
 		 _manager.connect();
 	}
 
-	public HelixAgent getManager() {
+	public HelixManager getManager() {
 		return _manager;
 	}
 

@@ -9,11 +9,11 @@ import org.apache.log4j.Logger;
 import com.linkedin.helix.HelixConstants.ChangeType;
 import com.linkedin.helix.HelixConstants.StateModelToken;
 import com.linkedin.helix.DataAccessor;
-import com.linkedin.helix.HelixAgent;
+import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.PropertyType;
-import com.linkedin.helix.agent.zk.ZKDataAccessor;
-import com.linkedin.helix.agent.zk.ZNRecordSerializer;
-import com.linkedin.helix.agent.zk.ZkClient;
+import com.linkedin.helix.manager.zk.ZKDataAccessor;
+import com.linkedin.helix.manager.zk.ZNRecordSerializer;
+import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.model.IdealState.IdealStateModeProperty;
 
@@ -25,10 +25,10 @@ public class ParticipantCodeBuilder
   private ParticipantLeaderCallback _callback;
   private List<ChangeType> _notificationTypes;
   private String _resGroupName;
-  private final HelixAgent _manager;
+  private final HelixManager _manager;
   private final String _zkAddr;
 
-  public ParticipantCodeBuilder(HelixAgent manager, String zkAddr)
+  public ParticipantCodeBuilder(HelixManager manager, String zkAddr)
   {
     _manager = manager;
     _zkAddr = zkAddr;

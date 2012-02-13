@@ -17,14 +17,14 @@ import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeSuite;
 
 import com.linkedin.helix.DataAccessor;
-import com.linkedin.helix.HelixAgent;
+import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.agent.zk.ZKDataAccessor;
-import com.linkedin.helix.agent.zk.ZkClient;
+import com.linkedin.helix.manager.zk.ZKDataAccessor;
+import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.model.InstanceConfig;
-import com.linkedin.helix.util.CMUtil;
+import com.linkedin.helix.util.HelixUtil;
 
 // TODO merge code with ZkIntegrationTestBase
 public class ZkUnitTestBase
@@ -59,7 +59,7 @@ public class ZkUnitTestBase
 
   protected String getCurrentLeader(ZkClient zkClient, String clusterName)
   {
-    String leaderPath = CMUtil.getControllerPropertyPath(clusterName,
+    String leaderPath = HelixUtil.getControllerPropertyPath(clusterName,
         PropertyType.LEADER);
     ZNRecord leaderRecord = zkClient.<ZNRecord> readData(leaderPath);
     if (leaderRecord == null)
@@ -72,14 +72,14 @@ public class ZkUnitTestBase
   }
 
   protected void stopCurrentLeader(ZkClient zkClient, String clusterName,
-      Map<String, Thread> threadMap, Map<String, HelixAgent> managerMap)
+      Map<String, Thread> threadMap, Map<String, HelixManager> managerMap)
   {
     String leader = getCurrentLeader(zkClient, clusterName);
     Assert.assertTrue(leader != null);
     System.out.println("stop leader:" + leader + " in " + clusterName);
     Assert.assertTrue(leader != null);
 
-    HelixAgent manager = managerMap.remove(leader);
+    HelixManager manager = managerMap.remove(leader);
     Assert.assertTrue(manager != null);
     manager.disconnect();
 
@@ -117,16 +117,16 @@ public class ZkUnitTestBase
 
   public void verifyInstance(ZkClient zkClient, String clusterName, String instance, boolean wantExists)
 	{
-		String instanceConfigsPath = CMUtil.getConfigPath(clusterName);
+		String instanceConfigsPath = HelixUtil.getConfigPath(clusterName);
 	    String instanceConfigPath = instanceConfigsPath + "/" + instance;
-	    String instancePath = CMUtil.getInstancePath(clusterName, instance);
+	    String instancePath = HelixUtil.getInstancePath(clusterName, instance);
 	    AssertJUnit.assertEquals(wantExists, zkClient.exists(instanceConfigPath));
 	    AssertJUnit.assertEquals(wantExists, zkClient.exists(instancePath));
 	}
 
 	public void verifyResource(ZkClient zkClient, String clusterName, String resource, boolean wantExists)
 	{
-		String resourcePath = CMUtil.getIdealStatePath(clusterName)+"/"+resource;
+		String resourcePath = HelixUtil.getIdealStatePath(clusterName)+"/"+resource;
 		AssertJUnit.assertEquals(wantExists, zkClient.exists(resourcePath));
 	}
 

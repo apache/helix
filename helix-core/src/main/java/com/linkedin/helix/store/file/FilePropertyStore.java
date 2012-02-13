@@ -33,7 +33,7 @@ import org.apache.commons.io.DirectoryWalker;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.agent.file.CallbackHandlerForFile;
+import com.linkedin.helix.manager.file.CallbackHandlerForFile;
 import com.linkedin.helix.store.PropertyChangeListener;
 import com.linkedin.helix.store.PropertyJsonComparator;
 import com.linkedin.helix.store.PropertySerializer;

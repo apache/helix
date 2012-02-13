@@ -11,8 +11,8 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import com.linkedin.helix.ZkUnitTestBase;
-import com.linkedin.helix.agent.zk.ZNRecordSerializer;
-import com.linkedin.helix.agent.zk.ZkClient;
+import com.linkedin.helix.manager.zk.ZNRecordSerializer;
+import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.store.PropertyChangeListener;
 import com.linkedin.helix.store.PropertyJsonComparator;
 import com.linkedin.helix.store.PropertyJsonSerializer;

@@ -9,7 +9,7 @@ import org.apache.log4j.Logger;
 import org.testng.annotations.Test;
 
 import com.linkedin.helix.TestHelper;
-import com.linkedin.helix.agent.zk.ZKClusterManagementTool;
+import com.linkedin.helix.manager.zk.ZKHelixAdmin;
 
 public class TestDisablePartition extends ZkStandAloneCMTestBase
 {
@@ -21,7 +21,7 @@ public class TestDisablePartition extends ZkStandAloneCMTestBase
     LOG.info("START testDisablePartition() at " + new Date(System.currentTimeMillis()));
 
     // localhost_12919 is MASTER for TestDB_0
-    ZKClusterManagementTool tool = new ZKClusterManagementTool(_zkClient);
+    ZKHelixAdmin tool = new ZKHelixAdmin(_zkClient);
     tool.enablePartition(CLUSTER_NAME, "localhost_12919", "TestDB", "TestDB_0", false);
     Map<String, Set<String>> disabledPartMap = new HashMap<String, Set<String>>()
     {

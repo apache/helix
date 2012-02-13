@@ -6,7 +6,7 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 
 import com.linkedin.helix.DataAccessor;
-import com.linkedin.helix.HelixAgent;
+import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.controller.pipeline.AbstractBaseStage;
 import com.linkedin.helix.controller.pipeline.StageException;
@@ -21,7 +21,7 @@ public class TaskAssignmentStage extends AbstractBaseStage
   @Override
   public void process(ClusterEvent event) throws Exception
   {
-    HelixAgent manager = event.getAttribute("clustermanager");
+    HelixManager manager = event.getAttribute("helixmanager");
     Map<String, ResourceGroup> resourceGroupMap = event
         .getAttribute(AttributeName.RESOURCE_GROUPS.toString());
     MessageSelectionStageOutput messageSelectionStageOutput = event
@@ -31,7 +31,7 @@ public class TaskAssignmentStage extends AbstractBaseStage
         || messageSelectionStageOutput == null)
     {
       throw new StageException("Missing attributes in event:" + event
-          + ". Requires ClusterManager|RESOURCE_GROUPS|MESSAGES_SELECTED");
+          + ". Requires HelixManager|RESOURCE_GROUPS|MESSAGES_SELECTED");
     }
 
     DataAccessor dataAccessor = manager.getDataAccessor();

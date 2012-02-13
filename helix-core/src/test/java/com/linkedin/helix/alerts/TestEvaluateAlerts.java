@@ -22,7 +22,7 @@ import com.linkedin.helix.alerts.StatsHolder;
 public class TestEvaluateAlerts {
 	protected static final String CLUSTER_NAME = "TestCluster";
 
-	MockManager _clusterManager;
+	MockManager _helixManager;
 	AlertsHolder _alertsHolder;
 	StatsHolder _statsHolder;
 
@@ -33,9 +33,9 @@ public class TestEvaluateAlerts {
 	@BeforeMethod (groups = {"unitTest"})
 	public void setup()
 	{
-		_clusterManager = new MockManager(CLUSTER_NAME);
-		_alertsHolder = new AlertsHolder(_clusterManager);
-		_statsHolder = new StatsHolder(_clusterManager);
+		_helixManager = new MockManager(CLUSTER_NAME);
+		_alertsHolder = new AlertsHolder(_helixManager);
+		_statsHolder = new StatsHolder(_helixManager);
 	}
 
 	public Map<String,String> getStatFields(String value, String timestamp)

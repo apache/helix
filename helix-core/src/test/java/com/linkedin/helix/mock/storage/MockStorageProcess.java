@@ -11,7 +11,7 @@ import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
-import com.linkedin.helix.agent.zk.ZKDataAccessor;
+import com.linkedin.helix.manager.zk.ZKDataAccessor;
 import com.linkedin.helix.mock.consumer.ConsumerAdapter;
 import com.linkedin.helix.tools.ClusterSetup;
 

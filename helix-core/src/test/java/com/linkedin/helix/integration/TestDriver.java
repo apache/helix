@@ -12,16 +12,16 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.HelixAgent;
+import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.TestHelper.StartCMResult;
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.agent.zk.ZKDataAccessor;
-import com.linkedin.helix.agent.zk.ZNRecordSerializer;
-import com.linkedin.helix.agent.zk.ZkClient;
-import com.linkedin.helix.controller.ClusterManagerMain;
+import com.linkedin.helix.controller.HelixControllerMain;
+import com.linkedin.helix.manager.zk.ZKDataAccessor;
+import com.linkedin.helix.manager.zk.ZNRecordSerializer;
+import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.model.IdealState.IdealStateModeProperty;
 import com.linkedin.helix.model.IdealState.IdealStateProperty;
 import com.linkedin.helix.store.PropertyJsonSerializer;
@@ -226,7 +226,7 @@ public class TestDriver
       } else
       {
         StartCMResult result = TestHelper.startController(clusterName, controllerName, ZK_ADDR,
-            ClusterManagerMain.STANDALONE);
+            HelixControllerMain.STANDALONE);
         testInfo._startCMResultMap.put(controllerName, result);
       }
     }
@@ -274,7 +274,7 @@ public class TestDriver
       if (instanceName.startsWith(CONTROLLER_PREFIX))
       {
         it.remove();
-        HelixAgent manager = entry.getValue()._manager;
+        HelixManager manager = entry.getValue()._manager;
         manager.disconnect();
         Thread thread = entry.getValue()._thread;
         thread.interrupt();
@@ -286,7 +286,7 @@ public class TestDriver
     // stop the rest
     for (Map.Entry<String, StartCMResult> entry : testInfo._startCMResultMap.entrySet())
     {
-      HelixAgent manager = entry.getValue()._manager;
+      HelixManager manager = entry.getValue()._manager;
       manager.disconnect();
       Thread thread = entry.getValue()._thread;
       thread.interrupt();

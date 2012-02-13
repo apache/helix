@@ -46,7 +46,7 @@ public abstract class MessageHandler
    * 
    * @return returns the CMTaskResult which contains info about the message processing.
    */
-  public abstract CMTaskResult handleMessage()  throws InterruptedException;
+  public abstract HelixTaskResult handleMessage()  throws InterruptedException;
   
   /**
    * Callback when error happens in the message handling pipeline. 

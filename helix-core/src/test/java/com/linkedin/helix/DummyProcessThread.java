@@ -11,10 +11,10 @@ public class DummyProcessThread implements Runnable
 {
   private static final Logger LOG = Logger.getLogger(DummyProcessThread.class);
 
-  HelixAgent _manager;
+  HelixManager _manager;
   String _instanceName;
 
-  public DummyProcessThread(HelixAgent manager, String instanceName)
+  public DummyProcessThread(HelixManager manager, String instanceName)
   {
     _manager = manager;
     _instanceName = instanceName;

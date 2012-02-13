@@ -7,7 +7,7 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 
 import com.linkedin.helix.DataAccessor;
-import com.linkedin.helix.HelixAgent;
+import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.alerts.AlertProcessor;
@@ -69,7 +69,7 @@ public class StatsAggregationStage extends AbstractBaseStage
 	return _statStatus;
   }
 
-public void persistAggStats(HelixAgent manager)
+public void persistAggStats(HelixManager manager)
   {
 	  Map<String, String> report = _aggStatsProvider.getRecentHealthReport();
       Map<String, Map<String, String>> partitionReport = _aggStatsProvider
@@ -118,10 +118,10 @@ public void persistAggStats(HelixAgent manager)
 	//String aggTypeName = DEFAULT_AGG_TYPE+AggregationType.DELIM+DEFAULT_DECAY_PARAM;
 	//_defaultAggType = AggregationTypeFactory.getAggregationType(aggTypeName);
 	
-    HelixAgent manager = event.getAttribute("clustermanager");
+    HelixManager manager = event.getAttribute("helixmanager");
     if (manager == null)
     {
-      throw new StageException("clustermanager attribute value is null");
+      throw new StageException("helixmanager attribute value is null");
     }
     
     _statsHolder = new StatsHolder(manager);

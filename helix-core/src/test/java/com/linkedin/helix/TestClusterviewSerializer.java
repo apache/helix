@@ -10,7 +10,7 @@ import org.testng.annotations.Test;
 
 import com.linkedin.helix.ClusterView;
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.agent.file.StaticFileClusterManager;
+import com.linkedin.helix.manager.file.StaticFileHelixManager;
 import com.linkedin.helix.tools.ClusterViewSerializer;
 
 public class TestClusterviewSerializer
@@ -18,9 +18,9 @@ public class TestClusterviewSerializer
   @Test ()
   public void testClusterviewSerializer() throws Exception
   {
-    List<StaticFileClusterManager.DBParam> dbParams = new ArrayList<StaticFileClusterManager.DBParam>();
+    List<StaticFileHelixManager.DBParam> dbParams = new ArrayList<StaticFileHelixManager.DBParam>();
     // dbParams.add(new FileBasedClusterManager.DBParam("BizFollow", 1));
-    dbParams.add(new StaticFileClusterManager.DBParam("BizProfile", 1));
+    dbParams.add(new StaticFileHelixManager.DBParam("BizProfile", 1));
     // dbParams.add(new FileBasedClusterManager.DBParam("EspressoDB", 10));
     // dbParams.add(new FileBasedClusterManager.DBParam("MailboxDB", 128));
     // dbParams.add(new FileBasedClusterManager.DBParam("MyDB", 8));
@@ -31,7 +31,7 @@ public class TestClusterviewSerializer
     String[] nodesInfo = { "localhost:12918" };
     int replication = 0;
 
-    ClusterView view = StaticFileClusterManager.generateStaticConfigClusterView(nodesInfo, dbParams, replication);
+    ClusterView view = StaticFileHelixManager.generateStaticConfigClusterView(nodesInfo, dbParams, replication);
     view.setExternalView(new LinkedList<ZNRecord>());
     String file = "/tmp/clusterView.json";
     // ClusterViewSerializer serializer = new ClusterViewSerializer(file);

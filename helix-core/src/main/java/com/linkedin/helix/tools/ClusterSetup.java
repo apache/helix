@@ -24,10 +24,10 @@ import com.linkedin.helix.HelixAdmin;
 import com.linkedin.helix.HelixException;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.agent.zk.ZKClusterManagementTool;
-import com.linkedin.helix.agent.zk.ZKDataAccessor;
-import com.linkedin.helix.agent.zk.ZNRecordSerializer;
-import com.linkedin.helix.agent.zk.ZkClient;
+import com.linkedin.helix.manager.zk.ZKDataAccessor;
+import com.linkedin.helix.manager.zk.ZKHelixAdmin;
+import com.linkedin.helix.manager.zk.ZNRecordSerializer;
+import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.model.IdealState.IdealStateModeProperty;
@@ -83,7 +83,7 @@ public class ClusterSetup
   {
     _zkServerAddress = zkServerAddress;
     _zkClient = ZKClientPool.getZkClient(_zkServerAddress);
-    _managementService = new ZKClusterManagementTool(_zkClient);
+    _managementService = new ZKHelixAdmin(_zkClient);
   }
 
   public void addCluster(String clusterName, boolean overwritePrevious)

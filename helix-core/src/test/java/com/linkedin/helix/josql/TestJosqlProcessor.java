@@ -10,7 +10,7 @@ import java.util.UUID;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import com.linkedin.helix.HelixAgent;
+import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.HelixException;
 import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.ZNRecord;
@@ -23,7 +23,7 @@ public class TestJosqlProcessor extends ZkStandAloneCMTestBase
   @Test (groups = {"integrationTest"})
   public void testJosqlQuery() throws Exception
   {
-    HelixAgent manager = ((TestHelper.StartCMResult) (_startCMResultMap.values().toArray()[0]))._manager;
+    HelixManager manager = ((TestHelper.StartCMResult) (_startCMResultMap.values().toArray()[0]))._manager;
     
     // Find the instance name that contains partition TestDB_2 and state is 'MASTER'
     String SQL = "SELECT id  " + 
@@ -171,7 +171,7 @@ public class TestJosqlProcessor extends ZkStandAloneCMTestBase
   @Test (groups=("unitTest"))
   public void testOrderby() throws Exception
   {
-    HelixAgent manager = ((TestHelper.StartCMResult) (_startCMResultMap.values().toArray()[0]))._manager;
+    HelixManager manager = ((TestHelper.StartCMResult) (_startCMResultMap.values().toArray()[0]))._manager;
     
     Map<String, ZNRecord> scnMap = new HashMap<String, ZNRecord>();
     for(int i = 0;i < NODE_NR; i++)

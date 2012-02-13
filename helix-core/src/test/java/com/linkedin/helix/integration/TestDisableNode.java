@@ -3,7 +3,7 @@ package com.linkedin.helix.integration;
 import org.testng.annotations.Test;
 
 import com.linkedin.helix.TestHelper;
-import com.linkedin.helix.agent.zk.ZKClusterManagementTool;
+import com.linkedin.helix.manager.zk.ZKHelixAdmin;
 
 public class TestDisableNode extends ZkStandAloneCMTestBase
 {
@@ -11,7 +11,7 @@ public class TestDisableNode extends ZkStandAloneCMTestBase
   @Test()
   public void testDisableNode() throws InterruptedException
   {
-    ZKClusterManagementTool tool = new ZKClusterManagementTool(_zkClient);
+    ZKHelixAdmin tool = new ZKHelixAdmin(_zkClient);
     tool.enableInstance(CLUSTER_NAME, PARTICIPANT_PREFIX + "_12918", false);
     TestHelper.verifyWithTimeout("verifyBestPossAndExtViewExtended",
                                  ZK_ADDR,

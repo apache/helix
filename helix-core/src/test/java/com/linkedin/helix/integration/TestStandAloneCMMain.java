@@ -7,7 +7,7 @@ import org.testng.annotations.Test;
 
 import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.TestHelper.StartCMResult;
-import com.linkedin.helix.controller.ClusterManagerMain;
+import com.linkedin.helix.controller.HelixControllerMain;
 
 public class TestStandAloneCMMain extends ZkStandAloneCMTestBase
 {
@@ -25,7 +25,7 @@ public class TestStandAloneCMMain extends ZkStandAloneCMTestBase
           TestHelper.startController(CLUSTER_NAME,
                                             controllerName,
                                             ZK_ADDR,
-                                            ClusterManagerMain.STANDALONE);
+                                            HelixControllerMain.STANDALONE);
       _startCMResultMap.put(controllerName, startResult);
     }
 

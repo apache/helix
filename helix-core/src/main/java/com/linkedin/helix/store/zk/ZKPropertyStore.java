@@ -23,7 +23,7 @@ import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 
-import com.linkedin.helix.agent.zk.ZkClient;
+import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.store.PropertyChangeListener;
 import com.linkedin.helix.store.PropertySerializer;
 import com.linkedin.helix.store.PropertyStat;

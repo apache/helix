@@ -10,9 +10,9 @@ import org.testng.annotations.Test;
 
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.TestHelper;
-import com.linkedin.helix.agent.zk.ZKClusterManagementTool;
-import com.linkedin.helix.agent.zk.ZKDataAccessor;
-import com.linkedin.helix.controller.ClusterManagerMain;
+import com.linkedin.helix.controller.HelixControllerMain;
+import com.linkedin.helix.manager.zk.ZKDataAccessor;
+import com.linkedin.helix.manager.zk.ZKHelixAdmin;
 import com.linkedin.helix.mock.storage.MockParticipant;
 import com.linkedin.helix.mock.storage.MockParticipant.ErrTransition;
 import com.linkedin.helix.model.LiveInstance;
@@ -49,7 +49,7 @@ public class TestResetPartitionState extends ZkIntegrationTestBase
                             1, 10, 5, 3, "MasterSlave", true);
 
     TestHelper.startController(clusterName, "controller_0",
-                                      ZK_ADDR, ClusterManagerMain.STANDALONE);
+                                      ZK_ADDR, HelixControllerMain.STANDALONE);
     Map<String, Set<String>> errPartitions = new HashMap<String, Set<String>>()
     {
       {
@@ -94,7 +94,7 @@ public class TestResetPartitionState extends ZkIntegrationTestBase
     participants[0].setTransition(new ErrTransitionWithReset(errPartitions));
     clearStatusUpdate(clusterName, "localhost_12918", "TestDB0", "TestDB0_0");
     _resetInvoked = false;
-    ZKClusterManagementTool tool = new ZKClusterManagementTool(_zkClient);
+    ZKHelixAdmin tool = new ZKHelixAdmin(_zkClient);
     tool.resetPartition(clusterName, "localhost_12918", "TestDB0", "TestDB0_0");
 
     errorStateMap.remove("TestDB0_0");

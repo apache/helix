@@ -3,8 +3,8 @@ package com.linkedin.helix.util;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import com.linkedin.helix.agent.zk.ZNRecordSerializer;
-import com.linkedin.helix.agent.zk.ZkClient;
+import com.linkedin.helix.manager.zk.ZNRecordSerializer;
+import com.linkedin.helix.manager.zk.ZkClient;
 
 public class ZKClientPool
 {

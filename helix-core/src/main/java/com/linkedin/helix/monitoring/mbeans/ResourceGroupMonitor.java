@@ -5,7 +5,7 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 
 import com.linkedin.helix.DataAccessor;
-import com.linkedin.helix.HelixAgent;
+import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.IdealState;
@@ -43,7 +43,7 @@ public class ResourceGroupMonitor implements ResourceGroupMonitorMBean
     return _externalViewIdealStateDiff;
   }
 
-  public void onExternalViewChange(ExternalView externalView, HelixAgent manager)
+  public void onExternalViewChange(ExternalView externalView, HelixManager manager)
   {
     if(externalView == null)
     {

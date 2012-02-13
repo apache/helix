@@ -5,7 +5,7 @@ import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-import com.linkedin.helix.agent.zk.ZKDataAccessor;
+import com.linkedin.helix.manager.zk.ZKDataAccessor;
 
 /**
  *

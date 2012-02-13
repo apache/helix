@@ -5,15 +5,15 @@ import java.util.List;
 import org.I0Itec.zkclient.IDefaultNameSpace;
 import org.I0Itec.zkclient.ZkServer;
 
-import com.linkedin.helix.HelixAgent;
-import com.linkedin.helix.HelixAgentFactory;
+import com.linkedin.helix.HelixManager;
+import com.linkedin.helix.HelixManagerFactory;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.agent.zk.ZNRecordSerializer;
+import com.linkedin.helix.manager.zk.ZNRecordSerializer;
 import com.linkedin.helix.model.InstanceConfig;
 import com.linkedin.helix.spectator.RoutingTableProvider;
 import com.linkedin.helix.tools.ClusterSetup;
-import com.linkedin.helix.util.CMUtil;
+import com.linkedin.helix.util.HelixUtil;
 
 /**
  * A MockRouter process to demonstrate the integration with cluster manager.
@@ -47,9 +47,9 @@ public class MockRouterProcess
     setup();
     zkServer.getZkClient().setZkSerializer(new ZNRecordSerializer());
     ZNRecord record = zkServer.getZkClient().readData(
-        CMUtil.getIdealStatePath(clusterName, "TestDB"));
+        HelixUtil.getIdealStatePath(clusterName, "TestDB"));
 
-    String externalViewPath = CMUtil.getExternalViewPath(clusterName, "TestDB");
+    String externalViewPath = HelixUtil.getExternalViewPath(clusterName, "TestDB");
 
     MockRouterProcess process = new MockRouterProcess();
     process.start();
@@ -127,7 +127,7 @@ public class MockRouterProcess
 
     try
     {
-      HelixAgent manager = HelixAgentFactory.getZKHelixAgent(clusterName,
+      HelixManager manager = HelixManagerFactory.getZKHelixManager(clusterName,
                                                                          null,
                                                                          InstanceType.SPECTATOR,
                                                                          zkConnectString);

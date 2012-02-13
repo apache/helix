@@ -7,15 +7,15 @@ import org.testng.annotations.Test;
 
 import com.linkedin.helix.HelixConstants.ChangeType;
 import com.linkedin.helix.DataAccessor;
-import com.linkedin.helix.HelixAgent;
+import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.NotificationContext.Type;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.TestHelper;
-import com.linkedin.helix.agent.zk.ZKDataAccessor;
-import com.linkedin.helix.agent.zk.ZNRecordSerializer;
-import com.linkedin.helix.agent.zk.ZkClient;
-import com.linkedin.helix.controller.ClusterManagerMain;
+import com.linkedin.helix.controller.HelixControllerMain;
+import com.linkedin.helix.manager.zk.ZKDataAccessor;
+import com.linkedin.helix.manager.zk.ZNRecordSerializer;
+import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.mock.storage.MockJobIntf;
 import com.linkedin.helix.mock.storage.MockParticipant;
 import com.linkedin.helix.model.LiveInstance;
@@ -36,7 +36,7 @@ public class TestParticipantCodeBuilder extends ZkIntegrationTestBase
     @Override
     public void onCallback(NotificationContext context)
     {
-      HelixAgent manager = context.getManager();
+      HelixManager manager = context.getManager();
       Type type = context.getType();
       _isCallbackInvoked = true;
 //      System.out.println(type + ": TestCallback invoked on " + manager.getInstanceName());
@@ -47,7 +47,7 @@ public class TestParticipantCodeBuilder extends ZkIntegrationTestBase
   class MockJob implements MockJobIntf
   {
     @Override
-    public void doPreConnectJob(HelixAgent manager)
+    public void doPreConnectJob(HelixManager manager)
     {
       try
       {
@@ -71,7 +71,7 @@ public class TestParticipantCodeBuilder extends ZkIntegrationTestBase
     }
 
     @Override
-    public void doPostConnectJob(HelixAgent manager)
+    public void doPostConnectJob(HelixManager manager)
     {
       // TODO Auto-generated method stub
       
@@ -99,7 +99,7 @@ public class TestParticipantCodeBuilder extends ZkIntegrationTestBase
     TestHelper.startController(_clusterName, 
                                "controller_0",
                                ZK_ADDR, 
-                               ClusterManagerMain.STANDALONE);
+                               HelixControllerMain.STANDALONE);
 
     MockParticipant[] partics = new MockParticipant[5];
     for (int i = 0; i < _nodeNb; i++)
@@ -129,7 +129,7 @@ public class TestParticipantCodeBuilder extends ZkIntegrationTestBase
     zkClient.setZkSerializer(new ZNRecordSerializer());
     DataAccessor accessor = new ZKDataAccessor(_clusterName, zkClient);
     LiveInstance newLiveIns = new LiveInstance("newLiveInstance");
-    newLiveIns.setClusterManagerVersion("0.0.0");
+    newLiveIns.setHelixVersion("0.0.0");
     newLiveIns.setSessionId("randomSessionId");
     accessor.setProperty(PropertyType.LIVEINSTANCES, newLiveIns, "newLiveInstance");
 

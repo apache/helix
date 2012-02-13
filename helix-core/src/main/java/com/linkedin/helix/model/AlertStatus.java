@@ -4,7 +4,6 @@ package com.linkedin.helix.model;
 import java.util.Map;
 
 
-//import com.linkedin.clustermanager.ZNRecordAndStat;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.ZNRecordDecorator;
 

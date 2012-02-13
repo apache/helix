@@ -22,11 +22,11 @@ import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.HelixException;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.agent.zk.ZKDataAccessor;
-import com.linkedin.helix.agent.zk.ZNRecordSerializer;
-import com.linkedin.helix.agent.zk.ZkClient;
+import com.linkedin.helix.manager.zk.ZKDataAccessor;
+import com.linkedin.helix.manager.zk.ZNRecordSerializer;
+import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.model.LiveInstance.LiveInstanceProperty;
-import com.linkedin.helix.util.CMUtil;
+import com.linkedin.helix.util.HelixUtil;
 import com.linkedin.helix.util.ZKClientPool;
 
 public class ClusterRepresentationUtil
@@ -59,7 +59,7 @@ public class ClusterRepresentationUtil
     ZkClient zkClient = ZKClientPool.getZkClient(zkServer);
     zkClient.setZkSerializer(new ZNRecordSerializer());
 
-    String path = CMUtil.getInstancePropertyPath(clusterName, instanceName, instanceProperty) + "/"+key;
+    String path = HelixUtil.getInstancePropertyPath(clusterName, instanceName, instanceProperty) + "/"+key;
     if(zkClient.exists(path))
     {
       DataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
@@ -75,7 +75,7 @@ public class ClusterRepresentationUtil
     ZkClient zkClient = ZKClientPool.getZkClient(zkServer);
     zkClient.setZkSerializer(new ZNRecordSerializer());
 
-    String path = CMUtil.getInstancePropertyPath(clusterName, instanceName, instanceProperty) + "/"+key;
+    String path = HelixUtil.getInstancePropertyPath(clusterName, instanceName, instanceProperty) + "/"+key;
     if(zkClient.exists(path))
     {
       List<String> recordNames = zkClient.getChildren(path);
@@ -231,7 +231,7 @@ public class ClusterRepresentationUtil
   {
     ZkClient zkClient = ZKClientPool.getZkClient(zkServerAddress);
     zkClient.setZkSerializer(new ZNRecordSerializer());
-    String propertyPath = CMUtil.getInstancePropertyPath(clusterName, instanceName, property)+"/"+key;
+    String propertyPath = HelixUtil.getInstancePropertyPath(clusterName, instanceName, property)+"/"+key;
 
     return zkClient.getChildren(propertyPath);
 

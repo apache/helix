@@ -14,9 +14,9 @@ import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.TestHelper.StartCMResult;
-import com.linkedin.helix.agent.zk.ZNRecordSerializer;
-import com.linkedin.helix.agent.zk.ZkClient;
-import com.linkedin.helix.controller.ClusterManagerMain;
+import com.linkedin.helix.controller.HelixControllerMain;
+import com.linkedin.helix.manager.zk.ZNRecordSerializer;
+import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.model.PauseSignal;
 import com.linkedin.helix.tools.ClusterSetup;
 
@@ -121,7 +121,7 @@ public class ZkDistCMTestBase extends ZkIntegrationTestBase
         StartCMResult result = TestHelper.startController(CONTROLLER_CLUSTER,
                                                                  controllerName,
                                                                  ZK_ADDR,
-                                                                 ClusterManagerMain.DISTRIBUTED);
+                                                                 HelixControllerMain.DISTRIBUTED);
         _startCMResultMap.put(controllerName, result);
       }
     }

@@ -102,10 +102,10 @@ public class AsyncCallbackService implements MessageHandlerFactory
     }
 
     @Override
-    public CMTaskResult handleMessage() throws InterruptedException
+    public HelixTaskResult handleMessage() throws InterruptedException
     {
       verifyMessage(_message);
-      CMTaskResult result = new CMTaskResult();
+      HelixTaskResult result = new HelixTaskResult();
       assert (_correlationId.equalsIgnoreCase(_message.getCorrelationId()));
       _logger.info("invoking reply message " + _message.getMsgId()
           + ", correlationid:" + _correlationId);

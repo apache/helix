@@ -2,8 +2,8 @@ package com.linkedin.helix;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.agent.zk.ZNRecordSerializer;
-import com.linkedin.helix.agent.zk.ZkClient;
+import com.linkedin.helix.manager.zk.ZNRecordSerializer;
+import com.linkedin.helix.manager.zk.ZkClient;
 
 /**
  * Hello world!

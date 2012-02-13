@@ -12,19 +12,19 @@ import java.util.UUID;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import com.linkedin.helix.HelixAgent;
+import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.HelixException;
 import com.linkedin.helix.Mocks;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.messaging.AsyncCallback;
 import com.linkedin.helix.messaging.handling.AsyncCallbackService;
 import com.linkedin.helix.messaging.handling.MessageHandler;
-import com.linkedin.helix.messaging.handling.TestCMTaskExecutor.MockClusterManager;
+import com.linkedin.helix.messaging.handling.TestHelixTaskExecutor.MockClusterManager;
 import com.linkedin.helix.model.Message;
 
 public class TestAsyncCallbackSvc
 {
-  class MockClusterManager extends Mocks.MockManager
+  class MockHelixManager extends Mocks.MockManager
   {
     public String getSessionId()
     {
@@ -55,7 +55,7 @@ public class TestAsyncCallbackSvc
   public void testAsyncCallbackSvc() throws Exception
   {
     AsyncCallbackService svc = new AsyncCallbackService();
-    HelixAgent manager = new MockClusterManager();
+    HelixManager manager = new MockHelixManager();
     NotificationContext changeContext = new NotificationContext(manager);
     
     Message msg = new Message(svc.getMessageType(), UUID.randomUUID().toString());

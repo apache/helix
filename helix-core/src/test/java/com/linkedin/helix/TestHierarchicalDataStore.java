@@ -8,8 +8,8 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.agent.zk.ZkClient;
 import com.linkedin.helix.controller.HierarchicalDataHolder;
+import com.linkedin.helix.manager.zk.ZkClient;
 
 public class TestHierarchicalDataStore extends ZkUnitTestBase
 {

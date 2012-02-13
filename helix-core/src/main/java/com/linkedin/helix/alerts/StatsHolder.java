@@ -9,7 +9,7 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 
 import com.linkedin.helix.DataAccessor;
-import com.linkedin.helix.HelixAgent;
+import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.HelixException;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
@@ -32,7 +32,7 @@ public class StatsHolder {
 	//PersistentStats _persistentStats
 	;
 	
-	public StatsHolder(HelixAgent manager)
+	public StatsHolder(HelixManager manager)
 	{
 		_accessor = manager.getDataAccessor();
 		_cache = new ClusterDataCache();

@@ -6,7 +6,7 @@ import org.I0Itec.zkclient.IZkChildListener;
 import org.I0Itec.zkclient.IZkDataListener;
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.agent.zk.ZkClient;
+import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.store.PropertyChangeListener;
 
 public class ZkCallbackHandler<T> implements IZkChildListener, IZkDataListener

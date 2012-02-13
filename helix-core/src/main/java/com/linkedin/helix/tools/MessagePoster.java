@@ -1,12 +1,12 @@
 package com.linkedin.helix.tools;
 
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.agent.zk.ZNRecordSerializer;
-import com.linkedin.helix.agent.zk.ZkClient;
+import com.linkedin.helix.manager.zk.ZNRecordSerializer;
+import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.model.Message;
 import com.linkedin.helix.model.LiveInstance.LiveInstanceProperty;
 import com.linkedin.helix.model.Message.MessageType;
-import com.linkedin.helix.util.CMUtil;
+import com.linkedin.helix.util.HelixUtil;
 
 public class MessagePoster
 {
@@ -33,10 +33,10 @@ public class MessagePoster
     message.setFromState("Slave");
     message.setToState("Master");
     message.setStateUnitKey("EspressoDB.partition-0." + instanceName);
-    String path = CMUtil.getMessagePath(clusterName, instanceName) + "/"
+    String path = HelixUtil.getMessagePath(clusterName, instanceName) + "/"
         + message.getId();
     client.delete(path);
-    ZNRecord record = client.readData(CMUtil.getLiveInstancePath(clusterName,
+    ZNRecord record = client.readData(HelixUtil.getLiveInstancePath(clusterName,
         instanceName));
     message.setTgtSessionId(record.getSimpleField(
         LiveInstanceProperty.SESSION_ID.toString()).toString());

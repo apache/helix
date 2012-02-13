@@ -14,7 +14,7 @@ public class LiveInstance extends ZNRecordDecorator
   public enum LiveInstanceProperty
   {
     SESSION_ID,
-    CLUSTER_MANAGER_VERSION,
+    HELIX_VERSION,
     LEADER
   }
   
@@ -45,14 +45,14 @@ public class LiveInstance extends ZNRecordDecorator
     return _record.getId();
   }
 
-  public String getClusterManagerVersion()
+  public String getHelixVersion()
   {
-    return _record.getSimpleField(LiveInstanceProperty.CLUSTER_MANAGER_VERSION.toString());
+    return _record.getSimpleField(LiveInstanceProperty.HELIX_VERSION.toString());
   }
 
-  public void setClusterManagerVersion(String clusterManagerVersion)
+  public void setHelixVersion(String helixVersion)
   {
-    _record.setSimpleField(LiveInstanceProperty.CLUSTER_MANAGER_VERSION.toString(), clusterManagerVersion);
+    _record.setSimpleField(LiveInstanceProperty.HELIX_VERSION.toString(), helixVersion);
   }
 
   public String getLeader()
@@ -83,7 +83,7 @@ public class LiveInstance extends ZNRecordDecorator
       _logger.error("liveInstance does not have session id. id:" + _record.getId());
       return false;
     }
-    if(getClusterManagerVersion() == null)
+    if(getHelixVersion() == null)
     {
       _logger.error("liveInstance does not have CLM verion. id:" + _record.getId());
       return false;

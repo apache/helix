@@ -63,7 +63,7 @@ public class TestClusterStatusMonitor
       return null;
     }
   }
-  class MockClusterManager extends Mocks.MockManager
+  class MockHelixManager extends Mocks.MockManager
   {
     MockDataAccessor _accessor = new MockDataAccessor();
 
@@ -105,7 +105,7 @@ public class TestClusterStatusMonitor
     externalViews.add(externalView2);
 
     ClusterStatusMonitor monitor = new ClusterStatusMonitor("cluster1", _instances.size());
-    MockClusterManager manager = new MockClusterManager();
+    MockHelixManager manager = new MockHelixManager();
     NotificationContext context = new NotificationContext(manager);
 
     monitor.onExternalViewChange(ZNRecordDecorator.convertToTypedList(ExternalView.class, externalViews), context);

@@ -9,7 +9,7 @@ import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
 import com.linkedin.helix.DataAccessor;
-import com.linkedin.helix.HelixAgent;
+import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.Criteria;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.Mocks;
@@ -18,7 +18,7 @@ import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.messaging.DefaultMessagingService;
-import com.linkedin.helix.messaging.handling.CMTaskResult;
+import com.linkedin.helix.messaging.handling.HelixTaskResult;
 import com.linkedin.helix.messaging.handling.MessageHandler;
 import com.linkedin.helix.messaging.handling.MessageHandlerFactory;
 import com.linkedin.helix.messaging.handling.MessageHandler.ErrorCode;
@@ -29,7 +29,7 @@ import com.linkedin.helix.tools.IdealStateCalculatorForStorageNode;
 
 public class TestDefaultMessagingService
 {
-  class MockClusterManager extends Mocks.MockManager
+  class MockHelixManager extends Mocks.MockManager
   {
     class MockDataAccessor extends Mocks.MockAccessor
     {
@@ -75,7 +75,7 @@ public class TestDefaultMessagingService
     int _replicas = 3;
     int _partitions = 50;
 
-    public MockClusterManager()
+    public MockHelixManager()
     {
       _liveInstances = new ArrayList<ZNRecord>();
       _instances = new ArrayList<String>();
@@ -131,9 +131,9 @@ public class TestDefaultMessagingService
       }
 
       @Override
-      public CMTaskResult handleMessage() throws InterruptedException
+      public HelixTaskResult handleMessage() throws InterruptedException
       {
-        CMTaskResult result = new CMTaskResult();
+        HelixTaskResult result = new HelixTaskResult();
         result.setSuccess(true);
         return result;
       }
@@ -171,7 +171,7 @@ public class TestDefaultMessagingService
   @Test()
   public void TestMessageSend()
   {
-    HelixAgent manager = new MockClusterManager();
+    HelixManager manager = new MockHelixManager();
     DefaultMessagingService svc = new DefaultMessagingService(manager);
     TestMessageHandlerFactory factory = new TestMessageHandlerFactory();
     svc.registerMessageHandlerFactory(factory.getMessageType(), factory);

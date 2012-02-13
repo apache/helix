@@ -5,10 +5,10 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.HelixAgent;
+import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.HelixException;
 import com.linkedin.helix.NotificationContext;
-import com.linkedin.helix.messaging.handling.CMStateTransitionHandler;
+import com.linkedin.helix.messaging.handling.HelixStateTransitionHandler;
 import com.linkedin.helix.messaging.handling.MessageHandler;
 import com.linkedin.helix.model.Message;
 import com.linkedin.helix.model.Message.MessageType;
@@ -23,14 +23,14 @@ public class HelixStateMachineEngine implements StateMachineEngine
      = new ConcurrentHashMap<String, StateModelFactory<? extends StateModel>>();
   StateModelParser _stateModelParser;
   final static char SEPARATOR = '^';
-  private final HelixAgent _manager;
+  private final HelixManager _manager;
 
   public StateModelFactory<? extends StateModel> getStateModelFactory(String stateModelName)
   {
     return _stateModelFactoryMap.get(stateModelName);
   }
 
-  public HelixStateMachineEngine(HelixAgent manager)
+  public HelixStateMachineEngine(HelixManager manager)
   {
     _stateModelParser = new StateModelParser();
     _manager = manager;
@@ -139,7 +139,7 @@ public class HelixStateMachineEngine implements StateMachineEngine
       stateModelFactory.createAndAddStateModel(stateUnitKey);
       stateModel = stateModelFactory.getStateModel(stateUnitKey);
     }
-    return new CMStateTransitionHandler(stateModel, message, context);
+    return new HelixStateTransitionHandler(stateModel, message, context);
   }
 
   @Override

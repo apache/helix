@@ -5,7 +5,7 @@ import java.util.List;
 import org.apache.log4j.Logger;
 
 import com.linkedin.helix.DataAccessor;
-import com.linkedin.helix.HelixAgent;
+import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.ConfigChangeListener;
 import com.linkedin.helix.ExternalViewChangeListener;
 import com.linkedin.helix.LiveInstanceChangeListener;
@@ -40,7 +40,7 @@ public class ParticipantCodeHolder implements LiveInstanceChangeListener, Config
       // therefore, double check to make sure only one participant invokes the code
       if (context.getType() == Type.CALLBACK)
       {
-        HelixAgent manager = context.getManager();
+        HelixManager manager = context.getManager();
         DataAccessor accessor = manager.getDataAccessor();
         String instance = manager.getInstanceName();
         String sessionId = manager.getSessionId();

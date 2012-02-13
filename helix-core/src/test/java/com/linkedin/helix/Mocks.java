@@ -11,8 +11,8 @@ import java.util.concurrent.Future;
 import com.linkedin.helix.healthcheck.HealthReportProvider;
 import com.linkedin.helix.healthcheck.ParticipantHealthReportCollector;
 import com.linkedin.helix.messaging.AsyncCallback;
-import com.linkedin.helix.messaging.handling.CMTaskExecutor;
-import com.linkedin.helix.messaging.handling.CMTaskResult;
+import com.linkedin.helix.messaging.handling.HelixTaskExecutor;
+import com.linkedin.helix.messaging.handling.HelixTaskResult;
 import com.linkedin.helix.messaging.handling.MessageHandlerFactory;
 import com.linkedin.helix.model.Message;
 import com.linkedin.helix.participant.StateMachineEngine;
@@ -56,7 +56,7 @@ public class Mocks
     }
   }
 
-  public static class MockCMTaskExecutor extends CMTaskExecutor
+  public static class MockCMTaskExecutor extends HelixTaskExecutor
   {
     boolean completionInvoked = false;
 
@@ -69,7 +69,7 @@ public class Mocks
 
     public boolean isDone(String msgId)
     {
-      Future<CMTaskResult> future = _taskMap.get(msgId);
+      Future<HelixTaskResult> future = _taskMap.get(msgId);
       if (future != null)
       {
         return future.isDone();
@@ -78,7 +78,7 @@ public class Mocks
     }
   }
 
-  public static class MockManager implements HelixAgent
+  public static class MockManager implements HelixManager
   {
     MockAccessor accessor;
 

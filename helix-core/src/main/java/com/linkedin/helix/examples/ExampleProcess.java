@@ -12,8 +12,8 @@ import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
-import com.linkedin.helix.HelixAgent;
-import com.linkedin.helix.HelixAgentFactory;
+import com.linkedin.helix.HelixManager;
+import com.linkedin.helix.HelixManagerFactory;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.model.Message.MessageType;
 import com.linkedin.helix.participant.StateMachineEngine;
@@ -38,7 +38,7 @@ public class ExampleProcess
   private final String clusterName;
   private final String instanceName;
   private final String stateModelType;
-  private HelixAgent manager;
+  private HelixManager manager;
 
 //  private StateMachineEngine genericStateMachineHandler;
 
@@ -61,7 +61,7 @@ public class ExampleProcess
   {
     if (_file == null)
     {
-      manager = HelixAgentFactory.getZKHelixAgent(clusterName,
+      manager = HelixManagerFactory.getZKHelixManager(clusterName,
                                                           instanceName,
                                                           InstanceType.PARTICIPANT,
                                                           zkConnectString);
@@ -69,7 +69,7 @@ public class ExampleProcess
     }
     else
     {
-      manager = HelixAgentFactory.getStaticFileHelixAgent(clusterName,
+      manager = HelixManagerFactory.getStaticFileHelixManager(clusterName,
                                                                   instanceName,
                                                                   InstanceType.PARTICIPANT,
                                                                   _file);

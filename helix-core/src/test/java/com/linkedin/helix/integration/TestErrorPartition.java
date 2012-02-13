@@ -8,8 +8,8 @@ import java.util.Set;
 import org.testng.annotations.Test;
 
 import com.linkedin.helix.TestHelper;
-import com.linkedin.helix.agent.zk.ZKClusterManagementTool;
-import com.linkedin.helix.controller.ClusterManagerMain;
+import com.linkedin.helix.controller.HelixControllerMain;
+import com.linkedin.helix.manager.zk.ZKHelixAdmin;
 import com.linkedin.helix.mock.storage.MockParticipant;
 import com.linkedin.helix.mock.storage.MockParticipant.ErrTransition;
 
@@ -28,7 +28,7 @@ public class TestErrorPartition extends ZkIntegrationTestBase
                             1, 10, 5, 3, "MasterSlave", true);
 
     TestHelper.startController(clusterName, "controller_0",
-                                      ZK_ADDR, ClusterManagerMain.STANDALONE);
+                                      ZK_ADDR, HelixControllerMain.STANDALONE);
     for (int i = 0; i < 5; i++)
     {
       String instanceName = "localhost_" + (12918 + i);
@@ -70,7 +70,7 @@ public class TestErrorPartition extends ZkIntegrationTestBase
     TestHelper.verifyState(clusterName, ZK_ADDR, errorStateMap, "ERROR");
 
     // disable a partition on a node with error state
-    ZKClusterManagementTool tool = new ZKClusterManagementTool(_zkClient);
+    ZKHelixAdmin tool = new ZKHelixAdmin(_zkClient);
     tool.enablePartition(clusterName, "localhost_12918", "TestDB0", "TestDB0_0", false);
 
     Map<String, Set<String>> disabledPartMap = new HashMap<String, Set<String>>()

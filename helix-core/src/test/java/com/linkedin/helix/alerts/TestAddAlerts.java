@@ -16,7 +16,7 @@ public class TestAddAlerts {
 
 protected static final String CLUSTER_NAME = "TestCluster";
 	
-	MockManager _clusterManager;
+	MockManager _helixManager;
 	AlertsHolder _alertsHolder;
 	
 	public final String EXP = AlertParser.EXPRESSION_NAME;
@@ -26,8 +26,8 @@ protected static final String CLUSTER_NAME = "TestCluster";
 	@BeforeMethod (groups = {"unitTest"})
 	public void setup()
 	{
-		_clusterManager = new MockManager(CLUSTER_NAME);
-		_alertsHolder = new AlertsHolder(_clusterManager);
+		_helixManager = new MockManager(CLUSTER_NAME);
+		_alertsHolder = new AlertsHolder(_helixManager);
 	}
 	
 	
@@ -49,7 +49,7 @@ protected static final String CLUSTER_NAME = "TestCluster";
 		 String alert = EXP + "(accumulate()(dbFoo.partition10.latency))"
 					+ CMP + "(GREATER)" + CON + "(10)";
 		 _alertsHolder.addAlert(alert);
-		 ZNRecord rec = _clusterManager.getDataAccessor().getProperty(PropertyType.ALERTS);
+		 ZNRecord rec = _helixManager.getDataAccessor().getProperty(PropertyType.ALERTS);
 		 System.out.println("alert: "+alert);
 		 System.out.println("rec: "+rec.toString());
 		 AssertJUnit.assertTrue(alertRecordContains(rec,alert));
@@ -65,7 +65,7 @@ protected static final String CLUSTER_NAME = "TestCluster";
 					+ CMP + "(GREATER)" + CON + "(100)";
 		 _alertsHolder.addAlert(alert1);
 		 _alertsHolder.addAlert(alert2);
-		 ZNRecord rec = _clusterManager.getDataAccessor().getProperty(PropertyType.ALERTS);
+		 ZNRecord rec = _helixManager.getDataAccessor().getProperty(PropertyType.ALERTS);
 		 //System.out.println("alert: "+alert1);
 		 System.out.println("rec: "+rec.toString());
 		 AssertJUnit.assertTrue(alertRecordContains(rec,alert1));
@@ -79,7 +79,7 @@ protected static final String CLUSTER_NAME = "TestCluster";
 		 String alert1 = EXP + "(accumulate()(dbFoo.partition*.put*))"
 					+ CMP + "(GREATER)" + CON + "(10)";
 		 _alertsHolder.addAlert(alert1);
-		 ZNRecord rec = _clusterManager.getDataAccessor().getProperty(PropertyType.ALERTS);
+		 ZNRecord rec = _helixManager.getDataAccessor().getProperty(PropertyType.ALERTS);
 		 //System.out.println("alert: "+alert1);
 		 System.out.println("rec: "+rec.toString());
 		 AssertJUnit.assertTrue(alertRecordContains(rec,alert1));

@@ -26,17 +26,17 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import com.linkedin.helix.DataAccessor;
-import com.linkedin.helix.HelixAgent;
+import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.agent.zk.ZKDataAccessor;
-import com.linkedin.helix.agent.zk.ZNRecordSerializer;
-import com.linkedin.helix.agent.zk.ZkClient;
 import com.linkedin.helix.alerts.AlertValueAndStatus;
-import com.linkedin.helix.controller.ClusterManagerMain;
+import com.linkedin.helix.controller.HelixControllerMain;
 import com.linkedin.helix.healthcheck.ParticipantHealthReportCollectorImpl;
+import com.linkedin.helix.manager.zk.ZKDataAccessor;
+import com.linkedin.helix.manager.zk.ZNRecordSerializer;
+import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.mock.storage.MockEspressoHealthReportProvider;
 import com.linkedin.helix.mock.storage.MockParticipant;
 import com.linkedin.helix.mock.storage.MockTransition;
@@ -133,7 +133,7 @@ public class TestWildcardAlert extends ZkIntegrationTestBase
     @Override
     public void doTransition(Message message, NotificationContext context)
     {
-      HelixAgent manager = context.getManager();
+      HelixManager manager = context.getManager();
       DataAccessor accessor = manager.getDataAccessor();
       String fromState = message.getFromState();
       String toState = message.getToState();
@@ -214,7 +214,7 @@ public class TestWildcardAlert extends ZkIntegrationTestBase
     _setupTool.getClusterManagementTool().addAlert(clusterName, _alertStr);
     // _setupTool.getClusterManagementTool().addAlert(clusterName, _alertStr2);
 
-    TestHelper.startController(clusterName, "controller_0", ZK_ADDR, ClusterManagerMain.STANDALONE);
+    TestHelper.startController(clusterName, "controller_0", ZK_ADDR, HelixControllerMain.STANDALONE);
     // start participants
     for (int i = 0; i < 5; i++) // !!!change back to 5
     {

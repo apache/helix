@@ -14,9 +14,9 @@ import java.util.List;
 import java.util.Map;
 
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.agent.zk.ZNRecordSerializer;
+import com.linkedin.helix.manager.zk.ZNRecordSerializer;
 import com.linkedin.helix.model.IdealState.IdealStateProperty;
-import com.linkedin.helix.util.CMUtil;
+import com.linkedin.helix.util.HelixUtil;
 
 public class ZkLogCSVFormatter
 {
@@ -323,7 +323,7 @@ public class ZkLogCSVFormatter
               String path = getAttributeValue(inputLine, "path:");
               if (path != null)
               {
-                String instance = CMUtil.getInstanceNameFromPath(path);
+                String instance = HelixUtil.getInstanceNameFromPath(path);
                 formatter(csBw,
                           timestamp,
                           record.getId(),
@@ -396,7 +396,7 @@ public class ZkLogCSVFormatter
             String path = getAttributeValue(inputLine, "path:");
             if (path != null)
             {
-              String instance = CMUtil.getInstanceNameFromPath(path);
+              String instance = HelixUtil.getInstanceNameFromPath(path);
               formatter(hrPerfBw,
                         timestamp,
                         instance,

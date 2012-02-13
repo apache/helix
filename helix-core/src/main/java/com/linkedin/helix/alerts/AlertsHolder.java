@@ -10,7 +10,7 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 
 import com.linkedin.helix.DataAccessor;
-import com.linkedin.helix.HelixAgent;
+import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.HelixException;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
@@ -32,7 +32,7 @@ public class AlertsHolder {
 	HashSet<String> alerts;
 	StatsHolder _statsHolder;
 	
-	public AlertsHolder(HelixAgent manager) 
+	public AlertsHolder(HelixManager manager) 
 	{
 		_accessor = manager.getDataAccessor();
 		_cache = new ClusterDataCache();
@@ -121,21 +121,6 @@ public class AlertsHolder {
 		_alertsMap.put(alert, alertFields); 
 		persistAlerts();
 	}
-	
-	/*
-	public void updateAlert(String alert, Map<String, String> settings) throws ClusterManagerException
-	{
-		refreshAlerts();
-		Map<String,String> alertFields = _alertsMap.get(alert);
-		if (alertFields == null) {
-			alertFields = new HashMap<String,String>();
-			//throw new ClusterManagerException("Alert "+alert+" does not exist");
-		}
-		alertFields.putAll(settings);
-		_alertsMap.put(alert, alertFields);
-		persistAlerts();
-	}
-	*/
 	
 	/*
 	 * Add a set of alert statuses to ZK

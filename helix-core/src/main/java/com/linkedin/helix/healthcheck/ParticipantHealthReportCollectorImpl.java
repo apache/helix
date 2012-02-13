@@ -8,7 +8,7 @@ import java.util.TimerTask;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.HelixAgent;
+import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 
@@ -19,14 +19,14 @@ public class ParticipantHealthReportCollectorImpl implements
   private Timer _timer;
   private static final Logger _logger = Logger
       .getLogger(ParticipantHealthReportCollectorImpl.class);
-  private final HelixAgent _clusterManager;
+  private final HelixManager _helixManager;
   String _instanceName;
   public final static int DEFAULT_REPORT_LATENCY = 60 * 1000;
 
-  public ParticipantHealthReportCollectorImpl(HelixAgent clusterManager,
+  public ParticipantHealthReportCollectorImpl(HelixManager helixManager,
       String instanceName)
   {
-    _clusterManager = clusterManager;
+    _helixManager = helixManager;
     _instanceName = instanceName;
     addDefaultHealthCheckInfoProvider();
   }
@@ -124,7 +124,7 @@ public class ParticipantHealthReportCollectorImpl implements
             	record.setMapFields(partitionReport);
             }
             
-            _clusterManager.getDataAccessor().setProperty(
+            _helixManager.getDataAccessor().setProperty(
                 PropertyType.HEALTHREPORT, record, _instanceName,
                 record.getId());
             //reset stats (for now just the partition stats)
@@ -143,36 +143,6 @@ public class ParticipantHealthReportCollectorImpl implements
     public void run()
     {
     	transmitHealthReports();
-    	/*
-      synchronized (_healthReportProviderList)
-      {
-        for (HealthReportProvider provider : _healthReportProviderList)
-        {
-          try
-          {
-            Map<String, String> report = provider.getRecentHealthReport();
-            Map<String, Map<String, String>> partitionReport = provider
-                .getRecentPartitionHealthReport();
-            ZNRecord record = new ZNRecord(provider.getReportName());
-            if (report != null) {
-            	record.setSimpleFields(report);
-            }
-            if (partitionReport != null) {
-            	record.setMapFields(partitionReport);
-            }
-            _clusterManager.getDataAccessor().setProperty(PropertyType.HEALTHREPORT,
-                                                          record,
-                                                          _instanceName,
-                                                          record.getId());
-            //reset stats (for now just the partition stats)
-            provider.resetStats();
-          } catch (Exception e)
-          {
-            _logger.error(e);
-          }
-        }
-      }
-      */
     }
   }
 }

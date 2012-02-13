@@ -4,7 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.agent.zk.ZNRecordSerializer;
+import com.linkedin.helix.manager.zk.ZNRecordSerializer;
 import com.linkedin.helix.model.IdealState.IdealStateProperty;
 
 public class RelayIdealStateGenerator

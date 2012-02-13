@@ -12,7 +12,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 
 import com.linkedin.helix.DataAccessor;
-import com.linkedin.helix.HelixAgent;
+import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.Mocks;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
@@ -27,7 +27,7 @@ import com.linkedin.helix.tools.StateModelConfigGenerator;
 
 public class BaseStageTest
 {
-  protected HelixAgent manager;
+  protected HelixManager manager;
   protected DataAccessor accessor;
   protected ClusterEvent event;
 
@@ -106,7 +106,7 @@ public class BaseStageTest
 
   protected void runStage(ClusterEvent event, Stage stage)
   {
-    event.addAttribute("clustermanager", manager);
+    event.addAttribute("helixmanager", manager);
     StageContext context = new StageContext();
     stage.init(context);
     stage.preProcess();

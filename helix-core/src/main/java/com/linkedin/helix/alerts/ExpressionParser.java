@@ -188,40 +188,6 @@ public class ExpressionParser {
 				  }
 			  }
 		  }
-		  
-		  
-		  //Pattern pattern = Pattern.compile("^\\(.*?\\)\\(.+?\\)$");
-		  //Pattern pattern = Pattern.compile("\\(\\({0}.*?\\({0}\\)\\){0}\\(\\({0}.+?\\({0}\\)"); //trying to add in no nested parentheses allowed
-		 /*
-			  Matcher matcher = pattern.matcher(expression);
-		  if (!matcher.find()) {
-			  throw new ClusterManagerException(expression +" does not have correct parenthesis");
-		  }
-		  logger.debug("found valid aggregator "+matcher.group());
-		  int patternEnd = matcher.end();
-		  
-		  
-		  
-		  if (expression.length() > patternEnd+1) { //if more, check for what follows
-		  if (expression.substring(patternEnd+1).contains("(") || 
-		  	expression.substring(patternEnd+1).contains(")")) {
-			  	throw new ClusterManagerException(expression +" has extra parenthesis");
-		  	}
-		  }
-		  
-		  //check wildcard locations.  each part can have at most 1 wildcard, and must be at end
-		  //String expStatNamePart = expression.substring(expression.)
-		  StringTokenizer fieldTok = new StringTokenizer(expression, statFieldDelim);
-		  while (fieldTok.hasMoreTokens()) {
-			  String currTok = fieldTok.nextToken();
-			  if (currTok.contains(wildcardChar)) {
-				  if (currTok.indexOf(wildcardChar) != currTok.length()-1 ||
-						  currTok.lastIndexOf(wildcardChar) != currTok.length()-1) {
-					  throw new ClusterManagerException(currTok+" is illegal stat name.  Single wildcard must appear at end.");
-				  }
-			  }
-		  }
-		  */
 	  }
 	  
 	  public static boolean statContainsWildcards(String stat)

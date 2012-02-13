@@ -11,12 +11,12 @@ import org.codehaus.jackson.map.SerializationConfig;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import com.linkedin.helix.HelixAgent;
+import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.Criteria;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.PropertyType;
-import com.linkedin.helix.messaging.handling.CMTaskResult;
+import com.linkedin.helix.messaging.handling.HelixTaskResult;
 import com.linkedin.helix.messaging.handling.MessageHandler;
 import com.linkedin.helix.messaging.handling.MessageHandlerFactory;
 import com.linkedin.helix.model.Message;
@@ -59,9 +59,9 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBase
       }
 
       @Override
-      public CMTaskResult handleMessage() throws InterruptedException
+      public HelixTaskResult handleMessage() throws InterruptedException
       {
-        CMTaskResult result = new CMTaskResult();
+        HelixTaskResult result = new HelixTaskResult();
         result.setSuccess(true);
         String destName = _message.getTgtName();
         synchronized(_results)
@@ -89,7 +89,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBase
   public void TestSchedulerMsg() throws Exception
   {
     TestMessagingHandlerFactory factory = new TestMessagingHandlerFactory();
-    HelixAgent manager = null;
+    HelixManager manager = null;
     for(int i = 0; i < NODE_NR; i++)
     {
       String hostDest = "localhost_" + (START_PORT + i);

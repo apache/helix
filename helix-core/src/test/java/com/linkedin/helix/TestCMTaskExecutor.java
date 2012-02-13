@@ -10,7 +10,7 @@ import com.linkedin.helix.Mocks.MockCMTaskExecutor;
 import com.linkedin.helix.Mocks.MockManager;
 import com.linkedin.helix.Mocks.MockStateModel;
 import com.linkedin.helix.messaging.handling.AsyncCallbackService;
-import com.linkedin.helix.messaging.handling.CMStateTransitionHandler;
+import com.linkedin.helix.messaging.handling.HelixStateTransitionHandler;
 import com.linkedin.helix.model.Message;
 import com.linkedin.helix.model.StateModelDefinition;
 import com.linkedin.helix.model.Message.MessageType;
@@ -49,7 +49,7 @@ public class TestCMTaskExecutor
         MessageType.TASK_REPLY.toString(), new AsyncCallbackService());
     String clusterName =" testcluster";
     context = new NotificationContext(manager);
-    CMStateTransitionHandler handler = new CMStateTransitionHandler(stateModel, message, context);
+    HelixStateTransitionHandler handler = new HelixStateTransitionHandler(stateModel, message, context);
 
     executor.scheduleTask(message, handler, context);
     while (!executor.isDone(msgId))

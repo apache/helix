@@ -6,7 +6,7 @@ import java.util.UUID;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.HelixAgent;
+import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.controller.pipeline.AbstractBaseStage;
 import com.linkedin.helix.controller.pipeline.StageException;
 import com.linkedin.helix.model.LiveInstance;
@@ -27,7 +27,7 @@ public class MessageGenerationPhase extends AbstractBaseStage
   @Override
   public void process(ClusterEvent event) throws Exception
   {
-    HelixAgent manager = event.getAttribute("clustermanager");
+    HelixManager manager = event.getAttribute("helixmanager");
     ClusterDataCache cache = event.getAttribute("ClusterDataCache");
     Map<String, ResourceGroup> resourceGroupMap = event
         .getAttribute(AttributeName.RESOURCE_GROUPS.toString());
@@ -39,7 +39,7 @@ public class MessageGenerationPhase extends AbstractBaseStage
         || currentStateOutput == null || bestPossibleStateOutput == null)
     {
       throw new StageException("Missing attributes in event:" + event
-       + ". Requires ClusterManager|DataCache|RESOURCE_GROUPS|CURRENT_STATE|BEST_POSSIBLE_STATE");
+       + ". Requires HelixManager|DataCache|RESOURCE_GROUPS|CURRENT_STATE|BEST_POSSIBLE_STATE");
     }
 
     Map<String, LiveInstance> liveInstances = cache.getLiveInstances();
@@ -116,7 +116,7 @@ public class MessageGenerationPhase extends AbstractBaseStage
     event.addAttribute(AttributeName.MESSAGES_ALL.toString(), output);
   }
 
-  private Message createMessage(HelixAgent manager,String resourceGroupName,
+  private Message createMessage(HelixManager manager,String resourceGroupName,
       String resourceKeyName, String instanceName, String currentState,
       String nextState, String sessionId, String stateModelDefName)
   {

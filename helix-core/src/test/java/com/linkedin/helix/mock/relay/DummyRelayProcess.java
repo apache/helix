@@ -12,8 +12,8 @@ import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
-import com.linkedin.helix.HelixAgent;
-import com.linkedin.helix.HelixAgentFactory;
+import com.linkedin.helix.HelixManager;
+import com.linkedin.helix.HelixManagerFactory;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.model.Message;
@@ -38,7 +38,7 @@ public class DummyRelayProcess
   private final String zkConnectString;
   private final String clusterName;
   private final String instanceName;
-  private HelixAgent manager;
+  private HelixManager manager;
   private DummyStateModelFactory stateModelFactory;
   private HelixStateMachineEngine genericStateMachineHandler;
 
@@ -57,14 +57,14 @@ public class DummyRelayProcess
   {
     if (_clusterViewFile == null)
     {
-      manager = HelixAgentFactory.getZKHelixAgent(clusterName,
+      manager = HelixManagerFactory.getZKHelixManager(clusterName,
                                                           instanceName,
                                                           InstanceType.PARTICIPANT,
                                                           zkConnectString);
     }
     else
     {
-      manager = HelixAgentFactory.getStaticFileHelixAgent(clusterName,
+      manager = HelixManagerFactory.getStaticFileHelixManager(clusterName,
                                                                   instanceName,
                                                                   InstanceType.PARTICIPANT,
                                                                   _clusterViewFile);

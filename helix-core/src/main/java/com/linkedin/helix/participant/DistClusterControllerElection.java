@@ -3,14 +3,14 @@ package com.linkedin.helix.participant;
 import org.apache.log4j.Logger;
 
 import com.linkedin.helix.DataAccessor;
-import com.linkedin.helix.HelixAgent;
-import com.linkedin.helix.HelixAgentFactory;
+import com.linkedin.helix.HelixManager;
+import com.linkedin.helix.HelixManagerFactory;
 import com.linkedin.helix.ControllerChangeListener;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.PropertyType;
-import com.linkedin.helix.controller.ClusterManagerMain;
-import com.linkedin.helix.controller.GenericClusterController;
+import com.linkedin.helix.controller.HelixControllerMain;
+import com.linkedin.helix.controller.GenericHelixController;
 import com.linkedin.helix.model.LeaderHistory;
 import com.linkedin.helix.model.LiveInstance;
 
@@ -18,8 +18,8 @@ public class DistClusterControllerElection implements ControllerChangeListener
 {
   private static Logger LOG = Logger.getLogger(DistClusterControllerElection.class);
   private final String _zkAddr;
-  private final GenericClusterController _controller = new GenericClusterController();
-  private HelixAgent _leader;
+  private final GenericHelixController _controller = new GenericHelixController();
+  private HelixManager _leader;
 
   public DistClusterControllerElection(String zkAddr)
   {
@@ -28,15 +28,16 @@ public class DistClusterControllerElection implements ControllerChangeListener
 
   /**
    * may be accessed by multiple threads: zk-client thread and
-   * ZkClusterManager.disconnect()->reset()
+   * ZkHelixManager.disconnect()->reset()
+   *TODO: Refactor acessing HelixMaangerMain class statically
    */
   @Override
   public synchronized void onControllerChange(NotificationContext changeContext)
   {
-    HelixAgent manager = changeContext.getManager();
+    HelixManager manager = changeContext.getManager();
     if (manager == null)
     {
-      LOG.error("missing attributes in changeContext. requires ClusterManager");
+      LOG.error("missing attributes in changeContext. requires HelixManager");
       return;
     }
 
@@ -62,20 +63,20 @@ public class DistClusterControllerElection implements ControllerChangeListener
             updateHistory(manager);
             if (type == InstanceType.CONTROLLER)
             {
-              ClusterManagerMain.addListenersToController(manager, _controller);
+              HelixControllerMain.addListenersToController(manager, _controller);
             }
             else if (type == InstanceType.CONTROLLER_PARTICIPANT)
             {
               String clusterName = manager.getClusterName();
               String controllerName = manager.getInstanceName();
               _leader =
-                  HelixAgentFactory.getZKHelixAgent(clusterName,
+                  HelixManagerFactory.getZKHelixManager(clusterName,
                                                             controllerName,
                                                             InstanceType.CONTROLLER,
                                                             _zkAddr);
 
               _leader.connect();
-              ClusterManagerMain.addListenersToController(_leader, _controller);
+              HelixControllerMain.addListenersToController(_leader, _controller);
             }
 
           }
@@ -97,7 +98,7 @@ public class DistClusterControllerElection implements ControllerChangeListener
     }
   }
 
-  private boolean tryUpdateController(HelixAgent manager)
+  private boolean tryUpdateController(HelixManager manager)
   {
     DataAccessor dataAccessor = manager.getDataAccessor();
     LiveInstance leader = new LiveInstance(PropertyType.LEADER.toString());
@@ -105,7 +106,7 @@ public class DistClusterControllerElection implements ControllerChangeListener
     {
       leader.setLeader(manager.getInstanceName());
       leader.setSessionId(manager.getSessionId());
-      leader.setClusterManagerVersion(manager.getVersion());
+      leader.setHelixVersion(manager.getVersion());
       boolean success = dataAccessor.setProperty(PropertyType.LEADER, leader);
       if (success)
       {
@@ -138,7 +139,7 @@ public class DistClusterControllerElection implements ControllerChangeListener
     return false;
   }
 
-  private void updateHistory(HelixAgent manager)
+  private void updateHistory(HelixManager manager)
   {
     DataAccessor dataAccessor = manager.getDataAccessor();
 

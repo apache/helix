@@ -17,11 +17,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
 
-import com.linkedin.helix.agent.file.FileBasedDataAccessor;
-import com.linkedin.helix.agent.zk.ZKDataAccessor;
-import com.linkedin.helix.agent.zk.ZNRecordSerializer;
-import com.linkedin.helix.agent.zk.ZkClient;
-import com.linkedin.helix.controller.ClusterManagerMain;
+import com.linkedin.helix.controller.HelixControllerMain;
 import com.linkedin.helix.controller.pipeline.Stage;
 import com.linkedin.helix.controller.pipeline.StageContext;
 import com.linkedin.helix.controller.stages.AttributeName;
@@ -30,6 +26,10 @@ import com.linkedin.helix.controller.stages.BestPossibleStateOutput;
 import com.linkedin.helix.controller.stages.ClusterDataCache;
 import com.linkedin.helix.controller.stages.ClusterEvent;
 import com.linkedin.helix.controller.stages.CurrentStateComputationStage;
+import com.linkedin.helix.manager.file.FileBasedDataAccessor;
+import com.linkedin.helix.manager.zk.ZKDataAccessor;
+import com.linkedin.helix.manager.zk.ZNRecordSerializer;
+import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.model.CurrentState;
 import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.IdealState;
@@ -113,8 +113,8 @@ public class TestHelper
     throws Exception
   {
     StartCMResult result = new StartCMResult();
-    HelixAgent manager = null;
-    manager = HelixAgentFactory.getZKHelixAgent(clusterName,
+    HelixManager manager = null;
+    manager = HelixManagerFactory.getZKHelixManager(clusterName,
                                                         instanceName,
                                                         InstanceType.PARTICIPANT,
                                                         zkAddr);
@@ -133,8 +133,8 @@ public class TestHelper
     throws Exception
   {
     final StartCMResult result = new StartCMResult();
-    final HelixAgent manager =
-        ClusterManagerMain.startClusterManagerMain(zkConnectString,
+    final HelixManager manager =
+        HelixControllerMain.startHelixController(zkConnectString,
                                                    clusterName,
                                                    controllerName,
                                                    controllerMode);
@@ -175,7 +175,7 @@ public class TestHelper
   public static class StartCMResult
   {
     public Thread _thread;
-    public HelixAgent _manager;
+    public HelixManager _manager;
 
   }
 
@@ -853,7 +853,7 @@ public class TestHelper
     }
   }
 
-  public static boolean verifyNotConnected(HelixAgent manager)
+  public static boolean verifyNotConnected(HelixManager manager)
   {
     return !manager.isConnected();
   }

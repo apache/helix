@@ -7,7 +7,7 @@ public class NotificationContext
 {
   private Map<String, Object> _map;
 
-  private HelixAgent _manager;
+  private HelixManager _manager;
   private Type _type;
   private String _pathChanged;
   private String _eventName;
@@ -22,13 +22,13 @@ public class NotificationContext
     _eventName = eventName;
   }
 
-  public NotificationContext(HelixAgent manager)
+  public NotificationContext(HelixManager manager)
   {
     this._manager = manager;
     _map = new HashMap<String, Object>();
   }
 
-  public HelixAgent getManager()
+  public HelixManager getManager()
   {
     return _manager;
   }
@@ -43,7 +43,7 @@ public class NotificationContext
     return _type;
   }
 
-  public void setManager(HelixAgent manager)
+  public void setManager(HelixManager manager)
   {
     this._manager = manager;
   }

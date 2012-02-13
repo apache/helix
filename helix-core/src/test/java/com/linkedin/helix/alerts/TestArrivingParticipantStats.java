@@ -16,14 +16,14 @@ import com.linkedin.helix.alerts.Tuple;
 public class TestArrivingParticipantStats {
     protected static final String CLUSTER_NAME = "TestCluster";
     
-	MockManager _clusterManager;
+	MockManager _helixManager;
 	StatsHolder _statsHolder;
 	
 	@BeforeMethod (groups = {"unitTest"})
 	public void setup()
 	{
-		_clusterManager = new MockManager(CLUSTER_NAME);
-		_statsHolder = new StatsHolder(_clusterManager);
+		_helixManager = new MockManager(CLUSTER_NAME);
+		_statsHolder = new StatsHolder(_helixManager);
 	}
 	
 	public Map<String,String> getStatFields(String value, String timestamp)
@@ -68,7 +68,7 @@ public class TestArrivingParticipantStats {
 		 _statsHolder.applyStat(incomingStatName, statFields);
 		 
 		 //check persistent stats
-		 ZNRecord rec = _clusterManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
+		 ZNRecord rec = _helixManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
 		 
 		 System.out.println("rec: "+rec.toString());
 		 AssertJUnit.assertTrue(statRecordHasValue(rec, persistentStat, "0.0"));
@@ -92,7 +92,7 @@ public class TestArrivingParticipantStats {
 			 _statsHolder.applyStat(incomingStatName, statFields);
 			 
 			 //check persistent stats
-			 ZNRecord rec = _clusterManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
+			 ZNRecord rec = _helixManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
 			 
 			 System.out.println("rec: "+rec.toString());
 			 AssertJUnit.assertTrue(statRecordHasValue(rec, persistentStat, "1.0"));
@@ -120,7 +120,7 @@ public class TestArrivingParticipantStats {
 			 _statsHolder.applyStat(incomingStatName, statFields);
 			 
 			 //check persistent stats
-			 ZNRecord rec = _clusterManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
+			 ZNRecord rec = _helixManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
 			 
 			 System.out.println("rec: "+rec.toString());
 			 AssertJUnit.assertTrue(statRecordHasValue(rec, persistentStat, "6.0"));
@@ -141,7 +141,7 @@ public class TestArrivingParticipantStats {
 			 _statsHolder.applyStat(incomingStatName, statFields);
 			 
 			 //check persistent stats
-			 ZNRecord rec = _clusterManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
+			 ZNRecord rec = _helixManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
 			 
 			 System.out.println("rec: "+rec.toString());
 			 String persistentStat = "accumulate()(dbFoo.partition10.latency)";
@@ -165,7 +165,7 @@ public class TestArrivingParticipantStats {
 			 _statsHolder.applyStat(incomingStatName, statFields);
 			 
 			 //check persistent stats
-			 ZNRecord rec = _clusterManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
+			 ZNRecord rec = _helixManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
 			 
 			 System.out.println("rec: "+rec.toString());
 			 String persistentStat = "accumulate()(dbFoo.partition10.latency)";
@@ -187,7 +187,7 @@ public class TestArrivingParticipantStats {
 					 _statsHolder.applyStat(incomingStatName, statFields);
 					 
 					 //check persistent stats
-					 ZNRecord rec = _clusterManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
+					 ZNRecord rec = _helixManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
 					 
 					 System.out.println("rec: "+rec.toString());
 					 String persistentStat = "accumulate()(dbFoo.partition10.latency)";
@@ -207,7 +207,7 @@ public class TestArrivingParticipantStats {
 					 _statsHolder.applyStat(incomingStatName, statFields);
 					
 					 //check persistent stats
-					 ZNRecord rec = _clusterManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
+					 ZNRecord rec = _helixManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
 					 
 					 System.out.println("rec: "+rec.toString());
 					 String persistentStat = "accumulate()(instance10.reportingage)";
@@ -233,7 +233,7 @@ public class TestArrivingParticipantStats {
 					 _statsHolder.applyStat(incomingStatName, statFields);
 					 
 					 //check persistent stats
-					 ZNRecord rec = _clusterManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
+					 ZNRecord rec = _helixManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
 					 
 					 System.out.println("rec: "+rec.toString());
 					 String persistentStat = "accumulate()(dbFoo.partition10.latency)";
@@ -258,7 +258,7 @@ public class TestArrivingParticipantStats {
 					 _statsHolder.applyStat(incomingStatName, statFields);
 					 
 					 //check persistent stats
-					 ZNRecord rec = _clusterManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
+					 ZNRecord rec = _helixManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
 					 
 					 System.out.println("rec: "+rec.toString());
 					 String persistentStat = "window(3)(dbFoo.partition10.latency)";
@@ -268,7 +268,7 @@ public class TestArrivingParticipantStats {
 					 //add 2nd stat
 					 statFields = getStatFields("10","1");
 					 _statsHolder.applyStat(incomingStatName, statFields);
-					 rec = _clusterManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
+					 rec = _helixManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
 
 					 System.out.println("rec: "+rec.toString());
 					 AssertJUnit.assertTrue(statRecordHasValue(rec, persistentStat, "0.0,10.0"));
@@ -277,7 +277,7 @@ public class TestArrivingParticipantStats {
 					 //add 3rd stat
 					 statFields = getStatFields("20","2");
 					 _statsHolder.applyStat(incomingStatName, statFields);
-					 rec = _clusterManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
+					 rec = _helixManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
 
 					 System.out.println("rec: "+rec.toString());
 					 AssertJUnit.assertTrue(statRecordHasValue(rec, persistentStat, "0.0,10.0,20.0"));
@@ -298,7 +298,7 @@ public class TestArrivingParticipantStats {
 					 _statsHolder.applyStat(incomingStatName, statFields);
 					
 					
-					ZNRecord rec = _clusterManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
+					ZNRecord rec = _helixManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
 
 					System.out.println("rec: "+rec.toString());
 					AssertJUnit.assertTrue(statRecordHasValue(rec, persistentStat, "10.0,20.0,30.0"));
@@ -318,7 +318,7 @@ public class TestArrivingParticipantStats {
 					 _statsHolder.applyStat(incomingStatName, statFields);
 					
 					
-					ZNRecord rec = _clusterManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
+					ZNRecord rec = _helixManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
 
 					System.out.println("rec: "+rec.toString());
 					AssertJUnit.assertTrue(statRecordHasValue(rec, persistentStat, "0.0,10.0,20.0"));
@@ -342,7 +342,7 @@ public class TestArrivingParticipantStats {
 					 _statsHolder.applyStat(incomingStatName, statFields);
 					 
 					 //check persistent stats
-					 ZNRecord rec = _clusterManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
+					 ZNRecord rec = _helixManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
 					 
 					 System.out.println("rec: "+rec.toString());
 					 AssertJUnit.assertTrue(statRecordHasValue(rec, persistentStatOne, "0.0"));
@@ -373,7 +373,7 @@ public class TestArrivingParticipantStats {
 					_statsHolder.applyStat(incomingStatName, statFields);
 					 
 					 //check persistent stats
-					 ZNRecord rec = _clusterManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
+					 ZNRecord rec = _helixManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
 					 System.out.println("rec: "+rec.toString());
 						AssertJUnit.assertTrue(statRecordHasValue(rec, persistentStat, "20.0,30.0,40.0"));
 						AssertJUnit.assertTrue(statRecordHasTimestamp(rec, persistentStat, "2.0,3.0,4.0"));
@@ -400,7 +400,7 @@ public class TestArrivingParticipantStats {
 					_statsHolder.applyStat(incomingStatName, statFields);
 					 
 					 //check persistent stats
-					 ZNRecord rec = _clusterManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
+					 ZNRecord rec = _helixManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
 					 System.out.println("rec: "+rec.toString());
 						AssertJUnit.assertTrue(statRecordHasValue(rec, persistentStat, "0.0,10.0,20.0"));
 						AssertJUnit.assertTrue(statRecordHasTimestamp(rec, persistentStat, "0.0,1.0,2.0"));

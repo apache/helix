@@ -8,8 +8,8 @@ import java.util.concurrent.CountDownLatch;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.HelixAgent;
-import com.linkedin.helix.HelixAgentFactory;
+import com.linkedin.helix.HelixManager;
+import com.linkedin.helix.HelixManagerFactory;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.mock.storage.DummyProcess.DummyLeaderStandbyStateModelFactory;
@@ -29,7 +29,7 @@ public class MockParticipant implements Stoppable, Runnable
   private final String _zkAddr;
 
   private final CountDownLatch _countDown = new CountDownLatch(1);
-  private final HelixAgent _manager;
+  private final HelixManager _manager;
   private final MockMSModelFactory _msModelFacotry;
   private final MockJobIntf _job;
 
@@ -226,7 +226,7 @@ public class MockParticipant implements Stoppable, Runnable
     _zkAddr = zkAddr;
     _msModelFacotry = new MockMSModelFactory(transition);
 
-    _manager = HelixAgentFactory.getZKHelixAgent(_clusterName,
+    _manager = HelixManagerFactory.getZKHelixManager(_clusterName,
         _instanceName,
         InstanceType.PARTICIPANT,
         _zkAddr);
@@ -238,7 +238,7 @@ public class MockParticipant implements Stoppable, Runnable
     _msModelFacotry.setTrasition(transition);
   }
 
-  public HelixAgent getManager()
+  public HelixManager getManager()
   {
     return _manager;
   }

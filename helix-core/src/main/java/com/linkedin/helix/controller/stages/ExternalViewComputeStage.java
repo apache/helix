@@ -5,7 +5,7 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 
 import com.linkedin.helix.DataAccessor;
-import com.linkedin.helix.HelixAgent;
+import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.controller.pipeline.AbstractBaseStage;
 import com.linkedin.helix.controller.pipeline.StageException;
@@ -22,7 +22,7 @@ public class ExternalViewComputeStage extends AbstractBaseStage
   {
     log.info("START ExternalViewComputeStage.process()");
 
-    HelixAgent manager = event.getAttribute("clustermanager");
+    HelixManager manager = event.getAttribute("helixmanager");
     Map<String, ResourceGroup> resourceGroupMap = event
         .getAttribute(AttributeName.RESOURCE_GROUPS.toString());
     ClusterDataCache cache = event.getAttribute("ClusterDataCache");

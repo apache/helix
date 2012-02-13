@@ -20,13 +20,13 @@ import org.apache.log4j.Logger;
 import com.linkedin.helix.ClusterView;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.agent.zk.ZNRecordSerializer;
-import com.linkedin.helix.agent.zk.ZkClient;
+import com.linkedin.helix.manager.zk.ZNRecordSerializer;
+import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.model.CurrentState.CurrentStateProperty;
 import com.linkedin.helix.model.LiveInstance.LiveInstanceProperty;
 import com.linkedin.helix.participant.statemachine.StateModel;
 import com.linkedin.helix.participant.statemachine.StateModelFactory;
-import com.linkedin.helix.util.CMUtil;
+import com.linkedin.helix.util.HelixUtil;
 
 public class ClusterStateVerifier
 {
@@ -43,7 +43,7 @@ public class ClusterStateVerifier
   {
     ZkClient zkClient = new ZkClient(zkServer);
     zkClient.setZkSerializer(new ZNRecordSerializer());
-    String instancesPath = CMUtil.getMemberInstancesPath(clusterName);
+    String instancesPath = HelixUtil.getMemberInstancesPath(clusterName);
 
     // Make a copy of the current states
     List<String> instanceNames = zkClient.getChildren(instancesPath);
@@ -52,13 +52,13 @@ public class ClusterStateVerifier
 
     for (String instanceName : instanceNames)
     {
-      String liveInstancePath = CMUtil.getLiveInstancePath(clusterName, instanceName);
+      String liveInstancePath = HelixUtil.getLiveInstancePath(clusterName, instanceName);
       ZNRecord liveInstanceRecord = zkClient.readData(liveInstancePath);
       if (!currentStates.containsKey(instanceName))
       {
         currentStates.put(instanceName, new TreeMap<String, ZNRecord>());
       }
-      String currentStatePath = CMUtil.getCurrentStateBasePath(clusterName,
+      String currentStatePath = HelixUtil.getCurrentStateBasePath(clusterName,
           instanceName)+"/"+ liveInstanceRecord.getSimpleField(LiveInstanceProperty.SESSION_ID.toString());
       List<String> partitionStatePaths = zkClient.getChildren(currentStatePath);
       for (String stateUnitKey : partitionStatePaths)
@@ -71,7 +71,7 @@ public class ClusterStateVerifier
     }
 
     // Make a copy of the ideal state
-    String idealStatePath = CMUtil.getIdealStatePath(clusterName);
+    String idealStatePath = HelixUtil.getIdealStatePath(clusterName);
     List<String> stateGroups = zkClient.getChildren(idealStatePath);
     List<ZNRecord> idealStates = new ArrayList<ZNRecord>();
 
@@ -81,7 +81,7 @@ public class ClusterStateVerifier
       idealStates.add((ZNRecord) zkClient.readData(stateGroupPath));
     }
     // Make a copy of external view
-    String externalViewPath = CMUtil.getExternalViewPath(clusterName);
+    String externalViewPath = HelixUtil.getExternalViewPath(clusterName);
     List<String> viewGroups = zkClient.getChildren(externalViewPath);
     List<ZNRecord> externalViews = new ArrayList<ZNRecord>();
 
@@ -102,7 +102,6 @@ public class ClusterStateVerifier
   public static boolean verifyFileBasedClusterStates(String file,
       String instanceName, StateModelFactory<StateModel> stateModelFactory)
   {
-    // ClusterView clusterView = FileBasedClusterManager.readClusterView(file);
     ClusterView clusterView = ClusterViewSerializer.deserialize(new File(file));
     boolean ret = true;
     int nonOfflineStateNr = 0;

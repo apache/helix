@@ -6,7 +6,7 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.HelixAgent;
+import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.controller.pipeline.AbstractBaseStage;
 import com.linkedin.helix.controller.pipeline.StageException;
 import com.linkedin.helix.model.LiveInstance;
@@ -63,12 +63,12 @@ public class CompatibilityCheckStage extends AbstractBaseStage
   @Override
   public void process(ClusterEvent event) throws Exception
   {
-    HelixAgent manager = event.getAttribute("clustermanager");
+    HelixManager manager = event.getAttribute("helixmanager");
     ClusterDataCache cache = event.getAttribute("ClusterDataCache");
     if (manager == null || cache == null)
     {
       throw new StageException("Missing attributes in event:" + event
-          + ". Requires ClusterManager | DataCache");
+          + ". Requires HelixManager | DataCache");
     }
 
     String controllerVersion = manager.getVersion();
@@ -83,7 +83,7 @@ public class CompatibilityCheckStage extends AbstractBaseStage
     Map<String, LiveInstance> liveInstanceMap = cache.getLiveInstances();
     for (LiveInstance liveInstance : liveInstanceMap.values())
     {
-      String participantVersion = liveInstance.getClusterManagerVersion();
+      String participantVersion = liveInstance.getHelixVersion();
       if (!isCompatible(controllerVersion, participantVersion))
       {
         String errorMsg = "cluster manager versions are incompatible; pipeline will not continue. "

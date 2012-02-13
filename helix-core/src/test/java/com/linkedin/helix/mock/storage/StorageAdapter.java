@@ -7,8 +7,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.log4j.Logger;
 
 import com.linkedin.helix.DataAccessor;
-import com.linkedin.helix.HelixAgent;
-import com.linkedin.helix.HelixAgentFactory;
+import com.linkedin.helix.HelixManager;
+import com.linkedin.helix.HelixManagerFactory;
 import com.linkedin.helix.ExternalViewChangeListener;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.MessageListener;
@@ -20,8 +20,8 @@ import com.linkedin.helix.participant.StateMachineEngine;
 
 class StorageAdapter
 {
-  HelixAgent relayClusterManager;
-  HelixAgent storageClusterManager;
+  HelixManager relayHelixManager;
+  HelixManager storageHelixManager;
 
   DataAccessor relayClusterClient;
   DataAccessor storageClusterClient;
@@ -54,18 +54,18 @@ class StorageAdapter
 
     hostedPartitions = new ConcurrentHashMap<String, partitionData>();
 
-    storageClusterManager = HelixAgentFactory
-        .getZKHelixAgent(clusterName, instanceName, InstanceType.PARTICIPANT,
+    storageHelixManager = HelixManagerFactory
+        .getZKHelixManager(clusterName, instanceName, InstanceType.PARTICIPANT,
                              zkConnectString);
     stateModelFactory = new StorageStateModelFactory(this);
 //    StateMachineEngine genericStateMachineHandler = new StateMachineEngine();
-    StateMachineEngine stateMach = storageClusterManager.getStateMachineEngine();
+    StateMachineEngine stateMach = storageHelixManager.getStateMachineEngine();
     stateMach.registerStateModelFactory("MasterSlave", stateModelFactory);
 
-    storageClusterManager.getMessagingService()
+    storageHelixManager.getMessagingService()
       .registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(), stateMach);
-    storageClusterManager.connect();
-    storageClusterClient = storageClusterManager.getDataAccessor();
+    storageHelixManager.connect();
+    storageClusterClient = storageHelixManager.getDataAccessor();
 
     consumerAdapter = new ConsumerAdapter(instanceName, zkConnectString,
         relayClusterName);

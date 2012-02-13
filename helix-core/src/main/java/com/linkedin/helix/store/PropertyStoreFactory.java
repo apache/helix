@@ -1,6 +1,6 @@
 package com.linkedin.helix.store;
 
-import com.linkedin.helix.agent.zk.ZkClient;
+import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.store.file.FilePropertyStore;
 import com.linkedin.helix.store.zk.ZKPropertyStore;
 

@@ -1,9 +1,9 @@
 package com.linkedin.helix.mock.storage;
 
-import com.linkedin.helix.HelixAgent;
+import com.linkedin.helix.HelixManager;
 
 public interface MockJobIntf
 {
-  public void doPreConnectJob(HelixAgent manager);
-  public void doPostConnectJob(HelixAgent manager);
+  public void doPreConnectJob(HelixManager manager);
+  public void doPostConnectJob(HelixManager manager);
 }

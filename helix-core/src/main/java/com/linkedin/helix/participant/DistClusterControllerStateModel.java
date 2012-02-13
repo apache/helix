@@ -2,8 +2,8 @@ package com.linkedin.helix.participant;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.HelixAgent;
-import com.linkedin.helix.HelixAgentFactory;
+import com.linkedin.helix.HelixManager;
+import com.linkedin.helix.HelixManagerFactory;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.model.Message;
@@ -18,7 +18,7 @@ import com.linkedin.helix.participant.statemachine.Transition;
 public class DistClusterControllerStateModel extends StateModel
 {
   private static Logger logger = Logger.getLogger(DistClusterControllerStateModel.class);
-  private HelixAgent _controller = null;
+  private HelixManager _controller = null;
   private final String _zkAddr;
 
   public DistClusterControllerStateModel(String zkAddr)
@@ -46,8 +46,8 @@ public class DistClusterControllerStateModel extends StateModel
 
     if (_controller == null)
     {
-      _controller = HelixAgentFactory
-          .getZKHelixAgent(clusterName, controllerName, InstanceType.CONTROLLER, _zkAddr);
+      _controller = HelixManagerFactory
+          .getZKHelixManager(clusterName, controllerName, InstanceType.CONTROLLER, _zkAddr);
       _controller.connect();
     }
     else
@@ -65,8 +65,6 @@ public class DistClusterControllerStateModel extends StateModel
     String controllerName = message.getTgtName();
 
     logger.info(controllerName + " becoming standby from leader for " + clusterName);
-    // System.out.println(controllerName + " becoming standby from leader for " + clusterName);
-    // ClusterManager manager = _controllers.remove(controllerName);
 
     if (_controller != null)
     {
@@ -87,8 +85,6 @@ public class DistClusterControllerStateModel extends StateModel
 
     logger.info(controllerName + " becoming offline from standby for cluster:" + clusterName);
 
-    // ClusterManager manager = _controllers.remove(controllerName);
-    // manager.disconnect();
   }
 
   @Transition(to="DROPPED",from="OFFLINE")

@@ -16,15 +16,15 @@ import org.codehaus.jackson.map.ObjectMapper;
 import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.agent.zk.ZKDataAccessor;
-import com.linkedin.helix.agent.zk.ZNRecordSerializer;
-import com.linkedin.helix.agent.zk.ZkClient;
+import com.linkedin.helix.manager.zk.ZKDataAccessor;
+import com.linkedin.helix.manager.zk.ZNRecordSerializer;
+import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.Message;
 import com.linkedin.helix.model.IdealState.IdealStateProperty;
 import com.linkedin.helix.model.LiveInstance.LiveInstanceProperty;
 import com.linkedin.helix.model.Message.MessageType;
-import com.linkedin.helix.util.CMUtil;
+import com.linkedin.helix.util.HelixUtil;
 
 public class MockController
 {
@@ -55,7 +55,7 @@ public class MockController
     // message.setPartitionId(partitionId);
     message.setStateUnitKey(partitionKey);
 
-    String path = CMUtil.getMessagePath(clusterName, instanceName) + "/"
+    String path = HelixUtil.getMessagePath(clusterName, instanceName) + "/"
         + message.getId();
     ObjectMapper mapper = new ObjectMapper();
     StringWriter sw = new StringWriter();
@@ -64,7 +64,7 @@ public class MockController
     client.delete(path);
 
     Thread.sleep(10000);
-    ZNRecord record = client.readData(CMUtil.getLiveInstancePath(clusterName,
+    ZNRecord record = client.readData(HelixUtil.getLiveInstancePath(clusterName,
         instanceName));
     message.setTgtSessionId(record.getSimpleField(
         LiveInstanceProperty.SESSION_ID.toString()).toString());

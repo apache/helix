@@ -3,11 +3,11 @@ package com.linkedin.helix.mock.consumer;
 import org.apache.log4j.Logger;
 
 import com.linkedin.helix.DataAccessor;
-import com.linkedin.helix.HelixAgent;
+import com.linkedin.helix.HelixManager;
 
 public class RelayConsumer
 {
-  HelixAgent relayClusterManager;
+  HelixManager relayHelixManager;
   DataAccessor relayClusterClient;
   private final String partition;
   private RelayConfig currentRelay;

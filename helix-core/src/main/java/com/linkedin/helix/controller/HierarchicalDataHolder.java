@@ -10,7 +10,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.data.Stat;
 
-import com.linkedin.helix.agent.zk.ZkClient;
+import com.linkedin.helix.manager.zk.ZkClient;
 
 /**
  * Generic class that will read the data given the root path.

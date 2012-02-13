@@ -17,14 +17,14 @@ public class TestAddPersistentStats {
 
 	protected static final String CLUSTER_NAME = "TestCluster";
 	
-	MockManager _clusterManager;
+	MockManager _helixManager;
 	StatsHolder _statsHolder;
 	
 	@BeforeMethod (groups = {"unitTest"})
 	public void setup()
 	{
-		_clusterManager = new MockManager(CLUSTER_NAME);
-		_statsHolder = new StatsHolder(_clusterManager);
+		_helixManager = new MockManager(CLUSTER_NAME);
+		_statsHolder = new StatsHolder(_helixManager);
 	}
 	
 	public boolean statRecordContains(ZNRecord rec, String statName) 
@@ -44,7 +44,7 @@ public class TestAddPersistentStats {
 	{
 		String stat = "window(5)(dbFoo.partition10.latency)";
 		_statsHolder.addStat(stat);
-		ZNRecord rec = _clusterManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
+		ZNRecord rec = _helixManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
 		System.out.println("rec: "+rec.toString());
 		AssertJUnit.assertTrue(statRecordContains(rec,stat));
 		AssertJUnit.assertEquals(1, statsSize(rec));
@@ -57,7 +57,7 @@ public class TestAddPersistentStats {
 		_statsHolder.addStat(stat1);
 		String stat2 = "window(5)(dbFoo.partition11.latency)";
 		_statsHolder.addStat(stat2);
-		ZNRecord rec = _clusterManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
+		ZNRecord rec = _helixManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
 		System.out.println("rec: "+rec.toString());
 		AssertJUnit.assertTrue(statRecordContains(rec,stat1));
 		AssertJUnit.assertTrue(statRecordContains(rec,stat2));
@@ -70,7 +70,7 @@ public class TestAddPersistentStats {
 		String stat = "window(5)(dbFoo.partition10.latency)";
 		_statsHolder.addStat(stat);
 		_statsHolder.addStat(stat);
-		ZNRecord rec = _clusterManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
+		ZNRecord rec = _helixManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
 		System.out.println("rec: "+rec.toString());
 		AssertJUnit.assertTrue(statRecordContains(rec,stat));
 		AssertJUnit.assertEquals(1, statsSize(rec));
@@ -81,7 +81,7 @@ public class TestAddPersistentStats {
 	{
 		String exp = "accumulate()(dbFoo.partition10.latency, dbFoo.partition10.count)";
 		_statsHolder.addStat(exp);
-		ZNRecord rec = _clusterManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
+		ZNRecord rec = _helixManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
 		System.out.println("rec: "+rec.toString());
 		AssertJUnit.assertTrue(statRecordContains(rec,"accumulate()(dbFoo.partition10.latency)"));
 		AssertJUnit.assertTrue(statRecordContains(rec,"accumulate()(dbFoo.partition10.count)"));
@@ -93,7 +93,7 @@ public class TestAddPersistentStats {
 	{
 		String exp = "accumulate()(dbFoo.partition10.latency, dbFoo.partition10.count)|EACH|ACCUMULATE|DIVIDE";
 		_statsHolder.addStat(exp);
-		ZNRecord rec = _clusterManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
+		ZNRecord rec = _helixManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
 		System.out.println("rec: "+rec.toString());
 		AssertJUnit.assertTrue(statRecordContains(rec,"accumulate()(dbFoo.partition10.latency)"));
 		AssertJUnit.assertTrue(statRecordContains(rec,"accumulate()(dbFoo.partition10.count)"));

@@ -1,22 +1,17 @@
 package com.linkedin.helix.model;
 
-//import static com.linkedin.clustermanager.CMConstants.ZNAttribute.CLUSTER_MANAGER_VERSION;
-//import static com.linkedin.clustermanager.CMConstants.ZNAttribute.SESSION_ID;
 
 import java.util.Map;
 
 import org.apache.log4j.Logger;
-import org.apache.zookeeper.data.Stat;
-
-//import com.linkedin.clustermanager.ZNRecordAndStat;
-import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.ZNRecordDecorator;
 
 public class PersistentStats extends ZNRecordDecorator
 {
+  private static final Logger _logger = Logger.getLogger(PersistentStats.class.getName());
 
-	public enum PersistentStatsProperty
+  public enum PersistentStatsProperty
 	  {
 	    SESSION_ID,
 	    FIELDS
@@ -26,7 +21,6 @@ public class PersistentStats extends ZNRecordDecorator
 	
   public final static String nodeName = "PersistentStats";
 	
-  private static final Logger _logger = Logger.getLogger(PersistentStats.class.getName());
   
   public PersistentStats(String id)
   {

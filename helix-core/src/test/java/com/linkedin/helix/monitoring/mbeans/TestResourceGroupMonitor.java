@@ -24,7 +24,7 @@ public class TestResourceGroupMonitor
   int _replicas = 3;
   int _partitions = 50;
 
-  class MockClusterManager extends Mocks.MockManager
+  class MockHelixManager extends Mocks.MockManager
   {
     class MockDataAccessor extends Mocks.MockAccessor
     {
@@ -67,7 +67,7 @@ public class TestResourceGroupMonitor
     List<ZNRecord> _liveInstances;
     String _db = "DB";
 
-    public MockClusterManager()
+    public MockHelixManager()
     {
       _liveInstances = new ArrayList<ZNRecord>();
       _instances = new ArrayList<String>();
@@ -100,7 +100,7 @@ public class TestResourceGroupMonitor
   @Test()
   public void TestReportData()
   {
-    MockClusterManager manager = new MockClusterManager();
+    MockHelixManager manager = new MockHelixManager();
     ResourceGroupMonitor monitor = new ResourceGroupMonitor(_clusterName, _dbName);
 
     ExternalView externalView = new ExternalView(

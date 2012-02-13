@@ -12,7 +12,7 @@ import org.josql.QueryParseException;
 import org.josql.QueryResults;
 
 import com.linkedin.helix.DataAccessor;
-import com.linkedin.helix.HelixAgent;
+import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.HelixException;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
@@ -23,12 +23,12 @@ public class ClusterJosqlQueryProcessor
   public static final String PARTITIONS = "PARTITIONS";
   public static final String FLATTABLE = ".Table";
 
-  HelixAgent _manager;
+  HelixManager _manager;
   private static Logger _logger = Logger
   .getLogger(ClusterJosqlQueryProcessor.class);
 
 
-  public ClusterJosqlQueryProcessor(HelixAgent manager)
+  public ClusterJosqlQueryProcessor(HelixManager manager)
   {
     _manager = manager;
   }

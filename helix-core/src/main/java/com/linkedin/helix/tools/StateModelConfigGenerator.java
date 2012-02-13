@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.agent.zk.ZNRecordSerializer;
+import com.linkedin.helix.manager.zk.ZNRecordSerializer;
 import com.linkedin.helix.model.StateModelDefinition.StateModelDefinitionProperty;
 
 public class StateModelConfigGenerator

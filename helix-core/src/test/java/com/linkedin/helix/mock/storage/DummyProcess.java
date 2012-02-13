@@ -13,8 +13,8 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.HelixAgent;
-import com.linkedin.helix.HelixAgentFactory;
+import com.linkedin.helix.HelixManager;
+import com.linkedin.helix.HelixManagerFactory;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.ZNRecord;
@@ -36,7 +36,7 @@ public class DummyProcess
   public static final String help = "help";
   public static final String clusterViewFile = "clusterViewFile";
   public static final String transDelay = "transDelay";
-  public static final String clusterManagerType = "clusterManagerType";
+  public static final String helixManagerType = "helixManagerType";
 //  public static final String rootNamespace = "rootNamespace";
 
   private final String _zkConnectString;
@@ -58,7 +58,7 @@ public class DummyProcess
                       String clusterViewFile,
                       int delay)
   {
-    this(zkConnectString, clusterName, instanceName, clusterManagerType, clusterViewFile, delay, null);
+    this(zkConnectString, clusterName, instanceName, helixManagerType, clusterViewFile, delay, null);
   }
 
   public DummyProcess(String zkConnectString,
@@ -94,13 +94,13 @@ public class DummyProcess
     }
   }
 
-  public HelixAgent start() throws Exception
+  public HelixManager start() throws Exception
   {
-    HelixAgent manager = null;
+    HelixManager manager = null;
     // zk cluster manager
     if (_clusterMangerType.equalsIgnoreCase("zk"))
     {
-      manager = HelixAgentFactory.getZKHelixAgent(_clusterName,
+      manager = HelixManagerFactory.getZKHelixManager(_clusterName,
                                                           _instanceName,
                                                           InstanceType.PARTICIPANT,
                                                           _zkConnectString);
@@ -108,7 +108,7 @@ public class DummyProcess
     // static file cluster manager
     else if (_clusterMangerType.equalsIgnoreCase("static-file"))
     {
-      manager = HelixAgentFactory.getStaticFileHelixAgent(_clusterName,
+      manager = HelixManagerFactory.getStaticFileHelixManager(_clusterName,
                                                                   _instanceName,
                                                                   InstanceType.PARTICIPANT,
                                                                   _clusterViewFile);
@@ -117,7 +117,7 @@ public class DummyProcess
     // dynamic file cluster manager
     else if (_clusterMangerType.equalsIgnoreCase("dynamic-file"))
     {
-      manager = HelixAgentFactory.getDynamicFileHelixAgent(_clusterName,
+      manager = HelixManagerFactory.getDynamicFileHelixManager(_clusterName,
                                                                    _instanceName,
                                                                    InstanceType.PARTICIPANT,
                                                                    _fileStore);
@@ -365,7 +365,7 @@ public class DummyProcess
     portOption.setRequired(true);
     portOption.setArgName("Host port (Required)");
 
-    Option cmTypeOption = OptionBuilder.withLongOpt(clusterManagerType)
+    Option cmTypeOption = OptionBuilder.withLongOpt(helixManagerType)
         .withDescription("Provide cluster manager type (e.g. 'zk', 'static-file', or 'dynamic-file'").create();
     cmTypeOption.setArgs(1);
     cmTypeOption.setRequired(true);
@@ -461,7 +461,7 @@ public class DummyProcess
       String portString = cmd.getOptionValue(hostPort);
       int port = Integer.parseInt(portString);
       instanceName = host + "_" + port;
-      cmType = cmd.getOptionValue(clusterManagerType);
+      cmType = cmd.getOptionValue(helixManagerType);
 
       if (cmd.hasOption(clusterViewFile))
       {
@@ -503,7 +503,7 @@ public class DummyProcess
                                             cmType,
                                             cvFileStr,
                                             delay);
-    HelixAgent manager = process.start();
+    HelixManager manager = process.start();
 
     try
     {

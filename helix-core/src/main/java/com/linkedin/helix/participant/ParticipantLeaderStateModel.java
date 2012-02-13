@@ -5,7 +5,7 @@ import java.util.List;
 import org.apache.log4j.Logger;
 
 import com.linkedin.helix.HelixConstants.ChangeType;
-import com.linkedin.helix.HelixAgent;
+import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.model.Message;
 import com.linkedin.helix.participant.statemachine.StateModel;
@@ -39,10 +39,10 @@ public class ParticipantLeaderStateModel extends StateModel
       throws Exception
   {
     LOG.info("Become LEADER from STANDBY");
-    HelixAgent manager = context.getManager();
+    HelixManager manager = context.getManager();
     if (manager == null)
     {
-      throw new IllegalArgumentException("Require ClusterManager in notification conext");
+      throw new IllegalArgumentException("Require HelixManager in notification conext");
     }
     for (ChangeType notificationType : _notificationTypes)
     {
@@ -69,7 +69,7 @@ public class ParticipantLeaderStateModel extends StateModel
   public void onBecomeStandbyFromLeader(Message message, NotificationContext context)
   {
     LOG.info("Become STANDBY from LEADER");
-    HelixAgent manager = context.getManager();
+    HelixManager manager = context.getManager();
     manager.removeListener(_particHolder);    
   }
 

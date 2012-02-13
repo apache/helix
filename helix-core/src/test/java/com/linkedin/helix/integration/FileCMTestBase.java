@@ -8,13 +8,13 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 
 import com.linkedin.helix.HelixAdmin;
-import com.linkedin.helix.HelixAgent;
-import com.linkedin.helix.HelixAgentFactory;
+import com.linkedin.helix.HelixManager;
+import com.linkedin.helix.HelixManagerFactory;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.agent.file.FileClusterManagementTool;
-import com.linkedin.helix.controller.GenericClusterController;
+import com.linkedin.helix.controller.GenericHelixController;
+import com.linkedin.helix.manager.file.FileHelixAdmin;
 import com.linkedin.helix.mock.storage.DummyProcess;
 import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.model.InstanceConfig;
@@ -45,7 +45,7 @@ public class FileCMTestBase
     = new FilePropertyStore<ZNRecord>(new PropertyJsonSerializer<ZNRecord>(ZNRecord.class),
                                       ROOT_PATH,
                                       new PropertyJsonComparator<ZNRecord>(ZNRecord.class));
-  protected HelixAgent _manager;
+  protected HelixManager _manager;
   protected HelixAdmin _mgmtTool;
 
   @BeforeClass()
@@ -54,7 +54,7 @@ public class FileCMTestBase
     System.out.println("START BEFORECLASS FileCMTestBase at " + new Date(System.currentTimeMillis()));
 
     // setup test cluster
-    _mgmtTool = new FileClusterManagementTool(_fileStore);
+    _mgmtTool = new FileHelixAdmin(_fileStore);
     _mgmtTool.addCluster(CLUSTER_NAME, true);
     _mgmtTool.addResourceGroup(CLUSTER_NAME, TEST_DB, 10, STATE_MODEL);
     for (int i = 0; i < NODE_NR; i++)
@@ -84,7 +84,7 @@ public class FileCMTestBase
       }
 
       _manager =
-          HelixAgentFactory.getDynamicFileHelixAgent(CLUSTER_NAME,
+          HelixManagerFactory.getDynamicFileHelixManager(CLUSTER_NAME,
                                                              "controller_0",
                                                              InstanceType.CONTROLLER,
                                                              _fileStore);
@@ -92,7 +92,7 @@ public class FileCMTestBase
     }
 
     // start cluster manager controller
-    GenericClusterController controller = new GenericClusterController();
+    GenericHelixController controller = new GenericHelixController();
     try
     {
       // manager.addConfigChangeListener(controller);

@@ -7,10 +7,10 @@ import java.util.concurrent.CountDownLatch;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.HelixAgent;
+import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.NotificationContext;
-import com.linkedin.helix.agent.zk.ZKHelixAgent;
 import com.linkedin.helix.healthcheck.StatHealthReportProvider;
+import com.linkedin.helix.manager.zk.ZKHelixManager;
 import com.linkedin.helix.mock.consumer.ConsumerAdapter;
 import com.linkedin.helix.mock.consumer.RelayConfig;
 import com.linkedin.helix.mock.consumer.RelayConsumer;
@@ -140,7 +140,7 @@ public class HealthCheckStateModel extends StateModel
     String[] pdata = partition.split("\\.");
     String dbName = pdata[0];
     
-    HelixAgent manager = context.getManager();
+    HelixManager manager = context.getManager();
     
     //start the reporting thread
     logger.debug("Starting stats reporting thread");
@@ -180,7 +180,7 @@ public class HealthCheckStateModel extends StateModel
   
   public class StatReporterThread implements Runnable
   {
-	  private HelixAgent _manager;
+	  private HelixManager _manager;
 	  private int _reportInterval;
 	  private Map<String, Vector<String>> _reportValues;
 	  private CountDownLatch _countdown;
@@ -188,7 +188,7 @@ public class HealthCheckStateModel extends StateModel
 	  private String _dbName;
 	  private String _partitionName;
 	  
-	public StatReporterThread(HelixAgent manager, StatHealthReportProvider provider, String dbName, 
+	public StatReporterThread(HelixManager manager, StatHealthReportProvider provider, String dbName, 
 			String partitionName, int reportInterval, 
 			Map<String,Vector<String>> reportValues, CountDownLatch countdown)
 	{

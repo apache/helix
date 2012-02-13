@@ -10,22 +10,22 @@ import org.apache.zookeeper.data.Stat;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.SerializationConfig;
 
-import com.linkedin.helix.HelixAgent;
+import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.agent.zk.ZNRecordSerializer;
-import com.linkedin.helix.agent.zk.ZkClient;
-import com.linkedin.helix.util.CMUtil;
+import com.linkedin.helix.manager.zk.ZNRecordSerializer;
+import com.linkedin.helix.manager.zk.ZkClient;
+import com.linkedin.helix.util.HelixUtil;
 
 public class ZKPathDataDumpTask extends TimerTask
 {
   static Logger logger = Logger.getLogger(ZKPathDataDumpTask.class);
 
   private final int _thresholdNoChangeInMs;
-  private final HelixAgent _manager;
+  private final HelixManager _manager;
   private final ZkClient _zkClient;
 
-  public ZKPathDataDumpTask(HelixAgent manager, ZkClient zkClient,
+  public ZKPathDataDumpTask(HelixManager manager, ZkClient zkClient,
       int thresholdNoChangeInMs)
   {
     _manager = manager;
@@ -48,17 +48,17 @@ public class ZKPathDataDumpTask extends TimerTask
       List<String> instances = _manager.getDataAccessor().getChildNames(PropertyType.CONFIGS);
       for (String instanceName : instances)
       {
-        scanPath(CMUtil.getInstancePropertyPath(_manager.getClusterName(),
+        scanPath(HelixUtil.getInstancePropertyPath(_manager.getClusterName(),
             instanceName, PropertyType.STATUSUPDATES),
             _thresholdNoChangeInMs);
-        scanPath(CMUtil.getInstancePropertyPath(_manager.getClusterName(),
+        scanPath(HelixUtil.getInstancePropertyPath(_manager.getClusterName(),
             instanceName, PropertyType.ERRORS),
             _thresholdNoChangeInMs * 3);
       }
-      scanPath(CMUtil.getControllerPropertyPath(_manager.getClusterName(),
+      scanPath(HelixUtil.getControllerPropertyPath(_manager.getClusterName(),
           PropertyType.STATUSUPDATES_CONTROLLER), _thresholdNoChangeInMs);
 
-      scanPath(CMUtil.getControllerPropertyPath(_manager.getClusterName(),
+      scanPath(HelixUtil.getControllerPropertyPath(_manager.getClusterName(),
           PropertyType.ERRORS_CONTROLLER), _thresholdNoChangeInMs * 3);
     }
     catch (Exception e)

@@ -6,8 +6,15 @@ public interface HelixConstants
   enum ChangeType
   {
     //@formatter:off
-    IDEAL_STATE, CONFIG, LIVE_INSTANCE, CURRENT_STATE,
-    MESSAGE, EXTERNAL_VIEW, CONTROLLER, MESSAGES_CONTROLLER, HEALTH
+    IDEAL_STATE,
+    CONFIG, 
+    LIVE_INSTANCE, 
+    CURRENT_STATE,
+    MESSAGE, 
+    EXTERNAL_VIEW, 
+    CONTROLLER, 
+    MESSAGES_CONTROLLER, 
+    HEALTH
     //@formatter:on
   }
 

@@ -19,7 +19,7 @@ import com.linkedin.helix.model.StateModelDefinition;
 import com.linkedin.helix.model.Message.MessageType;
 import com.linkedin.helix.tools.StateModelConfigGenerator;
 
-public class TestCMTaskHandler
+public class TestHelixTaskHandler
 {
   @Test()
   public void testInvocation() throws Exception

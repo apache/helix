@@ -13,18 +13,18 @@ import com.linkedin.helix.participant.statemachine.StateModelInfo;
 import com.linkedin.helix.participant.statemachine.Transition;
 
 @StateModelInfo(initialState = "OFFLINE", states = { "LEADER", "STANDBY" })
-public class ParticipantLeaderStateModel extends StateModel
+public class GenericLeaderStandbyModel extends StateModel
 {
-  private static Logger LOG = Logger.getLogger(ParticipantLeaderStateModel.class);
+  private static Logger LOG = Logger.getLogger(GenericLeaderStandbyModel.class);
 
-  private final ParticipantCodeHolder _particHolder;
+  private final CustomCodeInvoker _particHolder;
   private final List<ChangeType> _notificationTypes;
 
-  public ParticipantLeaderStateModel(ParticipantLeaderCallback callback, 
+  public GenericLeaderStandbyModel(CustomCodeCallbackHandler callback, 
                                      List<ChangeType> notificationTypes,
                                      String partitionKey)
   {
-    _particHolder = new ParticipantCodeHolder(callback, partitionKey);
+    _particHolder = new CustomCodeInvoker(callback, partitionKey);
     _notificationTypes = notificationTypes;
   }
 

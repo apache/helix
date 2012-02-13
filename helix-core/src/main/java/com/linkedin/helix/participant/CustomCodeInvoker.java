@@ -17,14 +17,14 @@ import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.InstanceConfig;
 import com.linkedin.helix.model.LiveInstance;
 
-public class ParticipantCodeHolder implements LiveInstanceChangeListener, ConfigChangeListener,
+public class CustomCodeInvoker implements LiveInstanceChangeListener, ConfigChangeListener,
     ExternalViewChangeListener
 {
-  private static Logger LOG = Logger.getLogger(ParticipantCodeHolder.class);
-  private final ParticipantLeaderCallback _callback;
+  private static Logger LOG = Logger.getLogger(CustomCodeInvoker.class);
+  private final CustomCodeCallbackHandler _callback;
   private final String _partitionKey;
 
-  public ParticipantCodeHolder(ParticipantLeaderCallback callback, String partitionKey)
+  public CustomCodeInvoker(CustomCodeCallbackHandler callback, String partitionKey)
   {
     _callback = callback;
     _partitionKey = partitionKey;
@@ -67,8 +67,7 @@ public class ParticipantCodeHolder implements LiveInstanceChangeListener, Config
       } 
       catch (Exception e)
       {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
+        LOG.error("Error invoking callback:"+ _callback,e);
       }
     }
   }

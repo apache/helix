@@ -48,7 +48,7 @@ public class TestCompatibilityCheckStage extends BaseStageTest
     {
       ((Mocks.MockManager)manager).setVersion(controllerVersion);
     }
-    event.addAttribute("clustermanager", manager);
+    event.addAttribute("helixmanager", manager);
     runStage(event, new ReadClusterDataStage());
   }
 

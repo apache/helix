@@ -19,17 +19,17 @@ import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.mock.storage.MockJobIntf;
 import com.linkedin.helix.mock.storage.MockParticipant;
 import com.linkedin.helix.model.LiveInstance;
-import com.linkedin.helix.participant.ParticipantCodeBuilder;
-import com.linkedin.helix.participant.ParticipantLeaderCallback;
+import com.linkedin.helix.participant.HelixCustomCodeRunner;
+import com.linkedin.helix.participant.CustomCodeCallbackHandler;
 
-public class TestParticipantCodeBuilder extends ZkIntegrationTestBase
+public class TestHelixCustomCodeRunner extends ZkIntegrationTestBase
 {
   private final String _clusterName = "CLUSTER_" + getShortClassName();
   private final int _nodeNb = 5;
   private final int _startPort = 12918;
   private final MockCallback _callback = new MockCallback();
 
-  class MockCallback implements ParticipantLeaderCallback
+  class MockCallback implements CustomCodeCallbackHandler
   {
     boolean _isCallbackInvoked;
     
@@ -58,11 +58,11 @@ public class TestParticipantCodeBuilder extends ZkIntegrationTestBase
           Thread.sleep(2000);
         }
         
-        ParticipantCodeBuilder particCodeBuilder = new ParticipantCodeBuilder(manager, ZK_ADDR);
+        HelixCustomCodeRunner particCodeBuilder = new HelixCustomCodeRunner(manager, ZK_ADDR);
         particCodeBuilder.invoke(_callback)
                          .on(ChangeType.LIVE_INSTANCE)
                          .usingLeaderStandbyModel("TestParticLeader")
-                         .build();
+                         .start();
       } catch (Exception e)
       {
         // TODO Auto-generated catch block

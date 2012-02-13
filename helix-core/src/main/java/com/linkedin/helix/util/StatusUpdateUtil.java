@@ -147,7 +147,6 @@ public class StatusUpdateUtil
     } catch (Exception e)
     {
       _logger.error("Exception while logging status update",e);
-      // e.printStackTrace();
     }
   }
 

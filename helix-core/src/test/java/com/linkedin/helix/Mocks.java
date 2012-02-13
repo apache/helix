@@ -56,7 +56,7 @@ public class Mocks
     }
   }
 
-  public static class MockCMTaskExecutor extends HelixTaskExecutor
+  public static class MockHelixTaskExecutor extends HelixTaskExecutor
   {
     boolean completionInvoked = false;
 

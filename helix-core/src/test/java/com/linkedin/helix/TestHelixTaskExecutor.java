@@ -4,9 +4,9 @@ import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
 import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.Mocks.MockHelixTaskExecutor;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.PropertyType;
-import com.linkedin.helix.Mocks.MockCMTaskExecutor;
 import com.linkedin.helix.Mocks.MockManager;
 import com.linkedin.helix.Mocks.MockStateModel;
 import com.linkedin.helix.messaging.handling.AsyncCallbackService;
@@ -16,7 +16,7 @@ import com.linkedin.helix.model.StateModelDefinition;
 import com.linkedin.helix.model.Message.MessageType;
 import com.linkedin.helix.tools.StateModelConfigGenerator;
 
-public class TestCMTaskExecutor
+public class TestHelixTaskExecutor
 {
 
   @Test ()
@@ -42,7 +42,7 @@ public class TestCMTaskExecutor
     StateModelDefinition stateModelDef = new StateModelDefinition(generator.generateConfigForMasterSlave());
     accessor.setProperty(PropertyType.STATEMODELDEFS, stateModelDef, "MasterSlave");
     
-    MockCMTaskExecutor executor = new MockCMTaskExecutor();
+    MockHelixTaskExecutor executor = new MockHelixTaskExecutor();
     MockStateModel stateModel = new MockStateModel();
     NotificationContext context;
     executor.registerMessageHandlerFactory(

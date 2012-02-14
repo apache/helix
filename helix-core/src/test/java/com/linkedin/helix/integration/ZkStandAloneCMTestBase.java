@@ -57,7 +57,7 @@ public class ZkStandAloneCMTestBase extends ZkIntegrationTestBase
 
     // setup storage cluster
     _setupTool.addCluster(CLUSTER_NAME, true);
-    _setupTool.addResourceGroupToCluster(CLUSTER_NAME, TEST_DB, _PARTITIONS, STATE_MODEL);
+    _setupTool.addResourceToCluster(CLUSTER_NAME, TEST_DB, _PARTITIONS, STATE_MODEL);
     for (int i = 0; i < NODE_NR; i++)
     {
       String storageNodeName = PARTICIPANT_PREFIX + ":" + (START_PORT + i);

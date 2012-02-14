@@ -27,34 +27,34 @@ public class ClusterStatusMonitor
 
   private int _numOfLiveInstances;
   private final int _numOfInstances;
-  private final ConcurrentHashMap<String, ResourceGroupMonitor> _resourceGroupMbeanMap
-    = new ConcurrentHashMap<String, ResourceGroupMonitor>();
+  private final ConcurrentHashMap<String, ResourceMonitor> _resourceMbeanMap
+    = new ConcurrentHashMap<String, ResourceMonitor>();
   private String _clusterName = "";
 
-  private final List<ResourceGroupMonitorChangedListener> _listeners = new ArrayList<ResourceGroupMonitorChangedListener>() ;
+  private final List<ResourceMonitorChangedListener> _listeners = new ArrayList<ResourceMonitorChangedListener>() ;
 
-  public void addResourceGroupMonitorChangedListener(ResourceGroupMonitorChangedListener listener)
+  public void addResourceMonitorChangedListener(ResourceMonitorChangedListener listener)
   {
     synchronized(_listeners)
     {
       if(!_listeners.contains(listener))
       {
         _listeners.add(listener);
-        for(ResourceGroupMonitor bean : _resourceGroupMbeanMap.values())
+        for(ResourceMonitor bean : _resourceMbeanMap.values())
         {
-          listener.onResourceGroupMonitorAdded(bean);
+          listener.onResourceMonitorAdded(bean);
         }
       }
     }
   }
 
-  private void notifyListeners(ResourceGroupMonitor newResourceGroupMonitor)
+  private void notifyListeners(ResourceMonitor newResourceMonitor)
   {
     synchronized(_listeners)
     {
-      for(ResourceGroupMonitorChangedListener listener : _listeners)
+      for(ResourceMonitorChangedListener listener : _listeners)
       {
-        listener.onResourceGroupMonitorAdded(newResourceGroupMonitor);
+        listener.onResourceMonitorAdded(newResourceMonitor);
       }
     }
   }
@@ -71,7 +71,6 @@ public class ClusterStatusMonitor
     catch(Exception e)
     {
       LOG.error("register self failed.", e);
-      e.printStackTrace();
     }
   }
 
@@ -142,28 +141,27 @@ public class ClusterStatusMonitor
     {
       for(ExternalView externalView : externalViewList)
       {
-        String resourceGroup = externalView.getId();
-        if(!_resourceGroupMbeanMap.containsKey(resourceGroup))
+        String resourceName = externalView.getId();
+        if(!_resourceMbeanMap.containsKey(resourceName))
         {
           synchronized(this)
           {
-            if(!_resourceGroupMbeanMap.containsKey(resourceGroup))
+            if(!_resourceMbeanMap.containsKey(resourceName))
             {
-              ResourceGroupMonitor bean = new ResourceGroupMonitor(_clusterName, resourceGroup);
-              String beanName = "Cluster=" + _clusterName + ",resourceGroup=" + resourceGroup;
+              ResourceMonitor bean = new ResourceMonitor(_clusterName, resourceName);
+              String beanName = "Cluster=" + _clusterName + ",resourceName=" + resourceName;
               register(bean, getObjectName(beanName));
-              _resourceGroupMbeanMap.put(resourceGroup, bean);
+              _resourceMbeanMap.put(resourceName, bean);
               notifyListeners(bean);
             }
           }
         }
-        _resourceGroupMbeanMap.get(resourceGroup).onExternalViewChange(externalView, changeContext.getManager());
+        _resourceMbeanMap.get(resourceName).onExternalViewChange(externalView, changeContext.getManager());
       }
     }
     catch(Exception e)
     {
       LOG.warn(e);
-      //e.printStackTrace();
     }
 
   }

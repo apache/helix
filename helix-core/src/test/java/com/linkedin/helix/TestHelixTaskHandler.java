@@ -32,9 +32,9 @@ public class TestHelixTaskHandler
     message.setTgtSessionId("1234");
     message.setFromState("Offline");
     message.setToState("Slave");
-    message.setStateUnitKey("Teststateunitkey");
+    message.setPartitionName("Teststateunitkey");
     message.setMsgId("Some unique message id");
-    message.setStateUnitGroup("TeststateunitGroup");
+    message.setResourceName("TeststateunitGroup");
     message.setTgtName("localhost");
     message.setStateModelDef("MasterSlave");
     MockStateModel stateModel = new MockStateModel();
@@ -64,9 +64,9 @@ public class TestHelixTaskHandler
     message.setTgtSessionId("1234");
     message.setFromState("Offline");
     message.setToState("Slave");
-    message.setStateUnitKey("Teststateunitkey");
+    message.setPartitionName("Teststateunitkey");
     message.setMsgId("Some unique message id");
-    message.setStateUnitGroup("TeststateunitGroup");
+    message.setResourceName("TeststateunitGroup");
     message.setTgtName("localhost");
     message.setStateModelDef("MasterSlave");
     MockStateModelAnnotated stateModel = new MockStateModelAnnotated();

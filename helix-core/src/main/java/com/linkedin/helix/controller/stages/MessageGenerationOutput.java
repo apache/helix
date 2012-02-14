@@ -7,41 +7,41 @@ import java.util.List;
 import java.util.Map;
 
 import com.linkedin.helix.model.Message;
-import com.linkedin.helix.model.ResourceKey;
+import com.linkedin.helix.model.Partition;
 
 public class MessageGenerationOutput
 {
 
-  private final Map<String, Map<ResourceKey, List<Message>>> _messagesMap;
+  private final Map<String, Map<Partition, List<Message>>> _messagesMap;
 
   public MessageGenerationOutput()
   {
-    _messagesMap = new HashMap<String, Map<ResourceKey, List<Message>>>();
+    _messagesMap = new HashMap<String, Map<Partition, List<Message>>>();
 
   }
 
-  public void addMessage(String resourceGroupName, ResourceKey resource,
+  public void addMessage(String resourceName, Partition resource,
       Message message)
   {
-    if (!_messagesMap.containsKey(resourceGroupName))
+    if (!_messagesMap.containsKey(resourceName))
     {
-      _messagesMap.put(resourceGroupName,
-          new HashMap<ResourceKey, List<Message>>());
+      _messagesMap.put(resourceName,
+          new HashMap<Partition, List<Message>>());
     }
-    if (!_messagesMap.get(resourceGroupName).containsKey(resource))
+    if (!_messagesMap.get(resourceName).containsKey(resource))
     {
-      _messagesMap.get(resourceGroupName).put(resource,
+      _messagesMap.get(resourceName).put(resource,
           new ArrayList<Message>());
 
     }
-    _messagesMap.get(resourceGroupName).get(resource).add(message);
+    _messagesMap.get(resourceName).get(resource).add(message);
 
   }
 
-  public List<Message> getMessages(String resourceGroupName,
-      ResourceKey resource)
+  public List<Message> getMessages(String resourceName,
+      Partition resource)
   {
-    Map<ResourceKey, List<Message>> map = _messagesMap.get(resourceGroupName);
+    Map<Partition, List<Message>> map = _messagesMap.get(resourceName);
     if (map != null)
     {
       return map.get(resource);

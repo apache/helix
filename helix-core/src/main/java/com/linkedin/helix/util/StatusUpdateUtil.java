@@ -110,7 +110,7 @@ public class StatusUpdateUtil
   {
     if (message.getMsgType().equals(MessageType.STATE_TRANSITION))
     {
-      return message.getStateUnitKey() + " Trans:"
+      return message.getPartitionName() + " Trans:"
           + message.getFromState().charAt(0) + "->"
           + message.getToState().charAt(0) + "  "
           + UUID.randomUUID().toString();
@@ -257,7 +257,7 @@ public class StatusUpdateUtil
     if (message.getMsgType().equalsIgnoreCase(
         MessageType.STATE_TRANSITION.toString()))
     {
-      return message.getStateUnitKey();
+      return message.getPartitionName();
     }
     return message.getMsgId();
   }
@@ -271,7 +271,7 @@ public class StatusUpdateUtil
     if (message.getMsgType().equalsIgnoreCase(
         MessageType.STATE_TRANSITION.toString()))
     {
-      return  message.getStateUnitGroup();
+      return  message.getResourceName();
     }
     else
     {
@@ -284,7 +284,7 @@ public class StatusUpdateUtil
     if (message.getMsgType().equalsIgnoreCase(
         MessageType.STATE_TRANSITION.toString()))
     {
-      return message.getTgtSessionId() + "__" + message.getStateUnitGroup();
+      return message.getTgtSessionId() + "__" + message.getResourceName();
     }
     return message.getMsgId();
   }

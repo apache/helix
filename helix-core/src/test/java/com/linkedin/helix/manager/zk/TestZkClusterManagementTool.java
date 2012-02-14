@@ -156,10 +156,10 @@ public class TestZkClusterManagementTool extends ZkUnitTestBase
 
     try
     {
-      tool.addResourceGroup(clusterName, "resourceGroup", 10,
+      tool.addResource(clusterName, "resource", 10,
           "nonexistStateModelDef");
       Assert
-          .fail("should fail if add a resource group without an existing state model");
+          .fail("should fail if add a resource without an existing state model");
     } catch (HelixException e)
     {
       exceptionThrown = true;
@@ -168,30 +168,30 @@ public class TestZkClusterManagementTool extends ZkUnitTestBase
     exceptionThrown = false;
     try
     {
-      tool.addResourceGroup(clusterName, "resourceGroup", 10, "id1");
+      tool.addResource(clusterName, "resource", 10, "id1");
     } catch (HelixException e)
     {
       exceptionThrown = true;
     }
     Assert.assertTrue(exceptionThrown);
     exceptionThrown = false;
-    list = tool.getResourceGroupsInCluster(clusterName);
+    list = tool.getResourcesInCluster(clusterName);
     AssertJUnit.assertEquals(list.size(), 0);
     try
     {
-      tool.addResourceGroup(clusterName, "resourceGroup", 10, "id1");
+      tool.addResource(clusterName, "resource", 10, "id1");
     } catch (HelixException e)
     {
       exceptionThrown = true;
     }
     Assert.assertTrue(exceptionThrown);
     exceptionThrown = false;
-    list = tool.getResourceGroupsInCluster(clusterName);
+    list = tool.getResourcesInCluster(clusterName);
     AssertJUnit.assertEquals(list.size(), 0);
 
-    ExternalView resourceGroupExternalView = tool.getResourceGroupExternalView(
-        clusterName, "resourceGroup");
-    AssertJUnit.assertNull(resourceGroupExternalView);
+    ExternalView resourceExternalView = tool.getResourceExternalView(
+        clusterName, "resource");
+    AssertJUnit.assertNull(resourceExternalView);
   }
 
 }

@@ -9,13 +9,13 @@ import com.linkedin.helix.ZNRecordDecorator;
 
 /**
  * External view is an aggregation (across all instances)
- *  of current states for the resources in a resource group
+ *  of current states for the partitions in a resource
  */
 public class ExternalView extends ZNRecordDecorator
 {
-  public ExternalView(String resourceGroup)
+  public ExternalView(String resource)
   {
-    super(new ZNRecord(resourceGroup));
+    super(new ZNRecord(resource));
   }
 
   public ExternalView(ZNRecord record)
@@ -23,32 +23,32 @@ public class ExternalView extends ZNRecordDecorator
     super(record);
   }
 
-  public void setState(String resourceKeyName, String instance, String state)
+  public void setState(String partition, String instance, String state)
   {
-    if(_record.getMapField(resourceKeyName) == null)
+    if(_record.getMapField(partition) == null)
     {
-      _record.setMapField(resourceKeyName, new TreeMap<String, String>());
+      _record.setMapField(partition, new TreeMap<String, String>());
     }
-    _record.getMapField(resourceKeyName).put(instance, state);
+    _record.getMapField(partition).put(instance, state);
   }
 
-  public void setStateMap(String resourceKeyName,
+  public void setStateMap(String partitionName,
       Map<String, String> currentStateMap)
   {
-    _record.setMapField(resourceKeyName, currentStateMap);
+    _record.setMapField(partitionName, currentStateMap);
   }
 
-  public Set<String> getResourceKeys()
+  public Set<String> getPartitionSet()
   {
     return _record.getMapFields().keySet();
   }
 
-  public Map<String, String> getStateMap(String resourceKeyName)
+  public Map<String, String> getStateMap(String partitionName)
   {
-    return _record.getMapField(resourceKeyName);
+    return _record.getMapField(partitionName);
   }
 
-  public String getResourceGroup()
+  public String getResourceName()
   {
     return _record.getId();
   }

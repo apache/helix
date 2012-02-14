@@ -10,8 +10,8 @@ import java.util.Set;
 import com.linkedin.helix.controller.pipeline.AbstractBaseStage;
 import com.linkedin.helix.controller.pipeline.StageException;
 import com.linkedin.helix.model.Message;
-import com.linkedin.helix.model.ResourceGroup;
-import com.linkedin.helix.model.ResourceKey;
+import com.linkedin.helix.model.Resource;
+import com.linkedin.helix.model.Partition;
 import com.linkedin.helix.model.StateModelDefinition;
 
 public class MessageSelectionStage extends AbstractBaseStage
@@ -21,29 +21,29 @@ public class MessageSelectionStage extends AbstractBaseStage
   public void process(ClusterEvent event) throws Exception
   {
     ClusterDataCache cache = event.getAttribute("ClusterDataCache");
-    Map<String, ResourceGroup> resourceGroupMap =
-        event.getAttribute(AttributeName.RESOURCE_GROUPS.toString());
+    Map<String, Resource> resourceMap =
+        event.getAttribute(AttributeName.RESOURCES.toString());
     MessageGenerationOutput messageGenOutput =
         event.getAttribute(AttributeName.MESSAGES_ALL.toString());
-    if (cache == null || resourceGroupMap == null || messageGenOutput == null)
+    if (cache == null || resourceMap == null || messageGenOutput == null)
     {
       throw new StageException("Missing attributes in event:" + event
-          + ". Requires DataCache|RESOURCE_GROUPS|MESSAGES_ALL");
+          + ". Requires DataCache|RESOURCES|MESSAGES_ALL");
     }
 
     MessageSelectionStageOutput output = new MessageSelectionStageOutput();
 
-    for (String resourceGroupName : resourceGroupMap.keySet())
+    for (String resourceName : resourceMap.keySet())
     {
-      ResourceGroup resourceGroup = resourceGroupMap.get(resourceGroupName);
+      Resource resource = resourceMap.get(resourceName);
       StateModelDefinition stateModelDef =
-          cache.getStateModelDef(resourceGroup.getStateModelDefRef());
-      for (ResourceKey resource : resourceGroup.getResourceKeys())
+          cache.getStateModelDef(resource.getStateModelDefRef());
+      for (Partition partition : resource.getPartitions())
       {
         List<Message> messages =
-            messageGenOutput.getMessages(resourceGroupName, resource);
+            messageGenOutput.getMessages(resourceName, partition);
         List<Message> selectedMessages = selectMessages(messages, stateModelDef);
-        output.addMessages(resourceGroupName, resource, selectedMessages);
+        output.addMessages(resourceName, partition, selectedMessages);
       }
     }
     event.addAttribute(AttributeName.MESSAGES_SELECTED.toString(), output);

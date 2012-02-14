@@ -34,8 +34,8 @@ import com.linkedin.helix.model.CurrentState;
 import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.model.LiveInstance;
-import com.linkedin.helix.model.ResourceGroup;
-import com.linkedin.helix.model.ResourceKey;
+import com.linkedin.helix.model.Resource;
+import com.linkedin.helix.model.Partition;
 import com.linkedin.helix.model.StateModelDefinition;
 import com.linkedin.helix.store.file.FilePropertyStore;
 import com.linkedin.helix.tools.ClusterSetup;
@@ -341,14 +341,14 @@ public class TestHelper
    * 
    * @param zkAddr
    * @param clusterNameSet
-   * @param resourceGroupNameSet
+   * @param resourceNameSet
    * @return
    */
 
   public static boolean verifyBestPossAndExtView(String zkAddr, Set<String> clusterNameSet,
-      Set<String> resourceGroupNameSet)
+      Set<String> resourceNameSet)
   {
-    return verifyBestPossAndExtViewExtended(zkAddr, clusterNameSet, resourceGroupNameSet, null,
+    return verifyBestPossAndExtViewExtended(zkAddr, clusterNameSet, resourceNameSet, null,
         null, null);
   }
 
@@ -356,15 +356,15 @@ public class TestHelper
    * 
    * @param zkAddr
    * @param clusterNameSet
-   * @param resourceGroupNameSet
+   * @param resourceNameSet
    * @param disabledInstances
    * @param disabledPartitions
    * @param errorStateMap
-   *          : "ResourceGroup/partitionKey" -> setOf(instances)
+   *          : "Resource/partitionKey" -> setOf(instances)
    * @return
    */
   public static boolean verifyBestPossAndExtViewExtended(String zkAddr, Set<String> clusterNameSet,
-      Set<String> resourceGroupNameSet, Set<String> disabledInstances,
+      Set<String> resourceNameSet, Set<String> disabledInstances,
       Map<String, Set<String>> disabledPartitions, Map<String, Set<String>> errorStateMap)
   {
     ZkClient zkClient = new ZkClient(zkAddr);
@@ -376,10 +376,10 @@ public class TestHelper
       {
         DataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
 
-        for (String resourceGroupName : resourceGroupNameSet)
+        for (String resourceName : resourceNameSet)
         {
           ExternalView extView = accessor.getProperty(ExternalView.class,
-              PropertyType.EXTERNALVIEW, resourceGroupName);
+              PropertyType.EXTERNALVIEW, resourceName);
           // external view not yet generated
           if (extView == null)
           {
@@ -388,12 +388,12 @@ public class TestHelper
 
           Map<String, IdealState> idealStates = accessor.getChildValuesMap(IdealState.class,
               PropertyType.IDEALSTATES);
-          if (!idealStates.containsKey(resourceGroupName))
+          if (!idealStates.containsKey(resourceName))
           {
-            LOG.error("No ideal state for " + resourceGroupName);
+            LOG.error("No ideal state for " + resourceName);
             return false;
           }
-          IdealState idealState = idealStates.get(resourceGroupName);
+          IdealState idealState = idealStates.get(resourceName);
           int partitions = idealState.getNumPartitions();
           String stateModelName = idealState.getStateModelDefRef();
 
@@ -408,7 +408,7 @@ public class TestHelper
           StateModelDefinition stateModelDef = stateModelDefs.get(stateModelName);
           String initState = stateModelDef.getInitialState();
 
-          BestPossibleStateOutput bestPossOutput = TestHelper.calcBestPossState(resourceGroupName,
+          BestPossibleStateOutput bestPossOutput = TestHelper.calcBestPossState(resourceName,
               partitions, stateModelName, clusterName, accessor, errorStateMap);
 
           // System.out.println("extView:" + extView.getMapFields());
@@ -417,11 +417,11 @@ public class TestHelper
           // check disabled instances
           if (disabledInstances != null)
           {
-            for (ResourceKey resourceKey : bestPossOutput.getResourceGroupMap(resourceGroupName)
+            for (Partition partition : bestPossOutput.getResourceMap(resourceName)
                 .keySet())
             {
               Map<String, String> bpInstanceMap = bestPossOutput.getInstanceStateMap(
-                  resourceGroupName, resourceKey);
+                  resourceName, partition);
               for (String instance : disabledInstances)
               {
                 if (bpInstanceMap.containsKey(instance))
@@ -429,8 +429,8 @@ public class TestHelper
                   if (!initState.equals(bpInstanceMap.get(instance))
                       && !"ERROR".equals(bpInstanceMap.get(instance)))
                   {
-                    LOG.error("Best possible states should set " + resourceGroupName + "/"
-                        + resourceKey.getResourceKeyName() + " to " + initState + " for "
+                    LOG.error("Best possible states should set " + resourceName + "/"
+                        + partition.getPartitionName() + " to " + initState + " for "
                         + instance + " (was " + bpInstanceMap.get(instance) + ")");
                     return false;
                   }
@@ -447,17 +447,17 @@ public class TestHelper
           {
             for (String resGroupPartitionKey : disabledPartitions.keySet())
             {
-              Map<String, String> retMap = getResourceGroupAndPartitionKey(resGroupPartitionKey);
-              String resGroup = retMap.get("RESOURCEGROUP");
+              Map<String, String> retMap = getResourceAndPartitionKey(resGroupPartitionKey);
+              String resGroup = retMap.get("RESOURCE");
               String partitionKey = retMap.get("PARTITION");
 
-              if (resourceGroupName.equals(resGroup))
+              if (resourceName.equals(resGroup))
               {
                 for (String instance : disabledPartitions.get(partitionKey))
                 {
-                  ResourceKey resourceKey = new ResourceKey(partitionKey);
+                  Partition partition = new Partition(partitionKey);
                   Map<String, String> bpInstanceMap = bestPossOutput.getInstanceStateMap(
-                      resourceGroupName, resourceKey);
+                      resourceName, partition);
                   if (bpInstanceMap.containsKey(instance))
                   {
                     if (!initState.equals(bpInstanceMap.get(instance))
@@ -482,19 +482,19 @@ public class TestHelper
           {
             for (String resGroupPartitionKey : errorStateMap.keySet())
             {
-              Map<String, String> retMap = getResourceGroupAndPartitionKey(resGroupPartitionKey);
-              String resGroup = retMap.get("RESOURCEGROUP");
+              Map<String, String> retMap = getResourceAndPartitionKey(resGroupPartitionKey);
+              String resGroup = retMap.get("RESOURCE");
               String partitionKey = retMap.get("PARTITION");
 
-              if (resGroup.equals(resourceGroupName))
+              if (resGroup.equals(resourceName))
               {
                 for (String instance : errorStateMap.get(partitionKey))
                 {
-                  ResourceKey resourceKey = new ResourceKey(partitionKey);
+                  Partition partition = new Partition(partitionKey);
                   Map<String, String> stateMap = bestPossOutput.getInstanceStateMap(
-                      resourceGroupName, resourceKey);
+                      resourceName, partition);
                   stateMap.put(instance, "ERROR");
-                  bestPossOutput.setState(resourceGroupName, resourceKey, stateMap);
+                  bestPossOutput.setState(resourceName, partition, stateMap);
                 }
               }
             }
@@ -504,11 +504,11 @@ public class TestHelper
           for (Map.Entry<String, Map<String, String>> entry : extView.getRecord().getMapFields()
               .entrySet())
           {
-            String resourceKey = entry.getKey();
+            String partitionName = entry.getKey();
             Map<String, String> evInstanceMap = entry.getValue();
 
             Map<String, String> bpInstanceMap = bestPossOutput.getInstanceStateMap(
-                resourceGroupName, new ResourceKey(resourceKey));
+                resourceName, new Partition(partitionName));
 
             boolean result = TestHelper.<String, String> compareMap(evInstanceMap, bpInstanceMap);
             if (result == false)
@@ -519,13 +519,13 @@ public class TestHelper
           }
 
           // every entry in best possible state is contained in external view
-          for (Map.Entry<ResourceKey, Map<String, String>> entry : bestPossOutput
-              .getResourceGroupMap(resourceGroupName).entrySet())
+          for (Map.Entry<Partition, Map<String, String>> entry : bestPossOutput
+              .getResourceMap(resourceName).entrySet())
           {
-            String resourceKey = entry.getKey().getResourceKeyName();
+            String partitionName = entry.getKey().getPartitionName();
             Map<String, String> bpInstanceMap = entry.getValue();
 
-            Map<String, String> evInstanceMap = extView.getStateMap(resourceKey);
+            Map<String, String> evInstanceMap = extView.getStateMap(partitionName);
 
             boolean result = TestHelper.<String, String> compareMap(evInstanceMap, bpInstanceMap);
             if (result == false)
@@ -543,7 +543,7 @@ public class TestHelper
             String sessionId = instance.getSessionId();
             String instanceName = instance.getInstanceName();
             List<String> partitionKeys = accessor.getChildNames(PropertyType.STATUSUPDATES,
-                instanceName, sessionId, resourceGroupName);
+                instanceName, sessionId, resourceName);
             if (partitionKeys != null && partitionKeys.size() > 0)
             {
               for (String partitionKey : partitionKeys)
@@ -557,12 +557,12 @@ public class TestHelper
                   }
                 }
                 ZNRecord update = accessor.getProperty(PropertyType.STATUSUPDATES, instanceName,
-                    sessionId, resourceGroupName, partitionKey);
+                    sessionId, resourceName, partitionKey);
                 String updateStr = update.toString().toLowerCase();
                 if (updateStr.indexOf("error") != -1)
                 {
-                  LOG.error("ERROR in statusUpdate. instance:" + instance + ", resourceGroup:"
-                      + resourceGroupName + ", partitionKey:" + partitionKey + ", statusUpdate:"
+                  LOG.error("ERROR in statusUpdate. instance:" + instance + ", resource:"
+                      + resourceName + ", partitionKey:" + partitionKey + ", statusUpdate:"
                       + update);
                   return false;
                 }
@@ -580,7 +580,7 @@ public class TestHelper
   }
 
   // for file-based cluster manager
-  public static boolean verifyBestPossAndExtViewFile(String resourceGroupName, int partitions,
+  public static boolean verifyBestPossAndExtViewFile(String resourceName, int partitions,
       String stateModelName, Set<String> clusterNameSet,
       FilePropertyStore<ZNRecord> filePropertyStore)
   {
@@ -589,14 +589,14 @@ public class TestHelper
       DataAccessor accessor = new FileDataAccessor(filePropertyStore, clusterName);
 
       ExternalView extView = accessor.getProperty(ExternalView.class, PropertyType.EXTERNALVIEW,
-          resourceGroupName);
+          resourceName);
       // external view not yet generated
       if (extView == null)
       {
         return false;
       }
 
-      BestPossibleStateOutput bestPossOutput = calcBestPossState(resourceGroupName, partitions,
+      BestPossibleStateOutput bestPossOutput = calcBestPossState(resourceName, partitions,
           stateModelName, clusterName, accessor, null);
 
       // System.out.println("extView:" + externalView.getMapFields());
@@ -606,11 +606,11 @@ public class TestHelper
       for (Map.Entry<String, Map<String, String>> entry : extView.getRecord().getMapFields()
           .entrySet())
       {
-        String resourceKey = entry.getKey();
+        String partitionName = entry.getKey();
         Map<String, String> evInstanceMap = entry.getValue();
 
-        Map<String, String> bpInstanceMap = bestPossOutput.getInstanceStateMap(resourceGroupName,
-            new ResourceKey(resourceKey));
+        Map<String, String> bpInstanceMap = bestPossOutput.getInstanceStateMap(resourceName,
+            new Partition(partitionName));
 
         boolean result = TestHelper.<String, String> compareMap(evInstanceMap, bpInstanceMap);
         if (result == false)
@@ -621,13 +621,13 @@ public class TestHelper
       }
 
       // every entry in best possible state is contained in external view
-      for (Map.Entry<ResourceKey, Map<String, String>> entry : bestPossOutput.getResourceGroupMap(
-          resourceGroupName).entrySet())
+      for (Map.Entry<Partition, Map<String, String>> entry : bestPossOutput.getResourceMap(
+          resourceName).entrySet())
       {
-        String resourceKey = entry.getKey().getResourceKeyName();
+        String partitionName = entry.getKey().getPartitionName();
         Map<String, String> bpInstanceMap = entry.getValue();
 
-        Map<String, String> evInstanceMap = extView.getStateMap(resourceKey);
+        Map<String, String> evInstanceMap = extView.getStateMap(partitionName);
 
         boolean result = TestHelper.<String, String> compareMap(evInstanceMap, bpInstanceMap);
         if (result == false)
@@ -642,7 +642,7 @@ public class TestHelper
 
   /**
    * 
-   * @param resourceGroupName
+   * @param resourceName
    * @param partitions
    * @param stateModelName
    * @param clusterName
@@ -651,15 +651,15 @@ public class TestHelper
    *          : partition->setOf(instances)
    * @return
    */
-  private static BestPossibleStateOutput calcBestPossState(String resourceGroupName,
+  private static BestPossibleStateOutput calcBestPossState(String resourceName,
       int partitions, String stateModelName, String clusterName, DataAccessor accessor,
       Map<String, Set<String>> errorStateMap)
   {
-    Map<String, ResourceGroup> resourceGroupMap = getResourceGroupMap(resourceGroupName,
+    Map<String, Resource> resourceMap = getResourceMap(resourceName,
         partitions, stateModelName);
     ClusterEvent event = new ClusterEvent("sampleEvent");
 
-    event.addAttribute(AttributeName.RESOURCE_GROUPS.toString(), resourceGroupMap);
+    event.addAttribute(AttributeName.RESOURCES.toString(), resourceMap);
 
     ClusterDataCache cache = new ClusterDataCache();
     cache.refresh(accessor);
@@ -679,12 +679,12 @@ public class TestHelper
     {
       for (String resGroupPartitionKey : errorStateMap.keySet())
       {
-        Map<String, String> retMap = getResourceGroupAndPartitionKey(resGroupPartitionKey);
-        String resGroup = retMap.get("RESOURCEGROUP");
+        Map<String, String> retMap = getResourceAndPartitionKey(resGroupPartitionKey);
+        String resGroup = retMap.get("RESOURCE");
         String partitionKey = retMap.get("PARTITION");
         for (String instance : errorStateMap.get(resGroupPartitionKey))
         {
-          Map<String, String> instanceState = output.getInstanceStateMap(resGroup, new ResourceKey(
+          Map<String, String> instanceState = output.getInstanceStateMap(resGroup, new Partition(
               partitionKey));
           instanceState.put(instance, "ERROR");
         }
@@ -695,19 +695,19 @@ public class TestHelper
     return output;
   }
 
-  private static Map<String, ResourceGroup> getResourceGroupMap(String resourceGroupName,
+  private static Map<String, Resource> getResourceMap(String resourceName,
       int partitions, String stateModelName)
   {
-    Map<String, ResourceGroup> resourceGroupMap = new HashMap<String, ResourceGroup>();
-    ResourceGroup resourceGroup = new ResourceGroup(resourceGroupName);
-    resourceGroup.setStateModelDefRef(stateModelName);
+    Map<String, Resource> resourceMap = new HashMap<String, Resource>();
+    Resource resource = new Resource(resourceName);
+    resource.setStateModelDefRef(stateModelName);
     for (int i = 0; i < partitions; i++)
     {
-      resourceGroup.addResource(resourceGroupName + "_" + i);
+      resource.addPartition(resourceName + "_" + i);
     }
-    resourceGroupMap.put(resourceGroupName, resourceGroup);
+    resourceMap.put(resourceName, resource);
 
-    return resourceGroupMap;
+    return resourceMap;
   }
 
   private static void runStage(ClusterEvent event, Stage stage)
@@ -726,7 +726,7 @@ public class TestHelper
   }
 
   // for file-based cluster manager
-  public static boolean verifyEmptyCurStateFile(String clusterName, String resourceGroupName,
+  public static boolean verifyEmptyCurStateFile(String clusterName, String resourceName,
       Set<String> instanceNames, FilePropertyStore<ZNRecord> filePropertyStore)
   {
     DataAccessor accessor = new FileDataAccessor(filePropertyStore, clusterName);
@@ -739,10 +739,10 @@ public class TestHelper
 
       for (String previousSessionId : subPaths)
       {
-        if (filePropertyStore.exists(path + "/" + previousSessionId + "/" + resourceGroupName))
+        if (filePropertyStore.exists(path + "/" + previousSessionId + "/" + resourceName))
         {
           CurrentState previousCurrentState = accessor.getProperty(CurrentState.class,
-              PropertyType.CURRENTSTATES, instanceName, previousSessionId, resourceGroupName);
+              PropertyType.CURRENTSTATES, instanceName, previousSessionId, resourceName);
 
           if (previousCurrentState.getRecord().getMapFields().size() != 0)
           {
@@ -754,7 +754,7 @@ public class TestHelper
     return true;
   }
 
-  public static boolean verifyEmptyCurStateAndExtView(String clusterName, String resourceGroupName,
+  public static boolean verifyEmptyCurStateAndExtView(String clusterName, String resourceName,
       Set<String> instanceNames, String zkAddr)
   {
     ZkClient zkClient = new ZkClient(zkAddr);
@@ -771,7 +771,7 @@ public class TestHelper
         for (String sessionId : sessionIds)
         {
           CurrentState curState = accessor.getProperty(CurrentState.class,
-              PropertyType.CURRENTSTATES, instanceName, sessionId, resourceGroupName);
+              PropertyType.CURRENTSTATES, instanceName, sessionId, resourceName);
 
           if (curState != null && curState.getRecord().getMapFields().size() != 0)
           {
@@ -780,7 +780,7 @@ public class TestHelper
         }
 
         ExternalView extView = accessor.getProperty(ExternalView.class, PropertyType.EXTERNALVIEW,
-            resourceGroupName);
+            resourceName);
 
         if (extView != null && extView.getRecord().getMapFields().size() != 0)
         {
@@ -837,7 +837,7 @@ public class TestHelper
     for (int i = 0; i < resourceNb; i++)
     {
       String dbName = resourceNamePrefix + i;
-      setupTool.addResourceGroupToCluster(clusterName, dbName, partitionNb, stateModelDef);
+      setupTool.addResourceToCluster(clusterName, dbName, partitionNb, stateModelDef);
       if (doRebalance)
       {
         setupTool.rebalanceStorageCluster(clusterName, dbName, replica);
@@ -849,7 +849,7 @@ public class TestHelper
   /**
    * 
    * @param stateMap
-   *          : "ResourceGroupName/partitionKey" -> setOf(instances)
+   *          : "ResourceName/partitionKey" -> setOf(instances)
    * @param state
    *          : MASTER|SLAVE|ERROR...
    */
@@ -865,8 +865,8 @@ public class TestHelper
 
       for (String resGroupPartitionKey : stateMap.keySet())
       {
-        Map<String, String> retMap = getResourceGroupAndPartitionKey(resGroupPartitionKey);
-        String resGroup = retMap.get("RESOURCEGROUP");
+        Map<String, String> retMap = getResourceAndPartitionKey(resGroupPartitionKey);
+        String resGroup = retMap.get("RESOURCE");
         String partitionKey = retMap.get("PARTITION");
 
         ExternalView extView = accessor.getProperty(ExternalView.class, PropertyType.EXTERNALVIEW,
@@ -890,31 +890,31 @@ public class TestHelper
 
   /**
    * 
-   * @param resGroupPartitionKey
-   *          : key is in form of "resourceGroup/partitionKey" or
-   *          "resourceGroup_x"
+   * @param resourcePartition
+   *          : key is in form of "resource/partitionKey" or
+   *          "resource_x"
    * 
    * @return
    */
-  private static Map<String, String> getResourceGroupAndPartitionKey(String resGroupPartitionKey)
+  private static Map<String, String> getResourceAndPartitionKey(String resourcePartition)
   {
-    String resGroup;
-    String partitionKey;
-    int idx = resGroupPartitionKey.indexOf('/');
+    String resourceName;
+    String partitionName;
+    int idx = resourcePartition.indexOf('/');
     if (idx > -1)
     {
-      resGroup = resGroupPartitionKey.substring(0, idx);
-      partitionKey = resGroupPartitionKey.substring(idx + 1);
+      resourceName = resourcePartition.substring(0, idx);
+      partitionName = resourcePartition.substring(idx + 1);
     } else
     {
-      idx = resGroupPartitionKey.lastIndexOf('_');
-      resGroup = resGroupPartitionKey.substring(0, idx);
-      partitionKey = resGroupPartitionKey;
+      idx = resourcePartition.lastIndexOf('_');
+      resourceName = resourcePartition.substring(0, idx);
+      partitionName = resourcePartition;
     }
 
     Map<String, String> retMap = new HashMap<String, String>();
-    retMap.put("RESOURCEGROUP", resGroup);
-    retMap.put("PARTITION", partitionKey);
+    retMap.put("RESOURCE", resourceName);
+    retMap.put("PARTITION", partitionName);
     return retMap;
   }
 }

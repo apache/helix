@@ -169,8 +169,8 @@ public class TestZKCallback extends ZkUnitTestBase
     testListener.Reset();
     Message message = new Message(MessageType.STATE_TRANSITION, UUID.randomUUID().toString());
     message.setTgtSessionId("*");
-    message.setStateUnitGroup("testResourceGroup");
-    message.setStateUnitKey("testPartitionKey");
+    message.setResourceName("testResource");
+    message.setPartitionName("testPartitionKey");
     message.setStateModelDef("MasterSlave");
     message.setToState("toState");
     message.setFromState("fromState");
@@ -209,7 +209,7 @@ public class TestZKCallback extends ZkUnitTestBase
     // ClusterSetup
     //    .processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " -addCluster relay-cluster-12345"));
     ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " -addResourceGroup " + clusterName + " db-12345 120 MasterSlave"));
+        .processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " -addResource " + clusterName + " db-12345 120 MasterSlave"));
     ClusterSetup
         .processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " -addNode " + clusterName + " localhost:8900"));
     ClusterSetup

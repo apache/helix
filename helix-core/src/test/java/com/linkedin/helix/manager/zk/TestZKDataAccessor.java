@@ -30,25 +30,25 @@ public class TestZKDataAccessor extends ZkUnitTestBase
 {
   private DataAccessor _accessor;
   private String _clusterName;
-  private final String resourceGroup = "resourceGroup";
+  private final String resource = "resource";
 	private ZkClient _zkClient;
 
   @Test ()
   public void testSet()
   {
-    IdealState idealState = new IdealState(resourceGroup);
+    IdealState idealState = new IdealState(resource);
     idealState.setNumPartitions(20);
     idealState.setReplicas(Integer.toString(2));
     idealState.setStateModelDefRef("StateModel1");
     idealState.setIdealStateMode(IdealStateModeProperty.AUTO.toString());
-    boolean success = _accessor.setProperty(PropertyType.IDEALSTATES, idealState, resourceGroup);
+    boolean success = _accessor.setProperty(PropertyType.IDEALSTATES, idealState, resource);
     AssertJUnit.assertTrue(success);
-    String path = PropertyPathConfig.getPath(PropertyType.IDEALSTATES, _clusterName, resourceGroup);
+    String path = PropertyPathConfig.getPath(PropertyType.IDEALSTATES, _clusterName, resource);
     AssertJUnit.assertTrue(_zkClient.exists(path));
     AssertJUnit.assertEquals(idealState.getRecord(), _zkClient.readData(path));
 
     idealState.setNumPartitions(20);
-    success = _accessor.setProperty(PropertyType.IDEALSTATES, idealState, resourceGroup);
+    success = _accessor.setProperty(PropertyType.IDEALSTATES, idealState, resource);
     AssertJUnit.assertTrue(success);
     AssertJUnit.assertTrue(_zkClient.exists(path));
     AssertJUnit.assertEquals(idealState.getRecord(), _zkClient.readData(path));
@@ -57,31 +57,31 @@ public class TestZKDataAccessor extends ZkUnitTestBase
   @Test ()
   public void testGet()
   {
-    String path = PropertyPathConfig.getPath(PropertyType.IDEALSTATES, _clusterName, resourceGroup);
-    IdealState idealState = new IdealState(resourceGroup);
+    String path = PropertyPathConfig.getPath(PropertyType.IDEALSTATES, _clusterName, resource);
+    IdealState idealState = new IdealState(resource);
     idealState.setIdealStateMode(IdealStateModeProperty.AUTO.toString());
 
     _zkClient.delete(path);
     _zkClient.createPersistent(new File(path).getParent(), true);
     _zkClient.createPersistent(path, idealState.getRecord());
-    IdealState idealStateRead = _accessor.getProperty(IdealState.class, PropertyType.IDEALSTATES, resourceGroup);
+    IdealState idealStateRead = _accessor.getProperty(IdealState.class, PropertyType.IDEALSTATES, resource);
     AssertJUnit.assertEquals(idealState.getRecord(), idealStateRead.getRecord());
   }
 
   @Test ()
   public void testRemove()
   {
-    String path = PropertyPathConfig.getPath(PropertyType.IDEALSTATES, _clusterName, resourceGroup);
-    IdealState idealState = new IdealState(resourceGroup);
+    String path = PropertyPathConfig.getPath(PropertyType.IDEALSTATES, _clusterName, resource);
+    IdealState idealState = new IdealState(resource);
     idealState.setIdealStateMode(IdealStateModeProperty.AUTO.toString());
 
     _zkClient.delete(path);
     _zkClient.createPersistent(new File(path).getParent(), true);
     _zkClient.createPersistent(path, idealState.getRecord());
-    boolean success = _accessor.removeProperty(PropertyType.IDEALSTATES, resourceGroup);
+    boolean success = _accessor.removeProperty(PropertyType.IDEALSTATES, resource);
     AssertJUnit.assertTrue(success);
     AssertJUnit.assertFalse(_zkClient.exists(path));
-    IdealState idealStateRead = _accessor.getProperty(IdealState.class, PropertyType.IDEALSTATES, resourceGroup);
+    IdealState idealStateRead = _accessor.getProperty(IdealState.class, PropertyType.IDEALSTATES, resource);
     AssertJUnit.assertNull(idealStateRead);
 
   }
@@ -89,8 +89,8 @@ public class TestZKDataAccessor extends ZkUnitTestBase
   @Test ()
   public void testUpdate()
   {
-    String path = PropertyPathConfig.getPath(PropertyType.IDEALSTATES, _clusterName, resourceGroup);
-    IdealState idealState = new IdealState(resourceGroup);
+    String path = PropertyPathConfig.getPath(PropertyType.IDEALSTATES, _clusterName, resource);
+    IdealState idealState = new IdealState(resource);
     idealState.setIdealStateMode(IdealStateModeProperty.AUTO.toString());
 
     _zkClient.delete(path);
@@ -100,7 +100,7 @@ public class TestZKDataAccessor extends ZkUnitTestBase
 
     idealState.setIdealStateMode(IdealStateModeProperty.CUSTOMIZED.toString());
 
-    boolean success = _accessor.updateProperty(PropertyType.IDEALSTATES, idealState, resourceGroup);
+    boolean success = _accessor.updateProperty(PropertyType.IDEALSTATES, idealState, resource);
     AssertJUnit.assertTrue(success);
     AssertJUnit.assertTrue(_zkClient.exists(path));
     ZNRecord value = _zkClient.readData(path);

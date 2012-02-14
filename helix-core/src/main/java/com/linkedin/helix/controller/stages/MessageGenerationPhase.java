@@ -12,8 +12,8 @@ import com.linkedin.helix.controller.pipeline.StageException;
 import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.model.Message;
 import com.linkedin.helix.model.Message.MessageType;
-import com.linkedin.helix.model.ResourceGroup;
-import com.linkedin.helix.model.ResourceKey;
+import com.linkedin.helix.model.Partition;
+import com.linkedin.helix.model.Resource;
 import com.linkedin.helix.model.StateModelDefinition;
 
 /**
@@ -31,17 +31,16 @@ public class MessageGenerationPhase extends AbstractBaseStage
   {
     HelixManager manager = event.getAttribute("helixmanager");
     ClusterDataCache cache = event.getAttribute("ClusterDataCache");
-    Map<String, ResourceGroup> resourceGroupMap = event.getAttribute(AttributeName.RESOURCE_GROUPS
-        .toString());
+    Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.toString());
     CurrentStateOutput currentStateOutput = event.getAttribute(AttributeName.CURRENT_STATE
         .toString());
     BestPossibleStateOutput bestPossibleStateOutput = event
         .getAttribute(AttributeName.BEST_POSSIBLE_STATE.toString());
-    if (manager == null || cache == null || resourceGroupMap == null || currentStateOutput == null
+    if (manager == null || cache == null || resourceMap == null || currentStateOutput == null
         || bestPossibleStateOutput == null)
     {
       throw new StageException("Missing attributes in event:" + event
-          + ". Requires HelixManager|DataCache|RESOURCE_GROUPS|CURRENT_STATE|BEST_POSSIBLE_STATE");
+          + ". Requires HelixManager|DataCache|RESOURCES|CURRENT_STATE|BEST_POSSIBLE_STATE");
     }
 
     Map<String, LiveInstance> liveInstances = cache.getLiveInstances();
@@ -53,29 +52,28 @@ public class MessageGenerationPhase extends AbstractBaseStage
     }
     MessageGenerationOutput output = new MessageGenerationOutput();
 
-    for (String resourceGroupName : resourceGroupMap.keySet())
+    for (String resourceName : resourceMap.keySet())
     {
-      ResourceGroup resourceGroup = resourceGroupMap.get(resourceGroupName);
-      StateModelDefinition stateModelDef = cache.getStateModelDef(resourceGroup
-          .getStateModelDefRef());
+      Resource resource = resourceMap.get(resourceName);
+      StateModelDefinition stateModelDef = cache.getStateModelDef(resource.getStateModelDefRef());
 
-      for (ResourceKey resource : resourceGroup.getResourceKeys())
+      for (Partition partition : resource.getPartitions())
       {
         Map<String, String> instanceStateMap = bestPossibleStateOutput.getInstanceStateMap(
-            resourceGroupName, resource);
+            resourceName, partition);
 
         for (String instanceName : instanceStateMap.keySet())
         {
           String desiredState = instanceStateMap.get(instanceName);
 
-          String currentState = currentStateOutput.getCurrentState(resourceGroupName, resource,
+          String currentState = currentStateOutput.getCurrentState(resourceName, partition,
               instanceName);
           if (currentState == null)
           {
             currentState = stateModelDef.getInitialState();
           }
 
-          String pendingState = currentStateOutput.getPendingState(resourceGroupName, resource,
+          String pendingState = currentStateOutput.getPendingState(resourceName, partition,
               instanceName);
 
           String nextState;
@@ -89,18 +87,19 @@ public class MessageGenerationPhase extends AbstractBaseStage
               {
                 if (logger.isDebugEnabled())
                 {
-                  logger.debug("Message already exists at" + instanceName + " to transition"
-                      + resource.getResourceKeyName() + " from " + currentState + " to "
-                      + nextState);
+                  logger
+                      .debug("Message already exists at" + instanceName + " to transition"
+                          + partition.getPartitionName() + " from " + currentState + " to "
+                          + nextState);
                 }
               } else
               {
-                Message message = createMessage(manager, resourceGroupName,
-                    resource.getResourceKeyName(), instanceName, currentState, nextState,
+                Message message = createMessage(manager, resourceName,
+                    partition.getPartitionName(), instanceName, currentState, nextState,
                     sessionIdMap.get(instanceName), stateModelDef.getId(),
-                    resourceGroup.getStateModelFactoryName());
+                    resource.getStateModelFactoryname());
 
-                output.addMessage(resourceGroupName, resource, message);
+                output.addMessage(resourceName, partition, message);
               }
             } else
             {
@@ -109,24 +108,22 @@ public class MessageGenerationPhase extends AbstractBaseStage
             }
           }
         }
-
       }
     }
     event.addAttribute(AttributeName.MESSAGES_ALL.toString(), output);
   }
 
-  private Message createMessage(HelixManager manager, String resourceGroupName,
-      String resourceKeyName, String instanceName, String currentState, String nextState,
-      String sessionId, String stateModelDefName, String stateModelFactoryName)
+  private Message createMessage(HelixManager manager, String resourceName, String partitionName,
+      String instanceName, String currentState, String nextState, String sessionId,
+      String stateModelDefName, String stateModelFactoryName)
   {
     String uuid = UUID.randomUUID().toString();
     Message message = new Message(MessageType.STATE_TRANSITION, uuid);
-    // message.setMsgId(uuid);
     message.setSrcName(manager.getInstanceName());
     message.setTgtName(instanceName);
     message.setMsgState("new");
-    message.setStateUnitKey(resourceKeyName);
-    message.setStateUnitGroup(resourceGroupName);
+    message.setPartitionName(partitionName);
+    message.setResourceName(resourceName);
     message.setFromState(currentState);
     message.setToState(nextState);
     message.setTgtSessionId(sessionId);

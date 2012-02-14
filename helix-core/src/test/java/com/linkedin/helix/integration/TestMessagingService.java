@@ -300,13 +300,13 @@ public class TestMessagingService extends ZkStandAloneCMTestBase
         .sendAndWait(cr, msg, callback2, 500);
     AssertJUnit.assertTrue(callback2.isTimedOut());
 
-    cr.setResourceKey("TestDB_17");
+    cr.setPartition("TestDB_17");
     AsyncCallback callback3 = new MockAsyncCallback();
     int messageSent3 = _startCMResultMap.get(hostSrc)._manager.getMessagingService()
         .sendAndWait(cr, msg, callback3, 2000);
     AssertJUnit.assertTrue(callback3.getMessageReplied().size() == 3);
 
-    cr.setResourceState("SLAVE");
+    cr.setPartitionState("SLAVE");
     AsyncCallback callback4 = new MockAsyncCallback();
     int messageSent4 = _startCMResultMap.get(hostSrc)._manager.getMessagingService()
         .sendAndWait(cr, msg, callback4, 2000);
@@ -389,7 +389,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBase
 
     msgId = UUID.randomUUID().toString();
     msg.setMsgId(msgId);
-    cr.setResourceKey("TestDB_17");
+    cr.setPartition("TestDB_17");
     AsyncCallback callback2 = new MockAsyncCallback();
     messagesSent = _startCMResultMap.get(hostSrc)._manager.getMessagingService()
         .sendAndWait(cr, msg, callback2, 2000);
@@ -401,7 +401,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBase
 
     msgId = UUID.randomUUID().toString();
     msg.setMsgId(msgId);
-    cr.setResourceState("SLAVE");
+    cr.setPartitionState("SLAVE");
     AsyncCallback callback3 = new MockAsyncCallback();
     messagesSent = _startCMResultMap.get(hostSrc)._manager.getMessagingService()
         .sendAndWait(cr, msg, callback3, 2000);

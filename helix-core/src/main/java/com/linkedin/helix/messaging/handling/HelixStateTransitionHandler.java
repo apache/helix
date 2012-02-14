@@ -54,8 +54,8 @@ public class HelixStateTransitionHandler extends MessageHandler
       throw new HelixException(errorMessage);
     }
     DataAccessor accessor = manager.getDataAccessor();
-    String partitionKey = message.getStateUnitKey();
-    String resourceGroup = message.getStateUnitGroup();
+    String partitionName = message.getPartitionName();
+    String resourceName = message.getResourceName();
     String instanceName = manager.getInstanceName();
 
     String fromState = message.getFromState();
@@ -64,25 +64,25 @@ public class HelixStateTransitionHandler extends MessageHandler
     List<StateModelDefinition> stateModelDefs = accessor.getChildValues(StateModelDefinition.class,
         PropertyType.STATEMODELDEFS);
 
-    StateModelDefinition stateModelDef = lookupStateModel(message.getStateModelDef(),
-        stateModelDefs);
+    String stateModelName = message.getStateModelDef();
+    StateModelDefinition stateModelDef = lookupStateModel(stateModelName, stateModelDefs);
 
     if (stateModelDef == null)
     {
-      throw new HelixException("No State Model Defined for " + message.getStateModelDef());
+      throw new HelixException("No State Model Defined for " + stateModelName);
 
     }
     String initStateValue = stateModelDef.getInitialState();
     CurrentState currentState = accessor.getProperty(CurrentState.class,
-        PropertyType.CURRENTSTATES, instanceName, manager.getSessionId(), resourceGroup);
+        PropertyType.CURRENTSTATES, instanceName, manager.getSessionId(), resourceName);
 
     // Set an empty current state record if it is null
     if (currentState == null)
     {
-      currentState = new CurrentState(resourceGroup);
+      currentState = new CurrentState(resourceName);
       currentState.setSessionId(manager.getSessionId());
       accessor.updateProperty(PropertyType.CURRENTSTATES, currentState, instanceName,
-          manager.getSessionId(), resourceGroup);
+          manager.getSessionId(), resourceName);
     }
 
     /**
@@ -92,37 +92,47 @@ public class HelixStateTransitionHandler extends MessageHandler
      * model def
      */
 
-    CurrentState currentStateDelta = new CurrentState(resourceGroup);
-    if (currentState.getState(partitionKey) == null)
+    CurrentState currentStateDelta = new CurrentState(resourceName);
+    if (currentState.getState(partitionName) == null)
     {
-      currentStateDelta.setState(partitionKey, initStateValue);
-      currentState.setState(partitionKey, initStateValue);
+      currentStateDelta.setState(partitionName, initStateValue);
+      currentState.setState(partitionName, initStateValue);
 
-      logger.info("Setting initial state for partition: " + partitionKey + " to " + initStateValue);
+      logger
+          .info("Setting initial state for partition: " + partitionName + " to " + initStateValue);
     }
 
     // Set the state model def to current state
     if (currentState.getStateModelDefRef() == null)
     {
-
-      if (message.getStateModelDef() != null)
+      if (stateModelName != null)
       {
-        logger.info("Setting state model def on current state: " + message.getStateModelDef());
-        currentStateDelta.setStateModelDefRef(message.getStateModelDef());
+        logger.info("Setting state model def on current state: " + stateModelName);
+        currentStateDelta.setStateModelDefRef(stateModelName);
+      }
+    }
+
+    // set state model factory name if null
+    if (currentState.getStateModelFactoryName() == null)
+    {
+      String factoryName = message.getStateModelFactoryName();
+      if (factoryName != null)
+      {
+        logger.info("Setting state model factory name on current state: " + factoryName);
+        currentStateDelta.setStateModelFactoryName(factoryName);
       }
     }
     accessor.updateProperty(PropertyType.CURRENTSTATES, currentStateDelta, instanceName,
-        manager.getSessionId(), resourceGroup);
+        manager.getSessionId(), resourceName);
 
     // Verify the fromState and current state of the stateModel
-    String state = currentState.getState(partitionKey);
-    // if (!fromState.equals("*")
-    // && (fromState == null || !fromState.equalsIgnoreCase(state)))
+    String state = currentState.getState(partitionName);
+
     if (fromState != null && !fromState.equals("*") && !fromState.equalsIgnoreCase(state))
     {
       String errorMessage = "Current state of stateModel does not match the fromState in Message"
           + ", Current State:" + state + ", message expected:" + fromState + ", partition: "
-          + partitionKey + ", from: " + message.getMsgSrc() + ", to: " + message.getTgtName();
+          + partitionName + ", from: " + message.getMsgSrc() + ", to: " + message.getTgtName();
 
       _statusUpdateUtil
           .logError(message, HelixStateTransitionHandler.class, errorMessage, accessor);
@@ -137,12 +147,12 @@ public class HelixStateTransitionHandler extends MessageHandler
     DataAccessor accessor = manager.getDataAccessor();
     try
     {
-      String partitionKey = message.getStateUnitKey();
-      String resourceGroup = message.getStateUnitGroup();
+      String partitionKey = message.getPartitionName();
+      String resource = message.getResourceName();
       String instanceName = manager.getInstanceName();
 
       CurrentState currentState = accessor.getProperty(CurrentState.class,
-          PropertyType.CURRENTSTATES, instanceName, manager.getSessionId(), resourceGroup);
+          PropertyType.CURRENTSTATES, instanceName, manager.getSessionId(), resource);
 
       if (currentState == null)
       {
@@ -154,8 +164,7 @@ public class HelixStateTransitionHandler extends MessageHandler
       // was
       // called at.
       // Verify that no one has edited this field
-      CurrentState currentStateDelta = new CurrentState(resourceGroup);
-      currentStateDelta.setResourceGroup(partitionKey, resourceGroup);
+      CurrentState currentStateDelta = new CurrentState(resource);
 
       if (taskResult.isSucess())
       {
@@ -193,7 +202,7 @@ public class HelixStateTransitionHandler extends MessageHandler
 
       // based on task result update the current state of the node.
       accessor.updateProperty(PropertyType.CURRENTSTATES, currentStateDelta, instanceName,
-          manager.getSessionId(), resourceGroup);
+          manager.getSessionId(), resource);
     } catch (Exception e)
     {
       logger.error("Error when updating the state ", e);
@@ -321,21 +330,20 @@ public class HelixStateTransitionHandler extends MessageHandler
     HelixManager manager = _notificationContext.getManager();
     DataAccessor accessor = manager.getDataAccessor();
     String instanceName = manager.getInstanceName();
-    String stateUnitKey = _message.getStateUnitKey();
-    String stateUnitGroup = _message.getStateUnitGroup();
-    CurrentState currentStateDelta = new CurrentState(stateUnitGroup);
+    String partition = _message.getPartitionName();
+    String resourceName = _message.getResourceName();
+    CurrentState currentStateDelta = new CurrentState(resourceName);
 
     StateTransitionError error = new StateTransitionError(type, code, e);
     _stateModel.rollbackOnError(_message, _notificationContext, error);
     // if the transition is not canceled, it should go into error state
     if (code == ErrorCode.ERROR)
     {
-      currentStateDelta.setState(stateUnitKey, "ERROR");
+      currentStateDelta.setState(partition, "ERROR");
       _stateModel.updateState("ERROR");
 
-      currentStateDelta.setResourceGroup(stateUnitKey, _message.getStateUnitGroup());
       accessor.updateProperty(PropertyType.CURRENTSTATES, currentStateDelta, instanceName,
-          manager.getSessionId(), stateUnitGroup);
+          manager.getSessionId(), resourceName);
     }
   }
 };

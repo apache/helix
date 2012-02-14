@@ -141,7 +141,7 @@ public class ZKHelixAdmin implements HelixAdmin
   @Override
   public void enablePartition(String clusterName,
                               String instanceName,
-                              String resourceGroupName,
+                              String resourceName,
                               String partition,
                               boolean enabled)
   {
@@ -164,7 +164,7 @@ public class ZKHelixAdmin implements HelixAdmin
   }
 
   @Override
-  public void resetPartition(String clusterName, String instanceName, String resourceGroupName,
+  public void resetPartition(String clusterName, String instanceName, String resourceName,
                              String partition)
   {
     DataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
@@ -172,7 +172,7 @@ public class ZKHelixAdmin implements HelixAdmin
 
     if (liveInstance == null)
     {
-      throw new IllegalArgumentException("Can't reset state for " + resourceGroupName
+      throw new IllegalArgumentException("Can't reset state for " + resourceName
           + "/" + partition + " on " + instanceName + ", because " + instanceName
           + " is not alive");
     }
@@ -184,19 +184,19 @@ public class ZKHelixAdmin implements HelixAdmin
 
     if (controller == null)
     {
-      throw new IllegalArgumentException("Can't reset state for " + resourceGroupName
+      throw new IllegalArgumentException("Can't reset state for " + resourceName
           + "/" + partition + " on " + instanceName + ", because controller is not alive");
     }
 
     IdealState idealState =
         accessor.getProperty(IdealState.class,
                              PropertyType.IDEALSTATES,
-                             resourceGroupName);
+                             resourceName);
 
     if (idealState == null)
     {
-      throw new IllegalArgumentException("Can't reset state for " + resourceGroupName
-          + "/" + partition + " on " + instanceName + ", because " + resourceGroupName
+      throw new IllegalArgumentException("Can't reset state for " + resourceName
+          + "/" + partition + " on " + instanceName + ", because " + resourceName
           + " is not added");
     }
 
@@ -205,7 +205,7 @@ public class ZKHelixAdmin implements HelixAdmin
 
     if (stateModel == null)
     {
-      throw new IllegalArgumentException("Can't reset state for " + resourceGroupName
+      throw new IllegalArgumentException("Can't reset state for " + resourceName
           + "/" + partition + " on " + instanceName + ", because " + stateModelDef
           + " is not found");
     }
@@ -215,8 +215,8 @@ public class ZKHelixAdmin implements HelixAdmin
     message.setSrcName(controller.getInstanceName());
     message.setTgtName(instanceName);
     message.setMsgState("new");
-    message.setStateUnitKey(partition);
-    message.setStateUnitGroup(resourceGroupName);
+    message.setPartitionName(partition);
+    message.setResourceName(resourceName);
     message.setTgtSessionId(sessionId);
     message.setSrcSessionId(controller.getSessionId());
     message.setStateModelDef(stateModelDef);
@@ -291,15 +291,15 @@ public class ZKHelixAdmin implements HelixAdmin
   }
 
   @Override
-  public void addResourceGroup(String clusterName, String dbName,
+  public void addResource(String clusterName, String dbName,
       int partitions, String stateModelRef)
   {
-    addResourceGroup(clusterName, dbName, partitions, stateModelRef,
+    addResource(clusterName, dbName, partitions, stateModelRef,
         IdealStateModeProperty.AUTO.toString());
   }
 
   @Override
-  public void addResourceGroup(String clusterName, String dbName,
+  public void addResource(String clusterName, String dbName,
       int partitions, String stateModelRef, String idealStateMode)
   {
     if(!ZKUtil.isClusterSetup(clusterName, _zkClient))
@@ -308,7 +308,7 @@ public class ZKHelixAdmin implements HelixAdmin
          + " is not setup yet");
     }
     ZNRecord idealState = new ZNRecord(dbName);
-    idealState.setSimpleField(IdealStateProperty.PARTITIONS.toString(), String.valueOf(partitions));
+    idealState.setSimpleField(IdealStateProperty.NUM_PARTITIONS.toString(), String.valueOf(partitions));
     idealState.setSimpleField(IdealStateProperty.STATE_MODEL_DEF_REF.toString(), stateModelRef);
     idealState.setSimpleField(IdealStateProperty.IDEAL_STATE_MODE.toString(), idealStateMode);
     idealState.setSimpleField(IdealStateProperty.REPLICAS.toString(), 0+"");
@@ -348,20 +348,20 @@ public class ZKHelixAdmin implements HelixAdmin
   }
 
   @Override
-  public List<String> getResourceGroupsInCluster(String clusterName)
+  public List<String> getResourcesInCluster(String clusterName)
   {
     return _zkClient.getChildren(HelixUtil.getIdealStatePath(clusterName));
   }
 
   @Override
-  public IdealState getResourceGroupIdealState(String clusterName, String dbName)
+  public IdealState getResourceIdealState(String clusterName, String dbName)
   {
     ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
     return accessor.getProperty(IdealState.class, PropertyType.IDEALSTATES, dbName);
   }
 
   @Override
-  public void setResourceGroupIdealState(String clusterName, String dbName,
+  public void setResourceIdealState(String clusterName, String dbName,
       IdealState idealState)
   {
     new ZKDataAccessor(clusterName, _zkClient).setProperty(PropertyType.IDEALSTATES,
@@ -370,11 +370,11 @@ public class ZKHelixAdmin implements HelixAdmin
   }
 
   @Override
-  public ExternalView getResourceGroupExternalView(String clusterName,
-      String resourceGroup)
+  public ExternalView getResourceExternalView(String clusterName,
+      String resourceName)
   {
     ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
-    return accessor.getProperty(ExternalView.class, PropertyType.EXTERNALVIEW, resourceGroup);
+    return accessor.getProperty(ExternalView.class, PropertyType.EXTERNALVIEW, resourceName);
   }
 
   @Override
@@ -401,10 +401,10 @@ public class ZKHelixAdmin implements HelixAdmin
   }
 
   @Override
-  public void dropResourceGroup(String clusterName, String resourceGroup)
+  public void dropResource(String clusterName, String resourceName)
   {
     new ZKDataAccessor(clusterName, _zkClient).removeProperty(
-        PropertyType.IDEALSTATES, resourceGroup);
+        PropertyType.IDEALSTATES, resourceName);
   }
 
   @Override

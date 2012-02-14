@@ -28,9 +28,9 @@ public final class HelixUtil
 		+ "/" + instanceName;
   }
   
-  public static String getIdealStatePath(String clusterName,String stateUnitGroup)
+  public static String getIdealStatePath(String clusterName,String resourceName)
   {
-    return getPropertyPath(clusterName, PropertyType.IDEALSTATES) + "/" + stateUnitGroup;
+    return getPropertyPath(clusterName, PropertyType.IDEALSTATES) + "/" + resourceName;
   }
   public static String getIdealStatePath(String clusterName)
   {
@@ -99,10 +99,10 @@ public final class HelixUtil
   }
 
   public static String getExternalViewPath(String clusterName,
-      String stateUnitGroup)
+      String resourceName)
   {
     return getPropertyPath(clusterName, PropertyType.EXTERNALVIEW)
-        + "/" + stateUnitGroup;
+        + "/" + resourceName;
   }
 
   public static String getLiveInstancePath(String clusterName,

@@ -13,8 +13,8 @@ import org.apache.log4j.Logger;
 import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.model.Message;
-import com.linkedin.helix.model.ResourceGroup;
-import com.linkedin.helix.model.ResourceKey;
+import com.linkedin.helix.model.Resource;
+import com.linkedin.helix.model.Partition;
 import com.linkedin.helix.model.StateModelDefinition;
 
 /**
@@ -43,8 +43,8 @@ public class MessageSelectionAlgo
    * @param stateModelDefinition
    * @return
    */
-  List<Message> selectMessages(ResourceGroup resourceGroup,
-      ResourceKey resource, List<Message> messages,
+  List<Message> selectMessages(Resource resource,
+      Partition partition, List<Message> messages,
       StateModelDefinition stateModelDefinition,
       CurrentStateOutput currentState, IdealState idealState,
       ClusterDataCache cache)
@@ -66,13 +66,13 @@ public class MessageSelectionAlgo
     for (String instanceName : liveInstancesMap.keySet())
     {
       String instanceCurrentState = currentState.getCurrentState(
-          resourceGroup.getResourceGroupId(), resource, instanceName);
+          resource.getResourceName(), partition, instanceName);
       if (instanceCurrentState != null)
       {
         currentStateMap.put(instanceName, instanceCurrentState);
       }
       String instancePendingState = currentState.getPendingState(
-          resourceGroup.getResourceGroupId(), resource, instanceName);
+          resource.getResourceName(), partition, instanceName);
       if (instancePendingState != null)
       {
         pendingStateMap.put(instanceName, instancePendingState);
@@ -80,15 +80,15 @@ public class MessageSelectionAlgo
     }
 
     // this will hold all possible states
-    Set<ResourceStateMap> possibleStates = new HashSet<ResourceStateMap>();
+    Set<PartitionStateMap> possibleStates = new HashSet<PartitionStateMap>();
     // add the current state
-    possibleStates.add(new ResourceStateMap(currentStateMap));
-    Set<ResourceStateMap> newPossibleStates = new HashSet<MessageSelectionAlgo.ResourceStateMap>();
+    possibleStates.add(new PartitionStateMap(currentStateMap));
+    Set<PartitionStateMap> newPossibleStates = new HashSet<MessageSelectionAlgo.PartitionStateMap>();
     for (String instance : pendingStateMap.keySet())
     {
-      for (ResourceStateMap resourceStateMap : possibleStates)
+      for (PartitionStateMap resourceStateMap : possibleStates)
       {
-        ResourceStateMap newPossibleState = ResourceStateMap.build(
+        PartitionStateMap newPossibleState = PartitionStateMap.build(
             resourceStateMap, instance, pendingStateMap.get(instance));
         newPossibleStates.add(newPossibleState);
       }
@@ -100,9 +100,9 @@ public class MessageSelectionAlgo
       Message msg = messages.get(i);
       validMessages.add(msg);
       newPossibleStates.clear();
-      for (ResourceStateMap resourceStateMap : possibleStates)
+      for (PartitionStateMap resourceStateMap : possibleStates)
       {
-        ResourceStateMap newPossibleState = ResourceStateMap.build(
+        PartitionStateMap newPossibleState = PartitionStateMap.build(
             resourceStateMap, msg.getTgtName(), msg.getToState());
         newPossibleStates.add(newPossibleState);
       }
@@ -138,7 +138,7 @@ public class MessageSelectionAlgo
    * @param idealState
    * @return
    */
-  private boolean validateNewPossibleStates(Set<ResourceStateMap> states,
+  private boolean validateNewPossibleStates(Set<PartitionStateMap> states,
       StateModelDefinition stateModelDefinition, IdealState idealState,
       ClusterDataCache cache)
   {
@@ -147,7 +147,7 @@ public class MessageSelectionAlgo
         stateModelDefinition, idealState, cache);
 
     boolean valid = true;
-    for (ResourceStateMap stateSet : states)
+    for (PartitionStateMap stateSet : states)
     {
       if (!isValid(stateSet, maxInstancePerStateMap))
       {
@@ -176,7 +176,7 @@ public class MessageSelectionAlgo
       } else if ("R".equals(numInstancesPerState))
       {
 //        max = idealState.getReplicas();
-        max = cache.getReplicas(idealState.getResourceGroup());
+        max = cache.getReplicas(idealState.getResourceName());
       } else
       {
         try
@@ -195,7 +195,7 @@ public class MessageSelectionAlgo
     return maxInstancePerStateMap;
   }
 
-  private boolean isValid(ResourceStateMap stateSet,
+  private boolean isValid(PartitionStateMap stateSet,
       Map<String, Integer> maxInstancePerStateMap)
   {
     boolean valid = true;
@@ -218,14 +218,14 @@ public class MessageSelectionAlgo
    * @author kgopalak
    * 
    */
-  static class ResourceStateMap
+  static class PartitionStateMap
   {
 
     private final TreeMap<String, String> _map;
     private final Map<String, Integer> stateCountMap = new HashMap<String, Integer>();
     private final String _toString;
 
-    public ResourceStateMap(Map<String, String> map)
+    public PartitionStateMap(Map<String, String> map)
     {
       _map = new TreeMap<String, String>(map);
       for (String state : map.values())
@@ -243,13 +243,13 @@ public class MessageSelectionAlgo
       _toString = _map.toString();
     }
 
-    public static ResourceStateMap build(ResourceStateMap resourceStateMap,
+    public static PartitionStateMap build(PartitionStateMap partitionStateMap,
         String instance, String state)
     {
       TreeMap<String, String> map = new TreeMap<String, String>(
-          resourceStateMap._map);
+          partitionStateMap._map);
       map.put(instance, state);
-      return new ResourceStateMap(map);
+      return new PartitionStateMap(map);
     }
 
     int getStateCount(String state)
@@ -272,9 +272,9 @@ public class MessageSelectionAlgo
     @Override
     public boolean equals(Object obj)
     {
-      if (obj instanceof ResourceStateMap)
+      if (obj instanceof PartitionStateMap)
       {
-        ResourceStateMap that = (ResourceStateMap) obj;
+        PartitionStateMap that = (PartitionStateMap) obj;
         return this.toString().equals(that.toString());
       }
       return false;

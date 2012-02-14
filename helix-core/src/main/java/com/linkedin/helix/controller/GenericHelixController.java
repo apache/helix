@@ -50,8 +50,8 @@ import com.linkedin.helix.model.PauseSignal;
  * can control can control only one cluster
  *
  *
- * Get all the resourceKeys use IdealState, CurrentState and Messages <br>
- * foreach resourceKey <br>
+ * Get all the partitions use IdealState, CurrentState and Messages <br>
+ * foreach partition <br>
  * 1. get the (instance,state) from IdealState, CurrentState and PendingMessages <br>
  * 2. compute best possible state (instance,state) pair. This needs previous step data and
  * state model constraints <br>

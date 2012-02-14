@@ -7,13 +7,13 @@ import com.linkedin.helix.controller.pipeline.StageException;
 import com.linkedin.helix.model.CurrentState;
 import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.model.Message;
-import com.linkedin.helix.model.ResourceGroup;
-import com.linkedin.helix.model.ResourceKey;
+import com.linkedin.helix.model.Resource;
+import com.linkedin.helix.model.Partition;
 import com.linkedin.helix.model.Message.MessageType;
 
 /**
  * For each LiveInstances select currentState and message whose sessionId
- * matches sessionId from LiveInstance Get ResourceKey,State for all the
+ * matches sessionId from LiveInstance Get Partition,State for all the
  * resources computed in previous State [ResourceComputationStage]
  *
  * @author kgopalak
@@ -33,8 +33,8 @@ public class CurrentStateComputationStage extends AbstractBaseStage
 
     Map<String, LiveInstance> liveInstances = cache.getLiveInstances();
     CurrentStateOutput currentStateOutput = new CurrentStateOutput();
-    Map<String, ResourceGroup> resourceGroupMap = event
-        .getAttribute(AttributeName.RESOURCE_GROUPS.toString());
+    Map<String, Resource> resourceMap = event
+        .getAttribute(AttributeName.RESOURCES.toString());
 
     for (LiveInstance instance : liveInstances.values())
     {
@@ -51,17 +51,17 @@ public class CurrentStateComputationStage extends AbstractBaseStage
         {
           continue;
         }
-        String resourceGroupName = message.getResourceGroupName();
-        ResourceGroup resourceGroup = resourceGroupMap.get(resourceGroupName);
-        if (resourceGroup == null)
+        String resourceName = message.getResourceName();
+        Resource resource = resourceMap.get(resourceName);
+        if (resource == null)
         {
           continue;
         }
-        ResourceKey resourceKey = resourceGroup.getResourceKey(message
-            .getResourceKey());
-        if (resourceKey != null)
+        Partition partition = resource.getPartition(message
+            .getPartitionName());
+        if (partition != null)
         {
-          currentStateOutput.setPendingState(resourceGroupName, resourceKey,
+          currentStateOutput.setPendingState(resourceName, partition,
               instanceName, message.getToState());
         } else
         {
@@ -82,28 +82,28 @@ public class CurrentStateComputationStage extends AbstractBaseStage
         {
           continue;
         }
-        String resourceGroupName = currentState.getResourceGroupName();
+        String resourceName = currentState.getResourceName();
         String stateModelDefName = currentState.getStateModelDefRef();
-        ResourceGroup resourceGroup = resourceGroupMap.get(resourceGroupName);
-        if (resourceGroup == null)
+        Resource resource = resourceMap.get(resourceName);
+        if (resource == null)
         {
           continue;
         }
         if (stateModelDefName != null)
         {
-          currentStateOutput.setResourceGroupStateModelDef(resourceGroupName,
+          currentStateOutput.setResourceStateModelDef(resourceName,
               stateModelDefName);
         }
-        Map<String, String> resourceKeyStateMap = currentState
-            .getResourceKeyStateMap();
-        for (String resourceKeyStr : resourceKeyStateMap.keySet())
+        Map<String, String> partitionStateMap = currentState
+            .getPartitionStateMap();
+        for (String partitionName : partitionStateMap.keySet())
         {
-          ResourceKey resourceKey = resourceGroup
-              .getResourceKey(resourceKeyStr);
-          if (resourceKey != null)
+          Partition partition = resource
+              .getPartition(partitionName);
+          if (partition != null)
           {
-            currentStateOutput.setCurrentState(resourceGroupName, resourceKey,
-                instanceName, currentState.getState(resourceKeyStr));
+            currentStateOutput.setCurrentState(resourceName, partition,
+                instanceName, currentState.getState(partitionName));
 
           } else
           {

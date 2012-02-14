@@ -123,6 +123,7 @@ public class HelixStateMachineEngine implements StateMachineEngine
           // TODO probably should update the state on ZK. Shi confirm what needs
           // to be done here.
         }
+
       }
     }
   }
@@ -138,9 +139,9 @@ public class HelixStateMachineEngine implements StateMachineEngine
           + message.getMsgType());
     }
 
-    String partitionKey = message.getStateUnitKey();
+    String partitionKey = message.getPartitionName();
     String stateModelName = message.getStateModelDef();
-    String resourceGroupName = message.getResourceGroupName();
+    String resourceName = message.getResourceName();
     if (stateModelName == null)
     {
       logger.error("message does not contain stateModelDef");
@@ -161,7 +162,7 @@ public class HelixStateMachineEngine implements StateMachineEngine
       // if (stateModelFactory == null)
       // {
       logger.warn("Cannot find stateModelFactory for model:" + stateModelName
-          + " using factoryName:" + factoryName + " for resourceGroup:" + resourceGroupName);
+          + " using factoryName:" + factoryName + " for resourceGroup:" + resourceName);
       return null;
       // }
     }
@@ -172,6 +173,7 @@ public class HelixStateMachineEngine implements StateMachineEngine
       // stateModelFactory.addStateModel(key,stateModelFactory.createNewStateModel(stateUnitKey));
       stateModelFactory.createAndAddStateModel(partitionKey);
       stateModel = stateModelFactory.getStateModel(partitionKey);
+
     }
     return new HelixStateTransitionHandler(stateModel, message, context);
   }

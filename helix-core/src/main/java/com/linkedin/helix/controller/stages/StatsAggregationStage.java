@@ -30,7 +30,7 @@ import com.linkedin.helix.monitoring.mbeans.ClusterAlertMBeanCollection;
 
 /**
  * For each LiveInstances select currentState and message whose sessionId
- * matches sessionId from LiveInstance Get ResourceKey,State for all the
+ * matches sessionId from LiveInstance Get Partition,State for all the
  * resources computed in previous State [ResourceComputationStage]
  * 
  * @author asilbers
@@ -39,166 +39,184 @@ import com.linkedin.helix.monitoring.mbeans.ClusterAlertMBeanCollection;
 public class StatsAggregationStage extends AbstractBaseStage
 {
   private static final Logger logger = Logger
-		    .getLogger(StatsAggregationStage.class.getName());
-	
+      .getLogger(StatsAggregationStage.class.getName());
+
   StatsHolder _statsHolder;
   AlertsHolder _alertsHolder;
   Map<String, Map<String, AlertValueAndStatus>> _alertStatus;
   Map<String, Tuple<String>> _statStatus;
   ClusterAlertMBeanCollection _alertBeanCollection = new ClusterAlertMBeanCollection();
-  
+
   public final String PARTICIPANT_STAT_REPORT_NAME = StatHealthReportProvider.REPORT_NAME;
   public final String ESPRESSO_STAT_REPORT_NAME = "RestQueryStats";
   public final String REPORT_NAME = "AggStats";
-  //public final String DEFAULT_AGG_TYPE = "decay";
-  //public final String DEFAULT_DECAY_PARAM = "0.1";
-  //public final String DEFAULT_AGG_TYPE = "window";
-  //public final String DEFAULT_DECAY_PARAM = "5";
- 
+  // public final String DEFAULT_AGG_TYPE = "decay";
+  // public final String DEFAULT_DECAY_PARAM = "0.1";
+  // public final String DEFAULT_AGG_TYPE = "window";
+  // public final String DEFAULT_DECAY_PARAM = "5";
+
   public StatHealthReportProvider _aggStatsProvider;
-  
-  //public AggregationType _defaultAggType;
- 
-  public Map<String, Map<String, AlertValueAndStatus>> getAlertStatus() 
+
+  // public AggregationType _defaultAggType;
+
+  public Map<String, Map<String, AlertValueAndStatus>> getAlertStatus()
   {
-	  return _alertStatus;
-  }
-  
-  public Map<String, Tuple<String>> getStatStatus() 
-  {
-	return _statStatus;
+    return _alertStatus;
   }
 
-public void persistAggStats(HelixManager manager)
+  public Map<String, Tuple<String>> getStatStatus()
   {
-	  Map<String, String> report = _aggStatsProvider.getRecentHealthReport();
-      Map<String, Map<String, String>> partitionReport = _aggStatsProvider
-          .getRecentPartitionHealthReport();
-      ZNRecord record = new ZNRecord(_aggStatsProvider.getReportName());
-      if (report != null) {
-      	record.setSimpleFields(report);
-      }
-      if (partitionReport != null) {
-      	record.setMapFields(partitionReport);
-      }
-      
-      DataAccessor accessor = manager.getDataAccessor();
-      boolean retVal = accessor.setProperty(PropertyType.PERSISTENTSTATS,
-              record);
-      if (retVal == false) {
-    	  logger.error("attempt to persist derived stats failed");
-      }
+    return _statStatus;
   }
- 
+
+  public void persistAggStats(HelixManager manager)
+  {
+    Map<String, String> report = _aggStatsProvider.getRecentHealthReport();
+    Map<String, Map<String, String>> partitionReport = _aggStatsProvider
+        .getRecentPartitionHealthReport();
+    ZNRecord record = new ZNRecord(_aggStatsProvider.getReportName());
+    if (report != null)
+    {
+      record.setSimpleFields(report);
+    }
+    if (partitionReport != null)
+    {
+      record.setMapFields(partitionReport);
+    }
+
+    DataAccessor accessor = manager.getDataAccessor();
+    boolean retVal = accessor.setProperty(PropertyType.PERSISTENTSTATS, record);
+    if (retVal == false)
+    {
+      logger.error("attempt to persist derived stats failed");
+    }
+  }
+
   @Override
-  public void init(StageContext context) 
+  public void init(StageContext context)
   {
   }
-  
+
   public String getAgeStatName(String instance)
   {
-	  return instance + ExpressionParser.statFieldDelim + "reportingage";
+    return instance + ExpressionParser.statFieldDelim + "reportingage";
   }
-  
-  //currTime in seconds
-  public void reportAgeStat(LiveInstance instance, long modifiedTime, long currTime)
+
+  // currTime in seconds
+  public void reportAgeStat(LiveInstance instance, long modifiedTime,
+      long currTime)
   {
-	  String statName = getAgeStatName(instance.getInstanceName());
-	  long age = (currTime - modifiedTime)/1000; //XXX: ensure this is in seconds
-	  Map<String, String> ageStatMap = new HashMap<String, String>();
-	  ageStatMap.put(StatsHolder.TIMESTAMP_NAME, String.valueOf(currTime));
-	  ageStatMap.put(StatsHolder.VALUE_NAME, String.valueOf(age));
-	 //note that applyStat will only work if alert already added
-	  _statsHolder.applyStat(statName, ageStatMap);
+    String statName = getAgeStatName(instance.getInstanceName());
+    long age = (currTime - modifiedTime) / 1000; // XXX: ensure this is in
+                                                 // seconds
+    Map<String, String> ageStatMap = new HashMap<String, String>();
+    ageStatMap.put(StatsHolder.TIMESTAMP_NAME, String.valueOf(currTime));
+    ageStatMap.put(StatsHolder.VALUE_NAME, String.valueOf(age));
+    // note that applyStat will only work if alert already added
+    _statsHolder.applyStat(statName, ageStatMap);
   }
-  
+
   @Override
   public void process(ClusterEvent event) throws Exception
   {
-	//String aggTypeName = DEFAULT_AGG_TYPE+AggregationType.DELIM+DEFAULT_DECAY_PARAM;
-	//_defaultAggType = AggregationTypeFactory.getAggregationType(aggTypeName);
-	
+    // String aggTypeName =
+    // DEFAULT_AGG_TYPE+AggregationType.DELIM+DEFAULT_DECAY_PARAM;
+    // _defaultAggType = AggregationTypeFactory.getAggregationType(aggTypeName);
+
     HelixManager manager = event.getAttribute("helixmanager");
     if (manager == null)
     {
       throw new StageException("helixmanager attribute value is null");
     }
-    
+
     _statsHolder = new StatsHolder(manager);
     _alertsHolder = new AlertsHolder(manager);
-    
+
     ClusterDataCache cache = event.getAttribute("ClusterDataCache");
 
-    //init agg stats from cache
-    //initAggStats(cache);
-    
+    // init agg stats from cache
+    // initAggStats(cache);
+
     Map<String, LiveInstance> liveInstances = cache.getLiveInstances();
-    
+
     long currTime = System.currentTimeMillis();
-    //for each live node, read node's stats
+    // for each live node, read node's stats
     for (LiveInstance instance : liveInstances.values())
     {
-    	String instanceName = instance.getInstanceName();
-    	logger.debug("instanceName: "+instanceName);
-    	//XXX: now have map of HealthStats, so no need to traverse them...verify correctness
-    	Map<String, HealthStat> stats;
-    	stats = cache.getHealthStats(instanceName);
-    	//find participants stats
-    	HealthStat participantStat = stats.get(ESPRESSO_STAT_REPORT_NAME);
-    	long modTime = -1;
-    	if (participantStat != null) {
-    		//generate and report stats for how old this node's report is
-    		modTime = participantStat.getLastModifiedTimeStamp();
-    		reportAgeStat(instance, modTime, currTime);
-    	}
-    	//System.out.println(modTime);
-    	//XXX: need to convert participantStat to a better format
-    	//need to get instanceName in here
-    	
-    	if (participantStat != null) {
-    		//String timestamp = String.valueOf(instance.getModifiedTime()); WANT REPORT LEVEL TS
-    		Map<String, Map<String, String>> statMap = participantStat.getHealthFields(instanceName);
-    		for (String key : statMap.keySet()) {
-    			_statsHolder.applyStat(key, statMap.get(key));
-    		}
+      String instanceName = instance.getInstanceName();
+      logger.debug("instanceName: " + instanceName);
+      // XXX: now have map of HealthStats, so no need to traverse them...verify
+      // correctness
+      Map<String, HealthStat> stats;
+      stats = cache.getHealthStats(instanceName);
+      // find participants stats
+      HealthStat participantStat = stats.get(ESPRESSO_STAT_REPORT_NAME);
+      long modTime = -1;
+      if (participantStat != null)
+      {
+        // generate and report stats for how old this node's report is
+        modTime = participantStat.getLastModifiedTimeStamp();
+        reportAgeStat(instance, modTime, currTime);
+      }
+      // System.out.println(modTime);
+      // XXX: need to convert participantStat to a better format
+      // need to get instanceName in here
 
-    	}
+      if (participantStat != null)
+      {
+        // String timestamp = String.valueOf(instance.getModifiedTime()); WANT
+        // REPORT LEVEL TS
+        Map<String, Map<String, String>> statMap = participantStat
+            .getHealthFields(instanceName);
+        for (String key : statMap.keySet())
+        {
+          _statsHolder.applyStat(key, statMap.get(key));
+        }
+
+      }
     }
-    
-    //populate _statStatus
+
+    // populate _statStatus
     _statStatus = _statsHolder.getStatsMap();
-    
-    for (String statKey : _statStatus.keySet()) {
-    	logger.debug("Stat key, value: "+statKey+": "+_statStatus.get(statKey));
-    }
-   
-    //execute alerts, populate _alertStatus
-    _alertStatus = AlertProcessor.executeAllAlerts(_alertsHolder.getAlertList(), _statsHolder.getStatsList());
-    
-    
-    for(String originAlertName : _alertStatus.keySet())
+
+    for (String statKey : _statStatus.keySet())
     {
-      _alertBeanCollection.setAlerts(originAlertName, _alertStatus.get(originAlertName));
+      logger.debug("Stat key, value: " + statKey + ": "
+          + _statStatus.get(statKey));
     }
-    
-    
-    //write out alert status (to zk)
+
+    // execute alerts, populate _alertStatus
+    _alertStatus = AlertProcessor.executeAllAlerts(
+        _alertsHolder.getAlertList(), _statsHolder.getStatsList());
+
+    for (String originAlertName : _alertStatus.keySet())
+    {
+      _alertBeanCollection.setAlerts(originAlertName,
+          _alertStatus.get(originAlertName));
+    }
+
+    // write out alert status (to zk)
     _alertsHolder.addAlertStatusSet(_alertStatus);
-    
-    //TODO: access the 2 status variables from somewhere to populate graphs
-    
-    //logging alert status
-    for (String alertOuterKey : _alertStatus.keySet()) {
-    	logger.debug("Alert Outer Key: "+alertOuterKey);
-    	Map<String, AlertValueAndStatus>alertInnerMap = _alertStatus.get(alertOuterKey);
-    	if (alertInnerMap == null) {
-    		logger.debug(alertOuterKey + " has no alerts to report.");
-    		continue;
-    	}
-    	for (String alertInnerKey: alertInnerMap.keySet()) {
-    		logger.debug("  "+alertInnerKey+" value: "+alertInnerMap.get(alertInnerKey).getValue()+
-    				", status: "+alertInnerMap.get(alertInnerKey).isFired());
-    	}
+
+    // TODO: access the 2 status variables from somewhere to populate graphs
+
+    // logging alert status
+    for (String alertOuterKey : _alertStatus.keySet())
+    {
+      logger.debug("Alert Outer Key: " + alertOuterKey);
+      Map<String, AlertValueAndStatus> alertInnerMap = _alertStatus
+          .get(alertOuterKey);
+      if (alertInnerMap == null)
+      {
+        logger.debug(alertOuterKey + " has no alerts to report.");
+        continue;
+      }
+      for (String alertInnerKey : alertInnerMap.keySet())
+      {
+        logger.debug("  " + alertInnerKey + " value: "
+            + alertInnerMap.get(alertInnerKey).getValue() + ", status: "
+            + alertInnerMap.get(alertInnerKey).isFired());
+      }
     }
   }
 }

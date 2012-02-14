@@ -85,7 +85,7 @@ public class StaticFileHelixManager implements HelixManager
     List<Message> msgList = new ArrayList<Message>();
 
     IdealState idealState = new IdealState(idealStateRecord);
-    for (String stateUnitKey : idealState.getResourceKeySet())
+    for (String stateUnitKey : idealState.getPartitionSet())
     {
       Map<String, String> instanceStateMap;
       instanceStateMap = idealState.getInstanceStateMap(stateUnitKey);

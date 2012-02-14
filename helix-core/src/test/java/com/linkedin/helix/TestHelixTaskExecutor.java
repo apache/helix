@@ -32,8 +32,8 @@ public class TestHelixTaskExecutor
     message.setTgtSessionId("1234");
     message.setFromState("Offline");
     message.setToState("Slave");
-    message.setStateUnitKey("Teststateunitkey");
-    message.setStateUnitGroup("Teststateunitkey");
+    message.setPartitionName("Teststateunitkey");
+    message.setResourceName("Teststateunitkey");
     message.setStateModelDef("MasterSlave");
    
     MockManager manager = new MockManager("clusterName");

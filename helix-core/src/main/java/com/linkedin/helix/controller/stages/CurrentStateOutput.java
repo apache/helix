@@ -4,70 +4,70 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.linkedin.helix.model.ResourceKey;
+import com.linkedin.helix.model.Partition;
 
 public class CurrentStateOutput
 {
-  private final Map<String, Map<ResourceKey, Map<String, String>>> _currentStateMap;
-  private final Map<String, Map<ResourceKey, Map<String, String>>> _pendingStateMap;
-  private final Map<String, String> _resourceGroupStateModelMap;
+  private final Map<String, Map<Partition, Map<String, String>>> _currentStateMap;
+  private final Map<String, Map<Partition, Map<String, String>>> _pendingStateMap;
+  private final Map<String, String> _resourceStateModelMap;
 
   public CurrentStateOutput()
   {
-    _currentStateMap = new HashMap<String, Map<ResourceKey, Map<String, String>>>();
-    _pendingStateMap = new HashMap<String, Map<ResourceKey, Map<String, String>>>();
-    _resourceGroupStateModelMap = new HashMap<String, String>();
+    _currentStateMap = new HashMap<String, Map<Partition, Map<String, String>>>();
+    _pendingStateMap = new HashMap<String, Map<Partition, Map<String, String>>>();
+    _resourceStateModelMap = new HashMap<String, String>();
   }
   
-  public void setResourceGroupStateModelDef(String resourceGroupName, String stateModelDefName)
+  public void setResourceStateModelDef(String resourceName, String stateModelDefName)
   {
-    _resourceGroupStateModelMap.put(resourceGroupName, stateModelDefName);
+    _resourceStateModelMap.put(resourceName, stateModelDefName);
   }
   
-  public String getResourceGroupStateModelDef(String resourceGroupName)
+  public String getResourceStateModelDef(String resourceName)
   {
-    return _resourceGroupStateModelMap.get(resourceGroupName);
+    return _resourceStateModelMap.get(resourceName);
   }
 
-  public void setCurrentState(String resourceGroupName,
-      ResourceKey resourceKey, String instanceName, String state)
+  public void setCurrentState(String resourceName,
+      Partition partition, String instanceName, String state)
   {
-    if (!_currentStateMap.containsKey(resourceGroupName))
+    if (!_currentStateMap.containsKey(resourceName))
     {
-      _currentStateMap.put(resourceGroupName,
-          new HashMap<ResourceKey, Map<String, String>>());
+      _currentStateMap.put(resourceName,
+          new HashMap<Partition, Map<String, String>>());
     }
-    if (!_currentStateMap.get(resourceGroupName).containsKey(resourceKey))
+    if (!_currentStateMap.get(resourceName).containsKey(partition))
     {
-      _currentStateMap.get(resourceGroupName).put(resourceKey,
+      _currentStateMap.get(resourceName).put(partition,
           new HashMap<String, String>());
     }
-    _currentStateMap.get(resourceGroupName).get(resourceKey)
+    _currentStateMap.get(resourceName).get(partition)
         .put(instanceName, state);
   }
 
-  public void setPendingState(String resourceGroupName,
-      ResourceKey resourceKey, String instanceName, String state)
+  public void setPendingState(String resourceName,
+      Partition partition, String instanceName, String state)
   {
-    if (!_pendingStateMap.containsKey(resourceGroupName))
+    if (!_pendingStateMap.containsKey(resourceName))
     {
-      _pendingStateMap.put(resourceGroupName,
-          new HashMap<ResourceKey, Map<String, String>>());
+      _pendingStateMap.put(resourceName,
+          new HashMap<Partition, Map<String, String>>());
     }
-    if (!_pendingStateMap.get(resourceGroupName).containsKey(resourceKey))
+    if (!_pendingStateMap.get(resourceName).containsKey(partition))
     {
-      _pendingStateMap.get(resourceGroupName).put(resourceKey,
+      _pendingStateMap.get(resourceName).put(partition,
           new HashMap<String, String>());
     }
-    _pendingStateMap.get(resourceGroupName).get(resourceKey)
+    _pendingStateMap.get(resourceName).get(partition)
         .put(instanceName, state);
   }
 
-  public String getCurrentState(String resourceGroupName, ResourceKey resource,
+  public String getCurrentState(String resourceName, Partition resource,
       String instanceName)
   {
-    Map<ResourceKey, Map<String, String>> map = _currentStateMap
-        .get(resourceGroupName);
+    Map<Partition, Map<String, String>> map = _currentStateMap
+        .get(resourceName);
     if (map != null)
     {
       Map<String, String> instanceStateMap = map.get(resource);
@@ -79,11 +79,11 @@ public class CurrentStateOutput
     return null;
   }
 
-  public String getPendingState(String resourceGroupName, ResourceKey resource,
+  public String getPendingState(String resourceName, Partition resource,
       String instanceName)
   {
-    Map<ResourceKey, Map<String, String>> map = _pendingStateMap
-        .get(resourceGroupName);
+    Map<Partition, Map<String, String>> map = _pendingStateMap
+        .get(resourceName);
     if (map != null)
     {
       Map<String, String> instanceStateMap = map.get(resource);
@@ -95,11 +95,11 @@ public class CurrentStateOutput
     return null;
   }
 
-  public Map<String, String> getCurrentStateMap(String resourceGroupName,
-      ResourceKey resource)
+  public Map<String, String> getCurrentStateMap(String resourceName,
+      Partition resource)
   {
-    Map<ResourceKey, Map<String, String>> map = _currentStateMap
-        .get(resourceGroupName);
+    Map<Partition, Map<String, String>> map = _currentStateMap
+        .get(resourceName);
     if (map != null)
     {
       return map.get(resource);

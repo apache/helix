@@ -2,7 +2,7 @@ package com.linkedin.helix.controller.stages;
 
 public enum AttributeName
 {
-  RESOURCE_GROUPS,
+  RESOURCES,
   BEST_POSSIBLE_STATE,
   CURRENT_STATE,
   MESSAGES_ALL,

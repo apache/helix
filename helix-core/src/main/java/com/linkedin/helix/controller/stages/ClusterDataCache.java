@@ -180,9 +180,9 @@ public class ClusterDataCache
     return _stateModelDefMap.get(stateModelDefRef);
   }
 
-  public IdealState getIdealState(String resourceGroupName)
+  public IdealState getIdealState(String resourceName)
   {
-    return _idealStateMap.get(resourceGroupName);
+    return _idealStateMap.get(resourceName);
   }
 
   public Map<String, InstanceConfig> getInstanceConfigMap()
@@ -205,9 +205,9 @@ public class ClusterDataCache
     return disabledInstancesSet;
   }
   
-  public int getReplicas(String resourceGroup)
+  public int getReplicas(String resourceName)
   {
-    String replicasStr = _idealStateMap.get(resourceGroup).getReplicas();
+    String replicasStr = _idealStateMap.get(resourceName).getReplicas();
     int replicas;
     if (replicasStr.equals(StateModelToken.ANY_LIVEINSTANCE.toString()))
     {

@@ -18,8 +18,8 @@ public class TestPropertyPathConfig
     String actual;
     actual = PropertyPathConfig.getPath(PropertyType.IDEALSTATES, "test_cluster");
     AssertJUnit.assertEquals(actual, "/test_cluster/IDEALSTATES");
-    actual = PropertyPathConfig.getPath(PropertyType.IDEALSTATES, "test_cluster","resourceGroup");
-    AssertJUnit.assertEquals(actual, "/test_cluster/IDEALSTATES/resourceGroup");
+    actual = PropertyPathConfig.getPath(PropertyType.IDEALSTATES, "test_cluster","resource");
+    AssertJUnit.assertEquals(actual, "/test_cluster/IDEALSTATES/resource");
 
     
     actual = PropertyPathConfig.getPath(PropertyType.INSTANCES, "test_cluster","instanceName1");

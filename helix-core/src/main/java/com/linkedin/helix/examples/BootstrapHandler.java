@@ -54,8 +54,8 @@ public class BootstrapHandler extends StateModelFactory<StateModel>
       Criteria recipientCriteria = new Criteria();
       recipientCriteria.setInstanceName("*");
       recipientCriteria.setRecipientInstanceType(InstanceType.PARTICIPANT);
-      recipientCriteria.setResourceGroup(message.getResourceGroupName());
-      recipientCriteria.setResourceKey(message.getResourceKey());
+      recipientCriteria.setResource(message.getResourceName());
+      recipientCriteria.setPartition(message.getPartitionName());
       recipientCriteria.setSessionSpecific(true);
       // wait for 30 seconds
       int timeout = 30000;

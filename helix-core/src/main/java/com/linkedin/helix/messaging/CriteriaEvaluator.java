@@ -33,15 +33,15 @@ public class CriteriaEvaluator
     
     String queryFields = 
         (!recipientCriteria.getInstanceName().equals("")  ? " " + ZNRecordRow.MAP_SUBKEY  : " ''") +","+
-        (!recipientCriteria.getResourceGroup().equals("") ? " " + ZNRecordRow.ZNRECORD_ID : " ''") +","+
-        (!recipientCriteria.getResourceKey().equals("")   ? " " + ZNRecordRow.MAP_KEY   : " ''") +","+
-        (!recipientCriteria.getResourceState().equals("") ? " " + ZNRecordRow.MAP_VALUE : " '' ");
+        (!recipientCriteria.getResourceName().equals("") ? " " + ZNRecordRow.ZNRECORD_ID : " ''") +","+
+        (!recipientCriteria.getPartitionName().equals("")   ? " " + ZNRecordRow.MAP_KEY   : " ''") +","+
+        (!recipientCriteria.getPartitionState().equals("") ? " " + ZNRecordRow.MAP_VALUE : " '' ");
     
     String matchCondition = 
         ZNRecordRow.MAP_SUBKEY   + " LIKE '" + (!recipientCriteria.getInstanceName().equals("") ? (recipientCriteria.getInstanceName() +"'") :   "%' ") + " AND "+
-        ZNRecordRow.ZNRECORD_ID+ " LIKE '" + (!recipientCriteria.getResourceGroup().equals("") ? (recipientCriteria.getResourceGroup() +"'") : "%' ") + " AND "+
-        ZNRecordRow.MAP_KEY   + " LIKE '" + (!recipientCriteria.getResourceKey().equals("")   ? (recipientCriteria.getResourceKey()  +"'") :  "%' ") + " AND "+
-        ZNRecordRow.MAP_VALUE  + " LIKE '" + (!recipientCriteria.getResourceState().equals("") ? (recipientCriteria.getResourceState()+"'") :  "%' ") + " AND "+
+        ZNRecordRow.ZNRECORD_ID+ " LIKE '" + (!recipientCriteria.getResourceName().equals("") ? (recipientCriteria.getResourceName() +"'") : "%' ") + " AND "+
+        ZNRecordRow.MAP_KEY   + " LIKE '" + (!recipientCriteria.getPartitionName().equals("")   ? (recipientCriteria.getPartitionName()  +"'") :  "%' ") + " AND "+
+        ZNRecordRow.MAP_VALUE  + " LIKE '" + (!recipientCriteria.getPartitionState().equals("") ? (recipientCriteria.getPartitionState()+"'") :  "%' ") + " AND "+
         ZNRecordRow.MAP_SUBKEY   + " IN ((SELECT [*]id FROM :LIVEINSTANCES))";
         
     
@@ -68,9 +68,9 @@ public class CriteriaEvaluator
       Map<String, String> resultRow = new HashMap<String, String>();
       List<Object> row = (List<Object>)o;
       resultRow.put("instanceName", (String)(row.get(0)));
-      resultRow.put("resourceGroup", (String)(row.get(1)));
-      resultRow.put("resourceKey", (String)(row.get(2)));
-      resultRow.put("resourceState", (String)(row.get(3)));
+      resultRow.put("resourceName", (String)(row.get(1)));
+      resultRow.put("partitionName", (String)(row.get(2)));
+      resultRow.put("partitionState", (String)(row.get(3)));
       selected.add(resultRow);
     }
     return selected;

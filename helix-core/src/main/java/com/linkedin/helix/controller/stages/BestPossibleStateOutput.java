@@ -4,34 +4,34 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.linkedin.helix.model.ResourceKey;
+import com.linkedin.helix.model.Partition;
 
 public class BestPossibleStateOutput
 {
-  // resourceGroup->partitionKey->instance->state
-  Map<String, Map<ResourceKey, Map<String, String>>> _dataMap;
+  // resource->partition->instance->state
+  Map<String, Map<Partition, Map<String, String>>> _dataMap;
 
   public BestPossibleStateOutput()
   {
-    _dataMap = new HashMap<String, Map<ResourceKey, Map<String, String>>>();
+    _dataMap = new HashMap<String, Map<Partition, Map<String, String>>>();
   }
 
-  public void setState(String resourceGroupName, ResourceKey resource,
+  public void setState(String resourceName, Partition resource,
       Map<String, String> bestInstanceStateMappingForResource)
   {
-    if (!_dataMap.containsKey(resourceGroupName))
+    if (!_dataMap.containsKey(resourceName))
     {
-      _dataMap.put(resourceGroupName,
-          new HashMap<ResourceKey, Map<String, String>>());
+      _dataMap.put(resourceName,
+          new HashMap<Partition, Map<String, String>>());
     }
-    Map<ResourceKey, Map<String, String>> map = _dataMap.get(resourceGroupName);
+    Map<Partition, Map<String, String>> map = _dataMap.get(resourceName);
     map.put(resource, bestInstanceStateMappingForResource);
   }
 
-  public Map<String, String> getInstanceStateMap(String resourceGroupName,
-      ResourceKey resource)
+  public Map<String, String> getInstanceStateMap(String resourceName,
+      Partition resource)
   {
-    Map<ResourceKey, Map<String, String>> map = _dataMap.get(resourceGroupName);
+    Map<Partition, Map<String, String>> map = _dataMap.get(resourceName);
     if (map != null)
     {
       return map.get(resource);
@@ -39,9 +39,9 @@ public class BestPossibleStateOutput
     return Collections.emptyMap();
   }
 
-  public Map<ResourceKey, Map<String, String>> getResourceGroupMap(String resourceGroupName)
+  public Map<Partition, Map<String, String>> getResourceMap(String resourceName)
   {
-    Map<ResourceKey, Map<String, String>> map = _dataMap.get(resourceGroupName);
+    Map<Partition, Map<String, String>> map = _dataMap.get(resourceName);
     if (map != null)
     {
       return map;

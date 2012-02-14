@@ -53,7 +53,7 @@ public class MockController
     message.setFromState(fromState);
     message.setToState(toState);
     // message.setPartitionId(partitionId);
-    message.setStateUnitKey(partitionKey);
+    message.setPartitionName(partitionKey);
 
     String path = HelixUtil.getMessagePath(clusterName, instanceName) + "/"
         + message.getId();
@@ -120,7 +120,7 @@ public class MockController
       String partitionName = dbName + ".partition-" + partitionId;
       result.setMapField(partitionName, partitionAssignment);
     }
-    result.setSimpleField(IdealStateProperty.PARTITIONS.toString(), "" + partitions);
+    result.setSimpleField(IdealStateProperty.NUM_PARTITIONS.toString(), "" + partitions);
     return result;
   }
 }

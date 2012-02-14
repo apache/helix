@@ -142,9 +142,9 @@ public class ZkUnitTestBase
 	{
 		 DataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
 		 IdealState idealState = accessor.getProperty(IdealState.class, PropertyType.IDEALSTATES, resource);
-		 for (String resourceKey : idealState.getResourceKeySet())
+		 for (String partitionName : idealState.getPartitionSet())
 		 {
-			 AssertJUnit.assertEquals(repl, idealState.getInstanceStateMap(resourceKey).size());
+			 AssertJUnit.assertEquals(repl, idealState.getInstanceStateMap(partitionName).size());
 		 }
 	}
 

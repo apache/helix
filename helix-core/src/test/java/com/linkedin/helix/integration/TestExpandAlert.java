@@ -60,7 +60,7 @@ public class TestExpandAlert extends ZkIntegrationTestBase
       String fromState = message.getFromState();
       String toState = message.getToState();
       String instance = message.getTgtName();
-      String partition = message.getStateUnitKey();
+      String partition = message.getPartitionName();
 
       if (fromState.equalsIgnoreCase("SLAVE")
           && toState.equalsIgnoreCase("MASTER"))
@@ -113,9 +113,9 @@ public class TestExpandAlert extends ZkIntegrationTestBase
                             ZK_ADDR,
                             12918,        // participant start port
                             "localhost",  // participant name prefix
-                            "TestDB",     // resource group name prefix
-                            1,            // resource groups
-                            10,           // partitions per resource group
+                            "TestDB",     // resource  name prefix
+                            1,            // resources
+                            10,           // partitions per resource 
                             5,            // number of nodes //change back to 5!!!
                             3,            // replicas //change back to 3!!!
                             "MasterSlave",

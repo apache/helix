@@ -56,7 +56,7 @@ public class FileCMTestBase
     // setup test cluster
     _mgmtTool = new FileHelixAdmin(_fileStore);
     _mgmtTool.addCluster(CLUSTER_NAME, true);
-    _mgmtTool.addResourceGroup(CLUSTER_NAME, TEST_DB, 10, STATE_MODEL);
+    _mgmtTool.addResource(CLUSTER_NAME, TEST_DB, 10, STATE_MODEL);
     for (int i = 0; i < NODE_NR; i++)
     {
       addNodeToCluster(CLUSTER_NAME, "localhost", START_PORT + i);
@@ -145,19 +145,19 @@ public class FileCMTestBase
   }
 
   protected void rebalanceStorageCluster(String clusterName,
-      String resourceGroupName, int replica)
+      String resourceName, int replica)
   {
     List<String> nodeNames = _mgmtTool.getInstancesInCluster(clusterName);
 
-    IdealState idealState = _mgmtTool.getResourceGroupIdealState(clusterName, resourceGroupName);
+    IdealState idealState = _mgmtTool.getResourceIdealState(clusterName, resourceName);
     int partitions = idealState.getNumPartitions();
 
     ZNRecord newIdealState = IdealStateCalculatorForStorageNode
-        .calculateIdealState(nodeNames, partitions, replica, resourceGroupName,
+        .calculateIdealState(nodeNames, partitions, replica, resourceName,
             "MASTER", "SLAVE");
 
     newIdealState.merge(idealState.getRecord());
-    _mgmtTool.setResourceGroupIdealState(clusterName, resourceGroupName, new IdealState(newIdealState));
+    _mgmtTool.setResourceIdealState(clusterName, resourceName, new IdealState(newIdealState));
   }
 
   protected void verifyCluster()

@@ -38,7 +38,7 @@ public class DistClusterControllerStateModel extends StateModel
   public void onBecomeLeaderFromStandby(Message message, NotificationContext context)
   throws Exception
   {
-    String clusterName = message.getStateUnitKey();
+    String clusterName = message.getPartitionName();
     String controllerName = message.getTgtName();
 
     logger.info(controllerName + " becomes leader from standby for " + clusterName);
@@ -61,7 +61,7 @@ public class DistClusterControllerStateModel extends StateModel
   @Transition(to="STANDBY",from="LEADER")
   public void onBecomeStandbyFromLeader(Message message, NotificationContext context)
   {
-    String clusterName = message.getStateUnitKey();
+    String clusterName = message.getPartitionName();
     String controllerName = message.getTgtName();
 
     logger.info(controllerName + " becoming standby from leader for " + clusterName);
@@ -80,7 +80,7 @@ public class DistClusterControllerStateModel extends StateModel
   @Transition(to="OFFLINE",from="STANDBY")
   public void onBecomeOfflineFromStandby(Message message, NotificationContext context)
   {
-    String clusterName = message.getStateUnitKey();
+    String clusterName = message.getPartitionName();
     String controllerName = message.getTgtName();
 
     logger.info(controllerName + " becoming offline from standby for cluster:" + clusterName);
@@ -104,7 +104,7 @@ public class DistClusterControllerStateModel extends StateModel
   public void rollbackOnError(Message message, NotificationContext context,
                               StateTransitionError error)
   {
-    String clusterName = message.getStateUnitKey();
+    String clusterName = message.getPartitionName();
     String controllerName = message.getTgtName();
 
     logger.error(controllerName + " rollbacks on error for " + clusterName);

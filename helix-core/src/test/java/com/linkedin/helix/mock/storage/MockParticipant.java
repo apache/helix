@@ -166,7 +166,7 @@ public class MockParticipant implements Stoppable, Runnable
     {
       String fromState = message.getFromState();
       String toState = message.getToState();
-      String partition = message.getStateUnitKey();
+      String partition = message.getPartitionName();
 
       String key = (fromState + "-" + toState).toUpperCase();
       if (_errPartitions.containsKey(key) && _errPartitions.get(key).contains(partition))

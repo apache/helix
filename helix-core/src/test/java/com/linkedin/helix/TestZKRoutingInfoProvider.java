@@ -54,9 +54,9 @@ public class TestZKRoutingInfoProvider
 
       for (int i = 0; i < partition; i++)
       {
-        stateMaster.put(Message.Attributes.STATE_UNIT_GROUP.toString(),
+        stateMaster.put(Message.Attributes.RESOURCE_NAME.toString(),
             dbNames[j]);
-        stateSlave.put(Message.Attributes.STATE_UNIT_GROUP.toString(),
+        stateSlave.put(Message.Attributes.RESOURCE_NAME.toString(),
             dbNames[j]);
         int nodes = nodeNames.length;
         int master = randomArray.get(i) % nodes;

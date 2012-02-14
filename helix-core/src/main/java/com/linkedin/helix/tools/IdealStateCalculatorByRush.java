@@ -122,7 +122,7 @@ public class IdealStateCalculatorByRush
 
       result.setMapField(partitionName, partitionAssignment);
     }
-    result.setSimpleField(IdealStateProperty.PARTITIONS.toString(), String.valueOf(partitions));
+    result.setSimpleField(IdealStateProperty.NUM_PARTITIONS.toString(), String.valueOf(partitions));
     return result;
   }
 

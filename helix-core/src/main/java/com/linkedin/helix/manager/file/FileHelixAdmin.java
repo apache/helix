@@ -63,12 +63,12 @@ public class FileHelixAdmin implements HelixAdmin
   }
 
   @Override
-  public List<String> getResourceGroupsInCluster(String clusterName)
+  public List<String> getResourcesInCluster(String clusterName)
   {
     // TODO Auto-generated method stub
     // return null;
     throw new UnsupportedOperationException(
-        "getResourceGroupsInCluster() is NOT supported by FileClusterManagementTool");
+        "getResourcesInCluster() is NOT supported by FileClusterManagementTool");
 
   }
 
@@ -131,11 +131,11 @@ public class FileHelixAdmin implements HelixAdmin
   }
 
   @Override
-  public void addResourceGroup(String clusterName, String resourceGroup, int numResources,
+  public void addResource(String clusterName, String resource, int numResources,
       String stateModelRef)
   {
     String idealStatePath = HelixUtil.getIdealStatePath(clusterName);
-    String resourceGroupIdealStatePath = idealStatePath + "/" + resourceGroup;
+    String resourceIdealStatePath = idealStatePath + "/" + resource;
 
     // if (_zkClient.exists(dbIdealStatePath))
     // {
@@ -144,23 +144,23 @@ public class FileHelixAdmin implements HelixAdmin
     // return;
     // }
 
-    IdealState idealState = new IdealState(resourceGroup);
+    IdealState idealState = new IdealState(resource);
     idealState.setNumPartitions(numResources);
     idealState.setStateModelDefRef(stateModelRef);
     idealState.setIdealStateMode(IdealStateModeProperty.AUTO.toString());
     try
     {
-      _store.setProperty(resourceGroupIdealStatePath, idealState.getRecord());
+      _store.setProperty(resourceIdealStatePath, idealState.getRecord());
     } catch (PropertyStoreException e)
     {
-      logger.error("Fail to add resource group, cluster:" + clusterName + " resource group:"
-          + resourceGroup + "\nexception: " + e);
+      logger.error("Fail to add resource, cluster:" + clusterName + " resourceName:"
+          + resource + "\nexception: " + e);
     }
 
   }
 
   @Override
-  public void addResourceGroup(String clusterName, String resourceGroup, int numResources,
+  public void addResource(String clusterName, String resource, int numResources,
       String stateModelRef, String idealStateMode)
   {
     throw new UnsupportedOperationException(
@@ -205,18 +205,18 @@ public class FileHelixAdmin implements HelixAdmin
   }
 
   @Override
-  public IdealState getResourceGroupIdealState(String clusterName, String resourceGroupName)
+  public IdealState getResourceIdealState(String clusterName, String resourceName)
   {
     return new FileDataAccessor(_store, clusterName).getProperty(IdealState.class,
-        PropertyType.IDEALSTATES, resourceGroupName);
+        PropertyType.IDEALSTATES, resourceName);
   }
 
   @Override
-  public void setResourceGroupIdealState(String clusterName, String resourceGroupName,
+  public void setResourceIdealState(String clusterName, String resourceName,
       IdealState idealState)
   {
     new FileDataAccessor(_store, clusterName).setProperty(PropertyType.IDEALSTATES,
-        idealState, resourceGroupName);
+        idealState, resourceName);
   }
 
   @Override
@@ -246,10 +246,10 @@ public class FileHelixAdmin implements HelixAdmin
   }
 
   @Override
-  public void dropResourceGroup(String clusterName, String resourceGroup)
+  public void dropResource(String clusterName, String resourceName)
   {
     new FileDataAccessor(_store, clusterName).removeProperty(PropertyType.IDEALSTATES,
-        resourceGroup);
+        resourceName);
 
   }
 
@@ -275,14 +275,14 @@ public class FileHelixAdmin implements HelixAdmin
   }
 
   @Override
-  public ExternalView getResourceGroupExternalView(String clusterName, String resourceGroup)
+  public ExternalView getResourceExternalView(String clusterName, String resource)
   {
     throw new UnsupportedOperationException(
-        "getResourceGroupExternalView() is NOT supported by FileClusterManagementTool");
+        "getResourceExternalView() is NOT supported by FileClusterManagementTool");
   }
 
   @Override
-  public void enablePartition(String clusterName, String instanceName, String resourceGroupName,
+  public void enablePartition(String clusterName, String instanceName, String resourceName,
       String partition, boolean enabled)
   {
     throw new UnsupportedOperationException(
@@ -290,10 +290,9 @@ public class FileHelixAdmin implements HelixAdmin
   }
 
   @Override
-  public void resetPartition(String clusterName, String instanceName, String resourceGroupName,
+  public void resetPartition(String clusterName, String instanceName, String resourceName,
       String partition)
   {
-    // TODO Auto-generated method stub
     throw new UnsupportedOperationException(
         "resetPartition() is NOT supported by FileClusterManagementTool");
   }

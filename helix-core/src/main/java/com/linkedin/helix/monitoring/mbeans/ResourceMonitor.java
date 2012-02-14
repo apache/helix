@@ -10,31 +10,31 @@ import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.IdealState;
 
-public class ResourceGroupMonitor implements ResourceGroupMonitorMBean
+public class ResourceMonitor implements ResourceMonitorMBean
 {
-  int _numOfResourceKeys;
-  int _numOfResourceKeysInExternalView;
-  int _numOfErrorResourceKeys;
+  int _numOfPartitions;
+  int _numOfPartitionsInExternalView;
+  int _numOfErrorPartitions;
   int _externalViewIdealStateDiff;
   private static final Logger LOG = Logger.getLogger(ClusterStatusMonitor.class);
 
-  String _resourceGroup, _clusterName;
-  public ResourceGroupMonitor(String clusterName, String resourceGroup)
+  String _resourceName, _clusterName;
+  public ResourceMonitor(String clusterName, String resourceName)
   {
     _clusterName = clusterName;
-    _resourceGroup = resourceGroup;
+    _resourceName = resourceName;
   }
 
   @Override
-  public long getResourceKeyGauge()
+  public long getPartitionGauge()
   {
-    return _numOfResourceKeys;
+    return _numOfPartitions;
   }
 
   @Override
-  public long getErrorResouceKeyGauge()
+  public long getErrorPartitionGauge()
   {
-    return _numOfErrorResourceKeys;
+    return _numOfErrorPartitions;
   }
 
   @Override
@@ -50,49 +50,49 @@ public class ResourceGroupMonitor implements ResourceGroupMonitorMBean
       LOG.warn("external view is null");
       return;
     }
-    String resourceGroup = externalView.getId();
+    String resourceName = externalView.getId();
     DataAccessor accessor = manager.getDataAccessor();
     IdealState idealState = null;
 
     try
     {
-      idealState = accessor.getProperty(IdealState.class, PropertyType.IDEALSTATES, resourceGroup);
+      idealState = accessor.getProperty(IdealState.class, PropertyType.IDEALSTATES, resourceName);
     }
     catch(Exception e)
     {
       // ideal state is gone. Should report 0.
-      LOG.warn("ideal state is null for "+resourceGroup, e);
-      _numOfErrorResourceKeys = 0;
+      LOG.warn("ideal state is null for "+resourceName, e);
+      _numOfErrorPartitions = 0;
       _externalViewIdealStateDiff = 0;
-      _numOfResourceKeysInExternalView = 0;
+      _numOfPartitionsInExternalView = 0;
       return;
     }
 
     if(idealState == null)
     {
-      LOG.warn("ideal state is null for "+resourceGroup);
-      _numOfErrorResourceKeys = 0;
+      LOG.warn("ideal state is null for "+resourceName);
+      _numOfErrorPartitions = 0;
       _externalViewIdealStateDiff = 0;
-      _numOfResourceKeysInExternalView = 0;
+      _numOfPartitionsInExternalView = 0;
       return;
     }
 
-    assert(resourceGroup.equals(idealState.getId()));
+    assert(resourceName.equals(idealState.getId()));
 
-    int numOfErrorResourceKeys = 0;
+    int numOfErrorPartitions = 0;
     int numOfDiff = 0;
 
-    if(_numOfResourceKeys == 0)
+    if(_numOfPartitions == 0)
     {
-      _numOfResourceKeys = idealState.getRecord().getMapFields().size();
+      _numOfPartitions = idealState.getRecord().getMapFields().size();
     }
 
     // TODO fix this; IdealState shall have either map fields (CUSTOM mode)
     //  or list fields (AUDO mode)
-    for(String resourceKey : idealState.getRecord().getMapFields().keySet())
+    for(String partitionName : idealState.getRecord().getMapFields().keySet())
     {
-      Map<String, String> idealRecord = idealState.getInstanceStateMap(resourceKey);
-      Map<String, String> externalViewRecord = externalView.getStateMap(resourceKey);
+      Map<String, String> idealRecord = idealState.getInstanceStateMap(partitionName);
+      Map<String, String> externalViewRecord = externalView.getStateMap(partitionName);
 
       if(externalViewRecord == null)
       {
@@ -112,25 +112,23 @@ public class ResourceGroupMonitor implements ResourceGroupMonitorMBean
       {
         if(externalViewRecord.get(host).equalsIgnoreCase("ERROR"))
         {
-          numOfErrorResourceKeys++;
+          numOfErrorPartitions++;
         }
       }
     }
-//    System.out.println(_numOfErrorResourceKeys + " "
-//        + _externalViewIdealStateDiff + " " + _numOfResourceKeysInExternalView);
-    _numOfErrorResourceKeys = numOfErrorResourceKeys;
+    _numOfErrorPartitions = numOfErrorPartitions;
     _externalViewIdealStateDiff = numOfDiff;
-    _numOfResourceKeysInExternalView = externalView.getResourceKeys().size();
+    _numOfPartitionsInExternalView = externalView.getPartitionSet().size();
   }
 
   @Override
-  public long getExternalViewResourceKeyGauge()
+  public long getExternalViewPartitionGauge()
   {
-    return _numOfResourceKeysInExternalView;
+    return _numOfPartitionsInExternalView;
   }
 
   public String getBeanName()
   {
-    return _clusterName+" "+_resourceGroup;
+    return _clusterName+" "+_resourceName;
   }
 }

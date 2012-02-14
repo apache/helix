@@ -47,10 +47,10 @@ public class TestClusterJosqlQueryProcessor
     
     Criteria criteria = new Criteria();
     criteria.setInstanceName("%");
-    criteria.setResourceGroup("TestDB");
+    criteria.setResource("TestDB");
     criteria.setRecipientInstanceType(InstanceType.PARTICIPANT);
-    criteria.setResourceKey("TestDB_2%");
-    criteria.setResourceState("SLAVE");
+    criteria.setPartition("TestDB_2%");
+    criteria.setPartitionState("SLAVE");
     
     String josql = 
       " SELECT DISTINCT mapSubKey AS 'subkey', mapValue AS 'mapValue' , getSimpleFieldValue(getZNRecordFromMap(:LIVEINSTANCESMAP, mapSubKey), 'SCN') AS 'SCN'" +

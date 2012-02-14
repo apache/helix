@@ -259,7 +259,7 @@ public class HelixTask implements Callable<HelixTaskResult>
 
         StateTransitionContext cxt = new StateTransitionContext(
             manager.getClusterName(), manager.getInstanceName(),
-            message.getStateUnitGroup(), transition);
+            message.getResourceName(), transition);
 
         StateTransitionDataPoint data = new StateTransitionDataPoint(
             totalDelay, executionDelay, taskResult.isSucess());

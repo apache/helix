@@ -671,10 +671,10 @@ public class ZKHelixManager implements HelixManager
           String stateModelDefRef = previousCurrentState.getStateModelDefRef();
           StateModelDefinition stateModel = _accessor.getProperty(StateModelDefinition.class,
               PropertyType.STATEMODELDEFS, stateModelDefRef);
-          for (String resourceKey : previousCurrentState.getResourceKeyStateMap().keySet())
+          for (String partitionName : previousCurrentState.getPartitionStateMap().keySet())
           {
 
-            previousCurrentState.setState(resourceKey, stateModel.getInitialState());
+            previousCurrentState.setState(partitionName, stateModel.getInitialState());
           }
           previousCurrentState.setSessionId(_sessionId);
           _accessor.setProperty(PropertyType.CURRENTSTATES, previousCurrentState, _instanceName,

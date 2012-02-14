@@ -178,8 +178,8 @@ public class BootstrapProcess
               "BOOTSTRAP_URL",
               "http://" + hostName + ":" + port
                   + "/getFile?path=/data/bootstrap/"
-                  + _message.getResourceGroupName() + "/"
-                  + _message.getResourceKey() + ".tar");
+                  + _message.getResourceName() + "/"
+                  + _message.getPartitionName() + ".tar");
 
           result.getTaskResultMap().put(
               "BOOTSTRAP_TIME",

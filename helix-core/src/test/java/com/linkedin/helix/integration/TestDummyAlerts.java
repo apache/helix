@@ -48,7 +48,7 @@ public class TestDummyAlerts extends ZkIntegrationTestBase
       String fromState = message.getFromState();
       String toState = message.getToState();
       String instance = message.getTgtName();
-      String partition = message.getStateUnitKey();
+      String partition = message.getPartitionName();
 
       if (fromState.equalsIgnoreCase("SLAVE") && toState.equalsIgnoreCase("MASTER"))
       {
@@ -81,9 +81,9 @@ public class TestDummyAlerts extends ZkIntegrationTestBase
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant start
                                                          // port
         "localhost", // participant name prefix
-        "TestDB", // resource group name prefix
-        1, // resource groups
-        10, // partitions per resource group
+        "TestDB", // resource name prefix
+        1, // resources
+        10, // partitions per resource
         5, // number of nodes
         3, // replicas
         "MasterSlave", true); // do rebalance

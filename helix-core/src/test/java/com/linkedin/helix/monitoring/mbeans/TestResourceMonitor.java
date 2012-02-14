@@ -14,10 +14,10 @@ import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.LiveInstance.LiveInstanceProperty;
-import com.linkedin.helix.monitoring.mbeans.ResourceGroupMonitor;
+import com.linkedin.helix.monitoring.mbeans.ResourceMonitor;
 import com.linkedin.helix.tools.IdealStateCalculatorForStorageNode;
 
-public class TestResourceGroupMonitor
+public class TestResourceMonitor
 {
   String _clusterName = "Test-cluster";
   String _dbName = "TestDB";
@@ -101,7 +101,7 @@ public class TestResourceGroupMonitor
   public void TestReportData()
   {
     MockHelixManager manager = new MockHelixManager();
-    ResourceGroupMonitor monitor = new ResourceGroupMonitor(_clusterName, _dbName);
+    ResourceMonitor monitor = new ResourceMonitor(_clusterName, _dbName);
 
     ExternalView externalView = new ExternalView(
         manager.getDataAccessor().getProperty(PropertyType.EXTERNALVIEW,_dbName));
@@ -109,9 +109,9 @@ public class TestResourceGroupMonitor
     monitor.onExternalViewChange(externalView, manager);
 
     AssertJUnit.assertEquals(monitor.getDifferenceWithIdealStateGauge(), 0);
-    AssertJUnit.assertEquals(monitor.getErrorResouceKeyGauge(), 0);
-    AssertJUnit.assertEquals(monitor.getExternalViewResourceKeyGauge(), _partitions);
-    AssertJUnit.assertEquals(monitor.getResourceKeyGauge(), _partitions);
+    AssertJUnit.assertEquals(monitor.getErrorPartitionGauge(), 0);
+    AssertJUnit.assertEquals(monitor.getExternalViewPartitionGauge(), _partitions);
+    AssertJUnit.assertEquals(monitor.getPartitionGauge(), _partitions);
     monitor.getBeanName();
 
     int n = 4;
@@ -125,9 +125,9 @@ public class TestResourceGroupMonitor
 
     monitor.onExternalViewChange(externalView, manager);
     AssertJUnit.assertEquals(monitor.getDifferenceWithIdealStateGauge(), 0);
-    AssertJUnit.assertEquals(monitor.getErrorResouceKeyGauge(), n);
-    AssertJUnit.assertEquals(monitor.getExternalViewResourceKeyGauge(), _partitions);
-    AssertJUnit.assertEquals(monitor.getResourceKeyGauge(), _partitions);
+    AssertJUnit.assertEquals(monitor.getErrorPartitionGauge(), n);
+    AssertJUnit.assertEquals(monitor.getExternalViewPartitionGauge(), _partitions);
+    AssertJUnit.assertEquals(monitor.getPartitionGauge(), _partitions);
 
     n = 5;
     for (int i = 0; i < n; i++)
@@ -138,8 +138,8 @@ public class TestResourceGroupMonitor
     monitor.onExternalViewChange(externalView, manager);
     AssertJUnit.assertEquals(monitor.getDifferenceWithIdealStateGauge(), n
         * (_replicas + 1));
-    AssertJUnit.assertEquals(monitor.getErrorResouceKeyGauge(), 3);
-    AssertJUnit.assertEquals(monitor.getExternalViewResourceKeyGauge(), _partitions - n);
-    AssertJUnit.assertEquals(monitor.getResourceKeyGauge(), _partitions);
+    AssertJUnit.assertEquals(monitor.getErrorPartitionGauge(), 3);
+    AssertJUnit.assertEquals(monitor.getExternalViewPartitionGauge(), _partitions - n);
+    AssertJUnit.assertEquals(monitor.getPartitionGauge(), _partitions);
   }
 }

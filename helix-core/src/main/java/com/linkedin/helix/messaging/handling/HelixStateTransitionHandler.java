@@ -165,12 +165,13 @@ public class HelixStateTransitionHandler extends MessageHandler
       // called at.
       // Verify that no one has edited this field
       CurrentState currentStateDelta = new CurrentState(resource);
-
+      
       if (taskResult.isSucess())
       {
         // String fromState = message.getFromState();
         String toState = message.getToState();
-
+        currentStateDelta.setState(partitionKey, toState);
+        
         if (toState.equalsIgnoreCase("DROPPED"))
         {
           // for "OnOfflineToDROPPED" message, we need to remove the resource
@@ -180,14 +181,14 @@ public class HelixStateTransitionHandler extends MessageHandler
           // dropped.
           ZNRecordDelta delta = new ZNRecordDelta(currentStateDelta.getRecord(),
               MERGEOPERATION.SUBTRACT);
+          
           List<ZNRecordDelta> deltaList = new ArrayList<ZNRecordDelta>();
           deltaList.add(delta);
           currentStateDelta.setDeltaList(deltaList);
         } else
         {
           // If a resource key is dropped, it is ok to leave it "offline"
-          currentStateDelta.setState(partitionKey, toState);
-          _stateModel.updateState(toState);
+           _stateModel.updateState(toState);
         }
       } else
       {

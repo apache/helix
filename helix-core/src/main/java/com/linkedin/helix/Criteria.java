@@ -93,7 +93,7 @@ public class Criteria
     this.instanceName = instanceName;
   }
 
-  public String getResourceName()
+  public String getResource()
   {
     return resourceName;
   }
@@ -103,7 +103,7 @@ public class Criteria
     this.resourceName = resourceName;
   }
 
-  public String getPartitionName()
+  public String getPartition()
   {
     return partitionName;
   }

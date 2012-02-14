@@ -34,9 +34,8 @@ public class TestZKCallback extends ZkUnitTestBase
     return split;
   }
 
-  public class TestCallbackListener implements MessageListener,
-      LiveInstanceChangeListener, ConfigChangeListener,
-      CurrentStateChangeListener, ExternalViewChangeListener,
+  public class TestCallbackListener implements MessageListener, LiveInstanceChangeListener,
+      ConfigChangeListener, CurrentStateChangeListener, ExternalViewChangeListener,
       IdealStateChangeListener
   {
     boolean externalViewChangeReceived = false;
@@ -61,8 +60,7 @@ public class TestZKCallback extends ZkUnitTestBase
     }
 
     @Override
-    public void onConfigChange(List<InstanceConfig> configs,
-        NotificationContext changeContext)
+    public void onConfigChange(List<InstanceConfig> configs, NotificationContext changeContext)
     {
       configChangeReceived = true;
     }
@@ -92,8 +90,7 @@ public class TestZKCallback extends ZkUnitTestBase
     }
 
     @Override
-    public void onIdealStateChange(List<IdealState> idealState,
-        NotificationContext changeContext)
+    public void onIdealStateChange(List<IdealState> idealState, NotificationContext changeContext)
     {
       // TODO Auto-generated method stub
       idealStateChangeReceived = true;
@@ -104,10 +101,8 @@ public class TestZKCallback extends ZkUnitTestBase
   public void testInvocation() throws Exception
   {
 
-    HelixManager testHelixManager = HelixManagerFactory
-        .getZKHelixManager(clusterName, "localhost_8900",
-                             InstanceType.PARTICIPANT,
-                             ZK_ADDR);
+    HelixManager testHelixManager = HelixManagerFactory.getZKHelixManager(clusterName,
+        "localhost_8900", InstanceType.PARTICIPANT, ZK_ADDR);
     testHelixManager.connect();
 
     TestZKCallback test = new TestZKCallback();
@@ -115,8 +110,8 @@ public class TestZKCallback extends ZkUnitTestBase
     TestZKCallback.TestCallbackListener testListener = test.new TestCallbackListener();
 
     testHelixManager.addMessageListener(testListener, "localhost_8900");
-    testHelixManager.addCurrentStateChangeListener(testListener,
-        "localhost_8900", testHelixManager.getSessionId());
+    testHelixManager.addCurrentStateChangeListener(testListener, "localhost_8900",
+        testHelixManager.getSessionId());
     testHelixManager.addConfigChangeListener(testListener);
     testHelixManager.addIdealStateChangeListener(testListener);
     testHelixManager.addExternalViewChangeListener(testListener);
@@ -124,16 +119,14 @@ public class TestZKCallback extends ZkUnitTestBase
     // Initial add listener should trigger the first execution of the
     // listener callbacks
     AssertJUnit.assertTrue(testListener.configChangeReceived
-        & testListener.currentStateChangeReceived
-        & testListener.externalViewChangeReceived
-        & testListener.idealStateChangeReceived
-        & testListener.liveInstanceChangeReceived
+        & testListener.currentStateChangeReceived & testListener.externalViewChangeReceived
+        & testListener.idealStateChangeReceived & testListener.liveInstanceChangeReceived
         & testListener.messageChangeReceived);
 
     testListener.Reset();
     DataAccessor dataAccessor = testHelixManager.getDataAccessor();
     ExternalView extView = new ExternalView("db-12345");
-    dataAccessor.setProperty(PropertyType.EXTERNALVIEW, extView, "db-12345" );
+    dataAccessor.setProperty(PropertyType.EXTERNALVIEW, extView, "db-12345");
     Thread.sleep(100);
     AssertJUnit.assertTrue(testListener.externalViewChangeReceived);
     testListener.Reset();
@@ -142,7 +135,7 @@ public class TestZKCallback extends ZkUnitTestBase
     curState.setSessionId("sessionId");
     curState.setStateModelDefRef("StateModelDef");
     dataAccessor.setProperty(PropertyType.CURRENTSTATES, curState, "localhost_8900",
-                             testHelixManager.getSessionId(), curState.getId() );
+        testHelixManager.getSessionId(), curState.getId());
     Thread.sleep(100);
     AssertJUnit.assertTrue(testListener.currentStateChangeReceived);
     testListener.Reset();
@@ -151,20 +144,21 @@ public class TestZKCallback extends ZkUnitTestBase
     idealState.setNumPartitions(400);
     idealState.setReplicas(Integer.toString(2));
     idealState.setStateModelDefRef("StateModeldef");
-    dataAccessor.setProperty(PropertyType.IDEALSTATES, idealState,"db-1234");
+    dataAccessor.setProperty(PropertyType.IDEALSTATES, idealState, "db-1234");
     Thread.sleep(100);
     AssertJUnit.assertTrue(testListener.idealStateChangeReceived);
     testListener.Reset();
 
-//    dummyRecord = new ZNRecord("db-12345");
-//    dataAccessor.setProperty(PropertyType.IDEALSTATES, idealState, "db-12345" );
-//    Thread.sleep(100);
-//    AssertJUnit.assertTrue(testListener.idealStateChangeReceived);
-//    testListener.Reset();
+    // dummyRecord = new ZNRecord("db-12345");
+    // dataAccessor.setProperty(PropertyType.IDEALSTATES, idealState, "db-12345"
+    // );
+    // Thread.sleep(100);
+    // AssertJUnit.assertTrue(testListener.idealStateChangeReceived);
+    // testListener.Reset();
 
-//    dummyRecord = new ZNRecord("localhost:8900");
-//    List<ZNRecord> recList = new ArrayList<ZNRecord>();
-//    recList.add(dummyRecord);
+    // dummyRecord = new ZNRecord("localhost:8900");
+    // List<ZNRecord> recList = new ArrayList<ZNRecord>();
+    // recList.add(dummyRecord);
 
     testListener.Reset();
     Message message = new Message(MessageType.STATE_TRANSITION, UUID.randomUUID().toString());
@@ -175,12 +169,13 @@ public class TestZKCallback extends ZkUnitTestBase
     message.setToState("toState");
     message.setFromState("fromState");
     message.setTgtName("testTarget");
+    message.setStateModelFactoryName(HelixConstants.DEFAULT_STATE_MODEL_FACTORY);
 
     dataAccessor.setProperty(PropertyType.MESSAGES, message, "localhost_8900", message.getId());
     Thread.sleep(100);
     AssertJUnit.assertTrue(testListener.messageChangeReceived);
 
-//    dummyRecord = new ZNRecord("localhost_9801");
+    // dummyRecord = new ZNRecord("localhost_9801");
     LiveInstance liveInstance = new LiveInstance("localhost_9801");
     liveInstance.setSessionId(UUID.randomUUID().toString());
     liveInstance.setHelixVersion(UUID.randomUUID().toString());
@@ -189,45 +184,46 @@ public class TestZKCallback extends ZkUnitTestBase
     AssertJUnit.assertTrue(testListener.liveInstanceChangeReceived);
     testListener.Reset();
 
-//    dataAccessor.setNodeConfigs(recList); Thread.sleep(100);
-//    AssertJUnit.assertTrue(testListener.configChangeReceived);
-//    testListener.Reset();
+    // dataAccessor.setNodeConfigs(recList); Thread.sleep(100);
+    // AssertJUnit.assertTrue(testListener.configChangeReceived);
+    // testListener.Reset();
   }
 
   @BeforeClass()
   public void beforeClass() throws IOException, Exception
   {
-  	_zkClient = new ZkClient(ZK_ADDR);
-  	_zkClient.setZkSerializer(new ZNRecordSerializer());
+    _zkClient = new ZkClient(ZK_ADDR);
+    _zkClient.setZkSerializer(new ZNRecordSerializer());
     if (_zkClient.exists("/" + clusterName))
     {
       _zkClient.deleteRecursive("/" + clusterName);
     }
 
-    ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " -addCluster " + clusterName));
+    ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " -addCluster "
+        + clusterName));
     // ClusterSetup
-    //    .processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " -addCluster relay-cluster-12345"));
-    ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " -addResource " + clusterName + " db-12345 120 MasterSlave"));
-    ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " -addNode " + clusterName + " localhost:8900"));
-    ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " -addNode " + clusterName + " localhost:8901"));
-    ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " -addNode " + clusterName + " localhost:8902"));
-    ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " -addNode " + clusterName + " localhost:8903"));
-    ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " -addNode " + clusterName + " localhost:8904"));
-    ClusterSetup
-        .processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " -rebalance " + clusterName + " db-12345 3"));
+    // .processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR +
+    // " -addCluster relay-cluster-12345"));
+    ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " -addResource "
+        + clusterName + " db-12345 120 MasterSlave"));
+    ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " -addNode " + clusterName
+        + " localhost:8900"));
+    ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " -addNode " + clusterName
+        + " localhost:8901"));
+    ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " -addNode " + clusterName
+        + " localhost:8902"));
+    ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " -addNode " + clusterName
+        + " localhost:8903"));
+    ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " -addNode " + clusterName
+        + " localhost:8904"));
+    ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " -rebalance "
+        + clusterName + " db-12345 3"));
   }
 
   @AfterClass()
   public void afterClass()
   {
-  	_zkClient.close();
+    _zkClient.close();
   }
 
 }

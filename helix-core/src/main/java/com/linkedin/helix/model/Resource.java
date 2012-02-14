@@ -6,7 +6,7 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.participant.HelixStateMachineEngine;
+import com.linkedin.helix.HelixConstants;
 
 /**
  * A resource contains a set of partitions
@@ -40,7 +40,7 @@ public class Resource
   {
     if (factoryName == null)
     {
-      _stateModelFactoryName = HelixStateMachineEngine.DEFAULT_FACTORY;
+      _stateModelFactoryName = HelixConstants.DEFAULT_STATE_MODEL_FACTORY;
     } else
     {
       _stateModelFactoryName = factoryName;

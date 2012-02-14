@@ -5,6 +5,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.log4j.Logger;
 
+import com.linkedin.helix.HelixConstants;
 import com.linkedin.helix.HelixException;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.messaging.handling.HelixStateTransitionHandler;
@@ -19,8 +20,6 @@ public class HelixStateMachineEngine implements StateMachineEngine
 {
   private static Logger logger = Logger.getLogger(HelixStateMachineEngine.class);
 
-  public final static String DEFAULT_FACTORY = "DEFALUT";
-
   // StateModelName->FactoryName->StateModelFactory
   private final Map<String, Map<String, StateModelFactory<? extends StateModel>>> _stateModelFactoryMap = new ConcurrentHashMap<String, Map<String, StateModelFactory<? extends StateModel>>>();
   StateModelParser _stateModelParser;
@@ -31,7 +30,7 @@ public class HelixStateMachineEngine implements StateMachineEngine
 
   public StateModelFactory<? extends StateModel> getStateModelFactory(String stateModelName)
   {
-    return getStateModelFactory(stateModelName, DEFAULT_FACTORY);
+    return getStateModelFactory(stateModelName, HelixConstants.DEFAULT_STATE_MODEL_FACTORY);
   }
 
   public StateModelFactory<? extends StateModel> getStateModelFactory(String stateModelName,
@@ -51,7 +50,8 @@ public class HelixStateMachineEngine implements StateMachineEngine
   public boolean registerStateModelFactory(String stateModelDef,
       StateModelFactory<? extends StateModel> factory)
   {
-    return registerStateModelFactory(stateModelDef, factory, DEFAULT_FACTORY);
+    return registerStateModelFactory(stateModelDef, factory,
+        HelixConstants.DEFAULT_STATE_MODEL_FACTORY);
   }
 
   @Override
@@ -152,7 +152,7 @@ public class HelixStateMachineEngine implements StateMachineEngine
     String factoryName = message.getStateModelFactoryName();
     if (factoryName == null)
     {
-      factoryName = DEFAULT_FACTORY;
+      factoryName = HelixConstants.DEFAULT_STATE_MODEL_FACTORY;
     }
 
     StateModelFactory stateModelFactory = getStateModelFactory(stateModelName, factoryName);

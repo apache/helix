@@ -33,14 +33,14 @@ public class CriteriaEvaluator
     
     String queryFields = 
         (!recipientCriteria.getInstanceName().equals("")  ? " " + ZNRecordRow.MAP_SUBKEY  : " ''") +","+
-        (!recipientCriteria.getResourceName().equals("") ? " " + ZNRecordRow.ZNRECORD_ID : " ''") +","+
-        (!recipientCriteria.getPartitionName().equals("")   ? " " + ZNRecordRow.MAP_KEY   : " ''") +","+
+        (!recipientCriteria.getResource().equals("") ? " " + ZNRecordRow.ZNRECORD_ID : " ''") +","+
+        (!recipientCriteria.getPartition().equals("")   ? " " + ZNRecordRow.MAP_KEY   : " ''") +","+
         (!recipientCriteria.getPartitionState().equals("") ? " " + ZNRecordRow.MAP_VALUE : " '' ");
     
     String matchCondition = 
         ZNRecordRow.MAP_SUBKEY   + " LIKE '" + (!recipientCriteria.getInstanceName().equals("") ? (recipientCriteria.getInstanceName() +"'") :   "%' ") + " AND "+
-        ZNRecordRow.ZNRECORD_ID+ " LIKE '" + (!recipientCriteria.getResourceName().equals("") ? (recipientCriteria.getResourceName() +"'") : "%' ") + " AND "+
-        ZNRecordRow.MAP_KEY   + " LIKE '" + (!recipientCriteria.getPartitionName().equals("")   ? (recipientCriteria.getPartitionName()  +"'") :  "%' ") + " AND "+
+        ZNRecordRow.ZNRECORD_ID+ " LIKE '" + (!recipientCriteria.getResource().equals("") ? (recipientCriteria.getResource() +"'") : "%' ") + " AND "+
+        ZNRecordRow.MAP_KEY   + " LIKE '" + (!recipientCriteria.getPartition().equals("")   ? (recipientCriteria.getPartition()  +"'") :  "%' ") + " AND "+
         ZNRecordRow.MAP_VALUE  + " LIKE '" + (!recipientCriteria.getPartitionState().equals("") ? (recipientCriteria.getPartitionState()+"'") :  "%' ") + " AND "+
         ZNRecordRow.MAP_SUBKEY   + " IN ((SELECT [*]id FROM :LIVEINSTANCES))";
         

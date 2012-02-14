@@ -73,7 +73,7 @@ public class HealthCheckStateModel extends StateModel
 
     checkDebug(task);
 
-    String partition = (String) task.getStateUnitKey();
+    String partition = (String) task.getPartitionName();
     String[] pdata = partition.split("\\.");
     String dbName = pdata[0];
 
@@ -99,7 +99,7 @@ public class HealthCheckStateModel extends StateModel
 
     checkDebug(task);
 
-    String partition = (String) task.getStateUnitKey();
+    String partition = (String) task.getPartitionName();
     String[] pdata = partition.split("\\.");
     String dbName = pdata[0];
     storage.setPermissions(partition, "READONLY");
@@ -120,7 +120,7 @@ public class HealthCheckStateModel extends StateModel
 
     checkDebug(task);
 
-    String partition = (String) task.getStateUnitKey();
+    String partition = (String) task.getPartitionName();
 
     // stop consumer and refetch from all so all changes are drained
     consumer.flush(); // blocking call
@@ -160,7 +160,7 @@ public class HealthCheckStateModel extends StateModel
 
     checkDebug(task);
 
-    String partition = (String) task.getStateUnitKey();
+    String partition = (String) task.getPartitionName();
 
     consumer.stop();
     storage.removeConsumer(partition);

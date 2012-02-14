@@ -131,26 +131,26 @@ public class ZkLogCSVFormatter
       formatter(cfgBw, "timestamp", "instanceName", "host", "port", "enabled");
       formatter(isBw,
                 "timestamp",
-                "resourceGroup",
+                "resourceName",
                 "partitionNumber",
                 "mode",
                 "partition",
                 "instanceName",
                 "priority");
-      formatter(evBw, "timestamp", "resourceGroup", "partition", "instanceName", "state");
+      formatter(evBw, "timestamp", "resourceName", "partition", "instanceName", "state");
       formatter(smdCntBw, "timestamp", "stateModel", "state", "count");
       formatter(smdNextBw, "timestamp", "stateModel", "from", "to", "next");
       formatter(liBw, "timestamp", "instanceName", "sessionId", "Operation");
       formatter(csBw,
                 "timestamp",
-                "resourceGroupName",
+                "resourceName",
                 "partition",
                 "instanceName",
                 "sessionId",
                 "state");
       formatter(msgBw,
                 "timestamp",
-                "resourceGroupName",
+                "resourceName",
                 "partition",
                 "instanceName",
                 "sessionId",
@@ -213,7 +213,7 @@ public class ZkLogCSVFormatter
                 formatter(isBw,
                           timestamp,
                           record.getId(),
-                          record.getSimpleField(IdealStateProperty.PARTITIONS.toString()),
+                          record.getSimpleField(IdealStateProperty.NUM_PARTITIONS.toString()),
                           record.getSimpleField(IdealStateProperty.IDEAL_STATE_MODE.toString()),
                           partition,
                           instance,
@@ -348,8 +348,8 @@ public class ZkLogCSVFormatter
 
             formatter(msgBw,
                       timestamp,
-                      record.getSimpleField("STATE_UNIT_GROUP"),
-                      record.getSimpleField("STATE_UNIT_KEY"),
+                      record.getSimpleField("RESOURCE_NAME"),
+                      record.getSimpleField("PARTITION_NAME"),
                       record.getSimpleField("TGT_NAME"),
                       record.getSimpleField("TGT_SESSION_ID"),
                       record.getSimpleField("FROM_STATE"),

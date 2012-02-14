@@ -46,10 +46,10 @@ public class IdealStateCalculatorForStorageNode
    *          master state value: e.g. "MASTER" or "LEADER"
    * @param slaveStateValue
    *          slave state value: e.g. "SLAVE" or "STANDBY"
-   * @param stateUnitGroup
+   * @param resourceName
    * @return a ZNRecord that contain the idealstate info
    */
-  public static ZNRecord calculateIdealState(List<String> instanceNames, int partitions, int replicas, String stateUnitGroup,
+  public static ZNRecord calculateIdealState(List<String> instanceNames, int partitions, int replicas, String resourceName,
                                              String masterStateValue, String slaveStateValue)
   {
     if(instanceNames.size() < replicas + 1)
@@ -60,7 +60,7 @@ public class IdealStateCalculatorForStorageNode
     }
     else if(partitions < instanceNames.size())
     {
-      ZNRecord idealState = IdealStateCalculatorByShuffling.calculateIdealState(instanceNames, partitions, replicas, stateUnitGroup, new Random().nextLong(), masterStateValue, slaveStateValue);
+      ZNRecord idealState = IdealStateCalculatorByShuffling.calculateIdealState(instanceNames, partitions, replicas, resourceName, new Random().nextLong(), masterStateValue, slaveStateValue);
 
       for(String partitionId : idealState.getMapFields().keySet())
       {
@@ -88,10 +88,10 @@ public class IdealStateCalculatorForStorageNode
 
     Map<String, Object> result = calculateInitialIdealState(instanceNames, partitions, replicas);
 
-    return convertToZNRecord(result, stateUnitGroup, masterStateValue, slaveStateValue);
+    return convertToZNRecord(result, resourceName, masterStateValue, slaveStateValue);
   }
 
-  public static ZNRecord calculateIdealStateBatch(List<List<String>> instanceBatches, int partitions, int replicas, String stateUnitGroup,
+  public static ZNRecord calculateIdealStateBatch(List<List<String>> instanceBatches, int partitions, int replicas, String resourceName,
                                                   String masterStateValue, String slaveStateValue)
   {
     Map<String, Object> result = calculateInitialIdealState(instanceBatches.get(0), partitions, replicas);
@@ -101,13 +101,13 @@ public class IdealStateCalculatorForStorageNode
       result = calculateNextIdealState(instanceBatches.get(i), result);
     }
 
-    return convertToZNRecord(result, stateUnitGroup, masterStateValue, slaveStateValue);
+    return convertToZNRecord(result, resourceName, masterStateValue, slaveStateValue);
   }
 
   /**
    * Convert the internal result (stored as a Map<String, Object>) into ZNRecord.
    */
-  static ZNRecord convertToZNRecord(Map<String, Object> result, String stateUnitGroup,
+  static ZNRecord convertToZNRecord(Map<String, Object> result, String resourceName,
                                     String masterStateValue, String slaveStateValue)
   {
     Map<String, List<Integer>> nodeMasterAssignmentMap
@@ -117,15 +117,15 @@ public class IdealStateCalculatorForStorageNode
 
     int partitions = (Integer)(result.get("partitions"));
 
-    ZNRecord idealState = new ZNRecord(stateUnitGroup);
-    idealState.setSimpleField(IdealStateProperty.PARTITIONS.toString(), String.valueOf(partitions));
+    ZNRecord idealState = new ZNRecord(resourceName);
+    idealState.setSimpleField(IdealStateProperty.NUM_PARTITIONS.toString(), String.valueOf(partitions));
 
 
     for(String instanceName : nodeMasterAssignmentMap.keySet())
     {
       for(Integer partitionId : nodeMasterAssignmentMap.get(instanceName))
       {
-        String partitionName = stateUnitGroup+"_"+partitionId;
+        String partitionName = resourceName+"_"+partitionId;
         if(!idealState.getMapFields().containsKey(partitionName))
         {
           idealState.setMapField(partitionName, new TreeMap<String, String>());
@@ -143,7 +143,7 @@ public class IdealStateCalculatorForStorageNode
         List<Integer> slaveAssignment = slaveAssignmentMap.get(slaveNode);
         for(Integer partitionId: slaveAssignment)
         {
-          String partitionName = stateUnitGroup+"_"+partitionId;
+          String partitionName = resourceName+"_"+partitionId;
           idealState.getMapField(partitionName).put(slaveNode, slaveStateValue);
         }
       }

@@ -10,7 +10,7 @@ import com.linkedin.helix.ZNRecordDecorator;
 
 /**
  * Message class basically extends ZNRecord but provides additional fields
- *
+ * 
  * @author kgopalak
  */
 
@@ -18,12 +18,7 @@ public class Message extends ZNRecordDecorator
 {
   public enum MessageType
   {
-    STATE_TRANSITION,
-    SCHEDULER_MSG,
-    USER_DEFINE_MSG,
-    CONTROLLER_MSG,
-    TASK_REPLY,
-    NO_OP
+    STATE_TRANSITION, SCHEDULER_MSG, USER_DEFINE_MSG, CONTROLLER_MSG, TASK_REPLY, NO_OP
   };
 
   public enum MessageSubType
@@ -33,10 +28,7 @@ public class Message extends ZNRecordDecorator
 
   public enum Attributes
   {
-    MSG_ID, SRC_SESSION_ID, TGT_SESSION_ID, SRC_NAME, TGT_NAME, SRC_INSTANCE_TYPE,
-    MSG_STATE, STATE_UNIT_KEY, STATE_UNIT_GROUP, FROM_STATE, TO_STATE,
-    STATE_MODEL_DEF, CREATE_TIMESTAMP, READ_TIMESTAMP, EXECUTE_START_TIMESTAMP, MSG_TYPE,
-    MSG_SUBTYPE, CORRELATION_ID, MESSAGE_RESULT, EXE_SESSION_ID, MESSAGE_TIMEOUT, RETRY_COUNT;
+    MSG_ID, SRC_SESSION_ID, TGT_SESSION_ID, SRC_NAME, TGT_NAME, SRC_INSTANCE_TYPE, MSG_STATE, PARTITION_NAME, RESOURCE_NAME, FROM_STATE, TO_STATE, STATE_MODEL_DEF, CREATE_TIMESTAMP, READ_TIMESTAMP, EXECUTE_START_TIMESTAMP, MSG_TYPE, MSG_SUBTYPE, CORRELATION_ID, MESSAGE_RESULT, EXE_SESSION_ID, MESSAGE_TIMEOUT, RETRY_COUNT;
   }
 
   public Message(MessageType type, String msgId)
@@ -57,11 +49,11 @@ public class Message extends ZNRecordDecorator
   public Message(ZNRecord record)
   {
     super(record);
-    if(getMsgState() == null)
+    if (getMsgState() == null)
     {
       setMsgState("new");
     }
-    if(getCreateTimeStamp() == 0)
+    if (getCreateTimeStamp() == 0)
     {
       _record.setSimpleField(Attributes.CREATE_TIMESTAMP.toString(), ""
           + new Date().getTime());
@@ -81,7 +73,7 @@ public class Message extends ZNRecordDecorator
 
   public String getMsgSubType()
   {
-    return getSimpleFieldAsString(Attributes.MSG_SUBTYPE.toString());
+    return _record.getSimpleField(Attributes.MSG_SUBTYPE.toString());
   }
 
   void setMsgType(MessageType type)
@@ -91,12 +83,12 @@ public class Message extends ZNRecordDecorator
 
   public String getMsgType()
   {
-    return getSimpleFieldAsString(Attributes.MSG_TYPE.toString());
+    return _record.getSimpleField(Attributes.MSG_TYPE.toString());
   }
 
   public String getTgtSessionId()
   {
-    return getSimpleFieldAsString(Attributes.TGT_SESSION_ID.toString());
+    return _record.getSimpleField(Attributes.TGT_SESSION_ID.toString());
   }
 
   public void setTgtSessionId(String tgtSessionId)
@@ -106,7 +98,7 @@ public class Message extends ZNRecordDecorator
 
   public String getSrcSessionId()
   {
-    return getSimpleFieldAsString(Attributes.SRC_SESSION_ID.toString());
+    return _record.getSimpleField(Attributes.SRC_SESSION_ID.toString());
   }
 
   public void setSrcSessionId(String srcSessionId)
@@ -116,7 +108,7 @@ public class Message extends ZNRecordDecorator
 
   public String getExecutionSessionId()
   {
-    return getSimpleFieldAsString(Attributes.EXE_SESSION_ID.toString());
+    return _record.getSimpleField(Attributes.EXE_SESSION_ID.toString());
   }
 
   public void setExecuteSessionId(String exeSessionId)
@@ -126,19 +118,22 @@ public class Message extends ZNRecordDecorator
 
   public String getMsgSrc()
   {
-    return getSimpleFieldAsString(Attributes.SRC_NAME.toString());
+    return _record.getSimpleField(Attributes.SRC_NAME.toString());
   }
 
   public void setSrcInstanceType(InstanceType type)
   {
-    _record.setSimpleField(Attributes.SRC_INSTANCE_TYPE.toString(), type.toString());
+    _record.setSimpleField(Attributes.SRC_INSTANCE_TYPE.toString(),
+        type.toString());
   }
 
   public InstanceType getSrcInstanceType()
   {
-    if(_record.getSimpleFields().containsKey(Attributes.SRC_INSTANCE_TYPE.toString()))
+    if (_record.getSimpleFields().containsKey(
+        Attributes.SRC_INSTANCE_TYPE.toString()))
     {
-      return InstanceType.valueOf( _record.getSimpleField(Attributes.SRC_INSTANCE_TYPE.toString()));
+      return InstanceType.valueOf(_record
+          .getSimpleField(Attributes.SRC_INSTANCE_TYPE.toString()));
     }
     return InstanceType.PARTICIPANT;
   }
@@ -150,7 +145,7 @@ public class Message extends ZNRecordDecorator
 
   public String getTgtName()
   {
-    return getSimpleFieldAsString(Attributes.TGT_NAME.toString());
+    return _record.getSimpleField(Attributes.TGT_NAME.toString());
   }
 
   public void setMsgState(String msgState)
@@ -160,22 +155,17 @@ public class Message extends ZNRecordDecorator
 
   public String getMsgState()
   {
-    return getSimpleFieldAsString(Attributes.MSG_STATE.toString());
+    return _record.getSimpleField(Attributes.MSG_STATE.toString());
   }
 
-  public void setStateUnitKey(String stateUnitKey)
+  public void setPartitionName(String partitionName)
   {
-    _record.setSimpleField(Attributes.STATE_UNIT_KEY.toString(), stateUnitKey);
+    _record.setSimpleField(Attributes.PARTITION_NAME.toString(), partitionName);
   }
-
-  public String getStateUnitKey()
-  {
-    return getSimpleFieldAsString(Attributes.STATE_UNIT_KEY.toString());
-  }
-
+  
   public String getMsgId()
   {
-    return getSimpleFieldAsString(Attributes.MSG_ID.toString());
+    return _record.getSimpleField(Attributes.MSG_ID.toString());
   }
 
   public void setMsgId(String msgId)
@@ -190,7 +180,7 @@ public class Message extends ZNRecordDecorator
 
   public String getFromState()
   {
-    return getSimpleFieldAsString(Attributes.FROM_STATE.toString());
+    return _record.getSimpleField(Attributes.FROM_STATE.toString());
   }
 
   public void setToState(String state)
@@ -200,14 +190,7 @@ public class Message extends ZNRecordDecorator
 
   public String getToState()
   {
-    return getSimpleFieldAsString(Attributes.TO_STATE.toString());
-  }
-
-  // TODO why do we need this?
-  private String getSimpleFieldAsString(String key)
-  {
-    Object ret = _record.getSimpleField(key);
-    return (ret != null) ? ret.toString() : null;
+    return _record.getSimpleField(Attributes.TO_STATE.toString());
   }
 
   public void setTgtName(String msgTgt)
@@ -225,30 +208,25 @@ public class Message extends ZNRecordDecorator
     return 1;
   }
 
-  public void setStateUnitGroup(String stateUnitGroup)
+  public void setResourceName(String resourceName)
   {
-    _record.setSimpleField(Attributes.STATE_UNIT_GROUP.toString(),
-        stateUnitGroup);
+    _record.setSimpleField(Attributes.RESOURCE_NAME.toString(),
+        resourceName);
   }
 
-  public String getStateUnitGroup()
+  public String getResourceName()
   {
-    return getSimpleFieldAsString(Attributes.STATE_UNIT_GROUP.toString());
+    return _record.getSimpleField(Attributes.RESOURCE_NAME.toString());
   }
 
-  public String getResourceGroupName()
+  public String getPartitionName()
   {
-    return getSimpleFieldAsString(Attributes.STATE_UNIT_GROUP.toString());
-  }
-
-  public String getResourceKey()
-  {
-    return getSimpleFieldAsString(Attributes.STATE_UNIT_KEY.toString());
+    return _record.getSimpleField(Attributes.PARTITION_NAME.toString());
   }
 
   public String getStateModelDef()
   {
-    return getSimpleFieldAsString(Attributes.STATE_MODEL_DEF.toString());
+    return _record.getSimpleField(Attributes.STATE_MODEL_DEF.toString());
   }
 
   public void setStateModelDef(String stateModelDefName)
@@ -270,7 +248,8 @@ public class Message extends ZNRecordDecorator
 
   public long getReadTimeStamp()
   {
-    String timestamp = _record.getSimpleField(Attributes.READ_TIMESTAMP.toString());
+    String timestamp = _record.getSimpleField(Attributes.READ_TIMESTAMP
+        .toString());
     if (timestamp == null)
     {
       return 0;
@@ -287,7 +266,8 @@ public class Message extends ZNRecordDecorator
 
   public long getExecuteStartTimeStamp()
   {
-    String timestamp = _record.getSimpleField(Attributes.EXECUTE_START_TIMESTAMP.toString());
+    String timestamp = _record
+        .getSimpleField(Attributes.EXECUTE_START_TIMESTAMP.toString());
     if (timestamp == null)
     {
       return 0;
@@ -295,8 +275,7 @@ public class Message extends ZNRecordDecorator
     try
     {
       return Long.parseLong(timestamp);
-    }
-    catch (Exception e)
+    } catch (Exception e)
     {
       return 0;
     }
@@ -310,8 +289,8 @@ public class Message extends ZNRecordDecorator
     }
     try
     {
-      return Long.parseLong(_record
-          .getSimpleField(Attributes.CREATE_TIMESTAMP.toString()));
+      return Long.parseLong(_record.getSimpleField(Attributes.CREATE_TIMESTAMP
+          .toString()));
     } catch (Exception e)
     {
       return 0;
@@ -325,21 +304,23 @@ public class Message extends ZNRecordDecorator
 
   public String getCorrelationId()
   {
-    return getSimpleFieldAsString(Attributes.CORRELATION_ID.toString());
+    return _record.getSimpleField(Attributes.CORRELATION_ID.toString());
   }
 
   public int getExecutionTimeout()
   {
-    if(!_record.getSimpleFields().containsKey(Attributes.MESSAGE_TIMEOUT.toString()))
+    if (!_record.getSimpleFields().containsKey(
+        Attributes.MESSAGE_TIMEOUT.toString()))
     {
       return -1;
     }
     try
     {
-      return Integer.parseInt(_record.getSimpleField(Attributes.MESSAGE_TIMEOUT.toString()));
+      return Integer.parseInt(_record.getSimpleField(Attributes.MESSAGE_TIMEOUT
+          .toString()));
+    } catch (Exception e)
+    {
     }
-    catch(Exception e)
-    {}
     return -1;
   }
 
@@ -357,10 +338,11 @@ public class Message extends ZNRecordDecorator
   {
     try
     {
-      return Integer.parseInt(_record.getSimpleField(Attributes.RETRY_COUNT.toString()));
+      return Integer.parseInt(_record.getSimpleField(Attributes.RETRY_COUNT
+          .toString()));
+    } catch (Exception e)
+    {
     }
-    catch(Exception e)
-    {}
     // Default to 0, and there is no retry if timeout happens
     return 0;
   }
@@ -375,15 +357,15 @@ public class Message extends ZNRecordDecorator
     _record.setMapField(Attributes.MESSAGE_RESULT.toString(), resultMap);
   }
 
-  public static Message createReplyMessage(Message srcMessage, String instanceName,
-      Map<String, String> taskResultMap)
+  public static Message createReplyMessage(Message srcMessage,
+      String instanceName, Map<String, String> taskResultMap)
   {
-    if(srcMessage.getCorrelationId() == null)
+    if (srcMessage.getCorrelationId() == null)
     {
       throw new HelixException("Message " + srcMessage.getMsgId()
-                                      + " does not contain correlation id");
+          + " does not contain correlation id");
     }
-    Message replyMessage = new Message(MessageType.TASK_REPLY,"TEMPLATE");
+    Message replyMessage = new Message(MessageType.TASK_REPLY, "TEMPLATE");
     replyMessage.setCorrelationId(srcMessage.getCorrelationId());
     replyMessage.setTgtName(srcMessage.getMsgSrc());
     replyMessage.setResultMap(taskResultMap);
@@ -407,20 +389,18 @@ public class Message extends ZNRecordDecorator
 
     if (getMsgType().equals(MessageType.STATE_TRANSITION.toString()))
     {
-      boolean isNotValid =
-          isNullOrEmpty(getTgtName()) || isNullOrEmpty(getStateUnitKey())
-              || isNullOrEmpty(getStateUnitGroup()) || isNullOrEmpty(getStateModelDef())
-              || isNullOrEmpty(getToState());
+      boolean isNotValid = isNullOrEmpty(getTgtName())
+          || isNullOrEmpty(getPartitionName())
+          || isNullOrEmpty(getResourceName())
+          || isNullOrEmpty(getStateModelDef()) || isNullOrEmpty(getToState());
       if (getMsgSubType() == null)
       {
         isNotValid = isNotValid || isNullOrEmpty(getFromState());
         return !isNotValid;
-      }
-      else if (getMsgSubType().equals(MessageSubType.RESET.toString()))
+      } else if (getMsgSubType().equals(MessageSubType.RESET.toString()))
       {
         return !isNotValid;
-      }
-      else
+      } else
       {
         return false;
       }

@@ -46,7 +46,7 @@ public class HelixStateMachineEngine implements StateMachineEngine
 
   @Override
   public boolean registerStateModelFactory(String stateModelDef,
-      String resourceGroupName, StateModelFactory<? extends StateModel> factory)
+      String resourceName, StateModelFactory<? extends StateModel> factory)
   {
     if (_manager.isConnected())
     {
@@ -61,17 +61,17 @@ public class HelixStateMachineEngine implements StateMachineEngine
               + " (was " + stateModelDef + ")");
     }
 
-    if (resourceGroupName != null && resourceGroupName.contains("" + SEPARATOR))
+    if (resourceName != null && resourceName.contains("" + SEPARATOR))
     {
-      throw new HelixException("resourceGroupName cannot contain character "
-          + SEPARATOR + " (was " + resourceGroupName + ")");
+      throw new HelixException("resourceName cannot contain character "
+          + SEPARATOR + " (was " + resourceName + ")");
     }
 
     logger.info("Register state model factory for state model " + stateModelDef
-        + " for resource group " + resourceGroupName + " with " + factory);
+        + " for resource  " + resourceName + " with " + factory);
 
     String key = stateModelDef
-        + (resourceGroupName == null ? "" : SEPARATOR + resourceGroupName);
+        + (resourceName == null ? "" : SEPARATOR + resourceName);
     if (_stateModelFactoryMap.containsKey(key))
     {
       logger.warn("StateModelFactory for " + key
@@ -95,9 +95,9 @@ public class HelixStateMachineEngine implements StateMachineEngine
       {
         return;
       }
-      for (String resourceKey : modelMap.keySet())
+      for (String partitionName : modelMap.keySet())
       {
-        StateModel stateModel = modelMap.get(resourceKey);
+        StateModel stateModel = modelMap.get(partitionName);
         stateModel.reset();
         String initialState = _stateModelParser.getInitialState(stateModel
             .getClass());
@@ -121,16 +121,16 @@ public class HelixStateMachineEngine implements StateMachineEngine
           + message.getMsgId() + " type:" + message.getMsgType());
     }
 
-    String stateUnitKey = message.getStateUnitKey();
+    String partitionName = message.getPartitionName();
     String stateModelName = message.getStateModelDef();
-    String resourceGroupName = message.getResourceGroupName();
+    String resourceName = message.getResourceName();
     if (stateModelName == null)
     {
       logger.warn("message does not contain stateModelDef");
       return null;
     }
 
-    String key = stateModelName + SEPARATOR + resourceGroupName;
+    String key = stateModelName + SEPARATOR + resourceName;
     StateModelFactory stateModelFactory = getStateModelFactory(key);
     if (stateModelFactory == null)
     {
@@ -138,16 +138,16 @@ public class HelixStateMachineEngine implements StateMachineEngine
       if (stateModelFactory == null)
       {
         logger.warn("Cannot find stateModelFactory for model " + stateModelName
-            + " resourceGroup " + resourceGroupName);
+            + " resourceName " + resourceName);
         return null;
       }
     }
-    StateModel stateModel = stateModelFactory.getStateModel(stateUnitKey);
+    StateModel stateModel = stateModelFactory.getStateModel(partitionName);
     if (stateModel == null)
     {
       // stateModelFactory.addStateModel(key,stateModelFactory.createNewStateModel(stateUnitKey));
-      stateModelFactory.createAndAddStateModel(stateUnitKey);
-      stateModel = stateModelFactory.getStateModel(stateUnitKey);
+      stateModelFactory.createAndAddStateModel(partitionName);
+      stateModel = stateModelFactory.getStateModel(partitionName);
     }
     return new HelixStateTransitionHandler(stateModel, message, context);
   }
@@ -167,7 +167,7 @@ public class HelixStateMachineEngine implements StateMachineEngine
 
   @Override
   public boolean removeStateModelFactory(String stateModelDef,
-      String resourceGroupName, StateModelFactory<? extends StateModel> factory)
+      String resourceName, StateModelFactory<? extends StateModel> factory)
   {
     throw new UnsupportedOperationException("Remove not yet supported");
   }

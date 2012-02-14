@@ -91,17 +91,17 @@ public class TestDriver
   }
 
   public static void setupClusterWithoutRebalance(String uniqClusterName, String zkAddr,
-      int numResGroups, int numPartitionsPerResGroup, int numInstances, int replica)
+      int numResources, int numPartitionsPerResource, int numInstances, int replica)
       throws Exception
   {
-    setupCluster(uniqClusterName, zkAddr, numResGroups, numPartitionsPerResGroup, numInstances,
+    setupCluster(uniqClusterName, zkAddr, numResources, numPartitionsPerResource, numInstances,
         replica, false);
   }
 
-  public static void setupCluster(String uniqClusterName, String zkAddr, int numResGroups,
-      int numPartitionsPerResGroup, int numInstances, int replica) throws Exception
+  public static void setupCluster(String uniqClusterName, String zkAddr, int numResources,
+      int numPartitionsPerResource, int numInstances, int replica) throws Exception
   {
-    setupCluster(uniqClusterName, zkAddr, numResGroups, numPartitionsPerResGroup, numInstances,
+    setupCluster(uniqClusterName, zkAddr, numResources, numPartitionsPerResource, numInstances,
         replica, true);
   }
 
@@ -109,8 +109,8 @@ public class TestDriver
   // numDb,
   // int numPartitionPerDb, int numNodes, int replica, boolean doRebalance)
   // throws Exception
-  public static void setupCluster(String uniqClusterName, String zkAddr, int numResGroups,
-      int numPartitionsPerResGroup, int numInstances, int replica, boolean doRebalance)
+  public static void setupCluster(String uniqClusterName, String zkAddr, int numResources,
+      int numPartitionsPerResource, int numInstances, int replica, boolean doRebalance)
       throws Exception
   {
     ZkClient zkClient = new ZkClient(zkAddr);
@@ -131,7 +131,7 @@ public class TestDriver
           + " is not unique or test has been run without cleaning up test info map; removing it");
       _testInfoMap.remove(uniqClusterName);
     }
-    TestInfo testInfo = new TestInfo(clusterName, zkClient, numResGroups, numPartitionsPerResGroup,
+    TestInfo testInfo = new TestInfo(clusterName, zkClient, numResources, numPartitionsPerResource,
         numInstances, replica);
     _testInfoMap.put(uniqClusterName, testInfo);
 
@@ -144,10 +144,10 @@ public class TestDriver
       setupTool.addInstanceToCluster(clusterName, PARTICIPANT_PREFIX + ":" + port);
     }
 
-    for (int i = 0; i < numResGroups; i++)
+    for (int i = 0; i < numResources; i++)
     {
       String dbName = TEST_DB_PREFIX + i;
-      setupTool.addResourceGroupToCluster(clusterName, dbName, numPartitionsPerResGroup,
+      setupTool.addResourceToCluster(clusterName, dbName, numPartitionsPerResource,
           STATE_MODEL);
       if (doRebalance)
       {
@@ -355,7 +355,7 @@ public class TestDriver
       // destIS.setId(dbName);
       destIS.setSimpleField(IdealStateProperty.IDEAL_STATE_MODE.toString(),
           IdealStateModeProperty.CUSTOMIZED.toString());
-      destIS.setSimpleField(IdealStateProperty.PARTITIONS.toString(),
+      destIS.setSimpleField(IdealStateProperty.NUM_PARTITIONS.toString(),
           Integer.toString(testInfo._numPartitionsPerDb));
       destIS.setSimpleField(IdealStateProperty.STATE_MODEL_DEF_REF.toString(), STATE_MODEL);
       // String idealStatePath = "/" + clusterName + "/" +
@@ -365,7 +365,7 @@ public class TestDriver
                                               // readData(idealStatePath);
       initIS.setSimpleField(IdealStateProperty.IDEAL_STATE_MODE.toString(),
           IdealStateModeProperty.CUSTOMIZED.toString());
-      initIS.setSimpleField(IdealStateProperty.PARTITIONS.toString(),
+      initIS.setSimpleField(IdealStateProperty.NUM_PARTITIONS.toString(),
           Integer.toString(testInfo._numPartitionsPerDb));
       initIS.setSimpleField(IdealStateProperty.STATE_MODEL_DEF_REF.toString(), STATE_MODEL);
       int totalStep = calcuateNumTransitions(initIS, destIS);
@@ -399,13 +399,13 @@ public class TestDriver
     Map<String, Map<String, String>> map = dest.getMapFields();
     for (Map.Entry<String, Map<String, String>> entry : map.entrySet())
     {
-      String resourceKey = entry.getKey();
+      String partitionName = entry.getKey();
       Map<String, String> hostMap = entry.getValue();
       for (Map.Entry<String, String> hostEntry : hostMap.entrySet())
       {
         String host = hostEntry.getKey();
         String destState = hostEntry.getValue();
-        Map<String, String> curHostMap = cur.getMapField(resourceKey);
+        Map<String, String> curHostMap = cur.getMapField(partitionName);
 
         String curState = null;
         if (curHostMap != null)
@@ -418,13 +418,13 @@ public class TestDriver
         {
           if (destState.equalsIgnoreCase("SLAVE"))
           {
-            pair[0] = new String(resourceKey);
+            pair[0] = new String(partitionName);
             pair[1] = new String(host);
             pair[2] = new String("1"); // number of transitions required
             list.add(pair);
           } else if (destState.equalsIgnoreCase("MASTER"))
           {
-            pair[0] = new String(resourceKey);
+            pair[0] = new String(partitionName);
             pair[1] = new String(host);
             pair[2] = new String("2"); // number of transitions required
             list.add(pair);
@@ -433,7 +433,7 @@ public class TestDriver
         {
           if (curState.equalsIgnoreCase("SLAVE") && destState.equalsIgnoreCase("MASTER"))
           {
-            pair[0] = new String(resourceKey);
+            pair[0] = new String(partitionName);
             pair[1] = new String(host);
             pair[2] = new String("1"); // number of transitions required
             list.add(pair);

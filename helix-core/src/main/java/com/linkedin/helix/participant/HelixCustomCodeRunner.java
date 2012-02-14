@@ -45,7 +45,7 @@ public class HelixCustomCodeRunner
 
   private CustomCodeCallbackHandler _callback;
   private List<ChangeType> _notificationTypes;
-  private String _resGroupName;
+  private String _resourceName;
   private final HelixManager _manager;
   private final String _zkAddr;
   private GenericLeaderStandbyStateModelFactory _stateModelFty;
@@ -92,7 +92,7 @@ public class HelixCustomCodeRunner
 
   public HelixCustomCodeRunner usingLeaderStandbyModel(String id)
   {
-    _resGroupName = PARTICIPANT_LEADER + "_" + id;
+    _resourceName = PARTICIPANT_LEADER + "_" + id;
     return this;
   }
 
@@ -105,17 +105,17 @@ public class HelixCustomCodeRunner
   public void start() throws Exception
   {
     if (_callback == null || _notificationTypes == null
-        || _notificationTypes.size() == 0 || _resGroupName == null)
+        || _notificationTypes.size() == 0 || _resourceName == null)
     {
       throw new IllegalArgumentException(
-          "Require callback | notificationTypes | resourceGroupName");
+          "Require callback | notificationTypes | resourceName");
     }
 
     _stateModelFty = new GenericLeaderStandbyStateModelFactory(_callback,
         _notificationTypes);
 
     StateMachineEngine stateMach = _manager.getStateMachineEngine();
-    stateMach.registerStateModelFactory(LEADER_STANDBY, _resGroupName,
+    stateMach.registerStateModelFactory(LEADER_STANDBY, _resourceName,
         _stateModelFty);
     ZkClient zkClient = null;
     try
@@ -128,25 +128,25 @@ public class HelixCustomCodeRunner
       DataAccessor accessor = new ZKDataAccessor(_manager.getClusterName(),
           zkClient);
 
-      IdealState idealState = new IdealState(_resGroupName);
+      IdealState idealState = new IdealState(_resourceName);
       idealState.setIdealStateMode(IdealStateModeProperty.AUTO.toString());
       idealState.setReplicas(StateModelToken.ANY_LIVEINSTANCE.toString());
       idealState.setNumPartitions(1);
       idealState.setStateModelDefRef(LEADER_STANDBY);
       List<String> prefList = new ArrayList<String>(
           Arrays.asList(StateModelToken.ANY_LIVEINSTANCE.toString()));
-      idealState.getRecord().setListField(_resGroupName + "_0", prefList);
+      idealState.getRecord().setListField(_resourceName + "_0", prefList);
 
       List<String> idealStates = accessor
           .getChildNames(PropertyType.IDEALSTATES);
-      while (idealStates == null || !idealStates.contains(_resGroupName))
+      while (idealStates == null || !idealStates.contains(_resourceName))
       {
         accessor.setProperty(PropertyType.IDEALSTATES, idealState,
-            _resGroupName);
+            _resourceName);
         idealStates = accessor.getChildNames(PropertyType.IDEALSTATES);
       }
 
-      LOG.info("Set idealState for participantLeader:" + _resGroupName
+      LOG.info("Set idealState for participantLeader:" + _resourceName
           + ", idealState:" + idealState);
     } finally
     {
@@ -161,9 +161,9 @@ public class HelixCustomCodeRunner
 
   public void stop()
   {
-    LOG.info("Removing stateModelFactory for " + _resGroupName);
+    LOG.info("Removing stateModelFactory for " + _resourceName);
     _manager.getStateMachineEngine().removeStateModelFactory(LEADER_STANDBY,
-        _resGroupName, _stateModelFty);
+        _resourceName, _stateModelFty);
 
   }
 }

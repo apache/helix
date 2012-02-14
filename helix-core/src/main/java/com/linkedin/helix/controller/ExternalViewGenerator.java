@@ -110,7 +110,7 @@ public class ExternalViewGenerator
         {
           Map<String, String> dbPartitionStates = dbStates.get(stateUnitKey);
           String dbName = dbPartitionStates
-              .get(Message.Attributes.STATE_UNIT_GROUP.toString());
+              .get(Message.Attributes.RESOURCE_NAME.toString());
           ZNRecord partitionStatus = resultRoutingTable.get(dbName);
           if (partitionStatus == null)
           {

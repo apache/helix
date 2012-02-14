@@ -11,8 +11,8 @@ import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.controller.pipeline.AbstractBaseStage;
 import com.linkedin.helix.controller.pipeline.StageException;
 import com.linkedin.helix.model.Message;
-import com.linkedin.helix.model.ResourceGroup;
-import com.linkedin.helix.model.ResourceKey;
+import com.linkedin.helix.model.Resource;
+import com.linkedin.helix.model.Partition;
 
 public class TaskAssignmentStage extends AbstractBaseStage
 {
@@ -22,26 +22,26 @@ public class TaskAssignmentStage extends AbstractBaseStage
   public void process(ClusterEvent event) throws Exception
   {
     HelixManager manager = event.getAttribute("helixmanager");
-    Map<String, ResourceGroup> resourceGroupMap = event
-        .getAttribute(AttributeName.RESOURCE_GROUPS.toString());
+    Map<String, Resource> resourceMap = event
+        .getAttribute(AttributeName.RESOURCES.toString());
     MessageSelectionStageOutput messageSelectionStageOutput = event
         .getAttribute(AttributeName.MESSAGES_SELECTED.toString());
 
-    if (manager == null || resourceGroupMap == null
+    if (manager == null || resourceMap == null
         || messageSelectionStageOutput == null)
     {
       throw new StageException("Missing attributes in event:" + event
-          + ". Requires HelixManager|RESOURCE_GROUPS|MESSAGES_SELECTED");
+          + ". Requires HelixManager|RESOURCES|MESSAGES_SELECTED");
     }
 
     DataAccessor dataAccessor = manager.getDataAccessor();
-    for (String resourceGroupName : resourceGroupMap.keySet())
+    for (String resourceName : resourceMap.keySet())
     {
-      ResourceGroup resourceGroup = resourceGroupMap.get(resourceGroupName);
-      for (ResourceKey resource : resourceGroup.getResourceKeys())
+      Resource resource = resourceMap.get(resourceName);
+      for (Partition partition : resource.getPartitions())
       {
         List<Message> messages = messageSelectionStageOutput.getMessages(
-            resourceGroupName, resource);
+            resourceName, partition);
         sendMessages(dataAccessor, messages);
       }
     }
@@ -58,7 +58,7 @@ public class TaskAssignmentStage extends AbstractBaseStage
     for (Message message : messages)
     {
       logger.info("Sending message to " + message.getTgtName()
-          + " transition " + message.getStateUnitKey() + " from:"
+          + " transition " + message.getPartitionName() + " from:"
           + message.getFromState() + " to:" + message.getToState());
       dataAccessor.setProperty(PropertyType.MESSAGES,
                                message,

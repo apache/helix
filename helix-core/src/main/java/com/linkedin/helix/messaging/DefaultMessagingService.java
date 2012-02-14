@@ -165,8 +165,8 @@ public class DefaultMessagingService implements ClusterMessagingService
           }
           newMessage.setSrcName(srcInstanceName);
           newMessage.setTgtName(tgtInstanceName);
-          newMessage.setStateUnitGroup(map.get("resourceGroup"));
-          newMessage.setStateUnitKey(map.get("resourceKey"));
+          newMessage.setResourceName(map.get("resourceName"));
+          newMessage.setPartitionName(map.get("partitionName"));
           if (recipientCriteria.isSessionSpecific())
           {
             newMessage.setTgtSessionId(sessionIdMap.get(tgtInstanceName));

@@ -190,34 +190,34 @@ public class TestDefaultMessagingService
 
     recipientCriteria.setSelfExcluded(false);
     recipientCriteria.setInstanceName("%");
-    recipientCriteria.setResourceGroup("DB");
-    recipientCriteria.setResourceKey("%");
+    recipientCriteria.setResource("DB");
+    recipientCriteria.setPartition("%");
     AssertJUnit.assertEquals(200, svc.send(recipientCriteria, template));
 
     recipientCriteria.setSelfExcluded(true);
     recipientCriteria.setInstanceName("%");
-    recipientCriteria.setResourceGroup("DB");
-    recipientCriteria.setResourceKey("%");
+    recipientCriteria.setResource("DB");
+    recipientCriteria.setPartition("%");
     AssertJUnit.assertEquals(159, svc.send(recipientCriteria, template));
 
     recipientCriteria.setSelfExcluded(true);
     recipientCriteria.setInstanceName("%");
-    recipientCriteria.setResourceGroup("DB");
-    recipientCriteria.setResourceKey("%");
+    recipientCriteria.setResource("DB");
+    recipientCriteria.setPartition("%");
     AssertJUnit.assertEquals(159, svc.send(recipientCriteria, template));
 
     recipientCriteria.setSelfExcluded(true);
     recipientCriteria.setInstanceName("localhost_12920");
-    recipientCriteria.setResourceGroup("DB");
-    recipientCriteria.setResourceKey("%");
+    recipientCriteria.setResource("DB");
+    recipientCriteria.setPartition("%");
     AssertJUnit.assertEquals(39, svc.send(recipientCriteria, template));
 
 
     recipientCriteria.setSelfExcluded(true);
     recipientCriteria.setInstanceName("localhost_12920");
     recipientCriteria.setRecipientInstanceType(InstanceType.CONTROLLER);
-    recipientCriteria.setResourceGroup("DB");
-    recipientCriteria.setResourceKey("%");
+    recipientCriteria.setResource("DB");
+    recipientCriteria.setPartition("%");
     AssertJUnit.assertEquals(1, svc.send(recipientCriteria, template));
   }
 }

@@ -10,14 +10,14 @@ public interface StateMachineEngine extends MessageHandlerFactory
                                            StateModelFactory<? extends StateModel> factory);
   
   public boolean registerStateModelFactory(String stateModelDef, 
-                                           String resourceGroupName, 
+                                           String resourceName, 
                                            StateModelFactory<? extends StateModel> factory);
   
   public boolean removeStateModelFactory(String stateModelDef, 
       StateModelFactory<? extends StateModel> factory);
   
   public boolean removeStateModelFactory(String stateModelDef, 
-      String resourceGroupName, 
+      String resourceName, 
       StateModelFactory<? extends StateModel> factory);
   
 }

@@ -66,12 +66,12 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBase
         String destName = _message.getTgtName();
         synchronized(_results)
         {
-          if(!_results.containsKey(_message.getResourceKey()))
+          if(!_results.containsKey(_message.getPartitionName()))
           {
-            _results.put(_message.getResourceKey(), new ConcurrentSkipListSet<String>());
+            _results.put(_message.getPartitionName(), new ConcurrentSkipListSet<String>());
           }
         }
-        _results.get(_message.getResourceKey()).add(destName);
+        _results.get(_message.getPartitionName()).add(destName);
         
         return result;
       }
@@ -114,8 +114,8 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBase
     cr.setInstanceName("localhost_%");
     cr.setRecipientInstanceType(InstanceType.PARTICIPANT);
     cr.setSessionSpecific(false);
-    cr.setResourceGroup("%");
-    cr.setResourceKey("%");
+    cr.setResource("%");
+    cr.setPartition("%");
     
     ObjectMapper mapper = new ObjectMapper();
     SerializationConfig serializationConfig = mapper.getSerializationConfig();

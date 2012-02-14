@@ -16,12 +16,12 @@ import com.linkedin.helix.controller.pipeline.StageException;
 import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.model.IdealState.IdealStateModeProperty;
 import com.linkedin.helix.model.LiveInstance;
-import com.linkedin.helix.model.ResourceGroup;
-import com.linkedin.helix.model.ResourceKey;
+import com.linkedin.helix.model.Resource;
+import com.linkedin.helix.model.Partition;
 import com.linkedin.helix.model.StateModelDefinition;
 
 /**
- * For resourceKey compute best possible (instance,state) pair based on
+ * For partition compute best possible (instance,state) pair based on
  * IdealState,StateModel,LiveInstance
  *
  * @author kgopalak
@@ -36,24 +36,24 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
   {
     CurrentStateOutput currentStateOutput =
         event.getAttribute(AttributeName.CURRENT_STATE.toString());
-    Map<String, ResourceGroup> resourceGroupMap =
-        event.getAttribute(AttributeName.RESOURCE_GROUPS.toString());
+    Map<String, Resource> resourceMap =
+        event.getAttribute(AttributeName.RESOURCES.toString());
     ClusterDataCache cache = event.getAttribute("ClusterDataCache");
 
-    if (currentStateOutput == null || resourceGroupMap == null || cache == null)
+    if (currentStateOutput == null || resourceMap == null || cache == null)
     {
       throw new StageException("Missing attributes in event:" + event
-          + ". Requires CURRENT_STATE|RESOURCE_GROUPS|DataCache");
+          + ". Requires CURRENT_STATE|RESOURCES|DataCache");
     }
 
 
     BestPossibleStateOutput bestPossibleStateOutput =
-        compute(cache, resourceGroupMap, currentStateOutput);
+        compute(cache, resourceMap, currentStateOutput);
     event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.toString(), bestPossibleStateOutput);
   }
 
   private BestPossibleStateOutput compute(ClusterDataCache cache,
-		Map<String, ResourceGroup> resourceGroupMap,
+		Map<String, Resource> resourceMap,
 		CurrentStateOutput currentStateOutput)
   {
     // for each ideal state
@@ -64,23 +64,23 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
 
     BestPossibleStateOutput output = new BestPossibleStateOutput();
 
-    for (String resourceGroupName : resourceGroupMap.keySet())
+    for (String resourceName : resourceMap.keySet())
     {
-      logger.debug("Processing resourceGroup:" + resourceGroupName);
+      logger.debug("Processing resource:" + resourceName);
 
-      ResourceGroup resourceGroup = resourceGroupMap.get(resourceGroupName);
+      Resource resource = resourceMap.get(resourceName);
       // Ideal state may be gone. In that case we need to get the state model name
       // from the current state
-      IdealState idealState = cache.getIdealState(resourceGroupName);
+      IdealState idealState = cache.getIdealState(resourceName);
 
       String stateModelDefName;
 
       if (idealState == null)
       {
         // if ideal state is deleted, use an empty one
-        logger.info("resourceGroup:" + resourceGroupName + " does not exist anymore");
-        stateModelDefName = currentStateOutput.getResourceGroupStateModelDef(resourceGroupName);
-        idealState = new IdealState(resourceGroupName);
+        logger.info("resource:" + resourceName + " does not exist anymore");
+        stateModelDefName = currentStateOutput.getResourceStateModelDef(resourceName);
+        idealState = new IdealState(resourceName);
       } else
       {
     	  stateModelDefName = idealState.getStateModelDefRef();
@@ -88,18 +88,18 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
 
       StateModelDefinition stateModelDef = cache.getStateModelDef(stateModelDefName);
 
-      for (ResourceKey resource : resourceGroup.getResourceKeys())
+      for (Partition partition : resource.getPartitions())
       {
         Map<String, String> currentStateMap =
-            currentStateOutput.getCurrentStateMap(resourceGroupName, resource);
+            currentStateOutput.getCurrentStateMap(resourceName, partition);
 
         Map<String, String> bestStateForResource;
         Set<String> disabledInstancesForResource
-          = cache.getDisabledInstancesForPartition(resource.toString());
+          = cache.getDisabledInstancesForPartition(partition.toString());
 
         if (idealState.getIdealStateMode() == IdealStateModeProperty.CUSTOMIZED)
         {
-          Map<String, String> idealStateMap = idealState.getInstanceStateMap(resource.getResourceKeyName());
+          Map<String, String> idealStateMap = idealState.getInstanceStateMap(partition.getPartitionName());
           bestStateForResource = computeCustomizedBestStateForResource(cache, stateModelDef,
                                                                        idealStateMap,
                                                                        currentStateMap,
@@ -108,7 +108,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
         else
         {
           List<String> instancePreferenceList
-            = getPreferenceList(cache, resource, idealState, stateModelDef);
+            = getPreferenceList(cache, partition, idealState, stateModelDef);
           bestStateForResource =
               computeAutoBestStateForResource(cache, stateModelDef,
                                               instancePreferenceList,
@@ -116,7 +116,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
                                               disabledInstancesForResource);
         }
 
-        output.setState(resourceGroupName, resource, bestStateForResource);
+        output.setState(resourceName, partition, bestStateForResource);
       }
     }
     return output;
@@ -283,12 +283,12 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
   }
 
 
-  private List<String> getPreferenceList(ClusterDataCache cache, ResourceKey resource,
+  private List<String> getPreferenceList(ClusterDataCache cache, Partition resource,
                                          IdealState idealState,
                                          StateModelDefinition stateModelDef)
   {
     List<String> listField =
-        idealState.getPreferenceList(resource.getResourceKeyName(), stateModelDef);
+        idealState.getPreferenceList(resource.getPartitionName(), stateModelDef);
 
     if (listField != null && listField.size() == 1
         && StateModelToken.ANY_LIVEINSTANCE.toString().equals(listField.get(0)))

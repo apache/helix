@@ -47,15 +47,15 @@ public class TestClusterStatusMonitor
           _instances, 80, 2, _db2, "MASTER", "SLAVE");
 
     }
-    public ZNRecord getProperty(PropertyType type, String resourceGroup)
+    public ZNRecord getProperty(PropertyType type, String resource)
     {
       if(type == PropertyType.IDEALSTATES || type == PropertyType.EXTERNALVIEW)
       {
-        if(resourceGroup.equals(_db))
+        if(resource.equals(_db))
         {
           return _externalView;
         }
-        else if(resourceGroup.equals(_db2))
+        else if(resource.equals(_db2))
         {
           return _externalView2;
         }

@@ -10,7 +10,7 @@ import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.ZNRecordDecorator;
 
 /**
- * Current states for resources in a resource group
+ * Current states of partitions in a resource 
  */
 public class CurrentState extends ZNRecordDecorator
 {
@@ -21,12 +21,12 @@ public class CurrentState extends ZNRecordDecorator
     SESSION_ID,
     CURRENT_STATE,
     STATE_MODEL_DEF,
-    RESOURCE_GROUP
+    RESOURCE
   }
 
-  public CurrentState(String id)
+  public CurrentState(String resourceName)
   {
-    super(id);
+    super(resourceName);
   }
 
   public CurrentState(ZNRecord record)
@@ -34,21 +34,21 @@ public class CurrentState extends ZNRecordDecorator
     super(record);
   }
 
-  public String getResourceGroupName()
+  public String getResourceName()
   {
     return _record.getId();
   }
 
-  public Map<String, String> getResourceKeyStateMap()
+  public Map<String, String> getPartitionStateMap()
   {
     Map<String, String> map = new HashMap<String, String>();
     Map<String, Map<String, String>> mapFields = _record.getMapFields();
-    for (String resourceKey : mapFields.keySet())
+    for (String partitionName : mapFields.keySet())
     {
-      Map<String, String> tempMap = mapFields.get(resourceKey);
+      Map<String, String> tempMap = mapFields.get(partitionName);
       if (tempMap != null)
       {
-        map.put(resourceKey, tempMap.get(CurrentStateProperty.CURRENT_STATE.toString()));
+        map.put(partitionName, tempMap.get(CurrentStateProperty.CURRENT_STATE.toString()));
       }
     }
     return map;
@@ -63,10 +63,10 @@ public class CurrentState extends ZNRecordDecorator
     _record.setSimpleField(CurrentStateProperty.SESSION_ID.toString(), sessionId);
   }
 
-  public String getState(String resourceKeyStr)
+  public String getState(String partitionName)
   {
     Map<String, Map<String, String>> mapFields = _record.getMapFields();
-    Map<String, String> mapField = mapFields.get(resourceKeyStr);
+    Map<String, String> mapField = mapFields.get(partitionName);
     if (mapField != null)
     {
       return mapField.get(CurrentStateProperty.CURRENT_STATE.toString());
@@ -84,63 +84,27 @@ public class CurrentState extends ZNRecordDecorator
     return _record.getSimpleField(CurrentStateProperty.STATE_MODEL_DEF.toString());
   }
 
-  public void setState(String resourceKeyStr, String state)
+  public void setState(String partitionName, String state)
   {
     Map<String, Map<String, String>> mapFields = _record.getMapFields();
-    if (mapFields.get(resourceKeyStr) == null)
+    if (mapFields.get(partitionName) == null)
     {
-      mapFields.put(resourceKeyStr, new TreeMap<String, String>());
+      mapFields.put(partitionName, new TreeMap<String, String>());
     }
-    mapFields.get(resourceKeyStr).put(CurrentStateProperty.CURRENT_STATE.toString(), state);
+    mapFields.get(partitionName).put(CurrentStateProperty.CURRENT_STATE.toString(), state);
   }
-
-  // public void resetState(String resourceKey)
-  // {
-  // Map<String, String> mapField = _record.getMapField(resourceKey);
-  // if (mapField != null)
-  // {
-  // String state = mapField.get(CurrentStateProperty.CURRENT_STATE.toString());
-  // if (state.equals("ERROR"))
-  // {
-  // _record.getMapFields().remove(resourceKey);
-  // }
-  // else
-  // {
-  // LOG.error("Skip resetting resource state " + resourceKey
-  // + "; because it's current state is not ERROR ( was " + state + ")");
-  // }
-  // }
-  // else
-  // {
-  // LOG.error("Skip resetting resource state " + resourceKey
-  // + "; because it's current state does NOT exist");
-  // }
-  //
-  // }
-
-
-  public void setResourceGroup(String resourceKey, String resourceGroup)
-  {
-    Map<String, Map<String, String>> mapFields = _record.getMapFields();
-    if (mapFields.get(resourceKey) == null)
-    {
-      mapFields.put(resourceKey, new TreeMap<String, String>());
-    }
-    mapFields.get(resourceKey).put(CurrentStateProperty.RESOURCE_GROUP.toString(), resourceGroup);
-
-  }
-
+  
   @Override
   public boolean isValid()
   {
     if(getStateModelDefRef() == null)
     {
-      LOG.error("Current state does not contain state model ref. id:" + getResourceGroupName());
+      LOG.error("Current state does not contain state model ref. id:" + getResourceName());
       return false;
     }
     if(getSessionId() == null)
     {
-      LOG.error("CurrentState does not contain session id, id : " + getResourceGroupName());
+      LOG.error("CurrentState does not contain session id, id : " + getResourceName());
       return false;
     }
     return true;

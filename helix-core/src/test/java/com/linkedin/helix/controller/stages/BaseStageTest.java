@@ -21,7 +21,7 @@ import com.linkedin.helix.controller.pipeline.StageContext;
 import com.linkedin.helix.controller.stages.ClusterEvent;
 import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.model.LiveInstance;
-import com.linkedin.helix.model.ResourceGroup;
+import com.linkedin.helix.model.Resource;
 import com.linkedin.helix.model.IdealState.IdealStateModeProperty;
 import com.linkedin.helix.tools.StateModelConfigGenerator;
 
@@ -56,7 +56,7 @@ public class BaseStageTest
     event = new ClusterEvent("sampleEvent");
   }
 
-  protected List<IdealState> setupIdealState(int nodes, String[] resourceGroups,
+  protected List<IdealState> setupIdealState(int nodes, String[] resources,
                                              int partitions, int replicas)
   {
     List<IdealState> idealStates = new ArrayList<IdealState>();
@@ -66,10 +66,10 @@ public class BaseStageTest
       instances.add("localhost_" + i);
     }
 
-    for (int i = 0; i < resourceGroups.length; i++)
+    for (int i = 0; i < resources.length; i++)
     {
-      String resourceGroupName = resourceGroups[i];
-      ZNRecord record = new ZNRecord(resourceGroupName);
+      String resourceName = resources[i];
+      ZNRecord record = new ZNRecord(resourceName);
       for (int p = 0; p < partitions; p++)
       {
         List<String> value = new ArrayList<String>();
@@ -77,7 +77,7 @@ public class BaseStageTest
         {
           value.add("localhost_" + (p + r + 1) % nodes);
         }
-        record.setListField(resourceGroupName + "_" + p, value);
+        record.setListField(resourceName + "_" + p, value);
       }
       IdealState idealState = new IdealState(record);
       idealState.setStateModelDefRef("MasterSlave");
@@ -88,7 +88,7 @@ public class BaseStageTest
 //      System.out.println(idealState);
       accessor.setProperty(PropertyType.IDEALSTATES,
                            idealState,
-                           resourceGroupName);
+                           resourceName);
     }
     return idealStates;
   }
@@ -133,18 +133,18 @@ public class BaseStageTest
     accessor.setProperty(PropertyType.STATEMODELDEFS, onlineOffline, onlineOffline.getId());
   }
 
-  protected Map<String, ResourceGroup> getResourceGroupMap()
+  protected Map<String, Resource> getResourceMap()
   {
-    Map<String, ResourceGroup> resourceGroupMap = new HashMap<String, ResourceGroup>();
-    ResourceGroup testResourceGroup = new ResourceGroup("testResourceGroupName");
-    testResourceGroup.setStateModelDefRef("MasterSlave");
-    testResourceGroup.addResource("testResourceGroupName_0");
-    testResourceGroup.addResource("testResourceGroupName_1");
-    testResourceGroup.addResource("testResourceGroupName_2");
-    testResourceGroup.addResource("testResourceGroupName_3");
-    testResourceGroup.addResource("testResourceGroupName_4");
-    resourceGroupMap.put("testResourceGroupName", testResourceGroup);
+    Map<String, Resource> resourceMap = new HashMap<String, Resource>();
+    Resource testResource = new Resource("testResourceName");
+    testResource.setStateModelDefRef("MasterSlave");
+    testResource.addPartition("testResourceName_0");
+    testResource.addPartition("testResourceName_1");
+    testResource.addPartition("testResourceName_2");
+    testResource.addPartition("testResourceName_3");
+    testResource.addPartition("testResourceName_4");
+    resourceMap.put("testResourceName", testResource);
 
-    return resourceGroupMap;
+    return resourceMap;
   }
 }

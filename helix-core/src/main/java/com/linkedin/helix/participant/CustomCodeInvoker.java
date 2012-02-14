@@ -45,10 +45,10 @@ public class CustomCodeInvoker implements LiveInstanceChangeListener, ConfigChan
         String instance = manager.getInstanceName();
         String sessionId = manager.getSessionId();
         
-        // get resource group name from partition key: "PARTICIPANT_LEADER_XXX_0"
-        String resGroupName = _partitionKey.substring(0, _partitionKey.lastIndexOf('_'));
+        // get resource name from partition key: "PARTICIPANT_LEADER_XXX_0"
+        String resourceName = _partitionKey.substring(0, _partitionKey.lastIndexOf('_'));
         CurrentState curState = accessor.getProperty(CurrentState.class,
-            PropertyType.CURRENTSTATES, instance, sessionId, resGroupName);
+            PropertyType.CURRENTSTATES, instance, sessionId, resourceName);
         if (curState == null)
         {
           return;

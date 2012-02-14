@@ -88,7 +88,7 @@ public class TestHelixCustomCodeRunner extends ZkIntegrationTestBase
                             ZK_ADDR,
                             _startPort,
                             "localhost",  // participant name prefix
-                            "TestDB",     // resource group name prefix
+                            "TestDB",     // resource name prefix
                             1,  // resourceNb
                             5,  // partitionNb
                             _nodeNb,  // nodesNb

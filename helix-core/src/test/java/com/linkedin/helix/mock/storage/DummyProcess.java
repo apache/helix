@@ -206,7 +206,7 @@ public class DummyProcess
     public void onBecomeSlaveFromOffline(Message message,
         NotificationContext context)
     {
-      String db = message.getStateUnitKey();
+      String db = message.getPartitionName();
       String instanceName = context.getManager().getInstanceName();
       DummyProcess.sleep(_transDelay);
 
@@ -263,7 +263,7 @@ public class DummyProcess
     public void onBecomeOnlineFromOffline(Message message,
         NotificationContext context)
     {
-      String db = message.getStateUnitKey();
+      String db = message.getPartitionName();
       String instanceName = context.getManager().getInstanceName();
       DummyProcess.sleep(_transDelay);
 
@@ -300,7 +300,7 @@ public class DummyProcess
     public void onBecomeLeaderFromStandby(Message message,
         NotificationContext context)
     {
-      String db = message.getStateUnitKey();
+      String db = message.getPartitionName();
       String instanceName = context.getManager().getInstanceName();
       DummyProcess.sleep(_transDelay);
       logger.info("DummyLeaderStandbyStateModel.onBecomeLeaderFromStandby(), instance:" + instanceName

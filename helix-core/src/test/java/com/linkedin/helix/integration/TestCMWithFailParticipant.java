@@ -25,16 +25,16 @@ public class TestCMWithFailParticipant extends ZkIntegrationTestBase
   @Test()
   public void testCMWithFailParticipant() throws Exception
   {
-    int numResGroup = 1;
-    int numPartitionsPerResGroup = 10;
+    int numResources = 1;
+    int numPartitionsPerResource = 10;
     int numInstance = 5;
     int replica = 3;
 
-    String uniqClusterName = "TestFail_" + "rg" + numResGroup + "_p" + numPartitionsPerResGroup
+    String uniqClusterName = "TestFail_" + "rg" + numResources + "_p" + numPartitionsPerResource
         + "_n" + numInstance + "_r" + replica;
     System.out.println("START " + uniqClusterName + " at " + new Date(System.currentTimeMillis()));
 
-    TestDriver.setupCluster(uniqClusterName, ZK_ADDR, numResGroup, numPartitionsPerResGroup,
+    TestDriver.setupCluster(uniqClusterName, ZK_ADDR, numResources, numPartitionsPerResource,
         numInstance, replica);
 
     for (int i = 0; i < numInstance; i++)

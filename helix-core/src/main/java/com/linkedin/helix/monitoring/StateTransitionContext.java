@@ -2,7 +2,7 @@ package com.linkedin.helix.monitoring;
 
 public class StateTransitionContext
 {
-  private final String _stateUnitGroup;
+  private final String _resourceName;
   private final String _clusterName;
   private final String _instanceName;
   private final String _transition;
@@ -10,12 +10,12 @@ public class StateTransitionContext
   public StateTransitionContext(
       String clusterName, 
       String instanceName,
-      String stateUnitGroup, 
+      String resourceName, 
       String transition
       )
   {
     _clusterName = clusterName;
-    _stateUnitGroup = stateUnitGroup; 
+    _resourceName = resourceName; 
     _transition = transition;
     _instanceName = instanceName;
   }
@@ -30,9 +30,9 @@ public class StateTransitionContext
     return _instanceName;
   }
   
-  public String getStateUnitGroup()
+  public String getResourceName()
   {
-    return _stateUnitGroup;
+    return _resourceName;
   }
   
   public String getTransition()
@@ -52,7 +52,7 @@ public class StateTransitionContext
     return
       _clusterName.equals(otherCxt.getClusterName()) &&
       // _instanceName.equals(otherCxt.getInstanceName()) &&
-      _stateUnitGroup.equals(otherCxt.getStateUnitGroup()) &&
+      _resourceName.equals(otherCxt.getResourceName()) &&
       _transition.equals(otherCxt.getTransition()) ;
   }
     
@@ -68,7 +68,7 @@ public class StateTransitionContext
   {
      return "Cluster=" + _clusterName + "," + 
            // "instance=" + _instanceName + "," +
-           "ResourceGroup=" + _stateUnitGroup +"," + 
+           "Resource=" + _resourceName +"," + 
            "Transition=" + _transition;    
   }
   

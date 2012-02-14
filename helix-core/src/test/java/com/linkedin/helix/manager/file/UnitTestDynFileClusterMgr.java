@@ -153,7 +153,7 @@ public class UnitTestDynFileClusterMgr
     exceptionCaught = false;
     try
     {
-      tool.getResourceGroupsInCluster(clusterName);
+      tool.getResourcesInCluster(clusterName);
     } catch (UnsupportedOperationException e)
     {
       exceptionCaught = true;
@@ -163,7 +163,7 @@ public class UnitTestDynFileClusterMgr
     exceptionCaught = false;
     try
     {
-      tool.addResourceGroup(clusterName, "resourceGroup", 10, "MasterSlave",
+      tool.addResource(clusterName, "resource", 10, "MasterSlave",
           IdealStateModeProperty.AUTO.toString());
     } catch (UnsupportedOperationException e)
     {
@@ -204,7 +204,7 @@ public class UnitTestDynFileClusterMgr
     exceptionCaught = false;
     try
     {
-      tool.getResourceGroupExternalView(clusterName, "resourceGroup");
+      tool.getResourceExternalView(clusterName, "resource");
     } catch (UnsupportedOperationException e)
     {
       exceptionCaught = true;
@@ -214,7 +214,7 @@ public class UnitTestDynFileClusterMgr
     exceptionCaught = false;
     try
     {
-      tool.enableInstance(clusterName, "resourceGroup", false);
+      tool.enableInstance(clusterName, "resource", false);
     } catch (UnsupportedOperationException e)
     {
       exceptionCaught = true;
@@ -222,7 +222,7 @@ public class UnitTestDynFileClusterMgr
     AssertJUnit.assertTrue(exceptionCaught);
 
     tool.addCluster(clusterName, true);
-    tool.addResourceGroup(clusterName, "resourceGroup", 10, "MasterSlave");
+    tool.addResource(clusterName, "resource", 10, "MasterSlave");
     InstanceConfig config = new InstanceConfig("nodeConfig");
     tool.addInstance(clusterName, config);
     List<String> instances = tool.getInstancesInCluster(clusterName);
@@ -230,11 +230,11 @@ public class UnitTestDynFileClusterMgr
     tool.dropInstance(clusterName, config);
 
     IdealState idealState = new IdealState("idealState");
-    tool.setResourceGroupIdealState(clusterName, "resourceGroup", idealState);
-    idealState = tool.getResourceGroupIdealState(clusterName, "resourceGroup");
+    tool.setResourceIdealState(clusterName, "resource", idealState);
+    idealState = tool.getResourceIdealState(clusterName, "resource");
     AssertJUnit.assertEquals(idealState.getId(), "idealState");
 
-    tool.dropResourceGroup(clusterName, "resourceGroup");
+    tool.dropResource(clusterName, "resource");
     _store.stop();
   }
 

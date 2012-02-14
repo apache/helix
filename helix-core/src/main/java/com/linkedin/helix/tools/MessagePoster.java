@@ -32,7 +32,7 @@ public class MessagePoster
     message.setMsgState("new");
     message.setFromState("Slave");
     message.setToState("Master");
-    message.setStateUnitKey("EspressoDB.partition-0." + instanceName);
+    message.setPartitionName("EspressoDB.partition-0." + instanceName);
     String path = HelixUtil.getMessagePath(clusterName, instanceName) + "/"
         + message.getId();
     client.delete(path);

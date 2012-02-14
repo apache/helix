@@ -218,19 +218,18 @@ public class TestClusterSetup extends ZkUnitTestBase
   }
 
   @Test()
-  public void testAddResourceGroup() throws Exception
+  public void testAddResource() throws Exception
   {
-    _clusterSetup.addResourceGroupToCluster(CLUSTER_NAME, TEST_DB, 16, STATE_MODEL);
+    _clusterSetup.addResourceToCluster(CLUSTER_NAME, TEST_DB, 16, STATE_MODEL);
     verifyResource(_zkClient, CLUSTER_NAME, TEST_DB, true);
   }
 
   @Test()
-  public void testRemoveResourceGroup() throws Exception
+  public void testRemoveResource() throws Exception
   {
     _clusterSetup.setupTestCluster(CLUSTER_NAME);
-    // testAddResourceGroup();
     verifyResource(_zkClient, CLUSTER_NAME, TEST_DB, true);
-    _clusterSetup.dropResourceGroupToCluster(CLUSTER_NAME, TEST_DB);
+    _clusterSetup.dropResourceFromCluster(CLUSTER_NAME, TEST_DB);
     verifyResource(_zkClient, CLUSTER_NAME, TEST_DB, false);
   }
 
@@ -239,7 +238,7 @@ public class TestClusterSetup extends ZkUnitTestBase
   {
     _clusterSetup.setupTestCluster(CLUSTER_NAME);
     // testAddInstancesToCluster();
-    testAddResourceGroup();
+    testAddResource();
     _clusterSetup.rebalanceStorageCluster(CLUSTER_NAME, TEST_DB, 4);
     verifyReplication(_zkClient, CLUSTER_NAME, TEST_DB, 4);
   }
@@ -276,7 +275,7 @@ public class TestClusterSetup extends ZkUnitTestBase
                    instanceColonToUnderscoreFormat(TEST_NODE),
                    true);
     ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR
-        + " --addResourceGroup " + CLUSTER_NAME + " " + TEST_DB + " 4 " + STATE_MODEL));
+        + " --addResource " + CLUSTER_NAME + " " + TEST_DB + " 4 " + STATE_MODEL));
     verifyResource(_zkClient, CLUSTER_NAME, TEST_DB, true);
     // ClusterSetup
     // .processCommandLineArgs(createArgs("-zkSvr "+ZK_ADDR+" --addNode node-1"));
@@ -300,9 +299,9 @@ public class TestClusterSetup extends ZkUnitTestBase
      * .processCommandLineArgs
      * (createArgs("-zkSvr "+ZK_ADDR+" --listInstances "+CLUSTER_NAME)); ClusterSetup
      * .processCommandLineArgs
-     * (createArgs("-zkSvr "+ZK_ADDR+" --listResourceGroupInfo "+CLUSTER_NAME
+     * (createArgs("-zkSvr "+ZK_ADDR+" --listResourceInfo "+CLUSTER_NAME
      * +" "+TEST_DB)); ClusterSetup
-     * .processCommandLineArgs(createArgs("-zkSvr "+ZK_ADDR+" --listResourceGroups "
+     * .processCommandLineArgs(createArgs("-zkSvr "+ZK_ADDR+" --listResources "
      * +CLUSTER_NAME)); ClusterSetup
      * .processCommandLineArgs(createArgs("-zkSvr "+ZK_ADDR+" --listStateModel "
      * +CLUSTER_NAME+" "+STATE_MODEL)); ClusterSetup

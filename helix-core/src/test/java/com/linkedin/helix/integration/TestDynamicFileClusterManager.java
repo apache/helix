@@ -18,7 +18,7 @@ public class TestDynamicFileClusterManager extends FileCMTestBase
     System.out.println("RUN testDynamicFileClusterManager() at " + new Date(System.currentTimeMillis()));
 
     // add a new db
-    _mgmtTool.addResourceGroup(CLUSTER_NAME, "MyDB", 6, STATE_MODEL);
+    _mgmtTool.addResource(CLUSTER_NAME, "MyDB", 6, STATE_MODEL);
     rebalanceStorageCluster(CLUSTER_NAME, "MyDB", 0);
 
     verifyCluster();
@@ -30,7 +30,7 @@ public class TestDynamicFileClusterManager extends FileCMTestBase
                                  _fileStore);
 
     // drop db
-    _mgmtTool.dropResourceGroup(CLUSTER_NAME, "MyDB");
+    _mgmtTool.dropResource(CLUSTER_NAME, "MyDB");
 
     TestHelper.verifyWithTimeout("verifyEmptyCurStateFile",
                                  CLUSTER_NAME,

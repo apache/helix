@@ -11,7 +11,7 @@ import com.linkedin.helix.controller.pipeline.StageException;
 import com.linkedin.helix.model.CurrentState;
 import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.model.LiveInstance;
-import com.linkedin.helix.model.ResourceGroup;
+import com.linkedin.helix.model.Resource;
 
 /**
  * This stage computes all the resources in a cluster. The resources are computed from
@@ -37,26 +37,26 @@ public class ResourceComputationStage extends AbstractBaseStage
 
     Map<String, IdealState> idealStates = cache.getIdealStates();
 
-    Map<String, ResourceGroup> resourceGroupMap =
-        new LinkedHashMap<String, ResourceGroup>();
+    Map<String, Resource> resourceMap =
+        new LinkedHashMap<String, Resource>();
 
     if (idealStates != null && idealStates.size() > 0)
     {
       for (IdealState idealState : idealStates.values())
       {
-        Set<String> resourceSet = idealState.getResourceKeySet();
-        String resourceGroupName = idealState.getResourceGroup();
+        Set<String> partitionSet = idealState.getPartitionSet();
+        String resourceName = idealState.getResourceName();
 
-        for (String resourceKey : resourceSet)
+        for (String partition : partitionSet)
         {
-          addResource(resourceKey, resourceGroupName, resourceGroupMap);
-          ResourceGroup resourceGroup = resourceGroupMap.get(resourceGroupName);
-          resourceGroup.setStateModelDefRef(idealState.getStateModelDefRef());
+          addPartition(partition, resourceName, resourceMap);
+          Resource resource = resourceMap.get(resourceName);
+          resource.setStateModelDefRef(idealState.getStateModelDefRef());
         }
       }
     }
 
-    // It's important to get resourceKeys from CurrentState as well since the
+    // It's important to get partitions from CurrentState as well since the
     // idealState might be removed.
     Map<String, LiveInstance> availableInstances = cache.getLiveInstances();
 
@@ -75,59 +75,59 @@ public class ResourceComputationStage extends AbstractBaseStage
         }
         for (CurrentState currentState : currentStateMap.values())
         {
-          String resourceGroupName = currentState.getResourceGroupName();
-          Map<String, String> resourceStateMap = currentState.getResourceKeyStateMap();
-          addResourceGroup(resourceGroupName, resourceGroupMap);
+          String resourceName = currentState.getResourceName();
+          Map<String, String> resourceStateMap = currentState.getPartitionStateMap();
+          addResource(resourceName, resourceMap);
           
-          for (String resourceKey : resourceStateMap.keySet())
+          for (String partition : resourceStateMap.keySet())
           {
-            addResource(resourceKey, resourceGroupName, resourceGroupMap);
-            ResourceGroup resourceGroup = resourceGroupMap.get(resourceGroupName);
+            addPartition(partition, resourceName, resourceMap);
+            Resource resource = resourceMap.get(resourceName);
 
             if (currentState.getStateModelDefRef() == null)
             {
-              LOG.error("state model def is null." + "resourceGroup:" + currentState.getResourceGroupName()
-                      + ", resourceKeys: " + currentState.getResourceKeyStateMap().keySet()
-                      + ", states: " + currentState.getResourceKeyStateMap().values());
-              throw new StageException("State model def is null for resourceGroup:"
-                      + currentState.getResourceGroupName());
+              LOG.error("state model def is null." + "resource:" + currentState.getResourceName()
+                      + ", partitions: " + currentState.getPartitionStateMap().keySet()
+                      + ", states: " + currentState.getPartitionStateMap().values());
+              throw new StageException("State model def is null for resource:"
+                      + currentState.getResourceName());
             }
 
-            resourceGroup.setStateModelDefRef(currentState.getStateModelDefRef());
+            resource.setStateModelDefRef(currentState.getStateModelDefRef());
           }
         }
       }
     }
-    event.addAttribute(AttributeName.RESOURCE_GROUPS.toString(), resourceGroupMap);
+    event.addAttribute(AttributeName.RESOURCES.toString(), resourceMap);
   }
 
-  private void addResourceGroup(String resGroup, Map<String, ResourceGroup> resGroupMap)
+  private void addResource(String resource, Map<String, Resource> resourceMap)
   {
-    if (resGroup == null || resGroupMap == null)
+    if (resource == null || resourceMap == null)
     {
       return;
     }
     
-    if (!resGroupMap.containsKey(resGroup))
+    if (!resourceMap.containsKey(resource))
     {
-      resGroupMap.put(resGroup, new ResourceGroup(resGroup));
+      resourceMap.put(resource, new Resource(resource));
     }
   }
   
-  private void addResource(String resourceKey,
-                           String resourceGroupName,
-                           Map<String, ResourceGroup> resourceGroupMap)
+  private void addPartition(String partition,
+                           String resourceName,
+                           Map<String, Resource> resourceMap)
   {
-    if (resourceGroupName == null || resourceKey == null || resourceGroupMap == null)
+    if (resourceName == null || partition == null || resourceMap == null)
     {
       return;
     }
-    if (!resourceGroupMap.containsKey(resourceGroupName))
+    if (!resourceMap.containsKey(resourceName))
     {
-      resourceGroupMap.put(resourceGroupName, new ResourceGroup(resourceGroupName));
+      resourceMap.put(resourceName, new Resource(resourceName));
     }
-    ResourceGroup resourceGroup = resourceGroupMap.get(resourceGroupName);
-    resourceGroup.addResource(resourceKey);
+    Resource resource = resourceMap.get(resourceName);
+    resource.addPartition(partition);
 
   }
 }

@@ -9,8 +9,8 @@ public class TestDropResource extends ZkStandAloneCMTestBase
   @Test()
   public void testDropResource() throws Exception
   {
-    // add a resource group to be dropped
-    _setupTool.addResourceGroupToCluster(CLUSTER_NAME, "MyDB", 6, STATE_MODEL);
+    // add a resource to be dropped
+    _setupTool.addResourceToCluster(CLUSTER_NAME, "MyDB", 6, STATE_MODEL);
     _setupTool.rebalanceStorageCluster(CLUSTER_NAME, "MyDB", 3);
     verifyCluster();
     TestHelper.verifyWithTimeout("verifyBestPossAndExtView",
@@ -19,7 +19,7 @@ public class TestDropResource extends ZkStandAloneCMTestBase
                                  TestHelper.<String>setOf("MyDB"));
 
 
-    _setupTool.dropResourceGroupToCluster(CLUSTER_NAME, "MyDB");
+    _setupTool.dropResourceFromCluster(CLUSTER_NAME, "MyDB");
 
     TestHelper.verifyWithTimeout("verifyEmptyCurStateAndExtView",
                                  CLUSTER_NAME,

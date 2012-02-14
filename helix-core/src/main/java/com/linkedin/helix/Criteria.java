@@ -21,19 +21,19 @@ public class Criteria
    */
   String instanceName = "";
   /**
-   * Name of the resourceGroup. Use * to send message to all resource groups
+   * Name of the resource. Use * to send message to all resources
    * owned by an instance.
    */
-  String resourceGroup = "";
+  String resourceName = "";
   /**
    * Resource partition. Use * to send message to all partitions of a given
-   * resourceGroup
+   * resource
    */
-  String resourceKey = "";
+  String partitionName = "";
   /**
    * State of the resource
    */
-  String resourceState = "";
+  String partitionState = "";
   /**
    * Exclude sending message to your self. True by default
    */
@@ -93,43 +93,43 @@ public class Criteria
     this.instanceName = instanceName;
   }
 
-  public String getResourceGroup()
+  public String getResourceName()
   {
-    return resourceGroup;
+    return resourceName;
   }
 
-  public void setResourceGroup(String resourceGroupName)
+  public void setResource(String resourceName)
   {
-    this.resourceGroup = resourceGroupName;
+    this.resourceName = resourceName;
   }
 
-  public String getResourceKey()
+  public String getPartitionName()
   {
-    return resourceKey;
+    return partitionName;
   }
 
-  public void setResourceKey(String resourceKey)
+  public void setPartition(String partitionName)
   {
-    this.resourceKey = resourceKey;
+    this.partitionName = partitionName;
   }
 
-  public String getResourceState()
+  public String getPartitionState()
   {
-    return resourceState;
+    return partitionState;
   }
 
-  public void setResourceState(String resourceState)
+  public void setPartitionState(String partitionState)
   {
-    this.resourceState = resourceState;
+    this.partitionState = partitionState;
   }
 
   public String toString()
   {
     StringBuilder sb = new StringBuilder();
     sb.append("instanceName").append("=").append(instanceName);
-    sb.append("resourceGroup").append("=").append(resourceGroup);
-    sb.append("resourceKey").append("=").append(resourceKey);
-    sb.append("resourceState").append("=").append(resourceState);
+    sb.append("resourceName").append("=").append(resourceName);
+    sb.append("partitionName").append("=").append(partitionName);
+    sb.append("partitionState").append("=").append(partitionState);
     return sb.toString();
   }
 

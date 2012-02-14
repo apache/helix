@@ -72,22 +72,22 @@ public class ClusterStateVerifier
 
     // Make a copy of the ideal state
     String idealStatePath = HelixUtil.getIdealStatePath(clusterName);
-    List<String> stateGroups = zkClient.getChildren(idealStatePath);
+    List<String> resources = zkClient.getChildren(idealStatePath);
     List<ZNRecord> idealStates = new ArrayList<ZNRecord>();
 
-    for (String stateGroup : stateGroups)
+    for (String resource : resources)
     {
-      String stateGroupPath = idealStatePath + "/" + stateGroup;
-      idealStates.add((ZNRecord) zkClient.readData(stateGroupPath));
+      String resourcePath = idealStatePath + "/" + resource;
+      idealStates.add((ZNRecord) zkClient.readData(resourcePath));
     }
     // Make a copy of external view
     String externalViewPath = HelixUtil.getExternalViewPath(clusterName);
-    List<String> viewGroups = zkClient.getChildren(externalViewPath);
+    List<String> views = zkClient.getChildren(externalViewPath);
     List<ZNRecord> externalViews = new ArrayList<ZNRecord>();
 
-    for (String viewGroup : viewGroups)
+    for (String view : views)
     {
-      String viewPath = externalViewPath + "/" + viewGroup;
+      String viewPath = externalViewPath + "/" + view;
       externalViews.add((ZNRecord) zkClient.readData(viewPath));
     }
 
@@ -185,7 +185,7 @@ public class ClusterStateVerifier
 
     for (ZNRecord idealState : idealStates)
     {
-      String stateUnitGroup = idealState.getId();
+      String resourceName = idealState.getId();
 
       Map<String, Map<String, String>> statesMap = idealState.getMapFields();
       for (String stateUnitKey : statesMap.keySet())
@@ -200,27 +200,27 @@ public class ClusterStateVerifier
             _logger.warn("Current state does not contain " + nodeName);
             return false;
           }
-          if (!currentStates.get(nodeName).containsKey(stateUnitGroup))
+          if (!currentStates.get(nodeName).containsKey(resourceName))
           {
             _logger.warn("Current state for " + nodeName + " does not contain "
-                + stateUnitGroup);
+                + resourceName);
             return false;
           }
-          if (!currentStates.get(nodeName).get(stateUnitGroup).getMapFields()
+          if (!currentStates.get(nodeName).get(resourceName).getMapFields()
               .containsKey(stateUnitKey))
           {
-            _logger.warn("Current state for" + nodeName + "with "+stateUnitGroup+" does not contain "
+            _logger.warn("Current state for" + nodeName + "with "+resourceName+" does not contain "
                 + stateUnitKey);
             return false;
           }
 
           String partitionNodeState = currentStates.get(nodeName)
-              .get(stateUnitGroup).getMapFields().get(stateUnitKey)
+              .get(resourceName).getMapFields().get(stateUnitKey)
               .get(CurrentStateProperty.CURRENT_STATE.toString());
           boolean success =true;
           if (!partitionNodeState.equals(nodePartitionState))
           {
-            _logger.warn("State mismatch " + stateUnitGroup + " " + stateUnitKey + " " +nodeName
+            _logger.warn("State mismatch " + resourceName + " " + stateUnitKey + " " +nodeName
                 + " current:" + partitionNodeState + ", expected:" + nodePartitionState);
             success= false;
           }
@@ -232,9 +232,9 @@ public class ClusterStateVerifier
     for (String nodeName : currentStates.keySet())
     {
       Map<String, ZNRecord> nodeCurrentStates = currentStates.get(nodeName);
-      for (String stateUnitGroup : nodeCurrentStates.keySet())
+      for (String resourceName : nodeCurrentStates.keySet())
       {
-        for(String stateUnitKey : nodeCurrentStates.get(stateUnitGroup).getMapFields().keySet())
+        for(String partitionName : nodeCurrentStates.get(resourceName).getMapFields().keySet())
         {
           countInCurrentStates++;
         }

@@ -92,7 +92,7 @@ public class TestStandAloneCMSessionExpiry extends ZkIntegrationTestBase
 
     managers.get("localhost_12918").expireSession();
 
-    setupTool.addResourceGroupToCluster(CLUSTER_NAME, "MyDB", 10, "MasterSlave");
+    setupTool.addResourceToCluster(CLUSTER_NAME, "MyDB", 10, "MasterSlave");
     setupTool.rebalanceStorageCluster(CLUSTER_NAME, "MyDB", 3);
 
     TestHelper.verifyWithTimeout("verifyBestPossAndExtView",
@@ -109,7 +109,7 @@ public class TestStandAloneCMSessionExpiry extends ZkIntegrationTestBase
 
     managers.get(controllerName).expireSession();
 
-    setupTool.addResourceGroupToCluster(CLUSTER_NAME, "MyDB2", 8, "MasterSlave");
+    setupTool.addResourceToCluster(CLUSTER_NAME, "MyDB2", 8, "MasterSlave");
     setupTool.rebalanceStorageCluster(CLUSTER_NAME, "MyDB2", 3);
 
     TestHelper.verifyWithTimeout("verifyBestPossAndExtView",

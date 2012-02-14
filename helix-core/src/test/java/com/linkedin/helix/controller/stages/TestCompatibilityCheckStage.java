@@ -27,12 +27,12 @@ public class TestCompatibilityCheckStage extends BaseStageTest
     int replicas = 1;
 
     // set ideal state
-    String resourceGroupName = "testResourceGroup";
+    String resourceName = "testResource";
     ZNRecord record = IdealStateCalculatorForStorageNode.calculateIdealState(
-        instances, partitions, replicas, resourceGroupName, "MASTER", "SLAVE");
+        instances, partitions, replicas, resourceName, "MASTER", "SLAVE");
     IdealState idealState = new IdealState(record);
     idealState.setStateModelDefRef("MasterSlave");
-    accessor.setProperty(PropertyType.IDEALSTATES, idealState, resourceGroupName);
+    accessor.setProperty(PropertyType.IDEALSTATES, idealState, resourceName);
 
     // set live instances
     record = new ZNRecord("localhost_0");

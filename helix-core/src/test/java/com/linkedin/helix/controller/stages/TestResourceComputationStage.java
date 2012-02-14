@@ -18,13 +18,13 @@ import com.linkedin.helix.controller.stages.ResourceComputationStage;
 import com.linkedin.helix.model.CurrentState;
 import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.model.LiveInstance;
-import com.linkedin.helix.model.ResourceGroup;
+import com.linkedin.helix.model.Resource;
 import com.linkedin.helix.tools.IdealStateCalculatorForStorageNode;
 
 public class TestResourceComputationStage extends BaseStageTest
 {
   /**
-   * Case where we have one resource group in IdealState
+   * Case where we have one resource in IdealState
    *
    * @throws Exception
    */
@@ -39,63 +39,63 @@ public class TestResourceComputationStage extends BaseStageTest
     }
     int partitions = 10;
     int replicas = 1;
-    String resourceGroupName = "testResourceGroup";
+    String resourceName = "testResource";
     ZNRecord record = IdealStateCalculatorForStorageNode.calculateIdealState(
-        instances, partitions, replicas, resourceGroupName, "MASTER", "SLAVE");
+        instances, partitions, replicas, resourceName, "MASTER", "SLAVE");
     IdealState idealState = new IdealState(record);
     idealState.setStateModelDefRef("MasterSlave");
     manager.getDataAccessor().setProperty(PropertyType.IDEALSTATES,
                                           idealState,
-                                          resourceGroupName);
+                                          resourceName);
     ResourceComputationStage stage = new ResourceComputationStage();
     runStage(event, new ReadClusterDataStage());
     runStage(event, stage);
 
-    Map<String, ResourceGroup> resourceGroup = event
-        .getAttribute(AttributeName.RESOURCE_GROUPS.toString());
-    AssertJUnit.assertEquals(1, resourceGroup.size());
+    Map<String, Resource> resource = event
+        .getAttribute(AttributeName.RESOURCES.toString());
+    AssertJUnit.assertEquals(1, resource.size());
 
-    AssertJUnit.assertEquals(resourceGroup.keySet().iterator().next(),
-        resourceGroupName);
-    AssertJUnit.assertEquals(resourceGroup.values().iterator().next()
-        .getResourceGroupId(), resourceGroupName);
-    AssertJUnit.assertEquals(resourceGroup.values().iterator().next()
+    AssertJUnit.assertEquals(resource.keySet().iterator().next(),
+        resourceName);
+    AssertJUnit.assertEquals(resource.values().iterator().next()
+        .getResourceName(), resourceName);
+    AssertJUnit.assertEquals(resource.values().iterator().next()
         .getStateModelDefRef(), idealState.getStateModelDefRef());
-    AssertJUnit.assertEquals(resourceGroup.values().iterator().next()
-        .getResourceKeys().size(), partitions);
+    AssertJUnit.assertEquals(resource.values().iterator().next()
+        .getPartitions().size(), partitions);
   }
 
   @Test
-  public void testMultipleResourceGroups() throws Exception
+  public void testMultipleResources() throws Exception
   {
 //    List<IdealState> idealStates = new ArrayList<IdealState>();
-    String[] resourceGroups = new String[]
-        { "testResourceGroup1", "testResourceGroup2" };
-    List<IdealState> idealStates = setupIdealState(5, resourceGroups, 10, 1);
+    String[] resources = new String[]
+        { "testResource1", "testResource2" };
+    List<IdealState> idealStates = setupIdealState(5, resources, 10, 1);
     ResourceComputationStage stage = new ResourceComputationStage();
     runStage(event, new ReadClusterDataStage());
     runStage(event, stage);
 
-    Map<String, ResourceGroup> resourceGroupMap = event
-        .getAttribute(AttributeName.RESOURCE_GROUPS.toString());
-    AssertJUnit.assertEquals(resourceGroups.length, resourceGroupMap.size());
+    Map<String, Resource> resourceMap = event
+        .getAttribute(AttributeName.RESOURCES.toString());
+    AssertJUnit.assertEquals(resources.length, resourceMap.size());
 
-    for (int i = 0; i < resourceGroups.length; i++)
+    for (int i = 0; i < resources.length; i++)
     {
-      String resourceGroupName = resourceGroups[i];
+      String resourceName = resources[i];
       IdealState idealState = idealStates.get(i);
-      AssertJUnit.assertTrue(resourceGroupMap.containsKey(resourceGroupName));
-      AssertJUnit.assertEquals(resourceGroupMap.get(resourceGroupName)
-          .getResourceGroupId(), resourceGroupName);
-      AssertJUnit.assertEquals(resourceGroupMap.get(resourceGroupName)
+      AssertJUnit.assertTrue(resourceMap.containsKey(resourceName));
+      AssertJUnit.assertEquals(resourceMap.get(resourceName)
+          .getResourceName(), resourceName);
+      AssertJUnit.assertEquals(resourceMap.get(resourceName)
           .getStateModelDefRef(), idealState.getStateModelDefRef());
-      AssertJUnit.assertEquals(resourceGroupMap.get(resourceGroupName)
-          .getResourceKeys().size(), idealState.getNumPartitions());
+      AssertJUnit.assertEquals(resourceMap.get(resourceName)
+          .getPartitions().size(), idealState.getNumPartitions());
     }
   }
 
   @Test
-  public void testMultipleResourceGroupsWithSomeDropped() throws Exception
+  public void testMultipleResourcesWithSomeDropped() throws Exception
   {
     int nodes = 5;
     List<String> instances = new ArrayList<String>();
@@ -103,22 +103,22 @@ public class TestResourceComputationStage extends BaseStageTest
     {
       instances.add("localhost_" + i);
     }
-    String[] resourceGroups = new String[]
-    { "testResourceGroup1", "testResourceGroup2" };
+    String[] resources = new String[]
+    { "testResource1", "testResource2" };
     List<IdealState> idealStates = new ArrayList<IdealState>();
-    for (int i = 0; i < resourceGroups.length; i++)
+    for (int i = 0; i < resources.length; i++)
     {
       int partitions = 10;
       int replicas = 1;
-      String resourceGroupName = resourceGroups[i];
+      String resourceName = resources[i];
       ZNRecord record = IdealStateCalculatorForStorageNode
           .calculateIdealState(instances, partitions, replicas,
-              resourceGroupName, "MASTER", "SLAVE");
+              resourceName, "MASTER", "SLAVE");
       IdealState idealState = new IdealState(record);
       idealState.setStateModelDefRef("MasterSlave");
       manager.getDataAccessor().setProperty(PropertyType.IDEALSTATES,
                                             idealState,
-                                            resourceGroupName);
+                                            resourceName);
 
       idealStates.add(idealState);
     }
@@ -132,8 +132,8 @@ public class TestResourceComputationStage extends BaseStageTest
                                           liveInstance,
                                           instanceName);
 
-    String oldResourceGroup = "testResourceOld";
-    CurrentState currentState = new CurrentState(oldResourceGroup);
+    String oldResource = "testResourceOld";
+    CurrentState currentState = new CurrentState(oldResource);
     currentState.setState("testResourceOld_0", "OFFLINE");
     currentState.setState("testResourceOld_1", "SLAVE");
     currentState.setState("testResourceOld_2", "MASTER");
@@ -142,41 +142,41 @@ public class TestResourceComputationStage extends BaseStageTest
                                           currentState,
                                           instanceName,
                                           sessionId,
-                                          oldResourceGroup);
+                                          oldResource);
 
     ResourceComputationStage stage = new ResourceComputationStage();
     runStage(event, new ReadClusterDataStage());
     runStage(event, stage);
 
-    Map<String, ResourceGroup> resourceGroupMap = event
-        .getAttribute(AttributeName.RESOURCE_GROUPS.toString());
+    Map<String, Resource> resourceMap = event
+        .getAttribute(AttributeName.RESOURCES.toString());
     // +1 because it will have one for current state
-    AssertJUnit.assertEquals(resourceGroups.length + 1, resourceGroupMap.size());
+    AssertJUnit.assertEquals(resources.length + 1, resourceMap.size());
 
-    for (int i = 0; i < resourceGroups.length; i++)
+    for (int i = 0; i < resources.length; i++)
     {
-      String resourceGroupName = resourceGroups[i];
+      String resourceName = resources[i];
       IdealState idealState = idealStates.get(i);
-      AssertJUnit.assertTrue(resourceGroupMap.containsKey(resourceGroupName));
-      AssertJUnit.assertEquals(resourceGroupMap.get(resourceGroupName)
-          .getResourceGroupId(), resourceGroupName);
-      AssertJUnit.assertEquals(resourceGroupMap.get(resourceGroupName)
+      AssertJUnit.assertTrue(resourceMap.containsKey(resourceName));
+      AssertJUnit.assertEquals(resourceMap.get(resourceName)
+          .getResourceName(), resourceName);
+      AssertJUnit.assertEquals(resourceMap.get(resourceName)
           .getStateModelDefRef(), idealState.getStateModelDefRef());
-      AssertJUnit.assertEquals(resourceGroupMap.get(resourceGroupName)
-          .getResourceKeys().size(), idealState.getNumPartitions());
+      AssertJUnit.assertEquals(resourceMap.get(resourceName)
+          .getPartitions().size(), idealState.getNumPartitions());
     }
     // Test the data derived from CurrentState
-    AssertJUnit.assertTrue(resourceGroupMap.containsKey(oldResourceGroup));
-    AssertJUnit.assertEquals(resourceGroupMap.get(oldResourceGroup)
-        .getResourceGroupId(), oldResourceGroup);
-    AssertJUnit.assertEquals(resourceGroupMap.get(oldResourceGroup)
+    AssertJUnit.assertTrue(resourceMap.containsKey(oldResource));
+    AssertJUnit.assertEquals(resourceMap.get(oldResource)
+        .getResourceName(), oldResource);
+    AssertJUnit.assertEquals(resourceMap.get(oldResource)
         .getStateModelDefRef(), currentState.getStateModelDefRef());
     AssertJUnit
-        .assertEquals(resourceGroupMap.get(oldResourceGroup).getResourceKeys()
-            .size(), currentState.getResourceKeyStateMap().size());
-    AssertJUnit.assertNotNull(resourceGroupMap.get(oldResourceGroup).getResourceKey("testResourceOld_0"));
-    AssertJUnit.assertNotNull(resourceGroupMap.get(oldResourceGroup).getResourceKey("testResourceOld_1"));
-    AssertJUnit.assertNotNull(resourceGroupMap.get(oldResourceGroup).getResourceKey("testResourceOld_2"));
+        .assertEquals(resourceMap.get(oldResource).getPartitions()
+            .size(), currentState.getPartitionStateMap().size());
+    AssertJUnit.assertNotNull(resourceMap.get(oldResource).getPartition("testResourceOld_0"));
+    AssertJUnit.assertNotNull(resourceMap.get(oldResource).getPartition("testResourceOld_1"));
+    AssertJUnit.assertNotNull(resourceMap.get(oldResource).getPartition("testResourceOld_2"));
 
   }
 

@@ -206,7 +206,7 @@ public class ZkDistCMTestBase extends ZkIntegrationTestBase
   protected void setupStorageCluster(ClusterSetup setupTool, String clusterName,
        String dbName, int partitionNr, String prefix, int startPort, String stateModel, int replica)
   {
-    setupTool.addResourceGroupToCluster(clusterName, dbName, partitionNr, stateModel);
+    setupTool.addResourceToCluster(clusterName, dbName, partitionNr, stateModel);
     for (int i = 0; i < NODE_NR; i++)
     {
       String instanceName = prefix + ":" + (startPort + i);

@@ -10,8 +10,8 @@ import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.controller.pipeline.AbstractBaseStage;
 import com.linkedin.helix.controller.pipeline.StageException;
 import com.linkedin.helix.model.ExternalView;
-import com.linkedin.helix.model.ResourceGroup;
-import com.linkedin.helix.model.ResourceKey;
+import com.linkedin.helix.model.Resource;
+import com.linkedin.helix.model.Partition;
 
 public class ExternalViewComputeStage extends AbstractBaseStage
 {
@@ -23,14 +23,14 @@ public class ExternalViewComputeStage extends AbstractBaseStage
     log.info("START ExternalViewComputeStage.process()");
 
     HelixManager manager = event.getAttribute("helixmanager");
-    Map<String, ResourceGroup> resourceGroupMap = event
-        .getAttribute(AttributeName.RESOURCE_GROUPS.toString());
+    Map<String, Resource> resourceMap = event
+        .getAttribute(AttributeName.RESOURCES.toString());
     ClusterDataCache cache = event.getAttribute("ClusterDataCache");
 
-    if (manager == null || resourceGroupMap == null || cache == null)
+    if (manager == null || resourceMap == null || cache == null)
     {
       throw new StageException("Missing attributes in event:" + event
-           + ". Requires ClusterManager|RESOURCE_GROUPS|DataCache");
+           + ". Requires ClusterManager|RESOURCES|DataCache");
     }
 
     DataAccessor dataAccessor = manager.getDataAccessor();
@@ -38,14 +38,14 @@ public class ExternalViewComputeStage extends AbstractBaseStage
     CurrentStateOutput currentStateOutput = event
         .getAttribute(AttributeName.CURRENT_STATE.toString());
 
-    for (String resourceGroupName : resourceGroupMap.keySet())
+    for (String resourceName : resourceMap.keySet())
     {
-      ExternalView view = new ExternalView(resourceGroupName);
-      ResourceGroup resourceGroup = resourceGroupMap.get(resourceGroupName);
-      for (ResourceKey resource : resourceGroup.getResourceKeys())
+      ExternalView view = new ExternalView(resourceName);
+      Resource resource = resourceMap.get(resourceName);
+      for (Partition partition : resource.getPartitions())
       {
         Map<String, String> currentStateMap = currentStateOutput
-            .getCurrentStateMap(resourceGroupName, resource);
+            .getCurrentStateMap(resourceName, partition);
         if (currentStateMap != null && currentStateMap.size() > 0)
         {
           // Set<String> disabledInstances
@@ -54,13 +54,12 @@ public class ExternalViewComputeStage extends AbstractBaseStage
           {
             // if (!disabledInstances.contains(instance))
             // {
-              view.setState(resource.getResourceKeyName(), instance, currentStateMap.get(instance));
+              view.setState(partition.getPartitionName(), instance, currentStateMap.get(instance));
             // }
           }
-          // view.setStateMap(resource.getResourceKeyName(), currentStateMap);
         }
       }
-      dataAccessor.setProperty(PropertyType.EXTERNALVIEW, view, resourceGroupName);
+      dataAccessor.setProperty(PropertyType.EXTERNALVIEW, view, resourceName);
     }
     log.info("END ExternalViewComputeStage.process()");
   }

@@ -54,7 +54,7 @@ public class TestDistControllerStateModel extends ZkUnitTestBase
   public void testOnBecomeLeaderFromStandby()
   {
     Message message = new Message(MessageType.STATE_TRANSITION, "0");
-    message.setStateUnitKey(clusterName);
+    message.setPartitionName(clusterName);
     message.setTgtName("controller_0");
     try
     {
@@ -72,7 +72,7 @@ public class TestDistControllerStateModel extends ZkUnitTestBase
   public void testOnBecomeStandbyFromLeader()
   {
     Message message = new Message(MessageType.STATE_TRANSITION, "0");
-    message.setStateUnitKey(clusterName);
+    message.setPartitionName(clusterName);
     message.setTgtName("controller_0");
     stateModel.onBecomeStandbyFromLeader(message, new NotificationContext(null));
   }
@@ -81,7 +81,7 @@ public class TestDistControllerStateModel extends ZkUnitTestBase
   public void testOnBecomeOfflineFromStandby()
   {
     Message message = new Message(MessageType.STATE_TRANSITION, "0");
-    message.setStateUnitKey(clusterName);
+    message.setPartitionName(clusterName);
     message.setTgtName("controller_0");
 
     stateModel.onBecomeOfflineFromStandby(message, null);
@@ -103,7 +103,7 @@ public class TestDistControllerStateModel extends ZkUnitTestBase
   public void testRollbackOnError()
   {
     Message message = new Message(MessageType.STATE_TRANSITION, "0");
-    message.setStateUnitKey(clusterName);
+    message.setPartitionName(clusterName);
     message.setTgtName("controller_0");
     try
     {
@@ -121,7 +121,7 @@ public class TestDistControllerStateModel extends ZkUnitTestBase
   public void testReset()
   {
     Message message = new Message(MessageType.STATE_TRANSITION, "0");
-    message.setStateUnitKey(clusterName);
+    message.setPartitionName(clusterName);
     message.setTgtName("controller_0");
     try
     {

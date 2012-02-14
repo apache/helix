@@ -23,9 +23,9 @@ public class PropertyPathConfig
     addEntry(PropertyType.INSTANCES,1,"/{clusterName}/INSTANCES");
     addEntry(PropertyType.INSTANCES,2,"/{clusterName}/INSTANCES/{instanceName}");
     addEntry(PropertyType.IDEALSTATES,1,"/{clusterName}/IDEALSTATES");
-    addEntry(PropertyType.IDEALSTATES,2,"/{clusterName}/IDEALSTATES/{resourceGroupName}");
+    addEntry(PropertyType.IDEALSTATES,2,"/{clusterName}/IDEALSTATES/{resourceName}");
     addEntry(PropertyType.EXTERNALVIEW,1,"/{clusterName}/EXTERNALVIEW");
-    addEntry(PropertyType.EXTERNALVIEW,2,"/{clusterName}/EXTERNALVIEW/{resourceGroupName}");
+    addEntry(PropertyType.EXTERNALVIEW,2,"/{clusterName}/EXTERNALVIEW/{resourceName}");
     addEntry(PropertyType.STATEMODELDEFS,1,"/{clusterName}/STATEMODELDEFS");
     addEntry(PropertyType.STATEMODELDEFS,2,"/{clusterName}/STATEMODELDEFS/{stateModelName}");
     addEntry(PropertyType.CONTROLLER,1,"/{clusterName}/CONTROLLER");
@@ -35,7 +35,7 @@ public class PropertyPathConfig
     addEntry(PropertyType.MESSAGES,3,"/{clusterName}/INSTANCES/{instanceName}/MESSAGES/{msgId}");
     addEntry(PropertyType.CURRENTSTATES,2,"/{clusterName}/INSTANCES/{instanceName}/CURRENTSTATES");
     addEntry(PropertyType.CURRENTSTATES,3,"/{clusterName}/INSTANCES/{instanceName}/CURRENTSTATES/{sessionId}");
-    addEntry(PropertyType.CURRENTSTATES,4,"/{clusterName}/INSTANCES/{instanceName}/CURRENTSTATES/{sessionId}/{resourceGroupName}");
+    addEntry(PropertyType.CURRENTSTATES,4,"/{clusterName}/INSTANCES/{instanceName}/CURRENTSTATES/{sessionId}/{resourceName}");
     addEntry(PropertyType.STATUSUPDATES,2,"/{clusterName}/INSTANCES/{instanceName}/STATUSUPDATES");
     addEntry(PropertyType.STATUSUPDATES,3,"/{clusterName}/INSTANCES/{instanceName}/STATUSUPDATES/{sessionId}");
     addEntry(PropertyType.STATUSUPDATES,4,"/{clusterName}/INSTANCES/{instanceName}/STATUSUPDATES/{sessionId}/{subPath}");

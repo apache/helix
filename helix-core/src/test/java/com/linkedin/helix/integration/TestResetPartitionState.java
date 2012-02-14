@@ -128,7 +128,7 @@ public class TestResetPartitionState extends ZkIntegrationTestBase
 
   private void clearStatusUpdate(String clusterName,
                             String instance,
-                            String resourceGroup,
+                            String resource,
                             String partition)
   {
     // clear status update for error partition so verify() will not fail on old error
@@ -138,7 +138,7 @@ public class TestResetPartitionState extends ZkIntegrationTestBase
     accessor.removeProperty(PropertyType.STATUSUPDATES,
                             instance,
                             liveInstance.getSessionId(),
-                            resourceGroup,
+                            resource,
                             partition);
 
   }

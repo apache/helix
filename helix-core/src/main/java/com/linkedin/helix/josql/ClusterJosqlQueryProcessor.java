@@ -84,7 +84,7 @@ public class ClusterJosqlQueryProcessor
     List<ZNRecord> instanceConfigs = accessor.getChildValues(PropertyType.CONFIGS);
     List<ZNRecord> liveInstances = accessor.getChildValues(PropertyType.LIVEINSTANCES);
     List<ZNRecord> stateModelDefs = accessor.getChildValues(PropertyType.STATEMODELDEFS);
-    // Idealstates are stored in a map from resourceGroup name to idealState ZNRecord
+    // Idealstates are stored in a map from resource name to idealState ZNRecord
     List<ZNRecord> idealStateList = accessor.getChildValues(PropertyType.IDEALSTATES);
     Map<String, ZNRecord> idealStatesMap = new HashMap<String, ZNRecord>();
     for(ZNRecord idealState : idealStateList)
@@ -101,13 +101,13 @@ public class ClusterJosqlQueryProcessor
       }
     }
     List<ZNRecord> externalViewList = accessor.getChildValues(PropertyType.EXTERNALVIEW);
-    // ExternalViews are stored in a map from resourceGroup name to idealState ZNRecord
+    // ExternalViews are stored in a map from resource name to idealState ZNRecord
     Map<String, ZNRecord> externalViewMap = new HashMap<String, ZNRecord>();
     for(ZNRecord externalView : externalViewList)
     {
       externalViewMap.put(externalView.getId(), externalView);
     }
-    // Map from instance name to a map from resourcegroup to current state ZNRecord
+    // Map from instance name to a map from resource to current state ZNRecord
     Map<String,Map<String, ZNRecord>> currentStatesMap = new HashMap<String, Map<String, ZNRecord>>();
     // Map from instance name to a list of combined flat ZNRecordRow
     Map<String, List<ZNRecordRow>> flatCurrentStateMap = new HashMap<String, List<ZNRecordRow>>();
@@ -120,14 +120,14 @@ public class ClusterJosqlQueryProcessor
       List<ZNRecord> instanceCurrentStateList = new ArrayList<ZNRecord>();
       for(ZNRecord idealState : idealStateList)
       {  
-        String resourceGroupName = idealState.getId();
-        ZNRecord currentState = accessor.getProperty(PropertyType.CURRENTSTATES, host, sessionId, resourceGroupName);
+        String resourceName = idealState.getId();
+        ZNRecord currentState = accessor.getProperty(PropertyType.CURRENTSTATES, host, sessionId, resourceName);
         if(currentState == null)
         {
-          _logger.warn("ResourceGroup "+ resourceGroupName +" has null currentState");
-          currentState = new ZNRecord(resourceGroupName);
+          _logger.warn("Resource "+ resourceName +" has null currentState");
+          currentState = new ZNRecord(resourceName);
         }
-        currentStates.put(resourceGroupName, currentState);
+        currentStates.put(resourceName, currentState);
         instanceCurrentStateList.add(currentState);
       }
       currentStatesMap.put(host, currentStates);

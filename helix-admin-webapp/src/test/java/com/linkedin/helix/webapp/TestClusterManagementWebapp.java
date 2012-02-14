@@ -157,13 +157,13 @@ public class TestClusterManagementWebapp
   @Test
   public void testInvocation() throws Exception
   {
-    VerifyAddCluster();
-    VerifyAddStateModel();
-    VerifyAddHostedEntity();
-    VerifyAddInstance();
-    VerifyRebalance();
-    VerifyEnableInstance();
-    VerifyAlterIdealState();
+    verifyAddCluster();
+    verifyAddStateModel();
+    verifyAddHostedEntity();
+    verifyAddInstance();
+    verifyRebalance();
+    verifyEnableInstance();
+    verifyAlterIdealState();
     System.out.println("Test passed!!");
   }
 
@@ -178,7 +178,7 @@ public class TestClusterManagementWebapp
   int partitions = 10;
   int replicas = 3;
 
-  void VerifyAddStateModel()throws JsonGenerationException, JsonMappingException, IOException
+  void verifyAddStateModel()throws JsonGenerationException, JsonMappingException, IOException
   {
 	  String httpUrlBase = "http://localhost:"+_port+"/clusters/"+clusterName+"/StateModelDefs";
 	    Map<String, String> paraMap = new HashMap<String, String>();
@@ -208,7 +208,7 @@ public class TestClusterManagementWebapp
 	    AssertJUnit.assertTrue(zn.getListFields().get("models").contains(statemodel));
   }
 
-  void VerifyAddCluster() throws IOException, InterruptedException
+  void verifyAddCluster() throws IOException, InterruptedException
   {
     String httpUrlBase = "http://localhost:"+_port+"/clusters/";
     Map<String, String> paraMap = new HashMap<String, String>();
@@ -240,7 +240,7 @@ public class TestClusterManagementWebapp
 
   }
 
-  void VerifyAddHostedEntity() throws JsonGenerationException, JsonMappingException, IOException
+  void verifyAddHostedEntity() throws JsonGenerationException, JsonMappingException, IOException
   {
     String httpUrlBase = "http://localhost:"+_port+"/clusters/"+clusterName+"/resourceGroups";
     Map<String, String> paraMap = new HashMap<String, String>();
@@ -284,7 +284,7 @@ public class TestClusterManagementWebapp
     System.out.println(sw.toString());
   }
 
-  void VerifyAddInstance() throws JsonGenerationException, JsonMappingException, IOException
+  void verifyAddInstance() throws JsonGenerationException, JsonMappingException, IOException
   {
     String httpUrlBase = "http://localhost:"+_port+"/clusters/"+clusterName+"/instances";
     Map<String, String> paraMap = new HashMap<String, String>();
@@ -372,7 +372,7 @@ public class TestClusterManagementWebapp
     }
   }
 
-  void VerifyRebalance() throws JsonGenerationException, JsonMappingException, IOException
+  void verifyRebalance() throws JsonGenerationException, JsonMappingException, IOException
   {
     String httpUrlBase = "http://localhost:"+_port+"/clusters/"+clusterName+"/resourceGroups/"+ resourceGroupName+"/idealState";
     Map<String, String> paraMap = new HashMap<String, String>();
@@ -417,7 +417,7 @@ public class TestClusterManagementWebapp
 
   }
 
-  void VerifyEnableInstance() throws JsonGenerationException, JsonMappingException, IOException
+  void verifyEnableInstance() throws JsonGenerationException, JsonMappingException, IOException
   {
     String httpUrlBase = "http://localhost:"+_port+"/clusters/"+clusterName+"/instances/"+ instance1+"_"+instancePort;
     Map<String, String> paraMap = new HashMap<String, String>();
@@ -464,7 +464,7 @@ public class TestClusterManagementWebapp
     AssertJUnit.assertTrue(r.getSimpleField(InstanceConfigProperty.ENABLED.toString()).equals(""+true));
   }
 
-  void VerifyAlterIdealState() throws IOException
+  void verifyAlterIdealState() throws IOException
   {
     String httpUrlBase = "http://localhost:"+_port+"/clusters/"+clusterName+"/resourceGroups/"+ resourceGroupName+"/idealState";
 

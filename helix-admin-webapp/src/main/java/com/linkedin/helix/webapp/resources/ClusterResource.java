@@ -78,7 +78,7 @@ public class ClusterResource extends Resource
     ZNRecord clusterSummayRecord = new ZNRecord("cluster summary");
     clusterSummayRecord.setListField("instances", instances);
     
-    List<String> hostedEntities = setupTool.getClusterManagementTool().getResourceGroupsInCluster(clusterName);
+    List<String> hostedEntities = setupTool.getClusterManagementTool().getResourcesInCluster(clusterName);
     clusterSummayRecord.setListField("resourceGroups", hostedEntities);
     
     List<String> models = setupTool.getClusterManagementTool().getStateModelDefs(clusterName);

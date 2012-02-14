@@ -5,12 +5,10 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.apache.log4j.Logger;
-import org.apache.zookeeper.ZooDefs;
-import org.apache.zookeeper.ZooKeeper;
 
+import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.HelixConstants.ChangeType;
 import com.linkedin.helix.HelixConstants.StateModelToken;
-import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.manager.zk.ZKDataAccessor;
@@ -104,19 +102,16 @@ public class HelixCustomCodeRunner
    */
   public void start() throws Exception
   {
-    if (_callback == null || _notificationTypes == null
-        || _notificationTypes.size() == 0 || _resGroupName == null)
+    if (_callback == null || _notificationTypes == null || _notificationTypes.size() == 0
+        || _resGroupName == null)
     {
-      throw new IllegalArgumentException(
-          "Require callback | notificationTypes | resourceGroupName");
+      throw new IllegalArgumentException("Require callback | notificationTypes | resourceGroupName");
     }
 
-    _stateModelFty = new GenericLeaderStandbyStateModelFactory(_callback,
-        _notificationTypes);
+    _stateModelFty = new GenericLeaderStandbyStateModelFactory(_callback, _notificationTypes);
 
     StateMachineEngine stateMach = _manager.getStateMachineEngine();
-    stateMach.registerStateModelFactory(LEADER_STANDBY, _resGroupName,
-        _stateModelFty);
+    stateMach.registerStateModelFactory(LEADER_STANDBY, _stateModelFty, _resGroupName);
     ZkClient zkClient = null;
     try
     {
@@ -125,29 +120,26 @@ public class HelixCustomCodeRunner
 
       zkClient = new ZkClient(_zkAddr);
       zkClient.setZkSerializer(new ZNRecordSerializer());
-      DataAccessor accessor = new ZKDataAccessor(_manager.getClusterName(),
-          zkClient);
+      DataAccessor accessor = new ZKDataAccessor(_manager.getClusterName(), zkClient);
 
       IdealState idealState = new IdealState(_resGroupName);
       idealState.setIdealStateMode(IdealStateModeProperty.AUTO.toString());
       idealState.setReplicas(StateModelToken.ANY_LIVEINSTANCE.toString());
       idealState.setNumPartitions(1);
       idealState.setStateModelDefRef(LEADER_STANDBY);
-      List<String> prefList = new ArrayList<String>(
-          Arrays.asList(StateModelToken.ANY_LIVEINSTANCE.toString()));
+      List<String> prefList = new ArrayList<String>(Arrays.asList(StateModelToken.ANY_LIVEINSTANCE
+          .toString()));
       idealState.getRecord().setListField(_resGroupName + "_0", prefList);
 
-      List<String> idealStates = accessor
-          .getChildNames(PropertyType.IDEALSTATES);
+      List<String> idealStates = accessor.getChildNames(PropertyType.IDEALSTATES);
       while (idealStates == null || !idealStates.contains(_resGroupName))
       {
-        accessor.setProperty(PropertyType.IDEALSTATES, idealState,
-            _resGroupName);
+        accessor.setProperty(PropertyType.IDEALSTATES, idealState, _resGroupName);
         idealStates = accessor.getChildNames(PropertyType.IDEALSTATES);
       }
 
-      LOG.info("Set idealState for participantLeader:" + _resGroupName
-          + ", idealState:" + idealState);
+      LOG.info("Set idealState for participantLeader:" + _resGroupName + ", idealState:"
+          + idealState);
     } finally
     {
       if (zkClient != null && zkClient.getConnection() != null)
@@ -162,8 +154,8 @@ public class HelixCustomCodeRunner
   public void stop()
   {
     LOG.info("Removing stateModelFactory for " + _resGroupName);
-    _manager.getStateMachineEngine().removeStateModelFactory(LEADER_STANDBY,
-        _resGroupName, _stateModelFty);
+    _manager.getStateMachineEngine().removeStateModelFactory(LEADER_STANDBY, _stateModelFty,
+        _resGroupName);
 
   }
 }

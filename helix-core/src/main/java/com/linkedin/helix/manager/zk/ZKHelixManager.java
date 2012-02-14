@@ -23,17 +23,17 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
 
-import com.linkedin.helix.HelixConstants.ChangeType;
-import com.linkedin.helix.DataAccessor;
-import com.linkedin.helix.HelixAdmin;
-import com.linkedin.helix.HelixManager;
-import com.linkedin.helix.HelixException;
 import com.linkedin.helix.ClusterMessagingService;
 import com.linkedin.helix.ConfigChangeListener;
 import com.linkedin.helix.ControllerChangeListener;
 import com.linkedin.helix.CurrentStateChangeListener;
+import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.ExternalViewChangeListener;
 import com.linkedin.helix.HealthStateChangeListener;
+import com.linkedin.helix.HelixAdmin;
+import com.linkedin.helix.HelixConstants.ChangeType;
+import com.linkedin.helix.HelixException;
+import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.IdealStateChangeListener;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.LiveInstanceChangeListener;
@@ -51,8 +51,8 @@ import com.linkedin.helix.model.Message.MessageType;
 import com.linkedin.helix.model.StateModelDefinition;
 import com.linkedin.helix.monitoring.ZKPathDataDumpTask;
 import com.linkedin.helix.participant.DistClusterControllerElection;
-import com.linkedin.helix.participant.StateMachineEngine;
 import com.linkedin.helix.participant.HelixStateMachineEngine;
+import com.linkedin.helix.participant.StateMachineEngine;
 import com.linkedin.helix.store.PropertyStore;
 import com.linkedin.helix.tools.PropertiesReader;
 import com.linkedin.helix.util.HelixUtil;
@@ -130,7 +130,7 @@ public class ZKHelixManager implements HelixManager
     _version = new PropertiesReader("cluster-manager-version.properties")
         .getProperty("clustermanager.version");
 
-    _stateMachEngine = new HelixStateMachineEngine(this);
+    _stateMachEngine = new HelixStateMachineEngine();
   }
 
   private boolean isInstanceSetup()
@@ -485,7 +485,7 @@ public class ZKHelixManager implements HelixManager
 
   /**
    * This will be invoked when ever a new session is created<br/>
-   *
+   * 
    * case 1: the cluster manager was a participant carry over current state, add
    * live instance, and invoke message listener; case 2: the cluster manager was
    * controller and was a leader before do leader election, and if it becomes
@@ -530,7 +530,8 @@ public class ZKHelixManager implements HelixManager
       MessageHandlerFactory defaultControllerMsgHandlerFactory = new DefaultControllerMessageHandlerFactory();
       _messagingService.getExecutor().registerMessageHandlerFactory(
           defaultControllerMsgHandlerFactory.getMessageType(), defaultControllerMsgHandlerFactory);
-      MessageHandlerFactory defaultSchedulerMsgHandlerFactory = new DefaultSchedulerMessageHandlerFactory(this);
+      MessageHandlerFactory defaultSchedulerMsgHandlerFactory = new DefaultSchedulerMessageHandlerFactory(
+          this);
       _messagingService.getExecutor().registerMessageHandlerFactory(
           defaultSchedulerMsgHandlerFactory.getMessageType(), defaultSchedulerMsgHandlerFactory);
 
@@ -746,8 +747,7 @@ public class ZKHelixManager implements HelixManager
   {
     if (!isConnected())
     {
-      throw new HelixException(
-          "ClusterManager not connected. Call clusterManager.connect()");
+      throw new HelixException("ClusterManager not connected. Call clusterManager.connect()");
     }
   }
 

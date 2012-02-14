@@ -11,17 +11,17 @@ import java.util.UUID;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.Watcher.Event.EventType;
 
-import com.linkedin.helix.HelixConstants.ChangeType;
-import com.linkedin.helix.DataAccessor;
-import com.linkedin.helix.HelixAdmin;
-import com.linkedin.helix.HelixManager;
-import com.linkedin.helix.HelixException;
 import com.linkedin.helix.ClusterMessagingService;
 import com.linkedin.helix.ConfigChangeListener;
 import com.linkedin.helix.ControllerChangeListener;
 import com.linkedin.helix.CurrentStateChangeListener;
+import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.ExternalViewChangeListener;
 import com.linkedin.helix.HealthStateChangeListener;
+import com.linkedin.helix.HelixAdmin;
+import com.linkedin.helix.HelixConstants.ChangeType;
+import com.linkedin.helix.HelixException;
+import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.IdealStateChangeListener;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.LiveInstanceChangeListener;
@@ -33,8 +33,8 @@ import com.linkedin.helix.healthcheck.ParticipantHealthReportCollector;
 import com.linkedin.helix.messaging.DefaultMessagingService;
 import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.model.Message.MessageType;
-import com.linkedin.helix.participant.StateMachineEngine;
 import com.linkedin.helix.participant.HelixStateMachineEngine;
+import com.linkedin.helix.participant.StateMachineEngine;
 import com.linkedin.helix.store.PropertyStore;
 import com.linkedin.helix.store.file.FilePropertyStore;
 import com.linkedin.helix.tools.PropertiesReader;
@@ -42,8 +42,7 @@ import com.linkedin.helix.util.HelixUtil;
 
 public class DynamicFileHelixManager implements HelixManager
 {
-  private static final Logger LOG = Logger
-      .getLogger(StaticFileHelixManager.class.getName());
+  private static final Logger LOG = Logger.getLogger(StaticFileHelixManager.class.getName());
   private final FileDataAccessor _fileDataAccessor;
 
   private final String _clusterName;
@@ -84,10 +83,10 @@ public class DynamicFileHelixManager implements HelixManager
     _version = new PropertiesReader("cluster-manager-version.properties")
         .getProperty("clustermanager.version");
 
-    _stateMachEngine = new HelixStateMachineEngine(this);
+    _stateMachEngine = new HelixStateMachineEngine();
 
-    _messagingService.registerMessageHandlerFactory(
-        MessageType.STATE_TRANSITION.toString(), _stateMachEngine);
+    _messagingService.registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(),
+        _stateMachEngine);
   }
 
   @Override
@@ -104,10 +103,8 @@ public class DynamicFileHelixManager implements HelixManager
   {
     final String path = HelixUtil.getIdealStatePath(_clusterName);
 
-    FileCallbackHandler callbackHandler = createCallBackHandler(path,
-        listener, new EventType[]
-        { EventType.NodeDataChanged, EventType.NodeDeleted,
-            EventType.NodeCreated }, IDEAL_STATE);
+    FileCallbackHandler callbackHandler = createCallBackHandler(path, listener, new EventType[] {
+        EventType.NodeDataChanged, EventType.NodeDeleted, EventType.NodeCreated }, IDEAL_STATE);
     _handlers.add(callbackHandler);
 
   }
@@ -116,10 +113,9 @@ public class DynamicFileHelixManager implements HelixManager
   public void addLiveInstanceChangeListener(LiveInstanceChangeListener listener)
   {
     final String path = HelixUtil.getLiveInstancesPath(_clusterName);
-    FileCallbackHandler callbackHandler = createCallBackHandler(path,
-        listener, new EventType[]
-        { EventType.NodeChildrenChanged, EventType.NodeDeleted,
-            EventType.NodeCreated }, LIVE_INSTANCE);
+    FileCallbackHandler callbackHandler = createCallBackHandler(path, listener, new EventType[] {
+        EventType.NodeChildrenChanged, EventType.NodeDeleted, EventType.NodeCreated },
+        LIVE_INSTANCE);
     _handlers.add(callbackHandler);
   }
 
@@ -135,25 +131,23 @@ public class DynamicFileHelixManager implements HelixManager
   {
     final String path = HelixUtil.getMessagePath(_clusterName, instanceName);
 
-    FileCallbackHandler callbackHandler = createCallBackHandler(path,
-        listener, new EventType[]
-        { EventType.NodeDataChanged, EventType.NodeDeleted,
-            EventType.NodeCreated }, ChangeType.MESSAGE);
+    FileCallbackHandler callbackHandler = createCallBackHandler(path, listener, new EventType[] {
+        EventType.NodeDataChanged, EventType.NodeDeleted, EventType.NodeCreated },
+        ChangeType.MESSAGE);
     _handlers.add(callbackHandler);
 
   }
 
   @Override
-  public void addCurrentStateChangeListener(
-      CurrentStateChangeListener listener, String instanceName, String sessionId)
+  public void addCurrentStateChangeListener(CurrentStateChangeListener listener,
+      String instanceName, String sessionId)
   {
-    final String path = HelixUtil.getCurrentStateBasePath(_clusterName,
-        instanceName) + "/" + sessionId;
+    final String path = HelixUtil.getCurrentStateBasePath(_clusterName, instanceName) + "/"
+        + sessionId;
 
-    FileCallbackHandler callbackHandler = createCallBackHandler(path,
-        listener, new EventType[]
-        { EventType.NodeChildrenChanged, EventType.NodeDeleted,
-            EventType.NodeCreated }, CURRENT_STATE);
+    FileCallbackHandler callbackHandler = createCallBackHandler(path, listener, new EventType[] {
+        EventType.NodeChildrenChanged, EventType.NodeDeleted, EventType.NodeCreated },
+        CURRENT_STATE);
 
     _handlers.add(callbackHandler);
   }
@@ -209,28 +203,19 @@ public class DynamicFileHelixManager implements HelixManager
       return false;
     }
 
-    boolean isValid = _store.exists(PropertyPathConfig.getPath(
-        PropertyType.IDEALSTATES, clusterName))
-        && _store.exists(PropertyPathConfig.getPath(PropertyType.CONFIGS,
+    boolean isValid = _store.exists(PropertyPathConfig.getPath(PropertyType.IDEALSTATES,
+        clusterName))
+        && _store.exists(PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName))
+        && _store.exists(PropertyPathConfig.getPath(PropertyType.LIVEINSTANCES, clusterName))
+        && _store.exists(PropertyPathConfig.getPath(PropertyType.INSTANCES, clusterName))
+        && _store.exists(PropertyPathConfig.getPath(PropertyType.EXTERNALVIEW, clusterName))
+        && _store.exists(PropertyPathConfig.getPath(PropertyType.CONTROLLER, clusterName))
+        && _store.exists(PropertyPathConfig.getPath(PropertyType.STATEMODELDEFS, clusterName))
+        && _store.exists(PropertyPathConfig.getPath(PropertyType.MESSAGES_CONTROLLER, clusterName))
+        && _store.exists(PropertyPathConfig.getPath(PropertyType.ERRORS_CONTROLLER, clusterName))
+        && _store.exists(PropertyPathConfig.getPath(PropertyType.STATUSUPDATES_CONTROLLER,
             clusterName))
-        && _store.exists(PropertyPathConfig.getPath(PropertyType.LIVEINSTANCES,
-            clusterName))
-        && _store.exists(PropertyPathConfig.getPath(PropertyType.INSTANCES,
-            clusterName))
-        && _store.exists(PropertyPathConfig.getPath(PropertyType.EXTERNALVIEW,
-            clusterName))
-        && _store.exists(PropertyPathConfig.getPath(PropertyType.CONTROLLER,
-            clusterName))
-        && _store.exists(PropertyPathConfig.getPath(
-            PropertyType.STATEMODELDEFS, clusterName))
-        && _store.exists(PropertyPathConfig.getPath(
-            PropertyType.MESSAGES_CONTROLLER, clusterName))
-        && _store.exists(PropertyPathConfig.getPath(
-            PropertyType.ERRORS_CONTROLLER, clusterName))
-        && _store.exists(PropertyPathConfig.getPath(
-            PropertyType.STATUSUPDATES_CONTROLLER, clusterName))
-        && _store.exists(PropertyPathConfig.getPath(PropertyType.HISTORY,
-            clusterName));
+        && _store.exists(PropertyPathConfig.getPath(PropertyType.HISTORY, clusterName));
 
     return isValid;
   }
@@ -240,16 +225,16 @@ public class DynamicFileHelixManager implements HelixManager
     if (_instanceType == InstanceType.PARTICIPANT
         || _instanceType == InstanceType.CONTROLLER_PARTICIPANT)
     {
-      boolean isValid = _store.exists(PropertyPathConfig.getPath(
-          PropertyType.CONFIGS, _clusterName, _instanceName))
-          && _store.exists(PropertyPathConfig.getPath(PropertyType.MESSAGES,
-              _clusterName, _instanceName))
-          && _store.exists(PropertyPathConfig.getPath(
-              PropertyType.CURRENTSTATES, _clusterName, _instanceName))
-          && _store.exists(PropertyPathConfig.getPath(
-              PropertyType.STATUSUPDATES, _clusterName, _instanceName))
-          && _store.exists(PropertyPathConfig.getPath(PropertyType.ERRORS,
-              _clusterName, _instanceName));
+      boolean isValid = _store.exists(PropertyPathConfig.getPath(PropertyType.CONFIGS,
+          _clusterName, _instanceName))
+          && _store.exists(PropertyPathConfig.getPath(PropertyType.MESSAGES, _clusterName,
+              _instanceName))
+          && _store.exists(PropertyPathConfig.getPath(PropertyType.CURRENTSTATES, _clusterName,
+              _instanceName))
+          && _store.exists(PropertyPathConfig.getPath(PropertyType.STATUSUPDATES, _clusterName,
+              _instanceName))
+          && _store.exists(PropertyPathConfig.getPath(PropertyType.ERRORS, _clusterName,
+              _instanceName));
 
       return isValid;
     }
@@ -260,20 +245,20 @@ public class DynamicFileHelixManager implements HelixManager
   {
     if (!isClusterSetup(_clusterName))
     {
-      throw new HelixException(
-          "Initial cluster structure is not set up for cluster:" + _clusterName);
+      throw new HelixException("Initial cluster structure is not set up for cluster:"
+          + _clusterName);
     }
 
     if (!isInstanceSetup())
     {
-      throw new HelixException("Instance is not configured for instance:"
-          + _instanceName + " instanceType:" + _instanceType);
+      throw new HelixException("Instance is not configured for instance:" + _instanceName
+          + " instanceType:" + _instanceType);
     }
 
     LiveInstance liveInstance = new LiveInstance(_instanceName);
     liveInstance.setSessionId(_sessionId);
-    _fileDataAccessor.setProperty(PropertyType.LIVEINSTANCES,
-        liveInstance.getRecord(), _instanceName);
+    _fileDataAccessor.setProperty(PropertyType.LIVEINSTANCES, liveInstance.getRecord(),
+        _instanceName);
   }
 
   @Override
@@ -296,15 +281,14 @@ public class DynamicFileHelixManager implements HelixManager
     return false;
   }
 
-  private FileCallbackHandler createCallBackHandler(String path,
-      Object listener, EventType[] eventTypes, ChangeType changeType)
+  private FileCallbackHandler createCallBackHandler(String path, Object listener,
+      EventType[] eventTypes, ChangeType changeType)
   {
     if (listener == null)
     {
       throw new HelixException("Listener cannot be null");
     }
-    return new FileCallbackHandler(this, path, listener, eventTypes,
-        changeType);
+    return new FileCallbackHandler(this, path, listener, eventTypes, changeType);
   }
 
   @Override
@@ -340,8 +324,8 @@ public class DynamicFileHelixManager implements HelixManager
   }
 
   @Override
-  public void addHealthStateChangeListener(HealthStateChangeListener listener,
-      String instanceName) throws Exception
+  public void addHealthStateChangeListener(HealthStateChangeListener listener, String instanceName)
+      throws Exception
   {
     // TODO Auto-generated method stub
 

@@ -10,8 +10,8 @@ import java.util.List;
 import org.apache.log4j.Logger;
 
 import com.linkedin.helix.DataAccessor;
-import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.HelixException;
+import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecordDelta;
@@ -41,27 +41,8 @@ public class HelixStateTransitionHandler extends MessageHandler
     _transitionMethodFinder = new StateModelParser();
   }
 
-  // // TODO replace with util from espresso or linkedin
-  // private boolean isNullOrEmpty(String data)
-  // {
-  // return data == null || data.length() == 0 || data.trim().length() == 0;
-  // }
-  //
-  // private boolean validateMessage(Message message)
-  // {
-  // boolean isValid =
-  // isNullOrEmpty(message.getFromState()) || isNullOrEmpty(message.getToState())
-  // || isNullOrEmpty(message.getToState())
-  // || isNullOrEmpty(message.getStateUnitKey())
-  // || isNullOrEmpty(message.getToState())
-  // || isNullOrEmpty(message.getStateModelDef());
-  // return !isValid;
-  // }
-
   private void prepareMessageExecution(HelixManager manager, Message message) throws HelixException
-
   {
-    // if (!validateMessage(message))
     if (!message.isValid())
     {
       String errorMessage = "Invalid Message, ensure that message: " + message
@@ -88,7 +69,7 @@ public class HelixStateTransitionHandler extends MessageHandler
 
     if (stateModelDef == null)
     {
-      throw new HelixException("No State Model Defined for "+ message.getStateModelDef());
+      throw new HelixException("No State Model Defined for " + message.getStateModelDef());
 
     }
     String initStateValue = stateModelDef.getInitialState();
@@ -143,17 +124,15 @@ public class HelixStateTransitionHandler extends MessageHandler
           + ", Current State:" + state + ", message expected:" + fromState + ", partition: "
           + partitionKey + ", from: " + message.getMsgSrc() + ", to: " + message.getTgtName();
 
-      _statusUpdateUtil.logError(message, HelixStateTransitionHandler.class, errorMessage, accessor);
+      _statusUpdateUtil
+          .logError(message, HelixStateTransitionHandler.class, errorMessage, accessor);
       logger.error(errorMessage);
       throw new HelixException(errorMessage);
     }
   }
 
-  void postExecutionMessage(HelixManager manager,
-                            Message message,
-                            NotificationContext context,
-                            HelixTaskResult taskResult,
-                            Exception exception) throws InterruptedException
+  void postExecutionMessage(HelixManager manager, Message message, NotificationContext context,
+      HelixTaskResult taskResult, Exception exception) throws InterruptedException
   {
     DataAccessor accessor = manager.getDataAccessor();
     try
@@ -279,15 +258,12 @@ public class HelixStateTransitionHandler extends MessageHandler
     }
   }
 
-  private void invoke(DataAccessor accessor,
-                      NotificationContext context,
-                      HelixTaskResult taskResult,
-                      Message message) throws IllegalAccessException,
-      InvocationTargetException,
-      InterruptedException
+  private void invoke(DataAccessor accessor, NotificationContext context,
+      HelixTaskResult taskResult, Message message) throws IllegalAccessException,
+      InvocationTargetException, InterruptedException
   {
-    _statusUpdateUtil.logInfo(message, HelixStateTransitionHandler.class, "Message handling invoking",
-        accessor);
+    _statusUpdateUtil.logInfo(message, HelixStateTransitionHandler.class,
+        "Message handling invoking", accessor);
 
     if (message.getMsgSubType() != null
         && message.getMsgSubType().equals(MessageSubType.RESET.toString()))
@@ -315,7 +291,8 @@ public class HelixStateTransitionHandler extends MessageHandler
       taskResult.setSuccess(false);
 
       System.out.println(errorMessage);
-      _statusUpdateUtil.logError(message, HelixStateTransitionHandler.class, errorMessage, accessor);
+      _statusUpdateUtil
+          .logError(message, HelixStateTransitionHandler.class, errorMessage, accessor);
     }
   }
 

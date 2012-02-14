@@ -16,18 +16,12 @@ import com.linkedin.helix.ZNRecordDecorator;
  */
 public class IdealState extends ZNRecordDecorator
 {
-  public enum IdealStateProperty
-  {
-    PARTITIONS,
-    STATE_MODEL_DEF_REF,
-    REPLICAS,
-    IDEAL_STATE_MODE
+  public enum IdealStateProperty {
+    PARTITIONS, STATE_MODEL_DEF_REF, REPLICAS, IDEAL_STATE_MODE, STATE_MODEL_FACTORY_NAME
   }
 
-  public enum IdealStateModeProperty
-  {
-    AUTO,
-    CUSTOMIZED
+  public enum IdealStateModeProperty {
+    AUTO, CUSTOMIZED
   }
 
   private static final Logger logger = Logger.getLogger(IdealState.class.getName());
@@ -55,12 +49,10 @@ public class IdealState extends ZNRecordDecorator
   public IdealStateModeProperty getIdealStateMode()
   {
     String mode = _record.getSimpleField(IdealStateProperty.IDEAL_STATE_MODE.toString());
-    if (mode == null
-      || !mode.equalsIgnoreCase(IdealStateModeProperty.CUSTOMIZED.toString()))
+    if (mode == null || !mode.equalsIgnoreCase(IdealStateModeProperty.CUSTOMIZED.toString()))
     {
       return IdealStateModeProperty.AUTO;
-    }
-    else
+    } else
     {
       return IdealStateModeProperty.CUSTOMIZED;
     }
@@ -81,12 +73,10 @@ public class IdealState extends ZNRecordDecorator
     if (getIdealStateMode() == IdealStateModeProperty.AUTO)
     {
       return _record.getListFields().keySet();
-    }
-    else if (getIdealStateMode() == IdealStateModeProperty.CUSTOMIZED)
+    } else if (getIdealStateMode() == IdealStateModeProperty.CUSTOMIZED)
     {
       return _record.getMapFields().keySet();
-    }
-    else
+    } else
     {
       logger.error("Invalid ideal state mode:" + getResourceGroup());
       return Collections.emptySet();
@@ -99,7 +89,7 @@ public class IdealState extends ZNRecordDecorator
   }
 
   private List<String> getInstancePreferenceList(String resourceKeyName,
-                                                 StateModelDefinition stateModelDef)
+      StateModelDefinition stateModelDef)
   {
     List<String> instanceStateList = _record.getListField(resourceKeyName);
 
@@ -122,8 +112,7 @@ public class IdealState extends ZNRecordDecorator
     _record.setSimpleField(IdealStateProperty.STATE_MODEL_DEF_REF.toString(), stateModel);
   }
 
-  public List<String> getPreferenceList(String resourceKeyName,
-                                        StateModelDefinition stateModelDef)
+  public List<String> getPreferenceList(String resourceKeyName, StateModelDefinition stateModelDef)
   {
     return getInstancePreferenceList(resourceKeyName, stateModelDef);
   }
@@ -138,8 +127,7 @@ public class IdealState extends ZNRecordDecorator
     try
     {
       return Integer.parseInt(_record.getSimpleField(IdealStateProperty.PARTITIONS.toString()));
-    }
-    catch (Exception e)
+    } catch (Exception e)
     {
       logger.debug("Can't parse number of partitions: " + e);
       return -1;
@@ -150,17 +138,20 @@ public class IdealState extends ZNRecordDecorator
   {
     _record.setSimpleField(IdealStateProperty.REPLICAS.toString(), replicas);
   }
-  
+
   public String getReplicas()
   {
-//    try
-//    {
-//      return Integer.parseInt(_record.getSimpleField(IdealStateProperty.REPLICAS.toString()));
-//    }
-//    catch(Exception e)
-//    {}
-//    return -1;
     return _record.getSimpleField(IdealStateProperty.REPLICAS.toString());
+  }
+
+  public void setStateModelFactoryName(String name)
+  {
+    _record.setSimpleField(IdealStateProperty.STATE_MODEL_FACTORY_NAME.toString(), name);
+  }
+
+  public String getStateModelFactoryName()
+  {
+    return _record.getSimpleField(IdealStateProperty.STATE_MODEL_FACTORY_NAME.toString());
   }
 
   @Override
@@ -168,17 +159,18 @@ public class IdealState extends ZNRecordDecorator
   {
     if (getNumPartitions() < 0)
     {
-      logger.error("idealState:" + _record
-          + " does not have number of partitions (was " + getNumPartitions() + ").");
+      logger.error("idealState:" + _record + " does not have number of partitions (was "
+          + getNumPartitions() + ").");
       return false;
     }
-    
-//    if(getReplicas() < 0)
-//    {
-//      logger.error("idealStates does not have replicas. IS:" + _record.getId());
-//      return false;
-//    }
-    
+
+    // if(getReplicas() < 0)
+    // {
+    // logger.error("idealStates does not have replicas. IS:" +
+    // _record.getId());
+    // return false;
+    // }
+
     if (getStateModelDefRef() == null)
     {
       logger.error("idealStates:" + _record + " does not have state model definition.");

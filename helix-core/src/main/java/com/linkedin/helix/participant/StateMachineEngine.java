@@ -6,18 +6,20 @@ import com.linkedin.helix.participant.statemachine.StateModelFactory;
 
 public interface StateMachineEngine extends MessageHandlerFactory
 {
-  public boolean registerStateModelFactory(String stateModelDef, 
-                                           StateModelFactory<? extends StateModel> factory);
-  
-  public boolean registerStateModelFactory(String stateModelDef, 
-                                           String resourceGroupName, 
-                                           StateModelFactory<? extends StateModel> factory);
-  
-  public boolean removeStateModelFactory(String stateModelDef, 
+  public boolean registerStateModelFactory(String stateModelDef,
       StateModelFactory<? extends StateModel> factory);
-  
-  public boolean removeStateModelFactory(String stateModelDef, 
-      String resourceGroupName, 
+
+  // public boolean registerStateModelFactory(String stateModelDef,
+  // String resourceGroupName,
+  // StateModelFactory<? extends StateModel> factory);
+
+  public boolean registerStateModelFactory(String stateModelDef,
+      StateModelFactory<? extends StateModel> factory, String factoryName);
+
+  public boolean removeStateModelFactory(String stateModelDef,
       StateModelFactory<? extends StateModel> factory);
-  
+
+  public boolean removeStateModelFactory(String stateModelDef,
+      StateModelFactory<? extends StateModel> factory, String factoryName);
+
 }

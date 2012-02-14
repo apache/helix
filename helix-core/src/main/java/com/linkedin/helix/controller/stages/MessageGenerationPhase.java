@@ -15,10 +15,12 @@ import com.linkedin.helix.model.Message.MessageType;
 import com.linkedin.helix.model.ResourceGroup;
 import com.linkedin.helix.model.ResourceKey;
 import com.linkedin.helix.model.StateModelDefinition;
+
 /**
  * Compares the currentState,pendingState with IdealState and generate messages
+ * 
  * @author kgopalak
- *
+ * 
  */
 public class MessageGenerationPhase extends AbstractBaseStage
 {
@@ -29,17 +31,17 @@ public class MessageGenerationPhase extends AbstractBaseStage
   {
     HelixManager manager = event.getAttribute("helixmanager");
     ClusterDataCache cache = event.getAttribute("ClusterDataCache");
-    Map<String, ResourceGroup> resourceGroupMap = event
-        .getAttribute(AttributeName.RESOURCE_GROUPS.toString());
-    CurrentStateOutput currentStateOutput = event
-        .getAttribute(AttributeName.CURRENT_STATE.toString());
+    Map<String, ResourceGroup> resourceGroupMap = event.getAttribute(AttributeName.RESOURCE_GROUPS
+        .toString());
+    CurrentStateOutput currentStateOutput = event.getAttribute(AttributeName.CURRENT_STATE
+        .toString());
     BestPossibleStateOutput bestPossibleStateOutput = event
         .getAttribute(AttributeName.BEST_POSSIBLE_STATE.toString());
-    if (manager == null || cache == null || resourceGroupMap == null
-        || currentStateOutput == null || bestPossibleStateOutput == null)
+    if (manager == null || cache == null || resourceGroupMap == null || currentStateOutput == null
+        || bestPossibleStateOutput == null)
     {
       throw new StageException("Missing attributes in event:" + event
-       + ". Requires HelixManager|DataCache|RESOURCE_GROUPS|CURRENT_STATE|BEST_POSSIBLE_STATE");
+          + ". Requires HelixManager|DataCache|RESOURCE_GROUPS|CURRENT_STATE|BEST_POSSIBLE_STATE");
     }
 
     Map<String, LiveInstance> liveInstances = cache.getLiveInstances();
@@ -47,66 +49,63 @@ public class MessageGenerationPhase extends AbstractBaseStage
 
     for (LiveInstance liveInstance : liveInstances.values())
     {
-      sessionIdMap.put(liveInstance.getInstanceName(),
-          liveInstance.getSessionId());
+      sessionIdMap.put(liveInstance.getInstanceName(), liveInstance.getSessionId());
     }
     MessageGenerationOutput output = new MessageGenerationOutput();
 
     for (String resourceGroupName : resourceGroupMap.keySet())
     {
       ResourceGroup resourceGroup = resourceGroupMap.get(resourceGroupName);
-      StateModelDefinition stateModelDef = cache.getStateModelDef(resourceGroup.getStateModelDefRef());
+      StateModelDefinition stateModelDef = cache.getStateModelDef(resourceGroup
+          .getStateModelDefRef());
 
       for (ResourceKey resource : resourceGroup.getResourceKeys())
       {
-        Map<String, String> instanceStateMap = bestPossibleStateOutput
-            .getInstanceStateMap(resourceGroupName, resource);
+        Map<String, String> instanceStateMap = bestPossibleStateOutput.getInstanceStateMap(
+            resourceGroupName, resource);
 
         for (String instanceName : instanceStateMap.keySet())
         {
           String desiredState = instanceStateMap.get(instanceName);
 
-          String currentState = currentStateOutput.getCurrentState(
-              resourceGroupName, resource, instanceName);
+          String currentState = currentStateOutput.getCurrentState(resourceGroupName, resource,
+              instanceName);
           if (currentState == null)
           {
             currentState = stateModelDef.getInitialState();
           }
 
-          String pendingState = currentStateOutput.getPendingState(
-              resourceGroupName, resource, instanceName);
+          String pendingState = currentStateOutput.getPendingState(resourceGroupName, resource,
+              instanceName);
 
           String nextState;
-            nextState = stateModelDef.getNextStateForTransition(currentState,
-                desiredState);
+          nextState = stateModelDef.getNextStateForTransition(currentState, desiredState);
 
           if (!desiredState.equalsIgnoreCase(currentState))
           {
             if (nextState != null)
             {
-              if (pendingState != null
-                  && nextState.equalsIgnoreCase(pendingState))
+              if (pendingState != null && nextState.equalsIgnoreCase(pendingState))
               {
                 if (logger.isDebugEnabled())
                 {
-                  logger.debug("Message already exists at" + instanceName
-                               + " to transition"+ resource.getResourceKeyName() +" from "
-                               + currentState + " to " + nextState );
+                  logger.debug("Message already exists at" + instanceName + " to transition"
+                      + resource.getResourceKeyName() + " from " + currentState + " to "
+                      + nextState);
                 }
               } else
               {
-                Message message = createMessage(manager,resourceGroupName,
-                    resource.getResourceKeyName(), instanceName, currentState,
-                    nextState, sessionIdMap.get(instanceName), stateModelDef.getId());
+                Message message = createMessage(manager, resourceGroupName,
+                    resource.getResourceKeyName(), instanceName, currentState, nextState,
+                    sessionIdMap.get(instanceName), stateModelDef.getId(),
+                    resourceGroup.getStateModelFactoryName());
 
                 output.addMessage(resourceGroupName, resource, message);
               }
             } else
             {
-              logger
-                  .error("Unable to find a next state from stateModelDefinition"
-                      + stateModelDef.getClass() + " from:" + currentState
-                      + " to:" + desiredState);
+              logger.error("Unable to find a next state from stateModelDefinition"
+                  + stateModelDef.getClass() + " from:" + currentState + " to:" + desiredState);
             }
           }
         }
@@ -116,12 +115,12 @@ public class MessageGenerationPhase extends AbstractBaseStage
     event.addAttribute(AttributeName.MESSAGES_ALL.toString(), output);
   }
 
-  private Message createMessage(HelixManager manager,String resourceGroupName,
-      String resourceKeyName, String instanceName, String currentState,
-      String nextState, String sessionId, String stateModelDefName)
+  private Message createMessage(HelixManager manager, String resourceGroupName,
+      String resourceKeyName, String instanceName, String currentState, String nextState,
+      String sessionId, String stateModelDefName, String stateModelFactoryName)
   {
     String uuid = UUID.randomUUID().toString();
-    Message message = new Message(MessageType.STATE_TRANSITION,uuid);
+    Message message = new Message(MessageType.STATE_TRANSITION, uuid);
     // message.setMsgId(uuid);
     message.setSrcName(manager.getInstanceName());
     message.setTgtName(instanceName);
@@ -133,6 +132,7 @@ public class MessageGenerationPhase extends AbstractBaseStage
     message.setTgtSessionId(sessionId);
     message.setSrcSessionId(manager.getSessionId());
     message.setStateModelDef(stateModelDefName);
+    message.setStateModelFactoryName(stateModelFactoryName);
     return message;
   }
 }

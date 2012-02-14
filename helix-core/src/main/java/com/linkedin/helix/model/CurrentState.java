@@ -21,7 +21,8 @@ public class CurrentState extends ZNRecordDecorator
     SESSION_ID,
     CURRENT_STATE,
     STATE_MODEL_DEF,
-    RESOURCE_GROUP
+    RESOURCE_GROUP,
+    STATE_MODEL_FACTORY_NAME,
   }
 
   public CurrentState(String id)

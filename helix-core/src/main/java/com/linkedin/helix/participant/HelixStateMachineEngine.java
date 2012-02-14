@@ -18,14 +18,15 @@ import com.linkedin.helix.participant.statemachine.StateModelParser;
 
 public class HelixStateMachineEngine implements StateMachineEngine
 {
-  private static Logger logger = Logger.getLogger(HelixStateMachineEngine.class);
-  private final Map<String, StateModelFactory<? extends StateModel>> _stateModelFactoryMap
-     = new ConcurrentHashMap<String, StateModelFactory<? extends StateModel>>();
+  private static Logger logger = Logger
+      .getLogger(HelixStateMachineEngine.class);
+  private final Map<String, StateModelFactory<? extends StateModel>> _stateModelFactoryMap = new ConcurrentHashMap<String, StateModelFactory<? extends StateModel>>();
   StateModelParser _stateModelParser;
   final static char SEPARATOR = '^';
   private final HelixManager _manager;
 
-  public StateModelFactory<? extends StateModel> getStateModelFactory(String stateModelName)
+  public StateModelFactory<? extends StateModel> getStateModelFactory(
+      String stateModelName)
   {
     return _stateModelFactoryMap.get(stateModelName);
   }
@@ -37,24 +38,27 @@ public class HelixStateMachineEngine implements StateMachineEngine
   }
 
   @Override
-  public boolean registerStateModelFactory(String stateModelDef, StateModelFactory<? extends StateModel> factory)
+  public boolean registerStateModelFactory(String stateModelDef,
+      StateModelFactory<? extends StateModel> factory)
   {
     return registerStateModelFactory(stateModelDef, null, factory);
   }
 
   @Override
-  public boolean registerStateModelFactory(String stateModelDef, String resourceGroupName,
-      StateModelFactory<? extends StateModel> factory)
+  public boolean registerStateModelFactory(String stateModelDef,
+      String resourceGroupName, StateModelFactory<? extends StateModel> factory)
   {
     if (_manager.isConnected())
     {
-      throw new HelixException("stateModelFactory cannot be registered after manager is connected");
+      throw new HelixException(
+          "stateModelFactory cannot be registered after manager is connected");
     }
 
     if (stateModelDef == null || stateModelDef.contains("" + SEPARATOR))
     {
-      throw new HelixException("stateModelDef cannot be null or contains character "
-          + SEPARATOR + " (was " + stateModelDef + ")");
+      throw new HelixException(
+          "stateModelDef cannot be null or contains character " + SEPARATOR
+              + " (was " + stateModelDef + ")");
     }
 
     if (resourceGroupName != null && resourceGroupName.contains("" + SEPARATOR))
@@ -64,12 +68,14 @@ public class HelixStateMachineEngine implements StateMachineEngine
     }
 
     logger.info("Register state model factory for state model " + stateModelDef
-              + " for resource group " + resourceGroupName + " with " +  factory);
+        + " for resource group " + resourceGroupName + " with " + factory);
 
-    String key = stateModelDef + (resourceGroupName == null? "" : SEPARATOR + resourceGroupName);
+    String key = stateModelDef
+        + (resourceGroupName == null ? "" : SEPARATOR + resourceGroupName);
     if (_stateModelFactoryMap.containsKey(key))
     {
-      logger.warn("StateModelFactory for " + key + " has already been registered.");
+      logger.warn("StateModelFactory for " + key
+          + " has already been registered.");
       return false;
     }
 
@@ -80,9 +86,11 @@ public class HelixStateMachineEngine implements StateMachineEngine
   @Override
   public void reset()
   {
-    for (StateModelFactory<? extends StateModel> stateModelFactory : _stateModelFactoryMap.values())
+    for (StateModelFactory<? extends StateModel> stateModelFactory : _stateModelFactoryMap
+        .values())
     {
-      Map<String, ? extends StateModel> modelMap = stateModelFactory.getStateModelMap();
+      Map<String, ? extends StateModel> modelMap = stateModelFactory
+          .getStateModelMap();
       if (modelMap == null || modelMap.isEmpty())
       {
         return;
@@ -91,9 +99,11 @@ public class HelixStateMachineEngine implements StateMachineEngine
       {
         StateModel stateModel = modelMap.get(resourceKey);
         stateModel.reset();
-        String initialState = _stateModelParser.getInitialState(stateModel.getClass());
+        String initialState = _stateModelParser.getInitialState(stateModel
+            .getClass());
         stateModel.updateState(initialState);
-        // todo probably should update the state on ZK. Shi confirm what needs to
+        // todo probably should update the state on ZK. Shi confirm what needs
+        // to
         // be done here.
       }
     }
@@ -107,8 +117,8 @@ public class HelixStateMachineEngine implements StateMachineEngine
 
     if (!type.equals(MessageType.STATE_TRANSITION.toString()))
     {
-      throw new HelixException("Unexpected msg type for message " + message.getMsgId()
-          + " type:" + message.getMsgType());
+      throw new HelixException("Unexpected msg type for message "
+          + message.getMsgId() + " type:" + message.getMsgType());
     }
 
     String stateUnitKey = message.getStateUnitKey();
@@ -125,7 +135,7 @@ public class HelixStateMachineEngine implements StateMachineEngine
     if (stateModelFactory == null)
     {
       stateModelFactory = getStateModelFactory(stateModelName);
-      if(stateModelFactory == null)
+      if (stateModelFactory == null)
       {
         logger.warn("Cannot find stateModelFactory for model " + stateModelName
             + " resourceGroup " + resourceGroupName);
@@ -135,7 +145,7 @@ public class HelixStateMachineEngine implements StateMachineEngine
     StateModel stateModel = stateModelFactory.getStateModel(stateUnitKey);
     if (stateModel == null)
     {
-      //stateModelFactory.addStateModel(key,stateModelFactory.createNewStateModel(stateUnitKey));
+      // stateModelFactory.addStateModel(key,stateModelFactory.createNewStateModel(stateUnitKey));
       stateModelFactory.createAndAddStateModel(stateUnitKey);
       stateModel = stateModelFactory.getStateModel(stateUnitKey);
     }
@@ -146,5 +156,19 @@ public class HelixStateMachineEngine implements StateMachineEngine
   public String getMessageType()
   {
     return MessageType.STATE_TRANSITION.toString();
+  }
+
+  @Override
+  public boolean removeStateModelFactory(String stateModelDef,
+      StateModelFactory<? extends StateModel> factory)
+  {
+    throw new UnsupportedOperationException("Remove not yet supported");
+  }
+
+  @Override
+  public boolean removeStateModelFactory(String stateModelDef,
+      String resourceGroupName, StateModelFactory<? extends StateModel> factory)
+  {
+    throw new UnsupportedOperationException("Remove not yet supported");
   }
 }

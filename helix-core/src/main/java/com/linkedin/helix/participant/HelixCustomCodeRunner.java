@@ -5,6 +5,8 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.apache.log4j.Logger;
+import org.apache.zookeeper.ZooDefs;
+import org.apache.zookeeper.ZooKeeper;
 
 import com.linkedin.helix.HelixConstants.ChangeType;
 import com.linkedin.helix.HelixConstants.StateModelToken;
@@ -37,6 +39,7 @@ import com.linkedin.helix.model.IdealState.IdealStateModeProperty;
  */
 public class HelixCustomCodeRunner
 {
+  private static final String LEADER_STANDBY = "LeaderStandby";
   private static Logger LOG = Logger.getLogger(HelixCustomCodeRunner.class);
   private static String PARTICIPANT_LEADER = "PARTICIPANT_LEADER";
 
@@ -45,6 +48,7 @@ public class HelixCustomCodeRunner
   private String _resGroupName;
   private final HelixManager _manager;
   private final String _zkAddr;
+  private GenericLeaderStandbyStateModelFactory _stateModelFty;
 
   /**
    * Constructs a HelixCustomCodeRunner that will run exactly in one place
@@ -107,41 +111,59 @@ public class HelixCustomCodeRunner
           "Require callback | notificationTypes | resourceGroupName");
     }
 
-    GenericLeaderStandbyStateModelFactory stateModelFty = new GenericLeaderStandbyStateModelFactory(
-        _callback, _notificationTypes);
+    _stateModelFty = new GenericLeaderStandbyStateModelFactory(_callback,
+        _notificationTypes);
 
     StateMachineEngine stateMach = _manager.getStateMachineEngine();
-    stateMach.registerStateModelFactory("LeaderStandby", _resGroupName,
-        stateModelFty);
-
-    // manually add ideal state for participant leader using LeaderStandby model
-    ZkClient zkClient = new ZkClient(_zkAddr);
-    zkClient.setZkSerializer(new ZNRecordSerializer());
-    DataAccessor accessor = new ZKDataAccessor(_manager.getClusterName(),
-        zkClient);
-
-    IdealState idealState = new IdealState(_resGroupName);
-    idealState.setIdealStateMode(IdealStateModeProperty.AUTO.toString());
-    idealState.setReplicas(StateModelToken.ANY_LIVEINSTANCE.toString());
-    idealState.setNumPartitions(1);
-    idealState.setStateModelDefRef("LeaderStandby");
-    List<String> prefList = new ArrayList<String>(
-        Arrays.asList(StateModelToken.ANY_LIVEINSTANCE.toString()));
-    idealState.getRecord().setListField(_resGroupName + "_0", prefList);
-
-    List<String> idealStates = accessor.getChildNames(PropertyType.IDEALSTATES);
-    while (idealStates == null || !idealStates.contains(_resGroupName))
+    stateMach.registerStateModelFactory(LEADER_STANDBY, _resGroupName,
+        _stateModelFty);
+    ZkClient zkClient = null;
+    try
     {
-      accessor.setProperty(PropertyType.IDEALSTATES, idealState, _resGroupName);
-      idealStates = accessor.getChildNames(PropertyType.IDEALSTATES);
+      // manually add ideal state for participant leader using LeaderStandby
+      // model
+
+      zkClient = new ZkClient(_zkAddr);
+      zkClient.setZkSerializer(new ZNRecordSerializer());
+      DataAccessor accessor = new ZKDataAccessor(_manager.getClusterName(),
+          zkClient);
+
+      IdealState idealState = new IdealState(_resGroupName);
+      idealState.setIdealStateMode(IdealStateModeProperty.AUTO.toString());
+      idealState.setReplicas(StateModelToken.ANY_LIVEINSTANCE.toString());
+      idealState.setNumPartitions(1);
+      idealState.setStateModelDefRef(LEADER_STANDBY);
+      List<String> prefList = new ArrayList<String>(
+          Arrays.asList(StateModelToken.ANY_LIVEINSTANCE.toString()));
+      idealState.getRecord().setListField(_resGroupName + "_0", prefList);
+
+      List<String> idealStates = accessor
+          .getChildNames(PropertyType.IDEALSTATES);
+      while (idealStates == null || !idealStates.contains(_resGroupName))
+      {
+        accessor.setProperty(PropertyType.IDEALSTATES, idealState,
+            _resGroupName);
+        idealStates = accessor.getChildNames(PropertyType.IDEALSTATES);
+      }
+
+      LOG.info("Set idealState for participantLeader:" + _resGroupName
+          + ", idealState:" + idealState);
+    } finally
+    {
+      if (zkClient != null && zkClient.getConnection() != null)
+
+      {
+        zkClient.close();
+      }
     }
 
-    LOG.debug("Set idealState for participantLeader:" + _resGroupName
-        + ", idealState:" + idealState);
   }
 
   public void stop()
   {
+    LOG.info("Removing stateModelFactory for " + _resGroupName);
+    _manager.getStateMachineEngine().removeStateModelFactory(LEADER_STANDBY,
+        _resGroupName, _stateModelFty);
 
   }
 }

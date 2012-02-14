@@ -12,4 +12,12 @@ public interface StateMachineEngine extends MessageHandlerFactory
   public boolean registerStateModelFactory(String stateModelDef, 
                                            String resourceGroupName, 
                                            StateModelFactory<? extends StateModel> factory);
+  
+  public boolean removeStateModelFactory(String stateModelDef, 
+      StateModelFactory<? extends StateModel> factory);
+  
+  public boolean removeStateModelFactory(String stateModelDef, 
+      String resourceGroupName, 
+      StateModelFactory<? extends StateModel> factory);
+  
 }

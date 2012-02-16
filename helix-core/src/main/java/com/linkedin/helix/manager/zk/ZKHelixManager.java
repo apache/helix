@@ -130,7 +130,7 @@ public class ZKHelixManager implements HelixManager
     _version = new PropertiesReader("cluster-manager-version.properties")
         .getProperty("clustermanager.version");
 
-    _stateMachEngine = new HelixStateMachineEngine();
+    _stateMachEngine = new HelixStateMachineEngine(this);
   }
 
   private boolean isInstanceSetup()
@@ -485,7 +485,7 @@ public class ZKHelixManager implements HelixManager
 
   /**
    * This will be invoked when ever a new session is created<br/>
-   * 
+   *
    * case 1: the cluster manager was a participant carry over current state, add
    * live instance, and invoke message listener; case 2: the cluster manager was
    * controller and was a leader before do leader election, and if it becomes

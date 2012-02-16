@@ -83,7 +83,7 @@ public class DynamicFileHelixManager implements HelixManager
     _version = new PropertiesReader("cluster-manager-version.properties")
         .getProperty("clustermanager.version");
 
-    _stateMachEngine = new HelixStateMachineEngine();
+    _stateMachEngine = new HelixStateMachineEngine(this);
 
     _messagingService.registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(),
         _stateMachEngine);

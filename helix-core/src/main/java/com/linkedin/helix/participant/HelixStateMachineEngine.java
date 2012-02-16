@@ -1,13 +1,17 @@
 package com.linkedin.helix.participant;
 
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.log4j.Logger;
 
 import com.linkedin.helix.HelixConstants;
 import com.linkedin.helix.HelixException;
+import com.linkedin.helix.HelixManager;
+import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.NotificationContext;
+import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.messaging.handling.HelixStateTransitionHandler;
 import com.linkedin.helix.messaging.handling.MessageHandler;
 import com.linkedin.helix.model.Message;
@@ -24,9 +28,7 @@ public class HelixStateMachineEngine implements StateMachineEngine
   private final Map<String, Map<String, StateModelFactory<? extends StateModel>>> _stateModelFactoryMap = new ConcurrentHashMap<String, Map<String, StateModelFactory<? extends StateModel>>>();
   StateModelParser _stateModelParser;
 
-  // final static char SEPARATOR = '^';
-
-  // private final HelixManager _manager;
+  private final HelixManager _manager;
 
   public StateModelFactory<? extends StateModel> getStateModelFactory(String stateModelName)
   {
@@ -39,11 +41,10 @@ public class HelixStateMachineEngine implements StateMachineEngine
     return _stateModelFactoryMap.get(stateModelName).get(factoryName);
   }
 
-  // public HelixStateMachineEngine(HelixManager manager)
-  public HelixStateMachineEngine()
+  public HelixStateMachineEngine(HelixManager manager)
   {
     _stateModelParser = new StateModelParser();
-    // _manager = manager;
+    _manager = manager;
   }
 
   @Override
@@ -58,31 +59,14 @@ public class HelixStateMachineEngine implements StateMachineEngine
   public boolean registerStateModelFactory(String stateModelDef,
       StateModelFactory<? extends StateModel> factory, String factoryName)
   {
-    // if (_manager.isConnected())
-    // {
-    // throw new
-    // HelixException("stateModelFactory cannot be registered after manager is connected");
-    // }
-
-    // if (stateModelDef == null || stateModelDef.contains("" + SEPARATOR))
     if (stateModelDef == null || factory == null || factoryName == null)
     {
       throw new HelixException("stateModelDef|stateModelFactory|factoryName cannot be null");
     }
 
-    // if (resourceGroupName != null && resourceGroupName.contains("" +
-    // SEPARATOR))
-    // {
-    // throw new HelixException("resourceGroupName cannot contain character " +
-    // SEPARATOR + " (was "
-    // + resourceGroupName + ")");
-    // }
-
     logger.info("Register state model factory for state model " + stateModelDef
         + " using factory name " + factoryName + " with " + factory);
 
-    // String key = stateModelDef + (resourceGroupName == null ? "" : SEPARATOR
-    // + resourceGroupName);
     if (!_stateModelFactoryMap.containsKey(stateModelDef))
     {
       _stateModelFactoryMap.put(stateModelDef,
@@ -97,7 +81,45 @@ public class HelixStateMachineEngine implements StateMachineEngine
     }
 
     _stateModelFactoryMap.get(stateModelDef).put(factoryName, factory);
+    sendNopMessage();
     return true;
+  }
+
+  // TODO: duplicated code in DefaultMessagingService
+  private void sendNopMessage()
+  {
+    if (_manager.isConnected())
+    {
+      try
+      {
+        Message nopMsg = new Message(MessageType.NO_OP, UUID.randomUUID().toString());
+        nopMsg.setSrcName(_manager.getInstanceName());
+
+        if (_manager.getInstanceType() == InstanceType.CONTROLLER
+            || _manager.getInstanceType() == InstanceType.CONTROLLER_PARTICIPANT)
+        {
+          nopMsg.setTgtName("Controller");
+          _manager.getDataAccessor().setProperty(PropertyType.MESSAGES_CONTROLLER,
+                                                 nopMsg,
+                                                 nopMsg.getId());
+        }
+
+        if (_manager.getInstanceType() == InstanceType.PARTICIPANT
+            || _manager.getInstanceType() == InstanceType.CONTROLLER_PARTICIPANT)
+        {
+          nopMsg.setTgtName(_manager.getInstanceName());
+          _manager.getDataAccessor().setProperty(PropertyType.MESSAGES,
+                                                 nopMsg,
+                                                 nopMsg.getTgtName(),
+                                                 nopMsg.getId());
+        }
+
+      }
+      catch (Exception e)
+      {
+        logger.error(e);
+      }
+    }
   }
 
   @Override

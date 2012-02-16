@@ -17,7 +17,6 @@ import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.ZNRecordDecorator;
 import com.linkedin.helix.store.PropertyJsonComparator;
 import com.linkedin.helix.store.PropertyJsonSerializer;
-import com.linkedin.helix.store.PropertySerializer;
 import com.linkedin.helix.store.PropertyStore;
 import com.linkedin.helix.store.PropertyStoreException;
 import com.linkedin.helix.store.file.FilePropertyStore;
@@ -102,7 +101,7 @@ public class FileDataAccessor implements DataAccessor
   }
 
   @Override
-  public <T extends ZNRecordDecorator> 
+  public <T extends ZNRecordDecorator>
     T getProperty(Class<T> clazz, PropertyType type, String... keys)
   {
     ZNRecord record = getProperty(type, keys);
@@ -186,7 +185,7 @@ public class FileDataAccessor implements DataAccessor
   }
 
   @Override
-  public <T extends ZNRecordDecorator> 
+  public <T extends ZNRecordDecorator>
     List<T> getChildValues(Class<T> clazz, PropertyType type, String... keys)
   {
     List<ZNRecord> list = getChildValues(type, keys);
@@ -238,8 +237,10 @@ public class FileDataAccessor implements DataAccessor
       _store.createPropertyNamespace(path);
     }
 
-    PropertySerializer<ZNRecord> serializer = new PropertyJsonSerializer<ZNRecord>(ZNRecord.class);
-    return new FilePropertyStore<ZNRecord>(serializer, path, new PropertyJsonComparator<ZNRecord>(ZNRecord.class));
+    String propertyStoreRoot = _store.getPropertyRootNamespace() + path;
+    return new FilePropertyStore<ZNRecord>(new PropertyJsonSerializer<ZNRecord>(ZNRecord.class),
+                                           propertyStoreRoot,
+                                           new PropertyJsonComparator<ZNRecord>(ZNRecord.class));
   }
 
   // HACK remove it later

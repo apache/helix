@@ -172,7 +172,7 @@ public class TestZKCallback extends ZkUnitTestBase
     message.setStateModelFactoryName(HelixConstants.DEFAULT_STATE_MODEL_FACTORY);
 
     dataAccessor.setProperty(PropertyType.MESSAGES, message, "localhost_8900", message.getId());
-    Thread.sleep(100);
+    Thread.sleep(500);
     AssertJUnit.assertTrue(testListener.messageChangeReceived);
 
     // dummyRecord = new ZNRecord("localhost_9801");
@@ -180,7 +180,7 @@ public class TestZKCallback extends ZkUnitTestBase
     liveInstance.setSessionId(UUID.randomUUID().toString());
     liveInstance.setHelixVersion(UUID.randomUUID().toString());
     dataAccessor.setProperty(PropertyType.LIVEINSTANCES, liveInstance, "localhost_9801");
-    Thread.sleep(100);
+    Thread.sleep(500);
     AssertJUnit.assertTrue(testListener.liveInstanceChangeReceived);
     testListener.Reset();
 

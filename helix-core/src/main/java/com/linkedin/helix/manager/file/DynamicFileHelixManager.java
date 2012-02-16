@@ -300,7 +300,10 @@ public class DynamicFileHelixManager implements HelixManager
   @Override
   public PropertyStore<ZNRecord> getPropertyStore()
   {
-    // TODO Auto-generated method stub
+    if (_fileDataAccessor != null)
+    {
+      return _fileDataAccessor.getPropertyStore();
+    }
     return null;
   }
 

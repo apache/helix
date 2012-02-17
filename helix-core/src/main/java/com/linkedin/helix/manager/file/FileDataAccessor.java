@@ -24,14 +24,31 @@ import com.linkedin.helix.store.file.FilePropertyStore;
 public class FileDataAccessor implements DataAccessor
 {
   private static Logger LOG = Logger.getLogger(FileDataAccessor.class);
+  // store that is used by FileDataAccessor
   private final FilePropertyStore<ZNRecord> _store;
   private final String _clusterName;
   private final ReadWriteLock _readWriteLock = new ReentrantReadWriteLock();
+
+  // property store that is for custom use
+  private final PropertyStore<ZNRecord> _propertyStore;
 
   public FileDataAccessor(FilePropertyStore<ZNRecord> store, String clusterName)
   {
     _store = store;
     _clusterName = clusterName;
+
+    String path = PropertyPathConfig.getPath(PropertyType.PROPERTYSTORE, _clusterName);
+    if (!_store.exists(path))
+    {
+      _store.createPropertyNamespace(path);
+    }
+
+    String propertyStoreRoot = _store.getPropertyRootNamespace() + path;
+    _propertyStore =
+        new FilePropertyStore<ZNRecord>(new PropertyJsonSerializer<ZNRecord>(ZNRecord.class),
+                                        propertyStoreRoot,
+                                        new PropertyJsonComparator<ZNRecord>(ZNRecord.class));
+
   }
 
   @Override
@@ -231,16 +248,18 @@ public class FileDataAccessor implements DataAccessor
   @Override
   public PropertyStore<ZNRecord> getPropertyStore()
   {
-    String path = PropertyPathConfig.getPath(PropertyType.PROPERTYSTORE, _clusterName);
-    if (!_store.exists(path))
-    {
-      _store.createPropertyNamespace(path);
-    }
-
-    String propertyStoreRoot = _store.getPropertyRootNamespace() + path;
-    return new FilePropertyStore<ZNRecord>(new PropertyJsonSerializer<ZNRecord>(ZNRecord.class),
-                                           propertyStoreRoot,
-                                           new PropertyJsonComparator<ZNRecord>(ZNRecord.class));
+    // String path = PropertyPathConfig.getPath(PropertyType.PROPERTYSTORE, _clusterName);
+    // if (!_store.exists(path))
+    // {
+    // _store.createPropertyNamespace(path);
+    // }
+    //
+    // String propertyStoreRoot = _store.getPropertyRootNamespace() + path;
+    // return new FilePropertyStore<ZNRecord>(new
+    // PropertyJsonSerializer<ZNRecord>(ZNRecord.class),
+    // propertyStoreRoot,
+    // new PropertyJsonComparator<ZNRecord>(ZNRecord.class));
+    return _propertyStore;
   }
 
   // HACK remove it later

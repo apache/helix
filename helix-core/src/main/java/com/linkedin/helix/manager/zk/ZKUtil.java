@@ -148,7 +148,7 @@ public final class ZKUtil
             @Override
             public ZNRecord update(ZNRecord currentData)
             {
-              if(mergeOnUpdate)
+              if (currentData != null && mergeOnUpdate)
               {
                 currentData.merge(record);
                 return currentData;

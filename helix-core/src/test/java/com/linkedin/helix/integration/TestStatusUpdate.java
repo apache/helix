@@ -9,19 +9,25 @@ import java.util.Set;
 
 import org.testng.Assert;
 import org.testng.annotations.Test;
-import com.linkedin.helix.manager.zk.*;
+
+import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
+import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.PropertyType;
+import com.linkedin.helix.ZNRecord;
+import com.linkedin.helix.manager.zk.ZKDataAccessor;
+import com.linkedin.helix.manager.zk.ZNRecordSerializer;
+import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.model.ExternalView;
-import com.linkedin.helix.*;
 
 public class TestStatusUpdate extends ZkStandAloneCMTestBase
 {
 
   static class Transition implements Comparable<Transition>
   {
-    private String _msgID;
-    private long   _timeStamp;
-    private String _from;
-    private String _to;
+    private final String _msgID;
+    private final long   _timeStamp;
+    private final String _from;
+    private final String _to;
 
     public Transition(String msgID, long timeStamp, String from, String to)
     {
@@ -62,6 +68,7 @@ public class TestStatusUpdate extends ZkStandAloneCMTestBase
       return _msgID;
     }
     
+    @Override
     public String toString() 
     {
       return _msgID + ":" + _timeStamp + ":" + _from + "->" + _to;
@@ -75,8 +82,8 @@ public class TestStatusUpdate extends ZkStandAloneCMTestBase
 
   static class StatusUpdateContents
   {
-    private List<Transition>  _transitions;
-    private Map<String, TaskStatus> _taskMessages;
+    private final List<Transition>  _transitions;
+    private final Map<String, TaskStatus> _taskMessages;
 
     private StatusUpdateContents(List<Transition> transitions,
                                  Map<String, TaskStatus> taskMessages)
@@ -93,7 +100,8 @@ public class TestStatusUpdate extends ZkStandAloneCMTestBase
                                                                String resourceGroup,
                                                                String partition)
     {
-      List<ZNRecord> instances = accessor.getChildValues(PropertyType.CONFIGS);
+      List<ZNRecord> instances = accessor.getChildValues(PropertyType.CONFIGS,
+          ConfigScopeProperty.PARTICIPANT.toString());
       List<ZNRecord> partitionRecords = new ArrayList<ZNRecord>();
       for (ZNRecord znRecord : instances)
       {

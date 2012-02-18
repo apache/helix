@@ -7,20 +7,19 @@ import org.testng.AssertJUnit;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
+import com.linkedin.helix.ClusterMessagingService;
 import com.linkedin.helix.HelixAdmin;
 import com.linkedin.helix.HelixException;
-import com.linkedin.helix.ClusterMessagingService;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.manager.MockListener;
-import com.linkedin.helix.manager.file.DynamicFileHelixManager;
-import com.linkedin.helix.manager.file.FileHelixAdmin;
 import com.linkedin.helix.mock.storage.DummyProcess;
 import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.model.IdealState.IdealStateModeProperty;
 import com.linkedin.helix.model.InstanceConfig;
 import com.linkedin.helix.store.PropertyJsonComparator;
 import com.linkedin.helix.store.PropertyJsonSerializer;
+import com.linkedin.helix.store.PropertyStore;
 import com.linkedin.helix.store.PropertyStoreException;
 import com.linkedin.helix.store.file.FilePropertyStore;
 
@@ -51,7 +50,7 @@ public class UnitTestDynFileClusterMgr
   }
 
   @Test()
-  public void testBasic()
+  public void testBasic() throws PropertyStoreException
   {
     final String clusterName = className + "_basic";
     String controllerName = "controller_0";
@@ -77,7 +76,14 @@ public class UnitTestDynFileClusterMgr
     AssertJUnit.assertEquals(clusterName, controller.getClusterName());
     AssertJUnit.assertEquals(0, controller.getLastNotificationTime());
     AssertJUnit.assertEquals(InstanceType.CONTROLLER, controller.getInstanceType());
-    AssertJUnit.assertNull(controller.getPropertyStore());
+
+    // AssertJUnit.assertNull(controller.getPropertyStore());
+    PropertyStore<ZNRecord> propertyStore = controller.getPropertyStore();
+    AssertJUnit.assertNotNull(propertyStore);
+    propertyStore.setProperty("testKey", new ZNRecord("testValue"));
+    ZNRecord record = propertyStore.getProperty("testKey");
+    Assert.assertEquals(record.getId(), "testValue");
+
     AssertJUnit.assertNull(controller.getHealthReportCollector());
 
     MockListener controllerListener = new MockListener();

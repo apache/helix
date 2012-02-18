@@ -19,7 +19,6 @@ import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.ZNRecordDecorator;
 import com.linkedin.helix.store.PropertyJsonSerializer;
-import com.linkedin.helix.store.PropertySerializer;
 import com.linkedin.helix.store.PropertyStore;
 import com.linkedin.helix.store.zk.ZKPropertyStore;
 
@@ -29,6 +28,7 @@ public class ZKDataAccessor implements DataAccessor
 
   protected final String _clusterName;
   protected final ZkClient _zkClient;
+  protected final PropertyStore<ZNRecord> _propertyStore;
 
   /**
    * If a PropertyType has children (e.g. CONFIGS), then the parent path is the
@@ -41,6 +41,14 @@ public class ZKDataAccessor implements DataAccessor
   {
     _clusterName = clusterName;
     _zkClient = zkClient;
+
+    String path = PropertyPathConfig.getPath(PropertyType.PROPERTYSTORE, _clusterName);
+    if (!_zkClient.exists(path))
+    {
+      _zkClient.createPersistent(path);
+    }
+
+    _propertyStore = new ZKPropertyStore<ZNRecord>(_zkClient, new PropertyJsonSerializer<ZNRecord>(ZNRecord.class), path);
   }
 
   @Override
@@ -122,8 +130,8 @@ public class ZKDataAccessor implements DataAccessor
   }
 
   @Override
-  public <T extends ZNRecordDecorator> T getProperty(Class<T> clazz, PropertyType type,
-      String... keys)
+  public <T extends ZNRecordDecorator>
+    T getProperty(Class<T> clazz, PropertyType type, String... keys)
   {
     return ZNRecordDecorator.convertToTypedInstance(clazz, getProperty(type, keys));
   }
@@ -173,8 +181,8 @@ public class ZKDataAccessor implements DataAccessor
   }
 
   @Override
-  public <T extends ZNRecordDecorator> List<T> getChildValues(Class<T> clazz, PropertyType type,
-      String... keys)
+  public <T extends ZNRecordDecorator>
+    List<T> getChildValues(Class<T> clazz, PropertyType type, String... keys)
   {
     List<ZNRecord> newChilds = getChildValues(type, keys);
     if (newChilds.size() > 0)
@@ -212,13 +220,7 @@ public class ZKDataAccessor implements DataAccessor
   @Override
   public PropertyStore<ZNRecord> getPropertyStore()
   {
-    String path = PropertyPathConfig.getPath(PropertyType.PROPERTYSTORE, _clusterName);
-    if (!_zkClient.exists(path))
-    {
-      _zkClient.createPersistent(path);
-    }
-    PropertySerializer<ZNRecord> serializer = new PropertyJsonSerializer<ZNRecord>(ZNRecord.class);
-    return new ZKPropertyStore<ZNRecord>(_zkClient, serializer, path);
+    return _propertyStore;
   }
 
   public void reset()
@@ -311,8 +313,8 @@ public class ZKDataAccessor implements DataAccessor
   }
 
   @Override
-  public <T extends ZNRecordDecorator> Map<String, T> getChildValuesMap(Class<T> clazz,
-      PropertyType type, String... keys)
+  public <T extends ZNRecordDecorator>
+    Map<String, T> getChildValuesMap(Class<T> clazz, PropertyType type, String... keys)
   {
     List<T> list = getChildValues(clazz, type, keys);
     return Collections.unmodifiableMap(ZNRecordDecorator.convertListToMap(list));

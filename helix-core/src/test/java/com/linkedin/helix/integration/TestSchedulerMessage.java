@@ -128,11 +128,11 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBase
     
     schedulerMessage.getRecord().setSimpleField("Criteria", crString);
     schedulerMessage.getRecord().setMapField("MessageTemplate", msg.getRecord().getSimpleFields());
-    schedulerMessage.getRecord().setSimpleField("TIMEOUT", 5000+"");
+    schedulerMessage.getRecord().setSimpleField("TIMEOUT", "-1");
     
     manager.getDataAccessor().setProperty(PropertyType.MESSAGES_CONTROLLER, schedulerMessage, schedulerMessage.getMsgId());
     
-    Thread.sleep(10000);
+    Thread.sleep(15000);
     
     Assert.assertEquals(_PARTITIONS, factory._results.size());
     

@@ -93,30 +93,30 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
         Map<String, String> currentStateMap =
             currentStateOutput.getCurrentStateMap(resourceName, partition);
 
-        Map<String, String> bestStateForResource;
-        Set<String> disabledInstancesForResource
+        Map<String, String> bestStateForPartition;
+        Set<String> disabledInstancesForPartition
           = cache.getDisabledInstancesForPartition(partition.toString());
 
         if (idealState.getIdealStateMode() == IdealStateModeProperty.CUSTOMIZED)
         {
           Map<String, String> idealStateMap = idealState.getInstanceStateMap(partition.getPartitionName());
-          bestStateForResource = computeCustomizedBestStateForResource(cache, stateModelDef,
+          bestStateForPartition = computeCustomizedBestStateForPartition(cache, stateModelDef,
                                                                        idealStateMap,
                                                                        currentStateMap,
-                                                                       disabledInstancesForResource);
+                                                                       disabledInstancesForPartition);
         }
         else
         {
           List<String> instancePreferenceList
             = getPreferenceList(cache, partition, idealState, stateModelDef);
-          bestStateForResource =
-              computeAutoBestStateForResource(cache, stateModelDef,
+          bestStateForPartition =
+              computeAutoBestStateForPartition(cache, stateModelDef,
                                               instancePreferenceList,
                                               currentStateMap,
-                                              disabledInstancesForResource);
+                                              disabledInstancesForPartition);
         }
 
-        output.setState(resourceName, partition, bestStateForResource);
+        output.setState(resourceName, partition, bestStateForPartition);
       }
     }
     return output;
@@ -133,7 +133,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
    * @param disabledInstancesForPartition
    * @return
    */
-  private Map<String, String> computeAutoBestStateForResource(ClusterDataCache cache,
+  private Map<String, String> computeAutoBestStateForPartition(ClusterDataCache cache,
                                                               StateModelDefinition stateModelDef,
                                                               List<String> instancePreferenceList,
                                                               Map<String, String> currentStateMap,
@@ -230,14 +230,14 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
    * @param stateModelDef
    * @param idealStateMap
    * @param currentStateMap
-   * @param disabledInstancesForResource
+   * @param disabledInstancesForPartition
    * @return
    */
-  private Map<String, String> computeCustomizedBestStateForResource(ClusterDataCache cache,
+  private Map<String, String> computeCustomizedBestStateForPartition(ClusterDataCache cache,
                                                                     StateModelDefinition stateModelDef,
                                                                     Map<String, String> idealStateMap,
                                                                     Map<String, String> currentStateMap,
-                                                                    Set<String> disabledInstancesForResource)
+                                                                    Set<String> disabledInstancesForPartition)
   {
     Map<String, String> instanceStateMap = new HashMap<String, String>();
 
@@ -252,7 +252,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
           instanceStateMap.put(instance, "DROPPED");
         }
         else if (!"ERROR".equals(currentStateMap.get(instance))
-            && disabledInstancesForResource.contains(instance))
+            && disabledInstancesForPartition.contains(instance))
         {
           // if a non-error node is disabled, put it into initial state (OFFLINE)
           instanceStateMap.put(instance, stateModelDef.getInitialState());
@@ -273,7 +273,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
           currentStateMap == null || !"ERROR".equals(currentStateMap.get(instance));
 
       if (liveInstancesMap.containsKey(instance) && notInErrorState
-          && !disabledInstancesForResource.contains(instance))
+          && !disabledInstancesForPartition.contains(instance))
       {
         instanceStateMap.put(instance, idealStateMap.get(instance));
       }

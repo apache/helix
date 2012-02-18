@@ -16,11 +16,7 @@ import org.testng.AssertJUnit;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import com.linkedin.helix.DataAccessor;
-import com.linkedin.helix.HelixManager;
-import com.linkedin.helix.NotificationContext;
-import com.linkedin.helix.PropertyType;
-import com.linkedin.helix.ZNRecord;
+import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
 import com.linkedin.helix.Mocks.MockAccessor;
 import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.InstanceConfig;
@@ -30,14 +26,12 @@ public class TestRoutingTable
 {
   NotificationContext changeContext = null;
 
-  @BeforeClass ()
+  @BeforeClass()
   public synchronized void setup()
   {
 
-    final String[] array = new String[]
-    { "localhost_8900", "localhost_8901" };
-    HelixManager manager = new Mocks.MockManager()
-    {
+    final String[] array = new String[] { "localhost_8900", "localhost_8901" };
+    HelixManager manager = new Mocks.MockManager() {
       private MockAccessor _mockAccessor;
 
       @Override
@@ -45,12 +39,12 @@ public class TestRoutingTable
       {
         if (_mockAccessor == null)
         {
-          _mockAccessor = new Mocks.MockAccessor()
-          {
+          _mockAccessor = new Mocks.MockAccessor() {
             @Override
             public List<ZNRecord> getChildValues(PropertyType type, String... keys)
             {
-              if (type == PropertyType.CONFIGS)
+              if (type == PropertyType.CONFIGS && keys != null && keys.length >= 1
+                  && keys[0].equalsIgnoreCase(ConfigScopeProperty.PARTICIPANT.toString()))
               {
                 List<ZNRecord> configs = new ArrayList<ZNRecord>();
                 for (String instanceName : array)
@@ -73,7 +67,7 @@ public class TestRoutingTable
     changeContext = new NotificationContext(manager);
   }
 
-  @Test ()
+  @Test()
   public void testNullAndEmpty()
   {
 
@@ -84,7 +78,7 @@ public class TestRoutingTable
 
   }
 
-  @Test ()
+  @Test()
   public void testSimple()
   {
     List<InstanceConfig> instances;
@@ -126,7 +120,7 @@ public class TestRoutingTable
     AssertJUnit.assertEquals(instances.size(), 1);
   }
 
-  @Test ()
+  @Test()
   public void testStateUnitGroupDeletion()
   {
     List<InstanceConfig> instances;
@@ -150,7 +144,7 @@ public class TestRoutingTable
     AssertJUnit.assertEquals(instances.size(), 0);
   }
 
-  @Test ()
+  @Test()
   public void testGetInstanceForAllStateUnits()
   {
     List<InstanceConfig> instancesList;
@@ -194,7 +188,7 @@ public class TestRoutingTable
     AssertJUnit.assertEquals(instancesArray[1].getPort(), "8901");
   }
 
-  @Test ()
+  @Test()
   public void testMultiThread() throws Exception
   {
     final RoutingTableProvider routingTable = new RoutingTableProvider();
@@ -206,8 +200,7 @@ public class TestRoutingTable
     }
     externalViewList.add(new ExternalView(record));
     routingTable.onExternalViewChange(externalViewList, changeContext);
-    Callable<Boolean> runnable = new Callable<Boolean>()
-    {
+    Callable<Boolean> runnable = new Callable<Boolean>() {
       @Override
       public Boolean call() throws Exception
       {
@@ -217,8 +210,8 @@ public class TestRoutingTable
           int count = 0;
           while (count < 100)
           {
-            List<InstanceConfig> instancesList = routingTable.getInstances(
-                "TESTDB", "TESTDB_0", "MASTER");
+            List<InstanceConfig> instancesList = routingTable.getInstances("TESTDB", "TESTDB_0",
+                "MASTER");
             AssertJUnit.assertEquals(instancesList.size(), 1);
             // System.out.println(System.currentTimeMillis() + "-->"
             // + instancesList.size());
@@ -234,8 +227,7 @@ public class TestRoutingTable
         return true;
       }
     };
-    ScheduledExecutorService executor = Executors
-        .newSingleThreadScheduledExecutor();
+    ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
     Future<Boolean> submit = executor.submit(runnable);
     int count = 0;
     while (count < 10)
@@ -256,8 +248,7 @@ public class TestRoutingTable
 
   }
 
-  private void add(ZNRecord record, String stateUnitKey, String instanceName,
-      String state)
+  private void add(ZNRecord record, String stateUnitKey, String instanceName, String state)
   {
     Map<String, String> stateUnitKeyMap = record.getMapField(stateUnitKey);
     if (stateUnitKeyMap == null)

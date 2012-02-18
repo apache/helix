@@ -20,6 +20,7 @@ import org.apache.log4j.Logger;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 
+import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
 import com.linkedin.helix.HelixAdmin;
 import com.linkedin.helix.HelixException;
 import com.linkedin.helix.PropertyType;
@@ -193,7 +194,8 @@ public class ClusterSetup
 
     ZkClient zkClient = ZKClientPool.getZkClient(_zkServerAddress);
     InstanceConfig config = new ZKDataAccessor(clusterName, zkClient).getProperty(
-        InstanceConfig.class, PropertyType.CONFIGS, instanceId);
+        InstanceConfig.class, PropertyType.CONFIGS, ConfigScopeProperty.PARTICIPANT.toString(),
+        instanceId);
     if (config == null)
     {
       String error = "Node " + instanceId + " does not exist, cannot drop";
@@ -249,8 +251,7 @@ public class ClusterSetup
   {
     List<String> InstanceNames = _managementService.getInstancesInCluster(clusterName);
 
-    IdealState idealState = _managementService.getResourceIdealState(clusterName,
-        resourceName);
+    IdealState idealState = _managementService.getResourceIdealState(clusterName, resourceName);
     idealState.setReplicas(Integer.toString(replica));
     int partitions = idealState.getNumPartitions();
     String stateModelName = idealState.getStateModelDefRef();
@@ -610,8 +611,7 @@ public class ClusterSetup
       String resourceName = cmd.getOptionValues(addResource)[1];
       int partitions = Integer.parseInt(cmd.getOptionValues(addResource)[2]);
       String stateModelRef = cmd.getOptionValues(addResource)[3];
-      setupTool
-          .addResourceToCluster(clusterName, resourceName, partitions, stateModelRef);
+      setupTool.addResourceToCluster(clusterName, resourceName, partitions, stateModelRef);
       return 0;
     }
 
@@ -648,8 +648,8 @@ public class ClusterSetup
     if (cmd.hasOption(listResources))
     {
       String clusterName = cmd.getOptionValue(listResources);
-      List<String> resourceNames = setupTool.getClusterManagementTool()
-          .getResourcesInCluster(clusterName);
+      List<String> resourceNames = setupTool.getClusterManagementTool().getResourcesInCluster(
+          clusterName);
 
       System.out.println("Existing resources in cluster " + clusterName + ":");
       for (String resourceName : resourceNames)
@@ -660,8 +660,8 @@ public class ClusterSetup
     } else if (cmd.hasOption(listClusterInfo))
     {
       String clusterName = cmd.getOptionValue(listClusterInfo);
-      List<String> resourceNames = setupTool.getClusterManagementTool()
-          .getResourcesInCluster(clusterName);
+      List<String> resourceNames = setupTool.getClusterManagementTool().getResourcesInCluster(
+          clusterName);
       List<String> Instances = setupTool.getClusterManagementTool().getInstancesInCluster(
           clusterName);
 
@@ -707,8 +707,8 @@ public class ClusterSetup
       String resourceName = cmd.getOptionValues(listResourceInfo)[1];
       IdealState idealState = setupTool.getClusterManagementTool().getResourceIdealState(
           clusterName, resourceName);
-      ExternalView externalView = setupTool.getClusterManagementTool()
-          .getResourceExternalView(clusterName, resourceName);
+      ExternalView externalView = setupTool.getClusterManagementTool().getResourceExternalView(
+          clusterName, resourceName);
 
       System.out.println("IdealState for " + resourceName + ":");
       System.out.println(new String(new ZNRecordSerializer().serialize(idealState.getRecord())));
@@ -777,8 +777,8 @@ public class ClusterSetup
       {
         throw new IllegalArgumentException("ideal state must have same id as resource name");
       }
-      setupTool.getClusterManagementTool().setResourceIdealState(clusterName,
-          resourceName, new IdealState(idealStateRecord));
+      setupTool.getClusterManagementTool().setResourceIdealState(clusterName, resourceName,
+          new IdealState(idealStateRecord));
       return 0;
     } else if (cmd.hasOption(addStat))
     {

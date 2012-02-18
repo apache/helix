@@ -1,14 +1,10 @@
 package com.linkedin.helix.webapp.resources;
 
 import java.io.IOException;
-import java.io.StringWriter;
-import java.util.List;
 import java.util.Map;
 
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.map.SerializationConfig;
 import org.restlet.Context;
 import org.restlet.data.Form;
 import org.restlet.data.MediaType;
@@ -20,8 +16,8 @@ import org.restlet.resource.Resource;
 import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 
+import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
 import com.linkedin.helix.PropertyType;
-import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.tools.ClusterSetup;
 import com.linkedin.helix.webapp.RestAdminApplication;
 
@@ -34,26 +30,31 @@ public class InstanceResource extends Resource
     getVariants().add(new Variant(MediaType.APPLICATION_JSON));
   }
 
+  @Override
   public boolean allowGet()
   {
     return true;
   }
 
+  @Override
   public boolean allowPost()
   {
     return true;
   }
 
+  @Override
   public boolean allowPut()
   {
     return false;
   }
 
+  @Override
   public boolean allowDelete()
   {
     return false;
   }
 
+  @Override
   public Representation represent(Variant variant)
   {
     StringRepresentation presentation = null;
@@ -61,16 +62,12 @@ public class InstanceResource extends Resource
     {
       String zkServer = (String) getContext().getAttributes().get(
           RestAdminApplication.ZKSERVERADDRESS);
-      String clusterName = (String) getRequest().getAttributes().get(
-          "clusterName");
-      String instanceName = (String) getRequest().getAttributes().get(
-          "instanceName");
-      presentation = getInstanceRepresentation(zkServer, clusterName,
-          instanceName);
+      String clusterName = (String) getRequest().getAttributes().get("clusterName");
+      String instanceName = (String) getRequest().getAttributes().get("instanceName");
+      presentation = getInstanceRepresentation(zkServer, clusterName, instanceName);
     } catch (Exception e)
     {
-      String error = ClusterRepresentationUtil
-          .getErrorAsJsonStringFromException(e);
+      String error = ClusterRepresentationUtil.getErrorAsJsonStringFromException(e);
       presentation = new StringRepresentation(error, MediaType.APPLICATION_JSON);
 
       e.printStackTrace();
@@ -78,13 +75,12 @@ public class InstanceResource extends Resource
     return presentation;
   }
 
-  StringRepresentation getInstanceRepresentation(String zkServerAddress,
-      String clusterName, String instanceName) throws JsonGenerationException,
-      JsonMappingException, IOException
+  StringRepresentation getInstanceRepresentation(String zkServerAddress, String clusterName,
+      String instanceName) throws JsonGenerationException, JsonMappingException, IOException
   {
-    String message = ClusterRepresentationUtil.getClusterPropertyAsString(
-        zkServerAddress, clusterName, PropertyType.CONFIGS, instanceName,
-        MediaType.APPLICATION_JSON);
+    String message = ClusterRepresentationUtil.getClusterPropertyAsString(zkServerAddress,
+        clusterName, MediaType.APPLICATION_JSON, PropertyType.CONFIGS,
+        ConfigScopeProperty.PARTICIPANT.toString(), instanceName);
 
     StringRepresentation representation = new StringRepresentation(message,
         MediaType.APPLICATION_JSON);
@@ -92,38 +88,33 @@ public class InstanceResource extends Resource
     return representation;
   }
 
+  @Override
   public void acceptRepresentation(Representation entity)
   {
     try
     {
       String zkServer = (String) getContext().getAttributes().get(
           RestAdminApplication.ZKSERVERADDRESS);
-      String clusterName = (String) getRequest().getAttributes().get(
-          "clusterName");
-      String instanceName = (String) getRequest().getAttributes().get(
-          "instanceName");
+      String clusterName = (String) getRequest().getAttributes().get("clusterName");
+      String instanceName = (String) getRequest().getAttributes().get("instanceName");
 
       Form form = new Form(entity);
       Map<String, String> paraMap = ClusterRepresentationUtil
           .getFormJsonParametersWithCommandVerified(form,
               ClusterRepresentationUtil._enableInstanceCommand);
 
-      boolean enabled = Boolean.parseBoolean(paraMap
-          .get(ClusterRepresentationUtil._enabled));
+      boolean enabled = Boolean.parseBoolean(paraMap.get(ClusterRepresentationUtil._enabled));
 
       ClusterSetup setupTool = new ClusterSetup(zkServer);
-      setupTool.getClusterManagementTool().enableInstance(clusterName,
-          instanceName, enabled);
+      setupTool.getClusterManagementTool().enableInstance(clusterName, instanceName, enabled);
 
-      getResponse().setEntity(
-          getInstanceRepresentation(zkServer, clusterName, instanceName));
+      getResponse().setEntity(getInstanceRepresentation(zkServer, clusterName, instanceName));
       getResponse().setStatus(Status.SUCCESS_OK);
     }
 
     catch (Exception e)
     {
-      getResponse().setEntity(
-          ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),
+      getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),
           MediaType.APPLICATION_JSON);
       getResponse().setStatus(Status.SUCCESS_OK);
     }

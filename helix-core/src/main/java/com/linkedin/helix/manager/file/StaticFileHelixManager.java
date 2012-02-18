@@ -10,16 +10,16 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.DataAccessor;
-import com.linkedin.helix.HelixAdmin;
-import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.ClusterMessagingService;
 import com.linkedin.helix.ClusterView;
 import com.linkedin.helix.ConfigChangeListener;
 import com.linkedin.helix.ControllerChangeListener;
 import com.linkedin.helix.CurrentStateChangeListener;
+import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.ExternalViewChangeListener;
 import com.linkedin.helix.HealthStateChangeListener;
+import com.linkedin.helix.HelixAdmin;
+import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.IdealStateChangeListener;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.LiveInstanceChangeListener;
@@ -41,8 +41,7 @@ import com.linkedin.helix.tools.IdealStateCalculatorByShuffling;
 
 public class StaticFileHelixManager implements HelixManager
 {
-  private static final Logger LOG = Logger
-      .getLogger(StaticFileHelixManager.class.getName());
+  private static final Logger LOG = Logger.getLogger(StaticFileHelixManager.class.getName());
   // for backward compatibility
   // TODO remove it later
   private final ClusterView _clusterView;
@@ -53,8 +52,8 @@ public class StaticFileHelixManager implements HelixManager
   public static final String _sessionId = "12345";
   public static final String configFile = "configFile";
 
-  public StaticFileHelixManager(String clusterName, String instanceName,
-      InstanceType instanceType, String clusterViewFile)
+  public StaticFileHelixManager(String clusterName, String instanceName, InstanceType instanceType,
+      String clusterViewFile)
   {
     _clusterName = clusterName;
     _instanceName = instanceName;
@@ -79,8 +78,7 @@ public class StaticFileHelixManager implements HelixManager
     }
   }
 
-  private static List<Message> computeMessagesForSimpleTransition(
-      ZNRecord idealStateRecord)
+  private static List<Message> computeMessagesForSimpleTransition(ZNRecord idealStateRecord)
   {
     List<Message> msgList = new ArrayList<Message>();
 
@@ -116,8 +114,7 @@ public class StaticFileHelixManager implements HelixManager
     List<ZNRecord> nodeConfigList = new ArrayList<ZNRecord>();
     List<String> instanceNames = new ArrayList<String>();
 
-    Arrays.sort(nodesInfo, new Comparator<String>()
-    {
+    Arrays.sort(nodesInfo, new Comparator<String>() {
 
       @Override
       public int compare(String str1, String str2)
@@ -133,8 +130,7 @@ public class StaticFileHelixManager implements HelixManager
       int lastPos = nodeInfo.lastIndexOf(":");
       if (lastPos == -1)
       {
-        throw new IllegalArgumentException(
-            "nodeInfo should be in format of host:port, " + nodeInfo);
+        throw new IllegalArgumentException("nodeInfo should be in format of host:port, " + nodeInfo);
       }
 
       String host = nodeInfo.substring(0, lastPos);
@@ -142,10 +138,10 @@ public class StaticFileHelixManager implements HelixManager
       String nodeId = host + "_" + port;
       ZNRecord nodeConfig = new ZNRecord(nodeId);
 
-      nodeConfig.setSimpleField(InstanceConfigProperty.ENABLED.toString(),
+      nodeConfig.setSimpleField(InstanceConfigProperty.HELIX_ENABLED.toString(),
           Boolean.toString(true));
-      nodeConfig.setSimpleField(InstanceConfigProperty.HOST.toString(), host);
-      nodeConfig.setSimpleField(InstanceConfigProperty.PORT.toString(), port);
+      nodeConfig.setSimpleField(InstanceConfigProperty.HELIX_HOST.toString(), host);
+      nodeConfig.setSimpleField(InstanceConfigProperty.HELIX_PORT.toString(), port);
 
       instanceNames.add(nodeId);
 
@@ -158,8 +154,8 @@ public class StaticFileHelixManager implements HelixManager
     List<ZNRecord> idealStates = new ArrayList<ZNRecord>();
     for (DBParam dbParam : dbParams)
     {
-      ZNRecord result = IdealStateCalculatorByShuffling.calculateIdealState(
-          instanceNames, dbParam.partitions, replica, dbParam.name);
+      ZNRecord result = IdealStateCalculatorByShuffling.calculateIdealState(instanceNames,
+          dbParam.partitions, replica, dbParam.name);
 
       idealStates.add(result);
     }
@@ -167,8 +163,7 @@ public class StaticFileHelixManager implements HelixManager
 
     // calculate messages for transition using naive algorithm
     Map<String, List<ZNRecord>> msgListForInstance = new HashMap<String, List<ZNRecord>>();
-    List<ZNRecord> idealStatesArray = view
-        .getPropertyList(PropertyType.IDEALSTATES);
+    List<ZNRecord> idealStatesArray = view.getPropertyList(PropertyType.IDEALSTATES);
     for (ZNRecord idealStateRecord : idealStatesArray)
     {
       // IdealState idealState = new IdealState(idealStateRecord);
@@ -199,8 +194,7 @@ public class StaticFileHelixManager implements HelixManager
     // set INSTANCES
     // put message lists into cluster view
     List<ClusterView.MemberInstance> insList = new ArrayList<ClusterView.MemberInstance>();
-    for (Map.Entry<String, List<ZNRecord>> entry : msgListForInstance
-        .entrySet())
+    for (Map.Entry<String, List<ZNRecord>> entry : msgListForInstance.entrySet())
     {
       String instance = entry.getKey();
       List<ZNRecord> msgList = entry.getValue();
@@ -216,15 +210,12 @@ public class StaticFileHelixManager implements HelixManager
     }
 
     // sort it
-    ClusterView.MemberInstance[] insArray = new ClusterView.MemberInstance[insList
-        .size()];
+    ClusterView.MemberInstance[] insArray = new ClusterView.MemberInstance[insList.size()];
     insArray = insList.toArray(insArray);
-    Arrays.sort(insArray, new Comparator<ClusterView.MemberInstance>()
-    {
+    Arrays.sort(insArray, new Comparator<ClusterView.MemberInstance>() {
 
       @Override
-      public int compare(ClusterView.MemberInstance ins1,
-          ClusterView.MemberInstance ins2)
+      public int compare(ClusterView.MemberInstance ins1, ClusterView.MemberInstance ins2)
       {
         return ins1.getInstanceName().compareTo(ins2.getInstanceName());
       }
@@ -249,11 +240,9 @@ public class StaticFileHelixManager implements HelixManager
 
     NotificationContext context = new NotificationContext(this);
     context.setType(NotificationContext.Type.INIT);
-    List<ZNRecord> idealStates = _clusterView
-        .getPropertyList(PropertyType.IDEALSTATES);
+    List<ZNRecord> idealStates = _clusterView.getPropertyList(PropertyType.IDEALSTATES);
     listener.onIdealStateChange(
-        ZNRecordDecorator.convertToTypedList(IdealState.class, idealStates),
-        context);
+        ZNRecordDecorator.convertToTypedList(IdealState.class, idealStates), context);
   }
 
   @Override
@@ -276,15 +265,15 @@ public class StaticFileHelixManager implements HelixManager
     NotificationContext context = new NotificationContext(this);
     context.setType(NotificationContext.Type.INIT);
     List<ZNRecord> messages;
-    messages = _clusterView.getMemberInstance(instanceName, true)
-        .getInstanceProperty(PropertyType.MESSAGES);
-    listener.onMessage(instanceName,
-        ZNRecordDecorator.convertToTypedList(Message.class, messages), context);
+    messages = _clusterView.getMemberInstance(instanceName, true).getInstanceProperty(
+        PropertyType.MESSAGES);
+    listener.onMessage(instanceName, ZNRecordDecorator.convertToTypedList(Message.class, messages),
+        context);
   }
 
   @Override
-  public void addCurrentStateChangeListener(
-      CurrentStateChangeListener listener, String instanceName, String sessionId)
+  public void addCurrentStateChangeListener(CurrentStateChangeListener listener,
+      String instanceName, String sessionId)
   {
     throw new UnsupportedOperationException(
         "addCurrentStateChangeListener is not supported by File Based cluster manager");
@@ -327,15 +316,13 @@ public class StaticFileHelixManager implements HelixManager
     return _sessionId;
   }
 
-  public static ClusterView convertStateModelMapToClusterView(String outFile,
-      String instanceName, StateModelFactory<StateModel> stateModelFactory)
+  public static ClusterView convertStateModelMapToClusterView(String outFile, String instanceName,
+      StateModelFactory<StateModel> stateModelFactory)
   {
-    Map<String, StateModel> currentStateMap = stateModelFactory
-        .getStateModelMap();
+    Map<String, StateModel> currentStateMap = stateModelFactory.getStateModelMap();
     ClusterView curView = new ClusterView();
 
-    ClusterView.MemberInstance memberInstance = curView.getMemberInstance(
-        instanceName, true);
+    ClusterView.MemberInstance memberInstance = curView.getMemberInstance(instanceName, true);
     List<ZNRecord> curStateList = new ArrayList<ZNRecord>();
 
     for (Map.Entry<String, StateModel> entry : currentStateMap.entrySet())
@@ -347,8 +334,7 @@ public class StaticFileHelixManager implements HelixManager
       curStateList.add(record);
     }
 
-    memberInstance
-        .setInstanceProperty(PropertyType.CURRENTSTATES, curStateList);
+    memberInstance.setInstanceProperty(PropertyType.CURRENTSTATES, curStateList);
 
     // serialize to file
     // String outFile = "/tmp/curClusterView_" + instanceName +".json";
@@ -363,24 +349,20 @@ public class StaticFileHelixManager implements HelixManager
     return curView;
   }
 
-  public static boolean verifyFileBasedClusterStates(String instanceName,
-      String expectedFile, String curFile)
+  public static boolean verifyFileBasedClusterStates(String instanceName, String expectedFile,
+      String curFile)
   {
     boolean ret = true;
-    ClusterView expectedView = ClusterViewSerializer.deserialize(new File(
-        expectedFile));
+    ClusterView expectedView = ClusterViewSerializer.deserialize(new File(expectedFile));
     ClusterView curView = ClusterViewSerializer.deserialize(new File(curFile));
 
     // ideal_state for instance with the given instanceName
     Map<String, String> idealStates = new HashMap<String, String>();
-    for (ZNRecord idealStateItem : expectedView
-        .getPropertyList(PropertyType.IDEALSTATES))
+    for (ZNRecord idealStateItem : expectedView.getPropertyList(PropertyType.IDEALSTATES))
     {
-      Map<String, Map<String, String>> allIdealStates = idealStateItem
-          .getMapFields();
+      Map<String, Map<String, String>> allIdealStates = idealStateItem.getMapFields();
 
-      for (Map.Entry<String, Map<String, String>> entry : allIdealStates
-          .entrySet())
+      for (Map.Entry<String, Map<String, String>> entry : allIdealStates.entrySet())
       {
         if (entry.getValue().containsKey(instanceName))
         {
@@ -390,10 +372,8 @@ public class StaticFileHelixManager implements HelixManager
       }
     }
 
-    ClusterView.MemberInstance memberInstance = curView.getMemberInstance(
-        instanceName, false);
-    List<ZNRecord> curStateList = memberInstance
-        .getInstanceProperty(PropertyType.CURRENTSTATES);
+    ClusterView.MemberInstance memberInstance = curView.getMemberInstance(instanceName, false);
+    List<ZNRecord> curStateList = memberInstance.getInstanceProperty(PropertyType.CURRENTSTATES);
 
     if (curStateList == null && idealStates.size() > 0)
     {
@@ -405,9 +385,8 @@ public class StaticFileHelixManager implements HelixManager
       return true;
     } else if (curStateList.size() != idealStates.size())
     {
-      LOG.info("Number of current states (" + curStateList.size()
-          + ") mismatch " + "number of ideal states (" + idealStates.size()
-          + ")");
+      LOG.info("Number of current states (" + curStateList.size() + ") mismatch "
+          + "number of ideal states (" + idealStates.size() + ")");
       return false;
     }
 
@@ -429,9 +408,8 @@ public class StaticFileHelixManager implements HelixManager
       String idealState = idealStates.get(stateUnitKey);
       if (!curState.equalsIgnoreCase(idealState))
       {
-        LOG.error("State mismatch--unit_key:" + stateUnitKey + " cur:"
-            + curState + " ideal:" + idealState + " instance_name:"
-            + instanceName);
+        LOG.error("State mismatch--unit_key:" + stateUnitKey + " cur:" + curState + " ideal:"
+            + idealState + " instance_name:" + instanceName);
         ret = false;
         continue;
       }
@@ -502,8 +480,8 @@ public class StaticFileHelixManager implements HelixManager
   }
 
   @Override
-  public void addHealthStateChangeListener(HealthStateChangeListener listener,
-      String instanceName) throws Exception
+  public void addHealthStateChangeListener(HealthStateChangeListener listener, String instanceName)
+      throws Exception
   {
     // TODO Auto-generated method stub
 
@@ -512,8 +490,7 @@ public class StaticFileHelixManager implements HelixManager
   @Override
   public String getVersion()
   {
-    throw new UnsupportedOperationException(
-        "getVersion() not implemented in FileClusterManager");
+    throw new UnsupportedOperationException("getVersion() not implemented in FileClusterManager");
   }
 
   @Override

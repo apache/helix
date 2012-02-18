@@ -24,10 +24,6 @@ public class HelixStateMachineEngine implements StateMachineEngine
   private final Map<String, Map<String, StateModelFactory<? extends StateModel>>> _stateModelFactoryMap = new ConcurrentHashMap<String, Map<String, StateModelFactory<? extends StateModel>>>();
   StateModelParser _stateModelParser;
 
-  // final static char SEPARATOR = '^';
-
-  // private final HelixManager _manager;
-
   public StateModelFactory<? extends StateModel> getStateModelFactory(String stateModelName)
   {
     return getStateModelFactory(stateModelName, HelixConstants.DEFAULT_STATE_MODEL_FACTORY);
@@ -39,11 +35,9 @@ public class HelixStateMachineEngine implements StateMachineEngine
     return _stateModelFactoryMap.get(stateModelName).get(factoryName);
   }
 
-  // public HelixStateMachineEngine(HelixManager manager)
   public HelixStateMachineEngine()
   {
     _stateModelParser = new StateModelParser();
-    // _manager = manager;
   }
 
   @Override
@@ -58,31 +52,14 @@ public class HelixStateMachineEngine implements StateMachineEngine
   public boolean registerStateModelFactory(String stateModelDef,
       StateModelFactory<? extends StateModel> factory, String factoryName)
   {
-    // if (_manager.isConnected())
-    // {
-    // throw new
-    // HelixException("stateModelFactory cannot be registered after manager is connected");
-    // }
-
-    // if (stateModelDef == null || stateModelDef.contains("" + SEPARATOR))
     if (stateModelDef == null || factory == null || factoryName == null)
     {
       throw new HelixException("stateModelDef|stateModelFactory|factoryName cannot be null");
     }
 
-    // if (resourceGroupName != null && resourceGroupName.contains("" +
-    // SEPARATOR))
-    // {
-    // throw new HelixException("resourceGroupName cannot contain character " +
-    // SEPARATOR + " (was "
-    // + resourceGroupName + ")");
-    // }
-
     logger.info("Register state model factory for state model " + stateModelDef
         + " using factory name " + factoryName + " with " + factory);
 
-    // String key = stateModelDef + (resourceGroupName == null ? "" : SEPARATOR
-    // + resourceGroupName);
     if (!_stateModelFactoryMap.containsKey(stateModelDef))
     {
       _stateModelFactoryMap.put(stateModelDef,
@@ -148,7 +125,6 @@ public class HelixStateMachineEngine implements StateMachineEngine
       return null;
     }
 
-    // String key = stateModelName + SEPARATOR + resourceGroupName;
     String factoryName = message.getStateModelFactoryName();
     if (factoryName == null)
     {
@@ -158,19 +134,14 @@ public class HelixStateMachineEngine implements StateMachineEngine
     StateModelFactory stateModelFactory = getStateModelFactory(stateModelName, factoryName);
     if (stateModelFactory == null)
     {
-      // stateModelFactory = getStateModelFactory(stateModelName);
-      // if (stateModelFactory == null)
-      // {
       logger.warn("Cannot find stateModelFactory for model:" + stateModelName
           + " using factoryName:" + factoryName + " for resourceGroup:" + resourceName);
       return null;
-      // }
     }
 
     StateModel stateModel = stateModelFactory.getStateModel(partitionKey);
     if (stateModel == null)
     {
-      // stateModelFactory.addStateModel(key,stateModelFactory.createNewStateModel(stateUnitKey));
       stateModelFactory.createAndAddStateModel(partitionKey);
       stateModel = stateModelFactory.getStateModel(partitionKey);
 

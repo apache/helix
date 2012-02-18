@@ -16,14 +16,15 @@ import org.I0Itec.zkclient.IZkDataListener;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.Watcher.Event.EventType;
 
-import com.linkedin.helix.HelixConstants.ChangeType;
-import com.linkedin.helix.DataAccessor;
-import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.ConfigChangeListener;
+import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
 import com.linkedin.helix.ControllerChangeListener;
 import com.linkedin.helix.CurrentStateChangeListener;
+import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.ExternalViewChangeListener;
 import com.linkedin.helix.HealthStateChangeListener;
+import com.linkedin.helix.HelixConstants.ChangeType;
+import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.IdealStateChangeListener;
 import com.linkedin.helix.LiveInstanceChangeListener;
 import com.linkedin.helix.MessageListener;
@@ -104,7 +105,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
         ConfigChangeListener configChangeListener = (ConfigChangeListener) _listener;
         subscribeForChanges(changeContext, true, true);
         List<InstanceConfig> configs = _accessor.getChildValues(InstanceConfig.class,
-            PropertyType.CONFIGS);
+            PropertyType.CONFIGS, ConfigScopeProperty.PARTICIPANT.toString());
         configChangeListener.onConfigChange(configs, changeContext);
 
       } else if (_changeType == LIVE_INSTANCE)
@@ -207,21 +208,17 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
                 || changeContext.getType() == NotificationContext.Type.CALLBACK)
             {
               _zkClient.subscribeDataChanges(childPath, this);
-            }
-            else if (changeContext.getType() == NotificationContext.Type.FINALIZE)
+            } else if (changeContext.getType() == NotificationContext.Type.FINALIZE)
             {
               _zkClient.unsubscribeDataChanges(childPath, this);
             }
           }
         }
-      }
-      else
+      } else
       {
-        logger.info("can't subscribe for data change on childs, path:" + _path
-            + " doesn't exist");
+        logger.info("can't subscribe for data change on childs, path:" + _path + " doesn't exist");
       }
-    }
-    catch (NullPointerException e)
+    } catch (NullPointerException e)
     {
       System.out.println("exception:" + e);
     }

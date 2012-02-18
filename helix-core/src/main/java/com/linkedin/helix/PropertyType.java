@@ -14,12 +14,14 @@ public enum PropertyType
   STATEMODELDEFS(Type.CLUSTER, true, false, false, false, true),
   CONTROLLER(Type.CLUSTER, true, false),
   PROPERTYSTORE(Type.CLUSTER, true, false),
+  
   //INSTANCE PROPERTIES
   MESSAGES(Type.INSTANCE, true, true, true),
   CURRENTSTATES(Type.INSTANCE, true,true, false, false, true),
   STATUSUPDATES(Type.INSTANCE, true, true, false),
   ERRORS(Type.INSTANCE, true, true),
   HEALTHREPORT(Type.INSTANCE, true, false,false,false, false), //last was true),
+
   //CONTROLLER PROPERTY
   LEADER(Type.CONTROLLER, false, false, true, true),
   HISTORY(Type.CONTROLLER, true, true, true),
@@ -29,7 +31,8 @@ public enum PropertyType
   ERRORS_CONTROLLER(Type.CONTROLLER,true, true, true),
   PERSISTENTSTATS(Type.CONTROLLER, true, false, false, false),
   ALERTS(Type.CONTROLLER, true, false, false, false),
-  ALERT_STATUS(Type.CONTROLLER, true, false, false, false);
+ ALERT_STATUS(Type.CONTROLLER, true, false, false, false);
+  
   // @formatter:on
 
   Type type;

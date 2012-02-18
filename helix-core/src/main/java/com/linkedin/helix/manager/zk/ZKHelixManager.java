@@ -25,6 +25,7 @@ import org.apache.zookeeper.Watcher.Event.KeeperState;
 
 import com.linkedin.helix.ClusterMessagingService;
 import com.linkedin.helix.ConfigChangeListener;
+import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
 import com.linkedin.helix.ControllerChangeListener;
 import com.linkedin.helix.CurrentStateChangeListener;
 import com.linkedin.helix.DataAccessor;
@@ -139,7 +140,7 @@ public class ZKHelixManager implements HelixManager
         || _instanceType == InstanceType.CONTROLLER_PARTICIPANT)
     {
       boolean isValid = _zkClient.exists(PropertyPathConfig.getPath(PropertyType.CONFIGS,
-          _clusterName, _instanceName))
+          _clusterName, ConfigScopeProperty.PARTICIPANT.toString(), _instanceName))
           && _zkClient.exists(PropertyPathConfig.getPath(PropertyType.MESSAGES, _clusterName,
               _instanceName))
           && _zkClient.exists(PropertyPathConfig.getPath(PropertyType.CURRENTSTATES, _clusterName,
@@ -181,7 +182,9 @@ public class ZKHelixManager implements HelixManager
   public void addConfigChangeListener(ConfigChangeListener listener)
   {
     checkConnected();
-    final String path = HelixUtil.getConfigPath(_clusterName);
+    // final String path = HelixUtil.getConfigPath(_clusterName);
+    final String path = PropertyPathConfig.getPath(PropertyType.CONFIGS, _clusterName,
+        ConfigScopeProperty.PARTICIPANT.toString());
 
     CallbackHandler callbackHandler = createCallBackHandler(path, listener,
         new EventType[] { EventType.NodeChildrenChanged }, CONFIG);

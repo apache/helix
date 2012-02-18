@@ -17,6 +17,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
 
+import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
 import com.linkedin.helix.controller.HelixControllerMain;
 import com.linkedin.helix.controller.pipeline.Stage;
 import com.linkedin.helix.controller.pipeline.StageContext;
@@ -34,8 +35,8 @@ import com.linkedin.helix.model.CurrentState;
 import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.model.LiveInstance;
-import com.linkedin.helix.model.Resource;
 import com.linkedin.helix.model.Partition;
+import com.linkedin.helix.model.Resource;
 import com.linkedin.helix.model.StateModelDefinition;
 import com.linkedin.helix.store.file.FilePropertyStore;
 import com.linkedin.helix.tools.ClusterSetup;
@@ -168,21 +169,32 @@ public class TestHelper
 
   public static void setupEmptyCluster(ZkClient zkClient, String clusterName)
   {
-    String path = "/" + clusterName;
+    String clusterRoot = "/" + clusterName;
+    String path;
+    zkClient.createPersistent(clusterRoot);
+    zkClient.createPersistent(clusterRoot + "/" + PropertyType.STATEMODELDEFS.toString());
+    zkClient.createPersistent(clusterRoot + "/" + PropertyType.INSTANCES.toString());
+    // zkClient.createPersistent(path + "/" + PropertyType.CONFIGS.toString());
+    path = PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
+        ConfigScopeProperty.CLUSTER.toString(), clusterName);
+    zkClient.createPersistent(path, true);
+    path = PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
+        ConfigScopeProperty.PARTICIPANT.toString());
     zkClient.createPersistent(path);
-    zkClient.createPersistent(path + "/" + PropertyType.STATEMODELDEFS.toString());
-    zkClient.createPersistent(path + "/" + PropertyType.INSTANCES.toString());
-    zkClient.createPersistent(path + "/" + PropertyType.CONFIGS.toString());
-    zkClient.createPersistent(path + "/" + PropertyType.IDEALSTATES.toString());
-    zkClient.createPersistent(path + "/" + PropertyType.EXTERNALVIEW.toString());
-    zkClient.createPersistent(path + "/" + PropertyType.LIVEINSTANCES.toString());
-    zkClient.createPersistent(path + "/" + PropertyType.CONTROLLER.toString());
+    path = PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
+        ConfigScopeProperty.RESOURCE.toString());
+    zkClient.createPersistent(path);
 
-    path = path + "/" + PropertyType.CONTROLLER.toString();
-    zkClient.createPersistent(path + "/" + PropertyType.MESSAGES.toString());
-    zkClient.createPersistent(path + "/" + PropertyType.HISTORY.toString());
-    zkClient.createPersistent(path + "/" + PropertyType.ERRORS.toString());
-    zkClient.createPersistent(path + "/" + PropertyType.STATUSUPDATES.toString());
+    zkClient.createPersistent(clusterRoot + "/" + PropertyType.IDEALSTATES.toString());
+    zkClient.createPersistent(clusterRoot + "/" + PropertyType.EXTERNALVIEW.toString());
+    zkClient.createPersistent(clusterRoot + "/" + PropertyType.LIVEINSTANCES.toString());
+    zkClient.createPersistent(clusterRoot + "/" + PropertyType.CONTROLLER.toString());
+
+    clusterRoot = clusterRoot + "/" + PropertyType.CONTROLLER.toString();
+    zkClient.createPersistent(clusterRoot + "/" + PropertyType.MESSAGES.toString());
+    zkClient.createPersistent(clusterRoot + "/" + PropertyType.HISTORY.toString());
+    zkClient.createPersistent(clusterRoot + "/" + PropertyType.ERRORS.toString());
+    zkClient.createPersistent(clusterRoot + "/" + PropertyType.STATUSUPDATES.toString());
   }
 
   /**
@@ -348,8 +360,8 @@ public class TestHelper
   public static boolean verifyBestPossAndExtView(String zkAddr, Set<String> clusterNameSet,
       Set<String> resourceNameSet)
   {
-    return verifyBestPossAndExtViewExtended(zkAddr, clusterNameSet, resourceNameSet, null,
-        null, null);
+    return verifyBestPossAndExtViewExtended(zkAddr, clusterNameSet, resourceNameSet, null, null,
+        null);
   }
 
   /**
@@ -417,11 +429,10 @@ public class TestHelper
           // check disabled instances
           if (disabledInstances != null)
           {
-            for (Partition partition : bestPossOutput.getResourceMap(resourceName)
-                .keySet())
+            for (Partition partition : bestPossOutput.getResourceMap(resourceName).keySet())
             {
-              Map<String, String> bpInstanceMap = bestPossOutput.getInstanceStateMap(
-                  resourceName, partition);
+              Map<String, String> bpInstanceMap = bestPossOutput.getInstanceStateMap(resourceName,
+                  partition);
               for (String instance : disabledInstances)
               {
                 if (bpInstanceMap.containsKey(instance))
@@ -430,8 +441,8 @@ public class TestHelper
                       && !"ERROR".equals(bpInstanceMap.get(instance)))
                   {
                     LOG.error("Best possible states should set " + resourceName + "/"
-                        + partition.getPartitionName() + " to " + initState + " for "
-                        + instance + " (was " + bpInstanceMap.get(instance) + ")");
+                        + partition.getPartitionName() + " to " + initState + " for " + instance
+                        + " (was " + bpInstanceMap.get(instance) + ")");
                     return false;
                   }
                 }
@@ -491,8 +502,8 @@ public class TestHelper
                 for (String instance : errorStateMap.get(partitionKey))
                 {
                   Partition partition = new Partition(partitionKey);
-                  Map<String, String> stateMap = bestPossOutput.getInstanceStateMap(
-                      resourceName, partition);
+                  Map<String, String> stateMap = bestPossOutput.getInstanceStateMap(resourceName,
+                      partition);
                   stateMap.put(instance, "ERROR");
                   bestPossOutput.setState(resourceName, partition, stateMap);
                 }
@@ -507,8 +518,8 @@ public class TestHelper
             String partitionName = entry.getKey();
             Map<String, String> evInstanceMap = entry.getValue();
 
-            Map<String, String> bpInstanceMap = bestPossOutput.getInstanceStateMap(
-                resourceName, new Partition(partitionName));
+            Map<String, String> bpInstanceMap = bestPossOutput.getInstanceStateMap(resourceName,
+                new Partition(partitionName));
 
             boolean result = TestHelper.<String, String> compareMap(evInstanceMap, bpInstanceMap);
             if (result == false)
@@ -519,8 +530,8 @@ public class TestHelper
           }
 
           // every entry in best possible state is contained in external view
-          for (Map.Entry<Partition, Map<String, String>> entry : bestPossOutput
-              .getResourceMap(resourceName).entrySet())
+          for (Map.Entry<Partition, Map<String, String>> entry : bestPossOutput.getResourceMap(
+              resourceName).entrySet())
           {
             String partitionName = entry.getKey().getPartitionName();
             Map<String, String> bpInstanceMap = entry.getValue();
@@ -651,12 +662,11 @@ public class TestHelper
    *          : partition->setOf(instances)
    * @return
    */
-  private static BestPossibleStateOutput calcBestPossState(String resourceName,
-      int partitions, String stateModelName, String clusterName, DataAccessor accessor,
+  private static BestPossibleStateOutput calcBestPossState(String resourceName, int partitions,
+      String stateModelName, String clusterName, DataAccessor accessor,
       Map<String, Set<String>> errorStateMap)
   {
-    Map<String, Resource> resourceMap = getResourceMap(resourceName,
-        partitions, stateModelName);
+    Map<String, Resource> resourceMap = getResourceMap(resourceName, partitions, stateModelName);
     ClusterEvent event = new ClusterEvent("sampleEvent");
 
     event.addAttribute(AttributeName.RESOURCES.toString(), resourceMap);
@@ -695,8 +705,8 @@ public class TestHelper
     return output;
   }
 
-  private static Map<String, Resource> getResourceMap(String resourceName,
-      int partitions, String stateModelName)
+  private static Map<String, Resource> getResourceMap(String resourceName, int partitions,
+      String stateModelName)
   {
     Map<String, Resource> resourceMap = new HashMap<String, Resource>();
     Resource resource = new Resource(resourceName);
@@ -891,8 +901,7 @@ public class TestHelper
   /**
    * 
    * @param resourcePartition
-   *          : key is in form of "resource/partitionKey" or
-   *          "resource_x"
+   *          : key is in form of "resource/partitionKey" or "resource_x"
    * 
    * @return
    */

@@ -45,12 +45,21 @@ public class ClusterRepresentationUtil
   public static final String _newModelDef = "newStateModelDef";
   public static final String _enabled = "enabled";
 
-  public static String getClusterPropertyAsString(String zkServer, String clusterName, PropertyType clusterProperty, String key, MediaType mediaType) throws JsonGenerationException, JsonMappingException, IOException
+  public static String getClusterPropertyAsString(String zkServer, String clusterName,
+      PropertyType clusterProperty, String key, MediaType mediaType)
+      throws JsonGenerationException, JsonMappingException, IOException
+  {
+    return getClusterPropertyAsString(zkServer, clusterName, mediaType, clusterProperty, key);
+  }
+
+  public static String getClusterPropertyAsString(String zkServer, String clusterName,
+      MediaType mediaType, PropertyType clusterProperty, String... keys)
+      throws JsonGenerationException, JsonMappingException, IOException
   {
     ZkClient zkClient = ZKClientPool.getZkClient(zkServer);
     DataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
 
-    ZNRecord record = accessor.getProperty(clusterProperty, key);
+    ZNRecord record = accessor.getProperty(clusterProperty, keys);
     return ZNRecordToJson(record);
   }
 

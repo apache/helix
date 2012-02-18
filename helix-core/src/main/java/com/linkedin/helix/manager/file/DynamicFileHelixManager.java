@@ -13,6 +13,7 @@ import org.apache.zookeeper.Watcher.Event.EventType;
 
 import com.linkedin.helix.ClusterMessagingService;
 import com.linkedin.helix.ConfigChangeListener;
+import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
 import com.linkedin.helix.ControllerChangeListener;
 import com.linkedin.helix.CurrentStateChangeListener;
 import com.linkedin.helix.DataAccessor;
@@ -205,7 +206,12 @@ public class DynamicFileHelixManager implements HelixManager
 
     boolean isValid = _store.exists(PropertyPathConfig.getPath(PropertyType.IDEALSTATES,
         clusterName))
-        && _store.exists(PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName))
+        && _store.exists(PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
+            ConfigScopeProperty.CLUSTER.toString()))
+        && _store.exists(PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
+            ConfigScopeProperty.PARTICIPANT.toString()))
+        && _store.exists(PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
+            ConfigScopeProperty.RESOURCE.toString()))
         && _store.exists(PropertyPathConfig.getPath(PropertyType.LIVEINSTANCES, clusterName))
         && _store.exists(PropertyPathConfig.getPath(PropertyType.INSTANCES, clusterName))
         && _store.exists(PropertyPathConfig.getPath(PropertyType.EXTERNALVIEW, clusterName))
@@ -226,7 +232,7 @@ public class DynamicFileHelixManager implements HelixManager
         || _instanceType == InstanceType.CONTROLLER_PARTICIPANT)
     {
       boolean isValid = _store.exists(PropertyPathConfig.getPath(PropertyType.CONFIGS,
-          _clusterName, _instanceName))
+          _clusterName, ConfigScopeProperty.PARTICIPANT.toString(), _instanceName))
           && _store.exists(PropertyPathConfig.getPath(PropertyType.MESSAGES, _clusterName,
               _instanceName))
           && _store.exists(PropertyPathConfig.getPath(PropertyType.CURRENTSTATES, _clusterName,

@@ -1,6 +1,7 @@
 package com.linkedin.helix;
 
 import java.util.List;
+import java.util.Map;
 
 import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.IdealState;
@@ -51,7 +52,7 @@ public interface HelixAdmin
 
   void addAlert(String clusterName, String alertName);
 
-void dropStat(String clusterName, String statName);
+  void dropStat(String clusterName, String statName);
 
   void dropAlert(String clusterName, String alertName);
 
@@ -62,4 +63,7 @@ void dropStat(String clusterName, String statName);
   ExternalView getResourceExternalView(String clusterName, String resourceName);
 
   void dropCluster(String clusterName);
+  
+  //void addConfig(String clusterName, Map<String,String> properties, ConfigScope scope, String scopeKey);
+  
 }

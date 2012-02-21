@@ -26,7 +26,6 @@ import com.linkedin.helix.model.IdealState.IdealStateProperty;
 import com.linkedin.helix.model.InstanceConfig;
 import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.model.Message;
-import com.linkedin.helix.model.Message.MessageSubType;
 import com.linkedin.helix.model.Message.MessageType;
 import com.linkedin.helix.model.PersistentStats;
 import com.linkedin.helix.model.StateModelDefinition;
@@ -219,8 +218,9 @@ public class ZKHelixAdmin implements HelixAdmin
     message.setTgtSessionId(sessionId);
     message.setSrcSessionId(controller.getSessionId());
     message.setStateModelDef(stateModelDef);
+    message.setFromState("ERROR");
     message.setToState(stateModel.getInitialState());
-    message.setMsgSubType(MessageSubType.RESET.toString());
+    // message.setMsgSubType(MessageSubType.RESET.toString());
     message.setStateModelFactoryName(idealState.getStateModelFactoryName());
 
     accessor.setProperty(PropertyType.MESSAGES, message, instanceName, message.getId());

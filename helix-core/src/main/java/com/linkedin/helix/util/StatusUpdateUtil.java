@@ -31,7 +31,7 @@ public class StatusUpdateUtil
 
   public enum Level
   {
-    ERROR, WARNING, INFO
+    HELIX_ERROR, HELIX_WARNING, HELIX_INFO
   }
 
   /**
@@ -153,7 +153,7 @@ public class StatusUpdateUtil
   public void logError(Message message, Class classInfo, String additionalInfo,
       DataAccessor accessor)
   {
-    logMessageStatusUpdateRecord(message, Level.ERROR, classInfo,
+    logMessageStatusUpdateRecord(message, Level.HELIX_ERROR, classInfo,
         additionalInfo, accessor);
   }
 
@@ -163,21 +163,21 @@ public class StatusUpdateUtil
     StringWriter sw = new StringWriter();
     PrintWriter pw = new PrintWriter(sw);
     e.printStackTrace(pw);
-    logMessageStatusUpdateRecord(message, Level.ERROR, classInfo,
+    logMessageStatusUpdateRecord(message, Level.HELIX_ERROR, classInfo,
         additionalInfo + sw.toString(), accessor);
   }
 
   public void logInfo(Message message, Class classInfo, String additionalInfo,
       DataAccessor accessor)
   {
-    logMessageStatusUpdateRecord(message, Level.INFO, classInfo,
+    logMessageStatusUpdateRecord(message, Level.HELIX_INFO, classInfo,
         additionalInfo, accessor);
   }
 
   public void logWarning(Message message, Class classInfo,
       String additionalInfo, DataAccessor accessor)
   {
-    logMessageStatusUpdateRecord(message, Level.WARNING, classInfo,
+    logMessageStatusUpdateRecord(message, Level.HELIX_WARNING, classInfo,
         additionalInfo, accessor);
   }
 
@@ -246,7 +246,7 @@ public class StatusUpdateUtil
                               statusUpdateKey);
     }
     // If the error level is ERROR, also write the record to "ERROR" ZNode
-    if (Level.ERROR == level)
+    if (Level.HELIX_ERROR == level)
     {
       publishErrorRecord(record, message, accessor);
     }

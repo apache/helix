@@ -20,9 +20,9 @@ public class Message extends ZNRecordDecorator
     STATE_TRANSITION, SCHEDULER_MSG, USER_DEFINE_MSG, CONTROLLER_MSG, TASK_REPLY, NO_OP
   };
 
-  public enum MessageSubType {
-    RESET
-  };
+  // public enum MessageSubType {
+  // RESET
+  // };
 
   public enum Attributes {
     MSG_ID, SRC_SESSION_ID, TGT_SESSION_ID, SRC_NAME, TGT_NAME, SRC_INSTANCE_TYPE, MSG_STATE, PARTITION_NAME, RESOURCE_NAME, FROM_STATE, TO_STATE, STATE_MODEL_DEF, CREATE_TIMESTAMP, READ_TIMESTAMP, EXECUTE_START_TIMESTAMP, MSG_TYPE, MSG_SUBTYPE, CORRELATION_ID, MESSAGE_RESULT, EXE_SESSION_ID, MESSAGE_TIMEOUT, RETRY_COUNT, STATE_MODEL_FACTORY_NAME;
@@ -378,25 +378,15 @@ public class Message extends ZNRecordDecorator
   public boolean isValid()
   {
     // TODO: refactor message to state transition message and task-message and
-    // implemement this function separately
+    // implement this function separately
 
     if (getMsgType().equals(MessageType.STATE_TRANSITION.toString()))
     {
       boolean isNotValid = isNullOrEmpty(getTgtName()) || isNullOrEmpty(getPartitionName())
           || isNullOrEmpty(getResourceName()) || isNullOrEmpty(getStateModelDef())
-          || isNullOrEmpty(getToState()) || isNullOrEmpty(getStateModelFactoryName());
+          || isNullOrEmpty(getToState()) || isNullOrEmpty(getStateModelFactoryName()) || isNullOrEmpty(getFromState());
 
-      if (getMsgSubType() == null)
-      {
-        isNotValid = isNotValid || isNullOrEmpty(getFromState());
-        return !isNotValid;
-      } else if (getMsgSubType().equals(MessageSubType.RESET.toString()))
-      {
-        return !isNotValid;
-      } else
-      {
-        return false;
-      }
+      return !isNotValid;
     }
 
     return true;

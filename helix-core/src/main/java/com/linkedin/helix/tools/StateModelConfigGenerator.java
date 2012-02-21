@@ -41,15 +41,11 @@ public class StateModelConfigGenerator
       Map<String, String> metadata = new HashMap<String, String>();
       if (state.equals("MASTER"))
       {
-        // metadata.put("max", "");
-        // metadata.put("min", "1");
         metadata.put("count", "N");
         record.setMapField(key, metadata);
       }
-      if (state.equals("OFFLINE"))
+ else if (state.equals("OFFLINE"))
       {
-        // metadata.put("max", "-1");
-        // metadata.put("min", "-1");
         metadata.put("count", "-1");
         record.setMapField(key, metadata);
       }
@@ -98,6 +94,7 @@ public class StateModelConfigGenerator
     statePriorityList.add("SLAVE");
     statePriorityList.add("OFFLINE");
     statePriorityList.add("DROPPED");
+    statePriorityList.add("ERROR");
     record.setListField(StateModelDefinitionProperty.STATE_PRIORITY_LIST.toString(), statePriorityList);
     for (String state : statePriorityList)
     {
@@ -105,29 +102,22 @@ public class StateModelConfigGenerator
       Map<String, String> metadata = new HashMap<String, String>();
       if (state.equals("MASTER"))
       {
-        // metadata.put("max", "1");
-        // metadata.put("min", "1");
         metadata.put("count", "1");
         record.setMapField(key, metadata);
-      }
-      if (state.equals("SLAVE"))
+      } else if (state.equals("SLAVE"))
       {
-        // metadata.put("max", "3");
-        // metadata.put("min", "0");
         metadata.put("count", "R");
         record.setMapField(key, metadata);
-      }
-      if (state.equals("OFFLINE"))
+      } else if (state.equals("OFFLINE"))
       {
-        // metadata.put("max", "-1");
-        // metadata.put("min", "-1");
         metadata.put("count", "-1");
         record.setMapField(key, metadata);
-      }
-      if (state.equals("DROPPED"))
+      } else if (state.equals("DROPPED"))
       {
-        // metadata.put("max", "-1");
-        // metadata.put("min", "-1");
+        metadata.put("count", "-1");
+        record.setMapField(key, metadata);
+      } else if (state.equals("ERROR"))
+      {
         metadata.put("count", "-1");
         record.setMapField(key, metadata);
       }
@@ -142,21 +132,24 @@ public class StateModelConfigGenerator
         metadata.put("OFFLINE", "SLAVE");
         metadata.put("DROPPED", "SLAVE");
         record.setMapField(key, metadata);
-      }
-      if (state.equals("SLAVE"))
+      } else if (state.equals("SLAVE"))
       {
         Map<String, String> metadata = new HashMap<String, String>();
         metadata.put("MASTER", "MASTER");
         metadata.put("OFFLINE", "OFFLINE");
         metadata.put("DROPPED", "OFFLINE");
         record.setMapField(key, metadata);
-      }
-      if (state.equals("OFFLINE"))
+      } else if (state.equals("OFFLINE"))
       {
         Map<String, String> metadata = new HashMap<String, String>();
         metadata.put("SLAVE", "SLAVE");
         metadata.put("MASTER", "SLAVE");
         metadata.put("DROPPED", "DROPPED");
+        record.setMapField(key, metadata);
+      } else if (state.equals("ERROR"))
+      {
+        Map<String, String> metadata = new HashMap<String, String>();
+        metadata.put("OFFLINE", "OFFLINE");
         record.setMapField(key, metadata);
       }
     }

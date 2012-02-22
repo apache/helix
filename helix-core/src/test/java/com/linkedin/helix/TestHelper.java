@@ -27,6 +27,7 @@ import com.linkedin.helix.controller.stages.BestPossibleStateOutput;
 import com.linkedin.helix.controller.stages.ClusterDataCache;
 import com.linkedin.helix.controller.stages.ClusterEvent;
 import com.linkedin.helix.controller.stages.CurrentStateComputationStage;
+import com.linkedin.helix.controller.stages.ResourceComputationStage;
 import com.linkedin.helix.manager.file.FileDataAccessor;
 import com.linkedin.helix.manager.zk.ZKDataAccessor;
 import com.linkedin.helix.manager.zk.ZNRecordSerializer;
@@ -36,7 +37,6 @@ import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.model.Partition;
-import com.linkedin.helix.model.Resource;
 import com.linkedin.helix.model.StateModelDefinition;
 import com.linkedin.helix.store.file.FilePropertyStore;
 import com.linkedin.helix.tools.ClusterSetup;
@@ -666,19 +666,18 @@ public class TestHelper
       String stateModelName, String clusterName, DataAccessor accessor,
       Map<String, Set<String>> errorStateMap)
   {
-    Map<String, Resource> resourceMap = getResourceMap(resourceName, partitions, stateModelName);
     ClusterEvent event = new ClusterEvent("sampleEvent");
-
-    event.addAttribute(AttributeName.RESOURCES.toString(), resourceMap);
 
     ClusterDataCache cache = new ClusterDataCache();
     cache.refresh(accessor);
 
     event.addAttribute("ClusterDataCache", cache);
 
+    ResourceComputationStage rcState = new ResourceComputationStage();
     CurrentStateComputationStage csStage = new CurrentStateComputationStage();
     BestPossibleStateCalcStage bpStage = new BestPossibleStateCalcStage();
 
+    runStage(event, rcState);
     runStage(event, csStage);
     runStage(event, bpStage);
 
@@ -703,21 +702,6 @@ public class TestHelper
 
     // System.out.println("output:" + output);
     return output;
-  }
-
-  private static Map<String, Resource> getResourceMap(String resourceName, int partitions,
-      String stateModelName)
-  {
-    Map<String, Resource> resourceMap = new HashMap<String, Resource>();
-    Resource resource = new Resource(resourceName);
-    resource.setStateModelDefRef(stateModelName);
-    for (int i = 0; i < partitions; i++)
-    {
-      resource.addPartition(resourceName + "_" + i);
-    }
-    resourceMap.put(resourceName, resource);
-
-    return resourceMap;
   }
 
   private static void runStage(ClusterEvent event, Stage stage)

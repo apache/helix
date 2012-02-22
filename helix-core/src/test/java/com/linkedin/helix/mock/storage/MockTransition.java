@@ -21,9 +21,4 @@ public class MockTransition
     LOG.info("default doReset() invoked");
   }
 
-  // // used for turn off the user plug-in transition code
-  // public void resetFlag()
-  // {
-  // _flag = false;
-  // }
 }

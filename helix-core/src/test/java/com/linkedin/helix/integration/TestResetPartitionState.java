@@ -8,6 +8,7 @@ import java.util.Set;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.controller.HelixControllerMain;
@@ -16,10 +17,11 @@ import com.linkedin.helix.manager.zk.ZKHelixAdmin;
 import com.linkedin.helix.mock.storage.MockParticipant;
 import com.linkedin.helix.mock.storage.MockParticipant.ErrTransition;
 import com.linkedin.helix.model.LiveInstance;
+import com.linkedin.helix.model.Message;
 
 public class TestResetPartitionState extends ZkIntegrationTestBase
 {
-  boolean _resetInvoked = false;
+  int _errToOfflineInvoked = 0;
 
   class ErrTransitionWithReset extends ErrTransition
   {
@@ -29,10 +31,16 @@ public class TestResetPartitionState extends ZkIntegrationTestBase
     }
 
     @Override
-    public void doReset()
+    public void doTransition(Message message, NotificationContext context)
     {
       // System.err.println("doRest() invoked");
-      _resetInvoked = true;
+      super.doTransition(message, context);
+      String fromState = message.getFromState();
+      String toState = message.getToState();
+      if (fromState.equals("ERROR") && toState.equals("OFFLINE"))
+      {
+        _errToOfflineInvoked++;
+      }
     }
 
   }
@@ -93,7 +101,7 @@ public class TestResetPartitionState extends ZkIntegrationTestBase
     errPartitions.remove("SLAVE-MASTER");
     participants[0].setTransition(new ErrTransitionWithReset(errPartitions));
     clearStatusUpdate(clusterName, "localhost_12918", "TestDB0", "TestDB0_0");
-    _resetInvoked = false;
+    _errToOfflineInvoked = 0;
     ZKHelixAdmin tool = new ZKHelixAdmin(_zkClient);
     tool.resetPartition(clusterName, "localhost_12918", "TestDB0", "TestDB0_0");
 
@@ -105,12 +113,11 @@ public class TestResetPartitionState extends ZkIntegrationTestBase
                                  null,
                                  null,
                                  errorStateMap);
-    Assert.assertTrue(_resetInvoked);
+    Assert.assertEquals(_errToOfflineInvoked, 1);
 
     // reset the other error partition
     participants[0].setTransition(new ErrTransitionWithReset(null));
     clearStatusUpdate(clusterName, "localhost_12918", "TestDB0", "TestDB0_8");
-    _resetInvoked = false;
     tool.resetPartition(clusterName, "localhost_12918", "TestDB0", "TestDB0_8");
 
     TestHelper.verifyWithTimeout("verifyBestPossAndExtViewExtended",
@@ -120,27 +127,24 @@ public class TestResetPartitionState extends ZkIntegrationTestBase
                                  null,
                                  null,
                                  null);
-    Assert.assertTrue(_resetInvoked);
+    Assert.assertEquals(_errToOfflineInvoked, 2);
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
   }
 
-  private void clearStatusUpdate(String clusterName,
-                            String instance,
-                            String resource,
-                            String partition)
+  private void clearStatusUpdate(String clusterName, String instance, String resource,
+      String partition)
   {
-    // clear status update for error partition so verify() will not fail on old error
+    // clear status update for error partition so verify() will not fail on old
+    // errors
     ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
-    LiveInstance liveInstance =
-        accessor.getProperty(LiveInstance.class, PropertyType.LIVEINSTANCES, instance);
-    accessor.removeProperty(PropertyType.STATUSUPDATES,
-                            instance,
-                            liveInstance.getSessionId(),
-                            resource,
-                            partition);
+    LiveInstance liveInstance = accessor.getProperty(LiveInstance.class,
+        PropertyType.LIVEINSTANCES, instance);
+    accessor.removeProperty(PropertyType.STATUSUPDATES, instance,
+        liveInstance.getSessionId(),
+        resource, partition);
 
-  }
+   }
   // TODO: throw exception in reset()
 }

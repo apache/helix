@@ -41,6 +41,7 @@ import com.linkedin.helix.model.StateModelDefinition;
 import com.linkedin.helix.store.file.FilePropertyStore;
 import com.linkedin.helix.tools.ClusterSetup;
 import com.linkedin.helix.tools.ClusterStateVerifier;
+import com.linkedin.helix.util.StatusUpdateUtil.Level;
 import com.linkedin.helix.util.ZKClientPool;
 
 public class TestHelper
@@ -485,10 +486,8 @@ public class TestHelper
             }
           }
 
-          /**
-           * check ERROR state and remove them from the comparison against
-           * external view
-           */
+          // check ERROR state and remove them from the comparison against
+          // external view
           if (errorStateMap != null)
           {
             for (String resGroupPartitionKey : errorStateMap.keySet())
@@ -505,7 +504,7 @@ public class TestHelper
                   Map<String, String> stateMap = bestPossOutput.getInstanceStateMap(resourceName,
                       partition);
                   stateMap.put(instance, "ERROR");
-                  bestPossOutput.setState(resourceName, partition, stateMap);
+                  // bestPossOutput.setState(resourceName, partition, stateMap);
                 }
               }
             }
@@ -569,11 +568,12 @@ public class TestHelper
                 }
                 ZNRecord update = accessor.getProperty(PropertyType.STATUSUPDATES, instanceName,
                     sessionId, resourceName, partitionKey);
-                String updateStr = update.toString().toLowerCase();
-                if (updateStr.indexOf("error") != -1)
+                String updateStr = update.toString();
+                if (updateStr.indexOf(Level.HELIX_ERROR.toString()) != -1)
                 {
-                  LOG.error("ERROR in statusUpdate. instance:" + instance + ", resource:"
-                      + resourceName + ", partitionKey:" + partitionKey + ", statusUpdate:"
+                  LOG.error(Level.HELIX_ERROR.toString() + " in statusUpdate. instance:" + instance
+                      + ", resource:" + resourceName + ", partitionKey:" + partitionKey
+                      + ", statusUpdate:"
                       + update);
                   return false;
                 }

@@ -18,7 +18,6 @@ import com.linkedin.helix.ZNRecordDelta;
 import com.linkedin.helix.ZNRecordDelta.MERGEOPERATION;
 import com.linkedin.helix.model.CurrentState;
 import com.linkedin.helix.model.Message;
-import com.linkedin.helix.model.Message.MessageSubType;
 import com.linkedin.helix.model.StateModelDefinition;
 import com.linkedin.helix.participant.statemachine.StateModel;
 import com.linkedin.helix.participant.statemachine.StateModelParser;
@@ -274,14 +273,6 @@ public class HelixStateTransitionHandler extends MessageHandler
   {
     _statusUpdateUtil.logInfo(message, HelixStateTransitionHandler.class,
         "Message handling invoking", accessor);
-
-    if (message.getMsgSubType() != null
-        && message.getMsgSubType().equals(MessageSubType.RESET.toString()))
-    {
-      _stateModel.reset();
-      taskResult.setSuccess(true);
-      return;
-    }
 
     // by default, we invoke state transition function in state model
     Method methodToInvoke = null;

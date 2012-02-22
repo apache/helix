@@ -1,5 +1,7 @@
 package com.linkedin.helix.manager.zk;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -27,7 +29,6 @@ import com.linkedin.helix.model.IdealState.IdealStateProperty;
 import com.linkedin.helix.model.InstanceConfig;
 import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.model.Message;
-import com.linkedin.helix.model.Message.MessageSubType;
 import com.linkedin.helix.model.Message.MessageType;
 import com.linkedin.helix.model.PersistentStats;
 import com.linkedin.helix.model.StateModelDefinition;
@@ -177,26 +178,18 @@ public class ZKHelixAdmin implements HelixAdmin
 
     if (liveInstance == null)
     {
-      throw new IllegalArgumentException("Can't reset state for " + resourceName + "/" + partition
+      throw new HelixException("Can't reset state for " + resourceName + "/" + partition
           + " on " + instanceName + ", because " + instanceName + " is not alive");
     }
 
     String sessionId = liveInstance.getSessionId();
-
-    LiveInstance controller = accessor.getProperty(LiveInstance.class, PropertyType.LEADER);
-
-    if (controller == null)
-    {
-      throw new IllegalArgumentException("Can't reset state for " + resourceName + "/" + partition
-          + " on " + instanceName + ", because controller is not alive");
-    }
 
     IdealState idealState = accessor.getProperty(IdealState.class, PropertyType.IDEALSTATES,
         resourceName);
 
     if (idealState == null)
     {
-      throw new IllegalArgumentException("Can't reset state for " + resourceName + "/" + partition
+      throw new HelixException("Can't reset state for " + resourceName + "/" + partition
           + " on " + instanceName + ", because " + resourceName + " is not added");
     }
 
@@ -206,22 +199,32 @@ public class ZKHelixAdmin implements HelixAdmin
 
     if (stateModel == null)
     {
-      throw new IllegalArgumentException("Can't reset state for " + resourceName + "/" + partition
+      throw new HelixException("Can't reset state for " + resourceName + "/" + partition
           + " on " + instanceName + ", because " + stateModelDef + " is not found");
+    }
+
+    String adminName = null;
+    try
+    {
+      adminName = InetAddress.getLocalHost().getCanonicalHostName() + "-ADMIN";
+    } catch (UnknownHostException e)
+    {
+      // can ignore it
+      logger.info("Unable to get host name. Will set it to UNKNOWN, mostly ignorable", e);
+      adminName = "UNKNOWN";
     }
 
     String msgId = UUID.randomUUID().toString();
     Message message = new Message(MessageType.STATE_TRANSITION, msgId);
-    message.setSrcName(controller.getInstanceName());
+    message.setSrcName(adminName);
     message.setTgtName(instanceName);
     message.setMsgState("new");
     message.setPartitionName(partition);
     message.setResourceName(resourceName);
     message.setTgtSessionId(sessionId);
-    message.setSrcSessionId(controller.getSessionId());
     message.setStateModelDef(stateModelDef);
+    message.setFromState("ERROR");
     message.setToState(stateModel.getInitialState());
-    message.setMsgSubType(MessageSubType.RESET.toString());
     message.setStateModelFactoryName(idealState.getStateModelFactoryName());
 
     accessor.setProperty(PropertyType.MESSAGES, message, instanceName, message.getId());

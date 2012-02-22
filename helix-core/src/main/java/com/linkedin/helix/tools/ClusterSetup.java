@@ -48,6 +48,7 @@ public class ClusterSetup
 
   // Add, drop, and rebalance
   public static final String addCluster = "addCluster";
+  public static final String addCluster2 = "addCluster2";
   public static final String dropCluster = "dropCluster";
   public static final String addInstance = "addNode";
   public static final String addResource = "addResource";
@@ -90,6 +91,21 @@ public class ClusterSetup
   public void addCluster(String clusterName, boolean overwritePrevious)
   {
     _managementService.addCluster(clusterName, overwritePrevious);
+
+    StateModelConfigGenerator generator = new StateModelConfigGenerator();
+    addStateModelDef(clusterName, "MasterSlave",
+        new StateModelDefinition(generator.generateConfigForMasterSlave()));
+    addStateModelDef(clusterName, "LeaderStandby",
+        new StateModelDefinition(generator.generateConfigForLeaderStandby()));
+    addStateModelDef(clusterName, "StorageSchemata",
+        new StateModelDefinition(generator.generateConfigForStorageSchemata()));
+    addStateModelDef(clusterName, "OnlineOffline",
+        new StateModelDefinition(generator.generateConfigForOnlineOffline()));
+  }
+  
+  public void addCluster(String clusterName, boolean overwritePrevious, String grandCluster)
+  {
+    _managementService.addCluster(clusterName, overwritePrevious, grandCluster);
 
     StateModelConfigGenerator generator = new StateModelConfigGenerator();
     addStateModelDef(clusterName, "MasterSlave",
@@ -374,6 +390,12 @@ public class ClusterSetup
     addClusterOption.setArgs(1);
     addClusterOption.setRequired(false);
     addClusterOption.setArgName("clusterName");
+    
+    Option addClusterOption2 =
+        OptionBuilder.withLongOpt(addCluster2).withDescription("Add a new cluster").create();
+    addClusterOption2.setArgs(2);
+    addClusterOption2.setRequired(false);
+    addClusterOption2.setArgName("clusterName grandCluster");
 
     Option deleteClusterOption = OptionBuilder.withLongOpt(dropCluster)
         .withDescription("Delete a cluster").create();
@@ -486,6 +508,7 @@ public class ClusterSetup
     group.addOption(rebalanceOption);
     group.addOption(addResourceOption);
     group.addOption(addClusterOption);
+    group.addOption(addClusterOption2);
     group.addOption(deleteClusterOption);
     group.addOption(addInstanceOption);
     group.addOption(listInstancesOption);
@@ -586,6 +609,14 @@ public class ClusterSetup
     {
       String clusterName = cmd.getOptionValue(addCluster);
       setupTool.addCluster(clusterName, false);
+      return 0;
+    }
+    
+    if (cmd.hasOption(addCluster2))
+    {
+      String clusterName = cmd.getOptionValues(addCluster2)[0];
+      String grandCluster = cmd.getOptionValues(addCluster2)[1];
+      setupTool.addCluster(clusterName, false, grandCluster);
       return 0;
     }
 

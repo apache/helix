@@ -1,6 +1,7 @@
 package com.linkedin.helix.manager.zk;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -561,5 +562,37 @@ public class ZKHelixAdmin implements HelixAdmin
 
     alertsRec.setMapFields(currAlertMap);
     accessor.setProperty(PropertyType.ALERTS, alertsRec);
+  }
+
+  @Override
+  public void addCluster(String clusterName, boolean overwritePrevRecord,
+      String grandCluster)
+  {
+    if (!ZKUtil.isClusterSetup(grandCluster, _zkClient))
+    {
+      throw new HelixException("Grand cluster " + grandCluster + " is not setup yet");
+    }
+    
+    addCluster(clusterName, overwritePrevRecord);
+    IdealState idealState = new IdealState(clusterName);
+    
+    idealState.setNumPartitions(1);
+    idealState.setStateModelDefRef("LeaderStandby");
+    
+    
+    List<String> controllers = getInstancesInCluster(grandCluster);
+    if(controllers.size() == 0)
+    {
+      throw new HelixException("Grand cluster " + grandCluster + " has no instances");
+    }
+    Collections.shuffle(controllers);
+    idealState.getRecord().setListField(clusterName, controllers);
+    idealState.setPartitionState(clusterName, controllers.get(0), "LEADER");
+    for(int i = 1; i<controllers.size();i++)
+    {
+      idealState.setPartitionState(clusterName, controllers.get(i), "STANDBY");
+    }
+    new ZKDataAccessor(grandCluster, _zkClient).setProperty(
+        PropertyType.IDEALSTATES, idealState.getRecord(), idealState.getResourceName());
   }
 }

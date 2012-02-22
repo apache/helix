@@ -18,6 +18,9 @@ public interface HelixAdmin
   List<String> getResourcesInCluster(String clusterName);
 
   void addCluster(String clusterName, boolean overwritePrevRecord);
+  
+  void addCluster(String clusterName, boolean overwritePrevRecord,
+      String grandCluster);
 
   void addResource(String clusterName, String resourceName, int numResources,
                         String stateModelRef);
@@ -51,7 +54,7 @@ public interface HelixAdmin
 
   void addAlert(String clusterName, String alertName);
 
-void dropStat(String clusterName, String statName);
+  void dropStat(String clusterName, String statName);
 
   void dropAlert(String clusterName, String alertName);
 

@@ -93,6 +93,7 @@ public class MockParticipant implements Stoppable, Runnable
     public void onBecomeOfflineFromError(Message message, NotificationContext context)
     {
       LOG.info("Become OFFLINE from ERROR");
+      // System.err.println("Become OFFLINE from ERROR");
       if (_transition != null)
       {
         _transition.doTransition(message, context);

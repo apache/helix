@@ -53,6 +53,33 @@ public class TestConfigAccessor extends ZkUnitTestBase
     resourceConfigValue = appConfig.get(resourceScope, "resourceConfigKey2");
     Assert.assertEquals(resourceConfigValue, "resourceConfigValue2");
 
-    // TODO add negative tests
+    // negative tests
+    try
+    {
+      new ConfigScopeBuilder().forPartition("testPartition").build();
+      Assert.fail("Should fail since cluster name is not set");
+    } catch (HelixException e)
+    {
+      // OK
+    }
+
+    try
+    {
+      new ConfigScopeBuilder().forCluster("testCluster").forPartition("testPartition").build();
+      Assert.fail("Should fail since resource name is not set");
+    } catch (HelixException e)
+    {
+      // OK
+    }
+
+    try
+    {
+      new ConfigScopeBuilder().forParticipant("testParticipant").build();
+      Assert.fail("Should fail since participant name is not set");
+    } catch (HelixException e)
+    {
+      // OK
+    }
+
   }
 }

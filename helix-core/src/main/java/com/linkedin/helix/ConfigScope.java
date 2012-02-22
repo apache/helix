@@ -1,12 +1,10 @@
 package com.linkedin.helix;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
-import com.linkedin.helix.ConfigScopeBuilder;
 
 public class ConfigScope
 {
@@ -26,55 +24,42 @@ public class ConfigScope
   {
     Map<ConfigScopeProperty, String> scopeMap = configScopeBuilder
         .getScopeMap();
-    _clusterName = scopeMap.get(ConfigScopeProperty.CLUSTER);
     _keys = new ArrayList<String>();
-    ConfigScopeProperty temp = null;
+    ConfigScopeProperty tempScope = null;
     if (scopeMap.containsKey(ConfigScopeProperty.CLUSTER))
     {
-      temp = ConfigScopeProperty.CLUSTER;
+      _clusterName = scopeMap.get(ConfigScopeProperty.CLUSTER);
+      tempScope = ConfigScopeProperty.CLUSTER;
+    } else
+    {
+      throw new HelixException("Invalid scope for config: cluster name is null");
     }
     if (scopeMap.containsKey(ConfigScopeProperty.RESOURCE))
     {
-      temp = ConfigScopeProperty.RESOURCE;
+      tempScope = ConfigScopeProperty.RESOURCE;
     }
     if (scopeMap.containsKey(ConfigScopeProperty.PARTITION))
     {
-      temp = ConfigScopeProperty.RESOURCE;
+      tempScope = ConfigScopeProperty.RESOURCE;
+      _keys.add(scopeMap.get(ConfigScopeProperty.PARTITION));
     }
     if (scopeMap.containsKey(ConfigScopeProperty.PARTICIPANT))
     {
-      temp = ConfigScopeProperty.PARTICIPANT;
-    }
-
-    if (temp != null && scopeMap.containsKey(temp))
-    {
-      _scope = temp;
-      _scopeKey = scopeMap.get(temp);
-    } else
-    {
-      throw new HelixException("Unrecognized scope for config");
-    }
-    switch (temp)
-    {
-    case CLUSTER:
-      break;
-    case RESOURCE:
-      ;
-      break;
-    case PARTITION:
-      _keys.add(scopeMap.get(ConfigScopeProperty.PARTITION));
-      break;
-    case PARTICIPANT:
+      tempScope = ConfigScopeProperty.PARTICIPANT;
       if (scopeMap.containsKey(ConfigScopeProperty.RESOURCE))
       {
         _keys.add(scopeMap.get(ConfigScopeProperty.RESOURCE));
       }
-      break;
-    default:
-      throw new HelixException("Unrecognized scope for config");
-
     }
 
+    if (tempScope != null && scopeMap.containsKey(tempScope))
+    {
+      _scope = tempScope;
+      _scopeKey = scopeMap.get(tempScope);
+    } else
+    {
+      throw new HelixException("Invalid scope for config. scope:");
+    }
   }
 
   public ConfigScopeProperty getScope()

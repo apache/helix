@@ -1,8 +1,6 @@
 package com.linkedin.helix;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
@@ -13,7 +11,7 @@ public class ConfigScopeBuilder
 {
   private static Logger LOG = Logger.getLogger(ConfigScopeBuilder.class);
 
-  private Map<ConfigScopeProperty, String> _scopeMap;
+  private final Map<ConfigScopeProperty, String> _scopeMap;
 
   Map<ConfigScopeProperty, String> getScopeMap()
   {

@@ -2,9 +2,12 @@ package com.linkedin.helix.manager.file;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.apache.log4j.Logger;
 
+import com.linkedin.helix.ConfigScope;
 import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
 import com.linkedin.helix.HelixAdmin;
 import com.linkedin.helix.PropertyPathConfig;
@@ -342,6 +345,21 @@ public class FileHelixAdmin implements HelixAdmin
   {
     throw new UnsupportedOperationException(
         "addCluster(clusterName, overwritePrevRecord, grandCluster) is NOT supported by FileClusterManagementTool");
+  }
+
+  @Override
+  public void setConfig(ConfigScope scope, Map<String, String> properties)
+  {
+    // TODO Auto-generated method stub
+    throw new UnsupportedOperationException("unsupported operation");
+
+  }
+
+  @Override
+  public Map<String, String> getConfig(ConfigScope scope, Set<String> keys)
+  {
+    // TODO Auto-generated method stub
+    throw new UnsupportedOperationException("unsupported operation");
   }
 
 }

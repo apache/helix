@@ -1,51 +1,32 @@
 package com.linkedin.helix.manager.zk;
 
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.testng.Assert;
 import org.testng.AssertJUnit;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
+import com.linkedin.helix.ConfigScope;
+import com.linkedin.helix.ConfigScopeBuilder;
 import com.linkedin.helix.HelixException;
 import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.ZkUnitTestBase;
-import com.linkedin.helix.manager.zk.ZKHelixAdmin;
-import com.linkedin.helix.manager.zk.ZKUtil;
-import com.linkedin.helix.manager.zk.ZNRecordSerializer;
-import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.InstanceConfig;
 import com.linkedin.helix.model.StateModelDefinition;
 
-public class TestZkClusterManagementTool extends ZkUnitTestBase
+public class TestZkHelixAdmin extends ZkUnitTestBase
 {
-  ZkClient _zkClient;
-
-  @BeforeClass
-  public void beforeClass()
-  {
-    System.out.println("START TestZkClusterManagementTool at "
-        + new Date(System.currentTimeMillis()));
-    _zkClient = new ZkClient(ZK_ADDR);
-    _zkClient.setZkSerializer(new ZNRecordSerializer());
-  }
-
-  @AfterClass
-  public void afterClass()
-  {
-    _zkClient.close();
-    System.out.println("END TestZkClusterManagementTool at "
-        + new Date(System.currentTimeMillis()));
-  }
-
   @Test()
-  public void testZkClusterManagementTool()
+  public void testZkHelixAdmin()
   {
+    System.out.println("START testZkHelixAdmin at " + new Date(System.currentTimeMillis()));
+
     final String clusterName = getShortClassName();
     if (_zkClient.exists("/" + clusterName))
     {
@@ -60,7 +41,6 @@ public class TestZkClusterManagementTool extends ZkUnitTestBase
 
     List<String> list = tool.getClusters();
     AssertJUnit.assertTrue(list.size() > 0);
-    boolean exceptionThrown = false;
 
     try
     {
@@ -68,10 +48,8 @@ public class TestZkClusterManagementTool extends ZkUnitTestBase
       Assert.fail("should fail if add an already existing cluster");
     } catch (HelixException e)
     {
-      exceptionThrown = true;
+      // OK
     }
-    Assert.assertTrue(exceptionThrown);
-    exceptionThrown = false;
 
     InstanceConfig config = new InstanceConfig("host1_9999");
     config.setHostName("host1");
@@ -88,10 +66,8 @@ public class TestZkClusterManagementTool extends ZkUnitTestBase
       Assert.fail("should fail if add an alredy-existing instance");
     } catch (HelixException e)
     {
-      exceptionThrown = true;
+      // OK
     }
-    Assert.assertTrue(exceptionThrown);
-    exceptionThrown = false;
     config = tool.getInstanceConfig(clusterName, "host1_9999");
     AssertJUnit.assertEquals(config.getId(), "host1_9999");
 
@@ -102,30 +78,24 @@ public class TestZkClusterManagementTool extends ZkUnitTestBase
       Assert.fail("should fail if get a non-existent instance");
     } catch (HelixException e)
     {
-      exceptionThrown = true;
+      // OK
     }
-    Assert.assertTrue(exceptionThrown);
-    exceptionThrown = false;
     try
     {
       tool.dropInstance(clusterName, config);
       Assert.fail("should fail if drop on a non-existent instance");
     } catch (HelixException e)
     {
-      exceptionThrown = true;
+      // OK
     }
-    Assert.assertTrue(exceptionThrown);
-    exceptionThrown = false;
     try
     {
       tool.enableInstance(clusterName, "host1_9999", false);
       Assert.fail("should fail if enable a non-existent instance");
     } catch (HelixException e)
     {
-      exceptionThrown = true;
+      // OK
     }
-    Assert.assertTrue(exceptionThrown);
-    exceptionThrown = false;
     ZNRecord stateModelRecord = new ZNRecord("id1");
     try
     {
@@ -134,12 +104,11 @@ public class TestZkClusterManagementTool extends ZkUnitTestBase
       path = PropertyPathConfig.getPath(PropertyType.STATEMODELDEFS,
           clusterName, "id1");
       AssertJUnit.assertTrue(_zkClient.exists(path));
+      Assert.fail("should fail");
     } catch (HelixException e)
     {
-      exceptionThrown = true;
+      // OK
     }
-    Assert.assertTrue(exceptionThrown);
-    exceptionThrown = false;
     try
     {
       tool.addStateModelDef(clusterName, "id1", new StateModelDefinition(
@@ -147,10 +116,8 @@ public class TestZkClusterManagementTool extends ZkUnitTestBase
       Assert.fail("should fail if add an already-existing state model");
     } catch (HelixException e)
     {
-      exceptionThrown = true;
+      // OK
     }
-    Assert.assertTrue(exceptionThrown);
-    exceptionThrown = false;
     list = tool.getStateModelDefs(clusterName);
     AssertJUnit.assertEquals(list.size(), 0);
 
@@ -162,36 +129,47 @@ public class TestZkClusterManagementTool extends ZkUnitTestBase
           .fail("should fail if add a resource without an existing state model");
     } catch (HelixException e)
     {
-      exceptionThrown = true;
+      // OK
     }
-    Assert.assertTrue(exceptionThrown);
-    exceptionThrown = false;
     try
     {
       tool.addResource(clusterName, "resource", 10, "id1");
+      Assert.fail("should fail");
     } catch (HelixException e)
     {
-      exceptionThrown = true;
+      // OK
     }
-    Assert.assertTrue(exceptionThrown);
-    exceptionThrown = false;
     list = tool.getResourcesInCluster(clusterName);
     AssertJUnit.assertEquals(list.size(), 0);
     try
     {
       tool.addResource(clusterName, "resource", 10, "id1");
+      Assert.fail("should fail");
     } catch (HelixException e)
     {
-      exceptionThrown = true;
+      // OK
     }
-    Assert.assertTrue(exceptionThrown);
-    exceptionThrown = false;
     list = tool.getResourcesInCluster(clusterName);
     AssertJUnit.assertEquals(list.size(), 0);
 
     ExternalView resourceExternalView = tool.getResourceExternalView(
         clusterName, "resource");
     AssertJUnit.assertNull(resourceExternalView);
+
+    // test config support
+    ConfigScope scope = new ConfigScopeBuilder().forCluster(clusterName)
+        .forResource("testResource").forPartition("testPartition").build();
+    Map<String, String> properties = new HashMap<String, String>();
+    properties.put("pKey1", "pValue1");
+    properties.put("pKey2", "pValue2");
+    tool.setConfig(scope, properties);
+
+    Map<String, String> newProperties = tool.getConfig(scope, properties.keySet());
+    Assert.assertEquals(newProperties.size(), 2);
+    Assert.assertEquals(newProperties.get("pKey1"), "pValue1");
+    Assert.assertEquals(newProperties.get("pKey2"), "pValue2");
+
+    System.out.println("END testZkHelixAdmin at " + new Date(System.currentTimeMillis()));
   }
 
 }

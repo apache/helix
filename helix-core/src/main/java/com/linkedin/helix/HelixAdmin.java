@@ -2,6 +2,7 @@ package com.linkedin.helix;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.IdealState;
@@ -67,6 +68,7 @@ public interface HelixAdmin
 
   void dropCluster(String clusterName);
   
-  //void addConfig(String clusterName, Map<String,String> properties, ConfigScope scope, String scopeKey);
-  
+  void setConfig(ConfigScope scope, Map<String, String> properties);
+
+  Map<String, String> getConfig(ConfigScope scope, Set<String> keys);
 }

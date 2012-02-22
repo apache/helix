@@ -7,10 +7,13 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.log4j.Logger;
 
+import com.linkedin.helix.ConfigAccessor;
+import com.linkedin.helix.ConfigScope;
 import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
 import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.HelixAdmin;
@@ -598,4 +601,33 @@ public class ZKHelixAdmin implements HelixAdmin
     new ZKDataAccessor(grandCluster, _zkClient).setProperty(
         PropertyType.IDEALSTATES, idealState.getRecord(), idealState.getResourceName());
   }
+
+  @Override
+  public void setConfig(ConfigScope scope, Map<String, String> properties)
+  {
+    String zkAddr = _zkClient.getServers();
+    ConfigAccessor configAccessor = new ConfigAccessor(zkAddr);
+
+    for (String key : properties.keySet())
+    {
+      configAccessor.set(scope, key, properties.get(key));
+    }
+  }
+
+  @Override
+  public Map<String, String> getConfig(ConfigScope scope, Set<String> keys)
+  {
+    String zkAddr = _zkClient.getServers();
+    ConfigAccessor configAccessor = new ConfigAccessor(zkAddr);
+    Map<String, String> properties = new HashMap<String, String>();
+
+    for (String key : keys)
+    {
+      String value = configAccessor.get(scope, key);
+      properties.put(key, value);
+    }
+
+    return properties;
+  }
+
 }

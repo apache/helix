@@ -86,8 +86,9 @@ public class FileHelixAdmin implements HelixAdmin
     {
       _store.removeNamespace(clusterName);
       _store.createPropertyNamespace(clusterName);
-
       _store.createPropertyNamespace(HelixUtil.getIdealStatePath(clusterName));
+      
+      // CONFIG's
       // _store.createPropertyNamespace(HelixUtil.getConfigPath(clusterName));
       path = PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
           ConfigScopeProperty.CLUSTER.toString(), clusterName);
@@ -97,6 +98,10 @@ public class FileHelixAdmin implements HelixAdmin
       _store.createPropertyNamespace(path);
       path = PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
           ConfigScopeProperty.RESOURCE.toString());
+      _store.createPropertyNamespace(path);
+      
+      // PROPERTY STORE
+      path = PropertyPathConfig.getPath(PropertyType.PROPERTYSTORE, clusterName);
       _store.createPropertyNamespace(path);
 
       _store.createPropertyNamespace(HelixUtil.getLiveInstancesPath(clusterName));

@@ -37,6 +37,7 @@ public final class ZKUtil
             ConfigScopeProperty.PARTICIPANT.toString()))
         && zkClient.exists(PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
             ConfigScopeProperty.RESOURCE.toString()))
+            && zkClient.exists(PropertyPathConfig.getPath(PropertyType.PROPERTYSTORE, clusterName))
             && zkClient.exists(PropertyPathConfig.getPath(PropertyType.LIVEINSTANCES, clusterName))
             && zkClient.exists(PropertyPathConfig.getPath(PropertyType.INSTANCES, clusterName))
             && zkClient.exists(PropertyPathConfig.getPath(PropertyType.EXTERNALVIEW, clusterName))

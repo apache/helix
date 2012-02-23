@@ -3,8 +3,6 @@ package com.linkedin.helix;
 import java.util.List;
 import java.util.Map;
 
-import com.linkedin.helix.store.PropertyStore;
-
 public interface DataAccessor
 {
   public enum Type {
@@ -81,9 +79,4 @@ public interface DataAccessor
 
   <T extends ZNRecordDecorator> Map<String, T> getChildValuesMap(Class<T> clazz, PropertyType type,
       String... keys);
-
-  /**
-   * @return a property store
-   */
-  PropertyStore<ZNRecord> getPropertyStore();
 }

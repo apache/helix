@@ -36,6 +36,8 @@ import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.model.Message.MessageType;
 import com.linkedin.helix.participant.HelixStateMachineEngine;
 import com.linkedin.helix.participant.StateMachineEngine;
+import com.linkedin.helix.store.PropertyJsonComparator;
+import com.linkedin.helix.store.PropertyJsonSerializer;
 import com.linkedin.helix.store.PropertyStore;
 import com.linkedin.helix.store.file.FilePropertyStore;
 import com.linkedin.helix.tools.PropertiesReader;
@@ -59,6 +61,7 @@ public class DynamicFileHelixManager implements HelixManager
   private final FilePropertyStore<ZNRecord> _store;
   private final String _version;
   private final StateMachineEngine _stateMachEngine;
+  private PropertyStore<ZNRecord> _propertyStore = null;
 
   public DynamicFileHelixManager(String clusterName, String instanceName,
       InstanceType instanceType, FilePropertyStore<ZNRecord> store)
@@ -181,6 +184,12 @@ public class DynamicFileHelixManager implements HelixManager
   @Override
   public void connect()
   {
+    if (!isClusterSetup(_clusterName))
+    {
+      throw new HelixException("Initial cluster structure is not set up for cluster:"
+          + _clusterName);
+    }
+
     _store.start();
     _isConnected = true;
   }
@@ -212,6 +221,7 @@ public class DynamicFileHelixManager implements HelixManager
             ConfigScopeProperty.PARTICIPANT.toString()))
         && _store.exists(PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
             ConfigScopeProperty.RESOURCE.toString()))
+        && _store.exists(PropertyPathConfig.getPath(PropertyType.PROPERTYSTORE, clusterName))
         && _store.exists(PropertyPathConfig.getPath(PropertyType.LIVEINSTANCES, clusterName))
         && _store.exists(PropertyPathConfig.getPath(PropertyType.INSTANCES, clusterName))
         && _store.exists(PropertyPathConfig.getPath(PropertyType.EXTERNALVIEW, clusterName))
@@ -303,14 +313,30 @@ public class DynamicFileHelixManager implements HelixManager
     return _mgmtTool;
   }
 
+  private void checkConnected()
+  {
+    if (!isConnected())
+    {
+      throw new HelixException("ClusterManager not connected. Call clusterManager.connect()");
+    }
+  }
+
   @Override
   public PropertyStore<ZNRecord> getPropertyStore()
   {
-    if (_fileDataAccessor != null)
+    checkConnected();
+    
+    if (_propertyStore == null)
     {
-      return _fileDataAccessor.getPropertyStore();
+      String path = PropertyPathConfig.getPath(PropertyType.PROPERTYSTORE, _clusterName);
+    
+      String propertyStoreRoot = _store.getPropertyRootNamespace() + path;
+      _propertyStore =
+          new FilePropertyStore<ZNRecord>(new PropertyJsonSerializer<ZNRecord>(ZNRecord.class),
+                                          propertyStoreRoot,
+                                          new PropertyJsonComparator<ZNRecord>(ZNRecord.class));
     }
-    return null;
+    return _propertyStore;
   }
 
   @Override

@@ -269,6 +269,9 @@ public class ZKHelixAdmin implements HelixAdmin
     path = PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
         ConfigScopeProperty.RESOURCE.toString());
     _zkClient.createPersistent(path);
+    // PROPERTY STORE
+    path = PropertyPathConfig.getPath(PropertyType.PROPERTYSTORE, clusterName);
+    _zkClient.createPersistent(path);
     // LIVE INSTANCES
     _zkClient.createPersistent(HelixUtil.getLiveInstancesPath(clusterName));
     // MEMBER INSTANCES

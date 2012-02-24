@@ -23,7 +23,7 @@ import com.linkedin.helix.tools.ClusterSetup;
 
 public class TestAddClusterV2 extends ZkIntegrationTestBase
 {
-  private static Logger LOG = Logger.getLogger(ZkDistCMTestBase.class);
+  private static Logger LOG = Logger.getLogger(TestAddClusterV2.class);
 
   protected static final int CLUSTER_NR = 10;
   protected static final int NODE_NR = 5;

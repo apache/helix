@@ -18,9 +18,6 @@ import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.ZNRecordDecorator;
-import com.linkedin.helix.store.PropertyJsonSerializer;
-import com.linkedin.helix.store.PropertyStore;
-import com.linkedin.helix.store.zk.ZKPropertyStore;
 
 public class ZKDataAccessor implements DataAccessor
 {
@@ -28,7 +25,7 @@ public class ZKDataAccessor implements DataAccessor
 
   protected final String _clusterName;
   protected final ZkClient _zkClient;
-  protected final PropertyStore<ZNRecord> _propertyStore;
+//  protected final PropertyStore<ZNRecord> _propertyStore;
 
   /**
    * If a PropertyType has children (e.g. CONFIGS), then the parent path is the
@@ -41,14 +38,6 @@ public class ZKDataAccessor implements DataAccessor
   {
     _clusterName = clusterName;
     _zkClient = zkClient;
-
-    String path = PropertyPathConfig.getPath(PropertyType.PROPERTYSTORE, _clusterName);
-    if (!_zkClient.exists(path))
-    {
-      _zkClient.createPersistent(path);
-    }
-
-    _propertyStore = new ZKPropertyStore<ZNRecord>(_zkClient, new PropertyJsonSerializer<ZNRecord>(ZNRecord.class), path);
   }
 
   @Override
@@ -215,12 +204,6 @@ public class ZKDataAccessor implements DataAccessor
     }
 
     return Collections.emptyList();
-  }
-
-  @Override
-  public PropertyStore<ZNRecord> getPropertyStore()
-  {
-    return _propertyStore;
   }
 
   public void reset()

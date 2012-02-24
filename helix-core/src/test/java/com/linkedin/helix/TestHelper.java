@@ -17,7 +17,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
 
-import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
 import com.linkedin.helix.controller.HelixControllerMain;
 import com.linkedin.helix.controller.pipeline.Stage;
 import com.linkedin.helix.controller.pipeline.StageContext;
@@ -30,6 +29,7 @@ import com.linkedin.helix.controller.stages.CurrentStateComputationStage;
 import com.linkedin.helix.controller.stages.ResourceComputationStage;
 import com.linkedin.helix.manager.file.FileDataAccessor;
 import com.linkedin.helix.manager.zk.ZKDataAccessor;
+import com.linkedin.helix.manager.zk.ZKHelixAdmin;
 import com.linkedin.helix.manager.zk.ZNRecordSerializer;
 import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.model.CurrentState;
@@ -170,32 +170,8 @@ public class TestHelper
 
   public static void setupEmptyCluster(ZkClient zkClient, String clusterName)
   {
-    String clusterRoot = "/" + clusterName;
-    String path;
-    zkClient.createPersistent(clusterRoot);
-    zkClient.createPersistent(clusterRoot + "/" + PropertyType.STATEMODELDEFS.toString());
-    zkClient.createPersistent(clusterRoot + "/" + PropertyType.INSTANCES.toString());
-    // zkClient.createPersistent(path + "/" + PropertyType.CONFIGS.toString());
-    path = PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
-        ConfigScopeProperty.CLUSTER.toString(), clusterName);
-    zkClient.createPersistent(path, true);
-    path = PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
-        ConfigScopeProperty.PARTICIPANT.toString());
-    zkClient.createPersistent(path);
-    path = PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
-        ConfigScopeProperty.RESOURCE.toString());
-    zkClient.createPersistent(path);
-
-    zkClient.createPersistent(clusterRoot + "/" + PropertyType.IDEALSTATES.toString());
-    zkClient.createPersistent(clusterRoot + "/" + PropertyType.EXTERNALVIEW.toString());
-    zkClient.createPersistent(clusterRoot + "/" + PropertyType.LIVEINSTANCES.toString());
-    zkClient.createPersistent(clusterRoot + "/" + PropertyType.CONTROLLER.toString());
-
-    clusterRoot = clusterRoot + "/" + PropertyType.CONTROLLER.toString();
-    zkClient.createPersistent(clusterRoot + "/" + PropertyType.MESSAGES.toString());
-    zkClient.createPersistent(clusterRoot + "/" + PropertyType.HISTORY.toString());
-    zkClient.createPersistent(clusterRoot + "/" + PropertyType.ERRORS.toString());
-    zkClient.createPersistent(clusterRoot + "/" + PropertyType.STATUSUPDATES.toString());
+    ZKHelixAdmin admin = new ZKHelixAdmin(zkClient);
+    admin.addCluster(clusterName, true);
   }
 
   /**

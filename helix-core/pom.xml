@@ -116,7 +116,7 @@
         <configuration>
           <programs>
             <program>
-              <mainClass>com.linkedin.helix.controller.ClusterManagerMain</mainClass>
+              <mainClass>com.linkedin.helix.controller.HelixControllerMain</mainClass>
               <name>run-helix-controller</name>
             </program>
             <program>

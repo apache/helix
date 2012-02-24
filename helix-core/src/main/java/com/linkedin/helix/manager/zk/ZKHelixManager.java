@@ -54,7 +54,9 @@ import com.linkedin.helix.monitoring.ZKPathDataDumpTask;
 import com.linkedin.helix.participant.DistClusterControllerElection;
 import com.linkedin.helix.participant.HelixStateMachineEngine;
 import com.linkedin.helix.participant.StateMachineEngine;
+import com.linkedin.helix.store.PropertyJsonSerializer;
 import com.linkedin.helix.store.PropertyStore;
+import com.linkedin.helix.store.zk.ZKPropertyStore;
 import com.linkedin.helix.tools.PropertiesReader;
 import com.linkedin.helix.util.HelixUtil;
 
@@ -81,6 +83,8 @@ public class ZKHelixManager implements HelixManager
   private final String _version;
   private final StateMachineEngine _stateMachEngine;
   private int _sessionTimeout;
+  private PropertyStore<ZNRecord> _propertyStore = null;
+
 
   public ZKHelixManager(String clusterName, String instanceName, InstanceType instanceType,
       String zkConnectString) throws Exception
@@ -703,12 +707,12 @@ public class ZKHelixManager implements HelixManager
   {
     checkConnected();
 
-    if (_accessor != null)
+    if (_propertyStore == null)
     {
-      return _accessor.getPropertyStore();
+      String path = PropertyPathConfig.getPath(PropertyType.PROPERTYSTORE, _clusterName);
+      _propertyStore = new ZKPropertyStore<ZNRecord>(_zkClient, new PropertyJsonSerializer<ZNRecord>(ZNRecord.class), path);
     }
-
-    return null;
+    return _propertyStore;
   }
 
   @Override

@@ -184,16 +184,15 @@ public class TestAddClusterV2 extends ZkIntegrationTestBase
    *   in the controller cluster and the first cluster
    */
   protected void verifyClusters()
-  {
- /*   for(int i = 0;i < CLUSTER_NR; i++)
+  {/*
+    for(int i = 0;i < CLUSTER_NR; i++)
     {
       TestHelper.verifyWithTimeout("verifyBestPossAndExtView",
                                  ZK_ADDR,
                                  TestHelper.<String>setOf(CONTROLLER_CLUSTER),
                                  TestHelper.<String>setOf(CLUSTER_PREFIX + "_" + CLASS_NAME+"_"+i));
-      System.out.println(i);
-    }
-    */
+    }*/
+    
     TestHelper.verifyWithTimeout("verifyBestPossAndExtView",
                                  ZK_ADDR,
                                  TestHelper.<String>setOf(CLUSTER_PREFIX + "_" + CLASS_NAME + "_0"),

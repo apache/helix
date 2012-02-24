@@ -123,13 +123,6 @@ public class ClusterSetup
     _managementService.dropCluster(clusterName);
   }
 
-  public void addCluster(String clusterName, boolean overwritePrevious, String stateModDefName,
-      StateModelDefinition stateModDef)
-  {
-    _managementService.addCluster(clusterName, overwritePrevious);
-    addStateModelDef(clusterName, stateModDefName, stateModDef);
-  }
-
   public void addInstancesToCluster(String clusterName, String[] InstanceInfoArray)
   {
     for (String InstanceInfo : InstanceInfoArray)

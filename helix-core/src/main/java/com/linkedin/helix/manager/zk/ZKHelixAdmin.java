@@ -472,8 +472,8 @@ public class ZKHelixAdmin implements HelixAdmin
       throw new HelixException("cluster " + clusterName + " is not setup yet");
     }
 
-    String alertsPath = HelixUtil.getAlertsPath(clusterName);
     ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
+    String alertsPath = HelixUtil.getAlertsPath(clusterName);
     if (!_zkClient.exists(alertsPath))
     {
       // ZKUtil.createChildren(_zkClient, alertsPath, alertsRec);
@@ -505,7 +505,18 @@ public class ZKHelixAdmin implements HelixAdmin
   public void dropCluster(String clusterName)
   {
     logger.info("Deleting cluster " + clusterName);
+    ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
     String root = "/" + clusterName;
+    if(accessor.getChildNames(PropertyType.LIVEINSTANCES).size() > 0)
+    {
+      throw new HelixException("There are still live instances in the cluster, shut them down first.");
+    }
+    
+    if(accessor.getProperty(PropertyType.LEADER) != null)
+    {
+      throw new HelixException("There are still LEADER in the cluster, shut them down first.");
+    }
+    
     _zkClient.deleteRecursive(root);
   }
 

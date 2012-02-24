@@ -50,6 +50,7 @@ public class ClusterSetup
   public static final String addCluster = "addCluster";
   public static final String addCluster2 = "addCluster2";
   public static final String dropCluster = "dropCluster";
+  public static final String dropResource = "dropResource";
   public static final String addInstance = "addNode";
   public static final String addResource = "addResource";
   public static final String addStateModelDef = "addStateModelDef";
@@ -425,6 +426,12 @@ public class ClusterSetup
     dropInstanceOption.setArgs(2);
     dropInstanceOption.setRequired(false);
     dropInstanceOption.setArgName("clusterName InstanceAddress(host:port)");
+    
+    Option dropResourceOption = OptionBuilder.withLongOpt(dropResource)
+        .withDescription("Drop an existing resource from a cluster").create();
+    dropResourceOption.setArgs(2);
+    dropResourceOption.setRequired(false);
+    dropResourceOption.setArgName("clusterName resourceName");
 
     Option rebalanceOption = OptionBuilder.withLongOpt(rebalance)
         .withDescription("Rebalance a resource in a cluster").create();
@@ -510,6 +517,7 @@ public class ClusterSetup
     group.addOption(addIdealStateOption);
     group.addOption(rebalanceOption);
     group.addOption(dropInstanceOption);
+    group.addOption(dropResourceOption);
     group.addOption(InstanceInfoOption);
     group.addOption(clusterInfoOption);
     group.addOption(resourceInfoOption);
@@ -828,7 +836,15 @@ public class ClusterSetup
       String alertName = cmd.getOptionValues(dropAlert)[1];
 
       setupTool.getClusterManagementTool().dropAlert(clusterName, alertName);
-    } else if (cmd.hasOption(help))
+    } 
+    else if(cmd.hasOption(dropResource))
+    {
+      String clusterName = cmd.getOptionValues(dropResource)[0];
+      String resourceName = cmd.getOptionValues(dropResource)[1];
+
+      setupTool.getClusterManagementTool().dropResource(clusterName, resourceName);
+    }
+    else if (cmd.hasOption(help))
     {
       printUsage(cliOptions);
       return 0;

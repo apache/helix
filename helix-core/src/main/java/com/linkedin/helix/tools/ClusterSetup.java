@@ -20,6 +20,7 @@ import org.apache.log4j.Logger;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 
+import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
 import com.linkedin.helix.HelixAdmin;
 import com.linkedin.helix.HelixException;
 import com.linkedin.helix.PropertyType;
@@ -47,7 +48,9 @@ public class ClusterSetup
 
   // Add, drop, and rebalance
   public static final String addCluster = "addCluster";
+  public static final String addCluster2 = "addCluster2";
   public static final String dropCluster = "dropCluster";
+  public static final String dropResource = "dropResource";
   public static final String addInstance = "addNode";
   public static final String addResource = "addResource";
   public static final String addStateModelDef = "addStateModelDef";
@@ -100,17 +103,25 @@ public class ClusterSetup
     addStateModelDef(clusterName, "OnlineOffline",
         new StateModelDefinition(generator.generateConfigForOnlineOffline()));
   }
+  
+  public void addCluster(String clusterName, boolean overwritePrevious, String grandCluster)
+  {
+    _managementService.addCluster(clusterName, overwritePrevious, grandCluster);
+
+    StateModelConfigGenerator generator = new StateModelConfigGenerator();
+    addStateModelDef(clusterName, "MasterSlave",
+        new StateModelDefinition(generator.generateConfigForMasterSlave()));
+    addStateModelDef(clusterName, "LeaderStandby",
+        new StateModelDefinition(generator.generateConfigForLeaderStandby()));
+    addStateModelDef(clusterName, "StorageSchemata",
+        new StateModelDefinition(generator.generateConfigForStorageSchemata()));
+    addStateModelDef(clusterName, "OnlineOffline",
+        new StateModelDefinition(generator.generateConfigForOnlineOffline()));
+  }
 
   public void deleteCluster(String clusterName)
   {
     _managementService.dropCluster(clusterName);
-  }
-
-  public void addCluster(String clusterName, boolean overwritePrevious, String stateModDefName,
-      StateModelDefinition stateModDef)
-  {
-    _managementService.addCluster(clusterName, overwritePrevious);
-    addStateModelDef(clusterName, stateModDefName, stateModDef);
   }
 
   public void addInstancesToCluster(String clusterName, String[] InstanceInfoArray)
@@ -193,7 +204,8 @@ public class ClusterSetup
 
     ZkClient zkClient = ZKClientPool.getZkClient(_zkServerAddress);
     InstanceConfig config = new ZKDataAccessor(clusterName, zkClient).getProperty(
-        InstanceConfig.class, PropertyType.CONFIGS, instanceId);
+        InstanceConfig.class, PropertyType.CONFIGS, ConfigScopeProperty.PARTICIPANT.toString(),
+        instanceId);
     if (config == null)
     {
       String error = "Node " + instanceId + " does not exist, cannot drop";
@@ -249,8 +261,7 @@ public class ClusterSetup
   {
     List<String> InstanceNames = _managementService.getInstancesInCluster(clusterName);
 
-    IdealState idealState = _managementService.getResourceIdealState(clusterName,
-        resourceName);
+    IdealState idealState = _managementService.getResourceIdealState(clusterName, resourceName);
     idealState.setReplicas(Integer.toString(replica));
     int partitions = idealState.getNumPartitions();
     String stateModelName = idealState.getStateModelDefRef();
@@ -373,6 +384,12 @@ public class ClusterSetup
     addClusterOption.setArgs(1);
     addClusterOption.setRequired(false);
     addClusterOption.setArgName("clusterName");
+    
+    Option addClusterOption2 =
+        OptionBuilder.withLongOpt(addCluster2).withDescription("Add a new cluster").create();
+    addClusterOption2.setArgs(2);
+    addClusterOption2.setRequired(false);
+    addClusterOption2.setArgName("clusterName grandCluster");
 
     Option deleteClusterOption = OptionBuilder.withLongOpt(dropCluster)
         .withDescription("Delete a cluster").create();
@@ -409,6 +426,12 @@ public class ClusterSetup
     dropInstanceOption.setArgs(2);
     dropInstanceOption.setRequired(false);
     dropInstanceOption.setArgName("clusterName InstanceAddress(host:port)");
+    
+    Option dropResourceOption = OptionBuilder.withLongOpt(dropResource)
+        .withDescription("Drop an existing resource from a cluster").create();
+    dropResourceOption.setArgs(2);
+    dropResourceOption.setRequired(false);
+    dropResourceOption.setArgName("clusterName resourceName");
 
     Option rebalanceOption = OptionBuilder.withLongOpt(rebalance)
         .withDescription("Rebalance a resource in a cluster").create();
@@ -485,6 +508,7 @@ public class ClusterSetup
     group.addOption(rebalanceOption);
     group.addOption(addResourceOption);
     group.addOption(addClusterOption);
+    group.addOption(addClusterOption2);
     group.addOption(deleteClusterOption);
     group.addOption(addInstanceOption);
     group.addOption(listInstancesOption);
@@ -493,6 +517,7 @@ public class ClusterSetup
     group.addOption(addIdealStateOption);
     group.addOption(rebalanceOption);
     group.addOption(dropInstanceOption);
+    group.addOption(dropResourceOption);
     group.addOption(InstanceInfoOption);
     group.addOption(clusterInfoOption);
     group.addOption(resourceInfoOption);
@@ -587,6 +612,14 @@ public class ClusterSetup
       setupTool.addCluster(clusterName, false);
       return 0;
     }
+    
+    if (cmd.hasOption(addCluster2))
+    {
+      String clusterName = cmd.getOptionValues(addCluster2)[0];
+      String grandCluster = cmd.getOptionValues(addCluster2)[1];
+      setupTool.addCluster(clusterName, false, grandCluster);
+      return 0;
+    }
 
     if (cmd.hasOption(dropCluster))
     {
@@ -610,8 +643,7 @@ public class ClusterSetup
       String resourceName = cmd.getOptionValues(addResource)[1];
       int partitions = Integer.parseInt(cmd.getOptionValues(addResource)[2]);
       String stateModelRef = cmd.getOptionValues(addResource)[3];
-      setupTool
-          .addResourceToCluster(clusterName, resourceName, partitions, stateModelRef);
+      setupTool.addResourceToCluster(clusterName, resourceName, partitions, stateModelRef);
       return 0;
     }
 
@@ -648,8 +680,8 @@ public class ClusterSetup
     if (cmd.hasOption(listResources))
     {
       String clusterName = cmd.getOptionValue(listResources);
-      List<String> resourceNames = setupTool.getClusterManagementTool()
-          .getResourcesInCluster(clusterName);
+      List<String> resourceNames = setupTool.getClusterManagementTool().getResourcesInCluster(
+          clusterName);
 
       System.out.println("Existing resources in cluster " + clusterName + ":");
       for (String resourceName : resourceNames)
@@ -660,8 +692,8 @@ public class ClusterSetup
     } else if (cmd.hasOption(listClusterInfo))
     {
       String clusterName = cmd.getOptionValue(listClusterInfo);
-      List<String> resourceNames = setupTool.getClusterManagementTool()
-          .getResourcesInCluster(clusterName);
+      List<String> resourceNames = setupTool.getClusterManagementTool().getResourcesInCluster(
+          clusterName);
       List<String> Instances = setupTool.getClusterManagementTool().getInstancesInCluster(
           clusterName);
 
@@ -707,8 +739,8 @@ public class ClusterSetup
       String resourceName = cmd.getOptionValues(listResourceInfo)[1];
       IdealState idealState = setupTool.getClusterManagementTool().getResourceIdealState(
           clusterName, resourceName);
-      ExternalView externalView = setupTool.getClusterManagementTool()
-          .getResourceExternalView(clusterName, resourceName);
+      ExternalView externalView = setupTool.getClusterManagementTool().getResourceExternalView(
+          clusterName, resourceName);
 
       System.out.println("IdealState for " + resourceName + ":");
       System.out.println(new String(new ZNRecordSerializer().serialize(idealState.getRecord())));
@@ -777,8 +809,8 @@ public class ClusterSetup
       {
         throw new IllegalArgumentException("ideal state must have same id as resource name");
       }
-      setupTool.getClusterManagementTool().setResourceIdealState(clusterName,
-          resourceName, new IdealState(idealStateRecord));
+      setupTool.getClusterManagementTool().setResourceIdealState(clusterName, resourceName,
+          new IdealState(idealStateRecord));
       return 0;
     } else if (cmd.hasOption(addStat))
     {
@@ -804,7 +836,15 @@ public class ClusterSetup
       String alertName = cmd.getOptionValues(dropAlert)[1];
 
       setupTool.getClusterManagementTool().dropAlert(clusterName, alertName);
-    } else if (cmd.hasOption(help))
+    } 
+    else if(cmd.hasOption(dropResource))
+    {
+      String clusterName = cmd.getOptionValues(dropResource)[0];
+      String resourceName = cmd.getOptionValues(dropResource)[1];
+
+      setupTool.getClusterManagementTool().dropResource(clusterName, resourceName);
+    }
+    else if (cmd.hasOption(help))
     {
       printUsage(cliOptions);
       return 0;

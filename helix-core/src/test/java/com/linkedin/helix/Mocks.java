@@ -435,13 +435,6 @@ public class Mocks
     }
 
     @Override
-    public PropertyStore<ZNRecord> getPropertyStore()
-    {
-      // TODO Auto-generated method stub
-      return null;
-    }
-
-    @Override
     public <T extends ZNRecordDecorator> Map<String, T> getChildValuesMap(Class<T> clazz,
         PropertyType type, String... keys)
     {

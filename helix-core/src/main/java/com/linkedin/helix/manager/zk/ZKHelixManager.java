@@ -25,6 +25,7 @@ import org.apache.zookeeper.Watcher.Event.KeeperState;
 
 import com.linkedin.helix.ClusterMessagingService;
 import com.linkedin.helix.ConfigChangeListener;
+import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
 import com.linkedin.helix.ControllerChangeListener;
 import com.linkedin.helix.CurrentStateChangeListener;
 import com.linkedin.helix.DataAccessor;
@@ -53,7 +54,9 @@ import com.linkedin.helix.monitoring.ZKPathDataDumpTask;
 import com.linkedin.helix.participant.DistClusterControllerElection;
 import com.linkedin.helix.participant.HelixStateMachineEngine;
 import com.linkedin.helix.participant.StateMachineEngine;
+import com.linkedin.helix.store.PropertyJsonSerializer;
 import com.linkedin.helix.store.PropertyStore;
+import com.linkedin.helix.store.zk.ZKPropertyStore;
 import com.linkedin.helix.tools.PropertiesReader;
 import com.linkedin.helix.util.HelixUtil;
 
@@ -80,6 +83,8 @@ public class ZKHelixManager implements HelixManager
   private final String _version;
   private final StateMachineEngine _stateMachEngine;
   private int _sessionTimeout;
+  private PropertyStore<ZNRecord> _propertyStore = null;
+
 
   public ZKHelixManager(String clusterName, String instanceName, InstanceType instanceType,
       String zkConnectString) throws Exception
@@ -139,7 +144,7 @@ public class ZKHelixManager implements HelixManager
         || _instanceType == InstanceType.CONTROLLER_PARTICIPANT)
     {
       boolean isValid = _zkClient.exists(PropertyPathConfig.getPath(PropertyType.CONFIGS,
-          _clusterName, _instanceName))
+          _clusterName, ConfigScopeProperty.PARTICIPANT.toString(), _instanceName))
           && _zkClient.exists(PropertyPathConfig.getPath(PropertyType.MESSAGES, _clusterName,
               _instanceName))
           && _zkClient.exists(PropertyPathConfig.getPath(PropertyType.CURRENTSTATES, _clusterName,
@@ -181,7 +186,9 @@ public class ZKHelixManager implements HelixManager
   public void addConfigChangeListener(ConfigChangeListener listener)
   {
     checkConnected();
-    final String path = HelixUtil.getConfigPath(_clusterName);
+    // final String path = HelixUtil.getConfigPath(_clusterName);
+    final String path = PropertyPathConfig.getPath(PropertyType.CONFIGS, _clusterName,
+        ConfigScopeProperty.PARTICIPANT.toString());
 
     CallbackHandler callbackHandler = createCallBackHandler(path, listener,
         new EventType[] { EventType.NodeChildrenChanged }, CONFIG);
@@ -700,12 +707,12 @@ public class ZKHelixManager implements HelixManager
   {
     checkConnected();
 
-    if (_accessor != null)
+    if (_propertyStore == null)
     {
-      return _accessor.getPropertyStore();
+      String path = PropertyPathConfig.getPath(PropertyType.PROPERTYSTORE, _clusterName);
+      _propertyStore = new ZKPropertyStore<ZNRecord>(_zkClient, new PropertyJsonSerializer<ZNRecord>(ZNRecord.class), path);
     }
-
-    return null;
+    return _propertyStore;
   }
 
   @Override

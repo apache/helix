@@ -170,7 +170,6 @@ public class HelixStateMachineEngine implements StateMachineEngine
       return null;
     }
 
-    // String key = stateModelName + SEPARATOR + resourceGroupName;
     String factoryName = message.getStateModelFactoryName();
     if (factoryName == null)
     {
@@ -180,19 +179,14 @@ public class HelixStateMachineEngine implements StateMachineEngine
     StateModelFactory stateModelFactory = getStateModelFactory(stateModelName, factoryName);
     if (stateModelFactory == null)
     {
-      // stateModelFactory = getStateModelFactory(stateModelName);
-      // if (stateModelFactory == null)
-      // {
       logger.warn("Cannot find stateModelFactory for model:" + stateModelName
           + " using factoryName:" + factoryName + " for resourceGroup:" + resourceName);
       return null;
-      // }
     }
 
     StateModel stateModel = stateModelFactory.getStateModel(partitionKey);
     if (stateModel == null)
     {
-      // stateModelFactory.addStateModel(key,stateModelFactory.createNewStateModel(stateUnitKey));
       stateModelFactory.createAndAddStateModel(partitionKey);
       stateModel = stateModelFactory.getStateModel(partitionKey);
 

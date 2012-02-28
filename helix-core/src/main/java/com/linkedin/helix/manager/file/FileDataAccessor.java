@@ -15,8 +15,6 @@ import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.ZNRecordDecorator;
-import com.linkedin.helix.store.PropertyJsonComparator;
-import com.linkedin.helix.store.PropertyJsonSerializer;
 import com.linkedin.helix.store.PropertyStore;
 import com.linkedin.helix.store.PropertyStoreException;
 import com.linkedin.helix.store.file.FilePropertyStore;
@@ -24,6 +22,7 @@ import com.linkedin.helix.store.file.FilePropertyStore;
 public class FileDataAccessor implements DataAccessor
 {
   private static Logger LOG = Logger.getLogger(FileDataAccessor.class);
+  // store that is used by FileDataAccessor
   private final FilePropertyStore<ZNRecord> _store;
   private final String _clusterName;
   private final ReadWriteLock _readWriteLock = new ReentrantReadWriteLock();
@@ -226,21 +225,6 @@ public class FileDataAccessor implements DataAccessor
       _readWriteLock.readLock().unlock();
     }
     return records;
-  }
-
-  @Override
-  public PropertyStore<ZNRecord> getPropertyStore()
-  {
-    String path = PropertyPathConfig.getPath(PropertyType.PROPERTYSTORE, _clusterName);
-    if (!_store.exists(path))
-    {
-      _store.createPropertyNamespace(path);
-    }
-
-    String propertyStoreRoot = _store.getPropertyRootNamespace() + path;
-    return new FilePropertyStore<ZNRecord>(new PropertyJsonSerializer<ZNRecord>(ZNRecord.class),
-                                           propertyStoreRoot,
-                                           new PropertyJsonComparator<ZNRecord>(ZNRecord.class));
   }
 
   // HACK remove it later

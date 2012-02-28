@@ -25,6 +25,7 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.log4j.Logger;
 
+import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
 import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.HelixManagerFactory;
 import com.linkedin.helix.InstanceType;
@@ -63,8 +64,11 @@ public class HelixControllerMain
     clusterOption.setRequired(true);
     clusterOption.setArgName("Cluster name (Required)");
 
-    Option modeOption = OptionBuilder.withLongOpt(mode)
-        .withDescription("Provide cluster controller mode (Optional): STANDALONE (default) or DISTRIBUTED").create();
+    Option modeOption = OptionBuilder
+        .withLongOpt(mode)
+        .withDescription(
+            "Provide cluster controller mode (Optional): STANDALONE (default) or DISTRIBUTED")
+        .create();
     modeOption.setArgs(1);
     modeOption.setRequired(false);
     modeOption.setArgName("Cluster controller mode (Optional)");
@@ -92,8 +96,7 @@ public class HelixControllerMain
     helpFormatter.printHelp("java " + HelixControllerMain.class.getName(), cliOptions);
   }
 
-  public static CommandLine processCommandLineArgs(String[] cliArgs)
-  throws Exception
+  public static CommandLine processCommandLineArgs(String[] cliArgs) throws Exception
   {
     CommandLineParser cliParser = new GnuParser();
     Options cliOptions = constructCommandLineOptions();
@@ -111,7 +114,7 @@ public class HelixControllerMain
   }
 
   public static void addListenersToController(HelixManager manager,
-     GenericHelixController controller)
+      GenericHelixController controller)
   {
     try
     {
@@ -120,58 +123,56 @@ public class HelixControllerMain
       manager.addIdealStateChangeListener(controller);
       manager.addExternalViewChangeListener(controller);
 
-      ClusterStatusMonitor monitor = new ClusterStatusMonitor(manager.getClusterName(),
-              manager.getDataAccessor().getChildNames(PropertyType.CONFIGS).size());
+      ClusterStatusMonitor monitor = new ClusterStatusMonitor(manager.getClusterName(), manager
+          .getDataAccessor()
+          .getChildNames(PropertyType.CONFIGS, ConfigScopeProperty.PARTICIPANT.toString()).size());
       manager.addLiveInstanceChangeListener(monitor);
       manager.addExternalViewChangeListener(monitor);
-    }
-    catch (ZkInterruptedException e)
+    } catch (ZkInterruptedException e)
     {
-      logger.warn("zk connection is interrupted during HelixManagerMain.addListenersToController(), exception" + e);
-    }
-    catch (Exception e)
+      logger
+          .warn("zk connection is interrupted during HelixManagerMain.addListenersToController(), exception"
+              + e);
+    } catch (Exception e)
     {
       logger.error("Error when creating HelixManagerContollerMonitor", e);
     }
   }
 
   public static HelixManager startHelixController(final String zkConnectString,
-       final String clusterName, final String controllerName, final String controllerMode)
+      final String clusterName, final String controllerName, final String controllerMode)
   {
     HelixManager manager = null;
     try
     {
       if (controllerMode.equalsIgnoreCase(STANDALONE))
       {
-        manager = HelixManagerFactory.getZKHelixManager(clusterName,
-                                                            controllerName,
-                                                            InstanceType.CONTROLLER,
-                                                            zkConnectString);
+        manager = HelixManagerFactory.getZKHelixManager(clusterName, controllerName,
+            InstanceType.CONTROLLER, zkConnectString);
         manager.connect();
-      }
-      else if (controllerMode.equalsIgnoreCase(DISTRIBUTED))
+      } else if (controllerMode.equalsIgnoreCase(DISTRIBUTED))
       {
-        manager = HelixManagerFactory.getZKHelixManager(clusterName,
-                                                            controllerName,
-                                                            InstanceType.CONTROLLER_PARTICIPANT,
-                                                            zkConnectString);
+        manager = HelixManagerFactory.getZKHelixManager(clusterName, controllerName,
+            InstanceType.CONTROLLER_PARTICIPANT, zkConnectString);
 
-        DistClusterControllerStateModelFactory stateModelFactory
-           = new DistClusterControllerStateModelFactory(zkConnectString);
+        DistClusterControllerStateModelFactory stateModelFactory = new DistClusterControllerStateModelFactory(
+            zkConnectString);
 
-//        StateMachineEngine genericStateMachineHandler = new StateMachineEngine();
+        // StateMachineEngine genericStateMachineHandler = new
+        // StateMachineEngine();
         StateMachineEngine stateMach = manager.getStateMachineEngine();
         stateMach.registerStateModelFactory("LeaderStandby", stateModelFactory);
-//        manager.getMessagingService().registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(), genericStateMachineHandler);
+        // manager.getMessagingService().registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(),
+        // genericStateMachineHandler);
         manager.connect();
-      }
-      else
+      } else
       {
         logger.error("cluster controller mode:" + controllerMode + " NOT supported");
-        // throw new IllegalArgumentException("Unsupported cluster controller mode:" + controllerMode);
+        // throw new
+        // IllegalArgumentException("Unsupported cluster controller mode:" +
+        // controllerMode);
       }
-    }
-    catch (Exception e)
+    } catch (Exception e)
     {
       // TODO Auto-generated catch block
       e.printStackTrace();
@@ -202,26 +203,25 @@ public class HelixControllerMain
 
     if (controllerMode.equalsIgnoreCase(DISTRIBUTED) && !cmd.hasOption(name))
     {
-      throw new IllegalArgumentException("A unique cluster controller name is required in DISTRIBUTED mode");
+      throw new IllegalArgumentException(
+          "A unique cluster controller name is required in DISTRIBUTED mode");
     }
 
     controllerName = cmd.getOptionValue(name);
 
     // Espresso_driver.py will consume this
-    logger.info("Cluster manager started, zkServer: " + zkConnectString +
-        ", clusterName:" + clusterName + ", controllerName:" + controllerName +
-        ", mode:" + controllerMode);
+    logger.info("Cluster manager started, zkServer: " + zkConnectString + ", clusterName:"
+        + clusterName + ", controllerName:" + controllerName + ", mode:" + controllerMode);
 
-    HelixManager manager = startHelixController(zkConnectString, clusterName,
-                              controllerName, controllerMode);
+    HelixManager manager = startHelixController(zkConnectString, clusterName, controllerName,
+        controllerMode);
     try
     {
       Thread.currentThread().join();
-    }
-    catch (InterruptedException e)
+    } catch (InterruptedException e)
     {
-      logger.info("controller:" + controllerName + ", " +
-                    Thread.currentThread().getName() + " interrupted");
+      logger.info("controller:" + controllerName + ", " + Thread.currentThread().getName()
+          + " interrupted");
     }
 
   }

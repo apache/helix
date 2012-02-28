@@ -16,10 +16,10 @@ public class InstanceConfig extends ZNRecordDecorator
 {
   public enum InstanceConfigProperty
   {
-    HOST,
-    PORT,
-    ENABLED,
-    DISABLED_PARTITION
+    HELIX_HOST,
+    HELIX_PORT,
+    HELIX_ENABLED,
+    HELIX_DISABLED_PARTITION
   }
   private static final Logger _logger = Logger.getLogger(InstanceConfig.class.getName());
   
@@ -35,39 +35,39 @@ public class InstanceConfig extends ZNRecordDecorator
 
   public String getHostName()
   {
-    return _record.getSimpleField(InstanceConfigProperty.HOST.toString());
+    return _record.getSimpleField(InstanceConfigProperty.HELIX_HOST.toString());
   }
 
   public void setHostName(String hostName)
   {
-    _record.setSimpleField(InstanceConfigProperty.HOST.toString(), hostName);
+    _record.setSimpleField(InstanceConfigProperty.HELIX_HOST.toString(), hostName);
   }
 
   public String getPort()
   {
-    return _record.getSimpleField(InstanceConfigProperty.PORT.toString());
+    return _record.getSimpleField(InstanceConfigProperty.HELIX_PORT.toString());
   }
 
   public void setPort(String port)
   {
-    _record.setSimpleField(InstanceConfigProperty.PORT.toString(), port);
+    _record.setSimpleField(InstanceConfigProperty.HELIX_PORT.toString(), port);
   }
 
   public boolean getInstanceEnabled()
   {
-    String isEnabled = _record.getSimpleField(InstanceConfigProperty.ENABLED.toString());
+    String isEnabled = _record.getSimpleField(InstanceConfigProperty.HELIX_ENABLED.toString());
     return Boolean.parseBoolean(isEnabled);
   }
 
   public void setInstanceEnabled(boolean enabled)
   {
-    _record.setSimpleField(InstanceConfigProperty.ENABLED.toString(), Boolean.toString(enabled));
+    _record.setSimpleField(InstanceConfigProperty.HELIX_ENABLED.toString(), Boolean.toString(enabled));
   }
 
 
   public boolean getInstanceEnabledForPartition(String partition)
   {
-    Map<String, String> disabledPartitionMap = _record.getMapField(InstanceConfigProperty.DISABLED_PARTITION.toString());
+    Map<String, String> disabledPartitionMap = _record.getMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString());
     if (disabledPartitionMap != null && disabledPartitionMap.containsKey(partition))
     {
       return false;
@@ -80,18 +80,18 @@ public class InstanceConfig extends ZNRecordDecorator
 
   public void setInstanceEnabledForPartition(String partition, boolean enabled)
   {
-    if (_record.getMapField(InstanceConfigProperty.DISABLED_PARTITION.toString()) == null)
+    if (_record.getMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString()) == null)
     {
-      _record.setMapField(InstanceConfigProperty.DISABLED_PARTITION.toString(),
+      _record.setMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString(),
                              new TreeMap<String, String>());
     }
     if (enabled == true)
     {
-      _record.getMapField(InstanceConfigProperty.DISABLED_PARTITION.toString()).remove(partition);
+      _record.getMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString()).remove(partition);
     }
     else
     {
-      _record.getMapField(InstanceConfigProperty.DISABLED_PARTITION.toString()).put(partition, Boolean.toString(false));
+      _record.getMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString()).put(partition, Boolean.toString(false));
     }
   }
 

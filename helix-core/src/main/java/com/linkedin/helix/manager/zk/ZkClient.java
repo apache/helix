@@ -107,7 +107,6 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
     return stat;
   }
 
-//  @Override
   @SuppressWarnings("unchecked")
   public <T extends Object> T readDataAndStat(String path, Stat stat, boolean returnNullIfPathNotExists)
   {
@@ -124,5 +123,10 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
       }
     }
     return data;
+  }
+
+  public String getServers()
+  {
+    return _connection.getServers();
   }
 }

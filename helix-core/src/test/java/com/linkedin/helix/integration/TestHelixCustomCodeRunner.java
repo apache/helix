@@ -58,8 +58,8 @@ public class TestHelixCustomCodeRunner extends ZkIntegrationTestBase
           Thread.sleep(2000);
         }
         
-        HelixCustomCodeRunner particCodeBuilder = new HelixCustomCodeRunner(manager, ZK_ADDR);
-        particCodeBuilder.invoke(_callback)
+        HelixCustomCodeRunner customCodeRunner = new HelixCustomCodeRunner(manager, ZK_ADDR);
+        customCodeRunner.invoke(_callback)
                          .on(ChangeType.LIVE_INSTANCE)
                          .usingLeaderStandbyModel("TestParticLeader")
                          .start();
@@ -80,7 +80,7 @@ public class TestHelixCustomCodeRunner extends ZkIntegrationTestBase
   }
   
   @Test
-  public void testParticipantCodeBuilder() throws Exception
+  public void testCustomCodeRunner() throws Exception
   {
     System.out.println("START " + _clusterName + " at " + new Date(System.currentTimeMillis()));
 

@@ -30,7 +30,7 @@ public class ZkIntegrationTestBase
   private static Logger LOG = Logger.getLogger(ZkIntegrationTestBase.class);
 
   protected static ZkServer _zkServer;
-  protected static ZkClient _zkClient;
+  protected static ZkClient _gZkClient;
 
   public static final String ZK_ADDR = "localhost:2183";
   protected static final String CLUSTER_PREFIX = "CLUSTER";
@@ -46,8 +46,8 @@ public class ZkIntegrationTestBase
     AssertJUnit.assertTrue(_zkServer != null);
     ZKClientPool.reset();
 
-    _zkClient = new ZkClient(ZK_ADDR);
-    _zkClient.setZkSerializer(new ZNRecordSerializer());
+    _gZkClient = new ZkClient(ZK_ADDR);
+    _gZkClient.setZkSerializer(new ZNRecordSerializer());
   }
 
   @AfterSuite
@@ -56,7 +56,7 @@ public class ZkIntegrationTestBase
     ZKClientPool.reset();
     TestHelper.stopZkServer(_zkServer);
     // _zkServer = null;
-    _zkClient.close();
+    _gZkClient.close();
   }
 
   protected String getShortClassName()

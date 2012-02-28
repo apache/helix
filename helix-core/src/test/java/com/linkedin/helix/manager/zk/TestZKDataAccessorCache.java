@@ -10,13 +10,11 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
+import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
 import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.ZkUnitTestBase;
-import com.linkedin.helix.manager.zk.ZKDataAccessor;
-import com.linkedin.helix.manager.zk.ZNRecordSerializer;
-import com.linkedin.helix.manager.zk.ZkClient;
 
 public class TestZKDataAccessorCache extends ZkUnitTestBase
 {
@@ -38,12 +36,25 @@ public class TestZKDataAccessorCache extends ZkUnitTestBase
     {
       _zkClient.deleteRecursive("/" + _clusterName);
     }
-    _zkClient.createPersistent(PropertyPathConfig.getPath(PropertyType.CONFIGS, _clusterName), true);
-    _zkClient.createPersistent(PropertyPathConfig.getPath(PropertyType.IDEALSTATES, _clusterName), true);
-    _zkClient.createPersistent(PropertyPathConfig.getPath(PropertyType.EXTERNALVIEW, _clusterName), true);
-    _zkClient.createPersistent(PropertyPathConfig.getPath(PropertyType.LIVEINSTANCES, _clusterName), true);
-    _zkClient.createPersistent(PropertyPathConfig.getPath(PropertyType.STATEMODELDEFS, _clusterName), true);
-    _zkClient.createPersistent(PropertyPathConfig.getPath(PropertyType.CURRENTSTATES, _clusterName, "localhost_12918", "123456"), true);
+    _zkClient.createPersistent(
+        PropertyPathConfig.getPath(PropertyType.CONFIGS, _clusterName,
+            ConfigScopeProperty.CLUSTER.toString(), _clusterName), true);
+    _zkClient.createPersistent(
+        PropertyPathConfig.getPath(PropertyType.CONFIGS, _clusterName,
+        ConfigScopeProperty.PARTICIPANT.toString()), true);
+    _zkClient.createPersistent(
+        PropertyPathConfig.getPath(PropertyType.CONFIGS, _clusterName,
+            ConfigScopeProperty.RESOURCE.toString()), true);
+    _zkClient.createPersistent(PropertyPathConfig.getPath(PropertyType.IDEALSTATES, _clusterName),
+        true);
+    _zkClient.createPersistent(PropertyPathConfig.getPath(PropertyType.EXTERNALVIEW, _clusterName),
+        true);
+    _zkClient.createPersistent(
+        PropertyPathConfig.getPath(PropertyType.LIVEINSTANCES, _clusterName), true);
+    _zkClient.createPersistent(
+        PropertyPathConfig.getPath(PropertyType.STATEMODELDEFS, _clusterName), true);
+    _zkClient.createPersistent(PropertyPathConfig.getPath(PropertyType.CURRENTSTATES, _clusterName,
+        "localhost_12918", "123456"), true);
 
     _accessor = new ZKDataAccessor(_clusterName, _zkClient);
   }
@@ -61,7 +72,7 @@ public class TestZKDataAccessorCache extends ZkUnitTestBase
     testAccessorCache(PropertyType.IDEALSTATES);
     testAccessorCache(PropertyType.STATEMODELDEFS);
     testAccessorCache(PropertyType.LIVEINSTANCES);
-    testAccessorCache(PropertyType.CONFIGS);
+    testAccessorCache(PropertyType.CONFIGS, ConfigScopeProperty.PARTICIPANT.toString());
     testAccessorCache(PropertyType.EXTERNALVIEW);
     testAccessorCache(PropertyType.CURRENTSTATES, "localhost_12918", "123456");
   }
@@ -88,7 +99,7 @@ public class TestZKDataAccessorCache extends ZkUnitTestBase
     _zkClient.writeData(parentPath + "/child2", record2);
     newRecords = _accessor.getChildValues(type, keys);
     LOG.debug("new records:" + newRecords);
-    Assert.assertEquals(getRecord(newRecords,"child2").getSimpleField("key1"), "value1");
+    Assert.assertEquals(getRecord(newRecords, "child2").getSimpleField("key1"), "value1");
     Assert.assertNotSame(getRecord(newRecords, "child2"), getRecord(records, "child2"));
 
     // add a new child
@@ -105,7 +116,8 @@ public class TestZKDataAccessorCache extends ZkUnitTestBase
     newRecords = _accessor.getChildValues(type, keys);
     LOG.debug("new records:" + newRecords);
     Assert.assertNotNull(getRecord(records, "child2"));
-    Assert.assertNull(getRecord(newRecords, "child2"), "Should be null, since child2 has been deleted");
+    Assert.assertNull(getRecord(newRecords, "child2"),
+        "Should be null, since child2 has been deleted");
   }
 
   private ZNRecord getRecord(List<ZNRecord> list, String id)

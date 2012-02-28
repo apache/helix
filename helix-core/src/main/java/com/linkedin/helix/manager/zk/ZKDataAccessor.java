@@ -18,10 +18,6 @@ import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.ZNRecordDecorator;
-import com.linkedin.helix.store.PropertyJsonSerializer;
-import com.linkedin.helix.store.PropertySerializer;
-import com.linkedin.helix.store.PropertyStore;
-import com.linkedin.helix.store.zk.ZKPropertyStore;
 
 public class ZKDataAccessor implements DataAccessor
 {
@@ -29,11 +25,12 @@ public class ZKDataAccessor implements DataAccessor
 
   protected final String _clusterName;
   protected final ZkClient _zkClient;
+//  protected final PropertyStore<ZNRecord> _propertyStore;
 
   /**
-   * If a PropertyType has children (e.g. CONFIGS), then the parent path is the first key
-   * and child path is the second key;
-   * If a PropertyType has no child (e.g. LEADER), then no cache
+   * If a PropertyType has children (e.g. CONFIGS), then the parent path is the
+   * first key and child path is the second key; If a PropertyType has no child
+   * (e.g. LEADER), then no cache
    */
   private final Map<String, Map<String, ZNRecord>> _cache = new ConcurrentHashMap<String, Map<String, ZNRecord>>();
 
@@ -46,9 +43,9 @@ public class ZKDataAccessor implements DataAccessor
   @Override
   public boolean setProperty(PropertyType type, ZNRecordDecorator value, String... keys)
   {
-    if(!value.isValid())
+    if (!value.isValid())
     {
-      throw new HelixException("The ZNRecord for "+ type+" is not valid.");
+      throw new HelixException("The ZNRecord for " + type + " is not valid.");
     }
     return setProperty(type, value.getRecord(), keys);
   }
@@ -69,26 +66,22 @@ public class ZKDataAccessor implements DataAccessor
       if (type.isCreateOnlyIfAbsent())
       {
         return false;
-      }
-      else
+      } else
       {
         ZKUtil.createOrUpdate(_zkClient, path, value, type.isPersistent(), false);
       }
-    }
-    else
+    } else
     {
       try
       {
         if (type.isPersistent())
         {
           _zkClient.createPersistent(path, value);
-        }
-        else
+        } else
         {
           _zkClient.createEphemeral(path, value);
         }
-      }
-      catch (Exception e)
+      } catch (Exception e)
       {
         logger.warn("Exception while creating path:" + path
             + " Most likely due to race condition(Ignorable).", e);
@@ -111,8 +104,7 @@ public class ZKDataAccessor implements DataAccessor
     if (type.isUpdateOnlyOnExists())
     {
       ZKUtil.updateIfExists(_zkClient, path, value, type.isMergeOnUpdate());
-    }
-    else
+    } else
     {
       String parent = new File(path).getParent();
 
@@ -120,18 +112,14 @@ public class ZKDataAccessor implements DataAccessor
       {
         _zkClient.createPersistent(parent, true);
       }
-      ZKUtil.createOrUpdate(_zkClient,
-                            path,
-                            value,
-                            type.isPersistent(),
-                            type.isMergeOnUpdate());
+      ZKUtil.createOrUpdate(_zkClient, path, value, type.isPersistent(), type.isMergeOnUpdate());
     }
 
     return true;
   }
 
   @Override
-  public <T extends ZNRecordDecorator> 
+  public <T extends ZNRecordDecorator>
     T getProperty(Class<T> clazz, PropertyType type, String... keys)
   {
     return ZNRecordDecorator.convertToTypedInstance(clazz, getProperty(type, keys));
@@ -145,15 +133,13 @@ public class ZKDataAccessor implements DataAccessor
     if (!type.isCached())
     {
       return _zkClient.readData(path, true);
-    }
-    else
+    } else
     {
       int len = keys.length;
       if (len == 0)
       {
         return _zkClient.readData(path, true);
-      }
-      else
+      } else
       {
         String[] subkeys = Arrays.copyOfRange(keys, 0, len - 1);
         Map<String, ZNRecord> newChilds = refreshChildValuesCache(type, subkeys);
@@ -177,15 +163,14 @@ public class ZKDataAccessor implements DataAccessor
     if (_zkClient.exists(path))
     {
       return _zkClient.getChildren(path);
-    }
-    else
+    } else
     {
       return Collections.emptyList();
     }
   }
 
   @Override
-  public <T extends ZNRecordDecorator> 
+  public <T extends ZNRecordDecorator>
     List<T> getChildValues(Class<T> clazz, PropertyType type, String... keys)
   {
     List<ZNRecord> newChilds = getChildValues(type, keys);
@@ -201,18 +186,17 @@ public class ZKDataAccessor implements DataAccessor
 
   {
     String path = PropertyPathConfig.getPath(type, _clusterName, keys);
-    //    if (path == null)
-//    {
-//      System.err.println("path is null");
-//    }
+    // if (path == null)
+    // {
+    // System.err.println("path is null");
+    // }
 
     if (_zkClient.exists(path))
     {
       if (!type.isCached())
       {
         return ZKUtil.getChildren(_zkClient, path);
-      }
-      else
+      } else
       {
         Map<String, ZNRecord> newChilds = refreshChildValuesCache(type, keys);
         return new ArrayList<ZNRecord>(newChilds.values());
@@ -220,19 +204,6 @@ public class ZKDataAccessor implements DataAccessor
     }
 
     return Collections.emptyList();
-  }
-
-  @Override
-  public PropertyStore<ZNRecord> getPropertyStore()
-  {
-    String path = PropertyPathConfig.getPath(PropertyType.PROPERTYSTORE, _clusterName);
-    if (!_zkClient.exists(path))
-    {
-      _zkClient.createPersistent(path);
-    }
-    PropertySerializer<ZNRecord> serializer =
-        new PropertyJsonSerializer<ZNRecord>(ZNRecord.class);
-    return new ZKPropertyStore<ZNRecord>(_zkClient, serializer, path);
   }
 
   public void reset()
@@ -254,8 +225,7 @@ public class ZKDataAccessor implements DataAccessor
     {
       _cache.put(path, newChilds);
       return newChilds;
-    }
-    else
+    } else
     {
       _cache.remove(path);
       return Collections.emptyMap();
@@ -264,13 +234,13 @@ public class ZKDataAccessor implements DataAccessor
 
   /**
    * Read a zookeeper node only if it's data has been changed since last read
-   *
+   * 
    * @param parentPath
    * @param oldChildRecords
    * @return newChildRecords
    */
-  private Map<String, ZNRecord>
-    refreshChildValues(String parentPath, Map<String, ZNRecord> oldChildRecords)
+  private Map<String, ZNRecord> refreshChildValues(String parentPath,
+      Map<String, ZNRecord> oldChildRecords)
   {
     List<String> childs = _zkClient.getChildren(parentPath);
     if (childs == null || childs.size() == 0)
@@ -293,8 +263,7 @@ public class ZKDataAccessor implements DataAccessor
           record.setVersion(newStat.getVersion());
           newChildRecords.put(child, record);
         }
-      }
-      else
+      } else
       {
         ZNRecord oldChild = oldChildRecords.get(child);
 
@@ -302,8 +271,8 @@ public class ZKDataAccessor implements DataAccessor
         newStat = _zkClient.getStat(childPath);
         if (newStat != null)
         {
-//          System.out.print(child + " oldStat:" + oldStat);
-//          System.out.print(child + " newStat:" + newStat);
+          // System.out.print(child + " oldStat:" + oldStat);
+          // System.out.print(child + " newStat:" + newStat);
 
           if (oldVersion < newStat.getVersion())
           {
@@ -315,8 +284,7 @@ public class ZKDataAccessor implements DataAccessor
               record.setModifiedTime(newStat.getMtime());
               newChildRecords.put(child, record);
             }
-          }
-          else
+          } else
           {
             newChildRecords.put(child, oldChild);
           }
@@ -328,7 +296,7 @@ public class ZKDataAccessor implements DataAccessor
   }
 
   @Override
-  public <T extends ZNRecordDecorator> 
+  public <T extends ZNRecordDecorator>
     Map<String, T> getChildValuesMap(Class<T> clazz, PropertyType type, String... keys)
   {
     List<T> list = getChildValues(clazz, type, keys);

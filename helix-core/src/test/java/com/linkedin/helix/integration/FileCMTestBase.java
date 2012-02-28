@@ -136,10 +136,10 @@ public class FileCMTestBase
     // TODO use ClusterSetup
     String nodeId = host + "_" + port;
     ZNRecord nodeConfig = new ZNRecord(nodeId);
-    nodeConfig.setSimpleField(InstanceConfigProperty.HOST.toString(), host);
-    nodeConfig.setSimpleField(InstanceConfigProperty.PORT.toString(),
+    nodeConfig.setSimpleField(InstanceConfigProperty.HELIX_HOST.toString(), host);
+    nodeConfig.setSimpleField(InstanceConfigProperty.HELIX_PORT.toString(),
         Integer.toString(port));
-    nodeConfig.setSimpleField(InstanceConfigProperty.ENABLED.toString(),
+    nodeConfig.setSimpleField(InstanceConfigProperty.HELIX_ENABLED.toString(),
         Boolean.toString(true));
     _mgmtTool.addInstance(CLUSTER_NAME, new InstanceConfig(nodeConfig));
   }

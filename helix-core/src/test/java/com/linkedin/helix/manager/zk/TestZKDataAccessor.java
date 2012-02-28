@@ -16,14 +16,9 @@ import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.ZkUnitTestBase;
-import com.linkedin.helix.manager.zk.ZKDataAccessor;
-import com.linkedin.helix.manager.zk.ZNRecordSerializer;
-import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.model.IdealState.IdealStateModeProperty;
-import com.linkedin.helix.store.PropertyStore;
-import com.linkedin.helix.store.PropertyStoreException;
 
 
 public class TestZKDataAccessor extends ZkUnitTestBase
@@ -117,21 +112,6 @@ public class TestZKDataAccessor extends ZkUnitTestBase
   {
     List<ExternalView> list = _accessor.getChildValues(ExternalView.class, PropertyType.EXTERNALVIEW, _clusterName);
     AssertJUnit.assertEquals(0, list.size());
-  }
-
-  @Test ()
-  public void testGetPropertyStore()
-  {
-    PropertyStore<ZNRecord> store = _accessor.getPropertyStore();
-    try
-    {
-      store.setProperty("child1", new ZNRecord("child1"));
-    }
-    catch (PropertyStoreException e)
-    {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    }
   }
 
   @BeforeClass

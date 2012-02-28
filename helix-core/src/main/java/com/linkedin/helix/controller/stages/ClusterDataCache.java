@@ -8,8 +8,9 @@ import java.util.Set;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.HelixConstants.StateModelToken;
+import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
 import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixConstants.StateModelToken;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.model.AlertStatus;
 import com.linkedin.helix.model.Alerts;
@@ -25,9 +26,9 @@ import com.linkedin.helix.model.StateModelDefinition;
 /**
  * Reads the data from the cluster using data accessor. This output ClusterData
  * which provides useful methods to search/lookup properties
- *
+ * 
  * @author kgopalak
- *
+ * 
  */
 public class ClusterDataCache
 {
@@ -38,9 +39,9 @@ public class ClusterDataCache
   Map<String, InstanceConfig> _instanceConfigMap;
   Map<String, Map<String, Map<String, CurrentState>>> _currentStateMap;
   Map<String, Map<String, Message>> _messageMap;
-  
+
   Map<String, Map<String, HealthStat>> _healthStatMap;
-  private HealthStat _globalStats;  //DON'T THINK I WILL USE THIS ANYMORE
+  private HealthStat _globalStats; // DON'T THINK I WILL USE THIS ANYMORE
   private PersistentStats _persistentStats;
   private Alerts _alerts;
   private AlertStatus _alertStatus;
@@ -49,32 +50,27 @@ public class ClusterDataCache
 
   public boolean refresh(DataAccessor accessor)
   {
-    _idealStateMap = accessor.getChildValuesMap(IdealState.class, 
-                                                PropertyType.IDEALSTATES);  
-    _liveInstanceMap = accessor.getChildValuesMap(LiveInstance.class, 
-                                                  PropertyType.LIVEINSTANCES);
+    _idealStateMap = accessor.getChildValuesMap(IdealState.class, PropertyType.IDEALSTATES);
+    _liveInstanceMap = accessor.getChildValuesMap(LiveInstance.class, PropertyType.LIVEINSTANCES);
 
     for (LiveInstance instance : _liveInstanceMap.values())
     {
-      LOG.trace("live instance: " + instance.getInstanceName() + " "
-          + instance.getSessionId());
+      LOG.trace("live instance: " + instance.getInstanceName() + " " + instance.getSessionId());
     }
 
-    _stateModelDefMap = accessor.getChildValuesMap(StateModelDefinition.class, 
-                                                   PropertyType.STATEMODELDEFS);
-    _instanceConfigMap = accessor.getChildValuesMap(InstanceConfig.class, 
-                                                    PropertyType.CONFIGS);
+    _stateModelDefMap = accessor.getChildValuesMap(StateModelDefinition.class,
+        PropertyType.STATEMODELDEFS);
+    _instanceConfigMap = accessor.getChildValuesMap(InstanceConfig.class, PropertyType.CONFIGS,
+        ConfigScopeProperty.PARTICIPANT.toString());
     Map<String, Map<String, Message>> msgMap = new HashMap<String, Map<String, Message>>();
     for (String instanceName : _liveInstanceMap.keySet())
     {
-      msgMap.put(instanceName, accessor.getChildValuesMap(Message.class, 
-                                                          PropertyType.MESSAGES, 
-                                                          instanceName));
+      msgMap.put(instanceName,
+          accessor.getChildValuesMap(Message.class, PropertyType.MESSAGES, instanceName));
     }
     _messageMap = Collections.unmodifiableMap(msgMap);
 
-    Map<String, Map<String, Map<String, CurrentState>>> allCurStateMap
-      = new HashMap<String, Map<String, Map<String, CurrentState>>>();
+    Map<String, Map<String, Map<String, CurrentState>>> allCurStateMap = new HashMap<String, Map<String, Map<String, CurrentState>>>();
     for (String instanceName : _liveInstanceMap.keySet())
     {
       LiveInstance liveInstance = _liveInstanceMap.get(instanceName);
@@ -84,12 +80,10 @@ public class ClusterDataCache
         allCurStateMap.put(instanceName, new HashMap<String, Map<String, CurrentState>>());
       }
       Map<String, Map<String, CurrentState>> curStateMap = allCurStateMap.get(instanceName);
-      curStateMap.put(sessionId, accessor.getChildValuesMap(CurrentState.class, 
-                                                            PropertyType.CURRENTSTATES, 
-                                                            instanceName, 
-                                                            sessionId));
+      curStateMap.put(sessionId, accessor.getChildValuesMap(CurrentState.class,
+          PropertyType.CURRENTSTATES, instanceName, sessionId));
     }
-    
+
     for (String instance : allCurStateMap.keySet())
     {
       allCurStateMap.put(instance, Collections.unmodifiableMap(allCurStateMap.get(instance)));
@@ -99,14 +93,13 @@ public class ClusterDataCache
     Map<String, Map<String, HealthStat>> hsMap = new HashMap<String, Map<String, HealthStat>>();
     for (String instanceName : _liveInstanceMap.keySet())
     {
-    	//xxx clearly getting znodes for the instance here...so get the timestamp!
-    	hsMap.put(instanceName, accessor.getChildValuesMap(HealthStat.class, 
-    	                                                   PropertyType.HEALTHREPORT,
-    	                                                   instanceName));
+      // xxx clearly getting znodes for the instance here...so get the
+      // timestamp!
+      hsMap.put(instanceName,
+          accessor.getChildValuesMap(HealthStat.class, PropertyType.HEALTHREPORT, instanceName));
     }
     _healthStatMap = Collections.unmodifiableMap(hsMap);
-    _persistentStats = accessor.getProperty(PersistentStats.class,
-                                            PropertyType.PERSISTENTSTATS);
+    _persistentStats = accessor.getProperty(PersistentStats.class, PropertyType.PERSISTENTSTATS);
     _alerts = accessor.getProperty(Alerts.class, PropertyType.ALERTS);
     _alertStatus = accessor.getProperty(AlertStatus.class, PropertyType.ALERT_STATUS);
 
@@ -123,8 +116,7 @@ public class ClusterDataCache
     return _liveInstanceMap;
   }
 
-  public Map<String, CurrentState> getCurrentState(String instanceName,
-      String clientSessionId)
+  public Map<String, CurrentState> getCurrentState(String instanceName, String clientSessionId)
   {
     return _currentStateMap.get(instanceName).get(clientSessionId);
   }
@@ -135,8 +127,7 @@ public class ClusterDataCache
     if (map != null)
     {
       return map;
-    }
-    else
+    } else
     {
       return Collections.emptyMap();
     }
@@ -144,27 +135,27 @@ public class ClusterDataCache
 
   public HealthStat getGlobalStats()
   {
-	  return _globalStats;
+    return _globalStats;
   }
 
-  public PersistentStats getPersistentStats() 
+  public PersistentStats getPersistentStats()
   {
-	  return _persistentStats;
+    return _persistentStats;
   }
-  
+
   public Alerts getAlerts()
   {
-	  return _alerts;
+    return _alerts;
   }
-  
+
   public AlertStatus getAlertStatus()
   {
-	  return _alertStatus;
+    return _alertStatus;
   }
-  
+
   public Map<String, HealthStat> getHealthStats(String instanceName)
   {
-	  Map<String, HealthStat> map = _healthStatMap.get(instanceName);
+    Map<String, HealthStat> map = _healthStatMap.get(instanceName);
     if (map != null)
     {
       return map;
@@ -173,7 +164,7 @@ public class ClusterDataCache
       return Collections.emptyMap();
     }
   }
-  
+
   public StateModelDefinition getStateModelDef(String stateModelDefRef)
   {
 
@@ -204,7 +195,7 @@ public class ClusterDataCache
     }
     return disabledInstancesSet;
   }
-  
+
   public int getReplicas(String resourceName)
   {
     String replicasStr = _idealStateMap.get(resourceName).getReplicas();
@@ -212,8 +203,7 @@ public class ClusterDataCache
     if (replicasStr.equals(StateModelToken.ANY_LIVEINSTANCE.toString()))
     {
       replicas = _liveInstanceMap.size();
-    }
-    else
+    } else
     {
       try
       {
@@ -225,7 +215,7 @@ public class ClusterDataCache
     }
     return replicas;
   }
-  
+
   @Override
   public String toString()
   {
@@ -235,7 +225,7 @@ public class ClusterDataCache
     sb.append("stateModelDefMap:" + _stateModelDefMap).append("\n");
     sb.append("instanceConfigMap:" + _instanceConfigMap).append("\n");
     sb.append("messageMap:" + _messageMap).append("\n");
-    
+
     return sb.toString();
   }
 }

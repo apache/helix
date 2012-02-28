@@ -17,6 +17,7 @@ import org.restlet.resource.Resource;
 import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 
+import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
 import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.HelixException;
 import com.linkedin.helix.PropertyType;
@@ -29,114 +30,126 @@ public class InstancesResource extends Resource
 {
   public static final String _instanceName = "instanceName";
   public static final String _instanceNames = "instanceNames";
-  public InstancesResource(Context context,
-      Request request,
-      Response response) 
+
+  public InstancesResource(Context context, Request request, Response response)
   {
     super(context, request, response);
     getVariants().add(new Variant(MediaType.TEXT_PLAIN));
     getVariants().add(new Variant(MediaType.APPLICATION_JSON));
   }
 
+  @Override
   public boolean allowGet()
   {
     return true;
   }
-  
+
+  @Override
   public boolean allowPost()
   {
     return true;
   }
-  
+
+  @Override
   public boolean allowPut()
   {
     return false;
   }
-  
+
+  @Override
   public boolean allowDelete()
   {
     return false;
   }
-  
+
+  @Override
   public Representation represent(Variant variant)
   {
     StringRepresentation presentation = null;
     try
     {
-      String zkServer = (String)getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
-      String clusterName = (String)getRequest().getAttributes().get("clusterName");
+      String zkServer = (String) getContext().getAttributes().get(
+          RestAdminApplication.ZKSERVERADDRESS);
+      String clusterName = (String) getRequest().getAttributes().get("clusterName");
       presentation = getInstancesRepresentation(zkServer, clusterName);
     }
-    
-    catch(Exception e)
+
+    catch (Exception e)
     {
       String error = ClusterRepresentationUtil.getErrorAsJsonStringFromException(e);
       presentation = new StringRepresentation(error, MediaType.APPLICATION_JSON);
-      
+
       e.printStackTrace();
-    }  
+    }
     return presentation;
   }
-  
-  StringRepresentation getInstancesRepresentation(String zkServerAddress, String clusterName) throws JsonGenerationException, JsonMappingException, IOException
+
+  StringRepresentation getInstancesRepresentation(String zkServerAddress, String clusterName)
+      throws JsonGenerationException, JsonMappingException, IOException
   {
     ClusterSetup setupTool = new ClusterSetup(zkServerAddress);
-    List<String> instances = setupTool.getClusterManagementTool().getInstancesInCluster(clusterName);
-    
-    DataAccessor accessor = ClusterRepresentationUtil.getClusterDataAccessor(zkServerAddress,  clusterName);
+    List<String> instances = setupTool.getClusterManagementTool()
+        .getInstancesInCluster(clusterName);
+
+    DataAccessor accessor = ClusterRepresentationUtil.getClusterDataAccessor(zkServerAddress,
+        clusterName);
     List<ZNRecord> liveInstances = accessor.getChildValues(PropertyType.LIVEINSTANCES);
-    List<ZNRecord> instanceConfigs = accessor.getChildValues(PropertyType.CONFIGS);
-    
+    List<ZNRecord> instanceConfigs = accessor.getChildValues(PropertyType.CONFIGS,
+        ConfigScopeProperty.PARTICIPANT.toString());
+
     Map<String, ZNRecord> liveInstanceMap = ZNRecordUtil.convertListToMap(liveInstances);
     Map<String, ZNRecord> configsMap = ZNRecordUtil.convertListToMap(instanceConfigs);
-    
+
     for (String instanceName : instances)
     {
       boolean isAlive = liveInstanceMap.containsKey(instanceName);
-      configsMap.get(instanceName).setSimpleField("Alive", isAlive+"");
+      configsMap.get(instanceName).setSimpleField("Alive", isAlive + "");
     }
-    
-    StringRepresentation representation = new StringRepresentation(ClusterRepresentationUtil.ObjectToJson(instanceConfigs), MediaType.APPLICATION_JSON);
-    
+
+    StringRepresentation representation = new StringRepresentation(
+        ClusterRepresentationUtil.ObjectToJson(instanceConfigs), MediaType.APPLICATION_JSON);
+
     return representation;
   }
-  
+
+  @Override
   public void acceptRepresentation(Representation entity)
   {
     try
     {
-      String zkServer = (String)getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
-      String clusterName = (String)getRequest().getAttributes().get("clusterName");
-      
+      String zkServer = (String) getContext().getAttributes().get(
+          RestAdminApplication.ZKSERVERADDRESS);
+      String clusterName = (String) getRequest().getAttributes().get("clusterName");
+
       Form form = new Form(entity);
-      
-      Map<String, String> paraMap 
-      = ClusterRepresentationUtil.getFormJsonParametersWithCommandVerified(form, ClusterRepresentationUtil._addInstanceCommand);
-      
+
+      Map<String, String> paraMap = ClusterRepresentationUtil
+          .getFormJsonParametersWithCommandVerified(form,
+              ClusterRepresentationUtil._addInstanceCommand);
+
       ClusterSetup setupTool = new ClusterSetup(zkServer);
-      if(paraMap.containsKey(_instanceName))
+      if (paraMap.containsKey(_instanceName))
       {
         setupTool.addInstanceToCluster(clusterName, paraMap.get(_instanceName));
-      }
-      else if(paraMap.containsKey(_instanceNames))
+      } else if (paraMap.containsKey(_instanceNames))
       {
         setupTool.addInstancesToCluster(clusterName, paraMap.get(_instanceNames).split(";"));
-      }
-      else
+      } else
       {
-        throw new HelixException("Json paramaters does not contain '"+_instanceName+"' or '"+_instanceNames+"' ");
+        throw new HelixException("Json paramaters does not contain '" + _instanceName + "' or '"
+            + _instanceNames + "' ");
       }
-      
+
       // add cluster
       getResponse().setEntity(getInstancesRepresentation(zkServer, clusterName));
       getResponse().setStatus(Status.SUCCESS_OK);
     }
 
-    catch(Exception e)
+    catch (Exception e)
     {
       getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),
           MediaType.APPLICATION_JSON);
       getResponse().setStatus(Status.SUCCESS_OK);
-    }  
+    }
   }
 }

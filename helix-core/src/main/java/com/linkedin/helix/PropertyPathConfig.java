@@ -15,53 +15,66 @@ public class PropertyPathConfig
   static Map<PropertyType, Map<Integer, String>> templateMap = new HashMap<PropertyType, Map<Integer, String>>();
   static
   {
-    //@formatter:off
-    addEntry(PropertyType.CONFIGS,1,"/{clusterName}/CONFIGS");
-    addEntry(PropertyType.CONFIGS,2,"/{clusterName}/CONFIGS/{instanceName}");
-    addEntry(PropertyType.LIVEINSTANCES,1,"/{clusterName}/LIVEINSTANCES");
-    addEntry(PropertyType.LIVEINSTANCES,2,"/{clusterName}/LIVEINSTANCES/{instanceName}");
-    addEntry(PropertyType.INSTANCES,1,"/{clusterName}/INSTANCES");
-    addEntry(PropertyType.INSTANCES,2,"/{clusterName}/INSTANCES/{instanceName}");
-    addEntry(PropertyType.IDEALSTATES,1,"/{clusterName}/IDEALSTATES");
-    addEntry(PropertyType.IDEALSTATES,2,"/{clusterName}/IDEALSTATES/{resourceName}");
-    addEntry(PropertyType.EXTERNALVIEW,1,"/{clusterName}/EXTERNALVIEW");
-    addEntry(PropertyType.EXTERNALVIEW,2,"/{clusterName}/EXTERNALVIEW/{resourceName}");
-    addEntry(PropertyType.STATEMODELDEFS,1,"/{clusterName}/STATEMODELDEFS");
-    addEntry(PropertyType.STATEMODELDEFS,2,"/{clusterName}/STATEMODELDEFS/{stateModelName}");
-    addEntry(PropertyType.CONTROLLER,1,"/{clusterName}/CONTROLLER");
-    addEntry(PropertyType.PROPERTYSTORE,1,"/{clusterName}/PROPERTYSTORE");
-    //INSTANCE
-    addEntry(PropertyType.MESSAGES,2,"/{clusterName}/INSTANCES/{instanceName}/MESSAGES");
-    addEntry(PropertyType.MESSAGES,3,"/{clusterName}/INSTANCES/{instanceName}/MESSAGES/{msgId}");
-    addEntry(PropertyType.CURRENTSTATES,2,"/{clusterName}/INSTANCES/{instanceName}/CURRENTSTATES");
-    addEntry(PropertyType.CURRENTSTATES,3,"/{clusterName}/INSTANCES/{instanceName}/CURRENTSTATES/{sessionId}");
-    addEntry(PropertyType.CURRENTSTATES,4,"/{clusterName}/INSTANCES/{instanceName}/CURRENTSTATES/{sessionId}/{resourceName}");
-    addEntry(PropertyType.STATUSUPDATES,2,"/{clusterName}/INSTANCES/{instanceName}/STATUSUPDATES");
-    addEntry(PropertyType.STATUSUPDATES,3,"/{clusterName}/INSTANCES/{instanceName}/STATUSUPDATES/{sessionId}");
-    addEntry(PropertyType.STATUSUPDATES,4,"/{clusterName}/INSTANCES/{instanceName}/STATUSUPDATES/{sessionId}/{subPath}");
-    addEntry(PropertyType.STATUSUPDATES,5,"/{clusterName}/INSTANCES/{instanceName}/STATUSUPDATES/{sessionId}/{subPath}/{recordName}");
-    addEntry(PropertyType.ERRORS,2,"/{clusterName}/INSTANCES/{instanceName}/ERRORS");
-    addEntry(PropertyType.ERRORS,3,"/{clusterName}/INSTANCES/{instanceName}/ERRORS/{sessionId}");
-    addEntry(PropertyType.ERRORS,4,"/{clusterName}/INSTANCES/{instanceName}/ERRORS/{sessionId}/{subPath}");
-    addEntry(PropertyType.ERRORS,5,"/{clusterName}/INSTANCES/{instanceName}/ERRORS/{sessionId}/{subPath}/{recordName}");
-    addEntry(PropertyType.HEALTHREPORT,2,"/{clusterName}/INSTANCES/{instanceName}/HEALTHREPORT");
-    addEntry(PropertyType.HEALTHREPORT,3,"/{clusterName}/INSTANCES/{instanceName}/HEALTHREPORT/{reportName}");
-    //CONTROLLER
-    addEntry(PropertyType.MESSAGES_CONTROLLER,1,"/{clusterName}/CONTROLLER/MESSAGES");
-    addEntry(PropertyType.MESSAGES_CONTROLLER,2,"/{clusterName}/CONTROLLER/MESSAGES/{msgId}");
-    addEntry(PropertyType.ERRORS_CONTROLLER,1,"/{clusterName}/CONTROLLER/ERRORS");
-    addEntry(PropertyType.ERRORS_CONTROLLER,2,"/{clusterName}/CONTROLLER/ERRORS/{errorId}");
-    addEntry(PropertyType.STATUSUPDATES_CONTROLLER,1,"/{clusterName}/CONTROLLER/STATUSUPDATES");
-    addEntry(PropertyType.STATUSUPDATES_CONTROLLER,2,"/{clusterName}/CONTROLLER/STATUSUPDATES/{sessionId}");
-    addEntry(PropertyType.STATUSUPDATES_CONTROLLER,3,"/{clusterName}/CONTROLLER/STATUSUPDATES/{sessionId}/{subPath}");
-    addEntry(PropertyType.STATUSUPDATES_CONTROLLER,4,"/{clusterName}/CONTROLLER/STATUSUPDATES/{sessionId}/{subPath}/{recordName}");
-    addEntry(PropertyType.LEADER,1,"/{clusterName}/CONTROLLER/LEADER");
-    addEntry(PropertyType.HISTORY,1,"/{clusterName}/CONTROLLER/HISTORY");
-    addEntry(PropertyType.PAUSE,1,"/{clusterName}/CONTROLLER/PAUSE");
-    addEntry(PropertyType.PERSISTENTSTATS,1,"/{clusterName}/CONTROLLER/PERSISTENTSTATS");
-    addEntry(PropertyType.ALERTS,1,"/{clusterName}/CONTROLLER/ALERTS");
-    addEntry(PropertyType.ALERT_STATUS,1,"/{clusterName}/CONTROLLER/ALERT_STATUS");
-    //@formatter:on
+    // @formatter:off
+    addEntry(PropertyType.CONFIGS, 1, "/{clusterName}/CONFIGS");
+    addEntry(PropertyType.CONFIGS, 2, "/{clusterName}/CONFIGS/{scope}");
+    addEntry(PropertyType.CONFIGS, 3, "/{clusterName}/CONFIGS/{scope}/{scopeKey}");
+    // addEntry(PropertyType.CONFIGS,2,"/{clusterName}/CONFIGS/{instanceName}");
+    addEntry(PropertyType.LIVEINSTANCES, 1, "/{clusterName}/LIVEINSTANCES");
+    addEntry(PropertyType.LIVEINSTANCES, 2, "/{clusterName}/LIVEINSTANCES/{instanceName}");
+    addEntry(PropertyType.INSTANCES, 1, "/{clusterName}/INSTANCES");
+    addEntry(PropertyType.INSTANCES, 2, "/{clusterName}/INSTANCES/{instanceName}");
+    addEntry(PropertyType.IDEALSTATES, 1, "/{clusterName}/IDEALSTATES");
+    addEntry(PropertyType.IDEALSTATES, 2, "/{clusterName}/IDEALSTATES/{resourceName}");
+    addEntry(PropertyType.EXTERNALVIEW, 1, "/{clusterName}/EXTERNALVIEW");
+    addEntry(PropertyType.EXTERNALVIEW, 2, "/{clusterName}/EXTERNALVIEW/{resourceName}");
+    addEntry(PropertyType.STATEMODELDEFS, 1, "/{clusterName}/STATEMODELDEFS");
+    addEntry(PropertyType.STATEMODELDEFS, 2, "/{clusterName}/STATEMODELDEFS/{stateModelName}");
+    addEntry(PropertyType.CONTROLLER, 1, "/{clusterName}/CONTROLLER");
+    addEntry(PropertyType.PROPERTYSTORE, 1, "/{clusterName}/PROPERTYSTORE");
+    // INSTANCE
+    addEntry(PropertyType.MESSAGES, 2, "/{clusterName}/INSTANCES/{instanceName}/MESSAGES");
+    addEntry(PropertyType.MESSAGES, 3, "/{clusterName}/INSTANCES/{instanceName}/MESSAGES/{msgId}");
+    addEntry(PropertyType.CURRENTSTATES, 2, "/{clusterName}/INSTANCES/{instanceName}/CURRENTSTATES");
+    addEntry(PropertyType.CURRENTSTATES, 3,
+        "/{clusterName}/INSTANCES/{instanceName}/CURRENTSTATES/{sessionId}");
+    addEntry(PropertyType.CURRENTSTATES, 4,
+        "/{clusterName}/INSTANCES/{instanceName}/CURRENTSTATES/{sessionId}/{resourceName}");
+    addEntry(PropertyType.STATUSUPDATES, 2, "/{clusterName}/INSTANCES/{instanceName}/STATUSUPDATES");
+    addEntry(PropertyType.STATUSUPDATES, 3,
+        "/{clusterName}/INSTANCES/{instanceName}/STATUSUPDATES/{sessionId}");
+    addEntry(PropertyType.STATUSUPDATES, 4,
+        "/{clusterName}/INSTANCES/{instanceName}/STATUSUPDATES/{sessionId}/{subPath}");
+    addEntry(PropertyType.STATUSUPDATES, 5,
+        "/{clusterName}/INSTANCES/{instanceName}/STATUSUPDATES/{sessionId}/{subPath}/{recordName}");
+    addEntry(PropertyType.ERRORS, 2, "/{clusterName}/INSTANCES/{instanceName}/ERRORS");
+    addEntry(PropertyType.ERRORS, 3, "/{clusterName}/INSTANCES/{instanceName}/ERRORS/{sessionId}");
+    addEntry(PropertyType.ERRORS, 4,
+        "/{clusterName}/INSTANCES/{instanceName}/ERRORS/{sessionId}/{subPath}");
+    addEntry(PropertyType.ERRORS, 5,
+        "/{clusterName}/INSTANCES/{instanceName}/ERRORS/{sessionId}/{subPath}/{recordName}");
+    addEntry(PropertyType.HEALTHREPORT, 2, "/{clusterName}/INSTANCES/{instanceName}/HEALTHREPORT");
+    addEntry(PropertyType.HEALTHREPORT, 3,
+        "/{clusterName}/INSTANCES/{instanceName}/HEALTHREPORT/{reportName}");
+    // CONTROLLER
+    addEntry(PropertyType.MESSAGES_CONTROLLER, 1, "/{clusterName}/CONTROLLER/MESSAGES");
+    addEntry(PropertyType.MESSAGES_CONTROLLER, 2, "/{clusterName}/CONTROLLER/MESSAGES/{msgId}");
+    addEntry(PropertyType.ERRORS_CONTROLLER, 1, "/{clusterName}/CONTROLLER/ERRORS");
+    addEntry(PropertyType.ERRORS_CONTROLLER, 2, "/{clusterName}/CONTROLLER/ERRORS/{errorId}");
+    addEntry(PropertyType.STATUSUPDATES_CONTROLLER, 1, "/{clusterName}/CONTROLLER/STATUSUPDATES");
+    addEntry(PropertyType.STATUSUPDATES_CONTROLLER, 2,
+        "/{clusterName}/CONTROLLER/STATUSUPDATES/{sessionId}");
+    addEntry(PropertyType.STATUSUPDATES_CONTROLLER, 3,
+        "/{clusterName}/CONTROLLER/STATUSUPDATES/{sessionId}/{subPath}");
+    addEntry(PropertyType.STATUSUPDATES_CONTROLLER, 4,
+        "/{clusterName}/CONTROLLER/STATUSUPDATES/{sessionId}/{subPath}/{recordName}");
+    addEntry(PropertyType.LEADER, 1, "/{clusterName}/CONTROLLER/LEADER");
+    addEntry(PropertyType.HISTORY, 1, "/{clusterName}/CONTROLLER/HISTORY");
+    addEntry(PropertyType.PAUSE, 1, "/{clusterName}/CONTROLLER/PAUSE");
+    addEntry(PropertyType.PERSISTENTSTATS, 1, "/{clusterName}/CONTROLLER/PERSISTENTSTATS");
+    addEntry(PropertyType.ALERTS, 1, "/{clusterName}/CONTROLLER/ALERTS");
+    addEntry(PropertyType.ALERT_STATUS, 1, "/{clusterName}/CONTROLLER/ALERT_STATUS");
+    // @formatter:on
 
   }
   static Pattern pattern = Pattern.compile("(\\{.+?\\})");
@@ -72,13 +85,12 @@ public class PropertyPathConfig
     {
       templateMap.put(type, new HashMap<Integer, String>());
     }
-    logger.info("Adding template for type:" + type.getType() + " arguments:"
-        + numKeys + " template:" + template);
+    logger.info("Adding template for type:" + type.getType() + " arguments:" + numKeys
+        + " template:" + template);
     templateMap.get(type).put(numKeys, template);
   }
 
-  public static String getPath(PropertyType type, String clusterName,
-      String... keys)
+  public static String getPath(PropertyType type, String clusterName, String... keys)
   {
     if (clusterName == null)
     {
@@ -118,9 +130,8 @@ public class PropertyPathConfig
     }
     if (result == null || result.indexOf('{') > -1 || result.indexOf('}') > -1)
     {
-      logger.warn("Unable to instantiate template:" + template
-          + " using clusterName:" + clusterName + " and keys:"
-          + Arrays.toString(keys));
+      logger.warn("Unable to instantiate template:" + template + " using clusterName:"
+          + clusterName + " and keys:" + Arrays.toString(keys));
     }
     return result;
   }

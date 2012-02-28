@@ -9,6 +9,7 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.data.Stat;
 
+import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
 import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
@@ -30,7 +31,13 @@ public final class ZKUtil
     }
 
     boolean isValid = zkClient.exists(PropertyPathConfig.getPath(PropertyType.IDEALSTATES, clusterName))
-            && zkClient.exists(PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName))
+        && zkClient.exists(PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
+            ConfigScopeProperty.CLUSTER.toString(), clusterName))
+        && zkClient.exists(PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
+            ConfigScopeProperty.PARTICIPANT.toString()))
+        && zkClient.exists(PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
+            ConfigScopeProperty.RESOURCE.toString()))
+            && zkClient.exists(PropertyPathConfig.getPath(PropertyType.PROPERTYSTORE, clusterName))
             && zkClient.exists(PropertyPathConfig.getPath(PropertyType.LIVEINSTANCES, clusterName))
             && zkClient.exists(PropertyPathConfig.getPath(PropertyType.INSTANCES, clusterName))
             && zkClient.exists(PropertyPathConfig.getPath(PropertyType.EXTERNALVIEW, clusterName))
@@ -148,7 +155,7 @@ public final class ZKUtil
             @Override
             public ZNRecord update(ZNRecord currentData)
             {
-              if(mergeOnUpdate)
+              if (currentData != null && mergeOnUpdate)
               {
                 currentData.merge(record);
                 return currentData;

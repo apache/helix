@@ -62,7 +62,7 @@ public class TestErrorPartition extends ZkIntegrationTestBase
     TestHelper.verifyState(clusterName, ZK_ADDR, errorStateMap, "ERROR");
 
     // disable a partition on a node with error state
-    ZKHelixAdmin tool = new ZKHelixAdmin(_zkClient);
+    ZKHelixAdmin tool = new ZKHelixAdmin(_gZkClient);
     tool.enablePartition(clusterName, "localhost_12918", "TestDB0", "TestDB0_0", false);
 
     // Map<String, Set<String>> disabledPartMap = new HashMap<String,

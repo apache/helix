@@ -16,11 +16,9 @@ import org.testng.AssertJUnit;
 import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeSuite;
 
-import com.linkedin.helix.DataAccessor;
-import com.linkedin.helix.HelixManager;
-import com.linkedin.helix.PropertyType;
-import com.linkedin.helix.ZNRecord;
+import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
 import com.linkedin.helix.manager.zk.ZKDataAccessor;
+import com.linkedin.helix.manager.zk.ZNRecordSerializer;
 import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.model.InstanceConfig;
@@ -31,6 +29,7 @@ public class ZkUnitTestBase
 {
   private static Logger LOG = Logger.getLogger(ZkUnitTestBase.class);
   protected static ZkServer _zkServer = null;
+  protected static ZkClient _gZkClient;
 
   public static final String ZK_ADDR = "localhost:2185";
   protected static final String CLUSTER_PREFIX = "CLUSTER";
@@ -41,6 +40,9 @@ public class ZkUnitTestBase
   {
     _zkServer = TestHelper.startZkSever(ZK_ADDR);
     AssertJUnit.assertTrue(_zkServer != null);
+
+    _gZkClient = new ZkClient(ZK_ADDR);
+    _gZkClient.setZkSerializer(new ZNRecordSerializer());
   }
 
   @AfterSuite(alwaysRun = true)
@@ -48,8 +50,8 @@ public class ZkUnitTestBase
   {
     TestHelper.stopZkServer(_zkServer);
     _zkServer = null;
+    _gZkClient.close();
   }
-
 
   protected String getShortClassName()
   {
@@ -59,8 +61,7 @@ public class ZkUnitTestBase
 
   protected String getCurrentLeader(ZkClient zkClient, String clusterName)
   {
-    String leaderPath = HelixUtil.getControllerPropertyPath(clusterName,
-        PropertyType.LEADER);
+    String leaderPath = HelixUtil.getControllerPropertyPath(clusterName, PropertyType.LEADER);
     ZNRecord leaderRecord = zkClient.<ZNRecord> readData(leaderPath);
     if (leaderRecord == null)
     {
@@ -98,8 +99,7 @@ public class ZkUnitTestBase
         if (!newLeader.equals(leader))
         {
           isNewLeaderElected = true;
-          System.out.println("new leader elected: " + newLeader + " in "
-              + clusterName);
+          System.out.println("new leader elected: " + newLeader + " in " + clusterName);
           break;
         }
       }
@@ -109,53 +109,57 @@ public class ZkUnitTestBase
     }
     if (isNewLeaderElected == false)
     {
-      System.out
-          .println("fail to elect a new leader elected in " + clusterName);
+      System.out.println("fail to elect a new leader elected in " + clusterName);
     }
     AssertJUnit.assertTrue(isNewLeaderElected);
   }
 
-  public void verifyInstance(ZkClient zkClient, String clusterName, String instance, boolean wantExists)
-	{
-		String instanceConfigsPath = HelixUtil.getConfigPath(clusterName);
-	    String instanceConfigPath = instanceConfigsPath + "/" + instance;
-	    String instancePath = HelixUtil.getInstancePath(clusterName, instance);
-	    AssertJUnit.assertEquals(wantExists, zkClient.exists(instanceConfigPath));
-	    AssertJUnit.assertEquals(wantExists, zkClient.exists(instancePath));
-	}
+  public void verifyInstance(ZkClient zkClient, String clusterName, String instance,
+      boolean wantExists)
+  {
+    // String instanceConfigsPath = HelixUtil.getConfigPath(clusterName);
+    String instanceConfigsPath = PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
+        ConfigScopeProperty.PARTICIPANT.toString());
+    String instanceConfigPath = instanceConfigsPath + "/" + instance;
+    String instancePath = HelixUtil.getInstancePath(clusterName, instance);
+    AssertJUnit.assertEquals(wantExists, zkClient.exists(instanceConfigPath));
+    AssertJUnit.assertEquals(wantExists, zkClient.exists(instancePath));
+  }
 
-	public void verifyResource(ZkClient zkClient, String clusterName, String resource, boolean wantExists)
-	{
-		String resourcePath = HelixUtil.getIdealStatePath(clusterName)+"/"+resource;
-		AssertJUnit.assertEquals(wantExists, zkClient.exists(resourcePath));
-	}
+  public void verifyResource(ZkClient zkClient, String clusterName, String resource,
+      boolean wantExists)
+  {
+    String resourcePath = HelixUtil.getIdealStatePath(clusterName) + "/" + resource;
+    AssertJUnit.assertEquals(wantExists, zkClient.exists(resourcePath));
+  }
 
-	public void verifyEnabled(ZkClient zkClient, String clusterName, String instance, boolean wantEnabled)
-	{
-	    DataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
-	    InstanceConfig config = accessor.getProperty(InstanceConfig.class, PropertyType.CONFIGS, instance);
-	    AssertJUnit.assertEquals(wantEnabled, config.getInstanceEnabled());
-	}
+  public void verifyEnabled(ZkClient zkClient, String clusterName, String instance,
+      boolean wantEnabled)
+  {
+    DataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
+    InstanceConfig config = accessor.getProperty(InstanceConfig.class, PropertyType.CONFIGS,
+        ConfigScopeProperty.PARTICIPANT.toString(), instance);
+    AssertJUnit.assertEquals(wantEnabled, config.getInstanceEnabled());
+  }
 
+  public void verifyReplication(ZkClient zkClient, String clusterName, String resource, int repl)
+  {
+    DataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
+    IdealState idealState = accessor.getProperty(IdealState.class, PropertyType.IDEALSTATES,
+        resource);
+    for (String partitionName : idealState.getPartitionSet())
+    {
+      AssertJUnit.assertEquals(repl, idealState.getInstanceStateMap(partitionName).size());
+    }
+  }
 
-	public void verifyReplication(ZkClient zkClient, String clusterName, String resource, int repl)
-	{
-		 DataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
-		 IdealState idealState = accessor.getProperty(IdealState.class, PropertyType.IDEALSTATES, resource);
-		 for (String partitionName : idealState.getPartitionSet())
-		 {
-			 AssertJUnit.assertEquals(repl, idealState.getInstanceStateMap(partitionName).size());
-		 }
-	}
-
-  protected void simulateSessionExpiry(ZkConnection zkConnection)
-      throws IOException, InterruptedException
+  protected void simulateSessionExpiry(ZkConnection zkConnection) throws IOException,
+      InterruptedException
   {
     ZooKeeper oldZookeeper = zkConnection.getZookeeper();
     LOG.info("Old sessionId = " + oldZookeeper.getSessionId());
 
-    Watcher watcher = new Watcher()
-    {
+    Watcher watcher = new Watcher() {
       @Override
       public void process(WatchedEvent event)
       {
@@ -174,11 +178,9 @@ public class ZkUnitTestBase
     LOG.info("After session expiry sessionId = " + oldZookeeper.getSessionId());
   }
 
-  protected void simulateSessionExpiry(ZkClient zkClient) throws IOException,
-      InterruptedException
+  protected void simulateSessionExpiry(ZkClient zkClient) throws IOException, InterruptedException
   {
-    IZkStateListener listener = new IZkStateListener()
-    {
+    IZkStateListener listener = new IZkStateListener() {
       @Override
       public void handleStateChanged(KeeperState state) throws Exception
       {
@@ -196,8 +198,7 @@ public class ZkUnitTestBase
     ZooKeeper oldZookeeper = connection.getZookeeper();
     LOG.info("Old sessionId = " + oldZookeeper.getSessionId());
 
-    Watcher watcher = new Watcher()
-    {
+    Watcher watcher = new Watcher() {
       @Override
       public void process(WatchedEvent event)
       {

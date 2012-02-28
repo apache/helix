@@ -102,7 +102,7 @@ public class TestResetPartitionState extends ZkIntegrationTestBase
     participants[0].setTransition(new ErrTransitionWithReset(errPartitions));
     clearStatusUpdate(clusterName, "localhost_12918", "TestDB0", "TestDB0_0");
     _errToOfflineInvoked = 0;
-    ZKHelixAdmin tool = new ZKHelixAdmin(_zkClient);
+    ZKHelixAdmin tool = new ZKHelixAdmin(_gZkClient);
     tool.resetPartition(clusterName, "localhost_12918", "TestDB0", "TestDB0_0");
 
     errorStateMap.remove("TestDB0_0");
@@ -138,7 +138,7 @@ public class TestResetPartitionState extends ZkIntegrationTestBase
   {
     // clear status update for error partition so verify() will not fail on old
     // errors
-    ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
+    ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _gZkClient);
     LiveInstance liveInstance = accessor.getProperty(LiveInstance.class,
         PropertyType.LIVEINSTANCES, instance);
     accessor.removeProperty(PropertyType.STATUSUPDATES, instance,

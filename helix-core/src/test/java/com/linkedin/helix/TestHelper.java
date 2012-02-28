@@ -176,7 +176,7 @@ public class TestHelper
 
   /**
    * compare two maps
-   * 
+   *
    * @param map1
    * @param map2
    * @return
@@ -247,7 +247,7 @@ public class TestHelper
 
   /**
    * convert T[] to set<T>
-   * 
+   *
    * @param s
    * @return
    */
@@ -264,7 +264,7 @@ public class TestHelper
 
   /**
    * generic method for verification with a timeout
-   * 
+   *
    * @param verifierName
    * @param args
    */
@@ -327,7 +327,7 @@ public class TestHelper
    * verify the best possible state and external view note that DROPPED states
    * are not checked since when kick off the BestPossibleStateCalcStage we are
    * providing an empty current state map
-   * 
+   *
    * @param zkAddr
    * @param clusterNameSet
    * @param resourceNameSet
@@ -342,7 +342,7 @@ public class TestHelper
   }
 
   /**
-   * 
+   *
    * @param zkAddr
    * @param clusterNameSet
    * @param resourceNameSet
@@ -628,7 +628,7 @@ public class TestHelper
   }
 
   /**
-   * 
+   *
    * @param resourceName
    * @param partitions
    * @param stateModelName
@@ -817,7 +817,7 @@ public class TestHelper
   }
 
   /**
-   * 
+   *
    * @param stateMap
    *          : "ResourceName/partitionKey" -> setOf(instances)
    * @param state
@@ -859,10 +859,10 @@ public class TestHelper
   }
 
   /**
-   * 
+   *
    * @param resourcePartition
    *          : key is in form of "resource/partitionKey" or "resource_x"
-   * 
+   *
    * @return
    */
   private static Map<String, String> getResourceAndPartitionKey(String resourcePartition)

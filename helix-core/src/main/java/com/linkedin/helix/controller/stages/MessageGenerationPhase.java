@@ -18,9 +18,9 @@ import com.linkedin.helix.model.StateModelDefinition;
 
 /**
  * Compares the currentState,pendingState with IdealState and generate messages
- * 
+ *
  * @author kgopalak
- * 
+ *
  */
 public class MessageGenerationPhase extends AbstractBaseStage
 {
@@ -87,11 +87,17 @@ public class MessageGenerationPhase extends AbstractBaseStage
               {
                 if (logger.isDebugEnabled())
                 {
-                  logger
-                      .debug("Message already exists at" + instanceName + " to transition"
-                          + partition.getPartitionName() + " from " + currentState + " to "
-                          + nextState);
+                  logger.debug("Message already exists at" + instanceName
+                      + " to transit " + partition.getPartitionName() + " from "
+                      + currentState + " to " + nextState);
                 }
+              }
+              else if (pendingState != null
+                  && currentState.equalsIgnoreCase(pendingState))
+              {
+                logger.debug("Message hasn't been removed for " + instanceName
+                    + " to transit" + partition.getPartitionName() + " from "
+                    + currentState + " to " + nextState);
               } else
               {
                 Message message = createMessage(manager, resourceName,

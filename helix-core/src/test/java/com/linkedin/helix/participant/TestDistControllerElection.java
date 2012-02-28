@@ -28,15 +28,16 @@ public class TestDistControllerElection extends ZkUnitTestBase
 
     final String clusterName = CLUSTER_PREFIX + "_" + className + "_" + "testController";
     String path = "/" + clusterName;
-    if (_zkClient.exists(path))
+    if (_gZkClient.exists(path))
     {
-      _zkClient.deleteRecursive(path);
+      _gZkClient.deleteRecursive(path);
     }
-    TestHelper.setupEmptyCluster(_zkClient, clusterName);
+    TestHelper.setupEmptyCluster(_gZkClient, clusterName);
 
     final String controllerName = "controller_0";
     HelixManager manager = new MockZKHelixManager(clusterName, controllerName,
-        InstanceType.CONTROLLER, _zkClient);
+                               InstanceType.CONTROLLER,
+                               _gZkClient);
 
     DistClusterControllerElection election = new DistClusterControllerElection(ZK_ADDR);
     NotificationContext context = new NotificationContext(manager);
@@ -45,18 +46,18 @@ public class TestDistControllerElection extends ZkUnitTestBase
 
     path = PropertyPathConfig.getPath(PropertyType.LEADER, clusterName);
 
-    ZNRecord leaderRecord = _zkClient.<ZNRecord> readData(path);
+    ZNRecord leaderRecord = _gZkClient.<ZNRecord> readData(path);
     AssertJUnit.assertEquals(controllerName, leaderRecord.getSimpleField("LEADER"));
     // AssertJUnit.assertNotNull(election.getController());
     // AssertJUnit.assertNull(election.getLeader());
 
     manager = new MockZKHelixManager(clusterName, "controller_1", InstanceType.CONTROLLER,
-        _zkClient);
+                               _gZkClient);
     election = new DistClusterControllerElection(ZK_ADDR);
     context = new NotificationContext(manager);
     context.setType(NotificationContext.Type.INIT);
     election.onControllerChange(context);
-    leaderRecord = _zkClient.<ZNRecord> readData(path);
+    leaderRecord = _gZkClient.<ZNRecord> readData(path);
     AssertJUnit.assertEquals(controllerName, leaderRecord.getSimpleField("LEADER"));
     // AssertJUnit.assertNull(election.getController());
     // AssertJUnit.assertNull(election.getLeader());
@@ -73,33 +74,35 @@ public class TestDistControllerElection extends ZkUnitTestBase
     final String clusterName = CONTROLLER_CLUSTER_PREFIX + "_" + className + "_"
         + "testControllerParticipant";
     String path = "/" + clusterName;
-    if (_zkClient.exists(path))
+    if (_gZkClient.exists(path))
     {
-      _zkClient.deleteRecursive(path);
+      _gZkClient.deleteRecursive(path);
     }
-    TestHelper.setupEmptyCluster(_zkClient, clusterName);
+    TestHelper.setupEmptyCluster(_gZkClient, clusterName);
 
     final String controllerName = "controller_0";
     HelixManager manager = new MockZKHelixManager(clusterName, controllerName,
-        InstanceType.CONTROLLER_PARTICIPANT, _zkClient);
+                               InstanceType.CONTROLLER_PARTICIPANT,
+                               _gZkClient);
 
     DistClusterControllerElection election = new DistClusterControllerElection(ZK_ADDR);
     NotificationContext context = new NotificationContext(manager);
     context.setType(NotificationContext.Type.CALLBACK);
     election.onControllerChange(context);
     path = PropertyPathConfig.getPath(PropertyType.LEADER, clusterName);
-    ZNRecord leaderRecord = _zkClient.<ZNRecord> readData(path);
+    ZNRecord leaderRecord = _gZkClient.<ZNRecord> readData(path);
     AssertJUnit.assertEquals(controllerName, leaderRecord.getSimpleField("LEADER"));
     // AssertJUnit.assertNotNull(election.getController());
     // AssertJUnit.assertNotNull(election.getLeader());
 
     manager = new MockZKHelixManager(clusterName, "controller_1",
-        InstanceType.CONTROLLER_PARTICIPANT, _zkClient);
+                               InstanceType.CONTROLLER_PARTICIPANT,
+                               _gZkClient);
     election = new DistClusterControllerElection(ZK_ADDR);
     context = new NotificationContext(manager);
     context.setType(NotificationContext.Type.CALLBACK);
     election.onControllerChange(context);
-    leaderRecord = _zkClient.<ZNRecord> readData(path);
+    leaderRecord = _gZkClient.<ZNRecord> readData(path);
     AssertJUnit.assertEquals(controllerName, leaderRecord.getSimpleField("LEADER"));
     // AssertJUnit.assertNull(election.getController());
     // AssertJUnit.assertNull(election.getLeader());
@@ -115,15 +118,16 @@ public class TestDistControllerElection extends ZkUnitTestBase
 
     final String clusterName = CLUSTER_PREFIX + "_" + className + "_" + "testParticipant";
     String path = "/" + clusterName;
-    if (_zkClient.exists(path))
+    if (_gZkClient.exists(path))
     {
-      _zkClient.deleteRecursive(path);
+      _gZkClient.deleteRecursive(path);
     }
-    TestHelper.setupEmptyCluster(_zkClient, clusterName);
+    TestHelper.setupEmptyCluster(_gZkClient, clusterName);
 
     final String controllerName = "participant_0";
     HelixManager manager = new MockZKHelixManager(clusterName, controllerName,
-        InstanceType.PARTICIPANT, _zkClient);
+                               InstanceType.PARTICIPANT,
+                               _gZkClient);
 
     DistClusterControllerElection election = new DistClusterControllerElection(ZK_ADDR);
     NotificationContext context = new NotificationContext(manager);
@@ -131,7 +135,7 @@ public class TestDistControllerElection extends ZkUnitTestBase
     election.onControllerChange(context);
 
     path = PropertyPathConfig.getPath(PropertyType.LEADER, clusterName);
-    ZNRecord leaderRecord = _zkClient.<ZNRecord> readData(path, true);
+    ZNRecord leaderRecord = _gZkClient.<ZNRecord> readData(path, true);
     AssertJUnit.assertNull(leaderRecord);
     // AssertJUnit.assertNull(election.getController());
     // AssertJUnit.assertNull(election.getLeader());

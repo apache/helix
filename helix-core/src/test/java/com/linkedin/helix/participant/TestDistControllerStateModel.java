@@ -18,11 +18,11 @@ public class TestDistControllerStateModel extends ZkUnitTestBase
   public void beforeMethod()
   {
     stateModel = new DistClusterControllerStateModel(ZK_ADDR);
-    if (_zkClient.exists("/" + clusterName))
+    if (_gZkClient.exists("/" + clusterName))
     {
-      _zkClient.deleteRecursive("/" + clusterName);
+      _gZkClient.deleteRecursive("/" + clusterName);
     }
-    TestHelper.setupEmptyCluster(_zkClient, clusterName);
+    TestHelper.setupEmptyCluster(_gZkClient, clusterName);
   }
 
   @Test()

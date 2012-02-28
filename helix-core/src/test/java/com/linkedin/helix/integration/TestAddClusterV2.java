@@ -2,9 +2,11 @@ package com.linkedin.helix.integration;
 
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.log4j.Logger;
 import org.testng.annotations.AfterClass;
@@ -16,8 +18,6 @@ import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.TestHelper.StartCMResult;
 import com.linkedin.helix.controller.HelixControllerMain;
-import com.linkedin.helix.manager.zk.ZNRecordSerializer;
-import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.model.PauseSignal;
 import com.linkedin.helix.tools.ClusterSetup;
 
@@ -36,41 +36,36 @@ public class TestAddClusterV2 extends ZkIntegrationTestBase
   protected final String CONTROLLER_CLUSTER = CONTROLLER_CLUSTER_PREFIX + "_" + CLASS_NAME;
 
   protected static final String TEST_DB = "TestDB";
-  ZkClient _zkClient;
-  
 
   @BeforeClass
   public void beforeClass() throws Exception
   {
-    // logger.info("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
     System.out.println("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
-    _zkClient = new ZkClient(ZK_ADDR);
-    _zkClient.setZkSerializer(new ZNRecordSerializer());
 
     String namespace = "/" + CONTROLLER_CLUSTER;
-    if (_zkClient.exists(namespace))
+    if (_gZkClient.exists(namespace))
     {
-      _zkClient.deleteRecursive(namespace);
+      _gZkClient.deleteRecursive(namespace);
     }
 
     for (int i = 0; i < CLUSTER_NR; i++)
     {
       namespace = "/" + CLUSTER_PREFIX + "_" + CLASS_NAME + "_" + i;
-      if (_zkClient.exists(namespace))
+      if (_gZkClient.exists(namespace))
       {
-        _zkClient.deleteRecursive(namespace);
+        _gZkClient.deleteRecursive(namespace);
       }
     }
 
     _setupTool = new ClusterSetup(ZK_ADDR);
 
-    
+
     // setup CONTROLLER_CLUSTER
     _setupTool.addCluster(CONTROLLER_CLUSTER, true);
     setupStorageCluster(_setupTool, CONTROLLER_CLUSTER,
                         CLUSTER_PREFIX + "_" + CLASS_NAME, CLUSTER_NR,
                         CONTROLLER_PREFIX, 0, "LeaderStandby", 3, false);
-    
+
     // setup cluster of clusters
     for (int i = 0; i < CLUSTER_NR; i++)
     {
@@ -120,13 +115,13 @@ public class TestAddClusterV2 extends ZkIntegrationTestBase
 
     verifyClusters();
   }
-  
+
   @Test
   public void Test()
   {
-    
+
   }
-  
+
   @AfterClass
   public void afterClass() throws Exception
   {
@@ -138,7 +133,7 @@ public class TestAddClusterV2 extends ZkIntegrationTestBase
      *   2) disconnect all controllers
      *   3) disconnect leader/disconnect participant
      */
-    String leader = getCurrentLeader(_zkClient, CONTROLLER_CLUSTER);
+    String leader = getCurrentLeader(_gZkClient, CONTROLLER_CLUSTER);
     // pauseController(_startCMResultMap.get(leader)._manager.getDataAccessor());
 
     StartCMResult result;
@@ -172,9 +167,6 @@ public class TestAddClusterV2 extends ZkIntegrationTestBase
       it.remove();
     }
 
-    _zkClient.close();
-
-    // logger.info("END " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
     System.out.println("END " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
   }
 
@@ -184,15 +176,18 @@ public class TestAddClusterV2 extends ZkIntegrationTestBase
    *   in the controller cluster and the first cluster
    */
   protected void verifyClusters()
-  {/*
-    for(int i = 0;i < CLUSTER_NR; i++)
+  {
+    Set<String> clusters = new HashSet<String>();
+    for (int i = 0; i < CLUSTER_NR; i++)
     {
-      TestHelper.verifyWithTimeout("verifyBestPossAndExtView",
+      clusters.add(CLUSTER_PREFIX + "_" + CLASS_NAME + "_" + i);
+    }
+
+    TestHelper.verifyWithTimeout("verifyBestPossAndExtView",
                                  ZK_ADDR,
-                                 TestHelper.<String>setOf(CONTROLLER_CLUSTER),
-                                 TestHelper.<String>setOf(CLUSTER_PREFIX + "_" + CLASS_NAME+"_"+i));
-    }*/
-    
+                                 TestHelper.<String> setOf(CONTROLLER_CLUSTER),
+                                 clusters);
+
     TestHelper.verifyWithTimeout("verifyBestPossAndExtView",
                                  ZK_ADDR,
                                  TestHelper.<String>setOf(CLUSTER_PREFIX + "_" + CLASS_NAME + "_0"),

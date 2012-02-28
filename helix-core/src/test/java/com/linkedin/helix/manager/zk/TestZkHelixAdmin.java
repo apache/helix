@@ -28,16 +28,16 @@ public class TestZkHelixAdmin extends ZkUnitTestBase
     System.out.println("START testZkHelixAdmin at " + new Date(System.currentTimeMillis()));
 
     final String clusterName = getShortClassName();
-    if (_zkClient.exists("/" + clusterName))
+    if (_gZkClient.exists("/" + clusterName))
     {
-      _zkClient.deleteRecursive("/" + clusterName);
+      _gZkClient.deleteRecursive("/" + clusterName);
     }
 
-    ZKHelixAdmin tool = new ZKHelixAdmin(_zkClient);
+    ZKHelixAdmin tool = new ZKHelixAdmin(_gZkClient);
     tool.addCluster(clusterName, true);
-    Assert.assertTrue(ZKUtil.isClusterSetup(clusterName, _zkClient));
+    Assert.assertTrue(ZKUtil.isClusterSetup(clusterName, _gZkClient));
     tool.addCluster(clusterName, true);
-    Assert.assertTrue(ZKUtil.isClusterSetup(clusterName, _zkClient));
+    Assert.assertTrue(ZKUtil.isClusterSetup(clusterName, _gZkClient));
 
     List<String> list = tool.getClusters();
     AssertJUnit.assertTrue(list.size() > 0);
@@ -58,7 +58,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase
     tool.enableInstance(clusterName, "host1_9999", true);
     String path = PropertyPathConfig.getPath(PropertyType.INSTANCES,
         clusterName, "host1_9999");
-    AssertJUnit.assertTrue(_zkClient.exists(path));
+    AssertJUnit.assertTrue(_gZkClient.exists(path));
 
     try
     {
@@ -103,7 +103,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase
           stateModelRecord));
       path = PropertyPathConfig.getPath(PropertyType.STATEMODELDEFS,
           clusterName, "id1");
-      AssertJUnit.assertTrue(_zkClient.exists(path));
+      AssertJUnit.assertTrue(_gZkClient.exists(path));
       Assert.fail("should fail");
     } catch (HelixException e)
     {

@@ -18,7 +18,7 @@ public class MessageSelectionStageOutput
 
   private final Map<String, Map<Partition, List<Message>>> _messagesMap;
 
-  public void addMessages(String resourceName, Partition resource,
+  public void addMessages(String resourceName, Partition partition,
       List<Message> selectedMessages)
   {
     if (!_messagesMap.containsKey(resourceName))
@@ -26,17 +26,17 @@ public class MessageSelectionStageOutput
       _messagesMap.put(resourceName,
           new HashMap<Partition, List<Message>>());
     }
-    _messagesMap.get(resourceName).put(resource, selectedMessages);
+    _messagesMap.get(resourceName).put(partition, selectedMessages);
 
   }
 
   public List<Message> getMessages(String resourceName,
-      Partition resource)
+      Partition partition)
   {
     Map<Partition, List<Message>> map = _messagesMap.get(resourceName);
     if (map != null)
     {
-      return map.get(resource);
+      return map.get(partition);
     }
     return Collections.emptyList();
 

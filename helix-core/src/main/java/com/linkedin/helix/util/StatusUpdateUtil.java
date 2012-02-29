@@ -16,6 +16,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.log4j.Logger;
 
+import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
 import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
@@ -120,7 +121,7 @@ public class StatusUpdateUtil
                                                                String sessionID,
                                                                String partition)
     {
-      List<ZNRecord> instances = accessor.getChildValues(PropertyType.CONFIGS);
+      List<ZNRecord> instances = accessor.getChildValues(PropertyType.CONFIGS, ConfigScopeProperty.PARTICIPANT.toString());
       List<ZNRecord> partitionRecords = new ArrayList<ZNRecord>();
       for (ZNRecord znRecord : instances)
       {

@@ -73,6 +73,7 @@ public class CriteriaEvaluator
       resultRow.put("partitionState", (String)(row.get(3)));
       selected.add(resultRow);
     }
+    logger.info("JOSQL query return " + selected.size() + " rows");
     return selected;
   }
 }

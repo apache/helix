@@ -64,6 +64,11 @@ public class DefaultMessagingService implements ClusterMessagingService
     {
       totalMessageCount += messages.size();
     }
+    _logger.info("Send "+totalMessageCount+" messages with criteria "+ recipientCriteria);
+    if(totalMessageCount == 0)
+    {
+      return 0;
+    }
     String correlationId = null;
     if (callbackOnReply != null)
     {

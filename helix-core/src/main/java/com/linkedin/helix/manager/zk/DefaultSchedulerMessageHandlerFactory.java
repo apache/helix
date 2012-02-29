@@ -137,7 +137,7 @@ public class DefaultSchedulerMessageHandlerFactory implements
         result.setSuccess(false);
         return result;
       }
-      
+      _logger.info("Scheduler sending message, criteria:" + recipientCriteria);
       // Send all messages.
       _manager.getMessagingService().send(recipientCriteria, messageTemplate, new SchedulerAsyncCallback(_message, _manager), timeOut);
       

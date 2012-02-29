@@ -287,23 +287,4 @@ public class DefaultMessagingService implements ClusterMessagingService
   {
     return sendAndWait(recipientCriteria, message, asyncCallback, timeOut, 0);
   }
-  
-  public static void main(String[] args) throws Exception
-  {
-    try
-    {
-      throw new Exception();
-    }
-    catch(Exception e)
-    {
-      int c = 0;
-      c++;
-      throw e;
-    }
-    finally
-    {
-      int x = 0;
-      x++;
-    }
-  }
 }

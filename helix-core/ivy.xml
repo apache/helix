@@ -24,6 +24,7 @@
 	
 	<publications>
 		<artifact name="helix-core" type="jar" ext="jar" conf="master"/>
+    <artifact name="helix-core" type="jar" ext="jar" conf="sources" m:classifier="sources"/>
 	</publications>
 	
 	<dependencies>

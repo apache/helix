@@ -85,7 +85,7 @@ public class PropertyPathConfig
     {
       templateMap.put(type, new HashMap<Integer, String>());
     }
-    logger.info("Adding template for type:" + type.getType() + " arguments:" + numKeys
+    logger.trace("Adding template for type:" + type.getType() + " arguments:" + numKeys
         + " template:" + template);
     templateMap.get(type).put(numKeys, template);
   }
@@ -94,7 +94,7 @@ public class PropertyPathConfig
   {
     if (clusterName == null)
     {
-      logger.warn("Invalid clusterName:" + clusterName + " for type:" + type);
+      logger.warn("ClusterName can't be null for type:" + type);
       return null;
     }
     if (keys == null)

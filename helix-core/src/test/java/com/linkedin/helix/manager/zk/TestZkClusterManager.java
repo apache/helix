@@ -2,9 +2,8 @@ package com.linkedin.helix.manager.zk;
 
 import java.util.Date;
 
+import org.testng.Assert;
 import org.testng.AssertJUnit;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import com.linkedin.helix.HelixException;
@@ -13,45 +12,38 @@ import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.ZkUnitTestBase;
 import com.linkedin.helix.manager.MockListener;
-import com.linkedin.helix.manager.zk.ZKHelixManager;
-import com.linkedin.helix.manager.zk.ZNRecordSerializer;
-import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.store.PropertyStore;
 
 public class TestZkClusterManager extends ZkUnitTestBase
 {
-	ZkClient _zkClient;
-
-	@BeforeClass
-	public void beforeClass()
-	{
-		System.out.println("START TestZkClusterManager.beforeClass() at " + new Date(System.currentTimeMillis()));
-	  _zkClient = new ZkClient(ZK_ADDR);
-		_zkClient.setZkSerializer(new ZNRecordSerializer());
-  }
-
-	@AfterClass
-	public void afterClass()
-	{
-		_zkClient.close();
-		System.out.println("END TestZkClusterManager.beforeClass() at " + new Date(System.currentTimeMillis()));
-	}
-
   @Test()
   public void testZkClusterManager()
   {
+    System.out.println("START TestZkClusterManager.beforeClass() at " + new Date(System.currentTimeMillis()));
+
     final String clusterName = CLUSTER_PREFIX + "_" + getShortClassName();
     try
     {
-      if (_zkClient.exists("/" + clusterName))
+      if (_gZkClient.exists("/" + clusterName))
       {
-        _zkClient.deleteRecursive("/" + clusterName);
+        _gZkClient.deleteRecursive("/" + clusterName);
       }
 
-      TestHelper.setupEmptyCluster(_zkClient, clusterName);
       ZKHelixManager controller = new ZKHelixManager(clusterName, null,
                                                          InstanceType.CONTROLLER,
                                                          ZK_ADDR);
+
+      try
+      {
+        controller.connect();
+        Assert.fail("Should throw HelixException if initial cluster structure is not setup");
+      } catch (HelixException e)
+      {
+        // OK
+      }
+
+
+      TestHelper.setupEmptyCluster(_gZkClient, clusterName);
 
       AssertJUnit.assertEquals(-1, controller.getLastNotificationTime());
       controller.connect();
@@ -62,15 +54,14 @@ public class TestZkClusterManager extends ZkUnitTestBase
       MockListener listener = new MockListener();
       listener.reset();
 
-      boolean exceptionCaught = false;
       try
       {
         controller.addControllerListener(null);
+        Assert.fail("Should throw HelixException");
       } catch (HelixException e)
       {
-        exceptionCaught = true;
+        // OK
       }
-      AssertJUnit.assertTrue(exceptionCaught);
 
       controller.addControllerListener(listener);
       AssertJUnit.assertTrue(listener.isControllerChangeListenerInvoked);
@@ -95,6 +86,8 @@ public class TestZkClusterManager extends ZkUnitTestBase
       // TODO Auto-generated catch block
       e.printStackTrace();
     }
+
+    System.out.println("END TestZkClusterManager.beforeClass() at " + new Date(System.currentTimeMillis()));
   }
 
 }

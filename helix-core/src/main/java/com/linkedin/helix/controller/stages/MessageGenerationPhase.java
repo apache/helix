@@ -96,8 +96,8 @@ public class MessageGenerationPhase extends AbstractBaseStage
                   && currentState.equalsIgnoreCase(pendingState))
               {
                 logger.debug("Message hasn't been removed for " + instanceName
-                    + " to transit" + partition.getPartitionName() + " from "
-                    + currentState + " to " + nextState);
+                    + " to transit" + partition.getPartitionName() + " to "
+                    + pendingState);
               } else
               {
                 Message message = createMessage(manager, resourceName,

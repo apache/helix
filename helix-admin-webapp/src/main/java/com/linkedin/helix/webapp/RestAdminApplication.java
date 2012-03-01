@@ -23,6 +23,7 @@ import org.restlet.data.Response;
 import com.linkedin.helix.tools.ClusterSetup;
 import com.linkedin.helix.webapp.resources.ClusterResource;
 import com.linkedin.helix.webapp.resources.ClustersResource;
+import com.linkedin.helix.webapp.resources.ControllerStatusUpdateResource;
 import com.linkedin.helix.webapp.resources.CurrentStateResource;
 import com.linkedin.helix.webapp.resources.CurrentStatesResource;
 import com.linkedin.helix.webapp.resources.ErrorResource;
@@ -77,6 +78,7 @@ public class RestAdminApplication extends Application
     router.attach("/clusters/{clusterName}/StateModelDefs/{modelName}", StateModelResource.class);
     router.attach("/clusters/{clusterName}/StateModelDefs", StateModelsResource.class);
     router.attach("/clusters/{clusterName}/SchedulerTasks", SchedulerTasksResource.class);
+    router.attach("/clusters/{clusterName}/Controller/statusUpdates/{MessageType}/{MessageId}", ControllerStatusUpdateResource.class);
     
 
     Restlet mainpage = new Restlet()
@@ -173,7 +175,7 @@ public class RestAdminApplication extends Application
     component.getServers().add(Protocol.HTTP, port);
     Context applicationContext = component.getContext().createChildContext();
     applicationContext.getAttributes().put(ZKSERVERADDRESS, cmd.getOptionValue(ZKSERVERADDRESS));
-
+    applicationContext.getAttributes().put(PORT, "" + port);
     RestAdminApplication application = new RestAdminApplication(
         applicationContext); 
     // Attach the application to the component and start it

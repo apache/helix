@@ -1,6 +1,8 @@
 package com.linkedin.helix.webapp.resources;
 
 import java.io.IOException;
+import java.net.InetAddress;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -22,6 +24,7 @@ import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.HelixException;
 import com.linkedin.helix.Criteria;
 import com.linkedin.helix.InstanceType;
+import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.model.LiveInstance;
@@ -134,8 +137,18 @@ public class SchedulerTasksResource extends Resource
       
       DataAccessor accessor = ClusterRepresentationUtil.getClusterDataAccessor(zkServerAddress,  clusterName);
       accessor.setProperty(PropertyType.MESSAGES_CONTROLLER, schedulerMessage, schedulerMessage.getMsgId());
+      Map<String, String> resultMap = new HashMap<String, String>();
+      resultMap.put("StatusUpdatePath", PropertyPathConfig.getPath(PropertyType.STATUSUPDATES_CONTROLLER, clusterName, MessageType.SCHEDULER_MSG.toString(),schedulerMessage.getMsgId()));
+      resultMap.put("MessageType", Message.MessageType.SCHEDULER_MSG.toString());
+      resultMap.put("MsgId", schedulerMessage.getMsgId());
       
-      getResponse().setEntity("");
+      // Assemble the rest URL for task status update
+      String ipAddress = InetAddress.getLocalHost().getCanonicalHostName();
+      String url = "http://" + ipAddress+":" + (String)(getContext().getAttributes().get(RestAdminApplication.PORT))
+          + "/clusters/" + clusterName+"/Controller/statusUpdates/SCHEDULER_MSG/" + schedulerMessage.getMsgId();
+      resultMap.put("statusUpdateUrl", url);
+      
+      getResponse().setEntity(ClusterRepresentationUtil.ObjectToJson(resultMap), MediaType.APPLICATION_JSON);
       getResponse().setStatus(Status.SUCCESS_OK);
     }
     catch(Exception e)

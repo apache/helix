@@ -1,6 +1,11 @@
 package com.linkedin.helix.manager.zk;
 
 import java.io.StringReader;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.map.ObjectMapper;
 
@@ -8,6 +13,7 @@ import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.HelixException;
 import com.linkedin.helix.Criteria;
 import com.linkedin.helix.NotificationContext;
+import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.messaging.AsyncCallback;
 import com.linkedin.helix.messaging.handling.HelixTaskResult;
@@ -29,6 +35,9 @@ public class DefaultSchedulerMessageHandlerFactory implements
     StatusUpdateUtil _statusUpdateUtil = new StatusUpdateUtil();
     Message _originalMessage;
     HelixManager _manager;
+    final Map<String, Map<String, String>> _resultSummaryMap 
+       = new ConcurrentHashMap<String, Map<String, String>>();
+    
     public SchedulerAsyncCallback(Message originalMessage, HelixManager manager)
     {
       _originalMessage = originalMessage;
@@ -38,19 +47,45 @@ public class DefaultSchedulerMessageHandlerFactory implements
     @Override
     public void onTimeOut()
     {
-      _statusUpdateUtil.logError(_originalMessage, SchedulerAsyncCallback.class, "Task timeout", _manager.getDataAccessor());
+      _logger.info("Scheduler msg timeout " + _originalMessage.getMsgId() +  
+          " timout with " + _timeout +" Ms");
       
+      _statusUpdateUtil.logError(_originalMessage, SchedulerAsyncCallback.class, "Task timeout", _manager.getDataAccessor());
+      addSummary(_resultSummaryMap, _originalMessage, _manager, true);
     }
 
     @Override
     public void onReplyMessage(Message message)
     {
-      _statusUpdateUtil.logInfo(_originalMessage, SchedulerAsyncCallback.class, 
-          "Message "+message.getMsgSrc()+" completed", _manager.getDataAccessor());
+      _logger.info("Update for scheduler msg " + _originalMessage.getMsgId() +  
+          " Message " + message.getMsgSrc() + " id " + message.getCorrelationId() + " completed");
+      String key = "MessageResult " + message.getMsgSrc() + " " + UUID.randomUUID();
+      _resultSummaryMap.put(key, message.getResultMap());
       
-    }
+      if(this.isDone())
+      {
+        _logger.info("Scheduler msg " + _originalMessage.getMsgId() + " completed");
+        _statusUpdateUtil.logInfo(_originalMessage, SchedulerAsyncCallback.class, 
+            "Scheduler task completed", _manager.getDataAccessor());
+        addSummary(_resultSummaryMap, _originalMessage, _manager, false);
+      }
+    }  
     
+    private void addSummary(Map<String, Map<String, String>> _resultSummaryMap, Message originalMessage, HelixManager manager, boolean timeOut)
+    {
+      Map<String, String> summary = new TreeMap<String, String>();
+      summary.put("TotalMessages:", "" + _resultSummaryMap.size());
+      summary.put("Timeout", "" + timeOut);
+      _resultSummaryMap.put("Summary", summary);
+      
+      ZNRecord statusUpdate 
+          = manager.getDataAccessor().getProperty(PropertyType.STATUSUPDATES_CONTROLLER, MessageType.SCHEDULER_MSG.toString(), originalMessage.getMsgId());
+      statusUpdate.getMapFields().putAll(_resultSummaryMap);
+      manager.getDataAccessor().setProperty(PropertyType.STATUSUPDATES_CONTROLLER, 
+          statusUpdate, MessageType.SCHEDULER_MSG.toString(), originalMessage.getMsgId());
+    }
   }
+
   
   private static Logger _logger = Logger.getLogger(DefaultSchedulerMessageHandlerFactory.class);
   HelixManager _manager;

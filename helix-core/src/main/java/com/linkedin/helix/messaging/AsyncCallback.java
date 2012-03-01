@@ -15,10 +15,10 @@ public abstract class AsyncCallback
 
   private static Logger _logger = Logger.getLogger(AsyncCallback.class);
   long _startTimeStamp = 0;
-  long _timeout = -1;
+  protected long _timeout = -1;
   Timer _timer = null;
   List<Message> _messagesSent;
-  final List<Message> _messageReplied = new ArrayList<Message>();
+  protected final List<Message> _messageReplied = new ArrayList<Message>();
   boolean _timedOut = false;
   boolean _isInterrupted = false;
 

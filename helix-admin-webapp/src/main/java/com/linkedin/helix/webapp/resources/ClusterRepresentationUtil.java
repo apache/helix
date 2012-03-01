@@ -113,6 +113,16 @@ public class ClusterRepresentationUtil
     List<ZNRecord> records = accessor.getChildValues(instanceProperty, instanceName);
     return ObjectToJson(records);
   }
+  
+  public static String getPropertyAsString(String zkServer, String clusterName, PropertyType type, MediaType mediaType, String... keys) throws JsonGenerationException, JsonMappingException, IOException
+  {
+    ZkClient zkClient = ZKClientPool.getZkClient(zkServer);
+    zkClient.setZkSerializer(new ZNRecordSerializer());
+    DataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
+
+    ZNRecord record = accessor.getProperty(type, keys);
+    return ObjectToJson(record);
+  }
 
   public static String ZNRecordToJson(ZNRecord record) throws JsonGenerationException, JsonMappingException, IOException
   {

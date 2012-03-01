@@ -315,7 +315,7 @@ public class StatusUpdateUtil
     String time = formatter.format(new Date());
 
     String id = String.format("%4s %26s ", level.toString(), time)
-        + getRecordIdForMessage(message);
+         + getRecordIdForMessage(message);
 
     result.setMapField(id, contentMap);
 
@@ -332,7 +332,7 @@ public class StatusUpdateUtil
           + UUID.randomUUID().toString();
     } else
     {
-      return message.getMsgType() + UUID.randomUUID().toString();
+      return message.getMsgType() + " " + UUID.randomUUID().toString();
     }
   }
 

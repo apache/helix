@@ -89,6 +89,16 @@ public class MockParticipant implements Stoppable, Runnable
       }
     }
 
+    @Transition(to="DROPPED",from="OFFLINE")
+    public void onBecomeDroppedFromOffline(Message message, NotificationContext context)
+    {
+      LOG.info("Become DROPPED from OFFLINE");
+      if (_transition != null)
+      {
+        _transition.doTransition(message, context);
+      }
+    }
+    
     @Transition(to = "OFFLINE", from = "ERROR")
     public void onBecomeOfflineFromError(Message message, NotificationContext context)
     {

@@ -1,7 +1,6 @@
 package com.linkedin.helix.integration;
 
 import java.util.HashSet;
-import java.util.Map;
 import java.util.UUID;
 
 import org.testng.AssertJUnit;
@@ -14,8 +13,6 @@ import com.linkedin.helix.messaging.AsyncCallback;
 import com.linkedin.helix.messaging.handling.HelixTaskResult;
 import com.linkedin.helix.messaging.handling.MessageHandler;
 import com.linkedin.helix.messaging.handling.MessageHandlerFactory;
-import com.linkedin.helix.messaging.handling.MessageHandler.ErrorCode;
-import com.linkedin.helix.messaging.handling.MessageHandler.ErrorType;
 import com.linkedin.helix.model.Message;
 import com.linkedin.helix.model.Message.MessageType;
 
@@ -72,7 +69,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBase
       public void onError( Exception e, ErrorCode code, ErrorType type)
       {
         // TODO Auto-generated method stub
-        
+
       }
     }
   }
@@ -312,7 +309,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBase
         .sendAndWait(cr, msg, callback4, 2000);
     AssertJUnit.assertTrue(callback4.getMessageReplied().size() == 2);
   }
-  
+
   @Test()
   public void sendSelfMsg()
   {
@@ -343,12 +340,12 @@ public class TestMessagingService extends ZkStandAloneCMTestBase
     cr.setSelfExcluded(false);
     AsyncCallback callback1 = new MockAsyncCallback();
     int messageSent1 = _startCMResultMap.get(hostSrc)._manager.getMessagingService()
-        .sendAndWait(cr, msg, callback1, 2000);
+        .sendAndWait(cr, msg, callback1, 3000);
 
-    AssertJUnit.assertTrue(callback1.getMessageReplied().get(0).getRecord()
-        .getMapField(Message.Attributes.MESSAGE_RESULT.toString())
-        .get("ReplyMessage").equals("TestReplyMessage"));
     AssertJUnit.assertTrue(callback1.getMessageReplied().size() == NODE_NR);
+    AssertJUnit.assertTrue(callback1.getMessageReplied().get(0).getRecord()
+                           .getMapField(Message.Attributes.MESSAGE_RESULT.toString())
+                           .get("ReplyMessage").equals("TestReplyMessage"));
   }
 
   @Test()

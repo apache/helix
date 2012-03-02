@@ -14,6 +14,8 @@ import com.linkedin.helix.HelixConstants.StateModelToken;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.model.AlertStatus;
 import com.linkedin.helix.model.Alerts;
+import com.linkedin.helix.model.Constraint;
+import com.linkedin.helix.model.Constraint.ConstraintType;
 import com.linkedin.helix.model.CurrentState;
 import com.linkedin.helix.model.HealthStat;
 import com.linkedin.helix.model.IdealState;
@@ -26,9 +28,9 @@ import com.linkedin.helix.model.StateModelDefinition;
 /**
  * Reads the data from the cluster using data accessor. This output ClusterData
  * which provides useful methods to search/lookup properties
- * 
+ *
  * @author kgopalak
- * 
+ *
  */
 public class ClusterDataCache
 {
@@ -37,6 +39,7 @@ public class ClusterDataCache
   Map<String, IdealState> _idealStateMap;
   Map<String, StateModelDefinition> _stateModelDefMap;
   Map<String, InstanceConfig> _instanceConfigMap;
+  Map<String, Constraint> _constraintMap;
   Map<String, Map<String, Map<String, CurrentState>>> _currentStateMap;
   Map<String, Map<String, Message>> _messageMap;
 
@@ -62,6 +65,9 @@ public class ClusterDataCache
         PropertyType.STATEMODELDEFS);
     _instanceConfigMap = accessor.getChildValuesMap(InstanceConfig.class, PropertyType.CONFIGS,
         ConfigScopeProperty.PARTICIPANT.toString());
+    _constraintMap = accessor.getChildValuesMap(Constraint.class, PropertyType.CONFIGS,
+                                                ConfigScopeProperty.CONSTRAINT.toString());
+
     Map<String, Map<String, Message>> msgMap = new HashMap<String, Map<String, Message>>();
     for (String instanceName : _liveInstanceMap.keySet())
     {
@@ -214,6 +220,15 @@ public class ClusterDataCache
       }
     }
     return replicas;
+  }
+
+  public Constraint getConstraint(ConstraintType type)
+  {
+    if (_constraintMap != null)
+    {
+      return _constraintMap.get(type.toString());
+    }
+    return null;
   }
 
   @Override

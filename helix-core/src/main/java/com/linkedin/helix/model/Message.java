@@ -2,15 +2,17 @@ package com.linkedin.helix.model;
 
 import java.util.Date;
 import java.util.Map;
+import java.util.TreeMap;
 
 import com.linkedin.helix.HelixException;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.ZNRecordDecorator;
+import com.linkedin.helix.model.Constraint.ConstraintAttribute;
 
 /**
  * Message class basically extends ZNRecord but provides additional fields
- * 
+ *
  * @author kgopalak
  */
 
@@ -362,6 +364,31 @@ public class Message extends ZNRecordDecorator
     replyMessage.setMsgState("new");
 
     return replyMessage;
+  }
+
+  // convert a message to constraint attribute pairs
+  public Map<ConstraintAttribute, String> toConstraintAttributes()
+  {
+    Map<ConstraintAttribute, String> attributes = new TreeMap<ConstraintAttribute, String>();
+    String msgType = getMsgType();
+    attributes.put(ConstraintAttribute.MESSAGE_TYPE, msgType);
+    if (MessageType.STATE_TRANSITION.toString().equals(msgType))
+    {
+      if (getFromState() != null && getToState() != null)
+      {
+        attributes.put(ConstraintAttribute.TRANSITION,
+            getFromState() + "-" + getToState());
+      }
+      if (getResourceName() != null)
+      {
+        attributes.put(ConstraintAttribute.RESOURCE, getResourceName());
+      }
+      if (getTgtName() != null)
+      {
+        attributes.put(ConstraintAttribute.INSTANCE, getTgtName());
+      }
+    }
+    return attributes;
   }
 
   // TODO replace with util from espresso or linkedin

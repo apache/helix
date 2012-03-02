@@ -18,7 +18,6 @@ import com.linkedin.helix.store.PropertyJsonComparator;
 import com.linkedin.helix.store.PropertyJsonSerializer;
 import com.linkedin.helix.store.PropertyStat;
 import com.linkedin.helix.store.PropertyStoreException;
-import com.linkedin.helix.store.zk.ZKPropertyStore;
 
 // TODO need to write multi-thread test cases
 // TODO need to write performance test for zk-property store
@@ -80,15 +79,13 @@ public class TestZKPropertyStore extends ZkUnitTestBase
 
       PropertyJsonSerializer<String> serializer = new PropertyJsonSerializer<String>(String.class);
 
-//      ZkConnection zkConn = new ZkConnection(ZK_ADDR);
-
       final String propertyStoreRoot = "/" + getShortClassName();
       if (_zkClient.exists(propertyStoreRoot))
       {
         _zkClient.deleteRecursive(propertyStoreRoot);
       }
 
-      ZKPropertyStore<String> zkPropertyStore 
+      ZKPropertyStore<String> zkPropertyStore
         = new ZKPropertyStore<String>(new ZkClient(ZK_ADDR), serializer, propertyStoreRoot);
 
       // test remove recursive and get non exist property

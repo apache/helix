@@ -1,6 +1,7 @@
 package com.linkedin.helix.model;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -24,6 +25,11 @@ public class Constraint extends ZNRecordDecorator
   public enum ConstraintValue
   {
     ANY
+  }
+
+  public enum ConstraintType
+  {
+    STATE_CONSTRAINT, MESSAGE_CONSTRAINT
   }
 
   static public class ConstraintItem
@@ -91,6 +97,18 @@ public class Constraint extends ZNRecordDecorator
         }
       }
       return true;
+    }
+
+    // filter out attributes that are not specified by this constraint
+    public Map<ConstraintAttribute, String> filter(Map<ConstraintAttribute, String> attributes)
+    {
+      Map<ConstraintAttribute, String> ret = new HashMap<ConstraintAttribute, String>();
+      for (ConstraintAttribute key : _attributes.keySet())
+      {
+        ret.put(key, attributes.get(key));
+      }
+
+      return ret;
     }
 
     public String getConstraintValue()

@@ -10,7 +10,7 @@ public class ConfigScope
 {
   public enum ConfigScopeProperty
   {
-    CLUSTER, PARTICIPANT, RESOURCE, PARTITION;
+    CLUSTER, PARTICIPANT, RESOURCE, PARTITION, CONSTRAINT;
   }
 
   private static Logger LOG = Logger.getLogger(ConfigScope.class);

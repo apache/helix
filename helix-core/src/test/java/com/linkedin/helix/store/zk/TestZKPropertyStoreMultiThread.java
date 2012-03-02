@@ -76,6 +76,7 @@ public class TestZKPropertyStoreMultiThread extends ZkUnitTestBase
     System.out.println("START testCmpAndSet at" + new Date(System.currentTimeMillis()));
 
     Map<String, Boolean> results = TestHelper.<Boolean>startThreadsConcurrently(5, new TestCallableCAS(), 10);
+    Assert.assertEquals(results.size(), 5);
     for (Boolean result : results.values())
     {
       Assert.assertTrue(result.booleanValue());
@@ -129,6 +130,7 @@ public class TestZKPropertyStoreMultiThread extends ZkUnitTestBase
     System.out.println("START testUpdateUntilSucceed at" + new Date(System.currentTimeMillis()));
 
     Map<String, Boolean> results = TestHelper.<Boolean>startThreadsConcurrently(5, new TestCallableUpdate(), 10);
+    Assert.assertEquals(results.size(), 5);
     for (Boolean result : results.values())
     {
       Assert.assertTrue(result.booleanValue());

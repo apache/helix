@@ -10,6 +10,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import org.I0Itec.zkclient.IDefaultNameSpace;
 import org.I0Itec.zkclient.ZkServer;
@@ -885,5 +889,77 @@ public class TestHelper
     retMap.put("RESOURCE", resourceName);
     retMap.put("PARTITION", partitionName);
     return retMap;
+  }
+
+  public static <T> Map<String, T> startThreadsConcurrently(final int nrThreads,
+                                                            final Callable<T> method,
+                                                            final long timeout)
+  {
+    final CountDownLatch startLatch = new CountDownLatch(1);
+    final CountDownLatch finishCounter = new CountDownLatch(nrThreads);
+    final Map<String, T> resultsMap = new ConcurrentHashMap<String, T>();
+    final List<Thread> threadList = new ArrayList<Thread>();
+
+    for (int i = 0; i < nrThreads; i++)
+    {
+      Thread thread = new Thread()
+      {
+        @Override
+        public void run()
+        {
+          try
+          {
+            boolean isTimeout = !startLatch.await(timeout, TimeUnit.SECONDS);
+            if (isTimeout)
+            {
+              LOG.error("Timeout while waiting for start latch");
+            }
+          }
+          catch (InterruptedException ex)
+          {
+            LOG.error("Interrupted while waiting for start latch");
+          }
+
+          try
+          {
+            T result = method.call();
+            if (result != null)
+            {
+              resultsMap.put("thread_" + this.getId(), result);
+            }
+            LOG.debug("result=" + result);
+          }
+          catch (Exception e)
+          {
+            LOG.error("Exeption in executing " + method.getClass().getName(), e);
+          }
+
+          finishCounter.countDown();
+        }
+      };
+      threadList.add(thread);
+      thread.start();
+    }
+    startLatch.countDown();
+
+    // wait for all thread to complete
+    try
+    {
+      boolean isTimeout = !finishCounter.await(timeout, TimeUnit.SECONDS);
+      if (isTimeout)
+      {
+        LOG.error("Timeout while waiting for finish latch. Interrupt all threads");
+        for (Thread thread : threadList)
+        {
+          thread.interrupt();
+        }
+      }
+    }
+    catch (InterruptedException e)
+    {
+      LOG.error("Interrupted while waiting for finish latch", e);
+    }
+
+    return resultsMap;
   }
 }

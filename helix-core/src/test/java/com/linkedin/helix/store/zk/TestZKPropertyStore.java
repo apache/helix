@@ -37,7 +37,6 @@ public class TestZKPropertyStore extends ZkUnitTestBase
       LOG.info("property change, " + key);
       _propertyChangeReceived = true;
     }
-
   }
 
   private class TestUpdater implements DataUpdater<String>

@@ -125,6 +125,7 @@ implements PropertyStore<T>, IZkDataListener, IZkChildListener, IZkStateListener
       {
 
         Stat stat = new Stat();
+        _zkClient.subscribeDataChanges(path, this);
         T value = _zkClient.<T> readData(path, stat);
 
         if (value == null)
@@ -224,6 +225,9 @@ implements PropertyStore<T>, IZkDataListener, IZkChildListener, IZkStateListener
         if (!_propertyCacheMap.containsKey(path))
         {
           Stat stat = new Stat();
+
+          // always subscribe before read
+          _zkClient.subscribeDataChanges(path, this);
           T value = _zkClient.<T> readData(path, stat);
 
           if (propertyStat != null)
@@ -235,7 +239,6 @@ implements PropertyStore<T>, IZkDataListener, IZkChildListener, IZkStateListener
           // cache it
           _propertyCacheMap.put(path,
               new PropertyInfo<T>(value, stat, stat.getVersion()));
-          _zkClient.subscribeDataChanges(path, this);
         }
         return _propertyCacheMap.get(path)._value;
       }

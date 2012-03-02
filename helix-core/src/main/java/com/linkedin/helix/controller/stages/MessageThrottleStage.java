@@ -62,9 +62,9 @@ public class MessageThrottleStage extends AbstractBaseStage
    * constraints are selected in the order of the following rules:
    *   1) don't select constraints with CONSTRAINT_VALUE=ANY;
    *   2) if one constraint is more specific than the other, select the most specific one
-   *   3) if a message matches multiple constraints of the incomparable specificity,
+   *   3) if a message matches multiple constraints of incomparable specificity,
    *   select the one with the minimum value
-   *   4) if a message matches multiple constraints of the incomparable specificity,
+   *   4) if a message matches multiple constraints of incomparable specificity,
    *   and they all have the same value, select the first in alphabetic order
    */
   Set<ConstraintItem> selectConstraints(Set<ConstraintItem> items,

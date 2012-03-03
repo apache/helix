@@ -25,7 +25,6 @@ public class ZKDataAccessor implements DataAccessor
 
   protected final String _clusterName;
   protected final ZkClient _zkClient;
-//  protected final PropertyStore<ZNRecord> _propertyStore;
 
   /**
    * If a PropertyType has children (e.g. CONFIGS), then the parent path is the

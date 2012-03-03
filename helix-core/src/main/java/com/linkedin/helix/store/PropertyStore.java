@@ -38,7 +38,6 @@ public interface PropertyStore<T>
    * @return value of the property
    * @throws PropertyStoreException
    */
-  // List<T> getProperty(String key) throws PropertyStoreException;
   T getProperty(String key) throws PropertyStoreException;
   
   /**
@@ -49,7 +48,6 @@ public interface PropertyStore<T>
    * @return value of the property
    * @throws PropertyStoreException
    */
-  // List<T> getProperty(String key, List<PropertyStat> propertyStatList) throws PropertyStoreException;
   T getProperty(String key, PropertyStat propertyStat) throws PropertyStoreException;
 
   /**
@@ -118,7 +116,7 @@ public interface PropertyStore<T>
    * 
    * @return root property path
    */ 
-  public void createPropertyNamespace(String prefix);
+  public void createPropertyNamespace(String prefix) throws PropertyStoreException;
     
   /**
    * return the root namespace of the property store
@@ -133,7 +131,10 @@ public interface PropertyStore<T>
    * @param key
    * @param updater
    */
-  public void updatePropertyUntilSucceed(String key, DataUpdater<T> updater);
+  public void updatePropertyUntilSucceed(String key, DataUpdater<T> updater) 
+    throws PropertyStoreException;
+  public void updatePropertyUntilSucceed(String key, DataUpdater<T> updater, boolean createIfAbsent) 
+    throws PropertyStoreException;
   
   /**
    * test if a property exists

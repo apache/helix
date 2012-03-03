@@ -14,7 +14,6 @@ import com.linkedin.helix.manager.zk.ZNRecordSerializer;
 import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.store.PropertyChangeListener;
 import com.linkedin.helix.store.PropertyJsonSerializer;
-import com.linkedin.helix.store.zk.ZKPropertyStore;
 
 public class TestZkPropertyStoreSessionExpiry extends ZkUnitTestBase
 {
@@ -72,7 +71,7 @@ public class TestZkPropertyStoreSessionExpiry extends ZkUnitTestBase
     zkPropertyStore.setProperty("/child1/grandchild2", "grandchild2");
 
     TestPropertyChangeListener listener = new TestPropertyChangeListener();
-    zkPropertyStore.subscribeForRootPropertyChange(listener);
+    zkPropertyStore.subscribeForPropertyChange("", listener);
 
     listener._propertyChangeReceived = false;
     zkPropertyStore.setProperty("/child2/grandchild3", "grandchild3");

@@ -19,7 +19,6 @@ import com.linkedin.helix.store.PropertyJsonSerializer;
 import com.linkedin.helix.store.PropertyStat;
 import com.linkedin.helix.store.PropertyStoreException;
 
-// TODO need to write multi-thread test cases
 // TODO need to write performance test for zk-property store
 public class TestZKPropertyStore extends ZkUnitTestBase
 {
@@ -69,7 +68,7 @@ public class TestZKPropertyStore extends ZkUnitTestBase
   @Test ()
   public void testInvocation() throws Exception
   {
-  	System.out.println("START TestZKPropertyStore at" + new Date(System.currentTimeMillis()));
+  	System.out.println("START TestZKPropertyStore at " + new Date(System.currentTimeMillis()));
     LOG.info("number of connections is " + ZkClient.getNumberOfConnections());
 
     try
@@ -88,7 +87,7 @@ public class TestZKPropertyStore extends ZkUnitTestBase
         = new ZKPropertyStore<String>(new ZkClient(ZK_ADDR), serializer, propertyStoreRoot);
 
       // test remove recursive and get non exist property
-      zkPropertyStore.removeRootNamespace();
+      zkPropertyStore.removeNamespace("");
       value = zkPropertyStore.getProperty("nonExist");
       AssertJUnit.assertEquals(value, null);
 
@@ -148,7 +147,7 @@ public class TestZKPropertyStore extends ZkUnitTestBase
 
       // test subscribe property
       TestPropertyChangeListener listener = new TestPropertyChangeListener();
-      zkPropertyStore.subscribeForRootPropertyChange(listener);
+      zkPropertyStore.subscribeForPropertyChange("", listener);
       // Assert.assertEquals(listener._propertyChangeReceived, false);
 
       listener._propertyChangeReceived = false;
@@ -226,7 +225,7 @@ public class TestZKPropertyStore extends ZkUnitTestBase
       // then set _propertyChangeRecieved to false
       Thread.sleep(100);
       listener._propertyChangeReceived = false;
-      zkPropertyStore.unsubscribeForRootPropertyChange(listener);
+      zkPropertyStore.unsubscribeForPropertyChange("", listener);
       zkPropertyStore.setProperty("/child1/grandchild1", "new new new grandchild1");
       Thread.sleep(100);
       AssertJUnit.assertEquals(listener._propertyChangeReceived, false);
@@ -245,7 +244,7 @@ public class TestZKPropertyStore extends ZkUnitTestBase
       e.printStackTrace();
     }
 
-    System.out.println("END TestZKPropertyStore at" + new Date(System.currentTimeMillis()));
+    System.out.println("END TestZKPropertyStore at " + new Date(System.currentTimeMillis()));
     LOG.info("number of connections is " + ZkClient.getNumberOfConnections());
   }
 }

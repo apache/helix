@@ -762,10 +762,15 @@ public class FilePropertyStore<T> implements PropertyStore<T>
   @Override
   public void updatePropertyUntilSucceed(String key, DataUpdater<T> updater)
   {
+    updatePropertyUntilSucceed(key, updater, true);
+  }
+
+  @Override
+  public void updatePropertyUntilSucceed(String key, DataUpdater<T> updater,
+      boolean createIfAbsent)
+  {
     String path = getPath(key);
     File file = new File(path);
-//    FileInputStream fin = null;
-//    FileOutputStream fout = null;
     RandomAccessFile raFile = null;
     FileLock fLock = null;
 
@@ -774,22 +779,15 @@ public class FilePropertyStore<T> implements PropertyStore<T>
       _readWriteLock.writeLock().lock();
       if (!file.exists())
       {
-        // file.createNewFile();
         FileUtils.touch(file);
       }
 
-//      fin = new FileInputStream(file);
-//      FileChannel fChannel = // fin.getChannel();
-//      fLock = fChannel.lock();
-//      fout = new FileOutputStream(file);
       raFile = new RandomAccessFile(file, "rw");
       FileChannel fChannel = raFile.getChannel();
       fLock = fChannel.lock();
 
       T current = getProperty(key);
       T update = updater.update(current);
-//      byte[] bytes = _serializer.serialize(update);
-//      fout.write(bytes);
       setProperty(key, update);
     }
     catch (Exception e)
@@ -810,16 +808,6 @@ public class FilePropertyStore<T> implements PropertyStore<T>
         {
           raFile.close();
         }
-
-//        if (fin != null)
-//        {
-//          fin.close();
-//        }
-
-//        if (fout != null)
-//        {
-//          fout.close();
-//        }
       }
       catch (IOException e)
       {

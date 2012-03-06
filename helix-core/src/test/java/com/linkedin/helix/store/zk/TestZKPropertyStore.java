@@ -212,7 +212,7 @@ public class TestZKPropertyStore extends ZkUnitTestBase
     }
 
     Map<String, String> map1mUpdate = new TreeMap<String, String>();
-    for (int i = 0; i < 1000; i++)
+    for (int i = 0; i < 10; i++)
     {
       map1m.put("key_" + i, new String(data1k));
       map1mUpdate.put("key_" + i, new String(data1kUpdate));
@@ -332,7 +332,7 @@ public class TestZKPropertyStore extends ZkUnitTestBase
     }
 
     Map<String, String> map1m = new TreeMap<String, String>();
-    for (int i = 0; i < 1000; i++)
+    for (int i = 0; i < 10; i++)
     {
       map1m.put("key_" + i, new String(data1k));
     }

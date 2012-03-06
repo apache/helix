@@ -13,7 +13,7 @@ public class ConfigScopeBuilder
 
   private final Map<ConfigScopeProperty, String> _scopeMap;
 
-  Map<ConfigScopeProperty, String> getScopeMap()
+  public Map<ConfigScopeProperty, String> getScopeMap()
   {
     return _scopeMap;
   }
@@ -56,4 +56,9 @@ public class ConfigScopeBuilder
     return new ConfigScope(this);
   }
 
+  @Override
+  public String toString()
+  {
+    return _scopeMap.toString();
+  }
 }

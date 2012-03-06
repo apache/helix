@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.UUID;
 
 import org.apache.log4j.Logger;
@@ -633,11 +634,16 @@ public class ZKHelixAdmin implements HelixAdmin
   {
     String zkAddr = _zkClient.getServers();
     ConfigAccessor configAccessor = new ConfigAccessor(zkAddr);
-    Map<String, String> properties = new HashMap<String, String>();
+    Map<String, String> properties = new TreeMap<String, String>();
 
     for (String key : keys)
     {
       String value = configAccessor.get(scope, key);
+      if (value == null)
+      {
+        logger.error("Config doesn't exist for key: " + key);
+        continue;
+      }
       properties.put(key, value);
     }
 

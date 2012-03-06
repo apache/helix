@@ -21,6 +21,12 @@ public class ConfigAccessor
     _zkAddr = zkAddr;
   }
 
+  /**
+   * 
+   * @param scope
+   * @param key
+   * @return value or null if doesn't exist
+   */
   public String get(ConfigScope scope, String key)
   {
     if (scope == null || scope.getScope() == null)
@@ -78,6 +84,13 @@ public class ConfigAccessor
     {
       zkClient = new ZkClient(_zkAddr);
       zkClient.setZkSerializer(new ZNRecordSerializer());
+      
+      String clusterName = scope.getClusterName();
+      if (!ZKUtil.isClusterSetup(clusterName, zkClient))
+      {
+        throw new HelixException("cluster " + clusterName + " is not setup yet");
+      }
+      
       String path = PropertyPathConfig.getPath(PropertyType.CONFIGS, scope.getClusterName(), scope
           .getScope().toString(), scope.getScopeKey());
 

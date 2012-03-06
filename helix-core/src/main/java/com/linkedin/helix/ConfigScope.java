@@ -81,4 +81,13 @@ public class ConfigScope
   {
     return _keys;
   }
+  
+  @Override
+  public String toString()
+  {
+    StringBuffer sb = new StringBuffer();
+    sb.append("cluster:" + _clusterName + ", scope:" + _scope + ", scopeKey:" + _scopeKey
+        + ", keys:" + _keys);
+    return sb.toString();
+  }
 }

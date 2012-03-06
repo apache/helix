@@ -5,7 +5,11 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -20,7 +24,9 @@ import org.apache.log4j.Logger;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 
+import com.linkedin.helix.ConfigScope;
 import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
+import com.linkedin.helix.ConfigScopeBuilder;
 import com.linkedin.helix.HelixAdmin;
 import com.linkedin.helix.HelixException;
 import com.linkedin.helix.PropertyType;
@@ -76,22 +82,26 @@ public class ClusterSetup
   public static final String addAlert = "addAlert";
   public static final String dropStat = "dropStat";
   public static final String dropAlert = "dropAlert";
+  
+  // get/set configs
+  public static final String getConfig = "getConfig";
+  public static final String setConfig = "setConfig";
 
   static Logger _logger = Logger.getLogger(ClusterSetup.class);
   String _zkServerAddress;
   ZkClient _zkClient;
-  HelixAdmin _managementService;
+  HelixAdmin _admin;
 
   public ClusterSetup(String zkServerAddress)
   {
     _zkServerAddress = zkServerAddress;
     _zkClient = ZKClientPool.getZkClient(_zkServerAddress);
-    _managementService = new ZKHelixAdmin(_zkClient);
+    _admin = new ZKHelixAdmin(_zkClient);
   }
 
   public void addCluster(String clusterName, boolean overwritePrevious)
   {
-    _managementService.addCluster(clusterName, overwritePrevious);
+    _admin.addCluster(clusterName, overwritePrevious);
 
     StateModelConfigGenerator generator = new StateModelConfigGenerator();
     addStateModelDef(clusterName, "MasterSlave",
@@ -106,7 +116,7 @@ public class ClusterSetup
   
   public void addCluster(String clusterName, boolean overwritePrevious, String grandCluster)
   {
-    _managementService.addCluster(clusterName, overwritePrevious, grandCluster);
+    _admin.addCluster(clusterName, overwritePrevious, grandCluster);
 
     StateModelConfigGenerator generator = new StateModelConfigGenerator();
     addStateModelDef(clusterName, "MasterSlave",
@@ -121,7 +131,7 @@ public class ClusterSetup
 
   public void deleteCluster(String clusterName)
   {
-    _managementService.dropCluster(clusterName);
+    _admin.dropCluster(clusterName);
   }
 
   public void addInstancesToCluster(String clusterName, String[] InstanceInfoArray)
@@ -163,7 +173,7 @@ public class ClusterSetup
     config.setHostName(host);
     config.setPort(Integer.toString(port));
     config.setInstanceEnabled(true);
-    _managementService.addInstance(clusterName, config);
+    _admin.addInstance(clusterName, config);
   }
 
   public void dropInstancesFromCluster(String clusterName, String[] InstanceInfoArray)
@@ -220,17 +230,17 @@ public class ClusterSetup
       _logger.warn(error);
       throw new HelixException(error);
     }
-    _managementService.dropInstance(clusterName, config);
+    _admin.dropInstance(clusterName, config);
   }
 
   public HelixAdmin getClusterManagementTool()
   {
-    return _managementService;
+    return _admin;
   }
 
   public void addStateModelDef(String clusterName, String stateModelDef, StateModelDefinition record)
   {
-    _managementService.addStateModelDef(clusterName, stateModelDef, record);
+    _admin.addStateModelDef(clusterName, stateModelDef, record);
   }
 
   public void addResourceToCluster(String clusterName, String resourceName, int numResources,
@@ -248,24 +258,24 @@ public class ClusterSetup
       logger.info("ideal state mode is configured to auto for " + resourceName);
       idealStateMode = IdealStateModeProperty.AUTO.toString();
     }
-    _managementService.addResource(clusterName, resourceName, numResources, stateModelRef,
+    _admin.addResource(clusterName, resourceName, numResources, stateModelRef,
         idealStateMode);
   }
 
   public void dropResourceFromCluster(String clusterName, String resourceName)
   {
-    _managementService.dropResource(clusterName, resourceName);
+    _admin.dropResource(clusterName, resourceName);
   }
 
   public void rebalanceStorageCluster(String clusterName, String resourceName, int replica)
   {
-    List<String> InstanceNames = _managementService.getInstancesInCluster(clusterName);
+    List<String> InstanceNames = _admin.getInstancesInCluster(clusterName);
 
-    IdealState idealState = _managementService.getResourceIdealState(clusterName, resourceName);
+    IdealState idealState = _admin.getResourceIdealState(clusterName, resourceName);
     idealState.setReplicas(Integer.toString(replica));
     int partitions = idealState.getNumPartitions();
     String stateModelName = idealState.getStateModelDefRef();
-    StateModelDefinition stateModDef = _managementService.getStateModelDef(clusterName,
+    StateModelDefinition stateModDef = _admin.getStateModelDef(clusterName,
         stateModelName);
 
     if (stateModDef == null)
@@ -321,9 +331,101 @@ public class ClusterSetup
         partitions, replica, resourceName, masterStateValue, slaveStateValue);
     idealState.getRecord().setMapFields(newIdealState.getMapFields());
     idealState.getRecord().setListFields(newIdealState.getListFields());
-    _managementService.setResourceIdealState(clusterName, resourceName, idealState);
+    _admin.setResourceIdealState(clusterName, resourceName, idealState);
   }
 
+  private ConfigScope parseScope(String scopesStr)
+  {
+    // parse scopes
+    ConfigScopeBuilder scopeBuilder = new ConfigScopeBuilder();
+    String[] scopes = scopesStr.split("[\\s,]+");
+    for (String scope : scopes)
+    {
+      try
+      {
+        int idx = scope.indexOf('=');
+        if (idx == -1)
+        {
+          logger.error("Invalid scope string: " + scope);
+          continue;
+        }
+        
+        String scopeStr = scope.substring(0, idx);
+        String value = scope.substring(idx + 1);
+        ConfigScopeProperty scopeProperty = ConfigScopeProperty.valueOf(scopeStr);
+        scopeBuilder.getScopeMap().put(scopeProperty, value);
+      } catch (Exception e)
+      {
+        logger.error("Invalid scope string: " + scope);
+        continue;        
+      }
+    }
+    logger.debug("scopeBuilder: " + scopeBuilder);
+    
+    return scopeBuilder.build();
+  }
+  
+  /**
+   * setConfig
+   * @param scopeStr: scope=value, ... where scope=CLUSTER, RESOURCE, PARTICIPANT, PARTITION
+   * @param properitesStr: key=value, ... which represents a Map<String, String>
+   */
+  public void setConfig(String scopesStr, String propertiesStr)
+  {
+    ConfigScope scope = parseScope(scopesStr);
+    
+    // parse properties
+    String[] properties = propertiesStr.split("[\\s,]");
+    Map<String, String> propertiesMap = new TreeMap<String, String>();
+    for (String property : properties)
+    {
+      int idx = property.indexOf('=');
+      if (idx == -1)
+      {
+        logger.error("Invalid property string: " + property);
+        continue;
+      }
+      
+      String key = property.substring(0, idx);
+      String value = property.substring(idx + 1);
+      propertiesMap.put(key, value);
+    }
+    logger.debug("propertiesMap: " + propertiesMap);
+    
+    _admin.setConfig(scope, propertiesMap);
+  }
+  
+  public String getConfig(String scopesStr, String keysStr)
+  {
+    ConfigScope scope = parseScope(scopesStr);
+
+    // parse keys
+    String[] keys = keysStr.split("[\\s,]");
+    Set<String> keysSet = new HashSet<String>(Arrays.asList(keys));
+    
+    Map<String, String> propertiesMap = _admin.getConfig(scope, keysSet);
+    StringBuffer sb = new StringBuffer();
+    for (String key : keys)
+    {
+      if (propertiesMap.containsKey(key))
+      {
+        if (sb.length() > 0)
+        {
+          sb.append("," + key + "=" + propertiesMap.get(key));
+        } else
+        {
+          // sb.length()==0 means the first key=value
+          sb.append(key + "=" + propertiesMap.get(key));
+        }      
+      } else {
+        logger.error("Config doesn't exist for key: " + key);
+      }
+    }
+    
+    System.out.println(sb.toString());
+    return sb.toString();
+  }
+  
   /**
    * Sets up a cluster with 6 Instances[localhost:8900 to localhost:8905], 1
    * resource[EspressoDB] with a replication factor of 3
@@ -503,6 +605,17 @@ public class ClusterSetup
     dropAlertOption.setRequired(false);
     dropAlertOption.setArgName("clusterName alertName");
 
+    // set/get configs option
+    Option setConfOption = OptionBuilder.withLongOpt(setConfig).withDescription("Set a config").create();
+    setConfOption.setArgs(2);
+    setConfOption.setRequired(false);
+    setConfOption.setArgName("ConfigScope(scope=value,...) Map(key=value,...");
+
+    Option getConfOption = OptionBuilder.withLongOpt(getConfig).withDescription("Get a config").create();
+    getConfOption.setArgs(2);
+    getConfOption.setRequired(false);
+    getConfOption.setArgName("ConfigScope(scope=value,...) Set(key,...");
+    
     OptionGroup group = new OptionGroup();
     group.setRequired(true);
     group.addOption(rebalanceOption);
@@ -530,6 +643,8 @@ public class ClusterSetup
     group.addOption(addAlertOption);
     group.addOption(dropStatOption);
     group.addOption(dropAlertOption);
+    group.addOption(setConfOption);
+    group.addOption(getConfOption);
 
     Options options = new Options();
     options.addOption(helpOption);
@@ -843,6 +958,17 @@ public class ClusterSetup
       String resourceName = cmd.getOptionValues(dropResource)[1];
 
       setupTool.getClusterManagementTool().dropResource(clusterName, resourceName);
+    } else if (cmd.hasOption(setConfig))
+    {
+      String scopeStr = cmd.getOptionValues(setConfig)[0];
+      String propertiesStr = cmd.getOptionValues(setConfig)[1];
+      setupTool.setConfig(scopeStr, propertiesStr);
+    }
+    else if (cmd.hasOption(getConfig))
+    {
+      String scopeStr = cmd.getOptionValues(getConfig)[0];
+      String keysStr = cmd.getOptionValues(getConfig)[1];
+      setupTool.getConfig(scopeStr, keysStr);
     }
     else if (cmd.hasOption(help))
     {
@@ -860,6 +986,9 @@ public class ClusterSetup
    */
   public static void main(String[] args) throws Exception
   {
+    // debug
+    // System.out.println("args(" + args.length + "): " + Arrays.asList(args));
+    
     if (args.length == 1 && args[0].equals("setup-test-cluster"))
     {
       System.out.println("By default setting up ");

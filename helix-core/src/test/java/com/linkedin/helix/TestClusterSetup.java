@@ -5,13 +5,13 @@ import java.util.Arrays;
 import java.util.Date;
 
 import org.apache.log4j.Logger;
+import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-import com.linkedin.helix.HelixException;
 import com.linkedin.helix.manager.zk.ZNRecordSerializer;
 import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.tools.ClusterSetup;
@@ -20,7 +20,7 @@ public class TestClusterSetup extends ZkUnitTestBase
 {
   private static Logger LOG = Logger.getLogger(TestClusterSetup.class);
 
-  protected static final String CLUSTER_NAME = "TestCluster";
+  protected static final String CLUSTER_NAME = "TestClusterSetup";
   protected static final String TEST_DB = "TestDB";
   protected static final String INSTANCE_PREFIX = "instance:";
   protected static final String STATE_MODEL = "MasterSlave";
@@ -319,5 +319,22 @@ public class TestClusterSetup extends ZkUnitTestBase
                   false);
     ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " --dropNode "
         + CLUSTER_NAME + " " + TEST_NODE));
+  }
+  
+  @Test()
+  public void testSetGetConfig() throws Exception
+  {
+    System.out.println("START testSetGetConfig() " + new Date(System.currentTimeMillis()));
+
+    // basic
+    String scopesStr = "CLUSTER=" + CLUSTER_NAME + ",PARTICIPANT=localhost_0";
+    String propertiesStr = "key1=value1,key2=value2";
+    String keysStr = "key1,key2";
+    _clusterSetup.setConfig(scopesStr, propertiesStr);
+    String valuesStr = _clusterSetup.getConfig(scopesStr, keysStr);
+    Assert.assertEquals(valuesStr, propertiesStr);
+    
+    System.out.println("END testSetGetConfig() " + new Date(System.currentTimeMillis()));
+
   }
 }

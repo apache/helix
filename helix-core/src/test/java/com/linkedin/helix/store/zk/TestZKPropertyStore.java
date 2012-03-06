@@ -90,7 +90,7 @@ public class TestZKPropertyStore extends ZkUnitTestBase
     }
 
     Map<String, String> map1m = new TreeMap<String, String>();
-    for (int i = 0; i < 1000; i++)
+    for (int i = 0; i < 10; i++)
     {
       map1m.put("key_" + i, new String(data1k));
     }
@@ -107,7 +107,7 @@ public class TestZKPropertyStore extends ZkUnitTestBase
     String root = store.getPropertyRootNamespace();
     Assert.assertEquals(root, propertyStoreRoot);
 
-    // set 100 nodes and get 100 nodes, each of which are ~1M.
+    // set 100 nodes and get 100 nodes, each of which are ~10K.
     // verify get what are set
     long start = System.currentTimeMillis();
     set100Nodes(store, 'a', false);

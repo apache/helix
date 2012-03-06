@@ -27,7 +27,7 @@ import com.linkedin.helix.store.PropertyStore;
 import com.linkedin.helix.store.PropertyStoreException;
 import com.linkedin.helix.store.zk.PropertyItem.ByteArray;
 
-public class ZKPropertyStore<T> implements PropertyStore<T>, IZkStateListener // IZkDataListener, IZkChildListener, 
+public class ZKPropertyStore<T> implements PropertyStore<T>, IZkStateListener // IZkDataListener, IZkChildListener,
 {
   private static Logger LOG = Logger.getLogger(ZKPropertyStore.class);
 
@@ -58,7 +58,7 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkStateListener //
     }
 
   };
-  
+
   class ByteArrayUpdater implements DataUpdater<ByteArray>
   {
     final DataUpdater<T> _updater;
@@ -69,7 +69,7 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkStateListener //
       _updater = updater;
       _serializer = serializer;
     }
-    
+
     @Override
     public ByteArray update(ByteArray current)
     {
@@ -89,8 +89,7 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkStateListener //
       return null;
     }
   }
-  
-  // private final String ROOT = "/";  // TODO check 
+
   private volatile boolean _isConnected = false;
   private volatile boolean _hasSessionExpired = false;
 
@@ -101,7 +100,7 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkStateListener //
   // zookeeperPath->userCallbak->zkCallback
   private final Map<String, Map<PropertyChangeListener<T>, ZkCallbackHandler<T>>> _callbackMap
       = new HashMap<String, Map<PropertyChangeListener<T>, ZkCallbackHandler<T>>>();
-  
+
   // TODO cache capacity should be bounded
   private final Map<String, PropertyItem> _cache = new ConcurrentHashMap<String, PropertyItem>();
 
@@ -112,13 +111,13 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkStateListener //
     {
       throw new IllegalArgumentException("zkClient|serializer|root can't be null");
     }
-    
+
     _root = normalizeKey(root);
     _zkClient = zkClient;
     _zkClient.setZkSerializer(new ByteArraySerializer());
-    
+
     setPropertySerializer(serializer);
-    
+
     _zkClient.createPersistent(_root, true);
     _zkClient.subscribeStateChanges(this);
   }
@@ -165,10 +164,10 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkStateListener //
 
     if (path.equals(_root))
     {
-      return "";
+      return "/";
     } else
     {
-      return path.substring(_root.length() + 1);
+      return path.substring(_root.length());
     }
   }
 
@@ -194,7 +193,7 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkStateListener //
       throws PropertyStoreException
   {
     String path = getAbsolutePath(key);
-    
+
     try
     {
       if (!_zkClient.exists(path))
@@ -205,10 +204,10 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkStateListener //
       // serializer should handle value == null
       byte[] valueBytes = _serializer.serialize(value);
       _zkClient.writeData(path, new ByteArray(valueBytes));
-      
+
       // update cache
       // getProperty(key);
-      
+
     } catch (Exception e)
     {
       LOG.error("Exception when setProperty(" + key + ", " + value + ")", e);
@@ -223,11 +222,11 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkStateListener //
   }
 
   // bytes and stat are not null
-  private T getValueAndStat(byte[] bytes, Stat stat, PropertyStat propertyStat) 
+  private T getValueAndStat(byte[] bytes, Stat stat, PropertyStat propertyStat)
     throws PropertyStoreException
   {
     T value = _serializer.deserialize(bytes);
-    
+
     if (propertyStat != null)
     {
       propertyStat.setLastModifiedTime(stat.getMtime());
@@ -235,7 +234,7 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkStateListener //
     }
     return value;
   }
-  
+
   @Override
   public T getProperty(String key, PropertyStat propertyStat)
       throws PropertyStoreException
@@ -252,7 +251,7 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkStateListener //
         // cache hit
         stat = _zkClient.getStat(path);
         if (stat != null)
-        {          
+        {
           PropertyItem item = _cache.get(normalizedKey);
           if (item.getVersion() < stat.getVersion())
           {
@@ -266,7 +265,7 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkStateListener //
             {
               _cache.remove(normalizedKey);
             }
-            
+
           } else
           {
             // valid data in cache
@@ -288,7 +287,7 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkStateListener //
           _cache.put(normalizedKey, new PropertyItem(bytes.getBytes(), stat));
         }
       }
-      
+
       return value;
     } catch (Exception e)
     {
@@ -310,7 +309,7 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkStateListener //
         _zkClient.delete(path);
       }
       _cache.remove(normalizedKey);
-  
+
     } catch (Exception e)
     {
       LOG.error("Exception in removeProperty(" + key + ")", e);
@@ -335,14 +334,14 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkStateListener //
       {
         _zkClient.deleteRecursive(path);
       }
-      
+
       // update cache
       // childs are all normalized keys
       List<String> childs = getPropertyNames(prefix);
       for (String child : childs)
       {
         _cache.remove(child);
-      } 
+      }
     } catch (Exception e)
     {
       LOG.error("Exception in removeProperty(" + prefix + ")", e);
@@ -369,7 +368,7 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkStateListener //
 
     if (childs.size() == 0)
     {
-      // leaf node, add to cache
+      // add leaf node to cache
       getProperty(prefix);
       leafNodes.add(prefix);
       return;
@@ -377,7 +376,8 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkStateListener //
 
     for (String child : childs)
     {
-      doGetPropertyNames(prefix + "/" + child, leafNodes);
+      String childPath = prefix.equals("/") ? prefix+child : prefix + "/" + child;
+      doGetPropertyNames(childPath, leafNodes);
     }
   }
 
@@ -428,7 +428,7 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkStateListener //
         _callbackMap.put(path, new HashMap<PropertyChangeListener<T>, ZkCallbackHandler<T>>());
       }
       callbacks = _callbackMap.get(path);
-        
+
       if (!callbacks.containsKey(listener))
       {
         callback = new ZkCallbackHandler<T>(_zkClient, this, prefix, listener);
@@ -443,10 +443,10 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkStateListener //
         // a newly added callback
         _zkClient.subscribeDataChanges(path, callback);
         _zkClient.subscribeChildChanges(path, callback);
-  
+
         // do initial invocation
         callback.handleChildChange(path, _zkClient.getChildren(path));
-        
+
         LOG.debug("Subscribed changes for " + path);
       }
     } catch (Exception e)
@@ -484,22 +484,22 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkStateListener //
     {
       throw new IllegalArgumentException("listener can't be null. Prefix: " + prefix);
     }
-    
+
     String path = getAbsolutePath(prefix);
     ZkCallbackHandler<T> callback = null;
 
-    synchronized (_callbackMap) 
+    synchronized (_callbackMap)
     {
       if (_callbackMap.containsKey(path))
       {
         Map<PropertyChangeListener<T>, ZkCallbackHandler<T>> callbacks = _callbackMap.get(path);
         callback = callbacks.remove(listener);
-        
+
         if (callbacks == null || callbacks.isEmpty())
         {
           _callbackMap.remove(path);
         }
-      }       
+      }
     }
 
     if (callback != null)
@@ -522,7 +522,7 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkStateListener //
     {
       throw new IllegalArgumentException("serializer can't be null");
     }
-    
+
     _serializer = serializer;
   }
 
@@ -532,7 +532,7 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkStateListener //
   {
     updatePropertyUntilSucceed(key, updater, true);
   }
-  
+
   @Override
   public void updatePropertyUntilSucceed(String key, DataUpdater<T> updater,
       boolean createIfAbsent) throws PropertyStoreException
@@ -550,14 +550,14 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkStateListener //
           _zkClient.createPersistent(path, true);
         }
       }
-  
+
       _zkClient.updateDataSerialized(path, new ByteArrayUpdater(updater, _serializer));
     } catch (Exception e)
     {
       LOG.error("Exception in updatePropertyUntilSucceed(" + key + ", " + createIfAbsent + ")", e);
       throw (new PropertyStoreException(e.toString()));
     }
-    
+
     // update cache
     // getProperty(key);
   }
@@ -571,7 +571,7 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkStateListener //
 
   @Override
   public boolean compareAndSet(String key, T expected, T update,
-      Comparator<T> comparator, boolean createIfAbsent) 
+      Comparator<T> comparator, boolean createIfAbsent)
   {
     String path = getAbsolutePath(key);
 
@@ -598,7 +598,7 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkStateListener //
       {
         current = _serializer.deserialize(currentBytes.getBytes());
       }
-      
+
       if (comparator.compare(current, expected) == 0)
       {
         byte[] valueBytes = _serializer.serialize(update);
@@ -653,7 +653,7 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkStateListener //
     ZooKeeper zookeeper = connection.getZookeeper();
     LOG.info("handleNewSession: " + zookeeper.getSessionId());
 
-    synchronized (_callbackMap) 
+    synchronized (_callbackMap)
     {
       for (String path : _callbackMap.keySet())
       {
@@ -664,11 +664,11 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkStateListener //
           _callbackMap.remove(path);
           continue;
         }
-        
+
         for (PropertyChangeListener<T> listener : callbacks.keySet())
         {
           ZkCallbackHandler<T> callback = callbacks.get(listener);
-  
+
           if (callback == null)
           {
             LOG.error("Get a null callback. Remove it. Path: " + path + ", listener: " + listener);
@@ -677,7 +677,7 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkStateListener //
           }
           _zkClient.subscribeDataChanges(path, callback);
           _zkClient.subscribeChildChanges(path, callback);
-  
+
           // do initial invocation
           callback.handleChildChange(path, _zkClient.getChildren(path));
         }

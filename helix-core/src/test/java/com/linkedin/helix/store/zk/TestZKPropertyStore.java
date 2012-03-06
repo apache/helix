@@ -2,249 +2,356 @@ package com.linkedin.helix.store.zk;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 import org.I0Itec.zkclient.DataUpdater;
 import org.apache.log4j.Logger;
-import org.testng.AssertJUnit;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
+import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.ZkUnitTestBase;
 import com.linkedin.helix.manager.zk.ZNRecordSerializer;
 import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.store.PropertyChangeListener;
 import com.linkedin.helix.store.PropertyJsonComparator;
 import com.linkedin.helix.store.PropertyJsonSerializer;
-import com.linkedin.helix.store.PropertyStat;
 import com.linkedin.helix.store.PropertyStoreException;
 
 // TODO need to write performance test for zk-property store
 public class TestZKPropertyStore extends ZkUnitTestBase
 {
   private static final Logger LOG = Logger.getLogger(TestZKPropertyStore.class);
+  final String className = getShortClassName();
 
-  private class TestPropertyChangeListener
-  implements PropertyChangeListener<String>
+  class TestListener implements PropertyChangeListener<ZNRecord>
   {
-    public boolean _propertyChangeReceived = false;
+    Map<String, String> _keySet;
+    public TestListener(Map<String, String> keySet)
+    {
+      _keySet = keySet;
+    }
 
     @Override
     public void onPropertyChange(String key)
     {
-      // TODO Auto-generated method stub
-      LOG.info("property change, " + key);
-      _propertyChangeReceived = true;
+      long now = System.currentTimeMillis();
+      _keySet.put(key, Long.toString(now));
     }
   }
 
-  private class TestUpdater implements DataUpdater<String>
+  private class TestUpdater implements DataUpdater<ZNRecord>
   {
-
     @Override
-    public String update(String currentData)
+    public ZNRecord update(ZNRecord current)
     {
-      return "new " + currentData;
+      char[] data1k = new char[1024];
+
+      for (int i = 0; i < 1024; i++)
+      {
+        data1k[i] = 'e';
+      }
+
+      Map<String, String> map1m = new TreeMap<String, String>();
+      for (int i = 0; i < 1000; i++)
+      {
+        map1m.put("key_" + i, new String(data1k));
+      }
+
+      String nodeId = current.getId();
+      ZNRecord record = new ZNRecord(nodeId);
+      record.setSimpleFields(map1m);
+      return record;
     }
-
   }
-
-	ZkClient _zkClient;
-
-	@BeforeClass
-	public void beforeClass()
-	{
-		_zkClient = new ZkClient(ZK_ADDR);
-		_zkClient.setZkSerializer(new ZNRecordSerializer());
-	}
-
-	@AfterClass
-	public void afterClass()
-	{
-		_zkClient.close();
-	}
-
 
   @Test ()
-  public void testInvocation() throws Exception
+  public void testZKPropertyStore() throws Exception
   {
-  	System.out.println("START TestZKPropertyStore at " + new Date(System.currentTimeMillis()));
-    LOG.info("number of connections is " + ZkClient.getNumberOfConnections());
+  	System.out.println("START " + className + " at " + new Date(System.currentTimeMillis()));
+    // LOG.info("number of connections is " + ZkClient.getNumberOfConnections());
 
-    try
+    // clean up zk
+    final String propertyStoreRoot = "/" + className;
+    if (_gZkClient.exists(propertyStoreRoot))
     {
-      String value = null;
-
-      PropertyJsonSerializer<String> serializer = new PropertyJsonSerializer<String>(String.class);
-
-      final String propertyStoreRoot = "/" + getShortClassName();
-      if (_zkClient.exists(propertyStoreRoot))
-      {
-        _zkClient.deleteRecursive(propertyStoreRoot);
-      }
-
-      ZKPropertyStore<String> zkPropertyStore
-        = new ZKPropertyStore<String>(new ZkClient(ZK_ADDR), serializer, propertyStoreRoot);
-
-      // test remove recursive and get non exist property
-      zkPropertyStore.removeNamespace("");
-      value = zkPropertyStore.getProperty("nonExist");
-      AssertJUnit.assertEquals(value, null);
-
-      // test set/get property
-      zkPropertyStore.setProperty("child1/grandchild1", "grandchild1");
-      zkPropertyStore.setProperty("child1/grandchild2", "grandchild2");
-
-      PropertyStat propertyStat = new PropertyStat();
-      value = zkPropertyStore.getProperty("child1/grandchild1", propertyStat);
-      AssertJUnit.assertEquals(value, "grandchild1");
-
-      // test cache
-      zkPropertyStore.setProperty("child1/grandchild1", "new grandchild1");
-      value = zkPropertyStore.getProperty("child1/grandchild1", propertyStat);
-      AssertJUnit.assertEquals(value, "new grandchild1");
-
-      zkPropertyStore.setProperty("child1/grandchild1", "grandchild1");
-      value = zkPropertyStore.getProperty("child1/grandchild1", propertyStat);
-      AssertJUnit.assertEquals(value, "grandchild1");
-
-
-      // test get property of a non-exist node
-      value = zkPropertyStore.getProperty("nonExist");
-      AssertJUnit.assertNull(value);
-
-      zkPropertyStore.createPropertyNamespace("child3");
-      AssertJUnit.assertTrue(zkPropertyStore.exists("child3"));
-      _zkClient.createPersistent(propertyStoreRoot + "/child3/grandchild31", "grandchild31");
-      value = zkPropertyStore.getProperty("child3/grandchild31");
-      AssertJUnit.assertEquals("grandchild31", value);
-      _zkClient.writeData(propertyStoreRoot + "/child3/grandchild31", "new grandchild31");
-      Thread.sleep(1000);
-      value = zkPropertyStore.getProperty("child3/grandchild31");
-      AssertJUnit.assertEquals("new grandchild31", value);
-      _zkClient.delete(propertyStoreRoot + "/child3/grandchild31");
-      Thread.sleep(1000);
-      value = zkPropertyStore.getProperty("child3/grandchild31");
-      AssertJUnit.assertNull(value);
-
-      String root = zkPropertyStore.getPropertyRootNamespace();
-      AssertJUnit.assertEquals(propertyStoreRoot, root);
-
-      List<String> childs = zkPropertyStore.getPropertyNames("child4");
-      AssertJUnit.assertEquals(0, childs.size());
-
-      boolean exceptionCaught = false;
-      try
-      {
-        zkPropertyStore.setPropertyDelimiter("/");
-      } catch (PropertyStoreException e)
-      {
-        exceptionCaught = true;
-      }
-      AssertJUnit.assertTrue(exceptionCaught);
-      AssertJUnit.assertFalse(zkPropertyStore.canParentStoreData());
-
-
-      // test subscribe property
-      TestPropertyChangeListener listener = new TestPropertyChangeListener();
-      zkPropertyStore.subscribeForPropertyChange("", listener);
-      // Assert.assertEquals(listener._propertyChangeReceived, false);
-
-      listener._propertyChangeReceived = false;
-      zkPropertyStore.setProperty("child2/grandchild3", "grandchild3");
-      Thread.sleep(100);
-      AssertJUnit.assertEquals(listener._propertyChangeReceived, true);
-
-      listener._propertyChangeReceived = false;
-      zkPropertyStore.setProperty("child1/grandchild4", "grandchild4");
-      Thread.sleep(100);
-      AssertJUnit.assertEquals(listener._propertyChangeReceived, true);
-
-      listener._propertyChangeReceived = false;
-      zkPropertyStore.setProperty("child1/grandchild4", "new grandchild4");
-      Thread.sleep(100);
-      AssertJUnit.assertEquals(listener._propertyChangeReceived, true);
-
-      // test remove an existing property
-      // this triggers child change at both child1/grandchild4 and child1
-      listener._propertyChangeReceived = false;
-      zkPropertyStore.removeProperty("child1/grandchild4");
-      Thread.sleep(100);
-      AssertJUnit.assertTrue(listener._propertyChangeReceived);
-
-
-//      // test remove property of a node with children
-//      boolean exceptionThrown = false;
-//      try
-//      {
-//        zkPropertyStore.removeProperty("");
-//      } catch (PropertyStoreException e)
-//      {
-//        // System.err.println(e.getMessage());
-//        exceptionThrown = true;
-//      }
-//      AssertJUnit.assertTrue(exceptionThrown);
-
-      // test update property
-      zkPropertyStore.updatePropertyUntilSucceed("child1/grandchild1", new TestUpdater());
-      value = zkPropertyStore.getProperty("child1/grandchild1");
-      AssertJUnit.assertEquals(value, "new grandchild1");
-
-      // test compare and set
-      boolean isSucceed = zkPropertyStore.compareAndSet("child1/grandchild1",
-                                                        "grandchild1",
-                                                        "new new grandchild1",
-                                                        new PropertyJsonComparator<String>(String.class));
-      AssertJUnit.assertEquals(isSucceed, false);
-
-      value = zkPropertyStore.getProperty("child1/grandchild1");
-      AssertJUnit.assertTrue(value.equals("new grandchild1"));
-
-      isSucceed = zkPropertyStore.compareAndSet("child1/grandchild1",
-                                                "new grandchild1",
-                                                "new new grandchild1",
-                                                new PropertyJsonComparator<String>(String.class));
-      AssertJUnit.assertEquals(isSucceed, true);
-
-      value = zkPropertyStore.getProperty("child1/grandchild1");
-      AssertJUnit.assertTrue(value.equals("new new grandchild1"));
-
-      // test compare and set, create if absent
-      isSucceed = zkPropertyStore.compareAndSet("child2/grandchild5",
-                                                null,
-                                                "grandchild5",
-                                                new PropertyJsonComparator<String>(String.class),
-                                                true);
-      AssertJUnit.assertEquals(isSucceed, true);
-
-      value = zkPropertyStore.getProperty("/child2/grandchild5");
-      AssertJUnit.assertEquals(value, "grandchild5");
-
-      // test unsubscribe
-      // wait for the previous callback to happen
-      // then set _propertyChangeRecieved to false
-      Thread.sleep(100);
-      listener._propertyChangeReceived = false;
-      zkPropertyStore.unsubscribeForPropertyChange("", listener);
-      zkPropertyStore.setProperty("/child1/grandchild1", "new new new grandchild1");
-      Thread.sleep(100);
-      AssertJUnit.assertEquals(listener._propertyChangeReceived, false);
-
-      // test get proper names
-      List<String> children = zkPropertyStore.getPropertyNames("/child2");
-      AssertJUnit.assertTrue(children != null);
-      AssertJUnit.assertEquals(children.size(), 2);
-      AssertJUnit.assertTrue(children.contains("/child2/grandchild3"));
-      AssertJUnit.assertTrue(children.contains("/child2/grandchild5"));
-
-      Thread.sleep(100);
-    }
-    catch(PropertyStoreException e)
-    {
-      e.printStackTrace();
+      _gZkClient.deleteRecursive(propertyStoreRoot);
     }
 
-    System.out.println("END TestZKPropertyStore at " + new Date(System.currentTimeMillis()));
-    LOG.info("number of connections is " + ZkClient.getNumberOfConnections());
+    ZKPropertyStore<ZNRecord> store = new ZKPropertyStore<ZNRecord>(new ZkClient(ZK_ADDR),
+        new PropertyJsonSerializer<ZNRecord>(ZNRecord.class), propertyStoreRoot);
+
+    // zookeeper has a default limit on znode size which is 1M
+    char[] data1k = new char[1024];
+    for (int i = 0; i < 1024; i++)
+    {
+      data1k[i] = 'a';
+    }
+
+    Map<String, String> map1m = new TreeMap<String, String>();
+    for (int i = 0; i < 1000; i++)
+    {
+      map1m.put("key_" + i, new String(data1k));
+    }
+    String node_0 = "node_0";
+    ZNRecord record = new ZNRecord(node_0);
+    record.setSimpleFields(map1m);
+
+    ZNRecordSerializer serializer = new ZNRecordSerializer();
+    int bytesNb = serializer.serialize(record).length;
+    System.out.println("use znode of size " + bytesNb/1024 + "K");
+    Assert.assertTrue(bytesNb < 1024 * 1024);
+
+    // test getPropertyRootNamespace()
+    String root = store.getPropertyRootNamespace();
+    Assert.assertEquals(root, propertyStoreRoot);
+
+    // set 100 nodes and get 100 nodes, each of which are ~1M.
+    // verify get what are set
+    long start = System.currentTimeMillis();
+    set100Nodes(store, 'a', false);
+    long end = System.currentTimeMillis();
+    System.out.println("ZKPropertyStore write throughput is " + bytesNb * 100 / (end-start) + " kilo-bytes per second");
+
+    start = System.currentTimeMillis();
+    for (int i = 0; i < 10; i++)
+    {
+      for (int j = 0; j < 10; j++)
+      {
+        String nodeId = "childNode_" + i + "_" + j;
+        String key = "/node_" + i + "/" + nodeId;
+        record = store.getProperty(key);
+        Assert.assertEquals(record.getId(), nodeId);
+      }
+    }
+    end = System.currentTimeMillis();
+    System.out.println("ZKPropertyStore read throughput is " + bytesNb * 100 / (end-start) + " kilo-bytes per second");
+
+
+    // test subscribe
+    Map<String, String> keyMap = new TreeMap<String, String>();
+    // verify initial callbacks invoked for all 100 nodes
+    PropertyChangeListener<ZNRecord> listener = new TestListener(keyMap);
+    store.subscribeForPropertyChange("", listener);
+    System.out.println("keyMap size: " + keyMap.size());
+    Assert.assertEquals(keyMap.size(), 100);
+    for (int i = 0; i < 10; i++)
+    {
+      for (int j = 0; j < 10; j++)
+      {
+        String nodeId = "childNode_" + i + "_" + j;
+        String key = "/node_" + i + "/" + nodeId;
+        Assert.assertTrue(keyMap.containsKey(key));
+      }
+    }
+
+    // change 100 nodes and verify all notifications have been received
+    keyMap.clear();
+    set100Nodes(store, 'b', true);
+
+    // wait for all callbacks completed
+    for (int i = 0; i < 10; i++)
+    {
+      System.out.println("keySet size: " + keyMap.size());
+      if (keyMap.size() == 100)
+      {
+        break;
+      }
+      Thread.sleep(500);
+    }
+    Assert.assertEquals(keyMap.size(), 100);
+
+    long maxLatency = 0;
+    for (int i = 0; i < 10; i++)
+    {
+      for (int j = 0; j < 10; j++)
+      {
+        String nodeId = "childNode_" + i + "_" + j;
+        String key = "/node_" + i + "/" + nodeId;
+        Assert.assertTrue(keyMap.containsKey(key));
+        record = store.getProperty(key);
+        start = Long.parseLong(record.getSimpleField("SetTimestamp"));
+        end = Long.parseLong(keyMap.get(key));
+        long latency = end - start;
+        if (latency > maxLatency)
+        {
+          maxLatency = latency;
+        }
+      }
+    }
+    System.out.println("ZKPropertyStore callback latency is " + maxLatency + " millisecond");
+
+    // test unsubscribe
+    store.unsubscribeForPropertyChange("", listener);
+    // change all nodes and verify no notification happens
+    keyMap.clear();
+    set100Nodes(store, 'c', false);
+    Thread.sleep(maxLatency);
+    Assert.assertEquals(keyMap.size(), 0);
+
+    // test getPropertyNames
+    List<String> names = store.getPropertyNames("");
+    int cnt = 0;
+    for (String name : names)
+    {
+      int i = cnt / 10;
+      int j = cnt % 10;
+      cnt++;
+      String nodeId = "childNode_" + i + "_" + j;
+      String key = "/node_" + i + "/" + nodeId;
+      Assert.assertEquals(name, key);
+    }
+
+    // test compare and set
+    char[] data1kUpdate = new char[1024];
+    for (int i = 0; i < 1024; i++)
+    {
+      data1k[i] = 'c';
+      data1kUpdate[i] = 'd';
+    }
+
+    Map<String, String> map1mUpdate = new TreeMap<String, String>();
+    for (int i = 0; i < 1000; i++)
+    {
+      map1m.put("key_" + i, new String(data1k));
+      map1mUpdate.put("key_" + i, new String(data1kUpdate));
+    }
+
+    PropertyJsonComparator<ZNRecord> comparator = new PropertyJsonComparator<ZNRecord>(ZNRecord.class);
+    for (int i = 0; i < 10; i++)
+    {
+      for (int j = 0; j < 10; j++)
+      {
+        String nodeId = "childNode_" + i + "_" + j;
+        record = new ZNRecord(nodeId);
+        record.setSimpleFields(map1m);
+        String key = "/node_" + i + "/" + nodeId;
+
+        ZNRecord update = new ZNRecord(nodeId);
+        update.setSimpleFields(map1mUpdate);
+        boolean succeed = store.compareAndSet(key, record, update, comparator);
+        Assert.assertTrue(succeed);
+        record = store.getProperty(key);
+        Assert.assertEquals(record.getSimpleField("key_0").charAt(0), 'd');
+      }
+    }
+
+    // test updateUntilSucceed
+    TestUpdater updater = new TestUpdater();
+    for (int i = 0; i < 10; i++)
+    {
+      for (int j = 0; j < 10; j++)
+      {
+        String nodeId = "childNode_" + i + "_" + j;
+        String key = "/node_" + i + "/" + nodeId;
+
+        store.updatePropertyUntilSucceed(key, updater);
+        record = store.getProperty(key);
+        Assert.assertEquals(record.getSimpleField("key_0").charAt(0), 'e');
+      }
+    }
+
+    // test exist
+    for (int i = 0; i < 10; i++)
+    {
+      for (int j = 0; j < 10; j++)
+      {
+        String nodeId = "childNode_" + i + "_" + j;
+        String key = "/node_" + i + "/" + nodeId;
+
+        boolean exist = store.exists(key);
+        Assert.assertTrue(exist);
+      }
+    }
+
+    // test removeProperty
+    for (int i = 0; i < 10; i++)
+    {
+      int j = 0;
+
+      String nodeId = "childNode_" + i + "_" + j;
+      String key = "/node_" + i + "/" + nodeId;
+
+      store.removeProperty(key);
+      record = store.getProperty(key);
+      Assert.assertNull(record);
+    }
+
+    // test removePropertyNamespace
+    for (int i = 0; i < 10; i++)
+    {
+      String key = "/node_" + i;
+      store.removeNamespace(key);
+    }
+    for (int i = 0; i < 10; i++)
+    {
+      for (int j = 0; j < 10; j++)
+      {
+        String nodeId = "childNode_" + i + "_" + j;
+        String key = "/node_" + i + "/" + nodeId;
+
+        store.removeProperty(key);
+        record = store.getProperty(key);
+        Assert.assertNull(record);
+      }
+    }
+
+    // misc tests
+    // subscribe a znode, remove it, and add it back
+    store.subscribeForPropertyChange("", listener);
+    keyMap.clear();
+    store.createPropertyNamespace("/node_0");
+    Thread.sleep(maxLatency);
+    Assert.assertTrue(keyMap.containsKey("/node_0"));
+    keyMap.clear();
+    store.setProperty("/node_0/childNode_0_0", record);
+    Thread.sleep(maxLatency);
+    Assert.assertTrue(keyMap.containsKey("/node_0/childNode_0_0"));
+    keyMap.clear();
+    store.removeProperty("/node_0/childNode_0_0");
+    Thread.sleep(maxLatency);
+    Assert.assertTrue(keyMap.containsKey("/node_0"));
+    keyMap.clear();
+    store.setProperty("/node_0/childNode_0_0", record);
+    Thread.sleep(maxLatency);
+    Assert.assertTrue(keyMap.containsKey("/node_0/childNode_0_0"));
+
+    System.out.println("END " + className + " at " + new Date(System.currentTimeMillis()));
+    // TODO fix getNbOfConnections()
+    // LOG.info("number of connections is " + ZkClient.getNumberOfConnections());
+  }
+
+  private void set100Nodes(ZKPropertyStore<ZNRecord> store, char c, boolean needTimestamp) throws PropertyStoreException
+  {
+    char[] data1k = new char[1024];
+
+    for (int i = 0; i < 1024; i++)
+    {
+      data1k[i] = c;
+    }
+
+    Map<String, String> map1m = new TreeMap<String, String>();
+    for (int i = 0; i < 1000; i++)
+    {
+      map1m.put("key_" + i, new String(data1k));
+    }
+
+    for (int i = 0; i < 10; i++)
+    {
+      for (int j = 0; j < 10; j++)
+      {
+        String nodeId = "childNode_" + i + "_" + j;
+        ZNRecord record = new ZNRecord(nodeId);
+        record.setSimpleFields(map1m);
+        if (needTimestamp)
+        {
+          long now = System.currentTimeMillis();
+          record.setSimpleField("SetTimestamp", Long.toString(now));
+        }
+        String key = "/node_" + i + "/" + nodeId;
+        store.setProperty(key, record);
+      }
+    }
   }
 }

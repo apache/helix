@@ -16,10 +16,12 @@ import javax.management.ObjectName;
 import org.apache.log4j.Logger;
 
 import com.linkedin.helix.alerts.AlertValueAndStatus;
+import com.linkedin.helix.alerts.Tuple;
 
 public class ClusterAlertMBeanCollection
 {
   public static String DOMAIN_ALERT = "HelixAlerts";
+  public static String ALERT_SUMMARY = "AlertSummary";
   
   private static final Logger _logger = Logger.getLogger(ClusterAlertMBeanCollection.class);
   ConcurrentHashMap<String, ClusterAlertItem> _alertBeans 
@@ -80,6 +82,40 @@ public class ClusterAlertMBeanCollection
       {
         _alertBeans.get(beanName).setValueMap(alertResultMap.get(alertName));
       }
+    }
+    refreshSummayAlert();
+  }
+  /**
+   *  The summary alert is a combination of all alerts, if it is on, something is wrong on this 
+   *  cluster. 
+   */
+  void refreshSummayAlert()
+  {
+    boolean fired = false;
+    for(String key : _alertBeans.keySet())
+    {
+      if(!key.equals(ALERT_SUMMARY))
+      {
+        ClusterAlertItem item = _alertBeans.get(key);
+        fired = (item.getAlertFired() == 1) | fired;
+        if(fired)
+        {
+          break;
+        }
+      }
+    }
+    Tuple<String> t = new Tuple<String>();
+    t.add("0");
+    AlertValueAndStatus summaryStatus = new AlertValueAndStatus(t, fired);
+    if(!_alertBeans.containsKey(ALERT_SUMMARY))
+    {
+      ClusterAlertItem item = new ClusterAlertItem(ALERT_SUMMARY, summaryStatus);
+      onNewAlertMbeanAdded(item);
+      _alertBeans.put(ALERT_SUMMARY, item);
+    }
+    else
+    {
+      _alertBeans.get(ALERT_SUMMARY).setValueMap(summaryStatus);
     }
   }
   

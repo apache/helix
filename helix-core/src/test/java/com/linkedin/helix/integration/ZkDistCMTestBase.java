@@ -51,8 +51,7 @@ public class ZkDistCMTestBase extends ZkIntegrationTestBase
   @BeforeClass
   public void beforeClass() throws Exception
   {
-    // logger.info("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
-    System.out.println("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
+    System.out.println("START " + CLASS_NAME + ".b4Class() at " + new Date(System.currentTimeMillis()));
     _zkClient = new ZkClient(ZK_ADDR);
     _zkClient.setZkSerializer(new ZNRecordSerializer());
 

@@ -172,7 +172,8 @@ public class GenericHelixController implements
 
     if (!manager.isLeader())
     {
-      logger.error("Cluster manager: " + manager.getInstanceName() + " is not leader");
+      logger.error("Cluster manager: " + manager.getInstanceName()
+                   + " is not leader. Pipeline will not be invoked");
       return;
     }
 

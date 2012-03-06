@@ -2,15 +2,15 @@ package com.linkedin.helix.participant;
 
 import org.apache.log4j.Logger;
 
+import com.linkedin.helix.ControllerChangeListener;
 import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.HelixManagerFactory;
-import com.linkedin.helix.ControllerChangeListener;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.PropertyType;
-import com.linkedin.helix.controller.HelixControllerMain;
 import com.linkedin.helix.controller.GenericHelixController;
+import com.linkedin.helix.controller.HelixControllerMain;
 import com.linkedin.helix.model.LeaderHistory;
 import com.linkedin.helix.model.LiveInstance;
 
@@ -29,7 +29,7 @@ public class DistClusterControllerElection implements ControllerChangeListener
   /**
    * may be accessed by multiple threads: zk-client thread and
    * ZkHelixManager.disconnect()->reset()
-   *TODO: Refactor acessing HelixMaangerMain class statically
+   *TODO: Refactor accessing HelixMaangerMain class statically
    */
   @Override
   public synchronized void onControllerChange(NotificationContext changeContext)
@@ -105,6 +105,7 @@ public class DistClusterControllerElection implements ControllerChangeListener
     try
     {
       leader.setLeader(manager.getInstanceName());
+      // TODO: this session id is not the leader's session id in distributed mode
       leader.setSessionId(manager.getSessionId());
       leader.setHelixVersion(manager.getVersion());
       boolean success = dataAccessor.setProperty(PropertyType.LEADER, leader);

@@ -131,7 +131,7 @@ public class HelixControllerMain
     } catch (ZkInterruptedException e)
     {
       logger
-          .warn("zk connection is interrupted during HelixManagerMain.addListenersToController(), exception"
+          .warn("zk connection is interrupted during HelixManagerMain.addListenersToController(). "
               + e);
     } catch (Exception e)
     {

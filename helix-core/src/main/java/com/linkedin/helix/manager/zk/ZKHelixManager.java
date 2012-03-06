@@ -647,6 +647,11 @@ public class ZKHelixManager implements HelixManager
   @Override
   public boolean isLeader()
   {
+    if (!isConnected())
+    {
+      return false;
+    }
+
     if (_instanceType != InstanceType.CONTROLLER)
     {
       return false;
@@ -659,6 +664,9 @@ public class ZKHelixManager implements HelixManager
     } else
     {
       String leaderName = leader.getLeader();
+      // TODO need check sessionId also, but in distributed mode, leader's sessionId is not equal to
+      // the leader znode's sessionId field which is the sessionId of the controller_participant that
+      // successfully creates the leader node
       if (leaderName == null || !leaderName.equals(_instanceName))
       {
         return false;
@@ -716,7 +724,9 @@ public class ZKHelixManager implements HelixManager
     if (_propertyStore == null)
     {
       String path = PropertyPathConfig.getPath(PropertyType.PROPERTYSTORE, _clusterName);
-      _propertyStore = new ZKPropertyStore<ZNRecord>(_zkClient, new PropertyJsonSerializer<ZNRecord>(ZNRecord.class), path);
+      // property store uses a different serializer
+      _propertyStore = new ZKPropertyStore<ZNRecord>(new ZkClient(_zkClient.getServers()),
+                                                     new PropertyJsonSerializer<ZNRecord>(ZNRecord.class), path);
     }
     return _propertyStore;
   }

@@ -9,18 +9,18 @@ import java.util.Set;
 import org.I0Itec.zkclient.exception.ZkInterruptedException;
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.ConfigChangeListener;
 import com.linkedin.helix.ControllerChangeListener;
 import com.linkedin.helix.CurrentStateChangeListener;
+import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.ExternalViewChangeListener;
 import com.linkedin.helix.HealthStateChangeListener;
+import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.IdealStateChangeListener;
 import com.linkedin.helix.LiveInstanceChangeListener;
 import com.linkedin.helix.MessageListener;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.PropertyType;
-import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.controller.pipeline.Pipeline;
 import com.linkedin.helix.controller.pipeline.PipelineRegistry;
 import com.linkedin.helix.controller.stages.BestPossibleStateCalcStage;
@@ -147,8 +147,8 @@ public class GenericHelixController implements
    	  StatsAggregationStage statsStage = new StatsAggregationStage();
    	  healthStatsAggregationPipeline.addStage(statsStage);
    	  registry.register("healthChange", dataRefresh, healthStatsAggregationPipeline);
-      
-      
+
+
       return registry;
     }
   }
@@ -163,6 +163,19 @@ public class GenericHelixController implements
 
   protected void handleEvent(ClusterEvent event)
   {
+    HelixManager manager = event.getAttribute("helixmanager");
+    if (manager == null)
+    {
+      logger.error("No cluster manager in event:" + event.getName());
+      return;
+    }
+
+    if (!manager.isLeader())
+    {
+      logger.error("Cluster manager: " + manager.getInstanceName() + " is not leader");
+      return;
+    }
+
     if (_paused)
     {
       logger.info("Cluster is paused. Ignoring the event:" + event.getName());
@@ -240,7 +253,7 @@ public class GenericHelixController implements
 		handleEvent(event);
 		logger.info("END: GenericClusterController.onHealthChange()");
 	}
-  
+
   @Override
   public void onMessage(String instanceName,
                         List<Message> messages,

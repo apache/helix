@@ -33,7 +33,7 @@ public class TestMessageThrottleStage extends ZkUnitTestBase
       Logger.getLogger(TestMessageThrottleStage.class.getName());
   final String _className = getShortClassName();
 
-  // @Test
+  @Test
   public void testMsgThrottleBasic() throws Exception
   {
     String clusterName = "CLUSTER_" + _className + "_basic";

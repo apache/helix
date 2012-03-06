@@ -272,6 +272,13 @@ public class Mocks
       return null;
     }
 
+    @Override
+    public boolean isLeader()
+    {
+      // TODO Auto-generated method stub
+      return false;
+    }
+
   }
 
   public static class MockAccessor implements DataAccessor

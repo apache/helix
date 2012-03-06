@@ -4,8 +4,8 @@ import java.util.List;
 
 import com.linkedin.helix.controller.GenericHelixController;
 import com.linkedin.helix.healthcheck.ParticipantHealthReportCollector;
-import com.linkedin.helix.participant.StateMachineEngine;
 import com.linkedin.helix.participant.HelixStateMachineEngine;
+import com.linkedin.helix.participant.StateMachineEngine;
 import com.linkedin.helix.spectator.RoutingTableProvider;
 import com.linkedin.helix.store.PropertyStore;
 
@@ -102,14 +102,14 @@ public interface HelixManager
       String instanceName, String sessionId) throws Exception;
 
   /**
-   * @see HealthStateChangeListener#onHealthChange(String, List, 
+   * @see HealthStateChangeListener#onHealthChange(String, List,
    * 		NotificationContext)
    * @param listener
    * @param instanceName
    */
   void addHealthStateChangeListener(HealthStateChangeListener listener,
   		  String instanceName) throws Exception;
-  
+
   /**
    * @see ExternalViewChangeListener#onExternalViewChange(List,
    *      NotificationContext)
@@ -127,10 +127,10 @@ public interface HelixManager
    * @return
    */
   boolean removeListener(Object listener);
-  
+
 //  Generic interface to add a listener
 //  void addListener(PropertyType type, Object listener, String... keys);
-  
+
   /**
    * Return the client to perform read/write operations on the cluster data
    * store
@@ -209,6 +209,16 @@ public interface HelixManager
    * @return the cluster manager version
    */
   String getVersion();
-  
+
+  /**
+   *
+   * @return the state machine engine
+   */
   StateMachineEngine getStateMachineEngine();
+
+  /**
+   *
+   * @return true if this is a controller and a leader of the cluster
+   */
+  boolean isLeader();
 }

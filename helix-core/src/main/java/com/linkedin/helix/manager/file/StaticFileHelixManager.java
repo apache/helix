@@ -490,13 +490,18 @@ public class StaticFileHelixManager implements HelixManager
   @Override
   public String getVersion()
   {
-    throw new UnsupportedOperationException("getVersion() not implemented in FileClusterManager");
+    throw new UnsupportedOperationException("getVersion() not implemented in StaticFileClusterManager");
   }
 
   @Override
   public StateMachineEngine getStateMachineEngine()
   {
-    // TODO Auto-generated method stub
-    return null;
+    throw new UnsupportedOperationException("getStateMachineEngine() not implemented in StaticFileClusterManager");
+  }
+
+  @Override
+  public boolean isLeader()
+  {
+    throw new UnsupportedOperationException("isLeader() not implemented in StaticFileClusterManager");
   }
 }

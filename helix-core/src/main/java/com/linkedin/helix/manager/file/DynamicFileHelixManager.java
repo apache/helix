@@ -325,11 +325,11 @@ public class DynamicFileHelixManager implements HelixManager
   public PropertyStore<ZNRecord> getPropertyStore()
   {
     checkConnected();
-    
+
     if (_propertyStore == null)
     {
       String path = PropertyPathConfig.getPath(PropertyType.PROPERTYSTORE, _clusterName);
-    
+
       String propertyStoreRoot = _store.getPropertyRootNamespace() + path;
       _propertyStore =
           new FilePropertyStore<ZNRecord>(new PropertyJsonSerializer<ZNRecord>(ZNRecord.class),
@@ -376,6 +376,17 @@ public class DynamicFileHelixManager implements HelixManager
   public StateMachineEngine getStateMachineEngine()
   {
     return _stateMachEngine;
+  }
+
+  @Override
+  public boolean isLeader()
+  {
+    if (_instanceType != InstanceType.CONTROLLER)
+    {
+      return false;
+    }
+
+    return true;
   }
 
 }

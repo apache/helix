@@ -324,13 +324,7 @@ public class ZkUnitTestBase
     StageContext context = new StageContext();
     stage.init(context);
     stage.preProcess();
-//    try
-//    {
-      stage.process(event);
-//    } catch (Exception e)
-//    {
-//      e.printStackTrace();
-//    }
+    stage.process(event);
     stage.postProcess();
   }
 

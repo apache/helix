@@ -644,8 +644,14 @@ public class ZKHelixManager implements HelixManager
     }
   }
 
-  private boolean isLeader()
+  @Override
+  public boolean isLeader()
   {
+    if (_instanceType != InstanceType.CONTROLLER)
+    {
+      return false;
+    }
+
     LiveInstance leader = _accessor.getProperty(LiveInstance.class, PropertyType.LEADER);
     if (leader == null)
     {

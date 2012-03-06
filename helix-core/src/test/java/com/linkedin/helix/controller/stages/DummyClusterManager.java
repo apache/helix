@@ -198,4 +198,11 @@ public class DummyClusterManager implements HelixManager
     // TODO Auto-generated method stub
     return null;
   }
+
+  @Override
+  public boolean isLeader()
+  {
+    // TODO Auto-generated method stub
+    return false;
+  }
 }

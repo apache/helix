@@ -31,7 +31,7 @@ public class TestExpandAlert extends ZkIntegrationTestBase
 {
   ZkClient _zkClient;
   protected ClusterSetup _setupTool = null;
-  protected final String _alertStr = "EXP(accumulate()(localhost_*.RestQueryStats@DBName=TestDB0.latency))CMP(GREATER)CON(16)";
+  protected final String _alertStr = "EXP(decay(1.0)(localhost_*.RestQueryStats@DBName=TestDB0.latency))CMP(GREATER)CON(16)";
   protected final String _alertStatusStr = _alertStr+" : (12918)";
   protected final String _dbName = "TestDB0";
 

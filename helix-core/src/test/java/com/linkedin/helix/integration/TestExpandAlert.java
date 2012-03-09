@@ -176,8 +176,8 @@ public class TestExpandAlert extends ZkIntegrationTestBase
       Map<String,String> alertStatusMap = recMap.get(_alertStatusStr);
       String val = alertStatusMap.get(AlertValueAndStatus.VALUE_NAME);
       boolean fired = Boolean.parseBoolean(alertStatusMap.get(AlertValueAndStatus.FIRED_NAME));
-      Assert.assertEquals(Double.parseDouble(val), Double.parseDouble("30.0"));
-      Assert.assertTrue(fired);
+      Assert.assertEquals(Double.parseDouble(val), Double.parseDouble("15.0"));
+      Assert.assertFalse(fired);
     //}
 
     System.out.println("END TestExpandAlert at " + new Date(System.currentTimeMillis()));

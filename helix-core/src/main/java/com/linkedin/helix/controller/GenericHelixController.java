@@ -138,7 +138,10 @@ public class GenericHelixController implements
                         rebalancePipeline,
                         externalViewPipeline);
 
-      registry.register("messageChange", dataRefresh);
+      registry.register("messageChange",
+                        dataRefresh,
+                        rebalancePipeline,
+                        externalViewPipeline);
       registry.register("externalView", dataRefresh);
       registry.register("resume", dataRefresh, rebalancePipeline, externalViewPipeline);
 

@@ -114,7 +114,7 @@ public class TestSimpleAlert extends ZkIntegrationTestBase
                             "localhost",  // participant name prefix
                             "TestDB",     // resource  name prefix
                             1,            // resources
-                            10,           // partitions per resource 
+                            10,           // partitions per resource
                             5,            // number of nodes //change back to 5!!!
                             3,            // replicas //change back to 3!!!
                             "MasterSlave",
@@ -149,7 +149,7 @@ public class TestSimpleAlert extends ZkIntegrationTestBase
 
   //sleep for a few seconds to give stats stage time to trigger
     Thread.sleep(5000);
-    
+
     // other verifications go here
     ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
     //for (int i = 0; i < 1; i++) //change 1 back to 5
@@ -162,7 +162,7 @@ public class TestSimpleAlert extends ZkIntegrationTestBase
       Map<String,String> alertStatusMap = recMap.get(_alertStatusStr);
       String val = alertStatusMap.get(AlertValueAndStatus.VALUE_NAME);
       boolean fired = Boolean.parseBoolean(alertStatusMap.get(AlertValueAndStatus.FIRED_NAME));
-      Assert.assertEquals(Double.parseDouble(val), Double.parseDouble("15.0"));
+      Assert.assertEquals(Double.parseDouble(val), Double.parseDouble("30.0"));
       Assert.assertTrue(fired);
     //}
 

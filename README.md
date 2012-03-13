@@ -81,8 +81,8 @@ Helix uses Zookeeper for maintaining the cluster state and change notification.
 
 ----------------
 
-TRY IT
------------
+Quickstart
+---------------
 
 Install/Start zookeeper
 -----------------------
@@ -118,21 +118,29 @@ In the following section we will see how one can set up a mock cluster with
 * Each partition will have 1 master, 2 slaves
 * zookeeper running locally at localhost:2199
 
-    #start zookeeper locally at port 2199
+### Steps ###
+    
+#### start zookeeper locally at port 2199 ####
+
     ./start-standalone-zookeeper 2199 &
 
-    #create the cluster mycluster
+#### create the cluster mycluster #### 
+
     ./helix-admin --zkSvr localhost:2199 --addCluster mycluster 
 
-    #Create a database
-    ./helix-admin --zkSvr localhost:2199  --addResourceGroup mycluster myDB 6 MasterSlave
-    #Add nodes to the cluster, in this case we add three nodes, hostname:port is host and port on which the service will start
+#### Create a database #### 
+    
+    ./helix-admin --zkSvr localhost:2199  --addResource mycluster myDB 6 MasterSlave
+   
+#### Add nodes to the cluster, in this case we add three nodes, hostname:port is host and port on which the service will start #### 
+    
     ./helix-admin --zkSvr localhost:2199  --addNode mycluster localhost:12913
     ./helix-admin --zkSvr localhost:2199  --addNode mycluster localhost:12914
     ./helix-admin --zkSvr localhost:2199  --addNode mycluster localhost:12915
 
-    # After adding nodes assign partitions to nodes.
-    # helix-admin --rebalance <clustername> <resourceName> <replication factor>
+#### After adding nodes assign partitions to nodes. #### 
+    
+     helix-admin --rebalance <clustername> <resourceName> <replication factor>
     ./helix-admin --zkSvr localhost:2199 --rebalance mycluster myDB 3
 
 Start Helix Controller
@@ -160,39 +168,40 @@ Inspect Cluster Data
 
 We can see the cluster state on zookeeper and know the partition assignment and current state of each parition.
 
-Command line 
-   # List existing clusters
-   ./helix-admin --zkSvr localhost:2199 --listClusters        
+Command line tool
+#### List existing clusters
+    ./helix-admin --zkSvr localhost:2199 --listClusters        
                                        
-   # Query info of a cluster
-   ./helix-admin --zkSvr localhost:2199 --listClusterInfo <clusterName> 
+####  Query info of a cluster
 
-   # Query info of a Instance in a cluster
-   ./helix-admin --zkSvr localhost:2199 --listInstanceInfo <clusterName InstanceName>    
+    ./helix-admin --zkSvr localhost:2199 --listClusterInfo <clusterName> 
 
-   # List Instances in a cluster
-   ./helix-admin --zkSvr localhost:2199 --listInstances <clusterName>
+#### Query info of a Instance in a cluster
+    ./helix-admin --zkSvr localhost:2199 --listInstanceInfo <clusterName InstanceName>    
 
-   # Query info of a resourceGroup
-   ./helix-admin --zkSvr localhost:2199 --listResourceGroupInfo <clusterName resourceGroupName> 
+####  List Instances in a cluster
+    ./helix-admin --zkSvr localhost:2199 --listInstances <clusterName>
 
-   # List resourceGroups hosted in a cluster
-   ./helix-admin --zkSvr localhost:2199 --listResourceGroups <clusterName>
+####  Query info of a resourceGroup
+    ./helix-admin --zkSvr localhost:2199 --listResourceInfo <clusterName resourceName> 
 
-   # Query info about a resource key   
-   ./helix-admin --zkSvr localhost:2199 --listResourceInfo <clusterName reourceKeyName> 
+####  List resourceGroups hosted in a cluster
+    ./helix-admin --zkSvr localhost:2199 --listResources <clusterName>
+
+#### Query info about a partition   
+    ./helix-admin --zkSvr localhost:2199 --listResourceInfo <clusterName partition> 
    
-   # Query info about a state model in a cluster
-   ./helix-admin --zkSvr localhost:2199 --listStateModel <clusterName stateModelName>
+#### Query info about a state model in a cluster
+    ./helix-admin --zkSvr localhost:2199 --listStateModel <clusterName stateModelName>
    
-   # List all state models in the cluster
-   ./helix-admin --zkSvr localhost:2199 --listStateModels <clusterName> 
+#### List all state models in the cluster
+    ./helix-admin --zkSvr localhost:2199 --listStateModels <clusterName> 
 
-ZOOINSPECTOR
+#### ZOOINSPECTOR
 
-* Use ZooInspector that comes with zookeeper to inspect the data
-* To start zooinspector
-   java -cp zookeeper-3.3.3-ZooInspector.jar:lib/jtoaster-1.0.4.jar:../../lib/log4j-1.2.15.jar:../../zookeeper-3.3.3.jar org.apache.zookeeper.inspector.ZooInspector
-   Click and connect and provide the zookeeper address to inspect. If zookeeper is running locally use localhost:2199
-
+Use ZooInspector that comes with zookeeper to browse the data. This is a java applet ( make sure you have X windows)
+To start zooinspector run the following command from <zk_install_directory>/contrib/ZooInspector/bin
+      
+    java -cp zookeeper-3.3.3-ZooInspector.jar:lib/jtoaster-1.0.4.jar:../../lib/log4j-1.2.15.jar:../../zookeeper-3.3.3.jar org.apache.zookeeper.inspector.ZooInspector
+   
 

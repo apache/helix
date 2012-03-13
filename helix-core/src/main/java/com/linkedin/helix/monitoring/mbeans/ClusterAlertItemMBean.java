@@ -7,4 +7,6 @@ public interface ClusterAlertItemMBean
   double getAlertValue();
   
   int getAlertFired();
+
+  String getAdditionalInfo();
 }

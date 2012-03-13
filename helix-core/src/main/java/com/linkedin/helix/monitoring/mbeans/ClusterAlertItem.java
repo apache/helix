@@ -8,6 +8,7 @@ public class ClusterAlertItem implements ClusterAlertItemMBean
   String _alertItemName;
   double  _alertValue;
   int _alertFired;
+  String _additionalInfo = "";
   AlertValueAndStatus _valueAndStatus;
   
   public ClusterAlertItem(String name, AlertValueAndStatus valueAndStatus)
@@ -50,5 +51,16 @@ public class ClusterAlertItem implements ClusterAlertItemMBean
   public int getAlertFired()
   {
     return _alertFired;
+  }
+  
+  public void setAdditionalInfo(String additionalInfo)
+  {
+    _additionalInfo = additionalInfo;
+  }
+  
+  @Override
+  public String getAdditionalInfo()
+  {
+    return _additionalInfo;
   }
 }

@@ -25,6 +25,7 @@ import com.linkedin.helix.webapp.RestAdminApplication;
 public class ClustersResource extends Resource 
 {
   public static final String _clusterName = "clusterName";
+  public static final String _grandCluster = "grandCluster";
   
   public ClustersResource(Context context,
             Request request,
@@ -94,8 +95,20 @@ public class ClustersResource extends Resource
       {
         throw new HelixException("Json parameters does not contain '"+ _clusterName + "'");
       }
+      String grandCluster = null;
+      if(jsonParameters.containsKey(_grandCluster))
+      {
+        grandCluster = jsonParameters.get(_grandCluster);
+      }
       ClusterSetup setupTool = new ClusterSetup(zkServer);
-      setupTool.addCluster(jsonParameters.get(_clusterName), false);
+      if(grandCluster == null)
+      {
+        setupTool.addCluster(jsonParameters.get(_clusterName), false);
+      }
+      else
+      {
+        setupTool.addCluster(jsonParameters.get(_clusterName), false, grandCluster);
+      }
       // add cluster
       getResponse().setEntity(getClustersRepresentation());
       getResponse().setStatus(Status.SUCCESS_OK);

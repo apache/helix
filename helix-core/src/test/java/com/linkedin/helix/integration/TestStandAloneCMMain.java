@@ -3,11 +3,13 @@ package com.linkedin.helix.integration;
 import java.util.Date;
 
 import org.apache.log4j.Logger;
+import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.TestHelper.StartCMResult;
 import com.linkedin.helix.controller.HelixControllerMain;
+import com.linkedin.helix.tools.ClusterStateVerifier;
 
 public class TestStandAloneCMMain extends ZkStandAloneCMTestBase
 {
@@ -30,7 +32,9 @@ public class TestStandAloneCMMain extends ZkStandAloneCMTestBase
     }
 
     stopCurrentLeader(_zkClient, CLUSTER_NAME, _startCMResultMap);
-    verifyCluster();
+    boolean result = ClusterStateVerifier.verify(
+        new ClusterStateVerifier.BestPossAndExtViewVerifier(ZK_ADDR, CLUSTER_NAME));
+    Assert.assertTrue(result);
 
     logger.info("STOP testStandAloneCMMain() at " + new Date(System.currentTimeMillis()));
   }

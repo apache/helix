@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 
 import javax.management.AttributeNotFoundException;
@@ -44,6 +43,7 @@ import com.linkedin.helix.model.Message;
 import com.linkedin.helix.monitoring.mbeans.ClusterAlertMBeanCollection;
 import com.linkedin.helix.monitoring.mbeans.ClusterMBeanObserver;
 import com.linkedin.helix.tools.ClusterSetup;
+import com.linkedin.helix.tools.ClusterStateVerifier;
 
 public class TestWildcardAlert extends ZkIntegrationTestBase
 {
@@ -228,14 +228,9 @@ public class TestWildcardAlert extends ZkIntegrationTestBase
     TestClusterMBeanObserver jmxMBeanObserver = new TestClusterMBeanObserver(
         ClusterAlertMBeanCollection.DOMAIN_ALERT);
 
-    TestHelper.verifyWithTimeout("verifyBestPossAndExtViewExtended",
-                                 1500000,  // timeout in millisecond //was 15000
-                                 ZK_ADDR,
-                                 TestHelper.<String>setOf(clusterName),
-                                 TestHelper.<String>setOf(_dbName),
-                                 null,
-                                 null,
-                                 null);// other verifications go here
+    boolean result = ClusterStateVerifier.verify(
+        new ClusterStateVerifier.BestPossAndExtViewVerifier(ZK_ADDR, clusterName));
+    Assert.assertTrue(result);
     
     //sleep for a few seconds to give stats stage time to trigger and for bean to trigger
     Thread.sleep(5000);

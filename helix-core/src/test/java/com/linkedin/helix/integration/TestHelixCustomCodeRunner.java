@@ -5,8 +5,8 @@ import java.util.Date;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import com.linkedin.helix.HelixConstants.ChangeType;
 import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixConstants.ChangeType;
 import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.NotificationContext.Type;
@@ -19,8 +19,9 @@ import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.mock.storage.MockJobIntf;
 import com.linkedin.helix.mock.storage.MockParticipant;
 import com.linkedin.helix.model.LiveInstance;
-import com.linkedin.helix.participant.HelixCustomCodeRunner;
 import com.linkedin.helix.participant.CustomCodeCallbackHandler;
+import com.linkedin.helix.participant.HelixCustomCodeRunner;
+import com.linkedin.helix.tools.ClusterStateVerifier;
 
 public class TestHelixCustomCodeRunner extends ZkIntegrationTestBase
 {
@@ -110,16 +111,11 @@ public class TestHelixCustomCodeRunner extends ZkIntegrationTestBase
                         null, new MockJob());
       new Thread(partics[i]).start();
     }
-
-    TestHelper.verifyWithTimeout("verifyBestPossAndExtViewExtended",
-                                 30 * 1000,
-                                 ZK_ADDR,
-                                 TestHelper.<String>setOf(_clusterName),
-                                 TestHelper.<String>setOf("TestDB0", "PARTICIPANT_LEADER_TestParticLeader"),
-                                 null,
-                                 null,
-                                 null);
-
+    
+    boolean result = ClusterStateVerifier.verify(
+        new ClusterStateVerifier.BestPossAndExtViewVerifier(ZK_ADDR, _clusterName));
+    Assert.assertTrue(result);
+    
     Thread.sleep(1000);  // wait for the INIT type callback to finish
     Assert.assertTrue(_callback._isCallbackInvoked);
     _callback._isCallbackInvoked = false;

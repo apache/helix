@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import com.linkedin.helix.TestHelper;
@@ -12,6 +13,7 @@ import com.linkedin.helix.controller.HelixControllerMain;
 import com.linkedin.helix.manager.zk.ZKHelixAdmin;
 import com.linkedin.helix.mock.storage.MockParticipant;
 import com.linkedin.helix.mock.storage.MockParticipant.ErrTransition;
+import com.linkedin.helix.tools.ClusterStateVerifier;
 
 public class TestErrorPartition extends ZkIntegrationTestBase
 {
@@ -48,15 +50,19 @@ public class TestErrorPartition extends ZkIntegrationTestBase
       new Thread(participants[i]).start();
     }
 
+    Map<String, Map<String, String>> errStates = new HashMap<String, Map<String, String>>();
+    errStates.put("TestDB0", new HashMap<String, String>());
+    errStates.get("TestDB0").put("TestDB0_0", "localhost_12918");
+    boolean result = ClusterStateVerifier.verify(
+        new ClusterStateVerifier.BestPossAndExtViewVerifier(ZK_ADDR, clusterName, errStates));
+    Assert.assertTrue(result);
+
+    
     Map<String, Set<String>> errorStateMap = new HashMap<String, Set<String>>() {
       {
         put("TestDB0_0", TestHelper.setOf("localhost_12918"));
       }
     };
-
-    TestHelper.verifyWithTimeout("verifyBestPossAndExtViewExtended", ZK_ADDR,
-        TestHelper.<String> setOf(clusterName), TestHelper.<String> setOf("TestDB0"), null, null,
-        errorStateMap);
 
     // verify "TestDB0_0", "localhost_12918" is in ERROR state
     TestHelper.verifyState(clusterName, ZK_ADDR, errorStateMap, "ERROR");
@@ -65,24 +71,18 @@ public class TestErrorPartition extends ZkIntegrationTestBase
     ZKHelixAdmin tool = new ZKHelixAdmin(_gZkClient);
     tool.enablePartition(clusterName, "localhost_12918", "TestDB0", "TestDB0_0", false);
 
-    // Map<String, Set<String>> disabledPartMap = new HashMap<String,
-    // Set<String>>()
-    // {
-    // {
-    // put("TestDB0_0", TestHelper.setOf("localhost_12918"));
-    // }
-    // };
+    result = ClusterStateVerifier.verify(
+        new ClusterStateVerifier.BestPossAndExtViewVerifier(ZK_ADDR, clusterName, errStates));
+    Assert.assertTrue(result);
 
-    TestHelper.verifyWithTimeout("verifyBestPossAndExtViewExtended", ZK_ADDR,
-        TestHelper.<String> setOf(clusterName), TestHelper.<String> setOf("TestDB0"), null, null,
-        errorStateMap);
     TestHelper.verifyState(clusterName, ZK_ADDR, errorStateMap, "ERROR");
 
     // disable a node with error state
     tool.enableInstance(clusterName, "localhost_12918", false);
-    TestHelper.verifyWithTimeout("verifyBestPossAndExtViewExtended", ZK_ADDR,
-        TestHelper.<String> setOf(clusterName), TestHelper.<String> setOf("TestDB0"),
-        TestHelper.<String> setOf("localhost_12918"), null, errorStateMap);
+
+    result = ClusterStateVerifier.verify(
+        new ClusterStateVerifier.BestPossAndExtViewVerifier(ZK_ADDR, clusterName, errStates));
+    Assert.assertTrue(result);
 
     System.out.println("END testErrorPartition() at " + new Date(System.currentTimeMillis()));
   }

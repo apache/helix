@@ -1,8 +1,10 @@
 package com.linkedin.helix.integration;
 
+import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import com.linkedin.helix.TestHelper;
+import com.linkedin.helix.tools.ClusterStateVerifier;
 
 public class TestDropResource extends ZkStandAloneCMTestBase
 {
@@ -12,12 +14,10 @@ public class TestDropResource extends ZkStandAloneCMTestBase
     // add a resource to be dropped
     _setupTool.addResourceToCluster(CLUSTER_NAME, "MyDB", 6, STATE_MODEL);
     _setupTool.rebalanceStorageCluster(CLUSTER_NAME, "MyDB", 3);
-    verifyCluster();
-    TestHelper.verifyWithTimeout("verifyBestPossAndExtView",
-                                 ZK_ADDR,
-                                 TestHelper.<String>setOf(CLUSTER_NAME),
-                                 TestHelper.<String>setOf("MyDB"));
 
+    boolean result = ClusterStateVerifier.verify(
+        new ClusterStateVerifier.BestPossAndExtViewVerifier(ZK_ADDR, CLUSTER_NAME));
+    Assert.assertTrue(result);
 
     _setupTool.dropResourceFromCluster(CLUSTER_NAME, "MyDB");
 

@@ -6,10 +6,12 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.log4j.Logger;
+import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.manager.zk.ZKHelixAdmin;
+import com.linkedin.helix.tools.ClusterStateVerifier;
 
 public class TestDisablePartition extends ZkStandAloneCMTestBase
 {
@@ -29,17 +31,19 @@ public class TestDisablePartition extends ZkStandAloneCMTestBase
         put("TestDB_0", TestHelper.setOf("localhost_12919"));
       }
     };
-    TestHelper.verifyWithTimeout("verifyBestPossAndExtViewExtended",
-                                 ZK_ADDR,
-                                 TestHelper.<String>setOf(CLUSTER_NAME),
-                                 TestHelper.<String>setOf("TestDB"),
-                                 null,
-                                 disabledPartMap,
-                                 null);
+
+    boolean result = ClusterStateVerifier.verify(
+        new ClusterStateVerifier.BestPossAndExtViewVerifier(ZK_ADDR, CLUSTER_NAME));
+    Assert.assertTrue(result);
+
     TestHelper.verifyState(CLUSTER_NAME, ZK_ADDR, disabledPartMap, "OFFLINE");
 
     tool.enablePartition(CLUSTER_NAME, "localhost_12919", "TestDB", "TestDB_0", true);
-    verifyCluster();
+    
+    result = ClusterStateVerifier.verify(
+        new ClusterStateVerifier.BestPossAndExtViewVerifier(ZK_ADDR, CLUSTER_NAME));
+    Assert.assertTrue(result);
+
     LOG.info("STOP testDisablePartition() at " + new Date(System.currentTimeMillis()));
 
   }

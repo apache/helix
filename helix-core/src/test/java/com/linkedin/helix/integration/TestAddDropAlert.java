@@ -25,6 +25,7 @@ import com.linkedin.helix.mock.storage.MockParticipant;
 import com.linkedin.helix.mock.storage.MockTransition;
 import com.linkedin.helix.model.Message;
 import com.linkedin.helix.tools.ClusterSetup;
+import com.linkedin.helix.tools.ClusterStateVerifier;
 
 public class TestAddDropAlert extends ZkIntegrationTestBase
 {
@@ -153,14 +154,9 @@ public class TestAddDropAlert extends ZkIntegrationTestBase
     _setupTool.getClusterManagementTool().dropAlert(clusterName, _alertStr);
 
 
-    TestHelper.verifyWithTimeout("verifyBestPossAndExtViewExtended",
-                                 15000,  // timeout in millisecond //was 15000
-                                 ZK_ADDR,
-                                 TestHelper.<String>setOf(clusterName),
-                                 TestHelper.<String>setOf(_dbName),
-                                 null,
-                                 null,
-                                 null);
+    boolean result = ClusterStateVerifier.verify(
+        new ClusterStateVerifier.BestPossAndExtViewVerifier(ZK_ADDR, clusterName));
+    Assert.assertTrue(result);
 
     // other verifications go here
     ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);

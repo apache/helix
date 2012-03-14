@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.log4j.Logger;
+import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 
@@ -16,6 +17,7 @@ import com.linkedin.helix.controller.HelixControllerMain;
 import com.linkedin.helix.manager.zk.ZNRecordSerializer;
 import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.tools.ClusterSetup;
+import com.linkedin.helix.tools.ClusterStateVerifier;
 
 /**
  *
@@ -91,7 +93,9 @@ public class ZkStandAloneCMTestBase extends ZkIntegrationTestBase
                                                                   HelixControllerMain.STANDALONE);
     _startCMResultMap.put(controllerName, startResult);
 
-    verifyCluster();
+    boolean result = ClusterStateVerifier.verify(
+        new ClusterStateVerifier.BestPossAndExtViewVerifier(ZK_ADDR, CLUSTER_NAME));
+    Assert.assertTrue(result);
   }
 
   @AfterClass
@@ -131,13 +135,5 @@ public class ZkStandAloneCMTestBase extends ZkIntegrationTestBase
 
     // logger.info("END at " + new Date(System.currentTimeMillis()));
     System.out.println("END " + CLASS_NAME + " at "+ new Date(System.currentTimeMillis()));
-  }
-
-  protected void verifyCluster()
-  {
-    TestHelper.verifyWithTimeout("verifyBestPossAndExtView",
-                                 ZK_ADDR,
-                                 TestHelper.<String>setOf(CLUSTER_NAME),
-                                 TestHelper.<String>setOf(TEST_DB));
   }
 }

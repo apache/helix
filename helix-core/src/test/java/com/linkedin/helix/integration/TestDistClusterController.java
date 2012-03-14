@@ -3,10 +3,12 @@ package com.linkedin.helix.integration;
 import java.util.Date;
 
 import org.apache.log4j.Logger;
+import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.TestHelper.StartCMResult;
+import com.linkedin.helix.tools.ClusterStateVerifier;
 
 public class TestDistClusterController extends ZkDistCMTestBase
 {
@@ -38,12 +40,18 @@ public class TestDistClusterController extends ZkDistCMTestBase
       }
     }
 
-    verifyClusters();
-    TestHelper.verifyWithTimeout("verifyBestPossAndExtView",
-                                 ZK_ADDR,
-                                 TestHelper.<String>setOf(CLUSTER_PREFIX + "_" + CLASS_NAME + "_1"),
-                                 TestHelper.<String>setOf("MyDB"));
-
+    boolean result = ClusterStateVerifier.verify(
+        new ClusterStateVerifier.BestPossAndExtViewVerifier(ZK_ADDR, CONTROLLER_CLUSTER));
+    Assert.assertTrue(result);
+    
+    result = ClusterStateVerifier.verify(
+        new ClusterStateVerifier.BestPossAndExtViewVerifier(ZK_ADDR, CLUSTER_PREFIX + "_" + CLASS_NAME + "_0"));
+    Assert.assertTrue(result);
+    
+    result = ClusterStateVerifier.verify(
+        new ClusterStateVerifier.BestPossAndExtViewVerifier(ZK_ADDR, CLUSTER_PREFIX + "_" + CLASS_NAME + "_1"));
+    Assert.assertTrue(result);
+    
     LOG.info("STOP testDistClusterController() at " + new Date(System.currentTimeMillis()));
   }
 

@@ -2,7 +2,6 @@ package com.linkedin.helix.integration;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -11,6 +10,7 @@ import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.log4j.Logger;
+import org.testng.Assert;
 
 import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.PropertyPathConfig;
@@ -19,7 +19,6 @@ import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.TestHelper.StartCMResult;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.controller.HelixControllerMain;
-import com.linkedin.helix.manager.zk.ZKDataAccessor;
 import com.linkedin.helix.manager.zk.ZNRecordSerializer;
 import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.model.IdealState.IdealStateModeProperty;
@@ -27,6 +26,7 @@ import com.linkedin.helix.model.IdealState.IdealStateProperty;
 import com.linkedin.helix.store.PropertyJsonSerializer;
 import com.linkedin.helix.store.PropertyStoreException;
 import com.linkedin.helix.tools.ClusterSetup;
+import com.linkedin.helix.tools.ClusterStateVerifier;
 import com.linkedin.helix.tools.IdealStateCalculatorForStorageNode;
 import com.linkedin.helix.tools.TestCommand;
 import com.linkedin.helix.tools.TestCommand.CommandType;
@@ -245,15 +245,10 @@ public class TestDriver
 
     TestInfo testInfo = _testInfoMap.get(uniqClusterName);
     String clusterName = testInfo._clusterName;
-    // ZkClient zkClient = testInfo._zkClient;
-    ZKDataAccessor accessor = new ZKDataAccessor(uniqClusterName, testInfo._zkClient);
-    List<String> idealStates = accessor.getChildNames(PropertyType.IDEALSTATES);
-    TestHelper.verifyWithTimeout("verifyBestPossAndExtViewExtended", timeout, ZK_ADDR,
-                                 TestHelper.<String> setOf(clusterName),
-                                 new HashSet<String>(idealStates),
-                                 null,
-                                 null,
-                                 null);
+    
+    boolean result = ClusterStateVerifier.verify(
+        new ClusterStateVerifier.BestPossAndExtViewVerifier(ZK_ADDR, clusterName));
+    Assert.assertTrue(result);
   }
 
   public static void stopCluster(String uniqClusterName) throws Exception

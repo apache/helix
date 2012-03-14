@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
+import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import com.linkedin.helix.DummyProcessThread;
@@ -15,6 +16,7 @@ import com.linkedin.helix.manager.zk.ZKHelixManager;
 import com.linkedin.helix.manager.zk.ZNRecordSerializer;
 import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.tools.ClusterSetup;
+import com.linkedin.helix.tools.ClusterStateVerifier;
 
 public class TestStandAloneCMSessionExpiry extends ZkIntegrationTestBase
 {
@@ -85,51 +87,27 @@ public class TestStandAloneCMSessionExpiry extends ZkIntegrationTestBase
     manager.connect();
     managers.put(controllerName, manager);
 
-    TestHelper.verifyWithTimeout("verifyBestPossAndExtView",
-                                 ZK_ADDR,
-                                 TestHelper.<String>setOf(CLUSTER_NAME),
-                                 TestHelper.<String>setOf("TestDB0"));
+    boolean result = ClusterStateVerifier.verify(
+        new ClusterStateVerifier.BestPossAndExtViewVerifier(ZK_ADDR, CLUSTER_NAME));
+    Assert.assertTrue(result);
 
     managers.get("localhost_12918").expireSession();
 
     setupTool.addResourceToCluster(CLUSTER_NAME, "MyDB", 10, "MasterSlave");
     setupTool.rebalanceStorageCluster(CLUSTER_NAME, "MyDB", 3);
 
-    TestHelper.verifyWithTimeout("verifyBestPossAndExtView",
-                                 ZK_ADDR,
-                                 TestHelper.<String>setOf(CLUSTER_NAME),
-                                 TestHelper.<String>setOf("TestDB0", "MyDB"));
-
-//    TestHelper.verifyWithTimeout("verifyBestPossAndExtView",
-//                                 "MyDB",
-//                                 10,
-//                                 "MasterSlave",
-//                                 TestHelper.<String>setOf(CLUSTER_NAME),
-//                                 ZK_ADDR);
+    result = ClusterStateVerifier.verify(
+        new ClusterStateVerifier.BestPossAndExtViewVerifier(ZK_ADDR, CLUSTER_NAME));
+    Assert.assertTrue(result);
 
     managers.get(controllerName).expireSession();
 
     setupTool.addResourceToCluster(CLUSTER_NAME, "MyDB2", 8, "MasterSlave");
     setupTool.rebalanceStorageCluster(CLUSTER_NAME, "MyDB2", 3);
 
-    TestHelper.verifyWithTimeout("verifyBestPossAndExtView",
-                                 ZK_ADDR,
-                                 TestHelper.<String>setOf(CLUSTER_NAME),
-                                 TestHelper.<String>setOf("TestDB0", "MyDB", "MyDB2"));
-
-//    TestHelper.verifyWithTimeout("verifyBestPossAndExtView",
-//                                 "MyDB",
-//                                 10,
-//                                 "MasterSlave",
-//                                 TestHelper.<String>setOf(CLUSTER_NAME),
-//                                 ZK_ADDR);
-//
-//    TestHelper.verifyWithTimeout("verifyBestPossAndExtView",
-//                                 "MyDB2",
-//                                 8,
-//                                 "MasterSlave",
-//                                 TestHelper.<String>setOf(CLUSTER_NAME),
-//                                 ZK_ADDR);
+    result = ClusterStateVerifier.verify(
+        new ClusterStateVerifier.BestPossAndExtViewVerifier(ZK_ADDR, CLUSTER_NAME));
+    Assert.assertTrue(result);
 
     System.out.println("STOP testStandAloneCMSessionExpiry() at " + new Date(System.currentTimeMillis()));
   }

@@ -54,7 +54,7 @@ public class TestErrorPartition extends ZkIntegrationTestBase
     errStates.put("TestDB0", new HashMap<String, String>());
     errStates.get("TestDB0").put("TestDB0_0", "localhost_12918");
     boolean result = ClusterStateVerifier.verify(
-        new ClusterStateVerifier.BestPossAndExtViewVerifier(ZK_ADDR, clusterName, errStates));
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName, errStates));
     Assert.assertTrue(result);
 
     
@@ -72,7 +72,7 @@ public class TestErrorPartition extends ZkIntegrationTestBase
     tool.enablePartition(clusterName, "localhost_12918", "TestDB0", "TestDB0_0", false);
 
     result = ClusterStateVerifier.verify(
-        new ClusterStateVerifier.BestPossAndExtViewVerifier(ZK_ADDR, clusterName, errStates));
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName, errStates));
     Assert.assertTrue(result);
 
     TestHelper.verifyState(clusterName, ZK_ADDR, errorStateMap, "ERROR");
@@ -81,7 +81,7 @@ public class TestErrorPartition extends ZkIntegrationTestBase
     tool.enableInstance(clusterName, "localhost_12918", false);
 
     result = ClusterStateVerifier.verify(
-        new ClusterStateVerifier.BestPossAndExtViewVerifier(ZK_ADDR, clusterName, errStates));
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName, errStates));
     Assert.assertTrue(result);
 
     System.out.println("END testErrorPartition() at " + new Date(System.currentTimeMillis()));

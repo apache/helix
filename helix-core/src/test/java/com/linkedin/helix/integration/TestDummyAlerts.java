@@ -101,7 +101,7 @@ public class TestDummyAlerts extends ZkIntegrationTestBase
     }
 
     boolean result = ClusterStateVerifier.verify(
-        new ClusterStateVerifier.BestPossAndExtViewVerifier(ZK_ADDR, clusterName));
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
     Assert.assertTrue(result);
 
     // other verifications go here

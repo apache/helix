@@ -22,11 +22,11 @@ public class TestDistCMMain extends ZkDistCMTestBase
 
     // verifyClusters();
     boolean verifyResult = ClusterStateVerifier.verify(
-        new ClusterStateVerifier.BestPossAndExtViewVerifier(ZK_ADDR, CONTROLLER_CLUSTER));
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CONTROLLER_CLUSTER));
     Assert.assertTrue(verifyResult);
     
     verifyResult = ClusterStateVerifier.verify(
-        new ClusterStateVerifier.BestPossAndExtViewVerifier(ZK_ADDR, CLUSTER_PREFIX + "_" + CLASS_NAME + "_0"));
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_PREFIX + "_" + CLASS_NAME + "_0"));
     Assert.assertTrue(verifyResult);
 
     // add more controllers to controller cluster
@@ -50,11 +50,11 @@ public class TestDistCMMain extends ZkDistCMTestBase
     }
 
     verifyResult = ClusterStateVerifier.verify(
-        new ClusterStateVerifier.BestPossAndExtViewVerifier(ZK_ADDR, CONTROLLER_CLUSTER));
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CONTROLLER_CLUSTER));
     Assert.assertTrue(verifyResult);
     
     verifyResult = ClusterStateVerifier.verify(
-        new ClusterStateVerifier.BestPossAndExtViewVerifier(ZK_ADDR, CLUSTER_PREFIX + "_" + CLASS_NAME + "_0"));
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_PREFIX + "_" + CLASS_NAME + "_0"));
     Assert.assertTrue(verifyResult);
 
     for (int i = 0; i < NODE_NR; i++)
@@ -62,11 +62,11 @@ public class TestDistCMMain extends ZkDistCMTestBase
       stopCurrentLeader(_zkClient, CONTROLLER_CLUSTER, _startCMResultMap);
       
       verifyResult = ClusterStateVerifier.verify(
-          new ClusterStateVerifier.BestPossAndExtViewVerifier(ZK_ADDR, CONTROLLER_CLUSTER));
+          new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CONTROLLER_CLUSTER));
       Assert.assertTrue(verifyResult);
       
       verifyResult = ClusterStateVerifier.verify(
-          new ClusterStateVerifier.BestPossAndExtViewVerifier(ZK_ADDR, CLUSTER_PREFIX + "_" + CLASS_NAME + "_0"));
+          new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_PREFIX + "_" + CLASS_NAME + "_0"));
       Assert.assertTrue(verifyResult);
     }
 

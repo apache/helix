@@ -87,7 +87,7 @@ public class TestResetPartitionState extends ZkIntegrationTestBase
     errStateMap.get("TestDB0").put("TestDB0_0", "localhost_12918");
     errStateMap.get("TestDB0").put("TestDB0_8", "localhost_12918");
     boolean result = ClusterStateVerifier.verify(
-        new ClusterStateVerifier.BestPossAndExtViewVerifier(ZK_ADDR, clusterName, errStateMap));
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName, errStateMap));
     Assert.assertTrue(result);
 
     // reset one error partition
@@ -100,7 +100,7 @@ public class TestResetPartitionState extends ZkIntegrationTestBase
 
     errStateMap.get("TestDB0").remove("TestDB0_0");
     result = ClusterStateVerifier.verify(
-        new ClusterStateVerifier.BestPossAndExtViewVerifier(ZK_ADDR, clusterName, errStateMap));
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName, errStateMap));
     Assert.assertTrue(result);
 
     Assert.assertEquals(_errToOfflineInvoked, 1);
@@ -111,7 +111,7 @@ public class TestResetPartitionState extends ZkIntegrationTestBase
     tool.resetPartition(clusterName, "localhost_12918", "TestDB0", "TestDB0_8");
 
     result = ClusterStateVerifier.verify(
-        new ClusterStateVerifier.BestPossAndExtViewVerifier(ZK_ADDR, clusterName));
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
     Assert.assertTrue(result);
 
     Assert.assertEquals(_errToOfflineInvoked, 2);

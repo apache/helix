@@ -22,15 +22,6 @@ import org.apache.log4j.Logger;
 import org.testng.Assert;
 
 import com.linkedin.helix.controller.HelixControllerMain;
-import com.linkedin.helix.controller.pipeline.Stage;
-import com.linkedin.helix.controller.pipeline.StageContext;
-import com.linkedin.helix.controller.stages.AttributeName;
-import com.linkedin.helix.controller.stages.BestPossibleStateCalcStage;
-import com.linkedin.helix.controller.stages.BestPossibleStateOutput;
-import com.linkedin.helix.controller.stages.ClusterDataCache;
-import com.linkedin.helix.controller.stages.ClusterEvent;
-import com.linkedin.helix.controller.stages.CurrentStateComputationStage;
-import com.linkedin.helix.controller.stages.ResourceComputationStage;
 import com.linkedin.helix.manager.file.FileDataAccessor;
 import com.linkedin.helix.manager.zk.ZKDataAccessor;
 import com.linkedin.helix.manager.zk.ZKHelixAdmin;
@@ -38,7 +29,6 @@ import com.linkedin.helix.manager.zk.ZNRecordSerializer;
 import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.model.CurrentState;
 import com.linkedin.helix.model.ExternalView;
-import com.linkedin.helix.model.Partition;
 import com.linkedin.helix.store.file.FilePropertyStore;
 import com.linkedin.helix.tools.ClusterSetup;
 import com.linkedin.helix.util.ZKClientPool;
@@ -320,135 +310,6 @@ public class TestHelper
       }
     }
     return null;
-  }
-
-  // for file-based cluster manager
-  public static boolean verifyBestPossAndExtViewFile(String resourceName, int partitions,
-      String stateModelName, Set<String> clusterNameSet,
-      FilePropertyStore<ZNRecord> filePropertyStore)
-  {
-    for (String clusterName : clusterNameSet)
-    {
-      DataAccessor accessor = new FileDataAccessor(filePropertyStore, clusterName);
-
-      ExternalView extView = accessor.getProperty(ExternalView.class, PropertyType.EXTERNALVIEW,
-          resourceName);
-      // external view not yet generated
-      if (extView == null)
-      {
-        return false;
-      }
-
-      BestPossibleStateOutput bestPossOutput = calcBestPossState(resourceName, partitions,
-          stateModelName, clusterName, accessor, null);
-
-      // System.out.println("extView:" + externalView.getMapFields());
-      // System.out.println("BestPoss:" + output);
-
-      // every entry in external view is contained in best possible state
-      for (Map.Entry<String, Map<String, String>> entry : extView.getRecord().getMapFields()
-          .entrySet())
-      {
-        String partitionName = entry.getKey();
-        Map<String, String> evInstanceMap = entry.getValue();
-
-        Map<String, String> bpInstanceMap = bestPossOutput.getInstanceStateMap(resourceName,
-            new Partition(partitionName));
-
-        boolean result = TestHelper.<String, String> compareMap(evInstanceMap, bpInstanceMap);
-        if (result == false)
-        {
-          LOG.info("verifyBestPossAndExtViewFile() fails for cluster:" + clusterName);
-          return false;
-        }
-      }
-
-      // every entry in best possible state is contained in external view
-      for (Map.Entry<Partition, Map<String, String>> entry : bestPossOutput.getResourceMap(
-          resourceName).entrySet())
-      {
-        String partitionName = entry.getKey().getPartitionName();
-        Map<String, String> bpInstanceMap = entry.getValue();
-
-        Map<String, String> evInstanceMap = extView.getStateMap(partitionName);
-
-        boolean result = TestHelper.<String, String> compareMap(evInstanceMap, bpInstanceMap);
-        if (result == false)
-        {
-          LOG.info("verifyBestPossAndExtViewFile() fails for cluster:" + clusterName);
-          return false;
-        }
-      }
-    }
-    return true;
-  }
-
-  /**
-   *
-   * @param resourceName
-   * @param partitions
-   * @param stateModelName
-   * @param clusterName
-   * @param accessor
-   * @param errorStateMap
-   *          : partition->setOf(instances)
-   * @return
-   */
-  private static BestPossibleStateOutput calcBestPossState(String resourceName, int partitions,
-      String stateModelName, String clusterName, DataAccessor accessor,
-      Map<String, Set<String>> errorStateMap)
-  {
-    ClusterEvent event = new ClusterEvent("sampleEvent");
-
-    ClusterDataCache cache = new ClusterDataCache();
-    cache.refresh(accessor);
-
-    event.addAttribute("ClusterDataCache", cache);
-
-    ResourceComputationStage rcState = new ResourceComputationStage();
-    CurrentStateComputationStage csStage = new CurrentStateComputationStage();
-    BestPossibleStateCalcStage bpStage = new BestPossibleStateCalcStage();
-
-    runStage(event, rcState);
-    runStage(event, csStage);
-    runStage(event, bpStage);
-
-    BestPossibleStateOutput output = event.getAttribute(AttributeName.BEST_POSSIBLE_STATE
-        .toString());
-
-    if (errorStateMap != null)
-    {
-      for (String resGroupPartitionKey : errorStateMap.keySet())
-      {
-        Map<String, String> retMap = getResourceAndPartitionKey(resGroupPartitionKey);
-        String resGroup = retMap.get("RESOURCE");
-        String partitionKey = retMap.get("PARTITION");
-        for (String instance : errorStateMap.get(resGroupPartitionKey))
-        {
-          Map<String, String> instanceState = output.getInstanceStateMap(resGroup, new Partition(
-              partitionKey));
-          instanceState.put(instance, "ERROR");
-        }
-      }
-    }
-
-    // System.out.println("output:" + output);
-    return output;
-  }
-
-  private static void runStage(ClusterEvent event, Stage stage)
-  {
-    StageContext context = new StageContext();
-    stage.init(context);
-    stage.preProcess();
-    try
-    {
-      stage.process(event);
-    } catch (Exception e)
-    {
-      e.printStackTrace();
-    }
-    stage.postProcess();
   }
 
   // for file-based cluster manager

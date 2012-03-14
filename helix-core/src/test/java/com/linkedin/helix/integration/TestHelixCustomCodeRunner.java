@@ -113,7 +113,7 @@ public class TestHelixCustomCodeRunner extends ZkIntegrationTestBase
     }
     
     boolean result = ClusterStateVerifier.verify(
-        new ClusterStateVerifier.BestPossAndExtViewVerifier(ZK_ADDR, _clusterName));
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, _clusterName));
     Assert.assertTrue(result);
     
     Thread.sleep(1000);  // wait for the INIT type callback to finish

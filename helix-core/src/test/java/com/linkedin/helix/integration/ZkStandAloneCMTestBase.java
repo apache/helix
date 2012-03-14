@@ -94,7 +94,7 @@ public class ZkStandAloneCMTestBase extends ZkIntegrationTestBase
     _startCMResultMap.put(controllerName, startResult);
 
     boolean result = ClusterStateVerifier.verify(
-        new ClusterStateVerifier.BestPossAndExtViewVerifier(ZK_ADDR, CLUSTER_NAME));
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_NAME));
     Assert.assertTrue(result);
   }
 

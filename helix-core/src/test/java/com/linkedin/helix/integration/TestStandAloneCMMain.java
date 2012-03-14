@@ -33,7 +33,7 @@ public class TestStandAloneCMMain extends ZkStandAloneCMTestBase
 
     stopCurrentLeader(_zkClient, CLUSTER_NAME, _startCMResultMap);
     boolean result = ClusterStateVerifier.verify(
-        new ClusterStateVerifier.BestPossAndExtViewVerifier(ZK_ADDR, CLUSTER_NAME));
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_NAME));
     Assert.assertTrue(result);
 
     logger.info("STOP testStandAloneCMMain() at " + new Date(System.currentTimeMillis()));

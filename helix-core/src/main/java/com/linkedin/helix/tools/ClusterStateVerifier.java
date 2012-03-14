@@ -29,6 +29,7 @@ import com.linkedin.helix.controller.stages.ClusterDataCache;
 import com.linkedin.helix.controller.stages.ClusterEvent;
 import com.linkedin.helix.controller.stages.CurrentStateComputationStage;
 import com.linkedin.helix.controller.stages.ResourceComputationStage;
+import com.linkedin.helix.manager.file.FileDataAccessor;
 import com.linkedin.helix.manager.zk.ZKDataAccessor;
 import com.linkedin.helix.manager.zk.ZNRecordSerializer;
 import com.linkedin.helix.manager.zk.ZkClient;
@@ -38,6 +39,9 @@ import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.model.Partition;
 import com.linkedin.helix.participant.statemachine.StateModel;
 import com.linkedin.helix.participant.statemachine.StateModelFactory;
+import com.linkedin.helix.store.PropertyJsonComparator;
+import com.linkedin.helix.store.PropertyJsonSerializer;
+import com.linkedin.helix.store.file.FilePropertyStore;
 
 public class ClusterStateVerifier
 {
@@ -51,24 +55,21 @@ public class ClusterStateVerifier
     boolean verify();
   }
 
-  public static class BestPossAndExtViewVerifier implements Verifier
+  /**
+   * verifier that verifies best possible state and external view
+   */
+  public static class BestPossAndExtViewZkVerifier implements Verifier
   {
     private final String zkAddr;
     private final String clusterName;
     private final Map<String, Map<String, String>> errStates;
   
-    public BestPossAndExtViewVerifier(String zkAddr, String clusterName)
+    public BestPossAndExtViewZkVerifier(String zkAddr, String clusterName)
     {
       this(zkAddr, clusterName, null);
     }
 
-    /**
-     * verifier that verifies best possible state and external view
-     * @param zkAddr
-     * @param clusterName
-     * @param errStates: resource->partition->instance
-     */
-    public BestPossAndExtViewVerifier(String zkAddr, String clusterName,
+    public BestPossAndExtViewZkVerifier(String zkAddr, String clusterName,
         Map<String, Map<String, String>> errStates)
     {
       if (zkAddr == null || clusterName == null)
@@ -114,6 +115,60 @@ public class ClusterStateVerifier
     }
   }
 
+  public static class BestPossAndExtViewFileVerifier implements Verifier
+  {
+    private final String rootPath;
+    private final String clusterName;
+    private final Map<String, Map<String, String>> errStates;
+    private final FilePropertyStore<ZNRecord> fileStore;
+  
+    public BestPossAndExtViewFileVerifier(String rootPath, String clusterName)
+    {
+      this(rootPath, clusterName, null);
+    }
+
+    public BestPossAndExtViewFileVerifier(String rootPath, String clusterName,
+        Map<String, Map<String, String>> errStates)
+    {
+      if (rootPath == null || clusterName == null)
+      {
+        throw new IllegalArgumentException("requires rootPath|clusterName");
+      }
+      this.rootPath = rootPath;
+      this.clusterName = clusterName;
+      this.errStates = errStates;
+      
+      this.fileStore = new FilePropertyStore<ZNRecord>(new PropertyJsonSerializer<ZNRecord>(ZNRecord.class),
+          rootPath, new PropertyJsonComparator<ZNRecord>(ZNRecord.class));
+    }
+    
+    @Override
+    public boolean verify()
+    {      
+      try
+      {
+        DataAccessor accessor = new FileDataAccessor(fileStore, clusterName);
+
+        return ClusterStateVerifier.verifyBestPossAndExtView(accessor, errStates);
+      } catch (Exception e)
+      {
+        LOG.error("exception in verification", e);
+        return false;
+      } finally
+      {
+      }
+    }
+    
+    @Override
+    public String toString()
+    {
+      String verifierName = getClass().getName();
+      verifierName = verifierName.substring(verifierName.lastIndexOf('.') + 1, 
+          verifierName.length());
+      return verifierName + "(" + rootPath + ", " + clusterName + ")";
+    }
+  }
+  
   static boolean verifyBestPossAndExtView(DataAccessor accessor, 
       Map<String, Map<String, String>> errStates)
   {
@@ -544,7 +599,7 @@ public class ClusterStateVerifier
       zkServer = cmd.getOptionValue(zkServerAddress);
       clusterName = cmd.getOptionValue(cluster);
     }
-    return new BestPossAndExtViewVerifier(zkServer, clusterName).verify();
+    return new BestPossAndExtViewZkVerifier(zkServer, clusterName).verify();
 
   }
 

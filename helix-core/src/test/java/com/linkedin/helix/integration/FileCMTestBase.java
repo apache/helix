@@ -4,6 +4,7 @@ import java.util.Date;
 import java.util.List;
 
 import org.apache.log4j.Logger;
+import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 
@@ -11,7 +12,6 @@ import com.linkedin.helix.HelixAdmin;
 import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.HelixManagerFactory;
 import com.linkedin.helix.InstanceType;
-import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.controller.GenericHelixController;
 import com.linkedin.helix.manager.file.FileHelixAdmin;
@@ -22,6 +22,7 @@ import com.linkedin.helix.model.InstanceConfig.InstanceConfigProperty;
 import com.linkedin.helix.store.PropertyJsonComparator;
 import com.linkedin.helix.store.PropertyJsonSerializer;
 import com.linkedin.helix.store.file.FilePropertyStore;
+import com.linkedin.helix.tools.ClusterStateVerifier;
 import com.linkedin.helix.tools.IdealStateCalculatorForStorageNode;
 
 /**
@@ -39,7 +40,7 @@ public class FileCMTestBase
   protected static final String STATE_MODEL = "MasterSlave";
   protected static final int NODE_NR = 5;
   protected static final int START_PORT = 12918;
-  private final String ROOT_PATH = "/tmp/" + getShortClassName();
+  final String ROOT_PATH = "/tmp/" + getShortClassName();
 
   protected final FilePropertyStore<ZNRecord> _fileStore
     = new FilePropertyStore<ZNRecord>(new PropertyJsonSerializer<ZNRecord>(ZNRecord.class),
@@ -105,7 +106,10 @@ public class FileCMTestBase
       logger.error("fail to start controller using dynamic file-based cluster-manager ", e);
     }
 
-    verifyCluster();
+    boolean result = ClusterStateVerifier.verify(
+        new ClusterStateVerifier.BestPossAndExtViewFileVerifier(ROOT_PATH, CLUSTER_NAME));
+    Assert.assertTrue(result);
+
     
     System.out.println("END BEFORECLASS FileCMTestBase at " + new Date(System.currentTimeMillis()));
   }
@@ -158,16 +162,5 @@ public class FileCMTestBase
 
     newIdealState.merge(idealState.getRecord());
     _mgmtTool.setResourceIdealState(clusterName, resourceName, new IdealState(newIdealState));
-  }
-
-  protected void verifyCluster()
-  {
-    TestHelper.verifyWithTimeout("verifyBestPossAndExtViewFile",
-                                 30 * 1000,
-                                 TEST_DB,
-                                 10,
-                                 "MasterSlave",
-                                 TestHelper.<String>setOf(CLUSTER_NAME),
-                                 _fileStore);
   }
 }

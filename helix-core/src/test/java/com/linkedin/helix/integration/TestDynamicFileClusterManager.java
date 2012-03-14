@@ -3,9 +3,11 @@ package com.linkedin.helix.integration;
 import java.util.Date;
 
 import org.apache.log4j.Logger;
+import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import com.linkedin.helix.TestHelper;
+import com.linkedin.helix.tools.ClusterStateVerifier;
 
 public class TestDynamicFileClusterManager extends FileCMTestBase
 {
@@ -21,13 +23,9 @@ public class TestDynamicFileClusterManager extends FileCMTestBase
     _mgmtTool.addResource(CLUSTER_NAME, "MyDB", 6, STATE_MODEL);
     rebalanceStorageCluster(CLUSTER_NAME, "MyDB", 0);
 
-    verifyCluster();
-    TestHelper.verifyWithTimeout("verifyBestPossAndExtViewFile",
-                                 "MyDB",
-                                 6,
-                                 "MasterSlave",
-                                 TestHelper.<String>setOf(CLUSTER_NAME),
-                                 _fileStore);
+    boolean result = ClusterStateVerifier.verify(
+        new ClusterStateVerifier.BestPossAndExtViewFileVerifier(ROOT_PATH, CLUSTER_NAME));
+    Assert.assertTrue(result);
 
     // drop db
     _mgmtTool.dropResource(CLUSTER_NAME, "MyDB");

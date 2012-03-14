@@ -88,7 +88,7 @@ public class TestStandAloneCMSessionExpiry extends ZkIntegrationTestBase
     managers.put(controllerName, manager);
 
     boolean result = ClusterStateVerifier.verify(
-        new ClusterStateVerifier.BestPossAndExtViewVerifier(ZK_ADDR, CLUSTER_NAME));
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_NAME));
     Assert.assertTrue(result);
 
     managers.get("localhost_12918").expireSession();
@@ -97,7 +97,7 @@ public class TestStandAloneCMSessionExpiry extends ZkIntegrationTestBase
     setupTool.rebalanceStorageCluster(CLUSTER_NAME, "MyDB", 3);
 
     result = ClusterStateVerifier.verify(
-        new ClusterStateVerifier.BestPossAndExtViewVerifier(ZK_ADDR, CLUSTER_NAME));
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_NAME));
     Assert.assertTrue(result);
 
     managers.get(controllerName).expireSession();
@@ -106,7 +106,7 @@ public class TestStandAloneCMSessionExpiry extends ZkIntegrationTestBase
     setupTool.rebalanceStorageCluster(CLUSTER_NAME, "MyDB2", 3);
 
     result = ClusterStateVerifier.verify(
-        new ClusterStateVerifier.BestPossAndExtViewVerifier(ZK_ADDR, CLUSTER_NAME));
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_NAME));
     Assert.assertTrue(result);
 
     System.out.println("STOP testStandAloneCMSessionExpiry() at " + new Date(System.currentTimeMillis()));

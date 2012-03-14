@@ -47,7 +47,7 @@ public class TestRenamePartition extends ZkIntegrationTestBase
     accessor.setProperty(PropertyType.IDEALSTATES, idealState, "TestDB0");
 
     boolean result = ClusterStateVerifier.verify(
-        new ClusterStateVerifier.BestPossAndExtViewVerifier(ZK_ADDR, clusterName));
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
     Assert.assertTrue(result);
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
@@ -89,7 +89,7 @@ public class TestRenamePartition extends ZkIntegrationTestBase
     accessor.setProperty(PropertyType.IDEALSTATES, idealState, "TestDB0");
 
     boolean result = ClusterStateVerifier.verify(
-        new ClusterStateVerifier.BestPossAndExtViewVerifier(ZK_ADDR, clusterName));
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
     Assert.assertTrue(result);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
@@ -111,7 +111,7 @@ public class TestRenamePartition extends ZkIntegrationTestBase
     }
 
     boolean result = ClusterStateVerifier.verify(
-        new ClusterStateVerifier.BestPossAndExtViewVerifier(ZK_ADDR, clusterName));
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
     Assert.assertTrue(result);
 
   }

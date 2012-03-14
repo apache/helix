@@ -109,7 +109,7 @@ public class TestWildcardAlert extends ZkIntegrationTestBase
   private static final Logger _logger = Logger.getLogger(TestWildcardAlert.class);
   ZkClient _zkClient;
   protected ClusterSetup _setupTool = null;
-  protected final String _alertStr = "EXP(accumulate()(localhost_*.RestQueryStats@DBName=TestDB0.latency)|EXPAND|SUMEACH)CMP(GREATER)CON(10)";
+  protected final String _alertStr = "EXP(decay(1)(localhost_*.RestQueryStats@DBName=TestDB0.latency)|EXPAND|SUMEACH)CMP(GREATER)CON(10)";
   protected final String _alertStatusStr = _alertStr; // +" : (*)";
   protected final String _dbName = "TestDB0";
 
@@ -246,7 +246,7 @@ public class TestWildcardAlert extends ZkIntegrationTestBase
     Map<String, String> alertStatusMap = recMap.get(_alertStatusStr);
     String val = alertStatusMap.get(AlertValueAndStatus.VALUE_NAME);
     boolean fired = Boolean.parseBoolean(alertStatusMap.get(AlertValueAndStatus.FIRED_NAME));
-    Assert.assertEquals(Double.parseDouble(val), Double.parseDouble("75.0"));
+    Assert.assertEquals(Double.parseDouble(val), Double.parseDouble("15.0"));
     Assert.assertTrue(fired);
 
 
@@ -255,17 +255,17 @@ public class TestWildcardAlert extends ZkIntegrationTestBase
     jmxMBeanObserver.refresh();   
     Assert.assertTrue(jmxMBeanObserver._beanValueMap.size() >= 1);
 
-    String beanName = "HelixAlerts:alert=EXP(accumulate()(localhost_%.RestQueryStats@DBName#TestDB0.latency)|EXPAND|SUMEACH)CMP(GREATER)CON(10)--(%)";
+    String beanName = "HelixAlerts:alert=EXP(decay(1)(localhost_%.RestQueryStats@DBName#TestDB0.latency)|EXPAND|SUMEACH)CMP(GREATER)CON(10)--(%)";
     Assert.assertTrue(jmxMBeanObserver._beanValueMap.containsKey(beanName));
 
     Map<String, Object> beanValueMap = jmxMBeanObserver._beanValueMap.get(beanName);
-    Assert.assertEquals(beanValueMap.size(), 3);
+    Assert.assertEquals(beanValueMap.size(), 4);
     Assert.assertEquals((beanValueMap.get("AlertFired")), new Integer(1));
-    Assert.assertEquals((beanValueMap.get("AlertValue")), new Double(75.0));
+    Assert.assertEquals((beanValueMap.get("AlertValue")), new Double(15.0));
     Assert
     .assertEquals(
     		(String) (beanValueMap.get("SensorName")),
-    		"EXP(accumulate()(localhost_%.RestQueryStats@DBName#TestDB0.latency)|EXPAND|SUMEACH)CMP(GREATER)CON(10)--(%)");
+    		"EXP(decay(1)(localhost_%.RestQueryStats@DBName#TestDB0.latency)|EXPAND|SUMEACH)CMP(GREATER)CON(10)--(%)");
     // }
 
     System.out.println("END TestWildcardAlert at " + new Date(System.currentTimeMillis()));

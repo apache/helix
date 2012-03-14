@@ -246,7 +246,7 @@ public class TestWildcardAlert extends ZkIntegrationTestBase
     Map<String, String> alertStatusMap = recMap.get(_alertStatusStr);
     String val = alertStatusMap.get(AlertValueAndStatus.VALUE_NAME);
     boolean fired = Boolean.parseBoolean(alertStatusMap.get(AlertValueAndStatus.FIRED_NAME));
-    Assert.assertEquals(Double.parseDouble(val), Double.parseDouble("15.0"));
+    Assert.assertEquals(Double.parseDouble(val), Double.parseDouble("75.0"));
     Assert.assertTrue(fired);
 
 
@@ -261,7 +261,7 @@ public class TestWildcardAlert extends ZkIntegrationTestBase
     Map<String, Object> beanValueMap = jmxMBeanObserver._beanValueMap.get(beanName);
     Assert.assertEquals(beanValueMap.size(), 4);
     Assert.assertEquals((beanValueMap.get("AlertFired")), new Integer(1));
-    Assert.assertEquals((beanValueMap.get("AlertValue")), new Double(15.0));
+    Assert.assertEquals((beanValueMap.get("AlertValue")), new Double(75.0));
     Assert
     .assertEquals(
     		(String) (beanValueMap.get("SensorName")),

@@ -43,7 +43,8 @@ public class ParticipantHealthReportCollectorImpl implements
       _timer = new Timer();
       _timer.scheduleAtFixedRate(new HealthCheckInfoReportingTask(),
           new Random().nextInt(DEFAULT_REPORT_LATENCY), DEFAULT_REPORT_LATENCY);
-    } else
+    }
+    else
     {
       _logger.warn("timer already started");
     }
@@ -59,12 +60,14 @@ public class ParticipantHealthReportCollectorImpl implements
         if (!_healthReportProviderList.contains(provider))
         {
           _healthReportProviderList.add(provider);
-        } else
+        }
+        else
         {
           _logger.warn("Skipping a duplicated HealthCheckInfoProvider");
         }
       }
-    } catch (Exception e)
+    }
+    catch (Exception e)
     {
       _logger.error(e);
     }
@@ -78,14 +81,15 @@ public class ParticipantHealthReportCollectorImpl implements
       if (_healthReportProviderList.contains(provider))
       {
         _healthReportProviderList.remove(provider);
-      } else
+      }
+      else
       {
         _logger.warn("Skip removing a non-exist HealthCheckInfoProvider");
       }
     }
   }
 
-  //XXX: think about getting rid of method argument
+  // XXX: think about getting rid of method argument
   @Override
   public void reportHealthReportMessage(ZNRecord healthCheckInfoUpdate)
   {
@@ -99,7 +103,8 @@ public class ParticipantHealthReportCollectorImpl implements
     {
       _timer.cancel();
       _timer = null;
-    } else
+    }
+    else
     {
       _logger.warn("timer already stopped");
     }
@@ -107,42 +112,44 @@ public class ParticipantHealthReportCollectorImpl implements
 
   public synchronized void transmitHealthReports()
   {
-	  synchronized (_healthReportProviderList)
+    synchronized (_healthReportProviderList)
+    {
+      for (HealthReportProvider provider : _healthReportProviderList)
       {
-        for (HealthReportProvider provider : _healthReportProviderList)
+        try
         {
-          try
+          Map<String, String> report = provider.getRecentHealthReport();
+          Map<String, Map<String, String>> partitionReport = provider
+              .getRecentPartitionHealthReport();
+          ZNRecord record = new ZNRecord(provider.getReportName());
+          if (report != null)
           {
-            Map<String, String> report = provider.getRecentHealthReport();
-            Map<String, Map<String, String>> partitionReport = provider
-                .getRecentPartitionHealthReport();
-            ZNRecord record = new ZNRecord(provider.getReportName());
-            if (report != null) {
-            	record.setSimpleFields(report);
-            }
-            if (partitionReport != null) {
-            	record.setMapFields(partitionReport);
-            }
-            
-            _helixManager.getDataAccessor().setProperty(
-                PropertyType.HEALTHREPORT, record, _instanceName,
-                record.getId());
-            //reset stats (for now just the partition stats)
-            provider.resetStats();
-          } catch (Exception e)
-          {
-            _logger.error(e);
+            record.setSimpleFields(report);
           }
+          if (partitionReport != null)
+          {
+            record.setMapFields(partitionReport);
+          }
+
+          _helixManager.getDataAccessor().setProperty(
+              PropertyType.HEALTHREPORT, record, _instanceName, record.getId());
+          // reset stats (for now just the partition stats)
+          provider.resetStats();
+        }
+        catch (Exception e)
+        {
+          _logger.error(e);
         }
       }
+    }
   }
-  
+
   class HealthCheckInfoReportingTask extends TimerTask
   {
     @Override
     public void run()
     {
-    	transmitHealthReports();
+      transmitHealthReports();
     }
   }
 }

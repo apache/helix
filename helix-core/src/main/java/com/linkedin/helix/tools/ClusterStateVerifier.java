@@ -3,7 +3,6 @@ package com.linkedin.helix.tools;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.cli.CommandLine;
@@ -33,7 +32,6 @@ import com.linkedin.helix.manager.file.FileDataAccessor;
 import com.linkedin.helix.manager.zk.ZKDataAccessor;
 import com.linkedin.helix.manager.zk.ZNRecordSerializer;
 import com.linkedin.helix.manager.zk.ZkClient;
-import com.linkedin.helix.model.CurrentState.CurrentStateProperty;
 import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.model.Partition;
@@ -457,85 +455,6 @@ public class ClusterStateVerifier
     }
 
     return ret;
-  }
-
-  public static boolean verifyIdealStateAndCurrentState(List<ZNRecord> idealStates,
-      Map<String, Map<String, ZNRecord>> currentStates)
-  {
-    int countInIdealStates = 0;
-    int countInCurrentStates = 0;
-
-    for (ZNRecord idealState : idealStates)
-    {
-      String resourceName = idealState.getId();
-
-      Map<String, Map<String, String>> statesMap = idealState.getMapFields();
-      for (String stateUnitKey : statesMap.keySet())
-      {
-        Map<String, String> partitionNodeStates = statesMap.get(stateUnitKey);
-        for (String nodeName : partitionNodeStates.keySet())
-        {
-          countInIdealStates++;
-          String nodePartitionState = partitionNodeStates.get(nodeName);
-          if (!currentStates.containsKey(nodeName))
-          {
-            LOG.warn("Current state does not contain " + nodeName);
-            return false;
-          }
-          if (!currentStates.get(nodeName).containsKey(resourceName))
-          {
-            LOG.warn("Current state for " + nodeName + " does not contain " + resourceName);
-            return false;
-          }
-          if (!currentStates.get(nodeName).get(resourceName).getMapFields()
-              .containsKey(stateUnitKey))
-          {
-            LOG.warn("Current state for" + nodeName + "with " + resourceName + " does not contain "
-                + stateUnitKey);
-            return false;
-          }
-
-          String partitionNodeState = currentStates.get(nodeName).get(resourceName).getMapFields()
-              .get(stateUnitKey).get(CurrentStateProperty.CURRENT_STATE.toString());
-          boolean success = true;
-          if (!partitionNodeState.equals(nodePartitionState))
-          {
-            LOG.warn("State mismatch " + resourceName + " " + stateUnitKey + " " + nodeName
-                + " current:" + partitionNodeState + ", expected:" + nodePartitionState);
-            success = false;
-          }
-          return success;
-        }
-      }
-    }
-
-    for (String nodeName : currentStates.keySet())
-    {
-      Map<String, ZNRecord> nodeCurrentStates = currentStates.get(nodeName);
-      for (String resourceName : nodeCurrentStates.keySet())
-      {
-        for (String partitionName : nodeCurrentStates.get(resourceName).getMapFields().keySet())
-        {
-          countInCurrentStates++;
-        }
-      }
-    }
-    // assert (countInIdealStates == countInCurrentStates);
-
-    if (countInIdealStates != countInCurrentStates)
-    {
-      LOG.info("countInIdealStates:" + countInIdealStates + "countInCurrentStates: "
-          + countInCurrentStates);
-    }
-    return countInIdealStates == countInCurrentStates;
-  }
-
-  public static boolean verifyCurrentStateAndExternalView(
-      Map<String, Map<String, ZNRecord>> currentStates, List<ZNRecord> externalViews)
-  {
-    // currently external view and ideal state has same structure so we can
-    // use the same verification code.
-    return verifyIdealStateAndCurrentState(externalViews, currentStates);
   }
 
   @SuppressWarnings("static-access")

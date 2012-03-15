@@ -30,8 +30,8 @@ import com.linkedin.helix.monitoring.mbeans.ClusterAlertMBeanCollection;
 
 /**
  * For each LiveInstances select currentState and message whose sessionId
- * matches sessionId from LiveInstance Get Partition,State for all the
- * resources computed in previous State [ResourceComputationStage]
+ * matches sessionId from LiveInstance Get Partition,State for all the resources
+ * computed in previous State [ResourceComputationStage]
  * 
  * @author asilbers
  * 
@@ -150,29 +150,32 @@ public class StatsAggregationStage extends AbstractBaseStage
       Map<String, HealthStat> stats;
       stats = cache.getHealthStats(instanceName);
       // find participants stats
-      HealthStat participantStat = stats.get(ESPRESSO_STAT_REPORT_NAME);
-      long modTime = -1;
-      if (participantStat != null)
+      for (HealthStat participantStat : stats.values())
       {
-        // generate and report stats for how old this node's report is
-        modTime = participantStat.getLastModifiedTimeStamp();
-        reportAgeStat(instance, modTime, currTime);
-      }
-      // System.out.println(modTime);
-      // XXX: need to convert participantStat to a better format
-      // need to get instanceName in here
-
-      if (participantStat != null)
-      {
-        // String timestamp = String.valueOf(instance.getModifiedTime()); WANT
-        // REPORT LEVEL TS
-        Map<String, Map<String, String>> statMap = participantStat
-            .getHealthFields(instanceName);
-        for (String key : statMap.keySet())
+        // HealthStat participantStat = stats.get(ESPRESSO_STAT_REPORT_NAME);
+        long modTime = -1;
+        if (participantStat != null)
         {
-          _statsHolder.applyStat(key, statMap.get(key));
+          // generate and report stats for how old this node's report is
+          modTime = participantStat.getLastModifiedTimeStamp();
+          reportAgeStat(instance, modTime, currTime);
         }
+        // System.out.println(modTime);
+        // XXX: need to convert participantStat to a better format
+        // need to get instanceName in here
 
+        if (participantStat != null)
+        {
+          // String timestamp = String.valueOf(instance.getModifiedTime()); WANT
+          // REPORT LEVEL TS
+          Map<String, Map<String, String>> statMap = participantStat
+              .getHealthFields(instanceName);
+          for (String key : statMap.keySet())
+          {
+            _statsHolder.applyStat(key, statMap.get(key));
+          }
+
+        }
       }
     }
 

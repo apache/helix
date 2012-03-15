@@ -89,11 +89,12 @@ public class ParticipantHealthReportCollectorImpl implements
     }
   }
 
-  // XXX: think about getting rid of method argument
   @Override
   public void reportHealthReportMessage(ZNRecord healthCheckInfoUpdate)
   {
-    transmitHealthReports();
+    _helixManager.getDataAccessor().setProperty(
+        PropertyType.HEALTHREPORT, healthCheckInfoUpdate, _instanceName, 
+        healthCheckInfoUpdate.getId());
   }
 
   public void stop()

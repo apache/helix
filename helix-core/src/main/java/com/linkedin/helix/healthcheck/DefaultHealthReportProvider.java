@@ -2,6 +2,7 @@ package com.linkedin.helix.healthcheck;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.OperatingSystemMXBean;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -57,6 +58,15 @@ class DefaultHealthReportProvider extends HealthReportProvider
     result.put(_totalJvmMemory, "" + totalJvmMemory);
     result.put(_averageSystemLoad, "" + avgSystemLoad);
 
+    return result;
+  }
+
+  @Override
+  public Map<String, Map<String, String>> getRecentPartitionHealthReport()
+  {
+    Map<String, Map<String, String>> result = new HashMap<String, Map<String, String>>();
+    
+    result.put(getReportName(), getRecentHealthReport());
     return result;
   }
 

@@ -176,9 +176,9 @@ public class TestEvaluateAlerts {
 	{
 		String alert = addWildcardAlert();
 		String stat = AlertParser.getComponent(AlertParser.EXPRESSION_NAME, alert);
-		addArrivingSimpleStat();
+    String incomingStatName = addArrivingSimpleStat();
 		Map<String, Map<String, AlertValueAndStatus>> alertResult = AlertProcessor.executeAllAlerts(_alertsHolder.getAlertList(), _statsHolder.getStatsList());
-		String wildcardBinding = "10";
+		String wildcardBinding = incomingStatName;
 		boolean alertFired = alertResult.get(alert).get(wildcardBinding).isFired();
 		AssertJUnit.assertTrue(alertFired);
 	}
@@ -188,9 +188,9 @@ public class TestEvaluateAlerts {
 	{
 		String alert = addExpandWildcardAlert();
 		String stat = AlertParser.getComponent(AlertParser.EXPRESSION_NAME, alert);
-		addArrivingSimpleStat();
+		String incomingStatName = addArrivingSimpleStat();
 		Map<String, Map<String, AlertValueAndStatus>> alertResult = AlertProcessor.executeAllAlerts(_alertsHolder.getAlertList(), _statsHolder.getStatsList());
-		String wildcardBinding = "10";
+		String wildcardBinding = incomingStatName;
 		boolean alertFired = alertResult.get(alert).get(wildcardBinding).isFired();
 		AssertJUnit.assertTrue(alertFired);
 	}
@@ -205,8 +205,17 @@ public class TestEvaluateAlerts {
 		boolean alertFired = alertResult.get(alert).get(AlertProcessor.noWildcardAlertKey).isFired();
 		AssertJUnit.assertTrue(alertFired);
 	}
-
-	@Test (groups = {"unitTest"})
+/**
+ * 
+ * We need to re-decide how to support the feature to specify more than one stats in
+ * an alert. 
+ * 
+ * Probabaly instead of 
+ * "(dbFoo.partition*.success,dbFoo.partition*.failure)", use the form
+ * "(dbFoo.partition*.(success, failure))" as it seems that the stat source is always the 
+ * same.
+ *  
+	//@Test (groups = {"unitTest"})
 	public void testExpandSumOperatorWildcardAlert()
 	{
 		String alert = addExpandSumWildcardAlert();
@@ -232,7 +241,7 @@ public class TestEvaluateAlerts {
 		AssertJUnit.assertFalse(alertFired);
 	}
 
-	@Test (groups = {"unitTest"})
+	//@Test (groups = {"unitTest"})
 	public void testExpandSumEachSumOperatorWildcardAlert()
 	{
 		String alert = addExpandSumEachSumWildcardAlert();
@@ -252,11 +261,11 @@ public class TestEvaluateAlerts {
 		statFields = getStatFields("49","0");
 		_statsHolder.applyStat(part11FailStat, statFields);
 		Map<String, Map<String, AlertValueAndStatus>> alertResult = AlertProcessor.executeAllAlerts(_alertsHolder.getAlertList(), _statsHolder.getStatsList());
-		boolean alertFired = alertResult.get(alert).get(AlertProcessor.noWildcardAlertKey).isFired(); //10 should fire
+		boolean alertFired = alertResult.get(alert).get(_statsHolder.getStatsList().get(0)).isFired(); //10 should fire
 		AssertJUnit.assertTrue(alertFired);
 	}
 
-	@Test (groups = {"unitTest"})
+	//@Test (groups = {"unitTest"})
 	public void testTwoAlerts()
 	{
 		//alert 1
@@ -294,7 +303,7 @@ public class TestEvaluateAlerts {
 		AssertJUnit.assertFalse(alertFired);
 
 	}
-
+*/
 	@Test (groups = {"unitTest"})
 	  public void testAddWildcardInFirstStatToken() throws Exception
 	  {
@@ -309,7 +318,7 @@ public class TestEvaluateAlerts {
 		 _statsHolder.applyStat(incomingStatName, statFields);
 
 		 Map<String, Map<String, AlertValueAndStatus>> alertResult = AlertProcessor.executeAllAlerts(_alertsHolder.getAlertList(), _statsHolder.getStatsList());
-		 String wildcardBinding = "10";
+		 String wildcardBinding = incomingStatName;
 		 boolean alertFired = alertResult.get(alert).get(wildcardBinding).isFired();
 		 AssertJUnit.assertTrue(alertFired);
 	  }
@@ -324,7 +333,7 @@ public class TestEvaluateAlerts {
 		Map<String, String> statFields = getStatFields("110","0");
 		_statsHolder.applyStat(incomingStatName, statFields);
 		Map<String, Map<String, AlertValueAndStatus>> alertResult = AlertProcessor.executeAllAlerts(_alertsHolder.getAlertList(), _statsHolder.getStatsList());
-		String wildcardBinding = "10,Count"; //XXX: this is not going to work...need "Count" in here too.
+		String wildcardBinding = incomingStatName; //XXX: this is not going to work...need "Count" in here too.
 		boolean alertFired = alertResult.get(alert).get(wildcardBinding).isFired();
 		AssertJUnit.assertTrue(alertFired);
 	}

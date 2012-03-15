@@ -70,15 +70,11 @@ public class TestStatsMatch {
 	  public void testBadWildcardRepeated()
 	  {
 	    
-	    String persistedStatName = "window(5)(dbFoo.partition**.latency)";
+	    String persistedStatName = "window(5)(dbFoo.partition**4.latency)";
 	    String incomingStatName = "dbFoo.partition10.latency";
-	    boolean caughtException = false;
-	    try {
-	    	boolean match = ExpressionParser.isIncomingStatWildcardMatch(persistedStatName, incomingStatName);
-	    } catch (HelixException e) {
-	    	caughtException = true;
-	    }
-	    AssertJUnit.assertTrue(caughtException);
+	    boolean match = ExpressionParser.isIncomingStatWildcardMatch(persistedStatName, incomingStatName);
+	    
+	    AssertJUnit.assertFalse(match);
 	  }
 	
 	@Test
@@ -87,12 +83,8 @@ public class TestStatsMatch {
 	    
 	    String persistedStatName = "window(5)(dbFoo.*partition.latency)";
 	    String incomingStatName = "dbFoo.partition10.latency";
-	    boolean caughtException = false;
-	    try {
-	    	boolean match = ExpressionParser.isIncomingStatWildcardMatch(persistedStatName, incomingStatName);
-	    } catch (HelixException e) {
-	    	caughtException = true;
-	    }
-	    AssertJUnit.assertTrue(caughtException);
+	    boolean match = ExpressionParser.isIncomingStatWildcardMatch(persistedStatName, incomingStatName);
+	    
+	    AssertJUnit.assertFalse(match);
 	  }
 }

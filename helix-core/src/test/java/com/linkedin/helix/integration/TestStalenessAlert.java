@@ -33,7 +33,7 @@ public class TestStalenessAlert extends ZkIntegrationTestBase
   ZkClient _zkClient;
   protected ClusterSetup _setupTool = null;
   protected final String _alertStr = "EXP(decay(1)(localhost_*.reportingage))CMP(GREATER)CON(600)";
-  protected final String _alertStatusStr = _alertStr+" : (12918)";
+  protected final String _alertStatusStr = _alertStr+" : (localhost_12918.reportingage)";
   protected final String _dbName = "TestDB0";
 
   @BeforeClass ()

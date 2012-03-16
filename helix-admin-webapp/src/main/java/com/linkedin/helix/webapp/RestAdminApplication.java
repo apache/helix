@@ -39,6 +39,7 @@ import com.linkedin.helix.webapp.resources.StateModelResource;
 import com.linkedin.helix.webapp.resources.StateModelsResource;
 import com.linkedin.helix.webapp.resources.StatusUpdateResource;
 import com.linkedin.helix.webapp.resources.StatusUpdatesResource;
+import com.linkedin.helix.webapp.resources.ZkPathResource;
 
 public class RestAdminApplication extends Application
 {
@@ -79,7 +80,7 @@ public class RestAdminApplication extends Application
     router.attach("/clusters/{clusterName}/StateModelDefs", StateModelsResource.class);
     router.attach("/clusters/{clusterName}/SchedulerTasks", SchedulerTasksResource.class);
     router.attach("/clusters/{clusterName}/Controller/statusUpdates/{MessageType}/{MessageId}", ControllerStatusUpdateResource.class);
-    
+    router.attach("/zkPath", ZkPathResource.class);
 
     Restlet mainpage = new Restlet()
     {

@@ -64,9 +64,13 @@ public class ZkPathResource extends Resource
     {
       String zkServer = (String) getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
       String zkPath = "/" + getRequest().getResourceRef().getRelativeRef().toString();
-      if(zkPath.endsWith("/."))
+      if(zkPath.equals("/.") || zkPath.endsWith("/"))
       {
         zkPath = zkPath.substring(0, zkPath.length() - 1);
+      }
+      if(zkPath.length() == 0)
+      {
+        zkPath = "/";
       }
       
       ZkClient zkClient = ZKClientPool.getZkClient(zkServer);

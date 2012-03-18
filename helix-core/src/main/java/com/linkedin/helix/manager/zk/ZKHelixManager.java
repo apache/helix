@@ -14,6 +14,7 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Timer;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -137,7 +138,7 @@ public class ZKHelixManager implements HelixManager
 
     _stateMachEngine = new HelixStateMachineEngine(this);
   }
-
+  
   private boolean isInstanceSetup()
   {
     if (_instanceType == InstanceType.PARTICIPANT
@@ -162,6 +163,7 @@ public class ZKHelixManager implements HelixManager
   @Override
   public void addIdealStateChangeListener(final IdealStateChangeListener listener) throws Exception
   {
+    logger.info("ClusterManager.addIdealStateChangeListener()");
     checkConnected();
     final String path = PropertyPathConfig.getPath(PropertyType.IDEALSTATES, _clusterName);
     CallbackHandler callbackHandler = createCallBackHandler(path, listener, new EventType[] {
@@ -173,6 +175,7 @@ public class ZKHelixManager implements HelixManager
   @Override
   public void addLiveInstanceChangeListener(LiveInstanceChangeListener listener) throws Exception
   {
+    logger.info("ClusterManager.addLiveInstanceChangeListener()");
     checkConnected();
     final String path = HelixUtil.getLiveInstancesPath(_clusterName);
     CallbackHandler callbackHandler = createCallBackHandler(path, listener, new EventType[] {
@@ -185,6 +188,7 @@ public class ZKHelixManager implements HelixManager
   @Override
   public void addConfigChangeListener(ConfigChangeListener listener)
   {
+    logger.info("ClusterManager.addConfigChangeListener()");
     checkConnected();
     // final String path = HelixUtil.getConfigPath(_clusterName);
     final String path = PropertyPathConfig.getPath(PropertyType.CONFIGS, _clusterName,
@@ -194,7 +198,7 @@ public class ZKHelixManager implements HelixManager
         new EventType[] { EventType.NodeChildrenChanged }, CONFIG);
     // _handlers.add(callbackHandler);
     addListener(callbackHandler);
-
+    
   }
 
   // TODO: Decide if do we still need this since we are exposing
@@ -202,6 +206,7 @@ public class ZKHelixManager implements HelixManager
   @Override
   public void addMessageListener(MessageListener listener, String instanceName)
   {
+    logger.info("ClusterManager.addMessageListener() " + instanceName);
     checkConnected();
     final String path = HelixUtil.getMessagePath(_clusterName, instanceName);
 
@@ -213,6 +218,7 @@ public class ZKHelixManager implements HelixManager
 
   void addControllerMessageListener(MessageListener listener)
   {
+    logger.info("ClusterManager.addControllerMessageListener()");
     checkConnected();
     final String path = HelixUtil.getControllerPropertyPath(_clusterName,
         PropertyType.MESSAGES_CONTROLLER);
@@ -228,6 +234,7 @@ public class ZKHelixManager implements HelixManager
   public void addCurrentStateChangeListener(CurrentStateChangeListener listener,
       String instanceName, String sessionId)
   {
+    logger.info("ClusterManager.addCurrentStateChangeListener() " + instanceName + " " + sessionId);
     checkConnected();
     final String path = HelixUtil.getCurrentStateBasePath(_clusterName, instanceName) + "/"
         + sessionId;
@@ -244,6 +251,7 @@ public class ZKHelixManager implements HelixManager
   {
     // System.out.println("ZKClusterManager.addHealthStateChangeListener()");
     // TODO: re-form this for stats checking
+    logger.info("ClusterManager.addHealthStateChangeListener()" + instanceName);
     checkConnected();
     final String path = HelixUtil.getHealthPath(_clusterName, instanceName);
 
@@ -257,6 +265,7 @@ public class ZKHelixManager implements HelixManager
   @Override
   public void addExternalViewChangeListener(ExternalViewChangeListener listener)
   {
+    logger.info("ClusterManager.addExternalViewChangeListener()");
     checkConnected();
     final String path = HelixUtil.getExternalViewPath(_clusterName);
 
@@ -641,6 +650,7 @@ public class ZKHelixManager implements HelixManager
     synchronized (this)
     {
       _handlers.add(handler);
+      logger.info("Total " + _handlers.size() + " handlers");
     }
   }
 
@@ -784,5 +794,10 @@ public class ZKHelixManager implements HelixManager
   public StateMachineEngine getStateMachineEngine()
   {
     return _stateMachEngine;
+  }
+
+  protected List<CallbackHandler> getHandlers()
+  {
+    return _handlers;
   }
 }

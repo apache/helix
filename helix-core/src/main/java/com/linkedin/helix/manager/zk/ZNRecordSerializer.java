@@ -22,7 +22,11 @@ public class ZNRecordSerializer implements ZkSerializer
   @Override
   public byte[] serialize(Object data)
   {
-
+    if (!(data instanceof ZNRecord))
+    {
+      logger.error("Input object must be of type ZNRecord but it is" + data);
+      return new byte[]{};
+    }
     ObjectMapper mapper = new ObjectMapper();
 
     SerializationConfig serializationConfig = mapper.getSerializationConfig();
@@ -71,7 +75,6 @@ public class ZNRecordSerializer implements ZkSerializer
     return null;
   }
 
-  
   public static void main(String[] args)
   {
     ZNRecord record = new ZNRecord("asdsa");
@@ -81,7 +84,7 @@ public class ZNRecordSerializer implements ZkSerializer
     // record.setSimpleField("asdsa", "adasdsdasd");
     record.setMapField("db.partion-0", v);
     ZNRecordDelta deltaRecord = new ZNRecordDelta(record);
-    
+
     Message message = new Message(record);
 
     ZNRecordSerializer serializer = new ZNRecordSerializer();
@@ -101,5 +104,5 @@ public class ZNRecordSerializer implements ZkSerializer
         .readData("/test-cluster/instances/localhost_8900/currentStates/test_DB.partition-2");
     System.out.println(readData);
   }
-  
+
 }

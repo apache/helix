@@ -5,6 +5,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ConcurrentSkipListSet;
 
 import org.I0Itec.zkclient.exception.ZkInterruptedException;
 import org.apache.log4j.Logger;
@@ -20,6 +21,7 @@ import com.linkedin.helix.IdealStateChangeListener;
 import com.linkedin.helix.LiveInstanceChangeListener;
 import com.linkedin.helix.MessageListener;
 import com.linkedin.helix.NotificationContext;
+import com.linkedin.helix.NotificationContext.Type;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.controller.pipeline.Pipeline;
 import com.linkedin.helix.controller.pipeline.PipelineRegistry;
@@ -78,7 +80,8 @@ public class GenericHelixController implements
    * Since instance current state is per-session-id, we need to track the session-ids of
    * the current states that the ClusterController is observing.
    */
-  private final Set<String> _instanceCurrentStateChangeSubscriptionList;
+  private final Set<String> _instanceCurrentStateChangeSubscriptionSessionIds;
+  private final Set<String> _instanceSubscriptionNames;
   private final ExternalViewGenerator _externalViewGenerator;
 
   /**
@@ -160,7 +163,8 @@ public class GenericHelixController implements
   {
     _paused = false;
     _registry = registry;
-    _instanceCurrentStateChangeSubscriptionList = new HashSet<String>();
+    _instanceCurrentStateChangeSubscriptionSessionIds = new ConcurrentSkipListSet<String>();
+    _instanceSubscriptionNames = new ConcurrentSkipListSet<String>();
     _externalViewGenerator = new ExternalViewGenerator();
   }
 
@@ -316,6 +320,28 @@ public class GenericHelixController implements
     event.addAttribute("helixmanager", changeContext.getManager());
     event.addAttribute("eventData", configs);
     handleEvent(event);
+    if(changeContext.getType() == Type.INIT)
+    {
+      for(InstanceConfig config : configs)
+      {
+        String instanceName = config.getInstanceName();
+        try
+        {
+          if(! _instanceSubscriptionNames.contains(instanceName))
+          {
+            logger.info("Adding msg/health listeners for " + instanceName);
+            changeContext.getManager().addMessageListener(this, instanceName);
+            changeContext.getManager().addHealthStateChangeListener(this, instanceName);
+            _instanceSubscriptionNames.add(instanceName);
+          }
+        }
+        catch (Exception e)
+        {
+          logger.error("Exception adding current state and message listener for instance:"
+                           + instanceName, e);
+        }
+      }
+    }
     logger.info("END: GenericClusterController.onConfigChange()");
   }
 
@@ -386,15 +412,13 @@ public class GenericHelixController implements
       String instanceName = instance.getId();
       String clientSessionId = instance.getSessionId();
 
-      if (!_instanceCurrentStateChangeSubscriptionList.contains(clientSessionId))
+      if (!_instanceCurrentStateChangeSubscriptionSessionIds.contains(clientSessionId))
       {
         try
         {
           changeContext.getManager().addCurrentStateChangeListener(this,
                                                                    instanceName,
                                                                    clientSessionId);
-          changeContext.getManager().addMessageListener(this, instanceName);
-          changeContext.getManager().addHealthStateChangeListener(this, instanceName);
         }
         catch (Exception e)
         {
@@ -404,9 +428,10 @@ public class GenericHelixController implements
         }
         logger.info("Observing client session id: " + clientSessionId + "@"
             + new Date().getTime());
-        _instanceCurrentStateChangeSubscriptionList.add(clientSessionId);
+        _instanceCurrentStateChangeSubscriptionSessionIds.add(clientSessionId);
       }
-      // TODO shi call removeListener
+      // TODO shi should call removeListener on the previous session id;
+      // but the removeListener with that functionality is not implementated yet
     }
   }
 

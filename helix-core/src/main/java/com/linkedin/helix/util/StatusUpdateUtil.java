@@ -88,7 +88,7 @@ public class StatusUpdateUtil
 
   public static enum TaskStatus
   {
-    UNKNOWN, SCHEDULED, INVOKING, COMPLETED, FAILED
+    UNKNOWN, NEW, SCHEDULED, INVOKING, COMPLETED, FAILED
   }
 
   public static class StatusUpdateContents

@@ -3,6 +3,7 @@ package com.linkedin.helix.controller.stages;
 import java.util.Date;
 import java.util.List;
 
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -114,6 +115,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase
   @Test
   public void testMsgTriggeredRebalance() throws Exception
   {
+    Logger.getRootLogger().setLevel(Level.DEBUG);
     String clusterName = "CLUSTER_" + _className + "_msgTrigger";
     System.out.println("START " + clusterName + " at "
         + new Date(System.currentTimeMillis()));
@@ -131,6 +133,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase
     // replica=2 means 1 master and 1 slave
     setupIdealState(clusterName, new int[] { 0, 1 }, resourceGroups, 1, 2);
     setupStateModel(clusterName);
+    setupInstances(clusterName, new int[]{0,1});
     setupLiveInstances(clusterName, new int[] { 0, 1 });
 
     TestHelper.startController(clusterName, "controller_0", ZK_ADDR, HelixControllerMain.STANDALONE);

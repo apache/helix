@@ -115,7 +115,6 @@ public class TestRebalancePipeline extends ZkUnitTestBase
   @Test
   public void testMsgTriggeredRebalance() throws Exception
   {
-    Logger.getRootLogger().setLevel(Level.DEBUG);
     String clusterName = "CLUSTER_" + _className + "_msgTrigger";
     System.out.println("START " + clusterName + " at "
         + new Date(System.currentTimeMillis()));

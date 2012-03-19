@@ -145,7 +145,7 @@ public class TestExpandAlert extends ZkIntegrationTestBase
     Assert.assertTrue(result);
 
   //sleep for a few seconds to give stats stage time to trigger
-    Thread.sleep(5000);
+    Thread.sleep(10000);
 
     // other verifications go here
     ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);

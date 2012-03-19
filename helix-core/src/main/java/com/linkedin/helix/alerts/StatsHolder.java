@@ -29,9 +29,9 @@ public class StatsHolder
 
   DataAccessor _accessor;
   ClusterDataCache _cache;
+
   Map<String, Map<String, String>> _statMap;
-  // PersistentStats _persistentStats
-  ;
+  // PersistentStats _persistentStats;
 
   public StatsHolder(HelixManager manager)
   {
@@ -42,6 +42,7 @@ public class StatsHolder
 
   public void refreshStats()
   {
+    logger.info("Refreshing cached stats");
     _cache.refresh(_accessor);
     PersistentStats persistentStatRecord = _cache.getPersistentStats();
     if (persistentStatRecord != null)
@@ -80,7 +81,35 @@ public class StatsHolder
     // logger.debug("persistStats retVal: "+retVal);
   }
 
-  public Iterator<String> getAllStats()
+  public void getStatsFromCache(boolean refresh)
+  {
+    long refreshStartTime = System.currentTimeMillis();
+    if (refresh) {
+      _cache.refresh(_accessor);
+    }
+    PersistentStats persistentStatRecord = _cache.getPersistentStats();
+    if (persistentStatRecord != null) {
+      _statMap = persistentStatRecord.getMapFields();
+    }
+    else {
+      _statMap = new HashMap<String,Map<String,String>>();
+    }
+    /*
+		if (_cache.getPersistentStats() != null) {
+
+			_statMap = _cache.getPersistentStats();
+		}
+     */
+    //TODO: confirm this a good place to init the _statMap when null
+    /*
+		if (_statMap == null) {
+			_statMap = new HashMap<String, Map<String, String>>();
+		}
+     */
+    System.out.println("Refresh stats done: "+(System.currentTimeMillis() - refreshStartTime));
+  }
+
+  public Iterator<String> getAllStats() 
   {
     return null;
   }
@@ -152,7 +181,7 @@ public class StatsHolder
   public void applyStat(String incomingStatName, Map<String, String> statFields)
   {
     // TODO: consider locking stats here
-    refreshStats();
+    //refreshStats(); //will have refreshed by now during stage
 
     Map<String, Map<String, String>> pendingAdds = new HashMap<String, Map<String, String>>();
 
@@ -236,7 +265,8 @@ public class StatsHolder
     return statMap;
   }
 
-  public static Map<String, String> getEmptyStat()
+
+  public static Map<String, String> getEmptyStat() 
   {
     Map<String, String> statFields = new HashMap<String, String>();
     statFields.put(TIMESTAMP_NAME, "");
@@ -246,7 +276,7 @@ public class StatsHolder
 
   public List<Stat> getStatsList()
   {
-    refreshStats();
+    //refreshStats(); //don't refresh, stage will have refreshed by this time
     List<Stat> stats = new LinkedList<Stat>();
     for (String stat : _statMap.keySet())
     {
@@ -261,7 +291,7 @@ public class StatsHolder
 
   public Map<String, Tuple<String>> getStatsMap()
   {
-    refreshStats();
+    //refreshStats(); //don't refresh, stage will have refreshed by this time
     HashMap<String, Tuple<String>> stats = new HashMap<String, Tuple<String>>();
     for (String stat : _statMap.keySet())
     {

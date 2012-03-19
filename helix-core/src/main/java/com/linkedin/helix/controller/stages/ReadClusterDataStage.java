@@ -21,6 +21,7 @@ public class ReadClusterDataStage extends AbstractBaseStage
   @Override
   public void process(ClusterEvent event) throws Exception
   {
+    long processStartTime = System.currentTimeMillis();
     HelixManager manager = event.getAttribute("helixmanager");
     if (manager == null)
     {
@@ -30,5 +31,6 @@ public class ReadClusterDataStage extends AbstractBaseStage
     _cache.refresh(dataAccessor);
 
     event.addAttribute("ClusterDataCache", _cache);
+    System.out.println("ReadClusterDataStage done: "+(System.currentTimeMillis() - processStartTime));
   }
 }

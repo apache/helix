@@ -129,6 +129,7 @@ public class GenericHelixController implements
       Pipeline liveInstancePipeline = new Pipeline();
       liveInstancePipeline.addStage(new CompatibilityCheckStage());
 
+      
       registry.register("idealStateChange", dataRefresh, rebalancePipeline);
       registry.register("currentStateChange",
                         dataRefresh,
@@ -147,6 +148,7 @@ public class GenericHelixController implements
                         externalViewPipeline);
       registry.register("externalView", dataRefresh);
       registry.register("resume", dataRefresh, rebalancePipeline, externalViewPipeline);
+      
 
       // health stats pipeline
    	  Pipeline healthStatsAggregationPipeline = new Pipeline();

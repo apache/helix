@@ -144,7 +144,7 @@ public class AlertsHolder {
 	    alertStatusSize = alertStatus.getMapFields().size();
 	  }
 	  //no need to persist alerts if there are none to persist and none are currently persisted
-	 if (_alertStatusMap.size() == 0  || alertStatusSize == 0) {
+	 if (_alertStatusMap.size() > 0  || alertStatusSize > 0) {
 	  persistAlertStatus(); //save statuses in zk
 	 }
 	}

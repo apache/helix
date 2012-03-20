@@ -126,7 +126,7 @@ public class TestAddDropAlert extends ZkIntegrationTestBase
                             1,            // resources
                             10,           // partitions per resource group
                             5,            // number of nodes //change back to 5!!!
-                            3,            // replicas //change back to 3!!!
+                            1,            // replicas //change back to 3!!!
                             "MasterSlave",
                             true);        // do rebalance
 

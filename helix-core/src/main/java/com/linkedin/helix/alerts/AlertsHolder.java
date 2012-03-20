@@ -138,10 +138,15 @@ public class AlertsHolder {
 	    }
 	  }
 	 
-	 //if (_alertStatusMap.size() > 0  
-	     //&& _accessor.getChildNames(PropertyType.ALERT_STATUS).size() == 0) {
+	  AlertStatus alertStatus = _accessor.getProperty(AlertStatus.class, PropertyType.ALERT_STATUS);
+	  int alertStatusSize = 0;
+	  if (alertStatus != null) {
+	    alertStatusSize = alertStatus.getMapFields().size();
+	  }
+	  //no need to persist alerts if there are none to persist and none are currently persisted
+	 if (_alertStatusMap.size() == 0  || alertStatusSize == 0) {
 	  persistAlertStatus(); //save statuses in zk
-	 //}
+	 }
 	}
 	
 	private void addAlertStatus(String parentAlertKey, Map<String,AlertValueAndStatus> alertStatus) throws HelixException

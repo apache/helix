@@ -11,18 +11,17 @@ import org.apache.commons.cli.ParseException;
 import org.restlet.Application;
 import org.restlet.Component;
 import org.restlet.Context;
-import org.restlet.data.Request;
 import org.restlet.Restlet;
+import org.restlet.Router;
 import org.restlet.data.MediaType;
 import org.restlet.data.Protocol;
-import org.restlet.resource.StringRepresentation;
-import org.restlet.Router;
-
+import org.restlet.data.Request;
 import org.restlet.data.Response;
+import org.restlet.resource.StringRepresentation;
 
-import com.linkedin.helix.tools.ClusterSetup;
 import com.linkedin.helix.webapp.resources.ClusterResource;
 import com.linkedin.helix.webapp.resources.ClustersResource;
+import com.linkedin.helix.webapp.resources.ConfigResource;
 import com.linkedin.helix.webapp.resources.ControllerStatusUpdateResource;
 import com.linkedin.helix.webapp.resources.CurrentStateResource;
 import com.linkedin.helix.webapp.resources.CurrentStatesResource;
@@ -47,7 +46,7 @@ public class RestAdminApplication extends Application
   public static final String ZKSERVERADDRESS = "zkSvr";
   public static final String PORT = "port";
   public static final int DEFAULT_PORT = 8100;
-  
+
   public RestAdminApplication()
   {
     super();
@@ -80,7 +79,12 @@ public class RestAdminApplication extends Application
     router.attach("/clusters/{clusterName}/StateModelDefs", StateModelsResource.class);
     router.attach("/clusters/{clusterName}/SchedulerTasks", SchedulerTasksResource.class);
     router.attach("/clusters/{clusterName}/Controller/statusUpdates/{MessageType}/{MessageId}", ControllerStatusUpdateResource.class);
+    router.attach("/clusters/{clusterName}/configs", ConfigResource.class);
+    router.attach("/clusters/{clusterName}/configs/{scope}", ConfigResource.class);
+    router.attach("/clusters/{clusterName}/configs/{scope}/{scopeKey1}", ConfigResource.class);
+    router.attach("/clusters/{clusterName}/configs/{scope}/{scopeKey1}/{scopeKey2}", ConfigResource.class);
     router.attach("/zkPath", ZkPathResource.class);
+
 
     Restlet mainpage = new Restlet()
     {
@@ -108,7 +112,7 @@ public class RestAdminApplication extends Application
     router.attach("", mainpage);
     return router;
   }
-  
+
   public static void printUsage(Options cliOptions)
   {
     HelpFormatter helpFormatter = new HelpFormatter();
@@ -123,27 +127,27 @@ public class RestAdminApplication extends Application
     helpOption.setArgs(0);
     helpOption.setRequired(false);
     helpOption.setArgName("print help message");
-    
+
     Option zkServerOption = OptionBuilder.withLongOpt(ZKSERVERADDRESS)
         .withDescription("Provide zookeeper address").create();
     zkServerOption.setArgs(1);
     zkServerOption.setRequired(true);
     zkServerOption.setArgName("ZookeeperServerAddress(Required)");
-    
+
     Option portOption = OptionBuilder.withLongOpt(PORT)
     .withDescription("Provide web service port").create();
     portOption.setArgs(1);
     portOption.setRequired(false);
     portOption.setArgName("web service port, default: "+ DEFAULT_PORT);
-        
+
     Options options = new Options();
     options.addOption(helpOption);
     options.addOption(zkServerOption);
     options.addOption(portOption);
-    
+
     return options;
   }
-  
+
   public static void processCommandLineArgs(String[] cliArgs) throws Exception
   {
     CommandLineParser cliParser = new GnuParser();
@@ -153,7 +157,7 @@ public class RestAdminApplication extends Application
     try
     {
       cmd = cliParser.parse(cliOptions, cliArgs);
-    } 
+    }
     catch (ParseException pe)
     {
       System.err.println("RestAdminApplication: failed to parse command-line options: "
@@ -178,7 +182,7 @@ public class RestAdminApplication extends Application
     applicationContext.getAttributes().put(ZKSERVERADDRESS, cmd.getOptionValue(ZKSERVERADDRESS));
     applicationContext.getAttributes().put(PORT, "" + port);
     RestAdminApplication application = new RestAdminApplication(
-        applicationContext); 
+        applicationContext);
     // Attach the application to the component and start it
     component.getDefaultHost().attach(application);
     component.start();

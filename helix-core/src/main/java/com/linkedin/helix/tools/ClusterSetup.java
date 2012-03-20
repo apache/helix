@@ -82,7 +82,7 @@ public class ClusterSetup
   public static final String addAlert = "addAlert";
   public static final String dropStat = "dropStat";
   public static final String dropAlert = "dropAlert";
-  
+
   // get/set configs
   public static final String getConfig = "getConfig";
   public static final String setConfig = "setConfig";
@@ -113,7 +113,7 @@ public class ClusterSetup
     addStateModelDef(clusterName, "OnlineOffline",
         new StateModelDefinition(generator.generateConfigForOnlineOffline()));
   }
-  
+
   public void addCluster(String clusterName, boolean overwritePrevious, String grandCluster)
   {
     _admin.addCluster(clusterName, overwritePrevious, grandCluster);
@@ -334,37 +334,6 @@ public class ClusterSetup
     _admin.setResourceIdealState(clusterName, resourceName, idealState);
   }
 
-  private ConfigScope parseScope(String scopesStr)
-  {
-    // parse scopes
-    ConfigScopeBuilder scopeBuilder = new ConfigScopeBuilder();
-    String[] scopes = scopesStr.split("[\\s,]+");
-    for (String scope : scopes)
-    {
-      try
-      {
-        int idx = scope.indexOf('=');
-        if (idx == -1)
-        {
-          logger.error("Invalid scope string: " + scope);
-          continue;
-        }
-        
-        String scopeStr = scope.substring(0, idx);
-        String value = scope.substring(idx + 1);
-        ConfigScopeProperty scopeProperty = ConfigScopeProperty.valueOf(scopeStr);
-        scopeBuilder.getScopeMap().put(scopeProperty, value);
-      } catch (Exception e)
-      {
-        logger.error("Invalid scope string: " + scope);
-        continue;        
-      }
-    }
-    logger.debug("scopeBuilder: " + scopeBuilder);
-    
-    return scopeBuilder.build();
-  }
-  
   /**
    * setConfig
    * @param scopeStr: scope=value, ... where scope=CLUSTER, RESOURCE, PARTICIPANT, PARTITION
@@ -372,8 +341,8 @@ public class ClusterSetup
    */
   public void setConfig(String scopesStr, String propertiesStr)
   {
-    ConfigScope scope = parseScope(scopesStr);
-    
+    ConfigScope scope = new ConfigScopeBuilder().build(scopesStr);
+
     // parse properties
     String[] properties = propertiesStr.split("[\\s,]");
     Map<String, String> propertiesMap = new TreeMap<String, String>();
@@ -385,24 +354,24 @@ public class ClusterSetup
         logger.error("Invalid property string: " + property);
         continue;
       }
-      
+
       String key = property.substring(0, idx);
       String value = property.substring(idx + 1);
       propertiesMap.put(key, value);
     }
     logger.debug("propertiesMap: " + propertiesMap);
-    
+
     _admin.setConfig(scope, propertiesMap);
   }
-  
+
   public String getConfig(String scopesStr, String keysStr)
   {
-    ConfigScope scope = parseScope(scopesStr);
+    ConfigScope scope = new ConfigScopeBuilder().build(scopesStr);
 
     // parse keys
     String[] keys = keysStr.split("[\\s,]");
     Set<String> keysSet = new HashSet<String>(Arrays.asList(keys));
-    
+
     Map<String, String> propertiesMap = _admin.getConfig(scope, keysSet);
     StringBuffer sb = new StringBuffer();
     for (String key : keys)
@@ -416,20 +385,20 @@ public class ClusterSetup
         {
           // sb.length()==0 means the first key=value
           sb.append(key + "=" + propertiesMap.get(key));
-        }      
+        }
       } else {
         logger.error("Config doesn't exist for key: " + key);
       }
     }
-    
+
     System.out.println(sb.toString());
     return sb.toString();
   }
-  
+
   /**
    * Sets up a cluster with 6 Instances[localhost:8900 to localhost:8905], 1
    * resource[EspressoDB] with a replication factor of 3
-   * 
+   *
    * @param clusterName
    */
   public void setupTestCluster(String clusterName)
@@ -486,7 +455,7 @@ public class ClusterSetup
     addClusterOption.setArgs(1);
     addClusterOption.setRequired(false);
     addClusterOption.setArgName("clusterName");
-    
+
     Option addClusterOption2 =
         OptionBuilder.withLongOpt(addCluster2).withDescription("Add a new cluster").create();
     addClusterOption2.setArgs(2);
@@ -528,7 +497,7 @@ public class ClusterSetup
     dropInstanceOption.setArgs(2);
     dropInstanceOption.setRequired(false);
     dropInstanceOption.setArgName("clusterName InstanceAddress(host:port)");
-    
+
     Option dropResourceOption = OptionBuilder.withLongOpt(dropResource)
         .withDescription("Drop an existing resource from a cluster").create();
     dropResourceOption.setArgs(2);
@@ -615,7 +584,7 @@ public class ClusterSetup
     getConfOption.setArgs(2);
     getConfOption.setRequired(false);
     getConfOption.setArgName("ConfigScope(scope=value,...) Set(key,...");
-    
+
     OptionGroup group = new OptionGroup();
     group.setRequired(true);
     group.addOption(rebalanceOption);
@@ -727,7 +696,7 @@ public class ClusterSetup
       setupTool.addCluster(clusterName, false);
       return 0;
     }
-    
+
     if (cmd.hasOption(addCluster2))
     {
       String clusterName = cmd.getOptionValues(addCluster2)[0];
@@ -951,7 +920,7 @@ public class ClusterSetup
       String alertName = cmd.getOptionValues(dropAlert)[1];
 
       setupTool.getClusterManagementTool().dropAlert(clusterName, alertName);
-    } 
+    }
     else if(cmd.hasOption(dropResource))
     {
       String clusterName = cmd.getOptionValues(dropResource)[0];
@@ -988,7 +957,7 @@ public class ClusterSetup
   {
     // debug
     // System.out.println("args(" + args.length + "): " + Arrays.asList(args));
-    
+
     if (args.length == 1 && args[0].equals("setup-test-cluster"))
     {
       System.out.println("By default setting up ");

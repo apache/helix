@@ -26,8 +26,8 @@ import org.restlet.data.Reference;
 import org.restlet.data.Request;
 import org.restlet.data.Response;
 import org.restlet.resource.Representation;
+import org.testng.Assert;
 import org.testng.AssertJUnit;
-import org.testng.annotations.AfterMethod;
 import org.testng.annotations.AfterTest;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
@@ -139,7 +139,7 @@ public class TestClusterManagementWebapp
     System.out.println("WebApp started!!");
   }
 
-  @AfterMethod
+  // @AfterMethod
   @AfterTest
   public void tearDown() throws Exception
   {
@@ -157,6 +157,8 @@ public class TestClusterManagementWebapp
     verifyRebalance();
     verifyEnableInstance();
     verifyAlterIdealState();
+    verifyConfigAccessor();
+
     System.out.println("Test passed!!");
   }
 
@@ -526,5 +528,134 @@ public class TestClusterManagementWebapp
     {
       AssertJUnit.assertTrue(r.getMapFields().containsKey(key));
     }
+  }
+
+  // verify get/post configs in different scopes
+  void verifyConfigAccessor() throws Exception
+  {
+    ObjectMapper mapper = new ObjectMapper();
+    Client client = new Client(Protocol.HTTP);
+
+    // set/get cluster scope configs
+    String url = "http://localhost:" + _port + "/clusters/" + clusterName
+        + "/configs/cluster/" + clusterName;
+
+    postConfig(client, url, mapper, ClusterRepresentationUtil._setConfig, "key1=value1,key2=value2");
+
+    ZNRecord record = get(client, url, mapper);
+    Assert.assertEquals(record.getSimpleFields().size(), 2);
+    Assert.assertEquals(record.getSimpleField("key1"), "value1");
+    Assert.assertEquals(record.getSimpleField("key2"), "value2");
+
+    // set/get participant scope configs
+    url = "http://localhost:" + _port + "/clusters/" + clusterName
+        + "/configs/participant/localhost_12918";
+
+    postConfig(client, url, mapper, ClusterRepresentationUtil._setConfig, "key3=value3,key4=value4");
+
+    record = get(client, url, mapper);
+    Assert.assertEquals(record.getSimpleFields().size(), 2);
+    Assert.assertEquals(record.getSimpleField("key3"), "value3");
+    Assert.assertEquals(record.getSimpleField("key4"), "value4");
+
+    // set/get resource scope configs
+    url = "http://localhost:" + _port + "/clusters/" + clusterName
+        + "/configs/resource/testResource";
+
+    postConfig(client, url, mapper, ClusterRepresentationUtil._setConfig, "key5=value5,key6=value6");
+
+    record = get(client, url, mapper);
+    Assert.assertEquals(record.getSimpleFields().size(), 2);
+    Assert.assertEquals(record.getSimpleField("key5"), "value5");
+    Assert.assertEquals(record.getSimpleField("key6"), "value6");
+
+    // set/get partition scope configs
+    url = "http://localhost:" + _port + "/clusters/" + clusterName
+        + "/configs/partition/testResource/testPartition";
+
+    postConfig(client, url, mapper, ClusterRepresentationUtil._setConfig, "key7=value7,key8=value8");
+
+    record = get(client, url, mapper);
+    Assert.assertEquals(record.getSimpleFields().size(), 2);
+    Assert.assertEquals(record.getSimpleField("key7"), "value7");
+    Assert.assertEquals(record.getSimpleField("key8"), "value8");
+
+    // list keys
+    url = "http://localhost:" + _port + "/clusters/" + clusterName + "/configs";
+    record = get(client, url, mapper);
+    Assert.assertEquals(record.getListFields().size(), 1);
+    Assert.assertTrue(record.getListFields().containsKey("scopes"));
+    Assert.assertTrue(contains(record.getListField("scopes"), "CLUSTER", "PARTICIPANT", "RESOURCE", "PARTITION"));
+
+    url = "http://localhost:" + _port + "/clusters/" + clusterName + "/configs/cluster";
+    record = get(client, url, mapper);
+    Assert.assertEquals(record.getListFields().size(), 1);
+    Assert.assertTrue(record.getListFields().containsKey("CLUSTER"));
+    Assert.assertTrue(contains(record.getListField("CLUSTER"), clusterName));
+
+    url = "http://localhost:" + _port + "/clusters/" + clusterName + "/configs/participant";
+    record = get(client, url, mapper);
+    Assert.assertTrue(record.getListFields().containsKey("PARTICIPANT"));
+    Assert.assertTrue(contains(record.getListField("PARTICIPANT"), "localhost_12918"));
+
+    url = "http://localhost:" + _port + "/clusters/" + clusterName + "/configs/resource";
+    record = get(client, url, mapper);
+    Assert.assertEquals(record.getListFields().size(), 1);
+    Assert.assertTrue(record.getListFields().containsKey("RESOURCE"));
+    Assert.assertTrue(contains(record.getListField("RESOURCE"), "testResource"));
+
+    url = "http://localhost:" + _port + "/clusters/" + clusterName + "/configs/partition/testResource";
+    record = get(client, url, mapper);
+    Assert.assertEquals(record.getListFields().size(), 1);
+    Assert.assertTrue(record.getListFields().containsKey("PARTITION"));
+    Assert.assertTrue(contains(record.getListField("PARTITION"), "testPartition"));
+
+  }
+
+  private ZNRecord get(Client client, String url, ObjectMapper mapper) throws Exception
+  {
+    Request request = new Request(Method.GET, new Reference(url));
+    Response response = client.handle(request);
+    Representation result = response.getEntity();
+    StringWriter sw = new StringWriter();
+    result.write(sw);
+    String responseStr = sw.toString();
+    Assert.assertTrue(responseStr.toLowerCase().indexOf("error") == -1);
+    Assert.assertTrue(responseStr.toLowerCase().indexOf("exception") == -1);
+
+    ZNRecord record = mapper.readValue(new StringReader(responseStr), ZNRecord.class);
+    return record;
+  }
+
+  private void postConfig(Client client, String url, ObjectMapper mapper, String command, String configs) throws Exception
+  {
+    Map<String, String> params = new HashMap<String, String>();
+
+    params.put(ClusterRepresentationUtil._managementCommand, command);
+    params.put("configs", configs);
+
+    Request request = new Request(Method.POST, new Reference(url));
+    request.setEntity(ClusterRepresentationUtil._jsonParameters + "="
+        + ClusterRepresentationUtil.ObjectToJson(params), MediaType.APPLICATION_ALL);
+
+    Response response = client.handle(request);
+    Representation result = response.getEntity();
+    StringWriter sw = new StringWriter();
+    result.write(sw);
+    String responseStr = sw.toString();
+    Assert.assertTrue(responseStr.toLowerCase().indexOf("error") == -1);
+    Assert.assertTrue(responseStr.toLowerCase().indexOf("exception") == -1);
+  }
+
+  private boolean contains(List<String> list, String... items)
+  {
+    for (String item : items)
+    {
+      if (!list.contains(item))
+      {
+        return false;
+      }
+    }
+    return true;
   }
 }

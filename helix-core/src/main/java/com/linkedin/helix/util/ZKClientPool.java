@@ -8,13 +8,13 @@ import com.linkedin.helix.manager.zk.ZkClient;
 
 public class ZKClientPool
 {
-  static Map<String, ZkClient> _zkClientMap = new ConcurrentHashMap<String, ZkClient>();
-  
+  static final Map<String, ZkClient> _zkClientMap = new ConcurrentHashMap<String, ZkClient>();
+
   public static ZkClient getZkClient(String zkServer)
   {
     if(_zkClientMap.containsKey(zkServer))
     {
-      // TODO: if the ZKClient is eventually disconnected, 
+      // TODO: if the ZKClient is eventually disconnected,
       // we should get notified and remove the zkClient from the map.
       return _zkClientMap.get(zkServer);
     }
@@ -32,7 +32,7 @@ public class ZKClientPool
       }
     }
   }
-  
+
   public static void reset()
   {
     _zkClientMap.clear();

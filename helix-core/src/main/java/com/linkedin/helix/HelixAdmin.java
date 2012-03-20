@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
 import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.model.InstanceConfig;
@@ -20,7 +21,7 @@ public interface HelixAdmin
   List<String> getResourcesInCluster(String clusterName);
 
   void addCluster(String clusterName, boolean overwritePrevRecord);
-  
+
   void addCluster(String clusterName, boolean overwritePrevRecord,
       String grandCluster);
 
@@ -67,8 +68,10 @@ public interface HelixAdmin
   ExternalView getResourceExternalView(String clusterName, String resourceName);
 
   void dropCluster(String clusterName);
-  
+
   void setConfig(ConfigScope scope, Map<String, String> properties);
 
   Map<String, String> getConfig(ConfigScope scope, Set<String> keys);
+
+  List<String> getConfigKeys(ConfigScopeProperty scope, String clusterName, String... keys);
 }

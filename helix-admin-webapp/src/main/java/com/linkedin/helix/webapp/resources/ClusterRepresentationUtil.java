@@ -44,6 +44,7 @@ public class ClusterRepresentationUtil
   public static final String _newIdealState = "newIdealState";
   public static final String _newModelDef = "newStateModelDef";
   public static final String _enabled = "enabled";
+  public static final String _setConfig = "setConfig";
 
   public static String getClusterPropertyAsString(String zkServer, String clusterName,
       PropertyType clusterProperty, String key, MediaType mediaType)
@@ -113,7 +114,7 @@ public class ClusterRepresentationUtil
     List<ZNRecord> records = accessor.getChildValues(instanceProperty, instanceName);
     return ObjectToJson(records);
   }
-  
+
   public static String getPropertyAsString(String zkServer, String clusterName, PropertyType type, MediaType mediaType, String... keys) throws JsonGenerationException, JsonMappingException, IOException
   {
     ZkClient zkClient = ZKClientPool.getZkClient(zkServer);
@@ -147,7 +148,7 @@ public class ClusterRepresentationUtil
     zkClient.setZkSerializer(new ZNRecordSerializer());
     return new ZKDataAccessor(clusterName, zkClient);
   }
-  
+
   public static <T extends Object> T JsonToObject(Class<T> clazz, String jsonString) throws JsonParseException, JsonMappingException, IOException
   {
     StringReader sr = new StringReader(jsonString);
@@ -155,7 +156,7 @@ public class ClusterRepresentationUtil
     return mapper.readValue(sr, clazz);
 
   }
-  
+
   public static Map<String, String> JsonToMap(String jsonString) throws JsonParseException, JsonMappingException, IOException
   {
     StringReader sr = new StringReader(jsonString);
@@ -174,7 +175,7 @@ public class ClusterRepresentationUtil
     String jsonPayload = form.getFirstValue(_jsonParameters, true);
     return  ClusterRepresentationUtil.JsonToMap(jsonPayload);
   }
-  
+
 
   public static Map<String, String> getFormJsonParameters(Form form, String key) throws JsonParseException, JsonMappingException, IOException
   {
@@ -182,12 +183,12 @@ public class ClusterRepresentationUtil
     return  ClusterRepresentationUtil.JsonToMap(jsonPayload);
   }
 
-  
+
   public static String getFormJsonParameterString(Form form, String key) throws JsonParseException, JsonMappingException, IOException
   {
     return form.getFirstValue(key, true);
   }
-  
+
   public static <T extends Object> T getFormJsonParameters(Class<T> clazz, Form form, String key) throws JsonParseException, JsonMappingException, IOException
   {
     return JsonToObject(clazz, form.getFirstValue(key, true));

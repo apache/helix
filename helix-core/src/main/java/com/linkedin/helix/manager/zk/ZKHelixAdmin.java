@@ -515,12 +515,12 @@ public class ZKHelixAdmin implements HelixAdmin
     {
       throw new HelixException("There are still live instances in the cluster, shut them down first.");
     }
-    
+
     if(accessor.getProperty(PropertyType.LEADER) != null)
     {
       throw new HelixException("There are still LEADER in the cluster, shut them down first.");
     }
-    
+
     _zkClient.deleteRecursive(root);
   }
 
@@ -593,14 +593,14 @@ public class ZKHelixAdmin implements HelixAdmin
     {
       throw new HelixException("Grand cluster " + grandCluster + " is not setup yet");
     }
-    
+
     addCluster(clusterName, overwritePrevRecord);
     IdealState idealState = new IdealState(clusterName);
-    
+
     idealState.setNumPartitions(1);
     idealState.setStateModelDefRef("LeaderStandby");
-    
-    
+
+
     List<String> controllers = getInstancesInCluster(grandCluster);
     if(controllers.size() == 0)
     {
@@ -636,18 +636,32 @@ public class ZKHelixAdmin implements HelixAdmin
     ConfigAccessor configAccessor = new ConfigAccessor(zkAddr);
     Map<String, String> properties = new TreeMap<String, String>();
 
-    for (String key : keys)
+    if (keys == null)
     {
-      String value = configAccessor.get(scope, key);
-      if (value == null)
+      // read all simple fields
+
+    } else
+    {
+      for (String key : keys)
       {
-        logger.error("Config doesn't exist for key: " + key);
-        continue;
+        String value = configAccessor.get(scope, key);
+        if (value == null)
+        {
+          logger.error("Config doesn't exist for key: " + key);
+          continue;
+        }
+        properties.put(key, value);
       }
-      properties.put(key, value);
     }
 
     return properties;
   }
 
+  @Override
+  public List<String> getConfigKeys(ConfigScopeProperty scope, String clusterName, String... keys)
+  {
+    String zkAddr = _zkClient.getServers();
+    ConfigAccessor configAccessor = new ConfigAccessor(zkAddr);
+    return configAccessor.getKeys(scope, clusterName, keys);
+  }
 }

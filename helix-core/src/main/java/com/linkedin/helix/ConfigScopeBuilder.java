@@ -6,10 +6,22 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 
 import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
+import com.linkedin.helix.util.StringTemplate;
 
 public class ConfigScopeBuilder
 {
   private static Logger LOG = Logger.getLogger(ConfigScopeBuilder.class);
+
+  private static StringTemplate template = new StringTemplate();
+  static
+  {
+    // @formatter:off
+    template.addEntry(ConfigScopeProperty.CLUSTER, 1, "CLUSTER={clusterName}");
+    template.addEntry(ConfigScopeProperty.RESOURCE, 2, "CLUSTER={clusterName},RESOURCE={resourceName}");
+    template.addEntry(ConfigScopeProperty.PARTITION, 3, "CLUSTER={clusterName},RESOURCE={resourceName},PARTITION={partitionName}");
+    template.addEntry(ConfigScopeProperty.PARTICIPANT, 2, "CLUSTER={clusterName},PARTICIPANT={participantName}");
+    // @formatter:on
+  }
 
   private final Map<ConfigScopeProperty, String> _scopeMap;
 
@@ -52,8 +64,50 @@ public class ConfigScopeBuilder
   public ConfigScope build()
   {
     // TODO: validate the scopes map
-
     return new ConfigScope(this);
+  }
+
+  public ConfigScope build(ConfigScopeProperty scope, String clusterName, String... scopeKeys)
+  {
+    if (scopeKeys == null)
+    {
+      scopeKeys = new String[]{};
+    }
+
+    String[] args = new String[1 + scopeKeys.length];
+    args[0] = clusterName;
+    System.arraycopy(scopeKeys, 0, args, 1, scopeKeys.length);
+    String scopePairs = template.instantiate(scope, args);
+
+    return build(scopePairs);
+  }
+
+  public ConfigScope build(String scopePairs)
+  {
+    String[] scopes = scopePairs.split("[\\s,]+");
+    for (String scope : scopes)
+    {
+      try
+      {
+        int idx = scope.indexOf('=');
+        if (idx == -1)
+        {
+          LOG.error("Invalid scope string: " + scope);
+          continue;
+        }
+
+        String scopeStr = scope.substring(0, idx);
+        String value = scope.substring(idx + 1);
+        ConfigScopeProperty scopeProperty = ConfigScopeProperty.valueOf(scopeStr);
+        _scopeMap.put(scopeProperty, value);
+      } catch (Exception e)
+      {
+        LOG.error("Invalid scope string: " + scope);
+        continue;
+      }
+    }
+
+    return build();
   }
 
   @Override

@@ -1,7 +1,11 @@
 package com.linkedin.helix;
 
+import java.util.List;
+
 import org.testng.Assert;
 import org.testng.annotations.Test;
+
+import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
 
 public class TestConfigAccessor extends ZkUnitTestBase
 {
@@ -46,19 +50,45 @@ public class TestConfigAccessor extends ZkUnitTestBase
     String participantConfigValue = appConfig.get(participantScope, "participantConfigKey");
     Assert.assertEquals(participantConfigValue, "participantConfigValue");
 
-    // resource config under participant scope
-    resourceScope = new ConfigScopeBuilder().forCluster(_clusterName).forParticipant("localhost_12918")
-        .forResource("testResource").build();
-    appConfig.set(resourceScope, "resourceConfigKey2", "resourceConfigValue2");
-    resourceConfigValue = appConfig.get(resourceScope, "resourceConfigKey2");
-    Assert.assertEquals(resourceConfigValue, "resourceConfigValue2");
+    List<String> keys = appConfig.getKeys(ConfigScopeProperty.RESOURCE, _clusterName);
+    Assert.assertEquals(keys.size(), 1, "should be [testResource]");
+    Assert.assertEquals(keys.get(0), "testResource");
+
+    keys = appConfig.getKeys(ConfigScopeProperty.CLUSTER, _clusterName);
+    Assert.assertEquals(keys.size(), 1, "should be [" + _clusterName + "]");
+    Assert.assertEquals(keys.get(0), _clusterName);
+
+    keys = appConfig.getKeys(ConfigScopeProperty.PARTICIPANT, _clusterName);
+    Assert.assertEquals(keys.size(), 5, "should be [localhost_12918~22] sorted");
+    Assert.assertEquals(keys.get(0), "localhost_12918");
+    Assert.assertEquals(keys.get(4), "localhost_12922");
+
+    keys = appConfig.getKeys(ConfigScopeProperty.PARTITION, _clusterName, "testResource");
+    Assert.assertEquals(keys.size(), 1, "should be [testPartition]");
+    Assert.assertEquals(keys.get(0), "testPartition");
+
+    keys = appConfig.getKeys(ConfigScopeProperty.RESOURCE, _clusterName, "testResource");
+    Assert.assertEquals(keys.size(), 1, "should be [resourceConfigKey]");
+    Assert.assertEquals(keys.get(0), "resourceConfigKey");
+
+    keys = appConfig.getKeys(ConfigScopeProperty.CLUSTER, _clusterName, _clusterName);
+    Assert.assertEquals(keys.size(), 1, "should be [clusterConfigKey]");
+    Assert.assertEquals(keys.get(0), "clusterConfigKey");
+
+    keys = appConfig.getKeys(ConfigScopeProperty.PARTICIPANT, _clusterName, "localhost_12918");
+    Assert.assertEquals(keys.size(), 4, "should be [HELIX_ENABLED, HELIX_HOST, HELIX_PORT, participantConfigKey]");
+    Assert.assertEquals(keys.get(3), "participantConfigKey");
+
+    keys = appConfig.getKeys(ConfigScopeProperty.PARTITION, _clusterName, "testResource", "testPartition");
+    Assert.assertEquals(keys.size(), 1, "should be [partitionConfigKey]");
+    Assert.assertEquals(keys.get(0), "partitionConfigKey");
 
     // negative tests
     try
     {
       new ConfigScopeBuilder().forPartition("testPartition").build();
       Assert.fail("Should fail since cluster name is not set");
-    } catch (HelixException e)
+    } catch (Exception e)
     {
       // OK
     }
@@ -67,7 +97,7 @@ public class TestConfigAccessor extends ZkUnitTestBase
     {
       new ConfigScopeBuilder().forCluster("testCluster").forPartition("testPartition").build();
       Assert.fail("Should fail since resource name is not set");
-    } catch (HelixException e)
+    } catch (Exception e)
     {
       // OK
     }
@@ -76,7 +106,7 @@ public class TestConfigAccessor extends ZkUnitTestBase
     {
       new ConfigScopeBuilder().forParticipant("testParticipant").build();
       Assert.fail("Should fail since participant name is not set");
-    } catch (HelixException e)
+    } catch (Exception e)
     {
       // OK
     }

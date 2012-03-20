@@ -87,7 +87,7 @@ public class FileHelixAdmin implements HelixAdmin
       _store.removeNamespace(clusterName);
       _store.createPropertyNamespace(clusterName);
       _store.createPropertyNamespace(HelixUtil.getIdealStatePath(clusterName));
-      
+
       // CONFIG's
       // _store.createPropertyNamespace(HelixUtil.getConfigPath(clusterName));
       path = PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
@@ -99,7 +99,7 @@ public class FileHelixAdmin implements HelixAdmin
       path = PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
           ConfigScopeProperty.RESOURCE.toString());
       _store.createPropertyNamespace(path);
-      
+
       // PROPERTY STORE
       path = PropertyPathConfig.getPath(PropertyType.PROPERTYSTORE, clusterName);
       _store.createPropertyNamespace(path);
@@ -367,4 +367,10 @@ public class FileHelixAdmin implements HelixAdmin
     throw new UnsupportedOperationException("unsupported operation");
   }
 
+  @Override
+  public List<String> getConfigKeys(ConfigScopeProperty scope, String clusterName, String... keys)
+  {
+    // TODO Auto-generated method stub
+    throw new UnsupportedOperationException("unsupported operation");
+  }
 }

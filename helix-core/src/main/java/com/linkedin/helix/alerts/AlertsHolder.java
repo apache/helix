@@ -127,22 +127,24 @@ public class AlertsHolder {
 	 */
 	public void addAlertStatusSet(Map<String, Map<String, AlertValueAndStatus>> statusSet) throws HelixException
 	{
-		if (_alertStatusMap == null) {
-			_alertStatusMap = new HashMap<String, Map<String,String>>();
-		}
-		_alertStatusMap.clear(); //clear map.  all alerts overwrite old alerts
-		for (String alert : statusSet.keySet()) {  
-	    	Map<String,AlertValueAndStatus> currStatus = statusSet.get(alert);
-	    	if (currStatus != null) {
-	    		addAlertStatus(alert, currStatus);
-	    	}
+	  if (_alertStatusMap == null) {
+	    _alertStatusMap = new HashMap<String, Map<String,String>>();
+	  }
+	  _alertStatusMap.clear(); //clear map.  all alerts overwrite old alerts
+	  for (String alert : statusSet.keySet()) {  
+	    Map<String,AlertValueAndStatus> currStatus = statusSet.get(alert);
+	    if (currStatus != null) {
+	      addAlertStatus(alert, currStatus);
 	    }
-		persistAlertStatus(); //save statuses in zk
+	  }
+	  if (_alertStatusMap.size() > 0) {
+	  persistAlertStatus(); //save statuses in zk
+	  }
 	}
 	
 	private void addAlertStatus(String parentAlertKey, Map<String,AlertValueAndStatus> alertStatus) throws HelixException
 	{
-		_alertStatusMap = new HashMap<String,Map<String,String>>();
+		//_alertStatusMap = new HashMap<String,Map<String,String>>();
 		for (String alertName : alertStatus.keySet()) {
 			String mapAlertKey;
 			mapAlertKey = parentAlertKey;

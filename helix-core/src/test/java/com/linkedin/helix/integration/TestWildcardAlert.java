@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 
 import javax.management.AttributeNotFoundException;
@@ -44,6 +43,7 @@ import com.linkedin.helix.model.Message;
 import com.linkedin.helix.monitoring.mbeans.ClusterAlertMBeanCollection;
 import com.linkedin.helix.monitoring.mbeans.ClusterMBeanObserver;
 import com.linkedin.helix.tools.ClusterSetup;
+import com.linkedin.helix.tools.ClusterStateVerifier;
 
 public class TestWildcardAlert extends ZkIntegrationTestBase
 {
@@ -109,7 +109,7 @@ public class TestWildcardAlert extends ZkIntegrationTestBase
   private static final Logger _logger = Logger.getLogger(TestWildcardAlert.class);
   ZkClient _zkClient;
   protected ClusterSetup _setupTool = null;
-  protected final String _alertStr = "EXP(accumulate()(localhost_*.RestQueryStats@DBName=TestDB0.latency)|EXPAND|SUMEACH)CMP(GREATER)CON(10)";
+  protected final String _alertStr = "EXP(decay(1)(localhost_*.RestQueryStats@DBName=TestDB0.latency)|EXPAND|SUMEACH)CMP(GREATER)CON(10)";
   protected final String _alertStatusStr = _alertStr; // +" : (*)";
   protected final String _dbName = "TestDB0";
 
@@ -228,14 +228,9 @@ public class TestWildcardAlert extends ZkIntegrationTestBase
     TestClusterMBeanObserver jmxMBeanObserver = new TestClusterMBeanObserver(
         ClusterAlertMBeanCollection.DOMAIN_ALERT);
 
-    TestHelper.verifyWithTimeout("verifyBestPossAndExtViewExtended",
-                                 1500000,  // timeout in millisecond //was 15000
-                                 ZK_ADDR,
-                                 TestHelper.<String>setOf(clusterName),
-                                 TestHelper.<String>setOf(_dbName),
-                                 null,
-                                 null,
-                                 null);// other verifications go here
+    boolean result = ClusterStateVerifier.verify(
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
+    Assert.assertTrue(result);
     
     //sleep for a few seconds to give stats stage time to trigger and for bean to trigger
     Thread.sleep(5000);
@@ -260,17 +255,17 @@ public class TestWildcardAlert extends ZkIntegrationTestBase
     jmxMBeanObserver.refresh();   
     Assert.assertTrue(jmxMBeanObserver._beanValueMap.size() >= 1);
 
-    String beanName = "HelixAlerts:alert=EXP(accumulate()(localhost_%.RestQueryStats@DBName#TestDB0.latency)|EXPAND|SUMEACH)CMP(GREATER)CON(10)--(%)";
+    String beanName = "HelixAlerts:alert=EXP(decay(1)(localhost_%.RestQueryStats@DBName#TestDB0.latency)|EXPAND|SUMEACH)CMP(GREATER)CON(10)--(%)";
     Assert.assertTrue(jmxMBeanObserver._beanValueMap.containsKey(beanName));
 
     Map<String, Object> beanValueMap = jmxMBeanObserver._beanValueMap.get(beanName);
-    Assert.assertEquals(beanValueMap.size(), 3);
+    Assert.assertEquals(beanValueMap.size(), 4);
     Assert.assertEquals((beanValueMap.get("AlertFired")), new Integer(1));
     Assert.assertEquals((beanValueMap.get("AlertValue")), new Double(75.0));
     Assert
     .assertEquals(
     		(String) (beanValueMap.get("SensorName")),
-    		"EXP(accumulate()(localhost_%.RestQueryStats@DBName#TestDB0.latency)|EXPAND|SUMEACH)CMP(GREATER)CON(10)--(%)");
+    		"EXP(decay(1)(localhost_%.RestQueryStats@DBName#TestDB0.latency)|EXPAND|SUMEACH)CMP(GREATER)CON(10)--(%)");
     // }
 
     System.out.println("END TestWildcardAlert at " + new Date(System.currentTimeMillis()));

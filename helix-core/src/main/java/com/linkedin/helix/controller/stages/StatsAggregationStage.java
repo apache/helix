@@ -30,8 +30,8 @@ import com.linkedin.helix.monitoring.mbeans.ClusterAlertMBeanCollection;
 
 /**
  * For each LiveInstances select currentState and message whose sessionId
- * matches sessionId from LiveInstance Get Partition,State for all the
- * resources computed in previous State [ResourceComputationStage]
+ * matches sessionId from LiveInstance Get Partition,State for all the resources
+ * computed in previous State [ResourceComputationStage]
  * 
  * @author asilbers
  * 
@@ -119,6 +119,7 @@ public class StatsAggregationStage extends AbstractBaseStage
   @Override
   public void process(ClusterEvent event) throws Exception
   {
+    long startTime = System.currentTimeMillis();
     // String aggTypeName =
     // DEFAULT_AGG_TYPE+AggregationType.DELIM+DEFAULT_DECAY_PARAM;
     // _defaultAggType = AggregationTypeFactory.getAggregationType(aggTypeName);
@@ -132,6 +133,8 @@ public class StatsAggregationStage extends AbstractBaseStage
     _statsHolder = new StatsHolder(manager);
     _alertsHolder = new AlertsHolder(manager);
 
+    _statsHolder.refreshStats(); //refresh once at start of stage
+    
     ClusterDataCache cache = event.getAttribute("ClusterDataCache");
 
     // init agg stats from cache
@@ -141,6 +144,7 @@ public class StatsAggregationStage extends AbstractBaseStage
 
     long currTime = System.currentTimeMillis();
     // for each live node, read node's stats
+    long readInstancesStart = System.currentTimeMillis();
     for (LiveInstance instance : liveInstances.values())
     {
       String instanceName = instance.getInstanceName();
@@ -150,34 +154,40 @@ public class StatsAggregationStage extends AbstractBaseStage
       Map<String, HealthStat> stats;
       stats = cache.getHealthStats(instanceName);
       // find participants stats
-      HealthStat participantStat = stats.get(ESPRESSO_STAT_REPORT_NAME);
-      long modTime = -1;
-      if (participantStat != null)
+      for (HealthStat participantStat : stats.values())
       {
-        // generate and report stats for how old this node's report is
-        modTime = participantStat.getLastModifiedTimeStamp();
-        reportAgeStat(instance, modTime, currTime);
-      }
-      // System.out.println(modTime);
-      // XXX: need to convert participantStat to a better format
-      // need to get instanceName in here
-
-      if (participantStat != null)
-      {
-        // String timestamp = String.valueOf(instance.getModifiedTime()); WANT
-        // REPORT LEVEL TS
-        Map<String, Map<String, String>> statMap = participantStat
-            .getHealthFields(instanceName);
-        for (String key : statMap.keySet())
+        // HealthStat participantStat = stats.get(ESPRESSO_STAT_REPORT_NAME);
+        long modTime = -1;
+        if (participantStat != null)
         {
-          _statsHolder.applyStat(key, statMap.get(key));
+          // generate and report stats for how old this node's report is
+          modTime = participantStat.getLastModifiedTimeStamp();
+          reportAgeStat(instance, modTime, currTime);
         }
+        // System.out.println(modTime);
+        // XXX: need to convert participantStat to a better format
+        // need to get instanceName in here
 
+        if (participantStat != null)
+        {
+          // String timestamp = String.valueOf(instance.getModifiedTime()); WANT
+          // REPORT LEVEL TS
+          Map<String, Map<String, String>> statMap = participantStat
+              .getHealthFields(instanceName);
+          for (String key : statMap.keySet())
+          {
+            _statsHolder.applyStat(key, statMap.get(key));
+          }
+
+        }
       }
     }
+    logger.info("Done reading instances: "+(System.currentTimeMillis() - readInstancesStart));
 
     // populate _statStatus
+    long statsMapStart = System.currentTimeMillis();
     _statStatus = _statsHolder.getStatsMap();
+    logger.info("done getting stats: "+(System.currentTimeMillis() - statsMapStart));
 
     for (String statKey : _statStatus.keySet())
     {
@@ -185,21 +195,29 @@ public class StatsAggregationStage extends AbstractBaseStage
           + _statStatus.get(statKey));
     }
 
+    long alertExecuteStartTime = System.currentTimeMillis();
     // execute alerts, populate _alertStatus
     _alertStatus = AlertProcessor.executeAllAlerts(
         _alertsHolder.getAlertList(), _statsHolder.getStatsList());
+    logger.info("done executing alerts: "+(System.currentTimeMillis() - alertExecuteStartTime));
 
+    long beanStartTime = System.currentTimeMillis();
     for (String originAlertName : _alertStatus.keySet())
     {
       _alertBeanCollection.setAlerts(originAlertName,
           _alertStatus.get(originAlertName));
     }
-
+    logger.info("done setting beans: "+(System.currentTimeMillis() - beanStartTime));
+    
+    
+    long writeAlertStartTime = System.currentTimeMillis();
     // write out alert status (to zk)
     _alertsHolder.addAlertStatusSet(_alertStatus);
+    logger.info("done writing alerts: "+(System.currentTimeMillis() - writeAlertStartTime));
 
     // TODO: access the 2 status variables from somewhere to populate graphs
 
+    long logAlertStartTime = System.currentTimeMillis();
     // logging alert status
     for (String alertOuterKey : _alertStatus.keySet())
     {
@@ -218,5 +236,9 @@ public class StatsAggregationStage extends AbstractBaseStage
             + alertInnerMap.get(alertInnerKey).isFired());
       }
     }
+    logger.info("done logging alerts: "+(System.currentTimeMillis() - logAlertStartTime));
+
+    
+    logger.info("process end: "+(System.currentTimeMillis() - startTime));
   }
 }

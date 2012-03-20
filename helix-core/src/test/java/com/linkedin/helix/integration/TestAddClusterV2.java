@@ -2,13 +2,12 @@ package com.linkedin.helix.integration;
 
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 
 import org.apache.log4j.Logger;
+import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -20,6 +19,7 @@ import com.linkedin.helix.TestHelper.StartCMResult;
 import com.linkedin.helix.controller.HelixControllerMain;
 import com.linkedin.helix.model.PauseSignal;
 import com.linkedin.helix.tools.ClusterSetup;
+import com.linkedin.helix.tools.ClusterStateVerifier;
 
 public class TestAddClusterV2 extends ZkIntegrationTestBase
 {
@@ -62,9 +62,12 @@ public class TestAddClusterV2 extends ZkIntegrationTestBase
 
     // setup CONTROLLER_CLUSTER
     _setupTool.addCluster(CONTROLLER_CLUSTER, true);
-    setupStorageCluster(_setupTool, CONTROLLER_CLUSTER,
-                        CLUSTER_PREFIX + "_" + CLASS_NAME, CLUSTER_NR,
-                        CONTROLLER_PREFIX, 0, "LeaderStandby", 3, false);
+    for (int i = 0; i < NODE_NR; i++)
+    {
+      String controllerName = CONTROLLER_PREFIX + ":" + i;
+      _setupTool.addInstanceToCluster(CONTROLLER_CLUSTER, controllerName);
+    }
+
 
     // setup cluster of clusters
     for (int i = 0; i < CLUSTER_NR; i++)
@@ -177,21 +180,13 @@ public class TestAddClusterV2 extends ZkIntegrationTestBase
    */
   protected void verifyClusters()
   {
-    Set<String> clusters = new HashSet<String>();
-    for (int i = 0; i < CLUSTER_NR; i++)
-    {
-      clusters.add(CLUSTER_PREFIX + "_" + CLASS_NAME + "_" + i);
-    }
-
-    TestHelper.verifyWithTimeout("verifyBestPossAndExtView",
-                                 ZK_ADDR,
-                                 TestHelper.<String> setOf(CONTROLLER_CLUSTER),
-                                 clusters);
-
-    TestHelper.verifyWithTimeout("verifyBestPossAndExtView",
-                                 ZK_ADDR,
-                                 TestHelper.<String>setOf(CLUSTER_PREFIX + "_" + CLASS_NAME + "_0"),
-                                 TestHelper.<String>setOf(TEST_DB));
+    boolean result = ClusterStateVerifier.verify(
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CONTROLLER_CLUSTER));
+    Assert.assertTrue(result);
+    
+    result = ClusterStateVerifier.verify(
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_PREFIX + "_" + CLASS_NAME + "_0"));
+    Assert.assertTrue(result);
   }
 
   protected void pauseController(DataAccessor clusterDataAccessor)

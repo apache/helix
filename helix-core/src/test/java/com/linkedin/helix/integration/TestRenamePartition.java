@@ -5,6 +5,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
+import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import com.linkedin.helix.PropertyType;
@@ -14,6 +15,7 @@ import com.linkedin.helix.controller.HelixControllerMain;
 import com.linkedin.helix.manager.zk.ZKDataAccessor;
 import com.linkedin.helix.mock.storage.MockParticipant;
 import com.linkedin.helix.model.IdealState;
+import com.linkedin.helix.tools.ClusterStateVerifier;
 import com.linkedin.helix.tools.IdealStateCalculatorForStorageNode;
 
 public class TestRenamePartition extends ZkIntegrationTestBase
@@ -44,10 +46,9 @@ public class TestRenamePartition extends ZkIntegrationTestBase
     idealState.getRecord().getListFields().put("TestDB0_100", prioList);
     accessor.setProperty(PropertyType.IDEALSTATES, idealState, "TestDB0");
 
-    TestHelper.verifyWithTimeout("verifyBestPossAndExtViewExtended",
-        30 * 1000, // timeout in millisecond
-        ZK_ADDR, TestHelper.<String> setOf(clusterName), TestHelper.<String> setOf("TestDB0"),
-        null, null, null);
+    boolean result = ClusterStateVerifier.verify(
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
+    Assert.assertTrue(result);
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
@@ -87,11 +88,9 @@ public class TestRenamePartition extends ZkIntegrationTestBase
     idealState.getRecord().getMapFields().put("TestDB0_100", stateMap);
     accessor.setProperty(PropertyType.IDEALSTATES, idealState, "TestDB0");
 
-    TestHelper.verifyWithTimeout("verifyBestPossAndExtViewExtended",
-        30 * 1000, // timeout in millisecond
-        ZK_ADDR, TestHelper.<String> setOf(clusterName), TestHelper.<String> setOf("TestDB0"),
-        null, null, null);
-
+    boolean result = ClusterStateVerifier.verify(
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
+    Assert.assertTrue(result);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
   }
@@ -111,10 +110,9 @@ public class TestRenamePartition extends ZkIntegrationTestBase
       new Thread(participants[i]).start();
     }
 
-    TestHelper.verifyWithTimeout("verifyBestPossAndExtViewExtended",
-        30 * 1000, // timeout in millisecond
-        ZK_ADDR, TestHelper.<String> setOf(clusterName), TestHelper.<String> setOf("TestDB0"),
-        null, null, null);
+    boolean result = ClusterStateVerifier.verify(
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
+    Assert.assertTrue(result);
 
   }
 }

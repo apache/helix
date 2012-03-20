@@ -26,13 +26,14 @@ import com.linkedin.helix.mock.storage.MockParticipant;
 import com.linkedin.helix.mock.storage.MockTransition;
 import com.linkedin.helix.model.Message;
 import com.linkedin.helix.tools.ClusterSetup;
+import com.linkedin.helix.tools.ClusterStateVerifier;
 
 public class TestStalenessAlert extends ZkIntegrationTestBase
 {
   ZkClient _zkClient;
   protected ClusterSetup _setupTool = null;
   protected final String _alertStr = "EXP(decay(1)(localhost_*.reportingage))CMP(GREATER)CON(600)";
-  protected final String _alertStatusStr = _alertStr+" : (12918)";
+  protected final String _alertStatusStr = _alertStr+" : (localhost_12918.reportingage)";
   protected final String _dbName = "TestDB0";
 
   @BeforeClass ()
@@ -138,27 +139,9 @@ public class TestStalenessAlert extends ZkIntegrationTestBase
       new Thread(participants[i]).start();
     }
 
-    /*
-    TestHelper.verifyWithTimeout("verifyBestPossAndExtViewExtended",
-                                 1500000,  // timeout in millisecond //was 15000
-                                 _dbName,
-                                 10,
-                                 "MasterSlave",
-                                 TestHelper.<String>setOf(clusterName),
-                                 ZK_ADDR,
-                                 null,
-                                 null,
-                                 null);
-    */
-
-    TestHelper.verifyWithTimeout("verifyBestPossAndExtViewExtended",
-            15000,  // timeout in millisecond //was 15000
-            ZK_ADDR,
-            TestHelper.<String>setOf(clusterName),
-            TestHelper.<String>setOf(_dbName),
-            null,
-            null,
-            null);
+    boolean result = ClusterStateVerifier.verify(
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
+    Assert.assertTrue(result);
     
   //sleep for a few seconds to give stats stage time to trigger
     Thread.sleep(5000);

@@ -86,9 +86,9 @@ public class ClusterStatusMonitor
   }
 
   @Override
-  public long getLiveInstanceGauge()
+  public long getDownInstanceGauge()
   {
-    return _numOfLiveInstances;
+    return _numOfInstances - _numOfLiveInstances;
   }
 
   @Override

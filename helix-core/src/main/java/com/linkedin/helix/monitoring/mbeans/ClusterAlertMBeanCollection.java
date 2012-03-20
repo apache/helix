@@ -92,15 +92,17 @@ public class ClusterAlertMBeanCollection
   void refreshSummayAlert()
   {
     boolean fired = false;
+    String alertsFired = "";
     for(String key : _alertBeans.keySet())
     {
       if(!key.equals(ALERT_SUMMARY))
       {
         ClusterAlertItem item = _alertBeans.get(key);
         fired = (item.getAlertFired() == 1) | fired;
-        if(fired)
+        if(item.getAlertFired() == 1)
         {
-          break;
+          alertsFired += item._alertItemName;
+          alertsFired += ";";
         }
       }
     }
@@ -111,11 +113,13 @@ public class ClusterAlertMBeanCollection
     {
       ClusterAlertItem item = new ClusterAlertItem(ALERT_SUMMARY, summaryStatus);
       onNewAlertMbeanAdded(item);
+      item.setAdditionalInfo(alertsFired);
       _alertBeans.put(ALERT_SUMMARY, item);
     }
     else
     {
       _alertBeans.get(ALERT_SUMMARY).setValueMap(summaryStatus);
+      _alertBeans.get(ALERT_SUMMARY).setAdditionalInfo(alertsFired);
     }
   }
   

@@ -18,6 +18,7 @@ import com.linkedin.helix.mock.storage.MockParticipant;
 import com.linkedin.helix.mock.storage.MockParticipant.ErrTransition;
 import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.model.Message;
+import com.linkedin.helix.tools.ClusterStateVerifier;
 
 public class TestResetPartitionState extends ZkIntegrationTestBase
 {
@@ -81,21 +82,13 @@ public class TestResetPartitionState extends ZkIntegrationTestBase
       new Thread(participants[i]).start();
     }
 
-    Map<String, Set<String>> errorStateMap = new HashMap<String, Set<String>>()
-    {
-      {
-        put("TestDB0_0", TestHelper.setOf("localhost_12918"));
-        put("TestDB0_8", TestHelper.setOf("localhost_12918"));
-      }
-    };
-
-    TestHelper.verifyWithTimeout("verifyBestPossAndExtViewExtended",
-                                 ZK_ADDR,
-                                 TestHelper.<String>setOf(clusterName),
-                                 TestHelper.<String>setOf("TestDB0"),
-                                 null,
-                                 null,
-                                 errorStateMap);
+    Map<String, Map<String, String>> errStateMap = new HashMap<String, Map<String, String>>();
+    errStateMap.put("TestDB0", new HashMap<String, String>());
+    errStateMap.get("TestDB0").put("TestDB0_0", "localhost_12918");
+    errStateMap.get("TestDB0").put("TestDB0_8", "localhost_12918");
+    boolean result = ClusterStateVerifier.verify(
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName, errStateMap));
+    Assert.assertTrue(result);
 
     // reset one error partition
     errPartitions.remove("SLAVE-MASTER");
@@ -105,14 +98,11 @@ public class TestResetPartitionState extends ZkIntegrationTestBase
     ZKHelixAdmin tool = new ZKHelixAdmin(_gZkClient);
     tool.resetPartition(clusterName, "localhost_12918", "TestDB0", "TestDB0_0");
 
-    errorStateMap.remove("TestDB0_0");
-    TestHelper.verifyWithTimeout("verifyBestPossAndExtViewExtended",
-                                 ZK_ADDR,
-                                 TestHelper.<String>setOf(clusterName),
-                                 TestHelper.<String> setOf("TestDB0"),
-                                 null,
-                                 null,
-                                 errorStateMap);
+    errStateMap.get("TestDB0").remove("TestDB0_0");
+    result = ClusterStateVerifier.verify(
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName, errStateMap));
+    Assert.assertTrue(result);
+
     Assert.assertEquals(_errToOfflineInvoked, 1);
 
     // reset the other error partition
@@ -120,13 +110,10 @@ public class TestResetPartitionState extends ZkIntegrationTestBase
     clearStatusUpdate(clusterName, "localhost_12918", "TestDB0", "TestDB0_8");
     tool.resetPartition(clusterName, "localhost_12918", "TestDB0", "TestDB0_8");
 
-    TestHelper.verifyWithTimeout("verifyBestPossAndExtViewExtended",
-                                 ZK_ADDR,
-                                 TestHelper.<String> setOf(clusterName),
-                                 TestHelper.<String> setOf("TestDB0"),
-                                 null,
-                                 null,
-                                 null);
+    result = ClusterStateVerifier.verify(
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
+    Assert.assertTrue(result);
+
     Assert.assertEquals(_errToOfflineInvoked, 2);
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));

@@ -20,6 +20,7 @@ import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.mock.storage.MockParticipant;
 import com.linkedin.helix.mock.storage.MockTransition;
 import com.linkedin.helix.model.Message;
+import com.linkedin.helix.tools.ClusterStateVerifier;
 
 public class TestDummyAlerts extends ZkIntegrationTestBase
 {
@@ -99,10 +100,9 @@ public class TestDummyAlerts extends ZkIntegrationTestBase
       new Thread(participants[i]).start();
     }
 
-    TestHelper.verifyWithTimeout("verifyBestPossAndExtViewExtended",
-        30 * 1000, // timeout in millisecond
-        ZK_ADDR, TestHelper.<String> setOf(clusterName), TestHelper.<String> setOf("TestDB0"),
-        null, null, null);
+    boolean result = ClusterStateVerifier.verify(
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
+    Assert.assertTrue(result);
 
     // other verifications go here
     ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);

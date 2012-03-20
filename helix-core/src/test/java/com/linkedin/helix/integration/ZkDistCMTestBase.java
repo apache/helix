@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.log4j.Logger;
+import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 
@@ -19,6 +20,7 @@ import com.linkedin.helix.manager.zk.ZNRecordSerializer;
 import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.model.PauseSignal;
 import com.linkedin.helix.tools.ClusterSetup;
+import com.linkedin.helix.tools.ClusterStateVerifier;
 
 /**
  * setup 10 storage clusters and a special controller cluster
@@ -125,7 +127,13 @@ public class ZkDistCMTestBase extends ZkIntegrationTestBase
       }
     }
 
-    verifyClusters();
+    boolean result = ClusterStateVerifier.verify(
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CONTROLLER_CLUSTER));
+    Assert.assertTrue(result);
+    
+    result = ClusterStateVerifier.verify(
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_PREFIX + "_" + CLASS_NAME + "_0"));
+    Assert.assertTrue(result);
   }
 
   @AfterClass
@@ -156,7 +164,15 @@ public class ZkDistCMTestBase extends ZkIntegrationTestBase
         result._thread.interrupt();
         it.remove();
       }
-      verifyClusters();
+      
+      boolean verifyResult = ClusterStateVerifier.verify(
+          new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CONTROLLER_CLUSTER));
+      Assert.assertTrue(verifyResult);
+      
+      verifyResult = ClusterStateVerifier.verify(
+          new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_PREFIX + "_" + CLASS_NAME + "_0"));
+      Assert.assertTrue(verifyResult);
+
     }
 
     result = _startCMResultMap.remove(leader);
@@ -177,24 +193,6 @@ public class ZkDistCMTestBase extends ZkIntegrationTestBase
 
     // logger.info("END " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
     System.out.println("END " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
-  }
-
-
-  /**
-   * verify the external view (against the best possible state)
-   *   in the controller cluster and the first cluster
-   */
-  protected void verifyClusters()
-  {
-    TestHelper.verifyWithTimeout("verifyBestPossAndExtView",
-                                 ZK_ADDR,
-                                 TestHelper.<String>setOf(CONTROLLER_CLUSTER),
-                                 TestHelper.<String>setOf(CLUSTER_PREFIX + "_" + CLASS_NAME));
-
-    TestHelper.verifyWithTimeout("verifyBestPossAndExtView",
-                                 ZK_ADDR,
-                                 TestHelper.<String>setOf(CLUSTER_PREFIX + "_" + CLASS_NAME + "_0"),
-                                 TestHelper.<String>setOf(TEST_DB));
   }
 
   protected void pauseController(DataAccessor clusterDataAccessor)

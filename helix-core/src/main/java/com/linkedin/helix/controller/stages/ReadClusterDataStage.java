@@ -31,6 +31,6 @@ public class ReadClusterDataStage extends AbstractBaseStage
     _cache.refresh(dataAccessor);
 
     event.addAttribute("ClusterDataCache", _cache);
-    System.out.println("ReadClusterDataStage done: "+(System.currentTimeMillis() - processStartTime));
+    // System.out.println("ReadClusterDataStage done: "+(System.currentTimeMillis() - processStartTime));
   }
 }

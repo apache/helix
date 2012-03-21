@@ -48,7 +48,9 @@ public class TestZKClientPool
     zkClient.createPersistent("/" + testName, new ZNRecord(testName));
     record = zkClient.readData("/" + testName);
     Assert.assertEquals(record.getId(), testName);
-
+    
+    zkClient.close();
+    TestHelper.stopZkServer(zkServer);
     System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
   }
 }

@@ -2,22 +2,16 @@ package com.linkedin.helix.alerts;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 
 import org.testng.AssertJUnit;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import com.linkedin.helix.HelixException;
-import com.linkedin.helix.PropertyType;
-import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.Mocks.MockManager;
-import com.linkedin.helix.alerts.AlertParser;
-import com.linkedin.helix.alerts.AlertProcessor;
-import com.linkedin.helix.alerts.AlertValueAndStatus;
-import com.linkedin.helix.alerts.AlertsHolder;
-import com.linkedin.helix.alerts.StatsHolder;
 
+// Jason 3/20/2012
+// Disable these tests for now. Adam is double checking if we still need them
 
 public class TestEvaluateAlerts {
 	protected static final String CLUSTER_NAME = "TestCluster";
@@ -162,7 +156,7 @@ public class TestEvaluateAlerts {
 		 AssertJUnit.assertTrue(alertFired);
 	}
 
-	@Test (groups = {"unitTest"})
+//	@Test (groups = {"unitTest"})
 	public void testSimpleAlertNoStatArrivesFires()
 	{
 		String alert = addSimpleAlert();
@@ -171,7 +165,7 @@ public class TestEvaluateAlerts {
 		AssertJUnit.assertEquals(null, alertResult.get(AlertProcessor.noWildcardAlertKey));
 	}
 
-	@Test (groups = {"unitTest"})
+//	@Test (groups = {"unitTest"})
 	public void testWildcardAlertFires()
 	{
 		String alert = addWildcardAlert();
@@ -183,7 +177,7 @@ public class TestEvaluateAlerts {
 		AssertJUnit.assertTrue(alertFired);
 	}
 
-	@Test (groups = {"unitTest"})
+//	@Test (groups = {"unitTest"})
 	public void testExpandOperatorWildcardAlertFires()
 	{
 		String alert = addExpandWildcardAlert();
@@ -195,7 +189,7 @@ public class TestEvaluateAlerts {
 		AssertJUnit.assertTrue(alertFired);
 	}
 
-	@Test (groups = {"unitTest"})
+//	@Test (groups = {"unitTest"})
 	public void testExpandSumOperatorAlertFires()
 	{
 		String alert = addExpandSumAlert();
@@ -304,7 +298,7 @@ public class TestEvaluateAlerts {
 
 	}
 */
-	@Test (groups = {"unitTest"})
+//	@Test (groups = {"unitTest"})
 	  public void testAddWildcardInFirstStatToken() throws Exception
 	  {
 		String alert = "EXP(decay(1)(instance*.reportingage))CMP(GREATER)CON(300)";
@@ -323,7 +317,7 @@ public class TestEvaluateAlerts {
 		 AssertJUnit.assertTrue(alertFired);
 	  }
 
-	@Test (groups = {"unitTest"})
+//	@Test (groups = {"unitTest"})
 	public void testTwoWildcardAlertFires()
 	{
 		//error is with * and )

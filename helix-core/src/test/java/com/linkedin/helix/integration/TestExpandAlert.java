@@ -121,6 +121,7 @@ public class TestExpandAlert extends ZkIntegrationTestBase
                             3,            // replicas //change back to 3!!!
                             "MasterSlave",
                             true);        // do rebalance
+    enableHealthCheck(clusterName);
 
     _setupTool.getClusterManagementTool().addAlert(clusterName, _alertStr);
 

@@ -121,6 +121,8 @@ public class TestSimpleAlert extends ZkIntegrationTestBase
                             "MasterSlave",
                             true);        // do rebalance
 
+    enableHealthCheck(clusterName);
+
     _setupTool.getClusterManagementTool().addAlert(clusterName, _alertStr);
 
     TestHelper.startController(clusterName,

@@ -129,6 +129,7 @@ public class TestAddDropAlert extends ZkIntegrationTestBase
                             1,            // replicas //change back to 3!!!
                             "MasterSlave",
                             true);        // do rebalance
+    enableHealthCheck(clusterName);
 
     _setupTool.getClusterManagementTool().addAlert(clusterName, _alertStr);
 

@@ -86,7 +86,7 @@ public class TestWildcardAlert extends ZkIntegrationTestBase
     {
 
     }
-    
+
     public void refresh() throws MalformedObjectNameException, NullPointerException, InstanceNotFoundException, IntrospectionException, ReflectionException, IOException, AttributeNotFoundException, MBeanException
     {
       for(String beanName: _beanValueMap.keySet())
@@ -150,12 +150,12 @@ public class TestWildcardAlert extends ZkIntegrationTestBase
     			MockEspressoHealthReportProvider();
     	reporter.addHealthReportProvider(provider);
     	String statName = "latency";
-    	//using constant as timestamp so that when each partition does this transition, 
+    	//using constant as timestamp so that when each partition does this transition,
     	//they do not advance timestamp, and no stats double-counted
-    	String timestamp = "12345"; 
+    	String timestamp = "12345";
     	provider.setStat(_dbName, statName,"15", timestamp);
-    	
-    	
+
+
     	//sleep for random time and see about errors.
     	/*
     	Random r = new Random();
@@ -167,9 +167,9 @@ public class TestWildcardAlert extends ZkIntegrationTestBase
 			e.printStackTrace();
 		}
 		*/
-		
+
      	reporter.transmitHealthReports();
-     	
+
     	/*
         for (int i = 0; i < 5; i++)
         {
@@ -211,6 +211,8 @@ public class TestWildcardAlert extends ZkIntegrationTestBase
         3, // replicas //change back to 3!!!
         "MasterSlave", true); // do rebalance
 
+    enableHealthCheck(clusterName);
+
     _setupTool.getClusterManagementTool().addAlert(clusterName, _alertStr);
     // _setupTool.getClusterManagementTool().addAlert(clusterName, _alertStr2);
 
@@ -231,7 +233,7 @@ public class TestWildcardAlert extends ZkIntegrationTestBase
     boolean result = ClusterStateVerifier.verify(
         new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
     Assert.assertTrue(result);
-    
+
     //sleep for a few seconds to give stats stage time to trigger and for bean to trigger
     Thread.sleep(5000);
 
@@ -250,9 +252,9 @@ public class TestWildcardAlert extends ZkIntegrationTestBase
     Assert.assertTrue(fired);
 
 
-    // Make sure that the jmxObserver has received all the jmx bean value that is corresponding 
+    // Make sure that the jmxObserver has received all the jmx bean value that is corresponding
     //to the alerts.
-    jmxMBeanObserver.refresh();   
+    jmxMBeanObserver.refresh();
     Assert.assertTrue(jmxMBeanObserver._beanValueMap.size() >= 1);
 
     String beanName = "HelixAlerts:alert=EXP(decay(1)(localhost_%.RestQueryStats@DBName#TestDB0.latency)|EXPAND|SUMEACH)CMP(GREATER)CON(10)--(%)";

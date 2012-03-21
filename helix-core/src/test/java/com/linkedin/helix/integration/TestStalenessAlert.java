@@ -115,11 +115,12 @@ public class TestStalenessAlert extends ZkIntegrationTestBase
                             "localhost",  // participant name prefix
                             "TestDB",     // resource  name prefix
                             1,            // resources
-                            10,           // partitions per resource 
+                            10,           // partitions per resource
                             5,            // number of nodes //change back to 5!!!
                             3,            // replicas //change back to 3!!!
                             "MasterSlave",
                             true);        // do rebalance
+    enableHealthCheck(clusterName);
 
     _setupTool.getClusterManagementTool().addAlert(clusterName, _alertStr);
 
@@ -142,10 +143,10 @@ public class TestStalenessAlert extends ZkIntegrationTestBase
     boolean result = ClusterStateVerifier.verify(
         new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
     Assert.assertTrue(result);
-    
+
   //sleep for a few seconds to give stats stage time to trigger
     Thread.sleep(5000);
-    
+
     // other verifications go here
     ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
     //for (int i = 0; i < 1; i++) //change 1 back to 5

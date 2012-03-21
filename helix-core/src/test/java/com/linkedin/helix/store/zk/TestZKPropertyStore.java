@@ -183,6 +183,7 @@ public class TestZKPropertyStore extends ZkUnitTestBase
       }
     }
     System.out.println("ZKPropertyStore callback latency is " + maxLatency + " millisecond");
+    maxLatency *= 4; 
 
     // test unsubscribe
     store.unsubscribeForPropertyChange("", listener);

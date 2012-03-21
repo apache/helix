@@ -140,6 +140,12 @@ public interface HelixManager
   DataAccessor getDataAccessor();
 
   /**
+   * return the config accessor
+   * @return
+   */
+  ConfigAccessor getConfigAccessor();
+
+  /**
    * Returns the cluster name associated with this cluster manager
    *
    * @return

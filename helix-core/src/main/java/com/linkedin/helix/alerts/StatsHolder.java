@@ -9,13 +9,11 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 
 import com.linkedin.helix.DataAccessor;
-import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.HelixException;
+import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.controller.stages.ClusterDataCache;
-import com.linkedin.helix.controller.stages.StatsAggregationStage;
-import com.linkedin.helix.model.HealthStat;
+import com.linkedin.helix.controller.stages.HealthDataCache;
 import com.linkedin.helix.model.PersistentStats;
 
 public class StatsHolder
@@ -28,15 +26,15 @@ public class StatsHolder
   public static final String TIMESTAMP_NAME = "TimeStamp";
 
   DataAccessor _accessor;
-  ClusterDataCache _cache;
+  HealthDataCache _cache;
 
   Map<String, Map<String, String>> _statMap;
   // PersistentStats _persistentStats;
 
-  public StatsHolder(HelixManager manager)
+  public StatsHolder(HelixManager manager, HealthDataCache cache)
   {
     _accessor = manager.getDataAccessor();
-    _cache = new ClusterDataCache();
+    _cache = cache;
     // _statMap = new HashMap<String,PersistentStat>();
   }
 
@@ -55,7 +53,7 @@ public class StatsHolder
     }
     /*
      * if (_cache.getPersistentStats() != null) {
-     * 
+     *
      * _statMap = _cache.getPersistentStats(); }
      */
     // TODO: confirm this a good place to init the _statMap when null
@@ -109,7 +107,7 @@ public class StatsHolder
     System.out.println("Refresh stats done: "+(System.currentTimeMillis() - refreshStartTime));
   }
 
-  public Iterator<String> getAllStats() 
+  public Iterator<String> getAllStats()
   {
     return null;
   }
@@ -266,7 +264,7 @@ public class StatsHolder
   }
 
 
-  public static Map<String, String> getEmptyStat() 
+  public static Map<String, String> getEmptyStat()
   {
     Map<String, String> statFields = new HashMap<String, String>();
     statFields.put(TIMESTAMP_NAME, "");

@@ -1,6 +1,7 @@
 package com.linkedin.helix.manager.file;
 
 import com.linkedin.helix.ClusterMessagingService;
+import com.linkedin.helix.ConfigAccessor;
 import com.linkedin.helix.ConfigChangeListener;
 import com.linkedin.helix.ControllerChangeListener;
 import com.linkedin.helix.CurrentStateChangeListener;
@@ -207,6 +208,13 @@ public class MockFileHelixManager implements HelixManager
   {
     // TODO Auto-generated method stub
     return false;
+  }
+
+  @Override
+  public ConfigAccessor getConfigAccessor()
+  {
+    // TODO Auto-generated method stub
+    return null;
   }
 
 }

@@ -7,38 +7,37 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import com.linkedin.helix.HelixException;
+import com.linkedin.helix.Mocks.MockManager;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.Mocks.MockManager;
-import com.linkedin.helix.alerts.StatsHolder;
-import com.linkedin.helix.healthcheck.PerformanceHealthReportProvider;
+import com.linkedin.helix.controller.stages.HealthDataCache;
 
 public class TestAddPersistentStats {
 
 	protected static final String CLUSTER_NAME = "TestCluster";
-	
+
 	MockManager _helixManager;
 	StatsHolder _statsHolder;
-	
+
 	@BeforeMethod (groups = {"unitTest"})
 	public void setup()
 	{
 		_helixManager = new MockManager(CLUSTER_NAME);
-		_statsHolder = new StatsHolder(_helixManager);
+		_statsHolder = new StatsHolder(_helixManager, new HealthDataCache());
 	}
-	
-	public boolean statRecordContains(ZNRecord rec, String statName) 
+
+	public boolean statRecordContains(ZNRecord rec, String statName)
 	{
 		Map<String,Map<String,String>> stats = rec.getMapFields();
 		return stats.containsKey(statName);
 	}
-	
+
 	public int statsSize(ZNRecord rec)
 	{
 		Map<String,Map<String,String>> stats = rec.getMapFields();
 		return stats.size();
 	}
-	
+
 	@Test (groups = {"unitTest"})
 	public void testAddStat() throws Exception
 	{
@@ -156,4 +155,3 @@ public class TestAddPersistentStats {
 		AssertJUnit.assertTrue(caughtException);
 	}
 }
-	 

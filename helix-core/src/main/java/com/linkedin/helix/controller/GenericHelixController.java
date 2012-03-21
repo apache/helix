@@ -2,7 +2,6 @@ package com.linkedin.helix.controller;
 
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
@@ -10,12 +9,16 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import org.I0Itec.zkclient.exception.ZkInterruptedException;
 import org.apache.log4j.Logger;
 
+import com.linkedin.helix.ConfigAccessor;
 import com.linkedin.helix.ConfigChangeListener;
+import com.linkedin.helix.ConfigScope;
+import com.linkedin.helix.ConfigScopeBuilder;
 import com.linkedin.helix.ControllerChangeListener;
 import com.linkedin.helix.CurrentStateChangeListener;
 import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.ExternalViewChangeListener;
 import com.linkedin.helix.HealthStateChangeListener;
+import com.linkedin.helix.HelixConstants.ClusterConfigType;
 import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.IdealStateChangeListener;
 import com.linkedin.helix.LiveInstanceChangeListener;
@@ -33,6 +36,7 @@ import com.linkedin.helix.controller.stages.ExternalViewComputeStage;
 import com.linkedin.helix.controller.stages.MessageGenerationPhase;
 import com.linkedin.helix.controller.stages.MessageSelectionStage;
 import com.linkedin.helix.controller.stages.ReadClusterDataStage;
+import com.linkedin.helix.controller.stages.ReadHealthDataStage;
 import com.linkedin.helix.controller.stages.ResourceComputationStage;
 import com.linkedin.helix.controller.stages.StatsAggregationStage;
 import com.linkedin.helix.controller.stages.TaskAssignmentStage;
@@ -129,7 +133,7 @@ public class GenericHelixController implements
       Pipeline liveInstancePipeline = new Pipeline();
       liveInstancePipeline.addStage(new CompatibilityCheckStage());
 
-      
+
       registry.register("idealStateChange", dataRefresh, rebalancePipeline);
       registry.register("currentStateChange",
                         dataRefresh,
@@ -148,14 +152,17 @@ public class GenericHelixController implements
                         externalViewPipeline);
       registry.register("externalView", dataRefresh);
       registry.register("resume", dataRefresh, rebalancePipeline, externalViewPipeline);
-      
+
 
       // health stats pipeline
+      Pipeline healthDataRefresh = new Pipeline();
+      healthDataRefresh.addStage(new ReadHealthDataStage());
+
    	  Pipeline healthStatsAggregationPipeline = new Pipeline();
    	  StatsAggregationStage statsStage = new StatsAggregationStage();
+   	  // healthStatsAggregationPipeline.addStage(new ReadHealthDataStage());
    	  healthStatsAggregationPipeline.addStage(statsStage);
-   	  registry.register("healthChange", dataRefresh, healthStatsAggregationPipeline);
-
+   	  registry.register("healthChange", healthDataRefresh, healthStatsAggregationPipeline);
 
       return registry;
     }
@@ -183,6 +190,13 @@ public class GenericHelixController implements
     {
       logger.error("Cluster manager: " + manager.getInstanceName()
                    + " is not leader. Pipeline will not be invoked");
+      return;
+    }
+
+    boolean isEnabled = isEnabled(event, manager);
+    if (isEnabled == false)
+    {
+      logger.info(event.getName() + " is disabled. Ignoring the event");
       return;
     }
 
@@ -218,6 +232,34 @@ public class GenericHelixController implements
         break;
       }
     }
+  }
+
+  private boolean isEnabled(ClusterEvent event, HelixManager manager)
+  {
+    // check if pipeline trigger (onXXXChange) has been disabled
+    ConfigAccessor configAccessor = manager.getConfigAccessor();
+    if (configAccessor != null)
+    {
+      // zk-based cluster manager
+      ConfigScope scope = new ConfigScopeBuilder().forCluster(manager.getClusterName()).build();
+      String triggers = configAccessor.get(scope,
+                                           ClusterConfigType.HELIX_DISABLE_PIPELINE_TRIGGERS.toString());
+      if (triggers != null && !triggers.isEmpty())
+      {
+        String[] splits = triggers.split("[\\s,]+");
+        for (String trigger : splits)
+        {
+          if (event.getName().equals(trigger))
+          {
+            return false;
+          }
+        }
+      }
+    } else
+    {
+      logger.debug("File-based cluster manager doesn't support disable pipeline trigger");
+    }
+    return true;
   }
 
   // TODO since we read data in pipeline, we can get rid of reading from zookeeper in callback

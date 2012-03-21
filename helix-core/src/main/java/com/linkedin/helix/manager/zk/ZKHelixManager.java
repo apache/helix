@@ -14,7 +14,6 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Timer;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -25,6 +24,7 @@ import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
 
 import com.linkedin.helix.ClusterMessagingService;
+import com.linkedin.helix.ConfigAccessor;
 import com.linkedin.helix.ConfigChangeListener;
 import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
 import com.linkedin.helix.ControllerChangeListener;
@@ -71,6 +71,7 @@ public class ZKHelixManager implements HelixManager
   private final String _zkConnectString;
   private static final int DEFAULT_SESSION_TIMEOUT = 30000;
   private ZKDataAccessor _accessor;
+  private ConfigAccessor _configAccessor;
   protected ZkClient _zkClient;
   private final List<CallbackHandler> _handlers;
   private final ZkStateChangeListener _zkStateChangeListener;
@@ -138,7 +139,7 @@ public class ZKHelixManager implements HelixManager
 
     _stateMachEngine = new HelixStateMachineEngine(this);
   }
-  
+
   private boolean isInstanceSetup()
   {
     if (_instanceType == InstanceType.PARTICIPANT
@@ -198,7 +199,7 @@ public class ZKHelixManager implements HelixManager
         new EventType[] { EventType.NodeChildrenChanged }, CONFIG);
     // _handlers.add(callbackHandler);
     addListener(callbackHandler);
-    
+
   }
 
   // TODO: Decide if do we still need this since we are exposing
@@ -280,6 +281,13 @@ public class ZKHelixManager implements HelixManager
   {
     checkConnected();
     return _accessor;
+  }
+
+  @Override
+  public ConfigAccessor getConfigAccessor()
+  {
+    checkConnected();
+    return _configAccessor;
   }
 
   @Override
@@ -463,6 +471,7 @@ public class ZKHelixManager implements HelixManager
     ZkSerializer zkSerializer = new ZNRecordSerializer();
     _zkClient = new ZkClient(zkServers, _sessionTimeout, CONNECTIONTIMEOUT, zkSerializer);
     _accessor = new ZKDataAccessor(_clusterName, _zkClient);
+    _configAccessor = new ConfigAccessor(_zkClient);
     int retryCount = 0;
 
     _zkClient.subscribeStateChanges(_zkStateChangeListener);

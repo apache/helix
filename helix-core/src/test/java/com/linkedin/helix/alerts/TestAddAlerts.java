@@ -6,43 +6,42 @@ import org.testng.AssertJUnit;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import com.linkedin.helix.Mocks.MockManager;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.Mocks.MockManager;
-import com.linkedin.helix.alerts.AlertParser;
-import com.linkedin.helix.alerts.AlertsHolder;
+import com.linkedin.helix.controller.stages.HealthDataCache;
 
 public class TestAddAlerts {
 
 protected static final String CLUSTER_NAME = "TestCluster";
-	
+
 	MockManager _helixManager;
 	AlertsHolder _alertsHolder;
-	
+
 	public final String EXP = AlertParser.EXPRESSION_NAME;
 	public final String CMP = AlertParser.COMPARATOR_NAME;
 	public final String CON = AlertParser.CONSTANT_NAME;
-	
+
 	@BeforeMethod (groups = {"unitTest"})
 	public void setup()
 	{
 		_helixManager = new MockManager(CLUSTER_NAME);
-		_alertsHolder = new AlertsHolder(_helixManager);
+		_alertsHolder = new AlertsHolder(_helixManager, new HealthDataCache());
 	}
-	
-	
-	public boolean alertRecordContains(ZNRecord rec, String alertName) 
+
+
+	public boolean alertRecordContains(ZNRecord rec, String alertName)
 	{
 		Map<String,Map<String,String>> alerts = rec.getMapFields();
 		return alerts.containsKey(alertName);
 	}
-	
+
 	public int alertsSize(ZNRecord rec)
 	{
 		Map<String,Map<String,String>> alerts = rec.getMapFields();
 		return alerts.size();
 	}
-	
+
 	@Test (groups = {"unitTest"})
 	  public void testAddAlert() throws Exception
 	  {
@@ -55,7 +54,7 @@ protected static final String CLUSTER_NAME = "TestCluster";
 		 AssertJUnit.assertTrue(alertRecordContains(rec,alert));
 		 AssertJUnit.assertEquals(1, alertsSize(rec));
 	  }
-	
+
 	@Test (groups = {"unitTest"})
 	  public void testAddTwoAlerts() throws Exception
 	  {
@@ -72,7 +71,7 @@ protected static final String CLUSTER_NAME = "TestCluster";
 		 AssertJUnit.assertTrue(alertRecordContains(rec,alert2));
 		 AssertJUnit.assertEquals(2, alertsSize(rec));
 	  }
-	
+
 	@Test (groups = {"unitTest"})
 	  public void testAddTwoWildcardAlert() throws Exception
 	  {
@@ -85,6 +84,6 @@ protected static final String CLUSTER_NAME = "TestCluster";
 		 AssertJUnit.assertTrue(alertRecordContains(rec,alert1));
 		 AssertJUnit.assertEquals(1, alertsSize(rec));
 	  }
-	
+
 	//add 2 wildcard alert here
 }

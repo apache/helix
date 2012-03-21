@@ -12,6 +12,7 @@ import org.apache.log4j.Logger;
 
 import com.linkedin.helix.ClusterMessagingService;
 import com.linkedin.helix.ClusterView;
+import com.linkedin.helix.ConfigAccessor;
 import com.linkedin.helix.ConfigChangeListener;
 import com.linkedin.helix.ControllerChangeListener;
 import com.linkedin.helix.CurrentStateChangeListener;
@@ -503,5 +504,12 @@ public class StaticFileHelixManager implements HelixManager
   public boolean isLeader()
   {
     throw new UnsupportedOperationException("isLeader() not implemented in StaticFileClusterManager");
+  }
+
+  @Override
+  public ConfigAccessor getConfigAccessor()
+  {
+    // TODO Auto-generated method stub
+    return null;
   }
 }

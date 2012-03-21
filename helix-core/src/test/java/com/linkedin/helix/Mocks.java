@@ -279,6 +279,13 @@ public class Mocks
       return false;
     }
 
+    @Override
+    public ConfigAccessor getConfigAccessor()
+    {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
   }
 
   public static class MockAccessor implements DataAccessor

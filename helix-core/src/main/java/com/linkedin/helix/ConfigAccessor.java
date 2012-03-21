@@ -33,11 +33,18 @@ public class ConfigAccessor
     // @formatter:on
   }
 
-  private final String _zkAddr;
+  // private final String _zkAddr;
+  private final ZkClient zkClient;
 
   public ConfigAccessor(String zkAddr)
   {
-    _zkAddr = zkAddr;
+    zkClient = new ZkClient(zkAddr);
+    zkClient.setZkSerializer(new ZNRecordSerializer());
+  }
+
+  public ConfigAccessor(ZkClient zkClient)
+  {
+    this.zkClient = zkClient;
   }
 
   /**
@@ -54,12 +61,12 @@ public class ConfigAccessor
       return null;
     }
 
-    ZkClient zkClient = null;
-    try
-    {
+//    ZkClient zkClient = null;
+//    try
+//    {
       String value = null;
-      zkClient = new ZkClient(_zkAddr);
-      zkClient.setZkSerializer(new ZNRecordSerializer());
+//      zkClient = new ZkClient(_zkAddr);
+//      zkClient.setZkSerializer(new ZNRecordSerializer());
       String clusterName = scope.getClusterName();
       if (!ZKUtil.isClusterSetup(clusterName, zkClient))
       {
@@ -85,13 +92,13 @@ public class ConfigAccessor
         }
       }
       return value;
-    } finally
-    {
-      if (zkClient != null)
-      {
-        zkClient.close();
-      }
-    }
+//    } finally
+//    {
+//      if (zkClient != null)
+//      {
+//        zkClient.close();
+//      }
+//    }
 
   }
 
@@ -103,11 +110,11 @@ public class ConfigAccessor
       return;
     }
 
-    ZkClient zkClient = null;
-    try
-    {
-      zkClient = new ZkClient(_zkAddr);
-      zkClient.setZkSerializer(new ZNRecordSerializer());
+//    ZkClient zkClient = null;
+//    try
+//    {
+//      zkClient = new ZkClient(_zkAddr);
+//      zkClient.setZkSerializer(new ZNRecordSerializer());
 
       String clusterName = scope.getClusterName();
       if (!ZKUtil.isClusterSetup(clusterName, zkClient))
@@ -133,13 +140,13 @@ public class ConfigAccessor
       }
       ZKUtil.createOrUpdate(zkClient, splits[0], update, true, true);
       return;
-    } finally
-    {
-      if (zkClient != null)
-      {
-        zkClient.close();
-      }
-    }
+//    } finally
+//    {
+//      if (zkClient != null)
+//      {
+//        zkClient.close();
+//      }
+//    }
 
   }
 
@@ -151,11 +158,11 @@ public class ConfigAccessor
       return Collections.emptyList();
     }
 
-    ZkClient zkClient = null;
+//    ZkClient zkClient = null;
     try
     {
-      zkClient = new ZkClient(_zkAddr);
-      zkClient.setZkSerializer(new ZNRecordSerializer());
+//      zkClient = new ZkClient(_zkAddr);
+//      zkClient.setZkSerializer(new ZNRecordSerializer());
       if (!ZKUtil.isClusterSetup(clusterName, zkClient))
       {
         LOG.error("cluster " + clusterName + " is not setup yet");
@@ -198,12 +205,13 @@ public class ConfigAccessor
     } catch (Exception e)
     {
       return Collections.emptyList();
-    } finally
-    {
-      if (zkClient != null)
-      {
-        zkClient.close();
-      }
     }
+//    finally
+//    {
+//      if (zkClient != null)
+//      {
+//        zkClient.close();
+//      }
+//    }
   }
 }

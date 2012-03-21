@@ -1,7 +1,6 @@
 package com.linkedin.helix.controller.stages;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
@@ -19,10 +18,6 @@ import com.linkedin.helix.alerts.Tuple;
 import com.linkedin.helix.controller.pipeline.AbstractBaseStage;
 import com.linkedin.helix.controller.pipeline.StageContext;
 import com.linkedin.helix.controller.pipeline.StageException;
-import com.linkedin.helix.healthcheck.AggregationType;
-import com.linkedin.helix.healthcheck.AggregationTypeFactory;
-import com.linkedin.helix.healthcheck.PerformanceHealthReportProvider;
-import com.linkedin.helix.healthcheck.Stat;
 import com.linkedin.helix.healthcheck.StatHealthReportProvider;
 import com.linkedin.helix.model.HealthStat;
 import com.linkedin.helix.model.LiveInstance;
@@ -32,9 +27,9 @@ import com.linkedin.helix.monitoring.mbeans.ClusterAlertMBeanCollection;
  * For each LiveInstances select currentState and message whose sessionId
  * matches sessionId from LiveInstance Get Partition,State for all the resources
  * computed in previous State [ResourceComputationStage]
- * 
+ *
  * @author asilbers
- * 
+ *
  */
 public class StatsAggregationStage extends AbstractBaseStage
 {
@@ -125,17 +120,18 @@ public class StatsAggregationStage extends AbstractBaseStage
     // _defaultAggType = AggregationTypeFactory.getAggregationType(aggTypeName);
 
     HelixManager manager = event.getAttribute("helixmanager");
-    if (manager == null)
+    HealthDataCache cache = event.getAttribute("HealthDataCache");
+
+    if (manager == null || cache == null)
     {
-      throw new StageException("helixmanager attribute value is null");
+      throw new StageException("helixmanager|HealthDataCache attribute value is null");
     }
 
-    _statsHolder = new StatsHolder(manager);
-    _alertsHolder = new AlertsHolder(manager);
+    _statsHolder = new StatsHolder(manager, cache);
+    _alertsHolder = new AlertsHolder(manager, cache);
 
     _statsHolder.refreshStats(); //refresh once at start of stage
-    
-    ClusterDataCache cache = event.getAttribute("ClusterDataCache");
+
 
     // init agg stats from cache
     // initAggStats(cache);
@@ -208,8 +204,8 @@ public class StatsAggregationStage extends AbstractBaseStage
           _alertStatus.get(originAlertName));
     }
     logger.info("done setting beans: "+(System.currentTimeMillis() - beanStartTime));
-    
-    
+
+
     long writeAlertStartTime = System.currentTimeMillis();
     // write out alert status (to zk)
     _alertsHolder.addAlertStatusSet(_alertStatus);
@@ -238,7 +234,7 @@ public class StatsAggregationStage extends AbstractBaseStage
     }
     logger.info("done logging alerts: "+(System.currentTimeMillis() - logAlertStartTime));
 
-    
+
     logger.info("process end: "+(System.currentTimeMillis() - startTime));
   }
 }

@@ -13,5 +13,10 @@ public interface HelixConstants
     ANY_LIVEINSTANCE
   }
 
+  enum ClusterConfigType
+  {
+    HELIX_DISABLE_PIPELINE_TRIGGERS
+  }
+
   static final String DEFAULT_STATE_MODEL_FACTORY = "DEFAULT";
 }

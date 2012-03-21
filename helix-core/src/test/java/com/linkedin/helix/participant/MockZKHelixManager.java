@@ -3,6 +3,7 @@ package com.linkedin.helix.participant;
 import java.util.UUID;
 
 import com.linkedin.helix.ClusterMessagingService;
+import com.linkedin.helix.ConfigAccessor;
 import com.linkedin.helix.ConfigChangeListener;
 import com.linkedin.helix.ControllerChangeListener;
 import com.linkedin.helix.CurrentStateChangeListener;
@@ -207,6 +208,13 @@ public void addHealthStateChangeListener(HealthStateChangeListener listener,
   {
     // TODO Auto-generated method stub
     return false;
+  }
+
+  @Override
+  public ConfigAccessor getConfigAccessor()
+  {
+    // TODO Auto-generated method stub
+    return null;
   }
 
 

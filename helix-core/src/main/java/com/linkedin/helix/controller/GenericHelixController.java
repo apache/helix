@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
 
-import org.I0Itec.zkclient.exception.ZkInterruptedException;
 import org.apache.log4j.Logger;
 
 import com.linkedin.helix.ConfigAccessor;
@@ -155,14 +154,11 @@ public class GenericHelixController implements
 
 
       // health stats pipeline
-      Pipeline healthDataRefresh = new Pipeline();
-      healthDataRefresh.addStage(new ReadHealthDataStage());
-
    	  Pipeline healthStatsAggregationPipeline = new Pipeline();
    	  StatsAggregationStage statsStage = new StatsAggregationStage();
-   	  // healthStatsAggregationPipeline.addStage(new ReadHealthDataStage());
+   	  healthStatsAggregationPipeline.addStage(new ReadHealthDataStage());
    	  healthStatsAggregationPipeline.addStage(statsStage);
-   	  registry.register("healthChange", healthDataRefresh, healthStatsAggregationPipeline);
+   	  registry.register("healthChange", healthStatsAggregationPipeline);
 
       return registry;
     }
@@ -219,15 +215,15 @@ public class GenericHelixController implements
         pipeline.handle(event);
         pipeline.finish();
       }
-      catch (ZkInterruptedException e)
-      {
-        logger.error("Interrupted while executing pipeline:" + pipeline
-            + ". Will not continue to next pipeline" + ", exception:" + e);
-        break;
-      }
+//      catch (ZkInterruptedException e)
+//      {
+//        logger.error("Interrupted while executing pipeline:" + pipeline
+//            + ". Will not continue to next pipeline" + ", exception:" + e);
+//        break;
+//      }
       catch (Exception e)
       {
-        logger.error("Exception while executing pipeline:" + pipeline
+        logger.error("Exception while executing pipeline: " + pipeline
             + ". Will not continue to next pipeline", e);
         break;
       }

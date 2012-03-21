@@ -58,7 +58,7 @@ public class DummyProcess
                       String clusterViewFile,
                       int delay)
   {
-    this(zkConnectString, clusterName, instanceName, helixManagerType, clusterViewFile, delay, null);
+    this(zkConnectString, clusterName, instanceName, "zk", clusterViewFile, delay, null);
   }
 
   public DummyProcess(String zkConnectString,
@@ -408,6 +408,7 @@ public class DummyProcess
     options.addOption(hostOption);
     options.addOption(portOption);
     options.addOption(transDelayOption);
+    options.addOption(cmTypeOption);
 
     options.addOptionGroup(optionGroup);
 

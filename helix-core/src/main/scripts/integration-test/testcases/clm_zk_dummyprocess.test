@@ -8,14 +8,14 @@ export TEST_NAME=clm_zk_dummyprocess.test
 zookeeper_server_ports="localhost:2188"
 # default datadir integration_test/var/work/zookeeper/data/1
 # start the zookeeper cluster
-$SCRIPT_DIR/cm_driver.py -c zookeeper -o start --zookeeper_reset --zookeeper_server_ports=${zookeeper_server_ports}  --cmdline_props="tickTime=2000;initLimit=5;syncLimit=2" 
+$SCRIPT_DIR/cm_driver.py -c zookeeper -o start --zookeeper_reset --zookeeper_server_ports=${zookeeper_server_ports}  --cmdline_props="tickTime=2000;initLimit=5;syncLimit=2;maxClientCnxns=0" 
 
 # create storage cluster
 $SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr localhost:2188 -addCluster storage-cluster-12345"
 
 $SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr localhost:2188 -addCluster relay-cluster-12345"
 
-$SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr localhost:2188 -addResourceGroup storage-cluster-12345 db-12345 120"
+$SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr localhost:2188 -addResource storage-cluster-12345 db-12345 120"
 
 $SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr localhost:2188 -addNode storage-cluster-12345 localhost:8900"
 

@@ -37,7 +37,8 @@ public class StatsHolder
   {
     _accessor = manager.getDataAccessor();
     _cache = new ClusterDataCache();
-    // _statMap = new HashMap<String,PersistentStat>();
+    refreshStats();
+    //_statMap = new HashMap<String, Map<String, String>>(); //!!!
   }
 
   public void refreshStats()
@@ -49,7 +50,7 @@ public class StatsHolder
     {
       _statMap = persistentStatRecord.getMapFields();
     }
-    else
+    else 
     {
       _statMap = new HashMap<String, Map<String, String>>();
     }

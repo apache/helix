@@ -2,20 +2,20 @@
 # test that we can insert and retrieve a simple record
 
 # start zookeeper on localhost:2183
+export TEST_NAME=hexli_random_kill
 source setup_env.inc
-export TEST_NAME=clm_zk_dummyprocess.test
 
 zookeeper_server_ports="localhost:2188"
 # default datadir integration_test/var/work/zookeeper/data/1
 # start the zookeeper cluster
-$SCRIPT_DIR/cm_driver.py -c zookeeper -o start --zookeeper_reset --zookeeper_server_ports=${zookeeper_server_ports}  --cmdline_props="tickTime=2000;initLimit=5;syncLimit=2;maxClientCnxns=0" 
+$SCRIPT_DIR/cm_driver.py -c zookeeper -o start --zookeeper_reset --zookeeper_server_ports=${zookeeper_server_ports}  --cmdline_props="tickTime=2000;initLimit=5;syncLimit=2" 
 
 # create storage cluster
 $SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr localhost:2188 -addCluster storage-cluster-12345"
 
 $SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr localhost:2188 -addCluster relay-cluster-12345"
 
-$SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr localhost:2188 -addResource storage-cluster-12345 db-12345 120"
+$SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr localhost:2188 -addResource storage-cluster-12345 db-12345 120 MasterSlave"
 
 $SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr localhost:2188 -addNode storage-cluster-12345 localhost:8900"
 
@@ -30,31 +30,26 @@ $SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr localhost:2188 -a
 $SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr localhost:2188 -rebalance storage-cluster-12345 db-12345 3"
 
 #Launch dummy process nodes
-
-$SCRIPT_DIR/cm_driver.py -c dummy-process -o start -l "integration-test/config/log4j.properties" --cmdline_args="-zkSvr localhost:2188 -cluster storage-cluster-12345 -host localhost -port 8900"
-
-$SCRIPT_DIR/cm_driver.py -c dummy-process -o start -l "integration-test/config/log4j.properties" --cmdline_args="-zkSvr localhost:2188 -cluster storage-cluster-12345 -host localhost -port 8901"
-
-$SCRIPT_DIR/cm_driver.py -c dummy-process -o start -l "integration-test/config/log4j.properties" --cmdline_args="-zkSvr localhost:2188 -cluster storage-cluster-12345 -host localhost -port 8902"
-
-$SCRIPT_DIR/cm_driver.py -c dummy-process -o start -l "integration-test/config/log4j.properties" --cmdline_args="-zkSvr localhost:2188 -cluster storage-cluster-12345 -host localhost -port 8903"
-
-$SCRIPT_DIR/cm_driver.py -c dummy-process -o start -l "integration-test/config/log4j.properties" --cmdline_args="-zkSvr localhost:2188 -cluster storage-cluster-12345 -host localhost -port 8904"
-
+start_port=8900
+for i in `seq 1 5`; do
+ port=$(($start_port + $i))
+ $SCRIPT_DIR/cm_driver.py -c dummy-process -o start -l "integration-test/config/log4j-info.properties" --save_process_id --component_id=$i --cmdline_args="-helixManagerType zk -zkSvr localhost:2188 -cluster storage-cluster-12345 -host localhost -port ${port}"
+done
 
 #Launch the cluster manager
-$SCRIPT_DIR/cm_driver.py -c cluster-manager -o start -l "integration-test/config/log4j.properties" --cmdline_args="-zkSvr localhost:2188 -cluster storage-cluster-12345"
+$SCRIPT_DIR/cm_driver.py -c cluster-manager -o start -l "integration-test/config/log4j-info.properties" --cmdline_args="-zkSvr localhost:2188 -cluster storage-cluster-12345"
 
-exit 0
 sleep 6
 
 #$SCRIPT_DIR/cm_driver.py -c cluster-manager -o stop 
 
 #verify cluster state
 verifier_1_output=$VIEW_ROOT/$LOG_DIR_FROM_ROOT/verifier_1.log
-$SCRIPT_DIR/cm_driver.py -c cluster-state-verifier -o start --logfile=$verifier_1_output -l "integration-test/config/log4j.properties" --cmdline_args="-zkSvr localhost:2188 -cluster storage-cluster-12345"
+$SCRIPT_DIR/cm_driver.py -c cluster-state-verifier -o start --logfile=$verifier_1_output -l "integration-test/config/log4j-info.properties" --cmdline_args="-zkSvr localhost:2188 -cluster storage-cluster-12345"
 
-$SCRIPT_DIR/cm_driver.py -c dummy-process -o stop
+for i in `seq 1 5`; do
+  $SCRIPT_DIR/cm_driver.py -c dummy-process -o stop --component_id=$i
+done
 
 $SCRIPT_DIR/cm_driver.py -c cluster-manager -o stop
 $SCRIPT_DIR/cm_driver.py -c zookeeper -o stop

@@ -36,6 +36,10 @@ public class StatsHolder
     _accessor = manager.getDataAccessor();
     _cache = cache;
     // _statMap = new HashMap<String,PersistentStat>();
+//    _cache = new ClusterDataCache();
+    refreshStats();
+    //_statMap = new HashMap<String, Map<String, String>>(); //!!!
+
   }
 
   public void refreshStats()

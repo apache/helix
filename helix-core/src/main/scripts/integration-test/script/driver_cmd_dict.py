@@ -8,6 +8,9 @@ zookeeper_classpath="IVY_DIR/org/apache/zookeeper/zookeeper/3.3.0/zookeeper-3.3.
 kill_cmd_template="jps | grep %s | cut -f1 -d\\  | xargs kill -2"
 kill_container_template="ps -ef | grep tail | grep %s | awk '{print $2}' | xargs kill -9"
 
+# This is not used in helix
+afterParsingHook=None
+
 # some global variables
 router_http_port=12917
 router_mgmt_port=12920
@@ -20,7 +23,7 @@ cmd_dict={
      "storage-node":{"start":"%s; %s" % (curl_kill_cmd_template % storage_node_mgmt_port,"ant -f espresso-storage-node/run/build.xml run-storage-node"),"stop":curl_kill_cmd_template % storage_node_mgmt_port,"stats":[get_stats,"EspressoSingleNode"]}
     ,"router":{"start":"ant -f espresso-router/run/build.xml run-router","stop":curl_kill_cmd_template % router_mgmt_port,"stats":[get_stats,"EspressoRouter"]}
     ,"zookeeper":{"start":[zookeeper_opers,"start"],"stop":[zookeeper_opers,"stop"],"wait_for_exist":[zookeeper_opers,"wait_for_exist"],"wait_for_nonexist":[zookeeper_opers,"wait_for_nonexist"],"wait_for_value":[zookeeper_opers,"wait_for_value"],"cmd":[zookeeper_opers,"cmd"]}
-    ,"cluster-manager":{"start":"ant -f cluster-manager/run/build.xml run-cluster-manager", "stop":kill_cmd_template % "ClusterManagerMain"}
+    ,"cluster-manager":{"start":"ant -f cluster-manager/run/build.xml run-cluster-manager", "stop":kill_cmd_template % "HelixControllerMain"}
     ,"mock-storage":{"start":"ant -f cluster-manager/run/build.xml run-mock-storage", "stop":kill_cmd_template % "MockStorageProcess"}
     ,"cluster-state-verifier":{"start":"ant -d -f cluster-manager/run/build.xml run-cluster-state-verifier", "stop":kill_cmd_template % "ClusterStateVerifier"}
     ,"dummy-process":{"start":"ant -f cluster-manager/run/build.xml run-dummy-process", "stop":kill_cmd_template % "DummyProcess"}
@@ -104,8 +107,9 @@ ant_call_option_mapping={
 
 # class path
 import glob
-cm_jar_file=glob.glob(os.path.join(get_view_root(),"target/cluster-manager-core-*.jar"))[0]
-cm_jar_file=os.path.basename(cm_jar_file)
+#print "view_root=" + get_view_root()
+cm_jar_files=glob.glob(os.path.join(get_view_root(),"../../../target/helix-core-*.jar"))
+#cm_jar_file=os.path.basename(cm_jar_file)
 #print cm_jar_file
 cmd_direct_call={
    "clm_console":
@@ -122,10 +126,9 @@ cmd_direct_call={
       ,"IVY_DIR/org/codehaus/jackson/jackson-core-asl/1.4.2/jackson-core-asl-1.4.2.jar"
       ,"IVY_DIR/org/codehaus/jackson/jackson-mapper-asl/1.4.2/jackson-mapper-asl-1.4.2.jar"
       ,"IVY_DIR/xpp3/xpp3_min/1.1.4c/xpp3_min-1.1.4c.jar"
-      ,"VIEW_ROOT/target/%s" % cm_jar_file
-]
-  ,"class_name":"com.linkedin.clustermanager.tools.ClusterSetup"
-  ,"before_cmd":"mvn jar:jar"  # build jar first
+]+cm_jar_files
+  ,"class_name":"com.linkedin.helix.tools.ClusterSetup"
+  ,"before_cmd":"../../../mvn jar:jar"  # build jar first
    }
 
   ,"dummy-process":
@@ -142,11 +145,10 @@ cmd_direct_call={
       ,"IVY_DIR/org/codehaus/jackson/jackson-mapper-asl/1.4.2/jackson-mapper-asl-1.4.2.jar"
       ,"IVY_DIR/xpp3/xpp3_min/1.1.4c/xpp3_min-1.1.4c.jar"
       ,"IVY_DIR/com/github/sgroschupf/zkclient/0.1/zkclient-0.1.jar"
-      ,"VIEW_ROOT/target/%s" % cm_jar_file
-      ,"VIEW_ROOT/target/test-classes"
-]
-  ,"class_name":"com.linkedin.clustermanager.mock.storage.DummyProcess"
-  ,"before_cmd":"mvn jar:jar"  # build jar first
+]+cm_jar_files
+
+  ,"class_name":"com.linkedin.helix.mock.storage.DummyProcess"
+  ,"before_cmd":"../../../mvn jar:jar"  # build jar first
    }
 
   ,"cluster-manager":
@@ -163,11 +165,9 @@ cmd_direct_call={
       ,"IVY_DIR/org/codehaus/jackson/jackson-mapper-asl/1.4.2/jackson-mapper-asl-1.4.2.jar"
       ,"IVY_DIR/xpp3/xpp3_min/1.1.4c/xpp3_min-1.1.4c.jar"
       ,"IVY_DIR/com/github/sgroschupf/zkclient/0.1/zkclient-0.1.jar"
-      ,"VIEW_ROOT/target/%s" % cm_jar_file
-#      ,"VIEW_ROOT/target/test-classes"
-]
-  ,"class_name":"com.linkedin.clustermanager.controller.ClusterManagerMain"
-  ,"before_cmd":"mvn jar:jar"  # build jar first
+]+cm_jar_files
+  ,"class_name":"com.linkedin.helix.controller.HelixControllerMain"
+  ,"before_cmd":"../../../mvn jar:jar"  # build jar first
    }
 
   ,"cluster-state-verifier":
@@ -184,9 +184,8 @@ cmd_direct_call={
       ,"IVY_DIR/org/codehaus/jackson/jackson-core-asl/1.4.2/jackson-core-asl-1.4.2.jar"
       ,"IVY_DIR/org/codehaus/jackson/jackson-mapper-asl/1.4.2/jackson-mapper-asl-1.4.2.jar"
       ,"IVY_DIR/xpp3/xpp3_min/1.1.4c/xpp3_min-1.1.4c.jar"
-      ,"VIEW_ROOT/target/%s" % cm_jar_file
-]
-  ,"class_name":"com.linkedin.clustermanager.tools.ClusterStateVerifier"
+]+cm_jar_files
+  ,"class_name":"com.linkedin.helix.tools.ClusterStateVerifier"
    }
 
   ,"mock-storage":
@@ -194,15 +193,16 @@ cmd_direct_call={
     "class_path":[
       "IVY_DIR/com/github/sgroschupf/zkclient/0.1/zkclient-0.1.jar"
      ,"IVY_DIR/log4j/log4j/1.2.15/log4j-1.2.15.jar"
-      ,"VIEW_ROOT/target/%s" % cm_jar_file
       ,"IVY_DIR/commons-cli/commons-cli/1.2/commons-cli-1.2.jar"
       ,"IVY_DIR/zkclient/zkclient/0.1.0/zkclient-0.1.0.jar"
-      ,"VIEW_ROOT//target/test-classes"
-]
-  ,"class_name":"com.linkedin.clustermanager.mock.storage.MockStorageProcess"
+]+cm_jar_files
+  ,"class_name":"com.linkedin.helix.mock.storage.MockStorageProcess"
    }
 }
 
+# file the log4j file
+def log4j_file_store_value(option, opt_str, value, parser):
+  setattr(parser.values, option.dest, file_exists(value))
 # configure
 config_group = OptionGroup(parser, "Config options", "")
 config_group.add_option("-p", "--config", action="store", dest="config", default=None,
@@ -211,8 +211,10 @@ config_group.add_option("--dump_file", action="store", dest="dump_file", default
                    help="Event dump file")
 config_group.add_option("--value_file", action="store", dest="value_file", default=None,
                    help="Event value dump file")
-config_group.add_option("-l", "--log4j_file", action="store", dest="log4j_file", default=None,
+config_group.add_option("-l", "--log4j_file", action="callback", callback=log4j_file_store_value, type="str", dest="log4j_file", default=None,
                    help="Log4j config file")
+#config_group.add_option("-l", "--log4j_file", action="store", dest="log4j_file", default=None,
+#                   help="Log4j config file")
 config_group.add_option("--relay_host", action="store", dest="relay_host", default=None,
                    help="Host of relay for a consumer")
 config_group.add_option("--relay_port", action="store", dest="relay_port", default=None,

@@ -156,6 +156,8 @@ for cmd in cmd_dict: allowed_opers.extend(cmd_dict[cmd].keys())
 allowed_opers=[x for x in list(set(allowed_opers)) if x!="default"]
 
 ct=None  # global variale of the cmd thread, use to access subprocess
+def is_starting_component():
+  return options.operation != "default" and "%s_%s" % (options.component, options.operation) in cmd_ret_pattern
 
 # need to check pid to determine if process is dead
 # Thread and objects
@@ -179,6 +181,11 @@ class cmd_thread(threading.Thread):
          return
       # capture java call here
       if options.capture_java_call: cmd_call_capture_java_call()     # test only remote
+      # print the pid
+      if is_starting_component():
+        java_pid_str = "## java process pid = %s\n## hostname = %s\n" % (find_java_pid(self.subp.pid), host_name_global)
+        if java_pid_str: open(options.logfile,"a").write(java_pid_str)
+        self.outf.write(java_pid_str)
       # no block
       fd = self.subp.stdout.fileno()
       fl = fcntl.fcntl(fd, fcntl.F_GETFL)
@@ -203,6 +210,10 @@ class cmd_thread(threading.Thread):
       #  except IOError, e:
       #    break
       self.subp.stdout.close()
+      # close all the file descriptors
+      #os.close(1)  # stdin
+      #os.close(2)  # stdout
+      #os.close(3)  # stderr
       dbg_print("end of thread run")
 
 def cmd_call_capture_java_call():
@@ -250,6 +261,12 @@ def cmd_call_capture_java_call():
 def cmd_call(cmd, timeout, ret_pattern=None, outf=None):
     ''' return False if timed out. timeout is in secs '''
     #if options.capture_java_call: cmd_call_capture_java_call()     # test only remote
+    if options.operation=="stop" and options.component_id:
+      process_info = get_process_info()
+      key=get_process_info_key(options.component, options.component_id)
+      if key in process_info:
+        sys_call("kill -9 %s" % process_info[key]["pid"])
+        return RetCode.OK
     global ct
     ct = cmd_thread(cmd, ret_pattern, outf)
     ct.start()
@@ -257,10 +274,13 @@ def cmd_call(cmd, timeout, ret_pattern=None, outf=None):
     sleep_interval = 0.5
     ret = RetCode.TIMEOUT
     while (sleep_cnt * sleep_interval < timeout):
-      #if not ct.is_alive:
       if ct.thread_wait_end or (ct.subp and not process_exist(ct.subp.pid)): 
+        print "end"
         if ct.thread_ret_ok: ret = RetCode.OK  # include find pattern or no pattern given
         else: ret= RetCode.ERROR
+        if options.save_process_id:
+          id = options.component_id and options.component_id or 0
+          save_process_info(options.component, str(id), None, options.logfile)  # no port of cm
         #if options.capture_java_call: cmd_call_capture_java_call()
         break    # done
       time.sleep(sleep_interval)
@@ -292,47 +312,6 @@ def run_cmd_remote(cmd):
     ret = remote_cmd_template % (remote_run_config[remote_component]["host"], get_remote_view_root(),  cmd)
     return ret
 
-metabuilder_file=".metabuilder.properties"
-def get_bldfwk_dir():
-    bldfwk_file = "%s/%s" % (get_view_root(), metabuilder_file)
-    bldfwk_dir = None
-    if not os.path.exists(bldfwk_file): return None
-    for line in open(bldfwk_file):
-      m = re.search("(bldshared-[0-9]+)",line)
-      if m: 
-        bldfwk_dir= m.group(1)
-        break
-    print "Warning. Cannot find bldshared-dir, run ant -f bootstrap.xml"
-    #assert bldfwk_dir, "Cannot find bldshared-dir, run ant -f bootstrap.xml"
-    return bldfwk_dir
-
-rsync_path="/usr/local/bin/rsync"
-remote_deploy_cmd_template='''rsync -avz  --exclude=.svn --exclude=var --exclude=mmappedBuffer --exclude=eventLog --exclude=cp_com_linkedin_events --exclude=dist --rsync-path=%s %s/ %s:%s'''
-remote_deploy_bldcmd_template='''rsync -avz  --exclude=.svn --rsync-path=%s %s %s:%s'''
-remote_deploy_change_blddir_cmd_template='''ssh %s "sed 's/%s/%s/' %s > %s_tmp; mv -f %s_tmp %s" '''
-def do_remote_deploy():
-    global rsync_path
-    if not remote_run:
-      print "Remote config file is not set in var/config!"
-      return RetCode.ERROR;
-    bldfwk_dir = get_bldfwk_dir()
-    view_root = get_view_root()
-    for section in remote_run_config:
-      remote_host = remote_run_config[section]["host"]
-      remote_view_root = remote_run_config[section]["view_root"]
-      if "rsync_path" in remote_run_config[section]: rsync_path=remote_run_config[section]["rsync_path"]
-      remote_view_root_parent = os.path.dirname(remote_view_root)
-      sys_call("ssh %s mkdir -p %s" % (remote_host, remote_view_root))
-      cmd = remote_deploy_cmd_template % (rsync_path, view_root, remote_host, remote_view_root)
-      sys_call(cmd) 
-      if bldfwk_dir:
-        cmd = remote_deploy_bldcmd_template % (rsync_path, os.path.join(os.path.dirname(view_root),bldfwk_dir), remote_host, remote_view_root_parent)
-        sys_call(cmd) 
-      # replace the metabuilder, TODO, escape the /
-      metabuilder_full_path = os.path.join(remote_view_root, metabuilder_file)
-      cmd = remote_deploy_change_blddir_cmd_template % (remote_host, view_root.replace("/","\/"), remote_view_root.replace("/","\/"), metabuilder_full_path,  metabuilder_full_path,  metabuilder_full_path,  metabuilder_full_path)
-      sys_call(cmd) 
-    return 0
 
 run_cmd_added_options=[]
 def run_cmd_add_option(cmd, option_name, value=None, check_exist=False):
@@ -382,13 +361,15 @@ def run_cmd_add_option(cmd, option_name, value=None, check_exist=False):
     return cmd
     
 def run_cmd_add_log_file(cmd):
-    log_file= log_file_pattern % (options.testname, options.component, options.operation, time.strftime('%y%m%d_%H%M%S'), os.getpid())
+    global options
     if options.logfile: log_file = options.logfile 
+    else: log_file= log_file_pattern % (options.testname, options.component, options.operation, time.strftime('%y%m%d_%H%M%S'), os.getpid())
     #log_file = os.path.join(remote_run and get_remote_log_dir() or get_log_dir(), log_file)
     # TODO: maybe we want to put the logs in the remote host
     log_file = os.path.join(get_log_dir(), log_file)
     dbg_print("log_file = %s" % log_file)
-    open(log_file,"w").write("TEST_NAME=%s\n" % test_name) 
+    options.logfile = log_file
+    open(log_file,"w").write("TEST_NAME=%s\n" % options.testname) 
     # logging for all the command
     cmd += " 2>&1 | tee -a %s" % log_file 
     return cmd
@@ -467,6 +448,9 @@ def run_cmd_add_config(cmd):
       # this will take care of the passdown, no need for run_cmd_add_directly
       for option in [x for x in pass_down_options if x not in run_cmd_added_options]:
         cmd = run_cmd_add_option(cmd, option)
+
+
+    if options.component=="espresso-relay": cmd+= " -d " # temp hack. TODO: remove
         
     if options.enable_direct_java_call: 
       #cmd = re.sub("java -classpath","java -d64 -ea %s -classpath" % " ".join([x[0]+x[1] for x in [direct_java_call_jvm_args[y] for y in direct_java_call_jvm_args_ordered] if x[1]]) ,cmd) # d64 here
@@ -478,6 +462,14 @@ def run_cmd_add_ant_debug(cmd):
     if re.search("^ant", cmd): cmd = re.sub("^ant","ant -d", cmd)
     dbg_print("cmd = %s" % cmd)
     return cmd
+
+def run_cmd_save_cmd(cmd):
+    if not options.logfile: return
+    re_suffix = re.compile("\.\w+$")
+    if re_suffix.search(options.logfile): command_file = re_suffix.sub(".sh", options.logfile)  
+    else: command_file = "%s.sh" % options.logfile 
+    dbg_print("command_file = %s" % command_file)
+    open(command_file,"w").write("%s\n" % cmd)
 
 def run_cmd_direct_java_call(cmd, component): 
     ''' this needs to be consistent with adding option 
@@ -544,6 +536,7 @@ def run_cmd():
     if remote_run: cmd = run_cmd_remote(cmd) 
     ret_pattern = run_cmd_get_return_pattern()
     cmd = run_cmd_add_log_file(cmd)
+    if is_starting_component(): run_cmd_save_cmd(cmd)
     ret = cmd_call(cmd, options.timeout, ret_pattern, get_outf())
     if options.operation == "stop": time.sleep(0.1)
     return ret
@@ -840,7 +833,7 @@ def zookeeper_opers_start_create_conf(zookeeper_server_ports_split):
     zookeeper_internal_port_1_start = 2800
     zookeeper_internal_port_2_start = 3800
     # overide the default config
-    server_conf={"tickTime":2000,"initLimit":5,"syncLimit":2}
+    server_conf={"tickTime":2000,"initLimit":5,"syncLimit":2,"maxClientCnxns":0}
     if options.cmdline_props:
       for pair in options.cmdline_props.split(";"):
         (k, v) = pair.split("=")
@@ -920,7 +913,7 @@ def zookeeper_opers_cmd():
 def main(argv):
     # default 
     global options
-    parser.add_option("-n", "--testname", action="store", dest="testname", default="default", help="A test name identifier")
+    parser.add_option("-n", "--testname", action="store", dest="testname", default=None, help="A test name identifier")
     parser.add_option("-c", "--component", action="store", dest="component", default=None, choices=cmd_dict.keys(),
                        help="%s" % cmd_dict.keys())
     parser.add_option("-o", "--operation", action="store", dest="operation", default=None, choices=allowed_opers,
@@ -933,7 +926,9 @@ def main(argv):
                        help="log file for both stdout and stderror. Default auto generated")
     parser.add_option("","--timeout", action="store", type="long", dest="timeout", default=600,
                        help="Time out in secs before waiting for the success pattern. [default: %default]")
-
+    parser.add_option("", "--save_process_id", action="store_true", dest="save_process_id", default = False,
+                       help="Store the process id if set.  [default: %default]")
+ 
     jvm_group = OptionGroup(parser, "jvm options", "")
     jvm_group.add_option("", "--jvm_direct_memory_size", action="store", dest="jvm_direct_memory_size", default = None,
                        help="Set the jvm direct memory size. e.g., 2048m. Default using the one driver_cmd_dict.")
@@ -1019,6 +1014,8 @@ def main(argv):
     if arg_error: 
       parser.print_help()
       parser.exit()
+    
+    if afterParsingHook: afterParsingHook(options)   # the hook to call after parsing, change options
 
     setup_env()
     if (not options.testname):
@@ -1034,24 +1031,20 @@ def main(argv):
     if options.testcase:
       ret = run_testcase(options.testcase)
       if ret!=0: ret=1     # workaround a issue that ret of 256 will become 0 after sys.exit
-      sys.exit(ret)
+      my_exit(ret)
     if options.remote_deploy or options.remote_run:
       if options.remote_config_file:
-        remote_config_file = file_exists(options.remote_config_file)
-        if not remote_config_file: my_error("remote_config_file %s does not existi!!" % options.remote_config_file)
-        dbg_print("remote_config_file = %s" % remote_config_file)
-        global remote_run, remote_config
-        remote_config = parse_config(remote_config_file)
-        remote_run=True
+        parse_config(options.remote_config_file)
       if options.remote_deploy: 
         sys_call_debug_begin()
         ret = do_remote_deploy()
         sys_call_debug_end()
-        sys.exit(ret)
+        my_exit(ret)
     sys_call_debug_begin()
     ret = run_cmd()
     sys_call_debug_end()
-    sys.exit(ret)
+
+    my_exit(ret)
     
 if __name__ == "__main__":
     main(sys.argv[1:])

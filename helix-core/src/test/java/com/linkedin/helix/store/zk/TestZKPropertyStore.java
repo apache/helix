@@ -24,6 +24,8 @@ public class TestZKPropertyStore extends ZkUnitTestBase
 {
   private static final Logger LOG = Logger.getLogger(TestZKPropertyStore.class);
   final String className = getShortClassName();
+  final int bufSize = 128;
+  final int bufNr = 10;
 
   class TestListener implements PropertyChangeListener<ZNRecord>
   {
@@ -46,22 +48,22 @@ public class TestZKPropertyStore extends ZkUnitTestBase
     @Override
     public ZNRecord update(ZNRecord current)
     {
-      char[] data1k = new char[1024];
+      char[] data1k = new char[bufSize];
 
-      for (int i = 0; i < 1024; i++)
+      for (int i = 0; i < bufSize; i++)
       {
         data1k[i] = 'e';
       }
 
-      Map<String, String> map1m = new TreeMap<String, String>();
-      for (int i = 0; i < 1000; i++)
+      Map<String, String> map = new TreeMap<String, String>();
+      for (int i = 0; i < bufNr; i++)
       {
-        map1m.put("key_" + i, new String(data1k));
+        map.put("key_" + i, new String(data1k));
       }
 
       String nodeId = current.getId();
       ZNRecord record = new ZNRecord(nodeId);
-      record.setSimpleFields(map1m);
+      record.setSimpleFields(map);
       return record;
     }
   }
@@ -83,14 +85,14 @@ public class TestZKPropertyStore extends ZkUnitTestBase
         new PropertyJsonSerializer<ZNRecord>(ZNRecord.class), propertyStoreRoot);
 
     // zookeeper has a default limit on znode size which is 1M
-    char[] data1k = new char[1024];
-    for (int i = 0; i < 1024; i++)
+    char[] data1k = new char[bufSize];
+    for (int i = 0; i < bufSize; i++)
     {
       data1k[i] = 'a';
     }
 
     Map<String, String> map1m = new TreeMap<String, String>();
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < bufNr; i++)
     {
       map1m.put("key_" + i, new String(data1k));
     }
@@ -181,6 +183,7 @@ public class TestZKPropertyStore extends ZkUnitTestBase
       }
     }
     System.out.println("ZKPropertyStore callback latency is " + maxLatency + " millisecond");
+    maxLatency *= 4; 
 
     // test unsubscribe
     store.unsubscribeForPropertyChange("", listener);
@@ -204,8 +207,8 @@ public class TestZKPropertyStore extends ZkUnitTestBase
     }
 
     // test compare and set
-    char[] data1kUpdate = new char[1024];
-    for (int i = 0; i < 1024; i++)
+    char[] data1kUpdate = new char[bufSize];
+    for (int i = 0; i < bufSize; i++)
     {
       data1k[i] = 'c';
       data1kUpdate[i] = 'd';
@@ -324,9 +327,9 @@ public class TestZKPropertyStore extends ZkUnitTestBase
 
   private void set100Nodes(ZKPropertyStore<ZNRecord> store, char c, boolean needTimestamp) throws PropertyStoreException
   {
-    char[] data1k = new char[1024];
+    char[] data1k = new char[bufSize];
 
-    for (int i = 0; i < 1024; i++)
+    for (int i = 0; i < bufSize; i++)
     {
       data1k[i] = c;
     }

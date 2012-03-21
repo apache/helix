@@ -13,7 +13,6 @@ import com.linkedin.helix.HelixException;
 import com.linkedin.helix.Mocks.MockManager;
 import com.linkedin.helix.controller.stages.HealthDataCache;
 
-
 public class TestEvaluateAlerts {
 	protected static final String CLUSTER_NAME = "TestCluster";
 
@@ -141,6 +140,7 @@ public class TestEvaluateAlerts {
 
 	public String addArrivingSimpleStat() throws HelixException
 	{
+	  _statsHolder.refreshStats();
 		String incomingStatName = "dbFoo.partition10.latency";
 		Map<String, String> statFields = getStatFields("110","0");
 		_statsHolder.applyStat(incomingStatName, statFields);
@@ -149,6 +149,7 @@ public class TestEvaluateAlerts {
 
 	public String addArrivingPairOfStats() throws HelixException
 	{
+	  _statsHolder.refreshStats();
 		String incomingStatName1 = "dbFoo.partition10.latency";
 		String incomingStatName2 = "dbFoo.partition11.latency";
 		Map<String, String> statFields = getStatFields("50","0");
@@ -163,6 +164,7 @@ public class TestEvaluateAlerts {
 	{
 		String alert = addSimpleAlert();
 		String stat = AlertParser.getComponent(AlertParser.EXPRESSION_NAME, alert);
+		_statsHolder.refreshStats(); //need to refresh since not triggered by stats aggregation stage
 		addArrivingSimpleStat();
 		Map<String, Map<String, AlertValueAndStatus>> alertResult = AlertProcessor.executeAllAlerts(_alertsHolder.getAlertList(), _statsHolder.getStatsList());
 		boolean alertFired = alertResult.get(alert).get(AlertProcessor.noWildcardAlertKey).isFired();
@@ -181,13 +183,14 @@ public class TestEvaluateAlerts {
 //	@Test (groups = {"unitTest"})
 	public void testWildcardAlertFires()
 	{
-		String alert = addWildcardAlert();
-		String stat = AlertParser.getComponent(AlertParser.EXPRESSION_NAME, alert);
-    String incomingStatName = addArrivingSimpleStat();
-		Map<String, Map<String, AlertValueAndStatus>> alertResult = AlertProcessor.executeAllAlerts(_alertsHolder.getAlertList(), _statsHolder.getStatsList());
-		String wildcardBinding = incomingStatName;
-		boolean alertFired = alertResult.get(alert).get(wildcardBinding).isFired();
-		AssertJUnit.assertTrue(alertFired);
+	  String alert = addWildcardAlert();
+	  String stat = AlertParser.getComponent(AlertParser.EXPRESSION_NAME, alert);
+	  String incomingStatName = addArrivingSimpleStat();
+
+	  Map<String, Map<String, AlertValueAndStatus>> alertResult = AlertProcessor.executeAllAlerts(_alertsHolder.getAlertList(), _statsHolder.getStatsList());
+	  String wildcardBinding = incomingStatName;
+	  boolean alertFired = alertResult.get(alert).get(wildcardBinding).isFired();
+	  AssertJUnit.assertTrue(alertFired);
 	}
 
 //	@Test (groups = {"unitTest"})
@@ -322,6 +325,7 @@ public class TestEvaluateAlerts {
 		 //generate incoming stat
 		 String incomingStatName = "instance10.reportingage";
 		 Map<String, String> statFields = getStatFields("301","10");
+		 _statsHolder.refreshStats();
 		 _statsHolder.applyStat(incomingStatName, statFields);
 
 		 Map<String, Map<String, AlertValueAndStatus>> alertResult = AlertProcessor.executeAllAlerts(_alertsHolder.getAlertList(), _statsHolder.getStatsList());
@@ -338,6 +342,7 @@ public class TestEvaluateAlerts {
 		String stat = AlertParser.getComponent(AlertParser.EXPRESSION_NAME, alert);
 		String incomingStatName = "dbFoo.partition10.putCount";
 		Map<String, String> statFields = getStatFields("110","0");
+		_statsHolder.refreshStats();
 		_statsHolder.applyStat(incomingStatName, statFields);
 		Map<String, Map<String, AlertValueAndStatus>> alertResult = AlertProcessor.executeAllAlerts(_alertsHolder.getAlertList(), _statsHolder.getStatsList());
 		String wildcardBinding = incomingStatName; //XXX: this is not going to work...need "Count" in here too.

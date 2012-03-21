@@ -3,6 +3,8 @@ package com.linkedin.helix.util;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.zookeeper.ZooKeeper.States;
+
 import com.linkedin.helix.manager.zk.ZNRecordSerializer;
 import com.linkedin.helix.manager.zk.ZkClient;
 
@@ -12,24 +14,36 @@ public class ZKClientPool
 
   public static ZkClient getZkClient(String zkServer)
   {
-    if(_zkClientMap.containsKey(zkServer))
+    // happy path that we cache the zkclient and it's still connected
+    if (_zkClientMap.containsKey(zkServer))
     {
-      // TODO: if the ZKClient is eventually disconnected,
-      // we should get notified and remove the zkClient from the map.
-      return _zkClientMap.get(zkServer);
-    }
-    else
-    {
-      synchronized(_zkClientMap)
+      ZkClient zkClient = _zkClientMap.get(zkServer);
+      if (zkClient.getConnection().getZookeeperState() == States.CONNECTED)
       {
-        if(!_zkClientMap.containsKey(zkServer))
-        {
-          ZkClient zkClient = new ZkClient(zkServer);
-          zkClient.setZkSerializer(new ZNRecordSerializer());
-          _zkClientMap.put(zkServer, zkClient);
-        }
-        return _zkClientMap.get(zkServer);
+        return zkClient;
       }
+    }
+
+    synchronized (_zkClientMap)
+    {
+      // if we cache a stale zkclient, purge it
+      if (_zkClientMap.containsKey(zkServer))
+      {
+        ZkClient zkClient = _zkClientMap.get(zkServer);
+        if (zkClient.getConnection().getZookeeperState() != States.CONNECTED)
+        {
+          _zkClientMap.remove(zkServer);
+        }
+      }
+
+      // get a new zkclient
+      if (!_zkClientMap.containsKey(zkServer))
+      {
+        ZkClient zkClient = new ZkClient(zkServer);
+        zkClient.setZkSerializer(new ZNRecordSerializer());
+        _zkClientMap.put(zkServer, zkClient);
+      }
+      return _zkClientMap.get(zkServer);
     }
   }
 

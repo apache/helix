@@ -3,6 +3,8 @@
 <suite name="Suite" parallel="none">
   <test name="Test" preserve-order="true">
     <packages>
+    	<package name="com.linkedin.helix.*"/>
+    <!--
       <package name="com.linkedin.helix.messaging.handling"/>
       <package name="com.linkedin.helix.agent.file"/>
       <package name="com.linkedin.helix.monitoring"/>
@@ -16,6 +18,7 @@
       <package name="com.linkedin.helix"/>
       <package name="com.linkedin.helix.agent.zk"/>
       <package name="com.linkedin.helix.integration"/>
+      -->
     </packages>
   </test>
 </suite>	

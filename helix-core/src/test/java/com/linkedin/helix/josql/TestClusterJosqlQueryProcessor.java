@@ -54,7 +54,7 @@ public class TestClusterJosqlQueryProcessor
     
     String josql = 
       " SELECT DISTINCT mapSubKey AS 'subkey', mapValue AS 'mapValue' , getSimpleFieldValue(getZNRecordFromMap(:LIVEINSTANCESMAP, mapSubKey), 'SCN') AS 'SCN'" +
-      " FROM com.linkedin.clustermanager.josql.ZNRecordRow " + 
+      " FROM com.linkedin.helix.josql.ZNRecordRow " + 
       " WHERE mapKey LIKE 'TestDB_2%' " +
         " AND mapSubKey LIKE '%' " +
         " AND mapValue LIKE 'SLAVE' " +

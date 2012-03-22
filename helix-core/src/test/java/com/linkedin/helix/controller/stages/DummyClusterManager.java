@@ -213,4 +213,18 @@ public class DummyClusterManager implements HelixManager
     // TODO Auto-generated method stub
     return null;
   }
+
+  @Override
+  public void startTimerTasks()
+  {
+    // TODO Auto-generated method stub
+
+  }
+
+  @Override
+  public void stopTimerTasks()
+  {
+    // TODO Auto-generated method stub
+
+  }
 }

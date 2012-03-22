@@ -217,5 +217,19 @@ public void addHealthStateChangeListener(HealthStateChangeListener listener,
     return null;
   }
 
+  @Override
+  public void startTimerTasks()
+  {
+    // TODO Auto-generated method stub
+
+  }
+
+  @Override
+  public void stopTimerTasks()
+  {
+    // TODO Auto-generated method stub
+
+  }
+
 
 }

@@ -34,9 +34,7 @@ import com.linkedin.helix.controller.stages.ExternalViewComputeStage;
 import com.linkedin.helix.controller.stages.MessageGenerationPhase;
 import com.linkedin.helix.controller.stages.MessageSelectionStage;
 import com.linkedin.helix.controller.stages.ReadClusterDataStage;
-import com.linkedin.helix.controller.stages.ReadHealthDataStage;
 import com.linkedin.helix.controller.stages.ResourceComputationStage;
-import com.linkedin.helix.controller.stages.StatsAggregationStage;
 import com.linkedin.helix.controller.stages.TaskAssignmentStage;
 import com.linkedin.helix.model.CurrentState;
 import com.linkedin.helix.model.ExternalView;
@@ -152,11 +150,11 @@ public class GenericHelixController implements
       registry.register("resume", dataRefresh, rebalancePipeline, externalViewPipeline);
 
       // health stats pipeline
-      Pipeline healthStatsAggregationPipeline = new Pipeline();
-      StatsAggregationStage statsStage = new StatsAggregationStage();
-      healthStatsAggregationPipeline.addStage(new ReadHealthDataStage());
-      healthStatsAggregationPipeline.addStage(statsStage);
-      registry.register("healthChange", healthStatsAggregationPipeline);
+//      Pipeline healthStatsAggregationPipeline = new Pipeline();
+//      StatsAggregationStage statsStage = new StatsAggregationStage();
+//      healthStatsAggregationPipeline.addStage(new ReadHealthDataStage());
+//      healthStatsAggregationPipeline.addStage(statsStage);
+//      registry.register("healthChange", healthStatsAggregationPipeline);
 
       return registry;
     }
@@ -286,14 +284,14 @@ public class GenericHelixController implements
                              List<HealthStat> reports,
                              NotificationContext changeContext)
   {
-    logger.info("START: GenericClusterController.onHealthChange()");
-    ClusterEvent event = new ClusterEvent("healthChange");
-    event.addAttribute("helixmanager", changeContext.getManager());
-    event.addAttribute("instanceName", instanceName);
-    event.addAttribute("changeContext", changeContext);
-    event.addAttribute("eventData", reports);
-    handleEvent(event);
-    logger.info("END: GenericClusterController.onHealthChange()");
+//    logger.info("START: GenericClusterController.onHealthChange()");
+//    ClusterEvent event = new ClusterEvent("healthChange");
+//    event.addAttribute("helixmanager", changeContext.getManager());
+//    event.addAttribute("instanceName", instanceName);
+//    event.addAttribute("changeContext", changeContext);
+//    event.addAttribute("eventData", reports);
+//    handleEvent(event);
+//    logger.info("END: GenericClusterController.onHealthChange()");
   }
 
   @Override
@@ -367,14 +365,14 @@ public class GenericHelixController implements
             logger.info("Adding msg/health listeners for " + instanceName);
             changeContext.getManager().addMessageListener(this, instanceName);
 
-            if (isEnabled("healthChange", changeContext.getManager()))
-            {
-              changeContext.getManager().addHealthStateChangeListener(this, instanceName);
-            }
-            else
-            {
-              logger.info("healthChange is disabled");
-            }
+//            if (isEnabled("healthChange", changeContext.getManager()))
+//            {
+//              changeContext.getManager().addHealthStateChangeListener(this, instanceName);
+//            }
+//            else
+//            {
+//              logger.info("healthChange is disabled");
+//            }
 
             _instanceSubscriptionNames.add(instanceName);
           }

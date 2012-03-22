@@ -29,9 +29,11 @@ import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.TestHelper;
+import com.linkedin.helix.TestHelper.StartCMResult;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.alerts.AlertValueAndStatus;
 import com.linkedin.helix.controller.HelixControllerMain;
+import com.linkedin.helix.healthcheck.HealthAggregationTask;
 import com.linkedin.helix.healthcheck.ParticipantHealthReportCollectorImpl;
 import com.linkedin.helix.manager.zk.ZKDataAccessor;
 import com.linkedin.helix.manager.zk.ZNRecordSerializer;
@@ -211,12 +213,12 @@ public class TestWildcardAlert extends ZkIntegrationTestBase
         3, // replicas //change back to 3!!!
         "MasterSlave", true); // do rebalance
 
-    enableHealthCheck(clusterName);
+    // enableHealthCheck(clusterName);
 
     _setupTool.getClusterManagementTool().addAlert(clusterName, _alertStr);
     // _setupTool.getClusterManagementTool().addAlert(clusterName, _alertStr2);
 
-    TestHelper.startController(clusterName, "controller_0", ZK_ADDR, HelixControllerMain.STANDALONE);
+    StartCMResult cmResult = TestHelper.startController(clusterName, "controller_0", ZK_ADDR, HelixControllerMain.STANDALONE);
     // start participants
     for (int i = 0; i < 5; i++) // !!!change back to 5
     {
@@ -234,8 +236,12 @@ public class TestWildcardAlert extends ZkIntegrationTestBase
         new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
     Assert.assertTrue(result);
 
+    // HealthAggregationTask is supposed to run by a timer every 30s
+    // To make sure HealthAggregationTask is run, we invoke it explicitly for this test
+    new HealthAggregationTask(cmResult._manager).run();
+
     //sleep for a few seconds to give stats stage time to trigger and for bean to trigger
-    Thread.sleep(5000);
+    Thread.sleep(3000);
 
     ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
     // for (int i = 0; i < 1; i++) //change 1 back to 5

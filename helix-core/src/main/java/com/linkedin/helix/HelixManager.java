@@ -227,4 +227,14 @@ public interface HelixManager
    * @return true if this is a controller and a leader of the cluster
    */
   boolean isLeader();
+
+  /**
+   * start timer tasks when becomes leader
+   */
+  void startTimerTasks();
+
+  /**
+   * stop timer tasks when becomes standby
+   */
+  void stopTimerTasks();
 }

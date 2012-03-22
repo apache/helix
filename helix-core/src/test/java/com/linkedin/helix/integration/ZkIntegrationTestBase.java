@@ -16,9 +16,6 @@ import org.testng.AssertJUnit;
 import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeSuite;
 
-import com.linkedin.helix.ConfigAccessor;
-import com.linkedin.helix.ConfigScope;
-import com.linkedin.helix.ConfigScopeBuilder;
 import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.TestHelper;
@@ -216,11 +213,11 @@ public class ZkIntegrationTestBase
     LOG.info("After session expiry sessionId = " + oldZookeeper.getSessionId());
   }
 
-  void enableHealthCheck(String clusterName)
-  {
-    ConfigScope scope =
-      new ConfigScopeBuilder().forCluster(clusterName).build();
-    new ConfigAccessor(_gZkClient).set(scope, "healthChange" + ".enabled", "" + true);
-  }
+//  void enableHealthCheck(String clusterName)
+//  {
+//    ConfigScope scope =
+//      new ConfigScopeBuilder().forCluster(clusterName).build();
+//    new ConfigAccessor(_gZkClient).set(scope, "healthChange" + ".enabled", "" + true);
+//  }
 
 }

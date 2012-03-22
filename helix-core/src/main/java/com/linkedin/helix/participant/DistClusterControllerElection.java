@@ -64,6 +64,7 @@ public class DistClusterControllerElection implements ControllerChangeListener
             if (type == InstanceType.CONTROLLER)
             {
               HelixControllerMain.addListenersToController(manager, _controller);
+              manager.startTimerTasks();
             }
             else if (type == InstanceType.CONTROLLER_PARTICIPANT)
             {
@@ -76,6 +77,7 @@ public class DistClusterControllerElection implements ControllerChangeListener
                                                             _zkAddr);
 
               _leader.connect();
+              _leader.startTimerTasks();
               HelixControllerMain.addListenersToController(_leader, _controller);
             }
 

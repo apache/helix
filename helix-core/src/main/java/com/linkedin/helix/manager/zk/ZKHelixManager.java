@@ -36,6 +36,7 @@ import com.linkedin.helix.HelixAdmin;
 import com.linkedin.helix.HelixConstants.ChangeType;
 import com.linkedin.helix.HelixException;
 import com.linkedin.helix.HelixManager;
+import com.linkedin.helix.HelixTimerTask;
 import com.linkedin.helix.IdealStateChangeListener;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.LiveInstanceChangeListener;
@@ -43,6 +44,7 @@ import com.linkedin.helix.MessageListener;
 import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
+import com.linkedin.helix.healthcheck.HealthAggregationTask;
 import com.linkedin.helix.healthcheck.ParticipantHealthReportCollector;
 import com.linkedin.helix.healthcheck.ParticipantHealthReportCollectorImpl;
 import com.linkedin.helix.messaging.DefaultMessagingService;
@@ -86,7 +88,7 @@ public class ZKHelixManager implements HelixManager
   private final StateMachineEngine _stateMachEngine;
   private int _sessionTimeout;
   private PropertyStore<ZNRecord> _propertyStore = null;
-
+  private final List<HelixTimerTask> _controllerTimerTasks;
 
   public ZKHelixManager(String clusterName, String instanceName, InstanceType instanceType,
       String zkConnectString) throws Exception
@@ -132,12 +134,21 @@ public class ZKHelixManager implements HelixManager
     _timer = null;
 
     _handlers = new ArrayList<CallbackHandler>();
+
     _messagingService = new DefaultMessagingService(this);
 
     _version = new PropertiesReader("cluster-manager-version.properties")
         .getProperty("clustermanager.version");
 
     _stateMachEngine = new HelixStateMachineEngine(this);
+
+    // add all timer tasks
+    _controllerTimerTasks = new ArrayList<HelixTimerTask>();
+    if (_instanceType == InstanceType.CONTROLLER)
+    {
+      _controllerTimerTasks.add(new HealthAggregationTask(this));
+    }
+
   }
 
   private boolean isInstanceSetup()
@@ -360,6 +371,11 @@ public class ZKHelixManager implements HelixManager
     {
       _timer.cancel();
       _timer = null;
+    }
+
+    if (_instanceType == InstanceType.CONTROLLER)
+    {
+      stopTimerTasks();
     }
 
     _zkClient.close();
@@ -808,5 +824,23 @@ public class ZKHelixManager implements HelixManager
   protected List<CallbackHandler> getHandlers()
   {
     return _handlers;
+  }
+
+  @Override
+  public void startTimerTasks()
+  {
+    for (HelixTimerTask task : _controllerTimerTasks)
+    {
+      task.start();
+    }
+  }
+
+  @Override
+  public void stopTimerTasks()
+  {
+    for (HelixTimerTask task : _controllerTimerTasks)
+    {
+      task.stop();
+    }
   }
 }

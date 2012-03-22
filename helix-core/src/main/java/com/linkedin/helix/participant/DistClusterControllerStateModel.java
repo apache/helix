@@ -49,6 +49,7 @@ public class DistClusterControllerStateModel extends StateModel
       _controller = HelixManagerFactory
           .getZKHelixManager(clusterName, controllerName, InstanceType.CONTROLLER, _zkAddr);
       _controller.connect();
+      _controller.startTimerTasks();
     }
     else
     {

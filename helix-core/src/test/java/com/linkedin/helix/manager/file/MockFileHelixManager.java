@@ -217,4 +217,18 @@ public class MockFileHelixManager implements HelixManager
     return null;
   }
 
+  @Override
+  public void startTimerTasks()
+  {
+    // TODO Auto-generated method stub
+
+  }
+
+  @Override
+  public void stopTimerTasks()
+  {
+    // TODO Auto-generated method stub
+
+  }
+
 }

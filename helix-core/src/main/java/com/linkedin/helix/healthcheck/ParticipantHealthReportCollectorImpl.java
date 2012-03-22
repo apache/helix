@@ -93,7 +93,7 @@ public class ParticipantHealthReportCollectorImpl implements
   public void reportHealthReportMessage(ZNRecord healthCheckInfoUpdate)
   {
     _helixManager.getDataAccessor().setProperty(
-        PropertyType.HEALTHREPORT, healthCheckInfoUpdate, _instanceName, 
+        PropertyType.HEALTHREPORT, healthCheckInfoUpdate, _instanceName,
         healthCheckInfoUpdate.getId());
   }
 
@@ -111,6 +111,7 @@ public class ParticipantHealthReportCollectorImpl implements
     }
   }
 
+  @Override
   public synchronized void transmitHealthReports()
   {
     synchronized (_healthReportProviderList)

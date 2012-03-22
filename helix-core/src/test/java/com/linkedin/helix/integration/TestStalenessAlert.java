@@ -14,9 +14,11 @@ import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.TestHelper;
+import com.linkedin.helix.TestHelper.StartCMResult;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.alerts.AlertValueAndStatus;
 import com.linkedin.helix.controller.HelixControllerMain;
+import com.linkedin.helix.healthcheck.HealthAggregationTask;
 import com.linkedin.helix.healthcheck.ParticipantHealthReportCollectorImpl;
 import com.linkedin.helix.manager.zk.ZKDataAccessor;
 import com.linkedin.helix.manager.zk.ZNRecordSerializer;
@@ -120,11 +122,11 @@ public class TestStalenessAlert extends ZkIntegrationTestBase
                             3,            // replicas //change back to 3!!!
                             "MasterSlave",
                             true);        // do rebalance
-    enableHealthCheck(clusterName);
+    // enableHealthCheck(clusterName);
 
     _setupTool.getClusterManagementTool().addAlert(clusterName, _alertStr);
 
-    TestHelper.startController(clusterName,
+    StartCMResult cmResult = TestHelper.startController(clusterName,
                                "controller_0",
                                ZK_ADDR,
                                HelixControllerMain.STANDALONE);
@@ -144,8 +146,11 @@ public class TestStalenessAlert extends ZkIntegrationTestBase
         new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
     Assert.assertTrue(result);
 
+    // HealthAggregationTask is supposed to run by a timer every 30s
+    // To make sure HealthAggregationTask is run, we invoke it explicitly for this test
+    new HealthAggregationTask(cmResult._manager).run();
   //sleep for a few seconds to give stats stage time to trigger
-    Thread.sleep(5000);
+    Thread.sleep(3000);
 
     // other verifications go here
     ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);

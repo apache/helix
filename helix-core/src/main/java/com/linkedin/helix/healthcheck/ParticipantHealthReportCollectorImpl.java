@@ -11,6 +11,7 @@ import org.apache.log4j.Logger;
 import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
+import com.linkedin.helix.alerts.StatsHolder;
 
 public class ParticipantHealthReportCollectorImpl implements
     ParticipantHealthReportCollector
@@ -132,7 +133,7 @@ public class ParticipantHealthReportCollectorImpl implements
           {
             record.setMapFields(partitionReport);
           }
-
+          record.setSimpleField(StatsHolder.TIMESTAMP_NAME, "" + System.currentTimeMillis());
           _helixManager.getDataAccessor().setProperty(
               PropertyType.HEALTHREPORT, record, _instanceName, record.getId());
           // reset stats (for now just the partition stats)

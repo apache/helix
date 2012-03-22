@@ -69,33 +69,39 @@ public class HealthStat extends ZNRecordDecorator
 		String delim = ExpressionParser.statFieldDelim;
 		return instance+delim+parentKey+delim+statName;
 	}
-	
-	public Map<String, Map<String, String>> getHealthFields(String instanceName) //, String timestamp)
-	{
-		//XXX: need to do some conversion of input format to the format that stats computation wants
-		Map<String, Map<String, String>> currMapFields = _record.getMapFields();
-		Map<String, Map<String, String>> convertedMapFields = new HashMap<String, Map<String, String>>();
-		for (String key : currMapFields.keySet()) {
-			Map<String, String> currMap = currMapFields.get(key);
-			String timestamp = "-1";
-			if (currMap.keySet().contains(StatsHolder.TIMESTAMP_NAME)) {
-				timestamp = currMap.get(StatsHolder.TIMESTAMP_NAME);
-			}
-			for (String subKey : currMap.keySet()) {
-				if (subKey.equals("StatsHolder.TIMESTAMP_NAME")) { //don't want to get timestamp again
-					continue;
-				}
-				String compositeKey = buildCompositeKey(instanceName, key, subKey);
-				String value = currMap.get(subKey);
-				Map<String, String> convertedMap = new HashMap<String, String>();
-				convertedMap.put(StatsHolder.VALUE_NAME, value);
-				convertedMap.put(StatsHolder.TIMESTAMP_NAME, timestamp);
-				convertedMapFields.put(compositeKey, convertedMap);
-			}
-			
-			
-		}
-		
+
+  public Map<String, Map<String, String>> getHealthFields(String instanceName) // ,
+                                                                               // String
+                                                                               // timestamp)
+  {
+    // XXX: need to do some conversion of input format to the format that stats
+    // computation wants
+    Map<String, Map<String, String>> currMapFields = _record.getMapFields();
+    Map<String, Map<String, String>> convertedMapFields = new HashMap<String, Map<String, String>>();
+    for (String key : currMapFields.keySet())
+    {
+      Map<String, String> currMap = currMapFields.get(key);
+      String timestamp = "-1";
+      if (_record.getSimpleFields().keySet().contains(StatsHolder.TIMESTAMP_NAME))
+      {
+        timestamp = _record.getSimpleField(StatsHolder.TIMESTAMP_NAME);
+      }
+      for (String subKey : currMap.keySet())
+      {
+        if (subKey.equals("StatsHolder.TIMESTAMP_NAME"))
+        { // don't want to get timestamp again
+          continue;
+        }
+        String compositeKey = buildCompositeKey(instanceName, key, subKey);
+        String value = currMap.get(subKey);
+        Map<String, String> convertedMap = new HashMap<String, String>();
+        convertedMap.put(StatsHolder.VALUE_NAME, value);
+        convertedMap.put(StatsHolder.TIMESTAMP_NAME, timestamp);
+        convertedMapFields.put(compositeKey, convertedMap);
+      }
+
+    }
+
 		//return _record.getMapFields();
 		return convertedMapFields;
 	}

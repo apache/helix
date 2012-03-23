@@ -58,14 +58,16 @@ class ZkCallbackHandler<T> implements IZkChildListener, IZkDataListener
        * and in this case, the currentChilds is null
        */
       return;
-    } else if (currentChilds.size() == 0)
-    {
-      String key = _store.getRelativePath(path);
-      _listener.onPropertyChange(key);
+//    } else if (currentChilds.size() == 0)
+//    {
+//      String key = _store.getRelativePath(path);
+//      _listener.onPropertyChange(key);
     }
     else
     {
-      // currentChilds.size() > 0
+      String key = _store.getRelativePath(path);
+      _listener.onPropertyChange(key);
+
       for (String child : currentChilds)
       {
         String childPath = path.endsWith("/") ? path + child : path + "/" + child;

@@ -18,7 +18,6 @@ import com.linkedin.helix.model.PersistentStats;
 
 public class StatsHolder
 {
-
   private static final Logger logger = Logger.getLogger(StatsHolder.class
       .getName());
 
@@ -70,6 +69,7 @@ public class StatsHolder
   public void persistStats()
   {
     // XXX: Am I using _accessor too directly here?
+    // took around 35 ms from desktop to ESV4 machine
     ZNRecord statsRec = _accessor.getProperty(PropertyType.PERSISTENTSTATS);
     if (statsRec == null)
     {
@@ -80,7 +80,6 @@ public class StatsHolder
     statsRec.setMapFields(_statMap);
     boolean retVal = _accessor.setProperty(PropertyType.PERSISTENTSTATS,
         statsRec);
-    // logger.debug("persistStats retVal: "+retVal);
   }
 
   public void getStatsFromCache(boolean refresh)
@@ -225,7 +224,6 @@ public class StatsHolder
       }
     }
     _statMap.putAll(pendingAdds);
-    persistStats();
   }
 
   // add parsing of stat (or is that in expression holder?) at least add
@@ -245,8 +243,6 @@ public class StatsHolder
       }
       _statMap.put(stat, getEmptyStat()); // add new stat to map
     }
-    persistStats(); // save stats
-
   }
 
   public static Map<String, Map<String, String>> parseStat(String exp)

@@ -131,7 +131,11 @@ public class StatsAggregationStage extends AbstractBaseStage
     _alertsHolder = new AlertsHolder(manager, cache);
 
     _statsHolder.refreshStats(); //refresh once at start of stage
-
+    if(_statsHolder.getStatsList().size() == 0)
+    {
+      logger.info("stat holder is empty");
+      return;
+    }
 
     // init agg stats from cache
     // initAggStats(cache);
@@ -174,16 +178,18 @@ public class StatsAggregationStage extends AbstractBaseStage
           {
             _statsHolder.applyStat(key, statMap.get(key));
           }
-
         }
       }
+      // Call _statsHolder.persistStats() once per pipeline. This will
+      // write the updated persisted stats into zookeeper 
     }
+    _statsHolder.persistStats();
     logger.info("Done reading instances: "+(System.currentTimeMillis() - readInstancesStart));
-
+    System.out.println("Done reading instances: "+(System.currentTimeMillis() - readInstancesStart));
     // populate _statStatus
     long statsMapStart = System.currentTimeMillis();
     _statStatus = _statsHolder.getStatsMap();
-    logger.info("done getting stats: "+(System.currentTimeMillis() - statsMapStart));
+    logger.info("Done getting stats: "+(System.currentTimeMillis() - statsMapStart));
 
     for (String statKey : _statStatus.keySet())
     {
@@ -234,7 +240,7 @@ public class StatsAggregationStage extends AbstractBaseStage
     }
     logger.info("done logging alerts: "+(System.currentTimeMillis() - logAlertStartTime));
 
-
     logger.info("process end: "+(System.currentTimeMillis() - startTime));
+    System.out.println("process end: "+(System.currentTimeMillis() - startTime));
   }
 }

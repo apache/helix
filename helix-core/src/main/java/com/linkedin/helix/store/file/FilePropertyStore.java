@@ -112,7 +112,7 @@ public class FilePropertyStore<T> implements PropertyStore<T>
           newValue = getProperty(path);
         } catch (PropertyStoreException e)
         {
-          logger.error("fail to get property, path:" + path +"\nexception:" + e);
+          logger.error("fail to get property, path:" + path, e);
         }
 
         if (file.lastModified() == _lastNotifiedTime && _lastModifiedFiles.containsKey(path))

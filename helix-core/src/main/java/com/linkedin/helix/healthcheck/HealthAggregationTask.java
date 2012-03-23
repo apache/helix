@@ -5,6 +5,9 @@ import java.util.Timer;
 
 import org.apache.log4j.Logger;
 
+import com.linkedin.helix.ConfigAccessor;
+import com.linkedin.helix.ConfigScope;
+import com.linkedin.helix.ConfigScopeBuilder;
 import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.HelixTimerTask;
 import com.linkedin.helix.controller.pipeline.Pipeline;
@@ -45,6 +48,12 @@ public class HealthAggregationTask extends HelixTimerTask
   @Override
   public void start()
   {
+    if (!isEnabled())
+    {
+      LOG.info("HealthAggregationTask is disabled. Will not start the timer");
+      return;
+    }
+
     LOG.info("START HealthAggregationTask");
 
     if (_timer == null)
@@ -101,6 +110,28 @@ public class HealthAggregationTask extends HelixTimerTask
     }
 
     LOG.info("END: HealthAggregationTask");
+  }
+
+  private boolean isEnabled()
+  {
+    ConfigAccessor configAccessor = _manager.getConfigAccessor();
+    boolean enabled = false;
+    if (configAccessor != null)
+    {
+      // zk-based cluster manager
+      ConfigScope scope =
+          new ConfigScopeBuilder().forCluster(_manager.getClusterName()).build();
+      String isEnabled = configAccessor.get(scope, "healthChange.enabled");
+      if (isEnabled != null)
+      {
+        enabled = new Boolean(isEnabled);
+      }
+    }
+    else
+    {
+      LOG.debug("File-based cluster manager doesn't support disable healthChange");
+    }
+    return enabled;
   }
 
 }

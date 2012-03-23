@@ -3,13 +3,13 @@
 	<parent>
 		<groupId>com.linkedin.helix</groupId>
 		<artifactId>helix</artifactId>
-		<version>0.4.12</version>
+		<version>0.4.13</version>
 	</parent>
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.linkedin.helix</groupId>
 	<artifactId>helix-admin-webapp</artifactId>
 	<packaging>jar</packaging>
-	<version>0.4.12</version>
+	<version>0.4.13</version>
 	<name>helix-admin-webapp</name>
 	<url>http://maven.apache.org</url>
 	<repositories>
@@ -23,7 +23,7 @@
 		<dependency>
 			<groupId>com.linkedin.helix</groupId>
 			<artifactId>helix-core</artifactId>
-			<version>0.4.12</version>
+			<version>0.4.13</version>
 		</dependency>
 		<dependency>
 			<groupId>org.restlet</groupId>

@@ -15,7 +15,7 @@ class ZkCallbackHandler<T> implements IZkChildListener, IZkDataListener
 
   private final ZkClient _zkClient;
   private final ZKPropertyStore<T> _store;
-  
+
   // listen on prefix and all its childs
   private final String _prefix;
   private final PropertyChangeListener<T> _listener;
@@ -47,24 +47,27 @@ class ZkCallbackHandler<T> implements IZkChildListener, IZkDataListener
   public void handleChildChange(String path, List<String> currentChilds) throws Exception
   {
     LOG.debug("childs changed @ " + path + " to " + currentChilds);
+    // System.out.println("childs changed @ " + path + " to " + currentChilds);
 
-    /*
-     * When a node with a child change watcher is deleted 
-     * a child change is triggered on the deleted node
-     * and in this case, the currentChilds is null
-     */
+
     if (currentChilds == null)
     {
+      /**
+       * When a node with a child change watcher is deleted
+       * a child change is triggered on the deleted node
+       * and in this case, the currentChilds is null
+       */
       return;
-    } else if (currentChilds.size() == 0)
-    {
-      // do initial invocation
-      String key = _store.getRelativePath(path);
-      _listener.onPropertyChange(key); 
+//    } else if (currentChilds.size() == 0)
+//    {
+//      String key = _store.getRelativePath(path);
+//      _listener.onPropertyChange(key);
     }
     else
     {
-      // currentChilds.size() > 0
+      String key = _store.getRelativePath(path);
+      _listener.onPropertyChange(key);
+
       for (String child : currentChilds)
       {
         String childPath = path.endsWith("/") ? path + child : path + "/" + child;

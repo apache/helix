@@ -3,11 +3,11 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.linkedin.helix</groupId>
   <artifactId>helix</artifactId>
-  <version>0.4.12</version>
+  <version>0.4.13</version>
   <packaging>pom</packaging>
   <name>Cluster Manager Parent Project</name>
 	<properties>
-		<applicationVersion>0.4.12</applicationVersion>
+		<applicationVersion>0.4.13</applicationVersion>
 	</properties>
   <modules>
     <module>helix-core</module>

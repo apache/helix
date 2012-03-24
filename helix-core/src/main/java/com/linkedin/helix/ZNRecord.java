@@ -21,8 +21,10 @@ import com.linkedin.helix.ZNRecordDelta.MERGEOPERATION;
 public class ZNRecord
 {
   static Logger _logger = Logger.getLogger(ZNRecord.class);
-
   private final String id;
+
+  @JsonIgnore(true)
+  public static final String LIST_FIELD_BOUND = "listField.bound";
 
   /**
    * We don't want the _deltaList to be serialized and deserialized
@@ -182,7 +184,7 @@ public class ZNRecord
    * merge functionality is used to merge multiple znrecord into a single one.
    * This will make use of the id of each ZNRecord and append it to every key
    * thus making key unique. This is needed to optimize on the watches.
-   * 
+   *
    * @param record
    */
   public void merge(ZNRecord record)

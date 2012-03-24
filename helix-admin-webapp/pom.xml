@@ -9,7 +9,7 @@
 	<groupId>com.linkedin.helix</groupId>
 	<artifactId>helix-admin-webapp</artifactId>
 	<packaging>jar</packaging>
-	<version>0.4.13</version>
+	<version>0.4.14</version>
 	<name>helix-admin-webapp</name>
 	<url>http://maven.apache.org</url>
 	<repositories>

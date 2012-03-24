@@ -28,7 +28,7 @@ public class TestEvaluateAlerts {
     HealthDataCache cache = new HealthDataCache();
     _helixManager = new MockManager(CLUSTER_NAME);
     _alertsHolder = new AlertsHolder(_helixManager, cache);
-    _statsHolder = new StatsHolder(_helixManager, cache);
+    _statsHolder = _alertsHolder._statsHolder;
   }
 
   public Map<String,String> getStatFields(String value, String timestamp)
@@ -50,6 +50,7 @@ public class TestEvaluateAlerts {
   {
     String stat = "accumulate()(dbFoo.partition10.latency, dbFoo.partition11.latency)";
     _statsHolder.addStat(stat);
+    _statsHolder.persistStats();
     return stat;
   }
 
@@ -131,6 +132,7 @@ public class TestEvaluateAlerts {
     String incomingStatName = "dbFoo.partition10.latency";
     Map<String, String> statFields = getStatFields("110","0");
     _statsHolder.applyStat(incomingStatName, statFields);
+    _statsHolder.persistStats();
     return incomingStatName;
   }
 
@@ -143,6 +145,7 @@ public class TestEvaluateAlerts {
     _statsHolder.applyStat(incomingStatName1, statFields);
     statFields = getStatFields("51","0");
     _statsHolder.applyStat(incomingStatName2, statFields);
+    _statsHolder.persistStats();
     return null;
   }
 
@@ -306,14 +309,16 @@ public class TestEvaluateAlerts {
     {
     String alert = "EXP(decay(1)(instance*.reportingage))CMP(GREATER)CON(300)";
      _alertsHolder.addAlert(alert);
-
-
-
+     _statsHolder.persistStats();
+     
+     _statsHolder.refreshStats();
      //generate incoming stat
      String incomingStatName = "instance10.reportingage";
      Map<String, String> statFields = getStatFields("301","10");
      _statsHolder.refreshStats();
+     
      _statsHolder.applyStat(incomingStatName, statFields);
+     _statsHolder.persistStats();
 
      Map<String, Map<String, AlertValueAndStatus>> alertResult = AlertProcessor.executeAllAlerts(_alertsHolder.getAlertList(), _statsHolder.getStatsList());
      String wildcardBinding = incomingStatName;
@@ -331,6 +336,7 @@ public class TestEvaluateAlerts {
     Map<String, String> statFields = getStatFields("110","0");
     _statsHolder.refreshStats();
     _statsHolder.applyStat(incomingStatName, statFields);
+    _statsHolder.persistStats();
     Map<String, Map<String, AlertValueAndStatus>> alertResult = AlertProcessor.executeAllAlerts(_alertsHolder.getAlertList(), _statsHolder.getStatsList());
     String wildcardBinding = incomingStatName; //XXX: this is not going to work...need "Count" in here too.
     boolean alertFired = alertResult.get(alert).get(wildcardBinding).isFired();

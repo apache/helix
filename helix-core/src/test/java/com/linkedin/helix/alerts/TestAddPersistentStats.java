@@ -43,6 +43,7 @@ public class TestAddPersistentStats {
 	{
 		String stat = "window(5)(dbFoo.partition10.latency)";
 		_statsHolder.addStat(stat);
+    _statsHolder.persistStats();
 		ZNRecord rec = _helixManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
 		System.out.println("rec: "+rec.toString());
 		AssertJUnit.assertTrue(statRecordContains(rec,stat));
@@ -54,8 +55,10 @@ public class TestAddPersistentStats {
 	{
 		String stat1 = "window(5)(dbFoo.partition10.latency)";
 		_statsHolder.addStat(stat1);
+    _statsHolder.persistStats();
 		String stat2 = "window(5)(dbFoo.partition11.latency)";
 		_statsHolder.addStat(stat2);
+    _statsHolder.persistStats();
 		ZNRecord rec = _helixManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
 		System.out.println("rec: "+rec.toString());
 		AssertJUnit.assertTrue(statRecordContains(rec,stat1));
@@ -69,6 +72,7 @@ public class TestAddPersistentStats {
 		String stat = "window(5)(dbFoo.partition10.latency)";
 		_statsHolder.addStat(stat);
 		_statsHolder.addStat(stat);
+    _statsHolder.persistStats();
 		ZNRecord rec = _helixManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
 		System.out.println("rec: "+rec.toString());
 		AssertJUnit.assertTrue(statRecordContains(rec,stat));
@@ -80,6 +84,7 @@ public class TestAddPersistentStats {
 	{
 		String exp = "accumulate()(dbFoo.partition10.latency, dbFoo.partition10.count)";
 		_statsHolder.addStat(exp);
+    _statsHolder.persistStats();
 		ZNRecord rec = _helixManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
 		System.out.println("rec: "+rec.toString());
 		AssertJUnit.assertTrue(statRecordContains(rec,"accumulate()(dbFoo.partition10.latency)"));
@@ -92,6 +97,7 @@ public class TestAddPersistentStats {
 	{
 		String exp = "accumulate()(dbFoo.partition10.latency, dbFoo.partition10.count)|EACH|ACCUMULATE|DIVIDE";
 		_statsHolder.addStat(exp);
+    _statsHolder.persistStats();
 		ZNRecord rec = _helixManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
 		System.out.println("rec: "+rec.toString());
 		AssertJUnit.assertTrue(statRecordContains(rec,"accumulate()(dbFoo.partition10.latency)"));

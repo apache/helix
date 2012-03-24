@@ -114,6 +114,7 @@ public class AlertsHolder {
 				AlertParser.getComponent(AlertParser.CONSTANT_NAME, alert));
 		//store the expression as stat
 		_statsHolder.addStat(alertFields.get(AlertParser.EXPRESSION_NAME));
+    _statsHolder.persistStats();
 
 		//naming the alert with the full name
 		_alertsMap.put(alert, alertFields);

@@ -65,6 +65,7 @@ public class TestArrivingParticipantStats {
 		 String incomingStatName = "dbFoo.partition10.latency";
 		 Map<String, String> statFields = getStatFields("0","0");
 		 _statsHolder.applyStat(incomingStatName, statFields);
+		 _statsHolder.persistStats();
 
 		 //check persistent stats
 		 ZNRecord rec = _helixManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
@@ -89,6 +90,7 @@ public class TestArrivingParticipantStats {
 			 _statsHolder.applyStat(incomingStatName, statFields);
 			 statFields = getStatFields("1","10");
 			 _statsHolder.applyStat(incomingStatName, statFields);
+	     _statsHolder.persistStats();
 
 			 //check persistent stats
 			 ZNRecord rec = _helixManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
@@ -117,6 +119,7 @@ public class TestArrivingParticipantStats {
 			 _statsHolder.applyStat(incomingStatName, statFields);
 			 statFields = getStatFields("1","10");
 			 _statsHolder.applyStat(incomingStatName, statFields);
+	     _statsHolder.persistStats();
 
 			 //check persistent stats
 			 ZNRecord rec = _helixManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
@@ -138,6 +141,7 @@ public class TestArrivingParticipantStats {
 			 String incomingStatName = "dbFoo.partition10.latency";
 			 Map<String, String> statFields = getStatFields("0","0");
 			 _statsHolder.applyStat(incomingStatName, statFields);
+	     _statsHolder.persistStats();
 
 			 //check persistent stats
 			 ZNRecord rec = _helixManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
@@ -162,6 +166,7 @@ public class TestArrivingParticipantStats {
 			 _statsHolder.applyStat(incomingStatName, statFields);
 			 statFields = getStatFields("1","10");
 			 _statsHolder.applyStat(incomingStatName, statFields);
+	     _statsHolder.persistStats();
 
 			 //check persistent stats
 			 ZNRecord rec = _helixManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
@@ -184,6 +189,7 @@ public class TestArrivingParticipantStats {
 					 String incomingStatName = "dbFoo.partition10.latency";
 					 Map<String, String> statFields = getStatFields("0","0");
 					 _statsHolder.applyStat(incomingStatName, statFields);
+			     _statsHolder.persistStats();
 
 					 //check persistent stats
 					 ZNRecord rec = _helixManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
@@ -204,6 +210,7 @@ public class TestArrivingParticipantStats {
 					 String incomingStatName = "instance10.reportingage";
 					 Map<String, String> statFields = getStatFields("1","10");
 					 _statsHolder.applyStat(incomingStatName, statFields);
+			     _statsHolder.persistStats();
 
 					 //check persistent stats
 					 ZNRecord rec = _helixManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
@@ -230,6 +237,7 @@ public class TestArrivingParticipantStats {
 					 incomingStatName = "dbFoo.partition11.latency";
 					 statFields = getStatFields("5","10");
 					 _statsHolder.applyStat(incomingStatName, statFields);
+			     _statsHolder.persistStats();
 
 					 //check persistent stats
 					 ZNRecord rec = _helixManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
@@ -255,6 +263,7 @@ public class TestArrivingParticipantStats {
 					 String incomingStatName = "dbFoo.partition10.latency";
 					 Map<String, String> statFields = getStatFields("0","0");
 					 _statsHolder.applyStat(incomingStatName, statFields);
+			     _statsHolder.persistStats();
 
 					 //check persistent stats
 					 ZNRecord rec = _helixManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
@@ -267,6 +276,7 @@ public class TestArrivingParticipantStats {
 					 //add 2nd stat
 					 statFields = getStatFields("10","1");
 					 _statsHolder.applyStat(incomingStatName, statFields);
+			     _statsHolder.persistStats();
 					 rec = _helixManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
 
 					 System.out.println("rec: "+rec.toString());
@@ -276,6 +286,7 @@ public class TestArrivingParticipantStats {
 					 //add 3rd stat
 					 statFields = getStatFields("20","2");
 					 _statsHolder.applyStat(incomingStatName, statFields);
+			     _statsHolder.persistStats();
 					 rec = _helixManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
 
 					 System.out.println("rec: "+rec.toString());
@@ -295,6 +306,7 @@ public class TestArrivingParticipantStats {
 					String incomingStatName = "dbFoo.partition10.latency";
 					Map<String, String> statFields = getStatFields("30","3");
 					 _statsHolder.applyStat(incomingStatName, statFields);
+			     _statsHolder.persistStats();
 
 
 					ZNRecord rec = _helixManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
@@ -315,6 +327,7 @@ public class TestArrivingParticipantStats {
 					String incomingStatName = "dbFoo.partition10.latency";
 					Map<String, String> statFields = getStatFields("10","1");
 					 _statsHolder.applyStat(incomingStatName, statFields);
+			     _statsHolder.persistStats();
 
 
 					ZNRecord rec = _helixManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
@@ -333,12 +346,15 @@ public class TestArrivingParticipantStats {
 					 String persistentStatOne = "accumulate()(dbFoo.partition10.latency)";
 					 String persistentStatTwo = "window(3)(dbFoo.partition10.latency)";
 					 _statsHolder.addStat(persistentStatOne);
+           _statsHolder.persistStats();
 					 _statsHolder.addStat(persistentStatTwo);
+           _statsHolder.persistStats();
 
 					 //generate incoming stat
 					 String incomingStatName = "dbFoo.partition10.latency";
 					 Map<String, String> statFields = getStatFields("0","0");
 					 _statsHolder.applyStat(incomingStatName, statFields);
+			     _statsHolder.persistStats();
 
 					 //check persistent stats
 					 ZNRecord rec = _helixManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
@@ -370,6 +386,7 @@ public class TestArrivingParticipantStats {
 					timeTuple.add("4.0");
 					Map<String, String> statFields = getStatFields(valTuple.toString(),timeTuple.toString());
 					_statsHolder.applyStat(incomingStatName, statFields);
+			     _statsHolder.persistStats();
 
 					 //check persistent stats
 					 ZNRecord rec = _helixManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);
@@ -397,6 +414,7 @@ public class TestArrivingParticipantStats {
 					timeTuple.add("4.0");
 					Map<String, String> statFields = getStatFields(valTuple.toString(),timeTuple.toString());
 					_statsHolder.applyStat(incomingStatName, statFields);
+			     _statsHolder.persistStats();
 
 					 //check persistent stats
 					 ZNRecord rec = _helixManager.getDataAccessor().getProperty(PropertyType.PERSISTENTSTATS);

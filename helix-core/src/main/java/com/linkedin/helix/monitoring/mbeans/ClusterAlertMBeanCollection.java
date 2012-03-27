@@ -15,6 +15,7 @@ import javax.management.ObjectName;
 
 import org.apache.log4j.Logger;
 
+import com.linkedin.helix.alerts.AlertParser;
 import com.linkedin.helix.alerts.AlertValueAndStatus;
 import com.linkedin.helix.alerts.Tuple;
 
@@ -60,7 +61,7 @@ public class ClusterAlertMBeanCollection
     }
   }
   
-  public void setAlerts(String originAlert, Map<String, AlertValueAndStatus> alertResultMap)
+  public void setAlerts(String originAlert, Map<String, AlertValueAndStatus> alertResultMap, String clusterName)
   {
     if(alertResultMap == null)
     {
@@ -69,9 +70,19 @@ public class ClusterAlertMBeanCollection
     }
     for(String alertName : alertResultMap.keySet())
     {
-      String beanName = originAlert+"--("+ alertName+")";
+      String beanName = "";
+      if(alertName.length() > 1)
+      {
+        String comparator = AlertParser.getComponent(AlertParser.COMPARATOR_NAME, originAlert);
+        String constant = AlertParser.getComponent(AlertParser.CONSTANT_NAME, originAlert);
+        beanName = "("+ alertName+")"+"GREATER("+constant+")";
+      }
+      else
+      {
+        beanName = originAlert + "--(" + alertName + ")";
+      }
+      // This is to make JMX happy; certain charaters cannot be in JMX bean name
       beanName = beanName.replace('*', '%').replace('=', '#').replace(',', ';');
-      
       if(!_alertBeans.containsKey(beanName))
       {
         ClusterAlertItem item = new ClusterAlertItem(beanName, alertResultMap.get(alertName));
@@ -83,19 +94,20 @@ public class ClusterAlertMBeanCollection
         _alertBeans.get(beanName).setValueMap(alertResultMap.get(alertName));
       }
     }
-    refreshSummayAlert();
+    refreshSummayAlert(clusterName);
   }
   /**
    *  The summary alert is a combination of all alerts, if it is on, something is wrong on this 
    *  cluster. 
    */
-  void refreshSummayAlert()
+  void refreshSummayAlert(String clusterName)
   {
     boolean fired = false;
     String alertsFired = "";
+    String summaryKey = ALERT_SUMMARY + "_" + clusterName;
     for(String key : _alertBeans.keySet())
     {
-      if(!key.equals(ALERT_SUMMARY))
+      if(!key.equals(summaryKey))
       {
         ClusterAlertItem item = _alertBeans.get(key);
         fired = (item.getAlertFired() == 1) | fired;
@@ -109,17 +121,17 @@ public class ClusterAlertMBeanCollection
     Tuple<String> t = new Tuple<String>();
     t.add("0");
     AlertValueAndStatus summaryStatus = new AlertValueAndStatus(t, fired);
-    if(!_alertBeans.containsKey(ALERT_SUMMARY))
+    if(!_alertBeans.containsKey(summaryKey))
     {
-      ClusterAlertItem item = new ClusterAlertItem(ALERT_SUMMARY, summaryStatus);
+      ClusterAlertItem item = new ClusterAlertItem(summaryKey, summaryStatus);
       onNewAlertMbeanAdded(item);
       item.setAdditionalInfo(alertsFired);
-      _alertBeans.put(ALERT_SUMMARY, item);
+      _alertBeans.put(summaryKey, item);
     }
     else
     {
-      _alertBeans.get(ALERT_SUMMARY).setValueMap(summaryStatus);
-      _alertBeans.get(ALERT_SUMMARY).setAdditionalInfo(alertsFired);
+      _alertBeans.get(summaryKey).setValueMap(summaryStatus);
+      _alertBeans.get(summaryKey).setAdditionalInfo(alertsFired);
     }
   }
   

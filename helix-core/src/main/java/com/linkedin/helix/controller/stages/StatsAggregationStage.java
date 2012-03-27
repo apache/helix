@@ -184,12 +184,9 @@ public class StatsAggregationStage extends AbstractBaseStage
       // write the updated persisted stats into zookeeper 
     }
     _statsHolder.persistStats();
-    logger.info("Done reading instances: "+(System.currentTimeMillis() - readInstancesStart));
-    System.out.println("Done reading instances: "+(System.currentTimeMillis() - readInstancesStart));
+    logger.info("Done processing stats: "+(System.currentTimeMillis() - readInstancesStart));
     // populate _statStatus
-    long statsMapStart = System.currentTimeMillis();
     _statStatus = _statsHolder.getStatsMap();
-    logger.info("Done getting stats: "+(System.currentTimeMillis() - statsMapStart));
 
     for (String statKey : _statStatus.keySet())
     {
@@ -202,16 +199,12 @@ public class StatsAggregationStage extends AbstractBaseStage
     _alertStatus = AlertProcessor.executeAllAlerts(
         _alertsHolder.getAlertList(), _statsHolder.getStatsList());
     logger.info("done executing alerts: "+(System.currentTimeMillis() - alertExecuteStartTime));
-
-    long beanStartTime = System.currentTimeMillis();
     for (String originAlertName : _alertStatus.keySet())
     {
       _alertBeanCollection.setAlerts(originAlertName,
-          _alertStatus.get(originAlertName));
+          _alertStatus.get(originAlertName), manager.getClusterName());
     }
-    logger.info("done setting beans: "+(System.currentTimeMillis() - beanStartTime));
-
-
+    
     long writeAlertStartTime = System.currentTimeMillis();
     // write out alert status (to zk)
     _alertsHolder.addAlertStatusSet(_alertStatus);
@@ -239,8 +232,6 @@ public class StatsAggregationStage extends AbstractBaseStage
       }
     }
     logger.info("done logging alerts: "+(System.currentTimeMillis() - logAlertStartTime));
-
     logger.info("process end: "+(System.currentTimeMillis() - startTime));
-    System.out.println("process end: "+(System.currentTimeMillis() - startTime));
   }
 }

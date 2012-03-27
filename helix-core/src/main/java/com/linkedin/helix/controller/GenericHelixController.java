@@ -405,12 +405,12 @@ public class GenericHelixController implements
     }
     else
     {
-      String leaderName = leader.getLeader();
+      String leaderName = leader.getInstanceName();
 
       String instanceName = changeContext.getManager().getInstanceName();
       if (leaderName == null || !leaderName.equals(instanceName))
       {
-        logger.warn("leader name does NOT match, my name:" + instanceName + ", leader:"
+        logger.warn("leader name does NOT match, my name: " + instanceName + ", leader: "
             + leader);
         return;
       }

@@ -15,6 +15,6 @@ public class IntegrationTest extends ZkStandAloneCMTestBase
   @Test
   public void integrationTest() throws Exception
   {
-    // Thread.currentThread().join();
+//    Thread.currentThread().join();
   }
 }

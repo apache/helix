@@ -1,5 +1,7 @@
 package com.linkedin.helix.participant;
 
+import java.lang.management.ManagementFactory;
+
 import org.apache.log4j.Logger;
 
 import com.linkedin.helix.ControllerChangeListener;
@@ -103,10 +105,10 @@ public class DistClusterControllerElection implements ControllerChangeListener
   private boolean tryUpdateController(HelixManager manager)
   {
     DataAccessor dataAccessor = manager.getDataAccessor();
-    LiveInstance leader = new LiveInstance(PropertyType.LEADER.toString());
+    LiveInstance leader = new LiveInstance(manager.getInstanceName());
     try
     {
-      leader.setLeader(manager.getInstanceName());
+      leader.setLiveInstance(ManagementFactory.getRuntimeMXBean().getName());
       // TODO: this session id is not the leader's session id in distributed mode
       leader.setSessionId(manager.getSessionId());
       leader.setHelixVersion(manager.getVersion());
@@ -129,7 +131,7 @@ public class DistClusterControllerElection implements ControllerChangeListener
     leader = dataAccessor.getProperty(LiveInstance.class, PropertyType.LEADER);
     if (leader != null)
     {
-      String leaderName = leader.getLeader();
+      String leaderName = leader.getInstanceName(); //leader.getLeader();
       LOG.info("Leader exists for cluster:" + manager.getClusterName() + ", currentLeader:"
           + leaderName);
 

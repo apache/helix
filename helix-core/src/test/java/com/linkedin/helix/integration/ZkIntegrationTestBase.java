@@ -16,13 +16,13 @@ import org.testng.AssertJUnit;
 import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeSuite;
 
-import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.TestHelper.StartCMResult;
-import com.linkedin.helix.ZNRecord;
+import com.linkedin.helix.manager.zk.ZKDataAccessor;
 import com.linkedin.helix.manager.zk.ZNRecordSerializer;
 import com.linkedin.helix.manager.zk.ZkClient;
+import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.util.ZKClientPool;
 
 public class ZkIntegrationTestBase
@@ -67,16 +67,13 @@ public class ZkIntegrationTestBase
 
   protected String getCurrentLeader(ZkClient zkClient, String clusterName)
   {
-    String leaderPath = PropertyPathConfig.getPath(PropertyType.LEADER, clusterName);
-
-    ZNRecord leaderRecord = zkClient.<ZNRecord> readData(leaderPath, true);
-    if (leaderRecord == null)
+    ZKDataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
+    LiveInstance leader = accessor.getProperty(LiveInstance.class, PropertyType.LEADER);
+    if (leader == null)
     {
       return null;
     }
-
-    String leader = leaderRecord.getSimpleField(PropertyType.LEADER.toString());
-    return leader;
+    return leader.getInstanceName();
   }
 
   /**
@@ -93,7 +90,7 @@ public class ZkIntegrationTestBase
   {
     String leader = getCurrentLeader(zkClient, clusterName);
     Assert.assertTrue(leader != null);
-    System.out.println("stop leader:" + leader + " in " + clusterName);
+    System.out.println("stop leader: " + leader + " in " + clusterName);
     Assert.assertTrue(leader != null);
 
     StartCMResult result = startCMResultMap.remove(leader);

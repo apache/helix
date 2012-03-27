@@ -9,6 +9,7 @@ import static com.linkedin.helix.HelixConstants.ChangeType.LIVE_INSTANCE;
 import static com.linkedin.helix.HelixConstants.ChangeType.MESSAGE;
 import static com.linkedin.helix.HelixConstants.ChangeType.MESSAGES_CONTROLLER;
 
+import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -448,6 +449,7 @@ public class ZKHelixManager implements HelixManager
     LiveInstance liveInstance = new LiveInstance(_instanceName);
     liveInstance.setSessionId(_sessionId);
     liveInstance.setHelixVersion(_version);
+    liveInstance.setLiveInstance(ManagementFactory.getRuntimeMXBean().getName());
 
     logger.info("Add live instance: InstanceName: " + _instanceName + " Session id:" + _sessionId);
     if (!_accessor.setProperty(PropertyType.LIVEINSTANCES, liveInstance, _instanceName))
@@ -698,7 +700,7 @@ public class ZKHelixManager implements HelixManager
       return false;
     } else
     {
-      String leaderName = leader.getLeader();
+      String leaderName = leader.getInstanceName();
       // TODO need check sessionId also, but in distributed mode, leader's sessionId is not equal to
       // the leader znode's sessionId field which is the sessionId of the controller_participant that
       // successfully creates the leader node

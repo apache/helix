@@ -14,6 +14,8 @@ import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.ZkUnitTestBase;
+import com.linkedin.helix.manager.zk.ZKDataAccessor;
+import com.linkedin.helix.model.LiveInstance;
 
 public class TestDistControllerElection extends ZkUnitTestBase
 {
@@ -32,6 +34,7 @@ public class TestDistControllerElection extends ZkUnitTestBase
     {
       _gZkClient.deleteRecursive(path);
     }
+    ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _gZkClient);
     TestHelper.setupEmptyCluster(_gZkClient, clusterName);
 
     final String controllerName = "controller_0";
@@ -44,10 +47,10 @@ public class TestDistControllerElection extends ZkUnitTestBase
     context.setType(NotificationContext.Type.INIT);
     election.onControllerChange(context);
 
-    path = PropertyPathConfig.getPath(PropertyType.LEADER, clusterName);
-
-    ZNRecord leaderRecord = _gZkClient.<ZNRecord> readData(path);
-    AssertJUnit.assertEquals(controllerName, leaderRecord.getSimpleField("LEADER"));
+//    path = PropertyPathConfig.getPath(PropertyType.LEADER, clusterName);
+//    ZNRecord leaderRecord = _gZkClient.<ZNRecord> readData(path);
+    LiveInstance liveInstance = accessor.getProperty(LiveInstance.class, PropertyType.LEADER);
+    AssertJUnit.assertEquals(controllerName, liveInstance.getInstanceName());
     // AssertJUnit.assertNotNull(election.getController());
     // AssertJUnit.assertNull(election.getLeader());
 
@@ -57,8 +60,9 @@ public class TestDistControllerElection extends ZkUnitTestBase
     context = new NotificationContext(manager);
     context.setType(NotificationContext.Type.INIT);
     election.onControllerChange(context);
-    leaderRecord = _gZkClient.<ZNRecord> readData(path);
-    AssertJUnit.assertEquals(controllerName, leaderRecord.getSimpleField("LEADER"));
+//    leaderRecord = _gZkClient.<ZNRecord> readData(path);
+    liveInstance = accessor.getProperty(LiveInstance.class, PropertyType.LEADER);
+    AssertJUnit.assertEquals(controllerName, liveInstance.getInstanceName());
     // AssertJUnit.assertNull(election.getController());
     // AssertJUnit.assertNull(election.getLeader());
 
@@ -78,6 +82,7 @@ public class TestDistControllerElection extends ZkUnitTestBase
     {
       _gZkClient.deleteRecursive(path);
     }
+    ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _gZkClient);
     TestHelper.setupEmptyCluster(_gZkClient, clusterName);
 
     final String controllerName = "controller_0";
@@ -89,9 +94,13 @@ public class TestDistControllerElection extends ZkUnitTestBase
     NotificationContext context = new NotificationContext(manager);
     context.setType(NotificationContext.Type.CALLBACK);
     election.onControllerChange(context);
-    path = PropertyPathConfig.getPath(PropertyType.LEADER, clusterName);
-    ZNRecord leaderRecord = _gZkClient.<ZNRecord> readData(path);
-    AssertJUnit.assertEquals(controllerName, leaderRecord.getSimpleField("LEADER"));
+
+    LiveInstance liveInstance = accessor.getProperty(LiveInstance.class, PropertyType.LEADER);
+    AssertJUnit.assertEquals(controllerName, liveInstance.getInstanceName());
+
+//    path = PropertyPathConfig.getPath(PropertyType.LEADER, clusterName);
+//    ZNRecord leaderRecord = _gZkClient.<ZNRecord> readData(path);
+//    AssertJUnit.assertEquals(controllerName, leaderRecord.getSimpleField("LEADER"));
     // AssertJUnit.assertNotNull(election.getController());
     // AssertJUnit.assertNotNull(election.getLeader());
 
@@ -102,8 +111,12 @@ public class TestDistControllerElection extends ZkUnitTestBase
     context = new NotificationContext(manager);
     context.setType(NotificationContext.Type.CALLBACK);
     election.onControllerChange(context);
-    leaderRecord = _gZkClient.<ZNRecord> readData(path);
-    AssertJUnit.assertEquals(controllerName, leaderRecord.getSimpleField("LEADER"));
+
+    liveInstance = accessor.getProperty(LiveInstance.class, PropertyType.LEADER);
+    AssertJUnit.assertEquals(controllerName, liveInstance.getInstanceName());
+
+//    leaderRecord = _gZkClient.<ZNRecord> readData(path);
+//    AssertJUnit.assertEquals(controllerName, leaderRecord.getSimpleField("LEADER"));
     // AssertJUnit.assertNull(election.getController());
     // AssertJUnit.assertNull(election.getLeader());
 

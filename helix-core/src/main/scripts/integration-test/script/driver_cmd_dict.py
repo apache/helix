@@ -122,9 +122,9 @@ cmd_direct_call={
       ,"IVY_DIR/commons-lang/commons-lang/2.4/commons-lang-2.4.jar"
       ,"IVY_DIR/jdom/jdom/1.0/jdom-1.0.jar"
       ,"IVY_DIR/log4j/log4j/1.2.15/log4j-1.2.15.jar"
-      ,"IVY_DIR/org/apache/zookeeper/zookeeper/3.3.0/zookeeper-3.3.0.jar"
-      ,"IVY_DIR/org/codehaus/jackson/jackson-core-asl/1.4.2/jackson-core-asl-1.4.2.jar"
-      ,"IVY_DIR/org/codehaus/jackson/jackson-mapper-asl/1.4.2/jackson-mapper-asl-1.4.2.jar"
+      ,"IVY_DIR/org/apache/zookeeper/zookeeper/3.3.3/zookeeper-3.3.3.jar"
+      ,"IVY_DIR/org/codehaus/jackson/jackson-core-asl/1.8.5/jackson-core-asl-1.8.5.jar"
+      ,"IVY_DIR/org/codehaus/jackson/jackson-mapper-asl/1.8.5/jackson-mapper-asl-1.8.5.jar"
       ,"IVY_DIR/xpp3/xpp3_min/1.1.4c/xpp3_min-1.1.4c.jar"
 ]+cm_jar_files
   ,"class_name":"com.linkedin.helix.tools.ClusterSetup"
@@ -140,11 +140,12 @@ cmd_direct_call={
       ,"IVY_DIR/commons-lang/commons-lang/2.4/commons-lang-2.4.jar"
       ,"IVY_DIR/jdom/jdom/1.0/jdom-1.0.jar"
       ,"IVY_DIR/log4j/log4j/1.2.15/log4j-1.2.15.jar"
-      ,"IVY_DIR/org/apache/zookeeper/zookeeper/3.3.0/zookeeper-3.3.0.jar"
-      ,"IVY_DIR/org/codehaus/jackson/jackson-core-asl/1.4.2/jackson-core-asl-1.4.2.jar"
-      ,"IVY_DIR/org/codehaus/jackson/jackson-mapper-asl/1.4.2/jackson-mapper-asl-1.4.2.jar"
+      ,"IVY_DIR/org/apache/zookeeper/zookeeper/3.3.3/zookeeper-3.3.3.jar"
+      ,"IVY_DIR/org/codehaus/jackson/jackson-core-asl/1.8.5/jackson-core-asl-1.8.5.jar"
+      ,"IVY_DIR/org/codehaus/jackson/jackson-mapper-asl/1.8.5/jackson-mapper-asl-1.8.5.jar"
       ,"IVY_DIR/xpp3/xpp3_min/1.1.4c/xpp3_min-1.1.4c.jar"
       ,"IVY_DIR/com/github/sgroschupf/zkclient/0.1/zkclient-0.1.jar"
+      ,"IVY_DIR/commons-math/commons-math/2.1/commons-math-2.1.jar"
 ]+cm_jar_files
 
   ,"class_name":"com.linkedin.helix.mock.storage.DummyProcess"
@@ -165,6 +166,7 @@ cmd_direct_call={
       ,"IVY_DIR/org/codehaus/jackson/jackson-mapper-asl/1.4.2/jackson-mapper-asl-1.4.2.jar"
       ,"IVY_DIR/xpp3/xpp3_min/1.1.4c/xpp3_min-1.1.4c.jar"
       ,"IVY_DIR/com/github/sgroschupf/zkclient/0.1/zkclient-0.1.jar"
+      ,"IVY_DIR/commons-math/commons-math/2.1/commons-math-2.1.jar"
 ]+cm_jar_files
   ,"class_name":"com.linkedin.helix.controller.HelixControllerMain"
   ,"before_cmd":"../../../mvn jar:jar"  # build jar first
@@ -180,9 +182,9 @@ cmd_direct_call={
       ,"IVY_DIR/commons-lang/commons-lang/2.4/commons-lang-2.4.jar"
       ,"IVY_DIR/jdom/jdom/1.0/jdom-1.0.jar"
       ,"IVY_DIR/log4j/log4j/1.2.15/log4j-1.2.15.jar"
-      ,"IVY_DIR/org/apache/zookeeper/zookeeper/3.3.0/zookeeper-3.3.0.jar"
-      ,"IVY_DIR/org/codehaus/jackson/jackson-core-asl/1.4.2/jackson-core-asl-1.4.2.jar"
-      ,"IVY_DIR/org/codehaus/jackson/jackson-mapper-asl/1.4.2/jackson-mapper-asl-1.4.2.jar"
+      ,"IVY_DIR/org/apache/zookeeper/zookeeper/3.3.3/zookeeper-3.3.3.jar"
+      ,"IVY_DIR/org/codehaus/jackson/jackson-core-asl/1.8.5/jackson-core-asl-1.8.5.jar"
+      ,"IVY_DIR/org/codehaus/jackson/jackson-mapper-asl/1.8.5/jackson-mapper-asl-1.8.5.jar"
       ,"IVY_DIR/xpp3/xpp3_min/1.1.4c/xpp3_min-1.1.4c.jar"
 ]+cm_jar_files
   ,"class_name":"com.linkedin.helix.tools.ClusterStateVerifier"
@@ -193,8 +195,8 @@ cmd_direct_call={
     "class_path":[
       "IVY_DIR/com/github/sgroschupf/zkclient/0.1/zkclient-0.1.jar"
      ,"IVY_DIR/log4j/log4j/1.2.15/log4j-1.2.15.jar"
-      ,"IVY_DIR/commons-cli/commons-cli/1.2/commons-cli-1.2.jar"
-      ,"IVY_DIR/zkclient/zkclient/0.1.0/zkclient-0.1.0.jar"
+     ,"IVY_DIR/commons-cli/commons-cli/1.2/commons-cli-1.2.jar"
+     ,"IVY_DIR/commons-math/commons-math/2.1/commons-math-2.1.jar"
 ]+cm_jar_files
   ,"class_name":"com.linkedin.helix.mock.storage.MockStorageProcess"
    }

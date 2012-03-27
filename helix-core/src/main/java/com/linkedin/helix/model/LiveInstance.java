@@ -2,7 +2,6 @@ package com.linkedin.helix.model;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.HelixException;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.ZNRecordDecorator;
 
@@ -15,11 +14,11 @@ public class LiveInstance extends ZNRecordDecorator
   {
     SESSION_ID,
     HELIX_VERSION,
-    LEADER
+    LIVE_INSTANCE
   }
-  
+
   private static final Logger _logger = Logger.getLogger(LiveInstance.class.getName());
-  
+
   public LiveInstance(String id)
   {
     super(id);
@@ -55,29 +54,24 @@ public class LiveInstance extends ZNRecordDecorator
     _record.setSimpleField(LiveInstanceProperty.HELIX_VERSION.toString(), helixVersion);
   }
 
-  public String getLeader()
+  public String getLiveInstance()
   {
-    return _record.getSimpleField(LiveInstanceProperty.LEADER.toString());
+    return _record.getSimpleField(LiveInstanceProperty.LIVE_INSTANCE.toString());
   }
 
-  public void setLeader(String leader)
+  public void setLiveInstance(String leader)
   {
-    _record.setSimpleField(LiveInstanceProperty.LEADER.toString(), leader);
+    _record.setSimpleField(LiveInstanceProperty.LIVE_INSTANCE.toString(), leader);
   }
 
   public long getModifiedTime()
   {
 	  return _record.getModifiedTime();
   }
-  
+
   @Override
   public boolean isValid()
   {
-    if(getInstanceName() == null)
-    {
-      _logger.error("liveInstance does not have instance name. id:" + _record.getId());
-      return false;
-    }
     if(getSessionId() == null)
     {
       _logger.error("liveInstance does not have session id. id:" + _record.getId());

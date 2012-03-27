@@ -5,20 +5,19 @@ import org.testng.annotations.Test;
 
 import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.TestHelper.StartCMResult;
-import com.linkedin.helix.controller.HelixControllerMain;
 import com.linkedin.helix.integration.ZkStandAloneCMTestBase;
 import com.linkedin.helix.tools.ClusterStateVerifier;
 
 public class TestLiveInstanceBounce extends ZkStandAloneCMTestBase
 {
-  @Test 
+  @Test
   public void testInstanceBounce() throws Exception
   {
     String controllerName = CONTROLLER_PREFIX + "_0";
     StartCMResult controllerResult = _startCMResultMap.get(controllerName);
     ZKHelixManager controller = (ZKHelixManager) controllerResult._manager;
     int handlerSize = controller.getHandlers().size();
-    
+
     for (int i = 0; i < 2; i++)
     {
       String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
@@ -37,8 +36,8 @@ public class TestLiveInstanceBounce extends ZkStandAloneCMTestBase
       StartCMResult result = TestHelper.startDummyProcess(ZK_ADDR, CLUSTER_NAME, instanceName);
       _startCMResultMap.put(instanceName, result);
     }
-    Thread.currentThread().sleep(2000);
-    
+    Thread.sleep(2000);
+
     boolean result = ClusterStateVerifier.verify(
         new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_NAME));
     Assert.assertTrue(result);

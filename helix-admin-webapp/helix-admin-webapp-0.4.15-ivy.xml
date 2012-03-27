@@ -1,7 +1,7 @@
 <ivy-module version="1.0">
 	<info organisation="com.linkedin.helix"
 		module="helix-admin-webapp"
-		revision="0.4.14"
+		revision="0.4.15"
 		status="integration"
 		publication="20120315141623"
 	/>

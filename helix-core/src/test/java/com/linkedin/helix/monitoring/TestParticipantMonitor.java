@@ -58,7 +58,7 @@ public class TestParticipantMonitor
         _logger.warn("fail to get all existing mbeans in " + _domain, e);
       }  
     }
-
+    
     @Override
     public void onMBeanRegistered(MBeanServerConnection server,
         MBeanServerNotification mbsNotification)
@@ -76,7 +76,7 @@ public class TestParticipantMonitor
         for(MBeanAttributeInfo infoItem : infos)
         {
           Object val = _server.getAttribute(beanName, infoItem.getName());
-          System.out.println("         " + infoItem.getName() + " : " + _server.getAttribute(beanName, infoItem.getName()) + " type : " + infoItem.getType());
+          //System.out.println("         " + infoItem.getName() + " : " + _server.getAttribute(beanName, infoItem.getName()) + " type : " + infoItem.getType());
           _beanValueMap.get(beanName.toString()).put(infoItem.getName(), val);
         }
       } 
@@ -135,6 +135,8 @@ public class TestParticipantMonitor
 
     Thread.sleep(100);
     AssertJUnit.assertEquals(monitorListener2._beanValueMap.size() , monitorNum + 2);
+    monitorListener2.disconnect();
+    monitorListener.disconnect();
     System.out.println("END TestParticipantMonitor");
   }
 }

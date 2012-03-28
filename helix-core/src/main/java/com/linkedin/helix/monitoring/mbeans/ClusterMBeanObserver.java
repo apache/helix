@@ -6,6 +6,7 @@ import java.lang.management.ManagementFactory;
 import javax.management.AttributeNotFoundException;
 import javax.management.InstanceNotFoundException;
 import javax.management.IntrospectionException;
+import javax.management.ListenerNotFoundException;
 import javax.management.MBeanAttributeInfo;
 import javax.management.MBeanException;
 import javax.management.MBeanInfo;
@@ -59,6 +60,19 @@ public abstract class ClusterMBeanObserver implements NotificationListener
         _logger.info("MBean Unregistered, name :" + mbs.getMBeanName());
         onMBeanUnRegistered(_server, mbs);
       }
+    }
+  }
+  
+  public void disconnect()
+  {
+    MBeanServerNotificationFilter filter = new MBeanServerNotificationFilter();
+    try
+    {
+      _server.removeNotificationListener(MBeanServerDelegate.DELEGATE_NAME, this);
+    }
+    catch (Exception e)
+    {
+      _logger.error("", e);
     }
   }
   

@@ -16,7 +16,7 @@ public class ResourceMonitor implements ResourceMonitorMBean
   int _numOfPartitionsInExternalView;
   int _numOfErrorPartitions;
   int _externalViewIdealStateDiff;
-  private static final Logger LOG = Logger.getLogger(ClusterStatusMonitor.class);
+  private static final Logger LOG = Logger.getLogger(ResourceMonitor.class);
 
   String _resourceName, _clusterName;
   public ResourceMonitor(String clusterName, String resourceName)
@@ -43,7 +43,7 @@ public class ResourceMonitor implements ResourceMonitorMBean
     return _externalViewIdealStateDiff;
   }
 
-  public void onExternalViewChange(ExternalView externalView, HelixManager manager)
+  public void updateExternalView(ExternalView externalView, IdealState idealState)
   {
     if(externalView == null)
     {
@@ -51,22 +51,6 @@ public class ResourceMonitor implements ResourceMonitorMBean
       return;
     }
     String resourceName = externalView.getId();
-    DataAccessor accessor = manager.getDataAccessor();
-    IdealState idealState = null;
-
-    try
-    {
-      idealState = accessor.getProperty(IdealState.class, PropertyType.IDEALSTATES, resourceName);
-    }
-    catch(Exception e)
-    {
-      // ideal state is gone. Should report 0.
-      LOG.warn("ideal state is null for "+resourceName, e);
-      _numOfErrorPartitions = 0;
-      _externalViewIdealStateDiff = 0;
-      _numOfPartitionsInExternalView = 0;
-      return;
-    }
 
     if(idealState == null)
     {

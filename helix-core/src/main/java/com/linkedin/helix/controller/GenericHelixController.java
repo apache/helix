@@ -22,6 +22,7 @@ import com.linkedin.helix.IdealStateChangeListener;
 import com.linkedin.helix.LiveInstanceChangeListener;
 import com.linkedin.helix.MessageListener;
 import com.linkedin.helix.NotificationContext;
+import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
 import com.linkedin.helix.NotificationContext.Type;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.controller.pipeline.Pipeline;
@@ -44,6 +45,7 @@ import com.linkedin.helix.model.InstanceConfig;
 import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.model.Message;
 import com.linkedin.helix.model.PauseSignal;
+import com.linkedin.helix.monitoring.mbeans.ClusterStatusMonitor;
 
 /**
  * Cluster Controllers main goal is to keep the cluster state as close as possible to
@@ -83,7 +85,8 @@ public class GenericHelixController implements
   private final Set<String> _instanceCurrentStateChangeSubscriptionSessionIds;
   private final Set<String> _instanceSubscriptionNames;
   private final ExternalViewGenerator _externalViewGenerator;
-
+  ClusterStatusMonitor _clusterStatusMonitor;
+  
   /**
    * The _paused flag is checked by function handleEvent(), while if the flag is set
    * handleEvent() will be no-op. Other event handling logic keeps the same when the flag
@@ -191,6 +194,29 @@ public class GenericHelixController implements
       logger.info("Cluster is paused. Ignoring the event:" + event.getName());
       return;
     }
+    // Initialize _clusterStatusMonitor
+    if(_clusterStatusMonitor == null)
+    {
+      _clusterStatusMonitor = new ClusterStatusMonitor(
+          manager.getClusterName());
+    }
+    
+    if(event.getAttribute("changeContext") != null)
+    {
+      NotificationContext context = (NotificationContext) (event.getAttribute("changeContext"));
+      if(context.getType() == Type.FINALIZE)
+      {
+        if(_clusterStatusMonitor != null)
+        {
+          _clusterStatusMonitor.reset();
+        }
+      }
+      else 
+      {
+        event.addAttribute("clusterStatusMonitor", _clusterStatusMonitor);
+      }
+    }
+    
     List<Pipeline> pipelines = _registry.getPipelinesForEvent(event.getName());
     if (pipelines == null || pipelines.size() == 0)
     {
@@ -284,6 +310,12 @@ public class GenericHelixController implements
                              List<HealthStat> reports,
                              NotificationContext changeContext)
   {
+    /**
+     * When there are more participant ( > 20, can be in hundreds), 
+     * This callback can be called quite frequently as each participant 
+     * reports health stat every minute. Thus we change the health check 
+     * pipeline to run in a timer callback.
+     * */
 //    logger.info("START: GenericClusterController.onHealthChange()");
 //    ClusterEvent event = new ClusterEvent("healthChange");
 //    event.addAttribute("helixmanager", changeContext.getManager());

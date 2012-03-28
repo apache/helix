@@ -104,13 +104,9 @@ public class TestClusterStatusMonitor
     externalViews.add(externalView);
     externalViews.add(externalView2);
 
-    ClusterStatusMonitor monitor = new ClusterStatusMonitor("cluster1", _instances.size());
+    ClusterStatusMonitor monitor = new ClusterStatusMonitor("cluster1");
     MockHelixManager manager = new MockHelixManager();
     NotificationContext context = new NotificationContext(manager);
-
-    monitor.onExternalViewChange(ZNRecordDecorator.convertToTypedList(ExternalView.class, externalViews), context);
-
-    monitor.onLiveInstanceChange(ZNRecordDecorator.convertToTypedList(LiveInstance.class, _liveInstances), context);
     System.out.println("END TestClusterStatusMonitor at" + new Date(System.currentTimeMillis()));
   }
 }

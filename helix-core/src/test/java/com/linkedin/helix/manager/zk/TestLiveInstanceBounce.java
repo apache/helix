@@ -35,6 +35,7 @@ public class TestLiveInstanceBounce extends ZkStandAloneCMTestBase
       // restart the participant
       StartCMResult result = TestHelper.startDummyProcess(ZK_ADDR, CLUSTER_NAME, instanceName);
       _startCMResultMap.put(instanceName, result);
+      Thread.sleep(100);
     }
     Thread.sleep(2000);
 

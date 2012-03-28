@@ -122,12 +122,6 @@ public class HelixControllerMain
       manager.addLiveInstanceChangeListener(controller);
       manager.addIdealStateChangeListener(controller);
       manager.addExternalViewChangeListener(controller);
-
-      ClusterStatusMonitor monitor = new ClusterStatusMonitor(manager.getClusterName(), manager
-          .getDataAccessor()
-          .getChildNames(PropertyType.CONFIGS, ConfigScopeProperty.PARTICIPANT.toString()).size());
-      manager.addLiveInstanceChangeListener(monitor);
-      manager.addExternalViewChangeListener(monitor);
     } catch (ZkInterruptedException e)
     {
       logger

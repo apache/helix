@@ -13,6 +13,7 @@ import com.linkedin.helix.Mocks;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.model.ExternalView;
+import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.model.LiveInstance.LiveInstanceProperty;
 import com.linkedin.helix.monitoring.mbeans.ResourceMonitor;
 import com.linkedin.helix.tools.IdealStateCalculatorForStorageNode;
@@ -105,8 +106,10 @@ public class TestResourceMonitor
 
     ExternalView externalView = new ExternalView(
         manager.getDataAccessor().getProperty(PropertyType.EXTERNALVIEW,_dbName));
+    IdealState idealState = new IdealState(
+        manager.getDataAccessor().getProperty(PropertyType.EXTERNALVIEW,_dbName));
 
-    monitor.onExternalViewChange(externalView, manager);
+    monitor.updateExternalView(externalView, idealState);
 
     AssertJUnit.assertEquals(monitor.getDifferenceWithIdealStateGauge(), 0);
     AssertJUnit.assertEquals(monitor.getErrorPartitionGauge(), 0);
@@ -123,7 +126,7 @@ public class TestResourceMonitor
       externalView.setStateMap(_dbName + "_" + 3 * i, map);
     }
 
-    monitor.onExternalViewChange(externalView, manager);
+    monitor.updateExternalView(externalView, idealState);
     AssertJUnit.assertEquals(monitor.getDifferenceWithIdealStateGauge(), 0);
     AssertJUnit.assertEquals(monitor.getErrorPartitionGauge(), n);
     AssertJUnit.assertEquals(monitor.getExternalViewPartitionGauge(), _partitions);
@@ -135,7 +138,7 @@ public class TestResourceMonitor
       externalView.getRecord().getMapFields().remove(_dbName + "_" + 4 * i);
     }
 
-    monitor.onExternalViewChange(externalView, manager);
+    monitor.updateExternalView(externalView, idealState);
     AssertJUnit.assertEquals(monitor.getDifferenceWithIdealStateGauge(), n
         * (_replicas + 1));
     AssertJUnit.assertEquals(monitor.getErrorPartitionGauge(), 3);

@@ -12,6 +12,7 @@ import com.linkedin.helix.controller.pipeline.StageException;
 import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.Resource;
 import com.linkedin.helix.model.Partition;
+import com.linkedin.helix.monitoring.mbeans.ClusterStatusMonitor;
 
 public class ExternalViewComputeStage extends AbstractBaseStage
 {
@@ -59,6 +60,13 @@ public class ExternalViewComputeStage extends AbstractBaseStage
           }
         }
       }
+      // Update cluster status monitor mbean
+      ClusterStatusMonitor clusterStatusMonitor = (ClusterStatusMonitor) event.getAttribute("clusterStatusMonitor");
+      if(clusterStatusMonitor != null)
+      {
+        clusterStatusMonitor.onExternalViewChange(view, cache._idealStateMap.get(view.getResourceName()));
+      }
+      
       dataAccessor.setProperty(PropertyType.EXTERNALVIEW, view, resourceName);
     }
     log.info("END ExternalViewComputeStage.process()");

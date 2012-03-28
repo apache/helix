@@ -15,54 +15,26 @@ import com.linkedin.helix.ExternalViewChangeListener;
 import com.linkedin.helix.LiveInstanceChangeListener;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.model.ExternalView;
+import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.model.LiveInstance;
 
 
 public class ClusterStatusMonitor
-  implements ClusterStatusMonitorMBean,LiveInstanceChangeListener, ExternalViewChangeListener
+  implements ClusterStatusMonitorMBean
 {
   private static final Logger LOG = Logger.getLogger(ClusterStatusMonitor.class);
 
   private final MBeanServer _beanServer;
 
-  private int _numOfLiveInstances;
-  private final int _numOfInstances;
+  private int _numOfLiveInstances = 0;
+  private int _numOfInstances = 0;
   private final ConcurrentHashMap<String, ResourceMonitor> _resourceMbeanMap
     = new ConcurrentHashMap<String, ResourceMonitor>();
   private String _clusterName = "";
 
-  private final List<ResourceMonitorChangedListener> _listeners = new ArrayList<ResourceMonitorChangedListener>() ;
-
-  public void addResourceMonitorChangedListener(ResourceMonitorChangedListener listener)
-  {
-    synchronized(_listeners)
-    {
-      if(!_listeners.contains(listener))
-      {
-        _listeners.add(listener);
-        for(ResourceMonitor bean : _resourceMbeanMap.values())
-        {
-          listener.onResourceMonitorAdded(bean);
-        }
-      }
-    }
-  }
-
-  private void notifyListeners(ResourceMonitor newResourceMonitor)
-  {
-    synchronized(_listeners)
-    {
-      for(ResourceMonitorChangedListener listener : _listeners)
-      {
-        listener.onResourceMonitorAdded(newResourceMonitor);
-      }
-    }
-  }
-
-  public ClusterStatusMonitor(String clusterName, int nInstances)
+  public ClusterStatusMonitor(String clusterName)
   {
     _clusterName = clusterName;
-    _numOfInstances = nInstances;
     _beanServer = ManagementFactory.getPlatformMBeanServer();
     try
     {
@@ -117,30 +89,29 @@ public class ClusterStatusMonitor
       LOG.warn("Could not register MBean", e);
     }
   }
-
-  @Override
-  public void onLiveInstanceChange(List<LiveInstance> liveInstances,
-      NotificationContext changeContext)
+  
+  private void unregister(ObjectName name)
   {
     try
     {
-      _numOfLiveInstances = liveInstances.size();
+      _beanServer.unregisterMBean(name);
     }
-    catch(Exception e)
+    catch (Exception e)
     {
-      LOG.warn(e);
-      //e.printStackTrace();
+      LOG.warn("Could not unregister MBean", e);
     }
   }
 
-  @Override
-  public void onExternalViewChange(List<ExternalView> externalViewList,
-      NotificationContext changeContext)
+  public void setLiveInstanceNum(int numberLiveInstances, int numberOfInstances)
+  {
+    _numOfInstances = numberOfInstances;
+    _numOfLiveInstances = numberLiveInstances;
+  }
+
+  public void onExternalViewChange(ExternalView externalView, IdealState idealState)
   {
     try
     {
-      for(ExternalView externalView : externalViewList)
-      {
         String resourceName = externalView.getId();
         if(!_resourceMbeanMap.containsKey(resourceName))
         {
@@ -152,17 +123,32 @@ public class ClusterStatusMonitor
               String beanName = "Cluster=" + _clusterName + ",resourceName=" + resourceName;
               register(bean, getObjectName(beanName));
               _resourceMbeanMap.put(resourceName, bean);
-              notifyListeners(bean);
             }
           }
         }
-        _resourceMbeanMap.get(resourceName).onExternalViewChange(externalView, changeContext.getManager());
-      }
+        _resourceMbeanMap.get(resourceName).updateExternalView(externalView, idealState);
     }
     catch(Exception e)
     {
       LOG.warn(e);
     }
+  }
 
+  public void reset()
+  {
+    try
+    {
+      for(String resourceName : _resourceMbeanMap.keySet())
+      {
+        String beanName = "Cluster=" + _clusterName + ",resourceName=" + resourceName;
+        unregister(getObjectName(beanName));
+      }
+      _resourceMbeanMap.clear();
+      unregister(getObjectName("cluster="+_clusterName));
+    }
+    catch(Exception e)
+    {
+      LOG.error("register self failed.", e);
+    }
   }
 }

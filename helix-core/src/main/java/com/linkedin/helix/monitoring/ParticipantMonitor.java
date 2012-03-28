@@ -13,52 +13,16 @@ import javax.management.ObjectName;
 import org.apache.log4j.Logger;
 
 import com.linkedin.helix.monitoring.mbeans.StateTransitionStatMonitor;
-import com.linkedin.helix.monitoring.mbeans.TransStatMonitorChangedListener;
 
 public class ParticipantMonitor
 {
-  private static final ParticipantMonitor _instance = new ParticipantMonitor();
-  
   private ConcurrentHashMap<StateTransitionContext, StateTransitionStatMonitor> _monitorMap
    = new ConcurrentHashMap<StateTransitionContext, StateTransitionStatMonitor>();
   private static final Logger LOG = Logger.getLogger(ParticipantMonitor.class);
 
   private MBeanServer _beanServer;
   
-  private List<TransStatMonitorChangedListener> _listeners = new ArrayList<TransStatMonitorChangedListener>() ;
-  
-  public void addTransStatMonitorChangedListener(TransStatMonitorChangedListener listener)
-  {
-    synchronized(_listeners)
-    {
-      if(!_listeners.contains(listener))
-      {
-        _listeners.add(listener);
-        for(StateTransitionStatMonitor bean : _monitorMap.values())
-        {
-          listener.onTransStatMonitorAdded(bean);
-        }
-      }
-    }
-  }
-  
-  private void notifyListeners(StateTransitionStatMonitor newStateTransitionStatMonitor)
-  {
-    synchronized(_listeners)
-    {
-      for(TransStatMonitorChangedListener listener : _listeners)
-      {
-        listener.onTransStatMonitorAdded(newStateTransitionStatMonitor);
-      }
-    }
-  }
-  
-  public static ParticipantMonitor getInstance()
-  {
-    return _instance;
-  }
-  
-  private ParticipantMonitor()
+  public ParticipantMonitor()
   {
     try
     {
@@ -92,7 +56,6 @@ public class ParticipantMonitor
             _monitorMap.put(cxt, bean);
             String beanName = cxt.toString();
             register(bean, getObjectName(beanName));
-            notifyListeners(bean);
           }
         }
       }

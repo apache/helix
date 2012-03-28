@@ -52,7 +52,7 @@ public class HelixTaskExecutor implements MessageListener
     _taskMap = new HashMap<String, Future<HelixTaskResult>>();
     _lock = new Object();
     _statusUpdateUtil = new StatusUpdateUtil();
-    _monitor = ParticipantMonitor.getInstance();
+    _monitor = new ParticipantMonitor();
     startMonitorThread();
   }
 

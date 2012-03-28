@@ -268,7 +268,8 @@ def cmd_call(cmd, timeout, ret_pattern=None, outf=None):
         kill_cmd="kill -9"
         if "stop" in cmd_dict[options.component]: 
           kill_cmd = cmd_dict[options.component]["stop"]
-          kill_cmd = re.sub("^.*(kill.*) \w+$",'\\1',kill_cmd)
+          m = re.search("^.*(kill.*)\s*$",kill_cmd)
+          if m: kill_cmd = m.group(1)
         sys_call("%s %s" % (kill_cmd, process_info[key]["pid"]))
         return RetCode.OK
     global ct

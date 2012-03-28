@@ -2,7 +2,7 @@
 # test that we can insert and retrieve a simple record
 
 # start zookeeper on localhost:2183
-export TEST_NAME=hexli_random_kill
+export TEST_NAME=helix_random_kill
 source setup_env.inc
 
 # auxilary functions

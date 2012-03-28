@@ -27,6 +27,7 @@ cmd_dict={
     ,"mock-storage":{"start":"ant -f cluster-manager/run/build.xml run-mock-storage", "stop":kill_cmd_template % "MockStorageProcess"}
     ,"cluster-state-verifier":{"start":"ant -d -f cluster-manager/run/build.xml run-cluster-state-verifier", "stop":kill_cmd_template % "ClusterStateVerifier"}
     ,"dummy-process":{"start":"ant -f cluster-manager/run/build.xml run-dummy-process", "stop":kill_cmd_template % "DummyProcess"}
+    ,"mock-health-report-process":{"start":"ant -f cluster-manager/run/build.xml run-mock-health-report-process", "stop":kill_cmd_template % "MockHealthReportParticipant"}
     ,"clm_console":{"default":"ant -f cluster-manager/run/build.xml run-cm-console","stop":kill_cmd_template % "ClusterSetup"}
 }
 
@@ -36,6 +37,7 @@ cmd_ret_pattern={    # the pattern when the call is considered return successful
    ,"cluster-manager_start":re.compile("No Messages to process")
    ,"mock-storage_start":re.compile("Mock storage started") 
    ,"dummy-process_start":re.compile("Dummy process started") 
+   ,"mock-health-report-process_start":re.compile("MockHealthReportParticipant process started") 
 }
 
 # the mapping of option to the java options, if not give, then use directly
@@ -145,10 +147,31 @@ cmd_direct_call={
       ,"IVY_DIR/org/codehaus/jackson/jackson-mapper-asl/1.8.5/jackson-mapper-asl-1.8.5.jar"
       ,"IVY_DIR/xpp3/xpp3_min/1.1.4c/xpp3_min-1.1.4c.jar"
       ,"IVY_DIR/com/github/sgroschupf/zkclient/0.1/zkclient-0.1.jar"
-      ,"IVY_DIR/commons-math/commons-math/2.1/commons-math-2.1.jar"
+      ,"IVY_DIR/org/apache/commons/commons-math/2.1/commons-math-2.1.jar"
 ]+cm_jar_files
 
   ,"class_name":"com.linkedin.helix.mock.storage.DummyProcess"
+  ,"before_cmd":"../../../mvn jar:jar"  # build jar first
+   }
+
+  ,"mock-health-report-process":
+   {
+    "class_path":[
+      "IVY_DIR/com/thoughtworks/xstream/xstream/1.3.1/xstream-1.3.1.jar"
+      ,"IVY_DIR/commons-cli/commons-cli/1.2/commons-cli-1.2.jar"
+      ,"IVY_DIR/commons-io/commons-io/1.4/commons-io-1.4.jar"
+      ,"IVY_DIR/commons-lang/commons-lang/2.4/commons-lang-2.4.jar"
+      ,"IVY_DIR/jdom/jdom/1.0/jdom-1.0.jar"
+      ,"IVY_DIR/log4j/log4j/1.2.15/log4j-1.2.15.jar"
+      ,"IVY_DIR/org/apache/zookeeper/zookeeper/3.3.3/zookeeper-3.3.3.jar"
+      ,"IVY_DIR/org/codehaus/jackson/jackson-core-asl/1.8.5/jackson-core-asl-1.8.5.jar"
+      ,"IVY_DIR/org/codehaus/jackson/jackson-mapper-asl/1.8.5/jackson-mapper-asl-1.8.5.jar"
+      ,"IVY_DIR/xpp3/xpp3_min/1.1.4c/xpp3_min-1.1.4c.jar"
+      ,"IVY_DIR/com/github/sgroschupf/zkclient/0.1/zkclient-0.1.jar"
+      ,"IVY_DIR/org/apache/commons/commons-math/2.1/commons-math-2.1.jar"
+]+cm_jar_files
+
+  ,"class_name":"com.linkedin.helix.mock.storage.MockHealthReportParticipant"
   ,"before_cmd":"../../../mvn jar:jar"  # build jar first
    }
 
@@ -166,7 +189,7 @@ cmd_direct_call={
       ,"IVY_DIR/org/codehaus/jackson/jackson-mapper-asl/1.4.2/jackson-mapper-asl-1.4.2.jar"
       ,"IVY_DIR/xpp3/xpp3_min/1.1.4c/xpp3_min-1.1.4c.jar"
       ,"IVY_DIR/com/github/sgroschupf/zkclient/0.1/zkclient-0.1.jar"
-      ,"IVY_DIR/commons-math/commons-math/2.1/commons-math-2.1.jar"
+      ,"IVY_DIR/org/apache/commons/commons-math/2.1/commons-math-2.1.jar"
 ]+cm_jar_files
   ,"class_name":"com.linkedin.helix.controller.HelixControllerMain"
   ,"before_cmd":"../../../mvn jar:jar"  # build jar first

@@ -30,7 +30,6 @@ import com.linkedin.helix.controller.stages.CurrentStateComputationStage;
 import com.linkedin.helix.controller.stages.ResourceComputationStage;
 import com.linkedin.helix.manager.file.FileDataAccessor;
 import com.linkedin.helix.manager.zk.ZKDataAccessor;
-import com.linkedin.helix.manager.zk.ZNRecordSerializer;
 import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.IdealState;
@@ -40,12 +39,14 @@ import com.linkedin.helix.participant.statemachine.StateModelFactory;
 import com.linkedin.helix.store.PropertyJsonComparator;
 import com.linkedin.helix.store.PropertyJsonSerializer;
 import com.linkedin.helix.store.file.FilePropertyStore;
+import com.linkedin.helix.util.ZKClientPool;
 
 public class ClusterStateVerifier
 {
   public static String cluster = "cluster";
   public static String zkServerAddress = "zkSvr";
   public static String help = "help";
+  public static String timeout = "timeout";
   private static Logger LOG = Logger.getLogger(ClusterStateVerifier.class);
 
   public interface Verifier
@@ -61,7 +62,7 @@ public class ClusterStateVerifier
     private final String zkAddr;
     private final String clusterName;
     private final Map<String, Map<String, String>> errStates;
-  
+
     public BestPossAndExtViewZkVerifier(String zkAddr, String clusterName)
     {
       this(zkAddr, clusterName, null);
@@ -78,36 +79,37 @@ public class ClusterStateVerifier
       this.clusterName = clusterName;
       this.errStates = errStates;
     }
-    
+
     @Override
     public boolean verify()
-    {      
-      ZkClient zkClient = null;
+    {
+      ZkClient zkClient = ZKClientPool.getZkClient(zkAddr); // null;
       try
       {
-        zkClient = new ZkClient(zkAddr);
-        zkClient.setZkSerializer(new ZNRecordSerializer());
+//        zkClient = new ZkClient(zkAddr);
+//        zkClient.setZkSerializer(new ZNRecordSerializer());
         DataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
 
         return ClusterStateVerifier.verifyBestPossAndExtView(accessor, errStates);
       } catch (Exception e)
       {
         LOG.error("exception in verification", e);
-        return false;
-      } finally
-      {
-        if (zkClient != null)
-        {
-          zkClient.close();
-        }
       }
+//      finally
+//      {
+//        if (zkClient != null)
+//        {
+//          zkClient.close();
+//        }
+//      }
+      return false;
     }
-    
+
     @Override
     public String toString()
     {
       String verifierName = getClass().getName();
-      verifierName = verifierName.substring(verifierName.lastIndexOf('.') + 1, 
+      verifierName = verifierName.substring(verifierName.lastIndexOf('.') + 1,
           verifierName.length());
       return verifierName + "(" + zkAddr + ", " + clusterName + ")";
     }
@@ -119,7 +121,7 @@ public class ClusterStateVerifier
     private final String clusterName;
     private final Map<String, Map<String, String>> errStates;
     private final FilePropertyStore<ZNRecord> fileStore;
-  
+
     public BestPossAndExtViewFileVerifier(String rootPath, String clusterName)
     {
       this(rootPath, clusterName, null);
@@ -135,14 +137,14 @@ public class ClusterStateVerifier
       this.rootPath = rootPath;
       this.clusterName = clusterName;
       this.errStates = errStates;
-      
+
       this.fileStore = new FilePropertyStore<ZNRecord>(new PropertyJsonSerializer<ZNRecord>(ZNRecord.class),
           rootPath, new PropertyJsonComparator<ZNRecord>(ZNRecord.class));
     }
-    
+
     @Override
     public boolean verify()
-    {      
+    {
       try
       {
         DataAccessor accessor = new FileDataAccessor(fileStore, clusterName);
@@ -156,18 +158,18 @@ public class ClusterStateVerifier
       {
       }
     }
-    
+
     @Override
     public String toString()
     {
       String verifierName = getClass().getName();
-      verifierName = verifierName.substring(verifierName.lastIndexOf('.') + 1, 
+      verifierName = verifierName.substring(verifierName.lastIndexOf('.') + 1,
           verifierName.length());
       return verifierName + "(" + rootPath + ", " + clusterName + ")";
     }
   }
-  
-  static boolean verifyBestPossAndExtView(DataAccessor accessor, 
+
+  static boolean verifyBestPossAndExtView(DataAccessor accessor,
       Map<String, Map<String, String>> errStates)
   {
     try
@@ -193,7 +195,7 @@ public class ClusterStateVerifier
 
       // calculate best possible state
       BestPossibleStateOutput bestPossOutput = ClusterStateVerifier.calcBestPossState(cache);
-      
+
       // set error states
       if (errStates != null)
       {
@@ -209,7 +211,7 @@ public class ClusterStateVerifier
           }
         }
       }
-      
+
       for (String resourceName : idealStates.keySet())
       {
         ExternalView extView = extViews.get(resourceName);
@@ -218,7 +220,7 @@ public class ClusterStateVerifier
           LOG.info("externalView for " + resourceName + " is not available");
           return false;
         }
-        
+
         // step 0: remove empty map from best possible state
         Map<Partition, Map<String, String>> bpStateMap = bestPossOutput.getResourceMap(resourceName);
         Iterator iter = bpStateMap.entrySet().iterator();
@@ -237,14 +239,14 @@ public class ClusterStateVerifier
         int bestPossStateSize = bestPossOutput.getResourceMap(resourceName).size();
         if (extViewSize != bestPossStateSize)
         {
-          LOG.info("exterView size ("+ extViewSize 
+          LOG.info("exterView size ("+ extViewSize
               +") is different from bestPossState size (" + bestPossStateSize +") for resource: "
               + resourceName);
 //          System.out.println("extView: " + extView.getRecord().getMapFields());
 //          System.out.println("bestPossState: " + bestPossOutput.getResourceMap(resourceName));
           return false;
         }
-        
+
         // step 2: every entry in external view is contained in best possible state
         for (String partition : extView.getRecord().getMapFields().keySet())
         {
@@ -268,7 +270,7 @@ public class ClusterStateVerifier
 
     return true;
   }
-  
+
   static void runStage(ClusterEvent event, Stage stage) throws Exception
   {
     StageContext context = new StageContext();
@@ -277,7 +279,7 @@ public class ClusterStateVerifier
     stage.process(event);
     stage.postProcess();
   }
-  
+
   /**
    * calculate the best possible state note that DROPPED states
    * are not checked since when kick off the BestPossibleStateCalcStage we are
@@ -286,7 +288,7 @@ public class ClusterStateVerifier
    * @return
    * @throws Exception
    */
- 
+
   static BestPossibleStateOutput calcBestPossState(ClusterDataCache cache) throws Exception
   {
     ClusterEvent event = new ClusterEvent("sampleEvent");
@@ -306,7 +308,7 @@ public class ClusterStateVerifier
     // System.out.println("output:" + output);
     return output;
   }
-  
+
   public static <K, V> boolean compareMap(Map<K, V> map1, Map<K, V> map2)
   {
     boolean isEqual = true;
@@ -345,7 +347,7 @@ public class ClusterStateVerifier
     }
     return isEqual;
   }
-  
+
   public static boolean verify(Verifier verifier)
   {
     return verify(verifier, 30 * 1000);
@@ -354,13 +356,13 @@ public class ClusterStateVerifier
   public static boolean verify(Verifier verifier, long timeout)
   {
     final long sleepInterval = 1000; // in ms
-    final long loop = timeout / sleepInterval + 1;
 
     long startTime = System.currentTimeMillis();
     boolean result = false;
     try
     {
-      for (int i = 0; i < loop; i++)
+      long curTime;
+      do
       {
         Thread.sleep(sleepInterval);
         result = verifier.verify();
@@ -368,7 +370,8 @@ public class ClusterStateVerifier
         {
           break;
         }
-      }
+        curTime = System.currentTimeMillis();
+      } while (curTime <= startTime + timeout);
       return result;
     } catch (Exception e)
     {
@@ -377,7 +380,7 @@ public class ClusterStateVerifier
     } finally
     {
       long endTime = System.currentTimeMillis();
-      
+
       // debug
       System.err.println(result + ": " + verifier
           + ": wait " + (endTime - startTime) + "ms to verify");
@@ -475,10 +478,17 @@ public class ClusterStateVerifier
     clusterOption.setRequired(true);
     clusterOption.setArgName("Cluster name (Required)");
 
+    Option timeoutOption = OptionBuilder.withLongOpt(timeout)
+        .withDescription("Timeout value for verification").create();
+    timeoutOption.setArgs(1);
+    timeoutOption.setArgName("Timeout value (Optional)");
+
     Options options = new Options();
     options.addOption(helpOption);
     options.addOption(zkServerOption);
     options.addOption(clusterOption);
+    options.addOption(timeoutOption);
+
     return options;
   }
 
@@ -512,13 +522,25 @@ public class ClusterStateVerifier
     // TODO Auto-generated method stub
     String clusterName = "storage-cluster";
     String zkServer = "localhost:2181";
+    long timeoutValue = 0;
     if (args.length > 0)
     {
       CommandLine cmd = processCommandLineArgs(args);
       zkServer = cmd.getOptionValue(zkServerAddress);
       clusterName = cmd.getOptionValue(cluster);
+      String timeoutStr = cmd.getOptionValue(timeout);
+      if (timeoutStr != null)
+      {
+        try
+        {
+          timeoutValue = Long.parseLong(timeoutStr);
+        } catch (Exception e)
+        {
+          System.err.println("Exception in converting " + timeoutStr + " to long. Use default (0)");
+        }
+      }
     }
-    return new BestPossAndExtViewZkVerifier(zkServer, clusterName).verify();
+    return verify(new BestPossAndExtViewZkVerifier(zkServer, clusterName), timeoutValue);
 
   }
 

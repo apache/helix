@@ -98,7 +98,7 @@ public class MockParticipant implements Stoppable, Runnable
         _transition.doTransition(message, context);
       }
     }
-    
+
     @Transition(to = "OFFLINE", from = "ERROR")
     public void onBecomeOfflineFromError(Message message, NotificationContext context)
     {
@@ -296,16 +296,19 @@ public class MockParticipant implements Stoppable, Runnable
     }
     catch (InterruptedException e)
     {
-      String msg = "participant:" + _instanceName + ", "
+      String msg = "participant: " + _instanceName + ", "
                   + Thread.currentThread().getName()
-                  + " interrupted";
+                  + " is interrupted";
       LOG.info(msg);
-      // System.err.println(msg);
+      System.err.println(msg);
     }
     catch (Exception e)
     {
       // TODO Auto-generated catch block
       e.printStackTrace();
+    } finally
+    {
+      _manager.disconnect();
     }
   }
 }

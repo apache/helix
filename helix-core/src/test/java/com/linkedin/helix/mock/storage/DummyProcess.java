@@ -23,7 +23,6 @@ import com.linkedin.helix.participant.StateMachineEngine;
 import com.linkedin.helix.participant.statemachine.StateModel;
 import com.linkedin.helix.participant.statemachine.StateModelFactory;
 import com.linkedin.helix.store.file.FilePropertyStore;
-import com.linkedin.helix.tools.ClusterSetup;
 
 public class DummyProcess
 {
@@ -418,7 +417,7 @@ public class DummyProcess
   public static void printUsage(Options cliOptions)
   {
     HelpFormatter helpFormatter = new HelpFormatter();
-    helpFormatter.printHelp("java " + ClusterSetup.class.getName(), cliOptions);
+    helpFormatter.printHelp("java " + DummyProcess.class.getName(), cliOptions);
   }
 
   public static CommandLine processCommandLineArgs(String[] cliArgs)

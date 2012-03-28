@@ -63,4 +63,11 @@ public class ClusterAlertItem implements ClusterAlertItemMBean
   {
     return _additionalInfo;
   }
+  
+  public void reset()
+  {
+    _alertFired = 0;
+    _additionalInfo = "";
+    _alertValue = 0;
+  }
 }

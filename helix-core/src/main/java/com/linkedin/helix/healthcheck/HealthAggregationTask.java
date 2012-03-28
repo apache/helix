@@ -14,6 +14,7 @@ import com.linkedin.helix.controller.pipeline.Pipeline;
 import com.linkedin.helix.controller.stages.ClusterEvent;
 import com.linkedin.helix.controller.stages.ReadHealthDataStage;
 import com.linkedin.helix.controller.stages.StatsAggregationStage;
+import com.linkedin.helix.monitoring.mbeans.ClusterAlertMBeanCollection;
 
 public class HealthAggregationTask extends HelixTimerTask
 {
@@ -26,6 +27,7 @@ public class HealthAggregationTask extends HelixTimerTask
   private final Pipeline _healthStatsAggregationPipeline;
   private final int _delay;
   private final int _period;
+  private final ClusterAlertMBeanCollection _alertItemCollection;
 
   public HealthAggregationTask(HelixManager manager, int delay, int period)
   {
@@ -36,7 +38,9 @@ public class HealthAggregationTask extends HelixTimerTask
     // health stats pipeline
     _healthStatsAggregationPipeline = new Pipeline();
     _healthStatsAggregationPipeline.addStage(new ReadHealthDataStage());
-    _healthStatsAggregationPipeline.addStage(new StatsAggregationStage());
+    StatsAggregationStage statAggregationStage = new StatsAggregationStage();
+    _healthStatsAggregationPipeline.addStage(statAggregationStage);
+    _alertItemCollection = statAggregationStage.getClusterAlertMBeanCollection();
 
   }
 
@@ -68,7 +72,7 @@ public class HealthAggregationTask extends HelixTimerTask
   }
 
   @Override
-  public void stop()
+  public synchronized void stop()
   {
     LOG.info("Stop HealthAggregationTask");
 
@@ -76,6 +80,7 @@ public class HealthAggregationTask extends HelixTimerTask
     {
       _timer.cancel();
       _timer = null;
+      _alertItemCollection.reset();
     }
     else
     {
@@ -84,7 +89,7 @@ public class HealthAggregationTask extends HelixTimerTask
   }
 
   @Override
-  public void run()
+  public synchronized void run()
   {
     LOG.info("START: HealthAggregationTask");
 

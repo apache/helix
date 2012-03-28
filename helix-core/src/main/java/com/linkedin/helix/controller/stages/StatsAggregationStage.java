@@ -209,7 +209,7 @@ public class StatsAggregationStage extends AbstractBaseStage
     // write out alert status (to zk)
     _alertsHolder.addAlertStatusSet(_alertStatus);
     logger.info("done writing alerts: "+(System.currentTimeMillis() - writeAlertStartTime));
-
+    
     // TODO: access the 2 status variables from somewhere to populate graphs
 
     long logAlertStartTime = System.currentTimeMillis();
@@ -233,5 +233,10 @@ public class StatsAggregationStage extends AbstractBaseStage
     }
     logger.info("done logging alerts: "+(System.currentTimeMillis() - logAlertStartTime));
     logger.info("process end: "+(System.currentTimeMillis() - startTime));
+ }
+  
+  public ClusterAlertMBeanCollection getClusterAlertMBeanCollection()
+  {
+    return _alertBeanCollection;
   }
 }

@@ -98,7 +98,7 @@ public class ClusterAlertMBeanCollection
   }
   /**
    *  The summary alert is a combination of all alerts, if it is on, something is wrong on this 
-   *  cluster. 
+   *  cluster. The additional info contains all alert mbean names that has been fired.
    */
   void refreshSummayAlert(String clusterName)
   {
@@ -152,5 +152,24 @@ public class ClusterAlertMBeanCollection
     {
       _logger.error("Could not register MBean", e);
     }
+  }
+  
+  public void reset()
+  {
+    for(String beanName : _alertBeans.keySet())
+    {
+      ClusterAlertItem item = _alertBeans.get(beanName);
+      item.reset();
+      try
+      {
+        ObjectName objectName =  new ObjectName(DOMAIN_ALERT+":alert="+item.getSensorName());
+        _beanServer.unregisterMBean(objectName);
+      }
+      catch (Exception e)
+      {
+        _logger.warn("", e);
+      }
+    }
+    _alertBeans.clear();
   }
 }

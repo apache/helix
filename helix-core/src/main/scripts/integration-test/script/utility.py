@@ -32,6 +32,8 @@ var_dir_template="%s/integration-test/var"
 testcase_dir=None
 testcase_dir_template="%s/integration-test/testcases"
 cwd_dir=os.getcwd()
+import getpass
+username=getpass.getuser()
 # used to run cmd, can combine multiple command
 components=[
      "test_relay"
@@ -103,6 +105,7 @@ def get_var_dir(): return var_dir
 def get_script_dir(): return get_this_file_dirname()
 def get_testcase_dir(): return testcase_dir
 def get_cwd(): return cwd_dir
+def get_username(): return username
 
 def my_exit(ret):
   # close all the file descriptors
@@ -270,15 +273,19 @@ def find_open_port(host, start_port, seq_num):
       if seq == seq_num: return port_num
     return None
 
-def process_exist(pid):
-    try:
-        os.kill(int(pid), 0)
-    except OSError, err:
-        if err.errno == errno.ESRCH: return False # not running
-        elif err.errno == errno.EPERM: return True  # own by others by running
-        else: my_error("Unknown error")
-    else:
-        return True # running
+def process_exist(pid, host=None):
+    if not host:
+      try:
+	  os.kill(int(pid), 0)
+      except OSError, err:
+	  if err.errno == errno.ESRCH: return False # not running
+	  elif err.errno == errno.EPERM: return True  # own by others by running
+	  else: my_error("Unknown error")
+      else:
+          return True # running
+    else:  # remote run
+      process_cnt = sys_pipe_call("ssh %s@%s 'ps -ef | grep %s | wc -l" % (username, host, pid)).split("\n")[0]
+      return process_cnt > 0
 
 # remote execute related, by default remote execution is off
 setup_view_root()
@@ -341,7 +348,6 @@ def get_remote_run_config(): return remote_run_config
 
 if "REMOTE_CONFIG_FILE" in os.environ:   # can be set from env or from a file
   parse_config(os.environ["REMOTE_CONFIG_FILE"])
-  global remote_launch
   remote_launch = True # env will not replicated across, so set env will enable launch
  
 # url utilities
@@ -672,17 +678,25 @@ def list_process():
   print "=== Process info for test '%s': %s ===" % (get_test_name(), process_info_file)
   print "".join(open(process_info_file).readlines())
 
-def check_process_up():
+def get_down_process():
   process_info_file = validate_process_info_file()
   process_info = get_process_info()
-  ret = True
+  down_process={}
   for key in process_info:
     pid = process_info[key]["pid"]
     dbg_print("checking (%s:%s)" % (key,pid))
-    if not process_exist(pid): 
-      print  "(%s:%s) is down" % (key, pid)
-      ret = False
-  return ret
+    if not process_exist(pid,remote_run and process_info[key]["host"] or None):
+      down_process[key] = pid
+  return down_process
+
+def check_process_up():
+  down_process = get_down_process()
+  if down_process:
+    for key in down_process:
+      print  "(%s:%s) is down" % (key, down_process[key])
+    return False
+  else:
+    return True  # all the processes are up
 
 # == remote run
 def get_remote_host(component, id="1", field="host"):

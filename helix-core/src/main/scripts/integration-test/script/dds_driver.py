@@ -265,7 +265,11 @@ def cmd_call(cmd, timeout, ret_pattern=None, outf=None):
       process_info = get_process_info()
       key=get_process_info_key(options.component, options.component_id)
       if key in process_info:
-        sys_call("kill -9 %s" % process_info[key]["pid"])
+        kill_cmd="kill -9"
+        if "stop" in cmd_dict[options.component]: 
+          kill_cmd = cmd_dict[options.component]["stop"]
+          kill_cmd = re.sub("^.*(kill.*) \w+$",'\\1',kill_cmd)
+        sys_call("%s %s" % (kill_cmd, process_info[key]["pid"]))
         return RetCode.OK
     global ct
     ct = cmd_thread(cmd, ret_pattern, outf)
@@ -471,6 +475,21 @@ def run_cmd_save_cmd(cmd):
     dbg_print("command_file = %s" % command_file)
     open(command_file,"w").write("%s\n" % cmd)
 
+def run_cmd_restart(cmd):
+    ''' restart using a previous .sh file ''' 
+    if not options.logfile: return cmd
+    previous_run_sh_pattern = "%s_*.sh" % "_".join(options.logfile.split("_")[:-3])
+    import glob
+    previous_run_sh = glob.glob(previous_run_sh_pattern)
+    my_warning("No previous run files. Cannot restart. Start with new options.")
+    if not previous_run_sh: return cmd
+    previous_run_sh.sort()
+    run_sh = previous_run_sh[-1]
+    print "Use previous run file %s" % run_sh
+    lines = open(run_sh).readlines()
+    cmd = lines[0].split("2>&1")[0]
+    return cmd
+
 def run_cmd_direct_java_call(cmd, component): 
     ''' this needs to be consistent with adding option 
         currently ant -f ; will mess up if there are options
@@ -535,6 +554,7 @@ def run_cmd():
     cmd = run_cmd_add_config(cmd) # handle config file
     if remote_run: cmd = run_cmd_remote(cmd) 
     ret_pattern = run_cmd_get_return_pattern()
+    if options.restart: cmd = run_cmd_restart(cmd)
     cmd = run_cmd_add_log_file(cmd)
     if is_starting_component(): run_cmd_save_cmd(cmd)
     ret = cmd_call(cmd, options.timeout, ret_pattern, get_outf())
@@ -928,6 +948,8 @@ def main(argv):
                        help="Time out in secs before waiting for the success pattern. [default: %default]")
     parser.add_option("", "--save_process_id", action="store_true", dest="save_process_id", default = False,
                        help="Store the process id if set.  [default: %default]")
+    parser.add_option("", "--restart", action="store_true", dest="restart", default = False,
+                       help="Restart the process using previos config if set.  [default: %default]")
  
     jvm_group = OptionGroup(parser, "jvm options", "")
     jvm_group.add_option("", "--jvm_direct_memory_size", action="store", dest="jvm_direct_memory_size", default = None,

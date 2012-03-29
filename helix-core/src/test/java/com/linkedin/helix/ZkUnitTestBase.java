@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.I0Itec.zkclient.IZkStateListener;
 import org.I0Itec.zkclient.ZkConnection;
@@ -30,7 +29,6 @@ import com.linkedin.helix.manager.zk.ZNRecordSerializer;
 import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.model.IdealState.IdealStateModeProperty;
-import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.InstanceConfig;
 import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.model.Message;
@@ -57,6 +55,9 @@ public class ZkUnitTestBase
     _zkServer = TestHelper.startZkSever(ZK_ADDR);
     AssertJUnit.assertTrue(_zkServer != null);
 
+    System.out.println("Number of open zkClient before ZkUnitTests: "
+        + ZkClient.getNumberOfConnections());
+
     _gZkClient = new ZkClient(ZK_ADDR);
     _gZkClient.setZkSerializer(new ZNRecordSerializer());
   }
@@ -67,6 +68,10 @@ public class ZkUnitTestBase
     TestHelper.stopZkServer(_zkServer);
     _zkServer = null;
     _gZkClient.close();
+
+    System.out.println("Number of open zkClient after ZkUnitTests: "
+        + ZkClient.getNumberOfConnections());
+
   }
 
   protected String getShortClassName()

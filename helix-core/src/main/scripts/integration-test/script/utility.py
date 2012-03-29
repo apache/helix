@@ -47,8 +47,8 @@ components=[
 def dbg_print(in_str):
     #import pdb
     #pdb.set_trace()
-    # if debug_enabled:
-    print ("== " + sys._getframe(1).f_code.co_name + " == " + str(in_str))
+    if debug_enabled:
+        print ("== " + sys._getframe(1).f_code.co_name + " == " + str(in_str))
 
 def sys_pipe_call(cmd):
     dbg_print("%s:%s" % (os.getcwd(),cmd))
@@ -109,9 +109,9 @@ def get_username(): return username
 
 def my_exit(ret):
   # close all the file descriptors
-  #os.close(1)  # stdin
-  #os.close(2)  # stdout
-  #os.close(3)  # stderr
+  os.close(1)  # stdin
+  os.close(2)  # stdout
+  os.close(3)  # stderr
   sys.exit(ret)
 
 def file_exists(file):  # test both 

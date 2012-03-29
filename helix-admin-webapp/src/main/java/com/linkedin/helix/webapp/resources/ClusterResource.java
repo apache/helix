@@ -9,6 +9,7 @@ import org.restlet.Context;
 import org.restlet.data.MediaType;
 import org.restlet.data.Request;
 import org.restlet.data.Response;
+import org.restlet.data.Status;
 import org.restlet.resource.Representation;
 import org.restlet.resource.Resource;
 import org.restlet.resource.StringRepresentation;
@@ -50,7 +51,7 @@ public class ClusterResource extends Resource
   @Override
   public boolean allowDelete()
   {
-    return false;
+    return true;
   }
 
   @Override
@@ -91,5 +92,25 @@ public class ClusterResource extends Resource
     StringRepresentation representation = new StringRepresentation(ClusterRepresentationUtil.ZNRecordToJson(clusterSummayRecord), MediaType.APPLICATION_JSON);
 
     return representation;
+  }
+  
+
+  @Override
+  public void removeRepresentations()
+  {
+    try
+    {
+      String zkServer = (String)getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
+      String clusterName = (String)getRequest().getAttributes().get("clusterName");
+      ClusterSetup setupTool = new ClusterSetup(zkServer);
+      setupTool.deleteCluster(clusterName);
+      getResponse().setStatus(Status.SUCCESS_OK);
+    }
+    catch(Exception e)
+    {
+      getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),
+          MediaType.APPLICATION_JSON);
+      getResponse().setStatus(Status.SUCCESS_OK);
+    }
   }
 }

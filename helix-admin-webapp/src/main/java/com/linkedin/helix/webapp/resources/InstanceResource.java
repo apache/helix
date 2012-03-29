@@ -51,7 +51,7 @@ public class InstanceResource extends Resource
   @Override
   public boolean allowDelete()
   {
-    return false;
+    return true;
   }
 
   @Override
@@ -113,6 +113,27 @@ public class InstanceResource extends Resource
     }
 
     catch (Exception e)
+    {
+      getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),
+          MediaType.APPLICATION_JSON);
+      getResponse().setStatus(Status.SUCCESS_OK);
+    }
+  }
+  
+
+  @Override
+  public void removeRepresentations()
+  {
+    try
+    {
+      String zkServer = (String)getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
+      String clusterName = (String)getRequest().getAttributes().get("clusterName");
+      String instanceName = (String)getRequest().getAttributes().get("instanceName");
+      ClusterSetup setupTool = new ClusterSetup(zkServer);
+      setupTool.dropInstanceFromCluster(clusterName, instanceName);
+      getResponse().setStatus(Status.SUCCESS_OK);
+    }
+    catch(Exception e)
     {
       getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),
           MediaType.APPLICATION_JSON);

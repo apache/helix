@@ -51,7 +51,7 @@ public class ClustersResource extends Resource
   @Override
   public boolean allowDelete()
   {
-    return false;
+    return true;
   }
 
   @Override
@@ -124,5 +124,11 @@ public class ClustersResource extends Resource
           MediaType.APPLICATION_JSON);
       getResponse().setStatus(Status.SUCCESS_OK);
     }
+  }
+  
+  @Override
+  public void removeRepresentations()
+  {
+    
   }
 }

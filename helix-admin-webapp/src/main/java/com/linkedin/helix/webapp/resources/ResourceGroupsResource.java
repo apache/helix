@@ -22,13 +22,13 @@ import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.tools.ClusterSetup;
 import com.linkedin.helix.webapp.RestAdminApplication;
 
-public class HostedResourceGroupsResource extends Resource
+public class ResourceGroupsResource extends Resource
 {
   public static final String _partitions = "partitions";
   public static final String _resourceGroupName = "resourceGroupName";
   public static final String _stateModelDefRef = "stateModelDefRef";
   
-  public HostedResourceGroupsResource(Context context,
+  public ResourceGroupsResource(Context context,
       Request request,
       Response response) 
   {

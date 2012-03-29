@@ -19,9 +19,9 @@ import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.tools.ClusterSetup;
 import com.linkedin.helix.webapp.RestAdminApplication;
 
-public class HostedResourceGroupResource extends Resource
+public class ResourceGroupResource extends Resource
 {
-  public HostedResourceGroupResource(Context context,
+  public ResourceGroupResource(Context context,
       Request request,
       Response response) 
   {
@@ -47,7 +47,7 @@ public class HostedResourceGroupResource extends Resource
   
   public boolean allowDelete()
   {
-    return false;
+    return true;
   }
   
   public Representation represent(Variant variant)
@@ -78,5 +78,26 @@ public class HostedResourceGroupResource extends Resource
     StringRepresentation representation = new StringRepresentation(message, MediaType.APPLICATION_JSON);
     
     return representation;
+  }
+  
+
+  @Override
+  public void removeRepresentations()
+  {
+    try
+    {
+      String zkServer = (String)getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
+      String clusterName = (String)getRequest().getAttributes().get("clusterName");
+      String resourceGroupName = (String)getRequest().getAttributes().get("resourceName");
+      ClusterSetup setupTool = new ClusterSetup(zkServer);
+      setupTool.dropResourceFromCluster(clusterName, resourceGroupName);
+      getResponse().setStatus(Status.SUCCESS_OK);
+    }
+    catch(Exception e)
+    {
+      getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),
+          MediaType.APPLICATION_JSON);
+      getResponse().setStatus(Status.SUCCESS_OK);
+    }
   }
 }

@@ -36,7 +36,7 @@ import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.model.InstanceConfig.InstanceConfigProperty;
 import com.linkedin.helix.webapp.resources.ClusterRepresentationUtil;
 import com.linkedin.helix.webapp.resources.ClustersResource;
-import com.linkedin.helix.webapp.resources.HostedResourceGroupsResource;
+import com.linkedin.helix.webapp.resources.ResourceGroupsResource;
 import com.linkedin.helix.webapp.resources.IdealStateResource;
 import com.linkedin.helix.webapp.resources.InstancesResource;
 
@@ -245,9 +245,9 @@ public class TestClusterManagementWebapp
         + "/resourceGroups";
     Map<String, String> paraMap = new HashMap<String, String>();
 
-    paraMap.put(HostedResourceGroupsResource._resourceGroupName, resourceGroupName);
-    paraMap.put(HostedResourceGroupsResource._partitions, "" + partitions);
-    paraMap.put(HostedResourceGroupsResource._stateModelDefRef, "MasterSlave");
+    paraMap.put(ResourceGroupsResource._resourceGroupName, resourceGroupName);
+    paraMap.put(ResourceGroupsResource._partitions, "" + partitions);
+    paraMap.put(ResourceGroupsResource._stateModelDefRef, "MasterSlave");
     paraMap.put(ClusterRepresentationUtil._managementCommand,
         ClusterRepresentationUtil._addResourceGroupCommand);
 

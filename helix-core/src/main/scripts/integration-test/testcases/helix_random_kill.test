@@ -83,9 +83,8 @@ for i in $arr; do
   $SCRIPT_DIR/cm_driver.py -c mock-health-report-process -o stop --component_id=$i
 #  $SCRIPT_DIR/cm_driver.py -c dummy-process -o stop --component_id=$i
 done
-sleep 60
-echo "session timeout for participants ${arr[*]}"
-sleep 60
+# echo "session timeout for participants ${arr[*]}"
+sleep 6
 for i in $arr; do
   cecho "restarting participant $i ..." $green
   port=$(($start_port + $i))

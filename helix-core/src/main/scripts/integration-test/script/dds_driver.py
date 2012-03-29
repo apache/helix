@@ -827,7 +827,7 @@ def get_ivy_dir():
     return ivy_dir
  
 def zookeeper_setup(oper):
-    ''' may need to do a find later. find $HOME/.ivy2/lin-cache -name zookeeper-3.3.0.jar '''
+    ''' may need to do a find later. find $HOME/.ivy2/lin-cache -name zookeeper-3.3.3.jar '''
     global zookeeper_cmd, zookeeper_server_ports, zookeeper_server_dir, zookeeper_server_ids, zookeeper_classpath
     #possible_ivy_home_dir=[os.path.join(os.environ["HOME"],".ivy2/lin-cache/"),"/ivy/.ivy2"]
     possible_ivy_home_dir=[os.path.join(os.environ["HOME"],".m2/repository/"), os.path.join(os.environ["HOME"],".ivy2/lin-cache/"),"/ivy/.ivy2"]
@@ -836,7 +836,7 @@ def zookeeper_setup(oper):
     log4j_file=os.path.join(get_view_root(),"integration-test/config/zookeeper-log4j2file.properties")
     dbg_print("zookeeper_classpath = %s" % zookeeper_classpath)
     if not "zookeeper_classpath" in globals(): 
-      zookeeper_classpath="IVY_DIR/org/apache/zookeeper/zookeeper/3.3.0/zookeeper-3.3.0.jar:IVY_DIR/log4j/log4j/1.2.15/log4j-1.2.15.jar"
+      zookeeper_classpath="IVY_DIR/org/apache/zookeeper/zookeeper/3.3.3/zookeeper-3.3.3.jar:IVY_DIR/log4j/log4j/1.2.15/log4j-1.2.15.jar"
     if re.search("IVY_DIR",zookeeper_classpath): zookeeper_classpath=re.sub("IVY_DIR", ivy_dir,zookeeper_classpath)
     if re.search("VIEW_ROOT",zookeeper_classpath): zookeeper_classpath=re.sub("VIEW_ROOT", view_root,zookeeper_classpath)
     zookeeper_cmd="java -d64 -Xmx512m -Dlog4j.configuration=file://%s -cp %s %s" % (log4j_file, zookeeper_classpath, zookeeper_class)

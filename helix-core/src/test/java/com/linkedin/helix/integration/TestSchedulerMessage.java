@@ -16,6 +16,7 @@ import com.linkedin.helix.Criteria;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.PropertyType;
+import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.messaging.handling.HelixTaskResult;
 import com.linkedin.helix.messaging.handling.MessageHandler;
 import com.linkedin.helix.messaging.handling.MessageHandlerFactory;
@@ -136,12 +137,75 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBase
     
     Assert.assertEquals(_PARTITIONS, factory._results.size());
     
+    ZNRecord statusUpdate = manager.getDataAccessor().getProperty(PropertyType.STATUSUPDATES_CONTROLLER, MessageType.SCHEDULER_MSG.toString(), schedulerMessage.getMsgId());
+    Assert.assertTrue(statusUpdate.getMapField("SentMessageCount").get("MessageCount").equals(""+(_PARTITIONS * 3)));
     int count = 0;
     for(Set<String> val : factory._results.values())
     {
       count += val.size();
     }
     Assert.assertEquals(count, _PARTITIONS *3);
+  }
+  
+  @Test()
+  public void TestSchedulerZeroMsg() throws Exception
+  {
+    TestMessagingHandlerFactory factory = new TestMessagingHandlerFactory();
+    HelixManager manager = null;
+    for(int i = 0; i < NODE_NR; i++)
+    {
+      String hostDest = "localhost_" + (START_PORT + i);
+      _startCMResultMap.get(hostDest)._manager.getMessagingService()
+        .registerMessageHandlerFactory(factory.getMessageType(), factory);
+      manager = _startCMResultMap.get(hostDest)._manager;
+    }
+    
+    Message schedulerMessage = new Message(MessageType.SCHEDULER_MSG+"", UUID.randomUUID().toString());
+    schedulerMessage.setTgtSessionId("*");
+    schedulerMessage.setTgtName("CONTROLLER");
+    // TODO: change it to "ADMIN" ?
+    schedulerMessage.setSrcName("CONTROLLER");
+    
+    // Template for the individual message sent to each participant
+    Message msg = new Message(factory.getMessageType(), "Template");
+    msg.setTgtSessionId("*");
+    msg.setMsgState("new");
+
+    // Criteria to send individual messages
+    Criteria cr = new Criteria();
+    cr.setInstanceName("localhost_DOESNOTEXIST");
+    cr.setRecipientInstanceType(InstanceType.PARTICIPANT);
+    cr.setSessionSpecific(false);
+    cr.setResource("%");
+    cr.setPartition("%");
+    
+    ObjectMapper mapper = new ObjectMapper();
+    SerializationConfig serializationConfig = mapper.getSerializationConfig();
+    serializationConfig.set(SerializationConfig.Feature.INDENT_OUTPUT, true);
+
+    StringWriter sw = new StringWriter();
+    mapper.writeValue(sw, cr);
+
+    String crString = sw.toString();
+    
+    schedulerMessage.getRecord().setSimpleField("Criteria", crString);
+    schedulerMessage.getRecord().setMapField("MessageTemplate", msg.getRecord().getSimpleFields());
+    schedulerMessage.getRecord().setSimpleField("TIMEOUT", "-1");
+    
+    manager.getDataAccessor().setProperty(PropertyType.MESSAGES_CONTROLLER, schedulerMessage, schedulerMessage.getMsgId());
+    
+    Thread.sleep(3000);
+    
+    Assert.assertEquals(0, factory._results.size());
+    
+    ZNRecord statusUpdate = manager.getDataAccessor().getProperty(PropertyType.STATUSUPDATES_CONTROLLER, MessageType.SCHEDULER_MSG.toString(), schedulerMessage.getMsgId());
+    Assert.assertTrue(statusUpdate.getMapField("SentMessageCount").get("MessageCount").equals("0"));
+    int count = 0;
+    for(Set<String> val : factory._results.values())
+    {
+      count += val.size();
+    }
+    Assert.assertEquals(count, 0);
   }
 }
 

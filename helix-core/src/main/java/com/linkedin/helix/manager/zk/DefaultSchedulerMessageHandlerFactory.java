@@ -1,6 +1,7 @@
 package com.linkedin.helix.manager.zk;
 
 import java.io.StringReader;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
@@ -174,7 +175,15 @@ public class DefaultSchedulerMessageHandlerFactory implements
       }
       _logger.info("Scheduler sending message, criteria:" + recipientCriteria);
       // Send all messages.
-      _manager.getMessagingService().send(recipientCriteria, messageTemplate, new SchedulerAsyncCallback(_message, _manager), timeOut);
+      int nMsgsSent = _manager.getMessagingService().send(recipientCriteria, messageTemplate, new SchedulerAsyncCallback(_message, _manager), timeOut);
+      // Record the number of messages sent into status updates
+      Map<String, String> sendSummary = new HashMap<String, String>();
+      sendSummary.put("MessageCount", "" + nMsgsSent);
+      ZNRecord statusUpdate 
+        = _manager.getDataAccessor().getProperty(PropertyType.STATUSUPDATES_CONTROLLER, MessageType.SCHEDULER_MSG.toString(), _message.getMsgId());
+      statusUpdate.getMapFields().put("SentMessageCount", sendSummary);
+      _manager.getDataAccessor().setProperty(PropertyType.STATUSUPDATES_CONTROLLER, 
+              statusUpdate, MessageType.SCHEDULER_MSG.toString(), _message.getMsgId());
       
       result.getTaskResultMap().put("ControllerResult", "msg "+ _message.getMsgId() + " from "+_message.getMsgSrc() + " processed");
       result.setSuccess(true);

@@ -26,15 +26,6 @@ function cecho
   fi
 }
 
-# random pick m out of n
-function random_n
-{
-  n=$1
-  m=$2
-  arr=`shuf --input-range=1-$n | head -${m}`
-}
-
-
 # zookeeper_server_ports="localhost:2188"
 zookeeper_address="${MACHINE_TAB[0]}:2188"
 
@@ -71,15 +62,46 @@ for j in {0..1}; do
 	done
 done
 
-# sleep 3
+sleep 3
 
 #verify cluster state
 verifier_1_output=$VIEW_ROOT/$LOG_DIR_FROM_ROOT/verifier_1.log
 $SCRIPT_DIR/cm_driver.py -c cluster-state-verifier -o start --logfile=$verifier_1_output -l "integration-test/config/log4j-info.properties" --cmdline_args="-zkSvr ${zookeeper_address} -cluster test-cluster -timeout 60000"
+cecho "verify done1" $red
 
 # kill one random and restart it
+n=$((${#MACHINE_TAB[*]} * 5))
+m=1
+to_kill=`shuf --input-range=1-$n | head -${m}`
+for k in ${to_kill[*]}; do
+  j=$((($k - 1) / 5))
+  i=$((($k - 1) % 5 + 1))
+	port=$(($start_port + $i))
+  cecho "kill ${MACHINE_TAB[$j]}:$port" $red
+	ssh ${USER_TAB[$j]}@${MACHINE_TAB[$j]} "${SCRIPT_DIR_TAB[$j]}/cm_driver.py -n ${TEST_NAME} -c mock-health-report-process -o stop --component_id=$i"
+  sleep 1
+done
+sleep 3
 
+#verify cluster state
+verifier_1_output=$VIEW_ROOT/$LOG_DIR_FROM_ROOT/verifier_1.log
+$SCRIPT_DIR/cm_driver.py -c cluster-state-verifier -o start --logfile=$verifier_1_output -l "integration-test/config/log4j-info.properties" --cmdline_args="-zkSvr ${zookeeper_address} -cluster test-cluster -timeout 60000"
+cecho "verify done2" $red
 
+for k in ${to_kill[*]}; do
+  j=$((($k - 1) / 5))
+  i=$((($k - 1) % 5 + 1))
+	port=$(($start_port + $i))
+  cecho "restart ${MACHINE_TAB[$j]}:$port" $green
+	ssh ${USER_TAB[$j]}@${MACHINE_TAB[$j]} "${SCRIPT_DIR_TAB[$j]}/cm_driver.py -n ${TEST_NAME} -c mock-health-report-process -o start -l \"integration-test/config/log4j-info.properties\" --save_process_id --component_id=$i --cmdline_args=\"-zkSvr ${zookeeper_address} -cluster test-cluster -host ${MACHINE_TAB[$j]} -port ${port}\""
+  sleep 1
+done
+sleep 3
+
+#verify cluster state
+verifier_1_output=$VIEW_ROOT/$LOG_DIR_FROM_ROOT/verifier_1.log
+$SCRIPT_DIR/cm_driver.py -c cluster-state-verifier -o start --logfile=$verifier_1_output -l "integration-test/config/log4j-info.properties" --cmdline_args="-zkSvr ${zookeeper_address} -cluster test-cluster -timeout 60000"
+cecho "verify done3" $red
 
 # clean up
 ssh ${USER_TAB[0]}@${MACHINE_TAB[0]} "${SCRIPT_DIR_TAB[0]}/cm_driver.py -n ${TEST_NAME} -c cluster-manager -o stop"

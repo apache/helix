@@ -1,9 +1,12 @@
 package com.linkedin.helix.model;
 
+import java.util.Date;
+
 import org.apache.log4j.Logger;
 
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.ZNRecordDecorator;
+import com.linkedin.helix.model.Message.Attributes;
 
 /**
  * Instance that connects to zookeeper
@@ -84,5 +87,4 @@ public class LiveInstance extends ZNRecordDecorator
     }
     return true;
   }
-
 }

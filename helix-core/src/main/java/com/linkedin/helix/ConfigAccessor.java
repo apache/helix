@@ -10,7 +10,6 @@ import org.apache.log4j.Logger;
 
 import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
 import com.linkedin.helix.manager.zk.ZKUtil;
-import com.linkedin.helix.manager.zk.ZNRecordSerializer;
 import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.util.StringTemplate;
 
@@ -23,24 +22,22 @@ public class ConfigAccessor
   {
     // @formatter:off
     template.addEntry(ConfigScopeProperty.CLUSTER, 1, "/{clusterName}/CONFIGS/CLUSTER");
-    template.addEntry(ConfigScopeProperty.CLUSTER, 2, "/{clusterName}/CONFIGS/CLUSTER/{clusterName}|SIMPLEKEYS");
+    template.addEntry(ConfigScopeProperty.CLUSTER, 2,
+        "/{clusterName}/CONFIGS/CLUSTER/{clusterName}|SIMPLEKEYS");
     template.addEntry(ConfigScopeProperty.PARTICIPANT, 1, "/{clusterName}/CONFIGS/PARTICIPANT");
-    template.addEntry(ConfigScopeProperty.PARTICIPANT, 2, "/{clusterName}/CONFIGS/PARTICIPANT/{participantName}|SIMPLEKEYS");
+    template.addEntry(ConfigScopeProperty.PARTICIPANT, 2,
+        "/{clusterName}/CONFIGS/PARTICIPANT/{participantName}|SIMPLEKEYS");
     template.addEntry(ConfigScopeProperty.RESOURCE, 1, "/{clusterName}/CONFIGS/RESOURCE");
-    template.addEntry(ConfigScopeProperty.RESOURCE, 2, "/{clusterName}/CONFIGS/RESOURCE/{resourceName}|SIMPLEKEYS");
-    template.addEntry(ConfigScopeProperty.PARTITION, 2, "/{clusterName}/CONFIGS/RESOURCE/{resourceName}|MAPKEYS");
-    template.addEntry(ConfigScopeProperty.PARTITION, 3, "/{clusterName}/CONFIGS/RESOURCE/{resourceName}|MAPMAPKEYS|{partitionName}");
+    template.addEntry(ConfigScopeProperty.RESOURCE, 2,
+        "/{clusterName}/CONFIGS/RESOURCE/{resourceName}|SIMPLEKEYS");
+    template.addEntry(ConfigScopeProperty.PARTITION, 2,
+        "/{clusterName}/CONFIGS/RESOURCE/{resourceName}|MAPKEYS");
+    template.addEntry(ConfigScopeProperty.PARTITION, 3,
+        "/{clusterName}/CONFIGS/RESOURCE/{resourceName}|MAPMAPKEYS|{partitionName}");
     // @formatter:on
   }
 
-  // private final String _zkAddr;
   private final ZkClient zkClient;
-
-  public ConfigAccessor(String zkAddr)
-  {
-    zkClient = new ZkClient(zkAddr);
-    zkClient.setZkSerializer(new ZNRecordSerializer());
-  }
 
   public ConfigAccessor(ZkClient zkClient)
   {
@@ -48,7 +45,7 @@ public class ConfigAccessor
   }
 
   /**
-   *
+   * 
    * @param scope
    * @param key
    * @return value or null if doesn't exist
@@ -61,44 +58,32 @@ public class ConfigAccessor
       return null;
     }
 
-//    ZkClient zkClient = null;
-//    try
-//    {
-      String value = null;
-//      zkClient = new ZkClient(_zkAddr);
-//      zkClient.setZkSerializer(new ZNRecordSerializer());
-      String clusterName = scope.getClusterName();
-      if (!ZKUtil.isClusterSetup(clusterName, zkClient))
+    String value = null;
+    String clusterName = scope.getClusterName();
+    if (!ZKUtil.isClusterSetup(clusterName, zkClient))
+    {
+      throw new HelixException("cluster " + clusterName + " is not setup yet");
+    }
+
+    String scopeStr = scope.getScopeStr();
+    String[] splits = scopeStr.split("\\|");
+
+    ZNRecord record = zkClient.readData(splits[0], true);
+
+    if (record != null)
+    {
+      if (splits.length == 1)
       {
-        throw new HelixException("cluster " + clusterName + " is not setup yet");
-      }
-
-      String scopeStr = scope.getScopeStr();
-      String[] splits = scopeStr.split("\\|");
-
-      ZNRecord record = zkClient.readData(splits[0], true);
-
-      if (record != null)
+        value = record.getSimpleField(key);
+      } else if (splits.length == 2)
       {
-        if (splits.length == 1)
+        if (record.getMapField(splits[1]) != null)
         {
-          value = record.getSimpleField(key);
-        } else if (splits.length == 2)
-        {
-          if (record.getMapField(splits[1]) != null)
-          {
-            value = record.getMapField(splits[1]).get(key);
-          }
+          value = record.getMapField(splits[1]).get(key);
         }
       }
-      return value;
-//    } finally
-//    {
-//      if (zkClient != null)
-//      {
-//        zkClient.close();
-//      }
-//    }
+    }
+    return value;
 
   }
 
@@ -110,43 +95,30 @@ public class ConfigAccessor
       return;
     }
 
-//    ZkClient zkClient = null;
-//    try
-//    {
-//      zkClient = new ZkClient(_zkAddr);
-//      zkClient.setZkSerializer(new ZNRecordSerializer());
+    String clusterName = scope.getClusterName();
+    if (!ZKUtil.isClusterSetup(clusterName, zkClient))
+    {
+      throw new HelixException("cluster " + clusterName + " is not setup yet");
+    }
 
-      String clusterName = scope.getClusterName();
-      if (!ZKUtil.isClusterSetup(clusterName, zkClient))
+    String scopeStr = scope.getScopeStr();
+    String[] splits = scopeStr.split("\\|");
+
+    String id = splits[0].substring(splits[0].lastIndexOf('/'));
+    ZNRecord update = new ZNRecord(id);
+    if (splits.length == 1)
+    {
+      update.setSimpleField(key, value);
+    } else if (splits.length == 2)
+    {
+      if (update.getMapField(splits[1]) == null)
       {
-        throw new HelixException("cluster " + clusterName + " is not setup yet");
+        update.setMapField(splits[1], new TreeMap<String, String>());
       }
-
-      String scopeStr = scope.getScopeStr();
-      String[] splits = scopeStr.split("\\|");
-
-      String id = splits[0].substring(splits[0].lastIndexOf('/'));
-      ZNRecord update = new ZNRecord(id);
-      if (splits.length == 1)
-      {
-        update.setSimpleField(key, value);
-      } else if (splits.length == 2)
-      {
-        if (update.getMapField(splits[1]) == null)
-        {
-          update.setMapField(splits[1], new TreeMap<String, String>());
-        }
-        update.getMapField(splits[1]).put(key, value);
-      }
-      ZKUtil.createOrUpdate(zkClient, splits[0], update, true, true);
-      return;
-//    } finally
-//    {
-//      if (zkClient != null)
-//      {
-//        zkClient.close();
-//      }
-//    }
+      update.getMapField(splits[1]).put(key, value);
+    }
+    ZKUtil.createOrUpdate(zkClient, splits[0], update, true, true);
+    return;
 
   }
 
@@ -158,11 +130,8 @@ public class ConfigAccessor
       return Collections.emptyList();
     }
 
-//    ZkClient zkClient = null;
     try
     {
-//      zkClient = new ZkClient(_zkAddr);
-//      zkClient.setZkSerializer(new ZNRecordSerializer());
       if (!ZKUtil.isClusterSetup(clusterName, zkClient))
       {
         LOG.error("cluster " + clusterName + " is not setup yet");
@@ -184,7 +153,7 @@ public class ConfigAccessor
 
         if (splits[1].startsWith("SIMPLEKEYS"))
         {
-           retKeys = new ArrayList<String>(record.getSimpleFields().keySet());
+          retKeys = new ArrayList<String>(record.getSimpleFields().keySet());
 
         } else if (splits[1].startsWith("MAPKEYS"))
         {
@@ -206,12 +175,6 @@ public class ConfigAccessor
     {
       return Collections.emptyList();
     }
-//    finally
-//    {
-//      if (zkClient != null)
-//      {
-//        zkClient.close();
-//      }
-//    }
+
   }
 }

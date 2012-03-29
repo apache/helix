@@ -2,7 +2,7 @@
 # this is the file to be included by dds_driver.py for product (e.g., espresso) specific setting
 #
 possible_ivy_dir=[os.path.join(os.environ["HOME"],".m2/repository"),os.path.join(os.environ["HOME"],".gradle/cache"),os.path.join(os.environ["HOME"],".ivy2/lin-cache/ivy-cache"),os.path.join(os.environ["HOME"],".ivy2/lin-cache"),"/ivy/.ivy2/ivy-cache","/ivy/.ivy2", os.path.join(os.environ["VIEW_ROOT"],"build/ivy2/cache")]
-zookeeper_classpath="IVY_DIR/org/apache/zookeeper/zookeeper/3.3.0/zookeeper-3.3.0.jar:IVY_DIR/log4j/log4j/1.2.15/log4j-1.2.15.jar"
+zookeeper_classpath="IVY_DIR/org/apache/zookeeper/zookeeper/3.3.3/zookeeper-3.3.3.jar:IVY_DIR/log4j/log4j/1.2.15/log4j-1.2.15.jar"
 
 # espresso use -2
 kill_cmd_template="jps | grep %s | cut -f1 -d\\  | xargs kill -2"
@@ -184,9 +184,9 @@ cmd_direct_call={
       ,"IVY_DIR/commons-lang/commons-lang/2.4/commons-lang-2.4.jar"
       ,"IVY_DIR/jdom/jdom/1.0/jdom-1.0.jar"
       ,"IVY_DIR/log4j/log4j/1.2.15/log4j-1.2.15.jar"
-      ,"IVY_DIR/org/apache/zookeeper/zookeeper/3.3.0/zookeeper-3.3.0.jar"
-      ,"IVY_DIR/org/codehaus/jackson/jackson-core-asl/1.4.2/jackson-core-asl-1.4.2.jar"
-      ,"IVY_DIR/org/codehaus/jackson/jackson-mapper-asl/1.4.2/jackson-mapper-asl-1.4.2.jar"
+      ,"IVY_DIR/org/apache/zookeeper/zookeeper/3.3.3/zookeeper-3.3.3.jar"
+      ,"IVY_DIR/org/codehaus/jackson/jackson-core-asl/1.8.5/jackson-core-asl-1.8.5.jar"
+      ,"IVY_DIR/org/codehaus/jackson/jackson-mapper-asl/1.8.5/jackson-mapper-asl-1.8.5.jar"
       ,"IVY_DIR/xpp3/xpp3_min/1.1.4c/xpp3_min-1.1.4c.jar"
       ,"IVY_DIR/com/github/sgroschupf/zkclient/0.1/zkclient-0.1.jar"
       ,"IVY_DIR/org/apache/commons/commons-math/2.1/commons-math-2.1.jar"

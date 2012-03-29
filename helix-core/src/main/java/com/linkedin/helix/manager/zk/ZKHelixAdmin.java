@@ -42,12 +42,14 @@ public class ZKHelixAdmin implements HelixAdmin
 {
 
   private final ZkClient _zkClient;
+  private final ConfigAccessor _configAccessor;
 
   private static Logger logger = Logger.getLogger(ZKHelixAdmin.class);
 
   public ZKHelixAdmin(ZkClient zkClient)
   {
     _zkClient = zkClient;
+    _configAccessor = new ConfigAccessor(zkClient);
   }
 
   @Override
@@ -620,20 +622,15 @@ public class ZKHelixAdmin implements HelixAdmin
   @Override
   public void setConfig(ConfigScope scope, Map<String, String> properties)
   {
-    String zkAddr = _zkClient.getServers();
-    ConfigAccessor configAccessor = new ConfigAccessor(zkAddr);
-
     for (String key : properties.keySet())
     {
-      configAccessor.set(scope, key, properties.get(key));
+      _configAccessor.set(scope, key, properties.get(key));
     }
   }
 
   @Override
   public Map<String, String> getConfig(ConfigScope scope, Set<String> keys)
   {
-    String zkAddr = _zkClient.getServers();
-    ConfigAccessor configAccessor = new ConfigAccessor(zkAddr);
     Map<String, String> properties = new TreeMap<String, String>();
 
     if (keys == null)
@@ -644,7 +641,7 @@ public class ZKHelixAdmin implements HelixAdmin
     {
       for (String key : keys)
       {
-        String value = configAccessor.get(scope, key);
+        String value = _configAccessor.get(scope, key);
         if (value == null)
         {
           logger.error("Config doesn't exist for key: " + key);
@@ -660,8 +657,6 @@ public class ZKHelixAdmin implements HelixAdmin
   @Override
   public List<String> getConfigKeys(ConfigScopeProperty scope, String clusterName, String... keys)
   {
-    String zkAddr = _zkClient.getServers();
-    ConfigAccessor configAccessor = new ConfigAccessor(zkAddr);
-    return configAccessor.getKeys(scope, clusterName, keys);
+    return _configAccessor.getKeys(scope, clusterName, keys);
   }
 }

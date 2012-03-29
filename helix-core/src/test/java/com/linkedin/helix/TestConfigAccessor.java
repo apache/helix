@@ -18,7 +18,7 @@ public class TestConfigAccessor extends ZkUnitTestBase
     TestHelper.setupCluster(_clusterName, ZK_ADDR, 12918, "localhost", "TestDB", 1, 10, 5, 3,
         "MasterSlave", true);
 
-    ConfigAccessor appConfig = new ConfigAccessor(ZK_ADDR);
+    ConfigAccessor appConfig = new ConfigAccessor(_gZkClient);
     ConfigScope clusterScope = new ConfigScopeBuilder().forCluster(_clusterName).build();
 
     // cluster scope config

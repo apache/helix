@@ -162,12 +162,18 @@ public class TestZkHelixAdmin extends ZkUnitTestBase
     Map<String, String> properties = new HashMap<String, String>();
     properties.put("pKey1", "pValue1");
     properties.put("pKey2", "pValue2");
-    tool.setConfig(scope, properties);
-
-    Map<String, String> newProperties = tool.getConfig(scope, properties.keySet());
-    Assert.assertEquals(newProperties.size(), 2);
-    Assert.assertEquals(newProperties.get("pKey1"), "pValue1");
-    Assert.assertEquals(newProperties.get("pKey2"), "pValue2");
+    
+    // make sure calling set/getConfig() many times will not drain zkClient resources
+    int nbOfZkClients = ZkClient.getNumberOfConnections();
+    for (int i = 0; i < 100; i++)
+    {
+      tool.setConfig(scope, properties);
+      Map<String, String> newProperties = tool.getConfig(scope, properties.keySet());
+      Assert.assertEquals(newProperties.size(), 2);
+      Assert.assertEquals(newProperties.get("pKey1"), "pValue1");
+      Assert.assertEquals(newProperties.get("pKey2"), "pValue2");
+    }
+    Assert.assertTrue(ZkClient.getNumberOfConnections() - nbOfZkClients < 5);
 
     System.out.println("END testZkHelixAdmin at " + new Date(System.currentTimeMillis()));
   }

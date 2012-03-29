@@ -154,16 +154,22 @@ public class StatsAggregationStage extends AbstractBaseStage
       Map<String, HealthStat> stats;
       stats = cache.getHealthStats(instanceName);
       // find participants stats
+      long modTime = -1;
+      //TODO: get healthreport child node modified time and reportAgeStat based on that
+      boolean reportedAge = false;
       for (HealthStat participantStat : stats.values())
       {
-        // HealthStat participantStat = stats.get(ESPRESSO_STAT_REPORT_NAME);
-        long modTime = -1;
-        if (participantStat != null)
+        
+        
+        if (participantStat != null && !reportedAge)
         {
           // generate and report stats for how old this node's report is
           modTime = participantStat.getLastModifiedTimeStamp();
           reportAgeStat(instance, modTime, currTime);
+          reportedAge = true;
         }
+        
+        
         // System.out.println(modTime);
         // XXX: need to convert participantStat to a better format
         // need to get instanceName in here

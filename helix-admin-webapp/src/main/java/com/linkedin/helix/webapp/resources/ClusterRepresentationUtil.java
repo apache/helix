@@ -40,6 +40,7 @@ public class ClusterRepresentationUtil
   public static final String _alterIdealStateCommand = "alterIdealState";
   public static final String _enableInstanceCommand = "enableInstance";
   public static final String _addClusterCommand = "addCluster";
+  public static final String _addSorageClusterToGrandClusterCommand = "enableStorageCluster";
   public static final String _alterStateModelCommand = "alterStateModel";
   public static final String _newIdealState = "newIdealState";
   public static final String _newModelDef = "newStateModelDef";

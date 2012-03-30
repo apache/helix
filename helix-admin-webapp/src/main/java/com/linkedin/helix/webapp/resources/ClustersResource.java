@@ -99,25 +99,12 @@ public class ClustersResource extends Resource
       {
         throw new HelixException("Json parameters does not contain '"+ _clusterName + "'");
       }
-      String grandCluster = null;
-      if(jsonParameters.containsKey(_grandCluster))
-      {
-        grandCluster = jsonParameters.get(_grandCluster);
-      }
       ClusterSetup setupTool = new ClusterSetup(zkServer);
-      if(grandCluster == null)
-      {
-        setupTool.addCluster(jsonParameters.get(_clusterName), false);
-      }
-      else
-      {
-        setupTool.addCluster(jsonParameters.get(_clusterName), grandCluster);
-      }
-      // add cluster
+      setupTool.addCluster(jsonParameters.get(_clusterName), false);
+      
       getResponse().setEntity(getClustersRepresentation());
       getResponse().setStatus(Status.SUCCESS_OK);
     }
-
     catch(Exception e)
     {
       getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),

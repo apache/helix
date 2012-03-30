@@ -45,7 +45,7 @@ import com.linkedin.helix.MessageListener;
 import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.healthcheck.HealthAggregationTask;
+import com.linkedin.helix.healthcheck.HealthStatsAggregationTask;
 import com.linkedin.helix.healthcheck.ParticipantHealthReportCollector;
 import com.linkedin.helix.healthcheck.ParticipantHealthReportCollectorImpl;
 import com.linkedin.helix.messaging.DefaultMessagingService;
@@ -147,7 +147,7 @@ public class ZKHelixManager implements HelixManager
     _controllerTimerTasks = new ArrayList<HelixTimerTask>();
     if (_instanceType == InstanceType.CONTROLLER)
     {
-      _controllerTimerTasks.add(new HealthAggregationTask(this));
+      _controllerTimerTasks.add(new HealthStatsAggregationTask(this));
     }
 
   }

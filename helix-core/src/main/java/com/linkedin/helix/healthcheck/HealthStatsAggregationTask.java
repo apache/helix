@@ -15,10 +15,11 @@ import com.linkedin.helix.controller.stages.ClusterEvent;
 import com.linkedin.helix.controller.stages.ReadHealthDataStage;
 import com.linkedin.helix.controller.stages.StatsAggregationStage;
 import com.linkedin.helix.monitoring.mbeans.ClusterAlertMBeanCollection;
+import com.linkedin.helix.monitoring.mbeans.HelixStageLatencyMonitor;
 
-public class HealthAggregationTask extends HelixTimerTask
+public class HealthStatsAggregationTask extends HelixTimerTask
 {
-  private static final Logger LOG = Logger.getLogger(HealthAggregationTask.class);
+  private static final Logger LOG = Logger.getLogger(HealthStatsAggregationTask.class);
 
   public final static int DEFAULT_HEALTH_CHECK_LATENCY = 30 * 1000;
 
@@ -28,8 +29,9 @@ public class HealthAggregationTask extends HelixTimerTask
   private final int _delay;
   private final int _period;
   private final ClusterAlertMBeanCollection _alertItemCollection;
+  private HelixStageLatencyMonitor _stageTimeMonitor = null;
 
-  public HealthAggregationTask(HelixManager manager, int delay, int period)
+  public HealthStatsAggregationTask(HelixManager manager, int delay, int period)
   {
     _manager = manager;
     _delay = delay;
@@ -42,9 +44,17 @@ public class HealthAggregationTask extends HelixTimerTask
     _healthStatsAggregationPipeline.addStage(statAggregationStage);
     _alertItemCollection = statAggregationStage.getClusterAlertMBeanCollection();
 
+    try
+    {
+      _stageTimeMonitor = new HelixStageLatencyMonitor(_manager.getClusterName());
+    }
+    catch (Exception e)
+    {
+      LOG.error("Couldn't create StageTimeMonitor mbean.", e);
+    }
   }
 
-  public HealthAggregationTask(HelixManager manager)
+  public HealthStatsAggregationTask(HelixManager manager)
   {
     this(manager, DEFAULT_HEALTH_CHECK_LATENCY, DEFAULT_HEALTH_CHECK_LATENCY);
   }
@@ -81,6 +91,7 @@ public class HealthAggregationTask extends HelixTimerTask
       _timer.cancel();
       _timer = null;
       _alertItemCollection.reset();
+      _stageTimeMonitor.reset();
     }
     else
     {
@@ -91,7 +102,7 @@ public class HealthAggregationTask extends HelixTimerTask
   @Override
   public synchronized void run()
   {
-    LOG.info("START: HealthAggregationTask");
+    LOG.info("START: HealthStatsAggregationTask");
 
     if (!_manager.isLeader())
     {
@@ -104,6 +115,7 @@ public class HealthAggregationTask extends HelixTimerTask
     {
       ClusterEvent event = new ClusterEvent("healthChange");
       event.addAttribute("helixmanager", _manager);
+      event.addAttribute("HelixStageLatencyMonitor", _stageTimeMonitor);
 
       _healthStatsAggregationPipeline.handle(event);
       _healthStatsAggregationPipeline.finish();
@@ -114,7 +126,7 @@ public class HealthAggregationTask extends HelixTimerTask
                 e);
     }
 
-    LOG.info("END: HealthAggregationTask");
+    LOG.info("END: HealthStatsAggregationTask");
   }
 
   private boolean isEnabled()

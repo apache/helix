@@ -22,6 +22,7 @@ import com.linkedin.helix.healthcheck.StatHealthReportProvider;
 import com.linkedin.helix.model.HealthStat;
 import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.monitoring.mbeans.ClusterAlertMBeanCollection;
+import com.linkedin.helix.monitoring.mbeans.HelixStageLatencyMonitor;
 
 /**
  * For each LiveInstances select currentState and message whose sessionId
@@ -159,8 +160,8 @@ public class StatsAggregationStage extends AbstractBaseStage
       boolean reportedAge = false;
       for (HealthStat participantStat : stats.values())
       {
-        
-        
+
+
         if (participantStat != null && !reportedAge)
         {
           // generate and report stats for how old this node's report is
@@ -168,8 +169,8 @@ public class StatsAggregationStage extends AbstractBaseStage
           reportAgeStat(instance, modTime, currTime);
           reportedAge = true;
         }
-        
-        
+
+
         // System.out.println(modTime);
         // XXX: need to convert participantStat to a better format
         // need to get instanceName in here
@@ -187,7 +188,7 @@ public class StatsAggregationStage extends AbstractBaseStage
         }
       }
       // Call _statsHolder.persistStats() once per pipeline. This will
-      // write the updated persisted stats into zookeeper 
+      // write the updated persisted stats into zookeeper
     }
     _statsHolder.persistStats();
     logger.info("Done processing stats: "+(System.currentTimeMillis() - readInstancesStart));
@@ -210,12 +211,12 @@ public class StatsAggregationStage extends AbstractBaseStage
       _alertBeanCollection.setAlerts(originAlertName,
           _alertStatus.get(originAlertName), manager.getClusterName());
     }
-    
+
     long writeAlertStartTime = System.currentTimeMillis();
     // write out alert status (to zk)
     _alertsHolder.addAlertStatusSet(_alertStatus);
     logger.info("done writing alerts: "+(System.currentTimeMillis() - writeAlertStartTime));
-    
+
     // TODO: access the 2 status variables from somewhere to populate graphs
 
     long logAlertStartTime = System.currentTimeMillis();
@@ -237,10 +238,17 @@ public class StatsAggregationStage extends AbstractBaseStage
             + alertInnerMap.get(alertInnerKey).isFired());
       }
     }
+
+    HelixStageLatencyMonitor stgTimeMonitor = event.getAttribute("HelixStageLatencyMonitor");
+    if (stgTimeMonitor != null)
+    {
+      stgTimeMonitor.addHeathStatAggStgTime((System.currentTimeMillis() - startTime));
+    }
+
     logger.info("done logging alerts: "+(System.currentTimeMillis() - logAlertStartTime));
     logger.info("process end: "+(System.currentTimeMillis() - startTime));
  }
-  
+
   public ClusterAlertMBeanCollection getClusterAlertMBeanCollection()
   {
     return _alertBeanCollection;

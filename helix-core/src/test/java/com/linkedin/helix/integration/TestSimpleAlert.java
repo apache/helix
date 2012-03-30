@@ -18,7 +18,7 @@ import com.linkedin.helix.TestHelper.StartCMResult;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.alerts.AlertValueAndStatus;
 import com.linkedin.helix.controller.HelixControllerMain;
-import com.linkedin.helix.healthcheck.HealthAggregationTask;
+import com.linkedin.helix.healthcheck.HealthStatsAggregationTask;
 import com.linkedin.helix.healthcheck.ParticipantHealthReportCollectorImpl;
 import com.linkedin.helix.manager.zk.ZKDataAccessor;
 import com.linkedin.helix.manager.zk.ZNRecordSerializer;
@@ -149,7 +149,7 @@ public class TestSimpleAlert extends ZkIntegrationTestBase
 
     // HealthAggregationTask is supposed to run by a timer every 30s
     // To make sure HealthAggregationTask is run, we invoke it explicitly for this test
-    new HealthAggregationTask(cmResult._manager).run();
+    new HealthStatsAggregationTask(cmResult._manager).run();
     //sleep for a few seconds to give stats stage time to trigger
     Thread.sleep(3000);
 

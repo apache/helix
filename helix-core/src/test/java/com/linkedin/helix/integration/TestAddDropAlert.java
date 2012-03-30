@@ -17,7 +17,7 @@ import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.TestHelper.StartCMResult;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.controller.HelixControllerMain;
-import com.linkedin.helix.healthcheck.HealthAggregationTask;
+import com.linkedin.helix.healthcheck.HealthStatsAggregationTask;
 import com.linkedin.helix.healthcheck.ParticipantHealthReportCollectorImpl;
 import com.linkedin.helix.manager.zk.ZKDataAccessor;
 import com.linkedin.helix.manager.zk.ZNRecordSerializer;
@@ -150,7 +150,7 @@ public class TestAddDropAlert extends ZkIntegrationTestBase
     // drop alert soon after adding, but leave enough time for alert to fire once
     // Thread.sleep(3000);
     ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
-    new HealthAggregationTask(cmResult._manager).run();
+    new HealthStatsAggregationTask(cmResult._manager).run();
     String instance = "localhost_12918";
     ZNRecord record = accessor.getProperty(PropertyType.ALERT_STATUS);
     Map<String, Map<String, String>> recMap = record.getMapFields();
@@ -158,7 +158,7 @@ public class TestAddDropAlert extends ZkIntegrationTestBase
     Assert.assertTrue(keySet.size() > 0);
 
     _setupTool.getClusterManagementTool().dropAlert(clusterName, _alertStr);
-    new HealthAggregationTask(cmResult._manager).run();
+    new HealthStatsAggregationTask(cmResult._manager).run();
     // other verifications go here
     // for (int i = 0; i < 1; i++) //change 1 back to 5
     // {

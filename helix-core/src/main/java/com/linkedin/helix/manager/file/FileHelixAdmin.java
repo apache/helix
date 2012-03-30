@@ -345,8 +345,7 @@ public class FileHelixAdmin implements HelixAdmin
   }
 
   @Override
-  public void addCluster(String clusterName, boolean overwritePrevRecord,
-      String grandCluster)
+  public void addClusterToGrandCluster(String clusterName, String grandCluster)
   {
     throw new UnsupportedOperationException(
         "addCluster(clusterName, overwritePrevRecord, grandCluster) is NOT supported by FileClusterManagementTool");

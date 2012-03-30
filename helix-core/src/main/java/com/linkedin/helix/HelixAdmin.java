@@ -22,8 +22,7 @@ public interface HelixAdmin
 
   void addCluster(String clusterName, boolean overwritePrevRecord);
 
-  void addCluster(String clusterName, boolean overwritePrevRecord,
-      String grandCluster);
+  void addClusterToGrandCluster(String clusterName, String grandCluster);
 
   void addResource(String clusterName, String resourceName, int numResources,
                         String stateModelRef);

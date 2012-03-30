@@ -588,15 +588,18 @@ public class ZKHelixAdmin implements HelixAdmin
   }
 
   @Override
-  public void addCluster(String clusterName, boolean overwritePrevRecord,
-      String grandCluster)
+  public void addClusterToGrandCluster(String clusterName, String grandCluster)
   {
     if (!ZKUtil.isClusterSetup(grandCluster, _zkClient))
     {
       throw new HelixException("Grand cluster " + grandCluster + " is not setup yet");
     }
 
-    addCluster(clusterName, overwritePrevRecord);
+    if (!ZKUtil.isClusterSetup(clusterName, _zkClient))
+    {
+      throw new HelixException("Cluster " + clusterName + " is not setup yet");
+    }
+    
     IdealState idealState = new IdealState(clusterName);
 
     idealState.setNumPartitions(1);

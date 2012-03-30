@@ -111,7 +111,7 @@ public class ClustersResource extends Resource
       }
       else
       {
-        setupTool.addCluster(jsonParameters.get(_clusterName), false, grandCluster);
+        setupTool.addCluster(jsonParameters.get(_clusterName), grandCluster);
       }
       // add cluster
       getResponse().setEntity(getClustersRepresentation());

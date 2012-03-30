@@ -44,7 +44,7 @@ public class ZkPathResource extends Resource
 
   public boolean allowPost()
   {
-    return false;
+    return true;
   }
 
   public boolean allowPut()
@@ -54,7 +54,7 @@ public class ZkPathResource extends Resource
 
   public boolean allowDelete()
   {
-    return false;
+    return true;
   }
   
   public Representation represent(Variant variant)
@@ -97,6 +97,35 @@ public class ZkPathResource extends Resource
       e.printStackTrace();
     }
     return presentation;
+  }
+  
+
+  @Override
+  public void removeRepresentations()
+  {
+    try
+    {
+      String zkServer = (String) getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
+      String zkPath = "/" + getRequest().getResourceRef().getRelativeRef().toString();
+      if(zkPath.equals("/.") || zkPath.endsWith("/"))
+      {
+        zkPath = zkPath.substring(0, zkPath.length() - 1);
+      }
+      if(zkPath.length() == 0)
+      {
+        zkPath = "/";
+      }
+      
+      ZkClient zkClient = ZKClientPool.getZkClient(zkServer);
+      zkClient.deleteRecursive(zkPath);
+      getResponse().setStatus(Status.SUCCESS_OK);
+    }
+    catch(Exception e)
+    {
+      getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),
+          MediaType.APPLICATION_JSON);
+      getResponse().setStatus(Status.SUCCESS_OK);
+    }
   }
 
 }

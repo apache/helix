@@ -73,7 +73,8 @@ public class TestAddClusterV2 extends ZkIntegrationTestBase
     for (int i = 0; i < CLUSTER_NR; i++)
     {
       String clusterName = CLUSTER_PREFIX + "_" + CLASS_NAME + "_" + i;
-      _setupTool.addCluster(clusterName, true, CONTROLLER_CLUSTER);
+      _setupTool.addCluster(clusterName, true);
+      _setupTool.addCluster(clusterName,  CONTROLLER_CLUSTER);
     }
 
     final String firstCluster = CLUSTER_PREFIX + "_" + CLASS_NAME + "_0";

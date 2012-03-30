@@ -114,19 +114,9 @@ public class ClusterSetup
         new StateModelDefinition(generator.generateConfigForOnlineOffline()));
   }
 
-  public void addCluster(String clusterName, boolean overwritePrevious, String grandCluster)
+  public void addCluster(String clusterName, String grandCluster)
   {
-    _admin.addCluster(clusterName, overwritePrevious, grandCluster);
-
-    StateModelConfigGenerator generator = new StateModelConfigGenerator();
-    addStateModelDef(clusterName, "MasterSlave",
-        new StateModelDefinition(generator.generateConfigForMasterSlave()));
-    addStateModelDef(clusterName, "LeaderStandby",
-        new StateModelDefinition(generator.generateConfigForLeaderStandby()));
-    addStateModelDef(clusterName, "StorageSchemata",
-        new StateModelDefinition(generator.generateConfigForStorageSchemata()));
-    addStateModelDef(clusterName, "OnlineOffline",
-        new StateModelDefinition(generator.generateConfigForOnlineOffline()));
+    _admin.addClusterToGrandCluster(clusterName, grandCluster);
   }
 
   public void deleteCluster(String clusterName)
@@ -701,7 +691,7 @@ public class ClusterSetup
     {
       String clusterName = cmd.getOptionValues(addCluster2)[0];
       String grandCluster = cmd.getOptionValues(addCluster2)[1];
-      setupTool.addCluster(clusterName, false, grandCluster);
+      setupTool.addCluster(clusterName, grandCluster);
       return 0;
     }
 

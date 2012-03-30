@@ -58,8 +58,8 @@ import com.linkedin.helix.monitoring.ZKPathDataDumpTask;
 import com.linkedin.helix.participant.DistClusterControllerElection;
 import com.linkedin.helix.participant.HelixStateMachineEngine;
 import com.linkedin.helix.participant.StateMachineEngine;
-import com.linkedin.helix.store.PropertyJsonSerializer;
 import com.linkedin.helix.store.PropertyStore;
+import com.linkedin.helix.store.ZNRecordJsonSerializer;
 import com.linkedin.helix.store.zk.ZKPropertyStore;
 import com.linkedin.helix.tools.PropertiesReader;
 import com.linkedin.helix.util.HelixUtil;
@@ -763,7 +763,7 @@ public class ZKHelixManager implements HelixManager
       String path = PropertyPathConfig.getPath(PropertyType.PROPERTYSTORE, _clusterName);
       // property store uses a different serializer
       _propertyStore = new ZKPropertyStore<ZNRecord>(new ZkClient(_zkClient.getServers()),
-                                                     new PropertyJsonSerializer<ZNRecord>(ZNRecord.class), path);
+                                                     new ZNRecordJsonSerializer(), path);
     }
     return _propertyStore;
   }

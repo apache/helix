@@ -70,15 +70,17 @@ done
 sleep 3
 
 #verify cluster state
-verifier_1_output=$VIEW_ROOT/$LOG_DIR_FROM_ROOT/verifier_1.log
-$SCRIPT_DIR/cm_driver.py -c cluster-state-verifier -o start --logfile=$verifier_1_output -l "integration-test/config/log4j-info.properties" --cmdline_args="-zkSvr ${zookeeper_address} -cluster test-cluster -timeout 60000"
-cecho "verify done1" $red
+verifier_output=$VIEW_ROOT/$LOG_DIR_FROM_ROOT/verifier_`date +"%y%m%d_%H%M%S"`.log
+$SCRIPT_DIR/cm_driver.py -c cluster-state-verifier -o start --logfile=$verifier_output -l "integration-test/config/log4j-info.properties" --cmdline_args="-zkSvr ${zookeeper_address} -cluster test-cluster -timeout 60000"
+echo "verifier_output=$verifier_output"
+verifier_result=`grep 'Successful\|fail' $verifier_output`
+cecho "$verifier_result" $red
 
 # kill m random and restart
 n=$((${#MACHINE_TAB[*]} * 5))
 m=1
 
-for r in {0..3000}; do
+for r in {0..1}; do
   to_kill=`shuf --input-range=1-$n | head -${m}`
   for k in ${to_kill[*]}; do
     j=$((($k - 1) / 5))
@@ -91,9 +93,11 @@ for r in {0..3000}; do
   sleep 3
 
   #verify cluster state after kill
-  verifier_1_output=$VIEW_ROOT/$LOG_DIR_FROM_ROOT/verifier_1.log
-  $SCRIPT_DIR/cm_driver.py -c cluster-state-verifier -o start --logfile=$verifier_1_output -l "integration-test/config/log4j-info.properties" --cmdline_args="-zkSvr ${zookeeper_address} -cluster test-cluster -timeout 60000"
-  cecho "verify done2" $red
+  verifier_output=$VIEW_ROOT/$LOG_DIR_FROM_ROOT/verifier_`date +"%y%m%d_%H%M%S"`.log
+  $SCRIPT_DIR/cm_driver.py -c cluster-state-verifier -o start --logfile=$verifier_output -l "integration-test/config/log4j-info.properties" --cmdline_args="-zkSvr ${zookeeper_address} -cluster test-cluster -timeout 60000"
+  echo "verifier_output=$verifier_output"
+  verifier_result=`grep 'Successful\|fail' $verifier_output`
+  cecho "$verifier_result" $red
 
   for k in ${to_kill[*]}; do
     j=$((($k - 1) / 5))
@@ -106,9 +110,11 @@ for r in {0..3000}; do
   sleep 3
 
   #verify cluster state after restart
-  verifier_1_output=$VIEW_ROOT/$LOG_DIR_FROM_ROOT/verifier_1.log
-  $SCRIPT_DIR/cm_driver.py -c cluster-state-verifier -o start --logfile=$verifier_1_output -l "integration-test/config/log4j-info.properties" --cmdline_args="-zkSvr ${zookeeper_address} -cluster test-cluster -timeout 60000"
-  cecho "verify done3" $red
+  verifier_output=$VIEW_ROOT/$LOG_DIR_FROM_ROOT/verifier_`date +"%y%m%d_%H%M%S"`.log
+  $SCRIPT_DIR/cm_driver.py -c cluster-state-verifier -o start --logfile=$verifier_output -l "integration-test/config/log4j-info.properties" --cmdline_args="-zkSvr ${zookeeper_address} -cluster test-cluster -timeout 60000"
+  echo "verifier_output=$verifier_output"
+  verifier_result=`grep 'Successful\|fail' $verifier_output`
+  cecho "$verifier_result" $red
 done
 
 # clean up
@@ -123,7 +129,7 @@ done
 ssh ${USER_TAB[0]}@${MACHINE_TAB[0]} "${SCRIPT_DIR_TAB[0]}/cm_driver.py -c zookeeper -o stop"
 
 echo == GREP SUCCEED ==
-grep Successful $verifier_1_output
+grep Successful $verifier_output
 
 source report_pass_fail.inc
 exit $all_stat

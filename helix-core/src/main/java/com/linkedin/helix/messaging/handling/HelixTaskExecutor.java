@@ -16,8 +16,8 @@ import java.util.concurrent.TimeUnit;
 import org.apache.log4j.Logger;
 
 import com.linkedin.helix.DataAccessor;
-import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.HelixException;
+import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.MessageListener;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.NotificationContext.Type;
@@ -72,7 +72,7 @@ public class HelixTaskExecutor implements MessageListener
       _threadpoolMap
           .put(type, Executors.newFixedThreadPool(MAX_PARALLEL_TASKS));
       logger.info("adding msg factory for type " + type);
-    } 
+    }
     else
     {
       logger.error("Ignoring duplicate msg handler factory for type " + type);
@@ -408,6 +408,7 @@ public class HelixTaskExecutor implements MessageListener
         }
       }
     }
+    _monitor.shutDown();
     logger.info("shutdown finished");
   }
 }

@@ -1,8 +1,6 @@
 package com.linkedin.helix.monitoring;
 
 import java.lang.management.ManagementFactory;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
@@ -16,12 +14,12 @@ import com.linkedin.helix.monitoring.mbeans.StateTransitionStatMonitor;
 
 public class ParticipantMonitor
 {
-  private ConcurrentHashMap<StateTransitionContext, StateTransitionStatMonitor> _monitorMap
+  private final ConcurrentHashMap<StateTransitionContext, StateTransitionStatMonitor> _monitorMap
    = new ConcurrentHashMap<StateTransitionContext, StateTransitionStatMonitor>();
   private static final Logger LOG = Logger.getLogger(ParticipantMonitor.class);
 
   private MBeanServer _beanServer;
-  
+
   public ParticipantMonitor()
   {
     try
@@ -67,14 +65,14 @@ public class ParticipantMonitor
       e.printStackTrace();
     }
   }
-  
+
 
   private ObjectName getObjectName(String name) throws MalformedObjectNameException
   {
     LOG.info("Registering bean: "+name);
     return new ObjectName("CLMParticipantReport:"+name);
   }
-  
+
   private void register(Object bean, ObjectName name)
   {
     if(_beanServer == null)
@@ -99,5 +97,23 @@ public class ParticipantMonitor
     {
       LOG.warn("Could not register MBean", e);
     }
+  }
+
+  public void shutDown()
+  {
+    for(StateTransitionContext cxt : _monitorMap.keySet() )
+    {
+      try
+      {
+        ObjectName name = getObjectName(cxt.toString());
+        _beanServer.unregisterMBean(name);
+      }
+      catch (Exception e)
+      {
+        LOG.warn("fail to unregister " + cxt.toString(), e);
+      }
+    }
+    _monitorMap.clear();
+
   }
 }

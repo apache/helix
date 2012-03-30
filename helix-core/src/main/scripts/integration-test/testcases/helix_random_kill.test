@@ -5,11 +5,9 @@
 export TEST_NAME=helix_random_kill
 source setup_env.inc
 
-# auxilary functions
+#colorful echo
 red='\e[00;31m'
 green='\e[00;32m'
-
-#colorful echo
 function cecho
 {
   message="$1"
@@ -21,14 +19,6 @@ function cecho
       echo -e "$color$message\e[00m"
     fi
   fi
-}
-
-#random pick m out of n
-function random_n
-{
-  n=$1
-  m=$2
-  arr=`shuf --input-range=1-$n | head -${m}`
 }
 
 zookeeper_server_ports="localhost:2188"
@@ -74,18 +64,19 @@ $SCRIPT_DIR/cm_driver.py -c cluster-manager -o start -l "integration-test/config
 verifier_1_output=$VIEW_ROOT/$LOG_DIR_FROM_ROOT/verifier_1.log
 $SCRIPT_DIR/cm_driver.py -c cluster-state-verifier -o start --logfile=$verifier_1_output -l "integration-test/config/log4j-info.properties" --cmdline_args="-zkSvr localhost:2188 -cluster storage-cluster-12345 -timeout 60000"
 
-#random kill and restart n participants
+#random kill m out of n and restart
 n=5
 m=1
-random_n $n $m
-for i in $arr; do
+to_kill=`shuf --input-range=1-$n | head -${m}`
+
+for i in $to_kill; do
   cecho "killing participant $i ..." $red
   $SCRIPT_DIR/cm_driver.py -c mock-health-report-process -o stop --component_id=$i
 #  $SCRIPT_DIR/cm_driver.py -c dummy-process -o stop --component_id=$i
 done
-# echo "session timeout for participants ${arr[*]}"
+
 sleep 6
-for i in $arr; do
+for i in $to_kill; do
   cecho "restarting participant $i ..." $green
   port=$(($start_port + $i))
   $SCRIPT_DIR/cm_driver.py -c mock-health-report-process -o start -l "integration-test/config/log4j-info.properties" --save_process_id --component_id=$i --cmdline_args="-zkSvr localhost:2188 -cluster storage-cluster-12345 -host localhost -port ${port}"

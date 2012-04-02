@@ -98,7 +98,7 @@ public class ClusterStatusMonitor
     }
     catch (Exception e)
     {
-      LOG.warn("Could not unregister MBean", e);
+      //LOG.warn("Could not unregister MBean", e);
     }
   }
 
@@ -136,6 +136,7 @@ public class ClusterStatusMonitor
 
   public void reset()
   {
+    LOG.info("Resetting ClusterStatusMonitor");
     try
     {
       for(String resourceName : _resourceMbeanMap.keySet())
@@ -150,5 +151,10 @@ public class ClusterStatusMonitor
     {
       LOG.error("register self failed.", e);
     }
+  }
+  
+  public String getSensorName()
+  {
+    return "ClusterStatus";
   }
 }

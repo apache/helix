@@ -171,10 +171,11 @@ public class HelixTask implements Callable<HelixTaskResult>
       removeMessageFromZk(accessor, _message);
       sendReply(accessor, _message, taskResult);
     }
+    // TODO: capture errors and log here
     catch(Exception e)
     {
       String errorMessage = "Exception after executing a message, msgId: "+_message.getMsgId() + e;
-      logger.error(errorMessage);
+      logger.error(errorMessage, e);
       _statusUpdateUtil.logError(_message, HelixTask.class, errorMessage, accessor);
       exception = e;
       type = ErrorType.FRAMEWORK;
@@ -197,6 +198,7 @@ public class HelixTask implements Callable<HelixTaskResult>
   {
     if (message.getTgtName().equalsIgnoreCase("controller"))
     {
+      // TODO: removeProperty returns boolean
       accessor
           .removeProperty(PropertyType.MESSAGES_CONTROLLER, message.getId());
     } else

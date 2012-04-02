@@ -46,7 +46,7 @@ public class ZNRecordJsonSerializer implements PropertySerializer<ZNRecord>
         List<String> list = listMap.get(key);
         if (list.size() > max)
         {
-          listMap.put(key, list.subList(list.size()-max, list.size()));
+          listMap.put(key, list.subList(0, max));
         }
       }
     }

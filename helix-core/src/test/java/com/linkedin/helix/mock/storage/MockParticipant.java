@@ -264,7 +264,10 @@ public class MockParticipant implements Stoppable, Runnable
   public void stop()
   {
     _countDown.countDown();
-    _manager.disconnect();
+    synchronized (_manager)
+    {
+      _manager.disconnect();
+    }
   }
 
   @Override
@@ -308,7 +311,10 @@ public class MockParticipant implements Stoppable, Runnable
       e.printStackTrace();
     } finally
     {
-      _manager.disconnect();
+      synchronized (_manager)
+      {
+        _manager.disconnect();
+      }
     }
   }
 }

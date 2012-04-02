@@ -38,15 +38,15 @@ public class TestZNRecordJsonSerializer extends ZkUnitTestBase
     ZNRecord newRecord = store.getProperty("node1");
     list1 = newRecord.getListField("list1");
     Assert.assertTrue(list1.size() == 3);
+    Assert.assertTrue(list1.contains("one"));
     Assert.assertTrue(list1.contains("two"));
     Assert.assertTrue(list1.contains("three"));
-    Assert.assertTrue(list1.contains("four"));
 
     list2 = newRecord.getListField("list2");
     Assert.assertTrue(list2.size() == 3);
+    Assert.assertTrue(list2.contains("a"));
     Assert.assertTrue(list2.contains("b"));
     Assert.assertTrue(list2.contains("c"));
-    Assert.assertTrue(list2.contains("d"));
 
     list3 = newRecord.getListField("list3");
     Assert.assertTrue(list3.size() == 2);

@@ -130,7 +130,7 @@ cmd_direct_call={
       ,"IVY_DIR/xpp3/xpp3_min/1.1.4c/xpp3_min-1.1.4c.jar"
 ]+cm_jar_files
   ,"class_name":"com.linkedin.helix.tools.ClusterSetup"
-  ,"before_cmd":"../../../mvn jar:jar"  # build jar first
+  ,"before_cmd":"../../../mvn package -Dmaven.test.skip.exec=true"  # build jar first
    }
 
   ,"dummy-process":
@@ -151,7 +151,7 @@ cmd_direct_call={
 ]+cm_jar_files
 
   ,"class_name":"com.linkedin.helix.mock.storage.DummyProcess"
-  ,"before_cmd":"../../../mvn jar:jar"  # build jar first
+  ,"before_cmd":"../../../mvn package -Dmaven.test.skip.exec=true"  # build jar first
    }
 
   ,"mock-health-report-process":
@@ -172,7 +172,7 @@ cmd_direct_call={
 ]+cm_jar_files
 
   ,"class_name":"com.linkedin.helix.mock.storage.MockHealthReportParticipant"
-  ,"before_cmd":"../../../mvn jar:jar"  # build jar first
+  ,"before_cmd":"../../../mvn package -Dmaven.test.skip.exec=true"  # build jar first
    }
 
   ,"cluster-manager":
@@ -192,7 +192,7 @@ cmd_direct_call={
       ,"IVY_DIR/org/apache/commons/commons-math/2.1/commons-math-2.1.jar"
 ]+cm_jar_files
   ,"class_name":"com.linkedin.helix.controller.HelixControllerMain"
-  ,"before_cmd":"../../../mvn jar:jar"  # build jar first
+  ,"before_cmd":"../../../mvn package -Dmaven.test.skip.exec=true"  # build jar first
    }
 
   ,"cluster-state-verifier":
@@ -211,6 +211,7 @@ cmd_direct_call={
       ,"IVY_DIR/xpp3/xpp3_min/1.1.4c/xpp3_min-1.1.4c.jar"
 ]+cm_jar_files
   ,"class_name":"com.linkedin.helix.tools.ClusterStateVerifier"
+  ,"before_cmd":"../../../mvn package -Dmaven.test.skip.exec=true"  # build jar first
    }
 
   ,"mock-storage":

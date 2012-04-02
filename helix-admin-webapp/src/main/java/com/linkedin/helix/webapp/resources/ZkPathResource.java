@@ -63,15 +63,7 @@ public class ZkPathResource extends Resource
     try
     {
       String zkServer = (String) getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
-      String zkPath = "/" + getRequest().getResourceRef().getRelativeRef().toString();
-      if(zkPath.equals("/.") || zkPath.endsWith("/"))
-      {
-        zkPath = zkPath.substring(0, zkPath.length() - 1);
-      }
-      if(zkPath.length() == 0)
-      {
-        zkPath = "/";
-      }
+      String zkPath = getZKPath();
       
       ZkClient zkClient = ZKClientPool.getZkClient(zkServer);
       ZNRecord result = new ZNRecord("nodeContent");
@@ -85,9 +77,6 @@ public class ZkPathResource extends Resource
         result = zkClient.readData(zkPath);
       }
       presentation = new StringRepresentation(ClusterRepresentationUtil.ZNRecordToJson(result), MediaType.APPLICATION_JSON);
-      
-      
-      //presentation = getInstanceErrorsRepresentation(zkServer, clusterName, instanceName, resourceGroup);
     }
     catch (Exception e)
     {
@@ -99,6 +88,19 @@ public class ZkPathResource extends Resource
     return presentation;
   }
   
+  String getZKPath()
+  {
+    String zkPath = "/" + getRequest().getResourceRef().getRelativeRef().toString();
+    if(zkPath.equals("/.") || zkPath.endsWith("/"))
+    {
+      zkPath = zkPath.substring(0, zkPath.length() - 1);
+    }
+    if(zkPath.length() == 0)
+    {
+      zkPath = "/";
+    }
+    return zkPath;
+  }
 
   @Override
   public void removeRepresentations()
@@ -106,15 +108,7 @@ public class ZkPathResource extends Resource
     try
     {
       String zkServer = (String) getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
-      String zkPath = "/" + getRequest().getResourceRef().getRelativeRef().toString();
-      if(zkPath.equals("/.") || zkPath.endsWith("/"))
-      {
-        zkPath = zkPath.substring(0, zkPath.length() - 1);
-      }
-      if(zkPath.length() == 0)
-      {
-        zkPath = "/";
-      }
+      String zkPath = getZKPath();
       
       ZkClient zkClient = ZKClientPool.getZkClient(zkServer);
       zkClient.deleteRecursive(zkPath);

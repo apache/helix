@@ -129,7 +129,7 @@ Steps
     ## helix-admin --zkSvr localhost:2199 --addCluster <clustername> 
     ./helix-admin --zkSvr localhost:2199 --addCluster mycluster 
 
-#### Create a database using MasterSlave state model. This ensures there will be one master and 
+#### Create a database with 6 partitions using MasterSlave state model. This ensures there will be one master for each partition 
     ### helix-admin --zkSvr localhost:2199  --addResource <clustername> <resourceName> <numPartitions> <StateModelName>
     ./helix-admin --zkSvr localhost:2199  --addResource mycluster myDB 6 MasterSlave
    

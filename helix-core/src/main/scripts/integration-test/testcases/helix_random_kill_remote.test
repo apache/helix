@@ -4,9 +4,14 @@ export TEST_NAME=helix_random_kill_remote
 source setup_env.inc
 
 # users/machines/dirs info for each test machine
-USER_TAB=( "zzhang" "zzhang" )
-MACHINE_TAB=( "zzhang-ld" "slu-ld" )
-SCRIPT_DIR_TAB=( "/home/zzhang/workspace/helix/helix-core/src/main/scripts/integration-test/script" "/home/zzhang/workspace/helix/helix-core/src/main/scripts/integration-test/script" )
+USER_TAB=( "zzhang" "zzhang" "zzhang" "zzhang" )
+MACHINE_TAB=( "eat1-app20.corp" "eat1-app21.corp" "eat1-app22.corp" "eat1-app84.corp" )
+SCRIPT_DIR_TAB=( "/export/home/zzhang/workspace/helix/helix-core/src/main/scripts/integration-test/script" "/export/home/zzhang/workspace/helix/helix-core/src/main/scripts/integration-test/script" "/export/home/zzhang/workspace/helix/helix-core/src/main/scripts/integration-test/script" "/export/home/zzhang/workspace/helix/helix-core/src/main/scripts/integration-test/script" )
+
+# constants
+machine_nb=${#MACHINE_TAB[*]}
+cntlr_mach=3
+partic_nb_per_node=5
 
 # colorful echo
 red='\e[00;31m'
@@ -26,11 +31,13 @@ function cecho
 
 # zookeeper_server_ports="localhost:2188"
 # use the first machine as zookeeper and controller
-zookeeper_address="${MACHINE_TAB[0]}:2188"
+zookeeper_address=${MACHINE_TAB[0]}:2188,${MACHINE_TAB[1]}:2188,${MACHINE_TAB[2]}:2188
 
 # default datadir integration_test/var/work/zookeeper/data/1
 # start the zookeeper cluster
-ssh ${USER_TAB[0]}@${MACHINE_TAB[0]} "${SCRIPT_DIR_TAB[0]}/cm_driver.py -c zookeeper -o start --zookeeper_reset --zookeeper_server_ports=localhost:2188  --cmdline_props=\"tickTime=2000;initLimit=5;syncLimit=2\""
+for i in {0..2}; do
+  ssh ${USER_TAB[$i]}@${MACHINE_TAB[$i]} "${SCRIPT_DIR_TAB[$i]}/cm_driver.py -c zookeeper -o start --zookeeper_reset --zookeeper_server_ports=\"$zookeeper_address\" --zookeeper_server_ids=$i --cmdline_props=\"tickTime=2000;initLimit=5;syncLimit=2\""
+done
 
 # create cluster
 $SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr ${zookeeper_address} -addCluster test-cluster"
@@ -38,16 +45,36 @@ $SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr ${zookeeper_addre
 # enable healthCheck
 $SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr ${zookeeper_address} --setConfig CLUSTER=test-cluster healthChange.enabled=true"
 
-# add alert
-$SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr ${zookeeper_address} --addAlert test-cluster \"EXP(decay(1.0)(*.MockRestQueryStats@DBName=BizProfile.MinServerLatency))CMP(GREATER)CON(10)\""
+# add alerts
+$SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr ${zookeeper_address} --addAlert test-cluster \"EXP(decay(1.0)(*.MockRestQueryStats@DBName=BizProfile.MeanMysqlLatency))CMP(GREATER)CON(2.132700625)\""
+$SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr ${zookeeper_address} --addAlert test-cluster \"EXP(decay(1.0)(*.MockRestQueryStats@DBName=BizProfile.MinLuceneLatency))CMP(GREATER)CON(1.765905)\""
+$SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr ${zookeeper_address} --addAlert test-cluster \"EXP(decay(1.0)(*.MockRestQueryStats@DBName=BizProfile.MaxServerLatency))CMP(GREATER)CON(167.714205)\""
+$SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr ${zookeeper_address} --addAlert test-cluster \"EXP(decay(1.0)(*.MockRestQueryStats@DBName=BizProfile.MeanLuceneLatency))CMP(GREATER)CON(16.107599458333335)\""
+$SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr ${zookeeper_address} --addAlert test-cluster \"EXP(decay(1.0)(*.MockRestQueryStats@DBName=BizProfile.MeanLucenePoolLatency))CMP(GREATER)CON(8.120545333333335)\""
+$SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr ${zookeeper_address} --addAlert test-cluster \"EXP(decay(1.0)(*.MockRestQueryStats@DBName=BizProfile.MinServerLatency))CMP(GREATER)CON(0.425275)\""
+$SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr ${zookeeper_address} --addAlert test-cluster \"EXP(decay(1.0)(*.MockRestQueryStats@DBName=BizProfile.IndexStoreMismatchCount))CMP(GREATER)CON(5)\""
+$SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr ${zookeeper_address} --addAlert test-cluster \"EXP(decay(1.0)(*.MockRestQueryStats@DBName=BizProfile.ErrorCount))CMP(GREATER)CON(5)\""
+$SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr ${zookeeper_address} --addAlert test-cluster \"EXP(decay(1.0)(*.MockRestQueryStats@DBName=BizProfile.MeanMysqlPoolLatency))CMP(GREATER)CON(1.0704102916666665)\""
+$SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr ${zookeeper_address} --addAlert test-cluster \"EXP(decay(1.0)(*.MockRestQueryStats@DBName=BizProfile.MinLucenePoolLatency))CMP(GREATER)CON(0.008185)\""
+$SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr ${zookeeper_address} --addAlert test-cluster \"EXP(decay(1.0)(*.MockRestQueryStats@DBName=BizProfile.MinMysqlLatency))CMP(GREATER)CON(0.709695)\""
+$SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr ${zookeeper_address} --addAlert test-cluster \"EXP(decay(1.0)(*.MockRestQueryStats@DBName=BizProfile.MaxMysqlPoolLatency))CMP(GREATER)CON(8.606975)\""
+$SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr ${zookeeper_address} --addAlert test-cluster \"EXP(decay(1.0)(*.MockRestQueryStats@DBName=BizProfile.MinMysqlPoolLatency))CMP(GREATER)CON(0.091885)\""
+$SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr ${zookeeper_address} --addAlert test-cluster \"EXP(decay(1.0)(*.MockRestQueryStats@DBName=BizProfile.MaxLucenePoolLatency))CMP(GREATER)CON(65.930565)\""
+$SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr ${zookeeper_address} --addAlert test-cluster \"EXP(decay(1.0)(*.MockRestQueryStats@DBName=BizProfile.MaxMysqlLatency))CMP(GREATER)CON(9.369825)\""
+$SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr ${zookeeper_address} --addAlert test-cluster \"EXP(decay(1.0)(*.MockRestQueryStats@DBName=BizProfile.TimeStamp))CMP(GREATER)CON(1332895048145)\""
+$SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr ${zookeeper_address} --addAlert test-cluster \"EXP(decay(1.0)(*.MockRestQueryStats@DBName=BizProfile.MeanConcurrencyLevel))CMP(GREATER)CON(1.5)\""
+$SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr ${zookeeper_address} --addAlert test-cluster \"EXP(decay(1.0)(*.MockRestQueryStats@DBName=BizProfile.QueryStartCount))CMP(GREATER)CON(5)\""
+$SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr ${zookeeper_address} --addAlert test-cluster \"EXP(decay(1.0)(*.MockRestQueryStats@DBName=BizProfile.MeanServerLatency))CMP(GREATER)CON(39.5451535)\""
+$SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr ${zookeeper_address} --addAlert test-cluster \"EXP(decay(1.0)(*.MockRestQueryStats@DBName=BizProfile.MaxLuceneLatency))CMP(GREATER)CON(111.78795)\""
+
 
 # add resource
-$SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr ${zookeeper_address} -addResource test-cluster test-db 120 MasterSlave"
+$SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr ${zookeeper_address} -addResource test-cluster test-db 1200 MasterSlave"
 
 # add nodes
 start_port=8900
-for j in {0..1}; do
-	for i in {1..5}; do
+for j in `seq 0 $(($machine_nb-1))`; do
+	for i in `seq 1 $partic_nb_per_node`; do
   	port=$(($start_port + $i))
 		$SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr ${zookeeper_address} -addNode test-cluster ${MACHINE_TAB[$j]}:${port}"
 	done
@@ -57,11 +84,12 @@ done
 $SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr ${zookeeper_address} -rebalance test-cluster test-db 3"
 
 # Launch cluster manager
-ssh ${USER_TAB[0]}@${MACHINE_TAB[0]} "${SCRIPT_DIR_TAB[0]}/cm_driver.py -n ${TEST_NAME} -c cluster-manager -o start --jvm_args=\"-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.local.only=false -Dcom.sun.management.jmxremote.port=27960 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=${MACHINE_TAB[0]}\" -l \"integration-test/config/log4j-info.properties\" --cmdline_args=\"-zkSvr ${zookeeper_address} -cluster test-cluster\""
+ssh ${USER_TAB[$cntlr_mach]}@${MACHINE_TAB[$cntlr_mach]} "${SCRIPT_DIR_TAB[$cntlr_mach]}/cm_driver.py -n ${TEST_NAME} -c cluster-manager -o start --jvm_args=\"-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.local.only=false -Dcom.sun.management.jmxremote.port=27960 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=${MACHINE_TAB[$cntlr_mach]}\" -l \"integration-test/config/log4j-info.properties\" --cmdline_args=\"-zkSvr ${zookeeper_address} -cluster test-cluster\""
 
 # Launch mock health report process
-for j in {0..1}; do
-	for i in {1..5}; do
+#for j in {0..1}; do
+for j in `seq 0 $(($machine_nb-1))`; do
+	for i in `seq 1 $partic_nb_per_node`; do
   	port=$(($start_port + $i))
   ssh ${USER_TAB[$j]}@${MACHINE_TAB[$j]} "${SCRIPT_DIR_TAB[$j]}/cm_driver.py -n ${TEST_NAME} -c mock-health-report-process -o start -l \"integration-test/config/log4j-info.properties\" --save_process_id --component_id=$i --cmdline_args=\"-zkSvr ${zookeeper_address} -cluster test-cluster -host ${MACHINE_TAB[$j]} -port ${port}\""
 	done
@@ -71,12 +99,14 @@ sleep 3
 
 #verify cluster state
 verifier_output=$VIEW_ROOT/$LOG_DIR_FROM_ROOT/verifier_`date +"%y%m%d_%H%M%S"`.log
-$SCRIPT_DIR/cm_driver.py -c cluster-state-verifier -o start --logfile=$verifier_output -l "integration-test/config/log4j-info.properties" --cmdline_args="-zkSvr ${zookeeper_address} -cluster test-cluster -timeout 60000"
+$SCRIPT_DIR/cm_driver.py -c cluster-state-verifier -o start --logfile=$verifier_output -l "integration-test/config/log4j-info.properties" --cmdline_args="-zkSvr ${zookeeper_address} -cluster test-cluster -timeout 1200000"
 echo "verifier_output=$verifier_output"
 verifier_result=`grep 'Successful\|fail' $verifier_output`
 cecho "$verifier_result" $red
 
+
 # kill m random and restart
+: <<'END'
 n=$((${#MACHINE_TAB[*]} * 5))
 m=1
 
@@ -116,17 +146,24 @@ for r in {0..1}; do
   verifier_result=`grep 'Successful\|fail' $verifier_output`
   cecho "$verifier_result" $red
 done
+END
 
 # clean up
-ssh ${USER_TAB[0]}@${MACHINE_TAB[0]} "${SCRIPT_DIR_TAB[0]}/cm_driver.py -n ${TEST_NAME} -c cluster-manager -o stop"
+cecho "clean up..." $green
+sleep 600000
 
-for j in {0..1}; do
-	for i in {1..5}; do
+ssh ${USER_TAB[$cntlr_mach]}@${MACHINE_TAB[$cntlr_mach]} "${SCRIPT_DIR_TAB[$cntlr_mach]}/cm_driver.py -n ${TEST_NAME} -c cluster-manager -o stop"
+
+#for j in {0..1}; do
+for j in `seq 0 $(($machine_nb-1))`; do
+	for i in `seq 1 $partic_nb_per_node`; do
 		ssh ${USER_TAB[$j]}@${MACHINE_TAB[$j]} "${SCRIPT_DIR_TAB[$j]}/cm_driver.py -n ${TEST_NAME} -c mock-health-report-process -o stop --component_id=$i"
 	done
 done
 
-ssh ${USER_TAB[0]}@${MACHINE_TAB[0]} "${SCRIPT_DIR_TAB[0]}/cm_driver.py -c zookeeper -o stop"
+for i in {0..2}; do
+  ssh ${USER_TAB[$i]}@${MACHINE_TAB[$i]} "${SCRIPT_DIR_TAB[$i]}/cm_driver.py -c zookeeper -o stop"
+done
 
 echo == GREP SUCCEED ==
 grep Successful $verifier_output

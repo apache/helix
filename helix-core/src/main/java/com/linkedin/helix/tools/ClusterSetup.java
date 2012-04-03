@@ -520,9 +520,9 @@ public class ClusterSetup
 
     Option partitionInfoOption = OptionBuilder.withLongOpt(listPartitionInfo)
         .withDescription("Query info of a partition").create();
-    partitionInfoOption.setArgs(2);
+    partitionInfoOption.setArgs(3);
     partitionInfoOption.setRequired(false);
-    partitionInfoOption.setArgName("clusterName partitionName");
+    partitionInfoOption.setArgName("clusterName resourceName partitionName");
 
     Option enableInstanceOption = OptionBuilder.withLongOpt(enableInstance)
         .withDescription("Enable / disable a Instance").create();
@@ -816,17 +816,82 @@ public class ClusterSetup
       ExternalView externalView = setupTool.getClusterManagementTool().getResourceExternalView(
           clusterName, resourceName);
 
-      System.out.println("IdealState for " + resourceName + ":");
-      System.out.println(new String(new ZNRecordSerializer().serialize(idealState.getRecord())));
+      if (idealState != null)
+      {
+        System.out.println("IdealState for " + resourceName + ":");
+        System.out.println(new String(new ZNRecordSerializer().serialize(idealState.getRecord())));
+      } else
+      {
+        System.out.println("No idealState for " + resourceName);
+      }
 
       System.out.println();
-      System.out.println("External view for " + resourceName + ":");
-      System.out.println(new String(new ZNRecordSerializer().serialize(externalView.getRecord())));
+
+      if (externalView != null)
+      {
+        System.out.println("ExternalView for " + resourceName + ":");
+        System.out.println(new String(new ZNRecordSerializer().serialize(externalView.getRecord())));
+      } else
+      {
+        System.out.println("No externalView for " + resourceName);
+      }
       return 0;
 
     } else if (cmd.hasOption(listPartitionInfo))
     {
       // print out where the partition master / slaves locates
+      String clusterName = cmd.getOptionValues(listPartitionInfo)[0];
+      String resourceName = cmd.getOptionValues(listPartitionInfo)[1];
+      String partitionName = cmd.getOptionValues(listPartitionInfo)[2];
+      IdealState idealState = setupTool.getClusterManagementTool().getResourceIdealState(
+          clusterName, resourceName);
+      ExternalView externalView = setupTool.getClusterManagementTool().getResourceExternalView(
+          clusterName, resourceName);
+
+      if (idealState != null)
+      {
+        ZNRecord partInfo = new ZNRecord(resourceName + "/" + partitionName);
+        ZNRecord idealStateRec = idealState.getRecord();
+        partInfo.setSimpleFields(idealStateRec.getSimpleFields());
+        if (idealStateRec.getMapField(partitionName) != null)
+        {
+          partInfo.setMapField(partitionName, idealStateRec.getMapField(partitionName));
+        }
+        if (idealStateRec.getListField(partitionName) != null)
+        {
+          partInfo.setListField(partitionName, idealStateRec.getListField(partitionName));
+        }
+        System.out.println("IdealState for " + resourceName + "/" + partitionName + ":");
+        System.out.println(new String(new ZNRecordSerializer().serialize(partInfo)));
+      } else
+      {
+        System.out.println("No idealState for " + resourceName + "/" + partitionName);
+      }
+
+      System.out.println();
+
+      if (externalView != null)
+      {
+        ZNRecord partInfo = new ZNRecord(resourceName + "/" + partitionName);
+        ZNRecord extViewRec = externalView.getRecord();
+        partInfo.setSimpleFields(extViewRec.getSimpleFields());
+        if (extViewRec.getMapField(partitionName) != null)
+        {
+          partInfo.setMapField(partitionName, extViewRec.getMapField(partitionName));
+        }
+        if (extViewRec.getListField(partitionName) != null)
+        {
+          partInfo.setListField(partitionName, extViewRec.getListField(partitionName));
+        }
+
+        System.out.println("ExternalView for " + resourceName + "/" + partitionName + ":");
+        System.out.println(new String(new ZNRecordSerializer().serialize(partInfo)));
+      } else
+      {
+        System.out.println("No externalView for " + resourceName + "/" + partitionName);
+      }
+      return 0;
+
     } else if (cmd.hasOption(enableInstance))
     {
       String clusterName = cmd.getOptionValues(enableInstance)[0];

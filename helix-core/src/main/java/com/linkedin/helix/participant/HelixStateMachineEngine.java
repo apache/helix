@@ -38,6 +38,10 @@ public class HelixStateMachineEngine implements StateMachineEngine
   public StateModelFactory<? extends StateModel> getStateModelFactory(String stateModelName,
       String factoryName)
   {
+    if(!_stateModelFactoryMap.containsKey(stateModelName))
+    {
+      return null;
+    }
     return _stateModelFactoryMap.get(stateModelName).get(factoryName);
   }
 

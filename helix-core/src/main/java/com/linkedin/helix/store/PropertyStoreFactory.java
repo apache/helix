@@ -26,7 +26,6 @@ public class PropertyStoreFactory
     }
 
     FilePropertyStore<T> store = new FilePropertyStore<T>(serializer, rootNamespace, comparator);
-    store.start();
     return store;
 
   }

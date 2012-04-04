@@ -11,6 +11,7 @@ import org.codehaus.jackson.map.DeserializationConfig;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.SerializationConfig;
 
+import com.linkedin.helix.HelixException;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.ZNRecordDelta;
 import com.linkedin.helix.model.Message;
@@ -24,52 +25,64 @@ public class ZNRecordSerializer implements ZkSerializer
   {
     if (!(data instanceof ZNRecord))
     {
-      logger.error("Input object must be of type ZNRecord but it is" + data);
-      return new byte[]{};
+      logger.error("Input object must be of type ZNRecord but it is " + data);
+      return new byte[] {};
     }
+
+    ZNRecord record = (ZNRecord) data;
     ObjectMapper mapper = new ObjectMapper();
 
     SerializationConfig serializationConfig = mapper.getSerializationConfig();
     serializationConfig.set(SerializationConfig.Feature.INDENT_OUTPUT, true);
-    serializationConfig.set(SerializationConfig.Feature.AUTO_DETECT_FIELDS,
-        true);
-    serializationConfig.set(
-        SerializationConfig.Feature.CAN_OVERRIDE_ACCESS_MODIFIERS, true);
+    serializationConfig.set(SerializationConfig.Feature.AUTO_DETECT_FIELDS, true);
+    serializationConfig.set(SerializationConfig.Feature.CAN_OVERRIDE_ACCESS_MODIFIERS,
+                            true);
     StringWriter sw = new StringWriter();
     try
     {
       mapper.writeValue(sw, data);
+
+      if (sw.toString().getBytes().length > ZNRecord.SIZE_LIMIT)
+      {
+        throw new HelixException("Data size larger than 1M. Write empty string to zk. ZNRecord.id: "
+            + record.getId());
+      }
       return sw.toString().getBytes();
-    } catch (Exception e)
+    }
+    catch (Exception e)
     {
-      logger.error("Error during serialization of data:" + data, e);
+      logger.error("Error during serialization of data (first 1k): "
+          + sw.toString().substring(0, 1024), e);
     }
 
-    return new byte[0];
+    return new byte[] {};
   }
 
   @Override
   public Object deserialize(byte[] bytes)
   {
+    if (bytes == null || bytes.length == 0)
+    {
+      logger.error("Znode is empty.");
+      return null;
+    }
+
     ObjectMapper mapper = new ObjectMapper();
     ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
 
-    DeserializationConfig deserializationConfig = mapper
-        .getDeserializationConfig();
-    deserializationConfig.set(DeserializationConfig.Feature.AUTO_DETECT_FIELDS,
-        true);
-    deserializationConfig.set(
-        DeserializationConfig.Feature.AUTO_DETECT_SETTERS, true);
-    deserializationConfig.set(
-        DeserializationConfig.Feature.FAIL_ON_UNKNOWN_PROPERTIES, true);
+    DeserializationConfig deserializationConfig = mapper.getDeserializationConfig();
+    deserializationConfig.set(DeserializationConfig.Feature.AUTO_DETECT_FIELDS, true);
+    deserializationConfig.set(DeserializationConfig.Feature.AUTO_DETECT_SETTERS, true);
+    deserializationConfig.set(DeserializationConfig.Feature.FAIL_ON_UNKNOWN_PROPERTIES,
+                              true);
     try
     {
       ZNRecord zn = mapper.readValue(bais, ZNRecord.class);
       return zn;
-    } catch (Exception e)
+    }
+    catch (Exception e)
     {
-      logger.error(
-          "Error during deserialization of bytes:" + new String(bytes), e);
+      logger.error("Error during deserialization of bytes: " + new String(bytes), e);
     }
 
     return null;
@@ -100,8 +113,8 @@ public class ZNRecordSerializer implements ZkSerializer
 
     ZkClient client = new ZkClient("localhost:2181");
     client.setZkSerializer(serializer);
-    Object readData = client
-        .readData("/test-cluster/instances/localhost_8900/currentStates/test_DB.partition-2");
+    Object readData =
+        client.readData("/test-cluster/instances/localhost_8900/currentStates/test_DB.partition-2");
     System.out.println(readData);
   }
 

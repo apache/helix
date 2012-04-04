@@ -26,6 +26,9 @@ public class ZNRecord
   @JsonIgnore(true)
   public static final String LIST_FIELD_BOUND = "listField.bound";
 
+  @JsonIgnore(true)
+  public static final int SIZE_LIMIT = 1000 * 1024;  // leave a margin out of 1M
+
   /**
    * We don't want the _deltaList to be serialized and deserialized
    */

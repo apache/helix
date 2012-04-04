@@ -23,6 +23,7 @@ import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.Message;
 import com.linkedin.helix.model.IdealState.IdealStateProperty;
 import com.linkedin.helix.model.LiveInstance.LiveInstanceProperty;
+import com.linkedin.helix.model.Message.MessageState;
 import com.linkedin.helix.model.Message.MessageType;
 import com.linkedin.helix.util.HelixUtil;
 
@@ -49,7 +50,7 @@ public class MockController
     message.setMsgId(msgId);
     message.setSrcName(srcName);
     message.setTgtName(instanceName);
-    message.setMsgState("new");
+    message.setMsgState(MessageState.NEW);
     message.setFromState(fromState);
     message.setToState(toState);
     // message.setPartitionId(partitionId);

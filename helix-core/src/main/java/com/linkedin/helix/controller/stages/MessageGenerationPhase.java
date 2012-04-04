@@ -11,6 +11,7 @@ import com.linkedin.helix.controller.pipeline.AbstractBaseStage;
 import com.linkedin.helix.controller.pipeline.StageException;
 import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.model.Message;
+import com.linkedin.helix.model.Message.MessageState;
 import com.linkedin.helix.model.Message.MessageType;
 import com.linkedin.helix.model.Partition;
 import com.linkedin.helix.model.Resource;
@@ -127,7 +128,7 @@ public class MessageGenerationPhase extends AbstractBaseStage
     Message message = new Message(MessageType.STATE_TRANSITION, uuid);
     message.setSrcName(manager.getInstanceName());
     message.setTgtName(instanceName);
-    message.setMsgState("new");
+    message.setMsgState(MessageState.NEW);
     message.setPartitionName(partitionName);
     message.setResourceName(resourceName);
     message.setFromState(currentState);

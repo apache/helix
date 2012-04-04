@@ -33,6 +33,7 @@ import com.linkedin.helix.model.IdealState.IdealStateProperty;
 import com.linkedin.helix.model.InstanceConfig;
 import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.model.Message;
+import com.linkedin.helix.model.Message.MessageState;
 import com.linkedin.helix.model.Message.MessageType;
 import com.linkedin.helix.model.PersistentStats;
 import com.linkedin.helix.model.StateModelDefinition;
@@ -224,7 +225,7 @@ public class ZKHelixAdmin implements HelixAdmin
     Message message = new Message(MessageType.STATE_TRANSITION, msgId);
     message.setSrcName(adminName);
     message.setTgtName(instanceName);
-    message.setMsgState("new");
+    message.setMsgState(MessageState.NEW);
     message.setPartitionName(partition);
     message.setResourceName(resourceName);
     message.setTgtSessionId(sessionId);

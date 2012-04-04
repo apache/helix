@@ -8,6 +8,7 @@ import com.linkedin.helix.Criteria;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.model.Message;
+import com.linkedin.helix.model.Message.MessageState;
 import com.linkedin.helix.model.Message.MessageType;
 import com.linkedin.helix.participant.statemachine.StateModel;
 import com.linkedin.helix.participant.statemachine.StateModelFactory;
@@ -50,7 +51,7 @@ public class BootstrapHandler extends StateModelFactory<StateModel>
           MessageType.USER_DEFINE_MSG, UUID.randomUUID().toString());
       requestBackupUriRequest
           .setMsgSubType(BootstrapProcess.REQUEST_BOOTSTRAP_URL);
-      requestBackupUriRequest.setMsgState("new");
+      requestBackupUriRequest.setMsgState(MessageState.NEW);
       Criteria recipientCriteria = new Criteria();
       recipientCriteria.setInstanceName("*");
       recipientCriteria.setRecipientInstanceType(InstanceType.PARTICIPANT);

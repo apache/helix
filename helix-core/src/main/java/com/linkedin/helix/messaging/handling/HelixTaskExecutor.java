@@ -24,6 +24,7 @@ import com.linkedin.helix.NotificationContext.Type;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.model.Message;
 import com.linkedin.helix.model.Message.Attributes;
+import com.linkedin.helix.model.Message.MessageState;
 import com.linkedin.helix.model.Message.MessageType;
 import com.linkedin.helix.monitoring.ParticipantMonitor;
 import com.linkedin.helix.participant.HelixStateMachineEngine;
@@ -291,22 +292,25 @@ public class HelixTaskExecutor implements MessageListener
       if (sessionId.equals(tgtSessionId) || tgtSessionId.equals("*"))
       {
         MessageHandler handler = null;
-        if ("new".equals(message.getMsgState()))
+        if (MessageState.NEW == message.getMsgState())
         {
           try
           {
             logger.info("Creating handler for message " + message.getMsgId());
             handler = createMessageHandler(message, changeContext);
 
+            // We did not find a MessageHandlerFactory for the message; 
+            // we will keep the message and we may be able to handler it when 
+            // the corresponding MessageHandlerFactory factory is registered.
             if (handler == null)
             {
-              logger.error("Message handler factory not found for message type:"
+              logger.warn("Message handler factory not found for message type:"
                   + message.getMsgType() + ", message:" + message);
               continue;
             }
 
             // update msgState to read
-            message.setMsgState("read");
+            message.setMsgState(MessageState.READ);
             message.setReadTimeStamp(new Date().getTime());
             message.setExecuteSessionId(changeContext.getManager().getSessionId());
 
@@ -337,12 +341,26 @@ public class HelixTaskExecutor implements MessageListener
 
             _statusUpdateUtil.logError(message, HelixStateMachineEngine.class, e,
                 error, accessor);
-
-            accessor.removeProperty(PropertyType.MESSAGES, instanceName,
-                message.getId());
+            // Mark the message as UNPROCESSABLE if we hit a exception while creating
+            // handler for it. The message will stay on ZK and not be processed.
+            message.setMsgState(MessageState.UNPROCESSABLE);
+            if(message.getTgtName().equalsIgnoreCase("controller"))
+            {
+              accessor.updateProperty(PropertyType.MESSAGES_CONTROLLER,
+                                      message,
+                                      message.getId());
+            }
+            else
+            {
+              accessor.updateProperty(PropertyType.MESSAGES,
+                                      message,
+                                      instanceName,
+                                      message.getId());
+            }
             continue;
           }
-        } else
+        } 
+        else
         {
           // This will happen because we don't delete the message as soon as we
           // read it.
@@ -353,7 +371,8 @@ public class HelixTaskExecutor implements MessageListener
           // _statusUpdateUtil.logInfo(message, StateMachineEngine.class,
           // "Message already read", client);
         }
-      } else
+      } 
+      else
       {
         String warningMessage = "Session Id does not match. Expected sessionId: "
             + sessionId + ", sessionId from Message: " + tgtSessionId;

@@ -21,6 +21,7 @@ import com.linkedin.helix.messaging.handling.HelixTaskResult;
 import com.linkedin.helix.messaging.handling.MessageHandler;
 import com.linkedin.helix.messaging.handling.MessageHandlerFactory;
 import com.linkedin.helix.model.Message;
+import com.linkedin.helix.model.Message.MessageState;
 import com.linkedin.helix.model.Message.MessageType;
 
 public class TestSchedulerMessage extends ZkStandAloneCMTestBase
@@ -108,7 +109,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBase
     // Template for the individual message sent to each participant
     Message msg = new Message(factory.getMessageType(), "Template");
     msg.setTgtSessionId("*");
-    msg.setMsgState("new");
+    msg.setMsgState(MessageState.NEW);
 
     // Criteria to send individual messages
     Criteria cr = new Criteria();
@@ -169,7 +170,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBase
     // Template for the individual message sent to each participant
     Message msg = new Message(factory.getMessageType(), "Template");
     msg.setTgtSessionId("*");
-    msg.setMsgState("new");
+    msg.setMsgState(MessageState.NEW);
 
     // Criteria to send individual messages
     Criteria cr = new Criteria();

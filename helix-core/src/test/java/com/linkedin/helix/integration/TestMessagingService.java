@@ -14,6 +14,7 @@ import com.linkedin.helix.messaging.handling.HelixTaskResult;
 import com.linkedin.helix.messaging.handling.MessageHandler;
 import com.linkedin.helix.messaging.handling.MessageHandlerFactory;
 import com.linkedin.helix.model.Message;
+import com.linkedin.helix.model.Message.MessageState;
 import com.linkedin.helix.model.Message.MessageType;
 
 public class TestMessagingService extends ZkStandAloneCMTestBase
@@ -89,7 +90,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBase
     msg.setMsgId(msgId);
     msg.setSrcName(hostSrc);
     msg.setTgtSessionId("*");
-    msg.setMsgState("new");
+    msg.setMsgState(MessageState.NEW);
     String para = "Testing messaging para";
     msg.getRecord().setSimpleField("TestMessagingPara", para);
 
@@ -186,7 +187,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBase
     msg.setSrcName(hostSrc);
 
     msg.setTgtSessionId("*");
-    msg.setMsgState("new");
+    msg.setMsgState(MessageState.NEW);
     String para = "Testing messaging para";
     msg.getRecord().setSimpleField("TestMessagingPara", para);
 
@@ -230,7 +231,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBase
     msg.setSrcName(hostSrc);
 
     msg.setTgtSessionId("*");
-    msg.setMsgState("new");
+    msg.setMsgState(MessageState.NEW);
     String para = "Testing messaging para";
     msg.getRecord().setSimpleField("TestMessagingPara", para);
 
@@ -275,7 +276,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBase
     msg.setSrcName(hostSrc);
 
     msg.setTgtSessionId("*");
-    msg.setMsgState("new");
+    msg.setMsgState(MessageState.NEW);
     String para = "Testing messaging para";
     msg.getRecord().setSimpleField("TestMessagingPara", para);
 
@@ -329,7 +330,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBase
     msg.setSrcName(hostSrc);
 
     msg.setTgtSessionId("*");
-    msg.setMsgState("new");
+    msg.setMsgState(MessageState.NEW);
     String para = "Testing messaging para";
     msg.getRecord().setSimpleField("TestMessagingPara", para);
 
@@ -366,7 +367,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBase
     msg.setSrcName(hostSrc);
 
     msg.setTgtSessionId("*");
-    msg.setMsgState("new");
+    msg.setMsgState(MessageState.NEW);
     String para = "Testing messaging para";
     msg.getRecord().setSimpleField("TestMessagingPara", para);
 

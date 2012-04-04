@@ -25,6 +25,11 @@ public class Message extends ZNRecordDecorator
   public enum Attributes {
     MSG_ID, SRC_SESSION_ID, TGT_SESSION_ID, SRC_NAME, TGT_NAME, SRC_INSTANCE_TYPE, MSG_STATE, PARTITION_NAME, RESOURCE_NAME, FROM_STATE, TO_STATE, STATE_MODEL_DEF, CREATE_TIMESTAMP, READ_TIMESTAMP, EXECUTE_START_TIMESTAMP, MSG_TYPE, MSG_SUBTYPE, CORRELATION_ID, MESSAGE_RESULT, EXE_SESSION_ID, MESSAGE_TIMEOUT, RETRY_COUNT, STATE_MODEL_FACTORY_NAME;
   }
+  
+  public enum MessageState
+  {
+    NEW, READ, UNPROCESSABLE
+  }
 
   public Message(MessageType type, String msgId)
   {
@@ -36,7 +41,7 @@ public class Message extends ZNRecordDecorator
     super(new ZNRecord(msgId));
     _record.setSimpleField(Attributes.MSG_TYPE.toString(), type);
     setMsgId(msgId);
-    setMsgState("new");
+    setMsgState(MessageState.NEW);
     _record.setSimpleField(Attributes.CREATE_TIMESTAMP.toString(), "" + new Date().getTime());
   }
 
@@ -45,7 +50,7 @@ public class Message extends ZNRecordDecorator
     super(record);
     if (getMsgState() == null)
     {
-      setMsgState("new");
+      setMsgState(MessageState.NEW);
     }
     if (getCreateTimeStamp() == 0)
     {
@@ -138,14 +143,14 @@ public class Message extends ZNRecordDecorator
     return _record.getSimpleField(Attributes.TGT_NAME.toString());
   }
 
-  public void setMsgState(String msgState)
+  public void setMsgState(MessageState msgState)
   {
-    _record.setSimpleField(Attributes.MSG_STATE.toString(), msgState);
+    _record.setSimpleField(Attributes.MSG_STATE.toString(), msgState.toString());
   }
 
-  public String getMsgState()
+  public MessageState getMsgState()
   {
-    return _record.getSimpleField(Attributes.MSG_STATE.toString());
+    return MessageState.valueOf(_record.getSimpleField(Attributes.MSG_STATE.toString()));
   }
 
   public void setPartitionName(String partitionName)
@@ -361,7 +366,7 @@ public class Message extends ZNRecordDecorator
     replyMessage.setTgtName(srcMessage.getMsgSrc());
     replyMessage.setResultMap(taskResultMap);
     replyMessage.setTgtSessionId("*");
-    replyMessage.setMsgState("new");
+    replyMessage.setMsgState(MessageState.NEW);
 
     return replyMessage;
   }

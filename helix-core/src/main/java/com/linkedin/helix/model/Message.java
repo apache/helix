@@ -144,13 +144,14 @@ public class Message extends ZNRecordDecorator
   }
 
   public void setMsgState(MessageState msgState)
-  {
-    _record.setSimpleField(Attributes.MSG_STATE.toString(), msgState.toString());
+  { //HACK: The "tolowerCase()" call is to make the change backward compatible
+    _record.setSimpleField(Attributes.MSG_STATE.toString(), msgState.toString().toLowerCase());
   }
 
   public MessageState getMsgState()
   {
-    return MessageState.valueOf(_record.getSimpleField(Attributes.MSG_STATE.toString()));
+    //HACK: The "toUpperCase()" call is to make the change backward compatible
+    return MessageState.valueOf(_record.getSimpleField(Attributes.MSG_STATE.toString().toUpperCase()));
   }
 
   public void setPartitionName(String partitionName)

@@ -330,6 +330,8 @@ public class HelixTaskExecutor implements MessageListener
           }
           catch (Exception e)
           {
+            logger.error("Failed to create message handler for "
+                + message.getMsgId(), e);
             String error = "Failed to create message handler for "
                 + message.getMsgId() + " exception: " + e;
 

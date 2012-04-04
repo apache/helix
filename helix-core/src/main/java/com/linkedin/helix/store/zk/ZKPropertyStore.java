@@ -369,7 +369,7 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkStateListener //
     if (childs.size() == 0)
     {
       // add leaf node to cache
-      getProperty(prefix);
+//      getProperty(prefix);
       leafNodes.add(prefix);
       return;
     }

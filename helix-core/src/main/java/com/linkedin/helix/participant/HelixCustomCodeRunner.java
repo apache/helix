@@ -31,9 +31,9 @@ import com.linkedin.helix.model.IdealState.IdealStateModeProperty;
  *  .usingLeaderStandbyModel("someUniqueId")
  *  .run()
  * </code>
- * 
+ *
  * @author kgopalak
- * 
+ *
  */
 public class HelixCustomCodeRunner
 {
@@ -50,7 +50,7 @@ public class HelixCustomCodeRunner
 
   /**
    * Constructs a HelixCustomCodeRunner that will run exactly in one place
-   * 
+   *
    * @param manager
    * @param zkAddr
    */
@@ -65,7 +65,7 @@ public class HelixCustomCodeRunner
    * notificationTypes) This callback must be idempotent which means they should
    * not depend on what changed instead simply read the cluster data and act on
    * it.
-   * 
+   *
    * @param callback
    * @return
    */
@@ -78,7 +78,7 @@ public class HelixCustomCodeRunner
   /**
    * ChangeTypes interested in, ParticipantLeaderCallback.callback method will
    * be invoked on the
-   * 
+   *
    * @param notificationTypes
    * @return
    */
@@ -97,7 +97,7 @@ public class HelixCustomCodeRunner
   /**
    * This method will be invoked when there is a change in any subscribed
    * notificationTypes
-   * 
+   *
    * @throws Exception
    */
   public void start() throws Exception
@@ -107,6 +107,8 @@ public class HelixCustomCodeRunner
     {
       throw new IllegalArgumentException("Require callback | notificationTypes | resourceName");
     }
+
+    LOG.info("Register participantLeader on " + _notificationTypes + " using " + _resourceName);
 
     _stateModelFty = new GenericLeaderStandbyStateModelFactory(_callback, _notificationTypes);
 

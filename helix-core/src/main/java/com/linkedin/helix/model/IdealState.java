@@ -130,12 +130,14 @@ public class IdealState extends ZNRecordDecorator
 
   public int getNumPartitions()
   {
+    String numPartitionStr = _record.getSimpleField(IdealStateProperty.NUM_PARTITIONS.toString());
+
     try
     {
-      return Integer.parseInt(_record.getSimpleField(IdealStateProperty.NUM_PARTITIONS.toString()));
+      return Integer.parseInt(numPartitionStr);
     } catch (Exception e)
     {
-      logger.debug("Can't parse number of partitions: " + e);
+      logger.error("Can't parse number of partitions: " + numPartitionStr, e);
       return -1;
     }
   }

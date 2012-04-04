@@ -10,8 +10,8 @@ SCRIPT_DIR_TAB=( "/export/home/zzhang/workspace/helix/helix-core/src/main/script
 
 # constants
 machine_nb=${#MACHINE_TAB[*]}
-cntlr_mach=3
-partic_nb_per_node=5
+controller_idx=3
+mocks_per_node=10
 
 # colorful echo
 red='\e[00;31m'
@@ -74,7 +74,7 @@ $SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr ${zookeeper_addre
 # add nodes
 start_port=8900
 for j in `seq 0 $(($machine_nb-1))`; do
-	for i in `seq 1 $partic_nb_per_node`; do
+	for i in `seq 1 $mocks_per_node`; do
   	port=$(($start_port + $i))
 		$SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr ${zookeeper_address} -addNode test-cluster ${MACHINE_TAB[$j]}:${port}"
 	done
@@ -84,12 +84,12 @@ done
 $SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr ${zookeeper_address} -rebalance test-cluster test-db 3"
 
 # Launch cluster manager
-ssh ${USER_TAB[$cntlr_mach]}@${MACHINE_TAB[$cntlr_mach]} "${SCRIPT_DIR_TAB[$cntlr_mach]}/cm_driver.py -n ${TEST_NAME} -c cluster-manager -o start --jvm_args=\"-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.local.only=false -Dcom.sun.management.jmxremote.port=27960 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=${MACHINE_TAB[$cntlr_mach]}\" -l \"integration-test/config/log4j-info.properties\" --cmdline_args=\"-zkSvr ${zookeeper_address} -cluster test-cluster\""
+ssh ${USER_TAB[$controller_idx]}@${MACHINE_TAB[$controller_idx]} "${SCRIPT_DIR_TAB[$controller_idx]}/cm_driver.py -n ${TEST_NAME} -c cluster-manager -o start --jvm_args=\"-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.local.only=false -Dcom.sun.management.jmxremote.port=27960 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=${MACHINE_TAB[$controller_idx]}\" -l \"integration-test/config/log4j-info.properties\" --cmdline_args=\"-zkSvr ${zookeeper_address} -cluster test-cluster\""
 
 # Launch mock health report process
 #for j in {0..1}; do
 for j in `seq 0 $(($machine_nb-1))`; do
-	for i in `seq 1 $partic_nb_per_node`; do
+	for i in `seq 1 $mocks_per_node`; do
   	port=$(($start_port + $i))
   ssh ${USER_TAB[$j]}@${MACHINE_TAB[$j]} "${SCRIPT_DIR_TAB[$j]}/cm_driver.py -n ${TEST_NAME} -c mock-health-report-process -o start -l \"integration-test/config/log4j-info.properties\" --save_process_id --component_id=$i --cmdline_args=\"-zkSvr ${zookeeper_address} -cluster test-cluster -host ${MACHINE_TAB[$j]} -port ${port}\""
 	done
@@ -152,11 +152,11 @@ END
 cecho "clean up..." $green
 sleep 600000
 
-ssh ${USER_TAB[$cntlr_mach]}@${MACHINE_TAB[$cntlr_mach]} "${SCRIPT_DIR_TAB[$cntlr_mach]}/cm_driver.py -n ${TEST_NAME} -c cluster-manager -o stop"
+ssh ${USER_TAB[$controller_idx]}@${MACHINE_TAB[$controller_idx]} "${SCRIPT_DIR_TAB[$controller_idx]}/cm_driver.py -n ${TEST_NAME} -c cluster-manager -o stop"
 
 #for j in {0..1}; do
 for j in `seq 0 $(($machine_nb-1))`; do
-	for i in `seq 1 $partic_nb_per_node`; do
+	for i in `seq 1 $mocks_per_node`; do
 		ssh ${USER_TAB[$j]}@${MACHINE_TAB[$j]} "${SCRIPT_DIR_TAB[$j]}/cm_driver.py -n ${TEST_NAME} -c mock-health-report-process -o stop --component_id=$i"
 	done
 done

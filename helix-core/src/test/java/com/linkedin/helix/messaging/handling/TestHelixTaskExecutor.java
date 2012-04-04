@@ -11,6 +11,7 @@ import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
+import com.linkedin.helix.HelixException;
 import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.Mocks;
 import com.linkedin.helix.NotificationContext;
@@ -21,6 +22,7 @@ import com.linkedin.helix.messaging.handling.MessageHandlerFactory;
 import com.linkedin.helix.messaging.handling.MessageHandler.ErrorCode;
 import com.linkedin.helix.messaging.handling.MessageHandler.ErrorType;
 import com.linkedin.helix.model.Message;
+import com.linkedin.helix.model.Message.MessageState;
 
 public class TestHelixTaskExecutor
 {
@@ -67,6 +69,10 @@ public class TestHelixTaskExecutor
         NotificationContext context)
     {
       // TODO Auto-generated method stub
+      if(message.getMsgSubType()!= null && message.getMsgSubType().equals("EXCEPTION"))
+      {
+        throw new HelixException("Message handler exception");
+      }
       _handlersCreated++;
       return new TestMessageHandler(message, context);
     }
@@ -343,6 +349,47 @@ public class TestHelixTaskExecutor
     }
   }
 
+  @Test()
+  public void TestCreateHandlerException() throws InterruptedException
+  {
+    System.out.println("START TestCMTaskExecutor.TestNormalMsgExecution()");
+    HelixTaskExecutor executor = new HelixTaskExecutor();
+    HelixManager manager = new MockClusterManager();
+
+    TestMessageHandlerFactory factory = new TestMessageHandlerFactory();
+    executor.registerMessageHandlerFactory(factory.getMessageType(), factory);
+    
+
+    NotificationContext changeContext = new NotificationContext(manager);
+    List<Message> msgList = new ArrayList<Message>();
+
+    int nMsgs1 = 5;
+    for(int i = 0; i < nMsgs1; i++)
+    {
+      Message msg = new Message(factory.getMessageType(), UUID.randomUUID().toString());
+      msg.setTgtSessionId(manager.getSessionId());
+      msg.setTgtName("Localhost_1123");
+      msg.setSrcName("127.101.1.23_2234");
+      msg.setCorrelationId(UUID.randomUUID().toString());
+      msgList.add(msg);
+    }
+    Message exceptionMsg = new Message(factory.getMessageType(), UUID.randomUUID().toString());
+    exceptionMsg.setTgtSessionId(manager.getSessionId());
+    exceptionMsg.setMsgSubType("EXCEPTION");
+    exceptionMsg.setTgtName("Localhost_1123");
+    exceptionMsg.setSrcName("127.101.1.23_2234");
+    exceptionMsg.setCorrelationId(UUID.randomUUID().toString());
+    msgList.add(exceptionMsg);
+    
+    executor.onMessage("someInstance", msgList, changeContext);
+
+    Thread.sleep(1000);
+
+    AssertJUnit.assertTrue(factory._processedMsgIds.size() == nMsgs1);
+    AssertJUnit.assertTrue(factory._handlersCreated == nMsgs1);
+
+    AssertJUnit.assertTrue(exceptionMsg.getMsgState() == MessageState.UNPROCESSABLE);
+  }
 
   @Test ()
   public void TestTaskCancellation() throws InterruptedException

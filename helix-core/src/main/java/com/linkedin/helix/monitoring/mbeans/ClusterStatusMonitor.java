@@ -42,7 +42,7 @@ public class ClusterStatusMonitor
     }
     catch(Exception e)
     {
-      LOG.error("register self failed.", e);
+      LOG.error("Register self failed.", e);
     }
   }
 
@@ -82,6 +82,7 @@ public class ClusterStatusMonitor
 
     try
     {
+      LOG.info("Registering " + name.toString());
       _beanServer.registerMBean(bean, name);
     }
     catch (Exception e)
@@ -94,11 +95,12 @@ public class ClusterStatusMonitor
   {
     try
     {
+      LOG.info("Unregistering " + name.toString());
       _beanServer.unregisterMBean(name);
     }
     catch (Exception e)
     {
-      //LOG.warn("Could not unregister MBean", e);
+      LOG.warn("Could not unregister MBean", e);
     }
   }
 
@@ -149,7 +151,7 @@ public class ClusterStatusMonitor
     }
     catch(Exception e)
     {
-      LOG.error("register self failed.", e);
+      LOG.error("unregister self failed.", e);
     }
   }
   

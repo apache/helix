@@ -209,6 +209,7 @@ public class GenericHelixController implements
         if(_clusterStatusMonitor != null)
         {
           _clusterStatusMonitor.reset();
+          _clusterStatusMonitor = null;
         }
       }
       else 

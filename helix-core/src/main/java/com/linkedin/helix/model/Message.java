@@ -151,7 +151,7 @@ public class Message extends ZNRecordDecorator
   public MessageState getMsgState()
   {
     //HACK: The "toUpperCase()" call is to make the change backward compatible
-    return MessageState.valueOf(_record.getSimpleField(Attributes.MSG_STATE.toString().toUpperCase()));
+    return MessageState.valueOf(_record.getSimpleField(Attributes.MSG_STATE.toString()).toUpperCase());
   }
 
   public void setPartitionName(String partitionName)

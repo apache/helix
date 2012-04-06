@@ -9,8 +9,7 @@ import com.linkedin.helix.controller.stages.ClusterEvent;
 
 public class Pipeline
 {
-  private static final Logger logger = Logger.getLogger(Pipeline.class
-      .getName());
+  private static final Logger logger = Logger.getLogger(Pipeline.class.getName());
   List<Stage> _stages;
 
   public Pipeline()
@@ -44,4 +43,8 @@ public class Pipeline
 
   }
 
+  public List<Stage> getStages()
+  {
+    return _stages;
+  }
 }

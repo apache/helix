@@ -9,8 +9,7 @@ import com.linkedin.helix.controller.pipeline.StageException;
 
 public class ReadHealthDataStage extends AbstractBaseStage
 {
-  private static final Logger logger = Logger
-      .getLogger(ReadHealthDataStage.class.getName());
+  private static final Logger LOG = Logger.getLogger(ReadHealthDataStage.class.getName());
   HealthDataCache _cache;
 
   public ReadHealthDataStage()
@@ -21,7 +20,8 @@ public class ReadHealthDataStage extends AbstractBaseStage
   @Override
   public void process(ClusterEvent event) throws Exception
   {
-    long processStartTime = System.currentTimeMillis();
+    long startTime = System.currentTimeMillis();
+
     HelixManager manager = event.getAttribute("helixmanager");
     if (manager == null)
     {
@@ -31,5 +31,8 @@ public class ReadHealthDataStage extends AbstractBaseStage
     _cache.refresh(dataAccessor);
 
     event.addAttribute("HealthDataCache", _cache);
+
+    long processLatency = System.currentTimeMillis() - startTime;
+    addLatencyToMonitor(event, processLatency);
   }
 }

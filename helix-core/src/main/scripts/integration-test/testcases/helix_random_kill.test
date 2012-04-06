@@ -54,7 +54,7 @@ for i in `seq 1 5`; do
 done
 
 #Launch the cluster manager
-$SCRIPT_DIR/cm_driver.py -c cluster-manager -o start -l "integration-test/config/log4j-info.properties" --cmdline_args="-zkSvr localhost:2188 -cluster storage-cluster-12345"
+$SCRIPT_DIR/cm_driver.py -c cluster-manager -o start --jvm_args="-javaagent:integration-test/testcases/shiftone-jrat.jar -Djrat.factory=org.shiftone.jrat.provider.tree.TreeMethodHandlerFactory" -l "integration-test/config/log4j-info.properties" --cmdline_args="-zkSvr localhost:2188 -cluster storage-cluster-12345"
 
 #sleep 6
 

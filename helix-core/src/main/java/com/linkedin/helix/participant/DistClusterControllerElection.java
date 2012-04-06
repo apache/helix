@@ -16,6 +16,7 @@ import com.linkedin.helix.controller.HelixControllerMain;
 import com.linkedin.helix.model.LeaderHistory;
 import com.linkedin.helix.model.LiveInstance;
 
+// TODO: merge with GenericHelixController
 public class DistClusterControllerElection implements ControllerChangeListener
 {
   private static Logger LOG = Logger.getLogger(DistClusterControllerElection.class);

@@ -3,8 +3,6 @@ package com.linkedin.helix.integration;
 import java.util.Date;
 
 import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import com.linkedin.helix.DataAccessor;
@@ -15,30 +13,14 @@ import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.controller.HelixControllerMain;
 import com.linkedin.helix.manager.zk.ZKDataAccessor;
-import com.linkedin.helix.manager.zk.ZNRecordSerializer;
-import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.mock.storage.MockParticipant;
 import com.linkedin.helix.mock.storage.MockTransition;
 import com.linkedin.helix.model.Message;
+import com.linkedin.helix.tools.ClusterSetup;
 import com.linkedin.helix.tools.ClusterStateVerifier;
 
 public class TestDummyAlerts extends ZkIntegrationTestBase
 {
-  ZkClient _zkClient;
-
-  @BeforeClass()
-  public void beforeClass() throws Exception
-  {
-    _zkClient = new ZkClient(ZK_ADDR);
-    _zkClient.setZkSerializer(new ZNRecordSerializer());
-  }
-
-  @AfterClass
-  public void afterClass()
-  {
-    _zkClient.close();
-  }
-
   public class DummyAlertsTransition extends MockTransition
   {
     @Override
@@ -55,12 +37,15 @@ public class TestDummyAlerts extends ZkIntegrationTestBase
       {
         for (int i = 0; i < 5; i++)
         {
-          accessor.setProperty(PropertyType.HEALTHREPORT, new ZNRecord("mockAlerts" + i), instance,
-              "mockAlerts");
+          accessor.setProperty(PropertyType.HEALTHREPORT,
+                               new ZNRecord("mockAlerts" + i),
+                               instance,
+                               "mockAlerts");
           try
           {
             Thread.sleep(1000);
-          } catch (InterruptedException e)
+          }
+          catch (InterruptedException e)
           {
             // TODO Auto-generated catch block
             e.printStackTrace();
@@ -76,40 +61,55 @@ public class TestDummyAlerts extends ZkIntegrationTestBase
   {
     String clusterName = getShortClassName();
     MockParticipant[] participants = new MockParticipant[5];
+    ClusterSetup setupTool = new ClusterSetup(ZK_ADDR);
 
     System.out.println("START TestDummyAlerts at " + new Date(System.currentTimeMillis()));
 
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant start
                                                          // port
-        "localhost", // participant name prefix
-        "TestDB", // resource name prefix
-        1, // resources
-        10, // partitions per resource
-        5, // number of nodes
-        3, // replicas
-        "MasterSlave", true); // do rebalance
+                            "localhost", // participant name prefix
+                            "TestDB", // resource name prefix
+                            1, // resources
+                            10, // partitions per resource
+                            5, // number of nodes
+                            3, // replicas
+                            "MasterSlave",
+                            true); // do rebalance
 
-    TestHelper.startController(clusterName, "controller_0", ZK_ADDR, HelixControllerMain.STANDALONE);
+    enableHealthCheck(clusterName);
+    setupTool.getClusterManagementTool()
+             .addAlert(clusterName,
+                       "EXP(decay(1.0)(*.defaultPerfCounters@defaultPerfCounters.availableCPUs))CMP(GREATER)CON(2)");
+
+    TestHelper.startController(clusterName,
+                               "controller_0",
+                               ZK_ADDR,
+                               HelixControllerMain.STANDALONE);
     // start participants
     for (int i = 0; i < 5; i++)
     {
       String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipant(clusterName, instanceName, ZK_ADDR,
-          new DummyAlertsTransition());
+      participants[i] =
+          new MockParticipant(clusterName,
+                              instanceName,
+                              ZK_ADDR,
+                              new DummyAlertsTransition());
       new Thread(participants[i]).start();
     }
 
-    boolean result = ClusterStateVerifier.verify(
-        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
+    boolean result =
+        ClusterStateVerifier.verify(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
+                                                                                          clusterName));
     Assert.assertTrue(result);
 
     // other verifications go here
-    ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
+    ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _gZkClient);
     for (int i = 0; i < 5; i++)
     {
       String instance = "localhost_" + (12918 + i);
-      ZNRecord record = accessor.getProperty(PropertyType.HEALTHREPORT, instance, "mockAlerts");
+      ZNRecord record =
+          accessor.getProperty(PropertyType.HEALTHREPORT, instance, "mockAlerts");
       Assert.assertEquals(record.getId(), "mockAlerts4");
     }
 

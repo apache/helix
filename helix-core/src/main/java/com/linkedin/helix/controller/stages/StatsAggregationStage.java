@@ -22,20 +22,19 @@ import com.linkedin.helix.healthcheck.StatHealthReportProvider;
 import com.linkedin.helix.model.HealthStat;
 import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.monitoring.mbeans.ClusterAlertMBeanCollection;
-import com.linkedin.helix.monitoring.mbeans.HelixStageLatencyMonitor;
 
 /**
- * For each LiveInstances select currentState and message whose sessionId
- * matches sessionId from LiveInstance Get Partition,State for all the resources
- * computed in previous State [ResourceComputationStage]
+ * For each LiveInstances select currentState and message whose sessionId matches
+ * sessionId from LiveInstance Get Partition,State for all the resources computed in
+ * previous State [ResourceComputationStage]
  *
  * @author asilbers
  *
  */
 public class StatsAggregationStage extends AbstractBaseStage
 {
-  private static final Logger logger = Logger
-      .getLogger(StatsAggregationStage.class.getName());
+  private static final Logger logger =
+      Logger.getLogger(StatsAggregationStage.class.getName());
 
   StatsHolder _statsHolder;
   AlertsHolder _alertsHolder;
@@ -68,8 +67,8 @@ public class StatsAggregationStage extends AbstractBaseStage
   public void persistAggStats(HelixManager manager)
   {
     Map<String, String> report = _aggStatsProvider.getRecentHealthReport();
-    Map<String, Map<String, String>> partitionReport = _aggStatsProvider
-        .getRecentPartitionHealthReport();
+    Map<String, Map<String, String>> partitionReport =
+        _aggStatsProvider.getRecentPartitionHealthReport();
     ZNRecord record = new ZNRecord(_aggStatsProvider.getReportName());
     if (report != null)
     {
@@ -99,8 +98,7 @@ public class StatsAggregationStage extends AbstractBaseStage
   }
 
   // currTime in seconds
-  public void reportAgeStat(LiveInstance instance, long modifiedTime,
-      long currTime)
+  public void reportAgeStat(LiveInstance instance, long modifiedTime, long currTime)
   {
     String statName = getAgeStatName(instance.getInstanceName());
     long age = (currTime - modifiedTime) / 1000; // XXX: ensure this is in
@@ -131,8 +129,8 @@ public class StatsAggregationStage extends AbstractBaseStage
     _statsHolder = new StatsHolder(manager, cache);
     _alertsHolder = new AlertsHolder(manager, cache);
 
-    _statsHolder.refreshStats(); //refresh once at start of stage
-    if(_statsHolder.getStatsList().size() == 0)
+    _statsHolder.refreshStats(); // refresh once at start of stage
+    if (_statsHolder.getStatsList().size() == 0)
     {
       logger.info("stat holder is empty");
       return;
@@ -156,11 +154,10 @@ public class StatsAggregationStage extends AbstractBaseStage
       stats = cache.getHealthStats(instanceName);
       // find participants stats
       long modTime = -1;
-      //TODO: get healthreport child node modified time and reportAgeStat based on that
+      // TODO: get healthreport child node modified time and reportAgeStat based on that
       boolean reportedAge = false;
       for (HealthStat participantStat : stats.values())
       {
-
 
         if (participantStat != null && !reportedAge)
         {
@@ -170,7 +167,6 @@ public class StatsAggregationStage extends AbstractBaseStage
           reportedAge = true;
         }
 
-
         // System.out.println(modTime);
         // XXX: need to convert participantStat to a better format
         // need to get instanceName in here
@@ -179,8 +175,8 @@ public class StatsAggregationStage extends AbstractBaseStage
         {
           // String timestamp = String.valueOf(instance.getModifiedTime()); WANT
           // REPORT LEVEL TS
-          Map<String, Map<String, String>> statMap = participantStat
-              .getHealthFields(instanceName);
+          Map<String, Map<String, String>> statMap =
+              participantStat.getHealthFields(instanceName);
           for (String key : statMap.keySet())
           {
             _statsHolder.applyStat(key, statMap.get(key));
@@ -191,31 +187,35 @@ public class StatsAggregationStage extends AbstractBaseStage
       // write the updated persisted stats into zookeeper
     }
     _statsHolder.persistStats();
-    logger.info("Done processing stats: "+(System.currentTimeMillis() - readInstancesStart));
+    logger.info("Done processing stats: "
+        + (System.currentTimeMillis() - readInstancesStart));
     // populate _statStatus
     _statStatus = _statsHolder.getStatsMap();
 
     for (String statKey : _statStatus.keySet())
     {
-      logger.debug("Stat key, value: " + statKey + ": "
-          + _statStatus.get(statKey));
+      logger.debug("Stat key, value: " + statKey + ": " + _statStatus.get(statKey));
     }
 
     long alertExecuteStartTime = System.currentTimeMillis();
     // execute alerts, populate _alertStatus
-    _alertStatus = AlertProcessor.executeAllAlerts(
-        _alertsHolder.getAlertList(), _statsHolder.getStatsList());
-    logger.info("done executing alerts: "+(System.currentTimeMillis() - alertExecuteStartTime));
+    _alertStatus =
+        AlertProcessor.executeAllAlerts(_alertsHolder.getAlertList(),
+                                        _statsHolder.getStatsList());
+    logger.info("done executing alerts: "
+        + (System.currentTimeMillis() - alertExecuteStartTime));
     for (String originAlertName : _alertStatus.keySet())
     {
       _alertBeanCollection.setAlerts(originAlertName,
-          _alertStatus.get(originAlertName), manager.getClusterName());
+                                     _alertStatus.get(originAlertName),
+                                     manager.getClusterName());
     }
 
     long writeAlertStartTime = System.currentTimeMillis();
     // write out alert status (to zk)
     _alertsHolder.addAlertStatusSet(_alertStatus);
-    logger.info("done writing alerts: "+(System.currentTimeMillis() - writeAlertStartTime));
+    logger.info("done writing alerts: "
+        + (System.currentTimeMillis() - writeAlertStartTime));
 
     // TODO: access the 2 status variables from somewhere to populate graphs
 
@@ -224,8 +224,7 @@ public class StatsAggregationStage extends AbstractBaseStage
     for (String alertOuterKey : _alertStatus.keySet())
     {
       logger.debug("Alert Outer Key: " + alertOuterKey);
-      Map<String, AlertValueAndStatus> alertInnerMap = _alertStatus
-          .get(alertOuterKey);
+      Map<String, AlertValueAndStatus> alertInnerMap = _alertStatus.get(alertOuterKey);
       if (alertInnerMap == null)
       {
         logger.debug(alertOuterKey + " has no alerts to report.");
@@ -239,15 +238,13 @@ public class StatsAggregationStage extends AbstractBaseStage
       }
     }
 
-    HelixStageLatencyMonitor stgTimeMonitor = event.getAttribute("HelixStageLatencyMonitor");
-    if (stgTimeMonitor != null)
-    {
-      stgTimeMonitor.addHeathStatAggStgTime((System.currentTimeMillis() - startTime));
-    }
+    logger.info("done logging alerts: "
+        + (System.currentTimeMillis() - logAlertStartTime));
 
-    logger.info("done logging alerts: "+(System.currentTimeMillis() - logAlertStartTime));
-    logger.info("process end: "+(System.currentTimeMillis() - startTime));
- }
+    long processLatency = System.currentTimeMillis() - startTime;
+    addLatencyToMonitor(event, processLatency);
+    logger.info("process end: " + processLatency);
+  }
 
   public ClusterAlertMBeanCollection getClusterAlertMBeanCollection()
   {

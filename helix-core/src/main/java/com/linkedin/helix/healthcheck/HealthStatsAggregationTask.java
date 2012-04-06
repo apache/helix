@@ -1,5 +1,7 @@
 package com.linkedin.helix.healthcheck;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 import java.util.Timer;
 
@@ -11,6 +13,7 @@ import com.linkedin.helix.ConfigScopeBuilder;
 import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.HelixTimerTask;
 import com.linkedin.helix.controller.pipeline.Pipeline;
+import com.linkedin.helix.controller.pipeline.Stage;
 import com.linkedin.helix.controller.stages.ClusterEvent;
 import com.linkedin.helix.controller.stages.ReadHealthDataStage;
 import com.linkedin.helix.controller.stages.StatsAggregationStage;
@@ -29,7 +32,8 @@ public class HealthStatsAggregationTask extends HelixTimerTask
   private final int _delay;
   private final int _period;
   private final ClusterAlertMBeanCollection _alertItemCollection;
-  private HelixStageLatencyMonitor _stageTimeMonitor = null;
+  private final Map<String, HelixStageLatencyMonitor> _stageLatencyMonitorMap =
+      new HashMap<String, HelixStageLatencyMonitor>();
 
   public HealthStatsAggregationTask(HelixManager manager, int delay, int period)
   {
@@ -44,19 +48,38 @@ public class HealthStatsAggregationTask extends HelixTimerTask
     _healthStatsAggregationPipeline.addStage(statAggregationStage);
     _alertItemCollection = statAggregationStage.getClusterAlertMBeanCollection();
 
-    try
-    {
-      _stageTimeMonitor = new HelixStageLatencyMonitor(_manager.getClusterName());
-    }
-    catch (Exception e)
-    {
-      LOG.error("Couldn't create StageTimeMonitor mbean.", e);
-    }
+    registerStageLatencyMonitor(_healthStatsAggregationPipeline);
   }
 
   public HealthStatsAggregationTask(HelixManager manager)
   {
     this(manager, DEFAULT_HEALTH_CHECK_LATENCY, DEFAULT_HEALTH_CHECK_LATENCY);
+  }
+
+  private void registerStageLatencyMonitor(Pipeline pipeline)
+  {
+    for (Stage stage : pipeline.getStages())
+    {
+      String stgName = stage.getStageName();
+      if (!_stageLatencyMonitorMap.containsKey(stgName))
+      {
+        try
+        {
+          _stageLatencyMonitorMap.put(stage.getStageName(),
+                                      new HelixStageLatencyMonitor(_manager.getClusterName(),
+                                                                   stgName));
+        }
+        catch (Exception e)
+        {
+          LOG.error("Couldn't create StageLatencyMonitor mbean for stage: " + stgName, e);
+        }
+      }
+      else
+      {
+        LOG.error("StageLatencyMonitor for stage: " + stgName
+            + " already exists. Skip register it");
+      }
+    }
   }
 
   @Override
@@ -91,7 +114,11 @@ public class HealthStatsAggregationTask extends HelixTimerTask
       _timer.cancel();
       _timer = null;
       _alertItemCollection.reset();
-      _stageTimeMonitor.reset();
+
+      for (HelixStageLatencyMonitor stgLatencyMonitor : _stageLatencyMonitorMap.values())
+      {
+        stgLatencyMonitor.reset();
+      }
     }
     else
     {
@@ -115,7 +142,7 @@ public class HealthStatsAggregationTask extends HelixTimerTask
     {
       ClusterEvent event = new ClusterEvent("healthChange");
       event.addAttribute("helixmanager", _manager);
-      event.addAttribute("HelixStageLatencyMonitor", _stageTimeMonitor);
+      event.addAttribute("HelixStageLatencyMonitorMap", _stageLatencyMonitorMap);
 
       _healthStatsAggregationPipeline.handle(event);
       _healthStatsAggregationPipeline.finish();

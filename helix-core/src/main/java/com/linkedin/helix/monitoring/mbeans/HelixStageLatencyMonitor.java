@@ -13,17 +13,19 @@ public class HelixStageLatencyMonitor implements HelixStageLatencyMonitorMBean
 {
   private static final Logger LOG = Logger.getLogger(HelixStageLatencyMonitor.class);
 
-  private final StatCollector _healthStatAggStgTime;
+  private final StatCollector _stgLatency;
   private final MBeanServer _beanServer;
   private final String _clusterName;
+  private final String _stageName;
   private final ObjectName _objectName;
 
-  public HelixStageLatencyMonitor(String clusterName) throws Exception
+  public HelixStageLatencyMonitor(String clusterName, String stageName) throws Exception
   {
     _clusterName = clusterName;
-    _healthStatAggStgTime = new StatCollector();
+    _stageName = stageName;
+    _stgLatency = new StatCollector();
     _beanServer = ManagementFactory.getPlatformMBeanServer();
-    _objectName = new ObjectName("StageTimeMonitor: " + "cluster=" + _clusterName);
+    _objectName = new ObjectName("StageLatencyMonitor: " + "cluster=" + _clusterName + ",stage=" + _stageName);
     try
     {
       register(this, _objectName);
@@ -61,33 +63,33 @@ public class HelixStageLatencyMonitor implements HelixStageLatencyMonitorMBean
     }
   }
 
-  public void addHeathStatAggStgTime(long time)
+  public void addStgLatency(long time)
   {
-    _healthStatAggStgTime.addData(time);
-  }
-
-  @Override
-  public long getMaxHealthStatsAggStgLatency()
-  {
-    return (long) _healthStatAggStgTime.getMax();
+    _stgLatency.addData(time);
   }
 
   public void reset()
   {
-    _healthStatAggStgTime.reset();
+    _stgLatency.reset();
     unregister(_objectName);
   }
 
   @Override
-  public long getMeanHealthStatsAggStgLatency()
+  public long getMaxStgLatency()
   {
-    return (long) _healthStatAggStgTime.getMean();
+    return (long) _stgLatency.getMax();
   }
 
   @Override
-  public long get95HealthStatsAggStgLatency()
+  public long getMeanStgLatency()
   {
-    return (long) _healthStatAggStgTime.getPercentile(95);
+    return (long) _stgLatency.getMean();
+  }
+
+  @Override
+  public long get95StgLatency()
+  {
+    return (long) _stgLatency.getPercentile(95);
   }
 
 }

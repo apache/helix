@@ -2,9 +2,9 @@ package com.linkedin.helix.monitoring.mbeans;
 
 public interface HelixStageLatencyMonitorMBean
 {
-  public long getMaxHealthStatsAggStgLatency();
+  public long getMaxStgLatency();
 
-  public long getMeanHealthStatsAggStgLatency();
+  public long getMeanStgLatency();
 
-  public long get95HealthStatsAggStgLatency();
+  public long get95StgLatency();
 }

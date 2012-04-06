@@ -11,7 +11,7 @@ SCRIPT_DIR_TAB=( "/export/home/zzhang/workspace/helix/helix-core/src/main/script
 # constants
 machine_nb=${#MACHINE_TAB[*]}
 controller_idx=3
-mocks_per_node=10
+mocks_per_node=5
 
 # colorful echo
 red='\e[00;31m'
@@ -35,8 +35,8 @@ zookeeper_address=${MACHINE_TAB[0]}:2188,${MACHINE_TAB[1]}:2188,${MACHINE_TAB[2]
 
 # default datadir integration_test/var/work/zookeeper/data/1
 # start the zookeeper cluster
-for i in {0..2}; do
-  ssh ${USER_TAB[$i]}@${MACHINE_TAB[$i]} "${SCRIPT_DIR_TAB[$i]}/cm_driver.py -c zookeeper -o start --zookeeper_reset --zookeeper_server_ports=\"$zookeeper_address\" --zookeeper_server_ids=$i --cmdline_props=\"tickTime=2000;initLimit=5;syncLimit=2\""
+for i in `seq 0 2`; do
+  ssh ${USER_TAB[$i]}@${MACHINE_TAB[$i]} "${SCRIPT_DIR_TAB[$i]}/cm_driver.py -n ${TEST_NAME} -c zookeeper -o start --zookeeper_reset --zookeeper_server_ports=\"$zookeeper_address\" --zookeeper_server_ids=$i --cmdline_props=\"tickTime=2000;initLimit=5;syncLimit=2\""
 done
 
 # create cluster
@@ -84,7 +84,8 @@ done
 $SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr ${zookeeper_address} -rebalance test-cluster test-db 3"
 
 # Launch cluster manager
-ssh ${USER_TAB[$controller_idx]}@${MACHINE_TAB[$controller_idx]} "${SCRIPT_DIR_TAB[$controller_idx]}/cm_driver.py -n ${TEST_NAME} -c cluster-manager -o start --jvm_args=\"-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.local.only=false -Dcom.sun.management.jmxremote.port=27960 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=${MACHINE_TAB[$controller_idx]}\" -l \"integration-test/config/log4j-info.properties\" --cmdline_args=\"-zkSvr ${zookeeper_address} -cluster test-cluster\""
+# -Djava.rmi.server.hostname=${MACHINE_TAB[$controller_idx]}
+ssh ${USER_TAB[$controller_idx]}@${MACHINE_TAB[$controller_idx]} "${SCRIPT_DIR_TAB[$controller_idx]}/cm_driver.py -n ${TEST_NAME} -c cluster-manager -o start --jvm_args=\"-javaagent:integration-test/testcases/shiftone-jrat.jar -Djrat.factory=org.shiftone.jrat.provider.tree.TreeMethodHandlerFactory -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.local.only=false -Dcom.sun.management.jmxremote.port=27960 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false\" -l \"integration-test/config/log4j-info.properties\" --cmdline_args=\"-zkSvr ${zookeeper_address} -cluster test-cluster\""
 
 # Launch mock health report process
 #for j in {0..1}; do
@@ -99,7 +100,7 @@ sleep 3
 
 #verify cluster state
 verifier_output=$VIEW_ROOT/$LOG_DIR_FROM_ROOT/verifier_`date +"%y%m%d_%H%M%S"`.log
-$SCRIPT_DIR/cm_driver.py -c cluster-state-verifier -o start --logfile=$verifier_output -l "integration-test/config/log4j-info.properties" --cmdline_args="-zkSvr ${zookeeper_address} -cluster test-cluster -timeout 1200000"
+$SCRIPT_DIR/cm_driver.py -n ${TEST_NAME} -c cluster-state-verifier -o start --logfile=$verifier_output -l "integration-test/config/log4j-info.properties" --cmdline_args="-zkSvr ${zookeeper_address} -cluster test-cluster -timeout 1200000"
 echo "verifier_output=$verifier_output"
 verifier_result=`grep 'Successful\|fail' $verifier_output`
 cecho "$verifier_result" $red
@@ -150,7 +151,7 @@ END
 
 # clean up
 cecho "clean up..." $green
-sleep 600000
+sleep 600
 
 ssh ${USER_TAB[$controller_idx]}@${MACHINE_TAB[$controller_idx]} "${SCRIPT_DIR_TAB[$controller_idx]}/cm_driver.py -n ${TEST_NAME} -c cluster-manager -o stop"
 
@@ -162,7 +163,7 @@ for j in `seq 0 $(($machine_nb-1))`; do
 done
 
 for i in {0..2}; do
-  ssh ${USER_TAB[$i]}@${MACHINE_TAB[$i]} "${SCRIPT_DIR_TAB[$i]}/cm_driver.py -c zookeeper -o stop"
+  ssh ${USER_TAB[$i]}@${MACHINE_TAB[$i]} "${SCRIPT_DIR_TAB[$i]}/cm_driver.py -n ${TEST_NAME} -c zookeeper -o stop"
 done
 
 echo == GREP SUCCEED ==

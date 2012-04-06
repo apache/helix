@@ -8,10 +8,7 @@ import java.util.concurrent.ConcurrentSkipListSet;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.ConfigAccessor;
 import com.linkedin.helix.ConfigChangeListener;
-import com.linkedin.helix.ConfigScope;
-import com.linkedin.helix.ConfigScopeBuilder;
 import com.linkedin.helix.ControllerChangeListener;
 import com.linkedin.helix.CurrentStateChangeListener;
 import com.linkedin.helix.DataAccessor;
@@ -22,7 +19,6 @@ import com.linkedin.helix.IdealStateChangeListener;
 import com.linkedin.helix.LiveInstanceChangeListener;
 import com.linkedin.helix.MessageListener;
 import com.linkedin.helix.NotificationContext;
-import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
 import com.linkedin.helix.NotificationContext.Type;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.controller.pipeline.Pipeline;
@@ -84,9 +80,9 @@ public class GenericHelixController implements
    */
   private final Set<String> _instanceCurrentStateChangeSubscriptionSessionIds;
   private final Set<String> _instanceSubscriptionNames;
-  private final ExternalViewGenerator _externalViewGenerator;
+  // private final ExternalViewGenerator _externalViewGenerator;
   ClusterStatusMonitor _clusterStatusMonitor;
-  
+
   /**
    * The _paused flag is checked by function handleEvent(), while if the flag is set
    * handleEvent() will be no-op. Other event handling logic keeps the same when the flag
@@ -153,11 +149,11 @@ public class GenericHelixController implements
       registry.register("resume", dataRefresh, rebalancePipeline, externalViewPipeline);
 
       // health stats pipeline
-//      Pipeline healthStatsAggregationPipeline = new Pipeline();
-//      StatsAggregationStage statsStage = new StatsAggregationStage();
-//      healthStatsAggregationPipeline.addStage(new ReadHealthDataStage());
-//      healthStatsAggregationPipeline.addStage(statsStage);
-//      registry.register("healthChange", healthStatsAggregationPipeline);
+      // Pipeline healthStatsAggregationPipeline = new Pipeline();
+      // StatsAggregationStage statsStage = new StatsAggregationStage();
+      // healthStatsAggregationPipeline.addStage(new ReadHealthDataStage());
+      // healthStatsAggregationPipeline.addStage(statsStage);
+      // registry.register("healthChange", healthStatsAggregationPipeline);
 
       return registry;
     }
@@ -170,9 +166,14 @@ public class GenericHelixController implements
     _instanceCurrentStateChangeSubscriptionSessionIds =
         new ConcurrentSkipListSet<String>();
     _instanceSubscriptionNames = new ConcurrentSkipListSet<String>();
-    _externalViewGenerator = new ExternalViewGenerator();
+    // _externalViewGenerator = new ExternalViewGenerator();
   }
 
+  /**
+   * lock-always: caller always needs to obtain an external lock before call,
+   *    calls to handleEvent() should be serialized
+   * @param event
+   */
   protected void handleEvent(ClusterEvent event)
   {
     HelixManager manager = event.getAttribute("helixmanager");
@@ -194,29 +195,34 @@ public class GenericHelixController implements
       logger.info("Cluster is paused. Ignoring the event:" + event.getName());
       return;
     }
-    // Initialize _clusterStatusMonitor
-    if(_clusterStatusMonitor == null)
+
+    NotificationContext context = null;
+    if (event.getAttribute("changeContext") != null)
     {
-      _clusterStatusMonitor = new ClusterStatusMonitor(
-          manager.getClusterName());
+      context = (NotificationContext) (event.getAttribute("changeContext"));
     }
-    
-    if(event.getAttribute("changeContext") != null)
+
+    // Initialize _clusterStatusMonitor
+    if (context != null)
     {
-      NotificationContext context = (NotificationContext) (event.getAttribute("changeContext"));
-      if(context.getType() == Type.FINALIZE)
+      if (context.getType() == Type.FINALIZE)
       {
-        if(_clusterStatusMonitor != null)
+        if (_clusterStatusMonitor != null)
         {
           _clusterStatusMonitor.reset();
+          _clusterStatusMonitor = null;
         }
       }
-      else 
+      else
       {
+        if (_clusterStatusMonitor == null)
+        {
+          _clusterStatusMonitor = new ClusterStatusMonitor(manager.getClusterName());
+        }
         event.addAttribute("clusterStatusMonitor", _clusterStatusMonitor);
       }
     }
-    
+
     List<Pipeline> pipelines = _registry.getPipelinesForEvent(event.getName());
     if (pipelines == null || pipelines.size() == 0)
     {
@@ -231,12 +237,6 @@ public class GenericHelixController implements
         pipeline.handle(event);
         pipeline.finish();
       }
-      // catch (ZkInterruptedException e)
-      // {
-      // logger.error("Interrupted while executing pipeline:" + pipeline
-      // + ". Will not continue to next pipeline" + ", exception:" + e);
-      // break;
-      // }
       catch (Exception e)
       {
         logger.error("Exception while executing pipeline: " + pipeline
@@ -246,33 +246,33 @@ public class GenericHelixController implements
     }
   }
 
-  private boolean isEnabled(String eventName, HelixManager manager)
-  {
-    // check if pipeline trigger (onXXXChange) has been disabled
-    ConfigAccessor configAccessor = manager.getConfigAccessor();
-    boolean enabled = true;
-    if (eventName.equalsIgnoreCase("healthChange"))
-    {
-      //for now healthcheck has to be explicitly enabled
-      enabled = false;
-    }
-    if (configAccessor != null)
-    {
-      // zk-based cluster manager
-      ConfigScope scope =
-          new ConfigScopeBuilder().forCluster(manager.getClusterName()).build();
-      String isEnabled = configAccessor.get(scope, eventName + ".enabled");
-      if (isEnabled != null)
-      {
-        enabled = new Boolean(isEnabled);
-      }
-    }
-    else
-    {
-      logger.debug("File-based cluster manager doesn't support disable pipeline trigger");
-    }
-    return enabled;
-  }
+//  private boolean isEnabled(String eventName, HelixManager manager)
+//  {
+//    // check if pipeline trigger (onXXXChange) has been disabled
+//    ConfigAccessor configAccessor = manager.getConfigAccessor();
+//    boolean enabled = true;
+//    if (eventName.equalsIgnoreCase("healthChange"))
+//    {
+//      // for now healthcheck has to be explicitly enabled
+//      enabled = false;
+//    }
+//    if (configAccessor != null)
+//    {
+//      // zk-based cluster manager
+//      ConfigScope scope =
+//          new ConfigScopeBuilder().forCluster(manager.getClusterName()).build();
+//      String isEnabled = configAccessor.get(scope, eventName + ".enabled");
+//      if (isEnabled != null)
+//      {
+//        enabled = new Boolean(isEnabled);
+//      }
+//    }
+//    else
+//    {
+//      logger.debug("File-based cluster manager doesn't support disable pipeline trigger");
+//    }
+//    return enabled;
+//  }
 
   // TODO since we read data in pipeline, we can get rid of reading from zookeeper in
   // callback
@@ -311,19 +311,18 @@ public class GenericHelixController implements
                              NotificationContext changeContext)
   {
     /**
-     * When there are more participant ( > 20, can be in hundreds), 
-     * This callback can be called quite frequently as each participant 
-     * reports health stat every minute. Thus we change the health check 
-     * pipeline to run in a timer callback.
+     * When there are more participant ( > 20, can be in hundreds), This callback can be
+     * called quite frequently as each participant reports health stat every minute. Thus
+     * we change the health check pipeline to run in a timer callback.
      * */
-//    logger.info("START: GenericClusterController.onHealthChange()");
-//    ClusterEvent event = new ClusterEvent("healthChange");
-//    event.addAttribute("helixmanager", changeContext.getManager());
-//    event.addAttribute("instanceName", instanceName);
-//    event.addAttribute("changeContext", changeContext);
-//    event.addAttribute("eventData", reports);
-//    handleEvent(event);
-//    logger.info("END: GenericClusterController.onHealthChange()");
+    // logger.info("START: GenericClusterController.onHealthChange()");
+    // ClusterEvent event = new ClusterEvent("healthChange");
+    // event.addAttribute("helixmanager", changeContext.getManager());
+    // event.addAttribute("instanceName", instanceName);
+    // event.addAttribute("changeContext", changeContext);
+    // event.addAttribute("eventData", reports);
+    // handleEvent(event);
+    // logger.info("END: GenericClusterController.onHealthChange()");
   }
 
   @Override
@@ -396,16 +395,6 @@ public class GenericHelixController implements
           {
             logger.info("Adding msg/health listeners for " + instanceName);
             changeContext.getManager().addMessageListener(this, instanceName);
-
-//            if (isEnabled("healthChange", changeContext.getManager()))
-//            {
-//              changeContext.getManager().addHealthStateChangeListener(this, instanceName);
-//            }
-//            else
-//            {
-//              logger.info("healthChange is disabled");
-//            }
-
             _instanceSubscriptionNames.add(instanceName);
           }
         }
@@ -509,7 +498,7 @@ public class GenericHelixController implements
         _instanceCurrentStateChangeSubscriptionSessionIds.add(clientSessionId);
       }
       // TODO shi should call removeListener on the previous session id;
-      // but the removeListener with that functionality is not implementated yet
+      // but the removeListener with that functionality is not implemented yet
     }
   }
 

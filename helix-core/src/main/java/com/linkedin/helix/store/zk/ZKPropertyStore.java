@@ -406,7 +406,6 @@ public class ZKPropertyStore<T> implements PropertyStore<T>, IZkStateListener //
         "setPropertyDelimiter() not implemented for ZKPropertyStore");
   }
 
-  // TODO think about replacing with a refresh thread to do all the callbacks
   // put data/child listeners on prefix and all childs
   @Override
   public void subscribeForPropertyChange(String prefix,

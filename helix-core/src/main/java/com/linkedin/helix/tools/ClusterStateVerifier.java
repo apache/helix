@@ -47,6 +47,8 @@ public class ClusterStateVerifier
   public static String zkServerAddress = "zkSvr";
   public static String help = "help";
   public static String timeout = "timeout";
+  public static String sleepInterval = "sleepInterval";
+
   private static Logger LOG = Logger.getLogger(ClusterStateVerifier.class);
 
   public interface Verifier
@@ -355,7 +357,12 @@ public class ClusterStateVerifier
 
   public static boolean verify(Verifier verifier, long timeout)
   {
-    final long sleepInterval = 1000; // in ms
+    return verify(verifier, timeout, 1000);
+  }
+
+  public static boolean verify(Verifier verifier, long timeout, long sleepInterval)
+  {
+    // final long sleepInterval = 1000; // in ms
 
     long startTime = System.currentTimeMillis();
     boolean result = false;
@@ -481,13 +488,19 @@ public class ClusterStateVerifier
     Option timeoutOption = OptionBuilder.withLongOpt(timeout)
         .withDescription("Timeout value for verification").create();
     timeoutOption.setArgs(1);
-    timeoutOption.setArgName("Timeout value (Optional)");
+    timeoutOption.setArgName("Timeout value (Optional), default=30s");
+
+    Option sleepIntervalOption = OptionBuilder.withLongOpt(sleepInterval)
+        .withDescription("SleepInterval for verification").create();
+    sleepIntervalOption.setArgs(1);
+    sleepIntervalOption.setArgName("SleepInterval value (Optional), default=1s");
 
     Options options = new Options();
     options.addOption(helpOption);
     options.addOption(zkServerOption);
     options.addOption(clusterOption);
     options.addOption(timeoutOption);
+    options.addOption(sleepIntervalOption);
 
     return options;
   }
@@ -495,6 +508,7 @@ public class ClusterStateVerifier
   public static void printUsage(Options cliOptions)
   {
     HelpFormatter helpFormatter = new HelpFormatter();
+    helpFormatter.setWidth(1000);
     helpFormatter.printHelp("java " + ClusterSetup.class.getName(), cliOptions);
   }
 
@@ -502,7 +516,7 @@ public class ClusterStateVerifier
   {
     CommandLineParser cliParser = new GnuParser();
     Options cliOptions = constructCommandLineOptions();
-    CommandLine cmd = null;
+//    CommandLine cmd = null;
 
     try
     {
@@ -523,12 +537,15 @@ public class ClusterStateVerifier
     String clusterName = "storage-cluster";
     String zkServer = "localhost:2181";
     long timeoutValue = 0;
+    long sleepIntervalValue = 1000;
+
     if (args.length > 0)
     {
       CommandLine cmd = processCommandLineArgs(args);
       zkServer = cmd.getOptionValue(zkServerAddress);
       clusterName = cmd.getOptionValue(cluster);
       String timeoutStr = cmd.getOptionValue(timeout);
+      String sleepIntervalStr = cmd.getOptionValue(sleepInterval);
       if (timeoutStr != null)
       {
         try
@@ -539,8 +556,20 @@ public class ClusterStateVerifier
           System.err.println("Exception in converting " + timeoutStr + " to long. Use default (0)");
         }
       }
+
+      if (sleepIntervalStr != null)
+      {
+        try
+        {
+          sleepIntervalValue = Long.parseLong(sleepIntervalStr);
+        } catch (Exception e)
+        {
+          System.err.println("Exception in converting " + sleepIntervalStr + " to long. Use default (1000)");
+        }
+      }
+
     }
-    return verify(new BestPossAndExtViewZkVerifier(zkServer, clusterName), timeoutValue);
+    return verify(new BestPossAndExtViewZkVerifier(zkServer, clusterName), timeoutValue, sleepIntervalValue);
 
   }
 

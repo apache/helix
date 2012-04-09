@@ -113,6 +113,7 @@ public class TestDummyAlerts extends ZkIntegrationTestBase
       Assert.assertEquals(record.getId(), "mockAlerts4");
     }
 
+    // Thread.sleep(Long.MAX_VALUE);
     System.out.println("END TestDummyAlerts at " + new Date(System.currentTimeMillis()));
   }
 }

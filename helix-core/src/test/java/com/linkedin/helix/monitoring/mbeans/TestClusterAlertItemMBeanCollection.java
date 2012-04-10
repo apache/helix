@@ -183,4 +183,58 @@ public class TestClusterAlertItemMBeanCollection
       Assert.assertTrue(delta.get(alertBeanName).equals("ON"));
     }
   }
+  @Test
+  public void TestAlertRefresh() throws InstanceNotFoundException, MalformedObjectNameException, NullPointerException, IOException, IntrospectionException, AttributeNotFoundException, ReflectionException, MBeanException, InterruptedException
+  {
+    ClusterAlertMBeanCollection beanCollection = new ClusterAlertMBeanCollection();
+    
+    String clusterName = "TestCluster";
+    String originAlert1 = "EXP(decay(1.0)(esv4-app7*.RestQueryStats@DBName=BizProfile.MinServerLatency))CMP(GREATER)CON(10)";
+    Map<String, AlertValueAndStatus> alertResultMap1 = new HashMap<String, AlertValueAndStatus>();
+    int nAlerts1 = 5;
+    
+    String originAlert2 = "EXP(decay(1.0)(esv4-app9*.RestQueryStats@DBName=BizProfile.MaxServerLatency))CMP(GREATER)CON(10)";
+    Map<String, AlertValueAndStatus> alertResultMap2 = new HashMap<String, AlertValueAndStatus>();
+    int nAlerts2 = 3;
+    
+    TestClusterMBeanObserver jmxMBeanObserver = new TestClusterMBeanObserver(ClusterAlertMBeanCollection.DOMAIN_ALERT);
+    
+    for(int i = 0; i < nAlerts1; i++)
+    {
+      String alertName = "esv4-app7" + i + ".stg.linkedin.com_12918.RestQueryStats@DBName=BizProfile.MinServerLatency";
+      Tuple<String> value = new Tuple<String>();
+      value.add("22" + i);
+      AlertValueAndStatus valueAndStatus = new AlertValueAndStatus(value , true);
+      alertResultMap1.put(alertName, valueAndStatus);
+    }
+    
+    for(int i = 0; i < nAlerts2; i++)
+    {
+      String alertName = "esv4-app9" + i + ".stg.linkedin.com_12918.RestQueryStats@DBName=BizProfile.MaxServerLatency";
+      Tuple<String> value = new Tuple<String>();
+      value.add("22" + i);
+      AlertValueAndStatus valueAndStatus = new AlertValueAndStatus(value , true);
+      alertResultMap2.put(alertName, valueAndStatus);
+    }
+    
+    beanCollection.setAlerts(originAlert1, alertResultMap1, clusterName);
+    beanCollection.setAlerts(originAlert2, alertResultMap2, clusterName);
+    
+    beanCollection.refreshAlertDelta(clusterName);
+    String summaryKey = ClusterAlertMBeanCollection.ALERT_SUMMARY + "_" + clusterName;
+    jmxMBeanObserver.refresh();
+    
+    Assert.assertEquals(jmxMBeanObserver._beanValueMap.size(), nAlerts2 + nAlerts1 + 1);
+    
+    Thread.sleep(300);
+    
+    beanCollection.setAlerts(originAlert1, alertResultMap1, clusterName);
+    beanCollection.checkMBeanFreshness(200);
+    
+    Thread.sleep(500);
+    
+    jmxMBeanObserver.refresh();
+    
+    Assert.assertEquals(jmxMBeanObserver._beanValueMap.size(), nAlerts1 + 1);
+  }
 }

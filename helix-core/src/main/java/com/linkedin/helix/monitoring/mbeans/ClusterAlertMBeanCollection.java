@@ -2,19 +2,14 @@ package com.linkedin.helix.monitoring.mbeans;
 
 import java.io.StringWriter;
 import java.lang.management.ManagementFactory;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentSkipListSet;
 
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
@@ -42,7 +37,9 @@ public class ClusterAlertMBeanCollection
   ClusterAlertSummary _clusterAlertSummary;
   ZNRecord _alertHistory = new ZNRecord(PropertyType.ALERT_HISTORY.toString());
   Set<String> _previousFiredAlerts = new HashSet<String>();
-  public final int _historySizeLimit = 100;
+  public static final int ALERT_HISTORY_SIZE = 100;
+  // 5 min for mbean freshness threshold
+  public static final long ALERT_NOCHANGE_THRESHOLD = 5 * 60 * 1000;
     
   final MBeanServer _beanServer;
   
@@ -277,10 +274,46 @@ public class ClusterAlertMBeanCollection
       _logger.info("No MBean change");
     }
     _recentAlertDelta = onOffAlertsMap;
+
+    checkMBeanFreshness(ALERT_NOCHANGE_THRESHOLD);
   }
   
   public Map<String, String> getRecentAlertDelta()
   {
     return _recentAlertDelta;
+  }
+  
+  /**
+   * Remove mbeans that has not been changed for thresholdInMs MS
+   * */
+  void checkMBeanFreshness(long thresholdInMs)
+  {
+    long now = new Date().getTime();
+    Set<String> oldBeanNames = new HashSet<String>();
+    // Get mbean items that has not been updated for thresholdInMs
+    for(String beanName : _alertBeans.keySet())
+    {
+      ClusterAlertItem item = _alertBeans.get(beanName);
+      if(now - item.getLastUpdateTime() > thresholdInMs)
+      {
+        oldBeanNames.add(beanName);
+        _logger.info("bean " + beanName+" has not been updated for "+ thresholdInMs +" MS");
+      }
+    }
+    for(String beanName : oldBeanNames)
+    {
+      ClusterAlertItem item = _alertBeans.get(beanName);
+      _alertBeans.remove(beanName);
+      try
+      {
+        item.reset();      
+        ObjectName objectName =  new ObjectName(DOMAIN_ALERT+":alert="+item.getSensorName());
+        _beanServer.unregisterMBean(objectName);
+      }
+      catch (Exception e)
+      {
+        _logger.warn("", e);
+      }
+    }
   }
 }

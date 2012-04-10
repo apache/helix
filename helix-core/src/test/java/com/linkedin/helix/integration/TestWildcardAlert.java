@@ -86,7 +86,7 @@ public class TestWildcardAlert extends ZkIntegrationTestBase
     public void onMBeanUnRegistered(MBeanServerConnection server,
         MBeanServerNotification mbsNotification)
     {
-
+      _beanValueMap.remove(mbsNotification.getMBeanName().toString());
     }
 
     public void refresh() throws MalformedObjectNameException, NullPointerException, InstanceNotFoundException, IntrospectionException, ReflectionException, IOException, AttributeNotFoundException, MBeanException

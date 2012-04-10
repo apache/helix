@@ -1,6 +1,8 @@
 package com.linkedin.helix.monitoring.mbeans;
 
 
+import java.util.Date;
+
 import com.linkedin.helix.alerts.AlertValueAndStatus;
 
 public class ClusterAlertItem implements ClusterAlertItemMBean
@@ -10,6 +12,7 @@ public class ClusterAlertItem implements ClusterAlertItemMBean
   int _alertFired;
   String _additionalInfo = "";
   AlertValueAndStatus _valueAndStatus;
+  long _lastUpdateTime = 0;
   
   public ClusterAlertItem(String name, AlertValueAndStatus valueAndStatus)
   {
@@ -37,6 +40,7 @@ public class ClusterAlertItem implements ClusterAlertItemMBean
   
   void refreshValues()
   {
+    _lastUpdateTime = new Date().getTime();
     if(_valueAndStatus.getValue().getElements().size() > 0)
     {
       _alertValue = Double.parseDouble(_valueAndStatus.getValue().getElements().get(0));
@@ -69,5 +73,10 @@ public class ClusterAlertItem implements ClusterAlertItemMBean
     _alertFired = 0;
     _additionalInfo = "";
     _alertValue = 0;
+  }
+  
+  public long getLastUpdateTime()
+  {
+    return _lastUpdateTime;
   }
 }

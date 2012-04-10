@@ -26,10 +26,20 @@ public class CompatibilityCheckStage extends AbstractBaseStage
   {
       Map<String, Boolean> map = new HashMap<String, Boolean>();
       /**
-       * {controllerPrimaryVersion, participantPrimaryVersion} -> false
+       * {controllerPrimaryVersion,participantPrimaryVersion} -> false
        */
       map.put("0.4,0.3", false);
       INCOMPATIBLE_MAP = Collections.unmodifiableMap(map);
+  }
+
+  private String getPrimaryVersion(String version)
+  {
+    String[] splits = version.split("\\.");
+    if (splits == null || splits.length != 3)
+    {
+      return null;
+    }
+    return version.substring(0, version.lastIndexOf('.'));
   }
 
   private boolean isCompatible(String controllerVersion, String participantVersion)
@@ -40,24 +50,25 @@ public class CompatibilityCheckStage extends AbstractBaseStage
       return true;
     }
 
-    // get the primary version
-    int idx = controllerVersion.indexOf('.', controllerVersion.indexOf('.') + 1);
-    String ctrlPrimVersion = controllerVersion.substring(0, idx);
-    idx = participantVersion.indexOf('.', participantVersion.indexOf('.') + 1);
-    String partPrimVersion = participantVersion.substring(0, idx);
-    if (ctrlPrimVersion.compareTo(partPrimVersion) < 0)
+    // compare primary version
+    String controllerPrimaryVersion = getPrimaryVersion(controllerVersion);
+    String participantPrimaryVersion = getPrimaryVersion(participantVersion);
+    if (controllerPrimaryVersion != null && participantPrimaryVersion != null)
     {
-      LOG.info("Controller primary version is less than participant primary version.");
-      return false;
-    }
-    else
-    {
-      if (INCOMPATIBLE_MAP.containsKey(ctrlPrimVersion + "," + partPrimVersion))
+      if (controllerPrimaryVersion.compareTo(participantPrimaryVersion) < 0)
       {
+        LOG.info("Controller primary version is less than participant primary version.");
         return false;
       }
-      return true;
+      else
+      {
+        if (INCOMPATIBLE_MAP.containsKey(controllerPrimaryVersion + "," + participantPrimaryVersion))
+        {
+          return false;
+        }
+      }
     }
+    return true;
   }
 
   @Override

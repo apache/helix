@@ -74,6 +74,7 @@ public class PropertyPathConfig
     addEntry(PropertyType.PERSISTENTSTATS, 1, "/{clusterName}/CONTROLLER/PERSISTENTSTATS");
     addEntry(PropertyType.ALERTS, 1, "/{clusterName}/CONTROLLER/ALERTS");
     addEntry(PropertyType.ALERT_STATUS, 1, "/{clusterName}/CONTROLLER/ALERT_STATUS");
+    addEntry(PropertyType.ALERT_HISTORY, 1, "/{clusterName}/CONTROLLER/ALERT_HISTORY");
     // @formatter:on
 
   }

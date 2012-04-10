@@ -1,5 +1,7 @@
 package com.linkedin.helix.controller.stages;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -42,6 +44,7 @@ public class StatsAggregationStage extends AbstractBaseStage
   Map<String, Tuple<String>> _statStatus;
   ClusterAlertMBeanCollection _alertBeanCollection = new ClusterAlertMBeanCollection();
 
+  public final int ALERT_HISTORY_SIZE = 100;
   public final String PARTICIPANT_STAT_REPORT_NAME = StatHealthReportProvider.REPORT_NAME;
   public final String ESPRESSO_STAT_REPORT_NAME = "RestQueryStats";
   public final String REPORT_NAME = "AggStats";
@@ -158,7 +161,6 @@ public class StatsAggregationStage extends AbstractBaseStage
       boolean reportedAge = false;
       for (HealthStat participantStat : stats.values())
       {
-
         if (participantStat != null && !reportedAge)
         {
           // generate and report stats for how old this node's report is
@@ -166,7 +168,6 @@ public class StatsAggregationStage extends AbstractBaseStage
           reportAgeStat(instance, modTime, currTime);
           reportedAge = true;
         }
-
         // System.out.println(modTime);
         // XXX: need to convert participantStat to a better format
         // need to get instanceName in here
@@ -210,7 +211,30 @@ public class StatsAggregationStage extends AbstractBaseStage
                                      _alertStatus.get(originAlertName),
                                      manager.getClusterName());
     }
-
+    // Write alert fire history to zookeeper
+    _alertBeanCollection.refreshAlertDelta(manager.getClusterName());
+    Map<String, String> delta = _alertBeanCollection.getRecentAlertDelta();
+    // Update history only when some beans has changed
+    if(delta.size() > 0)
+    {
+      SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-DD-hh:mm:ss");
+      String date = dateFormat.format(new Date());
+      
+      ZNRecord alertFiredHistory = manager.getDataAccessor().getProperty(PropertyType.ALERT_HISTORY);
+      if(alertFiredHistory == null)
+      {
+        alertFiredHistory = new ZNRecord(PropertyType.ALERT_HISTORY.toString());
+      }
+      while(alertFiredHistory.getMapFields().size() >= ALERT_HISTORY_SIZE)
+      {
+        // ZNRecord uses TreeMap which is sorted ascending internally
+        String firstKey = (String)(alertFiredHistory.getMapFields().keySet().toArray()[0]);
+        alertFiredHistory.getMapFields().remove(firstKey);
+      }
+      alertFiredHistory.setMapField(date, delta);
+      manager.getDataAccessor().setProperty(PropertyType.ALERT_HISTORY, alertFiredHistory);
+      _alertBeanCollection.setAlertHistory(alertFiredHistory);
+    }
     long writeAlertStartTime = System.currentTimeMillis();
     // write out alert status (to zk)
     _alertsHolder.addAlertStatusSet(_alertStatus);

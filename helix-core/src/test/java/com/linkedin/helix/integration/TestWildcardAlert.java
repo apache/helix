@@ -49,9 +49,9 @@ import com.linkedin.helix.tools.ClusterStateVerifier;
 
 public class TestWildcardAlert extends ZkIntegrationTestBase
 {
-  class TestClusterMBeanObserver extends ClusterMBeanObserver
+  public static class TestClusterMBeanObserver extends ClusterMBeanObserver
   {
-    Map<String, Map<String, Object>> _beanValueMap = new HashMap<String, Map<String, Object>>();
+    public Map<String, Map<String, Object>> _beanValueMap = new HashMap<String, Map<String, Object>>();
 
     public TestClusterMBeanObserver(String domain) throws InstanceNotFoundException, IOException,
         MalformedObjectNameException, NullPointerException

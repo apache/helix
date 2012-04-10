@@ -1,71 +1,186 @@
 package com.linkedin.helix.monitoring.mbeans;
 
 import java.io.IOException;
-import java.lang.management.ManagementFactory;
+import java.io.StringReader;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
+import javax.management.AttributeNotFoundException;
 import javax.management.InstanceNotFoundException;
-import javax.management.MBeanAttributeInfo;
-import javax.management.MBeanInfo;
-import javax.management.MBeanServer;
-import javax.management.MBeanServerConnection;
-import javax.management.MBeanServerNotification;
+import javax.management.IntrospectionException;
+import javax.management.MBeanException;
 import javax.management.MalformedObjectNameException;
-import javax.management.ObjectName;
+import javax.management.ReflectionException;
 
 import org.apache.log4j.Logger;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.type.TypeReference;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.alerts.AlertValueAndStatus;
+import com.linkedin.helix.alerts.Tuple;
+import com.linkedin.helix.integration.TestWildcardAlert.TestClusterMBeanObserver;
 import com.linkedin.helix.monitoring.mbeans.ClusterAlertMBeanCollection;
-import com.linkedin.helix.monitoring.mbeans.ClusterMBeanObserver;
 
 public class TestClusterAlertItemMBeanCollection
 {
   private static final Logger _logger = Logger.getLogger(TestClusterAlertItemMBeanCollection.class);
-  
-  class TestClusterMBeanObserver extends ClusterMBeanObserver
+
+  @Test
+  public void TestAlertReportingHistory() throws InstanceNotFoundException, MalformedObjectNameException, NullPointerException, IOException, IntrospectionException, AttributeNotFoundException, ReflectionException, MBeanException
   {
-    Map<String, Map<String, Object>> _beanValueMap = new HashMap<String, Map<String, Object>>();
+    ClusterAlertMBeanCollection beanCollection = new ClusterAlertMBeanCollection();
     
-    public TestClusterMBeanObserver(String domain)
-        throws InstanceNotFoundException, IOException,
-        MalformedObjectNameException, NullPointerException
+    String clusterName = "TestCluster";
+    String originAlert1 = "EXP(decay(1.0)(esv4-app7*.RestQueryStats@DBName=BizProfile.MinServerLatency))CMP(GREATER)CON(10)";
+    Map<String, AlertValueAndStatus> alertResultMap1 = new HashMap<String, AlertValueAndStatus>();
+    int nAlerts1 = 5;
+    
+    String originAlert2 = "EXP(decay(1.0)(esv4-app9*.RestQueryStats@DBName=BizProfile.MaxServerLatency))CMP(GREATER)CON(10)";
+    Map<String, AlertValueAndStatus> alertResultMap2 = new HashMap<String, AlertValueAndStatus>();
+    int nAlerts2 = 3;
+    
+    TestClusterMBeanObserver jmxMBeanObserver = new TestClusterMBeanObserver(ClusterAlertMBeanCollection.DOMAIN_ALERT);
+    
+    for(int i = 0; i < nAlerts1; i++)
     {
-      super(domain);
+      String alertName = "esv4-app7" + i + ".stg.linkedin.com_12918.RestQueryStats@DBName=BizProfile.MinServerLatency";
+      Tuple<String> value = new Tuple<String>();
+      value.add("22" + i);
+      AlertValueAndStatus valueAndStatus = new AlertValueAndStatus(value , true);
+      alertResultMap1.put(alertName, valueAndStatus);
     }
-
-    @Override
-    public void onMBeanRegistered(MBeanServerConnection server,
-        MBeanServerNotification mbsNotification)
+    
+    for(int i = 0; i < nAlerts2; i++)
     {
-      try
-      {
-        MBeanInfo info = _server.getMBeanInfo(mbsNotification.getMBeanName());
-        MBeanAttributeInfo[] infos = info.getAttributes();
-        _beanValueMap.put(mbsNotification.getMBeanName().toString(), new HashMap<String, Object>());
-        for(MBeanAttributeInfo infoItem : infos)
-        {
-          Object val = _server.getAttribute(mbsNotification.getMBeanName(), infoItem.getName());
-          System.out.println("         " + infoItem.getName() + " : " + _server.getAttribute(mbsNotification.getMBeanName(), infoItem.getName()) + " type : " + infoItem.getType());
-          _beanValueMap.get(mbsNotification.getMBeanName().toString()).put(infoItem.getName(), val);
-        }
-      } 
-      catch (Exception e)
-      {
-        _logger.error("Error getting bean info, domain="+_domain, e);
-      } 
+      String alertName = "esv4-app9" + i + ".stg.linkedin.com_12918.RestQueryStats@DBName=BizProfile.MaxServerLatency";
+      Tuple<String> value = new Tuple<String>();
+      value.add("22" + i);
+      AlertValueAndStatus valueAndStatus = new AlertValueAndStatus(value , true);
+      alertResultMap1.put(alertName, valueAndStatus);
     }
+    
+    beanCollection.setAlerts(originAlert1, alertResultMap1, clusterName);
+    beanCollection.setAlerts(originAlert2, alertResultMap2, clusterName);
+    
+    beanCollection.refreshAlertDelta(clusterName);
+    String summaryKey = ClusterAlertMBeanCollection.ALERT_SUMMARY + "_" + clusterName;
+    jmxMBeanObserver.refresh();
+    
+    // Get the history list
+    String beanName = "HelixAlerts:alert=" + summaryKey;
+    Map<String, Object> beanValueMap = jmxMBeanObserver._beanValueMap.get(beanName);
+    String history1 = (String) (beanValueMap.get("AlertFiredHistory"));
+    
+    StringReader sr = new StringReader(history1);
+    ObjectMapper mapper = new ObjectMapper();
 
-    @Override
-    public void onMBeanUnRegistered(MBeanServerConnection server,
-        MBeanServerNotification mbsNotification)
+    // check the history
+   
+    Map<String, String> delta = beanCollection.getRecentAlertDelta();
+    Assert.assertEquals(delta.size(), nAlerts1 + nAlerts2);
+    for(int i = 0; i < nAlerts1; i++)
     {
-      
-    } 
+      String alertBeanName = "(esv4-app7" + i + ".stg.linkedin.com_12918.RestQueryStats@DBName#BizProfile.MinServerLatency)GREATER(10)";
+      Assert.assertTrue(delta.get(alertBeanName).equals("ON"));
+    }
+    
+    for(int i = 0; i < nAlerts2; i++)
+    {
+      String alertBeanName = "(esv4-app9" + i + ".stg.linkedin.com_12918.RestQueryStats@DBName#BizProfile.MaxServerLatency)GREATER(10)";
+      Assert.assertTrue(delta.get(alertBeanName).equals("ON"));
+    }
+    
+    alertResultMap1 = new HashMap<String, AlertValueAndStatus>();
+    for(int i = 0; i < 3; i++)
+    {
+      String alertName = "esv4-app7" + i + ".stg.linkedin.com_12918.RestQueryStats@DBName=BizProfile.MinServerLatency";
+      Tuple<String> value = new Tuple<String>();
+      value.add("22" + i);
+      AlertValueAndStatus valueAndStatus = new AlertValueAndStatus(value , true);
+      alertResultMap1.put(alertName, valueAndStatus);
+    }
+    
+    for(int i = 3; i < 5; i++)
+    {
+      String alertName = "esv4-app7" + i + ".stg.linkedin.com_12918.RestQueryStats@DBName=BizProfile.MinServerLatency";
+      Tuple<String> value = new Tuple<String>();
+      value.add("22" + i);
+      AlertValueAndStatus valueAndStatus = new AlertValueAndStatus(value , false);
+      alertResultMap1.put(alertName, valueAndStatus);
+    }
+    
+    for(int i = 7; i < 9; i++)
+    {
+      String alertName = "esv4-app7" + i + ".stg.linkedin.com_12918.RestQueryStats@DBName=BizProfile.MinServerLatency";
+      Tuple<String> value = new Tuple<String>();
+      value.add("22" + i);
+      AlertValueAndStatus valueAndStatus = new AlertValueAndStatus(value , true);
+      alertResultMap1.put(alertName, valueAndStatus);
+    }
+    
+    for(int i = 0; i < 2; i++)
+    {
+      String alertName = "esv4-app9" + i + ".stg.linkedin.com_12918.RestQueryStats@DBName=BizProfile.MaxServerLatency";
+      Tuple<String> value = new Tuple<String>();
+      value.add("22" + i);
+      AlertValueAndStatus valueAndStatus = new AlertValueAndStatus(value , false);
+      alertResultMap1.put(alertName, valueAndStatus);
+    }
+    
+    for(int i = 2; i < 3; i++)
+    {
+      String alertName = "esv4-app9" + i + ".stg.linkedin.com_12918.RestQueryStats@DBName=BizProfile.MaxServerLatency";
+      Tuple<String> value = new Tuple<String>();
+      value.add("22" + i);
+      AlertValueAndStatus valueAndStatus = new AlertValueAndStatus(value , true);
+      alertResultMap1.put(alertName, valueAndStatus);
+    }
+    for(int i = 7; i < 9; i++)
+    {
+      String alertName = "esv4-app9" + i + ".stg.linkedin.com_12918.RestQueryStats@DBName=BizProfile.MaxServerLatency";
+      Tuple<String> value = new Tuple<String>();
+      value.add("22" + i);
+      AlertValueAndStatus valueAndStatus = new AlertValueAndStatus(value , true);
+      alertResultMap1.put(alertName, valueAndStatus);
+    }
+    
+    beanCollection.setAlerts(originAlert1, alertResultMap1, clusterName);
+    beanCollection.refreshAlertDelta(clusterName);
+    jmxMBeanObserver.refresh();
+
+    beanValueMap = jmxMBeanObserver._beanValueMap.get(beanName);
+    history1 = (String) (beanValueMap.get("AlertFiredHistory"));
+    
+    sr = new StringReader(history1);
+    mapper = new ObjectMapper();
+
+    // check the history
+    delta = beanCollection.getRecentAlertDelta();
+    Assert.assertEquals(delta.size(),  8);
+    for(int i = 3; i < 5; i++)
+    {
+      String alertBeanName = "(esv4-app7" + i + ".stg.linkedin.com_12918.RestQueryStats@DBName#BizProfile.MinServerLatency)GREATER(10)";
+      Assert.assertTrue(delta.get(alertBeanName).equals("OFF"));
+    }
+    for(int i = 7; i < 9; i++)
+    {
+      String alertBeanName = "(esv4-app7" + i + ".stg.linkedin.com_12918.RestQueryStats@DBName#BizProfile.MinServerLatency)GREATER(10)";
+      Assert.assertTrue(delta.get(alertBeanName).equals("ON"));
+    }
+    
+    for(int i = 0; i < 2; i++)
+    {
+      String alertBeanName = "(esv4-app9" + i + ".stg.linkedin.com_12918.RestQueryStats@DBName#BizProfile.MaxServerLatency)GREATER(10)";
+      Assert.assertTrue(delta.get(alertBeanName).equals("OFF"));
+    }
+    for(int i = 7; i < 9; i++)
+    {
+      String alertBeanName = "(esv4-app9" + i + ".stg.linkedin.com_12918.RestQueryStats@DBName#BizProfile.MaxServerLatency)GREATER(10)";
+      Assert.assertTrue(delta.get(alertBeanName).equals("ON"));
+    }
   }
 }

@@ -1,9 +1,15 @@
 package com.linkedin.helix.monitoring.mbeans;
 
+import java.io.StringWriter;
 import java.lang.management.ManagementFactory;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -14,7 +20,11 @@ import javax.management.MBeanServer;
 import javax.management.ObjectName;
 
 import org.apache.log4j.Logger;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.map.SerializationConfig;
 
+import com.linkedin.helix.PropertyType;
+import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.alerts.AlertParser;
 import com.linkedin.helix.alerts.AlertValueAndStatus;
 import com.linkedin.helix.alerts.Tuple;
@@ -28,7 +38,48 @@ public class ClusterAlertMBeanCollection
   ConcurrentHashMap<String, ClusterAlertItem> _alertBeans 
     = new ConcurrentHashMap<String, ClusterAlertItem>();
   
+  Map<String, String> _recentAlertDelta;
+  ClusterAlertSummary _clusterAlertSummary;
+  ZNRecord _alertHistory = new ZNRecord(PropertyType.ALERT_HISTORY.toString());
+  Set<String> _previousFiredAlerts = new HashSet<String>();
+  public final int _historySizeLimit = 100;
+    
   final MBeanServer _beanServer;
+  
+  public interface ClusterAlertSummaryMBean extends ClusterAlertItemMBean
+  {
+    public String getAlertFiredHistory();
+  }
+  
+  class ClusterAlertSummary extends ClusterAlertItem implements ClusterAlertSummaryMBean
+  {
+    public ClusterAlertSummary(String name, AlertValueAndStatus valueAndStatus)
+    {
+      super(name, valueAndStatus);
+    }
+    /**
+     * Returns the previous 100 alert mbean turn on / off history
+     * */
+    @Override
+    public String getAlertFiredHistory()
+    {
+      try
+      {
+        ObjectMapper mapper = new ObjectMapper();
+        SerializationConfig serializationConfig = mapper.getSerializationConfig();
+        serializationConfig.set(SerializationConfig.Feature.INDENT_OUTPUT, true);
+        StringWriter sw = new StringWriter();
+        mapper.writeValue(sw, _alertHistory);
+        return sw.toString();
+      }
+      catch(Exception e)
+      {
+        _logger.warn("", e);
+        return "";
+      }
+    }
+  }
+  
   
   public ClusterAlertMBeanCollection()
   {
@@ -75,7 +126,7 @@ public class ClusterAlertMBeanCollection
       {
         String comparator = AlertParser.getComponent(AlertParser.COMPARATOR_NAME, originAlert);
         String constant = AlertParser.getComponent(AlertParser.CONSTANT_NAME, originAlert);
-        beanName = "("+ alertName+")"+"GREATER("+constant+")";
+        beanName = "("+ alertName+")" + comparator + "("+constant+")";
       }
       else
       {
@@ -95,6 +146,11 @@ public class ClusterAlertMBeanCollection
       }
     }
     refreshSummayAlert(clusterName);
+  }
+  
+  public void setAlertHistory(ZNRecord alertHistory)
+  {
+    _alertHistory = alertHistory;
   }
   /**
    *  The summary alert is a combination of all alerts, if it is on, something is wrong on this 
@@ -123,10 +179,11 @@ public class ClusterAlertMBeanCollection
     AlertValueAndStatus summaryStatus = new AlertValueAndStatus(t, fired);
     if(!_alertBeans.containsKey(summaryKey))
     {
-      ClusterAlertItem item = new ClusterAlertItem(summaryKey, summaryStatus);
+      ClusterAlertSummary item = new ClusterAlertSummary(summaryKey, summaryStatus);
       onNewAlertMbeanAdded(item);
       item.setAdditionalInfo(alertsFired);
       _alertBeans.put(summaryKey, item);
+      _clusterAlertSummary = item;
     }
     else
     {
@@ -171,5 +228,59 @@ public class ClusterAlertMBeanCollection
       }
     }
     _alertBeans.clear();
+  }
+
+  public void refreshAlertDelta(String clusterName)
+  {
+    // Update the alert turn on/turn off history
+    String summaryKey = ALERT_SUMMARY + "_" + clusterName;
+    Set<String> currentFiredAlerts = new HashSet<String>();
+    for(String key : _alertBeans.keySet())
+    {
+      if(!key.equals(summaryKey))
+      {
+        ClusterAlertItem item = _alertBeans.get(key);
+        if(item.getAlertFired() == 1)
+        {
+          currentFiredAlerts.add(item._alertItemName);
+        }
+      }
+    }
+    
+    Map<String, String> onOffAlertsMap = new HashMap<String, String>();
+    for(String alertName : currentFiredAlerts)
+    {
+      if(!_previousFiredAlerts.contains(alertName))
+      {
+        onOffAlertsMap.put(alertName, "ON");
+        _logger.info(alertName + " ON");
+        _previousFiredAlerts.add(alertName);
+      }
+    }      
+    for(String cachedAlert : _previousFiredAlerts)
+    {
+      if(!currentFiredAlerts.contains(cachedAlert))
+      {
+        onOffAlertsMap.put(cachedAlert, "OFF");
+        _logger.info(cachedAlert + " OFF");
+      }
+    }
+    for(String key : onOffAlertsMap.keySet())
+    {
+      if(onOffAlertsMap.get(key).equals("OFF"))
+      {
+        _previousFiredAlerts.remove(key);
+      }
+    }
+    if(onOffAlertsMap.size() == 0)
+    {
+      _logger.info("No MBean change");
+    }
+    _recentAlertDelta = onOffAlertsMap;
+  }
+  
+  public Map<String, String> getRecentAlertDelta()
+  {
+    return _recentAlertDelta;
   }
 }

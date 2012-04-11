@@ -157,6 +157,6 @@ public class ClusterStatusMonitor
   
   public String getSensorName()
   {
-    return "ClusterStatus";
+    return "ClusterStatus"+"_" + _clusterName;
   }
 }

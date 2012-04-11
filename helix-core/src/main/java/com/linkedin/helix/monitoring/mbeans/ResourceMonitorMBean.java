@@ -10,4 +10,6 @@ public interface ResourceMonitorMBean
   public long getDifferenceWithIdealStateGauge();
   
   public long getExternalViewPartitionGauge();
+  
+  public String getSensorName();
 }

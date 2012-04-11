@@ -5,4 +5,6 @@ public interface ClusterStatusMonitorMBean
   public long getDownInstanceGauge();
   
   public long getInstancesGauge();
+  
+  public String getSensorName();
 }

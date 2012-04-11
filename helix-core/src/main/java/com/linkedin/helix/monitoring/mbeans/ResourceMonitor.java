@@ -45,7 +45,7 @@ public class ResourceMonitor implements ResourceMonitorMBean
   
   public String getSensorName()
   {
-    return "ResourceStatus";
+    return "ResourceStatus" + "_" + _clusterName + "_" + _resourceName;
   }
 
   public void updateExternalView(ExternalView externalView, IdealState idealState)

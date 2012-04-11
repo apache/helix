@@ -213,11 +213,7 @@ public class ExpressionParser
     {
       currentStatName = getSingleAggregatorStat(currentStat);
     }
-    currentStatName = currentStatName.replaceAll("\\s+", ""); // remove white
-                                                              // space
-    String incomingStatName = incomingStat.replaceAll("\\s+", ""); // remove
-                                                                   // whitespace
-    return (incomingStatName.equals(currentStatName));
+    return (incomingStat.equals(currentStatName));
   }
 
   /*
@@ -244,11 +240,6 @@ public class ExpressionParser
     // now just get the stats
     String currentStatName = getSingleAggregatorStat(currentStat);
     String incomingStatName = getSingleAggregatorStat(incomingStat);
-
-    currentStatName = currentStatName.replaceAll("\\s+", ""); // remove white
-                                                              // space
-    incomingStatName = incomingStatName.replaceAll("\\s+", ""); // remove
-                                                                // whitespace
 
     if (!currentStatName.contains(wildcardChar))
     { // no wildcards in stat name
@@ -448,7 +439,6 @@ public class ExpressionParser
   public static String getSingleAggregatorStat(String expression)
       throws HelixException
   {
-
     String[] stats = getAggregatorStats(expression);
     if (stats.length > 1)
     {
@@ -477,8 +467,6 @@ public class ExpressionParser
   // (dbFoo.partition*.latency, dbFoo.partition*.count)|EACH|ACCUMULATE|DIVIDE
   public static String[] getBaseStats(String expression) throws HelixException
   {
-    expression = expression.replaceAll("\\s+", ""); // remove white space
-
     validateAggregatorFormat(expression);
 
     String aggName = getAggregatorStr(expression);
@@ -556,7 +544,6 @@ public class ExpressionParser
 
   public static Operator getOperator(String opName) throws HelixException
   {
-    opName = opName.replaceAll("\\s+", ""); // remove white space
     if (!operatorMap.containsKey(opName))
     {
       throw new HelixException(opName + " is unknown op type");

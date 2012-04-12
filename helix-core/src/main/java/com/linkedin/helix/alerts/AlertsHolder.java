@@ -44,8 +44,7 @@ public class AlertsHolder {
 
 	public void refreshAlerts()
 	{
-		_cache.refresh(_accessor);
-
+	  _cache.refresh(_accessor);
 		Alerts alertsRecord = _cache.getAlerts();
 		if (alertsRecord != null) {
 		_alertsMap = alertsRecord.getMapFields();

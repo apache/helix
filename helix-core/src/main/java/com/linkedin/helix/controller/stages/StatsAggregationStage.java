@@ -172,7 +172,7 @@ public class StatsAggregationStage extends AbstractBaseStage
         // System.out.println(modTime);
         // XXX: need to convert participantStat to a better format
         // need to get instanceName in here
-/*
+
         if (participantStat != null)
         {
           // String timestamp = String.valueOf(instance.getModifiedTime()); WANT
@@ -184,21 +184,10 @@ public class StatsAggregationStage extends AbstractBaseStage
             _statsHolder.applyStat(key, statMap.get(key));
           }
         }
-        */
-        if (participantStat != null)
-        {
-          // String timestamp = String.valueOf(instance.getModifiedTime()); WANT
-          // REPORT LEVEL TS
-          Map<String, Map<String, Map<String, String>>> indexedStatMap =
-              participantStat.getIndexedHealthFields(instanceName);
-          
-          _statsHolder.applyIndexedStat( indexedStatMap);
-          
-        }
       }
-      // Call _statsHolder.persistStats() once per pipeline. This will
-      // write the updated persisted stats into zookeeper
     }
+    // Call _statsHolder.persistStats() once per pipeline. This will
+    // write the updated persisted stats into zookeeper
     _statsHolder.persistStats();
     logger.info("Done processing stats: "
         + (System.currentTimeMillis() - readInstancesStart));
@@ -224,29 +213,7 @@ public class StatsAggregationStage extends AbstractBaseStage
                                      manager.getClusterName());
     }
     // Write alert fire history to zookeeper
-    _alertBeanCollection.refreshAlertDelta(manager.getClusterName());
-    Map<String, String> delta = _alertBeanCollection.getRecentAlertDelta();
-    // Update history only when some beans has changed
-    if(delta.size() > 0)
-    {
-      SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-DD-hh:mm:ss");
-      String date = dateFormat.format(new Date());
-      
-      ZNRecord alertFiredHistory = manager.getDataAccessor().getProperty(PropertyType.ALERT_HISTORY);
-      if(alertFiredHistory == null)
-      {
-        alertFiredHistory = new ZNRecord(PropertyType.ALERT_HISTORY.toString());
-      }
-      while(alertFiredHistory.getMapFields().size() >= ALERT_HISTORY_SIZE)
-      {
-        // ZNRecord uses TreeMap which is sorted ascending internally
-        String firstKey = (String)(alertFiredHistory.getMapFields().keySet().toArray()[0]);
-        alertFiredHistory.getMapFields().remove(firstKey);
-      }
-      alertFiredHistory.setMapField(date, delta);
-      manager.getDataAccessor().setProperty(PropertyType.ALERT_HISTORY, alertFiredHistory);
-      _alertBeanCollection.setAlertHistory(alertFiredHistory);
-    }
+    updateAlertHistory(manager);
     long writeAlertStartTime = System.currentTimeMillis();
     // write out alert status (to zk)
     _alertsHolder.addAlertStatusSet(_alertStatus);
@@ -280,6 +247,34 @@ public class StatsAggregationStage extends AbstractBaseStage
     long processLatency = System.currentTimeMillis() - startTime;
     addLatencyToMonitor(event, processLatency);
     logger.info("process end: " + processLatency);
+  }
+  
+  void updateAlertHistory(HelixManager manager)
+  {
+ // Write alert fire history to zookeeper
+    _alertBeanCollection.refreshAlertDelta(manager.getClusterName());
+    Map<String, String> delta = _alertBeanCollection.getRecentAlertDelta();
+    // Update history only when some beans has changed
+    if(delta.size() > 0)
+    {
+      SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-DD-hh:mm:ss");
+      String date = dateFormat.format(new Date());
+      
+      ZNRecord alertFiredHistory = manager.getDataAccessor().getProperty(PropertyType.ALERT_HISTORY);
+      if(alertFiredHistory == null)
+      {
+        alertFiredHistory = new ZNRecord(PropertyType.ALERT_HISTORY.toString());
+      }
+      while(alertFiredHistory.getMapFields().size() >= ALERT_HISTORY_SIZE)
+      {
+        // ZNRecord uses TreeMap which is sorted ascending internally
+        String firstKey = (String)(alertFiredHistory.getMapFields().keySet().toArray()[0]);
+        alertFiredHistory.getMapFields().remove(firstKey);
+      }
+      alertFiredHistory.setMapField(date, delta);
+      manager.getDataAccessor().setProperty(PropertyType.ALERT_HISTORY, alertFiredHistory);
+      _alertBeanCollection.setAlertHistory(alertFiredHistory);
+    }
   }
 
   public ClusterAlertMBeanCollection getClusterAlertMBeanCollection()

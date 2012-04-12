@@ -37,7 +37,6 @@ public class ClusterAlertMBeanCollection
   ClusterAlertSummary _clusterAlertSummary;
   ZNRecord _alertHistory = new ZNRecord(PropertyType.ALERT_HISTORY.toString());
   Set<String> _previousFiredAlerts = new HashSet<String>();
-  public static final int ALERT_HISTORY_SIZE = 100;
   // 5 min for mbean freshness threshold
   public static final long ALERT_NOCHANGE_THRESHOLD = 5 * 60 * 1000;
     

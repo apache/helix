@@ -35,6 +35,9 @@ import com.linkedin.helix.monitoring.mbeans.ClusterAlertMBeanCollection;
  */
 public class StatsAggregationStage extends AbstractBaseStage
 {
+
+  public static final int ALERT_HISTORY_SIZE = 30;
+  
   private static final Logger logger =
       Logger.getLogger(StatsAggregationStage.class.getName());
 
@@ -44,7 +47,6 @@ public class StatsAggregationStage extends AbstractBaseStage
   Map<String, Tuple<String>> _statStatus;
   ClusterAlertMBeanCollection _alertBeanCollection = new ClusterAlertMBeanCollection();
 
-  public final int ALERT_HISTORY_SIZE = 100;
   public final String PARTICIPANT_STAT_REPORT_NAME = StatHealthReportProvider.REPORT_NAME;
   public final String ESPRESSO_STAT_REPORT_NAME = "RestQueryStats";
   public final String REPORT_NAME = "AggStats";

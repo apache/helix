@@ -14,31 +14,31 @@ import com.linkedin.helix.model.Message.Attributes;
 
 public class HealthStat extends ZNRecordDecorator 
 {
-	public enum HealthStatProperty
-	{
-		FIELDS
-	}
-	private static final Logger _logger = Logger.getLogger(HealthStat.class.getName());
+  public enum HealthStatProperty
+  {
+    FIELDS
+  }
+  private static final Logger _logger = Logger.getLogger(HealthStat.class.getName());
 
-	public HealthStat(String id)
-	{
-		super(id);
-	}
+  public HealthStat(String id)
+  {
+    super(id);
+  }
 
-	public HealthStat(ZNRecord record)
-	  {
-	    super(record);
-	    if(getCreateTimeStamp() == 0)
-	    {
-	      _record.setSimpleField(Attributes.CREATE_TIMESTAMP.toString(), ""
-	          + new Date().getTime());
-	    }
-	  }
+  public HealthStat(ZNRecord record)
+    {
+      super(record);
+      if(getCreateTimeStamp() == 0)
+      {
+        _record.setSimpleField(Attributes.CREATE_TIMESTAMP.toString(), ""
+            + new Date().getTime());
+      }
+    }
 
-	public long getLastModifiedTimeStamp()
-	{
-		return _record.getModifiedTime();
-	}
+  public long getLastModifiedTimeStamp()
+  {
+    return _record.getModifiedTime();
+  }
 
   public long getCreateTimeStamp()
   {
@@ -54,21 +54,21 @@ public class HealthStat extends ZNRecordDecorator
       return 0;
     }
   }
-	
-	public String getTestField()
-	{
-		return _record.getSimpleField("requestCountStat");
-	}
-	
-	public void setHealthFields(Map<String, Map<String, String>> healthFields)
-	{
-		_record.setMapFields(healthFields);
-	}
-	
-	public String buildCompositeKey(String instance, String parentKey, String statName ) {
-		String delim = ExpressionParser.statFieldDelim;
-		return instance+delim+parentKey+delim+statName;
-	}
+  
+  public String getTestField()
+  {
+    return _record.getSimpleField("requestCountStat");
+  }
+  
+  public void setHealthFields(Map<String, Map<String, String>> healthFields)
+  {
+    _record.setMapFields(healthFields);
+  }
+  
+  public String buildCompositeKey(String instance, String parentKey, String statName ) {
+    String delim = ExpressionParser.statFieldDelim;
+    return instance+delim+parentKey+delim+statName;
+  }
 
   public Map<String, Map<String, String>> getHealthFields(String instanceName) // ,
                                                                                // String
@@ -99,17 +99,50 @@ public class HealthStat extends ZNRecordDecorator
         convertedMap.put(StatsHolder.TIMESTAMP_NAME, timestamp);
         convertedMapFields.put(compositeKey, convertedMap);
       }
+    } 
+    return convertedMapFields;
+  }
+    public Map<String, Map<String, Map<String, String>>> getIndexedHealthFields(String instanceName) // ,
+                                                                                 // String
+                                                                                 // timestamp)
+    {
+      Map<String, Map<String, Map<String, String>>> result = new HashMap<String, Map<String, Map<String, String>>>();
+    
+      Map<String, Map<String, String>> currMapFields = _record.getMapFields();
+      for (String key : currMapFields.keySet())
+      {
+        Map<String, Map<String, String>> convertedMapFields = new HashMap<String, Map<String, String>>();
+     
+        Map<String, String> currMap = currMapFields.get(key);
+        String statHiveKey = buildCompositeKey(instanceName, key, "");
+        
+        String timestamp = "-1";
+        if (_record.getSimpleFields().keySet().contains(StatsHolder.TIMESTAMP_NAME))
+        {
+          timestamp = _record.getSimpleField(StatsHolder.TIMESTAMP_NAME);
+        }
+        for (String subKey : currMap.keySet())
+        {
+          if (subKey.equals("StatsHolder.TIMESTAMP_NAME"))
+          { // don't want to get timestamp again
+            continue;
+          }
+          String compositeKey = buildCompositeKey(instanceName, key, subKey);
+          String value = currMap.get(subKey);
+          Map<String, String> convertedMap = new HashMap<String, String>();
+          convertedMap.put(StatsHolder.VALUE_NAME, value);
+          convertedMap.put(StatsHolder.TIMESTAMP_NAME, timestamp);
+          convertedMapFields.put(compositeKey, convertedMap);
+        }
+        result.put(statHiveKey, convertedMapFields);
+      }
+    return result;
+  }
 
-    }
-
-		//return _record.getMapFields();
-		return convertedMapFields;
-	}
-
-	
-	@Override
-	public boolean isValid() {
-		// TODO Auto-generated method stub
-		return false;
-	}
+  
+  @Override
+  public boolean isValid() {
+    // TODO Auto-generated method stub
+    return false;
+  }
 }

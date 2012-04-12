@@ -5,6 +5,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import org.apache.log4j.Logger;
 
@@ -220,6 +221,67 @@ public class StatsHolder
           // add to pendingAdds so we don't mess up ongoing traversal of
           // _statMap
           pendingAdds.put(statToAdd, mergedStat);
+        }
+      }
+    }
+    _statMap.putAll(pendingAdds);
+  }
+  
+
+  public void applyIndexedStat(Map<String, Map<String, Map<String, String>>> indexedStatFields)
+  {
+
+    Map<String, Map<String, String>> pendingAdds = new HashMap<String, Map<String, String>>();
+    
+    for(String index : indexedStatFields.keySet())
+    {
+      // traverse through all persistent stats
+      String indexMatcher = index+"*";
+      
+      for (String key : _statMap.keySet())
+      {
+        String currentStatName = ExpressionParser.getSingleAggregatorStat(key);
+        if(!currentStatName.contains("*") && !Pattern.matches(indexMatcher, currentStatName))
+        {
+          continue;
+        }
+        Map<String, Map<String, String>> incomingStatMap = indexedStatFields.get(index);
+        for(String incomingStatName : incomingStatMap.keySet())
+        {
+          Map<String, String> statFields = incomingStatMap.get(incomingStatName);
+          // exact match on stat and stat portion of persisted stat, just update
+          if (ExpressionParser.isIncomingStatExactMatch(key, incomingStatName))
+          {
+            Map<String, String> mergedStat = mergeStats(key, _statMap.get(key),
+                statFields);
+            // update in place, no problem with hash map
+            _statMap.put(key, mergedStat);
+          }
+          // wildcard match
+          else if (ExpressionParser.isIncomingStatWildcardMatch(key,
+              incomingStatName))
+          {
+            // make sure incoming stat doesn't already exist, either in previous
+            // round or this round
+            // form new key (incomingStatName with agg type from the wildcarded
+            // stat)
+            String statToAdd = ExpressionParser.getWildcardStatSubstitution(key,
+                incomingStatName);
+            // if the stat already existed in _statMap, we have/will apply it as an
+            // exact match
+            // if the stat was added this round to pendingAdds, no need to recreate
+            // (it would have same value)
+            if (!_statMap.containsKey(statToAdd)
+                && !pendingAdds.containsKey(statToAdd))
+            {
+              // add this stat to persisted stats
+              Map<String, String> mergedStat = mergeStats(statToAdd,
+                  getEmptyStat(), statFields);
+              // add to pendingAdds so we don't mess up ongoing traversal of
+              // _statMap
+              pendingAdds.put(statToAdd, mergedStat);
+            }
+          }
         }
       }
     }

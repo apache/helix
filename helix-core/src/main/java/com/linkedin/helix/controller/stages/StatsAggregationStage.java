@@ -130,9 +130,8 @@ public class StatsAggregationStage extends AbstractBaseStage
     }
 
     _statsHolder = new StatsHolder(manager, cache);
-    _alertsHolder = new AlertsHolder(manager, cache);
+    _alertsHolder = new AlertsHolder(manager, cache, _statsHolder);
 
-    _statsHolder.refreshStats(); // refresh once at start of stage
     if (_statsHolder.getStatsList().size() == 0)
     {
       logger.info("stat holder is empty");
@@ -171,7 +170,7 @@ public class StatsAggregationStage extends AbstractBaseStage
         // System.out.println(modTime);
         // XXX: need to convert participantStat to a better format
         // need to get instanceName in here
-
+/*
         if (participantStat != null)
         {
           // String timestamp = String.valueOf(instance.getModifiedTime()); WANT
@@ -182,6 +181,17 @@ public class StatsAggregationStage extends AbstractBaseStage
           {
             _statsHolder.applyStat(key, statMap.get(key));
           }
+        }
+        */
+        if (participantStat != null)
+        {
+          // String timestamp = String.valueOf(instance.getModifiedTime()); WANT
+          // REPORT LEVEL TS
+          Map<String, Map<String, Map<String, String>>> indexedStatMap =
+              participantStat.getIndexedHealthFields(instanceName);
+          
+          _statsHolder.applyIndexedStat( indexedStatMap);
+          
         }
       }
       // Call _statsHolder.persistStats() once per pipeline. This will

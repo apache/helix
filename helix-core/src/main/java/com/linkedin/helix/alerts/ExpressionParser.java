@@ -467,6 +467,7 @@ public class ExpressionParser
   // (dbFoo.partition*.latency, dbFoo.partition*.count)|EACH|ACCUMULATE|DIVIDE
   public static String[] getBaseStats(String expression) throws HelixException
   {
+    expression = expression.replaceAll("\\s+", "");
     validateAggregatorFormat(expression);
 
     String aggName = getAggregatorStr(expression);

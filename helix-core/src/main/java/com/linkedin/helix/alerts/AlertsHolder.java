@@ -32,10 +32,15 @@ public class AlertsHolder {
 
 	public AlertsHolder(HelixManager manager, HealthDataCache cache)
 	{
-		_accessor = manager.getDataAccessor();
-		_cache = cache; // new ClusterDataCache();
-		_statsHolder = new StatsHolder(manager, cache);
+	  this(manager, cache, new StatsHolder(manager, cache));
 	}
+	
+	public AlertsHolder(HelixManager manager, HealthDataCache cache, StatsHolder statHolder)
+  {
+    _accessor = manager.getDataAccessor();
+    _cache = cache;
+    _statsHolder = statHolder;
+  }
 
 	public void refreshAlerts()
 	{

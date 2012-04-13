@@ -20,7 +20,7 @@ public enum PropertyType
   CURRENTSTATES(Type.INSTANCE, true,true, false, false, true),
   STATUSUPDATES(Type.INSTANCE, true, true, false, false, false, true),
   ERRORS(Type.INSTANCE, true, true),
-  HEALTHREPORT(Type.INSTANCE, true, false,false,false, true), 
+  HEALTHREPORT(Type.INSTANCE, true, false,false,false), 
 
   //CONTROLLER PROPERTY
   LEADER(Type.CONTROLLER, false, false, true, true),
@@ -29,9 +29,9 @@ public enum PropertyType
   MESSAGES_CONTROLLER(Type.CONTROLLER, true, false, true),
   STATUSUPDATES_CONTROLLER(Type.CONTROLLER, true, true, true),
   ERRORS_CONTROLLER(Type.CONTROLLER,true, true, true),
-  PERSISTENTSTATS(Type.CONTROLLER, true, false, false, false, true),
-  ALERTS(Type.CONTROLLER, true, false, false, false, true),
-  ALERT_STATUS(Type.CONTROLLER, true, false, false, false, true),
+  PERSISTENTSTATS(Type.CONTROLLER, true, false, false, false),
+  ALERTS(Type.CONTROLLER, true, false, false, false),
+  ALERT_STATUS(Type.CONTROLLER, true, false, false, false),
   ALERT_HISTORY(Type.CONTROLLER, true, false, false, false);
   
   // @formatter:on

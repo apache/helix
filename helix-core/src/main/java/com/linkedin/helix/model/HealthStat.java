@@ -102,43 +102,6 @@ public class HealthStat extends ZNRecordDecorator
     } 
     return convertedMapFields;
   }
-    public Map<String, Map<String, Map<String, String>>> getIndexedHealthFields(String instanceName) // ,
-                                                                                 // String
-                                                                                 // timestamp)
-    {
-      Map<String, Map<String, Map<String, String>>> result = new HashMap<String, Map<String, Map<String, String>>>();
-    
-      Map<String, Map<String, String>> currMapFields = _record.getMapFields();
-      for (String key : currMapFields.keySet())
-      {
-        Map<String, Map<String, String>> convertedMapFields = new HashMap<String, Map<String, String>>();
-     
-        Map<String, String> currMap = currMapFields.get(key);
-        String statHiveKey = buildCompositeKey(instanceName, key, "");
-        
-        String timestamp = "-1";
-        if (_record.getSimpleFields().keySet().contains(StatsHolder.TIMESTAMP_NAME))
-        {
-          timestamp = _record.getSimpleField(StatsHolder.TIMESTAMP_NAME);
-        }
-        for (String subKey : currMap.keySet())
-        {
-          if (subKey.equals("StatsHolder.TIMESTAMP_NAME"))
-          { // don't want to get timestamp again
-            continue;
-          }
-          String compositeKey = buildCompositeKey(instanceName, key, subKey);
-          String value = currMap.get(subKey);
-          Map<String, String> convertedMap = new HashMap<String, String>();
-          convertedMap.put(StatsHolder.VALUE_NAME, value);
-          convertedMap.put(StatsHolder.TIMESTAMP_NAME, timestamp);
-          convertedMapFields.put(compositeKey, convertedMap);
-        }
-        result.put(statHiveKey, convertedMapFields);
-      }
-    return result;
-  }
-
   
   @Override
   public boolean isValid() {

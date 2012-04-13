@@ -41,8 +41,8 @@ public class StatsAggregationStage extends AbstractBaseStage
   private static final Logger logger =
       Logger.getLogger(StatsAggregationStage.class.getName());
 
-  StatsHolder _statsHolder;
-  AlertsHolder _alertsHolder;
+  StatsHolder _statsHolder = null;
+  AlertsHolder _alertsHolder = null;
   Map<String, Map<String, AlertValueAndStatus>> _alertStatus;
   Map<String, Tuple<String>> _statStatus;
   ClusterAlertMBeanCollection _alertBeanCollection = new ClusterAlertMBeanCollection();
@@ -130,10 +130,16 @@ public class StatsAggregationStage extends AbstractBaseStage
     {
       throw new StageException("helixmanager|HealthDataCache attribute value is null");
     }
-
-    _statsHolder = new StatsHolder(manager, cache);
-    _alertsHolder = new AlertsHolder(manager, cache, _statsHolder);
-
+    if(_alertsHolder == null)
+    {
+      _statsHolder = new StatsHolder(manager, cache);
+      _alertsHolder = new AlertsHolder(manager, cache, _statsHolder);
+    }
+    else
+    {
+      _statsHolder.updateCache(cache);
+      _alertsHolder.updateCache(cache);
+    }
     if (_statsHolder.getStatsList().size() == 0)
     {
       logger.info("stat holder is empty");

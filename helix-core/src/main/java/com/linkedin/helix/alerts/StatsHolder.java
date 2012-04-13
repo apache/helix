@@ -39,34 +39,15 @@ public class StatsHolder
   {
     _accessor = manager.getDataAccessor();
     _cache = cache;
-    refreshStats();
+    updateCache(_cache);
     _statAlertMatchResult = new HashMap<String, Map<String, MatchResult>>();
-
   }
 
   public void refreshStats()
   {
     logger.info("Refreshing cached stats");
     _cache.refresh(_accessor);
-    PersistentStats persistentStatRecord = _cache.getPersistentStats();
-    if (persistentStatRecord != null)
-    {
-      _statMap = persistentStatRecord.getMapFields();
-    }
-    else
-    {
-      _statMap = new HashMap<String, Map<String, String>>();
-    }
-    /*
-     * if (_cache.getPersistentStats() != null) {
-     *
-     * _statMap = _cache.getPersistentStats(); }
-     */
-    // TODO: confirm this a good place to init the _statMap when null
-    /*
-     * if (_statMap == null) { _statMap = new HashMap<String, Map<String,
-     * String>>(); }
-     */
+    updateCache(_cache);
   }
 
   public void persistStats()
@@ -314,7 +295,6 @@ public class StatsHolder
 
   public List<Stat> getStatsList()
   {
-    refreshStats(); 
     List<Stat> stats = new LinkedList<Stat>();
     for (String stat : _statMap.keySet())
     {
@@ -339,5 +319,19 @@ public class StatsHolder
       stats.put(stat, valTup);
     }
     return stats;
+  }
+
+  public void updateCache(HealthDataCache cache)
+  {
+    _cache = cache;
+    PersistentStats persistentStatRecord = _cache.getPersistentStats();
+    if (persistentStatRecord != null)
+    {
+      _statMap = persistentStatRecord.getMapFields();
+    }
+    else
+    {
+      _statMap = new HashMap<String, Map<String, String>>();
+    }
   }
 }

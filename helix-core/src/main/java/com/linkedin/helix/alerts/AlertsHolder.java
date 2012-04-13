@@ -40,18 +40,13 @@ public class AlertsHolder {
     _accessor = manager.getDataAccessor();
     _cache = cache;
     _statsHolder = statHolder;
+    updateCache(_cache);
   }
 
 	public void refreshAlerts()
 	{
 	  _cache.refresh(_accessor);
-		Alerts alertsRecord = _cache.getAlerts();
-		if (alertsRecord != null) {
-		_alertsMap = alertsRecord.getMapFields();
-		}
-		else {
-			_alertsMap = new HashMap<String, Map<String,String>>();
-		}
+		updateCache(_cache);
 
 
 		/*
@@ -213,7 +208,6 @@ public class AlertsHolder {
 
 	public List<Alert> getAlertList()
 	{
-		refreshAlerts();
 		List<Alert> alerts = new LinkedList<Alert>();
 		for (String alert : _alertsMap.keySet()) {
 			Map<String,String> alertFields = _alertsMap.get(alert);
@@ -227,4 +221,18 @@ public class AlertsHolder {
 		}
 		return alerts;
 	}
+
+  public void updateCache(HealthDataCache cache)
+  {
+    _cache = cache;
+    Alerts alertsRecord = _cache.getAlerts();
+    if (alertsRecord != null) 
+    {
+      _alertsMap = alertsRecord.getMapFields();
+    }
+    else 
+    {
+      _alertsMap = new HashMap<String, Map<String,String>>();
+    }
+  }
 }

@@ -193,34 +193,27 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
       }
     }
 
-    // debug
-    try
+    if (_zkClient.exists(_path))
     {
-      if (_zkClient.exists(_path))
+      if (watchChild)
       {
-        if (watchChild)
+        List<String> children = _zkClient.getChildren(_path);
+        for (String child : children)
         {
-          List<String> children = _zkClient.getChildren(_path);
-          for (String child : children)
+          String childPath = _path + "/" + child;
+          if (changeContext.getType() == NotificationContext.Type.INIT
+              || changeContext.getType() == NotificationContext.Type.CALLBACK)
           {
-            String childPath = _path + "/" + child;
-            if (changeContext.getType() == NotificationContext.Type.INIT
-                || changeContext.getType() == NotificationContext.Type.CALLBACK)
-            {
-              _zkClient.subscribeDataChanges(childPath, this);
-            } else if (changeContext.getType() == NotificationContext.Type.FINALIZE)
-            {
-              _zkClient.unsubscribeDataChanges(childPath, this);
-            }
+            _zkClient.subscribeDataChanges(childPath, this);
+          } else if (changeContext.getType() == NotificationContext.Type.FINALIZE)
+          {
+            _zkClient.unsubscribeDataChanges(childPath, this);
           }
         }
-      } else
-      {
-        logger.info("can't subscribe for data change on childs, path:" + _path + " doesn't exist");
       }
-    } catch (NullPointerException e)
+    } else
     {
-      System.out.println("exception:" + e);
+      logger.info("can't subscribe for data change on childs, path:" + _path + " doesn't exist");
     }
   }
 

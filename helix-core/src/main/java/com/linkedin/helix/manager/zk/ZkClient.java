@@ -1,5 +1,7 @@
 package com.linkedin.helix.manager.zk;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -8,70 +10,93 @@ import org.I0Itec.zkclient.IZkConnection;
 import org.I0Itec.zkclient.ZkConnection;
 import org.I0Itec.zkclient.exception.ZkInterruptedException;
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
+import org.I0Itec.zkclient.serialize.SerializableSerializer;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
+import org.apache.log4j.Logger;
+import org.apache.zookeeper.AsyncCallback.StatCallback;
+import org.apache.zookeeper.AsyncCallback.StringCallback;
+import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.data.ACL;
+import org.apache.zookeeper.data.Id;
 import org.apache.zookeeper.data.Stat;
 
 /**
- * ZKClient does not provide some functionalities, this will be used for quick fixes if
- * any bug found in ZKClient or if we need additional features but can't wait for the new
- * ZkClient jar Ideally we should commit the changes we do here to ZKClient.
- *
+ * ZKClient does not provide some functionalities, this will be used for quick
+ * fixes if any bug found in ZKClient or if we need additional features but
+ * can't wait for the new ZkClient jar Ideally we should commit the changes we
+ * do here to ZKClient.
+ * 
  * @author kgopalak
- *
+ * 
  */
 public class ZkClient extends org.I0Itec.zkclient.ZkClient
 {
+  private static Logger LOG = Logger.getLogger(ZkClient.class);
+
   public static String sessionId;
   public static String sessionPassword;
-  // TODO need to remove when connection expired
-  private static final Set<IZkConnection> zkConnections =
-      new CopyOnWriteArraySet<IZkConnection>();
 
-  public ZkClient(IZkConnection connection,
-                  int connectionTimeout,
-                  ZkSerializer zkSerializer)
+  // TODO need to remove when connection expired
+  private static final Set<IZkConnection> zkConnections = new CopyOnWriteArraySet<IZkConnection>();
+  private ZkSerializer _zkSerializer;
+
+  public ZkClient(IZkConnection connection, int connectionTimeout, ZkSerializer zkSerializer)
   {
     super(connection, connectionTimeout, zkSerializer);
+    _zkSerializer = zkSerializer;
     zkConnections.add(_connection);
   }
 
   public ZkClient(IZkConnection connection, int connectionTimeout)
   {
-    super(connection, connectionTimeout);
-    zkConnections.add(_connection);
+    this(connection, connectionTimeout, new SerializableSerializer());
+    // super(connection, connectionTimeout);
+    // zkConnections.add(_connection);
   }
 
   public ZkClient(IZkConnection connection)
   {
-    super(connection);
-    zkConnections.add(_connection);
+    this(connection, Integer.MAX_VALUE, new SerializableSerializer());
+    // super(connection);
+    // zkConnections.add(_connection);
   }
 
-  public ZkClient(String zkServers,
-                  int sessionTimeout,
-                  int connectionTimeout,
-                  ZkSerializer zkSerializer)
+  public ZkClient(String zkServers, int sessionTimeout, int connectionTimeout,
+      ZkSerializer zkSerializer)
   {
-    super(zkServers, sessionTimeout, connectionTimeout, zkSerializer);
-    zkConnections.add(_connection);
+    this(new ZkConnection(zkServers, sessionTimeout), connectionTimeout, zkSerializer);
+    // super(zkServers, sessionTimeout, connectionTimeout, zkSerializer);
+    // zkConnections.add(_connection);
   }
 
   public ZkClient(String zkServers, int sessionTimeout, int connectionTimeout)
   {
-    super(zkServers, sessionTimeout, connectionTimeout);
-    zkConnections.add(_connection);
+    this(new ZkConnection(zkServers, sessionTimeout), connectionTimeout,
+        new SerializableSerializer());
+    // super(zkServers, sessionTimeout, connectionTimeout);
+    // zkConnections.add(_connection);
   }
 
   public ZkClient(String zkServers, int connectionTimeout)
   {
-    super(zkServers, connectionTimeout);
-    zkConnections.add(_connection);
+    this(new ZkConnection(zkServers), connectionTimeout, new SerializableSerializer());
+
+    // super(zkServers, connectionTimeout);
+    // zkConnections.add(_connection);
   }
 
-  public ZkClient(String serverstring)
+  public ZkClient(String zkServers)
   {
-    super(serverstring);
-    zkConnections.add(_connection);
+    this(new ZkConnection(zkServers), Integer.MAX_VALUE, new SerializableSerializer());
+    // super(serverstring);
+    // zkConnections.add(_connection);
+  }
+
+  @Override
+  public void setZkSerializer(ZkSerializer zkSerializer)
+  {
+    super.setZkSerializer(zkSerializer);
+    _zkSerializer = zkSerializer;
   }
 
   public IZkConnection getConnection()
@@ -93,8 +118,7 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
 
   public Stat getStat(final String path)
   {
-    Stat stat = retryUntilConnected(new Callable<Stat>()
-    {
+    Stat stat = retryUntilConnected(new Callable<Stat>() {
 
       @Override
       public Stat call() throws Exception
@@ -108,14 +132,14 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
   }
 
   @SuppressWarnings("unchecked")
-  public <T extends Object> T readDataAndStat(String path, Stat stat, boolean returnNullIfPathNotExists)
+  public <T extends Object> T readDataAndStat(String path, Stat stat,
+      boolean returnNullIfPathNotExists)
   {
     T data = null;
     try
     {
       data = (T) super.readData(path, stat);
-    }
-    catch (ZkNoNodeException e)
+    } catch (ZkNoNodeException e)
     {
       if (!returnNullIfPathNotExists)
       {
@@ -129,4 +153,84 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
   {
     return _connection.getServers();
   }
+
+  class LogStatCallback implements StatCallback
+  {
+    final String _asyncMethodName;
+
+    public LogStatCallback(String asyncMethodName)
+    {
+      _asyncMethodName = asyncMethodName;
+    }
+
+    @Override
+    public void processResult(int rc, String path, Object ctx, Stat stat)
+    {
+      if (rc == 0)
+      {
+        LOG.info("succeed in async " + _asyncMethodName + ". rc: " + rc + ", path: " + path
+            + ", stat: " + stat);
+      } else
+      {
+        LOG.error("fail in async " + _asyncMethodName + ". rc: " + rc + ", path: " + path
+            + ", stat: " + stat);
+      }
+    }
+
+  }
+
+  public void asyncWriteData(final String path, Object datat)
+  {
+    Stat stat = getStat(path);
+    this.asyncWriteData(path, datat, stat.getVersion(), new LogStatCallback("asyncSetData"), null);
+  }
+
+  public void asyncWriteData(final String path, Object datat, final int version,
+      final StatCallback cb, final Object ctx)
+  {
+    final byte[] data = _zkSerializer.serialize(datat);
+    ((ZkConnection) _connection).getZookeeper().setData(path, data, version, cb, ctx);
+
+  }
+
+  class LogStringCallback implements StringCallback
+  {
+
+    final String _asyncMethodName;
+
+    public LogStringCallback(String asyncMethodName)
+    {
+      _asyncMethodName = asyncMethodName;
+    }
+
+    @Override
+    public void processResult(int rc, String path, Object ctx, String name)
+    {
+      if (rc == 0)
+      {
+        LOG.info("succeed in async " + _asyncMethodName + ". rc: " + rc + ", path: " + path
+            + ", name: " + name);
+      } else
+      {
+        LOG.error("fail in async " + _asyncMethodName + ". rc: " + rc + ", path: " + path
+            + ", name: " + name);
+      }
+    }
+
+  }
+
+  // TODO: not working, will fail in NodeExists(-110)
+  public void asyncCreate(final String path, Object datat, CreateMode createMode)
+  { 
+    ACL acl = new ACL(31, new Id("world", "anyone"));
+    this.asyncCreate(path, datat, Arrays.asList(acl), createMode, new LogStringCallback("asyncCreate"), null);
+  }
+
+  public void asyncCreate(final String path, Object datat, List<ACL> acl, CreateMode createMode,
+      StringCallback cb, Object ctx)
+  {
+    final byte[] data = _zkSerializer.serialize(datat);
+    ((ZkConnection) _connection).getZookeeper().create(path, data, acl, createMode, cb, ctx);
+  }
+
 }

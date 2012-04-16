@@ -18,7 +18,7 @@ public enum PropertyType
   //INSTANCE PROPERTIES
   MESSAGES(Type.INSTANCE, true, true, true),
   CURRENTSTATES(Type.INSTANCE, true,true, false, false, true),
-  STATUSUPDATES(Type.INSTANCE, true, true, false),
+  STATUSUPDATES(Type.INSTANCE, true, true, false, false, false, true),
   ERRORS(Type.INSTANCE, true, true),
   HEALTHREPORT(Type.INSTANCE, true, false,false,false), 
 
@@ -50,7 +50,9 @@ public enum PropertyType
    * if data is cached, then read from zk can be optimized
    */
   boolean isCached;
-
+  
+  boolean isAsyncWrite;
+  
   private PropertyType(Type type, boolean isPersistent, boolean mergeOnUpdate)
   {
     this(type, isPersistent, mergeOnUpdate, false);
@@ -68,9 +70,16 @@ public enum PropertyType
 	  this(type, isPersistent, mergeOnUpdate, updateOnlyOnExists, createOnlyIfAbsent, false);
 	}
 
+  private PropertyType(Type type, boolean isPersistent,
+      boolean mergeOnUpdate, boolean updateOnlyOnExists, boolean createOnlyIfAbsent,
+      boolean isCached)
+  {
+    this(type, isPersistent, mergeOnUpdate, updateOnlyOnExists, createOnlyIfAbsent, isCached, false);
+  }
+
 	 private PropertyType(Type type, boolean isPersistent,
 	                      boolean mergeOnUpdate, boolean updateOnlyOnExists, boolean createOnlyIfAbsent,
-	                      boolean isCached)
+	                      boolean isCached, boolean isAsyncWrite)
   {
     this.type = type;
     this.isPersistent = isPersistent;
@@ -78,6 +87,7 @@ public enum PropertyType
     this.updateOnlyOnExists = updateOnlyOnExists;
 	this.createOnlyIfAbsent = createOnlyIfAbsent;
 	this.isCached = isCached;
+	this.isAsyncWrite = isAsyncWrite;
   }
 
   public boolean isCreateOnlyIfAbsent()
@@ -133,5 +143,10 @@ public enum PropertyType
   public boolean isCached()
   {
     return isCached;
+  }
+  
+  public boolean isAsyncWrite()
+  {
+    return isAsyncWrite;
   }
 }

@@ -263,7 +263,7 @@ public class StatsAggregationStage extends AbstractBaseStage
     // Update history only when some beans has changed
     if(delta.size() > 0)
     {
-      SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-DD-hh:mm:ss");
+      SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd-hh:mm:ss:SSS");
       String date = dateFormat.format(new Date());
       
       ZNRecord alertFiredHistory = manager.getDataAccessor().getProperty(PropertyType.ALERT_HISTORY);

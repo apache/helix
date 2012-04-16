@@ -1,5 +1,6 @@
 package com.linkedin.helix;
 
+
 public class HelixException extends RuntimeException
 {
 
@@ -8,4 +9,8 @@ public class HelixException extends RuntimeException
     super(message);
   }
 
+  public HelixException(Throwable cause)
+  {
+    super(cause);
+  }
 }

@@ -13,6 +13,8 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
+import com.linkedin.helix.ConfigScope;
+import com.linkedin.helix.ConfigScopeBuilder;
 import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.TestHelper;
@@ -59,24 +61,73 @@ public class TestAlertFireHistory extends ZkStandAloneCMTestBase
   }
   
   @Test
-  public void TestAlertHistory() throws InterruptedException
+  public void TestAlertDisable() throws InterruptedException
   {
-    _setupTool.getClusterManagementTool().addAlert(CLUSTER_NAME, _alertStr1);
-    _setupTool.getClusterManagementTool().addAlert(CLUSTER_NAME, _alertStr2);
-    
+
     int[] metrics1 = {10, 15, 22, 24, 16};
     int[] metrics2 = {22, 115, 22, 141,16};
     setHealthData(metrics1, metrics2);
     
     String controllerName = CONTROLLER_PREFIX + "_0";
     HelixManager manager = _startCMResultMap.get(controllerName)._manager;
+    manager.startTimerTasks();
+    
+    _setupTool.getClusterManagementTool().addAlert(CLUSTER_NAME, _alertStr1);
+    _setupTool.getClusterManagementTool().addAlert(CLUSTER_NAME, _alertStr2);
+    
+    ConfigScope scope = new ConfigScopeBuilder().forCluster(CLUSTER_NAME).build();
+    Map<String, String> properties = new HashMap<String, String>();
+    properties.put("healthChange.enabled", "false");
+    _setupTool.getClusterManagementTool().setConfig(scope, properties);
+    
     HealthStatsAggregationTask task = new HealthStatsAggregationTask(_startCMResultMap.get(controllerName)._manager);
     task.run();
     Thread.sleep(100);
     
     ZNRecord history = manager.getDataAccessor().getProperty(PropertyType.ALERT_HISTORY);
     // 
+    Assert.assertEquals(history, null);
+    
+    properties.put("healthChange.enabled", "true");
+    _setupTool.getClusterManagementTool().setConfig(scope, properties);
+    
+    task.run();
+    Thread.sleep(100);
+    
+    history = manager.getDataAccessor().getProperty(PropertyType.ALERT_HISTORY);
+    // 
     Assert.assertEquals(history.getMapFields().size(), 1);
+  }
+  
+  @Test
+  public void TestAlertHistory() throws InterruptedException
+  {
+    int[] metrics1 = {10, 15, 22, 24, 16};
+    int[] metrics2 = {22, 115, 22, 141,16};
+    setHealthData(metrics1, metrics2);
+
+    String controllerName = CONTROLLER_PREFIX + "_0";
+    HelixManager manager = _startCMResultMap.get(controllerName)._manager;
+    manager.stopTimerTasks();
+    
+    _setupTool.getClusterManagementTool().addAlert(CLUSTER_NAME, _alertStr1);
+    _setupTool.getClusterManagementTool().addAlert(CLUSTER_NAME, _alertStr2);
+
+    int historySize = 0;
+    ZNRecord history = manager.getDataAccessor().getProperty(PropertyType.ALERT_HISTORY);
+    if(history != null)
+    {
+      historySize = history.getMapFields().size();
+    }
+    
+    HealthStatsAggregationTask task = new HealthStatsAggregationTask(_startCMResultMap.get(controllerName)._manager);
+    task.run();
+    Thread.sleep(100);
+    
+    
+    history = manager.getDataAccessor().getProperty(PropertyType.ALERT_HISTORY);
+    // 
+    Assert.assertEquals(history.getMapFields().size(), 1 + historySize);
     TreeMap<String, Map<String, String>> recordMap = new TreeMap<String, Map<String, String>>();
     recordMap.putAll( history.getMapFields());
     Map<String, String> lastRecord = recordMap.firstEntry().getValue();
@@ -91,7 +142,7 @@ public class TestAlertFireHistory extends ZkStandAloneCMTestBase
     Thread.sleep(100);
     history = manager.getDataAccessor().getProperty(PropertyType.ALERT_HISTORY);
     // no change
-    Assert.assertEquals(history.getMapFields().size(), 1);
+    Assert.assertEquals(history.getMapFields().size(), 1 + historySize);
     recordMap = new TreeMap<String, Map<String, String>>();
     recordMap.putAll( history.getMapFields());
     lastRecord = recordMap.firstEntry().getValue();
@@ -108,7 +159,7 @@ public class TestAlertFireHistory extends ZkStandAloneCMTestBase
     Thread.sleep(100);
     history = manager.getDataAccessor().getProperty(PropertyType.ALERT_HISTORY);
     // new delta should be recorded
-    Assert.assertEquals(history.getMapFields().size(), 2);
+    Assert.assertEquals(history.getMapFields().size(), 2 + historySize);
     recordMap = new TreeMap<String, Map<String, String>>();
     recordMap.putAll( history.getMapFields());
     lastRecord = recordMap.lastEntry().getValue();
@@ -127,7 +178,7 @@ public class TestAlertFireHistory extends ZkStandAloneCMTestBase
     Thread.sleep(100);
     history = manager.getDataAccessor().getProperty(PropertyType.ALERT_HISTORY);
     // reset everything
-    Assert.assertEquals(history.getMapFields().size(), 3);
+    Assert.assertEquals(history.getMapFields().size(), 3 + historySize);
     recordMap = new TreeMap<String, Map<String, String>>();
     recordMap.putAll( history.getMapFields());
     lastRecord = recordMap.lastEntry().getValue();
@@ -152,7 +203,7 @@ public class TestAlertFireHistory extends ZkStandAloneCMTestBase
       Thread.sleep(100);
       history = manager.getDataAccessor().getProperty(PropertyType.ALERT_HISTORY);
       
-      Assert.assertEquals(history.getMapFields().size(), 3 + i + 1);
+      Assert.assertEquals(history.getMapFields().size(), Math.min(3 + i + 1 + historySize, 30));
       recordMap = new TreeMap<String, Map<String, String>>();
       recordMap.putAll( history.getMapFields());
       lastRecord = recordMap.lastEntry().getValue();

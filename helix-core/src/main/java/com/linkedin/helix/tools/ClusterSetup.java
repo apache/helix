@@ -262,6 +262,11 @@ public class ClusterSetup
     List<String> InstanceNames = _admin.getInstancesInCluster(clusterName);
 
     IdealState idealState = _admin.getResourceIdealState(clusterName, resourceName);
+    if (idealState == null)
+    {
+      throw new HelixException("Resource: " + resourceName + " has NOT been added yet");
+    }
+    
     idealState.setReplicas(Integer.toString(replica));
     int partitions = idealState.getNumPartitions();
     String stateModelName = idealState.getStateModelDefRef();

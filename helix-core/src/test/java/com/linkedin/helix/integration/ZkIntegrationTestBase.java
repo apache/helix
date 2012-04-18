@@ -26,6 +26,7 @@ import com.linkedin.helix.manager.zk.ZKDataAccessor;
 import com.linkedin.helix.manager.zk.ZNRecordSerializer;
 import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.model.LiveInstance;
+import com.linkedin.helix.tools.ClusterSetup;
 import com.linkedin.helix.util.ZKClientPool;
 
 public class ZkIntegrationTestBase
@@ -34,6 +35,8 @@ public class ZkIntegrationTestBase
 
   protected static ZkServer _zkServer;
   protected static ZkClient _gZkClient;
+  protected static ClusterSetup _gSetupTool;
+
 
   public static final String ZK_ADDR = "localhost:2183";
   protected static final String CLUSTER_PREFIX = "CLUSTER";
@@ -51,6 +54,7 @@ public class ZkIntegrationTestBase
 
     _gZkClient = new ZkClient(ZK_ADDR);
     _gZkClient.setZkSerializer(new ZNRecordSerializer());
+    _gSetupTool = new ClusterSetup(ZK_ADDR);
   }
 
   @AfterSuite
@@ -58,7 +62,6 @@ public class ZkIntegrationTestBase
   {
     ZKClientPool.reset();
     TestHelper.stopZkServer(_zkServer);
-    // _zkServer = null;
     _gZkClient.close();
   }
 
@@ -207,7 +210,7 @@ public class ZkIntegrationTestBase
     LOG.info("New sessionId = " + newZookeeper.getSessionId());
     // Thread.sleep(3000);
     newZookeeper.close();
-    Thread.sleep(10000);
+    Thread.sleep(15000);
     connection = (ZkConnection) zkClient.getConnection();
     oldZookeeper = connection.getZookeeper();
     LOG.info("After session expiry sessionId = " + oldZookeeper.getSessionId());

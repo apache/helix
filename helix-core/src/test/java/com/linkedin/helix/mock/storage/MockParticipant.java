@@ -26,7 +26,7 @@ public class MockParticipant implements Stoppable, Runnable
   private static Logger LOG = Logger.getLogger(MockParticipant.class);
   private final String _clusterName;
   private final String _instanceName;
-  private final String _zkAddr;
+//  private final String _zkAddr;
 
   private final CountDownLatch _countDown = new CountDownLatch(1);
   private final HelixManager _manager;
@@ -113,7 +113,7 @@ public class MockParticipant implements Stoppable, Runnable
     @Override
     public void reset()
     {
-      LOG.error("Default MockMSStateModel.reset() invoked");
+      LOG.info("Default MockMSStateModel.reset() invoked");
       if (_transition != null)
       {
         _transition.doReset();
@@ -240,16 +240,26 @@ public class MockParticipant implements Stoppable, Runnable
   {
     _clusterName = clusterName;
     _instanceName = instanceName;
-    _zkAddr = zkAddr;
+//    _zkAddr = zkAddr;
     _msModelFacotry = new MockMSModelFactory(transition);
 
     _manager = HelixManagerFactory.getZKHelixManager(_clusterName,
         _instanceName,
         InstanceType.PARTICIPANT,
-        _zkAddr);
+        zkAddr);
     _job = job;
   }
 
+  public MockParticipant(HelixManager manager)
+  {
+    _clusterName = manager.getClusterName();
+    _instanceName = manager.getInstanceName();
+    _manager = manager;
+    
+    _msModelFacotry = new MockMSModelFactory(null);
+    _job = null;
+  }
+  
   public void setTransition(MockTransition transition)
   {
     _msModelFacotry.setTrasition(transition);

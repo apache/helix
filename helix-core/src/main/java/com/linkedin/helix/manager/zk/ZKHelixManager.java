@@ -342,15 +342,16 @@ public class ZKHelixManager implements HelixManager
   @Override
   public void disconnect()
   {
-    // logger.info("Cluster manager: " + _instanceName + " disconnecting");
-    System.out.println("disconnect " + _instanceName + "(" + _instanceType + ") from "
-        + _clusterName);
 
     if (!isConnected())
     {
       logger.warn("ClusterManager " + _instanceName + " already disconnected");
       return;
     }
+    
+    logger.info("disconnect " + _instanceName + "(" + _instanceType + ") from "
+        + _clusterName);
+
     /**
      * shutdown thread pool first to avoid reset() being invoked in the middle
      * of state transition
@@ -424,7 +425,7 @@ public class ZKHelixManager implements HelixManager
   @Override
   public boolean removeListener(Object listener)
   {
-    System.out.println("remove handlers: " + _instanceName);
+    logger.info("remove listener: " + listener + " from " + _instanceName);
 
     synchronized (this)
     {

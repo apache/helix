@@ -1,7 +1,11 @@
 package com.linkedin.helix;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.lang.reflect.Method;
+import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -490,5 +494,45 @@ public class TestHelper
     }
 
     return resultsMap;
+  }
+  
+  public static int numberOfListeners(String zkAddr, String path) throws Exception
+  {
+    int count = 0;
+    String splits[] = zkAddr.split(":");
+    Socket sock = new Socket(splits[0], Integer.parseInt(splits[1]));
+    PrintWriter out = new PrintWriter(sock.getOutputStream(), true);
+    BufferedReader in = new BufferedReader(new InputStreamReader(sock.getInputStream()));
+    
+    out.println("wchp");
+    
+    String line = in.readLine();
+    while (line != null)
+    {
+//      System.out.println(line);
+      if (line.equals(path))
+      {
+//        System.out.println("match: " + line);
+
+        String nextLine = in.readLine();
+        if (nextLine == null)
+        {
+          break;
+        }
+//        System.out.println(nextLine);
+        while (nextLine.startsWith("\t0x"))
+        {
+          count++;
+          nextLine = in.readLine();
+          if (nextLine == null)
+          {
+            break;
+          }
+        }
+      }
+      line = in.readLine();
+    }
+    sock.close();
+    return count;
   }
 }

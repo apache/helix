@@ -1,7 +1,6 @@
 package com.linkedin.helix.controller;
 
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
@@ -48,8 +47,8 @@ import com.linkedin.helix.monitoring.mbeans.ClusterStatusMonitor;
  * Ideal State. It does this by listening to changes in cluster state and scheduling new
  * tasks to get cluster state to best possible ideal state. Every instance of this class
  * can control can control only one cluster
- *
- *
+ * 
+ * 
  * Get all the partitions use IdealState, CurrentState and Messages <br>
  * foreach partition <br>
  * 1. get the (instance,state) from IdealState, CurrentState and PendingMessages <br>
@@ -69,26 +68,31 @@ public class GenericHelixController implements
     ControllerChangeListener,
     HealthStateChangeListener
 {
-  private static final Logger logger =
-      Logger.getLogger(GenericHelixController.class.getName());
-  volatile boolean init = false;
+  private static final Logger    logger =
+                                            Logger.getLogger(GenericHelixController.class.getName());
+  volatile boolean               init   = false;
   private final PipelineRegistry _registry;
 
   /**
    * Since instance current state is per-session-id, we need to track the session-ids of
-   * the current states that the ClusterController is observing.
+   * the current states that the ClusterController is observing. this set contains all the
+   * session ids that we add currentState listener
    */
-  private final Set<String> _instanceCurrentStateChangeSubscriptionSessionIds;
-  private final Set<String> _instanceSubscriptionNames;
-  // private final ExternalViewGenerator _externalViewGenerator;
-  ClusterStatusMonitor _clusterStatusMonitor;
+  private final Set<String>      _instanceCurrentStateChangeSubscriptionSessionIds;
+
+  /**
+   * this set contains all the instance names that we add message listener
+   */
+  private final Set<String>      _instanceSubscriptionNames;
+
+  ClusterStatusMonitor           _clusterStatusMonitor;
 
   /**
    * The _paused flag is checked by function handleEvent(), while if the flag is set
    * handleEvent() will be no-op. Other event handling logic keeps the same when the flag
    * is set.
    */
-  private boolean _paused;
+  private boolean                _paused;
 
   /**
    * Default constructor that creates a default pipeline registry. This is sufficient in
@@ -170,8 +174,9 @@ public class GenericHelixController implements
   }
 
   /**
-   * lock-always: caller always needs to obtain an external lock before call,
-   *    calls to handleEvent() should be serialized
+   * lock-always: caller always needs to obtain an external lock before call, calls to
+   * handleEvent() should be serialized
+   * 
    * @param event
    */
   protected void handleEvent(ClusterEvent event)
@@ -245,34 +250,6 @@ public class GenericHelixController implements
       }
     }
   }
-
-//  private boolean isEnabled(String eventName, HelixManager manager)
-//  {
-//    // check if pipeline trigger (onXXXChange) has been disabled
-//    ConfigAccessor configAccessor = manager.getConfigAccessor();
-//    boolean enabled = true;
-//    if (eventName.equalsIgnoreCase("healthChange"))
-//    {
-//      // for now healthcheck has to be explicitly enabled
-//      enabled = false;
-//    }
-//    if (configAccessor != null)
-//    {
-//      // zk-based cluster manager
-//      ConfigScope scope =
-//          new ConfigScopeBuilder().forCluster(manager.getClusterName()).build();
-//      String isEnabled = configAccessor.get(scope, eventName + ".enabled");
-//      if (isEnabled != null)
-//      {
-//        enabled = new Boolean(isEnabled);
-//      }
-//    }
-//    else
-//    {
-//      logger.debug("File-based cluster manager doesn't support disable pipeline trigger");
-//    }
-//    return enabled;
-//  }
 
   // TODO since we read data in pipeline, we can get rid of reading from zookeeper in
   // callback
@@ -384,28 +361,6 @@ public class GenericHelixController implements
     event.addAttribute("helixmanager", changeContext.getManager());
     event.addAttribute("eventData", configs);
     handleEvent(event);
-    if (changeContext.getType() == Type.INIT)
-    {
-      for (InstanceConfig config : configs)
-      {
-        String instanceName = config.getInstanceName();
-        try
-        {
-          if (!_instanceSubscriptionNames.contains(instanceName))
-          {
-            logger.info("Adding msg/health listeners for " + instanceName);
-            changeContext.getManager().addMessageListener(this, instanceName);
-            _instanceSubscriptionNames.add(instanceName);
-          }
-        }
-        catch (Exception e)
-        {
-          logger.error("Exception adding current state and message listener for instance:"
-                           + instanceName,
-                       e);
-        }
-      }
-    }
     logger.info("END: GenericClusterController.onConfigChange()");
   }
 
@@ -469,7 +424,7 @@ public class GenericHelixController implements
    * Go through the list of liveinstances in the cluster, and add currentstateChange
    * listener and Message listeners to them if they are newly added. For current state
    * change, the observation is tied to the session id of each live instance.
-   *
+   * 
    */
   protected void checkLiveInstancesObservation(List<LiveInstance> liveInstances,
                                                NotificationContext changeContext)
@@ -478,14 +433,15 @@ public class GenericHelixController implements
     {
       String instanceName = instance.getId();
       String clientSessionId = instance.getSessionId();
+      HelixManager manager = changeContext.getManager();
 
+      // _instanceCurrentStateChangeSubscriptionSessionIds contains all the sessionIds
+      // that we've added a currentState listener
       if (!_instanceCurrentStateChangeSubscriptionSessionIds.contains(clientSessionId))
       {
         try
         {
-          changeContext.getManager().addCurrentStateChangeListener(this,
-                                                                   instanceName,
-                                                                   clientSessionId);
+          manager.addCurrentStateChangeListener(this, instanceName, clientSessionId);
         }
         catch (Exception e)
         {
@@ -493,10 +449,32 @@ public class GenericHelixController implements
                            + instanceName,
                        e);
         }
-        logger.info("Observing client session id: " + clientSessionId + "@"
-            + new Date().getTime());
+        logger.info("Observing client session id: " + clientSessionId);
         _instanceCurrentStateChangeSubscriptionSessionIds.add(clientSessionId);
       }
+
+      // _instanceSubscriptionNames contains all the instanceNames that we've added a
+      // message listener
+      if (!_instanceSubscriptionNames.contains(instanceName))
+      {
+        try
+        {
+          logger.info("Adding message listener for " + instanceName);
+          manager.addMessageListener(this, instanceName);
+          _instanceSubscriptionNames.add(instanceName);
+        }
+        catch (Exception e)
+        {
+          logger.error("Exception adding message listener for instance:" + instanceName,
+                       e);
+        }
+      }
+
+      // TODO we need to remove currentState listeners and message listeners
+      // when a session or an instance no longer exists. This may happen
+      // in case of session expiry, participant rebound, participant goes and new
+      // participant comes
+
       // TODO shi should call removeListener on the previous session id;
       // but the removeListener with that functionality is not implemented yet
     }

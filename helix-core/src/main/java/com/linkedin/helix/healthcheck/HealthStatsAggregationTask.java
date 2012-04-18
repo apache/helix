@@ -85,12 +85,6 @@ public class HealthStatsAggregationTask extends HelixTimerTask
   @Override
   public void start()
   {
-    if (!isEnabled())
-    {
-      LOG.info("HealthAggregationTask is disabled. Will not start the timer");
-      return;
-    }
-
     LOG.info("START HealthAggregationTask");
 
     if (_timer == null)
@@ -129,8 +123,12 @@ public class HealthStatsAggregationTask extends HelixTimerTask
   @Override
   public synchronized void run()
   {
-    LOG.info("START: HealthStatsAggregationTask");
-
+    if (!isEnabled())
+    {
+      LOG.info("HealthAggregationTask is disabled.");
+      return;
+    }
+    
     if (!_manager.isLeader())
     {
       LOG.error("Cluster manager: " + _manager.getInstanceName()
@@ -152,14 +150,12 @@ public class HealthStatsAggregationTask extends HelixTimerTask
       LOG.error("Exception while executing pipeline: " + _healthStatsAggregationPipeline,
                 e);
     }
-
-    LOG.info("END: HealthStatsAggregationTask");
   }
 
   private boolean isEnabled()
   {
     ConfigAccessor configAccessor = _manager.getConfigAccessor();
-    boolean enabled = false;
+    boolean enabled = true;
     if (configAccessor != null)
     {
       // zk-based cluster manager

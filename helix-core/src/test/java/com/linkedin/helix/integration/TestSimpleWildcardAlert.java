@@ -129,13 +129,16 @@ public class TestSimpleWildcardAlert extends ZkIntegrationTestBase
                             true);        // do rebalance
 
     // enableHealthCheck(clusterName);
-    String alertwildcard = "EXP(decay(1.0)(localhost*.RestQueryStats@DBName=TestDB0.latency))CMP(GREATER)CON(10)";
-    _setupTool.getClusterManagementTool().addAlert(clusterName, alertwildcard);
 
     StartCMResult cmResult = TestHelper.startController(clusterName,
                                "controller_0",
                                ZK_ADDR,
                                HelixControllerMain.STANDALONE);
+    cmResult._manager.stopTimerTasks();
+    
+    String alertwildcard = "EXP(decay(1.0)(localhost*.RestQueryStats@DBName=TestDB0.latency))CMP(GREATER)CON(10)";
+    
+    _setupTool.getClusterManagementTool().addAlert(clusterName, alertwildcard);
     // start participants
     for (int i = 0; i < 5; i++) //!!!change back to 5
     {
@@ -184,7 +187,7 @@ public class TestSimpleWildcardAlert extends ZkIntegrationTestBase
     
     String deltakey = (String) (alertHistory.getMapFields().keySet().toArray()[0]);
     Map<String, String> delta = alertHistory.getMapField(deltakey);
-    Assert.assertTrue(delta.size() == 3);
+    Assert.assertEquals(delta.size() , 3);
     for(int i = 2; i < 5; i++)
     {
       String alertString = "(localhost_"+(12944 + i)+".RestQueryStats@DBName#TestDB0.latency)GREATER(10)";

@@ -130,12 +130,13 @@ public class TestSimpleAlert extends ZkIntegrationTestBase
 
     // enableHealthCheck(clusterName);
 
-    _setupTool.getClusterManagementTool().addAlert(clusterName, _alertStr);
 
     StartCMResult cmResult = TestHelper.startController(clusterName,
                                "controller_0",
                                ZK_ADDR,
                                HelixControllerMain.STANDALONE);
+    cmResult._manager.startTimerTasks();
+    _setupTool.getClusterManagementTool().addAlert(clusterName, _alertStr);
     // start participants
     for (int i = 0; i < 5; i++) //!!!change back to 5
     {

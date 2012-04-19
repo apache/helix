@@ -49,7 +49,7 @@ public class TestZkClientWrapper extends ZkUnitTestBase
 		newStat = _zkClient.getStat(path);
 		AssertJUnit.assertEquals(stat, newStat);
 
-		_zkClient.writeData(path, "Test".getBytes());
+		_zkClient.writeData(path, new ZNRecord("Test"));
 		newStat = _zkClient.getStat(path);
 		AssertJUnit.assertNotSame(stat, newStat);
 	}

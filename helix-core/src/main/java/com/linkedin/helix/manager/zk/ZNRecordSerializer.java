@@ -2,6 +2,8 @@ package com.linkedin.helix.manager.zk;
 
 import java.io.ByteArrayInputStream;
 import java.io.StringWriter;
+import java.util.List;
+import java.util.Map;
 
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.log4j.Logger;
@@ -16,18 +18,53 @@ public class ZNRecordSerializer implements ZkSerializer
 {
   private static Logger logger = Logger.getLogger(ZNRecordSerializer.class);
 
+  private static int getListFieldBound(ZNRecord record)
+  {
+    int max = Integer.MAX_VALUE;
+    if (record.getSimpleFields().containsKey(ZNRecord.LIST_FIELD_BOUND))
+    {
+      String maxStr = record.getSimpleField(ZNRecord.LIST_FIELD_BOUND);
+      try
+      {
+        max = Integer.parseInt(maxStr);
+      }
+      catch (Exception e)
+      {
+        logger.error("IllegalNumberFormat for list field bound: " + maxStr);
+      }
+    }
+    return max;
+  }
+
   @Override
   public byte[] serialize(Object data)
   {
     if (!(data instanceof ZNRecord))
     {
-      logger.error("Input object must be of type ZNRecord but it is " + data);
-      return new byte[] {};
+      // null is NOT an instance of any class
+      logger.error("Input object must be of type ZNRecord but it is " + data + ". Will not write to zk");
+      throw new HelixException("Input object is not of type ZNRecord (was " + data + ")");
     }
 
     ZNRecord record = (ZNRecord) data;
-    ObjectMapper mapper = new ObjectMapper();
+    
+    // apply retention policy
+    int max = getListFieldBound(record);
+    if (max < Integer.MAX_VALUE)
+    {
+      Map<String, List<String>> listMap = record.getListFields();
+      for (String key : listMap.keySet())
+      {
+        List<String> list = listMap.get(key);
+        if (list.size() > max)
+        {
+          listMap.put(key, list.subList(0, max));
+        }
+      }
+    }
 
+    // do serialization
+    ObjectMapper mapper = new ObjectMapper();
     SerializationConfig serializationConfig = mapper.getSerializationConfig();
     serializationConfig.set(SerializationConfig.Feature.INDENT_OUTPUT, true);
     serializationConfig.set(SerializationConfig.Feature.AUTO_DETECT_FIELDS, true);
@@ -36,19 +73,20 @@ public class ZNRecordSerializer implements ZkSerializer
     try
     {
       mapper.writeValue(sw, data);
-
-      if (sw.toString().getBytes().length > ZNRecord.SIZE_LIMIT)
-      {
-        throw new HelixException("Data size larger than 1M. ZNRecord.id: " + record.getId());
-      }
-      return sw.toString().getBytes();
     } catch (Exception e)
     {
       logger.error("Exception during data serialization. Will not write to zk. Data (first 1k): "
           + sw.toString().substring(0, 1024), e);
       throw new HelixException(e);
-      // return new byte[] {};
     }
+    
+    if (sw.toString().getBytes().length > ZNRecord.SIZE_LIMIT)
+    {
+      logger.error("Data size larger than 1M, ZNRecord.id: " + record.getId() 
+          + ". Will not write to zk. Data (first 1k): " + sw.toString().substring(0, 1024));
+      throw new HelixException("Data size larger than 1M, ZNRecord.id: " + record.getId());
+    }
+    return sw.toString().getBytes();
   }
 
   @Override

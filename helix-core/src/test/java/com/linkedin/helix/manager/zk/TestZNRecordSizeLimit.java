@@ -34,6 +34,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase
     }
     String bufStr = new String(buf);
 
+    // test zkClient
     // legal-sized data gets written to zk
     // write a znode of size less than 1m
     final ZNRecord smallRecord = new ZNRecord("normalsize");

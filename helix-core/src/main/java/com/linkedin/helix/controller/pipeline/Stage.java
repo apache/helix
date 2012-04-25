@@ -17,18 +17,44 @@ package com.linkedin.helix.controller.pipeline;
 
 import com.linkedin.helix.controller.stages.ClusterEvent;
 
+/**
+ * Logically independent unit in processing callbacks for cluster changes  
+ *
+ */
 public interface Stage
 {
 
+  /**
+   * Initialize a stage
+   * @param context
+   */
   void init(StageContext context);
 
+  /**
+   * Called before process() on each callback
+   */
   void preProcess();
 
+  /**
+   * Actual callback processing logic
+   * @param event
+   * @throws Exception
+   */
   public void process(ClusterEvent event) throws Exception;
 
+  /**
+   * Called after process() on each callback
+   */
   void postProcess();
 
+  /**
+   * Destruct a stage
+   */
   void release();
 
+  /**
+   * Get the name of the stage
+   * @return
+   */
   public String getStageName();
 }

@@ -15,9 +15,26 @@
  */
 package com.linkedin.helix.store;
 
+/**
+ * Serializer interface for property store 
+ * @param <T>
+ */
+    
 public interface PropertySerializer<T>
 {
+  /**
+   * Serialize data object of type T to byte array
+   * @param data
+   * @return
+   * @throws PropertyStoreException
+   */
   public byte[] serialize(T data) throws PropertyStoreException;
 
+  /**
+   * Deserialize byte array to data object of type T
+   * @param bytes
+   * @return
+   * @throws PropertyStoreException
+   */
   public T deserialize(byte[] bytes) throws PropertyStoreException;
 }

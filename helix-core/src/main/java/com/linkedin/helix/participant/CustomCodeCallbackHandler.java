@@ -17,7 +17,15 @@ package com.linkedin.helix.participant;
 
 import com.linkedin.helix.NotificationContext;
 
+/**
+ * Callback interface to running custom code on Helix participant manager
+ * The custom code will be triggered on user specified cluster changes
+ */
 public interface CustomCodeCallbackHandler
 {
+  /**
+   * callback
+   * @param context
+   */
   public void onCallback(NotificationContext context);
 }

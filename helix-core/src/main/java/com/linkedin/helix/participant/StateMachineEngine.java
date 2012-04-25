@@ -19,8 +19,20 @@ import com.linkedin.helix.messaging.handling.MessageHandlerFactory;
 import com.linkedin.helix.participant.statemachine.StateModel;
 import com.linkedin.helix.participant.statemachine.StateModelFactory;
 
+/**
+ * Helix participant manager uses this class to register/remove state model factory
+ * State model factory creates state model that handles state transition messages
+ */
 public interface StateMachineEngine extends MessageHandlerFactory
 {
+  /**
+   * Register a default state model factory for a state model definition
+   * A state model definition could be, for example: 
+   * "MasterSlave", "OnlineOffline", "LeaderStandby", etc.
+   * @param stateModelDef
+   * @param factory
+   * @return
+   */
   public boolean registerStateModelFactory(String stateModelDef,
       StateModelFactory<? extends StateModel> factory);
 
@@ -28,12 +40,32 @@ public interface StateMachineEngine extends MessageHandlerFactory
   // String resourceGroupName,
   // StateModelFactory<? extends StateModel> factory);
 
+  /**
+   * Register a state model factory with a name for a state model definition
+   * @param stateModelDef
+   * @param factory
+   * @param factoryName
+   * @return
+   */
   public boolean registerStateModelFactory(String stateModelDef,
       StateModelFactory<? extends StateModel> factory, String factoryName);
 
+  /**
+   * Remove the default state model factory for a state model definition
+   * @param stateModelDef
+   * @param factory
+   * @return
+   */
   public boolean removeStateModelFactory(String stateModelDef,
       StateModelFactory<? extends StateModel> factory);
 
+  /**
+   * Remove the state model factory with a name for a state model definition
+   * @param stateModelDef
+   * @param factory
+   * @param factoryName
+   * @return
+   */
   public boolean removeStateModelFactory(String stateModelDef,
       StateModelFactory<? extends StateModel> factory, String factoryName);
 

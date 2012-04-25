@@ -15,16 +15,20 @@
  */
 package com.linkedin.helix.store;
 
+/**
+ * Callback interface on property changes
+ * @param <T>
+ */
 public interface PropertyChangeListener<T>
 {
   /**
-   * Callback function when there a change in any property that starts with key
-   * Its upto the implementation to handle the following different cases * key
-   * is a simple key and does not have any children. PropertyStore.get(key) must
-   * be used to retrieve the value * key is a prefix and has children.
-   * PropertyStore.getProperties(key) must be used to retrieve all the children
+   * Callback function when there is a change in any property that starts with key
+   * It's upto the implementation to handle the following different cases 1) key
+   * is a simple key and does not have any children. PropertyStore.getProperty(key) must
+   * be used to retrieve the value; 2) key is a prefix and has children.
+   * PropertyStore.getPropertyNames(key) must be used to retrieve all the children keys.
    * Its important to know that PropertyStore will not be able to provide the
-   * delta[old value,new value] or what child was added/deleted The
+   * delta[old value,new value] or which child was added/deleted. The
    * implementation must take care of the fact that there might be callback for
    * every child thats added/deleted. General way applications handle this is
    * keep a local cache of keys and compare against the latest keys.

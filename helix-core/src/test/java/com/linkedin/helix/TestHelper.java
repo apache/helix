@@ -132,6 +132,7 @@ public class TestHelper
     return result;
   }
 
+  // TODO refactor this
   public static StartCMResult startController(final String clusterName,
       final String controllerName, final String zkConnectString, final String controllerMode)
       throws Exception

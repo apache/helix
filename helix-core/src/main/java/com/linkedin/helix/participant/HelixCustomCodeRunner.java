@@ -135,7 +135,7 @@ public class HelixCustomCodeRunner
       // manually add ideal state for participant leader using LeaderStandby
       // model
 
-      zkClient = new ZkClient(_zkAddr);
+      zkClient = new ZkClient(_zkAddr, ZkClient.DEFAULT_CONNECTION_TIMEOUT);
       zkClient.setZkSerializer(new ZNRecordSerializer());
       DataAccessor accessor = new ZKDataAccessor(_manager.getClusterName(), zkClient);
 

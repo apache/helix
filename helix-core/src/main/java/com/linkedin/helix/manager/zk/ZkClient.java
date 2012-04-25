@@ -47,6 +47,7 @@ import org.apache.zookeeper.data.Stat;
 public class ZkClient extends org.I0Itec.zkclient.ZkClient
 {
   private static Logger LOG = Logger.getLogger(ZkClient.class);
+  public static final int DEFAULT_CONNECTION_TIMEOUT = 10000;
 
   public static String sessionId;
   public static String sessionPassword;

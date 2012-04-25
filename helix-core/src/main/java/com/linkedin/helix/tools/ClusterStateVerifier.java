@@ -19,6 +19,7 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -103,8 +104,6 @@ public class ClusterStateVerifier
       ZkClient zkClient = ZKClientPool.getZkClient(zkAddr); // null;
       try
       {
-//        zkClient = new ZkClient(zkAddr);
-//        zkClient.setZkSerializer(new ZNRecordSerializer());
         DataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
 
         return ClusterStateVerifier.verifyBestPossAndExtView(accessor, errStates);
@@ -112,13 +111,6 @@ public class ClusterStateVerifier
       {
         LOG.error("exception in verification", e);
       }
-//      finally
-//      {
-//        if (zkClient != null)
-//        {
-//          zkClient.close();
-//        }
-//      }
       return false;
     }
 
@@ -240,11 +232,11 @@ public class ClusterStateVerifier
 
         // step 0: remove empty map from best possible state
         Map<Partition, Map<String, String>> bpStateMap = bestPossOutput.getResourceMap(resourceName);
-        Iterator iter = bpStateMap.entrySet().iterator();
+        Iterator<Entry<Partition, Map<String, String>>> iter = bpStateMap.entrySet().iterator();
         while (iter.hasNext())
         {
-          Map.Entry pairs = (Map.Entry)iter.next();
-          Map<String, String> instanceStateMap = (Map<String, String>) pairs.getValue();
+          Map.Entry<Partition, Map<String, String>> pairs = iter.next();
+          Map<String, String> instanceStateMap = pairs.getValue();
           if (instanceStateMap.isEmpty())
           {
             iter.remove();
@@ -377,8 +369,6 @@ public class ClusterStateVerifier
 
   public static boolean verify(Verifier verifier, long timeout, long sleepInterval)
   {
-    // final long sleepInterval = 1000; // in ms
-
     long startTime = System.currentTimeMillis();
     boolean result = false;
     try
@@ -410,7 +400,13 @@ public class ClusterStateVerifier
     }
     return false;
   }
-
+  
+  public static boolean verifyByCallback(Verifier verifier, long timeout)
+  {
+    
+    return false;
+  }
+  
   public static boolean verifyFileBasedClusterStates(String file, String instanceName,
       StateModelFactory<StateModel> stateModelFactory)
   {

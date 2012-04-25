@@ -24,42 +24,66 @@ import com.linkedin.helix.ZkUnitTestBase;
 
 public class TestPropertyStoreFactory extends ZkUnitTestBase
 {
-  @Test ()
+  @Test()
   public void testZkPropertyStoreFactory()
   {
-    final String rootNamespace = "TestPropertyStoreFactory";
-    PropertyJsonSerializer<ZNRecord> serializer = new PropertyJsonSerializer<ZNRecord>(ZNRecord.class);
+
     try
     {
-      PropertyStoreFactory.<ZNRecord>getZKPropertyStore(null, null, null);
+      PropertyStoreFactory.<ZNRecord> getZKPropertyStore(null, null, null);
       Assert.fail("Should fail since zkAddr|serializer|root can't be null");
-    } catch (IllegalArgumentException e)
+    }
+    catch (IllegalArgumentException e)
     {
       // OK
     }
     
-    PropertyStoreFactory.<ZNRecord>getZKPropertyStore(ZK_ADDR, serializer, rootNamespace);
+    final String rootNamespace = "TestPropertyStoreFactory";
+    PropertyJsonSerializer<ZNRecord> serializer =
+        new PropertyJsonSerializer<ZNRecord>(ZNRecord.class);
+    try
+    {
+      PropertyStoreFactory.<ZNRecord> getZKPropertyStore("localhost:1812", serializer, rootNamespace);
+      Assert.fail("Should fail since zkAddr is not connectable");
+    }
+    catch (Exception e)
+    {
+      // OK
+    }
+
+    PropertyStore<ZNRecord> store =
+        PropertyStoreFactory.<ZNRecord> getZKPropertyStore(ZK_ADDR,
+                                                           serializer,
+                                                           rootNamespace);
+    Assert.assertNotNull(store);
   }
 
-  @Test (groups = {"unitTest"})
+  @Test()
   public void testFilePropertyStoreFactory()
   {
     final String rootNamespace = "/tmp/TestPropertyStoreFactory";
-    PropertyJsonSerializer<ZNRecord> serializer = new PropertyJsonSerializer<ZNRecord>(ZNRecord.class);
-    PropertyJsonComparator<ZNRecord> comparator = new PropertyJsonComparator<ZNRecord>(ZNRecord.class);
-    PropertyStore<ZNRecord> fileStore;
-    
+    PropertyJsonSerializer<ZNRecord> serializer =
+        new PropertyJsonSerializer<ZNRecord>(ZNRecord.class);
+    PropertyJsonComparator<ZNRecord> comparator =
+        new PropertyJsonComparator<ZNRecord>(ZNRecord.class);
+    PropertyStore<ZNRecord> store;
+
     boolean exceptionCaught = false;
     try
     {
-      fileStore = PropertyStoreFactory.<ZNRecord>getFilePropertyStore(null, null, null);
-    } catch (IllegalArgumentException e)
+      store = PropertyStoreFactory.<ZNRecord> getFilePropertyStore(null, null, null);
+    }
+    catch (IllegalArgumentException e)
     {
       exceptionCaught = true;
     }
     AssertJUnit.assertTrue(exceptionCaught);
-    
-    fileStore = PropertyStoreFactory.<ZNRecord>getFilePropertyStore(serializer, rootNamespace, comparator);
+
+    store =
+        PropertyStoreFactory.<ZNRecord> getFilePropertyStore(serializer,
+                                                             rootNamespace,
+                                                             comparator);
+    Assert.assertNotNull(store);
   }
 
 }

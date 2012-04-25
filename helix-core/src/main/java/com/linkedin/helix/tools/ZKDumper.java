@@ -112,7 +112,7 @@ public class ZKDumper
 
   public ZKDumper(String zkAddress)
   {
-    client = new ZkClient(zkAddress);
+    client = new ZkClient(zkAddress, ZkClient.DEFAULT_CONNECTION_TIMEOUT);
     ZkSerializer zkSerializer = new ZkSerializer()
     {
 

@@ -34,7 +34,8 @@ public class PropertyStoreFactory
     }
 
     LOG.info("Get a zk property store. zkAddr: " + zkAddress + ", root: " + rootNamespace);
-    return new ZKPropertyStore<T>(new ZkClient(zkAddress), serializer, rootNamespace);
+    ZkClient zkClient = new ZkClient(zkAddress, ZkClient.DEFAULT_CONNECTION_TIMEOUT);
+    return new ZKPropertyStore<T>(zkClient, serializer, rootNamespace);
   }
 
   public static <T extends Object> PropertyStore<T> getFilePropertyStore(

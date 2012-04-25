@@ -34,9 +34,9 @@ import com.linkedin.helix.model.StateModelDefinition;
 
 /**
  * Compares the currentState,pendingState with IdealState and generate messages
- *
+ * 
  * @author kgopalak
- *
+ * 
  */
 public class MessageGenerationPhase extends AbstractBaseStage
 {
@@ -47,15 +47,17 @@ public class MessageGenerationPhase extends AbstractBaseStage
   {
     HelixManager manager = event.getAttribute("helixmanager");
     ClusterDataCache cache = event.getAttribute("ClusterDataCache");
-    Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.toString());
-    CurrentStateOutput currentStateOutput = event.getAttribute(AttributeName.CURRENT_STATE
-        .toString());
-    BestPossibleStateOutput bestPossibleStateOutput = event
-        .getAttribute(AttributeName.BEST_POSSIBLE_STATE.toString());
-    if (manager == null || cache == null || resourceMap == null || currentStateOutput == null
-        || bestPossibleStateOutput == null)
+    Map<String, Resource> resourceMap =
+        event.getAttribute(AttributeName.RESOURCES.toString());
+    CurrentStateOutput currentStateOutput =
+        event.getAttribute(AttributeName.CURRENT_STATE.toString());
+    BestPossibleStateOutput bestPossibleStateOutput =
+        event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.toString());
+    if (manager == null || cache == null || resourceMap == null
+        || currentStateOutput == null || bestPossibleStateOutput == null)
     {
-      throw new StageException("Missing attributes in event:" + event
+      throw new StageException("Missing attributes in event:"
+          + event
           + ". Requires HelixManager|DataCache|RESOURCES|CURRENT_STATE|BEST_POSSIBLE_STATE");
     }
 
@@ -71,63 +73,79 @@ public class MessageGenerationPhase extends AbstractBaseStage
     for (String resourceName : resourceMap.keySet())
     {
       Resource resource = resourceMap.get(resourceName);
-      StateModelDefinition stateModelDef = cache.getStateModelDef(resource.getStateModelDefRef());
+      StateModelDefinition stateModelDef =
+          cache.getStateModelDef(resource.getStateModelDefRef());
 
       for (Partition partition : resource.getPartitions())
       {
-        Map<String, String> instanceStateMap = bestPossibleStateOutput.getInstanceStateMap(
-            resourceName, partition);
+        Map<String, String> instanceStateMap =
+            bestPossibleStateOutput.getInstanceStateMap(resourceName, partition);
 
         for (String instanceName : instanceStateMap.keySet())
         {
           String desiredState = instanceStateMap.get(instanceName);
 
-          String currentState = currentStateOutput.getCurrentState(resourceName, partition,
-              instanceName);
+          String currentState =
+              currentStateOutput.getCurrentState(resourceName, partition, instanceName);
           if (currentState == null)
           {
             currentState = stateModelDef.getInitialState();
           }
 
-          String pendingState = currentStateOutput.getPendingState(resourceName, partition,
-              instanceName);
-
-          String nextState;
-          nextState = stateModelDef.getNextStateForTransition(currentState, desiredState);
-
-          if (!desiredState.equalsIgnoreCase(currentState))
+          if (desiredState.equalsIgnoreCase(currentState))
           {
-            if (nextState != null)
-            {
-              if (pendingState != null && nextState.equalsIgnoreCase(pendingState))
-              {
-                if (logger.isDebugEnabled())
-                {
-                  logger.debug("Message already exists at" + instanceName
-                      + " to transit " + partition.getPartitionName() + " from "
-                      + currentState + " to " + nextState);
-                }
-              }
-              else if (pendingState != null
-                  && currentState.equalsIgnoreCase(pendingState))
-              {
-                logger.debug("Message hasn't been removed for " + instanceName
-                    + " to transit" + partition.getPartitionName() + " to "
-                    + pendingState);
-              } else
-              {
-                Message message = createMessage(manager, resourceName,
-                    partition.getPartitionName(), instanceName, currentState, nextState,
-                    sessionIdMap.get(instanceName), stateModelDef.getId(),
-                    resource.getStateModelFactoryname());
+            continue;
+          }
 
-                output.addMessage(resourceName, partition, message);
-              }
-            } else
+          String pendingState =
+              currentStateOutput.getPendingState(resourceName, partition, instanceName);
+
+          String nextState =
+              stateModelDef.getNextStateForTransition(currentState, desiredState);
+          if (nextState == null)
+          {
+            logger.error("Unable to find a next state from stateModelDefinition"
+                + stateModelDef.getClass() + " from:" + currentState + " to:"
+                + desiredState);
+            continue;
+          }
+
+          if (pendingState != null)
+          {
+            if (nextState.equalsIgnoreCase(pendingState))
             {
-              logger.error("Unable to find a next state from stateModelDefinition"
-                  + stateModelDef.getClass() + " from:" + currentState + " to:" + desiredState);
+              logger.info("Message already exists for " + instanceName + " to transit "
+                  + partition.getPartitionName() + " from " + currentState + " to "
+                  + nextState);
             }
+            else if (currentState.equalsIgnoreCase(pendingState))
+            {
+              logger.info("Message hasn't been removed for " + instanceName
+                  + " to transit" + partition.getPartitionName() + " to " + pendingState
+                  + ", desiredState: " + desiredState);
+            }
+            else
+            {
+              logger.info("IdealState changed before state transition completes for "
+                  + partition.getPartitionName() + " on " + instanceName
+                  + ", pendingState: " + pendingState + ", currentState: " + currentState
+                  + ", nextState: " + nextState);
+            }
+          }
+          else
+          {
+            Message message =
+                createMessage(manager,
+                              resourceName,
+                              partition.getPartitionName(),
+                              instanceName,
+                              currentState,
+                              nextState,
+                              sessionIdMap.get(instanceName),
+                              stateModelDef.getId(),
+                              resource.getStateModelFactoryname());
+
+            output.addMessage(resourceName, partition, message);
           }
         }
       }
@@ -135,9 +153,15 @@ public class MessageGenerationPhase extends AbstractBaseStage
     event.addAttribute(AttributeName.MESSAGES_ALL.toString(), output);
   }
 
-  private Message createMessage(HelixManager manager, String resourceName, String partitionName,
-      String instanceName, String currentState, String nextState, String sessionId,
-      String stateModelDefName, String stateModelFactoryName)
+  private Message createMessage(HelixManager manager,
+                                String resourceName,
+                                String partitionName,
+                                String instanceName,
+                                String currentState,
+                                String nextState,
+                                String sessionId,
+                                String stateModelDefName,
+                                String stateModelFactoryName)
   {
     String uuid = UUID.randomUUID().toString();
     Message message = new Message(MessageType.STATE_TRANSITION, uuid);

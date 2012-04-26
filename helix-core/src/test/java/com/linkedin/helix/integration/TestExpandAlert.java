@@ -155,10 +155,11 @@ public class TestExpandAlert extends ZkIntegrationTestBase
                                             instanceName,
                                             ZK_ADDR,
                                             new ExpandAlertTransition());
-      new Thread(participants[i]).start();
+      participants[i].start();
+//      new Thread(participants[i]).start();
     }
 
-    boolean result = ClusterStateVerifier.verify(
+    boolean result = ClusterStateVerifier.verifyByPolling(
         new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
     Assert.assertTrue(result);
 

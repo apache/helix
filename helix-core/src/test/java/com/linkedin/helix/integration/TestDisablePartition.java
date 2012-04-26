@@ -47,7 +47,7 @@ public class TestDisablePartition extends ZkStandAloneCMTestBase
       }
     };
 
-    boolean result = ClusterStateVerifier.verify(
+    boolean result = ClusterStateVerifier.verifyByPolling(
         new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_NAME));
     Assert.assertTrue(result);
 
@@ -55,7 +55,7 @@ public class TestDisablePartition extends ZkStandAloneCMTestBase
 
     tool.enablePartition(CLUSTER_NAME, "localhost_12919", "TestDB", "TestDB_0", true);
     
-    result = ClusterStateVerifier.verify(
+    result = ClusterStateVerifier.verifyByPolling(
         new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_NAME));
     Assert.assertTrue(result);
 

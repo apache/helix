@@ -30,13 +30,13 @@ public class TestDisableNode extends ZkStandAloneCMTestBase
     ZKHelixAdmin tool = new ZKHelixAdmin(_zkClient);
     tool.enableInstance(CLUSTER_NAME, PARTICIPANT_PREFIX + "_12918", false);
 
-    boolean result = ClusterStateVerifier.verify(
+    boolean result = ClusterStateVerifier.verifyByPolling(
         new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_NAME));
     Assert.assertTrue(result);
 
     tool.enableInstance(CLUSTER_NAME, PARTICIPANT_PREFIX + "_12918", true);
     
-    result = ClusterStateVerifier.verify(
+    result = ClusterStateVerifier.verifyByPolling(
         new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_NAME));
     Assert.assertTrue(result);
 

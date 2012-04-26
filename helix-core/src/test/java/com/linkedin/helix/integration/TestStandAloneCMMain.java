@@ -47,7 +47,7 @@ public class TestStandAloneCMMain extends ZkStandAloneCMTestBase
     }
 
     stopCurrentLeader(_zkClient, CLUSTER_NAME, _startCMResultMap);
-    boolean result = ClusterStateVerifier.verify(
+    boolean result = ClusterStateVerifier.verifyByPolling(
         new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_NAME));
     Assert.assertTrue(result);
 

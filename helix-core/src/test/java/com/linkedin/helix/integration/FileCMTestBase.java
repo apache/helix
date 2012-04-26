@@ -121,7 +121,7 @@ public class FileCMTestBase
       logger.error("fail to start controller using dynamic file-based cluster-manager ", e);
     }
 
-    boolean result = ClusterStateVerifier.verify(
+    boolean result = ClusterStateVerifier.verifyByPolling(
         new ClusterStateVerifier.BestPossAndExtViewFileVerifier(ROOT_PATH, CLUSTER_NAME));
     Assert.assertTrue(result);
 

@@ -36,14 +36,15 @@ import com.linkedin.helix.participant.statemachine.StateModelFactory;
 import com.linkedin.helix.participant.statemachine.StateModelInfo;
 import com.linkedin.helix.participant.statemachine.Transition;
 
-public class MockParticipant implements Stoppable, Runnable
+public class MockParticipant extends Thread
 {
   private static Logger LOG = Logger.getLogger(MockParticipant.class);
   private final String _clusterName;
   private final String _instanceName;
 //  private final String _zkAddr;
 
-  private final CountDownLatch _countDown = new CountDownLatch(1);
+  private final CountDownLatch _startCountDown = new CountDownLatch(1);
+  private final CountDownLatch _stopCountDown = new CountDownLatch(1);
   private final HelixManager _manager;
   private final MockMSModelFactory _msModelFacotry;
   private final MockJobIntf _job;
@@ -285,13 +286,26 @@ public class MockParticipant implements Stoppable, Runnable
     return _manager;
   }
 
-  @Override
-  public void stop()
+  public void syncStop()
   {
-    _countDown.countDown();
+    _stopCountDown.countDown();
     synchronized (_manager)
     {
       _manager.disconnect();
+    }
+  }
+  
+  public void syncStart()
+  {
+    super.start();
+    try
+    {
+      _startCountDown.await();
+    }
+    catch (InterruptedException e)
+    {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
     }
   }
 
@@ -314,13 +328,14 @@ public class MockParticipant implements Stoppable, Runnable
       }
 
       _manager.connect();
-
+      _startCountDown.countDown();
+      
       if (_job != null)
       {
         _job.doPostConnectJob(_manager);
       }
 
-      _countDown.await();
+      _stopCountDown.await();
     }
     catch (InterruptedException e)
     {

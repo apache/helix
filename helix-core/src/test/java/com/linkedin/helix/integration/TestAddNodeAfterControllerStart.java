@@ -93,7 +93,7 @@ public class TestAddNodeAfterControllerStart extends ZkIntegrationTestBase
     controller.connect();
     boolean result;
     result =
-        ClusterStateVerifier.verify(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
                                                                                           clusterName));
     Assert.assertTrue(result);
     String msgPath = PropertyPathConfig.getPath(PropertyType.MESSAGES, clusterName, "localhost_12918");
@@ -107,7 +107,7 @@ public class TestAddNodeAfterControllerStart extends ZkIntegrationTestBase
         new MockParticipant(clusterName, "localhost_12922", ZK_ADDR);
     new Thread(participants[nodeNr - 1]).start();
     result =
-        ClusterStateVerifier.verify(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
                                                                                           clusterName));
     Assert.assertTrue(result);
     msgPath = PropertyPathConfig.getPath(PropertyType.MESSAGES, clusterName, "localhost_12922");
@@ -118,7 +118,7 @@ public class TestAddNodeAfterControllerStart extends ZkIntegrationTestBase
     controller.disconnect();
     for (int i = 0; i < nodeNr; i++)
     {
-      participants[i].stop();
+      participants[i].syncStop();
     }
 
     System.out.println("END " + clusterName + " at "
@@ -156,7 +156,7 @@ public class TestAddNodeAfterControllerStart extends ZkIntegrationTestBase
 
     boolean result;
     result =
-        ClusterStateVerifier.verify(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
                                                                                           "GRAND_" + clusterName));
     Assert.assertTrue(result);
     
@@ -176,11 +176,12 @@ public class TestAddNodeAfterControllerStart extends ZkIntegrationTestBase
     {
       String instanceName = "localhost_" + (12918 + i);
       participants[i] = new MockParticipant(clusterName, instanceName, ZK_ADDR);
-      new Thread(participants[i]).start();
+      participants[i].syncStart();
+//      new Thread(participants[i]).start();
     }
 
     result =
-        ClusterStateVerifier.verify(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
                                                                                           clusterName));
     Assert.assertTrue(result);
     
@@ -195,9 +196,11 @@ public class TestAddNodeAfterControllerStart extends ZkIntegrationTestBase
 
     participants[nodeNr - 1] =
         new MockParticipant(clusterName, "localhost_12919", ZK_ADDR);
-    new Thread(participants[nodeNr - 1]).start();
+    participants[nodeNr - 1].syncStart();
+//    new Thread(participants[nodeNr - 1]).start();
+    
     result =
-        ClusterStateVerifier.verify(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
                                                                                         clusterName));
     Assert.assertTrue(result);
     // check if controller_0 has message listener for localhost_12919
@@ -209,7 +212,7 @@ public class TestAddNodeAfterControllerStart extends ZkIntegrationTestBase
     // clean up
     for (int i = 0; i < nodeNr; i++)
     {
-      participants[i].stop();
+      participants[i].syncStop();
     }
 
     System.out.println("END " + clusterName + " at "

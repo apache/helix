@@ -52,6 +52,7 @@ public class TestDummyAlerts extends ZkIntegrationTestBase
       {
         for (int i = 0; i < 5; i++)
         {
+//          System.out.println(instance + " sets healthReport: " + "mockAlerts" + i);
           accessor.setProperty(PropertyType.HEALTHREPORT,
                                new ZNRecord("mockAlerts" + i),
                                instance,
@@ -74,6 +75,8 @@ public class TestDummyAlerts extends ZkIntegrationTestBase
   @Test()
   public void testDummyAlerts() throws Exception
   {
+//    Logger.getRootLogger().setLevel(Level.INFO);
+
     String clusterName = getShortClassName();
     MockParticipant[] participants = new MockParticipant[5];
     ClusterSetup setupTool = new ClusterSetup(ZK_ADDR);
@@ -110,12 +113,12 @@ public class TestDummyAlerts extends ZkIntegrationTestBase
                               instanceName,
                               ZK_ADDR,
                               new DummyAlertsTransition());
-      new Thread(participants[i]).start();
+     participants[i].syncStart();
     }
 
-    boolean result =
-        ClusterStateVerifier.verify(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
-                                                                                          clusterName));
+    boolean result = ClusterStateVerifier.verifyBestPossAndExtViewByZkCallback(ZK_ADDR, clusterName);
+//    boolean result = ClusterStateVerifier.verify(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
+//                                                                                          clusterName));
     Assert.assertTrue(result);
 
     // other verifications go here
@@ -129,6 +132,12 @@ public class TestDummyAlerts extends ZkIntegrationTestBase
     }
 
     // Thread.sleep(Long.MAX_VALUE);
+    // clean up
+    for (int i = 0; i < 5; i++)
+    {
+     participants[i].syncStop();
+    }
+    
     System.out.println("END TestDummyAlerts at " + new Date(System.currentTimeMillis()));
   }
 }

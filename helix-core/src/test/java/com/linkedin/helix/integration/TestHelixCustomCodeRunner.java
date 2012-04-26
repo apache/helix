@@ -124,10 +124,11 @@ public class TestHelixCustomCodeRunner extends ZkIntegrationTestBase
 
       partics[i] = new MockParticipant(_clusterName, instanceName, ZK_ADDR, 
                         null, new MockJob());
-      new Thread(partics[i]).start();
+      partics[i].syncStart();
+//      new Thread(partics[i]).start();
     }
     
-    boolean result = ClusterStateVerifier.verify(
+    boolean result = ClusterStateVerifier.verifyByPolling(
         new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, _clusterName));
     Assert.assertTrue(result);
     

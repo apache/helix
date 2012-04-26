@@ -161,10 +161,11 @@ public class TestSimpleAlert extends ZkIntegrationTestBase
                                             instanceName,
                                             ZK_ADDR,
                                             new SimpleAlertTransition(15));
-      new Thread(participants[i]).start();
+      participants[i].syncStart();
+//      new Thread(participants[i]).start();
     }
 
-    boolean result = ClusterStateVerifier.verify(
+    boolean result = ClusterStateVerifier.verifyByPolling(
         new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
     Assert.assertTrue(result);
 

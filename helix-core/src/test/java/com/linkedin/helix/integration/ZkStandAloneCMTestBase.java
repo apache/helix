@@ -108,8 +108,9 @@ public class ZkStandAloneCMTestBase extends ZkIntegrationTestBase
                                                                   HelixControllerMain.STANDALONE);
     _startCMResultMap.put(controllerName, startResult);
 
-    boolean result = ClusterStateVerifier.verify(
-        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_NAME));
+    boolean result = ClusterStateVerifier.verifyBestPossAndExtViewByZkCallback(ZK_ADDR, CLUSTER_NAME);
+//    boolean result = ClusterStateVerifier.verify(
+//        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_NAME));
     Assert.assertTrue(result);
   }
 

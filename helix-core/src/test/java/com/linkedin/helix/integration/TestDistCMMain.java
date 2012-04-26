@@ -36,11 +36,11 @@ public class TestDistCMMain extends ZkDistCMTestBase
     LOG.info("RUN testDistCMMain() at " + new Date(System.currentTimeMillis()));
 
     // verifyClusters();
-    boolean verifyResult = ClusterStateVerifier.verify(
+    boolean verifyResult = ClusterStateVerifier.verifyByPolling(
         new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CONTROLLER_CLUSTER));
     Assert.assertTrue(verifyResult);
     
-    verifyResult = ClusterStateVerifier.verify(
+    verifyResult = ClusterStateVerifier.verifyByPolling(
         new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_PREFIX + "_" + CLASS_NAME + "_0"));
     Assert.assertTrue(verifyResult);
 
@@ -64,11 +64,11 @@ public class TestDistCMMain extends ZkDistCMTestBase
       _startCMResultMap.put(controller, result);
     }
 
-    verifyResult = ClusterStateVerifier.verify(
+    verifyResult = ClusterStateVerifier.verifyByPolling(
         new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CONTROLLER_CLUSTER));
     Assert.assertTrue(verifyResult);
     
-    verifyResult = ClusterStateVerifier.verify(
+    verifyResult = ClusterStateVerifier.verifyByPolling(
         new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_PREFIX + "_" + CLASS_NAME + "_0"));
     Assert.assertTrue(verifyResult);
 
@@ -76,11 +76,11 @@ public class TestDistCMMain extends ZkDistCMTestBase
     {
       stopCurrentLeader(_zkClient, CONTROLLER_CLUSTER, _startCMResultMap);
       
-      verifyResult = ClusterStateVerifier.verify(
+      verifyResult = ClusterStateVerifier.verifyByPolling(
           new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CONTROLLER_CLUSTER));
       Assert.assertTrue(verifyResult);
       
-      verifyResult = ClusterStateVerifier.verify(
+      verifyResult = ClusterStateVerifier.verifyByPolling(
           new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_PREFIX + "_" + CLASS_NAME + "_0"));
       Assert.assertTrue(verifyResult);
     }

@@ -104,7 +104,7 @@ public class TestStandAloneCMSessionExpiry extends ZkIntegrationTestBase
 
     boolean result;
     result =
-        ClusterStateVerifier.verify(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
                                                                                           CLUSTER_NAME));
     Assert.assertTrue(result);
 
@@ -120,7 +120,7 @@ public class TestStandAloneCMSessionExpiry extends ZkIntegrationTestBase
     setupTool.rebalanceStorageCluster(CLUSTER_NAME, "TestDB1", 3);
 
     result =
-        ClusterStateVerifier.verify(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
                                                                                           CLUSTER_NAME));
     Assert.assertTrue(result);
 
@@ -133,7 +133,7 @@ public class TestStandAloneCMSessionExpiry extends ZkIntegrationTestBase
     setupTool.rebalanceStorageCluster(CLUSTER_NAME, "TestDB2", 3);
 
     result =
-        ClusterStateVerifier.verify(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
                                                                                           CLUSTER_NAME));
     Assert.assertTrue(result);
 
@@ -141,7 +141,7 @@ public class TestStandAloneCMSessionExpiry extends ZkIntegrationTestBase
     controller.disconnect();
     for (int i = 0; i < NODE_NR; i++)
     {
-      participants[i].stop();
+      participants[i].syncStop();
     }
 
     System.out.println("STOP testStandAloneCMSessionExpiry() at "

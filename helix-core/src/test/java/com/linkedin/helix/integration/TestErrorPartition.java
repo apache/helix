@@ -80,7 +80,8 @@ public class TestErrorPartition extends ZkIntegrationTestBase
       {
         participants[i] = new MockParticipant(clusterName, instanceName, ZK_ADDR);
       }
-      new Thread(participants[i]).start();
+      participants[i].syncStart();
+      // new Thread(participants[i]).start();
     }
 
     Map<String, Map<String, String>> errStates =
@@ -88,7 +89,7 @@ public class TestErrorPartition extends ZkIntegrationTestBase
     errStates.put("TestDB0", new HashMap<String, String>());
     errStates.get("TestDB0").put("TestDB0_0", "localhost_12918");
     boolean result =
-        ClusterStateVerifier.verify(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
                                                                                           clusterName,
                                                                                           errStates));
     Assert.assertTrue(result);
@@ -107,7 +108,7 @@ public class TestErrorPartition extends ZkIntegrationTestBase
     tool.enablePartition(clusterName, "localhost_12918", "TestDB0", "TestDB0_0", false);
 
     result =
-        ClusterStateVerifier.verify(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
                                                                                           clusterName,
                                                                                           errStates));
     Assert.assertTrue(result);
@@ -118,7 +119,7 @@ public class TestErrorPartition extends ZkIntegrationTestBase
     tool.enableInstance(clusterName, "localhost_12918", false);
 
     result =
-        ClusterStateVerifier.verify(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
                                                                                           clusterName,
                                                                                           errStates));
     Assert.assertTrue(result);
@@ -127,16 +128,16 @@ public class TestErrorPartition extends ZkIntegrationTestBase
     tool.enablePartition(clusterName, "localhost_12918", "TestDB0", "TestDB0_0", true);
     tool.enableInstance(clusterName, "localhost_12918", true);
 
-    participants[0].stop();
+    participants[0].syncStop();
     result =
-        ClusterStateVerifier.verify(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
                                                                                           clusterName));
     Assert.assertTrue(result);
     participants[0] = new MockParticipant(clusterName, "localhost_12918", ZK_ADDR);
     new Thread(participants[0]).start();
 
     result =
-        ClusterStateVerifier.verify(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
                                                                                           clusterName));
     Assert.assertTrue(result);
 

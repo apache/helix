@@ -241,13 +241,14 @@ public class TestWildcardAlert extends ZkIntegrationTestBase
 
       participants[i] = new MockParticipant(clusterName, instanceName, ZK_ADDR,
           new WildcardAlertTransition());
-      new Thread(participants[i]).start();
+      participants[i].syncStart();
+//      new Thread(participants[i]).start();
     }
 
     TestClusterMBeanObserver jmxMBeanObserver = new TestClusterMBeanObserver(
         ClusterAlertMBeanCollection.DOMAIN_ALERT);
 
-    boolean result = ClusterStateVerifier.verify(
+    boolean result = ClusterStateVerifier.verifyByPolling(
         new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
     Assert.assertTrue(result);
 

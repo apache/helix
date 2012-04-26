@@ -38,7 +38,7 @@ public class TestDynamicFileClusterManager extends FileCMTestBase
     _mgmtTool.addResource(CLUSTER_NAME, "MyDB", 6, STATE_MODEL);
     rebalanceStorageCluster(CLUSTER_NAME, "MyDB", 0);
 
-    boolean result = ClusterStateVerifier.verify(
+    boolean result = ClusterStateVerifier.verifyByPolling(
         new ClusterStateVerifier.BestPossAndExtViewFileVerifier(ROOT_PATH, CLUSTER_NAME));
     Assert.assertTrue(result);
 

@@ -17,7 +17,6 @@ package com.linkedin.helix.integration;
 
 import java.util.Date;
 import java.util.Map;
-import java.util.Set;
 
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
@@ -163,10 +162,11 @@ public class TestSimpleWildcardAlert extends ZkIntegrationTestBase
                                             instanceName,
                                             ZK_ADDR,
                                             new SimpleAlertTransition(i * 5));
-      new Thread(participants[i]).start();
+      participants[i].syncStart();
+      // new Thread(participants[i]).start();
     }
 
-    boolean result = ClusterStateVerifier.verify(
+    boolean result = ClusterStateVerifier.verifyByPolling(
         new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
     Assert.assertTrue(result);
 

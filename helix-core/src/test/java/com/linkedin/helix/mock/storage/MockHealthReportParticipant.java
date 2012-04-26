@@ -228,7 +228,7 @@ public class MockHealthReportParticipant
     public void run()
     {
       LOG.info("MockHealthReportParticipantShutdownHook invoked");
-      _participant.stop();
+      _participant.syncStop();
     }
   }
 

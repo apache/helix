@@ -55,15 +55,15 @@ public class TestDistClusterController extends ZkDistCMTestBase
       }
     }
 
-    boolean result = ClusterStateVerifier.verify(
+    boolean result = ClusterStateVerifier.verifyByPolling(
         new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CONTROLLER_CLUSTER));
     Assert.assertTrue(result);
     
-    result = ClusterStateVerifier.verify(
+    result = ClusterStateVerifier.verifyByPolling(
         new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_PREFIX + "_" + CLASS_NAME + "_0"));
     Assert.assertTrue(result);
     
-    result = ClusterStateVerifier.verify(
+    result = ClusterStateVerifier.verifyByPolling(
         new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_PREFIX + "_" + CLASS_NAME + "_1"));
     Assert.assertTrue(result);
     

@@ -15,6 +15,8 @@
  */
 package com.linkedin.helix.integration;
 
+import java.util.Date;
+
 import org.testng.annotations.Test;
 
 /**
@@ -30,6 +32,8 @@ public class IntegrationTest extends ZkStandAloneCMTestBase
   @Test
   public void integrationTest() throws Exception
   {
+    System.out.println("START IntegrationTest at " + new Date(System.currentTimeMillis()));
 //    Thread.currentThread().join();
+    System.out.println("END IntegrationTest at " + new Date(System.currentTimeMillis()));
   }
 }

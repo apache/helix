@@ -94,14 +94,15 @@ public class TestResetPartitionState extends ZkIntegrationTestBase
       {
         participants[i] = new MockParticipant(clusterName, instanceName, ZK_ADDR);
       }
-      new Thread(participants[i]).start();
+      participants[i].syncStart();
+      // new Thread(participants[i]).start();
     }
 
     Map<String, Map<String, String>> errStateMap = new HashMap<String, Map<String, String>>();
     errStateMap.put("TestDB0", new HashMap<String, String>());
     errStateMap.get("TestDB0").put("TestDB0_0", "localhost_12918");
     errStateMap.get("TestDB0").put("TestDB0_8", "localhost_12918");
-    boolean result = ClusterStateVerifier.verify(
+    boolean result = ClusterStateVerifier.verifyByPolling(
         new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName, errStateMap));
     Assert.assertTrue(result);
 
@@ -114,7 +115,7 @@ public class TestResetPartitionState extends ZkIntegrationTestBase
     tool.resetPartition(clusterName, "localhost_12918", "TestDB0", "TestDB0_0");
 
     errStateMap.get("TestDB0").remove("TestDB0_0");
-    result = ClusterStateVerifier.verify(
+    result = ClusterStateVerifier.verifyByPolling(
         new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName, errStateMap));
     Assert.assertTrue(result);
 
@@ -125,7 +126,7 @@ public class TestResetPartitionState extends ZkIntegrationTestBase
     clearStatusUpdate(clusterName, "localhost_12918", "TestDB0", "TestDB0_8");
     tool.resetPartition(clusterName, "localhost_12918", "TestDB0", "TestDB0_8");
 
-    result = ClusterStateVerifier.verify(
+    result = ClusterStateVerifier.verifyByPolling(
         new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
     Assert.assertTrue(result);
 

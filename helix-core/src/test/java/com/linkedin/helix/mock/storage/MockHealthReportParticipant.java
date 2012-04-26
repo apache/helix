@@ -105,7 +105,7 @@ public class MockHealthReportParticipant
     @Override
     public Map<String, Map<String, String>> getRecentPartitionHealthReport()
     {
-      // tweek: randomly change the last digit
+      // tweak: randomly change the last digit
       for (String key1 : _mockHealthReport.keySet())
       {
         Map<String, String> reportMap = _mockHealthReport.get(key1);

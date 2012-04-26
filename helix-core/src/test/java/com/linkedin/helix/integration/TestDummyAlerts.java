@@ -33,6 +33,8 @@ import com.linkedin.helix.mock.storage.MockTransition;
 import com.linkedin.helix.model.Message;
 import com.linkedin.helix.tools.ClusterSetup;
 import com.linkedin.helix.tools.ClusterStateVerifier;
+import com.linkedin.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
+import com.linkedin.helix.tools.ClusterStateVerifier.MasterNbInExtViewVerifier;
 
 public class TestDummyAlerts extends ZkIntegrationTestBase
 {
@@ -52,7 +54,7 @@ public class TestDummyAlerts extends ZkIntegrationTestBase
       {
         for (int i = 0; i < 5; i++)
         {
-//          System.out.println(instance + " sets healthReport: " + "mockAlerts" + i);
+          // System.out.println(instance + " sets healthReport: " + "mockAlerts" + i);
           accessor.setProperty(PropertyType.HEALTHREPORT,
                                new ZNRecord("mockAlerts" + i),
                                instance,
@@ -75,7 +77,7 @@ public class TestDummyAlerts extends ZkIntegrationTestBase
   @Test()
   public void testDummyAlerts() throws Exception
   {
-//    Logger.getRootLogger().setLevel(Level.INFO);
+    // Logger.getRootLogger().setLevel(Level.INFO);
 
     String clusterName = getShortClassName();
     MockParticipant[] participants = new MockParticipant[5];
@@ -113,12 +115,17 @@ public class TestDummyAlerts extends ZkIntegrationTestBase
                               instanceName,
                               ZK_ADDR,
                               new DummyAlertsTransition());
-     participants[i].syncStart();
+      participants[i].syncStart();
     }
 
-    boolean result = ClusterStateVerifier.verifyBestPossAndExtViewByZkCallback(ZK_ADDR, clusterName);
-//    boolean result = ClusterStateVerifier.verify(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
-//                                                                                          clusterName));
+    boolean result =
+        ClusterStateVerifier.verifyByZkCallback(new MasterNbInExtViewVerifier(ZK_ADDR,
+                                                                              clusterName));
+    Assert.assertTrue(result);
+
+    result =
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+                                                                                 clusterName));
     Assert.assertTrue(result);
 
     // other verifications go here
@@ -135,9 +142,9 @@ public class TestDummyAlerts extends ZkIntegrationTestBase
     // clean up
     for (int i = 0; i < 5; i++)
     {
-     participants[i].syncStop();
+      participants[i].syncStop();
     }
-    
+
     System.out.println("END TestDummyAlerts at " + new Date(System.currentTimeMillis()));
   }
 }

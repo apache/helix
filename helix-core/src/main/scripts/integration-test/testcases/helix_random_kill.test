@@ -60,6 +60,9 @@ $SCRIPT_DIR/cm_driver.py -c cluster-manager -o start --jvm_args="-javaagent:inte
 
 #$SCRIPT_DIR/cm_driver.py -c cluster-manager -o stop 
 
+echo "wait for user input to continue"
+read
+
 #verify cluster state
 verifier_1_output=$VIEW_ROOT/$LOG_DIR_FROM_ROOT/verifier_1.log
 $SCRIPT_DIR/cm_driver.py -c cluster-state-verifier -o start --logfile=$verifier_1_output -l "integration-test/config/log4j-info.properties" --cmdline_args="-zkSvr localhost:2188 -cluster storage-cluster-12345 -timeout 60000"

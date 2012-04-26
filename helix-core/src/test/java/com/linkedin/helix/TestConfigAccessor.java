@@ -98,6 +98,23 @@ public class TestConfigAccessor extends ZkUnitTestBase
     Assert.assertEquals(keys.size(), 1, "should be [partitionConfigKey]");
     Assert.assertEquals(keys.get(0), "partitionConfigKey");
 
+    // test configAccessor.remove()
+    appConfig.remove(clusterScope, "clusterConfigKey");
+    clusterConfigValue = appConfig.get(clusterScope, "clusterConfigKey");
+    Assert.assertNull(clusterConfigValue, "Should be null since it's removed");
+
+    appConfig.remove(resourceScope, "resourceConfigKey");
+    resourceConfigValue = appConfig.get(resourceScope, "resourceConfigKey");
+    Assert.assertNull(resourceConfigValue, "Should be null since it's removed");
+
+    appConfig.remove(partitionScope, "partitionConfigKey");
+    partitionConfigValue = appConfig.get(partitionScope, "partitionConfigKey");
+    Assert.assertNull(partitionConfigValue, "Should be null since it's removed");
+    
+    appConfig.remove(participantScope, "participantConfigKey");
+    participantConfigValue = appConfig.get(partitionScope, "participantConfigKey");
+    Assert.assertNull(participantConfigValue, "Should be null since it's removed");
+    
     // negative tests
     try
     {
@@ -120,7 +137,7 @@ public class TestConfigAccessor extends ZkUnitTestBase
     try
     {
       new ConfigScopeBuilder().forParticipant("testParticipant").build();
-      Assert.fail("Should fail since participant name is not set");
+      Assert.fail("Should fail since cluster name is not set");
     } catch (Exception e)
     {
       // OK

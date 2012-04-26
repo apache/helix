@@ -33,35 +33,41 @@ import com.linkedin.helix.manager.zk.ZNRecordSerializer;
 import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.tools.ClusterSetup;
 import com.linkedin.helix.tools.ClusterStateVerifier;
+import com.linkedin.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
+import com.linkedin.helix.tools.ClusterStateVerifier.MasterNbInExtViewVerifier;
 
 /**
- *
+ * 
  * setup a storage cluster and start a zk-based cluster controller in stand-alone mode
  * start 5 dummy participants verify the current states at end
  */
 
 public class ZkStandAloneCMTestBase extends ZkIntegrationTestBase
 {
-  private static Logger LOG = Logger.getLogger(ZkStandAloneCMTestBase.class);
+  private static Logger                LOG               =
+                                                             Logger.getLogger(ZkStandAloneCMTestBase.class);
 
-  protected static final int NODE_NR = 5;
-  protected static final int START_PORT = 12918;
-  protected static final String STATE_MODEL = "MasterSlave";
-  protected static final String TEST_DB = "TestDB";
-  protected static final int _PARTITIONS = 20;
+  protected static final int           NODE_NR           = 5;
+  protected static final int           START_PORT        = 12918;
+  protected static final String        STATE_MODEL       = "MasterSlave";
+  protected static final String        TEST_DB           = "TestDB";
+  protected static final int           _PARTITIONS       = 20;
 
-  protected ClusterSetup _setupTool = null;
-  protected final String CLASS_NAME = getShortClassName();
-  protected final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + CLASS_NAME;
+  protected ClusterSetup               _setupTool        = null;
+  protected final String               CLASS_NAME        = getShortClassName();
+  protected final String               CLUSTER_NAME      = CLUSTER_PREFIX + "_"
+                                                             + CLASS_NAME;
 
-  protected Map<String, StartCMResult> _startCMResultMap = new HashMap<String, StartCMResult>();
-  protected ZkClient _zkClient;
+  protected Map<String, StartCMResult> _startCMResultMap =
+                                                             new HashMap<String, StartCMResult>();
+  protected ZkClient                   _zkClient;
 
   @BeforeClass
   public void beforeClass() throws Exception
   {
     // Logger.getRootLogger().setLevel(Level.INFO);
-    System.out.println("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
+    System.out.println("START " + CLASS_NAME + " at "
+        + new Date(System.currentTimeMillis()));
 
     _zkClient = new ZkClient(ZK_ADDR);
     _zkClient.setZkSerializer(new ZNRecordSerializer());
@@ -89,28 +95,32 @@ public class ZkStandAloneCMTestBase extends ZkIntegrationTestBase
       if (_startCMResultMap.get(instanceName) != null)
       {
         LOG.error("fail to start particpant:" + instanceName
-                     + "(participant with same name already exists)");
+            + "(participant with same name already exists)");
       }
       else
       {
-        StartCMResult result = TestHelper.startDummyProcess(ZK_ADDR,
-                                                            CLUSTER_NAME,
-                                                            instanceName);
+        StartCMResult result =
+            TestHelper.startDummyProcess(ZK_ADDR, CLUSTER_NAME, instanceName);
         _startCMResultMap.put(instanceName, result);
       }
     }
 
     // start controller
     String controllerName = CONTROLLER_PREFIX + "_0";
-    StartCMResult startResult = TestHelper.startController(CLUSTER_NAME,
-                                                                  controllerName,
-                                                                  ZK_ADDR,
-                                                                  HelixControllerMain.STANDALONE);
+    StartCMResult startResult =
+        TestHelper.startController(CLUSTER_NAME,
+                                   controllerName,
+                                   ZK_ADDR,
+                                   HelixControllerMain.STANDALONE);
     _startCMResultMap.put(controllerName, startResult);
 
-    boolean result = ClusterStateVerifier.verifyBestPossAndExtViewByZkCallback(ZK_ADDR, CLUSTER_NAME);
-//    boolean result = ClusterStateVerifier.verify(
-//        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_NAME));
+    boolean result =
+        ClusterStateVerifier.verifyByZkCallback(new MasterNbInExtViewVerifier(ZK_ADDR,
+                                                                              CLUSTER_NAME));
+
+    result =
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+                                                                                 CLUSTER_NAME));
     Assert.assertTrue(result);
   }
 
@@ -118,9 +128,7 @@ public class ZkStandAloneCMTestBase extends ZkIntegrationTestBase
   public void afterClass() throws Exception
   {
     /**
-     * shutdown order:
-     *   1) disconnect the controller
-     *   2) disconnect participants
+     * shutdown order: 1) disconnect the controller 2) disconnect participants
      */
 
     StartCMResult result;
@@ -150,6 +158,7 @@ public class ZkStandAloneCMTestBase extends ZkIntegrationTestBase
     _zkClient.close();
 
     // logger.info("END at " + new Date(System.currentTimeMillis()));
-    System.out.println("END " + CLASS_NAME + " at "+ new Date(System.currentTimeMillis()));
+    System.out.println("END " + CLASS_NAME + " at "
+        + new Date(System.currentTimeMillis()));
   }
 }

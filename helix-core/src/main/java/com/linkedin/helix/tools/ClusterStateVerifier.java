@@ -69,7 +69,7 @@ public class ClusterStateVerifier
   public static String  zkServerAddress = "zkSvr";
   public static String  help            = "help";
   public static String  timeout         = "timeout";
-  public static String  period   = "period";
+  public static String  period          = "period";
 
   private static Logger LOG             = Logger.getLogger(ClusterStateVerifier.class);
 
@@ -78,27 +78,32 @@ public class ClusterStateVerifier
     boolean verify();
   }
 
+  public interface ZkVerifier extends Verifier
+  {
+    ZkClient getZkClient();
+
+    String getClusterName();
+  }
+
   static class ExtViewVeriferZkListener implements IZkChildListener, IZkDataListener
   {
     final CountDownLatch _countDown;
-    final DataAccessor   _accessor;
     final ZkClient       _zkClient;
-    final String         _clusterName;
+    final Verifier       _verifier;
 
     public ExtViewVeriferZkListener(CountDownLatch countDown,
                                     ZkClient zkClient,
-                                    String clusterName)
+                                    ZkVerifier verifier)
     {
       _countDown = countDown;
       _zkClient = zkClient;
-      _clusterName = clusterName;
-      _accessor = new ZKDataAccessor(clusterName, zkClient);
+      _verifier = verifier;
     }
 
     @Override
     public void handleDataChange(String dataPath, Object data) throws Exception
     {
-      boolean result = ClusterStateVerifier.verifyBestPossAndExtView(_accessor, null);
+      boolean result = _verifier.verify();
       if (result == true)
       {
         _countDown.countDown();
@@ -121,7 +126,8 @@ public class ClusterStateVerifier
             parentPath.equals("/") ? parentPath + child : parentPath + "/" + child;
         _zkClient.subscribeDataChanges(childPath, this);
       }
-      boolean result = ClusterStateVerifier.verifyBestPossAndExtView(_accessor, null);
+
+      boolean result = _verifier.verify();
       if (result == true)
       {
         _countDown.countDown();
@@ -133,19 +139,18 @@ public class ClusterStateVerifier
   /**
    * verifier that verifies best possible state and external view
    */
-  public static class BestPossAndExtViewZkVerifier implements Verifier
+  public static class BestPossAndExtViewZkVerifier implements ZkVerifier
   {
     private final String                           zkAddr;
     private final String                           clusterName;
     private final Map<String, Map<String, String>> errStates;
+    private final ZkClient                         zkClient;
 
-    // TODO refactor
     public BestPossAndExtViewZkVerifier(String zkAddr, String clusterName)
     {
       this(zkAddr, clusterName, null);
     }
 
-    // TODO refactor
     public BestPossAndExtViewZkVerifier(String zkAddr,
                                         String clusterName,
                                         Map<String, Map<String, String>> errStates)
@@ -157,12 +162,12 @@ public class ClusterStateVerifier
       this.zkAddr = zkAddr;
       this.clusterName = clusterName;
       this.errStates = errStates;
+      this.zkClient = ZKClientPool.getZkClient(zkAddr); // null;
     }
 
     @Override
     public boolean verify()
     {
-      ZkClient zkClient = ZKClientPool.getZkClient(zkAddr); // null;
       try
       {
         DataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
@@ -177,12 +182,24 @@ public class ClusterStateVerifier
     }
 
     @Override
+    public ZkClient getZkClient()
+    {
+      return zkClient;
+    }
+
+    @Override
+    public String getClusterName()
+    {
+      return clusterName;
+    }
+
+    @Override
     public String toString()
     {
       String verifierName = getClass().getName();
       verifierName =
           verifierName.substring(verifierName.lastIndexOf('.') + 1, verifierName.length());
-      return verifierName + "(" + zkAddr + ", " + clusterName + ")";
+      return verifierName + "(" + clusterName + "@" + zkAddr + ")";
     }
   }
 
@@ -241,8 +258,55 @@ public class ClusterStateVerifier
       String verifierName = getClass().getName();
       verifierName =
           verifierName.substring(verifierName.lastIndexOf('.') + 1, verifierName.length());
-      return verifierName + "(" + rootPath + ", " + clusterName + ")";
+      return verifierName + "(" + rootPath + "@" + clusterName + ")";
     }
+  }
+
+  public static class MasterNbInExtViewVerifier implements ZkVerifier
+  {
+    private final String   zkAddr;
+    private final String   clusterName;
+    private final ZkClient zkClient;
+
+    public MasterNbInExtViewVerifier(String zkAddr, String clusterName)
+    {
+      if (zkAddr == null || clusterName == null)
+      {
+        throw new IllegalArgumentException("requires zkAddr|clusterName");
+      }
+      this.zkAddr = zkAddr;
+      this.clusterName = clusterName;
+      this.zkClient = ZKClientPool.getZkClient(zkAddr);
+    }
+
+    @Override
+    public boolean verify()
+    {
+      try
+      {
+        DataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
+
+        return ClusterStateVerifier.verifyMasterNbInExtView(accessor);
+      }
+      catch (Exception e)
+      {
+        LOG.error("exception in verification", e);
+      }
+      return false;
+    }
+
+    @Override
+    public ZkClient getZkClient()
+    {
+      return zkClient;
+    }
+
+    @Override
+    public String getClusterName()
+    {
+      return clusterName;
+    }
+
   }
 
   static boolean verifyBestPossAndExtView(DataAccessor accessor,
@@ -314,8 +378,9 @@ public class ClusterStateVerifier
           }
         }
 
-//        System.err.println("resource: " + resourceName + ", bpStateMap: " + bpStateMap);
-        
+        // System.err.println("resource: " + resourceName + ", bpStateMap: " +
+        // bpStateMap);
+
         // step 1: externalView and bestPossibleState has equal size
         int extViewSize = extView.getRecord().getMapFields().size();
         int bestPossStateSize = bestPossOutput.getResourceMap(resourceName).size();
@@ -357,6 +422,57 @@ public class ClusterStateVerifier
       return false;
     }
 
+  }
+
+  static boolean verifyMasterNbInExtView(DataAccessor accessor)
+  {
+    Map<String, IdealState> idealStates =
+        accessor.getChildValuesMap(IdealState.class, PropertyType.IDEALSTATES);
+    if (idealStates == null || idealStates.size() == 0)
+    {
+      LOG.info("No resource idealState");
+      return true;
+    }
+
+    Map<String, ExternalView> extViews =
+        accessor.getChildValuesMap(ExternalView.class, PropertyType.EXTERNALVIEW);
+    if (extViews == null || extViews.size() < idealStates.size())
+    {
+      LOG.info("No externalViews | externalView.size() < idealState.size()");
+      return false;
+    }
+
+    for (String resource : extViews.keySet())
+    {
+      int partitions = idealStates.get(resource).getNumPartitions();
+      Map<String, Map<String, String>> instanceStateMap =
+          extViews.get(resource).getRecord().getMapFields();
+      if (instanceStateMap.size() < partitions)
+      {
+        LOG.info("Number of externalViews (" + instanceStateMap.size()
+            + ") < partitions (" + partitions + ")");
+        return false;
+      }
+
+      for (String partition : instanceStateMap.keySet())
+      {
+        boolean foundMaster = false;
+        for (String instance : instanceStateMap.get(partition).keySet())
+        {
+          if (instanceStateMap.get(partition).get(instance).equalsIgnoreCase("MASTER"))
+          {
+            foundMaster = true;
+            break;
+          }
+        }
+        if (!foundMaster)
+        {
+          LOG.info("No MASTER for partition: " + partition);
+          return false;
+        }
+      }
+    }
+    return true;
   }
 
   static void runStage(ClusterEvent event, Stage stage) throws Exception
@@ -451,7 +567,7 @@ public class ClusterStateVerifier
   }
 
   public static boolean verifyByPolling(Verifier verifier, long timeout, long period)
-  {    
+  {
     long startTime = System.currentTimeMillis();
     boolean result = false;
     try
@@ -487,22 +603,23 @@ public class ClusterStateVerifier
     return false;
   }
 
-  public static boolean verifyBestPossAndExtViewByZkCallback(String zkAddr, String clusterName)
+  public static boolean verifyByZkCallback(ZkVerifier verifier)
   {
-    return verifyBestPossAndExtViewByZkCallback(zkAddr, clusterName, 30000);
+    return verifyByZkCallback(verifier, 30000);
   }
-  
-  public static boolean verifyBestPossAndExtViewByZkCallback(String zkAddr, String clusterName, long timeout)
+
+  public static boolean verifyByZkCallback(ZkVerifier verifier, long timeout)
   {
     long startTime = System.currentTimeMillis();
-
-    ZkClient zkClient = ZKClientPool.getZkClient(zkAddr);
     CountDownLatch countDown = new CountDownLatch(1);
+    ZkClient zkClient = verifier.getZkClient();
+    String clusterName = verifier.getClusterName();
+
+    ExtViewVeriferZkListener listener =
+        new ExtViewVeriferZkListener(countDown, zkClient, verifier);
 
     String extViewPath =
         PropertyPathConfig.getPath(PropertyType.EXTERNALVIEW, clusterName);
-    ExtViewVeriferZkListener listener =
-        new ExtViewVeriferZkListener(countDown, zkClient, clusterName);
     zkClient.subscribeChildChanges(extViewPath, listener);
     for (String child : zkClient.getChildren(extViewPath))
     {
@@ -512,8 +629,7 @@ public class ClusterStateVerifier
     }
 
     // do initial verify
-    DataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
-    boolean result = ClusterStateVerifier.verifyBestPossAndExtView(accessor, null);
+    boolean result = verifier.verify();
     if (result == false)
     {
       try
@@ -522,10 +638,10 @@ public class ClusterStateVerifier
         if (result == false)
         {
           // make a final try if timeout
-          result = ClusterStateVerifier.verifyBestPossAndExtView(accessor, null);
+          result = verifier.verify();
         }
       }
-      catch (InterruptedException e)
+      catch (Exception e)
       {
         // TODO Auto-generated catch block
         e.printStackTrace();
@@ -540,12 +656,11 @@ public class ClusterStateVerifier
           extViewPath.equals("/") ? extViewPath + child : extViewPath + "/" + child;
       zkClient.unsubscribeDataChanges(childPath, listener);
     }
-
+    
     long endTime = System.currentTimeMillis();
 
     // debug
-    System.err.println(result + ": wait " + (endTime - startTime) + "ms to verify "
-        + clusterName + "@" + zkAddr);
+    System.err.println(result + ": wait " + (endTime - startTime) + "ms, " + verifier);
 
     return result;
   }
@@ -739,11 +854,12 @@ public class ClusterStateVerifier
       }
 
     }
-//    return verifyByPolling(new BestPossAndExtViewZkVerifier(zkServer, clusterName),
-//                  timeoutValue,
-//                  periodValue);
+    // return verifyByPolling(new BestPossAndExtViewZkVerifier(zkServer, clusterName),
+    // timeoutValue,
+    // periodValue);
 
-    return verifyBestPossAndExtViewByZkCallback(zkServer, clusterName, timeoutValue);
+    return verifyByZkCallback(new BestPossAndExtViewZkVerifier(zkServer, clusterName),
+                              timeoutValue);
   }
 
   public static void main(String[] args)

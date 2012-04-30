@@ -600,18 +600,18 @@ public class ZKHelixAdmin implements HelixAdmin
     {
       throw new HelixException("Cluster " + clusterName + " is not setup yet");
     }
-    
+
     IdealState idealState = new IdealState(clusterName);
 
     idealState.setNumPartitions(1);
     idealState.setStateModelDefRef("LeaderStandby");
-
 
     List<String> controllers = getInstancesInCluster(grandCluster);
     if(controllers.size() == 0)
     {
       throw new HelixException("Grand cluster " + grandCluster + " has no instances");
     }
+    idealState.setReplicas(Integer.toString(controllers.size()));
     Collections.shuffle(controllers);
     idealState.getRecord().setListField(clusterName, controllers);
     idealState.setPartitionState(clusterName, controllers.get(0), "LEADER");

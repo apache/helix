@@ -154,14 +154,14 @@ public class FileHelixAdmin implements HelixAdmin
     IdealState idealState = new IdealState(resource);
     idealState.setNumPartitions(numResources);
     idealState.setStateModelDefRef(stateModelRef);
+    idealState.setReplicas(Integer.toString(0));
     idealState.setIdealStateMode(IdealStateModeProperty.AUTO.toString());
     try
     {
       _store.setProperty(resourceIdealStatePath, idealState.getRecord());
     } catch (PropertyStoreException e)
     {
-      logger.error("Fail to add resource, cluster:" + clusterName + " resourceName:" + resource
-          + "\nexception: " + e);
+      logger.error("Fail to add resource, cluster:" + clusterName + " resourceName:" + resource, e);
     }
 
   }

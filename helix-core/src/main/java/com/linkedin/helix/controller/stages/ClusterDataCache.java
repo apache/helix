@@ -200,19 +200,30 @@ public class ClusterDataCache
 
   public int getReplicas(String resourceName)
   {
-    String replicasStr = _idealStateMap.get(resourceName).getReplicas();
-    int replicas;
-    if (replicasStr.equals(StateModelToken.ANY_LIVEINSTANCE.toString()))
+    int replicas = -1;
+
+    if (_idealStateMap.containsKey(resourceName))
     {
-      replicas = _liveInstanceMap.size();
-    } else
-    {
-      try
+      String replicasStr = _idealStateMap.get(resourceName).getReplicas();
+
+      if (replicasStr != null)
       {
-        replicas = Integer.parseInt(replicasStr);
-      } catch (Exception e)
+         if (replicasStr.equals(StateModelToken.ANY_LIVEINSTANCE.toString()))
+        {
+          replicas = _liveInstanceMap.size();
+        } else
+        {
+          try
+          {
+            replicas = Integer.parseInt(replicasStr);
+          } catch (Exception e)
+          {
+            LOG.error("invalide replicas string: " + replicasStr);
+          }
+        }
+      } else
       {
-        replicas = -1;
+        LOG.error("idealState for resource: " + resourceName + " does NOT have replicas");
       }
     }
     return replicas;

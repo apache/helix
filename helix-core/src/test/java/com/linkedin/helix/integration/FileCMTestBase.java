@@ -62,7 +62,7 @@ public class FileCMTestBase
     {
       addNodeToCluster(CLUSTER_NAME, "localhost", START_PORT + i);
     }
-    rebalanceStorageCluster(CLUSTER_NAME, TEST_DB, 2);
+    rebalanceStorageCluster(CLUSTER_NAME, TEST_DB, 3);
 
     // start dummy storage nodes
     for (int i = 0; i < NODE_NR; i++)
@@ -107,10 +107,10 @@ public class FileCMTestBase
     }
 
     boolean result = ClusterStateVerifier.verify(
-        new ClusterStateVerifier.BestPossAndExtViewFileVerifier(ROOT_PATH, CLUSTER_NAME));
+        new ClusterStateVerifier.BestPossAndExtViewFileVerifier(ROOT_PATH, CLUSTER_NAME), 60000);
     Assert.assertTrue(result);
 
-    
+
     System.out.println("END BEFORECLASS FileCMTestBase at " + new Date(System.currentTimeMillis()));
   }
 
@@ -154,10 +154,11 @@ public class FileCMTestBase
     List<String> nodeNames = _mgmtTool.getInstancesInCluster(clusterName);
 
     IdealState idealState = _mgmtTool.getResourceIdealState(clusterName, resourceName);
+    idealState.setReplicas(Integer.toString(replica));
     int partitions = idealState.getNumPartitions();
 
     ZNRecord newIdealState = IdealStateCalculatorForStorageNode
-        .calculateIdealState(nodeNames, partitions, replica, resourceName,
+        .calculateIdealState(nodeNames, partitions, replica - 1, resourceName,
             "MASTER", "SLAVE");
 
     newIdealState.merge(idealState.getRecord());

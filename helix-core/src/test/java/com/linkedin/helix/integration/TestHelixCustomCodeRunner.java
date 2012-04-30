@@ -33,7 +33,7 @@ public class TestHelixCustomCodeRunner extends ZkIntegrationTestBase
   class MockCallback implements CustomCodeCallbackHandler
   {
     boolean _isCallbackInvoked;
-    
+
     @Override
     public void onCallback(NotificationContext context)
     {
@@ -44,7 +44,7 @@ public class TestHelixCustomCodeRunner extends ZkIntegrationTestBase
     }
 
   }
-  
+
   class MockJob implements MockJobIntf
   {
     @Override
@@ -52,13 +52,13 @@ public class TestHelixCustomCodeRunner extends ZkIntegrationTestBase
     {
       try
       {
-        // delay the start of the 1st participant 
-        //  so there will be leadership transfer
+        // delay the start of the 1st participant
+        //  so there will be a leadership transfer from localhost_12919 to 12918
         if (manager.getInstanceName().equals("localhost_12918"))
         {
           Thread.sleep(2000);
         }
-        
+
         HelixCustomCodeRunner customCodeRunner = new HelixCustomCodeRunner(manager, ZK_ADDR);
         customCodeRunner.invoke(_callback)
                          .on(ChangeType.LIVE_INSTANCE)
@@ -68,18 +68,18 @@ public class TestHelixCustomCodeRunner extends ZkIntegrationTestBase
       {
         // TODO Auto-generated catch block
         e.printStackTrace();
-      }      
+      }
     }
 
     @Override
     public void doPostConnectJob(HelixManager manager)
     {
       // TODO Auto-generated method stub
-      
+
     }
-    
+
   }
-  
+
   @Test
   public void testCustomCodeRunner() throws Exception
   {
@@ -97,9 +97,9 @@ public class TestHelixCustomCodeRunner extends ZkIntegrationTestBase
                             "MasterSlave",
                             true);
 
-    TestHelper.startController(_clusterName, 
+    TestHelper.startController(_clusterName,
                                "controller_0",
-                               ZK_ADDR, 
+                               ZK_ADDR,
                                HelixControllerMain.STANDALONE);
 
     MockParticipant[] partics = new MockParticipant[5];
@@ -107,15 +107,15 @@ public class TestHelixCustomCodeRunner extends ZkIntegrationTestBase
     {
       String instanceName =  "localhost_" + (_startPort + i);
 
-      partics[i] = new MockParticipant(_clusterName, instanceName, ZK_ADDR, 
+      partics[i] = new MockParticipant(_clusterName, instanceName, ZK_ADDR,
                         null, new MockJob());
       new Thread(partics[i]).start();
     }
-    
+
     boolean result = ClusterStateVerifier.verify(
         new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, _clusterName));
     Assert.assertTrue(result);
-    
+
     Thread.sleep(1000);  // wait for the INIT type callback to finish
     Assert.assertTrue(_callback._isCallbackInvoked);
     _callback._isCallbackInvoked = false;

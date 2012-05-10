@@ -63,8 +63,8 @@ import com.linkedin.helix.monitoring.mbeans.ClusterStatusMonitor;
  * Ideal State. It does this by listening to changes in cluster state and scheduling new
  * tasks to get cluster state to best possible ideal state. Every instance of this class
  * can control can control only one cluster
- * 
- * 
+ *
+ *
  * Get all the partitions use IdealState, CurrentState and Messages <br>
  * foreach partition <br>
  * 1. get the (instance,state) from IdealState, CurrentState and PendingMessages <br>
@@ -164,8 +164,7 @@ public class GenericHelixController implements
 
       registry.register("messageChange",
                         dataRefresh,
-                        rebalancePipeline,
-                        externalViewPipeline);
+                        rebalancePipeline);
       registry.register("externalView", dataRefresh);
       registry.register("resume", dataRefresh, rebalancePipeline, externalViewPipeline);
 
@@ -193,7 +192,7 @@ public class GenericHelixController implements
   /**
    * lock-always: caller always needs to obtain an external lock before call, calls to
    * handleEvent() should be serialized
-   * 
+   *
    * @param event
    */
   protected void handleEvent(ClusterEvent event)
@@ -441,7 +440,7 @@ public class GenericHelixController implements
    * Go through the list of liveinstances in the cluster, and add currentstateChange
    * listener and Message listeners to them if they are newly added. For current state
    * change, the observation is tied to the session id of each live instance.
-   * 
+   *
    */
   protected void checkLiveInstancesObservation(List<LiveInstance> liveInstances,
                                                NotificationContext changeContext)

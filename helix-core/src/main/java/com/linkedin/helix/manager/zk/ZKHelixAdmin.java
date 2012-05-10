@@ -688,6 +688,7 @@ public class ZKHelixAdmin implements HelixAdmin
     {
       throw new HelixException("Grand cluster " + grandCluster + " has no instances");
     }
+    idealState.setReplicas(Integer.toString(controllers.size()));
     Collections.shuffle(controllers);
     idealState.getRecord().setListField(clusterName, controllers);
     idealState.setPartitionState(clusterName, controllers.get(0), "LEADER");

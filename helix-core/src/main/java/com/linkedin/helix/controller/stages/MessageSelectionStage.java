@@ -17,20 +17,67 @@ package com.linkedin.helix.controller.stages;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.TreeMap;
+
+import org.apache.log4j.Logger;
 
 import com.linkedin.helix.controller.pipeline.AbstractBaseStage;
 import com.linkedin.helix.controller.pipeline.StageException;
+import com.linkedin.helix.model.IdealState;
+import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.model.Message;
-import com.linkedin.helix.model.Resource;
 import com.linkedin.helix.model.Partition;
+import com.linkedin.helix.model.Resource;
 import com.linkedin.helix.model.StateModelDefinition;
 
 public class MessageSelectionStage extends AbstractBaseStage
 {
+  private static final Logger LOG = Logger.getLogger(MessageSelectionStage.class);
+
+  static class Bounds
+  {
+    private int upper;
+    private int lower;
+
+    public Bounds(int lower, int upper)
+    {
+      this.lower = lower;
+      this.upper = upper;
+    }
+
+    public void increaseUpperBound()
+    {
+      upper++;
+    }
+
+    public void increaseLowerBound()
+    {
+      lower++;
+    }
+
+    public void decreaseUpperBound()
+    {
+      upper--;
+    }
+
+    public void decreaseLowerBound()
+    {
+      lower--;
+    }
+
+    public int getLowerBound()
+    {
+      return lower;
+    }
+
+    public int getUpperBound()
+    {
+      return upper;
+    }
+  }
 
   @Override
   public void process(ClusterEvent event) throws Exception
@@ -38,12 +85,15 @@ public class MessageSelectionStage extends AbstractBaseStage
     ClusterDataCache cache = event.getAttribute("ClusterDataCache");
     Map<String, Resource> resourceMap =
         event.getAttribute(AttributeName.RESOURCES.toString());
+    CurrentStateOutput currentStateOutput =
+        event.getAttribute(AttributeName.CURRENT_STATE.toString());
     MessageGenerationOutput messageGenOutput =
         event.getAttribute(AttributeName.MESSAGES_ALL.toString());
-    if (cache == null || resourceMap == null || messageGenOutput == null)
+    if (cache == null || resourceMap == null || currentStateOutput == null
+        || messageGenOutput == null)
     {
       throw new StageException("Missing attributes in event:" + event
-          + ". Requires DataCache|RESOURCES|MESSAGES_ALL");
+          + ". Requires DataCache|RESOURCES|CURRENT_STATE|MESSAGES_ALL");
     }
 
     MessageSelectionStageOutput output = new MessageSelectionStageOutput();
@@ -53,61 +103,235 @@ public class MessageSelectionStage extends AbstractBaseStage
       Resource resource = resourceMap.get(resourceName);
       StateModelDefinition stateModelDef =
           cache.getStateModelDef(resource.getStateModelDefRef());
+
+      Map<String, Integer> stateTransitionPriorities =
+          getStateTransitionPriorityMap(stateModelDef);
+      IdealState idealState = cache.getIdealState(resourceName);
+      Map<String, Bounds> stateConstraints =
+          computeStateConstraints(stateModelDef, idealState, cache);
+
       for (Partition partition : resource.getPartitions())
       {
-        List<Message> messages =
-            messageGenOutput.getMessages(resourceName, partition);
-        List<Message> selectedMessages = selectMessages(messages, stateModelDef);
+        List<Message> messages = messageGenOutput.getMessages(resourceName, partition);
+        List<Message> selectedMessages =
+            selectMessages(cache.getLiveInstances(),
+                           currentStateOutput.getCurrentStateMap(resourceName, partition),
+                           currentStateOutput.getPendingStateMap(resourceName, partition),
+                           messages,
+                           stateConstraints,
+                           stateTransitionPriorities,
+                           stateModelDef.getInitialState());
         output.addMessages(resourceName, partition, selectedMessages);
       }
     }
     event.addAttribute(AttributeName.MESSAGES_SELECTED.toString(), output);
   }
 
-  protected List<Message> selectMessages(List<Message> messages,
-                                         StateModelDefinition stateModelDef)
+  // TODO: This method deserves its own class. The class should not understand helix but
+  // just be
+  // able to solve the problem using the algo. I think the method is following that but if
+  // we don't move it to another class its quite easy to break that contract
+  /**
+   * greedy message selection algorithm: 1) calculate CS+PS state lower/upper-bounds 2)
+   * group messages by state transition and sorted by priority 3) from highest priority to
+   * lowest, for each message group with the same transition add message one by one and
+   * make sure state constraint is not violated update state lower/upper-bounds when a new
+   * message is selected
+   *
+   * @param currentStates
+   * @param pendingStates
+   * @param messages
+   * @param stateConstraints
+   *          : STATE -> bound (lower:upper)
+   * @param stateTransitionPriorities
+   *          : FROME_STATE-TO_STATE -> priority
+   * @return: selected messages
+   */
+  List<Message> selectMessages(Map<String, LiveInstance> liveInstances,
+                               Map<String, String> currentStates,
+                               Map<String, String> pendingStates,
+                               List<Message> messages,
+                               Map<String, Bounds> stateConstraints,
+                               final Map<String, Integer> stateTransitionPriorities,
+                               String initialState)
   {
-    if (messages == null || messages.size() == 0)
+    if (messages == null || messages.isEmpty())
     {
       return Collections.emptyList();
     }
-    List<String> stateTransitionPriorityList =
-        stateModelDef.getStateTransitionPriorityList();
-    //todo change this and add validation logic so that state model constraints are not violated.
-    if (stateTransitionPriorityList == null || stateTransitionPriorityList.isEmpty())
+
+    List<Message> selectedMessages = new ArrayList<Message>();
+    Map<String, Bounds> bounds = new HashMap<String, Bounds>();
+
+    // count currentState, if no currentState, count as in initialState
+    for (String instance : liveInstances.keySet())
     {
-      return messages;
+      String state = initialState;
+      if (currentStates.containsKey(instance))
+      {
+        state = currentStates.get(instance);
+      }
+
+      if (!bounds.containsKey(state))
+      {
+        bounds.put(state, new Bounds(0, 0));
+      }
+      bounds.get(state).increaseLowerBound();
+      bounds.get(state).increaseUpperBound();
     }
-    Set<String> possibleTransitions = new HashSet<String>();
+
+    // count pendingStates
+    for (String instance : pendingStates.keySet())
+    {
+      String state = pendingStates.get(instance);
+      if (!bounds.containsKey(state))
+      {
+        bounds.put(state, new Bounds(0, 0));
+      }
+      // TODO: add lower bound, need to refactor pendingState to include fromState also
+      bounds.get(state).increaseUpperBound();
+    }
+
+    // group messages based on state transition priority
+    Map<Integer, List<Message>> messagesGroupByStateTransitPriority =
+        new TreeMap<Integer, List<Message>>();
     for (Message message : messages)
     {
-      String transition = message.getFromState() + "-" + message.getToState();
-      possibleTransitions.add(transition.toUpperCase());
-    }
-    String preferredTransition = null;
+      String fromState = message.getFromState();
+      String toState = message.getToState();
+      String transition = fromState + "-" + toState;
+      int priority = Integer.MAX_VALUE;
 
-    for (String transition : stateTransitionPriorityList)
-    {
-      if (possibleTransitions.contains(transition.toUpperCase()))
+      if (stateTransitionPriorities.containsKey(transition))
       {
-        preferredTransition = transition;
-        break;
+        priority = stateTransitionPriorities.get(transition);
       }
-    }
-    if (preferredTransition != null)
-    {
-      List<Message> messagesToSend = new ArrayList<Message>();
-      for (Message message : messages)
+
+      if (!messagesGroupByStateTransitPriority.containsKey(priority))
       {
-        String transition = message.getFromState() + "-" + message.getToState();
-        if (transition.equalsIgnoreCase(preferredTransition))
+        messagesGroupByStateTransitPriority.put(priority, new ArrayList<Message>());
+      }
+      messagesGroupByStateTransitPriority.get(priority).add(message);
+    }
+
+    // select messages
+    for (List<Message> messageList : messagesGroupByStateTransitPriority.values())
+    {
+      for (Message message : messageList)
+      {
+        String fromState = message.getFromState();
+        String toState = message.getToState();
+
+        if (!bounds.containsKey(fromState))
         {
-          messagesToSend.add(message);
+          LOG.error("Message's fromState is not in currentState. message: " + message);
+          continue;
         }
+
+        if (!bounds.containsKey(toState))
+        {
+          bounds.put(toState, new Bounds(0, 0));
+        }
+
+        // check lower bound of fromState
+        if (stateConstraints.containsKey(fromState))
+        {
+          int newLowerBound = bounds.get(fromState).getLowerBound() - 1;
+          if (newLowerBound < 0)
+          {
+            LOG.error("Number of currentState in " + fromState
+                + " is less than number of messages transiting from " + fromState);
+            continue;
+          }
+
+          if (newLowerBound < stateConstraints.get(fromState).getLowerBound())
+          {
+            continue;
+          }
+        }
+
+        // check upper bound of toState
+        if (stateConstraints.containsKey(toState))
+        {
+          int newUpperBound = bounds.get(toState).getUpperBound() + 1;
+          if (newUpperBound > stateConstraints.get(toState).getUpperBound())
+          {
+            continue;
+          }
+        }
+
+        selectedMessages.add(message);
+        bounds.get(fromState).increaseLowerBound();
+        bounds.get(toState).increaseUpperBound();
       }
-      return messagesToSend;
     }
-    return Collections.emptyList();
+
+    return selectedMessages;
   }
 
+  /**
+   * TODO: This code is duplicate in multiple places. Can we do it in to one place in the
+   * beginning and compute the stateConstraint instance once and re use at other places.
+   * Each IdealState must have a constraint object associated with it
+   */
+  private Map<String, Bounds> computeStateConstraints(StateModelDefinition stateModelDefinition,
+                                                      IdealState idealState,
+                                                      ClusterDataCache cache)
+  {
+    Map<String, Bounds> stateConstraints = new HashMap<String, Bounds>();
+
+    List<String> statePriorityList = stateModelDefinition.getStatesPriorityList();
+    for (String state : statePriorityList)
+    {
+      String numInstancesPerState = stateModelDefinition.getNumInstancesPerState(state);
+      int max = -1;
+      if ("N".equals(numInstancesPerState))
+      {
+        max = cache.getLiveInstances().size();
+      }
+      else if ("R".equals(numInstancesPerState))
+      {
+        // idealState is null when resource has been dropped,
+        // R can't be evaluated and ignore state constraints
+        if (idealState != null)
+        {
+          max = cache.getReplicas(idealState.getResourceName());
+        }
+      }
+      else
+      {
+        try
+        {
+          max = Integer.parseInt(numInstancesPerState);
+        }
+        catch (Exception e)
+        {
+          // use -1
+        }
+      }
+
+      if (max > -1)
+      {
+        // if state has no constraint, will not put in map
+        stateConstraints.put(state, new Bounds(0, max));
+      }
+    }
+
+    return stateConstraints;
+  }
+
+  // TODO: if state transition priority is not provided then use lexicographical sorting
+  // so that behavior is consistent
+  private Map<String, Integer> getStateTransitionPriorityMap(StateModelDefinition stateModelDef)
+  {
+    Map<String, Integer> stateTransitionPriorities = new HashMap<String, Integer>();
+    List<String> stateTransitionPriorityList =
+        stateModelDef.getStateTransitionPriorityList();
+    for (int i = 0; i < stateTransitionPriorityList.size(); i++)
+    {
+      stateTransitionPriorities.put(stateTransitionPriorityList.get(i), i);
+    }
+
+    return stateTransitionPriorities;
+  }
 }

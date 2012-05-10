@@ -368,6 +368,7 @@ public class TestDriver
       destIS.setSimpleField(IdealStateProperty.NUM_PARTITIONS.toString(),
           Integer.toString(testInfo._numPartitionsPerDb));
       destIS.setSimpleField(IdealStateProperty.STATE_MODEL_DEF_REF.toString(), STATE_MODEL);
+      destIS.setSimpleField(IdealStateProperty.REPLICAS.toString(), "" + testInfo._replica);
       // String idealStatePath = "/" + clusterName + "/" +
       // PropertyType.IDEALSTATES.toString() + "/"
       // + TEST_DB_PREFIX + i;
@@ -378,6 +379,7 @@ public class TestDriver
       initIS.setSimpleField(IdealStateProperty.NUM_PARTITIONS.toString(),
           Integer.toString(testInfo._numPartitionsPerDb));
       initIS.setSimpleField(IdealStateProperty.STATE_MODEL_DEF_REF.toString(), STATE_MODEL);
+      initIS.setSimpleField(IdealStateProperty.REPLICAS.toString(), "" + testInfo._replica);
       int totalStep = calcuateNumTransitions(initIS, destIS);
       // LOG.info("initIS:" + initIS);
       // LOG.info("destIS:" + destIS);

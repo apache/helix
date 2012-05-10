@@ -89,14 +89,16 @@ public class HelixStateTransitionHandler extends MessageHandler
     String initStateValue = stateModelDef.getInitialState();
     CurrentState currentState = accessor.getProperty(CurrentState.class,
         PropertyType.CURRENTSTATES, instanceName, manager.getSessionId(), resourceName);
+    CurrentState currentStateDelta = new CurrentState(resourceName);
 
     // Set an empty current state record if it is null
     if (currentState == null)
     {
       currentState = new CurrentState(resourceName);
+      currentStateDelta.setSessionId(manager.getSessionId());
       currentState.setSessionId(manager.getSessionId());
-      accessor.updateProperty(PropertyType.CURRENTSTATES, currentState, instanceName,
-          manager.getSessionId(), resourceName);
+//      accessor.updateProperty(PropertyType.CURRENTSTATES, currentState, instanceName,
+//          manager.getSessionId(), resourceName);
     }
 
     /**
@@ -106,7 +108,7 @@ public class HelixStateTransitionHandler extends MessageHandler
      * model def
      */
 
-    CurrentState currentStateDelta = new CurrentState(resourceName);
+//    CurrentState currentStateDelta = new CurrentState(resourceName);
     if (currentState.getState(partitionName) == null)
     {
       currentStateDelta.setState(partitionName, initStateValue);
@@ -179,13 +181,13 @@ public class HelixStateTransitionHandler extends MessageHandler
       // called at.
       // Verify that no one has edited this field
       CurrentState currentStateDelta = new CurrentState(resource);
-      
+
       if (taskResult.isSucess())
       {
         // String fromState = message.getFromState();
         String toState = message.getToState();
         currentStateDelta.setState(partitionKey, toState);
-        
+
         if (toState.equalsIgnoreCase("DROPPED"))
         {
           // for "OnOfflineToDROPPED" message, we need to remove the resource
@@ -195,7 +197,7 @@ public class HelixStateTransitionHandler extends MessageHandler
           // dropped.
           ZNRecordDelta delta = new ZNRecordDelta(currentStateDelta.getRecord(),
               MERGEOPERATION.SUBTRACT);
-          
+
           List<ZNRecordDelta> deltaList = new ArrayList<ZNRecordDelta>();
           deltaList.add(delta);
           currentStateDelta.setDeltaList(deltaList);

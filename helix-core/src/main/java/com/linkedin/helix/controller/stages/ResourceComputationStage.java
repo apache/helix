@@ -33,9 +33,9 @@ import com.linkedin.helix.model.Resource;
  * computed from IdealStates -> this gives all the resources currently active
  * CurrentState for liveInstance-> Helps in finding resources that are inactive
  * and needs to be dropped
- * 
+ *
  * @author kgopalak
- * 
+ *
  */
 public class ResourceComputationStage extends AbstractBaseStage
 {
@@ -94,27 +94,27 @@ public class ResourceComputationStage extends AbstractBaseStage
           String resourceName = currentState.getResourceName();
           Map<String, String> resourceStateMap = currentState.getPartitionStateMap();
           addResource(resourceName, resourceMap);
+          Resource resource = resourceMap.get(resourceName);
+          resource.setStateModelDefRef(currentState.getStateModelDefRef());
+          resource.setStateModelFactoryName(currentState.getStateModelFactoryName());
+
+          if (currentState.getStateModelDefRef() == null)
+          {
+            LOG.error("state model def is null." + "resource:" + currentState.getResourceName()
+                + ", partitions: " + currentState.getPartitionStateMap().keySet() + ", states: "
+                + currentState.getPartitionStateMap().values());
+            throw new StageException("State model def is null for resource:"
+                + currentState.getResourceName());
+          }
 
           for (String partition : resourceStateMap.keySet())
           {
             addPartition(partition, resourceName, resourceMap);
-            Resource resource = resourceMap.get(resourceName);
-
-            if (currentState.getStateModelDefRef() == null)
-            {
-              LOG.error("state model def is null." + "resource:" + currentState.getResourceName()
-                  + ", partitions: " + currentState.getPartitionStateMap().keySet() + ", states: "
-                  + currentState.getPartitionStateMap().values());
-              throw new StageException("State model def is null for resource:"
-                  + currentState.getResourceName());
-            }
-
-            resource.setStateModelDefRef(currentState.getStateModelDefRef());
-            resource.setStateModelFactoryName(currentState.getStateModelFactoryName());
           }
         }
       }
     }
+
     event.addAttribute(AttributeName.RESOURCES.toString(), resourceMap);
   }
 

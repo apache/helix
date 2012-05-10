@@ -34,9 +34,9 @@ import com.linkedin.helix.model.StateModelDefinition;
 
 /**
  * Compares the currentState,pendingState with IdealState and generate messages
- * 
+ *
  * @author kgopalak
- * 
+ *
  */
 public class MessageGenerationPhase extends AbstractBaseStage
 {
@@ -73,6 +73,7 @@ public class MessageGenerationPhase extends AbstractBaseStage
     for (String resourceName : resourceMap.keySet())
     {
       Resource resource = resourceMap.get(resourceName);
+
       StateModelDefinition stateModelDef =
           cache.getStateModelDef(resource.getStateModelDefRef());
 

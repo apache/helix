@@ -48,6 +48,8 @@ import com.linkedin.helix.manager.zk.ZNRecordSerializer;
 import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.model.CurrentState;
 import com.linkedin.helix.model.ExternalView;
+import com.linkedin.helix.model.Message;
+import com.linkedin.helix.model.Message.MessageType;
 import com.linkedin.helix.store.file.FilePropertyStore;
 import com.linkedin.helix.tools.ClusterSetup;
 import com.linkedin.helix.util.ZKClientPool;
@@ -511,7 +513,25 @@ public class TestHelper
 
     return resultsMap;
   }
-  
+
+  public static Message createMessage(String msgId,
+                        String fromState,
+                        String toState,
+                        String tgtName,
+                        String resourceName,
+                        String partitionName)
+  {
+    Message msg = new Message(MessageType.STATE_TRANSITION, msgId);
+    msg.setFromState(fromState);
+    msg.setToState(toState);
+    msg.setTgtName(tgtName);
+    msg.setResourceName(resourceName);
+    msg.setPartitionName(partitionName);
+    msg.setStateModelDef("MasterSlave");
+
+    return msg;
+  }
+
   public static int numberOfListeners(String zkAddr, String path) throws Exception
   {
     int count = 0;
@@ -519,9 +539,9 @@ public class TestHelper
     Socket sock = new Socket(splits[0], Integer.parseInt(splits[1]));
     PrintWriter out = new PrintWriter(sock.getOutputStream(), true);
     BufferedReader in = new BufferedReader(new InputStreamReader(sock.getInputStream()));
-    
+
     out.println("wchp");
-    
+
     String line = in.readLine();
     while (line != null)
     {

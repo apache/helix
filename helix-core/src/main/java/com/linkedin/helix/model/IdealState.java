@@ -186,9 +186,16 @@ public class IdealState extends ZNRecordDecorator
           + getNumPartitions() + ").");
       return false;
     }
+
     if (getStateModelDefRef() == null)
     {
       logger.error("idealStates:" + _record + " does not have state model definition.");
+      return false;
+    }
+
+    if (getReplicas() == null)
+    {
+      logger.error("idealStates:" + _record + " does not have replica.");
       return false;
     }
     return true;

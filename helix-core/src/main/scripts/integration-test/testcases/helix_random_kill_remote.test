@@ -69,7 +69,7 @@ $SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr ${zookeeper_addre
 
 
 # add resource
-$SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr ${zookeeper_address} -addResource test-cluster test-db 1200 MasterSlave"
+$SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr ${zookeeper_address} -addResource test-cluster test-db 120 MasterSlave"
 
 # add nodes
 start_port=8900
@@ -88,7 +88,7 @@ $SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr ${zookeeper_addre
 ssh ${USER_TAB[$controller_idx]}@${MACHINE_TAB[$controller_idx]} "${SCRIPT_DIR_TAB[$controller_idx]}/cm_driver.py -n ${TEST_NAME} -c cluster-manager -o start --jvm_args=\"-javaagent:integration-test/testcases/shiftone-jrat.jar -Djrat.factory=org.shiftone.jrat.provider.tree.TreeMethodHandlerFactory -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.local.only=false -Dcom.sun.management.jmxremote.port=27960 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false\" -l \"integration-test/config/log4j-info.properties\" --cmdline_args=\"-zkSvr ${zookeeper_address} -cluster test-cluster\""
 
 # Launch mock health report process
-#for j in {0..1}; do
+# for j in {0..1}; do
 for j in `seq 0 $(($machine_nb-1))`; do
 	for i in `seq 1 $mocks_per_node`; do
   	port=$(($start_port + $i))
@@ -96,22 +96,23 @@ for j in `seq 0 $(($machine_nb-1))`; do
 	done
 done
 
-sleep 3
+# sleep 3
 
 #verify cluster state
 verifier_output=$VIEW_ROOT/$LOG_DIR_FROM_ROOT/verifier_`date +"%y%m%d_%H%M%S"`.log
-$SCRIPT_DIR/cm_driver.py -n ${TEST_NAME} -c cluster-state-verifier -o start --logfile=$verifier_output -l "integration-test/config/log4j-info.properties" --cmdline_args="-zkSvr ${zookeeper_address} -cluster test-cluster -timeout 1200000 -sleepInterval 10000"
+$SCRIPT_DIR/cm_driver.py -n ${TEST_NAME} -c cluster-state-verifier -o start --logfile=$verifier_output -l "integration-test/config/log4j-info.properties" --cmdline_args="-zkSvr ${zookeeper_address} -cluster test-cluster -timeout 1200000"
 echo "verifier_output=$verifier_output"
 verifier_result=`grep 'Successful\|fail' $verifier_output`
 cecho "$verifier_result" $red
 
 
 # kill m random and restart
-: <<'END'
-n=$((${#MACHINE_TAB[*]} * 5))
+# : <<'END'
+n=$((${#MACHINE_TAB[*]} * ${mocks_per_node}))
 m=1
 
-for r in {0..1}; do
+# do kill m random and restart for r rounds
+for r in {0..5}; do
   to_kill=`shuf --input-range=1-$n | head -${m}`
   for k in ${to_kill[*]}; do
     j=$((($k - 1) / 5))
@@ -119,16 +120,17 @@ for r in {0..1}; do
 	  port=$(($start_port + $i))
     cecho "kill ${MACHINE_TAB[$j]}:$port" $red
 	  ssh ${USER_TAB[$j]}@${MACHINE_TAB[$j]} "${SCRIPT_DIR_TAB[$j]}/cm_driver.py -n ${TEST_NAME} -c mock-health-report-process -o stop --component_id=$i"
-    sleep 1
+#    sleep 3
   done
-  sleep 3
+#  sleep 10
 
-  #verify cluster state after kill
+  # verify cluster state after kill
   verifier_output=$VIEW_ROOT/$LOG_DIR_FROM_ROOT/verifier_`date +"%y%m%d_%H%M%S"`.log
   $SCRIPT_DIR/cm_driver.py -c cluster-state-verifier -o start --logfile=$verifier_output -l "integration-test/config/log4j-info.properties" --cmdline_args="-zkSvr ${zookeeper_address} -cluster test-cluster -timeout 60000"
   echo "verifier_output=$verifier_output"
   verifier_result=`grep 'Successful\|fail' $verifier_output`
   cecho "$verifier_result" $red
+  sleep 10
 
   for k in ${to_kill[*]}; do
     j=$((($k - 1) / 5))
@@ -136,22 +138,23 @@ for r in {0..1}; do
   	port=$(($start_port + $i))
     cecho "restart ${MACHINE_TAB[$j]}:$port" $green
   	ssh ${USER_TAB[$j]}@${MACHINE_TAB[$j]} "${SCRIPT_DIR_TAB[$j]}/cm_driver.py -n ${TEST_NAME} -c mock-health-report-process -o start -l \"integration-test/config/log4j-info.properties\" --save_process_id --component_id=$i --cmdline_args=\"-zkSvr ${zookeeper_address} -cluster test-cluster -host ${MACHINE_TAB[$j]} -port ${port}\""
-    sleep 1
+#    sleep 1
   done
-  sleep 3
+#  sleep 3
 
   #verify cluster state after restart
   verifier_output=$VIEW_ROOT/$LOG_DIR_FROM_ROOT/verifier_`date +"%y%m%d_%H%M%S"`.log
   $SCRIPT_DIR/cm_driver.py -c cluster-state-verifier -o start --logfile=$verifier_output -l "integration-test/config/log4j-info.properties" --cmdline_args="-zkSvr ${zookeeper_address} -cluster test-cluster -timeout 60000"
   echo "verifier_output=$verifier_output"
   verifier_result=`grep 'Successful\|fail' $verifier_output`
-  cecho "$verifier_result" $red
+  cecho "$verifier_result" $red  
+  sleep 10
 done
-END
+# END
 
 # clean up
 cecho "clean up..." $green
-sleep 600
+# sleep 600
 
 ssh ${USER_TAB[$controller_idx]}@${MACHINE_TAB[$controller_idx]} "${SCRIPT_DIR_TAB[$controller_idx]}/cm_driver.py -n ${TEST_NAME} -c cluster-manager -o stop"
 

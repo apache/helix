@@ -1,3 +1,18 @@
+/**
+ * Copyright (C) 2012 LinkedIn Inc <opensource@linkedin.com>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.linkedin.helix;
 
 import java.util.List;
@@ -83,6 +98,23 @@ public class TestConfigAccessor extends ZkUnitTestBase
     Assert.assertEquals(keys.size(), 1, "should be [partitionConfigKey]");
     Assert.assertEquals(keys.get(0), "partitionConfigKey");
 
+    // test configAccessor.remove()
+    appConfig.remove(clusterScope, "clusterConfigKey");
+    clusterConfigValue = appConfig.get(clusterScope, "clusterConfigKey");
+    Assert.assertNull(clusterConfigValue, "Should be null since it's removed");
+
+    appConfig.remove(resourceScope, "resourceConfigKey");
+    resourceConfigValue = appConfig.get(resourceScope, "resourceConfigKey");
+    Assert.assertNull(resourceConfigValue, "Should be null since it's removed");
+
+    appConfig.remove(partitionScope, "partitionConfigKey");
+    partitionConfigValue = appConfig.get(partitionScope, "partitionConfigKey");
+    Assert.assertNull(partitionConfigValue, "Should be null since it's removed");
+    
+    appConfig.remove(participantScope, "participantConfigKey");
+    participantConfigValue = appConfig.get(partitionScope, "participantConfigKey");
+    Assert.assertNull(participantConfigValue, "Should be null since it's removed");
+    
     // negative tests
     try
     {
@@ -105,7 +137,7 @@ public class TestConfigAccessor extends ZkUnitTestBase
     try
     {
       new ConfigScopeBuilder().forParticipant("testParticipant").build();
-      Assert.fail("Should fail since participant name is not set");
+      Assert.fail("Should fail since cluster name is not set");
     } catch (Exception e)
     {
       // OK

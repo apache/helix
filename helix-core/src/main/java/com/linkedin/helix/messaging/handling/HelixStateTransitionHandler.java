@@ -1,3 +1,18 @@
+/**
+ * Copyright (C) 2012 LinkedIn Inc <opensource@linkedin.com>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.linkedin.helix.messaging.handling;
 
 import java.lang.reflect.InvocationTargetException;
@@ -74,14 +89,16 @@ public class HelixStateTransitionHandler extends MessageHandler
     String initStateValue = stateModelDef.getInitialState();
     CurrentState currentState = accessor.getProperty(CurrentState.class,
         PropertyType.CURRENTSTATES, instanceName, manager.getSessionId(), resourceName);
+    CurrentState currentStateDelta = new CurrentState(resourceName);
 
     // Set an empty current state record if it is null
     if (currentState == null)
     {
       currentState = new CurrentState(resourceName);
+      currentStateDelta.setSessionId(manager.getSessionId());
       currentState.setSessionId(manager.getSessionId());
-      accessor.updateProperty(PropertyType.CURRENTSTATES, currentState, instanceName,
-          manager.getSessionId(), resourceName);
+//      accessor.updateProperty(PropertyType.CURRENTSTATES, currentState, instanceName,
+//          manager.getSessionId(), resourceName);
     }
 
     /**
@@ -91,7 +108,7 @@ public class HelixStateTransitionHandler extends MessageHandler
      * model def
      */
 
-    CurrentState currentStateDelta = new CurrentState(resourceName);
+//    CurrentState currentStateDelta = new CurrentState(resourceName);
     if (currentState.getState(partitionName) == null)
     {
       currentStateDelta.setState(partitionName, initStateValue);
@@ -164,13 +181,13 @@ public class HelixStateTransitionHandler extends MessageHandler
       // called at.
       // Verify that no one has edited this field
       CurrentState currentStateDelta = new CurrentState(resource);
-      
+
       if (taskResult.isSucess())
       {
         // String fromState = message.getFromState();
         String toState = message.getToState();
         currentStateDelta.setState(partitionKey, toState);
-        
+
         if (toState.equalsIgnoreCase("DROPPED"))
         {
           // for "OnOfflineToDROPPED" message, we need to remove the resource
@@ -180,7 +197,7 @@ public class HelixStateTransitionHandler extends MessageHandler
           // dropped.
           ZNRecordDelta delta = new ZNRecordDelta(currentStateDelta.getRecord(),
               MERGEOPERATION.SUBTRACT);
-          
+
           List<ZNRecordDelta> deltaList = new ArrayList<ZNRecordDelta>();
           deltaList.add(delta);
           currentStateDelta.setDeltaList(deltaList);

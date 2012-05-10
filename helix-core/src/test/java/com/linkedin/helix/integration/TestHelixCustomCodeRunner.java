@@ -1,3 +1,18 @@
+/**
+ * Copyright (C) 2012 LinkedIn Inc <opensource@linkedin.com>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.linkedin.helix.integration;
 
 import java.util.Date;
@@ -109,10 +124,10 @@ public class TestHelixCustomCodeRunner extends ZkIntegrationTestBase
 
       partics[i] = new MockParticipant(_clusterName, instanceName, ZK_ADDR,
                         null, new MockJob());
-      new Thread(partics[i]).start();
+      partics[i].syncStart();
+//      new Thread(partics[i]).start();
     }
-
-    boolean result = ClusterStateVerifier.verify(
+    boolean result = ClusterStateVerifier.verifyByPolling(
         new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, _clusterName));
     Assert.assertTrue(result);
 

@@ -1,3 +1,18 @@
+/**
+ * Copyright (C) 2012 LinkedIn Inc <opensource@linkedin.com>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.linkedin.helix.integration;
 
 import java.util.Date;
@@ -18,6 +33,8 @@ import com.linkedin.helix.mock.storage.MockTransition;
 import com.linkedin.helix.model.Message;
 import com.linkedin.helix.tools.ClusterSetup;
 import com.linkedin.helix.tools.ClusterStateVerifier;
+import com.linkedin.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
+import com.linkedin.helix.tools.ClusterStateVerifier.MasterNbInExtViewVerifier;
 
 public class TestDummyAlerts extends ZkIntegrationTestBase
 {
@@ -37,6 +54,7 @@ public class TestDummyAlerts extends ZkIntegrationTestBase
       {
         for (int i = 0; i < 5; i++)
         {
+          // System.out.println(instance + " sets healthReport: " + "mockAlerts" + i);
           accessor.setProperty(PropertyType.HEALTHREPORT,
                                new ZNRecord("mockAlerts" + i),
                                instance,
@@ -59,6 +77,8 @@ public class TestDummyAlerts extends ZkIntegrationTestBase
   @Test()
   public void testDummyAlerts() throws Exception
   {
+    // Logger.getRootLogger().setLevel(Level.INFO);
+
     String clusterName = getShortClassName();
     MockParticipant[] participants = new MockParticipant[5];
     ClusterSetup setupTool = new ClusterSetup(ZK_ADDR);
@@ -95,12 +115,17 @@ public class TestDummyAlerts extends ZkIntegrationTestBase
                               instanceName,
                               ZK_ADDR,
                               new DummyAlertsTransition());
-      new Thread(participants[i]).start();
+      participants[i].syncStart();
     }
 
     boolean result =
-        ClusterStateVerifier.verify(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
-                                                                                          clusterName));
+        ClusterStateVerifier.verifyByZkCallback(new MasterNbInExtViewVerifier(ZK_ADDR,
+                                                                              clusterName));
+    Assert.assertTrue(result);
+
+    result =
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+                                                                                 clusterName));
     Assert.assertTrue(result);
 
     // other verifications go here
@@ -114,6 +139,12 @@ public class TestDummyAlerts extends ZkIntegrationTestBase
     }
 
     // Thread.sleep(Long.MAX_VALUE);
+    // clean up
+    for (int i = 0; i < 5; i++)
+    {
+      participants[i].syncStop();
+    }
+
     System.out.println("END TestDummyAlerts at " + new Date(System.currentTimeMillis()));
   }
 }

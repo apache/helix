@@ -1,3 +1,18 @@
+/**
+ * Copyright (C) 2012 LinkedIn Inc <opensource@linkedin.com>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.linkedin.helix.controller.stages;
 
 import java.util.LinkedHashMap;
@@ -83,22 +98,23 @@ public class ResourceComputationStage extends AbstractBaseStage
           resource.setStateModelDefRef(currentState.getStateModelDefRef());
           resource.setStateModelFactoryName(currentState.getStateModelFactoryName());
 
+          if (currentState.getStateModelDefRef() == null)
+          {
+            LOG.error("state model def is null." + "resource:" + currentState.getResourceName()
+                + ", partitions: " + currentState.getPartitionStateMap().keySet() + ", states: "
+                + currentState.getPartitionStateMap().values());
+            throw new StageException("State model def is null for resource:"
+                + currentState.getResourceName());
+          }
+
           for (String partition : resourceStateMap.keySet())
           {
             addPartition(partition, resourceName, resourceMap);
-
-            if (currentState.getStateModelDefRef() == null)
-            {
-              LOG.error("state model def is null." + "resource:" + currentState.getResourceName()
-                  + ", partitions: " + currentState.getPartitionStateMap().keySet() + ", states: "
-                  + currentState.getPartitionStateMap().values());
-              throw new StageException("State model def is null for resource:"
-                  + currentState.getResourceName());
-            }
           }
         }
       }
     }
+
     event.addAttribute(AttributeName.RESOURCES.toString(), resourceMap);
   }
 

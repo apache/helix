@@ -1,3 +1,18 @@
+/**
+ * Copyright (C) 2012 LinkedIn Inc <opensource@linkedin.com>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.linkedin.helix.controller.stages;
 
 import java.util.ArrayList;
@@ -24,13 +39,43 @@ public class MessageSelectionStage extends AbstractBaseStage
 
   static class Bounds
   {
-    int upper;
-    int lower;
+    private int upper;
+    private int lower;
 
     public Bounds(int lower, int upper)
     {
       this.lower = lower;
       this.upper = upper;
+    }
+
+    public void increaseUpperBound()
+    {
+      upper++;
+    }
+
+    public void increaseLowerBound()
+    {
+      lower++;
+    }
+
+    public void decreaseUpperBound()
+    {
+      upper--;
+    }
+
+    public void decreaseLowerBound()
+    {
+      lower--;
+    }
+
+    public int getLowerBound()
+    {
+      return lower;
+    }
+
+    public int getUpperBound()
+    {
+      return upper;
     }
   }
 
@@ -82,6 +127,10 @@ public class MessageSelectionStage extends AbstractBaseStage
     event.addAttribute(AttributeName.MESSAGES_SELECTED.toString(), output);
   }
 
+  // TODO: This method deserves its own class. The class should not understand helix but
+  // just be
+  // able to solve the problem using the algo. I think the method is following that but if
+  // we don't move it to another class its quite easy to break that contract
   /**
    * greedy message selection algorithm: 1) calculate CS+PS state lower/upper-bounds 2)
    * group messages by state transition and sorted by priority 3) from highest priority to
@@ -127,8 +176,8 @@ public class MessageSelectionStage extends AbstractBaseStage
       {
         bounds.put(state, new Bounds(0, 0));
       }
-      bounds.get(state).lower++;
-      bounds.get(state).upper++;
+      bounds.get(state).increaseLowerBound();
+      bounds.get(state).increaseUpperBound();
     }
 
     // count pendingStates
@@ -140,7 +189,7 @@ public class MessageSelectionStage extends AbstractBaseStage
         bounds.put(state, new Bounds(0, 0));
       }
       // TODO: add lower bound, need to refactor pendingState to include fromState also
-      bounds.get(state).upper++;
+      bounds.get(state).increaseUpperBound();
     }
 
     // group messages based on state transition priority
@@ -165,6 +214,7 @@ public class MessageSelectionStage extends AbstractBaseStage
       messagesGroupByStateTransitPriority.get(priority).add(message);
     }
 
+    // select messages
     for (List<Message> messageList : messagesGroupByStateTransitPriority.values())
     {
       for (Message message : messageList)
@@ -186,7 +236,7 @@ public class MessageSelectionStage extends AbstractBaseStage
         // check lower bound of fromState
         if (stateConstraints.containsKey(fromState))
         {
-          int newLowerBound = bounds.get(fromState).lower - 1;
+          int newLowerBound = bounds.get(fromState).getLowerBound() - 1;
           if (newLowerBound < 0)
           {
             LOG.error("Number of currentState in " + fromState
@@ -194,7 +244,7 @@ public class MessageSelectionStage extends AbstractBaseStage
             continue;
           }
 
-          if (newLowerBound < stateConstraints.get(fromState).lower)
+          if (newLowerBound < stateConstraints.get(fromState).getLowerBound())
           {
             continue;
           }
@@ -203,22 +253,27 @@ public class MessageSelectionStage extends AbstractBaseStage
         // check upper bound of toState
         if (stateConstraints.containsKey(toState))
         {
-          int newUpperBound = bounds.get(toState).upper + 1;
-          if (newUpperBound > stateConstraints.get(toState).upper)
+          int newUpperBound = bounds.get(toState).getUpperBound() + 1;
+          if (newUpperBound > stateConstraints.get(toState).getUpperBound())
           {
             continue;
           }
         }
 
         selectedMessages.add(message);
-        bounds.get(fromState).lower--;
-        bounds.get(toState).upper++;
+        bounds.get(fromState).increaseLowerBound();
+        bounds.get(toState).increaseUpperBound();
       }
     }
 
     return selectedMessages;
   }
 
+  /**
+   * TODO: This code is duplicate in multiple places. Can we do it in to one place in the
+   * beginning and compute the stateConstraint instance once and re use at other places.
+   * Each IdealState must have a constraint object associated with it
+   */
   private Map<String, Bounds> computeStateConstraints(StateModelDefinition stateModelDefinition,
                                                       IdealState idealState,
                                                       ClusterDataCache cache)
@@ -265,6 +320,8 @@ public class MessageSelectionStage extends AbstractBaseStage
     return stateConstraints;
   }
 
+  // TODO: if state transition priority is not provided then use lexicographical sorting
+  // so that behavior is consistent
   private Map<String, Integer> getStateTransitionPriorityMap(StateModelDefinition stateModelDef)
   {
     Map<String, Integer> stateTransitionPriorities = new HashMap<String, Integer>();

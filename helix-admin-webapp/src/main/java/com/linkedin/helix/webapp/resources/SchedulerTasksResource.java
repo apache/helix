@@ -159,7 +159,7 @@ public class SchedulerTasksResource extends Resource
       
       // Assemble the rest URL for task status update
       String ipAddress = InetAddress.getLocalHost().getCanonicalHostName();
-      String url = "http://" + ipAddress+":" + (String)(getContext().getAttributes().get(RestAdminApplication.PORT))
+      String url = "http://" + ipAddress+":" + getContext().getAttributes().get(RestAdminApplication.PORT)
           + "/clusters/" + clusterName+"/Controller/statusUpdates/SCHEDULER_MSG/" + schedulerMessage.getMsgId();
       resultMap.put("statusUpdateUrl", url);
       

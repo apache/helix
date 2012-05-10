@@ -6,11 +6,11 @@
   <parent>
     <artifactId>helix</artifactId>
     <groupId>com.linkedin.helix</groupId>
-    <version>0.5.2</version>
+    <version>0.5.3</version>
   </parent>
   <groupId>com.linkedin.helix</groupId>
   <artifactId>mockservice</artifactId>
-  <version>0.5.2</version>
+  <version>0.5.3</version>
   <name>mockservice</name>
   <url>http://maven.apache.org</url>
   <properties>
@@ -27,7 +27,7 @@
     <dependency>
       <groupId>com.linkedin.helix</groupId>
       <artifactId>helix-core</artifactId>
-      <version>0.5.2</version>
+      <version>0.5.3</version>
     </dependency>
     <dependency>
       <groupId>org.restlet</groupId>

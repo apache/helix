@@ -126,7 +126,7 @@ public class ZKDataAccessor implements DataAccessor
       {
         _zkClient.createPersistent(parent, true);
       }
-      
+
       if (!type.isAsyncWrite())
       {
         ZKUtil.createOrUpdate(_zkClient, path, value, type.isPersistent(), type.isMergeOnUpdate());
@@ -289,13 +289,15 @@ public class ZKDataAccessor implements DataAccessor
         ZNRecord oldChild = oldChildRecords.get(child);
 
         int oldVersion = oldChild.getVersion();
+        long oldCtime = oldChild.getCreationTime();
         newStat = _zkClient.getStat(childPath);
         if (newStat != null)
         {
           // System.out.print(child + " oldStat:" + oldStat);
           // System.out.print(child + " newStat:" + newStat);
 
-          if (oldVersion < newStat.getVersion())
+          if (oldCtime < newStat.getCtime() ||
+              oldVersion < newStat.getVersion())
           {
             ZNRecord record = _zkClient.readDataAndStat(childPath, newStat, true);
             if (record != null)

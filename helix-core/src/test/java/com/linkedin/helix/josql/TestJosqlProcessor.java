@@ -25,12 +25,11 @@ import java.util.UUID;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.HelixException;
+import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.integration.ZkStandAloneCMTestBase;
-import com.linkedin.helix.josql.ClusterJosqlQueryProcessor;
 import com.linkedin.helix.model.LiveInstance.LiveInstanceProperty;
 
 public class TestJosqlProcessor extends ZkStandAloneCMTestBase
@@ -52,7 +51,7 @@ public class TestJosqlProcessor extends ZkStandAloneCMTestBase
     
     Assert.assertEquals(result.size(), 1);
     List<Object> firstList = (List<Object>) result.get(0);
-    Assert.assertTrue(((String)(firstList.get(0))).equalsIgnoreCase("localhost_12919"));
+    Assert.assertTrue(((String)(firstList.get(0))).equalsIgnoreCase("localhost_12921"));
     
     // Find the live instances names that hosts Partition TestDB_10 according to idealstate
     
@@ -71,8 +70,8 @@ public class TestJosqlProcessor extends ZkStandAloneCMTestBase
       hosts.add(val);
     }
     Assert.assertTrue(hosts.contains("localhost_12918"));
-    Assert.assertTrue(hosts.contains("localhost_12919"));
-    Assert.assertTrue(hosts.contains("localhost_12922"));
+    Assert.assertTrue(hosts.contains("localhost_12920"));
+    Assert.assertTrue(hosts.contains("localhost_12921"));
     
     // Find the partitions on host localhost_12919 and is on MASTER state
     SQL = "SELECT id  " + 
@@ -90,10 +89,10 @@ public class TestJosqlProcessor extends ZkStandAloneCMTestBase
       String val = (String) ((List<Object>)o).get(0);
       partitions.add(val);
     }
-    Assert.assertTrue(partitions.contains("TestDB_0"));
-    Assert.assertTrue(partitions.contains("TestDB_1"));
-    Assert.assertTrue(partitions.contains("TestDB_16"));
-    Assert.assertTrue(partitions.contains("TestDB_2"));
+    Assert.assertTrue(partitions.contains("TestDB_6"));
+    Assert.assertTrue(partitions.contains("TestDB_7"));
+    Assert.assertTrue(partitions.contains("TestDB_9"));
+    Assert.assertTrue(partitions.contains("TestDB_14"));
 
     // Find the partitions on host localhost_12919 and is on MASTER state
     // Same as above but according to currentstates
@@ -117,10 +116,10 @@ public class TestJosqlProcessor extends ZkStandAloneCMTestBase
       String val = (String) ((List<Object>)o).get(0);
       partitions.add(val);
     }
-    Assert.assertTrue(partitions.contains("TestDB_0"));
-    Assert.assertTrue(partitions.contains("TestDB_1"));
-    Assert.assertTrue(partitions.contains("TestDB_16"));
-    Assert.assertTrue(partitions.contains("TestDB_2"));
+    Assert.assertTrue(partitions.contains("TestDB_6"));
+    Assert.assertTrue(partitions.contains("TestDB_7"));
+    Assert.assertTrue(partitions.contains("TestDB_9"));
+    Assert.assertTrue(partitions.contains("TestDB_14"));
     
     // get node name that hosts a certain partition with certain state
     
@@ -144,8 +143,8 @@ public class TestJosqlProcessor extends ZkStandAloneCMTestBase
       String val = (String) ((List<Object>)o).get(0);
       partitions.add(val);
     }
-    Assert.assertTrue(partitions.contains("localhost_12919"));
-    Assert.assertTrue(partitions.contains("localhost_12920"));
+    Assert.assertTrue(partitions.contains("localhost_12918"));
+    Assert.assertTrue(partitions.contains("localhost_12922"));
   }
   
   @Test (groups = {"unitTest"})

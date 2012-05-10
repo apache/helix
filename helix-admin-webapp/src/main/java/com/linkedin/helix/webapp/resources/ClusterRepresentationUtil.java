@@ -61,6 +61,7 @@ public class ClusterRepresentationUtil
   public static final String _newModelDef = "newStateModelDef";
   public static final String _enabled = "enabled";
   public static final String _setConfig = "setConfig";
+  public static final String _removeConfig = "removeConfig";
 
   public static String getClusterPropertyAsString(String zkServer, String clusterName,
       PropertyType clusterProperty, String key, MediaType mediaType)

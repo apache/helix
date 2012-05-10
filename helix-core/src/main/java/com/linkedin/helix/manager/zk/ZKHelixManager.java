@@ -31,9 +31,9 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Timer;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import org.I0Itec.zkclient.ZkConnection;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.Watcher.Event.EventType;
@@ -558,7 +558,8 @@ public class ZKHelixManager implements HelixManager
 
   protected void handleNewSession()
   {
-    _sessionId = UUID.randomUUID().toString();
+    ZkConnection zkConnection = ((ZkConnection) _zkClient.getConnection());
+    _sessionId = Long.toHexString(zkConnection.getZookeeper().getSessionId());    // UUID.randomUUID().toString();
     _accessor.reset();
 
     resetHandlers();

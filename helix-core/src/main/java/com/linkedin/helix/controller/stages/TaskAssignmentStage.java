@@ -26,8 +26,8 @@ import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.controller.pipeline.AbstractBaseStage;
 import com.linkedin.helix.controller.pipeline.StageException;
 import com.linkedin.helix.model.Message;
-import com.linkedin.helix.model.Resource;
 import com.linkedin.helix.model.Partition;
+import com.linkedin.helix.model.Resource;
 
 public class TaskAssignmentStage extends AbstractBaseStage
 {
@@ -39,14 +39,17 @@ public class TaskAssignmentStage extends AbstractBaseStage
     HelixManager manager = event.getAttribute("helixmanager");
     Map<String, Resource> resourceMap = event
         .getAttribute(AttributeName.RESOURCES.toString());
-    MessageSelectionStageOutput messageSelectionStageOutput = event
-        .getAttribute(AttributeName.MESSAGES_SELECTED.toString());
+//    MessageSelectionStageOutput messageOutput = event
+//        .getAttribute(AttributeName.MESSAGES_SELECTED.toString());
+    MessageThrottleStageOutput messageOutput = event
+        .getAttribute(AttributeName.MESSAGES_THROTTLE.toString());
+
 
     if (manager == null || resourceMap == null
-        || messageSelectionStageOutput == null)
+        || messageOutput == null)
     {
       throw new StageException("Missing attributes in event:" + event
-          + ". Requires HelixManager|RESOURCES|MESSAGES_SELECTED");
+          + ". Requires HelixManager|RESOURCES|MESSAGES_THROTTLE");
     }
 
     DataAccessor dataAccessor = manager.getDataAccessor();
@@ -55,7 +58,7 @@ public class TaskAssignmentStage extends AbstractBaseStage
       Resource resource = resourceMap.get(resourceName);
       for (Partition partition : resource.getPartitions())
       {
-        List<Message> messages = messageSelectionStageOutput.getMessages(
+        List<Message> messages = messageOutput.getMessages(
             resourceName, partition);
         sendMessages(dataAccessor, messages);
       }

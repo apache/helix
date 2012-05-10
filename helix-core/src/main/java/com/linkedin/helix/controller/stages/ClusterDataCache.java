@@ -27,8 +27,8 @@ import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
 import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.HelixConstants.StateModelToken;
 import com.linkedin.helix.PropertyType;
-import com.linkedin.helix.model.Constraint;
-import com.linkedin.helix.model.Constraint.ConstraintType;
+import com.linkedin.helix.model.ClusterConstraints;
+import com.linkedin.helix.model.ClusterConstraints.ConstraintType;
 import com.linkedin.helix.model.CurrentState;
 import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.model.InstanceConfig;
@@ -50,7 +50,7 @@ public class ClusterDataCache
   Map<String, IdealState> _idealStateMap;
   Map<String, StateModelDefinition> _stateModelDefMap;
   Map<String, InstanceConfig> _instanceConfigMap;
-  Map<String, Constraint> _constraintMap;
+  Map<String, ClusterConstraints> _constraintMap;
   Map<String, Map<String, Map<String, CurrentState>>> _currentStateMap;
   Map<String, Map<String, Message>> _messageMap;
 
@@ -76,7 +76,7 @@ public class ClusterDataCache
         PropertyType.STATEMODELDEFS);
     _instanceConfigMap = accessor.getChildValuesMap(InstanceConfig.class, PropertyType.CONFIGS,
         ConfigScopeProperty.PARTICIPANT.toString());
-    _constraintMap = accessor.getChildValuesMap(Constraint.class, PropertyType.CONFIGS,
+    _constraintMap = accessor.getChildValuesMap(ClusterConstraints.class, PropertyType.CONFIGS,
                                                 ConfigScopeProperty.CONSTRAINT.toString());
 
     Map<String, Map<String, Message>> msgMap = new HashMap<String, Map<String, Message>>();
@@ -233,7 +233,7 @@ public class ClusterDataCache
     return replicas;
   }
 
-  public Constraint getConstraint(ConstraintType type)
+  public ClusterConstraints getConstraint(ConstraintType type)
   {
     if (_constraintMap != null)
     {

@@ -387,4 +387,12 @@ public class FileHelixAdmin implements HelixAdmin
     // TODO Auto-generated method stub
     throw new UnsupportedOperationException("unsupported operation");
   }
+
+  @Override
+  public void removeConfig(ConfigScope scope, Set<String> keys)
+  {
+    // TODO Auto-generated method stub
+    throw new UnsupportedOperationException("unsupported operation");
+   
+  }
 }

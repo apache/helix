@@ -70,7 +70,10 @@ public class HelixStageLatencyMonitor implements HelixStageLatencyMonitorMBean
   {
     try
     {
-      _beanServer.unregisterMBean(name);
+      if (_beanServer.isRegistered(name))
+      {
+        _beanServer.unregisterMBean(name);
+      }
     }
     catch (Exception e)
     {

@@ -27,10 +27,11 @@ import org.apache.log4j.Logger;
 
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.ZNRecordDecorator;
+import com.linkedin.helix.model.Message.MessageType;
 
-public class Constraint extends ZNRecordDecorator
+public class ClusterConstraints extends ZNRecordDecorator
 {
-  private static Logger LOG = Logger.getLogger(Constraint.class);
+  private static Logger LOG = Logger.getLogger(ClusterConstraints.class);
 
   public enum ConstraintAttribute
   {
@@ -120,6 +121,7 @@ public class Constraint extends ZNRecordDecorator
       Map<ConstraintAttribute, String> ret = new HashMap<ConstraintAttribute, String>();
       for (ConstraintAttribute key : _attributes.keySet())
       {
+        // TODO: what if attributes.get(key)==null? might need match function at constrait level  
         ret.put(key, attributes.get(key));
       }
 
@@ -147,7 +149,7 @@ public class Constraint extends ZNRecordDecorator
 
   private final List<ConstraintItem> _constraints = new ArrayList<ConstraintItem>();
 
-  public Constraint(ZNRecord record)
+  public ClusterConstraints(ZNRecord record)
   {
     super(record);
 
@@ -178,6 +180,31 @@ public class Constraint extends ZNRecordDecorator
       }
     }
     return matches;
+  }
+
+  // convert a message to constraint attribute pairs
+  public static Map<ConstraintAttribute, String> toConstraintAttributes(Message msg)
+  {
+    Map<ConstraintAttribute, String> attributes = new TreeMap<ConstraintAttribute, String>();
+    String msgType = msg.getMsgType();
+    attributes.put(ConstraintAttribute.MESSAGE_TYPE, msgType);
+    if (MessageType.STATE_TRANSITION.toString().equals(msgType))
+    {
+      if (msg.getFromState() != null && msg.getToState() != null)
+      {
+        attributes.put(ConstraintAttribute.TRANSITION,
+            msg.getFromState() + "-" + msg.getToState());
+      }
+      if (msg.getResourceName() != null)
+      {
+        attributes.put(ConstraintAttribute.RESOURCE, msg.getResourceName());
+      }
+      if (msg.getTgtName() != null)
+      {
+        attributes.put(ConstraintAttribute.INSTANCE, msg.getTgtName());
+      }
+    }
+    return attributes;
   }
 
   @Override

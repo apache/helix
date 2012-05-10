@@ -20,6 +20,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
 import org.restlet.Context;
 import org.restlet.data.Form;
 import org.restlet.data.MediaType;
@@ -42,6 +43,8 @@ import com.linkedin.helix.webapp.RestAdminApplication;
 
 public class ConfigResource extends Resource
 {
+  private final static Logger LOG = Logger.getLogger(ConfigResource.class);
+
   public ConfigResource(Context context, Request request, Response response)
   {
     super(context, request, response);
@@ -151,12 +154,13 @@ public class ConfigResource extends Resource
         else
         {
           // path is "/clusters/{clusterName}/configs/cluster|particicpant|resource/
-          //   {clusterName}|{participantName}|{resourceName}"
+          // {clusterName}|{participantName}|{resourceName}"
           ConfigScope scope;
           if (scopeProperty == ConfigScopeProperty.CLUSTER)
           {
-            scope =  new ConfigScopeBuilder().build(scopeProperty, clusterName);
-          } else
+            scope = new ConfigScopeBuilder().build(scopeProperty, clusterName);
+          }
+          else
           {
             scope = new ConfigScopeBuilder().build(scopeProperty, clusterName, scopeKey1);
           }
@@ -203,15 +207,37 @@ public class ConfigResource extends Resource
     return representation;
   }
 
+  /**
+   * set or remove configs depends on "command" field of jsonParameters in POST body
+   * 
+   * @param entity
+   * @param scopeStr
+   * @throws Exception
+   */
   void setConfigs(Representation entity, String scopeStr) throws Exception
   {
     String zkServer =
         (String) getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
     Form form = new Form(entity);
-    Map<String, String> jsonParameters =
-        ClusterRepresentationUtil.getFormJsonParametersWithCommandVerified(form,
-                                                                           ClusterRepresentationUtil._setConfig);
+    // Map<String, String> jsonParameters =
+    // ClusterRepresentationUtil.getFormJsonParametersWithCommandVerified(form,
+    // ClusterRepresentationUtil._setConfig);
 
+    String jsonPayload =
+        form.getFirstValue(ClusterRepresentationUtil._jsonParameters, true);
+    if (jsonPayload == null || jsonPayload.isEmpty())
+    {
+      throw new HelixException("'" + ClusterRepresentationUtil._jsonParameters
+          + "' is empty in the POST body");
+    }
+
+    Map<String, String> jsonParameters = ClusterRepresentationUtil.JsonToMap(jsonPayload);
+    if (!jsonParameters.containsKey(ClusterRepresentationUtil._managementCommand))
+    {
+      throw new HelixException("Missing management paramater '"
+          + ClusterRepresentationUtil._managementCommand + "'");
+    }
+    
     if (!jsonParameters.containsKey("configs"))
     {
       throw new HelixException("Json parameters does not contain Config values");
@@ -219,7 +245,18 @@ public class ConfigResource extends Resource
 
     ClusterSetup setupTool = new ClusterSetup(zkServer);
     String propertiesStr = jsonParameters.get("configs");
-    setupTool.setConfig(scopeStr, propertiesStr);
+    
+    String command = jsonParameters.get(ClusterRepresentationUtil._managementCommand);
+    if (command.equalsIgnoreCase("setConfig"))
+    {
+      setupTool.setConfig(scopeStr, propertiesStr);
+    } else if (command.equalsIgnoreCase("removeConfig"))
+    {
+      setupTool.removeConfig(scopeStr, propertiesStr);
+    } else
+    {
+      throw new HelixException("Unrecognized command: " + command);
+    }
 
     getResponse().setEntity(represent());
     getResponse().setStatus(Status.SUCCESS_OK);
@@ -286,5 +323,4 @@ public class ConfigResource extends Resource
       getResponse().setStatus(Status.SUCCESS_OK);
     }
   }
-
 }

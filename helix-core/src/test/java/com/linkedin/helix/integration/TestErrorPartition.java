@@ -67,7 +67,7 @@ public class TestErrorPartition extends ZkIntegrationTestBase
         Map<String, Set<String>> errPartitions = new HashMap<String, Set<String>>()
         {
           {
-            put("SLAVE-MASTER", TestHelper.setOf("TestDB0_0"));
+            put("SLAVE-MASTER", TestHelper.setOf("TestDB0_4"));
           }
         };
         participants[i] =
@@ -87,7 +87,7 @@ public class TestErrorPartition extends ZkIntegrationTestBase
     Map<String, Map<String, String>> errStates =
         new HashMap<String, Map<String, String>>();
     errStates.put("TestDB0", new HashMap<String, String>());
-    errStates.get("TestDB0").put("TestDB0_0", "localhost_12918");
+    errStates.get("TestDB0").put("TestDB0_4", "localhost_12918");
     boolean result =
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
                                                                                           clusterName,
@@ -97,7 +97,7 @@ public class TestErrorPartition extends ZkIntegrationTestBase
     Map<String, Set<String>> errorStateMap = new HashMap<String, Set<String>>()
     {
       {
-        put("TestDB0_0", TestHelper.setOf("localhost_12918"));
+        put("TestDB0_4", TestHelper.setOf("localhost_12918"));
       }
     };
 
@@ -105,7 +105,7 @@ public class TestErrorPartition extends ZkIntegrationTestBase
     TestHelper.verifyState(clusterName, ZK_ADDR, errorStateMap, "ERROR");
 
     // disable a partition on a node with error state
-    tool.enablePartition(clusterName, "localhost_12918", "TestDB0", "TestDB0_0", false);
+    tool.enablePartition(clusterName, "localhost_12918", "TestDB0", "TestDB0_4", false);
 
     result =
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
@@ -125,7 +125,7 @@ public class TestErrorPartition extends ZkIntegrationTestBase
     Assert.assertTrue(result);
 
     // make sure after restart stale ERROR state is gone
-    tool.enablePartition(clusterName, "localhost_12918", "TestDB0", "TestDB0_0", true);
+    tool.enablePartition(clusterName, "localhost_12918", "TestDB0", "TestDB0_4", true);
     tool.enableInstance(clusterName, "localhost_12918", true);
 
     participants[0].syncStop();

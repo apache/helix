@@ -32,9 +32,9 @@ import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.ZkUnitTestBase;
 import com.linkedin.helix.manager.zk.ZKDataAccessor;
-import com.linkedin.helix.model.Constraint.ConstraintAttribute;
-import com.linkedin.helix.model.Constraint.ConstraintItem;
-import com.linkedin.helix.model.Constraint.ConstraintType;
+import com.linkedin.helix.model.ClusterConstraints.ConstraintAttribute;
+import com.linkedin.helix.model.ClusterConstraints.ConstraintItem;
+import com.linkedin.helix.model.ClusterConstraints.ConstraintType;
 import com.linkedin.helix.model.Message.MessageType;
 
 public class TestConstraint extends ZkUnitTestBase
@@ -110,7 +110,7 @@ public class TestConstraint extends ZkUnitTestBase
     accessor.setProperty(PropertyType.CONFIGS, record, ConfigScopeProperty.CLUSTER.toString(), ConstraintType.MESSAGE_CONSTRAINT.toString());
 
     record = accessor.getProperty(PropertyType.CONFIGS, ConfigScopeProperty.CLUSTER.toString(), ConstraintType.MESSAGE_CONSTRAINT.toString());
-    Constraint constraint = new Constraint(record);
+    ClusterConstraints constraint = new ClusterConstraints(record);
     // System.out.println("constraint: " + constraint);
 
     // message1
@@ -121,7 +121,7 @@ public class TestConstraint extends ZkUnitTestBase
                                 "TestDB",
                                 "localhost_12918");
 
-    Map<ConstraintAttribute, String> msgAttr = msg1.toConstraintAttributes();
+    Map<ConstraintAttribute, String> msgAttr = ClusterConstraints.toConstraintAttributes(msg1);
     Set<ConstraintItem> matches = constraint.match(msgAttr);
     System.out.println(msg1 + " matches(" + matches.size() + "): " + matches);
     Assert.assertEquals(matches.size(), 5);
@@ -139,7 +139,7 @@ public class TestConstraint extends ZkUnitTestBase
                                  "TestDB",
                                  "localhost_12919");
 
-    msgAttr = msg2.toConstraintAttributes();
+    msgAttr = ClusterConstraints.toConstraintAttributes(msg2);
     matches = constraint.match(msgAttr);
     System.out.println(msg2 + " matches(" + matches.size() + "): " + matches);
     Assert.assertEquals(matches.size(), 5);
@@ -189,7 +189,7 @@ public class TestConstraint extends ZkUnitTestBase
     accessor.setProperty(PropertyType.CONFIGS, record, ConfigScopeProperty.CLUSTER.toString(), ConstraintType.STATE_CONSTRAINT.toString());
 
     record = accessor.getProperty(PropertyType.CONFIGS, ConfigScopeProperty.CLUSTER.toString(), ConstraintType.STATE_CONSTRAINT.toString());
-    Constraint constraint = new Constraint(record);
+    ClusterConstraints constraint = new ClusterConstraints(record);
     // System.out.println("constraint: " + constraint);
 
     // state1: hit rule2

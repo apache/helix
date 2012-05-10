@@ -44,6 +44,7 @@ import com.linkedin.helix.controller.stages.CurrentStateComputationStage;
 import com.linkedin.helix.controller.stages.ExternalViewComputeStage;
 import com.linkedin.helix.controller.stages.MessageGenerationPhase;
 import com.linkedin.helix.controller.stages.MessageSelectionStage;
+import com.linkedin.helix.controller.stages.MessageThrottleStage;
 import com.linkedin.helix.controller.stages.ReadClusterDataStage;
 import com.linkedin.helix.controller.stages.ResourceComputationStage;
 import com.linkedin.helix.controller.stages.TaskAssignmentStage;
@@ -138,6 +139,7 @@ public class GenericHelixController implements
       rebalancePipeline.addStage(new BestPossibleStateCalcStage());
       rebalancePipeline.addStage(new MessageGenerationPhase());
       rebalancePipeline.addStage(new MessageSelectionStage());
+      rebalancePipeline.addStage(new MessageThrottleStage());
       rebalancePipeline.addStage(new TaskAssignmentStage());
 
       // external view generation

@@ -20,6 +20,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -275,6 +276,8 @@ public class ClusterSetup
   public void rebalanceStorageCluster(String clusterName, String resourceName, int replica)
   {
     List<String> InstanceNames = _admin.getInstancesInCluster(clusterName);
+    // ensure we get the same idealState with the same set of instances
+    Collections.sort(InstanceNames);
 
     IdealState idealState = _admin.getResourceIdealState(clusterName, resourceName);
     if (idealState == null)
@@ -374,6 +377,17 @@ public class ClusterSetup
     _admin.setConfig(scope, propertiesMap);
   }
 
+  public void removeConfig(String scopesStr, String keysStr)
+  {
+    ConfigScope scope = new ConfigScopeBuilder().build(scopesStr);
+
+    // parse keys
+    String[] keys = keysStr.split("[\\s,]");
+    Set<String> keysSet = new HashSet<String>(Arrays.asList(keys));
+
+    _admin.removeConfig(scope, keysSet);
+  }
+  
   public String getConfig(String scopesStr, String keysStr)
   {
     ConfigScope scope = new ConfigScopeBuilder().build(scopesStr);

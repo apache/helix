@@ -317,13 +317,20 @@ public class TestMessagingService extends ZkStandAloneCMTestBase
     AsyncCallback callback3 = new MockAsyncCallback();
     int messageSent3 = _startCMResultMap.get(hostSrc)._manager.getMessagingService()
         .sendAndWait(cr, msg, callback3, 2000);
-    AssertJUnit.assertTrue(callback3.getMessageReplied().size() == 3);
+    AssertJUnit.assertTrue(callback3.getMessageReplied().size() == _replica - 1);
 
-    cr.setPartitionState("SLAVE");
+
+    cr.setPartition("TestDB_15");
     AsyncCallback callback4 = new MockAsyncCallback();
     int messageSent4 = _startCMResultMap.get(hostSrc)._manager.getMessagingService()
         .sendAndWait(cr, msg, callback4, 2000);
-    AssertJUnit.assertTrue(callback4.getMessageReplied().size() == 2);
+    AssertJUnit.assertTrue(callback4.getMessageReplied().size() == _replica);
+    
+    cr.setPartitionState("SLAVE");
+    AsyncCallback callback5 = new MockAsyncCallback();
+    int messageSent5 = _startCMResultMap.get(hostSrc)._manager.getMessagingService()
+        .sendAndWait(cr, msg, callback5, 2000);
+    AssertJUnit.assertTrue(callback5.getMessageReplied().size() == _replica - 1);
   }
 
   @Test()

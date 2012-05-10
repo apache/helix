@@ -61,6 +61,8 @@ public class ZkStandAloneCMTestBase extends ZkIntegrationTestBase
   protected Map<String, StartCMResult> _startCMResultMap =
                                                              new HashMap<String, StartCMResult>();
   protected ZkClient                   _zkClient;
+  
+  int _replica = 3;
 
   @BeforeClass
   public void beforeClass() throws Exception
@@ -86,7 +88,7 @@ public class ZkStandAloneCMTestBase extends ZkIntegrationTestBase
       String storageNodeName = PARTICIPANT_PREFIX + ":" + (START_PORT + i);
       _setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
     }
-    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, TEST_DB, 3);
+    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, TEST_DB, _replica);
 
     // start dummy participants
     for (int i = 0; i < NODE_NR; i++)

@@ -77,7 +77,7 @@ public class TestResetPartitionState extends ZkIntegrationTestBase
     Map<String, Set<String>> errPartitions = new HashMap<String, Set<String>>()
     {
       {
-        put("SLAVE-MASTER", TestHelper.setOf("TestDB0_0"));
+        put("SLAVE-MASTER", TestHelper.setOf("TestDB0_4"));
         put("OFFLINE-SLAVE", TestHelper.setOf("TestDB0_8"));
       }
     };
@@ -100,7 +100,7 @@ public class TestResetPartitionState extends ZkIntegrationTestBase
 
     Map<String, Map<String, String>> errStateMap = new HashMap<String, Map<String, String>>();
     errStateMap.put("TestDB0", new HashMap<String, String>());
-    errStateMap.get("TestDB0").put("TestDB0_0", "localhost_12918");
+    errStateMap.get("TestDB0").put("TestDB0_4", "localhost_12918");
     errStateMap.get("TestDB0").put("TestDB0_8", "localhost_12918");
     boolean result = ClusterStateVerifier.verifyByPolling(
         new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName, errStateMap));
@@ -109,12 +109,12 @@ public class TestResetPartitionState extends ZkIntegrationTestBase
     // reset one error partition
     errPartitions.remove("SLAVE-MASTER");
     participants[0].setTransition(new ErrTransitionWithReset(errPartitions));
-    clearStatusUpdate(clusterName, "localhost_12918", "TestDB0", "TestDB0_0");
+    clearStatusUpdate(clusterName, "localhost_12918", "TestDB0", "TestDB0_4");
     _errToOfflineInvoked = 0;
     ZKHelixAdmin tool = new ZKHelixAdmin(_gZkClient);
-    tool.resetPartition(clusterName, "localhost_12918", "TestDB0", "TestDB0_0");
+    tool.resetPartition(clusterName, "localhost_12918", "TestDB0", "TestDB0_4");
 
-    errStateMap.get("TestDB0").remove("TestDB0_0");
+    errStateMap.get("TestDB0").remove("TestDB0_4");
     result = ClusterStateVerifier.verifyByPolling(
         new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName, errStateMap));
     Assert.assertTrue(result);

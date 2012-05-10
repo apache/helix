@@ -34,10 +34,10 @@ import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.ZkUnitTestBase;
 import com.linkedin.helix.controller.pipeline.Pipeline;
 import com.linkedin.helix.manager.zk.ZKDataAccessor;
-import com.linkedin.helix.model.Constraint;
-import com.linkedin.helix.model.Constraint.ConstraintAttribute;
-import com.linkedin.helix.model.Constraint.ConstraintItem;
-import com.linkedin.helix.model.Constraint.ConstraintType;
+import com.linkedin.helix.model.ClusterConstraints;
+import com.linkedin.helix.model.ClusterConstraints.ConstraintAttribute;
+import com.linkedin.helix.model.ClusterConstraints.ConstraintItem;
+import com.linkedin.helix.model.ClusterConstraints.ConstraintType;
 import com.linkedin.helix.model.Message;
 import com.linkedin.helix.model.Message.MessageType;
 import com.linkedin.helix.model.Partition;
@@ -199,7 +199,7 @@ public class TestMessageThrottleStage extends ZkUnitTestBase
 
     accessor.setProperty(PropertyType.CONFIGS, record, ConfigScopeProperty.CONSTRAINT.toString(), ConstraintType.MESSAGE_CONSTRAINT.toString());
 
-    Constraint constraint = accessor.getProperty(Constraint.class, PropertyType.CONFIGS, ConfigScopeProperty.CONSTRAINT.toString(), ConstraintType.MESSAGE_CONSTRAINT.toString());
+    ClusterConstraints constraint = accessor.getProperty(ClusterConstraints.class, PropertyType.CONFIGS, ConfigScopeProperty.CONSTRAINT.toString(), ConstraintType.MESSAGE_CONSTRAINT.toString());
     MessageThrottleStage throttleStage = new MessageThrottleStage();
 
     // test constraintSelection
@@ -211,7 +211,7 @@ public class TestMessageThrottleStage extends ZkUnitTestBase
                                 "TestDB",
                                 "localhost_0");
 
-    Map<ConstraintAttribute, String> msgAttr = msg1.toConstraintAttributes();
+    Map<ConstraintAttribute, String> msgAttr = ClusterConstraints.toConstraintAttributes(msg1);
     Set<ConstraintItem> matches = constraint.match(msgAttr);
     System.out.println(msg1 + " matches(" + matches.size() + "): " + matches);
     Assert.assertEquals(matches.size(), 5);
@@ -235,7 +235,7 @@ public class TestMessageThrottleStage extends ZkUnitTestBase
                                  "TestDB",
                                  "localhost_1");
 
-    msgAttr = msg2.toConstraintAttributes();
+    msgAttr = ClusterConstraints.toConstraintAttributes(msg2);
     matches = constraint.match(msgAttr);
     System.out.println(msg2 + " matches(" + matches.size() + "): " + matches);
     Assert.assertEquals(matches.size(), 5);
@@ -328,4 +328,6 @@ public class TestMessageThrottleStage extends ZkUnitTestBase
     }
     return false;
   }
+  
+  // add pending message test case
 }

@@ -84,6 +84,8 @@ public interface HelixAdmin
   void dropCluster(String clusterName);
 
   void setConfig(ConfigScope scope, Map<String, String> properties);
+  
+  void removeConfig(ConfigScope scope, Set<String> keys);
 
   Map<String, String> getConfig(ConfigScope scope, Set<String> keys);
 

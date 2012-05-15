@@ -171,6 +171,47 @@ public class MockParticipant extends Thread
     }
   }
 
+  // mock STORAGE_DEFAULT_SM_SCHEMATA state model
+  @StateModelInfo(initialState = "OFFLINE", states = { "MASTER", "DROPPED", "ERROR" })
+  public class MockSchemataStateModel extends StateModel
+  {
+    @Transition(to="MASTER",from="OFFLINE")
+    public void onBecomeMasterFromOffline(Message message, NotificationContext context)
+    {
+      LOG.info("Become MASTER from OFFLINE");
+    }
+
+    @Transition(to="OFFLINE",from="MASTER")
+    public void onBecomeOfflineFromMaster(Message message, NotificationContext context)
+    {
+      LOG.info("Become OFFLINE from MASTER");
+    }
+
+    @Transition(to="DROPPED",from="OFFLINE")
+    public void onBecomeDroppedFromOffline(Message message, NotificationContext context)
+    {
+      LOG.info("Become DROPPED from OFFLINE");
+    }
+
+    @Transition(to = "OFFLINE", from = "ERROR")
+    public void onBecomeOfflineFromError(Message message, NotificationContext context)
+    {
+      LOG.info("Become OFFLINE from ERROR");
+    }
+  }
+
+  // mock STORAGE_DEFAULT_SM_SCHEMATA state model factory
+  public class MockSchemataModelFactory
+    extends StateModelFactory<MockSchemataStateModel>
+  {
+    @Override
+    public MockSchemataStateModel createNewStateModel(String partitionKey)
+    {
+      MockSchemataStateModel model = new MockSchemataStateModel();
+      return model;
+    }
+  }
+
   // simulate error transition
   public static class ErrTransition extends MockTransition
   {
@@ -271,11 +312,11 @@ public class MockParticipant extends Thread
     _clusterName = manager.getClusterName();
     _instanceName = manager.getInstanceName();
     _manager = manager;
-    
+
     _msModelFacotry = new MockMSModelFactory(null);
     _job = null;
   }
-  
+
   public void setTransition(MockTransition transition)
   {
     _msModelFacotry.setTrasition(transition);
@@ -294,7 +335,7 @@ public class MockParticipant extends Thread
       _manager.disconnect();
     }
   }
-  
+
   public void syncStart()
   {
     super.start();
@@ -322,6 +363,9 @@ public class MockParticipant extends Thread
       stateMach.registerStateModelFactory("LeaderStandby", lsModelFactory);
       stateMach.registerStateModelFactory("OnlineOffline", ofModelFactory);
 
+      MockSchemataModelFactory schemataFactory = new MockSchemataModelFactory();
+      stateMach.registerStateModelFactory("STORAGE_DEFAULT_SM_SCHEMATA", schemataFactory);
+
       if (_job != null)
       {
         _job.doPreConnectJob(_manager);
@@ -329,7 +373,7 @@ public class MockParticipant extends Thread
 
       _manager.connect();
       _startCountDown.countDown();
-      
+
       if (_job != null)
       {
         _job.doPostConnectJob(_manager);

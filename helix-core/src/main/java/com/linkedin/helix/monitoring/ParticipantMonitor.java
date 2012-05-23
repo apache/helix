@@ -121,7 +121,10 @@ public class ParticipantMonitor
       try
       {
         ObjectName name = getObjectName(cxt.toString());
-        _beanServer.unregisterMBean(name);
+        if (_beanServer.isRegistered(name))
+        {
+          _beanServer.unregisterMBean(name);
+        }
       }
       catch (Exception e)
       {

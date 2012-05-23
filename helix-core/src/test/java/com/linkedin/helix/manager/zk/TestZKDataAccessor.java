@@ -21,6 +21,7 @@ import java.util.Date;
 import java.util.List;
 
 import org.apache.zookeeper.data.Stat;
+import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -127,6 +128,22 @@ public class TestZKDataAccessor extends ZkUnitTestBase
   {
     List<ExternalView> list = _accessor.getChildValues(ExternalView.class, PropertyType.EXTERNALVIEW, _clusterName);
     AssertJUnit.assertEquals(0, list.size());
+  }
+
+  @Test
+  public void testBackToBackRemoveAndSet()
+  {
+    // CONFIG is cached
+    _accessor.setProperty(PropertyType.CONFIGS, new ZNRecord("id1"), "config1");
+    ZNRecord record = _accessor.getProperty(PropertyType.CONFIGS, "config1");
+    // System.out.println(record.getId());
+    Assert.assertEquals(record.getId(), "id1");
+    String path = PropertyPathConfig.getPath(PropertyType.CONFIGS, _clusterName, "config1");
+    _zkClient.delete(path);
+    _zkClient.createPersistent(path, new ZNRecord("id1-new"));
+    record = _accessor.getProperty(PropertyType.CONFIGS, "config1");
+    // System.out.println(record.getId());
+    Assert.assertEquals(record.getId(), "id1-new", "Should update cache since creation time is changed.");
   }
 
   @BeforeClass

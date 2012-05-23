@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import org.I0Itec.zkclient.DataUpdater;
+import org.I0Itec.zkclient.IZkDataListener;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -48,6 +49,7 @@ public class TestZKPropertyStore extends ZkUnitTestBase
   class TestListener implements PropertyChangeListener<ZNRecord>
   {
     Map<String, String> _keySet;
+
     public TestListener(Map<String, String> keySet)
     {
       _keySet = keySet;
@@ -101,10 +103,12 @@ public class TestZKPropertyStore extends ZkUnitTestBase
     return "/node_" + i;
   }
 
-  @Test ()
+  // TODO: separate into small tests
+  @Test()
   public void testZKPropertyStore() throws Exception
   {
-  	System.out.println("START " + className + " at " + new Date(System.currentTimeMillis()));
+    System.out.println("START " + className + " at "
+        + new Date(System.currentTimeMillis()));
     // LOG.info("number of connections is " + ZkClient.getNumberOfConnections());
 
     // clean up zk
@@ -114,8 +118,44 @@ public class TestZKPropertyStore extends ZkUnitTestBase
       _gZkClient.deleteRecursive(propertyStoreRoot);
     }
 
-    ZKPropertyStore<ZNRecord> store = new ZKPropertyStore<ZNRecord>(new ZkClient(ZK_ADDR),
-        new PropertyJsonSerializer<ZNRecord>(ZNRecord.class), propertyStoreRoot);
+    ZKPropertyStore<ZNRecord> store =
+        new ZKPropertyStore<ZNRecord>(new ZkClient(ZK_ADDR),
+                                      new PropertyJsonSerializer<ZNRecord>(ZNRecord.class),
+                                      propertyStoreRoot);
+
+    // test back to back add-delete-add
+
+    store.setProperty("child0", new ZNRecord("child0"));
+
+    ZNRecord record2 = store.getProperty("child0"); // will put the record in cache
+    String child0Path = propertyStoreRoot + "/child0";
+    _gZkClient.subscribeDataChanges(child0Path, new IZkDataListener()
+    {
+      @Override
+      public void handleDataDeleted(String dataPath) throws Exception
+      {
+        // TODO Auto-generated method stub
+        System.out.println("TestZKPropertyStore.testZKPropertyStore().new IZkDataListener() {...}.handleDataDeleted()");
+      }
+
+      @Override
+      public void handleDataChange(String dataPath, Object data) throws Exception
+      {
+        // TODO Auto-generated method stub
+        System.out.println("TestZKPropertyStore.testZKPropertyStore().new IZkDataListener() {...}.handleDataChange()");
+      }
+    });
+    for (int i = 0; i < 2; i++)
+    {
+      _gZkClient.delete(child0Path);
+      _gZkClient.createPersistent(child0Path, new ZNRecord("child0-new"));
+    }
+    record2 = store.getProperty("child0");
+    Assert.assertEquals(record2.getId(), "child0-new");
+    _gZkClient.delete(child0Path);
+    Thread.sleep(300); // should wait for zk callback to remove "child0" from cache
+    record2 = store.getProperty("child0");
+    Assert.assertNull(record2);
 
     // zookeeper has a default 1M limit on size
     char[] data = new char[bufSize];
@@ -135,8 +175,9 @@ public class TestZKPropertyStore extends ZkUnitTestBase
 
     ZNRecordSerializer serializer = new ZNRecordSerializer();
     int bytesPerNode = serializer.serialize(record).length;
-    System.out.println("use znode of size " + bytesPerNode/1024 + "K");
-    Assert.assertTrue(bytesPerNode < 1024 * 1024, "zookeeper has a default 1M limit on size");
+    System.out.println("use znode of size " + bytesPerNode / 1024 + "K");
+    Assert.assertTrue(bytesPerNode < 1024 * 1024,
+                      "zookeeper has a default 1M limit on size");
 
     // test getPropertyRootNamespace()
     String root = store.getPropertyRootNamespace();
@@ -146,7 +187,8 @@ public class TestZKPropertyStore extends ZkUnitTestBase
     long start = System.currentTimeMillis();
     setNodes(store, 'a', false);
     long end = System.currentTimeMillis();
-    System.out.println("ZKPropertyStore write throughput is " + bytesPerNode * totalNodes / (end-start) + " kilo-bytes per second");
+    System.out.println("ZKPropertyStore write throughput is " + bytesPerNode * totalNodes
+        / (end - start) + " kilo-bytes per second");
 
     start = System.currentTimeMillis();
     for (int i = 0; i < 10; i++)
@@ -160,8 +202,8 @@ public class TestZKPropertyStore extends ZkUnitTestBase
       }
     }
     end = System.currentTimeMillis();
-    System.out.println("ZKPropertyStore read throughput is " + bytesPerNode * totalNodes / (end-start) + " kilo-bytes per second");
-
+    System.out.println("ZKPropertyStore read throughput is " + bytesPerNode * totalNodes
+        / (end - start) + " kilo-bytes per second");
 
     // test subscribe
     Map<String, String> keyMap = new TreeMap<String, String>();
@@ -195,7 +237,8 @@ public class TestZKPropertyStore extends ZkUnitTestBase
       }
       Thread.sleep(500);
     }
-    Assert.assertEquals(keyMap.size(), totalNodes, "should receive " + totalNodes + " callbacks");
+    Assert.assertEquals(keyMap.size(), totalNodes, "should receive " + totalNodes
+        + " callbacks");
     end = System.currentTimeMillis();
     long waitTime = (end - start) * 2;
 
@@ -216,7 +259,8 @@ public class TestZKPropertyStore extends ZkUnitTestBase
         }
       }
     }
-    System.out.println("ZKPropertyStore callback latency is " + maxLatency + " millisecond");
+    System.out.println("ZKPropertyStore callback latency is " + maxLatency
+        + " millisecond");
 
     // change nodes via native zkclient interface
     // and verify all notifications have been received with some latency
@@ -225,7 +269,8 @@ public class TestZKPropertyStore extends ZkUnitTestBase
 
     // wait for all callbacks completed
     Thread.sleep(waitTime);
-    Assert.assertEquals(keyMap.size(), totalNodes, "should receive " + totalNodes + " callbacks");
+    Assert.assertEquals(keyMap.size(), totalNodes, "should receive " + totalNodes
+        + " callbacks");
 
     // remove node via native zkclient interface
     // should receive callbacks on parent key
@@ -252,8 +297,8 @@ public class TestZKPropertyStore extends ZkUnitTestBase
     }
     Thread.sleep(waitTime);
     String node0Key = getFirstLevelKey(0);
-    Assert.assertTrue(keyMap.containsKey(node0Key), "should receive callback on " + node0Key);
-
+    Assert.assertTrue(keyMap.containsKey(node0Key), "should receive callback on "
+        + node0Key);
 
     // add back removed nodes
     // should receive callbacks on parent key
@@ -297,7 +342,8 @@ public class TestZKPropertyStore extends ZkUnitTestBase
     }
     Thread.sleep(waitTime);
     node0Key = getFirstLevelKey(0);
-    Assert.assertTrue(keyMap.containsKey(node0Key), "should receive callback on " + node0Key);
+    Assert.assertTrue(keyMap.containsKey(node0Key), "should receive callback on "
+        + node0Key);
 
     // test unsubscribe
     store.unsubscribeForPropertyChange("", listener);
@@ -334,8 +380,8 @@ public class TestZKPropertyStore extends ZkUnitTestBase
       updateMap.put("key_" + i, new String(updateData));
     }
 
-    PropertyJsonComparator<ZNRecord> comparator
-      = new PropertyJsonComparator<ZNRecord>(ZNRecord.class);
+    PropertyJsonComparator<ZNRecord> comparator =
+        new PropertyJsonComparator<ZNRecord>(ZNRecord.class);
     for (int i = 0; i < firstLevelNr; i++)
     {
       for (int j = 0; j < secondLevelNr; j++)
@@ -414,8 +460,7 @@ public class TestZKPropertyStore extends ZkUnitTestBase
     System.out.println("END " + className + " at " + new Date(System.currentTimeMillis()));
   }
 
-  private void setNodes(ZKPropertyStore<ZNRecord> store, char c, boolean needTimestamp)
-      throws PropertyStoreException
+  private void setNodes(ZKPropertyStore<ZNRecord> store, char c, boolean needTimestamp) throws PropertyStoreException
   {
     char[] data = new char[bufSize];
 
@@ -448,8 +493,7 @@ public class TestZKPropertyStore extends ZkUnitTestBase
     }
   }
 
-  private void setNodes(ZkClient zkClient, String root, char c, boolean needTimestamp)
-      throws PropertyStoreException
+  private void setNodes(ZkClient zkClient, String root, char c, boolean needTimestamp) throws PropertyStoreException
   {
     char[] data = new char[bufSize];
 

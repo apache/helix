@@ -334,6 +334,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase
     rebalancePipeline.addStage(new BestPossibleStateCalcStage());
     rebalancePipeline.addStage(new MessageGenerationPhase());
     rebalancePipeline.addStage(new MessageSelectionStage());
+    rebalancePipeline.addStage(new MessageThrottleStage());
     rebalancePipeline.addStage(new TaskAssignmentStage());
 
     // round1: set node1 currentState to SLAVE

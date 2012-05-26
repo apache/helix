@@ -102,6 +102,10 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
       }
 
       StateModelDefinition stateModelDef = cache.getStateModelDef(stateModelDefName);
+      if(idealState.getIdealStateMode() == IdealStateModeProperty.AUTO_REBALANCE)
+      {
+        calculateAutoBalancedIdealState(cache, idealState, stateModelDef, currentStateOutput);
+      }
 
       for (Partition partition : resource.getPartitions())
       {
@@ -112,7 +116,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
         Set<String> disabledInstancesForPartition
           = cache.getDisabledInstancesForPartition(partition.toString());
 
-        if (idealState.getIdealStateMode() == IdealStateModeProperty.CUSTOMIZED)
+        if (idealState.getIdealStateMode() == IdealStateModeProperty.CUSTOMIZED )
         {
           Map<String, String> idealStateMap = idealState.getInstanceStateMap(partition.getPartitionName());
           bestStateForPartition = computeCustomizedBestStateForPartition(cache, stateModelDef,
@@ -120,7 +124,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
                                                                        currentStateMap,
                                                                        disabledInstancesForPartition);
         }
-        else
+        else // both AUTO and AUTO_REBALANCE mode
         {
           List<String> instancePreferenceList
             = getPreferenceList(cache, partition, idealState, stateModelDef);
@@ -135,6 +139,68 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
       }
     }
     return output;
+  }
+
+  private void calculateAutoBalancedIdealState(ClusterDataCache cache, 
+      IdealState idealState, 
+      StateModelDefinition stateModelDef,
+      CurrentStateOutput currentStateOutput)
+  {
+    Set<String> nodesInIdealState = new HashSet<String>();
+    for(String partitionName : idealState.getPartitionSet())
+    {
+      for(String instanceName : idealState.getPreferenceList(partitionName, stateModelDef))
+      {
+        nodesInIdealState.add(instanceName);
+      }
+    }
+    int replicas = 1;
+    try
+    {
+      Integer.parseInt(idealState.getReplicas());
+    }
+    catch(Exception e)
+    {
+      logger.error("",e);
+    }
+    
+    if(nodesInIdealState.size() == 0 && cache.getInstanceConfigMap().size() > 0)
+    {
+      // Init the idealstate
+      Map<String, List<String>> listFields = new HashMap<String, List<String>>();
+      List<String> instanceNameList = new ArrayList<String>(cache.getInstanceConfigMap().size());
+      instanceNameList.addAll(cache.getInstanceConfigMap().keySet());
+      Collections.sort(instanceNameList);
+      
+      List<String> partitionList = new ArrayList<String>(idealState.getPartitionSet().size());
+      partitionList.addAll(idealState.getPartitionSet());
+      Collections.sort(partitionList);
+      
+      for(int i = 0; i < partitionList.size(); i++)
+      {
+        int nodeIndex = i % cache.getInstanceConfigMap().size();
+        List<String> priorityList = new ArrayList<String>();
+        for(int j = 0; j < replicas; i++)
+        {
+          priorityList.add(instanceNameList.get((nodeIndex + j) % instanceNameList.size()));
+        }
+        listFields.put(partitionList.get(i), priorityList);
+      }
+      idealState.getRecord().setListFields(listFields);
+    }
+    else if(nodesInIdealState.size() != cache.getInstanceConfigMap().size() ||
+        nodesInIdealState.containsAll( cache.getInstanceConfigMap().keySet())
+        )
+    {
+      // Need to rebalance the idealState
+      Map<String, List<Integer>> partitionAssignment = new HashMap<String, List<Integer>>();
+      for(String partition : idealState.getPartitionSet())
+      {
+        List<String> preferenceList = idealState.getPreferenceList(partition, stateModelDef);
+      }
+    }
+    
+    
   }
 
   /**
@@ -237,7 +303,6 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
     }
     return instanceStateMap;
   }
-
 
   /**
    * compute best state for resource in CUSTOMIZED ideal state mode

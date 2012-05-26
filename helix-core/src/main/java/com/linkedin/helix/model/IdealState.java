@@ -36,7 +36,7 @@ public class IdealState extends ZNRecordDecorator
   }
 
   public enum IdealStateModeProperty {
-    AUTO, CUSTOMIZED
+    AUTO, CUSTOMIZED, AUTO_REBALANCE
   }
 
   private static final Logger logger = Logger.getLogger(IdealState.class.getName());
@@ -91,13 +91,15 @@ public class IdealState extends ZNRecordDecorator
 
   public Set<String> getPartitionSet()
   {
-    if (getIdealStateMode() == IdealStateModeProperty.AUTO)
+    if (getIdealStateMode() == IdealStateModeProperty.AUTO || getIdealStateMode() == IdealStateModeProperty.AUTO_REBALANCE)
     {
       return _record.getListFields().keySet();
-    } else if (getIdealStateMode() == IdealStateModeProperty.CUSTOMIZED)
+    } 
+    else if (getIdealStateMode() == IdealStateModeProperty.CUSTOMIZED)
     {
       return _record.getMapFields().keySet();
-    } else
+    } 
+    else
     {
       logger.error("Invalid ideal state mode:" + getResourceName());
       return Collections.emptySet();

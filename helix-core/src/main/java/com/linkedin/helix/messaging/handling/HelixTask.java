@@ -22,6 +22,7 @@ import java.util.concurrent.Callable;
 
 import org.apache.log4j.Logger;
 
+import com.linkedin.helix.Criteria.DataSource;
 import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.Criteria;
@@ -242,6 +243,7 @@ public class HelixTask implements Callable<HelixTaskResult>
       Message replyMessage = Message.createReplyMessage(_message,
           _manager.getInstanceName(), taskResult.getTaskResultMap());
       Criteria recipientCriteria = new Criteria();
+      recipientCriteria.setDataSource(DataSource.IDEALSTATES);
       recipientCriteria.setInstanceName(replyMessage.getTgtName());
       recipientCriteria.setSelfExcluded(false);
       recipientCriteria.setRecipientInstanceType(message.getSrcInstanceType());

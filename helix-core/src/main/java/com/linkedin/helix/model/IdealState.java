@@ -64,15 +64,11 @@ public class IdealState extends ZNRecordDecorator
   public IdealStateModeProperty getIdealStateMode()
   {
     String mode = _record.getSimpleField(IdealStateProperty.IDEAL_STATE_MODE.toString());
-    if (mode == null || mode.equalsIgnoreCase(IdealStateModeProperty.AUTO.toString()))
+    try
     {
-      return IdealStateModeProperty.AUTO;
+      return IdealStateModeProperty.valueOf(mode);
     }
-    else if (mode.equalsIgnoreCase(IdealStateModeProperty.CUSTOMIZED.toString()))
-    {
-      return IdealStateModeProperty.CUSTOMIZED;
-    }
-    else
+    catch(Exception e)
     {
       logger.error("IdealState mode not recognized:" + mode + "; set to AUTO");
       return IdealStateModeProperty.AUTO;

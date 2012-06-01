@@ -134,13 +134,25 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
                                               currentStateMap,
                                               disabledInstancesForPartition);
         }
-
         output.setState(resourceName, partition, bestStateForPartition);
       }
     }
     return output;
   }
-
+  
+  /**
+   * Compute best state for resource in AUTO_REBALANCE ideal state mode.
+   * the algorithm will make sure that the master partition are evenly distributed;
+   * Also when instances are added / removed, the amount of diff in master partitions
+   * are minimized
+   *
+   * @param cache
+   * @param idealState
+   * @param instancePreferenceList
+   * @param stateModelDef
+   * @param currentStateOutput
+   * @return
+   */
   private void calculateAutoBalancedIdealState(ClusterDataCache cache, 
       IdealState idealState, 
       StateModelDefinition stateModelDef,
@@ -154,55 +166,141 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
         nodesInIdealState.add(instanceName);
       }
     }
+    // Obtain replica number
     int replicas = 1;
     try
     {
-      Integer.parseInt(idealState.getReplicas());
+      replicas = Integer.parseInt(idealState.getReplicas());
     }
     catch(Exception e)
     {
       logger.error("",e);
     }
-    
-    if(nodesInIdealState.size() == 0 && cache.getInstanceConfigMap().size() > 0)
+   
+    // Obtain existing "master" assignment
+    Map<String, List<String>> masterAssignmentMap = new HashMap<String, List<String>>();
+    for(String instanceName : cache.getInstanceConfigMap().keySet())
     {
-      // Init the idealstate
-      Map<String, List<String>> listFields = new HashMap<String, List<String>>();
-      List<String> instanceNameList = new ArrayList<String>(cache.getInstanceConfigMap().size());
-      instanceNameList.addAll(cache.getInstanceConfigMap().keySet());
-      Collections.sort(instanceNameList);
-      
-      List<String> partitionList = new ArrayList<String>(idealState.getPartitionSet().size());
-      partitionList.addAll(idealState.getPartitionSet());
-      Collections.sort(partitionList);
-      
-      for(int i = 0; i < partitionList.size(); i++)
-      {
-        int nodeIndex = i % cache.getInstanceConfigMap().size();
-        List<String> priorityList = new ArrayList<String>();
-        for(int j = 0; j < replicas; i++)
-        {
-          priorityList.add(instanceNameList.get((nodeIndex + j) % instanceNameList.size()));
-        }
-        listFields.put(partitionList.get(i), priorityList);
-      }
-      idealState.getRecord().setListFields(listFields);
+      masterAssignmentMap.put(instanceName, new ArrayList<String>());
     }
-    else if(nodesInIdealState.size() != cache.getInstanceConfigMap().size() ||
-        nodesInIdealState.containsAll( cache.getInstanceConfigMap().keySet())
-        )
+    // Find out partitions that is not hosted on any existing instance. It can happen in the initial state
+    // or when an instance is removed from cluster
+    List<String> orphanPartitions = new ArrayList<String>();
+    for(String partitionName : idealState.getPartitionSet())
     {
-      // Need to rebalance the idealState
-      Map<String, List<Integer>> partitionAssignment = new HashMap<String, List<Integer>>();
-      for(String partition : idealState.getPartitionSet())
+      List<String> preferenceList = idealState.getPreferenceList(partitionName, stateModelDef);
+      if(preferenceList.size() == 0 || preferenceList == null)
       {
-        List<String> preferenceList = idealState.getPreferenceList(partition, stateModelDef);
+        orphanPartitions.add(partitionName);
+      }
+      else
+      {
+        masterAssignmentMap.get(preferenceList.get(0)).add(partitionName);
       }
     }
-    
-    
+    // Make sure that the master assignment map is evenly distributed
+    normalizeAssignmentMap(masterAssignmentMap, orphanPartitions);
+    // Generate the preference list from master assignment map
+    idealState.getRecord().setListFields(generateListFieldFromMasterAssignment(masterAssignmentMap, replicas));
   }
-
+  
+  /**
+   * Given the current master assignment map and the partitions not hosted,
+   * generate an evenly distributed partition assignment map
+   *
+   * @param masterAssignmentMap current master assignment map
+   * @param orphanPartitions partitions not hosted by any instance
+   * @return
+   */
+  private void normalizeAssignmentMap(
+      Map<String, List<String>> masterAssignmentMap,
+      List<String> orphanPartitions)
+  {
+    int totalPartitions = 0;
+    String[] instanceNames = new String[masterAssignmentMap.size()];
+    masterAssignmentMap.keySet().toArray(instanceNames);
+    // Find out total partition number
+    for(String key : masterAssignmentMap.keySet())
+    {
+      totalPartitions += masterAssignmentMap.get(key).size();
+    }
+    totalPartitions += orphanPartitions.size();
+    
+    // Find out how many partitions an instance should host
+    int partitionNumber = totalPartitions / masterAssignmentMap.size();
+    int leave = totalPartitions % masterAssignmentMap.size();
+    
+    for(int i = 0; i < masterAssignmentMap.size(); i++)
+    {
+      int targetPartitionNo = leave > 0 ? (partitionNumber + 1) : partitionNumber;
+      leave --;
+      // For hosts that has more partitions, move those partitions to "orphaned"
+      while(masterAssignmentMap.get(instanceNames[i]).size() > targetPartitionNo)
+      {
+        int lastElementIndex = masterAssignmentMap.get(instanceNames[i]).size() - 1;
+        orphanPartitions.add(masterAssignmentMap.get(instanceNames[i]).get(lastElementIndex));
+        masterAssignmentMap.get(instanceNames[i]).remove(lastElementIndex);
+      }
+    }
+    leave = totalPartitions % masterAssignmentMap.size();
+    // Assign "orphaned" partitions to hosts that do not have enough partitions
+    for(int i = 0; i <  masterAssignmentMap.size(); i++)
+    {
+      int targetPartitionNo = leave > 0 ? (partitionNumber + 1) : partitionNumber;
+      leave --;
+      while(masterAssignmentMap.get(instanceNames[i]).size() < targetPartitionNo)
+      {
+        int lastElementIndex = orphanPartitions.size() - 1;
+        masterAssignmentMap.get(instanceNames[i]).add(orphanPartitions.get(lastElementIndex));
+        orphanPartitions.remove(lastElementIndex);
+      }
+    }
+    if(orphanPartitions.size() > 0)
+    {
+      logger.error("orphanPartitions still contains elements");
+    }
+  }
+  /**
+   * Generate full preference list from the master assignment map 
+   * evenly distribute the slave partitions mastered on a host to other hosts
+   *
+   * @param masterAssignmentMap current master assignment map
+   * @param orphanPartitions partitions not hosted by any instance
+   * @return
+   */
+  Map<String, List<String>> generateListFieldFromMasterAssignment(Map<String, List<String>> masterAssignmentMap, int replicas)
+  {
+    Map<String, List<String>> listFields = new HashMap<String, List<String>>();
+    int slaves = replicas - 1;
+    String[] instanceNames = new String[masterAssignmentMap.size()];
+    masterAssignmentMap.keySet().toArray(instanceNames);
+    
+    for(int i = 0; i < instanceNames.length; i++)
+    {
+      String instanceName = instanceNames[i];
+      List<String> otherInstances = new ArrayList<String>(masterAssignmentMap.size() - 1);
+      for(int x = 0 ; x < instanceNames.length - 1; x++)
+      {
+        int index = (x + i + 1) % instanceNames.length;
+        otherInstances.add(instanceNames[index]);
+      }
+      
+      List<String> partitionList = masterAssignmentMap.get(instanceName);
+      for(int j = 0;j < partitionList.size(); j++)
+      {
+        String partitionName = partitionList.get(j);
+        listFields.put(partitionName, new ArrayList<String>());
+        listFields.get(partitionName).add(instanceName);
+        
+        for(int k = 0; k < slaves; k++)
+        {
+          int index = (j+k+1) % otherInstances.size();
+          listFields.get(partitionName).add(otherInstances.get(index));
+        }
+      }
+    }
+    return listFields;
+  }
   /**
    * compute best state for resource in AUTO ideal state mode
    *

@@ -103,7 +103,7 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBase
   public void testAutoRebalance() throws Exception
   {
     
-    //verifyBalanceExternalView();
+    // kill 1 node
     String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + 0);
     _startCMResultMap.get(instanceName)._manager.disconnect();
     Thread.currentThread().sleep(1000);
@@ -113,6 +113,22 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBase
     boolean result =
         ClusterStateVerifier.verifyByZkCallback(new ExternalViewBalancedVerifier(_zkClient,
                                                                               CLUSTER_NAME, TEST_DB));
+    Assert.assertTrue(result);
+    
+    // add 2 nodes
+    for (int i = 0; i < 2; i++)
+    {
+      String storageNodeName = PARTICIPANT_PREFIX + ":" + (1000 + i);
+      _setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
+      
+      StartCMResult resultx =
+          TestHelper.startDummyProcess(ZK_ADDR, CLUSTER_NAME, storageNodeName.replace(':', '_'));
+      _startCMResultMap.put(storageNodeName, resultx);
+    }
+    Thread.sleep(1000);
+    result =
+        ClusterStateVerifier.verifyByZkCallback(new ExternalViewBalancedVerifier(_zkClient,
+                                                                              CLUSTER_NAME, TEST_DB), 40000);
     Assert.assertTrue(result);
   }
   
@@ -155,7 +171,6 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBase
         }
       }
     }
-    Assert.assertEquals(partitionCount, totalCount);
     if(partitionCount != totalCount)
     {
       return false;

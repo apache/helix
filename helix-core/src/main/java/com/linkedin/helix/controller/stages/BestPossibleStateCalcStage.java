@@ -16,18 +16,21 @@
 package com.linkedin.helix.controller.stages;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 import org.apache.log4j.Logger;
 
 import com.linkedin.helix.HelixConstants.StateModelToken;
 import com.linkedin.helix.controller.pipeline.AbstractBaseStage;
 import com.linkedin.helix.controller.pipeline.StageException;
+import com.linkedin.helix.model.CurrentState;
 import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.model.IdealState.IdealStateModeProperty;
 import com.linkedin.helix.model.LiveInstance;
@@ -158,15 +161,9 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
       StateModelDefinition stateModelDef,
       CurrentStateOutput currentStateOutput)
   {
-    Set<String> nodesInIdealState = new HashSet<String>();
-    for(String partitionName : idealState.getPartitionSet())
-    {
-      for(String instanceName : idealState.getPreferenceList(partitionName, stateModelDef))
-      {
-        nodesInIdealState.add(instanceName);
-      }
-    }
-    // Obtain replica number
+    String topStateValue = stateModelDef.getStatesPriorityList().get(0);
+    Set<String> liveInstances = cache._liveInstanceMap.keySet();
+ // Obtain replica number
     int replicas = 1;
     try
     {
@@ -176,34 +173,39 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
     {
       logger.error("",e);
     }
-   
-    // Obtain existing "master" assignment
+    
     Map<String, List<String>> masterAssignmentMap = new HashMap<String, List<String>>();
-    for(String instanceName : cache.getInstanceConfigMap().keySet())
+    for(String instanceName : liveInstances)
     {
       masterAssignmentMap.put(instanceName, new ArrayList<String>());
     }
-    // Find out partitions that is not hosted on any existing instance. It can happen in the initial state
-    // or when an instance is removed from cluster
-    List<String> orphanPartitions = new ArrayList<String>();
-    for(String partitionName : idealState.getPartitionSet())
+    Set<String> orphanedPartitions  = new HashSet<String>();
+    orphanedPartitions.addAll(idealState.getPartitionSet());
+    // Go through all current states and fill the assignments
+    for(String liveInstanceName : liveInstances)
     {
-      List<String> preferenceList = idealState.getPreferenceList(partitionName, stateModelDef);
-      if(preferenceList.size() == 0 || preferenceList == null)
+      CurrentState currentState 
+        = cache.getCurrentState(liveInstanceName, cache.getLiveInstances().get(liveInstanceName).getSessionId()).get(idealState.getId());
+      if(currentState != null)
       {
-        orphanPartitions.add(partitionName);
-      }
-      else
-      {
-        masterAssignmentMap.get(preferenceList.get(0)).add(partitionName);
+        Map<String, String> partitionStates = currentState.getPartitionStateMap();
+        for(String partitionName : partitionStates.keySet())
+        {
+          String state = partitionStates.get(partitionName);
+          if(state.equals(topStateValue))
+          {
+            masterAssignmentMap.get(liveInstanceName).add(partitionName);
+            orphanedPartitions.remove(partitionName);
+          }
+        }
       }
     }
-    // Make sure that the master assignment map is evenly distributed
-    normalizeAssignmentMap(masterAssignmentMap, orphanPartitions);
-    // Generate the preference list from master assignment map
+    List<String> orphanedPartitionsList = new ArrayList<String>();
+    orphanedPartitionsList.addAll(orphanedPartitions);
+    normalizeAssignmentMap(masterAssignmentMap, orphanedPartitionsList);
     idealState.getRecord().setListFields(generateListFieldFromMasterAssignment(masterAssignmentMap, replicas));
+    
   }
-  
   /**
    * Given the current master assignment map and the partitions not hosted,
    * generate an evenly distributed partition assignment map
@@ -219,10 +221,12 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
     int totalPartitions = 0;
     String[] instanceNames = new String[masterAssignmentMap.size()];
     masterAssignmentMap.keySet().toArray(instanceNames);
+    Arrays.sort(instanceNames);
     // Find out total partition number
     for(String key : masterAssignmentMap.keySet())
     {
       totalPartitions += masterAssignmentMap.get(key).size();
+      Collections.sort(masterAssignmentMap.get(key));
     }
     totalPartitions += orphanPartitions.size();
     
@@ -230,7 +234,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
     int partitionNumber = totalPartitions / masterAssignmentMap.size();
     int leave = totalPartitions % masterAssignmentMap.size();
     
-    for(int i = 0; i < masterAssignmentMap.size(); i++)
+    for(int i = 0; i < instanceNames.length; i++)
     {
       int targetPartitionNo = leave > 0 ? (partitionNumber + 1) : partitionNumber;
       leave --;
@@ -243,8 +247,9 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
       }
     }
     leave = totalPartitions % masterAssignmentMap.size();
+    Collections.sort(orphanPartitions);
     // Assign "orphaned" partitions to hosts that do not have enough partitions
-    for(int i = 0; i <  masterAssignmentMap.size(); i++)
+    for(int i = 0; i <  instanceNames.length; i++)
     {
       int targetPartitionNo = leave > 0 ? (partitionNumber + 1) : partitionNumber;
       leave --;
@@ -274,6 +279,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
     int slaves = replicas - 1;
     String[] instanceNames = new String[masterAssignmentMap.size()];
     masterAssignmentMap.keySet().toArray(instanceNames);
+    Arrays.sort(instanceNames);
     
     for(int i = 0; i < instanceNames.length; i++)
     {

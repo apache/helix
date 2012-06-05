@@ -19,8 +19,10 @@ import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -339,11 +341,22 @@ public class ClusterSetup
     {
       masterStateValue = slaveStateValue;
     }
-
-    ZNRecord newIdealState = IdealStateCalculatorForStorageNode.calculateIdealState(InstanceNames,
-        partitions, replica, resourceName, masterStateValue, slaveStateValue);
-    idealState.getRecord().setMapFields(newIdealState.getMapFields());
-    idealState.getRecord().setListFields(newIdealState.getListFields());
+    if(idealState.getIdealStateMode() != IdealStateModeProperty.AUTO_REBALANCE)
+    {
+      ZNRecord newIdealState = IdealStateCalculatorForStorageNode.calculateIdealState(InstanceNames,
+          partitions, replica, resourceName, masterStateValue, slaveStateValue);
+      idealState.getRecord().setMapFields(newIdealState.getMapFields());
+      idealState.getRecord().setListFields(newIdealState.getListFields());
+    }
+    else
+    {
+      for(int i = 0;i < partitions; i++)
+      {
+        String partitionName = resourceName + "_" + i;
+        idealState.getRecord().setMapField(partitionName, new HashMap<String, String>());
+        idealState.getRecord().setListField(partitionName, new ArrayList<String>());
+      }
+    }
     _admin.setResourceIdealState(clusterName, resourceName, idealState);
   }
 

@@ -82,6 +82,7 @@ public class ClusterSetup
   public static final String disableInstance = "disableNode";
   public static final String dropInstance = "dropNode";
   public static final String rebalance = "rebalance";
+  public static final String mode = "mode";
 
   // Query info (TBD in V2)
   public static final String listClusterInfo = "listClusterInfo";
@@ -261,11 +262,6 @@ public class ClusterSetup
   public void addResourceToCluster(String clusterName, String resourceName, int numResources,
       String stateModelRef, String idealStateMode)
   {
-    if (!idealStateMode.equalsIgnoreCase(IdealStateModeProperty.CUSTOMIZED.toString()))
-    {
-      logger.info("ideal state mode is configured to auto for " + resourceName);
-      idealStateMode = IdealStateModeProperty.AUTO.toString();
-    }
     _admin.addResource(clusterName, resourceName, numResources, stateModelRef,
         idealStateMode);
   }
@@ -515,8 +511,14 @@ public class ClusterSetup
         .withDescription("Add a resource to a cluster").create();
     addResourceOption.setArgs(4);
     addResourceOption.setRequired(false);
-    addResourceOption.setArgName("clusterName resourceName partitionNum stateModelRef");
-
+    addResourceOption.setArgName("clusterName resourceName partitionNum stateModelRef <-mode modeValue>");
+    
+    Option resourceModeOption = OptionBuilder.withLongOpt(mode)
+        .withDescription("Specify resource mode, used with addResourceGroup command").create();
+    resourceModeOption.setArgs(1);
+    resourceModeOption.setRequired(false);
+    resourceModeOption.setArgName("mode");
+    
     Option addStateModelDefOption = OptionBuilder.withLongOpt(addStateModelDef)
         .withDescription("Add a State model to a cluster").create();
     addStateModelDefOption.setArgs(2);
@@ -626,6 +628,7 @@ public class ClusterSetup
     group.setRequired(true);
     group.addOption(rebalanceOption);
     group.addOption(addResourceOption);
+    group.addOption(resourceModeOption);
     group.addOption(addClusterOption);
     group.addOption(addClusterOption2);
     group.addOption(deleteClusterOption);
@@ -764,9 +767,15 @@ public class ClusterSetup
       String resourceName = cmd.getOptionValues(addResource)[1];
       int partitions = Integer.parseInt(cmd.getOptionValues(addResource)[2]);
       String stateModelRef = cmd.getOptionValues(addResource)[3];
-      setupTool.addResourceToCluster(clusterName, resourceName, partitions, stateModelRef);
+      String modeValue = IdealStateModeProperty.AUTO.toString();
+      if(cmd.hasOption(mode))
+      {
+        modeValue = cmd.getOptionValues(mode)[0];
+      }
+      setupTool.addResourceToCluster(clusterName, resourceName, partitions, stateModelRef, modeValue);
       return 0;
     }
+
 
     if (cmd.hasOption(rebalance))
     {

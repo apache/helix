@@ -34,6 +34,7 @@ import org.restlet.resource.Variant;
 
 import com.linkedin.helix.HelixException;
 import com.linkedin.helix.ZNRecord;
+import com.linkedin.helix.model.IdealState.IdealStateModeProperty;
 import com.linkedin.helix.tools.ClusterSetup;
 import com.linkedin.helix.webapp.RestAdminApplication;
 
@@ -42,6 +43,7 @@ public class ResourceGroupsResource extends Resource
   public static final String _partitions = "partitions";
   public static final String _resourceGroupName = "resourceGroupName";
   public static final String _stateModelDefRef = "stateModelDefRef";
+  public static final String _idealStateMode = "mode";  
   
   public ResourceGroupsResource(Context context,
       Request request,
@@ -132,9 +134,14 @@ public class ResourceGroupsResource extends Resource
       String entityName = paraMap.get(_resourceGroupName);
       String stateModelDefRef = paraMap.get(_stateModelDefRef);
       int partitions = Integer.parseInt(paraMap.get(_partitions));
+      String mode = IdealStateModeProperty.AUTO.toString();
+      if(paraMap.containsKey(_idealStateMode))
+      {
+        mode = paraMap.get(_idealStateMode);
+      }
       
       ClusterSetup setupTool = new ClusterSetup(zkServer);
-      setupTool.addResourceToCluster(clusterName, entityName, partitions,stateModelDefRef);
+      setupTool.addResourceToCluster(clusterName, entityName, partitions,stateModelDefRef, mode);
       // add cluster
       getResponse().setEntity(getHostedEntitiesRepresentation(zkServer, clusterName));
       getResponse().setStatus(Status.SUCCESS_OK);

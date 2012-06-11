@@ -389,17 +389,27 @@ public class ZKHelixAdmin implements HelixAdmin
     {
       throw new HelixException("cluster " + clusterName + " is not setup yet");
     }
+    
+    IdealStateModeProperty mode = IdealStateModeProperty.AUTO;
+    try
+    {
+      mode = IdealStateModeProperty.valueOf(idealStateMode);
+    }
+    catch(Exception e)
+    {
+      logger.error("", e);
+    }
     ZNRecord idealState = new ZNRecord(dbName);
     idealState.setSimpleField(IdealStateProperty.NUM_PARTITIONS.toString(),
                               String.valueOf(partitions));
     idealState.setSimpleField(IdealStateProperty.STATE_MODEL_DEF_REF.toString(),
                               stateModelRef);
     idealState.setSimpleField(IdealStateProperty.IDEAL_STATE_MODE.toString(),
-                              idealStateMode);
+                              mode.toString());
     idealState.setSimpleField(IdealStateProperty.REPLICAS.toString(), 0 + "");
     idealState.setSimpleField(IdealStateProperty.STATE_MODEL_FACTORY_NAME.toString(),
                               HelixConstants.DEFAULT_STATE_MODEL_FACTORY);
-
+    
     String stateModelDefPath =
         PropertyPathConfig.getPath(PropertyType.STATEMODELDEFS,
                                    clusterName,

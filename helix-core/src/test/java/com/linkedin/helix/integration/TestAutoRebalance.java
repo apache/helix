@@ -47,25 +47,14 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBase
 
     // setup storage cluster
     _setupTool.addCluster(CLUSTER_NAME, true);
-    _setupTool.addResourceToCluster(CLUSTER_NAME, TEST_DB, _PARTITIONS, STATE_MODEL);
+    _setupTool.addResourceToCluster(CLUSTER_NAME, TEST_DB, _PARTITIONS, STATE_MODEL, IdealStateModeProperty.AUTO_REBALANCE+"");
     for (int i = 0; i < NODE_NR; i++)
     {
       String storageNodeName = PARTICIPANT_PREFIX + ":" + (START_PORT + i);
       _setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
     }
     _setupTool.rebalanceStorageCluster(CLUSTER_NAME, TEST_DB, _replica);
-    DataAccessor accessor = new ZKDataAccessor(CLUSTER_NAME, _zkClient);
     
-    IdealState idealstate = new IdealState(accessor.getProperty(PropertyType.IDEALSTATES, TEST_DB));
-    idealstate.setIdealStateMode(IdealStateModeProperty.AUTO_REBALANCE+"");
-    for(String key : idealstate.getRecord().getListFields().keySet())
-    {
-      idealstate.getRecord().getListField(key).clear();
-      idealstate.getRecord().getMapField(key).clear();
-    }
-    
-    accessor.setProperty(PropertyType.IDEALSTATES, idealstate, idealstate.getId());
-
     // start dummy participants
     for (int i = 0; i < NODE_NR; i++)
     {

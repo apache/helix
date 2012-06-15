@@ -74,7 +74,6 @@ public class IdealState extends ZNRecordDecorator
     }
     else
     {
-      logger.error("IdealState mode not recognized:" + mode + "; set to AUTO");
       return IdealStateModeProperty.AUTO;
     }
   }

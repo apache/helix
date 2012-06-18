@@ -83,6 +83,7 @@ public class ClusterSetup
   public static final String dropInstance = "dropNode";
   public static final String rebalance = "rebalance";
   public static final String mode = "mode";
+  public static final String resourceKeyPrefix = "key";
 
   // Query info (TBD in V2)
   public static final String listClusterInfo = "listClusterInfo";
@@ -272,8 +273,13 @@ public class ClusterSetup
   {
     _admin.dropResource(clusterName, resourceName);
   }
-
+  
   public void rebalanceStorageCluster(String clusterName, String resourceName, int replica)
+  {
+    rebalanceStorageCluster(clusterName, resourceName, replica, resourceName);
+  }
+  
+  public void rebalanceStorageCluster(String clusterName, String resourceName, int replica, String keyPrefix)
   {
     List<String> InstanceNames = _admin.getInstancesInCluster(clusterName);
     // ensure we get the same idealState with the same set of instances
@@ -342,7 +348,7 @@ public class ClusterSetup
     if(idealState.getIdealStateMode() != IdealStateModeProperty.AUTO_REBALANCE)
     {
       ZNRecord newIdealState = IdealStateCalculatorForStorageNode.calculateIdealState(InstanceNames,
-          partitions, replica, resourceName, masterStateValue, slaveStateValue);
+          partitions, replica, keyPrefix, masterStateValue, slaveStateValue);
       idealState.getRecord().setMapFields(newIdealState.getMapFields());
       idealState.getRecord().setListFields(newIdealState.getListFields());
     }
@@ -350,7 +356,7 @@ public class ClusterSetup
     {
       for(int i = 0;i < partitions; i++)
       {
-        String partitionName = resourceName + "_" + i;
+        String partitionName = keyPrefix + "_" + i;
         idealState.getRecord().setMapField(partitionName, new HashMap<String, String>());
         idealState.getRecord().setListField(partitionName, new ArrayList<String>());
       }
@@ -519,7 +525,13 @@ public class ClusterSetup
         .withDescription("Specify resource mode, used with addResourceGroup command").create();
     resourceModeOption.setArgs(1);
     resourceModeOption.setRequired(false);
-    resourceModeOption.setArgName("mode");
+    resourceModeOption.setArgName("IdealState mode");
+    
+    Option resourceKeyOption = OptionBuilder.withLongOpt(resourceKeyPrefix)
+        .withDescription("Specify resource key prefix, used with rebalance command").create();
+    resourceKeyOption.setArgs(1);
+    resourceKeyOption.setRequired(false);
+    resourceKeyOption.setArgName("Resource key prefix");
     
     Option addStateModelDefOption = OptionBuilder.withLongOpt(addStateModelDef)
         .withDescription("Add a State model to a cluster").create();
@@ -631,6 +643,7 @@ public class ClusterSetup
     group.addOption(rebalanceOption);
     group.addOption(addResourceOption);
     group.addOption(resourceModeOption);
+    group.addOption(resourceKeyOption);
     group.addOption(addClusterOption);
     group.addOption(addClusterOption2);
     group.addOption(deleteClusterOption);
@@ -778,12 +791,15 @@ public class ClusterSetup
       return 0;
     }
 
-
     if (cmd.hasOption(rebalance))
     {
       String clusterName = cmd.getOptionValues(rebalance)[0];
       String resourceName = cmd.getOptionValues(rebalance)[1];
       int replicas = Integer.parseInt(cmd.getOptionValues(rebalance)[2]);
+      if(cmd.hasOption(resourceKeyPrefix))
+      {
+        setupTool.rebalanceStorageCluster(clusterName, resourceName, replicas, cmd.getOptionValue(resourceKeyPrefix));
+      }
       setupTool.rebalanceStorageCluster(clusterName, resourceName, replicas);
       return 0;
     }

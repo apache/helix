@@ -344,7 +344,11 @@ public class GenericHelixController implements
     }
     // Go though the live instance list and make sure that we are observing them
     // accordingly. The action is done regardless of the paused flag.
-    checkLiveInstancesObservation(liveInstances, changeContext);
+    if (changeContext.getType() == NotificationContext.Type.INIT ||
+        changeContext.getType() == NotificationContext.Type.CALLBACK)
+    {
+      checkLiveInstancesObservation(liveInstances, changeContext);
+    }
 
     ClusterEvent event = new ClusterEvent("liveInstanceChange");
     event.addAttribute("helixmanager", changeContext.getManager());

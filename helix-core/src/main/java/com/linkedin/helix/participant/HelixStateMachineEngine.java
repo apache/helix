@@ -29,8 +29,10 @@ import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.messaging.handling.HelixStateTransitionHandler;
 import com.linkedin.helix.messaging.handling.MessageHandler;
+import com.linkedin.helix.model.CurrentState;
 import com.linkedin.helix.model.Message;
 import com.linkedin.helix.model.Message.MessageType;
+import com.linkedin.helix.model.StateModelDefinition;
 import com.linkedin.helix.participant.statemachine.StateModel;
 import com.linkedin.helix.participant.statemachine.StateModelFactory;
 import com.linkedin.helix.participant.statemachine.StateModelParser;
@@ -210,7 +212,30 @@ public class HelixStateMachineEngine implements StateMachineEngine
       stateModel = stateModelFactory.getStateModel(partitionKey);
 
     }
-    return new HelixStateTransitionHandler(stateModel, message, context);
+    
+    // create currentStateDelta for this partition
+    HelixManager manager = context.getManager();
+
+    // stateModelDefs are in dataAccessor's cache
+    Map<String, StateModelDefinition> stateModelDefs = manager.getDataAccessor().getChildValuesMap(StateModelDefinition.class,
+    PropertyType.STATEMODELDEFS);
+  
+    if (!stateModelDefs.containsKey(stateModelName))
+    {
+      throw new HelixException("No State Model Defined for " + stateModelName);
+    }
+    String initState = stateModelDefs.get(stateModelName).getInitialState();
+
+    CurrentState currentStateDelta = new CurrentState(resourceName);
+    currentStateDelta.setSessionId(manager.getSessionId());
+    currentStateDelta.setStateModelDefRef(stateModelName);
+    currentStateDelta.setStateModelFactoryName(factoryName);
+
+    currentStateDelta.setState(partitionKey,
+                               (stateModel == null || stateModel.getCurrentState() == null)
+                                   ? initState: stateModel.getCurrentState());
+
+    return new HelixStateTransitionHandler(stateModel, message, context, currentStateDelta);
   }
 
   @Override

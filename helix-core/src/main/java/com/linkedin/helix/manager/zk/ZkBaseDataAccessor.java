@@ -2,6 +2,8 @@ package com.linkedin.helix.manager.zk;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import org.I0Itec.zkclient.DataUpdater;
@@ -9,12 +11,18 @@ import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.I0Itec.zkclient.exception.ZkNodeExistsException;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.data.Stat;
 
 import com.linkedin.helix.BaseDataAccessor;
+import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.manager.zk.ZkAsyncCallbacks.CreateCallbackHandler;
+import com.linkedin.helix.manager.zk.ZkAsyncCallbacks.DefaultCallback;
+import com.linkedin.helix.manager.zk.ZkAsyncCallbacks.DeleteCallbackHandler;
+import com.linkedin.helix.manager.zk.ZkAsyncCallbacks.ExistsCallbackHandler;
+import com.linkedin.helix.manager.zk.ZkAsyncCallbacks.GetDataCallbackHandler;
 import com.linkedin.helix.manager.zk.ZkAsyncCallbacks.SetDataCallbackHandler;
 
 public class ZkBaseDataAccessor implements BaseDataAccessor
@@ -128,105 +136,197 @@ public class ZkBaseDataAccessor implements BaseDataAccessor
     return true;
   }
 
+  /**
+   * aysnc create parent and child. used internally when fail on NoNode
+   * 
+   * @param parentPath
+   * @param records
+   * @param success
+   * @param mode
+   * @param cbList
+   */
+  private void createChildren(String parentPath,
+                              List<ZNRecord> records,
+                              boolean[] success,
+                              CreateMode mode,
+                              DefaultCallback[] cbList)
+  {
+    _zkClient.createPersistent(parentPath, true);
+
+    CreateCallbackHandler[] createCbList = new CreateCallbackHandler[records.size()];
+    for (int i = 0; i < records.size(); i++)
+    {
+      DefaultCallback cb = cbList[i];
+      if (Code.get(cb.getRc()) != Code.NONODE)
+      {
+        continue;
+      }
+
+      ZNRecord record = records.get(i);
+      String path = parentPath + "/" + record.getId();
+      createCbList[i] = new CreateCallbackHandler();
+      _zkClient.asyncCreate(path, record, mode, createCbList[i]);
+    }
+
+    for (int i = 0; i < createCbList.length; i++)
+    {
+      CreateCallbackHandler createCb = createCbList[i];
+      if (createCb != null)
+      {
+        createCb.waitForSuccess();
+        success[i] = (createCb.getRc() == 0);
+      }
+    }
+  }
+
   @Override
   public boolean[] createChildren(String parentPath, List<ZNRecord> records, int options)
   {
-    boolean[] succeeds = new boolean[records.size()];
+    boolean[] success = new boolean[records.size()];
 
     CreateMode mode = Option.getMode(options);
     if (mode == null)
     {
       LOG.error("invalid create mode. options: " + options);
-      return succeeds;
+      return success;
     }
 
-    List<CreateCallbackHandler> cbList = new ArrayList<CreateCallbackHandler>();
-    for (ZNRecord record : records)
+    CreateCallbackHandler[] cbList = new CreateCallbackHandler[records.size()];
+    for (int i = 0; i < records.size(); i++)
     {
+      ZNRecord record = records.get(i);
       String path = parentPath + "/" + record.getId();
-      CreateCallbackHandler cb = new CreateCallbackHandler();
-      cbList.add(cb);
-      // TODO: handle parent not exist
-      _zkClient.asyncCreate(path, record, mode, cb);
+      cbList[i] = new CreateCallbackHandler();
+      _zkClient.asyncCreate(path, record, mode, cbList[i]);
     }
 
-    for (int i = 0; i < cbList.size(); i++)
+    boolean failOnNoNode = false;
+    for (int i = 0; i < cbList.length; i++)
     {
-      CreateCallbackHandler cb = cbList.get(i);
+      CreateCallbackHandler cb = cbList[i];
       cb.waitForSuccess();
-      succeeds[i] = cb.getSuccess();
+      success[i] = (cb.getRc() == 0);
+      if (Code.get(cb.getRc()) == Code.NONODE)
+      {
+        failOnNoNode = true;
+      }
     }
 
-    return succeeds;
+    // if fail on NO_NODE, create parent and do async create child nodes again
+    if (failOnNoNode)
+    {
+      createChildren(parentPath, records, success, mode, cbList);
+    }
+
+    return success;
   }
 
   @Override
   public boolean[] setChildren(String parentPath, List<ZNRecord> records, int options)
   {
-    boolean[] succeeds = new boolean[records.size()];
+    boolean[] success = new boolean[records.size()];
 
     CreateMode mode = Option.getMode(options);
     if (mode == null)
     {
       LOG.error("invalid create mode. options: " + options);
-      return succeeds;
+      return success;
     }
 
-    List<SetDataCallbackHandler> cbList = new ArrayList<SetDataCallbackHandler>();
-    for (ZNRecord record : records)
+    SetDataCallbackHandler[] cbList = new SetDataCallbackHandler[records.size()];
+    for (int i = 0; i < records.size(); i++)
     {
+      ZNRecord record = records.get(i);
       String path = parentPath + "/" + record.getId();
-      // TODO: handle parent/node not exist
-      SetDataCallbackHandler cb = new SetDataCallbackHandler();
-      cbList.add(cb);
-      _zkClient.asyncSetData(path, record, -1, cb);
+      cbList[i] = new SetDataCallbackHandler();
+      _zkClient.asyncSetData(path, record, -1, cbList[i]);
     }
 
-    for (int i = 0; i < cbList.size(); i++)
+    boolean failOnNoNode = false;
+    for (int i = 0; i < cbList.length; i++)
     {
-      SetDataCallbackHandler cb = cbList.get(i);
+      SetDataCallbackHandler cb = cbList[i];
       cb.waitForSuccess();
-      succeeds[i] = cb.getSuccess();
+      success[i] = (cb.getRc() == 0);
+      if (Code.get(cb.getRc()) == Code.NONODE)
+      {
+        failOnNoNode = true;
+      }
     }
 
-    return succeeds;
+    // if fail on NO_NODE, create parent node and do async create child nodes
+    if (failOnNoNode)
+    {
+      createChildren(parentPath, records, success, mode, cbList);
+    }
+
+    return success;
   }
 
   @Override
   public boolean[] updateChildren(String parentPath, List<ZNRecord> records, int options)
   {
-    boolean[] succeeds = new boolean[records.size()];
-
+    boolean[] success = new boolean[records.size()];
     CreateMode mode = Option.getMode(options);
     if (mode == null)
     {
       LOG.error("invalid create mode. options: " + options);
-      return succeeds;
+      return success;
     }
 
-    List<SetDataCallbackHandler> cbList = new ArrayList<SetDataCallbackHandler>();
-    for (ZNRecord record : records)
+    SetDataCallbackHandler[] cbList = new SetDataCallbackHandler[records.size()];
+
+    boolean failOnBadVersion = false;
+    boolean failOnNoNode = false;
+    do
     {
-      String path = parentPath + "/" + record.getId();
-      SetDataCallbackHandler cb = new SetDataCallbackHandler();
-      cbList.add(cb);
-      ZkDataUpdater updater = new ZkDataUpdater(record);
+      for (int i = 0; i < records.size(); i++)
+      {
+        if (success[i])
+          continue;
 
-      Stat stat = new Stat();
-      ZNRecord oldData = _zkClient.readData(path, stat);
-      ZNRecord newData = updater.update(oldData);
-      _zkClient.asyncSetData(path, newData, stat.getVersion(), cb);
+        ZNRecord record = records.get(i);
+        String path = parentPath + "/" + record.getId();
+        cbList[i] = new SetDataCallbackHandler();
+        ZkDataUpdater updater = new ZkDataUpdater(record);
+
+        Stat stat = new Stat();
+        ZNRecord oldData = _zkClient.readData(path, stat);
+        ZNRecord newData = updater.update(oldData);
+        _zkClient.asyncSetData(path, newData, stat.getVersion(), cbList[i]);
+      }
+
+      for (int i = 0; i < cbList.length; i++)
+      {
+        SetDataCallbackHandler cb = cbList[i];
+        cb.waitForSuccess();
+        success[i] = (cb.getRc() == 0);
+        if (success[i] == false)
+        {
+          switch (Code.get(cb.getRc()))
+          {
+          case NONODE:
+            failOnNoNode = true;
+            break;
+          case BADVERSION:
+            failOnBadVersion = true;
+            break;
+          default:
+            break;
+          }
+        }
+
+      }
     }
+    while (failOnBadVersion);
 
-    // TODO: add retry
-    for (int i = 0; i < cbList.size(); i++)
+    // if fail on NO_NODE, create parent node and do async create child nodes
+    if (failOnNoNode)
     {
-      SetDataCallbackHandler cb = cbList.get(i);
-      cb.waitForSuccess();
-      succeeds[i] = cb.getSuccess();
+      createChildren(parentPath, records, success, mode, cbList);
     }
 
-    return succeeds;
+    return success;
   }
 
   @Override
@@ -238,57 +338,311 @@ public class ZkBaseDataAccessor implements BaseDataAccessor
   @Override
   public List<ZNRecord> get(List<String> paths, int options)
   {
-    // TODO Auto-generated method stub
-    return null;
+    GetDataCallbackHandler[] cbList = new GetDataCallbackHandler[paths.size()];
+    for (int i = 0; i < paths.size(); i++)
+    {
+      String path = paths.get(i);
+      cbList[i] = new GetDataCallbackHandler();
+      _zkClient.asyncGetData(path, cbList[i]);
+    }
+
+    List<ZNRecord> records = new ArrayList<ZNRecord>();
+    for (int i = 0; i < cbList.length; i++)
+    {
+      GetDataCallbackHandler cb = cbList[i];
+      cb.waitForSuccess();
+      if (cb.getRc() == 0)
+      {
+        ZNRecord record = (ZNRecord) _zkClient.getZkSerializer().deserialize(cb._data);
+        records.add(record);
+      }
+      else
+      {
+        records.add(null);
+      }
+    }
+
+    return records;
   }
 
   @Override
   public List<ZNRecord> getChildren(String parentPath, int options)
   {
-    // TODO Auto-generated method stub
-    return null;
+    try
+    {
+      List<String> childNames = getChildNames(parentPath, options);
+      List<String> paths = new ArrayList<String>();
+      for (String childName : childNames)
+      {
+        String path = parentPath + "/" + childName;
+        paths.add(path);
+      }
+      return get(paths, options);
+    }
+    catch (ZkNoNodeException e)
+    {
+      return Collections.emptyList();
+    }
   }
 
   @Override
   public String getPath(PropertyType type, String... keys)
   {
-    // TODO Auto-generated method stub
-    return null;
+    return PropertyPathConfig.getPath(type, _clusterName, keys);
   }
 
   @Override
   public List<String> getChildNames(String parentPath, int options)
   {
-    // TODO Auto-generated method stub
-    return null;
+    try
+    {
+      List<String> childNames = _zkClient.getChildren(parentPath);
+      Collections.sort(childNames); 
+      return childNames;
+    }
+    catch (ZkNoNodeException e)
+    {
+      return Collections.emptyList();
+    }
   }
 
   @Override
   public boolean exists(String path)
   {
-    // TODO Auto-generated method stub
-    return false;
+    return _zkClient.exists(path);
   }
 
   @Override
   public boolean[] exists(List<String> paths)
   {
-    // TODO Auto-generated method stub
-    return null;
+    boolean[] exists = new boolean[paths.size()];
+
+    ExistsCallbackHandler[] cbList = new ExistsCallbackHandler[paths.size()];
+    for (int i = 0; i < paths.size(); i++)
+    {
+      String path = paths.get(i);
+      cbList[i] = new ExistsCallbackHandler();
+      _zkClient.asyncExists(path, cbList[i]);
+    }
+
+    for (int i = 0; i < cbList.length; i++)
+    {
+      ExistsCallbackHandler cb = cbList[i];
+      cb.waitForSuccess();
+      exists[i] = (cb._stat != null);
+    }
+
+    return exists;
   }
 
   @Override
   public Stat[] getStats(List<String> paths)
   {
-    // TODO Auto-generated method stub
-    return null;
+    Stat[] stats = new Stat[paths.size()];
+
+    ExistsCallbackHandler[] cbList = new ExistsCallbackHandler[paths.size()];
+    for (int i = 0; i < paths.size(); i++)
+    {
+      String path = paths.get(i);
+      cbList[i] = new ExistsCallbackHandler();
+      _zkClient.asyncExists(path, cbList[i]);
+    }
+
+    for (int i = 0; i < cbList.length; i++)
+    {
+      ExistsCallbackHandler cb = cbList[i];
+      cb.waitForSuccess();
+      stats[i] = cb._stat;
+    }
+
+    return stats;
   }
 
   @Override
   public Stat getStat(String path)
   {
-    // TODO Auto-generated method stub
-    return null;
+    return _zkClient.getStat(path);
   }
 
+  @Override
+  public boolean remove(String path)
+  {
+    _zkClient.deleteRecursive(path);
+    return true;
+  }
+
+  @Override
+  public boolean[] remove(List<String> paths)
+  {
+    boolean[] success = new boolean[paths.size()];
+
+    DeleteCallbackHandler[] cbList = new DeleteCallbackHandler[paths.size()];
+    for (int i = 0; i < paths.size(); i++)
+    {
+      String path = paths.get(i);
+      cbList[i] = new DeleteCallbackHandler();
+      _zkClient.asyncDelete(path, cbList[i]);
+    }
+
+    for (int i = 0; i < cbList.length; i++)
+    {
+      DeleteCallbackHandler cb = cbList[i];
+      cb.waitForSuccess();
+      success[i] = (cb.getRc() == 0);
+    }
+
+    return success;
+  }
+
+  public static void main(String[] args)
+  {
+    ZkClient zkClient = new ZkClient("localhost:2191");
+    zkClient.setZkSerializer(new ZNRecordSerializer());
+    zkClient.deleteRecursive("/TestBDA");
+
+    BaseDataAccessor accessor = new ZkBaseDataAccessor("TestBDA", zkClient);
+
+    // test create()
+    for (int i = 0; i < 10; i++)
+    {
+      String msgId = "msg_" + i;
+      String path = accessor.getPath(PropertyType.MESSAGES, "host_0", msgId);
+      boolean succeed = accessor.create(path, new ZNRecord(msgId), Option.PERSISTENT);
+      System.out.println(succeed + ":" + path);
+    }
+
+    // test set()
+    for (int i = 0; i < 10; i++)
+    {
+      String msgId = "msg_" + i;
+      String path = accessor.getPath(PropertyType.MESSAGES, "host_0", msgId);
+      ZNRecord newRecord = new ZNRecord(msgId);
+      newRecord.setSimpleField("key1", "value1");
+      boolean succeed = accessor.set(path, newRecord, Option.PERSISTENT);
+      System.out.println(succeed + ":" + path);
+    }
+
+    // test update()
+    for (int i = 0; i < 10; i++)
+    {
+      String msgId = "msg_" + i;
+      String path = accessor.getPath(PropertyType.MESSAGES, "host_0", msgId);
+      ZNRecord newRecord = new ZNRecord(msgId);
+      newRecord.setSimpleField("key2", "value2");
+      boolean succeed = accessor.update(path, newRecord, Option.PERSISTENT);
+      System.out.println(succeed + ":" + path);
+    }
+
+    // test get()
+    for (int i = 0; i < 10; i++)
+    {
+      String msgId = "msg_" + i;
+      String path = accessor.getPath(PropertyType.MESSAGES, "host_0", msgId);
+      ZNRecord record = accessor.get(path, 0);
+      System.out.println(record);
+    }
+
+    // test exist()
+    for (int i = 0; i < 10; i++)
+    {
+      String msgId = "msg_" + i;
+      String path = accessor.getPath(PropertyType.MESSAGES, "host_0", msgId);
+      boolean exists = accessor.exists(path);
+      System.out.println(exists);
+    }
+
+    // test getStat()
+    for (int i = 0; i < 10; i++)
+    {
+      String msgId = "msg_" + i;
+      String path = accessor.getPath(PropertyType.MESSAGES, "host_0", msgId);
+      Stat stat = accessor.getStat(path);
+      System.out.println(stat);
+    }
+
+    // test remove()
+    for (int i = 0; i < 10; i++)
+    {
+      String msgId = "msg_" + i;
+      String path = accessor.getPath(PropertyType.MESSAGES, "host_0", msgId);
+      boolean success = accessor.remove(path);
+      System.out.println(success);
+    }
+
+    // test createChildren()
+    String parentPath = accessor.getPath(PropertyType.MESSAGES, "host_1");
+//    zkClient.createPersistent(parentPath, true);
+    List<ZNRecord> records = new ArrayList<ZNRecord>();
+    for (int i = 10; i < 20; i++)
+    {
+      String msgId = "msg_" + i;
+      records.add(new ZNRecord(msgId));
+    }
+    boolean[] success = accessor.createChildren(parentPath, records, Option.PERSISTENT);
+    System.out.println(Arrays.toString(success));
+
+    // test setChildren()
+    parentPath = accessor.getPath(PropertyType.MESSAGES, "host_1");
+    records = new ArrayList<ZNRecord>();
+    for (int i = 10; i < 20; i++)
+    {
+      String msgId = "msg_" + i;
+      ZNRecord newRecord = new ZNRecord(msgId);
+      newRecord.setSimpleField("key1", "value1");
+      records.add(newRecord);
+    }
+    success = accessor.setChildren(parentPath, records, Option.PERSISTENT);
+    System.out.println(Arrays.toString(success));
+
+    // test updateChildren()
+    parentPath = accessor.getPath(PropertyType.MESSAGES, "host_1");
+    records = new ArrayList<ZNRecord>();
+    for (int i = 10; i < 20; i++)
+    {
+      String msgId = "msg_" + i;
+      ZNRecord newRecord = new ZNRecord(msgId);
+      newRecord.setSimpleField("key2", "value2");
+      records.add(newRecord);
+    }
+    success = accessor.updateChildren(parentPath, records, Option.PERSISTENT);
+    System.out.println(Arrays.toString(success));
+
+    // test getChildren()
+    parentPath = accessor.getPath(PropertyType.MESSAGES, "host_1");
+    records = accessor.getChildren(parentPath, 0);
+    System.out.println(records);
+
+    // test exists()
+    parentPath = accessor.getPath(PropertyType.MESSAGES, "host_1");
+    List<String> paths = new ArrayList<String>();
+    for (int i = 10; i < 20; i++)
+    {
+      String msgId = "msg_" + i;
+      paths.add(accessor.getPath(PropertyType.MESSAGES, "host_1", msgId));
+    }
+    boolean[] exists = accessor.exists(paths);
+    System.out.println(Arrays.toString(exists));
+
+    // test getStats()
+    parentPath = accessor.getPath(PropertyType.MESSAGES, "host_1");
+    paths = new ArrayList<String>();
+    for (int i = 10; i < 20; i++)
+    {
+      String msgId = "msg_" + i;
+      paths.add(accessor.getPath(PropertyType.MESSAGES, "host_1", msgId));
+    }
+    Stat[] stats = accessor.getStats(paths);
+    System.out.println(Arrays.toString(stats));
+
+    // test remove()
+    parentPath = accessor.getPath(PropertyType.MESSAGES, "host_1");
+    paths = new ArrayList<String>();
+    for (int i = 10; i < 20; i++)
+    {
+      String msgId = "msg_" + i;
+      paths.add(accessor.getPath(PropertyType.MESSAGES, "host_1", msgId));
+    }
+    success = accessor.remove(paths);
+    System.out.println(Arrays.toString(success));
+  }
 }

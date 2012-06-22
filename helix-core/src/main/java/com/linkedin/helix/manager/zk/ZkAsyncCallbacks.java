@@ -2,14 +2,46 @@ package com.linkedin.helix.manager.zk;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.log4j.Logger;
+import org.apache.zookeeper.AsyncCallback.DataCallback;
 import org.apache.zookeeper.AsyncCallback.StatCallback;
 import org.apache.zookeeper.AsyncCallback.StringCallback;
+import org.apache.zookeeper.AsyncCallback.VoidCallback;
+import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.data.Stat;
 
 public class ZkAsyncCallbacks
 {
+  private static Logger LOG = Logger.getLogger(ZkAsyncCallbacks.class);
+
+  static class GetDataCallbackHandler extends DefaultCallback implements DataCallback
+  {
+    byte[] _data;
+    Stat   _stat;
+
+    @Override
+    public void handle()
+    {
+      // TODO Auto-generated method stub
+    }
+
+    @Override
+    public void processResult(int rc, String path, Object ctx, byte[] data, Stat stat)
+    {
+      callback(rc, path, ctx);
+
+      if (rc == 0)
+      {
+        _data = data;
+        _stat = stat;
+      }
+    }
+  }
+
   static class SetDataCallbackHandler extends DefaultCallback implements StatCallback
   {
+    Stat _stat;
+
     @Override
     public void handle()
     {
@@ -19,19 +51,59 @@ public class ZkAsyncCallbacks
     @Override
     public void processResult(int rc, String path, Object ctx, Stat stat)
     {
+      callback(rc, path, ctx);
+
+      if (rc == 0)
+      {
+        _stat = stat;
+      }
+    }
+  }
+  
+  static class ExistsCallbackHandler extends DefaultCallback implements StatCallback
+  {
+    Stat _stat;
+
+    @Override
+    public void handle()
+    {
       // TODO Auto-generated method stub
-      callback(rc, ctx);
+    }
+
+    @Override
+    public void processResult(int rc, String path, Object ctx, Stat stat)
+    {
+      callback(rc, path, ctx);
+
+      if (rc == 0)
+      {
+        _stat = stat;
+      }
     }
 
   }
-  
+
   static class CreateCallbackHandler extends DefaultCallback implements StringCallback
   {
     @Override
     public void processResult(int rc, String path, Object ctx, String name)
     {
+      callback(rc, path, ctx);
+    }
+
+    @Override
+    public void handle()
+    {
       // TODO Auto-generated method stub
-      callback(rc, ctx);
+    }
+  }
+
+  static class DeleteCallbackHandler extends DefaultCallback implements VoidCallback
+  {
+    @Override
+    public void processResult(int rc, String path, Object ctx)
+    {
+      callback(rc, path, ctx);
     }
 
     @Override
@@ -47,18 +119,22 @@ public class ZkAsyncCallbacks
    */
   static abstract class DefaultCallback
   {
-    final AtomicBoolean _success = new AtomicBoolean(false);
+    AtomicBoolean _lock = new AtomicBoolean(false);
+    int           _rc   = -1;
 
-    public void callback(int rc, Object ctx)
+    public void callback(int rc, String path, Object ctx)
     {
-      synchronized (_success)
+      if (rc != 0)
       {
-        if (rc == 0)
-        {
-          _success.set(true);
-        }
-        handle();
-        _success.notify();
+        LOG.error("error in async. rc: " + Code.get(rc) + ", path: " + path);
+      }
+      _rc = rc;
+      handle();
+      
+      synchronized (_lock)
+      {
+        _lock.set(true);
+        _lock.notify();
       }
     }
 
@@ -66,11 +142,11 @@ public class ZkAsyncCallbacks
     {
       try
       {
-        while (!_success.get())
+        while (!_lock.get())
         {
-          synchronized (_success)
+          synchronized (_lock)
           {
-            _success.wait();
+            _lock.wait();
           }
         }
       }
@@ -82,9 +158,9 @@ public class ZkAsyncCallbacks
       return true;
     }
 
-    public boolean getSuccess()
+    public int getRc()
     {
-      return _success.get();
+      return _rc;
     }
 
     abstract public void handle();

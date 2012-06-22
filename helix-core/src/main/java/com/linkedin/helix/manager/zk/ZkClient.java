@@ -34,6 +34,9 @@ import org.apache.zookeeper.data.Id;
 import org.apache.zookeeper.data.Stat;
 
 import com.linkedin.helix.manager.zk.ZkAsyncCallbacks.CreateCallbackHandler;
+import com.linkedin.helix.manager.zk.ZkAsyncCallbacks.DeleteCallbackHandler;
+import com.linkedin.helix.manager.zk.ZkAsyncCallbacks.ExistsCallbackHandler;
+import com.linkedin.helix.manager.zk.ZkAsyncCallbacks.GetDataCallbackHandler;
 import com.linkedin.helix.manager.zk.ZkAsyncCallbacks.SetDataCallbackHandler;
 
 /**
@@ -44,7 +47,6 @@ import com.linkedin.helix.manager.zk.ZkAsyncCallbacks.SetDataCallbackHandler;
  * @author kgopalak
  * 
  */
-
 
 public class ZkClient extends org.I0Itec.zkclient.ZkClient
 {
@@ -64,14 +66,6 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
   private static final Set<IZkConnection> zkConnections              =
                                                                          new CopyOnWriteArraySet<IZkConnection>();
   private ZkSerializer                    _zkSerializer;
-
-//  interface BaseCallbackHandler
-//  {
-//    public void handle();
-//  }
-  
-
-  
 
   public ZkClient(IZkConnection connection,
                   int connectionTimeout,
@@ -122,6 +116,11 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
   {
     super.setZkSerializer(zkSerializer);
     _zkSerializer = zkSerializer;
+  }
+
+  public ZkSerializer getZkSerializer()
+  {
+    return _zkSerializer;
   }
 
   public IZkConnection getConnection()
@@ -182,6 +181,7 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
     return _connection.getServers();
   }
 
+  // TODO: remove this
   class LogStatCallback implements StatCallback
   {
     final String _asyncMethodName;
@@ -208,6 +208,7 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
 
   }
 
+  // TODO: remove this
   public void asyncWriteData(final String path, Object datat)
   {
     Stat stat = getStat(path);
@@ -218,6 +219,7 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
                         null);
   }
 
+  // TODO: remove this
   public void asyncWriteData(final String path,
                              Object datat,
                              final int version,
@@ -229,39 +231,10 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
 
   }
 
-//  class LogStringCallback implements StringCallback
-//  {
-//
-//    final String _asyncMethodName;
-//
-//    public LogStringCallback(String asyncMethodName)
-//    {
-//      _asyncMethodName = asyncMethodName;
-//    }
-//
-//    @Override
-//    public void processResult(int rc, String path, Object ctx, String name)
-//    {
-//      if (rc == 0)
-//      {
-//        LOG.info("succeed in async " + _asyncMethodName + ". rc: " + rc + ", path: "
-//            + path + ", name: " + name);
-//      }
-//      else
-//      {
-//        LOG.error("fail in async " + _asyncMethodName + ". rc: " + rc + ", path: " + path
-//            + ", name: " + name);
-//      }
-//    }
-//
-//  }
-
-  /**
-   * 
-   * @param path
-   * @param datat
-   */
-  public void asyncCreate(final String path, Object datat, CreateMode mode, CreateCallbackHandler cb)
+  public void asyncCreate(final String path,
+                          Object datat,
+                          CreateMode mode,
+                          CreateCallbackHandler cb)
   {
     final byte[] data = _zkSerializer.serialize(datat);
     ((ZkConnection) _connection).getZookeeper().create(path,
@@ -271,11 +244,31 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
                                                        cb,
                                                        null);
   }
-  
-  public void asyncSetData(final String path, Object datat, int version, SetDataCallbackHandler cb)
+
+  public void asyncSetData(final String path,
+                           Object datat,
+                           int version,
+                           SetDataCallbackHandler cb)
   {
     final byte[] data = _zkSerializer.serialize(datat);
     ((ZkConnection) _connection).getZookeeper().setData(path, data, version, cb, null);
 
   }
+
+  public void asyncGetData(final String path, GetDataCallbackHandler cb)
+  {
+    ((ZkConnection) _connection).getZookeeper().getData(path, null, cb, null);
+  }
+
+  public void asyncExists(final String path, ExistsCallbackHandler cb)
+  {
+    ((ZkConnection) _connection).getZookeeper().exists(path, null, cb, null);
+
+  }
+
+  public void asyncDelete(String path, DeleteCallbackHandler cb)
+  {
+    ((ZkConnection) _connection).getZookeeper().delete(path, -1, cb, null);
+  }
+
 }

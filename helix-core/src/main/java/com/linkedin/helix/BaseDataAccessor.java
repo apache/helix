@@ -66,6 +66,14 @@ public interface BaseDataAccessor
   boolean update(String path, ZNRecord record, int options);
 
   /**
+   * This will remove znode and all it's child nodes if any
+   * 
+   * @param path
+   * @return
+   */
+  boolean remove(String path);
+  
+  /**
    * Use it when creating children under a parent node. This will use async api for better
    * performance. If the child already exists it will return false.
    * 
@@ -94,6 +102,14 @@ public interface BaseDataAccessor
    */
   boolean[] updateChildren(String parentPath, List<ZNRecord> records, int options);
 
+  /**
+   * remove multiple paths using async api. will remove any child nodes if any
+   * 
+   * @param paths
+   * @return
+   */
+  boolean[] remove(List<String> paths);
+  
   /**
    * Get the {@link ZNRecord} corresponding to the path
    * 

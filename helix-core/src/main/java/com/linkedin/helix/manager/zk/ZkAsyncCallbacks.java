@@ -142,9 +142,9 @@ public class ZkAsyncCallbacks
     {
       try
       {
-        while (!_lock.get())
+        synchronized (_lock)
         {
-          synchronized (_lock)
+          while (!_lock.get())
           {
             _lock.wait();
           }

@@ -57,8 +57,6 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
                                                                          new ACL(31,
                                                                                  new Id("world",
                                                                                         "anyone"));
-  private static final int                ASYNC_RETRY_LIMIT          = 3;
-
   public static String                    sessionId;
   public static String                    sessionPassword;
 

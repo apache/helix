@@ -516,6 +516,15 @@ public class ZkBaseDataAccessor implements BaseDataAccessor
     return true;
   }
 
+  @Override
+  public boolean unsubscribe(String path, IZkListener listener)
+  {
+    _zkClient.unsubscribeChildChanges(path, listener);
+    _zkClient.unsubscribeDataChanges(path, listener);
+
+    return true;
+  }
+
   public static void main(String[] args)
   {
     ZkClient zkClient = new ZkClient("localhost:2191");

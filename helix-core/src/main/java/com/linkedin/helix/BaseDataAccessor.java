@@ -191,4 +191,12 @@ public interface BaseDataAccessor
    * @return
    */
   boolean subscribe(String path, IZkListener listener);
+  
+  /**
+   * Unsubscribe listener to path
+   * @param path
+   * @param listener
+   * @return
+   */     
+  boolean unsubscribe(String path, IZkListener listener);
 }

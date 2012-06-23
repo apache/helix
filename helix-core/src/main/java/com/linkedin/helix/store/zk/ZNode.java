@@ -20,6 +20,11 @@ public class ZNode
     _stat = stat;
   }
 
+  public void removeChild(String child)
+  {
+    _childSet.remove(child);
+  }
+  
   public void addChild(String child)
   {
     _childSet.add(child);
@@ -30,6 +35,11 @@ public class ZNode
     return _childSet.contains(child);
   }
 
+  public Set<String> getChild()
+  {
+    return _childSet;
+  }
+  
   public void setData(Object data)
   {
     _data= data;    

@@ -1,7 +1,11 @@
 package com.linkedin.helix.manager.zk;
 
+import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -13,6 +17,7 @@ import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.data.Stat;
 
 import com.linkedin.helix.BaseDataAccessor;
+import com.linkedin.helix.BaseDataAccessor.Option;
 import com.linkedin.helix.IZkListener;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
@@ -20,29 +25,21 @@ import com.linkedin.helix.store.zk.ZNode;
 
 public class ZkCachedDataAccessor implements IZkListener
 {
-  private static final Logger  LOG   = Logger.getLogger(ZkCachedDataAccessor.class);
+  private static final Logger LOG = Logger.getLogger(ZkCachedDataAccessor.class);
 
-  ConcurrentMap<String, ZNode> _map  = new ConcurrentHashMap<String, ZNode>();
-  ReadWriteLock                _lock = new ReentrantReadWriteLock();
+  ConcurrentMap<String, ZNode> _map = new ConcurrentHashMap<String, ZNode>();
+  ReadWriteLock _lock = new ReentrantReadWriteLock();
 
-  // final Set<String> _subscribedPaths =
-  // Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
-
-  final String                 _root;
-  // final ZkClient _zkClient;
-  final ZkBaseDataAccessor     _accessor;
-  // final FilenameFilter _filter;
-  final List<String>           _subscribedPaths;
+  final String _root;
+  final ZkBaseDataAccessor _accessor;
+  final List<String> _subscribedPaths;
 
   public ZkCachedDataAccessor(ZkBaseDataAccessor accessor, List<String> subscribedPaths)
   {
-    // _root = root;
-    // _zkClient = zkClient;
     _root = accessor._root;
     _accessor = accessor;
-    // _filter = filter;
     _subscribedPaths = subscribedPaths;
-    
+
     for (String path : subscribedPaths)
     {
       updateCacheRecursive(path);
@@ -140,12 +137,11 @@ public class ZkCachedDataAccessor implements IZkListener
           updateCacheRecursive(childPath);
         }
       }
-    }
-    catch (ZkNoNodeException e)
+
+    } catch (ZkNoNodeException e)
     {
       // OK
-    }
-    finally
+    } finally
     {
       _lock.writeLock().unlock();
     }
@@ -171,39 +167,8 @@ public class ZkCachedDataAccessor implements IZkListener
   //
   // }
 
-  public boolean create(String path, ZNRecord record, int options)
+  private void updateCacheAlongPath(String path, boolean success)
   {
-    // CreateMode mode = Option.getMode(options);
-    // if (mode == null)
-    // {
-    // LOG.error("invalid create mode. options: " + options);
-    // return false;
-    // }
-    //
-    // try
-    // {
-    // _zkClient.create(path, record, mode);
-    // updateCache(path);
-    //
-    // return true;
-    // }
-    // catch (ZkNoNodeException e)
-    // {
-    // String parentPath = new File(path).getParent();
-    // createRecursive(parentPath);
-    // _zkClient.create(path, record, mode);
-    // updateCache(path);
-    // return true;
-    // }
-    // catch (ZkNodeExistsException e)
-    // {
-    // LOG.warn("node already exists. path: " + path);
-    // return false;
-    // }
-
-    boolean success = _accessor.create(path, record, options);
-
-    // update cache
     int idx = _root.length() + 1;
     while (idx > 0)
     {
@@ -217,38 +182,103 @@ public class ZkCachedDataAccessor implements IZkListener
     if (idx > 0)
     {
       updateCacheRecursive(path.substring(0, idx));
-    }
-    else
+    } else
     {
       if (success)
       {
         updateCacheRecursive(path);
       }
     }
+  }
+
+  private void purgeCacheRecursive(String path)
+  {
+    try
+    {
+      _lock.writeLock().lock();
+      ZNode zNode = _map.remove(path);
+      if (zNode != null)
+      {
+        Set<String> childNames = zNode.getChild();
+        for (String childName : childNames)
+        {
+          String childPath = path + "/" + childName;
+          purgeCacheRecursive(childPath);
+        }
+      }
+    } finally
+    {
+      _lock.writeLock().unlock();
+    }
+
+  }
+
+  private void purgeCahce(String path)
+  {
+    try
+    {
+      _lock.writeLock().lock();
+
+      // remove from parent's childSet
+      String parentPath = new File(path).getParent();
+      String child = new File(path).getName();
+      ZNode zNode = _map.get(parentPath);
+      if (zNode != null)
+      {
+        zNode.removeChild(child);
+      }
+
+      // remove node and all children recursively
+      purgeCacheRecursive(path);
+    } finally
+    {
+      _lock.writeLock().unlock();
+    }
+
+  }
+
+  public boolean create(String path, ZNRecord record, int options)
+  {
+    boolean success = _accessor.create(path, record, options);
+
+    // update cache
+    updateCacheAlongPath(path, success);
 
     return success;
   }
 
   public boolean set(String path, ZNRecord record, int options)
   {
-    // TODO Auto-generated method stub
-    return false;
+    boolean success = _accessor.set(path, record, options);
+
+    updateCacheAlongPath(path, success);
+
+    return success;
   }
 
   public boolean update(String path, ZNRecord record, int options)
   {
-    // TODO Auto-generated method stub
-    return false;
+    boolean success = _accessor.update(path, record, options);
+    updateCacheAlongPath(path, success);
+
+    return success;
   }
 
   public boolean remove(String path)
   {
-    // TODO Auto-generated method stub
-    return false;
+    boolean success = _accessor.remove(path);
+
+    if (isSubscribed(path))
+    {
+      purgeCahce(path);
+    }
+
+    return success;
   }
 
   // /**
-  // * sync create parent and async create child. used internally when fail on NoNode
+  // * sync create parent and async create child. used internally when fail on
+  // NoNode
   // *
   // * @param parentPath
   // * @param records
@@ -264,7 +294,8 @@ public class ZkCachedDataAccessor implements IZkListener
   // {
   // createRecursive(parentPath);
   //
-  // CreateCallbackHandler[] createCbList = new CreateCallbackHandler[records.size()];
+  // CreateCallbackHandler[] createCbList = new
+  // CreateCallbackHandler[records.size()];
   // for (int i = 0; i < records.size(); i++)
   // {
   // DefaultCallback cb = cbList[i];
@@ -299,55 +330,8 @@ public class ZkCachedDataAccessor implements IZkListener
   // }
   // }
 
-  public boolean[] createChildren(String parentPath, List<ZNRecord> records, int options)
+  private void updateCacheAlongPath(String parentPath, List<ZNRecord> records, boolean[] success)
   {
-    // boolean[] success = new boolean[records.size()];
-    //
-    // CreateMode mode = Option.getMode(options);
-    // if (mode == null)
-    // {
-    // LOG.error("invalid create mode. options: " + options);
-    // return success;
-    // }
-    //
-    // CreateCallbackHandler[] cbList = new CreateCallbackHandler[records.size()];
-    // for (int i = 0; i < records.size(); i++)
-    // {
-    // ZNRecord record = records.get(i);
-    // String path = parentPath + "/" + record.getId();
-    // cbList[i] = new CreateCallbackHandler();
-    // _zkClient.asyncCreate(path, record, mode, cbList[i]);
-    // }
-    //
-    // boolean failOnNoNode = false;
-    // for (int i = 0; i < cbList.length; i++)
-    // {
-    // CreateCallbackHandler cb = cbList[i];
-    // cb.waitForSuccess();
-    // success[i] = (cb.getRc() == 0);
-    // switch (Code.get(cb.getRc()))
-    // {
-    // case OK:
-    // String path = parentPath + "/" + records.get(i).getId();
-    // updateCache(path);
-    // break;
-    // case NONODE:
-    // failOnNoNode = true;
-    // break;
-    // default:
-    // break;
-    // }
-    // }
-    //
-    // // if fail on NO_NODE, sync create parent and do async create child nodes again
-    // if (failOnNoNode)
-    // {
-    // createChildren(parentPath, records, success, mode, cbList);
-    // }
-
-    boolean[] success = _accessor.createChildren(parentPath, records, options);
-
-    // update cache
     int idx = _root.length() + 1;
     while (idx > 0)
     {
@@ -361,85 +345,180 @@ public class ZkCachedDataAccessor implements IZkListener
     if (idx > 0)
     {
       updateCacheRecursive(parentPath.substring(0, idx));
-    }
-    else
+    } else
     {
-      updateCacheRecursive(parentPath);
+      for (int i = 0; i < records.size(); i++)
+      {
+        if (success[i])
+        {
+          String path = parentPath + "/" + records.get(i).getId();
+          updateCacheRecursive(path);
+        }
+      }
     }
+  }
+
+  public boolean[] createChildren(String parentPath, List<ZNRecord> records, int options)
+  {
+    boolean[] success = _accessor.createChildren(parentPath, records, options);
+
+    // update cache
+    updateCacheAlongPath(parentPath, records, success);
 
     return success;
   }
 
   public boolean[] setChildren(String parentPath, List<ZNRecord> records, int options)
   {
-    // TODO Auto-generated method stub
-    return null;
+    boolean[] success = _accessor.setChildren(parentPath, records, options);
+
+    updateCacheAlongPath(parentPath, records, success);
+
+    return success;
   }
 
   public boolean[] updateChildren(String parentPath, List<ZNRecord> records, int options)
   {
-    // TODO Auto-generated method stub
-    return null;
+    boolean[] success = _accessor.updateChildren(parentPath, records, options);
+
+    updateCacheAlongPath(parentPath, records, success);
+    return success;
   }
 
   public boolean[] remove(List<String> paths)
   {
-    // TODO Auto-generated method stub
-    return null;
+    boolean[] success = _accessor.remove(paths);
+
+    for (String path : paths)
+    {
+      if (isSubscribed(path))
+      {
+        purgeCahce(path);
+      }
+    }
+
+    return success;
   }
 
-  public ZNRecord get(String path, int options)
+  public ZNRecord get(String path, Stat stat, int options)
   {
-    // TODO Auto-generated method stub
-    return null;
+    if (isSubscribed(path))
+    {
+      ZNRecord record = null;
+      ZNode zNode = _map.get(path);
+      if (zNode != null)
+      {
+        // TODO: shall return a deep copy instead of reference
+        record = (ZNRecord) zNode.getData();
+        if (stat != null)
+        {
+          // TODO: copy zNode.getStat() to stat
+        }
+      }
+      return record;
+    } else
+    {
+      return _accessor.get(path, stat, options);
+    }
+
   }
 
   public List<ZNRecord> get(List<String> paths, int options)
   {
-    // TODO Auto-generated method stub
-    return null;
+    List<ZNRecord> records = new ArrayList<ZNRecord>();
+    for (String path : paths)
+    {
+      records.add(_accessor.get(path, null, options));
+    }
+
+    return records;
   }
 
   public List<ZNRecord> getChildren(String parentPath, int options)
   {
-    // TODO Auto-generated method stub
-    return null;
+    List<String> childNames = getChildNames(parentPath, options);
+    List<String> paths = new ArrayList<String>();
+    for (String childName : childNames)
+    {
+      String path = parentPath + "/" + childName;
+      paths.add(path);
+    }
+    return get(paths, options);
   }
 
   public String getPath(PropertyType type, String... keys)
   {
-    // TODO Auto-generated method stub
-    return null;
+    return _accessor.getPath(type, keys);
   }
 
   public List<String> getChildNames(String parentPath, int options)
   {
-    // TODO Auto-generated method stub
-    return null;
+    if (isSubscribed(parentPath))
+    {
+      ZNode zNode = _map.get(parentPath);
+      if (zNode != null)
+      {
+        return new ArrayList<String>(zNode.getChild());
+      } else
+      {
+        return Collections.emptyList();
+      }
+    } else
+    {
+      return _accessor.getChildNames(parentPath, options);
+    }
   }
 
   public boolean exists(String path)
   {
-    // TODO Auto-generated method stub
-    return false;
+    if (isSubscribed(path))
+    {
+      return _map.containsKey(path);
+    } else
+    {
+      return _accessor.exists(path);
+    }
   }
 
   public boolean[] exists(List<String> paths)
   {
-    // TODO Auto-generated method stub
-    return null;
+    boolean[] exists = new boolean[paths.size()];
+    for (int i = 0; i < paths.size(); i++)
+    {
+      String path = paths.get(i);
+      exists[i] = exists(path);
+    }
+    return exists;
   }
 
   public Stat[] getStats(List<String> paths)
   {
-    // TODO Auto-generated method stub
-    return null;
+    Stat[] stats = new Stat[paths.size()];
+    for (int i = 0; i < paths.size(); i++)
+    {
+      String path = paths.get(i);
+      stats[i] = getStat(path);
+    }
+    return stats;
   }
 
   public Stat getStat(String path)
   {
-    // TODO Auto-generated method stub
-    return null;
+    if (isSubscribed(path))
+    {
+      ZNode zNode = _map.get(path);
+      if (zNode != null)
+      {
+        // TODO: return a copy
+        return zNode.getStat();
+      } else
+      {
+        return null;
+      }
+    } else
+    {
+      return _accessor.getStat(path);
+    }
   }
 
   @Override
@@ -459,21 +538,57 @@ public class ZkCachedDataAccessor implements IZkListener
   @Override
   public void handleDataChange(String dataPath, Object data) throws Exception
   {
-    // TODO Auto-generated method stub
+    try
+    {
+      _lock.writeLock().lock();
 
+      ZNode zNode = _map.get(dataPath);
+      if (zNode != null)
+      {
+        // TODO: optimize it by get stat from callback
+        Stat stat = new Stat();
+        Object readData = _accessor.get(dataPath, stat, 0);
+
+        zNode.setData(readData);
+        zNode.setStat(stat);
+      }
+    } finally
+    {
+      _lock.writeLock().unlock();
+    }
   }
 
   @Override
   public void handleDataDeleted(String dataPath) throws Exception
   {
-    // TODO Auto-generated method stub
+    try
+    {
+      _lock.writeLock().lock();
+      _map.remove(dataPath);
 
+      _accessor.unsubscribe(dataPath, this);
+
+      String parentPath = new File(dataPath).getParent();
+
+      // remove child from parent's childSet
+      // parent stat will also be changed. stat will be updated in parent's
+      // childChange
+      ZNode zNode = _map.get(parentPath);
+      if (zNode != null)
+      {
+        String child = new File(dataPath).getName();
+        zNode.removeChild(child);
+      }
+    } finally
+    {
+      _lock.writeLock().unlock();
+    }
   }
 
   @Override
   public void handleChildChange(String parentPath, List<String> currentChilds) throws Exception
   {
-//    System.out.println("ChildChange: " + currentChilds);
+    // System.out.println("ChildChange: " + currentChilds);
     if (currentChilds == null)
     {
       return;
@@ -532,62 +647,34 @@ public class ZkCachedDataAccessor implements IZkListener
 
   public static void main(String[] args) throws Exception
   {
+    String zkAddr = "localhost:2191";
     String root = "TestCDA";
-    ZkClient zkClient = new ZkClient("localhost:2191");
+    ZkClient zkClient = new ZkClient(zkAddr);
     zkClient.setZkSerializer(new ZNRecordSerializer());
     zkClient.deleteRecursive("/" + root);
 
-//    FilenameFilter filter = new FilenameFilter()
-//    {
-//
-//      @Override
-//      public boolean accept(File dir, String name)
-//      {
-//        String path = new File(dir.getAbsolutePath() + "/" + name).getAbsolutePath();
-//        return path.startsWith("/TestCDA");
-//      }
-//    };
-
     List<String> list = new ArrayList<String>();
     list.add("/" + root);
-    
-    ZkCachedDataAccessor accessor =
-        new ZkCachedDataAccessor(new ZkBaseDataAccessor(root, zkClient), list);
 
-    ZkClient zkClient2 = new ZkClient("localhost:2191");
+    ZkCachedDataAccessor accessor = new ZkCachedDataAccessor(
+        new ZkBaseDataAccessor(root, zkClient), list);
+
+    ZkClient zkClient2 = new ZkClient(zkAddr);
     zkClient2.setZkSerializer(new ZNRecordSerializer());
-    ZkCachedDataAccessor accessor2 =
-        new ZkCachedDataAccessor(new ZkBaseDataAccessor(root, zkClient2), list);
+    ZkCachedDataAccessor accessor2 = new ZkCachedDataAccessor(new ZkBaseDataAccessor(root,
+        zkClient2), list);
 
     System.out.println("cache: " + accessor._map);
     System.out.println("cache2: " + accessor2._map);
-
-    // accessor2.subscribe("/" + root);
-
-    // // test subscribe will pull in all existing znode to cache
-    // for (int i = 0; i < 5; i++)
-    // {
-    // String msgId = "msg_" + i;
-    // String path = "/" + root + "/host_0/" + msgId;
-    // boolean success = accessor.create(path, new ZNRecord(msgId), Option.PERSISTENT);
-    // Assert.assertTrue(success, "Should succeed in create");
-    // }
-    //
-    // accessor.subscribe("/" + root);
-    // System.out.println("cache: " + accessor._map);
-
-    // wait for cache2 to be updated by zk callback
-    // Thread.sleep(500);
-    // System.out.println("cache2: " + accessor2._map);
 
     // test sync create will update cache
     for (int i = 0; i < 10; i++)
     {
       String msgId = "msg_" + i;
       String path = "/" + root + "/host_0/" + msgId;
-      boolean success =
-          accessor.create(path, new ZNRecord(msgId), BaseDataAccessor.Option.PERSISTENT);
-      System.out.println(success + ":" + msgId);
+      boolean success = accessor.create(path, new ZNRecord(msgId),
+          BaseDataAccessor.Option.PERSISTENT);
+      System.out.println("create:" + success + ":" + msgId);
       // Assert.assertTrue(success, "Should succeed in create");
     }
     System.out.println("cache: " + accessor._map);
@@ -596,23 +683,115 @@ public class ZkCachedDataAccessor implements IZkListener
     Thread.sleep(500);
     System.out.println("cache2: " + accessor2._map);
 
-    // // test createChildren()
-    // List<ZNRecord> records = new ArrayList<ZNRecord>();
-    //
-    // for (int i = 0; i < 10; i++)
-    // {
-    // String msgId = "msg_" + i;
-    // records.add(new ZNRecord(msgId));
-    // }
-    // String parentPath = "/" + root + "/host_1";
-    // boolean[] success =
-    // accessor.createChildren(parentPath, records, BaseDataAccessor.Option.PERSISTENT);
-    // System.out.println(Arrays.toString(success));
-    // System.out.println("cache: " + accessor._map);
-    //
-    // // wait for cache2 to be updated by zk callback
-    // Thread.sleep(1000);
-    // System.out.println("cache2: " + accessor2._map);
+    // test sync set will update cache
+    for (int i = 0; i < 10; i++)
+    {
+      String msgId = "msg_" + i;
+      String path = "/" + root + "/host_0/" + msgId;
+      ZNRecord newRecord = new ZNRecord(msgId);
+      newRecord.setSimpleField("key1", "value1");
+      boolean success = accessor.set(path, newRecord, Option.PERSISTENT);
+      System.out.println("set:" + success + ":" + msgId);
+    }
+    System.out.println("cache: " + accessor._map);
+
+    // wait for cache2 to be updated by zk callback
+    Thread.sleep(500);
+    System.out.println("cache2: " + accessor2._map);
+
+    // test sync update will update cache
+    for (int i = 0; i < 10; i++)
+    {
+      String msgId = "msg_" + i;
+      String path = "/" + root + "/host_0/" + msgId;
+      ZNRecord newRecord = new ZNRecord(msgId);
+      newRecord.setSimpleField("key2", "value2");
+      boolean success = accessor.update(path, newRecord, Option.PERSISTENT);
+      System.out.println("update:" + success + ":" + msgId);
+    }
+    System.out.println("cache: " + accessor._map);
+
+    // wait for cache2 to be updated by zk callback
+    Thread.sleep(500);
+    System.out.println("cache2: " + accessor2._map);
+
+    // test get (from cache)
+    for (int i = 0; i < 10; i++)
+    {
+      String msgId = "msg_" + i;
+      String path = "/" + root + "/host_0/" + msgId;
+      ZNRecord record = accessor.get(path, null, 0);
+      System.out.println("get:" + record);
+    }
+
+    // test remove will update cache
+    String removePath = "/" + root + "/host_0";
+    boolean ret = accessor.remove(removePath);
+    System.out.println("remove:" + ret);
+    System.out.println("cache: " + accessor._map);
+
+    // wait for cache2 to be updated by zk callback
+    Thread.sleep(500);
+    System.out.println("cache2: " + accessor2._map);
+
+    // test createChildren()
+    List<ZNRecord> records = new ArrayList<ZNRecord>();
+
+    for (int i = 0; i < 10; i++)
+    {
+      String msgId = "msg_" + i;
+      records.add(new ZNRecord(msgId));
+    }
+    String parentPath = "/" + root + "/host_1";
+    boolean[] success = accessor.createChildren(parentPath, records,
+        BaseDataAccessor.Option.PERSISTENT);
+    System.out.println("create:" + Arrays.toString(success));
+    System.out.println("cache: " + accessor._map);
+
+    // wait for cache2 to be updated by zk callback
+    Thread.sleep(500);
+    System.out.println("cache2: " + accessor2._map);
+
+    parentPath = "/" + root + "/host_1";
+    records = new ArrayList<ZNRecord>();
+    for (int i = 0; i < 10; i++)
+    {
+      String msgId = "msg_" + i;
+      ZNRecord newRecord = new ZNRecord(msgId);
+      newRecord.setSimpleField("key1", "value1");
+      records.add(newRecord);
+    }
+    success = accessor.setChildren(parentPath, records, Option.PERSISTENT);
+
+    System.out.println("set:" + Arrays.toString(success));
+    System.out.println("cache: " + accessor._map);
+
+    // wait for cache2 to be updated by zk callback
+    Thread.sleep(500);
+    System.out.println("cache2: " + accessor2._map);
+
+    // test async updateChildren
+    parentPath = "/" + root + "/host_1";
+    records = new ArrayList<ZNRecord>();
+    for (int i = 0; i < 10; i++)
+    {
+      String msgId = "msg_" + i;
+      ZNRecord newRecord = new ZNRecord(msgId);
+      newRecord.setSimpleField("key2", "value2");
+      records.add(newRecord);
+    }
+    success = accessor.updateChildren(parentPath, records, Option.PERSISTENT);
+    System.out.println("update:" + Arrays.toString(success));
+    System.out.println("cache: " + accessor._map);
+
+    // wait for cache2 to be updated by zk callback
+    Thread.sleep(500);
+    System.out.println("cache2: " + accessor2._map);
+
+    // test get (from cache)
+    parentPath = "/" + root + "/host_1";
+    records = accessor2.getChildren(parentPath, 0);
+    System.out.println("get:" + records);
 
     zkClient.close();
   }

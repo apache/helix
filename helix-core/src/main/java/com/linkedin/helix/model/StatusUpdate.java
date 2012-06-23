@@ -15,8 +15,23 @@
  */
 package com.linkedin.helix.model;
 
-public class StatusUpdate
+import com.linkedin.helix.HelixProperty;
+
+public class StatusUpdate extends HelixProperty
 {
+
+  public StatusUpdate(String id)
+  {
+    super(id);
+    // TODO Auto-generated constructor stub
+  }
+
+  @Override
+  public boolean isValid()
+  {
+    // TODO Auto-generated method stub
+    return false;
+  }
 
   
 }

@@ -18,11 +18,10 @@ package com.linkedin.helix.model;
 
 import java.util.Map;
 
-
+import com.linkedin.helix.HelixProperty;
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.ZNRecordDecorator;
 
-public class AlertStatus extends ZNRecordDecorator
+public class AlertStatus extends HelixProperty
 {
 
 

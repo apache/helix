@@ -22,12 +22,12 @@ import org.apache.log4j.Logger;
 
 import com.linkedin.helix.HelixException;
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.ZNRecordDecorator;
+import com.linkedin.helix.HelixProperty;
 
 /**
  * Instance configurations
  */
-public class InstanceConfig extends ZNRecordDecorator
+public class InstanceConfig extends HelixProperty
 {
   public enum InstanceConfigProperty
   {

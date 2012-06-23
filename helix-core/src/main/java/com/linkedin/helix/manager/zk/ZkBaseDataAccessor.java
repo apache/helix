@@ -15,6 +15,7 @@ import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.data.Stat;
 
 import com.linkedin.helix.BaseDataAccessor;
+import com.linkedin.helix.IZkListener;
 import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
@@ -27,10 +28,10 @@ import com.linkedin.helix.manager.zk.ZkAsyncCallbacks.SetDataCallbackHandler;
 
 public class ZkBaseDataAccessor implements BaseDataAccessor
 {
-  private static Logger    LOG = Logger.getLogger(ZkBaseDataAccessor.class);
+  private static Logger  LOG = Logger.getLogger(ZkBaseDataAccessor.class);
 
-  protected final String   _clusterName;
-  protected final ZkClient _zkClient;
+  final String           _root;
+  private final ZkClient _zkClient;
 
   class ZkDataUpdater implements DataUpdater<ZNRecord>
   {
@@ -53,15 +54,26 @@ public class ZkBaseDataAccessor implements BaseDataAccessor
     }
   }
 
-  public ZkBaseDataAccessor(String clusterName, ZkClient zkClient)
+  public ZkBaseDataAccessor(String root, ZkClient zkClient)
   {
-    _clusterName = clusterName;
+    _root = root;
     _zkClient = zkClient;
   }
 
+  boolean checkPath(String path)
+  {
+    return path.equals("/" + _root) || path.startsWith("/" + _root + "/");
+  }
+  
   @Override
   public boolean create(String path, ZNRecord record, int options)
   {
+    if (!checkPath(path))
+    {
+      LOG.error("invalid path. path: " + path);
+      return false;
+    }
+    
     CreateMode mode = Option.getMode(options);
     if (mode == null)
     {
@@ -137,7 +149,7 @@ public class ZkBaseDataAccessor implements BaseDataAccessor
   }
 
   /**
-   * aysnc create parent and child. used internally when fail on NoNode
+   * sync create parent and async create child. used internally when fail on NoNode
    * 
    * @param parentPath
    * @param records
@@ -212,7 +224,7 @@ public class ZkBaseDataAccessor implements BaseDataAccessor
       }
     }
 
-    // if fail on NO_NODE, create parent and do async create child nodes again
+    // if fail on NO_NODE, sync create parent and do async create child nodes again
     if (failOnNoNode)
     {
       createChildren(parentPath, records, success, mode, cbList);
@@ -254,7 +266,7 @@ public class ZkBaseDataAccessor implements BaseDataAccessor
       }
     }
 
-    // if fail on NO_NODE, create parent node and do async create child nodes
+    // if fail on NO_NODE, sync create parent node and do async create child nodes
     if (failOnNoNode)
     {
       createChildren(parentPath, records, success, mode, cbList);
@@ -330,9 +342,10 @@ public class ZkBaseDataAccessor implements BaseDataAccessor
   }
 
   @Override
-  public ZNRecord get(String path, int options)
+  public ZNRecord get(String path, Stat stat, int options)
   {
-    return _zkClient.readData(path, true);
+    // throw ZkNoNodeException to distinguish NoNode and NodeWithEmptyValue
+    return _zkClient.readData(path, stat);
   }
 
   @Override
@@ -388,7 +401,7 @@ public class ZkBaseDataAccessor implements BaseDataAccessor
   @Override
   public String getPath(PropertyType type, String... keys)
   {
-    return PropertyPathConfig.getPath(type, _clusterName, keys);
+    return PropertyPathConfig.getPath(type, _root, keys);
   }
 
   @Override
@@ -397,7 +410,7 @@ public class ZkBaseDataAccessor implements BaseDataAccessor
     try
     {
       List<String> childNames = _zkClient.getChildren(parentPath);
-      Collections.sort(childNames); 
+      Collections.sort(childNames);
       return childNames;
     }
     catch (ZkNoNodeException e)
@@ -494,6 +507,15 @@ public class ZkBaseDataAccessor implements BaseDataAccessor
     return success;
   }
 
+  @Override
+  public boolean subscribe(String path, IZkListener listener)
+  {
+    _zkClient.subscribeChildChanges(path, listener);
+    _zkClient.subscribeDataChanges(path, listener);
+
+    return true;
+  }
+
   public static void main(String[] args)
   {
     ZkClient zkClient = new ZkClient("localhost:2191");
@@ -538,7 +560,7 @@ public class ZkBaseDataAccessor implements BaseDataAccessor
     {
       String msgId = "msg_" + i;
       String path = accessor.getPath(PropertyType.MESSAGES, "host_0", msgId);
-      ZNRecord record = accessor.get(path, 0);
+      ZNRecord record = accessor.get(path, null, 0);
       System.out.println(record);
     }
 
@@ -571,7 +593,7 @@ public class ZkBaseDataAccessor implements BaseDataAccessor
 
     // test createChildren()
     String parentPath = accessor.getPath(PropertyType.MESSAGES, "host_1");
-//    zkClient.createPersistent(parentPath, true);
+    // zkClient.createPersistent(parentPath, true);
     List<ZNRecord> records = new ArrayList<ZNRecord>();
     for (int i = 10; i < 20; i++)
     {
@@ -645,4 +667,5 @@ public class ZkBaseDataAccessor implements BaseDataAccessor
     success = accessor.remove(paths);
     System.out.println(Arrays.toString(success));
   }
+
 }

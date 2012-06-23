@@ -43,7 +43,7 @@ import com.linkedin.helix.MessageListener;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.ZNRecordDecorator;
+import com.linkedin.helix.HelixProperty;
 import com.linkedin.helix.healthcheck.ParticipantHealthReportCollector;
 import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.model.InstanceConfig.InstanceConfigProperty;
@@ -258,7 +258,7 @@ public class StaticFileHelixManager implements HelixManager
     context.setType(NotificationContext.Type.INIT);
     List<ZNRecord> idealStates = _clusterView.getPropertyList(PropertyType.IDEALSTATES);
     listener.onIdealStateChange(
-        ZNRecordDecorator.convertToTypedList(IdealState.class, idealStates), context);
+        HelixProperty.convertToTypedList(IdealState.class, idealStates), context);
   }
 
   @Override
@@ -283,7 +283,7 @@ public class StaticFileHelixManager implements HelixManager
     List<ZNRecord> messages;
     messages = _clusterView.getMemberInstance(instanceName, true).getInstanceProperty(
         PropertyType.MESSAGES);
-    listener.onMessage(instanceName, ZNRecordDecorator.convertToTypedList(Message.class, messages),
+    listener.onMessage(instanceName, HelixProperty.convertToTypedList(Message.class, messages),
         context);
   }
 

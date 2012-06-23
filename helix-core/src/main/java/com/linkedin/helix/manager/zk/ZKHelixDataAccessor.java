@@ -66,7 +66,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor
     String path = PropertyPathConfig.getPath(type, _clusterName,
         key.getParams());
     int options = constructOptions(type);
-    ZNRecord record = _baseDataAccessor.get(path, options);
+    ZNRecord record = _baseDataAccessor.get(path, null, options);
     return createPropertyObject(key.getTypeClass(), record);
   }
 

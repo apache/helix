@@ -15,7 +15,6 @@
  */
 package com.linkedin.helix.manager.zk;
 
-import java.util.Arrays;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -29,8 +28,7 @@ import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.AsyncCallback.StatCallback;
 import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.data.ACL;
-import org.apache.zookeeper.data.Id;
+import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.data.Stat;
 
 import com.linkedin.helix.manager.zk.ZkAsyncCallbacks.CreateCallbackHandler;
@@ -53,10 +51,10 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
   private static Logger                   LOG                        =
                                                                          Logger.getLogger(ZkClient.class);
   public static final int                 DEFAULT_CONNECTION_TIMEOUT = 10000;
-  private static final ACL                DEFAULT_ACL                =
-                                                                         new ACL(31,
-                                                                                 new Id("world",
-                                                                                        "anyone"));
+//  private static final ACL                DEFAULT_ACL                =
+//                                                                         new ACL(31,
+//                                                                                 new Id("world",
+//                                                                                        "anyone"));
   public static String                    sessionId;
   public static String                    sessionPassword;
 
@@ -237,7 +235,7 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
     final byte[] data = _zkSerializer.serialize(datat);
     ((ZkConnection) _connection).getZookeeper().create(path,
                                                        data,
-                                                       Arrays.asList(DEFAULT_ACL),
+                                                       Ids.OPEN_ACL_UNSAFE, // Arrays.asList(DEFAULT_ACL),
                                                        mode,
                                                        cb,
                                                        null);

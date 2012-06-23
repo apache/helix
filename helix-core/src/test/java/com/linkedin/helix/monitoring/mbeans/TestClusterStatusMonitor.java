@@ -27,7 +27,7 @@ import com.linkedin.helix.Mocks;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.ZNRecordDecorator;
+import com.linkedin.helix.HelixProperty;
 import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.model.LiveInstance.LiveInstanceProperty;

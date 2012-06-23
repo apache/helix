@@ -25,11 +25,11 @@ import java.util.TreeMap;
 
 import org.apache.log4j.Logger;
 
+import com.linkedin.helix.HelixProperty;
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.ZNRecordDecorator;
 import com.linkedin.helix.model.Message.MessageType;
 
-public class ClusterConstraints extends ZNRecordDecorator
+public class ClusterConstraints extends HelixProperty
 {
   private static Logger LOG = Logger.getLogger(ClusterConstraints.class);
 

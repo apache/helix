@@ -24,12 +24,12 @@ import java.util.TreeMap;
 import org.apache.log4j.Logger;
 
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.ZNRecordDecorator;
+import com.linkedin.helix.HelixProperty;
 
 /**
  * The ideal states of all partition in a resource
  */
-public class IdealState extends ZNRecordDecorator
+public class IdealState extends HelixProperty
 {
   public enum IdealStateProperty {
     NUM_PARTITIONS, STATE_MODEL_DEF_REF, STATE_MODEL_FACTORY_NAME, REPLICAS, IDEAL_STATE_MODE

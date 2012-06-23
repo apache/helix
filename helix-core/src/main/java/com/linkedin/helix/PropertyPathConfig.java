@@ -15,12 +15,26 @@
  */
 package com.linkedin.helix;
 
+import static com.linkedin.helix.PropertyType.ALERTS;
+import static com.linkedin.helix.PropertyType.ALERT_STATUS;
+import static com.linkedin.helix.PropertyType.CONFIGS;
+import static com.linkedin.helix.PropertyType.CURRENTSTATES;
+import static com.linkedin.helix.PropertyType.EXTERNALVIEW;
+import static com.linkedin.helix.PropertyType.HEALTHREPORT;
+import static com.linkedin.helix.PropertyType.HISTORY;
+import static com.linkedin.helix.PropertyType.IDEALSTATES;
+import static com.linkedin.helix.PropertyType.LIVEINSTANCES;
+import static com.linkedin.helix.PropertyType.MESSAGES;
+import static com.linkedin.helix.PropertyType.PAUSE;
+import static com.linkedin.helix.PropertyType.STATEMODELDEFS;
+import static com.linkedin.helix.PropertyType.STATUSUPDATES;
+
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import static com.linkedin.helix.PropertyType.*;
+
 import org.apache.log4j.Logger;
 
 import com.linkedin.helix.model.AlertStatus;
@@ -44,19 +58,19 @@ public class PropertyPathConfig
   static Map<PropertyType, Map<Integer, String>> templateMap = new HashMap<PropertyType, Map<Integer, String>>();
   static Map<PropertyType, Class<? extends HelixProperty>> typeToClassMapping= new HashMap<PropertyType, Class<? extends HelixProperty>>();
   static{
-//    typeToClassMapping.put(LIVEINSTANCES, LiveInstance.class);
-//    typeToClassMapping.put(IDEALSTATES, IdealState.class);
-//    typeToClassMapping.put(CONFIGS, InstanceConfig.class);
-//    typeToClassMapping.put(EXTERNALVIEW, ExternalView.class);
-//    typeToClassMapping.put(STATEMODELDEFS, StateModelDefinition.class);
-//    typeToClassMapping.put(MESSAGES, Message.class);
-//    typeToClassMapping.put(CURRENTSTATES, CurrentState.class);
-//    typeToClassMapping.put(STATUSUPDATES, StatusUpdate.class);
-//    typeToClassMapping.put(HISTORY, LeaderHistory.class);
-//    typeToClassMapping.put(HEALTHREPORT, HealthStat.class);
-//    typeToClassMapping.put(ALERTS, Alerts.class);
-//    typeToClassMapping.put(ALERT_STATUS, AlertStatus.class);
-//    typeToClassMapping.put(PAUSE, PauseSignal.class);
+    typeToClassMapping.put(LIVEINSTANCES, LiveInstance.class);
+    typeToClassMapping.put(IDEALSTATES, IdealState.class);
+    typeToClassMapping.put(CONFIGS, InstanceConfig.class);
+    typeToClassMapping.put(EXTERNALVIEW, ExternalView.class);
+    typeToClassMapping.put(STATEMODELDEFS, StateModelDefinition.class);
+    typeToClassMapping.put(MESSAGES, Message.class);
+    typeToClassMapping.put(CURRENTSTATES, CurrentState.class);
+    typeToClassMapping.put(STATUSUPDATES, StatusUpdate.class);
+    typeToClassMapping.put(HISTORY, LeaderHistory.class);
+    typeToClassMapping.put(HEALTHREPORT, HealthStat.class);
+    typeToClassMapping.put(ALERTS, Alerts.class);
+    typeToClassMapping.put(ALERT_STATUS, AlertStatus.class);
+    typeToClassMapping.put(PAUSE, PauseSignal.class);
   }
   static
   {

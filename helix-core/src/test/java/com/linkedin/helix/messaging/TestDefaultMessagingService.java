@@ -60,7 +60,7 @@ public class TestDefaultMessagingService
 
       @Override
       public List<ZNRecord> getChildValues(PropertyType type, String... keys)
-//      public <T extends ZNRecordDecorator> List<T> getChildValues(Class<T> clazz, PropertyType type,
+//      public <T extends HelixProperty> List<T> getChildValues(Class<T> clazz, PropertyType type,
 //                                                                  String... keys)
       {
         List<ZNRecord> result = new ArrayList<ZNRecord>();
@@ -68,13 +68,13 @@ public class TestDefaultMessagingService
 
         if(type == PropertyType.EXTERNALVIEW || type == PropertyType.IDEALSTATES)
         {
-//          result.add(ZNRecordDecorator.convertInstance(clazz, _externalView));
+//          result.add(HelixProperty.convertInstance(clazz, _externalView));
           result.add(_externalView);
           return result;
         }
         else if(type == PropertyType.LIVEINSTANCES)
         {
-//          return ZNRecordDecorator.convertList(clazz, _liveInstances);
+//          return HelixProperty.convertList(clazz, _liveInstances);
           return _liveInstances;
         }
 

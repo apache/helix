@@ -20,9 +20,9 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.ZNRecordDecorator;
+import com.linkedin.helix.HelixProperty;
 
-public class PersistentStats extends ZNRecordDecorator
+public class PersistentStats extends HelixProperty
 {
   private static final Logger _logger = Logger.getLogger(PersistentStats.class.getName());
 

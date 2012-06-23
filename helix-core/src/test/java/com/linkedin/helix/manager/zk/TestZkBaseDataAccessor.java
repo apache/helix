@@ -93,7 +93,7 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase
     {
       String msgId = "msg_" + i;
       String path = accessor.getPath(PropertyType.MESSAGES, "host_0", msgId);
-      ZNRecord record = accessor.get(path, 0);
+      ZNRecord record = accessor.get(path, null, 0);
       Assert.assertEquals(record.getSimpleFields().size(), 2, "Should have 2 simple fields set");
       Assert.assertEquals(record.getSimpleField("key1"), "value1", "Should have value1 set");
       Assert.assertEquals(record.getSimpleField("key2"), "value2", "Should have value2 set");

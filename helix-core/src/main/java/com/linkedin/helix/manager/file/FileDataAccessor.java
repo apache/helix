@@ -29,7 +29,7 @@ import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.ZNRecordDecorator;
+import com.linkedin.helix.HelixProperty;
 import com.linkedin.helix.store.PropertyStore;
 import com.linkedin.helix.store.PropertyStoreException;
 import com.linkedin.helix.store.file.FilePropertyStore;
@@ -49,7 +49,7 @@ public class FileDataAccessor implements DataAccessor
   }
 
   @Override
-  public boolean setProperty(PropertyType type, ZNRecordDecorator value, String... keys)
+  public boolean setProperty(PropertyType type, HelixProperty value, String... keys)
   {
     return setProperty(type, value.getRecord(), keys);
   }
@@ -79,7 +79,7 @@ public class FileDataAccessor implements DataAccessor
   }
 
   @Override
-  public boolean updateProperty(PropertyType type, ZNRecordDecorator value, String... keys)
+  public boolean updateProperty(PropertyType type, HelixProperty value, String... keys)
   {
     return updateProperty(type, value.getRecord(), keys);
   }
@@ -115,7 +115,7 @@ public class FileDataAccessor implements DataAccessor
   }
 
   @Override
-  public <T extends ZNRecordDecorator>
+  public <T extends HelixProperty>
     T getProperty(Class<T> clazz, PropertyType type, String... keys)
   {
     ZNRecord record = getProperty(type, keys);
@@ -123,7 +123,7 @@ public class FileDataAccessor implements DataAccessor
     {
       return null;
     }
-    return ZNRecordDecorator.convertToTypedInstance(clazz, record);
+    return HelixProperty.convertToTypedInstance(clazz, record);
   }
 
   @Override
@@ -199,11 +199,11 @@ public class FileDataAccessor implements DataAccessor
   }
 
   @Override
-  public <T extends ZNRecordDecorator>
+  public <T extends HelixProperty>
     List<T> getChildValues(Class<T> clazz, PropertyType type, String... keys)
   {
     List<ZNRecord> list = getChildValues(type, keys);
-    return ZNRecordDecorator.convertToTypedList(clazz, list);
+    return HelixProperty.convertToTypedList(clazz, list);
   }
 
   @Override
@@ -309,10 +309,10 @@ public class FileDataAccessor implements DataAccessor
   }
 
   @Override
-  public <T extends ZNRecordDecorator> Map<String, T> getChildValuesMap(Class<T> clazz,
+  public <T extends HelixProperty> Map<String, T> getChildValuesMap(Class<T> clazz,
       PropertyType type, String... keys)
   {
     List<T> list = getChildValues(clazz, type, keys);
-    return ZNRecordDecorator.convertListToMap(list);
+    return HelixProperty.convertListToMap(list);
   }
 }

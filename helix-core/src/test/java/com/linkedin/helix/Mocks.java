@@ -335,7 +335,7 @@ public class Mocks
     Map<String, ZNRecord> map = new HashMap<String, ZNRecord>();
 
     @Override
-    public boolean setProperty(PropertyType type, ZNRecordDecorator value, String... keys)
+    public boolean setProperty(PropertyType type, HelixProperty value, String... keys)
     {
       return setProperty(type, value.getRecord(), keys);
     }
@@ -349,7 +349,7 @@ public class Mocks
     }
 
     @Override
-    public boolean updateProperty(PropertyType type, ZNRecordDecorator value, String... keys)
+    public boolean updateProperty(PropertyType type, HelixProperty value, String... keys)
     {
       return updateProperty(type, value.getRecord(), keys);
     }
@@ -395,7 +395,7 @@ public class Mocks
     }
 
     @Override
-    public <T extends ZNRecordDecorator> T getProperty(Class<T> clazz, PropertyType type,
+    public <T extends HelixProperty> T getProperty(Class<T> clazz, PropertyType type,
         String... keys)
     {
       ZNRecord record = getProperty(type, keys);
@@ -403,7 +403,7 @@ public class Mocks
       {
         return null;
       }
-      return ZNRecordDecorator.convertToTypedInstance(clazz, record);
+      return HelixProperty.convertToTypedInstance(clazz, record);
     }
 
     @Override
@@ -442,11 +442,11 @@ public class Mocks
     }
 
     @Override
-    public <T extends ZNRecordDecorator> List<T> getChildValues(Class<T> clazz, PropertyType type,
+    public <T extends HelixProperty> List<T> getChildValues(Class<T> clazz, PropertyType type,
         String... keys)
     {
       List<ZNRecord> list = getChildValues(type, keys);
-      return ZNRecordDecorator.convertToTypedList(clazz, list);
+      return HelixProperty.convertToTypedList(clazz, list);
     }
 
     @Override
@@ -478,11 +478,11 @@ public class Mocks
     }
 
     @Override
-    public <T extends ZNRecordDecorator> Map<String, T> getChildValuesMap(Class<T> clazz,
+    public <T extends HelixProperty> Map<String, T> getChildValuesMap(Class<T> clazz,
         PropertyType type, String... keys)
     {
       List<T> list = getChildValues(clazz, type, keys);
-      return ZNRecordDecorator.convertListToMap(list);
+      return HelixProperty.convertListToMap(list);
     }
   }
 

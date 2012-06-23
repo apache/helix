@@ -116,7 +116,7 @@ public interface BaseDataAccessor
    * @param path
    * @return
    */
-  ZNRecord get(String path, int options);
+  ZNRecord get(String path, Stat stat, int options);
 
   /**
    * Get List of {@link ZNRecord} corresponding to the paths using async api
@@ -182,4 +182,13 @@ public interface BaseDataAccessor
    * @return
    */
   Stat getStat(String path);
+  
+  /**
+   * Subscribe listener to path
+   * 
+   * @param path
+   * @param listener
+   * @return
+   */
+  boolean subscribe(String path, IZkListener listener);
 }

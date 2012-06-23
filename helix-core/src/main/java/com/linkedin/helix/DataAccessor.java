@@ -34,7 +34,7 @@ public interface DataAccessor
    */
   boolean setProperty(PropertyType type, ZNRecord value, String... keys);
 
-  boolean setProperty(PropertyType type, ZNRecordDecorator value, String... keys);
+  boolean setProperty(PropertyType type, HelixProperty value, String... keys);
 
   /**
    * Updates a property, either overwrite or merge based on the
@@ -48,7 +48,7 @@ public interface DataAccessor
    */
   boolean updateProperty(PropertyType type, ZNRecord value, String... keys);
 
-  boolean updateProperty(PropertyType type, ZNRecordDecorator value, String... keys);
+  boolean updateProperty(PropertyType type, HelixProperty value, String... keys);
 
   /**
    * Return the property value, it must be a leaf
@@ -60,7 +60,7 @@ public interface DataAccessor
    */
   ZNRecord getProperty(PropertyType type, String... keys);
 
-  <T extends ZNRecordDecorator> T getProperty(Class<T> clazz, PropertyType type, String... keys);
+  <T extends HelixProperty> T getProperty(Class<T> clazz, PropertyType type, String... keys);
 
   /**
    * Removes the property
@@ -89,9 +89,9 @@ public interface DataAccessor
    */
   List<ZNRecord> getChildValues(PropertyType type, String... keys);
 
-  <T extends ZNRecordDecorator> List<T> getChildValues(Class<T> clazz, PropertyType type,
+  <T extends HelixProperty> List<T> getChildValues(Class<T> clazz, PropertyType type,
       String... keys);
 
-  <T extends ZNRecordDecorator> Map<String, T> getChildValuesMap(Class<T> clazz, PropertyType type,
+  <T extends HelixProperty> Map<String, T> getChildValuesMap(Class<T> clazz, PropertyType type,
       String... keys);
 }

@@ -49,4 +49,10 @@ public class ZNode
   {
     return _stat;
   }
+  
+  @Override
+  public String toString()
+  {
+    return _name + ", " + _data + ", " + _childSet + ", " + _stat;
+  }
 }

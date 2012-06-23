@@ -20,14 +20,44 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
+import static com.linkedin.helix.PropertyType.*;
 import org.apache.log4j.Logger;
+
+import com.linkedin.helix.model.AlertStatus;
+import com.linkedin.helix.model.Alerts;
+import com.linkedin.helix.model.CurrentState;
+import com.linkedin.helix.model.ExternalView;
+import com.linkedin.helix.model.HealthStat;
+import com.linkedin.helix.model.IdealState;
+import com.linkedin.helix.model.InstanceConfig;
+import com.linkedin.helix.model.LeaderHistory;
+import com.linkedin.helix.model.LiveInstance;
+import com.linkedin.helix.model.Message;
+import com.linkedin.helix.model.PauseSignal;
+import com.linkedin.helix.model.StateModelDefinition;
+import com.linkedin.helix.model.StatusUpdate;
 
 public class PropertyPathConfig
 {
   private static Logger logger = Logger.getLogger(PropertyPathConfig.class);
 
   static Map<PropertyType, Map<Integer, String>> templateMap = new HashMap<PropertyType, Map<Integer, String>>();
+  static Map<PropertyType, Class<? extends HelixProperty>> typeToClassMapping= new HashMap<PropertyType, Class<? extends HelixProperty>>();
+  static{
+//    typeToClassMapping.put(LIVEINSTANCES, LiveInstance.class);
+//    typeToClassMapping.put(IDEALSTATES, IdealState.class);
+//    typeToClassMapping.put(CONFIGS, InstanceConfig.class);
+//    typeToClassMapping.put(EXTERNALVIEW, ExternalView.class);
+//    typeToClassMapping.put(STATEMODELDEFS, StateModelDefinition.class);
+//    typeToClassMapping.put(MESSAGES, Message.class);
+//    typeToClassMapping.put(CURRENTSTATES, CurrentState.class);
+//    typeToClassMapping.put(STATUSUPDATES, StatusUpdate.class);
+//    typeToClassMapping.put(HISTORY, LeaderHistory.class);
+//    typeToClassMapping.put(HEALTHREPORT, HealthStat.class);
+//    typeToClassMapping.put(ALERTS, Alerts.class);
+//    typeToClassMapping.put(ALERT_STATUS, AlertStatus.class);
+//    typeToClassMapping.put(PAUSE, PauseSignal.class);
+  }
   static
   {
     // @formatter:off

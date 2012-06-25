@@ -50,6 +50,7 @@ import com.linkedin.helix.ExternalViewChangeListener;
 import com.linkedin.helix.HealthStateChangeListener;
 import com.linkedin.helix.HelixAdmin;
 import com.linkedin.helix.HelixConstants.ChangeType;
+import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixException;
 import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.HelixTimerTask;
@@ -89,6 +90,7 @@ public class ZKHelixManager implements HelixManager
   private final String _zkConnectString;
   private static final int DEFAULT_SESSION_TIMEOUT = 30000;
   private ZKDataAccessor _accessor;
+  private ZKHelixDataAccessor _helixAccessor;
   private ConfigAccessor _configAccessor;
   protected ZkClient _zkClient;
   private final List<CallbackHandler> _handlers;
@@ -105,6 +107,7 @@ public class ZKHelixManager implements HelixManager
   private int _sessionTimeout;
   private PropertyStore<ZNRecord> _propertyStore = null;
   private final List<HelixTimerTask> _controllerTimerTasks;
+  private ZkBaseDataAccessor _baseDataAccessor;
 
   public ZKHelixManager(String clusterName, String instanceName, InstanceType instanceType,
       String zkConnectString) throws Exception
@@ -309,7 +312,12 @@ public class ZKHelixManager implements HelixManager
     checkConnected();
     return _accessor;
   }
-
+  @Override
+  public HelixDataAccessor getHelixDataAccessor()
+  {
+    checkConnected();
+    return _helixAccessor;
+  }
   @Override
   public ConfigAccessor getConfigAccessor()
   {
@@ -505,6 +513,8 @@ public class ZKHelixManager implements HelixManager
     ZkSerializer zkSerializer = new ZNRecordSerializer();
     _zkClient = new ZkClient(zkServers, _sessionTimeout, CONNECTIONTIMEOUT, zkSerializer);
     _accessor = new ZKDataAccessor(_clusterName, _zkClient);
+    _baseDataAccessor = new ZkBaseDataAccessor(_zkClient);
+    _helixAccessor = new ZKHelixDataAccessor(_clusterName, _baseDataAccessor);
     _configAccessor = new ConfigAccessor(_zkClient);
     int retryCount = 0;
 
@@ -862,4 +872,6 @@ public class ZKHelixManager implements HelixManager
       task.stop();
     }
   }
+
+  
 }

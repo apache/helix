@@ -22,7 +22,6 @@ import org.apache.zookeeper.data.Stat;
 import com.linkedin.helix.BaseDataAccessor;
 import com.linkedin.helix.BaseDataAccessor.Option;
 import com.linkedin.helix.IZkListener;
-import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.store.zk.ZNode;
 
@@ -44,7 +43,7 @@ public class ZkCachedDataAccessor implements IZkListener
 
   public ZkCachedDataAccessor(ZkBaseDataAccessor accessor, List<String> subscribedPaths)
   {
-    _root = accessor._root;
+    _root = "/";
     _accessor = accessor;
     _subscribedPaths = subscribedPaths;
 
@@ -298,7 +297,8 @@ public class ZkCachedDataAccessor implements IZkListener
     }
   }
 
-  public boolean[] createChildren(String parentPath, List<ZNRecord> records, int options)
+  public boolean[] createChildren(String parentPath, List<ZNRecord> records,
+      int options)
   {
     try
     {
@@ -315,7 +315,8 @@ public class ZkCachedDataAccessor implements IZkListener
     }
   }
 
-  public boolean[] setChildren(String parentPath, List<ZNRecord> records, int options)
+  public boolean[] setChildren(String parentPath, List<ZNRecord> records,
+      int options)
   {
     try
     {
@@ -331,7 +332,8 @@ public class ZkCachedDataAccessor implements IZkListener
     }
   }
 
-  public boolean[] updateChildren(String parentPath, List<ZNRecord> records, int options)
+  public boolean[] updateChildren(String parentPath, List<ZNRecord> records,
+      int options)
   {
     try
     {
@@ -415,11 +417,6 @@ public class ZkCachedDataAccessor implements IZkListener
       paths.add(path);
     }
     return get(paths, options);
-  }
-
-  public String getPath(PropertyType type, String... keys)
-  {
-    return _accessor.getPath(type, keys);
   }
 
   public List<String> getChildNames(String parentPath, int options)
@@ -655,7 +652,8 @@ public class ZkCachedDataAccessor implements IZkListener
   }
 
   @Override
-  public void handleChildChange(String parentPath, List<String> currentChilds) throws Exception
+  public void handleChildChange(String parentPath, List<String> currentChilds)
+      throws Exception
   {
 //    System.out.println(this + ":" + "ChildChange: " + currentChilds);
     if (currentChilds == null)
@@ -678,13 +676,13 @@ public class ZkCachedDataAccessor implements IZkListener
     list.add("/" + root);
 
     ZkCachedDataAccessor accessor =
-        new ZkCachedDataAccessor(new ZkBaseDataAccessor(root, zkClient), list);
+        new ZkCachedDataAccessor(new ZkBaseDataAccessor(zkClient), list);
     System.out.println("accessor1:" + accessor);
 
     ZkClient zkClient2 = new ZkClient(zkAddr);
     zkClient2.setZkSerializer(new ZNRecordSerializer());
     ZkCachedDataAccessor accessor2 =
-        new ZkCachedDataAccessor(new ZkBaseDataAccessor(root, zkClient2), list);
+        new ZkCachedDataAccessor(new ZkBaseDataAccessor(zkClient2), list);
     System.out.println("accessor2:" + accessor2);
     
     accessor2.subscribe("/" + root, new HelixDataListener()
@@ -709,6 +707,7 @@ public class ZkCachedDataAccessor implements IZkListener
       }
 
     });
+
 
     System.out.println("cache: " + accessor._map);
     System.out.println("cache2: " + accessor2._map);

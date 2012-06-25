@@ -37,6 +37,7 @@ import com.linkedin.helix.ExternalViewChangeListener;
 import com.linkedin.helix.HealthStateChangeListener;
 import com.linkedin.helix.HelixAdmin;
 import com.linkedin.helix.HelixConstants.ChangeType;
+import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixException;
 import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.IdealStateChangeListener;
@@ -424,6 +425,13 @@ public class DynamicFileHelixManager implements HelixManager
   {
     // TODO Auto-generated method stub
 
+  }
+
+  @Override
+  public HelixDataAccessor getHelixDataAccessor()
+  {
+    // TODO Auto-generated method stub
+    return null;
   }
 
 }

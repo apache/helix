@@ -30,7 +30,6 @@ public class ZkBaseDataAccessor implements BaseDataAccessor
 {
   private static Logger  LOG = Logger.getLogger(ZkBaseDataAccessor.class);
 
-  final String           _root;
   private final ZkClient _zkClient;
 
   class ZkDataUpdater implements DataUpdater<ZNRecord>
@@ -54,15 +53,14 @@ public class ZkBaseDataAccessor implements BaseDataAccessor
     }
   }
 
-  public ZkBaseDataAccessor(String root, ZkClient zkClient)
+  public ZkBaseDataAccessor(ZkClient zkClient)
   {
-    _root = root;
     _zkClient = zkClient;
   }
 
   boolean checkPath(String path)
   {
-    return path.equals("/" + _root) || path.startsWith("/" + _root + "/");
+    return true;//path.equals("/" + _root) || path.startsWith("/" + _root + "/");
   }
   
   @Override
@@ -399,12 +397,6 @@ public class ZkBaseDataAccessor implements BaseDataAccessor
   }
 
   @Override
-  public String getPath(PropertyType type, String... keys)
-  {
-    return PropertyPathConfig.getPath(type, _root, keys);
-  }
-
-  @Override
   public List<String> getChildNames(String parentPath, int options)
   {
     try
@@ -531,13 +523,13 @@ public class ZkBaseDataAccessor implements BaseDataAccessor
     zkClient.setZkSerializer(new ZNRecordSerializer());
     zkClient.deleteRecursive("/TestBDA");
 
-    BaseDataAccessor accessor = new ZkBaseDataAccessor("TestBDA", zkClient);
+    BaseDataAccessor accessor = new ZkBaseDataAccessor( zkClient);
 
     // test create()
     for (int i = 0; i < 10; i++)
     {
       String msgId = "msg_" + i;
-      String path = accessor.getPath(PropertyType.MESSAGES, "host_0", msgId);
+      String path = PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_0", msgId);
       boolean succeed = accessor.create(path, new ZNRecord(msgId), Option.PERSISTENT);
       System.out.println(succeed + ":" + path);
     }
@@ -546,7 +538,7 @@ public class ZkBaseDataAccessor implements BaseDataAccessor
     for (int i = 0; i < 10; i++)
     {
       String msgId = "msg_" + i;
-      String path = accessor.getPath(PropertyType.MESSAGES, "host_0", msgId);
+      String path = PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_0", msgId);
       ZNRecord newRecord = new ZNRecord(msgId);
       newRecord.setSimpleField("key1", "value1");
       boolean succeed = accessor.set(path, newRecord, Option.PERSISTENT);
@@ -557,7 +549,7 @@ public class ZkBaseDataAccessor implements BaseDataAccessor
     for (int i = 0; i < 10; i++)
     {
       String msgId = "msg_" + i;
-      String path = accessor.getPath(PropertyType.MESSAGES, "host_0", msgId);
+      String path = PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_0", msgId);
       ZNRecord newRecord = new ZNRecord(msgId);
       newRecord.setSimpleField("key2", "value2");
       boolean succeed = accessor.update(path, newRecord, Option.PERSISTENT);
@@ -568,7 +560,7 @@ public class ZkBaseDataAccessor implements BaseDataAccessor
     for (int i = 0; i < 10; i++)
     {
       String msgId = "msg_" + i;
-      String path = accessor.getPath(PropertyType.MESSAGES, "host_0", msgId);
+      String path = PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_0", msgId);
       ZNRecord record = accessor.get(path, null, 0);
       System.out.println(record);
     }
@@ -577,7 +569,7 @@ public class ZkBaseDataAccessor implements BaseDataAccessor
     for (int i = 0; i < 10; i++)
     {
       String msgId = "msg_" + i;
-      String path = accessor.getPath(PropertyType.MESSAGES, "host_0", msgId);
+      String path = PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_0", msgId);
       boolean exists = accessor.exists(path);
       System.out.println(exists);
     }
@@ -586,7 +578,7 @@ public class ZkBaseDataAccessor implements BaseDataAccessor
     for (int i = 0; i < 10; i++)
     {
       String msgId = "msg_" + i;
-      String path = accessor.getPath(PropertyType.MESSAGES, "host_0", msgId);
+      String path = PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_0", msgId);
       Stat stat = accessor.getStat(path);
       System.out.println(stat);
     }
@@ -595,13 +587,13 @@ public class ZkBaseDataAccessor implements BaseDataAccessor
     for (int i = 0; i < 10; i++)
     {
       String msgId = "msg_" + i;
-      String path = accessor.getPath(PropertyType.MESSAGES, "host_0", msgId);
+      String path = PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_0", msgId);
       boolean success = accessor.remove(path);
       System.out.println(success);
     }
 
     // test createChildren()
-    String parentPath = accessor.getPath(PropertyType.MESSAGES, "host_1");
+    String parentPath = PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_1");
     // zkClient.createPersistent(parentPath, true);
     List<ZNRecord> records = new ArrayList<ZNRecord>();
     for (int i = 10; i < 20; i++)
@@ -613,7 +605,7 @@ public class ZkBaseDataAccessor implements BaseDataAccessor
     System.out.println(Arrays.toString(success));
 
     // test setChildren()
-    parentPath = accessor.getPath(PropertyType.MESSAGES, "host_1");
+    parentPath = PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_1");
     records = new ArrayList<ZNRecord>();
     for (int i = 10; i < 20; i++)
     {
@@ -626,7 +618,7 @@ public class ZkBaseDataAccessor implements BaseDataAccessor
     System.out.println(Arrays.toString(success));
 
     // test updateChildren()
-    parentPath = accessor.getPath(PropertyType.MESSAGES, "host_1");
+    parentPath = PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_1");
     records = new ArrayList<ZNRecord>();
     for (int i = 10; i < 20; i++)
     {
@@ -639,39 +631,39 @@ public class ZkBaseDataAccessor implements BaseDataAccessor
     System.out.println(Arrays.toString(success));
 
     // test getChildren()
-    parentPath = accessor.getPath(PropertyType.MESSAGES, "host_1");
+    parentPath = PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_1");
     records = accessor.getChildren(parentPath, 0);
     System.out.println(records);
 
     // test exists()
-    parentPath = accessor.getPath(PropertyType.MESSAGES, "host_1");
+    parentPath = PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_1");
     List<String> paths = new ArrayList<String>();
     for (int i = 10; i < 20; i++)
     {
       String msgId = "msg_" + i;
-      paths.add(accessor.getPath(PropertyType.MESSAGES, "host_1", msgId));
+      paths.add(PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_1", msgId));
     }
     boolean[] exists = accessor.exists(paths);
     System.out.println(Arrays.toString(exists));
 
     // test getStats()
-    parentPath = accessor.getPath(PropertyType.MESSAGES, "host_1");
+    parentPath = PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_1");
     paths = new ArrayList<String>();
     for (int i = 10; i < 20; i++)
     {
       String msgId = "msg_" + i;
-      paths.add(accessor.getPath(PropertyType.MESSAGES, "host_1", msgId));
+      paths.add(PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_1", msgId));
     }
     Stat[] stats = accessor.getStats(paths);
     System.out.println(Arrays.toString(stats));
 
     // test remove()
-    parentPath = accessor.getPath(PropertyType.MESSAGES, "host_1");
+    parentPath = PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_1");
     paths = new ArrayList<String>();
     for (int i = 10; i < 20; i++)
     {
       String msgId = "msg_" + i;
-      paths.add(accessor.getPath(PropertyType.MESSAGES, "host_1", msgId));
+      paths.add(PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_1", msgId));
     }
     success = accessor.remove(paths);
     System.out.println(Arrays.toString(success));

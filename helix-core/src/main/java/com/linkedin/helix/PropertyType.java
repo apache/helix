@@ -15,10 +15,12 @@
  */
 package com.linkedin.helix;
 
-import com.linkedin.helix.DataAccessor.Type;
-
+enum Type {
+  CLUSTER, INSTANCE, CONTROLLER, RESOURCE;
+}
 public enum PropertyType
 {
+  
   // @formatter:off
   // CLUSTER PROPERTIES
   CONFIGS(Type.CLUSTER, true, false, false, false, true),

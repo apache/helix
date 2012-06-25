@@ -17,7 +17,14 @@ package com.linkedin.helix;
 
 import java.util.List;
 import java.util.Map;
-
+/**
+ * Interface used to interact with Helix Data Types like IdealState, Config, LiveInstance, Message, ExternalView etc
+ * PropertyKey represent the HelixData type. 
+ * See {@link Builder} to get more information on building a propertyKey.
+ * 
+ * @author kgopalak
+ *
+ */
 public interface HelixDataAccessor
 {
   /**

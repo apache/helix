@@ -1,19 +1,19 @@
-package com.linkedin.helix.manager.zk;
+package com.linkedin.helix.store;
 
-public interface HelixDataListener
+public interface HelixPropertyListener
 {
   /**
    * 
    * @param path
    */
   void onDataChange(String path);
-  
+
   /**
    * 
    * @param path
    */
   void onDataCreate(String path);
-  
+
   /**
    * 
    * @param path

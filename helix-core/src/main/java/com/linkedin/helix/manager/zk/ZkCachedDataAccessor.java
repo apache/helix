@@ -5,14 +5,17 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.apache.log4j.Logger;
+import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.data.Stat;
 
@@ -23,6 +26,11 @@ import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.store.zk.ZNode;
 
+// TODO: ZkClient lib can't capture all NodeDelete events:
+// if we 1) delete 2)create 3)delete 4)create the same node
+// and then ZkCallbacks come
+// in @ZkClient.fireDataChangedEvents(), no DataDelete() will be fired
+// instead will fire DataChange() 4 times
 public class ZkCachedDataAccessor implements IZkListener
 {
   private static final Logger LOG = Logger.getLogger(ZkCachedDataAccessor.class);
@@ -33,6 +41,8 @@ public class ZkCachedDataAccessor implements IZkListener
   final String _root;
   final ZkBaseDataAccessor _accessor;
   final List<String> _subscribedPaths;
+
+  final Map<String, Set<HelixDataListener>> _listeners = new ConcurrentHashMap<String, Set<HelixDataListener>>();
 
   public ZkCachedDataAccessor(ZkBaseDataAccessor accessor, List<String> subscribedPaths)
   {
@@ -62,47 +72,6 @@ public class ZkCachedDataAccessor implements IZkListener
     return ret;
   }
 
-  // private boolean accept(String path)
-  // {
-  // String dir = new File(path).getParent();
-  // String name = new File(path).getName();
-  // return _filter.accept(new File(dir), name);
-  // }
-
-  // private void updateCache(String path)
-  // {
-  // if (!accept(path))
-  // {
-  // return;
-  // }
-  //
-  // try
-  // {
-  // _lock.writeLock().lock();
-  //
-  // _accessor.subscribe(path, this);
-  //
-  // Stat stat = new Stat();
-  // ZNRecord readData = _accessor.get(path, stat, 0);
-  //
-  // _map.putIfAbsent(path, new ZNode(path, readData, stat));
-  //
-  // // only update parent's child set
-  // // parent's stat will be updated by parent's childchange callback
-  // String parentDir = path.substring(0, path.lastIndexOf('/'));
-  // ZNode parent = _map.get(parentDir);
-  // if (parent != null)
-  // {
-  // parent.addChild(path.substring(path.lastIndexOf('/') + 1));
-  // }
-  // }
-  // finally
-  // {
-  // _lock.writeLock().unlock();
-  // }
-  //
-  // }
-
   void updateCacheRecursive(String path)
   {
     if (!isSubscribed(path))
@@ -112,28 +81,40 @@ public class ZkCachedDataAccessor implements IZkListener
 
     try
     {
-      Stat stat = new Stat();
       _lock.writeLock().lock();
 
       _accessor.subscribe(path, this);
 
+      // update parent's childSet
+      String parentPath = new File(path).getParent();
+      ZNode zNode = _map.get(parentPath);
+      if (zNode != null)
+      {
+        String name = new File(path).getName();
+        zNode.addChild(name);
+      }
+
+      // update this node
+      Stat stat = new Stat();
       ZNRecord readData = _accessor.get(path, stat, 0);
       if (!_map.containsKey(path))
       {
         _map.put(path, new ZNode(path, readData, stat));
+        fireListeners(path, EventType.NodeCreated);
       }
 
-      ZNode zNode = _map.get(path);
+      zNode = _map.get(path);
       zNode.setData(readData);
       zNode.setStat(stat);
 
-      List<String> children = _accessor.getChildNames(path, 0);
-      for (String child : children)
+      // recursively update children nodes
+      List<String> childNames = _accessor.getChildNames(path, 0);
+      for (String childName : childNames)
       {
-        String childPath = path + "/" + child;
-        if (!zNode.hasChild(child))
+        String childPath = path + "/" + childName;
+        if (!zNode.hasChild(childName))
         {
-          zNode.addChild(child);
+          zNode.addChild(childName);
           updateCacheRecursive(childPath);
         }
       }
@@ -146,26 +127,6 @@ public class ZkCachedDataAccessor implements IZkListener
       _lock.writeLock().unlock();
     }
   }
-
-  // private void createRecursive(String path)
-  // {
-  // try
-  // {
-  // _zkClient.create(path, null, CreateMode.PERSISTENT);
-  // updateCache(path);
-  // }
-  // catch (ZkNodeExistsException e)
-  // {
-  // // OK
-  // }
-  // catch (ZkNoNodeException e)
-  // {
-  // String parentDir = path.substring(0, path.lastIndexOf('/'));
-  // createRecursive(parentDir);
-  // createRecursive(path);
-  // }
-  //
-  // }
 
   private void updateCacheAlongPath(String path, boolean success)
   {
@@ -196,7 +157,18 @@ public class ZkCachedDataAccessor implements IZkListener
     try
     {
       _lock.writeLock().lock();
-      ZNode zNode = _map.remove(path);
+
+      // remove from parent's childSet
+      String parentPath = new File(path).getParent();
+      ZNode zNode = _map.get(parentPath);
+      if (zNode != null)
+      {
+        String name = new File(path).getName();
+        zNode.removeChild(name);
+      }
+
+      // recursively remove children nodes
+      zNode = _map.remove(path);
       if (zNode != null)
       {
         Set<String> childNames = zNode.getChild();
@@ -213,122 +185,69 @@ public class ZkCachedDataAccessor implements IZkListener
 
   }
 
-  private void purgeCahce(String path)
+  public boolean create(String path, ZNRecord record, int options)
   {
     try
     {
       _lock.writeLock().lock();
 
-      // remove from parent's childSet
-      String parentPath = new File(path).getParent();
-      String child = new File(path).getName();
-      ZNode zNode = _map.get(parentPath);
-      if (zNode != null)
-      {
-        zNode.removeChild(child);
-      }
-
-      // remove node and all children recursively
-      purgeCacheRecursive(path);
+      boolean success = _accessor.create(path, record, options);
+      updateCacheAlongPath(path, success);
+      return success;
     } finally
     {
       _lock.writeLock().unlock();
     }
-
-  }
-
-  public boolean create(String path, ZNRecord record, int options)
-  {
-    boolean success = _accessor.create(path, record, options);
-
-    // update cache
-    updateCacheAlongPath(path, success);
-
-    return success;
   }
 
   public boolean set(String path, ZNRecord record, int options)
   {
-    boolean success = _accessor.set(path, record, options);
+    try
+    {
+      _lock.writeLock().lock();
 
-    updateCacheAlongPath(path, success);
-
-    return success;
+      boolean success = _accessor.set(path, record, options);
+      updateCacheAlongPath(path, success);
+      return success;
+    } finally
+    {
+      _lock.writeLock().unlock();
+    }
   }
 
   public boolean update(String path, ZNRecord record, int options)
   {
-    boolean success = _accessor.update(path, record, options);
-    updateCacheAlongPath(path, success);
+    try
+    {
+      _lock.writeLock().lock();
 
-    return success;
+      boolean success = _accessor.update(path, record, options);
+      updateCacheAlongPath(path, success);
+      return success;
+    } finally
+    {
+      _lock.writeLock().unlock();
+    }
   }
 
   public boolean remove(String path)
   {
-    boolean success = _accessor.remove(path);
-
-    if (isSubscribed(path))
+    try
     {
-      purgeCahce(path);
+      _lock.writeLock().lock();
+
+      boolean success = _accessor.remove(path);
+      if (isSubscribed(path))
+      {
+        purgeCacheRecursive(path);
+      }
+      return success;
+    } finally
+    {
+      _lock.writeLock().unlock();
+
     }
-
-    return success;
   }
-
-  // /**
-  // * sync create parent and async create child. used internally when fail on
-  // NoNode
-  // *
-  // * @param parentPath
-  // * @param records
-  // * @param success
-  // * @param mode
-  // * @param cbList
-  // */
-  // private void createChildren(String parentPath,
-  // List<ZNRecord> records,
-  // boolean[] success,
-  // CreateMode mode,
-  // DefaultCallback[] cbList)
-  // {
-  // createRecursive(parentPath);
-  //
-  // CreateCallbackHandler[] createCbList = new
-  // CreateCallbackHandler[records.size()];
-  // for (int i = 0; i < records.size(); i++)
-  // {
-  // DefaultCallback cb = cbList[i];
-  // if (Code.get(cb.getRc()) != Code.NONODE)
-  // {
-  // continue;
-  // }
-  //
-  // ZNRecord record = records.get(i);
-  // String path = parentPath + "/" + record.getId();
-  // createCbList[i] = new CreateCallbackHandler();
-  // _zkClient.asyncCreate(path, record, mode, createCbList[i]);
-  // }
-  //
-  // for (int i = 0; i < createCbList.length; i++)
-  // {
-  // CreateCallbackHandler createCb = createCbList[i];
-  // if (createCb != null)
-  // {
-  // createCb.waitForSuccess();
-  // success[i] = (createCb.getRc() == 0);
-  // switch (Code.get(createCb.getRc()))
-  // {
-  // case OK:
-  // String path = parentPath + "/" + records.get(i).getId();
-  // updateCache(path);
-  // break;
-  // default:
-  // break;
-  // }
-  // }
-  // }
-  // }
 
   private void updateCacheAlongPath(String parentPath, List<ZNRecord> records, boolean[] success)
   {
@@ -360,44 +279,70 @@ public class ZkCachedDataAccessor implements IZkListener
 
   public boolean[] createChildren(String parentPath, List<ZNRecord> records, int options)
   {
-    boolean[] success = _accessor.createChildren(parentPath, records, options);
+    try
+    {
+      _lock.writeLock().lock();
 
-    // update cache
-    updateCacheAlongPath(parentPath, records, success);
+      boolean[] success = _accessor.createChildren(parentPath, records, options);
+      updateCacheAlongPath(parentPath, records, success);
+      return success;
+    } finally
+    {
+      _lock.writeLock().unlock();
 
-    return success;
+    }
   }
 
   public boolean[] setChildren(String parentPath, List<ZNRecord> records, int options)
   {
-    boolean[] success = _accessor.setChildren(parentPath, records, options);
+    try
+    {
+      _lock.writeLock().lock();
+      boolean[] success = _accessor.setChildren(parentPath, records, options);
+      updateCacheAlongPath(parentPath, records, success);
 
-    updateCacheAlongPath(parentPath, records, success);
-
-    return success;
+      return success;
+    } finally
+    {
+      _lock.writeLock().unlock();
+    }
   }
 
   public boolean[] updateChildren(String parentPath, List<ZNRecord> records, int options)
   {
-    boolean[] success = _accessor.updateChildren(parentPath, records, options);
+    try
+    {
+      _lock.writeLock().lock();
+      boolean[] success = _accessor.updateChildren(parentPath, records, options);
 
-    updateCacheAlongPath(parentPath, records, success);
-    return success;
+      updateCacheAlongPath(parentPath, records, success);
+      return success;
+    } finally
+    {
+      _lock.writeLock().unlock();
+    }
   }
 
   public boolean[] remove(List<String> paths)
   {
-    boolean[] success = _accessor.remove(paths);
-
-    for (String path : paths)
+    try
     {
-      if (isSubscribed(path))
-      {
-        purgeCahce(path);
-      }
-    }
+      _lock.writeLock().lock();
 
-    return success;
+      boolean[] success = _accessor.remove(paths);
+
+      for (String path : paths)
+      {
+        if (isSubscribed(path))
+        {
+          purgeCacheRecursive(path);
+        }
+      }
+      return success;
+    } finally
+    {
+      _lock.writeLock().unlock();
+    }
   }
 
   public ZNRecord get(String path, Stat stat, int options)
@@ -409,7 +354,7 @@ public class ZkCachedDataAccessor implements IZkListener
       if (zNode != null)
       {
         // TODO: shall return a deep copy instead of reference
-        record = (ZNRecord) zNode.getData();
+        record = new ZNRecord((ZNRecord) zNode.getData());
         if (stat != null)
         {
           // TODO: copy zNode.getStat() to stat
@@ -521,6 +466,81 @@ public class ZkCachedDataAccessor implements IZkListener
     }
   }
 
+  public void subscribe(String parentPath, final HelixDataListener listener)
+  {
+    synchronized (_listeners)
+    {
+      if (!isSubscribed(parentPath))
+      {
+        LOG.debug("Subscribed changes for parentPath: " + parentPath);
+        updateCacheRecursive(parentPath);
+      }
+
+      if (!_listeners.containsKey(parentPath))
+      {
+        _listeners.put(parentPath, new CopyOnWriteArraySet<HelixDataListener>());
+      }
+      Set<HelixDataListener> listenerSet = _listeners.get(parentPath);
+      listenerSet.add(listener);
+    }
+  }
+
+  public void unsubscribe(String parentPath, HelixDataListener listener)
+  {
+    synchronized (_listeners)
+    {
+      Set<HelixDataListener> listenerSet = _listeners.get(parentPath);
+      if (listenerSet != null)
+      {
+        listenerSet.remove(listener);
+        if (listenerSet.isEmpty())
+        {
+          _listeners.remove(parentPath);
+        }
+
+      }
+
+      if (!isSubscribed(parentPath))
+      {
+        LOG.debug("Unsubscribed changes for pathPrefix: " + parentPath);
+        purgeCacheRecursive(parentPath);
+      }
+    }
+  }
+
+  private void fireListeners(String path, EventType type)
+  {
+    synchronized (_listeners)
+    {
+      String tmpPath = new String(path);
+      while (tmpPath.length() >= _root.length())
+      {
+        Set<HelixDataListener> listenerSet = _listeners.get(path);
+        if (listenerSet != null)
+        {
+          for (HelixDataListener listener : listenerSet)
+          {
+            switch (type)
+            {
+            case NodeDataChanged:
+              listener.onDataChange(path);
+              break;
+            case NodeCreated:
+              listener.onDataCreate(path);
+              break;
+            case NodeDeleted:
+              listener.onDataDelete(path);
+              break;
+            default:
+              break;
+            }
+          }
+        }
+        tmpPath = new File(tmpPath).getParent();
+      }
+    }
+  }
+
   @Override
   public void handleStateChanged(KeeperState state) throws Exception
   {
@@ -551,6 +571,8 @@ public class ZkCachedDataAccessor implements IZkListener
 
         zNode.setData(readData);
         zNode.setStat(stat);
+
+        fireListeners(dataPath, EventType.NodeDataChanged);
       }
     } finally
     {
@@ -571,13 +593,15 @@ public class ZkCachedDataAccessor implements IZkListener
       String parentPath = new File(dataPath).getParent();
 
       // remove child from parent's childSet
-      // parent stat will also be changed. stat will be updated in parent's
-      // childChange
+      // parent stat will also be changed. parent's stat will be updated in
+      // parent's
+      // childChange callback
       ZNode zNode = _map.get(parentPath);
       if (zNode != null)
       {
         String child = new File(dataPath).getName();
         zNode.removeChild(child);
+        fireListeners(dataPath, EventType.NodeDeleted);
       }
     } finally
     {
@@ -596,54 +620,6 @@ public class ZkCachedDataAccessor implements IZkListener
 
     updateCacheRecursive(parentPath);
   }
-
-  // /**
-  // * Start from path and go up to _root, return true if any path is subscribed
-  // *
-  // * @param path
-  // * : path shall always start with _root
-  // * @return
-  // */
-  // boolean isSubscribed(String path)
-  // {
-  // boolean ret = false;
-  // synchronized (_subscribedPaths)
-  // {
-  // while (path.length() >= _root.length())
-  // {
-  // if (_subscribedPaths.contains(path))
-  // {
-  // ret = true;
-  // break;
-  // }
-  // path = path.substring(0, path.lastIndexOf('/'));
-  // }
-  // }
-  // return ret;
-  // }
-
-  // /**
-  // * subscribe will put the path and all its children in cache
-  // *
-  // * @param parentPath
-  // */
-  // public void subscribe(String parentPath)
-  // {
-  // synchronized (_subscribedPaths)
-  // {
-  // boolean needUpdateCache = !isSubscribed(parentPath);
-  // if (!_subscribedPaths.contains(parentPath))
-  // {
-  // _subscribedPaths.add(parentPath);
-  // }
-  //
-  // if (needUpdateCache)
-  // {
-  // LOG.debug("Subscribe for parentPath: " + parentPath);
-  // updateCacheRecursive(parentPath);
-  // }
-  // }
-  // }
 
   public static void main(String[] args) throws Exception
   {
@@ -733,6 +709,8 @@ public class ZkCachedDataAccessor implements IZkListener
     // wait for cache2 to be updated by zk callback
     Thread.sleep(500);
     System.out.println("cache2: " + accessor2._map);
+    System.out.println("cache: " + accessor._map);
+
 
     // test createChildren()
     List<ZNRecord> records = new ArrayList<ZNRecord>();

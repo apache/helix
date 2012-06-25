@@ -17,12 +17,12 @@ package com.linkedin.helix;
 
 import java.util.List;
 import java.util.Map;
-
+/**
+ * use {@link HelixDataAccessor}.
+ */
+@Deprecated
 public interface DataAccessor
 {
-  public enum Type {
-    CLUSTER, INSTANCE, CONTROLLER, RESOURCE;
-  }
 
   /**
    * Set a property, overwrite if it exists and creates if not exists

@@ -24,6 +24,7 @@ import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.ExternalViewChangeListener;
 import com.linkedin.helix.HealthStateChangeListener;
 import com.linkedin.helix.HelixAdmin;
+import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.IdealStateChangeListener;
 import com.linkedin.helix.InstanceType;
@@ -244,6 +245,13 @@ public class MockFileHelixManager implements HelixManager
   {
     // TODO Auto-generated method stub
 
+  }
+
+  @Override
+  public HelixDataAccessor getHelixDataAccessor()
+  {
+    // TODO Auto-generated method stub
+    return null;
   }
 
 }

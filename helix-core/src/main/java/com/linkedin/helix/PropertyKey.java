@@ -2,6 +2,13 @@ package com.linkedin.helix;
 
 import static com.linkedin.helix.PropertyType.*;
 
+import java.util.concurrent.TimeUnit;
+
+import com.linkedin.helix.manager.zk.ZKHelixDataAccessor;
+import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
+import com.linkedin.helix.manager.zk.ZkClient;
+import com.linkedin.helix.model.IdealState;
+
 public class PropertyKey
 {
 
@@ -14,7 +21,7 @@ public class PropertyKey
     _params = params;
   }
 
-  class Builder
+  static class Builder
   {
     private final String _clusterName;
 
@@ -43,7 +50,10 @@ public class PropertyKey
     {
       return new PropertyKey(STATEMODELDEFS, _clusterName, stateModelName);
     }
-
+    public PropertyKey clusterConfig()
+    {
+      return new PropertyKey(CONFIGS, _clusterName);
+    }
     public PropertyKey instanceConfig(String instanceName)
     {
       return new PropertyKey(CONFIGS, _clusterName, instanceName);
@@ -66,12 +76,6 @@ public class PropertyKey
 
     public PropertyKey partitionConfig(String instanceName,
         String resourceName, String partitionName)
-    {
-      return new PropertyKey(CONFIGS, _clusterName, resourceName);
-    }
-
-    public PropertyKey config(String clusterName, String resourceName,
-        String partitionName)
     {
       return new PropertyKey(CONFIGS, _clusterName, resourceName);
     }
@@ -263,6 +267,16 @@ public class PropertyKey
   public Class<? extends HelixProperty> getTypeClass()
   {
     return null;
+  }
+  public static void main(String[] args)
+  {
+    ZkClient zkClient = new ZkClient("localhost:2181");
+    zkClient.waitUntilConnected(10, TimeUnit.SECONDS);
+    BaseDataAccessor baseDataAccessor = new ZkBaseDataAccessor( zkClient);
+    HelixDataAccessor accessor = new ZKHelixDataAccessor("test-cluster", baseDataAccessor);
+    Builder builder = new PropertyKey.Builder("test-cluster");
+    HelixProperty value = new IdealState("test-resource");
+    accessor.createProperty(builder.idealStates("test-resource"), value);
   }
 
 }

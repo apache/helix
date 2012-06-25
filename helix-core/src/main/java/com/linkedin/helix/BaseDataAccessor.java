@@ -135,14 +135,6 @@ public interface BaseDataAccessor
   List<ZNRecord> getChildren(String parentPath, int options);
 
   /**
-   * 
-   * @param type
-   * @param keys
-   * @return
-   */
-  String getPath(PropertyType type, String... keys);
-
-  /**
    * Returns the child names given a parent path
    * 
    * @param type

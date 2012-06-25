@@ -315,6 +315,13 @@ public class Mocks
 
     }
 
+    @Override
+    public HelixDataAccessor getHelixDataAccessor()
+    {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
   }
 
   public static class MockAccessor implements DataAccessor

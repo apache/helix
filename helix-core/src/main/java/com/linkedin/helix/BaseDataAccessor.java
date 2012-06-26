@@ -100,7 +100,7 @@ public interface BaseDataAccessor
    * @param record
    * @return
    */
-  boolean[] updateChildren(List<String> parentPath, List<ZNRecord> records, int options);
+  boolean[] updateChildren(List<String> paths, List<ZNRecord> records, int options);
 
   /**
    * remove multiple paths using async api. will remove any child nodes if any

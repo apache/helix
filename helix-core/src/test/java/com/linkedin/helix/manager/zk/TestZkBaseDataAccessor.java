@@ -33,7 +33,7 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase
     for (int i = 0; i < 10; i++)
     {
       String msgId = "msg_" + i;
-      String path = PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_0", msgId);
+      String path = PropertyPathConfig.getPath(PropertyType.MESSAGES, root, "host_0", msgId);
       boolean success = accessor.create(path, new ZNRecord(msgId), Option.PERSISTENT);
       Assert.assertTrue(success, "Should succeed in create");
     }
@@ -42,7 +42,7 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase
     for (int i = 0; i < 10; i++)
     {
       String msgId = "msg_" + i;
-      String path = PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_0", msgId);
+      String path = PropertyPathConfig.getPath(PropertyType.MESSAGES, root, "host_0", msgId);
       ZNRecord record = zkClient.readData(path);
       Assert.assertEquals(record.getId(), msgId, "Should get what we created");
     }
@@ -51,7 +51,7 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase
     for (int i = 0; i < 10; i++)
     {
       String msgId = "msg_" + i;
-      String path = PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_0", msgId);
+      String path = PropertyPathConfig.getPath(PropertyType.MESSAGES, root, "host_0", msgId);
       ZNRecord newRecord = new ZNRecord(msgId);
       newRecord.setSimpleField("key1", "value1");
       boolean success = accessor.set(path, newRecord, Option.PERSISTENT);
@@ -62,7 +62,7 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase
     for (int i = 0; i < 10; i++)
     {
       String msgId = "msg_" + i;
-      String path = PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_0", msgId);
+      String path = PropertyPathConfig.getPath(PropertyType.MESSAGES, root, "host_0", msgId);
       ZNRecord record = zkClient.readData(path);
       Assert.assertEquals(record.getSimpleFields().size(), 1, "Should have 1 simple field set");
       Assert.assertEquals(record.getSimpleField("key1"), "value1", "Should have value1 set");
@@ -72,7 +72,7 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase
     for (int i = 0; i < 10; i++)
     {
       String msgId = "msg_" + i;
-      String path = PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_0", msgId);
+      String path = PropertyPathConfig.getPath(PropertyType.MESSAGES, root, "host_0", msgId);
       ZNRecord newRecord = new ZNRecord(msgId);
       newRecord.setSimpleField("key2", "value2");
       boolean success = accessor.update(path, newRecord, Option.PERSISTENT);
@@ -83,7 +83,7 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase
     for (int i = 0; i < 10; i++)
     {
       String msgId = "msg_" + i;
-      String path = PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_0", msgId);
+      String path = PropertyPathConfig.getPath(PropertyType.MESSAGES, root, "host_0", msgId);
       ZNRecord record = zkClient.readData(path);
       Assert.assertEquals(record.getSimpleFields().size(), 2, "Should have 2 simple fields set");
       Assert.assertEquals(record.getSimpleField("key2"), "value2", "Should have value2 set");
@@ -93,7 +93,7 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase
     for (int i = 0; i < 10; i++)
     {
       String msgId = "msg_" + i;
-      String path = PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_0", msgId);
+      String path = PropertyPathConfig.getPath(PropertyType.MESSAGES, root, "host_0", msgId);
       ZNRecord record = accessor.get(path, null, 0);
       Assert.assertEquals(record.getSimpleFields().size(), 2, "Should have 2 simple fields set");
       Assert.assertEquals(record.getSimpleField("key1"), "value1", "Should have value1 set");
@@ -104,7 +104,7 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase
     for (int i = 0; i < 10; i++)
     {
       String msgId = "msg_" + i;
-      String path = PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_0", msgId);
+      String path = PropertyPathConfig.getPath(PropertyType.MESSAGES, root, "host_0", msgId);
       boolean exists = accessor.exists(path);
       Assert.assertTrue(exists, "Should exist");
     }
@@ -113,7 +113,7 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase
     for (int i = 0; i < 10; i++)
     {
       String msgId = "msg_" + i;
-      String path = PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_0", msgId);
+      String path = PropertyPathConfig.getPath(PropertyType.MESSAGES, root, "host_0", msgId);
       Stat stat = accessor.getStat(path);
       Assert.assertNotNull(stat, "Stat should exist");
       Assert.assertEquals(stat.getVersion(), 2, "DataVersion should be 2, since we set 1 and update 1");
@@ -123,7 +123,7 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase
     for (int i = 0; i < 10; i++)
     {
       String msgId = "msg_" + i;
-      String path = PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_0", msgId);
+      String path = PropertyPathConfig.getPath(PropertyType.MESSAGES, root, "host_0", msgId);
       boolean success = accessor.remove(path);
       Assert.assertTrue(success, "Should remove");
     }
@@ -132,7 +132,7 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase
     for (int i = 0; i < 10; i++)
     {
       String msgId = "msg_" + i;
-      String path = PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_0", msgId);
+      String path = PropertyPathConfig.getPath(PropertyType.MESSAGES, root, "host_0", msgId);
       boolean exists = zkClient.exists(path);
       Assert.assertFalse(exists, "Should be removed");
     }
@@ -154,13 +154,13 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase
     BaseDataAccessor accessor = new ZkBaseDataAccessor(zkClient);
     
     // test async createChildren
-    String parentPath = PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_1");
+    String parentPath = PropertyPathConfig.getPath(PropertyType.MESSAGES, root, "host_1");
     List<ZNRecord> records = new ArrayList<ZNRecord>();
     List<String> paths = new  ArrayList<String>();
     for (int i = 0; i < 10; i++)
     {
       String msgId = "msg_" + i;
-      paths.add(PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_1",msgId));
+      paths.add(PropertyPathConfig.getPath(PropertyType.MESSAGES, root, "host_1",msgId));
       records.add(new ZNRecord(msgId));
     }
     boolean[] success = accessor.createChildren(paths, records, Option.PERSISTENT);
@@ -174,19 +174,19 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase
     for (int i = 0; i < 10; i++)
     {
       String msgId = "msg_" + i;
-      String path = PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_1", msgId);
+      String path = PropertyPathConfig.getPath(PropertyType.MESSAGES, root, "host_1", msgId);
       ZNRecord record = zkClient.readData(path);
       Assert.assertEquals(record.getId(), msgId, "Should get what we created");
     }
 
     // test async setChildren
-    parentPath = PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_1");
+    parentPath = PropertyPathConfig.getPath(PropertyType.MESSAGES, root, "host_1");
     records = new ArrayList<ZNRecord>();
     paths = new  ArrayList<String>();
     for (int i = 0; i < 10; i++)
     {
       String msgId = "msg_" + i;
-      paths.add(PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_1",msgId));
+      paths.add(PropertyPathConfig.getPath(PropertyType.MESSAGES, root, "host_1",msgId));
       ZNRecord newRecord = new ZNRecord(msgId);
       newRecord.setSimpleField("key1", "value1");
       records.add(newRecord);
@@ -202,20 +202,20 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase
     for (int i = 0; i < 10; i++)
     {
       String msgId = "msg_" + i;
-      String path = PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_1", msgId);
+      String path = PropertyPathConfig.getPath(PropertyType.MESSAGES, root, "host_1", msgId);
       ZNRecord record = zkClient.readData(path);
       Assert.assertEquals(record.getSimpleFields().size(), 1, "Should have 1 simple field set");
       Assert.assertEquals(record.getSimpleField("key1"), "value1", "Should have value1 set");
     }
     
     // test async updateChildren
-    parentPath = PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_1");
+    parentPath = PropertyPathConfig.getPath(PropertyType.MESSAGES, root, "host_1");
     records = new ArrayList<ZNRecord>();
     paths = new ArrayList<String>();
     for (int i = 0; i < 10; i++)
     {
       String msgId = "msg_" + i;
-      paths.add(PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_1",msgId));
+      paths.add(PropertyPathConfig.getPath(PropertyType.MESSAGES, root, "host_1",msgId));
       ZNRecord newRecord = new ZNRecord(msgId);
       newRecord.setSimpleField("key2", "value2");
       records.add(newRecord);
@@ -231,14 +231,14 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase
     for (int i = 0; i < 10; i++)
     {
       String msgId = "msg_" + i;
-      String path = PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_1", msgId);
+      String path = PropertyPathConfig.getPath(PropertyType.MESSAGES, root, "host_1", msgId);
       ZNRecord record = zkClient.readData(path);
       Assert.assertEquals(record.getSimpleFields().size(), 2, "Should have 2 simple fields set");
       Assert.assertEquals(record.getSimpleField("key2"), "value2", "Should have value2 set");
     }
 
     // test async getChildren
-    parentPath = PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_1");
+    parentPath = PropertyPathConfig.getPath(PropertyType.MESSAGES, root, "host_1");
     records = accessor.getChildren(parentPath, 0);
     for (int i = 0; i < 10; i++)
     {
@@ -250,12 +250,12 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase
     }
 
     // test async exists
-    parentPath = PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_1");
+    parentPath = PropertyPathConfig.getPath(PropertyType.MESSAGES, root, "host_1");
     paths = new ArrayList<String>();
     for (int i = 0; i < 10; i++)
     {
       String msgId = "msg_" + i;
-      paths.add(PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_1", msgId));
+      paths.add(PropertyPathConfig.getPath(PropertyType.MESSAGES, root, "host_1", msgId));
     }
     boolean[] exists = accessor.exists(paths);
     for (int i = 0; i < 10; i++)
@@ -265,12 +265,12 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase
     }
 
     // test async getStats
-    parentPath = PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_1");
+    parentPath = PropertyPathConfig.getPath(PropertyType.MESSAGES, root, "host_1");
     paths = new ArrayList<String>();
     for (int i = 0; i < 10; i++)
     {
       String msgId = "msg_" + i;
-      paths.add(PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_1", msgId));
+      paths.add(PropertyPathConfig.getPath(PropertyType.MESSAGES, root, "host_1", msgId));
     }
     Stat[] stats = accessor.getStats(paths);
     for (int i = 0; i < 10; i++)
@@ -281,12 +281,12 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase
     }
 
     // test async remove
-    parentPath = PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_1");
+    parentPath = PropertyPathConfig.getPath(PropertyType.MESSAGES, root, "host_1");
     paths = new ArrayList<String>();
     for (int i = 0; i < 10; i++)
     {
       String msgId = "msg_" + i;
-      paths.add(PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_1", msgId));
+      paths.add(PropertyPathConfig.getPath(PropertyType.MESSAGES, root, "host_1", msgId));
     }
     success = accessor.remove(paths);
     for (int i = 0; i < 10; i++)
@@ -299,7 +299,7 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase
     for (int i = 0; i < 10; i++)
     {
       String msgId = "msg_" + i;
-      String path = PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_1", msgId);
+      String path = PropertyPathConfig.getPath(PropertyType.MESSAGES, root, "host_1", msgId);
       boolean pathExists = zkClient.exists(path);
       Assert.assertFalse(pathExists, "Should be removed " + msgId);
     }

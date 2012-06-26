@@ -65,7 +65,7 @@ public class ClusterDataCache
   {
     Builder keyBuilder = accessor.keyBuilder();
     _idealStateMap = accessor.getChildValuesMap(keyBuilder.idealStates());
-    _liveInstanceMap = accessor.getChildValuesMap(accessor.keyBuilder().liveInstances());
+    _liveInstanceMap = accessor.getChildValuesMap(keyBuilder.liveInstances());
 
     for (LiveInstance instance : _liveInstanceMap.values())
     {

@@ -150,6 +150,13 @@ public class PropertyPathConfig
     templateMap.get(type).put(numKeys, template);
   }
 
+//  public static String getPath(PropertyType type, String... keys)
+//  {
+//    String clusterName = keys[0];
+//    String[] subKeys = Arrays.copyOfRange(keys, 1, keys.length);
+//    return getPathInternal(type, clusterName, subKeys);
+//  }
+  
   public static String getPath(PropertyType type, String clusterName, String... keys)
   {
     if (clusterName == null)

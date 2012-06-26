@@ -15,12 +15,15 @@
  */
 package com.linkedin.helix;
 
-enum Type {
+
+enum Type
+{
   CLUSTER, INSTANCE, CONTROLLER, RESOURCE;
 }
+
 public enum PropertyType
 {
-  
+
   // @formatter:off
   // CLUSTER PROPERTIES
   CONFIGS(Type.CLUSTER, true, false, false, false, true),
@@ -31,29 +34,30 @@ public enum PropertyType
   STATEMODELDEFS(Type.CLUSTER, true, false, false, false, true),
   CONTROLLER(Type.CLUSTER, true, false),
   PROPERTYSTORE(Type.CLUSTER, true, false),
-  
-  //INSTANCE PROPERTIES
+
+  // INSTANCE PROPERTIES
   MESSAGES(Type.INSTANCE, true, true, true),
-  CURRENTSTATES(Type.INSTANCE, true,true, false, false, true),
+  CURRENTSTATES(Type.INSTANCE, true, true, false, false, true),
   STATUSUPDATES(Type.INSTANCE, true, true, false, false, false, true),
   ERRORS(Type.INSTANCE, true, true),
-  HEALTHREPORT(Type.INSTANCE, true, false,false,false), 
+  HEALTHREPORT(Type.INSTANCE, true, false, false, false),
 
-  //CONTROLLER PROPERTY
+  // CONTROLLER PROPERTY
   LEADER(Type.CONTROLLER, false, false, true, true),
   HISTORY(Type.CONTROLLER, true, true, true),
   PAUSE(Type.CONTROLLER, false, false, true),
   MESSAGES_CONTROLLER(Type.CONTROLLER, true, false, true),
   STATUSUPDATES_CONTROLLER(Type.CONTROLLER, true, true, true),
-  ERRORS_CONTROLLER(Type.CONTROLLER,true, true, true),
+  ERRORS_CONTROLLER(Type.CONTROLLER, true, true, true),
   PERSISTENTSTATS(Type.CONTROLLER, true, false, false, false),
   ALERTS(Type.CONTROLLER, true, false, false, false),
   ALERT_STATUS(Type.CONTROLLER, true, false, false, false),
   ALERT_HISTORY(Type.CONTROLLER, true, false, false, false);
-  
+
   // @formatter:on
 
-  Type type;
+  Type    type;
+  
   boolean isPersistent;
 
   boolean mergeOnUpdate;
@@ -63,48 +67,66 @@ public enum PropertyType
   boolean createOnlyIfAbsent;
 
   /**
-   * "isCached" defines whether the property is cached in data accessor
-   * if data is cached, then read from zk can be optimized
+   * "isCached" defines whether the property is cached in data accessor if data is cached,
+   * then read from zk can be optimized
    */
   boolean isCached;
-  
+
   boolean isAsyncWrite;
-  
+
   private PropertyType(Type type, boolean isPersistent, boolean mergeOnUpdate)
   {
     this(type, isPersistent, mergeOnUpdate, false);
   }
 
-	private PropertyType(Type type, boolean isPersistent,
-      boolean mergeOnUpdate, boolean updateOnlyOnExists)
-	{
-	   this(type, isPersistent, mergeOnUpdate, false, false);
-	}
-
-	private PropertyType(Type type, boolean isPersistent,
-      boolean mergeOnUpdate, boolean updateOnlyOnExists, boolean createOnlyIfAbsent)
-	{
-	  this(type, isPersistent, mergeOnUpdate, updateOnlyOnExists, createOnlyIfAbsent, false);
-	}
-
-  private PropertyType(Type type, boolean isPersistent,
-      boolean mergeOnUpdate, boolean updateOnlyOnExists, boolean createOnlyIfAbsent,
-      boolean isCached)
+  private PropertyType(Type type,
+                       boolean isPersistent,
+                       boolean mergeOnUpdate,
+                       boolean updateOnlyOnExists)
   {
-    this(type, isPersistent, mergeOnUpdate, updateOnlyOnExists, createOnlyIfAbsent, isCached, false);
+    this(type, isPersistent, mergeOnUpdate, false, false);
   }
 
-	 private PropertyType(Type type, boolean isPersistent,
-	                      boolean mergeOnUpdate, boolean updateOnlyOnExists, boolean createOnlyIfAbsent,
-	                      boolean isCached, boolean isAsyncWrite)
+  private PropertyType(Type type,
+                       boolean isPersistent,
+                       boolean mergeOnUpdate,
+                       boolean updateOnlyOnExists,
+                       boolean createOnlyIfAbsent)
+  {
+    this(type, isPersistent, mergeOnUpdate, updateOnlyOnExists, createOnlyIfAbsent, false);
+  }
+
+  private PropertyType(Type type,
+                       boolean isPersistent,
+                       boolean mergeOnUpdate,
+                       boolean updateOnlyOnExists,
+                       boolean createOnlyIfAbsent,
+                       boolean isCached)
+  {
+    this(type,
+         isPersistent,
+         mergeOnUpdate,
+         updateOnlyOnExists,
+         createOnlyIfAbsent,
+         isCached,
+         false);
+  }
+
+  private PropertyType(Type type,
+                       boolean isPersistent,
+                       boolean mergeOnUpdate,
+                       boolean updateOnlyOnExists,
+                       boolean createOnlyIfAbsent,
+                       boolean isCached,
+                       boolean isAsyncWrite)
   {
     this.type = type;
     this.isPersistent = isPersistent;
     this.mergeOnUpdate = mergeOnUpdate;
     this.updateOnlyOnExists = updateOnlyOnExists;
-	this.createOnlyIfAbsent = createOnlyIfAbsent;
-	this.isCached = isCached;
-	this.isAsyncWrite = isAsyncWrite;
+    this.createOnlyIfAbsent = createOnlyIfAbsent;
+    this.isCached = isCached;
+    this.isAsyncWrite = isAsyncWrite;
   }
 
   public boolean isCreateOnlyIfAbsent()
@@ -161,9 +183,10 @@ public enum PropertyType
   {
     return isCached;
   }
-  
+
   public boolean isAsyncWrite()
   {
     return isAsyncWrite;
   }
+
 }

@@ -35,7 +35,6 @@ import com.linkedin.helix.ConfigAccessor;
 import com.linkedin.helix.ConfigScope;
 import com.linkedin.helix.ConfigScopeBuilder;
 import com.linkedin.helix.PropertyType;
-import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.TestHelper.StartCMResult;
 import com.linkedin.helix.manager.zk.ZKDataAccessor;
 import com.linkedin.helix.manager.zk.ZNRecordSerializer;
@@ -53,7 +52,7 @@ public class ZkIntegrationTestBase
   protected static ClusterSetup _gSetupTool;
 
 
-  public static final String ZK_ADDR = "localhost:2183";
+  public static final String ZK_ADDR = "localhost:2191";    // "localhost:2183";
   protected static final String CLUSTER_PREFIX = "CLUSTER";
   protected static final String CONTROLLER_CLUSTER_PREFIX = "CONTROLLER_CLUSTER";
 
@@ -63,8 +62,8 @@ public class ZkIntegrationTestBase
   @BeforeSuite
   public void beforeSuite() throws Exception
   {
-    _zkServer = TestHelper.startZkSever(ZK_ADDR);
-    AssertJUnit.assertTrue(_zkServer != null);
+//    _zkServer = TestHelper.startZkSever(ZK_ADDR);
+//    AssertJUnit.assertTrue(_zkServer != null);
     ZKClientPool.reset();
 
     _gZkClient = new ZkClient(ZK_ADDR);
@@ -76,7 +75,7 @@ public class ZkIntegrationTestBase
   public void afterSuite()
   {
     ZKClientPool.reset();
-    TestHelper.stopZkServer(_zkServer);
+//    TestHelper.stopZkServer(_zkServer);
     _gZkClient.close();
   }
 

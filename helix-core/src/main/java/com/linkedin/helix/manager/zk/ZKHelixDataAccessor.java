@@ -16,7 +16,6 @@ import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.model.ExternalView;
 
 public class ZKHelixDataAccessor implements HelixDataAccessor
 {
@@ -117,8 +116,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor
       PropertyKey key)
   {
     PropertyType type = key.getType();
-    String parentPath = PropertyPathConfig.getPath(type, _clusterName,
-        key.getParams());
+    String parentPath = key.getPath();
     int options = constructOptions(type);
     List<ZNRecord> children = _baseDataAccessor
         .getChildren(parentPath, options);
@@ -179,8 +177,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor
     {
       PropertyKey key = keys.get(i);
       PropertyType type = key.getType();
-      String path = PropertyPathConfig.getPath(type, _clusterName,
-          key.getParams());
+      String path = key.getPath();
       paths.add(path);
       HelixProperty value = children.get(i);
       records.add(value.getRecord());
@@ -200,8 +197,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor
     {
       PropertyKey key = keys.get(i);
       PropertyType type = key.getType();
-      String path = PropertyPathConfig.getPath(type, _clusterName,
-          key.getParams());
+      String path = key.getPath();
       paths.add(path);
       HelixProperty value = children.get(i);
       records.add(value.getRecord());

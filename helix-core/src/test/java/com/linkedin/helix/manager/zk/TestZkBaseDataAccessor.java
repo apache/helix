@@ -156,12 +156,14 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase
     // test async createChildren
     String parentPath = PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_1");
     List<ZNRecord> records = new ArrayList<ZNRecord>();
+    List<String> paths = new  ArrayList<String>();
     for (int i = 0; i < 10; i++)
     {
       String msgId = "msg_" + i;
+      paths.add(PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_1",msgId));
       records.add(new ZNRecord(msgId));
     }
-    boolean[] success = accessor.createChildren(parentPath, records, Option.PERSISTENT);
+    boolean[] success = accessor.createChildren(paths, records, Option.PERSISTENT);
     for (int i = 0; i < 10; i++)
     {
       String msgId = "msg_" + i;
@@ -180,14 +182,16 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase
     // test async setChildren
     parentPath = PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_1");
     records = new ArrayList<ZNRecord>();
+    paths = new  ArrayList<String>();
     for (int i = 0; i < 10; i++)
     {
       String msgId = "msg_" + i;
+      paths.add(PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_1",msgId));
       ZNRecord newRecord = new ZNRecord(msgId);
       newRecord.setSimpleField("key1", "value1");
       records.add(newRecord);
     }
-    success = accessor.setChildren(parentPath, records, Option.PERSISTENT);
+    success = accessor.setChildren(paths, records, Option.PERSISTENT);
     for (int i = 0; i < 10; i++)
     {
       String msgId = "msg_" + i;
@@ -207,14 +211,16 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase
     // test async updateChildren
     parentPath = PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_1");
     records = new ArrayList<ZNRecord>();
+    paths = new ArrayList<String>();
     for (int i = 0; i < 10; i++)
     {
       String msgId = "msg_" + i;
+      paths.add(PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_1",msgId));
       ZNRecord newRecord = new ZNRecord(msgId);
       newRecord.setSimpleField("key2", "value2");
       records.add(newRecord);
     }
-    success = accessor.updateChildren(parentPath, records, Option.PERSISTENT);
+    success = accessor.updateChildren(paths, records, Option.PERSISTENT);
     for (int i = 0; i < 10; i++)
     {
       String msgId = "msg_" + i;
@@ -245,7 +251,7 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase
 
     // test async exists
     parentPath = PropertyPathConfig.getPath(PropertyType.MESSAGES, "host_1");
-    List<String> paths = new ArrayList<String>();
+    paths = new ArrayList<String>();
     for (int i = 0; i < 10; i++)
     {
       String msgId = "msg_" + i;

@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.model.AlertStatus;
 import com.linkedin.helix.model.Alerts;
@@ -99,6 +100,12 @@ public class HealthDataCache
   public Map<String, LiveInstance> getLiveInstances()
   {
     return _liveInstanceMap;
+  }
+
+  public void refresh(HelixDataAccessor accessor)
+  {
+    // TODO Auto-generated method stub
+    
   }
 
 }

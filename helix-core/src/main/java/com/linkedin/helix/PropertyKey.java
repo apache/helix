@@ -4,6 +4,7 @@ import static com.linkedin.helix.PropertyType.*;
 
 import java.util.concurrent.TimeUnit;
 
+import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
 import com.linkedin.helix.manager.zk.ZKHelixDataAccessor;
 import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
 import com.linkedin.helix.manager.zk.ZkClient;
@@ -14,21 +15,25 @@ public class PropertyKey
 
   public PropertyType _type;
   private String[] _params;
-
-  PropertyKey(PropertyType type, String... params)
+  public PropertyKey(PropertyType type, String... params)
   {
     _type = type;
     _params = params;
   }
-
-  static class Builder
+  
+  @Override
+  public int hashCode()
+  {
+    return super.hashCode();
+  }
+  
+  public static class Builder
   {
     private final String _clusterName;
 
-    Builder(String clusterName)
+    public Builder(String clusterName)
     {
       _clusterName = clusterName;
-
     }
 
     public PropertyKey idealStates()
@@ -50,10 +55,18 @@ public class PropertyKey
     {
       return new PropertyKey(STATEMODELDEFS, _clusterName, stateModelName);
     }
+
     public PropertyKey clusterConfig()
     {
       return new PropertyKey(CONFIGS, _clusterName);
     }
+
+    public PropertyKey instanceConfigs()
+    {
+      return new PropertyKey(CONFIGS, _clusterName,
+          ConfigScopeProperty.PARTICIPANT.toString());
+    }
+
     public PropertyKey instanceConfig(String instanceName)
     {
       return new PropertyKey(CONFIGS, _clusterName, instanceName);
@@ -78,6 +91,12 @@ public class PropertyKey
         String resourceName, String partitionName)
     {
       return new PropertyKey(CONFIGS, _clusterName, resourceName);
+    }
+
+    public PropertyKey constraints()
+    {
+      return new PropertyKey(CONFIGS, _clusterName,
+          ConfigScopeProperty.CONSTRAINT.toString());
     }
 
     public PropertyKey liveInstances()
@@ -108,6 +127,11 @@ public class PropertyKey
     public PropertyKey sessions(String instanceName)
     {
       return new PropertyKey(CURRENTSTATES, _clusterName, instanceName);
+    }
+
+    public PropertyKey currentStates(String instanceName, String sessionId)
+    {
+      return new PropertyKey(CONFIGS, _clusterName, instanceName, sessionId);
     }
 
     public PropertyKey currentState(String instanceName, String sessionId,
@@ -214,8 +238,8 @@ public class PropertyKey
     public PropertyKey controllerTaskStatus(String instanceName,
         String sessionId, String msgType, String msgId)
     {
-      return new PropertyKey(STATUSUPDATES_CONTROLLER, _clusterName, instanceName,
-          sessionId, msgType, msgId);
+      return new PropertyKey(STATUSUPDATES_CONTROLLER, _clusterName,
+          instanceName, sessionId, msgType, msgId);
     }
 
     public PropertyKey controllerLeaderHistory()
@@ -252,6 +276,7 @@ public class PropertyKey
     {
       return new PropertyKey(ALERT_HISTORY, _clusterName);
     }
+
   }
 
   public PropertyType getType()
@@ -268,12 +293,14 @@ public class PropertyKey
   {
     return null;
   }
+
   public static void main(String[] args)
   {
     ZkClient zkClient = new ZkClient("localhost:2181");
     zkClient.waitUntilConnected(10, TimeUnit.SECONDS);
-    BaseDataAccessor baseDataAccessor = new ZkBaseDataAccessor( zkClient);
-    HelixDataAccessor accessor = new ZKHelixDataAccessor("test-cluster", baseDataAccessor);
+    BaseDataAccessor baseDataAccessor = new ZkBaseDataAccessor(zkClient);
+    HelixDataAccessor accessor = new ZKHelixDataAccessor("test-cluster",
+        baseDataAccessor);
     Builder builder = new PropertyKey.Builder("test-cluster");
     HelixProperty value = new IdealState("test-resource");
     accessor.createProperty(builder.idealStates("test-resource"), value);

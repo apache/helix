@@ -23,10 +23,9 @@ import java.util.Set;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
-import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.HelixConstants.StateModelToken;
-import com.linkedin.helix.PropertyType;
+import com.linkedin.helix.HelixDataAccessor;
+import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.model.ClusterConstraints;
 import com.linkedin.helix.model.ClusterConstraints.ConstraintType;
 import com.linkedin.helix.model.CurrentState;
@@ -62,28 +61,26 @@ public class ClusterDataCache
 
   private static final Logger LOG = Logger.getLogger(ClusterDataCache.class.getName());
 
-  public boolean refresh(DataAccessor accessor)
+  public boolean refresh(HelixDataAccessor accessor)
   {
-    _idealStateMap = accessor.getChildValuesMap(IdealState.class, PropertyType.IDEALSTATES);
-    _liveInstanceMap = accessor.getChildValuesMap(LiveInstance.class, PropertyType.LIVEINSTANCES);
+    Builder keyBuilder = accessor.keyBuilder();
+    _idealStateMap = accessor.getChildValuesMap(keyBuilder.idealStates());
+    _liveInstanceMap = accessor.getChildValuesMap(accessor.keyBuilder().liveInstances());
 
     for (LiveInstance instance : _liveInstanceMap.values())
     {
       LOG.trace("live instance: " + instance.getInstanceName() + " " + instance.getSessionId());
     }
 
-    _stateModelDefMap = accessor.getChildValuesMap(StateModelDefinition.class,
-        PropertyType.STATEMODELDEFS);
-    _instanceConfigMap = accessor.getChildValuesMap(InstanceConfig.class, PropertyType.CONFIGS,
-        ConfigScopeProperty.PARTICIPANT.toString());
-    _constraintMap = accessor.getChildValuesMap(ClusterConstraints.class, PropertyType.CONFIGS,
-                                                ConfigScopeProperty.CONSTRAINT.toString());
+    _stateModelDefMap = accessor.getChildValuesMap(keyBuilder.stateModelDefs());
+    _instanceConfigMap = accessor.getChildValuesMap(keyBuilder.instanceConfigs());
+    _constraintMap = accessor.getChildValuesMap(keyBuilder.constraints());
 
     Map<String, Map<String, Message>> msgMap = new HashMap<String, Map<String, Message>>();
     for (String instanceName : _liveInstanceMap.keySet())
     {
-      msgMap.put(instanceName,
-          accessor.getChildValuesMap(Message.class, PropertyType.MESSAGES, instanceName));
+      Map<String, Message> map = accessor.getChildValuesMap(keyBuilder.messages(instanceName));
+      msgMap.put(instanceName,map);
     }
     _messageMap = Collections.unmodifiableMap(msgMap);
 
@@ -97,8 +94,8 @@ public class ClusterDataCache
         allCurStateMap.put(instanceName, new HashMap<String, Map<String, CurrentState>>());
       }
       Map<String, Map<String, CurrentState>> curStateMap = allCurStateMap.get(instanceName);
-      curStateMap.put(sessionId, accessor.getChildValuesMap(CurrentState.class,
-          PropertyType.CURRENTSTATES, instanceName, sessionId));
+      Map<String, CurrentState> map = accessor.getChildValuesMap(keyBuilder.currentStates(instanceName, sessionId));
+      curStateMap.put(sessionId, map);
     }
 
     for (String instance : allCurStateMap.keySet())
@@ -106,19 +103,6 @@ public class ClusterDataCache
       allCurStateMap.put(instance, Collections.unmodifiableMap(allCurStateMap.get(instance)));
     }
     _currentStateMap = Collections.unmodifiableMap(allCurStateMap);
-
-//    Map<String, Map<String, HealthStat>> hsMap = new HashMap<String, Map<String, HealthStat>>();
-//    for (String instanceName : _liveInstanceMap.keySet())
-//    {
-//      // xxx clearly getting znodes for the instance here...so get the
-//      // timestamp!
-//      hsMap.put(instanceName,
-//          accessor.getChildValuesMap(HealthStat.class, PropertyType.HEALTHREPORT, instanceName));
-//    }
-//    _healthStatMap = Collections.unmodifiableMap(hsMap);
-//    _persistentStats = accessor.getProperty(PersistentStats.class, PropertyType.PERSISTENTSTATS);
-//    _alerts = accessor.getProperty(Alerts.class, PropertyType.ALERTS);
-//    _alertStatus = accessor.getProperty(AlertStatus.class, PropertyType.ALERT_STATUS);
 
     return true;
   }

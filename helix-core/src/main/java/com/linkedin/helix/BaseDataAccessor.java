@@ -81,7 +81,7 @@ public interface BaseDataAccessor
    * @param record
    * @return
    */
-  boolean[] createChildren(String parentPath, List<ZNRecord> records, int options);
+  boolean[] createChildren(List<String> paths, List<ZNRecord> records, int options);
 
   /**
    * can set multiple children under a parent node. This will use async api for better
@@ -90,7 +90,7 @@ public interface BaseDataAccessor
    * @param parentPath
    * @param record
    */
-  boolean[] setChildren(String parentPath, List<ZNRecord> records, int options);
+  boolean[] setChildren(List<String> paths, List<ZNRecord> records, int options);
 
   /**
    * Can update multiple nodes using async api for better performance. If a child does not
@@ -100,7 +100,7 @@ public interface BaseDataAccessor
    * @param record
    * @return
    */
-  boolean[] updateChildren(String parentPath, List<ZNRecord> records, int options);
+  boolean[] updateChildren(List<String> parentPath, List<ZNRecord> records, int options);
 
   /**
    * remove multiple paths using async api. will remove any child nodes if any

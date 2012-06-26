@@ -17,13 +17,16 @@ package com.linkedin.helix;
 
 import java.util.List;
 import java.util.Map;
+
+import com.linkedin.helix.model.ExternalView;
+
 /**
- * Interface used to interact with Helix Data Types like IdealState, Config, LiveInstance, Message, ExternalView etc
- * PropertyKey represent the HelixData type. 
- * See {@link Builder} to get more information on building a propertyKey.
+ * Interface used to interact with Helix Data Types like IdealState, Config,
+ * LiveInstance, Message, ExternalView etc PropertyKey represent the HelixData
+ * type. See {@link Builder} to get more information on building a propertyKey.
  * 
  * @author kgopalak
- *
+ * 
  */
 public interface HelixDataAccessor
 {
@@ -36,7 +39,7 @@ public interface HelixDataAccessor
    *         failed to create
    */
 
-  boolean createProperty(PropertyKey key, HelixProperty value);
+  <T extends HelixProperty> boolean createProperty(PropertyKey key, T value);
 
   /**
    * Set a property, overwrite if it exists and creates if not exists. This api
@@ -48,7 +51,7 @@ public interface HelixDataAccessor
    * @param value
    * @true if the operation was successful
    */
-  boolean setProperty(PropertyKey key, HelixProperty value);
+  <T extends HelixProperty> boolean setProperty(PropertyKey key, T value);
 
   /**
    * Updates a property using newvalue.merge(oldvalue)
@@ -57,7 +60,7 @@ public interface HelixDataAccessor
    * @param value
    * @return true if the update was successful
    */
-  boolean updateProperty(PropertyKey key, HelixProperty value);
+  <T extends HelixProperty> boolean updateProperty(PropertyKey key, T value);
 
   /**
    * Return the property value, it must be refer to a single Helix Property. i.e
@@ -66,7 +69,7 @@ public interface HelixDataAccessor
    * @param key
    * @return value, Null if absent or on error
    */
-  HelixProperty getProperty(PropertyKey key);
+  <T extends HelixProperty> T getProperty(PropertyKey key);
 
   /**
    * Removes the property
@@ -93,15 +96,45 @@ public interface HelixDataAccessor
    * @param type
    * @return subPropertyValues
    */
-  List<HelixProperty> getChildValues(PropertyKey key);
+  <T extends HelixProperty> List<T> getChildValues(PropertyKey key);
 
   /**
    * Same as getChildValues except that it converts list into a map using the id
    * of the HelixProperty
+   * 
    * @param key
    * @return
    */
 
-  Map<String, HelixProperty> getChildValuesMap(PropertyKey key);
+  <T extends HelixProperty> Map<String, T> getChildValuesMap(PropertyKey key);
 
+  /**
+   * Adds multiple children to a parent.
+   * 
+   * @param key
+   * @param children
+   * @return
+   */
+  <T extends HelixProperty> boolean[] createChildren(List<PropertyKey> keys,
+      List<T> children);
+
+  /**
+   * Sets multiple children under one parent
+   * 
+   * @param externalViews
+   * @param views
+   */
+  <T extends HelixProperty> boolean[] setChildren(List<PropertyKey> keys, List<T> children);
+
+  /**
+   * 
+   * @return
+   */
+  PropertyKey.Builder keyBuilder();
+
+  /**
+   * 
+   * @return
+   */
+  BaseDataAccessor getBaseDataAccessor();
 }

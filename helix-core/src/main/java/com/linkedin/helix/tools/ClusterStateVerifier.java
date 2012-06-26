@@ -38,6 +38,8 @@ import org.apache.log4j.Logger;
 
 import com.linkedin.helix.ClusterView;
 import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixDataAccessor;
+import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
@@ -51,7 +53,10 @@ import com.linkedin.helix.controller.stages.ClusterEvent;
 import com.linkedin.helix.controller.stages.CurrentStateComputationStage;
 import com.linkedin.helix.controller.stages.ResourceComputationStage;
 import com.linkedin.helix.manager.file.FileDataAccessor;
+import com.linkedin.helix.manager.file.FileHelixDataAccessor;
 import com.linkedin.helix.manager.zk.ZKDataAccessor;
+import com.linkedin.helix.manager.zk.ZKHelixDataAccessor;
+import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
 import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.IdealState;
@@ -170,7 +175,7 @@ public class ClusterStateVerifier
     {
       try
       {
-        DataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
+        HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(zkClient));
 
         return ClusterStateVerifier.verifyBestPossAndExtView(accessor, errStates);
       }
@@ -238,7 +243,7 @@ public class ClusterStateVerifier
     {
       try
       {
-        DataAccessor accessor = new FileDataAccessor(fileStore, clusterName);
+        HelixDataAccessor accessor = new FileHelixDataAccessor(fileStore, clusterName);
 
         return ClusterStateVerifier.verifyBestPossAndExtView(accessor, errStates);
       }
@@ -309,11 +314,12 @@ public class ClusterStateVerifier
 
   }
 
-  static boolean verifyBestPossAndExtView(DataAccessor accessor,
+  static boolean verifyBestPossAndExtView(HelixDataAccessor accessor,
                                           Map<String, Map<String, String>> errStates)
   {
     try
     {
+      Builder keyBuilder = accessor.keyBuilder();
       // read cluster once and do verification
       ClusterDataCache cache = new ClusterDataCache();
       cache.refresh(accessor);
@@ -326,7 +332,7 @@ public class ClusterStateVerifier
       }
 
       Map<String, ExternalView> extViews =
-          accessor.getChildValuesMap(ExternalView.class, PropertyType.EXTERNALVIEW);
+          accessor.getChildValuesMap(keyBuilder.externalViews());
       if (extViews == null || extViews.isEmpty())
       {
         LOG.info("No externalViews");

@@ -15,16 +15,22 @@
  */
 package com.linkedin.helix.controller.stages;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.BaseDataAccessor;
+import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixManager;
+import com.linkedin.helix.PropertyKey;
+import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.controller.pipeline.AbstractBaseStage;
 import com.linkedin.helix.controller.pipeline.StageException;
+import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
 import com.linkedin.helix.model.Message;
 import com.linkedin.helix.model.Partition;
 import com.linkedin.helix.model.Resource;
@@ -39,49 +45,49 @@ public class TaskAssignmentStage extends AbstractBaseStage
     HelixManager manager = event.getAttribute("helixmanager");
     Map<String, Resource> resourceMap = event
         .getAttribute(AttributeName.RESOURCES.toString());
-//    MessageSelectionStageOutput messageOutput = event
-//        .getAttribute(AttributeName.MESSAGES_SELECTED.toString());
+    // MessageSelectionStageOutput messageOutput = event
+    // .getAttribute(AttributeName.MESSAGES_SELECTED.toString());
     MessageThrottleStageOutput messageOutput = event
         .getAttribute(AttributeName.MESSAGES_THROTTLE.toString());
 
-
-    if (manager == null || resourceMap == null
-        || messageOutput == null)
+    if (manager == null || resourceMap == null || messageOutput == null)
     {
       throw new StageException("Missing attributes in event:" + event
           + ". Requires HelixManager|RESOURCES|MESSAGES_THROTTLE");
     }
 
-    DataAccessor dataAccessor = manager.getDataAccessor();
+    HelixDataAccessor dataAccessor = manager.getHelixDataAccessor();
+    List<Message> messagesToSend = new ArrayList<Message>();
     for (String resourceName : resourceMap.keySet())
     {
       Resource resource = resourceMap.get(resourceName);
       for (Partition partition : resource.getPartitions())
       {
-        List<Message> messages = messageOutput.getMessages(
-            resourceName, partition);
-        sendMessages(dataAccessor, messages);
+        List<Message> messages = messageOutput.getMessages(resourceName,
+            partition);
+        messagesToSend.addAll(messages);
       }
     }
+    sendMessages(dataAccessor, messagesToSend);
   }
 
-  protected void sendMessages(DataAccessor dataAccessor,
+  protected void sendMessages(HelixDataAccessor dataAccessor,
       List<Message> messages)
   {
     if (messages == null || messages.size() == 0)
     {
       return;
     }
-
+    Builder keyBuilder = dataAccessor.keyBuilder();
+    List<PropertyKey> keys = new ArrayList<PropertyKey>();
     for (Message message : messages)
     {
-      logger.info("Sending message to " + message.getTgtName()
-          + " transition " + message.getPartitionName() + " from:"
-          + message.getFromState() + " to:" + message.getToState());
-      dataAccessor.setProperty(PropertyType.MESSAGES,
-                               message,
-                               message.getTgtName(),
-                               message.getId());
+      logger.info("Sending message to " + message.getTgtName() + " transition "
+          + message.getPartitionName() + " from:" + message.getFromState()
+          + " to:" + message.getToState());
+      keys.add(keyBuilder.message(message.getTgtName(),message.getId()));
     }
+    dataAccessor.createChildren(keys, messages);
+    
   }
 }

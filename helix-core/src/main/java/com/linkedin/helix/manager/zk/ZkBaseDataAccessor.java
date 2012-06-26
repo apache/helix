@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 
 import org.I0Itec.zkclient.DataUpdater;
@@ -58,21 +59,10 @@ public class ZkBaseDataAccessor implements BaseDataAccessor
     _zkClient = zkClient;
   }
 
-  boolean checkPath(String path)
-  {
-    return true;// path.equals("/" + _root) || path.startsWith("/" + _root +
-                // "/");
-  }
 
   @Override
   public boolean create(String path, ZNRecord record, int options)
   {
-    if (!checkPath(path))
-    {
-      LOG.error("invalid path. path: " + path);
-      return false;
-    }
-
     CreateMode mode = Option.getMode(options);
     if (mode == null)
     {
@@ -388,8 +378,21 @@ public class ZkBaseDataAccessor implements BaseDataAccessor
         String path = parentPath + "/" + childName;
         paths.add(path);
       }
-      return get(paths, options);
-    } catch (ZkNoNodeException e)
+//remove null children
+List<ZNRecord> records = get(paths, options);
+Iterator<ZNRecord> iter = records.iterator();
+while (iter.hasNext())
+{
+  if (iter.next() == null)
+  {
+    iter.remove();
+  }
+}
+return records;
+}
+      
+      
+    catch (ZkNoNodeException e)
     {
       return Collections.emptyList();
     }

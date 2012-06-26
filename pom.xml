@@ -145,7 +145,7 @@
     <version>1.9.0</version>
     <configuration>
         <header>${basedir}/header.txt</header>
-        <failIfMissing>true</failIfMissing>
+        <failIfMissing>false</failIfMissing>
         <aggregate>true</aggregate>
         <properties>
             <owner>LinkedIn Inc</owner>

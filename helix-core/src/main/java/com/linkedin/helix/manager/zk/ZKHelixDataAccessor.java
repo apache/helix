@@ -64,6 +64,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor
     return _baseDataAccessor.update(path, value.getRecord(), options);
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   public <T extends HelixProperty> T getProperty(PropertyKey key)
   {
@@ -72,7 +73,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor
         key.getParams());
     int options = constructOptions(type);
     ZNRecord record = _baseDataAccessor.get(path, null, options);
-    return (T) createPropertyObject(key.getTypeClass(), record);
+    return (T) HelixProperty.convertToTypedInstance(key.getTypeClass(), record);
   }
 
   @Override
@@ -106,7 +107,8 @@ public class ZKHelixDataAccessor implements HelixDataAccessor
     List<HelixProperty> childValues = new ArrayList<HelixProperty>();
     for (ZNRecord record : children)
     {
-      childValues.add(createPropertyObject(key.getTypeClass(), record));
+      HelixProperty typedInstance = HelixProperty.convertToTypedInstance(key.getTypeClass(), record);
+      childValues.add(typedInstance);
     }
     return childValues;
   }
@@ -123,7 +125,8 @@ public class ZKHelixDataAccessor implements HelixDataAccessor
     Map<String, T> childValuesMap = new HashMap<String, T>();
     for (ZNRecord record : children)
     {
-      T t = createPropertyObject(key.getTypeClass(), record);
+      @SuppressWarnings("unchecked")
+      T t = (T) HelixProperty.convertToTypedInstance(key.getTypeClass(), record);
       childValuesMap.put(record.getId(), t);
     }
     return childValuesMap;
@@ -146,24 +149,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor
       options = options | BaseDataAccessor.Option.EPHEMERAL;
     }
     return options;
-  }
-
-  private <T extends HelixProperty> T createPropertyObject(
-      Class<? extends HelixProperty> clazz, ZNRecord record)
-  {
-    try
-    {
-      Constructor<? extends HelixProperty> constructor = clazz
-          .getConstructor(ZNRecord.class);
-      HelixProperty property = constructor.newInstance(record);
-      return (T) property;
-    } catch (Exception e)
-    {
-      LOG.error("Exception creating helix property instance:" + e.getMessage(),
-          e);
-    }
-    return null;
-  }
+  } 
 
   @Override
   public <T extends HelixProperty> boolean[] createChildren(

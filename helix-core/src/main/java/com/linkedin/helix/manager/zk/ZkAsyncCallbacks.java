@@ -126,7 +126,7 @@ public class ZkAsyncCallbacks
     {
       if (rc != 0)
       {
-        LOG.error("error in async. rc: " + Code.get(rc) + ", path: " + path);
+        LOG.error("error in async. rc: " + this + "" + Code.get(rc) + ", path: " + path);
       }
       _rc = rc;
       handle();

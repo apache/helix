@@ -22,8 +22,9 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixManager;
+import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.alerts.AlertProcessor;
@@ -36,8 +37,10 @@ import com.linkedin.helix.controller.pipeline.AbstractBaseStage;
 import com.linkedin.helix.controller.pipeline.StageContext;
 import com.linkedin.helix.controller.pipeline.StageException;
 import com.linkedin.helix.healthcheck.StatHealthReportProvider;
+import com.linkedin.helix.model.AlertHistory;
 import com.linkedin.helix.model.HealthStat;
 import com.linkedin.helix.model.LiveInstance;
+import com.linkedin.helix.model.PersistentStats;
 import com.linkedin.helix.monitoring.mbeans.ClusterAlertMBeanCollection;
 
 /**
@@ -99,8 +102,11 @@ public class StatsAggregationStage extends AbstractBaseStage
       record.setMapFields(partitionReport);
     }
 
-    DataAccessor accessor = manager.getDataAccessor();
-    boolean retVal = accessor.setProperty(PropertyType.PERSISTENTSTATS, record);
+//    DataAccessor accessor = manager.getDataAccessor();
+    HelixDataAccessor accessor = manager.getHelixDataAccessor();
+//    boolean retVal = accessor.setProperty(PropertyType.PERSISTENTSTATS, record);
+    Builder keyBuilder = accessor.keyBuilder();
+    boolean retVal = accessor.setProperty(keyBuilder.persistantStat(), new PersistentStats(record));
     if (retVal == false)
     {
       logger.error("attempt to persist derived stats failed");
@@ -281,7 +287,10 @@ public class StatsAggregationStage extends AbstractBaseStage
       SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd-hh:mm:ss:SSS");
       String date = dateFormat.format(new Date());
       
-      ZNRecord alertFiredHistory = manager.getDataAccessor().getProperty(PropertyType.ALERT_HISTORY);
+      HelixDataAccessor accessor = manager.getHelixDataAccessor();
+      Builder keyBuilder = accessor.keyBuilder();
+//      ZNRecord alertFiredHistory = manager.getDataAccessor().getProperty(PropertyType.ALERT_HISTORY);
+      ZNRecord alertFiredHistory = accessor.getProperty(keyBuilder.alertHistory()).getRecord();
       if(alertFiredHistory == null)
       {
         alertFiredHistory = new ZNRecord(PropertyType.ALERT_HISTORY.toString());
@@ -293,7 +302,8 @@ public class StatsAggregationStage extends AbstractBaseStage
         alertFiredHistory.getMapFields().remove(firstKey);
       }
       alertFiredHistory.setMapField(date, delta);
-      manager.getDataAccessor().setProperty(PropertyType.ALERT_HISTORY, alertFiredHistory);
+//      manager.getDataAccessor().setProperty(PropertyType.ALERT_HISTORY, alertFiredHistory);
+      accessor.setProperty(keyBuilder.alertHistory(), new AlertHistory(alertFiredHistory));
       _alertBeanCollection.setAlertHistory(alertFiredHistory);
     }
   }

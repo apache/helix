@@ -31,12 +31,12 @@ import com.linkedin.helix.ConfigAccessor;
 import com.linkedin.helix.ConfigChangeListener;
 import com.linkedin.helix.ControllerChangeListener;
 import com.linkedin.helix.CurrentStateChangeListener;
-import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.ExternalViewChangeListener;
 import com.linkedin.helix.HealthStateChangeListener;
 import com.linkedin.helix.HelixAdmin;
 import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixManager;
+import com.linkedin.helix.HelixProperty;
 import com.linkedin.helix.IdealStateChangeListener;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.LiveInstanceChangeListener;
@@ -44,7 +44,6 @@ import com.linkedin.helix.MessageListener;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.HelixProperty;
 import com.linkedin.helix.healthcheck.ParticipantHealthReportCollector;
 import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.model.InstanceConfig.InstanceConfigProperty;
@@ -303,11 +302,11 @@ public class StaticFileHelixManager implements HelixManager
         "addExternalViewChangeListener() is NOT supported by File Based cluster manager");
   }
 
-  @Override
-  public DataAccessor getDataAccessor()
-  {
-    return null;
-  }
+//  @Override
+//  public DataAccessor getDataAccessor()
+//  {
+//    return null;
+//  }
 
   @Override
   public String getClusterName()

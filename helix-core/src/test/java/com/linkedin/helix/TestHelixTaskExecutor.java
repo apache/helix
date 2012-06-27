@@ -21,6 +21,7 @@ import org.testng.annotations.Test;
 import com.linkedin.helix.Mocks.MockHelixTaskExecutor;
 import com.linkedin.helix.Mocks.MockManager;
 import com.linkedin.helix.Mocks.MockStateModel;
+import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.messaging.handling.AsyncCallbackService;
 import com.linkedin.helix.messaging.handling.HelixStateTransitionHandler;
 import com.linkedin.helix.model.CurrentState;
@@ -50,17 +51,19 @@ public class TestHelixTaskExecutor
     message.setStateModelDef("MasterSlave");
    
     MockManager manager = new MockManager("clusterName");
-    DataAccessor accessor = manager.getDataAccessor();
+//    DataAccessor accessor = manager.getDataAccessor();
+    HelixDataAccessor accessor = manager.getHelixDataAccessor();
     StateModelConfigGenerator generator = new StateModelConfigGenerator();
     StateModelDefinition stateModelDef = new StateModelDefinition(generator.generateConfigForMasterSlave());
-    accessor.setProperty(PropertyType.STATEMODELDEFS, stateModelDef, "MasterSlave");
+    Builder keyBuilder = accessor.keyBuilder();
+    accessor.setProperty(keyBuilder.stateModelDef("MasterSlave"), stateModelDef);
     
     MockHelixTaskExecutor executor = new MockHelixTaskExecutor();
     MockStateModel stateModel = new MockStateModel();
     NotificationContext context;
     executor.registerMessageHandlerFactory(
         MessageType.TASK_REPLY.toString(), new AsyncCallbackService());
-    String clusterName =" testcluster";
+//    String clusterName =" testcluster";
     context = new NotificationContext(manager);
     CurrentState currentStateDelta = new CurrentState("TestDB");
     currentStateDelta.setState("TestDB_0", "OFFLINE");

@@ -67,7 +67,7 @@ public class ZkStandAloneCMTestBase extends ZkIntegrationTestBase
   @BeforeClass
   public void beforeClass() throws Exception
   {
-    // Logger.getRootLogger().setLevel(Level.INFO);
+//    Logger.getRootLogger().setLevel(Level.INFO);
     System.out.println("START " + CLASS_NAME + " at "
         + new Date(System.currentTimeMillis()));
 

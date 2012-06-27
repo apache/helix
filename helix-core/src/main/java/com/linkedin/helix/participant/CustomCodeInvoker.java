@@ -19,14 +19,14 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.DataAccessor;
-import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.ConfigChangeListener;
 import com.linkedin.helix.ExternalViewChangeListener;
+import com.linkedin.helix.HelixDataAccessor;
+import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.LiveInstanceChangeListener;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.NotificationContext.Type;
-import com.linkedin.helix.PropertyType;
+import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.model.CurrentState;
 import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.InstanceConfig;
@@ -56,14 +56,17 @@ public class CustomCodeInvoker implements LiveInstanceChangeListener, ConfigChan
       if (context.getType() == Type.CALLBACK)
       {
         HelixManager manager = context.getManager();
-        DataAccessor accessor = manager.getDataAccessor();
+//        DataAccessor accessor = manager.getDataAccessor();
+        HelixDataAccessor accessor = manager.getHelixDataAccessor();
+        Builder keyBuilder = accessor.keyBuilder();
+        
         String instance = manager.getInstanceName();
         String sessionId = manager.getSessionId();
         
         // get resource name from partition key: "PARTICIPANT_LEADER_XXX_0"
         String resourceName = _partitionKey.substring(0, _partitionKey.lastIndexOf('_'));
-        CurrentState curState = accessor.getProperty(CurrentState.class,
-            PropertyType.CURRENTSTATES, instance, sessionId, resourceName);
+        
+        CurrentState curState = accessor.getProperty(keyBuilder.currentState(instance, sessionId, resourceName));
         if (curState == null)
         {
           return;

@@ -45,7 +45,6 @@ import com.linkedin.helix.ConfigChangeListener;
 import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
 import com.linkedin.helix.ControllerChangeListener;
 import com.linkedin.helix.CurrentStateChangeListener;
-import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.ExternalViewChangeListener;
 import com.linkedin.helix.HealthStateChangeListener;
 import com.linkedin.helix.HelixAdmin;
@@ -306,12 +305,12 @@ public class ZKHelixManager implements HelixManager
     addListener(callbackHandler);
   }
 
-  @Override
-  public DataAccessor getDataAccessor()
-  {
-    checkConnected();
-    return _accessor;
-  }
+//  @Override
+//  public DataAccessor getDataAccessor()
+//  {
+//    checkConnected();
+//    return _accessor;
+//  }
   @Override
   public HelixDataAccessor getHelixDataAccessor()
   {

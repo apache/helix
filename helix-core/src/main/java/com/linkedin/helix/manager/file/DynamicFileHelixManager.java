@@ -32,7 +32,6 @@ import com.linkedin.helix.ConfigChangeListener;
 import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
 import com.linkedin.helix.ControllerChangeListener;
 import com.linkedin.helix.CurrentStateChangeListener;
-import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.ExternalViewChangeListener;
 import com.linkedin.helix.HealthStateChangeListener;
 import com.linkedin.helix.HelixAdmin;
@@ -180,11 +179,11 @@ public class DynamicFileHelixManager implements HelixManager
         "addExternalViewChangeListener() is NOT supported by File Based cluster manager");
   }
 
-  @Override
-  public DataAccessor getDataAccessor()
-  {
-    return _fileDataAccessor;
-  }
+//  @Override
+//  public DataAccessor getDataAccessor()
+//  {
+//    return _fileDataAccessor;
+//  }
 
   @Override
   public String getClusterName()

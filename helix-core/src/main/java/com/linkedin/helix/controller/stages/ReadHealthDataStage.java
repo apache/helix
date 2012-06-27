@@ -17,7 +17,7 @@ package com.linkedin.helix.controller.stages;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.controller.pipeline.AbstractBaseStage;
 import com.linkedin.helix.controller.pipeline.StageException;
@@ -42,8 +42,9 @@ public class ReadHealthDataStage extends AbstractBaseStage
     {
       throw new StageException("HelixManager attribute value is null");
     }
-    DataAccessor dataAccessor = manager.getDataAccessor();
-    _cache.refresh(dataAccessor);
+    // DataAccessor dataAccessor = manager.getDataAccessor();
+    HelixDataAccessor accessor = manager.getHelixDataAccessor();
+    _cache.refresh(accessor);
 
     event.addAttribute("HealthDataCache", _cache);
 
@@ -51,3 +52,4 @@ public class ReadHealthDataStage extends AbstractBaseStage
     addLatencyToMonitor(event, processLatency);
   }
 }
+

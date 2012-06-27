@@ -40,6 +40,7 @@ public class ClusterEvent
       logger.trace("Adding attribute:" + attrName);
       logger.trace(" attribute value:" + attrValue);
     }
+   
     _eventAttributeMap.put(attrName, attrValue);
   }
 

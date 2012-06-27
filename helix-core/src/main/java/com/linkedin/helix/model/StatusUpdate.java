@@ -16,13 +16,14 @@
 package com.linkedin.helix.model;
 
 import com.linkedin.helix.HelixProperty;
+import com.linkedin.helix.ZNRecord;
 
 public class StatusUpdate extends HelixProperty
 {
 
-  public StatusUpdate(String id)
+  public StatusUpdate(ZNRecord record)
   {
-    super(id);
+    super(record);
     // TODO Auto-generated constructor stub
   }
 

@@ -1,11 +1,11 @@
 package com.linkedin.helix.manager.zk;
 
-import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.apache.log4j.Logger;
 
 import com.linkedin.helix.BaseDataAccessor;
@@ -13,7 +13,6 @@ import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixProperty;
 import com.linkedin.helix.PropertyKey;
 import com.linkedin.helix.PropertyKey.Builder;
-import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 
@@ -37,8 +36,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor
       T value)
   {
     PropertyType type = key.getType();
-    String path = PropertyPathConfig.getPath(type, _clusterName,
-        key.getParams());
+    String path = key.getPath();
     int options = constructOptions(type);
     return _baseDataAccessor.create(path, value.getRecord(), options);
   }
@@ -47,8 +45,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor
   public <T extends HelixProperty> boolean setProperty(PropertyKey key, T value)
   {
     PropertyType type = key.getType();
-    String path = PropertyPathConfig.getPath(type, _clusterName,
-        key.getParams());
+    String path = key.getPath();
     int options = constructOptions(type);
     return _baseDataAccessor.set(path, value.getRecord(), options);
   }
@@ -58,8 +55,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor
       T value)
   {
     PropertyType type = key.getType();
-    String path = PropertyPathConfig.getPath(type, _clusterName,
-        key.getParams());
+    String path = key.getPath();
     int options = constructOptions(type);
     return _baseDataAccessor.update(path, value.getRecord(), options);
   }
@@ -69,10 +65,16 @@ public class ZKHelixDataAccessor implements HelixDataAccessor
   public <T extends HelixProperty> T getProperty(PropertyKey key)
   {
     PropertyType type = key.getType();
-    String path = PropertyPathConfig.getPath(type, _clusterName,
-        key.getParams());
+    String path = key.getPath();
     int options = constructOptions(type);
-    ZNRecord record = _baseDataAccessor.get(path, null, options);
+    ZNRecord record = null;
+    try
+    {
+      record = _baseDataAccessor.get(path, null, options);
+    } catch (ZkNoNodeException e)
+    {
+      // OK
+    }
     return (T) HelixProperty.convertToTypedInstance(key.getTypeClass(), record);
   }
 
@@ -80,8 +82,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor
   public boolean removeProperty(PropertyKey key)
   {
     PropertyType type = key.getType();
-    String path = PropertyPathConfig.getPath(type, _clusterName,
-        key.getParams());
+    String path = key.getPath();
     return _baseDataAccessor.remove(path);
   }
 
@@ -89,8 +90,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor
   public List<String> getChildNames(PropertyKey key)
   {
     PropertyType type = key.getType();
-    String parentPath = PropertyPathConfig.getPath(type, _clusterName,
-        key.getParams());
+    String parentPath = key.getPath();
     int options = constructOptions(type);
     return _baseDataAccessor.getChildNames(parentPath, options);
   }
@@ -99,8 +99,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor
   public List<HelixProperty> getChildValues(PropertyKey key)
   {
     PropertyType type = key.getType();
-    String parentPath = PropertyPathConfig.getPath(type, _clusterName,
-        key.getParams());
+    String parentPath = key.getPath();
     int options = constructOptions(type);
     List<ZNRecord> children = _baseDataAccessor
         .getChildren(parentPath, options);

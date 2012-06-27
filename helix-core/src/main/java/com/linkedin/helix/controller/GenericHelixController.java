@@ -25,16 +25,16 @@ import org.apache.log4j.Logger;
 import com.linkedin.helix.ConfigChangeListener;
 import com.linkedin.helix.ControllerChangeListener;
 import com.linkedin.helix.CurrentStateChangeListener;
-import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.ExternalViewChangeListener;
 import com.linkedin.helix.HealthStateChangeListener;
+import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.IdealStateChangeListener;
 import com.linkedin.helix.LiveInstanceChangeListener;
 import com.linkedin.helix.MessageListener;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.NotificationContext.Type;
-import com.linkedin.helix.PropertyType;
+import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.controller.pipeline.Pipeline;
 import com.linkedin.helix.controller.pipeline.PipelineRegistry;
 import com.linkedin.helix.controller.stages.BestPossibleStateCalcStage;
@@ -388,11 +388,13 @@ public class GenericHelixController implements
   public void onControllerChange(NotificationContext changeContext)
   {
     logger.info("START: GenericClusterController.onControllerChange()");
-    DataAccessor dataAccessor = changeContext.getManager().getDataAccessor();
+//    DataAccessor dataAccessor = changeContext.getManager().getDataAccessor();
+    HelixDataAccessor accessor = changeContext.getManager().getHelixDataAccessor();
 
     // double check if this controller is the leader
+    Builder keyBuilder = accessor.keyBuilder();
     LiveInstance leader =
-        dataAccessor.getProperty(LiveInstance.class, PropertyType.LEADER);
+        accessor.getProperty(keyBuilder.controllerLeader());
     if (leader == null)
     {
       logger.warn("No controller exists for cluster:"
@@ -412,8 +414,7 @@ public class GenericHelixController implements
       }
     }
 
-    PauseSignal pauseSignal =
-        dataAccessor.getProperty(PauseSignal.class, PropertyType.PAUSE);
+    PauseSignal pauseSignal = accessor.getProperty(keyBuilder.pause());
     if (pauseSignal != null)
     {
       _paused = true;

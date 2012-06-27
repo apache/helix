@@ -23,6 +23,7 @@ import org.testng.annotations.Test;
 import com.linkedin.helix.Mocks.MockManager;
 import com.linkedin.helix.Mocks.MockStateModel;
 import com.linkedin.helix.Mocks.MockStateModelAnnotated;
+import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.messaging.handling.HelixStateTransitionHandler;
 import com.linkedin.helix.messaging.handling.HelixTask;
 import com.linkedin.helix.messaging.handling.HelixTaskExecutor;
@@ -54,11 +55,13 @@ public class TestHelixTaskHandler
     MockStateModel stateModel = new MockStateModel();
     NotificationContext context;
     MockManager manager = new MockManager("clusterName");
-    DataAccessor accessor = manager.getDataAccessor();
+//    DataAccessor accessor = manager.getDataAccessor();
+    HelixDataAccessor accessor = manager.getHelixDataAccessor();
     StateModelConfigGenerator generator = new StateModelConfigGenerator();
     StateModelDefinition stateModelDef = new StateModelDefinition(
         generator.generateConfigForMasterSlave());
-    accessor.setProperty(PropertyType.STATEMODELDEFS, stateModelDef, "MasterSlave");
+    Builder keyBuilder = accessor.keyBuilder();
+    accessor.setProperty(keyBuilder.stateModelDef("MasterSlave"), stateModelDef);
 
     context = new NotificationContext(manager);
     CurrentState currentStateDelta = new CurrentState("TestDB");
@@ -95,11 +98,16 @@ public class TestHelixTaskHandler
     NotificationContext context;
 
     MockManager manager = new MockManager("clusterName");
-    DataAccessor accessor = manager.getDataAccessor();
+//    DataAccessor accessor = manager.getDataAccessor();
+    HelixDataAccessor accessor = manager.getHelixDataAccessor();
+
     StateModelConfigGenerator generator = new StateModelConfigGenerator();
     StateModelDefinition stateModelDef = new StateModelDefinition(
         generator.generateConfigForMasterSlave());
-    accessor.setProperty(PropertyType.STATEMODELDEFS, stateModelDef, "MasterSlave");
+//    accessor.setProperty(PropertyType.STATEMODELDEFS, stateModelDef, "MasterSlave");
+    Builder keyBuilder = accessor.keyBuilder();
+    accessor.setProperty(keyBuilder.stateModelDef("MasterSlave"), stateModelDef);
+
 
     context = new NotificationContext(manager);
     

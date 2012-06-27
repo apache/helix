@@ -128,6 +128,22 @@ public abstract class HelixProperty
     return decorators;
   }
 
+  public static <T extends HelixProperty> List<ZNRecord> convertToList(List<T> typedInstances)
+  {
+    if (typedInstances == null)
+    {
+      return Collections.emptyList();
+    }
+    
+    List<ZNRecord> records = new ArrayList<ZNRecord>();
+    for (T typedInstance : typedInstances)
+    {
+      records.add(typedInstance.getRecord());
+    }
+    
+    return records;
+  }
+  
   public abstract boolean isValid();
 
   @Override

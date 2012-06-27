@@ -8,11 +8,13 @@ import static com.linkedin.helix.PropertyType.CURRENTSTATES;
 import static com.linkedin.helix.PropertyType.ERRORS;
 import static com.linkedin.helix.PropertyType.ERRORS_CONTROLLER;
 import static com.linkedin.helix.PropertyType.EXTERNALVIEW;
+import static com.linkedin.helix.PropertyType.HEALTHREPORT;
 import static com.linkedin.helix.PropertyType.HISTORY;
 import static com.linkedin.helix.PropertyType.IDEALSTATES;
 import static com.linkedin.helix.PropertyType.LEADER;
 import static com.linkedin.helix.PropertyType.LIVEINSTANCES;
 import static com.linkedin.helix.PropertyType.MESSAGES;
+import static com.linkedin.helix.PropertyType.MESSAGES_CONTROLLER;
 import static com.linkedin.helix.PropertyType.PAUSE;
 import static com.linkedin.helix.PropertyType.PERSISTENTSTATS;
 import static com.linkedin.helix.PropertyType.STATEMODELDEFS;
@@ -26,14 +28,23 @@ import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
 import com.linkedin.helix.manager.zk.ZKHelixDataAccessor;
 import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
 import com.linkedin.helix.manager.zk.ZkClient;
+import com.linkedin.helix.model.AlertHistory;
+import com.linkedin.helix.model.AlertStatus;
+import com.linkedin.helix.model.Alerts;
 import com.linkedin.helix.model.ClusterConstraints;
 import com.linkedin.helix.model.CurrentState;
+import com.linkedin.helix.model.Error;
 import com.linkedin.helix.model.ExternalView;
+import com.linkedin.helix.model.HealthStat;
 import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.model.InstanceConfig;
+import com.linkedin.helix.model.LeaderHistory;
 import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.model.Message;
+import com.linkedin.helix.model.PauseSignal;
+import com.linkedin.helix.model.PersistentStats;
 import com.linkedin.helix.model.StateModelDefinition;
+import com.linkedin.helix.model.StatusUpdate;
 
 public class PropertyKey
 {
@@ -209,7 +220,7 @@ public class PropertyKey
                                              String partitionName)
     {
       return new PropertyKey(STATUSUPDATES,
-                             null,
+                             StatusUpdate.class,
                              _clusterName,
                              instanceName,
                              sessionId,
@@ -231,7 +242,7 @@ public class PropertyKey
                                   String msgId)
     {
       return new PropertyKey(STATUSUPDATES,
-                             null,
+                             StatusUpdate.class,
                              _clusterName,
                              instanceName,
                              sessionId,
@@ -244,7 +255,7 @@ public class PropertyKey
                                             String resourceName,
                                             String partitionName)
     {
-      return new PropertyKey(ERRORS, null, _clusterName, instanceName, sessionId, partitionName);
+      return new PropertyKey(ERRORS, Error.class, _clusterName, instanceName, sessionId, partitionName);
     }
 
     /**
@@ -302,7 +313,7 @@ public class PropertyKey
                                            String msgId)
     {
       return new PropertyKey(ERRORS_CONTROLLER,
-                             null,
+                             Error.class,
                              _clusterName,
                              instanceName,
                              sessionId,
@@ -316,7 +327,7 @@ public class PropertyKey
                                             String msgId)
     {
       return new PropertyKey(STATUSUPDATES_CONTROLLER,
-                             null,
+                             StatusUpdate.class,
                              _clusterName,
                              instanceName,
                              sessionId,
@@ -324,9 +335,19 @@ public class PropertyKey
                              msgId);
     }
 
+    public PropertyKey controllerMessages()
+    {
+      return new PropertyKey(MESSAGES_CONTROLLER, Message.class, _clusterName);
+    }
+    
+    public PropertyKey controllerMessage(String msgId)
+    {
+      return new PropertyKey(MESSAGES_CONTROLLER, Message.class, _clusterName, msgId);
+    }
+    
     public PropertyKey controllerLeaderHistory()
     {
-      return new PropertyKey(HISTORY, null, _clusterName);
+      return new PropertyKey(HISTORY, LeaderHistory.class, _clusterName);
     }
 
     public PropertyKey controllerLeader()
@@ -336,27 +357,37 @@ public class PropertyKey
 
     public PropertyKey pause()
     {
-      return new PropertyKey(PAUSE, null, _clusterName);
+      return new PropertyKey(PAUSE, PauseSignal.class, _clusterName);
     }
 
     public PropertyKey persistantStat()
     {
-      return new PropertyKey(PERSISTENTSTATS, null, _clusterName);
+      return new PropertyKey(PERSISTENTSTATS, PersistentStats.class, _clusterName);
     }
 
     public PropertyKey alerts()
     {
-      return new PropertyKey(ALERTS, null, _clusterName);
+      return new PropertyKey(ALERTS, Alerts.class, _clusterName);
     }
 
     public PropertyKey alertStatus()
     {
-      return new PropertyKey(ALERT_STATUS, null, _clusterName);
+      return new PropertyKey(ALERT_STATUS, AlertStatus.class, _clusterName);
     }
 
     public PropertyKey alertHistory()
     {
-      return new PropertyKey(ALERT_HISTORY, null, _clusterName);
+      return new PropertyKey(ALERT_HISTORY, AlertHistory.class, _clusterName);
+    }
+
+    public PropertyKey healthReport(String instanceName, String id)
+    {
+      return new PropertyKey(HEALTHREPORT, HealthStat.class, _clusterName, instanceName, id);
+    }
+    
+    public PropertyKey healthReports(String instanceName)
+    {
+      return new PropertyKey(HEALTHREPORT, HealthStat.class, _clusterName, instanceName);
     }
 
   }

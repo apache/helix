@@ -25,8 +25,9 @@ import org.apache.zookeeper.data.Stat;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.SerializationConfig;
 
-import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
+import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixManager;
+import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.manager.zk.ZNRecordSerializer;
@@ -61,8 +62,10 @@ public class ZKPathDataDumpTask extends TimerTask
     logger.trace("Scannning status updates ...");
     try
     {
-      List<String> instances = _manager.getDataAccessor().getChildNames(PropertyType.CONFIGS,
-          ConfigScopeProperty.PARTICIPANT.toString());
+      HelixDataAccessor accessor = _manager.getHelixDataAccessor();
+      Builder keyBuilder = accessor.keyBuilder();
+
+      List<String> instances = accessor.getChildNames(keyBuilder.instanceConfigs());
       for (String instanceName : instances)
       {
         scanPath(HelixUtil.getInstancePropertyPath(_manager.getClusterName(), instanceName,

@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Future;
 
+import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.healthcheck.HealthReportProvider;
 import com.linkedin.helix.healthcheck.ParticipantHealthReportCollector;
 import com.linkedin.helix.messaging.AsyncCallback;
@@ -166,11 +167,11 @@ public class Mocks
 
     }
 
-    @Override
-    public DataAccessor getDataAccessor()
-    {
-      return accessor;
-    }
+//    @Override
+//    public DataAccessor getDataAccessor()
+//    {
+//      return accessor;
+//    }
 
     @Override
     public String getClusterName()
@@ -324,7 +325,7 @@ public class Mocks
 
   }
 
-  public static class MockAccessor implements DataAccessor
+  public static class MockAccessor implements HelixDataAccessor // DataAccessor
   {
     private final String _clusterName;
     Map<String, ZNRecord> data = new HashMap<String, ZNRecord>();
@@ -342,29 +343,35 @@ public class Mocks
     Map<String, ZNRecord> map = new HashMap<String, ZNRecord>();
 
     @Override
-    public boolean setProperty(PropertyType type, HelixProperty value, String... keys)
+//    public boolean setProperty(PropertyType type, HelixProperty value, String... keys)
+    public boolean setProperty(PropertyKey key, HelixProperty value)
     {
-      return setProperty(type, value.getRecord(), keys);
-    }
-
-    @Override
-    public boolean setProperty(PropertyType type, ZNRecord value, String... keys)
-    {
-      String path = PropertyPathConfig.getPath(type, _clusterName, keys);
-      data.put(path, value);
+//      return setProperty(type, value.getRecord(), keys);
+      String path = key.getPath();
+      data.put(path, value.getRecord());
       return true;
     }
 
-    @Override
-    public boolean updateProperty(PropertyType type, HelixProperty value, String... keys)
-    {
-      return updateProperty(type, value.getRecord(), keys);
-    }
+//    @Override
+//    public boolean setProperty(PropertyType type, ZNRecord value, String... keys)
+//    {
+//      String path = PropertyPathConfig.getPath(type, _clusterName, keys);
+//      data.put(path, value);
+//      return true;
+//    }
+
+//    @Override
+//    public boolean updateProperty(PropertyType type, HelixProperty value, String... keys)
+//    {
+//      return updateProperty(type, value.getRecord(), keys);
+//    }
 
     @Override
-    public boolean updateProperty(PropertyType type, ZNRecord value, String... keys)
+    public <T extends HelixProperty> boolean updateProperty(PropertyKey key, T value)
     {
-      String path = PropertyPathConfig.getPath(type, _clusterName, keys);
+      // String path = PropertyPathConfig.getPath(type, _clusterName, keys);
+      String path = key.getPath();
+      PropertyType type = key.getType();
       if (type.updateOnlyOnExists)
       {
         if (data.containsKey(path))
@@ -372,11 +379,11 @@ public class Mocks
           if (type.mergeOnUpdate)
           {
             ZNRecord znRecord = new ZNRecord(data.get(path));
-            znRecord.merge(value);
+            znRecord.merge(value.getRecord());
             data.put(path, znRecord);
           } else
           {
-            data.put(path, value);
+            data.put(path, value.getRecord());
           }
         }
       } else
@@ -386,53 +393,58 @@ public class Mocks
           if (data.containsKey(path))
           {
             ZNRecord znRecord = new ZNRecord(data.get(path));
-            znRecord.merge(value);
+            znRecord.merge(value.getRecord());
             data.put(path, znRecord);
           } else
           {
-            data.put(path, value);
+            data.put(path, value.getRecord());
           }
         } else
         {
-          data.put(path, value);
+          data.put(path, value.getRecord());
         }
       }
 
       return true;
     }
 
+//    @Override
+//    public <T extends HelixProperty> T getProperty(Class<T> clazz, PropertyType type,
+//        String... keys)
+//    {
+//      ZNRecord record = getProperty(type, keys);
+//      if (record == null)
+//      {
+//        return null;
+//      }
+//      return HelixProperty.convertToTypedInstance(clazz, record);
+//    }
+
+    @SuppressWarnings("unchecked")
     @Override
-    public <T extends HelixProperty> T getProperty(Class<T> clazz, PropertyType type,
-        String... keys)
+    public <T extends HelixProperty> T getProperty(PropertyKey key)
+//    public ZNRecord getProperty(PropertyType type, String... keys)
     {
-      ZNRecord record = getProperty(type, keys);
-      if (record == null)
-      {
-        return null;
-      }
-      return HelixProperty.convertToTypedInstance(clazz, record);
+      // String path = PropertyPathConfig.getPath(type, _clusterName, keys);
+      String path = key.getPath();
+      return (T) HelixProperty.convertToTypedInstance(key.getTypeClass(), data.get(path));
     }
 
     @Override
-    public ZNRecord getProperty(PropertyType type, String... keys)
+    public boolean removeProperty(PropertyKey key)
+//    public boolean removeProperty(PropertyType type, String... keys)
     {
-      String path = PropertyPathConfig.getPath(type, _clusterName, keys);
-      return data.get(path);
-    }
-
-    @Override
-    public boolean removeProperty(PropertyType type, String... keys)
-    {
-      String path = PropertyPathConfig.getPath(type, _clusterName, keys);
+      String path = key.getPath();  // PropertyPathConfig.getPath(type, _clusterName, keys);
       data.remove(path);
       return true;
     }
 
     @Override
-    public List<String> getChildNames(PropertyType type, String... keys)
+    public List<String> getChildNames(PropertyKey propertyKey)
+//    public List<String> getChildNames(PropertyType type, String... keys)
     {
       List<String> child = new ArrayList<String>();
-      String path = PropertyPathConfig.getPath(type, _clusterName, keys);
+      String path = propertyKey.getPath();  // PropertyPathConfig.getPath(type, _clusterName, keys);
       for (String key : data.keySet())
       {
         if (key.startsWith(path))
@@ -448,19 +460,21 @@ public class Mocks
       return child;
     }
 
-    @Override
-    public <T extends HelixProperty> List<T> getChildValues(Class<T> clazz, PropertyType type,
-        String... keys)
-    {
-      List<ZNRecord> list = getChildValues(type, keys);
-      return HelixProperty.convertToTypedList(clazz, list);
-    }
+//    @Override
+//    public <T extends HelixProperty> List<T> getChildValues(Class<T> clazz, PropertyType type,
+//        String... keys)
+//    {
+//      List<ZNRecord> list = getChildValues(type, keys);
+//      return HelixProperty.convertToTypedList(clazz, list);
+//    }
 
+    @SuppressWarnings("unchecked")
     @Override
-    public List<ZNRecord> getChildValues(PropertyType type, String... keys)
+    public <T extends HelixProperty> List<T> getChildValues(PropertyKey propertyKey)
+//    public List<ZNRecord> getChildValues(PropertyType type, String... keys)
     {
       List<ZNRecord> childs = new ArrayList<ZNRecord>();
-      String path = PropertyPathConfig.getPath(type, _clusterName, keys);
+      String path = propertyKey.getPath();  // PropertyPathConfig.getPath(type, _clusterName, keys);
       for (String key : data.keySet())
       {
         if (key.startsWith(path))
@@ -481,15 +495,53 @@ public class Mocks
           }
         }
       }
-      return childs;
+      return (List<T>) HelixProperty.convertToTypedList(propertyKey.getTypeClass(), childs);
     }
 
     @Override
-    public <T extends HelixProperty> Map<String, T> getChildValuesMap(Class<T> clazz,
-        PropertyType type, String... keys)
+    public <T extends HelixProperty> Map<String, T> getChildValuesMap(PropertyKey key)
+//    public <T extends HelixProperty> Map<String, T> getChildValuesMap(Class<T> clazz,
+//       PropertyType type, String... keys)
     {
-      List<T> list = getChildValues(clazz, type, keys);
+      List<T> list = getChildValues(key);
       return HelixProperty.convertListToMap(list);
+    }
+
+    @Override
+    public <T extends HelixProperty> boolean createProperty(PropertyKey key, T value)
+    {
+      // TODO Auto-generated method stub
+      return false;
+    }
+
+    @Override
+    public <T extends HelixProperty> boolean[] createChildren(List<PropertyKey> keys,
+                                                              List<T> children)
+    {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    @Override
+    public <T extends HelixProperty> boolean[] setChildren(List<PropertyKey> keys,
+                                                           List<T> children)
+    {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    @Override
+    public Builder keyBuilder()
+    {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    @Override
+    public BaseDataAccessor getBaseDataAccessor()
+    {
+      // TODO Auto-generated method stub
+      return null;
     }
   }
 

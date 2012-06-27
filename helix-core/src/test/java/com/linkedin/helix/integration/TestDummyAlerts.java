@@ -20,9 +20,10 @@ import java.util.Date;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.NotificationContext;
+import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.ZNRecord;
@@ -30,6 +31,7 @@ import com.linkedin.helix.controller.HelixControllerMain;
 import com.linkedin.helix.manager.zk.ZKDataAccessor;
 import com.linkedin.helix.mock.storage.MockParticipant;
 import com.linkedin.helix.mock.storage.MockTransition;
+import com.linkedin.helix.model.HealthStat;
 import com.linkedin.helix.model.Message;
 import com.linkedin.helix.tools.ClusterSetup;
 import com.linkedin.helix.tools.ClusterStateVerifier;
@@ -44,7 +46,9 @@ public class TestDummyAlerts extends ZkIntegrationTestBase
     public void doTransition(Message message, NotificationContext context)
     {
       HelixManager manager = context.getManager();
-      DataAccessor accessor = manager.getDataAccessor();
+      HelixDataAccessor accessor = manager.getHelixDataAccessor();
+      Builder keyBuilder = accessor.keyBuilder();
+      
       String fromState = message.getFromState();
       String toState = message.getToState();
       String instance = message.getTgtName();
@@ -55,10 +59,8 @@ public class TestDummyAlerts extends ZkIntegrationTestBase
         for (int i = 0; i < 5; i++)
         {
           // System.out.println(instance + " sets healthReport: " + "mockAlerts" + i);
-          accessor.setProperty(PropertyType.HEALTHREPORT,
-                               new ZNRecord("mockAlerts" + i),
-                               instance,
-                               "mockAlerts");
+          accessor.setProperty(keyBuilder.healthReport(instance, "mockAlerts"),
+                               new HealthStat(new ZNRecord("mockAlerts" + i)));
           try
           {
             Thread.sleep(1000);

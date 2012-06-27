@@ -136,7 +136,7 @@ public class DistClusterControllerElection implements ControllerChangeListener
       // TODO: this session id is not the leader's session id in distributed mode
       leader.setSessionId(manager.getSessionId());
       leader.setHelixVersion(manager.getVersion());
-      boolean success = accessor.setProperty(keyBuilder.controllerLeader(), leader);
+      boolean success = accessor.createProperty(keyBuilder.controllerLeader(), leader);
       if (success)
       {
         return true;

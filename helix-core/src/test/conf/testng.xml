@@ -28,8 +28,6 @@
       <package name="com.linkedin.helix.store.zk"/>
       <package name="com.linkedin.helix.messaging"/>
       <package name="com.linkedin.helix.controller.stages"/>
-      -->
-     
       <package name="com.linkedin.helix.store.file"/>
       <package name="com.linkedin.helix.store"/>
       <package name="com.linkedin.helix.monitoring.mbeans"/>
@@ -37,6 +35,7 @@
       <package name="com.linkedin.helix"/>
       <package name="com.linkedin.helix.agent.zk"/>
       <package name="com.linkedin.helix.integration"/>
+          -->
      
     </packages>
   </test>

@@ -34,9 +34,8 @@ import com.linkedin.helix.webapp.RestAdminApplication;
 
 public class ControllerStatusUpdateResource extends Resource
 {
-  public ControllerStatusUpdateResource(Context context,
-                                        Request request,
-                                        Response response)
+  public ControllerStatusUpdateResource(Context context, Request request,
+      Response response)
   {
     super(context, request, response);
     getVariants().add(new Variant(MediaType.TEXT_PLAIN));
@@ -73,24 +72,22 @@ public class ControllerStatusUpdateResource extends Resource
     StringRepresentation presentation = null;
     try
     {
-      String zkServer =
-          (String) getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
-      String clusterName = (String) getRequest().getAttributes().get("clusterName");
-      String messageType = (String) getRequest().getAttributes().get("MessageType");
+      String zkServer = (String) getContext().getAttributes().get(
+          RestAdminApplication.ZKSERVERADDRESS);
+      String clusterName = (String) getRequest().getAttributes().get(
+          "clusterName");
+      String messageType = (String) getRequest().getAttributes().get(
+          "MessageType");
       String messageId = (String) getRequest().getAttributes().get("MessageId");
       // TODO: need pass sessionId to this represent()
       String sessionId = (String) getRequest().getAttributes().get("SessionId");
 
-      presentation =
-          getControllerStatusUpdateRepresentation(zkServer,
-                                                  clusterName,
-                                                  sessionId,
-                                                  messageType,
-                                                  messageId);
-    }
-    catch (Exception e)
+      presentation = getControllerStatusUpdateRepresentation(zkServer,
+          clusterName, sessionId, messageType, messageId);
+    } catch (Exception e)
     {
-      String error = ClusterRepresentationUtil.getErrorAsJsonStringFromException(e);
+      String error = ClusterRepresentationUtil
+          .getErrorAsJsonStringFromException(e);
       presentation = new StringRepresentation(error, MediaType.APPLICATION_JSON);
 
       e.printStackTrace();
@@ -98,24 +95,18 @@ public class ControllerStatusUpdateResource extends Resource
     return presentation;
   }
 
-  StringRepresentation getControllerStatusUpdateRepresentation(String zkServerAddress,
-                                                               String clusterName,
-                                                               String sessionId,
-                                                               String messageType,
-                                                               String messageId) throws JsonGenerationException,
-      JsonMappingException,
-      IOException
+  StringRepresentation getControllerStatusUpdateRepresentation(
+      String zkServerAddress, String clusterName, String sessionId,
+      String messageType, String messageId) throws JsonGenerationException,
+      JsonMappingException, IOException
   {
     Builder keyBuilder = new PropertyKey.Builder(clusterName);
-    String message =
-        ClusterRepresentationUtil.getPropertyAsString(zkServerAddress,
-                                                      clusterName,
-                                                      keyBuilder.controllerTaskStatus(sessionId,
-                                                                                      messageType,
-                                                                                      messageId),
-                                                      MediaType.APPLICATION_JSON);
-    StringRepresentation representation =
-        new StringRepresentation(message, MediaType.APPLICATION_JSON);
+    String message = ClusterRepresentationUtil.getPropertyAsString(
+        zkServerAddress, clusterName,
+        keyBuilder.controllerTaskStatus(messageType, messageId),
+        MediaType.APPLICATION_JSON);
+    StringRepresentation representation = new StringRepresentation(message,
+        MediaType.APPLICATION_JSON);
     return representation;
   }
 }

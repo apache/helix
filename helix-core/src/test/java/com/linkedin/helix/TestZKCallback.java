@@ -196,7 +196,7 @@ public class TestZKCallback extends ZkUnitTestBase
     LiveInstance liveInstance = new LiveInstance("localhost_9801");
     liveInstance.setSessionId(UUID.randomUUID().toString());
     liveInstance.setHelixVersion(UUID.randomUUID().toString());
-    accessor.setProperty(keyBuilder.liveInstance("localhost_8900"), liveInstance);
+    accessor.setProperty(keyBuilder.liveInstance("localhost_9801"), liveInstance);
     Thread.sleep(500);
     AssertJUnit.assertTrue(testListener.liveInstanceChangeReceived);
     testListener.Reset();

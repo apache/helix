@@ -122,11 +122,9 @@ public class PropertyPathConfig
     addEntry(PropertyType.ERRORS_CONTROLLER, 2, "/{clusterName}/CONTROLLER/ERRORS/{errorId}");
     addEntry(PropertyType.STATUSUPDATES_CONTROLLER, 1, "/{clusterName}/CONTROLLER/STATUSUPDATES");
     addEntry(PropertyType.STATUSUPDATES_CONTROLLER, 2,
-        "/{clusterName}/CONTROLLER/STATUSUPDATES/{sessionId}");
+        "/{clusterName}/CONTROLLER/STATUSUPDATES/{subPath}");
     addEntry(PropertyType.STATUSUPDATES_CONTROLLER, 3,
-        "/{clusterName}/CONTROLLER/STATUSUPDATES/{sessionId}/{subPath}");
-    addEntry(PropertyType.STATUSUPDATES_CONTROLLER, 4,
-        "/{clusterName}/CONTROLLER/STATUSUPDATES/{sessionId}/{subPath}/{recordName}");
+        "/{clusterName}/CONTROLLER/STATUSUPDATES/{subPath}/{recordName}");
     addEntry(PropertyType.LEADER, 1, "/{clusterName}/CONTROLLER/LEADER");
     addEntry(PropertyType.HISTORY, 1, "/{clusterName}/CONTROLLER/HISTORY");
     addEntry(PropertyType.PAUSE, 1, "/{clusterName}/CONTROLLER/PAUSE");

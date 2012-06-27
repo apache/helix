@@ -24,14 +24,12 @@ public class StatusUpdate extends HelixProperty
   public StatusUpdate(ZNRecord record)
   {
     super(record);
-    // TODO Auto-generated constructor stub
   }
 
   @Override
   public boolean isValid()
   {
-    // TODO Auto-generated method stub
-    return false;
+    return true;
   }
 
   

@@ -63,8 +63,8 @@ public class TestRoutingTable
             {
               PropertyType type = key.getType();
               String[] keys = key.getParams();
-              if (type == PropertyType.CONFIGS && keys != null && keys.length >= 1
-                  && keys[0].equalsIgnoreCase(ConfigScopeProperty.PARTICIPANT.toString()))
+              if (type == PropertyType.CONFIGS && keys != null && keys.length > 1
+                  && keys[1].equalsIgnoreCase(ConfigScopeProperty.PARTICIPANT.toString()))
               {
                 List<InstanceConfig> configs = new ArrayList<InstanceConfig>();
                 for (String instanceName : array)

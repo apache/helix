@@ -28,13 +28,12 @@ public class ZkAsyncCallbacks
     @Override
     public void processResult(int rc, String path, Object ctx, byte[] data, Stat stat)
     {
-      callback(rc, path, ctx);
-
       if (rc == 0)
       {
         _data = data;
         _stat = stat;
       }
+      callback(rc, path, ctx);
     }
   }
 
@@ -51,12 +50,11 @@ public class ZkAsyncCallbacks
     @Override
     public void processResult(int rc, String path, Object ctx, Stat stat)
     {
-      callback(rc, path, ctx);
-
       if (rc == 0)
       {
         _stat = stat;
       }
+      callback(rc, path, ctx);
     }
   }
   
@@ -73,12 +71,11 @@ public class ZkAsyncCallbacks
     @Override
     public void processResult(int rc, String path, Object ctx, Stat stat)
     {
-      callback(rc, path, ctx);
-
       if (rc == 0)
       {
         _stat = stat;
       }
+      callback(rc, path, ctx);
     }
 
   }

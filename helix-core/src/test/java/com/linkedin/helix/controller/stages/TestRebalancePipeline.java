@@ -22,18 +22,15 @@ import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.HelixAdmin;
 import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.PropertyKey.Builder;
-import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.ZkUnitTestBase;
 import com.linkedin.helix.controller.HelixControllerMain;
 import com.linkedin.helix.controller.pipeline.Pipeline;
-import com.linkedin.helix.manager.zk.ZKDataAccessor;
 import com.linkedin.helix.manager.zk.ZKHelixAdmin;
 import com.linkedin.helix.manager.zk.ZKHelixDataAccessor;
 import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
@@ -44,9 +41,9 @@ import com.linkedin.helix.model.Partition;
 
 public class TestRebalancePipeline extends ZkUnitTestBase
 {
-  private static final Logger LOG =
-      Logger.getLogger(TestRebalancePipeline.class.getName());
-  final String _className = getShortClassName();
+  private static final Logger LOG        =
+                                             Logger.getLogger(TestRebalancePipeline.class.getName());
+  final String                _className = getShortClassName();
 
   @Test
   public void testDuplicateMsg()
@@ -103,8 +100,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase
     MessageSelectionStageOutput msgSelOutput =
         event.getAttribute(AttributeName.MESSAGES_SELECTED.toString());
     List<Message> messages =
-        msgSelOutput.getMessages(resourceName, new Partition(resourceName
-            + "_0"));
+        msgSelOutput.getMessages(resourceName, new Partition(resourceName + "_0"));
     Assert.assertEquals(messages.size(),
                         1,
                         "Should output 1 message: OFFLINE-SLAVE for node0");
@@ -156,15 +152,17 @@ public class TestRebalancePipeline extends ZkUnitTestBase
     // replica=2 means 1 master and 1 slave
     setupIdealState(clusterName, new int[] { 0, 1 }, resourceGroups, 1, 2);
     setupStateModel(clusterName);
-    setupInstances(clusterName, new int[]{0,1});
+    setupInstances(clusterName, new int[] { 0, 1 });
     setupLiveInstances(clusterName, new int[] { 0, 1 });
 
-    TestHelper.startController(clusterName, "controller_0", ZK_ADDR, HelixControllerMain.STANDALONE);
-
+    TestHelper.startController(clusterName,
+                               "controller_0",
+                               ZK_ADDR,
+                               HelixControllerMain.STANDALONE);
 
     // round1: controller sends O->S to both node0 and node1
     Thread.sleep(1000);
-    
+
     Builder keyBuilder = accessor.keyBuilder();
     List<String> messages = accessor.getChildNames(keyBuilder.messages("localhost_0"));
     Assert.assertEquals(messages.size(), 1);
@@ -172,7 +170,8 @@ public class TestRebalancePipeline extends ZkUnitTestBase
     Assert.assertEquals(messages.size(), 1);
 
     // round2: node0 and node1 update current states but not removing messages
-    // controller's rebalance pipeline should be triggered but since messages are not removed
+    // controller's rebalance pipeline should be triggered but since messages are not
+    // removed
     // no new messages will be sent
     setCurrentState(clusterName,
                     "localhost_0",
@@ -189,19 +188,22 @@ public class TestRebalancePipeline extends ZkUnitTestBase
     Thread.sleep(1000);
     messages = accessor.getChildNames(keyBuilder.messages("localhost_0"));
     Assert.assertEquals(messages.size(), 1);
-    
+
     messages = accessor.getChildNames(keyBuilder.messages("localhost_1"));
     Assert.assertEquals(messages.size(), 1);
 
-    // round3: node0 removes message and controller's rebalance pipeline should be triggered
-    //  and sends S->M to node0
+    // round3: node0 removes message and controller's rebalance pipeline should be
+    // triggered
+    // and sends S->M to node0
     messages = accessor.getChildNames(keyBuilder.messages("localhost_0"));
     accessor.removeProperty(keyBuilder.message("localhost_0", messages.get(0)));
     Thread.sleep(1000);
-    
+
     messages = accessor.getChildNames(keyBuilder.messages("localhost_0"));
     Assert.assertEquals(messages.size(), 1);
-    ZNRecord msg = accessor.getProperty(keyBuilder.message("localhost_0", messages.get(0))).getRecord();
+    ZNRecord msg =
+        accessor.getProperty(keyBuilder.message("localhost_0", messages.get(0)))
+                .getRecord();
     String toState = msg.getSimpleField(Attributes.TO_STATE.toString());
     Assert.assertEquals(toState, "MASTER");
 
@@ -264,8 +266,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase
     MessageSelectionStageOutput msgSelOutput =
         event.getAttribute(AttributeName.MESSAGES_SELECTED.toString());
     List<Message> messages =
-        msgSelOutput.getMessages(resourceName, new Partition(resourceName
-            + "_0"));
+        msgSelOutput.getMessages(resourceName, new Partition(resourceName + "_0"));
     Assert.assertEquals(messages.size(),
                         1,
                         "Should output 1 message: OFFLINE-SLAVE for node0");
@@ -292,7 +293,8 @@ public class TestRebalancePipeline extends ZkUnitTestBase
     Assert.assertEquals(message.getToState(), "OFFLINE");
     Assert.assertEquals(message.getTgtName(), "localhost_1");
 
-    // round3: remove O->S for localhost_0, controller should now send O->DROPPED to localhost_0
+    // round3: remove O->S for localhost_0, controller should now send O->DROPPED to
+    // localhost_0
     Builder keyBuilder = accessor.keyBuilder();
     List<String> msgIds = accessor.getChildNames(keyBuilder.messages("localhost_0"));
     accessor.removeProperty(keyBuilder.message("localhost_0", msgIds.get(0)));
@@ -308,12 +310,10 @@ public class TestRebalancePipeline extends ZkUnitTestBase
     Assert.assertEquals(message.getToState(), "DROPPED");
     Assert.assertEquals(message.getTgtName(), "localhost_0");
 
-
     System.out.println("END " + clusterName + " at "
         + new Date(System.currentTimeMillis()));
 
   }
-
 
   @Test
   public void testMasterXfer()
@@ -364,8 +364,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase
     MessageSelectionStageOutput msgSelOutput =
         event.getAttribute(AttributeName.MESSAGES_SELECTED.toString());
     List<Message> messages =
-        msgSelOutput.getMessages(resourceName, new Partition(resourceName
-            + "_0"));
+        msgSelOutput.getMessages(resourceName, new Partition(resourceName + "_0"));
     Assert.assertEquals(messages.size(),
                         1,
                         "Should output 1 message: SLAVE-MASTER for node1");
@@ -404,15 +403,15 @@ public class TestRebalancePipeline extends ZkUnitTestBase
                                  String sessionId,
                                  String state)
   {
-    DataAccessor accessor = new ZKDataAccessor(clusterName, _gZkClient);
+    ZKHelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(_gZkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+
     CurrentState curState = new CurrentState(resourceGroupName);
     curState.setState(resourceKey, state);
     curState.setSessionId(sessionId);
     curState.setStateModelDefRef("MasterSlave");
-    accessor.setProperty(PropertyType.CURRENTSTATES,
-                          curState,
-                          instance,
-                          sessionId,
-                          resourceGroupName);
+    accessor.setProperty(keyBuilder.currentState(instance, sessionId, resourceGroupName),
+                         curState);
   }
 }

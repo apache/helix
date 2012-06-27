@@ -23,11 +23,12 @@ import java.util.Map;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import com.linkedin.helix.PropertyType;
+import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.controller.HelixControllerMain;
-import com.linkedin.helix.manager.zk.ZKDataAccessor;
+import com.linkedin.helix.manager.zk.ZKHelixDataAccessor;
+import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
 import com.linkedin.helix.mock.storage.MockParticipant;
 import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.tools.ClusterStateVerifier;
@@ -54,12 +55,14 @@ public class TestRenamePartition extends ZkIntegrationTestBase
     startAndVerify(clusterName);
     
     // rename partition name TestDB0_0 tp TestDB0_100
-    ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _gZkClient);
-    IdealState idealState = accessor.getProperty(IdealState.class, PropertyType.IDEALSTATES, "TestDB0");
+    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(_gZkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+
+    IdealState idealState = accessor.getProperty(keyBuilder.idealStates("TestDB0"));
     
     List<String> prioList = idealState.getRecord().getListFields().remove("TestDB0_0");
     idealState.getRecord().getListFields().put("TestDB0_100", prioList);
-    accessor.setProperty(PropertyType.IDEALSTATES, idealState, "TestDB0");
+    accessor.setProperty(keyBuilder.idealStates("TestDB0"), idealState);
 
     boolean result = ClusterStateVerifier.verifyByPolling(
         new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
@@ -94,14 +97,17 @@ public class TestRenamePartition extends ZkIntegrationTestBase
     idealState.setIdealStateMode("CUSTOMIZED");
     idealState.setReplicas("3");
     idealState.setStateModelDefRef("MasterSlave");
-    ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _gZkClient);
-    accessor.setProperty(PropertyType.IDEALSTATES, idealState, "TestDB0");
+    
+    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(_gZkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+
+    accessor.setProperty(keyBuilder.idealStates("TestDB0"), idealState);
 
     startAndVerify(clusterName);
     
     Map<String, String> stateMap = idealState.getRecord().getMapFields().remove("TestDB0_0");
     idealState.getRecord().getMapFields().put("TestDB0_100", stateMap);
-    accessor.setProperty(PropertyType.IDEALSTATES, idealState, "TestDB0");
+    accessor.setProperty(keyBuilder.idealStates("TestDB0"), idealState);
 
     boolean result = ClusterStateVerifier.verifyByPolling(
         new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));

@@ -28,16 +28,16 @@ import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
 
-import com.linkedin.helix.DataAccessor;
-import com.linkedin.helix.PropertyType;
+import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.manager.zk.ZKDataAccessor;
+import com.linkedin.helix.manager.zk.ZKHelixDataAccessor;
 import com.linkedin.helix.manager.zk.ZNRecordSerializer;
+import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
 import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.model.ExternalView;
-import com.linkedin.helix.model.Message;
 import com.linkedin.helix.model.IdealState.IdealStateProperty;
 import com.linkedin.helix.model.LiveInstance.LiveInstanceProperty;
+import com.linkedin.helix.model.Message;
 import com.linkedin.helix.model.Message.MessageState;
 import com.linkedin.helix.model.Message.MessageType;
 import com.linkedin.helix.util.HelixUtil;
@@ -90,12 +90,13 @@ public class MockController
   public void createExternalView(List<String> instanceNames, int partitions,
       int replicas, String dbName, long randomSeed)
   {
-    DataAccessor dataAccessor = new ZKDataAccessor(clusterName, client);
+    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(client));
+    Builder keyBuilder = accessor.keyBuilder();
 
     ExternalView externalView = new ExternalView(computeRoutingTable(instanceNames, partitions,
                                                                      replicas, dbName, randomSeed));
 
-    dataAccessor.setProperty(PropertyType.EXTERNALVIEW, externalView, dbName);
+    accessor.setProperty(keyBuilder.externalView(dbName), externalView);
   }
 
   public ZNRecord computeRoutingTable(List<String> instanceNames,

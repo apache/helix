@@ -31,11 +31,9 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
-import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.HelixDataAccessor;
+import com.linkedin.helix.HelixProperty;
 import com.linkedin.helix.PropertyKey.Builder;
-import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.model.Error;
 import com.linkedin.helix.model.Message;
@@ -123,7 +121,7 @@ public class StatusUpdateUtil
       this._taskMessages = taskMessages;
     }
 
-    public static StatusUpdateContents getStatusUpdateContents(DataAccessor accessor,
+    public static StatusUpdateContents getStatusUpdateContents(HelixDataAccessor accessor,
                                                                String instance,
                                                                String resourceGroup,
                                                                String partition)
@@ -135,15 +133,16 @@ public class StatusUpdateUtil
     // for an (instance, resourceGroup, session, partition) tuple.
     // But such a map is very similar to what exists in ZNRecord
     // passing null for sessionID results in searching across all sessions
-    public static StatusUpdateContents getStatusUpdateContents(DataAccessor accessor,
+    public static StatusUpdateContents getStatusUpdateContents(HelixDataAccessor accessor,
                                                                String instance,
                                                                String resourceGroup,
                                                                String sessionID,
                                                                String partition)
     {
+      Builder keyBuilder = accessor.keyBuilder();
+
       List<ZNRecord> instances =
-          accessor.getChildValues(PropertyType.CONFIGS,
-                                  ConfigScopeProperty.PARTICIPANT.toString());
+          HelixProperty.convertToList(accessor.getChildValues(keyBuilder.instanceConfigs()));
       List<ZNRecord> partitionRecords = new ArrayList<ZNRecord>();
       for (ZNRecord znRecord : instances)
       {
@@ -154,7 +153,7 @@ public class StatusUpdateUtil
         }
 
         List<String> sessions =
-            accessor.getChildNames(PropertyType.STATUSUPDATES, instanceName);
+            accessor.getChildNames(keyBuilder.sessions(instanceName));
         for (String session : sessions)
         {
           if (sessionID != null && !session.equals(sessionID))
@@ -163,7 +162,7 @@ public class StatusUpdateUtil
           }
 
           List<String> resourceGroups =
-              accessor.getChildNames(PropertyType.STATUSUPDATES, instanceName, session);
+              accessor.getChildNames(keyBuilder.stateTransitionStatus(instanceName, session));
           for (String resourceGroupName : resourceGroups)
           {
             if (!resourceGroupName.equals(resourceGroup))
@@ -172,19 +171,12 @@ public class StatusUpdateUtil
             }
 
             List<String> partitionStrings =
-                accessor.getChildNames(PropertyType.STATUSUPDATES,
-                                       instanceName,
-                                       session,
-                                       resourceGroupName);
+                accessor.getChildNames(keyBuilder.stateTransitionStatus(instanceName, session, resourceGroupName));
 
             for (String partitionString : partitionStrings)
             {
               ZNRecord partitionRecord =
-                  accessor.getProperty(PropertyType.STATUSUPDATES,
-                                       instanceName,
-                                       session,
-                                       resourceGroupName,
-                                       partitionString);
+                  accessor.getProperty(keyBuilder.stateTransitionStatus(instanceName, session, resourceGroupName, partitionString)).getRecord();
               if (!partitionString.equals(partition))
               {
                 continue;

@@ -8,14 +8,14 @@ import org.I0Itec.zkclient.IZkChildListener;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
-import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.controller.HelixControllerMain;
-import com.linkedin.helix.manager.zk.ZKDataAccessor;
+import com.linkedin.helix.manager.zk.ZKHelixDataAccessor;
+import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
 import com.linkedin.helix.mock.storage.MockParticipant;
 import com.linkedin.helix.model.ClusterConstraints;
 import com.linkedin.helix.model.ClusterConstraints.ConstraintType;
@@ -57,9 +57,11 @@ public class TestMessageThrottle extends ZkIntegrationTestBase
     record.getMapField("constraint1").put("CONSTRAINT_VALUE", "1");
     ClusterConstraints constraint = new ClusterConstraints(record);
     
-    DataAccessor accessor = new ZKDataAccessor(clusterName, _gZkClient);
-    accessor.setProperty(PropertyType.CONFIGS, constraint, ConfigScopeProperty.CONSTRAINT.toString(),
-                         ConstraintType.MESSAGE_CONSTRAINT.toString());
+    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(_gZkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+
+    accessor.setProperty(keyBuilder.constraints(), constraint);
+    //                     ConstraintType.MESSAGE_CONSTRAINT.toString());
     
     // make sure we never see more than 1 state transition message for each participant
     for (int i = 0; i < 5; i++)

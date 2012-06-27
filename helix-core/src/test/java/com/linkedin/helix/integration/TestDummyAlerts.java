@@ -24,11 +24,11 @@ import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.PropertyKey.Builder;
-import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.controller.HelixControllerMain;
-import com.linkedin.helix.manager.zk.ZKDataAccessor;
+import com.linkedin.helix.manager.zk.ZKHelixDataAccessor;
+import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
 import com.linkedin.helix.mock.storage.MockParticipant;
 import com.linkedin.helix.mock.storage.MockTransition;
 import com.linkedin.helix.model.HealthStat;
@@ -131,12 +131,14 @@ public class TestDummyAlerts extends ZkIntegrationTestBase
     Assert.assertTrue(result);
 
     // other verifications go here
-    ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _gZkClient);
+    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(_gZkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+
     for (int i = 0; i < 5; i++)
     {
       String instance = "localhost_" + (12918 + i);
       ZNRecord record =
-          accessor.getProperty(PropertyType.HEALTHREPORT, instance, "mockAlerts");
+          accessor.getProperty(keyBuilder.healthReport(instance, "mockAlerts")).getRecord();
       Assert.assertEquals(record.getId(), "mockAlerts4");
     }
 

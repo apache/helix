@@ -149,6 +149,14 @@ public class PropertyKey
                              _clusterName,
                              ConfigScopeProperty.CONSTRAINT.toString());
     }
+    
+    public PropertyKey constraints(String constraintType)
+    {
+      return new PropertyKey(CONFIGS,
+                             ClusterConstraints.class,
+                             _clusterName,
+                             constraintType);
+    }
 
     public PropertyKey liveInstances()
     {
@@ -224,9 +232,33 @@ public class PropertyKey
                              _clusterName,
                              instanceName,
                              sessionId,
+                             resourceName,
                              partitionName);
     }
 
+    public PropertyKey stateTransitionStatus(String instanceName,
+                                             String sessionId,
+                                             String resourceName)
+    {
+      return new PropertyKey(STATUSUPDATES,
+                             StatusUpdate.class,
+                             _clusterName,
+                             instanceName,
+                             sessionId,
+                             resourceName);
+    }
+    
+    public PropertyKey stateTransitionStatus(String instanceName,
+                                             String sessionId)
+    {
+      return new PropertyKey(STATUSUPDATES,
+                             StatusUpdate.class,
+                             _clusterName,
+                             instanceName,
+                             sessionId);
+    }
+
+    
     /**
      * Used to get status update for a NON STATE TRANSITION type
      * 
@@ -255,8 +287,16 @@ public class PropertyKey
                                             String resourceName,
                                             String partitionName)
     {
-      return new PropertyKey(ERRORS, Error.class, _clusterName, instanceName, sessionId, partitionName);
+      return new PropertyKey(ERRORS, Error.class, _clusterName, instanceName, sessionId, resourceName, partitionName);
     }
+    
+    public PropertyKey stateTransitionErrors(String instanceName,
+                                            String sessionId,
+                                            String resourceName)
+    {
+      return new PropertyKey(ERRORS, Error.class, _clusterName, instanceName, sessionId, resourceName);
+    }
+
 
     /**
      * Used to get status update for a NON STATE TRANSITION type
@@ -330,6 +370,18 @@ public class PropertyKey
                              StatusUpdate.class,
                              _clusterName,
                              instanceName,
+                             sessionId,
+                             msgType,
+                             msgId);
+    }
+
+    public PropertyKey controllerTaskStatus(String sessionId,
+                                            String msgType,
+                                            String msgId)
+    {
+      return new PropertyKey(STATUSUPDATES_CONTROLLER,
+                             StatusUpdate.class,
+                             _clusterName,
                              sessionId,
                              msgType,
                              msgId);

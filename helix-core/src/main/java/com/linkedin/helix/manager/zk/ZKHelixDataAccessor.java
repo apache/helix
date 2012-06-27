@@ -95,8 +95,9 @@ public class ZKHelixDataAccessor implements HelixDataAccessor
     return _baseDataAccessor.getChildNames(parentPath, options);
   }
 
+  @SuppressWarnings("unchecked")
   @Override
-  public List<HelixProperty> getChildValues(PropertyKey key)
+  public <T extends HelixProperty> List<T> getChildValues(PropertyKey key)
   {
     PropertyType type = key.getType();
     String parentPath = key.getPath();
@@ -109,7 +110,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor
       HelixProperty typedInstance = HelixProperty.convertToTypedInstance(key.getTypeClass(), record);
       childValues.add(typedInstance);
     }
-    return childValues;
+    return (List<T>) childValues;
   }
 
   @Override

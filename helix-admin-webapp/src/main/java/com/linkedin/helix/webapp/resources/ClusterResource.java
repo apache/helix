@@ -33,9 +33,10 @@ import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 
 import com.linkedin.helix.HelixException;
-import com.linkedin.helix.PropertyType;
+import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.manager.zk.ZKDataAccessor;
+import com.linkedin.helix.manager.zk.ZKHelixDataAccessor;
+import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
 import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.tools.ClusterSetup;
 import com.linkedin.helix.util.ZKClientPool;
@@ -43,11 +44,10 @@ import com.linkedin.helix.webapp.RestAdminApplication;
 
 public class ClusterResource extends Resource
 {
-  public static final String _clusterName = "clusterName";
+  public static final String _clusterName  = "clusterName";
   public static final String _grandCluster = "grandCluster";
-  public ClusterResource(Context context,
-            Request request,
-            Response response)
+
+  public ClusterResource(Context context, Request request, Response response)
   {
     super(context, request, response);
     getVariants().add(new Variant(MediaType.TEXT_PLAIN));
@@ -84,12 +84,13 @@ public class ClusterResource extends Resource
     StringRepresentation presentation = null;
     try
     {
-      String zkServer = (String)getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
-      String clusterName = (String)getRequest().getAttributes().get("clusterName");
+      String zkServer =
+          (String) getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
+      String clusterName = (String) getRequest().getAttributes().get("clusterName");
       presentation = getClusterRepresentation(zkServer, clusterName);
     }
 
-    catch(Exception e)
+    catch (Exception e)
     {
       String error = ClusterRepresentationUtil.getErrorAsJsonStringFromException(e);
       presentation = new StringRepresentation(error, MediaType.APPLICATION_JSON);
@@ -99,24 +100,32 @@ public class ClusterResource extends Resource
     return presentation;
   }
 
-  StringRepresentation getClusterRepresentation(String zkServerAddress, String clusterName) throws JsonGenerationException, JsonMappingException, IOException
+  StringRepresentation getClusterRepresentation(String zkServerAddress, String clusterName) throws JsonGenerationException,
+      JsonMappingException,
+      IOException
   {
     ClusterSetup setupTool = new ClusterSetup(zkServerAddress);
-    List<String> instances = setupTool.getClusterManagementTool().getInstancesInCluster(clusterName);
+    List<String> instances =
+        setupTool.getClusterManagementTool().getInstancesInCluster(clusterName);
 
     ZNRecord clusterSummayRecord = new ZNRecord("Cluster Summary");
     clusterSummayRecord.setListField("participants", instances);
 
-    List<String> resources = setupTool.getClusterManagementTool().getResourcesInCluster(clusterName);
+    List<String> resources =
+        setupTool.getClusterManagementTool().getResourcesInCluster(clusterName);
     clusterSummayRecord.setListField("resources", resources);
 
-    List<String> models = setupTool.getClusterManagementTool().getStateModelDefs(clusterName);
+    List<String> models =
+        setupTool.getClusterManagementTool().getStateModelDefs(clusterName);
     clusterSummayRecord.setListField("stateModelDefs", models);
-    
-    ZKDataAccessor accessor = new ZKDataAccessor(clusterName, ZKClientPool.getZkClient(zkServerAddress));
-    LiveInstance leader =
-        accessor.getProperty(LiveInstance.class, PropertyType.LEADER);
-    if(leader != null)
+
+    ZKHelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName,
+                                new ZkBaseDataAccessor(ZKClientPool.getZkClient(zkServerAddress)));
+    Builder keyBuilder = accessor.keyBuilder();
+
+    LiveInstance leader = accessor.getProperty(keyBuilder.controllerLeader());
+    if (leader != null)
     {
       clusterSummayRecord.setSimpleField("LEADER", leader.getInstanceName());
     }
@@ -124,33 +133,40 @@ public class ClusterResource extends Resource
     {
       clusterSummayRecord.setSimpleField("LEADER", "");
     }
-    StringRepresentation representation = new StringRepresentation(ClusterRepresentationUtil.ZNRecordToJson(clusterSummayRecord), MediaType.APPLICATION_JSON);
+    StringRepresentation representation =
+        new StringRepresentation(ClusterRepresentationUtil.ZNRecordToJson(clusterSummayRecord),
+                                 MediaType.APPLICATION_JSON);
 
     return representation;
   }
-  
+
   @Override
   public void acceptRepresentation(Representation entity)
   {
     try
     {
-      String clusterName = (String)getRequest().getAttributes().get("clusterName");
-      String zkServer = (String)getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
+      String clusterName = (String) getRequest().getAttributes().get("clusterName");
+      String zkServer =
+          (String) getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
       Form form = new Form(entity);
-      Map<String, String> jsonParameters
-        = ClusterRepresentationUtil.getFormJsonParametersWithCommandVerified(form, ClusterRepresentationUtil._addSorageClusterToGrandClusterCommand);
+      Map<String, String> jsonParameters =
+          ClusterRepresentationUtil.getFormJsonParametersWithCommandVerified(form,
+                                                                             ClusterRepresentationUtil._addSorageClusterToGrandClusterCommand);
 
-      if(!jsonParameters.containsKey(_grandCluster))
+      if (!jsonParameters.containsKey(_grandCluster))
       {
-        throw new HelixException("Json parameters does not contain '"+ _grandCluster + "'");
+        throw new HelixException("Json parameters does not contain '" + _grandCluster
+            + "'");
       }
-      
+
       String grandCluster = jsonParameters.get(_grandCluster);
       ClusterSetup setupTool = new ClusterSetup(zkServer);
-      List<String> grandClusterResourceGroups = setupTool.getClusterManagementTool().getResourcesInCluster(grandCluster);
-      if(grandClusterResourceGroups.contains(clusterName))
+      List<String> grandClusterResourceGroups =
+          setupTool.getClusterManagementTool().getResourcesInCluster(grandCluster);
+      if (grandClusterResourceGroups.contains(clusterName))
       {
-        throw new HelixException("Grand cluster " + grandCluster + " already have a resourceGroup for " + clusterName);
+        throw new HelixException("Grand cluster " + grandCluster
+            + " already have a resourceGroup for " + clusterName);
       }
       setupTool.addCluster(clusterName, grandCluster);
       // add cluster
@@ -158,28 +174,30 @@ public class ClusterResource extends Resource
       getResponse().setStatus(Status.SUCCESS_OK);
     }
 
-    catch(Exception e)
+    catch (Exception e)
     {
       getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),
-          MediaType.APPLICATION_JSON);
+                              MediaType.APPLICATION_JSON);
       getResponse().setStatus(Status.SUCCESS_OK);
     }
   }
+
   @Override
   public void removeRepresentations()
   {
     try
     {
-      String zkServer = (String)getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
-      String clusterName = (String)getRequest().getAttributes().get("clusterName");
+      String zkServer =
+          (String) getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
+      String clusterName = (String) getRequest().getAttributes().get("clusterName");
       ClusterSetup setupTool = new ClusterSetup(zkServer);
       setupTool.deleteCluster(clusterName);
       getResponse().setStatus(Status.SUCCESS_OK);
     }
-    catch(Exception e)
+    catch (Exception e)
     {
       getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),
-          MediaType.APPLICATION_JSON);
+                              MediaType.APPLICATION_JSON);
       getResponse().setStatus(Status.SUCCESS_OK);
     }
   }

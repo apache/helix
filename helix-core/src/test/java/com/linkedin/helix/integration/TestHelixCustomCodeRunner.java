@@ -20,16 +20,16 @@ import java.util.Date;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.HelixConstants.ChangeType;
 import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.NotificationContext.Type;
-import com.linkedin.helix.PropertyType;
+import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.controller.HelixControllerMain;
-import com.linkedin.helix.manager.zk.ZKDataAccessor;
+import com.linkedin.helix.manager.zk.ZKHelixDataAccessor;
 import com.linkedin.helix.manager.zk.ZNRecordSerializer;
+import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
 import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.mock.storage.MockJobIntf;
 import com.linkedin.helix.mock.storage.MockParticipant;
@@ -138,11 +138,13 @@ public class TestHelixCustomCodeRunner extends ZkIntegrationTestBase
     // add a new live instance
     ZkClient zkClient = new ZkClient(ZK_ADDR);
     zkClient.setZkSerializer(new ZNRecordSerializer());
-    DataAccessor accessor = new ZKDataAccessor(_clusterName, zkClient);
+    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(_clusterName, new ZkBaseDataAccessor(zkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+
     LiveInstance newLiveIns = new LiveInstance("newLiveInstance");
     newLiveIns.setHelixVersion("0.0.0");
     newLiveIns.setSessionId("randomSessionId");
-    accessor.setProperty(PropertyType.LIVEINSTANCES, newLiveIns, "newLiveInstance");
+    accessor.setProperty(keyBuilder.liveInstance("newLiveInstance"), newLiveIns);
 
     Thread.sleep(1000);  // wait for the CALLBACK type callback to finish
     Assert.assertTrue(_callback._isCallbackInvoked);

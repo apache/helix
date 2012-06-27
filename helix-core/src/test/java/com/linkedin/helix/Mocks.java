@@ -319,8 +319,7 @@ public class Mocks
     @Override
     public HelixDataAccessor getHelixDataAccessor()
     {
-      // TODO Auto-generated method stub
-      return null;
+      return accessor;
     }
 
   }
@@ -329,6 +328,7 @@ public class Mocks
   {
     private final String _clusterName;
     Map<String, ZNRecord> data = new HashMap<String, ZNRecord>();
+    private final Builder _propertyKeyBuilder;
 
     public MockAccessor()
     {
@@ -338,6 +338,7 @@ public class Mocks
     public MockAccessor(String clusterName)
     {
       _clusterName = clusterName;
+      _propertyKeyBuilder = new PropertyKey.Builder(_clusterName);
     }
 
     Map<String, ZNRecord> map = new HashMap<String, ZNRecord>();
@@ -533,8 +534,7 @@ public class Mocks
     @Override
     public Builder keyBuilder()
     {
-      // TODO Auto-generated method stub
-      return null;
+      return _propertyKeyBuilder;
     }
 
     @Override

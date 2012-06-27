@@ -21,6 +21,8 @@ import java.util.Map;
 
 import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.HelixDataAccessor;
+import com.linkedin.helix.HelixProperty;
+import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.model.AlertStatus;
 import com.linkedin.helix.model.Alerts;
@@ -40,27 +42,25 @@ public class HealthDataCache
 
   public boolean refresh(DataAccessor accessor)
   {
-    _liveInstanceMap =
-        accessor.getChildValuesMap(LiveInstance.class, PropertyType.LIVEINSTANCES);
+    _liveInstanceMap = accessor.getChildValuesMap(LiveInstance.class,
+        PropertyType.LIVEINSTANCES);
 
-    Map<String, Map<String, HealthStat>> hsMap =
-        new HashMap<String, Map<String, HealthStat>>();
-    
-    
+    Map<String, Map<String, HealthStat>> hsMap = new HashMap<String, Map<String, HealthStat>>();
+
     for (String instanceName : _liveInstanceMap.keySet())
     {
       // xxx clearly getting znodes for the instance here...so get the
       // timestamp!
-      
+
       hsMap.put(instanceName, accessor.getChildValuesMap(HealthStat.class,
-                                                         PropertyType.HEALTHREPORT,
-                                                         instanceName));
+          PropertyType.HEALTHREPORT, instanceName));
     }
     _healthStatMap = Collections.unmodifiableMap(hsMap);
-    _persistentStats =
-        accessor.getProperty(PersistentStats.class, PropertyType.PERSISTENTSTATS);
+    _persistentStats = accessor.getProperty(PersistentStats.class,
+        PropertyType.PERSISTENTSTATS);
     _alerts = accessor.getProperty(Alerts.class, PropertyType.ALERTS);
-    _alertStatus = accessor.getProperty(AlertStatus.class, PropertyType.ALERT_STATUS);
+    _alertStatus = accessor.getProperty(AlertStatus.class,
+        PropertyType.ALERT_STATUS);
 
     return true;
   }
@@ -102,10 +102,29 @@ public class HealthDataCache
     return _liveInstanceMap;
   }
 
-  public void refresh(HelixDataAccessor accessor)
+  public boolean refresh(HelixDataAccessor accessor)
   {
-    // TODO Auto-generated method stub
-    
+    Builder keyBuilder = accessor.keyBuilder();
+    _liveInstanceMap = accessor.getChildValuesMap(keyBuilder.liveInstances());
+
+    Map<String, Map<String, HealthStat>> hsMap = new HashMap<String, Map<String, HealthStat>>();
+
+    for (String instanceName : _liveInstanceMap.keySet())
+    {
+      // xxx clearly getting znodes for the instance here...so get the
+      // timestamp!
+
+      Map<String, HealthStat> childValuesMap = accessor
+          .getChildValuesMap(keyBuilder.healthReports(instanceName));
+      hsMap.put(instanceName, childValuesMap);
+    }
+    _healthStatMap = Collections.unmodifiableMap(hsMap);
+    _persistentStats = accessor.getProperty(keyBuilder.persistantStat());
+    _alerts = accessor.getProperty(keyBuilder.alerts());
+    _alertStatus = accessor.getProperty(keyBuilder.alertStatus());
+
+    return true;
+
   }
 
 }

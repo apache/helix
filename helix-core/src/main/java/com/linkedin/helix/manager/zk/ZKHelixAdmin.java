@@ -34,6 +34,7 @@ import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
 import com.linkedin.helix.HelixAdmin;
 import com.linkedin.helix.HelixConstants;
 import com.linkedin.helix.HelixException;
+import com.linkedin.helix.HelixProperty;
 import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
@@ -536,12 +537,15 @@ public class ZKHelixAdmin implements HelixAdmin
       // ZKUtil.createChildren(_zkClient, persistentStatsPath, statsRec);
       _zkClient.createPersistent(persistentStatsPath);
     }
-    ZNRecord statsRec = accessor.getProperty(keyBuilder.persistantStat()).getRecord();
-    if (statsRec == null)
+    HelixProperty property = accessor.getProperty(keyBuilder.persistantStat());
+    ZNRecord statsRec = null;
+    if (property == null)
     {
       statsRec = new ZNRecord(PersistentStats.nodeName); // TODO: fix naming of
                                                          // this record, if it
                                                          // matters
+    }else{
+      statsRec = property.getRecord();
     }
 
     Map<String, Map<String, String>> currStatMap = statsRec.getMapFields();
@@ -575,11 +579,14 @@ public class ZKHelixAdmin implements HelixAdmin
       // ZKUtil.createChildren(_zkClient, alertsPath, alertsRec);
       _zkClient.createPersistent(alertsPath);
     }
-    ZNRecord alertsRec = accessor.getProperty(keyBuilder.alerts()).getRecord();
-    if (alertsRec == null)
+    HelixProperty property = accessor.getProperty(keyBuilder.alerts());
+    ZNRecord alertsRec = null;
+    if (property == null)
     {
       alertsRec = new ZNRecord(Alerts.nodeName); // TODO: fix naming of this
                                                  // record, if it matters
+    }else{
+      alertsRec = property.getRecord();
     }
 
     Map<String, Map<String, String>> currAlertMap = alertsRec.getMapFields();

@@ -24,6 +24,7 @@ import org.apache.log4j.Logger;
 
 import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixManager;
+import com.linkedin.helix.HelixProperty;
 import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
@@ -290,10 +291,13 @@ public class StatsAggregationStage extends AbstractBaseStage
       HelixDataAccessor accessor = manager.getHelixDataAccessor();
       Builder keyBuilder = accessor.keyBuilder();
 //      ZNRecord alertFiredHistory = manager.getDataAccessor().getProperty(PropertyType.ALERT_HISTORY);
-      ZNRecord alertFiredHistory = accessor.getProperty(keyBuilder.alertHistory()).getRecord();
-      if(alertFiredHistory == null)
+      HelixProperty property = accessor.getProperty(keyBuilder.alertHistory());
+      ZNRecord alertFiredHistory;
+      if(property == null)
       {
         alertFiredHistory = new ZNRecord(PropertyType.ALERT_HISTORY.toString());
+      }else{
+        alertFiredHistory = property.getRecord();
       }
       while(alertFiredHistory.getMapFields().size() >= ALERT_HISTORY_SIZE)
       {

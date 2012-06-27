@@ -149,12 +149,14 @@ public class ClusterJosqlQueryProcessor
       {
         String resourceName = idealState.getId();
         
-        ZNRecord currentState = accessor.getProperty(keyBuilder.currentState(host, sessionId, resourceName)).getRecord();
-
-        if (currentState == null)
+        HelixProperty property = accessor.getProperty(keyBuilder.currentState(host, sessionId, resourceName));
+        ZNRecord currentState =null;
+        if (property == null)
         {
           _logger.warn("Resource " + resourceName + " has null currentState");
           currentState = new ZNRecord(resourceName);
+        }else{
+          currentState = property.getRecord();
         }
         currentStates.put(resourceName, currentState);
         instanceCurrentStateList.add(currentState);

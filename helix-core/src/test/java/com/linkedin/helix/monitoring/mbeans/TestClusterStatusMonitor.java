@@ -23,6 +23,7 @@ import java.util.UUID;
 import org.testng.annotations.Test;
 
 import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.Mocks;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.PropertyType;
@@ -83,7 +84,7 @@ public class TestClusterStatusMonitor
     MockDataAccessor _accessor = new MockDataAccessor();
 
     @Override
-		public DataAccessor getDataAccessor()
+		public HelixDataAccessor getHelixDataAccessor()
     {
       return _accessor;
     }

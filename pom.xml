@@ -146,7 +146,7 @@
     <configuration>
         <header>${basedir}/header.txt</header>
         <failIfMissing>false</failIfMissing>
-        <aggregate>true</aggregate>
+        <aggregate>false</aggregate>
         <properties>
             <owner>LinkedIn Inc</owner>
             <year>2012</year>

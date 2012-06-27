@@ -35,12 +35,14 @@ import com.linkedin.helix.MessageListener;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.healthcheck.ParticipantHealthReportCollector;
 import com.linkedin.helix.manager.zk.ZKDataAccessor;
+import com.linkedin.helix.manager.zk.ZKHelixDataAccessor;
+import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
 import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.store.PropertyStore;
 
 public class MockZKHelixManager implements HelixManager
 {
-  private final ZKDataAccessor _accessor;
+  private final ZKHelixDataAccessor _accessor;
   private final String _instanceName;
   private final String _clusterName;
   private final InstanceType _type;
@@ -50,7 +52,7 @@ public class MockZKHelixManager implements HelixManager
     _instanceName = instanceName;
     _clusterName = clusterName;
     _type = type;
-    _accessor = new ZKDataAccessor(clusterName, zkClient);
+    _accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(zkClient));
   }
 
   @Override
@@ -126,7 +128,7 @@ public class MockZKHelixManager implements HelixManager
   }
 
   @Override
-  public DataAccessor getDataAccessor()
+  public HelixDataAccessor getHelixDataAccessor()
   {
     return _accessor;
   }
@@ -247,12 +249,6 @@ public void addHealthStateChangeListener(HealthStateChangeListener listener,
 
   }
 
-  @Override
-  public HelixDataAccessor getHelixDataAccessor()
-  {
-    // TODO Auto-generated method stub
-    return null;
-  }
 
 
 }

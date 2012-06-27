@@ -24,11 +24,14 @@ import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
 import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.Criteria;
+import com.linkedin.helix.HelixProperty;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.Mocks;
 import com.linkedin.helix.NotificationContext;
+import com.linkedin.helix.PropertyKey;
 import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
@@ -38,6 +41,8 @@ import com.linkedin.helix.messaging.handling.MessageHandler;
 import com.linkedin.helix.messaging.handling.MessageHandlerFactory;
 import com.linkedin.helix.messaging.handling.MessageHandler.ErrorCode;
 import com.linkedin.helix.messaging.handling.MessageHandler.ErrorType;
+import com.linkedin.helix.model.ExternalView;
+import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.model.Message;
 import com.linkedin.helix.model.LiveInstance.LiveInstanceProperty;
 import com.linkedin.helix.tools.IdealStateCalculatorForStorageNode;
@@ -48,41 +53,41 @@ public class TestDefaultMessagingService
   {
     class MockDataAccessor extends Mocks.MockAccessor
     {
+      
       @Override
-      public ZNRecord getProperty(PropertyType type, String... keys)
+      public <T extends HelixProperty> T getProperty(PropertyKey key)
       {
+        
+        PropertyType type = key.getType();
         if(type == PropertyType.EXTERNALVIEW || type == PropertyType.IDEALSTATES)
         {
-          return _externalView;
+          return (T) new ExternalView(_externalView);
         }
         return null;
       }
 
       @Override
-      public List<ZNRecord> getChildValues(PropertyType type, String... keys)
-//      public <T extends HelixProperty> List<T> getChildValues(Class<T> clazz, PropertyType type,
-//                                                                  String... keys)
+      public <T extends HelixProperty> List<T> getChildValues(PropertyKey key)
       {
-        List<ZNRecord> result = new ArrayList<ZNRecord>();
-//        List<T> result = new ArrayList<T>();
-
+        PropertyType type = key.getType();
+        List<T> result = new ArrayList<T>();
+        Class<? extends HelixProperty> clazz = key.getTypeClass();
         if(type == PropertyType.EXTERNALVIEW || type == PropertyType.IDEALSTATES)
         {
-//          result.add(HelixProperty.convertInstance(clazz, _externalView));
-          result.add(_externalView);
+          HelixProperty typedInstance = HelixProperty.convertToTypedInstance(clazz, _externalView);
+          result.add((T) typedInstance);
           return result;
         }
         else if(type == PropertyType.LIVEINSTANCES)
         {
-//          return HelixProperty.convertList(clazz, _liveInstances);
-          return _liveInstances;
+          return (List<T>) HelixProperty.convertToTypedList(clazz, _liveInstances);
         }
 
         return result;
       }
     }
 
-    DataAccessor _accessor = new MockDataAccessor();
+    HelixDataAccessor _accessor = new MockDataAccessor();
     ZNRecord _externalView;
     List<String> _instances;
     List<ZNRecord> _liveInstances;
@@ -115,7 +120,7 @@ public class TestDefaultMessagingService
     }
 
     @Override
-    public DataAccessor getDataAccessor()
+    public HelixDataAccessor getHelixDataAccessor()
     {
       return _accessor;
     }

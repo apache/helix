@@ -23,6 +23,7 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import com.linkedin.helix.HelixException;
+import com.linkedin.helix.HelixProperty;
 import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.ZkUnitTestBase;
@@ -129,11 +130,10 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase
                                                               "partition_1"),
                              new StatusUpdate(statusUpdates));
     Assert.assertFalse(succeed);
-    record =
-        accessor.getProperty(keyBuilder.stateTransitionStatus("localhost_12918",
-                                                              "session_1",
-                                                              "partition_1")).getRecord();
-    Assert.assertNull(record);
+    HelixProperty property = accessor.getProperty(keyBuilder.stateTransitionStatus("localhost_12918",
+                                                          "session_1",
+                                                          "partition_1"));
+    Assert.assertNull(property);
 
     // legal sized data gets written to zk
     statusUpdates.getSimpleFields().clear();
@@ -165,7 +165,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase
                                                                  "session_1",
                                                                  "partition_2"),
                                 new StatusUpdate(statusUpdates));
-    Assert.assertTrue(succeed);
+    Assert.assertFalse(succeed);
     recordNew =
         accessor.getProperty(keyBuilder.stateTransitionStatus("localhost_12918",
                                                               "session_1",

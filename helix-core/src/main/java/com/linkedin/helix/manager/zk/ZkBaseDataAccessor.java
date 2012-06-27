@@ -87,6 +87,9 @@ public class ZkBaseDataAccessor implements BaseDataAccessor
     {
       LOG.warn("node already exists. path: " + path);
       return false;
+    }catch (Exception e) {
+      LOG.error("Exception while creating path: " + path +". " +e.getMessage());
+      return false;
     }
   }
 
@@ -98,7 +101,7 @@ public class ZkBaseDataAccessor implements BaseDataAccessor
     CreateMode mode = Option.getMode(options);
     if (mode == null)
     {
-      LOG.error("invalid create mode. options: " + options);
+      LOG.error("invalid set mode. options: " + options);
       return false;
     }
 
@@ -110,6 +113,9 @@ public class ZkBaseDataAccessor implements BaseDataAccessor
       String parentPath = new File(path).getParent();
       _zkClient.createPersistent(parentPath, true);
       _zkClient.create(path, record, mode);
+    }catch (Exception e) {
+      LOG.error("Exception while setting path: " + path +". " +e.getMessage());
+      return false;
     }
     return true;
   }
@@ -134,6 +140,9 @@ public class ZkBaseDataAccessor implements BaseDataAccessor
       String parentPath = new File(path).getParent();
       _zkClient.createPersistent(parentPath, true);
       _zkClient.create(path, record, mode);
+    }catch (Exception e) {
+      LOG.error("Exception while updating path: " + path +". " +e.getMessage());
+      return false;
     }
     return true;
   }

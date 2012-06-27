@@ -176,8 +176,7 @@ public class Mocks
     @Override
     public String getClusterName()
     {
-      // TODO Auto-generated method stub
-      return null;
+      return _clusterName;
     }
 
     @Override

@@ -97,7 +97,6 @@ public class AlertsHolder {
 		//XXX: Am I using _accessor too directly here?
 	  
 		Alerts alerts = _accessor.getProperty(_keyBuilder.alerts());
-		ZNRecord alertsRec;
     if (alerts == null) {
       alerts = new Alerts(Alerts.nodeName); //TODO: fix naming of this record, if it matters
 		}

@@ -10,6 +10,7 @@ import org.apache.log4j.Logger;
 
 import com.linkedin.helix.BaseDataAccessor;
 import com.linkedin.helix.HelixDataAccessor;
+import com.linkedin.helix.HelixException;
 import com.linkedin.helix.HelixProperty;
 import com.linkedin.helix.PropertyKey;
 import com.linkedin.helix.PropertyKey.Builder;
@@ -45,6 +46,11 @@ public class ZKHelixDataAccessor implements HelixDataAccessor
   public <T extends HelixProperty> boolean setProperty(PropertyKey key, T value)
   {
     PropertyType type = key.getType();
+    if (!value.isValid())
+    {
+      throw new HelixException("The ZNRecord for " + type + " is not valid.");
+    }
+  
     String path = key.getPath();
     int options = constructOptions(type);
     return _baseDataAccessor.set(path, value.getRecord(), options);

@@ -162,7 +162,6 @@ public class TestAddPersistentStats
     catch (HelixException e)
     {
       caughtException = true;
-      e.printStackTrace();
     }
     AssertJUnit.assertTrue(caughtException);
   }
@@ -179,7 +178,6 @@ public class TestAddPersistentStats
     catch (HelixException e)
     {
       caughtException = true;
-      e.printStackTrace();
     }
     AssertJUnit.assertTrue(caughtException);
   }
@@ -196,7 +194,6 @@ public class TestAddPersistentStats
     catch (HelixException e)
     {
       caughtException = true;
-      e.printStackTrace();
     }
     AssertJUnit.assertTrue(caughtException);
   }
@@ -213,7 +210,6 @@ public class TestAddPersistentStats
     catch (HelixException e)
     {
       caughtException = true;
-      e.printStackTrace();
     }
     AssertJUnit.assertTrue(caughtException);
   }

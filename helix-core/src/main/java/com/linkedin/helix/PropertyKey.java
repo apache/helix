@@ -24,6 +24,8 @@ import static com.linkedin.helix.PropertyType.STATUSUPDATES_CONTROLLER;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.log4j.Logger;
+
 import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
 import com.linkedin.helix.manager.zk.ZKHelixDataAccessor;
 import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
@@ -48,15 +50,19 @@ import com.linkedin.helix.model.StatusUpdate;
 
 public class PropertyKey
 {
-
+  private static Logger LOG = Logger.getLogger(PropertyKey.class);
   public PropertyType _type;
   private final String[] _params;
   Class<? extends HelixProperty> _typeClazz;
 
   public PropertyKey(PropertyType type,
-      Class<? extends HelixProperty> typeClazz, String... params)
+      Class<? extends HelixProperty> typeClazz, String... params) 
   {
     _type = type;
+    if(params==null || params.length==0 || Arrays.asList(params).contains(null)){
+      throw new IllegalArgumentException("params cannot be null");
+    }
+    
     _params = params;
     _typeClazz = typeClazz;
   }
@@ -71,7 +77,11 @@ public class PropertyKey
   {
     String clusterName = _params[0];
     String[] subKeys = Arrays.copyOfRange(_params, 1, _params.length);
-    return PropertyPathConfig.getPath(_type, clusterName, subKeys);
+    String path = PropertyPathConfig.getPath(_type, clusterName, subKeys);
+    if(path == null){
+      LOG.error("Invalid property key with type:" + _type + "subKeys:" + Arrays.toString(_params));
+    }
+    return path;
   }
 
   public static class Builder

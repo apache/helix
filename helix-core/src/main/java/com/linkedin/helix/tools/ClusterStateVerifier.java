@@ -37,7 +37,6 @@ import org.apache.commons.cli.ParseException;
 import org.apache.log4j.Logger;
 
 import com.linkedin.helix.ClusterView;
-import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.PropertyPathConfig;
@@ -52,9 +51,7 @@ import com.linkedin.helix.controller.stages.ClusterDataCache;
 import com.linkedin.helix.controller.stages.ClusterEvent;
 import com.linkedin.helix.controller.stages.CurrentStateComputationStage;
 import com.linkedin.helix.controller.stages.ResourceComputationStage;
-import com.linkedin.helix.manager.file.FileDataAccessor;
 import com.linkedin.helix.manager.file.FileHelixDataAccessor;
-import com.linkedin.helix.manager.zk.ZKDataAccessor;
 import com.linkedin.helix.manager.zk.ZKHelixDataAccessor;
 import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
 import com.linkedin.helix.manager.zk.ZkClient;
@@ -175,7 +172,8 @@ public class ClusterStateVerifier
     {
       try
       {
-        HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(zkClient));
+        HelixDataAccessor accessor =
+            new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(zkClient));
 
         return ClusterStateVerifier.verifyBestPossAndExtView(accessor, errStates);
       }
@@ -289,7 +287,8 @@ public class ClusterStateVerifier
     {
       try
       {
-        DataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
+        ZKHelixDataAccessor accessor =
+            new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(zkClient));
 
         return ClusterStateVerifier.verifyMasterNbInExtView(accessor);
       }
@@ -430,10 +429,12 @@ public class ClusterStateVerifier
 
   }
 
-  static boolean verifyMasterNbInExtView(DataAccessor accessor)
+  static boolean verifyMasterNbInExtView(HelixDataAccessor accessor)
   {
+    Builder keyBuilder = accessor.keyBuilder();
+
     Map<String, IdealState> idealStates =
-        accessor.getChildValuesMap(IdealState.class, PropertyType.IDEALSTATES);
+        accessor.getChildValuesMap(keyBuilder.idealStates());
     if (idealStates == null || idealStates.size() == 0)
     {
       LOG.info("No resource idealState");
@@ -441,7 +442,7 @@ public class ClusterStateVerifier
     }
 
     Map<String, ExternalView> extViews =
-        accessor.getChildValuesMap(ExternalView.class, PropertyType.EXTERNALVIEW);
+        accessor.getChildValuesMap(keyBuilder.externalViews());
     if (extViews == null || extViews.size() < idealStates.size())
     {
       LOG.info("No externalViews | externalView.size() < idealState.size()");
@@ -662,7 +663,7 @@ public class ClusterStateVerifier
           extViewPath.equals("/") ? extViewPath + child : extViewPath + "/" + child;
       zkClient.unsubscribeDataChanges(childPath, listener);
     }
-    
+
     long endTime = System.currentTimeMillis();
 
     // debug

@@ -40,11 +40,13 @@ import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
 
+import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.controller.HelixControllerMain;
 import com.linkedin.helix.manager.file.FileDataAccessor;
-import com.linkedin.helix.manager.zk.ZKDataAccessor;
 import com.linkedin.helix.manager.zk.ZKHelixAdmin;
+import com.linkedin.helix.manager.zk.ZKHelixDataAccessor;
 import com.linkedin.helix.manager.zk.ZNRecordSerializer;
+import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
 import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.model.CurrentState;
 import com.linkedin.helix.model.ExternalView;
@@ -300,16 +302,16 @@ public class TestHelper
 
     try
     {
-      ZKDataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
+      ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(zkClient));
+      Builder keyBuilder = accessor.keyBuilder();
 
       for (String instanceName : instanceNames)
       {
-        List<String> sessionIds = accessor.getChildNames(PropertyType.CURRENTSTATES, instanceName);
+        List<String> sessionIds = accessor.getChildNames(keyBuilder.sessions(instanceName));
 
         for (String sessionId : sessionIds)
         {
-          CurrentState curState = accessor.getProperty(CurrentState.class,
-              PropertyType.CURRENTSTATES, instanceName, sessionId, resourceName);
+          CurrentState curState = accessor.getProperty(keyBuilder.currentState(instanceName, sessionId, resourceName));
 
           if (curState != null && curState.getRecord().getMapFields().size() != 0)
           {
@@ -317,8 +319,7 @@ public class TestHelper
           }
         }
 
-        ExternalView extView = accessor.getProperty(ExternalView.class, PropertyType.EXTERNALVIEW,
-            resourceName);
+        ExternalView extView = accessor.getProperty(keyBuilder.externalView(resourceName));
 
         if (extView != null && extView.getRecord().getMapFields().size() != 0)
         {
@@ -386,7 +387,8 @@ public class TestHelper
 
     try
     {
-      ZKDataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
+      ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(zkClient));
+      Builder keyBuilder = accessor.keyBuilder();
 
       for (String resGroupPartitionKey : stateMap.keySet())
       {
@@ -394,8 +396,7 @@ public class TestHelper
         String resGroup = retMap.get("RESOURCE");
         String partitionKey = retMap.get("PARTITION");
 
-        ExternalView extView = accessor.getProperty(ExternalView.class, PropertyType.EXTERNALVIEW,
-            resGroup);
+        ExternalView extView = accessor.getProperty(keyBuilder.externalView(resGroup));
         for (String instance : stateMap.get(resGroupPartitionKey))
         {
           String actualState = extView.getStateMap(partitionKey).get(instance);

@@ -29,11 +29,12 @@ import org.apache.zookeeper.data.Stat;
 
 import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.HelixException;
+import com.linkedin.helix.HelixProperty;
 import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.HelixProperty;
 
+@Deprecated
 public class ZKDataAccessor implements DataAccessor
 {
   private static Logger logger = Logger.getLogger(ZKDataAccessor.class);

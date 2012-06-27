@@ -26,24 +26,24 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 
-import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.Mocks;
-import com.linkedin.helix.PropertyType;
+import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.controller.pipeline.Stage;
 import com.linkedin.helix.controller.pipeline.StageContext;
-import com.linkedin.helix.controller.stages.ClusterEvent;
 import com.linkedin.helix.model.IdealState;
+import com.linkedin.helix.model.IdealState.IdealStateModeProperty;
 import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.model.Resource;
-import com.linkedin.helix.model.IdealState.IdealStateModeProperty;
+import com.linkedin.helix.model.StateModelDefinition;
 import com.linkedin.helix.tools.StateModelConfigGenerator;
 
 public class BaseStageTest
 {
   protected HelixManager manager;
-  protected DataAccessor accessor;
+  protected HelixDataAccessor accessor;
   protected ClusterEvent event;
 
   @BeforeClass()
@@ -67,7 +67,7 @@ public class BaseStageTest
   {
     String clusterName = "testCluster-" + UUID.randomUUID().toString();
     manager = new Mocks.MockManager(clusterName);
-    accessor = manager.getDataAccessor();
+    accessor = manager.getHelixDataAccessor();
     event = new ClusterEvent("sampleEvent");
   }
 
@@ -101,9 +101,10 @@ public class BaseStageTest
       idealStates.add(idealState);
 
 //      System.out.println(idealState);
-      accessor.setProperty(PropertyType.IDEALSTATES,
-                           idealState,
-                           resourceName);
+
+      Builder keyBuilder = accessor.keyBuilder();
+
+      accessor.setProperty(keyBuilder.idealStates(resourceName), idealState);
     }
     return idealStates;
   }
@@ -115,7 +116,9 @@ public class BaseStageTest
     {
       LiveInstance liveInstance = new LiveInstance("localhost_" + i);
       liveInstance.setSessionId("session_" + i);
-      accessor.setProperty(PropertyType.LIVEINSTANCES, liveInstance, "localhost_" + i);
+      
+      Builder keyBuilder = accessor.keyBuilder();
+      accessor.setProperty(keyBuilder.liveInstance("localhost_" + i), liveInstance);
     }
   }
 
@@ -139,13 +142,17 @@ public class BaseStageTest
   {
     ZNRecord masterSlave = new StateModelConfigGenerator()
         .generateConfigForMasterSlave();
-    accessor.setProperty(PropertyType.STATEMODELDEFS, masterSlave, masterSlave.getId());
+    
+    Builder keyBuilder = accessor.keyBuilder();
+    accessor.setProperty(keyBuilder.stateModelDef(masterSlave.getId()), new StateModelDefinition(masterSlave));
+    
     ZNRecord leaderStandby = new StateModelConfigGenerator()
         .generateConfigForLeaderStandby();
-    accessor.setProperty(PropertyType.STATEMODELDEFS, leaderStandby, leaderStandby.getId());
+    accessor.setProperty(keyBuilder.stateModelDef(leaderStandby.getId()), new StateModelDefinition(leaderStandby));
+
     ZNRecord onlineOffline = new StateModelConfigGenerator()
         .generateConfigForOnlineOffline();
-    accessor.setProperty(PropertyType.STATEMODELDEFS, onlineOffline, onlineOffline.getId());
+    accessor.setProperty(keyBuilder.stateModelDef(onlineOffline.getId()), new StateModelDefinition(onlineOffline));
   }
 
   protected Map<String, Resource> getResourceMap()

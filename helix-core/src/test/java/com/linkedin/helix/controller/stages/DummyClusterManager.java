@@ -246,7 +246,6 @@ public class DummyClusterManager implements HelixManager
   @Override
   public HelixDataAccessor getHelixDataAccessor()
   {
-    // TODO Auto-generated method stub
-    return null;
+    return _accessor;
   }
 }

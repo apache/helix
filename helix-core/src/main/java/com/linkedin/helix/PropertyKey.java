@@ -150,11 +150,12 @@ public class PropertyKey
                              ConfigScopeProperty.CONSTRAINT.toString());
     }
     
-    public PropertyKey constraints(String constraintType)
+    public PropertyKey constraint(String constraintType)
     {
       return new PropertyKey(CONFIGS,
                              ClusterConstraints.class,
                              _clusterName,
+                             ConfigScopeProperty.CONSTRAINT.toString(),
                              constraintType);
     }
 

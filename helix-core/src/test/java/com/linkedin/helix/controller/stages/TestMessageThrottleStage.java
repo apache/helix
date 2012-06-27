@@ -206,14 +206,16 @@ public class TestMessageThrottleStage extends ZkUnitTestBase
     ConstraintItem constraint5 = new ConstraintItem(record.getMapField("constraint5"));
 
     Builder keyBuilder = accessor.keyBuilder();
-    accessor.setProperty(keyBuilder.constraints(), new ClusterConstraints(record));
+    accessor.setProperty(keyBuilder.constraint(ConstraintType.MESSAGE_CONSTRAINT.toString()),
+                         new ClusterConstraints(record));
 
     // ClusterConstraints constraint =
     // accessor.getProperty(ClusterConstraints.class,
     // PropertyType.CONFIGS,
     // ConfigScopeProperty.CONSTRAINT.toString(),
     // ConstraintType.MESSAGE_CONSTRAINT.toString());
-    ClusterConstraints constraint = accessor.getProperty(keyBuilder.constraints());
+    ClusterConstraints constraint =
+        accessor.getProperty(keyBuilder.constraint(ConstraintType.MESSAGE_CONSTRAINT.toString()));
 
     MessageThrottleStage throttleStage = new MessageThrottleStage();
 

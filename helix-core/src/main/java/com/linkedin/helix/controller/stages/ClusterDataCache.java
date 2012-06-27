@@ -36,30 +36,31 @@ import com.linkedin.helix.model.Message;
 import com.linkedin.helix.model.StateModelDefinition;
 
 /**
- * Reads the data from the cluster using data accessor. This output ClusterData
- * which provides useful methods to search/lookup properties
- *
+ * Reads the data from the cluster using data accessor. This output ClusterData which
+ * provides useful methods to search/lookup properties
+ * 
  * @author kgopalak
- *
+ * 
  */
 public class ClusterDataCache
 {
 
-  Map<String, LiveInstance> _liveInstanceMap;
-  Map<String, IdealState> _idealStateMap;
-  Map<String, StateModelDefinition> _stateModelDefMap;
-  Map<String, InstanceConfig> _instanceConfigMap;
-  Map<String, ClusterConstraints> _constraintMap;
+  Map<String, LiveInstance>                           _liveInstanceMap;
+  Map<String, IdealState>                             _idealStateMap;
+  Map<String, StateModelDefinition>                   _stateModelDefMap;
+  Map<String, InstanceConfig>                         _instanceConfigMap;
+  Map<String, ClusterConstraints>                     _constraintMap;
   Map<String, Map<String, Map<String, CurrentState>>> _currentStateMap;
-  Map<String, Map<String, Message>> _messageMap;
+  Map<String, Map<String, Message>>                   _messageMap;
 
-//  Map<String, Map<String, HealthStat>> _healthStatMap;
-//  private HealthStat _globalStats; // DON'T THINK I WILL USE THIS ANYMORE
-//  private PersistentStats _persistentStats;
-//  private Alerts _alerts;
-//  private AlertStatus _alertStatus;
+  // Map<String, Map<String, HealthStat>> _healthStatMap;
+  // private HealthStat _globalStats; // DON'T THINK I WILL USE THIS ANYMORE
+  // private PersistentStats _persistentStats;
+  // private Alerts _alerts;
+  // private AlertStatus _alertStatus;
 
-  private static final Logger LOG = Logger.getLogger(ClusterDataCache.class.getName());
+  private static final Logger                         LOG =
+                                                              Logger.getLogger(ClusterDataCache.class.getName());
 
   public boolean refresh(HelixDataAccessor accessor)
   {
@@ -69,22 +70,27 @@ public class ClusterDataCache
 
     for (LiveInstance instance : _liveInstanceMap.values())
     {
-      LOG.trace("live instance: " + instance.getInstanceName() + " " + instance.getSessionId());
+      LOG.trace("live instance: " + instance.getInstanceName() + " "
+          + instance.getSessionId());
     }
 
     _stateModelDefMap = accessor.getChildValuesMap(keyBuilder.stateModelDefs());
     _instanceConfigMap = accessor.getChildValuesMap(keyBuilder.instanceConfigs());
-    _constraintMap = accessor.getChildValuesMap(keyBuilder.constraints());
+    _constraintMap =
+        accessor.getChildValuesMap(keyBuilder.constraints());
 
-    Map<String, Map<String, Message>> msgMap = new HashMap<String, Map<String, Message>>();
+    Map<String, Map<String, Message>> msgMap =
+        new HashMap<String, Map<String, Message>>();
     for (String instanceName : _liveInstanceMap.keySet())
     {
-      Map<String, Message> map = accessor.getChildValuesMap(keyBuilder.messages(instanceName));
-      msgMap.put(instanceName,map);
+      Map<String, Message> map =
+          accessor.getChildValuesMap(keyBuilder.messages(instanceName));
+      msgMap.put(instanceName, map);
     }
     _messageMap = Collections.unmodifiableMap(msgMap);
 
-    Map<String, Map<String, Map<String, CurrentState>>> allCurStateMap = new HashMap<String, Map<String, Map<String, CurrentState>>>();
+    Map<String, Map<String, Map<String, CurrentState>>> allCurStateMap =
+        new HashMap<String, Map<String, Map<String, CurrentState>>>();
     for (String instanceName : _liveInstanceMap.keySet())
     {
       LiveInstance liveInstance = _liveInstanceMap.get(instanceName);
@@ -93,14 +99,17 @@ public class ClusterDataCache
       {
         allCurStateMap.put(instanceName, new HashMap<String, Map<String, CurrentState>>());
       }
-      Map<String, Map<String, CurrentState>> curStateMap = allCurStateMap.get(instanceName);
-      Map<String, CurrentState> map = accessor.getChildValuesMap(keyBuilder.currentStates(instanceName, sessionId));
+      Map<String, Map<String, CurrentState>> curStateMap =
+          allCurStateMap.get(instanceName);
+      Map<String, CurrentState> map =
+          accessor.getChildValuesMap(keyBuilder.currentStates(instanceName, sessionId));
       curStateMap.put(sessionId, map);
     }
 
     for (String instance : allCurStateMap.keySet())
     {
-      allCurStateMap.put(instance, Collections.unmodifiableMap(allCurStateMap.get(instance)));
+      allCurStateMap.put(instance,
+                         Collections.unmodifiableMap(allCurStateMap.get(instance)));
     }
     _currentStateMap = Collections.unmodifiableMap(allCurStateMap);
 
@@ -117,7 +126,8 @@ public class ClusterDataCache
     return _liveInstanceMap;
   }
 
-  public Map<String, CurrentState> getCurrentState(String instanceName, String clientSessionId)
+  public Map<String, CurrentState> getCurrentState(String instanceName,
+                                                   String clientSessionId)
   {
     return _currentStateMap.get(instanceName).get(clientSessionId);
   }
@@ -128,43 +138,44 @@ public class ClusterDataCache
     if (map != null)
     {
       return map;
-    } else
+    }
+    else
     {
       return Collections.emptyMap();
     }
   }
 
-//  public HealthStat getGlobalStats()
-//  {
-//    return _globalStats;
-//  }
-//
-//  public PersistentStats getPersistentStats()
-//  {
-//    return _persistentStats;
-//  }
-//
-//  public Alerts getAlerts()
-//  {
-//    return _alerts;
-//  }
-//
-//  public AlertStatus getAlertStatus()
-//  {
-//    return _alertStatus;
-//  }
-//
-//  public Map<String, HealthStat> getHealthStats(String instanceName)
-//  {
-//    Map<String, HealthStat> map = _healthStatMap.get(instanceName);
-//    if (map != null)
-//    {
-//      return map;
-//    } else
-//    {
-//      return Collections.emptyMap();
-//    }
-//  }
+  // public HealthStat getGlobalStats()
+  // {
+  // return _globalStats;
+  // }
+  //
+  // public PersistentStats getPersistentStats()
+  // {
+  // return _persistentStats;
+  // }
+  //
+  // public Alerts getAlerts()
+  // {
+  // return _alerts;
+  // }
+  //
+  // public AlertStatus getAlertStatus()
+  // {
+  // return _alertStatus;
+  // }
+  //
+  // public Map<String, HealthStat> getHealthStats(String instanceName)
+  // {
+  // Map<String, HealthStat> map = _healthStatMap.get(instanceName);
+  // if (map != null)
+  // {
+  // return map;
+  // } else
+  // {
+  // return Collections.emptyMap();
+  // }
+  // }
 
   public StateModelDefinition getStateModelDef(String stateModelDefRef)
   {
@@ -207,20 +218,23 @@ public class ClusterDataCache
 
       if (replicasStr != null)
       {
-         if (replicasStr.equals(StateModelToken.ANY_LIVEINSTANCE.toString()))
+        if (replicasStr.equals(StateModelToken.ANY_LIVEINSTANCE.toString()))
         {
           replicas = _liveInstanceMap.size();
-        } else
+        }
+        else
         {
           try
           {
             replicas = Integer.parseInt(replicasStr);
-          } catch (Exception e)
+          }
+          catch (Exception e)
           {
             LOG.error("invalid replicas string: " + replicasStr);
           }
         }
-      } else
+      }
+      else
       {
         LOG.error("idealState for resource: " + resourceName + " does NOT have replicas");
       }

@@ -24,6 +24,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.PropertyType;
@@ -78,7 +79,7 @@ public class TestSimpleWildcardAlert extends ZkIntegrationTestBase
     public void doTransition(Message message, NotificationContext context)
     {
       HelixManager manager = context.getManager();
-      DataAccessor accessor = manager.getDataAccessor();
+      HelixDataAccessor accessor = manager.getHelixDataAccessor();
       String fromState = message.getFromState();
       String toState = message.getToState();
       String instance = message.getTgtName();

@@ -26,10 +26,13 @@ import org.codehaus.jackson.map.SerializationConfig;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.Criteria;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.NotificationContext;
+import com.linkedin.helix.PropertyKey;
+import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.messaging.handling.HelixTaskResult;
@@ -147,13 +150,15 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBase
     schedulerMessage.getRecord().setMapField("MessageTemplate", msg.getRecord().getSimpleFields());
     schedulerMessage.getRecord().setSimpleField("TIMEOUT", "-1");
     
-    manager.getDataAccessor().setProperty(PropertyType.MESSAGES_CONTROLLER, schedulerMessage, schedulerMessage.getMsgId());
+    HelixDataAccessor helixDataAccessor = manager.getHelixDataAccessor();
+    Builder keyBuilder = helixDataAccessor.keyBuilder();
+    helixDataAccessor.setProperty(keyBuilder.controllerMessage(schedulerMessage.getMsgId()), schedulerMessage );
     
     Thread.sleep(15000);
     
     Assert.assertEquals(_PARTITIONS, factory._results.size());
-    
-    ZNRecord statusUpdate = manager.getDataAccessor().getProperty(PropertyType.STATUSUPDATES_CONTROLLER, MessageType.SCHEDULER_MSG.toString(), schedulerMessage.getMsgId());
+    PropertyKey controllerTaskStatus = keyBuilder.controllerTaskStatus(manager.getInstanceName(), manager.getSessionId(), MessageType.SCHEDULER_MSG.toString(), schedulerMessage.getMsgId());
+    ZNRecord statusUpdate = helixDataAccessor.getProperty(controllerTaskStatus).getRecord();
     Assert.assertTrue(statusUpdate.getMapField("SentMessageCount").get("MessageCount").equals(""+(_PARTITIONS * 3)));
     int count = 0;
     for(Set<String> val : factory._results.values())
@@ -208,13 +213,16 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBase
     schedulerMessage.getRecord().setMapField("MessageTemplate", msg.getRecord().getSimpleFields());
     schedulerMessage.getRecord().setSimpleField("TIMEOUT", "-1");
     
-    manager.getDataAccessor().setProperty(PropertyType.MESSAGES_CONTROLLER, schedulerMessage, schedulerMessage.getMsgId());
+    HelixDataAccessor helixDataAccessor = manager.getHelixDataAccessor();
+    Builder keyBuilder = helixDataAccessor.keyBuilder();
+    PropertyKey controllerMessageKey = keyBuilder.controllerMessage(schedulerMessage.getMsgId());
+    helixDataAccessor.setProperty(controllerMessageKey, schedulerMessage);
     
     Thread.sleep(3000);
     
     Assert.assertEquals(0, factory._results.size());
-    
-    ZNRecord statusUpdate = manager.getDataAccessor().getProperty(PropertyType.STATUSUPDATES_CONTROLLER, MessageType.SCHEDULER_MSG.toString(), schedulerMessage.getMsgId());
+    PropertyKey controllerTaskStatus = keyBuilder.controllerTaskStatus(manager.getInstanceName(), manager.getSessionId(), MessageType.SCHEDULER_MSG.toString(), schedulerMessage.getMsgId());
+    ZNRecord statusUpdate = helixDataAccessor.getProperty(controllerTaskStatus).getRecord();
     Assert.assertTrue(statusUpdate.getMapField("SentMessageCount").get("MessageCount").equals("0"));
     int count = 0;
     for(Set<String> val : factory._results.values())

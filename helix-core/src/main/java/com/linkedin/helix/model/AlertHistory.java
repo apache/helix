@@ -16,7 +16,7 @@ public class AlertHistory extends HelixProperty
   public boolean isValid()
   {
     // TODO Auto-generated method stub
-    return false;
+    return true;
   }
 
 }

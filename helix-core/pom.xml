@@ -143,6 +143,10 @@
               <mainClass>com.linkedin.helix.tools.LocalZKServer</mainClass>
               <name>start-standalone-zookeeper</name>
             </program>
+            <program>
+              <mainClass>com.linkedin.helix.tools.ZkLogAnalyzer</mainClass>
+              <name>zk-log-analyzer</name>
+            </program>
           </programs>
         </configuration>
       </plugin>

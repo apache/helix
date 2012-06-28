@@ -17,13 +17,15 @@ package com.linkedin.helix.tools;
 
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
+import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
 import java.io.EOFException;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.text.DateFormat;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
@@ -57,22 +59,34 @@ public class ZKLogFormatter
   private static String fieldDelim = ":";
   private static String fieldSep = " ";
 
+  static BufferedWriter bw = null;
   /**
    * @param args
    */
   public static void main(String[] args) throws Exception
   {
-    if (args.length != 2)
+    if (args.length != 2 && args.length != 3)
     {
       System.err.println("USAGE: LogFormatter <log|snapshot> log_file");
       System.exit(2);
     }
+    
+    if (args.length == 3)
+    {
+      bw = new BufferedWriter(new FileWriter(new File(args[2])));
+    }
+    
     if (args[0].equals("log"))
     {
       readTransactionLog(args[1]);
     } else if (args[0].equals("snapshot"))
     {
       readSnapshotLog(args[1]);
+    }
+    
+    if (bw != null)
+    {
+      bw.close();
     }
   }
 
@@ -90,7 +104,15 @@ public class ZKLogFormatter
           + " !=  " + FileSnap.SNAP_MAGIC);
     }
     SerializeUtils.deserializeSnapshot(dt, ia, sessions);
-    System.out.println(sessions);
+
+    if (bw != null)
+    {
+      bw.write(sessions.toString());
+      bw.newLine();
+    } else
+    {
+      System.out.println(sessions);      
+    }
     traverse(dt, 1, "/");
 
   }
@@ -98,7 +120,7 @@ public class ZKLogFormatter
   /*
    * Level order traversal
    */
-  private static void traverse(DataTree dt, int startId, String startPath)
+  private static void traverse(DataTree dt, int startId, String startPath) throws Exception
   {
     LinkedList<Pair> queue = new LinkedList<Pair>();
     queue.add(new Pair(startPath, startId));
@@ -153,7 +175,7 @@ public class ZKLogFormatter
 
   }
 
-  private static void format(int id, Pair pair, DataNode head, byte[] data)
+  private static void format(int id, Pair pair, DataNode head, byte[] data) throws Exception
   {
     String dataStr = "";
     if (data != null)
@@ -176,7 +198,16 @@ public class ZKLogFormatter
     sb.append("version").append(fieldDelim).append(head.stat.getVersion()).append(fieldSep);
     sb.append("data").append(fieldDelim).append(dataStr).append(fieldSep);
     //@formatter:on
-    System.out.println(sb);
+
+    if (bw != null)
+    {
+      bw.write(sb.toString());
+      bw.newLine();
+    } else
+    {
+      System.out.println(sb);      
+    }
+
   }
 
   private static void readTransactionLog(String logfilepath)
@@ -192,9 +223,19 @@ public class ZKLogFormatter
       System.err.println("Invalid magic number for " + logfilepath);
       System.exit(2);
     }
-    System.out.println("ZooKeeper Transactional Log File with dbid "
-        + fhdr.getDbid() + " txnlog format version " + fhdr.getVersion());
 
+    if (bw != null)
+    {
+      bw.write("ZooKeeper Transactional Log File with dbid "
+          + fhdr.getDbid() + " txnlog format version " + fhdr.getVersion());
+      bw.newLine();
+    } else
+    {
+      System.out.println("ZooKeeper Transactional Log File with dbid "
+          + fhdr.getDbid() + " txnlog format version " + fhdr.getVersion());
+    }
+
+    
     int count = 0;
     while (true)
     {
@@ -207,14 +248,30 @@ public class ZKLogFormatter
         bytes = logStream.readBuffer("txnEntry");
       } catch (EOFException e)
       {
-        System.out.println("EOF reached after " + count + " txns.");
+        if (bw != null)
+        {
+          bw.write("EOF reached after " + count + " txns.");
+          bw.newLine();
+        } else
+        {
+          System.out.println("EOF reached after " + count + " txns.");
+        }
+
         break;
       }
       if (bytes.length == 0)
       {
         // Since we preallocate, we define EOF to be an
         // empty transaction
-        System.out.println("EOF reached after " + count + " txns.");
+        if (bw != null)
+        {
+          bw.write("EOF reached after " + count + " txns.");
+          bw.newLine();
+        } else
+        {
+          System.out.println("EOF reached after " + count + " txns.");
+        }
+
         return;
       }
       Checksum crc = new Adler32();
@@ -228,7 +285,15 @@ public class ZKLogFormatter
           .getArchive(new ByteArrayInputStream(bytes));
       TxnHeader hdr = new TxnHeader();
       Record txn = SerializeUtils.deserializeTxn(iab, hdr);
-      System.out.println(formatTransaction(hdr, txn));
+      if (bw != null)
+      {
+        bw.write(formatTransaction(hdr, txn));
+        bw.newLine();
+      } else
+      {
+        System.out.println(formatTransaction(hdr, txn));
+      }
+
       if (logStream.readByte("EOR") != 'B')
       {
         LOG.error("Last transaction was partial.");

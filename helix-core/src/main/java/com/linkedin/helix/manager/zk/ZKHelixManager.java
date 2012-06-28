@@ -784,12 +784,18 @@ public class ZKHelixManager implements HelixManager
   {
     checkConnected();
 
-    if (_propertyStore == null)
+    synchronized (_propertyStore)
     {
-      String path = PropertyPathConfig.getPath(PropertyType.PROPERTYSTORE, _clusterName);
-      // property store uses a different serializer
-      _propertyStore = new ZKPropertyStore<ZNRecord>(new ZkClient(_zkClient.getServers()),
-                                                     new ZNRecordJsonSerializer(), path);
+      if (_propertyStore == null)
+      {
+        String path =
+            PropertyPathConfig.getPath(PropertyType.PROPERTYSTORE, _clusterName);
+        // property store uses a different serializer
+        ZkClient zkClient = new ZkClient(_zkConnectString, CONNECTIONTIMEOUT);
+
+        _propertyStore =
+            new ZKPropertyStore<ZNRecord>(zkClient, new ZNRecordJsonSerializer(), path);
+      }
     }
     return _propertyStore;
   }

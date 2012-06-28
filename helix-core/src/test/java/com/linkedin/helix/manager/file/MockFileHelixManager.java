@@ -20,7 +20,6 @@ import com.linkedin.helix.ConfigAccessor;
 import com.linkedin.helix.ConfigChangeListener;
 import com.linkedin.helix.ControllerChangeListener;
 import com.linkedin.helix.CurrentStateChangeListener;
-import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.ExternalViewChangeListener;
 import com.linkedin.helix.HealthStateChangeListener;
 import com.linkedin.helix.HelixAdmin;
@@ -38,7 +37,8 @@ import com.linkedin.helix.store.file.FilePropertyStore;
 
 public class MockFileHelixManager implements HelixManager
 {
-  private final FileDataAccessor _accessor;
+//  private final FileDataAccessor _accessor;
+  private final HelixDataAccessor _accessor;
   private final String _instanceName;
   private final String _clusterName;
   private final InstanceType _type;
@@ -49,7 +49,8 @@ public class MockFileHelixManager implements HelixManager
     _instanceName = instanceName;
     _clusterName = clusterName;
     _type = type;
-    _accessor = new FileDataAccessor(store, clusterName);
+//    _accessor = new FileDataAccessor(store, clusterName);
+    _accessor = new FileHelixDataAccessor(store, clusterName);
   }
 
   @Override
@@ -124,11 +125,11 @@ public class MockFileHelixManager implements HelixManager
     return false;
   }
 
-  //@Override
-  public DataAccessor getDataAccessor()
-  {
-    return _accessor;
-  }
+//  @Override
+//  public DataAccessor getDataAccessor()
+//  {
+//    return _accessor;
+//  }
 
   @Override
   public String getClusterName()
@@ -250,8 +251,7 @@ public class MockFileHelixManager implements HelixManager
   @Override
   public HelixDataAccessor getHelixDataAccessor()
   {
-    // TODO Auto-generated method stub
-    return null;
+    return _accessor;
   }
 
 }

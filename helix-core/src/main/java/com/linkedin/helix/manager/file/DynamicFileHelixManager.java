@@ -43,6 +43,7 @@ import com.linkedin.helix.IdealStateChangeListener;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.LiveInstanceChangeListener;
 import com.linkedin.helix.MessageListener;
+import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
@@ -62,7 +63,8 @@ import com.linkedin.helix.util.HelixUtil;
 public class DynamicFileHelixManager implements HelixManager
 {
   private static final Logger LOG = Logger.getLogger(StaticFileHelixManager.class.getName());
-  private final FileDataAccessor _fileDataAccessor;
+//  private final FileDataAccessor _fileDataAccessor;
+  private final FileHelixDataAccessor _accessor;
 
   private final String _clusterName;
   private final InstanceType _instanceType;
@@ -89,7 +91,8 @@ public class DynamicFileHelixManager implements HelixManager
     _handlers = new ArrayList<FileCallbackHandler>();
 
     _store = store;
-    _fileDataAccessor = new FileDataAccessor(_store, clusterName); // accessor;
+//    _fileDataAccessor = new FileDataAccessor(_store, clusterName); // accessor;
+    _accessor = new FileHelixDataAccessor(_store, clusterName);
 
     _mgmtTool = new FileHelixAdmin(_store);
     _messagingService = new DefaultMessagingService(this);
@@ -289,8 +292,12 @@ public class DynamicFileHelixManager implements HelixManager
 
     LiveInstance liveInstance = new LiveInstance(_instanceName);
     liveInstance.setSessionId(_sessionId);
-    _fileDataAccessor.setProperty(PropertyType.LIVEINSTANCES, liveInstance.getRecord(),
-        _instanceName);
+//    _fileDataAccessor.setProperty(PropertyType.LIVEINSTANCES, liveInstance.getRecord(),
+//        _instanceName);
+    
+    Builder keyBuilder = _accessor.keyBuilder();
+    _accessor.setProperty(keyBuilder.liveInstance(_instanceName), liveInstance);
+
   }
 
   @Override
@@ -429,8 +436,7 @@ public class DynamicFileHelixManager implements HelixManager
   @Override
   public HelixDataAccessor getHelixDataAccessor()
   {
-    // TODO Auto-generated method stub
-    return null;
+    return _accessor;
   }
 
 }

@@ -19,8 +19,9 @@ package com.linkedin.helix.model;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
-import com.linkedin.helix.ZNRecord;
+
 import com.linkedin.helix.HelixProperty;
+import com.linkedin.helix.ZNRecord;
 
 public class PersistentStats extends HelixProperty
 {
@@ -89,7 +90,7 @@ public class PersistentStats extends HelixProperty
 @Override
 public boolean isValid() {
 	// TODO Auto-generated method stub
-	return false;
+	return true;
 }
   
 }

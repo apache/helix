@@ -29,6 +29,8 @@ package com.linkedin.helix.controller;
  *   to become leaders of other clusters.
  */
 
+import java.util.Arrays;
+
 import org.I0Itec.zkclient.exception.ZkInterruptedException;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -40,12 +42,9 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
 import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.HelixManagerFactory;
 import com.linkedin.helix.InstanceType;
-import com.linkedin.helix.PropertyType;
-import com.linkedin.helix.monitoring.mbeans.ClusterStatusMonitor;
 import com.linkedin.helix.participant.DistClusterControllerStateModelFactory;
 import com.linkedin.helix.participant.StateMachineEngine;
 
@@ -121,7 +120,7 @@ public class HelixControllerMain
       return cliParser.parse(cliOptions, cliArgs);
     } catch (ParseException pe)
     {
-      logger.error("fail to parse command-line options:" + pe.toString());
+      logger.error("fail to parse command-line options. cliArgs: " + Arrays.toString(cliArgs), pe);
       printUsage(cliOptions);
       System.exit(1);
     }

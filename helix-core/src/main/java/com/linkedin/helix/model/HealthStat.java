@@ -21,8 +21,8 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.HelixProperty;
+import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.alerts.ExpressionParser;
 import com.linkedin.helix.alerts.StatsHolder;
 import com.linkedin.helix.model.Message.Attributes;
@@ -121,6 +121,6 @@ public class HealthStat extends HelixProperty
   @Override
   public boolean isValid() {
     // TODO Auto-generated method stub
-    return false;
+    return true;
   }
 }

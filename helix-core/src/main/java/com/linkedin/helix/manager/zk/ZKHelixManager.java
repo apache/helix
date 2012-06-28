@@ -32,6 +32,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Timer;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.I0Itec.zkclient.ZkConnection;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
@@ -57,6 +58,7 @@ import com.linkedin.helix.IdealStateChangeListener;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.LiveInstanceChangeListener;
 import com.linkedin.helix.MessageListener;
+import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
@@ -104,7 +106,7 @@ public class ZKHelixManager implements HelixManager
   private final String _version;
   private final StateMachineEngine _stateMachEngine;
   private int _sessionTimeout;
-  private PropertyStore<ZNRecord> _propertyStore = null;
+  private final AtomicReference<PropertyStore<ZNRecord>> _propertyStoreRef;
   private final List<HelixTimerTask> _controllerTimerTasks;
   private ZkBaseDataAccessor _baseDataAccessor;
 
@@ -160,6 +162,8 @@ public class ZKHelixManager implements HelixManager
 
     _stateMachEngine = new HelixStateMachineEngine(this);
 
+    _propertyStoreRef = new AtomicReference<PropertyStore<ZNRecord>>();
+    
     // add all timer tasks
     _controllerTimerTasks = new ArrayList<HelixTimerTask>();
     if (_instanceType == InstanceType.CONTROLLER)
@@ -475,7 +479,9 @@ public class ZKHelixManager implements HelixManager
     liveInstance.setLiveInstance(ManagementFactory.getRuntimeMXBean().getName());
 
     logger.info("Add live instance: InstanceName: " + _instanceName + " Session id:" + _sessionId);
-    if (!_accessor.setProperty(PropertyType.LIVEINSTANCES, liveInstance, _instanceName))
+    // if (!_accessor.setProperty(PropertyType.LIVEINSTANCES, liveInstance, _instanceName))
+    Builder keyBuilder = _helixAccessor.keyBuilder();
+    if (!_helixAccessor.setProperty(keyBuilder.liveInstance(_instanceName), liveInstance))
     {
       String errorMsg = "Fail to create live instance node after waiting, so quit. instance:"
           + _instanceName;
@@ -629,7 +635,9 @@ public class ZKHelixManager implements HelixManager
   private void handleNewSessionAsParticipant()
   {
     // In case there is a live instance record on zookeeper
-    if (_accessor.getProperty(PropertyType.LIVEINSTANCES, _instanceName) != null)
+    Builder keyBuilder = _helixAccessor.keyBuilder();
+
+    if (_helixAccessor.getProperty(keyBuilder.liveInstance(_instanceName)) != null)
     {
       logger.warn("Found another instance with same instanceName: " + _instanceName
           + " in cluster " + _clusterName);
@@ -644,7 +652,7 @@ public class ZKHelixManager implements HelixManager
         logger.warn("Sleep interrupted while waiting for previous liveinstance to go away.", e);
       }
 
-      if (_accessor.getProperty(PropertyType.LIVEINSTANCES, _instanceName) != null)
+      if (_helixAccessor.getProperty(keyBuilder.liveInstance(_instanceName)) != null)
       {
         String errorMessage = "instance " + _instanceName
             + " already has a liveinstance in cluster " + _clusterName;
@@ -720,7 +728,8 @@ public class ZKHelixManager implements HelixManager
       return false;
     }
 
-    LiveInstance leader = _accessor.getProperty(LiveInstance.class, PropertyType.LEADER);
+    Builder keyBuilder = _helixAccessor.keyBuilder();
+    LiveInstance leader = _helixAccessor.getProperty(keyBuilder.controllerLeader());
     if (leader == null)
     {
       return false;
@@ -740,11 +749,12 @@ public class ZKHelixManager implements HelixManager
 
   private void carryOverPreviousCurrentState()
   {
-    List<String> subPaths = _accessor.getChildNames(PropertyType.CURRENTSTATES, _instanceName);
+    Builder keyBuilder = _helixAccessor.keyBuilder();
+
+    List<String> subPaths = _helixAccessor.getChildNames(keyBuilder.sessions(_instanceName));
     for (String previousSessionId : subPaths)
     {
-      List<CurrentState> previousCurrentStates = _accessor.getChildValues(CurrentState.class,
-          PropertyType.CURRENTSTATES, _instanceName, previousSessionId);
+      List<CurrentState> previousCurrentStates = _helixAccessor.getChildValues(keyBuilder.currentStates(_instanceName, previousSessionId));
 
       for (CurrentState previousCurrentState : previousCurrentStates)
       {
@@ -753,16 +763,14 @@ public class ZKHelixManager implements HelixManager
           logger.info("Carrying over old session:" + previousSessionId + " resource "
               + previousCurrentState.getId() + " to new session:" + _sessionId);
           String stateModelDefRef = previousCurrentState.getStateModelDefRef();
-          StateModelDefinition stateModel = _accessor.getProperty(StateModelDefinition.class,
-              PropertyType.STATEMODELDEFS, stateModelDefRef);
+          StateModelDefinition stateModel = _helixAccessor.getProperty(keyBuilder.stateModelDef(stateModelDefRef));
           for (String partitionName : previousCurrentState.getPartitionStateMap().keySet())
           {
 
             previousCurrentState.setState(partitionName, stateModel.getInitialState());
           }
           previousCurrentState.setSessionId(_sessionId);
-          _accessor.setProperty(PropertyType.CURRENTSTATES, previousCurrentState, _instanceName,
-              _sessionId, previousCurrentState.getId());
+          _helixAccessor.setProperty(keyBuilder.currentState(_instanceName, _sessionId, previousCurrentState.getId()), previousCurrentState);
         }
       }
     }
@@ -784,20 +792,21 @@ public class ZKHelixManager implements HelixManager
   {
     checkConnected();
 
-    synchronized (_propertyStore)
+    synchronized (_propertyStoreRef)
     {
-      if (_propertyStore == null)
+      if (_propertyStoreRef.get() == null)
       {
         String path =
             PropertyPathConfig.getPath(PropertyType.PROPERTYSTORE, _clusterName);
         // property store uses a different serializer
         ZkClient zkClient = new ZkClient(_zkConnectString, CONNECTIONTIMEOUT);
 
-        _propertyStore =
+        PropertyStore<ZNRecord>_propertyStore =
             new ZKPropertyStore<ZNRecord>(zkClient, new ZNRecordJsonSerializer(), path);
+        _propertyStoreRef.set(_propertyStore);
       }
     }
-    return _propertyStore;
+    return _propertyStoreRef.get();
   }
 
   @Override

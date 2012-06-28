@@ -32,7 +32,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Timer;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 
 import org.I0Itec.zkclient.ZkConnection;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
@@ -171,8 +170,6 @@ public class ZKHelixManager implements HelixManager
         new PropertiesReader("cluster-manager-version.properties").getProperty("clustermanager.version");
 
     _stateMachEngine = new HelixStateMachineEngine(this);
-
-    _propertyStoreRef = new AtomicReference<PropertyStore<ZNRecord>>();
 
     // add all timer tasks
     _controllerTimerTasks = new ArrayList<HelixTimerTask>();

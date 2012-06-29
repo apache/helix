@@ -33,7 +33,7 @@ import com.linkedin.helix.ZNRecordDelta.MERGEOPERATION;
  * simpleFields mapFields listFields
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class ZNRecord
+public class ZNRecord implements Updatable
 {
   static Logger _logger = Logger.getLogger(ZNRecord.class);
   private final String id;
@@ -364,6 +364,12 @@ public class ZNRecord
   public void setModifiedTime(long modifiedTime)
   {
     _modifiedTime = modifiedTime;
+  }
+
+  @Override
+  public void update(Updatable newData)
+  {
+    merge((ZNRecord)newData);
   }
 
 }

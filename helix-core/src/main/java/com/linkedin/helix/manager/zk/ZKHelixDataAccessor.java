@@ -20,12 +20,12 @@ import com.linkedin.helix.ZNRecord;
 public class ZKHelixDataAccessor implements HelixDataAccessor
 {
   private static Logger LOG = Logger.getLogger(ZKHelixDataAccessor.class);
-  private final BaseDataAccessor _baseDataAccessor;
+  private final BaseDataAccessor<ZNRecord> _baseDataAccessor;
   private final String _clusterName;
   private final Builder _propertyKeyBuilder;
 
   public ZKHelixDataAccessor(String clusterName,
-      BaseDataAccessor baseDataAccessor)
+      BaseDataAccessor<ZNRecord> baseDataAccessor)
   {
     _clusterName = clusterName;
     _baseDataAccessor = baseDataAccessor;

@@ -27,7 +27,7 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase
     zkClient.setZkSerializer(new ZNRecordSerializer());
     zkClient.deleteRecursive("/" + root);
 
-    BaseDataAccessor accessor = new ZkBaseDataAccessor(zkClient);
+    BaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<ZNRecord>(zkClient);
 
     // test sync create
     for (int i = 0; i < 10; i++)
@@ -151,7 +151,7 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase
     zkClient.setZkSerializer(new ZNRecordSerializer());
     zkClient.deleteRecursive("/" + root);
 
-    BaseDataAccessor accessor = new ZkBaseDataAccessor(zkClient);
+    BaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<ZNRecord>(zkClient);
     
     // test async createChildren
     String parentPath = PropertyPathConfig.getPath(PropertyType.MESSAGES, root, "host_1");

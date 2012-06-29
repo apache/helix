@@ -67,8 +67,8 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase
     String subRoot = _root + "/" + "set";
     List<String> subscribedPaths = new ArrayList<String>();
     subscribedPaths.add(subRoot);
-    ZkHelixPropertyStore store =
-        new ZkHelixPropertyStore(new ZkBaseDataAccessor(_gZkClient),
+    ZkHelixPropertyStore<ZNRecord> store =
+        new ZkHelixPropertyStore<ZNRecord>(new ZkBaseDataAccessor<ZNRecord>(_gZkClient),
                                  subRoot,
                                  subscribedPaths);
 
@@ -95,8 +95,8 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase
     String subRoot = _root + "/" + "callback";
     List<String> subscribedPaths = new ArrayList<String>();
     subscribedPaths.add(subRoot);
-    ZkHelixPropertyStore store =
-        new ZkHelixPropertyStore(new ZkBaseDataAccessor(_gZkClient),
+    ZkHelixPropertyStore<ZNRecord> store =
+        new ZkHelixPropertyStore<ZNRecord>(new ZkBaseDataAccessor<ZNRecord>(_gZkClient),
                                  subRoot,
                                  subscribedPaths);
 
@@ -147,8 +147,8 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase
     String subRoot = _root + "/" + "backToBackRemoveAndSet";
     List<String> subscribedPaths = new ArrayList<String>();
     subscribedPaths.add(subRoot);
-    ZkHelixPropertyStore store =
-        new ZkHelixPropertyStore(new ZkBaseDataAccessor(_gZkClient),
+    ZkHelixPropertyStore<ZNRecord> store =
+        new ZkHelixPropertyStore<ZNRecord>(new ZkBaseDataAccessor<ZNRecord>(_gZkClient),
                                  subRoot,
                                  subscribedPaths);
 
@@ -197,7 +197,7 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase
     return "/node_" + i;
   }
 
-  private void setNodes(ZkHelixPropertyStore store, char c, boolean needTimestamp)
+  private void setNodes(ZkHelixPropertyStore<ZNRecord> store, char c, boolean needTimestamp)
   {
     char[] data = new char[bufSize];
 

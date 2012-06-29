@@ -5,7 +5,7 @@ import java.util.List;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.data.Stat;
 
-public interface BaseDataAccessor
+public interface BaseDataAccessor<T>
 {
   class Option
   {
@@ -43,7 +43,7 @@ public interface BaseDataAccessor
    * @param record
    * @return
    */
-  boolean create(String path, ZNRecord record, int options);
+  boolean create(String path, T record, int options);
 
   /**
    * This will always attempt to set the data on existing node. If the znode does not
@@ -53,7 +53,7 @@ public interface BaseDataAccessor
    * @param record
    * @return
    */
-  boolean set(String path, ZNRecord record, int options);
+  boolean set(String path, T record, int options);
 
   /**
    * This will attempt to merge with existing data by calling znrecord.merge and if it
@@ -63,7 +63,7 @@ public interface BaseDataAccessor
    * @param record
    * @return
    */
-  boolean update(String path, ZNRecord record, int options);
+  boolean update(String path, T record, int options);
 
   /**
    * This will remove znode and all it's child nodes if any
@@ -81,7 +81,7 @@ public interface BaseDataAccessor
    * @param record
    * @return
    */
-  boolean[] createChildren(List<String> paths, List<ZNRecord> records, int options);
+  boolean[] createChildren(List<String> paths, List<T> records, int options);
 
   /**
    * can set multiple children under a parent node. This will use async api for better
@@ -90,7 +90,7 @@ public interface BaseDataAccessor
    * @param parentPath
    * @param record
    */
-  boolean[] setChildren(List<String> paths, List<ZNRecord> records, int options);
+  boolean[] setChildren(List<String> paths, List<T> records, int options);
 
   /**
    * Can update multiple nodes using async api for better performance. If a child does not
@@ -100,7 +100,7 @@ public interface BaseDataAccessor
    * @param record
    * @return
    */
-  boolean[] updateChildren(List<String> paths, List<ZNRecord> records, int options);
+  boolean[] updateChildren(List<String> paths, List<T> records, int options);
 
   /**
    * remove multiple paths using async api. will remove any child nodes if any
@@ -111,20 +111,20 @@ public interface BaseDataAccessor
   boolean[] remove(List<String> paths);
   
   /**
-   * Get the {@link ZNRecord} corresponding to the path
+   * Get the {@link T} corresponding to the path
    * 
    * @param path
    * @return
    */
-  ZNRecord get(String path, Stat stat, int options);
+  T get(String path, Stat stat, int options);
 
   /**
-   * Get List of {@link ZNRecord} corresponding to the paths using async api
+   * Get List of {@link T} corresponding to the paths using async api
    * 
    * @param paths
    * @return
    */
-  List<ZNRecord> get(List<String> paths, int options);
+  List<T> get(List<String> paths, int options);
 
   /**
    * Get the children under a parent path using async api
@@ -132,7 +132,7 @@ public interface BaseDataAccessor
    * @param path
    * @return
    */
-  List<ZNRecord> getChildren(String parentPath, int options);
+  List<T> getChildren(String parentPath, int options);
 
   /**
    * Returns the child names given a parent path

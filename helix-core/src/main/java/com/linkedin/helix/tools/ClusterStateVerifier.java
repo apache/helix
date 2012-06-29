@@ -173,7 +173,7 @@ public class ClusterStateVerifier
       try
       {
         HelixDataAccessor accessor =
-            new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(zkClient));
+            new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
 
         return ClusterStateVerifier.verifyBestPossAndExtView(accessor, errStates);
       }
@@ -288,7 +288,7 @@ public class ClusterStateVerifier
       try
       {
         ZKHelixDataAccessor accessor =
-            new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(zkClient));
+            new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
 
         return ClusterStateVerifier.verifyMasterNbInExtView(accessor);
       }

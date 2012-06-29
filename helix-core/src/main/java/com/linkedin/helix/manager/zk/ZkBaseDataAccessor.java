@@ -206,12 +206,13 @@ public class ZkBaseDataAccessor<T> implements
       }
     }
   }
-
+  
+  @SuppressWarnings("unchecked")
   @Override
   public T get(String path, Stat stat, int options)
   {
     // throw ZkNoNodeException to distinguish NoNode and NodeWithEmptyValue
-    return _zkClient.readData(path, stat);
+    return (T)_zkClient.readData(path, stat);
   }
 
   @Override
@@ -515,7 +516,9 @@ public class ZkBaseDataAccessor<T> implements
         ZkDataUpdater updater = new ZkDataUpdater((Updatable)record);
 
         Stat stat = new Stat();
-        T oldData = _zkClient.readData(path, stat);
+        @SuppressWarnings("unchecked")
+        T oldData = (T)_zkClient.readData(path, stat);
+        
         @SuppressWarnings("unchecked")
         T newData = (T) updater.update((Updatable)oldData);
         _zkClient.asyncSetData(path, newData, stat.getVersion(), cbList[i]);

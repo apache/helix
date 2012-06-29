@@ -88,7 +88,7 @@ public class TestZkCache extends ZkUnitTestBase
     // create
     List<String> createKeys = randomCreateByZkClient(10, root, client);
     // wait for zk callbacks to complete
-    Thread.sleep(2000);
+    Thread.sleep(5000);
     Collections.sort(createKeys);
     Collections.sort(createCallbacks);
     if (!createKeys.equals(createCallbacks))
@@ -102,7 +102,7 @@ public class TestZkCache extends ZkUnitTestBase
     // update
     List<String> updateKeys = new ArrayList<String>();
     dfUpdateZk(updateKeys, client, root);
-    Thread.sleep(2000);
+    Thread.sleep(5000);
     if (!updateKeys.equals(updateCallbacks))
     {
       // debug
@@ -116,7 +116,7 @@ public class TestZkCache extends ZkUnitTestBase
     List<String> deleteKeys = new ArrayList<String>();
     dfGetZkPaths(deleteKeys, client, root);
     client.deleteRecursive(root);
-    Thread.sleep(2000);
+    Thread.sleep(5000);
     if (!deleteKeys.equals(deleteCallbacks))
     {
       // debug

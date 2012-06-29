@@ -2,6 +2,7 @@ package com.linkedin.helix;
 
 import java.util.List;
 
+import org.I0Itec.zkclient.DataUpdater;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.data.Stat;
 
@@ -63,8 +64,19 @@ public interface BaseDataAccessor<T>
    * @param record
    * @return
    */
-  boolean update(String path, T record, int options);
+//  boolean update(String path, T record, int options);
 
+  /**
+   * This will attempt to merge with existing data by calling znrecord.merge and if it
+   * does not exist it will create it znode
+   * 
+   * @param path
+   * @param record
+   * @return
+   */
+  boolean update(String path, DataUpdater<T> updater, int options);
+
+  
   /**
    * This will remove znode and all it's child nodes if any
    * 
@@ -100,7 +112,8 @@ public interface BaseDataAccessor<T>
    * @param record
    * @return
    */
-  boolean[] updateChildren(List<String> paths, List<T> records, int options);
+//  boolean[] updateChildren(List<String> paths, List<T> records, int options);
+  boolean[] updateChildren(List<String> paths, List<DataUpdater<T>> updaters, int options);
 
   /**
    * remove multiple paths using async api. will remove any child nodes if any

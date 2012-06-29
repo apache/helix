@@ -16,6 +16,7 @@ import com.linkedin.helix.PropertyKey;
 import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
+import com.linkedin.helix.ZNRecordUpdater;
 
 public class ZKHelixDataAccessor implements HelixDataAccessor
 {
@@ -63,7 +64,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor
     PropertyType type = key.getType();
     String path = key.getPath();
     int options = constructOptions(type);
-    return _baseDataAccessor.update(path, value.getRecord(), options);
+    return _baseDataAccessor.update(path, new ZNRecordUpdater(value.getRecord()), options);
   }
 
   @SuppressWarnings("unchecked")

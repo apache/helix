@@ -16,7 +16,6 @@ import org.apache.zookeeper.data.Stat;
 
 import com.linkedin.helix.BaseDataAccessor;
 import com.linkedin.helix.IZkListener;
-import com.linkedin.helix.Updatable;
 import com.linkedin.helix.manager.zk.ZkAsyncCallbacks.CreateCallbackHandler;
 import com.linkedin.helix.manager.zk.ZkAsyncCallbacks.DefaultCallback;
 import com.linkedin.helix.manager.zk.ZkAsyncCallbacks.DeleteCallbackHandler;
@@ -30,27 +29,27 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
 
   private final ZkClient _zkClient;
 
-  class ZkDataUpdater implements DataUpdater<Updatable>
-  {
-    final Updatable _record;
-
-    public ZkDataUpdater(Updatable record)
-    {
-      _record = record;
-    }
-
-    @Override
-    public Updatable update(Updatable current)
-    {
-      if (current != null)
-      {
-        current.update(_record);
-        return current;
-      }
-      return _record;
-
-    }
-  }
+//  class ZkDataUpdater implements DataUpdater<Updatable>
+//  {
+//    final Updatable _record;
+//
+//    public ZkDataUpdater(Updatable record)
+//    {
+//      _record = record;
+//    }
+//
+//    @Override
+//    public Updatable update(Updatable current)
+//    {
+//      if (current != null)
+//      {
+//        current.update(_record);
+//        return current;
+//      }
+//      return _record;
+//
+//    }
+//  }
 
   public ZkBaseDataAccessor(ZkClient zkClient)
   {
@@ -129,8 +128,59 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
     return true;
   }
 
+//  @Override
+//  public boolean update(String path, final T record, int options)
+//  {
+//    CreateMode mode = Option.getMode(options);
+//    if (mode == null)
+//    {
+//      LOG.error("invalid create mode. options: " + options);
+//      return false;
+//    }
+//    if (!(record instanceof Updatable))
+//    {
+//      throw new IllegalArgumentException("record should be instance of Updatable");
+//    }
+//    ZkDataUpdater updater = new ZkDataUpdater((Updatable) record);
+//
+//    boolean retry;
+//    do
+//    {
+//      retry = false;
+//      try
+//      {
+//        _zkClient.updateDataSerialized(path, updater);
+//      }
+//      catch (ZkNoNodeException e)
+//      {
+//        try
+//        {
+//          String parentPath = new File(path).getParent();
+//          _zkClient.createPersistent(parentPath, true);
+//          _zkClient.create(path, record, mode);
+//        } catch (ZkNodeExistsException e1)
+//        {
+//          retry = true;
+//        } catch (Exception e1)
+//        {
+//          LOG.error("Exception while updating path: " + path + ". " + e1.getMessage());
+//          return false;
+//        }
+//      }
+//      catch (Exception e)
+//      {
+//        LOG.error("Exception while updating path: " + path + ". " + e.getMessage());
+//        return false;
+//      }
+//    }
+//    while (retry);
+//    
+//    return true;
+//  }
+  
+  
   @Override
-  public boolean update(String path, final T record, int options)
+  public boolean update(String path, DataUpdater<T> updater, int options)
   {
     CreateMode mode = Option.getMode(options);
     if (mode == null)
@@ -138,11 +188,6 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
       LOG.error("invalid create mode. options: " + options);
       return false;
     }
-    if (!(record instanceof Updatable))
-    {
-      throw new IllegalArgumentException("record should be instance of Updatable");
-    }
-    ZkDataUpdater updater = new ZkDataUpdater((Updatable) record);
 
     boolean retry;
     do
@@ -158,7 +203,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
         {
           String parentPath = new File(path).getParent();
           _zkClient.createPersistent(parentPath, true);
-          _zkClient.create(path, record, mode);
+          _zkClient.create(path, updater.update(null), mode);
         } catch (ZkNodeExistsException e1)
         {
           retry = true;
@@ -506,9 +551,10 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
   }
 
   @Override
-  public boolean[] updateChildren(List<String> paths, List<T> records, int options)
+//  public boolean[] updateChildren(List<String> paths, List<T> records, int options)
+  public boolean[] updateChildren(List<String> paths, List<DataUpdater<T>> updaters, int options)
   {
-    boolean[] success = new boolean[records.size()];
+    boolean[] success = new boolean[paths.size()];
     CreateMode mode = Option.getMode(options);
     if (mode == null)
     {
@@ -516,32 +562,32 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
       return success;
     }
 
-    SetDataCallbackHandler[] cbList = new SetDataCallbackHandler[records.size()];
+    SetDataCallbackHandler[] cbList = new SetDataCallbackHandler[paths.size()];
 
     boolean failOnBadVersion = false;
     boolean failOnNoNode = false;
     do
     {
-      for (int i = 0; i < records.size(); i++)
+      for (int i = 0; i < paths.size(); i++)
       {
         if (success[i])
           continue;
 
-        T record = records.get(i);
+//        T record = records.get(i);
+        DataUpdater<T> updater = updaters.get(i);
         String path = paths.get(i); // parentPath + "/" + record.getId();
         cbList[i] = new SetDataCallbackHandler();
-        if (!(record instanceof Updatable))
-        {
-          throw new IllegalArgumentException("record should be instance of Updatable");
-        }
-        ZkDataUpdater updater = new ZkDataUpdater((Updatable) record);
+//        if (!(record instanceof Updatable))
+//        {
+//          throw new IllegalArgumentException("record should be instance of Updatable");
+//        }
+//        ZkDataUpdater updater = new ZkDataUpdater((Updatable) record);
 
         Stat stat = new Stat();
         @SuppressWarnings("unchecked")
         T oldData = (T) _zkClient.readData(path, stat);
 
-        @SuppressWarnings("unchecked")
-        T newData = (T) updater.update((Updatable) oldData);
+        T newData = updater.update(oldData);
         _zkClient.asyncSetData(path, newData, stat.getVersion(), cbList[i]);
       }
 
@@ -569,9 +615,15 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
     }
     while (failOnBadVersion);
 
-    // if fail on NO_NODE, create parent node and do async create child nodes
+    // if fail on NO_NODE, sync create parent node and do async create child nodes
     if (failOnNoNode)
     {
+      List<T> records = new ArrayList<T>(paths.size());
+      for (DataUpdater<T> updater : updaters)
+      {
+        T record = updater.update(null);
+        records.add(record);
+      }
       createChildren(paths, records, success, mode, cbList);
     }
 

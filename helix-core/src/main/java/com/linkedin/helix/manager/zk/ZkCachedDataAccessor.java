@@ -14,6 +14,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import org.I0Itec.zkclient.DataUpdater;
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.Watcher.Event.EventType;
@@ -24,6 +25,7 @@ import com.linkedin.helix.BaseDataAccessor;
 import com.linkedin.helix.BaseDataAccessor.Option;
 import com.linkedin.helix.IZkListener;
 import com.linkedin.helix.ZNRecord;
+import com.linkedin.helix.ZNRecordUpdater;
 import com.linkedin.helix.store.HelixPropertyListener;
 import com.linkedin.helix.store.zk.ZNode;
 
@@ -305,13 +307,28 @@ public class ZkCachedDataAccessor<T> implements IZkListener
     }
   }
 
-  public boolean update(String path, T record, int options)
+//  public boolean update(String path, T record, int options)
+//  {
+//    try
+//    {
+//      _lock.writeLock().lock();
+//      String absPath = getAbsolutePath(path);
+//      boolean success = _accessor.update(absPath, record, options);
+//      updateCacheAlongPath(absPath, success);
+//      return success;
+//    } finally
+//    {
+//      _lock.writeLock().unlock();
+//    }
+//  }
+
+  public boolean update(String path, DataUpdater<T> updater, int options)
   {
     try
     {
       _lock.writeLock().lock();
       String absPath = getAbsolutePath(path);
-      boolean success = _accessor.update(absPath, record, options);
+      boolean success = _accessor.update(absPath, updater, options);
       updateCacheAlongPath(absPath, success);
       return success;
     } finally
@@ -319,7 +336,7 @@ public class ZkCachedDataAccessor<T> implements IZkListener
       _lock.writeLock().unlock();
     }
   }
-
+  
   public boolean remove(String path)
   {
     try
@@ -428,14 +445,16 @@ public class ZkCachedDataAccessor<T> implements IZkListener
     }
   }
 
-  public boolean[] updateChildren(List<String> paths, List<T> records,
-      int options)
+//  public boolean[] updateChildren(List<String> paths, List<T> records,
+//      int options)
+  public boolean[] updateChildren(List<String> paths, List<DataUpdater<T>> updaters,
+                                  int options)
   {
     try
     {
       _lock.writeLock().lock();
       List<String> absPaths = getAbsolutePath(paths);
-      boolean[] success = _accessor.updateChildren(absPaths, records, options);
+      boolean[] success = _accessor.updateChildren(absPaths, updaters, options);
 
       updateCacheAlongPath(absPaths, success);
       return success;
@@ -864,7 +883,7 @@ public class ZkCachedDataAccessor<T> implements IZkListener
       String path = "/" + root + "/host_0/" + msgId;
       ZNRecord newRecord = new ZNRecord(msgId);
       newRecord.setSimpleField("key2", "value2");
-      boolean success = accessor.update(path, newRecord, Option.PERSISTENT);
+      boolean success = accessor.update(path, new ZNRecordUpdater(newRecord), Option.PERSISTENT);
       System.out.println("update:" + success + ":" + msgId);
     }
     System.out.println("cache: " + accessor._map);
@@ -938,16 +957,17 @@ public class ZkCachedDataAccessor<T> implements IZkListener
     // test async updateChildren
     paths = new ArrayList<String>();
     parentPath = "/" + root + "/host_1";
-    records = new ArrayList<ZNRecord>();
+    List<DataUpdater<ZNRecord>> znrecordUpdaters = new ArrayList<DataUpdater<ZNRecord>>();
     for (int i = 0; i < 10; i++)
     {
       String msgId = "msg_" + i;
       ZNRecord newRecord = new ZNRecord(msgId);
       newRecord.setSimpleField("key2", "value2");
       paths.add(parentPath + "/" + msgId);
-      records.add(newRecord);
+//      records.add(newRecord);
+      znrecordUpdaters.add(new ZNRecordUpdater(newRecord));
     }
-    success = accessor.updateChildren(paths, records, Option.PERSISTENT);
+    success = accessor.updateChildren(paths, znrecordUpdaters, Option.PERSISTENT);
     System.out.println("update:" + Arrays.toString(success));
     System.out.println("cache: " + accessor._map);
 

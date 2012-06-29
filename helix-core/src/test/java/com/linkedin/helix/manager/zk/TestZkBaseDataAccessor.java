@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import org.I0Itec.zkclient.DataUpdater;
 import org.apache.zookeeper.data.Stat;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -13,6 +14,7 @@ import com.linkedin.helix.BaseDataAccessor.Option;
 import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
+import com.linkedin.helix.ZNRecordUpdater;
 import com.linkedin.helix.ZkUnitTestBase;
 
 public class TestZkBaseDataAccessor extends ZkUnitTestBase
@@ -75,7 +77,7 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase
       String path = PropertyPathConfig.getPath(PropertyType.MESSAGES, root, "host_0", msgId);
       ZNRecord newRecord = new ZNRecord(msgId);
       newRecord.setSimpleField("key2", "value2");
-      boolean success = accessor.update(path, newRecord, Option.PERSISTENT);
+      boolean success = accessor.update(path, new ZNRecordUpdater(newRecord), Option.PERSISTENT);
       Assert.assertTrue(success, "Should succeed in update");
     }
 
@@ -210,7 +212,8 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase
     
     // test async updateChildren
     parentPath = PropertyPathConfig.getPath(PropertyType.MESSAGES, root, "host_1");
-    records = new ArrayList<ZNRecord>();
+//    records = new ArrayList<ZNRecord>();
+    List<DataUpdater<ZNRecord>> znrecordUpdaters = new ArrayList<DataUpdater<ZNRecord>>();
     paths = new ArrayList<String>();
     for (int i = 0; i < 10; i++)
     {
@@ -218,9 +221,10 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase
       paths.add(PropertyPathConfig.getPath(PropertyType.MESSAGES, root, "host_1",msgId));
       ZNRecord newRecord = new ZNRecord(msgId);
       newRecord.setSimpleField("key2", "value2");
-      records.add(newRecord);
+//      records.add(newRecord);
+      znrecordUpdaters.add(new ZNRecordUpdater(newRecord));
     }
-    success = accessor.updateChildren(paths, records, Option.PERSISTENT);
+    success = accessor.updateChildren(paths, znrecordUpdaters, Option.PERSISTENT);
     for (int i = 0; i < 10; i++)
     {
       String msgId = "msg_" + i;

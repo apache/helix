@@ -88,11 +88,11 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase
   }
 
   @Test
-  public void testCallback() throws Exception
+  public void testLocalTriggeredCallback() throws Exception
   {
-    System.out.println("START testCallback() at " + new Date(System.currentTimeMillis()));
+    System.out.println("START testLocalTriggeredCallback() at " + new Date(System.currentTimeMillis()));
 
-    String subRoot = _root + "/" + "callback";
+    String subRoot = _root + "/" + "localCallback";
     List<String> subscribedPaths = new ArrayList<String>();
     subscribedPaths.add(subRoot);
     ZkHelixPropertyStore<ZNRecord> store =
@@ -135,7 +135,7 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase
     Assert.assertTrue(listener._deleteKeys.size() == expectDeleteNodes, "Should receive "
         + expectDeleteNodes + " delete callbacks");
 
-    System.out.println("END testCallback() at " + new Date(System.currentTimeMillis()));
+    System.out.println("END testLocalTriggeredCallback() at " + new Date(System.currentTimeMillis()));
   }
 
   @Test

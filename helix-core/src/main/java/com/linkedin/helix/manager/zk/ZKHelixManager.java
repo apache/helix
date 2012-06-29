@@ -108,7 +108,7 @@ public class ZKHelixManager implements HelixManager
   private int                                  _sessionTimeout;
   private PropertyStore<ZNRecord>              _propertyStore;
   private final List<HelixTimerTask>           _controllerTimerTasks;
-  private ZkBaseDataAccessor                   _baseDataAccessor;
+  private ZkBaseDataAccessor<ZNRecord>                   _baseDataAccessor;
 
   public ZKHelixManager(String clusterName,
                         String instanceName,
@@ -579,7 +579,7 @@ public class ZKHelixManager implements HelixManager
     ZkSerializer zkSerializer = new ZNRecordSerializer();
     _zkClient = new ZkClient(zkServers, _sessionTimeout, CONNECTIONTIMEOUT, zkSerializer);
     _accessor = new ZKDataAccessor(_clusterName, _zkClient);
-    _baseDataAccessor = new ZkBaseDataAccessor(_zkClient);
+    _baseDataAccessor = new ZkBaseDataAccessor<ZNRecord>(_zkClient);
     _helixAccessor = new ZKHelixDataAccessor(_clusterName, _baseDataAccessor);
     _configAccessor = new ConfigAccessor(_zkClient);
     int retryCount = 0;

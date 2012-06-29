@@ -32,6 +32,7 @@ import com.linkedin.helix.ConfigChangeListener;
 import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
 import com.linkedin.helix.ControllerChangeListener;
 import com.linkedin.helix.CurrentStateChangeListener;
+import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.ExternalViewChangeListener;
 import com.linkedin.helix.HealthStateChangeListener;
 import com.linkedin.helix.HelixAdmin;
@@ -63,7 +64,7 @@ import com.linkedin.helix.util.HelixUtil;
 public class DynamicFileHelixManager implements HelixManager
 {
   private static final Logger LOG = Logger.getLogger(StaticFileHelixManager.class.getName());
-//  private final FileDataAccessor _fileDataAccessor;
+  private final FileDataAccessor _fileDataAccessor;
   private final FileHelixDataAccessor _accessor;
 
   private final String _clusterName;
@@ -91,7 +92,7 @@ public class DynamicFileHelixManager implements HelixManager
     _handlers = new ArrayList<FileCallbackHandler>();
 
     _store = store;
-//    _fileDataAccessor = new FileDataAccessor(_store, clusterName); // accessor;
+    _fileDataAccessor = new FileDataAccessor(_store, clusterName);
     _accessor = new FileHelixDataAccessor(_store, clusterName);
 
     _mgmtTool = new FileHelixAdmin(_store);
@@ -182,11 +183,11 @@ public class DynamicFileHelixManager implements HelixManager
         "addExternalViewChangeListener() is NOT supported by File Based cluster manager");
   }
 
-//  @Override
-//  public DataAccessor getDataAccessor()
-//  {
-//    return _fileDataAccessor;
-//  }
+  @Override
+  public DataAccessor getDataAccessor()
+  {
+    return _fileDataAccessor;
+  }
 
   @Override
   public String getClusterName()

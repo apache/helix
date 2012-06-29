@@ -26,14 +26,15 @@ import org.I0Itec.zkclient.DataUpdater;
 import org.apache.log4j.Logger;
 
 import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixProperty;
 import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.HelixProperty;
 import com.linkedin.helix.store.PropertyStore;
 import com.linkedin.helix.store.PropertyStoreException;
 import com.linkedin.helix.store.file.FilePropertyStore;
 
+@Deprecated
 public class FileDataAccessor implements DataAccessor
 {
   private static Logger LOG = Logger.getLogger(FileDataAccessor.class);

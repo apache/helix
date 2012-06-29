@@ -20,6 +20,7 @@ import com.linkedin.helix.ConfigAccessor;
 import com.linkedin.helix.ConfigChangeListener;
 import com.linkedin.helix.ControllerChangeListener;
 import com.linkedin.helix.CurrentStateChangeListener;
+import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.ExternalViewChangeListener;
 import com.linkedin.helix.HealthStateChangeListener;
 import com.linkedin.helix.HelixAdmin;
@@ -119,11 +120,11 @@ public class DummyClusterManager implements HelixManager
     return false;
   }
 
-//  @Override
-//  public DataAccessor getDataAccessor()
-//  {
-//    return _accessor;
-//  }
+  @Override
+  public DataAccessor getDataAccessor()
+  {
+    return null;
+  }
 
   @Override
   public String getClusterName()

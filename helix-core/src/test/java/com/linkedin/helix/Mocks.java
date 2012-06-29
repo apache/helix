@@ -167,11 +167,11 @@ public class Mocks
 
     }
 
-//    @Override
-//    public DataAccessor getDataAccessor()
-//    {
-//      return accessor;
-//    }
+    @Override
+    public DataAccessor getDataAccessor()
+    {
+      return null;
+    }
 
     @Override
     public String getClusterName()

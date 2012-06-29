@@ -34,7 +34,6 @@ import com.linkedin.helix.LiveInstanceChangeListener;
 import com.linkedin.helix.MessageListener;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.healthcheck.ParticipantHealthReportCollector;
-import com.linkedin.helix.manager.zk.ZKDataAccessor;
 import com.linkedin.helix.manager.zk.ZKHelixDataAccessor;
 import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
 import com.linkedin.helix.manager.zk.ZkClient;
@@ -43,11 +42,14 @@ import com.linkedin.helix.store.PropertyStore;
 public class MockZKHelixManager implements HelixManager
 {
   private final ZKHelixDataAccessor _accessor;
-  private final String _instanceName;
-  private final String _clusterName;
-  private final InstanceType _type;
+  private final String              _instanceName;
+  private final String              _clusterName;
+  private final InstanceType        _type;
 
-  public MockZKHelixManager(String clusterName, String instanceName, InstanceType type, ZkClient zkClient)
+  public MockZKHelixManager(String clusterName,
+                            String instanceName,
+                            InstanceType type,
+                            ZkClient zkClient)
   {
     _instanceName = instanceName;
     _clusterName = clusterName;
@@ -200,12 +202,13 @@ public class MockZKHelixManager implements HelixManager
     return _type;
   }
 
-@Override
-public void addHealthStateChangeListener(HealthStateChangeListener listener,
-		String instanceName) throws Exception {
-	// TODO Auto-generated method stub
+  @Override
+  public void addHealthStateChangeListener(HealthStateChangeListener listener,
+                                           String instanceName) throws Exception
+  {
+    // TODO Auto-generated method stub
 
-}
+  }
 
   @Override
   public String getVersion()
@@ -249,6 +252,11 @@ public void addHealthStateChangeListener(HealthStateChangeListener listener,
 
   }
 
-
+  @Override
+  public DataAccessor getDataAccessor()
+  {
+    // TODO Auto-generated method stub
+    return null;
+  }
 
 }

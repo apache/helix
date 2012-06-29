@@ -165,8 +165,8 @@ public interface HelixManager
    * 
    * @return DataAccessor
    */
-//  @Deprecated
-//  DataAccessor getDataAccessor();
+  @Deprecated
+  DataAccessor getDataAccessor();
 
   /**
    * Return the client to perform read/write operations on the cluster data

@@ -200,4 +200,18 @@ public class PropertyPathConfig
     }
     return result;
   }
+  public static String getInstanceNameFromPath(String path)
+  {
+    // path structure
+    // /<cluster_name>/instances/<instance_name>/[currentStates/messages]
+    if (path.contains("/" + PropertyType.INSTANCES + "/"))
+    {
+      String[] split = path.split("\\/");
+      if (split.length > 3)
+      {
+        return split[3];
+      }
+    }
+    return null;
+  }
 }

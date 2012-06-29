@@ -44,6 +44,7 @@ import com.linkedin.helix.LiveInstanceChangeListener;
 import com.linkedin.helix.MessageListener;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.PropertyKey.Builder;
+import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.model.CurrentState;
 import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.HealthStat;
@@ -51,7 +52,6 @@ import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.model.InstanceConfig;
 import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.model.Message;
-import com.linkedin.helix.util.HelixUtil;
 
 public class CallbackHandler implements IZkChildListener, IZkDataListener
 
@@ -158,7 +158,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
         CurrentStateChangeListener currentStateChangeListener;
         currentStateChangeListener = (CurrentStateChangeListener) _listener;
         subscribeForChanges(changeContext, true, true);
-        String instanceName = HelixUtil.getInstanceNameFromPath(_path);
+        String instanceName = PropertyPathConfig.getInstanceNameFromPath(_path);
         String[] pathParts = _path.split("/");
         // List<CurrentState> currentStates =
         // _accessor.getChildValues(CurrentState.class,
@@ -178,7 +178,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
       {
         MessageListener messageListener = (MessageListener) _listener;
         subscribeForChanges(changeContext, true, false);
-        String instanceName = HelixUtil.getInstanceNameFromPath(_path);
+        String instanceName = PropertyPathConfig.getInstanceNameFromPath(_path);
 //        List<Message> messages =
 //            _accessor.getChildValues(Message.class, PropertyType.MESSAGES, instanceName);
         List<Message> messages =
@@ -204,8 +204,6 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
         ExternalViewChangeListener externalViewListener =
             (ExternalViewChangeListener) _listener;
         subscribeForChanges(changeContext, true, true);
-//        List<ExternalView> externalViewList =
-//            _accessor.getChildValues(ExternalView.class, PropertyType.EXTERNALVIEW);
         List<ExternalView> externalViewList =
             _accessor.getChildValues(keyBuilder.externalViews());
 
@@ -225,11 +223,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
             (HealthStateChangeListener) _listener;
         subscribeForChanges(changeContext, true, true); // TODO: figure out
                                                         // settings here
-        String instanceName = HelixUtil.getInstanceNameFromPath(_path);
-//        List<HealthStat> healthReportList =
-//            _accessor.getChildValues(HealthStat.class,
-//                                     PropertyType.HEALTHREPORT,
-//                                     instanceName);
+        String instanceName = PropertyPathConfig.getInstanceNameFromPath(_path);
 
         List<HealthStat> healthReportList =
         _accessor.getChildValues(keyBuilder.healthReports(instanceName));

@@ -10,6 +10,7 @@ import static com.linkedin.helix.PropertyType.ERRORS_CONTROLLER;
 import static com.linkedin.helix.PropertyType.EXTERNALVIEW;
 import static com.linkedin.helix.PropertyType.HEALTHREPORT;
 import static com.linkedin.helix.PropertyType.HISTORY;
+import static com.linkedin.helix.PropertyType.CONTROLLER;
 import static com.linkedin.helix.PropertyType.IDEALSTATES;
 import static com.linkedin.helix.PropertyType.LEADER;
 import static com.linkedin.helix.PropertyType.LIVEINSTANCES;
@@ -327,6 +328,11 @@ public class PropertyKey
     // * addEntry(PropertyType.ALERT_HISTORY, 1,
     // * "/{clusterName}/CONTROLLER/ALERT_HISTORY"); // @formatter:on
 
+    public PropertyKey controller()
+    {
+       return new PropertyKey(CONTROLLER, null,
+          _clusterName);
+    }
     public PropertyKey controllerTaskErrors()
     {
       return new PropertyKey(ERRORS_CONTROLLER, StatusUpdate.class,
@@ -409,6 +415,8 @@ public class PropertyKey
       return new PropertyKey(HEALTHREPORT, HealthStat.class, _clusterName,
           instanceName);
     }
+
+  
 
   }
 

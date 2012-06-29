@@ -20,7 +20,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.testng.Assert;
-import org.testng.annotations.Test;
 
 import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.manager.zk.ZKHelixDataAccessor;
@@ -32,16 +31,19 @@ import com.linkedin.helix.util.StatusUpdateUtil;
 
 public class TestStatusUpdate extends ZkStandAloneCMTestBase
 {
-  @Test
+  // For now write participant StatusUpdates to log4j.
+  // TODO: Need to investigate another data channel to report to controller and re-enable
+  // this test
+  // @Test
   public void testParticipantStatusUpdates() throws Exception
   {
     ZkClient zkClient = new ZkClient(ZkIntegrationTestBase.ZK_ADDR);
     zkClient.setZkSerializer(new ZNRecordSerializer());
-    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(CLUSTER_NAME, new ZkBaseDataAccessor(zkClient));
+    ZKHelixDataAccessor accessor =
+        new ZKHelixDataAccessor(CLUSTER_NAME, new ZkBaseDataAccessor(zkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
-    List<ExternalView> extViews =
-        accessor.getChildValues(keyBuilder.externalViews());
+    List<ExternalView> extViews = accessor.getChildValues(keyBuilder.externalViews());
     Assert.assertNotNull(extViews);
 
     for (ExternalView extView : extViews)

@@ -325,38 +325,6 @@ public class ZkCachedDataAccessor implements IZkListener
     }
   }
 
-//  private void updateCacheAlongPath(String absParentPath,
-//                                    List<ZNRecord> records,
-//                                    boolean[] success)
-//  {
-//    int idx = absParentPath.indexOf('/', _root.length());
-//    while (idx > 0)
-//    {
-//      String tmpAbsPath = absParentPath.substring(0, idx);
-//      if (isSubscribed(tmpAbsPath) && !_map.containsKey(tmpAbsPath))
-//      {
-//        break;
-//      }
-//      idx = absParentPath.indexOf('/', idx + 1);
-//    }
-//
-//    if (idx > 0)
-//    {
-//      updateCacheRecursive(absParentPath.substring(0, idx));
-//    }
-//    else
-//    {
-//      for (int i = 0; i < records.size(); i++)
-//      {
-//        if (success[i])
-//        {
-//          String path = absParentPath + "/" + records.get(i).getId();
-//          updateCacheRecursive(path);
-//        }
-//      }
-//    }
-//  }
-
   private void updateCacheAlongPath(List<String> absPaths,
                                   boolean[] success)
   {
@@ -364,6 +332,21 @@ public class ZkCachedDataAccessor implements IZkListener
     {
       updateCacheAlongPath(absPaths.get(i), success[i]);
     }
+  }
+  
+  private static void copyStat(Stat dest, Stat src)
+  {
+    dest.setCzxid(src.getCzxid());
+    dest.setMzxid(src.getMzxid());
+    dest.setCtime(src.getCtime());
+    dest.setMtime(src.getMtime());
+    dest.setVersion(src.getVersion());
+    dest.setCversion(src.getCversion());
+    dest.setAversion(src.getAversion());
+    dest.setEphemeralOwner(src.getEphemeralOwner());
+    dest.setDataLength(src.getDataLength());
+    dest.setNumChildren(src.getNumChildren());
+    dest.setPzxid(src.getPzxid());
   }
   
   public boolean[] createChildren(List<String> paths, List<ZNRecord> records, int options)
@@ -453,7 +436,7 @@ public class ZkCachedDataAccessor implements IZkListener
         record = new ZNRecord((ZNRecord) zNode.getData());
         if (stat != null)
         {
-          // TODO: copy zNode.getStat() to stat
+          copyStat(stat, zNode.getStat());
         }
       }
       return record;
@@ -553,8 +536,9 @@ public class ZkCachedDataAccessor implements IZkListener
       ZNode zNode = _map.get(absPath);
       if (zNode != null)
       {
-        // TODO: return a copy
-        return zNode.getStat();
+        Stat stat = new Stat();
+        copyStat(stat, zNode.getStat());
+        return stat;
       }
       else
       {

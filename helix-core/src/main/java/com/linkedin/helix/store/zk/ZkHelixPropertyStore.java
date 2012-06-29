@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.linkedin.helix.BaseDataAccessor;
-import com.linkedin.helix.Updatable;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.manager.zk.ZNRecordSerializer;
 import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
@@ -12,7 +11,7 @@ import com.linkedin.helix.manager.zk.ZkCachedDataAccessor;
 import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.store.HelixPropertyListener;
 
-public class ZkHelixPropertyStore<T extends Updatable> extends
+public class ZkHelixPropertyStore<T> extends
     ZkCachedDataAccessor<T>
 {
 

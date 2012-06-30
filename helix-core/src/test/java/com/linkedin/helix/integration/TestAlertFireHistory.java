@@ -17,15 +17,10 @@ package com.linkedin.helix.integration;
 
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.TreeMap;
 
-import org.apache.log4j.Logger;
 import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import com.linkedin.helix.ConfigScope;
@@ -34,18 +29,10 @@ import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.HelixProperty;
 import com.linkedin.helix.PropertyKey.Builder;
-import com.linkedin.helix.PropertyType;
-import com.linkedin.helix.TestHelper;
-import com.linkedin.helix.TestHelper.StartCMResult;
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.controller.HelixControllerMain;
 import com.linkedin.helix.healthcheck.HealthStatsAggregationTask;
-import com.linkedin.helix.manager.zk.ZNRecordSerializer;
-import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.model.AlertHistory;
 import com.linkedin.helix.model.HealthStat;
-import com.linkedin.helix.tools.ClusterSetup;
-import com.linkedin.helix.tools.ClusterStateVerifier;
 
 /**
  *
@@ -204,7 +191,7 @@ public class TestAlertFireHistory extends ZkStandAloneCMTestBase
     int [] metrics6 = {0, 0, 0, 0,0};
     setHealthData(metrics5, metrics6);
     task.run();
-    Thread.sleep(100);
+    Thread.sleep(500);
     history = helixDataAccessor.getProperty(keyBuilder.alertHistory()).getRecord();
     // reset everything
     Assert.assertEquals(history.getMapFields().size(), 3 + historySize);

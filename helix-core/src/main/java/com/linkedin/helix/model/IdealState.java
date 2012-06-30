@@ -23,8 +23,8 @@ import java.util.TreeMap;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.HelixProperty;
+import com.linkedin.helix.ZNRecord;
 
 /**
  * The ideal states of all partition in a resource
@@ -163,7 +163,16 @@ public class IdealState extends HelixProperty
 
   public String getReplicas()
   {
-    return _record.getSimpleField(IdealStateProperty.REPLICAS.toString());
+    // HACK: if replica doesn't exists, use the length of the first list field instead
+    // TODO: remove it when Dbus fixed the IdealState writer
+    String replica = _record.getSimpleField(IdealStateProperty.REPLICAS.toString());
+    if (replica == null)
+    {
+      logger.warn("replicas not found in idealState. Use length of the first list instead: " + _record);
+      List<String> list = _record.getListFields().get(0);
+      replica = Integer.toString(list == null? 0 : list.size());
+    }
+    return replica;
   }
 
   public void setStateModelFactoryName(String name)
@@ -192,7 +201,7 @@ public class IdealState extends HelixProperty
       return false;
     }
 
-    if (getReplicas() == null)
+    if (getIdealStateMode() == IdealStateModeProperty.AUTO && getReplicas() == null)
     {
       logger.error("idealStates:" + _record + " does not have replica.");
       return false;

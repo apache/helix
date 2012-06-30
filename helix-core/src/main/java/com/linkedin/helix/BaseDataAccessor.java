@@ -64,16 +64,6 @@ public interface BaseDataAccessor<T>
    * @param record
    * @return
    */
-//  boolean update(String path, T record, int options);
-
-  /**
-   * This will attempt to merge with existing data by calling znrecord.merge and if it
-   * does not exist it will create it znode
-   * 
-   * @param path
-   * @param record
-   * @return
-   */
   boolean update(String path, DataUpdater<T> updater, int options);
 
   
@@ -112,7 +102,6 @@ public interface BaseDataAccessor<T>
    * @param record
    * @return
    */
-//  boolean[] updateChildren(List<String> paths, List<T> records, int options);
   boolean[] updateChildren(List<String> paths, List<DataUpdater<T>> updaters, int options);
 
   /**

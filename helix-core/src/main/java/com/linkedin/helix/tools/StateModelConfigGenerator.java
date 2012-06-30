@@ -299,7 +299,7 @@ public class StateModelConfigGenerator
       Map<String, String> metadata = new HashMap<String, String>();
       if (state.equals("ONLINE"))
       {
-        metadata.put("count", "N");
+        metadata.put("count", "R");
         record.setMapField(key, metadata);
       }
       if (state.equals("OFFLINE"))

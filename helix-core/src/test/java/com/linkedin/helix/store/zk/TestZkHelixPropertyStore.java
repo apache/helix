@@ -84,6 +84,16 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase
       }
     }
 
+    long startT = System.currentTimeMillis();
+    for (int i = 0; i < 1000; i++)
+    {
+      ZNRecord record = store.get("/node_0/childNode_0_0" , null, 0);
+      Assert.assertNotNull(record);
+    }
+    long endT = System.currentTimeMillis();
+    System.out.println("Get time used: " + (endT - startT) + "ms");
+    Assert.assertTrue((endT - startT) < 50, "1000 Gets should be finished within 50ms");
+    
     System.out.println("END testSet() at " + new Date(System.currentTimeMillis()));
   }
 

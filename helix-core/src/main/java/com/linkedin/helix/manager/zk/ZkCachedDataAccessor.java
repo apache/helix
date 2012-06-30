@@ -307,21 +307,6 @@ public class ZkCachedDataAccessor<T> implements IZkListener
     }
   }
 
-//  public boolean update(String path, T record, int options)
-//  {
-//    try
-//    {
-//      _lock.writeLock().lock();
-//      String absPath = getAbsolutePath(path);
-//      boolean success = _accessor.update(absPath, record, options);
-//      updateCacheAlongPath(absPath, success);
-//      return success;
-//    } finally
-//    {
-//      _lock.writeLock().unlock();
-//    }
-//  }
-
   public boolean update(String path, DataUpdater<T> updater, int options)
   {
     try
@@ -355,38 +340,6 @@ public class ZkCachedDataAccessor<T> implements IZkListener
 
     }
   }
-
-  // private void updateCacheAlongPath(String absParentPath,
-  // List<T> records,
-  // boolean[] success)
-  // {
-  // int idx = absParentPath.indexOf('/', _root.length());
-  // while (idx > 0)
-  // {
-  // String tmpAbsPath = absParentPath.substring(0, idx);
-  // if (isSubscribed(tmpAbsPath) && !_map.containsKey(tmpAbsPath))
-  // {
-  // break;
-  // }
-  // idx = absParentPath.indexOf('/', idx + 1);
-  // }
-  //
-  // if (idx > 0)
-  // {
-  // updateCacheRecursive(absParentPath.substring(0, idx));
-  // }
-  // else
-  // {
-  // for (int i = 0; i < records.size(); i++)
-  // {
-  // if (success[i])
-  // {
-  // String path = absParentPath + "/" + records.get(i).getId();
-  // updateCacheRecursive(path);
-  // }
-  // }
-  // }
-  // }
 
   private void updateCacheAlongPath(List<String> absPaths, boolean[] success)
   {

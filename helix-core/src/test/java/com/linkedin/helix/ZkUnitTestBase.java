@@ -34,13 +34,15 @@ import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeSuite;
 
 import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
+import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.controller.pipeline.Pipeline;
 import com.linkedin.helix.controller.pipeline.Stage;
 import com.linkedin.helix.controller.pipeline.StageContext;
 import com.linkedin.helix.controller.stages.ClusterEvent;
-import com.linkedin.helix.manager.zk.ZKDataAccessor;
 import com.linkedin.helix.manager.zk.ZKHelixAdmin;
+import com.linkedin.helix.manager.zk.ZKHelixDataAccessor;
 import com.linkedin.helix.manager.zk.ZNRecordSerializer;
+import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
 import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.model.IdealState.IdealStateModeProperty;
@@ -172,17 +174,19 @@ public class ZkUnitTestBase
   public void verifyEnabled(ZkClient zkClient, String clusterName, String instance,
       boolean wantEnabled)
   {
-    DataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
-    InstanceConfig config = accessor.getProperty(InstanceConfig.class, PropertyType.CONFIGS,
-        ConfigScopeProperty.PARTICIPANT.toString(), instance);
+    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(zkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+
+    InstanceConfig config = accessor.getProperty(keyBuilder.instanceConfig(instance));
     AssertJUnit.assertEquals(wantEnabled, config.getInstanceEnabled());
   }
 
   public void verifyReplication(ZkClient zkClient, String clusterName, String resource, int repl)
   {
-    DataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
-    IdealState idealState = accessor.getProperty(IdealState.class, PropertyType.IDEALSTATES,
-        resource);
+    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(zkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+
+    IdealState idealState = accessor.getProperty(keyBuilder.idealStates(resource));
     for (String partitionName : idealState.getPartitionSet())
     {
       AssertJUnit.assertEquals(repl, idealState.getInstanceStateMap(partitionName).size());
@@ -256,21 +260,24 @@ public class ZkUnitTestBase
 
   protected void setupStateModel(String clusterName)
   {
-    DataAccessor accessor = new ZKDataAccessor(clusterName, _gZkClient);
+    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(_gZkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+    
     StateModelConfigGenerator generator = new StateModelConfigGenerator();
     StateModelDefinition masterSlave =
         new StateModelDefinition(generator.generateConfigForMasterSlave());
-    accessor.setProperty(PropertyType.STATEMODELDEFS, masterSlave, masterSlave.getId());
+    accessor.setProperty(keyBuilder.stateModelDef(masterSlave.getId()), masterSlave);
+    
+    
     StateModelDefinition leaderStandby =
         new StateModelDefinition(generator.generateConfigForLeaderStandby());
-    accessor.setProperty(PropertyType.STATEMODELDEFS,
-                          leaderStandby,
-                          leaderStandby.getId());
+    accessor.setProperty(keyBuilder.stateModelDef(leaderStandby.getId()), leaderStandby);
+
+    
     StateModelDefinition onlineOffline =
         new StateModelDefinition(generator.generateConfigForOnlineOffline());
-    accessor.setProperty(PropertyType.STATEMODELDEFS,
-                          onlineOffline,
-                          onlineOffline.getId());
+    accessor.setProperty(keyBuilder.stateModelDef(onlineOffline.getId()), onlineOffline);
+
   }
 
   protected List<IdealState> setupIdealState(String clusterName,
@@ -279,7 +286,8 @@ public class ZkUnitTestBase
                                              int partitions,
                                              int replicas)
   {
-    DataAccessor accessor = new ZKDataAccessor(clusterName, _gZkClient);
+    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(_gZkClient));
+    Builder keyBuilder = accessor.keyBuilder();
 
     List<IdealState> idealStates = new ArrayList<IdealState>();
     List<String> instances = new ArrayList<String>();
@@ -309,14 +317,15 @@ public class ZkUnitTestBase
       idealStates.add(idealState);
 
       // System.out.println(idealState);
-      accessor.setProperty(PropertyType.IDEALSTATES, idealState, resourceName);
+      accessor.setProperty(keyBuilder.idealStates(resourceName), idealState);
     }
     return idealStates;
   }
 
   protected void setupLiveInstances(String clusterName, int[] liveInstances)
   {
-    DataAccessor accessor = new ZKDataAccessor(clusterName, _gZkClient);
+    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(_gZkClient));
+    Builder keyBuilder = accessor.keyBuilder();
 
     for (int i = 0; i < liveInstances.length; i++)
     {
@@ -324,7 +333,7 @@ public class ZkUnitTestBase
       LiveInstance liveInstance = new LiveInstance(instance);
       liveInstance.setSessionId("session_" + liveInstances[i]);
       liveInstance.setHelixVersion("0.0.0");
-      accessor.setProperty(PropertyType.LIVEINSTANCES, liveInstance, instance);
+      accessor.setProperty(keyBuilder.liveInstance(instance), liveInstance);
     }
   }
   protected void setupInstances(String clusterName, int[] instances)

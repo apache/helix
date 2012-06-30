@@ -21,10 +21,10 @@ import org.testng.AssertJUnit;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-import com.linkedin.helix.PropertyType;
-import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.Mocks.MockManager;
+import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.healthcheck.PerformanceHealthReportProvider;
+import com.linkedin.helix.model.HealthStat;
 
 public class TestPerformanceHealthReportProvider {
 
@@ -54,10 +54,10 @@ public class TestPerformanceHealthReportProvider {
 		 if (partitionReport != null) {
          	record.setMapFields(partitionReport);
          }
-		 _helixManager.getDataAccessor().setProperty(PropertyType.HEALTHREPORT,
-		                                               record,
-		                                               INSTANCE_NAME,
-		                                               record.getId());
+		 HelixDataAccessor accessor = _helixManager.getHelixDataAccessor();
+
+		 Builder keyBuilder = accessor.keyBuilder();
+		 accessor.setProperty(keyBuilder.healthReport(INSTANCE_NAME, record.getId()), new HealthStat(record));
 	}
 
 	@BeforeMethod ()

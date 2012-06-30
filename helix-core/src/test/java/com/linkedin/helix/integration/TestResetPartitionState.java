@@ -24,11 +24,12 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import com.linkedin.helix.NotificationContext;
-import com.linkedin.helix.PropertyType;
+import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.controller.HelixControllerMain;
-import com.linkedin.helix.manager.zk.ZKDataAccessor;
 import com.linkedin.helix.manager.zk.ZKHelixAdmin;
+import com.linkedin.helix.manager.zk.ZKHelixDataAccessor;
+import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
 import com.linkedin.helix.mock.storage.MockParticipant;
 import com.linkedin.helix.mock.storage.MockParticipant.ErrTransition;
 import com.linkedin.helix.model.LiveInstance;
@@ -141,12 +142,11 @@ public class TestResetPartitionState extends ZkIntegrationTestBase
   {
     // clear status update for error partition so verify() will not fail on old
     // errors
-    ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _gZkClient);
-    LiveInstance liveInstance = accessor.getProperty(LiveInstance.class,
-        PropertyType.LIVEINSTANCES, instance);
-    accessor.removeProperty(PropertyType.STATUSUPDATES, instance,
-        liveInstance.getSessionId(),
-        resource, partition);
+    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(_gZkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+
+    LiveInstance liveInstance = accessor.getProperty(keyBuilder.liveInstance(instance));
+    accessor.removeProperty(keyBuilder.stateTransitionStatus(instance, liveInstance.getSessionId(), resource, partition));
 
    }
   // TODO: throw exception in reset()

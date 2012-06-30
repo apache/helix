@@ -23,9 +23,12 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixException;
 import com.linkedin.helix.HelixManager;
+import com.linkedin.helix.HelixProperty;
+import com.linkedin.helix.PropertyKey;
+import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.controller.stages.HealthDataCache;
@@ -37,13 +40,17 @@ public class AlertsHolder {
 	private static final Logger logger = Logger
 		    .getLogger(AlertsHolder.class.getName());
 
-	DataAccessor _accessor;
+	HelixDataAccessor _accessor;
 	HealthDataCache _cache;
 	Map<String, Map<String,String>> _alertsMap; //not sure if map or set yet
 	Map<String, Map<String,String>> _alertStatusMap;
 	//Alerts _alerts;
 	HashSet<String> alerts;
 	StatsHolder _statsHolder;
+
+  private final HelixManager _manager;
+
+  private Builder _keyBuilder;
 
 	public AlertsHolder(HelixManager manager, HealthDataCache cache)
 	{
@@ -52,9 +59,11 @@ public class AlertsHolder {
 	
 	public AlertsHolder(HelixManager manager, HealthDataCache cache, StatsHolder statHolder)
   {
-    _accessor = manager.getDataAccessor();
+    _manager = manager;
+    _accessor = manager.getHelixDataAccessor();
     _cache = cache;
     _statsHolder = statHolder;
+    _keyBuilder = new PropertyKey.Builder(_manager.getClusterName());
     updateCache(_cache);
   }
 
@@ -86,24 +95,25 @@ public class AlertsHolder {
 	public void persistAlerts()
 	{
 		//XXX: Am I using _accessor too directly here?
-		ZNRecord alertsRec = _accessor.getProperty(PropertyType.ALERTS);
-		if (alertsRec == null) {
-			alertsRec = new ZNRecord(Alerts.nodeName); //TODO: fix naming of this record, if it matters
+	  
+		Alerts alerts = _accessor.getProperty(_keyBuilder.alerts());
+    if (alerts == null) {
+      alerts = new Alerts(Alerts.nodeName); //TODO: fix naming of this record, if it matters
 		}
-		alertsRec.setMapFields(_alertsMap);
-		 boolean retVal = _accessor.setProperty(PropertyType.ALERTS, alertsRec);
+		alerts.getRecord().setMapFields(_alertsMap);
+		 boolean retVal = _accessor.setProperty(_keyBuilder.alerts(), alerts);
 		 logger.debug("persistAlerts retVal: "+retVal);
 	}
 
 	public void persistAlertStatus()
 	{
 		//XXX: Am I using _accessor too directly here?
-		ZNRecord alertStatusRec = _accessor.getProperty(PropertyType.ALERT_STATUS);
-		if (alertStatusRec == null) {
-			alertStatusRec = new ZNRecord(AlertStatus.nodeName); //TODO: fix naming of this record, if it matters
+	  AlertStatus alertStatus = _accessor.getProperty(_keyBuilder.alertStatus());
+		if (alertStatus == null) {
+		  alertStatus = new AlertStatus(AlertStatus.nodeName); //TODO: fix naming of this record, if it matters
 		}
-		alertStatusRec.setMapFields(_alertStatusMap);
-		boolean retVal = _accessor.setProperty(PropertyType.ALERT_STATUS, alertStatusRec);
+		alertStatus.getRecord().setMapFields(_alertStatusMap);
+		boolean retVal = _accessor.setProperty(_keyBuilder.alertStatus(), alertStatus);
 		logger.debug("persistAlerts retVal: "+retVal);
 	}
 
@@ -151,7 +161,7 @@ public class AlertsHolder {
 	    }
 	  }
 
-	  AlertStatus alertStatus = _accessor.getProperty(AlertStatus.class, PropertyType.ALERT_STATUS);
+	  AlertStatus alertStatus = _accessor.getProperty(_keyBuilder.alertStatus());
 	  int alertStatusSize = 0;
 	  if (alertStatus != null) {
 	    alertStatusSize = alertStatus.getMapFields().size();

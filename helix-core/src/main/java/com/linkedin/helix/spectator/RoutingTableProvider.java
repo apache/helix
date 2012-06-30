@@ -27,11 +27,10 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
-import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.ExternalViewChangeListener;
+import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.NotificationContext;
-import com.linkedin.helix.PropertyType;
+import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.InstanceConfig;
 
@@ -116,9 +115,11 @@ public class RoutingTableProvider implements ExternalViewChangeListener
 
   private void refresh(List<ExternalView> externalViewList, NotificationContext changeContext)
   {
-    DataAccessor dataAccessor = changeContext.getManager().getDataAccessor();
-    List<InstanceConfig> configList = dataAccessor.getChildValues(InstanceConfig.class,
-        PropertyType.CONFIGS, ConfigScopeProperty.PARTICIPANT.toString());
+//    DataAccessor dataAccessor = changeContext.getManager().getDataAccessor();
+    HelixDataAccessor accessor = changeContext.getManager().getHelixDataAccessor();
+    Builder keyBuilder = accessor.keyBuilder();
+    
+    List<InstanceConfig> configList = accessor.getChildValues(keyBuilder.instanceConfigs());
     Map<String, InstanceConfig> instanceConfigMap = new HashMap<String, InstanceConfig>();
     for (InstanceConfig config : configList)
     {

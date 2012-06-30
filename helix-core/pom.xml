@@ -3,13 +3,13 @@
   <parent>
     <groupId>com.linkedin.helix</groupId>
     <artifactId>helix</artifactId>
-    <version>0.5.3</version>
+    <version>0.5.4</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.linkedin.helix</groupId>
   <artifactId>helix-core</artifactId>
-  <version>0.5.3</version>
+  <version>0.5.4</version>
   <packaging>jar</packaging>
 
   <name>helix-core</name>
@@ -142,6 +142,10 @@
             <program>
               <mainClass>com.linkedin.helix.tools.LocalZKServer</mainClass>
               <name>start-standalone-zookeeper</name>
+            </program>
+            <program>
+              <mainClass>com.linkedin.helix.tools.ZkLogAnalyzer</mainClass>
+              <name>zk-log-analyzer</name>
             </program>
           </programs>
         </configuration>

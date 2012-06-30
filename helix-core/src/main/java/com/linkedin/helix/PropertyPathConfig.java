@@ -15,6 +15,20 @@
  */
 package com.linkedin.helix;
 
+import static com.linkedin.helix.PropertyType.ALERTS;
+import static com.linkedin.helix.PropertyType.ALERT_STATUS;
+import static com.linkedin.helix.PropertyType.CONFIGS;
+import static com.linkedin.helix.PropertyType.CURRENTSTATES;
+import static com.linkedin.helix.PropertyType.EXTERNALVIEW;
+import static com.linkedin.helix.PropertyType.HEALTHREPORT;
+import static com.linkedin.helix.PropertyType.HISTORY;
+import static com.linkedin.helix.PropertyType.IDEALSTATES;
+import static com.linkedin.helix.PropertyType.LIVEINSTANCES;
+import static com.linkedin.helix.PropertyType.MESSAGES;
+import static com.linkedin.helix.PropertyType.PAUSE;
+import static com.linkedin.helix.PropertyType.STATEMODELDEFS;
+import static com.linkedin.helix.PropertyType.STATUSUPDATES;
+
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -23,11 +37,41 @@ import java.util.regex.Pattern;
 
 import org.apache.log4j.Logger;
 
+import com.linkedin.helix.model.AlertStatus;
+import com.linkedin.helix.model.Alerts;
+import com.linkedin.helix.model.CurrentState;
+import com.linkedin.helix.model.ExternalView;
+import com.linkedin.helix.model.HealthStat;
+import com.linkedin.helix.model.IdealState;
+import com.linkedin.helix.model.InstanceConfig;
+import com.linkedin.helix.model.LeaderHistory;
+import com.linkedin.helix.model.LiveInstance;
+import com.linkedin.helix.model.Message;
+import com.linkedin.helix.model.PauseSignal;
+import com.linkedin.helix.model.StateModelDefinition;
+import com.linkedin.helix.model.StatusUpdate;
+
 public class PropertyPathConfig
 {
   private static Logger logger = Logger.getLogger(PropertyPathConfig.class);
 
   static Map<PropertyType, Map<Integer, String>> templateMap = new HashMap<PropertyType, Map<Integer, String>>();
+  static Map<PropertyType, Class<? extends HelixProperty>> typeToClassMapping= new HashMap<PropertyType, Class<? extends HelixProperty>>();
+  static{
+    typeToClassMapping.put(LIVEINSTANCES, LiveInstance.class);
+    typeToClassMapping.put(IDEALSTATES, IdealState.class);
+    typeToClassMapping.put(CONFIGS, InstanceConfig.class);
+    typeToClassMapping.put(EXTERNALVIEW, ExternalView.class);
+    typeToClassMapping.put(STATEMODELDEFS, StateModelDefinition.class);
+    typeToClassMapping.put(MESSAGES, Message.class);
+    typeToClassMapping.put(CURRENTSTATES, CurrentState.class);
+    typeToClassMapping.put(STATUSUPDATES, StatusUpdate.class);
+    typeToClassMapping.put(HISTORY, LeaderHistory.class);
+    typeToClassMapping.put(HEALTHREPORT, HealthStat.class);
+    typeToClassMapping.put(ALERTS, Alerts.class);
+    typeToClassMapping.put(ALERT_STATUS, AlertStatus.class);
+    typeToClassMapping.put(PAUSE, PauseSignal.class);
+  }
   static
   {
     // @formatter:off
@@ -78,11 +122,9 @@ public class PropertyPathConfig
     addEntry(PropertyType.ERRORS_CONTROLLER, 2, "/{clusterName}/CONTROLLER/ERRORS/{errorId}");
     addEntry(PropertyType.STATUSUPDATES_CONTROLLER, 1, "/{clusterName}/CONTROLLER/STATUSUPDATES");
     addEntry(PropertyType.STATUSUPDATES_CONTROLLER, 2,
-        "/{clusterName}/CONTROLLER/STATUSUPDATES/{sessionId}");
+        "/{clusterName}/CONTROLLER/STATUSUPDATES/{subPath}");
     addEntry(PropertyType.STATUSUPDATES_CONTROLLER, 3,
-        "/{clusterName}/CONTROLLER/STATUSUPDATES/{sessionId}/{subPath}");
-    addEntry(PropertyType.STATUSUPDATES_CONTROLLER, 4,
-        "/{clusterName}/CONTROLLER/STATUSUPDATES/{sessionId}/{subPath}/{recordName}");
+        "/{clusterName}/CONTROLLER/STATUSUPDATES/{subPath}/{recordName}");
     addEntry(PropertyType.LEADER, 1, "/{clusterName}/CONTROLLER/LEADER");
     addEntry(PropertyType.HISTORY, 1, "/{clusterName}/CONTROLLER/HISTORY");
     addEntry(PropertyType.PAUSE, 1, "/{clusterName}/CONTROLLER/PAUSE");
@@ -106,6 +148,13 @@ public class PropertyPathConfig
     templateMap.get(type).put(numKeys, template);
   }
 
+//  public static String getPath(PropertyType type, String... keys)
+//  {
+//    String clusterName = keys[0];
+//    String[] subKeys = Arrays.copyOfRange(keys, 1, keys.length);
+//    return getPathInternal(type, clusterName, subKeys);
+//  }
+  
   public static String getPath(PropertyType type, String clusterName, String... keys)
   {
     if (clusterName == null)
@@ -150,5 +199,19 @@ public class PropertyPathConfig
           + clusterName + " and keys:" + Arrays.toString(keys));
     }
     return result;
+  }
+  public static String getInstanceNameFromPath(String path)
+  {
+    // path structure
+    // /<cluster_name>/instances/<instance_name>/[currentStates/messages]
+    if (path.contains("/" + PropertyType.INSTANCES + "/"))
+    {
+      String[] split = path.split("\\/");
+      if (split.length > 3)
+      {
+        return split[3];
+      }
+    }
+    return null;
   }
 }

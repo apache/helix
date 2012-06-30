@@ -22,12 +22,12 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.ZNRecordDecorator;
+import com.linkedin.helix.HelixProperty;
 
 /**
  * Describe the state model
  */
-public class StateModelDefinition extends ZNRecordDecorator
+public class StateModelDefinition extends HelixProperty
 {
   public enum StateModelDefinitionProperty
   {

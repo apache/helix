@@ -17,30 +17,22 @@ package com.linkedin.helix.integration;
 
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.TreeMap;
 
-import org.apache.log4j.Logger;
 import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import com.linkedin.helix.ConfigScope;
 import com.linkedin.helix.ConfigScopeBuilder;
+import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixManager;
-import com.linkedin.helix.PropertyType;
-import com.linkedin.helix.TestHelper;
-import com.linkedin.helix.TestHelper.StartCMResult;
+import com.linkedin.helix.HelixProperty;
+import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.controller.HelixControllerMain;
 import com.linkedin.helix.healthcheck.HealthStatsAggregationTask;
-import com.linkedin.helix.manager.zk.ZNRecordSerializer;
-import com.linkedin.helix.manager.zk.ZkClient;
-import com.linkedin.helix.tools.ClusterSetup;
-import com.linkedin.helix.tools.ClusterStateVerifier;
+import com.linkedin.helix.model.AlertHistory;
+import com.linkedin.helix.model.HealthStat;
 
 /**
  *
@@ -70,8 +62,10 @@ public class TestAlertFireHistory extends ZkStandAloneCMTestBase
       valMap.put(metricName2, val2[i] + "");
       record.setSimpleField("TimeStamp", new Date().getTime() + "");
       record.setMapField(_statName, valMap);
-      manager.getDataAccessor()
-        .setProperty(PropertyType.HEALTHREPORT, record, manager.getInstanceName(), record.getId());
+      HelixDataAccessor helixDataAccessor = manager.getHelixDataAccessor();
+      Builder keyBuilder = helixDataAccessor.keyBuilder();
+      helixDataAccessor
+        .setProperty(keyBuilder.healthReport( manager.getInstanceName(), record.getId()), new HealthStat(record));
     }
   }
   
@@ -98,8 +92,10 @@ public class TestAlertFireHistory extends ZkStandAloneCMTestBase
     HealthStatsAggregationTask task = new HealthStatsAggregationTask(_startCMResultMap.get(controllerName)._manager);
     task.run();
     Thread.sleep(100);
-    
-    ZNRecord history = manager.getDataAccessor().getProperty(PropertyType.ALERT_HISTORY);
+    HelixDataAccessor helixDataAccessor = manager.getHelixDataAccessor();
+    Builder keyBuilder = helixDataAccessor.keyBuilder();
+
+    AlertHistory history = manager.getHelixDataAccessor().getProperty(keyBuilder.alertHistory());
     // 
     Assert.assertEquals(history, null);
     
@@ -109,9 +105,10 @@ public class TestAlertFireHistory extends ZkStandAloneCMTestBase
     task.run();
     Thread.sleep(100);
     
-    history = manager.getDataAccessor().getProperty(PropertyType.ALERT_HISTORY);
+    history = manager.getHelixDataAccessor().getProperty(keyBuilder.alertHistory());
     // 
-    Assert.assertEquals(history.getMapFields().size(), 1);
+    Assert.assertNotNull(history);
+    Assert.assertEquals(history.getRecord().getMapFields().size(), 1);
   }
   
   @Test
@@ -129,10 +126,14 @@ public class TestAlertFireHistory extends ZkStandAloneCMTestBase
     _setupTool.getClusterManagementTool().addAlert(CLUSTER_NAME, _alertStr2);
 
     int historySize = 0;
-    ZNRecord history = manager.getDataAccessor().getProperty(PropertyType.ALERT_HISTORY);
-    if(history != null)
+    HelixDataAccessor helixDataAccessor = manager.getHelixDataAccessor();
+    Builder keyBuilder = helixDataAccessor.keyBuilder();
+    HelixProperty property = helixDataAccessor.getProperty(keyBuilder.alertHistory());
+    ZNRecord history = null;
+    if(property != null)
     {
-      historySize = history.getMapFields().size();
+      history = property.getRecord();
+      historySize = property.getRecord().getMapFields().size();
     }
     
     HealthStatsAggregationTask task = new HealthStatsAggregationTask(_startCMResultMap.get(controllerName)._manager);
@@ -140,7 +141,7 @@ public class TestAlertFireHistory extends ZkStandAloneCMTestBase
     Thread.sleep(100);
     
     
-    history = manager.getDataAccessor().getProperty(PropertyType.ALERT_HISTORY);
+    history = helixDataAccessor.getProperty(keyBuilder.alertHistory()).getRecord();
     // 
     Assert.assertEquals(history.getMapFields().size(), 1 + historySize);
     TreeMap<String, Map<String, String>> recordMap = new TreeMap<String, Map<String, String>>();
@@ -155,7 +156,7 @@ public class TestAlertFireHistory extends ZkStandAloneCMTestBase
     setHealthData(metrics1, metrics2);
     task.run();
     Thread.sleep(100);
-    history = manager.getDataAccessor().getProperty(PropertyType.ALERT_HISTORY);
+    history = helixDataAccessor.getProperty(keyBuilder.alertHistory()).getRecord();
     // no change
     Assert.assertEquals(history.getMapFields().size(), 1 + historySize);
     recordMap = new TreeMap<String, Map<String, String>>();
@@ -172,7 +173,7 @@ public class TestAlertFireHistory extends ZkStandAloneCMTestBase
     setHealthData(metrics3, metrics4);
     task.run();
     Thread.sleep(100);
-    history = manager.getDataAccessor().getProperty(PropertyType.ALERT_HISTORY);
+    history = helixDataAccessor.getProperty(keyBuilder.alertHistory()).getRecord();
     // new delta should be recorded
     Assert.assertEquals(history.getMapFields().size(), 2 + historySize);
     recordMap = new TreeMap<String, Map<String, String>>();
@@ -190,8 +191,8 @@ public class TestAlertFireHistory extends ZkStandAloneCMTestBase
     int [] metrics6 = {0, 0, 0, 0,0};
     setHealthData(metrics5, metrics6);
     task.run();
-    Thread.sleep(100);
-    history = manager.getDataAccessor().getProperty(PropertyType.ALERT_HISTORY);
+    Thread.sleep(500);
+    history = helixDataAccessor.getProperty(keyBuilder.alertHistory()).getRecord();
     // reset everything
     Assert.assertEquals(history.getMapFields().size(), 3 + historySize);
     recordMap = new TreeMap<String, Map<String, String>>();
@@ -216,7 +217,7 @@ public class TestAlertFireHistory extends ZkStandAloneCMTestBase
       setHealthData(metricsx, metricsy);
       task.run();
       Thread.sleep(100);
-      history = manager.getDataAccessor().getProperty(PropertyType.ALERT_HISTORY);
+      history = helixDataAccessor.getProperty(keyBuilder.alertHistory()).getRecord();
       
       Assert.assertEquals(history.getMapFields().size(), Math.min(3 + i + 1 + historySize, 30));
       recordMap = new TreeMap<String, Map<String, String>>();
@@ -234,7 +235,8 @@ public class TestAlertFireHistory extends ZkStandAloneCMTestBase
       }
       else
       {
-        Assert.assertTrue(lastRecord.size() == 10);
+        System.out.println(lastRecord.size());
+        Assert.assertEquals(lastRecord.size() , 10);
         if(x == 0)
         {
           Assert.assertTrue(lastRecord.get("(localhost_12922.TestStat@DB#db1.TestMetric2)GREATER(100)").equals("ON"));
@@ -274,7 +276,7 @@ public class TestAlertFireHistory extends ZkStandAloneCMTestBase
       setHealthData(metricsx, metricsy);
       task.run();
       Thread.sleep(100);
-      history = manager.getDataAccessor().getProperty(PropertyType.ALERT_HISTORY);
+      history = helixDataAccessor.getProperty(keyBuilder.alertHistory()).getRecord();
       
       Assert.assertEquals(history.getMapFields().size(), 30);
       recordMap = new TreeMap<String, Map<String, String>>();

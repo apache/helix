@@ -27,9 +27,11 @@ import org.josql.QueryParseException;
 import org.josql.QueryResults;
 
 import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
-import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixException;
 import com.linkedin.helix.HelixManager;
+import com.linkedin.helix.HelixProperty;
+import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.model.LiveInstance.LiveInstanceProperty;
@@ -93,14 +95,22 @@ public class ClusterJosqlQueryProcessor
 
   Query prepareQuery(Map<String, Object> bindVariables, List<Object> additionalFunctionHandlers)
   {
-    DataAccessor accessor = _manager.getDataAccessor();
+    // DataAccessor accessor = _manager.getDataAccessor();
+    HelixDataAccessor accessor = _manager.getHelixDataAccessor();
+    
     // Get all the ZNRecords in the cluster and set them as bind variables
-    List<ZNRecord> instanceConfigs = accessor.getChildValues(PropertyType.CONFIGS,
-        ConfigScopeProperty.PARTICIPANT.toString());
-    List<ZNRecord> liveInstances = accessor.getChildValues(PropertyType.LIVEINSTANCES);
-    List<ZNRecord> stateModelDefs = accessor.getChildValues(PropertyType.STATEMODELDEFS);
+    Builder keyBuilder = accessor.keyBuilder();
+//    List<ZNRecord> instanceConfigs = accessor.getChildValues(PropertyType.CONFIGS,
+//        ConfigScopeProperty.PARTICIPANT.toString());
+    
+    List<ZNRecord> instanceConfigs = HelixProperty.convertToList(accessor.getChildValues(keyBuilder.instanceConfigs()));
+
+    List<ZNRecord> liveInstances = HelixProperty.convertToList(accessor.getChildValues(keyBuilder.liveInstances()));
+    List<ZNRecord> stateModelDefs = HelixProperty.convertToList(accessor.getChildValues(keyBuilder.stateModelDefs()));
+    
     // Idealstates are stored in a map from resource name to idealState ZNRecord
-    List<ZNRecord> idealStateList = accessor.getChildValues(PropertyType.IDEALSTATES);
+    List<ZNRecord> idealStateList = HelixProperty.convertToList(accessor.getChildValues(keyBuilder.idealStates()));
+    
     Map<String, ZNRecord> idealStatesMap = new HashMap<String, ZNRecord>();
     for (ZNRecord idealState : idealStateList)
     {
@@ -115,7 +125,8 @@ public class ClusterJosqlQueryProcessor
         partitions.add(new ZNRecord(partitionName));
       }
     }
-    List<ZNRecord> externalViewList = accessor.getChildValues(PropertyType.EXTERNALVIEW);
+    
+    List<ZNRecord> externalViewList = HelixProperty.convertToList(accessor.getChildValues(keyBuilder.externalViews()));
     // ExternalViews are stored in a map from resource name to idealState
     // ZNRecord
     Map<String, ZNRecord> externalViewMap = new HashMap<String, ZNRecord>();
@@ -137,12 +148,15 @@ public class ClusterJosqlQueryProcessor
       for (ZNRecord idealState : idealStateList)
       {
         String resourceName = idealState.getId();
-        ZNRecord currentState = accessor.getProperty(PropertyType.CURRENTSTATES, host, sessionId,
-            resourceName);
-        if (currentState == null)
+        
+        HelixProperty property = accessor.getProperty(keyBuilder.currentState(host, sessionId, resourceName));
+        ZNRecord currentState =null;
+        if (property == null)
         {
           _logger.warn("Resource " + resourceName + " has null currentState");
           currentState = new ZNRecord(resourceName);
+        }else{
+          currentState = property.getRecord();
         }
         currentStates.put(resourceName, currentState);
         instanceCurrentStateList.add(currentState);

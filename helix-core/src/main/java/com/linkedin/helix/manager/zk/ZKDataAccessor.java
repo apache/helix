@@ -29,11 +29,12 @@ import org.apache.zookeeper.data.Stat;
 
 import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.HelixException;
+import com.linkedin.helix.HelixProperty;
 import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.ZNRecordDecorator;
 
+@Deprecated
 public class ZKDataAccessor implements DataAccessor
 {
   private static Logger logger = Logger.getLogger(ZKDataAccessor.class);
@@ -55,7 +56,7 @@ public class ZKDataAccessor implements DataAccessor
   }
 
   @Override
-  public boolean setProperty(PropertyType type, ZNRecordDecorator value, String... keys)
+  public boolean setProperty(PropertyType type, HelixProperty value, String... keys)
   {
     if (!value.isValid())
     {
@@ -106,7 +107,7 @@ public class ZKDataAccessor implements DataAccessor
   }
 
   @Override
-  public boolean updateProperty(PropertyType type, ZNRecordDecorator value, String... keys)
+  public boolean updateProperty(PropertyType type, HelixProperty value, String... keys)
   {
     return updateProperty(type, value.getRecord(), keys);
   }
@@ -140,10 +141,10 @@ public class ZKDataAccessor implements DataAccessor
   }
 
   @Override
-  public <T extends ZNRecordDecorator>
+  public <T extends HelixProperty>
     T getProperty(Class<T> clazz, PropertyType type, String... keys)
   {
-    return ZNRecordDecorator.convertToTypedInstance(clazz, getProperty(type, keys));
+    return HelixProperty.convertToTypedInstance(clazz, getProperty(type, keys));
   }
 
   @Override
@@ -191,13 +192,13 @@ public class ZKDataAccessor implements DataAccessor
   }
 
   @Override
-  public <T extends ZNRecordDecorator>
+  public <T extends HelixProperty>
     List<T> getChildValues(Class<T> clazz, PropertyType type, String... keys)
   {
     List<ZNRecord> newChilds = getChildValues(type, keys);
     if (newChilds.size() > 0)
     {
-      return ZNRecordDecorator.convertToTypedList(clazz, newChilds);
+      return HelixProperty.convertToTypedList(clazz, newChilds);
     }
     return Collections.emptyList();
   }
@@ -319,10 +320,10 @@ public class ZKDataAccessor implements DataAccessor
   }
 
   @Override
-  public <T extends ZNRecordDecorator>
+  public <T extends HelixProperty>
     Map<String, T> getChildValuesMap(Class<T> clazz, PropertyType type, String... keys)
   {
     List<T> list = getChildValues(clazz, type, keys);
-    return Collections.unmodifiableMap(ZNRecordDecorator.convertListToMap(list));
+    return Collections.unmodifiableMap(HelixProperty.convertListToMap(list));
   }
 }

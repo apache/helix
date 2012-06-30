@@ -23,10 +23,12 @@ import java.util.TimerTask;
 
 import org.apache.log4j.Logger;
 
+import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixManager;
-import com.linkedin.helix.PropertyType;
+import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.alerts.StatsHolder;
+import com.linkedin.helix.model.HealthStat;
 
 public class ParticipantHealthReportCollectorImpl implements
     ParticipantHealthReportCollector
@@ -108,9 +110,14 @@ public class ParticipantHealthReportCollectorImpl implements
   @Override
   public void reportHealthReportMessage(ZNRecord healthCheckInfoUpdate)
   {
-    _helixManager.getDataAccessor().setProperty(
-        PropertyType.HEALTHREPORT, healthCheckInfoUpdate, _instanceName,
-        healthCheckInfoUpdate.getId());
+    HelixDataAccessor accessor = _helixManager.getHelixDataAccessor();
+    Builder keyBuilder = accessor.keyBuilder();
+//    accessor.setProperty(
+//        PropertyType.HEALTHREPORT, healthCheckInfoUpdate, _instanceName,
+//        healthCheckInfoUpdate.getId());
+    accessor.setProperty(keyBuilder.healthReport(_instanceName, healthCheckInfoUpdate.getId()), 
+                         new HealthStat(healthCheckInfoUpdate));
+
   }
 
   public void stop()
@@ -149,8 +156,14 @@ public class ParticipantHealthReportCollectorImpl implements
             record.setMapFields(partitionReport);
           }
           record.setSimpleField(StatsHolder.TIMESTAMP_NAME, "" + System.currentTimeMillis());
-          _helixManager.getDataAccessor().setProperty(
-              PropertyType.HEALTHREPORT, record, _instanceName, record.getId());
+          
+          HelixDataAccessor accessor = _helixManager.getHelixDataAccessor();
+          Builder keyBuilder = accessor.keyBuilder();
+          accessor.setProperty(keyBuilder.healthReport(_instanceName, record.getId()), 
+                               new HealthStat(record));
+
+//          _helixManager.getDataAccessor().setProperty(
+//              PropertyType.HEALTHREPORT, record, _instanceName, record.getId());
           // reset stats (for now just the partition stats)
           provider.resetStats();
         }

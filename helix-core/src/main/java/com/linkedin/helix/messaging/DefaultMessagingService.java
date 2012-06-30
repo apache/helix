@@ -23,11 +23,12 @@ import java.util.UUID;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.ClusterMessagingService;
 import com.linkedin.helix.Criteria;
+import com.linkedin.helix.HelixDataAccessor;
+import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.InstanceType;
-import com.linkedin.helix.PropertyType;
+import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.messaging.handling.AsyncCallbackService;
 import com.linkedin.helix.messaging.handling.HelixTaskExecutor;
 import com.linkedin.helix.messaging.handling.MessageHandlerFactory;
@@ -37,13 +38,13 @@ import com.linkedin.helix.model.Message.MessageType;
 
 public class DefaultMessagingService implements ClusterMessagingService
 {
-  private final HelixManager _manager;
-  private final CriteriaEvaluator _evaluator;
-  private final HelixTaskExecutor _taskExecutor;
+  private final HelixManager         _manager;
+  private final CriteriaEvaluator    _evaluator;
+  private final HelixTaskExecutor    _taskExecutor;
   // TODO:rename to factory, this is not a service
   private final AsyncCallbackService _asyncCallbackService;
-  private static Logger _logger = Logger
-      .getLogger(DefaultMessagingService.class);
+  private static Logger              _logger =
+                                                 Logger.getLogger(DefaultMessagingService.class);
 
   public DefaultMessagingService(HelixManager manager)
   {
@@ -51,8 +52,8 @@ public class DefaultMessagingService implements ClusterMessagingService
     _evaluator = new CriteriaEvaluator();
     _taskExecutor = new HelixTaskExecutor();
     _asyncCallbackService = new AsyncCallbackService();
-    _taskExecutor.registerMessageHandlerFactory(
-        MessageType.TASK_REPLY.toString(), _asyncCallbackService);
+    _taskExecutor.registerMessageHandlerFactory(MessageType.TASK_REPLY.toString(),
+                                                _asyncCallbackService);
   }
 
   @Override
@@ -62,25 +63,31 @@ public class DefaultMessagingService implements ClusterMessagingService
   }
 
   @Override
-  public int send(final Criteria recipientCriteria, final Message message,
-      AsyncCallback callbackOnReply, int timeOut)
+  public int send(final Criteria recipientCriteria,
+                  final Message message,
+                  AsyncCallback callbackOnReply,
+                  int timeOut)
   {
     return send(recipientCriteria, message, callbackOnReply, timeOut, 0);
   }
 
   @Override
-  public int send(final Criteria recipientCriteria, final Message message,
-      AsyncCallback callbackOnReply, int timeOut, int retryCount)
+  public int send(final Criteria recipientCriteria,
+                  final Message message,
+                  AsyncCallback callbackOnReply,
+                  int timeOut,
+                  int retryCount)
   {
-    Map<InstanceType, List<Message>> generateMessage = generateMessage(
-        recipientCriteria, message);
+    Map<InstanceType, List<Message>> generateMessage =
+        generateMessage(recipientCriteria, message);
     int totalMessageCount = 0;
     for (List<Message> messages : generateMessage.values())
     {
       totalMessageCount += messages.size();
     }
-    _logger.info("Send "+totalMessageCount+" messages with criteria "+ recipientCriteria);
-    if(totalMessageCount == 0)
+    _logger.info("Send " + totalMessageCount + " messages with criteria "
+        + recipientCriteria);
+    if (totalMessageCount == 0)
     {
       return 0;
     }
@@ -98,8 +105,7 @@ public class DefaultMessagingService implements ClusterMessagingService
       {
         callbackOnReply.setMessagesSent(messages);
       }
-      _asyncCallbackService.registerAsyncCallback(correlationId,
-          callbackOnReply);
+      _asyncCallbackService.registerAsyncCallback(correlationId, callbackOnReply);
     }
 
     for (InstanceType receiverType : generateMessage.keySet())
@@ -114,19 +120,24 @@ public class DefaultMessagingService implements ClusterMessagingService
         {
           tempMessage.setCorrelationId(correlationId);
         }
+
+        HelixDataAccessor accessor = _manager.getHelixDataAccessor();
+        Builder keyBuilder = accessor.keyBuilder();
+
         if (receiverType == InstanceType.CONTROLLER)
         {
-            _manager.getDataAccessor().setProperty(PropertyType.MESSAGES_CONTROLLER,
-                                                   tempMessage,
-                                                   tempMessage.getId());
-
+          // _manager.getDataAccessor().setProperty(PropertyType.MESSAGES_CONTROLLER,
+          // tempMessage,
+          // tempMessage.getId());
+          accessor.setProperty(keyBuilder.controllerMessage(tempMessage.getId()),
+                               tempMessage);
         }
+
         if (receiverType == InstanceType.PARTICIPANT)
         {
-          _manager.getDataAccessor().setProperty(PropertyType.MESSAGES,
-                                                 tempMessage,
-                                                 tempMessage.getTgtName(),
-                                                 tempMessage.getId());
+          accessor.setProperty(keyBuilder.message(tempMessage.getTgtName(),
+                                                  tempMessage.getId()),
+                               tempMessage);
         }
       }
     }
@@ -139,10 +150,11 @@ public class DefaultMessagingService implements ClusterMessagingService
     return totalMessageCount;
   }
 
-  private Map<InstanceType, List<Message>> generateMessage(
-      final Criteria recipientCriteria, final Message message)
+  private Map<InstanceType, List<Message>> generateMessage(final Criteria recipientCriteria,
+                                                           final Message message)
   {
-    Map<InstanceType, List<Message>> messagesToSendMap = new HashMap<InstanceType, List<Message>>();
+    Map<InstanceType, List<Message>> messagesToSendMap =
+        new HashMap<InstanceType, List<Message>>();
     InstanceType instanceType = recipientCriteria.getRecipientInstanceType();
 
     if (instanceType == InstanceType.CONTROLLER)
@@ -151,24 +163,27 @@ public class DefaultMessagingService implements ClusterMessagingService
       messagesToSendMap.put(InstanceType.CONTROLLER, messages);
       // _dataAccessor.setControllerProperty(PropertyType.MESSAGES,
       // newMessage.getRecord(), CreateMode.PERSISTENT);
-    } else if (instanceType == InstanceType.PARTICIPANT)
+    }
+    else if (instanceType == InstanceType.PARTICIPANT)
     {
       List<Message> messages = new ArrayList<Message>();
-      List<Map<String, String>> matchedList = _evaluator.evaluateCriteria(
-           recipientCriteria, _manager);
+      List<Map<String, String>> matchedList =
+          _evaluator.evaluateCriteria(recipientCriteria, _manager);
 
       if (!matchedList.isEmpty())
       {
         Map<String, String> sessionIdMap = new HashMap<String, String>();
         if (recipientCriteria.isSessionSpecific())
         {
-          List<LiveInstance> liveInstances = _manager.getDataAccessor().getChildValues(LiveInstance.class,
-                                                                                       PropertyType.LIVEINSTANCES);
+          HelixDataAccessor accessor = _manager.getHelixDataAccessor();
+          Builder keyBuilder = accessor.keyBuilder();
+
+          List<LiveInstance> liveInstances =
+              accessor.getChildValues(keyBuilder.liveInstances());
 
           for (LiveInstance liveInstance : liveInstances)
           {
-            sessionIdMap.put(liveInstance.getInstanceName(),
-                liveInstance.getSessionId());
+            sessionIdMap.put(liveInstance.getInstanceName(), liveInstance.getSessionId());
           }
         }
         for (Map<String, String> map : matchedList)
@@ -212,8 +227,7 @@ public class DefaultMessagingService implements ClusterMessagingService
   }
 
   @Override
-  public void registerMessageHandlerFactory(String type,
-      MessageHandlerFactory factory)
+  public void registerMessageHandlerFactory(String type, MessageHandlerFactory factory)
   {
     _logger.info("adding msg factory for type " + type);
     _taskExecutor.registerMessageHandlerFactory(type, factory);
@@ -231,27 +245,25 @@ public class DefaultMessagingService implements ClusterMessagingService
     {
       try
       {
-        Message nopMsg = new Message(MessageType.NO_OP, UUID.randomUUID()
-            .toString());
+        Message nopMsg = new Message(MessageType.NO_OP, UUID.randomUUID().toString());
         nopMsg.setSrcName(_manager.getInstanceName());
+
+        HelixDataAccessor accessor = _manager.getHelixDataAccessor();
+        Builder keyBuilder = accessor.keyBuilder();
 
         if (_manager.getInstanceType() == InstanceType.CONTROLLER
             || _manager.getInstanceType() == InstanceType.CONTROLLER_PARTICIPANT)
         {
           nopMsg.setTgtName("Controller");
-          _manager.getDataAccessor().setProperty(PropertyType.MESSAGES_CONTROLLER,
-                                                 nopMsg,
-                                                 nopMsg.getId());
+          accessor.setProperty(keyBuilder.controllerMessage(nopMsg.getId()), nopMsg);
         }
 
         if (_manager.getInstanceType() == InstanceType.PARTICIPANT
             || _manager.getInstanceType() == InstanceType.CONTROLLER_PARTICIPANT)
         {
           nopMsg.setTgtName(_manager.getInstanceName());
-          _manager.getDataAccessor().setProperty(PropertyType.MESSAGES,
-                                                 nopMsg,
-                                                 nopMsg.getTgtName(),
-                                                 nopMsg.getId());
+          accessor.setProperty(keyBuilder.message(nopMsg.getTgtName(), nopMsg.getId()),
+                               nopMsg);
         }
 
       }
@@ -268,10 +280,14 @@ public class DefaultMessagingService implements ClusterMessagingService
   }
 
   @Override
-  public int sendAndWait(Criteria receipientCriteria, Message message,
-      AsyncCallback asyncCallback, int timeOut, int retryCount)
+  public int sendAndWait(Criteria receipientCriteria,
+                         Message message,
+                         AsyncCallback asyncCallback,
+                         int timeOut,
+                         int retryCount)
   {
-    int messagesSent = send(receipientCriteria, message, asyncCallback, timeOut, retryCount);
+    int messagesSent =
+        send(receipientCriteria, message, asyncCallback, timeOut, retryCount);
     if (messagesSent > 0)
     {
       while (!asyncCallback.isDone() && !asyncCallback.isTimedOut())
@@ -281,7 +297,8 @@ public class DefaultMessagingService implements ClusterMessagingService
           try
           {
             asyncCallback.wait();
-          } catch (InterruptedException e)
+          }
+          catch (InterruptedException e)
           {
             _logger.error(e);
             asyncCallback.setInterrupted(true);
@@ -289,7 +306,8 @@ public class DefaultMessagingService implements ClusterMessagingService
           }
         }
       }
-    } else
+    }
+    else
     {
       _logger.warn("No messages sent. For Criteria:" + receipientCriteria);
     }
@@ -297,8 +315,10 @@ public class DefaultMessagingService implements ClusterMessagingService
   }
 
   @Override
-  public int sendAndWait(Criteria recipientCriteria, Message message,
-      AsyncCallback asyncCallback, int timeOut)
+  public int sendAndWait(Criteria recipientCriteria,
+                         Message message,
+                         AsyncCallback asyncCallback,
+                         int timeOut)
   {
     return sendAndWait(recipientCriteria, message, asyncCallback, timeOut, 0);
   }

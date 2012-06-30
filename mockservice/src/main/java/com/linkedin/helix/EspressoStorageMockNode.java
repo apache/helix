@@ -29,6 +29,7 @@ import org.apache.log4j.Logger;
 //import com.linkedin.clustermanager.EspressoStorageMockStateModelFactory.EspressoStorageMockStateModel;
 //import com.linkedin.clustermanager.healthcheck.ParticipantHealthReportCollector;
 import com.linkedin.helix.EspressoStorageMockStateModelFactory;
+import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.healthcheck.PerformanceHealthReportProvider;
@@ -150,7 +151,9 @@ public class EspressoStorageMockNode extends MockNode {
 
 	private int getNumPartitions(String dbName) {
 		logger.debug("dbName: "+dbName);
-		ZNRecord rec = _cmConnector.getManager().getDataAccessor().getProperty(PropertyType.IDEALSTATES, dbName);
+		HelixDataAccessor helixDataAccessor = _cmConnector.getManager().getHelixDataAccessor();
+		Builder keyBuilder = helixDataAccessor.keyBuilder();
+    ZNRecord rec = helixDataAccessor.getProperty(keyBuilder.idealStates(dbName)).getRecord();
 		if (rec == null) {
 			logger.debug("rec is null");
 		}

@@ -22,11 +22,9 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import com.linkedin.helix.Mocks;
-import com.linkedin.helix.PropertyType;
+import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.controller.pipeline.StageContext;
-import com.linkedin.helix.controller.stages.CompatibilityCheckStage;
-import com.linkedin.helix.controller.stages.ReadClusterDataStage;
 import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.model.LiveInstance.LiveInstanceProperty;
@@ -47,7 +45,9 @@ public class TestCompatibilityCheckStage extends BaseStageTest
         instances, partitions, replicas, resourceName, "MASTER", "SLAVE");
     IdealState idealState = new IdealState(record);
     idealState.setStateModelDefRef("MasterSlave");
-    accessor.setProperty(PropertyType.IDEALSTATES, idealState, resourceName);
+    
+    Builder keyBuilder = accessor.keyBuilder();
+    accessor.setProperty(keyBuilder.idealStates(resourceName), idealState);
 
     // set live instances
     record = new ZNRecord("localhost_0");
@@ -57,7 +57,7 @@ public class TestCompatibilityCheckStage extends BaseStageTest
     }
     LiveInstance liveInstance = new LiveInstance(record);
     liveInstance.setSessionId("session_0");
-    accessor.setProperty(PropertyType.LIVEINSTANCES, liveInstance, "localhost_0");
+    accessor.setProperty(keyBuilder.liveInstance("localhost_0"), liveInstance);
 
     if (controllerVersion != null)
     {

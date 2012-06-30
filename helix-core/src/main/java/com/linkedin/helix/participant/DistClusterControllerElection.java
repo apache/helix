@@ -20,11 +20,12 @@ import java.lang.management.ManagementFactory;
 import org.apache.log4j.Logger;
 
 import com.linkedin.helix.ControllerChangeListener;
-import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.HelixManagerFactory;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.NotificationContext;
+import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.controller.GenericHelixController;
 import com.linkedin.helix.controller.HelixControllerMain;
@@ -34,10 +35,11 @@ import com.linkedin.helix.model.LiveInstance;
 // TODO: merge with GenericHelixController
 public class DistClusterControllerElection implements ControllerChangeListener
 {
-  private static Logger LOG = Logger.getLogger(DistClusterControllerElection.class);
-  private final String _zkAddr;
+  private static Logger                LOG         =
+                                                       Logger.getLogger(DistClusterControllerElection.class);
+  private final String                 _zkAddr;
   private final GenericHelixController _controller = new GenericHelixController();
-  private HelixManager _leader;
+  private HelixManager                 _leader;
 
   public DistClusterControllerElection(String zkAddr)
   {
@@ -46,8 +48,8 @@ public class DistClusterControllerElection implements ControllerChangeListener
 
   /**
    * may be accessed by multiple threads: zk-client thread and
-   * ZkHelixManager.disconnect()->reset()
-   *TODO: Refactor accessing HelixMaangerMain class statically
+   * ZkHelixManager.disconnect()->reset() TODO: Refactor accessing HelixMaangerMain class
+   * statically
    */
   @Override
   public synchronized void onControllerChange(NotificationContext changeContext)
@@ -72,8 +74,11 @@ public class DistClusterControllerElection implements ControllerChangeListener
       if (changeContext.getType().equals(NotificationContext.Type.INIT)
           || changeContext.getType().equals(NotificationContext.Type.CALLBACK))
       {
-        DataAccessor dataAccessor = manager.getDataAccessor();
-        while (dataAccessor.getProperty(PropertyType.LEADER) == null)
+        // DataAccessor dataAccessor = manager.getDataAccessor();
+        HelixDataAccessor accessor = manager.getHelixDataAccessor();
+        Builder keyBuilder = accessor.keyBuilder();
+
+        while (accessor.getProperty(keyBuilder.controllerLeader()) == null)
         {
           boolean success = tryUpdateController(manager);
           if (success)
@@ -90,9 +95,9 @@ public class DistClusterControllerElection implements ControllerChangeListener
               String controllerName = manager.getInstanceName();
               _leader =
                   HelixManagerFactory.getZKHelixManager(clusterName,
-                                                            controllerName,
-                                                            InstanceType.CONTROLLER,
-                                                            _zkAddr);
+                                                        controllerName,
+                                                        InstanceType.CONTROLLER,
+                                                        _zkAddr);
 
               _leader.connect();
               _leader.startTimerTasks();
@@ -120,7 +125,10 @@ public class DistClusterControllerElection implements ControllerChangeListener
 
   private boolean tryUpdateController(HelixManager manager)
   {
-    DataAccessor dataAccessor = manager.getDataAccessor();
+    // DataAccessor dataAccessor = manager.getDataAccessor();
+    HelixDataAccessor accessor = manager.getHelixDataAccessor();
+    Builder keyBuilder = accessor.keyBuilder();
+
     LiveInstance leader = new LiveInstance(manager.getInstanceName());
     try
     {
@@ -128,7 +136,7 @@ public class DistClusterControllerElection implements ControllerChangeListener
       // TODO: this session id is not the leader's session id in distributed mode
       leader.setSessionId(manager.getSessionId());
       leader.setHelixVersion(manager.getVersion());
-      boolean success = dataAccessor.setProperty(PropertyType.LEADER, leader);
+      boolean success = accessor.createProperty(keyBuilder.controllerLeader(), leader);
       if (success)
       {
         return true;
@@ -141,15 +149,17 @@ public class DistClusterControllerElection implements ControllerChangeListener
     catch (Exception e)
     {
       LOG.error("Exception when trying to updating leader record in cluster:"
-          + manager.getClusterName()
-          + ". Need to check again whether leader node has been created or not");
+                    + manager.getClusterName()
+                    + ". Need to check again whether leader node has been created or not",
+                e);
     }
-    leader = dataAccessor.getProperty(LiveInstance.class, PropertyType.LEADER);
+
+    leader = accessor.getProperty(keyBuilder.controllerLeader());
     if (leader != null)
     {
-      String leaderName = leader.getInstanceName(); //leader.getLeader();
-      LOG.info("Leader exists for cluster:" + manager.getClusterName() + ", currentLeader:"
-          + leaderName);
+      String leaderName = leader.getInstanceName(); // leader.getLeader();
+      LOG.info("Leader exists for cluster:" + manager.getClusterName()
+          + ", currentLeader:" + leaderName);
 
       if (leaderName != null && leaderName.equals(manager.getInstanceName()))
       {
@@ -162,14 +172,15 @@ public class DistClusterControllerElection implements ControllerChangeListener
 
   private void updateHistory(HelixManager manager)
   {
-    DataAccessor dataAccessor = manager.getDataAccessor();
+    HelixDataAccessor accessor = manager.getHelixDataAccessor();
+    Builder keyBuilder = accessor.keyBuilder();
 
-    LeaderHistory history = dataAccessor.getProperty(LeaderHistory.class, PropertyType.HISTORY);
+    LeaderHistory history = accessor.getProperty(keyBuilder.controllerLeaderHistory());
     if (history == null)
     {
       history = new LeaderHistory(PropertyType.HISTORY.toString());
     }
     history.updateHistory(manager.getClusterName(), manager.getInstanceName());
-    dataAccessor.setProperty(PropertyType.HISTORY, history);
+    accessor.setProperty(keyBuilder.controllerLeaderHistory(), history);
   }
 }

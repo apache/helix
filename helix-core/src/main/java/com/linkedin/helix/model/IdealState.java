@@ -23,13 +23,13 @@ import java.util.TreeMap;
 
 import org.apache.log4j.Logger;
 
+import com.linkedin.helix.HelixProperty;
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.ZNRecordDecorator;
 
 /**
  * The ideal states of all partition in a resource
  */
-public class IdealState extends ZNRecordDecorator
+public class IdealState extends HelixProperty
 {
   public enum IdealStateProperty {
     NUM_PARTITIONS, STATE_MODEL_DEF_REF, STATE_MODEL_FACTORY_NAME, REPLICAS, IDEAL_STATE_MODE
@@ -70,7 +70,6 @@ public class IdealState extends ZNRecordDecorator
     }
     catch(Exception e)
     {
-      logger.error("IdealState mode not recognized:" + mode + "; set to AUTO");
       return IdealStateModeProperty.AUTO;
     }
   }
@@ -162,7 +161,16 @@ public class IdealState extends ZNRecordDecorator
 
   public String getReplicas()
   {
-    return _record.getSimpleField(IdealStateProperty.REPLICAS.toString());
+    // HACK: if replica doesn't exists, use the length of the first list field instead
+    // TODO: remove it when Dbus fixed the IdealState writer
+    String replica = _record.getSimpleField(IdealStateProperty.REPLICAS.toString());
+    if (replica == null)
+    {
+      logger.warn("replicas not found in idealState. Use length of the first list instead: " + _record);
+      List<String> list = _record.getListFields().get(0);
+      replica = Integer.toString(list == null? 0 : list.size());
+    }
+    return replica;
   }
 
   public void setStateModelFactoryName(String name)
@@ -191,7 +199,7 @@ public class IdealState extends ZNRecordDecorator
       return false;
     }
 
-    if (getReplicas() == null)
+    if (getIdealStateMode() == IdealStateModeProperty.AUTO && getReplicas() == null)
     {
       logger.error("idealStates:" + _record + " does not have replica.");
       return false;

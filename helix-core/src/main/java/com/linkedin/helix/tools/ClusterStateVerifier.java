@@ -37,7 +37,8 @@ import org.apache.commons.cli.ParseException;
 import org.apache.log4j.Logger;
 
 import com.linkedin.helix.ClusterView;
-import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixDataAccessor;
+import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
@@ -50,8 +51,9 @@ import com.linkedin.helix.controller.stages.ClusterDataCache;
 import com.linkedin.helix.controller.stages.ClusterEvent;
 import com.linkedin.helix.controller.stages.CurrentStateComputationStage;
 import com.linkedin.helix.controller.stages.ResourceComputationStage;
-import com.linkedin.helix.manager.file.FileDataAccessor;
-import com.linkedin.helix.manager.zk.ZKDataAccessor;
+import com.linkedin.helix.manager.file.FileHelixDataAccessor;
+import com.linkedin.helix.manager.zk.ZKHelixDataAccessor;
+import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
 import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.IdealState;
@@ -170,7 +172,8 @@ public class ClusterStateVerifier
     {
       try
       {
-        DataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
+        HelixDataAccessor accessor =
+            new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
 
         return ClusterStateVerifier.verifyBestPossAndExtView(accessor, errStates);
       }
@@ -238,7 +241,7 @@ public class ClusterStateVerifier
     {
       try
       {
-        DataAccessor accessor = new FileDataAccessor(fileStore, clusterName);
+        HelixDataAccessor accessor = new FileHelixDataAccessor(fileStore, clusterName);
 
         return ClusterStateVerifier.verifyBestPossAndExtView(accessor, errStates);
       }
@@ -284,7 +287,8 @@ public class ClusterStateVerifier
     {
       try
       {
-        DataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
+        ZKHelixDataAccessor accessor =
+            new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
 
         return ClusterStateVerifier.verifyMasterNbInExtView(accessor);
       }
@@ -309,11 +313,12 @@ public class ClusterStateVerifier
 
   }
 
-  static boolean verifyBestPossAndExtView(DataAccessor accessor,
+  static boolean verifyBestPossAndExtView(HelixDataAccessor accessor,
                                           Map<String, Map<String, String>> errStates)
   {
     try
     {
+      Builder keyBuilder = accessor.keyBuilder();
       // read cluster once and do verification
       ClusterDataCache cache = new ClusterDataCache();
       cache.refresh(accessor);
@@ -326,7 +331,7 @@ public class ClusterStateVerifier
       }
 
       Map<String, ExternalView> extViews =
-          accessor.getChildValuesMap(ExternalView.class, PropertyType.EXTERNALVIEW);
+          accessor.getChildValuesMap(keyBuilder.externalViews());
       if (extViews == null || extViews.isEmpty())
       {
         LOG.info("No externalViews");
@@ -424,10 +429,12 @@ public class ClusterStateVerifier
 
   }
 
-  static boolean verifyMasterNbInExtView(DataAccessor accessor)
+  static boolean verifyMasterNbInExtView(HelixDataAccessor accessor)
   {
+    Builder keyBuilder = accessor.keyBuilder();
+
     Map<String, IdealState> idealStates =
-        accessor.getChildValuesMap(IdealState.class, PropertyType.IDEALSTATES);
+        accessor.getChildValuesMap(keyBuilder.idealStates());
     if (idealStates == null || idealStates.size() == 0)
     {
       LOG.info("No resource idealState");
@@ -435,7 +442,7 @@ public class ClusterStateVerifier
     }
 
     Map<String, ExternalView> extViews =
-        accessor.getChildValuesMap(ExternalView.class, PropertyType.EXTERNALVIEW);
+        accessor.getChildValuesMap(keyBuilder.externalViews());
     if (extViews == null || extViews.size() < idealStates.size())
     {
       LOG.info("No externalViews | externalView.size() < idealState.size()");
@@ -615,6 +622,11 @@ public class ClusterStateVerifier
     ZkClient zkClient = verifier.getZkClient();
     String clusterName = verifier.getClusterName();
 
+    
+    // add an ephemeral node to /{clusterName}/CONFIGS/CLUSTER/verify
+    // so when analyze zk log, we know when a test ends
+    zkClient.createEphemeral("/" + clusterName + "/CONFIGS/CLUSTER/verify");
+    
     ExtViewVeriferZkListener listener =
         new ExtViewVeriferZkListener(countDown, zkClient, verifier);
 
@@ -656,9 +668,10 @@ public class ClusterStateVerifier
           extViewPath.equals("/") ? extViewPath + child : extViewPath + "/" + child;
       zkClient.unsubscribeDataChanges(childPath, listener);
     }
-    
+
     long endTime = System.currentTimeMillis();
 
+    zkClient.delete("/" + clusterName + "/CONFIGS/CLUSTER/verify");
     // debug
     System.err.println(result + ": wait " + (endTime - startTime) + "ms, " + verifier);
 

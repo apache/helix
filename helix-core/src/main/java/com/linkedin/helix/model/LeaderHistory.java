@@ -19,9 +19,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.ZNRecordDecorator;
+import com.linkedin.helix.HelixProperty;
 
-public class LeaderHistory extends ZNRecordDecorator
+public class LeaderHistory extends HelixProperty
 {
   private final static int HISTORY_SIZE = 8;
 

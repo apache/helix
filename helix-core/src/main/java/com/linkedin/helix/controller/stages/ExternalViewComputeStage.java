@@ -15,12 +15,15 @@
  */
 package com.linkedin.helix.controller.stages;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixManager;
+import com.linkedin.helix.PropertyKey;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.controller.pipeline.AbstractBaseStage;
 import com.linkedin.helix.controller.pipeline.StageException;
@@ -46,14 +49,16 @@ public class ExternalViewComputeStage extends AbstractBaseStage
     if (manager == null || resourceMap == null || cache == null)
     {
       throw new StageException("Missing attributes in event:" + event
-           + ". Requires ClusterManager|RESOURCES|DataCache");
+          + ". Requires ClusterManager|RESOURCES|DataCache");
     }
 
-    DataAccessor dataAccessor = manager.getDataAccessor();
+    HelixDataAccessor dataAccessor = manager.getHelixDataAccessor();
 
     CurrentStateOutput currentStateOutput = event
         .getAttribute(AttributeName.CURRENT_STATE.toString());
 
+    List<ExternalView> views = new ArrayList<ExternalView>();
+    List<PropertyKey> keys = new ArrayList<PropertyKey>();
     for (String resourceName : resourceMap.keySet())
     {
       ExternalView view = new ExternalView(resourceName);
@@ -70,19 +75,29 @@ public class ExternalViewComputeStage extends AbstractBaseStage
           {
             // if (!disabledInstances.contains(instance))
             // {
-              view.setState(partition.getPartitionName(), instance, currentStateMap.get(instance));
+            view.setState(partition.getPartitionName(), instance,
+                currentStateMap.get(instance));
             // }
           }
         }
       }
       // Update cluster status monitor mbean
-      ClusterStatusMonitor clusterStatusMonitor = (ClusterStatusMonitor) event.getAttribute("clusterStatusMonitor");
-      if(clusterStatusMonitor != null)
+      ClusterStatusMonitor clusterStatusMonitor = (ClusterStatusMonitor) event
+          .getAttribute("clusterStatusMonitor");
+      if (clusterStatusMonitor != null)
       {
-        clusterStatusMonitor.onExternalViewChange(view, cache._idealStateMap.get(view.getResourceName()));
+        clusterStatusMonitor.onExternalViewChange(view,
+            cache._idealStateMap.get(view.getResourceName()));
       }
-      
-      dataAccessor.setProperty(PropertyType.EXTERNALVIEW, view, resourceName);
+      keys.add(manager.getHelixDataAccessor().keyBuilder()
+          .externalView(resourceName));
+      views.add(view);
+      // dataAccessor.setProperty(PropertyType.EXTERNALVIEW, view,
+      // resourceName);
+    }
+    if (views.size() > 0)
+    {
+      dataAccessor.setChildren(keys, views);
     }
     log.info("END ExternalViewComputeStage.process()");
   }

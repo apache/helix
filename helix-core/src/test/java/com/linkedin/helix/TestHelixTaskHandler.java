@@ -23,9 +23,11 @@ import org.testng.annotations.Test;
 import com.linkedin.helix.Mocks.MockManager;
 import com.linkedin.helix.Mocks.MockStateModel;
 import com.linkedin.helix.Mocks.MockStateModelAnnotated;
+import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.messaging.handling.HelixStateTransitionHandler;
 import com.linkedin.helix.messaging.handling.HelixTask;
 import com.linkedin.helix.messaging.handling.HelixTaskExecutor;
+import com.linkedin.helix.model.CurrentState;
 import com.linkedin.helix.model.Message;
 import com.linkedin.helix.model.Message.MessageType;
 import com.linkedin.helix.model.StateModelDefinition;
@@ -44,24 +46,29 @@ public class TestHelixTaskHandler
     message.setTgtSessionId("1234");
     message.setFromState("Offline");
     message.setToState("Slave");
-    message.setPartitionName("Teststateunitkey");
+    message.setPartitionName("TestDB_0");
     message.setMsgId("Some unique message id");
-    message.setResourceName("TeststateunitGroup");
+    message.setResourceName("TestDB");
     message.setTgtName("localhost");
     message.setStateModelDef("MasterSlave");
     message.setStateModelFactoryName(HelixConstants.DEFAULT_STATE_MODEL_FACTORY);
     MockStateModel stateModel = new MockStateModel();
     NotificationContext context;
     MockManager manager = new MockManager("clusterName");
-    DataAccessor accessor = manager.getDataAccessor();
+//    DataAccessor accessor = manager.getDataAccessor();
+    HelixDataAccessor accessor = manager.getHelixDataAccessor();
     StateModelConfigGenerator generator = new StateModelConfigGenerator();
     StateModelDefinition stateModelDef = new StateModelDefinition(
         generator.generateConfigForMasterSlave());
-    accessor.setProperty(PropertyType.STATEMODELDEFS, stateModelDef, "MasterSlave");
+    Builder keyBuilder = accessor.keyBuilder();
+    accessor.setProperty(keyBuilder.stateModelDef("MasterSlave"), stateModelDef);
 
     context = new NotificationContext(manager);
+    CurrentState currentStateDelta = new CurrentState("TestDB");
+    currentStateDelta.setState("TestDB_0", "OFFLINE");
+
     HelixStateTransitionHandler stHandler = new HelixStateTransitionHandler(stateModel, message,
-        context);
+        context, currentStateDelta);
     HelixTask handler;
     handler = new HelixTask(message, context, stHandler, executor);
     handler.call();
@@ -81,9 +88,9 @@ public class TestHelixTaskHandler
     message.setTgtSessionId("1234");
     message.setFromState("Offline");
     message.setToState("Slave");
-    message.setPartitionName("Teststateunitkey");
+    message.setPartitionName("TestDB_0");
     message.setMsgId("Some unique message id");
-    message.setResourceName("TeststateunitGroup");
+    message.setResourceName("TestDB");
     message.setTgtName("localhost");
     message.setStateModelDef("MasterSlave");
     message.setStateModelFactoryName(HelixConstants.DEFAULT_STATE_MODEL_FACTORY);
@@ -91,18 +98,26 @@ public class TestHelixTaskHandler
     NotificationContext context;
 
     MockManager manager = new MockManager("clusterName");
-    DataAccessor accessor = manager.getDataAccessor();
+//    DataAccessor accessor = manager.getDataAccessor();
+    HelixDataAccessor accessor = manager.getHelixDataAccessor();
+
     StateModelConfigGenerator generator = new StateModelConfigGenerator();
     StateModelDefinition stateModelDef = new StateModelDefinition(
         generator.generateConfigForMasterSlave());
-    accessor.setProperty(PropertyType.STATEMODELDEFS, stateModelDef, "MasterSlave");
+//    accessor.setProperty(PropertyType.STATEMODELDEFS, stateModelDef, "MasterSlave");
+    Builder keyBuilder = accessor.keyBuilder();
+    accessor.setProperty(keyBuilder.stateModelDef("MasterSlave"), stateModelDef);
+
 
     context = new NotificationContext(manager);
-    HelixTask handler;
-    HelixStateTransitionHandler stHandler = new HelixStateTransitionHandler(stateModel, message,
-        context);
+    
+    CurrentState currentStateDelta = new CurrentState("TestDB");
+    currentStateDelta.setState("TestDB_0", "OFFLINE");
 
-    handler = new HelixTask(message, context, stHandler, executor);
+    HelixStateTransitionHandler stHandler = new HelixStateTransitionHandler(stateModel, message,
+        context, currentStateDelta);
+
+    HelixTask handler = new HelixTask(message, context, stHandler, executor);
     handler.call();
     AssertJUnit.assertTrue(stateModel.stateModelInvoked);
     System.out.println("END TestCMTaskHandler.testInvocationAnnotated() at "

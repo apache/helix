@@ -16,87 +16,97 @@
 package com.linkedin.helix.webapp.resources;
 
 import java.io.IOException;
-import java.io.StringWriter;
-import java.util.List;
-import java.util.Map;
 
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.map.SerializationConfig;
 import org.restlet.Context;
-import org.restlet.data.Form;
 import org.restlet.data.MediaType;
 import org.restlet.data.Request;
 import org.restlet.data.Response;
-import org.restlet.data.Status;
 import org.restlet.resource.Representation;
 import org.restlet.resource.Resource;
 import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 
-import com.linkedin.helix.PropertyType;
-import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.manager.zk.ZkClient;
-import com.linkedin.helix.tools.ClusterSetup;
+import com.linkedin.helix.PropertyKey;
+import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.webapp.RestAdminApplication;
 
 public class ControllerStatusUpdateResource extends Resource
 {
-  public ControllerStatusUpdateResource(Context context, Request request, Response response)
+  public ControllerStatusUpdateResource(Context context, Request request,
+      Response response)
   {
     super(context, request, response);
     getVariants().add(new Variant(MediaType.TEXT_PLAIN));
     getVariants().add(new Variant(MediaType.APPLICATION_JSON));
   }
 
+  @Override
   public boolean allowGet()
   {
     return true;
   }
 
+  @Override
   public boolean allowPost()
   {
     return false;
   }
 
+  @Override
   public boolean allowPut()
   {
     return false;
   }
 
+  @Override
   public boolean allowDelete()
   {
     return false;
   }
 
+  @Override
   public Representation represent(Variant variant)
   {
     StringRepresentation presentation = null;
     try
     {
-      String zkServer = (String) getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
-      String clusterName = (String) getRequest().getAttributes().get("clusterName");
-      String messageType = (String) getRequest().getAttributes().get("MessageType");
+      String zkServer = (String) getContext().getAttributes().get(
+          RestAdminApplication.ZKSERVERADDRESS);
+      String clusterName = (String) getRequest().getAttributes().get(
+          "clusterName");
+      String messageType = (String) getRequest().getAttributes().get(
+          "MessageType");
       String messageId = (String) getRequest().getAttributes().get("MessageId");
-      
-      presentation = getControllerStatusUpdateRepresentation(zkServer, clusterName, messageType, messageId);
-    }
-    catch (Exception e)
+      // TODO: need pass sessionId to this represent()
+      String sessionId = (String) getRequest().getAttributes().get("SessionId");
+
+      presentation = getControllerStatusUpdateRepresentation(zkServer,
+          clusterName, sessionId, messageType, messageId);
+    } catch (Exception e)
     {
-      String error = ClusterRepresentationUtil.getErrorAsJsonStringFromException(e);
+      String error = ClusterRepresentationUtil
+          .getErrorAsJsonStringFromException(e);
       presentation = new StringRepresentation(error, MediaType.APPLICATION_JSON);
-      
+
       e.printStackTrace();
     }
     return presentation;
   }
 
-  StringRepresentation getControllerStatusUpdateRepresentation(String zkServerAddress, String clusterName, String messageType, String messageId) throws JsonGenerationException, JsonMappingException, IOException
+  StringRepresentation getControllerStatusUpdateRepresentation(
+      String zkServerAddress, String clusterName, String sessionId,
+      String messageType, String messageId) throws JsonGenerationException,
+      JsonMappingException, IOException
   {
-    String message = 
-        ClusterRepresentationUtil.getPropertyAsString(zkServerAddress, clusterName, PropertyType.STATUSUPDATES_CONTROLLER, MediaType.APPLICATION_JSON, messageType, messageId);
-    StringRepresentation representation = new StringRepresentation(message, MediaType.APPLICATION_JSON);
+    Builder keyBuilder = new PropertyKey.Builder(clusterName);
+    String message = ClusterRepresentationUtil.getPropertyAsString(
+        zkServerAddress, clusterName,
+        keyBuilder.controllerTaskStatus(messageType, messageId),
+        MediaType.APPLICATION_JSON);
+    StringRepresentation representation = new StringRepresentation(message,
+        MediaType.APPLICATION_JSON);
     return representation;
   }
 }

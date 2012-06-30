@@ -23,13 +23,10 @@ import java.util.UUID;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
-import com.linkedin.helix.PropertyType;
+import com.linkedin.helix.HelixDataAccessor;
+import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.controller.pipeline.StageContext;
-import com.linkedin.helix.controller.stages.AttributeName;
-import com.linkedin.helix.controller.stages.ClusterEvent;
-import com.linkedin.helix.controller.stages.ReadClusterDataStage;
-import com.linkedin.helix.controller.stages.ResourceComputationStage;
 import com.linkedin.helix.model.CurrentState;
 import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.model.LiveInstance;
@@ -59,9 +56,11 @@ public class TestResourceComputationStage extends BaseStageTest
         instances, partitions, replicas, resourceName, "MASTER", "SLAVE");
     IdealState idealState = new IdealState(record);
     idealState.setStateModelDefRef("MasterSlave");
-    manager.getDataAccessor().setProperty(PropertyType.IDEALSTATES,
-                                          idealState,
-                                          resourceName);
+    
+    HelixDataAccessor accessor = manager.getHelixDataAccessor();
+    Builder keyBuilder = accessor.keyBuilder();
+    accessor.setProperty(keyBuilder.idealStates(resourceName),
+                                          idealState);
     ResourceComputationStage stage = new ResourceComputationStage();
     runStage(event, new ReadClusterDataStage());
     runStage(event, stage);
@@ -131,9 +130,12 @@ public class TestResourceComputationStage extends BaseStageTest
               resourceName, "MASTER", "SLAVE");
       IdealState idealState = new IdealState(record);
       idealState.setStateModelDefRef("MasterSlave");
-      manager.getDataAccessor().setProperty(PropertyType.IDEALSTATES,
-                                            idealState,
-                                            resourceName);
+      
+      HelixDataAccessor accessor = manager.getHelixDataAccessor();
+      Builder keyBuilder = accessor.keyBuilder();
+      accessor.setProperty(keyBuilder.idealStates(resourceName),
+                                            idealState);
+
 
       idealStates.add(idealState);
     }
@@ -143,9 +145,11 @@ public class TestResourceComputationStage extends BaseStageTest
     LiveInstance liveInstance = new LiveInstance(instanceName);
     String sessionId = UUID.randomUUID().toString();
     liveInstance.setSessionId(sessionId);
-    manager.getDataAccessor().setProperty(PropertyType.LIVEINSTANCES,
-                                          liveInstance,
-                                          instanceName);
+    
+    HelixDataAccessor accessor = manager.getHelixDataAccessor();
+    Builder keyBuilder = accessor.keyBuilder();
+    accessor.setProperty(keyBuilder.liveInstance(instanceName),
+                                          liveInstance);
 
     String oldResource = "testResourceOld";
     CurrentState currentState = new CurrentState(oldResource);
@@ -153,11 +157,8 @@ public class TestResourceComputationStage extends BaseStageTest
     currentState.setState("testResourceOld_1", "SLAVE");
     currentState.setState("testResourceOld_2", "MASTER");
     currentState.setStateModelDefRef("MasterSlave");
-    manager.getDataAccessor().setProperty(PropertyType.CURRENTSTATES,
-                                          currentState,
-                                          instanceName,
-                                          sessionId,
-                                          oldResource);
+    accessor.setProperty(keyBuilder.currentState(instanceName, sessionId, oldResource),
+                                          currentState);
 
     ResourceComputationStage stage = new ResourceComputationStage();
     runStage(event, new ReadClusterDataStage());

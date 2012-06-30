@@ -15,8 +15,22 @@
  */
 package com.linkedin.helix.model;
 
-public class StatusUpdate
+import com.linkedin.helix.HelixProperty;
+import com.linkedin.helix.ZNRecord;
+
+public class StatusUpdate extends HelixProperty
 {
+
+  public StatusUpdate(ZNRecord record)
+  {
+    super(record);
+  }
+
+  @Override
+  public boolean isValid()
+  {
+    return true;
+  }
 
   
 }

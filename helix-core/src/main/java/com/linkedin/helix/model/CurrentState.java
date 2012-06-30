@@ -22,12 +22,12 @@ import java.util.TreeMap;
 import org.apache.log4j.Logger;
 
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.ZNRecordDecorator;
+import com.linkedin.helix.HelixProperty;
 
 /**
  * Current states of partitions in a resource
  */
-public class CurrentState extends ZNRecordDecorator
+public class CurrentState extends HelixProperty
 {
   private static Logger LOG = Logger.getLogger(CurrentState.class);
 

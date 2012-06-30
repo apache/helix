@@ -15,51 +15,42 @@
  */
 package com.linkedin.helix.model;
 
-
 import java.util.Map;
 
-
+import com.linkedin.helix.HelixProperty;
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.ZNRecordDecorator;
 
-public class AlertStatus extends ZNRecordDecorator
+public class AlertStatus extends HelixProperty
 {
 
+  public final static String nodeName = "AlertStatus";
 
-	
-	
-	public final static String nodeName = "AlertStatus";
-	
-	
-	public enum AlertsProperty
-	  {
-	    SESSION_ID,
-	    FIELDS
-	  }
-	
-	
-	public AlertStatus(String id) 
-	{
-		super(id);
-	}
-	
+  public enum AlertsProperty
+  {
+    SESSION_ID, FIELDS
+  }
+
+  public AlertStatus(String id)
+  {
+    super(id);
+  }
+
   public AlertStatus(ZNRecord record)
   {
-//    _record = record;
+    // _record = record;
     super(record);
 
   }
 
   /*
-  public Alerts(ZNRecord record, Stat stat)
+   * public Alerts(ZNRecord record, Stat stat) { super(record, stat); }
+   */
+
+  public void setSessionId(String sessionId)
   {
-    super(record, stat);
-  }
-*/
-  
-  public void setSessionId(String sessionId){
     _record.setSimpleField(AlertsProperty.SESSION_ID.toString(), sessionId);
   }
+
   public String getSessionId()
   {
     return _record.getSimpleField(AlertsProperty.SESSION_ID.toString());
@@ -71,24 +62,24 @@ public class AlertStatus extends ZNRecordDecorator
   }
 
   /*
-  public String getVersion()
+   * public String getVersion() { return
+   * _record.getSimpleField(AlertsProperty.CLUSTER_MANAGER_VERSION.toString()); }
+   */
+
+  public Map<String, Map<String, String>> getMapFields()
   {
-    return _record.getSimpleField(AlertsProperty.CLUSTER_MANAGER_VERSION.toString());
-  }
-  */
-  
-  public Map<String, Map<String, String>> getMapFields() {
-	  return _record.getMapFields();
-  }
-  
-  
-  public Map<String, String> getStatFields(String statName) {
-	  return _record.getMapField(statName);
+    return _record.getMapFields();
   }
 
-@Override
-public boolean isValid() {
-	// TODO Auto-generated method stub
-	return false;
-}
+  public Map<String, String> getStatFields(String statName)
+  {
+    return _record.getMapField(statName);
+  }
+
+  @Override
+  public boolean isValid()
+  {
+    // TODO Auto-generated method stub
+    return true;
+  }
 }

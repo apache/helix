@@ -16,10 +16,11 @@
 package com.linkedin.helix.model;
 
 import java.util.Map;
-import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.ZNRecordDecorator;
 
-public class Alerts extends ZNRecordDecorator
+import com.linkedin.helix.HelixProperty;
+import com.linkedin.helix.ZNRecord;
+
+public class Alerts extends HelixProperty
 {
 
   // private final ZNRecord _record;
@@ -84,6 +85,6 @@ public class Alerts extends ZNRecordDecorator
   public boolean isValid()
   {
     // TODO Auto-generated method stub
-    return false;
+    return true;
   }
 }

@@ -29,7 +29,6 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.Watcher.Event.EventType;
 
 import com.linkedin.helix.ConfigChangeListener;
-import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
 import com.linkedin.helix.ControllerChangeListener;
 import com.linkedin.helix.CurrentStateChangeListener;
 import com.linkedin.helix.ExternalViewChangeListener;
@@ -39,7 +38,7 @@ import com.linkedin.helix.IdealStateChangeListener;
 import com.linkedin.helix.LiveInstanceChangeListener;
 import com.linkedin.helix.MessageListener;
 import com.linkedin.helix.NotificationContext;
-import com.linkedin.helix.PropertyType;
+import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.model.CurrentState;
 import com.linkedin.helix.model.ExternalView;
@@ -62,7 +61,8 @@ public class FileCallbackHandler implements PropertyChangeListener<ZNRecord>
   private final Object _listener;
   private final EventType[] _eventTypes;
   private final ChangeType _changeType;
-  private final FileDataAccessor _accessor;
+//  private final FileDataAccessor _accessor;
+  private final FileHelixDataAccessor _accessor;
   private final AtomicLong lastNotificationTimeStamp;
   private final HelixManager _manager;
   private final FilePropertyStore<ZNRecord> _store;
@@ -71,7 +71,7 @@ public class FileCallbackHandler implements PropertyChangeListener<ZNRecord>
       EventType[] eventTypes, ChangeType changeType)
   {
     this._manager = manager;
-    this._accessor = (FileDataAccessor) manager.getDataAccessor();
+    this._accessor = (FileHelixDataAccessor) manager.getHelixDataAccessor();
     this._path = path;
     this._listener = listener;
     this._eventTypes = eventTypes;
@@ -103,13 +103,15 @@ public class FileCallbackHandler implements PropertyChangeListener<ZNRecord>
             + changeContext.getPathChanged() + " listener:"
             + _listener.getClass().getCanonicalName());
       }
+      
+      Builder keyBuilder = _accessor.keyBuilder();
+      
       if (_changeType == IDEAL_STATE)
       {
         // System.err.println("ideal state change");
         IdealStateChangeListener idealStateChangeListener = (IdealStateChangeListener) _listener;
         subscribeForChanges(changeContext, true, true);
-        List<IdealState> idealStates = _accessor.getChildValues(IdealState.class,
-            PropertyType.IDEALSTATES);
+        List<IdealState> idealStates = _accessor.getChildValues(keyBuilder.idealStates());
         idealStateChangeListener.onIdealStateChange(idealStates, changeContext);
 
       } else if (_changeType == CONFIG)
@@ -117,16 +119,14 @@ public class FileCallbackHandler implements PropertyChangeListener<ZNRecord>
 
         ConfigChangeListener configChangeListener = (ConfigChangeListener) _listener;
         subscribeForChanges(changeContext, true, true);
-        List<InstanceConfig> configs = _accessor.getChildValues(InstanceConfig.class,
-            PropertyType.CONFIGS, ConfigScopeProperty.PARTICIPANT.toString());
+        List<InstanceConfig> configs = _accessor.getChildValues(keyBuilder.instanceConfigs());
         configChangeListener.onConfigChange(configs, changeContext);
 
       } else if (_changeType == LIVE_INSTANCE)
       {
         LiveInstanceChangeListener liveInstanceChangeListener = (LiveInstanceChangeListener) _listener;
         subscribeForChanges(changeContext, true, false);
-        List<LiveInstance> liveInstances = _accessor.getChildValues(LiveInstance.class,
-            PropertyType.LIVEINSTANCES);
+        List<LiveInstance> liveInstances = _accessor.getChildValues(keyBuilder.liveInstances());
         liveInstanceChangeListener.onLiveInstanceChange(liveInstances, changeContext);
 
       } else if (_changeType == CURRENT_STATE)
@@ -136,8 +136,7 @@ public class FileCallbackHandler implements PropertyChangeListener<ZNRecord>
         subscribeForChanges(changeContext, true, true);
         String instanceName = HelixUtil.getInstanceNameFromPath(_path);
         String[] pathParts = _path.split("/");
-        List<CurrentState> currentStates = _accessor.getChildValues(CurrentState.class,
-            PropertyType.CURRENTSTATES, instanceName, pathParts[pathParts.length - 1]);
+        List<CurrentState> currentStates = _accessor.getChildValues(keyBuilder.currentStates(instanceName, pathParts[pathParts.length - 1]));
         currentStateChangeListener.onStateChange(instanceName, currentStates, changeContext);
 
       } else if (_changeType == MESSAGE)
@@ -145,15 +144,13 @@ public class FileCallbackHandler implements PropertyChangeListener<ZNRecord>
         MessageListener messageListener = (MessageListener) _listener;
         subscribeForChanges(changeContext, true, false);
         String instanceName = _manager.getInstanceName();
-        List<Message> messages = _accessor.getChildValues(Message.class, PropertyType.MESSAGES,
-            instanceName);
+        List<Message> messages = _accessor.getChildValues(keyBuilder.messages(instanceName));
         messageListener.onMessage(instanceName, messages, changeContext);
       } else if (_changeType == EXTERNAL_VIEW)
       {
         ExternalViewChangeListener externalViewListener = (ExternalViewChangeListener) _listener;
         subscribeForChanges(changeContext, true, true);
-        List<ExternalView> externalViewList = _accessor.getChildValues(ExternalView.class,
-            PropertyType.EXTERNALVIEW);
+        List<ExternalView> externalViewList = _accessor.getChildValues(keyBuilder.externalViews());
         externalViewListener.onExternalViewChange(externalViewList, changeContext);
       } else if (_changeType == ChangeType.CONTROLLER)
       {

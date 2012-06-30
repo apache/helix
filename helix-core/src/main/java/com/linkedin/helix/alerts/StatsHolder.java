@@ -25,9 +25,11 @@ import java.util.regex.Pattern;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixException;
 import com.linkedin.helix.HelixManager;
+import com.linkedin.helix.PropertyKey;
+import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.controller.stages.HealthDataCache;
@@ -43,19 +45,23 @@ public class StatsHolder
   public static final String VALUE_NAME = "value";
   public static final String TIMESTAMP_NAME = "TimeStamp";
 
-  DataAccessor _accessor;
+  HelixDataAccessor _accessor;
   HealthDataCache _cache;
 
   Map<String, Map<String, String>> _statMap;
   Map<String, Map<String, MatchResult>> _statAlertMatchResult;
+
+  private Builder _keyBuilder;
   // PersistentStats _persistentStats;
 
   public StatsHolder(HelixManager manager, HealthDataCache cache)
   {
-    _accessor = manager.getDataAccessor();
+    _accessor = manager.getHelixDataAccessor();
     _cache = cache;
+    _keyBuilder = new PropertyKey.Builder(manager.getClusterName());
     updateCache(_cache);
     _statAlertMatchResult = new HashMap<String, Map<String, MatchResult>>();
+    
   }
 
   public void refreshStats()
@@ -69,16 +75,16 @@ public class StatsHolder
   {
     // XXX: Am I using _accessor too directly here?
     // took around 35 ms from desktop to ESV4 machine
-    ZNRecord statsRec = _accessor.getProperty(PropertyType.PERSISTENTSTATS);
-    if (statsRec == null)
+    PersistentStats stats = _accessor.getProperty(_keyBuilder.persistantStat());
+    if (stats == null)
     {
-      statsRec = new ZNRecord(PersistentStats.nodeName); // TODO: fix naming of
+      stats = new PersistentStats(PersistentStats.nodeName); // TODO: fix naming of
                                                          // this record, if it
                                                          // matters
     }
-    statsRec.setMapFields(_statMap);
-    boolean retVal = _accessor.setProperty(PropertyType.PERSISTENTSTATS,
-        statsRec);
+    stats.getRecord().setMapFields(_statMap);
+    boolean retVal = _accessor.setProperty(_keyBuilder.persistantStat(),
+        stats);
   }
 
   public void getStatsFromCache(boolean refresh)

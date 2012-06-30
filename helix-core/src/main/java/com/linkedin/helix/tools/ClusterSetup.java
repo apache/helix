@@ -43,15 +43,15 @@ import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 
 import com.linkedin.helix.ConfigScope;
-import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
 import com.linkedin.helix.ConfigScopeBuilder;
 import com.linkedin.helix.HelixAdmin;
 import com.linkedin.helix.HelixException;
-import com.linkedin.helix.PropertyType;
+import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.manager.zk.ZKDataAccessor;
 import com.linkedin.helix.manager.zk.ZKHelixAdmin;
+import com.linkedin.helix.manager.zk.ZKHelixDataAccessor;
 import com.linkedin.helix.manager.zk.ZNRecordSerializer;
+import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
 import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.IdealState;
@@ -222,9 +222,11 @@ public class ClusterSetup
     String instanceId = host + "_" + port;
 
     ZkClient zkClient = ZKClientPool.getZkClient(_zkServerAddress);
-    InstanceConfig config = new ZKDataAccessor(clusterName, zkClient).getProperty(
-        InstanceConfig.class, PropertyType.CONFIGS, ConfigScopeProperty.PARTICIPANT.toString(),
-        instanceId);
+    
+    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(zkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+    
+    InstanceConfig config = accessor.getProperty(keyBuilder.instanceConfig(instanceId));
     if (config == null)
     {
       String error = "Node " + instanceId + " does not exist, cannot drop";

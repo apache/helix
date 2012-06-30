@@ -30,13 +30,13 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixException;
 import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.MessageListener;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.NotificationContext.Type;
-import com.linkedin.helix.PropertyType;
+import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.model.Message;
 import com.linkedin.helix.model.Message.Attributes;
 import com.linkedin.helix.model.Message.MessageState;
@@ -50,18 +50,21 @@ public class HelixTaskExecutor implements MessageListener
   // TODO: we need to further design how to throttle this.
   // From storage point of view, only bootstrap case is expensive
   // and we need to throttle, which is mostly IO / network bounded.
-  private static final int MAX_PARALLEL_TASKS = 4;
+  private static final int                               MAX_PARALLEL_TASKS = 4;
   // TODO: create per-task type threadpool with customizable pool size
-  protected final Map<String, Future<HelixTaskResult>> _taskMap;
-  private final Object _lock;
-  private final StatusUpdateUtil _statusUpdateUtil;
-  private final ParticipantMonitor _monitor;
+  protected final Map<String, Future<HelixTaskResult>>   _taskMap;
+  private final Object                                   _lock;
+  private final StatusUpdateUtil                         _statusUpdateUtil;
+  private final ParticipantMonitor                       _monitor;
 
-  final ConcurrentHashMap<String, MessageHandlerFactory> _handlerFactoryMap = new ConcurrentHashMap<String, MessageHandlerFactory>();
+  final ConcurrentHashMap<String, MessageHandlerFactory> _handlerFactoryMap =
+                                                                                new ConcurrentHashMap<String, MessageHandlerFactory>();
 
-  final ConcurrentHashMap<String, ExecutorService> _threadpoolMap = new ConcurrentHashMap<String, ExecutorService>();
+  final ConcurrentHashMap<String, ExecutorService>       _threadpoolMap     =
+                                                                                new ConcurrentHashMap<String, ExecutorService>();
 
-  private static Logger logger = Logger.getLogger(HelixTaskExecutor.class);
+  private static Logger                                  logger             =
+                                                                                Logger.getLogger(HelixTaskExecutor.class);
 
   public HelixTaskExecutor()
   {
@@ -72,21 +75,18 @@ public class HelixTaskExecutor implements MessageListener
     startMonitorThread();
   }
 
-  public void registerMessageHandlerFactory(String type,
-      MessageHandlerFactory factory)
+  public void registerMessageHandlerFactory(String type, MessageHandlerFactory factory)
   {
     if (!_handlerFactoryMap.containsKey(type))
     {
       if (!type.equalsIgnoreCase(factory.getMessageType()))
       {
-        throw new HelixException(
-            "Message factory type mismatch. Type: " + type + " factory : "
-                + factory.getMessageType());
+        throw new HelixException("Message factory type mismatch. Type: " + type
+            + " factory : " + factory.getMessageType());
 
       }
       _handlerFactoryMap.put(type, factory);
-      _threadpoolMap
-          .put(type, Executors.newFixedThreadPool(MAX_PARALLEL_TASKS));
+      _threadpoolMap.put(type, Executors.newFixedThreadPool(MAX_PARALLEL_TASKS));
       logger.info("adding msg factory for type " + type);
     }
     else
@@ -105,8 +105,9 @@ public class HelixTaskExecutor implements MessageListener
     // start a thread which monitors the completions of task
   }
 
-  public void scheduleTask(Message message, MessageHandler handler,
-      NotificationContext notificationContext)
+  public void scheduleTask(Message message,
+                           MessageHandler handler,
+                           NotificationContext notificationContext)
   {
     assert (handler != null);
     synchronized (_lock)
@@ -114,46 +115,53 @@ public class HelixTaskExecutor implements MessageListener
       try
       {
         logger.info("message.getMsgId() = " + message.getMsgId());
-        _statusUpdateUtil.logInfo(message, HelixTaskExecutor.class,
-            "Message handling task scheduled", notificationContext.getManager()
-                .getDataAccessor());
+        _statusUpdateUtil.logInfo(message,
+                                  HelixTaskExecutor.class,
+                                  "Message handling task scheduled",
+                                  notificationContext.getManager().getHelixDataAccessor());
 
         HelixTask task = new HelixTask(message, notificationContext, handler, this);
         if (!_taskMap.containsKey(message.getMsgId()))
         {
-          Future<HelixTaskResult> future = _threadpoolMap
-              .get(message.getMsgType()).submit(task);
+          Future<HelixTaskResult> future =
+              _threadpoolMap.get(message.getMsgType()).submit(task);
           _taskMap.put(message.getMsgId(), future);
-        } else
-        {
-          _statusUpdateUtil.logWarning(
-              message,
-              HelixTaskExecutor.class,
-              "Message handling task already sheduled for "
-                  + message.getMsgId(), notificationContext.getManager()
-                  .getDataAccessor());
         }
-      } catch (Exception e)
+        else
+        {
+          _statusUpdateUtil.logWarning(message,
+                                       HelixTaskExecutor.class,
+                                       "Message handling task already sheduled for "
+                                           + message.getMsgId(),
+                                       notificationContext.getManager()
+                                                          .getHelixDataAccessor());
+        }
+      }
+      catch (Exception e)
       {
         String errorMessage = "Error while executing task" + e;
         logger.error("Error while executing task." + message, e);
 
-        _statusUpdateUtil.logError(message, HelixTaskExecutor.class, e,
-            errorMessage, notificationContext.getManager().getDataAccessor());
+        _statusUpdateUtil.logError(message,
+                                   HelixTaskExecutor.class,
+                                   e,
+                                   errorMessage,
+                                   notificationContext.getManager()
+                                                      .getHelixDataAccessor());
       }
     }
   }
 
-  public void cancelTask(Message message,
-      NotificationContext notificationContext)
+  public void cancelTask(Message message, NotificationContext notificationContext)
   {
     synchronized (_lock)
     {
       if (_taskMap.containsKey(message.getMsgId()))
       {
-        _statusUpdateUtil.logInfo(message, HelixTaskExecutor.class,
-            "Trying to cancel the future for " + message.getMsgId(),
-            notificationContext.getManager().getDataAccessor());
+        _statusUpdateUtil.logInfo(message,
+                                  HelixTaskExecutor.class,
+                                  "Trying to cancel the future for " + message.getMsgId(),
+                                  notificationContext.getManager().getHelixDataAccessor());
         Future<HelixTaskResult> future = _taskMap.get(message.getMsgId());
 
         // If the thread is still running it will be interrupted if cancel(true)
@@ -164,19 +172,27 @@ public class HelixTaskExecutor implements MessageListener
         {
           _statusUpdateUtil.logInfo(message, HelixTaskExecutor.class, "Canceled "
               + message.getMsgId(), notificationContext.getManager()
-              .getDataAccessor());
+                                                       .getHelixDataAccessor());
           _taskMap.remove(message.getMsgId());
-        } else
-        {
-          _statusUpdateUtil.logInfo(message, HelixTaskExecutor.class,
-              "false when trying to cancel the message " + message.getMsgId(),
-              notificationContext.getManager().getDataAccessor());
         }
-      } else
+        else
+        {
+          _statusUpdateUtil.logInfo(message,
+                                    HelixTaskExecutor.class,
+                                    "false when trying to cancel the message "
+                                        + message.getMsgId(),
+                                    notificationContext.getManager()
+                                                       .getHelixDataAccessor());
+        }
+      }
+      else
       {
-        _statusUpdateUtil.logWarning(message, HelixTaskExecutor.class,
-            "Future not found when trying to cancel " + message.getMsgId(),
-            notificationContext.getManager().getDataAccessor());
+        _statusUpdateUtil.logWarning(message,
+                                     HelixTaskExecutor.class,
+                                     "Future not found when trying to cancel "
+                                         + message.getMsgId(),
+                                     notificationContext.getManager()
+                                                        .getHelixDataAccessor());
       }
     }
   }
@@ -189,7 +205,8 @@ public class HelixTaskExecutor implements MessageListener
       if (_taskMap.containsKey(msgId))
       {
         _taskMap.remove(msgId);
-      } else
+      }
+      else
       {
         logger.warn("message " + msgId + "not found in task map");
       }
@@ -206,8 +223,7 @@ public class HelixTaskExecutor implements MessageListener
       @Override
       public HelixTaskResult call() throws Exception
       {
-        System.out
-            .println("CMTaskExecutor.main(...).new Callable() {...}.call()");
+        System.out.println("CMTaskExecutor.main(...).new Callable() {...}.call()");
         return null;
       }
 
@@ -218,8 +234,9 @@ public class HelixTaskExecutor implements MessageListener
   }
 
   @Override
-  public void onMessage(String instanceName, List<Message> messages,
-      NotificationContext changeContext)
+  public void onMessage(String instanceName,
+                        List<Message> messages,
+                        NotificationContext changeContext)
   {
     // If FINALIZE notification comes, reset all handler factories
     // and terminate all the thread pools
@@ -235,7 +252,8 @@ public class HelixTaskExecutor implements MessageListener
     }
 
     HelixManager manager = changeContext.getManager();
-    DataAccessor accessor = manager.getDataAccessor();
+    HelixDataAccessor accessor = manager.getHelixDataAccessor();
+    Builder keyBuilder = accessor.keyBuilder();
 
     if (messages == null || messages.size() == 0)
     {
@@ -250,26 +268,28 @@ public class HelixTaskExecutor implements MessageListener
       public int compare(Message message1, Message message2)
       {
         long messageCreateTime1 = 0, messageCreateTime2 = 0;
-        String time1 = message1.getRecord().getSimpleField(Attributes.CREATE_TIMESTAMP.toString());
-        String time2 = message2.getRecord().getSimpleField(Attributes.CREATE_TIMESTAMP.toString());
+        String time1 =
+            message1.getRecord().getSimpleField(Attributes.CREATE_TIMESTAMP.toString());
+        String time2 =
+            message2.getRecord().getSimpleField(Attributes.CREATE_TIMESTAMP.toString());
         try
         {
           messageCreateTime1 = Long.parseLong(time1);
         }
-        catch(Exception e)
+        catch (Exception e)
         {
-          logger.warn("failed to parse creation time for msg "+ message1.getId());
+          logger.warn("failed to parse creation time for msg " + message1.getId());
         }
         try
         {
           messageCreateTime2 = Long.parseLong(time2);
         }
-        catch(Exception e)
+        catch (Exception e)
         {
-          logger.warn("failed to parse creation time for msg "+ message2.getId());
+          logger.warn("failed to parse creation time for msg " + message2.getId());
         }
 
-        if(messageCreateTime1 > messageCreateTime2)
+        if (messageCreateTime1 > messageCreateTime2)
         {
           return 1;
         }
@@ -289,15 +309,13 @@ public class HelixTaskExecutor implements MessageListener
       if (message.getMsgType().equalsIgnoreCase(MessageType.NO_OP.toString()))
       {
         logger.info("Dropping NO-OP msg from " + message.getMsgSrc());
-        if(message.getTgtName().equalsIgnoreCase("controller"))
+        if (message.getTgtName().equalsIgnoreCase("controller"))
         {
-          accessor.removeProperty(PropertyType.MESSAGES_CONTROLLER,
-            message.getId());
+          accessor.removeProperty(keyBuilder.controllerMessage(message.getId()));
         }
         else
         {
-          accessor.removeProperty(PropertyType.MESSAGES, instanceName,
-            message.getId());
+          accessor.removeProperty(keyBuilder.message(instanceName, message.getId()));
         }
         continue;
       }
@@ -314,8 +332,8 @@ public class HelixTaskExecutor implements MessageListener
             logger.info("Creating handler for message " + message.getMsgId());
             handler = createMessageHandler(message, changeContext);
 
-            // We did not find a MessageHandlerFactory for the message; 
-            // we will keep the message and we may be able to handler it when 
+            // We did not find a MessageHandlerFactory for the message;
+            // we will keep the message and we may be able to handler it when
             // the corresponding MessageHandlerFactory factory is registered.
             if (handler == null)
             {
@@ -329,52 +347,51 @@ public class HelixTaskExecutor implements MessageListener
             message.setReadTimeStamp(new Date().getTime());
             message.setExecuteSessionId(changeContext.getManager().getSessionId());
 
-            _statusUpdateUtil.logInfo(message, HelixStateMachineEngine.class,
-                "New Message", accessor);
-            if(message.getTgtName().equalsIgnoreCase("controller"))
+            _statusUpdateUtil.logInfo(message,
+                                      HelixStateMachineEngine.class,
+                                      "New Message",
+                                      accessor);
+            if (message.getTgtName().equalsIgnoreCase("controller"))
             {
-              accessor.updateProperty(PropertyType.MESSAGES_CONTROLLER,
-                                      message,
-                                      message.getId());
+              accessor.updateProperty(keyBuilder.controllerMessage(message.getId()),
+                                      message);
             }
             else
             {
-              accessor.updateProperty(PropertyType.MESSAGES,
-                                      message,
-                                      instanceName,
-                                      message.getId());
+              accessor.updateProperty(keyBuilder.message(instanceName, message.getId()),
+                                      message);
 
             }
             scheduleTask(message, handler, changeContext);
           }
           catch (Exception e)
           {
-            logger.error("Failed to create message handler for "
-                + message.getMsgId(), e);
-            String error = "Failed to create message handler for "
-                + message.getMsgId() + " exception: " + e;
+            logger.error("Failed to create message handler for " + message.getMsgId(), e);
+            String error =
+                "Failed to create message handler for " + message.getMsgId()
+                    + " exception: " + e;
 
-            _statusUpdateUtil.logError(message, HelixStateMachineEngine.class, e,
-                error, accessor);
+            _statusUpdateUtil.logError(message,
+                                       HelixStateMachineEngine.class,
+                                       e,
+                                       error,
+                                       accessor);
             // Mark the message as UNPROCESSABLE if we hit a exception while creating
             // handler for it. The message will stay on ZK and not be processed.
             message.setMsgState(MessageState.UNPROCESSABLE);
-            if(message.getTgtName().equalsIgnoreCase("controller"))
+            if (message.getTgtName().equalsIgnoreCase("controller"))
             {
-              accessor.updateProperty(PropertyType.MESSAGES_CONTROLLER,
-                                      message,
-                                      message.getId());
+              accessor.updateProperty(keyBuilder.controllerMessage(message.getId()),
+                                      message);
             }
             else
             {
-              accessor.updateProperty(PropertyType.MESSAGES,
-                                      message,
-                                      instanceName,
-                                      message.getId());
+              accessor.updateProperty(keyBuilder.message(instanceName, message.getId()),
+                                      message);
             }
             continue;
           }
-        } 
+        }
         else
         {
           // This will happen because we don't delete the message as soon as we
@@ -386,23 +403,25 @@ public class HelixTaskExecutor implements MessageListener
           // _statusUpdateUtil.logInfo(message, StateMachineEngine.class,
           // "Message already read", client);
         }
-      } 
+      }
       else
       {
-        String warningMessage = "Session Id does not match. Expected sessionId: "
-            + sessionId + ", sessionId from Message: " + tgtSessionId;
+        String warningMessage =
+            "Session Id does not match. Expected sessionId: " + sessionId
+                + ", sessionId from Message: " + tgtSessionId;
         logger.error(warningMessage);
-        accessor.removeProperty(PropertyType.MESSAGES, instanceName,
-            message.getId());
-        _statusUpdateUtil.logWarning(message, HelixStateMachineEngine.class,
-            warningMessage, accessor);
+        accessor.removeProperty(keyBuilder.message(instanceName, message.getId()));
+        _statusUpdateUtil.logWarning(message,
+                                     HelixStateMachineEngine.class,
+                                     warningMessage,
+                                     accessor);
       }
     }
 
   }
 
   private MessageHandler createMessageHandler(Message message,
-      NotificationContext changeContext)
+                                              NotificationContext changeContext)
   {
     String msgType = message.getMsgType().toString();
 
@@ -410,8 +429,8 @@ public class HelixTaskExecutor implements MessageListener
 
     if (handlerFactory == null)
     {
-      logger.warn("Cannot find handler factory for msg type " + msgType
-          + " message:" + message.getMsgId());
+      logger.warn("Cannot find handler factory for msg type " + msgType + " message:"
+          + message.getMsgId());
       return null;
     }
 
@@ -421,18 +440,19 @@ public class HelixTaskExecutor implements MessageListener
   public void shutDown()
   {
     logger.info("shutting down TaskExecutor");
-    synchronized(_lock)
+    synchronized (_lock)
     {
-      for(String msgType : _threadpoolMap.keySet())
+      for (String msgType : _threadpoolMap.keySet())
       {
         List<Runnable> tasksLeft = _threadpoolMap.get(msgType).shutdownNow();
-        logger.info(tasksLeft.size() + " tasks are still in the threadpool for msgType " + msgType);
+        logger.info(tasksLeft.size() + " tasks are still in the threadpool for msgType "
+            + msgType);
       }
-      for(String msgType : _threadpoolMap.keySet())
+      for (String msgType : _threadpoolMap.keySet())
       {
         try
         {
-          if(!_threadpoolMap.get(msgType).awaitTermination(200, TimeUnit.MILLISECONDS))
+          if (!_threadpoolMap.get(msgType).awaitTermination(200, TimeUnit.MILLISECONDS))
           {
             logger.warn(msgType + " is not fully termimated in 200 MS");
             System.out.println(msgType + " is not fully termimated in 200 MS");

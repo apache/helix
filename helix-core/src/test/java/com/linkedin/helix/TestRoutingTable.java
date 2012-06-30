@@ -50,27 +50,32 @@ public class TestRoutingTable
       private MockAccessor _mockAccessor;
 
       @Override
-      public DataAccessor getDataAccessor()
+//      public DataAccessor getDataAccessor()
+      public HelixDataAccessor getHelixDataAccessor()
       {
         if (_mockAccessor == null)
         {
           _mockAccessor = new Mocks.MockAccessor() {
+            @SuppressWarnings("unchecked")
             @Override
-            public List<ZNRecord> getChildValues(PropertyType type, String... keys)
+            public <T extends HelixProperty> List<T> getChildValues(PropertyKey key)
+//            public List<ZNRecord> getChildValues(PropertyType type, String... keys)
             {
-              if (type == PropertyType.CONFIGS && keys != null && keys.length >= 1
-                  && keys[0].equalsIgnoreCase(ConfigScopeProperty.PARTICIPANT.toString()))
+              PropertyType type = key.getType();
+              String[] keys = key.getParams();
+              if (type == PropertyType.CONFIGS && keys != null && keys.length > 1
+                  && keys[1].equalsIgnoreCase(ConfigScopeProperty.PARTICIPANT.toString()))
               {
-                List<ZNRecord> configs = new ArrayList<ZNRecord>();
+                List<InstanceConfig> configs = new ArrayList<InstanceConfig>();
                 for (String instanceName : array)
                 {
                   InstanceConfig config = new InstanceConfig(instanceName);
                   String[] splits = instanceName.split("_");
                   config.setHostName(splits[0]);
                   config.setPort(splits[1]);
-                  configs.add(config.getRecord());
+                  configs.add(config);
                 }
-                return configs;
+                return (List<T>) configs;
               }
               return Collections.emptyList();
             };

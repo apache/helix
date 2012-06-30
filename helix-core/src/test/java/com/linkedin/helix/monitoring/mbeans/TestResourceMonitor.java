@@ -24,7 +24,11 @@ import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
 import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixDataAccessor;
+import com.linkedin.helix.HelixProperty;
 import com.linkedin.helix.Mocks;
+import com.linkedin.helix.PropertyKey;
+import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.model.ExternalView;
@@ -45,38 +49,42 @@ public class TestResourceMonitor
     class MockDataAccessor extends Mocks.MockAccessor
     {
       @Override
-      public List<ZNRecord> getChildValues(PropertyType type, String... keys)
+      public <T extends HelixProperty> List<T>  getChildValues(PropertyKey key)
       {
-        List<ZNRecord> result = new ArrayList<ZNRecord>();
+        List<T> result = new ArrayList<T>();
+        PropertyType type = key.getType();
+        Class<? extends HelixProperty> clazz = key.getTypeClass();
         if (type == PropertyType.EXTERNALVIEW)
         {
-          result.add(_externalView);
+          HelixProperty typedInstance = HelixProperty.convertToTypedInstance(clazz, _externalView);
+          result.add((T) typedInstance);
           return result;
         }
         else if (type == PropertyType.LIVEINSTANCES)
         {
-          return _liveInstances;
+          return (List<T>) HelixProperty.convertToTypedList(clazz, _liveInstances);
         }
 
         return result;
       }
 
       @Override
-      public ZNRecord getProperty(PropertyType type, String... keys)
+      public  <T extends HelixProperty> T  getProperty(PropertyKey key)
       {
+        PropertyType type = key.getType();
         if (type == PropertyType.EXTERNALVIEW)
         {
-          return _externalView;
+          return (T) new ExternalView(_externalView);
         }
         else if (type == PropertyType.IDEALSTATES)
         {
-          return _idealState;
+          return (T) new IdealState(_idealState);
         }
         return null;
       }
     }
 
-    DataAccessor _accessor = new MockDataAccessor();
+    HelixDataAccessor _accessor = new MockDataAccessor();
     ZNRecord _idealState;
     ZNRecord _externalView;
     List<String> _instances;
@@ -106,7 +114,7 @@ public class TestResourceMonitor
     }
 
     @Override
-    public DataAccessor getDataAccessor()
+    public HelixDataAccessor getHelixDataAccessor()
     {
       return _accessor;
     }
@@ -119,10 +127,11 @@ public class TestResourceMonitor
     MockHelixManager manager = new MockHelixManager();
     ResourceMonitor monitor = new ResourceMonitor(_clusterName, _dbName);
 
-    ExternalView externalView = new ExternalView(
-        manager.getDataAccessor().getProperty(PropertyType.EXTERNALVIEW,_dbName));
-    IdealState idealState = new IdealState(
-        manager.getDataAccessor().getProperty(PropertyType.EXTERNALVIEW,_dbName));
+    HelixDataAccessor helixDataAccessor = manager.getHelixDataAccessor();
+    Builder keyBuilder = helixDataAccessor.keyBuilder();
+    ExternalView externalView = 
+        helixDataAccessor.getProperty(keyBuilder.externalView(_dbName));
+    IdealState idealState = helixDataAccessor.getProperty(keyBuilder.idealStates(_dbName));
 
     monitor.updateExternalView(externalView, idealState);
 

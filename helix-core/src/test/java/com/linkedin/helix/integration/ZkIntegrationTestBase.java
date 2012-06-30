@@ -34,11 +34,12 @@ import org.testng.annotations.BeforeSuite;
 import com.linkedin.helix.ConfigAccessor;
 import com.linkedin.helix.ConfigScope;
 import com.linkedin.helix.ConfigScopeBuilder;
-import com.linkedin.helix.PropertyType;
+import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.TestHelper.StartCMResult;
-import com.linkedin.helix.manager.zk.ZKDataAccessor;
+import com.linkedin.helix.manager.zk.ZKHelixDataAccessor;
 import com.linkedin.helix.manager.zk.ZNRecordSerializer;
+import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
 import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.tools.ClusterSetup;
@@ -53,7 +54,7 @@ public class ZkIntegrationTestBase
   protected static ClusterSetup _gSetupTool;
 
 
-  public static final String ZK_ADDR = "localhost:2183";
+  public static final String ZK_ADDR = "localhost:2183"; 
   protected static final String CLUSTER_PREFIX = "CLUSTER";
   protected static final String CONTROLLER_CLUSTER_PREFIX = "CONTROLLER_CLUSTER";
 
@@ -88,8 +89,10 @@ public class ZkIntegrationTestBase
 
   protected String getCurrentLeader(ZkClient zkClient, String clusterName)
   {
-    ZKDataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
-    LiveInstance leader = accessor.getProperty(LiveInstance.class, PropertyType.LEADER);
+    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(zkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+
+    LiveInstance leader = accessor.getProperty(keyBuilder.controllerLeader());
     if (leader == null)
     {
       return null;

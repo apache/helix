@@ -17,7 +17,7 @@ package com.linkedin.helix.controller.stages;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.controller.pipeline.AbstractBaseStage;
 import com.linkedin.helix.controller.pipeline.StageException;
@@ -43,7 +43,7 @@ public class ReadClusterDataStage extends AbstractBaseStage
     {
       throw new StageException("HelixManager attribute value is null");
     }
-    DataAccessor dataAccessor = manager.getDataAccessor();
+    HelixDataAccessor dataAccessor = manager.getHelixDataAccessor();
     _cache.refresh(dataAccessor);
     
     ClusterStatusMonitor clusterStatusMonitor = (ClusterStatusMonitor) event.getAttribute("clusterStatusMonitor");

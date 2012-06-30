@@ -10,6 +10,8 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixDataAccessor;
+import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.ZNRecord;
@@ -17,7 +19,9 @@ import com.linkedin.helix.TestHelper.StartCMResult;
 import com.linkedin.helix.controller.HelixControllerMain;
 import com.linkedin.helix.controller.stages.ClusterDataCache;
 import com.linkedin.helix.manager.zk.ZKDataAccessor;
+import com.linkedin.helix.manager.zk.ZKHelixDataAccessor;
 import com.linkedin.helix.manager.zk.ZNRecordSerializer;
+import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
 import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.model.IdealState.IdealStateModeProperty;
@@ -183,13 +187,14 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBase
     @Override
     public boolean verify()
     {
-      DataAccessor accessor = new ZKDataAccessor( _clusterName,_client);
-      int numberOfPartitions = accessor.getProperty(PropertyType.IDEALSTATES, _resourceName).getListFields().size();
+      HelixDataAccessor accessor = new ZKHelixDataAccessor( _clusterName, new ZkBaseDataAccessor(_client));
+      Builder keyBuilder = accessor.keyBuilder();
+      int numberOfPartitions = accessor.getProperty(keyBuilder.idealStates(_resourceName)).getRecord().getListFields().size();
       ClusterDataCache cache = new ClusterDataCache();
       cache.refresh(accessor);
       String masterValue = cache.getStateModelDef(cache.getIdealState(_resourceName).getStateModelDefRef()).getStatesPriorityList().get(0);
       int replicas = Integer.parseInt(cache.getIdealState(_resourceName).getReplicas());
-      return verifyBalanceExternalView(accessor.getProperty(PropertyType.EXTERNALVIEW, _resourceName), numberOfPartitions, masterValue, replicas, cache.getLiveInstances().size());
+      return verifyBalanceExternalView(accessor.getProperty(keyBuilder.externalView(_resourceName)).getRecord(), numberOfPartitions, masterValue, replicas, cache.getLiveInstances().size());
     }
 
     @Override

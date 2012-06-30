@@ -24,6 +24,7 @@ import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.ExternalViewChangeListener;
 import com.linkedin.helix.HealthStateChangeListener;
 import com.linkedin.helix.HelixAdmin;
+import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.IdealStateChangeListener;
 import com.linkedin.helix.InstanceType;
@@ -36,11 +37,11 @@ import com.linkedin.helix.store.PropertyStore;
 
 public class DummyClusterManager implements HelixManager
 {
-  DataAccessor _accessor;
+  HelixDataAccessor _accessor;
   String _clusterName;
   String _sessionId;
 
-  public DummyClusterManager(String clusterName, DataAccessor accessor)
+  public DummyClusterManager(String clusterName, HelixDataAccessor accessor)
   {
     _clusterName = clusterName;
     _accessor = accessor;
@@ -122,7 +123,7 @@ public class DummyClusterManager implements HelixManager
   @Override
   public DataAccessor getDataAccessor()
   {
-    return _accessor;
+    return null;
   }
 
   @Override
@@ -241,5 +242,11 @@ public class DummyClusterManager implements HelixManager
   {
     // TODO Auto-generated method stub
 
+  }
+
+  @Override
+  public HelixDataAccessor getHelixDataAccessor()
+  {
+    return _accessor;
   }
 }

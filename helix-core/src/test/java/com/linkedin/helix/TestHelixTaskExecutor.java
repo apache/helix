@@ -18,17 +18,16 @@ package com.linkedin.helix;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
-import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.Mocks.MockHelixTaskExecutor;
-import com.linkedin.helix.NotificationContext;
-import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.Mocks.MockManager;
 import com.linkedin.helix.Mocks.MockStateModel;
+import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.messaging.handling.AsyncCallbackService;
 import com.linkedin.helix.messaging.handling.HelixStateTransitionHandler;
+import com.linkedin.helix.model.CurrentState;
 import com.linkedin.helix.model.Message;
-import com.linkedin.helix.model.StateModelDefinition;
 import com.linkedin.helix.model.Message.MessageType;
+import com.linkedin.helix.model.StateModelDefinition;
 import com.linkedin.helix.tools.StateModelConfigGenerator;
 
 public class TestHelixTaskExecutor
@@ -47,24 +46,28 @@ public class TestHelixTaskExecutor
     message.setTgtSessionId("1234");
     message.setFromState("Offline");
     message.setToState("Slave");
-    message.setPartitionName("Teststateunitkey");
-    message.setResourceName("Teststateunitkey");
+    message.setPartitionName("TestDB_0");
+    message.setResourceName("TestDB");
     message.setStateModelDef("MasterSlave");
    
     MockManager manager = new MockManager("clusterName");
-    DataAccessor accessor = manager.getDataAccessor();
+//    DataAccessor accessor = manager.getDataAccessor();
+    HelixDataAccessor accessor = manager.getHelixDataAccessor();
     StateModelConfigGenerator generator = new StateModelConfigGenerator();
     StateModelDefinition stateModelDef = new StateModelDefinition(generator.generateConfigForMasterSlave());
-    accessor.setProperty(PropertyType.STATEMODELDEFS, stateModelDef, "MasterSlave");
+    Builder keyBuilder = accessor.keyBuilder();
+    accessor.setProperty(keyBuilder.stateModelDef("MasterSlave"), stateModelDef);
     
     MockHelixTaskExecutor executor = new MockHelixTaskExecutor();
     MockStateModel stateModel = new MockStateModel();
     NotificationContext context;
     executor.registerMessageHandlerFactory(
         MessageType.TASK_REPLY.toString(), new AsyncCallbackService());
-    String clusterName =" testcluster";
+//    String clusterName =" testcluster";
     context = new NotificationContext(manager);
-    HelixStateTransitionHandler handler = new HelixStateTransitionHandler(stateModel, message, context);
+    CurrentState currentStateDelta = new CurrentState("TestDB");
+    currentStateDelta.setState("TestDB_0", "OFFLINE");
+    HelixStateTransitionHandler handler = new HelixStateTransitionHandler(stateModel, message, context, currentStateDelta);
 
     executor.scheduleTask(message, handler, context);
     while (!executor.isDone(msgId))

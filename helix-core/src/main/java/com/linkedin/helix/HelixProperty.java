@@ -27,16 +27,16 @@ import java.util.Map;
  * A wrapper class for ZNRecord. Used as a parent class for IdealState,
  * CurrentState, etc.
  */
-public abstract class ZNRecordDecorator
+public abstract class HelixProperty
 {
   protected final ZNRecord _record;
 
-  public ZNRecordDecorator(String id)
+  public HelixProperty(String id)
   {
     _record = new ZNRecord(id);
   }
 
-  public ZNRecordDecorator(ZNRecord record)
+  public HelixProperty(ZNRecord record)
   {
     _record = new ZNRecord(record);
   }
@@ -64,13 +64,13 @@ public abstract class ZNRecordDecorator
 
   /**
    * static method that convert ZNRecord to an instance that subclasses
-   * ZNRecordDecorator
+   * HelixProperty
    * 
    * @param clazz
    * @param record
    * @return
    */
-  public static <T extends ZNRecordDecorator> T convertToTypedInstance(
+  public static <T extends HelixProperty> T convertToTypedInstance(
       Class<T> clazz, ZNRecord record)
   {
     if (record == null)
@@ -92,7 +92,7 @@ public abstract class ZNRecordDecorator
     return null;
   }
 
-  public static <T extends ZNRecordDecorator> List<T> convertToTypedList(
+  public static <T extends HelixProperty> List<T> convertToTypedList(
       Class<T> clazz, Collection<ZNRecord> records)
   {
     if (records == null)
@@ -103,7 +103,7 @@ public abstract class ZNRecordDecorator
     List<T> decorators = new ArrayList<T>();
     for (ZNRecord record : records)
     {
-      T decorator = ZNRecordDecorator.convertToTypedInstance(clazz, record);
+      T decorator = HelixProperty.convertToTypedInstance(clazz, record);
       if (decorator != null)
       {
         decorators.add(decorator);
@@ -112,7 +112,7 @@ public abstract class ZNRecordDecorator
     return decorators;
   }
 
-  public static <T extends ZNRecordDecorator> Map<String, T> convertListToMap(
+  public static <T extends HelixProperty> Map<String, T> convertListToMap(
       List<T> records)
   {
     if (records == null)
@@ -128,6 +128,22 @@ public abstract class ZNRecordDecorator
     return decorators;
   }
 
+  public static <T extends HelixProperty> List<ZNRecord> convertToList(List<T> typedInstances)
+  {
+    if (typedInstances == null)
+    {
+      return Collections.emptyList();
+    }
+    
+    List<ZNRecord> records = new ArrayList<ZNRecord>();
+    for (T typedInstance : typedInstances)
+    {
+      records.add(typedInstance.getRecord());
+    }
+    
+    return records;
+  }
+  
   public abstract boolean isValid();
 
   @Override
@@ -137,9 +153,9 @@ public abstract class ZNRecordDecorator
     {
       return false;
     }
-    if (obj instanceof ZNRecordDecorator)
+    if (obj instanceof HelixProperty)
     {
-      ZNRecordDecorator that = (ZNRecordDecorator) obj;
+      HelixProperty that = (HelixProperty) obj;
       if (that.getRecord() != null)
       {
         return that.getRecord().equals(this.getRecord());

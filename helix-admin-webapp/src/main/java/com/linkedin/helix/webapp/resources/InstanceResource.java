@@ -31,8 +31,8 @@ import org.restlet.resource.Resource;
 import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 
-import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
-import com.linkedin.helix.PropertyType;
+import com.linkedin.helix.PropertyKey;
+import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.tools.ClusterSetup;
 import com.linkedin.helix.webapp.RestAdminApplication;
 
@@ -75,12 +75,13 @@ public class InstanceResource extends Resource
     StringRepresentation presentation = null;
     try
     {
-      String zkServer = (String) getContext().getAttributes().get(
-          RestAdminApplication.ZKSERVERADDRESS);
+      String zkServer =
+          (String) getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       String instanceName = (String) getRequest().getAttributes().get("instanceName");
       presentation = getInstanceRepresentation(zkServer, clusterName, instanceName);
-    } catch (Exception e)
+    }
+    catch (Exception e)
     {
       String error = ClusterRepresentationUtil.getErrorAsJsonStringFromException(e);
       presentation = new StringRepresentation(error, MediaType.APPLICATION_JSON);
@@ -90,15 +91,22 @@ public class InstanceResource extends Resource
     return presentation;
   }
 
-  StringRepresentation getInstanceRepresentation(String zkServerAddress, String clusterName,
-      String instanceName) throws JsonGenerationException, JsonMappingException, IOException
+  StringRepresentation getInstanceRepresentation(String zkServerAddress,
+                                                 String clusterName,
+                                                 String instanceName) throws JsonGenerationException,
+      JsonMappingException,
+      IOException
   {
-    String message = ClusterRepresentationUtil.getClusterPropertyAsString(zkServerAddress,
-        clusterName, MediaType.APPLICATION_JSON, PropertyType.CONFIGS,
-        ConfigScopeProperty.PARTICIPANT.toString(), instanceName);
+    Builder keyBuilder = new PropertyKey.Builder(clusterName);
 
-    StringRepresentation representation = new StringRepresentation(message,
-        MediaType.APPLICATION_JSON);
+    String message =
+        ClusterRepresentationUtil.getClusterPropertyAsString(zkServerAddress,
+                                                             clusterName,
+                                                             MediaType.APPLICATION_JSON,
+                                                             keyBuilder.instanceConfig(instanceName));
+
+    StringRepresentation representation =
+        new StringRepresentation(message, MediaType.APPLICATION_JSON);
 
     return representation;
   }
@@ -108,50 +116,55 @@ public class InstanceResource extends Resource
   {
     try
     {
-      String zkServer = (String) getContext().getAttributes().get(
-          RestAdminApplication.ZKSERVERADDRESS);
+      String zkServer =
+          (String) getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       String instanceName = (String) getRequest().getAttributes().get("instanceName");
 
       Form form = new Form(entity);
-      Map<String, String> paraMap = ClusterRepresentationUtil
-          .getFormJsonParametersWithCommandVerified(form,
-              ClusterRepresentationUtil._enableInstanceCommand);
+      Map<String, String> paraMap =
+          ClusterRepresentationUtil.getFormJsonParametersWithCommandVerified(form,
+                                                                             ClusterRepresentationUtil._enableInstanceCommand);
 
-      boolean enabled = Boolean.parseBoolean(paraMap.get(ClusterRepresentationUtil._enabled));
+      boolean enabled =
+          Boolean.parseBoolean(paraMap.get(ClusterRepresentationUtil._enabled));
 
       ClusterSetup setupTool = new ClusterSetup(zkServer);
-      setupTool.getClusterManagementTool().enableInstance(clusterName, instanceName, enabled);
+      setupTool.getClusterManagementTool().enableInstance(clusterName,
+                                                          instanceName,
+                                                          enabled);
 
-      getResponse().setEntity(getInstanceRepresentation(zkServer, clusterName, instanceName));
+      getResponse().setEntity(getInstanceRepresentation(zkServer,
+                                                        clusterName,
+                                                        instanceName));
       getResponse().setStatus(Status.SUCCESS_OK);
     }
 
     catch (Exception e)
     {
       getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),
-          MediaType.APPLICATION_JSON);
+                              MediaType.APPLICATION_JSON);
       getResponse().setStatus(Status.SUCCESS_OK);
     }
   }
-  
 
   @Override
   public void removeRepresentations()
   {
     try
     {
-      String zkServer = (String)getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
-      String clusterName = (String)getRequest().getAttributes().get("clusterName");
-      String instanceName = (String)getRequest().getAttributes().get("instanceName");
+      String zkServer =
+          (String) getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
+      String clusterName = (String) getRequest().getAttributes().get("clusterName");
+      String instanceName = (String) getRequest().getAttributes().get("instanceName");
       ClusterSetup setupTool = new ClusterSetup(zkServer);
       setupTool.dropInstanceFromCluster(clusterName, instanceName);
       getResponse().setStatus(Status.SUCCESS_OK);
     }
-    catch(Exception e)
+    catch (Exception e)
     {
       getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),
-          MediaType.APPLICATION_JSON);
+                              MediaType.APPLICATION_JSON);
       getResponse().setStatus(Status.SUCCESS_OK);
     }
   }

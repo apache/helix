@@ -20,13 +20,13 @@ import java.util.Set;
 import java.util.TreeMap;
 
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.ZNRecordDecorator;
+import com.linkedin.helix.HelixProperty;
 
 /**
  * External view is an aggregation (across all instances)
  *  of current states for the partitions in a resource
  */
-public class ExternalView extends ZNRecordDecorator
+public class ExternalView extends HelixProperty
 {
   public ExternalView(String resource)
   {

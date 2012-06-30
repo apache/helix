@@ -21,7 +21,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.HelixManagerFactory;
 import com.linkedin.helix.ExternalViewChangeListener;
@@ -38,8 +38,8 @@ class StorageAdapter
   HelixManager relayHelixManager;
   HelixManager storageHelixManager;
 
-  DataAccessor relayClusterClient;
-  DataAccessor storageClusterClient;
+  HelixDataAccessor relayClusterClient;
+  HelixDataAccessor storageClusterClient;
 
   private ExternalViewChangeListener relayViewHolder;
   private MessageListener messageListener;
@@ -80,7 +80,7 @@ class StorageAdapter
     storageHelixManager.getMessagingService()
       .registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(), stateMach);
     storageHelixManager.connect();
-    storageClusterClient = storageHelixManager.getDataAccessor();
+    storageClusterClient = storageHelixManager.getHelixDataAccessor();
 
     consumerAdapter = new ConsumerAdapter(instanceName, zkConnectString,
         relayClusterName);

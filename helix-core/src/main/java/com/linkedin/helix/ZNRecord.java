@@ -365,5 +365,4 @@ public class ZNRecord
   {
     _modifiedTime = modifiedTime;
   }
-
 }

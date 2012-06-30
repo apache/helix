@@ -856,7 +856,7 @@ def zookeeper_setup(oper):
     if re.search("IVY_DIR",zookeeper_classpath): zookeeper_classpath=re.sub("IVY_DIR", ivy_dir,zookeeper_classpath)
     if re.search("VIEW_ROOT",zookeeper_classpath): zookeeper_classpath=re.sub("VIEW_ROOT", view_root,zookeeper_classpath)
     run_cmd_add_option("", "config", options.config, check_exist=True)      #  just add the jvm args
-    zookeeper_cmd="java -d64 -Xmx512m -Dlog4j.configuration=file://%s %s -cp %s %s" % (log4j_file, " ".join([x[0]+x[1] for x in direct_java_call_jvm_args.values() if x[1]]), zookeeper_classpath, zookeeper_class)
+    zookeeper_cmd="java -d64 -Xmx512m -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.local.only=false -Dcom.sun.management.jmxremote.port=27960 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dlog4j.configuration=file://%s %s -cp %s %s" % (log4j_file, " ".join([x[0]+x[1] for x in direct_java_call_jvm_args.values() if x[1]]), zookeeper_classpath, zookeeper_class)
     dbg_print("zookeeper_cmd=%s" % (zookeeper_cmd))
     zookeeper_server_ports= options.zookeeper_server_ports and options.zookeeper_server_ports or "localhost:2181"
     zookeeper_server_dir=os.path.join(get_work_dir(),"zookeeper_data")

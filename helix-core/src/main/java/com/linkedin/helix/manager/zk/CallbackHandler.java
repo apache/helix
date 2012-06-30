@@ -32,19 +32,19 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.Watcher.Event.EventType;
 
 import com.linkedin.helix.ConfigChangeListener;
-import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
 import com.linkedin.helix.ControllerChangeListener;
 import com.linkedin.helix.CurrentStateChangeListener;
-import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.ExternalViewChangeListener;
 import com.linkedin.helix.HealthStateChangeListener;
 import com.linkedin.helix.HelixConstants.ChangeType;
+import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.IdealStateChangeListener;
 import com.linkedin.helix.LiveInstanceChangeListener;
 import com.linkedin.helix.MessageListener;
 import com.linkedin.helix.NotificationContext;
-import com.linkedin.helix.PropertyType;
+import com.linkedin.helix.PropertyKey.Builder;
+import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.model.CurrentState;
 import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.HealthStat;
@@ -52,22 +52,22 @@ import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.model.InstanceConfig;
 import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.model.Message;
-import com.linkedin.helix.util.HelixUtil;
 
 public class CallbackHandler implements IZkChildListener, IZkDataListener
 
 {
 
-  private static Logger      logger = Logger.getLogger(CallbackHandler.class);
+  private static Logger           logger = Logger.getLogger(CallbackHandler.class);
 
-  private final String       _path;
-  private final Object       _listener;
-  private final EventType[]  _eventTypes;
-  private final DataAccessor _accessor;
-  private final ChangeType   _changeType;
-  private final ZkClient     _zkClient;
-  private final AtomicLong   lastNotificationTimeStamp;
-  private final HelixManager _manager;
+  private final String            _path;
+  private final Object            _listener;
+  private final EventType[]       _eventTypes;
+  // private final DataAccessor _accessor;
+  private final HelixDataAccessor _accessor;
+  private final ChangeType        _changeType;
+  private final ZkClient          _zkClient;
+  private final AtomicLong        lastNotificationTimeStamp;
+  private final HelixManager      _manager;
 
   public CallbackHandler(HelixManager manager,
                          ZkClient client,
@@ -77,7 +77,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
                          ChangeType changeType)
   {
     this._manager = manager;
-    this._accessor = manager.getDataAccessor();
+    this._accessor = manager.getHelixDataAccessor();
     this._zkClient = client;
     this._path = path;
     this._listener = listener;
@@ -102,6 +102,8 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
     // This allows the listener to work with one change at a time
     synchronized (_manager)
     {
+      Builder keyBuilder = _accessor.keyBuilder();
+
       if (logger.isDebugEnabled())
       {
         logger.debug(Thread.currentThread().getId() + " START:INVOKE "
@@ -115,8 +117,10 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
         IdealStateChangeListener idealStateChangeListener =
             (IdealStateChangeListener) _listener;
         subscribeForChanges(changeContext, true, true);
-        List<IdealState> idealStates =
-            _accessor.getChildValues(IdealState.class, PropertyType.IDEALSTATES);
+        // List<IdealState> idealStates =
+        // _accessor.getChildValues(IdealState.class, PropertyType.IDEALSTATES);
+        List<IdealState> idealStates = _accessor.getChildValues(keyBuilder.idealStates());
+
         idealStateChangeListener.onIdealStateChange(idealStates, changeContext);
 
       }
@@ -125,10 +129,13 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
 
         ConfigChangeListener configChangeListener = (ConfigChangeListener) _listener;
         subscribeForChanges(changeContext, true, true);
+        // List<InstanceConfig> configs =
+        // _accessor.getChildValues(InstanceConfig.class,
+        // PropertyType.CONFIGS,
+        // ConfigScopeProperty.PARTICIPANT.toString());
         List<InstanceConfig> configs =
-            _accessor.getChildValues(InstanceConfig.class,
-                                     PropertyType.CONFIGS,
-                                     ConfigScopeProperty.PARTICIPANT.toString());
+            _accessor.getChildValues(keyBuilder.instanceConfigs());
+
         configChangeListener.onConfigChange(configs, changeContext);
 
       }
@@ -137,8 +144,12 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
         LiveInstanceChangeListener liveInstanceChangeListener =
             (LiveInstanceChangeListener) _listener;
         subscribeForChanges(changeContext, true, false);
+        // List<LiveInstance> liveInstances =
+        // _accessor.getChildValues(LiveInstance.class, PropertyType.LIVEINSTANCES);
+
         List<LiveInstance> liveInstances =
-            _accessor.getChildValues(LiveInstance.class, PropertyType.LIVEINSTANCES);
+            _accessor.getChildValues(keyBuilder.liveInstances());
+
         liveInstanceChangeListener.onLiveInstanceChange(liveInstances, changeContext);
 
       }
@@ -147,13 +158,16 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
         CurrentStateChangeListener currentStateChangeListener;
         currentStateChangeListener = (CurrentStateChangeListener) _listener;
         subscribeForChanges(changeContext, true, true);
-        String instanceName = HelixUtil.getInstanceNameFromPath(_path);
+        String instanceName = PropertyPathConfig.getInstanceNameFromPath(_path);
         String[] pathParts = _path.split("/");
+        // List<CurrentState> currentStates =
+        // _accessor.getChildValues(CurrentState.class,
+        // PropertyType.CURRENTSTATES,
+        // instanceName,
+        // pathParts[pathParts.length - 1]);
         List<CurrentState> currentStates =
-            _accessor.getChildValues(CurrentState.class,
-                                     PropertyType.CURRENTSTATES,
-                                     instanceName,
-                                     pathParts[pathParts.length - 1]);
+            _accessor.getChildValues(keyBuilder.currentStates(instanceName,
+                                                              pathParts[pathParts.length - 1]));
 
         currentStateChangeListener.onStateChange(instanceName,
                                                  currentStates,
@@ -164,9 +178,12 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
       {
         MessageListener messageListener = (MessageListener) _listener;
         subscribeForChanges(changeContext, true, false);
-        String instanceName = HelixUtil.getInstanceNameFromPath(_path);
+        String instanceName = PropertyPathConfig.getInstanceNameFromPath(_path);
+//        List<Message> messages =
+//            _accessor.getChildValues(Message.class, PropertyType.MESSAGES, instanceName);
         List<Message> messages =
-            _accessor.getChildValues(Message.class, PropertyType.MESSAGES, instanceName);
+            _accessor.getChildValues(keyBuilder.messages(instanceName));
+
         messageListener.onMessage(instanceName, messages, changeContext);
 
       }
@@ -174,8 +191,11 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
       {
         MessageListener messageListener = (MessageListener) _listener;
         subscribeForChanges(changeContext, true, false);
+//        List<Message> messages =
+//            _accessor.getChildValues(Message.class, PropertyType.MESSAGES_CONTROLLER);
         List<Message> messages =
-            _accessor.getChildValues(Message.class, PropertyType.MESSAGES_CONTROLLER);
+            _accessor.getChildValues(keyBuilder.controllerMessages());
+
         messageListener.onMessage(_manager.getInstanceName(), messages, changeContext);
 
       }
@@ -185,7 +205,8 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
             (ExternalViewChangeListener) _listener;
         subscribeForChanges(changeContext, true, true);
         List<ExternalView> externalViewList =
-            _accessor.getChildValues(ExternalView.class, PropertyType.EXTERNALVIEW);
+            _accessor.getChildValues(keyBuilder.externalViews());
+
 
         externalViewListener.onExternalViewChange(externalViewList, changeContext);
       }
@@ -202,12 +223,11 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
             (HealthStateChangeListener) _listener;
         subscribeForChanges(changeContext, true, true); // TODO: figure out
                                                         // settings here
-        String instanceName = HelixUtil.getInstanceNameFromPath(_path);
+        String instanceName = PropertyPathConfig.getInstanceNameFromPath(_path);
+
         List<HealthStat> healthReportList =
-            _accessor.getChildValues(HealthStat.class,
-                                     PropertyType.HEALTHREPORT,
-                                     instanceName);
-        // List<ZNRecord> reports = ZKUtil.getChildren(_zkClient, _path);
+        _accessor.getChildValues(keyBuilder.healthReports(instanceName));
+
         healthStateChangeListener.onHealthChange(instanceName,
                                                  healthReportList,
                                                  changeContext);
@@ -259,8 +279,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
           }
           else if (changeContext.getType() == NotificationContext.Type.FINALIZE)
           {
-            logger.info(_manager.getInstanceName() + " UNsubscribe data change@"
-                  + _path);
+            logger.info(_manager.getInstanceName() + " UNsubscribe data change@" + _path);
             _zkClient.unsubscribeDataChanges(childPath, this);
           }
         }

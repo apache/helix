@@ -21,13 +21,14 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.HelixConstants.ChangeType;
 import com.linkedin.helix.HelixConstants.StateModelToken;
+import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixManager;
-import com.linkedin.helix.PropertyType;
-import com.linkedin.helix.manager.zk.ZKDataAccessor;
+import com.linkedin.helix.PropertyKey.Builder;
+import com.linkedin.helix.manager.zk.ZKHelixDataAccessor;
 import com.linkedin.helix.manager.zk.ZNRecordSerializer;
+import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
 import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.model.IdealState.IdealStateModeProperty;
@@ -137,7 +138,8 @@ public class HelixCustomCodeRunner
 
       zkClient = new ZkClient(_zkAddr, ZkClient.DEFAULT_CONNECTION_TIMEOUT);
       zkClient.setZkSerializer(new ZNRecordSerializer());
-      DataAccessor accessor = new ZKDataAccessor(_manager.getClusterName(), zkClient);
+      HelixDataAccessor accessor = new ZKHelixDataAccessor(_manager.getClusterName(), new ZkBaseDataAccessor(zkClient));
+      Builder keyBuilder = accessor.keyBuilder();
 
       IdealState idealState = new IdealState(_resourceName);
       idealState.setIdealStateMode(IdealStateModeProperty.AUTO.toString());
@@ -149,11 +151,11 @@ public class HelixCustomCodeRunner
           .toString()));
       idealState.getRecord().setListField(_resourceName + "_0", prefList);
 
-      List<String> idealStates = accessor.getChildNames(PropertyType.IDEALSTATES);
+      List<String> idealStates = accessor.getChildNames(keyBuilder.idealStates());
       while (idealStates == null || !idealStates.contains(_resourceName))
       {
-        accessor.setProperty(PropertyType.IDEALSTATES, idealState, _resourceName);
-        idealStates = accessor.getChildNames(PropertyType.IDEALSTATES);
+        accessor.setProperty(keyBuilder.idealStates(_resourceName), idealState);
+        idealStates = accessor.getChildNames(keyBuilder.idealStates());
       }
 
       LOG.info("Set idealState for participantLeader:" + _resourceName + ", idealState:"

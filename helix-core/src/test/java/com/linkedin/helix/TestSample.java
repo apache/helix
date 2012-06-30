@@ -20,8 +20,6 @@ import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-import com.linkedin.helix.manager.zk.ZKDataAccessor;
-
 /**
  *
  * @author kgopalak
@@ -34,7 +32,6 @@ public class TestSample
   @Test ()
   public final void testCallbackHandler()
   {
-    ZKDataAccessor client = null;
     String path = null;
     Object listener = null;
     EventType[] eventTypes = null;

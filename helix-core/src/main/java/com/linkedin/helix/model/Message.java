@@ -21,7 +21,7 @@ import java.util.Map;
 import com.linkedin.helix.HelixException;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.ZNRecordDecorator;
+import com.linkedin.helix.HelixProperty;
 
 /**
  * Message class basically extends ZNRecord but provides additional fields
@@ -29,7 +29,7 @@ import com.linkedin.helix.ZNRecordDecorator;
  * @author kgopalak
  */
 
-public class Message extends ZNRecordDecorator
+public class Message extends HelixProperty
 {
   public enum MessageType {
     STATE_TRANSITION, SCHEDULER_MSG, USER_DEFINE_MSG, CONTROLLER_MSG, TASK_REPLY, NO_OP

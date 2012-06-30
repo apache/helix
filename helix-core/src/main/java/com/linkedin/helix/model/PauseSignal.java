@@ -16,9 +16,9 @@
 package com.linkedin.helix.model;
 
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.ZNRecordDecorator;
+import com.linkedin.helix.HelixProperty;
 
-public class PauseSignal extends ZNRecordDecorator
+public class PauseSignal extends HelixProperty
 {
   public PauseSignal(String id)
   {

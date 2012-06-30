@@ -20,27 +20,30 @@ import java.util.Map;
 import java.util.Set;
 
 import org.testng.Assert;
-import org.testng.annotations.Test;
 
-import com.linkedin.helix.DataAccessor;
-import com.linkedin.helix.PropertyType;
-import com.linkedin.helix.manager.zk.ZKDataAccessor;
+import com.linkedin.helix.PropertyKey.Builder;
+import com.linkedin.helix.manager.zk.ZKHelixDataAccessor;
 import com.linkedin.helix.manager.zk.ZNRecordSerializer;
+import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
 import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.util.StatusUpdateUtil;
 
 public class TestStatusUpdate extends ZkStandAloneCMTestBase
 {
-  @Test
+  // For now write participant StatusUpdates to log4j.
+  // TODO: Need to investigate another data channel to report to controller and re-enable
+  // this test
+  // @Test
   public void testParticipantStatusUpdates() throws Exception
   {
     ZkClient zkClient = new ZkClient(ZkIntegrationTestBase.ZK_ADDR);
     zkClient.setZkSerializer(new ZNRecordSerializer());
-    DataAccessor accessor = new ZKDataAccessor(CLUSTER_NAME, zkClient);
+    ZKHelixDataAccessor accessor =
+        new ZKHelixDataAccessor(CLUSTER_NAME, new ZkBaseDataAccessor(zkClient));
+    Builder keyBuilder = accessor.keyBuilder();
 
-    List<ExternalView> extViews =
-        accessor.getChildValues(ExternalView.class, PropertyType.EXTERNALVIEW);
+    List<ExternalView> extViews = accessor.getChildValues(keyBuilder.externalViews());
     Assert.assertNotNull(extViews);
 
     for (ExternalView extView : extViews)

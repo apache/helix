@@ -70,6 +70,7 @@ public class IdealState extends HelixProperty
     }
     catch(Exception e)
     {
+      logger.error("IdealState mode not recognized:" + mode + "; set to AUTO");
       return IdealStateModeProperty.AUTO;
     }
   }

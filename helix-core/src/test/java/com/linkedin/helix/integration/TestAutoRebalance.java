@@ -121,7 +121,7 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBase
     Thread.sleep(1000);
     result =
         ClusterStateVerifier.verifyByZkCallback(new ExternalViewBalancedVerifier(_zkClient,
-                                                                              CLUSTER_NAME, TEST_DB), 40000);
+                                                                              CLUSTER_NAME, TEST_DB));
     Assert.assertTrue(result);
   }
   

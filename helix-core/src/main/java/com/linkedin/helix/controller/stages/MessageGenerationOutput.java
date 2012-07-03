@@ -64,4 +64,10 @@ public class MessageGenerationOutput
     return Collections.emptyList();
 
   }
+  
+  @Override
+  public String toString()
+  {
+    return _messagesMap.toString();
+  }
 }

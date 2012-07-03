@@ -1,12 +1,14 @@
 package com.linkedin.helix.store.zk;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -15,6 +17,7 @@ import com.linkedin.helix.BaseDataAccessor.Option;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.ZkUnitTestBase;
 import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
+import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.store.HelixPropertyListener;
 
 public class TestZkHelixPropertyStore extends ZkUnitTestBase
@@ -149,6 +152,60 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase
   }
 
   @Test
+  public void testZkTriggeredCallback() throws Exception
+  {
+    System.out.println("START testZkTriggeredCallback() at " + new Date(System.currentTimeMillis()));
+    
+    String subRoot = _root + "/" + "zkCallback";
+    List<String> subscribedPaths = Arrays.asList(subRoot);
+    ZkHelixPropertyStore<ZNRecord> store =
+        new ZkHelixPropertyStore<ZNRecord>(new ZkBaseDataAccessor<ZNRecord>(_gZkClient),
+                                 subRoot,
+                                 subscribedPaths);
+
+    // change nodes via property store interface
+    // and verify all notifications have been received
+    TestListener listener = new TestListener();
+    store.subscribe("/", listener);
+
+    // test create callbacks
+    listener.reset();
+    setNodes(_gZkClient, subRoot, 'a', true);
+    int expectCreateNodes = 1 + firstLevelNr + firstLevelNr * secondLevelNr;
+    Thread.sleep(500);
+
+    System.out.println("createKey#:" + listener._createKeys.size() + ", changeKey#:"
+        + listener._changeKeys.size() + ", deleteKey#:" + listener._deleteKeys.size());
+    Assert.assertTrue(listener._createKeys.size() == expectCreateNodes, "Should receive "
+        + expectCreateNodes + " create callbacks");
+    
+    // test change callbacks
+    listener.reset();
+    setNodes(_gZkClient, subRoot, 'b', true);
+    int expectChangeNodes = firstLevelNr * secondLevelNr;
+    Thread.sleep(500);
+
+    System.out.println("createKey#:" + listener._createKeys.size() + ", changeKey#:"
+        + listener._changeKeys.size() + ", deleteKey#:" + listener._deleteKeys.size());
+    Assert.assertTrue(listener._changeKeys.size() >= expectChangeNodes,
+                      "Should receive at least " + expectChangeNodes
+                          + " change callbacks");
+
+    // test delete callbacks
+    listener.reset();
+    int expectDeleteNodes = 1 + firstLevelNr + firstLevelNr * secondLevelNr;
+    _gZkClient.deleteRecursive(subRoot);
+    Thread.sleep(1000);
+    
+    System.out.println("createKey#:" + listener._createKeys.size() + ", changeKey#:"
+        + listener._changeKeys.size() + ", deleteKey#:" + listener._deleteKeys.size());
+    Assert.assertTrue(listener._deleteKeys.size() == expectDeleteNodes, "Should receive "
+        + expectDeleteNodes + " delete callbacks");
+
+    System.out.println("END testZkTriggeredCallback() at " + new Date(System.currentTimeMillis()));
+  }
+  
+  @Test
   public void testBackToBackRemoveAndSet() throws Exception
   {
     System.out.println("START testBackToBackRemoveAndSet() at "
@@ -239,4 +296,47 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase
       }
     }
   }
+  
+  private void setNodes(ZkClient zkClient, String root, char c, boolean needTimestamp)
+  {
+    char[] data = new char[bufSize];
+
+    for (int i = 0; i < bufSize; i++)
+    {
+      data[i] = c;
+    }
+
+    Map<String, String> map = new TreeMap<String, String>();
+    for (int i = 0; i < mapNr; i++)
+    {
+      map.put("key_" + i, new String(data));
+    }
+
+    for (int i = 0; i < firstLevelNr; i++)
+    {
+      String firstLevelKey = getFirstLevelKey(i);
+      
+      for (int j = 0; j < secondLevelNr; j++)
+      {
+        String nodeId = getNodeId(i, j);
+        ZNRecord record = new ZNRecord(nodeId);
+        record.setSimpleFields(map);
+        if (needTimestamp)
+        {
+          long now = System.currentTimeMillis();
+          record.setSimpleField("SetTimestamp", Long.toString(now));
+        }
+        String key = getSecondLevelKey(i, j);
+        try
+        {
+          zkClient.writeData(root + key, record);
+        } catch (ZkNoNodeException e)
+        {
+          zkClient.createPersistent(root + firstLevelKey, true);
+          zkClient.createPersistent(root + key, record);
+        }
+      }
+    }
+  }
+
 }

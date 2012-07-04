@@ -17,6 +17,7 @@ package com.linkedin.helix.model;
 
 import java.util.Date;
 import java.util.Map;
+import java.util.UUID;
 
 import com.linkedin.helix.HelixException;
 import com.linkedin.helix.InstanceType;
@@ -375,7 +376,7 @@ public class Message extends HelixProperty
       throw new HelixException("Message " + srcMessage.getMsgId()
           + " does not contain correlation id");
     }
-    Message replyMessage = new Message(MessageType.TASK_REPLY, "TEMPLATE");
+    Message replyMessage = new Message(MessageType.TASK_REPLY, UUID.randomUUID().toString());
     replyMessage.setCorrelationId(srcMessage.getCorrelationId());
     replyMessage.setTgtName(srcMessage.getMsgSrc());
     replyMessage.setResultMap(taskResultMap);

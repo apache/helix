@@ -269,13 +269,10 @@ public class HelixTask implements Callable<HelixTaskResult>
           Message.createReplyMessage(_message,
                                      _manager.getInstanceName(),
                                      taskResult.getTaskResultMap());
-      Criteria recipientCriteria = new Criteria();
-      recipientCriteria.setInstanceName(replyMessage.getTgtName());
-      recipientCriteria.setSelfExcluded(false);
-      recipientCriteria.setRecipientInstanceType(message.getSrcInstanceType());
-      recipientCriteria.setSessionSpecific(true);
-      int nMsgs = _manager.getMessagingService().send(recipientCriteria, replyMessage);
-      _statusUpdateUtil.logInfo(message, HelixTask.class, nMsgs + " msgs replied to "
+      Builder keyBuilder = accessor.keyBuilder();
+      accessor.setProperty(keyBuilder.message(message.getMsgSrc(), replyMessage.getMsgId()), replyMessage);
+      
+      _statusUpdateUtil.logInfo(message, HelixTask.class, "1 msg replied to "
           + replyMessage.getTgtName(), accessor);
     }
   }

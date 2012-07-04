@@ -56,6 +56,10 @@ public class MessageSelectionStageOutput
 
   }
 
-
+  @Override
+  public String toString()
+  {
+    return _messagesMap.toString();
+  }
 
 }

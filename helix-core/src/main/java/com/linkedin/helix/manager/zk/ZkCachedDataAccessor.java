@@ -732,7 +732,7 @@ public class ZkCachedDataAccessor<T> implements IZkListener
   @Override
   public void handleDataDeleted(String dataPath) throws Exception
   {
-    // System.out.println("DataDelete:" + dataPath);
+//    System.out.println("DataDelete:" + dataPath);
 
     try
     {
@@ -751,8 +751,9 @@ public class ZkCachedDataAccessor<T> implements IZkListener
       {
         String child = new File(dataPath).getName();
         zNode.removeChild(child);
-        fireListeners(dataPath, EventType.NodeDeleted);
       }
+      
+      fireListeners(dataPath, EventType.NodeDeleted);
     }
     finally
     {

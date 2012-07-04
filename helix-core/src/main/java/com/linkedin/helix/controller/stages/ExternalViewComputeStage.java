@@ -24,12 +24,11 @@ import org.apache.log4j.Logger;
 import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.PropertyKey;
-import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.controller.pipeline.AbstractBaseStage;
 import com.linkedin.helix.controller.pipeline.StageException;
 import com.linkedin.helix.model.ExternalView;
-import com.linkedin.helix.model.Resource;
 import com.linkedin.helix.model.Partition;
+import com.linkedin.helix.model.Resource;
 import com.linkedin.helix.monitoring.mbeans.ClusterStatusMonitor;
 
 public class ExternalViewComputeStage extends AbstractBaseStage
@@ -42,8 +41,8 @@ public class ExternalViewComputeStage extends AbstractBaseStage
     log.info("START ExternalViewComputeStage.process()");
 
     HelixManager manager = event.getAttribute("helixmanager");
-    Map<String, Resource> resourceMap = event
-        .getAttribute(AttributeName.RESOURCES.toString());
+    Map<String, Resource> resourceMap =
+        event.getAttribute(AttributeName.RESOURCES.toString());
     ClusterDataCache cache = event.getAttribute("ClusterDataCache");
 
     if (manager == null || resourceMap == null || cache == null)
@@ -54,19 +53,25 @@ public class ExternalViewComputeStage extends AbstractBaseStage
 
     HelixDataAccessor dataAccessor = manager.getHelixDataAccessor();
 
-    CurrentStateOutput currentStateOutput = event
-        .getAttribute(AttributeName.CURRENT_STATE.toString());
+    CurrentStateOutput currentStateOutput =
+        event.getAttribute(AttributeName.CURRENT_STATE.toString());
 
-    List<ExternalView> views = new ArrayList<ExternalView>();
+    List<ExternalView> newExtViews = new ArrayList<ExternalView>();
     List<PropertyKey> keys = new ArrayList<PropertyKey>();
+    
+    Map<String, ExternalView> curExtViews =
+        dataAccessor.getChildValuesMap(manager.getHelixDataAccessor()
+                                           .keyBuilder()
+                                           .externalViews());
+
     for (String resourceName : resourceMap.keySet())
     {
       ExternalView view = new ExternalView(resourceName);
       Resource resource = resourceMap.get(resourceName);
       for (Partition partition : resource.getPartitions())
       {
-        Map<String, String> currentStateMap = currentStateOutput
-            .getCurrentStateMap(resourceName, partition);
+        Map<String, String> currentStateMap =
+            currentStateOutput.getCurrentStateMap(resourceName, partition);
         if (currentStateMap != null && currentStateMap.size() > 0)
         {
           // Set<String> disabledInstances
@@ -75,30 +80,38 @@ public class ExternalViewComputeStage extends AbstractBaseStage
           {
             // if (!disabledInstances.contains(instance))
             // {
-            view.setState(partition.getPartitionName(), instance,
-                currentStateMap.get(instance));
+            view.setState(partition.getPartitionName(),
+                          instance,
+                          currentStateMap.get(instance));
             // }
           }
         }
       }
       // Update cluster status monitor mbean
-      ClusterStatusMonitor clusterStatusMonitor = (ClusterStatusMonitor) event
-          .getAttribute("clusterStatusMonitor");
+      ClusterStatusMonitor clusterStatusMonitor =
+          (ClusterStatusMonitor) event.getAttribute("clusterStatusMonitor");
       if (clusterStatusMonitor != null)
       {
         clusterStatusMonitor.onExternalViewChange(view,
-            cache._idealStateMap.get(view.getResourceName()));
+                                                  cache._idealStateMap.get(view.getResourceName()));
       }
-      keys.add(manager.getHelixDataAccessor().keyBuilder()
-          .externalView(resourceName));
-      views.add(view);
-      // dataAccessor.setProperty(PropertyType.EXTERNALVIEW, view,
-      // resourceName);
+      
+      // compare the new external view with current one, set only on different
+      ExternalView curExtView = curExtViews.get(resourceName);
+      if (curExtView == null || !curExtView.getRecord().equals(view.getRecord()))
+      {
+        keys.add(manager.getHelixDataAccessor().keyBuilder().externalView(resourceName));
+        newExtViews.add(view);
+        // dataAccessor.setProperty(PropertyType.EXTERNALVIEW, view,
+        // resourceName);
+      }
     }
-    if (views.size() > 0)
+
+    if (newExtViews.size() > 0)
     {
-      dataAccessor.setChildren(keys, views);
+      dataAccessor.setChildren(keys, newExtViews);
     }
+    
     log.info("END ExternalViewComputeStage.process()");
   }
 

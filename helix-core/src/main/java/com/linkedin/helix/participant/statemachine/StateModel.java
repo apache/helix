@@ -22,10 +22,10 @@ import com.linkedin.helix.model.Message;
 
 public abstract class StateModel
 {
-	public static final String DEFAULT_INITIAL_STATE = "OFFLINE";
+	static final String DEFAULT_INITIAL_STATE = "OFFLINE";
 	Logger logger = Logger.getLogger(StateModel.class);
 	// TODO Get default state from implementation or from state model annotation
-	protected String _currentState = DEFAULT_INITIAL_STATE;
+	protected String _currentState = null; // DEFAULT_INITIAL_STATE;
 
 	public String getCurrentState()
 	{

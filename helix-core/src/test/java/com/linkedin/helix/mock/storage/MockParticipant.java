@@ -199,6 +199,35 @@ public class MockParticipant extends Thread
       LOG.info("Become OFFLINE from ERROR");
     }
   }
+  
+  // mock Bootstrap state model
+  @StateModelInfo(initialState = "OFFLINE", states = { "ONLINE", "BOOTSTRAP", "OFFLINE", "IDLE" })
+  public class MockBootstrapStateModel extends StateModel
+  {
+    @Transition(to="OFFLINE",from="IDLE")
+    public void onBecomeOfflineFromIdle(Message message, NotificationContext context)
+    {
+      LOG.info("Become OFFLINE from IDLE");
+    }
+
+    @Transition(to="BOOTSTRAP",from="OFFLINE")
+    public void onBecomeBootstrapFromOffline(Message message, NotificationContext context)
+    {
+      LOG.info("Become BOOTSTRAP from OFFLINE");
+    }
+
+    @Transition(to="ONLINE",from="BOOSTRAP")
+    public void onBecomeOnlineFromBootstrap(Message message, NotificationContext context)
+    {
+      LOG.info("Become ONLINE from BOOTSTRAP");
+    }
+
+    @Transition(to = "OFFLINE", from = "ONLINE")
+    public void onBecomeOfflineFromOnline(Message message, NotificationContext context)
+    {
+      LOG.info("Become OFFLINE from ONLINE");
+    }
+  }
 
   // mock STORAGE_DEFAULT_SM_SCHEMATA state model factory
   public class MockSchemataModelFactory
@@ -212,6 +241,19 @@ public class MockParticipant extends Thread
     }
   }
 
+  // mock Bootstrap state model factory
+  public class MockBootstrapModelFactory
+    extends StateModelFactory<MockBootstrapStateModel>
+  {
+    @Override
+    public MockBootstrapStateModel createNewStateModel(String partitionKey)
+    {
+      MockBootstrapStateModel model = new MockBootstrapStateModel();
+      return model;
+    }
+  }
+
+  
   // simulate error transition
   public static class ErrTransition extends MockTransition
   {
@@ -297,7 +339,6 @@ public class MockParticipant extends Thread
   {
     _clusterName = clusterName;
     _instanceName = instanceName;
-//    _zkAddr = zkAddr;
     _msModelFacotry = new MockMSModelFactory(transition);
 
     _manager = HelixManagerFactory.getZKHelixManager(_clusterName,
@@ -365,6 +406,9 @@ public class MockParticipant extends Thread
 
       MockSchemataModelFactory schemataFactory = new MockSchemataModelFactory();
       stateMach.registerStateModelFactory("STORAGE_DEFAULT_SM_SCHEMATA", schemataFactory);
+      MockBootstrapModelFactory bootstrapFactory = new MockBootstrapModelFactory();
+      stateMach.registerStateModelFactory("Bootstrap", bootstrapFactory);
+
 
       if (_job != null)
       {

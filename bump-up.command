@@ -23,12 +23,16 @@ if [ "$#" -eq 2 ]; then
 else
   version=`grep -A 1 "<artifactId>helix</artifactId>" pom.xml | grep "<version>" | awk 'BEGIN {FS="[<,>]"};{print $3}'`
   minor_version=`echo $version | cut -d'.' -f3`
-  new_minor_version=`expr $minor_version + 1`
-  new_version=`echo $version | sed -e "s/${minor_version}/${new_minor_version}/g"`
-fi
+  major_version=`echo $version | cut -d'.' -f1` # should be 0
+  submajor_version=`echo $version | cut -d'.' -f2`
 
+  new_minor_version=`expr $minor_version + 1`
+#  new_version=`echo $version | sed -e "s/${minor_version}/${new_minor_version}/g"`
+  new_version="$major_version.$submajor_version.$new_minor_version"
+fi
 cecho "bump up: $version -> $new_version" $red
 
+#: <<'END'
 cecho "bump up pom.xml" $green
 sed -i "s/${version}/${new_version}/g" pom.xml
 # git diff pom.xml
@@ -75,6 +79,6 @@ grep -C 1 "$new_version" mockservice/pom.xml
 cecho "bump up helix-core/src/main/resources/cluster-manager-version.properties" $green
 sed -i "s/${version}/${new_version}/g" helix-core/src/main/resources/cluster-manager-version.properties
 grep -C 1 "$new_version" helix-core/src/main/resources/cluster-manager-version.properties
-
+#END
 
 

@@ -24,8 +24,10 @@ public abstract class StateModel
 {
 	static final String DEFAULT_INITIAL_STATE = "OFFLINE";
 	Logger logger = Logger.getLogger(StateModel.class);
+	
 	// TODO Get default state from implementation or from state model annotation
-	protected String _currentState = null; // DEFAULT_INITIAL_STATE;
+	// StateModel with initial state other than OFFLINE should override this field
+	protected String _currentState = DEFAULT_INITIAL_STATE;
 
 	public String getCurrentState()
 	{

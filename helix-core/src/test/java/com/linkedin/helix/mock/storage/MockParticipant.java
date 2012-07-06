@@ -204,6 +204,12 @@ public class MockParticipant extends Thread
   @StateModelInfo(initialState = "OFFLINE", states = { "ONLINE", "BOOTSTRAP", "OFFLINE", "IDLE" })
   public class MockBootstrapStateModel extends StateModel
   {
+    // Overwrite the default value of intial state
+    MockBootstrapStateModel()
+    {
+      _currentState = "IDLE";
+    }
+    
     @Transition(to="OFFLINE",from="IDLE")
     public void onBecomeOfflineFromIdle(Message message, NotificationContext context)
     {

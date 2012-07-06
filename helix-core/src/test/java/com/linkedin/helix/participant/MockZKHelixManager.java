@@ -32,6 +32,7 @@ import com.linkedin.helix.IdealStateChangeListener;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.LiveInstanceChangeListener;
 import com.linkedin.helix.MessageListener;
+import com.linkedin.helix.PreConnectCallback;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.healthcheck.ParticipantHealthReportCollector;
 import com.linkedin.helix.manager.zk.ZKHelixDataAccessor;
@@ -257,6 +258,13 @@ public class MockZKHelixManager implements HelixManager
   {
     // TODO Auto-generated method stub
     return null;
+  }
+
+  @Override
+  public void addPreConnectCallback(PreConnectCallback callback)
+  {
+    // TODO Auto-generated method stub
+    
   }
 
 }

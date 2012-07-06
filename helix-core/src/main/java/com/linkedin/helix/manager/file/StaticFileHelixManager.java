@@ -43,6 +43,7 @@ import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.LiveInstanceChangeListener;
 import com.linkedin.helix.MessageListener;
 import com.linkedin.helix.NotificationContext;
+import com.linkedin.helix.PreConnectCallback;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.healthcheck.ParticipantHealthReportCollector;
@@ -548,5 +549,12 @@ public class StaticFileHelixManager implements HelixManager
   {
     // TODO Auto-generated method stub
     return null;
+  }
+
+  @Override
+  public void addPreConnectCallback(PreConnectCallback callback)
+  {
+    // TODO Auto-generated method stub
+    
   }
 }

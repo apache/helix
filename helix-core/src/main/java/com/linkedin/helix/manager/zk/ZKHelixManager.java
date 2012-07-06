@@ -29,6 +29,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Timer;
 import java.util.concurrent.TimeUnit;
@@ -58,6 +59,7 @@ import com.linkedin.helix.IdealStateChangeListener;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.LiveInstanceChangeListener;
 import com.linkedin.helix.MessageListener;
+import com.linkedin.helix.PreConnectCallback;
 import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
@@ -109,6 +111,8 @@ public class ZKHelixManager implements HelixManager
   private PropertyStore<ZNRecord>              _propertyStore;
   private final List<HelixTimerTask>           _controllerTimerTasks;
   private ZkBaseDataAccessor<ZNRecord>         _baseDataAccessor;
+  List<PreConnectCallback>                     _preConnectCallbacks    =
+                                                                           new LinkedList<PreConnectCallback>();
 
   public ZKHelixManager(String clusterName,
                         String instanceName,
@@ -177,7 +181,6 @@ public class ZKHelixManager implements HelixManager
     {
       _controllerTimerTasks.add(new HealthStatsAggregationTask(this));
     }
-
   }
 
   private boolean isInstanceSetup()
@@ -600,7 +603,7 @@ public class ZKHelixManager implements HelixManager
       catch (Exception e)
       {
         retryCount++;
-        
+
         logger.error("fail to createClient. retry " + retryCount, e);
         if (retryCount == RETRY_LIMIT)
         {
@@ -736,6 +739,11 @@ public class ZKHelixManager implements HelixManager
         throw new HelixException(errorMessage);
       }
     }
+    // Invoke the PreConnectCallbacks
+    for (PreConnectCallback callback : _preConnectCallbacks)
+    {
+      callback.onPreConnect();
+    }
     addLiveInstance();
     carryOverPreviousCurrentState();
 
@@ -758,6 +766,13 @@ public class ZKHelixManager implements HelixManager
       _zkClient.createPersistent(healthCheckInfoPath);
       logger.info("Creating healthcheck info path " + healthCheckInfoPath);
     }
+  }
+
+  @Override
+  public void addPreConnectCallback(PreConnectCallback callback)
+  {
+    logger.info("Adding preconnect callback");
+    _preConnectCallbacks.add(callback);
   }
 
   private void resetHandlers()

@@ -321,6 +321,13 @@ public class Mocks
       return accessor;
     }
 
+    @Override
+    public void addPreConnectCallback(PreConnectCallback callback)
+    {
+      // TODO Auto-generated method stub
+      
+    }
+
   }
 
   public static class MockAccessor implements HelixDataAccessor // DataAccessor

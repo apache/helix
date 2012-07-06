@@ -44,6 +44,7 @@ import com.linkedin.helix.IdealStateChangeListener;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.LiveInstanceChangeListener;
 import com.linkedin.helix.MessageListener;
+import com.linkedin.helix.PreConnectCallback;
 import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
@@ -438,6 +439,13 @@ public class DynamicFileHelixManager implements HelixManager
   public HelixDataAccessor getHelixDataAccessor()
   {
     return _accessor;
+  }
+
+  @Override
+  public void addPreConnectCallback(PreConnectCallback callback)
+  {
+    // TODO Auto-generated method stub
+    
   }
 
 }

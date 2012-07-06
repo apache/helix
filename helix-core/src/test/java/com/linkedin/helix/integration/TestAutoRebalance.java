@@ -31,7 +31,7 @@ import com.linkedin.helix.tools.ClusterStateVerifier.ZkVerifier;
 
 public class TestAutoRebalance extends ZkStandAloneCMTestBase
 {
-  private static final Logger LOG = Logger.getLogger(IdealState.class.getName());
+  private static final Logger LOG = Logger.getLogger(TestAutoRebalance.class.getName());
   
   @BeforeClass
   public void beforeClass() throws Exception

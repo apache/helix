@@ -273,4 +273,10 @@ public interface HelixManager
    * stop timer tasks when becomes standby
    */
   void stopTimerTasks();
+  
+  /**
+   * @see PreConnectCallback#onPreConnect()
+   * @param callback
+   */
+  void addPreConnectCallback(PreConnectCallback callback);
 }

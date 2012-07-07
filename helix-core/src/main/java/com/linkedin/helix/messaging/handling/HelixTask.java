@@ -26,6 +26,7 @@ import com.linkedin.helix.Criteria.DataSource;
 import com.linkedin.helix.Criteria;
 import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixManager;
+import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.messaging.handling.MessageHandler.ErrorCode;
@@ -269,9 +270,19 @@ public class HelixTask implements Callable<HelixTaskResult>
           Message.createReplyMessage(_message,
                                      _manager.getInstanceName(),
                                      taskResult.getTaskResultMap());
-      Builder keyBuilder = accessor.keyBuilder();
-      accessor.setProperty(keyBuilder.message(message.getMsgSrc(), replyMessage.getMsgId()), replyMessage);
+      replyMessage.setSrcInstanceType(_manager.getInstanceType());
       
+      if(message.getSrcInstanceType() == InstanceType.PARTICIPANT)
+      {
+        Builder keyBuilder = accessor.keyBuilder();
+        accessor.setProperty(keyBuilder.message(message.getMsgSrc(), replyMessage.getMsgId()), replyMessage);
+      }
+      else if (message.getSrcInstanceType() == InstanceType.CONTROLLER)
+      {
+        Builder keyBuilder = accessor.keyBuilder();
+        accessor.setProperty(keyBuilder.controllerMessage(replyMessage.getMsgId()),
+            replyMessage);
+      }
       _statusUpdateUtil.logInfo(message, HelixTask.class, "1 msg replied to "
           + replyMessage.getTgtName(), accessor);
     }

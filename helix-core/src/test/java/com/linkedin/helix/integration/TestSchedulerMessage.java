@@ -167,6 +167,16 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBase
         .getRecord();
     Assert.assertTrue(statusUpdate.getMapField("SentMessageCount")
         .get("MessageCount").equals("" + (_PARTITIONS * 3)));
+    int messageResultCount = 0;
+    for(String key : statusUpdate.getMapFields().keySet())
+    {
+      if(key.startsWith("MessageResult "))
+      {
+        messageResultCount ++;
+      }
+    }
+    Assert.assertEquals(messageResultCount, _PARTITIONS * 3);
+    
     int count = 0;
     for (Set<String> val : factory._results.values())
     {

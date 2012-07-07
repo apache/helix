@@ -175,6 +175,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBase
           .get("ReplyMessage") == null)
       {
         int x = 0;
+        x++;
       }
       _replyedMessageContents.add(message.getRecord()
           .getMapField(Message.Attributes.MESSAGE_RESULT.toString())

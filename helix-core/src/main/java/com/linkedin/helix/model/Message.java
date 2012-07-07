@@ -378,11 +378,17 @@ public class Message extends HelixProperty
     }
     Message replyMessage = new Message(MessageType.TASK_REPLY, UUID.randomUUID().toString());
     replyMessage.setCorrelationId(srcMessage.getCorrelationId());
-    replyMessage.setTgtName(srcMessage.getMsgSrc());
     replyMessage.setResultMap(taskResultMap);
     replyMessage.setTgtSessionId("*");
     replyMessage.setMsgState(MessageState.NEW);
-
+    if(srcMessage.getSrcInstanceType() == InstanceType.CONTROLLER)
+    {
+      replyMessage.setTgtName("Controller");
+    }
+    else
+    {
+      replyMessage.setTgtName(srcMessage.getMsgSrc());
+    }
     return replyMessage;
   }
 

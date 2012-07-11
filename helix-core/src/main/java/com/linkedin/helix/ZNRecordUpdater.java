@@ -20,7 +20,5 @@ public class ZNRecordUpdater implements DataUpdater<ZNRecord>
       return current;
     }
     return _record;
-
   }
-
 }

@@ -64,6 +64,7 @@ import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
+import com.linkedin.helix.controller.restlet.ZKPropertyTransferServer;
 import com.linkedin.helix.healthcheck.HealthStatsAggregationTask;
 import com.linkedin.helix.healthcheck.ParticipantHealthReportCollector;
 import com.linkedin.helix.healthcheck.ParticipantHealthReportCollectorImpl;
@@ -112,8 +113,9 @@ public class ZKHelixManager implements HelixManager
   private final List<HelixTimerTask>           _controllerTimerTasks;
   private ZkBaseDataAccessor<ZNRecord>         _baseDataAccessor;
   List<PreConnectCallback>                     _preConnectCallbacks    =
-                                                                           new LinkedList<PreConnectCallback>();
-
+      new LinkedList<PreConnectCallback>();
+  ZKPropertyTransferServer                     _transferServer = null;
+  
   public ZKHelixManager(String clusterName,
                         String instanceName,
                         InstanceType instanceType,
@@ -681,7 +683,6 @@ public class ZKHelixManager implements HelixManager
                        .registerMessageHandlerFactory(defaultSchedulerMsgHandlerFactory.getMessageType(),
                                                       defaultSchedulerMsgHandlerFactory);
 
-      startStatusUpdatedumpTask();
       if (_leaderElectionHandler == null)
       {
         final String path =
@@ -981,7 +982,8 @@ public class ZKHelixManager implements HelixManager
   {
     return _handlers;
   }
-
+  
+  // TODO: rename this and not expose this function as part of interface
   @Override
   public void startTimerTasks()
   {
@@ -989,8 +991,42 @@ public class ZKHelixManager implements HelixManager
     {
       task.start();
     }
+    startStatusUpdatedumpTask();
+    startZNRecordTransferService();
   }
-
+  
+  void startZNRecordTransferService()
+  {
+    if(_transferServer == null)
+    {
+      // TODO: configure this as port
+      int port = 27961;
+      _transferServer = new ZKPropertyTransferServer(port ,this);
+      HelixDataAccessor accessor = getHelixDataAccessor();
+      Builder keyBuilder = accessor.keyBuilder();
+      LiveInstance leader = accessor.getProperty(keyBuilder.controllerLeader());
+      try
+      {
+        String webServiceUrl = "http://" + InetAddress.getLocalHost().getCanonicalHostName() + ":"+port;
+        leader.getRecord().setSimpleField("TRANSFERSERVICE", webServiceUrl);
+        accessor.setProperty(keyBuilder.controllerLeader(), leader);
+      }
+      catch (UnknownHostException e)
+      {
+        logger.error("", e);
+      }
+    }
+  }
+  
+  void stopZNRecordTransferService()
+  {
+    if(_transferServer != null)
+    {
+      _transferServer.shutdown();
+      _transferServer = null;
+    }
+  }
+  
   @Override
   public void stopTimerTasks()
   {
@@ -998,6 +1034,9 @@ public class ZKHelixManager implements HelixManager
     {
       task.stop();
     }
+    _timer.cancel();
+    stopZNRecordTransferService();
   }
-
+  
+  
 }

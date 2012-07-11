@@ -18,6 +18,8 @@ package com.linkedin.helix;
 import java.util.List;
 import java.util.Map;
 
+import org.I0Itec.zkclient.DataUpdater;
+
 import com.linkedin.helix.model.ExternalView;
 
 /**
@@ -125,7 +127,17 @@ public interface HelixDataAccessor
    * @param views
    */
   <T extends HelixProperty> boolean[] setChildren(List<PropertyKey> keys, List<T> children);
-
+  
+  /**
+   * Updates multiple children under one parent
+   * 
+   * @param externalViews
+   * @param views
+   */
+  <T extends HelixProperty> boolean[] updateChildren(List<String> paths,
+      List<DataUpdater<ZNRecord>> updaters,
+      int options);
+  
   /**
    * 
    * @return

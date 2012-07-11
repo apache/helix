@@ -23,6 +23,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Future;
 
+import org.I0Itec.zkclient.DataUpdater;
+
 import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.healthcheck.HealthReportProvider;
 import com.linkedin.helix.healthcheck.ParticipantHealthReportCollector;
@@ -545,6 +547,14 @@ public class Mocks
 
     @Override
     public BaseDataAccessor getBaseDataAccessor()
+    {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    @Override
+    public <T extends HelixProperty> boolean[] updateChildren(
+        List<String> paths, List<DataUpdater<ZNRecord>> updaters, int options)
     {
       // TODO Auto-generated method stub
       return null;

@@ -327,4 +327,12 @@ public class FileHelixDataAccessor implements HelixDataAccessor
     }
   }
 
+  @Override
+  public <T extends HelixProperty> boolean[] updateChildren(List<String> paths,
+      List<DataUpdater<ZNRecord>> updaters, int options)
+  {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
 }

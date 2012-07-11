@@ -680,6 +680,11 @@ public class ZKHelixManager implements HelixManager
       _messagingService.getExecutor()
                        .registerMessageHandlerFactory(defaultSchedulerMsgHandlerFactory.getMessageType(),
                                                       defaultSchedulerMsgHandlerFactory);
+      MessageHandlerFactory defaultParticipantErrorMessageHandlerFactory =
+          new DefaultParticipantErrorMessageHandlerFactory(this);
+      _messagingService.getExecutor()
+                       .registerMessageHandlerFactory(defaultParticipantErrorMessageHandlerFactory.getMessageType(),
+                                                      defaultParticipantErrorMessageHandlerFactory);
 
       startStatusUpdatedumpTask();
       if (_leaderElectionHandler == null)

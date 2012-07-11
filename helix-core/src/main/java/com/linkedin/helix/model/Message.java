@@ -33,7 +33,7 @@ import com.linkedin.helix.HelixProperty;
 public class Message extends HelixProperty
 {
   public enum MessageType {
-    STATE_TRANSITION, SCHEDULER_MSG, USER_DEFINE_MSG, CONTROLLER_MSG, TASK_REPLY, NO_OP
+    STATE_TRANSITION, SCHEDULER_MSG, USER_DEFINE_MSG, CONTROLLER_MSG, TASK_REPLY, NO_OP, PARTICIPANT_ERROR_REPORT
   };
 
   public enum Attributes {

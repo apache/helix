@@ -538,7 +538,7 @@ public class ZKHelixManager implements HelixManager
     // if (!_accessor.setProperty(PropertyType.LIVEINSTANCES, liveInstance,
     // _instanceName))
     Builder keyBuilder = _helixAccessor.keyBuilder();
-    if (!_helixAccessor.setProperty(keyBuilder.liveInstance(_instanceName), liveInstance))
+    if (!_helixAccessor.createProperty(keyBuilder.liveInstance(_instanceName), liveInstance))
     {
       String errorMsg =
           "Fail to create live instance node after waiting, so quit. instance:"
@@ -682,6 +682,11 @@ public class ZKHelixManager implements HelixManager
       _messagingService.getExecutor()
                        .registerMessageHandlerFactory(defaultSchedulerMsgHandlerFactory.getMessageType(),
                                                       defaultSchedulerMsgHandlerFactory);
+      MessageHandlerFactory defaultParticipantErrorMessageHandlerFactory =
+          new DefaultParticipantErrorMessageHandlerFactory(this);
+      _messagingService.getExecutor()
+                       .registerMessageHandlerFactory(defaultParticipantErrorMessageHandlerFactory.getMessageType(),
+                                                      defaultParticipantErrorMessageHandlerFactory);
 
       if (_leaderElectionHandler == null)
       {

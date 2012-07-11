@@ -210,14 +210,6 @@ public class HelixStateMachineEngine implements StateMachineEngine
       return null;
     }
 
-    StateModel stateModel = stateModelFactory.getStateModel(partitionKey);
-    if (stateModel == null)
-    {
-      stateModelFactory.createAndAddStateModel(partitionKey);
-      stateModel = stateModelFactory.getStateModel(partitionKey);
-
-    }
-
     // create currentStateDelta for this partition
     HelixManager manager = context.getManager();
 
@@ -234,15 +226,22 @@ public class HelixStateMachineEngine implements StateMachineEngine
     }
     String initState = stateModelDefs.get(stateModelName).getInitialState();
 
+    StateModel stateModel = stateModelFactory.getStateModel(partitionKey);
+    if (stateModel == null)
+    {
+      stateModelFactory.createAndAddStateModel(partitionKey);
+      stateModel = stateModelFactory.getStateModel(partitionKey);
+      stateModel.updateState(initState);
+    }
+
     CurrentState currentStateDelta = new CurrentState(resourceName);
     currentStateDelta.setSessionId(manager.getSessionId());
     currentStateDelta.setStateModelDefRef(stateModelName);
     currentStateDelta.setStateModelFactoryName(factoryName);
 
-    currentStateDelta.setState(partitionKey,
-                               (stateModel == null || stateModel.getCurrentState() == null)
-                                   ? initState : stateModel.getCurrentState());
-
+    currentStateDelta.setState(partitionKey, (stateModel.getCurrentState() == null)
+                               ? initState : stateModel.getCurrentState());
+    
     return new HelixStateTransitionHandler(stateModel,
                                            message,
                                            context,

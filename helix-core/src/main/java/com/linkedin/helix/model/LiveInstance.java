@@ -32,7 +32,8 @@ public class LiveInstance extends HelixProperty
   {
     SESSION_ID,
     HELIX_VERSION,
-    LIVE_INSTANCE
+    LIVE_INSTANCE,
+    ZKPROPERTYTRANSFERURL
   }
 
   private static final Logger _logger = Logger.getLogger(LiveInstance.class.getName());
@@ -84,9 +85,18 @@ public class LiveInstance extends HelixProperty
 
   public long getModifiedTime()
   {
-	  return _record.getModifiedTime();
+    return _record.getModifiedTime();
   }
-
+  
+  public String getWebserviceUrl()
+  {
+    return _record.getSimpleField(LiveInstanceProperty.ZKPROPERTYTRANSFERURL.toString());
+  }
+  
+  public void setWebserviceUrl(String url)
+  {
+    _record.setSimpleField(LiveInstanceProperty.ZKPROPERTYTRANSFERURL.toString(), url);
+  }
   @Override
   public boolean isValid()
   {

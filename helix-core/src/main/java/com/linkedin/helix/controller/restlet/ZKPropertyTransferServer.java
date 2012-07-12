@@ -36,13 +36,15 @@ public class ZKPropertyTransferServer
   public static final String SERVER = "ZKPropertyTransferServer";
   public static int PERIOD = 10 * 1000;
   public static String RESTRESOURCENAME = "ZNRecordUpdates";
+  // If the buffered ZNRecord updates exceed the limit, do a zookeeper batch update.
+  public static int MAX_UPDATE_LIMIT = 1000;
   private static Logger LOG = Logger.getLogger(ZKPropertyTransferServer.class);
   
   int _localWebservicePort;
   String _webserviceUrl;
   HelixManager _manager;
   Timer _timer;
-  AtomicReference<ConcurrentHashMap<String, ZNRecordUpdate>> _dataCacheRef
+  AtomicReference<ConcurrentHashMap<String, ZNRecordUpdate>> _dataBufferRef
     = new AtomicReference<ConcurrentHashMap<String, ZNRecordUpdate>>();
   final ReadWriteLock _lock = new ReentrantReadWriteLock();
   boolean _initialized = false;
@@ -57,35 +59,40 @@ public class ZKPropertyTransferServer
     @Override
     public void run()
     {
-      ConcurrentHashMap<String, ZNRecordUpdate> updateCache  = null;
-      
-      synchronized(_dataCacheRef)
+      sendData();
+    }
+  }
+  
+  void sendData()
+  {
+    ConcurrentHashMap<String, ZNRecordUpdate> updateCache  = null;
+    
+    synchronized(_dataBufferRef)
+    {
+      updateCache = _dataBufferRef.getAndSet(new ConcurrentHashMap<String, ZNRecordUpdate>());
+    }
+    
+    if(updateCache != null)
+    {
+      List<String> paths = new ArrayList<String>();
+      List<DataUpdater<ZNRecord>> updaters = new ArrayList<DataUpdater<ZNRecord>>();
+      List<ZNRecord> vals = new ArrayList<ZNRecord>();
+      for(ZNRecordUpdate holder : updateCache.values())
       {
-        updateCache = _dataCacheRef.getAndSet(new ConcurrentHashMap<String, ZNRecordUpdate>());
+        paths.add(holder.getPath());
+        updaters.add(holder.getZNRecordUpdater());
+        vals.add(holder.getRecord());
       }
-      
-      if(updateCache != null)
+      // Batch write the accumulated updates into zookeeper
+      if(paths.size() > 0)
       {
-        List<String> paths = new ArrayList<String>();
-        List<DataUpdater<ZNRecord>> updaters = new ArrayList<DataUpdater<ZNRecord>>();
-        List<ZNRecord> vals = new ArrayList<ZNRecord>();
-        for(ZNRecordUpdate holder : updateCache.values())
-        {
-          paths.add(holder.getPath());
-          updaters.add(holder.getZNRecordUpdater());
-          vals.add(holder.getRecord());
-        }
-        // Batch write the accumulated updates into zookeeper
-        if(paths.size() > 0)
-        {
-          _manager.getHelixDataAccessor().updateChildren(paths, updaters, BaseDataAccessor.Option.PERSISTENT);
-        }
-        LOG.info("Updating " + vals.size() + " records");
+        _manager.getHelixDataAccessor().updateChildren(paths, updaters, BaseDataAccessor.Option.PERSISTENT);
       }
-      else
-      {
-        LOG.warn("null _dataQueueRef. Should be in the beginning only");
-      }
+      LOG.info("Updating " + vals.size() + " records");
+    }
+    else
+    {
+      LOG.warn("null _dataQueueRef. Should be in the beginning only");
     }
   }
   
@@ -93,17 +100,17 @@ public class ZKPropertyTransferServer
   
   private ZKPropertyTransferServer()
   {
-    _dataCacheRef.getAndSet(new ConcurrentHashMap<String, ZNRecordUpdate>());
-  }
-  
-  public boolean isInitialized()
-  {
-    return _initialized;
+    _dataBufferRef.getAndSet(new ConcurrentHashMap<String, ZNRecordUpdate>());
   }
   
   public static ZKPropertyTransferServer getInstance()
   {
     return _instance;
+  }
+  
+  public boolean isInitialized()
+  {
+    return _initialized;
   }
   
   public void init(int localWebservicePort, HelixManager manager)
@@ -127,7 +134,6 @@ public class ZKPropertyTransferServer
       LOG.error("inited:" + _initialized + " shutdownFlag:"+_shutdownFlag+" , return");
       return null;
     }
-    
     return _webserviceUrl;
   }
   
@@ -143,18 +149,22 @@ public class ZKPropertyTransferServer
       return;
     }
     // Do local merge if receive multiple update on the same path
-    synchronized(_dataCacheRef)
+    synchronized(_dataBufferRef)
     {
-      if(_dataCacheRef.get().containsKey(e.getPath()))
+      if(_dataBufferRef.get().containsKey(e.getPath()))
       {
-        ZNRecord oldVal = _dataCacheRef.get().get(e.getPath()).getRecord();
+        ZNRecord oldVal = _dataBufferRef.get().get(e.getPath()).getRecord();
         oldVal = e.getZNRecordUpdater().update(oldVal);
-        _dataCacheRef.get().get(e.getPath())._record = oldVal;
+        _dataBufferRef.get().get(e.getPath())._record = oldVal;
       }
       else
       {
-        _dataCacheRef.get().put(e.getPath(), e);
+        _dataBufferRef.get().put(e.getPath(), e);
       }
+    }
+    if(_dataBufferRef.get().size() > MAX_UPDATE_LIMIT)
+    {
+      sendData();
     }
   }
   

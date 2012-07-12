@@ -20,6 +20,7 @@ import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.PropertyKey.Builder;
+import com.linkedin.helix.controller.restlet.ZNRecordUpdate.OpCode;
 import com.linkedin.helix.integration.ZkStandAloneCMTestBase;
 
 public class TestZKPropertyTransferServer extends ZkStandAloneCMTestBase
@@ -65,13 +66,13 @@ public class TestZKPropertyTransferServer extends ZkStandAloneCMTestBase
     ZNRecord suRecord5 = new ZNRecord("TestStatusUpdate2");
     suRecord5.setSimpleField("TestKey4", "TestValue4");
     
-    sendZNRecordData(healthRecord1, path, PropertyType.HEALTHREPORT );
-    sendZNRecordData(suRecord2, path2, PropertyType.STATUSUPDATES );
-    sendZNRecordData(suRecord3, path2, PropertyType.STATUSUPDATES );
-    sendZNRecordData(suRecord4, path2, PropertyType.STATUSUPDATES );
-    sendZNRecordData(suRecord5, path3, PropertyType.STATUSUPDATES );
-    sendZNRecordData(healthRecord2, path, PropertyType.HEALTHREPORT );
-    sendZNRecordData(healthRecord3, path, PropertyType.HEALTHREPORT );
+    sendZNRecordData(healthRecord1, path, OpCode.SET );
+    sendZNRecordData(suRecord2, path2, OpCode.UPDATE );
+    sendZNRecordData(suRecord3, path2, OpCode.UPDATE );
+    sendZNRecordData(suRecord4, path2, OpCode.UPDATE );
+    sendZNRecordData(suRecord5, path3, OpCode.UPDATE );
+    sendZNRecordData(healthRecord2, path, OpCode.SET);
+    sendZNRecordData(healthRecord3, path, OpCode.SET);
     
     try
     {
@@ -102,9 +103,9 @@ public class TestZKPropertyTransferServer extends ZkStandAloneCMTestBase
   
 
   // TODO: reslet 1.1.10 does not provide async request. We can write a netty client for this.
-  public static void sendZNRecordData(ZNRecord record, String path, PropertyType type)
+  public static void sendZNRecordData(ZNRecord record, String path, OpCode code)
   {
-    ZNRecordUpdate update = new ZNRecordUpdate(path, type, record);
+    ZNRecordUpdate update = new ZNRecordUpdate(path, code, record);
     Reference resourceRef = new Reference(ZKPropertyTransferServer.getInstance().getWebserviceUrl());
     Request request = new Request(Method.PUT, resourceRef);
     

@@ -5,6 +5,9 @@ import org.restlet.Context;
 import org.restlet.Restlet;
 import org.restlet.Router;
 
+/**
+ * Restlet application for ZkPropertyTransfer server
+ * */
 public class ZkPropertyTransferApplication extends Application
 {
   public ZkPropertyTransferApplication()

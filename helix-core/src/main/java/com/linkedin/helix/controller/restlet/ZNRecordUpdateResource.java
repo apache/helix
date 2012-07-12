@@ -10,7 +10,10 @@ import org.restlet.data.Status;
 import org.restlet.resource.Representation;
 import org.restlet.resource.Resource;
 
-
+/**
+ * REST resource for ZkPropertyTransfer server to receive PUT requests 
+ * that submits ZNRecordUpdates
+ * */
 public class ZNRecordUpdateResource  extends Resource
 {
   public static final String UPDATEKEY = "ZNRecordUpdate";

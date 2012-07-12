@@ -93,7 +93,7 @@ public class TestZKPropertyTransferServer extends ZkStandAloneCMTestBase
   public static void sendZNRecordData(ZNRecord record, String path, PropertyType type)
   {
     ZNRecordUpdate update = new ZNRecordUpdate(path, type, record);
-    Reference resourceRef = new Reference(ZKPropertyTransferServer.getInstance().getWebserviceUrl()+"/ZNRecordUpdates");
+    Reference resourceRef = new Reference(ZKPropertyTransferServer.getInstance().getWebserviceUrl());
     Request request = new Request(Method.PUT, resourceRef);
     
     ObjectMapper mapper = new ObjectMapper();

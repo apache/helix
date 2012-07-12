@@ -505,20 +505,17 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
         cbList[i] = new SetDataCallbackHandler();
 
         Stat stat = new Stat();
-        
-        T oldData = null;
         try
         {  
           @SuppressWarnings("unchecked")
-          T temp = _zkClient.readData(path, stat);
-          oldData = temp;
+          T oldData = _zkClient.readData(path, stat);
+          T newData = updater.update(oldData);
+          _zkClient.asyncSetData(path, newData, stat.getVersion(), cbList[i]);
         }
         catch(ZkNoNodeException e)
         {
           LOG.warn("Path " + path + " does not exist");
         }
-        T newData = updater.update(oldData);
-        _zkClient.asyncSetData(path, newData, stat.getVersion(), cbList[i]);
       }
 
       for (int i = 0; i < cbList.length; i++)

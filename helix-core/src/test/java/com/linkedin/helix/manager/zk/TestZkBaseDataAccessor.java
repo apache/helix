@@ -243,7 +243,7 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase
 
     // test async getChildren
     parentPath = PropertyPathConfig.getPath(PropertyType.MESSAGES, root, "host_1");
-    records = accessor.getChildren(parentPath, 0);
+    records = accessor.getChildren(parentPath, null, 0);
     for (int i = 0; i < 10; i++)
     {
       String msgId = "msg_" + i;

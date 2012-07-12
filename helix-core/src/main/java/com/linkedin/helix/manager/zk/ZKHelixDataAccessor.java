@@ -110,7 +110,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor
     String parentPath = key.getPath();
     int options = constructOptions(type);
     List<ZNRecord> children = _baseDataAccessor
-        .getChildren(parentPath, options);
+        .getChildren(parentPath, null, options);
     List<HelixProperty> childValues = new ArrayList<HelixProperty>();
     for (ZNRecord record : children)
     {
@@ -128,7 +128,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor
     String parentPath = key.getPath();
     int options = constructOptions(type);
     List<ZNRecord> children = _baseDataAccessor
-        .getChildren(parentPath, options);
+        .getChildren(parentPath, null, options);
     Map<String, T> childValuesMap = new HashMap<String, T>();
     for (ZNRecord record : children)
     {

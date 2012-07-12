@@ -68,6 +68,7 @@ public class ZkDistCMTestBase extends ZkIntegrationTestBase
   @BeforeClass
   public void beforeClass() throws Exception
   {
+//    Logger.getRootLogger().setLevel(Level.INFO);
     System.out.println("START " + CLASS_NAME + ".b4Class() at " + new Date(System.currentTimeMillis()));
     _zkClient = new ZkClient(ZK_ADDR);
     _zkClient.setZkSerializer(new ZNRecordSerializer());

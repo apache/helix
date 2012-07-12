@@ -250,8 +250,7 @@ public class Mocks
     @Override
     public InstanceType getInstanceType()
     {
-      // TODO Auto-generated method stub
-      return null;
+      return InstanceType.PARTICIPANT;
     }
 
     @Override

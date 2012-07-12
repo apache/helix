@@ -508,7 +508,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
         try
         {  
           @SuppressWarnings("unchecked")
-          T oldData = _zkClient.readData(path, stat);
+          T oldData = (T) _zkClient.readData(path, stat);
           T newData = updater.update(oldData);
           _zkClient.asyncSetData(path, newData, stat.getVersion(), cbList[i]);
         }

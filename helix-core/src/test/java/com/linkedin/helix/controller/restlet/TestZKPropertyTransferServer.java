@@ -41,6 +41,14 @@ public class TestZKPropertyTransferServer extends ZkStandAloneCMTestBase
     ZNRecord healthRecord1 = new ZNRecord("TestStat");
     healthRecord1.setSimpleField("TestKey", "TestValue");
     
+    ZNRecord healthRecord2 = new ZNRecord("TestStat");
+    healthRecord2.setSimpleField("TestKey", "TestValue2");
+    healthRecord2.setSimpleField("TestKey1", "TestValue3");
+    
+    ZNRecord healthRecord3 = new ZNRecord("TestStat");
+    healthRecord3.setSimpleField("TestKey", "TestValue3");
+    healthRecord3.setSimpleField("TestKey3", "TestValue4");
+    
     Builder kb = _startCMResultMap.get(participant1)._manager.getHelixDataAccessor().keyBuilder();
     
     String path = kb.healthReport(participant1, "TestKey").getPath();
@@ -62,6 +70,8 @@ public class TestZKPropertyTransferServer extends ZkStandAloneCMTestBase
     sendZNRecordData(suRecord3, path2, PropertyType.STATUSUPDATES );
     sendZNRecordData(suRecord4, path2, PropertyType.STATUSUPDATES );
     sendZNRecordData(suRecord5, path3, PropertyType.STATUSUPDATES );
+    sendZNRecordData(healthRecord2, path, PropertyType.HEALTHREPORT );
+    sendZNRecordData(healthRecord3, path, PropertyType.HEALTHREPORT );
     
     try
     {
@@ -75,7 +85,9 @@ public class TestZKPropertyTransferServer extends ZkStandAloneCMTestBase
     
     HelixDataAccessor accessor = _startCMResultMap.get(participant2)._manager.getHelixDataAccessor();
     ZNRecord result1 = accessor.getProperty(accessor.keyBuilder().healthReport(participant1, "TestKey")).getRecord();
-    Assert.assertTrue(result1.getSimpleField("TestKey").equals(healthRecord1.getSimpleField("TestKey")));
+    Assert.assertTrue(result1.getSimpleField("TestKey").equals(healthRecord3.getSimpleField("TestKey")));
+    Assert.assertTrue(result1.getSimpleField("TestKey2")== null);
+    Assert.assertTrue(result1.getSimpleField("TestKey3").equals(healthRecord3.getSimpleField("TestKey3")));
     
     ZNRecord su1 = accessor.getProperty(accessor.keyBuilder().stateTransitionStatus(participant1, "123", "DB43")).getRecord();
     Assert.assertTrue(su1.getSimpleField("TestKey1").equals("TestValue1"));

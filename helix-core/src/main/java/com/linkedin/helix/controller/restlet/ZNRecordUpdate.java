@@ -13,7 +13,7 @@ import com.linkedin.helix.ZNRecordUpdater;
 public class ZNRecordUpdate
 {
   final String _path;
-  final ZNRecord _record;
+  ZNRecord _record;
   final PropertyType _type;
 
   @JsonCreator

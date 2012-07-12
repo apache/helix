@@ -131,6 +131,7 @@ public class ZKPropertyTransferServer
       {
         ZNRecord oldVal = _dataCacheRef.get().get(e.getPath()).getRecord();
         oldVal = e.getZNRecordUpdater().update(oldVal);
+        _dataCacheRef.get().get(e.getPath())._record = oldVal;
       }
       else
       {

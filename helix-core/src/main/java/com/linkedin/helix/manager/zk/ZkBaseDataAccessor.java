@@ -12,6 +12,7 @@ import org.I0Itec.zkclient.exception.ZkNodeExistsException;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException.Code;
+import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.data.Stat;
 
 import com.linkedin.helix.BaseDataAccessor;
@@ -504,9 +505,18 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
         cbList[i] = new SetDataCallbackHandler();
 
         Stat stat = new Stat();
-        @SuppressWarnings("unchecked")
-        T oldData = (T) _zkClient.readData(path, stat);
-
+        
+        T oldData = null;
+        try
+        {  
+          @SuppressWarnings("unchecked")
+          T temp = _zkClient.readData(path, stat);
+          oldData = temp;
+        }
+        catch(ZkNoNodeException e)
+        {
+          LOG.warn("Path " + path + " does not exist");
+        }
         T newData = updater.update(oldData);
         _zkClient.asyncSetData(path, newData, stat.getVersion(), cbList[i]);
       }

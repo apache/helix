@@ -21,7 +21,7 @@ public class ZkPropertyTransferApplication extends Application
   public Restlet createRoot()
   {
     Router router = new Router(getContext());
-    router.attach("/ZNRecordUpdates", ZNRecordUpdateResource.class);
+    router.attach("/" + ZKPropertyTransferServer.RESTRESOURCENAME, ZNRecordUpdateResource.class);
     return router;
   }
 }

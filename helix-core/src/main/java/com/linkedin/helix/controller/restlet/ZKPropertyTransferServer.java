@@ -1,11 +1,11 @@
 package com.linkedin.helix.controller.restlet;
 
-import java.io.IOException;
-import java.io.StringWriter;
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -13,61 +13,51 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.I0Itec.zkclient.DataUpdater;
 import org.apache.log4j.Logger;
-import org.codehaus.jackson.JsonGenerationException;
-import org.codehaus.jackson.map.JsonMappingException;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.restlet.Client;
 import org.restlet.Component;
 import org.restlet.Context;
-import org.restlet.data.MediaType;
-import org.restlet.data.Method;
 import org.restlet.data.Protocol;
-import org.restlet.data.Reference;
-import org.restlet.data.Request;
-import org.restlet.data.Response;
-import org.restlet.data.Status;
 
 import com.linkedin.helix.BaseDataAccessor;
 import com.linkedin.helix.HelixManager;
-import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 
-public class ZKPropertyTransferServer extends Thread
+public class ZKPropertyTransferServer
 {
   public static final String PORT = "port";
   public static final String SERVER = "ZKPropertyTransferServer";
-  public static final int PERIOD = 30 * 1000;
+  public static int PERIOD = 10 * 1000;
+  public static String RESTRESOURCENAME = "ZNRecordUpdates";
   private static Logger LOG = Logger.getLogger(ZKPropertyTransferServer.class);
   
-  final int _localWebservicePort;
-  final HelixManager _manager;
+  int _localWebservicePort;
+  String _webserviceUrl;
+  HelixManager _manager;
   Timer _timer;
-  AtomicReference<ConcurrentLinkedQueue<ZNRecordUpdate>> _dataQueueRef
-    = new AtomicReference<ConcurrentLinkedQueue<ZNRecordUpdate>>();
+  AtomicReference<ConcurrentHashMap<String, ZNRecordUpdate>> _dataCacheRef
+    = new AtomicReference<ConcurrentHashMap<String, ZNRecordUpdate>>();
   final ReadWriteLock _lock = new ReentrantReadWriteLock();
+  boolean _initialized = false;
+  boolean _shutdownFlag = false;
+  Component _component;
   
   class ZKPropertyTransferTask extends TimerTask
   {
     @Override
     public void run()
     {
-      ConcurrentLinkedQueue<ZNRecordUpdate> updateQueue  = null;
-      _lock.writeLock().lock();
-      try
+      ConcurrentHashMap<String, ZNRecordUpdate> updateCache  = null;
+      
+      synchronized(_dataCacheRef)
       {
-        updateQueue = _dataQueueRef.getAndSet(new ConcurrentLinkedQueue<ZNRecordUpdate>());
-      }
-      finally
-      {
-        _lock.writeLock().unlock();
+        updateCache = _dataCacheRef.getAndSet(new ConcurrentHashMap<String, ZNRecordUpdate>());
       }
       
-      if(updateQueue != null)
+      if(updateCache != null)
       {
         List<String> paths = new ArrayList<String>();
         List<DataUpdater<ZNRecord>> updaters = new ArrayList<DataUpdater<ZNRecord>>();
         List<ZNRecord> vals = new ArrayList<ZNRecord>();
-        for(ZNRecordUpdate holder : updateQueue)
+        for(ZNRecordUpdate holder : updateCache.values())
         {
           paths.add(holder.getPath());
           updaters.add(holder.getZNRecordUpdater());
@@ -86,81 +76,92 @@ public class ZKPropertyTransferServer extends Thread
     }
   }
   
-  public ZKPropertyTransferServer(int localWebservicePort, HelixManager manager)
+  static ZKPropertyTransferServer _instance = new ZKPropertyTransferServer();
+  
+  private ZKPropertyTransferServer()
   {
-    _localWebservicePort = localWebservicePort;
-    _manager = manager;
-    start();
+    _dataCacheRef.getAndSet(new ConcurrentHashMap<String, ZNRecordUpdate>());
+  }
+  
+  public boolean isInitialized()
+  {
+    return _initialized;
+  }
+  
+  public static ZKPropertyTransferServer getInstance()
+  {
+    return _instance;
+  }
+  
+  public void init(int localWebservicePort, HelixManager manager)
+  {
+    if(!_initialized)
+    {
+      _localWebservicePort = localWebservicePort;
+      _manager = manager;
+      startServer();
+    }
+    else
+    {
+      LOG.error("Already initialized with port " + _localWebservicePort);
+    }
+  }
+  
+  public String getWebserviceUrl()
+  {
+    if(!_initialized || _shutdownFlag)
+    {
+      LOG.error("inited:" + _initialized + " shutdownFlag:"+_shutdownFlag+" , return");
+      return null;
+    }
+    
+    return _webserviceUrl;
   }
   
   public void enqueueData(ZNRecordUpdate e)
   {
-    _lock.readLock().lock();
-    try
+    if(!_initialized || _shutdownFlag)
     {
-      _dataQueueRef.get().add(e);
+      LOG.error("inited:" + _initialized + " shutdownFlag:"+_shutdownFlag+" , return");
+      return;
     }
-    finally
+    synchronized(_dataCacheRef)
     {
-      _lock.readLock().unlock();
-    }
-  }
-  // TODO: how to do this async with restlet? Or do we use netty directly
-  public static void sendZNRecordData(ZNRecord record, String path, PropertyType type, String serviceUrl)
-  {
-    ZNRecordUpdate update = new ZNRecordUpdate(path, type, record);
-    Reference resourceRef = new Reference(serviceUrl);
-    Request request = new Request(Method.PUT, resourceRef);
-    
-    ObjectMapper mapper = new ObjectMapper();
-    StringWriter sw = new StringWriter();
-    try
-    {
-      mapper.writeValue(sw, update);
-    }
-    catch (JsonGenerationException e)
-    {
-      LOG.error("",e);
-    }
-    catch (JsonMappingException e)
-    {
-      LOG.error("",e);
-    }
-    catch (IOException e)
-    {
-      LOG.error("",e);
-    }
-
-    request.setEntity(
-        ZNRecordUpdateResource.UPDATEKEY + "=" + sw, MediaType.APPLICATION_ALL);
-    Client client = new Client(Protocol.HTTP);
-    Response response = client.handle(request);
-    
-    if(response.getStatus() != Status.SUCCESS_OK)
-    {
-      LOG.error("Status : " + response.getStatus());
+      if(_dataCacheRef.get().containsKey(e.getPath()))
+      {
+        ZNRecord oldVal = _dataCacheRef.get().get(e.getPath()).getRecord();
+        oldVal = e.getZNRecordUpdater().update(oldVal);
+      }
+      else
+      {
+        _dataCacheRef.get().put(e.getPath(), e);
+      }
     }
   }
   
-  @Override
-  public void run()
+  public void startServer()
   {
     LOG.info("Cluster " + _manager.getClusterName() + " " + _manager.getInstanceName() 
         + " zkDataTransferServer starting...");
-    Component component = new Component();
-    component.getServers().add(Protocol.HTTP, _localWebservicePort);
-    Context applicationContext = component.getContext().createChildContext();
+    _component = new Component();
+    _component.getServers().add(Protocol.HTTP, _localWebservicePort);
+    Context applicationContext = _component.getContext().createChildContext();
     applicationContext.getAttributes().put(SERVER, this);
     applicationContext.getAttributes().put(PORT, "" + _localWebservicePort);
     ZkPropertyTransferApplication application = new ZkPropertyTransferApplication(
         applicationContext);
     // Attach the application to the component and start it
-    component.getDefaultHost().attach(application);
+    _component.getDefaultHost().attach(application);
     _timer = new Timer();
     _timer.schedule(new ZKPropertyTransferTask(), PERIOD , PERIOD);
+    
     try
     {
-      component.start();
+      _webserviceUrl 
+        = "http://" + InetAddress.getLocalHost().getCanonicalHostName() + ":" + _localWebservicePort 
+              + "/" + RESTRESOURCENAME;
+      _component.start();
+      _initialized = true;
     }
     catch (Exception e)
     {
@@ -178,6 +179,15 @@ public class ZKPropertyTransferServer extends Thread
     {
       _timer.cancel();
     }
-    interrupt();
+    try
+    {
+      _component.stop();
+    }
+    catch (Exception e)
+    {
+      LOG.error("", e);
+    }
+    
+    _shutdownFlag = true;
   }
 }

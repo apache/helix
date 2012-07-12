@@ -1,6 +1,10 @@
 package com.linkedin.helix.controller.restlet;
 
 import org.I0Itec.zkclient.DataUpdater;
+import org.codehaus.jackson.annotate.JsonCreator;
+import org.codehaus.jackson.annotate.JsonIgnore;
+import org.codehaus.jackson.annotate.JsonIgnoreProperties;
+import org.codehaus.jackson.annotate.JsonProperty;
 
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
@@ -11,8 +15,9 @@ public class ZNRecordUpdate
   final String _path;
   final ZNRecord _record;
   final PropertyType _type;
-  
-  public ZNRecordUpdate(String path, PropertyType type, ZNRecord record)
+
+  @JsonCreator
+  public ZNRecordUpdate(@JsonProperty("path")String path, @JsonProperty("propertyType")PropertyType type, @JsonProperty("record")ZNRecord record)
   {
     _path = path;
     _record = record;
@@ -33,7 +38,8 @@ public class ZNRecordUpdate
   {
     return _type;
   }
-  
+
+  @JsonIgnore(true)
   public DataUpdater<ZNRecord> getZNRecordUpdater()
   {
     if(_type == PropertyType.HEALTHREPORT)

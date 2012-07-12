@@ -44,7 +44,7 @@ public class ZNRecordUpdateResource  extends Resource
   {
     try
     {
-      ZKPropertyTransferServer server = (ZKPropertyTransferServer) getRequest().getAttributes().get(ZKPropertyTransferServer.SERVER);
+      ZKPropertyTransferServer server = ZKPropertyTransferServer.getInstance();
       
       Form form = new Form(entity);
       String jsonPayload = form.getFirstValue(UPDATEKEY, true);

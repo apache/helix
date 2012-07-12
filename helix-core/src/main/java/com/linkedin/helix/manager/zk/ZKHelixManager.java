@@ -116,6 +116,7 @@ public class ZKHelixManager implements HelixManager
       new LinkedList<PreConnectCallback>();
   ZKPropertyTransferServer                     _transferServer = null;
   
+  
   public ZKHelixManager(String clusterName,
                         String instanceName,
                         InstanceType instanceType,
@@ -997,39 +998,6 @@ public class ZKHelixManager implements HelixManager
       task.start();
     }
     startStatusUpdatedumpTask();
-    startZNRecordTransferService();
-  }
-  
-  void startZNRecordTransferService()
-  {
-    if(_transferServer == null)
-    {
-      // TODO: configure this as port
-      int port = 27961;
-      _transferServer = new ZKPropertyTransferServer(port ,this);
-      HelixDataAccessor accessor = getHelixDataAccessor();
-      Builder keyBuilder = accessor.keyBuilder();
-      LiveInstance leader = accessor.getProperty(keyBuilder.controllerLeader());
-      try
-      {
-        String webServiceUrl = "http://" + InetAddress.getLocalHost().getCanonicalHostName() + ":"+port;
-        leader.getRecord().setSimpleField("TRANSFERSERVICE", webServiceUrl);
-        accessor.setProperty(keyBuilder.controllerLeader(), leader);
-      }
-      catch (UnknownHostException e)
-      {
-        logger.error("", e);
-      }
-    }
-  }
-  
-  void stopZNRecordTransferService()
-  {
-    if(_transferServer != null)
-    {
-      _transferServer.shutdown();
-      _transferServer = null;
-    }
   }
   
   @Override
@@ -1039,9 +1007,5 @@ public class ZKHelixManager implements HelixManager
     {
       task.stop();
     }
-    _timer.cancel();
-    stopZNRecordTransferService();
   }
-  
-  
 }

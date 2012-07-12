@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.I0Itec.zkclient.DataUpdater;
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.apache.log4j.Logger;
 
@@ -204,6 +205,13 @@ public class ZKHelixDataAccessor implements HelixDataAccessor
   public BaseDataAccessor getBaseDataAccessor()
   {
     return _baseDataAccessor;
+  }
+
+  @Override
+  public <T extends HelixProperty> boolean[] updateChildren(List<String> paths,
+      List<DataUpdater<ZNRecord>> updaters, int options)
+  {
+    return _baseDataAccessor.updateChildren(paths, updaters, options);
   }
 
 }

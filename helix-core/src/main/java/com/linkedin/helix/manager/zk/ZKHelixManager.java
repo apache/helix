@@ -64,6 +64,7 @@ import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
+import com.linkedin.helix.controller.restlet.ZKPropertyTransferServer;
 import com.linkedin.helix.healthcheck.HealthStatsAggregationTask;
 import com.linkedin.helix.healthcheck.ParticipantHealthReportCollector;
 import com.linkedin.helix.healthcheck.ParticipantHealthReportCollectorImpl;
@@ -112,8 +113,10 @@ public class ZKHelixManager implements HelixManager
   private final List<HelixTimerTask>           _controllerTimerTasks;
   private ZkBaseDataAccessor<ZNRecord>         _baseDataAccessor;
   List<PreConnectCallback>                     _preConnectCallbacks    =
-                                                                           new LinkedList<PreConnectCallback>();
-
+      new LinkedList<PreConnectCallback>();
+  ZKPropertyTransferServer                     _transferServer = null;
+  
+  
   public ZKHelixManager(String clusterName,
                         String instanceName,
                         InstanceType instanceType,
@@ -689,7 +692,6 @@ public class ZKHelixManager implements HelixManager
                        .registerMessageHandlerFactory(defaultParticipantErrorMessageHandlerFactory.getMessageType(),
                                                       defaultParticipantErrorMessageHandlerFactory);
 
-      startStatusUpdatedumpTask();
       if (_leaderElectionHandler == null)
       {
         final String path =
@@ -989,7 +991,8 @@ public class ZKHelixManager implements HelixManager
   {
     return _handlers;
   }
-
+  
+  // TODO: rename this and not expose this function as part of interface
   @Override
   public void startTimerTasks()
   {
@@ -997,8 +1000,9 @@ public class ZKHelixManager implements HelixManager
     {
       task.start();
     }
+    startStatusUpdatedumpTask();
   }
-
+  
   @Override
   public void stopTimerTasks()
   {
@@ -1007,5 +1011,4 @@ public class ZKHelixManager implements HelixManager
       task.stop();
     }
   }
-
 }

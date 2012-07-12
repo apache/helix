@@ -8,7 +8,7 @@ import org.apache.zookeeper.data.Stat;
 
 public interface BaseDataAccessor<T>
 {
-  class Option
+  public static class Option
   {
     public static int PERSISTENT = 0x1;
     public static int EPHEMERAL   = 0x10;

@@ -374,6 +374,16 @@ public class MockParticipant extends Thread
     return _manager;
   }
 
+  public String getInstanceName()
+  {
+    return _instanceName;
+  }
+
+  public String getClusterName()
+  {
+    return _clusterName;
+  }
+
   public void syncStop()
   {
     _stopCountDown.countDown();

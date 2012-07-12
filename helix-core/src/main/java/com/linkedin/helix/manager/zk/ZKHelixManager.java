@@ -652,6 +652,9 @@ public class ZKHelixManager implements HelixManager
     logger.info("Handling new session, session id:" + _sessionId + ", instance:"
         + _instanceName);
 
+    logger.info(zkConnection.getZookeeper());
+
+    
     if (!ZKUtil.isClusterSetup(_clusterName, _zkClient))
     {
       throw new HelixException("Initial cluster structure is not set up for cluster:"

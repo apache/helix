@@ -16,21 +16,17 @@
 package com.linkedin.helix.controller.stages;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.BaseDataAccessor;
 import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.PropertyKey;
 import com.linkedin.helix.PropertyKey.Builder;
-import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.controller.pipeline.AbstractBaseStage;
 import com.linkedin.helix.controller.pipeline.StageException;
-import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
 import com.linkedin.helix.model.Message;
 import com.linkedin.helix.model.Partition;
 import com.linkedin.helix.model.Resource;
@@ -82,7 +78,7 @@ public class TaskAssignmentStage extends AbstractBaseStage
     List<PropertyKey> keys = new ArrayList<PropertyKey>();
     for (Message message : messages)
     {
-      logger.info("Sending message to " + message.getTgtName() + " transition "
+      logger.info("Sending message " + message.getMsgId() + " to " + message.getTgtName() + " transition "
           + message.getPartitionName() + " from:" + message.getFromState()
           + " to:" + message.getToState());
       keys.add(keyBuilder.message(message.getTgtName(),message.getId()));

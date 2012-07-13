@@ -22,8 +22,6 @@ import java.util.concurrent.Callable;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.Criteria.DataSource;
-import com.linkedin.helix.Criteria;
 import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.InstanceType;
@@ -206,9 +204,10 @@ public class HelixTask implements Callable<HelixTaskResult>
     // Post-processing for the finished task
     try
     {
+      removeMessageFromZk(accessor, _message);
       _executor.reportCompletion(_message.getMsgId());
       reportMessageStat(_manager, _message, taskResult);
-      removeMessageFromZk(accessor, _message);
+      
       sendReply(accessor, _message, taskResult);
     }
     // TODO: capture errors and log here
@@ -241,12 +240,12 @@ public class HelixTask implements Callable<HelixTaskResult>
     if (message.getTgtName().equalsIgnoreCase("controller"))
     {
       // TODO: removeProperty returns boolean
-      accessor.removeProperty(keyBuilder.controllerMessage(message.getId()));
+      accessor.removeProperty(keyBuilder.controllerMessage(message.getMsgId()));
     }
     else
     {
       accessor.removeProperty(keyBuilder.message(_manager.getInstanceName(),
-                                                 message.getId()));
+                                                 message.getMsgId()));
     }
   }
 

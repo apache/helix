@@ -20,10 +20,8 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -39,6 +37,7 @@ import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.MessageListener;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.NotificationContext.Type;
+import com.linkedin.helix.PropertyKey;
 import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.model.Message;
 import com.linkedin.helix.model.Message.MessageState;
@@ -52,24 +51,21 @@ public class HelixTaskExecutor implements MessageListener
   // TODO: we need to further design how to throttle this.
   // From storage point of view, only bootstrap case is expensive
   // and we need to throttle, which is mostly IO / network bounded.
-  private static final int                               MAX_PARALLEL_TASKS        = 4;
+  private static final int                               MAX_PARALLEL_TASKS = 4;
   // TODO: create per-task type threadpool with customizable pool size
   protected final Map<String, Future<HelixTaskResult>>   _taskMap;
   private final Object                                   _lock;
   private final StatusUpdateUtil                         _statusUpdateUtil;
   private final ParticipantMonitor                       _monitor;
 
-  final ConcurrentHashMap<String, MessageHandlerFactory> _handlerFactoryMap        =
-                                                                                       new ConcurrentHashMap<String, MessageHandlerFactory>();
+  final ConcurrentHashMap<String, MessageHandlerFactory> _handlerFactoryMap =
+                                                                                new ConcurrentHashMap<String, MessageHandlerFactory>();
 
-  final ConcurrentHashMap<String, ExecutorService>       _threadpoolMap            =
-                                                                                       new ConcurrentHashMap<String, ExecutorService>();
+  final ConcurrentHashMap<String, ExecutorService>       _threadpoolMap     =
+                                                                                new ConcurrentHashMap<String, ExecutorService>();
 
-  private static Logger                                  logger                    =
-                                                                                       Logger.getLogger(HelixTaskExecutor.class);
-  private final long                                           _createTimestampHwm       = 0;
-  private final Set<String>                              _createTimestampHwmMsgIds =
-                                                                                       new HashSet<String>();
+  private static Logger                                  logger             =
+                                                                                Logger.getLogger(HelixTaskExecutor.class);
 
   public HelixTaskExecutor()
   {
@@ -257,6 +253,9 @@ public class HelixTaskExecutor implements MessageListener
     });
 
     List<Message> readMsgs = new ArrayList<Message>();
+    List<PropertyKey> readMsgKeys = new ArrayList<PropertyKey>();
+    List<MessageHandler> readMsgHandlers = new ArrayList<MessageHandler>();
+
     for (Message message : messages)
     {
       // NO_OP messages are removed with nothing done. It is used to trigger the
@@ -280,19 +279,8 @@ public class HelixTaskExecutor implements MessageListener
       if (sessionId.equals(tgtSessionId) || tgtSessionId.equals("*"))
       {
         MessageHandler handler = null;
-//        if (MessageState.NEW == message.getMsgState()
-//            && (message.getCreateTimeStamp() > _createTimestampHwm || (message.getCreateTimeStamp() == _createTimestampHwm && !_createTimestampHwmMsgIds.contains(message.getMsgId()))))
         if (MessageState.NEW == message.getMsgState())
         {
-//          if (message.getCreateTimeStamp() > _createTimestampHwm)
-//          {
-//            _createTimestampHwmMsgIds.clear();
-//            _createTimestampHwm = message.getCreateTimeStamp();
-//            logger.info(message.getTgtName()
-//                + " update createTimestamp high water mark: " + _createTimestampHwm);
-//          }
-//          _createTimestampHwmMsgIds.add(message.getMsgId());
-
           try
           {
             logger.info("Creating handler for message " + message.getMsgId());
@@ -306,13 +294,6 @@ public class HelixTaskExecutor implements MessageListener
               logger.warn("Message handler factory not found for message type:"
                   + message.getMsgType() + ", message:" + message);
 
-              // we need to update the create timestamp so when message handler factory is
-              // registered we can still pick up the message
-//              long highestCreateTimestamp =
-//                  messages.get(messages.size() - 1).getCreateTimeStamp();
-//              message.setCreateTimeStamp(highestCreateTimestamp + 1);
-//              accessor.setProperty(keyBuilder.message(instanceName, message.getId()),
-//                                   message);
               continue;
             }
 
@@ -326,21 +307,17 @@ public class HelixTaskExecutor implements MessageListener
                                       "New Message",
                                       accessor);
 
+            // batch all messages
             readMsgs.add(message);
-            // not update the message state to READ, use local _createTimeOfLastReadMsg
-            // to differentiate unread from read messages
-
-            // if (message.getTgtName().equalsIgnoreCase("controller"))
-            // {
-            // accessor.updateProperty(keyBuilder.controllerMessage(message.getId()),
-            // message);
-            // }
-            // else
-            // {
-            // accessor.updateProperty(keyBuilder.message(instanceName, message.getId()),
-            // message);
-            // }
-            scheduleTask(message, handler, changeContext);
+            if (message.getTgtName().equalsIgnoreCase("controller"))
+            {
+              readMsgKeys.add(keyBuilder.controllerMessage(message.getMsgId()));
+            }
+            else
+            {
+              readMsgKeys.add(keyBuilder.message(instanceName, message.getMsgId()));
+            }
+            readMsgHandlers.add(handler);
           }
           catch (Exception e)
           {
@@ -396,9 +373,18 @@ public class HelixTaskExecutor implements MessageListener
                                      accessor);
       }
     }
-    
+
+    // update messages in batch and schedule all read messages
     if (readMsgs.size() > 0)
     {
+      accessor.setChildren(readMsgKeys, readMsgs);
+
+      for (int i = 0; i < readMsgs.size(); i++)
+      {
+        Message message = readMsgs.get(i);
+        MessageHandler handler = readMsgHandlers.get(i);
+        scheduleTask(message, handler, changeContext);
+      }
     }
   }
 

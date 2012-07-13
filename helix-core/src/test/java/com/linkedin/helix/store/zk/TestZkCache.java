@@ -18,20 +18,20 @@ import com.linkedin.helix.manager.zk.ZkClient;
 public class TestZkCache extends ZkUnitTestBase
 {
   final String zkAddr = ZK_ADDR;
-  ZkClient client;
-  
+  ZkClient     client;
+
   @BeforeClass
   public void beforeClass()
   {
     client = new ZkClient(zkAddr, 30000, 10000, new ZkSerializer()
     {
-      
+
       @Override
       public byte[] serialize(Object data) throws ZkMarshallingError
       {
-        return (byte[])data;
+        return (byte[]) data;
       }
-      
+
       @Override
       public Object deserialize(byte[] bytes) throws ZkMarshallingError
       {
@@ -39,15 +39,15 @@ public class TestZkCache extends ZkUnitTestBase
       }
     });
   }
-  
+
   // create 10, modify 10, and delete 10, verify that all callbacks are received
   @Test
   public void testCallback() throws Exception
   {
     String testName = "TestZkCache-callback";
-    System.out.println("START " + testName + " at " + new Date(System.currentTimeMillis()));
+    System.out.println("START " + testName + " at "
+        + new Date(System.currentTimeMillis()));
 
-    
     String root = "/" + testName;
     client.deleteRecursive(root);
     client.createPersistent(root);
@@ -56,7 +56,6 @@ public class TestZkCache extends ZkUnitTestBase
     final List<String> deleteCallbacks = new ArrayList<String>();
     final List<String> updateCallbacks = new ArrayList<String>();
 
-    
     ZkCache cache = new ZkCache(root, client, new ZkListener()
     {
       @Override
@@ -65,14 +64,14 @@ public class TestZkCache extends ZkUnitTestBase
         System.out.println("handleNodeDelete: " + path);
         deleteCallbacks.add(path);
       }
-      
+
       @Override
       public void handleNodeCreate(String path)
       {
         System.out.println("handleNodeCreate: " + path);
         createCallbacks.add(path);
       }
-      
+
       @Override
       public void handleDataChange(String path)
       {
@@ -80,11 +79,12 @@ public class TestZkCache extends ZkUnitTestBase
         updateCallbacks.add(path);
       }
     });
-    
+
     cache.updateCache(root);
-    Assert.assertTrue(createCallbacks.equals(Arrays.asList(root)), "Should have " + root + " in cache");
+    Assert.assertTrue(createCallbacks.equals(Arrays.asList(root)), "Should have " + root
+        + " in cache");
     createCallbacks.clear();
-    
+
     // create
     List<String> createKeys = randomCreateByZkClient(10, root, client);
     // wait for zk callbacks to complete
@@ -97,8 +97,9 @@ public class TestZkCache extends ZkUnitTestBase
       System.out.println("createKeys: " + createKeys);
       System.out.println("createCallback: " + createCallbacks);
     }
-    Assert.assertTrue(createKeys.equals(createCallbacks), "Should have all path create-callback, but not necessarily in the same order they created");
-    
+    Assert.assertTrue(createKeys.equals(createCallbacks),
+                      "Should have all path create-callback, but not necessarily in the same order they created");
+
     // update
     List<String> updateKeys = new ArrayList<String>();
     dfUpdateZk(updateKeys, client, root);
@@ -109,9 +110,9 @@ public class TestZkCache extends ZkUnitTestBase
       System.out.println("updateKeys: " + updateKeys);
       System.out.println("updateCallbacks: " + updateCallbacks);
     }
-    Assert.assertTrue(updateKeys.equals(updateCallbacks), "Should have all paths datachange-callbacks in depth first order");
-    
-    
+    Assert.assertTrue(checkCallbacks(updateKeys, updateCallbacks),
+                      "Should have all paths datachange-callbacks in depth first order");
+
     // delete
     List<String> deleteKeys = new ArrayList<String>();
     dfGetZkPaths(deleteKeys, client, root);
@@ -123,11 +124,12 @@ public class TestZkCache extends ZkUnitTestBase
       System.out.println("deleteKeys: " + deleteKeys);
       System.out.println("deleteCallbacks: " + deleteCallbacks);
     }
-    Assert.assertTrue(deleteKeys.equals(deleteCallbacks), "Should have all paths delete-callbacks in depth first order");
-    
+    Assert.assertTrue(deleteKeys.equals(deleteCallbacks),
+                      "Should have all paths delete-callbacks in depth first order");
+
     System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
   }
-  
+
   // return the keys created
   static List<String> randomCreateByZkClient(int number, String root, ZkClient client)
   {
@@ -135,7 +137,7 @@ public class TestZkCache extends ZkUnitTestBase
     int maxDepth = 10;
     String delim = "/";
     List<String> createKeys = new ArrayList<String>();
-    
+
     while (createKeys.size() < number)
     {
       int depth = ((int) (Math.random() * 10000)) % maxDepth + 1;
@@ -155,7 +157,7 @@ public class TestZkCache extends ZkUnitTestBase
         {
           break;
         }
-//        changes.add(keyToCreate + "-" + "create" + "-" + System.currentTimeMillis());
+        // changes.add(keyToCreate + "-" + "create" + "-" + System.currentTimeMillis());
         System.out.println("Creating key: " + keyToCreate);
         createKeys.add(keyToCreate);
         keyToCreate = keyToCreate.substring(0, keyToCreate.lastIndexOf('/'));
@@ -166,30 +168,30 @@ public class TestZkCache extends ZkUnitTestBase
       System.out.println("Writing key: " + key);
       client.writeData(key, val);
       count = count + 1;
-//      changes.add(key + "-" + "write" + "-" + System.currentTimeMillis());
+      // changes.add(key + "-" + "write" + "-" + System.currentTimeMillis());
     }
     return createKeys;
   }
-  
-//  // depth first read from zk
-//  static void dfReadZk(Map<String, ZNode> map, ZkClient client, String root)
-//  {
-//    List<String> childs = client.getChildren(root);
-//    if (childs != null)
-//    {
-//      for (String child : childs)
-//      {
-//        String childPath = root + "/" + child;
-//        dfReadZk(map, client, childPath);
-//      }
-//      Stat stat = new Stat();
-//      String value = client.readData(root, stat);
-//      ZNode node = new ZNode(root, value, stat);
-//      node._childSet.addAll(childs);
-//      map.put(root, node);
-//    }
-//  }
-  
+
+  // // depth first read from zk
+  // static void dfReadZk(Map<String, ZNode> map, ZkClient client, String root)
+  // {
+  // List<String> childs = client.getChildren(root);
+  // if (childs != null)
+  // {
+  // for (String child : childs)
+  // {
+  // String childPath = root + "/" + child;
+  // dfReadZk(map, client, childPath);
+  // }
+  // Stat stat = new Stat();
+  // String value = client.readData(root, stat);
+  // ZNode node = new ZNode(root, value, stat);
+  // node._childSet.addAll(childs);
+  // map.put(root, node);
+  // }
+  // }
+
   // depth first read paths from zk
   static void dfGetZkPaths(List<String> deletePaths, ZkClient client, String root)
   {
@@ -204,7 +206,7 @@ public class TestZkCache extends ZkUnitTestBase
       deletePaths.add(root);
     }
   }
-  
+
   static void dfUpdateZk(List<String> updatePaths, ZkClient client, String root)
   {
     List<String> childs = client.getChildren(root);
@@ -222,6 +224,21 @@ public class TestZkCache extends ZkUnitTestBase
       client.writeData(root, updateStr.getBytes());
     }
   }
-  
-  
+
+  boolean checkCallbacks(List<String> expected, List<String> actual)
+  {
+    int j = 0;
+    for (String expectStr : expected)
+    {
+      while (j < actual.size() && !expectStr.equals(actual.get(j)))
+      {
+        j++;
+      }
+      if (j == actual.size())
+      {
+        return false;
+      }
+    }
+    return true;
+  }
 }

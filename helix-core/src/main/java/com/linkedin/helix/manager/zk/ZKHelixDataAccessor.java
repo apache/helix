@@ -10,6 +10,7 @@ import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.apache.log4j.Logger;
 
 import com.linkedin.helix.BaseDataAccessor;
+import com.linkedin.helix.GroupCommit;
 import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixException;
 import com.linkedin.helix.HelixProperty;
@@ -21,13 +22,15 @@ import com.linkedin.helix.ZNRecordUpdater;
 
 public class ZKHelixDataAccessor implements HelixDataAccessor
 {
-  private static Logger LOG = Logger.getLogger(ZKHelixDataAccessor.class);
+  private static Logger                    LOG          =
+                                                            Logger.getLogger(ZKHelixDataAccessor.class);
   private final BaseDataAccessor<ZNRecord> _baseDataAccessor;
-  private final String _clusterName;
-  private final Builder _propertyKeyBuilder;
+  private final String                     _clusterName;
+  private final Builder                    _propertyKeyBuilder;
+  private final GroupCommit                _groupCommit = new GroupCommit();
 
   public ZKHelixDataAccessor(String clusterName,
-      BaseDataAccessor<ZNRecord> baseDataAccessor)
+                             BaseDataAccessor<ZNRecord> baseDataAccessor)
   {
     _clusterName = clusterName;
     _baseDataAccessor = baseDataAccessor;
@@ -35,8 +38,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor
   }
 
   @Override
-  public <T extends HelixProperty> boolean createProperty(PropertyKey key,
-      T value)
+  public <T extends HelixProperty> boolean createProperty(PropertyKey key, T value)
   {
     PropertyType type = key.getType();
     String path = key.getPath();
@@ -52,7 +54,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor
     {
       throw new HelixException("The ZNRecord for " + type + " is not valid.");
     }
-  
+
     String path = key.getPath();
     int options = constructOptions(type);
     return _baseDataAccessor.set(path, value.getRecord(), options);
@@ -65,7 +67,18 @@ public class ZKHelixDataAccessor implements HelixDataAccessor
     PropertyType type = key.getType();
     String path = key.getPath();
     int options = constructOptions(type);
-    return _baseDataAccessor.update(path, new ZNRecordUpdater(value.getRecord()), options);
+    
+    boolean success;
+    switch (type)
+    {
+    case CURRENTSTATES:
+      success = _groupCommit.commit(_baseDataAccessor, path, value.getRecord());
+      break;
+    default:
+      success = _baseDataAccessor.update(path, new ZNRecordUpdater(value.getRecord()), options);
+      break;
+    }
+    return success;
   }
 
   @SuppressWarnings("unchecked")
@@ -79,7 +92,8 @@ public class ZKHelixDataAccessor implements HelixDataAccessor
     try
     {
       record = _baseDataAccessor.get(path, null, options);
-    } catch (ZkNoNodeException e)
+    }
+    catch (ZkNoNodeException e)
     {
       // OK
     }
@@ -110,26 +124,24 @@ public class ZKHelixDataAccessor implements HelixDataAccessor
     PropertyType type = key.getType();
     String parentPath = key.getPath();
     int options = constructOptions(type);
-    List<ZNRecord> children = _baseDataAccessor
-        .getChildren(parentPath, null, options);
+    List<ZNRecord> children = _baseDataAccessor.getChildren(parentPath, null, options);
     List<HelixProperty> childValues = new ArrayList<HelixProperty>();
     for (ZNRecord record : children)
     {
-      HelixProperty typedInstance = HelixProperty.convertToTypedInstance(key.getTypeClass(), record);
+      HelixProperty typedInstance =
+          HelixProperty.convertToTypedInstance(key.getTypeClass(), record);
       childValues.add(typedInstance);
     }
     return (List<T>) childValues;
   }
 
   @Override
-  public <T extends HelixProperty> Map<String, T> getChildValuesMap(
-      PropertyKey key)
+  public <T extends HelixProperty> Map<String, T> getChildValuesMap(PropertyKey key)
   {
     PropertyType type = key.getType();
     String parentPath = key.getPath();
     int options = constructOptions(type);
-    List<ZNRecord> children = _baseDataAccessor
-        .getChildren(parentPath, null, options);
+    List<ZNRecord> children = _baseDataAccessor.getChildren(parentPath, null, options);
     Map<String, T> childValuesMap = new HashMap<String, T>();
     for (ZNRecord record : children)
     {
@@ -152,16 +164,17 @@ public class ZKHelixDataAccessor implements HelixDataAccessor
     if (type.isPersistent())
     {
       options = options | BaseDataAccessor.Option.PERSISTENT;
-    } else
+    }
+    else
     {
       options = options | BaseDataAccessor.Option.EPHEMERAL;
     }
     return options;
-  } 
+  }
 
   @Override
-  public <T extends HelixProperty> boolean[] createChildren(
-      List<PropertyKey> keys, List<T> children)
+  public <T extends HelixProperty> boolean[] createChildren(List<PropertyKey> keys,
+                                                            List<T> children)
   {
     // TODO: add validation
     int options = -1;
@@ -181,8 +194,8 @@ public class ZKHelixDataAccessor implements HelixDataAccessor
   }
 
   @Override
-  public <T extends HelixProperty> boolean[] setChildren(
-      List<PropertyKey> keys, List<T> children)
+  public <T extends HelixProperty> boolean[] setChildren(List<PropertyKey> keys,
+                                                         List<T> children)
   {
     int options = -1;
     List<String> paths = new ArrayList<String>();
@@ -209,7 +222,8 @@ public class ZKHelixDataAccessor implements HelixDataAccessor
 
   @Override
   public <T extends HelixProperty> boolean[] updateChildren(List<String> paths,
-      List<DataUpdater<ZNRecord>> updaters, int options)
+                                                            List<DataUpdater<ZNRecord>> updaters,
+                                                            int options)
   {
     return _baseDataAccessor.updateChildren(paths, updaters, options);
   }

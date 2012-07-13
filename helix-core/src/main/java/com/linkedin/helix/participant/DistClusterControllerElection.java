@@ -29,6 +29,7 @@ import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.controller.GenericHelixController;
 import com.linkedin.helix.controller.HelixControllerMain;
+import com.linkedin.helix.controller.restlet.ZKPropertyTransferServer;
 import com.linkedin.helix.model.LeaderHistory;
 import com.linkedin.helix.model.LiveInstance;
 
@@ -136,6 +137,11 @@ public class DistClusterControllerElection implements ControllerChangeListener
       // TODO: this session id is not the leader's session id in distributed mode
       leader.setSessionId(manager.getSessionId());
       leader.setHelixVersion(manager.getVersion());
+      String zkPropertyTransferServiceUrl = ZKPropertyTransferServer.getInstance().getWebserviceUrl();
+      if(zkPropertyTransferServiceUrl != null)
+      {
+        leader.setWebserviceUrl(zkPropertyTransferServiceUrl);
+      }
       boolean success = accessor.createProperty(keyBuilder.controllerLeader(), leader);
       if (success)
       {

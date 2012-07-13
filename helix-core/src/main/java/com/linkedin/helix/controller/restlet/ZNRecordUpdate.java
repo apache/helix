@@ -5,7 +5,6 @@ import org.codehaus.jackson.annotate.JsonCreator;
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonProperty;
 
-import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.ZNRecordUpdater;
 /**
@@ -15,18 +14,25 @@ import com.linkedin.helix.ZNRecordUpdater;
  * */
 public class ZNRecordUpdate
 {
+  public enum OpCode
+  {
+    // TODO: create is not supported; but update will create if not exist
+    CREATE,
+    UPDATE,
+    SET
+  }
   final String _path;
   ZNRecord _record;
-  final PropertyType _type;
+  final OpCode _code;
 
   @JsonCreator
   public ZNRecordUpdate(@JsonProperty("path")String path, 
-                        @JsonProperty("propertyType")PropertyType type, 
+                        @JsonProperty("opcode")OpCode code, 
                         @JsonProperty("record")ZNRecord record)
   {
     _path = path;
     _record = record;
-    _type = type;
+    _code = code;
   }
   
   public String getPath()
@@ -39,15 +45,16 @@ public class ZNRecordUpdate
     return _record;
   }
   
-  public PropertyType getPropertyType()
+  public OpCode getOpcode()
   {
-    return _type;
+    return _code;
   }
 
   @JsonIgnore(true)
   public DataUpdater<ZNRecord> getZNRecordUpdater()
   {
-    if(_type == PropertyType.HEALTHREPORT)
+    if(_code == OpCode.SET)
+
     {
       return new ZNRecordUpdater(_record)
       {
@@ -58,13 +65,13 @@ public class ZNRecordUpdate
         }
       };
     }
-    else if ((_type == PropertyType.STATUSUPDATES))
+    else if ((_code == OpCode.UPDATE))
     {
       return new ZNRecordUpdater(_record);
     }
     else
     {
-      throw new UnsupportedOperationException("Not supported : " + _type);
+      throw new UnsupportedOperationException("Not supported : " + _code);
     }
   }
 }

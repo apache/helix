@@ -501,16 +501,12 @@ public class StatusUpdateUtil
         ZNRecord statusUpdateRecord = createMessageLogRecord(message);
 
         // For now write participant StatusUpdates to log4j. 
-        // TODO: Need to investigate another data channel to report to controller.
-        if (true)
-        {
-          _logger.info("StatusUpdate path:" + propertyKey.getPath() + ", updates:"
+        // we are using restlet as another data channel to report to controller.
+        
+        _logger.info("StatusUpdate path:" + propertyKey.getPath() + ", updates:"
               + statusUpdateRecord);
-        }
-        else
-        {
-          accessor.updateProperty(propertyKey, new StatusUpdate(statusUpdateRecord));
-        }
+        accessor.updateProperty(propertyKey, new StatusUpdate(statusUpdateRecord));
+        
       }
       _recordedMessages.put(message.getMsgId(), message.getMsgId());
     }
@@ -529,15 +525,9 @@ public class StatusUpdateUtil
                                            statusUpdateSubPath,
                                            statusUpdateKey);
       // For now write participant StatusUpdates to log4j. 
-      // TODO: Need to investigate another data channel to report to controller.
-      if (true)
-      {
-        _logger.info("StatusUpdate path:" + propertyKey.getPath() + ", updates:" + record);
-      }
-      else
-      {
-        accessor.updateProperty(propertyKey, new StatusUpdate(record));
-      }
+      // we are using restlet as another data channel to report to controller.
+      _logger.info("StatusUpdate path:" + propertyKey.getPath() + ", updates:" + record);
+      accessor.updateProperty(propertyKey, new StatusUpdate(record));
     }
 
     // If the error level is ERROR, also write the record to "ERROR" ZNode

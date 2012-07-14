@@ -40,7 +40,7 @@ public enum PropertyType
   CURRENTSTATES(Type.INSTANCE, true, true, false, false, true),
   STATUSUPDATES(Type.INSTANCE, true, true, false, false, false, true),
   ERRORS(Type.INSTANCE, true, true),
-  HEALTHREPORT(Type.INSTANCE, true, false, false, false),
+  HEALTHREPORT(Type.INSTANCE, true, false, false, false, false, true),
 
   // CONTROLLER PROPERTY
   LEADER(Type.CONTROLLER, false, false, true, true),
@@ -72,7 +72,7 @@ public enum PropertyType
    */
   boolean isCached;
 
-  boolean isAsyncWrite;
+  boolean usePropertyTransferServer;
 
   private PropertyType(Type type, boolean isPersistent, boolean mergeOnUpdate)
   {
@@ -126,7 +126,7 @@ public enum PropertyType
     this.updateOnlyOnExists = updateOnlyOnExists;
     this.createOnlyIfAbsent = createOnlyIfAbsent;
     this.isCached = isCached;
-    this.isAsyncWrite = isAsyncWrite;
+    this.usePropertyTransferServer = isAsyncWrite;
   }
 
   public boolean isCreateOnlyIfAbsent()
@@ -184,9 +184,9 @@ public enum PropertyType
     return isCached;
   }
 
-  public boolean isAsyncWrite()
+  public boolean usePropertyTransferServer()
   {
-    return isAsyncWrite;
+    return usePropertyTransferServer;
   }
 
 }

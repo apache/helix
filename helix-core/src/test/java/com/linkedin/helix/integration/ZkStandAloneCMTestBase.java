@@ -29,6 +29,7 @@ import org.testng.annotations.BeforeClass;
 import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.TestHelper.StartCMResult;
 import com.linkedin.helix.controller.HelixControllerMain;
+import com.linkedin.helix.controller.restlet.ZKPropertyTransferServer;
 import com.linkedin.helix.manager.zk.ZNRecordSerializer;
 import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.tools.ClusterSetup;
@@ -71,6 +72,7 @@ public class ZkStandAloneCMTestBase extends ZkIntegrationTestBase
     System.out.println("START " + CLASS_NAME + " at "
         + new Date(System.currentTimeMillis()));
 
+    ZKPropertyTransferServer.getInstance().init(19999, ZK_ADDR);
     _zkClient = new ZkClient(ZK_ADDR);
     _zkClient.setZkSerializer(new ZNRecordSerializer());
     String namespace = "/" + CLUSTER_NAME;
@@ -115,7 +117,7 @@ public class ZkStandAloneCMTestBase extends ZkIntegrationTestBase
                                    ZK_ADDR,
                                    HelixControllerMain.STANDALONE);
     _startCMResultMap.put(controllerName, startResult);
-
+    
     boolean result =
         ClusterStateVerifier.verifyByZkCallback(new MasterNbInExtViewVerifier(ZK_ADDR,
                                                                               CLUSTER_NAME));
@@ -132,7 +134,8 @@ public class ZkStandAloneCMTestBase extends ZkIntegrationTestBase
     /**
      * shutdown order: 1) disconnect the controller 2) disconnect participants
      */
-
+    ZKPropertyTransferServer.getInstance().shutdown();
+    ZKPropertyTransferServer.getInstance().reset();
     StartCMResult result;
     Iterator<Entry<String, StartCMResult>> it = _startCMResultMap.entrySet().iterator();
     while (it.hasNext())

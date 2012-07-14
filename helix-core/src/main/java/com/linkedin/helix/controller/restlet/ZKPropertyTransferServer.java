@@ -18,7 +18,11 @@ import org.restlet.data.Protocol;
 
 import com.linkedin.helix.BaseDataAccessor;
 import com.linkedin.helix.HelixManager;
+import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.ZNRecord;
+import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
+import com.linkedin.helix.manager.zk.ZkClient;
+import com.linkedin.helix.model.LiveInstance;
 /**
  * Controller side restlet server that receives ZNRecordUpdate requests from
  * clients, and batch the ZNRecordUpdate and apply them to zookeeper. This is 
@@ -42,7 +46,8 @@ public class ZKPropertyTransferServer
   
   int _localWebservicePort;
   String _webserviceUrl;
-  HelixManager _manager;
+  ZkBaseDataAccessor<ZNRecord> _accessor;
+  String _zkAddress;
   Timer _timer;
   AtomicReference<ConcurrentHashMap<String, ZNRecordUpdate>> _dataBufferRef
     = new AtomicReference<ConcurrentHashMap<String, ZNRecordUpdate>>();
@@ -86,7 +91,7 @@ public class ZKPropertyTransferServer
       // Batch write the accumulated updates into zookeeper
       if(paths.size() > 0)
       {
-        _manager.getHelixDataAccessor().updateChildren(paths, updaters, BaseDataAccessor.Option.PERSISTENT);
+        _accessor.updateChildren(paths, updaters, BaseDataAccessor.Option.PERSISTENT);
       }
       LOG.info("Updating " + vals.size() + " records");
     }
@@ -113,12 +118,14 @@ public class ZKPropertyTransferServer
     return _initialized;
   }
   
-  public void init(int localWebservicePort, HelixManager manager)
+  public void init(int localWebservicePort, String zkAddress)
   {
     if(!_initialized && !_shutdownFlag)
     {
+      LOG.error("Initializing with port " + _localWebservicePort + " zkAddress: " + zkAddress);
       _localWebservicePort = localWebservicePort;
-      _manager = manager;
+      _accessor = new ZkBaseDataAccessor<ZNRecord>(new ZkClient(zkAddress));
+      _zkAddress = zkAddress;
       startServer();
     }
     else
@@ -145,7 +152,8 @@ public class ZKPropertyTransferServer
   {
     if(!_initialized || _shutdownFlag)
     {
-      LOG.error("inited:" + _initialized + " shutdownFlag:"+_shutdownFlag+" , return");
+      LOG.error("zkDataTransferServer inited:" + _initialized 
+          + " shutdownFlag:"+_shutdownFlag+" , return");
       return;
     }
     // Do local merge if receive multiple update on the same path
@@ -170,8 +178,8 @@ public class ZKPropertyTransferServer
   
   void startServer()
   {
-    LOG.info("Cluster " + _manager.getClusterName() + " " + _manager.getInstanceName() 
-        + " zkDataTransferServer starting...");
+    LOG.info("zkDataTransferServer starting on Port " + _localWebservicePort + " zkAddress " + _zkAddress);
+    
     _component = new Component();
     
     _component.getServers().add(Protocol.HTTP, _localWebservicePort);
@@ -197,8 +205,7 @@ public class ZKPropertyTransferServer
     {
       LOG.error("", e);
     }
-    LOG.info("Cluster " + _manager.getClusterName() + " " + _manager.getInstanceName() 
-        + " zkDataTransferServer started");
+    LOG.info("zkDataTransferServer started on Port " + _localWebservicePort + " zkAddress " + _zkAddress);
   }
   
   public void shutdown()
@@ -208,8 +215,7 @@ public class ZKPropertyTransferServer
       LOG.error("ZKPropertyTransferServer already has been shutdown...");
       return;
     }
-    LOG.info("Cluster " + _manager.getClusterName() + " " + _manager.getInstanceName() 
-        + " zkDataTransferServer shuting down");
+    LOG.info("zkDataTransferServer shuting down on Port " + _localWebservicePort + " zkAddress " + _zkAddress);
     if(_timer != null)
     {
       _timer.cancel();
@@ -223,5 +229,15 @@ public class ZKPropertyTransferServer
       LOG.error("", e);
     }
     _shutdownFlag = true;
+  }
+
+  public void reset()
+  {
+    if(_shutdownFlag == true)
+    {
+      _instance = null;
+      _shutdownFlag = false;
+      _initialized = false;
+    }
   }
 }

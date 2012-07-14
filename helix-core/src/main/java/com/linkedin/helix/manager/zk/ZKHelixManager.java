@@ -437,7 +437,9 @@ public class ZKHelixManager implements HelixManager
      */
     _messagingService.getExecutor().shutDown();
     resetHandlers();
-
+    
+    _helixAccessor.shutdown();
+    
     if (_leaderElectionHandler != null)
     {
       _leaderElectionHandler.reset();

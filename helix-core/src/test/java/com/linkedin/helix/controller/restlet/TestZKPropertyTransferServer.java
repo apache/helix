@@ -34,10 +34,7 @@ public class TestZKPropertyTransferServer extends ZkStandAloneCMTestBase
     String participant1 = "localhost_" + START_PORT;
     String participant2 = "localhost_" + (START_PORT + 1);
     
-    String controllerName = CONTROLLER_PREFIX + "_0";
-    HelixManager controllerManager = _startCMResultMap.get(controllerName)._manager;
     ZKPropertyTransferServer.PERIOD = 1000;
-    ZKPropertyTransferServer.getInstance().init(19999, controllerManager);
     
     ZNRecord healthRecord1 = new ZNRecord("TestStat");
     healthRecord1.setSimpleField("TestKey", "TestValue");
@@ -76,7 +73,7 @@ public class TestZKPropertyTransferServer extends ZkStandAloneCMTestBase
     
     try
     {
-      Thread.sleep(2000);
+      Thread.sleep(20000);
     }
     catch (InterruptedException e)
     {

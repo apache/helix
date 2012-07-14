@@ -18,6 +18,10 @@ import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.ZNRecordUpdater;
+import com.linkedin.helix.controller.restlet.ZNRecordUpdate;
+import com.linkedin.helix.controller.restlet.ZNRecordUpdate.OpCode;
+import com.linkedin.helix.controller.restlet.ZkPropertyTransferClient;
+import com.linkedin.helix.model.LiveInstance;
 
 public class ZKHelixDataAccessor implements HelixDataAccessor
 {
@@ -25,6 +29,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor
   private final BaseDataAccessor<ZNRecord> _baseDataAccessor;
   private final String _clusterName;
   private final Builder _propertyKeyBuilder;
+  final ZkPropertyTransferClient _zkPropertyTransferClient;
 
   public ZKHelixDataAccessor(String clusterName,
       BaseDataAccessor<ZNRecord> baseDataAccessor)
@@ -32,6 +37,8 @@ public class ZKHelixDataAccessor implements HelixDataAccessor
     _clusterName = clusterName;
     _baseDataAccessor = baseDataAccessor;
     _propertyKeyBuilder = new PropertyKey.Builder(_clusterName);
+    _zkPropertyTransferClient
+      = new ZkPropertyTransferClient(ZkPropertyTransferClient.DEFAULT_MAX_CONCURRENTTASKS);
   }
 
   @Override
@@ -55,6 +62,14 @@ public class ZKHelixDataAccessor implements HelixDataAccessor
   
     String path = key.getPath();
     int options = constructOptions(type);
+    
+    if(type.usePropertyTransferServer() && getPropertyTransferUrl() != null)
+    {
+      ZNRecordUpdate update = new ZNRecordUpdate(path, OpCode.SET, value.getRecord());
+      _zkPropertyTransferClient.sendZNRecordUpdate(update, getPropertyTransferUrl());
+      return true;
+    }
+    
     return _baseDataAccessor.set(path, value.getRecord(), options);
   }
 
@@ -65,6 +80,21 @@ public class ZKHelixDataAccessor implements HelixDataAccessor
     PropertyType type = key.getType();
     String path = key.getPath();
     int options = constructOptions(type);
+    
+    if(type.usePropertyTransferServer())
+    {
+      if(getPropertyTransferUrl() != null)
+      {
+        ZNRecordUpdate update = new ZNRecordUpdate(path, OpCode.UPDATE, value.getRecord());
+        _zkPropertyTransferClient.sendZNRecordUpdate(update, getPropertyTransferUrl());
+        return true;
+      }
+      else
+      {
+        LOG.error("getPropertyTransferUrl is null");
+      }
+    }
+    
     return _baseDataAccessor.update(path, new ZNRecordUpdater(value.getRecord()), options);
   }
 
@@ -213,5 +243,19 @@ public class ZKHelixDataAccessor implements HelixDataAccessor
   {
     return _baseDataAccessor.updateChildren(paths, updaters, options);
   }
+  
+  private String getPropertyTransferUrl()
+  {
+    LiveInstance leader = getProperty(keyBuilder().controllerLeader());
+    if(leader != null)
+    {
+      return leader.getWebserviceUrl();
+    }
+    return null;
+  }
 
+  public void shutdown()
+  {
+    _zkPropertyTransferClient.shutdown();
+  }
 }

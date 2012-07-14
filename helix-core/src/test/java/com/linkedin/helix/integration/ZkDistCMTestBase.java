@@ -31,6 +31,7 @@ import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.TestHelper.StartCMResult;
 import com.linkedin.helix.controller.HelixControllerMain;
+import com.linkedin.helix.controller.restlet.ZKPropertyTransferServer;
 import com.linkedin.helix.manager.zk.ZNRecordSerializer;
 import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.model.PauseSignal;
@@ -68,6 +69,7 @@ public class ZkDistCMTestBase extends ZkIntegrationTestBase
   @BeforeClass
   public void beforeClass() throws Exception
   {
+    ZKPropertyTransferServer.getInstance().init(19999, ZK_ADDR);
     System.out.println("START " + CLASS_NAME + ".b4Class() at " + new Date(System.currentTimeMillis()));
     _zkClient = new ZkClient(ZK_ADDR);
     _zkClient.setZkSerializer(new ZNRecordSerializer());
@@ -155,7 +157,7 @@ public class ZkDistCMTestBase extends ZkIntegrationTestBase
   public void afterClass() throws Exception
   {
     System.out.println("AFTERCLASS " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
-
+    
     /**
      * shutdown order:
      *   1) pause the leader (optional)
@@ -205,7 +207,8 @@ public class ZkDistCMTestBase extends ZkIntegrationTestBase
     }
 
     _zkClient.close();
-
+    ZKPropertyTransferServer.getInstance().shutdown();
+    ZKPropertyTransferServer.getInstance().reset();
     // logger.info("END " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
     System.out.println("END " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
   }

@@ -128,7 +128,7 @@ public class ZKDataAccessor implements DataAccessor
         _zkClient.createPersistent(parent, true);
       }
 
-      if (!type.isAsyncWrite())
+      if (!type.usePropertyTransferServer())
       {
         ZKUtil.createOrUpdate(_zkClient, path, value, type.isPersistent(), type.isMergeOnUpdate());
       } else

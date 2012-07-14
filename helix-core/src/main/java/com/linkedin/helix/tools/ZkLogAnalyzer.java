@@ -95,19 +95,21 @@ public class ZkLogAnalyzer
 
   public static void main(String[] args) throws Exception
   {
-    if (args.length != 3)
+    if (args.length != 4)
     {
-      System.err.println("USAGE: ZkLogAnalyzer zkLogDir clusterName zkAddr");
+      System.err.println("USAGE: ZkLogAnalyzer zkLogDir tmpDir zkAddr clusterName");
       System.exit(1);
     }
 
     // get create-timestamp of "/" + clusterName
     // find all zk logs after that create-timestamp and parse them
-    // save parsed log in /tmp/zkLogAnalyzor_zklog.parsed0,1,2...
+    // save parsed log in tmpLogDir/zkLogAnalyzor_zklog.parsed0,1,2...
 
     String zkLogDir = args[0];
-    String clusterName = args[1];
+    String tmpDir = args[1];
     String zkAddr = args[2];
+    String clusterName = args[3];
+    
     ZkClient zkClient = new ZkClient(zkAddr);
     Stat clusterCreateStat = zkClient.getStat("/" + clusterName);
     System.out.println(clusterName + " created at " + clusterCreateStat.getCtime());
@@ -149,8 +151,8 @@ public class ZkLogAnalyzer
       System.out.println(lastModified + ": "
           + (fileName.substring(fileName.lastIndexOf('/') + 1)));
 
-      String parsedFileName = "/tmp/zkLogAnalyzor_zklog.parsed" + i;
-      i++;
+      String parsedFileName = tmpDir + "/" + fileName.substring(fileName.lastIndexOf('/') + 1) + ".parsed"; // "/tmp/zkLogAnalyzor_zklog.parsed" + i;
+      // i++;
       ZKLogFormatter.main(new String[] { "log", fileName, parsedFileName });
       parsedZkLogs.add(parsedFileName);
     }

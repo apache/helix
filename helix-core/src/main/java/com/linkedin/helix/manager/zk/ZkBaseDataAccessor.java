@@ -209,7 +209,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
   }
 
   @Override
-  public List<T> get(List<String> paths, int options)
+  public List<T> get(List<String> paths, List<Stat> stats, int options)
   {
     GetDataCallbackHandler[] cbList = new GetDataCallbackHandler[paths.size()];
     for (int i = 0; i < paths.size(); i++)
@@ -229,10 +229,19 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
         @SuppressWarnings("unchecked")
         T record = (T) _zkClient.getZkSerializer().deserialize(cb._data);
         records.add(record);
+        if (stats != null)
+        {
+          stats.add(cb._stat);
+        }
       }
       else
       {
         records.add(null);
+        if (stats != null)
+        {
+          stats.add(null);
+        }
+
       }
     }
 
@@ -240,7 +249,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
   }
 
   @Override
-  public List<T> getChildren(String parentPath, int options)
+  public List<T> getChildren(String parentPath, List<Stat> stats, int options)
   {
     try
     {
@@ -253,7 +262,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
       }
 
       // remove null children
-      List<T> records = get(paths, options);
+      List<T> records = get(paths, stats, options);
       Iterator<T> iter = records.iterator();
       while (iter.hasNext())
       {

@@ -16,6 +16,7 @@
 package com.linkedin.helix.integration;
 
 import java.util.Date;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -42,6 +43,8 @@ public class TestDummyAlerts extends ZkIntegrationTestBase
 {
   public class DummyAlertsTransition extends MockTransition
   {
+    private final AtomicBoolean _done = new AtomicBoolean();
+
     @Override
     public void doTransition(Message message, NotificationContext context)
     {
@@ -49,12 +52,8 @@ public class TestDummyAlerts extends ZkIntegrationTestBase
       HelixDataAccessor accessor = manager.getHelixDataAccessor();
       Builder keyBuilder = accessor.keyBuilder();
       
-      String fromState = message.getFromState();
-      String toState = message.getToState();
       String instance = message.getTgtName();
-      String partition = message.getPartitionName();
-
-      if (fromState.equalsIgnoreCase("SLAVE") && toState.equalsIgnoreCase("MASTER"))
+      if (_done.getAndSet(true) == false)
       {
         for (int i = 0; i < 5; i++)
         {
@@ -63,7 +62,7 @@ public class TestDummyAlerts extends ZkIntegrationTestBase
                                new HealthStat(new ZNRecord("mockAlerts" + i)));
           try
           {
-            Thread.sleep(1000);
+            Thread.sleep(500);
           }
           catch (InterruptedException e)
           {
@@ -142,7 +141,6 @@ public class TestDummyAlerts extends ZkIntegrationTestBase
       Assert.assertEquals(record.getId(), "mockAlerts4");
     }
 
-    // Thread.sleep(Long.MAX_VALUE);
     // clean up
     for (int i = 0; i < 5; i++)
     {

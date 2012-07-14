@@ -15,6 +15,7 @@
  */
 package com.linkedin.helix.messaging.handling;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
@@ -36,9 +37,9 @@ import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.MessageListener;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.NotificationContext.Type;
+import com.linkedin.helix.PropertyKey;
 import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.model.Message;
-import com.linkedin.helix.model.Message.Attributes;
 import com.linkedin.helix.model.Message.MessageState;
 import com.linkedin.helix.model.Message.MessageType;
 import com.linkedin.helix.monitoring.ParticipantMonitor;
@@ -213,26 +214,6 @@ public class HelixTaskExecutor implements MessageListener
     }
   }
 
-  public static void main(String[] args) throws Exception
-  {
-    ExecutorService pool = Executors.newFixedThreadPool(MAX_PARALLEL_TASKS);
-    Future<HelixTaskResult> future;
-    future = pool.submit(new Callable<HelixTaskResult>()
-    {
-
-      @Override
-      public HelixTaskResult call() throws Exception
-      {
-        System.out.println("CMTaskExecutor.main(...).new Callable() {...}.call()");
-        return null;
-      }
-
-    });
-    future = pool.submit(new HelixTask(null, null, null, null));
-    Thread.currentThread().join();
-    System.out.println(future.isDone());
-  }
-
   @Override
   public void onMessage(String instanceName,
                         List<Message> messages,
@@ -262,45 +243,18 @@ public class HelixTaskExecutor implements MessageListener
     }
 
     // Sort message based on creation timestamp
-    class MessageTimeComparator implements Comparator<Message>
+    Collections.sort(messages, new Comparator<Message>()
     {
       @Override
-      public int compare(Message message1, Message message2)
+      public int compare(Message m1, Message m2)
       {
-        long messageCreateTime1 = 0, messageCreateTime2 = 0;
-        String time1 =
-            message1.getRecord().getSimpleField(Attributes.CREATE_TIMESTAMP.toString());
-        String time2 =
-            message2.getRecord().getSimpleField(Attributes.CREATE_TIMESTAMP.toString());
-        try
-        {
-          messageCreateTime1 = Long.parseLong(time1);
-        }
-        catch (Exception e)
-        {
-          logger.warn("failed to parse creation time for msg " + message1.getId());
-        }
-        try
-        {
-          messageCreateTime2 = Long.parseLong(time2);
-        }
-        catch (Exception e)
-        {
-          logger.warn("failed to parse creation time for msg " + message2.getId());
-        }
-
-        if (messageCreateTime1 > messageCreateTime2)
-        {
-          return 1;
-        }
-        else if (messageCreateTime1 < messageCreateTime2)
-        {
-          return -1;
-        }
-        return 0;
+        return (int) (m1.getCreateTimeStamp() - m2.getCreateTimeStamp());
       }
-    }
-    Collections.sort(messages, new MessageTimeComparator());
+    });
+
+    List<Message> readMsgs = new ArrayList<Message>();
+    List<PropertyKey> readMsgKeys = new ArrayList<PropertyKey>();
+    List<MessageHandler> readMsgHandlers = new ArrayList<MessageHandler>();
 
     for (Message message : messages)
     {
@@ -339,6 +293,7 @@ public class HelixTaskExecutor implements MessageListener
             {
               logger.warn("Message handler factory not found for message type:"
                   + message.getMsgType() + ", message:" + message);
+
               continue;
             }
 
@@ -351,18 +306,18 @@ public class HelixTaskExecutor implements MessageListener
                                       HelixStateMachineEngine.class,
                                       "New Message",
                                       accessor);
+
+            // batch all messages
+            readMsgs.add(message);
             if (message.getTgtName().equalsIgnoreCase("controller"))
             {
-              accessor.updateProperty(keyBuilder.controllerMessage(message.getId()),
-                                      message);
+              readMsgKeys.add(keyBuilder.controllerMessage(message.getMsgId()));
             }
             else
             {
-              accessor.updateProperty(keyBuilder.message(instanceName, message.getId()),
-                                      message);
-
+              readMsgKeys.add(keyBuilder.message(instanceName, message.getMsgId()));
             }
-            scheduleTask(message, handler, changeContext);
+            readMsgHandlers.add(handler);
           }
           catch (Exception e)
           {
@@ -408,7 +363,8 @@ public class HelixTaskExecutor implements MessageListener
       {
         String warningMessage =
             "Session Id does not match. Expected sessionId: " + sessionId
-                + ", sessionId from Message: " + tgtSessionId;
+                + ", sessionId from Message: " + tgtSessionId + ". MessageId: "
+                + message.getMsgId();
         logger.error(warningMessage);
         accessor.removeProperty(keyBuilder.message(instanceName, message.getId()));
         _statusUpdateUtil.logWarning(message,
@@ -418,6 +374,18 @@ public class HelixTaskExecutor implements MessageListener
       }
     }
 
+    // update messages in batch and schedule all read messages
+    if (readMsgs.size() > 0)
+    {
+      accessor.setChildren(readMsgKeys, readMsgs);
+
+      for (int i = 0; i < readMsgs.size(); i++)
+      {
+        Message message = readMsgs.get(i);
+        MessageHandler handler = readMsgHandlers.get(i);
+        scheduleTask(message, handler, changeContext);
+      }
+    }
   }
 
   private MessageHandler createMessageHandler(Message message,
@@ -466,5 +434,26 @@ public class HelixTaskExecutor implements MessageListener
     }
     _monitor.shutDown();
     logger.info("shutdown finished");
+  }
+
+  // TODO: remove this
+  public static void main(String[] args) throws Exception
+  {
+    ExecutorService pool = Executors.newFixedThreadPool(MAX_PARALLEL_TASKS);
+    Future<HelixTaskResult> future;
+    future = pool.submit(new Callable<HelixTaskResult>()
+    {
+
+      @Override
+      public HelixTaskResult call() throws Exception
+      {
+        System.out.println("CMTaskExecutor.main(...).new Callable() {...}.call()");
+        return null;
+      }
+
+    });
+    future = pool.submit(new HelixTask(null, null, null, null));
+    Thread.currentThread().join();
+    System.out.println(future.isDone());
   }
 }

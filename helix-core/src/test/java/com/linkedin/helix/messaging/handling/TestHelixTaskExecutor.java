@@ -17,7 +17,6 @@ package com.linkedin.helix.messaging.handling;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -30,12 +29,6 @@ import com.linkedin.helix.HelixException;
 import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.Mocks;
 import com.linkedin.helix.NotificationContext;
-import com.linkedin.helix.messaging.handling.HelixTaskExecutor;
-import com.linkedin.helix.messaging.handling.HelixTaskResult;
-import com.linkedin.helix.messaging.handling.MessageHandler;
-import com.linkedin.helix.messaging.handling.MessageHandlerFactory;
-import com.linkedin.helix.messaging.handling.MessageHandler.ErrorCode;
-import com.linkedin.helix.messaging.handling.MessageHandler.ErrorType;
 import com.linkedin.helix.model.Message;
 import com.linkedin.helix.model.Message.MessageState;
 
@@ -205,9 +198,9 @@ public class TestHelixTaskExecutor
   }
 
   @Test ()
-  public void TestNormalMsgExecution() throws InterruptedException
+  public void testNormalMsgExecution() throws InterruptedException
   {
-    System.out.println("START TestCMTaskExecutor.TestNormalMsgExecution()");
+    System.out.println("START TestCMTaskExecutor.testNormalMsgExecution()");
     HelixTaskExecutor executor = new HelixTaskExecutor();
     HelixManager manager = new MockClusterManager();
 
@@ -257,11 +250,11 @@ public class TestHelixTaskExecutor
       AssertJUnit.assertFalse(factory._processedMsgIds.containsKey(record.getId()) && factory2._processedMsgIds.containsKey(record.getId()));
 
     }
-    System.out.println("END TestCMTaskExecutor.TestNormalMsgExecution()");
+    System.out.println("END TestCMTaskExecutor.testNormalMsgExecution()");
   }
 
   @Test ()
-  public void TestUnknownTypeMsgExecution() throws InterruptedException
+  public void testUnknownTypeMsgExecution() throws InterruptedException
   {
     HelixTaskExecutor executor = new HelixTaskExecutor();
     HelixManager manager = new MockClusterManager();
@@ -314,7 +307,7 @@ public class TestHelixTaskExecutor
 
 
   @Test ()
-  public void TestMsgSessionId() throws InterruptedException
+  public void testMsgSessionId() throws InterruptedException
   {
     HelixTaskExecutor executor = new HelixTaskExecutor();
     HelixManager manager = new MockClusterManager();
@@ -365,9 +358,9 @@ public class TestHelixTaskExecutor
   }
 
   @Test()
-  public void TestCreateHandlerException() throws InterruptedException
+  public void testCreateHandlerException() throws InterruptedException
   {
-    System.out.println("START TestCMTaskExecutor.TestNormalMsgExecution()");
+    System.out.println("START TestCMTaskExecutor.testCreateHandlerException()");
     HelixTaskExecutor executor = new HelixTaskExecutor();
     HelixManager manager = new MockClusterManager();
 
@@ -404,10 +397,11 @@ public class TestHelixTaskExecutor
     AssertJUnit.assertTrue(factory._handlersCreated == nMsgs1);
 
     AssertJUnit.assertTrue(exceptionMsg.getMsgState() == MessageState.UNPROCESSABLE);
+    System.out.println("END TestCMTaskExecutor.testCreateHandlerException()");
   }
 
   @Test ()
-  public void TestTaskCancellation() throws InterruptedException
+  public void testTaskCancellation() throws InterruptedException
   {
     HelixTaskExecutor executor = new HelixTaskExecutor();
     HelixManager manager = new MockClusterManager();

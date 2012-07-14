@@ -126,7 +126,7 @@ public interface BaseDataAccessor<T>
    * @param paths
    * @return
    */
-  List<T> get(List<String> paths, int options);
+  List<T> get(List<String> paths, List<Stat> stats, int options);
 
   /**
    * Get the children under a parent path using async api
@@ -134,7 +134,7 @@ public interface BaseDataAccessor<T>
    * @param path
    * @return
    */
-  List<T> getChildren(String parentPath, int options);
+  List<T> getChildren(String parentPath, List<Stat> stats, int options);
 
   /**
    * Returns the child names given a parent path

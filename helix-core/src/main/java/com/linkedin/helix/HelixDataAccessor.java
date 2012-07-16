@@ -20,8 +20,6 @@ import java.util.Map;
 
 import org.I0Itec.zkclient.DataUpdater;
 
-import com.linkedin.helix.model.ExternalView;
-
 /**
  * Interface used to interact with Helix Data Types like IdealState, Config,
  * LiveInstance, Message, ExternalView etc PropertyKey represent the HelixData
@@ -148,5 +146,5 @@ public interface HelixDataAccessor
    * 
    * @return
    */
-  BaseDataAccessor getBaseDataAccessor();
+  BaseDataAccessor<ZNRecord> getBaseDataAccessor();
 }

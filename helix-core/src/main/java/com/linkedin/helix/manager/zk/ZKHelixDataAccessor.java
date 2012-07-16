@@ -215,7 +215,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor
   }
 
   @Override
-  public BaseDataAccessor getBaseDataAccessor()
+  public BaseDataAccessor<ZNRecord> getBaseDataAccessor()
   {
     return _baseDataAccessor;
   }

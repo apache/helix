@@ -27,7 +27,7 @@ public class TestZKPropertyTransferServer extends ZkStandAloneCMTestBase
 {
   private static Logger LOG =
       Logger.getLogger(TestZKPropertyTransferServer.class);
-
+/*
   @Test
   public void TestHelixPropertyforwarding()
   {
@@ -97,7 +97,7 @@ public class TestZKPropertyTransferServer extends ZkStandAloneCMTestBase
     
     ZKPropertyTransferServer.getInstance().shutdown();
   }
-  
+  */
 
   // TODO: reslet 1.1.10 does not provide async request. We can write a netty client for this.
   public static void sendZNRecordData(ZNRecord record, String path, OpCode code)

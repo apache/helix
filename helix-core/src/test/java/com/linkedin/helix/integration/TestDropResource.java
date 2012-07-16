@@ -21,7 +21,7 @@ import org.testng.annotations.Test;
 import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.tools.ClusterStateVerifier;
 
-public class TestDropResource extends ZkStandAloneCMTestBase
+public class TestDropResource extends ZkStandAloneCMTestBaseWithPropertyServerCheck
 {
   @Test()
   public void testDropResource() throws Exception

@@ -42,6 +42,7 @@ import org.testng.Assert;
 
 import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.controller.HelixControllerMain;
+import com.linkedin.helix.controller.restlet.ZKPropertyTransferServer;
 import com.linkedin.helix.manager.file.FileDataAccessor;
 import com.linkedin.helix.manager.zk.ZKHelixAdmin;
 import com.linkedin.helix.manager.zk.ZKHelixDataAccessor;
@@ -107,6 +108,7 @@ public class TestHelper
     int port = Integer.parseInt(zkAddress.substring(zkAddress.lastIndexOf(':') + 1));
     ZkServer zkServer = new ZkServer(dataDir, logDir, defaultNameSpace, port);
     zkServer.start();
+    
 
     return zkServer;
   }

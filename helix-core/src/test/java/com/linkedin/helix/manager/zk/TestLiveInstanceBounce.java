@@ -21,9 +21,10 @@ import org.testng.annotations.Test;
 import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.TestHelper.StartCMResult;
 import com.linkedin.helix.integration.ZkStandAloneCMTestBase;
+import com.linkedin.helix.integration.ZkStandAloneCMTestBaseWithPropertyServerCheck;
 import com.linkedin.helix.tools.ClusterStateVerifier;
 
-public class TestLiveInstanceBounce extends ZkStandAloneCMTestBase
+public class TestLiveInstanceBounce extends ZkStandAloneCMTestBaseWithPropertyServerCheck
 {
   @Test
   public void testInstanceBounce() throws Exception

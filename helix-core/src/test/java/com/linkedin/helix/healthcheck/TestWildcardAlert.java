@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.linkedin.helix.integration;
+package com.linkedin.helix.healthcheck;
 
 import java.io.IOException;
 import java.util.Date;
@@ -50,6 +50,7 @@ import com.linkedin.helix.alerts.AlertValueAndStatus;
 import com.linkedin.helix.controller.HelixControllerMain;
 import com.linkedin.helix.healthcheck.HealthStatsAggregationTask;
 import com.linkedin.helix.healthcheck.ParticipantHealthReportCollectorImpl;
+import com.linkedin.helix.integration.ZkIntegrationTestBase;
 import com.linkedin.helix.manager.zk.ZKHelixDataAccessor;
 import com.linkedin.helix.manager.zk.ZNRecordSerializer;
 import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
@@ -252,7 +253,7 @@ public class TestWildcardAlert extends ZkIntegrationTestBase
     boolean result = ClusterStateVerifier.verifyByPolling(
         new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
     Assert.assertTrue(result);
-
+    Thread.sleep(3000);
     // HealthAggregationTask is supposed to run by a timer every 30s
     // To make sure HealthAggregationTask is run, we invoke it explicitly for this test
     new HealthStatsAggregationTask(cmResult._manager).run();

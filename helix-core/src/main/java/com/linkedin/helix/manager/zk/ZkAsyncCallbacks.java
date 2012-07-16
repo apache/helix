@@ -123,7 +123,7 @@ public class ZkAsyncCallbacks
     {
       if (rc != 0)
       {
-        LOG.error(this + ", rc:" + Code.get(rc) + ", path: " + path);
+        LOG.warn(this + ", rc:" + Code.get(rc) + ", path: " + path);
       }
       _rc = rc;
       handle();

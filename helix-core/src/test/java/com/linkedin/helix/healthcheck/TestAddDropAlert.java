@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.linkedin.helix.integration;
+package com.linkedin.helix.healthcheck;
 
 import java.util.Date;
 import java.util.Map;
@@ -34,6 +34,7 @@ import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.controller.HelixControllerMain;
 import com.linkedin.helix.healthcheck.HealthStatsAggregationTask;
 import com.linkedin.helix.healthcheck.ParticipantHealthReportCollectorImpl;
+import com.linkedin.helix.integration.ZkIntegrationTestBase;
 import com.linkedin.helix.manager.zk.ZKHelixDataAccessor;
 import com.linkedin.helix.manager.zk.ZNRecordSerializer;
 import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;

@@ -100,7 +100,8 @@ public class ZKHelixDataAccessor implements HelixDataAccessor
         }
         else
         {
-          LOG.error("getPropertyTransferUrl is null");
+          LOG.debug("getPropertyTransferUrl is null, direct set the value");
+          //return true;
         }
       }
       success = _baseDataAccessor.update(path, new ZNRecordUpdater(value.getRecord()), options);

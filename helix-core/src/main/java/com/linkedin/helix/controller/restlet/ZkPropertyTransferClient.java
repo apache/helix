@@ -19,38 +19,61 @@ import org.restlet.data.Status;
 public class ZkPropertyTransferClient
 {
   private static Logger LOG = Logger.getLogger(ZkPropertyTransferClient.class);
-  
   public static final int DEFAULT_MAX_CONCURRENTTASKS = 2;
+  
+  public static final String USE_PROPERTYTRANSFER = "UsePropertyTransfer";
   
   int _maxConcurrentTasks;
   ExecutorService _executorService;
+  Client[] _clients;
+  int _requestCount = 0;
   
   public ZkPropertyTransferClient(int maxConcurrentTasks)
   {
     _maxConcurrentTasks = maxConcurrentTasks;
     _executorService = Executors.newFixedThreadPool(_maxConcurrentTasks);
+    _clients = new Client[_maxConcurrentTasks];
+    for(int i = 0; i< _clients.length; i++)
+    {
+      _clients[i] = new Client(Protocol.HTTP);
+    }
   }
   
   public void sendZNRecordUpdate(ZNRecordUpdate update, String webserviceUrl)
   {
     LOG.debug("Sending update to " + update.getPath() + " opcode: " + update.getOpcode());
-    _executorService.submit(new SendZNRecordUpdateTask(update, webserviceUrl));
+    update.getRecord().setSimpleField(USE_PROPERTYTRANSFER, "true");
+    _executorService.submit(new SendZNRecordUpdateTask(update, webserviceUrl, _clients[_requestCount % _maxConcurrentTasks]));
+    _requestCount ++;
   }
   
   public void shutdown()
   {
     _executorService.shutdown();
+    for(Client client: _clients)
+    {
+      try
+      {
+        client.stop();
+      }
+      catch (Exception e)
+      {
+        LOG.error("", e);
+      }
+    }
   }
   
   class SendZNRecordUpdateTask implements Callable<Void>
   {
     ZNRecordUpdate _update;
     String _webServiceUrl;
+    Client _client;
     
-    SendZNRecordUpdateTask(ZNRecordUpdate update, String webserviceUrl)
+    SendZNRecordUpdateTask(ZNRecordUpdate update, String webserviceUrl, Client client)
     {
       _update = update;
       _webServiceUrl = webserviceUrl;
+      _client = client;
     }
     
     @Override
@@ -73,11 +96,10 @@ public class ZkPropertyTransferClient
 
       request.setEntity(
           ZNRecordUpdateResource.UPDATEKEY + "=" + sw, MediaType.APPLICATION_ALL);
-      Client client = new Client(Protocol.HTTP);
       // This is a sync call. See com.noelios.restlet.http.StreamClientCall.sendRequest()
-      Response response = client.handle(request);
+      Response response = _client.handle(request);
       
-      if(response.getStatus() != Status.SUCCESS_OK)
+      if(response.getStatus().getCode() != Status.SUCCESS_OK.getCode())
       {
         LOG.error("Status : " + response.getStatus());
       }

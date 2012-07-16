@@ -37,7 +37,7 @@ import org.testng.annotations.Test;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.alerts.AlertValueAndStatus;
 import com.linkedin.helix.alerts.Tuple;
-import com.linkedin.helix.integration.TestWildcardAlert.TestClusterMBeanObserver;
+import com.linkedin.helix.healthcheck.TestWildcardAlert.TestClusterMBeanObserver;
 import com.linkedin.helix.monitoring.mbeans.ClusterAlertMBeanCollection;
 
 public class TestClusterAlertItemMBeanCollection

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.linkedin.helix.integration;
+package com.linkedin.helix.healthcheck;
 
 import java.util.Date;
 import java.util.HashMap;
@@ -31,6 +31,8 @@ import com.linkedin.helix.HelixProperty;
 import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.healthcheck.HealthStatsAggregationTask;
+import com.linkedin.helix.integration.ZkStandAloneCMTestBase;
+import com.linkedin.helix.integration.ZkStandAloneCMTestBaseWithPropertyServerCheck;
 import com.linkedin.helix.model.AlertHistory;
 import com.linkedin.helix.model.HealthStat;
 
@@ -40,7 +42,7 @@ import com.linkedin.helix.model.HealthStat;
  * start 5 dummy participants verify the current states at end
  */
 
-public class TestAlertFireHistory extends ZkStandAloneCMTestBase
+public class TestAlertFireHistory extends ZkStandAloneCMTestBaseWithPropertyServerCheck
 {
   String _statName = "TestStat@DB=db1";
   String _stat = "TestStat";
@@ -65,7 +67,16 @@ public class TestAlertFireHistory extends ZkStandAloneCMTestBase
       HelixDataAccessor helixDataAccessor = manager.getHelixDataAccessor();
       Builder keyBuilder = helixDataAccessor.keyBuilder();
       helixDataAccessor
-        .setProperty(keyBuilder.healthReport( manager.getInstanceName(), record.getId()), new HealthStat(record));
+        .setProperty(keyBuilder.healthReport( manager.getInstanceName(), record.getId()), new HealthStat(record));  
+    }
+    try
+    {
+      Thread.sleep(1000);
+    }
+    catch (InterruptedException e)
+    {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
     }
   }
   

@@ -69,7 +69,6 @@ public class ZkDistCMTestBase extends ZkIntegrationTestBase
   @BeforeClass
   public void beforeClass() throws Exception
   {
-    ZKPropertyTransferServer.getInstance().init(19999, ZK_ADDR);
 //    Logger.getRootLogger().setLevel(Level.INFO);
     System.out.println("START " + CLASS_NAME + ".b4Class() at " + new Date(System.currentTimeMillis()));
     _zkClient = new ZkClient(ZK_ADDR);
@@ -208,8 +207,6 @@ public class ZkDistCMTestBase extends ZkIntegrationTestBase
     }
 
     _zkClient.close();
-    ZKPropertyTransferServer.getInstance().shutdown();
-    ZKPropertyTransferServer.getInstance().reset();
     // logger.info("END " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
     System.out.println("END " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
   }

@@ -13,10 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.linkedin.helix.integration;
+package com.linkedin.helix.healthcheck;
 
 import java.util.Date;
 import java.util.Map;
+import java.util.Set;
 
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
@@ -34,6 +35,7 @@ import com.linkedin.helix.alerts.AlertValueAndStatus;
 import com.linkedin.helix.controller.HelixControllerMain;
 import com.linkedin.helix.healthcheck.HealthStatsAggregationTask;
 import com.linkedin.helix.healthcheck.ParticipantHealthReportCollectorImpl;
+import com.linkedin.helix.integration.ZkIntegrationTestBase;
 import com.linkedin.helix.manager.zk.ZKHelixDataAccessor;
 import com.linkedin.helix.manager.zk.ZNRecordSerializer;
 import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
@@ -45,12 +47,12 @@ import com.linkedin.helix.model.Message;
 import com.linkedin.helix.tools.ClusterSetup;
 import com.linkedin.helix.tools.ClusterStateVerifier;
 
-public class TestSimpleWildcardAlert extends ZkIntegrationTestBase
+public class TestExpandAlert extends ZkIntegrationTestBase
 {
   ZkClient _zkClient;
   protected ClusterSetup _setupTool = null;
-  protected final String _alertStr = "EXP(decay(1.0)(localhost_12918.RestQueryStats@DBName=TestDB0.latency))CMP(GREATER)CON(10)";
-  protected final String _alertStatusStr = _alertStr; //+" : (*)";
+  protected final String _alertStr = "EXP(decay(1.0)(localhost_*.RestQueryStats@DBName=TestDB0.latency))CMP(GREATER)CON(16)";
+  protected final String _alertStatusStr = _alertStr+" : (localhost_12918.RestQueryStats@DBName=TestDB0.latency)";
   protected final String _dbName = "TestDB0";
 
   @BeforeClass ()
@@ -68,13 +70,8 @@ public class TestSimpleWildcardAlert extends ZkIntegrationTestBase
     _zkClient.close();
   }
 
-  public class SimpleAlertTransition extends MockTransition
+  public class ExpandAlertTransition extends MockTransition
   {
-    int _alertValue;
-    public SimpleAlertTransition(int value)
-    {
-      _alertValue = value;
-    }
     @Override
     public void doTransition(Message message, NotificationContext context)
     {
@@ -97,8 +94,9 @@ public class TestSimpleWildcardAlert extends ZkIntegrationTestBase
     			MockEspressoHealthReportProvider();
     	reporter.addHealthReportProvider(provider);
     	String statName = "latency";
-    	provider.setStat(_dbName, statName,""+(0.1+_alertValue));
-    	reporter.transmitHealthReports();
+    	provider.setStat(_dbName, statName,"15");
+     	reporter.transmitHealthReports();
+
 
     	/*
         for (int i = 0; i < 5; i++)
@@ -124,16 +122,16 @@ public class TestSimpleWildcardAlert extends ZkIntegrationTestBase
   }
 
   @Test()
-  public void testSimpleWildcardAlert() throws Exception
+  public void testExpandAlert() throws Exception
   {
     String clusterName = getShortClassName();
     MockParticipant[] participants = new MockParticipant[5];
 
-    System.out.println("START testSimpleWildcardAlert at " + new Date(System.currentTimeMillis()));
+    System.out.println("START TestExpandAlert at " + new Date(System.currentTimeMillis()));
 
     TestHelper.setupCluster(clusterName,
                             ZK_ADDR,
-                            12944,        // participant start port
+                            12918,        // participant start port
                             "localhost",  // participant name prefix
                             "TestDB",     // resource  name prefix
                             1,            // resources
@@ -142,113 +140,56 @@ public class TestSimpleWildcardAlert extends ZkIntegrationTestBase
                             3,            // replicas //change back to 3!!!
                             "MasterSlave",
                             true);        // do rebalance
-
     // enableHealthCheck(clusterName);
+
+    _setupTool.getClusterManagementTool().addAlert(clusterName, _alertStr);
 
     StartCMResult cmResult = TestHelper.startController(clusterName,
                                "controller_0",
                                ZK_ADDR,
                                HelixControllerMain.STANDALONE);
-    cmResult._manager.stopTimerTasks();
-    
-    String alertwildcard = "EXP(decay(1.0)(localhost*.RestQueryStats@DBName=TestDB0.latency))CMP(GREATER)CON(10)";
-    
-    _setupTool.getClusterManagementTool().addAlert(clusterName, alertwildcard);
     // start participants
     for (int i = 0; i < 5; i++) //!!!change back to 5
     {
-      String instanceName = "localhost_" + (12944 + i);
+      String instanceName = "localhost_" + (12918 + i);
 
       participants[i] = new MockParticipant(clusterName,
                                             instanceName,
                                             ZK_ADDR,
-                                            new SimpleAlertTransition(i * 5));
-      participants[i].syncStart();
-      // new Thread(participants[i]).start();
+                                            new ExpandAlertTransition());
+      participants[i].start();
+//      new Thread(participants[i]).start();
     }
 
     boolean result = ClusterStateVerifier.verifyByPolling(
         new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
     Assert.assertTrue(result);
 
+    Thread.sleep(1000);
     // HealthAggregationTask is supposed to run by a timer every 30s
     // To make sure HealthAggregationTask is run, we invoke it explicitly for this test
     new HealthStatsAggregationTask(cmResult._manager).run();
-    //sleep for a few seconds to give stats stage time to trigger
-    Thread.sleep(1000);
+  //sleep for a few seconds to give stats stage time to trigger
+    Thread.sleep(3000);
 
     // other verifications go here
     ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(_zkClient));
     Builder keyBuilder = accessor.keyBuilder();
-    ZNRecord record = accessor.getProperty(keyBuilder.alertStatus()).getRecord();
-    Map<String, Map<String,String>> recMap = record.getMapFields();
-    for(int i = 0; i < 2; i++)
-    {
-      String alertString = "(localhost_"+(12944 + i)+".RestQueryStats@DBName=TestDB0.latency)";
-      Map<String,String> alertStatusMap = recMap.get(alertwildcard+" : " + alertString);
+
+    //for (int i = 0; i < 1; i++) //change 1 back to 5
+    //{
+      //String instance = "localhost_" + (12918 + i);
+      //String instance = "localhost_12918";
+      ZNRecord record = accessor.getProperty(keyBuilder.alertStatus()).getRecord();
+      Map<String, Map<String,String>> recMap = record.getMapFields();
+      Set<String> keySet = recMap.keySet();
+      Map<String,String> alertStatusMap = recMap.get(_alertStatusStr);
       String val = alertStatusMap.get(AlertValueAndStatus.VALUE_NAME);
       boolean fired = Boolean.parseBoolean(alertStatusMap.get(AlertValueAndStatus.FIRED_NAME));
-      Assert.assertEquals(Double.parseDouble(val), (double)i * 5 + 0.1);
+      Assert.assertEquals(Double.parseDouble(val), Double.parseDouble("15.0"));
       Assert.assertFalse(fired);
-    }
-    for(int i = 2; i < 5; i++)
-    {
-      String alertString = "(localhost_"+(12944 + i)+".RestQueryStats@DBName=TestDB0.latency)";
-      Map<String,String> alertStatusMap = recMap.get(alertwildcard+" : " + alertString);
-      String val = alertStatusMap.get(AlertValueAndStatus.VALUE_NAME);
-      boolean fired = Boolean.parseBoolean(alertStatusMap.get(AlertValueAndStatus.FIRED_NAME));
-      Assert.assertEquals(Double.parseDouble(val), (double)i * 5 + 0.1);
-      Assert.assertTrue(fired);
-    }
-    ZNRecord alertHistory = accessor.getProperty(keyBuilder.alertHistory()).getRecord();
-    
-    String deltakey = (String) (alertHistory.getMapFields().keySet().toArray()[0]);
-    Map<String, String> delta = alertHistory.getMapField(deltakey);
-    Assert.assertEquals(delta.size() , 3);
-    for(int i = 2; i < 5; i++)
-    {
-      String alertString = "(localhost_"+(12944 + i)+".RestQueryStats@DBName#TestDB0.latency)GREATER(10)";
-      Assert.assertTrue(delta.get(alertString).equals("ON"));
-    }
-    
-    // Drop and add another alert
-    _setupTool.getClusterManagementTool().dropAlert(clusterName, alertwildcard);
-    alertwildcard = "EXP(decay(1.0)(localhost*.RestQueryStats@DBName=TestDB0.latency))CMP(GREATER)CON(15)";
-    _setupTool.getClusterManagementTool().addAlert(clusterName, alertwildcard);
-    new HealthStatsAggregationTask(cmResult._manager).run();
-    Thread.sleep(1000);
-    
-    record = accessor.getProperty(keyBuilder.alertStatus()).getRecord();
-    recMap = record.getMapFields();
-    for(int i = 0; i < 3; i++)
-    {
-      String alertString = "(localhost_"+(12944 + i)+".RestQueryStats@DBName=TestDB0.latency)";
-      Map<String,String> alertStatusMap = recMap.get(alertwildcard+" : " + alertString);
-      String val = alertStatusMap.get(AlertValueAndStatus.VALUE_NAME);
-      boolean fired = Boolean.parseBoolean(alertStatusMap.get(AlertValueAndStatus.FIRED_NAME));
-      Assert.assertEquals(Double.parseDouble(val), (double)i * 5 + 0.1);
-      Assert.assertFalse(fired);
-    }
-    for(int i = 3; i < 5; i++)
-    {
-      String alertString = "(localhost_"+(12944 + i)+".RestQueryStats@DBName=TestDB0.latency)";
-      Map<String,String> alertStatusMap = recMap.get(alertwildcard+" : " + alertString);
-      String val = alertStatusMap.get(AlertValueAndStatus.VALUE_NAME);
-      boolean fired = Boolean.parseBoolean(alertStatusMap.get(AlertValueAndStatus.FIRED_NAME));
-      Assert.assertEquals(Double.parseDouble(val), (double)i * 5 + 0.1);
-      Assert.assertTrue(fired);
-    }
-    alertHistory = accessor.getProperty(keyBuilder.alertHistory()).getRecord();
-    
-    deltakey = (String) (alertHistory.getMapFields().keySet().toArray()[1]);
-    delta = alertHistory.getMapField(deltakey);
-    Assert.assertTrue(delta.size() == 2);
-    for(int i = 3; i < 5; i++)
-    {
-      String alertString = "(localhost_"+(12944 + i)+".RestQueryStats@DBName#TestDB0.latency)GREATER(15)";
-      Assert.assertTrue(delta.get(alertString).equals("ON"));
-    }
-    
-    System.out.println("END testSimpleWildcardAlert at " + new Date(System.currentTimeMillis()));
+    //}
+
+    System.out.println("END TestExpandAlert at " + new Date(System.currentTimeMillis()));
   }
 }

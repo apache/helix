@@ -42,7 +42,7 @@ import com.linkedin.helix.model.Message;
 import com.linkedin.helix.model.Message.MessageState;
 import com.linkedin.helix.model.Message.MessageType;
 
-public class TestSchedulerMessage extends ZkStandAloneCMTestBase
+public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServerCheck
 {
   public static class TestMessagingHandlerFactory implements
       MessageHandlerFactory

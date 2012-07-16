@@ -137,10 +137,17 @@ public class DistClusterControllerElection implements ControllerChangeListener
       // TODO: this session id is not the leader's session id in distributed mode
       leader.setSessionId(manager.getSessionId());
       leader.setHelixVersion(manager.getVersion());
-      String zkPropertyTransferServiceUrl = ZKPropertyTransferServer.getInstance().getWebserviceUrl();
-      if(zkPropertyTransferServiceUrl != null)
+      if(ZKPropertyTransferServer.getInstance() != null)
       {
-        leader.setWebserviceUrl(zkPropertyTransferServiceUrl);
+        String zkPropertyTransferServiceUrl = ZKPropertyTransferServer.getInstance().getWebserviceUrl();
+        if(zkPropertyTransferServiceUrl != null)
+        {
+          leader.setWebserviceUrl(zkPropertyTransferServiceUrl);
+        }
+      }
+      else
+      {
+        LOG.warn("ZKPropertyTransferServer instnace is null");
       }
       boolean success = accessor.createProperty(keyBuilder.controllerLeader(), leader);
       if (success)

@@ -28,7 +28,7 @@ import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.manager.zk.ZKHelixAdmin;
 import com.linkedin.helix.tools.ClusterStateVerifier;
 
-public class TestDisablePartition extends ZkStandAloneCMTestBase
+public class TestDisablePartition extends ZkStandAloneCMTestBaseWithPropertyServerCheck
 {
   private static Logger LOG = Logger.getLogger(TestDisablePartition.class);
 

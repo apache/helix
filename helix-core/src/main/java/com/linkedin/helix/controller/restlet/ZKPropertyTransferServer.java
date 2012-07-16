@@ -7,8 +7,6 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.I0Itec.zkclient.DataUpdater;
 import org.apache.log4j.Logger;
@@ -17,12 +15,10 @@ import org.restlet.Context;
 import org.restlet.data.Protocol;
 
 import com.linkedin.helix.BaseDataAccessor;
-import com.linkedin.helix.HelixManager;
-import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.ZNRecord;
+import com.linkedin.helix.manager.zk.ZNRecordSerializer;
 import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
 import com.linkedin.helix.manager.zk.ZkClient;
-import com.linkedin.helix.model.LiveInstance;
 /**
  * Controller side restlet server that receives ZNRecordUpdate requests from
  * clients, and batch the ZNRecordUpdate and apply them to zookeeper. This is 
@@ -48,13 +44,14 @@ public class ZKPropertyTransferServer
   String _webserviceUrl;
   ZkBaseDataAccessor<ZNRecord> _accessor;
   String _zkAddress;
-  Timer _timer;
+  
   AtomicReference<ConcurrentHashMap<String, ZNRecordUpdate>> _dataBufferRef
     = new AtomicReference<ConcurrentHashMap<String, ZNRecordUpdate>>();
-  final ReadWriteLock _lock = new ReentrantReadWriteLock();
+  
   boolean _initialized = false;
   boolean _shutdownFlag = false;
-  Component _component;
+  Component _component = null;
+  Timer _timer = null;
   
   /**
    * Timertask for zookeeper batched writes
@@ -64,7 +61,15 @@ public class ZKPropertyTransferServer
     @Override
     public void run()
     {
-      sendData();
+      try
+      {
+        sendData();
+      }
+      catch(Throwable t)
+      {
+        LOG.error("", t);
+      }
+    
     }
   }
   
@@ -124,7 +129,9 @@ public class ZKPropertyTransferServer
     {
       LOG.error("Initializing with port " + _localWebservicePort + " zkAddress: " + zkAddress);
       _localWebservicePort = localWebservicePort;
-      _accessor = new ZkBaseDataAccessor<ZNRecord>(new ZkClient(zkAddress));
+      ZkClient zkClient = new ZkClient(zkAddress);
+      zkClient.setZkSerializer(new ZNRecordSerializer());
+      _accessor = new ZkBaseDataAccessor<ZNRecord>(zkClient);
       _zkAddress = zkAddress;
       startServer();
     }
@@ -138,7 +145,7 @@ public class ZKPropertyTransferServer
   {
     if(!_initialized || _shutdownFlag)
     {
-      LOG.error("inited:" + _initialized + " shutdownFlag:"+_shutdownFlag+" , return");
+      LOG.debug("inited:" + _initialized + " shutdownFlag:"+_shutdownFlag+" , return");
       return null;
     }
     return _webserviceUrl;
@@ -159,6 +166,7 @@ public class ZKPropertyTransferServer
     // Do local merge if receive multiple update on the same path
     synchronized(_dataBufferRef)
     {
+      e.getRecord().setSimpleField(SERVER, _webserviceUrl);
       if(_dataBufferRef.get().containsKey(e.getPath()))
       {
         ZNRecord oldVal = _dataBufferRef.get().get(e.getPath()).getRecord();
@@ -220,13 +228,16 @@ public class ZKPropertyTransferServer
     {
       _timer.cancel();
     }
-    try
+    if(_component != null)
     {
-      _component.stop();
-    }
-    catch (Exception e)
-    {
-      LOG.error("", e);
+      try
+      {
+        _component.stop();
+      }
+      catch (Exception e)
+      {
+        LOG.error("", e);
+      }
     }
     _shutdownFlag = true;
   }
@@ -235,9 +246,11 @@ public class ZKPropertyTransferServer
   {
     if(_shutdownFlag == true)
     {
-      _instance = null;
       _shutdownFlag = false;
       _initialized = false;
+      _component = null;
+      _timer = null;
+      _dataBufferRef.getAndSet(new ConcurrentHashMap<String, ZNRecordUpdate>());
     }
   }
 }

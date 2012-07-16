@@ -234,7 +234,7 @@ public class ZkIntegrationTestBase
     LOG.info("After session expiry sessionId = " + oldZookeeper.getSessionId());
   }
 
-  void enableHealthCheck(String clusterName)
+  protected void enableHealthCheck(String clusterName)
   {
     ConfigScope scope =
       new ConfigScopeBuilder().forCluster(clusterName).build();

@@ -29,7 +29,7 @@ import com.linkedin.helix.tools.ClusterSetup;
 import com.linkedin.helix.tools.ClusterStateVerifier;
 import com.linkedin.helix.tools.ClusterStateVerifier.ZkVerifier;
 
-public class TestAutoRebalance extends ZkStandAloneCMTestBase
+public class TestAutoRebalance extends ZkStandAloneCMTestBaseWithPropertyServerCheck
 {
   private static final Logger LOG = Logger.getLogger(TestAutoRebalance.class.getName());
   

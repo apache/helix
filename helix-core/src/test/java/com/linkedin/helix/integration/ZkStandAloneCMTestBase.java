@@ -72,7 +72,6 @@ public class ZkStandAloneCMTestBase extends ZkIntegrationTestBase
     System.out.println("START " + CLASS_NAME + " at "
         + new Date(System.currentTimeMillis()));
 
-    ZKPropertyTransferServer.getInstance().init(19999, ZK_ADDR);
     _zkClient = new ZkClient(ZK_ADDR);
     _zkClient.setZkSerializer(new ZNRecordSerializer());
     String namespace = "/" + CLUSTER_NAME;
@@ -134,8 +133,7 @@ public class ZkStandAloneCMTestBase extends ZkIntegrationTestBase
     /**
      * shutdown order: 1) disconnect the controller 2) disconnect participants
      */
-    ZKPropertyTransferServer.getInstance().shutdown();
-    ZKPropertyTransferServer.getInstance().reset();
+   
     StartCMResult result;
     Iterator<Entry<String, StartCMResult>> it = _startCMResultMap.entrySet().iterator();
     while (it.hasNext())
@@ -161,7 +159,6 @@ public class ZkStandAloneCMTestBase extends ZkIntegrationTestBase
     }
 
     _zkClient.close();
-
     // logger.info("END at " + new Date(System.currentTimeMillis()));
     System.out.println("END " + CLASS_NAME + " at "
         + new Date(System.currentTimeMillis()));

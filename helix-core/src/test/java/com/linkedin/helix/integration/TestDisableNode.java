@@ -21,7 +21,7 @@ import org.testng.annotations.Test;
 import com.linkedin.helix.manager.zk.ZKHelixAdmin;
 import com.linkedin.helix.tools.ClusterStateVerifier;
 
-public class TestDisableNode extends ZkStandAloneCMTestBase
+public class TestDisableNode extends ZkStandAloneCMTestBaseWithPropertyServerCheck
 {
 
   @Test()

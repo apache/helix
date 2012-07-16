@@ -169,7 +169,7 @@ public class ParticipantHealthReportCollectorImpl implements
         }
         catch (Exception e)
         {
-          _logger.error(e);
+          _logger.error("", e);
         }
       }
     }

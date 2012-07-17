@@ -45,6 +45,7 @@ import org.apache.log4j.Logger;
 import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.HelixManagerFactory;
 import com.linkedin.helix.InstanceType;
+import com.linkedin.helix.controller.restlet.ZKPropertyTransferServer;
 import com.linkedin.helix.participant.DistClusterControllerStateModelFactory;
 import com.linkedin.helix.participant.StateMachineEngine;
 
@@ -54,6 +55,7 @@ public class HelixControllerMain
   public static final String cluster = "cluster";
   public static final String help = "help";
   public static final String mode = "mode";
+  public static final String propertyTransferServicePort = "propertyTransferPort";
   public static final String name = "controllerName";
   public static final String STANDALONE = "STANDALONE";
   public static final String DISTRIBUTED = "DISTRIBUTED";
@@ -92,12 +94,22 @@ public class HelixControllerMain
     controllerNameOption.setArgs(1);
     controllerNameOption.setRequired(false);
     controllerNameOption.setArgName("Cluster controller name (Optional)");
-
+    
+    Option portOption = OptionBuilder
+        .withLongOpt(propertyTransferServicePort)
+        .withDescription(
+            "Webservice port for ZkProperty controller transfer")
+        .create();
+    portOption.setArgs(1);
+    portOption.setRequired(false);
+    portOption.setArgName("Cluster controller property transfer port (Optional)");
+    
     Options options = new Options();
     options.addOption(helpOption);
     options.addOption(zkServerOption);
     options.addOption(clusterOption);
     options.addOption(modeOption);
+    options.addOption(portOption);
     options.addOption(controllerNameOption);
 
     return options;
@@ -204,11 +216,17 @@ public class HelixControllerMain
     String clusterName = cmd.getOptionValue(cluster);
     String controllerMode = STANDALONE;
     String controllerName = null;
+    int propertyTransServicePort = 27961;
+    
     if (cmd.hasOption(mode))
     {
       controllerMode = cmd.getOptionValue(mode);
     }
-
+    
+    if(cmd.hasOption(propertyTransferServicePort))
+    {
+        propertyTransServicePort = Integer.parseInt(cmd.getOptionValue(propertyTransferServicePort));
+    }
     if (controllerMode.equalsIgnoreCase(DISTRIBUTED) && !cmd.hasOption(name))
     {
       throw new IllegalArgumentException(
@@ -221,11 +239,13 @@ public class HelixControllerMain
     logger.info("Cluster manager started, zkServer: " + zkConnectString + ", clusterName:"
         + clusterName + ", controllerName:" + controllerName + ", mode:" + controllerMode);
 
+    ZKPropertyTransferServer.getInstance().init(propertyTransServicePort, zkConnectString);
     HelixManager manager = startHelixController(zkConnectString, clusterName, controllerName,
         controllerMode);
     try
     {
       Thread.currentThread().join();
+      ZKPropertyTransferServer.getInstance().shutdown();
     } catch (InterruptedException e)
     {
       logger.info("controller:" + controllerName + ", " + Thread.currentThread().getName()

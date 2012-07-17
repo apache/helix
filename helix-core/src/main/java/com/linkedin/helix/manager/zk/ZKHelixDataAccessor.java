@@ -33,6 +33,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor
   private final Builder _propertyKeyBuilder;
   final ZkPropertyTransferClient _zkPropertyTransferClient;
   private final GroupCommit _groupCommit = new GroupCommit();
+  String _zkPropertyTransferSvcUrl = null;
 
   public ZKHelixDataAccessor(String clusterName,
                              BaseDataAccessor<ZNRecord> baseDataAccessor)
@@ -101,7 +102,8 @@ public class ZKHelixDataAccessor implements HelixDataAccessor
         else
         {
           LOG.debug("getPropertyTransferUrl is null, direct set the value");
-          //return true;
+          // TODO: consider skip the write operation
+          // return true
         }
       }
       success = _baseDataAccessor.update(path, new ZNRecordUpdater(value.getRecord()), options);
@@ -259,12 +261,15 @@ public class ZKHelixDataAccessor implements HelixDataAccessor
   
   private String getPropertyTransferUrl()
   {
-    LiveInstance leader = getProperty(keyBuilder().controllerLeader());
-    if(leader != null)
+    if(_zkPropertyTransferSvcUrl == null)
     {
-      return leader.getWebserviceUrl();
+      LiveInstance leader = getProperty(keyBuilder().controllerLeader());
+      if(leader != null)
+      {
+        _zkPropertyTransferSvcUrl = leader.getWebserviceUrl();
+      }
     }
-    return null;
+    return _zkPropertyTransferSvcUrl;
   }
 
   public void shutdown()

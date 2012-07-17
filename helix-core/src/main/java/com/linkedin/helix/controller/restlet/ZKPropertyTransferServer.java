@@ -37,7 +37,7 @@ public class ZKPropertyTransferServer
   public static int PERIOD = 10 * 1000;
   public static String RESTRESOURCENAME = "ZNRecordUpdates";
   // If the buffered ZNRecord updates exceed the limit, do a zookeeper batch update.
-  public static int MAX_UPDATE_LIMIT = 1000;
+  public static int MAX_UPDATE_LIMIT = 10000;
   private static Logger LOG = Logger.getLogger(ZKPropertyTransferServer.class);
   
   int _localWebservicePort;

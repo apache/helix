@@ -33,9 +33,11 @@ import com.linkedin.helix.manager.zk.ZkClient;
 public class ZKPropertyTransferServer
 {
   public static final String PORT = "port";
-  public static final String SERVER = "ZKPropertyTransferServer";
-  public static int PERIOD = 10 * 1000;
   public static String RESTRESOURCENAME = "ZNRecordUpdates";
+  public static final String SERVER = "ZKPropertyTransferServer";
+  
+  // Frequency period for the ZNRecords are batch written to zookeeper 
+  public static int PERIOD = 10 * 1000;
   // If the buffered ZNRecord updates exceed the limit, do a zookeeper batch update.
   public static int MAX_UPDATE_LIMIT = 10000;
   private static Logger LOG = Logger.getLogger(ZKPropertyTransferServer.class);
@@ -75,6 +77,7 @@ public class ZKPropertyTransferServer
   
   void sendData()
   {
+    LOG.info("ZKPropertyTransferServer transfering data to zookeeper");
     ConcurrentHashMap<String, ZNRecordUpdate> updateCache  = null;
     
     synchronized(_dataBufferRef)
@@ -94,11 +97,12 @@ public class ZKPropertyTransferServer
         vals.add(holder.getRecord());
       }
       // Batch write the accumulated updates into zookeeper
+      long timeStart = System.currentTimeMillis();
       if(paths.size() > 0)
       {
         _accessor.updateChildren(paths, updaters, BaseDataAccessor.Option.PERSISTENT);
       }
-      LOG.info("Updating " + vals.size() + " records");
+      LOG.info("ZKPropertyTransferServer updated " + vals.size() + " records in " + (System.currentTimeMillis() - timeStart) + " ms");
     }
     else
     {
@@ -127,7 +131,7 @@ public class ZKPropertyTransferServer
   {
     if(!_initialized && !_shutdownFlag)
     {
-      LOG.error("Initializing with port " + _localWebservicePort + " zkAddress: " + zkAddress);
+      LOG.error("Initializing with port " + localWebservicePort + " zkAddress: " + zkAddress);
       _localWebservicePort = localWebservicePort;
       ZkClient zkClient = new ZkClient(zkAddress);
       zkClient.setZkSerializer(new ZNRecordSerializer());

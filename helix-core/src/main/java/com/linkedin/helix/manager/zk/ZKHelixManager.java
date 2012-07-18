@@ -762,6 +762,7 @@ public class ZKHelixManager implements HelixManager
     // In case the cluster manager is running as a participant, setup message
     // listener
     addMessageListener(_messagingService.getExecutor(), _instanceName);
+    addControllerListener(_helixAccessor);
 
     if (_participantHealthCheckInfoCollector == null)
     {

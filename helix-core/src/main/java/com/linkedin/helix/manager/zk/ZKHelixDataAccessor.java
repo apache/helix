@@ -10,10 +10,12 @@ import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.apache.log4j.Logger;
 
 import com.linkedin.helix.BaseDataAccessor;
+import com.linkedin.helix.ControllerChangeListener;
 import com.linkedin.helix.GroupCommit;
 import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixException;
 import com.linkedin.helix.HelixProperty;
+import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.PropertyKey;
 import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.PropertyType;
@@ -24,7 +26,7 @@ import com.linkedin.helix.controller.restlet.ZNRecordUpdate.OpCode;
 import com.linkedin.helix.controller.restlet.ZkPropertyTransferClient;
 import com.linkedin.helix.model.LiveInstance;
 
-public class ZKHelixDataAccessor implements HelixDataAccessor
+public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeListener
 {
   private static Logger                    LOG          =
                                                             Logger.getLogger(ZKHelixDataAccessor.class);
@@ -263,11 +265,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor
   {
     if(_zkPropertyTransferSvcUrl == null)
     {
-      LiveInstance leader = getProperty(keyBuilder().controllerLeader());
-      if(leader != null)
-      {
-        _zkPropertyTransferSvcUrl = leader.getWebserviceUrl();
-      }
+      refreshZkPropertyTransferUrl();
     }
     return _zkPropertyTransferSvcUrl;
   }
@@ -275,5 +273,24 @@ public class ZKHelixDataAccessor implements HelixDataAccessor
   public void shutdown()
   {
     _zkPropertyTransferClient.shutdown();
+  }
+
+  @Override
+  public void onControllerChange(NotificationContext changeContext)
+  {
+    refreshZkPropertyTransferUrl();
+  }
+  
+  void refreshZkPropertyTransferUrl()
+  {
+    LiveInstance leader = getProperty(keyBuilder().controllerLeader());
+    if(leader != null)
+    {
+      _zkPropertyTransferSvcUrl = leader.getWebserviceUrl();
+    }
+    else
+    {
+      _zkPropertyTransferSvcUrl = null;
+    }
   }
 }

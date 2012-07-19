@@ -470,6 +470,12 @@ public class GenericHelixController implements
     event.addAttribute("changeContext", changeContext);
     event.addAttribute("eventData", idealStates);
     handleEvent(event);
+    
+    if(changeContext.getType() != Type.FINALIZE)
+    {
+      checkRebalancingTimer(changeContext.getManager(), idealStates);
+    }
+    
     logger.info("END: Generic GenericClusterController.onIdealStateChange()");
   }
 

@@ -15,14 +15,20 @@
  */
 package com.linkedin.helix.controller;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.ConcurrentSkipListSet;
 
 import org.apache.log4j.Logger;
 
+import com.linkedin.helix.ConfigAccessor;
 import com.linkedin.helix.ConfigChangeListener;
+import com.linkedin.helix.ConfigScope;
+import com.linkedin.helix.ConfigScopeBuilder;
 import com.linkedin.helix.ControllerChangeListener;
 import com.linkedin.helix.CurrentStateChangeListener;
 import com.linkedin.helix.ExternalViewChangeListener;
@@ -35,6 +41,7 @@ import com.linkedin.helix.MessageListener;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.NotificationContext.Type;
 import com.linkedin.helix.PropertyKey.Builder;
+import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.controller.pipeline.Pipeline;
 import com.linkedin.helix.controller.pipeline.PipelineRegistry;
 import com.linkedin.helix.controller.stages.BestPossibleStateCalcStage;
@@ -111,16 +118,85 @@ public class GenericHelixController implements
   private boolean                _paused;
 
   /**
+   * The timer that can periodically run the rebalancing pipeline. The timer will start if there
+   * is one resource group has the config to use the timer.
+   */
+  Timer _rebalanceTimer = null;
+  int _timerPeriod = Integer.MAX_VALUE;
+  
+  /**
    * Default constructor that creates a default pipeline registry. This is sufficient in
    * most cases, but if there is a some thing specific needed use another constructor
    * where in you can pass a pipeline registry
    */
+  
+  
   public GenericHelixController()
   {
     this(createDefaultRegistry());
-
   }
 
+  class RebalanceTask extends TimerTask
+  {
+    HelixManager _manager;
+    
+    public RebalanceTask(HelixManager manager)
+    {
+      _manager = manager;
+    }
+    
+    @Override
+    public void run()
+    {
+      NotificationContext changeContext = new NotificationContext(_manager);
+      changeContext.setType(NotificationContext.Type.CALLBACK);
+      ClusterEvent event = new ClusterEvent("periodicalRebalance");
+      event.addAttribute("helixmanager", changeContext.getManager());
+      event.addAttribute("changeContext", changeContext);
+      List<ZNRecord> dummy = new ArrayList<ZNRecord>();
+      event.addAttribute("eventData", dummy);
+      
+      handleEvent(event);
+    }
+  }
+  
+  /**
+   * Starts the rebalancing timer with the specified period. Start the timer if necessary;
+   * If the period is smaller than the current period, cancel the current timer and use 
+   * the new period.
+   */
+  void startRebalancingTimer(int period, HelixManager manager)
+  {
+    logger.info("Controller starting timer at period " + period);
+    if(period < _timerPeriod)
+    {
+      if(_rebalanceTimer != null)
+      {
+        _rebalanceTimer.cancel();
+      }
+      _rebalanceTimer = new Timer();
+      _timerPeriod = period;
+      _rebalanceTimer.scheduleAtFixedRate(new RebalanceTask(manager), _timerPeriod, _timerPeriod);
+    }
+    else
+    {
+      logger.info("Controller already has timer at period " + _timerPeriod);
+    }
+  }
+  
+  /**
+   * Starts the rebalancing timer 
+   */
+  void stopRebalancingTimer()
+  {
+    if(_rebalanceTimer != null)
+    {
+      _rebalanceTimer.cancel();
+      _rebalanceTimer = null;
+    }
+    _timerPeriod = Integer.MAX_VALUE;
+  }
+  
   private static PipelineRegistry createDefaultRegistry()
   {
     logger.info("createDefaultRegistry");
@@ -195,7 +271,7 @@ public class GenericHelixController implements
    *
    * @param event
    */
-  protected void handleEvent(ClusterEvent event)
+  protected synchronized void handleEvent(ClusterEvent event)
   {
     HelixManager manager = event.getAttribute("helixmanager");
     if (manager == null)
@@ -233,6 +309,7 @@ public class GenericHelixController implements
           _clusterStatusMonitor.reset();
           _clusterStatusMonitor = null;
         }
+        stopRebalancingTimer();
       }
       else
       {
@@ -357,7 +434,32 @@ public class GenericHelixController implements
     handleEvent(event);
     logger.info("END: Generic GenericClusterController.onLiveInstanceChange()");
   }
-
+  
+  void checkRebalancingTimer(HelixManager manager, List<IdealState> idealStates)
+  {
+    for(IdealState idealState : idealStates)
+    {
+      String resourceName = idealState.getResourceName();
+      ConfigAccessor configAccessor = manager.getConfigAccessor();
+      ConfigScope scope =
+          new ConfigScopeBuilder()
+              .forCluster(manager.getClusterName()).forResource(resourceName).build();
+      String rebalanceTimerPeriod = configAccessor.get(scope, "RebalanceTimerPeriod");
+      if(rebalanceTimerPeriod != null)
+      {
+        try
+        {
+          int period = Integer.parseInt(rebalanceTimerPeriod);
+          startRebalancingTimer(period, manager);
+        }
+        catch(Exception e)
+        {
+          logger.error("", e);
+        }
+      }
+    }
+  }
+  
   @Override
   public void onIdealStateChange(List<IdealState> idealStates,
                                  NotificationContext changeContext)

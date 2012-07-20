@@ -17,6 +17,8 @@ package com.linkedin.helix.integration;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import org.I0Itec.zkclient.IZkStateListener;
 import org.I0Itec.zkclient.ZkConnection;
@@ -47,19 +49,19 @@ import com.linkedin.helix.util.ZKClientPool;
 
 public class ZkIntegrationTestBase
 {
-  private static Logger LOG = Logger.getLogger(ZkIntegrationTestBase.class);
+  private static Logger         LOG                       =
+                                                              Logger.getLogger(ZkIntegrationTestBase.class);
 
-  protected static ZkServer _zkServer;
-  protected static ZkClient _gZkClient;
+  protected static ZkServer     _zkServer;
+  protected static ZkClient     _gZkClient;
   protected static ClusterSetup _gSetupTool;
 
-
-  public static final String ZK_ADDR = "localhost:2183"; 
-  protected static final String CLUSTER_PREFIX = "CLUSTER";
+  public static final String    ZK_ADDR                   = "localhost:2183";
+  protected static final String CLUSTER_PREFIX            = "CLUSTER";
   protected static final String CONTROLLER_CLUSTER_PREFIX = "CONTROLLER_CLUSTER";
 
-  protected final String CONTROLLER_PREFIX = "controller";
-  protected final String PARTICIPANT_PREFIX = "localhost";
+  protected final String        CONTROLLER_PREFIX         = "controller";
+  protected final String        PARTICIPANT_PREFIX        = "localhost";
 
   @BeforeSuite
   public void beforeSuite() throws Exception
@@ -89,7 +91,8 @@ public class ZkIntegrationTestBase
 
   protected String getCurrentLeader(ZkClient zkClient, String clusterName)
   {
-    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(zkClient));
+    ZKHelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(zkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
     LiveInstance leader = accessor.getProperty(keyBuilder.controllerLeader());
@@ -102,7 +105,7 @@ public class ZkIntegrationTestBase
 
   /**
    * Stop current leader and returns the new leader
-   *
+   * 
    * @param zkClient
    * @param clusterName
    * @param startCMResultMap
@@ -154,7 +157,7 @@ public class ZkIntegrationTestBase
 
   /**
    * simulate session expiry
-   *
+   * 
    * @param zkConnection
    * @throws IOException
    * @throws InterruptedException
@@ -188,7 +191,7 @@ public class ZkIntegrationTestBase
     LOG.info("After session expiry sessionId = " + oldZookeeper.getSessionId());
   }
 
-  protected static void simulateSessionExpiry(ZkClient zkClient) throws IOException,
+  public static void simulateSessionExpiry(final ZkClient zkClient) throws IOException,
       InterruptedException
   {
     IZkStateListener listener = new IZkStateListener()
@@ -208,7 +211,7 @@ public class ZkIntegrationTestBase
     zkClient.subscribeStateChanges(listener);
     ZkConnection connection = ((ZkConnection) zkClient.getConnection());
     ZooKeeper oldZookeeper = connection.getZookeeper();
-    LOG.info("Old sessionId = " + oldZookeeper.getSessionId());
+    LOG.info("Old sessionId = " + Long.toHexString(oldZookeeper.getSessionId()));
 
     Watcher watcher = new Watcher()
     {
@@ -219,25 +222,52 @@ public class ZkIntegrationTestBase
       }
     };
 
-    ZooKeeper newZookeeper =
+    final ZooKeeper newZookeeper =
         new ZooKeeper(connection.getServers(),
                       oldZookeeper.getSessionTimeout(),
                       watcher,
                       oldZookeeper.getSessionId(),
                       oldZookeeper.getSessionPasswd());
-    LOG.info("New sessionId = " + newZookeeper.getSessionId());
+    LOG.info("New sessionId = " + Long.toHexString(newZookeeper.getSessionId()));
     // Thread.sleep(3000);
+
+    final CountDownLatch waitStart = new CountDownLatch(1);
+    final CountDownLatch waitEnd = new CountDownLatch(1);
+    new Thread(new Runnable()
+    {
+
+      @Override
+      public void run()
+      {
+        waitStart.countDown();
+//        System.err.println("Start wait on expiring");
+        boolean ret =
+            zkClient.waitForKeeperState(KeeperState.Expired,
+                                        Integer.MAX_VALUE,
+                                        TimeUnit.MILLISECONDS);
+//        System.err.println("wait expire result: " + ret);
+        waitEnd.countDown();
+      }
+    }).start();
+
+    waitStart.await();
     newZookeeper.close();
-    Thread.sleep(15000);
+
+//    Thread.sleep(1000);
+    waitEnd.await();
+//    System.err.println("Start wait on connected");
+
+    zkClient.waitUntilConnected();
     connection = (ZkConnection) zkClient.getConnection();
     oldZookeeper = connection.getZookeeper();
-    LOG.info("After session expiry sessionId = " + oldZookeeper.getSessionId());
+//    System.err.println("zk: " + oldZookeeper);
+    LOG.info("After session expiry sessionId = "
+        + Long.toHexString(oldZookeeper.getSessionId()));
   }
 
   protected void enableHealthCheck(String clusterName)
   {
-    ConfigScope scope =
-      new ConfigScopeBuilder().forCluster(clusterName).build();
+    ConfigScope scope = new ConfigScopeBuilder().forCluster(clusterName).build();
     new ConfigAccessor(_gZkClient).set(scope, "healthChange" + ".enabled", "" + true);
   }
 

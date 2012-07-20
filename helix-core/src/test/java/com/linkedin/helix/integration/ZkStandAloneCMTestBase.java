@@ -29,7 +29,6 @@ import org.testng.annotations.BeforeClass;
 import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.TestHelper.StartCMResult;
 import com.linkedin.helix.controller.HelixControllerMain;
-import com.linkedin.helix.controller.restlet.ZKPropertyTransferServer;
 import com.linkedin.helix.manager.zk.ZNRecordSerializer;
 import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.tools.ClusterSetup;
@@ -148,6 +147,7 @@ public class ZkStandAloneCMTestBase extends ZkIntegrationTestBase
       }
     }
 
+    Thread.sleep(100);
     it = _startCMResultMap.entrySet().iterator();
     while (it.hasNext())
     {

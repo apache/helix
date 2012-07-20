@@ -65,7 +65,7 @@ public class TestStandAloneCMSessionExpiry extends ZkIntegrationTestBase
   @Test()
   public void testStandAloneCMSessionExpiry() throws Exception
   {
-    // Logger.getRootLogger().setLevel(Level.INFO);
+    // Logger.getRootLogger().setLevel(Level.DEBUG);
     System.out.println("RUN testStandAloneCMSessionExpiry() at "
         + new Date(System.currentTimeMillis()));
 
@@ -110,12 +110,19 @@ public class TestStandAloneCMSessionExpiry extends ZkIntegrationTestBase
 
     // participant session expiry
     ZkClusterManagerWithSessionExpiry manager =
-        (ZkClusterManagerWithSessionExpiry) participants[0].getManager();
+        (ZkClusterManagerWithSessionExpiry) participants[1].getManager();
     long oldSessionId = manager.getZkSessionId();
     manager.expireSession();
     long newSessionId = manager.getZkSessionId();
+    for (int i = 0; i < 100; i++)
+    {
+      if (newSessionId != oldSessionId)
+      {
+        break;
+      }
+      Thread.sleep(100);
+    }
     Assert.assertNotSame(newSessionId, oldSessionId);
-
     setupTool.addResourceToCluster(CLUSTER_NAME, "TestDB1", 10, "MasterSlave");
     setupTool.rebalanceStorageCluster(CLUSTER_NAME, "TestDB1", 3);
 
@@ -128,6 +135,14 @@ public class TestStandAloneCMSessionExpiry extends ZkIntegrationTestBase
     oldSessionId = controller.getZkSessionId();
     controller.expireSession();
     newSessionId = controller.getZkSessionId();
+    for (int i = 0; i < 100; i++)
+    {
+      if (newSessionId != oldSessionId)
+      {
+        break;
+      }
+      Thread.sleep(100);
+    }
     Assert.assertNotSame(newSessionId, oldSessionId);
     setupTool.addResourceToCluster(CLUSTER_NAME, "TestDB2", 8, "MasterSlave");
     setupTool.rebalanceStorageCluster(CLUSTER_NAME, "TestDB2", 3);
@@ -136,9 +151,12 @@ public class TestStandAloneCMSessionExpiry extends ZkIntegrationTestBase
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
                                                                                           CLUSTER_NAME));
     Assert.assertTrue(result);
-
+    
     // clean up
+    System.out.println("Clean up ...");
+//    Logger.getRootLogger().setLevel(Level.DEBUG);
     controller.disconnect();
+    Thread.sleep(100);
     for (int i = 0; i < NODE_NR; i++)
     {
       participants[i].syncStop();

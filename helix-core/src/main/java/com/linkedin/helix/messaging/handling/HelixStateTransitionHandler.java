@@ -118,8 +118,8 @@ public class HelixStateTransitionHandler extends MessageHandler
 
       CurrentState currentState =
           accessor.getProperty(keyBuilder.currentState(instanceName,
-                                                       manager.getSessionId(),
-                                                       resource));
+              message.getTgtSessionId(),
+              resource));
 
       if (currentState == null)
       {
@@ -172,7 +172,7 @@ public class HelixStateTransitionHandler extends MessageHandler
 
       // based on task result update the current state of the node.
       accessor.updateProperty(keyBuilder.currentState(instanceName,
-                                                      manager.getSessionId(),
+                                                      message.getTgtSessionId(),
                                                       resource),
                               _currentStateDelta);
     }
@@ -329,9 +329,9 @@ public class HelixStateTransitionHandler extends MessageHandler
       _stateModel.updateState("ERROR");
 
       accessor.updateProperty(keyBuilder.currentState(instanceName,
-                                                      manager.getSessionId(),
-                                                      resourceName),
-                              currentStateDelta);
+        _message.getTgtSessionId(),
+        resourceName),
+        currentStateDelta);
     }
   }
 };

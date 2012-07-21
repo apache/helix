@@ -229,6 +229,15 @@ public class HelixTaskExecutor implements MessageListener
       {
         factory.reset();
       }
+      // Cancel all scheduled future
+      synchronized (_lock)
+      {
+        for(Future<HelixTaskResult> f : _taskMap.values())
+        {
+          f.cancel(true);
+        }
+        _taskMap.clear();
+      }
       return;
     }
 

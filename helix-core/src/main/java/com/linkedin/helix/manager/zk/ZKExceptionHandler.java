@@ -29,6 +29,8 @@ public class ZKExceptionHandler
 
   void handle(Exception e)
   {
+    logger.error(Thread.currentThread().getName() + " isThreadInterruped: " + Thread.currentThread().isInterrupted());
+    
     if (e instanceof ZkInterruptedException)
     {
       logger.warn("zk connection is interrupted, exception:" + e);

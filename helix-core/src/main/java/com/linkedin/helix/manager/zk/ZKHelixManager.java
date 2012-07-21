@@ -645,6 +645,7 @@ public class ZKHelixManager implements HelixManager
 
   protected void handleNewSession()
   {
+    _zkClient.waitUntilConnected();
     ZkConnection zkConnection = ((ZkConnection) _zkClient.getConnection());
     _sessionId = Long.toHexString(zkConnection.getZookeeper().getSessionId()); // UUID.randomUUID().toString();
     _accessor.reset();

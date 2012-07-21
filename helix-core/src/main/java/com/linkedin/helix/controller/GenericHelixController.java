@@ -437,6 +437,12 @@ public class GenericHelixController implements
   
   void checkRebalancingTimer(HelixManager manager, List<IdealState> idealStates)
   {
+    if (manager.getConfigAccessor() == null)
+    {
+      logger.warn(manager.getInstanceName() + " config accessor doesn't exist. should be in file-based mode.");
+      return;
+    }
+    
     for(IdealState idealState : idealStates)
     {
       String resourceName = idealState.getResourceName();

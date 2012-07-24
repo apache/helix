@@ -216,7 +216,7 @@ public class HelixControllerMain
     String clusterName = cmd.getOptionValue(cluster);
     String controllerMode = STANDALONE;
     String controllerName = null;
-    int propertyTransServicePort = 27961;
+    int propertyTransServicePort = -1;
     
     if (cmd.hasOption(mode))
     {
@@ -239,7 +239,11 @@ public class HelixControllerMain
     logger.info("Cluster manager started, zkServer: " + zkConnectString + ", clusterName:"
         + clusterName + ", controllerName:" + controllerName + ", mode:" + controllerMode);
 
-    ZKPropertyTransferServer.getInstance().init(propertyTransServicePort, zkConnectString);
+    if (propertyTransServicePort > 0)
+    {
+      ZKPropertyTransferServer.getInstance().init(propertyTransServicePort, zkConnectString);
+    }
+    
     HelixManager manager = startHelixController(zkConnectString, clusterName, controllerName,
         controllerMode);
     try

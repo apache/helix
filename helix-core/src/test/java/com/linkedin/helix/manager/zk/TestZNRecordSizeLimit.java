@@ -27,8 +27,8 @@ import com.linkedin.helix.HelixProperty;
 import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.ZkUnitTestBase;
+import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.model.InstanceConfig;
-import com.linkedin.helix.model.StatusUpdate;
 
 public class TestZNRecordSizeLimit extends ZkUnitTestBase
 {
@@ -118,65 +118,62 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase
         new ZKHelixDataAccessor(className, new ZkBaseDataAccessor(zkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
-    ZNRecord statusUpdates = new ZNRecord("statusUpdates");
+    IdealState idealState = new IdealState("currentState");
+    idealState.setStateModelDefRef("MasterSlave");
+    idealState.setIdealStateMode("AUTO");
+    idealState.setNumPartitions(10);
 
     for (int i = 0; i < 1024; i++)
     {
-      statusUpdates.setSimpleField(i + "", bufStr);
+      idealState.getRecord().setSimpleField(i + "", bufStr);
     }
-    boolean succeed =
-        accessor.setProperty(keyBuilder.stateTransitionStatus("localhost_12918",
-                                                              "session_1",
-                                                              "partition_1"),
-                             new StatusUpdate(statusUpdates));
+    boolean succeed = accessor.setProperty(keyBuilder.idealStates("TestDB0"), idealState);
     Assert.assertFalse(succeed);
-    HelixProperty property = accessor.getProperty(keyBuilder.stateTransitionStatus("localhost_12918",
-                                                          "session_1",
-                                                          "partition_1"));
+    HelixProperty property =
+        accessor.getProperty(keyBuilder.stateTransitionStatus("localhost_12918",
+                                                              "session_1",
+                                                              "partition_1"));
     Assert.assertNull(property);
 
     // legal sized data gets written to zk
-    statusUpdates.getSimpleFields().clear();
+    idealState.getRecord().getSimpleFields().clear();
+    idealState.setStateModelDefRef("MasterSlave");
+    idealState.setIdealStateMode("AUTO");
+    idealState.setNumPartitions(10);
+
     for (int i = 0; i < 900; i++)
     {
-      statusUpdates.setSimpleField(i + "", bufStr);
+      idealState.getRecord().setSimpleField(i + "", bufStr);
     }
-    succeed =
-        accessor.setProperty(keyBuilder.stateTransitionStatus("localhost_12918",
-                                                              "session_1",
-                                                              "partition_2"),
-                             new StatusUpdate(statusUpdates));
+    succeed = accessor.setProperty(keyBuilder.idealStates("TestDB1"), idealState);
     Assert.assertTrue(succeed);
     record =
-        accessor.getProperty(keyBuilder.stateTransitionStatus("localhost_12918",
-                                                              "session_1",
-                                                              "partition_2")).getRecord();
+        accessor.getProperty(keyBuilder.idealStates("TestDB1")).getRecord();
     Assert.assertTrue(serializer.serialize(record).length > 900 * 1024);
 
     // oversized data should not update existing data on zk
-    statusUpdates.getSimpleFields().clear();
+    idealState.getRecord().getSimpleFields().clear();
+    idealState.setStateModelDefRef("MasterSlave");
+    idealState.setIdealStateMode("AUTO");
+    idealState.setNumPartitions(10);
     for (int i = 900; i < 1024; i++)
     {
-      statusUpdates.setSimpleField(i + "", bufStr);
+      idealState.getRecord().setSimpleField(i + "", bufStr);
     }
     // System.out.println("record: " + idealState.getRecord());
     succeed =
-        accessor.updateProperty(keyBuilder.stateTransitionStatus("localhost_12918",
-                                                                 "session_1",
-                                                                 "partition_2"),
-                                new StatusUpdate(statusUpdates));
+        accessor.updateProperty(keyBuilder.idealStates("TestDB1"), idealState);
     Assert.assertFalse(succeed);
     recordNew =
-        accessor.getProperty(keyBuilder.stateTransitionStatus("localhost_12918",
-                                                              "session_1",
-                                                              "partition_2")).getRecord();
+        accessor.getProperty(keyBuilder.idealStates("TestDB1")).getRecord();
     arr = serializer.serialize(record);
     arrNew = serializer.serialize(recordNew);
     Assert.assertTrue(Arrays.equals(arr, arrNew));
 
-    System.out.println("END testZNRecordSizeLimitUseZNRecordSerializer at " + new Date(System.currentTimeMillis()));
+    System.out.println("END testZNRecordSizeLimitUseZNRecordSerializer at "
+        + new Date(System.currentTimeMillis()));
   }
-  
+
   @Test
   public void testZNRecordSizeLimitUseZNRecordStreamingSerializer()
   {
@@ -261,63 +258,65 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase
         new ZKHelixDataAccessor(className, new ZkBaseDataAccessor(zkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
-    ZNRecord statusUpdates = new ZNRecord("statusUpdates");
+//    ZNRecord statusUpdates = new ZNRecord("statusUpdates");
+    IdealState idealState = new IdealState("currentState");
+    idealState.setStateModelDefRef("MasterSlave");
+    idealState.setIdealStateMode("AUTO");
+    idealState.setNumPartitions(10);
 
     for (int i = 0; i < 1024; i++)
     {
-      statusUpdates.setSimpleField(i + "", bufStr);
+      idealState.getRecord().setSimpleField(i + "", bufStr);
     }
     boolean succeed =
-        accessor.setProperty(keyBuilder.stateTransitionStatus("localhost_12918",
-                                                              "session_1",
-                                                              "partition_1"),
-                             new StatusUpdate(statusUpdates));
+        accessor.setProperty(keyBuilder.idealStates("TestDB_1"),
+                                                              idealState);
     Assert.assertFalse(succeed);
-    HelixProperty property = accessor.getProperty(keyBuilder.stateTransitionStatus("localhost_12918",
-                                                          "session_1",
-                                                          "partition_1"));
+    HelixProperty property =
+        accessor.getProperty(keyBuilder.idealStates("TestDB_1"));
     Assert.assertNull(property);
 
     // legal sized data gets written to zk
-    statusUpdates.getSimpleFields().clear();
+    idealState.getRecord().getSimpleFields().clear();
+    idealState.setStateModelDefRef("MasterSlave");
+    idealState.setIdealStateMode("AUTO");
+    idealState.setNumPartitions(10);
+
     for (int i = 0; i < 900; i++)
     {
-      statusUpdates.setSimpleField(i + "", bufStr);
+      idealState.getRecord().setSimpleField(i + "", bufStr);
     }
     succeed =
-        accessor.setProperty(keyBuilder.stateTransitionStatus("localhost_12918",
-                                                              "session_1",
-                                                              "partition_2"),
-                             new StatusUpdate(statusUpdates));
+        accessor.setProperty(keyBuilder.idealStates("TestDB_2"),
+                                                              idealState);
     Assert.assertTrue(succeed);
     record =
-        accessor.getProperty(keyBuilder.stateTransitionStatus("localhost_12918",
-                                                              "session_1",
-                                                              "partition_2")).getRecord();
+        accessor.getProperty(keyBuilder.idealStates("TestDB_2")).getRecord();
     Assert.assertTrue(serializer.serialize(record).length > 900 * 1024);
 
     // oversized data should not update existing data on zk
-    statusUpdates.getSimpleFields().clear();
+    idealState.getRecord().getSimpleFields().clear();
+    idealState.setStateModelDefRef("MasterSlave");
+    idealState.setIdealStateMode("AUTO");
+    idealState.setNumPartitions(10);
+
     for (int i = 900; i < 1024; i++)
     {
-      statusUpdates.setSimpleField(i + "", bufStr);
+      idealState.getRecord().setSimpleField(i + "", bufStr);
     }
     // System.out.println("record: " + idealState.getRecord());
     succeed =
-        accessor.updateProperty(keyBuilder.stateTransitionStatus("localhost_12918",
-                                                                 "session_1",
-                                                                 "partition_2"),
-                                new StatusUpdate(statusUpdates));
+        accessor.updateProperty(keyBuilder.idealStates("TestDB_2"),
+                                                                 idealState);
     Assert.assertFalse(succeed);
     recordNew =
-        accessor.getProperty(keyBuilder.stateTransitionStatus("localhost_12918",
-                                                              "session_1",
-                                                              "partition_2")).getRecord();
+        accessor.getProperty(keyBuilder.idealStates("TestDB_2")).getRecord();
     arr = serializer.serialize(record);
     arrNew = serializer.serialize(recordNew);
     Assert.assertTrue(Arrays.equals(arr, arrNew));
 
-    System.out.println("END testZNRecordSizeLimitUseZNRecordStreamingSerializer at " + new Date(System.currentTimeMillis()));
+    System.out.println("END testZNRecordSizeLimitUseZNRecordStreamingSerializer at "
+        + new Date(System.currentTimeMillis()));
 
   }
 }

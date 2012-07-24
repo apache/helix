@@ -144,6 +144,8 @@ cmd_direct_call={
       ,"IVY_DIR/org/codehaus/jackson/jackson-core-asl/1.8.5/jackson-core-asl-1.8.5.jar"
       ,"IVY_DIR/org/codehaus/jackson/jackson-mapper-asl/1.8.5/jackson-mapper-asl-1.8.5.jar"
       ,"IVY_DIR/xpp3/xpp3_min/1.1.4c/xpp3_min-1.1.4c.jar"
+      ,"IVY_DIR/org/restlet/org.restlet/1.1.10/org.restlet-1.1.10.jar"
+      ,"IVY_DIR/com/noelios/restlet/com.noelios.restlet/1.1.10/com.noelios.restlet-1.1.10.jar"
 ]+cm_jar_files
   ,"class_name":"com.linkedin.helix.tools.ClusterSetup"
   ,"before_cmd":"../../../mvn package -Dmaven.test.skip.exec=true"  # build jar first
@@ -185,6 +187,8 @@ cmd_direct_call={
       ,"IVY_DIR/xpp3/xpp3_min/1.1.4c/xpp3_min-1.1.4c.jar"
       ,"IVY_DIR/com/github/sgroschupf/zkclient/0.1/zkclient-0.1.jar"
       ,"IVY_DIR/org/apache/commons/commons-math/2.1/commons-math-2.1.jar"
+      ,"IVY_DIR/org/restlet/org.restlet/1.1.10/org.restlet-1.1.10.jar"
+      ,"IVY_DIR/com/noelios/restlet/com.noelios.restlet/1.1.10/com.noelios.restlet-1.1.10.jar"
 ]+cm_jar_files
 
   ,"class_name":"com.linkedin.helix.mock.storage.MockHealthReportParticipant"
@@ -227,6 +231,8 @@ cmd_direct_call={
       ,"IVY_DIR/org/codehaus/jackson/jackson-core-asl/1.8.5/jackson-core-asl-1.8.5.jar"
       ,"IVY_DIR/org/codehaus/jackson/jackson-mapper-asl/1.8.5/jackson-mapper-asl-1.8.5.jar"
       ,"IVY_DIR/xpp3/xpp3_min/1.1.4c/xpp3_min-1.1.4c.jar"
+      ,"IVY_DIR/org/restlet/org.restlet/1.1.10/org.restlet-1.1.10.jar"
+      ,"IVY_DIR/com/noelios/restlet/com.noelios.restlet/1.1.10/com.noelios.restlet-1.1.10.jar"
 ]+cm_jar_files
   ,"class_name":"com.linkedin.helix.tools.ClusterStateVerifier"
   ,"before_cmd":"../../../mvn package -Dmaven.test.skip.exec=true"  # build jar first

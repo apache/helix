@@ -211,14 +211,17 @@ public final class ZKUtil
           if (curRecord != null)
           {
             curRecord.merge(record);
-            client.asyncWriteData(path, curRecord);
+//            client.asyncWriteData(path, curRecord);
+            client.asyncSetData(path, curRecord, -1, null);
           } else
           {
-            client.asyncWriteData(path, record);
+            // client.asyncWriteData(path, record);
+            client.asyncSetData(path, record, -1, null);
           }
         } else
         {
-          client.asyncWriteData(path, record);
+          // client.asyncWriteData(path, record);
+          client.asyncSetData(path, record, -1, null);
         }
       } else
       {
@@ -228,11 +231,13 @@ public final class ZKUtil
           ZNRecord newRecord = new ZNRecord(record.getId());
           newRecord.merge(record);
           client.create(path, null, mode);
-          client.asyncWriteData(path, newRecord);
+//          client.asyncWriteData(path, newRecord);
+          client.asyncSetData(path, newRecord, -1, null);
         } else
         {
           client.create(path, null, mode);
-          client.asyncWriteData(path, record);
+//          client.asyncWriteData(path, record);
+          client.asyncSetData(path, record, -1, null);
         }
       }
     } catch (Exception e)

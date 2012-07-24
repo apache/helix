@@ -3,6 +3,7 @@ package com.linkedin.helix.integration;
 import java.util.Date;
 import java.util.List;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.I0Itec.zkclient.IZkChildListener;
 import org.testng.Assert;
@@ -19,6 +20,7 @@ import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
 import com.linkedin.helix.mock.storage.MockParticipant;
 import com.linkedin.helix.model.ClusterConstraints;
 import com.linkedin.helix.model.ClusterConstraints.ConstraintType;
+import com.linkedin.helix.model.Message;
 import com.linkedin.helix.tools.ClusterStateVerifier;
 import com.linkedin.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import com.linkedin.helix.tools.ClusterStateVerifier.MasterNbInExtViewVerifier;
@@ -58,28 +60,48 @@ public class TestMessageThrottle extends ZkIntegrationTestBase
     record.getMapField("constraint1").put("CONSTRAINT_VALUE", "1");
     ClusterConstraints constraint = new ClusterConstraints(record);
 
-    ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(_gZkClient));
-    Builder keyBuilder = accessor.keyBuilder();
+    final ZKHelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+    final Builder keyBuilder = accessor.keyBuilder();
 
     accessor.setProperty(keyBuilder.constraint(ConstraintType.MESSAGE_CONSTRAINT.toString()),
                          constraint);
 
     // make sure we never see more than 1 state transition message for each participant
+    final AtomicBoolean success = new AtomicBoolean(true);
     for (int i = 0; i < 5; i++)
     {
       String instanceName = "localhost_" + (12918 + i);
       String msgPath =
           PropertyPathConfig.getPath(PropertyType.MESSAGES, clusterName, instanceName);
+
       _gZkClient.subscribeChildChanges(msgPath, new IZkChildListener()
       {
 
         @Override
         public void handleChildChange(String parentPath, List<String> currentChilds) throws Exception
         {
-          // TODO Auto-generated method stub
-          Assert.assertTrue(currentChilds.size() <= 1,
-                            "Should not see more than 1 message");
+          if (currentChilds != null && currentChilds.size() > 1)
+          {
+            List<ZNRecord> records = accessor.getBaseDataAccessor().getChildren(parentPath, null, 0);
+            int transitionMsgCount = 0;
+            for (ZNRecord record : records)
+            {
+              Message msg = new Message(record);
+              if(msg.getMsgType().equals(Message.MessageType.STATE_TRANSITION.toString()))
+              {
+                transitionMsgCount++;
+              }
+            }
+
+            if (transitionMsgCount > 1)
+            {
+              success.set(false);
+              Assert.fail("Should not see more than 1 message");
+            }
+          }
+          
+          
         }
       });
     }
@@ -106,6 +128,9 @@ public class TestMessageThrottle extends ZkIntegrationTestBase
         ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
                                                                                  clusterName));
     Assert.assertTrue(result);
+
+    Assert.assertTrue(success.get());
+    
 
     // clean up
     for (int i = 0; i < 5; i++)

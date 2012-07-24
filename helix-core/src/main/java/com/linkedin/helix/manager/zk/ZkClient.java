@@ -15,18 +15,19 @@
  */
 package com.linkedin.helix.manager.zk;
 
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 import org.I0Itec.zkclient.IZkConnection;
 import org.I0Itec.zkclient.ZkConnection;
+import org.I0Itec.zkclient.exception.ZkException;
 import org.I0Itec.zkclient.exception.ZkInterruptedException;
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.I0Itec.zkclient.serialize.SerializableSerializer;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.log4j.Logger;
-import org.apache.zookeeper.AsyncCallback.StatCallback;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.data.Stat;
@@ -134,18 +135,114 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
 
   public Stat getStat(final String path)
   {
-    Stat stat = retryUntilConnected(new Callable<Stat>()
+    long startT = System.nanoTime();
+
+    try
     {
-
-      @Override
-      public Stat call() throws Exception
+      Stat stat = retryUntilConnected(new Callable<Stat>()
       {
-        Stat stat = ((ZkConnection) _connection).getZookeeper().exists(path, false);
-        return stat;
-      }
-    });
 
-    return stat;
+        @Override
+        public Stat call() throws Exception
+        {
+          Stat stat = ((ZkConnection) _connection).getZookeeper().exists(path, false);
+          return stat;
+        }
+      });
+
+      return stat;
+    }
+    finally
+    {
+      long endT = System.nanoTime();
+      LOG.info("exists, path: " + path + ", time: " + (endT - startT) + " ns");
+    }
+  }
+
+  // override exists(path, watch), so we can record all exists requests
+  @Override
+  protected boolean exists(final String path, final boolean watch)
+  {
+    long startT = System.nanoTime();
+
+    try
+    {
+      return retryUntilConnected(new Callable<Boolean>()
+      {
+        @Override
+        public Boolean call() throws Exception
+        {
+          return _connection.exists(path, watch);
+        }
+      });
+    }
+    finally
+    {
+      long endT = System.nanoTime();
+      LOG.info("exists, path: " + path + ", time: " + (endT - startT) + " ns");
+    }
+  }
+
+  // override getChildren(path, watch), so we can record all getChildren requests
+  @Override
+  protected List<String> getChildren(final String path, final boolean watch)
+  {
+    long startT = System.nanoTime();
+
+    try
+    {
+      return retryUntilConnected(new Callable<List<String>>()
+      {
+        @Override
+        public List<String> call() throws Exception
+        {
+          return _connection.getChildren(path, watch);
+        }
+      });
+    }
+    finally
+    {
+      long endT = System.nanoTime();
+      LOG.info("getChildren, path: " + path + ", time: " + (endT - startT) + " ns");
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  private <T extends Object> T derializable(byte[] data)
+  {
+    if (data == null)
+    {
+      return null;
+    }
+    return (T) _zkSerializer.deserialize(data);
+  }
+
+  // override readData(path, stat, watch), so we can record all read requests
+  @Override
+  @SuppressWarnings("unchecked")
+  protected <T extends Object> T readData(final String path,
+                                          final Stat stat,
+                                          final boolean watch)
+  {
+    long startT = System.nanoTime();
+    try
+    {
+      byte[] data = retryUntilConnected(new Callable<byte[]>()
+      {
+
+        @Override
+        public byte[] call() throws Exception
+        {
+          return _connection.readData(path, stat, watch);
+        }
+      });
+      return (T) derializable(data);
+    }
+    finally
+    {
+      long endT = System.nanoTime();
+      LOG.info("getData, path: " + path + ", time: " + (endT - startT) + " ns");
+    }
   }
 
   @SuppressWarnings("unchecked")
@@ -173,55 +270,153 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
     return _connection.getServers();
   }
 
-  // TODO: remove this
-  class LogStatCallback implements StatCallback
+  private byte[] serialize(Object data)
   {
-    final String _asyncMethodName;
+    return _zkSerializer.serialize(data);
+  }
 
-    public LogStatCallback(String asyncMethodName)
+  @Override
+  public void writeData(final String path, Object datat, final int expectedVersion)
+  {
+    long startT = System.nanoTime();
+    try
     {
-      _asyncMethodName = asyncMethodName;
+
+      final byte[] data = serialize(datat);
+      retryUntilConnected(new Callable<Object>()
+      {
+
+        @Override
+        public Object call() throws Exception
+        {
+          _connection.writeData(path, data, expectedVersion);
+          return null;
+        }
+      });
+    }
+    finally
+    {
+      long endT = System.nanoTime();
+      LOG.info("setData, path: " + path + ", time: " + (endT - startT) + " ns");
+    }
+  }
+
+  @Override
+  public String create(final String path, Object data, final CreateMode mode) throws ZkInterruptedException,
+      IllegalArgumentException,
+      ZkException,
+      RuntimeException
+  {
+    if (path == null)
+    {
+      throw new NullPointerException("path must not be null.");
     }
 
-    @Override
-    public void processResult(int rc, String path, Object ctx, Stat stat)
+    long startT = System.nanoTime();
+    try
     {
-      if (rc == 0)
+      final byte[] bytes = data == null ? null : serialize(data);
+
+      return retryUntilConnected(new Callable<String>()
       {
-        LOG.info("succeed in async " + _asyncMethodName + ". rc: " + rc + ", path: "
-            + path + ", stat: " + stat);
+
+        @Override
+        public String call() throws Exception
+        {
+          return _connection.create(path, bytes, mode);
+        }
+      });
+    }
+    finally
+    {
+      long endT = System.nanoTime();
+      LOG.info("create, path: " + path + ", time: " + (endT - startT) + " ns");
+    }
+  }
+
+  @Override
+  public boolean delete(final String path)
+  {
+    long startT = System.nanoTime();
+    try
+    {
+      try
+      {
+        retryUntilConnected(new Callable<Object>()
+        {
+
+          @Override
+          public Object call() throws Exception
+          {
+            _connection.delete(path);
+            return null;
+          }
+        });
+
+        return true;
       }
-      else
+      catch (ZkNoNodeException e)
       {
-        LOG.error("fail in async " + _asyncMethodName + ". rc: " + rc + ", path: " + path
-            + ", stat: " + stat);
+        return false;
       }
     }
-
+    finally
+    {
+      long endT = System.nanoTime();
+      LOG.info("delete, path: " + path + ", time: " + (endT - startT) + " ns");
+    }
   }
 
-  // TODO: remove this
-  public void asyncWriteData(final String path, Object datat)
-  {
-    Stat stat = getStat(path);
-    this.asyncWriteData(path,
-                        datat,
-                        stat.getVersion(),
-                        new LogStatCallback("asyncSetData"),
-                        null);
-  }
+  // // TODO: remove this
+  // class LogStatCallback implements StatCallback
+  // {
+  // final String _asyncMethodName;
+  //
+  // public LogStatCallback(String asyncMethodName)
+  // {
+  // _asyncMethodName = asyncMethodName;
+  // }
+  //
+  // @Override
+  // public void processResult(int rc, String path, Object ctx, Stat stat)
+  // {
+  // if (rc == 0)
+  // {
+  // LOG.info("succeed in async " + _asyncMethodName + ". rc: " + rc + ", path: "
+  // + path + ", stat: " + stat);
+  // }
+  // else
+  // {
+  // LOG.error("fail in async " + _asyncMethodName + ". rc: " + rc + ", path: " + path
+  // + ", stat: " + stat);
+  // }
+  // }
+  //
+  // }
 
-  // TODO: remove this
-  public void asyncWriteData(final String path,
-                             Object datat,
-                             final int version,
-                             final StatCallback cb,
-                             final Object ctx)
-  {
-    final byte[] data = _zkSerializer.serialize(datat);
-    ((ZkConnection) _connection).getZookeeper().setData(path, data, version, cb, ctx);
+  // // TODO: remove this
+  // public void asyncWriteData(final String path, Object datat)
+  // {
+  // // Stat stat = getStat(path);
+  // // this.asyncWriteData(path,
+  // // datat,
+  // // stat.getVersion(),
+  // // new LogStatCallback("asyncSetData"),
+  // // null);
+  // asyncSetData(path, datat, -1, null);
+  // }
 
-  }
+  // // TODO: remove this
+  // public void asyncWriteData(final String path,
+  // Object datat,
+  // final int version,
+  // final StatCallback cb,
+  // final Object ctx)
+  // {
+  // final byte[] data = _zkSerializer.serialize(datat);
+  // ((ZkConnection) _connection).getZookeeper().setData(path, data, version, cb, ctx);
+  //
+  // }
 
   public void asyncCreate(final String path,
                           Object datat,
@@ -229,9 +424,7 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
                           CreateCallbackHandler cb)
   {
     final byte[] data = _zkSerializer.serialize(datat);
-    ((ZkConnection) _connection).getZookeeper().create(path,
-                                                       data,
-                                                       Ids.OPEN_ACL_UNSAFE, // Arrays.asList(DEFAULT_ACL),
+    ((ZkConnection) _connection).getZookeeper().create(path, data, Ids.OPEN_ACL_UNSAFE, // Arrays.asList(DEFAULT_ACL),
                                                        mode,
                                                        cb,
                                                        null);

@@ -6,6 +6,7 @@ PROPERTY_TAB=( "CURRENTSTATES" "EXTERNALVIEW" "MESSAGES" "STATEMODELDEFS" "HEALT
 
 # participant stats
 echo "participant zk op stats:"
+ls *process_start*.log -1rt | tail -n 1
 echo -e "operation\t count\t sum (ms)\t avg (ms)"
 echo -e "--------------------------------------------------"
 
@@ -28,8 +29,9 @@ done
 
 # controller stats
 echo -e "\ncontroller zk op stats:"
+ls *manager_start*.log -1rt | tail -n 1
 echo -e "operation\t count\t sum\t avg"
-echo -e "----------------------------------------"
+echo -e "----------------------------------------------------"
 
 for j in `seq 0 $(($op_nb-1))`; do
   # append ,

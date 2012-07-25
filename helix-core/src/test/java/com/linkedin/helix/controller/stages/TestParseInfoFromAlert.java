@@ -31,7 +31,7 @@ public class TestParseInfoFromAlert extends ZkStandAloneCMTestBase
     Assert.assertTrue(resourceName.equals("TestDB"));
     
 
-    String partitionName  = stage.parsePartitionName("localhost_12918.TestStat@DB=TestDB,Partition=TestDB_22.latency", manager);
+    String partitionName  = stage.parsePartitionName("localhost_12918.TestStat@DB=TestDB;Partition=TestDB_22.latency", manager);
     Assert.assertTrue(partitionName.equals("TestDB_22"));
   }
 }

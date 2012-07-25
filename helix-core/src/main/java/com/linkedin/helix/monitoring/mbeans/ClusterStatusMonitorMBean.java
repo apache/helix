@@ -22,4 +22,8 @@ public interface ClusterStatusMonitorMBean
   public long getInstancesGauge();
   
   public String getSensorName();
+  
+  public long getDisabledInstancesGauge();
+  
+  public long getDisabledPartitionsGauge();
 }

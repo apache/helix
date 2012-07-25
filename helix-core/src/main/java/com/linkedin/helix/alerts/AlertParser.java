@@ -21,6 +21,7 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 
 import com.linkedin.helix.HelixException;
+import com.linkedin.helix.manager.zk.DefaultParticipantErrorMessageHandlerFactory.ActionOnError;
 
 public class AlertParser {
 	private static Logger logger = Logger.getLogger(AlertParser.class);
@@ -28,6 +29,7 @@ public class AlertParser {
 	public static final String EXPRESSION_NAME = "EXP";
 	public static final String COMPARATOR_NAME = "CMP";
 	public static final String CONSTANT_NAME = "CON";
+	public static final String ACTION_NAME = "ACTION";
 	
 	static Map<String, AlertComparator> comparatorMap = new HashMap<String, AlertComparator>();
 	
@@ -100,7 +102,20 @@ public class AlertParser {
 		if (!comparatorMap.containsKey(cmp.toUpperCase())) {
 			throw new HelixException("Unknown comparator type "+cmp);
 		}
-		
+		String actionValue = null;
+    try
+    {
+      actionValue = AlertParser.getComponent(AlertParser.ACTION_NAME, alert);
+    }
+    catch(Exception e)
+    {
+      logger.info("No action specified in " + alert);
+    }
+
+    if(actionValue != null)
+    {
+      validateActionValue(actionValue);
+    }
 		//ValParser.  Probably don't need this.  Just make sure it's a valid tuple.  But would also be good
 		//to validate that the tuple is same length as exp's output...maybe leave that as future todo
 		//not sure we can really do much here though...anything can be in a tuple.
@@ -112,4 +127,21 @@ public class AlertParser {
 		
 		return false;
 	}
+	
+  public static void validateActionValue(String actionValue)
+  {
+    try
+    {
+      ActionOnError actionVal = ActionOnError.valueOf(actionValue);
+    }
+    catch(Exception e)
+    {
+      String validActions = "";
+      for (ActionOnError action : ActionOnError.values())
+      {
+        validActions = validActions + action + " ";
+      }
+      throw new HelixException("Unknown cmd type " + actionValue + ", valid types : " + validActions);
+    }
+  }
 }

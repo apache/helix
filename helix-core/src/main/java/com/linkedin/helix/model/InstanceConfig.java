@@ -92,6 +92,11 @@ public class InstanceConfig extends HelixProperty
       return true;
     }
   }
+  
+  public Map<String, String> getDisabledPartitionMap()
+  {
+    return _record.getMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString());
+  }
 
   public void setInstanceEnabledForPartition(String partition, boolean enabled)
   {

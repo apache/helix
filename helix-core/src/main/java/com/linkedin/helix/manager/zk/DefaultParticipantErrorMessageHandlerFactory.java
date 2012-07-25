@@ -52,6 +52,7 @@ public class DefaultParticipantErrorMessageHandlerFactory implements
     {
       HelixTaskResult result = new HelixTaskResult();
       result.setSuccess(true);
+      // TODO : consider unify this with StatsAggregationStage.executeAlertActions()
       try
       {
         ActionOnError actionOnError

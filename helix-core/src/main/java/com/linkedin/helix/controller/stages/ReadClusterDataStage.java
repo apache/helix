@@ -21,6 +21,7 @@ import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.controller.pipeline.AbstractBaseStage;
 import com.linkedin.helix.controller.pipeline.StageException;
+import com.linkedin.helix.model.InstanceConfig;
 import com.linkedin.helix.monitoring.mbeans.ClusterStatusMonitor;
 
 public class ReadClusterDataStage extends AbstractBaseStage
@@ -49,7 +50,21 @@ public class ReadClusterDataStage extends AbstractBaseStage
     ClusterStatusMonitor clusterStatusMonitor = (ClusterStatusMonitor) event.getAttribute("clusterStatusMonitor");
     if(clusterStatusMonitor != null)
     {
-      clusterStatusMonitor.setLiveInstanceNum(_cache._liveInstanceMap.size(), _cache._instanceConfigMap.size());
+      int disabledInstances = 0;
+      int disabledPartitions = 0;
+      for(InstanceConfig  config : _cache._instanceConfigMap.values())
+      {
+        if(config.getInstanceEnabled() == false)
+        {
+          disabledInstances ++;
+        }
+        if(config.getDisabledPartitionMap() != null)
+        {
+          disabledPartitions += config.getDisabledPartitionMap().size();
+        }
+      }
+      clusterStatusMonitor.setClusterStatusCounters(_cache._liveInstanceMap.size(), _cache._instanceConfigMap.size(), 
+          disabledInstances, disabledPartitions);
     }
 
     event.addAttribute("ClusterDataCache", _cache);

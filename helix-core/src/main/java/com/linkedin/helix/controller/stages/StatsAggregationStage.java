@@ -18,6 +18,7 @@ package com.linkedin.helix.controller.stages;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
@@ -28,6 +29,7 @@ import com.linkedin.helix.HelixProperty;
 import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
+import com.linkedin.helix.alerts.AlertParser;
 import com.linkedin.helix.alerts.AlertProcessor;
 import com.linkedin.helix.alerts.AlertValueAndStatus;
 import com.linkedin.helix.alerts.AlertsHolder;
@@ -38,8 +40,10 @@ import com.linkedin.helix.controller.pipeline.AbstractBaseStage;
 import com.linkedin.helix.controller.pipeline.StageContext;
 import com.linkedin.helix.controller.pipeline.StageException;
 import com.linkedin.helix.healthcheck.StatHealthReportProvider;
+import com.linkedin.helix.manager.zk.DefaultParticipantErrorMessageHandlerFactory.ActionOnError;
 import com.linkedin.helix.model.AlertHistory;
 import com.linkedin.helix.model.HealthStat;
+import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.model.PersistentStats;
 import com.linkedin.helix.monitoring.mbeans.ClusterAlertMBeanCollection;
@@ -65,6 +69,7 @@ public class StatsAggregationStage extends AbstractBaseStage
   Map<String, Map<String, AlertValueAndStatus>> _alertStatus;
   Map<String, Tuple<String>> _statStatus;
   ClusterAlertMBeanCollection _alertBeanCollection = new ClusterAlertMBeanCollection();
+  Map<String, String> _alertActionTaken = new HashMap<String, String>();
 
   public final String PARTICIPANT_STAT_REPORT_NAME = StatHealthReportProvider.REPORT_NAME;
   public final String ESPRESSO_STAT_REPORT_NAME = "RestQueryStats";
@@ -240,6 +245,8 @@ public class StatsAggregationStage extends AbstractBaseStage
                                      _alertStatus.get(originAlertName),
                                      manager.getClusterName());
     }
+    
+    executeAlertActions(manager);
     // Write alert fire history to zookeeper
     updateAlertHistory(manager);
     long writeAlertStartTime = System.currentTimeMillis();
@@ -277,26 +284,156 @@ public class StatsAggregationStage extends AbstractBaseStage
     logger.info("process end: " + processLatency);
   }
   
+  /**
+   * Go through the _alertStatus, and call executeAlertAction for those actual alerts that 
+   * has been fired
+   */
+  
+  void executeAlertActions( HelixManager manager)
+  {
+    _alertActionTaken.clear();
+    // Go through the original alert strings
+    for(String originAlertName : _alertStatus.keySet())
+    {
+      Map<String, String> alertFields = _alertsHolder.getAlertsMap().get(originAlertName);
+      if(alertFields != null && alertFields.containsKey(AlertParser.ACTION_NAME))
+      {
+        String actionValue = alertFields.get(AlertParser.ACTION_NAME);
+        Map<String, AlertValueAndStatus> alertResultMap = _alertStatus.get(originAlertName);
+        if(alertResultMap == null)
+        {
+          logger.info("Alert "+ originAlertName + " does not have alert status map");
+          continue;
+        }
+        // For each original alert, iterate all actual alerts that it expands into
+        for(String actualStatName : alertResultMap.keySet())
+        {
+          // if the actual alert is fired, execute the action
+          if(alertResultMap.get(actualStatName).isFired())
+          {
+            logger.warn("Alert " + originAlertName + " action " + actionValue + " is triggered by " + actualStatName);
+            _alertActionTaken.put(actualStatName, actionValue);
+            // move functionalities into a seperate class
+            executeAlertAction(actualStatName, actionValue, manager);
+          }
+        }
+      }
+    }
+  }
+  /**
+   * Execute the action if an alert is fired, and the alert has an action associated with it. 
+   * NOTE: consider unify this with DefaultParticipantErrorMessageHandler.handleMessage()
+   */
+  void executeAlertAction(String actualStatName, String actionValue, HelixManager manager)
+  {
+    if(actionValue.equals(ActionOnError.DISABLE_INSTANCE.toString()))
+    {
+      String instanceName = parseInstanceName(actualStatName, manager);
+      if(instanceName != null)
+      {
+        logger.info("Disabling instance " + instanceName);
+        manager.getClusterManagmentTool().enableInstance(manager.getClusterName(), instanceName, false);
+      }
+    }
+    else if(actionValue.equals(ActionOnError.DISABLE_PARTITION.toString()))
+    {
+      String instanceName = parseInstanceName(actualStatName, manager);
+      String resourceName = parseResourceName(actualStatName, manager);
+      String partitionName = parsePartitionName(actualStatName, manager);
+      if(instanceName != null && resourceName != null && partitionName != null)
+      {
+        logger.info("Disabling partition " + partitionName + " instanceName " +  instanceName);
+        manager.getClusterManagmentTool().enablePartition(manager.getClusterName(), instanceName,
+            resourceName, partitionName, false);
+      }
+    }
+    else if(actionValue.equals(ActionOnError.DISABLE_RESOURCE.toString()))
+    {
+      String instanceName = parseInstanceName(actualStatName, manager);
+      String resourceName = parseResourceName(actualStatName, manager);
+      logger.info("Disabling resource " + resourceName + " instanceName " +  instanceName + " not implemented");
+      
+    }
+  }
+
+  public static String parseResourceName(String actualStatName, HelixManager manager)
+  {
+    HelixDataAccessor accessor = manager.getHelixDataAccessor();
+    Builder kb = accessor.keyBuilder();
+    List<IdealState> idealStates = accessor.getChildValues(kb.idealStates());
+    for (IdealState idealState : idealStates)
+    {
+      String resourceName = idealState.getResourceName();
+      if(actualStatName.contains("=" + resourceName + ".") || actualStatName.contains("=" + resourceName + ";"))
+      {
+        return resourceName;
+      }
+    }
+    return null;
+  }
+
+  public static String parsePartitionName(String actualStatName, HelixManager manager)
+  {
+    String resourceName = parseResourceName(actualStatName, manager);
+    if(resourceName != null)
+    {
+      String partitionKey = "=" + resourceName + "_";
+      if(actualStatName.contains(partitionKey))
+      {
+        int pos = actualStatName.indexOf(partitionKey);
+        int nextDotPos = actualStatName.indexOf('.', pos + partitionKey.length());
+        int nextCommaPos = actualStatName.indexOf(';', pos + partitionKey.length());
+        if(nextCommaPos > 0 && nextCommaPos < nextDotPos)
+        {
+          nextDotPos = nextCommaPos;
+        }
+        
+        String partitionName = actualStatName.substring(pos + 1, nextDotPos);
+        return partitionName;
+      }
+    }
+    return null;
+  }
+
+  public static String parseInstanceName(String actualStatName, HelixManager manager)
+  {
+    HelixDataAccessor accessor = manager.getHelixDataAccessor();
+    Builder kb = accessor.keyBuilder();
+    List<LiveInstance> liveInstances = accessor.getChildValues(kb.liveInstances());
+    for (LiveInstance instance : liveInstances)
+    {
+      String instanceName = instance.getInstanceName();
+      if(actualStatName.startsWith(instanceName))
+      {
+        return instanceName;
+      }
+    }
+    return null;
+  }
+
   void updateAlertHistory(HelixManager manager)
   {
- // Write alert fire history to zookeeper
+   // Write alert fire history to zookeeper
     _alertBeanCollection.refreshAlertDelta(manager.getClusterName());
     Map<String, String> delta = _alertBeanCollection.getRecentAlertDelta();
     // Update history only when some beans has changed
     if(delta.size() > 0)
     {
+      delta.putAll(_alertActionTaken);
       SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd-hh:mm:ss:SSS");
       String date = dateFormat.format(new Date());
       
       HelixDataAccessor accessor = manager.getHelixDataAccessor();
       Builder keyBuilder = accessor.keyBuilder();
-//      ZNRecord alertFiredHistory = manager.getDataAccessor().getProperty(PropertyType.ALERT_HISTORY);
+     
       HelixProperty property = accessor.getProperty(keyBuilder.alertHistory());
       ZNRecord alertFiredHistory;
       if(property == null)
       {
         alertFiredHistory = new ZNRecord(PropertyType.ALERT_HISTORY.toString());
-      }else{
+      }
+      else
+      {
         alertFiredHistory = property.getRecord();
       }
       while(alertFiredHistory.getMapFields().size() >= ALERT_HISTORY_SIZE)

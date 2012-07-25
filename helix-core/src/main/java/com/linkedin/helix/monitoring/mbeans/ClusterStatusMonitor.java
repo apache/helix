@@ -47,6 +47,9 @@ public class ClusterStatusMonitor
     = new ConcurrentHashMap<String, ResourceMonitor>();
   private String _clusterName = "";
 
+  private int _numOfDisabledInstances = 0;
+  private int _numOfDisabledPartitions = 0;
+
   public ClusterStatusMonitor(String clusterName)
   {
     _clusterName = clusterName;
@@ -119,10 +122,12 @@ public class ClusterStatusMonitor
     }
   }
 
-  public void setLiveInstanceNum(int numberLiveInstances, int numberOfInstances)
+  public void setClusterStatusCounters(int numberLiveInstances, int numberOfInstances, int disabledInstances, int disabledPartitions)
   {
     _numOfInstances = numberOfInstances;
     _numOfLiveInstances = numberLiveInstances;
+    _numOfDisabledInstances  = disabledInstances;
+    _numOfDisabledPartitions = disabledPartitions;
   }
 
   public void onExternalViewChange(ExternalView externalView, IdealState idealState)
@@ -173,5 +178,17 @@ public class ClusterStatusMonitor
   public String getSensorName()
   {
     return "ClusterStatus"+"_" + _clusterName;
+  }
+
+  @Override
+  public long getDisabledInstancesGauge()
+  {
+    return _numOfDisabledInstances;
+  }
+
+  @Override
+  public long getDisabledPartitionsGauge()
+  {
+    return _numOfDisabledPartitions;
   }
 }

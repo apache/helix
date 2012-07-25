@@ -136,9 +136,18 @@ public class AlertsHolder {
 				AlertParser.getComponent(AlertParser.COMPARATOR_NAME, alert));
 		alertFields.put(AlertParser.CONSTANT_NAME,
 				AlertParser.getComponent(AlertParser.CONSTANT_NAME, alert));
+		try
+		{
+		  alertFields.put(AlertParser.ACTION_NAME,
+	        AlertParser.getComponent(AlertParser.ACTION_NAME, alert));
+		}
+		catch(Exception e)
+		{
+		  logger.info("No action specified in " + alert);
+		}
 		//store the expression as stat
 		_statsHolder.addStat(alertFields.get(AlertParser.EXPRESSION_NAME));
-    _statsHolder.persistStats();
+        _statsHolder.persistStats();
 
 		//naming the alert with the full name
 		_alertsMap.put(alert, alertFields);
@@ -212,6 +221,15 @@ public class AlertsHolder {
 				AlertParser.getComponent(AlertParser.COMPARATOR_NAME, alert));
 		alertFields.put(AlertParser.CONSTANT_NAME,
 				AlertParser.getComponent(AlertParser.CONSTANT_NAME, alert));
+		try
+        {
+          alertFields.put(AlertParser.ACTION_NAME,
+          AlertParser.getComponent(AlertParser.ACTION_NAME, alert));
+        }
+        catch(Exception e)
+        {
+           logger.info("No action specified in " + alert);
+        }
 		statsName.append(alertFields.get(AlertParser.EXPRESSION_NAME));
 	}
 
@@ -259,5 +277,10 @@ public class AlertsHolder {
     {
       _alertsMap = new HashMap<String, Map<String,String>>();
     }
+  }
+  
+  public Map<String, Map<String,String>> getAlertsMap()
+  {
+    return _alertsMap;
   }
 }

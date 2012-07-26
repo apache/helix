@@ -8,8 +8,13 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.log4j.Logger;
+
+import com.linkedin.helix.manager.zk.ZKHelixDataAccessor;
+
 public class GroupCommit
-{
+{ 
+  private static Logger  LOG = Logger.getLogger(GroupCommit.class);
   private static class Queue
   {
     final AtomicReference<Thread>      _running = new AtomicReference<Thread>();
@@ -73,9 +78,30 @@ public class GroupCommit
 
           String mergedKey = first._key;
           ZNRecord merged = _cache.get(mergedKey);
+          /**
+           * If the local cache does not contain a value, need to check if there is a 
+           * value in ZK; use it as initial value if exists
+           */
           if (merged == null)
           {
-            merged = new ZNRecord(first._record);
+            ZNRecord valueOnZk = null;
+            try
+            {
+              valueOnZk = accessor.get(mergedKey, null, 0);
+            }
+            catch(Exception e)
+            {
+              LOG.info(e);
+            }
+            if(valueOnZk != null)
+            {
+              merged = valueOnZk;
+              merged.merge(first._record);
+            }
+            else // Zk path has null data. use the first record as initial record.
+            {
+              merged = new ZNRecord(first._record);
+            }
           }
           else
           {

@@ -19,6 +19,7 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import com.linkedin.helix.TestHelper;
+import com.linkedin.helix.TestHelper.StartCMResult;
 import com.linkedin.helix.tools.ClusterStateVerifier;
 
 public class TestDropResource extends ZkStandAloneCMTestBaseWithPropertyServerCheck
@@ -43,5 +44,45 @@ public class TestDropResource extends ZkStandAloneCMTestBaseWithPropertyServerCh
                                                           "localhost_12920", "localhost_12921",
                                                           "localhost_12922"),
                                  ZK_ADDR);
+  }
+  
+  @Test()
+  public void testDropResourceWhileNodeDead() throws Exception
+  {
+ // add a resource to be dropped
+    _setupTool.addResourceToCluster(CLUSTER_NAME, "MyDB2", 16, STATE_MODEL);
+    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, "MyDB2", 3);
+    
+    boolean verifyResult = ClusterStateVerifier.verifyByPolling(
+        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_NAME));
+    Assert.assertTrue(verifyResult);
+
+    String hostToKill = "localhost_12920";
+    
+    _startCMResultMap.get(hostToKill)._manager.disconnect();
+    Thread.sleep(1000);
+    _startCMResultMap.get(hostToKill)._thread.interrupt();
+    
+    _setupTool.dropResourceFromCluster(CLUSTER_NAME, "MyDB2");
+    
+    TestHelper.verifyWithTimeout("verifyEmptyCurStateAndExtView",
+        CLUSTER_NAME,
+        "MyDB2",
+        TestHelper.<String>setOf("localhost_12918", "localhost_12919",
+                                 /*"localhost_12920",*/ "localhost_12921",
+                                 "localhost_12922"),
+        ZK_ADDR);
+    
+    StartCMResult result =
+        TestHelper.startDummyProcess(ZK_ADDR, CLUSTER_NAME, hostToKill);
+    _startCMResultMap.put(hostToKill, result);
+    
+    TestHelper.verifyWithTimeout("verifyEmptyCurStateAndExtView",
+        CLUSTER_NAME,
+        "MyDB2",
+        TestHelper.<String>setOf("localhost_12918", "localhost_12919",
+                                 "localhost_12920", "localhost_12921",
+                                 "localhost_12922"),
+        ZK_ADDR);
   }
 }

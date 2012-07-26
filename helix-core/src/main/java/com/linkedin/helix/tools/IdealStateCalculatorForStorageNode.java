@@ -67,6 +67,7 @@ public class IdealStateCalculatorForStorageNode
   public static ZNRecord calculateIdealState(List<String> instanceNames, int partitions, int replicas, String resourceName,
                                              String masterStateValue, String slaveStateValue)
   {
+    Collections.sort(instanceNames);
     if(instanceNames.size() < replicas + 1)
     {
       throw new HelixException("Number of instances must not be less than replicas + 1. "
@@ -465,6 +466,7 @@ public class IdealStateCalculatorForStorageNode
   public static Map<String, Object> calculateNextIdealState(List<String> newInstances, Map<String, Object> previousIdealState)
   {
     // Obtain the master / slave assignment info maps
+    Collections.sort(newInstances);
     Map<String, List<Integer>> previousMasterAssignmentMap
         = (Map<String, List<Integer>>) (previousIdealState.get("MasterAssignmentMap"));
     Map<String, Map<String, List<Integer>>> nodeSlaveAssignmentMap

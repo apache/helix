@@ -423,7 +423,11 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
                           CreateMode mode,
                           CreateCallbackHandler cb)
   {
-    final byte[] data = _zkSerializer.serialize(datat);
+    byte[] data = null;
+    if (datat != null)
+    {
+      data = _zkSerializer.serialize(datat);
+    }
     ((ZkConnection) _connection).getZookeeper().create(path, data, Ids.OPEN_ACL_UNSAFE, // Arrays.asList(DEFAULT_ACL),
                                                        mode,
                                                        cb,

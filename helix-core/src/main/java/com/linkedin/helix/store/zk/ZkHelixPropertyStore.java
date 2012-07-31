@@ -18,9 +18,10 @@ public class ZkHelixPropertyStore<T> extends
   public ZkHelixPropertyStore(ZkBaseDataAccessor<T> accessor, String root,
       List<String> subscribedPaths)
   {
-    super(accessor, root, subscribedPaths);
+    super(accessor, root, subscribedPaths, null);
   }
 
+  // temp test
   public static void main(String[] args) throws Exception
   {
     // clean up zk
@@ -60,7 +61,7 @@ public class ZkHelixPropertyStore<T> extends
     // test back to back add-delete-add
     store.set("/child0", new ZNRecord("child0"),
         BaseDataAccessor.Option.PERSISTENT);
-    System.out.println("1:cache:" + store._map);
+    System.out.println("1:cache:" + store._zkCache);
 
     ZNRecord record = store.get("/child0", null, 0); // will put the record in
                                                      // cache
@@ -75,7 +76,7 @@ public class ZkHelixPropertyStore<T> extends
 
     Thread.sleep(500); // should wait for zk callback to add "/child0" into
                        // cache
-    System.out.println("2:cache:" + store._map);
+    System.out.println("2:cache:" + store._zkCache);
 
     record = store.get("/child0", null, 0);
     System.out.println("2:get:" + record);
@@ -83,7 +84,7 @@ public class ZkHelixPropertyStore<T> extends
     zkClient.delete(child0Path);
     Thread.sleep(500); // should wait for zk callback to remove "/child0" from
                        // cache
-    System.out.println("3:cache:" + store._map);
+    System.out.println("3:cache:" + store._zkCache);
     record = store.get("/child0", null, 0);
     System.out.println("3:get:" + record);
 

@@ -2,7 +2,7 @@
 <ivy-module version="1.0" xmlns:m="http://ant.apache.org/ivy/maven">
 	<info organisation="com.linkedin.helix"
 		module="helix-core"
-		revision="0.5.8"
+		revision="0.5.13"
 		status="release"
 		publication="2011111505113547"
 	>
@@ -43,6 +43,9 @@
     <dependency org="net.sf.josql" name="josql" rev="1.5"/>
     <dependency org="org.fusesource.commonman" name="commons-management" rev="1.0"/>
     <dependency org="commons-logging" name="commons-logging-api" rev="1.1"/>
+    <dependency org="org.restlet" name="org.restlet" rev="1.1.10" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
+    <dependency org="com.noelios.restlet" name="com.noelios.restlet" rev="1.1.10" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
+
 
 	</dependencies>
 </ivy-module>

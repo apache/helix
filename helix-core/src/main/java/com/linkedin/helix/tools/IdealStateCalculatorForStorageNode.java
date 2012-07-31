@@ -76,7 +76,7 @@ public class IdealStateCalculatorForStorageNode
     }
     else if(partitions < instanceNames.size())
     {
-      ZNRecord idealState = IdealStateCalculatorByShuffling.calculateIdealState(instanceNames, partitions, replicas, resourceName, new Random().nextLong(), masterStateValue, slaveStateValue);
+      ZNRecord idealState = IdealStateCalculatorByShuffling.calculateIdealState(instanceNames, partitions, replicas, resourceName, 12345, masterStateValue, slaveStateValue);
 
       for(String partitionId : idealState.getMapFields().keySet())
       {

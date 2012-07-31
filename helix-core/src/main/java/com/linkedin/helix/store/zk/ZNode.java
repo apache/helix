@@ -1,20 +1,24 @@
 package com.linkedin.helix.store.zk;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.apache.zookeeper.data.Stat;
 
 public class ZNode
 {
-  final String _name;
+  // used in write through cache where don't cache stat
+  public static final Stat DUMMY_STAT = new Stat();  
+  
+  final String _zkPath;
   private Stat _stat;
   Object _data;
   Set<String> _childSet;
 
-  public ZNode(String name, Object data, Stat stat)
+  public ZNode(String zkPath, Object data, Stat stat)
   {
-    _name = name;
+    _zkPath = zkPath;
     _childSet = new HashSet<String>();
     _data = data;
     _stat = stat;
@@ -28,6 +32,11 @@ public class ZNode
   public void addChild(String child)
   {
     _childSet.add(child);
+  }
+  
+  public void addChildren(List<String> children)
+  {
+    _childSet.addAll(children);
   }
 
   public boolean hasChild(String child)
@@ -63,6 +72,6 @@ public class ZNode
   @Override
   public String toString()
   {
-    return _name + ", " + _data + ", " + _childSet + ", " + _stat;
+    return _zkPath + ", " + _data + ", " + _childSet + ", " + _stat;
   }
 }

@@ -118,6 +118,7 @@ public class GroupCommit
             // System.out.println("After merging:" + merged);
             it.remove();
           }
+          System.out.println("size:"+ processed.size());
           accessor.set(mergedKey, merged, BaseDataAccessor.Option.PERSISTENT);
           _cache.put(mergedKey, merged);
         }

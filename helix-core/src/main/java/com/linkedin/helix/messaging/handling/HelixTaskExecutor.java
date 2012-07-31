@@ -51,7 +51,7 @@ public class HelixTaskExecutor implements MessageListener
   // TODO: we need to further design how to throttle this.
   // From storage point of view, only bootstrap case is expensive
   // and we need to throttle, which is mostly IO / network bounded.
-  private static final int                               MAX_PARALLEL_TASKS = 4;
+  private static final int                               MAX_PARALLEL_TASKS = 40;
   // TODO: create per-task type threadpool with customizable pool size
   protected final Map<String, Future<HelixTaskResult>>   _taskMap;
   private final Object                                   _lock;
@@ -69,7 +69,7 @@ public class HelixTaskExecutor implements MessageListener
 
   public HelixTaskExecutor()
   {
-    _taskMap = new HashMap<String, Future<HelixTaskResult>>();
+    _taskMap = new ConcurrentHashMap<String, Future<HelixTaskResult>>();
     _lock = new Object();
     _statusUpdateUtil = new StatusUpdateUtil();
     _monitor = new ParticipantMonitor();
@@ -155,7 +155,7 @@ public class HelixTaskExecutor implements MessageListener
 
   public void cancelTask(Message message, NotificationContext notificationContext)
   {
-    synchronized (_lock)
+   synchronized (_lock)
     {
       if (_taskMap.containsKey(message.getMsgId()))
       {
@@ -230,7 +230,7 @@ public class HelixTaskExecutor implements MessageListener
         factory.reset();
       }
       // Cancel all scheduled future
-      synchronized (_lock)
+     // synchronized (_lock)
       {
         for(Future<HelixTaskResult> f : _taskMap.values())
         {
@@ -386,6 +386,7 @@ public class HelixTaskExecutor implements MessageListener
     // update messages in batch and schedule all read messages
     if (readMsgs.size() > 0)
     {
+      System.out.println("Scheduling task in batch of "+ readMsgs.size());
       accessor.setChildren(readMsgKeys, readMsgs);
 
       for (int i = 0; i < readMsgs.size(); i++)
@@ -417,7 +418,7 @@ public class HelixTaskExecutor implements MessageListener
   public void shutDown()
   {
     logger.info("shutting down TaskExecutor");
-    synchronized (_lock)
+   synchronized (_lock)
     {
       for (String msgType : _threadpoolMap.keySet())
       {

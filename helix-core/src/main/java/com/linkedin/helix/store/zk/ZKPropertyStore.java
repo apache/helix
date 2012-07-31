@@ -738,8 +738,8 @@ public class ZKPropertyStore<T> implements
   @Override
   public boolean stop()
   {
-    // TODO Auto-generated method stub
-    return false;
+    _zkClient.close();
+    return true;
   }
 
   @Override

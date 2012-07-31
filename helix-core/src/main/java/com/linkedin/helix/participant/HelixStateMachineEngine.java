@@ -50,6 +50,8 @@ public class HelixStateMachineEngine implements StateMachineEngine
 
   private final HelixManager                                                      _manager;
 
+private Map<String, StateModelDefinition> stateModelDefs;
+
   public StateModelFactory<? extends StateModel> getStateModelFactory(String stateModelName)
   {
     return getStateModelFactory(stateModelName,
@@ -216,9 +218,9 @@ public class HelixStateMachineEngine implements StateMachineEngine
     // stateModelDefs are in dataAccessor's cache
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
     Builder keyBuilder = accessor.keyBuilder();
-    
-    Map<String, StateModelDefinition> stateModelDefs =
-        accessor.getChildValuesMap(keyBuilder.stateModelDefs());
+  
+    //TODO: This should not be read every time, either cache this or get this info from message
+    stateModelDefs = accessor.getChildValuesMap(keyBuilder.stateModelDefs());
 
     if (!stateModelDefs.containsKey(stateModelName))
     {
@@ -226,6 +228,7 @@ public class HelixStateMachineEngine implements StateMachineEngine
     }
     String initState = stateModelDefs.get(stateModelName).getInitialState();
 
+    //String initState = "OFFLINE";
     StateModel stateModel = stateModelFactory.getStateModel(partitionKey);
     if (stateModel == null)
     {

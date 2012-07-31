@@ -466,9 +466,6 @@ public class StatusUpdateUtil
                                  Level level,
                                  HelixDataAccessor accessor)
   {
-	if(true){
-	  return;
-	}
     String instanceName = message.getTgtName();
     String statusUpdateSubPath = getStatusUpdateSubPath(message);
     String statusUpdateKey = getStatusUpdateKey(message);
@@ -495,6 +492,9 @@ public class StatusUpdateUtil
       }
       else
       {
+        if(true){
+          return;
+        }
         PropertyKey propertyKey =
             keyBuilder.stateTransitionStatus(instanceName,
                                              sessionId,
@@ -522,6 +522,9 @@ public class StatusUpdateUtil
     }
     else
     {
+      if(true){
+        return;
+      }
       PropertyKey propertyKey =
           keyBuilder.stateTransitionStatus(instanceName,
                                            sessionId,

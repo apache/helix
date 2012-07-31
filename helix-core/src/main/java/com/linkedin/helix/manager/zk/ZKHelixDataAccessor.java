@@ -98,7 +98,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
         if(getPropertyTransferUrl() != null)
         {
           ZNRecordUpdate update = new ZNRecordUpdate(path, OpCode.UPDATE, value.getRecord());
-          _zkPropertyTransferClient.sendZNRecordUpdate(update, getPropertyTransferUrl());
+          //_zkPropertyTransferClient.sendZNRecordUpdate(update, getPropertyTransferUrl());
           return true;
         }
         else

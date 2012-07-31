@@ -31,6 +31,6 @@ if [ "$#" -ne 1 ]; then
   exit
 fi
 
-../../../../../target/helix-core-pkg/bin/zk-log-analyzer $1 /tmp localhost:2191 test-cluster
+../../../../../target/helix-core-pkg/bin/zk-log-analyzer $1 test-cluster localhost:2191 
 
 # END

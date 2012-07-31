@@ -103,10 +103,10 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
     synchronized (_manager)
     {
       Builder keyBuilder = _accessor.keyBuilder();
-
-      if (logger.isDebugEnabled())
+      long start = System.currentTimeMillis();
+      if (logger.isInfoEnabled())
       {
-        logger.debug(Thread.currentThread().getId() + " START:INVOKE "
+        logger.info(Thread.currentThread().getId() + " START:INVOKE "
         // + changeContext.getPathChanged()
             + _path + " listener:" + _listener.getClass().getCanonicalName());
       }
@@ -232,11 +232,11 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
                                                  healthReportList,
                                                  changeContext);
       }
-
-      if (logger.isDebugEnabled())
+      long end = System.currentTimeMillis();
+      if (logger.isInfoEnabled())
       {
-        logger.debug(Thread.currentThread().getId() + " END:INVOKE " + _path
-            + " listener:" + _listener.getClass().getCanonicalName());
+        logger.info(Thread.currentThread().getId() + " END:INVOKE " + _path
+            + " listener:" + _listener.getClass().getCanonicalName() + " Took: "+ (end-start));
       }
     }
   }

@@ -96,21 +96,6 @@ public class HelixStateMachineEngine implements StateMachineEngine
       throw new HelixException("stateModelDef|stateModelFactory|factoryName cannot be null");
     }
 
-    // check if the state model definition exists and cache it
-    if (!_stateModelDefs.containsKey(stateModelName) && _manager.isConnected())
-    {
-      HelixDataAccessor accessor = _manager.getHelixDataAccessor();
-      Builder keyBuilder = accessor.keyBuilder();
-      StateModelDefinition stateModelDef =
-          accessor.getProperty(keyBuilder.stateModelDef(stateModelName));
-      if (stateModelDef == null)
-      {
-        throw new HelixException("stateModelDef for " + stateModelName
-            + " does NOT exists");
-      }
-      _stateModelDefs.put(stateModelName, stateModelDef);
-    }
-    
     logger.info("Register state model factory for state model " + stateModelName
         + " using factory name " + factoryName + " with " + factory);
 
@@ -232,6 +217,21 @@ public class HelixStateMachineEngine implements StateMachineEngine
       return null;
     }
 
+    // check if the state model definition exists and cache it
+    if (!_stateModelDefs.containsKey(stateModelName))
+    {
+      HelixDataAccessor accessor = _manager.getHelixDataAccessor();
+      Builder keyBuilder = accessor.keyBuilder();
+      StateModelDefinition stateModelDef =
+          accessor.getProperty(keyBuilder.stateModelDef(stateModelName));
+      if (stateModelDef == null)
+      {
+        throw new HelixException("stateModelDef for " + stateModelName
+            + " does NOT exists");
+      }
+      _stateModelDefs.put(stateModelName, stateModelDef);
+    }
+    
     // create currentStateDelta for this partition
     String initState = _stateModelDefs.get(message.getStateModelDef()).getInitialState();
     StateModel stateModel = stateModelFactory.getStateModel(partitionKey);
@@ -276,27 +276,5 @@ public class HelixStateMachineEngine implements StateMachineEngine
                                          String factoryName)
   {
     throw new UnsupportedOperationException("Remove not yet supported");
-  }
-
-  
-  @Override
-  public void onConnect()
-  {
-    // cache state model definitions on connect
-    HelixDataAccessor accessor = _manager.getHelixDataAccessor();
-    Builder keyBuilder = accessor.keyBuilder();
-    Map<String, StateModelDefinition> stateModelDefMap =
-        accessor.getChildValuesMap(keyBuilder.stateModelDefs());
-    _stateModelDefs.putAll(stateModelDefMap);
-
-    // check if all registered state model exist
-    for (String stateModelName : _stateModelFactoryMap.keySet())
-    {
-      if (!_stateModelDefs.containsKey(stateModelName))
-      {
-        throw new HelixException("stateModelDef for " + stateModelName
-            + " does NOT exists");
-      }
-    }
   }
 }

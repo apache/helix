@@ -64,6 +64,4 @@ public interface StateMachineEngine extends MessageHandlerFactory
    */
   public boolean removeStateModelFactory(String stateModelDef,
       StateModelFactory<? extends StateModel> factory, String factoryName);
-  
-  public void onConnect();
 }

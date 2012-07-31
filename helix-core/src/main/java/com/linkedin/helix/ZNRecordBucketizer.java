@@ -27,6 +27,12 @@ public class ZNRecordBucketizer
    */
   public String getBucketName(String key)
   {
+    if (_bucketSize == 0)
+    {
+      // no bucketize
+      return null;
+    }
+    
     int idx = key.lastIndexOf('_');
     if (idx < 0)
     {
@@ -37,11 +43,6 @@ public class ZNRecordBucketizer
     try
     {
       int partitionNb = Integer.parseInt(key.substring(idx + 1));
-      if (_bucketSize == 0)
-      {
-        // no bucketize
-        return null;
-      }
       int bucketNb = partitionNb / _bucketSize;
       int startPartition = bucketNb * _bucketSize;
       int endPartition = bucketNb * _bucketSize + (_bucketSize - 1);

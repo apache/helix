@@ -21,7 +21,7 @@ import com.linkedin.helix.tools.IdealStateCalculatorForStorageNode;
 public class TestEmptyPrefList extends ZkIntegrationTestBase
 {
   @Test
-  public void testCustomIsWithEmptyPrefList() throws Exception
+  public void testAutoIsWithEmptyMap() throws Exception
   {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();

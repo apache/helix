@@ -75,6 +75,12 @@ public class TestBucketizedResource extends ZkUnitTestBase
                                                                                  clusterName));
     Assert.assertTrue(result);
     
+    // clean up
+    for (int i = 0; i < 5; i++)
+    {
+      participants[i].syncStop();
+    }
+    
     System.out.println("END " + clusterName + " at "
         + new Date(System.currentTimeMillis()));
   }

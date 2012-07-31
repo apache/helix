@@ -3,11 +3,11 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.linkedin.helix</groupId>
   <artifactId>helix</artifactId>
-  <version>0.5.12</version>
+  <version>0.5.13</version>
   <packaging>pom</packaging>
   <name>Helix Modules Root</name>
 	<properties>
-		<applicationVersion>0.5.12</applicationVersion>
+		<applicationVersion>0.5.13</applicationVersion>
 	</properties>
   <modules>
     <module>helix-core</module>

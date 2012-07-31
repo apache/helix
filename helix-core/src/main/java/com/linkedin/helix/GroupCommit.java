@@ -10,8 +10,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.manager.zk.ZKHelixDataAccessor;
-
 public class GroupCommit
 { 
   private static Logger  LOG = Logger.getLogger(GroupCommit.class);
@@ -118,6 +116,7 @@ public class GroupCommit
             // System.out.println("After merging:" + merged);
             it.remove();
           }
+          // System.out.println("size:"+ processed.size());
           accessor.set(mergedKey, merged, BaseDataAccessor.Option.PERSISTENT);
           _cache.put(mergedKey, merged);
         }

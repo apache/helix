@@ -95,6 +95,7 @@ public class ClusterSetup
 
   // enable / disable Instances
   public static final String enableInstance = "enableInstance";
+  public static final String enablePartition = "enablePartition";
   public static final String help = "help";
 
   // stats /alerts
@@ -592,6 +593,12 @@ public class ClusterSetup
     enableInstanceOption.setArgs(3);
     enableInstanceOption.setRequired(false);
     enableInstanceOption.setArgName("clusterName InstanceName true/false");
+    
+    Option enablePartitionOption = OptionBuilder.withLongOpt(enablePartition)
+        .withDescription("Enable / disable a partition").create();
+    enablePartitionOption.setArgs(5);
+    enablePartitionOption.setRequired(false);
+    enablePartitionOption.setArgName("clusterName instanceName resourceName partitionName true/false");
 
     Option listStateModelsOption = OptionBuilder.withLongOpt(listStateModels)
         .withDescription("Query info of state models in a cluster").create();
@@ -660,6 +667,7 @@ public class ClusterSetup
     group.addOption(resourceInfoOption);
     group.addOption(partitionInfoOption);
     group.addOption(enableInstanceOption);
+    group.addOption(enablePartitionOption);
     group.addOption(addStateModelDefOption);
     group.addOption(listStateModelsOption);
     group.addOption(listStateModelOption);
@@ -974,7 +982,20 @@ public class ClusterSetup
 
       setupTool.getClusterManagementTool().enableInstance(clusterName, instanceName, enabled);
       return 0;
-    } else if (cmd.hasOption(listStateModels))
+    } 
+    else if (cmd.hasOption(enablePartition))
+    {
+      String clusterName = cmd.getOptionValues(enablePartition)[0];
+      String instanceName = cmd.getOptionValues(enablePartition)[1];
+      String resourceName = cmd.getOptionValues(enablePartition)[2];
+      String partitionName = cmd.getOptionValues(enablePartition)[3];
+      
+      boolean enabled = Boolean.parseBoolean(cmd.getOptionValues(enablePartition)[4].toLowerCase());
+
+      setupTool.getClusterManagementTool().enablePartition(clusterName, instanceName, resourceName, partitionName, enabled);
+      return 0;
+    } 
+    else if (cmd.hasOption(listStateModels))
     {
       String clusterName = cmd.getOptionValues(listStateModels)[0];
 

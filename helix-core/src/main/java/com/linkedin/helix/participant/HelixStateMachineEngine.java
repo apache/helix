@@ -33,7 +33,6 @@ import com.linkedin.helix.messaging.handling.MessageHandler;
 import com.linkedin.helix.model.CurrentState;
 import com.linkedin.helix.model.Message;
 import com.linkedin.helix.model.Message.MessageType;
-import com.linkedin.helix.model.StateModelDefinition;
 import com.linkedin.helix.participant.statemachine.StateModel;
 import com.linkedin.helix.participant.statemachine.StateModelFactory;
 import com.linkedin.helix.participant.statemachine.StateModelParser;
@@ -50,7 +49,7 @@ public class HelixStateMachineEngine implements StateMachineEngine
 
   private final HelixManager                                                      _manager;
 
-private Map<String, StateModelDefinition> stateModelDefs;
+  // private Map<String, StateModelDefinition> stateModelDefs;
 
   public StateModelFactory<? extends StateModel> getStateModelFactory(String stateModelName)
   {
@@ -216,37 +215,24 @@ private Map<String, StateModelDefinition> stateModelDefs;
     }
 
     // create currentStateDelta for this partition
-    HelixManager manager = context.getManager();
-
-    // stateModelDefs are in dataAccessor's cache
-    HelixDataAccessor accessor = manager.getHelixDataAccessor();
-    Builder keyBuilder = accessor.keyBuilder();
-  
-    //TODO: This should not be read every time, either cache this or get this info from message
-    stateModelDefs = accessor.getChildValuesMap(keyBuilder.stateModelDefs());
-
-    if (!stateModelDefs.containsKey(stateModelName))
-    {
-      throw new HelixException("No State Model Defined for " + stateModelName);
-    }
-    String initState = stateModelDefs.get(stateModelName).getInitialState();
-
-    //String initState = "OFFLINE";
     StateModel stateModel = stateModelFactory.getStateModel(partitionKey);
     if (stateModel == null)
     {
       stateModelFactory.createAndAddStateModel(partitionKey);
       stateModel = stateModelFactory.getStateModel(partitionKey);
-      stateModel.updateState(initState);
+      // if stateModel is null, fromState in Message is the initState
+      String initState = message.getFromState();
+      stateModel.updateState(initState);   
     }
 
     CurrentState currentStateDelta = new CurrentState(resourceName);
     currentStateDelta.setSessionId(sessionId);
-    currentStateDelta.setSessionId(manager.getSessionId());
     currentStateDelta.setStateModelDefRef(stateModelName);
     currentStateDelta.setStateModelFactoryName(factoryName);
     currentStateDelta.setBucketSize(bucketSize);
 
+    // if stateModel.currentState is null, fromState in Message is the initState
+    String initState = message.getFromState();
     currentStateDelta.setState(partitionKey, (stateModel.getCurrentState() == null)
                                ? initState : stateModel.getCurrentState());
     

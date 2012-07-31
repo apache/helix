@@ -67,7 +67,8 @@ public class Message extends HelixProperty
     EXE_SESSION_ID,
     MESSAGE_TIMEOUT,
     RETRY_COUNT,
-    STATE_MODEL_FACTORY_NAME;
+    STATE_MODEL_FACTORY_NAME,
+    BUCKET_SIZE;
   }
 
   public enum MessageState
@@ -415,6 +416,31 @@ public class Message extends HelixProperty
     _record.setSimpleField(Attributes.STATE_MODEL_FACTORY_NAME.toString(), factoryName);
   }
 
+  public int getBucketSize()
+  {
+    String bucketSizeStr = _record.getSimpleField(Attributes.BUCKET_SIZE.toString());
+    int bucketSize = 0;
+    if (bucketSizeStr != null)
+    {
+      try
+      {
+        bucketSize = Integer.parseInt(bucketSizeStr);
+      } catch (NumberFormatException e)
+      {
+        // OK
+      }
+    }
+    return bucketSize;
+  }
+
+  public void setBucketSize(int bucketSize)
+  {
+    if (bucketSize > 0)
+    {
+      _record.setSimpleField(Attributes.BUCKET_SIZE.toString(), "" + bucketSize);
+    }
+  }
+  
   public static Message createReplyMessage(Message srcMessage,
                                            String instanceName,
                                            Map<String, String> taskResultMap)

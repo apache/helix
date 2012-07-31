@@ -67,6 +67,7 @@ public class ResourceComputationStage extends AbstractBaseStage
           Resource resource = resourceMap.get(resourceName);
           resource.setStateModelDefRef(idealState.getStateModelDefRef());
           resource.setStateModelFactoryName(idealState.getStateModelFactoryName());
+          resource.setBucketSize(idealState.getBucketSize());
         }
       }
     }
@@ -97,6 +98,7 @@ public class ResourceComputationStage extends AbstractBaseStage
           Resource resource = resourceMap.get(resourceName);
           resource.setStateModelDefRef(currentState.getStateModelDefRef());
           resource.setStateModelFactoryName(currentState.getStateModelFactoryName());
+          resource.setBucketSize(currentState.getBucketSize());
 
           if (currentState.getStateModelDefRef() == null)
           {

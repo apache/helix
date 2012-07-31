@@ -335,4 +335,16 @@ public class FileHelixDataAccessor implements HelixDataAccessor
     return null;
   }
 
+  @SuppressWarnings("unchecked")
+  @Override
+  public <T extends HelixProperty> List<T> getProperty(List<PropertyKey> keys)
+  {
+    List<T> list = new ArrayList<T>();
+    for (PropertyKey key : keys)
+    {
+      list.add((T)getProperty(key));
+    }
+    return list;
+  }
+  
 }

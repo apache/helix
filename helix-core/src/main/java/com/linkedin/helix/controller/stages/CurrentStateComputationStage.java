@@ -22,9 +22,9 @@ import com.linkedin.helix.controller.pipeline.StageException;
 import com.linkedin.helix.model.CurrentState;
 import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.model.Message;
-import com.linkedin.helix.model.Resource;
-import com.linkedin.helix.model.Partition;
 import com.linkedin.helix.model.Message.MessageType;
+import com.linkedin.helix.model.Partition;
+import com.linkedin.helix.model.Resource;
 
 /**
  * For each LiveInstances select currentState and message whose sessionId
@@ -109,6 +109,9 @@ public class CurrentStateComputationStage extends AbstractBaseStage
           currentStateOutput.setResourceStateModelDef(resourceName,
               stateModelDefName);
         }
+        
+        currentStateOutput.setBucketSize(resourceName, currentState.getBucketSize());
+
         Map<String, String> partitionStateMap = currentState
             .getPartitionStateMap();
         for (String partitionName : partitionStateMap.keySet())

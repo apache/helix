@@ -99,6 +99,8 @@ public class PropertyPathConfig
         "/{clusterName}/INSTANCES/{instanceName}/CURRENTSTATES/{sessionId}");
     addEntry(PropertyType.CURRENTSTATES, 4,
         "/{clusterName}/INSTANCES/{instanceName}/CURRENTSTATES/{sessionId}/{resourceName}");
+    addEntry(PropertyType.CURRENTSTATES, 5,
+        "/{clusterName}/INSTANCES/{instanceName}/CURRENTSTATES/{sessionId}/{resourceName}/{bucketName}");
     addEntry(PropertyType.STATUSUPDATES, 2, "/{clusterName}/INSTANCES/{instanceName}/STATUSUPDATES");
     addEntry(PropertyType.STATUSUPDATES, 3,
         "/{clusterName}/INSTANCES/{instanceName}/STATUSUPDATES/{sessionId}");

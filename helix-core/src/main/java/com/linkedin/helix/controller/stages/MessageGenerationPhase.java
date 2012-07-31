@@ -73,6 +73,7 @@ public class MessageGenerationPhase extends AbstractBaseStage
     for (String resourceName : resourceMap.keySet())
     {
       Resource resource = resourceMap.get(resourceName);
+      int bucketSize = resource.getBucketSize();
 
       StateModelDefinition stateModelDef =
           cache.getStateModelDef(resource.getStateModelDefRef());
@@ -144,7 +145,8 @@ public class MessageGenerationPhase extends AbstractBaseStage
                               nextState,
                               sessionIdMap.get(instanceName),
                               stateModelDef.getId(),
-                              resource.getStateModelFactoryname());
+                              resource.getStateModelFactoryname(),
+                              bucketSize);
 
             output.addMessage(resourceName, partition, message);
           }
@@ -162,7 +164,8 @@ public class MessageGenerationPhase extends AbstractBaseStage
                                 String nextState,
                                 String sessionId,
                                 String stateModelDefName,
-                                String stateModelFactoryName)
+                                String stateModelFactoryName,
+                                int bucketSize)
   {
     String uuid = UUID.randomUUID().toString();
     Message message = new Message(MessageType.STATE_TRANSITION, uuid);
@@ -177,6 +180,8 @@ public class MessageGenerationPhase extends AbstractBaseStage
     message.setSrcSessionId(manager.getSessionId());
     message.setStateModelDef(stateModelDefName);
     message.setStateModelFactoryName(stateModelFactoryName);
+    message.setBucketSize(bucketSize);
+
     return message;
   }
 }

@@ -72,6 +72,15 @@ public interface HelixDataAccessor
   <T extends HelixProperty> T getProperty(PropertyKey key);
 
   /**
+   * Return a list of property values, each of which must be refer to a single Helix
+   * Property. Property may be bucketized.
+   * 
+   * @param keys
+   * @return
+   */
+  public <T extends HelixProperty> List<T> getProperty(List<PropertyKey> keys);
+
+  /**
    * Removes the property
    * 
    * @param key

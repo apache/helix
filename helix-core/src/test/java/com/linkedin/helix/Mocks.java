@@ -558,6 +558,19 @@ public class Mocks
       // TODO Auto-generated method stub
       return null;
     }
+    
+    @Override
+    public <T extends HelixProperty> List<T> getProperty(List<PropertyKey> keys)
+    {
+      List<T> list = new ArrayList<T>();
+      for (PropertyKey key : keys)
+      {
+        @SuppressWarnings("unchecked")
+        T t = (T)getProperty(key);
+        list.add(t);
+      }
+      return list;
+    }
   }
 
   public static class MockHealthReportProvider extends HealthReportProvider

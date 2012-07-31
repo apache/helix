@@ -4,13 +4,13 @@ import static com.linkedin.helix.PropertyType.ALERTS;
 import static com.linkedin.helix.PropertyType.ALERT_HISTORY;
 import static com.linkedin.helix.PropertyType.ALERT_STATUS;
 import static com.linkedin.helix.PropertyType.CONFIGS;
+import static com.linkedin.helix.PropertyType.CONTROLLER;
 import static com.linkedin.helix.PropertyType.CURRENTSTATES;
 import static com.linkedin.helix.PropertyType.ERRORS;
 import static com.linkedin.helix.PropertyType.ERRORS_CONTROLLER;
 import static com.linkedin.helix.PropertyType.EXTERNALVIEW;
 import static com.linkedin.helix.PropertyType.HEALTHREPORT;
 import static com.linkedin.helix.PropertyType.HISTORY;
-import static com.linkedin.helix.PropertyType.CONTROLLER;
 import static com.linkedin.helix.PropertyType.IDEALSTATES;
 import static com.linkedin.helix.PropertyType.LEADER;
 import static com.linkedin.helix.PropertyType.LIVEINSTANCES;
@@ -51,19 +51,21 @@ import com.linkedin.helix.model.StatusUpdate;
 
 public class PropertyKey
 {
-  private static Logger LOG = Logger.getLogger(PropertyKey.class);
-  public PropertyType _type;
-  private final String[] _params;
+  private static Logger          LOG = Logger.getLogger(PropertyKey.class);
+  public PropertyType            _type;
+  private final String[]         _params;
   Class<? extends HelixProperty> _typeClazz;
 
   public PropertyKey(PropertyType type,
-      Class<? extends HelixProperty> typeClazz, String... params) 
+                     Class<? extends HelixProperty> typeClazz,
+                     String... params)
   {
     _type = type;
-    if(params==null || params.length==0 || Arrays.asList(params).contains(null)){
+    if (params == null || params.length == 0 || Arrays.asList(params).contains(null))
+    {
       throw new IllegalArgumentException("params cannot be null");
     }
-    
+
     _params = params;
     _typeClazz = typeClazz;
   }
@@ -79,8 +81,10 @@ public class PropertyKey
     String clusterName = _params[0];
     String[] subKeys = Arrays.copyOfRange(_params, 1, _params.length);
     String path = PropertyPathConfig.getPath(_type, clusterName, subKeys);
-    if(path == null){
-      LOG.error("Invalid property key with type:" + _type + "subKeys:" + Arrays.toString(_params));
+    if (path == null)
+    {
+      LOG.error("Invalid property key with type:" + _type + "subKeys:"
+          + Arrays.toString(_params));
     }
     return path;
   }
@@ -101,75 +105,100 @@ public class PropertyKey
 
     public PropertyKey idealStates(String resourceName)
     {
-      return new PropertyKey(IDEALSTATES, IdealState.class, _clusterName,
-          resourceName);
+      return new PropertyKey(IDEALSTATES, IdealState.class, _clusterName, resourceName);
     }
 
     public PropertyKey stateModelDefs()
     {
-      return new PropertyKey(STATEMODELDEFS, StateModelDefinition.class,
-          _clusterName);
+      return new PropertyKey(STATEMODELDEFS, StateModelDefinition.class, _clusterName);
     }
 
     public PropertyKey stateModelDef(String stateModelName)
     {
-      return new PropertyKey(STATEMODELDEFS, StateModelDefinition.class,
-          _clusterName, stateModelName);
+      return new PropertyKey(STATEMODELDEFS,
+                             StateModelDefinition.class,
+                             _clusterName,
+                             stateModelName);
     }
 
     public PropertyKey clusterConfig()
     {
-      return new PropertyKey(CONFIGS, null, _clusterName,
-          ConfigScopeProperty.CLUSTER.toString());
+      return new PropertyKey(CONFIGS,
+                             null,
+                             _clusterName,
+                             ConfigScopeProperty.CLUSTER.toString());
     }
 
     public PropertyKey instanceConfigs()
     {
-      return new PropertyKey(CONFIGS, InstanceConfig.class, _clusterName,
-          ConfigScopeProperty.PARTICIPANT.toString());
+      return new PropertyKey(CONFIGS,
+                             InstanceConfig.class,
+                             _clusterName,
+                             ConfigScopeProperty.PARTICIPANT.toString());
     }
 
     public PropertyKey instanceConfig(String instanceName)
     {
-      return new PropertyKey(CONFIGS, InstanceConfig.class, _clusterName,
-          ConfigScopeProperty.PARTICIPANT.toString(), instanceName);
+      return new PropertyKey(CONFIGS,
+                             InstanceConfig.class,
+                             _clusterName,
+                             ConfigScopeProperty.PARTICIPANT.toString(),
+                             instanceName);
     }
 
     public PropertyKey resourceConfig(String resourceName)
     {
-      return new PropertyKey(CONFIGS, null, _clusterName,
-          ConfigScopeProperty.RESOURCE.toString(), resourceName);
+      return new PropertyKey(CONFIGS,
+                             null,
+                             _clusterName,
+                             ConfigScopeProperty.RESOURCE.toString(),
+                             resourceName);
     }
 
     public PropertyKey resourceConfig(String instanceName, String resourceName)
     {
-      return new PropertyKey(CONFIGS, null, _clusterName,
-          ConfigScopeProperty.RESOURCE.toString(), resourceName);
+      return new PropertyKey(CONFIGS,
+                             null,
+                             _clusterName,
+                             ConfigScopeProperty.RESOURCE.toString(),
+                             resourceName);
     }
 
     public PropertyKey partitionConfig(String resourceName, String partitionName)
     {
-      return new PropertyKey(CONFIGS, null, _clusterName,
-          ConfigScopeProperty.RESOURCE.toString(), resourceName);
+      return new PropertyKey(CONFIGS,
+                             null,
+                             _clusterName,
+                             ConfigScopeProperty.RESOURCE.toString(),
+                             resourceName);
     }
 
     public PropertyKey partitionConfig(String instanceName,
-        String resourceName, String partitionName)
+                                       String resourceName,
+                                       String partitionName)
     {
-      return new PropertyKey(CONFIGS, null, _clusterName,
-          ConfigScopeProperty.RESOURCE.toString(), resourceName);
+      return new PropertyKey(CONFIGS,
+                             null,
+                             _clusterName,
+                             ConfigScopeProperty.RESOURCE.toString(),
+                             resourceName);
     }
 
     public PropertyKey constraints()
     {
-      return new PropertyKey(CONFIGS, ClusterConstraints.class, _clusterName,
-          ConfigScopeProperty.CONSTRAINT.toString());
+      return new PropertyKey(CONFIGS,
+                             ClusterConstraints.class,
+                             _clusterName,
+                             ConfigScopeProperty.CONSTRAINT.toString());
     }
 
     public PropertyKey constraint(String constraintType)
     {
-      return new PropertyKey(CONFIGS, ClusterConstraints.class, _clusterName,
-          ConfigScopeProperty.CONSTRAINT.toString(), constraintType);
+      return new PropertyKey(CONFIGS,
+                             ClusterConstraints.class,
+                             _clusterName,
+                             ConfigScopeProperty.CONSTRAINT.toString(),
+                             constraintType);
     }
 
     public PropertyKey liveInstances()
@@ -179,8 +208,10 @@ public class PropertyKey
 
     public PropertyKey liveInstance(String instanceName)
     {
-      return new PropertyKey(LIVEINSTANCES, LiveInstance.class, _clusterName,
-          instanceName);
+      return new PropertyKey(LIVEINSTANCES,
+                             LiveInstance.class,
+                             _clusterName,
+                             instanceName);
     }
 
     public PropertyKey instances()
@@ -190,40 +221,72 @@ public class PropertyKey
 
     public PropertyKey messages(String instanceName)
     {
-      return new PropertyKey(MESSAGES, Message.class, _clusterName,
-          instanceName);
+      return new PropertyKey(MESSAGES, Message.class, _clusterName, instanceName);
     }
 
     public PropertyKey message(String instanceName, String messageId)
     {
-      return new PropertyKey(MESSAGES, Message.class, _clusterName,
-          instanceName, messageId);
+      return new PropertyKey(MESSAGES,
+                             Message.class,
+                             _clusterName,
+                             instanceName,
+                             messageId);
     }
 
     public PropertyKey sessions(String instanceName)
     {
-      return new PropertyKey(CURRENTSTATES, CurrentState.class, _clusterName,
-          instanceName);
+      return new PropertyKey(CURRENTSTATES,
+                             CurrentState.class,
+                             _clusterName,
+                             instanceName);
     }
 
     public PropertyKey currentStates(String instanceName, String sessionId)
     {
-      return new PropertyKey(CURRENTSTATES, CurrentState.class, _clusterName,
-          instanceName, sessionId);
+      return new PropertyKey(CURRENTSTATES,
+                             CurrentState.class,
+                             _clusterName,
+                             instanceName,
+                             sessionId);
     }
 
-    public PropertyKey currentState(String instanceName, String sessionId,
-        String resourceName)
+    public PropertyKey currentState(String instanceName,
+                                    String sessionId,
+                                    String resourceName)
     {
-      return new PropertyKey(CURRENTSTATES, CurrentState.class, _clusterName,
-          instanceName, sessionId, resourceName);
+      return new PropertyKey(CURRENTSTATES,
+                             CurrentState.class,
+                             _clusterName,
+                             instanceName,
+                             sessionId,
+                             resourceName);
     }
 
-    public PropertyKey currentState(String instanceName, String sessionId,
-        String resourceName, String partitionName)
+    public PropertyKey currentState(String instanceName,
+                                    String sessionId,
+                                    String resourceName,
+                                    String bucketName)
     {
-      return new PropertyKey(CURRENTSTATES, CurrentState.class, _clusterName,
-          instanceName, sessionId, resourceName, partitionName);
+      if (bucketName == null)
+      {
+        return new PropertyKey(CURRENTSTATES,
+                               CurrentState.class,
+                               _clusterName,
+                               instanceName,
+                               sessionId,
+                               resourceName);
+
+      }
+      else
+      {
+        return new PropertyKey(CURRENTSTATES,
+                               CurrentState.class,
+                               _clusterName,
+                               instanceName,
+                               sessionId,
+                               resourceName,
+                               bucketName);
+      }
     }
 
     // addEntry(PropertyType.STATUSUPDATES, 2,
@@ -235,24 +298,38 @@ public class PropertyKey
     // addEntry(PropertyType.STATUSUPDATES, 5,
     // "/{clusterName}/INSTANCES/{instanceName}/STATUSUPDATES/{sessionId}/{subPath}/{recordName}");
     public PropertyKey stateTransitionStatus(String instanceName,
-        String sessionId, String resourceName, String partitionName)
+                                             String sessionId,
+                                             String resourceName,
+                                             String partitionName)
     {
-      return new PropertyKey(STATUSUPDATES, StatusUpdate.class, _clusterName,
-          instanceName, sessionId, resourceName, partitionName);
+      return new PropertyKey(STATUSUPDATES,
+                             StatusUpdate.class,
+                             _clusterName,
+                             instanceName,
+                             sessionId,
+                             resourceName,
+                             partitionName);
     }
 
     public PropertyKey stateTransitionStatus(String instanceName,
-        String sessionId, String resourceName)
+                                             String sessionId,
+                                             String resourceName)
     {
-      return new PropertyKey(STATUSUPDATES, StatusUpdate.class, _clusterName,
-          instanceName, sessionId, resourceName);
+      return new PropertyKey(STATUSUPDATES,
+                             StatusUpdate.class,
+                             _clusterName,
+                             instanceName,
+                             sessionId,
+                             resourceName);
     }
 
-    public PropertyKey stateTransitionStatus(String instanceName,
-        String sessionId)
+    public PropertyKey stateTransitionStatus(String instanceName, String sessionId)
     {
-      return new PropertyKey(STATUSUPDATES, StatusUpdate.class, _clusterName,
-          instanceName, sessionId);
+      return new PropertyKey(STATUSUPDATES,
+                             StatusUpdate.class,
+                             _clusterName,
+                             instanceName,
+                             sessionId);
     }
 
     /**
@@ -264,25 +341,44 @@ public class PropertyKey
      * @param msgId
      * @return
      */
-    public PropertyKey taskStatus(String instanceName, String sessionId,
-        String msgType, String msgId)
+    public PropertyKey taskStatus(String instanceName,
+                                  String sessionId,
+                                  String msgType,
+                                  String msgId)
     {
-      return new PropertyKey(STATUSUPDATES, StatusUpdate.class, _clusterName,
-          instanceName, sessionId, msgType, msgId);
+      return new PropertyKey(STATUSUPDATES,
+                             StatusUpdate.class,
+                             _clusterName,
+                             instanceName,
+                             sessionId,
+                             msgType,
+                             msgId);
     }
 
     public PropertyKey stateTransitionError(String instanceName,
-        String sessionId, String resourceName, String partitionName)
+                                            String sessionId,
+                                            String resourceName,
+                                            String partitionName)
     {
-      return new PropertyKey(ERRORS, Error.class, _clusterName, instanceName,
-          sessionId, resourceName, partitionName);
+      return new PropertyKey(ERRORS,
+                             Error.class,
+                             _clusterName,
+                             instanceName,
+                             sessionId,
+                             resourceName,
+                             partitionName);
     }
 
     public PropertyKey stateTransitionErrors(String instanceName,
-        String sessionId, String resourceName)
+                                             String sessionId,
+                                             String resourceName)
     {
-      return new PropertyKey(ERRORS, Error.class, _clusterName, instanceName,
-          sessionId, resourceName);
+      return new PropertyKey(ERRORS,
+                             Error.class,
+                             _clusterName,
+                             instanceName,
+                             sessionId,
+                             resourceName);
     }
 
     /**
@@ -294,11 +390,18 @@ public class PropertyKey
      * @param msgId
      * @return
      */
-    public PropertyKey taskError(String instanceName, String sessionId,
-        String msgType, String msgId)
+    public PropertyKey taskError(String instanceName,
+                                 String sessionId,
+                                 String msgType,
+                                 String msgId)
     {
-      return new PropertyKey(ERRORS, null, _clusterName, instanceName,
-          sessionId, msgType, msgId);
+      return new PropertyKey(ERRORS,
+                             null,
+                             _clusterName,
+                             instanceName,
+                             sessionId,
+                             msgType,
+                             msgId);
     }
 
     public PropertyKey externalViews()
@@ -308,8 +411,7 @@ public class PropertyKey
 
     public PropertyKey externalView(String resourceName)
     {
-      return new PropertyKey(EXTERNALVIEW, ExternalView.class, _clusterName,
-          resourceName);
+      return new PropertyKey(EXTERNALVIEW, ExternalView.class, _clusterName, resourceName);
     }
 
     // * addEntry(PropertyType.STATUSUPDATES_CONTROLLER, 4,
@@ -330,31 +432,34 @@ public class PropertyKey
 
     public PropertyKey controller()
     {
-       return new PropertyKey(CONTROLLER, null,
-          _clusterName);
+      return new PropertyKey(CONTROLLER, null, _clusterName);
     }
+
     public PropertyKey controllerTaskErrors()
     {
-      return new PropertyKey(ERRORS_CONTROLLER, StatusUpdate.class,
-          _clusterName);
+      return new PropertyKey(ERRORS_CONTROLLER, StatusUpdate.class, _clusterName);
     }
 
     public PropertyKey controllerTaskError(String errorId)
     {
-      return new PropertyKey(ERRORS_CONTROLLER, Error.class, _clusterName,
-          errorId);
+      return new PropertyKey(ERRORS_CONTROLLER, Error.class, _clusterName, errorId);
     }
 
     public PropertyKey controllerTaskStatuses(String subPath)
     {
-      return new PropertyKey(STATUSUPDATES_CONTROLLER, StatusUpdate.class,
-          _clusterName, subPath);
+      return new PropertyKey(STATUSUPDATES_CONTROLLER,
+                             StatusUpdate.class,
+                             _clusterName,
+                             subPath);
     }
 
     public PropertyKey controllerTaskStatus(String subPath, String recordName)
     {
-      return new PropertyKey(STATUSUPDATES_CONTROLLER, StatusUpdate.class,
-          _clusterName, subPath, recordName);
+      return new PropertyKey(STATUSUPDATES_CONTROLLER,
+                             StatusUpdate.class,
+                             _clusterName,
+                             subPath,
+                             recordName);
     }
 
     public PropertyKey controllerMessages()
@@ -364,8 +469,7 @@ public class PropertyKey
 
     public PropertyKey controllerMessage(String msgId)
     {
-      return new PropertyKey(MESSAGES_CONTROLLER, Message.class, _clusterName,
-          msgId);
+      return new PropertyKey(MESSAGES_CONTROLLER, Message.class, _clusterName, msgId);
     }
 
     public PropertyKey controllerLeaderHistory()
@@ -385,8 +489,7 @@ public class PropertyKey
 
     public PropertyKey persistantStat()
     {
-      return new PropertyKey(PERSISTENTSTATS, PersistentStats.class,
-          _clusterName);
+      return new PropertyKey(PERSISTENTSTATS, PersistentStats.class, _clusterName);
     }
 
     public PropertyKey alerts()
@@ -406,17 +509,17 @@ public class PropertyKey
 
     public PropertyKey healthReport(String instanceName, String id)
     {
-      return new PropertyKey(HEALTHREPORT, HealthStat.class, _clusterName,
-          instanceName, id);
+      return new PropertyKey(HEALTHREPORT,
+                             HealthStat.class,
+                             _clusterName,
+                             instanceName,
+                             id);
     }
 
     public PropertyKey healthReports(String instanceName)
     {
-      return new PropertyKey(HEALTHREPORT, HealthStat.class, _clusterName,
-          instanceName);
+      return new PropertyKey(HEALTHREPORT, HealthStat.class, _clusterName, instanceName);
     }
-
-  
 
   }
 
@@ -440,8 +543,8 @@ public class PropertyKey
     ZkClient zkClient = new ZkClient("localhost:2181");
     zkClient.waitUntilConnected(10, TimeUnit.SECONDS);
     BaseDataAccessor baseDataAccessor = new ZkBaseDataAccessor(zkClient);
-    HelixDataAccessor accessor = new ZKHelixDataAccessor("test-cluster",
-        baseDataAccessor);
+    HelixDataAccessor accessor =
+        new ZKHelixDataAccessor("test-cluster", baseDataAccessor);
     Builder builder = new PropertyKey.Builder("test-cluster");
     HelixProperty value = new IdealState("test-resource");
     accessor.createProperty(builder.idealStates("test-resource"), value);

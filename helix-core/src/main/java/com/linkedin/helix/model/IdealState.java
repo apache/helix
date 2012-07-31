@@ -31,11 +31,18 @@ import com.linkedin.helix.ZNRecord;
  */
 public class IdealState extends HelixProperty
 {
-  public enum IdealStateProperty {
-    NUM_PARTITIONS, STATE_MODEL_DEF_REF, STATE_MODEL_FACTORY_NAME, REPLICAS, IDEAL_STATE_MODE
+  public enum IdealStateProperty
+  {
+    NUM_PARTITIONS,
+    STATE_MODEL_DEF_REF,
+    STATE_MODEL_FACTORY_NAME,
+    REPLICAS,
+    IDEAL_STATE_MODE,
+    BUCKET_SIZE
   }
 
-  public enum IdealStateModeProperty {
+  public enum IdealStateModeProperty
+  {
     AUTO, CUSTOMIZED, AUTO_REBALANCE
   }
 
@@ -68,7 +75,7 @@ public class IdealState extends HelixProperty
     {
       return IdealStateModeProperty.valueOf(mode);
     }
-    catch(Exception e)
+    catch (Exception e)
     {
       return IdealStateModeProperty.AUTO;
     }
@@ -86,14 +93,15 @@ public class IdealState extends HelixProperty
 
   public Set<String> getPartitionSet()
   {
-    if (getIdealStateMode() == IdealStateModeProperty.AUTO || getIdealStateMode() == IdealStateModeProperty.AUTO_REBALANCE)
+    if (getIdealStateMode() == IdealStateModeProperty.AUTO
+        || getIdealStateMode() == IdealStateModeProperty.AUTO_REBALANCE)
     {
       return _record.getListFields().keySet();
-    } 
+    }
     else if (getIdealStateMode() == IdealStateModeProperty.CUSTOMIZED)
     {
       return _record.getMapFields().keySet();
-    } 
+    }
     else
     {
       logger.error("Invalid ideal state mode:" + getResourceName());
@@ -107,7 +115,7 @@ public class IdealState extends HelixProperty
   }
 
   private List<String> getInstancePreferenceList(String partitionName,
-      StateModelDefinition stateModelDef)
+                                                 StateModelDefinition stateModelDef)
   {
     List<String> instanceStateList = _record.getListField(partitionName);
 
@@ -115,7 +123,8 @@ public class IdealState extends HelixProperty
     {
       return instanceStateList;
     }
-    logger.warn("Resource key:" + partitionName + " does not have a pre-computed preference list.");
+    logger.warn("Resource key:" + partitionName
+        + " does not have a pre-computed preference list.");
     return null;
   }
 
@@ -129,7 +138,8 @@ public class IdealState extends HelixProperty
     _record.setSimpleField(IdealStateProperty.STATE_MODEL_DEF_REF.toString(), stateModel);
   }
 
-  public List<String> getPreferenceList(String partitionName, StateModelDefinition stateModelDef)
+  public List<String> getPreferenceList(String partitionName,
+                                        StateModelDefinition stateModelDef)
   {
     return getInstancePreferenceList(partitionName, stateModelDef);
   }
@@ -137,17 +147,19 @@ public class IdealState extends HelixProperty
   public void setNumPartitions(int numPartitions)
   {
     _record.setSimpleField(IdealStateProperty.NUM_PARTITIONS.toString(),
-        String.valueOf(numPartitions));
+                           String.valueOf(numPartitions));
   }
 
   public int getNumPartitions()
   {
-    String numPartitionStr = _record.getSimpleField(IdealStateProperty.NUM_PARTITIONS.toString());
+    String numPartitionStr =
+        _record.getSimpleField(IdealStateProperty.NUM_PARTITIONS.toString());
 
     try
     {
       return Integer.parseInt(numPartitionStr);
-    } catch (Exception e)
+    }
+    catch (Exception e)
     {
       logger.error("Can't parse number of partitions: " + numPartitionStr, e);
       return -1;
@@ -166,9 +178,10 @@ public class IdealState extends HelixProperty
     String replica = _record.getSimpleField(IdealStateProperty.REPLICAS.toString());
     if (replica == null)
     {
-      logger.warn("replicas not found in idealState. Use length of the first list instead: " + _record);
+      logger.warn("replicas not found in idealState. Use length of the first list instead: "
+          + _record);
       List<String> list = _record.getListFields().get(0);
-      replica = Integer.toString(list == null? 0 : list.size());
+      replica = Integer.toString(list == null ? 0 : list.size());
     }
     return replica;
   }
@@ -181,6 +194,23 @@ public class IdealState extends HelixProperty
   public String getStateModelFactoryName()
   {
     return _record.getSimpleField(IdealStateProperty.STATE_MODEL_FACTORY_NAME.toString());
+  }
+
+  public void setBucketSize(int bucketSize)
+  {
+    _record.setSimpleField(IdealStateProperty.BUCKET_SIZE.toString(), "" + bucketSize);
+  }
+
+  public int getBucketSize()
+  {
+    int bucketSize = 0;
+    String bucketSizeStr =
+        _record.getSimpleField(IdealStateProperty.BUCKET_SIZE.toString());
+    if (bucketSizeStr != null)
+    {
+      bucketSize = Integer.parseInt(bucketSizeStr);
+    }
+    return bucketSize;
   }
 
   @Override

@@ -160,6 +160,12 @@ public class ZNRecordStreamingSerializer implements ZkSerializer
   @Override
   public Object deserialize(byte[] bytes) throws ZkMarshallingError
   {
+    if (bytes == null || bytes.length == 0)
+    {
+      LOG.error("ZNode is empty.");
+      return null;
+    }
+    
     ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
     ZNRecord record = null;
 

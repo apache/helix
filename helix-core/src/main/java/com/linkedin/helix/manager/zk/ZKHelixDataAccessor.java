@@ -1,6 +1,7 @@
 package com.linkedin.helix.manager.zk;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,22 +21,24 @@ import com.linkedin.helix.PropertyKey;
 import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
+import com.linkedin.helix.ZNRecordAssembler;
 import com.linkedin.helix.ZNRecordUpdater;
 import com.linkedin.helix.controller.restlet.ZNRecordUpdate;
 import com.linkedin.helix.controller.restlet.ZNRecordUpdate.OpCode;
 import com.linkedin.helix.controller.restlet.ZkPropertyTransferClient;
+import com.linkedin.helix.model.CurrentState;
 import com.linkedin.helix.model.LiveInstance;
 
 public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeListener
 {
-  private static Logger                    LOG          =
-                                                            Logger.getLogger(ZKHelixDataAccessor.class);
+  private static Logger                    LOG                       =
+                                                                         Logger.getLogger(ZKHelixDataAccessor.class);
   private final BaseDataAccessor<ZNRecord> _baseDataAccessor;
-  private final String _clusterName;
-  private final Builder _propertyKeyBuilder;
-  final ZkPropertyTransferClient _zkPropertyTransferClient;
-  private final GroupCommit _groupCommit = new GroupCommit();
-  String _zkPropertyTransferSvcUrl = null;
+  private final String                     _clusterName;
+  private final Builder                    _propertyKeyBuilder;
+  final ZkPropertyTransferClient           _zkPropertyTransferClient;
+  private final GroupCommit                _groupCommit              = new GroupCommit();
+  String                                   _zkPropertyTransferSvcUrl = null;
 
   public ZKHelixDataAccessor(String clusterName,
                              BaseDataAccessor<ZNRecord> baseDataAccessor)
@@ -43,8 +46,8 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
     _clusterName = clusterName;
     _baseDataAccessor = baseDataAccessor;
     _propertyKeyBuilder = new PropertyKey.Builder(_clusterName);
-    _zkPropertyTransferClient
-      = new ZkPropertyTransferClient(ZkPropertyTransferClient.DEFAULT_MAX_CONCURRENTTASKS);
+    _zkPropertyTransferClient =
+        new ZkPropertyTransferClient(ZkPropertyTransferClient.DEFAULT_MAX_CONCURRENTTASKS);
   }
 
   @Override
@@ -67,25 +70,24 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
 
     String path = key.getPath();
     int options = constructOptions(type);
-    
-    if(type.usePropertyTransferServer() && getPropertyTransferUrl() != null)
+
+    if (type.usePropertyTransferServer() && getPropertyTransferUrl() != null)
     {
       ZNRecordUpdate update = new ZNRecordUpdate(path, OpCode.SET, value.getRecord());
       _zkPropertyTransferClient.sendZNRecordUpdate(update, getPropertyTransferUrl());
       return true;
     }
-    
+
     return _baseDataAccessor.set(path, value.getRecord(), options);
   }
 
   @Override
-  public <T extends HelixProperty> boolean updateProperty(PropertyKey key,
-      T value)
+  public <T extends HelixProperty> boolean updateProperty(PropertyKey key, T value)
   {
     PropertyType type = key.getType();
     String path = key.getPath();
     int options = constructOptions(type);
-    
+
     boolean success = false;
     switch (type)
     {
@@ -93,11 +95,12 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
       success = _groupCommit.commit(_baseDataAccessor, path, value.getRecord());
       break;
     default:
-      if(type.usePropertyTransferServer())
+      if (type.usePropertyTransferServer())
       {
-        if(getPropertyTransferUrl() != null)
+        if (getPropertyTransferUrl() != null)
         {
-          ZNRecordUpdate update = new ZNRecordUpdate(path, OpCode.UPDATE, value.getRecord());
+          ZNRecordUpdate update =
+              new ZNRecordUpdate(path, OpCode.UPDATE, value.getRecord());
           _zkPropertyTransferClient.sendZNRecordUpdate(update, getPropertyTransferUrl());
           return true;
         }
@@ -108,13 +111,70 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
           return true;
         }
       }
-      success = _baseDataAccessor.update(path, new ZNRecordUpdater(value.getRecord()), options);
+      success =
+          _baseDataAccessor.update(path, new ZNRecordUpdater(value.getRecord()), options);
       break;
     }
     return success;
   }
 
-  @SuppressWarnings("unchecked")
+  @Override
+  public <T extends HelixProperty> List<T> getProperty(List<PropertyKey> keys)
+  {
+    if (keys == null || keys.size() == 0)
+    {
+      return Collections.emptyList();
+    }
+
+    List<T> childValues = new ArrayList<T>();
+
+    // read all records
+    List<String> paths = new ArrayList<String>();
+    for (PropertyKey key : keys)
+    {
+      paths.add(key.getPath());
+    }
+    List<ZNRecord> children = _baseDataAccessor.get(paths, null, 0);
+
+    // check if bucketized
+    for (int i = 0; i < keys.size(); i++)
+    {
+      PropertyKey key = keys.get(i);
+      ZNRecord record = children.get(i);
+
+      PropertyType type = key.getType();
+      String path = key.getPath();
+      int options = constructOptions(type);
+      // ZNRecord record = null;
+
+      switch (type)
+      {
+      case CURRENTSTATES:
+        // check if bucketized
+        if (record != null)
+        {
+          CurrentState curState = new CurrentState(record);
+          int bucketSize = curState.getBucketSize();
+          if (bucketSize > 0)
+          {
+            List<ZNRecord> childRecords =
+                _baseDataAccessor.getChildren(path, null, options);
+            record = new ZNRecordAssembler().assemble(childRecords);
+          }
+        }
+        break;
+      default:
+        break;
+      }
+
+      @SuppressWarnings("unchecked")
+      T t = (T) HelixProperty.convertToTypedInstance(key.getTypeClass(), record);
+      childValues.add(t);
+    }
+
+    return childValues;
+  }
+
   @Override
   public <T extends HelixProperty> T getProperty(PropertyKey key)
   {
@@ -130,7 +190,30 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
     {
       // OK
     }
-    return (T) HelixProperty.convertToTypedInstance(key.getTypeClass(), record);
+
+    switch (type)
+    {
+    case CURRENTSTATES:
+      // check if bucketized
+      if (record != null)
+      {
+        CurrentState curState = new CurrentState(record);
+        int bucketSize = curState.getBucketSize();
+        if (bucketSize > 0)
+        {
+          List<ZNRecord> childRecords =
+              _baseDataAccessor.getChildren(path, null, options);
+          record = new ZNRecordAssembler().assemble(childRecords);
+        }
+      }
+      break;
+    default:
+      break;
+    }
+
+    @SuppressWarnings("unchecked")
+    T t = (T) HelixProperty.convertToTypedInstance(key.getTypeClass(), record);
+    return t;
   }
 
   @Override
@@ -150,22 +233,46 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
     return _baseDataAccessor.getChildNames(parentPath, options);
   }
 
-  @SuppressWarnings("unchecked")
   @Override
   public <T extends HelixProperty> List<T> getChildValues(PropertyKey key)
   {
     PropertyType type = key.getType();
     String parentPath = key.getPath();
     int options = constructOptions(type);
+    List<T> childValues = new ArrayList<T>();
+
     List<ZNRecord> children = _baseDataAccessor.getChildren(parentPath, null, options);
-    List<HelixProperty> childValues = new ArrayList<HelixProperty>();
     for (ZNRecord record : children)
     {
-      HelixProperty typedInstance =
-          HelixProperty.convertToTypedInstance(key.getTypeClass(), record);
-      childValues.add(typedInstance);
+      switch (type)
+      {
+      case CURRENTSTATES:
+        // check if bucketized
+        if (record != null)
+        {
+          CurrentState curState = new CurrentState(record);
+          int bucketSize = curState.getBucketSize();
+          if (bucketSize > 0)
+          {
+            String path = parentPath + "/" + record.getId();
+            List<ZNRecord> childRecords =
+                _baseDataAccessor.getChildren(path, null, options);
+            record = new ZNRecordAssembler().assemble(childRecords);
+          }
+        }
+        break;
+      default:
+        break;
+      }
+
+      if (record != null)
+      {
+        @SuppressWarnings("unchecked")
+        T t = (T) HelixProperty.convertToTypedInstance(key.getTypeClass(), record);
+        childValues.add(t);
+      }
     }
-    return (List<T>) childValues;
+    return childValues;
   }
 
   @Override
@@ -174,15 +281,14 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
     PropertyType type = key.getType();
     String parentPath = key.getPath();
     int options = constructOptions(type);
-    List<ZNRecord> children = _baseDataAccessor.getChildren(parentPath, null, options);
+    List<T> children = getChildValues(key);
     Map<String, T> childValuesMap = new HashMap<String, T>();
-    for (ZNRecord record : children)
+    for (T t : children)
     {
-      @SuppressWarnings("unchecked")
-      T t = (T) HelixProperty.convertToTypedInstance(key.getTypeClass(), record);
-      childValuesMap.put(record.getId(), t);
+      childValuesMap.put(t.getRecord().getId(), t);
     }
     return childValuesMap;
+
   }
 
   @Override
@@ -260,10 +366,10 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
   {
     return _baseDataAccessor.updateChildren(paths, updaters, options);
   }
-  
+
   private String getPropertyTransferUrl()
   {
-    if(_zkPropertyTransferSvcUrl == null)
+    if (_zkPropertyTransferSvcUrl == null)
     {
       refreshZkPropertyTransferUrl();
     }
@@ -280,11 +386,11 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
   {
     refreshZkPropertyTransferUrl();
   }
-  
+
   void refreshZkPropertyTransferUrl()
   {
     LiveInstance leader = getProperty(keyBuilder().controllerLeader());
-    if(leader != null)
+    if (leader != null)
     {
       _zkPropertyTransferSvcUrl = leader.getWebserviceUrl();
     }

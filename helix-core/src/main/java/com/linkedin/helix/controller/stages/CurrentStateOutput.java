@@ -19,19 +19,23 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.linkedin.helix.model.CurrentState;
 import com.linkedin.helix.model.Partition;
 
 public class CurrentStateOutput
 {
   private final Map<String, Map<Partition, Map<String, String>>> _currentStateMap;
   private final Map<String, Map<Partition, Map<String, String>>> _pendingStateMap;
-  private final Map<String, String> _resourceStateModelMap;
+  private final Map<String, String>                              _resourceStateModelMap;
+  private final Map<String, CurrentState>                        _curStateMetaMap;
 
   public CurrentStateOutput()
   {
     _currentStateMap = new HashMap<String, Map<Partition, Map<String, String>>>();
     _pendingStateMap = new HashMap<String, Map<Partition, Map<String, String>>>();
     _resourceStateModelMap = new HashMap<String, String>();
+    _curStateMetaMap = new HashMap<String, CurrentState>();
+
   }
 
   public void setResourceStateModelDef(String resourceName, String stateModelDefName)
@@ -44,6 +48,29 @@ public class CurrentStateOutput
     return _resourceStateModelMap.get(resourceName);
   }
 
+  public void setBucketSize(String resource, int bucketSize)
+  {
+    CurrentState curStateMeta = _curStateMetaMap.get(resource);
+    if (curStateMeta == null)
+    {
+      curStateMeta = new CurrentState(resource);
+      _curStateMetaMap.put(resource, curStateMeta);
+    }
+    curStateMeta.setBucketSize(bucketSize);
+  }
+  
+  public int getBucketSize(String resource)
+  {
+    int bucketSize = 0;
+    CurrentState curStateMeta = _curStateMetaMap.get(resource);
+    if (curStateMeta != null)
+    {
+      bucketSize = curStateMeta.getBucketSize();  
+    }
+    
+    return bucketSize;
+  }
+  
   public void setCurrentState(String resourceName,
                               Partition partition,
                               String instanceName,
@@ -78,6 +105,7 @@ public class CurrentStateOutput
 
   /**
    * given (resource, partition, instance), returns currentState
+   * 
    * @param resourceName
    * @param partition
    * @param instanceName
@@ -101,6 +129,7 @@ public class CurrentStateOutput
 
   /**
    * given (resource, partition, instance), returns toState
+   * 
    * @param resourceName
    * @param partition
    * @param instanceName
@@ -124,6 +153,7 @@ public class CurrentStateOutput
 
   /**
    * given (resource, partition), returns (instance->currentState) map
+   * 
    * @param resourceName
    * @param partition
    * @return
@@ -143,6 +173,7 @@ public class CurrentStateOutput
 
   /**
    * given (resource, partition), returns (instance->toState) map
+   * 
    * @param resourceName
    * @param partition
    * @return

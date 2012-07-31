@@ -34,6 +34,7 @@ public class Resource
   private final Map<String, Partition> _partitionMap;
   private String _stateModelDefRef;
   private String _stateModelFactoryName;
+  private int _bucketSize;
 
   public Resource(String resourceName)
   {
@@ -87,12 +88,23 @@ public class Resource
     return _partitionMap.get(partitionName);
   }
 
+  public int getBucketSize()
+  {
+    return _bucketSize;
+  }
+  
+  public void setBucketSize(int bucketSize)
+  {
+    _bucketSize = bucketSize;
+  }
+
   @Override
   public String toString()
   {
     StringBuilder sb = new StringBuilder();
     sb.append("resourceName:").append(_resourceName);
     sb.append(", stateModelDef:").append(_stateModelDefRef);
+    sb.append(", bucketSize:").append(_bucketSize);
     sb.append(", partitionStateMap:").append(_partitionMap);
 
     return sb.toString();

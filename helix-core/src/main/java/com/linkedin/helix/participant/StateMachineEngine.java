@@ -36,10 +36,6 @@ public interface StateMachineEngine extends MessageHandlerFactory
   public boolean registerStateModelFactory(String stateModelDef,
       StateModelFactory<? extends StateModel> factory);
 
-  // public boolean registerStateModelFactory(String stateModelDef,
-  // String resourceGroupName,
-  // StateModelFactory<? extends StateModel> factory);
-
   /**
    * Register a state model factory with a name for a state model definition
    * @param stateModelDef
@@ -68,5 +64,6 @@ public interface StateMachineEngine extends MessageHandlerFactory
    */
   public boolean removeStateModelFactory(String stateModelDef,
       StateModelFactory<? extends StateModel> factory, String factoryName);
-
+  
+  public void onConnect();
 }

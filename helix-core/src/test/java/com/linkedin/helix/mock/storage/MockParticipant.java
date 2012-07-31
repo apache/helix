@@ -202,7 +202,7 @@ public class MockParticipant extends Thread
   
   // mock Bootstrap state model
   @StateModelInfo(initialState = "OFFLINE", states = { "ONLINE", "BOOTSTRAP", "OFFLINE", "IDLE" })
-  public class MockBootstrapStateModel extends StateModel
+  public static class MockBootstrapStateModel extends StateModel
   {
     // Overwrite the default value of intial state
     MockBootstrapStateModel()
@@ -248,7 +248,7 @@ public class MockParticipant extends Thread
   }
 
   // mock Bootstrap state model factory
-  public class MockBootstrapModelFactory
+  public static class MockBootstrapModelFactory
     extends StateModelFactory<MockBootstrapStateModel>
   {
     @Override
@@ -422,8 +422,8 @@ public class MockParticipant extends Thread
 
       MockSchemataModelFactory schemataFactory = new MockSchemataModelFactory();
       stateMach.registerStateModelFactory("STORAGE_DEFAULT_SM_SCHEMATA", schemataFactory);
-      MockBootstrapModelFactory bootstrapFactory = new MockBootstrapModelFactory();
-      stateMach.registerStateModelFactory("Bootstrap", bootstrapFactory);
+//      MockBootstrapModelFactory bootstrapFactory = new MockBootstrapModelFactory();
+//      stateMach.registerStateModelFactory("Bootstrap", bootstrapFactory);
 
 
       if (_job != null)

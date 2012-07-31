@@ -33,23 +33,23 @@ import com.linkedin.helix.messaging.handling.MessageHandler;
 import com.linkedin.helix.model.CurrentState;
 import com.linkedin.helix.model.Message;
 import com.linkedin.helix.model.Message.MessageType;
+import com.linkedin.helix.model.StateModelDefinition;
 import com.linkedin.helix.participant.statemachine.StateModel;
 import com.linkedin.helix.participant.statemachine.StateModelFactory;
 import com.linkedin.helix.participant.statemachine.StateModelParser;
 
 public class HelixStateMachineEngine implements StateMachineEngine
 {
-  private static Logger                                                           logger                =
-                                                                                                            Logger.getLogger(HelixStateMachineEngine.class);
+  private static Logger                                                           logger =
+                                                                                             Logger.getLogger(HelixStateMachineEngine.class);
 
   // StateModelName->FactoryName->StateModelFactory
-  private final Map<String, Map<String, StateModelFactory<? extends StateModel>>> _stateModelFactoryMap =
-                                                                                                            new ConcurrentHashMap<String, Map<String, StateModelFactory<? extends StateModel>>>();
+  private final Map<String, Map<String, StateModelFactory<? extends StateModel>>> _stateModelFactoryMap;
   StateModelParser                                                                _stateModelParser;
 
   private final HelixManager                                                      _manager;
 
-  // private Map<String, StateModelDefinition> stateModelDefs;
+  private final ConcurrentHashMap<String, StateModelDefinition>                   _stateModelDefs;
 
   public StateModelFactory<? extends StateModel> getStateModelFactory(String stateModelName)
   {
@@ -71,6 +71,10 @@ public class HelixStateMachineEngine implements StateMachineEngine
   {
     _stateModelParser = new StateModelParser();
     _manager = manager;
+
+    _stateModelFactoryMap =
+        new ConcurrentHashMap<String, Map<String, StateModelFactory<? extends StateModel>>>();
+    _stateModelDefs = new ConcurrentHashMap<String, StateModelDefinition>();
   }
 
   @Override
@@ -83,32 +87,47 @@ public class HelixStateMachineEngine implements StateMachineEngine
   }
 
   @Override
-  public boolean registerStateModelFactory(String stateModelDef,
+  public boolean registerStateModelFactory(String stateModelName,
                                            StateModelFactory<? extends StateModel> factory,
                                            String factoryName)
   {
-    if (stateModelDef == null || factory == null || factoryName == null)
+    if (stateModelName == null || factory == null || factoryName == null)
     {
       throw new HelixException("stateModelDef|stateModelFactory|factoryName cannot be null");
     }
 
-    logger.info("Register state model factory for state model " + stateModelDef
+    // check if the state model definition exists and cache it
+    if (!_stateModelDefs.containsKey(stateModelName) && _manager.isConnected())
+    {
+      HelixDataAccessor accessor = _manager.getHelixDataAccessor();
+      Builder keyBuilder = accessor.keyBuilder();
+      StateModelDefinition stateModelDef =
+          accessor.getProperty(keyBuilder.stateModelDef(stateModelName));
+      if (stateModelDef == null)
+      {
+        throw new HelixException("stateModelDef for " + stateModelName
+            + " does NOT exists");
+      }
+      _stateModelDefs.put(stateModelName, stateModelDef);
+    }
+    
+    logger.info("Register state model factory for state model " + stateModelName
         + " using factory name " + factoryName + " with " + factory);
 
-    if (!_stateModelFactoryMap.containsKey(stateModelDef))
+    if (!_stateModelFactoryMap.containsKey(stateModelName))
     {
-      _stateModelFactoryMap.put(stateModelDef,
+      _stateModelFactoryMap.put(stateModelName,
                                 new ConcurrentHashMap<String, StateModelFactory<? extends StateModel>>());
     }
 
-    if (_stateModelFactoryMap.get(stateModelDef).containsKey(factoryName))
+    if (_stateModelFactoryMap.get(stateModelName).containsKey(factoryName))
     {
-      logger.warn("stateModelFactory for " + stateModelDef + " using factoryName "
+      logger.warn("stateModelFactory for " + stateModelName + " using factoryName "
           + factoryName + " has already been registered.");
       return false;
     }
 
-    _stateModelFactoryMap.get(stateModelDef).put(factoryName, factory);
+    _stateModelFactoryMap.get(stateModelName).put(factoryName, factory);
     sendNopMessage();
     return true;
   }
@@ -171,7 +190,6 @@ public class HelixStateMachineEngine implements StateMachineEngine
           // TODO probably should update the state on ZK. Shi confirm what needs
           // to be done here.
         }
-
       }
     }
   }
@@ -215,14 +233,13 @@ public class HelixStateMachineEngine implements StateMachineEngine
     }
 
     // create currentStateDelta for this partition
+    String initState = _stateModelDefs.get(message.getStateModelDef()).getInitialState();
     StateModel stateModel = stateModelFactory.getStateModel(partitionKey);
     if (stateModel == null)
     {
       stateModelFactory.createAndAddStateModel(partitionKey);
       stateModel = stateModelFactory.getStateModel(partitionKey);
-      // if stateModel is null, fromState in Message is the initState
-      String initState = message.getFromState();
-      stateModel.updateState(initState);   
+      stateModel.updateState(initState);
     }
 
     CurrentState currentStateDelta = new CurrentState(resourceName);
@@ -231,11 +248,9 @@ public class HelixStateMachineEngine implements StateMachineEngine
     currentStateDelta.setStateModelFactoryName(factoryName);
     currentStateDelta.setBucketSize(bucketSize);
 
-    // if stateModel.currentState is null, fromState in Message is the initState
-    String initState = message.getFromState();
     currentStateDelta.setState(partitionKey, (stateModel.getCurrentState() == null)
-                               ? initState : stateModel.getCurrentState());
-    
+        ? initState : stateModel.getCurrentState());
+
     return new HelixStateTransitionHandler(stateModel,
                                            message,
                                            context,
@@ -261,5 +276,27 @@ public class HelixStateMachineEngine implements StateMachineEngine
                                          String factoryName)
   {
     throw new UnsupportedOperationException("Remove not yet supported");
+  }
+
+  
+  @Override
+  public void onConnect()
+  {
+    // cache state model definitions on connect
+    HelixDataAccessor accessor = _manager.getHelixDataAccessor();
+    Builder keyBuilder = accessor.keyBuilder();
+    Map<String, StateModelDefinition> stateModelDefMap =
+        accessor.getChildValuesMap(keyBuilder.stateModelDefs());
+    _stateModelDefs.putAll(stateModelDefMap);
+
+    // check if all registered state model exist
+    for (String stateModelName : _stateModelFactoryMap.keySet())
+    {
+      if (!_stateModelDefs.containsKey(stateModelName))
+      {
+        throw new HelixException("stateModelDef for " + stateModelName
+            + " does NOT exists");
+      }
+    }
   }
 }

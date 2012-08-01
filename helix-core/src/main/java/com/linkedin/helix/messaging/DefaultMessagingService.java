@@ -258,20 +258,25 @@ public class DefaultMessagingService implements ClusterMessagingService
   {
     _logger.info("registering msg factory for type " + type);
     int threadpoolSize = HelixTaskExecutor.DEFAULT_PARALLEL_TASKS;
+    String threadpoolSizeStr = null;
     String key = type + ".threadpoolSize";
     
     ConfigAccessor configAccessor = _manager.getConfigAccessor();
-    ConfigScope scope =
+    if(configAccessor != null)
+    {
+      ConfigScope scope =
         new ConfigScopeBuilder().forCluster(_manager.getClusterName()).forParticipant(_manager.getInstanceName()).build();
     
-    // Read the participant config and cluster config for the per-message type thread pool size.
-    // participant config will override the cluster config.
-    String threadpoolSizeStr = configAccessor.get(scope, key);
-    if(threadpoolSizeStr == null)
-    {
-      scope = new ConfigScopeBuilder().forCluster(_manager.getClusterName()).build();
-      threadpoolSizeStr = configAccessor.get(scope, key);
+      // Read the participant config and cluster config for the per-message type thread pool size.
+      // participant config will override the cluster config.
+      configAccessor.get(scope, key);
+      if(threadpoolSizeStr == null)
+      {
+        scope = new ConfigScopeBuilder().forCluster(_manager.getClusterName()).build();
+        threadpoolSizeStr = configAccessor.get(scope, key);
+      }
     }
+    
     if(threadpoolSizeStr != null)
     {
       try

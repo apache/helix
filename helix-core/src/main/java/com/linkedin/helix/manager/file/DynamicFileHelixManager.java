@@ -210,7 +210,7 @@ public class DynamicFileHelixManager implements HelixManager
       throw new HelixException("Initial cluster structure is not set up for cluster:"
           + _clusterName);
     }
-
+    _messagingService.onConnected();
     _store.start();
     _isConnected = true;
   }

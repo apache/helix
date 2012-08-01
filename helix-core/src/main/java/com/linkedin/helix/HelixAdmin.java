@@ -45,6 +45,9 @@ public interface HelixAdmin
   void addResource(String clusterName, String resourceName, int numResources,
                         String stateModelRef, String idealStateMode);
 
+  void addResource(String clusterName, String resourceName, int numResources,
+                   String stateModelRef, String idealStateMode, int bucketSize);
+  
   void addInstance(String clusterName, InstanceConfig instanceConfig);
 
   void dropInstance(String clusterName, InstanceConfig instanceConfig);

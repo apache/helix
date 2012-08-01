@@ -54,6 +54,9 @@ $SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr ${zookeeper_addre
 # enable healthCheck
 $SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr ${zookeeper_address} --setConfig CLUSTER=test-cluster healthChange.enabled=true"
 
+# set thread pool size to 40
+$SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr ${zookeeper_address} --setConfig CLUSTER=test-cluster,RESOURCE=test-db maxThreads=40"
+
 # add alerts
 $SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr ${zookeeper_address} --addAlert test-cluster \"EXP(decay(1.0)(*.MockRestQueryStats@DBName=BizProfile.MeanMysqlLatency))CMP(GREATER)CON(2.132700625)\""
 $SCRIPT_DIR/cm_driver.py -c clm_console --cmdline_args="-zkSvr ${zookeeper_address} --addAlert test-cluster \"EXP(decay(1.0)(*.MockRestQueryStats@DBName=BizProfile.MinLuceneLatency))CMP(GREATER)CON(1.765905)\""

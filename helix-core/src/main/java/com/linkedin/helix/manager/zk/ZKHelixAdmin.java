@@ -45,7 +45,6 @@ import com.linkedin.helix.model.Alerts;
 import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.model.IdealState.IdealStateModeProperty;
-import com.linkedin.helix.model.IdealState.IdealStateProperty;
 import com.linkedin.helix.model.InstanceConfig;
 import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.model.Message;
@@ -371,7 +370,7 @@ public class ZKHelixAdmin implements HelixAdmin
                 dbName,
                 partitions,
                 stateModelRef,
-                IdealStateModeProperty.AUTO.toString());
+                IdealStateModeProperty.AUTO.toString(), 0);
   }
 
   @Override
@@ -380,6 +379,22 @@ public class ZKHelixAdmin implements HelixAdmin
                           int partitions,
                           String stateModelRef,
                           String idealStateMode)
+  {
+    addResource(clusterName,
+                dbName,
+                partitions,
+                stateModelRef,
+                idealStateMode,
+                0);
+  }
+  
+  @Override
+  public void addResource(String clusterName,
+                          String dbName,
+                          int partitions,
+                          String stateModelRef,
+                          String idealStateMode,
+                          int bucketSize)
   {
     if (!ZKUtil.isClusterSetup(clusterName, _zkClient))
     {
@@ -395,17 +410,29 @@ public class ZKHelixAdmin implements HelixAdmin
     {
       logger.error("", e);
     }
-    ZNRecord idealState = new ZNRecord(dbName);
-    idealState.setSimpleField(IdealStateProperty.NUM_PARTITIONS.toString(),
-                              String.valueOf(partitions));
-    idealState.setSimpleField(IdealStateProperty.STATE_MODEL_DEF_REF.toString(),
-                              stateModelRef);
-    idealState.setSimpleField(IdealStateProperty.IDEAL_STATE_MODE.toString(),
-                              mode.toString());
-    idealState.setSimpleField(IdealStateProperty.REPLICAS.toString(), 0 + "");
-    idealState.setSimpleField(IdealStateProperty.STATE_MODEL_FACTORY_NAME.toString(),
-                              HelixConstants.DEFAULT_STATE_MODEL_FACTORY);
-    
+//    ZNRecord idealState = new ZNRecord(dbName);
+//    idealState.setSimpleField(IdealStateProperty.NUM_PARTITIONS.toString(),
+//                              String.valueOf(partitions));
+//    idealState.setSimpleField(IdealStateProperty.STATE_MODEL_DEF_REF.toString(),
+//                              stateModelRef);
+//    idealState.setSimpleField(IdealStateProperty.IDEAL_STATE_MODE.toString(),
+//                              mode.toString());
+//    idealState.setSimpleField(IdealStateProperty.REPLICAS.toString(), 0 + "");
+//    idealState.setSimpleField(IdealStateProperty.STATE_MODEL_FACTORY_NAME.toString(),
+//                              HelixConstants.DEFAULT_STATE_MODEL_FACTORY);
+
+    IdealState idealState = new IdealState(dbName);
+    idealState.setNumPartitions(partitions);
+    idealState.setStateModelDefRef(stateModelRef);
+    idealState.setIdealStateMode(mode.toString());
+    idealState.setReplicas("" + 0);
+    idealState.setStateModelFactoryName(HelixConstants.DEFAULT_STATE_MODEL_FACTORY);
+
+    if (bucketSize > 0)
+    {
+      idealState.setBucketSize(bucketSize);
+    }
+
     String stateModelDefPath =
         PropertyPathConfig.getPath(PropertyType.STATEMODELDEFS,
                                    clusterName,
@@ -424,7 +451,8 @@ public class ZKHelixAdmin implements HelixAdmin
           + dbIdealStatePath);
       return;
     }
-    ZKUtil.createChildren(_zkClient, idealStatePath, idealState);
+    
+    ZKUtil.createChildren(_zkClient, idealStatePath, idealState.getRecord());
   }
 
   @Override

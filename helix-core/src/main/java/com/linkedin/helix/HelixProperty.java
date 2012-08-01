@@ -24,11 +24,15 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * A wrapper class for ZNRecord. Used as a parent class for IdealState,
- * CurrentState, etc.
+ * A wrapper class for ZNRecord. Used as a parent class for IdealState, CurrentState, etc.
  */
-public abstract class HelixProperty
+public class HelixProperty
 {
+  public enum HelixPropertyAttribute
+  {
+    BUCKET_SIZE
+  }
+
   protected final ZNRecord _record;
 
   public HelixProperty(String id)
@@ -62,16 +66,42 @@ public abstract class HelixProperty
     return _record.toString();
   }
 
+  public int getBucketSize()
+  {
+    String bucketSizeStr =
+        _record.getSimpleField(HelixPropertyAttribute.BUCKET_SIZE.toString());
+    int bucketSize = 0;
+    if (bucketSizeStr != null)
+    {
+      try
+      {
+        bucketSize = Integer.parseInt(bucketSizeStr);
+      }
+      catch (NumberFormatException e)
+      {
+        // OK
+      }
+    }
+    return bucketSize;
+  }
+
+  public void setBucketSize(int bucketSize)
+  {
+    if (bucketSize <= 0)
+      bucketSize = 0;
+
+    _record.setSimpleField(HelixPropertyAttribute.BUCKET_SIZE.toString(), "" + bucketSize);
+  }
+
   /**
-   * static method that convert ZNRecord to an instance that subclasses
-   * HelixProperty
+   * static method that convert ZNRecord to an instance that subclasses HelixProperty
    * 
    * @param clazz
    * @param record
    * @return
    */
-  public static <T extends HelixProperty> T convertToTypedInstance(
-      Class<T> clazz, ZNRecord record)
+  public static <T extends HelixProperty> T convertToTypedInstance(Class<T> clazz,
+                                                                   ZNRecord record)
   {
     if (record == null)
     {
@@ -80,10 +110,10 @@ public abstract class HelixProperty
 
     try
     {
-      Constructor<T> constructor = clazz.getConstructor(new Class[]
-      { ZNRecord.class });
+      Constructor<T> constructor = clazz.getConstructor(new Class[] { ZNRecord.class });
       return constructor.newInstance(record);
-    } catch (Exception e)
+    }
+    catch (Exception e)
     {
       // TODO Auto-generated catch block
       e.printStackTrace();
@@ -92,8 +122,8 @@ public abstract class HelixProperty
     return null;
   }
 
-  public static <T extends HelixProperty> List<T> convertToTypedList(
-      Class<T> clazz, Collection<ZNRecord> records)
+  public static <T extends HelixProperty> List<T> convertToTypedList(Class<T> clazz,
+                                                                     Collection<ZNRecord> records)
   {
     if (records == null)
     {
@@ -112,8 +142,7 @@ public abstract class HelixProperty
     return decorators;
   }
 
-  public static <T extends HelixProperty> Map<String, T> convertListToMap(
-      List<T> records)
+  public static <T extends HelixProperty> Map<String, T> convertListToMap(List<T> records)
   {
     if (records == null)
     {
@@ -134,17 +163,20 @@ public abstract class HelixProperty
     {
       return Collections.emptyList();
     }
-    
+
     List<ZNRecord> records = new ArrayList<ZNRecord>();
     for (T typedInstance : typedInstances)
     {
       records.add(typedInstance.getRecord());
     }
-    
+
     return records;
   }
-  
-  public abstract boolean isValid();
+
+  public boolean isValid()
+  {
+    return false;
+  }
 
   @Override
   public boolean equals(Object obj)

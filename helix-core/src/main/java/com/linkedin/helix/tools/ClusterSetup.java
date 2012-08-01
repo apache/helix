@@ -57,6 +57,7 @@ import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.model.IdealState.IdealStateModeProperty;
 import com.linkedin.helix.model.InstanceConfig;
+import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.model.StateModelDefinition;
 import com.linkedin.helix.util.ZKClientPool;
 
@@ -80,6 +81,7 @@ public class ClusterSetup
   public static final String addStateModelDef = "addStateModelDef";
   public static final String addIdealState = "addIdealState";
   public static final String disableInstance = "disableNode";
+  public static final String swapInstance = "swapInstance";
   public static final String dropInstance = "dropNode";
   public static final String rebalance = "rebalance";
   public static final String mode = "mode";
@@ -245,7 +247,83 @@ public class ClusterSetup
     }
     _admin.dropInstance(clusterName, config);
   }
+  
 
+  public void swapInstance(String clusterName, String oldInstanceName,
+      String newInstanceName)
+  {
+    ZkClient zkClient = ZKClientPool.getZkClient(_zkServerAddress);
+    
+    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(zkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+    
+    InstanceConfig oldConfig = accessor.getProperty(keyBuilder.instanceConfig(oldInstanceName));
+    if (oldConfig == null)
+    {
+      String error = "Old instance " + oldInstanceName + " does not exist, cannot swap";
+      _logger.warn(error);
+      throw new HelixException(error);
+    }
+    
+    InstanceConfig newConfig = accessor.getProperty(keyBuilder.instanceConfig(newInstanceName));
+    if (newConfig == null)
+    {
+      String error = "New instance " + newInstanceName + " does not exist, cannot swap";
+      _logger.warn(error);
+      throw new HelixException(error);
+    }
+
+    // ensure old instance is disabled, otherwise fail
+    if (oldConfig.getInstanceEnabled())
+    {
+      String error = "Old instance " + oldInstanceName + " is enabled, it need to be disabled and turned off";
+      _logger.warn(error);
+      throw new HelixException(error);
+    }
+     // ensure old instance is down, otherwise fail
+    List<String> liveInstanceNames = accessor.getChildNames(accessor.keyBuilder().liveInstances()); 
+    
+    if (liveInstanceNames.contains(oldInstanceName))
+    {
+      String error = "Old instance " + oldInstanceName + " is still on, it need to be disabled and turned off";
+      _logger.warn(error);
+      throw new HelixException(error);
+    }
+    
+    List<IdealState> existingIdealStates = accessor.getChildValues(accessor.keyBuilder().idealStates());
+    for(IdealState idealState : existingIdealStates)
+    {
+      swapInstanceInIdealState(idealState, oldInstanceName, newInstanceName);
+      accessor.setProperty(accessor.keyBuilder().idealStates(idealState.getResourceName()), idealState);
+    }
+  }
+  
+  void swapInstanceInIdealState(IdealState idealState, String oldInstance, String newInstance)
+  {
+    for(String partition : idealState.getRecord().getMapFields().keySet())
+    {
+      Map<String, String> valMap = idealState.getRecord().getMapField(partition);
+      if(valMap.containsKey(oldInstance))
+      {
+        valMap.put(newInstance, valMap.get(oldInstance));
+        valMap.remove(oldInstance);
+      }
+    }
+    
+    for(String partition : idealState.getRecord().getListFields().keySet())
+    {
+      List<String> valList = idealState.getRecord().getListField(partition);
+      for(int i = 0; i < valList.size(); i++)
+      {
+        if(valList.get(i).equals(oldInstance))
+        {
+          valList.remove(i);
+          valList.add(i, newInstance);
+        }
+      }
+    }
+  }
+  
   public HelixAdmin getClusterManagementTool()
   {
     return _admin;
@@ -552,6 +630,12 @@ public class ClusterSetup
     dropInstanceOption.setRequired(false);
     dropInstanceOption.setArgName("clusterName InstanceAddress(host:port)");
 
+    Option swapInstanceOption = OptionBuilder.withLongOpt(swapInstance)
+        .withDescription("Swap an old instance from a cluster with a new instance").create();
+    swapInstanceOption.setArgs(3);
+    swapInstanceOption.setRequired(false);
+    swapInstanceOption.setArgName("clusterName oldInstance newInstance");
+
     Option dropResourceOption = OptionBuilder.withLongOpt(dropResource)
         .withDescription("Drop an existing resource from a cluster").create();
     dropResourceOption.setArgs(2);
@@ -661,6 +745,7 @@ public class ClusterSetup
     group.addOption(addIdealStateOption);
     group.addOption(rebalanceOption);
     group.addOption(dropInstanceOption);
+    group.addOption(swapInstanceOption);
     group.addOption(dropResourceOption);
     group.addOption(InstanceInfoOption);
     group.addOption(clusterInfoOption);
@@ -1077,7 +1162,16 @@ public class ClusterSetup
       String resourceName = cmd.getOptionValues(dropResource)[1];
 
       setupTool.getClusterManagementTool().dropResource(clusterName, resourceName);
-    } else if (cmd.hasOption(setConfig))
+    } 
+    else if(cmd.hasOption(swapInstance))
+    {
+      String clusterName = cmd.getOptionValues(swapInstance)[0];
+      String oldInstanceName = cmd.getOptionValues(swapInstance)[1];
+      String newInstanceName = cmd.getOptionValues(swapInstance)[2];
+      
+      setupTool.swapInstance(clusterName, oldInstanceName, newInstanceName);
+    }
+    else if (cmd.hasOption(setConfig))
     {
       String scopeStr = cmd.getOptionValues(setConfig)[0];
       String propertiesStr = cmd.getOptionValues(setConfig)[1];
@@ -1096,6 +1190,7 @@ public class ClusterSetup
     }
     return 0;
   }
+
 
   /**
    * @param args

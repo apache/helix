@@ -18,7 +18,7 @@ import com.linkedin.helix.tools.ClusterStateVerifier;
 import com.linkedin.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import com.linkedin.helix.tools.IdealStateCalculatorForStorageNode;
 
-public class TestEmptyPrefList extends ZkIntegrationTestBase
+public class TestAutoIsWithEmptyMap extends ZkIntegrationTestBase
 {
   @Test
   public void testAutoIsWithEmptyMap() throws Exception

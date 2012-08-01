@@ -148,6 +148,7 @@ public class HelixControllerMain
       manager.addLiveInstanceChangeListener(controller);
       manager.addIdealStateChangeListener(controller);
       manager.addExternalViewChangeListener(controller);
+      manager.addControllerListener(controller);
     } catch (ZkInterruptedException e)
     {
       logger

@@ -45,6 +45,8 @@ public class MockParticipant extends Thread
 
   private final CountDownLatch _startCountDown = new CountDownLatch(1);
   private final CountDownLatch _stopCountDown = new CountDownLatch(1);
+  private final CountDownLatch _waitStopFinishCountDown  = new CountDownLatch(1);
+
   private final HelixManager _manager;
   private final MockMSModelFactory _msModelFacotry;
   private final MockJobIntf _job;
@@ -202,7 +204,7 @@ public class MockParticipant extends Thread
   
   // mock Bootstrap state model
   @StateModelInfo(initialState = "OFFLINE", states = { "ONLINE", "BOOTSTRAP", "OFFLINE", "IDLE" })
-  public class MockBootstrapStateModel extends StateModel
+  public static class MockBootstrapStateModel extends StateModel
   {
     // Overwrite the default value of intial state
     MockBootstrapStateModel()
@@ -248,7 +250,7 @@ public class MockParticipant extends Thread
   }
 
   // mock Bootstrap state model factory
-  public class MockBootstrapModelFactory
+  public static class MockBootstrapModelFactory
     extends StateModelFactory<MockBootstrapStateModel>
   {
     @Override
@@ -387,10 +389,20 @@ public class MockParticipant extends Thread
   public void syncStop()
   {
     _stopCountDown.countDown();
-    synchronized (_manager)
+    try
     {
-      _manager.disconnect();
+      _waitStopFinishCountDown.await();
     }
+    catch (InterruptedException e)
+    {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+    
+//    synchronized (_manager)
+//    {
+//      _manager.disconnect();
+//    }
   }
 
   public void syncStart()
@@ -422,8 +434,8 @@ public class MockParticipant extends Thread
 
       MockSchemataModelFactory schemataFactory = new MockSchemataModelFactory();
       stateMach.registerStateModelFactory("STORAGE_DEFAULT_SM_SCHEMATA", schemataFactory);
-      MockBootstrapModelFactory bootstrapFactory = new MockBootstrapModelFactory();
-      stateMach.registerStateModelFactory("Bootstrap", bootstrapFactory);
+//      MockBootstrapModelFactory bootstrapFactory = new MockBootstrapModelFactory();
+//      stateMach.registerStateModelFactory("Bootstrap", bootstrapFactory);
 
 
       if (_job != null)
@@ -459,6 +471,7 @@ public class MockParticipant extends Thread
       {
         _manager.disconnect();
       }
+      _waitStopFinishCountDown.countDown();
     }
   }
 }

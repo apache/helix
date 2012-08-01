@@ -20,10 +20,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.log4j.Logger;
 
 import com.linkedin.helix.ClusterMessagingService;
+import com.linkedin.helix.ConfigAccessor;
+import com.linkedin.helix.ConfigScope;
+import com.linkedin.helix.ConfigScopeBuilder;
 import com.linkedin.helix.Criteria;
 import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixManager;
@@ -45,7 +49,9 @@ public class DefaultMessagingService implements ClusterMessagingService
   private final AsyncCallbackService _asyncCallbackService;
   private static Logger              _logger =
                                                  Logger.getLogger(DefaultMessagingService.class);
-
+  ConcurrentHashMap<String, MessageHandlerFactory> _messageHandlerFactoriestobeAdded
+    = new ConcurrentHashMap<String, MessageHandlerFactory>();
+  
   public DefaultMessagingService(HelixManager manager)
   {
     _manager = manager;
@@ -225,12 +231,69 @@ public class DefaultMessagingService implements ClusterMessagingService
     messages.add(newMessage);
     return messages;
   }
-
+  
   @Override
-  public void registerMessageHandlerFactory(String type, MessageHandlerFactory factory)
+  public synchronized void registerMessageHandlerFactory(String type, MessageHandlerFactory factory)
   {
-    _logger.info("adding msg factory for type " + type);
-    _taskExecutor.registerMessageHandlerFactory(type, factory);
+    if (_manager.isConnected())
+    {
+      registerMessageHandlerFactoryInternal(type, factory);
+    }
+    else
+    {
+      _messageHandlerFactoriestobeAdded.put(type, factory);
+    }
+  }
+  
+  public synchronized void onConnected()
+  {
+    for(String type : _messageHandlerFactoriestobeAdded.keySet())
+    {
+      registerMessageHandlerFactoryInternal(type, _messageHandlerFactoriestobeAdded.get(type));
+    }
+    _messageHandlerFactoriestobeAdded.clear();
+  }
+  
+  void registerMessageHandlerFactoryInternal(String type, MessageHandlerFactory factory)
+  {
+    _logger.info("registering msg factory for type " + type);
+    int threadpoolSize = HelixTaskExecutor.DEFAULT_PARALLEL_TASKS;
+    String threadpoolSizeStr = null;
+    String key = type + ".threadpoolSize";
+    
+    ConfigAccessor configAccessor = _manager.getConfigAccessor();
+    if(configAccessor != null)
+    {
+      ConfigScope scope =
+        new ConfigScopeBuilder().forCluster(_manager.getClusterName()).forParticipant(_manager.getInstanceName()).build();
+    
+      // Read the participant config and cluster config for the per-message type thread pool size.
+      // participant config will override the cluster config.
+      threadpoolSizeStr = configAccessor.get(scope, key);
+      if(threadpoolSizeStr == null)
+      {
+        scope = new ConfigScopeBuilder().forCluster(_manager.getClusterName()).build();
+        threadpoolSizeStr = configAccessor.get(scope, key);
+      }
+    }
+    
+    if(threadpoolSizeStr != null)
+    {
+      try
+      {
+        threadpoolSize = Integer.parseInt(threadpoolSizeStr);
+        if(threadpoolSize <= 0)
+        {
+          threadpoolSize = 1;
+        }
+      }
+      catch(Exception e)
+      {
+        _logger.error("", e);
+      }
+    }
+    
+    _taskExecutor.registerMessageHandlerFactory(type, factory, threadpoolSize);
     // Self-send a no-op message, so that the onMessage() call will be invoked
     // again, and
     // we have a chance to process the message that we received with the new
@@ -265,7 +328,6 @@ public class DefaultMessagingService implements ClusterMessagingService
           accessor.setProperty(keyBuilder.message(nopMsg.getTgtName(), nopMsg.getId()),
                                nopMsg);
         }
-
       }
       catch (Exception e)
       {

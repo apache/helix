@@ -56,6 +56,8 @@ import com.linkedin.helix.model.CurrentState;
 import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.Message;
 import com.linkedin.helix.model.Message.MessageType;
+import com.linkedin.helix.model.StateModelDefinition;
+import com.linkedin.helix.model.StateModelDefinition.StateModelDefinitionProperty;
 import com.linkedin.helix.store.file.FilePropertyStore;
 import com.linkedin.helix.store.zk.ZNode;
 import com.linkedin.helix.tools.ClusterSetup;
@@ -399,6 +401,10 @@ public class TestHelper
 
     ClusterSetup setupTool = new ClusterSetup(ZkAddr);
     setupTool.addCluster(clusterName, true);
+    
+//    setupTool.addStateModelDef(clusterName,
+//                               "Bootstrap",
+//                               TestHelper.generateStateModelDefForBootstrap());
 
     for (int i = 0; i < nodesNb; i++)
     {
@@ -812,5 +818,114 @@ public class TestHelper
     }
 
     return true;
+  }
+  
+  public static StateModelDefinition generateStateModelDefForBootstrap()
+  {
+    ZNRecord record = new ZNRecord("Bootstrap");
+    record.setSimpleField(StateModelDefinitionProperty.INITIAL_STATE.toString(), "IDLE");
+    List<String> statePriorityList = new ArrayList<String>();
+    statePriorityList.add("ONLINE");
+    statePriorityList.add("BOOTSTRAP");
+    statePriorityList.add("OFFLINE");
+    statePriorityList.add("IDLE");
+    statePriorityList.add("DROPPED");
+    statePriorityList.add("ERROR");
+    record.setListField(StateModelDefinitionProperty.STATE_PRIORITY_LIST.toString(),
+                        statePriorityList);
+    for (String state : statePriorityList)
+    {
+      String key = state + ".meta";
+      Map<String, String> metadata = new HashMap<String, String>();
+      if (state.equals("ONLINE"))
+      {
+        metadata.put("count", "R");
+        record.setMapField(key, metadata);
+      }
+      else if (state.equals("BOOTSTRAP"))
+      {
+        metadata.put("count", "-1");
+        record.setMapField(key, metadata);
+      }
+      else if (state.equals("OFFLINE"))
+      {
+        metadata.put("count", "-1");
+        record.setMapField(key, metadata);
+      }
+      else if (state.equals("IDLE"))
+      {
+        metadata.put("count", "-1");
+        record.setMapField(key, metadata);
+      }
+      else if (state.equals("DROPPED"))
+      {
+        metadata.put("count", "-1");
+        record.setMapField(key, metadata);
+      }
+      else if (state.equals("ERROR"))
+      {
+        metadata.put("count", "-1");
+        record.setMapField(key, metadata);
+      }
+    }
+
+    for (String state : statePriorityList)
+    {
+      String key = state + ".next";
+      if (state.equals("ONLINE"))
+      {
+        Map<String, String> metadata = new HashMap<String, String>();
+        metadata.put("BOOTSTRAP", "OFFLINE");
+        metadata.put("OFFLINE", "OFFLINE");
+        metadata.put("DROPPED", "OFFLINE");
+        metadata.put("IDLE", "OFFLINE");
+        record.setMapField(key, metadata);
+      }
+      else if (state.equals("BOOTSTRAP"))
+      {
+        Map<String, String> metadata = new HashMap<String, String>();
+        metadata.put("ONLINE", "ONLINE");
+        metadata.put("OFFLINE", "OFFLINE");
+        metadata.put("DROPPED", "OFFLINE");
+        metadata.put("IDLE", "OFFLINE");
+        record.setMapField(key, metadata);
+      }
+      else if (state.equals("OFFLINE"))
+      {
+        Map<String, String> metadata = new HashMap<String, String>();
+        metadata.put("ONLINE", "BOOTSTRAP");
+        metadata.put("BOOTSTRAP", "BOOTSTRAP");
+        metadata.put("DROPPED", "IDLE");
+        metadata.put("IDLE", "IDLE");
+        record.setMapField(key, metadata);
+      }
+      else if (state.equals("IDLE"))
+      {
+        Map<String, String> metadata = new HashMap<String, String>();
+        metadata.put("ONLINE", "OFFLINE");
+        metadata.put("BOOTSTRAP", "OFFLINE");
+        metadata.put("OFFLINE", "OFFLINE");
+        metadata.put("DROPPED", "DROPPED");
+        record.setMapField(key, metadata);
+      }
+      else if (state.equals("ERROR"))
+      {
+        Map<String, String> metadata = new HashMap<String, String>();
+        metadata.put("IDLE", "IDLE");
+        record.setMapField(key, metadata);
+      }
+    }
+    List<String> stateTransitionPriorityList = new ArrayList<String>();
+    stateTransitionPriorityList.add("ONLINE-OFFLINE");
+    stateTransitionPriorityList.add("BOOTSTRAP-ONLINE");
+    stateTransitionPriorityList.add("OFFLINE-BOOTSTRAP");
+    stateTransitionPriorityList.add("BOOTSTRAP-OFFLINE");
+    stateTransitionPriorityList.add("OFFLINE-IDLE");
+    stateTransitionPriorityList.add("IDLE-OFFLINE");
+    stateTransitionPriorityList.add("IDLE-DROPPED");
+    stateTransitionPriorityList.add("ERROR-IDLED");
+    record.setListField(StateModelDefinitionProperty.STATE_TRANSITION_PRIORITYLIST.toString(),
+                        stateTransitionPriorityList);
+    return new StateModelDefinition(record);
   }
 }

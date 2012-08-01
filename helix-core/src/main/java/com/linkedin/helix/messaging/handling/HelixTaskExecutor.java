@@ -32,6 +32,9 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Logger;
 
+import com.linkedin.helix.ConfigAccessor;
+import com.linkedin.helix.ConfigScope;
+import com.linkedin.helix.ConfigScopeBuilder;
 import com.linkedin.helix.HelixConstants;
 import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixException;
@@ -60,6 +63,7 @@ public class HelixTaskExecutor implements MessageListener
   private final Object                                   _lock;
   private final StatusUpdateUtil                         _statusUpdateUtil;
   private final ParticipantMonitor                       _monitor;
+  public static final String THREADPOOL_SIZE = "threadPoolSize";
 
   final ConcurrentHashMap<String, MessageHandlerFactory> _handlerFactoryMap =
                                                                                 new ConcurrentHashMap<String, MessageHandlerFactory>();
@@ -69,7 +73,9 @@ public class HelixTaskExecutor implements MessageListener
 
   private static Logger                                  logger             =
                                                                                 Logger.getLogger(HelixTaskExecutor.class);
-
+  
+  Map<String, Integer> _resourceThreadpoolSizeMap = new ConcurrentHashMap<String, Integer>();
+  
   public HelixTaskExecutor()
   {
     _taskMap = new ConcurrentHashMap<String, Future<HelixTaskResult>>();
@@ -108,7 +114,64 @@ public class HelixTaskExecutor implements MessageListener
   {
     // start a thread which monitors the completions of task
   }
-
+  
+  void checkResourceConfig(String resourceName, HelixManager manager)
+  {
+    if(!_resourceThreadpoolSizeMap.containsKey(resourceName))
+    {
+      int threadpoolSize = -1;
+      ConfigAccessor configAccessor = manager.getConfigAccessor();
+      if(configAccessor != null)
+      {
+        ConfigScope scope =
+          new ConfigScopeBuilder().forCluster(manager.getClusterName()).forResource(resourceName).build();
+      
+        String threadpoolSizeStr = configAccessor.get(scope, THREADPOOL_SIZE);
+        try
+        {
+          if(threadpoolSizeStr != null)
+          {
+            threadpoolSize = Integer.parseInt(threadpoolSizeStr);
+          } 
+        }
+        catch(Exception e)
+        {
+          logger.error("", e);
+        }
+      }
+      if(threadpoolSize > 0)
+      {
+        String key = MessageType.STATE_TRANSITION.toString() + "." + resourceName;
+        _threadpoolMap.put(key, Executors.newFixedThreadPool(threadpoolSize));
+      }
+      _resourceThreadpoolSizeMap.put(resourceName, threadpoolSize);
+    }
+  }
+  
+  /**
+   * Find the executor service for the message. A message can have a per-statemodelfactory
+   * executor service, or per-message type executor service.
+   * 
+   **/
+  ExecutorService findExecutorServiceForMsg(Message message)
+  {
+    ExecutorService executorService = _threadpoolMap.get(message.getMsgType());
+    if(message.getMsgType().equals(MessageType.STATE_TRANSITION.toString()))
+    {
+      String resourceName = message.getResourceName();
+      if (resourceName != null)
+      {
+        String key = message.getMsgType() + "." + resourceName;
+        if(_threadpoolMap.containsKey(key))
+        {
+          logger.info("Find per-resource thread pool with key " + key);
+          executorService = _threadpoolMap.get(key);
+        }
+      }
+    }
+    return executorService;
+  }
+  
   public void scheduleTask(Message message,
                            MessageHandler handler,
                            NotificationContext notificationContext)
@@ -118,6 +181,7 @@ public class HelixTaskExecutor implements MessageListener
     {
       try
       {
+        checkResourceConfig(message.getResourceName(), notificationContext.getManager());
         logger.info("message.getMsgId() = " + message.getMsgId());
         _statusUpdateUtil.logInfo(message,
                                   HelixTaskExecutor.class,
@@ -128,7 +192,7 @@ public class HelixTaskExecutor implements MessageListener
         if (!_taskMap.containsKey(message.getMsgId()))
         {
           Future<HelixTaskResult> future =
-              _threadpoolMap.get(message.getMsgType()).submit(task);
+              findExecutorServiceForMsg(message).submit(task);
           _taskMap.put(message.getMsgId(), future);
         }
         else

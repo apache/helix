@@ -105,9 +105,12 @@ public interface ClusterMessagingService
    *          The message type that the factory will create handler for
    * @param factory
    *          The per-type message factory
+   * @param threadpoolSize
+   *        size of the execution threadpool that handles the message 
    * @return
    */
   public void registerMessageHandlerFactory(String type,
       MessageHandlerFactory factory);
+  
 
 }

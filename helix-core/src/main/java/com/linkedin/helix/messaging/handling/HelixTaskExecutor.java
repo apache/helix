@@ -54,7 +54,7 @@ public class HelixTaskExecutor implements MessageListener
   // TODO: we need to further design how to throttle this.
   // From storage point of view, only bootstrap case is expensive
   // and we need to throttle, which is mostly IO / network bounded.
-  private static final int                               MAX_PARALLEL_TASKS = 40;
+  public static final int                               DEFAULT_PARALLEL_TASKS = 4;
   // TODO: create per-task type threadpool with customizable pool size
   protected final Map<String, Future<HelixTaskResult>>   _taskMap;
   private final Object                                   _lock;
@@ -78,8 +78,13 @@ public class HelixTaskExecutor implements MessageListener
     _monitor = new ParticipantMonitor();
     startMonitorThread();
   }
-
+  
   public void registerMessageHandlerFactory(String type, MessageHandlerFactory factory)
+  {
+    registerMessageHandlerFactory(type, factory, DEFAULT_PARALLEL_TASKS);
+  }
+  
+  public void registerMessageHandlerFactory(String type, MessageHandlerFactory factory, int threadpoolSize)
   {
     if (!_handlerFactoryMap.containsKey(type))
     {
@@ -90,8 +95,8 @@ public class HelixTaskExecutor implements MessageListener
 
       }
       _handlerFactoryMap.put(type, factory);
-      _threadpoolMap.put(type, Executors.newFixedThreadPool(MAX_PARALLEL_TASKS));
-      logger.info("adding msg factory for type " + type);
+      _threadpoolMap.put(type, Executors.newFixedThreadPool(threadpoolSize));
+      logger.info("Adding msg factory for type " + type +" threadpool size " + threadpoolSize);
     }
     else
     {
@@ -496,7 +501,7 @@ public class HelixTaskExecutor implements MessageListener
   // TODO: remove this
   public static void main(String[] args) throws Exception
   {
-    ExecutorService pool = Executors.newFixedThreadPool(MAX_PARALLEL_TASKS);
+    ExecutorService pool = Executors.newFixedThreadPool(DEFAULT_PARALLEL_TASKS);
     Future<HelixTaskResult> future;
     future = pool.submit(new Callable<HelixTaskResult>()
     {

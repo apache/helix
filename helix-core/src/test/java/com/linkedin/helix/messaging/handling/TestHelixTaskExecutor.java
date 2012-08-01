@@ -79,7 +79,7 @@ public class TestHelixTaskExecutor
       // TODO Auto-generated method stub
       if(message.getMsgSubType()!= null && message.getMsgSubType().equals("EXCEPTION"))
       {
-        throw new HelixException("Message handler exception");
+        throw new HelixException("Test Message handler exception, can ignore");
       }
       _handlersCreated++;
       return new TestMessageHandler(message, context);

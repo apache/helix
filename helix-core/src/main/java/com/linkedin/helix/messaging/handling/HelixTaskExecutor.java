@@ -186,7 +186,10 @@ public class HelixTaskExecutor implements MessageListener
     {
       try
       {
-        checkResourceConfig(message.getResourceName(), notificationContext.getManager());
+        if(message.getMsgType().equals(MessageType.STATE_TRANSITION.toString()))
+        {
+          checkResourceConfig(message.getResourceName(), notificationContext.getManager());
+        }
         logger.info("message.getMsgId() = " + message.getMsgId());
         _statusUpdateUtil.logInfo(message,
                                   HelixTaskExecutor.class,

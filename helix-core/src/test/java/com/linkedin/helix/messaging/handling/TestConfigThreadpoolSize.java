@@ -84,11 +84,11 @@ public class TestConfigThreadpoolSize extends ZkStandAloneCMTestBase
     ConfigAccessor accessor = manager.getConfigAccessor();
     ConfigScope scope =
         new ConfigScopeBuilder().forCluster(manager.getClusterName()).forParticipant(instanceName).build();
-    accessor.set(scope, "TestMsg.threadpoolSize", ""+12);
+    accessor.set(scope, "TestMsg."+ HelixTaskExecutor.MAX_THREADS, ""+12);
     
     scope =
         new ConfigScopeBuilder().forCluster(manager.getClusterName()).build();
-    accessor.set(scope, "TestMsg.threadpoolSize", ""+8);
+    accessor.set(scope, "TestMsg."+ HelixTaskExecutor.MAX_THREADS, ""+8);
     
     for (int i = 0; i < NODE_NR; i++)
     {

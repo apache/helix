@@ -259,7 +259,7 @@ public class DefaultMessagingService implements ClusterMessagingService
     _logger.info("registering msg factory for type " + type);
     int threadpoolSize = HelixTaskExecutor.DEFAULT_PARALLEL_TASKS;
     String threadpoolSizeStr = null;
-    String key = type + ".threadpoolSize";
+    String key = type + "." + HelixTaskExecutor.MAX_THREADS;
     
     ConfigAccessor configAccessor = _manager.getConfigAccessor();
     if(configAccessor != null)

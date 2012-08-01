@@ -24,7 +24,7 @@ public class TestResourceThreadpoolSize extends ZkStandAloneCMTestBase
     ConfigAccessor accessor = manager.getConfigAccessor();
     ConfigScope scope =
         new ConfigScopeBuilder().forCluster(manager.getClusterName()).forResource("NextDB").build();
-    accessor.set(scope, HelixTaskExecutor.THREADPOOL_SIZE, ""+12);
+    accessor.set(scope, HelixTaskExecutor.MAX_THREADS, ""+12);
     
     _setupTool.addResourceToCluster(CLUSTER_NAME, "NextDB", 64, STATE_MODEL);
     _setupTool.rebalanceStorageCluster(CLUSTER_NAME, "NextDB", 3);
@@ -33,6 +33,7 @@ public class TestResourceThreadpoolSize extends ZkStandAloneCMTestBase
         new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_NAME));
     Assert.assertTrue(result);
     
+    long taskcount = 0; 
     for (int i = 0; i < NODE_NR; i++)
     {
       instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
@@ -41,6 +42,9 @@ public class TestResourceThreadpoolSize extends ZkStandAloneCMTestBase
       HelixTaskExecutor helixExecutor = svc.getExecutor();
       ThreadPoolExecutor executor = (ThreadPoolExecutor)(helixExecutor._threadpoolMap.get(MessageType.STATE_TRANSITION + "." + "NextDB"));
       Assert.assertEquals(12, executor.getMaximumPoolSize());
+      taskcount += executor.getCompletedTaskCount();
+      Assert.assertTrue(executor.getCompletedTaskCount() > 0);
     }
+    Assert.assertEquals(taskcount, 64 * 4);
   }
 }

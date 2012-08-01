@@ -63,7 +63,7 @@ public class HelixTaskExecutor implements MessageListener
   private final Object                                   _lock;
   private final StatusUpdateUtil                         _statusUpdateUtil;
   private final ParticipantMonitor                       _monitor;
-  public static final String THREADPOOL_SIZE = "threadPoolSize";
+  public static final String MAX_THREADS = "maxThreads";
 
   final ConcurrentHashMap<String, MessageHandlerFactory> _handlerFactoryMap =
                                                                                 new ConcurrentHashMap<String, MessageHandlerFactory>();
@@ -131,7 +131,7 @@ public class HelixTaskExecutor implements MessageListener
         ConfigScope scope =
           new ConfigScopeBuilder().forCluster(manager.getClusterName()).forResource(resourceName).build();
       
-        String threadpoolSizeStr = configAccessor.get(scope, THREADPOOL_SIZE);
+        String threadpoolSizeStr = configAccessor.get(scope, MAX_THREADS);
         try
         {
           if(threadpoolSizeStr != null)

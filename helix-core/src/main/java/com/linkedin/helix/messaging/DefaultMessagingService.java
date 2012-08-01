@@ -269,7 +269,7 @@ public class DefaultMessagingService implements ClusterMessagingService
     
       // Read the participant config and cluster config for the per-message type thread pool size.
       // participant config will override the cluster config.
-      configAccessor.get(scope, key);
+      threadpoolSizeStr = configAccessor.get(scope, key);
       if(threadpoolSizeStr == null)
       {
         scope = new ConfigScopeBuilder().forCluster(_manager.getClusterName()).build();

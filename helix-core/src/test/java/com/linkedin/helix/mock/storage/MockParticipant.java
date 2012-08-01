@@ -45,6 +45,8 @@ public class MockParticipant extends Thread
 
   private final CountDownLatch _startCountDown = new CountDownLatch(1);
   private final CountDownLatch _stopCountDown = new CountDownLatch(1);
+  private final CountDownLatch _waitStopFinishCountDown  = new CountDownLatch(1);
+
   private final HelixManager _manager;
   private final MockMSModelFactory _msModelFacotry;
   private final MockJobIntf _job;
@@ -387,10 +389,20 @@ public class MockParticipant extends Thread
   public void syncStop()
   {
     _stopCountDown.countDown();
-    synchronized (_manager)
+    try
     {
-      _manager.disconnect();
+      _waitStopFinishCountDown.await();
     }
+    catch (InterruptedException e)
+    {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+    
+//    synchronized (_manager)
+//    {
+//      _manager.disconnect();
+//    }
   }
 
   public void syncStart()
@@ -459,6 +471,7 @@ public class MockParticipant extends Thread
       {
         _manager.disconnect();
       }
+      _waitStopFinishCountDown.countDown();
     }
   }
 }

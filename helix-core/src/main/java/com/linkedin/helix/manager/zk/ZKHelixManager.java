@@ -357,7 +357,6 @@ public class ZKHelixManager implements HelixManager
       _messagingService.onConnected();
       _messagingService.registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(),
           _stateMachEngine);
-
     } catch (Exception e)
     {
       logger.error(e);

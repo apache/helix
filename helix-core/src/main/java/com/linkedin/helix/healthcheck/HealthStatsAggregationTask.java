@@ -16,6 +16,7 @@
 package com.linkedin.helix.healthcheck;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Timer;
@@ -25,6 +26,7 @@ import org.apache.log4j.Logger;
 import com.linkedin.helix.ConfigAccessor;
 import com.linkedin.helix.ConfigScope;
 import com.linkedin.helix.ConfigScopeBuilder;
+import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.HelixTimerTask;
 import com.linkedin.helix.controller.pipeline.Pipeline;
@@ -104,6 +106,15 @@ public class HealthStatsAggregationTask extends HelixTimerTask
 
     if (_timer == null)
     {
+      // Remove all the previous health check values, if any
+      HelixDataAccessor accessor = _manager.getHelixDataAccessor();
+      List<String> existingHealthRecordNames = accessor.getChildNames(accessor.keyBuilder().healthReports(_manager.getInstanceName()));
+      for(String healthReportName : existingHealthRecordNames)
+      {
+        LOG.info("Removing old healthrecord " + healthReportName);
+        accessor.removeProperty(accessor.keyBuilder().healthReport(_manager.getInstanceName(),healthReportName));
+      }
+      
       _timer = new Timer();
       _timer.scheduleAtFixedRate(this, new Random().nextInt(_delay), _period);
     }

@@ -22,11 +22,11 @@ import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.ZNRecordAssembler;
+import com.linkedin.helix.ZNRecordBucketizer;
 import com.linkedin.helix.ZNRecordUpdater;
 import com.linkedin.helix.controller.restlet.ZNRecordUpdate;
 import com.linkedin.helix.controller.restlet.ZNRecordUpdate.OpCode;
 import com.linkedin.helix.controller.restlet.ZkPropertyTransferClient;
-import com.linkedin.helix.model.CurrentState;
 import com.linkedin.helix.model.LiveInstance;
 
 public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeListener
@@ -78,7 +78,45 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
       return true;
     }
 
-    return _baseDataAccessor.set(path, value.getRecord(), options);
+    boolean success = false;
+    switch (type)
+    {
+    case IDEALSTATES:
+    case EXTERNALVIEW:
+      // check if bucketized
+      if (value.getBucketSize() > 0)
+      {
+        // set parent node
+        ZNRecord metaRecord = new ZNRecord(value.getId());
+        metaRecord.setSimpleFields(value.getRecord().getSimpleFields());
+        success = _baseDataAccessor.set(path, metaRecord, options);
+        if (success)
+        {
+          ZNRecordBucketizer bucketizer = new ZNRecordBucketizer(value.getBucketSize());
+
+          Map<String, ZNRecord> map = bucketizer.bucketize(value.getRecord());
+          List<String> paths = new ArrayList<String>();
+          List<ZNRecord> bucketizedRecords = new ArrayList<ZNRecord>();
+          for (String bucketName : map.keySet())
+          {
+            paths.add(path + "/" + bucketName);
+            bucketizedRecords.add(map.get(bucketName));
+          }
+
+          // TODO: set success accordingly
+          _baseDataAccessor.setChildren(paths, bucketizedRecords, options);
+        }
+      }
+      else
+      {
+        success = _baseDataAccessor.set(path, value.getRecord(), options);
+      }
+      break;
+    default:
+      success = _baseDataAccessor.set(path, value.getRecord(), options);
+      break;
+    }
+    return success;
   }
 
   @Override
@@ -99,7 +137,8 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
       {
         if (getPropertyTransferUrl() != null)
         {
-          ZNRecordUpdate update = new ZNRecordUpdate(path, OpCode.UPDATE, value.getRecord());
+          ZNRecordUpdate update =
+              new ZNRecordUpdate(path, OpCode.UPDATE, value.getRecord());
           _zkPropertyTransferClient.sendZNRecordUpdate(update, getPropertyTransferUrl());
 
           return true;
@@ -150,16 +189,27 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
       switch (type)
       {
       case CURRENTSTATES:
+      case IDEALSTATES:
+      case EXTERNALVIEW:
         // check if bucketized
         if (record != null)
         {
-          CurrentState curState = new CurrentState(record);
-          int bucketSize = curState.getBucketSize();
+          HelixProperty property = new HelixProperty(record);
+
+          int bucketSize = property.getBucketSize();
           if (bucketSize > 0)
           {
             List<ZNRecord> childRecords =
                 _baseDataAccessor.getChildren(path, null, options);
-            record = new ZNRecordAssembler().assemble(childRecords);
+            ZNRecord assembledRecord = new ZNRecordAssembler().assemble(childRecords);
+
+            // merge with parent node value
+            if (assembledRecord != null)
+            {
+              record.getSimpleFields().putAll(assembledRecord.getSimpleFields());
+              record.getListFields().putAll(assembledRecord.getListFields());
+              record.getMapFields().putAll(assembledRecord.getMapFields());
+            }
           }
         }
         break;
@@ -194,16 +244,27 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
     switch (type)
     {
     case CURRENTSTATES:
+    case IDEALSTATES:
+    case EXTERNALVIEW:
       // check if bucketized
       if (record != null)
       {
-        CurrentState curState = new CurrentState(record);
-        int bucketSize = curState.getBucketSize();
+        HelixProperty property = new HelixProperty(record);
+
+        int bucketSize = property.getBucketSize();
         if (bucketSize > 0)
         {
           List<ZNRecord> childRecords =
               _baseDataAccessor.getChildren(path, null, options);
-          record = new ZNRecordAssembler().assemble(childRecords);
+          ZNRecord assembledRecord = new ZNRecordAssembler().assemble(childRecords);
+
+          // merge with parent node value
+          if (assembledRecord != null)
+          {
+            record.getSimpleFields().putAll(assembledRecord.getSimpleFields());
+            record.getListFields().putAll(assembledRecord.getListFields());
+            record.getMapFields().putAll(assembledRecord.getMapFields());
+          }
         }
       }
       break;
@@ -247,19 +308,31 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
       switch (type)
       {
       case CURRENTSTATES:
-        // check if bucketized
+      case IDEALSTATES:
+      case EXTERNALVIEW:
         if (record != null)
         {
-          CurrentState curState = new CurrentState(record);
-          int bucketSize = curState.getBucketSize();
+          HelixProperty property = new HelixProperty(record);
+
+          int bucketSize = property.getBucketSize();
           if (bucketSize > 0)
           {
-            String path = parentPath + "/" + record.getId();
+            // TODO: fix this if record.id != pathName
+            String childPath = parentPath + "/" + record.getId();
             List<ZNRecord> childRecords =
-                _baseDataAccessor.getChildren(path, null, options);
-            record = new ZNRecordAssembler().assemble(childRecords);
+                _baseDataAccessor.getChildren(childPath, null, options);
+            ZNRecord assembledRecord = new ZNRecordAssembler().assemble(childRecords);
+
+            // merge with parent node value
+            if (assembledRecord != null)
+            {
+              record.getSimpleFields().putAll(assembledRecord.getSimpleFields());
+              record.getListFields().putAll(assembledRecord.getListFields());
+              record.getMapFields().putAll(assembledRecord.getMapFields());
+            }
           }
         }
+
         break;
       default:
         break;
@@ -339,18 +412,77 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
     int options = -1;
     List<String> paths = new ArrayList<String>();
     List<ZNRecord> records = new ArrayList<ZNRecord>();
+
+    List<List<String>> bucketizedPaths =
+        new ArrayList<List<String>>(Collections.<List<String>> nCopies(keys.size(), null));
+    List<List<ZNRecord>> bucketizedRecords =
+        new ArrayList<List<ZNRecord>>(Collections.<List<ZNRecord>> nCopies(keys.size(),
+                                                                           null));
+
     for (int i = 0; i < keys.size(); i++)
     {
       PropertyKey key = keys.get(i);
       PropertyType type = key.getType();
       String path = key.getPath();
       paths.add(path);
-      HelixProperty value = children.get(i);
-      records.add(value.getRecord());
       options = constructOptions(type);
-    }
-    return _baseDataAccessor.setChildren(paths, records, options);
 
+      HelixProperty value = children.get(i);
+      
+      switch(type)
+      {
+      case EXTERNALVIEW:
+        if (value.getBucketSize() == 0)
+        {
+          records.add(value.getRecord());
+        }
+        else
+        {
+          ZNRecord metaRecord = new ZNRecord(value.getId());
+          metaRecord.setSimpleFields(value.getRecord().getSimpleFields());
+          records.add(metaRecord);
+          
+          ZNRecordBucketizer bucketizer =
+              new ZNRecordBucketizer(value.getBucketSize());
+
+          Map<String, ZNRecord> map = bucketizer.bucketize(value.getRecord());
+          List<String> childBucketizedPaths = new ArrayList<String>();
+          List<ZNRecord> childBucketizedRecords = new ArrayList<ZNRecord>();
+          for (String bucketName : map.keySet())
+          {
+            childBucketizedPaths.add(path + "/" + bucketName);
+            childBucketizedRecords.add(map.get(bucketName));
+          }
+          bucketizedPaths.set(i, childBucketizedPaths);
+          bucketizedRecords.set(i, childBucketizedRecords);
+        }
+        break;
+      default:
+        records.add(value.getRecord());
+        break;
+      }
+    }
+    
+    // set non-bucketized nodes or parent nodes of bucketized nodes
+    boolean success[] = _baseDataAccessor.setChildren(paths, records, options);
+
+    // set bucketized nodes
+    List<String> allBucketizedPaths = new ArrayList<String>();
+    List<ZNRecord> allBucketizedRecords = new ArrayList<ZNRecord>();
+
+    for (int i = 0; i < keys.size(); i++)
+    {
+      if (success[i] && bucketizedPaths.get(i) != null)
+      {
+        allBucketizedPaths.addAll(bucketizedPaths.get(i));
+        allBucketizedRecords.addAll(bucketizedRecords.get(i));
+      }
+    }
+
+    // TODO: set success accordingly
+    _baseDataAccessor.setChildren(allBucketizedPaths, allBucketizedRecords, options);
+    
+    return success;
   }
 
   @Override

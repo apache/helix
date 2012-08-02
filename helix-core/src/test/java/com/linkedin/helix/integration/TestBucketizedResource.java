@@ -5,21 +5,19 @@ import java.util.Date;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import com.linkedin.helix.BaseDataAccessor;
-import com.linkedin.helix.PropertyPathConfig;
-import com.linkedin.helix.PropertyType;
+import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.ZkUnitTestBase;
 import com.linkedin.helix.controller.HelixControllerMain;
+import com.linkedin.helix.manager.zk.ZKHelixDataAccessor;
 import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
 import com.linkedin.helix.mock.storage.MockParticipant;
-import com.linkedin.helix.model.IdealState.IdealStateProperty;
+import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.tools.ClusterStateVerifier;
 import com.linkedin.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import com.linkedin.helix.tools.ClusterStateVerifier.MasterNbInExtViewVerifier;
 
-public class TestBucketizedResource extends ZkUnitTestBase
+public class TestBucketizedResource extends ZkIntegrationTestBase
 {
   @Test()
   public void testBucketizedResource() throws Exception
@@ -46,11 +44,13 @@ public class TestBucketizedResource extends ZkUnitTestBase
                             "MasterSlave",
                             true); // do rebalance
     
-    ZkBaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
-    String idealStatePath = PropertyPathConfig.getPath(PropertyType.IDEALSTATES, clusterName, "TestDB0");
-    ZNRecord idealState = accessor.get(idealStatePath, null, 0);
-    idealState.setSimpleField(IdealStateProperty.BUCKET_SIZE.toString(), "" + 3);
-    accessor.set(idealStatePath, idealState, BaseDataAccessor.Option.PERSISTENT);
+    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, baseAccessor);
+    // String idealStatePath = PropertyPathConfig.getPath(PropertyType.IDEALSTATES, clusterName, "TestDB0");
+    Builder keyBuilder = accessor.keyBuilder();
+    IdealState idealState = accessor.getProperty(keyBuilder.idealStates("TestDB0"));
+    idealState.setBucketSize(1);
+    accessor.setProperty(keyBuilder.idealStates("TestDB0"), idealState);
 
     TestHelper.startController(clusterName,
                                "controller_0",

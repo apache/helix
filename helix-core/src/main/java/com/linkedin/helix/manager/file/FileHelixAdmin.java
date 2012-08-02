@@ -188,6 +188,14 @@ public class FileHelixAdmin implements HelixAdmin
     throw new UnsupportedOperationException(
         "ideal state mode not supported in file-based cluster manager");
   }
+  
+  @Override
+  public void addResource(String clusterName, String resource, int numResources,
+      String stateModelRef, String idealStateMode, int bucketSize)
+  {
+    throw new UnsupportedOperationException(
+        "bucketize not supported in file-based cluster manager");
+  }
 
   @Override
   public void addInstance(String clusterName, InstanceConfig config)
@@ -249,6 +257,13 @@ public class FileHelixAdmin implements HelixAdmin
         "enableInstance() is NOT supported by FileClusterManagementTool");
   }
 
+  @Override
+  public void enableCluster(String clusterName, boolean enabled)
+  {
+    throw new UnsupportedOperationException(
+        "enableCluster() is NOT supported by FileClusterManagementTool");
+  }
+  
   @Override
   public void addStateModelDef(String clusterName, String stateModelDef,
       StateModelDefinition stateModel)

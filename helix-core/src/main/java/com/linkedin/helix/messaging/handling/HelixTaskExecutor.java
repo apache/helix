@@ -199,6 +199,7 @@ public class HelixTaskExecutor implements MessageListener
         HelixTask task = new HelixTask(message, notificationContext, handler, this);
         if (!_taskMap.containsKey(message.getMsgId()))
         {
+          logger.info("msg:" + message.getMsgId() + " handling task scheduled");
           Future<HelixTaskResult> future =
               findExecutorServiceForMsg(message).submit(task);
           _taskMap.put(message.getMsgId(), future);

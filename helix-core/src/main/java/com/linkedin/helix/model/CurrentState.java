@@ -31,8 +31,10 @@ public class CurrentState extends HelixProperty
 {
   private static Logger LOG = Logger.getLogger(CurrentState.class);
 
-  public enum CurrentStateProperty {
-    SESSION_ID, CURRENT_STATE, STATE_MODEL_DEF, STATE_MODEL_FACTORY_NAME, RESOURCE, BUCKET_SIZE
+  public enum CurrentStateProperty
+  {
+    SESSION_ID, CURRENT_STATE, STATE_MODEL_DEF, STATE_MODEL_FACTORY_NAME, RESOURCE // ,
+                                                                                   // BUCKET_SIZE
   }
 
   public CurrentState(String resourceName)
@@ -88,7 +90,8 @@ public class CurrentState extends HelixProperty
 
   public void setStateModelDefRef(String stateModelName)
   {
-    _record.setSimpleField(CurrentStateProperty.STATE_MODEL_DEF.toString(), stateModelName);
+    _record.setSimpleField(CurrentStateProperty.STATE_MODEL_DEF.toString(),
+                           stateModelName);
   }
 
   public String getStateModelDefRef()
@@ -103,12 +106,14 @@ public class CurrentState extends HelixProperty
     {
       mapFields.put(partitionName, new TreeMap<String, String>());
     }
-    mapFields.get(partitionName).put(CurrentStateProperty.CURRENT_STATE.toString(), state);
+    mapFields.get(partitionName)
+             .put(CurrentStateProperty.CURRENT_STATE.toString(), state);
   }
 
   public void setStateModelFactoryName(String factoryName)
   {
-    _record.setSimpleField(CurrentStateProperty.STATE_MODEL_FACTORY_NAME.toString(), factoryName);
+    _record.setSimpleField(CurrentStateProperty.STATE_MODEL_FACTORY_NAME.toString(),
+                           factoryName);
   }
 
   public String getStateModelFactoryName()
@@ -116,31 +121,35 @@ public class CurrentState extends HelixProperty
     return _record.getSimpleField(CurrentStateProperty.STATE_MODEL_FACTORY_NAME.toString());
   }
 
-  public int getBucketSize()
-  {
-    String bucketSizeStr = _record.getSimpleField(CurrentStateProperty.BUCKET_SIZE.toString());
-    int bucketSize = 0;
-    if (bucketSizeStr != null)
-    {
-      try
-      {
-        bucketSize = Integer.parseInt(bucketSizeStr);
-      } catch (NumberFormatException e)
-      {
-        // OK
-      }
-    }
-    return bucketSize;
-  }
+//  @Override
+//  public int getBucketSize()
+//  {
+//    String bucketSizeStr =
+//        _record.getSimpleField(CurrentStateProperty.BUCKET_SIZE.toString());
+//    int bucketSize = 0;
+//    if (bucketSizeStr != null)
+//    {
+//      try
+//      {
+//        bucketSize = Integer.parseInt(bucketSizeStr);
+//      }
+//      catch (NumberFormatException e)
+//      {
+//        // OK
+//      }
+//    }
+//    return bucketSize;
+//  }
+//
+//  @Override
+//  public void setBucketSize(int bucketSize)
+//  {
+//    if (bucketSize > 0)
+//    {
+//      _record.setSimpleField(CurrentStateProperty.BUCKET_SIZE.toString(), "" + bucketSize);
+//    }
+//  }
 
-  public void setBucketSize(int bucketSize)
-  {
-    if (bucketSize > 0)
-    {
-      _record.setSimpleField(CurrentStateProperty.BUCKET_SIZE.toString(), "" + bucketSize);
-    }
-  }
-  
   @Override
   public boolean isValid()
   {

@@ -109,6 +109,7 @@ public class HelixTask implements Callable<HelixTaskResult>
     ErrorType type = null;
     ErrorCode code = null;
 
+    logger.info("msg:" + _message.getMsgId() + " handling task begin execute");
     HelixDataAccessor accessor = _manager.getHelixDataAccessor();
     _statusUpdateUtil.logInfo(_message,
                               HelixTask.class,
@@ -224,6 +225,8 @@ public class HelixTask implements Callable<HelixTaskResult>
     //
     finally
     {
+      logger.info("msg:" + _message.getMsgId() + " handling task completed, results:" + taskResult.isSucess());
+      
       // Notify the handler about any error happened in the handling procedure, so that
       // the handler have chance to finally cleanup
       if (exception != null)

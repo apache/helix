@@ -65,6 +65,7 @@ public class TestPauseSignal extends ZkIntegrationTestBase
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
     accessor.setProperty(accessor.keyBuilder().pause(), new PauseSignal("pause"));
+    
     // wait for controller to be signaled by pause
     Thread.sleep(1000);
     

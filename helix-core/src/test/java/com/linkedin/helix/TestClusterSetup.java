@@ -27,6 +27,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.manager.zk.ZNRecordSerializer;
 import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.tools.ClusterSetup;
@@ -350,6 +351,46 @@ public class TestClusterSetup extends ZkUnitTestBase
     Assert.assertEquals(valuesStr, propertiesStr);
     
     System.out.println("END testSetGetConfig() " + new Date(System.currentTimeMillis()));
+
+  }
+  
+  @Test
+  public void testEnableCluster() throws Exception
+  {
+    // Logger.getRootLogger().setLevel(Level.INFO);
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = className + "_" + methodName;
+    
+    System.out.println("START " + clusterName + " at "
+        + new Date(System.currentTimeMillis()));
+
+    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+                            "localhost", // participant name prefix
+                            "TestDB", // resource name prefix
+                            1, // resources
+                            10, // partitions per resource
+                            5, // number of nodes
+                            3, // replicas
+                            "MasterSlave",
+                            true); // do rebalance
+
+    // pause cluster
+    _clusterSetup.processCommandLineArgs(new String[]{"--zkSvr", ZK_ADDR, "--enableCluster", clusterName, "false"});
+    
+    Builder keyBuilder = new Builder(clusterName);
+    boolean exists = _gZkClient.exists(keyBuilder.pause().getPath());
+    Assert.assertTrue(exists, "pause node under controller should be created");
+    
+    // resume cluster
+    _clusterSetup.processCommandLineArgs(new String[]{"--zkSvr", ZK_ADDR, "--enableCluster", clusterName, "true"});
+    
+    exists = _gZkClient.exists(keyBuilder.pause().getPath());
+    Assert.assertFalse(exists, "pause node under controller should be removed");
+
+    
+    System.out.println("END " + clusterName + " at "
+        + new Date(System.currentTimeMillis()));
 
   }
 }

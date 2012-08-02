@@ -415,7 +415,8 @@ public class Message extends HelixProperty
   {
     _record.setSimpleField(Attributes.STATE_MODEL_FACTORY_NAME.toString(), factoryName);
   }
-
+ 
+  @Override
   public int getBucketSize()
   {
     String bucketSizeStr = _record.getSimpleField(Attributes.BUCKET_SIZE.toString());
@@ -433,6 +434,7 @@ public class Message extends HelixProperty
     return bucketSize;
   }
 
+  @Override
   public void setBucketSize(int bucketSize)
   {
     if (bucketSize > 0)

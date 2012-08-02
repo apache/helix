@@ -59,14 +59,11 @@ public class ExternalViewComputeStage extends AbstractBaseStage
     List<ExternalView> newExtViews = new ArrayList<ExternalView>();
     List<PropertyKey> keys = new ArrayList<PropertyKey>();
     
-    Map<String, ExternalView> curExtViews =
-        dataAccessor.getChildValuesMap(manager.getHelixDataAccessor()
-                                           .keyBuilder()
-                                           .externalViews());
-
     for (String resourceName : resourceMap.keySet())
     {
       ExternalView view = new ExternalView(resourceName);
+      view.setBucketSize(currentStateOutput.getBucketSize(resourceName));
+      
       Resource resource = resourceMap.get(resourceName);
       for (Partition partition : resource.getPartitions())
       {
@@ -97,6 +94,11 @@ public class ExternalViewComputeStage extends AbstractBaseStage
       }
       
       // compare the new external view with current one, set only on different
+      Map<String, ExternalView> curExtViews =
+          dataAccessor.getChildValuesMap(manager.getHelixDataAccessor()
+                                             .keyBuilder()
+                                             .externalViews());
+
       ExternalView curExtView = curExtViews.get(resourceName);
       if (curExtView == null || !curExtView.getRecord().equals(view.getRecord()))
       {

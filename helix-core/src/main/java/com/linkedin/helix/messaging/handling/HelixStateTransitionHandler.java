@@ -120,17 +120,6 @@ public class HelixStateTransitionHandler extends MessageHandler
       int bucketSize = message.getBucketSize();
       ZNRecordBucketizer bucketizer = new ZNRecordBucketizer(bucketSize);
 
-      CurrentState currentState = null;
-      accessor.getProperty(keyBuilder.currentState(instanceName,
-                                                   manager.getSessionId(),
-                                                   resource,
-                                                   bucketizer.getBucketName(partitionKey)));
-
-      if (currentState == null)
-      {
-        logger.warn("currentState is null. Storage node should be working with static file based cluster manager.");
-      }
-
       // TODO verify that fromState is same as currentState this task
       // was
       // called at.

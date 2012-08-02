@@ -33,6 +33,7 @@ import com.linkedin.helix.ConfigScope;
 import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
 import com.linkedin.helix.HelixAdmin;
 import com.linkedin.helix.HelixConstants;
+import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixException;
 import com.linkedin.helix.HelixProperty;
 import com.linkedin.helix.PropertyKey.Builder;
@@ -50,6 +51,7 @@ import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.model.Message;
 import com.linkedin.helix.model.Message.MessageState;
 import com.linkedin.helix.model.Message.MessageType;
+import com.linkedin.helix.model.PauseSignal;
 import com.linkedin.helix.model.PersistentStats;
 import com.linkedin.helix.model.StateModelDefinition;
 import com.linkedin.helix.util.HelixUtil;
@@ -213,6 +215,23 @@ public class ZKHelixAdmin implements HelixAdmin
   }
 
   @Override
+  public void enableCluster(String clusterName, boolean enabled)
+  {
+    HelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+    
+    if (enabled)
+    {
+      accessor.removeProperty(keyBuilder.pause());
+    }
+    else
+    {
+      accessor.createProperty(keyBuilder.pause(), new PauseSignal("pause"));
+    }
+  }
+
+  @Override
   public void resetPartition(String clusterName,
                              String instanceName,
                              String resourceName,
@@ -370,7 +389,8 @@ public class ZKHelixAdmin implements HelixAdmin
                 dbName,
                 partitions,
                 stateModelRef,
-                IdealStateModeProperty.AUTO.toString(), 0);
+                IdealStateModeProperty.AUTO.toString(),
+                0);
   }
 
   @Override
@@ -380,14 +400,9 @@ public class ZKHelixAdmin implements HelixAdmin
                           String stateModelRef,
                           String idealStateMode)
   {
-    addResource(clusterName,
-                dbName,
-                partitions,
-                stateModelRef,
-                idealStateMode,
-                0);
+    addResource(clusterName, dbName, partitions, stateModelRef, idealStateMode, 0);
   }
-  
+
   @Override
   public void addResource(String clusterName,
                           String dbName,
@@ -400,27 +415,16 @@ public class ZKHelixAdmin implements HelixAdmin
     {
       throw new HelixException("cluster " + clusterName + " is not setup yet");
     }
-    
+
     IdealStateModeProperty mode = IdealStateModeProperty.AUTO;
     try
     {
       mode = IdealStateModeProperty.valueOf(idealStateMode);
     }
-    catch(Exception e)
+    catch (Exception e)
     {
       logger.error("", e);
     }
-//    ZNRecord idealState = new ZNRecord(dbName);
-//    idealState.setSimpleField(IdealStateProperty.NUM_PARTITIONS.toString(),
-//                              String.valueOf(partitions));
-//    idealState.setSimpleField(IdealStateProperty.STATE_MODEL_DEF_REF.toString(),
-//                              stateModelRef);
-//    idealState.setSimpleField(IdealStateProperty.IDEAL_STATE_MODE.toString(),
-//                              mode.toString());
-//    idealState.setSimpleField(IdealStateProperty.REPLICAS.toString(), 0 + "");
-//    idealState.setSimpleField(IdealStateProperty.STATE_MODEL_FACTORY_NAME.toString(),
-//                              HelixConstants.DEFAULT_STATE_MODEL_FACTORY);
-
     IdealState idealState = new IdealState(dbName);
     idealState.setNumPartitions(partitions);
     idealState.setStateModelDefRef(stateModelRef);
@@ -451,7 +455,7 @@ public class ZKHelixAdmin implements HelixAdmin
           + dbIdealStatePath);
       return;
     }
-    
+
     ZKUtil.createChildren(_zkClient, idealStatePath, idealState.getRecord());
   }
 
@@ -582,7 +586,9 @@ public class ZKHelixAdmin implements HelixAdmin
       statsRec = new ZNRecord(PersistentStats.nodeName); // TODO: fix naming of
                                                          // this record, if it
                                                          // matters
-    }else{
+    }
+    else
+    {
       statsRec = property.getRecord();
     }
 
@@ -623,7 +629,9 @@ public class ZKHelixAdmin implements HelixAdmin
     {
       alertsRec = new ZNRecord(Alerts.nodeName); // TODO: fix naming of this
                                                  // record, if it matters
-    }else{
+    }
+    else
+    {
       alertsRec = property.getRecord();
     }
 

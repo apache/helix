@@ -39,22 +39,33 @@ public interface HelixAdmin
 
   void addClusterToGrandCluster(String clusterName, String grandCluster);
 
-  void addResource(String clusterName, String resourceName, int numResources,
-                        String stateModelRef);
+  void addResource(String clusterName,
+                   String resourceName,
+                   int numResources,
+                   String stateModelRef);
 
-  void addResource(String clusterName, String resourceName, int numResources,
-                        String stateModelRef, String idealStateMode);
+  void addResource(String clusterName,
+                   String resourceName,
+                   int numResources,
+                   String stateModelRef,
+                   String idealStateMode);
 
-  void addResource(String clusterName, String resourceName, int numResources,
-                   String stateModelRef, String idealStateMode, int bucketSize);
-  
+  void addResource(String clusterName,
+                   String resourceName,
+                   int numResources,
+                   String stateModelRef,
+                   String idealStateMode,
+                   int bucketSize);
+
   void addInstance(String clusterName, InstanceConfig instanceConfig);
 
   void dropInstance(String clusterName, InstanceConfig instanceConfig);
 
   IdealState getResourceIdealState(String clusterName, String dbName);
 
-  void setResourceIdealState(String clusterName, String resourceName, IdealState idealState);
+  void setResourceIdealState(String clusterName,
+                             String resourceName,
+                             IdealState idealState);
 
   void enableInstance(String clusterName, String instanceName, boolean enabled);
 
@@ -64,9 +75,16 @@ public interface HelixAdmin
                        String partition,
                        boolean enabled);
 
-  void resetPartition(String clusterName, String instanceName, String resourceName, String partition);
+  void enableCluster(String clusterName, boolean enabled);
 
-  void addStateModelDef(String clusterName, String stateModelDef, StateModelDefinition record);
+  void resetPartition(String clusterName,
+                      String instanceName,
+                      String resourceName,
+                      String partition);
+
+  void addStateModelDef(String clusterName,
+                        String stateModelDef,
+                        StateModelDefinition record);
 
   void dropResource(String clusterName, String resourceName);
 
@@ -87,10 +105,12 @@ public interface HelixAdmin
   void dropCluster(String clusterName);
 
   void setConfig(ConfigScope scope, Map<String, String> properties);
-  
+
   void removeConfig(ConfigScope scope, Set<String> keys);
 
   Map<String, String> getConfig(ConfigScope scope, Set<String> keys);
 
-  List<String> getConfigKeys(ConfigScopeProperty scope, String clusterName, String... keys);
+  List<String> getConfigKeys(ConfigScopeProperty scope,
+                             String clusterName,
+                             String... keys);
 }

@@ -95,12 +95,15 @@ public class ClusterSetup
   public static final String listStateModels   = "listStateModels";
   public static final String listStateModel    = "listStateModel";
 
-  // enable / disable Instances
+  // enable/disable Instances/cluster
   public static final String enableInstance    = "enableInstance";
   public static final String enablePartition   = "enablePartition";
+  public static final String enableCluster     = "enableCluster";
+  
+  // help
   public static final String help              = "help";
 
-  // stats /alerts
+  // stats/alerts
   public static final String addStat           = "addStat";
   public static final String addAlert          = "addAlert";
   public static final String dropStat          = "dropStat";
@@ -785,7 +788,7 @@ public class ClusterSetup
 
     Option enableInstanceOption =
         OptionBuilder.withLongOpt(enableInstance)
-                     .withDescription("Enable / disable a Instance")
+                     .withDescription("Enable/disable a Instance")
                      .create();
     enableInstanceOption.setArgs(3);
     enableInstanceOption.setRequired(false);
@@ -793,12 +796,21 @@ public class ClusterSetup
 
     Option enablePartitionOption =
         OptionBuilder.withLongOpt(enablePartition)
-                     .withDescription("Enable / disable a partition")
+                     .withDescription("Enable/disable a partition")
                      .create();
     enablePartitionOption.setArgs(5);
     enablePartitionOption.setRequired(false);
     enablePartitionOption.setArgName("clusterName instanceName resourceName partitionName true/false");
 
+    Option enableClusterOption =
+        OptionBuilder.withLongOpt(enableCluster)
+                     .withDescription("Enable/disable a cluster")
+                     .create();
+    enableClusterOption.setArgs(2);
+    enableClusterOption.setRequired(false);
+    enableClusterOption.setArgName("clusterName true/false");
+
+    
     Option listStateModelsOption =
         OptionBuilder.withLongOpt(listStateModels)
                      .withDescription("Query info of state models in a cluster")
@@ -846,13 +858,13 @@ public class ClusterSetup
         OptionBuilder.withLongOpt(setConfig).withDescription("Set a config").create();
     setConfOption.setArgs(2);
     setConfOption.setRequired(false);
-    setConfOption.setArgName("ConfigScope(scope=value,...) Map(key=value,...");
+    setConfOption.setArgName("ConfigScope(e.g. CLUSTER=cluster,RESOURCE=rc,...) KeyValueMap(e.g. k1=v1,k2=v2,...)");
 
     Option getConfOption =
         OptionBuilder.withLongOpt(getConfig).withDescription("Get a config").create();
     getConfOption.setArgs(2);
     getConfOption.setRequired(false);
-    getConfOption.setArgName("ConfigScope(scope=value,...) Set(key,...");
+    getConfOption.setArgName("ConfigScope(e.g. CLUSTER=cluster,RESOURCE=rc,...) KeySet(e.g. k1,k2,...)");
 
     OptionGroup group = new OptionGroup();
     group.setRequired(true);
@@ -879,6 +891,7 @@ public class ClusterSetup
     group.addOption(partitionInfoOption);
     group.addOption(enableInstanceOption);
     group.addOption(enablePartitionOption);
+    group.addOption(enableClusterOption);
     group.addOption(addStateModelDefOption);
     group.addOption(listStateModelsOption);
     group.addOption(listStateModelOption);
@@ -1245,6 +1258,15 @@ public class ClusterSetup
                                                            resourceName,
                                                            partitionName,
                                                            enabled);
+      return 0;
+    } else if (cmd.hasOption(enableCluster))
+    {
+      String[] params = cmd.getOptionValues(enableCluster);
+      String clusterName = params[0];
+      boolean enabled =
+          Boolean.parseBoolean(params[1].toLowerCase());
+      setupTool.getClusterManagementTool().enableCluster(clusterName, enabled);
+      
       return 0;
     }
     else if (cmd.hasOption(listStateModels))

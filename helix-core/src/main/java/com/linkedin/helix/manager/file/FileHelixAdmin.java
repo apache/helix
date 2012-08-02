@@ -258,6 +258,13 @@ public class FileHelixAdmin implements HelixAdmin
   }
 
   @Override
+  public void enableCluster(String clusterName, boolean enabled)
+  {
+    throw new UnsupportedOperationException(
+        "enableCluster() is NOT supported by FileClusterManagementTool");
+  }
+  
+  @Override
   public void addStateModelDef(String clusterName, String stateModelDef,
       StateModelDefinition stateModel)
   {

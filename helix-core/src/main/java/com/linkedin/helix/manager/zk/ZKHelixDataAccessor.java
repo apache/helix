@@ -521,13 +521,21 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
 
   void refreshZkPropertyTransferUrl()
   {
-    LiveInstance leader = getProperty(keyBuilder().controllerLeader());
-    if (leader != null)
+    try
     {
-      _zkPropertyTransferSvcUrl = leader.getWebserviceUrl();
+      LiveInstance leader = getProperty(keyBuilder().controllerLeader());
+      if (leader != null)
+      {
+        _zkPropertyTransferSvcUrl = leader.getWebserviceUrl();
+      }
+      else
+      {
+        _zkPropertyTransferSvcUrl = null;
+      }
     }
-    else
+    catch(Exception e)
     {
+      LOG.error("", e);
       _zkPropertyTransferSvcUrl = null;
     }
   }

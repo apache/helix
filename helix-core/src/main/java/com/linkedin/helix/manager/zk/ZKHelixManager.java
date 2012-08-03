@@ -355,8 +355,6 @@ public class ZKHelixManager implements HelixManager
     {
       createClient(_zkConnectString);
       _messagingService.onConnected();
-      _messagingService.registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(),
-          _stateMachEngine);
     } catch (Exception e)
     {
       logger.error(e);
@@ -690,6 +688,8 @@ public class ZKHelixManager implements HelixManager
 
     // In case the cluster manager is running as a participant, setup message
     // listener
+    _messagingService.registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(),
+        _stateMachEngine);
     addMessageListener(_messagingService.getExecutor(), _instanceName);
     addControllerListener(_helixAccessor);
 

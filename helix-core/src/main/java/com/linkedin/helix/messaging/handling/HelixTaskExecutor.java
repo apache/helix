@@ -148,6 +148,7 @@ public class HelixTaskExecutor implements MessageListener
       {
         String key = MessageType.STATE_TRANSITION.toString() + "." + resourceName;
         _threadpoolMap.put(key, Executors.newFixedThreadPool(threadpoolSize));
+        logger.info("Adding per resource threadpool for resource " + resourceName  + " with size "+ threadpoolSize);
       }
       _resourceThreadpoolSizeMap.put(resourceName, threadpoolSize);
     }

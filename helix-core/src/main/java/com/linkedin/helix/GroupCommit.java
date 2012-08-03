@@ -10,6 +10,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.log4j.Logger;
 
+// TODO: move to mananger.zk
 public class GroupCommit
 { 
   private static Logger  LOG = Logger.getLogger(GroupCommit.class);

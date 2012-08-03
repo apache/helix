@@ -666,10 +666,10 @@ public class ZkCachedDataAccessor<T> implements IZkListener
             records.set(i, (T) zNode.getData());
             curStats.set(i, zNode.getStat());
           }
-          else
-          {
-            needRead[i] = true;
-          }
+        }
+        else
+        {
+          needRead[i] = true;
         }
       }
 

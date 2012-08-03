@@ -109,7 +109,8 @@ public class HelixTask implements Callable<HelixTaskResult>
     ErrorType type = null;
     ErrorCode code = null;
 
-    logger.info("msg:" + _message.getMsgId() + " handling task begin execute");
+    logger.info("msg:" + _message.getMsgId() + " handling task begin, time: "
+        + System.currentTimeMillis());
     HelixDataAccessor accessor = _manager.getHelixDataAccessor();
     _statusUpdateUtil.logInfo(_message,
                               HelixTask.class,
@@ -208,7 +209,7 @@ public class HelixTask implements Callable<HelixTaskResult>
       removeMessageFromZk(accessor, _message);
       _executor.reportCompletion(_message.getMsgId());
       reportMessageStat(_manager, _message, taskResult);
-      
+
       sendReply(accessor, _message, taskResult);
     }
     // TODO: capture errors and log here
@@ -225,8 +226,9 @@ public class HelixTask implements Callable<HelixTaskResult>
     //
     finally
     {
-      logger.info("msg:" + _message.getMsgId() + " handling task completed, results:" + taskResult.isSucess());
-      
+      logger.info("msg:" + _message.getMsgId() + " handling task completed, results:"
+          + taskResult.isSucess() + ", time: " + System.currentTimeMillis());
+
       // Notify the handler about any error happened in the handling procedure, so that
       // the handler have chance to finally cleanup
       if (exception != null)
@@ -273,17 +275,19 @@ public class HelixTask implements Callable<HelixTaskResult>
                                      _manager.getInstanceName(),
                                      taskResult.getTaskResultMap());
       replyMessage.setSrcInstanceType(_manager.getInstanceType());
-      
-      if(message.getSrcInstanceType() == InstanceType.PARTICIPANT)
+
+      if (message.getSrcInstanceType() == InstanceType.PARTICIPANT)
       {
         Builder keyBuilder = accessor.keyBuilder();
-        accessor.setProperty(keyBuilder.message(message.getMsgSrc(), replyMessage.getMsgId()), replyMessage);
+        accessor.setProperty(keyBuilder.message(message.getMsgSrc(),
+                                                replyMessage.getMsgId()),
+                             replyMessage);
       }
       else if (message.getSrcInstanceType() == InstanceType.CONTROLLER)
       {
         Builder keyBuilder = accessor.keyBuilder();
         accessor.setProperty(keyBuilder.controllerMessage(replyMessage.getMsgId()),
-            replyMessage);
+                             replyMessage);
       }
       _statusUpdateUtil.logInfo(message, HelixTask.class, "1 msg replied to "
           + replyMessage.getTgtName(), accessor);

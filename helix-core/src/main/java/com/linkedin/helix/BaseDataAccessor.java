@@ -11,9 +11,10 @@ public interface BaseDataAccessor<T>
   public static class Option
   {
     public static int PERSISTENT = 0x1;
-    public static int EPHEMERAL   = 0x10;
-    public static int PERSISTENT_SEQUENTIAL   = 0x100;
-    public static int EPHEMERAL_SEQUENTIAL   = 0x1000;
+    public static int EPHEMERAL   = 0x2;
+    public static int PERSISTENT_SEQUENTIAL   = 0x4;
+    public static int EPHEMERAL_SEQUENTIAL   = 0x8;
+    public static int WRITE_THROUGH = 0x10;
     
     public static CreateMode getMode(int options)
     {
@@ -32,6 +33,11 @@ public interface BaseDataAccessor<T>
       }
       
       return null;
+    }
+    
+    public static boolean isWriteThrough(int options)
+    {
+      return (options & WRITE_THROUGH) > 0;
     }
   }
   
@@ -73,7 +79,7 @@ public interface BaseDataAccessor<T>
    * @param path
    * @return
    */
-  boolean remove(String path);
+  boolean remove(String path, int options);
   
   /**
    * Use it when creating children under a parent node. This will use async api for better
@@ -110,7 +116,7 @@ public interface BaseDataAccessor<T>
    * @param paths
    * @return
    */
-  boolean[] remove(List<String> paths);
+  boolean[] remove(List<String> paths, int options);
   
   /**
    * Get the {@link T} corresponding to the path
@@ -151,7 +157,7 @@ public interface BaseDataAccessor<T>
    * @param path
    * @return
    */
-  boolean exists(String path);
+  boolean exists(String path, int options);
 
   /**
    * checks if the all the paths exists
@@ -159,7 +165,7 @@ public interface BaseDataAccessor<T>
    * @param paths
    * @return
    */
-  boolean[] exists(List<String> paths);
+  boolean[] exists(List<String> paths, int options);
 
   /**
    * Get the stats of all the paths
@@ -167,7 +173,7 @@ public interface BaseDataAccessor<T>
    * @param paths
    * @return
    */
-  Stat[] getStats(List<String> paths);
+  Stat[] getStats(List<String> paths, int options);
 
   /**
    * Get the stats of all the paths
@@ -175,7 +181,7 @@ public interface BaseDataAccessor<T>
    * @param paths
    * @return
    */
-  Stat getStat(String path);
+  Stat getStat(String path, int options);
   
   /**
    * Subscribe listener to path

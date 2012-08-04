@@ -2,8 +2,6 @@ package com.linkedin.helix;
 
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -37,7 +35,7 @@ public class GroupCommit
   
   // potential memory leak if we add resource and remove resource
   // TODO: move the cache logic to data accessor
-  private final Map<String, ZNRecord> _cache  = new ConcurrentHashMap<String, ZNRecord>();
+//  private final Map<String, ZNRecord> _cache  = new ConcurrentHashMap<String, ZNRecord>();
 
   
   public GroupCommit()
@@ -54,7 +52,7 @@ public class GroupCommit
     return _queues[(key.hashCode() & Integer.MAX_VALUE) % _queues.length];
   }
 
-  public boolean commit(BaseDataAccessor<ZNRecord> accessor, String key, ZNRecord record)
+  public boolean commit(BaseDataAccessor<ZNRecord> accessor, int options, String key, ZNRecord record)
   {
     Queue queue = getQueue(key);
     Entry entry = new Entry(key, record);
@@ -76,7 +74,8 @@ public class GroupCommit
           processed.add(first);
 
           String mergedKey = first._key;
-          ZNRecord merged = _cache.get(mergedKey);
+//          ZNRecord merged = _cache.get(mergedKey);
+          ZNRecord merged = accessor.get(mergedKey, null, options);
           /**
            * If the local cache does not contain a value, need to check if there is a 
            * value in ZK; use it as initial value if exists
@@ -118,8 +117,9 @@ public class GroupCommit
             it.remove();
           }
           // System.out.println("size:"+ processed.size());
-          accessor.set(mergedKey, merged, BaseDataAccessor.Option.PERSISTENT);
-          _cache.put(mergedKey, merged);
+          accessor.set(mergedKey, merged, options);
+          // accessor.set(mergedKey, merged, BaseDataAccessor.Option.PERSISTENT);
+          // _cache.put(mergedKey, merged);
         }
         finally
         {

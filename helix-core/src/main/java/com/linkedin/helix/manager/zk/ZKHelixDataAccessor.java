@@ -16,6 +16,7 @@ import com.linkedin.helix.GroupCommit;
 import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixException;
 import com.linkedin.helix.HelixProperty;
+import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.PropertyKey;
 import com.linkedin.helix.PropertyKey.Builder;
@@ -34,6 +35,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
   private static Logger                    LOG                       =
                                                                          Logger.getLogger(ZKHelixDataAccessor.class);
   private final BaseDataAccessor<ZNRecord> _baseDataAccessor;
+  final InstanceType _instanceType;
   private final String                     _clusterName;
   private final Builder                    _propertyKeyBuilder;
   final ZkPropertyTransferClient           _zkPropertyTransferClient;
@@ -43,7 +45,15 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
   public ZKHelixDataAccessor(String clusterName,
                              BaseDataAccessor<ZNRecord> baseDataAccessor)
   {
+    this(clusterName, null, baseDataAccessor);
+  }
+  
+  public ZKHelixDataAccessor(String clusterName,
+                             InstanceType instanceType,
+                             BaseDataAccessor<ZNRecord> baseDataAccessor)
+  {
     _clusterName = clusterName;
+    _instanceType = instanceType;
     _baseDataAccessor = baseDataAccessor;
     _propertyKeyBuilder = new PropertyKey.Builder(_clusterName);
     _zkPropertyTransferClient =
@@ -130,7 +140,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
     switch (type)
     {
     case CURRENTSTATES:
-      success = _groupCommit.commit(_baseDataAccessor, path, value.getRecord());
+      success = _groupCommit.commit(_baseDataAccessor, options, path, value.getRecord());
       break;
     default:
       if (type.usePropertyTransferServer())
@@ -282,7 +292,9 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
   {
     PropertyType type = key.getType();
     String path = key.getPath();
-    return _baseDataAccessor.remove(path);
+    int options = constructOptions(type);
+
+    return _baseDataAccessor.remove(path, options);
   }
 
   @Override
@@ -381,6 +393,15 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
     {
       options = options | BaseDataAccessor.Option.EPHEMERAL;
     }
+    
+    if (type == PropertyType.CURRENTSTATES && _instanceType == InstanceType.PARTICIPANT)
+    {
+      options = options | BaseDataAccessor.Option.WRITE_THROUGH;
+    } else if (type == PropertyType.EXTERNALVIEW && _instanceType == InstanceType.CONTROLLER)
+    {
+      options = options | BaseDataAccessor.Option.WRITE_THROUGH;
+    }
+    
     return options;
   }
 

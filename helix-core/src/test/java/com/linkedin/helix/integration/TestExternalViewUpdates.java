@@ -77,7 +77,7 @@ public class TestExternalViewUpdates extends ZkIntegrationTestBase
 //    Stat[] stats = accessor.getStats(paths);
     for (String path : paths)
     {
-      Stat stat = accessor.getStat(path);
+      Stat stat = accessor.getStat(path, 0);
       Assert.assertTrue(stat.getVersion() <= 2, "ExternalView should be updated at most 2 times");
     }
     

@@ -201,23 +201,10 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
       {
         // _zkClient.updateDataSerialized(path, updater);
         Stat stat = new Stat();
-        // boolean retryUpdate;
-        // do
-        // {
-        // retryUpdate = false;
-        // try
-        // {
         T oldData = (T) _zkClient.readData(path, stat);
         T newData = updater.update(oldData);
         _zkClient.writeData(path, newData, stat.getVersion());
         updatedData = newData;
-        // }
-        // catch (ZkBadVersionException e)
-        // {
-        // retryUpdate = true;
-        // }
-        // }
-        // while (retryUpdate);
       }
       catch (ZkBadVersionException e)
       {

@@ -107,7 +107,7 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase
     {
       String msgId = "msg_" + i;
       String path = PropertyPathConfig.getPath(PropertyType.MESSAGES, root, "host_0", msgId);
-      boolean exists = accessor.exists(path);
+      boolean exists = accessor.exists(path, 0);
       Assert.assertTrue(exists, "Should exist");
     }
 
@@ -116,7 +116,7 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase
     {
       String msgId = "msg_" + i;
       String path = PropertyPathConfig.getPath(PropertyType.MESSAGES, root, "host_0", msgId);
-      Stat stat = accessor.getStat(path);
+      Stat stat = accessor.getStat(path, 0);
       Assert.assertNotNull(stat, "Stat should exist");
       Assert.assertEquals(stat.getVersion(), 2, "DataVersion should be 2, since we set 1 and update 1");
     }
@@ -126,7 +126,7 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase
     {
       String msgId = "msg_" + i;
       String path = PropertyPathConfig.getPath(PropertyType.MESSAGES, root, "host_0", msgId);
-      boolean success = accessor.remove(path);
+      boolean success = accessor.remove(path, 0);
       Assert.assertTrue(success, "Should remove");
     }
     
@@ -261,7 +261,7 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase
       String msgId = "msg_" + i;
       paths.add(PropertyPathConfig.getPath(PropertyType.MESSAGES, root, "host_1", msgId));
     }
-    boolean[] exists = accessor.exists(paths);
+    boolean[] exists = accessor.exists(paths, 0);
     for (int i = 0; i < 10; i++)
     {
       String msgId = "msg_" + i;
@@ -276,7 +276,7 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase
       String msgId = "msg_" + i;
       paths.add(PropertyPathConfig.getPath(PropertyType.MESSAGES, root, "host_1", msgId));
     }
-    Stat[] stats = accessor.getStats(paths);
+    Stat[] stats = accessor.getStats(paths, 0);
     for (int i = 0; i < 10; i++)
     {
       String msgId = "msg_" + i;
@@ -292,7 +292,7 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase
       String msgId = "msg_" + i;
       paths.add(PropertyPathConfig.getPath(PropertyType.MESSAGES, root, "host_1", msgId));
     }
-    success = accessor.remove(paths);
+    success = accessor.remove(paths, 0);
     for (int i = 0; i < 10; i++)
     {
       String msgId = "msg_" + i;

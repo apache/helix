@@ -467,6 +467,8 @@ public class MockParticipant extends Thread
       e.printStackTrace();
     } finally
     {
+      _startCountDown.countDown();
+
       synchronized (_manager)
       {
         _manager.disconnect();

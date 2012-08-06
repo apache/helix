@@ -74,7 +74,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
     if (type.usePropertyTransferServer() && getPropertyTransferUrl() != null)
     {
       ZNRecordUpdate update = new ZNRecordUpdate(path, OpCode.SET, value.getRecord());
-      _zkPropertyTransferClient.sendZNRecordUpdate(update, getPropertyTransferUrl());
+      _zkPropertyTransferClient.enqueueZNRecordUpdate(update, getPropertyTransferUrl());
       return true;
     }
 
@@ -139,7 +139,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
         {
           ZNRecordUpdate update =
               new ZNRecordUpdate(path, OpCode.UPDATE, value.getRecord());
-          _zkPropertyTransferClient.sendZNRecordUpdate(update, getPropertyTransferUrl());
+          _zkPropertyTransferClient.enqueueZNRecordUpdate(update, getPropertyTransferUrl());
 
           return true;
         }

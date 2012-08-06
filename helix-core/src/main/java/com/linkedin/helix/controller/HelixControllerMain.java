@@ -250,11 +250,15 @@ public class HelixControllerMain
     try
     {
       Thread.currentThread().join();
-      ZKPropertyTransferServer.getInstance().shutdown();
-    } catch (InterruptedException e)
+    } 
+    catch (InterruptedException e)
     {
       logger.info("controller:" + controllerName + ", " + Thread.currentThread().getName()
           + " interrupted");
+    }
+    finally
+    {
+      ZKPropertyTransferServer.getInstance().shutdown();
     }
 
   }

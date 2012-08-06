@@ -288,7 +288,6 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
   {
     if (paths == null || paths.size() == 0)
     {
-      LOG.error("paths is null or empty");
       return Collections.emptyList();
     }
 
@@ -625,7 +624,6 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
   {
     if (paths == null || paths.size() == 0)
     {
-      LOG.error("paths is null or empty");
       return new boolean[0];
     }
 
@@ -1010,7 +1008,6 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
   {
     if (paths == null || paths.size() == 0)
     {
-      LOG.error("paths is null or empty");
       return new boolean[0];
     }
 

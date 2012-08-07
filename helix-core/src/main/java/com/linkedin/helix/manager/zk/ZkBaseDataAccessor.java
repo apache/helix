@@ -395,6 +395,8 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
 
   /**
    * sync getChildNames
+   * 
+   * @return null if parentPath doesn't exist
    */
   @Override
   public List<String> getChildNames(String parentPath, int options)
@@ -407,7 +409,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
     }
     catch (ZkNoNodeException e)
     {
-      return Collections.emptyList();
+      return null;
     }
   }
 

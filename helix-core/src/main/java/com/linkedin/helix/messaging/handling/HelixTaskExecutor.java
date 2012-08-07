@@ -483,7 +483,7 @@ public class HelixTaskExecutor implements MessageListener
             "Session Id does not match. Expected sessionId: " + sessionId
                 + ", sessionId from Message: " + tgtSessionId + ". MessageId: "
                 + message.getMsgId();
-        logger.error(warningMessage);
+        logger.warn(warningMessage);
         accessor.removeProperty(keyBuilder.message(instanceName, message.getId()));
         _statusUpdateUtil.logWarning(message,
                                      HelixStateMachineEngine.class,

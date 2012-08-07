@@ -355,6 +355,9 @@ public class ZkCacheBaseDataAccessor<T> extends ZkBaseDataAccessor<T>
       _wtCache.lockRead();
 
       List<String> childNames = getChildNames(parentPath, options);
+      if (childNames == null)
+        return null;
+      
       List<String> paths = new ArrayList<String>();
       for (String childName : childNames)
       {

@@ -82,13 +82,16 @@ public class WriteThroughCache<T>
 
       // recursively update children nodes
       List<String> childNames = _accessor.getChildNames(path, 0);
-      for (String childName : childNames)
+      if (childNames != null)
       {
-        String childPath = path + "/" + childName;
-        if (!zNode.hasChild(childName))
+        for (String childName : childNames)
         {
-          zNode.addChild(childName);
-          updateCacheRecursive(childPath, cache);
+          String childPath = path + "/" + childName;
+          if (!zNode.hasChild(childName))
+          {
+            zNode.addChild(childName);
+            updateCacheRecursive(childPath, cache);
+          }
         }
       }
     }

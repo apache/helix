@@ -81,11 +81,14 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
     String path = key.getPath();
     int options = constructOptions(type);
 
-    if (type.usePropertyTransferServer() && getPropertyTransferUrl() != null)
+    if (type.usePropertyTransferServer())
     {
-      ZNRecordUpdate update = new ZNRecordUpdate(path, OpCode.SET, value.getRecord());
-      _zkPropertyTransferClient.enqueueZNRecordUpdate(update, getPropertyTransferUrl());
-      return true;
+      if(getPropertyTransferUrl() != null && !getPropertyTransferUrl().equals(""))
+      {
+        ZNRecordUpdate update = new ZNRecordUpdate(path, OpCode.SET, value.getRecord());
+        _zkPropertyTransferClient.enqueueZNRecordUpdate(update, getPropertyTransferUrl());
+        return true;
+      }
     }
 
     boolean success = false;
@@ -145,7 +148,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
     default:
       if (type.usePropertyTransferServer())
       {
-        if (getPropertyTransferUrl() != null)
+        if (getPropertyTransferUrl() != null && !getPropertyTransferUrl().equals(""))
         {
           ZNRecordUpdate update =
               new ZNRecordUpdate(path, OpCode.UPDATE, value.getRecord());
@@ -548,16 +551,20 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
       if (leader != null)
       {
         _zkPropertyTransferSvcUrl = leader.getWebserviceUrl();
+        if(_zkPropertyTransferSvcUrl == null)
+        {
+          _zkPropertyTransferSvcUrl = "";
+        }
       }
       else
       {
-        _zkPropertyTransferSvcUrl = null;
+        _zkPropertyTransferSvcUrl = "";
       }
     }
     catch(Exception e)
     {
       LOG.error("", e);
-      _zkPropertyTransferSvcUrl = null;
+      _zkPropertyTransferSvcUrl = "";
     }
   }
 }

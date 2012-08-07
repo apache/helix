@@ -15,6 +15,7 @@
  */
 package com.linkedin.helix.model;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -178,11 +179,37 @@ public class IdealState extends HelixProperty
     String replica = _record.getSimpleField(IdealStateProperty.REPLICAS.toString());
     if (replica == null)
     {
-      logger.warn("replicas not found in idealState. Use length of the first list instead: "
+      logger.warn("could NOT found replicas in idealState. Use size of the first list/map instead: "
           + _record);
-      List<String> list = _record.getListFields().get(0);
-      replica = Integer.toString(list == null ? 0 : list.size());
+      switch(getIdealStateMode())
+      {
+      case AUTO:
+        if (_record.getListFields().size() == 0)
+        {
+          replica = "0";
+        } else
+        {
+          List<String> list = new ArrayList<List<String>>(_record.getListFields().values()).get(0);
+          replica = Integer.toString(list == null ? 0 : list.size());
+        }
+        break;
+      case CUSTOMIZED:
+        if (_record.getMapFields().size() == 0)
+        {
+          replica = "0";
+        } else
+        {
+          Map<String, String> list = new ArrayList<Map<String, String>>(_record.getMapFields().values()).get(0);
+          replica = Integer.toString(list == null ? 0 : list.size());
+        }
+        break;
+      default:
+        replica = "0";
+        logger.error("could NOT determine replicas. set to 0");
+        break;
+      }
     }
+    
     return replica;
   }
 
@@ -195,25 +222,6 @@ public class IdealState extends HelixProperty
   {
     return _record.getSimpleField(IdealStateProperty.STATE_MODEL_FACTORY_NAME.toString());
   }
-
-//  @Override
-//  public void setBucketSize(int bucketSize)
-//  {
-//    _record.setSimpleField(IdealStateProperty.BUCKET_SIZE.toString(), "" + bucketSize);
-//  }
-//
-//  @Override
-//  public int getBucketSize()
-//  {
-//    int bucketSize = 0;
-//    String bucketSizeStr =
-//        _record.getSimpleField(IdealStateProperty.BUCKET_SIZE.toString());
-//    if (bucketSizeStr != null)
-//    {
-//      bucketSize = Integer.parseInt(bucketSizeStr);
-//    }
-//    return bucketSize;
-//  }
 
   @Override
   public boolean isValid()

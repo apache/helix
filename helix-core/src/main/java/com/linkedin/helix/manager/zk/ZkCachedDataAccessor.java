@@ -292,16 +292,18 @@ public class ZkCachedDataAccessor<T> implements IZkListener
 
       // recursively update children nodes
       List<String> childNames = _accessor.getChildNames(absPath, 0);
-      for (String childName : childNames)
+      if (childNames != null)
       {
-        String childPath = absPath + "/" + childName;
-        if (!zNode.hasChild(childName))
+        for (String childName : childNames)
         {
-          zNode.addChild(childName);
-          updateCacheRecursive(childPath, cache, cachePaths);
+          String childPath = absPath + "/" + childName;
+          if (!zNode.hasChild(childName))
+          {
+            zNode.addChild(childName);
+            updateCacheRecursive(childPath, cache, cachePaths);
+          }
         }
       }
-
     }
     catch (ZkNoNodeException e)
     {

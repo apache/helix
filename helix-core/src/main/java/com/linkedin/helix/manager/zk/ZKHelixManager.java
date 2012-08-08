@@ -987,7 +987,8 @@ public class ZKHelixManager implements HelixManager
   @Override
   public ClusterMessagingService getMessagingService()
   {
-    checkConnected();
+    // The caller can register message handler factories on messaging service before the 
+    // helix manager is connected. Thus we do not do connected check here.
     return _messagingService;
   }
 

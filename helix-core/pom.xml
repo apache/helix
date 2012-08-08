@@ -17,12 +17,18 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <repo.dir>file://${project.basedir}/../repo</repo.dir> 
   </properties>
   <repositories>
     <repository>
       <id>maven-restlet</id>
       <name>Public online Restlet repository</name>
       <url>http://maven.restlet.org</url>
+    </repository>
+    <repository>
+      <id>sandbox-repo</id>
+      <name>repository for unmanaged jars not available in any public maven repo</name>
+      <url>${repo.dir}</url>
     </repository>
   </repositories>
   <dependencies>
@@ -121,7 +127,12 @@
       <groupId>com.noelios.restlet</groupId>
       <artifactId>com.noelios.restlet</artifactId>
       <version>1.1.10</version>
-    </dependency>  
+    </dependency> 
+    <dependency>
+      <groupId>net.sf</groupId>
+      <artifactId>jsqlparser</artifactId>
+      <version>0.7.0</version>
+    </dependency> 
 </dependencies>
   <build>
     <plugins>

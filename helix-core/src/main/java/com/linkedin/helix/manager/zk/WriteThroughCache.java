@@ -30,7 +30,7 @@ public class WriteThroughCache<T>
     {
       for (String path : paths)
       {
-        updateCacheRecursive(path, _wtCache);
+        updateRecursive(path);
       }
     }
   }
@@ -46,13 +46,13 @@ public class WriteThroughCache<T>
     zNode.addChild(name);
   }
 
-  public void updateWtCache(String path, T data)
+  public void update(String path, T data)
   {
     addToParentChildSet(_wtCache, path);
     _wtCache.put(path, new ZNode(path, data, null));
   }
 
-  void updateCacheRecursive(String path, ConcurrentHashMap<String, ZNode> cache)
+  void updateRecursive(String path)
   {
     if (path == null)
       return;
@@ -62,17 +62,17 @@ public class WriteThroughCache<T>
       _lock.writeLock().lock();
 
       // update parent's childSet
-      addToParentChildSet(cache, path);
+      addToParentChildSet(_wtCache, path);
 
       // update this node
       Stat stat = new Stat();
       T readData = _accessor.get(path, stat, 0);
 
-      ZNode zNode = cache.get(path);
+      ZNode zNode = _wtCache.get(path);
       if (zNode == null)
       {
         zNode = new ZNode(path, readData, stat);
-        cache.put(path, zNode);
+        _wtCache.put(path, zNode);
       }
       else
       {
@@ -90,7 +90,7 @@ public class WriteThroughCache<T>
           if (!zNode.hasChild(childName))
           {
             zNode.addChild(childName);
-            updateCacheRecursive(childPath, cache);
+            updateRecursive(childPath);
           }
         }
       }
@@ -117,22 +117,17 @@ public class WriteThroughCache<T>
       zNode.removeChild(name);
     }
   }
-
-  public void purgeCache(String path)
-  {
-    purgeCacheRecursive(_wtCache, path);
-  }
   
-  void purgeCacheRecursive(ConcurrentHashMap<String, ZNode> cache, String path)
+  void purgeRecursive(String path)
   {
     try
     {
       _lock.writeLock().unlock();
 
       // remove from parent's childSet
-      removeFromParentChildSet(cache, path);
+      removeFromParentChildSet(_wtCache, path);
 
-      ZNode zNode = cache.remove(path);
+      ZNode zNode = _wtCache.remove(path);
       if (zNode != null)
       {
         // recursively remove children nodes
@@ -140,7 +135,7 @@ public class WriteThroughCache<T>
         for (String childName : childNames)
         {
           String childPath = path + "/" + childName;
-          purgeCacheRecursive(cache, childPath);
+          purgeRecursive(childPath);
         }
       }
     }

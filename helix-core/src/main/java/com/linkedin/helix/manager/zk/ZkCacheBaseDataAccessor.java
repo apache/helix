@@ -9,16 +9,18 @@ import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.apache.zookeeper.data.Stat;
 
 import com.linkedin.helix.BaseDataAccessor;
+import com.linkedin.helix.IZkListener;
 import com.linkedin.helix.store.zk.ZNode;
 
-public class ZkCacheBaseDataAccessor<T> extends ZkBaseDataAccessor<T>
+public class ZkCacheBaseDataAccessor<T> implements BaseDataAccessor<T> 
 {
   final WriteThroughCache<T> _wtCache;
+  final ZkBaseDataAccessor<T> _baseAccessor;
 
-  public ZkCacheBaseDataAccessor(ZkClient zkClient, List<String> paths)
+  public ZkCacheBaseDataAccessor(ZkBaseDataAccessor<T> baseAccessor, List<String> paths)
   {
-    super(zkClient);
-    _wtCache = new WriteThroughCache<T>(this, paths);
+    _baseAccessor = baseAccessor;
+    _wtCache = new WriteThroughCache<T>(baseAccessor, paths);
   }
 
   @Override
@@ -30,11 +32,11 @@ public class ZkCacheBaseDataAccessor<T> extends ZkBaseDataAccessor<T>
       {
         _wtCache.lockWrite();
 
-        boolean success = super.create(path, data, options);
+        boolean success = _baseAccessor.create(path, data, options);
 
         if (success)
         {
-          _wtCache.updateWtCache(path, data);
+          _wtCache.update(path, data);
         }
         return success;
       }
@@ -45,7 +47,7 @@ public class ZkCacheBaseDataAccessor<T> extends ZkBaseDataAccessor<T>
     }
     else
     {
-      return super.create(path, data, options);
+      return _baseAccessor.create(path, data, options);
     }
   }
 
@@ -58,10 +60,10 @@ public class ZkCacheBaseDataAccessor<T> extends ZkBaseDataAccessor<T>
       {
         _wtCache.lockWrite();
 
-        boolean success = super.set(path, data, options);
+        boolean success = _baseAccessor.set(path, data, options);
         if (success)
         {
-          _wtCache.updateWtCache(path, data);
+          _wtCache.update(path, data);
         }
 
         return success;
@@ -73,7 +75,7 @@ public class ZkCacheBaseDataAccessor<T> extends ZkBaseDataAccessor<T>
     }
     else
     {
-      return super.set(path, data, options);
+      return _baseAccessor.set(path, data, options);
     }
   }
 
@@ -86,12 +88,12 @@ public class ZkCacheBaseDataAccessor<T> extends ZkBaseDataAccessor<T>
       {
         _wtCache.lockWrite();
 
-        T updatedData = super.update(path, updater, null, options);
+        T updatedData = _baseAccessor.update(path, updater, null, options);
 
         boolean success = updatedData != null;
         if (success)
         {
-          _wtCache.updateWtCache(path, updatedData);
+          _wtCache.update(path, updatedData);
         }
 
         return success;
@@ -104,7 +106,7 @@ public class ZkCacheBaseDataAccessor<T> extends ZkBaseDataAccessor<T>
     }
     else
     {
-      return super.update(path, updater, options);
+      return _baseAccessor.update(path, updater, options);
     }
   }
 
@@ -117,10 +119,10 @@ public class ZkCacheBaseDataAccessor<T> extends ZkBaseDataAccessor<T>
       {
         _wtCache.lockWrite();
 
-        boolean success = super.remove(path, options);
+        boolean success = _baseAccessor.remove(path, options);
         if (success)
         {
-          _wtCache.purgeCache(path);
+          _wtCache.purgeRecursive(path);
         }
       }
       finally
@@ -129,7 +131,7 @@ public class ZkCacheBaseDataAccessor<T> extends ZkBaseDataAccessor<T>
 
       }
     }
-    return super.remove(path, options);
+    return _baseAccessor.remove(path, options);
   }
 
   @Override
@@ -155,7 +157,7 @@ public class ZkCacheBaseDataAccessor<T> extends ZkBaseDataAccessor<T>
     // if cache miss, fall back to zk
     try
     {
-      record = super.get(path, stat, options);
+      record = _baseAccessor.get(path, stat, options);
     }
     catch (ZkNoNodeException e)
     {
@@ -172,14 +174,14 @@ public class ZkCacheBaseDataAccessor<T> extends ZkBaseDataAccessor<T>
       try
       {
         _wtCache.lockWrite();
-        boolean[] success = super.createChildren(paths, records, options);
+        boolean[] success = _baseAccessor.createChildren(paths, records, options);
         for (int i = 0; i < paths.size(); i++)
         {
           String path = paths.get(i);
           T data = records.get(i);
           if (success[i])
           {
-            _wtCache.updateWtCache(path, data);
+            _wtCache.update(path, data);
           }
         }
 
@@ -192,7 +194,7 @@ public class ZkCacheBaseDataAccessor<T> extends ZkBaseDataAccessor<T>
     }
     else
     {
-      return super.createChildren(paths, records, options);
+      return _baseAccessor.createChildren(paths, records, options);
     }
   }
 
@@ -205,13 +207,13 @@ public class ZkCacheBaseDataAccessor<T> extends ZkBaseDataAccessor<T>
       {
         _wtCache.lockWrite();
 
-        boolean[] success = super.setChildren(paths, records, options);
+        boolean[] success = _baseAccessor.setChildren(paths, records, options);
         for (int i = 0; i < paths.size(); i++)
         {
           String path = paths.get(i);
           if (success[i])
           {
-            _wtCache.updateWtCache(path, records.get(i));
+            _wtCache.update(path, records.get(i));
           }
         }
 
@@ -224,7 +226,7 @@ public class ZkCacheBaseDataAccessor<T> extends ZkBaseDataAccessor<T>
     }
     else
     {
-      return super.setChildren(paths, records, options);
+      return _baseAccessor.setChildren(paths, records, options);
     }
   }
 
@@ -240,14 +242,14 @@ public class ZkCacheBaseDataAccessor<T> extends ZkBaseDataAccessor<T>
         _wtCache.lockWrite();
 
         boolean[] success = new boolean[paths.size()];
-        List<T> updateData = super.update(paths, updaters, null, options);
+        List<T> updateData = _baseAccessor.update(paths, updaters, null, options);
         for (int i = 0; i < paths.size(); i++)
         {
           success[i] = updateData.get(i) != null;
           String path = paths.get(i);
           if (success[i])
           {
-            _wtCache.updateWtCache(path, updateData.get(i));
+            _wtCache.update(path, updateData.get(i));
           }
         }
         return success;
@@ -260,7 +262,7 @@ public class ZkCacheBaseDataAccessor<T> extends ZkBaseDataAccessor<T>
     }
     else
     {
-      return super.updateChildren(paths, updaters, options);
+      return _baseAccessor.updateChildren(paths, updaters, options);
     }
   }
 
@@ -320,7 +322,7 @@ public class ZkCacheBaseDataAccessor<T> extends ZkBaseDataAccessor<T>
 
     if (needRead)
     {
-      List<T> readRecords = super.get(paths, stats, needReads);
+      List<T> readRecords = _baseAccessor.get(paths, stats, needReads);
       for (int i = 0; i < paths.size(); i++)
       {
         if (records.get(i) == null)
@@ -344,7 +346,7 @@ public class ZkCacheBaseDataAccessor<T> extends ZkBaseDataAccessor<T>
       }
     }
 
-    return super.exists(path, options);
+    return _baseAccessor.exists(path, options);
   }
 
   @Override
@@ -391,7 +393,7 @@ public class ZkCacheBaseDataAccessor<T> extends ZkBaseDataAccessor<T>
     }
 
     // if cache miss, fall back to zk
-    return super.getChildNames(parentPath, options);
+    return _baseAccessor.getChildNames(parentPath, options);
   }
 
   @Override
@@ -403,7 +405,7 @@ public class ZkCacheBaseDataAccessor<T> extends ZkBaseDataAccessor<T>
       {
         _wtCache.lockWrite();
 
-        boolean[] success = super.remove(paths, options);
+        boolean[] success = _baseAccessor.remove(paths, options);
 
         for (int i = 0; i < paths.size(); i++)
         {
@@ -411,7 +413,7 @@ public class ZkCacheBaseDataAccessor<T> extends ZkBaseDataAccessor<T>
 
           if (success[i])
           {
-            _wtCache.purgeCache(path);
+            _wtCache.purgeRecursive(path);
           }
         }
         return success;
@@ -422,7 +424,7 @@ public class ZkCacheBaseDataAccessor<T> extends ZkBaseDataAccessor<T>
 
       }
     }
-    return super.remove(paths, options);
+    return _baseAccessor.remove(paths, options);
   }
 
   // TODO: change to use async_exists
@@ -436,5 +438,29 @@ public class ZkCacheBaseDataAccessor<T> extends ZkBaseDataAccessor<T>
       exists[i] = exists(path, options);
     }
     return exists;
+  }
+
+  @Override
+  public Stat[] getStats(List<String> paths, int options)
+  {
+    return _baseAccessor.getStats(paths, options);
+  }
+
+  @Override
+  public Stat getStat(String path, int options)
+  {
+    return _baseAccessor.getStat(path, options);
+  }
+
+  @Override
+  public boolean subscribe(String path, IZkListener listener)
+  {
+    return _baseAccessor.subscribe(path, listener);
+  }
+
+  @Override
+  public boolean unsubscribe(String path, IZkListener listener)
+  {
+    return _baseAccessor.unsubscribe(path, listener);
   }
 }

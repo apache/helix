@@ -41,6 +41,7 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
 
+import com.linkedin.helix.BaseDataAccessor;
 import com.linkedin.helix.ClusterMessagingService;
 import com.linkedin.helix.ConfigAccessor;
 import com.linkedin.helix.ConfigChangeListener;
@@ -112,7 +113,7 @@ public class ZKHelixManager implements HelixManager
   private int                                  _sessionTimeout;
   private PropertyStore<ZNRecord>              _propertyStore;
   private final List<HelixTimerTask>           _controllerTimerTasks;
-  private ZkBaseDataAccessor<ZNRecord>         _baseDataAccessor;
+  private BaseDataAccessor<ZNRecord>           _baseDataAccessor;
   List<PreConnectCallback>                     _preConnectCallbacks    =
                                                                            new LinkedList<PreConnectCallback>();
   ZKPropertyTransferServer                     _transferServer         = null;
@@ -586,6 +587,8 @@ public class ZKHelixManager implements HelixManager
     _zkClient = new ZkClient(zkServers, _sessionTimeout, CONNECTIONTIMEOUT, zkSerializer);
     _accessor = new ZKDataAccessor(_clusterName, _zkClient);
 
+    ZkBaseDataAccessor<ZNRecord> baseDataAccessor =
+        new ZkBaseDataAccessor<ZNRecord>(_zkClient);
     if (_instanceType == InstanceType.PARTICIPANT)
     {
       String curStatePath =
@@ -593,24 +596,26 @@ public class ZKHelixManager implements HelixManager
                                      _clusterName,
                                      _instanceName);
       _baseDataAccessor =
-          new ZkCacheBaseDataAccessor<ZNRecord>(_zkClient, Arrays.asList(curStatePath));
+          new ZkCacheBaseDataAccessor<ZNRecord>(baseDataAccessor,
+                                                Arrays.asList(curStatePath));
     }
     else if (_instanceType == InstanceType.CONTROLLER)
     {
-      String extViewPath =
-          PropertyPathConfig.getPath(PropertyType.EXTERNALVIEW,
-      
-                                     _clusterName);
+      String extViewPath = PropertyPathConfig.getPath(PropertyType.EXTERNALVIEW,
+
+      _clusterName);
       _baseDataAccessor =
-          new ZkCacheBaseDataAccessor<ZNRecord>(_zkClient, Arrays.asList(extViewPath));
+          new ZkCacheBaseDataAccessor<ZNRecord>(baseDataAccessor,
+                                                Arrays.asList(extViewPath));
 
     }
     else
     {
-      _baseDataAccessor = new ZkBaseDataAccessor<ZNRecord>(_zkClient);
+      _baseDataAccessor = baseDataAccessor;
     }
 
-    _helixAccessor = new ZKHelixDataAccessor(_clusterName, _instanceType, _baseDataAccessor);
+    _helixAccessor =
+        new ZKHelixDataAccessor(_clusterName, _instanceType, _baseDataAccessor);
     _configAccessor = new ConfigAccessor(_zkClient);
     int retryCount = 0;
 
@@ -987,7 +992,7 @@ public class ZKHelixManager implements HelixManager
   @Override
   public ClusterMessagingService getMessagingService()
   {
-    // The caller can register message handler factories on messaging service before the 
+    // The caller can register message handler factories on messaging service before the
     // helix manager is connected. Thus we do not do connected check here.
     return _messagingService;
   }

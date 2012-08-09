@@ -90,11 +90,11 @@ public class ZKHelixManager implements HelixManager
   private static Logger                        logger                  =
                                                                            Logger.getLogger(ZKHelixManager.class);
   private static final int                     RETRY_LIMIT             = 3;
-  private static final int                     CONNECTIONTIMEOUT       = 10000;
+  private static final int                     CONNECTIONTIMEOUT       = 60 * 1000;
   private final String                         _clusterName;
   private final String                         _instanceName;
   private final String                         _zkConnectString;
-  private static final int                     DEFAULT_SESSION_TIMEOUT = 30000;
+  private static final int                     DEFAULT_SESSION_TIMEOUT = 30 * 1000;
   private ZKDataAccessor                       _accessor;
   private ZKHelixDataAccessor                  _helixAccessor;
   private ConfigAccessor                       _configAccessor;

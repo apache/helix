@@ -92,7 +92,7 @@ public class HelixTask implements Callable<HelixTaskResult>
     Timer timer = null;
     if (_message.getExecutionTimeout() > 0)
     {
-      timer = new Timer();
+      timer = new Timer(true);
       timer.schedule(new TimeoutCancelTask(_executor, _message, _notificationContext),
                      _message.getExecutionTimeout());
       logger.info("Message starts with timeout " + _message.getExecutionTimeout()

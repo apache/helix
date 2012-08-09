@@ -38,7 +38,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
   final InstanceType                       _instanceType;
   private final String                     _clusterName;
   private final Builder                    _propertyKeyBuilder;
-  final ZkPropertyTransferClient           _zkPropertyTransferClient;
+  ZkPropertyTransferClient           _zkPropertyTransferClient = null;
   private final GroupCommit                _groupCommit              = new GroupCommit();
   String                                   _zkPropertyTransferSvcUrl = null;
 
@@ -56,8 +56,6 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
     _instanceType = instanceType;
     _baseDataAccessor = baseDataAccessor;
     _propertyKeyBuilder = new PropertyKey.Builder(_clusterName);
-    _zkPropertyTransferClient =
-        new ZkPropertyTransferClient(ZkPropertyTransferClient.DEFAULT_MAX_CONCURRENTTASKS);
   }
 
   @Override
@@ -83,10 +81,10 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
 
     if (type.usePropertyTransferServer())
     {
-      if(getPropertyTransferUrl() != null && !getPropertyTransferUrl().equals(""))
+      if (_zkPropertyTransferSvcUrl != null && _zkPropertyTransferClient != null)
       {
         ZNRecordUpdate update = new ZNRecordUpdate(path, OpCode.SET, value.getRecord());
-        _zkPropertyTransferClient.enqueueZNRecordUpdate(update, getPropertyTransferUrl());
+        _zkPropertyTransferClient.enqueueZNRecordUpdate(update, _zkPropertyTransferSvcUrl);
         return true;
       }
     }
@@ -148,12 +146,12 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
     default:
       if (type.usePropertyTransferServer())
       {
-        if (getPropertyTransferUrl() != null && !getPropertyTransferUrl().equals(""))
+        if (_zkPropertyTransferSvcUrl != null && _zkPropertyTransferClient != null)
         {
           ZNRecordUpdate update =
               new ZNRecordUpdate(path, OpCode.UPDATE, value.getRecord());
           _zkPropertyTransferClient.enqueueZNRecordUpdate(update,
-                                                          getPropertyTransferUrl());
+              _zkPropertyTransferSvcUrl);
 
           return true;
         }
@@ -533,24 +531,28 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
     return _baseDataAccessor.updateChildren(paths, updaters, options);
   }
 
-  private String getPropertyTransferUrl()
-  {
-    if (_zkPropertyTransferSvcUrl == null)
-    {
-      refreshZkPropertyTransferUrl();
-    }
-    return _zkPropertyTransferSvcUrl;
-  }
-
   public void shutdown()
   {
-    _zkPropertyTransferClient.shutdown();
+    if(_zkPropertyTransferClient != null)
+    {
+      _zkPropertyTransferClient.shutdown();
+    }
   }
 
   @Override
   public void onControllerChange(NotificationContext changeContext)
   {
+    LOG.info("Controller has changed");
     refreshZkPropertyTransferUrl();
+    if(_zkPropertyTransferClient == null)
+    {
+      if(_zkPropertyTransferSvcUrl != null && _zkPropertyTransferSvcUrl.length() > 0)
+      {
+        LOG.info("Creating ZkPropertyTransferClient as we get url " + _zkPropertyTransferSvcUrl);
+        _zkPropertyTransferClient =
+            new ZkPropertyTransferClient(ZkPropertyTransferClient.DEFAULT_MAX_CONCURRENTTASKS);
+      }
+    }
   }
 
   void refreshZkPropertyTransferUrl()
@@ -561,20 +563,17 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
       if (leader != null)
       {
         _zkPropertyTransferSvcUrl = leader.getWebserviceUrl();
-        if(_zkPropertyTransferSvcUrl == null)
-        {
-          _zkPropertyTransferSvcUrl = "";
-        }
+        LOG.info("_zkPropertyTransferSvcUrl : " + _zkPropertyTransferSvcUrl + " Controller " + leader.getInstanceName());
       }
       else
       {
-        _zkPropertyTransferSvcUrl = "";
+        _zkPropertyTransferSvcUrl = null;
       }
     }
     catch (Exception e)
     {
       LOG.error("", e);
-      _zkPropertyTransferSvcUrl = "";
+      _zkPropertyTransferSvcUrl = null;
     }
   }
 }

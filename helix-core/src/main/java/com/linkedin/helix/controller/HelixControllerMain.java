@@ -258,6 +258,7 @@ public class HelixControllerMain
     }
     finally
     {
+      manager.disconnect();
       ZKPropertyTransferServer.getInstance().shutdown();
     }
 

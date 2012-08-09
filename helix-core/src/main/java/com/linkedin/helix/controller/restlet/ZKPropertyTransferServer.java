@@ -202,7 +202,7 @@ public class ZKPropertyTransferServer
         applicationContext);
     // Attach the application to the component and start it
     _component.getDefaultHost().attach(application);
-    _timer = new Timer();
+    _timer = new Timer(true);
     _timer.schedule(new ZKPropertyTransferTask(), PERIOD , PERIOD);
     
     try

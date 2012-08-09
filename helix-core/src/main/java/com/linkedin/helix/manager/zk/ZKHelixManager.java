@@ -569,7 +569,7 @@ public class ZKHelixManager implements HelixManager
 
     if (_timer == null)
     {
-      _timer = new Timer();
+      _timer = new Timer(true);
       _timer.scheduleAtFixedRate(new ZKPathDataDumpTask(this,
                                                         _zkClient,
                                                         timeThresholdNoChange),

@@ -104,7 +104,7 @@ public class HealthStatsAggregationTask extends HelixTimerTask
 
     if (_timer == null)
     {
-      _timer = new Timer();
+      _timer = new Timer(true);
       _timer.scheduleAtFixedRate(this, new Random().nextInt(_delay), _period);
     }
     else

@@ -174,7 +174,7 @@ public class GenericHelixController implements
       {
         _rebalanceTimer.cancel();
       }
-      _rebalanceTimer = new Timer();
+      _rebalanceTimer = new Timer(true);
       _timerPeriod = period;
       _rebalanceTimer.scheduleAtFixedRate(new RebalanceTask(manager), _timerPeriod, _timerPeriod);
     }

@@ -52,7 +52,7 @@ public class ZkPropertyTransferClient
     {
       _clients[i] = new Client(Protocol.HTTP);
     }
-    _timer = new Timer();
+    _timer = new Timer(true);
     _timer.schedule(new SendZNRecordTimerTask(), SEND_PERIOD, SEND_PERIOD);
     _dataBufferRef.getAndSet(new ConcurrentHashMap<String, ZNRecordUpdate>());
   }
@@ -114,6 +114,7 @@ public class ZkPropertyTransferClient
   
   public void shutdown()
   {
+    LOG.info("Shutting down ZkPropertyTransferClient");
     _executorService.shutdown();
     _timer.cancel();
     for(Client client: _clients)

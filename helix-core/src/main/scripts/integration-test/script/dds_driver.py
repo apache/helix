@@ -856,7 +856,7 @@ def zookeeper_setup(oper):
     if re.search("IVY_DIR",zookeeper_classpath): zookeeper_classpath=re.sub("IVY_DIR", ivy_dir,zookeeper_classpath)
     if re.search("VIEW_ROOT",zookeeper_classpath): zookeeper_classpath=re.sub("VIEW_ROOT", view_root,zookeeper_classpath)
     run_cmd_add_option("", "config", options.config, check_exist=True)      #  just add the jvm args
-    zookeeper_cmd="java -d64 -Xmx512m -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.local.only=false -Dcom.sun.management.jmxremote.port=27960 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dlog4j.configuration=file://%s %s -cp %s %s" % (log4j_file, " ".join([x[0]+x[1] for x in direct_java_call_jvm_args.values() if x[1]]), zookeeper_classpath, zookeeper_class)
+    zookeeper_cmd="java -d64 -Xmx512m -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.local.only=false -Dcom.sun.management.jmxremote.port=%%s -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dlog4j.configuration=file://%s %s -cp %s %s" % (log4j_file, " ".join([x[0]+x[1] for x in direct_java_call_jvm_args.values() if x[1]]), zookeeper_classpath, zookeeper_class)
     dbg_print("zookeeper_cmd=%s" % (zookeeper_cmd))
     zookeeper_server_ports= options.zookeeper_server_ports and options.zookeeper_server_ports or "localhost:2181"
     zookeeper_server_dir=os.path.join(get_work_dir(),"zookeeper_data")
@@ -923,13 +923,15 @@ def zookeeper_opers_start():
     zookeeper_server_ports_split = zookeeper_server_ports.split(",")
     zookeeper_opers_start_create_dirs(zookeeper_server_ports_split)
     conf_files = zookeeper_opers_start_create_conf(zookeeper_server_ports_split)
+    cnt = 0
     for conf_file in conf_files:
       # no log file for now
       #cmd = run_cmd_add_log_file(cmd)
       search_str=len(conf_files)>1 and "My election bind port" or "binding to port"
-      cmd = "%s %s" % (zookeeper_cmd, conf_file)
+      cmd = "%s %s" % (zookeeper_cmd % (int(options.zookeeper_jmx_start_port) + cnt), conf_file)
       cmd = run_cmd_add_log_file(cmd)
       ret = cmd_call(cmd, 60, re.compile(search_str))
+      cnt +=1
     
 def zookeeper_opers_stop():
     # may be better to use pid, but somehow it is not in the datadir
@@ -1010,6 +1012,8 @@ def main(argv):
                        help="cmds to send to zookeeper client. Comma separated ")
     zookeeper_group.add_option("", "--zookeeper_server_ids", action="store", dest="zookeeper_server_ids", default = None,
                        help="Comma separated list of server to start. If not given, start the number of servers in zookeeper_server_ports. This is used to start server on multiple machines ")
+    zookeeper_group.add_option("", "--zookeeper_jmx_start_port", action="store", dest="zookeeper_jmx_start_port", default = 27960,
+                       help="Starting port for jmx")
     zookeeper_group.add_option("", "--zookeeper_reset", action="store_true", dest="zookeeper_reset", default = False,
                        help="If true recreate server dir, otherwise start from existing server dir")
 

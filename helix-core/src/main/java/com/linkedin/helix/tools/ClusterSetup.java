@@ -99,6 +99,7 @@ public class ClusterSetup
   public static final String enableInstance    = "enableInstance";
   public static final String enablePartition   = "enablePartition";
   public static final String enableCluster     = "enableCluster";
+  public static final String resetPartition    = "resetPartition";
   
   // help
   public static final String help              = "help";
@@ -809,7 +810,14 @@ public class ClusterSetup
     enableClusterOption.setArgs(2);
     enableClusterOption.setRequired(false);
     enableClusterOption.setArgName("clusterName true/false");
-
+    
+    Option resetPartitionOption =
+        OptionBuilder.withLongOpt(resetPartition)
+                     .withDescription("Reset a partition in error state")
+                     .create();
+    resetPartitionOption.setArgs(4);
+    resetPartitionOption.setRequired(false);
+    resetPartitionOption.setArgName("clusterName instanceName resourceName partitionName");
     
     Option listStateModelsOption =
         OptionBuilder.withLongOpt(listStateModels)
@@ -892,6 +900,7 @@ public class ClusterSetup
     group.addOption(enableInstanceOption);
     group.addOption(enablePartitionOption);
     group.addOption(enableClusterOption);
+    group.addOption(resetPartitionOption);
     group.addOption(addStateModelDefOption);
     group.addOption(listStateModelsOption);
     group.addOption(listStateModelOption);
@@ -1259,7 +1268,17 @@ public class ClusterSetup
                                                            partitionName,
                                                            enabled);
       return 0;
-    } else if (cmd.hasOption(enableCluster))
+    } 
+    else if (cmd.hasOption(resetPartition))
+    {
+      String clusterName = cmd.getOptionValues(resetPartition)[0];
+      String instanceName = cmd.getOptionValues(resetPartition)[1];
+      String resourceName = cmd.getOptionValues(resetPartition)[2];
+      String partitionName = cmd.getOptionValues(resetPartition)[3];
+      setupTool.getClusterManagementTool().resetPartition(clusterName, instanceName, resourceName, partitionName);
+      return 0;
+    }
+    else if (cmd.hasOption(enableCluster))
     {
       String[] params = cmd.getOptionValues(enableCluster);
       String clusterName = params[0];

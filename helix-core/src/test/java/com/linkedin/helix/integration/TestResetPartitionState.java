@@ -125,8 +125,10 @@ public class TestResetPartitionState extends ZkIntegrationTestBase
     // reset the other error partition
     participants[0].setTransition(new ErrTransitionWithReset(null));
     clearStatusUpdate(clusterName, "localhost_12918", "TestDB0", "TestDB0_8");
-    tool.resetPartition(clusterName, "localhost_12918", "TestDB0", "TestDB0_8");
-
+    //tool.resetPartition(clusterName, "localhost_12918", "TestDB0", "TestDB0_8");
+    
+    _gSetupTool.processCommandLineArgs(("-zkSvr " + ZK_ADDR + " --resetPartition " + clusterName + " localhost_12918 TestDB0 TestDB0_8").split(" "));
+    
     result = ClusterStateVerifier.verifyByPolling(
         new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
     Assert.assertTrue(result);

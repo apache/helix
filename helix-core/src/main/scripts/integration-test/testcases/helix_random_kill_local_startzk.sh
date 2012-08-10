@@ -1,6 +1,6 @@
 #!/bin/bash
 # test that we can kill/restart mock participant remotely
-export TEST_NAME=helix_random_kill_local
+export TEST_NAME=helix_random_kill_local_startzk
 source setup_env.inc
 
 # users/machines/dirs info for each test machine
@@ -32,14 +32,24 @@ function cecho
 
 # zookeeper_server_ports="localhost:2188"
 # use the first machine as zookeeper and controller
-zookeeper_address=${MACHINE_TAB[0]}:2191
+# zookeeper_address=${MACHINE_TAB[0]}:2191
 # zookeeper_address=eat1-app207.stg:12913,eat1-app208.stg:12913,eat1-app209.stg:12913
+# zookeeper_address=localhost:2181,localhost:2182,localhost:2183
+zookeeper_address=localhost:2187
 
 # default datadir integration_test/var/work/zookeeper/data/1
 # start the zookeeper cluster
 # for i in `seq 0 2`; do
 # ssh ${USER_TAB[$i]}@${MACHINE_TAB[$i]} "${SCRIPT_DIR_TAB[$i]}/cm_driver.py -n ${TEST_NAME} -c zookeeper -o start --zookeeper_reset --zookeeper_server_ports=\"$zookeeper_address\" --zookeeper_server_ids=$i --cmdline_props=\"tickTime=2000;initLimit=5;syncLimit=2\""
 # done
+${SCRIPT_DIR_TAB[0]}/cm_driver.py -n ${TEST_NAME} -c zookeeper -o start --zookeeper_reset --zookeeper_server_ports=$zookeeper_address --cmdline_props="tickTime=2000;initLimit=5;syncLimit=2"
+
+#read ch
+#${SCRIPT_DIR_TAB[0]}/cm_driver.py -n ${TEST_NAME} -c zookeeper -o stop
+#exit
+
+
+
 
 
 test_timestamps_file=$VIEW_ROOT/$LOG_DIR_FROM_ROOT/test_timestamps_`date +"%y%m%d_%H%M%S"`.log
@@ -128,7 +138,7 @@ done
 # -Djava.rmi.server.hostname=${MACHINE_TAB[$controller_idx]}
 # ssh ${USER_TAB[$controller_idx]}@${MACHINE_TAB[$controller_idx]} "${SCRIPT_DIR_TAB[$controller_idx]}/cm_driver.py -n ${TEST_NAME} -c cluster-manager -o start --jvm_args=\"-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.local.only=false -Dcom.sun.management.jmxremote.port=27960 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false\" -l \"integration-test/config/log4j-info.properties\" --cmdline_args=\"-zkSvr ${zookeeper_address} -cluster test-cluster\""
 
-${SCRIPT_DIR_TAB[$controller_idx]}/cm_driver.py -n ${TEST_NAME} -c cluster-manager -o start --jvm_args="-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.local.only=false -Dcom.sun.management.jmxremote.port=27960 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false" -l "integration-test/config/log4j-info.properties" --cmdline_args="-zkSvr ${zookeeper_address} -cluster test-cluster"
+${SCRIPT_DIR_TAB[$controller_idx]}/cm_driver.py -n ${TEST_NAME} -c cluster-manager -o start --jvm_args="-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.local.only=false -Dcom.sun.management.jmxremote.port=27980 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false" -l "integration-test/config/log4j-info.properties" --cmdline_args="-zkSvr ${zookeeper_address} -cluster test-cluster"
 
 #verify cluster state
 verifier_output=$VIEW_ROOT/$LOG_DIR_FROM_ROOT/verifier_`date +"%y%m%d_%H%M%S"`.log
@@ -218,12 +228,13 @@ done
 # for i in {0..2}; do
 #  ssh ${USER_TAB[$i]}@${MACHINE_TAB[$i]} "${SCRIPT_DIR_TAB[$i]}/cm_driver.py -n ${TEST_NAME} -c zookeeper -o stop"
 # done
+${SCRIPT_DIR_TAB[0]}/cm_driver.py -n ${TEST_NAME} -c zookeeper -o stop
+
 
 # analyze zk log
 test_start_time=${test_start_time:0:`expr length "$test_start_time" - 6`}
 echo "test_start_time: $test_start_time"
-../../../../../target/helix-core-pkg/bin/zk-log-analyzer ~/local/zookeeper-3.3.3/dataLogDir test-cluster $test_start_time
-
+../../../../../target/helix-core-pkg/bin/zk-log-analyzer $VIEW_ROOT/$LOG_DIR_FROM_ROOT/zookeeper_data/0 test-cluster $test_start_time
 
 echo == GREP SUCCEED ==
 grep Successful $verifier_output

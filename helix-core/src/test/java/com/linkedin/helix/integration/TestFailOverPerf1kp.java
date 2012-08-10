@@ -36,7 +36,7 @@ public class TestFailOverPerf1kp
     j = output.indexOf("ms", i);
     latency = Long.parseLong(output.substring(i, j));
     System.out.println("failover latency: " + latency);
-    Assert.assertTrue(latency < 400, "failover latency for 1k partition test should < 800ms");
+    Assert.assertTrue(latency < 800, "failover latency for 1k partition test should < 800ms");
     
     System.out.println("END " + testName + " at "
         + new Date(System.currentTimeMillis()));

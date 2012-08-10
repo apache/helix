@@ -26,11 +26,11 @@ function cecho
 }
 
 # : <<'END'
-if [ "$#" -ne 1 ]; then
-  echo "Usage: $0 zklog_dir"
+if [ "$#" -ne 2 ]; then
+  echo "Usage: $0 zklog_dir test_start_time (yyMMdd_hhmmss_SSS)"
   exit
 fi
 
-../../../../../target/helix-core-pkg/bin/zk-log-analyzer $1 test-cluster localhost:2191 
+../../../../../target/helix-core-pkg/bin/zk-log-analyzer $1 test-cluster $2
 
 # END

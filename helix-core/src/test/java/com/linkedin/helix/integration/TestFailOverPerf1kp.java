@@ -5,7 +5,6 @@ import java.util.Date;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
-import org.testng.annotations.Test;
 
 import com.linkedin.helix.ExternalCommand;
 import com.linkedin.helix.IntegrationTestHelper;
@@ -13,7 +12,7 @@ import com.linkedin.helix.TestHelper;
 
 public class TestFailOverPerf1kp
 {
-  @Test
+  // @Test
   public void testFailOverPerf1kp() throws Exception
   {
     Logger.getRootLogger().setLevel(Level.INFO);

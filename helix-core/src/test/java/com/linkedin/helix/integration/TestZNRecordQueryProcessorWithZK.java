@@ -26,6 +26,7 @@ import com.linkedin.helix.controller.stages.CurrentStateComputationStage;
 import com.linkedin.helix.controller.stages.ReadClusterDataStage;
 import com.linkedin.helix.controller.stages.ResourceComputationStage;
 import com.linkedin.helix.josql.DataAccessorBasedTupleReader;
+import com.linkedin.helix.josql.JsqlQueryListProcessor;
 import com.linkedin.helix.josql.ZNRecordQueryProcessor;
 import com.linkedin.helix.model.HealthStat;
 import com.linkedin.helix.model.IdealState;
@@ -148,6 +149,22 @@ public class TestZNRecordQueryProcessorWithZK extends ZkStandAloneCMTestBase
     for(ZNRecord record : masterSelectionTable)
     {
       System.out.println(record);
+    }
+    
+    List<String> combinedQueryStringList = new ArrayList<String>();
+    combinedQueryStringList.add(scnTableQuery + JsqlQueryListProcessor.SEPARATOR+"scnTable");
+    combinedQueryStringList.add(rankQuery + JsqlQueryListProcessor.SEPARATOR+"rankTable");
+    combinedQueryStringList.add(masterSelectionQuery);
+    System.out.println();
+    List<ZNRecord> masterSelectionTable2 = JsqlQueryListProcessor.executeQueryList(manager, combinedQueryStringList);
+    for(ZNRecord record : masterSelectionTable2)
+    {
+      System.out.println(record);
+    }
+    Assert.assertEquals(masterSelectionTable2.size(), masterSelectionTable.size());
+    for(int i = 0;i<masterSelectionTable2.size(); i++)
+    {
+      Assert.assertTrue(masterSelectionTable2.get(i).equals(masterSelectionTable.get(i)));
     }
   }
 }

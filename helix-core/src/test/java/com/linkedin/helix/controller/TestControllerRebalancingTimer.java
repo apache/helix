@@ -12,6 +12,7 @@ import com.linkedin.helix.TestHelper.StartCMResult;
 import com.linkedin.helix.integration.ZkStandAloneCMTestBase;
 import com.linkedin.helix.manager.zk.ZNRecordSerializer;
 import com.linkedin.helix.manager.zk.ZkClient;
+import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.tools.ClusterSetup;
 import com.linkedin.helix.tools.ClusterStateVerifier;
 import com.linkedin.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
@@ -47,8 +48,9 @@ public class TestControllerRebalancingTimer extends ZkStandAloneCMTestBase
       _setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
     }
     _setupTool.rebalanceStorageCluster(CLUSTER_NAME, TEST_DB, 3);
-    String scopesStr = "CLUSTER=" + CLUSTER_NAME + ",RESOURCE="+TEST_DB;
-    _setupTool.setConfig(scopesStr, "RebalanceTimerPeriod=500");
+    IdealState idealState = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, TEST_DB);
+    idealState.getRecord().setSimpleField("RebalanceTimerPeriod", "500");
+    _setupTool.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, TEST_DB, idealState);
     // start dummy participants
     for (int i = 0; i < NODE_NR; i++)
     {
@@ -95,11 +97,10 @@ public class TestControllerRebalancingTimer extends ZkStandAloneCMTestBase
     Assert.assertTrue(controller._rebalanceTimer != null);
     Assert.assertEquals(controller._timerPeriod, 500);
 
-    String scopesStr = "CLUSTER=" + CLUSTER_NAME + ",RESOURCE="+TEST_DB;
-    _setupTool.setConfig(scopesStr, "RebalanceTimerPeriod=200");
-    
-
     _setupTool.rebalanceStorageCluster(CLUSTER_NAME, TEST_DB, 3);
+    IdealState idealState = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, TEST_DB);
+    idealState.getRecord().setSimpleField("RebalanceTimerPeriod", "200");
+    _setupTool.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, TEST_DB, idealState);
     
     Thread.sleep(1000);
     Assert.assertTrue(controller._rebalanceTimer != null);

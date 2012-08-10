@@ -5,6 +5,7 @@ import java.util.Date;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
+import org.testng.annotations.Test;
 
 import com.linkedin.helix.ExternalCommand;
 import com.linkedin.helix.IntegrationTestHelper;
@@ -12,7 +13,7 @@ import com.linkedin.helix.TestHelper;
 
 public class TestFailOverPerf1kp
 {
-  // @Test
+  @Test
   public void testFailOverPerf1kp() throws Exception
   {
     Logger.getRootLogger().setLevel(Level.INFO);
@@ -35,7 +36,7 @@ public class TestFailOverPerf1kp
     j = output.indexOf("ms", i);
     latency = Long.parseLong(output.substring(i, j));
     System.out.println("failover latency: " + latency);
-    Assert.assertTrue(latency < 400, "failover latency for 1k partition test should < 400ms");
+    Assert.assertTrue(latency < 400, "failover latency for 1k partition test should < 800ms");
     
     System.out.println("END " + testName + " at "
         + new Date(System.currentTimeMillis()));

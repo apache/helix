@@ -30,6 +30,7 @@ function cecho
   fi
 }
 
+
 # zookeeper_server_ports="localhost:2188"
 # use the first machine as zookeeper and controller
 zookeeper_address=${MACHINE_TAB[0]}:2191

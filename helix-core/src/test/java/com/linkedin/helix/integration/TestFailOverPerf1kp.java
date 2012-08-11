@@ -2,8 +2,6 @@ package com.linkedin.helix.integration;
 
 import java.util.Date;
 
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -16,7 +14,7 @@ public class TestFailOverPerf1kp
   @Test
   public void testFailOverPerf1kp() throws Exception
   {
-    Logger.getRootLogger().setLevel(Level.INFO);
+    // Logger.getRootLogger().setLevel(Level.INFO);
 
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();

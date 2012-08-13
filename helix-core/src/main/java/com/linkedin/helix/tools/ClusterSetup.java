@@ -57,6 +57,7 @@ import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.model.IdealState.IdealStateModeProperty;
 import com.linkedin.helix.model.InstanceConfig;
+import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.model.StateModelDefinition;
 import com.linkedin.helix.util.ZKClientPool;
 
@@ -100,7 +101,7 @@ public class ClusterSetup
   public static final String enablePartition   = "enablePartition";
   public static final String enableCluster     = "enableCluster";
   public static final String resetPartition    = "resetPartition";
-  
+
   // help
   public static final String help              = "help";
 
@@ -236,9 +237,16 @@ public class ClusterSetup
     ZkClient zkClient = ZKClientPool.getZkClient(_zkServerAddress);
 
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(zkClient));
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
+    // ensure node is stopped
+    LiveInstance liveInstance = accessor.getProperty(keyBuilder.liveInstance(instanceId));
+    if (liveInstance != null)
+    {
+      throw new HelixException("Can't drop " + instanceId + ", please stop " + instanceId + " before drop it");
+    }
+    
     InstanceConfig config = accessor.getProperty(keyBuilder.instanceConfig(instanceId));
     if (config == null)
     {
@@ -692,9 +700,11 @@ public class ClusterSetup
     resourceModeOption.setArgs(1);
     resourceModeOption.setRequired(false);
     resourceModeOption.setArgName("IdealState mode");
-    
-    Option resourceBucketSizeOption = OptionBuilder.withLongOpt(bucketSize)
-        .withDescription("Specify size of a bucket, used with addResourceGroup command").create();
+
+    Option resourceBucketSizeOption =
+        OptionBuilder.withLongOpt(bucketSize)
+                     .withDescription("Specify size of a bucket, used with addResourceGroup command")
+                     .create();
     resourceBucketSizeOption.setArgs(1);
     resourceBucketSizeOption.setRequired(false);
     resourceBucketSizeOption.setArgName("Size of a bucket for a resource");
@@ -810,7 +820,7 @@ public class ClusterSetup
     enableClusterOption.setArgs(2);
     enableClusterOption.setRequired(false);
     enableClusterOption.setArgName("clusterName true/false");
-    
+
     Option resetPartitionOption =
         OptionBuilder.withLongOpt(resetPartition)
                      .withDescription("Reset a partition in error state")
@@ -818,7 +828,7 @@ public class ClusterSetup
     resetPartitionOption.setArgs(4);
     resetPartitionOption.setRequired(false);
     resetPartitionOption.setArgName("clusterName instanceName resourceName partitionName");
-    
+
     Option listStateModelsOption =
         OptionBuilder.withLongOpt(listStateModels)
                      .withDescription("Query info of state models in a cluster")
@@ -1031,9 +1041,9 @@ public class ClusterSetup
       {
         modeValue = cmd.getOptionValues(mode)[0];
       }
-      
+
       int bucketSizeVal = 0;
-      if(cmd.hasOption(bucketSize))
+      if (cmd.hasOption(bucketSize))
       {
         bucketSizeVal = Integer.parseInt(cmd.getOptionValues(bucketSize)[0]);
       }
@@ -1268,24 +1278,26 @@ public class ClusterSetup
                                                            partitionName,
                                                            enabled);
       return 0;
-    } 
+    }
     else if (cmd.hasOption(resetPartition))
     {
       String clusterName = cmd.getOptionValues(resetPartition)[0];
       String instanceName = cmd.getOptionValues(resetPartition)[1];
       String resourceName = cmd.getOptionValues(resetPartition)[2];
       String partitionName = cmd.getOptionValues(resetPartition)[3];
-      setupTool.getClusterManagementTool().resetPartition(clusterName, instanceName, resourceName, partitionName);
+      setupTool.getClusterManagementTool().resetPartition(clusterName,
+                                                          instanceName,
+                                                          resourceName,
+                                                          partitionName);
       return 0;
     }
     else if (cmd.hasOption(enableCluster))
     {
       String[] params = cmd.getOptionValues(enableCluster);
       String clusterName = params[0];
-      boolean enabled =
-          Boolean.parseBoolean(params[1].toLowerCase());
+      boolean enabled = Boolean.parseBoolean(params[1].toLowerCase());
       setupTool.getClusterManagementTool().enableCluster(clusterName, enabled);
-      
+
       return 0;
     }
     else if (cmd.hasOption(listStateModels))

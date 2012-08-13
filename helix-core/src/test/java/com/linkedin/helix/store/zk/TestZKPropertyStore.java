@@ -28,6 +28,9 @@ import org.testng.annotations.Test;
 
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.ZkUnitTestBase;
+import com.linkedin.helix.manager.zk.ByteArraySerializer;
+import com.linkedin.helix.manager.zk.ChainedPathZkSerializer;
+import com.linkedin.helix.manager.zk.PathBasedZkSerializer;
 import com.linkedin.helix.manager.zk.ZNRecordSerializer;
 import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.store.PropertyChangeListener;
@@ -102,6 +105,14 @@ public class TestZKPropertyStore extends ZkUnitTestBase
   {
     return "/node_" + i;
   }
+  
+  @Override
+  protected PathBasedZkSerializer buildClientSerializer()
+  {
+    return ChainedPathZkSerializer.builder(new ZNRecordSerializer())
+                                  .serialize(buildPropertyStoreRoot(), new ByteArraySerializer())
+                                  .build();
+  }
 
   // TODO: separate into small tests
   @Test()
@@ -112,14 +123,16 @@ public class TestZKPropertyStore extends ZkUnitTestBase
     // LOG.info("number of connections is " + ZkClient.getNumberOfConnections());
 
     // clean up zk
-    final String propertyStoreRoot = "/" + className;
+    final String propertyStoreRoot = buildPropertyStoreRoot();
     if (_gZkClient.exists(propertyStoreRoot))
     {
       _gZkClient.deleteRecursive(propertyStoreRoot);
     }
 
+    ZkClient zkclient = new ZkClient(ZK_ADDR);
+    zkclient.setZkSerializer(new ByteArraySerializer());
     ZKPropertyStore<ZNRecord> store =
-        new ZKPropertyStore<ZNRecord>(new ZkClient(ZK_ADDR),
+        new ZKPropertyStore<ZNRecord>(zkclient,
                                       new PropertyJsonSerializer<ZNRecord>(ZNRecord.class),
                                       propertyStoreRoot);
 
@@ -458,6 +471,11 @@ public class TestZKPropertyStore extends ZkUnitTestBase
     }
 
     System.out.println("END " + className + " at " + new Date(System.currentTimeMillis()));
+  }
+
+  private String buildPropertyStoreRoot()
+  {
+    return "/" + className;
   }
 
   private void setNodes(ZKPropertyStore<ZNRecord> store, char c, boolean needTimestamp) throws PropertyStoreException

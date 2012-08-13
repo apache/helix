@@ -39,6 +39,8 @@ import com.linkedin.helix.controller.pipeline.Pipeline;
 import com.linkedin.helix.controller.pipeline.Stage;
 import com.linkedin.helix.controller.pipeline.StageContext;
 import com.linkedin.helix.controller.stages.ClusterEvent;
+import com.linkedin.helix.manager.zk.BasicZkSerializer;
+import com.linkedin.helix.manager.zk.PathBasedZkSerializer;
 import com.linkedin.helix.manager.zk.ZKHelixAdmin;
 import com.linkedin.helix.manager.zk.ZKHelixDataAccessor;
 import com.linkedin.helix.manager.zk.ZNRecordSerializer;
@@ -76,7 +78,12 @@ public class ZkUnitTestBase
 //        + ZkClient.getNumberOfConnections());
 
     _gZkClient = new ZkClient(ZK_ADDR);
-    _gZkClient.setZkSerializer(new ZNRecordSerializer());
+    _gZkClient.setZkSerializer(buildClientSerializer());
+  }
+
+  protected PathBasedZkSerializer buildClientSerializer()
+  {
+    return new BasicZkSerializer(new ZNRecordSerializer());
   }
 
   @AfterSuite(alwaysRun = true)

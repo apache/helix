@@ -43,6 +43,7 @@ import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.alerts.AlertsHolder;
 import com.linkedin.helix.alerts.StatsHolder;
 import com.linkedin.helix.model.Alerts;
+import com.linkedin.helix.model.CurrentState;
 import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.model.IdealState.IdealStateModeProperty;
@@ -220,7 +221,7 @@ public class ZKHelixAdmin implements HelixAdmin
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
     Builder keyBuilder = accessor.keyBuilder();
-    
+
     if (enabled)
     {
       accessor.removeProperty(keyBuilder.pause());
@@ -238,36 +239,93 @@ public class ZKHelixAdmin implements HelixAdmin
                              String partition)
   {
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(_zkClient));
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
+    // check the instance is alive
     LiveInstance liveInstance =
         accessor.getProperty(keyBuilder.liveInstance(instanceName));
-
     if (liveInstance == null)
     {
       throw new HelixException("Can't reset state for " + resourceName + "/" + partition
           + " on " + instanceName + ", because " + instanceName + " is not alive");
     }
-
     String sessionId = liveInstance.getSessionId();
 
+    // check resource group exists
     IdealState idealState = accessor.getProperty(keyBuilder.idealStates(resourceName));
-
     if (idealState == null)
     {
       throw new HelixException("Can't reset state for " + resourceName + "/" + partition
           + " on " + instanceName + ", because " + resourceName + " is not added");
     }
 
+    // check partition exists in resource group
+    if (idealState.getIdealStateMode() == IdealStateModeProperty.CUSTOMIZED)
+    {
+      if (!idealState.getRecord().getMapFields().keySet().contains(partition))
+      {
+        throw new HelixException("Can't reset state for " + resourceName + "/"
+            + partition + " on " + instanceName + ", because " + partition
+            + " does NOT exist");
+      }
+    }
+    else
+    {
+      if (!idealState.getRecord().getListFields().keySet().contains(partition))
+      {
+        throw new HelixException("Can't reset state for " + resourceName + "/"
+            + partition + " on " + instanceName + ", because " + partition
+            + " does NOT exist");
+      }
+    }
+
+    // check partition is in ERROR state
+    CurrentState curState =
+        accessor.getProperty(keyBuilder.currentState(instanceName,
+                                                     sessionId,
+                                                     resourceName));
+    if (!curState.getState(partition).equals("ERROR"))
+    {
+      throw new HelixException("Can't reset state for " + resourceName + "/" + partition
+          + " on " + instanceName + ", because " + partition + " is NOT in ERROR state");
+    }
+
+    // check stateModelDef exists and get initial state
     String stateModelDef = idealState.getStateModelDefRef();
     StateModelDefinition stateModel =
         accessor.getProperty(keyBuilder.stateModelDef(stateModelDef));
-
     if (stateModel == null)
     {
       throw new HelixException("Can't reset state for " + resourceName + "/" + partition
           + " on " + instanceName + ", because " + stateModelDef + " is not found");
+    }
+
+    // check there is no pending message from ERROR->initlaState exist
+    List<Message> messages = accessor.getChildValues(keyBuilder.messages(instanceName));
+    for (Message message : messages)
+    {
+      if (!MessageType.STATE_TRANSITION.toString().equalsIgnoreCase(message.getMsgType()))
+      {
+        continue;
+      }
+
+      if (!sessionId.equals(message.getTgtSessionId()))
+      {
+        continue;
+      }
+
+      if (!resourceName.equals(message.getResourceName())
+          || !partition.equals(message.getPartitionName())
+          || !message.getFromState().equals("ERROR")
+          || !message.getToState().equals(stateModel.getInitialState()))
+      {
+        continue;
+      }
+
+      throw new HelixException("Can't reset state for " + resourceName + "/" + partition
+          + " on " + instanceName + ", because a reset message already exists: "
+          + message);
     }
 
     String adminName = null;
@@ -282,6 +340,7 @@ public class ZKHelixAdmin implements HelixAdmin
       adminName = "UNKNOWN";
     }
 
+    // send ERROR to initialState message
     String msgId = UUID.randomUUID().toString();
     Message message = new Message(MessageType.STATE_TRANSITION, msgId);
     message.setSrcName(adminName);

@@ -107,13 +107,33 @@ public class TestResetPartitionState extends ZkIntegrationTestBase
         new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName, errStateMap));
     Assert.assertTrue(result);
 
+    // reset a non-exist partition, should throw exception
+    ZKHelixAdmin tool = new ZKHelixAdmin(_gZkClient);
+    try
+    {
+      tool.resetPartition(clusterName, "localhost_12918", "TestDB0", "TestDB0_nonExist");
+      Assert.fail("Should throw exception on reset a non-exist partition");
+    } catch (Exception e)
+    {
+      // OK
+    }
+    
     // reset one error partition
     errPartitions.remove("SLAVE-MASTER");
     participants[0].setTransition(new ErrTransitionWithReset(errPartitions));
     clearStatusUpdate(clusterName, "localhost_12918", "TestDB0", "TestDB0_4");
     _errToOfflineInvoked = 0;
-    ZKHelixAdmin tool = new ZKHelixAdmin(_gZkClient);
     tool.resetPartition(clusterName, "localhost_12918", "TestDB0", "TestDB0_4");
+    Thread.sleep(200);  // wait reset to be done
+    try
+    {
+      tool.resetPartition(clusterName, "localhost_12918", "TestDB0", "TestDB0_4");
+      Assert.fail("Should throw exception on reset a partition not in ERROR state");
+    } catch (Exception e)
+    {
+      // OK
+    }
+
 
     errStateMap.get("TestDB0").remove("TestDB0_4");
     result = ClusterStateVerifier.verifyByPolling(

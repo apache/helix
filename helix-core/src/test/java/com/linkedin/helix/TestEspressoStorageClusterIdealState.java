@@ -23,9 +23,12 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
+import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
+import com.linkedin.helix.model.IdealState;
+import com.linkedin.helix.tools.ClusterSetup;
 import com.linkedin.helix.tools.IdealStateCalculatorForStorageNode;
 
 
@@ -73,12 +76,52 @@ public class TestEspressoStorageClusterIdealState
     }
 
     IdealStateCalculatorForStorageNode.calculateNextIdealState(instanceNames3, result1);
+    Double masterKeepRatio = 0.0, slaveKeepRatio = 0.0;
     Verify(result1, partitions,replicas);
-    compareResult(resultOriginal, result1);
+    double[] result = compareResult(resultOriginal, result1);
+    masterKeepRatio = result[0];
+    slaveKeepRatio = result[1];
+    Assert.assertTrue(0.66 < masterKeepRatio && 0.67 > masterKeepRatio);
+    Assert.assertTrue(0.66 < slaveKeepRatio && 0.67 > slaveKeepRatio);
 
   }
+  
+  @Test
+  public void testRebalance2()
+  {
+    int partitions = 1256, replicas = 3;
+    List<String> instanceNames = new ArrayList<String>();
+    
+    for(int i = 0;i < 10; i++)
+    {
+      instanceNames.add("localhost:123" + i);
+    }
+    
+    Map<String, Object> resultOriginal = IdealStateCalculatorForStorageNode.calculateInitialIdealState(instanceNames, partitions, replicas);
+    
+    ZNRecord idealState1 = IdealStateCalculatorForStorageNode.convertToZNRecord(resultOriginal, "TestDB", "MASTER", "SLAVE");
+    
+    Map<String, Object> result1 = ClusterSetup.buildInternalIdealState(new IdealState(idealState1));
+    
+    List<String> instanceNames2 = new ArrayList<String>();
+    for(int i = 30;i < 35; i++)
+    {
+      instanceNames2.add("localhost:123" + i);
+    }
+    
+    Map<String, Object> result2 = IdealStateCalculatorForStorageNode.calculateNextIdealState(instanceNames2, result1);
+    
+    Verify(resultOriginal, partitions,replicas);
+    Verify(result2, partitions,replicas);
+    Double masterKeepRatio = 0.0, slaveKeepRatio = 0.0;
+    double[] result = compareResult(resultOriginal, result2);
+    masterKeepRatio = result[0];
+    slaveKeepRatio = result[1];
+    Assert.assertTrue(0.66 < masterKeepRatio && 0.67 > masterKeepRatio);
+    Assert.assertTrue(0.66 < slaveKeepRatio && 0.67 > slaveKeepRatio);
+  }
 
-  public void Verify(Map<String, Object> result, int partitions, int replicas)
+  public static void Verify(Map<String, Object> result, int partitions, int replicas)
   {
     Map<String, List<Integer>> masterAssignmentMap = (Map<String, List<Integer>>) (result.get("MasterAssignmentMap"));
     Map<String, Map<String, List<Integer>>> nodeSlaveAssignmentMap = (Map<String, Map<String, List<Integer>>>)(result.get("SlaveAssignmentMap"));
@@ -189,8 +232,9 @@ public class TestEspressoStorageClusterIdealState
 
   }
 
-  public void compareResult(Map<String, Object> result1, Map<String, Object> result2)
+  public static double [] compareResult(Map<String, Object> result1, Map<String, Object> result2)
   {
+    double [] result = new double[2];
     Map<String, List<Integer>> masterAssignmentMap1 = (Map<String, List<Integer>>) (result1.get("MasterAssignmentMap"));
     Map<String, Map<String, List<Integer>>> nodeSlaveAssignmentMap1 = (Map<String, Map<String, List<Integer>>>)(result1.get("SlaveAssignmentMap"));
 
@@ -228,9 +272,10 @@ public class TestEspressoStorageClusterIdealState
         }
       }
     }
-
+    
+    result[0] = 1.0*commonMasters/partitions;
     System.out.println(commonMasters + " master partitions are kept, "+ (partitions - commonMasters) + " moved, keep ratio:" + 1.0*commonMasters/partitions);
-
+    
     // maps from the partition id to the instance names that holds its slave partition
     Map<Integer, Set<String>> slaveMap1 = new TreeMap<Integer, Set<String>>();
     for(String instanceName : nodeSlaveAssignmentMap1.keySet())
@@ -266,8 +311,9 @@ public class TestEspressoStorageClusterIdealState
         }
       }
     }
-
+    result[1] = 1.0*commonSlaves/partitions/replicas;
     System.out.println(commonSlaves + " slave partitions are kept, " + (partitions * replicas - commonSlaves)+ " moved. keep ratio:"+1.0*commonSlaves/partitions/replicas);
+    return result;
   }
 
 }

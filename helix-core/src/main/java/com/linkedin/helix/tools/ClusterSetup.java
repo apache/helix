@@ -46,6 +46,7 @@ import com.linkedin.helix.ConfigScope;
 import com.linkedin.helix.ConfigScopeBuilder;
 import com.linkedin.helix.HelixAdmin;
 import com.linkedin.helix.HelixException;
+import com.linkedin.helix.HelixConstants.StateModelToken;
 import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.manager.zk.ZKHelixAdmin;
@@ -84,6 +85,7 @@ public class ClusterSetup
   public static final String swapInstance = "swapInstance";
   public static final String dropInstance = "dropNode";
   public static final String rebalance = "rebalance";
+  public static final String expandCluster = "expandCluster";
   public static final String mode = "mode";
   public static final String resourceKeyPrefix = "key";
 
@@ -357,7 +359,206 @@ public class ClusterSetup
   {
     rebalanceStorageCluster(clusterName, resourceName, replica, resourceName);
   }
+
+  public void expandCluster(String clusterName)
+  {
+    List<String> resources = _admin.getResourcesInCluster(clusterName);
+    for(String resourceName : resources)
+    {
+       IdealState idealState = _admin.getResourceIdealState(clusterName, resourceName);
+       if(idealState.getIdealStateMode() == IdealStateModeProperty.AUTO_REBALANCE ||
+          idealState.getIdealStateMode() == IdealStateModeProperty.CUSTOMIZED)
+       {
+         _logger.info("Skipping idealState " + idealState.getResourceName()+" " + idealState.getIdealStateMode());
+         continue;
+       }
+       boolean anyLiveInstance = false;
+       for(List<String> list : idealState.getRecord().getListFields().values())
+       {
+         if(list.contains(StateModelToken.ANY_LIVEINSTANCE.toString()))
+         {
+           _logger.info("Skipping idealState " + idealState.getResourceName() + " with ANY_LIVEINSTANCE");
+           anyLiveInstance = true;
+           continue;
+         }
+       }
+       if(anyLiveInstance)
+       {
+         continue;
+       }
+       try
+       {
+         int replica = Integer.parseInt(idealState.getReplicas());
+       }
+       catch(Exception e)
+       {
+         _logger.error("", e);
+         continue;
+       }
+       if(idealState.getRecord().getListFields().size() == 0)
+       {
+         _logger.warn("Resource " + resourceName + " not balanced, skip");
+         continue;
+       }
+       IdealState newIdealState = balanceIdealState(clusterName, idealState);
+       _admin.setResourceIdealState(clusterName, resourceName, newIdealState);
+    }
+  }
   
+  public String[] parseStates(String clusterName, String stateModelName)
+  {
+    String[] result = new String[2];
+    String masterStateValue = null, slaveStateValue = null;
+    StateModelDefinition stateModDef = _admin.getStateModelDef(clusterName,
+        stateModelName);
+
+    if (stateModDef == null)
+    {
+      throw new HelixException("cannot find state model: " + stateModelName);
+    }
+    // StateModelDefinition def = new StateModelDefinition(stateModDef);
+
+
+    List<String> statePriorityList = stateModDef.getStatesPriorityList();
+    
+    for (String state : statePriorityList)
+    {
+      String count = stateModDef.getNumInstancesPerState(state);
+      if (count.equals("1"))
+      {
+        if (masterStateValue != null)
+        {
+          throw new HelixException("Invalid or unsupported state model definition");
+        }
+        masterStateValue = state;
+      } else if (count.equalsIgnoreCase("R"))
+      {
+        if (slaveStateValue != null)
+        {
+          throw new HelixException("Invalid or unsupported state model definition");
+        }
+        slaveStateValue = state;
+      } else if (count.equalsIgnoreCase("N"))
+      {
+        if (!(masterStateValue == null && slaveStateValue == null))
+        {
+          throw new HelixException("Invalid or unsupported state model definition");
+        }
+        masterStateValue = slaveStateValue = state;
+      }
+    }
+    if (masterStateValue == null && slaveStateValue == null)
+    {
+      throw new HelixException("Invalid or unsupported state model definition");
+    }
+
+    if (masterStateValue == null)
+    {
+      masterStateValue = slaveStateValue;
+    }
+    result[0] = masterStateValue;
+    result[1] = slaveStateValue;
+    return result;
+  }
+  
+  public IdealState balanceIdealState(String clusterName, IdealState idealState)
+  {
+    // The new instances are added into the cluster already. So we need to find out the instances that 
+    // already have partitions assigned to them.
+    List<String> instanceNames = _admin.getInstancesInCluster(clusterName);
+    Set<String> activeInstances = new HashSet<String>();
+    for(String partition : idealState.getPartitionSet())
+    {
+      activeInstances.addAll(idealState.getRecord().getListField(partition));
+    }
+    instanceNames.removeAll(activeInstances);
+    Map<String, Object> previousIdealState = buildInternalIdealState(idealState);
+    
+    Map<String, Object> balancedRecord
+      = IdealStateCalculatorForStorageNode.calculateNextIdealState(instanceNames, previousIdealState);
+    
+    String[] states = parseStates(clusterName, idealState.getStateModelDefRef());
+    
+    ZNRecord newIdealStateRecord 
+      = IdealStateCalculatorForStorageNode.convertToZNRecord(balancedRecord, idealState.getResourceName(), states[0], states[1]);
+    
+    newIdealStateRecord.getSimpleFields().putAll(idealState.getRecord().getSimpleFields());
+    return new IdealState(newIdealStateRecord);
+
+  }
+  
+  public static Map<String, Object> buildInternalIdealState(IdealState state)
+  {
+    // Try parse the partition number from name DB_n. If not, sort the partitions and assign id 
+    Map<String, Integer> partitionIndex = new HashMap<String, Integer>();
+    boolean indexInPartitionName = true;
+    for(String partitionId : state.getPartitionSet())
+    {
+      int lastPos = partitionId.lastIndexOf("_");
+      if(lastPos < 0)
+      {
+        indexInPartitionName = false;
+        break;
+      }
+      try
+      {
+        String idStr = partitionId.substring(lastPos + 1);
+        int partition = Integer.parseInt(idStr);
+        partitionIndex.put(partitionId, partition);
+      }
+      catch(Exception e)
+      {
+        indexInPartitionName = false;
+        break;
+      }
+    }
+    
+    if(indexInPartitionName == false)
+    {
+      List<String> partitions = new ArrayList<String>();
+      partitions.addAll(state.getPartitionSet());
+      Collections.sort(partitions);
+      for(int i = 0; i < partitions.size(); i++)
+      {
+        partitionIndex.put(partitions.get(i), i);
+      }
+    }
+    
+    Map<String, List<Integer>> nodeMasterAssignmentMap = new TreeMap<String, List<Integer>>();
+    Map<String, Map<String, List<Integer>>> combinedNodeSlaveAssignmentMap = new TreeMap<String, Map<String, List<Integer>>>();
+    for(String partition : state.getPartitionSet())
+    {
+      List<String> instances = state.getRecord().getListField(partition);
+      String master = instances.get(0);
+      if(!nodeMasterAssignmentMap.containsKey(master))
+      {
+        nodeMasterAssignmentMap.put(master, new ArrayList<Integer>());
+      }
+      if(!combinedNodeSlaveAssignmentMap.containsKey(master))
+      {
+        combinedNodeSlaveAssignmentMap.put(master, new TreeMap<String, List<Integer>>());
+      }
+      nodeMasterAssignmentMap.get(master).add(partitionIndex.get(partition));
+      for(int i = 1; i < instances.size(); i++)
+      {
+        String instance = instances.get(i);
+        Map<String, List<Integer>> slaveMap = combinedNodeSlaveAssignmentMap.get(master);
+        if(!slaveMap.containsKey(instance))
+        {
+          slaveMap.put(instance, new ArrayList<Integer>());
+        }
+        slaveMap.get(instance).add(partitionIndex.get(partition));
+      }
+    }
+    
+    Map<String, Object> result = new TreeMap<String, Object>();
+    result.put("MasterAssignmentMap", nodeMasterAssignmentMap);
+    result.put("SlaveAssignmentMap", combinedNodeSlaveAssignmentMap);
+    result.put("replicas", Integer.parseInt(state.getReplicas()));
+    result.put("partitions", new Integer(state.getRecord().getListFields().size()));
+    return result;
+  }
+
   public void rebalanceStorageCluster(String clusterName, String resourceName, int replica, String keyPrefix)
   {
     List<String> InstanceNames = _admin.getInstancesInCluster(clusterName);
@@ -894,6 +1095,14 @@ public class ClusterSetup
         setupTool.rebalanceStorageCluster(clusterName, resourceName, replicas, cmd.getOptionValue(resourceKeyPrefix));
       }
       setupTool.rebalanceStorageCluster(clusterName, resourceName, replicas);
+      return 0;
+    }
+    
+    if (cmd.hasOption(expandCluster))
+    {
+      String clusterName = cmd.getOptionValues(expandCluster)[0];
+
+      setupTool.expandCluster(clusterName);
       return 0;
     }
 

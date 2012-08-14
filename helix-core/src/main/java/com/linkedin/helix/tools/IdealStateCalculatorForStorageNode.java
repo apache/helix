@@ -123,7 +123,7 @@ public class IdealStateCalculatorForStorageNode
   /**
    * Convert the internal result (stored as a Map<String, Object>) into ZNRecord.
    */
-  static ZNRecord convertToZNRecord(Map<String, Object> result, String resourceName,
+  public static ZNRecord convertToZNRecord(Map<String, Object> result, String resourceName,
                                     String masterStateValue, String slaveStateValue)
   {
     Map<String, List<Integer>> nodeMasterAssignmentMap
@@ -638,7 +638,12 @@ public class IdealStateCalculatorForStorageNode
     */
     return previousIdealState;
   }
-
+  
+  public ZNRecord calculateNextIdealState(List<String> newInstances, Map<String, Object> previousIdealState,
+       String resourceName, String masterStateValue, String slaveStateValue)
+  {
+    return convertToZNRecord(calculateNextIdealState(newInstances, previousIdealState), resourceName, masterStateValue, slaveStateValue);
+  }
   /**
    * Given the list of master partition that will be migrated away from the storage instance,
    * Remove their entries from the local instance slave assignment map.

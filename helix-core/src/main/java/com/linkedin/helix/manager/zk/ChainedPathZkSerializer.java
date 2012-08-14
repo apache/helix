@@ -1,6 +1,7 @@
 package com.linkedin.helix.manager.zk;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.I0Itec.zkclient.exception.ZkMarshallingError;
@@ -21,10 +22,12 @@ public class ChainedPathZkSerializer implements PathBasedZkSerializer
 
     /**
      * Add a serializing strategy for the given path prefix
+     * The most specific path will triumph over a more generic (shorter)
+     * one regardless of the ordering of the calls.
      */
     public Builder serialize(String path, ZkSerializer withSerializer)
     {
-      _items.add(new ChainItem(path, withSerializer));
+      _items.add(new ChainItem(normalize(path), withSerializer));
       return this;
     }
     
@@ -48,9 +51,13 @@ public class ChainedPathZkSerializer implements PathBasedZkSerializer
   private final List<ChainItem> _items;
   private final ZkSerializer _defaultSerializer;
 
-  public ChainedPathZkSerializer(ZkSerializer defaultSerializer, List<ChainItem> items)
+  private ChainedPathZkSerializer(ZkSerializer defaultSerializer, List<ChainItem> items)
   {
     _items = items;
+    // sort by longest paths first
+    // if two items would match one would be prefix of the other
+    // and the longest must be more specific
+    Collections.sort(_items);
     _defaultSerializer = defaultSerializer;
   }
 
@@ -75,7 +82,7 @@ public class ChainedPathZkSerializer implements PathBasedZkSerializer
     return _defaultSerializer.deserialize(bytes);
   }
 
-  private static class ChainItem
+  private static class ChainItem implements Comparable<ChainItem>
   {
     final String _path;
     final ZkSerializer _serializer;
@@ -101,6 +108,24 @@ public class ChainedPathZkSerializer implements PathBasedZkSerializer
       }
       return false;
     }
+
+    @Override
+    public int compareTo(ChainItem o)
+    {
+      return o._path.length() - _path.length();
+    }
+  }
+  
+  private static String normalize(String path) {
+    if (!path.startsWith("/")) {
+      // ensure leading slash
+      path = "/" + path;
+    }
+    if (path.endsWith("/")) {
+      // remove trailing slash
+      path = path.substring(0, path.length()-1);
+    }
+    return path;
   }
 
 }

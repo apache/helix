@@ -45,7 +45,7 @@ public enum PropertyType
   // CONTROLLER PROPERTY
   LEADER(Type.CONTROLLER, false, false, true, true),
   HISTORY(Type.CONTROLLER, true, true, true),
-  PAUSE(Type.CONTROLLER, false, false, true),
+  PAUSE(Type.CONTROLLER, true, false, true),
   MESSAGES_CONTROLLER(Type.CONTROLLER, true, false, true),
   STATUSUPDATES_CONTROLLER(Type.CONTROLLER, true, true, true),
   ERRORS_CONTROLLER(Type.CONTROLLER, true, true, true),

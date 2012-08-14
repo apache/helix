@@ -1,5 +1,9 @@
 package com.linkedin.helix;
 
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.log4j.Logger;
 
 public class ZNRecordBucketizer
@@ -32,7 +36,7 @@ public class ZNRecordBucketizer
       // no bucketize
       return null;
     }
-    
+
     int idx = key.lastIndexOf('_');
     if (idx < 0)
     {
@@ -55,6 +59,62 @@ public class ZNRecordBucketizer
     }
   }
 
+  public Map<String, ZNRecord> bucketize(ZNRecord record)
+  {
+    Map<String, ZNRecord> map = new HashMap<String, ZNRecord>();
+    if (_bucketSize == 0)
+    {
+      map.put(record.getId(), record);
+      return map;
+    }
+    
+    // bucketize list field
+    for (String partitionName : record.getListFields().keySet())
+    {
+      String bucketName = getBucketName(partitionName);
+      if (bucketName != null)
+      {
+        if (!map.containsKey(bucketName))
+        {
+          map.put(bucketName, new ZNRecord(bucketName));
+        }
+        ZNRecord bucketizedRecord = map.get(bucketName);
+        bucketizedRecord.setListField(partitionName, record.getListField(partitionName));
+      }
+      else
+      {
+        LOG.error("Can't bucketize " + partitionName + " in list field");
+      }
+    }
+
+    // bucketize map field
+    for (String partitionName : record.getMapFields().keySet())
+    {
+      String bucketName = getBucketName(partitionName);
+      if (bucketName != null)
+      {
+        if (!map.containsKey(bucketName))
+        {
+          map.put(bucketName, new ZNRecord(bucketName));
+        }
+        ZNRecord bucketizedRecord = map.get(bucketName);
+        bucketizedRecord.setMapField(partitionName, record.getMapField(partitionName));
+      }
+      else
+      {
+        LOG.error("Can't bucketize " + partitionName + " in map field");
+      }
+    }
+    
+    // copy all simple fields
+    for (ZNRecord bucketizedRecord : map.values())
+    {
+      bucketizedRecord.setSimpleFields(record.getSimpleFields());
+    }
+    return map;
+  }
+
+  // temp test code
   public static void main(String[] args)
   {
     ZNRecordBucketizer bucketizer = new ZNRecordBucketizer(3);
@@ -64,5 +124,16 @@ public class ZNRecordBucketizer
     {
       System.out.println(bucketizer.getBucketName(partitionName));
     }
+    
+    ZNRecord record = new ZNRecord("TestDB");
+    record.setSimpleField("key0", "value0");
+    record.setSimpleField("key1", "value1");
+    record.setListField("TestDB_0", Arrays.asList("localhost_00", "localhost_01"));
+    record.setListField("TestDB_1", Arrays.asList("localhost_10", "localhost_11"));
+    record.setListField("TestDB_2", Arrays.asList("localhost_20", "localhost_21"));
+    record.setListField("TestDB_3", Arrays.asList("localhost_30", "localhost_31"));
+    record.setListField("TestDB_4", Arrays.asList("localhost_40", "localhost_41"));
+    
+    System.out.println(bucketizer.bucketize(record));
   }
 }

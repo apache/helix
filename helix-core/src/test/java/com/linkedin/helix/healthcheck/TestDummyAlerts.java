@@ -27,10 +27,10 @@ import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.controller.HelixControllerMain;
 import com.linkedin.helix.integration.ZkIntegrationTestBase;
 import com.linkedin.helix.manager.zk.ZKHelixDataAccessor;
 import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
+import com.linkedin.helix.mock.controller.StandaloneController;
 import com.linkedin.helix.mock.storage.MockParticipant;
 import com.linkedin.helix.mock.storage.MockTransition;
 import com.linkedin.helix.model.HealthStat;
@@ -80,7 +80,6 @@ public class TestDummyAlerts extends ZkIntegrationTestBase
   public void testDummyAlerts() throws Exception
   {
     // Logger.getRootLogger().setLevel(Level.INFO);
-
     String clusterName = getShortClassName();
     MockParticipant[] participants = new MockParticipant[5];
     ClusterSetup setupTool = new ClusterSetup(ZK_ADDR);
@@ -103,10 +102,16 @@ public class TestDummyAlerts extends ZkIntegrationTestBase
              .addAlert(clusterName,
                        "EXP(decay(1.0)(*.defaultPerfCounters@defaultPerfCounters.availableCPUs))CMP(GREATER)CON(2)");
 
-    TestHelper.startController(clusterName,
-                               "controller_0",
-                               ZK_ADDR,
-                               HelixControllerMain.STANDALONE);
+//    TestHelper.startController(clusterName,
+//                               "controller_0",
+//                               ZK_ADDR,
+//                               HelixControllerMain.STANDALONE);
+    // start controller
+    StandaloneController controller =
+        new StandaloneController(clusterName, "controller_0", ZK_ADDR);
+    controller.syncStart();
+
+    
     // start participants
     for (int i = 0; i < 5; i++)
     {
@@ -147,6 +152,9 @@ public class TestDummyAlerts extends ZkIntegrationTestBase
     {
       participants[i].syncStop();
     }
+    
+    Thread.sleep(2000);
+    controller.syncStop();
 
     System.out.println("END TestDummyAlerts at " + new Date(System.currentTimeMillis()));
   }

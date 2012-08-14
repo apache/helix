@@ -30,7 +30,7 @@ public class TestZKPropertyTransferServer extends ZkStandAloneCMTestBaseWithProp
       String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
       HelixDataAccessor accessor = _startCMResultMap.get(instanceName)._manager.getHelixDataAccessor();
       ZKHelixDataAccessor zkAccessor = (ZKHelixDataAccessor) accessor;
-      Assert.assertTrue(zkAccessor._zkPropertyTransferSvcUrl == null);
+      Assert.assertTrue(zkAccessor._zkPropertyTransferSvcUrl == null || zkAccessor._zkPropertyTransferSvcUrl.equals(""));
     }
     _startCMResultMap.get(controllerName)._thread.interrupt();
     _startCMResultMap.remove(controllerName);

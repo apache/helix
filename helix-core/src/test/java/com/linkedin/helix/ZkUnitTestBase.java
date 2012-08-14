@@ -72,8 +72,8 @@ public class ZkUnitTestBase
     _zkServer = TestHelper.startZkSever(ZK_ADDR);
     AssertJUnit.assertTrue(_zkServer != null);
 
-    System.out.println("Number of open zkClient before ZkUnitTests: "
-        + ZkClient.getNumberOfConnections());
+//    System.out.println("Number of open zkClient before ZkUnitTests: "
+//        + ZkClient.getNumberOfConnections());
 
     _gZkClient = new ZkClient(ZK_ADDR);
     _gZkClient.setZkSerializer(new ZNRecordSerializer());
@@ -86,8 +86,8 @@ public class ZkUnitTestBase
     _zkServer = null;
     _gZkClient.close();
 
-    System.out.println("Number of open zkClient after ZkUnitTests: "
-        + ZkClient.getNumberOfConnections());
+//    System.out.println("Number of open zkClient after ZkUnitTests: "
+//        + ZkClient.getNumberOfConnections());
 
   }
 

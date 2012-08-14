@@ -58,7 +58,7 @@ public class ParticipantHealthReportCollectorImpl implements
   {
     if (_timer == null)
     {
-      _timer = new Timer();
+      _timer = new Timer(true);
       _timer.scheduleAtFixedRate(new HealthCheckInfoReportingTask(),
           new Random().nextInt(DEFAULT_REPORT_LATENCY), DEFAULT_REPORT_LATENCY);
     }

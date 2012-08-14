@@ -1,9 +1,12 @@
 package com.linkedin.helix.controller.restlet;
 
 import java.io.StringReader;
+import java.util.Map;
+import java.util.TreeMap;
 
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.type.TypeReference;
 import org.restlet.data.Form;
 import org.restlet.data.MediaType;
 import org.restlet.data.Status;
@@ -52,12 +55,20 @@ public class ZNRecordUpdateResource  extends Resource
       Form form = new Form(entity);
       String jsonPayload = form.getFirstValue(UPDATEKEY, true);
       
+      // Parse the map from zkPath --> ZNRecordUpdate from the payload
       StringReader sr = new StringReader(jsonPayload);
       ObjectMapper mapper = new ObjectMapper();
-      ZNRecordUpdate holder = mapper.readValue(sr, ZNRecordUpdate.class);      
-      server.enqueueData(holder);
-      LOG.trace("Received " + holder.getPath() + " from " + getRequest().getClientInfo().getAddress());
-      
+      TypeReference<TreeMap<String, ZNRecordUpdate>> typeRef =
+          new TypeReference<TreeMap<String, ZNRecordUpdate>>()
+          {
+          };
+      Map<String, ZNRecordUpdate> holderMap = mapper.readValue(sr, typeRef);
+      // Enqueue the ZNRecordUpdate for sending
+      for(ZNRecordUpdate holder : holderMap.values())
+      {
+        server.enqueueData(holder);
+        LOG.info("Received " + holder.getPath() + " from " + getRequest().getClientInfo().getAddress());
+      }
       getResponse().setStatus(Status.SUCCESS_OK);
     }
     catch(Exception e)

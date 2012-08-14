@@ -77,6 +77,8 @@ public class StandaloneController extends Thread
     }
     finally
     {
+      _startCountDown.countDown();
+
       synchronized (_manager)
       {
         _manager.disconnect();

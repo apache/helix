@@ -115,7 +115,7 @@ public class HealthStatsAggregationTask extends HelixTimerTask
         accessor.removeProperty(accessor.keyBuilder().healthReport(_manager.getInstanceName(),healthReportName));
       }
       
-      _timer = new Timer();
+      _timer = new Timer(true);
       _timer.scheduleAtFixedRate(this, new Random().nextInt(_delay), _period);
     }
     else

@@ -15,10 +15,9 @@
  */
 package com.linkedin.helix.manager.zk;
 
+import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.Callable;
-import java.util.concurrent.CopyOnWriteArraySet;
 
 import org.I0Itec.zkclient.IZkConnection;
 import org.I0Itec.zkclient.ZkConnection;
@@ -56,8 +55,8 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
   public static String                    sessionPassword;
 
   // TODO need to remove when connection expired
-  private static final Set<IZkConnection> zkConnections              =
-                                                                         new CopyOnWriteArraySet<IZkConnection>();
+  // private static final Set<IZkConnection> zkConnections              =
+  //                                                                       new CopyOnWriteArraySet<IZkConnection>();
   private ZkSerializer                    _zkSerializer;
 
   public ZkClient(IZkConnection connection,
@@ -66,7 +65,9 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
   {
     super(connection, connectionTimeout, zkSerializer);
     _zkSerializer = zkSerializer;
-    zkConnections.add(_connection);
+    // zkConnections.add(_connection);
+    StackTraceElement[] calls = Thread.currentThread().getStackTrace();
+    LOG.info("create a new zkclient. " + Arrays.asList(calls));
   }
 
   public ZkClient(IZkConnection connection, int connectionTimeout)
@@ -124,14 +125,14 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
   @Override
   public void close() throws ZkInterruptedException
   {
-    zkConnections.remove(_connection);
+    // zkConnections.remove(_connection);
     super.close();
   }
 
-  public static int getNumberOfConnections()
-  {
-    return zkConnections.size();
-  }
+//  public static int getNumberOfConnections()
+//  {
+//    return zkConnections.size();
+//  }
 
   public Stat getStat(final String path)
   {

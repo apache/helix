@@ -148,6 +148,7 @@ public class HelixTaskExecutor implements MessageListener
       {
         String key = MessageType.STATE_TRANSITION.toString() + "." + resourceName;
         _threadpoolMap.put(key, Executors.newFixedThreadPool(threadpoolSize));
+        logger.info("Adding per resource threadpool for resource " + resourceName  + " with size "+ threadpoolSize);
       }
       _resourceThreadpoolSizeMap.put(resourceName, threadpoolSize);
     }
@@ -199,6 +200,7 @@ public class HelixTaskExecutor implements MessageListener
         HelixTask task = new HelixTask(message, notificationContext, handler, this);
         if (!_taskMap.containsKey(message.getMsgId()))
         {
+          logger.info("msg:" + message.getMsgId() + " handling task scheduled");
           Future<HelixTaskResult> future =
               findExecutorServiceForMsg(message).submit(task);
           _taskMap.put(message.getMsgId(), future);
@@ -481,7 +483,7 @@ public class HelixTaskExecutor implements MessageListener
             "Session Id does not match. Expected sessionId: " + sessionId
                 + ", sessionId from Message: " + tgtSessionId + ". MessageId: "
                 + message.getMsgId();
-        logger.error(warningMessage);
+        logger.warn(warningMessage);
         accessor.removeProperty(keyBuilder.message(instanceName, message.getId()));
         _statusUpdateUtil.logWarning(message,
                                      HelixStateMachineEngine.class,

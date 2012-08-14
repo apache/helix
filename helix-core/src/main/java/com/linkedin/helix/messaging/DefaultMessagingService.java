@@ -264,12 +264,17 @@ public class DefaultMessagingService implements ClusterMessagingService
     ConfigAccessor configAccessor = _manager.getConfigAccessor();
     if(configAccessor != null)
     {
-      ConfigScope scope =
-        new ConfigScopeBuilder().forCluster(_manager.getClusterName()).forParticipant(_manager.getInstanceName()).build();
-    
+      ConfigScope scope = null;
+      
       // Read the participant config and cluster config for the per-message type thread pool size.
       // participant config will override the cluster config.
-      threadpoolSizeStr = configAccessor.get(scope, key);
+      
+      if(_manager.getInstanceType() == InstanceType.PARTICIPANT || _manager.getInstanceType() == InstanceType.CONTROLLER_PARTICIPANT)
+      { 
+        scope = new ConfigScopeBuilder().forCluster(_manager.getClusterName()).forParticipant(_manager.getInstanceName()).build();
+        threadpoolSizeStr = configAccessor.get(scope, key);
+      }
+      
       if(threadpoolSizeStr == null)
       {
         scope = new ConfigScopeBuilder().forCluster(_manager.getClusterName()).build();

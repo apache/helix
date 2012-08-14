@@ -174,7 +174,7 @@ public class GenericHelixController implements
       {
         _rebalanceTimer.cancel();
       }
-      _rebalanceTimer = new Timer();
+      _rebalanceTimer = new Timer(true);
       _timerPeriod = period;
       _rebalanceTimer.scheduleAtFixedRate(new RebalanceTask(manager), _timerPeriod, _timerPeriod);
     }
@@ -445,17 +445,12 @@ public class GenericHelixController implements
     
     for(IdealState idealState : idealStates)
     {
-      String resourceName = idealState.getResourceName();
-      ConfigAccessor configAccessor = manager.getConfigAccessor();
-      ConfigScope scope =
-          new ConfigScopeBuilder()
-              .forCluster(manager.getClusterName()).forResource(resourceName).build();
-      String rebalanceTimerPeriod = configAccessor.get(scope, "RebalanceTimerPeriod");
-      if(rebalanceTimerPeriod != null)
+      String rebalanceTimerStr = idealState.getRecord().getSimpleField("RebalanceTimerPeriod");
+      if(rebalanceTimerStr != null)
       {
         try
         {
-          int period = Integer.parseInt(rebalanceTimerPeriod);
+          int period = Integer.parseInt(rebalanceTimerStr);
           startRebalancingTimer(period, manager);
         }
         catch(Exception e)

@@ -38,9 +38,11 @@ public class ZkStandAloneCMTestBaseWithPropertyServerCheck extends ZkStandAloneC
   public void beforeClass() throws Exception
   {
     ZKPropertyTransferServer.PERIOD = 500;
+    ZkPropertyTransferClient.SEND_PERIOD = 500;
     ZKPropertyTransferServer.getInstance().init(19999, ZK_ADDR);
     super.beforeClass();
     
+    Thread.sleep(500);
     for (int i = 0; i < NODE_NR; i++)
     {
       String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
@@ -51,6 +53,7 @@ public class ZkStandAloneCMTestBaseWithPropertyServerCheck extends ZkStandAloneC
         List<StatusUpdate> statusUpdates = accessor.getChildValues(
             kb.stateTransitionStatus(instanceName, _startCMResultMap.get(instanceName)._manager.getSessionId(),
                 TEST_DB));
+        Assert.assertTrue(statusUpdates.size() > 0);
         for(StatusUpdate update : statusUpdates)
         {
           Assert.assertTrue(update.getRecord().getSimpleField(ZkPropertyTransferClient.USE_PROPERTYTRANSFER).equals("true"));

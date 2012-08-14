@@ -402,10 +402,6 @@ public class TestHelper
     ClusterSetup setupTool = new ClusterSetup(ZkAddr);
     setupTool.addCluster(clusterName, true);
     
-//    setupTool.addStateModelDef(clusterName,
-//                               "Bootstrap",
-//                               TestHelper.generateStateModelDefForBootstrap());
-
     for (int i = 0; i < nodesNb; i++)
     {
       int port = startPort + i;
@@ -927,5 +923,47 @@ public class TestHelper
     record.setListField(StateModelDefinitionProperty.STATE_TRANSITION_PRIORITYLIST.toString(),
                         stateTransitionPriorityList);
     return new StateModelDefinition(record);
+  }
+  
+  public static String znrecordToString(ZNRecord record)
+  {
+    StringBuffer sb = new StringBuffer();
+    sb.append(record.getId() + "\n");
+    Map<String, String> simpleFields = record.getSimpleFields();
+    if (simpleFields != null)
+    {
+      sb.append("simpleFields\n");
+      for (String key : simpleFields.keySet())
+      {
+        sb.append("  " + key + "\t: " + simpleFields.get(key) + "\n");
+      }
+    }
+    
+    Map<String, List<String>> listFields = record.getListFields();
+    sb.append("listFields\n");
+    for (String key : listFields.keySet())
+    {
+      List<String> list = listFields.get(key);
+      sb.append("  " + key + "\t: ");
+      for (String listValue : list)
+      {
+        sb.append(listValue + ", ");
+      }
+      sb.append("\n");
+    }
+    
+    Map<String, Map<String, String>> mapFields = record.getMapFields();
+    sb.append("mapFields\n");
+    for (String key : mapFields.keySet())
+    {
+      Map<String, String> map = mapFields.get(key);
+      sb.append("  " + key + "\t: \n");
+      for (String mapKey : map.keySet())
+      {
+        sb.append("    " + mapKey + "\t: " + map.get(mapKey) + "\n");
+      }
+    }
+    
+    return sb.toString();
   }
 }

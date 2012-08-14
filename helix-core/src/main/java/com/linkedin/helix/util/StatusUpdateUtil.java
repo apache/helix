@@ -492,9 +492,7 @@ public class StatusUpdateUtil
       }
       else
       {
-        if(true){
-          return;
-        }
+        
         PropertyKey propertyKey =
             keyBuilder.stateTransitionStatus(instanceName,
                                              sessionId,
@@ -522,9 +520,7 @@ public class StatusUpdateUtil
     }
     else
     {
-      if(true){
-        return;
-      }
+      
       PropertyKey propertyKey =
           keyBuilder.stateTransitionStatus(instanceName,
                                            sessionId,

@@ -128,7 +128,7 @@ public abstract class AsyncCallback
       {
         _startTimeStamp = new Date().getTime();
       }
-      _timer = new Timer();
+      _timer = new Timer(true);
       _timer.schedule(new TimeoutTask(this), _timeout);
     }  
   }

@@ -248,9 +248,10 @@ public class ZkLogAnalyzer
         }
         else if (inputLine.indexOf("/" + clusterName + "/LIVEINSTANCES/") != -1)
         {
+          // cluster startup
           if (timestampVal < lastTestStartTimestamp)
           {
-            System.out.println("SETTING lastTestStartTimestamp to "
+            System.out.println("START cluster. SETTING lastTestStartTimestamp to "
                 + new Timestamp(timestampVal) + "\nline:" + inputLine);
             lastTestStartTimestamp = timestampVal;
           }
@@ -259,18 +260,18 @@ public class ZkLogAnalyzer
           LiveInstance liveInstance = new LiveInstance(record);
           String session = getAttributeValue(inputLine, "session:");
           sessionMap.put(session, inputLine);
-          System.out.println(timestamp + ": create LIVEINSTANCE "
+          System.out.println(new Timestamp(Long.parseLong(timestamp)) + ": create LIVEINSTANCE "
               + liveInstance.getInstanceName());
         }
         else if (inputLine.indexOf("closeSession") != -1)
         {
-          // String timestamp = getAttributeValue(inputLine, "time:");
+          // kill any instance
           String session = getAttributeValue(inputLine, "session:");
           if (sessionMap.containsKey(session))
           {
             if (timestampVal < lastTestStartTimestamp)
             {
-              System.out.println("SETTING lastTestStartTimestamp to " + timestampVal
+              System.out.println("KILL node. SETTING lastTestStartTimestamp to " + timestampVal
                   + " line:" + inputLine);
               lastTestStartTimestamp = timestampVal;
             }
@@ -283,7 +284,20 @@ public class ZkLogAnalyzer
             dump = true;
           }
         }
-        else if (inputLine.indexOf("/" + clusterName + "/CONTROLLER/LEADER") != -1)
+        else if (inputLine.indexOf("/" + clusterName + "/CONFIGS/PARTICIPANT") != -1)
+        {
+          // disable a partition
+          String type = getAttributeValue(inputLine, "type:");
+          if (type.equals("setData") && inputLine.indexOf("HELIX_DISABLED_PARTITION") != -1)
+          {
+            if (timestampVal < lastTestStartTimestamp)
+            {
+              System.out.println("DISABLE partition. SETTING lastTestStartTimestamp to " + timestampVal
+                  + " line:" + inputLine);
+              lastTestStartTimestamp = timestampVal;
+            }
+          }
+        } else if (inputLine.indexOf("/" + clusterName + "/CONTROLLER/LEADER") != -1)
         {
           // leaderLine = inputLine;
           ZNRecord record = getZNRecord(inputLine);

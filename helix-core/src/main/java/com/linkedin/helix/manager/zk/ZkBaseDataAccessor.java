@@ -323,7 +323,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
         if (Code.get(cb.getRc()) == Code.OK)
         {
           @SuppressWarnings("unchecked")
-          T record = (T) _zkClient.getZkSerializer().deserialize(cb._data);
+          T record = (T) _zkClient.deserialize(cb._data, paths.get(i));
           records.set(i, record);
           if (stats != null)
           {

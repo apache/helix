@@ -13,33 +13,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.linkedin.helix.store.zk;
+package com.linkedin.helix.manager.zk;
 
-import org.apache.zookeeper.data.Stat;
+import org.I0Itec.zkclient.serialize.ZkSerializer;
 
-public class PropertyItem
+/**
+ * Basic path based serializer which ignores the path and delegates
+ * serialization into a regular {@link ZkSerializer}
+ */
+public class BasicZkSerializer implements PathBasedZkSerializer
 {
-  byte[] _value;
-  Stat _stat;
+  private final ZkSerializer _delegate;
   
-  public PropertyItem(byte[] value, Stat stat)
+  public BasicZkSerializer(ZkSerializer delegate) 
   {
-    _value = value;
-    _stat = stat;
+    _delegate = delegate;
   }
-  
-  public byte[] getBytes()
+
+  public byte[] serialize(Object data, String path)
   {
-    return _value;
+    return _delegate.serialize(data);
   }
-  
-  public int getVersion()
+
+  @Override
+  public Object deserialize(byte[] bytes, String path)
   {
-    return _stat.getVersion();
-  }
-  
-  public long getLastModifiedTime()
-  {
-    return _stat.getMtime();
+    return _delegate.deserialize(bytes);
   }
 }

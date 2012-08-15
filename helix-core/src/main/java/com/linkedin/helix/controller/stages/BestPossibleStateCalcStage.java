@@ -8,7 +8,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 
 import org.apache.log4j.Logger;
 
@@ -19,8 +18,8 @@ import com.linkedin.helix.model.CurrentState;
 import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.model.IdealState.IdealStateModeProperty;
 import com.linkedin.helix.model.LiveInstance;
-import com.linkedin.helix.model.Resource;
 import com.linkedin.helix.model.Partition;
+import com.linkedin.helix.model.Resource;
 import com.linkedin.helix.model.StateModelDefinition;
 
 /**
@@ -37,6 +36,9 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
   @Override
   public void process(ClusterEvent event) throws Exception
   {
+    long startTime = System.currentTimeMillis();
+    logger.info("START BestPossibleStateCalcStage.process()");
+
     CurrentStateOutput currentStateOutput =
         event.getAttribute(AttributeName.CURRENT_STATE.toString());
     Map<String, Resource> resourceMap =
@@ -53,6 +55,9 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
     BestPossibleStateOutput bestPossibleStateOutput =
         compute(cache, resourceMap, currentStateOutput);
     event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.toString(), bestPossibleStateOutput);
+    
+    long endTime = System.currentTimeMillis();
+    logger.info("END BestPossibleStateCalcStage.process(). took: " + (endTime - startTime) + " ms");
   }
 
   private BestPossibleStateOutput compute(ClusterDataCache cache,

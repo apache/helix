@@ -38,6 +38,9 @@ public class TaskAssignmentStage extends AbstractBaseStage
   @Override
   public void process(ClusterEvent event) throws Exception
   {
+    long startTime = System.currentTimeMillis();
+    logger.info("START TaskAssignmentStage.process()");
+
     HelixManager manager = event.getAttribute("helixmanager");
     Map<String, Resource> resourceMap = event
         .getAttribute(AttributeName.RESOURCES.toString());
@@ -65,6 +68,10 @@ public class TaskAssignmentStage extends AbstractBaseStage
       }
     }
     sendMessages(dataAccessor, messagesToSend);
+    
+    long endTime = System.currentTimeMillis();
+    logger.info("END TaskAssignmentStage.process(). took: " + (endTime - startTime) + " ms");
+
   }
 
   protected void sendMessages(HelixDataAccessor dataAccessor,

@@ -708,7 +708,6 @@ public class ZKPropertyStore<T> implements
   @Override
   public boolean stop()
   {
-    _zkClient.close();
     return true;
   }
 

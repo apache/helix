@@ -108,13 +108,13 @@ public class HelixStateTransitionHandler extends MessageHandler
                             HelixTaskResult taskResult,
                             Exception exception) throws InterruptedException
   {
-    // DataAccessor accessor = manager.getDataAccessor();
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
     Builder keyBuilder = accessor.keyBuilder();
     try
     {
       String partitionKey = message.getPartitionName();
       String resource = message.getResourceName();
+      String sessionId = message.getTgtSessionId();
       String instanceName = manager.getInstanceName();
       
       int bucketSize = message.getBucketSize();
@@ -166,7 +166,7 @@ public class HelixStateTransitionHandler extends MessageHandler
 
       // based on task result update the current state of the node.
       accessor.updateProperty(keyBuilder.currentState(instanceName,
-                                                      manager.getSessionId(),
+                                                      sessionId,
                                                       resource,
                                                       bucketizer.getBucketName(partitionKey)),
                               _currentStateDelta);

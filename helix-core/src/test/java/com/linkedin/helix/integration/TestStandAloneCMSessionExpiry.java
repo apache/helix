@@ -37,9 +37,6 @@ public class TestStandAloneCMSessionExpiry extends ZkIntegrationTestBase
   public void testStandAloneCMSessionExpiry() throws Exception
   {
     // Logger.getRootLogger().setLevel(Level.DEBUG);
-    // System.out.println("RUN testStandAloneCMSessionExpiry() at "
-    // + new Date(System.currentTimeMillis()));
-
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
@@ -68,7 +65,7 @@ public class TestStandAloneCMSessionExpiry extends ZkIntegrationTestBase
                                  instanceName,
                                  InstanceType.PARTICIPANT,
                                  ZK_ADDR);
-      participants[i] = new MockParticipant(manager);
+      participants[i] = new MockParticipant(manager, null);
       participants[i].syncStart();
     }
 

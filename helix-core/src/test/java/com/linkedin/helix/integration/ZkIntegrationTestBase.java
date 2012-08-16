@@ -15,19 +15,10 @@
  */
 package com.linkedin.helix.integration;
 
-import java.io.IOException;
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
-import org.I0Itec.zkclient.IZkStateListener;
-import org.I0Itec.zkclient.ZkConnection;
 import org.I0Itec.zkclient.ZkServer;
 import org.apache.log4j.Logger;
-import org.apache.zookeeper.WatchedEvent;
-import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.Watcher.Event.KeeperState;
-import org.apache.zookeeper.ZooKeeper;
 import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.AfterSuite;
@@ -153,116 +144,6 @@ public class ZkIntegrationTestBase
     }
     AssertJUnit.assertTrue(isNewLeaderElected);
     return newLeader;
-  }
-
-  /**
-   * simulate session expiry
-   * 
-   * @param zkConnection
-   * @throws IOException
-   * @throws InterruptedException
-   */
-  protected void simulateSessionExpiry(ZkConnection zkConnection) throws IOException,
-      InterruptedException
-  {
-    ZooKeeper oldZookeeper = zkConnection.getZookeeper();
-    LOG.info("Old sessionId = " + oldZookeeper.getSessionId());
-
-    Watcher watcher = new Watcher()
-    {
-      @Override
-      public void process(WatchedEvent event)
-      {
-        LOG.info("In New connection, process event:" + event);
-      }
-    };
-
-    ZooKeeper newZookeeper =
-        new ZooKeeper(zkConnection.getServers(),
-                      oldZookeeper.getSessionTimeout(),
-                      watcher,
-                      oldZookeeper.getSessionId(),
-                      oldZookeeper.getSessionPasswd());
-    LOG.info("New sessionId = " + newZookeeper.getSessionId());
-    // Thread.sleep(3000);
-    newZookeeper.close();
-    Thread.sleep(10000);
-    oldZookeeper = zkConnection.getZookeeper();
-    LOG.info("After session expiry sessionId = " + oldZookeeper.getSessionId());
-  }
-
-  public static void simulateSessionExpiry(final ZkClient zkClient) throws IOException,
-      InterruptedException
-  {
-    IZkStateListener listener = new IZkStateListener()
-    {
-      @Override
-      public void handleStateChanged(KeeperState state) throws Exception
-      {
-        LOG.info("In Old connection, state changed:" + state);
-      }
-
-      @Override
-      public void handleNewSession() throws Exception
-      {
-        LOG.info("In Old connection, new session");
-      }
-    };
-    zkClient.subscribeStateChanges(listener);
-    ZkConnection connection = ((ZkConnection) zkClient.getConnection());
-    ZooKeeper oldZookeeper = connection.getZookeeper();
-    LOG.info("Old sessionId = " + Long.toHexString(oldZookeeper.getSessionId()));
-
-    Watcher watcher = new Watcher()
-    {
-      @Override
-      public void process(WatchedEvent event)
-      {
-        LOG.info("In New connection, process event:" + event);
-      }
-    };
-
-    final ZooKeeper newZookeeper =
-        new ZooKeeper(connection.getServers(),
-                      oldZookeeper.getSessionTimeout(),
-                      watcher,
-                      oldZookeeper.getSessionId(),
-                      oldZookeeper.getSessionPasswd());
-    LOG.info("New sessionId = " + Long.toHexString(newZookeeper.getSessionId()));
-    // Thread.sleep(3000);
-
-    final CountDownLatch waitStart = new CountDownLatch(1);
-    final CountDownLatch waitEnd = new CountDownLatch(1);
-    new Thread(new Runnable()
-    {
-
-      @Override
-      public void run()
-      {
-        waitStart.countDown();
-//        System.err.println("Start wait on expiring");
-        boolean ret =
-            zkClient.waitForKeeperState(KeeperState.Expired,
-                                        Integer.MAX_VALUE,
-                                        TimeUnit.MILLISECONDS);
-//        System.err.println("wait expire result: " + ret);
-        waitEnd.countDown();
-      }
-    }).start();
-
-    waitStart.await();
-    newZookeeper.close();
-
-//    Thread.sleep(1000);
-    waitEnd.await();
-//    System.err.println("Start wait on connected");
-
-    zkClient.waitUntilConnected();
-    connection = (ZkConnection) zkClient.getConnection();
-    oldZookeeper = connection.getZookeeper();
-//    System.err.println("zk: " + oldZookeeper);
-    LOG.info("After session expiry sessionId = "
-        + Long.toHexString(oldZookeeper.getSessionId()));
   }
 
   protected void enableHealthCheck(String clusterName)

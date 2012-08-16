@@ -6,7 +6,7 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import com.linkedin.helix.ExternalCommand;
-import com.linkedin.helix.IntegrationTestHelper;
+import com.linkedin.helix.ScriptTestHelper;
 import com.linkedin.helix.TestHelper;
 
 public class TestExternalCmd
@@ -24,7 +24,7 @@ public class TestExternalCmd
     System.out.println("START " + testName + " at "
         + new Date(System.currentTimeMillis()));
 
-    ExternalCommand cmd = IntegrationTestHelper.runCommandLineTest("dummy.sh");
+    ExternalCommand cmd = ScriptTestHelper.runCommandLineTest("dummy.sh");
     String output = cmd.getStringOutput("UTF8");
     int idx = output.indexOf("this is a dummy test for verify ExternalCommand works");
     Assert.assertNotSame(idx, -1);

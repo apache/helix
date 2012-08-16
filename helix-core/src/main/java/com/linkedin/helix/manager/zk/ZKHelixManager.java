@@ -463,6 +463,9 @@ public class ZKHelixManager implements HelixManager
     {
       _propertyStore.stop();
     }
+
+    // unsubscribe accessor from controllerChange
+    _zkClient.unsubscribeAll();
     
     _zkClient.close();
 

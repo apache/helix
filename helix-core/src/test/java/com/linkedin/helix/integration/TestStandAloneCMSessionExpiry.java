@@ -17,153 +17,123 @@ package com.linkedin.helix.integration;
 
 import java.util.Date;
 
-import org.I0Itec.zkclient.ZkConnection;
 import org.apache.log4j.Logger;
-import org.apache.zookeeper.ZooKeeper;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.TestHelper;
-import com.linkedin.helix.manager.zk.ZKHelixManager;
+import com.linkedin.helix.ZkTestHelper;
+import com.linkedin.helix.ZkTestHelper.TestZkHelixManager;
 import com.linkedin.helix.mock.storage.MockParticipant;
 import com.linkedin.helix.tools.ClusterSetup;
 import com.linkedin.helix.tools.ClusterStateVerifier;
 
 public class TestStandAloneCMSessionExpiry extends ZkIntegrationTestBase
 {
-  private static Logger      LOG          =
-                                              Logger.getLogger(TestStandAloneCMSessionExpiry.class);
-  protected final String     CLUSTER_NAME = "CLUSTER_" + "TestStandAloneCMSessionExpiry";
-  protected static final int NODE_NR      = 5;
-
-  class ZkClusterManagerWithSessionExpiry extends ZKHelixManager
-  {
-    public ZkClusterManagerWithSessionExpiry(String clusterName,
-                                             String instanceName,
-                                             InstanceType instanceType,
-                                             String zkConnectString) throws Exception
-    {
-      super(clusterName, instanceName, instanceType, zkConnectString);
-    }
-
-    public void expireSession() throws Exception
-    {
-      ZkIntegrationTestBase.simulateSessionExpiry(_zkClient);
-    }
-    
-    public long getZkSessionId()
-    {
-      ZkConnection connection = ((ZkConnection) _zkClient.getConnection());
-      ZooKeeper zookeeper = connection.getZookeeper();
-
-      return zookeeper.getSessionId();
-    }
-  }
+  private static Logger LOG = Logger.getLogger(TestStandAloneCMSessionExpiry.class);
 
   @Test()
   public void testStandAloneCMSessionExpiry() throws Exception
   {
     // Logger.getRootLogger().setLevel(Level.DEBUG);
-    System.out.println("RUN testStandAloneCMSessionExpiry() at "
+    // System.out.println("RUN testStandAloneCMSessionExpiry() at "
+    // + new Date(System.currentTimeMillis()));
+
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = className + "_" + methodName;
+
+    System.out.println("START " + clusterName + " at "
         + new Date(System.currentTimeMillis()));
 
-    ClusterSetup setupTool = new ClusterSetup(ZK_ADDR);
-
-    TestHelper.setupCluster(CLUSTER_NAME,
+    TestHelper.setupCluster(clusterName,
                             ZK_ADDR,
                             12918,
                             PARTICIPANT_PREFIX,
                             "TestDB",
                             1,
                             20,
-                            NODE_NR,
+                            5,
                             3,
                             "MasterSlave",
                             true);
 
-    MockParticipant[] participants = new MockParticipant[NODE_NR];
-    for (int i = 0; i < NODE_NR; i++)
+    MockParticipant[] participants = new MockParticipant[5];
+    for (int i = 0; i < 5; i++)
     {
       String instanceName = "localhost_" + (12918 + i);
-      HelixManager manager =
-          new ZkClusterManagerWithSessionExpiry(CLUSTER_NAME,
-                                                instanceName,
-                                                InstanceType.PARTICIPANT,
-                                                ZK_ADDR);
+      TestZkHelixManager manager =
+          new TestZkHelixManager(clusterName,
+                                 instanceName,
+                                 InstanceType.PARTICIPANT,
+                                 ZK_ADDR);
       participants[i] = new MockParticipant(manager);
-      new Thread(participants[i]).start();
+      participants[i].syncStart();
     }
-    ZkClusterManagerWithSessionExpiry controller =
-        new ZkClusterManagerWithSessionExpiry(CLUSTER_NAME,
-                                              "controller_0",
-                                              InstanceType.CONTROLLER,
-                                              ZK_ADDR);
+
+    TestZkHelixManager controller =
+        new TestZkHelixManager(clusterName,
+                               "controller_0",
+                               InstanceType.CONTROLLER,
+                               ZK_ADDR);
     controller.connect();
 
     boolean result;
     result =
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
-                                                                                          CLUSTER_NAME));
+                                                                                                   clusterName));
     Assert.assertTrue(result);
 
     // participant session expiry
-    ZkClusterManagerWithSessionExpiry manager =
-        (ZkClusterManagerWithSessionExpiry) participants[1].getManager();
-    long oldSessionId = manager.getZkSessionId();
-    manager.expireSession();
-    long newSessionId = manager.getZkSessionId();
-    for (int i = 0; i < 100; i++)
-    {
-      if (newSessionId != oldSessionId)
-      {
-        break;
-      }
-      Thread.sleep(100);
-    }
-    Assert.assertNotSame(newSessionId, oldSessionId);
-    setupTool.addResourceToCluster(CLUSTER_NAME, "TestDB1", 10, "MasterSlave");
-    setupTool.rebalanceStorageCluster(CLUSTER_NAME, "TestDB1", 3);
+    TestZkHelixManager participantToExpire = (TestZkHelixManager)participants[1].getManager();
+
+    System.out.println("Expire participant session");
+    String oldSessionId = participantToExpire.getSessionId();
+    
+    ZkTestHelper.expireSession(participantToExpire.getZkClient());
+    String newSessionId = participantToExpire.getSessionId();
+    System.out.println("oldSessionId: " + oldSessionId + ", newSessionId: " + newSessionId);
+    Assert.assertTrue(newSessionId.compareTo(oldSessionId) > 0, "Session id should be increased after expiry");
+
+    ClusterSetup setupTool = new ClusterSetup(ZK_ADDR);
+    setupTool.addResourceToCluster(clusterName, "TestDB1", 10, "MasterSlave");
+    setupTool.rebalanceStorageCluster(clusterName, "TestDB1", 3);
 
     result =
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
-                                                                                          CLUSTER_NAME));
+                                                                                                   clusterName));
     Assert.assertTrue(result);
 
     // controller session expiry
-    oldSessionId = controller.getZkSessionId();
-    controller.expireSession();
-    newSessionId = controller.getZkSessionId();
-    for (int i = 0; i < 100; i++)
-    {
-      if (newSessionId != oldSessionId)
-      {
-        break;
-      }
-      Thread.sleep(100);
-    }
-    Assert.assertNotSame(newSessionId, oldSessionId);
-    setupTool.addResourceToCluster(CLUSTER_NAME, "TestDB2", 8, "MasterSlave");
-    setupTool.rebalanceStorageCluster(CLUSTER_NAME, "TestDB2", 3);
+    System.out.println("Expire controller session");
+    oldSessionId = controller.getSessionId();
+    ZkTestHelper.expireSession(controller.getZkClient());
+    newSessionId = controller.getSessionId();
+    System.out.println("oldSessionId: " + oldSessionId + ", newSessionId: " + newSessionId);
+    Assert.assertTrue(newSessionId.compareTo(oldSessionId) > 0, "Session id should be increased after expiry");
+
+    setupTool.addResourceToCluster(clusterName, "TestDB2", 8, "MasterSlave");
+    setupTool.rebalanceStorageCluster(clusterName, "TestDB2", 3);
 
     result =
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
-                                                                                          CLUSTER_NAME));
+                                                                                                   clusterName));
     Assert.assertTrue(result);
-    
+
     // clean up
     System.out.println("Clean up ...");
-//    Logger.getRootLogger().setLevel(Level.DEBUG);
+    // Logger.getRootLogger().setLevel(Level.DEBUG);
     controller.disconnect();
     Thread.sleep(100);
-    for (int i = 0; i < NODE_NR; i++)
+    for (int i = 0; i < 5; i++)
     {
       participants[i].syncStop();
     }
 
-    System.out.println("STOP testStandAloneCMSessionExpiry() at "
+    System.out.println("END " + clusterName + " at "
         + new Date(System.currentTimeMillis()));
+
   }
 
 }

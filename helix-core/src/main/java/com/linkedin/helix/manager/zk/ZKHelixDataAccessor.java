@@ -572,7 +572,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
     }
     catch (Exception e)
     {
-      LOG.error("", e);
+      // LOG.error("", e);
       _zkPropertyTransferSvcUrl = null;
     }
   }

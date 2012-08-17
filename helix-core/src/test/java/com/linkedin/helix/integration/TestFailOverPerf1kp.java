@@ -6,7 +6,7 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import com.linkedin.helix.ExternalCommand;
-import com.linkedin.helix.IntegrationTestHelper;
+import com.linkedin.helix.ScriptTestHelper;
 import com.linkedin.helix.TestHelper;
 
 public class TestFailOverPerf1kp
@@ -23,7 +23,7 @@ public class TestFailOverPerf1kp
     System.out.println("START " + testName + " at "
         + new Date(System.currentTimeMillis()));
 
-    ExternalCommand cmd = IntegrationTestHelper.runCommandLineTest("helix_random_kill_local_startzk.sh");
+    ExternalCommand cmd = ScriptTestHelper.runCommandLineTest("helix_random_kill_local_startzk.sh");
     String output = cmd.getStringOutput("UTF8");
     int i = getStateTransitionLatency(0, output);
     int j = output.indexOf("ms", i);

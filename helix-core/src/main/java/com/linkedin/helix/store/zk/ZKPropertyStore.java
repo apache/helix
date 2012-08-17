@@ -28,9 +28,7 @@ import org.I0Itec.zkclient.IZkDataListener;
 import org.I0Itec.zkclient.IZkStateListener;
 import org.I0Itec.zkclient.ZkConnection;
 import org.I0Itec.zkclient.exception.ZkBadVersionException;
-import org.I0Itec.zkclient.exception.ZkMarshallingError;
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
-import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.ZooKeeper;
@@ -42,7 +40,6 @@ import com.linkedin.helix.store.PropertySerializer;
 import com.linkedin.helix.store.PropertyStat;
 import com.linkedin.helix.store.PropertyStore;
 import com.linkedin.helix.store.PropertyStoreException;
-import com.linkedin.helix.store.zk.PropertyItem.ByteArray;
 
 public class ZKPropertyStore<T> implements
     PropertyStore<T>,
@@ -51,37 +48,7 @@ public class ZKPropertyStore<T> implements
 {
   private static Logger LOG = Logger.getLogger(ZKPropertyStore.class);
 
-  static class ByteArraySerializer implements ZkSerializer
-  {
-    @Override
-    public byte[] serialize(Object data) throws ZkMarshallingError
-    {
-      if (data == null)
-      {
-        return null;
-      }
-      else
-      {
-        return ((ByteArray) data)._bytes;
-      }
-    }
-
-    @Override
-    public Object deserialize(byte[] bytes) throws ZkMarshallingError
-    {
-      if (bytes == null)
-      {
-        return null;
-      }
-      else
-      {
-        return new ByteArray(bytes);
-      }
-    }
-
-  };
-
-  class ByteArrayUpdater implements DataUpdater<ByteArray>
+  class ByteArrayUpdater implements DataUpdater<byte[]>
   {
     final DataUpdater<T> _updater;
     final PropertySerializer<T> _serializer;
@@ -93,17 +60,17 @@ public class ZKPropertyStore<T> implements
     }
 
     @Override
-    public ByteArray update(ByteArray current)
+    public byte[] update(byte[] current)
     {
       try
       {
         T currentValue = null;
         if (current != null)
         {
-          currentValue = _serializer.deserialize(current.getBytes());
+          currentValue = _serializer.deserialize(current);
         }
         T updateValue = _updater.update(currentValue);
-        return new ByteArray(_serializer.serialize(updateValue));
+        return _serializer.serialize(updateValue);
       }
       catch (PropertyStoreException e)
       {
@@ -128,6 +95,10 @@ public class ZKPropertyStore<T> implements
   private final Map<String, PropertyItem> _cache =
       new ConcurrentHashMap<String, PropertyItem>();
 
+  /** 
+   * The given zkClient is assumed to serialize and deserialize raw byte[] 
+   * for the given root and its descendants.
+   */
   public ZKPropertyStore(ZkClient zkClient, final PropertySerializer<T> serializer,
                          String root)
   {
@@ -138,7 +109,6 @@ public class ZKPropertyStore<T> implements
 
     _root = normalizeKey(root);
     _zkClient = zkClient;
-    _zkClient.setZkSerializer(new ByteArraySerializer());
 
     setPropertySerializer(serializer);
 
@@ -229,7 +199,7 @@ public class ZKPropertyStore<T> implements
 
       // serializer should handle value == null
       byte[] valueBytes = _serializer.serialize(value);
-      _zkClient.writeData(path, new ByteArray(valueBytes));
+      _zkClient.writeData(path, valueBytes);
 
       // update cache
       // getProperty(key);
@@ -285,11 +255,11 @@ public class ZKPropertyStore<T> implements
                 || item.getVersion() < stat.getVersion())
             {
               // stale data in cache
-              ByteArray bytes = _zkClient.readDataAndStat(path, stat, true);
+              byte[] bytes = _zkClient.readDataAndStat(path, stat, true);
               if (bytes != null)
               {
-                value = getValueAndStat(bytes.getBytes(), stat, propertyStat);
-                _cache.put(normalizedKey, new PropertyItem(bytes.getBytes(), stat));
+                value = getValueAndStat(bytes, stat, propertyStat);
+                _cache.put(normalizedKey, new PropertyItem(bytes, stat));
               }
             }
             else
@@ -303,11 +273,11 @@ public class ZKPropertyStore<T> implements
         else
         {
           // cache miss
-          ByteArray bytes = _zkClient.readDataAndStat(path, stat, true);
+          byte[] bytes = _zkClient.readDataAndStat(path, stat, true);
           if (bytes != null)
           {
-            value = getValueAndStat(bytes.getBytes(), stat, propertyStat);
-            _cache.put(normalizedKey, new PropertyItem(bytes.getBytes(), stat));
+            value = getValueAndStat(bytes, stat, propertyStat);
+            _cache.put(normalizedKey, new PropertyItem(bytes, stat));
           }
         }
       }
@@ -631,17 +601,17 @@ public class ZKPropertyStore<T> implements
     try
     {
       Stat stat = new Stat();
-      ByteArray currentBytes = _zkClient.readDataAndStat(path, stat, true);
+      byte[] currentBytes = _zkClient.readDataAndStat(path, stat, true);
       T current = null;
       if (currentBytes != null)
       {
-        current = _serializer.deserialize(currentBytes.getBytes());
+        current = _serializer.deserialize(currentBytes);
       }
 
       if (comparator.compare(current, expected) == 0)
       {
         byte[] valueBytes = _serializer.serialize(update);
-        _zkClient.writeData(path, new ByteArray(valueBytes), stat.getVersion());
+        _zkClient.writeData(path, valueBytes, stat.getVersion());
 
         // update cache
         // getProperty(key);
@@ -738,7 +708,6 @@ public class ZKPropertyStore<T> implements
   @Override
   public boolean stop()
   {
-    _zkClient.close();
     return true;
   }
 

@@ -279,7 +279,7 @@ public class ZkLogAnalyzer
             ZNRecord record = getZNRecord(line);
             LiveInstance liveInstance = new LiveInstance(record);
 
-            System.out.println(timestamp + ": close session "
+            System.out.println(new Timestamp(Long.parseLong(timestamp)) + ": close session "
                 + liveInstance.getInstanceName());
             dump = true;
           }
@@ -306,7 +306,7 @@ public class ZkLogAnalyzer
           leaderSession = session;
           controllerStartTime = Long.parseLong(getAttributeValue(inputLine, "time:"));
           sessionMap.put(session, inputLine);
-          System.out.println(timestamp + ": create LEADER "
+          System.out.println(new Timestamp(Long.parseLong(timestamp)) + ": create LEADER "
               + liveInstance.getInstanceName());
         }
         else if (inputLine.indexOf("/" + clusterName + "/") != -1

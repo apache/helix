@@ -36,7 +36,6 @@ import java.util.Timer;
 import java.util.concurrent.TimeUnit;
 
 import org.I0Itec.zkclient.ZkConnection;
-import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
@@ -464,6 +463,9 @@ public class ZKHelixManager implements HelixManager
     {
       _propertyStore.stop();
     }
+
+    // unsubscribe accessor from controllerChange
+    _zkClient.unsubscribeAll();
     
     _zkClient.close();
 
@@ -587,9 +589,16 @@ public class ZKHelixManager implements HelixManager
 
   private void createClient(String zkServers) throws Exception
   {
-    ZkSerializer zkSerializer = new ZNRecordStreamingSerializer(); // new
-                                                                   // ZNRecordSerializer();
-                                                                   // //
+    String propertyStorePath = 
+        PropertyPathConfig.getPath(PropertyType.PROPERTYSTORE, _clusterName);
+    
+    // by default use ZNRecordStreamingSerializer except for paths within the property
+    // store which expects raw byte[] serialization/deserialization
+    PathBasedZkSerializer zkSerializer =
+        ChainedPathZkSerializer.builder(new ZNRecordStreamingSerializer())
+                               .serialize(propertyStorePath, new ByteArraySerializer())
+                               .build();
+    
     _zkClient = new ZkClient(zkServers, _sessionTimeout, CONNECTIONTIMEOUT, zkSerializer);
     _accessor = new ZKDataAccessor(_clusterName, _zkClient);
 
@@ -969,11 +978,11 @@ public class ZKHelixManager implements HelixManager
     if (_propertyStore == null)
     {
       String path = PropertyPathConfig.getPath(PropertyType.PROPERTYSTORE, _clusterName);
-      // property store uses a different serializer
-      ZkClient zkClient = new ZkClient(_zkConnectString, CONNECTIONTIMEOUT);
 
+      // reuse the existing zkClient because its serializer will use raw serialization
+      // for paths of the property store.
       _propertyStore =
-          new ZKPropertyStore<ZNRecord>(zkClient, new ZNRecordJsonSerializer(), path);
+          new ZKPropertyStore<ZNRecord>(_zkClient, new ZNRecordJsonSerializer(), path);
     }
 
     return _propertyStore;

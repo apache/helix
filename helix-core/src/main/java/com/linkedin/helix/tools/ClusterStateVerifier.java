@@ -879,6 +879,7 @@ public class ClusterStateVerifier
   {
     boolean result = verifyState(args);
     System.out.println(result ? "Successful" : "failed");
+    System.exit(1);
   }
 
 }

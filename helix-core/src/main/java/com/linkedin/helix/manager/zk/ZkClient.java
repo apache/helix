@@ -57,17 +57,24 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
   // TODO need to remove when connection expired
   // private static final Set<IZkConnection> zkConnections              =
   //                                                                       new CopyOnWriteArraySet<IZkConnection>();
-  private ZkSerializer                    _zkSerializer;
+  private PathBasedZkSerializer           _zkSerializer;
+
+  public ZkClient(IZkConnection connection,
+                  int connectionTimeout,
+                  PathBasedZkSerializer zkSerializer)
+  {
+    super(connection, connectionTimeout, new ByteArraySerializer());
+    _zkSerializer = zkSerializer;
+    // zkConnections.add(_connection);
+    StackTraceElement[] calls = Thread.currentThread().getStackTrace();
+    LOG.info("create a new zkclient. " + Arrays.asList(calls));
+  }
 
   public ZkClient(IZkConnection connection,
                   int connectionTimeout,
                   ZkSerializer zkSerializer)
   {
-    super(connection, connectionTimeout, zkSerializer);
-    _zkSerializer = zkSerializer;
-    // zkConnections.add(_connection);
-    StackTraceElement[] calls = Thread.currentThread().getStackTrace();
-    LOG.info("create a new zkclient. " + Arrays.asList(calls));
+    this(connection, connectionTimeout, new BasicZkSerializer(zkSerializer));
   }
 
   public ZkClient(IZkConnection connection, int connectionTimeout)
@@ -88,6 +95,14 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
     this(new ZkConnection(zkServers, sessionTimeout), connectionTimeout, zkSerializer);
   }
 
+  public ZkClient(String zkServers,
+          int sessionTimeout,
+          int connectionTimeout,
+          PathBasedZkSerializer zkSerializer)
+  {
+      this(new ZkConnection(zkServers, sessionTimeout), connectionTimeout, zkSerializer);
+  }
+
   public ZkClient(String zkServers, int sessionTimeout, int connectionTimeout)
   {
     this(new ZkConnection(zkServers, sessionTimeout),
@@ -105,18 +120,20 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
     this(new ZkConnection(zkServers), Integer.MAX_VALUE, new SerializableSerializer());
   }
 
+  {
+  }
+
   @Override
   public void setZkSerializer(ZkSerializer zkSerializer)
   {
-    super.setZkSerializer(zkSerializer);
+    _zkSerializer = new BasicZkSerializer(zkSerializer);
+  }
+
+  public void setZkSerializer(PathBasedZkSerializer zkSerializer)
+  {
     _zkSerializer = zkSerializer;
   }
-
-  public ZkSerializer getZkSerializer()
-  {
-    return _zkSerializer;
-  }
-
+  
   public IZkConnection getConnection()
   {
     return _connection;
@@ -209,13 +226,13 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
   }
 
   @SuppressWarnings("unchecked")
-  private <T extends Object> T derializable(byte[] data)
+  public <T extends Object> T deserialize(byte[] data, String path)
   {
     if (data == null)
     {
       return null;
     }
-    return (T) _zkSerializer.deserialize(data);
+    return (T) _zkSerializer.deserialize(data, path);
   }
 
   // override readData(path, stat, watch), so we can record all read requests
@@ -237,7 +254,7 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
           return _connection.readData(path, stat, watch);
         }
       });
-      return (T) derializable(data);
+      return (T) deserialize(data, path);
     }
     finally
     {
@@ -271,9 +288,9 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
     return _connection.getServers();
   }
 
-  private byte[] serialize(Object data)
+  public byte[] serialize(Object data, String path)
   {
-    return _zkSerializer.serialize(data);
+    return _zkSerializer.serialize(data, path);
   }
 
   @Override
@@ -283,7 +300,7 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
     try
     {
 
-      final byte[] data = serialize(datat);
+      final byte[] data = serialize(datat, path);
       retryUntilConnected(new Callable<Object>()
       {
 
@@ -316,7 +333,7 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
     long startT = System.nanoTime();
     try
     {
-      final byte[] bytes = data == null ? null : serialize(data);
+      final byte[] bytes = data == null ? null : serialize(data, path);
 
       return retryUntilConnected(new Callable<String>()
       {
@@ -427,7 +444,7 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
     byte[] data = null;
     if (datat != null)
     {
-      data = _zkSerializer.serialize(datat);
+      data = serialize(datat, path);
     }
     ((ZkConnection) _connection).getZookeeper().create(path, data, Ids.OPEN_ACL_UNSAFE, // Arrays.asList(DEFAULT_ACL),
                                                        mode,
@@ -440,7 +457,7 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
                            int version,
                            SetDataCallbackHandler cb)
   {
-    final byte[] data = _zkSerializer.serialize(datat);
+    final byte[] data = serialize(datat, path);
     ((ZkConnection) _connection).getZookeeper().setData(path, data, version, cb, null);
 
   }

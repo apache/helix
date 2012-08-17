@@ -356,13 +356,13 @@ public class MockParticipant extends Thread
     _job = job;
   }
 
-  public MockParticipant(HelixManager manager)
+  public MockParticipant(HelixManager manager, MockTransition transition)
   {
     _clusterName = manager.getClusterName();
     _instanceName = manager.getInstanceName();
     _manager = manager;
 
-    _msModelFacotry = new MockMSModelFactory(null);
+    _msModelFacotry = new MockMSModelFactory(transition);
     _job = null;
   }
 

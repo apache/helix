@@ -38,6 +38,7 @@ public class ExternalViewComputeStage extends AbstractBaseStage
   @Override
   public void process(ClusterEvent event) throws Exception
   {
+    long startTime = System.currentTimeMillis();
     log.info("START ExternalViewComputeStage.process()");
 
     HelixManager manager = event.getAttribute("helixmanager");
@@ -114,7 +115,8 @@ public class ExternalViewComputeStage extends AbstractBaseStage
       dataAccessor.setChildren(keys, newExtViews);
     }
     
-    log.info("END ExternalViewComputeStage.process()");
+    long endTime = System.currentTimeMillis();
+    log.info("END ExternalViewComputeStage.process(). took: " + (endTime - startTime) + " ms");
   }
 
 }

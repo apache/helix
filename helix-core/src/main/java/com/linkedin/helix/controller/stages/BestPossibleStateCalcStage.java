@@ -12,9 +12,12 @@ import java.util.TreeMap;
 
 import org.apache.log4j.Logger;
 
+import com.linkedin.helix.HelixManager;
+import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.HelixConstants.StateModelToken;
 import com.linkedin.helix.controller.pipeline.AbstractBaseStage;
 import com.linkedin.helix.controller.pipeline.StageException;
+import com.linkedin.helix.josql.JsqlQueryListProcessor;
 import com.linkedin.helix.model.CurrentState;
 import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.model.IdealState.IdealStateModeProperty;
@@ -51,11 +54,11 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
 
 
     BestPossibleStateOutput bestPossibleStateOutput =
-        compute(cache, resourceMap, currentStateOutput);
+        compute(event, resourceMap, currentStateOutput);
     event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.toString(), bestPossibleStateOutput);
   }
 
-  private BestPossibleStateOutput compute(ClusterDataCache cache,
+  private BestPossibleStateOutput compute(ClusterEvent event,
 		Map<String, Resource> resourceMap,
 		CurrentStateOutput currentStateOutput)
   {
@@ -64,7 +67,9 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
     // for each resource
     // get the preference list
     // for each instanceName check if its alive then assign a state
-
+    ClusterDataCache cache = event.getAttribute("ClusterDataCache");
+    HelixManager manager = event.getAttribute("helixmanager");
+    
     BestPossibleStateOutput output = new BestPossibleStateOutput();
 
     for (String resourceName : resourceMap.keySet())
@@ -94,6 +99,18 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
       {
         calculateAutoBalancedIdealState(cache, idealState, stateModelDef, currentStateOutput);
       }
+      
+      // For idealstate that has rebalancing timer and is in AUTO mode, we will run jsql queries to calculate the 
+      // preference list
+      
+      Map<String, List<String>> queryPartitionPriorityLists = null;
+      if(idealState.getIdealStateMode() == IdealStateModeProperty.AUTO && idealState.getRebalanceTimerPeriod() > 0)
+      {
+        if(manager != null)
+        {
+          queryPartitionPriorityLists = calculatePartitionPriorityListWithQuery(manager, idealState);
+        }
+      }
 
       for (Partition partition : resource.getPartitions())
       {
@@ -116,6 +133,23 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
         {
           List<String> instancePreferenceList
             = getPreferenceList(cache, partition, idealState, stateModelDef);
+          if(queryPartitionPriorityLists != null)
+          {
+            String partitionName = partition.getPartitionName();
+            if(queryPartitionPriorityLists.containsKey(partitionName))
+            {
+              List<String> queryInstancePreferenceList = queryPartitionPriorityLists.get(partitionName);
+              // For instances that is not included in the queryInstancePreferenceList, add them to the end of the list
+              for(String instanceName : instancePreferenceList)
+              {
+                if(!queryInstancePreferenceList.contains(instanceName))
+                {
+                  queryInstancePreferenceList.add(instanceName);
+                }
+              }
+              instancePreferenceList = queryInstancePreferenceList;
+            }
+          }
           bestStateForPartition =
               computeAutoBestStateForPartition(cache, stateModelDef,
                                               instancePreferenceList,
@@ -128,6 +162,45 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
     return output;
   }
   
+  Map<String, List<String>> calculatePartitionPriorityListWithQuery(HelixManager manager, IdealState idealState)
+  {
+    // Read queries from the resource config
+    String querys = idealState.getRecord().getSimpleField(IdealState.QUERY_LIST);
+    if(querys == null)
+    {
+      logger.warn("IdealState " + idealState.getResourceName() + " does not have query list");
+      return null;
+    }
+    try
+    {
+      List<String> queryList = Arrays.asList(querys.split(";"));
+      List<ZNRecord> resultList = JsqlQueryListProcessor.executeQueryList(manager.getHelixDataAccessor(),manager.getClusterName(), queryList);
+      Map<String, List<String>> priorityLists = new TreeMap<String, List<String>>();
+      for(ZNRecord result : resultList)
+      {
+        String partition = result.getSimpleField("partition");
+        String instance = result.getSimpleField("instance");
+        if(instance.equals("") || partition.equals(""))
+        {
+          continue;
+        }
+        
+        if(!priorityLists.containsKey(partition))
+        {
+          priorityLists.put(partition, new ArrayList<String>());
+        }
+        priorityLists.get(partition).add(instance);
+      }
+      return priorityLists;
+    }
+    catch (Exception e)
+    {
+      logger.error("", e);
+      return null;
+    }
+    
+  }
+
   /**
    * Compute best state for resource in AUTO_REBALANCE ideal state mode.
    * the algorithm will make sure that the master partition are evenly distributed;

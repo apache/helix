@@ -18,11 +18,10 @@ public class JsqlQueryListProcessor
   public static final String SEPARATOR = "-->";
   private static Logger _logger = Logger.getLogger(JsqlQueryListProcessor.class);
   
-  public static List<ZNRecord> executeQueryList(HelixManager manager, List<String> combinedQueryList) throws Exception
+  public static List<ZNRecord> executeQueryList(HelixDataAccessor accessor, String clusterName, List<String> combinedQueryList) throws Exception
   {
-    HelixDataAccessor accessor = manager.getHelixDataAccessor();
     ZNRecordQueryProcessor processor = new ZNRecordQueryProcessor();
-    DataAccessorBasedTupleReader tupleReader = new DataAccessorBasedTupleReader(accessor, manager.getClusterName());
+    DataAccessorBasedTupleReader tupleReader = new DataAccessorBasedTupleReader(accessor, clusterName);
     List<ZNRecord> tempResult = null;
     for(int i = 0; i < combinedQueryList.size(); i++)
     {

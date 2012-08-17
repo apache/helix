@@ -156,7 +156,7 @@ public class TestZNRecordQueryProcessorWithZK extends ZkStandAloneCMTestBase
     combinedQueryStringList.add(rankQuery + JsqlQueryListProcessor.SEPARATOR+"rankTable");
     combinedQueryStringList.add(masterSelectionQuery);
     System.out.println();
-    List<ZNRecord> masterSelectionTable2 = JsqlQueryListProcessor.executeQueryList(manager, combinedQueryStringList);
+    List<ZNRecord> masterSelectionTable2 = JsqlQueryListProcessor.executeQueryList(manager.getHelixDataAccessor(), manager.getClusterName(), combinedQueryStringList);
     for(ZNRecord record : masterSelectionTable2)
     {
       System.out.println(record);

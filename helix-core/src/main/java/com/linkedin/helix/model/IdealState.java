@@ -38,9 +38,12 @@ public class IdealState extends HelixProperty
     STATE_MODEL_DEF_REF,
     STATE_MODEL_FACTORY_NAME,
     REPLICAS,
-    IDEAL_STATE_MODE
+    IDEAL_STATE_MODE,
+    REBALANCE_TIMER_PERIOD
 //    BUCKET_SIZE
   }
+  
+  public static final String QUERY_LIST = "PREFERENCE_LIST_QUERYS";
 
   public enum IdealStateModeProperty
   {
@@ -221,6 +224,23 @@ public class IdealState extends HelixProperty
   public String getStateModelFactoryName()
   {
     return _record.getSimpleField(IdealStateProperty.STATE_MODEL_FACTORY_NAME.toString());
+  }
+  
+  public int getRebalanceTimerPeriod()
+  {
+    if(_record.getSimpleFields().containsKey(IdealStateProperty.REBALANCE_TIMER_PERIOD.toString()))
+    {
+      try
+      {
+        int result = Integer.parseInt(_record.getSimpleField(IdealStateProperty.REBALANCE_TIMER_PERIOD.toString()));
+        return result;
+      }
+      catch(Exception e)
+      {
+        logger.error("", e);
+      }
+    }
+    return -1;
   }
 
   @Override

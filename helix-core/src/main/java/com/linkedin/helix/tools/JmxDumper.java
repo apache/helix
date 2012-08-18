@@ -19,11 +19,13 @@ import javax.management.MBeanAttributeInfo;
 import javax.management.MBeanInfo;
 import javax.management.MBeanOperationInfo;
 import javax.management.MBeanServerConnection;
+import javax.management.MBeanServerDelegate;
 import javax.management.MBeanServerNotification;
 import javax.management.Notification;
 import javax.management.NotificationListener;
 import javax.management.ObjectInstance;
 import javax.management.ObjectName;
+import javax.management.relation.MBeanServerNotificationFilter;
 import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
@@ -49,6 +51,7 @@ public class JmxDumper implements NotificationListener
   public static final String className = "className";
   public static final String outputFile = "outputFile";
   public static final String jmxUrl = "jmxUrl";
+  public static final String sampleCount = "sampleCount";
   
   private static final Logger _logger = Logger.getLogger(JmxDumper.class);
   String _domain;
@@ -66,7 +69,8 @@ public class JmxDumper implements NotificationListener
   List<String> _outputFields = new ArrayList<String>();
   Set<String> _operations = new HashSet<String>();
   PrintWriter _outputFile;
-  
+  int _samples = 0;
+  int _targetSamples = -1;
   String _jmxUrl;
   
   public JmxDumper(String jmxService, 
@@ -76,7 +80,9 @@ public class JmxDumper implements NotificationListener
       int samplePeriod, 
       List<String> fields, 
       List<String> operations, 
-      String outputfile) throws Exception
+      String outputfile,
+      int sampleCount
+      ) throws Exception
   {
     _jmxUrl = jmxService;
     _domain = domain;
@@ -86,11 +92,15 @@ public class JmxDumper implements NotificationListener
     _operations.addAll(operations);
     _outputFileName = outputfile;
     _namePattern = namePattern;
+    _targetSamples = sampleCount;
     
     JMXServiceURL url = new JMXServiceURL("service:jmx:rmi:///jndi/rmi://" + _jmxUrl + "/jmxrmi");
     JMXConnector jmxc = JMXConnectorFactory.connect(url, null);
     
     _mbeanServer = jmxc.getMBeanServerConnection();
+    MBeanServerNotificationFilter filter = new MBeanServerNotificationFilter();
+    filter.enableAllObjectNames();
+    _mbeanServer.addNotificationListener(MBeanServerDelegate.DELEGATE_NAME, this, filter, null);
     init();
     _timer = new Timer(true);
     _timer.scheduleAtFixedRate(new SampleTask(), _samplePeriod, _samplePeriod);
@@ -102,6 +112,7 @@ public class JmxDumper implements NotificationListener
     public void run()
     {
       List<ObjectName> errorMBeans = new ArrayList<ObjectName>();
+      _logger.info("Sampling " + _mbeanNames.size() + " beans");
       for(ObjectName beanName : _mbeanNames.keySet())
       {
         MBeanInfo info;
@@ -169,7 +180,7 @@ public class JmxDumper implements NotificationListener
             try
             {
               _mbeanServer.invoke(beanName, ope, new Object[0], new String[0]);
-              System.out.println(ope+" invoked");
+              //System.out.println(ope+" invoked");
             }
             catch(Exception e)
             {
@@ -179,11 +190,22 @@ public class JmxDumper implements NotificationListener
           }
         }
         _outputFile.println(line.toString());
-        System.out.println(line);
+        //System.out.println(line);
       }
       for(ObjectName deadBean : errorMBeans)
       {
         _mbeanNames.remove(deadBean);
+      }
+
+      _samples ++;
+      //System.out.println("samples:"+_samples);
+      if(_samples == _targetSamples)
+      {
+        synchronized(JmxDumper.this)
+        {
+          _logger.info(_samples + " samples done, exiting...");
+          JmxDumper.this.notifyAll();
+        }
       }
     }
   }
@@ -218,6 +240,8 @@ public class JmxDumper implements NotificationListener
     MBeanServerNotification mbs = (MBeanServerNotification) notification;
     if(MBeanServerNotification.REGISTRATION_NOTIFICATION.equals(mbs.getType())) 
     {
+      //System.out.println("Adding mbean " + mbs.getMBeanName());
+      _logger.info("Adding mbean " + mbs.getMBeanName());
       if(mbs.getMBeanName().getDomain().equalsIgnoreCase(_domain))
       { 
         addMBean( mbs.getMBeanName());
@@ -225,6 +249,8 @@ public class JmxDumper implements NotificationListener
     }
     else if(MBeanServerNotification.UNREGISTRATION_NOTIFICATION.equals(mbs.getType())) 
     {
+      //System.out.println("Removing mbean " + mbs.getMBeanName());
+      _logger.info("Removing mbean " + mbs.getMBeanName());
       if(mbs.getMBeanName().getDomain().equalsIgnoreCase(_domain))
       {
         removeMBean(mbs.getMBeanName());
@@ -278,6 +304,8 @@ public class JmxDumper implements NotificationListener
     String fieldsStr = cmd.getOptionValue(fields);
     String operationsStr = cmd.getOptionValue(operations);
     String resultFile = cmd.getOptionValue(outputFile);
+    String sampleCountStr = cmd.getOptionValue(sampleCount, "-1");
+    int sampleCount = Integer.parseInt(sampleCountStr);
     
     List<String> fields = Arrays.asList(fieldsStr.split(","));
     List<String> operations = Arrays.asList(operationsStr.split(","));
@@ -285,8 +313,11 @@ public class JmxDumper implements NotificationListener
     JmxDumper dumper = null;
     try
     {
-      dumper = new JmxDumper(portStr, domainStr, classNameStr, patternStr, periodVal, fields, operations, resultFile);
-      Thread.currentThread().join();
+      dumper = new JmxDumper(portStr, domainStr, classNameStr, patternStr, periodVal, fields, operations, resultFile, sampleCount);
+      synchronized(dumper)
+      {
+        dumper.wait();
+      }
     }
     finally
     {
@@ -398,6 +429,13 @@ public class JmxDumper implements NotificationListener
     jmxUrlOption.setArgs(1);
     jmxUrlOption.setRequired(true);
     
+    Option sampleCountOption =
+        OptionBuilder.withLongOpt(sampleCount)
+                     .withDescription("# of samples to take")
+                     .create();
+    sampleCountOption.setArgs(1);
+    sampleCountOption.setRequired(false);
+    
     Options options = new Options();
     options.addOption(helpOption);
     options.addOption(domainOption);
@@ -408,6 +446,7 @@ public class JmxDumper implements NotificationListener
     options.addOption(jmxUrlOption);
     options.addOption(patternOption);
     options.addOption(periodOption);
+    options.addOption(sampleCountOption);
     return options;
   }
   

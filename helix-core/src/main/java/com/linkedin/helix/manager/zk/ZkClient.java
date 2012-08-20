@@ -41,22 +41,20 @@ import com.linkedin.helix.manager.zk.ZkAsyncCallbacks.SetDataCallbackHandler;
  * ZKClient does not provide some functionalities, this will be used for quick fixes if
  * any bug found in ZKClient or if we need additional features but can't wait for the new
  * ZkClient jar Ideally we should commit the changes we do here to ZKClient.
- * 
+ *
  * @author kgopalak
- * 
+ *
  */
 
 public class ZkClient extends org.I0Itec.zkclient.ZkClient
 {
   private static Logger                   LOG                        =
                                                                          Logger.getLogger(ZkClient.class);
-  public static final int                 DEFAULT_CONNECTION_TIMEOUT = 10000;
+  public static final int                 DEFAULT_CONNECTION_TIMEOUT = 60 * 1000;
+  public static final int                 DEFAULT_SESSION_TIMEOUT = 30 * 1000;
   public static String                    sessionId;
   public static String                    sessionPassword;
 
-  // TODO need to remove when connection expired
-  // private static final Set<IZkConnection> zkConnections              =
-  //                                                                       new CopyOnWriteArraySet<IZkConnection>();
   private PathBasedZkSerializer           _zkSerializer;
 
   public ZkClient(IZkConnection connection,
@@ -65,7 +63,7 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
   {
     super(connection, connectionTimeout, new ByteArraySerializer());
     _zkSerializer = zkSerializer;
-    // zkConnections.add(_connection);
+
     StackTraceElement[] calls = Thread.currentThread().getStackTrace();
     LOG.info("create a new zkclient. " + Arrays.asList(calls));
   }
@@ -133,7 +131,7 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
   {
     _zkSerializer = zkSerializer;
   }
-  
+
   public IZkConnection getConnection()
   {
     return _connection;
@@ -142,14 +140,11 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
   @Override
   public void close() throws ZkInterruptedException
   {
-    // zkConnections.remove(_connection);
+    StackTraceElement[] calls = Thread.currentThread().getStackTrace();
+    LOG.info("close a zkclient. " + Arrays.asList(calls));
+
     super.close();
   }
-
-//  public static int getNumberOfConnections()
-//  {
-//    return zkConnections.size();
-//  }
 
   public Stat getStat(final String path)
   {

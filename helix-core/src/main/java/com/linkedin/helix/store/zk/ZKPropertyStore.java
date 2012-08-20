@@ -95,8 +95,8 @@ public class ZKPropertyStore<T> implements
   private final Map<String, PropertyItem> _cache =
       new ConcurrentHashMap<String, PropertyItem>();
 
-  /** 
-   * The given zkClient is assumed to serialize and deserialize raw byte[] 
+  /**
+   * The given zkClient is assumed to serialize and deserialize raw byte[]
    * for the given root and its descendants.
    */
   public ZKPropertyStore(ZkClient zkClient, final PropertySerializer<T> serializer,
@@ -708,6 +708,7 @@ public class ZKPropertyStore<T> implements
   @Override
   public boolean stop()
   {
+    _zkClient.close();
     return true;
   }
 

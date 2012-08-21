@@ -46,6 +46,7 @@ public class ClusterResource extends Resource
 {
   public static final String _clusterName  = "clusterName";
   public static final String _grandCluster = "grandCluster";
+  public static final String _enabled = "enabled";
 
   public ClusterResource(Context context, Request request, Response response)
   {
@@ -158,8 +159,15 @@ public class ClusterResource extends Resource
         throw new HelixException("Json parameters does not contain '" + _grandCluster
             + "'");
       }
+      
+      if (!jsonParameters.containsKey(_enabled))
+      {
+        throw new HelixException("Json parameters does not contain '" + _enabled
+            + "'");
+      }
 
       String grandCluster = jsonParameters.get(_grandCluster);
+      boolean enabled = Boolean.parseBoolean(jsonParameters.get(_enabled));
       ClusterSetup setupTool = new ClusterSetup(zkServer);
       List<String> grandClusterResourceGroups =
           setupTool.getClusterManagementTool().getResourcesInCluster(grandCluster);
@@ -168,7 +176,7 @@ public class ClusterResource extends Resource
         throw new HelixException("Grand cluster " + grandCluster
             + " already have a resourceGroup for " + clusterName);
       }
-      setupTool.addCluster(clusterName, grandCluster);
+      setupTool.activateCluster(clusterName, grandCluster, enabled);
       // add cluster
       getResponse().setEntity(getClusterRepresentation(zkServer, clusterName));
       getResponse().setStatus(Status.SUCCESS_OK);

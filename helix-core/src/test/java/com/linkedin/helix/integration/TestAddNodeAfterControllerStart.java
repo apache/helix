@@ -152,7 +152,7 @@ public class TestAddNodeAfterControllerStart extends ZkIntegrationTestBase
     
     // setup cluster
     _gSetupTool.addCluster(clusterName, true);
-    _gSetupTool.addCluster(clusterName, "GRAND_" + clusterName);    // addCluster2
+    _gSetupTool.activateCluster(clusterName, "GRAND_" + clusterName, true);    // addCluster2
 
     boolean result;
     result =

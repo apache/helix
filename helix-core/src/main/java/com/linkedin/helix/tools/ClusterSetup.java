@@ -74,14 +74,13 @@ public class ClusterSetup
 
   // Add, drop, and rebalance
   public static final String addCluster = "addCluster";
-  public static final String addCluster2 = "addCluster2";
+  public static final String activateCluster = "activateCluster";
   public static final String dropCluster = "dropCluster";
   public static final String dropResource = "dropResource";
   public static final String addInstance = "addNode";
   public static final String addResource = "addResource";
   public static final String addStateModelDef = "addStateModelDef";
   public static final String addIdealState = "addIdealState";
-  public static final String disableInstance = "disableNode";
   public static final String swapInstance = "swapInstance";
   public static final String dropInstance = "dropNode";
   public static final String rebalance = "rebalance";
@@ -148,9 +147,16 @@ public class ClusterSetup
                      new StateModelDefinition(generator.generateConfigForOnlineOffline()));
   }
 
-  public void addCluster(String clusterName, String grandCluster)
+  public void activateCluster(String clusterName, String grandCluster, boolean enable)
   {
-    _admin.addClusterToGrandCluster(clusterName, grandCluster);
+    if(enable)
+    {
+      _admin.addClusterToGrandCluster(clusterName, grandCluster);
+    }
+    else
+    {
+      _admin.dropResource(grandCluster, clusterName);
+    }
   }
 
   public void deleteCluster(String clusterName)
@@ -862,13 +868,13 @@ public class ClusterSetup
     addClusterOption.setRequired(false);
     addClusterOption.setArgName("clusterName");
 
-    Option addClusterOption2 =
-        OptionBuilder.withLongOpt(addCluster2)
-                     .withDescription("Add a new cluster")
+    Option activateClusterOption =
+        OptionBuilder.withLongOpt(activateCluster)
+                     .withDescription("Enable/disable a cluster in distributed controller mode")
                      .create();
-    addClusterOption2.setArgs(2);
-    addClusterOption2.setRequired(false);
-    addClusterOption2.setArgName("clusterName grandCluster");
+    activateClusterOption.setArgs(3);
+    activateClusterOption.setRequired(false);
+    activateClusterOption.setArgName("clusterName grandCluster true/false");
 
     Option deleteClusterOption =
         OptionBuilder.withLongOpt(dropCluster)
@@ -1016,7 +1022,7 @@ public class ClusterSetup
 
     Option enableClusterOption =
         OptionBuilder.withLongOpt(enableCluster)
-                     .withDescription("Enable/disable a cluster")
+                     .withDescription("pause/resume the controller of a cluster")
                      .create();
     enableClusterOption.setArgs(2);
     enableClusterOption.setRequired(false);
@@ -1093,7 +1099,7 @@ public class ClusterSetup
     group.addOption(resourceBucketSizeOption);
     group.addOption(resourceKeyOption);
     group.addOption(addClusterOption);
-    group.addOption(addClusterOption2);
+    group.addOption(activateClusterOption);
     group.addOption(deleteClusterOption);
     group.addOption(addInstanceOption);
     group.addOption(listInstancesOption);
@@ -1207,11 +1213,12 @@ public class ClusterSetup
       return 0;
     }
 
-    if (cmd.hasOption(addCluster2))
+    if (cmd.hasOption(activateCluster))
     {
-      String clusterName = cmd.getOptionValues(addCluster2)[0];
-      String grandCluster = cmd.getOptionValues(addCluster2)[1];
-      setupTool.addCluster(clusterName, grandCluster);
+      String clusterName = cmd.getOptionValues(activateCluster)[0];
+      String grandCluster = cmd.getOptionValues(activateCluster)[1];
+      boolean enable = Boolean.parseBoolean(cmd.getOptionValues(activateCluster)[2]);
+      setupTool.activateCluster(clusterName, grandCluster, enable);
       return 0;
     }
 
@@ -1505,7 +1512,7 @@ public class ClusterSetup
       String[] params = cmd.getOptionValues(enableCluster);
       String clusterName = params[0];
       boolean enabled = Boolean.parseBoolean(params[1].toLowerCase());
-      setupTool.getClusterManagementTool().enableCluster(clusterName, enabled);
+      setupTool.getClusterManagementTool().pauseCluster(clusterName, enabled);
 
       return 0;
     }

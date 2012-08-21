@@ -75,7 +75,7 @@ public interface HelixAdmin
                        String partition,
                        boolean enabled);
 
-  void enableCluster(String clusterName, boolean enabled);
+  void pauseCluster(String clusterName, boolean enabled);
 
   void resetPartition(String clusterName,
                       String instanceName,

@@ -13,10 +13,14 @@ import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.TestHelper.StartCMResult;
 import com.linkedin.helix.controller.HelixControllerMain;
+import com.linkedin.helix.controller.restlet.ZKPropertyTransferServer;
+import com.linkedin.helix.controller.restlet.ZkPropertyTransferClient;
 import com.linkedin.helix.integration.ZkIntegrationTestBase;
 import com.linkedin.helix.manager.zk.ZKUtil;
 import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.model.LiveInstance;
+import com.linkedin.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
+import com.linkedin.helix.tools.ClusterStateVerifier.MasterNbInExtViewVerifier;
 
 public class TestHelixAdminScenariosCli extends ZkIntegrationTestBase
 {
@@ -43,6 +47,11 @@ public class TestHelixAdminScenariosCli extends ZkIntegrationTestBase
     
     ZkClient zkClient = new ZkClient("localhost:2183");
     
+    // Helix bug helix-102
+    //ZKPropertyTransferServer.PERIOD = 500;
+    //ZkPropertyTransferClient.SEND_PERIOD = 500;
+    //ZKPropertyTransferServer.getInstance().init(19999, ZK_ADDR);
+    
     /**======================= Add clusters ==============================*/
     
     String command = "--zkSvr localhost:2183 -addCluster clusterTest";
@@ -52,6 +61,7 @@ public class TestHelixAdminScenariosCli extends ZkIntegrationTestBase
     command = "--zkSvr localhost:2183 -addCluster /ClusterTest";
     assertException(command);
     
+    // Add the grand cluster
     command = "--zkSvr localhost:2183 -addCluster \"Klazt3rz";
     ClusterSetup.processCommandLineArgs(command.split(" "));
     
@@ -84,9 +94,11 @@ public class TestHelixAdminScenariosCli extends ZkIntegrationTestBase
     command = "-zkSvr localhost:2183 -addCluster clusterTest1";
     ClusterSetup.processCommandLineArgs(command.split(" "));
     
-    /** Add / drop some resources */
     
-    command = "-zkSvr localhost:2183 -addResource clusterTest1 db_22 44 MasterSlave";
+    
+    /**================= Add / drop some resources ===========================*/
+    
+    command = "-zkSvr localhost:2183 -addResource clusterTest1 db_22 144 MasterSlave";
     ClusterSetup.processCommandLineArgs(command.split(" "));
     
     command = "-zkSvr localhost:2183 -addResource clusterTest1 db_11 44 MasterSlave";
@@ -104,7 +116,9 @@ public class TestHelixAdminScenariosCli extends ZkIntegrationTestBase
     ClusterSetup.processCommandLineArgs(command.split(" "));
     
     
-    /** Add / delete  instances */
+    
+    
+    /**====================== Add / delete  instances ===========================*/
     for(int i = 0; i < 3; i++)
     {
       command = "-zkSvr localhost:2183 -addNode clusterTest1 localhost:123"+i;
@@ -143,7 +157,10 @@ public class TestHelixAdminScenariosCli extends ZkIntegrationTestBase
     command = "-zkSvr localhost:2183 -addResource clusterTest1 db_11 12 MasterSlave";
     ClusterSetup.processCommandLineArgs(command.split(" "));
     
-    // Rebalance resource
+    
+    
+    /**===================== Rebalance resource ===========================*/
+    
     command = "-zkSvr localhost:2183 -rebalance clusterTest1 db_11 3";
     ClusterSetup.processCommandLineArgs(command.split(" "));
     
@@ -156,6 +173,12 @@ public class TestHelixAdminScenariosCli extends ZkIntegrationTestBase
     
     command = "-zkSvr localhost:2183 -rebalance clusterTest1 db_11 3";
     ClusterSetup.processCommandLineArgs(command.split(" "));
+    
+    // rebalance with key prefix
+    command = "-zkSvr localhost:2183 -rebalance clusterTest1 db_22 2 -key alias";
+    ClusterSetup.processCommandLineArgs(command.split(" "));
+    
+    /**====================  start the clusters =============================*/
     
     //start mock nodes
     for(int i = 0; i < 6 ; i++)
@@ -175,17 +198,19 @@ public class TestHelixAdminScenariosCli extends ZkIntegrationTestBase
     }
     Thread.sleep(100);
     
-    
     // activate clusters
+    // wrong grand clustername
     command = "-zkSvr localhost:2183 -activateCluster clusterTest1 Klazters true";
     assertException(command);
     
+    // wrong cluster name
     command = "-zkSvr localhost:2183 -activateCluster clusterTest2 Klazt3rs true";
     assertException(command);
     
     command = "-zkSvr localhost:2183 -activateCluster clusterTest1 Klazt3rz true";
     ClusterSetup.processCommandLineArgs(command.split(" "));
     Thread.sleep(500);
+    
     // verify leader node
     HelixDataAccessor accessor = _startCMResultMap.get("controller_9001")._manager.getHelixDataAccessor();
     LiveInstance controllerLeader = accessor.getProperty(accessor.keyBuilder().controllerLeader());
@@ -195,7 +220,18 @@ public class TestHelixAdminScenariosCli extends ZkIntegrationTestBase
     LiveInstance leader = accessor.getProperty(accessor.keyBuilder().controllerLeader());
     Assert.assertTrue(leader.getInstanceName().startsWith("controller_900"));
     
-    Thread.sleep(1000);
+    boolean verifyResult =
+        ClusterStateVerifier.verifyByZkCallback(new MasterNbInExtViewVerifier(ZK_ADDR,
+                                                                              "clusterTest1"));
+    Assert.assertTrue(verifyResult);
+    
+    verifyResult =
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+                                                                                 "clusterTest1"));
+    Assert.assertTrue(verifyResult);
+    
+    
+    /**======================Operations with live node ============================*/
     
     // drop node should fail as not disabled
     command = "-zkSvr localhost:2183 -dropNode clusterTest1 localhost:1232";
@@ -220,8 +256,13 @@ public class TestHelixAdminScenariosCli extends ZkIntegrationTestBase
     command = "-zkSvr localhost:2183 -addNode clusterTest1 localhost:12320";
     ClusterSetup.processCommandLineArgs(command.split(" "));
     
+    // swap instance. The instance get swapped out should not exist anymore
     command = "-zkSvr localhost:2183 -swapInstance clusterTest1 localhost_1232 localhost_12320";
     ClusterSetup.processCommandLineArgs(command.split(" "));
+    
+    accessor = _startCMResultMap.get("localhost_1231")._manager.getHelixDataAccessor();
+    String path = accessor.keyBuilder().instanceConfig("localhost_1232").getPath();
+    Assert.assertFalse(zkClient.exists(path));
     
     _startCMResultMap.put("localhost_12320", TestHelper.startDummyProcess(ZK_ADDR, "clusterTest1", "localhost_12320"));
     
@@ -232,13 +273,30 @@ public class TestHelixAdminScenariosCli extends ZkIntegrationTestBase
     command = "-zkSvr localhost:2183 -expandCluster clusterTest1";
     ClusterSetup.processCommandLineArgs(command.split(" "));
     
+    for(int i = 3; i<= 6; i++)
+    {
+      StartCMResult result =
+          TestHelper.startDummyProcess(ZK_ADDR, "clusterTest1", "localhost_123"+i+"1");
+      _startCMResultMap.put("localhost_123"+i + "1", result);
+    }
+    
+    verifyResult =
+        ClusterStateVerifier.verifyByZkCallback(new MasterNbInExtViewVerifier(ZK_ADDR,
+                                                                              "clusterTest1"));
+    Assert.assertTrue(verifyResult);
+    
+    verifyResult =
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+                                                                                 "clusterTest1"));
+    Assert.assertTrue(verifyResult);
+    
     // deactivate cluster
     command = "-zkSvr localhost:2183 -activateCluster clusterTest1 Klazt3rz false";
     ClusterSetup.processCommandLineArgs(command.split(" "));
     Thread.sleep(6000);
     
     accessor = _startCMResultMap.get("localhost_1231")._manager.getHelixDataAccessor();
-    String path = accessor.keyBuilder().controllerLeader().getPath();
+    path = accessor.keyBuilder().controllerLeader().getPath();
     Assert.assertFalse(zkClient.exists(path));
     // leader node should be gone
     for(StartCMResult result : _startCMResultMap.values())

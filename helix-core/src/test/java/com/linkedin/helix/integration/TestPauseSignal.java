@@ -68,6 +68,10 @@ public class TestPauseSignal extends ZkIntegrationTestBase
     zkClient.setZkSerializer(new ZNRecordSerializer());
     final HelixDataAccessor tmpAccessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
+    
+    String cmd = "-zkSvr " + ZK_ADDR + " -enableCluster " + clusterName + " false";
+    ClusterSetup.processCommandLineArgs(cmd.split(" "));
+    
     tmpAccessor.setProperty(tmpAccessor.keyBuilder().pause(), new PauseSignal("pause"));
     zkClient.close();
     
@@ -95,7 +99,8 @@ public class TestPauseSignal extends ZkIntegrationTestBase
     final HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
 
-    accessor.removeProperty(accessor.keyBuilder().pause());
+    cmd = "-zkSvr " + ZK_ADDR + " -enableCluster " + clusterName + " true";
+    ClusterSetup.processCommandLineArgs(cmd.split(" "));
     result =
         ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
                                                                                  clusterName));

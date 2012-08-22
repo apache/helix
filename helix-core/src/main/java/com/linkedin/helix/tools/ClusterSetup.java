@@ -322,6 +322,8 @@ public class ClusterSetup
       throw new HelixException(error);
     }
 
+    dropInstanceFromCluster(clusterName, oldInstanceName);
+    
     List<IdealState> existingIdealStates =
         accessor.getChildValues(accessor.keyBuilder().idealStates());
     for (IdealState idealState : existingIdealStates)
@@ -548,6 +550,27 @@ public class ClusterSetup
     
     ZNRecord newIdealStateRecord 
       = IdealStateCalculatorForStorageNode.convertToZNRecord(balancedRecord, idealState.getResourceName(), states[0], states[1]);
+    Set<String> partitionSet = new HashSet<String>();
+    partitionSet.addAll(newIdealStateRecord.getMapFields().keySet());
+    partitionSet.addAll(newIdealStateRecord.getListFields().keySet());
+    
+    Map<String, String> reversePartitionIndex = (Map<String, String>) balancedRecord.get("reversePartitionIndex");
+    for(String partition : partitionSet)
+    {
+      if(reversePartitionIndex.containsKey(partition))
+      {
+        String originPartitionName = reversePartitionIndex.get(partition);
+        if(partition.equals(originPartitionName))
+        {
+          continue;
+        }
+        newIdealStateRecord.getMapFields().put(originPartitionName, newIdealStateRecord.getMapField(partition));
+        newIdealStateRecord.getMapFields().remove(partition);
+        
+        newIdealStateRecord.getListFields().put(originPartitionName, newIdealStateRecord.getListField(partition));
+        newIdealStateRecord.getListFields().remove(partition);
+      }
+    }
     
     newIdealStateRecord.getSimpleFields().putAll(idealState.getRecord().getSimpleFields());
     return new IdealState(newIdealStateRecord);
@@ -558,6 +581,7 @@ public class ClusterSetup
   {
     // Try parse the partition number from name DB_n. If not, sort the partitions and assign id 
     Map<String, Integer> partitionIndex = new HashMap<String, Integer>();
+    Map<String, String> reversePartitionIndex = new HashMap<String, String>();
     boolean indexInPartitionName = true;
     for(String partitionId : state.getPartitionSet())
     {
@@ -572,10 +596,13 @@ public class ClusterSetup
         String idStr = partitionId.substring(lastPos + 1);
         int partition = Integer.parseInt(idStr);
         partitionIndex.put(partitionId, partition);
+        reversePartitionIndex.put(state.getResourceName()+"_" + partition, partitionId);
       }
       catch(Exception e)
       {
         indexInPartitionName = false;
+        partitionIndex.clear();
+        reversePartitionIndex.clear();
         break;
       }
     }
@@ -588,6 +615,7 @@ public class ClusterSetup
       for(int i = 0; i < partitions.size(); i++)
       {
         partitionIndex.put(partitions.get(i), i);
+        reversePartitionIndex.put(state.getResourceName()+"_" + i, partitions.get(i));
       }
     }
     
@@ -623,6 +651,7 @@ public class ClusterSetup
     result.put("SlaveAssignmentMap", combinedNodeSlaveAssignmentMap);
     result.put("replicas", Integer.parseInt(state.getReplicas()));
     result.put("partitions", new Integer(state.getRecord().getListFields().size()));
+    result.put("reversePartitionIndex", reversePartitionIndex);
     return result;
   }
 
@@ -958,7 +987,7 @@ public class ClusterSetup
                      .create();
     addIdealStateOption.setArgs(3);
     addIdealStateOption.setRequired(false);
-    addIdealStateOption.setArgName("clusterName reourceName <filename>");
+    addIdealStateOption.setArgName("clusterName resourceName <filename>");
 
     Option dropInstanceOption =
         OptionBuilder.withLongOpt(dropInstance)
@@ -1316,6 +1345,7 @@ public class ClusterSetup
                                           resourceName,
                                           replicas,
                                           cmd.getOptionValue(resourceKeyPrefix));
+        return 0;
       }
       setupTool.rebalanceStorageCluster(clusterName, resourceName, replicas);
       return 0;

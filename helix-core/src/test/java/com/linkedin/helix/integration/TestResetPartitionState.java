@@ -34,6 +34,7 @@ import com.linkedin.helix.mock.storage.MockParticipant;
 import com.linkedin.helix.mock.storage.MockParticipant.ErrTransition;
 import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.model.Message;
+import com.linkedin.helix.tools.ClusterSetup;
 import com.linkedin.helix.tools.ClusterStateVerifier;
 
 public class TestResetPartitionState extends ZkIntegrationTestBase
@@ -123,11 +124,12 @@ public class TestResetPartitionState extends ZkIntegrationTestBase
     participants[0].setTransition(new ErrTransitionWithReset(errPartitions));
     clearStatusUpdate(clusterName, "localhost_12918", "TestDB0", "TestDB0_4");
     _errToOfflineInvoked = 0;
-    tool.resetPartition(clusterName, "localhost_12918", "TestDB0", "TestDB0_4");
+    String cmd = "-zkSvr " + ZK_ADDR + " -resetPartition " + clusterName +" localhost_12918 TestDB0 TestDB0_4";
+    ClusterSetup.processCommandLineArgs(cmd.split(" "));
     Thread.sleep(200);  // wait reset to be done
     try
     {
-      tool.resetPartition(clusterName, "localhost_12918", "TestDB0", "TestDB0_4");
+      ClusterSetup.processCommandLineArgs(cmd.split(" "));
       Assert.fail("Should throw exception on reset a partition not in ERROR state");
     } catch (Exception e)
     {

@@ -12,7 +12,7 @@ import com.linkedin.helix.tools.ClusterSetup;
 public class TestExpandCluster extends ZkStandAloneCMTestBase
 {
 @Test
-  public void testExpandCluster()
+  public void testExpandCluster() throws Exception
   {
     String DB2 = "TestDB2";
     int partitions = 100;
@@ -33,7 +33,8 @@ public class TestExpandCluster extends ZkStandAloneCMTestBase
       String storageNodeName = PARTICIPANT_PREFIX + ":" + (27960 + i);
       _setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
     }
-    _setupTool.expandCluster(CLUSTER_NAME);
+    String command = "-zkSvr localhost:2183 -expandCluster " + CLUSTER_NAME;
+    ClusterSetup.processCommandLineArgs(command.split(" "));
     
     IdealState testDB0_1 = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, TEST_DB);
     IdealState testDB2_1 = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, DB2);

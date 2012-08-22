@@ -85,6 +85,7 @@ public class ClusterSetup
   public static final String dropInstance = "dropNode";
   public static final String rebalance = "rebalance";
   public static final String expandCluster = "expandCluster";
+  public static final String expandResource = "expandResource";
   public static final String mode = "mode";
   public static final String bucketSize        = "bucketSize";
   public static final String resourceKeyPrefix = "key";
@@ -422,49 +423,54 @@ public class ClusterSetup
   {
     rebalanceStorageCluster(clusterName, resourceName, replica, resourceName);
   }
-
+  
+  public void expandResource(String clusterName, String resourceName)
+  {
+    IdealState idealState = _admin.getResourceIdealState(clusterName, resourceName);
+    if(idealState.getIdealStateMode() == IdealStateModeProperty.AUTO_REBALANCE ||
+       idealState.getIdealStateMode() == IdealStateModeProperty.CUSTOMIZED)
+    {
+      _logger.info("Skipping idealState " + idealState.getResourceName()+" " + idealState.getIdealStateMode());
+      return;
+    }
+    boolean anyLiveInstance = false;
+    for(List<String> list : idealState.getRecord().getListFields().values())
+    {
+      if(list.contains(StateModelToken.ANY_LIVEINSTANCE.toString()))
+      {
+        _logger.info("Skipping idealState " + idealState.getResourceName() + " with ANY_LIVEINSTANCE");
+        anyLiveInstance = true;
+        continue;
+      }
+    }
+    if(anyLiveInstance)
+    {
+      return;
+    }
+    try
+    {
+      int replica = Integer.parseInt(idealState.getReplicas());
+    }
+    catch(Exception e)
+    {
+      _logger.error("", e);
+      return;
+    }
+    if(idealState.getRecord().getListFields().size() == 0)
+    {
+      _logger.warn("Resource " + resourceName + " not balanced, skip");
+      return;
+    }
+    IdealState newIdealState = balanceIdealState(clusterName, idealState);
+    _admin.setResourceIdealState(clusterName, resourceName, newIdealState);
+  }
+  
   public void expandCluster(String clusterName)
   {
     List<String> resources = _admin.getResourcesInCluster(clusterName);
     for(String resourceName : resources)
     {
-       IdealState idealState = _admin.getResourceIdealState(clusterName, resourceName);
-       if(idealState.getIdealStateMode() == IdealStateModeProperty.AUTO_REBALANCE ||
-          idealState.getIdealStateMode() == IdealStateModeProperty.CUSTOMIZED)
-       {
-         _logger.info("Skipping idealState " + idealState.getResourceName()+" " + idealState.getIdealStateMode());
-         continue;
-       }
-       boolean anyLiveInstance = false;
-       for(List<String> list : idealState.getRecord().getListFields().values())
-       {
-         if(list.contains(StateModelToken.ANY_LIVEINSTANCE.toString()))
-         {
-           _logger.info("Skipping idealState " + idealState.getResourceName() + " with ANY_LIVEINSTANCE");
-           anyLiveInstance = true;
-           continue;
-         }
-       }
-       if(anyLiveInstance)
-       {
-         continue;
-       }
-       try
-       {
-         int replica = Integer.parseInt(idealState.getReplicas());
-       }
-       catch(Exception e)
-       {
-         _logger.error("", e);
-         continue;
-       }
-       if(idealState.getRecord().getListFields().size() == 0)
-       {
-         _logger.warn("Resource " + resourceName + " not balanced, skip");
-         continue;
-       }
-       IdealState newIdealState = balanceIdealState(clusterName, idealState);
-       _admin.setResourceIdealState(clusterName, resourceName, newIdealState);
+      expandResource(clusterName, resourceName);
     }
   }
   
@@ -899,6 +905,22 @@ public class ClusterSetup
     addResourceOption.setArgs(4);
     addResourceOption.setRequired(false);
     addResourceOption.setArgName("clusterName resourceName partitionNum stateModelRef <-mode modeValue>");
+    
+    Option expandResourceOption =
+        OptionBuilder.withLongOpt(expandResource)
+                     .withDescription("Expand resource to additional nodes")
+                     .create();
+    expandResourceOption.setArgs(2);
+    expandResourceOption.setRequired(false);
+    expandResourceOption.setArgName("clusterName resourceName");
+    
+    Option expandClusterOption =
+        OptionBuilder.withLongOpt(expandCluster)
+                     .withDescription("Expand a cluster and all the resources")
+                     .create();
+    expandClusterOption.setArgs(1);
+    expandClusterOption.setRequired(false);
+    expandClusterOption.setArgName("clusterName");
 
     Option resourceModeOption =
         OptionBuilder.withLongOpt(mode)
@@ -1097,6 +1119,8 @@ public class ClusterSetup
     group.addOption(addResourceOption);
     group.addOption(resourceModeOption);
     group.addOption(resourceBucketSizeOption);
+    group.addOption(expandResourceOption);
+    group.addOption(expandClusterOption);
     group.addOption(resourceKeyOption);
     group.addOption(addClusterOption);
     group.addOption(activateClusterOption);
@@ -1286,6 +1310,14 @@ public class ClusterSetup
       String clusterName = cmd.getOptionValues(expandCluster)[0];
 
       setupTool.expandCluster(clusterName);
+      return 0;
+    }
+    
+    if (cmd.hasOption(expandResource))
+    {
+      String clusterName = cmd.getOptionValues(expandResource)[0];
+      String resourceName = cmd.getOptionValues(expandResource)[1];
+      setupTool.expandResource(clusterName, resourceName);
       return 0;
     }
 

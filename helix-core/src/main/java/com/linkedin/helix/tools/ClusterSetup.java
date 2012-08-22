@@ -89,6 +89,8 @@ public class ClusterSetup
   public static final String mode = "mode";
   public static final String bucketSize        = "bucketSize";
   public static final String resourceKeyPrefix = "key";
+  public static final String addResourceProperty = "addResourceProperty";
+  public static final String removeResourceProperty = "removeResourceProperty";
 
   // Query info (TBD in V2)
   public static final String listClusterInfo   = "listClusterInfo";
@@ -1017,7 +1019,23 @@ public class ClusterSetup
     resourceInfoOption.setArgs(2);
     resourceInfoOption.setRequired(false);
     resourceInfoOption.setArgName("clusterName resourceName");
-
+    
+    Option addResourcePropertyOption =
+        OptionBuilder.withLongOpt(addResourceProperty)
+                     .withDescription("Add a resource property")
+                     .create();
+    addResourcePropertyOption.setArgs(4);
+    addResourcePropertyOption.setRequired(false);
+    addResourcePropertyOption.setArgName("clusterName resourceName propertyName propertyValue");
+    
+    Option removeResourcePropertyOption =
+        OptionBuilder.withLongOpt(removeResourceProperty)
+                     .withDescription("Remove a resource property")
+                     .create();
+    removeResourcePropertyOption.setArgs(3);
+    removeResourcePropertyOption.setRequired(false);
+    removeResourcePropertyOption.setArgName("clusterName resourceName propertyName");
+    
     Option partitionInfoOption =
         OptionBuilder.withLongOpt(listPartitionInfo)
                      .withDescription("Query info of a partition")
@@ -1151,6 +1169,8 @@ public class ClusterSetup
     group.addOption(dropAlertOption);
     group.addOption(setConfOption);
     group.addOption(getConfOption);
+    group.addOption(addResourcePropertyOption);
+    group.addOption(removeResourcePropertyOption);
 
     Options options = new Options();
     options.addOption(helpOption);
@@ -1502,6 +1522,10 @@ public class ClusterSetup
     {
       String clusterName = cmd.getOptionValues(enableInstance)[0];
       String instanceName = cmd.getOptionValues(enableInstance)[1];
+      if(instanceName.contains(":"))
+      {
+        instanceName = instanceName.replaceAll(":", "_");
+      }
       boolean enabled =
           Boolean.parseBoolean(cmd.getOptionValues(enableInstance)[2].toLowerCase());
 
@@ -1669,7 +1693,50 @@ public class ClusterSetup
       printUsage(cliOptions);
       return 0;
     }
+    else if (cmd.hasOption(addResourceProperty))
+    {
+      String clusterName = cmd.getOptionValues(addResourceProperty)[0];
+      String resourceName = cmd.getOptionValues(addResourceProperty)[1];
+      String propertyKey = cmd.getOptionValues(addResourceProperty)[2];
+      String propertyVal = cmd.getOptionValues(addResourceProperty)[3];
+      
+      setupTool.addResourceProperty(clusterName, resourceName, propertyKey, propertyVal);
+      return 0;
+    }
+    else if (cmd.hasOption(removeResourceProperty))
+    {
+      String clusterName = cmd.getOptionValues(removeResourceProperty)[0];
+      String resourceName = cmd.getOptionValues(removeResourceProperty)[1];
+      String propertyKey = cmd.getOptionValues(removeResourceProperty)[2];
+
+      setupTool.removeResourceProperty(clusterName, resourceName, propertyKey);
+      return 0;
+    }
     return 0;
+  }
+
+  public void addResourceProperty(String clusterName, String resourceName,
+      String propertyKey, String propertyVal)
+  {
+    IdealState idealState = _admin.getResourceIdealState(clusterName, resourceName);
+    if (idealState == null)
+    {
+      throw new HelixException("Resource: " + resourceName + " has NOT been added yet");
+    }
+    idealState.getRecord().setSimpleField(propertyKey, propertyVal);
+    _admin.setResourceIdealState(clusterName, resourceName, idealState);
+  }
+
+  public void removeResourceProperty(String clusterName, String resourceName,
+      String propertyKey)
+  {
+    IdealState idealState = _admin.getResourceIdealState(clusterName, resourceName);
+    if (idealState == null)
+    {
+      throw new HelixException("Resource: " + resourceName + " has NOT been added yet");
+    }
+    idealState.getRecord().getSimpleFields().remove(propertyKey);
+    _admin.setResourceIdealState(clusterName, resourceName, idealState);
   }
 
   /**

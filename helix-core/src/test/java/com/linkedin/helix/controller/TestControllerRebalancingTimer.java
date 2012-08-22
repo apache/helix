@@ -1,6 +1,7 @@
 package com.linkedin.helix.controller;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -80,9 +81,21 @@ public class TestControllerRebalancingTimer extends ZkStandAloneCMTestBase
     combinedQueryStringList.append(rankQuery + JsqlQueryListProcessor.SEPARATOR+"rankTable;");
     combinedQueryStringList.append(masterSelectionQuery);
     
-    idealState.getRecord().setSimpleField(IdealState.QUERY_LIST, combinedQueryStringList.toString());
+    String command = "-zkSvr " + ZK_ADDR + " -addResourceProperty "+ CLUSTER_NAME + " " + TEST_DB + " " + IdealState.QUERY_LIST.toString() + " "
+        ;//+ "\""+ combinedQueryStringList.toString() +"\"";
+    String[] args = command.split(" ");
     
-    _setupTool.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, TEST_DB, idealState);
+    List<String> argsList = new ArrayList<String>();
+    argsList.addAll(Arrays.asList(args));
+    argsList.add("\""+ combinedQueryStringList.toString() +"\"");
+    String[] allArgs = new String[argsList.size()];
+    argsList.toArray(allArgs);
+    ClusterSetup.processCommandLineArgs(allArgs);
+    
+    command = "-zkSvr " + ZK_ADDR + " -addResourceProperty "+ CLUSTER_NAME + " " + TEST_DB + " " + IdealState.IdealStateProperty.REBALANCE_TIMER_PERIOD.toString() + " 500";
+
+    ClusterSetup.processCommandLineArgs(command.split(" "));
+    
     
     // start dummy participants
     for (int i = 0; i < NODE_NR; i++)
@@ -130,9 +143,9 @@ public class TestControllerRebalancingTimer extends ZkStandAloneCMTestBase
     Assert.assertTrue(controller._rebalanceTimer != null);
     Assert.assertEquals(controller._timerPeriod, 500);
 
-    IdealState idealState = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, TEST_DB);
-    idealState.getRecord().setSimpleField(IdealStateProperty.REBALANCE_TIMER_PERIOD.toString(), "200");
-    _setupTool.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, TEST_DB, idealState);
+    String command = "-zkSvr " + ZK_ADDR + " -addResourceProperty "+ CLUSTER_NAME + " " + TEST_DB + " " + IdealState.IdealStateProperty.REBALANCE_TIMER_PERIOD.toString() + " 200";
+
+    ClusterSetup.processCommandLineArgs(command.split(" "));
     
     Thread.sleep(1000);
     Assert.assertTrue(controller._rebalanceTimer != null);

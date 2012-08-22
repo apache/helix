@@ -245,10 +245,8 @@ public class ClusterSetup
   {
     String instanceId = host + "_" + port;
 
-    ZkClient zkClient = ZKClientPool.getZkClient(_zkServerAddress);
-
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
     // ensure node is stopped
@@ -280,10 +278,8 @@ public class ClusterSetup
                            String oldInstanceName,
                            String newInstanceName)
   {
-    ZkClient zkClient = ZKClientPool.getZkClient(_zkServerAddress);
-
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(zkClient));
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(_zkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
     InstanceConfig oldConfig =

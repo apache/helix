@@ -753,11 +753,14 @@ public class ClusterSetup
                                                                  keyPrefix,
                                                                  masterStateValue,
                                                                  slaveStateValue);
+
+      // for now keep mapField in AUTO mode and remove listField in CUSTOMIZED mode
       if (idealState.getIdealStateMode() == IdealStateModeProperty.AUTO)
       {
         idealState.getRecord().setListFields(newIdealState.getListFields());
+        idealState.getRecord().setMapFields(newIdealState.getMapFields());
       }
-      else if (idealState.getIdealStateMode() == IdealStateModeProperty.CUSTOMIZED)
+      if (idealState.getIdealStateMode() == IdealStateModeProperty.CUSTOMIZED)
       {
         idealState.getRecord().setMapFields(newIdealState.getMapFields());
       }

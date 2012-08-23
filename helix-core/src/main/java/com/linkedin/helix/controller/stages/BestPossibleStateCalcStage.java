@@ -12,9 +12,9 @@ import java.util.TreeMap;
 
 import org.apache.log4j.Logger;
 
+import com.linkedin.helix.HelixConstants.StateModelToken;
 import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.HelixConstants.StateModelToken;
 import com.linkedin.helix.controller.pipeline.AbstractBaseStage;
 import com.linkedin.helix.controller.pipeline.StageException;
 import com.linkedin.helix.josql.JsqlQueryListProcessor;
@@ -59,7 +59,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
     BestPossibleStateOutput bestPossibleStateOutput =
         compute(event, resourceMap, currentStateOutput);
     event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.toString(), bestPossibleStateOutput);
-    
+
     long endTime = System.currentTimeMillis();
     logger.info("END BestPossibleStateCalcStage.process(). took: " + (endTime - startTime) + " ms");
   }
@@ -75,7 +75,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
     // for each instanceName check if its alive then assign a state
     ClusterDataCache cache = event.getAttribute("ClusterDataCache");
     HelixManager manager = event.getAttribute("helixmanager");
-    
+
     BestPossibleStateOutput output = new BestPossibleStateOutput();
 
     for (String resourceName : resourceMap.keySet())
@@ -105,10 +105,10 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
       {
         calculateAutoBalancedIdealState(cache, idealState, stateModelDef, currentStateOutput);
       }
-      
-      // For idealstate that has rebalancing timer and is in AUTO mode, we will run jsql queries to calculate the 
+
+      // For idealstate that has rebalancing timer and is in AUTO mode, we will run jsql queries to calculate the
       // preference list
-      
+
       Map<String, List<String>> queryPartitionPriorityLists = null;
       if(idealState.getIdealStateMode() == IdealStateModeProperty.AUTO && idealState.getRebalanceTimerPeriod() > 0)
       {
@@ -167,7 +167,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
     }
     return output;
   }
-  
+
   Map<String, List<String>> calculatePartitionPriorityListWithQuery(HelixManager manager, IdealState idealState)
   {
     // Read queries from the resource config
@@ -190,7 +190,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
         {
           continue;
         }
-        
+
         if(!priorityLists.containsKey(partition))
         {
           priorityLists.put(partition, new ArrayList<String>());
@@ -204,7 +204,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
       logger.error("", e);
       return null;
     }
-    
+
   }
 
   /**
@@ -220,8 +220,8 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
    * @param currentStateOutput
    * @return
    */
-  private void calculateAutoBalancedIdealState(ClusterDataCache cache, 
-      IdealState idealState, 
+  private void calculateAutoBalancedIdealState(ClusterDataCache cache,
+      IdealState idealState,
       StateModelDefinition stateModelDef,
       CurrentStateOutput currentStateOutput)
   {
@@ -237,7 +237,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
     {
       logger.error("",e);
     }
-    
+
     Map<String, List<String>> masterAssignmentMap = new HashMap<String, List<String>>();
     for(String instanceName : liveInstances)
     {
@@ -248,7 +248,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
     // Go through all current states and fill the assignments
     for(String liveInstanceName : liveInstances)
     {
-      CurrentState currentState 
+      CurrentState currentState
         = cache.getCurrentState(liveInstanceName, cache.getLiveInstances().get(liveInstanceName).getSessionId()).get(idealState.getId());
       if(currentState != null)
       {
@@ -268,7 +268,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
     orphanedPartitionsList.addAll(orphanedPartitions);
     normalizeAssignmentMap(masterAssignmentMap, orphanedPartitionsList);
     idealState.getRecord().setListFields(generateListFieldFromMasterAssignment(masterAssignmentMap, replicas));
-    
+
   }
   /**
    * Given the current master assignment map and the partitions not hosted,
@@ -293,11 +293,11 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
       Collections.sort(masterAssignmentMap.get(key));
     }
     totalPartitions += orphanPartitions.size();
-    
+
     // Find out how many partitions an instance should host
     int partitionNumber = totalPartitions / masterAssignmentMap.size();
     int leave = totalPartitions % masterAssignmentMap.size();
-    
+
     for(int i = 0; i < instanceNames.length; i++)
     {
       int targetPartitionNo = leave > 0 ? (partitionNumber + 1) : partitionNumber;
@@ -330,7 +330,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
     }
   }
   /**
-   * Generate full preference list from the master assignment map 
+   * Generate full preference list from the master assignment map
    * evenly distribute the slave partitions mastered on a host to other hosts
    *
    * @param masterAssignmentMap current master assignment map
@@ -344,7 +344,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
     String[] instanceNames = new String[masterAssignmentMap.size()];
     masterAssignmentMap.keySet().toArray(instanceNames);
     Arrays.sort(instanceNames);
-    
+
     for(int i = 0; i < instanceNames.length; i++)
     {
       String instanceName = instanceNames[i];
@@ -354,14 +354,14 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
         int index = (x + i + 1) % instanceNames.length;
         otherInstances.add(instanceNames[index]);
       }
-      
+
       List<String> partitionList = masterAssignmentMap.get(instanceName);
       for(int j = 0;j < partitionList.size(); j++)
       {
         String partitionName = partitionList.get(j);
         listFields.put(partitionName, new ArrayList<String>());
         listFields.get(partitionName).add(instanceName);
-        
+
         for(int k = 0; k < slaves; k++)
         {
           int index = (j+k+1) % otherInstances.size();
@@ -536,7 +536,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
                                          StateModelDefinition stateModelDef)
   {
     List<String> listField =
-        idealState.getPreferenceList(resource.getPartitionName(), stateModelDef);
+        idealState.getPreferenceList(resource.getPartitionName());
 
     if (listField != null && listField.size() == 1
         && StateModelToken.ANY_LIVEINSTANCE.toString().equals(listField.get(0)))

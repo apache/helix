@@ -151,8 +151,8 @@ public class ClusterResource extends Resource
           (String) getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
       Form form = new Form(entity);
       Map<String, String> jsonParameters =
-          ClusterRepresentationUtil.getFormJsonParametersWithCommandVerified(form,
-                                                                             ClusterRepresentationUtil._addSorageClusterToGrandClusterCommand);
+          ClusterRepresentationUtil.getFormJsonParametersWithCommandVerified(
+            form, ClusterSetup.activateCluster);
 
       if (!jsonParameters.containsKey(_grandCluster))
       {

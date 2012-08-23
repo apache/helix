@@ -71,14 +71,12 @@ public class StatusUpdateResource extends Resource
     StringRepresentation presentation = null;
     try
     {
-      String zkServer =
-          (String) getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       String instanceName = (String) getRequest().getAttributes().get("instanceName");
       String resourceGroup = (String) getRequest().getAttributes().get("resourceName");
 
       presentation =
-          getInstanceStatusUpdateRepresentation(zkServer,
+          getInstanceStatusUpdateRepresentation(
                                                 clusterName,
                                                 instanceName,
                                                 resourceGroup);
@@ -93,7 +91,7 @@ public class StatusUpdateResource extends Resource
     return presentation;
   }
 
-  StringRepresentation getInstanceStatusUpdateRepresentation(String zkServerAddress,
+  StringRepresentation getInstanceStatusUpdateRepresentation(
                                                              String clusterName,
                                                              String instanceName,
                                                              String resourceGroup) throws JsonGenerationException,
@@ -101,13 +99,13 @@ public class StatusUpdateResource extends Resource
       IOException
   {
     String instanceSessionId =
-        ClusterRepresentationUtil.getInstanceSessionId(zkServerAddress,
+        ClusterRepresentationUtil.getInstanceSessionId(
                                                        clusterName,
                                                        instanceName);
 
     Builder keyBuilder = new PropertyKey.Builder(clusterName);
     String message =
-        ClusterRepresentationUtil.getInstancePropertiesAsString(zkServerAddress,
+        ClusterRepresentationUtil.getInstancePropertiesAsString(
                                                                   clusterName,
                                                                   keyBuilder.stateTransitionStatus(instanceName,
                                                                                                    instanceSessionId,

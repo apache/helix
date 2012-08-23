@@ -108,7 +108,7 @@ public class ClustersResource extends Resource
       String zkServer = (String)getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
       Form form = new Form(entity);
       Map<String, String> jsonParameters
-        = ClusterRepresentationUtil.getFormJsonParametersWithCommandVerified(form, ClusterRepresentationUtil._addClusterCommand);
+        = ClusterRepresentationUtil.getFormJsonParametersWithCommandVerified(form, ClusterSetup.addCluster);
 
       if(! jsonParameters.containsKey(_clusterName))
       {

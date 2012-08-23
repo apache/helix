@@ -16,7 +16,6 @@
 package com.linkedin.helix.webapp.resources;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 
 import org.codehaus.jackson.JsonGenerationException;
@@ -32,13 +31,11 @@ import org.restlet.resource.Resource;
 import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 
-import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
-import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixException;
-import com.linkedin.helix.PropertyType;
-import com.linkedin.helix.ZNRecord;
+import com.linkedin.helix.model.InstanceConfig;
+import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.tools.ClusterSetup;
-import com.linkedin.helix.util.ZNRecordUtil;
 import com.linkedin.helix.webapp.RestAdminApplication;
 
 public class InstancesResource extends Resource
@@ -83,10 +80,8 @@ public class InstancesResource extends Resource
     StringRepresentation presentation = null;
     try
     {
-      String zkServer = (String) getContext().getAttributes().get(
-          RestAdminApplication.ZKSERVERADDRESS);
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
-      presentation = getInstancesRepresentation(zkServer, clusterName);
+      presentation = getInstancesRepresentation(clusterName);
     }
 
     catch (Exception e)
@@ -99,30 +94,21 @@ public class InstancesResource extends Resource
     return presentation;
   }
 
-  StringRepresentation getInstancesRepresentation(String zkServerAddress, String clusterName)
+  StringRepresentation getInstancesRepresentation(String clusterName)
       throws JsonGenerationException, JsonMappingException, IOException
   {
-    ClusterSetup setupTool = new ClusterSetup(zkServerAddress);
-    List<String> instances = setupTool.getClusterManagementTool()
-        .getInstancesInCluster(clusterName);
+    HelixDataAccessor accessor = ClusterRepresentationUtil.getClusterDataAccessor(clusterName);
+    Map<String, LiveInstance> liveInstancesMap = accessor.getChildValuesMap(accessor.keyBuilder().liveInstances());
+    Map<String, InstanceConfig> instanceConfigsMap = accessor.getChildValuesMap(accessor.keyBuilder().instanceConfigs());
 
-    DataAccessor accessor = ClusterRepresentationUtil.getClusterDataAccessor(zkServerAddress,
-        clusterName);
-    List<ZNRecord> liveInstances = accessor.getChildValues(PropertyType.LIVEINSTANCES);
-    List<ZNRecord> instanceConfigs = accessor.getChildValues(PropertyType.CONFIGS,
-        ConfigScopeProperty.PARTICIPANT.toString());
-
-    Map<String, ZNRecord> liveInstanceMap = ZNRecordUtil.convertListToMap(liveInstances);
-    Map<String, ZNRecord> configsMap = ZNRecordUtil.convertListToMap(instanceConfigs);
-
-    for (String instanceName : instances)
+    for (String instanceName : instanceConfigsMap.keySet())
     {
-      boolean isAlive = liveInstanceMap.containsKey(instanceName);
-      configsMap.get(instanceName).setSimpleField("Alive", isAlive + "");
+      boolean isAlive = liveInstancesMap.containsKey(instanceName);
+      instanceConfigsMap.get(instanceName).getRecord().setSimpleField("Alive", isAlive + "");
     }
 
     StringRepresentation representation = new StringRepresentation(
-        ClusterRepresentationUtil.ObjectToJson(instanceConfigs), MediaType.APPLICATION_JSON);
+        ClusterRepresentationUtil.ObjectToJson(instanceConfigsMap.values()), MediaType.APPLICATION_JSON);
 
     return representation;
   }
@@ -132,17 +118,15 @@ public class InstancesResource extends Resource
   {
     try
     {
-      String zkServer = (String) getContext().getAttributes().get(
-          RestAdminApplication.ZKSERVERADDRESS);
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
 
       Form form = new Form(entity);
 
       Map<String, String> paraMap = ClusterRepresentationUtil
           .getFormJsonParametersWithCommandVerified(form,
-              ClusterRepresentationUtil._addInstanceCommand);
+              ClusterSetup.addInstance);
 
-      ClusterSetup setupTool = new ClusterSetup(zkServer);
+      ClusterSetup setupTool = new ClusterSetup(RestAdminApplication.getZkClient());
       if (paraMap.containsKey(_instanceName))
       {
         setupTool.addInstanceToCluster(clusterName, paraMap.get(_instanceName));
@@ -156,7 +140,7 @@ public class InstancesResource extends Resource
       }
 
       // add cluster
-      getResponse().setEntity(getInstancesRepresentation(zkServer, clusterName));
+      getResponse().setEntity(getInstancesRepresentation(clusterName));
       getResponse().setStatus(Status.SUCCESS_OK);
     }
 

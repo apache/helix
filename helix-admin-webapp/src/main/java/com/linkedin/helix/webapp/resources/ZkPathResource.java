@@ -15,19 +15,10 @@
  */
 package com.linkedin.helix.webapp.resources;
 
-import java.io.IOException;
-import java.io.StringWriter;
 import java.util.List;
-import java.util.Map;
 
-import org.codehaus.jackson.JsonGenerationException;
-import org.codehaus.jackson.map.JsonMappingException;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.map.SerializationConfig;
 import org.restlet.Context;
-import org.restlet.data.Form;
 import org.restlet.data.MediaType;
-import org.restlet.data.Reference;
 import org.restlet.data.Request;
 import org.restlet.data.Response;
 import org.restlet.data.Status;
@@ -36,10 +27,8 @@ import org.restlet.resource.Resource;
 import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 
-import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.manager.zk.ZkClient;
-import com.linkedin.helix.tools.ClusterSetup;
 import com.linkedin.helix.util.ZKClientPool;
 import com.linkedin.helix.webapp.RestAdminApplication;
 

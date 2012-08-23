@@ -80,11 +80,9 @@ public class ConfigResource extends Resource
   StringRepresentation getConfigKeys(ConfigScopeProperty scopeProperty, String... keys) throws Exception
   {
     StringRepresentation representation = null;
-    String zkServer =
-        (String) getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
     String clusterName = getValue("clusterName");
 
-    ClusterSetup setupTool = new ClusterSetup(zkServer);
+    ClusterSetup setupTool = new ClusterSetup(RestAdminApplication.getZkClient());
     HelixAdmin admin = setupTool.getClusterManagementTool();
     ZNRecord record = new ZNRecord(scopeProperty + " Config");
 
@@ -103,11 +101,9 @@ public class ConfigResource extends Resource
                                   String... keys) throws Exception
   {
     StringRepresentation representation = null;
-    String zkServer =
-        (String) getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
     String clusterName = getValue("clusterName");
 
-    ClusterSetup setupTool = new ClusterSetup(zkServer);
+    ClusterSetup setupTool = new ClusterSetup(RestAdminApplication.getZkClient());
     HelixAdmin admin = setupTool.getClusterManagementTool();
     ZNRecord record = new ZNRecord(scopeProperty + " Config");
 
@@ -216,8 +212,6 @@ public class ConfigResource extends Resource
    */
   void setConfigs(Representation entity, String scopeStr) throws Exception
   {
-    String zkServer =
-        (String) getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
     Form form = new Form(entity);
     // Map<String, String> jsonParameters =
     // ClusterRepresentationUtil.getFormJsonParametersWithCommandVerified(form,
@@ -243,7 +237,7 @@ public class ConfigResource extends Resource
       throw new HelixException("Json parameters does not contain Config values");
     }
 
-    ClusterSetup setupTool = new ClusterSetup(zkServer);
+    ClusterSetup setupTool = new ClusterSetup(RestAdminApplication.getZkClient());
     String propertiesStr = jsonParameters.get("configs");
     
     String command = jsonParameters.get(ClusterRepresentationUtil._managementCommand);

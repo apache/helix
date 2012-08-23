@@ -73,11 +73,9 @@ public class ResourceGroupResource extends Resource
     StringRepresentation presentation = null;
     try
     {
-      String zkServer =
-          (String) getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       String resourceName = (String) getRequest().getAttributes().get("resourceName");
-      presentation = getIdealStateRepresentation(zkServer, clusterName, resourceName);
+      presentation = getIdealStateRepresentation( clusterName, resourceName);
     }
 
     catch (Exception e)
@@ -90,8 +88,7 @@ public class ResourceGroupResource extends Resource
     return presentation;
   }
 
-  StringRepresentation getIdealStateRepresentation(String zkServerAddress,
-                                                   String clusterName,
+  StringRepresentation getIdealStateRepresentation(String clusterName,
                                                    String resourceName) throws JsonGenerationException,
       JsonMappingException,
       IOException
@@ -99,8 +96,7 @@ public class ResourceGroupResource extends Resource
     Builder keyBuilder = new PropertyKey.Builder(clusterName);
 
     String message =
-        ClusterRepresentationUtil.getClusterPropertyAsString(zkServerAddress,
-                                                             clusterName,
+        ClusterRepresentationUtil.getClusterPropertyAsString(clusterName,
                                                              keyBuilder.idealStates(resourceName),
                                                              MediaType.APPLICATION_JSON);
 

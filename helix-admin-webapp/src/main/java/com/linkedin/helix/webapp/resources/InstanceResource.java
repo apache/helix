@@ -75,11 +75,9 @@ public class InstanceResource extends Resource
     StringRepresentation presentation = null;
     try
     {
-      String zkServer =
-          (String) getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       String instanceName = (String) getRequest().getAttributes().get("instanceName");
-      presentation = getInstanceRepresentation(zkServer, clusterName, instanceName);
+      presentation = getInstanceRepresentation(clusterName, instanceName);
     }
     catch (Exception e)
     {
@@ -91,8 +89,7 @@ public class InstanceResource extends Resource
     return presentation;
   }
 
-  StringRepresentation getInstanceRepresentation(String zkServerAddress,
-                                                 String clusterName,
+  StringRepresentation getInstanceRepresentation(String clusterName,
                                                  String instanceName) throws JsonGenerationException,
       JsonMappingException,
       IOException
@@ -100,7 +97,7 @@ public class InstanceResource extends Resource
     Builder keyBuilder = new PropertyKey.Builder(clusterName);
 
     String message =
-        ClusterRepresentationUtil.getClusterPropertyAsString(zkServerAddress,
+        ClusterRepresentationUtil.getClusterPropertyAsString(
                                                              clusterName,
                                                              MediaType.APPLICATION_JSON,
                                                              keyBuilder.instanceConfig(instanceName));
@@ -116,25 +113,23 @@ public class InstanceResource extends Resource
   {
     try
     {
-      String zkServer =
-          (String) getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       String instanceName = (String) getRequest().getAttributes().get("instanceName");
 
       Form form = new Form(entity);
       Map<String, String> paraMap =
           ClusterRepresentationUtil.getFormJsonParametersWithCommandVerified(form,
-                                                                             ClusterRepresentationUtil._enableInstanceCommand);
+                                                                             ClusterSetup.enableInstance);
 
       boolean enabled =
           Boolean.parseBoolean(paraMap.get(ClusterRepresentationUtil._enabled));
 
-      ClusterSetup setupTool = new ClusterSetup(zkServer);
+      ClusterSetup setupTool = new ClusterSetup(RestAdminApplication.getZkClient());
       setupTool.getClusterManagementTool().enableInstance(clusterName,
                                                           instanceName,
                                                           enabled);
 
-      getResponse().setEntity(getInstanceRepresentation(zkServer,
+      getResponse().setEntity(getInstanceRepresentation(
                                                         clusterName,
                                                         instanceName));
       getResponse().setStatus(Status.SUCCESS_OK);
@@ -153,11 +148,9 @@ public class InstanceResource extends Resource
   {
     try
     {
-      String zkServer =
-          (String) getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       String instanceName = (String) getRequest().getAttributes().get("instanceName");
-      ClusterSetup setupTool = new ClusterSetup(zkServer);
+      ClusterSetup setupTool = new ClusterSetup(RestAdminApplication.getZkClient());
       setupTool.dropInstanceFromCluster(clusterName, instanceName);
       getResponse().setStatus(Status.SUCCESS_OK);
     }

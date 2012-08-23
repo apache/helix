@@ -19,21 +19,24 @@ import org.testng.annotations.Test;
 
 import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.TestHelper;
-import com.linkedin.helix.TestHelper.StartCMResult;
 import com.linkedin.helix.ZNRecord;
+import com.linkedin.helix.TestHelper.StartCMResult;
 import com.linkedin.helix.controller.HelixControllerMain;
 import com.linkedin.helix.controller.restlet.ZKPropertyTransferServer;
 import com.linkedin.helix.controller.restlet.ZkPropertyTransferClient;
 import com.linkedin.helix.integration.ZkIntegrationTestBase;
 import com.linkedin.helix.manager.zk.ZKUtil;
+import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.model.LiveInstance;
+import com.linkedin.helix.tools.ClusterSetup;
+import com.linkedin.helix.tools.ClusterStateVerifier;
 import com.linkedin.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import com.linkedin.helix.tools.ClusterStateVerifier.MasterNbInExtViewVerifier;
 
-public class TestHelixAdminScenariosCli extends ZkIntegrationTestBase
+public class TestHelixAdminScenariosRest extends ZkIntegrationTestBase
 {
   Map<String, StartCMResult> _startCMResultMap =
-        new HashMap<String, StartCMResult>();
+      new HashMap<String, StartCMResult>();
   
   public static String ObjectToJson(Object object) throws JsonGenerationException,
     JsonMappingException,
@@ -48,15 +51,17 @@ public class TestHelixAdminScenariosCli extends ZkIntegrationTestBase
     
     return sw.toString();
   }
-
+  
   
   @Test
-  public void TestAddDeleteClusterAndInstanceAndResource() throws Exception
+  public void testAddDeleteClusterAndInstanceAndResource() throws Exception
   {
     // Helix bug helix-102
     //ZKPropertyTransferServer.PERIOD = 500;
     //ZkPropertyTransferClient.SEND_PERIOD = 500;
     //ZKPropertyTransferServer.getInstance().init(19999, ZK_ADDR);
+    
+    
     
     /**======================= Add clusters ==============================*/
     
@@ -168,7 +173,7 @@ public class TestHelixAdminScenariosCli extends ZkIntegrationTestBase
     command = "-zkSvr localhost:2183 -addResource clusterTest1 db_11 44 MasterSlave";
     ClusterSetup.processCommandLineArgs(command.split(" "));
   }
-
+  
   private void testDeactivateCluster() throws Exception, InterruptedException
   {
     String command;
@@ -192,11 +197,8 @@ public class TestHelixAdminScenariosCli extends ZkIntegrationTestBase
       result._manager.disconnect();
       result._thread.interrupt();
     }
-
+  
     command = "-zkSvr localhost:2183 -dropCluster clusterTest1";
-    ClusterSetup.processCommandLineArgs(command.split(" "));
-    
-    command = "-zkSvr localhost:2183 -dropCluster Klazt3rz";
     ClusterSetup.processCommandLineArgs(command.split(" "));
   }
   
@@ -229,7 +231,7 @@ public class TestHelixAdminScenariosCli extends ZkIntegrationTestBase
     ZNRecord record2 = _gSetupTool._admin.getResourceIdealState("clusterTest1", "db_11").getRecord();
     Assert.assertTrue(record2.equals(record));
   }
-
+  
   private void testExpandCluster() throws Exception
   {
     String command;
@@ -260,7 +262,7 @@ public class TestHelixAdminScenariosCli extends ZkIntegrationTestBase
                                                                                  "clusterTest1"));
     Assert.assertTrue(verifyResult);
   }
-
+  
   private void testInstanceOperations() throws Exception
   {
     String command;
@@ -299,7 +301,7 @@ public class TestHelixAdminScenariosCli extends ZkIntegrationTestBase
     
     _startCMResultMap.put("localhost_12320", TestHelper.startDummyProcess(ZK_ADDR, "clusterTest1", "localhost_12320"));
   }
-
+  
   private void testStartCluster() throws Exception, InterruptedException
   {
     String command;
@@ -356,7 +358,7 @@ public class TestHelixAdminScenariosCli extends ZkIntegrationTestBase
                                                                                  "clusterTest1"));
     Assert.assertTrue(verifyResult);
   }
-
+  
   private void testRebalanceResource() throws Exception
   {
     String command = "-zkSvr localhost:2183 -rebalance clusterTest1 db_11 3";
@@ -376,7 +378,7 @@ public class TestHelixAdminScenariosCli extends ZkIntegrationTestBase
     command = "-zkSvr localhost:2183 -rebalance clusterTest1 db_22 2 -key alias";
     ClusterSetup.processCommandLineArgs(command.split(" "));
   }
-
+  
   private void testAddInstance() throws Exception
   {
     String command;

@@ -23,6 +23,7 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.zookeeper.ZooKeeper.States;
 import org.restlet.Application;
 import org.restlet.Component;
 import org.restlet.Context;
@@ -34,6 +35,8 @@ import org.restlet.data.Request;
 import org.restlet.data.Response;
 import org.restlet.resource.StringRepresentation;
 
+import com.linkedin.helix.manager.zk.ZNRecordSerializer;
+import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.webapp.resources.ClusterResource;
 import com.linkedin.helix.webapp.resources.ClustersResource;
 import com.linkedin.helix.webapp.resources.ConfigResource;
@@ -61,6 +64,8 @@ public class RestAdminApplication extends Application
   public static final String ZKSERVERADDRESS = "zkSvr";
   public static final String PORT = "port";
   public static final int DEFAULT_PORT = 8100;
+  
+  static ZkClient g_zkClient = null;
 
   public RestAdminApplication()
   {
@@ -71,7 +76,12 @@ public class RestAdminApplication extends Application
   {
     super(context);
   }
-
+  
+  public static ZkClient getZkClient()
+  {
+    return g_zkClient;
+  }
+  
   @Override
   public Restlet createRoot()
   {
@@ -190,18 +200,26 @@ public class RestAdminApplication extends Application
     {
       port = Integer.parseInt(cmd.getOptionValue(PORT));
     }
+    // Start zkClient
+    g_zkClient = new ZkClient(cmd.getOptionValue(ZKSERVERADDRESS));
+    g_zkClient.setZkSerializer(new ZNRecordSerializer());
+    
     // start web server with the zkServer address
     Component component = new Component();
     component.getServers().add(Protocol.HTTP, port);
     Context applicationContext = component.getContext().createChildContext();
     applicationContext.getAttributes().put(ZKSERVERADDRESS, cmd.getOptionValue(ZKSERVERADDRESS));
     applicationContext.getAttributes().put(PORT, "" + port);
+    
+    
     RestAdminApplication application = new RestAdminApplication(
         applicationContext);
     // Attach the application to the component and start it
     component.getDefaultHost().attach(application);
     component.start();
   }
+  
+  
   /**
    * @param args
    * @throws Exception

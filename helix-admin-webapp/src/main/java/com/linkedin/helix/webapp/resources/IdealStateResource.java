@@ -33,12 +33,12 @@ import org.restlet.resource.Resource;
 import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 
-import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixException;
 import com.linkedin.helix.PropertyKey;
 import com.linkedin.helix.PropertyKey.Builder;
-import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
+import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.tools.ClusterSetup;
 import com.linkedin.helix.webapp.RestAdminApplication;
 
@@ -85,11 +85,9 @@ public class IdealStateResource extends Resource
     StringRepresentation presentation = null;
     try
     {
-      String zkServer =
-          (String) getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       String resourceName = (String) getRequest().getAttributes().get("resourceName");
-      presentation = getIdealStateRepresentation(zkServer, clusterName, resourceName);
+      presentation = getIdealStateRepresentation(clusterName, resourceName);
     }
 
     catch (Exception e)
@@ -102,7 +100,7 @@ public class IdealStateResource extends Resource
     return presentation;
   }
 
-  StringRepresentation getIdealStateRepresentation(String zkServerAddress,
+  StringRepresentation getIdealStateRepresentation(
                                                    String clusterName,
                                                    String resourceName) throws JsonGenerationException,
       JsonMappingException,
@@ -111,7 +109,7 @@ public class IdealStateResource extends Resource
     Builder keyBuilder = new PropertyKey.Builder(clusterName);
 
     String message =
-        ClusterRepresentationUtil.getClusterPropertyAsString(zkServerAddress,
+        ClusterRepresentationUtil.getClusterPropertyAsString(
                                                              clusterName,
                                                              keyBuilder.idealStates(resourceName),
                                                              MediaType.APPLICATION_JSON);
@@ -127,8 +125,6 @@ public class IdealStateResource extends Resource
   {
     try
     {
-      String zkServer =
-          (String) getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       String resourceName = (String) getRequest().getAttributes().get("resourceName");
 
@@ -137,7 +133,7 @@ public class IdealStateResource extends Resource
       Map<String, String> paraMap = ClusterRepresentationUtil.getFormJsonParameters(form);
 
       if (paraMap.get(ClusterRepresentationUtil._managementCommand)
-                 .equalsIgnoreCase(ClusterRepresentationUtil._alterIdealStateCommand))
+                 .equalsIgnoreCase(ClusterSetup.addIdealState))
       {
         String newIdealStateString =
             form.getFirstValue(ClusterRepresentationUtil._newIdealState, true);
@@ -146,18 +142,17 @@ public class IdealStateResource extends Resource
         ZNRecord newIdealState =
             mapper.readValue(new StringReader(newIdealStateString), ZNRecord.class);
 
-        DataAccessor accessor =
-            ClusterRepresentationUtil.getClusterDataAccessor(zkServer, clusterName);
-        accessor.removeProperty(PropertyType.IDEALSTATES, resourceName);
+        HelixDataAccessor accessor =
+            ClusterRepresentationUtil.getClusterDataAccessor(clusterName);
 
-        accessor.setProperty(PropertyType.IDEALSTATES, newIdealState, resourceName);
+        accessor.setProperty(accessor.keyBuilder().idealStates(resourceName), new IdealState(newIdealState));
 
       }
       else if (paraMap.get(ClusterRepresentationUtil._managementCommand)
-                      .equalsIgnoreCase(ClusterRepresentationUtil._rebalanceCommand))
+                      .equalsIgnoreCase(ClusterSetup.rebalance))
       {
         int replicas = Integer.parseInt(paraMap.get(_replicas));
-        ClusterSetup setupTool = new ClusterSetup(zkServer);
+        ClusterSetup setupTool = new ClusterSetup(RestAdminApplication.getZkClient());
         if(paraMap.containsKey(_resourceKeyPrefix))
         {
           setupTool.rebalanceStorageCluster(clusterName, resourceName, replicas, paraMap.get(_resourceKeyPrefix));
@@ -167,14 +162,22 @@ public class IdealStateResource extends Resource
           setupTool.rebalanceStorageCluster(clusterName, resourceName, replicas);
         }
       }
+      else if (paraMap.get(ClusterRepresentationUtil._managementCommand)
+          .equalsIgnoreCase(ClusterSetup.expandResource))
+      {
+        int replicas = Integer.parseInt(paraMap.get(_replicas));
+        ClusterSetup setupTool = new ClusterSetup(RestAdminApplication.getZkClient());
+        setupTool.expandResource(clusterName, resourceName);
+      }
       else
       {
         new HelixException("Missing '"
-            + ClusterRepresentationUtil._alterIdealStateCommand + "' or '"
-            + ClusterRepresentationUtil._rebalanceCommand + "' command");
+            + ClusterSetup.addIdealState + "' or '"
+            + ClusterSetup.rebalance + "' or '"
+            + ClusterSetup.expandResource
+            + "' command");
       }
-      getResponse().setEntity(getIdealStateRepresentation(zkServer,
-                                                          clusterName,
+      getResponse().setEntity(getIdealStateRepresentation(clusterName,
                                                           resourceName));
       getResponse().setStatus(Status.SUCCESS_OK);
     }

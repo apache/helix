@@ -33,45 +33,33 @@ import org.codehaus.jackson.type.TypeReference;
 import org.restlet.data.Form;
 import org.restlet.data.MediaType;
 
-import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixException;
 import com.linkedin.helix.HelixProperty;
 import com.linkedin.helix.PropertyKey;
 import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.manager.zk.ZKDataAccessor;
 import com.linkedin.helix.manager.zk.ZKHelixDataAccessor;
 import com.linkedin.helix.manager.zk.ZNRecordSerializer;
 import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
 import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.model.LiveInstance.LiveInstanceProperty;
 import com.linkedin.helix.util.HelixUtil;
-import com.linkedin.helix.util.ZKClientPool;
+import com.linkedin.helix.webapp.RestAdminApplication;
 
 public class ClusterRepresentationUtil
 {
   public static final String _jsonParameters                        = "jsonParameters";
   public static final String _managementCommand                     = "command";
-  public static final String _addInstanceCommand                    = "addInstance";
-  public static final String _addResourceGroupCommand               = "addResourceGroup";
-  public static final String _addStateModelCommand                  = "addStateModel";
-  public static final String _rebalanceCommand                      = "rebalance";
-  public static final String _alterIdealStateCommand                = "alterIdealState";
-  public static final String _enableInstanceCommand                 = "enableInstance";
-  public static final String _addClusterCommand                     = "addCluster";
-  public static final String _addSorageClusterToGrandClusterCommand =
-                                                                        "enableStorageCluster";
-  public static final String _alterStateModelCommand                = "alterStateModel";
   public static final String _newIdealState                         = "newIdealState";
   public static final String _newModelDef                           = "newStateModelDef";
   public static final String _enabled                               = "enabled";
-  public static final String _setConfig                             = "setConfig";
-  public static final String _removeConfig                          = "removeConfig";
+  
 
   // public static String getClusterPropertyAsString(String zkServer, String clusterName,
   // PropertyType clusterProperty, String key, MediaType mediaType)
-  public static String getClusterPropertyAsString(String zkServer,
+  public static String getClusterPropertyAsString(
                                                   String clusterName,
                                                   PropertyKey propertyKey,
                                                   // String key,
@@ -81,19 +69,19 @@ public class ClusterRepresentationUtil
       JsonMappingException,
       IOException
   {
-    return getClusterPropertyAsString(zkServer, clusterName, mediaType, propertyKey);
+    return getClusterPropertyAsString(clusterName, mediaType, propertyKey);
   }
 
   // public static String getClusterPropertyAsString(String zkServer, String clusterName,
   // MediaType mediaType, PropertyType clusterProperty, String... keys)
-  public static String getClusterPropertyAsString(String zkServer,
+  public static String getClusterPropertyAsString(
                                                   String clusterName,
                                                   MediaType mediaType,
                                                   PropertyKey propertyKey) throws JsonGenerationException,
       JsonMappingException,
       IOException
   {
-    ZkClient zkClient = ZKClientPool.getZkClient(zkServer);
+    ZkClient zkClient = RestAdminApplication.getZkClient();
 
     ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(zkClient));
@@ -128,7 +116,7 @@ public class ClusterRepresentationUtil
   // return ObjectToJson(new ArrayList<ZNRecord>());
   // }
 
-  public static String getInstancePropertyNameListAsString(String zkServer,
+  public static String getInstancePropertyNameListAsString(
                                                            String clusterName,
                                                            String instanceName,
                                                            PropertyType instanceProperty,
@@ -137,8 +125,7 @@ public class ClusterRepresentationUtil
       JsonMappingException,
       IOException
   {
-    ZkClient zkClient = ZKClientPool.getZkClient(zkServer);
-    zkClient.setZkSerializer(new ZNRecordSerializer());
+    ZkClient zkClient = RestAdminApplication.getZkClient();
 
     String path =
         HelixUtil.getInstancePropertyPath(clusterName, instanceName, instanceProperty)
@@ -152,15 +139,14 @@ public class ClusterRepresentationUtil
     return ObjectToJson(new ArrayList<String>());
   }
 
-  public static String getInstancePropertyAsString(String zkServer,
+  public static String getInstancePropertyAsString(
                                                    String clusterName,
                                                    PropertyKey propertyKey,
                                                    MediaType mediaType) throws JsonGenerationException,
       JsonMappingException,
       IOException
   {
-    ZkClient zkClient = ZKClientPool.getZkClient(zkServer);
-    zkClient.setZkSerializer(new ZNRecordSerializer());
+    ZkClient zkClient = RestAdminApplication.getZkClient();
     ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(zkClient));
 
@@ -168,14 +154,14 @@ public class ClusterRepresentationUtil
     return ZNRecordToJson(records);
   }
 
-  public static String getInstancePropertiesAsString(String zkServer,
+  public static String getInstancePropertiesAsString(
                                                      String clusterName,
                                                      PropertyKey propertyKey,
                                                      MediaType mediaType) throws JsonGenerationException,
       JsonMappingException,
       IOException
   {
-    ZkClient zkClient = ZKClientPool.getZkClient(zkServer);
+    ZkClient zkClient = RestAdminApplication.getZkClient();
     zkClient.setZkSerializer(new ZNRecordSerializer());
     ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(zkClient));
@@ -185,15 +171,14 @@ public class ClusterRepresentationUtil
     return ObjectToJson(records);
   }
 
-  public static String getPropertyAsString(String zkServer,
+  public static String getPropertyAsString(
                                            String clusterName,
                                            PropertyKey propertyKey,
                                            MediaType mediaType) throws JsonGenerationException,
       JsonMappingException,
       IOException
   {
-    ZkClient zkClient = ZKClientPool.getZkClient(zkServer);
-    zkClient.setZkSerializer(new ZNRecordSerializer());
+    ZkClient zkClient = RestAdminApplication.getZkClient();
     ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(zkClient));
 
     ZNRecord record = accessor.getProperty(propertyKey).getRecord();
@@ -221,11 +206,10 @@ public class ClusterRepresentationUtil
     return sw.toString();
   }
 
-  public static DataAccessor getClusterDataAccessor(String zkServer, String clusterName)
+  public static HelixDataAccessor getClusterDataAccessor( String clusterName)
   {
-    ZkClient zkClient = ZKClientPool.getZkClient(zkServer);
-    zkClient.setZkSerializer(new ZNRecordSerializer());
-    return new ZKDataAccessor(clusterName, zkClient);
+    ZkClient zkClient = RestAdminApplication.getZkClient();
+    return new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(zkClient));
   }
 
   public static <T extends Object> T JsonToObject(Class<T> clazz, String jsonString) throws JsonParseException,
@@ -330,12 +314,11 @@ public class ClusterRepresentationUtil
     }
   }
 
-  public static String getInstanceSessionId(String zkServerAddress,
+  public static String getInstanceSessionId(
                                             String clusterName,
                                             String instanceName)
   {
-    ZkClient zkClient = ZKClientPool.getZkClient(zkServerAddress);
-    zkClient.setZkSerializer(new ZNRecordSerializer());
+    ZkClient zkClient = RestAdminApplication.getZkClient();
     ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(zkClient));
     Builder keyBuilder = accessor.keyBuilder();
@@ -346,14 +329,13 @@ public class ClusterRepresentationUtil
     return liveInstance.getSimpleField(LiveInstanceProperty.SESSION_ID.toString());
   }
 
-  public static List<String> getInstancePropertyList(String zkServerAddress,
+  public static List<String> getInstancePropertyList(
                                                      String clusterName,
                                                      String instanceName,
                                                      PropertyType property,
                                                      String key)
   {
-    ZkClient zkClient = ZKClientPool.getZkClient(zkServerAddress);
-    zkClient.setZkSerializer(new ZNRecordSerializer());
+    ZkClient zkClient = RestAdminApplication.getZkClient();
     String propertyPath =
         HelixUtil.getInstancePropertyPath(clusterName, instanceName, property) + "/"
             + key;

@@ -510,9 +510,8 @@ public class ZKHelixAdmin implements HelixAdmin
     String dbIdealStatePath = idealStatePath + "/" + dbName;
     if (_zkClient.exists(dbIdealStatePath))
     {
-      logger.warn("Skip the operation. DB ideal state directory exists:"
+      throw new HelixException("Skip the operation. DB ideal state directory exists:"
           + dbIdealStatePath);
-      return;
     }
 
     ZKUtil.createChildren(_zkClient, idealStatePath, idealState.getRecord());

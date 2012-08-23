@@ -45,8 +45,8 @@ import org.codehaus.jackson.map.JsonMappingException;
 import com.linkedin.helix.ConfigScope;
 import com.linkedin.helix.ConfigScopeBuilder;
 import com.linkedin.helix.HelixAdmin;
-import com.linkedin.helix.HelixException;
 import com.linkedin.helix.HelixConstants.StateModelToken;
+import com.linkedin.helix.HelixException;
 import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.manager.zk.ZKHelixAdmin;
@@ -64,13 +64,13 @@ import com.linkedin.helix.util.ZKClientPool;
 
 public class ClusterSetup
 {
-  private static Logger      logger            = Logger.getLogger(ClusterSetup.class);
-  public static final String zkServerAddress   = "zkSvr";
+  private static Logger logger = Logger.getLogger(ClusterSetup.class);
+  public static final String zkServerAddress = "zkSvr";
 
   // List info about the cluster / DB/ Instances
-  public static final String listClusters      = "listClusters";
-  public static final String listResources     = "listResources";
-  public static final String listInstances     = "listInstances";
+  public static final String listClusters = "listClusters";
+  public static final String listResources = "listResources";
+  public static final String listInstances = "listInstances";
 
   // Add, drop, and rebalance
   public static final String addCluster = "addCluster";
@@ -87,42 +87,42 @@ public class ClusterSetup
   public static final String expandCluster = "expandCluster";
   public static final String expandResource = "expandResource";
   public static final String mode = "mode";
-  public static final String bucketSize        = "bucketSize";
+  public static final String bucketSize = "bucketSize";
   public static final String resourceKeyPrefix = "key";
   public static final String addResourceProperty = "addResourceProperty";
   public static final String removeResourceProperty = "removeResourceProperty";
 
   // Query info (TBD in V2)
-  public static final String listClusterInfo   = "listClusterInfo";
-  public static final String listInstanceInfo  = "listInstanceInfo";
-  public static final String listResourceInfo  = "listResourceInfo";
+  public static final String listClusterInfo = "listClusterInfo";
+  public static final String listInstanceInfo = "listInstanceInfo";
+  public static final String listResourceInfo = "listResourceInfo";
   public static final String listPartitionInfo = "listPartitionInfo";
-  public static final String listStateModels   = "listStateModels";
-  public static final String listStateModel    = "listStateModel";
+  public static final String listStateModels = "listStateModels";
+  public static final String listStateModel = "listStateModel";
 
   // enable/disable Instances/cluster
-  public static final String enableInstance    = "enableInstance";
-  public static final String enablePartition   = "enablePartition";
-  public static final String enableCluster     = "enableCluster";
-  public static final String resetPartition    = "resetPartition";
+  public static final String enableInstance = "enableInstance";
+  public static final String enablePartition = "enablePartition";
+  public static final String enableCluster = "enableCluster";
+  public static final String resetPartition = "resetPartition";
 
   // help
-  public static final String help              = "help";
+  public static final String help = "help";
 
   // stats/alerts
-  public static final String addStat           = "addStat";
-  public static final String addAlert          = "addAlert";
-  public static final String dropStat          = "dropStat";
-  public static final String dropAlert         = "dropAlert";
+  public static final String addStat = "addStat";
+  public static final String addAlert = "addAlert";
+  public static final String dropStat = "dropStat";
+  public static final String dropAlert = "dropAlert";
 
   // get/set configs
-  public static final String getConfig         = "getConfig";
-  public static final String setConfig         = "setConfig";
+  public static final String getConfig = "getConfig";
+  public static final String setConfig = "setConfig";
 
-  static Logger              _logger           = Logger.getLogger(ClusterSetup.class);
-  String                     _zkServerAddress;
-  ZkClient                   _zkClient;
-  HelixAdmin                 _admin;
+  static Logger _logger = Logger.getLogger(ClusterSetup.class);
+  String _zkServerAddress;
+  ZkClient _zkClient;
+  HelixAdmin _admin;
 
   public ClusterSetup(String zkServerAddress)
   {
@@ -152,7 +152,7 @@ public class ClusterSetup
 
   public void activateCluster(String clusterName, String grandCluster, boolean enable)
   {
-    if(enable)
+    if (enable)
     {
       _admin.addClusterToGrandCluster(clusterName, grandCluster);
     }
@@ -253,9 +253,10 @@ public class ClusterSetup
     LiveInstance liveInstance = accessor.getProperty(keyBuilder.liveInstance(instanceId));
     if (liveInstance != null)
     {
-      throw new HelixException("Can't drop " + instanceId + ", please stop " + instanceId + " before drop it");
+      throw new HelixException("Can't drop " + instanceId + ", please stop " + instanceId
+          + " before drop it");
     }
-    
+
     InstanceConfig config = accessor.getProperty(keyBuilder.instanceConfig(instanceId));
     if (config == null)
     {
@@ -323,7 +324,7 @@ public class ClusterSetup
     }
 
     dropInstanceFromCluster(clusterName, oldInstanceName);
-    
+
     List<IdealState> existingIdealStates =
         accessor.getChildValues(accessor.keyBuilder().idealStates());
     for (IdealState idealState : existingIdealStates)
@@ -423,27 +424,29 @@ public class ClusterSetup
   {
     rebalanceStorageCluster(clusterName, resourceName, replica, resourceName);
   }
-  
+
   public void expandResource(String clusterName, String resourceName)
   {
     IdealState idealState = _admin.getResourceIdealState(clusterName, resourceName);
-    if(idealState.getIdealStateMode() == IdealStateModeProperty.AUTO_REBALANCE ||
-       idealState.getIdealStateMode() == IdealStateModeProperty.CUSTOMIZED)
+    if (idealState.getIdealStateMode() == IdealStateModeProperty.AUTO_REBALANCE
+        || idealState.getIdealStateMode() == IdealStateModeProperty.CUSTOMIZED)
     {
-      _logger.info("Skipping idealState " + idealState.getResourceName()+" " + idealState.getIdealStateMode());
+      _logger.info("Skipping idealState " + idealState.getResourceName() + " "
+          + idealState.getIdealStateMode());
       return;
     }
     boolean anyLiveInstance = false;
-    for(List<String> list : idealState.getRecord().getListFields().values())
+    for (List<String> list : idealState.getRecord().getListFields().values())
     {
-      if(list.contains(StateModelToken.ANY_LIVEINSTANCE.toString()))
+      if (list.contains(StateModelToken.ANY_LIVEINSTANCE.toString()))
       {
-        _logger.info("Skipping idealState " + idealState.getResourceName() + " with ANY_LIVEINSTANCE");
+        _logger.info("Skipping idealState " + idealState.getResourceName()
+            + " with ANY_LIVEINSTANCE");
         anyLiveInstance = true;
         continue;
       }
     }
-    if(anyLiveInstance)
+    if (anyLiveInstance)
     {
       return;
     }
@@ -451,12 +454,12 @@ public class ClusterSetup
     {
       int replica = Integer.parseInt(idealState.getReplicas());
     }
-    catch(Exception e)
+    catch (Exception e)
     {
       _logger.error("", e);
       return;
     }
-    if(idealState.getRecord().getListFields().size() == 0)
+    if (idealState.getRecord().getListFields().size() == 0)
     {
       _logger.warn("Resource " + resourceName + " not balanced, skip");
       return;
@@ -464,22 +467,22 @@ public class ClusterSetup
     IdealState newIdealState = balanceIdealState(clusterName, idealState);
     _admin.setResourceIdealState(clusterName, resourceName, newIdealState);
   }
-  
+
   public void expandCluster(String clusterName)
   {
     List<String> resources = _admin.getResourcesInCluster(clusterName);
-    for(String resourceName : resources)
+    for (String resourceName : resources)
     {
       expandResource(clusterName, resourceName);
     }
   }
-  
+
   public String[] parseStates(String clusterName, String stateModelName)
   {
     String[] result = new String[2];
     String masterStateValue = null, slaveStateValue = null;
-    StateModelDefinition stateModDef = _admin.getStateModelDef(clusterName,
-        stateModelName);
+    StateModelDefinition stateModDef =
+        _admin.getStateModelDef(clusterName, stateModelName);
 
     if (stateModDef == null)
     {
@@ -487,9 +490,8 @@ public class ClusterSetup
     }
     // StateModelDefinition def = new StateModelDefinition(stateModDef);
 
-
     List<String> statePriorityList = stateModDef.getStatesPriorityList();
-    
+
     for (String state : statePriorityList)
     {
       String count = stateModDef.getNumInstancesPerState(state);
@@ -500,14 +502,16 @@ public class ClusterSetup
           throw new HelixException("Invalid or unsupported state model definition");
         }
         masterStateValue = state;
-      } else if (count.equalsIgnoreCase("R"))
+      }
+      else if (count.equalsIgnoreCase("R"))
       {
         if (slaveStateValue != null)
         {
           throw new HelixException("Invalid or unsupported state model definition");
         }
         slaveStateValue = state;
-      } else if (count.equalsIgnoreCase("N"))
+      }
+      else if (count.equalsIgnoreCase("N"))
       {
         if (!(masterStateValue == null && slaveStateValue == null))
         {
@@ -529,64 +533,76 @@ public class ClusterSetup
     result[1] = slaveStateValue;
     return result;
   }
-  
+
   public IdealState balanceIdealState(String clusterName, IdealState idealState)
   {
-    // The new instances are added into the cluster already. So we need to find out the instances that 
+    // The new instances are added into the cluster already. So we need to find out the
+    // instances that
     // already have partitions assigned to them.
     List<String> instanceNames = _admin.getInstancesInCluster(clusterName);
     Set<String> activeInstances = new HashSet<String>();
-    for(String partition : idealState.getPartitionSet())
+    for (String partition : idealState.getPartitionSet())
     {
       activeInstances.addAll(idealState.getRecord().getListField(partition));
     }
     instanceNames.removeAll(activeInstances);
     Map<String, Object> previousIdealState = buildInternalIdealState(idealState);
-    
-    Map<String, Object> balancedRecord
-      = IdealStateCalculatorForStorageNode.calculateNextIdealState(instanceNames, previousIdealState);
-    
+
+    Map<String, Object> balancedRecord =
+        IdealStateCalculatorForStorageNode.calculateNextIdealState(instanceNames,
+                                                                   previousIdealState);
+
     String[] states = parseStates(clusterName, idealState.getStateModelDefRef());
-    
-    ZNRecord newIdealStateRecord 
-      = IdealStateCalculatorForStorageNode.convertToZNRecord(balancedRecord, idealState.getResourceName(), states[0], states[1]);
+
+    ZNRecord newIdealStateRecord =
+        IdealStateCalculatorForStorageNode.convertToZNRecord(balancedRecord,
+                                                             idealState.getResourceName(),
+                                                             states[0],
+                                                             states[1]);
     Set<String> partitionSet = new HashSet<String>();
     partitionSet.addAll(newIdealStateRecord.getMapFields().keySet());
     partitionSet.addAll(newIdealStateRecord.getListFields().keySet());
-    
-    Map<String, String> reversePartitionIndex = (Map<String, String>) balancedRecord.get("reversePartitionIndex");
-    for(String partition : partitionSet)
+
+    Map<String, String> reversePartitionIndex =
+        (Map<String, String>) balancedRecord.get("reversePartitionIndex");
+    for (String partition : partitionSet)
     {
-      if(reversePartitionIndex.containsKey(partition))
+      if (reversePartitionIndex.containsKey(partition))
       {
         String originPartitionName = reversePartitionIndex.get(partition);
-        if(partition.equals(originPartitionName))
+        if (partition.equals(originPartitionName))
         {
           continue;
         }
-        newIdealStateRecord.getMapFields().put(originPartitionName, newIdealStateRecord.getMapField(partition));
+        newIdealStateRecord.getMapFields()
+                           .put(originPartitionName,
+                                newIdealStateRecord.getMapField(partition));
         newIdealStateRecord.getMapFields().remove(partition);
-        
-        newIdealStateRecord.getListFields().put(originPartitionName, newIdealStateRecord.getListField(partition));
+
+        newIdealStateRecord.getListFields()
+                           .put(originPartitionName,
+                                newIdealStateRecord.getListField(partition));
         newIdealStateRecord.getListFields().remove(partition);
       }
     }
-    
-    newIdealStateRecord.getSimpleFields().putAll(idealState.getRecord().getSimpleFields());
+
+    newIdealStateRecord.getSimpleFields()
+                       .putAll(idealState.getRecord().getSimpleFields());
     return new IdealState(newIdealStateRecord);
 
   }
-  
+
   public static Map<String, Object> buildInternalIdealState(IdealState state)
   {
-    // Try parse the partition number from name DB_n. If not, sort the partitions and assign id 
+    // Try parse the partition number from name DB_n. If not, sort the partitions and
+    // assign id
     Map<String, Integer> partitionIndex = new HashMap<String, Integer>();
     Map<String, String> reversePartitionIndex = new HashMap<String, String>();
     boolean indexInPartitionName = true;
-    for(String partitionId : state.getPartitionSet())
+    for (String partitionId : state.getPartitionSet())
     {
       int lastPos = partitionId.lastIndexOf("_");
-      if(lastPos < 0)
+      if (lastPos < 0)
       {
         indexInPartitionName = false;
         break;
@@ -596,9 +612,9 @@ public class ClusterSetup
         String idStr = partitionId.substring(lastPos + 1);
         int partition = Integer.parseInt(idStr);
         partitionIndex.put(partitionId, partition);
-        reversePartitionIndex.put(state.getResourceName()+"_" + partition, partitionId);
+        reversePartitionIndex.put(state.getResourceName() + "_" + partition, partitionId);
       }
-      catch(Exception e)
+      catch (Exception e)
       {
         indexInPartitionName = false;
         partitionIndex.clear();
@@ -606,46 +622,48 @@ public class ClusterSetup
         break;
       }
     }
-    
-    if(indexInPartitionName == false)
+
+    if (indexInPartitionName == false)
     {
       List<String> partitions = new ArrayList<String>();
       partitions.addAll(state.getPartitionSet());
       Collections.sort(partitions);
-      for(int i = 0; i < partitions.size(); i++)
+      for (int i = 0; i < partitions.size(); i++)
       {
         partitionIndex.put(partitions.get(i), i);
-        reversePartitionIndex.put(state.getResourceName()+"_" + i, partitions.get(i));
+        reversePartitionIndex.put(state.getResourceName() + "_" + i, partitions.get(i));
       }
     }
-    
-    Map<String, List<Integer>> nodeMasterAssignmentMap = new TreeMap<String, List<Integer>>();
-    Map<String, Map<String, List<Integer>>> combinedNodeSlaveAssignmentMap = new TreeMap<String, Map<String, List<Integer>>>();
-    for(String partition : state.getPartitionSet())
+
+    Map<String, List<Integer>> nodeMasterAssignmentMap =
+        new TreeMap<String, List<Integer>>();
+    Map<String, Map<String, List<Integer>>> combinedNodeSlaveAssignmentMap =
+        new TreeMap<String, Map<String, List<Integer>>>();
+    for (String partition : state.getPartitionSet())
     {
       List<String> instances = state.getRecord().getListField(partition);
       String master = instances.get(0);
-      if(!nodeMasterAssignmentMap.containsKey(master))
+      if (!nodeMasterAssignmentMap.containsKey(master))
       {
         nodeMasterAssignmentMap.put(master, new ArrayList<Integer>());
       }
-      if(!combinedNodeSlaveAssignmentMap.containsKey(master))
+      if (!combinedNodeSlaveAssignmentMap.containsKey(master))
       {
         combinedNodeSlaveAssignmentMap.put(master, new TreeMap<String, List<Integer>>());
       }
       nodeMasterAssignmentMap.get(master).add(partitionIndex.get(partition));
-      for(int i = 1; i < instances.size(); i++)
+      for (int i = 1; i < instances.size(); i++)
       {
         String instance = instances.get(i);
         Map<String, List<Integer>> slaveMap = combinedNodeSlaveAssignmentMap.get(master);
-        if(!slaveMap.containsKey(instance))
+        if (!slaveMap.containsKey(instance))
         {
           slaveMap.put(instance, new ArrayList<Integer>());
         }
         slaveMap.get(instance).add(partitionIndex.get(partition));
       }
     }
-    
+
     Map<String, Object> result = new TreeMap<String, Object>();
     result.put("MasterAssignmentMap", nodeMasterAssignmentMap);
     result.put("SlaveAssignmentMap", combinedNodeSlaveAssignmentMap);
@@ -735,8 +753,14 @@ public class ClusterSetup
                                                                  keyPrefix,
                                                                  masterStateValue,
                                                                  slaveStateValue);
-      idealState.getRecord().setMapFields(newIdealState.getMapFields());
-      idealState.getRecord().setListFields(newIdealState.getListFields());
+      if (idealState.getIdealStateMode() == IdealStateModeProperty.AUTO)
+      {
+        idealState.getRecord().setListFields(newIdealState.getListFields());
+      }
+      else if (idealState.getIdealStateMode() == IdealStateModeProperty.CUSTOMIZED)
+      {
+        idealState.getRecord().setMapFields(newIdealState.getMapFields());
+      }
     }
     else
     {
@@ -752,7 +776,7 @@ public class ClusterSetup
 
   /**
    * setConfig
-   * 
+   *
    * @param scopeStr
    *          : scope=value, ... where scope=CLUSTER, RESOURCE, PARTICIPANT, PARTITION
    * @param properitesStr
@@ -831,7 +855,7 @@ public class ClusterSetup
   /**
    * Sets up a cluster with 6 Instances[localhost:8900 to localhost:8905], 1
    * resource[EspressoDB] with a replication factor of 3
-   * 
+   *
    * @param clusterName
    */
   public void setupTestCluster(String clusterName)
@@ -932,7 +956,7 @@ public class ClusterSetup
     addResourceOption.setArgs(4);
     addResourceOption.setRequired(false);
     addResourceOption.setArgName("clusterName resourceName partitionNum stateModelRef <-mode modeValue>");
-    
+
     Option expandResourceOption =
         OptionBuilder.withLongOpt(expandResource)
                      .withDescription("Expand resource to additional nodes")
@@ -940,7 +964,7 @@ public class ClusterSetup
     expandResourceOption.setArgs(2);
     expandResourceOption.setRequired(false);
     expandResourceOption.setArgName("clusterName resourceName");
-    
+
     Option expandClusterOption =
         OptionBuilder.withLongOpt(expandCluster)
                      .withDescription("Expand a cluster and all the resources")
@@ -1044,7 +1068,7 @@ public class ClusterSetup
     resourceInfoOption.setArgs(2);
     resourceInfoOption.setRequired(false);
     resourceInfoOption.setArgName("clusterName resourceName");
-    
+
     Option addResourcePropertyOption =
         OptionBuilder.withLongOpt(addResourceProperty)
                      .withDescription("Add a resource property")
@@ -1052,7 +1076,7 @@ public class ClusterSetup
     addResourcePropertyOption.setArgs(4);
     addResourcePropertyOption.setRequired(false);
     addResourcePropertyOption.setArgName("clusterName resourceName propertyName propertyValue");
-    
+
     Option removeResourcePropertyOption =
         OptionBuilder.withLongOpt(removeResourceProperty)
                      .withDescription("Remove a resource property")
@@ -1060,7 +1084,7 @@ public class ClusterSetup
     removeResourcePropertyOption.setArgs(3);
     removeResourcePropertyOption.setRequired(false);
     removeResourcePropertyOption.setArgName("clusterName resourceName propertyName");
-    
+
     Option partitionInfoOption =
         OptionBuilder.withLongOpt(listPartitionInfo)
                      .withDescription("Query info of a partition")
@@ -1350,7 +1374,7 @@ public class ClusterSetup
       setupTool.rebalanceStorageCluster(clusterName, resourceName, replicas);
       return 0;
     }
-    
+
     if (cmd.hasOption(expandCluster))
     {
       String clusterName = cmd.getOptionValues(expandCluster)[0];
@@ -1358,7 +1382,7 @@ public class ClusterSetup
       setupTool.expandCluster(clusterName);
       return 0;
     }
-    
+
     if (cmd.hasOption(expandResource))
     {
       String clusterName = cmd.getOptionValues(expandResource)[0];
@@ -1548,7 +1572,7 @@ public class ClusterSetup
     {
       String clusterName = cmd.getOptionValues(enableInstance)[0];
       String instanceName = cmd.getOptionValues(enableInstance)[1];
-      if(instanceName.contains(":"))
+      if (instanceName.contains(":"))
       {
         instanceName = instanceName.replaceAll(":", "_");
       }
@@ -1725,7 +1749,7 @@ public class ClusterSetup
       String resourceName = cmd.getOptionValues(addResourceProperty)[1];
       String propertyKey = cmd.getOptionValues(addResourceProperty)[2];
       String propertyVal = cmd.getOptionValues(addResourceProperty)[3];
-      
+
       setupTool.addResourceProperty(clusterName, resourceName, propertyKey, propertyVal);
       return 0;
     }
@@ -1741,8 +1765,10 @@ public class ClusterSetup
     return 0;
   }
 
-  public void addResourceProperty(String clusterName, String resourceName,
-      String propertyKey, String propertyVal)
+  public void addResourceProperty(String clusterName,
+                                  String resourceName,
+                                  String propertyKey,
+                                  String propertyVal)
   {
     IdealState idealState = _admin.getResourceIdealState(clusterName, resourceName);
     if (idealState == null)
@@ -1753,8 +1779,9 @@ public class ClusterSetup
     _admin.setResourceIdealState(clusterName, resourceName, idealState);
   }
 
-  public void removeResourceProperty(String clusterName, String resourceName,
-      String propertyKey)
+  public void removeResourceProperty(String clusterName,
+                                     String resourceName,
+                                     String propertyKey)
   {
     IdealState idealState = _admin.getResourceIdealState(clusterName, resourceName);
     if (idealState == null)

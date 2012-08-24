@@ -24,12 +24,10 @@ import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.restlet.Application;
-import org.restlet.Component;
 import org.restlet.Context;
 import org.restlet.Restlet;
 import org.restlet.Router;
 import org.restlet.data.MediaType;
-import org.restlet.data.Protocol;
 import org.restlet.data.Request;
 import org.restlet.data.Response;
 import org.restlet.resource.StringRepresentation;
@@ -60,7 +58,9 @@ public class RestAdminApplication extends Application
   public static final String HELP = "help";
   public static final String ZKSERVERADDRESS = "zkSvr";
   public static final String PORT = "port";
+  public static final String ZKCLIENT = "zkClient";
   public static final int DEFAULT_PORT = 8100;
+  
 
   public RestAdminApplication()
   {
@@ -71,7 +71,7 @@ public class RestAdminApplication extends Application
   {
     super(context);
   }
-
+  
   @Override
   public Restlet createRoot()
   {
@@ -190,18 +190,19 @@ public class RestAdminApplication extends Application
     {
       port = Integer.parseInt(cmd.getOptionValue(PORT));
     }
-    // start web server with the zkServer address
-    Component component = new Component();
-    component.getServers().add(Protocol.HTTP, port);
-    Context applicationContext = component.getContext().createChildContext();
-    applicationContext.getAttributes().put(ZKSERVERADDRESS, cmd.getOptionValue(ZKSERVERADDRESS));
-    applicationContext.getAttributes().put(PORT, "" + port);
-    RestAdminApplication application = new RestAdminApplication(
-        applicationContext);
-    // Attach the application to the component and start it
-    component.getDefaultHost().attach(application);
-    component.start();
+   
+    HelixAdminWebApp app = new HelixAdminWebApp(cmd.getOptionValue(ZKSERVERADDRESS), port);
+    app.start();
+    try
+    {
+      Thread.currentThread().join();
+    }
+    finally
+    {
+      app.stop();
+    }
   }
+  
   /**
    * @param args
    * @throws Exception
@@ -209,6 +210,7 @@ public class RestAdminApplication extends Application
   public static void main(String[] args) throws Exception
   {
     processCommandLineArgs(args);
+    
   }
 
 }

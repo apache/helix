@@ -3,13 +3,13 @@
 	<parent>
 		<groupId>com.linkedin.helix</groupId>
 		<artifactId>helix</artifactId>
-		<version>0.5.19</version>
+		<version>0.5.21</version>
 	</parent>
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.linkedin.helix</groupId>
 	<artifactId>helix-admin-webapp</artifactId>
 	<packaging>jar</packaging>
-	<version>0.5.19</version>
+	<version>0.5.21</version>
 	<name>helix-admin-webapp</name>
 	<url>http://maven.apache.org</url>
 	<repositories>
@@ -23,7 +23,7 @@
 		<dependency>
 			<groupId>com.linkedin.helix</groupId>
 			<artifactId>helix-core</artifactId>
-			<version>0.5.19</version>
+			<version>0.5.21</version>
 		</dependency>
 		<dependency>
 			<groupId>org.restlet</groupId>
@@ -61,6 +61,13 @@
 			<version>6.0.1</version>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+     <groupId>com.linkedin.helix</groupId>
+      <artifactId>helix-core</artifactId>
+      <version>0.5.21</version>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
 	</dependencies>
 	<build>
 		<plugins>

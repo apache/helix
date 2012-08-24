@@ -19,11 +19,15 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
+import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
@@ -37,7 +41,6 @@ public class TestShuffledIdealState
   @Test ()
   public void testInvocation() throws Exception
   {
-
     int partitions = 6, replicas = 2;
     String dbName = "espressoDB1";
     List<String> instanceNames = new ArrayList<String>();
@@ -48,7 +51,9 @@ public class TestShuffledIdealState
 
     ZNRecord result = IdealStateCalculatorByShuffling.calculateIdealState(
         instanceNames, partitions, replicas, dbName);
-
+    IdealCalculatorByConsistentHashing.printIdealStateStats(result, "MASTER");
+    IdealCalculatorByConsistentHashing.printIdealStateStats(result, "SLAVE");
+    
     ZNRecord result2 = IdealStateCalculatorByRush.calculateIdealState(instanceNames, 1, partitions, replicas, dbName);
 
     ZNRecord result3 = IdealCalculatorByConsistentHashing.calculateIdealState(instanceNames, partitions, replicas, dbName, new IdealCalculatorByConsistentHashing.FnvHash());
@@ -108,5 +113,154 @@ public class TestShuffledIdealState
       e.printStackTrace();
     }
   }
+  
+  @Test
+  public void testShuffledIdealState()
+  {
+    // partitions is larger than nodes
+    int partitions = 6, replicas = 2, instances = 4;
+    String dbName = "espressoDB1";
+    List<String> instanceNames = new ArrayList<String>();
+    instanceNames.add("localhost_1231");
+    instanceNames.add("localhost_1232");
+    instanceNames.add("localhost_1233");
+    instanceNames.add("localhost_1234");
 
+    ZNRecord result = IdealStateCalculatorByShuffling.calculateIdealState(
+        instanceNames, partitions, replicas, dbName);
+    IdealCalculatorByConsistentHashing.printIdealStateStats(result, "MASTER");
+    IdealCalculatorByConsistentHashing.printIdealStateStats(result, "SLAVE");
+    Assert.assertTrue(verify(result));
+    
+    // partition is less than nodes
+    instanceNames.clear();
+    partitions = 4; 
+    replicas = 3;
+    instances = 7;
+    
+    for(int i = 0; i<instances; i++)
+    {
+      instanceNames.add("localhost_" + (1231 + i));
+    }
+    result = IdealStateCalculatorByShuffling.calculateIdealState(
+        instanceNames, partitions, replicas, dbName);
+    IdealCalculatorByConsistentHashing.printIdealStateStats(result, "MASTER");
+    IdealCalculatorByConsistentHashing.printIdealStateStats(result, "SLAVE");
+    Assert.assertTrue(verify(result));
+    
+    // partitions is multiple of nodes
+    instanceNames.clear();
+    partitions = 14; 
+    replicas = 3;
+    instances = 7;
+    
+    for(int i = 0; i<instances; i++)
+    {
+      instanceNames.add("localhost_" + (1231 + i));
+    }
+    result = IdealStateCalculatorByShuffling.calculateIdealState(
+        instanceNames, partitions, replicas, dbName);
+    IdealCalculatorByConsistentHashing.printIdealStateStats(result, "MASTER");
+    IdealCalculatorByConsistentHashing.printIdealStateStats(result, "SLAVE");
+    Assert.assertTrue(verify(result));
+    
+    // nodes are multiple of partitions
+    instanceNames.clear();
+    partitions = 4; 
+    replicas = 3;
+    instances = 8;
+    
+    for(int i = 0; i<instances; i++)
+    {
+      instanceNames.add("localhost_" + (1231 + i));
+    }
+    result = IdealStateCalculatorByShuffling.calculateIdealState(
+        instanceNames, partitions, replicas, dbName);
+    IdealCalculatorByConsistentHashing.printIdealStateStats(result, "MASTER");
+    IdealCalculatorByConsistentHashing.printIdealStateStats(result, "SLAVE");
+    Assert.assertTrue(verify(result));
+    
+    // nodes are multiple of partitions
+    instanceNames.clear();
+    partitions = 4; 
+    replicas = 3;
+    instances = 12;
+    
+    for(int i = 0; i<instances; i++)
+    {
+      instanceNames.add("localhost_" + (1231 + i));
+    }
+    result = IdealStateCalculatorByShuffling.calculateIdealState(
+        instanceNames, partitions, replicas, dbName);
+    IdealCalculatorByConsistentHashing.printIdealStateStats(result, "MASTER");
+    IdealCalculatorByConsistentHashing.printIdealStateStats(result, "SLAVE");
+    Assert.assertTrue(verify(result));
+    
+    // Just fits
+    instanceNames.clear();
+    partitions = 4; 
+    replicas = 2;
+    instances = 12;
+    
+    for(int i = 0; i<instances; i++)
+    {
+      instanceNames.add("localhost_" + (1231 + i));
+    }
+    result = IdealStateCalculatorByShuffling.calculateIdealState(
+        instanceNames, partitions, replicas, dbName);
+    IdealCalculatorByConsistentHashing.printIdealStateStats(result, "MASTER");
+    IdealCalculatorByConsistentHashing.printIdealStateStats(result, "SLAVE");
+    Assert.assertTrue(verify(result));
+  }
+  
+  boolean verify(ZNRecord result)
+  {
+    Map<String, Integer> masterPartitionCounts = new HashMap<String, Integer>();
+    Map<String, Integer> slavePartitionCounts = new HashMap<String, Integer>();
+    
+    for(String key : result.getMapFields().keySet())
+    {
+      Map<String, String> mapField = result.getMapField(key);
+      int masterCount = 0;
+      for(String host: mapField.keySet())
+      {
+        if(mapField.get(host).equals("MASTER"))
+        {
+          Assert.assertTrue(masterCount == 0);
+          masterCount ++;
+          if(!masterPartitionCounts.containsKey(host))
+          {
+            masterPartitionCounts.put(host, 0);
+          }
+          else
+          {
+            masterPartitionCounts.put(host, masterPartitionCounts.get(host) + 1);
+          }
+        }
+        else
+        {
+          if(!slavePartitionCounts.containsKey(host))
+          {
+            slavePartitionCounts.put(host, 0);
+          }
+          else
+          {
+            slavePartitionCounts.put(host, slavePartitionCounts.get(host) + 1);
+          }
+        }
+      }
+    }
+    
+    List<Integer> masterCounts = new ArrayList<Integer>();
+    List<Integer> slaveCounts = new ArrayList<Integer>();
+    masterCounts.addAll(masterPartitionCounts.values());
+    slaveCounts.addAll(slavePartitionCounts.values());
+    Collections.sort(masterCounts);
+    Collections.sort(slaveCounts);
+    
+    Assert.assertTrue(masterCounts.get(masterCounts.size() - 1 ) - masterCounts.get(0) <= 1);
+
+    Assert.assertTrue(slaveCounts.get(slaveCounts.size() - 1 ) - slaveCounts.get(0) <= 2);
+    return true;
+  }
 }

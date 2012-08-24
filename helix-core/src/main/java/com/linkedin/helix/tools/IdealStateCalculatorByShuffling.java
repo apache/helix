@@ -91,8 +91,13 @@ public class IdealStateCalculatorByShuffling
       // node
       for (int j = 1; j <= replicas; j++)
       {
+        int index = (masterNode + j * partitionList.size()) % instanceNames.size();
+        while(partitionAssignment.keySet().contains(instanceNames.get(index)))
+        {
+          index = (index +1) % instanceNames.size();
+        }
         partitionAssignment
-            .put(instanceNames.get((masterNode + j) % instanceNames.size()),
+            .put(instanceNames.get(index),
                 slaveValue);
       }
       String partitionName = dbName + "_" + partitionId;

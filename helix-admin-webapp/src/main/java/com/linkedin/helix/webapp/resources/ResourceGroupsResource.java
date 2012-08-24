@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.restlet.Context;
@@ -34,12 +35,15 @@ import org.restlet.resource.Variant;
 
 import com.linkedin.helix.HelixException;
 import com.linkedin.helix.ZNRecord;
+import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.model.IdealState.IdealStateModeProperty;
 import com.linkedin.helix.tools.ClusterSetup;
 import com.linkedin.helix.webapp.RestAdminApplication;
 
 public class ResourceGroupsResource extends Resource
 {
+  private final static Logger LOG = Logger.getLogger(ResourceGroupsResource.class);
+
   public static final String _partitions = "partitions";
   public static final String _resourceGroupName = "resourceGroupName";
   public static final String _stateModelDefRef = "stateModelDefRef";
@@ -79,24 +83,24 @@ public class ResourceGroupsResource extends Resource
     StringRepresentation presentation = null;
     try
     {
-      String zkServer = (String)getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
       String clusterName = (String)getRequest().getAttributes().get("clusterName");
-      presentation = getHostedEntitiesRepresentation(zkServer, clusterName);
+      presentation = getHostedEntitiesRepresentation( clusterName);
     }
     
     catch(Exception e)
     {
       String error = ClusterRepresentationUtil.getErrorAsJsonStringFromException(e);
       presentation = new StringRepresentation(error, MediaType.APPLICATION_JSON);
-      
-      e.printStackTrace();
+
+      LOG.error("", e);
     }  
     return presentation;
   }
   
-  StringRepresentation getHostedEntitiesRepresentation(String zkServerAddress, String clusterName) throws JsonGenerationException, JsonMappingException, IOException
+  StringRepresentation getHostedEntitiesRepresentation(String clusterName) throws JsonGenerationException, JsonMappingException, IOException
   {
-    ClusterSetup setupTool = new ClusterSetup(zkServerAddress);
+    ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);;
+    ClusterSetup setupTool = new ClusterSetup(zkClient);
     List<String> hostedEntities = setupTool.getClusterManagementTool().getResourcesInCluster(clusterName);
     
     ZNRecord hostedEntitiesRecord = new ZNRecord("ResourceGroups");
@@ -111,12 +115,11 @@ public class ResourceGroupsResource extends Resource
   {
     try
     {
-      String zkServer = (String)getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
       String clusterName = (String)getRequest().getAttributes().get("clusterName");
       
       Form form = new Form(entity);
       Map<String, String> paraMap 
-      = ClusterRepresentationUtil.getFormJsonParametersWithCommandVerified(form, ClusterRepresentationUtil._addResourceGroupCommand);
+      = ClusterRepresentationUtil.getFormJsonParametersWithCommandVerified(form, ClusterSetup.addResource);
     
       if(!paraMap.containsKey(_resourceGroupName))
       {
@@ -140,10 +143,11 @@ public class ResourceGroupsResource extends Resource
         mode = paraMap.get(_idealStateMode);
       }
       
-      ClusterSetup setupTool = new ClusterSetup(zkServer);
+      ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);;
+      ClusterSetup setupTool = new ClusterSetup(zkClient);
       setupTool.addResourceToCluster(clusterName, entityName, partitions,stateModelDefRef, mode);
       // add cluster
-      getResponse().setEntity(getHostedEntitiesRepresentation(zkServer, clusterName));
+      getResponse().setEntity(getHostedEntitiesRepresentation(clusterName));
       getResponse().setStatus(Status.SUCCESS_OK);
     }
 
@@ -152,6 +156,7 @@ public class ResourceGroupsResource extends Resource
       getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),
           MediaType.APPLICATION_JSON);
       getResponse().setStatus(Status.SUCCESS_OK);
+      LOG.error("", e);
     }  
   }
 }

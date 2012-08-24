@@ -15,14 +15,13 @@
  */
 package com.linkedin.helix.model;
 
+import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.HelixException;
-import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.HelixProperty;
+import com.linkedin.helix.ZNRecord;
 
 /**
  * Instance configurations
@@ -37,7 +36,7 @@ public class InstanceConfig extends HelixProperty
     HELIX_DISABLED_PARTITION
   }
   private static final Logger _logger = Logger.getLogger(InstanceConfig.class.getName());
-  
+
   public InstanceConfig(String id)
   {
     super(id);
@@ -82,8 +81,9 @@ public class InstanceConfig extends HelixProperty
 
   public boolean getInstanceEnabledForPartition(String partition)
   {
-    Map<String, String> disabledPartitionMap = _record.getMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString());
-    if (disabledPartitionMap != null && disabledPartitionMap.containsKey(partition))
+    // Map<String, String> disabledPartitionMap = _record.getMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString());
+    List<String> disabledPartitions = _record.getListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString());
+    if (disabledPartitions != null && disabledPartitions.contains(partition))
     {
       return false;
     }
@@ -92,28 +92,28 @@ public class InstanceConfig extends HelixProperty
       return true;
     }
   }
-  
+
   public Map<String, String> getDisabledPartitionMap()
   {
     return _record.getMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString());
   }
 
-  public void setInstanceEnabledForPartition(String partition, boolean enabled)
-  {
-    if (_record.getMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString()) == null)
-    {
-      _record.setMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString(),
-                             new TreeMap<String, String>());
-    }
-    if (enabled == true)
-    {
-      _record.getMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString()).remove(partition);
-    }
-    else
-    {
-      _record.getMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString()).put(partition, Boolean.toString(false));
-    }
-  }
+//  public void setInstanceEnabledForPartition(String partition, boolean enabled)
+//  {
+//    if (_record.getMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString()) == null)
+//    {
+//      _record.setMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString(),
+//                             new TreeMap<String, String>());
+//    }
+//    if (enabled == true)
+//    {
+//      _record.getMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString()).remove(partition);
+//    }
+//    else
+//    {
+//      _record.getMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString()).put(partition, Boolean.toString(false));
+//    }
+//  }
 
   @Override
   public boolean equals(Object obj)

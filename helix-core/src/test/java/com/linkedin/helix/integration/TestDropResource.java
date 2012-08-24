@@ -20,6 +20,7 @@ import org.testng.annotations.Test;
 
 import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.TestHelper.StartCMResult;
+import com.linkedin.helix.tools.ClusterSetup;
 import com.linkedin.helix.tools.ClusterStateVerifier;
 
 public class TestDropResource extends ZkStandAloneCMTestBaseWithPropertyServerCheck
@@ -35,7 +36,8 @@ public class TestDropResource extends ZkStandAloneCMTestBaseWithPropertyServerCh
         new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_NAME));
     Assert.assertTrue(result);
 
-    _setupTool.dropResourceFromCluster(CLUSTER_NAME, "MyDB");
+    String command = "-zkSvr " + ZK_ADDR + " -dropResource " + CLUSTER_NAME + " " + "MyDB";
+    ClusterSetup.processCommandLineArgs(command.split(" "));
 
     TestHelper.verifyWithTimeout("verifyEmptyCurStateAndExtView",
                                  CLUSTER_NAME,
@@ -63,7 +65,8 @@ public class TestDropResource extends ZkStandAloneCMTestBaseWithPropertyServerCh
     Thread.sleep(1000);
     _startCMResultMap.get(hostToKill)._thread.interrupt();
     
-    _setupTool.dropResourceFromCluster(CLUSTER_NAME, "MyDB2");
+    String command = "-zkSvr " + ZK_ADDR + " -dropResource " + CLUSTER_NAME + " " + "MyDB2";
+    ClusterSetup.processCommandLineArgs(command.split(" "));
     
     TestHelper.verifyWithTimeout("verifyEmptyCurStateAndExtView",
         CLUSTER_NAME,

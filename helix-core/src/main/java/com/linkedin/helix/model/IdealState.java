@@ -38,9 +38,12 @@ public class IdealState extends HelixProperty
     STATE_MODEL_DEF_REF,
     STATE_MODEL_FACTORY_NAME,
     REPLICAS,
-    IDEAL_STATE_MODE
+    IDEAL_STATE_MODE,
+    REBALANCE_TIMER_PERIOD
 //    BUCKET_SIZE
   }
+
+  public static final String QUERY_LIST = "PREFERENCE_LIST_QUERYS";
 
   public enum IdealStateModeProperty
   {
@@ -115,8 +118,8 @@ public class IdealState extends HelixProperty
     return _record.getMapField(partitionName);
   }
 
-  private List<String> getInstancePreferenceList(String partitionName,
-                                                 StateModelDefinition stateModelDef)
+
+  public List<String> getPreferenceList(String partitionName)
   {
     List<String> instanceStateList = _record.getListField(partitionName);
 
@@ -137,12 +140,6 @@ public class IdealState extends HelixProperty
   public void setStateModelDefRef(String stateModel)
   {
     _record.setSimpleField(IdealStateProperty.STATE_MODEL_DEF_REF.toString(), stateModel);
-  }
-
-  public List<String> getPreferenceList(String partitionName,
-                                        StateModelDefinition stateModelDef)
-  {
-    return getInstancePreferenceList(partitionName, stateModelDef);
   }
 
   public void setNumPartitions(int numPartitions)
@@ -209,7 +206,7 @@ public class IdealState extends HelixProperty
         break;
       }
     }
-    
+
     return replica;
   }
 
@@ -221,6 +218,23 @@ public class IdealState extends HelixProperty
   public String getStateModelFactoryName()
   {
     return _record.getSimpleField(IdealStateProperty.STATE_MODEL_FACTORY_NAME.toString());
+  }
+
+  public int getRebalanceTimerPeriod()
+  {
+    if(_record.getSimpleFields().containsKey(IdealStateProperty.REBALANCE_TIMER_PERIOD.toString()))
+    {
+      try
+      {
+        int result = Integer.parseInt(_record.getSimpleField(IdealStateProperty.REBALANCE_TIMER_PERIOD.toString()));
+        return result;
+      }
+      catch(Exception e)
+      {
+        logger.error("", e);
+      }
+    }
+    return -1;
   }
 
   @Override

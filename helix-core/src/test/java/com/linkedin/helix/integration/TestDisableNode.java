@@ -19,21 +19,23 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import com.linkedin.helix.manager.zk.ZKHelixAdmin;
+import com.linkedin.helix.tools.ClusterSetup;
 import com.linkedin.helix.tools.ClusterStateVerifier;
 
 public class TestDisableNode extends ZkStandAloneCMTestBaseWithPropertyServerCheck
 {
 
   @Test()
-  public void testDisableNode() throws InterruptedException
+  public void testDisableNode() throws Exception
   {
-    ZKHelixAdmin tool = new ZKHelixAdmin(_zkClient);
-    tool.enableInstance(CLUSTER_NAME, PARTICIPANT_PREFIX + "_12918", false);
-
+    String command = "-zkSvr " + ZK_ADDR +" -enableInstance " + CLUSTER_NAME + " "+
+        PARTICIPANT_PREFIX + "_12918" + " TestDB TestDB_0 false";
+    ClusterSetup.processCommandLineArgs(command.split(" "));
     boolean result = ClusterStateVerifier.verifyByPolling(
         new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_NAME));
     Assert.assertTrue(result);
 
+    ZKHelixAdmin tool = new ZKHelixAdmin(_zkClient);
     tool.enableInstance(CLUSTER_NAME, PARTICIPANT_PREFIX + "_12918", true);
     
     result = ClusterStateVerifier.verifyByPolling(

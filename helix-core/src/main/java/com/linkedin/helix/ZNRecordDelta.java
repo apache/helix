@@ -17,11 +17,11 @@ package com.linkedin.helix;
 
 public class ZNRecordDelta
 {
-  public enum MERGEOPERATION {ADD, SUBTRACT};
+  public enum MergeOperation {ADD, SUBTRACT};
   public ZNRecord _record;
-  public MERGEOPERATION _mergeOperation;
+  public MergeOperation _mergeOperation;
 
-  public ZNRecordDelta(ZNRecord record, MERGEOPERATION _mergeOperation)
+  public ZNRecordDelta(ZNRecord record, MergeOperation _mergeOperation)
   {
     _record = new ZNRecord(record);
     this._mergeOperation = _mergeOperation;
@@ -29,12 +29,12 @@ public class ZNRecordDelta
 
   public ZNRecordDelta(ZNRecord record)
   {
-    this(record, MERGEOPERATION.ADD);
+    this(record, MergeOperation.ADD);
   }
 
   public ZNRecordDelta()
   {
-    this(new ZNRecord(""), MERGEOPERATION.ADD);
+    this(new ZNRecord(""), MergeOperation.ADD);
   }
 
   public ZNRecord getRecord()
@@ -42,7 +42,7 @@ public class ZNRecordDelta
     return _record;
   }
 
-  public MERGEOPERATION getMergeOperation()
+  public MergeOperation getMergeOperation()
   {
     return _mergeOperation;
   }

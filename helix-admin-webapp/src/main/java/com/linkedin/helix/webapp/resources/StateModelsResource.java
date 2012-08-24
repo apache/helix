@@ -17,14 +17,13 @@ package com.linkedin.helix.webapp.resources;
 
 import java.io.IOException;
 import java.io.StringReader;
-import java.io.StringWriter;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.map.SerializationConfig;
 import org.restlet.Context;
 import org.restlet.data.Form;
 import org.restlet.data.MediaType;
@@ -36,16 +35,18 @@ import org.restlet.resource.Resource;
 import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 
-import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixException;
-import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.manager.zk.ZkClient;
+import com.linkedin.helix.model.StateModelDefinition;
 import com.linkedin.helix.tools.ClusterSetup;
 import com.linkedin.helix.webapp.RestAdminApplication;
 
 public class StateModelsResource extends Resource
 {
+  private final static Logger LOG = Logger.getLogger(StateModelsResource.class);
+
   public StateModelsResource(Context context,
       Request request,
       Response response) 
@@ -80,24 +81,25 @@ public class StateModelsResource extends Resource
     StringRepresentation presentation = null;
     try
     {
-      String zkServer = (String)getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
-      String clusterName = (String)getRequest().getAttributes().get("clusterName");
-      presentation = getStateModelsRepresentation(zkServer, clusterName);
+      presentation = getStateModelsRepresentation();
     }
     
     catch(Exception e)
     {
       String error = ClusterRepresentationUtil.getErrorAsJsonStringFromException(e);
       presentation = new StringRepresentation(error, MediaType.APPLICATION_JSON);
-      
-      e.printStackTrace();
+
+      LOG.error("", e);
     }
     return presentation;
   }
   
-  StringRepresentation getStateModelsRepresentation(String zkServerAddress, String clusterName) throws JsonGenerationException, JsonMappingException, IOException
+  StringRepresentation getStateModelsRepresentation() throws JsonGenerationException, JsonMappingException, IOException
   {
-    ClusterSetup setupTool = new ClusterSetup(zkServerAddress);
+    String clusterName = (String)getRequest().getAttributes().get("clusterName");
+    ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);;
+    ClusterSetup setupTool = new ClusterSetup(zkClient);
+    
     List<String> models = setupTool.getClusterManagementTool().getStateModelDefs(clusterName);
     
     ZNRecord modelDefinitions = new ZNRecord("modelDefinitions");
@@ -112,15 +114,15 @@ public class StateModelsResource extends Resource
   {
     try
     {
-      String zkServer = (String)getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
       String clusterName = (String)getRequest().getAttributes().get("clusterName");
+      ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);;
       
       Form form = new Form(entity);
       
       Map<String, String> paraMap 
       	= ClusterRepresentationUtil.getFormJsonParameters(form);
         
-      if(paraMap.get(ClusterRepresentationUtil._managementCommand).equalsIgnoreCase(ClusterRepresentationUtil._addStateModelCommand))
+      if(paraMap.get(ClusterRepresentationUtil._managementCommand).equalsIgnoreCase(ClusterSetup.addStateModelDef))
       {
         String newStateModelString = form.getFirstValue(ClusterRepresentationUtil._newModelDef, true);
         
@@ -128,15 +130,14 @@ public class StateModelsResource extends Resource
         ZNRecord newStateModel = mapper.readValue(new StringReader(newStateModelString),
             ZNRecord.class);
         
-        DataAccessor accessor = ClusterRepresentationUtil.getClusterDataAccessor(zkServer,  clusterName);
-        accessor.removeProperty(PropertyType.STATEMODELDEFS, newStateModel.getId());
-        
-        accessor.setProperty(PropertyType.STATEMODELDEFS, newStateModel,newStateModel.getId() );
-        getResponse().setEntity(getStateModelsRepresentation(zkServer, clusterName));
+        HelixDataAccessor accessor = ClusterRepresentationUtil.getClusterDataAccessor(zkClient, clusterName);
+         
+        accessor.setProperty(accessor.keyBuilder().stateModelDef(newStateModel.getId()), new StateModelDefinition(newStateModel) );
+        getResponse().setEntity(getStateModelsRepresentation());
       }
       else
       {
-    	  throw new HelixException("Management command should be "+ ClusterRepresentationUtil._addStateModelCommand);
+    	  throw new HelixException("Management command should be "+ ClusterSetup.addStateModelDef);
       }
       
       getResponse().setStatus(Status.SUCCESS_OK);
@@ -147,6 +148,7 @@ public class StateModelsResource extends Resource
       getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),
           MediaType.APPLICATION_JSON);
       getResponse().setStatus(Status.SUCCESS_OK);
+      LOG.error("", e);
     }  
   }
 }

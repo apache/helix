@@ -90,6 +90,7 @@ public class ZKPropertyTransferServer
       List<String> paths = new ArrayList<String>();
       List<DataUpdater<ZNRecord>> updaters = new ArrayList<DataUpdater<ZNRecord>>();
       List<ZNRecord> vals = new ArrayList<ZNRecord>();
+      // BUGBUG : what if the instance is dropped? 
       for(ZNRecordUpdate holder : updateCache.values())
       {
         paths.add(holder.getPath());

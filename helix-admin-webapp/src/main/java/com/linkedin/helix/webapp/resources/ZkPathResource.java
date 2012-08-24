@@ -15,19 +15,11 @@
  */
 package com.linkedin.helix.webapp.resources;
 
-import java.io.IOException;
-import java.io.StringWriter;
 import java.util.List;
-import java.util.Map;
 
-import org.codehaus.jackson.JsonGenerationException;
-import org.codehaus.jackson.map.JsonMappingException;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.map.SerializationConfig;
+import org.apache.log4j.Logger;
 import org.restlet.Context;
-import org.restlet.data.Form;
 import org.restlet.data.MediaType;
-import org.restlet.data.Reference;
 import org.restlet.data.Request;
 import org.restlet.data.Response;
 import org.restlet.data.Status;
@@ -36,15 +28,14 @@ import org.restlet.resource.Resource;
 import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 
-import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.manager.zk.ZkClient;
-import com.linkedin.helix.tools.ClusterSetup;
-import com.linkedin.helix.util.ZKClientPool;
 import com.linkedin.helix.webapp.RestAdminApplication;
 
 public class ZkPathResource extends Resource
 {
+  private final static Logger LOG = Logger.getLogger(ZkPathResource.class);
+
   public ZkPathResource(Context context, Request request, Response response)
   {
     super(context, request, response);
@@ -77,10 +68,9 @@ public class ZkPathResource extends Resource
     StringRepresentation presentation = null;
     try
     {
-      String zkServer = (String) getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
       String zkPath = getZKPath();
       
-      ZkClient zkClient = ZKClientPool.getZkClient(zkServer);
+      ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);;
       ZNRecord result = new ZNRecord("nodeContent");
       List<String> children = zkClient.getChildren(zkPath);
       if(children.size() > 0)
@@ -97,8 +87,8 @@ public class ZkPathResource extends Resource
     {
       String error = ClusterRepresentationUtil.getErrorAsJsonStringFromException(e);
       presentation = new StringRepresentation(error, MediaType.APPLICATION_JSON);
-      
-      e.printStackTrace();
+
+      LOG.error("", e);
     }
     return presentation;
   }
@@ -122,10 +112,9 @@ public class ZkPathResource extends Resource
   {
     try
     {
-      String zkServer = (String) getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
       String zkPath = getZKPath();
       
-      ZkClient zkClient = ZKClientPool.getZkClient(zkServer);
+      ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);;
       zkClient.deleteRecursive(zkPath);
       getResponse().setStatus(Status.SUCCESS_OK);
     }
@@ -134,6 +123,7 @@ public class ZkPathResource extends Resource
       getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),
           MediaType.APPLICATION_JSON);
       getResponse().setStatus(Status.SUCCESS_OK);
+      LOG.error("", e);
     }
   }
 

@@ -155,7 +155,7 @@ public class GenericHelixController implements
       event.addAttribute("changeContext", changeContext);
       List<ZNRecord> dummy = new ArrayList<ZNRecord>();
       event.addAttribute("eventData", dummy);
-      
+      // Should be able to process  
       handleEvent(event);
     }
   }
@@ -445,18 +445,10 @@ public class GenericHelixController implements
     
     for(IdealState idealState : idealStates)
     {
-      String rebalanceTimerStr = idealState.getRecord().getSimpleField("RebalanceTimerPeriod");
-      if(rebalanceTimerStr != null)
+      int period = idealState.getRebalanceTimerPeriod();
+      if(period > 0)
       {
-        try
-        {
-          int period = Integer.parseInt(rebalanceTimerStr);
-          startRebalancingTimer(period, manager);
-        }
-        catch(Exception e)
-        {
-          logger.error("", e);
-        }
+        startRebalancingTimer(period, manager);
       }
     }
   }

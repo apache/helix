@@ -15,6 +15,7 @@
  */
 package com.linkedin.helix.integration;
 
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -26,6 +27,7 @@ import org.testng.annotations.Test;
 
 import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.manager.zk.ZKHelixAdmin;
+import com.linkedin.helix.tools.ClusterSetup;
 import com.linkedin.helix.tools.ClusterStateVerifier;
 
 public class TestDisablePartition extends ZkStandAloneCMTestBaseWithPropertyServerCheck
@@ -33,31 +35,38 @@ public class TestDisablePartition extends ZkStandAloneCMTestBaseWithPropertyServ
   private static Logger LOG = Logger.getLogger(TestDisablePartition.class);
 
   @Test()
-  public void testDisablePartition() throws InterruptedException
+  public void testDisablePartition() throws Exception
   {
     LOG.info("START testDisablePartition() at " + new Date(System.currentTimeMillis()));
 
     // localhost_12919 is MASTER for TestDB_0
-    ZKHelixAdmin tool = new ZKHelixAdmin(_zkClient);
-    tool.enablePartition(CLUSTER_NAME, "localhost_12919", "TestDB", "TestDB_0", false);
-    Map<String, Set<String>> disabledPartMap = new HashMap<String, Set<String>>()
-    {
-      {
-        put("TestDB_0", TestHelper.setOf("localhost_12919"));
-      }
-    };
+    String command = "--zkSvr " + ZK_ADDR +" --enablePartition false " + CLUSTER_NAME +
+        " localhost_12919 TestDB TestDB_0 TestDB_9";
+    ClusterSetup.processCommandLineArgs(command.split("\\s+"));
+    Map<String, Set<String>> map = new HashMap<String, Set<String>>();
+    map.put("TestDB_0", TestHelper.setOf("localhost_12919"));
+    map.put("TestDB_9", TestHelper.setOf("localhost_12919"));
 
     boolean result = ClusterStateVerifier.verifyByPolling(
         new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_NAME));
     Assert.assertTrue(result);
 
-    TestHelper.verifyState(CLUSTER_NAME, ZK_ADDR, disabledPartMap, "OFFLINE");
+    TestHelper.verifyState(CLUSTER_NAME, ZK_ADDR, map, "OFFLINE");
 
-    tool.enablePartition(CLUSTER_NAME, "localhost_12919", "TestDB", "TestDB_0", true);
-    
+    ZKHelixAdmin tool = new ZKHelixAdmin(_zkClient);
+    tool.enablePartition(true, CLUSTER_NAME, "localhost_12919", "TestDB", Arrays.asList("TestDB_9"));
+
     result = ClusterStateVerifier.verifyByPolling(
         new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_NAME));
     Assert.assertTrue(result);
+
+    map.clear();
+    map.put("TestDB_0", TestHelper.setOf("localhost_12919"));
+    TestHelper.verifyState(CLUSTER_NAME, ZK_ADDR, map, "OFFLINE");
+
+    map.clear();
+    map.put("TestDB_9", TestHelper.setOf("localhost_12919"));
+    TestHelper.verifyState(CLUSTER_NAME, ZK_ADDR, map, "MASTER");
 
     LOG.info("STOP testDisablePartition() at " + new Date(System.currentTimeMillis()));
 

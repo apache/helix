@@ -16,9 +16,9 @@
 package com.linkedin.helix.webapp.resources;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.restlet.Context;
@@ -32,19 +32,22 @@ import org.restlet.resource.Resource;
 import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 
-import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
-import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixException;
-import com.linkedin.helix.PropertyType;
-import com.linkedin.helix.ZNRecord;
+import com.linkedin.helix.manager.zk.ZkClient;
+import com.linkedin.helix.model.InstanceConfig;
+import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.tools.ClusterSetup;
-import com.linkedin.helix.util.ZNRecordUtil;
 import com.linkedin.helix.webapp.RestAdminApplication;
 
 public class InstancesResource extends Resource
 {
+  private final static Logger LOG = Logger.getLogger(InstancesResource.class);
+
   public static final String _instanceName = "instanceName";
   public static final String _instanceNames = "instanceNames";
+  public static final String _oldInstance = "oldInstance";
+  public static final String _newInstance = "newInstance";
 
   public InstancesResource(Context context, Request request, Response response)
   {
@@ -83,10 +86,8 @@ public class InstancesResource extends Resource
     StringRepresentation presentation = null;
     try
     {
-      String zkServer = (String) getContext().getAttributes().get(
-          RestAdminApplication.ZKSERVERADDRESS);
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
-      presentation = getInstancesRepresentation(zkServer, clusterName);
+      presentation = getInstancesRepresentation(clusterName);
     }
 
     catch (Exception e)
@@ -94,35 +95,27 @@ public class InstancesResource extends Resource
       String error = ClusterRepresentationUtil.getErrorAsJsonStringFromException(e);
       presentation = new StringRepresentation(error, MediaType.APPLICATION_JSON);
 
-      e.printStackTrace();
+      LOG.error("", e);
     }
     return presentation;
   }
 
-  StringRepresentation getInstancesRepresentation(String zkServerAddress, String clusterName)
+  StringRepresentation getInstancesRepresentation(String clusterName)
       throws JsonGenerationException, JsonMappingException, IOException
   {
-    ClusterSetup setupTool = new ClusterSetup(zkServerAddress);
-    List<String> instances = setupTool.getClusterManagementTool()
-        .getInstancesInCluster(clusterName);
+    ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);;
+    HelixDataAccessor accessor = ClusterRepresentationUtil.getClusterDataAccessor(zkClient,clusterName);
+    Map<String, LiveInstance> liveInstancesMap = accessor.getChildValuesMap(accessor.keyBuilder().liveInstances());
+    Map<String, InstanceConfig> instanceConfigsMap = accessor.getChildValuesMap(accessor.keyBuilder().instanceConfigs());
 
-    DataAccessor accessor = ClusterRepresentationUtil.getClusterDataAccessor(zkServerAddress,
-        clusterName);
-    List<ZNRecord> liveInstances = accessor.getChildValues(PropertyType.LIVEINSTANCES);
-    List<ZNRecord> instanceConfigs = accessor.getChildValues(PropertyType.CONFIGS,
-        ConfigScopeProperty.PARTICIPANT.toString());
-
-    Map<String, ZNRecord> liveInstanceMap = ZNRecordUtil.convertListToMap(liveInstances);
-    Map<String, ZNRecord> configsMap = ZNRecordUtil.convertListToMap(instanceConfigs);
-
-    for (String instanceName : instances)
+    for (String instanceName : instanceConfigsMap.keySet())
     {
-      boolean isAlive = liveInstanceMap.containsKey(instanceName);
-      configsMap.get(instanceName).setSimpleField("Alive", isAlive + "");
+      boolean isAlive = liveInstancesMap.containsKey(instanceName);
+      instanceConfigsMap.get(instanceName).getRecord().setSimpleField("Alive", isAlive + "");
     }
 
     StringRepresentation representation = new StringRepresentation(
-        ClusterRepresentationUtil.ObjectToJson(instanceConfigs), MediaType.APPLICATION_JSON);
+        ClusterRepresentationUtil.ObjectToJson(instanceConfigsMap.values()), MediaType.APPLICATION_JSON);
 
     return representation;
   }
@@ -132,31 +125,42 @@ public class InstancesResource extends Resource
   {
     try
     {
-      String zkServer = (String) getContext().getAttributes().get(
-          RestAdminApplication.ZKSERVERADDRESS);
-      String clusterName = (String) getRequest().getAttributes().get("clusterName");
-
+      String clusterName = (String) getRequest().getAttributes().get("clusterName");      
       Form form = new Form(entity);
-
-      Map<String, String> paraMap = ClusterRepresentationUtil
-          .getFormJsonParametersWithCommandVerified(form,
-              ClusterRepresentationUtil._addInstanceCommand);
-
-      ClusterSetup setupTool = new ClusterSetup(zkServer);
-      if (paraMap.containsKey(_instanceName))
+      ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);;
+      ClusterSetup setupTool = new ClusterSetup(zkClient);
+      
+      Map<String, String> paraMap = ClusterRepresentationUtil.getFormJsonParameters(form);
+      
+      if(paraMap.get(ClusterRepresentationUtil._managementCommand)
+                 .equalsIgnoreCase(ClusterSetup.addInstance))
+      {      
+        if (paraMap.containsKey(_instanceName))
+        {
+          setupTool.addInstanceToCluster(clusterName, paraMap.get(_instanceName));
+        } 
+        else if (paraMap.containsKey(_instanceNames))
+        {
+          setupTool.addInstancesToCluster(clusterName, paraMap.get(_instanceNames).split(";"));
+        } 
+        else
+        {
+          throw new HelixException("Json paramaters does not contain '" + _instanceName + "' or '"
+              + _instanceNames + "' ");
+        }
+      }
+      else if (paraMap.get(ClusterRepresentationUtil._managementCommand)
+          .equalsIgnoreCase(ClusterSetup.swapInstance))
       {
-        setupTool.addInstanceToCluster(clusterName, paraMap.get(_instanceName));
-      } else if (paraMap.containsKey(_instanceNames))
-      {
-        setupTool.addInstancesToCluster(clusterName, paraMap.get(_instanceNames).split(";"));
-      } else
-      {
-        throw new HelixException("Json paramaters does not contain '" + _instanceName + "' or '"
-            + _instanceNames + "' ");
+        if(! (paraMap.containsKey(_newInstance) && paraMap.containsKey(_oldInstance)))
+        {
+          throw new HelixException("Json paramaters does not contain '" + _newInstance + "' or '"
+              + _oldInstance + "' ");
+        }
+        setupTool.swapInstance(clusterName, paraMap.get(_oldInstance), paraMap.get(_newInstance));
       }
 
-      // add cluster
-      getResponse().setEntity(getInstancesRepresentation(zkServer, clusterName));
+      getResponse().setEntity(getInstancesRepresentation(clusterName));
       getResponse().setStatus(Status.SUCCESS_OK);
     }
 
@@ -165,6 +169,7 @@ public class InstancesResource extends Resource
       getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),
           MediaType.APPLICATION_JSON);
       getResponse().setStatus(Status.SUCCESS_OK);
+      LOG.error("", e);
     }
   }
 }

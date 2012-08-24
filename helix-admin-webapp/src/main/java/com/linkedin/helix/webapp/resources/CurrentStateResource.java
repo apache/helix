@@ -17,6 +17,7 @@ package com.linkedin.helix.webapp.resources;
 
 import java.io.IOException;
 
+import org.apache.log4j.Logger;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.restlet.Context;
@@ -30,10 +31,13 @@ import org.restlet.resource.Variant;
 
 import com.linkedin.helix.PropertyKey;
 import com.linkedin.helix.PropertyKey.Builder;
+import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.webapp.RestAdminApplication;
 
 public class CurrentStateResource extends Resource
 {
+  private final static Logger LOG = Logger.getLogger(CurrentStateResource.class);
+
   public CurrentStateResource(Context context, Request request, Response response)
   {
     super(context, request, response);
@@ -71,14 +75,12 @@ public class CurrentStateResource extends Resource
     StringRepresentation presentation = null;
     try
     {
-      String zkServer =
-          (String) getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       String instanceName = (String) getRequest().getAttributes().get("instanceName");
       String resourceGroup = (String) getRequest().getAttributes().get("resourceName");
 
       presentation =
-          getInstanceCurrentStateRepresentation(zkServer,
+          getInstanceCurrentStateRepresentation(
                                                 clusterName,
                                                 instanceName,
                                                 resourceGroup);
@@ -88,26 +90,27 @@ public class CurrentStateResource extends Resource
       String error = ClusterRepresentationUtil.getErrorAsJsonStringFromException(e);
       presentation = new StringRepresentation(error, MediaType.APPLICATION_JSON);
 
-      e.printStackTrace();
+      LOG.error("", e);
     }
     return presentation;
   }
 
-  StringRepresentation getInstanceCurrentStateRepresentation(String zkServerAddress,
+  StringRepresentation getInstanceCurrentStateRepresentation(
                                                              String clusterName,
                                                              String instanceName,
                                                              String resourceGroup) throws JsonGenerationException,
       JsonMappingException,
       IOException
   {
+    ZkClient zkClient = (ZkClient)getRequest().getAttributes().get(RestAdminApplication.ZKCLIENT);
     String instanceSessionId =
-        ClusterRepresentationUtil.getInstanceSessionId(zkServerAddress,
+        ClusterRepresentationUtil.getInstanceSessionId(zkClient,
                                                        clusterName,
                                                        instanceName);
     Builder keyBuilder = new PropertyKey.Builder(clusterName);
 
     String message =
-        ClusterRepresentationUtil.getInstancePropertyAsString(zkServerAddress,
+        ClusterRepresentationUtil.getInstancePropertyAsString(zkClient,
                                                               clusterName,
                                                               keyBuilder.currentState(instanceName,
                                                                                       instanceSessionId,

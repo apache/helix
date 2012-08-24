@@ -2,7 +2,7 @@
 <ivy-module version="1.0" xmlns:m="http://ant.apache.org/ivy/maven">
 	<info organisation="com.linkedin.helix"
 		module="helix-core"
-		revision="0.5.19"
+		revision="0.5.21"
 		status="release"
 		publication="2011111505113547"
 	>
@@ -29,7 +29,7 @@
 	
 	<dependencies>
     <dependency org="log4j" name="log4j" rev="1.2.15" conf="compile->compile(default);runtime->runtime(default);default->default"/>
-    <dependency org="org.apache.zookeeper" name="zookeeper" rev="3.3.3" conf="compile->compile(default);runtime->runtime(default);default->default"/> 
+    <dependency org="org.apache.zookeeper" name="zookeeper" rev="3.3.4" conf="compile->compile(default);runtime->runtime(default);default->default"/> 
     <dependency org="com.thoughtworks.xstream" name="xstream" rev="1.3.1" conf="compile->compile(default);runtime->runtime(default);default->default"/>      
     <dependency org="org.codehaus.jackson" name="jackson-core-asl" rev="1.8.5" conf="compile->compile(default);runtime->runtime(default);default->default"/>
     <dependency org="org.codehaus.jackson" name="jackson-mapper-asl" rev="1.8.5" conf="compile->compile(default);runtime->runtime(default);default->default"/>

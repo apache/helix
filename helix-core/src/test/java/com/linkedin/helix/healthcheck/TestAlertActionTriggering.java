@@ -85,7 +85,7 @@ public class TestAlertActionTriggering extends
   }
 
   @Test
-  public void TestAlertActionDisableNode() throws InterruptedException
+  public void testAlertActionDisableNode() throws InterruptedException
   {
     ConfigScope scope = new ConfigScopeBuilder().forCluster(CLUSTER_NAME).build();
     Map<String, String> properties = new HashMap<String, String>();

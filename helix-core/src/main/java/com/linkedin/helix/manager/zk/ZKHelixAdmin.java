@@ -843,7 +843,8 @@ public class ZKHelixAdmin implements HelixAdmin
       throw new HelixException("cluster " + clusterName + " is not setup yet");
     }
 
-    String alertsPath = PropertyPathConfig.getPath(PropertyType.PERSISTENTSTATS, clusterName);
+    String alertsPath = PropertyPathConfig.getPath(PropertyType.ALERTS, clusterName);
+
     ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_zkClient);
 
     if (!baseAccessor.exists(alertsPath, 0))

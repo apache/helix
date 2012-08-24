@@ -32,14 +32,13 @@ import org.restlet.resource.Resource;
 import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 
+import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixException;
 import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.manager.zk.ZKHelixDataAccessor;
-import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
+import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.tools.ClusterSetup;
-import com.linkedin.helix.util.ZKClientPool;
 import com.linkedin.helix.webapp.RestAdminApplication;
 
 public class ClusterResource extends Resource
@@ -85,10 +84,8 @@ public class ClusterResource extends Resource
     StringRepresentation presentation = null;
     try
     {
-      String zkServer =
-          (String) getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
-      presentation = getClusterRepresentation(zkServer, clusterName);
+      presentation = getClusterRepresentation(clusterName);
     }
 
     catch (Exception e)
@@ -101,11 +98,12 @@ public class ClusterResource extends Resource
     return presentation;
   }
 
-  StringRepresentation getClusterRepresentation(String zkServerAddress, String clusterName) throws JsonGenerationException,
+  StringRepresentation getClusterRepresentation(String clusterName) throws JsonGenerationException,
       JsonMappingException,
       IOException
   {
-    ClusterSetup setupTool = new ClusterSetup(zkServerAddress);
+    ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
+    ClusterSetup setupTool = new ClusterSetup(zkClient);
     List<String> instances =
         setupTool.getClusterManagementTool().getInstancesInCluster(clusterName);
 
@@ -120,9 +118,8 @@ public class ClusterResource extends Resource
         setupTool.getClusterManagementTool().getStateModelDefs(clusterName);
     clusterSummayRecord.setListField("stateModelDefs", models);
 
-    ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName,
-                                new ZkBaseDataAccessor(ZKClientPool.getZkClient(zkServerAddress)));
+    HelixDataAccessor accessor =
+        ClusterRepresentationUtil.getClusterDataAccessor(zkClient, clusterName);
     Builder keyBuilder = accessor.keyBuilder();
 
     LiveInstance leader = accessor.getProperty(keyBuilder.controllerLeader());
@@ -147,8 +144,6 @@ public class ClusterResource extends Resource
     try
     {
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
-      String zkServer =
-          (String) getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
       Form form = new Form(entity);
       Map<String, String> jsonParameters =
           ClusterRepresentationUtil.getFormJsonParametersWithCommandVerified(
@@ -168,7 +163,8 @@ public class ClusterResource extends Resource
 
       String grandCluster = jsonParameters.get(_grandCluster);
       boolean enabled = Boolean.parseBoolean(jsonParameters.get(_enabled));
-      ClusterSetup setupTool = new ClusterSetup(zkServer);
+      ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
+      ClusterSetup setupTool = new ClusterSetup(zkClient);
       List<String> grandClusterResourceGroups =
           setupTool.getClusterManagementTool().getResourcesInCluster(grandCluster);
       if (grandClusterResourceGroups.contains(clusterName))
@@ -178,7 +174,7 @@ public class ClusterResource extends Resource
       }
       setupTool.activateCluster(clusterName, grandCluster, enabled);
       // add cluster
-      getResponse().setEntity(getClusterRepresentation(zkServer, clusterName));
+      getResponse().setEntity(getClusterRepresentation(clusterName));
       getResponse().setStatus(Status.SUCCESS_OK);
     }
 
@@ -195,10 +191,9 @@ public class ClusterResource extends Resource
   {
     try
     {
-      String zkServer =
-          (String) getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
-      ClusterSetup setupTool = new ClusterSetup(zkServer);
+      ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
+      ClusterSetup setupTool = new ClusterSetup(zkClient);
       setupTool.deleteCluster(clusterName);
       getResponse().setStatus(Status.SUCCESS_OK);
     }

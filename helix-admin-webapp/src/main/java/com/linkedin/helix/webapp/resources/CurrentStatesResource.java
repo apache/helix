@@ -17,6 +17,7 @@ package com.linkedin.helix.webapp.resources;
 
 import java.io.IOException;
 
+import org.apache.log4j.Logger;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.restlet.Context;
@@ -29,10 +30,13 @@ import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 
 import com.linkedin.helix.PropertyType;
+import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.webapp.RestAdminApplication;
 
 public class CurrentStatesResource extends Resource
 {
+  private final static Logger LOG = Logger.getLogger(CurrentStatesResource.class);
+
   public CurrentStatesResource(Context context, Request request, Response response)
   {
     super(context, request, response);
@@ -73,17 +77,18 @@ public class CurrentStatesResource extends Resource
     {
       String error = ClusterRepresentationUtil.getErrorAsJsonStringFromException(e);
       presentation = new StringRepresentation(error, MediaType.APPLICATION_JSON);
-      
-      e.printStackTrace();
+
+      LOG.error("", e);
     }
     return presentation;
   }
 
   StringRepresentation getInstanceCurrentStatesRepresentation(String clusterName, String instanceName) throws JsonGenerationException, JsonMappingException, IOException
   {
-    String instanceSessionId = ClusterRepresentationUtil.getInstanceSessionId( clusterName, instanceName);
+    ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);;
+    String instanceSessionId = ClusterRepresentationUtil.getInstanceSessionId(zkClient, clusterName, instanceName);
     
-    String message = ClusterRepresentationUtil.getInstancePropertyNameListAsString( clusterName, instanceName, PropertyType.CURRENTSTATES, instanceSessionId, MediaType.APPLICATION_JSON);
+    String message = ClusterRepresentationUtil.getInstancePropertyNameListAsString(zkClient, clusterName, instanceName, PropertyType.CURRENTSTATES, instanceSessionId, MediaType.APPLICATION_JSON);
 
     StringRepresentation representation = new StringRepresentation(message, MediaType.APPLICATION_JSON);
 

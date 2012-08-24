@@ -18,6 +18,7 @@ package com.linkedin.helix.webapp.resources;
 import java.io.IOException;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.restlet.Context;
@@ -33,6 +34,7 @@ import org.restlet.resource.Variant;
 
 import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixException;
+import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.model.InstanceConfig;
 import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.tools.ClusterSetup;
@@ -40,6 +42,8 @@ import com.linkedin.helix.webapp.RestAdminApplication;
 
 public class InstancesResource extends Resource
 {
+  private final static Logger LOG = Logger.getLogger(InstancesResource.class);
+
   public static final String _instanceName = "instanceName";
   public static final String _instanceNames = "instanceNames";
 
@@ -89,7 +93,7 @@ public class InstancesResource extends Resource
       String error = ClusterRepresentationUtil.getErrorAsJsonStringFromException(e);
       presentation = new StringRepresentation(error, MediaType.APPLICATION_JSON);
 
-      e.printStackTrace();
+      LOG.error("", e);
     }
     return presentation;
   }
@@ -97,7 +101,8 @@ public class InstancesResource extends Resource
   StringRepresentation getInstancesRepresentation(String clusterName)
       throws JsonGenerationException, JsonMappingException, IOException
   {
-    HelixDataAccessor accessor = ClusterRepresentationUtil.getClusterDataAccessor(clusterName);
+    ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);;
+    HelixDataAccessor accessor = ClusterRepresentationUtil.getClusterDataAccessor(zkClient,clusterName);
     Map<String, LiveInstance> liveInstancesMap = accessor.getChildValuesMap(accessor.keyBuilder().liveInstances());
     Map<String, InstanceConfig> instanceConfigsMap = accessor.getChildValuesMap(accessor.keyBuilder().instanceConfigs());
 
@@ -126,7 +131,8 @@ public class InstancesResource extends Resource
           .getFormJsonParametersWithCommandVerified(form,
               ClusterSetup.addInstance);
 
-      ClusterSetup setupTool = new ClusterSetup(RestAdminApplication.getZkClient());
+      ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);;
+      ClusterSetup setupTool = new ClusterSetup(zkClient);
       if (paraMap.containsKey(_instanceName))
       {
         setupTool.addInstanceToCluster(clusterName, paraMap.get(_instanceName));
@@ -149,6 +155,7 @@ public class InstancesResource extends Resource
       getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),
           MediaType.APPLICATION_JSON);
       getResponse().setStatus(Status.SUCCESS_OK);
+      LOG.error("", e);
     }
   }
 }

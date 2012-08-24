@@ -17,6 +17,7 @@ package com.linkedin.helix.webapp.resources;
 
 import java.io.IOException;
 
+import org.apache.log4j.Logger;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.restlet.Context;
@@ -30,10 +31,13 @@ import org.restlet.resource.Variant;
 
 import com.linkedin.helix.PropertyKey;
 import com.linkedin.helix.PropertyKey.Builder;
+import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.webapp.RestAdminApplication;
 
 public class ExternalViewResource extends Resource
 {
+  private final static Logger LOG = Logger.getLogger(ExternalViewResource.class);
+
   public ExternalViewResource(Context context, Request request, Response response)
   {
     super(context, request, response);
@@ -81,7 +85,7 @@ public class ExternalViewResource extends Resource
       String error = ClusterRepresentationUtil.getErrorAsJsonStringFromException(e);
       presentation = new StringRepresentation(error, MediaType.APPLICATION_JSON);
 
-      e.printStackTrace();
+      LOG.error("", e);
     }
     return presentation;
   }
@@ -92,9 +96,10 @@ public class ExternalViewResource extends Resource
       IOException
   {
     Builder keyBuilder = new PropertyKey.Builder(clusterName);
-
+    ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);;
+    
     String message =
-        ClusterRepresentationUtil.getClusterPropertyAsString(
+        ClusterRepresentationUtil.getClusterPropertyAsString(zkClient,
                                                              clusterName,
                                                              keyBuilder.externalView(resourceName),
                                                              MediaType.APPLICATION_JSON);

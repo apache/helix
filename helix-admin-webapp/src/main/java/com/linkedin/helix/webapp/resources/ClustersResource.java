@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.restlet.Context;
@@ -33,12 +34,14 @@ import org.restlet.resource.Variant;
 
 import com.linkedin.helix.HelixException;
 import com.linkedin.helix.ZNRecord;
+import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.tools.ClusterSetup;
 import com.linkedin.helix.webapp.RestAdminApplication;
 
 
 public class ClustersResource extends Resource
 {
+  private final static Logger LOG = Logger.getLogger(ClustersResource.class);
   public static final String _clusterName = "clusterName";
   public static final String _grandCluster = "grandCluster";
   public ClustersResource(Context context,
@@ -79,6 +82,7 @@ public class ClustersResource extends Resource
     }
     catch(Exception e)
     {
+      LOG.error("", e);
       String error = ClusterRepresentationUtil.getErrorAsJsonStringFromException(e);
       presentation = new StringRepresentation(error, MediaType.APPLICATION_JSON);
 
@@ -89,8 +93,8 @@ public class ClustersResource extends Resource
 
   StringRepresentation getClustersRepresentation() throws JsonGenerationException, JsonMappingException, IOException
   {
-    String zkServer = (String)getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
-    ClusterSetup setupTool = new ClusterSetup(zkServer);
+    ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
+    ClusterSetup setupTool = new ClusterSetup(zkClient);
     List<String> clusters = setupTool.getClusterManagementTool().getClusters();
 
     ZNRecord clustersRecord = new ZNRecord("Clusters Summary");
@@ -105,7 +109,6 @@ public class ClustersResource extends Resource
   {
     try
     {
-      String zkServer = (String)getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
       Form form = new Form(entity);
       Map<String, String> jsonParameters
         = ClusterRepresentationUtil.getFormJsonParametersWithCommandVerified(form, ClusterSetup.addCluster);
@@ -114,7 +117,8 @@ public class ClustersResource extends Resource
       {
         throw new HelixException("Json parameters does not contain '"+ _clusterName + "'");
       }
-      ClusterSetup setupTool = new ClusterSetup(zkServer);
+      ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
+      ClusterSetup setupTool = new ClusterSetup(zkClient);
       setupTool.addCluster(jsonParameters.get(_clusterName), false);
       
       getResponse().setEntity(getClustersRepresentation());
@@ -122,6 +126,7 @@ public class ClustersResource extends Resource
     }
     catch(Exception e)
     {
+      LOG.error("", e);
       getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),
           MediaType.APPLICATION_JSON);
       getResponse().setStatus(Status.SUCCESS_OK);

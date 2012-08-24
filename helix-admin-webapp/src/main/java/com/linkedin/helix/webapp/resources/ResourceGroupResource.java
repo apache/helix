@@ -17,6 +17,7 @@ package com.linkedin.helix.webapp.resources;
 
 import java.io.IOException;
 
+import org.apache.log4j.Logger;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.restlet.Context;
@@ -31,11 +32,14 @@ import org.restlet.resource.Variant;
 
 import com.linkedin.helix.PropertyKey;
 import com.linkedin.helix.PropertyKey.Builder;
+import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.tools.ClusterSetup;
 import com.linkedin.helix.webapp.RestAdminApplication;
 
 public class ResourceGroupResource extends Resource
 {
+  private final static Logger LOG = Logger.getLogger(ResourceGroupResource.class);
+
   public ResourceGroupResource(Context context, Request request, Response response)
   {
     super(context, request, response);
@@ -83,7 +87,7 @@ public class ResourceGroupResource extends Resource
       String error = ClusterRepresentationUtil.getErrorAsJsonStringFromException(e);
       presentation = new StringRepresentation(error, MediaType.APPLICATION_JSON);
 
-      e.printStackTrace();
+      LOG.error("", e);
     }
     return presentation;
   }
@@ -94,9 +98,10 @@ public class ResourceGroupResource extends Resource
       IOException
   {
     Builder keyBuilder = new PropertyKey.Builder(clusterName);
-
+    ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);;
+    
     String message =
-        ClusterRepresentationUtil.getClusterPropertyAsString(clusterName,
+        ClusterRepresentationUtil.getClusterPropertyAsString(zkClient,clusterName,
                                                              keyBuilder.idealStates(resourceName),
                                                              MediaType.APPLICATION_JSON);
 
@@ -111,12 +116,11 @@ public class ResourceGroupResource extends Resource
   {
     try
     {
-      String zkServer =
-          (String) getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       String resourceGroupName =
           (String) getRequest().getAttributes().get("resourceName");
-      ClusterSetup setupTool = new ClusterSetup(zkServer);
+      ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);;
+      ClusterSetup setupTool = new ClusterSetup(zkClient);
       setupTool.dropResourceFromCluster(clusterName, resourceGroupName);
       getResponse().setStatus(Status.SUCCESS_OK);
     }
@@ -125,6 +129,7 @@ public class ResourceGroupResource extends Resource
       getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),
                               MediaType.APPLICATION_JSON);
       getResponse().setStatus(Status.SUCCESS_OK);
+      LOG.error("", e);
     }
   }
 }

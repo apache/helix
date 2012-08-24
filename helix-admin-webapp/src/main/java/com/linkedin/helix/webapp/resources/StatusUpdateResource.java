@@ -17,6 +17,7 @@ package com.linkedin.helix.webapp.resources;
 
 import java.io.IOException;
 
+import org.apache.log4j.Logger;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.restlet.Context;
@@ -30,10 +31,13 @@ import org.restlet.resource.Variant;
 
 import com.linkedin.helix.PropertyKey;
 import com.linkedin.helix.PropertyKey.Builder;
+import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.webapp.RestAdminApplication;
 
 public class StatusUpdateResource extends Resource
 {
+  private final static Logger LOG = Logger.getLogger(StatusUpdateResource.class);
+
   public StatusUpdateResource(Context context, Request request, Response response)
   {
     super(context, request, response);
@@ -86,7 +90,7 @@ public class StatusUpdateResource extends Resource
       String error = ClusterRepresentationUtil.getErrorAsJsonStringFromException(e);
       presentation = new StringRepresentation(error, MediaType.APPLICATION_JSON);
 
-      e.printStackTrace();
+      LOG.error("", e);
     }
     return presentation;
   }
@@ -98,14 +102,16 @@ public class StatusUpdateResource extends Resource
       JsonMappingException,
       IOException
   {
+    ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);;
+  
     String instanceSessionId =
-        ClusterRepresentationUtil.getInstanceSessionId(
+        ClusterRepresentationUtil.getInstanceSessionId(zkClient,
                                                        clusterName,
                                                        instanceName);
 
     Builder keyBuilder = new PropertyKey.Builder(clusterName);
     String message =
-        ClusterRepresentationUtil.getInstancePropertiesAsString(
+        ClusterRepresentationUtil.getInstancePropertiesAsString(zkClient,
                                                                   clusterName,
                                                                   keyBuilder.stateTransitionStatus(instanceName,
                                                                                                    instanceSessionId,

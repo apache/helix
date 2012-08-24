@@ -14,6 +14,9 @@ import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.SerializationConfig;
+import org.restlet.Component;
+import org.restlet.Context;
+import org.restlet.data.Protocol;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -26,17 +29,53 @@ import com.linkedin.helix.controller.restlet.ZKPropertyTransferServer;
 import com.linkedin.helix.controller.restlet.ZkPropertyTransferClient;
 import com.linkedin.helix.integration.ZkIntegrationTestBase;
 import com.linkedin.helix.manager.zk.ZKUtil;
+import com.linkedin.helix.manager.zk.ZNRecordSerializer;
 import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.tools.ClusterSetup;
 import com.linkedin.helix.tools.ClusterStateVerifier;
 import com.linkedin.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import com.linkedin.helix.tools.ClusterStateVerifier.MasterNbInExtViewVerifier;
+import com.linkedin.helix.webapp.HelixAdminWebApp;
+import com.linkedin.helix.webapp.RestAdminApplication;
 
 public class TestHelixAdminScenariosRest extends ZkIntegrationTestBase
 {
   Map<String, StartCMResult> _startCMResultMap =
       new HashMap<String, StartCMResult>();
+  RestAdminApplication _adminApp;
+  Component _component;
+
+  int _port = 2200;
+  void startAdminWebAppThread() throws Exception
+  {
+    Thread t = new Thread(new Runnable() {
+      @Override
+      public void run()
+      {
+        HelixAdminWebApp app = null;
+        try
+        {
+          app = new HelixAdminWebApp(ZK_ADDR, _port);
+          app.start();
+          Thread.currentThread().join();
+        } 
+        catch (Exception e)
+        {
+          e.printStackTrace();
+        }
+        finally
+        {
+          if(app != null)
+          {
+            app.stop();
+          }
+        }
+      }
+    });
+    t.start();
+    t.setDaemon(true);
+  }
   
   public static String ObjectToJson(Object object) throws JsonGenerationException,
     JsonMappingException,
@@ -95,6 +134,11 @@ public class TestHelixAdminScenariosRest extends ZkIntegrationTestBase
       
     /**============================ deactivate cluster ===========================*/
     testDeactivateCluster();
+    
+  }
+  
+  void assertSuccessOperation(String url, Map<String, String> jsonParameters)
+  {
     
   }
   

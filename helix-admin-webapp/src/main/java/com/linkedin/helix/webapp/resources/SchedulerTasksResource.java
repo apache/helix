@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.apache.log4j.Logger;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.restlet.Context;
@@ -35,19 +36,16 @@ import org.restlet.resource.Resource;
 import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 
-import com.linkedin.helix.DataAccessor;
 import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixException;
-import com.linkedin.helix.Criteria;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
-import com.linkedin.helix.ZNRecord;
+import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.model.Message;
 import com.linkedin.helix.model.Message.MessageType;
 import com.linkedin.helix.tools.ClusterSetup;
-import com.linkedin.helix.util.ZNRecordUtil;
 import com.linkedin.helix.webapp.RestAdminApplication;
 
 /**
@@ -56,6 +54,8 @@ import com.linkedin.helix.webapp.RestAdminApplication;
  * */
 public class SchedulerTasksResource extends Resource
 {
+  private final static Logger LOG = Logger.getLogger(SchedulerTasksResource.class);
+
   public static String CRITERIA = "Criteria";
   public static String MESSAGETEMPLATE = "MessageTemplate";
   public SchedulerTasksResource(Context context,
@@ -92,27 +92,28 @@ public class SchedulerTasksResource extends Resource
     StringRepresentation presentation = null;
     try
     {
-      String clusterName = (String)getRequest().getAttributes().get("clusterName");
-      String instanceName = (String)getRequest().getAttributes().get("instanceName");
-      presentation = getSchedulerTasksRepresentation( clusterName, instanceName);
+      presentation = getSchedulerTasksRepresentation();
     }
     
     catch(Exception e)
     {
       String error = ClusterRepresentationUtil.getErrorAsJsonStringFromException(e);
       presentation = new StringRepresentation(error, MediaType.APPLICATION_JSON);
-      
-      e.printStackTrace();
+
+      LOG.error("", e);
     }  
     return presentation;
   }
   
-  StringRepresentation getSchedulerTasksRepresentation(String clusterName, String instanceName) throws JsonGenerationException, JsonMappingException, IOException
+  StringRepresentation getSchedulerTasksRepresentation() throws JsonGenerationException, JsonMappingException, IOException
   {
-    ClusterSetup setupTool = new ClusterSetup(RestAdminApplication.getZkClient());
+    String clusterName = (String)getRequest().getAttributes().get("clusterName");
+    String instanceName = (String)getRequest().getAttributes().get("instanceName");
+    ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);;
+    ClusterSetup setupTool = new ClusterSetup(zkClient);
     List<String> instances = setupTool.getClusterManagementTool().getInstancesInCluster(clusterName);
     
-    HelixDataAccessor accessor = ClusterRepresentationUtil.getClusterDataAccessor( clusterName);
+    HelixDataAccessor accessor = ClusterRepresentationUtil.getClusterDataAccessor(zkClient, clusterName);
     LiveInstance liveInstance = accessor.getProperty(accessor.keyBuilder().liveInstance(instanceName));
     String sessionId = liveInstance.getSessionId();
     
@@ -127,6 +128,7 @@ public class SchedulerTasksResource extends Resource
     {
       String clusterName = (String)getRequest().getAttributes().get("clusterName");
       Form form = new Form(entity);
+      ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);;
       
       String msgTemplateString = ClusterRepresentationUtil.getFormJsonParameterString(form, MESSAGETEMPLATE);
       if(msgTemplateString == null)
@@ -150,7 +152,7 @@ public class SchedulerTasksResource extends Resource
       schedulerMessage.setTgtName("CONTROLLER");
       schedulerMessage.setSrcInstanceType(InstanceType.CONTROLLER);
       
-      HelixDataAccessor accessor = ClusterRepresentationUtil.getClusterDataAccessor(clusterName);
+      HelixDataAccessor accessor = ClusterRepresentationUtil.getClusterDataAccessor(zkClient, clusterName);
       accessor.setProperty(accessor.keyBuilder().controllerMessage(schedulerMessage.getMsgId()), schedulerMessage);
       
       Map<String, String> resultMap = new HashMap<String, String>();
@@ -172,6 +174,7 @@ public class SchedulerTasksResource extends Resource
       getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),
           MediaType.APPLICATION_JSON);
       getResponse().setStatus(Status.SUCCESS_OK);
+      LOG.error("", e);
     }  
   }
 }

@@ -17,6 +17,7 @@ package com.linkedin.helix.webapp.resources;
 
 import java.util.List;
 
+import org.apache.log4j.Logger;
 import org.restlet.Context;
 import org.restlet.data.MediaType;
 import org.restlet.data.Request;
@@ -29,11 +30,12 @@ import org.restlet.resource.Variant;
 
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.manager.zk.ZkClient;
-import com.linkedin.helix.util.ZKClientPool;
 import com.linkedin.helix.webapp.RestAdminApplication;
 
 public class ZkPathResource extends Resource
 {
+  private final static Logger LOG = Logger.getLogger(ZkPathResource.class);
+
   public ZkPathResource(Context context, Request request, Response response)
   {
     super(context, request, response);
@@ -66,10 +68,9 @@ public class ZkPathResource extends Resource
     StringRepresentation presentation = null;
     try
     {
-      String zkServer = (String) getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
       String zkPath = getZKPath();
       
-      ZkClient zkClient = ZKClientPool.getZkClient(zkServer);
+      ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);;
       ZNRecord result = new ZNRecord("nodeContent");
       List<String> children = zkClient.getChildren(zkPath);
       if(children.size() > 0)
@@ -86,8 +87,8 @@ public class ZkPathResource extends Resource
     {
       String error = ClusterRepresentationUtil.getErrorAsJsonStringFromException(e);
       presentation = new StringRepresentation(error, MediaType.APPLICATION_JSON);
-      
-      e.printStackTrace();
+
+      LOG.error("", e);
     }
     return presentation;
   }
@@ -111,10 +112,9 @@ public class ZkPathResource extends Resource
   {
     try
     {
-      String zkServer = (String) getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
       String zkPath = getZKPath();
       
-      ZkClient zkClient = ZKClientPool.getZkClient(zkServer);
+      ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);;
       zkClient.deleteRecursive(zkPath);
       getResponse().setStatus(Status.SUCCESS_OK);
     }
@@ -123,6 +123,7 @@ public class ZkPathResource extends Resource
       getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),
           MediaType.APPLICATION_JSON);
       getResponse().setStatus(Status.SUCCESS_OK);
+      LOG.error("", e);
     }
   }
 

@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -38,14 +39,18 @@ import com.linkedin.helix.HelixException;
 import com.linkedin.helix.PropertyKey;
 import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.ZNRecord;
+import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.tools.ClusterSetup;
 import com.linkedin.helix.webapp.RestAdminApplication;
 
 public class IdealStateResource extends Resource
 {
+  private final static Logger LOG = Logger.getLogger(IdealStateResource.class);
+
   public static final String _replicas = "replicas"; 
   public static final String _resourceKeyPrefix = "key";
+  
   public IdealStateResource(Context context,
       Request request,
       Response response) 
@@ -95,7 +100,7 @@ public class IdealStateResource extends Resource
       String error = ClusterRepresentationUtil.getErrorAsJsonStringFromException(e);
       presentation = new StringRepresentation(error, MediaType.APPLICATION_JSON);
 
-      e.printStackTrace();
+      LOG.error("", e);
     }
     return presentation;
   }
@@ -107,9 +112,10 @@ public class IdealStateResource extends Resource
       IOException
   {
     Builder keyBuilder = new PropertyKey.Builder(clusterName);
-
+    ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);;
+    
     String message =
-        ClusterRepresentationUtil.getClusterPropertyAsString(
+        ClusterRepresentationUtil.getClusterPropertyAsString(zkClient,
                                                              clusterName,
                                                              keyBuilder.idealStates(resourceName),
                                                              MediaType.APPLICATION_JSON);
@@ -127,7 +133,8 @@ public class IdealStateResource extends Resource
     {
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       String resourceName = (String) getRequest().getAttributes().get("resourceName");
-
+      ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);;
+      
       Form form = new Form(entity);
 
       Map<String, String> paraMap = ClusterRepresentationUtil.getFormJsonParameters(form);
@@ -143,7 +150,7 @@ public class IdealStateResource extends Resource
             mapper.readValue(new StringReader(newIdealStateString), ZNRecord.class);
 
         HelixDataAccessor accessor =
-            ClusterRepresentationUtil.getClusterDataAccessor(clusterName);
+            ClusterRepresentationUtil.getClusterDataAccessor(zkClient, clusterName);
 
         accessor.setProperty(accessor.keyBuilder().idealStates(resourceName), new IdealState(newIdealState));
 
@@ -152,7 +159,7 @@ public class IdealStateResource extends Resource
                       .equalsIgnoreCase(ClusterSetup.rebalance))
       {
         int replicas = Integer.parseInt(paraMap.get(_replicas));
-        ClusterSetup setupTool = new ClusterSetup(RestAdminApplication.getZkClient());
+        ClusterSetup setupTool = new ClusterSetup(zkClient);
         if(paraMap.containsKey(_resourceKeyPrefix))
         {
           setupTool.rebalanceStorageCluster(clusterName, resourceName, replicas, paraMap.get(_resourceKeyPrefix));
@@ -165,8 +172,7 @@ public class IdealStateResource extends Resource
       else if (paraMap.get(ClusterRepresentationUtil._managementCommand)
           .equalsIgnoreCase(ClusterSetup.expandResource))
       {
-        int replicas = Integer.parseInt(paraMap.get(_replicas));
-        ClusterSetup setupTool = new ClusterSetup(RestAdminApplication.getZkClient());
+        ClusterSetup setupTool = new ClusterSetup(zkClient);
         setupTool.expandResource(clusterName, resourceName);
       }
       else
@@ -187,6 +193,7 @@ public class IdealStateResource extends Resource
       getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),
                               MediaType.APPLICATION_JSON);
       getResponse().setStatus(Status.SUCCESS_OK);
+      LOG.error("", e);
     }
   }
 }

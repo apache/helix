@@ -38,6 +38,7 @@ import com.linkedin.helix.ConfigScopeBuilder;
 import com.linkedin.helix.HelixAdmin;
 import com.linkedin.helix.HelixException;
 import com.linkedin.helix.ZNRecord;
+import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.tools.ClusterSetup;
 import com.linkedin.helix.webapp.RestAdminApplication;
 
@@ -82,7 +83,8 @@ public class ConfigResource extends Resource
     StringRepresentation representation = null;
     String clusterName = getValue("clusterName");
 
-    ClusterSetup setupTool = new ClusterSetup(RestAdminApplication.getZkClient());
+    ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
+    ClusterSetup setupTool = new ClusterSetup(zkClient);
     HelixAdmin admin = setupTool.getClusterManagementTool();
     ZNRecord record = new ZNRecord(scopeProperty + " Config");
 
@@ -103,7 +105,8 @@ public class ConfigResource extends Resource
     StringRepresentation representation = null;
     String clusterName = getValue("clusterName");
 
-    ClusterSetup setupTool = new ClusterSetup(RestAdminApplication.getZkClient());
+    ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
+    ClusterSetup setupTool = new ClusterSetup(zkClient);
     HelixAdmin admin = setupTool.getClusterManagementTool();
     ZNRecord record = new ZNRecord(scopeProperty + " Config");
 
@@ -196,8 +199,7 @@ public class ConfigResource extends Resource
     {
       String error = ClusterRepresentationUtil.getErrorAsJsonStringFromException(e);
       representation = new StringRepresentation(error, MediaType.APPLICATION_JSON);
-
-      e.printStackTrace();
+     LOG.error("", e);
     }
 
     return representation;
@@ -237,7 +239,8 @@ public class ConfigResource extends Resource
       throw new HelixException("Json parameters does not contain Config values");
     }
 
-    ClusterSetup setupTool = new ClusterSetup(RestAdminApplication.getZkClient());
+    ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
+    ClusterSetup setupTool = new ClusterSetup(zkClient);
     String propertiesStr = jsonParameters.get("configs");
     
     String command = jsonParameters.get(ClusterRepresentationUtil._managementCommand);
@@ -312,6 +315,7 @@ public class ConfigResource extends Resource
     }
     catch (Exception e)
     {
+      LOG.error("", e);
       getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),
                               MediaType.APPLICATION_JSON);
       getResponse().setStatus(Status.SUCCESS_OK);

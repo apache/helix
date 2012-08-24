@@ -134,7 +134,7 @@ public class IdealStateResource extends Resource
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       String resourceName = (String) getRequest().getAttributes().get("resourceName");
       ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);;
-      
+      ClusterSetup setupTool = new ClusterSetup(zkClient);
       Form form = new Form(entity);
 
       Map<String, String> paraMap = ClusterRepresentationUtil.getFormJsonParameters(form);
@@ -159,7 +159,6 @@ public class IdealStateResource extends Resource
                       .equalsIgnoreCase(ClusterSetup.rebalance))
       {
         int replicas = Integer.parseInt(paraMap.get(_replicas));
-        ClusterSetup setupTool = new ClusterSetup(zkClient);
         if(paraMap.containsKey(_resourceKeyPrefix))
         {
           setupTool.rebalanceStorageCluster(clusterName, resourceName, replicas, paraMap.get(_resourceKeyPrefix));
@@ -172,15 +171,24 @@ public class IdealStateResource extends Resource
       else if (paraMap.get(ClusterRepresentationUtil._managementCommand)
           .equalsIgnoreCase(ClusterSetup.expandResource))
       {
-        ClusterSetup setupTool = new ClusterSetup(zkClient);
         setupTool.expandResource(clusterName, resourceName);
+      }
+      else if (paraMap.get(ClusterRepresentationUtil._managementCommand)
+          .equalsIgnoreCase(ClusterSetup.addResourceProperty))
+      {
+        paraMap.remove(ClusterRepresentationUtil._managementCommand);
+        for(String key : paraMap.keySet())
+        {
+          setupTool.addResourceProperty(clusterName, resourceName, key, paraMap.get(key));
+        }
       }
       else
       {
         new HelixException("Missing '"
             + ClusterSetup.addIdealState + "' or '"
             + ClusterSetup.rebalance + "' or '"
-            + ClusterSetup.expandResource
+            + ClusterSetup.expandResource + "' or '"
+            + ClusterSetup.addResourceProperty
             + "' command");
       }
       getResponse().setEntity(getIdealStateRepresentation(clusterName,

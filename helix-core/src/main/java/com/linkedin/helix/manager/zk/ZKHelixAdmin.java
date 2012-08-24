@@ -20,14 +20,17 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
 
+import org.I0Itec.zkclient.DataUpdater;
 import org.apache.log4j.Logger;
 
+import com.linkedin.helix.BaseDataAccessor.Option;
 import com.linkedin.helix.ConfigAccessor;
 import com.linkedin.helix.ConfigScope;
 import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
@@ -48,6 +51,7 @@ import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.model.IdealState.IdealStateModeProperty;
 import com.linkedin.helix.model.InstanceConfig;
+import com.linkedin.helix.model.InstanceConfig.InstanceConfigProperty;
 import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.model.Message;
 import com.linkedin.helix.model.Message.MessageState;
@@ -60,10 +64,10 @@ import com.linkedin.helix.util.HelixUtil;
 public class ZKHelixAdmin implements HelixAdmin
 {
 
-  private final ZkClient       _zkClient;
+  private final ZkClient _zkClient;
   private final ConfigAccessor _configAccessor;
 
-  private static Logger        logger = Logger.getLogger(ZKHelixAdmin.class);
+  private static Logger logger = Logger.getLogger(ZKHelixAdmin.class);
 
   public ZKHelixAdmin(ZkClient zkClient)
   {
@@ -185,34 +189,89 @@ public class ZKHelixAdmin implements HelixAdmin
   }
 
   @Override
-  public void enablePartition(String clusterName,
-                              String instanceName,
-                              String resourceName,
-                              String partition,
-                              boolean enabled)
+  public void enablePartition(final boolean enabled,
+                              final String clusterName,
+                              final String instanceName,
+                              final String resourceName,
+                              final List<String> partitionNames)
   {
     String path =
         PropertyPathConfig.getPath(PropertyType.CONFIGS,
                                    clusterName,
                                    ConfigScopeProperty.PARTICIPANT.toString(),
                                    instanceName);
-    if (_zkClient.exists(path))
-    {
-      ZKHelixDataAccessor accessor =
-          new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(_zkClient));
-      Builder keyBuilder = accessor.keyBuilder();
 
-      InstanceConfig nodeConfig =
-          accessor.getProperty(keyBuilder.instanceConfig(instanceName));
+    ZkBaseDataAccessor<ZNRecord> baseAccessor =
+        new ZkBaseDataAccessor<ZNRecord>(_zkClient);
 
-      nodeConfig.setInstanceEnabledForPartition(partition, enabled);
-      accessor.setProperty(keyBuilder.instanceConfig(instanceName), nodeConfig);
-    }
-    else
+    // check instanceConfig exists
+    if (!baseAccessor.exists(path, 0))
     {
-      throw new HelixException("Cluster " + clusterName + ", instance config for "
-          + instanceName + " does not exist");
+      throw new HelixException("Cluster: " + clusterName + ", instance: " + instanceName
+          + ", instance config does not exist");
     }
+
+    // check resource exists
+    String idealStatePath =
+        PropertyPathConfig.getPath(PropertyType.IDEALSTATES, clusterName, resourceName);
+    ZNRecord idealStateRecord = baseAccessor.get(idealStatePath, null, 0);
+    if (idealStateRecord == null)
+    {
+      throw new HelixException("Cluster: " + clusterName + ", resource: " + resourceName
+          + ", ideal state does not exist");
+    }
+
+    // check partitions exist. warn if not
+    IdealState idealState = new IdealState(idealStateRecord);
+    for (String partitionName : partitionNames)
+    {
+      if ((idealState.getIdealStateMode() == IdealStateModeProperty.AUTO && idealState.getPreferenceList(partitionName) == null)
+          || (idealState.getIdealStateMode() == IdealStateModeProperty.CUSTOMIZED && idealState.getInstanceStateMap(partitionName) == null))
+      {
+        logger.warn("Cluster: " + clusterName + ", resource: " + resourceName
+            + ", partition: " + partitionName
+            + ", partition does not exist in ideal state");
+      }
+    }
+
+    // update participantConfig
+    // could not use ZNRecordUpdater since it doesn't do listField merge/subtract
+    baseAccessor.update(path, new DataUpdater<ZNRecord>()
+    {
+      @Override
+      public ZNRecord update(ZNRecord currentData)
+      {
+        if (currentData == null)
+        {
+          throw new HelixException("Cluster: " + clusterName + ", instance: "
+              + instanceName + ", participant config is null");
+        }
+
+        List<String> list =
+            currentData.getListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString());
+        Set<String> disabledPartitions = new HashSet<String>();
+        if (list != null)
+        {
+          disabledPartitions.addAll(list);
+        }
+
+        if (enabled)
+        {
+          disabledPartitions.removeAll(partitionNames);
+        }
+        else
+        {
+          disabledPartitions.addAll(partitionNames);
+        }
+
+        list = new ArrayList<String>(disabledPartitions);
+        Collections.sort(list);
+        currentData.setListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString(),
+                                 list);
+        return currentData;
+      }
+    },
+                        Option.PERSISTENT);
   }
 
   @Override
@@ -510,8 +569,8 @@ public class ZKHelixAdmin implements HelixAdmin
     String dbIdealStatePath = idealStatePath + "/" + dbName;
     if (_zkClient.exists(dbIdealStatePath))
     {
-      throw new HelixException("Skip the operation. Resource " +dbName + " already exists:"
-          + dbIdealStatePath);
+      throw new HelixException("Skip the operation. Resource " + dbName
+          + " already exists:" + dbIdealStatePath);
     }
 
     ZKUtil.createChildren(_zkClient, idealStatePath, idealState.getRecord());

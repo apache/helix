@@ -37,9 +37,9 @@ public class ZkStateChangeListener implements IZkStateListener
   @Override
   public void handleNewSession()
   {
-    //TODO:bug in zkclient . 
-    //zkclient does not invoke handleStateChanged when a session expires but 
-    //directly invokes handleNewSession 
+    // TODO:bug in zkclient .
+    // zkclient does not invoke handleStateChanged when a session expires but
+    // directly invokes handleNewSession
     _isConnected = true;
     _hasSessionExpired = false;
     _zkHelixManager.handleNewSession();
@@ -48,19 +48,28 @@ public class ZkStateChangeListener implements IZkStateListener
   @Override
   public void handleStateChanged(KeeperState keeperState) throws Exception
   {
-    logger.info("KeeperState:" + keeperState);
-
     switch (keeperState)
     {
     case SyncConnected:
-      ZkConnection zkConnection = ((ZkConnection) _zkHelixManager._zkClient.getConnection());
-      logger.info("zkconnected: " + zkConnection.getZookeeper());
+      ZkConnection zkConnection =
+          ((ZkConnection) _zkHelixManager._zkClient.getConnection());
+      logger.info("KeeperState: " + keeperState + ", zookeeper:" + zkConnection.getZookeeper());
       _isConnected = true;
       break;
     case Disconnected:
+      logger.info("KeeperState:" + keeperState + ", disconnectedSessionId: "
+          + _zkHelixManager.getSessionId() + ", instance: "
+          + _zkHelixManager.getInstanceName() + ", type: "
+          + _zkHelixManager.getInstanceType());
+
       _isConnected = false;
       break;
     case Expired:
+      logger.info("KeeperState:" + keeperState + ", expiredSessionId: "
+          + _zkHelixManager.getSessionId() + ", instance: "
+          + _zkHelixManager.getInstanceName() + ", type: "
+          + _zkHelixManager.getInstanceType());
+
       _isConnected = false;
       _hasSessionExpired = true;
       break;
@@ -76,7 +85,7 @@ public class ZkStateChangeListener implements IZkStateListener
   {
     _isConnected = false;
   }
-  
+
   boolean hasSessionExpired()
   {
     return _hasSessionExpired;

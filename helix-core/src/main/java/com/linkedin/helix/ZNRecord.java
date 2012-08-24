@@ -26,7 +26,7 @@ import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 import org.codehaus.jackson.annotate.JsonProperty;
 
-import com.linkedin.helix.ZNRecordDelta.MERGEOPERATION;
+import com.linkedin.helix.ZNRecordDelta.MergeOperation;
 
 /**
  * Generic Record Format to store data at a Node This can be used to store
@@ -246,10 +246,10 @@ public class ZNRecord
 
   void merge(ZNRecordDelta delta)
   {
-    if (delta.getMergeOperation() == MERGEOPERATION.ADD)
+    if (delta.getMergeOperation() == MergeOperation.ADD)
     {
       merge(delta.getRecord());
-    } else if (delta.getMergeOperation() == MERGEOPERATION.SUBTRACT)
+    } else if (delta.getMergeOperation() == MergeOperation.SUBTRACT)
     {
       subtract(delta.getRecord());
     }

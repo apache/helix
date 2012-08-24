@@ -51,8 +51,7 @@ public class FileHelixAdmin implements HelixAdmin
   @Override
   public List<String> getClusters()
   {
-    throw new UnsupportedOperationException(
-        "getClusters() is NOT supported by FileClusterManagementTool");
+    throw new UnsupportedOperationException("getClusters() is NOT supported by FileClusterManagementTool");
 
   }
 
@@ -60,8 +59,10 @@ public class FileHelixAdmin implements HelixAdmin
   public List<String> getInstancesInCluster(String clusterName)
   {
     // String path = HelixUtil.getConfigPath(clusterName);
-    String path = PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
-        ConfigScopeProperty.PARTICIPANT.toString());
+    String path =
+        PropertyPathConfig.getPath(PropertyType.CONFIGS,
+                                   clusterName,
+                                   ConfigScopeProperty.PARTICIPANT.toString());
 
     List<String> childs = null;
     List<String> instanceNames = new ArrayList<String>();
@@ -75,7 +76,8 @@ public class FileHelixAdmin implements HelixAdmin
         instanceNames.add(instanceName);
       }
       return instanceNames;
-    } catch (PropertyStoreException e)
+    }
+    catch (PropertyStoreException e)
     {
       logger.error("Fail to getInstancesInCluster, cluster " + clusterName, e);
     }
@@ -88,8 +90,7 @@ public class FileHelixAdmin implements HelixAdmin
   {
     // TODO Auto-generated method stub
     // return null;
-    throw new UnsupportedOperationException(
-        "getResourcesInCluster() is NOT supported by FileClusterManagementTool");
+    throw new UnsupportedOperationException("getResourcesInCluster() is NOT supported by FileClusterManagementTool");
 
   }
 
@@ -105,14 +106,21 @@ public class FileHelixAdmin implements HelixAdmin
 
       // CONFIG's
       // _store.createPropertyNamespace(HelixUtil.getConfigPath(clusterName));
-      path = PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
-          ConfigScopeProperty.CLUSTER.toString(), clusterName);
+      path =
+          PropertyPathConfig.getPath(PropertyType.CONFIGS,
+                                     clusterName,
+                                     ConfigScopeProperty.CLUSTER.toString(),
+                                     clusterName);
       _store.setProperty(path, new ZNRecord(clusterName));
-      path = PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
-          ConfigScopeProperty.PARTICIPANT.toString());
+      path =
+          PropertyPathConfig.getPath(PropertyType.CONFIGS,
+                                     clusterName,
+                                     ConfigScopeProperty.PARTICIPANT.toString());
       _store.createPropertyNamespace(path);
-      path = PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
-          ConfigScopeProperty.RESOURCE.toString());
+      path =
+          PropertyPathConfig.getPath(PropertyType.CONFIGS,
+                                     clusterName,
+                                     ConfigScopeProperty.RESOURCE.toString());
       _store.createPropertyNamespace(path);
 
       // PROPERTY STORE
@@ -125,8 +133,9 @@ public class FileHelixAdmin implements HelixAdmin
       _store.createPropertyNamespace(HelixUtil.getStateModelDefinitionPath(clusterName));
 
       StateModelConfigGenerator generator = new StateModelConfigGenerator();
-      addStateModelDef(clusterName, "MasterSlave",
-          new StateModelDefinition(generator.generateConfigForMasterSlave()));
+      addStateModelDef(clusterName,
+                       "MasterSlave",
+                       new StateModelDefinition(generator.generateConfigForMasterSlave()));
 
       // controller
       _store.createPropertyNamespace(HelixUtil.getControllerPath(clusterName));
@@ -139,13 +148,15 @@ public class FileHelixAdmin implements HelixAdmin
       path = PropertyPathConfig.getPath(PropertyType.MESSAGES_CONTROLLER, clusterName);
       _store.createPropertyNamespace(path);
 
-      path = PropertyPathConfig.getPath(PropertyType.STATUSUPDATES_CONTROLLER, clusterName);
+      path =
+          PropertyPathConfig.getPath(PropertyType.STATUSUPDATES_CONTROLLER, clusterName);
       _store.createPropertyNamespace(path);
 
       path = PropertyPathConfig.getPath(PropertyType.ERRORS_CONTROLLER, clusterName);
       _store.createPropertyNamespace(path);
 
-    } catch (PropertyStoreException e)
+    }
+    catch (PropertyStoreException e)
     {
       logger.error("Fail to add cluster " + clusterName, e);
     }
@@ -153,8 +164,10 @@ public class FileHelixAdmin implements HelixAdmin
   }
 
   @Override
-  public void addResource(String clusterName, String resource, int numResources,
-      String stateModelRef)
+  public void addResource(String clusterName,
+                          String resource,
+                          int numResources,
+                          String stateModelRef)
   {
     String idealStatePath = HelixUtil.getIdealStatePath(clusterName);
     String resourceIdealStatePath = idealStatePath + "/" + resource;
@@ -174,34 +187,43 @@ public class FileHelixAdmin implements HelixAdmin
     try
     {
       _store.setProperty(resourceIdealStatePath, idealState.getRecord());
-    } catch (PropertyStoreException e)
+    }
+    catch (PropertyStoreException e)
     {
-      logger.error("Fail to add resource, cluster:" + clusterName + " resourceName:" + resource, e);
+      logger.error("Fail to add resource, cluster:" + clusterName + " resourceName:"
+          + resource, e);
     }
 
   }
 
   @Override
-  public void addResource(String clusterName, String resource, int numResources,
-      String stateModelRef, String idealStateMode)
+  public void addResource(String clusterName,
+                          String resource,
+                          int numResources,
+                          String stateModelRef,
+                          String idealStateMode)
   {
-    throw new UnsupportedOperationException(
-        "ideal state mode not supported in file-based cluster manager");
+    throw new UnsupportedOperationException("ideal state mode not supported in file-based cluster manager");
   }
-  
+
   @Override
-  public void addResource(String clusterName, String resource, int numResources,
-      String stateModelRef, String idealStateMode, int bucketSize)
+  public void addResource(String clusterName,
+                          String resource,
+                          int numResources,
+                          String stateModelRef,
+                          String idealStateMode,
+                          int bucketSize)
   {
-    throw new UnsupportedOperationException(
-        "bucketize not supported in file-based cluster manager");
+    throw new UnsupportedOperationException("bucketize not supported in file-based cluster manager");
   }
 
   @Override
   public void addInstance(String clusterName, InstanceConfig config)
   {
-    String configsPath = PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
-        ConfigScopeProperty.PARTICIPANT.toString());
+    String configsPath =
+        PropertyPathConfig.getPath(PropertyType.CONFIGS,
+                                   clusterName,
+                                   ConfigScopeProperty.PARTICIPANT.toString());
     String nodeId = config.getId();
     String nodeConfigPath = configsPath + "/" + nodeId;
 
@@ -209,10 +231,12 @@ public class FileHelixAdmin implements HelixAdmin
     {
       _store.setProperty(nodeConfigPath, config.getRecord());
       _store.createPropertyNamespace(HelixUtil.getMessagePath(clusterName, nodeId));
-      _store.createPropertyNamespace(HelixUtil.getCurrentStateBasePath(clusterName, nodeId));
+      _store.createPropertyNamespace(HelixUtil.getCurrentStateBasePath(clusterName,
+                                                                       nodeId));
       _store.createPropertyNamespace(HelixUtil.getErrorsPath(clusterName, nodeId));
       _store.createPropertyNamespace(HelixUtil.getStatusUpdatesPath(clusterName, nodeId));
-    } catch (Exception e)
+    }
+    catch (Exception e)
     {
       logger.error("Fail to add node, cluster:" + clusterName + "\nexception: " + e);
     }
@@ -222,15 +246,18 @@ public class FileHelixAdmin implements HelixAdmin
   @Override
   public void dropInstance(String clusterName, InstanceConfig config)
   {
-    String configsPath = PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
-        ConfigScopeProperty.PARTICIPANT.toString());
+    String configsPath =
+        PropertyPathConfig.getPath(PropertyType.CONFIGS,
+                                   clusterName,
+                                   ConfigScopeProperty.PARTICIPANT.toString());
     String nodeId = config.getId();
     String nodeConfigPath = configsPath + "/" + nodeId;
 
     try
     {
       _store.setProperty(nodeConfigPath, config.getRecord());
-    } catch (Exception e)
+    }
+    catch (Exception e)
     {
       logger.error("Fail to drop node, cluster:" + clusterName, e);
     }
@@ -240,33 +267,36 @@ public class FileHelixAdmin implements HelixAdmin
   public IdealState getResourceIdealState(String clusterName, String resourceName)
   {
     return new FileDataAccessor(_store, clusterName).getProperty(IdealState.class,
-        PropertyType.IDEALSTATES, resourceName);
+                                                                 PropertyType.IDEALSTATES,
+                                                                 resourceName);
   }
 
   @Override
-  public void setResourceIdealState(String clusterName, String resourceName, IdealState idealState)
+  public void setResourceIdealState(String clusterName,
+                                    String resourceName,
+                                    IdealState idealState)
   {
-    new FileDataAccessor(_store, clusterName).setProperty(PropertyType.IDEALSTATES, idealState,
-        resourceName);
+    new FileDataAccessor(_store, clusterName).setProperty(PropertyType.IDEALSTATES,
+                                                          idealState,
+                                                          resourceName);
   }
 
   @Override
   public void enableInstance(String clusterName, String instanceName, boolean enabled)
   {
-    throw new UnsupportedOperationException(
-        "enableInstance() is NOT supported by FileClusterManagementTool");
+    throw new UnsupportedOperationException("enableInstance() is NOT supported by FileClusterManagementTool");
   }
 
   @Override
   public void pauseCluster(String clusterName, boolean enabled)
   {
-    throw new UnsupportedOperationException(
-        "enableCluster() is NOT supported by FileClusterManagementTool");
+    throw new UnsupportedOperationException("enableCluster() is NOT supported by FileClusterManagementTool");
   }
-  
+
   @Override
-  public void addStateModelDef(String clusterName, String stateModelDef,
-      StateModelDefinition stateModel)
+  public void addStateModelDef(String clusterName,
+                               String stateModelDef,
+                               StateModelDefinition stateModel)
   {
 
     String stateModelDefPath = HelixUtil.getStateModelDefinitionPath(clusterName);
@@ -275,7 +305,8 @@ public class FileHelixAdmin implements HelixAdmin
     try
     {
       _store.setProperty(stateModelPath, stateModel.getRecord());
-    } catch (PropertyStoreException e)
+    }
+    catch (PropertyStoreException e)
     {
       logger.error("Fail to addStateModelDef, cluster:" + clusterName + " stateModelDef:"
           + stateModelDef, e);
@@ -286,99 +317,92 @@ public class FileHelixAdmin implements HelixAdmin
   @Override
   public void dropResource(String clusterName, String resourceName)
   {
-    new FileDataAccessor(_store, clusterName)
-        .removeProperty(PropertyType.IDEALSTATES, resourceName);
+    new FileDataAccessor(_store, clusterName).removeProperty(PropertyType.IDEALSTATES,
+                                                             resourceName);
 
   }
 
   @Override
   public List<String> getStateModelDefs(String clusterName)
   {
-    throw new UnsupportedOperationException(
-        "getStateModelDefs() is NOT supported by FileClusterManagementTool");
+    throw new UnsupportedOperationException("getStateModelDefs() is NOT supported by FileClusterManagementTool");
   }
 
   @Override
   public InstanceConfig getInstanceConfig(String clusterName, String instanceName)
   {
-    throw new UnsupportedOperationException(
-        "getInstanceConfig() is NOT supported by FileClusterManagementTool");
+    throw new UnsupportedOperationException("getInstanceConfig() is NOT supported by FileClusterManagementTool");
   }
 
   @Override
   public StateModelDefinition getStateModelDef(String clusterName, String stateModelName)
   {
-    throw new UnsupportedOperationException(
-        "getStateModelDef() is NOT supported by FileClusterManagementTool");
+    throw new UnsupportedOperationException("getStateModelDef() is NOT supported by FileClusterManagementTool");
   }
 
   @Override
   public ExternalView getResourceExternalView(String clusterName, String resource)
   {
-    throw new UnsupportedOperationException(
-        "getResourceExternalView() is NOT supported by FileClusterManagementTool");
+    throw new UnsupportedOperationException("getResourceExternalView() is NOT supported by FileClusterManagementTool");
   }
 
   @Override
-  public void enablePartition(String clusterName, String instanceName, String resourceName,
-      String partition, boolean enabled)
+  public void enablePartition(boolean enabled,
+                              String clusterName,
+                              String instanceName,
+                              String resourceName,
+                              List<String> partitionNames)
   {
-    throw new UnsupportedOperationException(
-        "enablePartition() is NOT supported by FileClusterManagementTool");
+    throw new UnsupportedOperationException("enablePartition() is NOT supported by FileClusterManagementTool");
   }
 
   @Override
-  public void resetPartition(String clusterName, String instanceName, String resourceName,
-      String partition)
+  public void resetPartition(String clusterName,
+                             String instanceName,
+                             String resourceName,
+                             String partition)
   {
-    throw new UnsupportedOperationException(
-        "resetPartition() is NOT supported by FileClusterManagementTool");
+    throw new UnsupportedOperationException("resetPartition() is NOT supported by FileClusterManagementTool");
   }
 
   @Override
   public void addStat(String clusterName, String statName)
   {
-    throw new UnsupportedOperationException(
-        "addStat() is NOT supported by FileClusterManagementTool");
+    throw new UnsupportedOperationException("addStat() is NOT supported by FileClusterManagementTool");
 
   }
 
   @Override
   public void addAlert(String clusterName, String alertName)
   {
-    throw new UnsupportedOperationException(
-        "addAlert() is NOT supported by FileClusterManagementTool");
+    throw new UnsupportedOperationException("addAlert() is NOT supported by FileClusterManagementTool");
 
   }
 
   @Override
   public void dropStat(String clusterName, String statName)
   {
-    throw new UnsupportedOperationException(
-        "dropStat() is NOT supported by FileClusterManagementTool");
+    throw new UnsupportedOperationException("dropStat() is NOT supported by FileClusterManagementTool");
 
   }
 
   @Override
   public void dropAlert(String clusterName, String alertName)
   {
-    throw new UnsupportedOperationException(
-        "dropAlert() is NOT supported by FileClusterManagementTool");
+    throw new UnsupportedOperationException("dropAlert() is NOT supported by FileClusterManagementTool");
 
   }
 
   @Override
   public void dropCluster(String clusterName)
   {
-    throw new UnsupportedOperationException(
-        "dropCluster() is NOT supported by FileClusterManagementTool");
+    throw new UnsupportedOperationException("dropCluster() is NOT supported by FileClusterManagementTool");
   }
 
   @Override
   public void addClusterToGrandCluster(String clusterName, String grandCluster)
   {
-    throw new UnsupportedOperationException(
-        "addCluster(clusterName, overwritePrevRecord, grandCluster) is NOT supported by FileClusterManagementTool");
+    throw new UnsupportedOperationException("addCluster(clusterName, overwritePrevRecord, grandCluster) is NOT supported by FileClusterManagementTool");
   }
 
   @Override
@@ -397,7 +421,9 @@ public class FileHelixAdmin implements HelixAdmin
   }
 
   @Override
-  public List<String> getConfigKeys(ConfigScopeProperty scope, String clusterName, String... keys)
+  public List<String> getConfigKeys(ConfigScopeProperty scope,
+                                    String clusterName,
+                                    String... keys)
   {
     // TODO Auto-generated method stub
     throw new UnsupportedOperationException("unsupported operation");
@@ -408,6 +434,6 @@ public class FileHelixAdmin implements HelixAdmin
   {
     // TODO Auto-generated method stub
     throw new UnsupportedOperationException("unsupported operation");
-   
+
   }
 }

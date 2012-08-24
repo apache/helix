@@ -46,6 +46,8 @@ public class InstancesResource extends Resource
 
   public static final String _instanceName = "instanceName";
   public static final String _instanceNames = "instanceNames";
+  public static final String _oldInstance = "oldInstance";
+  public static final String _newInstance = "newInstance";
 
   public InstancesResource(Context context, Request request, Response response)
   {
@@ -123,29 +125,41 @@ public class InstancesResource extends Resource
   {
     try
     {
-      String clusterName = (String) getRequest().getAttributes().get("clusterName");
-
+      String clusterName = (String) getRequest().getAttributes().get("clusterName");      
       Form form = new Form(entity);
-
-      Map<String, String> paraMap = ClusterRepresentationUtil
-          .getFormJsonParametersWithCommandVerified(form,
-              ClusterSetup.addInstance);
-
       ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);;
       ClusterSetup setupTool = new ClusterSetup(zkClient);
-      if (paraMap.containsKey(_instanceName))
+      
+      Map<String, String> paraMap = ClusterRepresentationUtil.getFormJsonParameters(form);
+      
+      if(paraMap.get(ClusterRepresentationUtil._managementCommand)
+                 .equalsIgnoreCase(ClusterSetup.addInstance))
+      {      
+        if (paraMap.containsKey(_instanceName))
+        {
+          setupTool.addInstanceToCluster(clusterName, paraMap.get(_instanceName));
+        } 
+        else if (paraMap.containsKey(_instanceNames))
+        {
+          setupTool.addInstancesToCluster(clusterName, paraMap.get(_instanceNames).split(";"));
+        } 
+        else
+        {
+          throw new HelixException("Json paramaters does not contain '" + _instanceName + "' or '"
+              + _instanceNames + "' ");
+        }
+      }
+      else if (paraMap.get(ClusterRepresentationUtil._managementCommand)
+          .equalsIgnoreCase(ClusterSetup.swapInstance))
       {
-        setupTool.addInstanceToCluster(clusterName, paraMap.get(_instanceName));
-      } else if (paraMap.containsKey(_instanceNames))
-      {
-        setupTool.addInstancesToCluster(clusterName, paraMap.get(_instanceNames).split(";"));
-      } else
-      {
-        throw new HelixException("Json paramaters does not contain '" + _instanceName + "' or '"
-            + _instanceNames + "' ");
+        if(! (paraMap.containsKey(_newInstance) && paraMap.containsKey(_oldInstance)))
+        {
+          throw new HelixException("Json paramaters does not contain '" + _newInstance + "' or '"
+              + _oldInstance + "' ");
+        }
+        setupTool.swapInstance(clusterName, paraMap.get(_oldInstance), paraMap.get(_newInstance));
       }
 
-      // add cluster
       getResponse().setEntity(getInstancesRepresentation(clusterName));
       getResponse().setStatus(Status.SUCCESS_OK);
     }

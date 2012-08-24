@@ -144,36 +144,45 @@ public class ClusterResource extends Resource
     try
     {
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
-      Form form = new Form(entity);
-      Map<String, String> jsonParameters =
-          ClusterRepresentationUtil.getFormJsonParametersWithCommandVerified(
-            form, ClusterSetup.activateCluster);
-
-      if (!jsonParameters.containsKey(_grandCluster))
-      {
-        throw new HelixException("Json parameters does not contain '" + _grandCluster
-            + "'");
-      }
-      
-      if (!jsonParameters.containsKey(_enabled))
-      {
-        throw new HelixException("Json parameters does not contain '" + _enabled
-            + "'");
-      }
-
-      String grandCluster = jsonParameters.get(_grandCluster);
-      boolean enabled = Boolean.parseBoolean(jsonParameters.get(_enabled));
       ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
       ClusterSetup setupTool = new ClusterSetup(zkClient);
-      List<String> grandClusterResourceGroups =
-          setupTool.getClusterManagementTool().getResourcesInCluster(grandCluster);
-      if (grandClusterResourceGroups.contains(clusterName))
+      
+      Form form = new Form(entity);
+      
+      Map<String, String> paraMap = ClusterRepresentationUtil.getFormJsonParameters(form);
+      String command = paraMap.get(ClusterRepresentationUtil._managementCommand);
+      
+      if(command.equalsIgnoreCase(ClusterSetup.activateCluster))
       {
-        throw new HelixException("Grand cluster " + grandCluster
-            + " already have a resourceGroup for " + clusterName);
+        Map<String, String> jsonParameters =
+          ClusterRepresentationUtil.getFormJsonParametersWithCommandVerified(
+            form, ClusterSetup.activateCluster);
+        if (!jsonParameters.containsKey(_grandCluster))
+        {
+          throw new HelixException("Json parameters does not contain '" + _grandCluster
+              + "'");
+        }
+        if (!jsonParameters.containsKey(_enabled))
+        {
+          throw new HelixException("Json parameters does not contain '" + _enabled
+              + "'");
+        }
+  
+        String grandCluster = jsonParameters.get(_grandCluster);
+        boolean enabled = Boolean.parseBoolean(jsonParameters.get(_enabled));
+        List<String> grandClusterResourceGroups =
+            setupTool.getClusterManagementTool().getResourcesInCluster(grandCluster);
+        if (grandClusterResourceGroups.contains(clusterName))
+        {
+          throw new HelixException("Grand cluster " + grandCluster
+              + " already have a resourceGroup for " + clusterName);
+        }
+        setupTool.activateCluster(clusterName, grandCluster, enabled);
       }
-      setupTool.activateCluster(clusterName, grandCluster, enabled);
-      // add cluster
+      else if(command.equalsIgnoreCase(ClusterSetup.expandCluster))
+      {
+        setupTool.expandCluster(clusterName);
+      }
       getResponse().setEntity(getClusterRepresentation(clusterName));
       getResponse().setStatus(Status.SUCCESS_OK);
     }

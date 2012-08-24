@@ -134,7 +134,8 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
   public void close() throws ZkInterruptedException
   {
     StackTraceElement[] calls = Thread.currentThread().getStackTrace();
-    LOG.info("closing a zkclient. zookeeper: " + ((ZkConnection) _connection).getZookeeper()
+    LOG.info("closing a zkclient. zookeeper: "
+        + (_connection == null ? "null" : ((ZkConnection) _connection).getZookeeper())
         + ", callStack: " + Arrays.asList(calls));
 
     super.close();

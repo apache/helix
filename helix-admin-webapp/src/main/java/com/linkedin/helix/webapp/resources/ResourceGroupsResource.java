@@ -116,7 +116,7 @@ public class ResourceGroupsResource extends Resource
       
       Form form = new Form(entity);
       Map<String, String> paraMap 
-      = ClusterRepresentationUtil.getFormJsonParametersWithCommandVerified(form, ClusterRepresentationUtil._addResourceGroupCommand);
+      = ClusterRepresentationUtil.getFormJsonParametersWithCommandVerified(form, ClusterSetup.addResource);
     
       if(!paraMap.containsKey(_resourceGroupName))
       {

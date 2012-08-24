@@ -102,7 +102,7 @@ public class ControllerStatusUpdateResource extends Resource
   {
     Builder keyBuilder = new PropertyKey.Builder(clusterName);
     String message = ClusterRepresentationUtil.getPropertyAsString(
-        zkServerAddress, clusterName,
+        clusterName,
         keyBuilder.controllerTaskStatus(messageType, messageId),
         MediaType.APPLICATION_JSON);
     StringRepresentation representation = new StringRepresentation(message,

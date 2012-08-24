@@ -65,10 +65,9 @@ public class ErrorsResource extends Resource
     StringRepresentation presentation = null;
     try
     {
-      String zkServer = (String) getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       String instanceName = (String) getRequest().getAttributes().get("instanceName");
-      presentation = getInstanceErrorsRepresentation(zkServer, clusterName, instanceName);
+      presentation = getInstanceErrorsRepresentation( clusterName, instanceName);
     }
     catch (Exception e)
     {
@@ -80,11 +79,11 @@ public class ErrorsResource extends Resource
     return presentation;
   }
 
-  StringRepresentation getInstanceErrorsRepresentation(String zkServerAddress, String clusterName, String instanceName) throws JsonGenerationException, JsonMappingException, IOException
+  StringRepresentation getInstanceErrorsRepresentation(String clusterName, String instanceName) throws JsonGenerationException, JsonMappingException, IOException
   {
-      String instanceSessionId = ClusterRepresentationUtil.getInstanceSessionId(zkServerAddress, clusterName, instanceName);
+      String instanceSessionId = ClusterRepresentationUtil.getInstanceSessionId( clusterName, instanceName);
       
-      String message = ClusterRepresentationUtil.getInstancePropertyNameListAsString(zkServerAddress, clusterName, instanceName, PropertyType.CURRENTSTATES, instanceSessionId, MediaType.APPLICATION_JSON);
+      String message = ClusterRepresentationUtil.getInstancePropertyNameListAsString( clusterName, instanceName, PropertyType.CURRENTSTATES, instanceSessionId, MediaType.APPLICATION_JSON);
 
       StringRepresentation representation = new StringRepresentation(message, MediaType.APPLICATION_JSON);
 

@@ -48,7 +48,11 @@ import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
 import com.linkedin.helix.ZNRecord;
+import com.linkedin.helix.manager.zk.ZNRecordSerializer;
+import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.model.InstanceConfig.InstanceConfigProperty;
+import com.linkedin.helix.model.StateModelDefinition;
+import com.linkedin.helix.tools.ClusterSetup;
 import com.linkedin.helix.webapp.resources.ClusterRepresentationUtil;
 import com.linkedin.helix.webapp.resources.ClustersResource;
 import com.linkedin.helix.webapp.resources.ResourceGroupsResource;
@@ -124,7 +128,9 @@ public class TestClusterManagementWebapp
           Context applicationContext = _component.getContext().createChildContext();
           applicationContext.getAttributes().put(RestAdminApplication.ZKSERVERADDRESS,
               _zkServerAddress);
-
+          RestAdminApplication.g_zkClient = new ZkClient(_zkServerAddress);
+          RestAdminApplication.g_zkClient.setZkSerializer(new ZNRecordSerializer());
+          
           _adminApp = new RestAdminApplication(applicationContext);
           // Attach the application to the component and start it
           _component.getDefaultHost().attach(_adminApp);
@@ -191,33 +197,47 @@ public class TestClusterManagementWebapp
   void verifyAddStateModel() throws JsonGenerationException, JsonMappingException, IOException
   {
     String httpUrlBase = "http://localhost:" + _port + "/clusters/" + clusterName
-        + "/StateModelDefs";
+        + "/StateModelDefs/MasterSlave";
+    Reference resourceRef = new Reference(httpUrlBase);
+    Request request = new Request(Method.GET, resourceRef);
+    Client client = new Client(Protocol.HTTP);
+    Response response = client.handle(request);
+    Representation result = response.getEntity();
+    StringWriter sw = new StringWriter();
+    result.write(sw);
+    ObjectMapper mapper = new ObjectMapper();
+    ZNRecord zn = mapper.readValue(new StringReader(sw.toString()), ZNRecord.class);
+    
     Map<String, String> paraMap = new HashMap<String, String>();
 
     paraMap.put(ClusterRepresentationUtil._managementCommand,
-        ClusterRepresentationUtil._addStateModelCommand);
-
-    ZNRecord r = new ZNRecord(statemodel);
-
-    Reference resourceRef = new Reference(httpUrlBase);
-    Request request = new Request(Method.POST, resourceRef);
+        ClusterSetup.addStateModelDef);
+    
+    ZNRecord r = new ZNRecord("Test");
+    r.merge(zn);
+    StateModelDefinition newStateModel = new StateModelDefinition(r);
+    
+    httpUrlBase = "http://localhost:" + _port + "/clusters/" + clusterName
+    + "/StateModelDefs";
+    resourceRef = new Reference(httpUrlBase);
+    request = new Request(Method.POST, resourceRef);
     request.setEntity(
         ClusterRepresentationUtil._jsonParameters + "="
             + ClusterRepresentationUtil.ObjectToJson(paraMap) + "&"
             + ClusterRepresentationUtil._newModelDef + "="
             + ClusterRepresentationUtil.ZNRecordToJson(r), MediaType.APPLICATION_ALL);
-    Client client = new Client(Protocol.HTTP);
-    Response response = client.handle(request);
+    client = new Client(Protocol.HTTP);
+    response = client.handle(request);
 
-    Representation result = response.getEntity();
-    StringWriter sw = new StringWriter();
+    result = response.getEntity();
+    sw = new StringWriter();
     result.write(sw);
 
     System.out.println(sw.toString());
 
-    ObjectMapper mapper = new ObjectMapper();
-    ZNRecord zn = mapper.readValue(new StringReader(sw.toString()), ZNRecord.class);
-    AssertJUnit.assertTrue(zn.getListFields().get("models").contains(statemodel));
+    mapper = new ObjectMapper();
+    ZNRecord zn2 = mapper.readValue(new StringReader(sw.toString()), ZNRecord.class);
+    AssertJUnit.assertTrue(zn.equals(r));
   }
 
   void verifyAddCluster() throws IOException, InterruptedException
@@ -227,12 +247,10 @@ public class TestClusterManagementWebapp
 
     paraMap.put(ClustersResource._clusterName, clusterName);
     paraMap.put(ClusterRepresentationUtil._managementCommand,
-        ClusterRepresentationUtil._addClusterCommand);
+    		ClusterSetup.addCluster);
 
     Reference resourceRef = new Reference(httpUrlBase);
 
-    // resourceRef.addQueryParameter(ClusterRepresentationUtil._jsonParameters,
-    // ClusterRepresentationUtil.ObjectToJson(paraMap));
     Request request = new Request(Method.POST, resourceRef);
 
     request.setEntity(
@@ -250,7 +268,6 @@ public class TestClusterManagementWebapp
     ObjectMapper mapper = new ObjectMapper();
     ZNRecord zn = mapper.readValue(new StringReader(sw.toString()), ZNRecord.class);
     AssertJUnit.assertTrue(zn.getListField("clusters").contains(clusterName));
-    // Thread.currentThread().join();
 
   }
 
@@ -264,7 +281,7 @@ public class TestClusterManagementWebapp
     paraMap.put(ResourceGroupsResource._partitions, "" + partitions);
     paraMap.put(ResourceGroupsResource._stateModelDefRef, "MasterSlave");
     paraMap.put(ClusterRepresentationUtil._managementCommand,
-        ClusterRepresentationUtil._addResourceGroupCommand);
+        ClusterSetup.addResource);
 
     Reference resourceRef = new Reference(httpUrlBase);
 
@@ -309,7 +326,7 @@ public class TestClusterManagementWebapp
     // Add 1 instance
     paraMap.put(InstancesResource._instanceName, instance1 + ":" + instancePort);
     paraMap.put(ClusterRepresentationUtil._managementCommand,
-        ClusterRepresentationUtil._addInstanceCommand);
+        ClusterSetup.addInstance);
 
     Reference resourceRef = new Reference(httpUrlBase);
 
@@ -337,7 +354,7 @@ public class TestClusterManagementWebapp
     // the case to add more than 1 instances
     paraMap.clear();
     paraMap.put(ClusterRepresentationUtil._managementCommand,
-        ClusterRepresentationUtil._addInstanceCommand);
+        ClusterSetup.addInstance);
 
     String[] instances = { "test2", "test3", "test4", "test5" };
 
@@ -398,7 +415,7 @@ public class TestClusterManagementWebapp
     // Add 1 instance
     paraMap.put(IdealStateResource._replicas, "" + replicas);
     paraMap.put(ClusterRepresentationUtil._managementCommand,
-        ClusterRepresentationUtil._rebalanceCommand);
+        ClusterSetup.rebalance);
 
     Reference resourceRef = new Reference(httpUrlBase);
 
@@ -446,7 +463,7 @@ public class TestClusterManagementWebapp
     // Add 1 instance
     paraMap.put(ClusterRepresentationUtil._enabled, "" + false);
     paraMap.put(ClusterRepresentationUtil._managementCommand,
-        ClusterRepresentationUtil._enableInstanceCommand);
+        ClusterSetup.enableInstance);
 
     Reference resourceRef = new Reference(httpUrlBase);
 
@@ -516,7 +533,7 @@ public class TestClusterManagementWebapp
     Map<String, String> paraMap = new HashMap<String, String>();
     // Add 1 instance
     paraMap.put(ClusterRepresentationUtil._managementCommand,
-        ClusterRepresentationUtil._alterIdealStateCommand);
+        ClusterSetup.addIdealState);
 
     resourceRef = new Reference(httpUrlBase);
 
@@ -555,7 +572,7 @@ public class TestClusterManagementWebapp
     String url = "http://localhost:" + _port + "/clusters/" + clusterName
         + "/configs/cluster/" + clusterName;
 
-    postConfig(client, url, mapper, ClusterRepresentationUtil._setConfig, "key1=value1,key2=value2");
+    postConfig(client, url, mapper, ClusterSetup.setConfig, "key1=value1,key2=value2");
 
     ZNRecord record = get(client, url, mapper);
     Assert.assertEquals(record.getSimpleFields().size(), 2);
@@ -566,7 +583,7 @@ public class TestClusterManagementWebapp
     url = "http://localhost:" + _port + "/clusters/" + clusterName
         + "/configs/participant/localhost_12918";
 
-    postConfig(client, url, mapper, ClusterRepresentationUtil._setConfig, "key3=value3,key4=value4");
+    postConfig(client, url, mapper, ClusterSetup.setConfig, "key3=value3,key4=value4");
 
     record = get(client, url, mapper);
     Assert.assertEquals(record.getSimpleFields().size(), 2);
@@ -577,7 +594,7 @@ public class TestClusterManagementWebapp
     url = "http://localhost:" + _port + "/clusters/" + clusterName
         + "/configs/resource/testResource";
 
-    postConfig(client, url, mapper, ClusterRepresentationUtil._setConfig, "key5=value5,key6=value6");
+    postConfig(client, url, mapper, ClusterSetup.setConfig, "key5=value5,key6=value6");
 
     record = get(client, url, mapper);
     Assert.assertEquals(record.getSimpleFields().size(), 2);
@@ -588,7 +605,7 @@ public class TestClusterManagementWebapp
     url = "http://localhost:" + _port + "/clusters/" + clusterName
         + "/configs/partition/testResource/testPartition";
 
-    postConfig(client, url, mapper, ClusterRepresentationUtil._setConfig, "key7=value7,key8=value8");
+    postConfig(client, url, mapper, ClusterSetup.setConfig, "key7=value7,key8=value8");
 
     record = get(client, url, mapper);
     Assert.assertEquals(record.getSimpleFields().size(), 2);

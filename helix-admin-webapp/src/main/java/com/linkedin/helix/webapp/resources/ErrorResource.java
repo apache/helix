@@ -71,15 +71,12 @@ public class ErrorResource extends Resource
     StringRepresentation presentation = null;
     try
     {
-      String zkServer =
-          (String) getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       String instanceName = (String) getRequest().getAttributes().get("instanceName");
       String resourceGroup = (String) getRequest().getAttributes().get("resourceName");
 
       presentation =
-          getInstanceErrorsRepresentation(zkServer,
-                                          clusterName,
+          getInstanceErrorsRepresentation(clusterName,
                                           instanceName,
                                           resourceGroup);
     }
@@ -93,21 +90,18 @@ public class ErrorResource extends Resource
     return presentation;
   }
 
-  StringRepresentation getInstanceErrorsRepresentation(String zkServerAddress,
-                                                       String clusterName,
+  StringRepresentation getInstanceErrorsRepresentation(String clusterName,
                                                        String instanceName,
                                                        String resourceGroup) throws JsonGenerationException,
       JsonMappingException,
       IOException
   {
     String instanceSessionId =
-        ClusterRepresentationUtil.getInstanceSessionId(zkServerAddress,
-                                                       clusterName,
+        ClusterRepresentationUtil.getInstanceSessionId(clusterName,
                                                        instanceName);
     Builder keyBuilder = new PropertyKey.Builder(clusterName);
     String message =
-        ClusterRepresentationUtil.getInstancePropertiesAsString(zkServerAddress,
-                                                                clusterName,
+        ClusterRepresentationUtil.getInstancePropertiesAsString(clusterName,
                                                                 keyBuilder.stateTransitionErrors(instanceName,
                                                                                                  instanceSessionId,
                                                                                                  resourceGroup),

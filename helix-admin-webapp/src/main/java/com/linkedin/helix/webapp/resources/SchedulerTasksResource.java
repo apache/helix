@@ -36,6 +36,7 @@ import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 
 import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixException;
 import com.linkedin.helix.Criteria;
 import com.linkedin.helix.InstanceType;
@@ -91,10 +92,9 @@ public class SchedulerTasksResource extends Resource
     StringRepresentation presentation = null;
     try
     {
-      String zkServer = (String)getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
       String clusterName = (String)getRequest().getAttributes().get("clusterName");
       String instanceName = (String)getRequest().getAttributes().get("instanceName");
-      presentation = getSchedulerTasksRepresentation(zkServer, clusterName, instanceName);
+      presentation = getSchedulerTasksRepresentation( clusterName, instanceName);
     }
     
     catch(Exception e)
@@ -107,13 +107,13 @@ public class SchedulerTasksResource extends Resource
     return presentation;
   }
   
-  StringRepresentation getSchedulerTasksRepresentation(String zkServerAddress, String clusterName, String instanceName) throws JsonGenerationException, JsonMappingException, IOException
+  StringRepresentation getSchedulerTasksRepresentation(String clusterName, String instanceName) throws JsonGenerationException, JsonMappingException, IOException
   {
-    ClusterSetup setupTool = new ClusterSetup(zkServerAddress);
+    ClusterSetup setupTool = new ClusterSetup(RestAdminApplication.getZkClient());
     List<String> instances = setupTool.getClusterManagementTool().getInstancesInCluster(clusterName);
     
-    DataAccessor accessor = ClusterRepresentationUtil.getClusterDataAccessor(zkServerAddress,  clusterName);
-    LiveInstance liveInstance = accessor.getProperty(LiveInstance.class, PropertyType.LIVEINSTANCES, instanceName);
+    HelixDataAccessor accessor = ClusterRepresentationUtil.getClusterDataAccessor( clusterName);
+    LiveInstance liveInstance = accessor.getProperty(accessor.keyBuilder().liveInstance(instanceName));
     String sessionId = liveInstance.getSessionId();
     
     StringRepresentation representation = new StringRepresentation("");//(ClusterRepresentationUtil.ObjectToJson(instanceConfigs), MediaType.APPLICATION_JSON);
@@ -125,7 +125,6 @@ public class SchedulerTasksResource extends Resource
   {
     try
     {
-      String zkServerAddress = (String)getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
       String clusterName = (String)getRequest().getAttributes().get("clusterName");
       Form form = new Form(entity);
       
@@ -135,12 +134,13 @@ public class SchedulerTasksResource extends Resource
         throw new HelixException("SchedulerTasksResource need to have MessageTemplate specified.");
       }
       Map<String, String> messageTemplate = ClusterRepresentationUtil.getFormJsonParameters(form, MESSAGETEMPLATE);
-      Criteria criteria = ClusterRepresentationUtil.getFormJsonParameters(Criteria.class, form, CRITERIA);
+      
       String criteriaString = ClusterRepresentationUtil.getFormJsonParameterString(form, CRITERIA);
       if(criteriaString == null)
       {
         throw new HelixException("SchedulerTasksResource need to have Criteria specified.");
       }
+      
       Message schedulerMessage = new Message(MessageType.SCHEDULER_MSG, UUID.randomUUID().toString());
       schedulerMessage.getRecord().getSimpleFields().put(CRITERIA, criteriaString);
       
@@ -150,8 +150,9 @@ public class SchedulerTasksResource extends Resource
       schedulerMessage.setTgtName("CONTROLLER");
       schedulerMessage.setSrcInstanceType(InstanceType.CONTROLLER);
       
-      DataAccessor accessor = ClusterRepresentationUtil.getClusterDataAccessor(zkServerAddress,  clusterName);
-      accessor.setProperty(PropertyType.MESSAGES_CONTROLLER, schedulerMessage, schedulerMessage.getMsgId());
+      HelixDataAccessor accessor = ClusterRepresentationUtil.getClusterDataAccessor(clusterName);
+      accessor.setProperty(accessor.keyBuilder().controllerMessage(schedulerMessage.getMsgId()), schedulerMessage);
+      
       Map<String, String> resultMap = new HashMap<String, String>();
       resultMap.put("StatusUpdatePath", PropertyPathConfig.getPath(PropertyType.STATUSUPDATES_CONTROLLER, clusterName, MessageType.SCHEDULER_MSG.toString(),schedulerMessage.getMsgId()));
       resultMap.put("MessageType", Message.MessageType.SCHEDULER_MSG.toString());

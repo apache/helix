@@ -130,6 +130,13 @@ public class ClusterSetup
     _zkClient = ZKClientPool.getZkClient(_zkServerAddress);
     _admin = new ZKHelixAdmin(_zkClient);
   }
+  
+  public ClusterSetup(ZkClient zkClient)
+  {
+    _zkServerAddress = zkServerAddress;
+    _zkClient = zkClient;
+    _admin = new ZKHelixAdmin(_zkClient);
+  }
 
   public void addCluster(String clusterName, boolean overwritePrevious)
   {

@@ -33,12 +33,13 @@ import org.restlet.resource.Resource;
 import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 
-import com.linkedin.helix.DataAccessor;
+import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixException;
 import com.linkedin.helix.PropertyKey;
 import com.linkedin.helix.PropertyKey.Builder;
-import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
+import com.linkedin.helix.model.StateModelDefinition;
+import com.linkedin.helix.tools.ClusterSetup;
 import com.linkedin.helix.webapp.RestAdminApplication;
 
 public class StateModelResource extends Resource
@@ -80,11 +81,9 @@ public class StateModelResource extends Resource
     StringRepresentation presentation = null;
     try
     {
-      String zkServer =
-          (String) getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       String modelName = (String) getRequest().getAttributes().get("modelName");
-      presentation = getStateModelRepresentation(zkServer, clusterName, modelName);
+      presentation = getStateModelRepresentation( clusterName, modelName);
     }
 
     catch (Exception e)
@@ -97,7 +96,7 @@ public class StateModelResource extends Resource
     return presentation;
   }
 
-  StringRepresentation getStateModelRepresentation(String zkServerAddress,
+  StringRepresentation getStateModelRepresentation(
                                                    String clusterName,
                                                    String modelName) throws JsonGenerationException,
       JsonMappingException,
@@ -106,7 +105,7 @@ public class StateModelResource extends Resource
     Builder keyBuilder = new PropertyKey.Builder(clusterName);
 
     String message =
-        ClusterRepresentationUtil.getClusterPropertyAsString(zkServerAddress,
+        ClusterRepresentationUtil.getClusterPropertyAsString(
                                                              clusterName,
                                                              keyBuilder.stateModelDef(modelName),
                                                              MediaType.APPLICATION_JSON);
@@ -122,8 +121,6 @@ public class StateModelResource extends Resource
   {
     try
     {
-      String zkServer =
-          (String) getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       String modelName = (String) getRequest().getAttributes().get("modelName");
 
@@ -132,28 +129,28 @@ public class StateModelResource extends Resource
       Map<String, String> paraMap = ClusterRepresentationUtil.getFormJsonParameters(form);
 
       if (paraMap.get(ClusterRepresentationUtil._managementCommand)
-                 .equalsIgnoreCase(ClusterRepresentationUtil._alterStateModelCommand))
+                 .equalsIgnoreCase(ClusterSetup.addStateModelDef))
       {
-        String newIdealStateString =
+        String newStateModelString =
             form.getFirstValue(ClusterRepresentationUtil._newModelDef, true);
 
         ObjectMapper mapper = new ObjectMapper();
-        ZNRecord newIdealState =
-            mapper.readValue(new StringReader(newIdealStateString), ZNRecord.class);
+        ZNRecord newStateModel =
+            mapper.readValue(new StringReader(newStateModelString), ZNRecord.class);
 
-        DataAccessor accessor =
-            ClusterRepresentationUtil.getClusterDataAccessor(zkServer, clusterName);
-        accessor.removeProperty(PropertyType.STATEMODELDEFS, modelName);
+        HelixDataAccessor accessor =
+            ClusterRepresentationUtil.getClusterDataAccessor(clusterName);
 
-        accessor.setProperty(PropertyType.STATEMODELDEFS, newIdealState, modelName);
+        accessor.setProperty(accessor.keyBuilder().stateModelDef(newStateModel.getId()), new StateModelDefinition(newStateModel) );
+        
 
       }
       else
       {
         new HelixException("Missing '"
-            + ClusterRepresentationUtil._alterStateModelCommand);
+            + ClusterSetup.addStateModelDef);
       }
-      getResponse().setEntity(getStateModelRepresentation(zkServer,
+      getResponse().setEntity(getStateModelRepresentation(
                                                           clusterName,
                                                           modelName));
       getResponse().setStatus(Status.SUCCESS_OK);

@@ -28,6 +28,7 @@ import org.I0Itec.zkclient.serialize.SerializableSerializer;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.data.Stat;
 
@@ -319,6 +320,30 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
     }
   }
 
+  public Stat writeDataGetStat(final String path, Object datat, final int expectedVersion) throws InterruptedException
+  {
+    Stat stat = null;
+    long start = System.nanoTime();
+    try
+    {
+      byte[] bytes = _zkSerializer.serialize(datat, path);
+      stat =
+          ((ZkConnection) _connection).getZookeeper().setData(path,
+                                                              bytes,
+                                                              expectedVersion);
+      return stat;
+    }
+    catch (KeeperException e)
+    {
+      throw ZkException.create(e);
+    }
+    finally
+    {
+      long end = System.nanoTime();
+      LOG.info("setData, path: " + path + ", time: " + (end - start) + " ns");
+    }
+  }
+  
   @Override
   public String create(final String path, Object data, final CreateMode mode) throws ZkInterruptedException,
       IllegalArgumentException,

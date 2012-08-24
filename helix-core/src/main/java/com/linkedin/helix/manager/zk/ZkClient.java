@@ -294,8 +294,8 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
     long startT = System.nanoTime();
     try
     {
-
       final byte[] data = serialize(datat, path);
+
       retryUntilConnected(new Callable<Object>()
       {
 

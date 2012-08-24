@@ -69,11 +69,11 @@ public interface HelixAdmin
 
   void enableInstance(String clusterName, String instanceName, boolean enabled);
 
-  void enablePartition(String clusterName,
+  void enablePartition(boolean enabled,
+                       String clusterName,
                        String instanceName,
                        String resourceName,
-                       String partition,
-                       boolean enabled);
+                       List<String> partitionNames);
 
   void pauseCluster(String clusterName, boolean enabled);
 

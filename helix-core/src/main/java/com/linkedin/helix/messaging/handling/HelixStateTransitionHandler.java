@@ -31,7 +31,7 @@ import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.ZNRecordBucketizer;
 import com.linkedin.helix.ZNRecordDelta;
-import com.linkedin.helix.ZNRecordDelta.MERGEOPERATION;
+import com.linkedin.helix.ZNRecordDelta.MergeOperation;
 import com.linkedin.helix.model.CurrentState;
 import com.linkedin.helix.model.Message;
 import com.linkedin.helix.participant.statemachine.StateModel;
@@ -139,7 +139,7 @@ public class HelixStateTransitionHandler extends MessageHandler
           // the current state of the instance because the resource key is
           // dropped.
           ZNRecordDelta delta =
-              new ZNRecordDelta(_currentStateDelta.getRecord(), MERGEOPERATION.SUBTRACT);
+              new ZNRecordDelta(_currentStateDelta.getRecord(), MergeOperation.SUBTRACT);
           // don't subtract simple fields since they contain stateModelDefRef
           delta._record.getSimpleFields().clear();
 

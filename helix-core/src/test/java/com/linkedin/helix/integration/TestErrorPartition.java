@@ -15,6 +15,7 @@
  */
 package com.linkedin.helix.integration;
 
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -105,7 +106,7 @@ public class TestErrorPartition extends ZkIntegrationTestBase
     TestHelper.verifyState(clusterName, ZK_ADDR, errorStateMap, "ERROR");
 
     // disable a partition on a node with error state
-    tool.enablePartition(clusterName, "localhost_12918", "TestDB0", "TestDB0_4", false);
+    tool.enablePartition(false, clusterName, "localhost_12918", "TestDB0", Arrays.asList("TestDB0_4"));
 
     result =
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
@@ -125,7 +126,7 @@ public class TestErrorPartition extends ZkIntegrationTestBase
     Assert.assertTrue(result);
 
     // make sure after restart stale ERROR state is gone
-    tool.enablePartition(clusterName, "localhost_12918", "TestDB0", "TestDB0_4", true);
+    tool.enablePartition(true, clusterName, "localhost_12918", "TestDB0", Arrays.asList("TestDB0_4"));
     tool.enableInstance(clusterName, "localhost_12918", true);
 
     participants[0].syncStop();

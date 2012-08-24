@@ -130,7 +130,7 @@ public class ClusterSetup
     _zkClient = ZKClientPool.getZkClient(_zkServerAddress);
     _admin = new ZKHelixAdmin(_zkClient);
   }
-  
+
   public ClusterSetup(ZkClient zkClient)
   {
     _zkServerAddress = zkServerAddress;
@@ -1112,12 +1112,12 @@ public class ClusterSetup
     enableInstanceOption.setArgName("clusterName InstanceName true/false");
 
     Option enablePartitionOption =
-        OptionBuilder.withLongOpt(enablePartition)
-                     .withDescription("Enable/disable a partition")
+        OptionBuilder.hasArgs()
+                     .withLongOpt(enablePartition)
+                     .withDescription("Enable/disable partitions")
                      .create();
-    enablePartitionOption.setArgs(5);
     enablePartitionOption.setRequired(false);
-    enablePartitionOption.setArgName("clusterName instanceName resourceName partitionName true/false");
+    enablePartitionOption.setArgName("true/false clusterName instanceName resourceName partitionName1...");
 
     Option enableClusterOption =
         OptionBuilder.withLongOpt(enableCluster)
@@ -1255,34 +1255,6 @@ public class ClusterSetup
     return bytes;
   }
 
-  private static boolean checkOptionArgsNumber(Option[] options)
-  {
-    for (Option option : options)
-    {
-      int argNb = option.getArgs();
-      String[] args = option.getValues();
-      if (argNb == 0)
-      {
-        if (args != null && args.length > 0)
-        {
-          System.err.println(option.getArgName() + " shall have " + argNb
-              + " arguments (was " + Arrays.toString(args) + ")");
-          return false;
-        }
-      }
-      else
-      {
-        if (args == null || args.length != argNb)
-        {
-          System.err.println(option.getArgName() + " shall have " + argNb
-              + " arguments (was " + Arrays.toString(args) + ")");
-          return false;
-        }
-      }
-    }
-    return true;
-  }
-
   public static int processCommandLineArgs(String[] cliArgs) throws Exception
   {
     CommandLineParser cliParser = new GnuParser();
@@ -1297,12 +1269,6 @@ public class ClusterSetup
     {
       System.err.println("CommandLineClient: failed to parse command-line options: "
           + pe.toString());
-      printUsage(cliOptions);
-      System.exit(1);
-    }
-    boolean ret = checkOptionArgsNumber(cmd.getOptions());
-    if (ret == false)
-    {
       printUsage(cliOptions);
       System.exit(1);
     }
@@ -1596,19 +1562,19 @@ public class ClusterSetup
     }
     else if (cmd.hasOption(enablePartition))
     {
-      String clusterName = cmd.getOptionValues(enablePartition)[0];
-      String instanceName = cmd.getOptionValues(enablePartition)[1];
-      String resourceName = cmd.getOptionValues(enablePartition)[2];
-      String partitionName = cmd.getOptionValues(enablePartition)[3];
+      String[] args = cmd.getOptionValues(enablePartition);
+      boolean enabled = Boolean.parseBoolean(args[0].toLowerCase());
+      String clusterName = args[1];
+      String instanceName = args[2];
+      String resourceName = args[3];
 
-      boolean enabled =
-          Boolean.parseBoolean(cmd.getOptionValues(enablePartition)[4].toLowerCase());
-
-      setupTool.getClusterManagementTool().enablePartition(clusterName,
+      List<String> partitionNames =
+          Arrays.asList(Arrays.copyOfRange(args, 4, args.length));
+      setupTool.getClusterManagementTool().enablePartition(enabled,
+                                                           clusterName,
                                                            instanceName,
                                                            resourceName,
-                                                           partitionName,
-                                                           enabled);
+                                                           partitionNames);
       return 0;
     }
     else if (cmd.hasOption(resetPartition))

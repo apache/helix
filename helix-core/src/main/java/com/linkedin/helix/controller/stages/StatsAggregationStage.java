@@ -16,6 +16,7 @@
 package com.linkedin.helix.controller.stages;
 
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -60,7 +61,7 @@ public class StatsAggregationStage extends AbstractBaseStage
 {
 
   public static final int ALERT_HISTORY_SIZE = 30;
-  
+
   private static final Logger logger =
       Logger.getLogger(StatsAggregationStage.class.getName());
 
@@ -245,7 +246,7 @@ public class StatsAggregationStage extends AbstractBaseStage
                                      _alertStatus.get(originAlertName),
                                      manager.getClusterName());
     }
-    
+
     executeAlertActions(manager);
     // Write alert fire history to zookeeper
     updateAlertHistory(manager);
@@ -283,12 +284,12 @@ public class StatsAggregationStage extends AbstractBaseStage
     addLatencyToMonitor(event, processLatency);
     logger.info("process end: " + processLatency);
   }
-  
+
   /**
-   * Go through the _alertStatus, and call executeAlertAction for those actual alerts that 
+   * Go through the _alertStatus, and call executeAlertAction for those actual alerts that
    * has been fired
    */
-  
+
   void executeAlertActions( HelixManager manager)
   {
     _alertActionTaken.clear();
@@ -321,7 +322,7 @@ public class StatsAggregationStage extends AbstractBaseStage
     }
   }
   /**
-   * Execute the action if an alert is fired, and the alert has an action associated with it. 
+   * Execute the action if an alert is fired, and the alert has an action associated with it.
    * NOTE: consider unify this with DefaultParticipantErrorMessageHandler.handleMessage()
    */
   void executeAlertAction(String actualStatName, String actionValue, HelixManager manager)
@@ -343,8 +344,8 @@ public class StatsAggregationStage extends AbstractBaseStage
       if(instanceName != null && resourceName != null && partitionName != null)
       {
         logger.info("Disabling partition " + partitionName + " instanceName " +  instanceName);
-        manager.getClusterManagmentTool().enablePartition(manager.getClusterName(), instanceName,
-            resourceName, partitionName, false);
+        manager.getClusterManagmentTool().enablePartition(false, manager.getClusterName(), instanceName,
+            resourceName, Arrays.asList(partitionName));
       }
     }
     else if(actionValue.equals(ActionOnError.DISABLE_RESOURCE.toString()))
@@ -352,7 +353,7 @@ public class StatsAggregationStage extends AbstractBaseStage
       String instanceName = parseInstanceName(actualStatName, manager);
       String resourceName = parseResourceName(actualStatName, manager);
       logger.info("Disabling resource " + resourceName + " instanceName " +  instanceName + " not implemented");
-      
+
     }
   }
 
@@ -387,7 +388,7 @@ public class StatsAggregationStage extends AbstractBaseStage
         {
           nextDotPos = nextCommaPos;
         }
-        
+
         String partitionName = actualStatName.substring(pos + 1, nextDotPos);
         return partitionName;
       }
@@ -422,10 +423,10 @@ public class StatsAggregationStage extends AbstractBaseStage
       delta.putAll(_alertActionTaken);
       SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd-hh:mm:ss:SSS");
       String date = dateFormat.format(new Date());
-      
+
       HelixDataAccessor accessor = manager.getHelixDataAccessor();
       Builder keyBuilder = accessor.keyBuilder();
-     
+
       HelixProperty property = accessor.getProperty(keyBuilder.alertHistory());
       ZNRecord alertFiredHistory;
       if(property == null)

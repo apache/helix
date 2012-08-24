@@ -29,8 +29,6 @@ import org.testng.annotations.Test;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.ZkUnitTestBase;
 import com.linkedin.helix.manager.zk.ByteArraySerializer;
-import com.linkedin.helix.manager.zk.ChainedPathZkSerializer;
-import com.linkedin.helix.manager.zk.PathBasedZkSerializer;
 import com.linkedin.helix.manager.zk.ZNRecordSerializer;
 import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.store.PropertyChangeListener;
@@ -105,14 +103,14 @@ public class TestZKPropertyStore extends ZkUnitTestBase
   {
     return "/node_" + i;
   }
-  
-  @Override
-  protected PathBasedZkSerializer buildClientSerializer()
-  {
-    return ChainedPathZkSerializer.builder(new ZNRecordSerializer())
-                                  .serialize(buildPropertyStoreRoot(), new ByteArraySerializer())
-                                  .build();
-  }
+
+//  @Override
+//  protected PathBasedZkSerializer buildClientSerializer()
+//  {
+//    return ChainedPathZkSerializer.builder(new ZNRecordSerializer())
+//                                  .serialize(buildPropertyStoreRoot(), new ByteArraySerializer())
+//                                  .build();
+//  }
 
   // TODO: separate into small tests
   @Test()

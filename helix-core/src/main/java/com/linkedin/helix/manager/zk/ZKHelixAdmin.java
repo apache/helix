@@ -38,7 +38,6 @@ import com.linkedin.helix.HelixAdmin;
 import com.linkedin.helix.HelixConstants;
 import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixException;
-import com.linkedin.helix.HelixProperty;
 import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
@@ -160,7 +159,9 @@ public class ZKHelixAdmin implements HelixAdmin
   }
 
   @Override
-  public void enableInstance(String clusterName, String instanceName, boolean enabled)
+  public void enableInstance(final String clusterName,
+                             final String instanceName,
+                             final boolean enabled)
   {
     String path =
         PropertyPathConfig.getPath(PropertyType.CONFIGS,
@@ -168,24 +169,30 @@ public class ZKHelixAdmin implements HelixAdmin
                                    ConfigScopeProperty.PARTICIPANT.toString(),
                                    instanceName);
 
-    if (_zkClient.exists(path))
+    ZkBaseDataAccessor<ZNRecord> baseAccessor =
+        new ZkBaseDataAccessor<ZNRecord>(_zkClient);
+    if (!baseAccessor.exists(path, 0))
     {
-
-      ZKHelixDataAccessor accessor =
-          new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(_zkClient));
-      Builder keyBuilder = accessor.keyBuilder();
-
-      InstanceConfig nodeConfig =
-          accessor.getProperty(keyBuilder.instanceConfig(instanceName));
-
-      nodeConfig.setInstanceEnabled(enabled);
-      accessor.setProperty(keyBuilder.instanceConfig(instanceName), nodeConfig);
+      throw new HelixException("Cluster " + clusterName + ", instance: " + instanceName
+          + ", instance config does not exist");
     }
-    else
+
+    baseAccessor.update(path, new DataUpdater<ZNRecord>()
     {
-      throw new HelixException("Cluster " + clusterName + ", instance config for "
-          + instanceName + " does not exist");
-    }
+      @Override
+      public ZNRecord update(ZNRecord currentData)
+      {
+        if (currentData == null)
+        {
+          throw new HelixException("Cluster: " + clusterName + ", instance: "
+              + instanceName + ", participant config is null");
+        }
+
+        InstanceConfig config = new InstanceConfig(currentData);
+        config.setInstanceEnabled(enabled);
+        return config.getRecord();
+      }
+    }, Option.PERSISTENT);
   }
 
   @Override
@@ -678,93 +685,90 @@ public class ZKHelixAdmin implements HelixAdmin
   }
 
   @Override
-  public void addStat(String clusterName, String statName)
+  public void addStat(String clusterName, final String statName)
   {
     if (!ZKUtil.isClusterSetup(clusterName, _zkClient))
     {
       throw new HelixException("cluster " + clusterName + " is not setup yet");
     }
 
-    String persistentStatsPath = HelixUtil.getPersistentStatsPath(clusterName);
+    String persistentStatsPath =
+        PropertyPathConfig.getPath(PropertyType.PERSISTENTSTATS, clusterName);
+    ZkBaseDataAccessor<ZNRecord> baseAccessor =
+        new ZkBaseDataAccessor<ZNRecord>(_zkClient);
 
-    ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(_zkClient));
-    Builder keyBuilder = accessor.keyBuilder();
+    baseAccessor.update(persistentStatsPath, new DataUpdater<ZNRecord>()
+    {
 
-    if (!_zkClient.exists(persistentStatsPath))
-    {
-      // ZKUtil.createChildren(_zkClient, persistentStatsPath, statsRec);
-      _zkClient.createPersistent(persistentStatsPath);
-    }
-    HelixProperty property = accessor.getProperty(keyBuilder.persistantStat());
-    ZNRecord statsRec = null;
-    if (property == null)
-    {
-      statsRec = new ZNRecord(PersistentStats.nodeName); // TODO: fix naming of
-                                                         // this record, if it
-                                                         // matters
-    }
-    else
-    {
-      statsRec = property.getRecord();
-    }
-
-    Map<String, Map<String, String>> currStatMap = statsRec.getMapFields();
-    Map<String, Map<String, String>> newStatMap = StatsHolder.parseStat(statName);
-    for (String newStat : newStatMap.keySet())
-    {
-      if (!currStatMap.containsKey(newStat))
+      @Override
+      public ZNRecord update(ZNRecord statsRec)
       {
-        currStatMap.put(newStat, newStatMap.get(newStat));
+        if (statsRec == null)
+        {
+          // TODO: fix naming of this record, if it matters
+          statsRec = new ZNRecord(PersistentStats.nodeName);
+        }
+
+        Map<String, Map<String, String>> currStatMap = statsRec.getMapFields();
+        Map<String, Map<String, String>> newStatMap = StatsHolder.parseStat(statName);
+        for (String newStat : newStatMap.keySet())
+        {
+          if (!currStatMap.containsKey(newStat))
+          {
+            currStatMap.put(newStat, newStatMap.get(newStat));
+          }
+        }
+        statsRec.setMapFields(currStatMap);
+
+        return statsRec;
       }
-    }
-    statsRec.setMapFields(currStatMap);
-    accessor.setProperty(keyBuilder.persistantStat(), new PersistentStats(statsRec));
+    }, Option.PERSISTENT);
   }
 
   @Override
-  public void addAlert(String clusterName, String alertName)
+  public void addAlert(final String clusterName, final String alertName)
   {
     if (!ZKUtil.isClusterSetup(clusterName, _zkClient))
     {
       throw new HelixException("cluster " + clusterName + " is not setup yet");
     }
 
-    ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(_zkClient));
-    Builder keyBuilder = accessor.keyBuilder();
+    ZkBaseDataAccessor<ZNRecord> baseAccessor =
+        new ZkBaseDataAccessor<ZNRecord>(_zkClient);
 
-    String alertsPath = HelixUtil.getAlertsPath(clusterName);
-    if (!_zkClient.exists(alertsPath))
+    String alertsPath = PropertyPathConfig.getPath(PropertyType.ALERTS, clusterName);
+
+    baseAccessor.update(alertsPath, new DataUpdater<ZNRecord>()
     {
-      // ZKUtil.createChildren(_zkClient, alertsPath, alertsRec);
-      _zkClient.createPersistent(alertsPath);
-    }
-    HelixProperty property = accessor.getProperty(keyBuilder.alerts());
-    ZNRecord alertsRec = null;
-    if (property == null)
-    {
-      alertsRec = new ZNRecord(Alerts.nodeName); // TODO: fix naming of this
-                                                 // record, if it matters
-    }
-    else
-    {
-      alertsRec = property.getRecord();
-    }
 
-    Map<String, Map<String, String>> currAlertMap = alertsRec.getMapFields();
-    StringBuilder newStatName = new StringBuilder();
-    Map<String, String> newAlertMap = new HashMap<String, String>();
-    // use AlertsHolder to get map of new stats and map for this alert
-    AlertsHolder.parseAlert(alertName, newStatName, newAlertMap);
+      @Override
+      public ZNRecord update(ZNRecord alertsRec)
+      {
+        if (alertsRec == null)
+        {
+          // TODO: fix naming of this record, if it matters
+          alertsRec = new ZNRecord(Alerts.nodeName);
 
-    // add stat
-    addStat(clusterName, newStatName.toString());
-    // add alert
-    currAlertMap.put(alertName, newAlertMap);
+        }
 
-    alertsRec.setMapFields(currAlertMap);
-    accessor.setProperty(keyBuilder.alerts(), new Alerts(alertsRec));
+        Map<String, Map<String, String>> currAlertMap = alertsRec.getMapFields();
+        StringBuilder newStatName = new StringBuilder();
+        Map<String, String> newAlertMap = new HashMap<String, String>();
+
+        // use AlertsHolder to get map of new stats and map for this alert
+        AlertsHolder.parseAlert(alertName, newStatName, newAlertMap);
+
+        // add stat
+        addStat(clusterName, newStatName.toString());
+
+        // add alert
+        currAlertMap.put(alertName, newAlertMap);
+
+        alertsRec.setMapFields(currAlertMap);
+
+        return alertsRec;
+      }
+    }, Option.PERSISTENT);
   }
 
   @Override
@@ -790,74 +794,80 @@ public class ZKHelixAdmin implements HelixAdmin
   }
 
   @Override
-  public void dropStat(String clusterName, String statName)
+  public void dropStat(String clusterName, final String statName)
   {
     if (!ZKUtil.isClusterSetup(clusterName, _zkClient))
     {
       throw new HelixException("cluster " + clusterName + " is not setup yet");
     }
 
-    ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(_zkClient));
-    Builder keyBuilder = accessor.keyBuilder();
+    String persistentStatsPath =
+        PropertyPathConfig.getPath(PropertyType.PERSISTENTSTATS, clusterName);
+    ZkBaseDataAccessor<ZNRecord> baseAccessor =
+        new ZkBaseDataAccessor<ZNRecord>(_zkClient);
 
-    // String persistentStatsPath = HelixUtil.getPersistentStatsPath(clusterName);
-    // ZKDataAccessor accessor = new ZKDataAccessor(clusterName, _zkClient);
-    // if (!_zkClient.exists(persistentStatsPath))
-    // {
-    // throw new HelixException("No stats node in ZK, nothing to drop");
-    // }
+    baseAccessor.update(persistentStatsPath, new DataUpdater<ZNRecord>()
+    {
 
-    PersistentStats stats = accessor.getProperty(keyBuilder.persistantStat());
-    if (stats == null)
-    {
-      throw new HelixException("No stats record in ZK, nothing to drop");
-    }
-    ZNRecord statsRec = stats.getRecord();
-    Map<String, Map<String, String>> currStatMap = statsRec.getMapFields();
-    Map<String, Map<String, String>> newStatMap = StatsHolder.parseStat(statName);
-    // delete each stat from stat map
-    for (String newStat : newStatMap.keySet())
-    {
-      if (currStatMap.containsKey(newStat))
+      @Override
+      public ZNRecord update(ZNRecord statsRec)
       {
-        currStatMap.remove(newStat);
+        if (statsRec == null)
+        {
+          throw new HelixException("No stats record in ZK, nothing to drop");
+        }
+
+        Map<String, Map<String, String>> currStatMap = statsRec.getMapFields();
+        Map<String, Map<String, String>> newStatMap = StatsHolder.parseStat(statName);
+
+        // delete each stat from stat map
+        for (String newStat : newStatMap.keySet())
+        {
+          if (currStatMap.containsKey(newStat))
+          {
+            currStatMap.remove(newStat);
+          }
+        }
+        statsRec.setMapFields(currStatMap);
+
+        return statsRec;
       }
-    }
-    statsRec.setMapFields(currStatMap);
-    accessor.setProperty(keyBuilder.persistantStat(), new PersistentStats(statsRec));
+    }, Option.PERSISTENT);
   }
 
   @Override
-  public void dropAlert(String clusterName, String alertName)
+  public void dropAlert(String clusterName, final String alertName)
   {
-
     if (!ZKUtil.isClusterSetup(clusterName, _zkClient))
     {
       throw new HelixException("cluster " + clusterName + " is not setup yet");
     }
 
-    String alertsPath = HelixUtil.getAlertsPath(clusterName);
+    String alertsPath = PropertyPathConfig.getPath(PropertyType.PERSISTENTSTATS, clusterName);
+    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_zkClient);
 
-    ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(_zkClient));
-    Builder keyBuilder = accessor.keyBuilder();
-
-    if (!_zkClient.exists(alertsPath))
+    if (!baseAccessor.exists(alertsPath, 0))
     {
       throw new HelixException("No alerts node in ZK, nothing to drop");
     }
-    ZNRecord alertsRec = accessor.getProperty(keyBuilder.alerts()).getRecord();
-    if (alertsRec == null)
+
+    baseAccessor.update(alertsPath, new DataUpdater<ZNRecord>()
     {
-      throw new HelixException("No alerts record in ZK, nothing to drop");
-    }
+      @Override
+      public ZNRecord update(ZNRecord alertsRec)
+      {
+        if (alertsRec == null)
+        {
+          throw new HelixException("No alerts record in ZK, nothing to drop");
+        }
 
-    Map<String, Map<String, String>> currAlertMap = alertsRec.getMapFields();
-    currAlertMap.remove(alertName);
+        Map<String, Map<String, String>> currAlertMap = alertsRec.getMapFields();
+        currAlertMap.remove(alertName);
+        alertsRec.setMapFields(currAlertMap);
 
-    alertsRec.setMapFields(currAlertMap);
-    accessor.setProperty(keyBuilder.alerts(), new Alerts(alertsRec));
+        return alertsRec;
+      }
+    }, Option.PERSISTENT);
   }
 
   @Override

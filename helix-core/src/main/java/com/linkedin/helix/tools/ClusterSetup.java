@@ -130,7 +130,7 @@ public class ClusterSetup
     _zkClient = ZKClientPool.getZkClient(_zkServerAddress);
     _admin = new ZKHelixAdmin(_zkClient);
   }
-  
+
   public ClusterSetup(ZkClient zkClient)
   {
     _zkServerAddress = zkServerAddress;
@@ -1255,35 +1255,6 @@ public class ClusterSetup
     return bytes;
   }
 
-  // no need to check arg number since cli already does it
-//  private static boolean checkOptionArgsNumber(Option[] options)
-//  {
-//    for (Option option : options)
-//    {
-//      int argNb = option.getArgs();
-//      String[] args = option.getValues();
-//      if (argNb == 0)
-//      {
-//        if (args != null && args.length > 0)
-//        {
-//          System.err.println(option.getArgName() + " shall have " + argNb
-//              + " arguments (was " + Arrays.toString(args) + ")");
-//          return false;
-//        }
-//      }
-//      else
-//      {
-//        if (args == null || args.length != argNb)
-//        {
-//          System.err.println(option.getArgName() + " shall have " + argNb
-//              + " arguments (was " + Arrays.toString(args) + ")");
-//          return false;
-//        }
-//      }
-//    }
-//    return true;
-//  }
-
   public static int processCommandLineArgs(String[] cliArgs) throws Exception
   {
     CommandLineParser cliParser = new GnuParser();
@@ -1301,13 +1272,6 @@ public class ClusterSetup
       printUsage(cliOptions);
       System.exit(1);
     }
-
-//    boolean ret = checkOptionArgsNumber(cmd.getOptions());
-//    if (ret == false)
-//    {
-//      printUsage(cliOptions);
-//      System.exit(1);
-//    }
 
     ClusterSetup setupTool = new ClusterSetup(cmd.getOptionValue(zkServerAddress));
 

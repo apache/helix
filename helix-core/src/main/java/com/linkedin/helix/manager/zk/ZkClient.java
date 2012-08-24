@@ -48,17 +48,15 @@ import com.linkedin.helix.manager.zk.ZkAsyncCallbacks.SetDataCallbackHandler;
 
 public class ZkClient extends org.I0Itec.zkclient.ZkClient
 {
-  private static Logger                   LOG                        =
-                                                                         Logger.getLogger(ZkClient.class);
-  public static final int                 DEFAULT_CONNECTION_TIMEOUT = 60 * 1000;
-  public static final int                 DEFAULT_SESSION_TIMEOUT = 30 * 1000;
-  public static String                    sessionId;
-  public static String                    sessionPassword;
+  private static Logger LOG = Logger.getLogger(ZkClient.class);
+  public static final int DEFAULT_CONNECTION_TIMEOUT = 60 * 1000;
+  public static final int DEFAULT_SESSION_TIMEOUT = 30 * 1000;
+  // public static String sessionId;
+  // public static String sessionPassword;
 
-  private PathBasedZkSerializer           _zkSerializer;
+  private PathBasedZkSerializer _zkSerializer;
 
-  public ZkClient(IZkConnection connection,
-                  int connectionTimeout,
+  public ZkClient(IZkConnection connection, int connectionTimeout,
                   PathBasedZkSerializer zkSerializer)
   {
     super(connection, connectionTimeout, new ByteArraySerializer());
@@ -68,8 +66,7 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
     LOG.info("create a new zkclient. " + Arrays.asList(calls));
   }
 
-  public ZkClient(IZkConnection connection,
-                  int connectionTimeout,
+  public ZkClient(IZkConnection connection, int connectionTimeout,
                   ZkSerializer zkSerializer)
   {
     this(connection, connectionTimeout, new BasicZkSerializer(zkSerializer));
@@ -85,20 +82,16 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
     this(connection, Integer.MAX_VALUE, new SerializableSerializer());
   }
 
-  public ZkClient(String zkServers,
-                  int sessionTimeout,
-                  int connectionTimeout,
+  public ZkClient(String zkServers, int sessionTimeout, int connectionTimeout,
                   ZkSerializer zkSerializer)
   {
     this(new ZkConnection(zkServers, sessionTimeout), connectionTimeout, zkSerializer);
   }
 
-  public ZkClient(String zkServers,
-          int sessionTimeout,
-          int connectionTimeout,
-          PathBasedZkSerializer zkSerializer)
+  public ZkClient(String zkServers, int sessionTimeout, int connectionTimeout,
+                  PathBasedZkSerializer zkSerializer)
   {
-      this(new ZkConnection(zkServers, sessionTimeout), connectionTimeout, zkSerializer);
+    this(new ZkConnection(zkServers, sessionTimeout), connectionTimeout, zkSerializer);
   }
 
   public ZkClient(String zkServers, int sessionTimeout, int connectionTimeout)
@@ -141,7 +134,8 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
   public void close() throws ZkInterruptedException
   {
     StackTraceElement[] calls = Thread.currentThread().getStackTrace();
-    LOG.info("close a zkclient. " + Arrays.asList(calls));
+    LOG.info("closing a zkclient. zookeeper: " + ((ZkConnection) _connection).getZookeeper()
+        + ", callStack: " + Arrays.asList(calls));
 
     super.close();
   }
@@ -379,57 +373,6 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
       LOG.info("delete, path: " + path + ", time: " + (endT - startT) + " ns");
     }
   }
-
-  // // TODO: remove this
-  // class LogStatCallback implements StatCallback
-  // {
-  // final String _asyncMethodName;
-  //
-  // public LogStatCallback(String asyncMethodName)
-  // {
-  // _asyncMethodName = asyncMethodName;
-  // }
-  //
-  // @Override
-  // public void processResult(int rc, String path, Object ctx, Stat stat)
-  // {
-  // if (rc == 0)
-  // {
-  // LOG.info("succeed in async " + _asyncMethodName + ". rc: " + rc + ", path: "
-  // + path + ", stat: " + stat);
-  // }
-  // else
-  // {
-  // LOG.error("fail in async " + _asyncMethodName + ". rc: " + rc + ", path: " + path
-  // + ", stat: " + stat);
-  // }
-  // }
-  //
-  // }
-
-  // // TODO: remove this
-  // public void asyncWriteData(final String path, Object datat)
-  // {
-  // // Stat stat = getStat(path);
-  // // this.asyncWriteData(path,
-  // // datat,
-  // // stat.getVersion(),
-  // // new LogStatCallback("asyncSetData"),
-  // // null);
-  // asyncSetData(path, datat, -1, null);
-  // }
-
-  // // TODO: remove this
-  // public void asyncWriteData(final String path,
-  // Object datat,
-  // final int version,
-  // final StatCallback cb,
-  // final Object ctx)
-  // {
-  // final byte[] data = _zkSerializer.serialize(datat);
-  // ((ZkConnection) _connection).getZookeeper().setData(path, data, version, cb, ctx);
-  //
-  // }
 
   public void asyncCreate(final String path,
                           Object datat,

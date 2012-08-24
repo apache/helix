@@ -104,14 +104,6 @@ public class TestZKPropertyStore extends ZkUnitTestBase
     return "/node_" + i;
   }
 
-//  @Override
-//  protected PathBasedZkSerializer buildClientSerializer()
-//  {
-//    return ChainedPathZkSerializer.builder(new ZNRecordSerializer())
-//                                  .serialize(buildPropertyStoreRoot(), new ByteArraySerializer())
-//                                  .build();
-//  }
-
   // TODO: separate into small tests
   @Test()
   public void testZKPropertyStore() throws Exception

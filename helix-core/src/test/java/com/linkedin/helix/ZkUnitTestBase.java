@@ -79,11 +79,6 @@ public class ZkUnitTestBase
     _gZkClient.setZkSerializer(new ZNRecordSerializer());
   }
 
-//  protected PathBasedZkSerializer buildClientSerializer()
-//  {
-//    return new BasicZkSerializer(new ZNRecordSerializer());
-//  }
-
   @AfterSuite(alwaysRun = true)
   public void afterTest()
   {

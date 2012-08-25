@@ -15,8 +15,12 @@
  */
 package com.linkedin.helix.model;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.log4j.Logger;
 
@@ -98,9 +102,9 @@ public class InstanceConfig extends HelixProperty
     return _record.getMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString());
   }
 
-//  public void setInstanceEnabledForPartition(String partition, boolean enabled)
-//  {
-//    if (_record.getMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString()) == null)
+  public void setInstanceEnabledForPartition(String partitionName, boolean enabled)
+  {
+//    if (_record.getListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString()) == null)
 //    {
 //      _record.setMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString(),
 //                             new TreeMap<String, String>());
@@ -113,7 +117,29 @@ public class InstanceConfig extends HelixProperty
 //    {
 //      _record.getMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString()).put(partition, Boolean.toString(false));
 //    }
-//  }
+    
+    List<String> list =
+        _record.getListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString());
+    Set<String> disabledPartitions = new HashSet<String>();
+    if (list != null)
+    {
+      disabledPartitions.addAll(list);
+    }
+
+    if (enabled)
+    {
+      disabledPartitions.remove(partitionName);
+    }
+    else
+    {
+      disabledPartitions.add(partitionName);
+    }
+
+    list = new ArrayList<String>(disabledPartitions);
+    Collections.sort(list);
+    _record.setListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString(),
+                             list);
+  }
 
   @Override
   public boolean equals(Object obj)

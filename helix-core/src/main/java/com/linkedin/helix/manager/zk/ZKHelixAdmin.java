@@ -254,6 +254,7 @@ public class ZKHelixAdmin implements HelixAdmin
               + instanceName + ", participant config is null");
         }
 
+        // TODO: merge with InstanceConfig.setInstanceEnabledForPartition
         List<String> list =
             currentData.getListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString());
         Set<String> disabledPartitions = new HashSet<String>();

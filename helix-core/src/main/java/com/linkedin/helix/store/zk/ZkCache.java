@@ -32,6 +32,7 @@ import org.apache.zookeeper.server.DataTree;
 import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.util.ZKClientPool;
 
+@Deprecated
 public class ZkCache implements IZkChildListener, IZkDataListener, IZkStateListener
 {
   private static final Logger                LOG     = Logger.getLogger(ZkCache.class);

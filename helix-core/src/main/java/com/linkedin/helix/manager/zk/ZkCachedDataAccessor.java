@@ -35,6 +35,7 @@ import com.linkedin.helix.store.HelixPropertyListener;
 import com.linkedin.helix.store.zk.ZNode;
 
 // TODO: rename to ZkCacheDataAccessor
+@Deprecated
 public class ZkCachedDataAccessor<T> implements IZkListener
 {
   private static final Logger LOG = Logger.getLogger(ZkCachedDataAccessor.class);
@@ -227,10 +228,10 @@ public class ZkCachedDataAccessor<T> implements IZkListener
           addToParentChildSet(_wtCache, pathCreated);
           if (pathCreated.equals(absPath))
           {
-            _wtCache.put(pathCreated, new ZNode(pathCreated, data, ZNode.DUMMY_STAT));
+            _wtCache.put(pathCreated, new ZNode(pathCreated, data, ZNode.ZERO_STAT));
           } else
           {
-            _wtCache.put(pathCreated, new ZNode(pathCreated, null, ZNode.DUMMY_STAT));
+            _wtCache.put(pathCreated, new ZNode(pathCreated, null, ZNode.ZERO_STAT));
           }
         }
       }
@@ -239,7 +240,7 @@ public class ZkCachedDataAccessor<T> implements IZkListener
     if (success && (pathsCreated == null || !pathsCreated.contains(absPath)))
     {
       addToParentChildSet(_wtCache, absPath);
-      _wtCache.put(absPath, new ZNode(absPath, data, ZNode.DUMMY_STAT));
+      _wtCache.put(absPath, new ZNode(absPath, data, ZNode.ZERO_STAT));
     }
   }
 
@@ -253,7 +254,8 @@ public class ZkCachedDataAccessor<T> implements IZkListener
       _lock.writeLock().lock();
 
       // always subscribe before read
-      _accessor.subscribe(absPath, this);
+      _accessor.subscribeDataChanges(absPath, this);
+      _accessor.subscribeChildChanges(absPath, this);
 
       // update parent's childSet
       addToParentChildSet(cache, absPath);
@@ -325,7 +327,7 @@ public class ZkCachedDataAccessor<T> implements IZkListener
         fireListeners(absPath, EventType.NodeDeleted);
 
         // recursively remove children nodes
-        Set<String> childNames = zNode.getChild();
+        Set<String> childNames = zNode.getChildSet();
         for (String childName : childNames)
         {
           String childPath = absPath + "/" + childName;
@@ -368,7 +370,7 @@ public class ZkCachedDataAccessor<T> implements IZkListener
 
       String absPath = getAbsolutePath(path);
       List<String> pathsCreated = new ArrayList<String>();
-      boolean success = _accessor.set(absPath, record, pathsCreated, options);
+      boolean success = _accessor.set(absPath, record, pathsCreated, null, options);
 
       // even if not succeed, we might create some intermediate nodes
       updateZkCache(pathsCreated, absPath, success);
@@ -388,7 +390,7 @@ public class ZkCachedDataAccessor<T> implements IZkListener
       _lock.writeLock().lock();
       String absPath = getAbsolutePath(path);
       List<String> pathsCreated = new ArrayList<String>();
-      boolean success = _accessor.update(absPath, updater, pathsCreated, options) != null;
+      boolean success = _accessor.update(absPath, updater, pathsCreated, null, options) != null;
 
       // even if not succeed, we might create some intermediate nodes
       updateZkCache(pathsCreated, absPath, success);
@@ -472,7 +474,7 @@ public class ZkCachedDataAccessor<T> implements IZkListener
       List<String> absPaths = getAbsolutePaths(paths);
       List<List<String>> pathsCreated = new ArrayList<List<String>>(
           Collections.<List<String>> nCopies(paths.size(), null));
-      boolean[] success = _accessor.set(absPaths, records, pathsCreated, options);
+      boolean[] success = _accessor.set(absPaths, records, pathsCreated, null, options);
       for (int i = 0; i < paths.size(); i++)
       {
         String absPath = absPaths.get(i);
@@ -501,7 +503,7 @@ public class ZkCachedDataAccessor<T> implements IZkListener
           Collections.<List<String>> nCopies(paths.size(), null));
 
       boolean[] success = new boolean[paths.size()];
-      List<T> updateData = _accessor.update(absPaths, updaters, pathsCreated, options);
+      List<T> updateData = _accessor.update(absPaths, updaters, pathsCreated, null, options);
       for (int i = 0; i < paths.size(); i++)
       {
         success[i] = updateData.get(i) != null;
@@ -689,7 +691,7 @@ public class ZkCachedDataAccessor<T> implements IZkListener
         ZNode zNode = _zkCache.get(absParentPath);
         if (zNode != null)
         {
-          List<String> childNames = new ArrayList<String>(zNode.getChild());
+          List<String> childNames = new ArrayList<String>(zNode.getChildSet());
           Collections.sort(childNames);
           return childNames;
         } else
@@ -701,7 +703,7 @@ public class ZkCachedDataAccessor<T> implements IZkListener
         ZNode zNode = _wtCache.get(absParentPath);
         if (zNode != null)
         {
-          List<String> childNames = new ArrayList<String>(zNode.getChild());
+          List<String> childNames = new ArrayList<String>(zNode.getChildSet());
           Collections.sort(childNames);
           return childNames;
         } else
@@ -998,8 +1000,9 @@ public class ZkCachedDataAccessor<T> implements IZkListener
     try
     {
       _lock.writeLock().lock();
-      _accessor.unsubscribe(dataPath, this);
-
+      _accessor.unsubscribeDataChanges(dataPath, this);
+      _accessor.unsubscribeChildChanges(dataPath, this);
+      
       _zkCache.remove(dataPath);
 
       // remove child from parent's childSet

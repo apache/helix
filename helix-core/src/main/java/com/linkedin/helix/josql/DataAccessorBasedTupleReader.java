@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.I0Itec.zkclient.exception.ZkNoNodeException;
+
 import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
@@ -17,8 +19,8 @@ import com.linkedin.helix.ZNRecord;
 public class DataAccessorBasedTupleReader implements ZNRecordQueryProcessor.ZNRecordTupleReader
 {
   Map<String , List<ZNRecord>> _cache = new HashMap<String, List<ZNRecord>>();
-  private HelixDataAccessor _dataAccessor;
-  private String _clusterName;
+  private final HelixDataAccessor _dataAccessor;
+  private final String _clusterName;
 
   public DataAccessorBasedTupleReader(HelixDataAccessor dataAccessor, String clusterName)
   {
@@ -68,10 +70,16 @@ public class DataAccessorBasedTupleReader implements ZNRecordQueryProcessor.ZNRe
       for(String expandedPath : paths)
       {
         String fullPath = parentPath + "/" + expandedPath;
-        ZNRecord record = _dataAccessor.getBaseDataAccessor().get(fullPath, null, 0);
-        if(record != null)
+        try
         {
-          ret.add(record);
+          ZNRecord record = _dataAccessor.getBaseDataAccessor().get(fullPath, null, 0);
+          if(record != null)
+          {
+            ret.add(record);
+          }
+        } catch (ZkNoNodeException e)
+        {
+          // OK.
         }
       }
     }

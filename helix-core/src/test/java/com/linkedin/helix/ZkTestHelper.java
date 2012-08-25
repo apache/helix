@@ -20,7 +20,7 @@ public class ZkTestHelper
 
   static
   {
-//    Logger.getRootLogger().setLevel(Level.DEBUG);
+    // Logger.getRootLogger().setLevel(Level.DEBUG);
   }
 
   // zkClusterManager that exposes zkclient
@@ -35,14 +35,14 @@ public class ZkTestHelper
       super(clusterName, instanceName, instanceType, zkConnectString);
       // TODO Auto-generated constructor stub
     }
-    
+
     public ZkClient getZkClient()
     {
       return _zkClient;
     }
-    
+
   }
-  
+
   public static void expireSession(final ZkClient zkClient) throws Exception
   {
     final CountDownLatch waitExpire = new CountDownLatch(1);
@@ -64,13 +64,14 @@ public class ZkTestHelper
         ZkConnection connection = ((ZkConnection) zkClient.getConnection());
         ZooKeeper curZookeeper = connection.getZookeeper();
 
-        LOG.info("handleNewSession. sessionId: " + Long.toHexString(curZookeeper.getSessionId()));
+        LOG.info("handleNewSession. sessionId: "
+            + Long.toHexString(curZookeeper.getSessionId()));
         waitExpire.countDown();
       }
     };
-    
+
     zkClient.subscribeStateChanges(listener);
-    
+
     ZkConnection connection = ((ZkConnection) zkClient.getConnection());
     ZooKeeper curZookeeper = connection.getZookeeper();
     LOG.info("Before expiry. sessionId: " + Long.toHexString(curZookeeper.getSessionId()));
@@ -91,21 +92,20 @@ public class ZkTestHelper
                       curZookeeper.getSessionId(),
                       curZookeeper.getSessionPasswd());
     // wait until connected, then close
-    while(dupZookeeper.getState() != States.CONNECTED)
+    while (dupZookeeper.getState() != States.CONNECTED)
     {
       Thread.sleep(10);
     }
     dupZookeeper.close();
-    
+
     // make sure session expiry really happens
     waitExpire.await();
     zkClient.unsubscribeStateChanges(listener);
 
     connection = (ZkConnection) zkClient.getConnection();
     curZookeeper = connection.getZookeeper();
-    
+
     // System.err.println("zk: " + oldZookeeper);
-    LOG.info("After expiry. sessionId: "
-        + Long.toHexString(curZookeeper.getSessionId()));
+    LOG.info("After expiry. sessionId: " + Long.toHexString(curZookeeper.getSessionId()));
   }
 }

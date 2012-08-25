@@ -420,6 +420,10 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
     {
       NotificationContext changeContext = new NotificationContext(_manager);
       changeContext.setType(NotificationContext.Type.FINALIZE);
+      // TODO: add a separate reset interface
+//      if(_listener instanceof ){
+//        _listener
+//      }
       invoke(changeContext);
     }
     catch (Exception e)

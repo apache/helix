@@ -56,6 +56,11 @@ public class ZkAsyncCallbacks
       }
       callback(rc, path, ctx);
     }
+    
+    public Stat getStat()
+    {
+      return _stat;
+    }
   }
   
   static class ExistsCallbackHandler extends DefaultCallback implements StatCallback

@@ -3,22 +3,24 @@ package com.linkedin.helix.store.zk;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.I0Itec.zkclient.exception.ZkNoNodeException;
+
 import com.linkedin.helix.BaseDataAccessor;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.manager.zk.ZNRecordSerializer;
 import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
-import com.linkedin.helix.manager.zk.ZkCachedDataAccessor;
+import com.linkedin.helix.manager.zk.ZkCacheBaseDataAccessor;
 import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.store.HelixPropertyListener;
 
-public class ZkHelixPropertyStore<T> extends
-    ZkCachedDataAccessor<T>
+public class ZkHelixPropertyStore<T> extends ZkCacheBaseDataAccessor<T>
+    // ZkCachedDataAccessor<T>
 {
 
   public ZkHelixPropertyStore(ZkBaseDataAccessor<T> accessor, String root,
       List<String> subscribedPaths)
   {
-    super(accessor, root, subscribedPaths, null);
+    super(accessor, root, null, subscribedPaths);
   }
 
   // temp test
@@ -61,7 +63,7 @@ public class ZkHelixPropertyStore<T> extends
     // test back to back add-delete-add
     store.set("/child0", new ZNRecord("child0"),
         BaseDataAccessor.Option.PERSISTENT);
-    System.out.println("1:cache:" + store._zkCache);
+    System.out.println("1:cache:" + store._zkCache.getCache());
 
     ZNRecord record = store.get("/child0", null, 0); // will put the record in
                                                      // cache
@@ -76,7 +78,7 @@ public class ZkHelixPropertyStore<T> extends
 
     Thread.sleep(500); // should wait for zk callback to add "/child0" into
                        // cache
-    System.out.println("2:cache:" + store._zkCache);
+    System.out.println("2:cache:" + store._zkCache.getCache());
 
     record = store.get("/child0", null, 0);
     System.out.println("2:get:" + record);
@@ -84,8 +86,15 @@ public class ZkHelixPropertyStore<T> extends
     zkClient.delete(child0Path);
     Thread.sleep(500); // should wait for zk callback to remove "/child0" from
                        // cache
-    System.out.println("3:cache:" + store._zkCache);
-    record = store.get("/child0", null, 0);
+    System.out.println("3:cache:" + store._zkCache.getCache());
+    record = null;
+    try
+    {
+      record = store.get("/child0", null, 0);
+    } catch (ZkNoNodeException e)
+    {
+      // OK.
+    }
     System.out.println("3:get:" + record);
 
     zkClient.close();

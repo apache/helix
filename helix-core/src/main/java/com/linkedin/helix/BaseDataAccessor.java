@@ -3,6 +3,8 @@ package com.linkedin.helix;
 import java.util.List;
 
 import org.I0Itec.zkclient.DataUpdater;
+import org.I0Itec.zkclient.IZkChildListener;
+import org.I0Itec.zkclient.IZkDataListener;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.data.Stat;
 
@@ -14,7 +16,8 @@ public interface BaseDataAccessor<T>
     public static int EPHEMERAL   = 0x2;
     public static int PERSISTENT_SEQUENTIAL   = 0x4;
     public static int EPHEMERAL_SEQUENTIAL   = 0x8;
-    public static int WRITE_THROUGH = 0x10;
+//    public static int WRITE_THROUGH = 0x10;
+//    public static int ZK_CALLBACK = 0x20;
     
     public static CreateMode getMode(int options)
     {
@@ -35,10 +38,15 @@ public interface BaseDataAccessor<T>
       return null;
     }
     
-    public static boolean isWriteThrough(int options)
-    {
-      return (options & WRITE_THROUGH) > 0;
-    }
+//    public static boolean isWriteThrough(int options)
+//    {
+//      return (options & WRITE_THROUGH) > 0;
+//    }
+//    
+//    public static boolean isZkCallback(int options)
+//    {
+//      return (options & ZK_CALLBACK) > 0;
+//    }
   }
   
   /**
@@ -184,19 +192,24 @@ public interface BaseDataAccessor<T>
   Stat getStat(String path, int options);
   
   /**
-   * Subscribe listener to path
+   * Subscribe/Unsubscribe data listener to path
    * 
    * @param path
    * @param listener
    * @return
    */
-  boolean subscribe(String path, IZkListener listener);
+  // boolean subscribe(String path, IZkListener listener);
+  void subscribeDataChanges(String path, IZkDataListener listener);
+  void unsubscribeDataChanges(String path, IZkDataListener listener);
   
   /**
-   * Unsubscribe listener to path
+   * Subscribe/Unsubscribe child listener to path
    * @param path
    * @param listener
    * @return
    */     
-  boolean unsubscribe(String path, IZkListener listener);
+  // boolean unsubscribe(String path, IZkListener listener);
+  List<String> subscribeChildChanges(String path, IZkChildListener listener);
+  void unsubscribeChildChanges(String path, IZkChildListener listener);
+
 }

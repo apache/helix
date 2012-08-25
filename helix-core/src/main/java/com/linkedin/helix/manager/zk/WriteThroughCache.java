@@ -2,31 +2,27 @@ package com.linkedin.helix.manager.zk;
 
 import java.io.File;
 import java.util.List;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
+import org.apache.log4j.Logger;
 import org.apache.zookeeper.data.Stat;
 
 import com.linkedin.helix.BaseDataAccessor;
 import com.linkedin.helix.store.zk.ZNode;
 
-public class WriteThroughCache<T>
+public class WriteThroughCache<T> extends Cache<T>
 {
-  final ReadWriteLock                    _lock;
-  final ConcurrentHashMap<String, ZNode> _wtCache;
+  private static Logger     LOG = Logger.getLogger(WriteThroughCache.class);
+
   final BaseDataAccessor<T> _accessor;
 
   public WriteThroughCache(BaseDataAccessor<T> accessor, List<String> paths)
   {
-    _lock = new ReentrantReadWriteLock();
-    _wtCache = new ConcurrentHashMap<String, ZNode>();
+    super();
     _accessor = accessor;
-    
+
     // init cache
-    if (paths != null && paths.size() > 0)
+    if (paths != null && !paths.isEmpty())
     {
       for (String path : paths)
       {
@@ -34,62 +30,72 @@ public class WriteThroughCache<T>
       }
     }
   }
-  
-  private void addToParentChildSet(ConcurrentHashMap<String, ZNode> map, String path)
+
+  @Override
+  public void update(String path, T data, Stat stat)
   {
-    // add to parent's childSet
     String parentPath = new File(path).getParent();
-    map.putIfAbsent(parentPath, new ZNode(parentPath, null, null));
-    ZNode zNode = map.get(parentPath);
-
-    String name = new File(path).getName();
-    zNode.addChild(name);
+    String childName = new File(path).getName();
+    addToParentChildSet(parentPath, childName);
+    
+    ZNode znode = _cache.get(path);
+    if (znode == null)
+    {
+      _cache.put(path, new ZNode(path, data, stat));
+    }
+    else
+    {
+      znode.setData(data);
+      znode.setStat(stat);
+    }
   }
-
-  public void update(String path, T data)
-  {
-    addToParentChildSet(_wtCache, path);
-    _wtCache.put(path, new ZNode(path, data, null));
-  }
-
-  void updateRecursive(String path)
+  
+  @Override
+  public void updateRecursive(String path)
   {
     if (path == null)
+    {
       return;
+    }
 
     try
     {
       _lock.writeLock().lock();
 
-      // update parent's childSet
-      addToParentChildSet(_wtCache, path);
+//      // update parent's childSet
+//      String parentPath = new File(path).getParent();
+//      String name = new File(path).getName();
+//      addToParentChildSet(parentPath, name);
 
       // update this node
       Stat stat = new Stat();
       T readData = _accessor.get(path, stat, 0);
 
-      ZNode zNode = _wtCache.get(path);
-      if (zNode == null)
-      {
-        zNode = new ZNode(path, readData, stat);
-        _wtCache.put(path, zNode);
-      }
-      else
-      {
-        zNode.setData(readData);
-        zNode.setStat(stat);
-      }
+      update(path, readData, stat);
+      
+//      ZNode znode = _cache.get(path);
+//      if (znode == null)
+//      {
+//        znode = new ZNode(path, readData, stat);
+//        _cache.put(path, znode);
+//      }
+//      else
+//      {
+//        znode.setData(readData);
+//        znode.setStat(stat);
+//      }
 
-      // recursively update children nodes
+      // recursively update children nodes if not exists
+      ZNode znode = _cache.get(path);
       List<String> childNames = _accessor.getChildNames(path, 0);
-      if (childNames != null)
+      if (childNames != null && childNames.size() > 0)
       {
         for (String childName : childNames)
         {
           String childPath = path + "/" + childName;
-          if (!zNode.hasChild(childName))
+          if (!znode.hasChild(childName))
           {
-            zNode.addChild(childName);
+            znode.addChild(childName);
             updateRecursive(childPath);
           }
         }
@@ -103,82 +109,5 @@ public class WriteThroughCache<T>
     {
       _lock.writeLock().unlock();
     }
-  }
-  
-  
-  private void removeFromParentChildSet(ConcurrentHashMap<String, ZNode> map, String path)
-  {
-    // remove from parent's childSet
-    String parentPath = new File(path).getParent();
-    ZNode zNode = map.get(parentPath);
-    if (zNode != null)
-    {
-      String name = new File(path).getName();
-      zNode.removeChild(name);
-    }
-  }
-  
-  void purgeRecursive(String path)
-  {
-    try
-    {
-      _lock.writeLock().unlock();
-
-      // remove from parent's childSet
-      removeFromParentChildSet(_wtCache, path);
-
-      ZNode zNode = _wtCache.remove(path);
-      if (zNode != null)
-      {
-        // recursively remove children nodes
-        Set<String> childNames = zNode.getChild();
-        for (String childName : childNames)
-        {
-          String childPath = path + "/" + childName;
-          purgeRecursive(childPath);
-        }
-      }
-    }
-    finally
-    {
-      _lock.writeLock().unlock();
-    }
-  }
-  
-  public ZNode get(String path)
-  {
-    try
-    {
-      _lock.readLock().lock();
-      return _wtCache.get(path);
-    } finally
-    {
-      _lock.readLock().unlock();
-    }
-  }
-  
-  public boolean exists(String path)
-  {
-    return _wtCache.containsKey(path);
-  }
-  
-  public void lockWrite()
-  {
-    _lock.writeLock().lock();
-  }
-  
-  public void unlockWrite()
-  {
-    _lock.writeLock().unlock();
-  }
-  
-  public void lockRead()
-  {
-    _lock.readLock().lock();
-  }
-  
-  public void unlockRead()
-  {
-    _lock.readLock().unlock();
   }
 }

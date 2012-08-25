@@ -404,15 +404,15 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
       options = options | BaseDataAccessor.Option.EPHEMERAL;
     }
 
-    if (type == PropertyType.CURRENTSTATES && _instanceType == InstanceType.PARTICIPANT)
-    {
-      options = options | BaseDataAccessor.Option.WRITE_THROUGH;
-    }
-    else if (type == PropertyType.EXTERNALVIEW
-        && _instanceType == InstanceType.CONTROLLER)
-    {
-      options = options | BaseDataAccessor.Option.WRITE_THROUGH;
-    }
+//    if (type == PropertyType.CURRENTSTATES && _instanceType == InstanceType.PARTICIPANT)
+//    {
+//      options = options | BaseDataAccessor.Option.WRITE_THROUGH;
+//    }
+//    else if (type == PropertyType.EXTERNALVIEW
+//        && _instanceType == InstanceType.CONTROLLER)
+//    {
+//      options = options | BaseDataAccessor.Option.WRITE_THROUGH;
+//    }
 
     return options;
   }

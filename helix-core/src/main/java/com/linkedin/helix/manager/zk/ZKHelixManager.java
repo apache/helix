@@ -458,7 +458,6 @@ public class ZKHelixManager implements HelixManager
       stopTimerTasks();
     }
 
-    // close zkclient in property store
     if (_propertyStore != null)
     {
       _propertyStore.stop();

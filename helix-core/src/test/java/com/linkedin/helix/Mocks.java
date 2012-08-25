@@ -24,6 +24,8 @@ import java.util.UUID;
 import java.util.concurrent.Future;
 
 import org.I0Itec.zkclient.DataUpdater;
+import org.I0Itec.zkclient.IZkChildListener;
+import org.I0Itec.zkclient.IZkDataListener;
 import org.apache.zookeeper.data.Stat;
 
 import com.linkedin.helix.PropertyKey.Builder;
@@ -151,17 +153,45 @@ public class Mocks {
 			return null;
 		}
 
-		@Override
-		public boolean subscribe(String path, IZkListener listener) {
-			// TODO Auto-generated method stub
-			return false;
-		}
+    @Override
+    public void subscribeDataChanges(String path, IZkDataListener listener)
+    {
+      // TODO Auto-generated method stub
+      
+    }
 
-		@Override
-		public boolean unsubscribe(String path, IZkListener listener) {
-			// TODO Auto-generated method stub
-			return false;
-		}
+    @Override
+    public void unsubscribeDataChanges(String path, IZkDataListener listener)
+    {
+      // TODO Auto-generated method stub
+      
+    }
+
+    @Override
+    public List<String> subscribeChildChanges(String path, IZkChildListener listener)
+    {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    @Override
+    public void unsubscribeChildChanges(String path, IZkChildListener listener)
+    {
+      // TODO Auto-generated method stub
+      
+    }
+
+//		@Override
+//		public boolean subscribe(String path, IZkListener listener) {
+//			// TODO Auto-generated method stub
+//			return false;
+//		}
+//
+//		@Override
+//		public boolean unsubscribe(String path, IZkListener listener) {
+//			// TODO Auto-generated method stub
+//			return false;
+//		}
 
 	}
 

@@ -401,7 +401,7 @@ public class TestHelper
 
     ClusterSetup setupTool = new ClusterSetup(ZkAddr);
     setupTool.addCluster(clusterName, true);
-    
+
     for (int i = 0; i < nodesNb; i++)
     {
       int port = startPort + i;
@@ -716,6 +716,7 @@ public class TestHelper
 
   public static void printCache(Map<String, ZNode> cache)
   {
+    System.out.println("START:Print cache");
     TreeMap<String, ZNode> map = new TreeMap<String, ZNode>();
     map.putAll(cache);
 
@@ -723,10 +724,11 @@ public class TestHelper
     {
       ZNode node = map.get(key);
       TreeSet<String> childSet = new TreeSet<String>();
-      childSet.addAll(node.getChild());
+      childSet.addAll(node.getChildSet());
       System.out.print(key + "=" + node.getData() + ", " + childSet + ", "
           + (node.getStat() == null ? "null\n" : node.getStat()));
     }
+    System.out.println("END:Print cache");
   }
 
   public static void readZkRecursive(String path,
@@ -754,22 +756,95 @@ public class TestHelper
     }
   }
 
+  public static void readZkRecursive(String path,
+                                     Map<String, ZNode> map,
+                                     BaseDataAccessor<ZNRecord> zkAccessor)
+  {
+    try
+    {
+      Stat stat = new Stat();
+      ZNRecord record = zkAccessor.get(path, stat, 0);
+      List<String> childNames = zkAccessor.getChildNames(path, 0);
+      // System.out.println("childNames: " + childNames);
+      ZNode node = new ZNode(path, record, stat);
+      node.addChildren(childNames);
+      map.put(path, node);
+
+      if (childNames != null && !childNames.isEmpty())
+      {
+        for (String childName : childNames)
+        {
+          String childPath = path + "/" + childName;
+          readZkRecursive(childPath, map, zkAccessor);
+        }
+      }
+    }
+    catch (ZkNoNodeException e)
+    {
+      // OK
+    }
+  }
+
+  public static boolean verifyZkCache(List<String> paths,
+                                      BaseDataAccessor<ZNRecord> zkAccessor,
+                                      ZkClient zkclient,
+                                      boolean needVerifyStat)
+  {
+    // read everything
+    Map<String, ZNode> zkMap = new HashMap<String, ZNode>();
+    Map<String, ZNode> cache = new HashMap<String, ZNode>();
+    for (String path : paths)
+    {
+      readZkRecursive(path, zkMap, zkclient);
+      readZkRecursive(path, cache, zkAccessor);
+    }
+    // printCache(map);
+
+    return verifyZkCache(paths, null, cache, zkMap, needVerifyStat);
+  }
+
   public static boolean verifyZkCache(List<String> paths,
                                       Map<String, ZNode> cache,
                                       ZkClient zkclient,
                                       boolean needVerifyStat)
   {
+    return verifyZkCache(paths, null, cache, zkclient, needVerifyStat);
+  }
+
+  public static boolean verifyZkCache(List<String> paths,
+                                      List<String> pathsExcludeForStat,
+                                      Map<String, ZNode> cache,
+                                      ZkClient zkclient,
+                                      boolean needVerifyStat)
+  {
     // read everything on zk under paths
-    Map<String, ZNode> map = new HashMap<String, ZNode>();
+    Map<String, ZNode> zkMap = new HashMap<String, ZNode>();
     for (String path : paths)
     {
-      readZkRecursive(path, map, zkclient);
+      readZkRecursive(path, zkMap, zkclient);
     }
     // printCache(map);
 
+    return verifyZkCache(paths, pathsExcludeForStat, cache, zkMap, needVerifyStat);
+  }
+
+  public static boolean verifyZkCache(List<String> paths,
+                                      List<String> pathsExcludeForStat,
+                                      Map<String, ZNode> cache,
+                                      Map<String, ZNode> zkMap,
+                                      boolean needVerifyStat)
+  {
     // equal size
-    if (map.size() != cache.size())
+    if (zkMap.size() != cache.size())
     {
+      System.err.println("size mismatch: cacheSize: " + cache.size() + ", zkMapSize: "
+          + zkMap.size());
+      System.out.println("cache: (" + cache.size() + ")");
+      TestHelper.printCache(cache);
+
+      System.out.println("zkMap: (" + zkMap.size() + ")");
+      TestHelper.printCache(zkMap);
+
       return false;
     }
 
@@ -777,11 +852,13 @@ public class TestHelper
     for (String path : cache.keySet())
     {
       ZNode cacheNode = cache.get(path);
-      ZNode zkNode = map.get(path);
+      ZNode zkNode = zkMap.get(path);
 
       if (zkNode == null)
       {
         // in cache but not on zk
+        System.err.println("path: " + path + " in cache but not on zk: inCacheNode: "
+            + cacheNode);
         return false;
       }
 
@@ -791,23 +868,30 @@ public class TestHelper
                                                                                 .equals(cacheNode.getData())))
       {
         // data not equal
+        System.err.println("data mismatch on path: " + path + ", inCache: "
+            + cacheNode.getData() + ", onZk: " + zkNode.getData());
         return false;
       }
 
-      if ((zkNode.getChild() == null && cacheNode.getChild() != null)
-          || (zkNode.getChild() != null && cacheNode.getChild() == null)
-          || (zkNode.getChild() != null && cacheNode.getChild() != null && !zkNode.getChild()
-                                                                                  .equals(cacheNode.getChild())))
+      if ((zkNode.getChildSet() == null && cacheNode.getChildSet() != null)
+          || (zkNode.getChildSet() != null && cacheNode.getChildSet() == null)
+          || (zkNode.getChildSet() != null && cacheNode.getChildSet() != null && !zkNode.getChildSet()
+                                                                                        .equals(cacheNode.getChildSet())))
       {
         // childSet not equal
+        System.err.println("childSet mismatch on path: " + path + ", inCache: "
+            + cacheNode.getChildSet() + ", onZk: " + zkNode.getChildSet());
         return false;
       }
 
-      if (needVerifyStat)
+      if (needVerifyStat && pathsExcludeForStat != null
+          && !pathsExcludeForStat.contains(path))
       {
         if (cacheNode.getStat() == null || !zkNode.getStat().equals(cacheNode.getStat()))
         {
           // stat not equal
+          System.err.println("Stat mismatch on path: " + path + ", inCache: "
+              + cacheNode.getStat() + ", onZk: " + zkNode.getStat());
           return false;
         }
       }
@@ -815,7 +899,7 @@ public class TestHelper
 
     return true;
   }
-  
+
   public static StateModelDefinition generateStateModelDefForBootstrap()
   {
     ZNRecord record = new ZNRecord("Bootstrap");
@@ -924,7 +1008,7 @@ public class TestHelper
                         stateTransitionPriorityList);
     return new StateModelDefinition(record);
   }
-  
+
   public static String znrecordToString(ZNRecord record)
   {
     StringBuffer sb = new StringBuffer();
@@ -938,7 +1022,7 @@ public class TestHelper
         sb.append("  " + key + "\t: " + simpleFields.get(key) + "\n");
       }
     }
-    
+
     Map<String, List<String>> listFields = record.getListFields();
     sb.append("listFields\n");
     for (String key : listFields.keySet())
@@ -951,7 +1035,7 @@ public class TestHelper
       }
       sb.append("\n");
     }
-    
+
     Map<String, Map<String, String>> mapFields = record.getMapFields();
     sb.append("mapFields\n");
     for (String key : mapFields.keySet())
@@ -963,7 +1047,7 @@ public class TestHelper
         sb.append("    " + mapKey + "\t: " + map.get(mapKey) + "\n");
       }
     }
-    
+
     return sb.toString();
   }
 }

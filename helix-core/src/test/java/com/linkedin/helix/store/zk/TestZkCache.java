@@ -10,11 +10,11 @@ import org.I0Itec.zkclient.exception.ZkMarshallingError;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
 
 import com.linkedin.helix.ZkUnitTestBase;
 import com.linkedin.helix.manager.zk.ZkClient;
 
+// TODO remove it
 public class TestZkCache extends ZkUnitTestBase
 {
   final String zkAddr = ZK_ADDR;
@@ -41,7 +41,7 @@ public class TestZkCache extends ZkUnitTestBase
   }
 
   // create 10, modify 10, and delete 10, verify that all callbacks are received
-  @Test
+  // @Test
   public void testCallback() throws Exception
   {
     String testName = "TestZkCache-callback";
@@ -172,25 +172,6 @@ public class TestZkCache extends ZkUnitTestBase
     }
     return createKeys;
   }
-
-  // // depth first read from zk
-  // static void dfReadZk(Map<String, ZNode> map, ZkClient client, String root)
-  // {
-  // List<String> childs = client.getChildren(root);
-  // if (childs != null)
-  // {
-  // for (String child : childs)
-  // {
-  // String childPath = root + "/" + child;
-  // dfReadZk(map, client, childPath);
-  // }
-  // Stat stat = new Stat();
-  // String value = client.readData(root, stat);
-  // ZNode node = new ZNode(root, value, stat);
-  // node._childSet.addAll(childs);
-  // map.put(root, node);
-  // }
-  // }
 
   // depth first read paths from zk
   static void dfGetZkPaths(List<String> deletePaths, ZkClient client, String root)

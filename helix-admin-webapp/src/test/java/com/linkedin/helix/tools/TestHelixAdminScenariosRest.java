@@ -6,17 +6,27 @@ package com.linkedin.helix.tools;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.codehaus.jackson.JsonGenerationException;
+import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.SerializationConfig;
+import org.restlet.Client;
 import org.restlet.Component;
-import org.restlet.Context;
+import org.restlet.data.MediaType;
+import org.restlet.data.Method;
 import org.restlet.data.Protocol;
+import org.restlet.data.Reference;
+import org.restlet.data.Request;
+import org.restlet.data.Response;
+import org.restlet.data.Status;
+import org.restlet.resource.Representation;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -25,12 +35,8 @@ import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.TestHelper.StartCMResult;
 import com.linkedin.helix.controller.HelixControllerMain;
-import com.linkedin.helix.controller.restlet.ZKPropertyTransferServer;
-import com.linkedin.helix.controller.restlet.ZkPropertyTransferClient;
 import com.linkedin.helix.integration.ZkIntegrationTestBase;
 import com.linkedin.helix.manager.zk.ZKUtil;
-import com.linkedin.helix.manager.zk.ZNRecordSerializer;
-import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.tools.ClusterSetup;
 import com.linkedin.helix.tools.ClusterStateVerifier;
@@ -38,6 +44,13 @@ import com.linkedin.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifie
 import com.linkedin.helix.tools.ClusterStateVerifier.MasterNbInExtViewVerifier;
 import com.linkedin.helix.webapp.HelixAdminWebApp;
 import com.linkedin.helix.webapp.RestAdminApplication;
+import com.linkedin.helix.webapp.resources.ClusterRepresentationUtil;
+import com.linkedin.helix.webapp.resources.ClusterResource;
+import com.linkedin.helix.webapp.resources.ClustersResource;
+import com.linkedin.helix.webapp.resources.IdealStateResource;
+import com.linkedin.helix.webapp.resources.InstancesResource;
+import com.linkedin.helix.webapp.resources.ResourceGroupResource;
+import com.linkedin.helix.webapp.resources.ResourceGroupsResource;
 
 public class TestHelixAdminScenariosRest extends ZkIntegrationTestBase
 {
@@ -73,8 +86,8 @@ public class TestHelixAdminScenariosRest extends ZkIntegrationTestBase
         }
       }
     });
-    t.start();
     t.setDaemon(true);
+    t.start();
   }
   
   public static String ObjectToJson(Object object) throws JsonGenerationException,
@@ -91,6 +104,14 @@ public class TestHelixAdminScenariosRest extends ZkIntegrationTestBase
     return sw.toString();
   }
   
+  public static <T extends Object> T JsonToObject(Class<T> clazz, String jsonString) throws JsonParseException,
+    JsonMappingException,
+    IOException
+  {
+    StringReader sr = new StringReader(jsonString);
+    ObjectMapper mapper = new ObjectMapper();
+    return mapper.readValue(sr, clazz);
+  }
   
   @Test
   public void testAddDeleteClusterAndInstanceAndResource() throws Exception
@@ -100,7 +121,7 @@ public class TestHelixAdminScenariosRest extends ZkIntegrationTestBase
     //ZkPropertyTransferClient.SEND_PERIOD = 500;
     //ZKPropertyTransferServer.getInstance().init(19999, ZK_ADDR);
     
-    
+    startAdminWebAppThread();
     
     /**======================= Add clusters ==============================*/
     
@@ -137,10 +158,88 @@ public class TestHelixAdminScenariosRest extends ZkIntegrationTestBase
     
   }
   
-  void assertSuccessOperation(String url, Map<String, String> jsonParameters)
+  String assertSuccessPostOperation(String url, Map<String, String> jsonParameters, boolean hasException) throws IOException
   {
+    Reference resourceRef = new Reference(url);
     
+    Request request = new Request(Method.POST, resourceRef);
+    request.setEntity(
+        ClusterRepresentationUtil._jsonParameters + "="
+            + ClusterRepresentationUtil.ObjectToJson(jsonParameters), MediaType.APPLICATION_ALL);
+    Client client = new Client(Protocol.HTTP);
+    Response response = client.handle(request);
+    Representation result = response.getEntity();
+    StringWriter sw = new StringWriter();
+    result.write(sw);
+    
+    Assert.assertTrue(response.getStatus().getCode() == Status.SUCCESS_OK.getCode());
+    Assert.assertTrue(hasException == sw.toString().toLowerCase().contains("exception"));
+    return sw.toString();
   }
+  
+  String assertSuccessPostOperation(String url, Map<String, String> jsonParameters, Map<String, String> extraForm, boolean hasException) throws IOException
+  {
+    Reference resourceRef = new Reference(url);
+    
+    Request request = new Request(Method.POST, resourceRef);
+    String entity = ClusterRepresentationUtil._jsonParameters + "="
+        + ClusterRepresentationUtil.ObjectToJson(jsonParameters);
+    for(String key : extraForm.keySet())
+    {
+      entity = entity +"&" + (key + "=" + extraForm.get(key));
+    }
+    request.setEntity(
+       entity, MediaType.APPLICATION_ALL);
+    Client client = new Client(Protocol.HTTP);
+    Response response = client.handle(request);
+    Representation result = response.getEntity();
+    StringWriter sw = new StringWriter();
+    result.write(sw);
+    
+    Assert.assertTrue(response.getStatus().getCode() == Status.SUCCESS_OK.getCode());
+    Assert.assertTrue(hasException == sw.toString().toLowerCase().contains("exception"));
+    return sw.toString();
+  }
+  
+  void deleteUrl(String url, boolean hasException) throws IOException
+  {
+    Reference resourceRef = new Reference(url);
+    Request request = new Request(Method.DELETE, resourceRef);
+    Client client = new Client(Protocol.HTTP);
+    Response response = client.handle(request);
+    Representation result = response.getEntity();
+    StringWriter sw = new StringWriter();
+    result.write(sw);
+    Assert.assertTrue(hasException == sw.toString().toLowerCase().contains("exception"));
+  }
+  
+  String getUrl(String url) throws IOException
+  {
+    Reference resourceRef = new Reference(url);
+    Request request = new Request(Method.GET, resourceRef);
+    Client client = new Client(Protocol.HTTP);
+    Response response = client.handle(request);
+    Representation result = response.getEntity();
+    StringWriter sw = new StringWriter();
+    result.write(sw);
+    return sw.toString();
+  }
+  
+  String getClusterUrl(String cluster)
+  {
+    return "http://localhost:" + _port + "/clusters" + "/" + cluster;
+  }
+  
+  String getInstanceUrl(String cluster, String instance)
+  {
+    return "http://localhost:" + _port + "/clusters/" + cluster + "/instances/" + instance;
+  }
+  
+  String getResourceUrl(String cluster, String resourceGroup)
+  {
+    return "http://localhost:" + _port + "/clusters/" + cluster + "/resourceGroups/" + resourceGroup;
+  }
+  
   
   void assertClusterSetupException(String command)
   {
@@ -158,92 +257,149 @@ public class TestHelixAdminScenariosRest extends ZkIntegrationTestBase
   
   public void testAddCluster() throws Exception
   {
-    String command = "--zkSvr localhost:2183 -addCluster clusterTest";
-    ClusterSetup.processCommandLineArgs(command.split(" "));
+    String url = "http://localhost:" + _port + "/clusters";
+    Map<String, String> paraMap = new HashMap<String, String>();
+    
+    // Normal add
+    paraMap.put(ClustersResource._clusterName, "clusterTest");
+    paraMap.put(ClusterRepresentationUtil._managementCommand,
+        ClusterSetup.addCluster);
+    
+    String response = assertSuccessPostOperation(url, paraMap, false);
+    Assert.assertTrue(response.contains("clusterTest"));
     
     // malformed cluster name 
-    command = "--zkSvr localhost:2183 -addCluster /ClusterTest";
-    assertClusterSetupException(command);
+    paraMap.put(ClustersResource._clusterName, "/ClusterTest");
+    response = assertSuccessPostOperation(url, paraMap, true);
+    
     
     // Add the grand cluster
-    command = "--zkSvr localhost:2183 -addCluster \"Klazt3rz";
-    ClusterSetup.processCommandLineArgs(command.split(" "));
+    paraMap.put(ClustersResource._clusterName, "Klazt3rz");
+    response = assertSuccessPostOperation(url, paraMap, false);
+    Assert.assertTrue(response.contains("Klazt3rz"));
     
-    command = "--zkSvr localhost:2183 -addCluster \\ClusterTest";
-    ClusterSetup.processCommandLineArgs(command.split(" "));
+    paraMap.put(ClustersResource._clusterName, "\\ClusterTest");
+    response = assertSuccessPostOperation(url, paraMap, false);
+    Assert.assertTrue(response.contains("\\ClusterTest"));
     
     // Add already exist cluster
-    command = "--zkSvr localhost:2183 -addCluster clusterTest";
-    assertClusterSetupException(command);
+    paraMap.put(ClustersResource._clusterName, "clusterTest");
+    response = assertSuccessPostOperation(url, paraMap, true);
     
     // delete cluster without resource and instance
     Assert.assertTrue(ZKUtil.isClusterSetup("Klazt3rz", _gZkClient));
     Assert.assertTrue(ZKUtil.isClusterSetup("clusterTest", _gZkClient));
     Assert.assertTrue(ZKUtil.isClusterSetup("\\ClusterTest", _gZkClient));
     
-    command = "-zkSvr localhost:2183 -dropCluster \\ClusterTest";
-    ClusterSetup.processCommandLineArgs(command.split(" "));
+    paraMap.put(ClusterRepresentationUtil._managementCommand,
+        ClusterSetup.dropCluster);
     
-    command = "-zkSvr localhost:2183 -dropCluster clusterTest1";
-    ClusterSetup.processCommandLineArgs(command.split(" "));
+    String clusterUrl = getClusterUrl("\\ClusterTest");
+    deleteUrl(clusterUrl, false);
     
-    command = "-zkSvr localhost:2183 -dropCluster clusterTest";
-    ClusterSetup.processCommandLineArgs(command.split(" "));
+    String clustersUrl = "http://localhost:" + _port + "/clusters";
+    response = getUrl(clustersUrl);
+
+    clusterUrl = getClusterUrl("clusterTest1");
+    deleteUrl(clusterUrl, false);    
+    response = getUrl(clustersUrl);
+    Assert.assertFalse(response.contains("clusterTest1"));
+    
+    clusterUrl = getClusterUrl("clusterTest");
+    deleteUrl(clusterUrl, false);    
+    response = getUrl(clustersUrl);
+    Assert.assertFalse(response.contains("clusterTest"));
+    
+    clusterUrl = getClusterUrl("clusterTestOK");
+    deleteUrl(clusterUrl, false);   
     
     Assert.assertFalse(_gZkClient.exists("/clusterTest"));
-    Assert.assertFalse(_gZkClient.exists("/\\ClusterTest"));
     Assert.assertFalse(_gZkClient.exists("/clusterTest1"));
+    Assert.assertFalse(_gZkClient.exists("/clusterTestOK"));
     
-    command = "-zkSvr localhost:2183 -addCluster clusterTest1";
-    ClusterSetup.processCommandLineArgs(command.split(" "));
+    paraMap.put(ClustersResource._clusterName, "clusterTest1");
+    paraMap.put(ClusterRepresentationUtil._managementCommand,
+        ClusterSetup.addCluster);
+    response = assertSuccessPostOperation(url, paraMap, false);
+    response = getUrl(clustersUrl);
+    Assert.assertTrue(response.contains("clusterTest1"));
   }
   
   public void testAddResource() throws Exception
   {
-    String command = "-zkSvr localhost:2183 -addResource clusterTest1 db_22 144 MasterSlave";
-    ClusterSetup.processCommandLineArgs(command.split(" "));
+    String reourcesUrl = "http://localhost:" + _port + "/clusters/clusterTest1/resourceGroups";
     
-    command = "-zkSvr localhost:2183 -addResource clusterTest1 db_11 44 MasterSlave";
-    ClusterSetup.processCommandLineArgs(command.split(" "));
+    Map<String, String> paraMap = new HashMap<String, String>();
+    paraMap.put(ResourceGroupsResource._resourceGroupName, "db_22");
+    paraMap.put(ResourceGroupsResource._stateModelDefRef, "MasterSlave");
+    paraMap.put(ResourceGroupsResource._partitions, "144");
+    paraMap.put(ClusterRepresentationUtil._managementCommand,
+        ClusterSetup.addResource);
+    
+    String response = assertSuccessPostOperation(reourcesUrl, paraMap, false);
+    Assert.assertTrue(response.contains("db_22"));
+
+    paraMap.put(ResourceGroupsResource._resourceGroupName, "db_11");
+    paraMap.put(ResourceGroupsResource._stateModelDefRef, "MasterSlave");
+    paraMap.put(ResourceGroupsResource._partitions, "44");
+    
+    response = assertSuccessPostOperation(reourcesUrl, paraMap, false);
+    Assert.assertTrue(response.contains("db_11"));
+
     
     // Add duplicate resource 
-    command = "-zkSvr localhost:2183 -addResource clusterTest1 db_22 55 OnlineOffline";
-    assertClusterSetupException(command);
+    paraMap.put(ResourceGroupsResource._resourceGroupName, "db_22");
+    paraMap.put(ResourceGroupsResource._stateModelDefRef, "OnlineOffline");
+    paraMap.put(ResourceGroupsResource._partitions, "55");
     
+    response = assertSuccessPostOperation(reourcesUrl, paraMap, true);
+
     // drop resource now
-    command = "-zkSvr localhost:2183 -dropResource clusterTest1 db_11 ";
-    ClusterSetup.processCommandLineArgs(command.split(" "));
+    String resourceUrl = getResourceUrl("clusterTest1","db_11");
+    deleteUrl(resourceUrl, false);
+    Assert.assertFalse(_gZkClient.exists("/clusterTest1/IDEALSTATES/db_11"));
     
-    command = "-zkSvr localhost:2183 -addResource clusterTest1 db_11 44 MasterSlave";
-    ClusterSetup.processCommandLineArgs(command.split(" "));
+    paraMap.put(ResourceGroupsResource._resourceGroupName, "db_11");
+    paraMap.put(ResourceGroupsResource._stateModelDefRef, "MasterSlave");
+    paraMap.put(ResourceGroupsResource._partitions, "44");
+    response = assertSuccessPostOperation(reourcesUrl, paraMap, false);
+    Assert.assertTrue(response.contains("db_11"));
+
+    Assert.assertTrue(_gZkClient.exists("/clusterTest1/IDEALSTATES/db_11"));
   }
   
   private void testDeactivateCluster() throws Exception, InterruptedException
   {
-    String command;
     HelixDataAccessor accessor;
     String path;
     // deactivate cluster
-    command = "-zkSvr localhost:2183 -activateCluster clusterTest1 Klazt3rz false";
-    ClusterSetup.processCommandLineArgs(command.split(" "));
+    String clusterUrl = getClusterUrl("clusterTest1");
+    Map<String, String> paraMap = new HashMap<String, String>();
+    paraMap.put(ClusterResource._enabled, "false");
+    paraMap.put(ClusterResource._grandCluster, "Klazt3rz");
+    paraMap.put(ClusterRepresentationUtil._managementCommand,
+        ClusterSetup.activateCluster);
+    
+    String response = assertSuccessPostOperation(clusterUrl, paraMap, false);
     Thread.sleep(6000);
+    Assert.assertFalse(_gZkClient.exists("/Klazt3rz/IDEALSTATES/clusterTest1"));
     
     accessor = _startCMResultMap.get("localhost_1231")._manager.getHelixDataAccessor();
     path = accessor.keyBuilder().controllerLeader().getPath();
     Assert.assertFalse(_gZkClient.exists(path));
     
-    command = "-zkSvr localhost:2183 -dropCluster clusterTest1";
-    assertClusterSetupException(command);
-    
+    deleteUrl(clusterUrl, true);
+
+    Assert.assertTrue(_gZkClient.exists("/clusterTest1"));
     // leader node should be gone
     for(StartCMResult result : _startCMResultMap.values())
     {
       result._manager.disconnect();
       result._thread.interrupt();
     }
-  
-    command = "-zkSvr localhost:2183 -dropCluster clusterTest1";
-    ClusterSetup.processCommandLineArgs(command.split(" "));
+    deleteUrl(clusterUrl, false);
+    
+    Assert.assertFalse(_gZkClient.exists("/clusterTest1"));
   }
   
   private void testDropAddResource() throws Exception
@@ -256,16 +412,29 @@ public class TestHelixAdminScenariosRest extends ZkIntegrationTestBase
     pw.write(x);
     pw.close();
     
-    String command = "-zkSvr localhost:2183 -dropResource clusterTest1 db_11 ";
-    ClusterSetup.processCommandLineArgs(command.split(" "));
+    String resourceUrl = getResourceUrl("clusterTest1","db_11");
+    deleteUrl(resourceUrl, false);
     
     boolean verifyResult =
         ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
                                                                                  "clusterTest1"));
     Assert.assertTrue(verifyResult);
+    Map<String, String> paraMap = new HashMap<String, String>();
+    paraMap.put(ClusterRepresentationUtil._managementCommand,
+        ClusterSetup.addResource);
+    paraMap.put(ResourceGroupsResource._resourceGroupName, "db_11");
+    paraMap.put(ResourceGroupsResource._partitions, "22");
+    paraMap.put(ResourceGroupsResource._stateModelDefRef, "MasterSlave");
+    String response = assertSuccessPostOperation(getClusterUrl("clusterTest1")+"/resourceGroups", paraMap, false);
     
-    command = "-zkSvr localhost:2183 -addIdealState clusterTest1 db_11 \"/tmp/temp.log\"";
-    ClusterSetup.processCommandLineArgs(command.split(" "));
+    String idealStateUrl = getResourceUrl("clusterTest1","db_11") + "/idealState";
+    Assert.assertTrue(response.contains("db_11"));
+    paraMap.put(ClusterRepresentationUtil._managementCommand,
+        ClusterSetup.addIdealState);
+    Map<String, String> extraform = new HashMap<String, String>();
+    extraform.put(ClusterRepresentationUtil._newIdealState, x);
+    response = assertSuccessPostOperation(idealStateUrl, paraMap, extraform, false);
+    
     
     verifyResult =
         ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
@@ -278,16 +447,26 @@ public class TestHelixAdminScenariosRest extends ZkIntegrationTestBase
   
   private void testExpandCluster() throws Exception
   {
-    String command;
-    HelixDataAccessor accessor;
     boolean verifyResult;
-    String path;
     
-    command = "-zkSvr localhost:2183 -addNode clusterTest1 localhost:12331;localhost:12341;localhost:12351;localhost:12361";
-    ClusterSetup.processCommandLineArgs(command.split(" "));
+    String clusterUrl = getClusterUrl("clusterTest1");
+    String instancesUrl = clusterUrl + "/instances";
     
-    command = "-zkSvr localhost:2183 -expandCluster clusterTest1";
-    ClusterSetup.processCommandLineArgs(command.split(" "));
+    Map<String, String> paraMap = new HashMap<String, String>();
+    paraMap.put(InstancesResource._instanceNames, "localhost:12331;localhost:12341;localhost:12351;localhost:12361");
+    paraMap.put(ClusterRepresentationUtil._managementCommand,
+        ClusterSetup.addInstance);
+    
+    String response = assertSuccessPostOperation(instancesUrl, paraMap, false);
+    String[] hosts = "localhost:12331;localhost:12341;localhost:12351;localhost:12361".split(";");
+    for(String host : hosts)
+    {
+      Assert.assertTrue(response.contains(host.replace(':', '_')));
+    }
+    paraMap.clear();
+    paraMap.put(ClusterRepresentationUtil._managementCommand,
+        ClusterSetup.expandCluster);
+    response = assertSuccessPostOperation(clusterUrl, paraMap, false);
     
     for(int i = 3; i<= 6; i++)
     {
@@ -309,35 +488,44 @@ public class TestHelixAdminScenariosRest extends ZkIntegrationTestBase
   
   private void testInstanceOperations() throws Exception
   {
-    String command;
     HelixDataAccessor accessor;
-    boolean verifyResult;
     // drop node should fail as not disabled
-    command = "-zkSvr localhost:2183 -dropNode clusterTest1 localhost:1232";
-    assertClusterSetupException(command);
+    String instanceUrl = getInstanceUrl("clusterTest1", "localhost_1232");
+    deleteUrl(instanceUrl, true);
     
     // disabled node
-    command = "-zkSvr localhost:2183 -enableInstance clusterTest1 localhost:1232 false";
-    ClusterSetup.processCommandLineArgs(command.split(" "));
+    Map<String, String> paraMap = new HashMap<String, String>();
+    paraMap.put(ClusterRepresentationUtil._managementCommand, ClusterSetup.enableInstance);
+    paraMap.put(ClusterRepresentationUtil._enabled, "false");
+    String response = assertSuccessPostOperation(instanceUrl, paraMap, false);
+    Assert.assertTrue(response.contains("false"));
     
     // Cannot drop / swap
-    command = "-zkSvr localhost:2183 -dropNode clusterTest1 localhost:1232";
-    assertClusterSetupException(command);
+    deleteUrl(instanceUrl, true);
     
-    command = "-zkSvr localhost:2183 -swapInstance clusterTest1 localhost_1232 localhost_12320";
-    assertClusterSetupException(command);
+    String instancesUrl = getClusterUrl("clusterTest1")+"/instances";
+    paraMap.put(ClusterRepresentationUtil._managementCommand, ClusterSetup.swapInstance);
+    paraMap.put(InstancesResource._oldInstance, "localhost_1232");
+    paraMap.put(InstancesResource._newInstance, "localhost_12320");
+    response = assertSuccessPostOperation(instanceUrl, paraMap, true);
     
     // disconnect the node
     _startCMResultMap.get("localhost_1232")._manager.disconnect();
     _startCMResultMap.get("localhost_1232")._thread.interrupt();
     
     // add new node then swap instance
-    command = "-zkSvr localhost:2183 -addNode clusterTest1 localhost:12320";
-    ClusterSetup.processCommandLineArgs(command.split(" "));
+    paraMap.put(ClusterRepresentationUtil._managementCommand, ClusterSetup.addInstance);
+    paraMap.put(InstancesResource._instanceName,  "localhost_12320");
+    response = assertSuccessPostOperation(instanceUrl, paraMap, false);
+    Assert.assertTrue(response.contains("localhost_12320"));
     
     // swap instance. The instance get swapped out should not exist anymore
-    command = "-zkSvr localhost:2183 -swapInstance clusterTest1 localhost_1232 localhost_12320";
-    ClusterSetup.processCommandLineArgs(command.split(" "));
+    paraMap.put(ClusterRepresentationUtil._managementCommand, ClusterSetup.swapInstance);
+    paraMap.put(InstancesResource._oldInstance, "localhost_1232");
+    paraMap.put(InstancesResource._newInstance, "localhost_12320");
+    response = assertSuccessPostOperation(instanceUrl, paraMap, false);
+    Assert.assertTrue(response.contains("localhost_12320"));
+    Assert.assertFalse(response.contains("localhost_1232"));
     
     accessor = _startCMResultMap.get("localhost_1231")._manager.getHelixDataAccessor();
     String path = accessor.keyBuilder().instanceConfig("localhost_1232").getPath();
@@ -348,7 +536,6 @@ public class TestHelixAdminScenariosRest extends ZkIntegrationTestBase
   
   private void testStartCluster() throws Exception, InterruptedException
   {
-    String command;
     //start mock nodes
     for(int i = 0; i < 6 ; i++)
     {
@@ -369,19 +556,30 @@ public class TestHelixAdminScenariosRest extends ZkIntegrationTestBase
     
     // activate clusters
     // wrong grand clustername
-    command = "-zkSvr localhost:2183 -activateCluster clusterTest1 Klazters true";
-    assertClusterSetupException(command);
+    
+    String clusterUrl = getClusterUrl("clusterTest1");
+    Map<String, String> paraMap = new HashMap<String, String>();
+    paraMap.put(ClusterResource._enabled, "true");
+    paraMap.put(ClusterResource._grandCluster, "Klazters");
+    paraMap.put(ClusterRepresentationUtil._managementCommand,
+        ClusterSetup.activateCluster);
+    
+    String response = assertSuccessPostOperation(clusterUrl, paraMap, true);
     
     // wrong cluster name
-    command = "-zkSvr localhost:2183 -activateCluster clusterTest2 Klazt3rs true";
-    assertClusterSetupException(command);
-    
-    command = "-zkSvr localhost:2183 -activateCluster clusterTest1 Klazt3rz true";
-    ClusterSetup.processCommandLineArgs(command.split(" "));
+    clusterUrl = getClusterUrl("clusterTest2");
+    paraMap.put(ClusterResource._grandCluster, "Klazt3rz");
+    response = assertSuccessPostOperation(clusterUrl, paraMap, true);
+
+    paraMap.put(ClusterResource._enabled, "true");
+    paraMap.put(ClusterResource._grandCluster, "Klazt3rz");
+    paraMap.put(ClusterRepresentationUtil._managementCommand,
+        ClusterSetup.activateCluster);
+    clusterUrl = getClusterUrl("clusterTest1");
+    response = assertSuccessPostOperation(clusterUrl, paraMap, false);
     Thread.sleep(500);
     
-    command = "-zkSvr localhost:2183 -dropCluster clusterTest1";
-    assertClusterSetupException(command);
+    deleteUrl(clusterUrl, true);
     
     // verify leader node
     HelixDataAccessor accessor = _startCMResultMap.get("controller_9001")._manager.getHelixDataAccessor();
@@ -405,63 +603,120 @@ public class TestHelixAdminScenariosRest extends ZkIntegrationTestBase
   
   private void testRebalanceResource() throws Exception
   {
-    String command = "-zkSvr localhost:2183 -rebalance clusterTest1 db_11 3";
-    ClusterSetup.processCommandLineArgs(command.split(" "));
+    String resourceUrl = getResourceUrl("clusterTest1", "db_11");
+    Map<String, String> paraMap = new HashMap<String, String>();
+    paraMap.put(IdealStateResource._replicas, "3");
+    paraMap.put(ClusterRepresentationUtil._managementCommand,
+        ClusterSetup.rebalance);
     
-    command = "-zkSvr localhost:2183 -dropResource clusterTest1 db_11 ";
-    ClusterSetup.processCommandLineArgs(command.split(" "));
-    
+    String ISUrl = resourceUrl + "/idealState";
+    String response = assertSuccessPostOperation(ISUrl, paraMap, false);
+    ZNRecord record = JsonToObject(ZNRecord.class, response);
+    Assert.assertTrue(record.getId().equalsIgnoreCase("db_11"));
+    Assert.assertTrue((((List<String>)(record.getListFields().values().toArray()[0]))).size() == 3);
+    Assert.assertTrue((((Map<String, String>)(record.getMapFields().values().toArray()[0]))).size() == 3);
+
+    deleteUrl(resourceUrl, false);
+
     // re-add and rebalance
-    command = "-zkSvr localhost:2183 -addResource clusterTest1 db_11 48 MasterSlave";
-    ClusterSetup.processCommandLineArgs(command.split(" "));
+    String reourcesUrl = "http://localhost:" + _port + "/clusters/clusterTest1/resourceGroups";
+    response = getUrl(reourcesUrl);
+    Assert.assertFalse(response.contains("db_11"));
     
-    command = "-zkSvr localhost:2183 -rebalance clusterTest1 db_11 3";
-    ClusterSetup.processCommandLineArgs(command.split(" "));
+    paraMap = new HashMap<String, String>();
+    paraMap.put(ResourceGroupsResource._resourceGroupName, "db_11");
+    paraMap.put(ResourceGroupsResource._stateModelDefRef, "MasterSlave");
+    paraMap.put(ResourceGroupsResource._partitions, "48");
+    paraMap.put(ClusterRepresentationUtil._managementCommand,
+        ClusterSetup.addResource);
     
+    response = assertSuccessPostOperation(reourcesUrl, paraMap, false);
+    Assert.assertTrue(response.contains("db_11"));
+    
+    ISUrl = resourceUrl + "/idealState";
+    paraMap.put(IdealStateResource._replicas, "3");
+    paraMap.put(ClusterRepresentationUtil._managementCommand,
+        ClusterSetup.rebalance);
+    response = assertSuccessPostOperation(ISUrl, paraMap, false);
+    record = JsonToObject(ZNRecord.class, response);
+    Assert.assertTrue(record.getId().equalsIgnoreCase("db_11"));
+    Assert.assertTrue((((List<String>)(record.getListFields().values().toArray()[0]))).size() == 3);
+    Assert.assertTrue((((Map<String, String>)(record.getMapFields().values().toArray()[0]))).size() == 3);
+
     // rebalance with key prefix
-    command = "-zkSvr localhost:2183 -rebalance clusterTest1 db_22 2 -key alias";
-    ClusterSetup.processCommandLineArgs(command.split(" "));
+    resourceUrl = getResourceUrl("clusterTest1", "db_22");
+    ISUrl = resourceUrl + "/idealState";
+    paraMap.put(IdealStateResource._replicas, "2");
+    paraMap.put(IdealStateResource._resourceKeyPrefix, "alias");
+    paraMap.put(ClusterRepresentationUtil._managementCommand,
+        ClusterSetup.rebalance);
+    response = assertSuccessPostOperation(ISUrl, paraMap, false);
+    record = JsonToObject(ZNRecord.class, response);
+    Assert.assertTrue(record.getId().equalsIgnoreCase("db_22"));
+    Assert.assertTrue((((List<String>)(record.getListFields().values().toArray()[0]))).size() == 2);
+    Assert.assertTrue((((Map<String, String>)(record.getMapFields().values().toArray()[0]))).size() == 2);
+    Assert.assertTrue((((String)(record.getMapFields().keySet().toArray()[0]))).startsWith("alias_"));
   }
   
   private void testAddInstance() throws Exception
   {
-    String command;
+    String clusterUrl = getClusterUrl("clusterTest1");
+    Map<String, String> paraMap = new HashMap<String, String>();
+    paraMap.put(ClusterRepresentationUtil._managementCommand,
+        ClusterSetup.addInstance);
+    String response = null;
+    // Add instances to cluster
+    String instancesUrl = clusterUrl + "/instances";
     for(int i = 0; i < 3; i++)
     {
-      command = "-zkSvr localhost:2183 -addNode clusterTest1 localhost:123"+i;
-      ClusterSetup.processCommandLineArgs(command.split(" "));
+      
+      paraMap.put(InstancesResource._instanceName, "localhost:123"+i);
+      response = assertSuccessPostOperation(instancesUrl, paraMap, false);
+      Assert.assertTrue(response.contains(("localhost:123"+i).replace(':', '_')));
     }
-    command = "-zkSvr localhost:2183 -addNode clusterTest1 localhost:1233;localhost:1234;localhost:1235;localhost:1236";
-    ClusterSetup.processCommandLineArgs(command.split(" "));
+    paraMap.remove(InstancesResource._instanceName);
+    paraMap.put(InstancesResource._instanceNames, "localhost:1233;localhost:1234;localhost:1235;localhost:1236");
+
+    response = assertSuccessPostOperation(instancesUrl, paraMap, false);
+    for(int i = 3; i <= 6; i++)
+    {
+      Assert.assertTrue(response.contains("localhost_123" + i));
+    }
     
     // delete one node without disable
-    command = "-zkSvr localhost:2183 -dropNode clusterTest1 localhost:1236";
-    assertClusterSetupException(command);
+    String instanceUrl = instancesUrl + "/localhost_1236";
+    deleteUrl(instanceUrl, true);
+    response = getUrl(instancesUrl);
+    Assert.assertTrue(response.contains("localhost_1236"));
     
     // delete non-exist node
-    command = "-zkSvr localhost:2183 -dropNode clusterTest1 localhost:12367";
-    assertClusterSetupException(command);
+    instanceUrl = instancesUrl + "/localhost_12367";
+    deleteUrl(instanceUrl, true);
+    response = getUrl(instancesUrl);
+    Assert.assertFalse(response.contains("localhost_12367"));
     
     // disable node
-    command = "-zkSvr localhost:2183 -enableInstance clusterTest1 localhost:1236 false";
-    ClusterSetup.processCommandLineArgs(command.split(" "));
+    instanceUrl = instancesUrl + "/localhost_1236";
+    paraMap.put(ClusterRepresentationUtil._managementCommand, ClusterSetup.enableInstance);
+    paraMap.put(ClusterRepresentationUtil._enabled, "false");
+    response = assertSuccessPostOperation(instanceUrl, paraMap, false);
+    Assert.assertTrue(response.contains("false"));
     
-    command = "-zkSvr localhost:2183 -dropNode clusterTest1 localhost:1236";
-    ClusterSetup.processCommandLineArgs(command.split(" "));
+    deleteUrl(instanceUrl, false);
     
     // add node to controller cluster
-    command = "-zkSvr localhost:2183 -addNode Klazt3rz controller:9000;controller:9001";
-    ClusterSetup.processCommandLineArgs(command.split(" "));
+    paraMap.remove(InstancesResource._instanceName);
+    paraMap.put(ClusterRepresentationUtil._managementCommand,
+        ClusterSetup.addInstance);
+    paraMap.put(InstancesResource._instanceNames, "controller:9000;controller:9001");
+    String controllerUrl = getClusterUrl("Klazt3rz") + "/instances";
+    response = assertSuccessPostOperation(controllerUrl, paraMap, false);
+    Assert.assertTrue(response.contains("controller_9000"));
+    Assert.assertTrue(response.contains("controller_9001"));
     
     // add a dup host
-    command = "-zkSvr localhost:2183 -addNode clusterTest1 localhost:1234";
-    assertClusterSetupException(command);
-    
-    // drop and add resource
-    command = "-zkSvr localhost:2183 -dropResource clusterTest1 db_11 ";
-    ClusterSetup.processCommandLineArgs(command.split(" "));
-    
-    command = "-zkSvr localhost:2183 -addResource clusterTest1 db_11 12 MasterSlave";
-    ClusterSetup.processCommandLineArgs(command.split(" "));
+    paraMap.remove(InstancesResource._instanceNames);
+    paraMap.put(InstancesResource._instanceName, "localhost:1234");
+    response = assertSuccessPostOperation(instancesUrl, paraMap, true);
   }
 }

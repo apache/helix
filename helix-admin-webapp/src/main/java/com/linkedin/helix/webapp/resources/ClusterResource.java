@@ -170,13 +170,7 @@ public class ClusterResource extends Resource
   
         String grandCluster = jsonParameters.get(_grandCluster);
         boolean enabled = Boolean.parseBoolean(jsonParameters.get(_enabled));
-        List<String> grandClusterResourceGroups =
-            setupTool.getClusterManagementTool().getResourcesInCluster(grandCluster);
-        if (grandClusterResourceGroups.contains(clusterName))
-        {
-          throw new HelixException("Grand cluster " + grandCluster
-              + " already have a resourceGroup for " + clusterName);
-        }
+        
         setupTool.activateCluster(clusterName, grandCluster, enabled);
       }
       else if(command.equalsIgnoreCase(ClusterSetup.expandCluster))

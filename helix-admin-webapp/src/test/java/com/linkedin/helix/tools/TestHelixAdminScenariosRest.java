@@ -49,7 +49,6 @@ import com.linkedin.helix.webapp.resources.ClusterResource;
 import com.linkedin.helix.webapp.resources.ClustersResource;
 import com.linkedin.helix.webapp.resources.IdealStateResource;
 import com.linkedin.helix.webapp.resources.InstancesResource;
-import com.linkedin.helix.webapp.resources.ResourceGroupResource;
 import com.linkedin.helix.webapp.resources.ResourceGroupsResource;
 
 public class TestHelixAdminScenariosRest extends ZkIntegrationTestBase
@@ -516,16 +515,16 @@ public class TestHelixAdminScenariosRest extends ZkIntegrationTestBase
     // add new node then swap instance
     paraMap.put(ClusterRepresentationUtil._managementCommand, ClusterSetup.addInstance);
     paraMap.put(InstancesResource._instanceName,  "localhost_12320");
-    response = assertSuccessPostOperation(instanceUrl, paraMap, false);
+    response = assertSuccessPostOperation(instancesUrl, paraMap, false);
     Assert.assertTrue(response.contains("localhost_12320"));
     
     // swap instance. The instance get swapped out should not exist anymore
     paraMap.put(ClusterRepresentationUtil._managementCommand, ClusterSetup.swapInstance);
     paraMap.put(InstancesResource._oldInstance, "localhost_1232");
     paraMap.put(InstancesResource._newInstance, "localhost_12320");
-    response = assertSuccessPostOperation(instanceUrl, paraMap, false);
+    response = assertSuccessPostOperation(instancesUrl, paraMap, false);
     Assert.assertTrue(response.contains("localhost_12320"));
-    Assert.assertFalse(response.contains("localhost_1232"));
+    Assert.assertFalse(response.contains("localhost_1232\""));
     
     accessor = _startCMResultMap.get("localhost_1231")._manager.getHelixDataAccessor();
     String path = accessor.keyBuilder().instanceConfig("localhost_1232").getPath();

@@ -97,6 +97,7 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase
     System.out.println("1000 Get() time used: " + (endT - startT) + "ms");
     Assert.assertTrue((endT - startT) < 60, "1000 Gets should be finished within 50ms");
 
+    store.stop();
     System.out.println("END testSet() at " + new Date(System.currentTimeMillis()));
   }
 
@@ -156,6 +157,7 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase
     Assert.assertTrue(listener._deleteKeys.size() == expectDeleteNodes, "Should receive "
         + expectDeleteNodes + " delete callbacks");
 
+    store.stop();
     System.out.println("END testLocalTriggeredCallback() at "
         + new Date(System.currentTimeMillis()));
   }
@@ -212,6 +214,7 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase
     Assert.assertTrue(listener._deleteKeys.size() == expectDeleteNodes, "Should receive "
         + expectDeleteNodes + " delete callbacks");
 
+    store.stop();
     System.out.println("END testZkTriggeredCallback() at "
         + new Date(System.currentTimeMillis()));
   }
@@ -263,6 +266,7 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase
     }
     // System.out.println("3:get:" + record);
 
+    store.stop();
     System.out.println("END testBackToBackRemoveAndSet() at "
         + new Date(System.currentTimeMillis()));
   }

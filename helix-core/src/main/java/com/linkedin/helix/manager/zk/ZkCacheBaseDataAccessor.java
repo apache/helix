@@ -27,19 +27,18 @@ import com.linkedin.helix.store.zk.ZNode;
 
 public class ZkCacheBaseDataAccessor<T> implements BaseDataAccessor<T>
 {
-  private static final Logger LOG        =
-                                             Logger.getLogger(ZkCacheBaseDataAccessor.class);
+  private static final Logger LOG = Logger.getLogger(ZkCacheBaseDataAccessor.class);
 
-  final WriteThroughCache<T>  _wtCache;
-  protected final ZkCallbackCache<T>    _zkCache;
+  final WriteThroughCache<T> _wtCache;
+  protected final ZkCallbackCache<T> _zkCache;
 
   final ZkBaseDataAccessor<T> _baseAccessor;
   final Map<String, Cache<T>> _cacheMap;
-  final String                _chrootPath;
+  final String _chrootPath;
 
   // fire listeners
   private final ReentrantLock _eventLock = new ReentrantLock();
-  private ZkCacheEventThread  _eventThread;
+  private ZkCacheEventThread _eventThread;
 
   public ZkCacheBaseDataAccessor(ZkBaseDataAccessor<T> baseAccessor,
                                  List<String> wtCachePaths)
@@ -47,10 +46,8 @@ public class ZkCacheBaseDataAccessor<T> implements BaseDataAccessor<T>
     this(baseAccessor, null, wtCachePaths, null);
   }
 
-  public ZkCacheBaseDataAccessor(ZkBaseDataAccessor<T> baseAccessor,
-                                 String chrootPath,
-                                 List<String> wtCachePaths,
-                                 List<String> zkCachePaths)
+  public ZkCacheBaseDataAccessor(ZkBaseDataAccessor<T> baseAccessor, String chrootPath,
+                                 List<String> wtCachePaths, List<String> zkCachePaths)
   {
     LOG.info("START: Init ZkCacheBaseDataAccessor: " + chrootPath + ", " + wtCachePaths
         + ", " + zkCachePaths);
@@ -67,7 +64,8 @@ public class ZkCacheBaseDataAccessor<T> implements BaseDataAccessor<T>
 
     start();
     _wtCache = new WriteThroughCache<T>(baseAccessor, wtCachePaths);
-    _zkCache = new ZkCallbackCache<T>(baseAccessor, chrootPath, zkCachePaths, _eventThread);
+    _zkCache =
+        new ZkCallbackCache<T>(baseAccessor, chrootPath, zkCachePaths, _eventThread);
 
     // TODO: need to make sure no overlap between wtCachePaths and zkCachePaths
     // TreeMap key is ordered by key string length, so more general (i.e. short) prefix
@@ -391,6 +389,23 @@ public class ZkCacheBaseDataAccessor<T> implements BaseDataAccessor<T>
 
     // no cache
     return _baseAccessor.get(serverPath, stat, options);
+  }
+
+  public T get(String path, Stat stat, boolean returnNullIfPathNotExists, int options)
+  {
+    T data = null;
+    try
+    {
+      data = get(path, stat, options);
+    }
+    catch (ZkNoNodeException e)
+    {
+      if (!returnNullIfPathNotExists)
+      {
+        throw e;
+      }
+    }
+    return data;
   }
 
   @Override
@@ -830,7 +845,7 @@ public class ZkCacheBaseDataAccessor<T> implements BaseDataAccessor<T>
         LOG.warn(_eventThread + " has already started");
         return;
       }
-      
+
       LOG.debug("Starting ZkCacheEventThread...");
 
       _eventThread = new ZkCacheEventThread("");
@@ -853,13 +868,13 @@ public class ZkCacheBaseDataAccessor<T> implements BaseDataAccessor<T>
     try
     {
       _eventLock.lockInterruptibly();
-      
+
       if (_eventThread == null)
       {
         LOG.warn(_eventThread + " has already stopped");
         return;
       }
-      
+
       LOG.debug("Stopping ZkCacheEventThread...");
       _eventThread.interrupt();
       _eventThread.join(2000);
@@ -873,7 +888,7 @@ public class ZkCacheBaseDataAccessor<T> implements BaseDataAccessor<T>
     {
       _eventLock.unlock();
     }
-    
+
     LOG.debug("Stop ZkCacheEventThread...done");
 
   }

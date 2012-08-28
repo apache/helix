@@ -458,6 +458,7 @@ public class Message extends HelixProperty
     replyMessage.setResultMap(taskResultMap);
     replyMessage.setTgtSessionId("*");
     replyMessage.setMsgState(MessageState.NEW);
+    replyMessage.setSrcName(instanceName);
     if (srcMessage.getSrcInstanceType() == InstanceType.CONTROLLER)
     {
       replyMessage.setTgtName("Controller");

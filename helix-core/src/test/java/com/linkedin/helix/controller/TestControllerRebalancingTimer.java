@@ -215,7 +215,7 @@ public class TestControllerRebalancingTimer extends ZkStandAloneCMTestBase
     _startCMResultMap.get(instanceDead)._manager.disconnect();
     _startCMResultMap.get(instanceDead)._thread.interrupt();
 
-    waitForEVStateCount(TEST_DB, accessor, "MASTER", idealState.getNumPartitions(), 200, 4000);
+    waitForEVStateCount(TEST_DB, accessor, "MASTER", idealState.getNumPartitions(), 1000, 10000);
     Builder kb = accessor.keyBuilder();
     ExternalView ev = accessor.getProperty(kb.externalView(TEST_DB));
     for(String partitionName : idealState.getPartitionSet())

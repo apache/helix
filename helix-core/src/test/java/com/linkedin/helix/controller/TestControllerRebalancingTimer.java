@@ -13,6 +13,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import com.linkedin.helix.HelixDataAccessor;
+import com.linkedin.helix.HelixException;
 import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.TestHelper.StartCMResult;
@@ -154,7 +155,7 @@ public class TestControllerRebalancingTimer extends ZkStandAloneCMTestBase
   }
 
   @Test
-  public void testMasterSelectionBySCN() throws InterruptedException
+  public void testMasterSelectionBySCN() throws Exception
   {
     String controllerName = CONTROLLER_PREFIX + "_0";
     StartCMResult startResult =
@@ -170,6 +171,7 @@ public class TestControllerRebalancingTimer extends ZkStandAloneCMTestBase
       scnRecord.setSimpleField("instance", instance);
       scnTableMap.put(instance, scnRecord);
     }
+    String instanceDead = PARTICIPANT_PREFIX + "_" + (START_PORT + 0);
     for(int j = 0; j < _PARTITIONS; j++)
     {
       int seq = 50;
@@ -177,25 +179,27 @@ public class TestControllerRebalancingTimer extends ZkStandAloneCMTestBase
       List<String> idealStatePrefList =
           idealState.getPreferenceList(partition);
       String idealStateMaster = idealStatePrefList.get(0);
-
-
-      for(int x = 0; x < idealStatePrefList.size(); x++)
+      // Switch the scn order of the partitions mastered on instanceDead
+      if(idealStateMaster.equals(instanceDead))
       {
-        String instance = idealStatePrefList.get(x);
-        ZNRecord scnRecord = scnTableMap.get(instance);
-        if(!scnRecord.getMapFields().containsKey(partition))
+        for(int x = 0; x < idealStatePrefList.size(); x++)
         {
-          scnRecord.setMapField(partition, new HashMap<String, String>());
-        }
-        Map<String, String> scnDetails = scnRecord.getMapField(partition);
-        scnDetails.put("gen", "4");
-        if(x > 0)
-        {
-          scnDetails.put("seq", "" + (seq - 22 + 10 *(x)));
-        }
-        else
-        {
-          scnDetails.put("seq", "" + (seq));
+          String instance = idealStatePrefList.get(x);
+          ZNRecord scnRecord = scnTableMap.get(instance);
+          if(!scnRecord.getMapFields().containsKey(partition))
+          {
+            scnRecord.setMapField(partition, new HashMap<String, String>());
+          }
+          Map<String, String> scnDetails = scnRecord.getMapField(partition);
+          scnDetails.put("gen", "4");
+          if(x > 0)
+          {
+            scnDetails.put("seq", "" + (seq - 22 + 10 *(x)));
+          }
+          else
+          {
+            scnDetails.put("seq", "" + (seq - 22));
+          }
         }
       }
     }
@@ -207,11 +211,11 @@ public class TestControllerRebalancingTimer extends ZkStandAloneCMTestBase
     }
 
     // kill a node, after a while the master should be the last one in the ideal state pref list
-    String instanceDead = PARTICIPANT_PREFIX + "_" + (START_PORT + 0);
+    
     _startCMResultMap.get(instanceDead)._manager.disconnect();
     _startCMResultMap.get(instanceDead)._thread.interrupt();
 
-    Thread.sleep(3000);
+    waitForEVStateCount(TEST_DB, accessor, "MASTER", idealState.getNumPartitions(), 200, 4000);
     Builder kb = accessor.keyBuilder();
     ExternalView ev = accessor.getProperty(kb.externalView(TEST_DB));
     for(String partitionName : idealState.getPartitionSet())
@@ -224,8 +228,13 @@ public class TestControllerRebalancingTimer extends ZkStandAloneCMTestBase
       }
     }
     
-    // should be the same
-    Thread.sleep(3000);
+    // Bring up the previous dead node, but as the SCN is the last for all the 
+    // master partitions on it, the master partitions should be still on the last if the prefList
+    StartCMResult result =
+        TestHelper.startDummyProcess(ZK_ADDR, CLUSTER_NAME, instanceDead);
+    _startCMResultMap.put(instanceDead, result);
+    
+    waitForEVStateCount(TEST_DB, accessor, "MASTER", idealState.getNumPartitions(), 1000, 4000);
     ev = accessor.getProperty(kb.externalView(TEST_DB));
     for(String partitionName : idealState.getPartitionSet())
     {
@@ -236,27 +245,28 @@ public class TestControllerRebalancingTimer extends ZkStandAloneCMTestBase
         Assert.assertTrue(ev.getStateMap(partitionName).get(last).equals("MASTER"));
       }
     }
-    // reset the scn
+    // Reset the scn of the partitions
     for(int j = 0; j < _PARTITIONS; j++)
     {
-      int seq = 50;
       String partition = TEST_DB + "_" + j;
       List<String> idealStatePrefList =
           idealState.getPreferenceList(partition);
       String idealStateMaster = idealStatePrefList.get(0);
-
-
-      for(int x = 0; x < idealStatePrefList.size(); x++)
+      // Switch back the scn to the same
+      if(idealStateMaster.equals(instanceDead))
       {
-        String instance = idealStatePrefList.get(x);
-        ZNRecord scnRecord = scnTableMap.get(instance);
-        if(!scnRecord.getMapFields().containsKey(partition))
+        for(int x = 0; x < idealStatePrefList.size(); x++)
         {
-          scnRecord.setMapField(partition, new HashMap<String, String>());
+          String instance = idealStatePrefList.get(x);
+          ZNRecord scnRecord = scnTableMap.get(instance);
+          if(!scnRecord.getMapFields().containsKey(partition))
+          {
+            scnRecord.setMapField(partition, new HashMap<String, String>());
+          }
+          Map<String, String> scnDetails = scnRecord.getMapField(partition);
+          scnDetails.put("gen", "4");
+          scnDetails.put("seq", "100");
         }
-        Map<String, String> scnDetails = scnRecord.getMapField(partition);
-        scnDetails.put("gen", "4");
-        scnDetails.put("seq", "100");
       }
     }
     // set the scn to normal -- same order as the priority list
@@ -265,7 +275,8 @@ public class TestControllerRebalancingTimer extends ZkStandAloneCMTestBase
       kb = accessor.keyBuilder();
       accessor.setProperty(kb.healthReport(instanceName, "scnTable"), new HealthStat(scnTableMap.get(instanceName)));
     }
-    Thread.sleep(5000);
+    waitForEVStateCount(TEST_DB, accessor, "MASTER", idealState.getNumPartitions(), 1000, 5000);
+    
     // should be reverted to normal
     ev = accessor.getProperty(kb.externalView(TEST_DB));
     for(String partitionName : idealState.getPartitionSet())
@@ -275,8 +286,36 @@ public class TestControllerRebalancingTimer extends ZkStandAloneCMTestBase
       {
         String last = prefList.get(prefList.size() - 1);
         Assert.assertTrue(ev.getStateMap(partitionName).get(last).equals("SLAVE"));
-        Assert.assertTrue(ev.getStateMap(partitionName).get(prefList.get(1)).equals("MASTER"));
+        Assert.assertTrue(ev.getStateMap(partitionName).get(prefList.get(1)).equals("SLAVE"));
+        Assert.assertTrue(ev.getStateMap(partitionName).get(prefList.get(0)).equals("MASTER"));
       }
     }
+  }
+  
+  void waitForEVStateCount(String resourceName, HelixDataAccessor accessor, String stateVal, int stateCount, int period, int totalWaitMs) throws InterruptedException
+  {
+    ExternalView prev = accessor.getProperty(accessor.keyBuilder().externalView(resourceName));
+    for(int i = 0; i < totalWaitMs / period; i++ )
+    {
+      Thread.sleep(period);
+      ExternalView ev = accessor.getProperty(accessor.keyBuilder().externalView(resourceName));
+      int count = 0;
+      for(String partition : ev.getPartitionSet())
+      {
+        for(String state : ev.getStateMap(partition).values())
+        {
+          if(state.equals(stateVal))
+          {
+            count ++;
+          }
+        }
+      }
+      if(count == stateCount && prev.equals(ev))
+      {
+        return;
+      }
+      prev = ev;
+    }
+    throw new HelixException("state count did not reach " + stateCount + " in "+totalWaitMs + " MS");
   }
 }

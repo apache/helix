@@ -214,8 +214,13 @@ public class TestControllerRebalancingTimer extends ZkStandAloneCMTestBase
     
     _startCMResultMap.get(instanceDead)._manager.disconnect();
     _startCMResultMap.get(instanceDead)._thread.interrupt();
-
-    waitForEVStateCount(TEST_DB, accessor, "MASTER", idealState.getNumPartitions(), 1000, 10000);
+    
+    Thread.sleep(1000);
+    
+    boolean verifyResult =
+        ClusterStateVerifier.verifyByZkCallback(new MasterNbInExtViewVerifier(ZK_ADDR,
+                                                                              CLUSTER_NAME));
+    Assert.assertTrue(verifyResult);
     Builder kb = accessor.keyBuilder();
     ExternalView ev = accessor.getProperty(kb.externalView(TEST_DB));
     for(String partitionName : idealState.getPartitionSet())
@@ -233,9 +238,12 @@ public class TestControllerRebalancingTimer extends ZkStandAloneCMTestBase
     StartCMResult result =
         TestHelper.startDummyProcess(ZK_ADDR, CLUSTER_NAME, instanceDead);
     _startCMResultMap.put(instanceDead, result);
-    
-    waitForEVStateCount(TEST_DB, accessor, "MASTER", idealState.getNumPartitions(), 1000, 4000);
-    ev = accessor.getProperty(kb.externalView(TEST_DB));
+
+    Thread.sleep(1000);
+    verifyResult =
+        ClusterStateVerifier.verifyByZkCallback(new MasterNbInExtViewVerifier(ZK_ADDR,
+                                                                              CLUSTER_NAME));
+    Assert.assertTrue(verifyResult);
     for(String partitionName : idealState.getPartitionSet())
     {
       List<String> prefList = idealState.getPreferenceList(partitionName);
@@ -275,8 +283,11 @@ public class TestControllerRebalancingTimer extends ZkStandAloneCMTestBase
       kb = accessor.keyBuilder();
       accessor.setProperty(kb.healthReport(instanceName, "scnTable"), new HealthStat(scnTableMap.get(instanceName)));
     }
-    waitForEVStateCount(TEST_DB, accessor, "MASTER", idealState.getNumPartitions(), 1000, 5000);
-    
+    Thread.sleep(1000);
+    verifyResult =
+        ClusterStateVerifier.verifyByZkCallback(new MasterNbInExtViewVerifier(ZK_ADDR,
+                                                                              CLUSTER_NAME));
+    Assert.assertTrue(verifyResult);
     // should be reverted to normal
     ev = accessor.getProperty(kb.externalView(TEST_DB));
     for(String partitionName : idealState.getPartitionSet())

@@ -243,6 +243,7 @@ public class GenericHelixController implements
                         rebalancePipeline);
       registry.register("externalView", dataRefresh);
       registry.register("resume", dataRefresh, rebalancePipeline, externalViewPipeline);
+      registry.register("periodicalRebalance", dataRefresh, rebalancePipeline, externalViewPipeline);
 
       // health stats pipeline
       // Pipeline healthStatsAggregationPipeline = new Pipeline();

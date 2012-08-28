@@ -58,7 +58,7 @@ public class TestHelixAdminScenariosRest extends ZkIntegrationTestBase
   RestAdminApplication _adminApp;
   Component _component;
 
-  int _port = 2200;
+  int _port = 2201;
   void startAdminWebAppThread() throws Exception
   {
     Thread t = new Thread(new Runnable() {
@@ -121,6 +121,8 @@ public class TestHelixAdminScenariosRest extends ZkIntegrationTestBase
     //ZKPropertyTransferServer.getInstance().init(19999, ZK_ADDR);
     
     startAdminWebAppThread();
+    // Wait for the web service to start
+    Thread.sleep(100);
     
     /**======================= Add clusters ==============================*/
     

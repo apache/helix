@@ -206,6 +206,7 @@ public class TestControllerRebalancingTimer extends ZkStandAloneCMTestBase
       accessor.setProperty(kb.healthReport(instanceName, "scnTable"), new HealthStat(scnTableMap.get(instanceName)));
     }
 
+    // kill a node, after a while the master should be the last one in the ideal state pref list
     String instanceDead = PARTICIPANT_PREFIX + "_" + (START_PORT + 0);
     _startCMResultMap.get(instanceDead)._manager.disconnect();
     _startCMResultMap.get(instanceDead)._thread.interrupt();
@@ -222,6 +223,60 @@ public class TestControllerRebalancingTimer extends ZkStandAloneCMTestBase
         Assert.assertTrue(ev.getStateMap(partitionName).get(last).equals("MASTER"));
       }
     }
-    // kill a node, after a while the master should be the last one in the ideal state pref list
+    
+    // should be the same
+    Thread.sleep(3000);
+    ev = accessor.getProperty(kb.externalView(TEST_DB));
+    for(String partitionName : idealState.getPartitionSet())
+    {
+      List<String> prefList = idealState.getPreferenceList(partitionName);
+      if(prefList.get(0).equals(instanceDead))
+      {
+        String last = prefList.get(prefList.size() - 1);
+        Assert.assertTrue(ev.getStateMap(partitionName).get(last).equals("MASTER"));
+      }
+    }
+    // reset the scn
+    for(int j = 0; j < _PARTITIONS; j++)
+    {
+      int seq = 50;
+      String partition = TEST_DB + "_" + j;
+      List<String> idealStatePrefList =
+          idealState.getPreferenceList(partition);
+      String idealStateMaster = idealStatePrefList.get(0);
+
+
+      for(int x = 0; x < idealStatePrefList.size(); x++)
+      {
+        String instance = idealStatePrefList.get(x);
+        ZNRecord scnRecord = scnTableMap.get(instance);
+        if(!scnRecord.getMapFields().containsKey(partition))
+        {
+          scnRecord.setMapField(partition, new HashMap<String, String>());
+        }
+        Map<String, String> scnDetails = scnRecord.getMapField(partition);
+        scnDetails.put("gen", "4");
+        scnDetails.put("seq", "100");
+      }
+    }
+    // set the scn to normal -- same order as the priority list
+    for(String instanceName : scnTableMap.keySet())
+    {
+      kb = accessor.keyBuilder();
+      accessor.setProperty(kb.healthReport(instanceName, "scnTable"), new HealthStat(scnTableMap.get(instanceName)));
+    }
+    Thread.sleep(5000);
+    // should be reverted to normal
+    ev = accessor.getProperty(kb.externalView(TEST_DB));
+    for(String partitionName : idealState.getPartitionSet())
+    {
+      List<String> prefList = idealState.getPreferenceList(partitionName);
+      if(prefList.get(0).equals(instanceDead))
+      {
+        String last = prefList.get(prefList.size() - 1);
+        Assert.assertTrue(ev.getStateMap(partitionName).get(last).equals("SLAVE"));
+        Assert.assertTrue(ev.getStateMap(partitionName).get(prefList.get(1)).equals("MASTER"));
+      }
+    }
   }
 }

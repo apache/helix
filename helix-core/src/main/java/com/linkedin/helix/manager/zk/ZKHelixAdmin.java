@@ -28,6 +28,7 @@ import java.util.TreeMap;
 import java.util.UUID;
 
 import org.I0Itec.zkclient.DataUpdater;
+import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.apache.log4j.Logger;
 
 import com.linkedin.helix.BaseDataAccessor.Option;
@@ -221,7 +222,17 @@ public class ZKHelixAdmin implements HelixAdmin
     // check resource exists
     String idealStatePath =
         PropertyPathConfig.getPath(PropertyType.IDEALSTATES, clusterName, resourceName);
-    ZNRecord idealStateRecord = baseAccessor.get(idealStatePath, null, 0);
+
+    ZNRecord idealStateRecord = null;
+    try
+    {
+      idealStateRecord = baseAccessor.get(idealStatePath, null, 0);
+    }
+    catch (ZkNoNodeException e)
+    {
+      // OK.
+    }
+
     if (idealStateRecord == null)
     {
       throw new HelixException("Cluster: " + clusterName + ", resource: " + resourceName

@@ -10,16 +10,16 @@ import com.linkedin.helix.InstanceType;
 
 public class StandaloneController extends Thread
 {
-  private static Logger        LOG             =
-                                                   Logger.getLogger(StandaloneController.class);
+  private static Logger LOG = Logger.getLogger(StandaloneController.class);
 
   private final CountDownLatch _startCountDown = new CountDownLatch(1);
-  private final CountDownLatch _stopCountDown  = new CountDownLatch(1);
-  private final CountDownLatch _waitStopFinishCountDown  = new CountDownLatch(1);
-  
-  private final HelixManager   _manager;
+  private final CountDownLatch _stopCountDown = new CountDownLatch(1);
+  private final CountDownLatch _waitStopFinishCountDown = new CountDownLatch(1);
 
-  public StandaloneController(String clusterName, String controllerName, String zkAddr) throws Exception
+  private final HelixManager _manager;
+
+  public StandaloneController(String clusterName, String controllerName, String zkAddr)
+      throws Exception
   {
     _manager =
         HelixManagerFactory.getZKHelixManager(clusterName,
@@ -32,7 +32,7 @@ public class StandaloneController extends Thread
   {
     return _manager;
   }
-  
+
   public void syncStop()
   {
     _stopCountDown.countDown();
@@ -66,7 +66,15 @@ public class StandaloneController extends Thread
   {
     try
     {
-      _manager.connect();
+      try
+      {
+        _manager.connect();
+      }
+      catch (Exception e)
+      {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      }
       _startCountDown.countDown();
       _stopCountDown.await();
     }
@@ -77,8 +85,6 @@ public class StandaloneController extends Thread
     }
     finally
     {
-      _startCountDown.countDown();
-
       synchronized (_manager)
       {
         _manager.disconnect();

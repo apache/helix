@@ -16,6 +16,7 @@
 package com.linkedin.helix.integration;
 
 import java.util.Map;
+import java.util.logging.Level;
 
 import org.I0Itec.zkclient.ZkServer;
 import org.apache.log4j.Logger;
@@ -57,6 +58,10 @@ public class ZkIntegrationTestBase
   @BeforeSuite
   public void beforeSuite() throws Exception
   {
+    // TODO: use logging.properties file to config java.util.logging.Logger levels
+    java.util.logging.Logger topJavaLogger = java.util.logging.Logger.getLogger("");
+    topJavaLogger.setLevel(Level.WARNING);
+    
     _zkServer = TestHelper.startZkSever(ZK_ADDR);
     AssertJUnit.assertTrue(_zkServer != null);
     ZKClientPool.reset();

@@ -11,6 +11,7 @@ import org.I0Itec.zkclient.DataUpdater;
 import org.I0Itec.zkclient.IZkChildListener;
 import org.I0Itec.zkclient.IZkDataListener;
 import org.I0Itec.zkclient.exception.ZkBadVersionException;
+import org.I0Itec.zkclient.exception.ZkException;
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.I0Itec.zkclient.exception.ZkNodeExistsException;
 import org.apache.log4j.Logger;
@@ -465,7 +466,15 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
   @Override
   public boolean remove(String path, int options)
   {
-    _zkClient.deleteRecursive(path);
+    try
+    {
+      // optimize on common path
+      _zkClient.delete(path);
+    }
+    catch (ZkException e)
+    {
+      _zkClient.deleteRecursive(path);
+    }
     return true;
   }
 

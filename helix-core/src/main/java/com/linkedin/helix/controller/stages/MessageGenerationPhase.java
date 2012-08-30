@@ -172,6 +172,7 @@ public class MessageGenerationPhase extends AbstractBaseStage
                 logger.error("", e);
               }
             }          
+            message.getRecord().setSimpleField("ClusterEventName", event.getName());
             output.addMessage(resourceName, partition, message);
           }
         }

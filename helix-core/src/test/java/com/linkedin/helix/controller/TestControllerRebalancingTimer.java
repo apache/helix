@@ -136,25 +136,6 @@ public class TestControllerRebalancingTimer extends ZkStandAloneCMTestBase
   }
 
   @Test
-  public void TestRebalancingTimer() throws Exception
-  {
-    String controllerName = CONTROLLER_PREFIX + "_0";
-    GenericHelixController controller = new GenericHelixController();
-    _startCMResultMap.get(controllerName)._manager.addIdealStateChangeListener(controller);
-
-    Assert.assertTrue(controller._rebalanceTimer != null);
-    Assert.assertEquals(controller._timerPeriod, 500);
-
-    String command = "-zkSvr " + ZK_ADDR + " -addResourceProperty "+ CLUSTER_NAME + " " + TEST_DB + " " + IdealState.IdealStateProperty.REBALANCE_TIMER_PERIOD.toString() + " 200";
-
-    ClusterSetup.processCommandLineArgs(command.split(" "));
-
-    Thread.sleep(1000);
-    Assert.assertTrue(controller._rebalanceTimer != null);
-    Assert.assertEquals(controller._timerPeriod, 200);
-  }
-
-  @Test
   public void testMasterSelectionBySCN() throws Exception
   {
     String controllerName = CONTROLLER_PREFIX + "_0";
@@ -198,7 +179,7 @@ public class TestControllerRebalancingTimer extends ZkStandAloneCMTestBase
           }
           else
           {
-            scnDetails.put("seq", "" + (seq - 22));
+            scnDetails.put("seq", "100");
           }
         }
       }
@@ -301,32 +282,5 @@ public class TestControllerRebalancingTimer extends ZkStandAloneCMTestBase
         Assert.assertTrue(ev.getStateMap(partitionName).get(prefList.get(0)).equals("MASTER"));
       }
     }
-  }
-  
-  void waitForEVStateCount(String resourceName, HelixDataAccessor accessor, String stateVal, int stateCount, int period, int totalWaitMs) throws InterruptedException
-  {
-    ExternalView prev = accessor.getProperty(accessor.keyBuilder().externalView(resourceName));
-    for(int i = 0; i < totalWaitMs / period; i++ )
-    {
-      Thread.sleep(period);
-      ExternalView ev = accessor.getProperty(accessor.keyBuilder().externalView(resourceName));
-      int count = 0;
-      for(String partition : ev.getPartitionSet())
-      {
-        for(String state : ev.getStateMap(partition).values())
-        {
-          if(state.equals(stateVal))
-          {
-            count ++;
-          }
-        }
-      }
-      if(count == stateCount && prev.equals(ev))
-      {
-        return;
-      }
-      prev = ev;
-    }
-    throw new HelixException("state count did not reach " + stateCount + " in "+totalWaitMs + " MS");
   }
 }

@@ -85,15 +85,13 @@ public class HelixStateTransitionHandler extends MessageHandler
     // Verify the fromState and current state of the stateModel
     String state = _currentStateDelta.getState(partitionName);
     
-    logger.error("processing " + message.getPartitionName() + " " + message.getFromState() + " "+ message.getToState() + message.getRecord().getSimpleField("EventName") + message.getMsgId());
-    
     if (fromState != null && !fromState.equals("*") && !fromState.equalsIgnoreCase(state))
     {
       String errorMessage =
           "Current state of stateModel does not match the fromState in Message"
               + ", Current State:" + state + ", message expected:" + fromState
               + ", partition: " + partitionName + ", from: " + message.getMsgSrc()
-              + ", to: " + message.getTgtName() + message.getRecord().getSimpleField("EventName");
+              + ", to: " + message.getTgtName();
 
       _statusUpdateUtil.logError(message,
                                  HelixStateTransitionHandler.class,
@@ -232,7 +230,6 @@ public class HelixStateTransitionHandler extends MessageHandler
           exception = e;
         }
         postExecutionMessage(manager, message, context, taskResult, exception);
-        logger.error("ending " + message.getPartitionName() + " " + message.getFromState() + " "+ message.getToState() + message.getRecord().getSimpleField("EventName") + message.getMsgId());
         
         return taskResult;
       }

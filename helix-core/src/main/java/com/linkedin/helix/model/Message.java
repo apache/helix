@@ -65,7 +65,7 @@ public class Message extends HelixProperty
     CORRELATION_ID,
     MESSAGE_RESULT,
     EXE_SESSION_ID,
-    MESSAGE_TIMEOUT,
+    TIMEOUT,
     RETRY_COUNT,
     STATE_MODEL_FACTORY_NAME,
     BUCKET_SIZE;
@@ -359,13 +359,13 @@ public class Message extends HelixProperty
 
   public int getExecutionTimeout()
   {
-    if (!_record.getSimpleFields().containsKey(Attributes.MESSAGE_TIMEOUT.toString()))
+    if (!_record.getSimpleFields().containsKey(Attributes.TIMEOUT.toString()))
     {
       return -1;
     }
     try
     {
-      return Integer.parseInt(_record.getSimpleField(Attributes.MESSAGE_TIMEOUT.toString()));
+      return Integer.parseInt(_record.getSimpleField(Attributes.TIMEOUT.toString()));
     }
     catch (Exception e)
     {
@@ -375,7 +375,7 @@ public class Message extends HelixProperty
 
   public void setExecutionTimeout(int timeout)
   {
-    _record.setSimpleField(Attributes.MESSAGE_TIMEOUT.toString(), "" + timeout);
+    _record.setSimpleField(Attributes.TIMEOUT.toString(), "" + timeout);
   }
 
   public void setRetryCount(int retryCount)

@@ -67,6 +67,7 @@ public class HelixTask implements Callable<HelixTaskResult>
       _isTimeout = true;
       logger.warn("Message time out, canceling. id:" + _message.getMsgId()
           + " timeout : " + _message.getExecutionTimeout());
+      _handler.onTimeout();
       _executor.cancelTask(_message, _context);
     }
 
@@ -106,8 +107,8 @@ public class HelixTask implements Callable<HelixTaskResult>
     HelixTaskResult taskResult = new HelixTaskResult();
 
     Exception exception = null;
-    ErrorType type = null;
-    ErrorCode code = null;
+    ErrorType type = ErrorType.INTERNAL;
+    ErrorCode code = ErrorCode.ERROR;
 
     long start = System.currentTimeMillis();
     logger.info("msg:" + _message.getMsgId() + " handling task begin, at: "
@@ -168,7 +169,7 @@ public class HelixTask implements Callable<HelixTaskResult>
     else if (taskResult.isInterrupted())
     {
       logger.info("Message " + _message.getMsgId() + " is interrupted");
-      code = ErrorCode.CANCEL;
+      code = _isTimeout ? ErrorCode.TIMEOUT : ErrorCode.CANCEL;
       if (_isTimeout)
       {
         int retryCount = _message.getRetryCount();

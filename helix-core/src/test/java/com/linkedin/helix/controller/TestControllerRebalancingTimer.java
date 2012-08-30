@@ -194,11 +194,11 @@ public class TestControllerRebalancingTimer extends ZkStandAloneCMTestBase
           scnDetails.put("gen", "4");
           if(x > 0)
           {
-            scnDetails.put("seq", "" + (seq - 22 + 10 *(x)));
+            scnDetails.put("seq", "" + (seq - 22 + 11 *(x)));
           }
           else
           {
-            scnDetails.put("seq", "" + (seq - 22));
+            scnDetails.put("seq", "100");
           }
         }
       }

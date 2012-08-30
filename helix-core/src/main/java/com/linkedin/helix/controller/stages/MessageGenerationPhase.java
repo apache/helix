@@ -148,6 +148,8 @@ public class MessageGenerationPhase extends AbstractBaseStage
                               resource.getStateModelFactoryname(),
                               bucketSize);
 
+            message.getRecord().setSimpleField("EventName", event.getName());
+
             output.addMessage(resourceName, partition, message);
           }
         }

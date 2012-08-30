@@ -91,7 +91,7 @@ public class HelixStateTransitionHandler extends MessageHandler
           "Current state of stateModel does not match the fromState in Message"
               + ", Current State:" + state + ", message expected:" + fromState
               + ", partition: " + partitionName + ", from: " + message.getMsgSrc()
-              + ", to: " + message.getTgtName();
+              + ", to: " + message.getTgtName() + message.getRecord().getSimpleField("EventName");
 
       _statusUpdateUtil.logError(message,
                                  HelixStateTransitionHandler.class,

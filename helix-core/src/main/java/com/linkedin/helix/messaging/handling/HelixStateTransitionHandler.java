@@ -41,12 +41,20 @@ import com.linkedin.helix.util.StatusUpdateUtil;
 
 public class HelixStateTransitionHandler extends MessageHandler
 {
+  public static class HelixStateMismatchException extends Exception
+  {
+    public HelixStateMismatchException(String info)
+    {
+      super(info);
+    }
+  }
   private static Logger          logger =
                                             Logger.getLogger(HelixStateTransitionHandler.class);
   private final StateModel       _stateModel;
   StatusUpdateUtil               _statusUpdateUtil;
   private final StateModelParser _transitionMethodFinder;
   private final CurrentState     _currentStateDelta;
+  volatile boolean _isTimeout = false;
 
   public HelixStateTransitionHandler(StateModel stateModel,
                                      Message message,
@@ -60,7 +68,7 @@ public class HelixStateTransitionHandler extends MessageHandler
     _currentStateDelta = currentStateDelta;
   }
 
-  private void prepareMessageExecution(HelixManager manager, Message message) throws HelixException
+  private void prepareMessageExecution(HelixManager manager, Message message) throws HelixException, HelixStateMismatchException
   {
     if (!message.isValid())
     {
@@ -98,7 +106,7 @@ public class HelixStateTransitionHandler extends MessageHandler
                                  errorMessage,
                                  accessor);
       logger.error(errorMessage);
-      throw new HelixException(errorMessage);
+      throw new HelixStateMismatchException(errorMessage);
     }
   }
 
@@ -106,7 +114,7 @@ public class HelixStateTransitionHandler extends MessageHandler
                             Message message,
                             NotificationContext context,
                             HelixTaskResult taskResult,
-                            Exception exception) throws InterruptedException
+                            Exception exception)
   {
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
     Builder keyBuilder = accessor.keyBuilder();
@@ -157,7 +165,20 @@ public class HelixStateTransitionHandler extends MessageHandler
       {
         StateTransitionError error =
             new StateTransitionError(ErrorType.INTERNAL, ErrorCode.ERROR, exception);
-
+        if(exception instanceof InterruptedException)
+        {
+          if(_isTimeout)
+          {
+            error = new StateTransitionError(ErrorType.INTERNAL, ErrorCode.TIMEOUT, exception);
+          }
+          else
+          {
+            // State transition interrupted but not caused by timeout. Keep the current state in this case
+            logger.error("State transition interrupted but not timeout. Not updating state. Partition : " 
+                + message.getPartitionName() + " MsgId : " + message.getMsgId());
+            return;
+          }
+        }
         _stateModel.rollbackOnError(message, context, error);
         _currentStateDelta.setState(partitionKey, "ERROR");
         _stateModel.updateState("ERROR");
@@ -192,12 +213,10 @@ public class HelixStateTransitionHandler extends MessageHandler
     {
       HelixTaskResult taskResult = new HelixTaskResult();
       HelixManager manager = context.getManager();
-      // DataAccessor accessor = manager.getDataAccessor();
       HelixDataAccessor accessor = manager.getHelixDataAccessor();
-      Builder keyBuilder = accessor.keyBuilder();
 
-      try
-      {
+    //  try
+    //  {
         _statusUpdateUtil.logInfo(message,
                                   HelixStateTransitionHandler.class,
                                   "Message handling task begin execute",
@@ -210,14 +229,24 @@ public class HelixStateTransitionHandler extends MessageHandler
           prepareMessageExecution(manager, message);
           invoke(accessor, context, taskResult, message);
         }
-        catch (InterruptedException e)
+        catch(HelixStateMismatchException e)
         {
-          throw e;
+          // Simply log error and return from here if State mismatch. 
+          // The current state of the state model is intact.
+          taskResult.setSuccess(false);
+          taskResult.setMessage(e.toString());
+          taskResult.setException(e);
+          exception = e;
+          return taskResult;
         }
         catch (Exception e)
         {
-          String errorMessage = "Exception while executing a state transition task. ";
-          logger.error(errorMessage + ". " + e.getMessage(), e);
+          String errorMessage = "Exception while executing a state transition task "+ message.getPartitionName();
+          logger.error(errorMessage, e);
+          if(e.getCause() != null && e.getCause() instanceof InterruptedException)
+          {
+            e = (InterruptedException) e.getCause();
+          }
           _statusUpdateUtil.logError(message,
                                      HelixStateTransitionHandler.class,
                                      e,
@@ -226,32 +255,12 @@ public class HelixStateTransitionHandler extends MessageHandler
           taskResult.setSuccess(false);
           taskResult.setMessage(e.toString());
           taskResult.setException(e);
-
+          taskResult.setInterrupted(e instanceof InterruptedException);
           exception = e;
         }
         postExecutionMessage(manager, message, context, taskResult, exception);
         
         return taskResult;
-      }
-      catch (InterruptedException e)
-      {
-        _statusUpdateUtil.logError(message,
-                                   HelixStateTransitionHandler.class,
-                                   e,
-                                   "State transition interrupted",
-                                   accessor);
-        logger.info("Message " + message.getMsgId() + " is interrupted");
-
-        StateTransitionError error =
-            new StateTransitionError(ErrorType.FRAMEWORK, ErrorCode.CANCEL, e);
-
-        _stateModel.rollbackOnError(message, context, error);
-        // We have handled the cancel case here, so no need to let outside know
-        // taskResult.setInterrupted(true);
-        // taskResult.setException(e);
-        taskResult.setSuccess(false);
-        return taskResult;
-      }
     }
   }
 
@@ -290,7 +299,6 @@ public class HelixStateTransitionHandler extends MessageHandler
       logger.error(errorMessage);
       taskResult.setSuccess(false);
 
-      System.out.println(errorMessage);
       _statusUpdateUtil.logError(message,
                                  HelixStateTransitionHandler.class,
                                  errorMessage,
@@ -299,7 +307,7 @@ public class HelixStateTransitionHandler extends MessageHandler
   }
 
   @Override
-  public HelixTaskResult handleMessage() throws InterruptedException
+  public HelixTaskResult handleMessage()
   {
     return handleMessageInternal(_message, _notificationContext);
   }
@@ -307,6 +315,12 @@ public class HelixStateTransitionHandler extends MessageHandler
   @Override
   public void onError(Exception e, ErrorCode code, ErrorType type)
   {
+    // All internal error has been processed already, so we can skip them
+    if(type == ErrorType.INTERNAL)
+    {
+      logger.error("Skip internal error " + e.getMessage() + " " + code);
+      return;
+    }
     HelixManager manager = _notificationContext.getManager();
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
     Builder keyBuilder = accessor.keyBuilder();
@@ -329,5 +343,11 @@ public class HelixStateTransitionHandler extends MessageHandler
         resourceName),
         currentStateDelta);
     }
+  }
+  
+  @Override
+  public void onTimeout()
+  {
+    _isTimeout = true;
   }
 };

@@ -15,12 +15,18 @@
  */
 package com.linkedin.helix.controller.stages;
 
+import java.io.StringReader;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.UUID;
 
 import org.apache.log4j.Logger;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.type.TypeReference;
 
+import com.linkedin.helix.ConfigScope;
+import com.linkedin.helix.ConfigScopeBuilder;
 import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.controller.pipeline.AbstractBaseStage;
 import com.linkedin.helix.controller.pipeline.StageException;
@@ -28,6 +34,7 @@ import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.model.Message;
 import com.linkedin.helix.model.Message.MessageState;
 import com.linkedin.helix.model.Message.MessageType;
+import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.model.Partition;
 import com.linkedin.helix.model.Resource;
 import com.linkedin.helix.model.StateModelDefinition;
@@ -147,9 +154,25 @@ public class MessageGenerationPhase extends AbstractBaseStage
                               stateModelDef.getId(),
                               resource.getStateModelFactoryname(),
                               bucketSize);
-
+            IdealState idealState = cache.getIdealState(resourceName);
+            // Set timeout of needed
+            String stateTransition = currentState + "-" + nextState + "_" + Message.Attributes.TIMEOUT;
+            if(idealState.getRecord().getSimpleField(stateTransition) != null)
+            {
+              try
+              {
+                int timeout = Integer.parseInt(idealState.getRecord().getSimpleField(stateTransition));
+                if(timeout > 0)
+                {
+                  message.setExecutionTimeout(timeout);
+                }
+              }
+              catch(Exception e)
+              {
+                logger.error("", e);
+              }
+            }          
             message.getRecord().setSimpleField("ClusterEventName", event.getName());
-
             output.addMessage(resourceName, partition, message);
           }
         }

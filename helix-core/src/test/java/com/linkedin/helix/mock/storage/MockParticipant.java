@@ -48,14 +48,14 @@ public class MockParticipant extends Thread
   private final CountDownLatch _waitStopFinishCountDown  = new CountDownLatch(1);
 
   private final HelixManager _manager;
-  private final MockMSModelFactory _msModelFacotry;
+  private final StateModelFactory _msModelFactory;
   private final MockJobIntf _job;
 
   // mock master-slave state model
   @StateModelInfo(initialState = "OFFLINE", states = { "MASTER", "SLAVE", "ERROR" })
-  public class MockMSStateModel extends StateModel
+  public static class MockMSStateModel extends StateModel
   {
-    private MockTransition _transition;
+    protected MockTransition _transition;
     public MockMSStateModel(MockTransition transition)
     {
       _transition = transition;
@@ -67,7 +67,7 @@ public class MockParticipant extends Thread
     }
 
     @Transition(to="SLAVE",from="OFFLINE")
-    public void onBecomeSlaveFromOffline(Message message, NotificationContext context)
+    public void onBecomeSlaveFromOffline(Message message, NotificationContext context) throws InterruptedException
     {
       LOG.info("Become SLAVE from OFFLINE");
       if (_transition != null)
@@ -78,7 +78,7 @@ public class MockParticipant extends Thread
     }
 
     @Transition(to="MASTER",from="SLAVE")
-    public void onBecomeMasterFromSlave(Message message, NotificationContext context)
+    public void onBecomeMasterFromSlave(Message message, NotificationContext context) throws InterruptedException
     {
       LOG.info("Become MASTER from SLAVE");
       if (_transition != null)
@@ -88,7 +88,7 @@ public class MockParticipant extends Thread
     }
 
     @Transition(to="SLAVE",from="MASTER")
-    public void onBecomeSlaveFromMaster(Message message, NotificationContext context)
+    public void onBecomeSlaveFromMaster(Message message, NotificationContext context) throws InterruptedException
     {
       LOG.info("Become SLAVE from MASTER");
       if (_transition != null)
@@ -98,7 +98,7 @@ public class MockParticipant extends Thread
     }
 
     @Transition(to="OFFLINE",from="SLAVE")
-    public void onBecomeOfflineFromSlave(Message message, NotificationContext context)
+    public void onBecomeOfflineFromSlave(Message message, NotificationContext context) throws InterruptedException
     {
       LOG.info("Become OFFLINE from SLAVE");
       if (_transition != null)
@@ -108,7 +108,7 @@ public class MockParticipant extends Thread
     }
 
     @Transition(to="DROPPED",from="OFFLINE")
-    public void onBecomeDroppedFromOffline(Message message, NotificationContext context)
+    public void onBecomeDroppedFromOffline(Message message, NotificationContext context) throws InterruptedException
     {
       LOG.info("Become DROPPED from OFFLINE");
       if (_transition != null)
@@ -118,7 +118,7 @@ public class MockParticipant extends Thread
     }
 
     @Transition(to = "OFFLINE", from = "ERROR")
-    public void onBecomeOfflineFromError(Message message, NotificationContext context)
+    public void onBecomeOfflineFromError(Message message, NotificationContext context) throws InterruptedException
     {
       LOG.info("Become OFFLINE from ERROR");
       // System.err.println("Become OFFLINE from ERROR");
@@ -140,7 +140,7 @@ public class MockParticipant extends Thread
   }
 
   // mock master slave state model factory
-  public class MockMSModelFactory
+  public static class MockMSModelFactory
     extends StateModelFactory<MockMSStateModel>
   {
     private final MockTransition _transition;
@@ -314,17 +314,10 @@ public class MockParticipant extends Thread
     }
 
     @Override
-    public void doTransition(Message message, NotificationContext context)
+    public void doTransition(Message message, NotificationContext context) throws InterruptedException
     {
-      try
-      {
         Thread.sleep(_delay);
-      }
-      catch (InterruptedException e)
-      {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
-      }
+      
     }
   }
 
@@ -347,7 +340,7 @@ public class MockParticipant extends Thread
   {
     _clusterName = clusterName;
     _instanceName = instanceName;
-    _msModelFacotry = new MockMSModelFactory(transition);
+    _msModelFactory = new MockMSModelFactory(transition);
 
     _manager = HelixManagerFactory.getZKHelixManager(_clusterName,
         _instanceName,
@@ -355,22 +348,43 @@ public class MockParticipant extends Thread
         zkAddr);
     _job = job;
   }
+  
+  public MockParticipant(StateModelFactory factory, String clusterName, String instanceName, String zkAddr, MockJobIntf job
+      )
+    throws Exception
+  {
+    _clusterName = clusterName;
+    _instanceName = instanceName;
+    _msModelFactory = factory;
 
+    _manager = HelixManagerFactory.getZKHelixManager(_clusterName,
+        _instanceName,
+        InstanceType.PARTICIPANT,
+        zkAddr);
+    _job = job;
+  }
+  
+  public StateModelFactory getStateModelFactory()
+  {
+    return _msModelFactory;
+  }
   public MockParticipant(HelixManager manager, MockTransition transition)
   {
     _clusterName = manager.getClusterName();
     _instanceName = manager.getInstanceName();
     _manager = manager;
 
-    _msModelFacotry = new MockMSModelFactory(transition);
+    _msModelFactory = new MockMSModelFactory(transition);
     _job = null;
   }
 
   public void setTransition(MockTransition transition)
   {
-    _msModelFacotry.setTrasition(transition);
+    if(_msModelFactory instanceof MockMSModelFactory)
+    {
+      ((MockMSModelFactory)_msModelFactory).setTrasition(transition);
+    }
   }
-
   public HelixManager getManager()
   {
     return _manager;
@@ -425,7 +439,7 @@ public class MockParticipant extends Thread
     try
     {
       StateMachineEngine stateMach = _manager.getStateMachineEngine();
-      stateMach.registerStateModelFactory("MasterSlave", _msModelFacotry);
+      stateMach.registerStateModelFactory("MasterSlave", _msModelFactory);
 
       DummyLeaderStandbyStateModelFactory lsModelFactory = new DummyLeaderStandbyStateModelFactory(10);
       DummyOnlineOfflineStateModelFactory ofModelFactory = new DummyOnlineOfflineStateModelFactory(10);

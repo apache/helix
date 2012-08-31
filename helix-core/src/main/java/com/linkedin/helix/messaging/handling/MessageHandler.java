@@ -32,7 +32,7 @@ public abstract class MessageHandler
   
   public enum ErrorCode
   {
-    ERROR, CANCEL
+    ERROR, CANCEL, TIMEOUT
   }
   /**
    * The message to be handled 
@@ -72,4 +72,12 @@ public abstract class MessageHandler
    * customer's code
    */
   public abstract void onError(Exception e, ErrorCode code, ErrorType type);
+  
+  /**
+   * Callback when the framework is about to interrupt the message handler 
+   */
+  public void onTimeout()
+  {
+    
+  }
 }

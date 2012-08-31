@@ -30,7 +30,8 @@ public class HelixProperty
 {
   public enum HelixPropertyAttribute
   {
-    BUCKET_SIZE
+    BUCKET_SIZE,
+    GROUP_MESSAGE_MODE
   }
 
   protected final ZNRecord _record;
@@ -173,6 +174,31 @@ public class HelixProperty
     return records;
   }
 
+  public void setGroupMessageMode(boolean enable)
+  {
+    _record.setSimpleField(HelixPropertyAttribute.GROUP_MESSAGE_MODE.toString(), ""
+        + enable);
+  }
+
+  public boolean getGroupMessageMode()
+  {
+    String enableStr =
+        _record.getSimpleField(HelixPropertyAttribute.GROUP_MESSAGE_MODE.toString());
+    if (enableStr == null)
+    {
+      return false;
+    }
+
+    try
+    {
+      return Boolean.parseBoolean(enableStr.toLowerCase());
+    }
+    catch (Exception e)
+    {
+      return false;
+    }
+  }
+  
   public boolean isValid()
   {
     return false;

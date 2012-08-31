@@ -40,7 +40,6 @@ public class IdealState extends HelixProperty
     REPLICAS,
     IDEAL_STATE_MODE,
     REBALANCE_TIMER_PERIOD
-//    BUCKET_SIZE
   }
 
   public static final String QUERY_LIST = "PREFERENCE_LIST_QUERYS";
@@ -118,7 +117,6 @@ public class IdealState extends HelixProperty
     return _record.getMapField(partitionName);
   }
 
-
   public List<String> getPreferenceList(String partitionName)
   {
     List<String> instanceStateList = _record.getListField(partitionName);
@@ -178,15 +176,17 @@ public class IdealState extends HelixProperty
     {
       logger.warn("could NOT found replicas in idealState. Use size of the first list/map instead: "
           + _record);
-      switch(getIdealStateMode())
+      switch (getIdealStateMode())
       {
       case AUTO:
         if (_record.getListFields().size() == 0)
         {
           replica = "0";
-        } else
+        }
+        else
         {
-          List<String> list = new ArrayList<List<String>>(_record.getListFields().values()).get(0);
+          List<String> list =
+              new ArrayList<List<String>>(_record.getListFields().values()).get(0);
           replica = Integer.toString(list == null ? 0 : list.size());
         }
         break;
@@ -194,9 +194,11 @@ public class IdealState extends HelixProperty
         if (_record.getMapFields().size() == 0)
         {
           replica = "0";
-        } else
+        }
+        else
         {
-          Map<String, String> list = new ArrayList<Map<String, String>>(_record.getMapFields().values()).get(0);
+          Map<String, String> list =
+              new ArrayList<Map<String, String>>(_record.getMapFields().values()).get(0);
           replica = Integer.toString(list == null ? 0 : list.size());
         }
         break;
@@ -222,14 +224,16 @@ public class IdealState extends HelixProperty
 
   public int getRebalanceTimerPeriod()
   {
-    if(_record.getSimpleFields().containsKey(IdealStateProperty.REBALANCE_TIMER_PERIOD.toString()))
+    if (_record.getSimpleFields()
+               .containsKey(IdealStateProperty.REBALANCE_TIMER_PERIOD.toString()))
     {
       try
       {
-        int result = Integer.parseInt(_record.getSimpleField(IdealStateProperty.REBALANCE_TIMER_PERIOD.toString()));
+        int result =
+            Integer.parseInt(_record.getSimpleField(IdealStateProperty.REBALANCE_TIMER_PERIOD.toString()));
         return result;
       }
-      catch(Exception e)
+      catch (Exception e)
       {
         logger.error("", e);
       }

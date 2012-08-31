@@ -100,7 +100,7 @@ public class HelixTask implements Callable<HelixTaskResult>
     }
     else
     {
-      logger.info("Message does not have timeout. MsgId:" + _message.getMsgId());
+      logger.info("Message does not have timeout. MsgId:" + _message.getMsgId() + "/" + _message.getPartitionName());
     }
 
     HelixTaskResult taskResult = new HelixTaskResult();
@@ -207,12 +207,15 @@ public class HelixTask implements Callable<HelixTaskResult>
     // Post-processing for the finished task
     try
     {
-      removeMessageFromZk(accessor, _message);
-      _executor.reportCompletion(_message.getMsgId());
-      reportMessageStat(_manager, _message, taskResult);
-
-      sendReply(accessor, _message, taskResult);
+      if (_message.getGroupMsgCountDown().decrementAndGet() <= 0)
+      {
+        removeMessageFromZk(accessor, _message);
+        reportMessageStat(_manager, _message, taskResult);
+        sendReply(accessor, _message, taskResult);
+      }
+      _executor.reportCompletion(_message);
     }
+    
     // TODO: capture errors and log here
     catch (Exception e)
     {

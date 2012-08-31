@@ -15,6 +15,7 @@
  */
 package com.linkedin.helix.controller.stages;
 
+import java.util.List;
 import java.util.Map;
 
 import com.linkedin.helix.controller.pipeline.AbstractBaseStage;
@@ -27,12 +28,12 @@ import com.linkedin.helix.model.Partition;
 import com.linkedin.helix.model.Resource;
 
 /**
- * For each LiveInstances select currentState and message whose sessionId
- * matches sessionId from LiveInstance Get Partition,State for all the
- * resources computed in previous State [ResourceComputationStage]
- *
+ * For each LiveInstances select currentState and message whose sessionId matches
+ * sessionId from LiveInstance Get Partition,State for all the resources computed in
+ * previous State [ResourceComputationStage]
+ * 
  * @author kgopalak
- *
+ * 
  */
 public class CurrentStateComputationStage extends AbstractBaseStage
 {
@@ -40,16 +41,17 @@ public class CurrentStateComputationStage extends AbstractBaseStage
   public void process(ClusterEvent event) throws Exception
   {
     ClusterDataCache cache = event.getAttribute("ClusterDataCache");
-    if (cache == null)
+    Map<String, Resource> resourceMap =
+        event.getAttribute(AttributeName.RESOURCES.toString());
+
+    if (cache == null || resourceMap == null)
     {
       throw new StageException("Missing attributes in event:" + event
-          + ". Requires DataCache");
+          + ". Requires DataCache|RESOURCE");
     }
 
     Map<String, LiveInstance> liveInstances = cache.getLiveInstances();
     CurrentStateOutput currentStateOutput = new CurrentStateOutput();
-    Map<String, Resource> resourceMap = event
-        .getAttribute(AttributeName.RESOURCES.toString());
 
     for (LiveInstance instance : liveInstances.values())
     {
@@ -57,8 +59,8 @@ public class CurrentStateComputationStage extends AbstractBaseStage
       Map<String, Message> instanceMessages = cache.getMessages(instanceName);
       for (Message message : instanceMessages.values())
       {
-        if (!MessageType.STATE_TRANSITION.toString().equalsIgnoreCase(
-            message.getMsgType()))
+        if (!MessageType.STATE_TRANSITION.toString()
+                                         .equalsIgnoreCase(message.getMsgType()))
         {
           continue;
         }
@@ -72,15 +74,44 @@ public class CurrentStateComputationStage extends AbstractBaseStage
         {
           continue;
         }
-        Partition partition = resource.getPartition(message
-            .getPartitionName());
-        if (partition != null)
+
+        if (!message.getGroupMessageMode())
         {
-          currentStateOutput.setPendingState(resourceName, partition,
-              instanceName, message.getToState());
-        } else
+          String partitionName = message.getPartitionName();
+          Partition partition = resource.getPartition(partitionName);
+          if (partition != null)
+          {
+            currentStateOutput.setPendingState(resourceName,
+                                               partition,
+                                               instanceName,
+                                               message.getToState());
+          }
+          else
+          {
+            // log
+          }
+        }
+        else
         {
-          // log
+          List<String> partitionNames = message.getPartitionNames();
+          if (!partitionNames.isEmpty())
+          {
+            for (String partitionName : partitionNames)
+            {
+              Partition partition = resource.getPartition(partitionName);
+              if (partition != null)
+              {
+                currentStateOutput.setPendingState(resourceName,
+                                                   partition,
+                                                   instanceName,
+                                                   message.getToState());
+              }
+              else
+              {
+                // log
+              }
+            }
+          }
         }
       }
     }
@@ -89,7 +120,8 @@ public class CurrentStateComputationStage extends AbstractBaseStage
       String instanceName = instance.getInstanceName();
 
       String clientSessionId = instance.getSessionId();
-      Map<String, CurrentState> currentStateMap = cache.getCurrentState(instanceName, clientSessionId);
+      Map<String, CurrentState> currentStateMap =
+          cache.getCurrentState(instanceName, clientSessionId);
       for (CurrentState currentState : currentStateMap.values())
       {
 
@@ -106,31 +138,30 @@ public class CurrentStateComputationStage extends AbstractBaseStage
         }
         if (stateModelDefName != null)
         {
-          currentStateOutput.setResourceStateModelDef(resourceName,
-              stateModelDefName);
+          currentStateOutput.setResourceStateModelDef(resourceName, stateModelDefName);
         }
-        
+
         currentStateOutput.setBucketSize(resourceName, currentState.getBucketSize());
 
-        Map<String, String> partitionStateMap = currentState
-            .getPartitionStateMap();
+        Map<String, String> partitionStateMap = currentState.getPartitionStateMap();
         for (String partitionName : partitionStateMap.keySet())
         {
-          Partition partition = resource
-              .getPartition(partitionName);
+          Partition partition = resource.getPartition(partitionName);
           if (partition != null)
           {
-            currentStateOutput.setCurrentState(resourceName, partition,
-                instanceName, currentState.getState(partitionName));
+            currentStateOutput.setCurrentState(resourceName,
+                                               partition,
+                                               instanceName,
+                                               currentState.getState(partitionName));
 
-          } else
+          }
+          else
           {
             // log
           }
         }
       }
     }
-    event.addAttribute(AttributeName.CURRENT_STATE.toString(),
-        currentStateOutput);
+    event.addAttribute(AttributeName.CURRENT_STATE.toString(), currentStateOutput);
   }
 }

@@ -34,7 +34,8 @@ public class Resource
   private final Map<String, Partition> _partitionMap;
   private String _stateModelDefRef;
   private String _stateModelFactoryName;
-  private int _bucketSize;
+  private int _bucketSize = 0;
+  private boolean _enableGroupMessage = false;
 
   public Resource(String resourceName)
   {
@@ -98,6 +99,16 @@ public class Resource
     _bucketSize = bucketSize;
   }
 
+  public void setEnableGroupMessage(boolean enable)
+  {
+    _enableGroupMessage = enable;
+  }
+  
+  public boolean getEnableGroupMessage()
+  {
+    return _enableGroupMessage;
+  }
+  
   @Override
   public String toString()
   {

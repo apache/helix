@@ -70,7 +70,7 @@ public class TestHelixTaskExecutor
     HelixStateTransitionHandler handler = new HelixStateTransitionHandler(stateModel, message, context, currentStateDelta);
 
     executor.scheduleTask(message, handler, context);
-    while (!executor.isDone(msgId))
+    while (!executor.isDone(msgId + "/" + message.getPartitionName()))
     {
       Thread.sleep(500);
     }

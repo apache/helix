@@ -228,13 +228,13 @@ public class Mocks {
 		boolean completionInvoked = false;
 
 		@Override
-		protected void reportCompletion(String msgId) {
+		protected void reportCompletion(Message message) {
 			System.out.println("Mocks.MockCMTaskExecutor.reportCompletion()");
 			completionInvoked = true;
 		}
 
-		public boolean isDone(String msgId) {
-			Future<HelixTaskResult> future = _taskMap.get(msgId);
+		public boolean isDone(String taskId) {
+			Future<HelixTaskResult> future = _taskMap.get(taskId);
 			if (future != null) {
 				return future.isDone();
 			}

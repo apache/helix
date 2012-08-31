@@ -15,9 +15,13 @@
  */
 package com.linkedin.helix.model;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.linkedin.helix.HelixException;
 import com.linkedin.helix.HelixProperty;
@@ -73,11 +77,14 @@ public class Message extends HelixProperty
 
   public enum MessageState
   {
-    NEW, 
-    READ,   // not used 
+    NEW, READ, // not used
     UNPROCESSABLE // get exception when create handler
   }
 
+  // Used in GroupMessage mode to count down the completion of sub-messages 
+  // by default is 1
+  AtomicInteger _groupMsgCountDown = new AtomicInteger(1);
+  
   public Message(MessageType type, String msgId)
   {
     this(type.toString(), msgId);
@@ -415,7 +422,7 @@ public class Message extends HelixProperty
   {
     _record.setSimpleField(Attributes.STATE_MODEL_FACTORY_NAME.toString(), factoryName);
   }
- 
+
   @Override
   public int getBucketSize()
   {
@@ -426,7 +433,8 @@ public class Message extends HelixProperty
       try
       {
         bucketSize = Integer.parseInt(bucketSizeStr);
-      } catch (NumberFormatException e)
+      }
+      catch (NumberFormatException e)
       {
         // OK
       }
@@ -442,7 +450,7 @@ public class Message extends HelixProperty
       _record.setSimpleField(Attributes.BUCKET_SIZE.toString(), "" + bucketSize);
     }
   }
-  
+
   public static Message createReplyMessage(Message srcMessage,
                                            String instanceName,
                                            Map<String, String> taskResultMap)
@@ -470,6 +478,42 @@ public class Message extends HelixProperty
     return replyMessage;
   }
 
+  public void addPartitionName(String partitionName)
+  {
+    if (_record.getListField(Attributes.PARTITION_NAME.toString()) == null)
+    {
+      _record.setListField(Attributes.PARTITION_NAME.toString(), new ArrayList<String>());
+    }
+    
+    List<String> partitionNames = _record.getListField(Attributes.PARTITION_NAME.toString());
+    if (!partitionNames.contains(partitionName))
+    {
+      partitionNames.add(partitionName);
+    }
+  }
+
+  public List<String> getPartitionNames()
+  {
+    List<String> partitionNames =
+        _record.getListField(Attributes.PARTITION_NAME.toString());
+    if (partitionNames == null)
+    {
+      return Collections.emptyList();
+    }
+
+    return partitionNames;
+  }
+
+  public AtomicInteger getGroupMsgCountDown()
+  {
+    return _groupMsgCountDown;
+  }
+  
+  public void SetGroupMsgCountDown(AtomicInteger countDown)
+  {
+    _groupMsgCountDown = countDown;
+  }
+  
   // TODO replace with util from espresso or linkedin
   private boolean isNullOrEmpty(String data)
   {

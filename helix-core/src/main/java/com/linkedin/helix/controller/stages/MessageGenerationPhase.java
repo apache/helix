@@ -157,7 +157,7 @@ public class MessageGenerationPhase extends AbstractBaseStage
             IdealState idealState = cache.getIdealState(resourceName);
             // Set timeout of needed
             String stateTransition = currentState + "-" + nextState + "_" + Message.Attributes.TIMEOUT;
-            if(idealState.getRecord().getSimpleField(stateTransition) != null)
+            if(idealState != null && idealState.getRecord().getSimpleField(stateTransition) != null)
             {
               try
               {

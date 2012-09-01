@@ -128,7 +128,7 @@ public class InstanceResource extends Resource
       boolean enabled =
           Boolean.parseBoolean(paraMap.get(ClusterRepresentationUtil._enabled));
 
-      ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);;
+      ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
       ClusterSetup setupTool = new ClusterSetup(zkClient);
       setupTool.getClusterManagementTool().enableInstance(clusterName,
                                                           instanceName,

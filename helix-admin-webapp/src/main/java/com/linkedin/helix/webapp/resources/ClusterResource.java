@@ -152,7 +152,8 @@ public class ClusterResource extends Resource
       Map<String, String> paraMap = ClusterRepresentationUtil.getFormJsonParameters(form);
       String command = paraMap.get(ClusterRepresentationUtil._managementCommand);
       
-      if(command.equalsIgnoreCase(ClusterSetup.activateCluster))
+      if(command.equalsIgnoreCase(ClusterSetup.activateCluster) 
+          || ClusterRepresentationUtil.s_aliases.get(ClusterSetup.activateCluster).contains(command))
       {
         Map<String, String> jsonParameters =
           ClusterRepresentationUtil.getFormJsonParametersWithCommandVerified(
@@ -162,20 +163,23 @@ public class ClusterResource extends Resource
           throw new HelixException("Json parameters does not contain '" + _grandCluster
               + "'");
         }
-        if (!jsonParameters.containsKey(_enabled))
+        boolean enabled = true;
+        if (jsonParameters.containsKey(_enabled))
         {
-          throw new HelixException("Json parameters does not contain '" + _enabled
-              + "'");
+          enabled = Boolean.parseBoolean(jsonParameters.get(_enabled));
         }
-  
         String grandCluster = jsonParameters.get(_grandCluster);
-        boolean enabled = Boolean.parseBoolean(jsonParameters.get(_enabled));
         
         setupTool.activateCluster(clusterName, grandCluster, enabled);
       }
       else if(command.equalsIgnoreCase(ClusterSetup.expandCluster))
       {
         setupTool.expandCluster(clusterName);
+      }
+      else
+      {
+        throw new HelixException("Unknown command " + command + ". Supported commands: " + ClusterSetup.activateCluster
+            + ", "+ClusterSetup.expandCluster);
       }
       getResponse().setEntity(getClusterRepresentation(clusterName));
       getResponse().setStatus(Status.SUCCESS_OK);

@@ -508,7 +508,7 @@ public class TestHelixAdminScenariosRest extends ZkIntegrationTestBase
     paraMap.put(ClusterRepresentationUtil._managementCommand, ClusterSetup.swapInstance);
     paraMap.put(InstancesResource._oldInstance, "localhost_1232");
     paraMap.put(InstancesResource._newInstance, "localhost_12320");
-    response = assertSuccessPostOperation(instanceUrl, paraMap, true);
+    response = assertSuccessPostOperation(instancesUrl, paraMap, true);
     
     // disconnect the node
     _startCMResultMap.get("localhost_1232")._manager.disconnect();

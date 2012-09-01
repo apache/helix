@@ -127,13 +127,13 @@ public class InstancesResource extends Resource
     {
       String clusterName = (String) getRequest().getAttributes().get("clusterName");      
       Form form = new Form(entity);
-      ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);;
+      ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
       ClusterSetup setupTool = new ClusterSetup(zkClient);
       
       Map<String, String> paraMap = ClusterRepresentationUtil.getFormJsonParameters(form);
-      
-      if(paraMap.get(ClusterRepresentationUtil._managementCommand)
-                 .equalsIgnoreCase(ClusterSetup.addInstance))
+      String command = paraMap.get(ClusterRepresentationUtil._managementCommand);
+      if(command.equalsIgnoreCase(ClusterSetup.addInstance) 
+          || ClusterRepresentationUtil.s_aliases.get(ClusterSetup.addInstance).contains(command))
       {      
         if (paraMap.containsKey(_instanceName))
         {
@@ -158,6 +158,11 @@ public class InstancesResource extends Resource
               + _oldInstance + "' ");
         }
         setupTool.swapInstance(clusterName, paraMap.get(_oldInstance), paraMap.get(_newInstance));
+      }
+      else
+      {
+        throw new HelixException("Unknown command " + command + ". Supported commands: " + ClusterSetup.addInstance
+            + ", "+ClusterSetup.swapInstance);
       }
 
       getResponse().setEntity(getInstancesRepresentation(clusterName));

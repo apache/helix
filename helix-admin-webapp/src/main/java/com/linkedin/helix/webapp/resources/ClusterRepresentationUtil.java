@@ -20,8 +20,12 @@ import java.io.PrintWriter;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 import org.codehaus.jackson.JsonGenerationException;
@@ -45,6 +49,7 @@ import com.linkedin.helix.manager.zk.ZNRecordSerializer;
 import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
 import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.model.LiveInstance.LiveInstanceProperty;
+import com.linkedin.helix.tools.ClusterSetup;
 import com.linkedin.helix.util.HelixUtil;
 
 public class ClusterRepresentationUtil
@@ -55,6 +60,15 @@ public class ClusterRepresentationUtil
   public static final String _newModelDef                           = "newStateModelDef";
   public static final String _enabled                               = "enabled";
   
+  public static Map<String, Set<String>> s_aliases;
+  static
+  {
+    s_aliases = new HashMap<String, Set<String>>();
+    s_aliases.put(ClusterSetup.addResource, new HashSet<String>(Arrays.asList(new String[] {"addResourceGroup"})));
+    s_aliases.put(ClusterSetup.activateCluster, new HashSet<String>(Arrays.asList(new String[] {"enableStorageCluster"})));
+    s_aliases.put(ClusterSetup.addInstance, new HashSet<String>(Arrays.asList(new String[] {"addInstance"})));
+    
+  }
 
   // public static String getClusterPropertyAsString(String zkServer, String clusterName,
   // PropertyType clusterProperty, String key, MediaType mediaType)
@@ -277,7 +291,31 @@ public class ClusterRepresentationUtil
       throw new HelixException("Missing management paramater '" + _managementCommand
           + "'");
     }
-    if (!paraMap.get(_managementCommand).equalsIgnoreCase(commandValue))
+    if (!paraMap.get(_managementCommand).equalsIgnoreCase(commandValue) && 
+        !(s_aliases.get(commandValue)!= null && s_aliases.get(commandValue).contains(paraMap.get(_managementCommand)))
+        )
+    {
+      throw new HelixException(_managementCommand + " must be '" + commandValue + "'");
+    }
+    return paraMap;
+  }
+  
+  public static Map<String, String> getFormJsonParametersWithCommandVerified(Form form,
+      String commandValue, Set<String> aliases) throws JsonParseException,
+      JsonMappingException,
+      IOException
+  {
+    String jsonPayload = form.getFirstValue(_jsonParameters, true);
+    if (jsonPayload == null || jsonPayload.isEmpty())
+    {
+      throw new HelixException("'" + _jsonParameters + "' in the POST body is empty");
+    }
+    Map<String, String> paraMap = ClusterRepresentationUtil.JsonToMap(jsonPayload);
+    if (!paraMap.containsKey(_managementCommand))
+    {
+      throw new HelixException("Missing management paramater '" + _managementCommand + "'");
+    }
+    if (!paraMap.get(_managementCommand).equalsIgnoreCase(commandValue) && !aliases.contains(paraMap.get(_managementCommand)))
     {
       throw new HelixException(_managementCommand + " must be '" + commandValue + "'");
     }

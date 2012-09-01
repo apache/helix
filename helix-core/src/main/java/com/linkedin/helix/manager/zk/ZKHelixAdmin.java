@@ -294,7 +294,7 @@ public class ZKHelixAdmin implements HelixAdmin
   }
 
   @Override
-  public void pauseCluster(String clusterName, boolean enabled)
+  public void enableCluster(String clusterName, boolean enabled)
   {
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));

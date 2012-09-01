@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 
 import org.I0Itec.zkclient.IDefaultNameSpace;
 import org.I0Itec.zkclient.ZkServer;
@@ -46,28 +47,34 @@ import org.testng.annotations.AfterTest;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
+import com.linkedin.helix.PropertyPathConfig;
+import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
+import com.linkedin.helix.manager.zk.ZNRecordSerializer;
+import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.model.InstanceConfig.InstanceConfigProperty;
 import com.linkedin.helix.model.StateModelDefinition;
 import com.linkedin.helix.tools.ClusterSetup;
 import com.linkedin.helix.webapp.resources.ClusterRepresentationUtil;
 import com.linkedin.helix.webapp.resources.ClustersResource;
-import com.linkedin.helix.webapp.resources.ResourceGroupsResource;
 import com.linkedin.helix.webapp.resources.IdealStateResource;
 import com.linkedin.helix.webapp.resources.InstancesResource;
+import com.linkedin.helix.webapp.resources.ResourceGroupsResource;
 
 public class TestClusterManagementWebapp
 {
-  private String _zkServerAddress;
+  private String         _zkServerAddress;
   private List<ZkServer> _localZkServers;
+  private ZkClient       _zkclient;
 
-  RestAdminApplication _adminApp;
-  Component _component;
+  RestAdminApplication   _adminApp;
+  Component              _component;
 
-  int _port = 2200;
+  int                    _port = 2200;
 
   public static List<ZkServer> startLocalZookeeper(List<Integer> localPortsList,
-      String zkTestDataRootDir, int tickTime) throws IOException
+                                                   String zkTestDataRootDir,
+                                                   int tickTime) throws IOException
   {
     List<ZkServer> localZkServers = new ArrayList<ZkServer>();
 
@@ -80,8 +87,10 @@ public class TestClusterManagementWebapp
     return localZkServers;
   }
 
-  public static ZkServer startZkServer(String zkTestDataRootDir, int machineId, int port,
-      int tickTime) throws IOException
+  public static ZkServer startZkServer(String zkTestDataRootDir,
+                                       int machineId,
+                                       int port,
+                                       int tickTime) throws IOException
   {
     File zkTestDataRootDirFile = new File(zkTestDataRootDir);
     zkTestDataRootDirFile.mkdirs();
@@ -92,14 +101,16 @@ public class TestClusterManagementWebapp
     FileUtils.deleteDirectory(new File(dataPath));
     FileUtils.deleteDirectory(new File(logPath));
 
-    IDefaultNameSpace mockDefaultNameSpace = new IDefaultNameSpace() {
+    IDefaultNameSpace mockDefaultNameSpace = new IDefaultNameSpace()
+    {
       @Override
       public void createDefaultNameSpace(org.I0Itec.zkclient.ZkClient zkClient)
       {
       }
     };
 
-    ZkServer zkServer = new ZkServer(dataPath, logPath, mockDefaultNameSpace, port, tickTime);
+    ZkServer zkServer =
+        new ZkServer(dataPath, logPath, mockDefaultNameSpace, port, tickTime);
     zkServer.start();
     return zkServer;
   }
@@ -114,7 +125,8 @@ public class TestClusterManagementWebapp
 
   void startAdminWebAppThread() throws Exception
   {
-    Thread t = new Thread(new Runnable() {
+    Thread t = new Thread(new Runnable()
+    {
       @Override
       public void run()
       {
@@ -124,14 +136,14 @@ public class TestClusterManagementWebapp
           app = new HelixAdminWebApp(_zkServerAddress, _port);
           app.start();
           Thread.currentThread().join();
-        } 
+        }
         catch (Exception e)
         {
           e.printStackTrace();
         }
         finally
         {
-          if(app != null)
+          if (app != null)
           {
             app.stop();
           }
@@ -143,24 +155,40 @@ public class TestClusterManagementWebapp
   }
 
   @BeforeTest
-  public void setup() throws IOException, Exception
+  public void setup() throws IOException,
+      Exception
   {
+    // TODO: use logging.properties file to config java.util.logging.Logger levels
+    java.util.logging.Logger topJavaLogger = java.util.logging.Logger.getLogger("");
+    topJavaLogger.setLevel(Level.WARNING);
+
     List<Integer> localPorts = new ArrayList<Integer>();
     localPorts.add(2199);
 
-    _localZkServers = startLocalZookeeper(localPorts, System.getProperty("user.dir") + "/"
-        + "zkdata", 2000);
+    _localZkServers =
+        startLocalZookeeper(localPorts,
+                            System.getProperty("user.dir") + "/" + "zkdata",
+                            2000);
     _zkServerAddress = "localhost:" + 2199;
+    _zkclient =
+        new ZkClient(_zkServerAddress,
+                     ZkClient.DEFAULT_SESSION_TIMEOUT,
+                     ZkClient.DEFAULT_CONNECTION_TIMEOUT,
+                     new ZNRecordSerializer());
 
-    System.out.println("zk started!!");
+    System.out.println("Started zookeeper on " + _zkServerAddress);
     startAdminWebAppThread();
-    System.out.println("WebApp started!!");
+    System.out.println("Started Helix WebApp on " + _port);
   }
 
   // @AfterMethod
   @AfterTest
   public void tearDown() throws Exception
   {
+    if (_zkclient != null)
+    {
+      _zkclient.close();
+    }
     stopLocalZookeeper(_localZkServers);
     System.out.println("zk stopped!!");
   }
@@ -177,24 +205,29 @@ public class TestClusterManagementWebapp
     verifyAlterIdealState();
     verifyConfigAccessor();
 
+    verifyEnableCluster();
+
     System.out.println("Test passed!!");
   }
 
   /*
    * Test case as steps
    */
-  String clusterName = "cluster-12345";
+  String clusterName       = "cluster-12345";
   String resourceGroupName = "new-entity-12345";
-  String instance1 = "test-1";
-  String statemodel = "state_model";
-  int instancePort = 9999;
-  int partitions = 10;
-  int replicas = 3;
+  String instance1         = "test-1";
+  String statemodel        = "state_model";
+  int    instancePort      = 9999;
+  int    partitions        = 10;
+  int    replicas          = 3;
 
-  void verifyAddStateModel() throws JsonGenerationException, JsonMappingException, IOException
+  void verifyAddStateModel() throws JsonGenerationException,
+      JsonMappingException,
+      IOException
   {
-    String httpUrlBase = "http://localhost:" + _port + "/clusters/" + clusterName
-        + "/StateModelDefs/MasterSlave";
+    String httpUrlBase =
+        "http://localhost:" + _port + "/clusters/" + clusterName
+            + "/StateModelDefs/MasterSlave";
     Reference resourceRef = new Reference(httpUrlBase);
     Request request = new Request(Method.GET, resourceRef);
     Client client = new Client(Protocol.HTTP);
@@ -204,25 +237,25 @@ public class TestClusterManagementWebapp
     result.write(sw);
     ObjectMapper mapper = new ObjectMapper();
     ZNRecord zn = mapper.readValue(new StringReader(sw.toString()), ZNRecord.class);
-    
+
     Map<String, String> paraMap = new HashMap<String, String>();
 
     paraMap.put(ClusterRepresentationUtil._managementCommand,
-        ClusterSetup.addStateModelDef);
-    
+                ClusterSetup.addStateModelDef);
+
     ZNRecord r = new ZNRecord("Test");
     r.merge(zn);
     StateModelDefinition newStateModel = new StateModelDefinition(r);
-    
-    httpUrlBase = "http://localhost:" + _port + "/clusters/" + clusterName
-    + "/StateModelDefs";
+
+    httpUrlBase =
+        "http://localhost:" + _port + "/clusters/" + clusterName + "/StateModelDefs";
     resourceRef = new Reference(httpUrlBase);
     request = new Request(Method.POST, resourceRef);
-    request.setEntity(
-        ClusterRepresentationUtil._jsonParameters + "="
-            + ClusterRepresentationUtil.ObjectToJson(paraMap) + "&"
-            + ClusterRepresentationUtil._newModelDef + "="
-            + ClusterRepresentationUtil.ZNRecordToJson(r), MediaType.APPLICATION_ALL);
+    request.setEntity(ClusterRepresentationUtil._jsonParameters + "="
+                          + ClusterRepresentationUtil.ObjectToJson(paraMap) + "&"
+                          + ClusterRepresentationUtil._newModelDef + "="
+                          + ClusterRepresentationUtil.ZNRecordToJson(r),
+                      MediaType.APPLICATION_ALL);
     client = new Client(Protocol.HTTP);
     response = client.handle(request);
 
@@ -232,26 +265,24 @@ public class TestClusterManagementWebapp
 
     System.out.println(sw.toString());
 
-   
     AssertJUnit.assertTrue(sw.toString().contains("Test"));
   }
 
-  void verifyAddCluster() throws IOException, InterruptedException
+  void verifyAddCluster() throws IOException,
+      InterruptedException
   {
     String httpUrlBase = "http://localhost:" + _port + "/clusters/";
     Map<String, String> paraMap = new HashMap<String, String>();
 
     paraMap.put(ClustersResource._clusterName, clusterName);
-    paraMap.put(ClusterRepresentationUtil._managementCommand,
-    		ClusterSetup.addCluster);
+    paraMap.put(ClusterRepresentationUtil._managementCommand, ClusterSetup.addCluster);
 
     Reference resourceRef = new Reference(httpUrlBase);
 
     Request request = new Request(Method.POST, resourceRef);
 
-    request.setEntity(
-        ClusterRepresentationUtil._jsonParameters + "="
-            + ClusterRepresentationUtil.ObjectToJson(paraMap), MediaType.APPLICATION_ALL);
+    request.setEntity(ClusterRepresentationUtil._jsonParameters + "="
+        + ClusterRepresentationUtil.ObjectToJson(paraMap), MediaType.APPLICATION_ALL);
     Client client = new Client(Protocol.HTTP);
     Response response = client.handle(request);
 
@@ -267,25 +298,25 @@ public class TestClusterManagementWebapp
 
   }
 
-  void verifyAddHostedEntity() throws JsonGenerationException, JsonMappingException, IOException
+  void verifyAddHostedEntity() throws JsonGenerationException,
+      JsonMappingException,
+      IOException
   {
-    String httpUrlBase = "http://localhost:" + _port + "/clusters/" + clusterName
-        + "/resourceGroups";
+    String httpUrlBase =
+        "http://localhost:" + _port + "/clusters/" + clusterName + "/resourceGroups";
     Map<String, String> paraMap = new HashMap<String, String>();
 
     paraMap.put(ResourceGroupsResource._resourceGroupName, resourceGroupName);
     paraMap.put(ResourceGroupsResource._partitions, "" + partitions);
     paraMap.put(ResourceGroupsResource._stateModelDefRef, "MasterSlave");
-    paraMap.put(ClusterRepresentationUtil._managementCommand,
-        ClusterSetup.addResource);
+    paraMap.put(ClusterRepresentationUtil._managementCommand, ClusterSetup.addResource);
 
     Reference resourceRef = new Reference(httpUrlBase);
 
     Request request = new Request(Method.POST, resourceRef);
 
-    request.setEntity(
-        ClusterRepresentationUtil._jsonParameters + "="
-            + ClusterRepresentationUtil.ObjectToJson(paraMap), MediaType.APPLICATION_ALL);
+    request.setEntity(ClusterRepresentationUtil._jsonParameters + "="
+        + ClusterRepresentationUtil.ObjectToJson(paraMap), MediaType.APPLICATION_ALL);
     Client client = new Client(Protocol.HTTP);
     Response response = client.handle(request);
 
@@ -299,8 +330,9 @@ public class TestClusterManagementWebapp
     ZNRecord zn = mapper.readValue(new StringReader(sw.toString()), ZNRecord.class);
     AssertJUnit.assertTrue(zn.getListField("ResourceGroups").contains(resourceGroupName));
 
-    httpUrlBase = "http://localhost:" + _port + "/clusters/" + clusterName + "/resourceGroups/"
-        + resourceGroupName;
+    httpUrlBase =
+        "http://localhost:" + _port + "/clusters/" + clusterName + "/resourceGroups/"
+            + resourceGroupName;
     resourceRef = new Reference(httpUrlBase);
 
     request = new Request(Method.GET, resourceRef);
@@ -315,22 +347,23 @@ public class TestClusterManagementWebapp
     System.out.println(sw.toString());
   }
 
-  void verifyAddInstance() throws JsonGenerationException, JsonMappingException, IOException
+  void verifyAddInstance() throws JsonGenerationException,
+      JsonMappingException,
+      IOException
   {
-    String httpUrlBase = "http://localhost:" + _port + "/clusters/" + clusterName + "/instances";
+    String httpUrlBase =
+        "http://localhost:" + _port + "/clusters/" + clusterName + "/instances";
     Map<String, String> paraMap = new HashMap<String, String>();
     // Add 1 instance
     paraMap.put(InstancesResource._instanceName, instance1 + ":" + instancePort);
-    paraMap.put(ClusterRepresentationUtil._managementCommand,
-        ClusterSetup.addInstance);
+    paraMap.put(ClusterRepresentationUtil._managementCommand, ClusterSetup.addInstance);
 
     Reference resourceRef = new Reference(httpUrlBase);
 
     Request request = new Request(Method.POST, resourceRef);
 
-    request.setEntity(
-        ClusterRepresentationUtil._jsonParameters + "="
-            + ClusterRepresentationUtil.ObjectToJson(paraMap), MediaType.APPLICATION_ALL);
+    request.setEntity(ClusterRepresentationUtil._jsonParameters + "="
+        + ClusterRepresentationUtil.ObjectToJson(paraMap), MediaType.APPLICATION_ALL);
     Client client = new Client(Protocol.HTTP);
     Response response = client.handle(request);
 
@@ -342,15 +375,15 @@ public class TestClusterManagementWebapp
 
     ObjectMapper mapper = new ObjectMapper();
 
-    TypeReference<ArrayList<ZNRecord>> typeRef = new TypeReference<ArrayList<ZNRecord>>() {
+    TypeReference<ArrayList<ZNRecord>> typeRef = new TypeReference<ArrayList<ZNRecord>>()
+    {
     };
     List<ZNRecord> znList = mapper.readValue(new StringReader(sw.toString()), typeRef);
     AssertJUnit.assertTrue(znList.get(0).getId().equals(instance1 + "_" + instancePort));
 
     // the case to add more than 1 instances
     paraMap.clear();
-    paraMap.put(ClusterRepresentationUtil._managementCommand,
-        ClusterSetup.addInstance);
+    paraMap.put(ClusterRepresentationUtil._managementCommand, ClusterSetup.addInstance);
 
     String[] instances = { "test2", "test3", "test4", "test5" };
 
@@ -361,7 +394,8 @@ public class TestClusterManagementWebapp
       if (first == true)
       {
         first = false;
-      } else
+      }
+      else
       {
         instanceNames += ";";
       }
@@ -371,9 +405,8 @@ public class TestClusterManagementWebapp
 
     request = new Request(Method.POST, resourceRef);
 
-    request.setEntity(
-        ClusterRepresentationUtil._jsonParameters + "="
-            + ClusterRepresentationUtil.ObjectToJson(paraMap), MediaType.APPLICATION_ALL);
+    request.setEntity(ClusterRepresentationUtil._jsonParameters + "="
+        + ClusterRepresentationUtil.ObjectToJson(paraMap), MediaType.APPLICATION_ALL);
     client = new Client(Protocol.HTTP);
     response = client.handle(request);
 
@@ -403,23 +436,24 @@ public class TestClusterManagementWebapp
     }
   }
 
-  void verifyRebalance() throws JsonGenerationException, JsonMappingException, IOException
+  void verifyRebalance() throws JsonGenerationException,
+      JsonMappingException,
+      IOException
   {
-    String httpUrlBase = "http://localhost:" + _port + "/clusters/" + clusterName
-        + "/resourceGroups/" + resourceGroupName + "/idealState";
+    String httpUrlBase =
+        "http://localhost:" + _port + "/clusters/" + clusterName + "/resourceGroups/"
+            + resourceGroupName + "/idealState";
     Map<String, String> paraMap = new HashMap<String, String>();
     // Add 1 instance
     paraMap.put(IdealStateResource._replicas, "" + replicas);
-    paraMap.put(ClusterRepresentationUtil._managementCommand,
-        ClusterSetup.rebalance);
+    paraMap.put(ClusterRepresentationUtil._managementCommand, ClusterSetup.rebalance);
 
     Reference resourceRef = new Reference(httpUrlBase);
 
     Request request = new Request(Method.POST, resourceRef);
 
-    request.setEntity(
-        ClusterRepresentationUtil._jsonParameters + "="
-            + ClusterRepresentationUtil.ObjectToJson(paraMap), MediaType.APPLICATION_ALL);
+    request.setEntity(ClusterRepresentationUtil._jsonParameters + "="
+        + ClusterRepresentationUtil.ObjectToJson(paraMap), MediaType.APPLICATION_ALL);
     Client client = new Client(Protocol.HTTP);
     Response response = client.handle(request);
 
@@ -451,23 +485,24 @@ public class TestClusterManagementWebapp
 
   }
 
-  void verifyEnableInstance() throws JsonGenerationException, JsonMappingException, IOException
+  void verifyEnableInstance() throws JsonGenerationException,
+      JsonMappingException,
+      IOException
   {
-    String httpUrlBase = "http://localhost:" + _port + "/clusters/" + clusterName + "/instances/"
-        + instance1 + "_" + instancePort;
+    String httpUrlBase =
+        "http://localhost:" + _port + "/clusters/" + clusterName + "/instances/"
+            + instance1 + "_" + instancePort;
     Map<String, String> paraMap = new HashMap<String, String>();
     // Add 1 instance
     paraMap.put(ClusterRepresentationUtil._enabled, "" + false);
-    paraMap.put(ClusterRepresentationUtil._managementCommand,
-        ClusterSetup.enableInstance);
+    paraMap.put(ClusterRepresentationUtil._managementCommand, ClusterSetup.enableInstance);
 
     Reference resourceRef = new Reference(httpUrlBase);
 
     Request request = new Request(Method.POST, resourceRef);
 
-    request.setEntity(
-        ClusterRepresentationUtil._jsonParameters + "="
-            + ClusterRepresentationUtil.ObjectToJson(paraMap), MediaType.APPLICATION_ALL);
+    request.setEntity(ClusterRepresentationUtil._jsonParameters + "="
+        + ClusterRepresentationUtil.ObjectToJson(paraMap), MediaType.APPLICATION_ALL);
     Client client = new Client(Protocol.HTTP);
     Response response = client.handle(request);
 
@@ -480,15 +515,14 @@ public class TestClusterManagementWebapp
     ObjectMapper mapper = new ObjectMapper();
     ZNRecord r = mapper.readValue(new StringReader(sw.toString()), ZNRecord.class);
     AssertJUnit.assertTrue(r.getSimpleField(InstanceConfigProperty.HELIX_ENABLED.toString())
-        .equals("" + false));
+                            .equals("" + false));
 
     // Then enable it
     paraMap.put(ClusterRepresentationUtil._enabled, "" + true);
     request = new Request(Method.POST, resourceRef);
 
-    request.setEntity(
-        ClusterRepresentationUtil._jsonParameters + "="
-            + ClusterRepresentationUtil.ObjectToJson(paraMap), MediaType.APPLICATION_ALL);
+    request.setEntity(ClusterRepresentationUtil._jsonParameters + "="
+        + ClusterRepresentationUtil.ObjectToJson(paraMap), MediaType.APPLICATION_ALL);
     client = new Client(Protocol.HTTP);
     response = client.handle(request);
 
@@ -501,13 +535,14 @@ public class TestClusterManagementWebapp
     mapper = new ObjectMapper();
     r = mapper.readValue(new StringReader(sw.toString()), ZNRecord.class);
     AssertJUnit.assertTrue(r.getSimpleField(InstanceConfigProperty.HELIX_ENABLED.toString())
-        .equals("" + true));
+                            .equals("" + true));
   }
 
   void verifyAlterIdealState() throws IOException
   {
-    String httpUrlBase = "http://localhost:" + _port + "/clusters/" + clusterName
-        + "/resourceGroups/" + resourceGroupName + "/idealState";
+    String httpUrlBase =
+        "http://localhost:" + _port + "/clusters/" + clusterName + "/resourceGroups/"
+            + resourceGroupName + "/idealState";
 
     Reference resourceRef = new Reference(httpUrlBase);
     Request request = new Request(Method.GET, resourceRef);
@@ -528,17 +563,16 @@ public class TestClusterManagementWebapp
 
     Map<String, String> paraMap = new HashMap<String, String>();
     // Add 1 instance
-    paraMap.put(ClusterRepresentationUtil._managementCommand,
-        ClusterSetup.addIdealState);
+    paraMap.put(ClusterRepresentationUtil._managementCommand, ClusterSetup.addIdealState);
 
     resourceRef = new Reference(httpUrlBase);
 
     request = new Request(Method.POST, resourceRef);
-    request.setEntity(
-        ClusterRepresentationUtil._jsonParameters + "="
-            + ClusterRepresentationUtil.ObjectToJson(paraMap) + "&"
-            + ClusterRepresentationUtil._newIdealState + "="
-            + ClusterRepresentationUtil.ZNRecordToJson(r), MediaType.APPLICATION_ALL);
+    request.setEntity(ClusterRepresentationUtil._jsonParameters + "="
+                          + ClusterRepresentationUtil.ObjectToJson(paraMap) + "&"
+                          + ClusterRepresentationUtil._newIdealState + "="
+                          + ClusterRepresentationUtil.ZNRecordToJson(r),
+                      MediaType.APPLICATION_ALL);
     client = new Client(Protocol.HTTP);
     response = client.handle(request);
 
@@ -565,8 +599,9 @@ public class TestClusterManagementWebapp
     Client client = new Client(Protocol.HTTP);
 
     // set/get cluster scope configs
-    String url = "http://localhost:" + _port + "/clusters/" + clusterName
-        + "/configs/cluster/" + clusterName;
+    String url =
+        "http://localhost:" + _port + "/clusters/" + clusterName + "/configs/cluster/"
+            + clusterName;
 
     postConfig(client, url, mapper, ClusterSetup.setConfig, "key1=value1,key2=value2");
 
@@ -576,8 +611,9 @@ public class TestClusterManagementWebapp
     Assert.assertEquals(record.getSimpleField("key2"), "value2");
 
     // set/get participant scope configs
-    url = "http://localhost:" + _port + "/clusters/" + clusterName
-        + "/configs/participant/localhost_12918";
+    url =
+        "http://localhost:" + _port + "/clusters/" + clusterName
+            + "/configs/participant/localhost_12918";
 
     postConfig(client, url, mapper, ClusterSetup.setConfig, "key3=value3,key4=value4");
 
@@ -587,8 +623,9 @@ public class TestClusterManagementWebapp
     Assert.assertEquals(record.getSimpleField("key4"), "value4");
 
     // set/get resource scope configs
-    url = "http://localhost:" + _port + "/clusters/" + clusterName
-        + "/configs/resource/testResource";
+    url =
+        "http://localhost:" + _port + "/clusters/" + clusterName
+            + "/configs/resource/testResource";
 
     postConfig(client, url, mapper, ClusterSetup.setConfig, "key5=value5,key6=value6");
 
@@ -598,8 +635,9 @@ public class TestClusterManagementWebapp
     Assert.assertEquals(record.getSimpleField("key6"), "value6");
 
     // set/get partition scope configs
-    url = "http://localhost:" + _port + "/clusters/" + clusterName
-        + "/configs/partition/testResource/testPartition";
+    url =
+        "http://localhost:" + _port + "/clusters/" + clusterName
+            + "/configs/partition/testResource/testPartition";
 
     postConfig(client, url, mapper, ClusterSetup.setConfig, "key7=value7,key8=value8");
 
@@ -613,7 +651,11 @@ public class TestClusterManagementWebapp
     record = get(client, url, mapper);
     Assert.assertEquals(record.getListFields().size(), 1);
     Assert.assertTrue(record.getListFields().containsKey("scopes"));
-    Assert.assertTrue(contains(record.getListField("scopes"), "CLUSTER", "PARTICIPANT", "RESOURCE", "PARTITION"));
+    Assert.assertTrue(contains(record.getListField("scopes"),
+                               "CLUSTER",
+                               "PARTICIPANT",
+                               "RESOURCE",
+                               "PARTITION"));
 
     url = "http://localhost:" + _port + "/clusters/" + clusterName + "/configs/cluster";
     record = get(client, url, mapper);
@@ -621,7 +663,8 @@ public class TestClusterManagementWebapp
     Assert.assertTrue(record.getListFields().containsKey("CLUSTER"));
     Assert.assertTrue(contains(record.getListField("CLUSTER"), clusterName));
 
-    url = "http://localhost:" + _port + "/clusters/" + clusterName + "/configs/participant";
+    url =
+        "http://localhost:" + _port + "/clusters/" + clusterName + "/configs/participant";
     record = get(client, url, mapper);
     Assert.assertTrue(record.getListFields().containsKey("PARTICIPANT"));
     Assert.assertTrue(contains(record.getListField("PARTICIPANT"), "localhost_12918"));
@@ -632,7 +675,9 @@ public class TestClusterManagementWebapp
     Assert.assertTrue(record.getListFields().containsKey("RESOURCE"));
     Assert.assertTrue(contains(record.getListField("RESOURCE"), "testResource"));
 
-    url = "http://localhost:" + _port + "/clusters/" + clusterName + "/configs/partition/testResource";
+    url =
+        "http://localhost:" + _port + "/clusters/" + clusterName
+            + "/configs/partition/testResource";
     record = get(client, url, mapper);
     Assert.assertEquals(record.getListFields().size(), 1);
     Assert.assertTrue(record.getListFields().containsKey("PARTITION"));
@@ -655,7 +700,11 @@ public class TestClusterManagementWebapp
     return record;
   }
 
-  private void postConfig(Client client, String url, ObjectMapper mapper, String command, String configs) throws Exception
+  private void postConfig(Client client,
+                          String url,
+                          ObjectMapper mapper,
+                          String command,
+                          String configs) throws Exception
   {
     Map<String, String> params = new HashMap<String, String>();
 
@@ -673,6 +722,59 @@ public class TestClusterManagementWebapp
     String responseStr = sw.toString();
     Assert.assertTrue(responseStr.toLowerCase().indexOf("error") == -1);
     Assert.assertTrue(responseStr.toLowerCase().indexOf("exception") == -1);
+  }
+
+  void verifyEnableCluster() throws Exception
+  {
+    System.out.println("START: verifyEnableCluster()");
+    String httpUrlBase =
+        "http://localhost:" + _port + "/clusters/" + clusterName + "/Controller";
+    Map<String, String> paramMap = new HashMap<String, String>();
+
+    paramMap.put(ClusterRepresentationUtil._managementCommand, ClusterSetup.enableCluster);
+    paramMap.put(ClusterRepresentationUtil._enabled, "" + false);
+
+    Reference resourceRef = new Reference(httpUrlBase);
+
+    Request request = new Request(Method.POST, resourceRef);
+
+    request.setEntity(ClusterRepresentationUtil._jsonParameters + "="
+        + ClusterRepresentationUtil.ObjectToJson(paramMap), MediaType.APPLICATION_ALL);
+    Client client = new Client(Protocol.HTTP);
+    Response response = client.handle(request);
+
+    Representation result = response.getEntity();
+    StringWriter sw = new StringWriter();
+    result.write(sw);
+
+    System.out.println(sw.toString());
+
+    // verify pause znode exists
+    String pausePath = PropertyPathConfig.getPath(PropertyType.PAUSE, clusterName);
+    System.out.println("pausePath: " + pausePath);
+    boolean exists = _zkclient.exists(pausePath);
+    Assert.assertTrue(exists, pausePath + " should exist");
+
+    // Then enable it
+    paramMap.put(ClusterRepresentationUtil._enabled, "" + true);
+    request = new Request(Method.POST, resourceRef);
+
+    request.setEntity(ClusterRepresentationUtil._jsonParameters + "="
+        + ClusterRepresentationUtil.ObjectToJson(paramMap), MediaType.APPLICATION_ALL);
+    client = new Client(Protocol.HTTP);
+    response = client.handle(request);
+
+    result = response.getEntity();
+    sw = new StringWriter();
+    result.write(sw);
+
+    System.out.println(sw.toString());
+
+    // verify pause znode doesn't exist
+    exists = _zkclient.exists(pausePath);
+    Assert.assertFalse(exists, pausePath + " should be removed");
+
+    System.out.println("END: verifyEnableCluster()");
   }
 
   private boolean contains(List<String> list, String... items)

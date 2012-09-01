@@ -1594,7 +1594,7 @@ public class ClusterSetup
       String[] params = cmd.getOptionValues(enableCluster);
       String clusterName = params[0];
       boolean enabled = Boolean.parseBoolean(params[1].toLowerCase());
-      setupTool.getClusterManagementTool().pauseCluster(clusterName, enabled);
+      setupTool.getClusterManagementTool().enableCluster(clusterName, enabled);
 
       return 0;
     }

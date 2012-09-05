@@ -286,7 +286,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
     T data = null;
     try
     {
-      data = _zkClient.readData(path, stat);
+      data = (T) _zkClient.readData(path, stat);
     }
     catch (ZkNoNodeException e)
     {

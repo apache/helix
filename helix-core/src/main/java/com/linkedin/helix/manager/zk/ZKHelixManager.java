@@ -102,7 +102,7 @@ public class ZKHelixManager implements HelixManager
   private final List<CallbackHandler>          _handlers;
   private final ZkStateChangeListener          _zkStateChangeListener;
   private final InstanceType                   _instanceType;
-  private volatile String                      _sessionId;
+  volatile String                              _sessionId;
   private Timer                                _timer;
   private CallbackHandler                      _leaderElectionHandler;
   private ParticipantHealthReportCollectorImpl _participantHealthCheckInfoCollector;
@@ -690,19 +690,20 @@ public class ZKHelixManager implements HelixManager
 
   protected void handleNewSession()
   {
-    boolean isConnected =
-        _zkClient.waitUntilConnected(_sessionTimeout, TimeUnit.MILLISECONDS);
-    if (!isConnected)
+    boolean isConnected = _zkClient.waitUntilConnected(CONNECTIONTIMEOUT, TimeUnit.MILLISECONDS);
+    while (!isConnected)
     {
-      throw new HelixException("Could NOT connect to zk server: " + _clusterName + ", "
-          + _zkConnectString);
-
+      logger.error("Could NOT connect to zk server in " + CONNECTIONTIMEOUT + "ms. zkServer: "
+          + _zkConnectString + ", expiredSessionId: " + _sessionId + ", clusterName: "
+          + _clusterName);
+      isConnected = _zkClient.waitUntilConnected(CONNECTIONTIMEOUT, TimeUnit.MILLISECONDS);
     }
 
     ZkConnection zkConnection = ((ZkConnection) _zkClient.getConnection());
-    synchronized(this)
+    
+    synchronized (this)
     {
-      _sessionId = Long.toHexString(zkConnection.getZookeeper().getSessionId()); 
+      _sessionId = Long.toHexString(zkConnection.getZookeeper().getSessionId());
     }
     _accessor.reset();
 
@@ -973,7 +974,7 @@ public class ZKHelixManager implements HelixManager
       }
     }
   }
- 
+
   @Deprecated
   @Override
   public synchronized PropertyStore<ZNRecord> getPropertyStore()

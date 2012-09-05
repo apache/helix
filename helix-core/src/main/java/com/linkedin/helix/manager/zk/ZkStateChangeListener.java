@@ -58,7 +58,7 @@ public class ZkStateChangeListener implements IZkStateListener
       break;
     case Disconnected:
       logger.info("KeeperState:" + keeperState + ", disconnectedSessionId: "
-          + _zkHelixManager.getSessionId() + ", instance: "
+          + _zkHelixManager._sessionId + ", instance: "
           + _zkHelixManager.getInstanceName() + ", type: "
           + _zkHelixManager.getInstanceType());
 
@@ -66,7 +66,7 @@ public class ZkStateChangeListener implements IZkStateListener
       break;
     case Expired:
       logger.info("KeeperState:" + keeperState + ", expiredSessionId: "
-          + _zkHelixManager.getSessionId() + ", instance: "
+          + _zkHelixManager._sessionId + ", instance: "
           + _zkHelixManager.getInstanceName() + ", type: "
           + _zkHelixManager.getInstanceType());
 

@@ -144,7 +144,7 @@ public class HelixStateMachineEngine implements StateMachineEngine
           accessor.setProperty(keyBuilder.message(nopMsg.getTgtName(), nopMsg.getId()),
                                nopMsg);
         }
-
+        logger.info("Send NO_OP message to " + nopMsg.getTgtName() + ", msgId: " + nopMsg.getId());
       }
       catch (Exception e)
       {

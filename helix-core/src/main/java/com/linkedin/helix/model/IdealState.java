@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 
 import org.apache.log4j.Logger;
 
@@ -115,6 +116,43 @@ public class IdealState extends HelixProperty
   public Map<String, String> getInstanceStateMap(String partitionName)
   {
     return _record.getMapField(partitionName);
+  }
+
+  public Set<String> getInstanceSet(String partitionName)
+  {
+    if (getIdealStateMode() == IdealStateModeProperty.AUTO
+        || getIdealStateMode() == IdealStateModeProperty.AUTO_REBALANCE)
+    {
+      List<String> prefList = _record.getListField(partitionName);
+      if (prefList != null)
+      {
+        return new TreeSet<String>(prefList);
+      }
+      else
+      {
+        logger.warn(partitionName + " does NOT exist");
+        return Collections.emptySet();
+      }
+    }
+    else if (getIdealStateMode() == IdealStateModeProperty.CUSTOMIZED)
+    {
+      Map<String, String> stateMap = _record.getMapField(partitionName);
+      if (stateMap != null)
+      {
+        return new TreeSet<String>(stateMap.keySet());
+      }
+      else
+      {
+        logger.warn(partitionName + " does NOT exist");
+        return Collections.emptySet();
+      }
+    }
+    else
+    {
+      logger.error("Invalid ideal state mode: " + getResourceName());
+      return Collections.emptySet();
+    }
+
   }
 
   public List<String> getPreferenceList(String partitionName)

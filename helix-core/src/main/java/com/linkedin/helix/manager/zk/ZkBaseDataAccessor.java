@@ -119,19 +119,20 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
   @Override
   public boolean set(String path, T record, int options)
   {
-    return set(path, record, null, null, options);
+    return set(path, record, null, null, -1, options);
   }
 
   /**
    * sync set
    * 
-   * @param stat
+   * @param setstat
    *          : if node is created instead of set, stat will NOT be set
    */
   public boolean set(String path,
                      T record,
                      List<String> pathsCreated,
-                     Stat stat,
+                     Stat setstat,
+                     int expectVersion,
                      int options)
   {
     CreateMode mode = Option.getMode(options);
@@ -148,9 +149,9 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
       try
       {
         // _zkClient.writeData(path, record);
-        Stat setStat = _zkClient.writeDataGetStat(path, record, -1);
-        if (stat != null)
-          DataTree.copyStat(setStat, stat);
+        Stat setStat = _zkClient.writeDataGetStat(path, record, expectVersion);
+        if (setstat != null)
+          DataTree.copyStat(setStat, setstat);
       }
       catch (ZkNoNodeException e)
       {
@@ -178,6 +179,10 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
           LOG.error("Exception while setting path by creating: " + path, e);
           return false;
         }
+      }
+      catch (ZkBadVersionException e)
+      {
+        throw e;
       }
       catch (Exception e)
       {
@@ -275,14 +280,22 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
     return updatedData;
   }
 
-  /**
-   * throw ZkNoNodeException if NoNode return null if node with empty value
-   */
-  @SuppressWarnings("unchecked")
   @Override
   public T get(String path, Stat stat, int options)
   {
-    return (T) _zkClient.readData(path, stat);
+    T data = null;
+    try
+    {
+      data = _zkClient.readData(path, stat);
+    }
+    catch (ZkNoNodeException e)
+    {
+      if (Option.isThrowExceptionIfNotExist(options))
+      {
+        throw e;
+      }
+    }
+    return data;
   }
 
   /**

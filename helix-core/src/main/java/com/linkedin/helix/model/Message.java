@@ -509,7 +509,7 @@ public class Message extends HelixProperty
     return _groupMsgCountDown;
   }
   
-  public void SetGroupMsgCountDown(AtomicInteger countDown)
+  public void setGroupMsgCountDown(AtomicInteger countDown)
   {
     _groupMsgCountDown = countDown;
   }

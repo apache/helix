@@ -358,6 +358,10 @@ public class HelixTaskExecutor implements MessageListener
     List<PropertyKey> createCurStateKeys = new ArrayList<PropertyKey>();
     List<CurrentState> metaCurStates = new ArrayList<CurrentState>();
     Set<String> createCurStateNames = new HashSet<String>();
+    
+    // parallel lists that contains handler and the corresponding message
+    List<MessageHandler> handlers = new ArrayList<MessageHandler>();
+    List<Message> handleMessages = new ArrayList<Message>();
 
     for (Message message : messages)
     {
@@ -382,6 +386,87 @@ public class HelixTaskExecutor implements MessageListener
       {
         if (MessageState.NEW == message.getMsgState())
         {
+          // create message handlers, if handlers not found, don't mark it as READ
+          try
+          {
+            if (!message.getGroupMessageMode())
+            {
+              logger.info("Creating handler for message " + message.getMsgId() + "/"
+                  + message.getPartitionName());
+
+              MessageHandler handler = createMessageHandler(message, changeContext);
+              
+              // We did not find a MessageHandlerFactory for the message;
+              // we will keep the message and we may be able to handler it when
+              // the corresponding MessageHandlerFactory factory is registered.
+              if (handler == null)
+              {
+                logger.warn("Message handler factory not found for message type:"
+                    + message.getMsgType() + ", message:" + message);
+
+                continue;
+              }
+              handlers.add(handler);
+              handleMessages.add(message);
+            }
+            else
+            {
+              List<String> partitionNames = message.getPartitionNames();
+              AtomicInteger countDown = new AtomicInteger(partitionNames.size());
+              for (String partitionName : partitionNames)
+              {
+                Message msg = new Message(message.getRecord());
+                msg.setPartitionName(partitionName);
+                msg.setGroupMsgCountDown(countDown);
+
+                
+                logger.info("Creating handler for group message " + msg.getMsgId() + "/"
+                    + partitionName);
+                MessageHandler handler = createMessageHandler(msg, changeContext);
+
+                // We did not find a MessageHandlerFactory for the message;
+                // we will keep the message and we may be able to handler it when
+                // the corresponding MessageHandlerFactory factory is registered.
+                if (handler == null)
+                {
+                  logger.warn("Message handler factory not found for group message type:"
+                      + msg.getMsgType() + ", message:" + msg);
+
+                  continue;
+                }
+                handlers.add(handler);
+                handleMessages.add(msg);
+              }
+            }
+          }
+          catch (Exception e)
+          {
+            logger.error("Failed to create message handler for " + message.getMsgId(), e);
+            String error =
+                "Failed to create message handler for " + message.getMsgId()
+                    + " exception: " + e;
+
+            _statusUpdateUtil.logError(message,
+                                       HelixStateMachineEngine.class,
+                                       e,
+                                       error,
+                                       accessor);
+            // Mark the message as UNPROCESSABLE if we hit a exception while creating
+            // handler for it. The message will stay on ZK and not be processed.
+            message.setMsgState(MessageState.UNPROCESSABLE);
+            if (message.getTgtName().equalsIgnoreCase("controller"))
+            {
+              accessor.updateProperty(keyBuilder.controllerMessage(message.getId()),
+                                      message);
+            }
+            else
+            {
+              accessor.updateProperty(keyBuilder.message(instanceName, message.getId()),
+                                      message);
+            }
+            continue;
+          }
+          
           // update msgState to read
           message.setMsgState(MessageState.READ);
           message.setReadTimeStamp(new Date().getTime());
@@ -472,7 +557,7 @@ public class HelixTaskExecutor implements MessageListener
       }
       catch (Exception e)
       {
-        System.out.println(e);
+        logger.error(e);
       }
     }
 
@@ -481,86 +566,11 @@ public class HelixTaskExecutor implements MessageListener
     {
       accessor.setChildren(readMsgKeys, readMsgs);
 
-      for (int i = 0; i < readMsgs.size(); i++)
+      for (int i = 0; i < handlers.size(); i++)
       {
-        Message message = readMsgs.get(i);
-        try
-        {
-          if (!message.getGroupMessageMode())
-          {
-            logger.info("Creating handler for message " + message.getMsgId() + "/"
-                + message.getPartitionName());
-
-            MessageHandler handler = createMessageHandler(message, changeContext);
-            
-            // We did not find a MessageHandlerFactory for the message;
-            // we will keep the message and we may be able to handler it when
-            // the corresponding MessageHandlerFactory factory is registered.
-            if (handler == null)
-            {
-              logger.warn("Message handler factory not found for message type:"
-                  + message.getMsgType() + ", message:" + message);
-
-              continue;
-            }
-            
-            scheduleTask(message, handler, changeContext);
-          }
-          else
-          {
-            List<String> partitionNames = message.getPartitionNames();
-            AtomicInteger countDown = new AtomicInteger(partitionNames.size());
-            for (String partitionName : partitionNames)
-            {
-              Message msg = new Message(message.getRecord());
-              msg.setPartitionName(partitionName);
-              msg.SetGroupMsgCountDown(countDown);
-
-              logger.info("Creating handler for message " + msg.getMsgId() + "/"
-                  + partitionName);
-              MessageHandler handler = createMessageHandler(msg, changeContext);
-
-              // We did not find a MessageHandlerFactory for the message;
-              // we will keep the message and we may be able to handler it when
-              // the corresponding MessageHandlerFactory factory is registered.
-              if (handler == null)
-              {
-                logger.warn("Message handler factory not found for message type:"
-                    + msg.getMsgType() + ", message:" + msg);
-
-                continue;
-              }
-              scheduleTask(msg, handler, changeContext);
-            }
-          }
-        }
-        catch (Exception e)
-        {
-          logger.error("Failed to create message handler for " + message.getMsgId(), e);
-          String error =
-              "Failed to create message handler for " + message.getMsgId()
-                  + " exception: " + e;
-
-          _statusUpdateUtil.logError(message,
-                                     HelixStateMachineEngine.class,
-                                     e,
-                                     error,
-                                     accessor);
-          // Mark the message as UNPROCESSABLE if we hit a exception while creating
-          // handler for it. The message will stay on ZK and not be processed.
-          message.setMsgState(MessageState.UNPROCESSABLE);
-          if (message.getTgtName().equalsIgnoreCase("controller"))
-          {
-            accessor.updateProperty(keyBuilder.controllerMessage(message.getId()),
-                                    message);
-          }
-          else
-          {
-            accessor.updateProperty(keyBuilder.message(instanceName, message.getId()),
-                                    message);
-          }
-          continue;
-        }
+        MessageHandler handler = handlers.get(i);
+        Message handleMessage = handleMessages.get(i);
+        scheduleTask(handleMessage, handler, changeContext);
       }
     }
   }

@@ -7,38 +7,48 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.I0Itec.zkclient.DataUpdater;
 import org.I0Itec.zkclient.IZkChildListener;
 import org.I0Itec.zkclient.IZkDataListener;
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
+import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.common.PathUtils;
 import org.apache.zookeeper.data.Stat;
 import org.apache.zookeeper.server.DataTree;
 
-import com.linkedin.helix.BaseDataAccessor;
 import com.linkedin.helix.manager.zk.ZkAsyncCallbacks.CreateCallbackHandler;
 import com.linkedin.helix.manager.zk.ZkBaseDataAccessor.RetCode;
 import com.linkedin.helix.store.HelixPropertyListener;
+import com.linkedin.helix.store.HelixPropertyStore;
 import com.linkedin.helix.store.zk.ZNode;
 
-public class ZkCacheBaseDataAccessor<T> implements BaseDataAccessor<T>
+public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T>
 {
-  private static final Logger LOG = Logger.getLogger(ZkCacheBaseDataAccessor.class);
+  private static final Logger    LOG          =
+                                                  Logger.getLogger(ZkCacheBaseDataAccessor.class);
 
-  final WriteThroughCache<T> _wtCache;
-  protected final ZkCallbackCache<T> _zkCache;
+  protected WriteThroughCache<T> _wtCache;
+  protected ZkCallbackCache<T>   _zkCache;
 
-  final ZkBaseDataAccessor<T> _baseAccessor;
-  final Map<String, Cache<T>> _cacheMap;
-  final String _chrootPath;
+  final ZkBaseDataAccessor<T>    _baseAccessor;
+  final Map<String, Cache<T>>    _cacheMap;
+
+  final String                   _chrootPath;
+  final List<String>             _wtCachePaths;
+  final List<String>             _zkCachePaths;
+
+  final HelixGroupCommit<T>      _groupCommit = new HelixGroupCommit<T>();
 
   // fire listeners
-  private final ReentrantLock _eventLock = new ReentrantLock();
-  private ZkCacheEventThread _eventThread;
+  private final ReentrantLock    _eventLock   = new ReentrantLock();
+  private ZkCacheEventThread     _eventThread;
+
+  private ZkClient               _zkclient    = null;
 
   public ZkCacheBaseDataAccessor(ZkBaseDataAccessor<T> baseAccessor,
                                  List<String> wtCachePaths)
@@ -46,11 +56,13 @@ public class ZkCacheBaseDataAccessor<T> implements BaseDataAccessor<T>
     this(baseAccessor, null, wtCachePaths, null);
   }
 
-  public ZkCacheBaseDataAccessor(ZkBaseDataAccessor<T> baseAccessor, String chrootPath,
-                                 List<String> wtCachePaths, List<String> zkCachePaths)
+  public ZkCacheBaseDataAccessor(ZkBaseDataAccessor<T> baseAccessor,
+                                 String chrootPath,
+                                 List<String> wtCachePaths,
+                                 List<String> zkCachePaths)
   {
-    LOG.info("START: Init ZkCacheBaseDataAccessor: " + chrootPath + ", " + wtCachePaths
-        + ", " + zkCachePaths);
+    _baseAccessor = baseAccessor;
+
     if (chrootPath == null || chrootPath.equals("/"))
     {
       _chrootPath = null;
@@ -60,12 +72,9 @@ public class ZkCacheBaseDataAccessor<T> implements BaseDataAccessor<T>
       PathUtils.validatePath(chrootPath);
       _chrootPath = chrootPath;
     }
-    _baseAccessor = baseAccessor;
 
-    start();
-    _wtCache = new WriteThroughCache<T>(baseAccessor, wtCachePaths);
-    _zkCache =
-        new ZkCallbackCache<T>(baseAccessor, chrootPath, zkCachePaths, _eventThread);
+    _wtCachePaths = wtCachePaths;
+    _zkCachePaths = zkCachePaths;
 
     // TODO: need to make sure no overlap between wtCachePaths and zkCachePaths
     // TreeMap key is ordered by key string length, so more general (i.e. short) prefix
@@ -81,21 +90,52 @@ public class ZkCacheBaseDataAccessor<T> implements BaseDataAccessor<T>
       }
     });
 
-    if (wtCachePaths != null && !wtCachePaths.isEmpty())
+    start();
+  }
+
+  public ZkCacheBaseDataAccessor(String zkAddress,
+                                 ZkSerializer serializer,
+                                 String chrootPath,
+                                 List<String> wtCachePaths,
+                                 List<String> zkCachePaths)
+  {
+    _zkclient =
+        new ZkClient(zkAddress,
+                     ZkClient.DEFAULT_SESSION_TIMEOUT,
+                     ZkClient.DEFAULT_CONNECTION_TIMEOUT,
+                     serializer);
+    _zkclient.waitUntilConnected(ZkClient.DEFAULT_CONNECTION_TIMEOUT,
+                                 TimeUnit.MILLISECONDS);
+    _baseAccessor = new ZkBaseDataAccessor<T>(_zkclient);
+
+    if (chrootPath == null || chrootPath.equals("/"))
     {
-      for (String path : wtCachePaths)
-      {
-        _cacheMap.put(path, _wtCache);
-      }
+      _chrootPath = null;
+    }
+    else
+    {
+      PathUtils.validatePath(chrootPath);
+      _chrootPath = chrootPath;
     }
 
-    if (zkCachePaths != null && !zkCachePaths.isEmpty())
+    _wtCachePaths = wtCachePaths;
+    _zkCachePaths = zkCachePaths;
+
+    // TODO: need to make sure no overlap between wtCachePaths and zkCachePaths
+    // TreeMap key is ordered by key string length, so more general (i.e. short) prefix
+    // comes first
+    _cacheMap = new TreeMap<String, Cache<T>>(new Comparator<String>()
     {
-      for (String path : zkCachePaths)
+      @Override
+      public int compare(String o1, String o2)
       {
-        _cacheMap.put(path, _zkCache);
+        int len1 = o1.split("/").length;
+        int len2 = o2.split("/").length;
+        return len1 - len2;
       }
-    }
+    });
+
+    start();
   }
 
   private String prependChroot(String clientPath)
@@ -247,7 +287,7 @@ public class ZkCacheBaseDataAccessor<T> implements BaseDataAccessor<T>
         Stat setStat = new Stat();
         List<String> pathsCreated = new ArrayList<String>();
         boolean success =
-            _baseAccessor.set(serverPath, data, pathsCreated, setStat, options);
+            _baseAccessor.set(serverPath, data, pathsCreated, setStat, -1, options);
 
         updateCache(cache, pathsCreated, success, serverPath, data, setStat);
 
@@ -270,6 +310,7 @@ public class ZkCacheBaseDataAccessor<T> implements BaseDataAccessor<T>
     String serverPath = prependChroot(clientPath);
 
     Cache<T> cache = getCache(serverPath);
+
     if (cache != null)
     {
       try
@@ -291,7 +332,8 @@ public class ZkCacheBaseDataAccessor<T> implements BaseDataAccessor<T>
     }
 
     // no cache
-    return _baseAccessor.update(serverPath, updater, options);
+    return _groupCommit.commit(_baseAccessor, options, serverPath, updater);
+    // return _baseAccessor.update(serverPath, updater, options);
   }
 
   @Override
@@ -374,10 +416,16 @@ public class ZkCacheBaseDataAccessor<T> implements BaseDataAccessor<T>
         try
         {
           cache.lockWrite();
-          record = _baseAccessor.get(serverPath, stat, options);
+          record = _baseAccessor.get(serverPath, stat, options | Option.THROW_EXCEPTION_IFNOTEXIST);
           cache.update(serverPath, record, stat);
         }
-        // throw ZkNoNodeException if on non-exist
+        catch (ZkNoNodeException e)
+        {
+          if (Option.isThrowExceptionIfNotExist(options))
+          {
+            throw e;
+          }
+        }
         finally
         {
           cache.unlockWrite();
@@ -389,23 +437,6 @@ public class ZkCacheBaseDataAccessor<T> implements BaseDataAccessor<T>
 
     // no cache
     return _baseAccessor.get(serverPath, stat, options);
-  }
-
-  public T get(String path, Stat stat, boolean returnNullIfPathNotExists, int options)
-  {
-    T data = null;
-    try
-    {
-      data = get(path, stat, options);
-    }
-    catch (ZkNoNodeException e)
-    {
-      if (!returnNullIfPathNotExists)
-      {
-        throw e;
-      }
-    }
-    return data;
   }
 
   @Override
@@ -823,33 +854,50 @@ public class ZkCacheBaseDataAccessor<T> implements BaseDataAccessor<T>
     _baseAccessor.unsubscribeChildChanges(serverPath, listener);
   }
 
+  @Override
   public void subscribe(String parentPath, HelixPropertyListener listener)
   {
     String serverPath = prependChroot(parentPath);
     _zkCache.subscribe(serverPath, listener);
   }
 
+  @Override
   public void unsubscribe(String parentPath, HelixPropertyListener listener)
   {
     String serverPath = prependChroot(parentPath);
     _zkCache.unsubscribe(serverPath, listener);
   }
 
-  void start()
+  @Override
+  public void start()
   {
+
+    LOG.info("START: Init ZkCacheBaseDataAccessor: " + _chrootPath + ", " + _wtCachePaths
+        + ", " + _zkCachePaths);
+
+    // start event thread
     try
     {
       _eventLock.lockInterruptibly();
       if (_eventThread != null)
       {
         LOG.warn(_eventThread + " has already started");
-        return;
       }
+      else
+      {
 
-      LOG.debug("Starting ZkCacheEventThread...");
+        if (_zkCachePaths == null || _zkCachePaths.isEmpty())
+        {
+          LOG.warn("ZkCachePaths is null or empty. Will not start ZkCacheEventThread");
+        }
+        else
+        {
+          LOG.debug("Starting ZkCacheEventThread...");
 
-      _eventThread = new ZkCacheEventThread("");
-      _eventThread.start();
+          _eventThread = new ZkCacheEventThread("");
+          _eventThread.start();
+        }
+      }
     }
     catch (InterruptedException e)
     {
@@ -859,15 +907,41 @@ public class ZkCacheBaseDataAccessor<T> implements BaseDataAccessor<T>
     {
       _eventLock.unlock();
     }
-
     LOG.debug("Start ZkCacheEventThread...done");
+
+    _wtCache = new WriteThroughCache<T>(_baseAccessor, _wtCachePaths);
+    _zkCache =
+        new ZkCallbackCache<T>(_baseAccessor, _chrootPath, _zkCachePaths, _eventThread);
+
+    if (_wtCachePaths != null && !_wtCachePaths.isEmpty())
+    {
+      for (String path : _wtCachePaths)
+      {
+        _cacheMap.put(path, _wtCache);
+      }
+    }
+
+    if (_zkCachePaths != null && !_zkCachePaths.isEmpty())
+    {
+      for (String path : _zkCachePaths)
+      {
+        _cacheMap.put(path, _zkCache);
+      }
+    }
   }
 
+  @Override
   public void stop()
   {
     try
     {
       _eventLock.lockInterruptibly();
+
+      if (_zkclient != null)
+      {
+        _zkclient.close();
+        _zkclient = null;
+      }
 
       if (_eventThread == null)
       {

@@ -59,6 +59,7 @@ import com.linkedin.helix.store.PropertyJsonComparator;
 import com.linkedin.helix.store.PropertyJsonSerializer;
 import com.linkedin.helix.store.PropertyStore;
 import com.linkedin.helix.store.file.FilePropertyStore;
+import com.linkedin.helix.store.zk.ZkHelixPropertyStore;
 import com.linkedin.helix.tools.PropertiesReader;
 import com.linkedin.helix.util.HelixUtil;
 
@@ -446,6 +447,13 @@ public class DynamicFileHelixManager implements HelixManager
   {
     // TODO Auto-generated method stub
     
+  }
+
+  @Override
+  public ZkHelixPropertyStore<ZNRecord> getHelixPropertyStore()
+  {
+    // TODO Auto-generated method stub
+    return null;
   }
 
 }

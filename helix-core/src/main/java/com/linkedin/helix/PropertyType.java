@@ -34,6 +34,7 @@ public enum PropertyType
   STATEMODELDEFS(Type.CLUSTER, true, false, false, false, true),
   CONTROLLER(Type.CLUSTER, true, false),
   PROPERTYSTORE(Type.CLUSTER, true, false),
+  HELIX_PROPERTYSTORE(Type.CLUSTER, true, false),
 
   // INSTANCE PROPERTIES
   MESSAGES(Type.INSTANCE, true, true, true),

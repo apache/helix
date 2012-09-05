@@ -16,8 +16,7 @@ public interface BaseDataAccessor<T>
     public static int EPHEMERAL   = 0x2;
     public static int PERSISTENT_SEQUENTIAL   = 0x4;
     public static int EPHEMERAL_SEQUENTIAL   = 0x8;
-//    public static int WRITE_THROUGH = 0x10;
-//    public static int ZK_CALLBACK = 0x20;
+    public static int THROW_EXCEPTION_IFNOTEXIST = 0x10;
     
     public static CreateMode getMode(int options)
     {
@@ -38,15 +37,10 @@ public interface BaseDataAccessor<T>
       return null;
     }
     
-//    public static boolean isWriteThrough(int options)
-//    {
-//      return (options & WRITE_THROUGH) > 0;
-//    }
-//    
-//    public static boolean isZkCallback(int options)
-//    {
-//      return (options & ZK_CALLBACK) > 0;
-//    }
+    public static boolean isThrowExceptionIfNotExist(int options)
+    {
+      return (options & THROW_EXCEPTION_IFNOTEXIST) > 0;
+    }
   }
   
   /**

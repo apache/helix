@@ -41,6 +41,7 @@ import com.linkedin.helix.store.PropertyStat;
 import com.linkedin.helix.store.PropertyStore;
 import com.linkedin.helix.store.PropertyStoreException;
 
+@Deprecated
 public class ZKPropertyStore<T> implements
     PropertyStore<T>,
     IZkStateListener,

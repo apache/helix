@@ -110,40 +110,6 @@ public class ZkCallbackCache<T> extends Cache<T> implements IZkListener
         T readData = _accessor.get(path, stat, Option.THROW_EXCEPTION_IFNOTEXIST);
 
         update(path, readData, stat);
-        
-//        // update parent's childSet
-//        String parentPath = new File(path).getParent();
-//        String name = new File(path).getName();
-//        addToParentChildSet(parentPath, name);
-//
-//        if (znode == null)
-//        {
-//          znode = new ZNode(path, readData, stat);
-//          _cache.put(path, znode);
-//
-//          System.out.println("\t--fireNodeCreated: " + path);
-//          fireEvents(path, EventType.NodeCreated);
-//        }
-//        else
-//        {
-//          // if in cache and create timestamp is different
-//          // that indicates at least 1 delete and 1 create
-//          Stat oldStat = znode.getStat();
-//
-//          znode.setData(readData);
-//          znode.setStat(stat);
-//
-//          if (oldStat.getCzxid() != stat.getCzxid())
-//          {
-//            fireEvents(path, EventType.NodeDeleted);
-//            fireEvents(path, EventType.NodeCreated);
-//          }
-//          else if (oldStat.getVersion() != stat.getVersion())
-//          {
-//            System.out.println("\t--fireNodeChanged: " + path + ", oldVersion: " + oldStat.getVersion() + ", newVersion: " + stat.getVersion());
-//            fireEvents(path, EventType.NodeDataChanged);
-//          }
-//        }
       }
       catch (ZkNoNodeException e)
       {

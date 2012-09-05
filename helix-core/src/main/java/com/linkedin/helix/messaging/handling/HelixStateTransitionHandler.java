@@ -132,7 +132,7 @@ public class HelixStateTransitionHandler extends MessageHandler
     // current state node
     synchronized(manager)
     {
-      if(!message.getExecutionSessionId().equals(manager.getSessionId()))
+      if(!message.getTgtSessionId().equals(manager.getSessionId()))
       {
         logger.warn("Session id has changed. Skip postExecutionMessage. Old session " + 
           message.getExecutionSessionId()+" , new session : " + manager.getSessionId());

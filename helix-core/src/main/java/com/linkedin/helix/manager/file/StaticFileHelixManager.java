@@ -54,6 +54,7 @@ import com.linkedin.helix.participant.StateMachineEngine;
 import com.linkedin.helix.participant.statemachine.StateModel;
 import com.linkedin.helix.participant.statemachine.StateModelFactory;
 import com.linkedin.helix.store.PropertyStore;
+import com.linkedin.helix.store.zk.ZkHelixPropertyStore;
 import com.linkedin.helix.tools.ClusterViewSerializer;
 import com.linkedin.helix.tools.IdealStateCalculatorByShuffling;
 
@@ -556,5 +557,12 @@ public class StaticFileHelixManager implements HelixManager
   {
     // TODO Auto-generated method stub
     
+  }
+
+  @Override
+  public ZkHelixPropertyStore<ZNRecord> getHelixPropertyStore()
+  {
+    // TODO Auto-generated method stub
+    return null;
   }
 }

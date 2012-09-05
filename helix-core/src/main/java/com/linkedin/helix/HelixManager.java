@@ -23,6 +23,7 @@ import com.linkedin.helix.participant.HelixStateMachineEngine;
 import com.linkedin.helix.participant.StateMachineEngine;
 import com.linkedin.helix.spectator.RoutingTableProvider;
 import com.linkedin.helix.store.PropertyStore;
+import com.linkedin.helix.store.zk.ZkHelixPropertyStore;
 
 /**
  * First class Object any process will interact with<br/>
@@ -225,7 +226,10 @@ public interface HelixManager
    * @param serializer
    * @return
    */
+  @Deprecated
   PropertyStore<ZNRecord> getPropertyStore();
+  
+  ZkHelixPropertyStore<ZNRecord> getHelixPropertyStore();
 
   /**
    * Messaging service which can be used to send cluster wide messages.

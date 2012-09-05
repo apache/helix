@@ -65,6 +65,8 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase
   @Test
   public void testSet()
   {
+    // Logger.getRootLogger().setLevel(Level.INFO);
+
     System.out.println("START testSet() at " + new Date(System.currentTimeMillis()));
 
     String subRoot = _root + "/" + "set";
@@ -257,7 +259,7 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase
     Thread.sleep(500); // should wait for zk callback to remove "/child0" from cache
     try
     {
-      record = store.get("/child0", null, 0);
+      record = store.get("/child0", null, Option.THROW_EXCEPTION_IFNOTEXIST);
       Assert.fail("/child0 should have been removed");
     }
     catch (ZkNoNodeException e)

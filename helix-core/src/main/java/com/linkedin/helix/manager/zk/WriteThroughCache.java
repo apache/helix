@@ -8,6 +8,7 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.data.Stat;
 
 import com.linkedin.helix.BaseDataAccessor;
+import com.linkedin.helix.BaseDataAccessor.Option;
 import com.linkedin.helix.store.zk.ZNode;
 
 public class WriteThroughCache<T> extends Cache<T>
@@ -69,7 +70,7 @@ public class WriteThroughCache<T> extends Cache<T>
 
       // update this node
       Stat stat = new Stat();
-      T readData = _accessor.get(path, stat, 0);
+      T readData = _accessor.get(path, stat, Option.THROW_EXCEPTION_IFNOTEXIST);
 
       update(path, readData, stat);
       

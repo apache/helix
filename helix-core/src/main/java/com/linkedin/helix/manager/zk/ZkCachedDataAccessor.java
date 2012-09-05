@@ -262,7 +262,7 @@ public class ZkCachedDataAccessor<T> implements IZkListener
 
       // update this node
       Stat stat = new Stat();
-      T readData = _accessor.get(absPath, stat, 0);
+      T readData = _accessor.get(absPath, stat, Option.THROW_EXCEPTION_IFNOTEXIST);
       ZNode zNode = cache.get(absPath);
       if (zNode == null)
       {
@@ -370,7 +370,7 @@ public class ZkCachedDataAccessor<T> implements IZkListener
 
       String absPath = getAbsolutePath(path);
       List<String> pathsCreated = new ArrayList<String>();
-      boolean success = _accessor.set(absPath, record, pathsCreated, null, options);
+      boolean success = _accessor.set(absPath, record, pathsCreated, null, -1, options);
 
       // even if not succeed, we might create some intermediate nodes
       updateZkCache(pathsCreated, absPath, success);
@@ -967,7 +967,7 @@ public class ZkCachedDataAccessor<T> implements IZkListener
       {
         // TODO: optimize it by get stat from callback
         Stat stat = new Stat();
-        Object readData = _accessor.get(dataPath, stat, 0);
+        Object readData = _accessor.get(dataPath, stat, Option.THROW_EXCEPTION_IFNOTEXIST);
 
         Stat oldStat = zNode.getStat();
 

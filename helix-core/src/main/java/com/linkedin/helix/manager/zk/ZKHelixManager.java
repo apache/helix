@@ -82,6 +82,7 @@ import com.linkedin.helix.participant.StateMachineEngine;
 import com.linkedin.helix.store.PropertyStore;
 import com.linkedin.helix.store.ZNRecordJsonSerializer;
 import com.linkedin.helix.store.zk.ZKPropertyStore;
+import com.linkedin.helix.store.zk.ZkHelixPropertyStore;
 import com.linkedin.helix.tools.PropertiesReader;
 
 public class ZKHelixManager implements HelixManager
@@ -111,6 +112,7 @@ public class ZKHelixManager implements HelixManager
   private final StateMachineEngine             _stateMachEngine;
   private int                                  _sessionTimeout;
   private PropertyStore<ZNRecord>              _propertyStore;
+  private ZkHelixPropertyStore<ZNRecord>       _helixPropertyStore;
   private final List<HelixTimerTask>           _controllerTimerTasks;
   private BaseDataAccessor<ZNRecord>           _baseDataAccessor;
   List<PreConnectCallback>                     _preConnectCallbacks    =
@@ -465,7 +467,7 @@ public class ZKHelixManager implements HelixManager
 
     // unsubscribe accessor from controllerChange
     _zkClient.unsubscribeAll();
-    
+
     _zkClient.close();
 
     // HACK seems that zkClient is not sending DISCONNECT event
@@ -588,16 +590,16 @@ public class ZKHelixManager implements HelixManager
 
   private void createClient(String zkServers) throws Exception
   {
-    String propertyStorePath = 
+    String propertyStorePath =
         PropertyPathConfig.getPath(PropertyType.PROPERTYSTORE, _clusterName);
-    
+
     // by default use ZNRecordStreamingSerializer except for paths within the property
     // store which expects raw byte[] serialization/deserialization
     PathBasedZkSerializer zkSerializer =
         ChainedPathZkSerializer.builder(new ZNRecordStreamingSerializer())
                                .serialize(propertyStorePath, new ByteArraySerializer())
                                .build();
-    
+
     _zkClient = new ZkClient(zkServers, _sessionTimeout, CONNECTIONTIMEOUT, zkSerializer);
     _accessor = new ZKDataAccessor(_clusterName, _zkClient);
 
@@ -971,7 +973,8 @@ public class ZKHelixManager implements HelixManager
       }
     }
   }
-
+ 
+  @Deprecated
   @Override
   public synchronized PropertyStore<ZNRecord> getPropertyStore()
   {
@@ -988,6 +991,25 @@ public class ZKHelixManager implements HelixManager
     }
 
     return _propertyStore;
+  }
+
+  @Override
+  public synchronized ZkHelixPropertyStore<ZNRecord> getHelixPropertyStore()
+  {
+    checkConnected();
+
+    if (_helixPropertyStore == null)
+    {
+      String path =
+          PropertyPathConfig.getPath(PropertyType.HELIX_PROPERTYSTORE, _clusterName);
+
+      _helixPropertyStore =
+          new ZkHelixPropertyStore<ZNRecord>(new ZkBaseDataAccessor<ZNRecord>(_zkClient),
+                                             path,
+                                             null);
+    }
+
+    return _helixPropertyStore;
   }
 
   @Override

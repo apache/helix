@@ -54,6 +54,13 @@ import com.linkedin.helix.util.HelixUtil;
 
 public class ClusterRepresentationUtil
 {
+//<<<<<<< HEAD
+//  public static final String _jsonParameters    = "jsonParameters";
+//  public static final String _managementCommand = "command";
+//  public static final String _newIdealState     = "newIdealState";
+//  public static final String _newModelDef       = "newStateModelDef";
+//  public static final String _enabled           = "enabled";
+//=======
   public static final String _jsonParameters                        = "jsonParameters";
   public static final String _managementCommand                     = "command";
   public static final String _newIdealState                         = "newIdealState";
@@ -69,6 +76,7 @@ public class ClusterRepresentationUtil
     s_aliases.put(ClusterSetup.addInstance, new HashSet<String>(Arrays.asList(new String[] {"addInstance"})));
     
   }
+// >>>>>>> 0d6ec7658795096b939c122617a56bb1aa18e0f7
 
   // public static String getClusterPropertyAsString(String zkServer, String clusterName,
   // PropertyType clusterProperty, String key, MediaType mediaType)
@@ -94,11 +102,12 @@ public class ClusterRepresentationUtil
       JsonMappingException,
       IOException
   {
-    
-    ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(zkClient));
 
-    ZNRecord record = accessor.getProperty(propertyKey).getRecord();
+    ZKHelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
+
+    HelixProperty property = accessor.getProperty(propertyKey);
+    ZNRecord record = property == null? null : property.getRecord();
     return ZNRecordToJson(record);
   }
 
@@ -186,7 +195,8 @@ public class ClusterRepresentationUtil
       JsonMappingException,
       IOException
   {
-    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(zkClient));
+    ZKHelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(zkClient));
 
     ZNRecord record = accessor.getProperty(propertyKey).getRecord();
     return ObjectToJson(record);
@@ -213,7 +223,8 @@ public class ClusterRepresentationUtil
     return sw.toString();
   }
 
-  public static HelixDataAccessor getClusterDataAccessor(ZkClient zkClient, String clusterName)
+  public static HelixDataAccessor getClusterDataAccessor(ZkClient zkClient,
+                                                         String clusterName)
   {
     return new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(zkClient));
   }

@@ -39,6 +39,7 @@ import com.linkedin.helix.manager.zk.ZKHelixDataAccessor;
 import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
 import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.store.PropertyStore;
+import com.linkedin.helix.store.zk.ZkHelixPropertyStore;
 
 public class MockZKHelixManager implements HelixManager
 {
@@ -265,6 +266,13 @@ public class MockZKHelixManager implements HelixManager
   {
     // TODO Auto-generated method stub
     
+  }
+
+  @Override
+  public ZkHelixPropertyStore<ZNRecord> getHelixPropertyStore()
+  {
+    // TODO Auto-generated method stub
+    return null;
   }
 
 }

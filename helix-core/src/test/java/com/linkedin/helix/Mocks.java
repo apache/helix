@@ -41,6 +41,7 @@ import com.linkedin.helix.participant.statemachine.StateModel;
 import com.linkedin.helix.participant.statemachine.StateModelInfo;
 import com.linkedin.helix.participant.statemachine.Transition;
 import com.linkedin.helix.store.PropertyStore;
+import com.linkedin.helix.store.zk.ZkHelixPropertyStore;
 
 public class Mocks {
 	public static class MockBaseDataAccessor implements BaseDataAccessor<ZNRecord> {
@@ -446,6 +447,13 @@ public class Mocks {
 			// TODO Auto-generated method stub
 
 		}
+
+    @Override
+    public ZkHelixPropertyStore<ZNRecord> getHelixPropertyStore()
+    {
+      // TODO Auto-generated method stub
+      return null;
+    }
 
 	}
 

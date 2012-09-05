@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
+import org.I0Itec.zkclient.serialize.ZkSerializer;
 
 import com.linkedin.helix.BaseDataAccessor;
 import com.linkedin.helix.ZNRecord;
@@ -14,13 +15,25 @@ import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.store.HelixPropertyListener;
 
 public class ZkHelixPropertyStore<T> extends ZkCacheBaseDataAccessor<T>
-    // ZkCachedDataAccessor<T>
 {
-
-  public ZkHelixPropertyStore(ZkBaseDataAccessor<T> accessor, String root,
-      List<String> subscribedPaths)
+  public ZkHelixPropertyStore(ZkBaseDataAccessor<T> accessor,
+                              String root,
+                              List<String> subscribedPaths)
   {
     super(accessor, root, null, subscribedPaths);
+  }
+
+  public ZkHelixPropertyStore(String zkAddress,
+                              ZkSerializer serializer,
+                              String chrootPath,
+                              List<String> zkCachePaths)
+  {
+    super(zkAddress, serializer, chrootPath, null, zkCachePaths);
+  }
+
+  public ZkHelixPropertyStore(String zkAddress, ZkSerializer serializer, String chrootPath)
+  {
+    super(zkAddress, serializer, chrootPath, null, null);
   }
 
   // temp test
@@ -34,8 +47,10 @@ public class ZkHelixPropertyStore<T> extends ZkCacheBaseDataAccessor<T>
 
     List<String> subscribedPaths = new ArrayList<String>();
     subscribedPaths.add(root);
-    ZkHelixPropertyStore<ZNRecord> store = new ZkHelixPropertyStore<ZNRecord>(
-        new ZkBaseDataAccessor<ZNRecord>(zkClient), root, subscribedPaths);
+    ZkHelixPropertyStore<ZNRecord> store =
+        new ZkHelixPropertyStore<ZNRecord>(new ZkBaseDataAccessor<ZNRecord>(zkClient),
+                                           root,
+                                           subscribedPaths);
 
     store.subscribe("/", new HelixPropertyListener()
     {
@@ -61,8 +76,7 @@ public class ZkHelixPropertyStore<T> extends ZkCacheBaseDataAccessor<T>
     });
 
     // test back to back add-delete-add
-    store.set("/child0", new ZNRecord("child0"),
-        BaseDataAccessor.Option.PERSISTENT);
+    store.set("/child0", new ZNRecord("child0"), BaseDataAccessor.Option.PERSISTENT);
     System.out.println("1:cache:" + store._zkCache.getCache());
 
     ZNRecord record = store.get("/child0", null, 0); // will put the record in
@@ -91,7 +105,8 @@ public class ZkHelixPropertyStore<T> extends ZkCacheBaseDataAccessor<T>
     try
     {
       record = store.get("/child0", null, 0);
-    } catch (ZkNoNodeException e)
+    }
+    catch (ZkNoNodeException e)
     {
       // OK.
     }

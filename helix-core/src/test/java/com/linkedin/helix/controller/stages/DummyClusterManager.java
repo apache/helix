@@ -35,6 +35,7 @@ import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.healthcheck.ParticipantHealthReportCollector;
 import com.linkedin.helix.participant.StateMachineEngine;
 import com.linkedin.helix.store.PropertyStore;
+import com.linkedin.helix.store.zk.ZkHelixPropertyStore;
 
 public class DummyClusterManager implements HelixManager
 {
@@ -256,5 +257,12 @@ public class DummyClusterManager implements HelixManager
   {
     // TODO Auto-generated method stub
     
+  }
+
+  @Override
+  public ZkHelixPropertyStore<ZNRecord> getHelixPropertyStore()
+  {
+    // TODO Auto-generated method stub
+    return null;
   }
 }

@@ -31,7 +31,6 @@ import org.apache.log4j.Logger;
 
 import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.healthcheck.HealthReportProvider;
-import com.linkedin.helix.mock.storage.MockParticipant.StoreAccessDiffNodeTransition;
 
 public class MockHealthReportParticipant
 {
@@ -261,7 +260,7 @@ public class MockHealthReportParticipant
         new MockParticipant(clusterName,
                             instanceName,
                             zkConnectStr,
-                            new StoreAccessDiffNodeTransition(), // new StoreAccessOneNodeTransition(),
+                            null,   // new StoreAccessDiffNodeTransition(), // new StoreAccessOneNodeTransition(),
                             new MockHealthReportJob());
     Runtime.getRuntime()
            .addShutdownHook(new MockHealthReportParticipantShutdownHook(participant));

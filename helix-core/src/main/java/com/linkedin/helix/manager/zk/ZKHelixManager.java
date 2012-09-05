@@ -101,7 +101,7 @@ public class ZKHelixManager implements HelixManager
   private final List<CallbackHandler>          _handlers;
   private final ZkStateChangeListener          _zkStateChangeListener;
   private final InstanceType                   _instanceType;
-  private String                               _sessionId;
+  private volatile String                      _sessionId;
   private Timer                                _timer;
   private CallbackHandler                      _leaderElectionHandler;
   private ParticipantHealthReportCollectorImpl _participantHealthCheckInfoCollector;
@@ -698,7 +698,10 @@ public class ZKHelixManager implements HelixManager
     }
 
     ZkConnection zkConnection = ((ZkConnection) _zkClient.getConnection());
-    _sessionId = Long.toHexString(zkConnection.getZookeeper().getSessionId()); // UUID.randomUUID().toString();
+    synchronized(this)
+    {
+      _sessionId = Long.toHexString(zkConnection.getZookeeper().getSessionId()); 
+    }
     _accessor.reset();
 
     resetHandlers();

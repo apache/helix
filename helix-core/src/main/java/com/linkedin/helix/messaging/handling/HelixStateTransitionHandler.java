@@ -116,23 +116,29 @@ public class HelixStateTransitionHandler extends MessageHandler
                             HelixTaskResult taskResult,
                             Exception exception)
   {
+    String partitionKey = message.getPartitionName();
+    String resource = message.getResourceName();
+    String sessionId = message.getTgtSessionId();
+    String instanceName = manager.getInstanceName();
+    
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
     Builder keyBuilder = accessor.keyBuilder();
-    try
+    
+    int bucketSize = message.getBucketSize();
+    ZNRecordBucketizer bucketizer = new ZNRecordBucketizer(bucketSize);
+
+    // Lock the helix manager sos that the session id will not change when we update 
+    // the state model state. for zk current state it is OK as we have the per-session 
+    // current state node
+    synchronized(manager)
     {
-      String partitionKey = message.getPartitionName();
-      String resource = message.getResourceName();
-      String sessionId = message.getTgtSessionId();
-      String instanceName = manager.getInstanceName();
+      if(!message.getExecutionSessionId().equals(manager.getSessionId()))
+      {
+        logger.warn("Session id has changed. Skip postExecutionMessage. Old session " + 
+          message.getExecutionSessionId()+" , new session : " + manager.getSessionId());
+        return;
+      }
       
-      int bucketSize = message.getBucketSize();
-      ZNRecordBucketizer bucketizer = new ZNRecordBucketizer(bucketSize);
-
-      // TODO verify that fromState is same as currentState this task
-      // was
-      // called at.
-      // Verify that no one has edited this field
-
       if (taskResult.isSucess())
       {
         // String fromState = message.getFromState();
@@ -141,14 +147,12 @@ public class HelixStateTransitionHandler extends MessageHandler
 
         if (toState.equalsIgnoreCase("DROPPED"))
         {
-          // for "OnOfflineToDROPPED" message, we need to remove the resource
-          // key
-          // record from
-          // the current state of the instance because the resource key is
-          // dropped.
+          // for "OnOfflineToDROPPED" message, we need to remove the resource key record
+          // from the current state of the instance because the resource key is dropped.
+          // In the state model it will be stayed as "OFFLINE", which is OK.
           ZNRecordDelta delta =
               new ZNRecordDelta(_currentStateDelta.getRecord(), MergeOperation.SUBTRACT);
-          // don't subtract simple fields since they contain stateModelDefRef
+          // Don't subtract simple fields since they contain stateModelDefRef
           delta._record.getSimpleFields().clear();
 
           List<ZNRecordDelta> deltaList = new ArrayList<ZNRecordDelta>();
@@ -157,7 +161,7 @@ public class HelixStateTransitionHandler extends MessageHandler
         }
         else
         {
-          // If a resource key is dropped, it is ok to leave it "offline"
+          // if the partition is not to be dropped, update _stateModel to the TO_STATE
           _stateModel.updateState(toState);
         }
       }
@@ -182,15 +186,16 @@ public class HelixStateTransitionHandler extends MessageHandler
         _stateModel.rollbackOnError(message, context, error);
         _currentStateDelta.setState(partitionKey, "ERROR");
         _stateModel.updateState("ERROR");
-
       }
-
-      // based on task result update the current state of the node.
+    }
+    try
+    {
+      // Update the ZK current state of the node.
       accessor.updateProperty(keyBuilder.currentState(instanceName,
                                                       sessionId,
                                                       resource,
                                                       bucketizer.getBucketName(partitionKey)),
-                              _currentStateDelta);
+                                                      _currentStateDelta);
     }
     catch (Exception e)
     {

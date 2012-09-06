@@ -166,7 +166,7 @@ public class TestHelixAdminScenariosRest extends ZkIntegrationTestBase
     
   }
   
-  String assertSuccessPostOperation(String url, Map<String, String> jsonParameters, boolean hasException) throws IOException
+  static String assertSuccessPostOperation(String url, Map<String, String> jsonParameters, boolean hasException) throws IOException
   {
     Reference resourceRef = new Reference(url);
     
@@ -185,7 +185,7 @@ public class TestHelixAdminScenariosRest extends ZkIntegrationTestBase
     return sw.toString();
   }
   
-  String assertSuccessPostOperation(String url, Map<String, String> jsonParameters, Map<String, String> extraForm, boolean hasException) throws IOException
+  static String assertSuccessPostOperation(String url, Map<String, String> jsonParameters, Map<String, String> extraForm, boolean hasException) throws IOException
   {
     Reference resourceRef = new Reference(url);
     

@@ -37,6 +37,7 @@ import com.linkedin.helix.TestHelper.StartCMResult;
 import com.linkedin.helix.controller.HelixControllerMain;
 import com.linkedin.helix.integration.ZkIntegrationTestBase;
 import com.linkedin.helix.manager.zk.ZKUtil;
+import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.tools.ClusterSetup;
 import com.linkedin.helix.tools.ClusterStateVerifier;
@@ -48,6 +49,7 @@ import com.linkedin.helix.webapp.resources.ClusterRepresentationUtil;
 import com.linkedin.helix.webapp.resources.ClusterResource;
 import com.linkedin.helix.webapp.resources.ClustersResource;
 import com.linkedin.helix.webapp.resources.IdealStateResource;
+import com.linkedin.helix.webapp.resources.InstanceResource;
 import com.linkedin.helix.webapp.resources.InstancesResource;
 import com.linkedin.helix.webapp.resources.ResourceGroupsResource;
 
@@ -146,9 +148,14 @@ public class TestHelixAdminScenariosRest extends ZkIntegrationTestBase
     
     /**====================  drop add resource in live clusters ===================*/
     testDropAddResource();
+    
     /**======================Operations with live node ============================*/
    
     testInstanceOperations();
+    
+    /**======================Operations with partitions ============================*/
+    
+    testEnablePartitions();
     
     /**============================ expand cluster ===========================*/
    
@@ -403,6 +410,8 @@ public class TestHelixAdminScenariosRest extends ZkIntegrationTestBase
     Assert.assertFalse(_gZkClient.exists("/clusterTest1"));
   }
   
+  
+  
   private void testDropAddResource() throws Exception
   {
     ZNRecord record = _gSetupTool._admin.getResourceIdealState("clusterTest1", "db_11").getRecord();
@@ -485,6 +494,51 @@ public class TestHelixAdminScenariosRest extends ZkIntegrationTestBase
         ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
                                                                                  "clusterTest1"));
     Assert.assertTrue(verifyResult);
+  }
+  
+  private void testEnablePartitions() throws IOException, InterruptedException
+  {
+    HelixDataAccessor accessor;
+    accessor = _startCMResultMap.get("localhost_1231")._manager.getHelixDataAccessor();
+    // drop node should fail as not disabled
+    String hostName = "localhost_1231";
+    String instanceUrl = getInstanceUrl("clusterTest1", hostName);
+    ExternalView ev = accessor.getProperty(accessor.keyBuilder().externalView("db_11"));
+    
+    Map<String, String> paraMap = new HashMap<String, String>();
+    paraMap.put(ClusterRepresentationUtil._managementCommand, ClusterSetup.enablePartition);
+    paraMap.put(ClusterRepresentationUtil._enabled, "false");
+    paraMap.put(InstanceResource._partition, "db_11_0;db_11_15");
+    paraMap.put(InstanceResource._resource, "db_11");
+    
+    String response = assertSuccessPostOperation(instanceUrl, paraMap, false);
+    Assert.assertTrue(response.contains("DISABLED_PARTITION"));
+    Assert.assertTrue(response.contains("db_11_0"));
+    Assert.assertTrue(response.contains("db_11_15"));
+    
+    boolean verifyResult =
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+                                                                                 "clusterTest1"));
+    Assert.assertTrue(verifyResult);
+    
+    ev = accessor.getProperty(accessor.keyBuilder().externalView("db_11"));
+    Assert.assertEquals(ev.getStateMap("db_11_0").get(hostName), "OFFLINE");
+    Assert.assertEquals(ev.getStateMap("db_11_15").get(hostName), "OFFLINE");
+    
+
+    paraMap.put(ClusterRepresentationUtil._enabled, "true");
+    response = assertSuccessPostOperation(instanceUrl, paraMap, false);
+    Assert.assertFalse(response.contains("db_11_0"));
+    Assert.assertFalse(response.contains("db_11_15"));
+    
+    verifyResult =
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+                                                                                 "clusterTest1"));
+    Assert.assertTrue(verifyResult);
+    
+    ev = accessor.getProperty(accessor.keyBuilder().externalView("db_11"));
+    Assert.assertEquals(ev.getStateMap("db_11_0").get(hostName), "MASTER");
+    Assert.assertEquals(ev.getStateMap("db_11_15").get(hostName), "SLAVE");
   }
   
   private void testInstanceOperations() throws Exception

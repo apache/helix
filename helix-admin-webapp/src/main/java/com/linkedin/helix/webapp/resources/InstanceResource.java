@@ -16,6 +16,8 @@
 package com.linkedin.helix.webapp.resources;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
@@ -32,6 +34,7 @@ import org.restlet.resource.Resource;
 import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 
+import com.linkedin.helix.HelixException;
 import com.linkedin.helix.PropertyKey;
 import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.manager.zk.ZkClient;
@@ -41,6 +44,8 @@ import com.linkedin.helix.webapp.RestAdminApplication;
 public class InstanceResource extends Resource
 {
   private final static Logger LOG = Logger.getLogger(InstanceResource.class);
+  public static final String _partition = "partition";
+  public static final String _resource = "resource";
 
   public InstanceResource(Context context, Request request, Response response)
   {
@@ -121,19 +126,69 @@ public class InstanceResource extends Resource
       String instanceName = (String) getRequest().getAttributes().get("instanceName");
 
       Form form = new Form(entity);
-      Map<String, String> paraMap =
-          ClusterRepresentationUtil.getFormJsonParametersWithCommandVerified(form,
-                                                                             ClusterSetup.enableInstance);
-
-      boolean enabled =
-          Boolean.parseBoolean(paraMap.get(ClusterRepresentationUtil._enabled));
-
-      ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
-      ClusterSetup setupTool = new ClusterSetup(zkClient);
-      setupTool.getClusterManagementTool().enableInstance(clusterName,
-                                                          instanceName,
-                                                          enabled);
-
+      Map<String, String> paraMap = ClusterRepresentationUtil.getFormJsonParameters(form);
+      String command = paraMap.get(ClusterRepresentationUtil._managementCommand);
+      if(command.equalsIgnoreCase(ClusterSetup.enableInstance))
+      {
+        paraMap =
+            ClusterRepresentationUtil.getFormJsonParametersWithCommandVerified(form,
+                                                                               ClusterSetup.enableInstance);
+  
+        boolean enabled =
+            Boolean.parseBoolean(paraMap.get(ClusterRepresentationUtil._enabled));
+  
+        ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
+        ClusterSetup setupTool = new ClusterSetup(zkClient);
+        setupTool.getClusterManagementTool().enableInstance(clusterName,
+                                                            instanceName,
+                                                            enabled);
+      }
+      else if(command.equalsIgnoreCase(ClusterSetup.enablePartition))
+      {
+        paraMap =
+            ClusterRepresentationUtil.getFormJsonParametersWithCommandVerified(form,
+                                                                               ClusterSetup.enablePartition);
+        if(! paraMap.containsKey(ClusterRepresentationUtil._enabled))
+        {
+          throw new HelixException("Json parameters does not contain '"+ ClusterRepresentationUtil._enabled + "'");
+        }
+        if(! paraMap.containsKey(_partition))
+        {
+          throw new HelixException("Json parameters does not contain '"+ _partition + "'");
+        }
+        if(! paraMap.containsKey(_resource))
+        {
+          throw new HelixException("Json parameters does not contain '"+ _resource + "'");
+        }
+        boolean enabled =
+            Boolean.parseBoolean(paraMap.get(ClusterRepresentationUtil._enabled));
+        String[] partitions = paraMap.get(_partition).split(";");
+        String resource = paraMap.get(_resource);
+  
+        ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
+        ClusterSetup setupTool = new ClusterSetup(zkClient);
+        setupTool.getClusterManagementTool().enablePartition(enabled, clusterName, instanceName, resource, Arrays.asList(partitions));
+      }
+      else if(command.equalsIgnoreCase(ClusterSetup.resetPartition))
+      {
+        paraMap =
+            ClusterRepresentationUtil.getFormJsonParametersWithCommandVerified(form,
+                                                                               ClusterSetup.resetPartition);
+        if(! paraMap.containsKey(_partition))
+        {
+          throw new HelixException("Json parameters does not contain '"+ _partition + "'");
+        }
+        if(! paraMap.containsKey(_resource))
+        {
+          throw new HelixException("Json parameters does not contain '"+ _resource + "'");
+        }
+        String partition = paraMap.get(_partition);
+        String resource = paraMap.get(_resource);
+  
+        ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
+        ClusterSetup setupTool = new ClusterSetup(zkClient);
+        setupTool.getClusterManagementTool().resetPartition(clusterName, instanceName, resource, partition);
+      }
       getResponse().setEntity(getInstanceRepresentation());
       getResponse().setStatus(Status.SUCCESS_OK);
     }

@@ -15,7 +15,7 @@ public class ZNRecordBucketizer
   {
     if (bucketSize <= 0)
     {
-      LOG.info("bucketSize <= 0 (was " + bucketSize
+      LOG.debug("bucketSize <= 0 (was " + bucketSize
           + "). Set to 0 to use non-bucketized HelixProperty.");
       bucketSize = 0;
     }

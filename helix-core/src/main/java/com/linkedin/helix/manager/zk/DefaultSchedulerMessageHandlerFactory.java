@@ -49,6 +49,8 @@ import com.linkedin.helix.util.StatusUpdateUtil;
 public class DefaultSchedulerMessageHandlerFactory implements
     MessageHandlerFactory
 {
+  public static final String WAIT_ALL = "WAIT_ALL";
+  public static final String SCHEDULER_MSG_ID = "SchedulerMessageId";
   public static class SchedulerAsyncCallback extends AsyncCallback
   {
     StatusUpdateUtil _statusUpdateUtil = new StatusUpdateUtil();
@@ -105,21 +107,11 @@ public class DefaultSchedulerMessageHandlerFactory implements
 
       HelixDataAccessor accessor = manager.getHelixDataAccessor();
       Builder keyBuilder = accessor.keyBuilder();
-      String instanceName = manager.getInstanceName();
-      String sessionId = manager.getSessionId();
-      // ZNRecord statusUpdate
-      // = accessor.getProperty(PropertyType.STATUSUPDATES_CONTROLLER,
-      // MessageType.SCHEDULER_MSG.toString(), originalMessage.getMsgId());
       ZNRecord statusUpdate = accessor.getProperty(
           keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(),
               originalMessage.getMsgId())).getRecord();
 
       statusUpdate.getMapFields().putAll(_resultSummaryMap);
-
-      // accessor.setProperty(PropertyType.STATUSUPDATES_CONTROLLER,
-      // statusUpdate,
-      // MessageType.SCHEDULER_MSG.toString(),
-      // originalMessage.getMsgId());
       accessor.setProperty(keyBuilder.controllerTaskStatus(
           MessageType.SCHEDULER_MSG.toString(), originalMessage.getMsgId()),
           new StatusUpdate(statusUpdate));
@@ -218,32 +210,49 @@ public class DefaultSchedulerMessageHandlerFactory implements
         return result;
       }
       _logger.info("Scheduler sending message, criteria:" + recipientCriteria);
+      
+      boolean waitAll = false;
+      if(_message.getRecord().getSimpleField(DefaultSchedulerMessageHandlerFactory.WAIT_ALL) !=null)
+      {
+        try
+        {
+          waitAll = Boolean.parseBoolean(_message.getRecord().getSimpleField(DefaultSchedulerMessageHandlerFactory.WAIT_ALL));
+        }
+        catch(Exception e)
+        {
+          _logger.warn("",e);
+        }
+      }
       // Send all messages.
-      int nMsgsSent = _manager.getMessagingService().send(recipientCriteria,
-          messageTemplate, new SchedulerAsyncCallback(_message, _manager),
-          timeOut);
-
+      
+      int nMsgsSent = 0;
+      SchedulerAsyncCallback callback = new SchedulerAsyncCallback(_message, _manager);
+      if(waitAll)
+      {
+        nMsgsSent = _manager.getMessagingService().sendAndWait(recipientCriteria,
+            messageTemplate, 
+            callback,
+            timeOut);
+      }
+      else
+      {
+        nMsgsSent = _manager.getMessagingService().send(recipientCriteria,
+            messageTemplate, 
+            callback,
+            timeOut);
+      }
       HelixDataAccessor accessor = _manager.getHelixDataAccessor();
       Builder keyBuilder = accessor.keyBuilder();
-      String instanceName = _manager.getInstanceName();
-      String sessionId = _manager.getSessionId();
 
       // Record the number of messages sent into status updates
       Map<String, String> sendSummary = new HashMap<String, String>();
       sendSummary.put("MessageCount", "" + nMsgsSent);
-      // ZNRecord statusUpdate =
-      // _manager.getDataAccessor().getProperty(PropertyType.STATUSUPDATES_CONTROLLER,
-      // MessageType.SCHEDULER_MSG.toString(),
-      // _message.getMsgId());
+      
       ZNRecord statusUpdate = accessor.getProperty(
           keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(),
               _message.getMsgId())).getRecord();
 
       statusUpdate.getMapFields().put("SentMessageCount", sendSummary);
-      // _manager.getDataAccessor().setProperty(PropertyType.STATUSUPDATES_CONTROLLER,
-      // statusUpdate,
-      // MessageType.SCHEDULER_MSG.toString(),
-      // _message.getMsgId());
 
       accessor.setProperty(keyBuilder.controllerTaskStatus(
           MessageType.SCHEDULER_MSG.toString(), _message.getMsgId()),
@@ -253,6 +262,7 @@ public class DefaultSchedulerMessageHandlerFactory implements
           "ControllerResult",
           "msg " + _message.getMsgId() + " from " + _message.getMsgSrc()
               + " processed");
+      result.getTaskResultMap().put(SCHEDULER_MSG_ID, _message.getMsgId());
       result.setSuccess(true);
       return result;
     }

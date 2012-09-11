@@ -44,7 +44,7 @@ public class TestDummyAlerts extends ZkIntegrationTestBase
 {
   public class DummyAlertsTransition extends MockTransition
   {
-    private final AtomicBoolean _done = new AtomicBoolean();
+    private final AtomicBoolean _done = new AtomicBoolean(false);
 
     @Override
     public void doTransition(Message message, NotificationContext context)
@@ -58,18 +58,9 @@ public class TestDummyAlerts extends ZkIntegrationTestBase
       {
         for (int i = 0; i < 5; i++)
         {
-          // System.out.println(instance + " sets healthReport: " + "mockAlerts" + i);
+//          System.out.println(instance + " sets healthReport: " + "mockAlerts" + i);
           accessor.setProperty(keyBuilder.healthReport(instance, "mockAlerts"),
                                new HealthStat(new ZNRecord("mockAlerts" + i)));
-          try
-          {
-            Thread.sleep(500);
-          }
-          catch (InterruptedException e)
-          {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-          }
         }
       }
     }
@@ -80,11 +71,15 @@ public class TestDummyAlerts extends ZkIntegrationTestBase
   public void testDummyAlerts() throws Exception
   {
     // Logger.getRootLogger().setLevel(Level.INFO);
-    String clusterName = getShortClassName();
-    MockParticipant[] participants = new MockParticipant[5];
-    ClusterSetup setupTool = new ClusterSetup(ZK_ADDR);
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = className + "_" + methodName;
+    final int n = 5;
 
-    System.out.println("START TestDummyAlerts at " + new Date(System.currentTimeMillis()));
+    MockParticipant[] participants = new MockParticipant[n];
+
+    System.out.println("START " + clusterName + " at "
+        + new Date(System.currentTimeMillis()));
 
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant start
                                                          // port
@@ -92,20 +87,17 @@ public class TestDummyAlerts extends ZkIntegrationTestBase
                             "TestDB", // resource name prefix
                             1, // resources
                             10, // partitions per resource
-                            5, // number of nodes
+                            n, // number of nodes
                             3, // replicas
                             "MasterSlave",
                             true); // do rebalance
 
+    ClusterSetup setupTool = new ClusterSetup(ZK_ADDR);
     enableHealthCheck(clusterName);
     setupTool.getClusterManagementTool()
              .addAlert(clusterName,
                        "EXP(decay(1.0)(*.defaultPerfCounters@defaultPerfCounters.availableCPUs))CMP(GREATER)CON(2)");
 
-//    TestHelper.startController(clusterName,
-//                               "controller_0",
-//                               ZK_ADDR,
-//                               HelixControllerMain.STANDALONE);
     // start controller
     StandaloneController controller =
         new StandaloneController(clusterName, "controller_0", ZK_ADDR);
@@ -113,7 +105,7 @@ public class TestDummyAlerts extends ZkIntegrationTestBase
 
     
     // start participants
-    for (int i = 0; i < 5; i++)
+    for (int i = 0; i < n; i++)
     {
       String instanceName = "localhost_" + (12918 + i);
 
@@ -136,10 +128,10 @@ public class TestDummyAlerts extends ZkIntegrationTestBase
     Assert.assertTrue(result);
 
     // other verifications go here
-    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(_gZkClient));
+    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
-    for (int i = 0; i < 5; i++)
+    for (int i = 0; i < n; i++)
     {
       String instance = "localhost_" + (12918 + i);
       ZNRecord record =
@@ -148,14 +140,14 @@ public class TestDummyAlerts extends ZkIntegrationTestBase
     }
 
     // clean up
+    Thread.sleep(1000);
+    controller.syncStop();
     for (int i = 0; i < 5; i++)
     {
       participants[i].syncStop();
     }
     
-    Thread.sleep(2000);
-    controller.syncStop();
-
-    System.out.println("END TestDummyAlerts at " + new Date(System.currentTimeMillis()));
+    System.out.println("END " + clusterName + " at "
+        + new Date(System.currentTimeMillis()));
   }
 }

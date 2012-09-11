@@ -68,7 +68,7 @@ public class TestZNRecordJsonSerializer extends ZkUnitTestBase
     Assert.assertTrue(list3.contains("x"));
     Assert.assertTrue(list3.contains("y"));
 
-    System.out.println("START " + testRoot + " at " + new Date(System.currentTimeMillis()));
+    System.out.println("END " + testRoot + " at " + new Date(System.currentTimeMillis()));
 
   }
 }

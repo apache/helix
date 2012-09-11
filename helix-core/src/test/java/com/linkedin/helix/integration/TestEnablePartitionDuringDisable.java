@@ -8,7 +8,7 @@ import org.testng.annotations.Test;
 import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.TestHelper;
-import com.linkedin.helix.mock.controller.StandaloneController;
+import com.linkedin.helix.mock.controller.ClusterController;
 import com.linkedin.helix.mock.storage.MockParticipant;
 import com.linkedin.helix.mock.storage.MockTransition;
 import com.linkedin.helix.model.Message;
@@ -89,8 +89,8 @@ public class TestEnablePartitionDuringDisable extends ZkIntegrationTestBase
                             "MasterSlave",
                             true); // do rebalance
 
-    StandaloneController controller =
-        new StandaloneController(clusterName, "controller_0", ZK_ADDR);
+    ClusterController controller =
+        new ClusterController(clusterName, "controller_0", ZK_ADDR);
     controller.syncStart();
 
     // start participants

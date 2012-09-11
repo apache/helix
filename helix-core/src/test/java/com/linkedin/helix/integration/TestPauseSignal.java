@@ -12,7 +12,7 @@ import com.linkedin.helix.manager.zk.ZKHelixDataAccessor;
 import com.linkedin.helix.manager.zk.ZNRecordSerializer;
 import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
 import com.linkedin.helix.manager.zk.ZkClient;
-import com.linkedin.helix.mock.controller.StandaloneController;
+import com.linkedin.helix.mock.controller.ClusterController;
 import com.linkedin.helix.mock.storage.MockParticipant;
 import com.linkedin.helix.model.PauseSignal;
 import com.linkedin.helix.tools.ClusterSetup;
@@ -45,8 +45,8 @@ public class TestPauseSignal extends ZkIntegrationTestBase
                             true); // do rebalance
 
     // start controller
-    StandaloneController controller =
-        new StandaloneController(clusterName, "controller_0", ZK_ADDR);
+    ClusterController controller =
+        new ClusterController(clusterName, "controller_0", ZK_ADDR);
     controller.syncStart();
 
     // start participants

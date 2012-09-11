@@ -12,7 +12,7 @@ import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.ZkTestHelper;
 import com.linkedin.helix.ZkTestHelper.TestZkHelixManager;
-import com.linkedin.helix.mock.controller.StandaloneController;
+import com.linkedin.helix.mock.controller.ClusterController;
 import com.linkedin.helix.mock.storage.MockParticipant;
 import com.linkedin.helix.mock.storage.MockTransition;
 import com.linkedin.helix.model.Message;
@@ -77,8 +77,8 @@ public class TestSessionExpiryInTransition extends ZkIntegrationTestBase
                             true); // do rebalance
 
     // start controller
-    StandaloneController controller =
-        new StandaloneController(clusterName, "controller_0", ZK_ADDR);
+    ClusterController controller =
+        new ClusterController(clusterName, "controller_0", ZK_ADDR);
     controller.syncStart();
 
     // start participants

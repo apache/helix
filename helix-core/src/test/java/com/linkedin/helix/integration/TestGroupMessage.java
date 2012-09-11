@@ -12,7 +12,7 @@ import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.manager.zk.ZKHelixDataAccessor;
 import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
-import com.linkedin.helix.mock.controller.StandaloneController;
+import com.linkedin.helix.mock.controller.ClusterController;
 import com.linkedin.helix.mock.storage.MockParticipant;
 import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.tools.ClusterStateVerifier;
@@ -70,8 +70,8 @@ public class TestGroupMessage extends ZkIntegrationTestBase
     _gZkClient.subscribeChildChanges(keyBuilder.messages("localhost_12918").getPath(), listener);
 
     
-    StandaloneController controller =
-        new StandaloneController(clusterName, "controller_0", ZK_ADDR);
+    ClusterController controller =
+        new ClusterController(clusterName, "controller_0", ZK_ADDR);
     controller.syncStart();
 
     // start participants

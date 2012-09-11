@@ -9,7 +9,7 @@ import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.mock.controller.StandaloneController;
+import com.linkedin.helix.mock.controller.ClusterController;
 import com.linkedin.helix.mock.storage.MockParticipant;
 import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.tools.ClusterStateVerifier;
@@ -46,7 +46,7 @@ public class TestNullReplica extends ZkIntegrationTestBase
     idealState.getSimpleFields().remove(IdealState.IdealStateProperty.REPLICAS.toString());
     _gZkClient.writeData(idealStatePath, idealState);
     
-    StandaloneController controller = new StandaloneController(clusterName, "controller_0", ZK_ADDR);
+    ClusterController controller = new ClusterController(clusterName, "controller_0", ZK_ADDR);
     controller.syncStart();
     
     // start participants

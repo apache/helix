@@ -13,7 +13,7 @@ import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.ZkTestHelper;
 import com.linkedin.helix.manager.zk.ZKHelixDataAccessor;
 import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
-import com.linkedin.helix.mock.controller.StandaloneController;
+import com.linkedin.helix.mock.controller.ClusterController;
 import com.linkedin.helix.mock.storage.MockParticipant;
 import com.linkedin.helix.model.IdealState;
 import com.linkedin.helix.model.IdealState.IdealStateModeProperty;
@@ -61,8 +61,8 @@ public class TestDisable extends ZkIntegrationTestBase
 
     
     // start controller
-    StandaloneController controller =
-        new StandaloneController(clusterName, "controller_0", ZK_ADDR);
+    ClusterController controller =
+        new ClusterController(clusterName, "controller_0", ZK_ADDR);
     controller.syncStart();
     
     // start participants
@@ -149,8 +149,8 @@ public class TestDisable extends ZkIntegrationTestBase
                             true); // do rebalance
 
     // start controller
-    StandaloneController controller =
-        new StandaloneController(clusterName, "controller_0", ZK_ADDR);
+    ClusterController controller =
+        new ClusterController(clusterName, "controller_0", ZK_ADDR);
     controller.syncStart();
     
     // start participants
@@ -245,8 +245,8 @@ public class TestDisable extends ZkIntegrationTestBase
 
     
     // start controller
-    StandaloneController controller =
-        new StandaloneController(clusterName, "controller_0", ZK_ADDR);
+    ClusterController controller =
+        new ClusterController(clusterName, "controller_0", ZK_ADDR);
     controller.syncStart();
     
     // start participants
@@ -335,8 +335,8 @@ public class TestDisable extends ZkIntegrationTestBase
                             true); // do rebalance
 
     // start controller
-    StandaloneController controller =
-        new StandaloneController(clusterName, "controller_0", ZK_ADDR);
+    ClusterController controller =
+        new ClusterController(clusterName, "controller_0", ZK_ADDR);
     controller.syncStart();
     
     // start participants

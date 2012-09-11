@@ -42,7 +42,7 @@ public class ZkStandAloneCMTestBaseWithPropertyServerCheck extends ZkStandAloneC
     ZKPropertyTransferServer.getInstance().init(19999, ZK_ADDR);
     super.beforeClass();
     
-    Thread.sleep(500);
+    Thread.sleep(1000);
     for (int i = 0; i < NODE_NR; i++)
     {
       String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);

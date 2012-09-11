@@ -1,5 +1,6 @@
 package com.linkedin.helix;
 
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
 import org.I0Itec.zkclient.IZkStateListener;
@@ -11,8 +12,12 @@ import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.ZooKeeper.States;
 
+import com.linkedin.helix.PropertyKey.Builder;
+import com.linkedin.helix.manager.zk.ZKHelixDataAccessor;
 import com.linkedin.helix.manager.zk.ZKHelixManager;
+import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
 import com.linkedin.helix.manager.zk.ZkClient;
+import com.linkedin.helix.model.ExternalView;
 
 public class ZkTestHelper
 {
@@ -107,5 +112,61 @@ public class ZkTestHelper
 
     // System.err.println("zk: " + oldZookeeper);
     LOG.info("After expiry. sessionId: " + Long.toHexString(curZookeeper.getSessionId()));
+  }
+
+  /*
+   * stateMap: partition->instance->state
+   */
+  public static boolean verifyState(ZkClient zkclient,
+                                    String clusterName,
+                                    String resourceName,
+                                    Map<String, Map<String, String>> expectStateMap,
+                                    String op)
+  {
+    boolean result = true;
+    ZkBaseDataAccessor<ZNRecord> baseAccessor =
+        new ZkBaseDataAccessor<ZNRecord>(zkclient);
+    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, baseAccessor);
+    Builder keyBuilder = accessor.keyBuilder();
+
+    ExternalView extView = accessor.getProperty(keyBuilder.externalView(resourceName));
+    Map<String, Map<String, String>> actualStateMap = extView.getRecord().getMapFields();
+    for (String partition : actualStateMap.keySet())
+    {
+      for (String expectPartiton : expectStateMap.keySet())
+      {
+        if (!partition.matches(expectPartiton))
+        {
+          continue;
+        }
+
+        Map<String, String> actualInstanceStateMap = actualStateMap.get(partition);
+        Map<String, String> expectInstanceStateMap = expectStateMap.get(expectPartiton);
+        for (String instance : actualInstanceStateMap.keySet())
+        {
+          for (String expectInstance : expectStateMap.get(expectPartiton).keySet())
+          {
+            if (!instance.matches(expectInstance))
+            {
+              continue;
+            }
+
+            String actualState = actualInstanceStateMap.get(instance);
+            String expectState = expectInstanceStateMap.get(expectInstance);
+            boolean equals = expectState.equals(actualState);
+            if (op.equals("==") && !equals || op.equals("!=") && equals)
+            {
+              System.out.println(partition + "/" + instance
+                  + " state mismatch. actual state: " + actualState + ", but expect: "
+                  + expectState + ", op: " + op);
+              result = false;
+            }
+
+          }
+        }
+
+      }
+    }
+    return result;
   }
 }

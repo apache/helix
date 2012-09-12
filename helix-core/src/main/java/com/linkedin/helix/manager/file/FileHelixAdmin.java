@@ -360,7 +360,7 @@ public class FileHelixAdmin implements HelixAdmin
   public void resetPartition(String clusterName,
                              String instanceName,
                              String resourceName,
-                             String partition)
+                             List<String> partitionNames)
   {
     throw new UnsupportedOperationException("resetPartition() is NOT supported by FileClusterManagementTool");
   }

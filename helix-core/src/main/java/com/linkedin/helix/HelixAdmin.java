@@ -80,7 +80,7 @@ public interface HelixAdmin
   void resetPartition(String clusterName,
                       String instanceName,
                       String resourceName,
-                      String partition);
+                      List<String> partitionNames);
 
   void addStateModelDef(String clusterName,
                         String stateModelDef,

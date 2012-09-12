@@ -1563,6 +1563,11 @@ public class ClusterSetup
     else if (cmd.hasOption(enablePartition))
     {
       String[] args = cmd.getOptionValues(enablePartition);
+      if (args.length < 5)
+      {
+        throw new IllegalArgumentException("enable Partition should have at least 5 arguments, but was " + args.length);
+      }
+      
       boolean enabled = Boolean.parseBoolean(args[0].toLowerCase());
       String clusterName = args[1];
       String instanceName = args[2];
@@ -1579,14 +1584,22 @@ public class ClusterSetup
     }
     else if (cmd.hasOption(resetPartition))
     {
-      String clusterName = cmd.getOptionValues(resetPartition)[0];
-      String instanceName = cmd.getOptionValues(resetPartition)[1];
-      String resourceName = cmd.getOptionValues(resetPartition)[2];
-      String partitionName = cmd.getOptionValues(resetPartition)[3];
+      String[] args = cmd.getOptionValues(resetPartition);
+      if (args.length < 4)
+      {
+        throw new IllegalArgumentException("reset Partition should have at least 4 arguments, but was " + args.length);
+      }
+
+      String clusterName = args[0];
+      String instanceName = args[1];
+      String resourceName = args[2];
+      List<String> partitionNames =
+          Arrays.asList(Arrays.copyOfRange(args, 3, args.length));
+
       setupTool.getClusterManagementTool().resetPartition(clusterName,
                                                           instanceName,
                                                           resourceName,
-                                                          partitionName);
+                                                          partitionNames);
       return 0;
     }
     else if (cmd.hasOption(enableCluster))

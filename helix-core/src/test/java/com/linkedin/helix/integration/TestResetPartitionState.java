@@ -26,10 +26,9 @@ import org.testng.annotations.Test;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.TestHelper;
-import com.linkedin.helix.controller.HelixControllerMain;
-import com.linkedin.helix.manager.zk.ZKHelixAdmin;
 import com.linkedin.helix.manager.zk.ZKHelixDataAccessor;
 import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
+import com.linkedin.helix.mock.controller.ClusterController;
 import com.linkedin.helix.mock.storage.MockParticipant;
 import com.linkedin.helix.mock.storage.MockParticipant.ErrTransition;
 import com.linkedin.helix.model.LiveInstance;
@@ -41,9 +40,9 @@ public class TestResetPartitionState extends ZkIntegrationTestBase
 {
   int _errToOfflineInvoked = 0;
 
-  class ErrTransitionWithReset extends ErrTransition
+  class ErrTransitionWithResetCnt extends ErrTransition
   {
-    public ErrTransitionWithReset(Map<String, Set<String>> errPartitions)
+    public ErrTransitionWithResetCnt(Map<String, Set<String>> errPartitions)
     {
       super(errPartitions);
     }
@@ -51,7 +50,7 @@ public class TestResetPartitionState extends ZkIntegrationTestBase
     @Override
     public void doTransition(Message message, NotificationContext context)
     {
-      // System.err.println("doRest() invoked");
+      // System.err.println("doReset() invoked");
       super.doTransition(message, context);
       String fromState = message.getFromState();
       String toState = message.getToState();
@@ -66,16 +65,34 @@ public class TestResetPartitionState extends ZkIntegrationTestBase
   @Test()
   public void testResetPartitionState() throws Exception
   {
-    String clusterName = getShortClassName();
-    MockParticipant[] participants = new MockParticipant[5];
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = className + "_" + methodName;
+    final int n = 5;
 
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
+    System.out.println("START " + clusterName + " at "
+        + new Date(System.currentTimeMillis()));
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, "localhost", "TestDB",
-                            1, 10, 5, 3, "MasterSlave", true);
+    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+                            "localhost", // participant name prefix
+                            "TestDB", // resource name prefix
+                            1, // resources
+                            10, // partitions per resource
+                            n, // number of nodes
+                            3, // replicas
+                            "MasterSlave",
+                            true); // do rebalance
 
-    TestHelper.startController(clusterName, "controller_0",
-                                      ZK_ADDR, HelixControllerMain.STANDALONE);
+    // TestHelper.startController(clusterName,
+    // "controller_0",
+    // ZK_ADDR,
+    // HelixControllerMain.STANDALONE);
+
+    // start controller
+    ClusterController controller =
+        new ClusterController(clusterName, "controller_0", ZK_ADDR);
+    controller.syncStart();
+
     Map<String, Set<String>> errPartitions = new HashMap<String, Set<String>>()
     {
       {
@@ -83,13 +100,19 @@ public class TestResetPartitionState extends ZkIntegrationTestBase
         put("OFFLINE-SLAVE", TestHelper.setOf("TestDB0_8"));
       }
     };
-    for (int i = 0; i < 5; i++)
+
+    // start mock participants
+    MockParticipant[] participants = new MockParticipant[n];
+    for (int i = 0; i < n; i++)
     {
-      String instanceName = PARTICIPANT_PREFIX + "_" + (12918 + i);
+      String instanceName = "localhost_" + (12918 + i);
 
       if (i == 0)
       {
-        participants[i] = new MockParticipant(clusterName, instanceName, ZK_ADDR,
+        participants[i] =
+            new MockParticipant(clusterName,
+                                instanceName,
+                                ZK_ADDR,
                                 new ErrTransition(errPartitions));
       }
       else
@@ -97,81 +120,109 @@ public class TestResetPartitionState extends ZkIntegrationTestBase
         participants[i] = new MockParticipant(clusterName, instanceName, ZK_ADDR);
       }
       participants[i].syncStart();
-      // new Thread(participants[i]).start();
     }
 
-    Map<String, Map<String, String>> errStateMap = new HashMap<String, Map<String, String>>();
+    // verify cluster
+    Map<String, Map<String, String>> errStateMap =
+        new HashMap<String, Map<String, String>>();
     errStateMap.put("TestDB0", new HashMap<String, String>());
     errStateMap.get("TestDB0").put("TestDB0_4", "localhost_12918");
     errStateMap.get("TestDB0").put("TestDB0_8", "localhost_12918");
-    boolean result = ClusterStateVerifier.verifyByPolling(
-        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName, errStateMap));
-    Assert.assertTrue(result);
+    boolean result =
+        ClusterStateVerifier.verifyByZkCallback((new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
+                                                                                                       clusterName,
+                                                                                                       errStateMap)));
+    Assert.assertTrue(result, "Cluster verification fails");
 
     // reset a non-exist partition, should throw exception
-    ZKHelixAdmin tool = new ZKHelixAdmin(_gZkClient);
     try
     {
-      tool.resetPartition(clusterName, "localhost_12918", "TestDB0", "TestDB0_nonExist");
+      String command =
+          "--zkSvr " + ZK_ADDR + " --resetPartition " + clusterName
+              + " localhost_12918 TestDB0 TestDB0_nonExist";
+      ClusterSetup.processCommandLineArgs(command.split("\\s+"));
       Assert.fail("Should throw exception on reset a non-exist partition");
-    } catch (Exception e)
+    }
+    catch (Exception e)
     {
       // OK
     }
-    
+
     // reset one error partition
     errPartitions.remove("SLAVE-MASTER");
-    participants[0].setTransition(new ErrTransitionWithReset(errPartitions));
+    participants[0].setTransition(new ErrTransitionWithResetCnt(errPartitions));
     clearStatusUpdate(clusterName, "localhost_12918", "TestDB0", "TestDB0_4");
     _errToOfflineInvoked = 0;
-    String cmd = "-zkSvr " + ZK_ADDR + " -resetPartition " + clusterName +" localhost_12918 TestDB0 TestDB0_4";
-    ClusterSetup.processCommandLineArgs(cmd.split(" "));
-    Thread.sleep(200);  // wait reset to be done
+    String command =
+        "--zkSvr " + ZK_ADDR + " --resetPartition " + clusterName
+            + " localhost_12918 TestDB0 TestDB0_4";
+
+    ClusterSetup.processCommandLineArgs(command.split("\\s+"));
+    Thread.sleep(200); // wait reset to be done
     try
     {
-      ClusterSetup.processCommandLineArgs(cmd.split(" "));
+      ClusterSetup.processCommandLineArgs(command.split("\\s+"));
       Assert.fail("Should throw exception on reset a partition not in ERROR state");
-    } catch (Exception e)
+    }
+    catch (Exception e)
     {
       // OK
     }
 
-
     errStateMap.get("TestDB0").remove("TestDB0_4");
-    result = ClusterStateVerifier.verifyByPolling(
-        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName, errStateMap));
-    Assert.assertTrue(result);
-
+    result =
+        ClusterStateVerifier.verifyByZkCallback((new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
+                                                                                                   clusterName,
+                                                                                                   errStateMap)));
+    Assert.assertTrue(result, "Cluster verification fails");
     Assert.assertEquals(_errToOfflineInvoked, 1);
 
     // reset the other error partition
-    participants[0].setTransition(new ErrTransitionWithReset(null));
+    participants[0].setTransition(new ErrTransitionWithResetCnt(null));
     clearStatusUpdate(clusterName, "localhost_12918", "TestDB0", "TestDB0_8");
-    //tool.resetPartition(clusterName, "localhost_12918", "TestDB0", "TestDB0_8");
-    
-    _gSetupTool.processCommandLineArgs(("-zkSvr " + ZK_ADDR + " --resetPartition " + clusterName + " localhost_12918 TestDB0 TestDB0_8").split(" "));
-    
-    result = ClusterStateVerifier.verifyByPolling(
-        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
-    Assert.assertTrue(result);
 
-    Assert.assertEquals(_errToOfflineInvoked, 2);
+    command =
+        "--zkSvr " + ZK_ADDR + " --resetPartition " + clusterName
+            + " localhost_12918 TestDB0 TestDB0_8";
+    ClusterSetup.processCommandLineArgs(command.split("\\s+"));
 
-    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
+    result =
+        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
+                                                                                                   clusterName));
+    Assert.assertTrue(result, "Cluster verification fails");
+    Assert.assertEquals(_errToOfflineInvoked, 2, "Should reset 2 partitions");
+
+    // clean up
+    // wait for all zk callbacks done
+    Thread.sleep(1000);
+    controller.syncStop();
+    for (int i = 0; i < 5; i++)
+    {
+      participants[i].syncStop();
+    }
+
+    System.out.println("END " + clusterName + " at "
+        + new Date(System.currentTimeMillis()));
 
   }
 
-  private void clearStatusUpdate(String clusterName, String instance, String resource,
-      String partition)
+  private void clearStatusUpdate(String clusterName,
+                                 String instance,
+                                 String resource,
+                                 String partition)
   {
     // clear status update for error partition so verify() will not fail on old
     // errors
-    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(_gZkClient));
+    ZKHelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(_gZkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
     LiveInstance liveInstance = accessor.getProperty(keyBuilder.liveInstance(instance));
-    accessor.removeProperty(keyBuilder.stateTransitionStatus(instance, liveInstance.getSessionId(), resource, partition));
+    accessor.removeProperty(keyBuilder.stateTransitionStatus(instance,
+                                                             liveInstance.getSessionId(),
+                                                             resource,
+                                                             partition));
 
-   }
+  }
   // TODO: throw exception in reset()
 }

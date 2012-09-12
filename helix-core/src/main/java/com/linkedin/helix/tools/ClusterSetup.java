@@ -107,6 +107,7 @@ public class ClusterSetup
   public static final String enableCluster          = "enableCluster";
   public static final String resetPartition         = "resetPartition";
   public static final String resetInstance          = "resetInstance";
+  public static final String resetResource          = "resetResource";
 
   // help
   public static final String help                   = "help";
@@ -1058,13 +1059,13 @@ public class ClusterSetup
     rebalanceOption.setRequired(false);
     rebalanceOption.setArgName("clusterName resourceName replicas");
 
-    Option InstanceInfoOption =
+    Option instanceInfoOption =
         OptionBuilder.withLongOpt(listInstanceInfo)
                      .withDescription("Query info of a Instance in a cluster")
                      .create();
-    InstanceInfoOption.setArgs(2);
-    InstanceInfoOption.setRequired(false);
-    InstanceInfoOption.setArgName("clusterName InstanceName");
+    instanceInfoOption.setArgs(2);
+    instanceInfoOption.setRequired(false);
+    instanceInfoOption.setArgName("clusterName InstanceName");
 
     Option clusterInfoOption =
         OptionBuilder.withLongOpt(listClusterInfo)
@@ -1146,6 +1147,14 @@ public class ClusterSetup
     resetInstanceOption.setRequired(false);
     resetInstanceOption.setArgName("clusterName instanceName");
 
+    Option resetResourceOption =
+        OptionBuilder.withLongOpt(resetResource)
+                     .withDescription("Reset all partitions in error state for a resource")
+                     .create();
+    resetResourceOption.setArgs(2);
+    resetResourceOption.setRequired(false);
+    resetResourceOption.setArgName("clusterName resourceName");
+    
     Option listStateModelsOption =
         OptionBuilder.withLongOpt(listStateModels)
                      .withDescription("Query info of state models in a cluster")
@@ -1222,7 +1231,7 @@ public class ClusterSetup
     group.addOption(dropInstanceOption);
     group.addOption(swapInstanceOption);
     group.addOption(dropResourceOption);
-    group.addOption(InstanceInfoOption);
+    group.addOption(instanceInfoOption);
     group.addOption(clusterInfoOption);
     group.addOption(resourceInfoOption);
     group.addOption(partitionInfoOption);
@@ -1231,6 +1240,7 @@ public class ClusterSetup
     group.addOption(enableClusterOption);
     group.addOption(resetPartitionOption);
     group.addOption(resetInstanceOption);
+    group.addOption(resetResourceOption);
     group.addOption(addStateModelDefOption);
     group.addOption(listStateModelsOption);
     group.addOption(listStateModelOption);
@@ -1617,7 +1627,17 @@ public class ClusterSetup
       setupTool.getClusterManagementTool().resetInstance(clusterName, instanceNames);
       return 0;
     }
+    else if (cmd.hasOption(resetResource))
+    {
+      String[] args = cmd.getOptionValues(resetResource);
 
+      String clusterName = args[0];
+      List<String> resourceNames =
+          Arrays.asList(Arrays.copyOfRange(args, 1, args.length));
+
+      setupTool.getClusterManagementTool().resetResource(clusterName, resourceNames);
+      return 0;
+    }
     else if (cmd.hasOption(enableCluster))
     {
       String[] params = cmd.getOptionValues(enableCluster);

@@ -373,6 +373,12 @@ public class FileHelixAdmin implements HelixAdmin
   }
 
   @Override
+  public void resetResource(String clusterName, List<String> resourceNames)
+  {
+    throw new UnsupportedOperationException("resetResource() is NOT supported by FileClusterManagementTool");
+  }
+
+  @Override
   public void addStat(String clusterName, String statName)
   {
     throw new UnsupportedOperationException("addStat() is NOT supported by FileClusterManagementTool");

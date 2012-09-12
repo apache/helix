@@ -15,9 +15,8 @@ import com.linkedin.helix.mock.storage.MockParticipant.ErrTransition;
 import com.linkedin.helix.tools.ClusterSetup;
 import com.linkedin.helix.tools.ClusterStateVerifier;
 
-public class TestResetNode extends ZkIntegrationTestBase
+public class TestResetResource extends ZkIntegrationTestBase
 {
-
   @Test
   public void testResetNode() throws Exception
   {
@@ -85,11 +84,11 @@ public class TestResetNode extends ZkIntegrationTestBase
                                                                                                        errStateMap)));
     Assert.assertTrue(result, "Cluster verification fails");
     
-    // reset node "localhost_12918"
+    // reset resource "TestDB0"
     participants[0].setTransition(null);
     String command =
-        "--zkSvr " + ZK_ADDR + " --resetInstance " + clusterName
-            + " localhost_12918";
+        "--zkSvr " + ZK_ADDR + " --resetResource " + clusterName
+            + " TestDB0";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
 
     result =

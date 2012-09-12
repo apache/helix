@@ -85,6 +85,9 @@ public interface HelixAdmin
   void resetInstance(String clusterName,
                       List<String> instanceNames);
 
+  void resetResource(String clusterName,
+                     List<String> resourceNames);
+
   
   void addStateModelDef(String clusterName,
                         String stateModelDef,

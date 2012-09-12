@@ -449,6 +449,7 @@ public class ZKHelixAdmin implements HelixAdmin
   @Override
   public void resetInstance(String clusterName, List<String> instanceNames)
   {
+    // TODO: not mp-safe
     ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
     Builder keyBuilder = accessor.keyBuilder();
@@ -471,7 +472,57 @@ public class ZKHelixAdmin implements HelixAdmin
             resetPartitionNames.add(partitionName);
           }
         }
-        resetPartition(clusterName, instanceName, extView.getResourceName(), resetPartitionNames);
+        resetPartition(clusterName,
+                       instanceName,
+                       extView.getResourceName(),
+                       resetPartitionNames);
+      }
+    }
+  }
+
+  @Override
+  public void resetResource(String clusterName, List<String> resourceNames)
+  {
+    // TODO: not mp-safe
+    ZKHelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+    List<ExternalView> extViews = accessor.getChildValues(keyBuilder.externalViews());
+
+    Set<String> resetResourceNames = new HashSet<String>(resourceNames);
+    for (ExternalView extView : extViews)
+    {
+      if (!resetResourceNames.contains(extView.getResourceName()))
+      {
+        continue;
+      }
+
+      // instanceName -> list of resetPartitionNames
+      Map<String, List<String>> resetPartitionNames = new HashMap<String, List<String>>();
+
+      Map<String, Map<String, String>> stateMap = extView.getRecord().getMapFields();
+      for (String partitionName : stateMap.keySet())
+      {
+        Map<String, String> instanceStateMap = stateMap.get(partitionName);
+        for (String instanceName : instanceStateMap.keySet())
+        {
+          if (instanceStateMap.get(instanceName).equals("ERROR"))
+          {
+            if (!resetPartitionNames.containsKey(instanceName))
+            {
+              resetPartitionNames.put(instanceName, new ArrayList<String>());
+            }
+            resetPartitionNames.get(instanceName).add(partitionName);
+          }
+        }
+      }
+
+      for (String instanceName : resetPartitionNames.keySet())
+      {
+        resetPartition(clusterName,
+                       instanceName,
+                       extView.getResourceName(),
+                       resetPartitionNames.get(instanceName));
       }
     }
   }

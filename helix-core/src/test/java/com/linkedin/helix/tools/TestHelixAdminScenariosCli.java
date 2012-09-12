@@ -51,7 +51,7 @@ public class TestHelixAdminScenariosCli extends ZkIntegrationTestBase
 
   
   @Test
-  public void TestAddDeleteClusterAndInstanceAndResource() throws Exception
+  public void testAddDeleteClusterAndInstanceAndResource() throws Exception
   {
     // Helix bug helix-102
     //ZKPropertyTransferServer.PERIOD = 500;

@@ -40,7 +40,8 @@ import com.linkedin.helix.util.HelixUtil;
 
 public class FileHelixAdmin implements HelixAdmin
 {
-  private static Logger logger = Logger.getLogger(FileHelixAdmin.class);
+  private static Logger                     logger =
+                                                       Logger.getLogger(FileHelixAdmin.class);
   private final FilePropertyStore<ZNRecord> _store;
 
   public FileHelixAdmin(FilePropertyStore<ZNRecord> store)
@@ -363,6 +364,12 @@ public class FileHelixAdmin implements HelixAdmin
                              List<String> partitionNames)
   {
     throw new UnsupportedOperationException("resetPartition() is NOT supported by FileClusterManagementTool");
+  }
+
+  @Override
+  public void resetInstance(String clusterName, List<String> instanceNames)
+  {
+    throw new UnsupportedOperationException("resetInstance() is NOT supported by FileClusterManagementTool");
   }
 
   @Override

@@ -26,6 +26,7 @@ import org.testng.annotations.Test;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.TestHelper;
+import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.manager.zk.ZKHelixDataAccessor;
 import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
 import com.linkedin.helix.mock.controller.ClusterController;
@@ -82,11 +83,6 @@ public class TestResetPartitionState extends ZkIntegrationTestBase
                             3, // replicas
                             "MasterSlave",
                             true); // do rebalance
-
-    // TestHelper.startController(clusterName,
-    // "controller_0",
-    // ZK_ADDR,
-    // HelixControllerMain.STANDALONE);
 
     // start controller
     ClusterController controller =
@@ -214,7 +210,7 @@ public class TestResetPartitionState extends ZkIntegrationTestBase
     // clear status update for error partition so verify() will not fail on old
     // errors
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(_gZkClient));
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
     LiveInstance liveInstance = accessor.getProperty(keyBuilder.liveInstance(instance));

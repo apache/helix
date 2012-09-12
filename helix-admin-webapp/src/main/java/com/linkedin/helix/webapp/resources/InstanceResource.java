@@ -18,6 +18,7 @@ package com.linkedin.helix.webapp.resources;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
@@ -187,7 +188,9 @@ public class InstanceResource extends Resource
   
         ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
         ClusterSetup setupTool = new ClusterSetup(zkClient);
-        setupTool.getClusterManagementTool().resetPartition(clusterName, instanceName, resource, partition);
+        List<String> resetPartitionNames = new ArrayList<String>();
+        resetPartitionNames.add(partition);
+        setupTool.getClusterManagementTool().resetPartition(clusterName, instanceName, resource, resetPartitionNames);
       }
       getResponse().setEntity(getInstanceRepresentation());
       getResponse().setStatus(Status.SUCCESS_OK);

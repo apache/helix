@@ -438,12 +438,42 @@ public class ZKHelixAdmin implements HelixAdmin
       message.setFromState("ERROR");
       message.setToState(stateModel.getInitialState());
       message.setStateModelFactoryName(idealState.getStateModelFactoryName());
-      
+
       resetMessages.add(message);
       messageKeys.add(keyBuilder.message(instanceName, message.getId()));
     }
 
     accessor.setChildren(messageKeys, resetMessages);
+  }
+
+  @Override
+  public void resetInstance(String clusterName, List<String> instanceNames)
+  {
+    ZKHelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+    List<ExternalView> extViews = accessor.getChildValues(keyBuilder.externalViews());
+
+    Set<String> resetInstanceNames = new HashSet<String>(instanceNames);
+    for (String instanceName : resetInstanceNames)
+    {
+      List<String> resetPartitionNames = new ArrayList<String>();
+      for (ExternalView extView : extViews)
+      {
+        Map<String, Map<String, String>> stateMap = extView.getRecord().getMapFields();
+        for (String partitionName : stateMap.keySet())
+        {
+          Map<String, String> instanceStateMap = stateMap.get(partitionName);
+
+          if (instanceStateMap.containsKey(instanceName)
+              && instanceStateMap.get(instanceName).equals("ERROR"))
+          {
+            resetPartitionNames.add(partitionName);
+          }
+        }
+        resetPartition(clusterName, instanceName, extView.getResourceName(), resetPartitionNames);
+      }
+    }
   }
 
   @Override

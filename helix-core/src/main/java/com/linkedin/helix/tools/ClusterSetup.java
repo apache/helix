@@ -64,65 +64,68 @@ import com.linkedin.helix.util.ZKClientPool;
 
 public class ClusterSetup
 {
-  private static Logger logger = Logger.getLogger(ClusterSetup.class);
-  public static final String zkServerAddress = "zkSvr";
+  private static Logger      logger                 =
+                                                        Logger.getLogger(ClusterSetup.class);
+  public static final String zkServerAddress        = "zkSvr";
 
   // List info about the cluster / DB/ Instances
-  public static final String listClusters = "listClusters";
-  public static final String listResources = "listResources";
-  public static final String listInstances = "listInstances";
+  public static final String listClusters           = "listClusters";
+  public static final String listResources          = "listResources";
+  public static final String listInstances          = "listInstances";
 
   // Add, drop, and rebalance
-  public static final String addCluster = "addCluster";
-  public static final String activateCluster = "activateCluster";
-  public static final String dropCluster = "dropCluster";
-  public static final String dropResource = "dropResource";
-  public static final String addInstance = "addNode";
-  public static final String addResource = "addResource";
-  public static final String addStateModelDef = "addStateModelDef";
-  public static final String addIdealState = "addIdealState";
-  public static final String swapInstance = "swapInstance";
-  public static final String dropInstance = "dropNode";
-  public static final String rebalance = "rebalance";
-  public static final String expandCluster = "expandCluster";
-  public static final String expandResource = "expandResource";
-  public static final String mode = "mode";
-  public static final String bucketSize = "bucketSize";
-  public static final String resourceKeyPrefix = "key";
-  public static final String addResourceProperty = "addResourceProperty";
+  public static final String addCluster             = "addCluster";
+  public static final String activateCluster        = "activateCluster";
+  public static final String dropCluster            = "dropCluster";
+  public static final String dropResource           = "dropResource";
+  public static final String addInstance            = "addNode";
+  public static final String addResource            = "addResource";
+  public static final String addStateModelDef       = "addStateModelDef";
+  public static final String addIdealState          = "addIdealState";
+  public static final String swapInstance           = "swapInstance";
+  public static final String dropInstance           = "dropNode";
+  public static final String rebalance              = "rebalance";
+  public static final String expandCluster          = "expandCluster";
+  public static final String expandResource         = "expandResource";
+  public static final String mode                   = "mode";
+  public static final String bucketSize             = "bucketSize";
+  public static final String resourceKeyPrefix      = "key";
+  public static final String addResourceProperty    = "addResourceProperty";
   public static final String removeResourceProperty = "removeResourceProperty";
 
   // Query info (TBD in V2)
-  public static final String listClusterInfo = "listClusterInfo";
-  public static final String listInstanceInfo = "listInstanceInfo";
-  public static final String listResourceInfo = "listResourceInfo";
-  public static final String listPartitionInfo = "listPartitionInfo";
-  public static final String listStateModels = "listStateModels";
-  public static final String listStateModel = "listStateModel";
+  public static final String listClusterInfo        = "listClusterInfo";
+  public static final String listInstanceInfo       = "listInstanceInfo";
+  public static final String listResourceInfo       = "listResourceInfo";
+  public static final String listPartitionInfo      = "listPartitionInfo";
+  public static final String listStateModels        = "listStateModels";
+  public static final String listStateModel         = "listStateModel";
 
-  // enable/disable Instances/cluster
-  public static final String enableInstance = "enableInstance";
-  public static final String enablePartition = "enablePartition";
-  public static final String enableCluster = "enableCluster";
-  public static final String resetPartition = "resetPartition";
+  // enable/disable/reset instances/cluster/resource/partition
+  public static final String enableInstance         = "enableInstance";
+  public static final String enablePartition        = "enablePartition";
+  public static final String enableCluster          = "enableCluster";
+  public static final String resetPartition         = "resetPartition";
+  public static final String resetInstance          = "resetInstance";
 
   // help
-  public static final String help = "help";
+  public static final String help                   = "help";
 
   // stats/alerts
-  public static final String addStat = "addStat";
-  public static final String addAlert = "addAlert";
-  public static final String dropStat = "dropStat";
-  public static final String dropAlert = "dropAlert";
+  public static final String addStat                = "addStat";
+  public static final String addAlert               = "addAlert";
+  public static final String dropStat               = "dropStat";
+  public static final String dropAlert              = "dropAlert";
 
   // get/set configs
-  public static final String getConfig = "getConfig";
-  public static final String setConfig = "setConfig";
+  public static final String getConfig              = "getConfig";
+  public static final String setConfig              = "setConfig";
 
-  static Logger _logger = Logger.getLogger(ClusterSetup.class);
-  String _zkServerAddress;
-  ZkClient _zkClient;
-  HelixAdmin _admin;
+  static Logger              _logger                =
+                                                        Logger.getLogger(ClusterSetup.class);
+  String                     _zkServerAddress;
+  ZkClient                   _zkClient;
+  HelixAdmin                 _admin;
 
   public ClusterSetup(String zkServerAddress)
   {
@@ -786,7 +789,7 @@ public class ClusterSetup
 
   /**
    * setConfig
-   *
+   * 
    * @param scopeStr
    *          : scope=value, ... where scope=CLUSTER, RESOURCE, PARTICIPANT, PARTITION
    * @param properitesStr
@@ -865,7 +868,7 @@ public class ClusterSetup
   /**
    * Sets up a cluster with 6 Instances[localhost:8900 to localhost:8905], 1
    * resource[EspressoDB] with a replication factor of 3
-   *
+   * 
    * @param clusterName
    */
   public void setupTestCluster(String clusterName)
@@ -1135,6 +1138,14 @@ public class ClusterSetup
     resetPartitionOption.setRequired(false);
     resetPartitionOption.setArgName("clusterName instanceName resourceName partitionName");
 
+    Option resetInstanceOption =
+        OptionBuilder.withLongOpt(resetInstance)
+                     .withDescription("Reset all partitions in error state for an instance")
+                     .create();
+    resetInstanceOption.setArgs(2);
+    resetInstanceOption.setRequired(false);
+    resetInstanceOption.setArgName("clusterName instanceName");
+
     Option listStateModelsOption =
         OptionBuilder.withLongOpt(listStateModels)
                      .withDescription("Query info of state models in a cluster")
@@ -1219,6 +1230,7 @@ public class ClusterSetup
     group.addOption(enablePartitionOption);
     group.addOption(enableClusterOption);
     group.addOption(resetPartitionOption);
+    group.addOption(resetInstanceOption);
     group.addOption(addStateModelDefOption);
     group.addOption(listStateModelsOption);
     group.addOption(listStateModelOption);
@@ -1563,11 +1575,7 @@ public class ClusterSetup
     else if (cmd.hasOption(enablePartition))
     {
       String[] args = cmd.getOptionValues(enablePartition);
-      if (args.length < 5)
-      {
-        throw new IllegalArgumentException("enable Partition should have at least 5 arguments, but was " + args.length);
-      }
-      
+
       boolean enabled = Boolean.parseBoolean(args[0].toLowerCase());
       String clusterName = args[1];
       String instanceName = args[2];
@@ -1585,10 +1593,6 @@ public class ClusterSetup
     else if (cmd.hasOption(resetPartition))
     {
       String[] args = cmd.getOptionValues(resetPartition);
-      if (args.length < 4)
-      {
-        throw new IllegalArgumentException("reset Partition should have at least 4 arguments, but was " + args.length);
-      }
 
       String clusterName = args[0];
       String instanceName = args[1];
@@ -1602,6 +1606,18 @@ public class ClusterSetup
                                                           partitionNames);
       return 0;
     }
+    else if (cmd.hasOption(resetInstance))
+    {
+      String[] args = cmd.getOptionValues(resetInstance);
+
+      String clusterName = args[0];
+      List<String> instanceNames =
+          Arrays.asList(Arrays.copyOfRange(args, 1, args.length));
+
+      setupTool.getClusterManagementTool().resetInstance(clusterName, instanceNames);
+      return 0;
+    }
+
     else if (cmd.hasOption(enableCluster))
     {
       String[] params = cmd.getOptionValues(enableCluster);

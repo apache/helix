@@ -18,7 +18,6 @@ package com.linkedin.helix.webapp.resources;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.JsonGenerationException;
@@ -56,26 +55,31 @@ public class StateModelsResource extends Resource
     getVariants().add(new Variant(MediaType.APPLICATION_JSON));
   }
 
+  @Override
   public boolean allowGet()
   {
     return true;
   }
   
+  @Override
   public boolean allowPost()
   {
     return true;
   }
   
+  @Override
   public boolean allowPut()
   {
     return false;
   }
   
+  @Override
   public boolean allowDelete()
   {
     return false;
   }
   
+  @Override
   public Representation represent(Variant variant)
   {
     StringRepresentation presentation = null;
@@ -110,6 +114,7 @@ public class StateModelsResource extends Resource
     return representation;
   }
   
+  @Override
   public void acceptRepresentation(Representation entity)
   {
     try
@@ -118,12 +123,13 @@ public class StateModelsResource extends Resource
       ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);;
       
       Form form = new Form(entity);
-      
-      Map<String, String> paraMap 
-      	= ClusterRepresentationUtil.getFormJsonParameters(form);
+      JsonParameters jsonParameters = new JsonParameters(form);
+      String command = jsonParameters.getCommand();
+
         
-      if(paraMap.get(ClusterRepresentationUtil._managementCommand).equalsIgnoreCase(ClusterSetup.addStateModelDef))
+      if(command.equalsIgnoreCase(ClusterSetup.addStateModelDef))
       {
+        // TODO: refactor this
         String newStateModelString = form.getFirstValue(ClusterRepresentationUtil._newModelDef, true);
         
         ObjectMapper mapper = new ObjectMapper();
@@ -137,18 +143,18 @@ public class StateModelsResource extends Resource
       }
       else
       {
-    	  throw new HelixException("Management command should be "+ ClusterSetup.addStateModelDef);
+          throw new HelixException("Unsupported command: " + command
+                                   + ". Should be one of [" + ClusterSetup.addStateModelDef + "]");
       }
       
       getResponse().setStatus(Status.SUCCESS_OK);
     }
-
     catch(Exception e)
     {
       getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),
           MediaType.APPLICATION_JSON);
       getResponse().setStatus(Status.SUCCESS_OK);
-      LOG.error("", e);
+      LOG.error("Error in posting " + entity, e);
     }  
   }
 }

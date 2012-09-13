@@ -20,12 +20,8 @@ import java.io.PrintWriter;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.TreeMap;
 
 import org.codehaus.jackson.JsonGenerationException;
@@ -38,7 +34,6 @@ import org.restlet.data.Form;
 import org.restlet.data.MediaType;
 
 import com.linkedin.helix.HelixDataAccessor;
-import com.linkedin.helix.HelixException;
 import com.linkedin.helix.HelixProperty;
 import com.linkedin.helix.PropertyKey;
 import com.linkedin.helix.PropertyKey.Builder;
@@ -49,37 +44,13 @@ import com.linkedin.helix.manager.zk.ZNRecordSerializer;
 import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
 import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.model.LiveInstance.LiveInstanceProperty;
-import com.linkedin.helix.tools.ClusterSetup;
 import com.linkedin.helix.util.HelixUtil;
 
 public class ClusterRepresentationUtil
 {
-//<<<<<<< HEAD
-//  public static final String _jsonParameters    = "jsonParameters";
-//  public static final String _managementCommand = "command";
-//  public static final String _newIdealState     = "newIdealState";
-//  public static final String _newModelDef       = "newStateModelDef";
-//  public static final String _enabled           = "enabled";
-//=======
-  public static final String _jsonParameters                        = "jsonParameters";
-  public static final String _managementCommand                     = "command";
-  public static final String _newIdealState                         = "newIdealState";
-  public static final String _newModelDef                           = "newStateModelDef";
-  public static final String _enabled                               = "enabled";
-  
-  public static Map<String, Set<String>> s_aliases;
-  static
-  {
-    s_aliases = new HashMap<String, Set<String>>();
-    s_aliases.put(ClusterSetup.addResource, new HashSet<String>(Arrays.asList(new String[] {"addResourceGroup"})));
-    s_aliases.put(ClusterSetup.activateCluster, new HashSet<String>(Arrays.asList(new String[] {"enableStorageCluster"})));
-    s_aliases.put(ClusterSetup.addInstance, new HashSet<String>(Arrays.asList(new String[] {"addInstance"})));
-    
-  }
-// >>>>>>> 0d6ec7658795096b939c122617a56bb1aa18e0f7
+  public static final String             _newIdealState     = "newIdealState";
+  public static final String             _newModelDef       = "newStateModelDef";
 
-  // public static String getClusterPropertyAsString(String zkServer, String clusterName,
-  // PropertyType clusterProperty, String key, MediaType mediaType)
   public static String getClusterPropertyAsString(ZkClient zkClient,
                                                   String clusterName,
                                                   PropertyKey propertyKey,
@@ -93,8 +64,6 @@ public class ClusterRepresentationUtil
     return getClusterPropertyAsString(zkClient, clusterName, mediaType, propertyKey);
   }
 
-  // public static String getClusterPropertyAsString(String zkServer, String clusterName,
-  // MediaType mediaType, PropertyType clusterProperty, String... keys)
   public static String getClusterPropertyAsString(ZkClient zkClient,
                                                   String clusterName,
                                                   MediaType mediaType,
@@ -107,35 +76,9 @@ public class ClusterRepresentationUtil
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
 
     HelixProperty property = accessor.getProperty(propertyKey);
-    ZNRecord record = property == null? null : property.getRecord();
+    ZNRecord record = property == null ? null : property.getRecord();
     return ZNRecordToJson(record);
   }
-
-  // public static String getInstancePropertyListAsString(String zkServer,
-  // String clusterName,
-  // String instanceName,
-  // PropertyType instanceProperty,
-  // String key,
-  // MediaType mediaType) throws JsonGenerationException,
-  // JsonMappingException,
-  // IOException
-  // {
-  // ZkClient zkClient = ZKClientPool.getZkClient(zkServer);
-  // zkClient.setZkSerializer(new ZNRecordSerializer());
-  //
-  // String path =
-  // HelixUtil.getInstancePropertyPath(clusterName, instanceName, instanceProperty)
-  // + "/" + key;
-  // if (zkClient.exists(path))
-  // {
-  // DataAccessor accessor = new ZKDataAccessor(clusterName, zkClient);
-  // List<ZNRecord> records =
-  // accessor.getChildValues(instanceProperty, instanceName, key);
-  // return ObjectToJson(records);
-  // }
-  //
-  // return ObjectToJson(new ArrayList<ZNRecord>());
-  // }
 
   public static String getInstancePropertyNameListAsString(ZkClient zkClient,
                                                            String clusterName,
@@ -166,7 +109,7 @@ public class ClusterRepresentationUtil
       IOException
   {
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(zkClient));
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
 
     ZNRecord records = accessor.getProperty(propertyKey).getRecord();
     return ZNRecordToJson(records);
@@ -181,7 +124,7 @@ public class ClusterRepresentationUtil
   {
     zkClient.setZkSerializer(new ZNRecordSerializer());
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(zkClient));
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
 
     List<ZNRecord> records =
         HelixProperty.convertToList(accessor.getChildValues(propertyKey));
@@ -196,7 +139,7 @@ public class ClusterRepresentationUtil
       IOException
   {
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(zkClient));
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
 
     ZNRecord record = accessor.getProperty(propertyKey).getRecord();
     return ObjectToJson(record);
@@ -226,7 +169,7 @@ public class ClusterRepresentationUtil
   public static HelixDataAccessor getClusterDataAccessor(ZkClient zkClient,
                                                          String clusterName)
   {
-    return new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(zkClient));
+    return new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
   }
 
   public static <T extends Object> T JsonToObject(Class<T> clazz, String jsonString) throws JsonParseException,
@@ -258,7 +201,8 @@ public class ClusterRepresentationUtil
       JsonMappingException,
       IOException
   {
-    String jsonPayload = form.getFirstValue(_jsonParameters, true);
+    String jsonPayload = form.getFirstValue(JsonParameters.JSON_PARAMETERS, true);
+    System.err.println("jsonPayload: " + jsonPayload);
     return ClusterRepresentationUtil.JsonToMap(jsonPayload);
   }
 
@@ -284,53 +228,6 @@ public class ClusterRepresentationUtil
       IOException
   {
     return JsonToObject(clazz, form.getFirstValue(key, true));
-  }
-
-  public static Map<String, String> getFormJsonParametersWithCommandVerified(Form form,
-                                                                             String commandValue) throws JsonParseException,
-      JsonMappingException,
-      IOException
-  {
-    String jsonPayload = form.getFirstValue(_jsonParameters, true);
-    if (jsonPayload == null || jsonPayload.isEmpty())
-    {
-      throw new HelixException("'" + _jsonParameters + "' in the POST body is empty");
-    }
-    Map<String, String> paraMap = ClusterRepresentationUtil.JsonToMap(jsonPayload);
-    if (!paraMap.containsKey(_managementCommand))
-    {
-      throw new HelixException("Missing management paramater '" + _managementCommand
-          + "'");
-    }
-    if (!paraMap.get(_managementCommand).equalsIgnoreCase(commandValue) && 
-        !(s_aliases.get(commandValue)!= null && s_aliases.get(commandValue).contains(paraMap.get(_managementCommand)))
-        )
-    {
-      throw new HelixException(_managementCommand + " must be '" + commandValue + "'");
-    }
-    return paraMap;
-  }
-  
-  public static Map<String, String> getFormJsonParametersWithCommandVerified(Form form,
-      String commandValue, Set<String> aliases) throws JsonParseException,
-      JsonMappingException,
-      IOException
-  {
-    String jsonPayload = form.getFirstValue(_jsonParameters, true);
-    if (jsonPayload == null || jsonPayload.isEmpty())
-    {
-      throw new HelixException("'" + _jsonParameters + "' in the POST body is empty");
-    }
-    Map<String, String> paraMap = ClusterRepresentationUtil.JsonToMap(jsonPayload);
-    if (!paraMap.containsKey(_managementCommand))
-    {
-      throw new HelixException("Missing management paramater '" + _managementCommand + "'");
-    }
-    if (!paraMap.get(_managementCommand).equalsIgnoreCase(commandValue) && !aliases.contains(paraMap.get(_managementCommand)))
-    {
-      throw new HelixException(_managementCommand + " must be '" + commandValue + "'");
-    }
-    return paraMap;
   }
 
   public static String getErrorAsJsonStringFromException(Exception e)
@@ -360,7 +257,7 @@ public class ClusterRepresentationUtil
                                             String instanceName)
   {
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(zkClient));
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
     ZNRecord liveInstance =

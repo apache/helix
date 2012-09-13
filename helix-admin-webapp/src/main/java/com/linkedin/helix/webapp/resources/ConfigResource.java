@@ -22,7 +22,6 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 import org.restlet.Context;
-import org.restlet.data.Form;
 import org.restlet.data.MediaType;
 import org.restlet.data.Request;
 import org.restlet.data.Response;
@@ -83,7 +82,8 @@ public class ConfigResource extends Resource
     StringRepresentation representation = null;
     String clusterName = getValue("clusterName");
 
-    ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
+    ZkClient zkClient =
+        (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
     ClusterSetup setupTool = new ClusterSetup(zkClient);
     HelixAdmin admin = setupTool.getClusterManagementTool();
     ZNRecord record = new ZNRecord(scopeProperty + " Config");
@@ -105,7 +105,8 @@ public class ConfigResource extends Resource
     StringRepresentation representation = null;
     String clusterName = getValue("clusterName");
 
-    ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
+    ZkClient zkClient =
+        (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
     ClusterSetup setupTool = new ClusterSetup(zkClient);
     HelixAdmin admin = setupTool.getClusterManagementTool();
     ZNRecord record = new ZNRecord(scopeProperty + " Config");
@@ -199,7 +200,7 @@ public class ConfigResource extends Resource
     {
       String error = ClusterRepresentationUtil.getErrorAsJsonStringFromException(e);
       representation = new StringRepresentation(error, MediaType.APPLICATION_JSON);
-     LOG.error("", e);
+      LOG.error("", e);
     }
 
     return representation;
@@ -214,45 +215,31 @@ public class ConfigResource extends Resource
    */
   void setConfigs(Representation entity, String scopeStr) throws Exception
   {
-    Form form = new Form(entity);
-    // Map<String, String> jsonParameters =
-    // ClusterRepresentationUtil.getFormJsonParametersWithCommandVerified(form,
-    // ClusterRepresentationUtil._setConfig);
+    JsonParameters jsonParameters = new JsonParameters(entity);
+    String command = jsonParameters.getCommand();
 
-    String jsonPayload =
-        form.getFirstValue(ClusterRepresentationUtil._jsonParameters, true);
-    if (jsonPayload == null || jsonPayload.isEmpty())
-    {
-      throw new HelixException("'" + ClusterRepresentationUtil._jsonParameters
-          + "' is empty in the POST body");
-    }
-
-    Map<String, String> jsonParameters = ClusterRepresentationUtil.JsonToMap(jsonPayload);
-    if (!jsonParameters.containsKey(ClusterRepresentationUtil._managementCommand))
-    {
-      throw new HelixException("Missing management paramater '"
-          + ClusterRepresentationUtil._managementCommand + "'");
-    }
-    
-    if (!jsonParameters.containsKey("configs"))
-    {
-      throw new HelixException("Json parameters does not contain Config values");
-    }
-
-    ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
+    ZkClient zkClient =
+        (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
     ClusterSetup setupTool = new ClusterSetup(zkClient);
-    String propertiesStr = jsonParameters.get("configs");
-    
-    String command = jsonParameters.get(ClusterRepresentationUtil._managementCommand);
-    if (command.equalsIgnoreCase("setConfig"))
+    if (command.equalsIgnoreCase(ClusterSetup.setConfig))
     {
+      jsonParameters.verifyCommand(ClusterSetup.setConfig);
+      String propertiesStr = jsonParameters.getParameter(JsonParameters.CONFIGS);
+
       setupTool.setConfig(scopeStr, propertiesStr);
-    } else if (command.equalsIgnoreCase("removeConfig"))
+    }
+    else if (command.equalsIgnoreCase(ClusterSetup.removeConfig))
     {
+      jsonParameters.verifyCommand(ClusterSetup.removeConfig);
+      String propertiesStr = jsonParameters.getParameter(JsonParameters.CONFIGS);
+
       setupTool.removeConfig(scopeStr, propertiesStr);
-    } else
+    }
+    else
     {
-      throw new HelixException("Unrecognized command: " + command);
+      throw new HelixException("Unsupported command: " + command + ". Should be one of ["
+          + ClusterSetup.setConfig + ", " + ClusterSetup.removeConfig + "]");
+
     }
 
     getResponse().setEntity(represent());
@@ -315,7 +302,7 @@ public class ConfigResource extends Resource
     }
     catch (Exception e)
     {
-      LOG.error("", e);
+      LOG.error("Error in posting " + entity, e);
       getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),
                               MediaType.APPLICATION_JSON);
       getResponse().setStatus(Status.SUCCESS_OK);

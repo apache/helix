@@ -1,11 +1,9 @@
 package com.linkedin.helix.webapp.resources;
 
 import java.io.IOException;
-import java.util.Map;
 
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
-import org.restlet.data.Form;
 import org.restlet.data.MediaType;
 import org.restlet.data.Status;
 import org.restlet.resource.Representation;
@@ -103,26 +101,25 @@ public class ControllerResource extends Resource
           (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
       ClusterSetup setupTool = new ClusterSetup(zkClient);
 
-      Form form = new Form(entity);
-
-      Map<String, String> paramMap =
-          ClusterRepresentationUtil.getFormJsonParameters(form);
-      String command = paramMap.get(ClusterRepresentationUtil._managementCommand);
+      JsonParameters jsonParameters = new JsonParameters(entity);
+      String command = jsonParameters.getCommand();
 
       if (command.equalsIgnoreCase(ClusterSetup.enableCluster))
       {
         boolean enabled =
-            Boolean.parseBoolean(paramMap.get(ClusterRepresentationUtil._enabled));
+            Boolean.parseBoolean(jsonParameters.getParameter(JsonParameters.ENABLED));
 
         setupTool.getClusterManagementTool().enableCluster(clusterName, enabled);
-
-        getResponse().setEntity(getControllerRepresentation(clusterName));
-        getResponse().setStatus(Status.SUCCESS_OK);
       }
       else
       {
-        throw new HelixException("Command not supported: " + command);
+        throw new HelixException("Unsupported command: " + command
+                                 + ". Should be one of [" + ClusterSetup.enableCluster + "]");
       }
+      
+      getResponse().setEntity(getControllerRepresentation(clusterName));
+      getResponse().setStatus(Status.SUCCESS_OK);
+
     }
     catch (Exception e)
     {

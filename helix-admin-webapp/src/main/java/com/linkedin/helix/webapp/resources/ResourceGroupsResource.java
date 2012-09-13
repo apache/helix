@@ -17,13 +17,11 @@ package com.linkedin.helix.webapp.resources;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.restlet.Context;
-import org.restlet.data.Form;
 import org.restlet.data.MediaType;
 import org.restlet.data.Request;
 import org.restlet.data.Response;
@@ -44,11 +42,6 @@ public class ResourceGroupsResource extends Resource
 {
   private final static Logger LOG = Logger.getLogger(ResourceGroupsResource.class);
 
-  public static final String _partitions = "partitions";
-  public static final String _resourceGroupName = "resourceGroupName";
-  public static final String _stateModelDefRef = "stateModelDefRef";
-  public static final String _idealStateMode = "mode";  
-  
   public ResourceGroupsResource(Context context,
       Request request,
       Response response) 
@@ -58,26 +51,31 @@ public class ResourceGroupsResource extends Resource
     getVariants().add(new Variant(MediaType.APPLICATION_JSON));
   }
 
+  @Override
   public boolean allowGet()
   {
     return true;
   }
   
+  @Override
   public boolean allowPost()
   {
     return true;
   }
   
+  @Override
   public boolean allowPut()
   {
     return false;
   }
   
+  @Override
   public boolean allowDelete()
   {
     return false;
   }
   
+  @Override
   public Representation represent(Variant variant)
   {
     StringRepresentation presentation = null;
@@ -111,42 +109,40 @@ public class ResourceGroupsResource extends Resource
     return representation;
   }
   
+  @Override
   public void acceptRepresentation(Representation entity)
   {
     try
     {
       String clusterName = (String)getRequest().getAttributes().get("clusterName");
       
-      Form form = new Form(entity);
-      Map<String, String> paraMap 
-        = ClusterRepresentationUtil.getFormJsonParametersWithCommandVerified(form, ClusterSetup.addResource);
-    
-      if(!paraMap.containsKey(_resourceGroupName))
+      JsonParameters jsonParameters = new JsonParameters(entity);
+      String command = jsonParameters.getCommand();
+
+      if (command.equalsIgnoreCase(ClusterSetup.addResource))
       {
-        throw new HelixException("Json paramaters does not contain '"+_resourceGroupName+"'");
+        jsonParameters.verifyCommand(ClusterSetup.addResource);
+        
+        String entityName = jsonParameters.getParameter(JsonParameters.RESOURCE_GROUP_NAME);
+        String stateModelDefRef = jsonParameters.getParameter(JsonParameters.STATE_MODEL_DEF_REF);
+        int partitions = Integer.parseInt(jsonParameters.getParameter(JsonParameters.PARTITIONS));
+        String mode = IdealStateModeProperty.AUTO.toString();
+        if (jsonParameters.getParameter(JsonParameters.IDEAL_STATE_MODE) != null)
+        {
+          mode = jsonParameters.getParameter(JsonParameters.IDEAL_STATE_MODE);
+        }
+        
+        ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);;
+        ClusterSetup setupTool = new ClusterSetup(zkClient);
+        setupTool.addResourceToCluster(clusterName, entityName, partitions,stateModelDefRef, mode);
       }
-      else if(!paraMap.containsKey(_partitions))
+      else
       {
-        throw new HelixException("Json paramaters does not contain '"+_partitions+"'");
-      }
-      else if(!paraMap.containsKey(_stateModelDefRef))
-      {
-        throw new HelixException("Json paramaters does not contain '"+_stateModelDefRef+"'");
+        throw new HelixException("Unsupported command: " + command
+                                 + ". Should be one of [" + ClusterSetup.addResource + "]");
+
       }
       
-      String entityName = paraMap.get(_resourceGroupName);
-      String stateModelDefRef = paraMap.get(_stateModelDefRef);
-      int partitions = Integer.parseInt(paraMap.get(_partitions));
-      String mode = IdealStateModeProperty.AUTO.toString();
-      if(paraMap.containsKey(_idealStateMode))
-      {
-        mode = paraMap.get(_idealStateMode);
-      }
-      
-      ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);;
-      ClusterSetup setupTool = new ClusterSetup(zkClient);
-      setupTool.addResourceToCluster(clusterName, entityName, partitions,stateModelDefRef, mode);
-      // add cluster
       getResponse().setEntity(getHostedEntitiesRepresentation(clusterName));
       getResponse().setStatus(Status.SUCCESS_OK);
     }
@@ -156,7 +152,7 @@ public class ResourceGroupsResource extends Resource
       getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),
           MediaType.APPLICATION_JSON);
       getResponse().setStatus(Status.SUCCESS_OK);
-      LOG.error("", e);
+      LOG.error("Error in posting " + entity, e);
     }  
   }
 }

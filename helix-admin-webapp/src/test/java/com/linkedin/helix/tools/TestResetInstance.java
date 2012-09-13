@@ -1,4 +1,4 @@
-package com.linkedin.helix.integration;
+package com.linkedin.helix.tools;
 
 import java.util.Date;
 import java.util.HashMap;
@@ -9,17 +9,19 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import com.linkedin.helix.TestHelper;
+import com.linkedin.helix.integration.ZkIntegrationTestBase;
 import com.linkedin.helix.mock.controller.ClusterController;
 import com.linkedin.helix.mock.storage.MockParticipant;
 import com.linkedin.helix.mock.storage.MockParticipant.ErrTransition;
-import com.linkedin.helix.tools.ClusterSetup;
-import com.linkedin.helix.tools.ClusterStateVerifier;
+import com.linkedin.helix.tools.AdminTestHelper.AdminThread;
+import com.linkedin.helix.webapp.resources.JsonParameters;
 
-public class TestResetNode extends ZkIntegrationTestBase
+public class TestResetInstance extends ZkIntegrationTestBase
 {
+  final int _port = 2202;
 
   @Test
-  public void testResetNode() throws Exception
+  public void testResetInstance() throws Exception
   {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
@@ -38,6 +40,10 @@ public class TestResetNode extends ZkIntegrationTestBase
                             3, // replicas
                             "MasterSlave",
                             true); // do rebalance
+    
+    // start admin thread
+    AdminThread adminThread = new AdminThread(ZK_ADDR, _port);
+    adminThread.start();
 
     // start controller
     ClusterController controller =
@@ -84,14 +90,16 @@ public class TestResetNode extends ZkIntegrationTestBase
                                                                                                        clusterName,
                                                                                                        errStateMap)));
     Assert.assertTrue(result, "Cluster verification fails");
-    
+
     // reset node "localhost_12918"
     participants[0].setTransition(null);
-    String command =
-        "--zkSvr " + ZK_ADDR + " --resetInstance " + clusterName
-            + " localhost_12918";
-    ClusterSetup.processCommandLineArgs(command.split("\\s+"));
+    String hostName = "localhost_12918";
+    String instanceUrl = "http://localhost:" + _port + "/clusters/" + clusterName + "/instances/" + hostName;
 
+    Map<String, String> paramMap = new HashMap<String, String>();
+    paramMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.resetInstance);
+    TestHelixAdminScenariosRest.assertSuccessPostOperation(instanceUrl, paramMap, false);
+    
     result =
         ClusterStateVerifier.verifyByZkCallback((new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
                                                                                                        clusterName)));
@@ -100,6 +108,7 @@ public class TestResetNode extends ZkIntegrationTestBase
     // clean up
     // wait for all zk callbacks done
     Thread.sleep(1000);
+    adminThread.stop();
     controller.syncStop();
     for (int i = 0; i < 5; i++)
     {
@@ -108,6 +117,5 @@ public class TestResetNode extends ZkIntegrationTestBase
 
     System.out.println("END " + clusterName + " at "
         + new Date(System.currentTimeMillis()));
-
   }
 }

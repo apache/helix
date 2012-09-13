@@ -121,6 +121,7 @@ public class ClusterSetup
   // get/set configs
   public static final String getConfig              = "getConfig";
   public static final String setConfig              = "setConfig";
+  public static final String removeConfig           = "removeConfig";
 
   static Logger              _logger                =
                                                         Logger.getLogger(ClusterSetup.class);

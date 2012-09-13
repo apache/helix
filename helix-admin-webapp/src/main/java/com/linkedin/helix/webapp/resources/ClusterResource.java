@@ -17,12 +17,10 @@ package com.linkedin.helix.webapp.resources;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.restlet.Context;
-import org.restlet.data.Form;
 import org.restlet.data.MediaType;
 import org.restlet.data.Request;
 import org.restlet.data.Response;
@@ -43,10 +41,6 @@ import com.linkedin.helix.webapp.RestAdminApplication;
 
 public class ClusterResource extends Resource
 {
-  public static final String _clusterName  = "clusterName";
-  public static final String _grandCluster = "grandCluster";
-  public static final String _enabled = "enabled";
-
   public ClusterResource(Context context, Request request, Response response)
   {
     super(context, request, response);
@@ -102,7 +96,8 @@ public class ClusterResource extends Resource
       JsonMappingException,
       IOException
   {
-    ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
+    ZkClient zkClient =
+        (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
     ClusterSetup setupTool = new ClusterSetup(zkClient);
     List<String> instances =
         setupTool.getClusterManagementTool().getInstancesInCluster(clusterName);
@@ -144,42 +139,39 @@ public class ClusterResource extends Resource
     try
     {
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
-      ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
+      ZkClient zkClient =
+          (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
       ClusterSetup setupTool = new ClusterSetup(zkClient);
-      
-      Form form = new Form(entity);
-      
-      Map<String, String> paraMap = ClusterRepresentationUtil.getFormJsonParameters(form);
-      String command = paraMap.get(ClusterRepresentationUtil._managementCommand);
-      
-      if(command.equalsIgnoreCase(ClusterSetup.activateCluster) 
-          || ClusterRepresentationUtil.s_aliases.get(ClusterSetup.activateCluster).contains(command))
+
+      JsonParameters jsonParameters = new JsonParameters(entity);
+      String command = jsonParameters.getCommand();
+
+      if (command.equalsIgnoreCase(ClusterSetup.activateCluster)
+          || JsonParameters.CLUSTERSETUP_COMMAND_ALIASES.get(ClusterSetup.activateCluster)
+                                                        .contains(command))
       {
-        Map<String, String> jsonParameters =
-          ClusterRepresentationUtil.getFormJsonParametersWithCommandVerified(
-            form, ClusterSetup.activateCluster);
-        if (!jsonParameters.containsKey(_grandCluster))
-        {
-          throw new HelixException("Json parameters does not contain '" + _grandCluster
-              + "'");
-        }
+        jsonParameters.verifyCommand(ClusterSetup.activateCluster);
+
         boolean enabled = true;
-        if (jsonParameters.containsKey(_enabled))
+        if (jsonParameters.getParameter(JsonParameters.ENABLED) != null)
         {
-          enabled = Boolean.parseBoolean(jsonParameters.get(_enabled));
+          enabled =
+              Boolean.parseBoolean(jsonParameters.getParameter(JsonParameters.ENABLED));
         }
-        String grandCluster = jsonParameters.get(_grandCluster);
-        
+
+        String grandCluster = jsonParameters.getParameter(JsonParameters.GRAND_CLUSTER);
+
         setupTool.activateCluster(clusterName, grandCluster, enabled);
       }
-      else if(command.equalsIgnoreCase(ClusterSetup.expandCluster))
+      else if (command.equalsIgnoreCase(ClusterSetup.expandCluster))
       {
         setupTool.expandCluster(clusterName);
       }
       else
       {
-        throw new HelixException("Unknown command " + command + ". Supported commands: " + ClusterSetup.activateCluster
-            + ", "+ClusterSetup.expandCluster);
+        throw new HelixException("Unsupported command: " + command
+            + ". Should be one of [" + ClusterSetup.activateCluster + ", "
+            + ClusterSetup.expandCluster + "]");
       }
       getResponse().setEntity(getClusterRepresentation(clusterName));
       getResponse().setStatus(Status.SUCCESS_OK);
@@ -199,7 +191,8 @@ public class ClusterResource extends Resource
     try
     {
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
-      ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
+      ZkClient zkClient =
+          (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
       ClusterSetup setupTool = new ClusterSetup(zkClient);
       setupTool.deleteCluster(clusterName);
       getResponse().setStatus(Status.SUCCESS_OK);

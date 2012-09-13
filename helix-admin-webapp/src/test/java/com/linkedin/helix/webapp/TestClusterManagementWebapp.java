@@ -56,10 +56,7 @@ import com.linkedin.helix.model.InstanceConfig.InstanceConfigProperty;
 import com.linkedin.helix.model.StateModelDefinition;
 import com.linkedin.helix.tools.ClusterSetup;
 import com.linkedin.helix.webapp.resources.ClusterRepresentationUtil;
-import com.linkedin.helix.webapp.resources.ClustersResource;
-import com.linkedin.helix.webapp.resources.IdealStateResource;
-import com.linkedin.helix.webapp.resources.InstancesResource;
-import com.linkedin.helix.webapp.resources.ResourceGroupsResource;
+import com.linkedin.helix.webapp.resources.JsonParameters;
 
 public class TestClusterManagementWebapp
 {
@@ -240,7 +237,7 @@ public class TestClusterManagementWebapp
 
     Map<String, String> paraMap = new HashMap<String, String>();
 
-    paraMap.put(ClusterRepresentationUtil._managementCommand,
+    paraMap.put(JsonParameters.MANAGEMENT_COMMAND,
                 ClusterSetup.addStateModelDef);
 
     ZNRecord r = new ZNRecord("Test");
@@ -251,7 +248,7 @@ public class TestClusterManagementWebapp
         "http://localhost:" + _port + "/clusters/" + clusterName + "/StateModelDefs";
     resourceRef = new Reference(httpUrlBase);
     request = new Request(Method.POST, resourceRef);
-    request.setEntity(ClusterRepresentationUtil._jsonParameters + "="
+    request.setEntity(JsonParameters.JSON_PARAMETERS + "="
                           + ClusterRepresentationUtil.ObjectToJson(paraMap) + "&"
                           + ClusterRepresentationUtil._newModelDef + "="
                           + ClusterRepresentationUtil.ZNRecordToJson(r),
@@ -274,14 +271,14 @@ public class TestClusterManagementWebapp
     String httpUrlBase = "http://localhost:" + _port + "/clusters/";
     Map<String, String> paraMap = new HashMap<String, String>();
 
-    paraMap.put(ClustersResource._clusterName, clusterName);
-    paraMap.put(ClusterRepresentationUtil._managementCommand, ClusterSetup.addCluster);
+    paraMap.put(JsonParameters.CLUSTER_NAME, clusterName);
+    paraMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.addCluster);
 
     Reference resourceRef = new Reference(httpUrlBase);
 
     Request request = new Request(Method.POST, resourceRef);
 
-    request.setEntity(ClusterRepresentationUtil._jsonParameters + "="
+    request.setEntity(JsonParameters.JSON_PARAMETERS + "="
         + ClusterRepresentationUtil.ObjectToJson(paraMap), MediaType.APPLICATION_ALL);
     Client client = new Client(Protocol.HTTP);
     Response response = client.handle(request);
@@ -306,16 +303,16 @@ public class TestClusterManagementWebapp
         "http://localhost:" + _port + "/clusters/" + clusterName + "/resourceGroups";
     Map<String, String> paraMap = new HashMap<String, String>();
 
-    paraMap.put(ResourceGroupsResource._resourceGroupName, resourceGroupName);
-    paraMap.put(ResourceGroupsResource._partitions, "" + partitions);
-    paraMap.put(ResourceGroupsResource._stateModelDefRef, "MasterSlave");
-    paraMap.put(ClusterRepresentationUtil._managementCommand, ClusterSetup.addResource);
+    paraMap.put(JsonParameters.RESOURCE_GROUP_NAME, resourceGroupName);
+    paraMap.put(JsonParameters.PARTITIONS, "" + partitions);
+    paraMap.put(JsonParameters.STATE_MODEL_DEF_REF, "MasterSlave");
+    paraMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.addResource);
 
     Reference resourceRef = new Reference(httpUrlBase);
 
     Request request = new Request(Method.POST, resourceRef);
 
-    request.setEntity(ClusterRepresentationUtil._jsonParameters + "="
+    request.setEntity(JsonParameters.JSON_PARAMETERS + "="
         + ClusterRepresentationUtil.ObjectToJson(paraMap), MediaType.APPLICATION_ALL);
     Client client = new Client(Protocol.HTTP);
     Response response = client.handle(request);
@@ -355,14 +352,14 @@ public class TestClusterManagementWebapp
         "http://localhost:" + _port + "/clusters/" + clusterName + "/instances";
     Map<String, String> paraMap = new HashMap<String, String>();
     // Add 1 instance
-    paraMap.put(InstancesResource._instanceName, instance1 + ":" + instancePort);
-    paraMap.put(ClusterRepresentationUtil._managementCommand, ClusterSetup.addInstance);
+    paraMap.put(JsonParameters.INSTANCE_NAME, instance1 + ":" + instancePort);
+    paraMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.addInstance);
 
     Reference resourceRef = new Reference(httpUrlBase);
 
     Request request = new Request(Method.POST, resourceRef);
 
-    request.setEntity(ClusterRepresentationUtil._jsonParameters + "="
+    request.setEntity(JsonParameters.JSON_PARAMETERS + "="
         + ClusterRepresentationUtil.ObjectToJson(paraMap), MediaType.APPLICATION_ALL);
     Client client = new Client(Protocol.HTTP);
     Response response = client.handle(request);
@@ -383,7 +380,7 @@ public class TestClusterManagementWebapp
 
     // the case to add more than 1 instances
     paraMap.clear();
-    paraMap.put(ClusterRepresentationUtil._managementCommand, ClusterSetup.addInstance);
+    paraMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.addInstance);
 
     String[] instances = { "test2", "test3", "test4", "test5" };
 
@@ -401,11 +398,11 @@ public class TestClusterManagementWebapp
       }
       instanceNames += (instance + ":" + instancePort);
     }
-    paraMap.put(InstancesResource._instanceNames, instanceNames);
+    paraMap.put(JsonParameters.INSTANCE_NAMES, instanceNames);
 
     request = new Request(Method.POST, resourceRef);
 
-    request.setEntity(ClusterRepresentationUtil._jsonParameters + "="
+    request.setEntity(JsonParameters.JSON_PARAMETERS + "="
         + ClusterRepresentationUtil.ObjectToJson(paraMap), MediaType.APPLICATION_ALL);
     client = new Client(Protocol.HTTP);
     response = client.handle(request);
@@ -445,14 +442,14 @@ public class TestClusterManagementWebapp
             + resourceGroupName + "/idealState";
     Map<String, String> paraMap = new HashMap<String, String>();
     // Add 1 instance
-    paraMap.put(IdealStateResource._replicas, "" + replicas);
-    paraMap.put(ClusterRepresentationUtil._managementCommand, ClusterSetup.rebalance);
+    paraMap.put(JsonParameters.REPLICAS, "" + replicas);
+    paraMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.rebalance);
 
     Reference resourceRef = new Reference(httpUrlBase);
 
     Request request = new Request(Method.POST, resourceRef);
 
-    request.setEntity(ClusterRepresentationUtil._jsonParameters + "="
+    request.setEntity(JsonParameters.JSON_PARAMETERS + "="
         + ClusterRepresentationUtil.ObjectToJson(paraMap), MediaType.APPLICATION_ALL);
     Client client = new Client(Protocol.HTTP);
     Response response = client.handle(request);
@@ -494,14 +491,14 @@ public class TestClusterManagementWebapp
             + instance1 + "_" + instancePort;
     Map<String, String> paraMap = new HashMap<String, String>();
     // Add 1 instance
-    paraMap.put(ClusterRepresentationUtil._enabled, "" + false);
-    paraMap.put(ClusterRepresentationUtil._managementCommand, ClusterSetup.enableInstance);
+    paraMap.put(JsonParameters.ENABLED, "" + false);
+    paraMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.enableInstance);
 
     Reference resourceRef = new Reference(httpUrlBase);
 
     Request request = new Request(Method.POST, resourceRef);
 
-    request.setEntity(ClusterRepresentationUtil._jsonParameters + "="
+    request.setEntity(JsonParameters.JSON_PARAMETERS + "="
         + ClusterRepresentationUtil.ObjectToJson(paraMap), MediaType.APPLICATION_ALL);
     Client client = new Client(Protocol.HTTP);
     Response response = client.handle(request);
@@ -518,10 +515,10 @@ public class TestClusterManagementWebapp
                             .equals("" + false));
 
     // Then enable it
-    paraMap.put(ClusterRepresentationUtil._enabled, "" + true);
+    paraMap.put(JsonParameters.ENABLED, "" + true);
     request = new Request(Method.POST, resourceRef);
 
-    request.setEntity(ClusterRepresentationUtil._jsonParameters + "="
+    request.setEntity(JsonParameters.JSON_PARAMETERS + "="
         + ClusterRepresentationUtil.ObjectToJson(paraMap), MediaType.APPLICATION_ALL);
     client = new Client(Protocol.HTTP);
     response = client.handle(request);
@@ -563,12 +560,12 @@ public class TestClusterManagementWebapp
 
     Map<String, String> paraMap = new HashMap<String, String>();
     // Add 1 instance
-    paraMap.put(ClusterRepresentationUtil._managementCommand, ClusterSetup.addIdealState);
+    paraMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.addIdealState);
 
     resourceRef = new Reference(httpUrlBase);
 
     request = new Request(Method.POST, resourceRef);
-    request.setEntity(ClusterRepresentationUtil._jsonParameters + "="
+    request.setEntity(JsonParameters.JSON_PARAMETERS + "="
                           + ClusterRepresentationUtil.ObjectToJson(paraMap) + "&"
                           + ClusterRepresentationUtil._newIdealState + "="
                           + ClusterRepresentationUtil.ZNRecordToJson(r),
@@ -708,11 +705,11 @@ public class TestClusterManagementWebapp
   {
     Map<String, String> params = new HashMap<String, String>();
 
-    params.put(ClusterRepresentationUtil._managementCommand, command);
-    params.put("configs", configs);
+    params.put(JsonParameters.MANAGEMENT_COMMAND, command);
+    params.put(JsonParameters.CONFIGS, configs);
 
     Request request = new Request(Method.POST, new Reference(url));
-    request.setEntity(ClusterRepresentationUtil._jsonParameters + "="
+    request.setEntity(JsonParameters.JSON_PARAMETERS + "="
         + ClusterRepresentationUtil.ObjectToJson(params), MediaType.APPLICATION_ALL);
 
     Response response = client.handle(request);
@@ -731,14 +728,14 @@ public class TestClusterManagementWebapp
         "http://localhost:" + _port + "/clusters/" + clusterName + "/Controller";
     Map<String, String> paramMap = new HashMap<String, String>();
 
-    paramMap.put(ClusterRepresentationUtil._managementCommand, ClusterSetup.enableCluster);
-    paramMap.put(ClusterRepresentationUtil._enabled, "" + false);
+    paramMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.enableCluster);
+    paramMap.put(JsonParameters.ENABLED, "" + false);
 
     Reference resourceRef = new Reference(httpUrlBase);
 
     Request request = new Request(Method.POST, resourceRef);
 
-    request.setEntity(ClusterRepresentationUtil._jsonParameters + "="
+    request.setEntity(JsonParameters.JSON_PARAMETERS + "="
         + ClusterRepresentationUtil.ObjectToJson(paramMap), MediaType.APPLICATION_ALL);
     Client client = new Client(Protocol.HTTP);
     Response response = client.handle(request);
@@ -756,10 +753,10 @@ public class TestClusterManagementWebapp
     Assert.assertTrue(exists, pausePath + " should exist");
 
     // Then enable it
-    paramMap.put(ClusterRepresentationUtil._enabled, "" + true);
+    paramMap.put(JsonParameters.ENABLED, "" + true);
     request = new Request(Method.POST, resourceRef);
 
-    request.setEntity(ClusterRepresentationUtil._jsonParameters + "="
+    request.setEntity(JsonParameters.JSON_PARAMETERS + "="
         + ClusterRepresentationUtil.ObjectToJson(paramMap), MediaType.APPLICATION_ALL);
     client = new Client(Protocol.HTTP);
     response = client.handle(request);

@@ -17,7 +17,6 @@ package com.linkedin.helix.webapp.resources;
 
 import java.io.IOException;
 import java.io.StringReader;
-import java.util.Map;
 
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.JsonGenerationException;
@@ -87,7 +86,7 @@ public class StateModelResource extends Resource
     {
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       String modelName = (String) getRequest().getAttributes().get("modelName");
-      presentation = getStateModelRepresentation( clusterName, modelName);
+      presentation = getStateModelRepresentation(clusterName, modelName);
     }
 
     catch (Exception e)
@@ -100,15 +99,15 @@ public class StateModelResource extends Resource
     return presentation;
   }
 
-  StringRepresentation getStateModelRepresentation(
-                                                   String clusterName,
-                                                   String modelName) throws JsonGenerationException,
+  StringRepresentation getStateModelRepresentation(String clusterName, String modelName) throws JsonGenerationException,
       JsonMappingException,
       IOException
   {
     Builder keyBuilder = new PropertyKey.Builder(clusterName);
-    ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);;
-    
+    ZkClient zkClient =
+        (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
+    ;
+
     String message =
         ClusterRepresentationUtil.getClusterPropertyAsString(zkClient,
                                                              clusterName,
@@ -128,15 +127,17 @@ public class StateModelResource extends Resource
     {
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       String modelName = (String) getRequest().getAttributes().get("modelName");
-      ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);;
-      
+      ZkClient zkClient =
+          (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
+
       Form form = new Form(entity);
+      
+      JsonParameters jsonParameters = new JsonParameters(form);
+      String command = jsonParameters.getCommand();
 
-      Map<String, String> paraMap = ClusterRepresentationUtil.getFormJsonParameters(form);
-
-      if (paraMap.get(ClusterRepresentationUtil._managementCommand)
-                 .equalsIgnoreCase(ClusterSetup.addStateModelDef))
+      if (command.equalsIgnoreCase(ClusterSetup.addStateModelDef))
       {
+        // TODO: refactor this
         String newStateModelString =
             form.getFirstValue(ClusterRepresentationUtil._newModelDef, true);
 
@@ -147,27 +148,23 @@ public class StateModelResource extends Resource
         HelixDataAccessor accessor =
             ClusterRepresentationUtil.getClusterDataAccessor(zkClient, clusterName);
 
-        accessor.setProperty(accessor.keyBuilder().stateModelDef(newStateModel.getId()), new StateModelDefinition(newStateModel) );
-        
-
+        accessor.setProperty(accessor.keyBuilder().stateModelDef(newStateModel.getId()),
+                             new StateModelDefinition(newStateModel));
       }
       else
       {
-        new HelixException("Missing '"
-            + ClusterSetup.addStateModelDef);
+        throw new HelixException("Unsupported command: " + command
+            + ". Should be one of [" + ClusterSetup.addStateModelDef + "]");
       }
-      getResponse().setEntity(getStateModelRepresentation(
-                                                          clusterName,
-                                                          modelName));
+      getResponse().setEntity(getStateModelRepresentation(clusterName, modelName));
       getResponse().setStatus(Status.SUCCESS_OK);
     }
-
     catch (Exception e)
     {
       getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),
                               MediaType.APPLICATION_JSON);
       getResponse().setStatus(Status.SUCCESS_OK);
-      LOG.error("", e);
+      LOG.error("Error in posting " + entity, e);
     }
   }
 }

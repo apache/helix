@@ -438,7 +438,7 @@ public class TestHelixAdminScenariosRest extends ZkIntegrationTestBase
     Assert.assertTrue(response.contains("db_11"));
     paraMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.addIdealState);
     Map<String, String> extraform = new HashMap<String, String>();
-    extraform.put(ClusterRepresentationUtil._newIdealState, x);
+    extraform.put(JsonParameters.NEW_IDEAL_STATE, x);
     response = assertSuccessPostOperation(idealStateUrl, paraMap, extraform, false);
 
     verifyResult =

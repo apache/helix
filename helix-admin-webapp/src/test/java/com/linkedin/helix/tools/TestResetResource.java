@@ -9,17 +9,13 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import com.linkedin.helix.TestHelper;
-import com.linkedin.helix.integration.ZkIntegrationTestBase;
 import com.linkedin.helix.mock.controller.ClusterController;
 import com.linkedin.helix.mock.storage.MockParticipant;
 import com.linkedin.helix.mock.storage.MockParticipant.ErrTransition;
-import com.linkedin.helix.tools.AdminTestHelper.AdminThread;
 import com.linkedin.helix.webapp.resources.JsonParameters;
 
-public class TestResetResource extends ZkIntegrationTestBase
+public class TestResetResource extends AdminTestBase
 {
-  final int _port = 2202;
-
   @Test
   public void testResetNode() throws Exception
   {
@@ -42,8 +38,8 @@ public class TestResetResource extends ZkIntegrationTestBase
                             true); // do rebalance
     
     // start admin thread
-    AdminThread adminThread = new AdminThread(ZK_ADDR, _port);
-    adminThread.start();
+//    AdminThread adminThread = new AdminThread(ZK_ADDR, _port);
+//    adminThread.start();
 
     // start controller
     ClusterController controller =
@@ -94,7 +90,7 @@ public class TestResetResource extends ZkIntegrationTestBase
     // reset resource "TestDB0"
     participants[0].setTransition(null);
     String resourceName = "TestDB0";
-    String resourceUrl = "http://localhost:" + _port + "/clusters/" + clusterName + "/resourceGroups/" + resourceName;
+    String resourceUrl = "http://localhost:" + ADMIN_PORT + "/clusters/" + clusterName + "/resourceGroups/" + resourceName;
 
     Map<String, String> paramMap = new HashMap<String, String>();
     paramMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.resetResource);
@@ -108,7 +104,7 @@ public class TestResetResource extends ZkIntegrationTestBase
     // clean up
     // wait for all zk callbacks done
     Thread.sleep(1000);
-    adminThread.stop();
+//    adminThread.stop();
     controller.syncStop();
     for (int i = 0; i < 5; i++)
     {

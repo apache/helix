@@ -100,7 +100,6 @@ public class InstanceResource extends Resource
     Builder keyBuilder = new PropertyKey.Builder(clusterName);
     ZkClient zkClient =
         (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
-    ;
 
     String message =
         ClusterRepresentationUtil.getClusterPropertyAsString(zkClient,
@@ -215,7 +214,7 @@ public class InstanceResource extends Resource
       String instanceName = (String) getRequest().getAttributes().get("instanceName");
       ZkClient zkClient =
           (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
-      ;
+
       ClusterSetup setupTool = new ClusterSetup(zkClient);
       setupTool.dropInstanceFromCluster(clusterName, instanceName);
       getResponse().setStatus(Status.SUCCESS_OK);

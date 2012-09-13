@@ -48,9 +48,6 @@ import com.linkedin.helix.util.HelixUtil;
 
 public class ClusterRepresentationUtil
 {
-  public static final String             _newIdealState     = "newIdealState";
-  public static final String             _newModelDef       = "newStateModelDef";
-
   public static String getClusterPropertyAsString(ZkClient zkClient,
                                                   String clusterName,
                                                   PropertyKey propertyKey,
@@ -202,7 +199,6 @@ public class ClusterRepresentationUtil
       IOException
   {
     String jsonPayload = form.getFirstValue(JsonParameters.JSON_PARAMETERS, true);
-    System.err.println("jsonPayload: " + jsonPayload);
     return ClusterRepresentationUtil.JsonToMap(jsonPayload);
   }
 

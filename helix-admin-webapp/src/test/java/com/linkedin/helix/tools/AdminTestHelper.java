@@ -43,6 +43,7 @@ public class AdminTestHelper
           {
             if (app != null)
             {
+//              System.err.println("Stopping HelixAdminWebApp");
               app.stop();
             }
           }

@@ -1,5 +1,6 @@
 package com.linkedin.helix.webapp.resources;
 
+import java.io.StringReader;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -8,10 +9,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+import org.codehaus.jackson.map.ObjectMapper;
 import org.restlet.data.Form;
 import org.restlet.resource.Representation;
 
 import com.linkedin.helix.HelixException;
+import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.tools.ClusterSetup;
 
 public class JsonParameters
@@ -38,6 +41,10 @@ public class JsonParameters
   public static final String             STATE_MODEL_DEF_REF = "stateModelDefRef";
   public static final String             IDEAL_STATE_MODE    = "mode";
 
+  // extra json parameter map keys
+  public static final String             NEW_IDEAL_STATE     = "newIdealState";
+  public static final String             NEW_STATE_MODEL_DEF = "newStateModelDef";
+
   // aliases for ClusterSetup commands
   public static Map<String, Set<String>> CLUSTERSETUP_COMMAND_ALIASES;
   static
@@ -54,15 +61,15 @@ public class JsonParameters
   // parameter map
   final Map<String, String>              _parameterMap;
 
+  // extra parameters map
+  final Map<String, ZNRecord>            _extraParameterMap  =
+                                                                 new HashMap<String, ZNRecord>();
 
   public JsonParameters(Representation entity) throws Exception
   {
-    this(new Form(entity));
-  }
-  
-  public JsonParameters(Form form) throws Exception
-  {
-    // Form form = new Form(entity);
+    Form form = new Form(entity);
+    
+    // get parameters in String format
     String jsonPayload = form.getFirstValue(JSON_PARAMETERS, true);
     if (jsonPayload == null || jsonPayload.isEmpty())
     {
@@ -72,11 +79,42 @@ public class JsonParameters
     {
       _parameterMap = ClusterRepresentationUtil.JsonToMap(jsonPayload);
     }
+
+    // get extra parameters in ZNRecord format
+    ObjectMapper mapper = new ObjectMapper();
+    String newIdealStateString =
+        form.getFirstValue(NEW_IDEAL_STATE, true);
+
+    if (newIdealStateString != null)
+    {
+      ZNRecord newIdealState =
+          mapper.readValue(new StringReader(newIdealStateString), ZNRecord.class);
+      _extraParameterMap.put(NEW_IDEAL_STATE, newIdealState);
+    }
+
+    String newStateModelString =
+        form.getFirstValue(NEW_STATE_MODEL_DEF, true);
+    if (newStateModelString != null)
+    {
+      ZNRecord newStateModel =
+          mapper.readValue(new StringReader(newStateModelString), ZNRecord.class);
+      _extraParameterMap.put(NEW_STATE_MODEL_DEF, newStateModel);
+    }
   }
 
   public String getParameter(String key)
   {
     return _parameterMap.get(key);
+  }
+  
+  public String getCommand()
+  {
+    return _parameterMap.get(MANAGEMENT_COMMAND);
+  }
+  
+  public ZNRecord getExtraParameter(String key)
+  {
+    return _extraParameterMap.get(key);
   }
 
   public Map<String, String> cloneParameterMap()
@@ -195,11 +233,6 @@ public class JsonParameters
       }
 
     }
-  }
-
-  public String getCommand()
-  {
-    return _parameterMap.get(MANAGEMENT_COMMAND);
   }
 
   // temp test

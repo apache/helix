@@ -16,15 +16,12 @@
 package com.linkedin.helix.webapp.resources;
 
 import java.io.IOException;
-import java.io.StringReader;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
-import org.codehaus.jackson.map.ObjectMapper;
 import org.restlet.Context;
-import org.restlet.data.Form;
 import org.restlet.data.MediaType;
 import org.restlet.data.Request;
 import org.restlet.data.Response;
@@ -47,9 +44,6 @@ import com.linkedin.helix.webapp.RestAdminApplication;
 public class IdealStateResource extends Resource
 {
   private final static Logger LOG = Logger.getLogger(IdealStateResource.class);
-
-  // public static final String _replicas = "replicas";
-  // public static final String _resourceKeyPrefix = "key";
 
   public IdealStateResource(Context context, Request request, Response response)
   {
@@ -135,21 +129,12 @@ public class IdealStateResource extends Resource
           (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
       ClusterSetup setupTool = new ClusterSetup(zkClient);
 
-      Form form = new Form(entity);
-
-      JsonParameters jsonParameters = new JsonParameters(form);
+      JsonParameters jsonParameters = new JsonParameters(entity);
       String command = jsonParameters.getCommand();
 
       if (command.equalsIgnoreCase(ClusterSetup.addIdealState))
       {
-        // TODO: refactor this
-        String newIdealStateString =
-            form.getFirstValue(ClusterRepresentationUtil._newIdealState, true);
-
-        ObjectMapper mapper = new ObjectMapper();
-        ZNRecord newIdealState =
-            mapper.readValue(new StringReader(newIdealStateString), ZNRecord.class);
-
+        ZNRecord newIdealState = jsonParameters.getExtraParameter(JsonParameters.NEW_IDEAL_STATE);
         HelixDataAccessor accessor =
             ClusterRepresentationUtil.getClusterDataAccessor(zkClient, clusterName);
 
@@ -200,7 +185,6 @@ public class IdealStateResource extends Resource
       getResponse().setEntity(getIdealStateRepresentation(clusterName, resourceName));
       getResponse().setStatus(Status.SUCCESS_OK);
     }
-
     catch (Exception e)
     {
       getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),

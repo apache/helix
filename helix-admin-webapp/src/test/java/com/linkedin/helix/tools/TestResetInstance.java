@@ -9,17 +9,13 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import com.linkedin.helix.TestHelper;
-import com.linkedin.helix.integration.ZkIntegrationTestBase;
 import com.linkedin.helix.mock.controller.ClusterController;
 import com.linkedin.helix.mock.storage.MockParticipant;
 import com.linkedin.helix.mock.storage.MockParticipant.ErrTransition;
-import com.linkedin.helix.tools.AdminTestHelper.AdminThread;
 import com.linkedin.helix.webapp.resources.JsonParameters;
 
-public class TestResetInstance extends ZkIntegrationTestBase
+public class TestResetInstance extends AdminTestBase
 {
-  final int _port = 2202;
-
   @Test
   public void testResetInstance() throws Exception
   {
@@ -41,9 +37,9 @@ public class TestResetInstance extends ZkIntegrationTestBase
                             "MasterSlave",
                             true); // do rebalance
     
-    // start admin thread
-    AdminThread adminThread = new AdminThread(ZK_ADDR, _port);
-    adminThread.start();
+//    // start admin thread
+//    AdminThread adminThread = new AdminThread(ZK_ADDR, _port);
+//    adminThread.start();
 
     // start controller
     ClusterController controller =
@@ -94,7 +90,7 @@ public class TestResetInstance extends ZkIntegrationTestBase
     // reset node "localhost_12918"
     participants[0].setTransition(null);
     String hostName = "localhost_12918";
-    String instanceUrl = "http://localhost:" + _port + "/clusters/" + clusterName + "/instances/" + hostName;
+    String instanceUrl = "http://localhost:" + ADMIN_PORT + "/clusters/" + clusterName + "/instances/" + hostName;
 
     Map<String, String> paramMap = new HashMap<String, String>();
     paramMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.resetInstance);
@@ -108,7 +104,7 @@ public class TestResetInstance extends ZkIntegrationTestBase
     // clean up
     // wait for all zk callbacks done
     Thread.sleep(1000);
-    adminThread.stop();
+//    adminThread.stop();
     controller.syncStop();
     for (int i = 0; i < 5; i++)
     {

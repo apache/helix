@@ -27,7 +27,6 @@ import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.integration.ZkIntegrationTestBase;
 import com.linkedin.helix.manager.zk.ZKHelixDataAccessor;
 import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
 import com.linkedin.helix.mock.controller.ClusterController;
@@ -35,26 +34,23 @@ import com.linkedin.helix.mock.storage.MockParticipant;
 import com.linkedin.helix.mock.storage.MockParticipant.ErrTransition;
 import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.model.Message;
-import com.linkedin.helix.tools.AdminTestHelper.AdminThread;
 import com.linkedin.helix.webapp.resources.JsonParameters;
 
-public class TestResetPartitionState extends ZkIntegrationTestBase
+public class TestResetPartitionState extends AdminTestBase
 {
-  final int _port = 2202;
-  
   String getClusterUrl(String cluster)
   {
-    return "http://localhost:" + _port + "/clusters" + "/" + cluster;
+    return "http://localhost:" + ADMIN_PORT + "/clusters" + "/" + cluster;
   }
   
   String getInstanceUrl(String cluster, String instance)
   {
-    return "http://localhost:" + _port + "/clusters/" + cluster + "/instances/" + instance;
+    return "http://localhost:" + ADMIN_PORT + "/clusters/" + cluster + "/instances/" + instance;
   }
   
   String getResourceUrl(String cluster, String resourceGroup)
   {
-    return "http://localhost:" + _port + "/clusters/" + cluster + "/resourceGroups/" + resourceGroup;
+    return "http://localhost:" + ADMIN_PORT + "/clusters/" + cluster + "/resourceGroups/" + resourceGroup;
   }
   
   int _errToOfflineInvoked = 0;
@@ -101,8 +97,8 @@ public class TestResetPartitionState extends ZkIntegrationTestBase
                             true); // do rebalance
 
     // start admin thread
-    AdminThread adminThread = new AdminThread(ZK_ADDR, _port);
-    adminThread.start();
+//    AdminThread adminThread = new AdminThread(ZK_ADDR, _port);
+//    adminThread.start();
     
     
     // start controller
@@ -187,7 +183,7 @@ public class TestResetPartitionState extends ZkIntegrationTestBase
     // clean up
     // wait for all zk callbacks done
     Thread.sleep(1000);
-    adminThread.stop();
+//    adminThread.stop();
     controller.syncStop();
     for (int i = 0; i < 5; i++)
     {

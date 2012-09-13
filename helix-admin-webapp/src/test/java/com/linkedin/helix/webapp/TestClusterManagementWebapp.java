@@ -250,7 +250,7 @@ public class TestClusterManagementWebapp
     request = new Request(Method.POST, resourceRef);
     request.setEntity(JsonParameters.JSON_PARAMETERS + "="
                           + ClusterRepresentationUtil.ObjectToJson(paraMap) + "&"
-                          + ClusterRepresentationUtil._newModelDef + "="
+                          + JsonParameters.NEW_STATE_MODEL_DEF + "="
                           + ClusterRepresentationUtil.ZNRecordToJson(r),
                       MediaType.APPLICATION_ALL);
     client = new Client(Protocol.HTTP);
@@ -567,7 +567,7 @@ public class TestClusterManagementWebapp
     request = new Request(Method.POST, resourceRef);
     request.setEntity(JsonParameters.JSON_PARAMETERS + "="
                           + ClusterRepresentationUtil.ObjectToJson(paraMap) + "&"
-                          + ClusterRepresentationUtil._newIdealState + "="
+                          + JsonParameters.NEW_IDEAL_STATE + "="
                           + ClusterRepresentationUtil.ZNRecordToJson(r),
                       MediaType.APPLICATION_ALL);
     client = new Client(Protocol.HTTP);

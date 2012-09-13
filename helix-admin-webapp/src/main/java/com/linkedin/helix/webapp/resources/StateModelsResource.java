@@ -16,15 +16,12 @@
 package com.linkedin.helix.webapp.resources;
 
 import java.io.IOException;
-import java.io.StringReader;
 import java.util.List;
 
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
-import org.codehaus.jackson.map.ObjectMapper;
 import org.restlet.Context;
-import org.restlet.data.Form;
 import org.restlet.data.MediaType;
 import org.restlet.data.Request;
 import org.restlet.data.Response;
@@ -122,20 +119,13 @@ public class StateModelsResource extends Resource
       String clusterName = (String)getRequest().getAttributes().get("clusterName");
       ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);;
       
-      Form form = new Form(entity);
-      JsonParameters jsonParameters = new JsonParameters(form);
+      JsonParameters jsonParameters = new JsonParameters(entity);
       String command = jsonParameters.getCommand();
 
         
       if(command.equalsIgnoreCase(ClusterSetup.addStateModelDef))
       {
-        // TODO: refactor this
-        String newStateModelString = form.getFirstValue(ClusterRepresentationUtil._newModelDef, true);
-        
-        ObjectMapper mapper = new ObjectMapper();
-        ZNRecord newStateModel = mapper.readValue(new StringReader(newStateModelString),
-            ZNRecord.class);
-        
+        ZNRecord newStateModel = jsonParameters.getExtraParameter(JsonParameters.NEW_STATE_MODEL_DEF);
         HelixDataAccessor accessor = ClusterRepresentationUtil.getClusterDataAccessor(zkClient, clusterName);
          
         accessor.setProperty(accessor.keyBuilder().stateModelDef(newStateModel.getId()), new StateModelDefinition(newStateModel) );

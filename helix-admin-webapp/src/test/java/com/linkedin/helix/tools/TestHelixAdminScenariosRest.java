@@ -36,55 +36,20 @@ import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.TestHelper.StartCMResult;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.controller.HelixControllerMain;
-import com.linkedin.helix.integration.ZkIntegrationTestBase;
 import com.linkedin.helix.manager.zk.ZKUtil;
 import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import com.linkedin.helix.tools.ClusterStateVerifier.MasterNbInExtViewVerifier;
-import com.linkedin.helix.webapp.HelixAdminWebApp;
 import com.linkedin.helix.webapp.RestAdminApplication;
 import com.linkedin.helix.webapp.resources.ClusterRepresentationUtil;
 import com.linkedin.helix.webapp.resources.JsonParameters;
 
-public class TestHelixAdminScenariosRest extends ZkIntegrationTestBase
+public class TestHelixAdminScenariosRest extends AdminTestBase
 {
   Map<String, StartCMResult> _startCMResultMap = new HashMap<String, StartCMResult>();
   RestAdminApplication       _adminApp;
   Component                  _component;
-
-  int                        _port             = 2201;
-
-  void startAdminWebAppThread() throws Exception
-  {
-    Thread t = new Thread(new Runnable()
-    {
-      @Override
-      public void run()
-      {
-        HelixAdminWebApp app = null;
-        try
-        {
-          app = new HelixAdminWebApp(ZK_ADDR, _port);
-          app.start();
-          Thread.currentThread().join();
-        }
-        catch (Exception e)
-        {
-          e.printStackTrace();
-        }
-        finally
-        {
-          if (app != null)
-          {
-            app.stop();
-          }
-        }
-      }
-    });
-    t.setDaemon(true);
-    t.start();
-  }
 
   public static String ObjectToJson(Object object) throws JsonGenerationException,
       JsonMappingException,
@@ -116,10 +81,6 @@ public class TestHelixAdminScenariosRest extends ZkIntegrationTestBase
     // ZKPropertyTransferServer.PERIOD = 500;
     // ZkPropertyTransferClient.SEND_PERIOD = 500;
     // ZKPropertyTransferServer.getInstance().init(19999, ZK_ADDR);
-
-    startAdminWebAppThread();
-    // Wait for the web service to start
-    Thread.sleep(100);
 
     /** ======================= Add clusters ============================== */
 
@@ -159,6 +120,8 @@ public class TestHelixAdminScenariosRest extends ZkIntegrationTestBase
     /** ============================ deactivate cluster =========================== */
     testDeactivateCluster();
 
+    // wait all zk callbacks done
+    Thread.sleep(1000);
   }
 
   static String assertSuccessPostOperation(String url,
@@ -235,18 +198,18 @@ public class TestHelixAdminScenariosRest extends ZkIntegrationTestBase
 
   String getClusterUrl(String cluster)
   {
-    return "http://localhost:" + _port + "/clusters" + "/" + cluster;
+    return "http://localhost:" + ADMIN_PORT + "/clusters" + "/" + cluster;
   }
 
   String getInstanceUrl(String cluster, String instance)
   {
-    return "http://localhost:" + _port + "/clusters/" + cluster + "/instances/"
+    return "http://localhost:" + ADMIN_PORT + "/clusters/" + cluster + "/instances/"
         + instance;
   }
 
   String getResourceUrl(String cluster, String resourceGroup)
   {
-    return "http://localhost:" + _port + "/clusters/" + cluster + "/resourceGroups/"
+    return "http://localhost:" + ADMIN_PORT + "/clusters/" + cluster + "/resourceGroups/"
         + resourceGroup;
   }
 
@@ -266,7 +229,7 @@ public class TestHelixAdminScenariosRest extends ZkIntegrationTestBase
 
   public void testAddCluster() throws Exception
   {
-    String url = "http://localhost:" + _port + "/clusters";
+    String url = "http://localhost:" + ADMIN_PORT + "/clusters";
     Map<String, String> paraMap = new HashMap<String, String>();
 
     // Normal add
@@ -303,7 +266,7 @@ public class TestHelixAdminScenariosRest extends ZkIntegrationTestBase
     String clusterUrl = getClusterUrl("\\ClusterTest");
     deleteUrl(clusterUrl, false);
 
-    String clustersUrl = "http://localhost:" + _port + "/clusters";
+    String clustersUrl = "http://localhost:" + ADMIN_PORT + "/clusters";
     response = getUrl(clustersUrl);
 
     clusterUrl = getClusterUrl("clusterTest1");
@@ -333,7 +296,7 @@ public class TestHelixAdminScenariosRest extends ZkIntegrationTestBase
   public void testAddResource() throws Exception
   {
     String reourcesUrl =
-        "http://localhost:" + _port + "/clusters/clusterTest1/resourceGroups";
+        "http://localhost:" + ADMIN_PORT + "/clusters/clusterTest1/resourceGroups";
 
     Map<String, String> paraMap = new HashMap<String, String>();
     paraMap.put(JsonParameters.RESOURCE_GROUP_NAME, "db_22");
@@ -677,7 +640,7 @@ public class TestHelixAdminScenariosRest extends ZkIntegrationTestBase
 
     // re-add and rebalance
     String reourcesUrl =
-        "http://localhost:" + _port + "/clusters/clusterTest1/resourceGroups";
+        "http://localhost:" + ADMIN_PORT + "/clusters/clusterTest1/resourceGroups";
     response = getUrl(reourcesUrl);
     Assert.assertFalse(response.contains("db_11"));
 

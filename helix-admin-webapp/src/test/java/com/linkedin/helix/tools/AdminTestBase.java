@@ -18,10 +18,12 @@ public class AdminTestBase
 {
   private static Logger      LOG        = Logger.getLogger(AdminTestBase.class);
   public static final String ZK_ADDR    = "localhost:2187";
-  final static int           ADMIN_PORT = 2202;
+  protected final static int           ADMIN_PORT = 2202;
 
   protected static ZkServer  _zkServer;
   protected static ZkClient  _gZkClient;
+  protected static ClusterSetup _gSetupTool;
+
   static AdminThread         _adminThread;
 
   @BeforeSuite
@@ -38,23 +40,29 @@ public class AdminTestBase
 
     _gZkClient = new ZkClient(ZK_ADDR);
     _gZkClient.setZkSerializer(new ZNRecordSerializer());
-
+    _gSetupTool = new ClusterSetup(ZK_ADDR);
+    
     // start admin
     _adminThread = new AdminThread(ZK_ADDR, ADMIN_PORT);
     _adminThread.start();
+    
+    // wait for the web service to start
+    Thread.sleep(100);
   }
 
   @AfterSuite
   public void afterSuite()
   {
+    // System.out.println("START AdminTestBase.afterSuite() at " + new Date(System.currentTimeMillis()));
+    // stop admin
+    _adminThread.stop();
+    
     // stop zk
     ZKClientPool.reset();
     _gZkClient.close();
 
     TestHelper.stopZkServer(_zkServer);
-
-    // stop admin
-    _adminThread.stop();
+    // System.out.println("END AdminTestBase.afterSuite() at " + new Date(System.currentTimeMillis()));
   }
 
 }

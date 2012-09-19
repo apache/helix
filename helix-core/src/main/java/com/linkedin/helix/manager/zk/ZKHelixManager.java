@@ -710,7 +710,7 @@ public class ZKHelixManager implements HelixManager
     resetHandlers();
 
     logger.info("Handling new session, session id:" + _sessionId + ", instance:"
-        + _instanceName);
+        + _instanceName + ", instanceTye: " + _instanceType + ", cluster: " + _clusterName);
 
     logger.info(zkConnection.getZookeeper());
 

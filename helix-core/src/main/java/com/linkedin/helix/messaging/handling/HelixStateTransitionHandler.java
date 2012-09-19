@@ -127,7 +127,7 @@ public class HelixStateTransitionHandler extends MessageHandler
     int bucketSize = message.getBucketSize();
     ZNRecordBucketizer bucketizer = new ZNRecordBucketizer(bucketSize);
 
-    // Lock the helix manager sos that the session id will not change when we update 
+    // Lock the helix manager so that the session id will not change when we update 
     // the state model state. for zk current state it is OK as we have the per-session 
     // current state node
     synchronized(manager)

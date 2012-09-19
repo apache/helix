@@ -48,6 +48,8 @@ import com.linkedin.helix.util.HelixUtil;
 
 public class ClusterRepresentationUtil
 {
+  private static final ZNRecord EMPTY_ZNRECORD = new ZNRecord("EMPTY_ZNRECORD");
+
   public static String getClusterPropertyAsString(ZkClient zkClient,
                                                   String clusterName,
                                                   PropertyKey propertyKey,
@@ -138,7 +140,12 @@ public class ClusterRepresentationUtil
     ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
 
-    ZNRecord record = accessor.getProperty(propertyKey).getRecord();
+    ZNRecord record = EMPTY_ZNRECORD;
+    HelixProperty property = accessor.getProperty(propertyKey);
+    if (property != null)
+    {
+      record = property.getRecord();
+    }
     return ObjectToJson(record);
   }
 
@@ -166,7 +173,8 @@ public class ClusterRepresentationUtil
   public static HelixDataAccessor getClusterDataAccessor(ZkClient zkClient,
                                                          String clusterName)
   {
-    return new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
+    return new ZKHelixDataAccessor(clusterName,
+                                   new ZkBaseDataAccessor<ZNRecord>(zkClient));
   }
 
   public static <T extends Object> T JsonToObject(Class<T> clazz, String jsonString) throws JsonParseException,

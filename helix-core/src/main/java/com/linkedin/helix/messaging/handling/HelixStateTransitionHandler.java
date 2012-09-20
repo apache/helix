@@ -48,13 +48,13 @@ public class HelixStateTransitionHandler extends MessageHandler
       super(info);
     }
   }
-  private static Logger          logger =
-                                            Logger.getLogger(HelixStateTransitionHandler.class);
+  private static Logger          logger     =
+                                                Logger.getLogger(HelixStateTransitionHandler.class);
   private final StateModel       _stateModel;
   StatusUpdateUtil               _statusUpdateUtil;
   private final StateModelParser _transitionMethodFinder;
   private final CurrentState     _currentStateDelta;
-  volatile boolean _isTimeout = false;
+  volatile boolean               _isTimeout = false;
 
   public HelixStateTransitionHandler(StateModel stateModel,
                                      Message message,
@@ -68,7 +68,8 @@ public class HelixStateTransitionHandler extends MessageHandler
     _currentStateDelta = currentStateDelta;
   }
 
-  private void prepareMessageExecution(HelixManager manager, Message message) throws HelixException, HelixStateMismatchException
+  private void prepareMessageExecution(HelixManager manager, Message message) throws HelixException,
+      HelixStateMismatchException
   {
     if (!message.isValid())
     {
@@ -92,7 +93,7 @@ public class HelixStateTransitionHandler extends MessageHandler
 
     // Verify the fromState and current state of the stateModel
     String state = _currentStateDelta.getState(partitionName);
-    
+
     if (fromState != null && !fromState.equals("*") && !fromState.equalsIgnoreCase(state))
     {
       String errorMessage =
@@ -120,25 +121,26 @@ public class HelixStateTransitionHandler extends MessageHandler
     String resource = message.getResourceName();
     String sessionId = message.getTgtSessionId();
     String instanceName = manager.getInstanceName();
-    
+
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
     Builder keyBuilder = accessor.keyBuilder();
-    
+
     int bucketSize = message.getBucketSize();
     ZNRecordBucketizer bucketizer = new ZNRecordBucketizer(bucketSize);
 
-    // Lock the helix manager so that the session id will not change when we update 
-    // the state model state. for zk current state it is OK as we have the per-session 
+    // Lock the helix manager so that the session id will not change when we update
+    // the state model state. for zk current state it is OK as we have the per-session
     // current state node
-    synchronized(manager)
+    synchronized (manager)
     {
-      if(!message.getTgtSessionId().equals(manager.getSessionId()))
+      if (!message.getTgtSessionId().equals(manager.getSessionId()))
       {
-        logger.warn("Session id has changed. Skip postExecutionMessage. Old session " + 
-          message.getExecutionSessionId()+" , new session : " + manager.getSessionId());
+        logger.warn("Session id has changed. Skip postExecutionMessage. Old session "
+            + message.getExecutionSessionId() + " , new session : "
+            + manager.getSessionId());
         return;
       }
-      
+
       if (taskResult.isSucess())
       {
         // String fromState = message.getFromState();
@@ -167,25 +169,42 @@ public class HelixStateTransitionHandler extends MessageHandler
       }
       else
       {
-        StateTransitionError error =
-            new StateTransitionError(ErrorType.INTERNAL, ErrorCode.ERROR, exception);
-        if(exception instanceof InterruptedException)
+        if (exception instanceof HelixStateMismatchException)
         {
-          if(_isTimeout)
-          {
-            error = new StateTransitionError(ErrorType.INTERNAL, ErrorCode.TIMEOUT, exception);
-          }
-          else
-          {
-            // State transition interrupted but not caused by timeout. Keep the current state in this case
-            logger.error("State transition interrupted but not timeout. Not updating state. Partition : " 
-                + message.getPartitionName() + " MsgId : " + message.getMsgId());
-            return;
-          }
+          // if fromState mismatch, set current state on zk to stateModel's current state
+          logger.warn("Force CurrentState on Zk to be stateModel's CurrentState. partitionKey: "
+              + partitionKey
+              + ", currentState: "
+              + _stateModel.getCurrentState()
+              + ", message: " + message);
+          _currentStateDelta.setState(partitionKey, _stateModel.getCurrentState());
         }
-        _stateModel.rollbackOnError(message, context, error);
-        _currentStateDelta.setState(partitionKey, "ERROR");
-        _stateModel.updateState("ERROR");
+        else
+        {
+          StateTransitionError error =
+              new StateTransitionError(ErrorType.INTERNAL, ErrorCode.ERROR, exception);
+          if (exception instanceof InterruptedException)
+          {
+            if (_isTimeout)
+            {
+              error =
+                  new StateTransitionError(ErrorType.INTERNAL,
+                                           ErrorCode.TIMEOUT,
+                                           exception);
+            }
+            else
+            {
+              // State transition interrupted but not caused by timeout. Keep the current
+              // state in this case
+              logger.error("State transition interrupted but not timeout. Not updating state. Partition : "
+                  + message.getPartitionName() + " MsgId : " + message.getMsgId());
+              return;
+            }
+          }
+          _stateModel.rollbackOnError(message, context, error);
+          _currentStateDelta.setState(partitionKey, "ERROR");
+          _stateModel.updateState("ERROR");
+        }
       }
     }
     try
@@ -195,7 +214,7 @@ public class HelixStateTransitionHandler extends MessageHandler
                                                       sessionId,
                                                       resource,
                                                       bucketizer.getBucketName(partitionKey)),
-                                                      _currentStateDelta);
+                              _currentStateDelta);
     }
     catch (Exception e)
     {
@@ -220,52 +239,52 @@ public class HelixStateTransitionHandler extends MessageHandler
       HelixManager manager = context.getManager();
       HelixDataAccessor accessor = manager.getHelixDataAccessor();
 
-    //  try
-    //  {
-        _statusUpdateUtil.logInfo(message,
-                                  HelixStateTransitionHandler.class,
-                                  "Message handling task begin execute",
-                                  accessor);
-        message.setExecuteStartTimeStamp(new Date().getTime());
+      _statusUpdateUtil.logInfo(message,
+                                HelixStateTransitionHandler.class,
+                                "Message handling task begin execute",
+                                accessor);
+      message.setExecuteStartTimeStamp(new Date().getTime());
 
-        Exception exception = null;
-        try
+      Exception exception = null;
+      try
+      {
+        prepareMessageExecution(manager, message);
+        invoke(accessor, context, taskResult, message);
+      }
+      catch (HelixStateMismatchException e)
+      {
+        // Simply log error and return from here if State mismatch.
+        // The current state of the state model is intact.
+        taskResult.setSuccess(false);
+        taskResult.setMessage(e.toString());
+        taskResult.setException(e);
+        exception = e;
+        // return taskResult;
+      }
+      catch (Exception e)
+      {
+        String errorMessage =
+            "Exception while executing a state transition task "
+                + message.getPartitionName();
+        logger.error(errorMessage, e);
+        if (e.getCause() != null && e.getCause() instanceof InterruptedException)
         {
-          prepareMessageExecution(manager, message);
-          invoke(accessor, context, taskResult, message);
+          e = (InterruptedException) e.getCause();
         }
-        catch(HelixStateMismatchException e)
-        {
-          // Simply log error and return from here if State mismatch. 
-          // The current state of the state model is intact.
-          taskResult.setSuccess(false);
-          taskResult.setMessage(e.toString());
-          taskResult.setException(e);
-          exception = e;
-          return taskResult;
-        }
-        catch (Exception e)
-        {
-          String errorMessage = "Exception while executing a state transition task "+ message.getPartitionName();
-          logger.error(errorMessage, e);
-          if(e.getCause() != null && e.getCause() instanceof InterruptedException)
-          {
-            e = (InterruptedException) e.getCause();
-          }
-          _statusUpdateUtil.logError(message,
-                                     HelixStateTransitionHandler.class,
-                                     e,
-                                     errorMessage,
-                                     accessor);
-          taskResult.setSuccess(false);
-          taskResult.setMessage(e.toString());
-          taskResult.setException(e);
-          taskResult.setInterrupted(e instanceof InterruptedException);
-          exception = e;
-        }
-        postExecutionMessage(manager, message, context, taskResult, exception);
-        
-        return taskResult;
+        _statusUpdateUtil.logError(message,
+                                   HelixStateTransitionHandler.class,
+                                   e,
+                                   errorMessage,
+                                   accessor);
+        taskResult.setSuccess(false);
+        taskResult.setMessage(e.toString());
+        taskResult.setException(e);
+        taskResult.setInterrupted(e instanceof InterruptedException);
+        exception = e;
+      }
+      postExecutionMessage(manager, message, context, taskResult, exception);
+
+      return taskResult;
     }
   }
 
@@ -321,7 +340,7 @@ public class HelixStateTransitionHandler extends MessageHandler
   public void onError(Exception e, ErrorCode code, ErrorType type)
   {
     // All internal error has been processed already, so we can skip them
-    if(type == ErrorType.INTERNAL)
+    if (type == ErrorType.INTERNAL)
     {
       logger.error("Skip internal error " + e.getMessage() + " " + code);
       return;
@@ -344,12 +363,12 @@ public class HelixStateTransitionHandler extends MessageHandler
       _stateModel.updateState("ERROR");
 
       accessor.updateProperty(keyBuilder.currentState(instanceName,
-        _message.getTgtSessionId(),
-        resourceName),
-        currentStateDelta);
+                                                      _message.getTgtSessionId(),
+                                                      resourceName),
+                              currentStateDelta);
     }
   }
-  
+
   @Override
   public void onTimeout()
   {

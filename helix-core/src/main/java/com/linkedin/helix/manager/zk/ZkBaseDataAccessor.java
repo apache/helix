@@ -159,8 +159,8 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
         try
         {
           RetCode rc = create(path, record, pathsCreated, options);
-//          if (rc == RetCode.OK || rc == RetCode.NODE_EXISTS)
-//            retry = true;
+          // if (rc == RetCode.OK || rc == RetCode.NODE_EXISTS)
+          // retry = true;
           switch (rc)
           {
           case OK:
@@ -236,7 +236,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
         {
           DataTree.copyStat(setStat, stat);
         }
-        
+
         updatedData = newData;
       }
       catch (ZkBadVersionException e)
@@ -681,7 +681,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
       LOG.error("Invalid async set mode. options: " + options);
       return success;
     }
-    
+
     List<Stat> setStats =
         new ArrayList<Stat>(Collections.<Stat> nCopies(paths.size(), null));
     SetDataCallbackHandler[] cbList = new SetDataCallbackHandler[paths.size()];
@@ -746,7 +746,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
             {
               continue;
             }
-            
+
             Code rc = Code.get(createCb.getRc());
             switch (rc)
             {
@@ -787,13 +787,13 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
           }
         }
       }
-      
+
       if (stats != null)
       {
         stats.clear();
         stats.addAll(setStats);
       }
-      
+
       return success;
     }
     finally
@@ -815,7 +815,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
   {
 
     List<T> updateData = update(paths, updaters, null, null, options);
-    boolean[] success = new boolean[paths.size()];  // init to false
+    boolean[] success = new boolean[paths.size()]; // init to false
     for (int i = 0; i < paths.size(); i++)
     {
       T data = updateData.get(i);
@@ -863,124 +863,136 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
     boolean[] needUpdate = new boolean[paths.size()];
     Arrays.fill(needUpdate, true);
 
-    boolean retry;
-    do
+    long startT = System.nanoTime();
+
+    try
     {
-      retry = false;
-      boolean[] needCreate = new boolean[paths.size()]; // init'ed with false
-      boolean failOnNoNode = false;
-
-      // asycn read all data
-      List<Stat> curStats = new ArrayList<Stat>();
-      List<T> curDataList =
-          get(paths, curStats, Arrays.copyOf(needUpdate, needUpdate.length));
-
-      // async update
-      List<T> newDataList = new ArrayList<T>();
-      for (int i = 0; i < paths.size(); i++)
+      boolean retry;
+      do
       {
-        if (!needUpdate[i])
-        {
-          newDataList.add(null);
-          continue;
-        }
-        String path = paths.get(i);
-        DataUpdater<T> updater = updaters.get(i);
-        T newData = updater.update(curDataList.get(i));
-        newDataList.add(newData);
-        Stat curStat = curStats.get(i);
-        if (curStat == null)
-        {
-          // node not exists
-          failOnNoNode = true;
-          needCreate[i] = true;
-        }
-        else
-        {
-          cbList[i] = new SetDataCallbackHandler();
-          _zkClient.asyncSetData(path, newData, curStat.getVersion(), cbList[i]);
-        }
-      }
+        retry = false;
+        boolean[] needCreate = new boolean[paths.size()]; // init'ed with false
+        boolean failOnNoNode = false;
 
-      // wait for completion
-      boolean failOnBadVersion = false;
+        // asycn read all data
+        List<Stat> curStats = new ArrayList<Stat>();
+        List<T> curDataList =
+            get(paths, curStats, Arrays.copyOf(needUpdate, needUpdate.length));
 
-      for (int i = 0; i < paths.size(); i++)
-      {
-        SetDataCallbackHandler cb = cbList[i];
-        if (cb == null)
-          continue;
-
-        cb.waitForSuccess();
-
-        switch (Code.get(cb.getRc()))
-        {
-        case OK:
-          updateData.set(i, newDataList.get(i));
-          setStats.set(i, cb.getStat());
-          needUpdate[i] = false;
-          break;
-        case NONODE:
-          failOnNoNode = true;
-          needCreate[i] = true;
-          break;
-        case BADVERSION:
-          failOnBadVersion = true;
-          break;
-        default:
-          // if fail on error other than NoNode or BadVersion
-          // will not retry
-          needUpdate[i] = false;
-          break;
-        }
-      }
-
-      // if failOnNoNode, try create
-      if (failOnNoNode)
-      {
-        createCbList = create(paths, newDataList, needCreate, pathsCreated, options);
+        // async update
+        List<T> newDataList = new ArrayList<T>();
         for (int i = 0; i < paths.size(); i++)
         {
-          CreateCallbackHandler createCb = createCbList[i];
-          if (createCb == null)
+          if (!needUpdate[i])
           {
+            newDataList.add(null);
             continue;
           }
-          
-          switch (Code.get(createCb.getRc()))
+          String path = paths.get(i);
+          DataUpdater<T> updater = updaters.get(i);
+          T newData = updater.update(curDataList.get(i));
+          newDataList.add(newData);
+          Stat curStat = curStats.get(i);
+          if (curStat == null)
+          {
+            // node not exists
+            failOnNoNode = true;
+            needCreate[i] = true;
+          }
+          else
+          {
+            cbList[i] = new SetDataCallbackHandler();
+            _zkClient.asyncSetData(path, newData, curStat.getVersion(), cbList[i]);
+          }
+        }
+
+        // wait for completion
+        boolean failOnBadVersion = false;
+
+        for (int i = 0; i < paths.size(); i++)
+        {
+          SetDataCallbackHandler cb = cbList[i];
+          if (cb == null)
+            continue;
+
+          cb.waitForSuccess();
+
+          switch (Code.get(cb.getRc()))
           {
           case OK:
-            needUpdate[i] = false;
             updateData.set(i, newDataList.get(i));
-            setStats.set(i, ZNode.ZERO_STAT);
+            setStats.set(i, cb.getStat());
+            needUpdate[i] = false;
             break;
-          case NODEEXISTS:
-            retry = true;
+          case NONODE:
+            failOnNoNode = true;
+            needCreate[i] = true;
+            break;
+          case BADVERSION:
+            failOnBadVersion = true;
             break;
           default:
-            // if fail on error other than NodeExists
+            // if fail on error other than NoNode or BadVersion
             // will not retry
             needUpdate[i] = false;
             break;
           }
         }
-      }
 
-      // if failOnBadVersion, retry
-      if (failOnBadVersion)
+        // if failOnNoNode, try create
+        if (failOnNoNode)
+        {
+          createCbList = create(paths, newDataList, needCreate, pathsCreated, options);
+          for (int i = 0; i < paths.size(); i++)
+          {
+            CreateCallbackHandler createCb = createCbList[i];
+            if (createCb == null)
+            {
+              continue;
+            }
+
+            switch (Code.get(createCb.getRc()))
+            {
+            case OK:
+              needUpdate[i] = false;
+              updateData.set(i, newDataList.get(i));
+              setStats.set(i, ZNode.ZERO_STAT);
+              break;
+            case NODEEXISTS:
+              retry = true;
+              break;
+            default:
+              // if fail on error other than NodeExists
+              // will not retry
+              needUpdate[i] = false;
+              break;
+            }
+          }
+        }
+
+        // if failOnBadVersion, retry
+        if (failOnBadVersion)
+        {
+          retry = true;
+        }
+      }
+      while (retry);
+
+      if (stats != null)
       {
-        retry = true;
+        stats.clear();
+        stats.addAll(setStats);
       }
-    }
-    while (retry);
 
-    if (stats != null)
-    {
-      stats.clear();
-      stats.addAll(setStats);
+      return updateData;
     }
-    
-    return updateData;
+    finally
+    {
+      long endT = System.nanoTime();
+      LOG.info("setData_async, size: " + paths.size() + ", paths: " + paths.get(0)
+          + ",... time: " + (endT - startT) + " ns");
+    }
+
   }
 
   /**

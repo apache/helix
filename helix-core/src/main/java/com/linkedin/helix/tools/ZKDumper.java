@@ -255,7 +255,8 @@ public class ZKDumper
       new File(fsPath).mkdirs();
       for (String child : children)
       {
-        download(zkPath + "/" + child, fsPath + "/" + child);
+        String childPath = zkPath.equals("/")? "/" + child : zkPath + "/" + child;
+        download(childPath, fsPath + "/" + child);
       }
     } else
     {

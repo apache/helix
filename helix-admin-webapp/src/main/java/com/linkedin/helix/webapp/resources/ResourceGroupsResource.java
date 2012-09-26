@@ -42,9 +42,7 @@ public class ResourceGroupsResource extends Resource
 {
   private final static Logger LOG = Logger.getLogger(ResourceGroupsResource.class);
 
-  public ResourceGroupsResource(Context context,
-      Request request,
-      Response response) 
+  public ResourceGroupsResource(Context context, Request request, Response response)
   {
     super(context, request, response);
     getVariants().add(new Variant(MediaType.TEXT_PLAIN));
@@ -56,103 +54,121 @@ public class ResourceGroupsResource extends Resource
   {
     return true;
   }
-  
+
   @Override
   public boolean allowPost()
   {
     return true;
   }
-  
+
   @Override
   public boolean allowPut()
   {
     return false;
   }
-  
+
   @Override
   public boolean allowDelete()
   {
     return false;
   }
-  
+
   @Override
   public Representation represent(Variant variant)
   {
     StringRepresentation presentation = null;
     try
     {
-      String clusterName = (String)getRequest().getAttributes().get("clusterName");
-      presentation = getHostedEntitiesRepresentation( clusterName);
+      String clusterName = (String) getRequest().getAttributes().get("clusterName");
+      presentation = getHostedEntitiesRepresentation(clusterName);
     }
-    
-    catch(Exception e)
+
+    catch (Exception e)
     {
       String error = ClusterRepresentationUtil.getErrorAsJsonStringFromException(e);
       presentation = new StringRepresentation(error, MediaType.APPLICATION_JSON);
 
       LOG.error("", e);
-    }  
+    }
     return presentation;
   }
-  
-  StringRepresentation getHostedEntitiesRepresentation(String clusterName) throws JsonGenerationException, JsonMappingException, IOException
+
+  StringRepresentation getHostedEntitiesRepresentation(String clusterName) throws JsonGenerationException,
+      JsonMappingException,
+      IOException
   {
-    ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);;
+    ZkClient zkClient =
+        (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
+    ;
     ClusterSetup setupTool = new ClusterSetup(zkClient);
-    List<String> hostedEntities = setupTool.getClusterManagementTool().getResourcesInCluster(clusterName);
-    
+    List<String> hostedEntities =
+        setupTool.getClusterManagementTool().getResourcesInCluster(clusterName);
+
     ZNRecord hostedEntitiesRecord = new ZNRecord("ResourceGroups");
     hostedEntitiesRecord.setListField("ResourceGroups", hostedEntities);
-    
-    StringRepresentation representation = new StringRepresentation(ClusterRepresentationUtil.ZNRecordToJson(hostedEntitiesRecord), MediaType.APPLICATION_JSON);
-    
+
+    StringRepresentation representation =
+        new StringRepresentation(ClusterRepresentationUtil.ZNRecordToJson(hostedEntitiesRecord),
+                                 MediaType.APPLICATION_JSON);
+
     return representation;
   }
-  
+
   @Override
   public void acceptRepresentation(Representation entity)
   {
     try
     {
-      String clusterName = (String)getRequest().getAttributes().get("clusterName");
-      
+      String clusterName = (String) getRequest().getAttributes().get("clusterName");
+
       JsonParameters jsonParameters = new JsonParameters(entity);
       String command = jsonParameters.getCommand();
 
-      if (command.equalsIgnoreCase(ClusterSetup.addResource))
+      if (command.equalsIgnoreCase(ClusterSetup.addResource)
+          || JsonParameters.CLUSTERSETUP_COMMAND_ALIASES.get(ClusterSetup.addResource)
+                                                        .contains(command))
       {
         jsonParameters.verifyCommand(ClusterSetup.addResource);
-        
-        String entityName = jsonParameters.getParameter(JsonParameters.RESOURCE_GROUP_NAME);
-        String stateModelDefRef = jsonParameters.getParameter(JsonParameters.STATE_MODEL_DEF_REF);
-        int partitions = Integer.parseInt(jsonParameters.getParameter(JsonParameters.PARTITIONS));
+
+        String entityName =
+            jsonParameters.getParameter(JsonParameters.RESOURCE_GROUP_NAME);
+        String stateModelDefRef =
+            jsonParameters.getParameter(JsonParameters.STATE_MODEL_DEF_REF);
+        int partitions =
+            Integer.parseInt(jsonParameters.getParameter(JsonParameters.PARTITIONS));
         String mode = IdealStateModeProperty.AUTO.toString();
         if (jsonParameters.getParameter(JsonParameters.IDEAL_STATE_MODE) != null)
         {
           mode = jsonParameters.getParameter(JsonParameters.IDEAL_STATE_MODE);
         }
-        
-        ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);;
+
+        ZkClient zkClient =
+            (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
+        ;
         ClusterSetup setupTool = new ClusterSetup(zkClient);
-        setupTool.addResourceToCluster(clusterName, entityName, partitions,stateModelDefRef, mode);
+        setupTool.addResourceToCluster(clusterName,
+                                       entityName,
+                                       partitions,
+                                       stateModelDefRef,
+                                       mode);
       }
       else
       {
         throw new HelixException("Unsupported command: " + command
-                                 + ". Should be one of [" + ClusterSetup.addResource + "]");
+            + ". Should be one of [" + ClusterSetup.addResource + "]");
 
       }
-      
+
       getResponse().setEntity(getHostedEntitiesRepresentation(clusterName));
       getResponse().setStatus(Status.SUCCESS_OK);
     }
 
-    catch(Exception e)
+    catch (Exception e)
     {
       getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),
-          MediaType.APPLICATION_JSON);
+                              MediaType.APPLICATION_JSON);
       getResponse().setStatus(Status.SUCCESS_OK);
       LOG.error("Error in posting " + entity, e);
-    }  
+    }
   }
 }

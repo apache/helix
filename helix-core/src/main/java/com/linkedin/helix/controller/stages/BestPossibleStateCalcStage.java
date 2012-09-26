@@ -227,7 +227,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
   {
     String topStateValue = stateModelDef.getStatesPriorityList().get(0);
     Set<String> liveInstances = cache._liveInstanceMap.keySet();
- // Obtain replica number
+   // Obtain replica number
     int replicas = 1;
     try
     {
@@ -237,7 +237,20 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
     {
       logger.error("",e);
     }
-
+    // Init for all partitions with empty list 
+    Map<String, List<String>> defaultListFields = new TreeMap<String, List<String>>();
+    List<String> emptyList = new ArrayList<String>(0);
+    for(String partition : idealState.getPartitionSet())
+    {
+      defaultListFields.put(partition, emptyList);
+    }
+    idealState.getRecord().setListFields(defaultListFields);
+    // Return if no live instance 
+    if(liveInstances.size() == 0)
+    {
+      logger.info("No live instances, return. Idealstate : " + idealState.getResourceName());
+      return;
+    }
     Map<String, List<String>> masterAssignmentMap = new HashMap<String, List<String>>();
     for(String instanceName : liveInstances)
     {

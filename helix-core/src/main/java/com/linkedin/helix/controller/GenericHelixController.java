@@ -311,6 +311,8 @@ public class GenericHelixController implements
           _clusterStatusMonitor = null;
         }
         stopRebalancingTimer();
+        logger.info("Get FINALIZE notification, skip the pipeline. Event :" + event.getName());
+        return;
       }
       else
       {

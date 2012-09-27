@@ -31,6 +31,7 @@ import org.restlet.data.MediaType;
 import org.restlet.data.Request;
 import org.restlet.data.Response;
 import org.restlet.resource.StringRepresentation;
+import org.restlet.util.Template;
 
 import com.linkedin.helix.webapp.resources.ClusterResource;
 import com.linkedin.helix.webapp.resources.ClustersResource;
@@ -77,6 +78,7 @@ public class RestAdminApplication extends Application
   public Restlet createRoot()
   {
     Router router = new Router(getContext());
+    router.setDefaultMatchingMode(Template.MODE_EQUALS);
     router.attach("/clusters", ClustersResource.class);
     router.attach("/clusters/{clusterName}", ClusterResource.class);
     router.attach("/clusters/{clusterName}/resourceGroups", ResourceGroupsResource.class);
@@ -100,8 +102,7 @@ public class RestAdminApplication extends Application
     router.attach("/clusters/{clusterName}/configs/{scope}", ConfigResource.class);
     router.attach("/clusters/{clusterName}/configs/{scope}/{scopeKey1}", ConfigResource.class);
     router.attach("/clusters/{clusterName}/configs/{scope}/{scopeKey1}/{scopeKey2}", ConfigResource.class);
-    router.attach("/zkPath", ZkPathResource.class);
-
+    router.attach("/zkPath", ZkPathResource.class).setMatchingMode(Template.MODE_STARTS_WITH);
 
     Restlet mainpage = new Restlet()
     {

@@ -113,7 +113,7 @@ public class MessageGenerationPhase extends AbstractBaseStage
           {
             if (nextState.equalsIgnoreCase(pendingState))
             {
-              logger.info("Message already exists for " + instanceName + " to transit "
+              logger.debug("Message already exists for " + instanceName + " to transit "
                   + partition.getPartitionName() + " from " + currentState + " to " + nextState);
             } else if (currentState.equalsIgnoreCase(pendingState))
             {

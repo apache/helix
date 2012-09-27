@@ -966,4 +966,18 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T>
     LOG.debug("Stop ZkCacheEventThread...done");
 
   }
+  
+  @Override
+  public void reset()
+  {
+    if (_wtCache != null)
+    {
+      _wtCache.reset();
+    }
+    
+    if (_zkCache != null)
+    {
+      _zkCache.reset();
+    }
+  }
 }

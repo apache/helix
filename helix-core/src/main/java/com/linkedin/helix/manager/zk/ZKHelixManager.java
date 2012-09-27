@@ -706,6 +706,7 @@ public class ZKHelixManager implements HelixManager
       _sessionId = Long.toHexString(zkConnection.getZookeeper().getSessionId());
     }
     _accessor.reset();
+    _baseDataAccessor.reset();
 
     resetHandlers();
 

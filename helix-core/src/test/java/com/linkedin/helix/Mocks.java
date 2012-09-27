@@ -182,6 +182,13 @@ public class Mocks {
       
     }
 
+    @Override
+    public void reset()
+    {
+      // TODO Auto-generated method stub
+      
+    }
+
 //		@Override
 //		public boolean subscribe(String path, IZkListener listener) {
 //			// TODO Auto-generated method stub

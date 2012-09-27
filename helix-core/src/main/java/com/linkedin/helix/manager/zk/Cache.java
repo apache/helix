@@ -138,6 +138,19 @@ public abstract class Cache<T>
     }
   }
   
+  public void reset()
+  {
+    try
+    {
+      _lock.writeLock().lock();
+      _cache.clear();
+    } 
+    finally
+    {
+      _lock.writeLock().unlock();
+    }
+  }
+  
   public abstract void update(String path, T data, Stat stat);
   
   public abstract void updateRecursive(String path);

@@ -1204,4 +1204,11 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
     System.out.println("CLOSING");
     zkclient.close();
   }
+
+  @Override
+  public void reset()
+  {
+    // TODO Auto-generated method stub
+    
+  }
 }

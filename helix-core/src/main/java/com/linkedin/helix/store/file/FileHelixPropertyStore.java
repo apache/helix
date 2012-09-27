@@ -283,4 +283,11 @@ public class FileHelixPropertyStore<T> implements HelixPropertyStore<T>
     throw new UnsupportedOperationException("unsubscribe not supported");
   }
 
+  @Override
+  public void reset()
+  {
+    // TODO Auto-generated method stub
+    
+  }
+
 }

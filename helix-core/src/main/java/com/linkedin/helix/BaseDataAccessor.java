@@ -192,7 +192,6 @@ public interface BaseDataAccessor<T>
    * @param listener
    * @return
    */
-  // boolean subscribe(String path, IZkListener listener);
   void subscribeDataChanges(String path, IZkDataListener listener);
   void unsubscribeDataChanges(String path, IZkDataListener listener);
   
@@ -202,8 +201,11 @@ public interface BaseDataAccessor<T>
    * @param listener
    * @return
    */     
-  // boolean unsubscribe(String path, IZkListener listener);
   List<String> subscribeChildChanges(String path, IZkChildListener listener);
   void unsubscribeChildChanges(String path, IZkChildListener listener);
 
+  /**
+   * reset the cache if any when session expiry happens
+   */
+  void reset();
 }

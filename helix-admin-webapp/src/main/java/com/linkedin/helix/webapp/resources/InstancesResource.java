@@ -100,7 +100,7 @@ public class InstancesResource extends Resource
   {
     ZkClient zkClient =
         (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
-    ;
+
     HelixDataAccessor accessor =
         ClusterRepresentationUtil.getClusterDataAccessor(zkClient, clusterName);
     Map<String, LiveInstance> liveInstancesMap =

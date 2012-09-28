@@ -212,8 +212,7 @@ public class IdealState extends HelixProperty
     String replica = _record.getSimpleField(IdealStateProperty.REPLICAS.toString());
     if (replica == null)
     {
-      logger.warn("could NOT found replicas in idealState. Use size of the first list/map instead: "
-          + _record);
+      String firstPartition = null;
       switch (getIdealStateMode())
       {
       case AUTO:
@@ -223,10 +222,11 @@ public class IdealState extends HelixProperty
         }
         else
         {
-          List<String> list =
-              new ArrayList<List<String>>(_record.getListFields().values()).get(0);
-          replica = Integer.toString(list == null ? 0 : list.size());
+          firstPartition = new ArrayList<String>(_record.getListFields().keySet()).get(0);
+          replica = Integer.toString(firstPartition == null ? 0 : _record.getListField(firstPartition).size());
         }
+        logger.warn("could NOT found replicas in idealState. Use size of the first list instead. replica: "
+            + replica + ", 1st partition: " + firstPartition);
         break;
       case CUSTOMIZED:
         if (_record.getMapFields().size() == 0)
@@ -235,10 +235,11 @@ public class IdealState extends HelixProperty
         }
         else
         {
-          Map<String, String> list =
-              new ArrayList<Map<String, String>>(_record.getMapFields().values()).get(0);
-          replica = Integer.toString(list == null ? 0 : list.size());
+          firstPartition = new ArrayList<String>(_record.getMapFields().keySet()).get(0);
+          replica = Integer.toString(firstPartition == null ? 0 : _record.getMapField(firstPartition).size());
         }
+        logger.warn("could NOT found replicas in idealState. Use size of the first map instead. replica: "
+            + replica + ", 1st partition: " + firstPartition);
         break;
       default:
         replica = "0";

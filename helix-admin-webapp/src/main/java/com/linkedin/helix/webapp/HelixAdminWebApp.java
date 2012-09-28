@@ -29,8 +29,7 @@ public class HelixAdminWebApp
     LOG.info("helixAdminWebApp starting");
     if(_component == null)
     {
-      _zkClient = new ZkClient(_zkServerAddress);
-      _zkClient.setZkSerializer(new ZNRecordSerializer());
+      _zkClient = new ZkClient(_zkServerAddress,  ZkClient.DEFAULT_SESSION_TIMEOUT, ZkClient.DEFAULT_CONNECTION_TIMEOUT, new ZNRecordSerializer());
       _component =  new Component();
       _component.getServers().add(Protocol.HTTP, _helixAdminPort);
       Context applicationContext = _component.getContext().createChildContext();

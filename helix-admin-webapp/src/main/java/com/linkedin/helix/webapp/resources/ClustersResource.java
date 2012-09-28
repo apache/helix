@@ -112,7 +112,11 @@ public class ClustersResource extends Resource
       JsonParameters jsonParameters = new JsonParameters(entity);
       String command = jsonParameters.getCommand();
 
-      if (command.equalsIgnoreCase(ClusterSetup.addCluster))
+      if (command == null)
+      {
+        throw new HelixException("Could NOT find 'command' in parameterMap: " + jsonParameters._parameterMap);
+      }
+      else if (command.equalsIgnoreCase(ClusterSetup.addCluster))
       {
         jsonParameters.verifyCommand(ClusterSetup.addCluster);
 

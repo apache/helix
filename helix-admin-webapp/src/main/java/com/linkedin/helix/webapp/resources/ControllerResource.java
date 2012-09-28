@@ -104,7 +104,11 @@ public class ControllerResource extends Resource
       JsonParameters jsonParameters = new JsonParameters(entity);
       String command = jsonParameters.getCommand();
 
-      if (command.equalsIgnoreCase(ClusterSetup.enableCluster))
+      if (command == null)
+      {
+        throw new HelixException("Could NOT find 'command' in parameterMap: " + jsonParameters._parameterMap);
+      }
+      else if (command.equalsIgnoreCase(ClusterSetup.enableCluster))
       {
         boolean enabled =
             Boolean.parseBoolean(jsonParameters.getParameter(JsonParameters.ENABLED));

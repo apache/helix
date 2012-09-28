@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.log4j.Logger;
 
+import com.linkedin.helix.ConfigChangeListener;
 import com.linkedin.helix.ExternalViewChangeListener;
 import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.NotificationContext;
@@ -34,7 +35,7 @@ import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.InstanceConfig;
 
-public class RoutingTableProvider implements ExternalViewChangeListener
+public class RoutingTableProvider implements ExternalViewChangeListener, ConfigChangeListener
 {
   private static final Logger logger = Logger.getLogger(RoutingTableProvider.class);
   private final AtomicReference<RoutingTable> _routingTableRef;
@@ -113,9 +114,27 @@ public class RoutingTableProvider implements ExternalViewChangeListener
     refresh(externalViewList, changeContext);
   }
 
+  @Override
+  public void onConfigChange(List<InstanceConfig> configs,
+                             NotificationContext changeContext)
+  {
+    // session has expired clean up the routing table
+    if (changeContext.getType() == NotificationContext.Type.FINALIZE)
+    {
+      logger.info("Resetting the routing table. ");
+      RoutingTable newRoutingTable = new RoutingTable();
+      _routingTableRef.set(newRoutingTable);
+      return;
+    }
+    
+    HelixDataAccessor accessor = changeContext.getManager().getHelixDataAccessor();
+    Builder keyBuilder = accessor.keyBuilder();
+    List<ExternalView> externalViewList = accessor.getChildValues(keyBuilder.externalViews());
+    refresh(externalViewList, changeContext);    
+  }
+  
   private void refresh(List<ExternalView> externalViewList, NotificationContext changeContext)
   {
-//    DataAccessor dataAccessor = changeContext.getManager().getDataAccessor();
     HelixDataAccessor accessor = changeContext.getManager().getHelixDataAccessor();
     Builder keyBuilder = accessor.keyBuilder();
     
@@ -279,5 +298,4 @@ public class RoutingTableProvider implements ExternalViewChangeListener
       return stateInfoMap.get(state);
     }
   }
-
 }

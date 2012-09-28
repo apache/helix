@@ -104,7 +104,6 @@ public class IdealStateResource extends Resource
     Builder keyBuilder = new PropertyKey.Builder(clusterName);
     ZkClient zkClient =
         (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
-    ;
 
     String message =
         ClusterRepresentationUtil.getClusterPropertyAsString(zkClient,

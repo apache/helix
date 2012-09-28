@@ -146,7 +146,11 @@ public class ClusterResource extends Resource
       JsonParameters jsonParameters = new JsonParameters(entity);
       String command = jsonParameters.getCommand();
 
-      if (command.equalsIgnoreCase(ClusterSetup.activateCluster)
+      if (command == null)
+      {
+        throw new HelixException("Could NOT find 'command' in parameterMap: " + jsonParameters._parameterMap);
+      }
+      else if (command.equalsIgnoreCase(ClusterSetup.activateCluster)
           || JsonParameters.CLUSTERSETUP_COMMAND_ALIASES.get(ClusterSetup.activateCluster)
                                                         .contains(command))
       {
@@ -176,7 +180,6 @@ public class ClusterResource extends Resource
       getResponse().setEntity(getClusterRepresentation(clusterName));
       getResponse().setStatus(Status.SUCCESS_OK);
     }
-
     catch (Exception e)
     {
       getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),

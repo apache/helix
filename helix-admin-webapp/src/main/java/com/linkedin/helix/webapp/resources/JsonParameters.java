@@ -41,6 +41,9 @@ public class JsonParameters
   public static final String             STATE_MODEL_DEF_REF = "stateModelDefRef";
   public static final String             IDEAL_STATE_MODE    = "mode";
 
+  // zk commands
+  public static final String             ZK_DELETE_CHILDREN  = "zkDeleteChildren";
+
   // extra json parameter map keys
   public static final String             NEW_IDEAL_STATE     = "newIdealState";
   public static final String             NEW_STATE_MODEL_DEF = "newStateModelDef";
@@ -68,7 +71,7 @@ public class JsonParameters
   public JsonParameters(Representation entity) throws Exception
   {
     Form form = new Form(entity);
-    
+
     // get parameters in String format
     String jsonPayload = form.getFirstValue(JSON_PARAMETERS, true);
     if (jsonPayload == null || jsonPayload.isEmpty())
@@ -82,8 +85,7 @@ public class JsonParameters
 
     // get extra parameters in ZNRecord format
     ObjectMapper mapper = new ObjectMapper();
-    String newIdealStateString =
-        form.getFirstValue(NEW_IDEAL_STATE, true);
+    String newIdealStateString = form.getFirstValue(NEW_IDEAL_STATE, true);
 
     if (newIdealStateString != null)
     {
@@ -92,8 +94,7 @@ public class JsonParameters
       _extraParameterMap.put(NEW_IDEAL_STATE, newIdealState);
     }
 
-    String newStateModelString =
-        form.getFirstValue(NEW_STATE_MODEL_DEF, true);
+    String newStateModelString = form.getFirstValue(NEW_STATE_MODEL_DEF, true);
     if (newStateModelString != null)
     {
       ZNRecord newStateModel =
@@ -106,12 +107,13 @@ public class JsonParameters
   {
     return _parameterMap.get(key);
   }
-  
+
   public String getCommand()
   {
-    return _parameterMap.get(MANAGEMENT_COMMAND);
+    String command = _parameterMap.get(MANAGEMENT_COMMAND); 
+    return command;
   }
-  
+
   public ZNRecord getExtraParameter(String key)
   {
     return _extraParameterMap.get(key);

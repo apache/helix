@@ -109,7 +109,7 @@ public class ZNRecordSerializer implements ZkSerializer
   {
     if (bytes == null || bytes.length == 0)
     {
-      logger.error("Znode is empty.");
+      // reading a parent/null node
       return null;
     }
 

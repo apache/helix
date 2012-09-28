@@ -100,7 +100,7 @@ public class ErrorResource extends Resource
       JsonMappingException,
       IOException
   {
-    ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);;
+    ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
     String instanceSessionId =
         ClusterRepresentationUtil.getInstanceSessionId(zkClient, clusterName,
                                                        instanceName);

@@ -92,7 +92,7 @@ public class StateModelConfigGenerator
       {
         Map<String, String> metadata = new HashMap<String, String>();
         metadata.put("MASTER", "MASTER");
-        metadata.put("DROPPED", "OFFLINE");
+        metadata.put("DROPPED", "DROPPED");
         record.setMapField(key, metadata);
       }
       if (state.equals("ERROR"))

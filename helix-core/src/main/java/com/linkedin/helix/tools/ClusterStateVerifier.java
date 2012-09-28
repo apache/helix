@@ -173,7 +173,8 @@ public class ClusterStateVerifier
       try
       {
         HelixDataAccessor accessor =
-            new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
+            new ZKHelixDataAccessor(clusterName,
+                                    new ZkBaseDataAccessor<ZNRecord>(zkClient));
 
         return ClusterStateVerifier.verifyBestPossAndExtView(accessor, errStates);
       }
@@ -288,7 +289,8 @@ public class ClusterStateVerifier
       try
       {
         ZKHelixDataAccessor accessor =
-            new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
+            new ZKHelixDataAccessor(clusterName,
+                                    new ZkBaseDataAccessor<ZNRecord>(zkClient));
 
         return ClusterStateVerifier.verifyMasterNbInExtView(accessor);
       }
@@ -338,6 +340,20 @@ public class ClusterStateVerifier
         return false;
       }
 
+      // make sure dropped resource group has none/empty external view
+      for (String resource : extViews.keySet())
+      {
+        if (!idealStates.containsKey(resource))
+        {
+          ExternalView extView = extViews.get(resource);
+          if (extView.getPartitionSet().size() > 0)
+          {
+            LOG.info(resource + " is not in idealState but has a non-empty externalView: " + extView);
+            return false;
+          }
+        }
+      }
+      
       // calculate best possible state
       BestPossibleStateOutput bestPossOutput =
           ClusterStateVerifier.calcBestPossState(cache);
@@ -383,8 +399,7 @@ public class ClusterStateVerifier
           }
         }
 
-        // System.err.println("resource: " + resourceName + ", bpStateMap: " +
-        // bpStateMap);
+        // System.err.println("resource: " + resourceName + ", bpStateMap: " + bpStateMap);
 
         // step 1: externalView and bestPossibleState has equal size
         int extViewSize = extView.getRecord().getMapFields().size();
@@ -622,11 +637,10 @@ public class ClusterStateVerifier
     ZkClient zkClient = verifier.getZkClient();
     String clusterName = verifier.getClusterName();
 
-    
     // add an ephemeral node to /{clusterName}/CONFIGS/CLUSTER/verify
     // so when analyze zk log, we know when a test ends
     zkClient.createEphemeral("/" + clusterName + "/CONFIGS/CLUSTER/verify");
-    
+
     ExtViewVeriferZkListener listener =
         new ExtViewVeriferZkListener(countDown, zkClient, verifier);
 

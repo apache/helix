@@ -129,7 +129,7 @@ public class TestClusterManagementWebapp extends AdminTestBase
   void verifyAddCluster() throws IOException,
       InterruptedException
   {
-    String httpUrlBase = "http://localhost:" + ADMIN_PORT + "/clusters/";
+    String httpUrlBase = "http://localhost:" + ADMIN_PORT + "/clusters";
     Map<String, String> paraMap = new HashMap<String, String>();
 
     paraMap.put(JsonParameters.CLUSTER_NAME, clusterName);

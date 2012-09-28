@@ -67,26 +67,31 @@ public class SchedulerTasksResource extends Resource
     getVariants().add(new Variant(MediaType.APPLICATION_JSON));
   }
 
+  @Override
   public boolean allowGet()
   {
     return true;
   }
   
+  @Override
   public boolean allowPost()
   {
     return true;
   }
   
+  @Override
   public boolean allowPut()
   {
     return false;
   }
   
+  @Override
   public boolean allowDelete()
   {
     return false;
   }
   
+  @Override
   public Representation represent(Variant variant)
   {
     StringRepresentation presentation = null;
@@ -109,7 +114,7 @@ public class SchedulerTasksResource extends Resource
   {
     String clusterName = (String)getRequest().getAttributes().get("clusterName");
     String instanceName = (String)getRequest().getAttributes().get("instanceName");
-    ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);;
+    ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
     ClusterSetup setupTool = new ClusterSetup(zkClient);
     List<String> instances = setupTool.getClusterManagementTool().getInstancesInCluster(clusterName);
     
@@ -122,13 +127,14 @@ public class SchedulerTasksResource extends Resource
     return representation;
   }
   
+  @Override
   public void acceptRepresentation(Representation entity)
   {
     try
     {
       String clusterName = (String)getRequest().getAttributes().get("clusterName");
       Form form = new Form(entity);
-      ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);;
+      ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
       
       String msgTemplateString = ClusterRepresentationUtil.getFormJsonParameterString(form, MESSAGETEMPLATE);
       if(msgTemplateString == null)

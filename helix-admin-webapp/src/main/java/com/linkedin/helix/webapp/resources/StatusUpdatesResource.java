@@ -44,26 +44,31 @@ public class StatusUpdatesResource extends Resource
     getVariants().add(new Variant(MediaType.APPLICATION_JSON));
   }
 
+  @Override
   public boolean allowGet()
   {
     return true;
   }
 
+  @Override
   public boolean allowPost()
   {
     return false;
   }
 
+  @Override
   public boolean allowPut()
   {
     return false;
   }
 
+  @Override
   public boolean allowDelete()
   {
     return false;
   }
 
+  @Override
   public Representation represent(Variant variant)
   {
     StringRepresentation presentation = null;
@@ -85,7 +90,7 @@ public class StatusUpdatesResource extends Resource
 
   StringRepresentation getInstanceErrorsRepresentation( String clusterName, String instanceName) throws JsonGenerationException, JsonMappingException, IOException
   {
-    ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);;
+    ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
     String instanceSessionId = ClusterRepresentationUtil.getInstanceSessionId(zkClient, clusterName, instanceName);
     
     String message = ClusterRepresentationUtil.getInstancePropertyNameListAsString(zkClient, clusterName, instanceName, PropertyType.CURRENTSTATES, instanceSessionId, MediaType.APPLICATION_JSON);

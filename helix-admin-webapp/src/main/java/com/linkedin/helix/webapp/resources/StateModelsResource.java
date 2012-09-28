@@ -98,7 +98,7 @@ public class StateModelsResource extends Resource
   StringRepresentation getStateModelsRepresentation() throws JsonGenerationException, JsonMappingException, IOException
   {
     String clusterName = (String)getRequest().getAttributes().get("clusterName");
-    ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);;
+    ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
     ClusterSetup setupTool = new ClusterSetup(zkClient);
     
     List<String> models = setupTool.getClusterManagementTool().getStateModelDefs(clusterName);

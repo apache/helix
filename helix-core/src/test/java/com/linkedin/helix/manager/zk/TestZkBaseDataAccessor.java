@@ -9,8 +9,8 @@ import org.apache.zookeeper.data.Stat;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import com.linkedin.helix.AccessOption;
 import com.linkedin.helix.BaseDataAccessor;
-import com.linkedin.helix.BaseDataAccessor.Option;
 import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
@@ -36,7 +36,7 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase
     {
       String msgId = "msg_" + i;
       String path = PropertyPathConfig.getPath(PropertyType.MESSAGES, root, "host_0", msgId);
-      boolean success = accessor.create(path, new ZNRecord(msgId), Option.PERSISTENT);
+      boolean success = accessor.create(path, new ZNRecord(msgId), AccessOption.PERSISTENT);
       Assert.assertTrue(success, "Should succeed in create");
     }
 
@@ -56,7 +56,7 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase
       String path = PropertyPathConfig.getPath(PropertyType.MESSAGES, root, "host_0", msgId);
       ZNRecord newRecord = new ZNRecord(msgId);
       newRecord.setSimpleField("key1", "value1");
-      boolean success = accessor.set(path, newRecord, Option.PERSISTENT);
+      boolean success = accessor.set(path, newRecord, AccessOption.PERSISTENT);
       Assert.assertTrue(success, "Should succeed in set");
     }
 
@@ -77,7 +77,7 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase
       String path = PropertyPathConfig.getPath(PropertyType.MESSAGES, root, "host_0", msgId);
       ZNRecord newRecord = new ZNRecord(msgId);
       newRecord.setSimpleField("key2", "value2");
-      boolean success = accessor.update(path, new ZNRecordUpdater(newRecord), Option.PERSISTENT);
+      boolean success = accessor.update(path, new ZNRecordUpdater(newRecord), AccessOption.PERSISTENT);
       Assert.assertTrue(success, "Should succeed in update");
     }
 
@@ -165,7 +165,7 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase
       paths.add(PropertyPathConfig.getPath(PropertyType.MESSAGES, root, "host_1",msgId));
       records.add(new ZNRecord(msgId));
     }
-    boolean[] success = accessor.createChildren(paths, records, Option.PERSISTENT);
+    boolean[] success = accessor.createChildren(paths, records, AccessOption.PERSISTENT);
     for (int i = 0; i < 10; i++)
     {
       String msgId = "msg_" + i;
@@ -193,7 +193,7 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase
       newRecord.setSimpleField("key1", "value1");
       records.add(newRecord);
     }
-    success = accessor.setChildren(paths, records, Option.PERSISTENT);
+    success = accessor.setChildren(paths, records, AccessOption.PERSISTENT);
     for (int i = 0; i < 10; i++)
     {
       String msgId = "msg_" + i;
@@ -224,7 +224,7 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase
 //      records.add(newRecord);
       znrecordUpdaters.add(new ZNRecordUpdater(newRecord));
     }
-    success = accessor.updateChildren(paths, znrecordUpdaters, Option.PERSISTENT);
+    success = accessor.updateChildren(paths, znrecordUpdaters, AccessOption.PERSISTENT);
     for (int i = 0; i < 10; i++)
     {
       String msgId = "msg_" + i;

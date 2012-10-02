@@ -13,8 +13,8 @@ import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.data.Stat;
 
+import com.linkedin.helix.AccessOption;
 import com.linkedin.helix.BaseDataAccessor;
-import com.linkedin.helix.BaseDataAccessor.Option;
 import com.linkedin.helix.IZkListener;
 import com.linkedin.helix.manager.zk.ZkCacheEventThread.ZkCacheEvent;
 import com.linkedin.helix.store.HelixPropertyListener;
@@ -107,7 +107,7 @@ public class ZkCallbackCache<T> extends Cache<T> implements IZkListener
 
         // update this node
         Stat stat = new Stat();
-        T readData = _accessor.get(path, stat, Option.THROW_EXCEPTION_IFNOTEXIST);
+        T readData = _accessor.get(path, stat, AccessOption.THROW_EXCEPTION_IFNOTEXIST);
 
         update(path, readData, stat);
       }
@@ -164,7 +164,7 @@ public class ZkCallbackCache<T> extends Cache<T> implements IZkListener
 
       // TODO: optimize it by get stat from callback
       Stat stat = new Stat();
-      Object readData = _accessor.get(dataPath, stat, Option.THROW_EXCEPTION_IFNOTEXIST);
+      Object readData = _accessor.get(dataPath, stat, AccessOption.THROW_EXCEPTION_IFNOTEXIST);
 
       ZNode znode = _cache.get(dataPath);
       if (znode != null)

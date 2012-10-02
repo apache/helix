@@ -10,39 +10,6 @@ import org.apache.zookeeper.data.Stat;
 
 public interface BaseDataAccessor<T>
 {
-  public static class Option
-  {
-    public static int PERSISTENT = 0x1;
-    public static int EPHEMERAL   = 0x2;
-    public static int PERSISTENT_SEQUENTIAL   = 0x4;
-    public static int EPHEMERAL_SEQUENTIAL   = 0x8;
-    public static int THROW_EXCEPTION_IFNOTEXIST = 0x10;
-    
-    public static CreateMode getMode(int options)
-    {
-      if ( (options & PERSISTENT) > 0)
-      {
-        return CreateMode.PERSISTENT;
-      } else if ( (options & EPHEMERAL) > 0)
-      {
-        return CreateMode.EPHEMERAL;
-      } else if ( (options & PERSISTENT_SEQUENTIAL) > 0)
-      {
-        return CreateMode.PERSISTENT_SEQUENTIAL;
-      } else if ( (options & EPHEMERAL_SEQUENTIAL) > 0)
-      {
-        return CreateMode.EPHEMERAL_SEQUENTIAL;
-      }
-      
-      return null;
-    }
-    
-    public static boolean isThrowExceptionIfNotExist(int options)
-    {
-      return (options & THROW_EXCEPTION_IFNOTEXIST) > 0;
-    }
-  }
-  
   /**
    * This will always attempt to create the znode, if it exists it will return false. Will
    * create parents if they do not exist. For performance reasons, it may try to create
@@ -74,7 +41,6 @@ public interface BaseDataAccessor<T>
    */
   boolean update(String path, DataUpdater<T> updater, int options);
 
-  
   /**
    * This will remove znode and all it's child nodes if any
    * 
@@ -82,7 +48,7 @@ public interface BaseDataAccessor<T>
    * @return
    */
   boolean remove(String path, int options);
-  
+
   /**
    * Use it when creating children under a parent node. This will use async api for better
    * performance. If the child already exists it will return false.
@@ -119,7 +85,7 @@ public interface BaseDataAccessor<T>
    * @return
    */
   boolean[] remove(List<String> paths, int options);
-  
+
   /**
    * Get the {@link T} corresponding to the path
    * 
@@ -184,28 +150,43 @@ public interface BaseDataAccessor<T>
    * @return
    */
   Stat getStat(String path, int options);
-  
+
   /**
-   * Subscribe/Unsubscribe data listener to path
+   * Subscribe data listener to path
    * 
    * @param path
    * @param listener
    * @return
    */
   void subscribeDataChanges(String path, IZkDataListener listener);
-  void unsubscribeDataChanges(String path, IZkDataListener listener);
-  
+
   /**
-   * Subscribe/Unsubscribe child listener to path
+   * Unsubscribe data listener to path
+   * 
+   * @param path
+   * @param listener
+   */
+  void unsubscribeDataChanges(String path, IZkDataListener listener);
+
+  /**
+   * Subscribe child listener to path
+   * 
    * @param path
    * @param listener
    * @return
-   */     
+   */
   List<String> subscribeChildChanges(String path, IZkChildListener listener);
+
+  /**
+   * Unsubscribe child listener to path
+   * 
+   * @param path
+   * @param listener
+   */
   void unsubscribeChildChanges(String path, IZkChildListener listener);
 
   /**
-   * reset the cache if any when session expiry happens
+   * reset the cache if any, when session expiry happens
    */
   void reset();
 }

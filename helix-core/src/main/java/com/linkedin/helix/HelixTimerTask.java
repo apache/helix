@@ -19,6 +19,15 @@ import java.util.TimerTask;
 
 public abstract class HelixTimerTask extends TimerTask
 {
+  /**
+   * Timer task starts
+   * 
+   */
   public abstract void start();
+  
+  /**
+   * Timer task stops
+   * 
+   */
   public abstract void stop();
 }

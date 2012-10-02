@@ -22,7 +22,13 @@ import com.linkedin.helix.model.LiveInstance;
 public interface LiveInstanceChangeListener
 {
 
+  /**
+   * Invoked when live instance changes
+   * 
+   * @param liveInstances
+   * @param changeContext
+   */
   public void onLiveInstanceChange(List<LiveInstance> liveInstances,
-      NotificationContext changeContext);
+                                   NotificationContext changeContext);
 
 }

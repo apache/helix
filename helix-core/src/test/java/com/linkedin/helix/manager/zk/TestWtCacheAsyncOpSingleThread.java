@@ -9,7 +9,7 @@ import org.I0Itec.zkclient.DataUpdater;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import com.linkedin.helix.BaseDataAccessor.Option;
+import com.linkedin.helix.AccessOption;
 import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.TestHelper;
@@ -39,7 +39,7 @@ public class TestWtCacheAsyncOpSingleThread extends ZkUnitTestBase
     ZkBaseDataAccessor<ZNRecord> baseAccessor =
         new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
 
-    baseAccessor.create(curStatePath, null, Option.PERSISTENT);
+    baseAccessor.create(curStatePath, null, AccessOption.PERSISTENT);
 
     List<String> cachePaths = Arrays.asList(curStatePath, extViewPath);
     ZkCacheBaseDataAccessor<ZNRecord> accessor =
@@ -69,7 +69,7 @@ public class TestWtCacheAsyncOpSingleThread extends ZkUnitTestBase
       records.add(record);
     }
 
-    boolean[] success = accessor.createChildren(paths, records, Option.PERSISTENT);
+    boolean[] success = accessor.createChildren(paths, records, AccessOption.PERSISTENT);
     for (int i = 0; i < 10; i++)
     {
       Assert.assertTrue(success[i], "Should succeed in create: " + paths.get(i));
@@ -96,7 +96,7 @@ public class TestWtCacheAsyncOpSingleThread extends ZkUnitTestBase
         paths.add(path);
         updaters.add(updater);
       }
-      success = accessor.updateChildren(paths, updaters, Option.PERSISTENT);
+      success = accessor.updateChildren(paths, updaters, AccessOption.PERSISTENT);
 
       for (int i = 0; i < 10; i++)
       {
@@ -122,7 +122,7 @@ public class TestWtCacheAsyncOpSingleThread extends ZkUnitTestBase
       paths.add(path);
       records.add(record);
     }
-    success = accessor.setChildren(paths, records, Option.PERSISTENT);
+    success = accessor.setChildren(paths, records, AccessOption.PERSISTENT);
     for (int i = 0; i < 10; i++)
     {
       Assert.assertTrue(success[i], "Should succeed in set: " + paths.get(i));
@@ -200,7 +200,7 @@ public class TestWtCacheAsyncOpSingleThread extends ZkUnitTestBase
     ZkBaseDataAccessor<ZNRecord> baseAccessor =
         new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
 
-    baseAccessor.create(curStatePath, null, Option.PERSISTENT);
+    baseAccessor.create(curStatePath, null, AccessOption.PERSISTENT);
 
     ZkCacheBaseDataAccessor<ZNRecord> accessor =
         new ZkCacheBaseDataAccessor<ZNRecord>(baseAccessor,
@@ -229,7 +229,7 @@ public class TestWtCacheAsyncOpSingleThread extends ZkUnitTestBase
       records.add(record);
     }
 
-    boolean[] success = accessor.createChildren(paths, records, Option.PERSISTENT);
+    boolean[] success = accessor.createChildren(paths, records, AccessOption.PERSISTENT);
     for (int i = 0; i < 10; i++)
     {
       Assert.assertTrue(success[i], "Should succeed in create: " + paths.get(i));
@@ -237,7 +237,7 @@ public class TestWtCacheAsyncOpSingleThread extends ZkUnitTestBase
     
     
     // create same 10 current states again, should fail on NodeExists
-    success = accessor.createChildren(paths, records, Option.PERSISTENT);
+    success = accessor.createChildren(paths, records, AccessOption.PERSISTENT);
     // System.out.println(Arrays.toString(success));
     for (int i = 0; i < 10; i++)
     {

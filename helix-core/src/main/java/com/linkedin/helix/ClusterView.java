@@ -23,6 +23,7 @@ import java.util.TreeMap;
 
 import org.codehaus.jackson.annotate.JsonProperty;
 
+@Deprecated
 public class ClusterView
 {
   private Map<PropertyType, List<ZNRecord>> clusterPropertyLists;

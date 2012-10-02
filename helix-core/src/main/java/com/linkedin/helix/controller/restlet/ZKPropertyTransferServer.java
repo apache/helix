@@ -14,6 +14,7 @@ import org.restlet.Component;
 import org.restlet.Context;
 import org.restlet.data.Protocol;
 
+import com.linkedin.helix.AccessOption;
 import com.linkedin.helix.BaseDataAccessor;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.manager.zk.ZNRecordSerializer;
@@ -101,7 +102,7 @@ public class ZKPropertyTransferServer
       long timeStart = System.currentTimeMillis();
       if(paths.size() > 0)
       {
-        _accessor.updateChildren(paths, updaters, BaseDataAccessor.Option.PERSISTENT);
+        _accessor.updateChildren(paths, updaters, AccessOption.PERSISTENT);
       }
       LOG.info("ZKPropertyTransferServer updated " + vals.size() + " records in " + (System.currentTimeMillis() - timeStart) + " ms");
     }

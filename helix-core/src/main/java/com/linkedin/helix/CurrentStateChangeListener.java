@@ -22,7 +22,15 @@ import com.linkedin.helix.model.CurrentState;
 public interface CurrentStateChangeListener
 {
 
-  public void onStateChange(String instanceName, List<CurrentState> statesInfo,
-      NotificationContext changeContext);
+  /**
+   * Invoked when current state changes
+   * 
+   * @param instanceName
+   * @param statesInfo
+   * @param changeContext
+   */
+  public void onStateChange(String instanceName,
+                            List<CurrentState> statesInfo,
+                            NotificationContext changeContext);
 
 }

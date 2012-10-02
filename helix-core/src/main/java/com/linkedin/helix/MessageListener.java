@@ -22,6 +22,13 @@ import com.linkedin.helix.model.Message;
 public interface MessageListener
 {
 
+  /**
+   * Invoked when message changes
+   * 
+   * @param instanceName
+   * @param messages
+   * @param changeContext
+   */
   public void onMessage(String instanceName, List<Message> messages,
       NotificationContext changeContext);
 

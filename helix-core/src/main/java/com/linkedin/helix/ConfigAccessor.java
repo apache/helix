@@ -67,6 +67,7 @@ public class ConfigAccessor
   }
 
   /**
+   * Get config value
    * 
    * @param scope
    * @param key
@@ -111,6 +112,7 @@ public class ConfigAccessor
   }
 
   /**
+   * Set a config value
    * 
    * @param scope
    * @param key
@@ -152,6 +154,7 @@ public class ConfigAccessor
   }
 
   /**
+   * Remove config value
    * 
    * @param scope
    * @param key
@@ -195,6 +198,7 @@ public class ConfigAccessor
   }
 
   /**
+   * Get a list of config keys
    * 
    * @param type
    * @param clusterName

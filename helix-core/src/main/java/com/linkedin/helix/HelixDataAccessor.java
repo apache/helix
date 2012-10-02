@@ -146,12 +146,14 @@ public interface HelixDataAccessor
       int options);
   
   /**
+   * Get key builder for the accessor
    * 
    * @return
    */
   PropertyKey.Builder keyBuilder();
 
   /**
+   * Get underlying base data accessor
    * 
    * @return
    */

@@ -33,8 +33,9 @@ public final class HelixManagerFactory
   private static final Logger logger = Logger.getLogger(HelixManagerFactory.class);
 
   /**
-   * Construct a zk-based cluster manager
-   *   enforce all types (PARTICIPANT, CONTROLLER, and SPECTATOR to have a name
+   * Construct a zk-based cluster manager enforce all types (PARTICIPANT, CONTROLLER, and
+   * SPECTATOR to have a name
+   * 
    * @param clusterName
    * @param instanceName
    * @param type
@@ -43,18 +44,18 @@ public final class HelixManagerFactory
    * @throws Exception
    */
   public static HelixManager getZKHelixManager(String clusterName,
-                                                   String instanceName,
-                                                   InstanceType type,
-                                                   String zkAddr)
-  throws Exception
+                                               String instanceName,
+                                               InstanceType type,
+                                               String zkAddr) throws Exception
   {
     return new ZKHelixManager(clusterName, instanceName, type, zkAddr);
   }
 
   /**
-   * Construct a file-based cluster manager using a static cluster-view file
-   *   the cluster-view file contains pre-computed state transition messages
-   *   from initial OFFLINE states to ideal states
+   * Construct a file-based cluster manager using a static cluster-view file the
+   * cluster-view file contains pre-computed state transition messages from initial
+   * OFFLINE states to ideal states
+   * 
    * @param clusterName
    * @param instanceName
    * @param type
@@ -62,45 +63,42 @@ public final class HelixManagerFactory
    * @return
    * @throws Exception
    */
+  @Deprecated
   public static HelixManager getStaticFileHelixManager(String clusterName,
-                                                           String instanceName,
-                                                           InstanceType type,
-                                                           String clusterViewFile)
-    throws Exception
+                                                       String instanceName,
+                                                       InstanceType type,
+                                                       String clusterViewFile) throws Exception
   {
     if (type != InstanceType.PARTICIPANT)
     {
       throw new IllegalArgumentException("Static file-based cluster manager doesn't support type other than participant");
     }
-    return new StaticFileHelixManager(clusterName,
-                                        instanceName,
-                                        type,
-                                        clusterViewFile);
+    return new StaticFileHelixManager(clusterName, instanceName, type, clusterViewFile);
   }
 
   /**
    * Construct a dynamic file-based cluster manager
+   * 
    * @param clusterName
    * @param instanceName
    * @param type
-   * @param file property store: all dynamic-file based participants/controller
-   *   shall use the same file property store to avoid race condition in updating files
+   * @param file
+   *          property store: all dynamic-file based participants/controller shall use the
+   *          same file property store to avoid race condition in updating files
    * @return
    * @throws Exception
    */
+  @Deprecated
   public static HelixManager getDynamicFileHelixManager(String clusterName,
-                                                            String instanceName,
-                                                            InstanceType type,
-                                                            FilePropertyStore<ZNRecord> store)
-    throws Exception
+                                                        String instanceName,
+                                                        InstanceType type,
+                                                        FilePropertyStore<ZNRecord> store) throws Exception
   {
     if (type != InstanceType.PARTICIPANT && type != InstanceType.CONTROLLER)
     {
       throw new IllegalArgumentException("Dynamic file-based cluster manager doesn't support types other than participant and controller");
     }
 
-    return new DynamicFileHelixManager(clusterName, instanceName,
-                                         type,
-                                         store);
+    return new DynamicFileHelixManager(clusterName, instanceName, type, store);
   }
 }

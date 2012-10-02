@@ -12,8 +12,7 @@ import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import com.linkedin.helix.BaseDataAccessor;
-import com.linkedin.helix.BaseDataAccessor.Option;
+import com.linkedin.helix.AccessOption;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.ZkUnitTestBase;
 import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
@@ -235,7 +234,7 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase
                                            subRoot,
                                            subscribedPaths);
 
-    store.set("/child0", new ZNRecord("child0"), BaseDataAccessor.Option.PERSISTENT);
+    store.set("/child0", new ZNRecord("child0"), AccessOption.PERSISTENT);
 
     ZNRecord record = store.get("/child0", null, 0); // will put the record in cache
     Assert.assertEquals(record.getId(), "child0");
@@ -259,7 +258,7 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase
     Thread.sleep(500); // should wait for zk callback to remove "/child0" from cache
     try
     {
-      record = store.get("/child0", null, Option.THROW_EXCEPTION_IFNOTEXIST);
+      record = store.get("/child0", null, AccessOption.THROW_EXCEPTION_IFNOTEXIST);
       Assert.fail("/child0 should have been removed");
     }
     catch (ZkNoNodeException e)
@@ -318,7 +317,7 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase
           record.setSimpleField("SetTimestamp", Long.toString(now));
         }
         String key = getSecondLevelKey(i, j);
-        store.set(key, record, Option.PERSISTENT);
+        store.set(key, record, AccessOption.PERSISTENT);
       }
     }
   }

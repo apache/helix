@@ -18,14 +18,21 @@ package com.linkedin.helix;
 import java.util.List;
 
 import com.linkedin.helix.model.InstanceConfig;
+
 /**
  * @author kgopalak
- *
+ * 
  */
 public interface ConfigChangeListener
 {
 
+  /**
+   * Invoked when participant config changes
+   * 
+   * @param configs
+   * @param changeContext
+   */
   public void onConfigChange(List<InstanceConfig> configs,
-      NotificationContext changeContext);
+                             NotificationContext changeContext);
 
 }

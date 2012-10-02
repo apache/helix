@@ -7,7 +7,7 @@ import java.util.List;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import com.linkedin.helix.BaseDataAccessor.Option;
+import com.linkedin.helix.AccessOption;
 import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.TestHelper;
@@ -39,7 +39,7 @@ public class TestWtCacheSyncOpSingleThread extends ZkUnitTestBase
     ZkBaseDataAccessor<ZNRecord> baseAccessor =
         new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
 
-    baseAccessor.create(curStatePath, null, Option.PERSISTENT);
+    baseAccessor.create(curStatePath, null, AccessOption.PERSISTENT);
 
     List<String> cachePaths = Arrays.asList(curStatePath, extViewPath);
     ZkCacheBaseDataAccessor<ZNRecord> accessor =
@@ -57,7 +57,7 @@ public class TestWtCacheSyncOpSingleThread extends ZkUnitTestBase
     {
       String path = curStatePath + "/session_0/TestDB" + i;
       boolean success =
-          accessor.create(path, new ZNRecord("TestDB" + i), Option.PERSISTENT);
+          accessor.create(path, new ZNRecord("TestDB" + i), AccessOption.PERSISTENT);
       Assert.assertTrue(success, "Should succeed in create: " + path);
     }
 
@@ -75,7 +75,7 @@ public class TestWtCacheSyncOpSingleThread extends ZkUnitTestBase
         ZNRecord newRecord = new ZNRecord("TestDB" + i);
         newRecord.setSimpleField("" + j, "" + j);
         boolean success =
-            accessor.update(path, new ZNRecordUpdater(newRecord), Option.PERSISTENT);
+            accessor.update(path, new ZNRecordUpdater(newRecord), AccessOption.PERSISTENT);
         Assert.assertTrue(success, "Should succeed in update: " + path);
 
       }
@@ -91,7 +91,7 @@ public class TestWtCacheSyncOpSingleThread extends ZkUnitTestBase
     {
       String path =
           PropertyPathConfig.getPath(PropertyType.EXTERNALVIEW, clusterName, "TestDB" + i);
-      boolean success = accessor.set(path, new ZNRecord("TestDB" + i), Option.PERSISTENT);
+      boolean success = accessor.set(path, new ZNRecord("TestDB" + i), AccessOption.PERSISTENT);
       Assert.assertTrue(success, "Should succeed in set: " + path);
     }
 
@@ -170,7 +170,7 @@ public class TestWtCacheSyncOpSingleThread extends ZkUnitTestBase
                                      "session_1",
                                      "TestDB" + i);
       boolean success =
-          accessor.create(path, new ZNRecord("TestDB" + i), Option.PERSISTENT);
+          accessor.create(path, new ZNRecord("TestDB" + i), AccessOption.PERSISTENT);
       Assert.assertTrue(success, "Should succeed in create: " + path);
     }
     
@@ -184,7 +184,7 @@ public class TestWtCacheSyncOpSingleThread extends ZkUnitTestBase
                                      "session_1",
                                      "TestDB" + i);
       boolean success =
-          accessor.create(path, new ZNRecord("TestDB" + i), Option.PERSISTENT);
+          accessor.create(path, new ZNRecord("TestDB" + i), AccessOption.PERSISTENT);
       Assert.assertFalse(success, "Should fail in create due to NodeExists: " + path);
     }
 

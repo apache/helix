@@ -18,6 +18,10 @@ package com.linkedin.helix;
 
 public interface ControllerChangeListener
 {
+  /**
+   * Invoked when controller changes
+   * 
+   * @param changeContext
+   */
   public void onControllerChange(NotificationContext changeContext);
-
 }

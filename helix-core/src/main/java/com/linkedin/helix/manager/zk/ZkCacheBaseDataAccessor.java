@@ -21,6 +21,7 @@ import org.apache.zookeeper.common.PathUtils;
 import org.apache.zookeeper.data.Stat;
 import org.apache.zookeeper.server.DataTree;
 
+import com.linkedin.helix.AccessOption;
 import com.linkedin.helix.manager.zk.ZkAsyncCallbacks.CreateCallbackHandler;
 import com.linkedin.helix.manager.zk.ZkBaseDataAccessor.RetCode;
 import com.linkedin.helix.store.HelixPropertyListener;
@@ -416,12 +417,12 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T>
         try
         {
           cache.lockWrite();
-          record = _baseAccessor.get(serverPath, stat, options | Option.THROW_EXCEPTION_IFNOTEXIST);
+          record = _baseAccessor.get(serverPath, stat, options | AccessOption.THROW_EXCEPTION_IFNOTEXIST);
           cache.update(serverPath, record, stat);
         }
         catch (ZkNoNodeException e)
         {
-          if (Option.isThrowExceptionIfNotExist(options))
+          if (AccessOption.isThrowExceptionIfNotExist(options))
           {
             throw e;
           }

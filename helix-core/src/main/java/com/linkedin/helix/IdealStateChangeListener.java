@@ -22,7 +22,12 @@ import com.linkedin.helix.model.IdealState;
 public interface IdealStateChangeListener
 {
 
-  void onIdealStateChange(List<IdealState> idealState,
-      NotificationContext changeContext);
+  /**
+   * Invoed when ideal state changes
+   * 
+   * @param idealState
+   * @param changeContext
+   */
+  void onIdealStateChange(List<IdealState> idealState, NotificationContext changeContext);
 
 }

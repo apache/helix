@@ -10,7 +10,7 @@ import org.I0Itec.zkclient.DataUpdater;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import com.linkedin.helix.BaseDataAccessor.Option;
+import com.linkedin.helix.AccessOption;
 import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.TestHelper;
@@ -72,7 +72,7 @@ public class TestWtCacheAsyncOpMultiThread extends ZkUnitTestBase
           records.add(record);
         }
         
-        boolean[] success = _accessor.createChildren(paths, records, Option.PERSISTENT);
+        boolean[] success = _accessor.createChildren(paths, records, AccessOption.PERSISTENT);
         // System.out.println("thread-" + _id + " creates " + j  + ": " + Arrays.toString(success));
         
         // create all all sync'ed, so we shall see either all true or all false
@@ -126,7 +126,7 @@ public class TestWtCacheAsyncOpMultiThread extends ZkUnitTestBase
           updaters.add(updater);
         }
         
-        boolean[] success = _accessor.updateChildren(paths, updaters, Option.PERSISTENT);
+        boolean[] success = _accessor.updateChildren(paths, updaters, AccessOption.PERSISTENT);
         // System.out.println("thread-" + _id + " updates " + j + ": " + Arrays.toString(success));
         
         for (int i = 0; i < 10; i++)
@@ -185,7 +185,7 @@ public class TestWtCacheAsyncOpMultiThread extends ZkUnitTestBase
           paths.add(path);
           records.add(record);
         }
-        boolean[] success = _accessor.setChildren(paths, records, Option.PERSISTENT);
+        boolean[] success = _accessor.setChildren(paths, records, AccessOption.PERSISTENT);
         // System.out.println("thread-" + _id + " sets " + j  + ": " + Arrays.toString(success));
         
         for (int i = 0; i < 5; i++)
@@ -218,7 +218,7 @@ public class TestWtCacheAsyncOpMultiThread extends ZkUnitTestBase
     ZkBaseDataAccessor<ZNRecord> baseAccessor =
         new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
 
-    baseAccessor.create(curStatePath, null, Option.PERSISTENT);
+    baseAccessor.create(curStatePath, null, AccessOption.PERSISTENT);
 
     List<String> cachePaths = Arrays.asList(curStatePath, extViewPath);
     ZkCacheBaseDataAccessor<ZNRecord> accessor =

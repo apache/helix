@@ -20,6 +20,7 @@ import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.data.Stat;
 import org.apache.zookeeper.server.DataTree;
 
+import com.linkedin.helix.AccessOption;
 import com.linkedin.helix.BaseDataAccessor;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.manager.zk.ZkAsyncCallbacks.CreateCallbackHandler;
@@ -59,7 +60,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
    */
   public RetCode create(String path, T record, List<String> pathCreated, int options)
   {
-    CreateMode mode = Option.getMode(options);
+    CreateMode mode = AccessOption.getMode(options);
     if (mode == null)
     {
       LOG.error("Invalid create mode. options: " + options);
@@ -84,7 +85,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
         String parentPath = new File(path).getParent();
         try
         {
-          RetCode rc = create(parentPath, null, pathCreated, Option.PERSISTENT);
+          RetCode rc = create(parentPath, null, pathCreated, AccessOption.PERSISTENT);
           if (rc == RetCode.OK || rc == RetCode.NODE_EXISTS)
           {
             // if parent node created/exists, retry
@@ -135,7 +136,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
                      int expectVersion,
                      int options)
   {
-    CreateMode mode = Option.getMode(options);
+    CreateMode mode = AccessOption.getMode(options);
     if (mode == null)
     {
       LOG.error("Invalid set mode. options: " + options);
@@ -214,7 +215,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
                   Stat stat,
                   int options)
   {
-    CreateMode mode = Option.getMode(options);
+    CreateMode mode = AccessOption.getMode(options);
     if (mode == null)
     {
       LOG.error("Invalid update mode. options: " + options);
@@ -290,7 +291,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
     }
     catch (ZkNoNodeException e)
     {
-      if (Option.isThrowExceptionIfNotExist(options))
+      if (AccessOption.isThrowExceptionIfNotExist(options))
       {
         throw e;
       }
@@ -510,7 +511,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
 
     CreateCallbackHandler[] cbList = new CreateCallbackHandler[paths.size()];
 
-    CreateMode mode = Option.getMode(options);
+    CreateMode mode = AccessOption.getMode(options);
     if (mode == null)
     {
       LOG.error("Invalid async set mode. options: " + options);
@@ -575,7 +576,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
         boolean[] needCreateParent = Arrays.copyOf(needCreate, needCreate.length);
 
         CreateCallbackHandler[] parentCbList =
-            create(parentPaths, null, needCreateParent, pathsCreated, Option.PERSISTENT);
+            create(parentPaths, null, needCreateParent, pathsCreated, AccessOption.PERSISTENT);
         for (int i = 0; i < parentCbList.length; i++)
         {
           CreateCallbackHandler parentCb = parentCbList[i];
@@ -607,7 +608,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
   {
     boolean[] success = new boolean[paths.size()];
 
-    CreateMode mode = Option.getMode(options);
+    CreateMode mode = AccessOption.getMode(options);
     if (mode == null)
     {
       LOG.error("Invalid async create mode. options: " + options);
@@ -675,7 +676,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
 
     boolean[] success = new boolean[paths.size()];
 
-    CreateMode mode = Option.getMode(options);
+    CreateMode mode = AccessOption.getMode(options);
     if (mode == null)
     {
       LOG.error("Invalid async set mode. options: " + options);
@@ -851,7 +852,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
         new ArrayList<Stat>(Collections.<Stat> nCopies(paths.size(), null));
     List<T> updateData = new ArrayList<T>(Collections.<T> nCopies(paths.size(), null));
 
-    CreateMode mode = Option.getMode(options);
+    CreateMode mode = AccessOption.getMode(options);
     if (mode == null)
     {
       LOG.error("Invalid update mode. options: " + options);
@@ -1148,7 +1149,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
                     createRecords,
                     needCreate,
                     pathsCreated,
-                    Option.PERSISTENT);
+                    AccessOption.PERSISTENT);
     System.out.println("pathsCreated: " + pathsCreated);
 
     // test async set
@@ -1161,7 +1162,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
         new ArrayList<List<String>>(Collections.<List<String>> nCopies(setPaths.size(),
                                                                        null));
     boolean[] success =
-        accessor.set(setPaths, setRecords, pathsCreated, null, Option.PERSISTENT);
+        accessor.set(setPaths, setRecords, pathsCreated, null, AccessOption.PERSISTENT);
     System.out.println("pathsCreated: " + pathsCreated);
     System.out.println("setSuccess: " + Arrays.toString(success));
 
@@ -1193,7 +1194,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
                                                                        null));
 
     List<ZNRecord> updateRecords =
-        accessor.update(updatePaths, updaters, pathsCreated, null, Option.PERSISTENT);
+        accessor.update(updatePaths, updaters, pathsCreated, null, AccessOption.PERSISTENT);
     for (int i = 0; i < updatePaths.size(); i++)
     {
       success[i] = updateRecords.get(i) != null;

@@ -22,7 +22,13 @@ import com.linkedin.helix.model.ExternalView;
 public interface ExternalViewChangeListener
 {
 
+  /**
+   * Invoked when external view changes
+   * 
+   * @param externalViewList
+   * @param changeContext
+   */
   public void onExternalViewChange(List<ExternalView> externalViewList,
-      NotificationContext changeContext);
+                                   NotificationContext changeContext);
 
 }

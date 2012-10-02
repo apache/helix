@@ -10,6 +10,7 @@ import org.I0Itec.zkclient.DataUpdater;
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.apache.log4j.Logger;
 
+import com.linkedin.helix.AccessOption;
 import com.linkedin.helix.BaseDataAccessor;
 import com.linkedin.helix.ControllerChangeListener;
 import com.linkedin.helix.GroupCommit;
@@ -397,11 +398,11 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
     int options = 0;
     if (type.isPersistent())
     {
-      options = options | BaseDataAccessor.Option.PERSISTENT;
+      options = options | AccessOption.PERSISTENT;
     }
     else
     {
-      options = options | BaseDataAccessor.Option.EPHEMERAL;
+      options = options | AccessOption.EPHEMERAL;
     }
 
 //    if (type == PropertyType.CURRENTSTATES && _instanceType == InstanceType.PARTICIPANT)

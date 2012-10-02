@@ -23,10 +23,14 @@ import com.linkedin.helix.model.Message;
 public interface HealthStateChangeListener
 {
 
-  public void onHealthChange(String instanceName,  List<HealthStat> reports,
-	  NotificationContext changeContext);
-  /*  
-  public void onHealthChange(String instanceName,  List<ZNRecord> reports,
-		  NotificationContext changeContext);
-  */
+  /**
+   * Invoked when health stats change
+   * 
+   * @param instanceName
+   * @param reports
+   * @param changeContext
+   */
+  public void onHealthChange(String instanceName,
+                             List<HealthStat> reports,
+                             NotificationContext changeContext);
 }

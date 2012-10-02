@@ -25,6 +25,7 @@ import org.I0Itec.zkclient.DataUpdater;
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.apache.log4j.Logger;
 
+import com.linkedin.helix.AccessOption;
 import com.linkedin.helix.BaseDataAccessor;
 import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.HelixManagerFactory;
@@ -350,7 +351,7 @@ public class MockParticipant extends Thread
           record = new ZNRecord(setPath);
         }
         record.setSimpleField("setTimestamp", "" + System.currentTimeMillis());
-        store.set(setPath, record, BaseDataAccessor.Option.PERSISTENT);
+        store.set(setPath, record, AccessOption.PERSISTENT);
 
         // update once
         store.update(updatePath, new DataUpdater<ZNRecord>()
@@ -368,7 +369,7 @@ public class MockParticipant extends Thread
             return currentData;
           }
 
-        }, BaseDataAccessor.Option.PERSISTENT);
+        }, AccessOption.PERSISTENT);
       }
       catch (Exception e)
       {
@@ -403,7 +404,7 @@ public class MockParticipant extends Thread
           record = new ZNRecord(setPath);
         }
         record.setSimpleField("setTimestamp", "" + System.currentTimeMillis());
-        store.set(setPath, record, BaseDataAccessor.Option.PERSISTENT);
+        store.set(setPath, record, AccessOption.PERSISTENT);
 
         // update once
         store.update(updatePath, new DataUpdater<ZNRecord>()
@@ -421,7 +422,7 @@ public class MockParticipant extends Thread
             return currentData;
           }
 
-        }, BaseDataAccessor.Option.PERSISTENT);
+        }, AccessOption.PERSISTENT);
       }
       catch (Exception e)
       {

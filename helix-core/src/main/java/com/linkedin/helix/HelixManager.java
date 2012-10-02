@@ -135,9 +135,10 @@ public interface HelixManager
   void addExternalViewChangeListener(ExternalViewChangeListener listener)
       throws Exception;
 
-  // distributed cluster controller
   /**
    * Add listener for controller change
+   * 
+   * Used in distributed cluster controller
    */
   void addControllerListener(ControllerChangeListener listener);
 
@@ -157,9 +158,6 @@ public interface HelixManager
    */
   boolean removeListener(Object listener);
 
-  // Generic interface to add a listener
-  // void addListener(PropertyType type, Object listener, String... keys);
-
   /**
    * Return the client to perform read/write operations on the cluster data
    * store {@link getHelixDataAccessor() }
@@ -178,7 +176,7 @@ public interface HelixManager
   HelixDataAccessor getHelixDataAccessor();
 
   /**
-   * return the config accessor
+   * Get config accessor
    * 
    * @return
    */
@@ -229,6 +227,11 @@ public interface HelixManager
   @Deprecated
   PropertyStore<ZNRecord> getPropertyStore();
   
+  /**
+   * Get property store
+   * 
+   * @return
+   */
   ZkHelixPropertyStore<ZNRecord> getHelixPropertyStore();
 
   /**
@@ -245,12 +248,14 @@ public interface HelixManager
   ParticipantHealthReportCollector getHealthReportCollector();
 
   /**
+   * Get cluster manager instance type
    * 
    * @return
    */
   InstanceType getInstanceType();
 
   /**
+   * Get cluster manager version
    * 
    * @return the cluster manager version
    */
@@ -263,6 +268,7 @@ public interface HelixManager
   StateMachineEngine getStateMachineEngine();
 
   /**
+   * Check if the cluster manager is the leader
    * 
    * @return true if this is a controller and a leader of the cluster
    */
@@ -270,15 +276,19 @@ public interface HelixManager
 
   /**
    * start timer tasks when becomes leader
+   * 
    */
   void startTimerTasks();
 
   /**
    * stop timer tasks when becomes standby
+   * 
    */
   void stopTimerTasks();
   
   /**
+   * Add a callback that is invoked before cluster manager connects
+   * 
    * @see PreConnectCallback#onPreConnect()
    * @param callback
    */

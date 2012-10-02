@@ -31,7 +31,7 @@ import org.I0Itec.zkclient.DataUpdater;
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.apache.log4j.Logger;
 
-import com.linkedin.helix.BaseDataAccessor.Option;
+import com.linkedin.helix.AccessOption;
 import com.linkedin.helix.ConfigAccessor;
 import com.linkedin.helix.ConfigScope;
 import com.linkedin.helix.ConfigScope.ConfigScopeProperty;
@@ -194,7 +194,7 @@ public class ZKHelixAdmin implements HelixAdmin
         config.setInstanceEnabled(enabled);
         return config.getRecord();
       }
-    }, Option.PERSISTENT);
+    }, AccessOption.PERSISTENT);
   }
 
   @Override
@@ -291,7 +291,7 @@ public class ZKHelixAdmin implements HelixAdmin
         return currentData;
       }
     },
-                        Option.PERSISTENT);
+    AccessOption.PERSISTENT);
   }
 
   @Override
@@ -826,7 +826,7 @@ public class ZKHelixAdmin implements HelixAdmin
 
         return statsRec;
       }
-    }, Option.PERSISTENT);
+    }, AccessOption.PERSISTENT);
   }
 
   @Override
@@ -872,7 +872,7 @@ public class ZKHelixAdmin implements HelixAdmin
 
         return alertsRec;
       }
-    }, Option.PERSISTENT);
+    }, AccessOption.PERSISTENT);
   }
 
   @Override
@@ -936,7 +936,7 @@ public class ZKHelixAdmin implements HelixAdmin
 
         return statsRec;
       }
-    }, Option.PERSISTENT);
+    }, AccessOption.PERSISTENT);
   }
 
   @Override
@@ -973,7 +973,7 @@ public class ZKHelixAdmin implements HelixAdmin
 
         return alertsRec;
       }
-    }, Option.PERSISTENT);
+    }, AccessOption.PERSISTENT);
   }
 
   @Override

@@ -117,7 +117,7 @@ public class ZkAsyncCallbacks
   }
 
   /**
-   * Default callback for async api
+   * Default callback for zookeeper async api
    */
   static abstract class DefaultCallback
   {

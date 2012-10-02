@@ -206,6 +206,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
   }
 
   /**
+   * sync update
    * 
    * @return: updatedData on success, or null on fail
    */
@@ -281,6 +282,10 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
     return updatedData;
   }
 
+  /**
+   * sync get
+   * 
+   */
   @Override
   public T get(String path, Stat stat, int options)
   {
@@ -301,6 +306,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
 
   /**
    * async get
+   * 
    */
   @Override
   public List<T> get(List<String> paths, List<Stat> stats, int options)
@@ -387,6 +393,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
 
   /**
    * asyn getChildren
+   * 
    */
   @Override
   public List<T> getChildren(String parentPath, List<Stat> stats, int options)
@@ -458,6 +465,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
 
   /**
    * sync exists
+   * 
    */
   @Override
   public boolean exists(String path, int options)
@@ -467,6 +475,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
 
   /**
    * sync getStat
+   * 
    */
   @Override
   public Stat getStat(String path, int options)
@@ -476,6 +485,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
 
   /**
    * sync remove
+   * 
    */
   @Override
   public boolean remove(String path, int options)
@@ -599,9 +609,11 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
     return cbList;
   }
 
-  // TODO: rename to create
+
   /**
    * async create
+   * 
+   * TODO: rename to create
    */
   @Override
   public boolean[] createChildren(List<String> paths, List<T> records, int options)
@@ -644,9 +656,11 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
     }
   }
 
-  // TODO: rename set
   /**
    * async set
+   * 
+   * TODO: rename to set
+   * 
    */
   @Override
   public boolean[] setChildren(List<String> paths, List<T> records, int options)
@@ -656,6 +670,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
 
   /**
    * async set, give up on error other than NoNode
+   * 
    */
   boolean[] set(List<String> paths,
                 List<T> records,
@@ -998,6 +1013,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
 
   /**
    * async exists
+   * 
    */
   @Override
   public boolean[] exists(List<String> paths, int options)
@@ -1015,6 +1031,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
 
   /**
    * async getStat
+   * 
    */
   @Override
   public Stat[] getStats(List<String> paths, int options)
@@ -1058,6 +1075,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
 
   /**
    * async remove
+   * 
    */
   @Override
   public boolean[] remove(List<String> paths, int options)
@@ -1099,31 +1117,39 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
     }
   }
 
+  /**
+   * Subscribe to zookeeper data changes
+   */
   @Override
   public void subscribeDataChanges(String path, IZkDataListener listener)
   {
-    // TODO Auto-generated method stub
     _zkClient.subscribeDataChanges(path, listener);
   }
 
+  /**
+   * Unsubscribe to zookeeper data changes
+   */
   @Override
   public void unsubscribeDataChanges(String path, IZkDataListener dataListener)
   {
-    // TODO Auto-generated method stub
     _zkClient.unsubscribeDataChanges(path, dataListener);
   }
 
+  /**
+   * Subscrie to zookeeper data changes
+   */
   @Override
   public List<String> subscribeChildChanges(String path, IZkChildListener listener)
   {
-    // TODO Auto-generated method stub
     return _zkClient.subscribeChildChanges(path, listener);
   }
 
+  /**
+   * Unsubscrie to zookeeper data changes
+   */
   @Override
   public void unsubscribeChildChanges(String path, IZkChildListener childListener)
   {
-    // TODO Auto-generated method stub
     _zkClient.unsubscribeChildChanges(path, childListener);
   }
 
@@ -1206,10 +1232,12 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
     zkclient.close();
   }
 
+  /**
+   * Reset
+   */
   @Override
   public void reset()
   {
-    // TODO Auto-generated method stub
-    
+    // Nothing to do
   }
 }

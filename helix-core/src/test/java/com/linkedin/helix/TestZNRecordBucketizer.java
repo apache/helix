@@ -1,15 +1,10 @@
 package com.linkedin.helix;
 
-import java.util.Arrays;
-
-import junit.framework.Assert;
-
+import org.testng.Assert;
 import org.testng.annotations.Test;
-
 
 public class TestZNRecordBucketizer
 {
-
   @Test
   public void testZNRecordBucketizer()
   {

@@ -53,25 +53,6 @@ public abstract class Cache<T>
     }
   }
 
-//  public void update(String path, T data, Stat stat)
-//  {
-//    String parentPath = new File(path).getParent();
-//    String childName = new File(path).getName();
-//
-//    addToParentChildSet(parentPath, childName);
-//    ZNode znode = _cache.get(path);
-//    if (znode != null)
-//    {
-//      znode.setData(data);
-//      znode.setStat(stat);
-////      System.out.println("\t\t--setData. path: " + path + ", data: " + data);
-//    }
-//    else
-//    {
-//      _cache.put(path, new ZNode(path, data, stat));
-//    }
-//  }
-
   public boolean exists(String path)
   {
     return _cache.containsKey(path);

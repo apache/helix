@@ -45,7 +45,7 @@ import com.linkedin.helix.util.StatusUpdateUtil;
  * TODO: The current implementation is temporary for backup handler testing only and it does not 
  * do any throttling. 
  * 
- * **/
+ */
 public class DefaultSchedulerMessageHandlerFactory implements
     MessageHandlerFactory
 {

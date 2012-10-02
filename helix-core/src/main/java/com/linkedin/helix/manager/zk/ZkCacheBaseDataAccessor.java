@@ -166,7 +166,7 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T>
     return serverPaths;
   }
 
-  /*
+  /**
    * find the first path in paths that is a descendant
    */
   private String firstCachePath(List<String> paths)

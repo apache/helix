@@ -58,23 +58,19 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
 
 {
 
-  private static Logger           logger = Logger.getLogger(CallbackHandler.class);
+  private static Logger logger = Logger.getLogger(CallbackHandler.class);
 
-  private final String            _path;
-  private final Object            _listener;
-  private final EventType[]       _eventTypes;
+  private final String _path;
+  private final Object _listener;
+  private final EventType[] _eventTypes;
   private final HelixDataAccessor _accessor;
-  private final ChangeType        _changeType;
-  private final ZkClient          _zkClient;
-  private final AtomicLong        lastNotificationTimeStamp;
-  private final HelixManager      _manager;
+  private final ChangeType _changeType;
+  private final ZkClient _zkClient;
+  private final AtomicLong lastNotificationTimeStamp;
+  private final HelixManager _manager;
 
-  public CallbackHandler(HelixManager manager,
-                         ZkClient client,
-                         String path,
-                         Object listener,
-                         EventType[] eventTypes,
-                         ChangeType changeType)
+  public CallbackHandler(HelixManager manager, ZkClient client, String path,
+                         Object listener, EventType[] eventTypes, ChangeType changeType)
   {
     this._manager = manager;
     this._accessor = manager.getHelixDataAccessor();
@@ -191,7 +187,6 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
         List<ExternalView> externalViewList =
             _accessor.getChildValues(keyBuilder.externalViews());
 
-
         externalViewListener.onExternalViewChange(externalViewList, changeContext);
       }
       else if (_changeType == ChangeType.CONTROLLER)
@@ -206,11 +201,11 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
         HealthStateChangeListener healthStateChangeListener =
             (HealthStateChangeListener) _listener;
         subscribeForChanges(changeContext, _path, true, true); // TODO: figure out
-                                                        // settings here
+        // settings here
         String instanceName = PropertyPathConfig.getInstanceNameFromPath(_path);
 
         List<HealthStat> healthReportList =
-        _accessor.getChildValues(keyBuilder.healthReports(instanceName));
+            _accessor.getChildValues(keyBuilder.healthReports(instanceName));
 
         healthStateChangeListener.onHealthChange(instanceName,
                                                  healthReportList,
@@ -220,7 +215,8 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
       if (logger.isInfoEnabled())
       {
         logger.info(Thread.currentThread().getId() + " END:INVOKE " + _path
-            + " listener:" + _listener.getClass().getCanonicalName() + " Took: "+ (end-start));
+            + " listener:" + _listener.getClass().getCanonicalName() + " Took: "
+            + (end - start));
       }
     }
   }
@@ -287,8 +283,11 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
     return _eventTypes;
   }
 
-  // this will invoke the listener so that it sets up the initial values from
-  // the zookeeper if any exists
+  /**
+   * Invoke the listener so that it sets up the initial values from the zookeeper if any
+   * exists
+   * 
+   */
   public void init()
   {
     updateNotificationTime(System.nanoTime());
@@ -362,6 +361,10 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
     }
   }
 
+  /**
+   * Invoke the listener for the last time so that the listener could clean up resources
+   * 
+   */
   public void reset()
   {
     try

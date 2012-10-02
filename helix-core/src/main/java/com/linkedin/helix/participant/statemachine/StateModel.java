@@ -48,12 +48,13 @@ public abstract class StateModel
 	}
 
 	/**
-	 *
+	 * Called when error occurs in state transition
+	 * 
+	 * TODO:enforce subclass to write this
 	 * @param message
 	 * @param context
 	 * @param error
 	 */
-	// todo:enforce subclass to write this
 	public void rollbackOnError(Message message, NotificationContext context,
 	    StateTransitionError error)
 	{
@@ -64,7 +65,7 @@ public abstract class StateModel
 	}
 
 	/**
-	 * This method
+	 * Called when the state model is reset
 	 */
 	public void reset()
 	{

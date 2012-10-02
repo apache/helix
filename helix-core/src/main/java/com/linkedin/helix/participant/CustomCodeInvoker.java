@@ -32,7 +32,9 @@ import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.InstanceConfig;
 import com.linkedin.helix.model.LiveInstance;
 
-public class CustomCodeInvoker implements LiveInstanceChangeListener, ConfigChangeListener,
+public class CustomCodeInvoker implements
+    LiveInstanceChangeListener,
+    ConfigChangeListener,
     ExternalViewChangeListener
 {
   private static Logger LOG = Logger.getLogger(CustomCodeInvoker.class);
@@ -47,7 +49,7 @@ public class CustomCodeInvoker implements LiveInstanceChangeListener, ConfigChan
 
   private void callParticipantCode(NotificationContext context)
   {
-//    System.out.println("callback invoked. type:" + context.getType().toString());
+    // System.out.println("callback invoked. type:" + context.getType().toString());
     if (context.getType() == Type.INIT || context.getType() == Type.CALLBACK)
     {
       // since ZkClient.unsubscribe() does not immediately remove listeners
@@ -56,22 +58,25 @@ public class CustomCodeInvoker implements LiveInstanceChangeListener, ConfigChan
       if (context.getType() == Type.CALLBACK)
       {
         HelixManager manager = context.getManager();
-//        DataAccessor accessor = manager.getDataAccessor();
+        // DataAccessor accessor = manager.getDataAccessor();
         HelixDataAccessor accessor = manager.getHelixDataAccessor();
         Builder keyBuilder = accessor.keyBuilder();
-        
+
         String instance = manager.getInstanceName();
         String sessionId = manager.getSessionId();
-        
+
         // get resource name from partition key: "PARTICIPANT_LEADER_XXX_0"
         String resourceName = _partitionKey.substring(0, _partitionKey.lastIndexOf('_'));
-        
-        CurrentState curState = accessor.getProperty(keyBuilder.currentState(instance, sessionId, resourceName));
+
+        CurrentState curState =
+            accessor.getProperty(keyBuilder.currentState(instance,
+                                                         sessionId,
+                                                         resourceName));
         if (curState == null)
         {
           return;
         }
-          
+
         String state = curState.getState(_partitionKey);
         if (state == null || !state.equalsIgnoreCase("LEADER"))
         {
@@ -82,24 +87,25 @@ public class CustomCodeInvoker implements LiveInstanceChangeListener, ConfigChan
       try
       {
         _callback.onCallback(context);
-      } 
+      }
       catch (Exception e)
       {
-        LOG.error("Error invoking callback:"+ _callback,e);
+        LOG.error("Error invoking callback:" + _callback, e);
       }
     }
   }
 
   @Override
   public void onLiveInstanceChange(List<LiveInstance> liveInstances,
-      NotificationContext changeContext)
+                                   NotificationContext changeContext)
   {
     LOG.info("onLiveInstanceChange() invoked");
     callParticipantCode(changeContext);
   }
 
   @Override
-  public void onConfigChange(List<InstanceConfig> configs, NotificationContext changeContext)
+  public void onConfigChange(List<InstanceConfig> configs,
+                             NotificationContext changeContext)
   {
     LOG.info("onConfigChange() invoked");
     callParticipantCode(changeContext);
@@ -107,7 +113,7 @@ public class CustomCodeInvoker implements LiveInstanceChangeListener, ConfigChan
 
   @Override
   public void onExternalViewChange(List<ExternalView> externalViewList,
-      NotificationContext changeContext)
+                                   NotificationContext changeContext)
   {
     LOG.info("onExternalViewChange() invoked");
     callParticipantCode(changeContext);

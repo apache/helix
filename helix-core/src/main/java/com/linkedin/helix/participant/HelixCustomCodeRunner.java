@@ -171,6 +171,9 @@ public class HelixCustomCodeRunner
 
   }
 
+  /**
+   * Stop customer code runner
+   */
   public void stop()
   {
     LOG.info("Removing stateModelFactory for " + _resourceName);

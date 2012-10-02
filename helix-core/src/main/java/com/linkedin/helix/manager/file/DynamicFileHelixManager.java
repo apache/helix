@@ -63,6 +63,7 @@ import com.linkedin.helix.store.zk.ZkHelixPropertyStore;
 import com.linkedin.helix.tools.PropertiesReader;
 import com.linkedin.helix.util.HelixUtil;
 
+@Deprecated
 public class DynamicFileHelixManager implements HelixManager
 {
   private static final Logger LOG = Logger.getLogger(StaticFileHelixManager.class.getName());

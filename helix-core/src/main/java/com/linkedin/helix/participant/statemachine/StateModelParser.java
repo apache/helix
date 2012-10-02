@@ -128,6 +128,12 @@ public class StateModelParser
 		return methodToInvoke;
 	}
 
+	/**
+	 * Get the intial state for the state model
+	 * 
+	 * @param clazz
+	 * @return
+	 */
 	public String getInitialState(Class<? extends StateModel> clazz)
 	{
 		StateModelInfo stateModelInfo = clazz.getAnnotation(StateModelInfo.class);

@@ -24,32 +24,50 @@ public abstract class StateModelFactory<T extends StateModel>
   private ConcurrentMap<String, T> _stateModelMap = new ConcurrentHashMap<String, T>();
 
   /**
-   * this method will be invoked only once per stateUnit key per session
+   * This method will be invoked only once per partitionName per session
    * 
-   * @param stateUnitKey
+   * @param partitionName
    * @return
    */
-  public abstract T createNewStateModel(String stateUnitKey);
+  public abstract T createNewStateModel(String partitionName);
 
   /**
-   * @param stateUnitKey
+   * Add a state model for a partition
+   * 
+   * @param partitionName
    * @return
    */
-  public void addStateModel(String stateUnitKey, T stateModel)
+  public void addStateModel(String partitionName, T stateModel)
   {
-    _stateModelMap.put(stateUnitKey, stateModel);
+    _stateModelMap.put(partitionName, stateModel);
   }
   
-  public void createAndAddStateModel(String stateUnitKey)
+  /**
+   * Create a state model for a partition
+   * 
+   * @param partitionName
+   */
+  public void createAndAddStateModel(String partitionName)
   {
-    _stateModelMap.put(stateUnitKey, createNewStateModel(stateUnitKey));
+    _stateModelMap.put(partitionName, createNewStateModel(partitionName));
   }
 
-  public T getStateModel(String stateUnitKey)
+  /**
+   * Get the state model for a partition
+   * 
+   * @param partitionName
+   * @return
+   */
+  public T getStateModel(String partitionName)
   {
-    return _stateModelMap.get(stateUnitKey);
+    return _stateModelMap.get(partitionName);
   }
 
+  /**
+   * Get the state model map
+   * 
+   * @return
+   */
   public Map<String, T> getStateModelMap()
   {
     return _stateModelMap;

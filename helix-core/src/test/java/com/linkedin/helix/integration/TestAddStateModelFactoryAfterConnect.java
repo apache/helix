@@ -48,7 +48,7 @@ public class TestAddStateModelFactoryAfterConnect extends ZkIntegrationTestBase
     ClusterController controller =
         new ClusterController(clusterName, "controller_0", ZK_ADDR);
     controller.syncStart();
-    
+
     // start participants
     for (int i = 0; i < n; i++)
     {
@@ -78,15 +78,21 @@ public class TestAddStateModelFactoryAfterConnect extends ZkIntegrationTestBase
 
     // external view for TestDB1 should be empty
     ExternalView extView = null;
-    do
+    long start = System.currentTimeMillis();
+    while (extView == null)
     {
       Thread.sleep(50);
       extView = accessor.getProperty(keyBuilder.externalView("TestDB1"));
+
+      long now = System.currentTimeMillis();
+      if (now - start > 5000)
+      {
+        Assert.fail("Timeout waiting for an empty external view of TestDB1");
+      }
     }
-    while (extView == null);
     Assert.assertEquals(extView.getRecord().getMapFields().size(),
                         0,
-                        "External view for TestDB1 should be empty");
+                        "External view for TestDB1 should be empty since TestDB1 is added without a state model factory");
 
     // register "TestDB1_Factory" state model factory
     // Logger.getRootLogger().setLevel(Level.INFO);

@@ -40,16 +40,15 @@ import com.linkedin.helix.participant.statemachine.StateModelParser;
 
 public class HelixStateMachineEngine implements StateMachineEngine
 {
-  private static Logger                                                           logger =
-                                                                                             Logger.getLogger(HelixStateMachineEngine.class);
+  private static Logger logger = Logger.getLogger(HelixStateMachineEngine.class);
 
   // StateModelName->FactoryName->StateModelFactory
   private final Map<String, Map<String, StateModelFactory<? extends StateModel>>> _stateModelFactoryMap;
-  StateModelParser                                                                _stateModelParser;
+  StateModelParser _stateModelParser;
 
-  private final HelixManager                                                      _manager;
+  private final HelixManager _manager;
 
-  private final ConcurrentHashMap<String, StateModelDefinition>                   _stateModelDefs;
+  private final ConcurrentHashMap<String, StateModelDefinition> _stateModelDefs;
 
   public StateModelFactory<? extends StateModel> getStateModelFactory(String stateModelName)
   {
@@ -144,7 +143,8 @@ public class HelixStateMachineEngine implements StateMachineEngine
           accessor.setProperty(keyBuilder.message(nopMsg.getTgtName(), nopMsg.getId()),
                                nopMsg);
         }
-        logger.info("Send NO_OP message to " + nopMsg.getTgtName() + ", msgId: " + nopMsg.getId());
+        logger.info("Send NO_OP message to " + nopMsg.getTgtName() + ", msgId: "
+            + nopMsg.getId());
       }
       catch (Exception e)
       {
@@ -231,7 +231,7 @@ public class HelixStateMachineEngine implements StateMachineEngine
       }
       _stateModelDefs.put(stateModelName, stateModelDef);
     }
-    
+
     // create currentStateDelta for this partition
     String initState = _stateModelDefs.get(message.getStateModelDef()).getInitialState();
     StateModel stateModel = stateModelFactory.getStateModel(partitionKey);

@@ -64,6 +64,7 @@ import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.model.Message;
 import com.linkedin.helix.model.PauseSignal;
 import com.linkedin.helix.monitoring.mbeans.ClusterStatusMonitor;
+import com.linkedin.helix.monitoring.mbeans.HelixMessageQueueMonitor;
 
 /**
  * Cluster Controllers main goal is to keep the cluster state as close as possible to
@@ -109,6 +110,7 @@ public class GenericHelixController implements
   private final Set<String>      _instanceSubscriptionNames;
 
   ClusterStatusMonitor           _clusterStatusMonitor;
+  
 
   /**
    * The _paused flag is checked by function handleEvent(), while if the flag is set
@@ -123,14 +125,17 @@ public class GenericHelixController implements
    */
   Timer _rebalanceTimer = null;
   int _timerPeriod = Integer.MAX_VALUE;
+
+  /**
+   * message queue size monitor mbean
+   */
+  private HelixMessageQueueMonitor _msgQueueMonitor;
   
   /**
    * Default constructor that creates a default pipeline registry. This is sufficient in
    * most cases, but if there is a some thing specific needed use another constructor
    * where in you can pass a pipeline registry
    */
-  
-  
   public GenericHelixController()
   {
     this(createDefaultRegistry());
@@ -310,6 +315,13 @@ public class GenericHelixController implements
           _clusterStatusMonitor.reset();
           _clusterStatusMonitor = null;
         }
+        
+        if (_msgQueueMonitor != null)
+        {
+          _msgQueueMonitor.reset();
+          _msgQueueMonitor = null;
+        }
+        
         stopRebalancingTimer();
         logger.info("Get FINALIZE notification, skip the pipeline. Event :" + event.getName());
         return;
@@ -320,6 +332,12 @@ public class GenericHelixController implements
         {
           _clusterStatusMonitor = new ClusterStatusMonitor(manager.getClusterName());
         }
+        
+        if (_msgQueueMonitor == null)
+        {
+          _msgQueueMonitor = new HelixMessageQueueMonitor(manager.getClusterName());
+        }
+        
         event.addAttribute("clusterStatusMonitor", _clusterStatusMonitor);
       }
     }
@@ -354,13 +372,13 @@ public class GenericHelixController implements
   public void onExternalViewChange(List<ExternalView> externalViewList,
                                    NotificationContext changeContext)
   {
-    logger.info("START: GenericClusterController.onExternalViewChange()");
-    ClusterEvent event = new ClusterEvent("externalViewChange");
-    event.addAttribute("helixmanager", changeContext.getManager());
-    event.addAttribute("changeContext", changeContext);
-    event.addAttribute("eventData", externalViewList);
-    // handleEvent(event);
-    logger.info("END: GenericClusterController.onExternalViewChange()");
+//    logger.info("START: GenericClusterController.onExternalViewChange()");
+//    ClusterEvent event = new ClusterEvent("externalViewChange");
+//    event.addAttribute("helixmanager", changeContext.getManager());
+//    event.addAttribute("changeContext", changeContext);
+//    event.addAttribute("eventData", externalViewList);
+//    // handleEvent(event);
+//    logger.info("END: GenericClusterController.onExternalViewChange()");
   }
 
   @Override
@@ -387,15 +405,7 @@ public class GenericHelixController implements
      * When there are more participant ( > 20, can be in hundreds), This callback can be
      * called quite frequently as each participant reports health stat every minute. Thus
      * we change the health check pipeline to run in a timer callback.
-     * */
-    // logger.info("START: GenericClusterController.onHealthChange()");
-    // ClusterEvent event = new ClusterEvent("healthChange");
-    // event.addAttribute("helixmanager", changeContext.getManager());
-    // event.addAttribute("instanceName", instanceName);
-    // event.addAttribute("changeContext", changeContext);
-    // event.addAttribute("eventData", reports);
-    // handleEvent(event);
-    // logger.info("END: GenericClusterController.onHealthChange()");
+     */
   }
 
   @Override
@@ -404,6 +414,12 @@ public class GenericHelixController implements
                         NotificationContext changeContext)
   {
     logger.info("START: GenericClusterController.onMessage()");
+    
+    if (_msgQueueMonitor != null)
+    {
+      _msgQueueMonitor.addMessageQueueSize(messages.size());
+    }
+    
     ClusterEvent event = new ClusterEvent("messageChange");
     event.addAttribute("helixmanager", changeContext.getManager());
     event.addAttribute("instanceName", instanceName);
@@ -492,7 +508,6 @@ public class GenericHelixController implements
   public void onControllerChange(NotificationContext changeContext)
   {
     logger.info("START: GenericClusterController.onControllerChange()");
-//    DataAccessor dataAccessor = changeContext.getManager().getDataAccessor();
     HelixDataAccessor accessor = changeContext.getManager().getHelixDataAccessor();
 
     // double check if this controller is the leader

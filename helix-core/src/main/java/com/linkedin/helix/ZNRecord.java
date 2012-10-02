@@ -44,18 +44,14 @@ public class ZNRecord
   @JsonIgnore(true)
   public static final int SIZE_LIMIT = 1000 * 1024;  // leave a margin out of 1M
 
-  /**
-   * We don't want the _deltaList to be serialized and deserialized
-   */
+  // We don't want the _deltaList to be serialized and deserialized
   private List<ZNRecordDelta> _deltaList = new ArrayList<ZNRecordDelta>();
 
   private Map<String, String> simpleFields;
   private Map<String, Map<String, String>> mapFields;
   private Map<String, List<String>> listFields;
 
-  /**
-   * the version field of zookeeper Stat
-   */
+  // the version field of zookeeper Stat
   private int _version;
 
   private long _creationTime;

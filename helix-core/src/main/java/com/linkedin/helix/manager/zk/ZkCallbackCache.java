@@ -7,6 +7,9 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 
+import org.I0Itec.zkclient.IZkChildListener;
+import org.I0Itec.zkclient.IZkDataListener;
+import org.I0Itec.zkclient.IZkStateListener;
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.Watcher.Event.EventType;
@@ -15,26 +18,25 @@ import org.apache.zookeeper.data.Stat;
 
 import com.linkedin.helix.AccessOption;
 import com.linkedin.helix.BaseDataAccessor;
-import com.linkedin.helix.IZkListener;
 import com.linkedin.helix.manager.zk.ZkCacheEventThread.ZkCacheEvent;
 import com.linkedin.helix.store.HelixPropertyListener;
 import com.linkedin.helix.store.zk.ZNode;
 
-public class ZkCallbackCache<T> extends Cache<T> implements IZkListener
+public class ZkCallbackCache<T> extends Cache<T> implements
+    IZkChildListener,
+    IZkDataListener,
+    IZkStateListener
 {
-  private static Logger                                 LOG =
-                                                                Logger.getLogger(ZkCallbackCache.class);
+  private static Logger LOG = Logger.getLogger(ZkCallbackCache.class);
 
-  final BaseDataAccessor<T>                             _accessor;
-  final String                                          _chrootPath;
+  final BaseDataAccessor<T> _accessor;
+  final String _chrootPath;
 
-  private final ZkCacheEventThread                      _eventThread;
+  private final ZkCacheEventThread _eventThread;
   private final Map<String, Set<HelixPropertyListener>> _listener;
 
-  public ZkCallbackCache(BaseDataAccessor<T> accessor,
-                         String chrootPath,
-                         List<String> paths,
-                         ZkCacheEventThread eventThread)
+  public ZkCallbackCache(BaseDataAccessor<T> accessor, String chrootPath,
+                         List<String> paths, ZkCacheEventThread eventThread)
   {
     super();
     _accessor = accessor;
@@ -53,16 +55,16 @@ public class ZkCallbackCache<T> extends Cache<T> implements IZkListener
       }
     }
   }
-  
+
   @Override
   public void update(String path, T data, Stat stat)
   {
     String parentPath = new File(path).getParent();
     String childName = new File(path).getName();
-  
+
     addToParentChildSet(parentPath, childName);
     ZNode znode = _cache.get(path);
-    if ( znode == null)
+    if (znode == null)
     {
       _cache.put(path, new ZNode(path, data, stat));
       fireEvents(path, EventType.NodeCreated);
@@ -73,7 +75,7 @@ public class ZkCallbackCache<T> extends Cache<T> implements IZkListener
 
       znode.setData(data);
       znode.setStat(stat);
-  //    System.out.println("\t\t--setData. path: " + path + ", data: " + data);
+      // System.out.println("\t\t--setData. path: " + path + ", data: " + data);
 
       if (oldStat.getCzxid() != stat.getCzxid())
       {
@@ -82,7 +84,8 @@ public class ZkCallbackCache<T> extends Cache<T> implements IZkListener
       }
       else if (oldStat.getVersion() != stat.getVersion())
       {
-//        System.out.println("\t--fireNodeChanged: " + path + ", oldVersion: " + oldStat.getVersion() + ", newVersion: " + stat.getVersion());
+        // System.out.println("\t--fireNodeChanged: " + path + ", oldVersion: " +
+        // oldStat.getVersion() + ", newVersion: " + stat.getVersion());
         fireEvents(path, EventType.NodeDataChanged);
       }
     }
@@ -164,7 +167,8 @@ public class ZkCallbackCache<T> extends Cache<T> implements IZkListener
 
       // TODO: optimize it by get stat from callback
       Stat stat = new Stat();
-      Object readData = _accessor.get(dataPath, stat, AccessOption.THROW_EXCEPTION_IFNOTEXIST);
+      Object readData =
+          _accessor.get(dataPath, stat, AccessOption.THROW_EXCEPTION_IFNOTEXIST);
 
       ZNode znode = _cache.get(dataPath);
       if (znode != null)
@@ -172,8 +176,10 @@ public class ZkCallbackCache<T> extends Cache<T> implements IZkListener
         Stat oldStat = znode.getStat();
 
         // System.out.println("handleDataChange: " + dataPath + ", data: " + data);
-//        System.out.println("handleDataChange: " + dataPath + ", oldCzxid: " + oldStat.getCzxid() + ", newCzxid: " + stat.getCzxid()
-//                           + ", oldVersion: " + oldStat.getVersion() + ", newVersion: " + stat.getVersion());
+        // System.out.println("handleDataChange: " + dataPath + ", oldCzxid: " +
+        // oldStat.getCzxid() + ", newCzxid: " + stat.getCzxid()
+        // + ", oldVersion: " + oldStat.getVersion() + ", newVersion: " +
+        // stat.getVersion());
         znode.setData(readData);
         znode.setStat(stat);
 
@@ -187,7 +193,8 @@ public class ZkCallbackCache<T> extends Cache<T> implements IZkListener
         }
         else if (oldStat.getVersion() != stat.getVersion())
         {
-//          System.out.println("\t--fireNodeChanged: " + dataPath + ", oldVersion: " + oldStat.getVersion() + ", newVersion: " + stat.getVersion());
+          // System.out.println("\t--fireNodeChanged: " + dataPath + ", oldVersion: " +
+          // oldStat.getVersion() + ", newVersion: " + stat.getVersion());
           fireEvents(dataPath, EventType.NodeDataChanged);
         }
       }
@@ -207,7 +214,7 @@ public class ZkCallbackCache<T> extends Cache<T> implements IZkListener
   @Override
   public void handleDataDeleted(String dataPath) throws Exception
   {
-//    System.out.println("handleDataDeleted: " + dataPath);
+    // System.out.println("handleDataDeleted: " + dataPath);
 
     try
     {

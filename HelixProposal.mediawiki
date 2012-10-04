@@ -1,4 +1,4 @@
-bstract ==
+== Abstract ==
 Helix is a cluster management system for managing partitioned and replicated resources in distributed data systems.
 
 == Proposal ==

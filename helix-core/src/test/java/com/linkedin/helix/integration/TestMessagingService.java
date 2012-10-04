@@ -22,6 +22,7 @@ import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
 import com.linkedin.helix.Criteria;
+import com.linkedin.helix.Criteria.DataSource;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.messaging.AsyncCallback;
@@ -115,6 +116,19 @@ public class TestMessagingService extends ZkStandAloneCMTestBaseWithPropertyServ
     cr.setSessionSpecific(false);
 
     int nMsgs = _startCMResultMap.get(hostSrc)._manager.getMessagingService().send(cr, msg);
+    AssertJUnit.assertTrue(nMsgs == 1);
+    Thread.sleep(2500);
+    // Thread.currentThread().join();
+    AssertJUnit.assertTrue(TestMessagingHandlerFactory._processedMsgIds
+        .contains(para));
+    
+    cr = new Criteria();
+    cr.setInstanceName(hostDest);
+    cr.setRecipientInstanceType(InstanceType.PARTICIPANT);
+    cr.setSessionSpecific(false);
+    cr.setDataSource(DataSource.IDEALSTATES);
+
+    nMsgs = _startCMResultMap.get(hostSrc)._manager.getMessagingService().send(cr, msg);
     AssertJUnit.assertTrue(nMsgs == 1);
     Thread.sleep(2500);
     // Thread.currentThread().join();
@@ -228,6 +242,29 @@ public class TestMessagingService extends ZkStandAloneCMTestBaseWithPropertyServ
     Thread.sleep(3000);
     // Thread.currentThread().join();
     AssertJUnit.assertTrue(callback2.isTimedOut());
+    
+    cr = new Criteria();
+    cr.setInstanceName(hostDest);
+    cr.setRecipientInstanceType(InstanceType.PARTICIPANT);
+    cr.setSessionSpecific(false);
+    cr.setDataSource(DataSource.IDEALSTATES);
+
+    callback = new TestAsyncCallback(60000);
+
+    _startCMResultMap.get(hostSrc)._manager.getMessagingService().send(cr, msg, callback, 60000);
+
+    Thread.sleep(2000);
+    // Thread.currentThread().join();
+    AssertJUnit.assertTrue(TestAsyncCallback._replyedMessageContents
+        .contains("TestReplyMessage"));
+    AssertJUnit.assertTrue(callback.getMessageReplied().size() == 1);
+
+    callback2 = new TestAsyncCallback(500);
+    _startCMResultMap.get(hostSrc)._manager.getMessagingService().send(cr, msg, callback2, 500);
+
+    Thread.sleep(3000);
+    // Thread.currentThread().join();
+    AssertJUnit.assertTrue(callback2.isTimedOut());
 
   }
 
@@ -332,6 +369,12 @@ public class TestMessagingService extends ZkStandAloneCMTestBaseWithPropertyServ
     int messageSent5 = _startCMResultMap.get(hostSrc)._manager.getMessagingService()
         .sendAndWait(cr, msg, callback5, 2000);
     AssertJUnit.assertTrue(callback5.getMessageReplied().size() == _replica - 1);
+    
+    cr.setDataSource(DataSource.IDEALSTATES);
+    AsyncCallback callback6 = new MockAsyncCallback();
+    int messageSent6 = _startCMResultMap.get(hostSrc)._manager.getMessagingService()
+        .sendAndWait(cr, msg, callback6, 2000);
+    AssertJUnit.assertTrue(callback6.getMessageReplied().size() == _replica - 1);
   }
 
   @Test()

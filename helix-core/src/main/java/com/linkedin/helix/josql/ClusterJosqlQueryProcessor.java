@@ -249,7 +249,13 @@ public class ClusterJosqlQueryProcessor
     } else if (fromTargetString.equalsIgnoreCase(PropertyType.EXTERNALVIEW.toString()))
     {
       fromTarget = josqlQuery.getVariable(PropertyType.EXTERNALVIEW.toString());
-    } else if (fromTargetString.equalsIgnoreCase(PARTITIONS + FLATTABLE))
+    } 
+    else if (fromTargetString.equalsIgnoreCase(PropertyType.IDEALSTATES.toString()))
+    {
+      fromTarget = josqlQuery.getVariable(PropertyType.IDEALSTATES.toString());
+    }
+    
+    else if (fromTargetString.equalsIgnoreCase(PARTITIONS + FLATTABLE))
     {
       fromTarget = josqlQuery.getVariable(PARTITIONS.toString() + FLATTABLE);
     } else if (fromTargetString.equalsIgnoreCase(PropertyType.LIVEINSTANCES.toString() + FLATTABLE))
@@ -268,12 +274,17 @@ public class ClusterJosqlQueryProcessor
     } else if (fromTargetString.equalsIgnoreCase(PropertyType.EXTERNALVIEW.toString() + FLATTABLE))
     {
       fromTarget = josqlQuery.getVariable(PropertyType.EXTERNALVIEW.toString() + FLATTABLE);
-    } else
+    }
+    else if (fromTargetString.equalsIgnoreCase(PropertyType.IDEALSTATES.toString() + FLATTABLE))
+    {
+      fromTarget = josqlQuery.getVariable(PropertyType.IDEALSTATES.toString() + FLATTABLE);
+    }
+    else
     {
       throw new HelixException(
           "Unknown query target "
               + fromTargetString
-              + ". Target should be PARTITIONS, LIVEINSTANCES, CONFIGS, STATEMODELDEFS and corresponding flat Tables");
+              + ". Target should be PARTITIONS, LIVEINSTANCES, CONFIGS, STATEMODELDEFS, IDEALSTATES, EXTERNALVIEW, and corresponding flat Tables");
     }
 
     fromTargetList = fromTargetString.endsWith(FLATTABLE) ? ((List<ZNRecordRow>) fromTarget)

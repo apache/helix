@@ -52,7 +52,7 @@ While we respect the reputation of the Apache brand and have no doubts that it w
 Information about Helix can be found at [https://github.com/linkedin/helix/wiki]. The following links provide more information about the project: 
 
 * The GitHub site: [https://github.com/linkedin/helix ] Will be made public in second week of October. 
-* Helix paper at SOCC 2012: [Available after October 15th] 
+* Helix paper at SOCC 2012: [Available_after_October_15th] 
 
 == Initial Source ==
 Helix has been under development at LinkedIn since April 2011. It is currently hosted on github under the Apache license 2 at [https://github.com/linkedin/helix]

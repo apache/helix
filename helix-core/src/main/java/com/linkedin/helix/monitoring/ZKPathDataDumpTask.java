@@ -46,7 +46,7 @@ public class ZKPathDataDumpTask extends TimerTask
   {
     _manager = manager;
     _zkClient = zkClient;
-    logger.trace("Scannning cluster statusUpdate " + manager.getClusterName()
+    logger.info("Scannning cluster statusUpdate " + manager.getClusterName()
         + " thresholdNoChangeInMs: " + thresholdNoChangeInMs);
     _thresholdNoChangeInMs = thresholdNoChangeInMs;
   }
@@ -59,7 +59,7 @@ public class ZKPathDataDumpTask extends TimerTask
     // We need to think if we should create per-instance log files that contains
     // per-instance statusUpdates
     // and errors
-    logger.trace("Scannning status updates ...");
+    logger.info("Scannning status updates ...");
     try
     {
       HelixDataAccessor accessor = _manager.getHelixDataAccessor();
@@ -87,7 +87,7 @@ public class ZKPathDataDumpTask extends TimerTask
 
   void scanPath(String path, int thresholdNoChangeInMs)
   {
-    logger.trace("Scannning path " + path);
+    logger.info("Scannning path " + path);
     List<String> subPaths = _zkClient.getChildren(path);
     for (String subPath : subPaths)
     {
@@ -115,9 +115,13 @@ public class ZKPathDataDumpTask extends TimerTask
   void checkAndDump(String path, int thresholdNoChangeInMs)
   {
     List<String> subPaths = _zkClient.getChildren(path);
+    if(subPaths.size() == 0)
+    {
+      subPaths.add("");
+    }
     for (String subPath : subPaths)
     {
-      String fullPath = path + "/" + subPath;
+      String fullPath = subPath.length() > 0 ? path + "/" + subPath : path;
       Stat pathStat = _zkClient.getStat(fullPath);
 
       long lastModifiedTimeInMs = pathStat.getMtime();
@@ -146,8 +150,7 @@ public class ZKPathDataDumpTask extends TimerTask
             logger.info(sw.toString());
           } catch (Exception e)
           {
-            logger
-                .warn(
+            logger.warn(
                     "Exception during serialization in ZKPathDataDumpTask.checkAndDump. This can mostly be ignored",
                     e);
           }

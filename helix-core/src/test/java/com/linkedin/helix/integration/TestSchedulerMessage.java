@@ -16,6 +16,7 @@
 package com.linkedin.helix.integration;
 
 import java.io.StringWriter;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -43,6 +44,8 @@ import com.linkedin.helix.messaging.handling.MessageHandlerFactory;
 import com.linkedin.helix.model.Message;
 import com.linkedin.helix.model.Message.MessageState;
 import com.linkedin.helix.model.Message.MessageType;
+import com.linkedin.helix.monitoring.ZKPathDataDumpTask;
+import com.linkedin.helix.util.HelixUtil;
 
 public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServerCheck
 {
@@ -185,6 +188,61 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
       count += val.size();
     }
     Assert.assertEquals(count, _PARTITIONS * 3);
+    
+    // test the ZkPathDataDumpTask
+    String controllerStatusPath = HelixUtil.getControllerPropertyPath(manager.getClusterName(),
+        PropertyType.STATUSUPDATES_CONTROLLER);
+    List<String> subPaths = _zkClient.getChildren(controllerStatusPath);
+    Assert.assertTrue(subPaths.size() > 0);
+    for(String subPath : subPaths)
+    {
+      String nextPath = controllerStatusPath + "/" + subPath;
+      List<String> subsubPaths = _zkClient.getChildren(nextPath);
+      Assert.assertTrue(subsubPaths.size() > 0);
+    }
+    
+    String instanceStatusPath = HelixUtil.getInstancePropertyPath(manager.getClusterName(), "localhost_" + (START_PORT),
+        PropertyType.STATUSUPDATES);
+    
+    subPaths = _zkClient.getChildren(instanceStatusPath);
+    Assert.assertTrue(subPaths.size() > 0);
+    for(String subPath : subPaths)
+    {
+      String nextPath = instanceStatusPath + "/" + subPath;
+      List<String> subsubPaths = _zkClient.getChildren(nextPath);
+      Assert.assertTrue(subsubPaths.size() > 0);
+      for(String subsubPath : subsubPaths)
+      {
+        String nextnextPath = nextPath + "/" + subsubPath;
+        Assert.assertTrue(_zkClient.getChildren(nextnextPath).size() > 0);
+      }
+    }
+    
+    ZKPathDataDumpTask dumpTask = new ZKPathDataDumpTask(manager, _zkClient, 0);
+    dumpTask.run();
+    
+    subPaths = _zkClient.getChildren(controllerStatusPath);
+    Assert.assertTrue(subPaths.size() > 0);
+    for(String subPath : subPaths)
+    {
+      String nextPath = controllerStatusPath + "/" + subPath;
+      List<String> subsubPaths = _zkClient.getChildren(nextPath);
+      Assert.assertTrue(subsubPaths.size() == 0);
+    }
+    
+    subPaths = _zkClient.getChildren(instanceStatusPath);
+    Assert.assertTrue(subPaths.size() > 0);
+    for(String subPath : subPaths)
+    {
+      String nextPath = instanceStatusPath + "/" + subPath;
+      List<String> subsubPaths = _zkClient.getChildren(nextPath);
+      Assert.assertTrue(subsubPaths.size() > 0);
+      for(String subsubPath : subsubPaths)
+      {
+        String nextnextPath = nextPath + "/" + subsubPath;
+        Assert.assertTrue(_zkClient.getChildren(nextnextPath).size() == 0);
+      }
+    }
   }
   
 

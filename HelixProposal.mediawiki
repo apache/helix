@@ -1,4 +1,4 @@
-bstract ==
+== Abstract ==
 Helix is a cluster management system for managing partitioned and replicated resources in distributed data systems.
 
 == Proposal ==
@@ -52,7 +52,7 @@ While we respect the reputation of the Apache brand and have no doubts that it w
 Information about Helix can be found at [https://github.com/linkedin/helix/wiki]. The following links provide more information about the project: 
 
 * The GitHub site: [https://github.com/linkedin/helix ] Will be made public in second week of October. 
-* Helix paper at SOCC 2012: [Available after October 15th] 
+* Helix paper at SOCC 2012: [Available_after_October_15th] 
 
 == Initial Source ==
 Helix has been under development at LinkedIn since April 2011. It is currently hosted on github under the Apache license 2 at [https://github.com/linkedin/helix]
@@ -60,26 +60,27 @@ Helix is written in Java. Its source tree is entirely self-contained and relies 
 
 == External Dependencies ==
 The dependencies all have Apache compatible licenses.
-log4j
-zookeeper
-xstream
-jackson-core-asl
-jackson-mapper-asl
-commons-io
-commons-cli
-commons-math
-zkclient
-camel-josql
-camel-core
-gentlyweb-utils
-josql
-commons-management
-commons-logging-api
-org.restlet
-com.noelios.restlet
-net.sf.jsqlparser
+* log4j
+* zookeeper
+* xstream
+* jackson-core-asl
+* jackson-mapper-asl
+* commons-io
+* commons-cli
+* commons-math
+* zkclient
+* camel-josql
+* camel-core
+* gentlyweb-utils
+* josql
+* commons-management
+* commons-logging-api
+* org.restlet
+* com.noelios.restlet
+* net.sf.jsqlparser
+
 Non-Apache build tools that are used by Crunch are as follows:
-Cobertura: GNU GPLv2
+* Cobertura: GNU GPLv2
 Note that Cobertura is optional and is only used for calculating unit test coverage.
 
 
@@ -112,14 +113,14 @@ The existing code already has unit and integration tests, so we would like a Jen
 * Bob Schulman
 
 == Affiliations ==
-Kishore Gopalakrishna (LinkedIn) 
-Shi Lu (LinkedIn) 
-Jason Zheng (LinkedIn) 
-Adam Silberstein (Trifacta)
+* Kishore Gopalakrishna (LinkedIn) 
+* Shi Lu (LinkedIn) 
+* Jason Zheng (LinkedIn) 
+* Adam Silberstein (Trifacta)
 
 == Sponsors ==
 === Champion ===
-Patrick Hunt (Apache Member)
+* Patrick Hunt (Apache Member)
 
 === Nominated Mentors ===
 * Patrick Hunt (Apache Member)

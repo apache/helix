@@ -111,21 +111,32 @@ The existing code already has unit and integration tests, so we would like a Jen
 * Adam Silberstein
 * Kapil Surlaker
 * Bob Schulman
+* Swaroop Jagadish
+* Rahul Aggarwal
+* Terence Yim 
+* Santiago Perez
+
 
 == Affiliations ==
 * Kishore Gopalakrishna (LinkedIn) 
 * Shi Lu (LinkedIn) 
 * Jason Zheng (LinkedIn) 
 * Adam Silberstein (Trifacta)
+* Kapil Surlaker (LinkedIn)
+* Bob Schulman (LinkedIn)
+* Swaroop Jagadish (LinkedIn)
+* Rahul Aggarwal (LinkedIn)
+* Terence Yim (LinkedIn)
+* Santiago Perez (LinkedIn)
 
 == Sponsors ==
 === Champion ===
 * Patrick Hunt (Apache Member)
 
 === Nominated Mentors ===
-* Patrick Hunt (Apache Member)
-* Mahadev Konar(Apache Member)
-* TBD
+* Patrick Hunt  (Apache Member)
+* Mahadev Konar (Apache Member)
+* Owen O'Malley (Apache Member)
 
 === Sponsoring Entity ===
 We are requesting the Incubator to sponsor this project.

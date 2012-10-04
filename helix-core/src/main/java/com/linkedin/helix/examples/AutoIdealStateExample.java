@@ -20,8 +20,8 @@ public class AutoIdealStateExample
     final String clusterName = args[1];
     
     // start zookeeper
-    ZkServer zkServer = ExampleHelper.startZkServer(zkAddr);
-    
+    // ZkServer zkServer = ExampleHelper.startZkServer(zkAddr);
+
     // add cluster {clusterName}
     ClusterSetup setupTool = new ClusterSetup(zkAddr);
     setupTool.addCluster(clusterName, true);
@@ -74,6 +74,6 @@ public class AutoIdealStateExample
     }).start();
     
     // stop zookeeper
-    ExampleHelper.stopZkServer(zkServer);
+    // ExampleHelper.stopZkServer(zkServer);
   }
 }

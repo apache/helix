@@ -104,11 +104,6 @@ public class DummyParticipant
       manager.connect();
 
       Thread.currentThread().join();
-    } catch (InterruptedException e)
-    {
-      String msg = "Dummy participant: " + instanceName + ", " + Thread.currentThread().getName()
-          + " is interrupted";
-      System.err.println(msg);
     } catch (Exception e)
     {
       // TODO Auto-generated catch block

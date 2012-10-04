@@ -32,7 +32,9 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.Timer;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
 
 import org.I0Itec.zkclient.ZkConnection;
@@ -99,7 +101,7 @@ public class ZKHelixManager implements HelixManager
   private ZKHelixDataAccessor                  _helixAccessor;
   private ConfigAccessor                       _configAccessor;
   protected ZkClient                           _zkClient;
-  private final List<CallbackHandler>          _handlers;
+  private final Set<CallbackHandler>           _handlers;
   private final ZkStateChangeListener          _zkStateChangeListener;
   private final InstanceType                   _instanceType;
   volatile String                              _sessionId;
@@ -171,7 +173,7 @@ public class ZKHelixManager implements HelixManager
     _zkStateChangeListener = new ZkStateChangeListener(this);
     _timer = null;
 
-    _handlers = new ArrayList<CallbackHandler>();
+    _handlers = new CopyOnWriteArraySet<CallbackHandler>();
 
     _messagingService = new DefaultMessagingService(this);
 
@@ -863,6 +865,7 @@ public class ZKHelixManager implements HelixManager
 
   private void initHandlers()
   {
+    // may add new currentState and message listeners during init()
     synchronized (this)
     {
       for (CallbackHandler handler : _handlers)
@@ -1071,7 +1074,7 @@ public class ZKHelixManager implements HelixManager
     return _stateMachEngine;
   }
 
-  protected List<CallbackHandler> getHandlers()
+  protected Set<CallbackHandler> getHandlers()
   {
     return _handlers;
   }

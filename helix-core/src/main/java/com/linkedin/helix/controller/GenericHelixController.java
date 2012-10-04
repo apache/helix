@@ -582,6 +582,8 @@ public class GenericHelixController implements
         try
         {
           manager.addCurrentStateChangeListener(this, instanceName, clientSessionId);
+          _instanceCurrentStateChangeSubscriptionSessionIds.add(clientSessionId);
+          logger.info("Observing client session id: " + clientSessionId);
         }
         catch (Exception e)
         {
@@ -589,8 +591,6 @@ public class GenericHelixController implements
                            + instanceName,
                        e);
         }
-        logger.info("Observing client session id: " + clientSessionId);
-        _instanceCurrentStateChangeSubscriptionSessionIds.add(clientSessionId);
       }
 
       // _instanceSubscriptionNames contains all the instanceNames that we've added a

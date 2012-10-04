@@ -17,6 +17,7 @@ package com.linkedin.helix.integration;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.log4j.Logger;
 import org.testng.Assert;
@@ -49,7 +50,7 @@ public class TestAddNodeAfterControllerStart extends ZkIntegrationTestBase
     }
 
     @Override
-    public List<CallbackHandler> getHandlers()
+    public Set<CallbackHandler> getHandlers()
     {
       return super.getHandlers();
     }
@@ -219,7 +220,7 @@ public class TestAddNodeAfterControllerStart extends ZkIntegrationTestBase
         + new Date(System.currentTimeMillis()));
   }
 
-  boolean checkHandlers(List<CallbackHandler> handlers, String path)
+  boolean checkHandlers(Set<CallbackHandler> handlers, String path)
   {
 //    System.out.println(handlers.size() + " handlers: ");
     for (CallbackHandler handler : handlers)

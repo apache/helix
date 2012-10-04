@@ -60,26 +60,27 @@ Helix is written in Java. Its source tree is entirely self-contained and relies 
 
 == External Dependencies ==
 The dependencies all have Apache compatible licenses.
-log4j
-zookeeper
-xstream
-jackson-core-asl
-jackson-mapper-asl
-commons-io
-commons-cli
-commons-math
-zkclient
-camel-josql
-camel-core
-gentlyweb-utils
-josql
-commons-management
-commons-logging-api
-org.restlet
-com.noelios.restlet
-net.sf.jsqlparser
+* log4j
+* zookeeper
+* xstream
+* jackson-core-asl
+* jackson-mapper-asl
+* commons-io
+* commons-cli
+* commons-math
+* zkclient
+* camel-josql
+* camel-core
+* gentlyweb-utils
+* josql
+* commons-management
+* commons-logging-api
+* org.restlet
+* com.noelios.restlet
+* net.sf.jsqlparser
+
 Non-Apache build tools that are used by Crunch are as follows:
-Cobertura: GNU GPLv2
+* Cobertura: GNU GPLv2
 Note that Cobertura is optional and is only used for calculating unit test coverage.
 
 
@@ -112,14 +113,14 @@ The existing code already has unit and integration tests, so we would like a Jen
 * Bob Schulman
 
 == Affiliations ==
-Kishore Gopalakrishna (LinkedIn) 
-Shi Lu (LinkedIn) 
-Jason Zheng (LinkedIn) 
-Adam Silberstein (Trifacta)
+* Kishore Gopalakrishna (LinkedIn) 
+* Shi Lu (LinkedIn) 
+* Jason Zheng (LinkedIn) 
+* Adam Silberstein (Trifacta)
 
 == Sponsors ==
 === Champion ===
-Patrick Hunt (Apache Member)
+* Patrick Hunt (Apache Member)
 
 === Nominated Mentors ===
 * Patrick Hunt (Apache Member)

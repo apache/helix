@@ -374,8 +374,9 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
         String partitionName = partitionList.get(j);
         listFields.put(partitionName, new ArrayList<String>());
         listFields.get(partitionName).add(instanceName);
-
-        for(int k = 0; k < slaves; k++)
+        
+        int slavesCanAssign = Math.min(slaves, otherInstances.size());
+        for(int k = 0; k < slavesCanAssign; k++)
         {
           int index = (j+k+1) % otherInstances.size();
           listFields.get(partitionName).add(otherInstances.get(index));

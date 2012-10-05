@@ -21,44 +21,48 @@ public class DummyParticipant
     public void onBecomeSlaveFromOffline(Message message, NotificationContext context)
     {
       String partitionName = message.getPartitionName();
-      System.out.println(partitionName + " becomes SLAVE from OFFLINE");
+      String instanceName = message.getTgtName();
+      System.out.println(instanceName + " becomes SLAVE from OFFLINE for " + partitionName);
     }
 
     @Transition(to = "MASTER", from = "SLAVE")
     public void onBecomeMasterFromSlave(Message message, NotificationContext context)
     {
       String partitionName = message.getPartitionName();
-      System.out.println(partitionName + " becomes MASTER from SLAVE");
+      String instanceName = message.getTgtName();
+      System.out.println(instanceName + " becomes MASTER from SLAVE for " + partitionName);
     }
 
     @Transition(to = "SLAVE", from = "MASTER")
     public void onBecomeSlaveFromMaster(Message message, NotificationContext context)
     {
       String partitionName = message.getPartitionName();
-      System.out.println(partitionName + " becomes SLAVE from MASTER");
+      String instanceName = message.getTgtName();
+      System.out.println(instanceName + " becomes SLAVE from MASTER for " + partitionName);
     }
 
     @Transition(to = "OFFLINE", from = "SLAVE")
     public void onBecomeOfflineFromSlave(Message message, NotificationContext context)
     {
       String partitionName = message.getPartitionName();
-      System.out.println(partitionName + " becomes OFFLINE from SLAVE");
+      String instanceName = message.getTgtName();
+      System.out.println(instanceName + " becomes OFFLINE from SLAVE for " + partitionName);
     }
 
     @Transition(to = "DROPPED", from = "OFFLINE")
     public void onBecomeDroppedFromOffline(Message message, NotificationContext context)
-        throws InterruptedException
     {
       String partitionName = message.getPartitionName();
-      System.out.println(partitionName + " becomes DROPPED from OFFLINE");
+      String instanceName = message.getTgtName();
+      System.out.println(instanceName + " becomes DROPPED from OFFLINE for " + partitionName);
     }
 
     @Transition(to = "OFFLINE", from = "ERROR")
     public void onBecomeOfflineFromError(Message message, NotificationContext context)
-        throws InterruptedException
     {
       String partitionName = message.getPartitionName();
-      System.out.println(partitionName + " becomes OFFLINE from ERROR");
+      String instanceName = message.getTgtName();
+      System.out.println(instanceName + " becomes OFFLINE from ERROR for " + partitionName);
     }
 
     @Override

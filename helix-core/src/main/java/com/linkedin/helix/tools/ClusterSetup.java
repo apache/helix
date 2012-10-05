@@ -64,70 +64,68 @@ import com.linkedin.helix.util.ZKClientPool;
 
 public class ClusterSetup
 {
-  private static Logger      logger                 =
-                                                        Logger.getLogger(ClusterSetup.class);
-  public static final String zkServerAddress        = "zkSvr";
+  private static Logger logger = Logger.getLogger(ClusterSetup.class);
+  public static final String zkServerAddress = "zkSvr";
 
   // List info about the cluster / DB/ Instances
-  public static final String listClusters           = "listClusters";
-  public static final String listResources          = "listResources";
-  public static final String listInstances          = "listInstances";
+  public static final String listClusters = "listClusters";
+  public static final String listResources = "listResources";
+  public static final String listInstances = "listInstances";
 
   // Add, drop, and rebalance
-  public static final String addCluster             = "addCluster";
-  public static final String activateCluster        = "activateCluster";
-  public static final String dropCluster            = "dropCluster";
-  public static final String dropResource           = "dropResource";
-  public static final String addInstance            = "addNode";
-  public static final String addResource            = "addResource";
-  public static final String addStateModelDef       = "addStateModelDef";
-  public static final String addIdealState          = "addIdealState";
-  public static final String swapInstance           = "swapInstance";
-  public static final String dropInstance           = "dropNode";
-  public static final String rebalance              = "rebalance";
-  public static final String expandCluster          = "expandCluster";
-  public static final String expandResource         = "expandResource";
-  public static final String mode                   = "mode";
-  public static final String bucketSize             = "bucketSize";
-  public static final String resourceKeyPrefix      = "key";
-  public static final String addResourceProperty    = "addResourceProperty";
+  public static final String addCluster = "addCluster";
+  public static final String activateCluster = "activateCluster";
+  public static final String dropCluster = "dropCluster";
+  public static final String dropResource = "dropResource";
+  public static final String addInstance = "addNode";
+  public static final String addResource = "addResource";
+  public static final String addStateModelDef = "addStateModelDef";
+  public static final String addIdealState = "addIdealState";
+  public static final String swapInstance = "swapInstance";
+  public static final String dropInstance = "dropNode";
+  public static final String rebalance = "rebalance";
+  public static final String expandCluster = "expandCluster";
+  public static final String expandResource = "expandResource";
+  public static final String mode = "mode";
+  public static final String bucketSize = "bucketSize";
+  public static final String resourceKeyPrefix = "key";
+  public static final String addResourceProperty = "addResourceProperty";
   public static final String removeResourceProperty = "removeResourceProperty";
 
   // Query info (TBD in V2)
-  public static final String listClusterInfo        = "listClusterInfo";
-  public static final String listInstanceInfo       = "listInstanceInfo";
-  public static final String listResourceInfo       = "listResourceInfo";
-  public static final String listPartitionInfo      = "listPartitionInfo";
-  public static final String listStateModels        = "listStateModels";
-  public static final String listStateModel         = "listStateModel";
+  public static final String listClusterInfo = "listClusterInfo";
+  public static final String listInstanceInfo = "listInstanceInfo";
+  public static final String listResourceInfo = "listResourceInfo";
+  public static final String listPartitionInfo = "listPartitionInfo";
+  public static final String listStateModels = "listStateModels";
+  public static final String listStateModel = "listStateModel";
 
   // enable/disable/reset instances/cluster/resource/partition
-  public static final String enableInstance         = "enableInstance";
-  public static final String enablePartition        = "enablePartition";
-  public static final String enableCluster          = "enableCluster";
-  public static final String resetPartition         = "resetPartition";
-  public static final String resetInstance          = "resetInstance";
-  public static final String resetResource          = "resetResource";
+  public static final String enableInstance = "enableInstance";
+  public static final String enablePartition = "enablePartition";
+  public static final String enableCluster = "enableCluster";
+  public static final String resetPartition = "resetPartition";
+  public static final String resetInstance = "resetInstance";
+  public static final String resetResource = "resetResource";
 
   // help
-  public static final String help                   = "help";
+  public static final String help = "help";
 
   // stats/alerts
-  public static final String addStat                = "addStat";
-  public static final String addAlert               = "addAlert";
-  public static final String dropStat               = "dropStat";
-  public static final String dropAlert              = "dropAlert";
+  public static final String addStat = "addStat";
+  public static final String addAlert = "addAlert";
+  public static final String dropStat = "dropStat";
+  public static final String dropAlert = "dropAlert";
 
   // get/set configs
-  public static final String getConfig              = "getConfig";
-  public static final String setConfig              = "setConfig";
-  public static final String removeConfig           = "removeConfig";
+  public static final String getConfig = "getConfig";
+  public static final String setConfig = "setConfig";
+  public static final String removeConfig = "removeConfig";
 
-  static Logger              _logger                =
-                                                        Logger.getLogger(ClusterSetup.class);
-  String                     _zkServerAddress;
-  ZkClient                   _zkClient;
-  HelixAdmin                 _admin;
+  static Logger _logger = Logger.getLogger(ClusterSetup.class);
+  String _zkServerAddress;
+  ZkClient _zkClient;
+  HelixAdmin _admin;
 
   public ClusterSetup(String zkServerAddress)
   {
@@ -1155,7 +1153,7 @@ public class ClusterSetup
     resetResourceOption.setArgs(2);
     resetResourceOption.setRequired(false);
     resetResourceOption.setArgName("clusterName resourceName");
-    
+
     Option listStateModelsOption =
         OptionBuilder.withLongOpt(listStateModels)
                      .withDescription("Query info of state models in a cluster")
@@ -1696,17 +1694,7 @@ public class ClusterSetup
       String resourceName = cmd.getOptionValues(addIdealState)[1];
       String idealStateFile = cmd.getOptionValues(addIdealState)[2];
 
-      ZNRecord idealStateRecord =
-          (ZNRecord) (new ZNRecordSerializer().deserialize(readFile(idealStateFile)));
-      if (idealStateRecord.getId() == null
-          || !idealStateRecord.getId().equals(resourceName))
-      {
-        throw new IllegalArgumentException("ideal state must have same id as resource name");
-      }
-      setupTool.getClusterManagementTool()
-               .setResourceIdealState(clusterName,
-                                      resourceName,
-                                      new IdealState(idealStateRecord));
+      setupTool.addIdealState(clusterName, resourceName, idealStateFile);
       return 0;
     }
     else if (cmd.hasOption(addStat))
@@ -1789,6 +1777,20 @@ public class ClusterSetup
       return 0;
     }
     return 0;
+  }
+
+  public void addIdealState(String clusterName, String resourceName, String idealStateFile) throws IOException
+  {
+    ZNRecord idealStateRecord =
+        (ZNRecord) (new ZNRecordSerializer().deserialize(readFile(idealStateFile)));
+    if (idealStateRecord.getId() == null
+        || !idealStateRecord.getId().equals(resourceName))
+    {
+      throw new IllegalArgumentException("ideal state must have same id as resource name");
+    }
+    _admin.setResourceIdealState(clusterName,
+                                 resourceName,
+                                 new IdealState(idealStateRecord));
   }
 
   public void addResourceProperty(String clusterName,

@@ -1,24 +1,37 @@
 package com.linkedin.helix.examples;
 
-import org.I0Itec.zkclient.ZkServer;
+import java.io.File;
 
 import com.linkedin.helix.controller.HelixControllerMain;
+import com.linkedin.helix.model.IdealState.IdealStateModeProperty;
 import com.linkedin.helix.tools.ClusterSetup;
 
 public class IdealStateExample
 {
 
-  public static void main(String[] args)
+  public static void main(String[] args) throws Exception
   {
     if (args.length < 3)
     {
-      System.err.println("USAGE: IdealStateExample zkAddress clusterName idealStateMode (AUTO, AUTO_REBALANCE, or CUSTOMIZED)");
+      System.err.println("USAGE: IdealStateExample zkAddress clusterName idealStateMode (AUTO, AUTO_REBALANCE, or CUSTOMIZED) idealStateJsonFile (required for CUSTOMIZED mode)");
       System.exit(1);
     }
 
     final String zkAddr = args[0];
     final String clusterName = args[1];
-    final String idealStateMode = args[2].toUpperCase();
+    final String idealStateModeStr = args[2].toUpperCase();
+    String idealStateJsonFile = null;
+    IdealStateModeProperty idealStateMode =
+        IdealStateModeProperty.valueOf(idealStateModeStr);
+    if (idealStateMode == IdealStateModeProperty.CUSTOMIZED)
+    {
+      if (args.length < 4)
+      {
+        System.err.println("Missng idealStateJsonFile for CUSTOMIZED ideal state mode");
+        System.exit(1);
+      }
+      idealStateJsonFile = args[3];
+    }
 
     // add cluster {clusterName}
     ClusterSetup setupTool = new ClusterSetup(zkAddr);
@@ -33,10 +46,22 @@ public class IdealStateExample
 
     // add resource "TestDB" which has 4 partitions and uses MasterSlave state model
     String resourceName = "TestDB";
-    setupTool.addResourceToCluster(clusterName, resourceName, 4, "MasterSlave", idealStateMode);
+    if (idealStateMode == IdealStateModeProperty.AUTO
+        || idealStateMode == IdealStateModeProperty.AUTO_REBALANCE)
+    {
+      setupTool.addResourceToCluster(clusterName,
+                                     resourceName,
+                                     4,
+                                     "MasterSlave",
+                                     idealStateModeStr);
 
-    // rebalance resource "TestDB" using 3 replicas
-    setupTool.rebalanceStorageCluster(clusterName, resourceName, 3);
+      // rebalance resource "TestDB" using 3 replicas
+      setupTool.rebalanceStorageCluster(clusterName, resourceName, 3);
+    }
+    else if (idealStateMode == IdealStateModeProperty.CUSTOMIZED)
+    {
+      setupTool.addIdealState(clusterName, resourceName, idealStateJsonFile);
+    }
 
     // start helix controller
     new Thread(new Runnable()

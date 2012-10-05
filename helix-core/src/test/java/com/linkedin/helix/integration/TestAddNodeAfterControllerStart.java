@@ -50,7 +50,7 @@ public class TestAddNodeAfterControllerStart extends ZkIntegrationTestBase
     }
 
     @Override
-    public Set<CallbackHandler> getHandlers()
+    public List<CallbackHandler> getHandlers()
     {
       return super.getHandlers();
     }
@@ -220,7 +220,7 @@ public class TestAddNodeAfterControllerStart extends ZkIntegrationTestBase
         + new Date(System.currentTimeMillis()));
   }
 
-  boolean checkHandlers(Set<CallbackHandler> handlers, String path)
+  boolean checkHandlers(List<CallbackHandler> handlers, String path)
   {
 //    System.out.println(handlers.size() + " handlers: ");
     for (CallbackHandler handler : handlers)

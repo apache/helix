@@ -101,7 +101,7 @@ public class ZKHelixManager implements HelixManager
   private ZKHelixDataAccessor                  _helixAccessor;
   private ConfigAccessor                       _configAccessor;
   protected ZkClient                           _zkClient;
-  private final Set<CallbackHandler>           _handlers;
+  private final List<CallbackHandler>          _handlers;
   private final ZkStateChangeListener          _zkStateChangeListener;
   private final InstanceType                   _instanceType;
   volatile String                              _sessionId;
@@ -173,7 +173,7 @@ public class ZKHelixManager implements HelixManager
     _zkStateChangeListener = new ZkStateChangeListener(this);
     _timer = null;
 
-    _handlers = new CopyOnWriteArraySet<CallbackHandler>();
+    _handlers = new ArrayList<CallbackHandler>();
 
     _messagingService = new DefaultMessagingService(this);
 
@@ -522,17 +522,24 @@ public class ZKHelixManager implements HelixManager
 
     synchronized (this)
     {
-      Iterator<CallbackHandler> iterator = _handlers.iterator();
-      while (iterator.hasNext())
+      for (CallbackHandler handler : _handlers)
       {
-        CallbackHandler handler = iterator.next();
-        // simply compare reference
         if (handler.getListener().equals(listener))
         {
           handler.reset();
-          iterator.remove();
         }
       }
+//      Iterator<CallbackHandler> iterator = _handlers.iterator();
+//      while (iterator.hasNext())
+//      {
+//        CallbackHandler handler = iterator.next();
+//        // simply compare reference
+//        if (handler.getListener().equals(listener))
+//        {
+//          handler.reset();
+//          iterator.remove();
+//        }
+//      }
     }
 
     return true;
@@ -854,7 +861,10 @@ public class ZKHelixManager implements HelixManager
   {
     synchronized (this)
     {
-      for (CallbackHandler handler : _handlers)
+      List<CallbackHandler> handlers = new ArrayList<CallbackHandler>();
+      handlers.addAll(_handlers);
+
+      for (CallbackHandler handler : handlers)
       {
         handler.reset();
         logger.info("reset handler: " + handler.getPath() + " by "
@@ -866,9 +876,12 @@ public class ZKHelixManager implements HelixManager
   private void initHandlers()
   {
     // may add new currentState and message listeners during init()
+    // so make a copy and iterate over the copy
     synchronized (this)
     {
-      for (CallbackHandler handler : _handlers)
+      List<CallbackHandler> handlers = new ArrayList<CallbackHandler>();
+      handlers.addAll(_handlers);
+      for (CallbackHandler handler : handlers)
       {
         handler.init();
       }
@@ -1074,7 +1087,7 @@ public class ZKHelixManager implements HelixManager
     return _stateMachEngine;
   }
 
-  protected Set<CallbackHandler> getHandlers()
+  protected List<CallbackHandler> getHandlers()
   {
     return _handlers;
   }

@@ -25,6 +25,7 @@ import java.util.TreeSet;
 
 import org.apache.log4j.Logger;
 
+import com.linkedin.helix.HelixConstants;
 import com.linkedin.helix.HelixProperty;
 import com.linkedin.helix.ZNRecord;
 
@@ -258,7 +259,12 @@ public class IdealState extends HelixProperty
 
   public String getStateModelFactoryName()
   {
-    return _record.getSimpleField(IdealStateProperty.STATE_MODEL_FACTORY_NAME.toString());
+    String ftyName = _record.getSimpleField(IdealStateProperty.STATE_MODEL_FACTORY_NAME.toString());
+    if (ftyName == null)
+    {
+      ftyName = HelixConstants.DEFAULT_STATE_MODEL_FACTORY;
+    }
+    return ftyName; 
   }
 
   public int getRebalanceTimerPeriod()

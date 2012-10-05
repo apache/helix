@@ -1,21 +1,5 @@
-/**
- * Copyright (C) 2012 LinkedIn Inc <opensource@linkedin.com>
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *         http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package com.linkedin.helix.webapp.resources;
 
-import java.util.Date;
 import java.util.List;
 
 import org.apache.log4j.Logger;
@@ -30,18 +14,15 @@ import org.restlet.resource.Resource;
 import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 
-import com.linkedin.helix.HelixException;
 import com.linkedin.helix.ZNRecord;
-import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
 import com.linkedin.helix.manager.zk.ZkClient;
-import com.linkedin.helix.tools.ClusterSetup;
 import com.linkedin.helix.webapp.RestAdminApplication;
 
-public class ZkPathResource extends Resource
+public class ZkChildResource extends Resource
 {
-  private final static Logger LOG = Logger.getLogger(ZkPathResource.class);
+  private final static Logger LOG = Logger.getLogger(ZkChildResource.class);
 
-  public ZkPathResource(Context context, Request request, Response response)
+  public ZkChildResource(Context context, Request request, Response response)
   {
     super(context, request, response);
     getVariants().add(new Variant(MediaType.TEXT_PLAIN));
@@ -57,7 +38,7 @@ public class ZkPathResource extends Resource
   @Override
   public boolean allowPost()
   {
-    return true;
+    return false;
   }
 
   @Override
@@ -90,48 +71,6 @@ public class ZkPathResource extends Resource
   }
 
   @Override
-  public void acceptRepresentation(Representation entity)
-  {
-    String zkPath = getZKPath();
-
-    try
-    {
-      JsonParameters jsonParameters = new JsonParameters(entity);
-      String command = jsonParameters.getCommand();
-
-      ZkClient zkClient =
-          (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
-      
-      if (command.equalsIgnoreCase(JsonParameters.ZK_DELETE_CHILDREN))
-      {
-        List<String> childNames = zkClient.getChildren(zkPath);
-        if (childNames != null)
-        {
-          for (String childName : childNames)
-          {
-            String childPath = zkPath.equals("/")? "/" + childName : zkPath + "/" + childName;
-            zkClient.deleteRecursive(childPath);
-          }
-        }
-      }
-      else
-      {
-        throw new HelixException("Unsupported command: " + command
-            + ". Should be one of [" + JsonParameters.ZK_DELETE_CHILDREN + "]");
-      }
-
-      getResponse().setStatus(Status.SUCCESS_OK);
-    }
-    catch (Exception e)
-    {
-      getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),
-                              MediaType.APPLICATION_JSON);
-      getResponse().setStatus(Status.SUCCESS_OK);
-      LOG.error("Error in post zkPath: " + zkPath, e);
-    }
-  }
-
-  @Override
   public Representation represent(Variant variant)
   {
     StringRepresentation presentation = null;
@@ -141,7 +80,7 @@ public class ZkPathResource extends Resource
     {
       ZkClient zkClient =
           (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
-      ZNRecord result = readZkDataStatAndChild(zkPath, zkClient);
+      ZNRecord result = readZkChild(zkPath, zkClient);
 
       presentation =
           new StringRepresentation(ClusterRepresentationUtil.ZNRecordToJson(result),
@@ -158,7 +97,7 @@ public class ZkPathResource extends Resource
     return presentation;
   }
 
-  private ZNRecord readZkDataStatAndChild(String zkPath, ZkClient zkClient)
+  private ZNRecord readZkChild(String zkPath, ZkClient zkClient)
   {
     ZNRecord result = null;
 
@@ -173,18 +112,16 @@ public class ZkPathResource extends Resource
     {
       result = new ZNRecord("");
     }
-    result.setSimpleField("zkPath", zkPath);
-    result.setSimpleField("stat", stat.toString());
-    result.setSimpleField("numChildren", "" + stat.getNumChildren());
-    result.setSimpleField("ctime", "" + new Date(stat.getCtime()));
-    result.setSimpleField("mtime", "" + new Date(stat.getMtime()));
-    result.setSimpleField("dataLength", "" + stat.getDataLength());
 
     // read childrenList
     List<String> children = zkClient.getChildren(zkPath);
     if (children != null && children.size() > 0)
     {
+      result.setSimpleField("numChildren", "" + children.size());
       result.setListField("childrenList", children);
+    } else
+    {
+      result.setSimpleField("numChildren", "" + 0);
     }
     return result;
   }
@@ -197,7 +134,16 @@ public class ZkPathResource extends Resource
     {
       ZkClient zkClient =
           (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
-      zkClient.deleteRecursive(zkPath);
+      
+      List<String> childNames = zkClient.getChildren(zkPath);
+      if (childNames != null)
+      {
+        for (String childName : childNames)
+        {
+          String childPath = zkPath.equals("/")? "/" + childName : zkPath + "/" + childName;
+          zkClient.deleteRecursive(childPath);
+        }
+      }
       
       getResponse().setStatus(Status.SUCCESS_OK);
     }
@@ -206,8 +152,7 @@ public class ZkPathResource extends Resource
       getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),
                               MediaType.APPLICATION_JSON);
       getResponse().setStatus(Status.SUCCESS_OK);
-      LOG.error("Error in delete zkPath: " + zkPath, e);
+      LOG.error("Error in delete zkChild: " + zkPath, e);
     }
   }
-
 }

@@ -53,6 +53,7 @@ import com.linkedin.helix.webapp.resources.StateModelResource;
 import com.linkedin.helix.webapp.resources.StateModelsResource;
 import com.linkedin.helix.webapp.resources.StatusUpdateResource;
 import com.linkedin.helix.webapp.resources.StatusUpdatesResource;
+import com.linkedin.helix.webapp.resources.ZkChildResource;
 import com.linkedin.helix.webapp.resources.ZkPathResource;
 
 public class RestAdminApplication extends Application
@@ -103,6 +104,7 @@ public class RestAdminApplication extends Application
     router.attach("/clusters/{clusterName}/configs/{scope}/{scopeKey1}", ConfigResource.class);
     router.attach("/clusters/{clusterName}/configs/{scope}/{scopeKey1}/{scopeKey2}", ConfigResource.class);
     router.attach("/zkPath", ZkPathResource.class).setMatchingMode(Template.MODE_STARTS_WITH);
+    router.attach("/zkChild", ZkChildResource.class).setMatchingMode(Template.MODE_STARTS_WITH);
 
     Restlet mainpage = new Restlet()
     {

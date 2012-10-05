@@ -136,7 +136,7 @@ public class ClusterSetup
 
   public ClusterSetup(ZkClient zkClient)
   {
-    _zkServerAddress = zkServerAddress;
+    _zkServerAddress = zkClient.getServers();
     _zkClient = zkClient;
     _admin = new ZKHelixAdmin(_zkClient);
   }

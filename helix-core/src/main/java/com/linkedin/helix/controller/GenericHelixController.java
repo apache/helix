@@ -415,7 +415,7 @@ public class GenericHelixController implements
   {
     logger.info("START: GenericClusterController.onMessage()");
     
-    if (_msgQueueMonitor != null)
+    if (_msgQueueMonitor != null && messages != null)
     {
       _msgQueueMonitor.addMessageQueueSize(messages.size());
     }

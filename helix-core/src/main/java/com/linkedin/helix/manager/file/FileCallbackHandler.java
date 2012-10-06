@@ -52,6 +52,7 @@ import com.linkedin.helix.store.file.FilePropertyStore;
 import com.linkedin.helix.util.HelixUtil;
 
 // TODO remove code duplication: CallbackHandler and CallbackHandlerForFile
+@Deprecated
 public class FileCallbackHandler implements PropertyChangeListener<ZNRecord>
 {
 

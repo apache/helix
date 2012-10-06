@@ -22,6 +22,7 @@ import com.linkedin.helix.store.PropertyStore;
 import com.linkedin.helix.store.PropertyStoreException;
 import com.linkedin.helix.store.file.FilePropertyStore;
 
+@Deprecated
 public class FileHelixDataAccessor implements HelixDataAccessor
 {
   private static Logger LOG = Logger.getLogger(FileHelixDataAccessor.class);

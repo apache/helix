@@ -15,6 +15,7 @@
  */
 package com.linkedin.helix;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -272,7 +273,8 @@ public interface HelixAdmin
   void dropAlert(String clusterName, String alertName);
 
   /**
-   * Get a list of state model definitions in a cluster 
+   * Get a list of state model definitions in a cluster
+   * 
    * @param clusterName
    * @return
    */
@@ -339,4 +341,25 @@ public interface HelixAdmin
   List<String> getConfigKeys(ConfigScopeProperty scope,
                              String clusterName,
                              String... keys);
+
+  /**
+   * Rebalance a resource in cluster
+   * 
+   * @param clusterName
+   * @param resourceName
+   * @param replica
+   * @param keyPrefix
+   */
+  void rebalance(String clusterName, String resourceName, int replica);
+  
+  /**
+   * Add ideal state using a json format file
+   * 
+   * @param clusterName
+   * @param resourceName
+   * @param idealStateFile
+   * @throws IOException
+   */
+  void addIdealState(String clusterName, String resourceName, String idealStateFile) throws IOException;
+  
 }

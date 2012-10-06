@@ -15,6 +15,10 @@
  */
 package com.linkedin.helix.manager.zk;
 
+import java.io.DataInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -60,15 +64,16 @@ import com.linkedin.helix.model.Message.MessageType;
 import com.linkedin.helix.model.PauseSignal;
 import com.linkedin.helix.model.PersistentStats;
 import com.linkedin.helix.model.StateModelDefinition;
+import com.linkedin.helix.tools.IdealStateCalculatorForStorageNode;
 import com.linkedin.helix.util.HelixUtil;
 
 public class ZKHelixAdmin implements HelixAdmin
 {
 
-  private final ZkClient       _zkClient;
+  private final ZkClient _zkClient;
   private final ConfigAccessor _configAccessor;
 
-  private static Logger        logger = Logger.getLogger(ZKHelixAdmin.class);
+  private static Logger logger = Logger.getLogger(ZKHelixAdmin.class);
 
   public ZKHelixAdmin(ZkClient zkClient)
   {
@@ -291,7 +296,7 @@ public class ZKHelixAdmin implements HelixAdmin
         return currentData;
       }
     },
-    AccessOption.PERSISTENT);
+                        AccessOption.PERSISTENT);
   }
 
   @Override
@@ -610,12 +615,12 @@ public class ZKHelixAdmin implements HelixAdmin
 
   @Override
   public void addResource(String clusterName,
-                          String dbName,
+                          String resourceName,
                           int partitions,
                           String stateModelRef)
   {
     addResource(clusterName,
-                dbName,
+                resourceName,
                 partitions,
                 stateModelRef,
                 IdealStateModeProperty.AUTO.toString(),
@@ -624,17 +629,17 @@ public class ZKHelixAdmin implements HelixAdmin
 
   @Override
   public void addResource(String clusterName,
-                          String dbName,
+                          String resourceName,
                           int partitions,
                           String stateModelRef,
                           String idealStateMode)
   {
-    addResource(clusterName, dbName, partitions, stateModelRef, idealStateMode, 0);
+    addResource(clusterName, resourceName, partitions, stateModelRef, idealStateMode, 0);
   }
 
   @Override
   public void addResource(String clusterName,
-                          String dbName,
+                          String resourceName,
                           int partitions,
                           String stateModelRef,
                           String idealStateMode,
@@ -654,7 +659,7 @@ public class ZKHelixAdmin implements HelixAdmin
     {
       logger.error("", e);
     }
-    IdealState idealState = new IdealState(dbName);
+    IdealState idealState = new IdealState(resourceName);
     idealState.setNumPartitions(partitions);
     idealState.setStateModelDefRef(stateModelRef);
     idealState.setIdealStateMode(mode.toString());
@@ -677,7 +682,7 @@ public class ZKHelixAdmin implements HelixAdmin
     }
 
     String idealStatePath = HelixUtil.getIdealStatePath(clusterName);
-    String dbIdealStatePath = idealStatePath + "/" + dbName;
+    String dbIdealStatePath = idealStatePath + "/" + resourceName;
     if (_zkClient.exists(dbIdealStatePath))
     {
       throw new HelixException("Skip the operation. DB ideal state directory exists:"
@@ -1067,4 +1072,141 @@ public class ZKHelixAdmin implements HelixAdmin
       _configAccessor.remove(scope, key);
     }
   }
+
+  @Override
+  public void rebalance(String clusterName, String resourceName, int replica)
+  {
+    rebalance(clusterName, resourceName, replica, resourceName);
+  }
+
+  void rebalance(String clusterName, String resourceName, int replica, String keyPrefix)
+  {
+    List<String> InstanceNames = getInstancesInCluster(clusterName);
+
+    // ensure we get the same idealState with the same set of instances
+    Collections.sort(InstanceNames);
+
+    IdealState idealState = getResourceIdealState(clusterName, resourceName);
+    if (idealState == null)
+    {
+      throw new HelixException("Resource: " + resourceName + " has NOT been added yet");
+    }
+
+    idealState.setReplicas(Integer.toString(replica));
+    int partitions = idealState.getNumPartitions();
+    String stateModelName = idealState.getStateModelDefRef();
+    StateModelDefinition stateModDef = getStateModelDef(clusterName, stateModelName);
+
+    if (stateModDef == null)
+    {
+      throw new HelixException("cannot find state model: " + stateModelName);
+    }
+    // StateModelDefinition def = new StateModelDefinition(stateModDef);
+
+    List<String> statePriorityList = stateModDef.getStatesPriorityList();
+
+    String masterStateValue = null;
+    String slaveStateValue = null;
+    replica--;
+
+    for (String state : statePriorityList)
+    {
+      String count = stateModDef.getNumInstancesPerState(state);
+      if (count.equals("1"))
+      {
+        if (masterStateValue != null)
+        {
+          throw new HelixException("Invalid or unsupported state model definition");
+        }
+        masterStateValue = state;
+      }
+      else if (count.equalsIgnoreCase("R"))
+      {
+        if (slaveStateValue != null)
+        {
+          throw new HelixException("Invalid or unsupported state model definition");
+        }
+        slaveStateValue = state;
+      }
+      else if (count.equalsIgnoreCase("N"))
+      {
+        if (!(masterStateValue == null && slaveStateValue == null))
+        {
+          throw new HelixException("Invalid or unsupported state model definition");
+        }
+        replica = InstanceNames.size() - 1;
+        masterStateValue = slaveStateValue = state;
+      }
+    }
+    if (masterStateValue == null && slaveStateValue == null)
+    {
+      throw new HelixException("Invalid or unsupported state model definition");
+    }
+
+    if (masterStateValue == null)
+    {
+      masterStateValue = slaveStateValue;
+    }
+    if (idealState.getIdealStateMode() != IdealStateModeProperty.AUTO_REBALANCE)
+    {
+      ZNRecord newIdealState =
+          IdealStateCalculatorForStorageNode.calculateIdealState(InstanceNames,
+                                                                 partitions,
+                                                                 replica,
+                                                                 keyPrefix,
+                                                                 masterStateValue,
+                                                                 slaveStateValue);
+
+      // for now keep mapField in AUTO mode and remove listField in CUSTOMIZED mode
+      if (idealState.getIdealStateMode() == IdealStateModeProperty.AUTO)
+      {
+        idealState.getRecord().setListFields(newIdealState.getListFields());
+        idealState.getRecord().setMapFields(newIdealState.getMapFields());
+      }
+      if (idealState.getIdealStateMode() == IdealStateModeProperty.CUSTOMIZED)
+      {
+        idealState.getRecord().setMapFields(newIdealState.getMapFields());
+      }
+    }
+    else
+    {
+      for (int i = 0; i < partitions; i++)
+      {
+        String partitionName = keyPrefix + "_" + i;
+        idealState.getRecord().setMapField(partitionName, new HashMap<String, String>());
+        idealState.getRecord().setListField(partitionName, new ArrayList<String>());
+      }
+    }
+    setResourceIdealState(clusterName, resourceName, idealState);
+  }
+
+  public void addIdealState(String clusterName, String resourceName, String idealStateFile) throws IOException
+  {
+    ZNRecord idealStateRecord =
+        (ZNRecord) (new ZNRecordSerializer().deserialize(readFile(idealStateFile)));
+    if (idealStateRecord.getId() == null
+        || !idealStateRecord.getId().equals(resourceName))
+    {
+      throw new IllegalArgumentException("ideal state must have same id as resource name");
+    }
+    setResourceIdealState(clusterName, resourceName, new IdealState(idealStateRecord));
+  }
+
+  private static byte[] readFile(String filePath) throws IOException
+  {
+    File file = new File(filePath);
+
+    int size = (int) file.length();
+    byte[] bytes = new byte[size];
+    DataInputStream dis = new DataInputStream(new FileInputStream(file));
+    int read = 0;
+    int numRead = 0;
+    while (read < bytes.length
+        && (numRead = dis.read(bytes, read, bytes.length - read)) >= 0)
+    {
+      read = read + numRead;
+    }
+    return bytes;
+  }
+
 }

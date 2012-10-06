@@ -15,6 +15,7 @@
  */
 package com.linkedin.helix.manager.file;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +39,7 @@ import com.linkedin.helix.store.file.FilePropertyStore;
 import com.linkedin.helix.tools.StateModelConfigGenerator;
 import com.linkedin.helix.util.HelixUtil;
 
+@Deprecated
 public class FileHelixAdmin implements HelixAdmin
 {
   private static Logger                     logger =
@@ -448,5 +450,19 @@ public class FileHelixAdmin implements HelixAdmin
     // TODO Auto-generated method stub
     throw new UnsupportedOperationException("unsupported operation");
 
+  }
+
+  @Override
+  public void rebalance(String clusterName, String resourceName, int replica)
+  {
+    // TODO Auto-generated method stub
+    throw new UnsupportedOperationException("unsupported operation");
+  }
+
+  @Override
+  public void addIdealState(String clusterName, String resourceName, String idealStateFile) throws IOException
+  {
+    // TODO Auto-generated method stub
+    throw new UnsupportedOperationException("unsupported operation");
   }
 }

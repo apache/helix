@@ -3,8 +3,14 @@ package com.linkedin.helix.examples;
 import java.io.File;
 
 import com.linkedin.helix.controller.HelixControllerMain;
+import com.linkedin.helix.manager.zk.ZKHelixAdmin;
+import com.linkedin.helix.manager.zk.ZNRecordSerializer;
+import com.linkedin.helix.manager.zk.ZkClient;
+import com.linkedin.helix.model.InstanceConfig;
+import com.linkedin.helix.model.StateModelDefinition;
 import com.linkedin.helix.model.IdealState.IdealStateModeProperty;
 import com.linkedin.helix.tools.ClusterSetup;
+import com.linkedin.helix.tools.StateModelConfigGenerator;
 
 public class IdealStateExample
 {
@@ -34,14 +40,29 @@ public class IdealStateExample
     }
 
     // add cluster {clusterName}
-    ClusterSetup setupTool = new ClusterSetup(zkAddr);
-    setupTool.addCluster(clusterName, true);
+    ZkClient zkclient =
+        new ZkClient(zkAddr,
+                     ZkClient.DEFAULT_SESSION_TIMEOUT,
+                     ZkClient.DEFAULT_CONNECTION_TIMEOUT,
+                     new ZNRecordSerializer());
+    ZKHelixAdmin admin = new ZKHelixAdmin(zkclient);
+    admin.addCluster(clusterName, true);
+
+    // add MasterSlave state mode definition
+    StateModelConfigGenerator generator = new StateModelConfigGenerator();
+    admin.addStateModelDef(clusterName,
+                           "MasterSlave",
+                           new StateModelDefinition(generator.generateConfigForMasterSlave()));
 
     // add 3 participants: "localhost:{12918, 12919, 12920}"
     for (int i = 0; i < 3; i++)
     {
       int port = 12918 + i;
-      setupTool.addInstanceToCluster(clusterName, "localhost:" + port);
+      InstanceConfig config = new InstanceConfig("localhost_" + port);
+      config.setHostName("localhost");
+      config.setPort(Integer.toString(port));
+      config.setInstanceEnabled(true);
+      admin.addInstance(clusterName, config);
     }
 
     // add resource "TestDB" which has 4 partitions and uses MasterSlave state model
@@ -49,18 +70,14 @@ public class IdealStateExample
     if (idealStateMode == IdealStateModeProperty.AUTO
         || idealStateMode == IdealStateModeProperty.AUTO_REBALANCE)
     {
-      setupTool.addResourceToCluster(clusterName,
-                                     resourceName,
-                                     4,
-                                     "MasterSlave",
-                                     idealStateModeStr);
+      admin.addResource(clusterName, resourceName, 4, "MasterSlave", idealStateModeStr);
 
       // rebalance resource "TestDB" using 3 replicas
-      setupTool.rebalanceStorageCluster(clusterName, resourceName, 3);
+      admin.rebalance(clusterName, resourceName, 3);
     }
     else if (idealStateMode == IdealStateModeProperty.CUSTOMIZED)
     {
-      setupTool.addIdealState(clusterName, resourceName, idealStateJsonFile);
+      admin.addIdealState(clusterName, resourceName, idealStateJsonFile);
     }
 
     // start helix controller

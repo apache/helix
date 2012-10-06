@@ -430,6 +430,7 @@ public class ClusterSetup
     _admin.dropResource(clusterName, resourceName);
   }
 
+  // TODO: remove this. has moved to ZkHelixAdmin
   public void rebalanceStorageCluster(String clusterName, String resourceName, int replica)
   {
     rebalanceStorageCluster(clusterName, resourceName, replica, resourceName);
@@ -683,6 +684,7 @@ public class ClusterSetup
     return result;
   }
 
+  // TODO: remove this. has moved to ZkHelixAdmin
   public void rebalanceStorageCluster(String clusterName,
                                       String resourceName,
                                       int replica,
@@ -1258,7 +1260,8 @@ public class ClusterSetup
     options.addOptionGroup(group);
     return options;
   }
-
+  
+  // TODO: remove this. has moved to ZkHelixAdmin
   private static byte[] readFile(String filePath) throws IOException
   {
     File file = new File(filePath);
@@ -1779,6 +1782,7 @@ public class ClusterSetup
     return 0;
   }
 
+  // TODO: remove this. has moved to ZkHelixAdmin
   public void addIdealState(String clusterName, String resourceName, String idealStateFile) throws IOException
   {
     ZNRecord idealStateRecord =

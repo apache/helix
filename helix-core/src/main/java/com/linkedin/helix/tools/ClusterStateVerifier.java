@@ -16,6 +16,7 @@
 package com.linkedin.helix.tools;
 
 import java.io.File;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -326,31 +327,26 @@ public class ClusterStateVerifier
       cache.refresh(accessor);
 
       Map<String, IdealState> idealStates = cache.getIdealStates();
-      if (idealStates == null || idealStates.isEmpty())
+      if (idealStates == null)  // || idealStates.isEmpty())
       {
-        LOG.info("No resource idealState");
-        return true;
+        // ideal state is null because ideal state is dropped
+        idealStates = Collections.emptyMap();
       }
 
       Map<String, ExternalView> extViews =
           accessor.getChildValuesMap(keyBuilder.externalViews());
-      if (extViews == null || extViews.isEmpty())
+      if (extViews == null) // || extViews.isEmpty())
       {
-        LOG.info("No externalViews");
-        return false;
+        extViews = Collections.emptyMap();
       }
 
-      // make sure dropped resource group has none/empty external view
+      // if externalView is not empty and idealState doesn't exist
+      //  add empty idealState for the resource
       for (String resource : extViews.keySet())
       {
         if (!idealStates.containsKey(resource))
         {
-          ExternalView extView = extViews.get(resource);
-          if (extView.getPartitionSet().size() > 0)
-          {
-            LOG.info(resource + " is not in idealState but has a non-empty externalView: " + extView);
-            return false;
-          }
+          idealStates.put(resource, new IdealState(resource));
         }
       }
       
@@ -375,6 +371,7 @@ public class ClusterStateVerifier
         }
       }
 
+      
       for (String resourceName : idealStates.keySet())
       {
         ExternalView extView = extViews.get(resourceName);
@@ -384,7 +381,7 @@ public class ClusterStateVerifier
           return false;
         }
 
-        // step 0: remove empty map from best possible state
+        // step 0: remove empty map and DROPPED state from best possible state
         Map<Partition, Map<String, String>> bpStateMap =
             bestPossOutput.getResourceMap(resourceName);
         Iterator<Entry<Partition, Map<String, String>>> iter =
@@ -396,6 +393,19 @@ public class ClusterStateVerifier
           if (instanceStateMap.isEmpty())
           {
             iter.remove();
+          } else
+          {
+            // remove instances with DROPPED state
+            Iterator<Map.Entry<String, String>> insIter = instanceStateMap.entrySet().iterator();
+            while (insIter.hasNext())
+            {
+              Map.Entry<String, String> insEntry = insIter.next();
+              String state = insEntry.getValue();
+              if (state.equalsIgnoreCase("DROPPED"))
+              {
+                insIter.remove();
+              }   
+            }
           }
         }
 

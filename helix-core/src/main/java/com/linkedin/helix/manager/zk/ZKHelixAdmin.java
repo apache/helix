@@ -1180,6 +1180,7 @@ public class ZKHelixAdmin implements HelixAdmin
     setResourceIdealState(clusterName, resourceName, idealState);
   }
 
+  @Override
   public void addIdealState(String clusterName, String resourceName, String idealStateFile) throws IOException
   {
     ZNRecord idealStateRecord =

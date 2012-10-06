@@ -522,24 +522,17 @@ public class ZKHelixManager implements HelixManager
 
     synchronized (this)
     {
-      for (CallbackHandler handler : _handlers)
+      Iterator<CallbackHandler> iterator = _handlers.iterator();
+      while (iterator.hasNext())
       {
+        CallbackHandler handler = iterator.next();
+        // simply compare reference
         if (handler.getListener().equals(listener))
         {
           handler.reset();
+          iterator.remove();
         }
       }
-//      Iterator<CallbackHandler> iterator = _handlers.iterator();
-//      while (iterator.hasNext())
-//      {
-//        CallbackHandler handler = iterator.next();
-//        // simply compare reference
-//        if (handler.getListener().equals(listener))
-//        {
-//          handler.reset();
-//          iterator.remove();
-//        }
-//      }
     }
 
     return true;
@@ -861,6 +854,8 @@ public class ZKHelixManager implements HelixManager
   {
     synchronized (this)
     {
+      // get a copy of the list and iterate over the copy list
+      // in case handler.reset() will modify the original handler list
       List<CallbackHandler> handlers = new ArrayList<CallbackHandler>();
       handlers.addAll(_handlers);
 

@@ -12,6 +12,48 @@ import com.linkedin.helix.model.IdealState.IdealStateModeProperty;
 import com.linkedin.helix.tools.ClusterSetup;
 import com.linkedin.helix.tools.StateModelConfigGenerator;
 
+/**
+ * Ideal state json format file used in this example for CUSTOMIZED ideal state mode
+ * <p>
+ * <pre>
+ * {
+ * "id" : "TestDB",
+ * "mapFields" : {
+ *   "TestDB_0" : {
+ *     "localhost_12918" : "MASTER",
+ *     "localhost_12919" : "SLAVE",
+ *     "localhost_12920" : "SLAVE"
+ *   },
+ *   "TestDB_1" : {
+ *     "localhost_12918" : "MASTER",
+ *     "localhost_12919" : "SLAVE",
+ *     "localhost_12920" : "SLAVE"
+ *   },
+ *   "TestDB_2" : {
+ *     "localhost_12918" : "MASTER",
+ *     "localhost_12919" : "SLAVE",
+ *     "localhost_12920" : "SLAVE"
+ *   },
+ *   "TestDB_3" : {
+ *     "localhost_12918" : "MASTER",
+ *     "localhost_12919" : "SLAVE",
+ *     "localhost_12920" : "SLAVE"
+ *   }
+ * },
+ * "listFields" : {
+ * },
+ * "simpleFields" : {
+ *   "IDEAL_STATE_MODE" : "CUSTOMIZED",
+ *   "NUM_PARTITIONS" : "4",
+ *   "REPLICAS" : "3",
+ *   "STATE_MODEL_DEF_REF" : "MasterSlave",
+ *   "STATE_MODEL_FACTORY_NAME" : "DEFAULT"
+ * }
+ * }
+ * </pre>
+ * 
+ */
+
 public class IdealStateExample
 {
 

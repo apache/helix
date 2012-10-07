@@ -351,7 +351,7 @@ public interface HelixAdmin
    * @param keyPrefix
    */
   void rebalance(String clusterName, String resourceName, int replica);
-  
+
   /**
    * Add ideal state using a json format file
    * 
@@ -361,5 +361,17 @@ public interface HelixAdmin
    * @throws IOException
    */
   void addIdealState(String clusterName, String resourceName, String idealStateFile) throws IOException;
-  
+
+  /**
+   * Add state model definition using a json format file
+   * 
+   * @param clusterName
+   * @param resourceName
+   * @param idealStateFile
+   * @throws IOException
+   */
+  void addStateModelDef(String clusterName,
+                        String stateModelDefName,
+                        String stateModelDefFile) throws IOException;
+
 }

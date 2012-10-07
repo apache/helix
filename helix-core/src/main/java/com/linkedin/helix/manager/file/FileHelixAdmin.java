@@ -465,4 +465,13 @@ public class FileHelixAdmin implements HelixAdmin
     // TODO Auto-generated method stub
     throw new UnsupportedOperationException("unsupported operation");
   }
+
+  @Override
+  public void addStateModelDef(String clusterName,
+                               String stateModelDefName,
+                               String stateModelDefFile) throws IOException
+  {
+    // TODO Auto-generated method stub
+    throw new UnsupportedOperationException("unsupported operation");
+  }
 }

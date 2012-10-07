@@ -1210,4 +1210,19 @@ public class ZKHelixAdmin implements HelixAdmin
     return bytes;
   }
 
+  public void addStateModelDef(String clusterName,
+                               String stateModelDefName,
+                               String stateModelDefFile) throws IOException
+  {
+    ZNRecord record =
+        (ZNRecord) (new ZNRecordSerializer().deserialize(readFile(stateModelDefFile)));
+    if (record == null || record.getId() == null
+        || !record.getId().equals(stateModelDefName))
+    {
+      throw new IllegalArgumentException("state model definition must have same id as state model def name");
+    }
+    addStateModelDef(clusterName, stateModelDefName, new StateModelDefinition(record));
+
+  }
+
 }

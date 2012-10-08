@@ -436,6 +436,10 @@ public class ClusterSetup
     rebalanceStorageCluster(clusterName, resourceName, replica, resourceName);
   }
 
+  public void reblanceResource(String clusterName, String resourceName, int replica)
+  {
+    rebalanceStorageCluster(clusterName, resourceName, replica, resourceName); 
+  }
   public void expandResource(String clusterName, String resourceName)
   {
     IdealState idealState = _admin.getResourceIdealState(clusterName, resourceName);

@@ -474,4 +474,13 @@ public class FileHelixAdmin implements HelixAdmin
     // TODO Auto-generated method stub
     throw new UnsupportedOperationException("unsupported operation");
   }
+
+  @Override
+  public void addMessageConstraint(String clusterName,
+                                   String constraintId,
+                                   Map<String, String> constraints)
+  {
+    // TODO Auto-generated method stub
+    throw new UnsupportedOperationException("unsupported operation");
+  }
 }

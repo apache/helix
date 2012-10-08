@@ -2,6 +2,7 @@ package com.linkedin.helix.integration;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -10,11 +11,13 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import com.linkedin.helix.PropertyKey.Builder;
+import com.linkedin.helix.HelixAdmin;
 import com.linkedin.helix.PropertyPathConfig;
 import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.TestHelper;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.controller.HelixControllerMain;
+import com.linkedin.helix.manager.zk.ZKHelixAdmin;
 import com.linkedin.helix.manager.zk.ZKHelixDataAccessor;
 import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
 import com.linkedin.helix.mock.storage.MockParticipant;
@@ -52,20 +55,17 @@ public class TestMessageThrottle extends ZkIntegrationTestBase
 
     // setup message constraint
     // "MESSAGE_TYPE=STATE_TRANSITION,TRANSITION=OFFLINE-SLAVE,INSTANCE=.*,CONSTRAINT_VALUE=1";
-    ZNRecord record = new ZNRecord(ConstraintType.MESSAGE_CONSTRAINT.toString());
-    record.setMapField("constraint1", new TreeMap<String, String>());
-    record.getMapField("constraint1").put("MESSAGE_TYPE", "STATE_TRANSITION");
-    // record.getMapField("constraint1").put("TRANSITION", "OFFLINE-SLAVE");
-    record.getMapField("constraint1").put("INSTANCE", ".*");
-    record.getMapField("constraint1").put("CONSTRAINT_VALUE", "1");
-    ClusterConstraints constraint = new ClusterConstraints(record);
+    HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
+    Map<String, String> constraints = new TreeMap<String, String>();
+    constraints.put("MESSAGE_TYPE", "STATE_TRANSITION");
+    // constraints.put("TRANSITION", "OFFLINE-SLAVE");
+    constraints.put("CONSTRAINT_VALUE", "1");
+    constraints.put("INSTANCE", ".*");
+    admin.addMessageConstraint(clusterName, "constraint1", constraints);
+    
 
     final ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
-    final Builder keyBuilder = accessor.keyBuilder();
-
-    accessor.setProperty(keyBuilder.constraint(ConstraintType.MESSAGE_CONSTRAINT.toString()),
-                         constraint);
 
     // make sure we never see more than 1 state transition message for each participant
     final AtomicBoolean success = new AtomicBoolean(true);

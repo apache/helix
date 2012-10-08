@@ -8,7 +8,7 @@ public class StartClusterManager
   {
     if (args.length < 1)
     {
-      System.err.println("USAGE: java StartClusterManager zookeeperAddress (e.g. localhost:2181");
+      System.err.println("USAGE: java StartClusterManager zookeeperAddress (e.g. localhost:2181)");
       System.exit(1);
     }
     

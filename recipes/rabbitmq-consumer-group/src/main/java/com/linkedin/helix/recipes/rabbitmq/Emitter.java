@@ -9,9 +9,27 @@ public class Emitter
 
   private static final String EXCHANGE_NAME = "topic_logs";
 
-  public static void main(String[] argv) throws Exception
+  public static void main(String[] args) throws Exception
   {
-    final String mqServer = "zzhang-ld";
+    if (args.length < 1)
+    {
+      System.err.println("USAGE: java Emitter rabbitmqServer (e.g. localhost) numberOfMessage (optional)");
+      System.exit(1);
+    }
+    
+    final String mqServer = args[0];  // "zzhang-ld";
+    int count = Integer.MAX_VALUE;
+    if (args.length > 1)
+    {
+      try
+      {
+        count = Integer.parseInt(args[1]);
+      } catch (Exception e) {
+        // TODO: handle exception
+      }
+    }
+    System.out.println("Sending " + count + " messages with random topic id");
+    
 
     ConnectionFactory factory = new ConnectionFactory();
     factory.setHost(mqServer);
@@ -20,7 +38,7 @@ public class Emitter
 
     channel.exchangeDeclare(EXCHANGE_NAME, "topic");
 
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < count; i++)
     {
       int rand = ((int) (Math.random() * 10000) % 60);
       String routingKey = "topic_" + rand;

@@ -51,9 +51,12 @@ import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.alerts.AlertsHolder;
 import com.linkedin.helix.alerts.StatsHolder;
 import com.linkedin.helix.model.Alerts;
+import com.linkedin.helix.model.ClusterConstraints;
 import com.linkedin.helix.model.CurrentState;
 import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.IdealState;
+import com.linkedin.helix.model.ClusterConstraints.ConstraintAttribute;
+import com.linkedin.helix.model.ClusterConstraints.ConstraintType;
 import com.linkedin.helix.model.IdealState.IdealStateModeProperty;
 import com.linkedin.helix.model.InstanceConfig;
 import com.linkedin.helix.model.InstanceConfig.InstanceConfigProperty;
@@ -1225,4 +1228,46 @@ public class ZKHelixAdmin implements HelixAdmin
 
   }
 
+  public void addMessageConstraint(String clusterName,
+                                   final String constraintId,
+                                   final Map<String, String> constraints)
+  {
+    ZkBaseDataAccessor<ZNRecord> baseAccessor =
+        new ZkBaseDataAccessor<ZNRecord>(_zkClient);
+
+    Builder keyBuilder = new Builder(clusterName);
+    String path = keyBuilder.constraint(ConstraintType.MESSAGE_CONSTRAINT.toString()).getPath();
+
+    baseAccessor.update(path, new DataUpdater<ZNRecord>()
+    {
+      @Override
+      public ZNRecord update(ZNRecord currentData)
+      {
+        if (currentData == null)
+        {
+          currentData = new ZNRecord(ConstraintType.MESSAGE_CONSTRAINT.toString());
+        }
+
+        Map<String, String> map = currentData.getMapField(constraintId);
+        if (map == null)
+        {
+          map = new TreeMap<String, String>();
+          currentData.setMapField(constraintId, map);
+        } else
+        {
+          logger.warn("Overwrite existing constraint " + constraintId + ": " + map);
+        }
+
+        for (String key : constraints.keySet())
+        {
+          // make sure contraint attribute is valid
+          ConstraintAttribute attr = ConstraintAttribute.valueOf(key.toUpperCase());
+
+          map.put(attr.toString(), constraints.get(key));
+        }
+        
+        return currentData;
+      }
+    }, AccessOption.PERSISTENT);
+  }
 }

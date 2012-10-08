@@ -374,4 +374,13 @@ public interface HelixAdmin
                         String stateModelDefName,
                         String stateModelDefFile) throws IOException;
 
+  /**
+   * Add a message contraint
+   * 
+   * @param constraintId
+   * @param constraints
+   */
+  void addMessageConstraint(String clusterName,
+                            String constraintId,
+                            Map<String, String> constraints);
 }

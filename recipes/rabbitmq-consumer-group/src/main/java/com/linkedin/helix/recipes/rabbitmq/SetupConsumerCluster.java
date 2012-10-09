@@ -11,6 +11,8 @@ public class SetupConsumerCluster
 {
   public static final String DEFAULT_CLUSTER_NAME = "rabbitmq-consumer-cluster";
   public static final String DEFAULT_RESOURCE_NAME = "topic";
+  public static final int DEFAULT_PARTITION_NUMBER = 6;
+  public static final String DEFAULT_STATE_MODEL = "OnlineOffline";
 
   public static void main(String[] args)
   {
@@ -35,12 +37,12 @@ public class SetupConsumerCluster
 
       // add state model definition
       StateModelConfigGenerator generator = new StateModelConfigGenerator();
-      admin.addStateModelDef(clusterName, "OnlineOffine",
+      admin.addStateModelDef(clusterName, DEFAULT_STATE_MODEL,
           new StateModelDefinition(generator.generateConfigForOnlineOffline()));
 
-      // add resource "topic" which has 60 partitions
+      // add resource "topic" which has 6 partitions
       String resourceName = DEFAULT_RESOURCE_NAME;
-      admin.addResource(clusterName, resourceName, 60, "OnlineOffline",
+      admin.addResource(clusterName, resourceName, DEFAULT_PARTITION_NUMBER, DEFAULT_STATE_MODEL,
           IdealStateModeProperty.AUTO_REBALANCE.toString());
       
       admin.rebalance(clusterName, resourceName, 1);

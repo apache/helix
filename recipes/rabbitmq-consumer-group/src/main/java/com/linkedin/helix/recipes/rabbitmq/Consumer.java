@@ -40,7 +40,7 @@ public class Consumer
       StateMachineEngine stateMach = _manager.getStateMachineEngine();
       ConsumerStateModelFactory modelFactory =
           new ConsumerStateModelFactory(_consumerId, _mqServer);
-      stateMach.registerStateModelFactory("OnlineOffline", modelFactory);
+      stateMach.registerStateModelFactory(SetupConsumerCluster.DEFAULT_STATE_MODEL, modelFactory);
 
       _manager.connect();
 
@@ -73,14 +73,14 @@ public class Consumer
   {
     if (args.length < 3)
     {
-      System.err.println("USAGE: java Consumer zookeeperAddress (e.g. localhost:2181) consumerId (0-4), rabbitmqServer (e.g. localhost)");
+      System.err.println("USAGE: java Consumer zookeeperAddress (e.g. localhost:2181) consumerId (0-2), rabbitmqServer (e.g. localhost)");
       System.exit(1);
     }
 
-    final String zkAddr = args[0]; // "zzhang-ld:2191";
+    final String zkAddr = args[0];
     final String clusterName = SetupConsumerCluster.DEFAULT_CLUSTER_NAME;
     final String consumerId = args[1];
-    final String mqServer = args[2]; // "zzhang-ld";
+    final String mqServer = args[2];
 
     ZkClient zkclient = null;
     try

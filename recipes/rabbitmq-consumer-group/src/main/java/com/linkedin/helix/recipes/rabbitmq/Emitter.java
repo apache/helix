@@ -40,7 +40,7 @@ public class Emitter
 
     for (int i = 0; i < count; i++)
     {
-      int rand = ((int) (Math.random() * 10000) % 60);
+      int rand = ((int) (Math.random() * 10000) % SetupConsumerCluster.DEFAULT_PARTITION_NUMBER);
       String routingKey = "topic_" + rand;
       String message = "message_" + rand;
 

@@ -89,7 +89,7 @@ Sample App using Helix: [rabbitmq-consumer-group] (https://github.com/linkedin/h
 Quickstart guide: [How to build and run a mock example](https://github.com/linkedin/helix/wiki/Quickstart)  
 Architecture: [Helix Architecture](https://github.com/linkedin/helix/wiki/Architecture)  
 Features: [Helix Features](https://github.com/linkedin/helix/wiki/Features)  
-ApiUsage: [Helix Api Usage]http://linkedin.github.com/helix/apidocs/)  
+ApiUsage: http://linkedin.github.com/helix/apidocs/
 UseCases: [Helix LinkedIn Usecases](https://github.com/linkedin/helix/wiki/UseCases)  
 
 

@@ -1,3 +1,4 @@
 cscope.*
 .svn
 /target
+/recipes/rabbitmq-consumer-group/target/

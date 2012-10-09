@@ -8,7 +8,7 @@ import com.linkedin.helix.participant.statemachine.StateModel;
 import com.linkedin.helix.participant.statemachine.StateModelInfo;
 import com.linkedin.helix.participant.statemachine.Transition;
 
-@StateModelInfo(initialState = "OFFLINE", states = { "MASTER", "SLAVE", "ERROR" })
+@StateModelInfo(initialState = "OFFLINE", states = { "ONLINE", "ERROR" })
 public class ConsumerStateModel extends StateModel
 {
   private static Logger LOG = Logger.getLogger(ConsumerStateModel.class);
@@ -26,20 +26,10 @@ public class ConsumerStateModel extends StateModel
     _mqServer = mqServer;
   }
 
-  @Transition(to = "SLAVE", from = "OFFLINE")
-  public void onBecomeSlaveFromOffline(Message message, NotificationContext context)
+  @Transition(to = "ONLINE", from = "OFFLINE")
+  public void onBecomeOnlineFromOffline(Message message, NotificationContext context)
   {
-//    String partition = message.getPartitionName();
-//    String consumerId = message.getTgtName();
-    LOG.debug(_consumerId + " becomes SLAVE from OFFLINE for " + _partition);
-  }
-
-  @Transition(to = "MASTER", from = "SLAVE")
-  public void onBecomeMasterFromSlave(Message message, NotificationContext context)
-  {
-//    String partition = message.getPartitionName();
-//    String consumerId = message.getTgtName();
-    LOG.debug(_consumerId + " becomes MASTER from SLAVE for " + _partition);
+    LOG.debug(_consumerId + " becomes ONLINE from OFFLINE for " + _partition);
 
     if (_thread == null)
     {
@@ -51,18 +41,15 @@ public class ConsumerStateModel extends StateModel
     }
   }
 
-  @Transition(to = "SLAVE", from = "MASTER")
-  public void onBecomeSlaveFromMaster(Message message, NotificationContext context)
+  @Transition(to = "OFFLINE", from = "ONLINE")
+  public void onBecomeOfflineFromOnline(Message message, NotificationContext context)
       throws InterruptedException
   {
-//    String partition = message.getPartitionName();
-//    String consumerId = message.getTgtName();
-    LOG.debug(_consumerId + " becomes SLAVE from MASTER for " + _partition);
+    LOG.debug(_consumerId + " becomes OFFLINE from ONLINE for " + _partition);
 
     if (_thread != null)
     {
       LOG.debug("Stopping " + _consumerId + " for " + _partition + "...");
-//      System.out.println("Stopping " + _consumerId + " for " + _partition + "...");
 
       _thread.interrupt();
       _thread.join(2000);
@@ -72,27 +59,15 @@ public class ConsumerStateModel extends StateModel
     }
   }
 
-  @Transition(to = "OFFLINE", from = "SLAVE")
-  public void onBecomeOfflineFromSlave(Message message, NotificationContext context)
-  {
-//    String partition = message.getPartitionName();
-//    String consumerId = message.getTgtName();
-    LOG.debug(_consumerId + " becomes OFFLINE from SLAVE for " + _partition);
-  }
-
   @Transition(to = "DROPPED", from = "OFFLINE")
   public void onBecomeDroppedFromOffline(Message message, NotificationContext context)
   {
-//    String partition = message.getPartitionName();
-//    String consumerId = message.getTgtName();
     LOG.debug(_consumerId + " becomes DROPPED from OFFLINE for " + _partition);
   }
 
   @Transition(to = "OFFLINE", from = "ERROR")
   public void onBecomeOfflineFromError(Message message, NotificationContext context)
   {
-//    String partition = message.getPartitionName();
-//    String consumerId = message.getTgtName();
     LOG.debug(_consumerId + " becomes OFFLINE from ERROR for " + _partition);
   }
 
@@ -104,7 +79,6 @@ public class ConsumerStateModel extends StateModel
     if (_thread != null)
     {
       LOG.debug("Stopping " + _consumerId + " for " + _partition + "...");
-//      System.out.println("Stopping " + _consumerId + " for " + _partition + "...");
 
       _thread.interrupt();
       try
@@ -119,6 +93,5 @@ public class ConsumerStateModel extends StateModel
       LOG.debug("Stopping " +  _consumerId + " for " + _partition + " done");
 
     }
-
   }
 }

@@ -40,7 +40,7 @@ public class Consumer
       StateMachineEngine stateMach = _manager.getStateMachineEngine();
       ConsumerStateModelFactory modelFactory =
           new ConsumerStateModelFactory(_consumerId, _mqServer);
-      stateMach.registerStateModelFactory("MasterSlave", modelFactory);
+      stateMach.registerStateModelFactory("OnlineOffline", modelFactory);
 
       _manager.connect();
 
@@ -100,12 +100,6 @@ public class Consumer
         config.setHostName("localhost");
         config.setInstanceEnabled(true);
         admin.addInstance(clusterName, config);
-        
-        // rebalance resource "topic" using replicas=nodes# 
-        String resourceName = SetupConsumerCluster.RESOURCE_NAME;
-        nodes = admin.getInstancesInCluster(clusterName);
-        System.out.println("Nodes in cluster " + clusterName + " are: " + nodes);
-        admin.rebalance(clusterName, resourceName, nodes.size());
       }
 
       // start consumer

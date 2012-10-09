@@ -51,7 +51,6 @@ import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.alerts.AlertsHolder;
 import com.linkedin.helix.alerts.StatsHolder;
 import com.linkedin.helix.model.Alerts;
-import com.linkedin.helix.model.ClusterConstraints;
 import com.linkedin.helix.model.CurrentState;
 import com.linkedin.helix.model.ExternalView;
 import com.linkedin.helix.model.IdealState;

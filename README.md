@@ -84,13 +84,13 @@ Helix uses Zookeeper for maintaining the cluster state and change notification.
 Additional Info
 ---------------
 
-Documentation: [Home](https://github.com/linkedin/helix/wiki/Home)
-Sample App using Helix: [rabbitmq-consumer-group] (https://github.com/linkedin/helix/wiki/Sample_App)
-Quickstart guide: [How to build and run a mock example](https://github.com/linkedin/helix/wiki/Quickstart)
-Architecture: [Helix Architecture](https://github.com/linkedin/helix/wiki/Architecture)
-Features: [Helix Features](https://github.com/linkedin/helix/wiki/Features)
-ApiUsage: [Helix Api Usage]http://linkedin.github.com/helix/apidocs/)
-UseCases: [Helix LinkedIn Usecases](https://github.com/linkedin/helix/wiki/UseCases)
+Documentation: [Home](https://github.com/linkedin/helix/wiki/Home)  
+Sample App using Helix: [rabbitmq-consumer-group] (https://github.com/linkedin/helix/wiki/Sample_App)  
+Quickstart guide: [How to build and run a mock example](https://github.com/linkedin/helix/wiki/Quickstart)  
+Architecture: [Helix Architecture](https://github.com/linkedin/helix/wiki/Architecture)  
+Features: [Helix Features](https://github.com/linkedin/helix/wiki/Features)  
+ApiUsage: [Helix Api Usage]http://linkedin.github.com/helix/apidocs/)  
+UseCases: [Helix LinkedIn Usecases](https://github.com/linkedin/helix/wiki/UseCases)  
 
 
 

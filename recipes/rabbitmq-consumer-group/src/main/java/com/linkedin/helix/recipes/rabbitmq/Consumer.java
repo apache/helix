@@ -78,7 +78,7 @@ public class Consumer
     }
 
     final String zkAddr = args[0]; // "zzhang-ld:2191";
-    final String clusterName = SetupConsumerCluster.CLUSTER_NAME;
+    final String clusterName = SetupConsumerCluster.DEFAULT_CLUSTER_NAME;
     final String consumerId = args[1];
     final String mqServer = args[2]; // "zzhang-ld";
 

@@ -13,7 +13,7 @@ public class StartClusterManager
       System.exit(1);
     }
     
-    final String clusterName = SetupConsumerCluster.CLUSTER_NAME;
+    final String clusterName = SetupConsumerCluster.DEFAULT_CLUSTER_NAME;
     final String zkAddr = args[0];
     
     try

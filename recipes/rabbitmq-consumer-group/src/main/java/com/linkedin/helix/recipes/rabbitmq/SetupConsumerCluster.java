@@ -8,8 +8,8 @@ import com.linkedin.helix.tools.StateModelConfigGenerator;
 
 public class SetupConsumerCluster
 {
-  public static final String CLUSTER_NAME = "consumer-cluster";
-  public static final String RESOURCE_NAME = "topic";
+  public static final String DEFAULT_CLUSTER_NAME = "rabbitmq-consumer-cluster";
+  public static final String DEFAULT_RESOURCE_NAME = "topic";
 
   public static void main(String[] args)
   {
@@ -20,7 +20,7 @@ public class SetupConsumerCluster
     }
     
     final String zkAddr = args[0];
-    final String clusterName = CLUSTER_NAME;
+    final String clusterName = DEFAULT_CLUSTER_NAME;
     
     ZkClient zkclient = null;
     try
@@ -38,7 +38,7 @@ public class SetupConsumerCluster
           new StateModelDefinition(generator.generateConfigForMasterSlave()));
 
       // add resource "topic" which has 60 partitions
-      String resourceName = RESOURCE_NAME;
+      String resourceName = DEFAULT_RESOURCE_NAME;
       admin.addResource(clusterName, resourceName, 60, "MasterSlave");
 
     } finally

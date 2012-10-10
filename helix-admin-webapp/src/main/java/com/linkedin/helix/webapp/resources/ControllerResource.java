@@ -1,6 +1,11 @@
 package com.linkedin.helix.webapp.resources;
 
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Map;
+import java.util.TreeMap;
 
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
@@ -15,11 +20,15 @@ import com.linkedin.helix.HelixException;
 import com.linkedin.helix.HelixProperty;
 import com.linkedin.helix.PropertyKey;
 import com.linkedin.helix.PropertyKey.Builder;
+import com.linkedin.helix.PropertyType;
 import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.manager.zk.ZKHelixDataAccessor;
 import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
 import com.linkedin.helix.manager.zk.ZkClient;
+import com.linkedin.helix.model.LiveInstance;
+import com.linkedin.helix.model.PauseSignal;
 import com.linkedin.helix.tools.ClusterSetup;
+import com.linkedin.helix.util.StatusUpdateUtil.Level;
 import com.linkedin.helix.webapp.RestAdminApplication;
 
 public class ControllerResource extends Resource
@@ -59,16 +68,29 @@ public class ControllerResource extends Resource
     ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
 
-    // return an empty znrecord if leader not exist
-    String value = ClusterRepresentationUtil.ZNRecordToJson(new ZNRecord(""));
-    HelixProperty property = accessor.getProperty(keyBuilder.controllerLeader());
-    if (property != null)
-    {
-      value = ClusterRepresentationUtil.ZNRecordToJson(property.getRecord());
-    }
 
+    ZNRecord record = null;
+    LiveInstance leader = accessor.getProperty(keyBuilder.controllerLeader());
+    if (leader != null)
+    {
+      record = leader.getRecord();
+    }
+    else
+    {
+      record = new ZNRecord("");
+      DateFormat formatter = new SimpleDateFormat("yyyyMMdd-HHmmss.SSSSSS");
+      String time = formatter.format(new Date());
+      Map<String, String> contentMap = new TreeMap<String, String>();
+      contentMap.put("AdditionalInfo", "No leader exists");
+      record.setMapField(Level.HELIX_INFO + "-" + time, contentMap);
+    }
+    
+    boolean paused = (accessor.getProperty(keyBuilder.pause()) == null? false : true);
+    record.setSimpleField(PropertyType.PAUSE.toString(), "" + paused);
+
+    String retVal = ClusterRepresentationUtil.ZNRecordToJson(record);
     StringRepresentation representation =
-        new StringRepresentation(value, MediaType.APPLICATION_JSON);
+        new StringRepresentation(retVal, MediaType.APPLICATION_JSON);
 
     return representation;
   }

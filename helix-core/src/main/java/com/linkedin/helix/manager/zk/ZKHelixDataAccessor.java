@@ -9,6 +9,7 @@ import java.util.Map;
 import org.I0Itec.zkclient.DataUpdater;
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.apache.log4j.Logger;
+import org.apache.zookeeper.data.Stat;
 
 import com.linkedin.helix.AccessOption;
 import com.linkedin.helix.BaseDataAccessor;
@@ -39,7 +40,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
   final InstanceType                       _instanceType;
   private final String                     _clusterName;
   private final Builder                    _propertyKeyBuilder;
-  ZkPropertyTransferClient           _zkPropertyTransferClient = null;
+  ZkPropertyTransferClient                 _zkPropertyTransferClient = null;
   private final GroupCommit                _groupCommit              = new GroupCommit();
   String                                   _zkPropertyTransferSvcUrl = null;
 
@@ -152,7 +153,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
           ZNRecordUpdate update =
               new ZNRecordUpdate(path, OpCode.UPDATE, value.getRecord());
           _zkPropertyTransferClient.enqueueZNRecordUpdate(update,
-              _zkPropertyTransferSvcUrl);
+                                                          _zkPropertyTransferSvcUrl);
 
           return true;
         }
@@ -247,7 +248,13 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
     ZNRecord record = null;
     try
     {
-      record = _baseDataAccessor.get(path, null, options);
+      Stat stat = new Stat();
+      record = _baseDataAccessor.get(path, stat, options);
+      if (record != null)
+      {
+        record.setCreationTime(stat.getCtime());
+        record.setModifiedTime(stat.getMtime());
+      }
     }
     catch (ZkNoNodeException e)
     {
@@ -405,15 +412,16 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
       options = options | AccessOption.EPHEMERAL;
     }
 
-//    if (type == PropertyType.CURRENTSTATES && _instanceType == InstanceType.PARTICIPANT)
-//    {
-//      options = options | BaseDataAccessor.Option.WRITE_THROUGH;
-//    }
-//    else if (type == PropertyType.EXTERNALVIEW
-//        && _instanceType == InstanceType.CONTROLLER)
-//    {
-//      options = options | BaseDataAccessor.Option.WRITE_THROUGH;
-//    }
+    // if (type == PropertyType.CURRENTSTATES && _instanceType ==
+    // InstanceType.PARTICIPANT)
+    // {
+    // options = options | BaseDataAccessor.Option.WRITE_THROUGH;
+    // }
+    // else if (type == PropertyType.EXTERNALVIEW
+    // && _instanceType == InstanceType.CONTROLLER)
+    // {
+    // options = options | BaseDataAccessor.Option.WRITE_THROUGH;
+    // }
 
     return options;
   }
@@ -534,7 +542,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
 
   public void shutdown()
   {
-    if(_zkPropertyTransferClient != null)
+    if (_zkPropertyTransferClient != null)
     {
       _zkPropertyTransferClient.shutdown();
     }
@@ -545,11 +553,12 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
   {
     LOG.info("Controller has changed");
     refreshZkPropertyTransferUrl();
-    if(_zkPropertyTransferClient == null)
+    if (_zkPropertyTransferClient == null)
     {
-      if(_zkPropertyTransferSvcUrl != null && _zkPropertyTransferSvcUrl.length() > 0)
+      if (_zkPropertyTransferSvcUrl != null && _zkPropertyTransferSvcUrl.length() > 0)
       {
-        LOG.info("Creating ZkPropertyTransferClient as we get url " + _zkPropertyTransferSvcUrl);
+        LOG.info("Creating ZkPropertyTransferClient as we get url "
+            + _zkPropertyTransferSvcUrl);
         _zkPropertyTransferClient =
             new ZkPropertyTransferClient(ZkPropertyTransferClient.DEFAULT_MAX_CONCURRENTTASKS);
       }
@@ -564,7 +573,8 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
       if (leader != null)
       {
         _zkPropertyTransferSvcUrl = leader.getWebserviceUrl();
-        LOG.info("_zkPropertyTransferSvcUrl : " + _zkPropertyTransferSvcUrl + " Controller " + leader.getInstanceName());
+        LOG.info("_zkPropertyTransferSvcUrl : " + _zkPropertyTransferSvcUrl
+            + " Controller " + leader.getInstanceName());
       }
       else
       {

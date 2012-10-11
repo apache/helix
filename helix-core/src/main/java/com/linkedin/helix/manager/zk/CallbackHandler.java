@@ -133,7 +133,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
       {
         LiveInstanceChangeListener liveInstanceChangeListener =
             (LiveInstanceChangeListener) _listener;
-        subscribeForChanges(changeContext, _path, true, false);
+        subscribeForChanges(changeContext, _path, true, true);
         List<LiveInstance> liveInstances =
             _accessor.getChildValues(keyBuilder.liveInstances());
 

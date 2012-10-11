@@ -141,7 +141,7 @@ public class DynamicFileHelixManager implements HelixManager
   {
     final String path = HelixUtil.getLiveInstancesPath(_clusterName);
     FileCallbackHandler callbackHandler = createCallBackHandler(path, listener, new EventType[] {
-        EventType.NodeChildrenChanged, EventType.NodeDeleted, EventType.NodeCreated },
+        EventType.NodeDataChanged, EventType.NodeChildrenChanged, EventType.NodeDeleted, EventType.NodeCreated },
         LIVE_INSTANCE);
     _handlers.add(callbackHandler);
   }

@@ -231,7 +231,6 @@ public class ZKHelixManager implements HelixManager
                               new EventType[] { EventType.NodeDataChanged,
                                   EventType.NodeDeleted, EventType.NodeCreated },
                               IDEAL_STATE);
-    // _handlers.add(callbackHandler);
     addListener(callbackHandler);
   }
 
@@ -244,10 +243,9 @@ public class ZKHelixManager implements HelixManager
     CallbackHandler callbackHandler =
         createCallBackHandler(path,
                               listener,
-                              new EventType[] { EventType.NodeChildrenChanged,
+                              new EventType[] { EventType.NodeDataChanged, EventType.NodeChildrenChanged,
                                   EventType.NodeDeleted, EventType.NodeCreated },
                               LIVE_INSTANCE);
-    // _handlers.add(callbackHandler);
     addListener(callbackHandler);
   }
 
@@ -256,7 +254,6 @@ public class ZKHelixManager implements HelixManager
   {
     logger.info("ClusterManager.addConfigChangeListener()");
     checkConnected();
-    // final String path = HelixUtil.getConfigPath(_clusterName);
     final String path =
         PropertyPathConfig.getPath(PropertyType.CONFIGS,
                                    _clusterName,
@@ -267,7 +264,6 @@ public class ZKHelixManager implements HelixManager
                               listener,
                               new EventType[] { EventType.NodeChildrenChanged },
                               CONFIG);
-    // _handlers.add(callbackHandler);
     addListener(callbackHandler);
 
   }
@@ -286,7 +282,6 @@ public class ZKHelixManager implements HelixManager
                               new EventType[] { EventType.NodeChildrenChanged,
                                   EventType.NodeDeleted, EventType.NodeCreated },
                               MESSAGE);
-    // _handlers.add(callbackHandler);
     addListener(callbackHandler);
   }
 
@@ -302,7 +297,6 @@ public class ZKHelixManager implements HelixManager
                               new EventType[] { EventType.NodeChildrenChanged,
                                   EventType.NodeDeleted, EventType.NodeCreated },
                               MESSAGES_CONTROLLER);
-    // _handlers.add(callbackHandler);
     addListener(callbackHandler);
   }
 
@@ -323,7 +317,6 @@ public class ZKHelixManager implements HelixManager
                               new EventType[] { EventType.NodeChildrenChanged,
                                   EventType.NodeDeleted, EventType.NodeCreated },
                               CURRENT_STATE);
-    // _handlers.add(callbackHandler);
     addListener(callbackHandler);
   }
 
@@ -341,7 +334,6 @@ public class ZKHelixManager implements HelixManager
         createCallBackHandler(path, listener, new EventType[] {
             EventType.NodeChildrenChanged, EventType.NodeDataChanged,
             EventType.NodeDeleted, EventType.NodeCreated }, HEALTH);
-    // _handlers.add(callbackHandler);
     addListener(callbackHandler);
   }
 
@@ -358,7 +350,6 @@ public class ZKHelixManager implements HelixManager
                               new EventType[] { EventType.NodeDataChanged,
                                   EventType.NodeDeleted, EventType.NodeCreated },
                               EXTERNAL_VIEW);
-    // _handlers.add(callbackHandler);
     addListener(callbackHandler);
   }
 
@@ -547,8 +538,6 @@ public class ZKHelixManager implements HelixManager
 
     logger.info("Add live instance: InstanceName: " + _instanceName + " Session id:"
         + _sessionId);
-    // if (!_accessor.setProperty(PropertyType.LIVEINSTANCES, liveInstance,
-    // _instanceName))
     Builder keyBuilder = _helixAccessor.keyBuilder();
     if (!_helixAccessor.createProperty(keyBuilder.liveInstance(_instanceName),
                                        liveInstance))

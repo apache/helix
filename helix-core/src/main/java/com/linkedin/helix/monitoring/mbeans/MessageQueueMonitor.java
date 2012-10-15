@@ -9,29 +9,33 @@ import org.apache.log4j.Logger;
 
 import com.linkedin.helix.monitoring.StatCollector;
 
-public class HelixMessageQueueMonitor implements HelixMessageQueueMonitorMBean
+public class MessageQueueMonitor implements MessageQueueMonitorMBean
 {
-  private static final Logger LOG = Logger.getLogger(HelixMessageQueueMonitor.class);
+  private static final Logger LOG = Logger.getLogger(MessageQueueMonitor.class);
 
   private final StatCollector _messageQueueSize;
-  private final MBeanServer _beanServer;
-  private final String _clusterName;
-  private ObjectName _objectName;
+  private final MBeanServer   _beanServer;
+  private final String        _clusterName;
+  private final String        _instanceName;
+  private ObjectName          _objectName;
 
-  public HelixMessageQueueMonitor(String clusterName)
+  public MessageQueueMonitor(String clusterName, String instanceName)
   {
     _clusterName = clusterName;
+    _instanceName = instanceName;
     _messageQueueSize = new StatCollector();
     _beanServer = ManagementFactory.getPlatformMBeanServer();
     try
     {
-      _objectName = new ObjectName("HelixMessageQueueMonitor: cluster=" + _clusterName);
+      _objectName =
+          new ObjectName(ClusterStatusMonitor.CLUSTER_STATUS_KEY + ": "
+              + ClusterStatusMonitor.CLUSTER_DN_KEY + "=" + _clusterName + ","
+              + ClusterStatusMonitor.INSTANCE_DN_KEY + "=" + _instanceName);
       register(this, _objectName);
     }
     catch (Exception e)
     {
-      LOG.error("Couldn't register " + _objectName + " mbean", e);
-      // throw e;
+      LOG.error("fail to register mbean: " + _objectName, e);
     }
   }
 
@@ -39,14 +43,25 @@ public class HelixMessageQueueMonitor implements HelixMessageQueueMonitorMBean
   {
     try
     {
-      _beanServer.unregisterMBean(name);
+      if (_beanServer.isRegistered(name))
+      {
+        _beanServer.unregisterMBean(name);
+      }
     }
     catch (Exception e)
     {
       // OK
     }
 
-    _beanServer.registerMBean(bean, name);
+    try
+    {
+      _beanServer.registerMBean(bean, name);
+    }
+    catch (Exception e)
+    {
+      LOG.warn("fail toregister mbean: " + name, e);
+    }
+
   }
 
   private void unregister(ObjectName name)
@@ -60,7 +75,7 @@ public class HelixMessageQueueMonitor implements HelixMessageQueueMonitorMBean
     }
     catch (Exception e)
     {
-      LOG.error("Couldn't unregister " + _objectName + " mbean", e);
+      LOG.error("fail to unregister mbean: " + _objectName, e);
     }
   }
 
@@ -87,4 +102,10 @@ public class HelixMessageQueueMonitor implements HelixMessageQueueMonitorMBean
     return _messageQueueSize.getMean();
   }
 
+  @Override
+  public String getSensorName()
+  {
+    return ClusterStatusMonitor.MESSAGE_QUEUE_STATUS_KEY + "_" + _clusterName + "_"
+        + _instanceName;
+  }
 }

@@ -15,8 +15,9 @@
  */
 package com.linkedin.helix.monitoring.mbeans;
 
+import com.linkedin.helix.monitoring.SensorNameGetter;
 
-public interface ResourceMonitorMBean
+public interface ResourceMonitorMBean extends SensorNameGetter
 {
   public long getPartitionGauge();
   
@@ -25,6 +26,4 @@ public interface ResourceMonitorMBean
   public long getDifferenceWithIdealStateGauge();
   
   public long getExternalViewPartitionGauge();
-  
-  public String getSensorName();
 }

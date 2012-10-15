@@ -1,6 +1,8 @@
 package com.linkedin.helix.monitoring.mbeans;
 
-public interface HelixMessageQueueMonitorMBean
+import com.linkedin.helix.monitoring.SensorNameGetter;
+
+public interface MessageQueueMonitorMBean extends SensorNameGetter
 {
   public double getMaxMessageQueueSize();
   

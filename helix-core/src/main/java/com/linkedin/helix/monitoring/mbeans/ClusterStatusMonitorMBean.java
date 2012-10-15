@@ -15,13 +15,13 @@
  */
 package com.linkedin.helix.monitoring.mbeans;
 
-public interface ClusterStatusMonitorMBean
+import com.linkedin.helix.monitoring.SensorNameGetter;
+
+public interface ClusterStatusMonitorMBean extends SensorNameGetter
 {
   public long getDownInstanceGauge();
   
   public long getInstancesGauge();
-  
-  public String getSensorName();
   
   public long getDisabledInstancesGauge();
   

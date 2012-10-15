@@ -64,7 +64,7 @@ import com.linkedin.helix.model.LiveInstance;
 import com.linkedin.helix.model.Message;
 import com.linkedin.helix.model.PauseSignal;
 import com.linkedin.helix.monitoring.mbeans.ClusterStatusMonitor;
-import com.linkedin.helix.monitoring.mbeans.HelixMessageQueueMonitor;
+import com.linkedin.helix.monitoring.mbeans.MessageQueueMonitor;
 
 /**
  * Cluster Controllers main goal is to keep the cluster state as close as possible to
@@ -126,11 +126,6 @@ public class GenericHelixController implements
   Timer _rebalanceTimer = null;
   int _timerPeriod = Integer.MAX_VALUE;
 
-  /**
-   * message queue size monitor mbean
-   */
-  private HelixMessageQueueMonitor _msgQueueMonitor;
-  
   /**
    * Default constructor that creates a default pipeline registry. This is sufficient in
    * most cases, but if there is a some thing specific needed use another constructor
@@ -316,12 +311,6 @@ public class GenericHelixController implements
           _clusterStatusMonitor = null;
         }
         
-        if (_msgQueueMonitor != null)
-        {
-          _msgQueueMonitor.reset();
-          _msgQueueMonitor = null;
-        }
-        
         stopRebalancingTimer();
         logger.info("Get FINALIZE notification, skip the pipeline. Event :" + event.getName());
         return;
@@ -331,11 +320,6 @@ public class GenericHelixController implements
         if (_clusterStatusMonitor == null)
         {
           _clusterStatusMonitor = new ClusterStatusMonitor(manager.getClusterName());
-        }
-        
-        if (_msgQueueMonitor == null)
-        {
-          _msgQueueMonitor = new HelixMessageQueueMonitor(manager.getClusterName());
         }
         
         event.addAttribute("clusterStatusMonitor", _clusterStatusMonitor);
@@ -415,17 +399,18 @@ public class GenericHelixController implements
   {
     logger.info("START: GenericClusterController.onMessage()");
     
-    if (_msgQueueMonitor != null && messages != null)
-    {
-      _msgQueueMonitor.addMessageQueueSize(messages.size());
-    }
-    
     ClusterEvent event = new ClusterEvent("messageChange");
     event.addAttribute("helixmanager", changeContext.getManager());
     event.addAttribute("instanceName", instanceName);
     event.addAttribute("changeContext", changeContext);
     event.addAttribute("eventData", messages);
     handleEvent(event);
+    
+    if (_clusterStatusMonitor != null && messages != null)
+    {
+      _clusterStatusMonitor.addMessageQueueSize(instanceName, messages.size());
+    }
+        
     logger.info("END: GenericClusterController.onMessage()");
   }
 

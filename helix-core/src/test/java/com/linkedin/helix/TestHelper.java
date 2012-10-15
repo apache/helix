@@ -54,6 +54,7 @@ import com.linkedin.helix.manager.zk.ZkBaseDataAccessor;
 import com.linkedin.helix.manager.zk.ZkClient;
 import com.linkedin.helix.model.CurrentState;
 import com.linkedin.helix.model.ExternalView;
+import com.linkedin.helix.model.IdealState.IdealStateModeProperty;
 import com.linkedin.helix.model.Message;
 import com.linkedin.helix.model.Message.MessageType;
 import com.linkedin.helix.model.StateModelDefinition;
@@ -381,6 +382,32 @@ public class TestHelper
   }
 
   public static void setupCluster(String clusterName,
+                                  String zkAddr,
+                                  int startPort,
+                                  String participantNamePrefix,
+                                  String resourceNamePrefix,
+                                  int resourceNb,
+                                  int partitionNb,
+                                  int nodesNb,
+                                  int replica,
+                                  String stateModelDef,
+                                  boolean doRebalance) throws Exception
+  {
+    TestHelper.setupCluster(clusterName,
+                            zkAddr,
+                            startPort,
+                            participantNamePrefix,
+                            resourceNamePrefix,
+                            resourceNb,
+                            partitionNb,
+                            nodesNb,
+                            replica,
+                            stateModelDef,
+                            IdealStateModeProperty.AUTO,
+                            doRebalance);
+  }
+
+  public static void setupCluster(String clusterName,
                                   String ZkAddr,
                                   int startPort,
                                   String participantNamePrefix,
@@ -390,6 +417,7 @@ public class TestHelper
                                   int nodesNb,
                                   int replica,
                                   String stateModelDef,
+                                  IdealStateModeProperty mode,
                                   boolean doRebalance) throws Exception
   {
     ZkClient zkClient = new ZkClient(ZkAddr);
@@ -411,7 +439,7 @@ public class TestHelper
     for (int i = 0; i < resourceNb; i++)
     {
       String dbName = resourceNamePrefix + i;
-      setupTool.addResourceToCluster(clusterName, dbName, partitionNb, stateModelDef);
+      setupTool.addResourceToCluster(clusterName, dbName, partitionNb, stateModelDef, mode.toString());
       if (doRebalance)
       {
         setupTool.rebalanceStorageCluster(clusterName, dbName, replica);

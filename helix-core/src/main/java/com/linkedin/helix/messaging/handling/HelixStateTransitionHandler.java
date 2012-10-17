@@ -28,6 +28,7 @@ import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixException;
 import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.NotificationContext;
+import com.linkedin.helix.PropertyKey;
 import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.ZNRecordBucketizer;
 import com.linkedin.helix.ZNRecordDelta;
@@ -209,12 +210,20 @@ public class HelixStateTransitionHandler extends MessageHandler
     }
     try
     {
-      // Update the ZK current state of the node.
-      accessor.updateProperty(keyBuilder.currentState(instanceName,
-                                                      sessionId,
-                                                      resource,
-                                                      bucketizer.getBucketName(partitionKey)),
-                              _currentStateDelta);
+      // Update the ZK current state of the node
+      PropertyKey key = keyBuilder.currentState(instanceName,
+                              sessionId,
+                              resource,
+                              bucketizer.getBucketName(partitionKey));
+      if (!_message.getGroupMessageMode())
+      {
+        accessor.updateProperty(key, _currentStateDelta);
+      }
+      else
+      {
+        HelixTaskExecutor executor = (HelixTaskExecutor) _notificationContext.get(NotificationContext.TASK_EXECUTOR_KEY);
+        executor._groupMsgHandler.addCurStateUpdate(_message, key, _currentStateDelta);
+      }
     }
     catch (Exception e)
     {

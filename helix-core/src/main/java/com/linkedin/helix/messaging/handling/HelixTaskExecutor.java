@@ -20,9 +20,11 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -45,8 +47,10 @@ import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.NotificationContext.Type;
 import com.linkedin.helix.PropertyKey;
 import com.linkedin.helix.PropertyKey.Builder;
+import com.linkedin.helix.ZNRecord;
 import com.linkedin.helix.model.CurrentState;
 import com.linkedin.helix.model.Message;
+import com.linkedin.helix.model.Message.Attributes;
 import com.linkedin.helix.model.Message.MessageState;
 import com.linkedin.helix.model.Message.MessageType;
 import com.linkedin.helix.monitoring.ParticipantMonitor;
@@ -73,15 +77,19 @@ public class HelixTaskExecutor implements MessageListener
   final ConcurrentHashMap<String, ExecutorService>       _threadpoolMap             =
                                                                                         new ConcurrentHashMap<String, ExecutorService>();
 
-  private static Logger                                  logger                     =
+  private static Logger                                  LOG                        =
                                                                                         Logger.getLogger(HelixTaskExecutor.class);
 
   Map<String, Integer>                                   _resourceThreadpoolSizeMap =
                                                                                         new ConcurrentHashMap<String, Integer>();
 
+  final GroupMessageHandler                              _groupMsgHandler;
+
   public HelixTaskExecutor()
   {
     _taskMap = new ConcurrentHashMap<String, Future<HelixTaskResult>>();
+    _groupMsgHandler = new GroupMessageHandler();
+
     _lock = new Object();
     _statusUpdateUtil = new StatusUpdateUtil();
     _monitor = new ParticipantMonitor();
@@ -107,12 +115,12 @@ public class HelixTaskExecutor implements MessageListener
       }
       _handlerFactoryMap.put(type, factory);
       _threadpoolMap.put(type, Executors.newFixedThreadPool(threadpoolSize));
-      logger.info("Adding msg factory for type " + type + " threadpool size "
+      LOG.info("Adding msg factory for type " + type + " threadpool size "
           + threadpoolSize);
     }
     else
     {
-      logger.error("Ignoring duplicate msg handler factory for type " + type);
+      LOG.error("Ignoring duplicate msg handler factory for type " + type);
     }
   }
 
@@ -149,14 +157,14 @@ public class HelixTaskExecutor implements MessageListener
         }
         catch (Exception e)
         {
-          logger.error("", e);
+          LOG.error("", e);
         }
       }
       if (threadpoolSize > 0)
       {
         String key = MessageType.STATE_TRANSITION.toString() + "." + resourceName;
         _threadpoolMap.put(key, Executors.newFixedThreadPool(threadpoolSize));
-        logger.info("Adding per resource threadpool for resource " + resourceName
+        LOG.info("Adding per resource threadpool for resource " + resourceName
             + " with size " + threadpoolSize);
       }
       _resourceThreadpoolSizeMap.put(resourceName, threadpoolSize);
@@ -179,7 +187,7 @@ public class HelixTaskExecutor implements MessageListener
         String key = message.getMsgType() + "." + resourceName;
         if (_threadpoolMap.containsKey(key))
         {
-          logger.info("Find per-resource thread pool with key " + key);
+          LOG.info("Find per-resource thread pool with key " + key);
           executorService = _threadpoolMap.get(key);
         }
       }
@@ -202,7 +210,11 @@ public class HelixTaskExecutor implements MessageListener
         {
           checkResourceConfig(message.getResourceName(), notificationContext.getManager());
         }
-        logger.info("Scheduling message: " + taskId);
+        LOG.info("Scheduling message: " + taskId);
+        // System.out.println("sched msg: " + message.getPartitionName() + "-"
+        // + message.getTgtName() + "-" + message.getFromState() + "-"
+        // + message.getToState());
+
         _statusUpdateUtil.logInfo(message,
                                   HelixTaskExecutor.class,
                                   "Message handling task scheduled",
@@ -211,7 +223,7 @@ public class HelixTaskExecutor implements MessageListener
         HelixTask task = new HelixTask(message, notificationContext, handler, this);
         if (!_taskMap.containsKey(taskId))
         {
-          logger.info("Message:" + taskId + " handling task scheduled");
+          LOG.info("Message:" + taskId + " handling task scheduled");
           Future<HelixTaskResult> future =
               findExecutorServiceForMsg(message).submit(task);
           _taskMap.put(taskId, future);
@@ -228,7 +240,7 @@ public class HelixTaskExecutor implements MessageListener
       }
       catch (Exception e)
       {
-        logger.error("Error while executing task." + message, e);
+        LOG.error("Error while executing task." + message, e);
 
         _statusUpdateUtil.logError(message,
                                    HelixTaskExecutor.class,
@@ -289,7 +301,7 @@ public class HelixTaskExecutor implements MessageListener
     synchronized (_lock)
     {
       String taskId = message.getMsgId() + "/" + message.getPartitionName();
-      logger.info("message finished: " + taskId + ", took "
+      LOG.info("message finished: " + taskId + ", took "
           + (new Date().getTime() - message.getExecuteStartTimeStamp()));
       if (_taskMap.containsKey(taskId))
       {
@@ -297,11 +309,25 @@ public class HelixTaskExecutor implements MessageListener
       }
       else
       {
-        logger.warn("message " + taskId + "not found in task map");
+        LOG.warn("message " + taskId + "not found in task map");
       }
     }
   }
 
+  private void updateMessageState(List<Message> readMsgs,
+                                  HelixDataAccessor accessor,
+                                  String instanceName)
+  {
+    Builder keyBuilder = accessor.keyBuilder();
+    List<PropertyKey> readMsgKeys = new ArrayList<PropertyKey>();
+    for (Message msg : readMsgs)
+    {
+      readMsgKeys.add(msg.getKey(keyBuilder, instanceName));
+    }
+    accessor.setChildren(readMsgKeys, readMsgs);
+  }
+
+  // this is single-thread, called by zkclient callback (event) thread
   @Override
   public void onMessage(String instanceName,
                         List<Message> messages,
@@ -312,7 +338,7 @@ public class HelixTaskExecutor implements MessageListener
     // TODO: see if we should have a separate notification call for resetting
     if (changeContext.getType() == Type.FINALIZE)
     {
-      logger.info("Get FINALIZE notification");
+      LOG.info("Get FINALIZE notification");
       for (MessageHandlerFactory factory : _handlerFactoryMap.values())
       {
         factory.reset();
@@ -335,22 +361,18 @@ public class HelixTaskExecutor implements MessageListener
 
     if (messages == null || messages.size() == 0)
     {
-      logger.info("No Messages to process");
+      LOG.info("No Messages to process");
       return;
     }
 
-    // Sort message based on creation timestamp
-    Collections.sort(messages, new Comparator<Message>()
-    {
-      @Override
-      public int compare(Message m1, Message m2)
-      {
-        return (int) (m1.getCreateTimeStamp() - m2.getCreateTimeStamp());
-      }
-    });
+    // sort message by creation timestamp, so message created earlier is processed first
+    Collections.sort(messages, Message.CREATE_TIME_COMPARATOR);
 
+    // message handlers created
+    List<MessageHandler> handlers = new ArrayList<MessageHandler>();
+
+    // message read
     List<Message> readMsgs = new ArrayList<Message>();
-    List<PropertyKey> readMsgKeys = new ArrayList<PropertyKey>();
 
     String sessionId = manager.getSessionId();
     List<String> curResourceNames =
@@ -358,193 +380,122 @@ public class HelixTaskExecutor implements MessageListener
     List<PropertyKey> createCurStateKeys = new ArrayList<PropertyKey>();
     List<CurrentState> metaCurStates = new ArrayList<CurrentState>();
     Set<String> createCurStateNames = new HashSet<String>();
-    
-    // parallel lists that contains handler and the corresponding message
-    List<MessageHandler> handlers = new ArrayList<MessageHandler>();
-    List<Message> handleMessages = new ArrayList<Message>();
 
     for (Message message : messages)
     {
-      // NO_OP messages are removed with nothing done. It is used to trigger the
-      // onMessage() call if needed.
+      // nop messages are simply removed. It is used to trigger onMessage() in
+      // situations such as register a new message handler factory
       if (message.getMsgType().equalsIgnoreCase(MessageType.NO_OP.toString()))
       {
-        logger.info("Dropping NO-OP msg from " + message.getMsgSrc());
-        if (message.getTgtName().equalsIgnoreCase("controller"))
-        {
-          accessor.removeProperty(keyBuilder.controllerMessage(message.getId()));
-        }
-        else
-        {
-          accessor.removeProperty(keyBuilder.message(instanceName, message.getId()));
-        }
+        LOG.info("Dropping NO-OP message. mid: " + message.getId() + ", from: "
+            + message.getMsgSrc());
+        accessor.removeProperty(message.getKey(keyBuilder, instanceName));
         continue;
       }
 
       String tgtSessionId = message.getTgtSessionId();
-      if (sessionId.equals(tgtSessionId) || tgtSessionId.equals("*"))
-      {
-        if (MessageState.NEW == message.getMsgState())
-        {
-          // create message handlers, if handlers not found, don't mark it as READ
-          try
-          {
-            if (!message.getGroupMessageMode())
-            {
-              logger.info("Creating handler for message " + message.getMsgId() + "/"
-                  + message.getPartitionName());
 
-              MessageHandler handler = createMessageHandler(message, changeContext);
-              
-              // We did not find a MessageHandlerFactory for the message;
-              // we will keep the message and we may be able to handler it when
-              // the corresponding MessageHandlerFactory factory is registered.
-              if (handler == null)
-              {
-                logger.warn("Message handler factory not found for message type:"
-                    + message.getMsgType() + ", message:" + message);
-
-                continue;
-              }
-              handlers.add(handler);
-              handleMessages.add(message);
-            }
-            else
-            {
-              List<String> partitionNames = message.getPartitionNames();
-              AtomicInteger countDown = new AtomicInteger(partitionNames.size());
-              for (String partitionName : partitionNames)
-              {
-                Message msg = new Message(message.getRecord());
-                msg.setPartitionName(partitionName);
-                msg.setGroupMsgCountDown(countDown);
-
-                
-                logger.info("Creating handler for group message " + msg.getMsgId() + "/"
-                    + partitionName);
-                MessageHandler handler = createMessageHandler(msg, changeContext);
-
-                // We did not find a MessageHandlerFactory for the message;
-                // we will keep the message and we may be able to handler it when
-                // the corresponding MessageHandlerFactory factory is registered.
-                if (handler == null)
-                {
-                  logger.warn("Message handler factory not found for group message type:"
-                      + msg.getMsgType() + ", message:" + msg);
-
-                  continue;
-                }
-                handlers.add(handler);
-                handleMessages.add(msg);
-              }
-            }
-          }
-          catch (Exception e)
-          {
-            logger.error("Failed to create message handler for " + message.getMsgId(), e);
-            String error =
-                "Failed to create message handler for " + message.getMsgId()
-                    + " exception: " + e;
-
-            _statusUpdateUtil.logError(message,
-                                       HelixStateMachineEngine.class,
-                                       e,
-                                       error,
-                                       accessor);
-            // Mark the message as UNPROCESSABLE if we hit a exception while creating
-            // handler for it. The message will stay on ZK and not be processed.
-            message.setMsgState(MessageState.UNPROCESSABLE);
-            if (message.getTgtName().equalsIgnoreCase("controller"))
-            {
-              accessor.updateProperty(keyBuilder.controllerMessage(message.getId()),
-                                      message);
-            }
-            else
-            {
-              accessor.updateProperty(keyBuilder.message(instanceName, message.getId()),
-                                      message);
-            }
-            continue;
-          }
-          
-          // update msgState to read
-          message.setMsgState(MessageState.READ);
-          message.setReadTimeStamp(new Date().getTime());
-          message.setExecuteSessionId(changeContext.getManager().getSessionId());
-
-          _statusUpdateUtil.logInfo(message,
-                                    HelixStateMachineEngine.class,
-                                    "New Message",
-                                    accessor);
-
-          // batch all messages
-          readMsgs.add(message);
-          if (message.getTgtName().equalsIgnoreCase("controller"))
-          {
-            readMsgKeys.add(keyBuilder.controllerMessage(message.getMsgId()));
-          }
-          else
-          {
-            // batch all creation of current state meta data
-            // do it for state transition messages only
-            if (message.getMsgType()
-                       .equals(Message.MessageType.STATE_TRANSITION.toString()))
-            {
-              String resourceName = message.getResourceName();
-              if (!curResourceNames.contains(resourceName)
-                  && !createCurStateNames.contains(resourceName))
-              {
-                createCurStateNames.add(resourceName);
-                createCurStateKeys.add(keyBuilder.currentState(instanceName,
-                                                               sessionId,
-                                                               resourceName));
-
-                CurrentState metaCurState = new CurrentState(resourceName);
-                metaCurState.setBucketSize(message.getBucketSize());
-                metaCurState.setStateModelDefRef(message.getStateModelDef());
-                metaCurState.setSessionId(sessionId);
-                metaCurState.setGroupMessageMode(message.getGroupMessageMode());
-                String ftyName = message.getStateModelFactoryName();
-                if (ftyName != null)
-                {
-                  metaCurState.setStateModelFactoryName(ftyName);
-                }
-                else
-                {
-                  metaCurState.setStateModelFactoryName(HelixConstants.DEFAULT_STATE_MODEL_FACTORY);
-                }
-
-                metaCurStates.add(metaCurState);
-              }
-            }
-
-            readMsgKeys.add(keyBuilder.message(instanceName, message.getMsgId()));
-          }
-        }
-        else
-        {
-          // This will happen because we don't delete the message as soon as we
-          // read it.
-          // We keep it until the current state is changed.
-          // We will read the message again if there is a new message but we
-          // check for the status and ignore if its already read
-          logger.trace("Message already read" + message.getMsgId());
-          // _statusUpdateUtil.logInfo(message, StateMachineEngine.class,
-          // "Message already read", client);
-        }
-      }
-      else
+      // if sessionId not match, remove it
+      if (!sessionId.equals(tgtSessionId) && !tgtSessionId.equals("*"))
       {
         String warningMessage =
-            "Session Id does not match. Expected sessionId: " + sessionId
-                + ", sessionId from Message: " + tgtSessionId + ". MessageId: "
+            "SessionId does NOT match. expected sessionId: " + sessionId
+                + ", tgtSessionId in message: " + tgtSessionId + ", messageId: "
                 + message.getMsgId();
-        logger.warn(warningMessage);
-        accessor.removeProperty(keyBuilder.message(instanceName, message.getId()));
+        LOG.warn(warningMessage);
+        accessor.removeProperty(message.getKey(keyBuilder, instanceName));
         _statusUpdateUtil.logWarning(message,
                                      HelixStateMachineEngine.class,
                                      warningMessage,
                                      accessor);
+        continue;
+      }
+
+      // don't process message that is of READ or UNPROCESSABLE state
+      if (MessageState.NEW != message.getMsgState())
+      {
+        // It happens because we don't delete message right after
+        // read. Instead we keep it until the current state is updated.
+        // We will read the message again if there is a new message but we
+        // check for the status and ignore if its already read
+        LOG.trace("Message already read. mid: " + message.getMsgId());
+        continue;
+      }
+
+      // create message handlers, if handlers not found, leave its state as NEW
+      try
+      {
+        List<MessageHandler> createHandlers =
+            createMessageHandlers(message, changeContext);
+        if (createHandlers.isEmpty())
+        {
+          continue;
+        }
+        handlers.addAll(createHandlers);
+      }
+      catch (Exception e)
+      {
+        LOG.error("Failed to create message handler for " + message.getMsgId(), e);
+        String error =
+            "Failed to create message handler for " + message.getMsgId()
+                + ", exception: " + e;
+
+        _statusUpdateUtil.logError(message,
+                                   HelixStateMachineEngine.class,
+                                   e,
+                                   error,
+                                   accessor);
+
+        // Mark message state UNPROCESSABLE if we hit an exception in creating
+        // message handler. The message will stay on zookeeper but will not be processed
+        message.setMsgState(MessageState.UNPROCESSABLE);
+        accessor.updateProperty(message.getKey(keyBuilder, instanceName), message);
+        continue;
+      }
+
+      // update msgState to read
+      message.setMsgState(MessageState.READ);
+      message.setReadTimeStamp(new Date().getTime());
+      message.setExecuteSessionId(changeContext.getManager().getSessionId());
+
+      _statusUpdateUtil.logInfo(message,
+                                HelixStateMachineEngine.class,
+                                "New Message",
+                                accessor);
+
+      readMsgs.add(message);
+
+      // batch creation of all current state meta data
+      // do it for non-controller and state transition messages only
+      if (!message.isControlerMsg()
+          && message.getMsgType().equals(Message.MessageType.STATE_TRANSITION.toString()))
+      {
+        String resourceName = message.getResourceName();
+        if (!curResourceNames.contains(resourceName)
+            && !createCurStateNames.contains(resourceName))
+        {
+          createCurStateNames.add(resourceName);
+          createCurStateKeys.add(keyBuilder.currentState(instanceName,
+                                                         sessionId,
+                                                         resourceName));
+
+          CurrentState metaCurState = new CurrentState(resourceName);
+          metaCurState.setBucketSize(message.getBucketSize());
+          metaCurState.setStateModelDefRef(message.getStateModelDef());
+          metaCurState.setSessionId(sessionId);
+          metaCurState.setGroupMessageMode(message.getGroupMessageMode());
+          String ftyName = message.getStateModelFactoryName();
+          if (ftyName != null)
+          {
+            metaCurState.setStateModelFactoryName(ftyName);
+          }
+          else
+          {
+            metaCurState.setStateModelFactoryName(HelixConstants.DEFAULT_STATE_MODEL_FACTORY);
+          }
+
+          metaCurStates.add(metaCurState);
+        }
       }
     }
 
@@ -557,20 +508,18 @@ public class HelixTaskExecutor implements MessageListener
       }
       catch (Exception e)
       {
-        logger.error(e);
+        LOG.error(e);
       }
     }
 
-    // update messages in batch and schedule all read messages
+    // update message state to READ in batch and schedule all read messages
     if (readMsgs.size() > 0)
     {
-      accessor.setChildren(readMsgKeys, readMsgs);
+      updateMessageState(readMsgs, accessor, instanceName);
 
-      for (int i = 0; i < handlers.size(); i++)
+      for (MessageHandler handler : handlers)
       {
-        MessageHandler handler = handlers.get(i);
-        Message handleMessage = handleMessages.get(i);
-        scheduleTask(handleMessage, handler, changeContext);
+        scheduleTask(handler._message, handler, changeContext);
       }
     }
   }
@@ -582,25 +531,69 @@ public class HelixTaskExecutor implements MessageListener
 
     MessageHandlerFactory handlerFactory = _handlerFactoryMap.get(msgType);
 
+    // Fail to find a MessageHandlerFactory for the message
+    // we will keep the message and the message will be handled when
+    // the corresponding MessageHandlerFactory is registered
     if (handlerFactory == null)
     {
-      logger.warn("Cannot find handler factory for msg type " + msgType + " message:"
+      LOG.warn("Fail to find message handler factory for type: " + msgType + " mid:"
           + message.getMsgId());
       return null;
     }
 
+    changeContext.add(NotificationContext.TASK_EXECUTOR_KEY, this);
     return handlerFactory.createHandler(message, changeContext);
+  }
+
+  private List<MessageHandler> createMessageHandlers(Message message,
+                                                     NotificationContext changeContext)
+  {
+    List<MessageHandler> handlers = new ArrayList<MessageHandler>();
+    if (!message.getGroupMessageMode())
+    {
+      LOG.info("Creating handler for message " + message.getMsgId() + "/"
+          + message.getPartitionName());
+
+      MessageHandler handler = createMessageHandler(message, changeContext);
+
+      if (handler != null)
+      {
+        handlers.add(handler);
+      }
+    }
+    else
+    {
+      _groupMsgHandler.put(message);
+
+      List<String> partitionNames = message.getPartitionNames();
+      for (String partitionName : partitionNames)
+      {
+        Message subMsg = new Message(message.getRecord());
+        subMsg.setPartitionName(partitionName);
+        subMsg.setAttribute(Attributes.PARENT_MSG_ID, message.getId());
+
+        LOG.info("Creating handler for group message " + subMsg.getMsgId() + "/"
+            + partitionName);
+        MessageHandler handler = createMessageHandler(subMsg, changeContext);
+        if (handler != null)
+        {
+          handlers.add(handler);
+        }
+      }
+    }
+
+    return handlers;
   }
 
   public void shutDown()
   {
-    logger.info("shutting down TaskExecutor");
+    LOG.info("shutting down TaskExecutor");
     synchronized (_lock)
     {
       for (String msgType : _threadpoolMap.keySet())
       {
         List<Runnable> tasksLeft = _threadpoolMap.get(msgType).shutdownNow();
-        logger.info(tasksLeft.size() + " tasks are still in the threadpool for msgType "
+        LOG.info(tasksLeft.size() + " tasks are still in the threadpool for msgType "
             + msgType);
       }
       for (String msgType : _threadpoolMap.keySet())
@@ -609,18 +602,18 @@ public class HelixTaskExecutor implements MessageListener
         {
           if (!_threadpoolMap.get(msgType).awaitTermination(200, TimeUnit.MILLISECONDS))
           {
-            logger.warn(msgType + " is not fully termimated in 200 MS");
+            LOG.warn(msgType + " is not fully termimated in 200 MS");
             System.out.println(msgType + " is not fully termimated in 200 MS");
           }
         }
         catch (InterruptedException e)
         {
-          logger.error("Interrupted", e);
+          LOG.error("Interrupted", e);
         }
       }
     }
     _monitor.shutDown();
-    logger.info("shutdown finished");
+    LOG.info("shutdown finished");
   }
 
   // TODO: remove this

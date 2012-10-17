@@ -20,6 +20,9 @@ import java.util.Map;
 
 public class NotificationContext
 {
+  // keys used for object map
+  public static final String TASK_EXECUTOR_KEY = "TASK_EXECUTOR";
+  
   private Map<String, Object> _map;
 
   private HelixManager _manager;
@@ -39,7 +42,7 @@ public class NotificationContext
 
   public NotificationContext(HelixManager manager)
   {
-    this._manager = manager;
+    _manager = manager;
     _map = new HashMap<String, Object>();
   }
 

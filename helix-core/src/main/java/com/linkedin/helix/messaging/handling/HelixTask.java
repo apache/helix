@@ -15,7 +15,10 @@
  */
 package com.linkedin.helix.messaging.handling;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.Callable;
@@ -26,9 +29,12 @@ import com.linkedin.helix.HelixDataAccessor;
 import com.linkedin.helix.HelixManager;
 import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.NotificationContext;
+import com.linkedin.helix.PropertyKey;
 import com.linkedin.helix.PropertyKey.Builder;
+import com.linkedin.helix.messaging.handling.GroupMessageHandler.GroupMessageInfo;
 import com.linkedin.helix.messaging.handling.MessageHandler.ErrorCode;
 import com.linkedin.helix.messaging.handling.MessageHandler.ErrorType;
+import com.linkedin.helix.model.CurrentState;
 import com.linkedin.helix.model.Message;
 import com.linkedin.helix.model.Message.MessageType;
 import com.linkedin.helix.monitoring.StateTransitionContext;
@@ -101,7 +107,8 @@ public class HelixTask implements Callable<HelixTaskResult>
     }
     else
     {
-      logger.info("Message does not have timeout. MsgId:" + _message.getMsgId() + "/" + _message.getPartitionName());
+      logger.info("Message does not have timeout. MsgId:" + _message.getMsgId() + "/"
+          + _message.getPartitionName());
     }
 
     HelixTaskResult taskResult = new HelixTaskResult();
@@ -111,8 +118,7 @@ public class HelixTask implements Callable<HelixTaskResult>
     ErrorCode code = ErrorCode.ERROR;
 
     long start = System.currentTimeMillis();
-    logger.info("msg:" + _message.getMsgId() + " handling task begin, at: "
-        + start);
+    logger.info("msg:" + _message.getMsgId() + " handling task begin, at: " + start);
     HelixDataAccessor accessor = _manager.getHelixDataAccessor();
     _statusUpdateUtil.logInfo(_message,
                               HelixTask.class,
@@ -208,15 +214,34 @@ public class HelixTask implements Callable<HelixTaskResult>
     // Post-processing for the finished task
     try
     {
-      if (_message.getGroupMsgCountDown().decrementAndGet() <= 0)
+      if (!_message.getGroupMessageMode())
       {
         removeMessageFromZk(accessor, _message);
         reportMessageStat(_manager, _message, taskResult);
         sendReply(accessor, _message, taskResult);
       }
+      else
+      {
+        GroupMessageInfo info = _executor._groupMsgHandler.onCompleteSubMessage(_message); 
+        if (info != null)
+        {
+          // TODO: changed to async update
+          // group update current state
+          Map<PropertyKey, CurrentState> curStateMap = info.merge();
+          for (PropertyKey key : curStateMap.keySet())
+          {
+            accessor.updateProperty(key, curStateMap.get(key));
+          }
+
+          // remove group message
+          removeMessageFromZk(accessor, _message);
+          reportMessageStat(_manager, _message, taskResult);
+          sendReply(accessor, _message, taskResult);
+        }
+      }
       _executor.reportCompletion(_message);
     }
-    
+
     // TODO: capture errors and log here
     catch (Exception e)
     {

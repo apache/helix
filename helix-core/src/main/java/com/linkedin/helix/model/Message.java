@@ -17,6 +17,7 @@ package com.linkedin.helix.model;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +27,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import com.linkedin.helix.HelixException;
 import com.linkedin.helix.HelixProperty;
 import com.linkedin.helix.InstanceType;
+import com.linkedin.helix.PropertyKey;
+import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.ZNRecord;
 
 /**
@@ -72,18 +75,28 @@ public class Message extends HelixProperty
     TIMEOUT,
     RETRY_COUNT,
     STATE_MODEL_FACTORY_NAME,
-    BUCKET_SIZE;
+    BUCKET_SIZE,
+    PARENT_MSG_ID   // used for group message mode
   }
 
   public enum MessageState
   {
-    NEW, READ, // not used
+    NEW, 
+    READ, // not used
     UNPROCESSABLE // get exception when create handler
   }
 
-  // Used in GroupMessage mode to count down the completion of sub-messages 
-  // by default is 1
-  AtomicInteger _groupMsgCountDown = new AtomicInteger(1);
+  public static final Comparator<Message> CREATE_TIME_COMPARATOR = new Comparator<Message>(){
+    @Override
+    public int compare(Message m1, Message m2)
+    {
+//      long t1 = m1.getCreateTimeStamp();
+//      long t2 = m2.getCreateTimeStamp();
+      return (int) (m1.getCreateTimeStamp() - m2.getCreateTimeStamp());
+    }
+  };
+  
+  // AtomicInteger _groupMsgCountDown = new AtomicInteger(1);
   
   public Message(MessageType type, String msgId)
   {
@@ -423,6 +436,7 @@ public class Message extends HelixProperty
     _record.setSimpleField(Attributes.STATE_MODEL_FACTORY_NAME.toString(), factoryName);
   }
 
+  // TODO: remove this. impl in HelixProperty
   @Override
   public int getBucketSize()
   {
@@ -451,6 +465,16 @@ public class Message extends HelixProperty
     }
   }
 
+  public void setAttribute(Attributes attr, String val)
+  {
+    _record.setSimpleField(attr.toString(), val);
+  }
+  
+  public String getAttribute(Attributes attr)
+  {
+    return _record.getSimpleField(attr.toString());
+  }
+  
   public static Message createReplyMessage(Message srcMessage,
                                            String instanceName,
                                            Map<String, String> taskResultMap)
@@ -504,14 +528,31 @@ public class Message extends HelixProperty
     return partitionNames;
   }
 
-  public AtomicInteger getGroupMsgCountDown()
+//  public AtomicInteger getGroupMsgCountDown()
+//  {
+//    return _groupMsgCountDown;
+//  }
+//  
+//  public void setGroupMsgCountDown(AtomicInteger countDown)
+//  {
+//    _groupMsgCountDown = countDown;
+//  }
+  
+  public boolean isControlerMsg()
   {
-    return _groupMsgCountDown;
+    return getTgtName().equalsIgnoreCase("controller");
   }
   
-  public void setGroupMsgCountDown(AtomicInteger countDown)
+  public PropertyKey getKey(Builder keyBuilder, String instanceName)
   {
-    _groupMsgCountDown = countDown;
+    if (isControlerMsg())
+    {
+      return keyBuilder.controllerMessage(getId());
+    }
+    else
+    {
+      return keyBuilder.message(instanceName, getId());
+    }
   }
   
   // TODO replace with util from espresso or linkedin

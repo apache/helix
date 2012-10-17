@@ -27,7 +27,7 @@ public class TestGroupMessage extends ZkIntegrationTestBase
     @Override
     public void handleChildChange(String parentPath, List<String> currentChilds) throws Exception
     {
-      System.out.println(parentPath + ": " + currentChilds.size());
+      System.out.println(parentPath + " has " + currentChilds.size() + " messages");
       if (currentChilds.size() > _maxNbOfChilds)
       {
         _maxNbOfChilds = currentChilds.size();

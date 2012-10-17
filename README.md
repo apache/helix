@@ -1,3 +1,13 @@
+Apache Incubator 
+---------------
+Helix is now part of Apache Incubator. 
+
+Project page: http://incubator.apache.org/projects/helix.html
+
+Subscribe to mailing list by sending an email to user-subscribe@helix.incubator.apache.org 
+
+
+
 WHAT IS HELIX
 --------------
 Helix is a generic cluster management framework used for automatic management of partitioned, replicated and distributed resources hosted on a cluster of nodes. Helix provides the following features: 

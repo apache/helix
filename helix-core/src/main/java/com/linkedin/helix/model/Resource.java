@@ -35,7 +35,7 @@ public class Resource
   private String _stateModelDefRef;
   private String _stateModelFactoryName;
   private int _bucketSize = 0;
-  private boolean _enableGroupMessage = false;
+  private boolean _groupMessageMode = false;
 
   public Resource(String resourceName)
   {
@@ -99,14 +99,14 @@ public class Resource
     _bucketSize = bucketSize;
   }
 
-  public void setEnableGroupMessage(boolean enable)
+  public void setGroupMessageMode(boolean mode)
   {
-    _enableGroupMessage = enable;
+    _groupMessageMode = mode;
   }
   
-  public boolean getEnableGroupMessage()
+  public boolean getGroupMessageMode()
   {
-    return _enableGroupMessage;
+    return _groupMessageMode;
   }
   
   @Override

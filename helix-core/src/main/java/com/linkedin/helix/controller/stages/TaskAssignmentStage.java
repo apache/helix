@@ -91,7 +91,7 @@ public class TaskAssignmentStage extends AbstractBaseStage
       Message message = iter.next();
       String resourceName = message.getResourceName();
       Resource resource = resourceMap.get(resourceName);
-      if (resource == null || !resource.getEnableGroupMessage())
+      if (resource == null || !resource.getGroupMessageMode())
       {
         outputMessages.add(message);
         continue;

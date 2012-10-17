@@ -68,7 +68,7 @@ public class ResourceComputationStage extends AbstractBaseStage
           resource.setStateModelDefRef(idealState.getStateModelDefRef());
           resource.setStateModelFactoryName(idealState.getStateModelFactoryName());
           resource.setBucketSize(idealState.getBucketSize());
-          resource.setEnableGroupMessage(idealState.getGroupMessageMode());
+          resource.setGroupMessageMode(idealState.getGroupMessageMode());
         }
       }
     }
@@ -95,13 +95,18 @@ public class ResourceComputationStage extends AbstractBaseStage
 
           String resourceName = currentState.getResourceName();
           Map<String, String> resourceStateMap = currentState.getPartitionStateMap();
-          addResource(resourceName, resourceMap);
-          Resource resource = resourceMap.get(resourceName);
-          resource.setStateModelDefRef(currentState.getStateModelDefRef());
-          resource.setStateModelFactoryName(currentState.getStateModelFactoryName());
-          resource.setBucketSize(currentState.getBucketSize());
-          resource.setEnableGroupMessage(currentState.getGroupMessageMode());
 
+          // don't overwrite ideal state settings
+          if (!resourceMap.containsKey(resourceName))
+          {
+            addResource(resourceName, resourceMap);
+            Resource resource = resourceMap.get(resourceName);
+            resource.setStateModelDefRef(currentState.getStateModelDefRef());
+            resource.setStateModelFactoryName(currentState.getStateModelFactoryName());
+            resource.setBucketSize(currentState.getBucketSize());
+            resource.setGroupMessageMode(currentState.getGroupMessageMode());
+          }
+          
           if (currentState.getStateModelDefRef() == null)
           {
             LOG.error("state model def is null." + "resource:" + currentState.getResourceName()

@@ -16,6 +16,8 @@
 package com.linkedin.helix.monitoring.mbeans;
 
 import java.lang.management.ManagementFactory;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.management.MBeanServer;
@@ -110,6 +112,34 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean
   public long getDisabledPartitionsGauge()
   {
     return _numOfDisabledPartitions;
+  }
+
+  @Override
+  public long getMaxMessageQueueSizeGauge()
+  {
+    long maxQueueSize = 0;
+    for (MessageQueueMonitor msgQueue : _instanceMsgQueueMbeanMap.values())
+    {
+      if (msgQueue.getMaxMessageQueueSize() > maxQueueSize)
+      {
+        maxQueueSize = (long)msgQueue.getMaxMessageQueueSize();
+      }
+    }
+    
+    return maxQueueSize;
+  }
+
+  @Override
+  public String getMessageQueueSizes()
+  {
+    Map<String, Long> msgQueueSizes = new TreeMap<String, Long>();
+    for (String instance : _instanceMsgQueueMbeanMap.keySet())
+    {
+      MessageQueueMonitor msgQueue = _instanceMsgQueueMbeanMap.get(instance);
+        msgQueueSizes.put(instance, new Long( (long)msgQueue.getMaxMessageQueueSize()));
+    }
+    
+    return msgQueueSizes.toString();
   }
 
   private void register(Object bean, ObjectName name)

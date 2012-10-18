@@ -15,9 +15,9 @@
  */
 package com.linkedin.helix.monitoring.mbeans;
 
-import com.linkedin.helix.monitoring.SensorNameGetter;
+import com.linkedin.helix.monitoring.SensorNameProvider;
 
-public interface ClusterStatusMonitorMBean extends SensorNameGetter
+public interface ClusterStatusMonitorMBean extends SensorNameProvider
 {
   public long getDownInstanceGauge();
   
@@ -26,4 +26,18 @@ public interface ClusterStatusMonitorMBean extends SensorNameGetter
   public long getDisabledInstancesGauge();
   
   public long getDisabledPartitionsGauge();
+  
+  /**
+   * The max message queue size across all instances including controller
+   * will report to ingraph
+   * @return 
+   */
+  public long getMaxMessageQueueSizeGauge();
+  
+  /**
+   * Get all message queue sizes as a string
+   * will NOT report to ingraph
+   * @return
+   */
+  public String getMessageQueueSizes();
 }

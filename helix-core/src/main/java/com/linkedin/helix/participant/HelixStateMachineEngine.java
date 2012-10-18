@@ -29,6 +29,7 @@ import com.linkedin.helix.InstanceType;
 import com.linkedin.helix.NotificationContext;
 import com.linkedin.helix.PropertyKey.Builder;
 import com.linkedin.helix.messaging.handling.HelixStateTransitionHandler;
+import com.linkedin.helix.messaging.handling.HelixTaskExecutor;
 import com.linkedin.helix.messaging.handling.MessageHandler;
 import com.linkedin.helix.model.CurrentState;
 import com.linkedin.helix.model.Message;
@@ -251,10 +252,13 @@ public class HelixStateMachineEngine implements StateMachineEngine
     currentStateDelta.setState(partitionKey, (stateModel.getCurrentState() == null)
         ? initState : stateModel.getCurrentState());
 
+    HelixTaskExecutor executor = (HelixTaskExecutor) context.get(NotificationContext.TASK_EXECUTOR_KEY);
+    
     return new HelixStateTransitionHandler(stateModel,
                                            message,
                                            context,
-                                           currentStateDelta);
+                                           currentStateDelta,
+                                           executor);
   }
 
   @Override

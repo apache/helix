@@ -1,6 +1,6 @@
 package com.linkedin.helix.monitoring;
 
-public interface SensorNameGetter
+public interface SensorNameProvider
 {
   String getSensorName();
 }

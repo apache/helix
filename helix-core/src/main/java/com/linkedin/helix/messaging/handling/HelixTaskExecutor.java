@@ -327,7 +327,6 @@ public class HelixTaskExecutor implements MessageListener
     accessor.setChildren(readMsgKeys, readMsgs);
   }
 
-  // this is single-thread, called by zkclient callback (event) thread
   @Override
   public void onMessage(String instanceName,
                         List<Message> messages,
@@ -381,6 +380,7 @@ public class HelixTaskExecutor implements MessageListener
     List<CurrentState> metaCurStates = new ArrayList<CurrentState>();
     Set<String> createCurStateNames = new HashSet<String>();
 
+    changeContext.add(NotificationContext.TASK_EXECUTOR_KEY, this);
     for (Message message : messages)
     {
       // nop messages are simply removed. It is used to trigger onMessage() in
@@ -541,7 +541,6 @@ public class HelixTaskExecutor implements MessageListener
       return null;
     }
 
-    changeContext.add(NotificationContext.TASK_EXECUTOR_KEY, this);
     return handlerFactory.createHandler(message, changeContext);
   }
 

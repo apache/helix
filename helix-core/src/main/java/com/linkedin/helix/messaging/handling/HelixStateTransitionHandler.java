@@ -56,17 +56,20 @@ public class HelixStateTransitionHandler extends MessageHandler
   private final StateModelParser _transitionMethodFinder;
   private final CurrentState     _currentStateDelta;
   volatile boolean               _isTimeout = false;
+  private final HelixTaskExecutor              _executor;
 
   public HelixStateTransitionHandler(StateModel stateModel,
                                      Message message,
                                      NotificationContext context,
-                                     CurrentState currentStateDelta)
+                                     CurrentState currentStateDelta,
+                                     HelixTaskExecutor executor)
   {
     super(message, context);
     _stateModel = stateModel;
     _statusUpdateUtil = new StatusUpdateUtil();
     _transitionMethodFinder = new StateModelParser();
     _currentStateDelta = currentStateDelta;
+    _executor = executor;
   }
 
   private void prepareMessageExecution(HelixManager manager, Message message) throws HelixException,
@@ -221,8 +224,7 @@ public class HelixStateTransitionHandler extends MessageHandler
       }
       else
       {
-        HelixTaskExecutor executor = (HelixTaskExecutor) _notificationContext.get(NotificationContext.TASK_EXECUTOR_KEY);
-        executor._groupMsgHandler.addCurStateUpdate(_message, key, _currentStateDelta);
+        _executor._groupMsgHandler.addCurStateUpdate(_message, key, _currentStateDelta);
       }
     }
     catch (Exception e)

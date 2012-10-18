@@ -33,12 +33,12 @@ import com.linkedin.helix.tools.StateModelConfigGenerator;
 public class TestHelixTaskExecutor
 {
 
-  @Test ()
+  @Test()
   public void testCMTaskExecutor() throws Exception
   {
     System.out.println("START TestCMTaskExecutor");
     String msgId = "TestMessageId";
-    Message message = new Message(MessageType.TASK_REPLY,msgId);
+    Message message = new Message(MessageType.TASK_REPLY, msgId);
 
     message.setMsgId(msgId);
     message.setSrcName("cm-instance-0");
@@ -49,25 +49,31 @@ public class TestHelixTaskExecutor
     message.setPartitionName("TestDB_0");
     message.setResourceName("TestDB");
     message.setStateModelDef("MasterSlave");
-   
+
     MockManager manager = new MockManager("clusterName");
-//    DataAccessor accessor = manager.getDataAccessor();
+    // DataAccessor accessor = manager.getDataAccessor();
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
     StateModelConfigGenerator generator = new StateModelConfigGenerator();
-    StateModelDefinition stateModelDef = new StateModelDefinition(generator.generateConfigForMasterSlave());
+    StateModelDefinition stateModelDef =
+        new StateModelDefinition(generator.generateConfigForMasterSlave());
     Builder keyBuilder = accessor.keyBuilder();
     accessor.setProperty(keyBuilder.stateModelDef("MasterSlave"), stateModelDef);
-    
+
     MockHelixTaskExecutor executor = new MockHelixTaskExecutor();
     MockStateModel stateModel = new MockStateModel();
     NotificationContext context;
-    executor.registerMessageHandlerFactory(
-        MessageType.TASK_REPLY.toString(), new AsyncCallbackService());
-//    String clusterName =" testcluster";
+    executor.registerMessageHandlerFactory(MessageType.TASK_REPLY.toString(),
+                                           new AsyncCallbackService());
+    // String clusterName =" testcluster";
     context = new NotificationContext(manager);
     CurrentState currentStateDelta = new CurrentState("TestDB");
     currentStateDelta.setState("TestDB_0", "OFFLINE");
-    HelixStateTransitionHandler handler = new HelixStateTransitionHandler(stateModel, message, context, currentStateDelta);
+    HelixStateTransitionHandler handler =
+        new HelixStateTransitionHandler(stateModel,
+                                        message,
+                                        context,
+                                        currentStateDelta,
+                                        executor);
 
     executor.scheduleTask(message, handler, context);
     while (!executor.isDone(msgId + "/" + message.getPartitionName()))

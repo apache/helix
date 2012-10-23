@@ -29,23 +29,12 @@ under the License.
   <packaging>jar</packaging>
   <name>helix-admin-webapp</name>
 
-  <repositories>
-    <repository>
-      <id>maven-restlet</id>
-      <name>Public online Restlet repository</name>
-      <url>http://maven.restlet.org</url>
-    </repository>
-  </repositories>
+
   <dependencies>
     <dependency>
       <groupId>org.apache.helix</groupId>
       <artifactId>helix-core</artifactId>
       <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.restlet</groupId>
-      <artifactId>org.restlet</artifactId>
-      <version>1.1.10</version>
     </dependency>
     <dependency>
       <groupId>com.noelios.restlet</groupId>
@@ -79,9 +68,9 @@ under the License.
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>com.linkedin.helix</groupId>
+      <groupId>org.apache.helix</groupId>
       <artifactId>helix-core</artifactId>
-      <version>0.5.28</version>
+      <version>${project.version}</version>
       <type>test-jar</type>
       <scope>test</scope>
     </dependency>

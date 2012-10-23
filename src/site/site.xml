@@ -32,6 +32,15 @@
       <item name="Apache Helix" href="http://helix.incubator.apache.org/"/>
     </breadcrumbs>
 
+    <menu name="Helix">
+      <item name="About" href="./index.html"/>
+      <item name="Quick Start" href="./Quickstart.html"/>
+      <item name="Api Usage" href="./ApiUsage.html"/>
+      <item name="Architecture" href="./Architecture.html"/>
+      <item name="Features" href="./Features.html"/>
+      <item name="Sample App" href="./Sample_App.html"/>
+      <item name="Use Cases" href="./UseCases.html"/>
+    </menu>
 
     <menu ref="reports" inherit="bottom"/>
     <menu ref="modules" inherit="bottom"/>

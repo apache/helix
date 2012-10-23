@@ -1,13 +1,12 @@
 Pages
 ---------------
-* [Home][]
-* [SampleApp][]
-* [Quickstart][]
-* [Architecture][]
-* [Features][]
-* [ApiUsage][]
+* [SampleApp](./Sample_App.html)
+* [Quickstart](./Quickstart.html)
+* [Architecture](./Architecture.html)
+* [Features](./Features.html)
+* [ApiUsage](./ApiUsage.html)
 * [Javadocs][]
-* [UseCases][]
+* [UseCases](./UseCases.html)
 
 WHAT IS HELIX
 --------------

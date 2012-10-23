@@ -1,6 +1,6 @@
 cscope.*
 .svn
-/target
+target/
 /recipes/rabbitmq-consumer-group/target/
 .idea
-.iml
+*.iml

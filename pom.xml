@@ -1,14 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.linkedin.helix</groupId>
   <artifactId>helix</artifactId>
   <version>0.5.28</version>
   <packaging>pom</packaging>
   <name>Helix Modules Root</name>
-	<properties>
-		<applicationVersion>0.5.28</applicationVersion>
-	</properties>
+  <properties>
+    <applicationVersion>0.5.28</applicationVersion>
+  </properties>
   <modules>
     <module>helix-core</module>
     <module>helix-admin-webapp</module>
@@ -30,12 +31,12 @@
           <artifactId>appassembler-maven-plugin</artifactId>
           <version>1.1.1</version>
           <configuration>
-	            <!-- Set the target configuration directory to be used in the bin scripts -->
-		    <configurationDirectory>conf</configurationDirectory>
-	 	    <!-- Copy the contents from "/src/main/config" to the target configuration directory in the assembled application -->
-		    <copyConfigurationDirectory>true</copyConfigurationDirectory>
-		    <!-- Include the target configuration directory in the beginning of the classpath declaration in the bin scripts -->
-	            <includeConfigurationDirectoryInClasspath>true</includeConfigurationDirectoryInClasspath>
+            <!-- Set the target configuration directory to be used in the bin scripts -->
+            <configurationDirectory>conf</configurationDirectory>
+            <!-- Copy the contents from "/src/main/config" to the target configuration directory in the assembled application -->
+            <copyConfigurationDirectory>true</copyConfigurationDirectory>
+            <!-- Include the target configuration directory in the beginning of the classpath declaration in the bin scripts -->
+            <includeConfigurationDirectoryInClasspath>true</includeConfigurationDirectoryInClasspath>
             <assembleDirectory>${project.build.directory}/${project.name}-pkg</assembleDirectory>
             <!-- Extra JVM arguments that will be included in the bin scripts -->
             <extraJvmArguments>-Xms512m -Xmx512m</extraJvmArguments>
@@ -106,18 +107,18 @@
           </executions>
         </plugin>
         <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-eclipse-plugin</artifactId>
-            <configuration>
-               <downloadSources>true</downloadSources>
-               <downloadJavadocs>true</downloadJavadocs>
-            </configuration>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-eclipse-plugin</artifactId>
+          <configuration>
+            <downloadSources>true</downloadSources>
+            <downloadJavadocs>true</downloadJavadocs>
+          </configuration>
         </plugin>
         <plugin>
-         <groupId>org.apache.maven.plugins</groupId>
-         <artifactId>maven-jar-plugin</artifactId>
-         <version>2.2</version>
-         <executions>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-jar-plugin</artifactId>
+          <version>2.2</version>
+          <executions>
             <execution>
               <goals>
                 <goal>test-jar</goal>
@@ -143,51 +144,51 @@
         </plugin>
       </plugins>
     </pluginManagement>
-<plugins>
-<plugin>
-    <inherited>true</inherited>
-    <groupId>com.mycila.maven-license-plugin</groupId>
-    <artifactId>maven-license-plugin</artifactId>
-    <version>1.9.0</version>
-    <configuration>
-        <header>${basedir}/header.txt</header>
-        <failIfMissing>false</failIfMissing>
-        <aggregate>false</aggregate>
-        <properties>
+    <plugins>
+      <plugin>
+        <inherited>true</inherited>
+        <groupId>com.mycila.maven-license-plugin</groupId>
+        <artifactId>maven-license-plugin</artifactId>
+        <version>1.9.0</version>
+        <configuration>
+          <header>${basedir}/header.txt</header>
+          <failIfMissing>false</failIfMissing>
+          <aggregate>false</aggregate>
+          <properties>
             <owner>LinkedIn Inc</owner>
             <year>2012</year>
             <email>opensource@linkedin.com</email>
-        </properties>
-        <excludes>
+          </properties>
+          <excludes>
             <exclude>LICENSE.txt</exclude>
             <exclude>**/src/test/resources/**</exclude>
             <exclude>**/src/test/data/**</exclude>
-        </excludes>
-    </configuration>
-    <executions>
-        <execution>
+          </excludes>
+        </configuration>
+        <executions>
+          <execution>
             <id>check-headers</id>
             <phase>verify</phase>
             <goals>
-                <goal>check</goal>
+              <goal>check</goal>
             </goals>
-        </execution>
-    </executions>
-</plugin>
+          </execution>
+        </executions>
+      </plugin>
 
-</plugins>
+    </plugins>
   </build>
   <reporting>
-     <plugins>
-       <plugin>
-         <groupId>org.apache.maven.plugins</groupId>
-         <artifactId>maven-checkstyle-plugin</artifactId>
-         <version>2.8</version>
-         <configuration>
-           <configLocation>file:///${project.parent.basedir}/li_checkstyle.xml</configLocation>
-           <failOnError>true</failOnError>
-           <violationSeverity>error</violationSeverity>
-         </configuration>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+        <version>2.8</version>
+        <configuration>
+          <configLocation>file:///${project.parent.basedir}/li_checkstyle.xml</configLocation>
+          <failOnError>true</failOnError>
+          <violationSeverity>error</violationSeverity>
+        </configuration>
       </plugin>
     </plugins>
   </reporting>

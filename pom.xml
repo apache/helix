@@ -72,6 +72,20 @@ under the License.
     </mailingList>
   </mailingLists>
 
+  <scm>
+    <connection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-helix.git</connection>
+    <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-helix.git</developerConnection>
+    <url>https://git-wip-us.apache.org/repos/asf?p=incubator-helix.git;a=summary</url>
+  </scm>
+  <issueManagement>
+    <system>jira</system>
+    <url>https://issues.apache.org/jira/browse/HELIX</url>
+  </issueManagement>
+  <ciManagement>
+    <system>Jenkins</system>
+    <url>https://builds.apache.org/view/G-L/view/Helix/</url>
+  </ciManagement>
+
   <build>
     <pluginManagement>
       <plugins>

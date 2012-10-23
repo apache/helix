@@ -26,9 +26,9 @@ under the License.
     <version>11</version>
   </parent>
 
-  <groupId>com.linkedin.helix</groupId>
+  <groupId>org.apache.helix</groupId>
   <artifactId>helix</artifactId>
-  <version>0.5.28</version>
+  <version>0.1-incubating</version>
   <packaging>pom</packaging>
   <name>Helix Modules Root</name>
   <properties>

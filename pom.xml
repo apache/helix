@@ -72,6 +72,19 @@ under the License.
     </mailingList>
   </mailingLists>
 
+  <repositories>
+    <repository>
+      <id>restlet.org</id>
+      <url>http://maven.restlet.org</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+    </repository>
+  </repositories>
+
   <scm>
     <connection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-helix.git</connection>
     <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-helix.git</developerConnection>
@@ -85,6 +98,24 @@ under the License.
     <system>Jenkins</system>
     <url>https://builds.apache.org/view/G-L/view/Helix/</url>
   </ciManagement>
+
+  <properties>
+    <maven-scm-provider-svnjava.version>2.0.5</maven-scm-provider-svnjava.version>
+    <svnkit.version>1.7.5-v1</svnkit.version>
+
+    <helix.siteFilePath>${user.home}/helix-site-deploy</helix.siteFilePath>
+    <siteUrlDeployment>file://${helix.siteFilePath}</siteUrlDeployment>
+    <helix.scmPubCheckoutDirectory>${user.home}/helix-site-content</helix.scmPubCheckoutDirectory>
+    <scmSkipDeletedFiles>false</scmSkipDeletedFiles>
+
+  </properties>
+
+  <distributionManagement>
+    <site>
+      <id>apache.website</id>
+      <url>${siteUrlDeployment}</url>
+    </site>
+  </distributionManagement>
 
   <build>
     <pluginManagement>
@@ -213,6 +244,35 @@ under the License.
           <artifactId>maven-checkstyle-plugin</artifactId>
           <version>2.8</version>
         </plugin>
+
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-scm-publish-plugin</artifactId>
+          <version>1.0-beta-1</version>
+          <configuration>
+            <tryUpdate>true</tryUpdate>
+            <providerImplementations>
+              <svn>javasvn</svn>
+            </providerImplementations>
+            <pubScmUrl>scm:svn:https://svn.apache.org/repos/asf/incubator/helix/site-content/</pubScmUrl>
+            <content>${helix.siteFilePath}</content>
+            <checkoutDirectory>${helix.scmPubCheckoutDirectory}</checkoutDirectory>
+            <skipDeletedFiles>${scmSkipDeletedFiles}</skipDeletedFiles>
+          </configuration>
+          <dependencies>
+            <dependency>
+              <groupId>com.google.code.maven-scm-provider-svnjava</groupId>
+              <artifactId>maven-scm-provider-svnjava</artifactId>
+              <version>${maven-scm-provider-svnjava.version}</version>
+            </dependency>
+            <dependency>
+              <groupId>org.tmatesoft.svnkit</groupId>
+              <artifactId>svnkit</artifactId>
+              <version>${svnkit.version}</version>
+            </dependency>
+          </dependencies>
+        </plugin>
+
       </plugins>
     </pluginManagement>
     <plugins>
@@ -263,6 +323,11 @@ under the License.
   </build>
   <reporting>
     <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <version>2.9</version>
+      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-checkstyle-plugin</artifactId>

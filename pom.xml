@@ -103,6 +103,8 @@ under the License.
 
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
+    <sonar.host.url>https://analysis.apache.org/</sonar.host.url>
+
     <maven-scm-provider-svnjava.version>2.0.5</maven-scm-provider-svnjava.version>
     <svnkit.version>1.7.5-v1</svnkit.version>
 
@@ -336,6 +338,11 @@ under the License.
           <failOnError>true</failOnError>
           <violationSeverity>error</violationSeverity>
         </configuration-->
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.sonar-plugins</groupId>
+        <artifactId>maven-report</artifactId>
+        <version>0.1</version>
       </plugin>
     </plugins>
   </reporting>

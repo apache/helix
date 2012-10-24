@@ -5,7 +5,7 @@ Pages
 * [Architecture](./Architecture.html)
 * [Features](./Features.html)
 * [ApiUsage](./ApiUsage.html)
-* [Javadocs][]
+* [Javadocs](./apidocs/index.html)
 * [UseCases](./UseCases.html)
 
 WHAT IS HELIX

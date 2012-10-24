@@ -132,7 +132,7 @@ UseCases: [Helix LinkedIn Usecases](https://github.com/linkedin/helix/wiki/UseCa
 
 Build Informations
 ------------------
-To deploy web site to Apache infrastructure: sh ./deploySite.sh -Dusername=uid -Dpassword=pwd
+To deploy web site to Apache infrastructure: sh ./deploySite.sh -Dusername=uid -Dpassword=pwd (-DskipTests if you don't want to run units tests)
 uid is your asf id, pwd is the password
 
 

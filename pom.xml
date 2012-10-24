@@ -33,6 +33,8 @@ under the License.
   <packaging>pom</packaging>
   <name>Helix</name>
 
+  <url>http://helix.incubator.apache.org</url>
+
   <modules>
     <module>helix-core</module>
     <module>helix-admin-webapp</module>

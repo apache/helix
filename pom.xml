@@ -127,6 +127,11 @@ under the License.
         <artifactId>com.noelios.restlet</artifactId>
         <version>1.1.10</version>
       </dependency>
+      <dependency>
+        <groupId>org.apache.helix</groupId>
+        <artifactId>helix-core</artifactId>
+        <version>${project.version}</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 

@@ -34,7 +34,6 @@ under the License.
     <dependency>
       <groupId>org.apache.helix</groupId>
       <artifactId>helix-core</artifactId>
-      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>com.noelios.restlet</groupId>

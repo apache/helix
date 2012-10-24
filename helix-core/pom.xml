@@ -137,11 +137,6 @@ under the License.
       <version>1.1.10</version>
     </dependency>
     <dependency>
-      <groupId>com.noelios.restlet</groupId>
-      <artifactId>com.noelios.restlet</artifactId>
-      <version>1.1.10</version>
-    </dependency>
-    <dependency>
       <groupId>net.sf</groupId>
       <artifactId>jsqlparser</artifactId>
       <version>0.7.0</version>

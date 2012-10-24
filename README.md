@@ -130,7 +130,10 @@ Features: [Helix Features](https://github.com/linkedin/helix/wiki/Features)
 ApiUsage: http://linkedin.github.com/helix/apidocs/
 UseCases: [Helix LinkedIn Usecases](https://github.com/linkedin/helix/wiki/UseCases)  
 
-
+Build Informations
+------------------
+To deploy web site to Apache infrastructure: sh ./deploySite.sh -Dusername=uid -Dpassword=pwd
+uid is your asf id, pwd is the password
 
 
    

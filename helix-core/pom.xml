@@ -28,10 +28,9 @@ under the License.
   <artifactId>helix-core</artifactId>
   <packaging>jar</packaging>
 
-  <name>helix-core</name>
+  <name>Helix :: Core</name>
 
   <properties>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <repo.dir>file://${project.basedir}/../repo</repo.dir>
   </properties>
   <repositories>

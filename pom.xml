@@ -31,7 +31,7 @@ under the License.
   <artifactId>helix</artifactId>
   <version>0.1-incubating</version>
   <packaging>pom</packaging>
-  <name>Helix Modules Root</name>
+  <name>Helix</name>
 
   <modules>
     <module>helix-core</module>
@@ -100,6 +100,9 @@ under the License.
   </ciManagement>
 
   <properties>
+
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
     <maven-scm-provider-svnjava.version>2.0.5</maven-scm-provider-svnjava.version>
     <svnkit.version>1.7.5-v1</svnkit.version>
 

@@ -27,7 +27,7 @@ under the License.
 
   <artifactId>helix-admin-webapp</artifactId>
   <packaging>jar</packaging>
-  <name>helix-admin-webapp</name>
+  <name>Helix :: Admin Webapp</name>
 
 
   <dependencies>

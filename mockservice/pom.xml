@@ -25,11 +25,8 @@ under the License.
     <version>0.1-incubating</version>
   </parent>
   <artifactId>mockservice</artifactId>
-  <name>mockservice</name>
+  <name>Helix :: Mockservice</name>
 
-  <properties>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-  </properties>
 
   <dependencies>
     <dependency>

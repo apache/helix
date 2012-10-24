@@ -1,6 +1,9 @@
 cscope.*
+.classpath
+.project
 .svn
 target/
 /recipes/rabbitmq-consumer-group/target/
 .idea
 *.iml
+.settings/

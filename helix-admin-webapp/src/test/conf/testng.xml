@@ -20,8 +20,8 @@
 <suite name="Suite" parallel="none">
   <test name="Test" preserve-order="false">
     <packages>
-      <package name="com.linkedin.helix.webapp"/>
-      <package name="com.linkedin.helix.tools"/>
+      <package name="org.apache.helix.webapp"/>
+      <package name="org.apache.helix.tools"/>
     </packages>
   </test>
 </suite>

@@ -20,21 +20,21 @@
 <suite name="Suite" parallel="none">
   <test name="Test" preserve-order="true">
     <packages>
-    	<package name="com.linkedin.helix.*"/>
+    	<package name="org.apache.helix.*"/>
     <!--
-      <package name="com.linkedin.helix.messaging.handling"/>
-      <package name="com.linkedin.helix.agent.file"/>
-      <package name="com.linkedin.helix.monitoring"/>
-      <package name="com.linkedin.helix.store.zk"/>
-      <package name="com.linkedin.helix.messaging"/>
-      <package name="com.linkedin.helix.controller.stages"/>
-      <package name="com.linkedin.helix.store.file"/>
-      <package name="com.linkedin.helix.store"/>
-      <package name="com.linkedin.helix.monitoring.mbeans"/>
-      <package name="com.linkedin.helix.participant"/>
-      <package name="com.linkedin.helix"/>
-      <package name="com.linkedin.helix.agent.zk"/>
-      <package name="com.linkedin.helix.integration"/>
+      <package name="org.apache.helix.messaging.handling"/>
+      <package name="org.apache.helix.agent.file"/>
+      <package name="org.apache.helix.monitoring"/>
+      <package name="org.apache.helix.store.zk"/>
+      <package name="org.apache.helix.messaging"/>
+      <package name="org.apache.helix.controller.stages"/>
+      <package name="org.apache.helix.store.file"/>
+      <package name="org.apache.helix.store"/>
+      <package name="org.apache.helix.monitoring.mbeans"/>
+      <package name="org.apache.helix.participant"/>
+      <package name="org.apache.helix"/>
+      <package name="org.apache.helix.agent.zk"/>
+      <package name="org.apache.helix.integration"/>
       -->
     </packages>
   </test>

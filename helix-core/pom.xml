@@ -162,39 +162,39 @@ under the License.
         <configuration>
           <programs>
             <program>
-              <mainClass>com.linkedin.helix.controller.HelixControllerMain</mainClass>
+              <mainClass>org.apache.helix.controller.HelixControllerMain</mainClass>
               <name>run-helix-controller</name>
             </program>
             <program>
-              <mainClass>com.linkedin.helix.tools.ClusterSetup</mainClass>
+              <mainClass>org.apache.helix.tools.ClusterSetup</mainClass>
               <name>helix-admin</name>
             </program>
             <program>
-              <mainClass>com.linkedin.helix.tools.ZKDumper</mainClass>
+              <mainClass>org.apache.helix.tools.ZKDumper</mainClass>
               <name>zk-dumper</name>
             </program>
             <program>
-              <mainClass>com.linkedin.helix.tools.ZKLogFormatter</mainClass>
+              <mainClass>org.apache.helix.tools.ZKLogFormatter</mainClass>
               <name>zk-log-parser</name>
             </program>
             <program>
-              <mainClass>com.linkedin.helix.tools.ZkLogCSVFormatter</mainClass>
+              <mainClass>org.apache.helix.tools.ZkLogCSVFormatter</mainClass>
               <name>zk-log-csv-formatter</name>
             </program>
             <program>
-              <mainClass>com.linkedin.helix.examples.ExampleProcess</mainClass>
+              <mainClass>org.apache.helix.examples.ExampleProcess</mainClass>
               <name>start-helix-participant</name>
             </program>
             <program>
-              <mainClass>com.linkedin.helix.tools.LocalZKServer</mainClass>
+              <mainClass>org.apache.helix.tools.LocalZKServer</mainClass>
               <name>start-standalone-zookeeper</name>
             </program>
             <program>
-              <mainClass>com.linkedin.helix.tools.ZkLogAnalyzer</mainClass>
+              <mainClass>org.apache.helix.tools.ZkLogAnalyzer</mainClass>
               <name>zk-log-analyzer</name>
             </program>
             <program>
-              <mainClass>com.linkedin.helix.tools.JmxDumper</mainClass>
+              <mainClass>org.apache.helix.tools.JmxDumper</mainClass>
               <name>JmxDumper</name>
             </program>
           </programs>

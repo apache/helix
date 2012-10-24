@@ -85,7 +85,7 @@ under the License.
           </platforms>
           <programs>
             <program>
-              <mainClass>com.linkedin.helix.webapp.RestAdminApplication</mainClass>
+              <mainClass>org.apache.helix.webapp.RestAdminApplication</mainClass>
               <name>run-rest-admin</name>
             </program>
           </programs>

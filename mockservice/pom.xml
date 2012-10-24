@@ -58,7 +58,7 @@ under the License.
         <configuration>
           <programs>
             <program>
-              <mainClass>com.linkedin.helix.MockEspressoService</mainClass>
+              <mainClass>org.apache.helix.MockEspressoService</mainClass>
               <name>run-mock-espresso-service</name>
             </program>
           </programs>

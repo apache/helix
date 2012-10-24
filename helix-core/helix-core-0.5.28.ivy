@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ivy-module version="1.0" xmlns:m="http://ant.apache.org/ivy/maven">
-	<info organisation="com.linkedin.helix"
+	<info organisation="org.apache.helix"
 		module="helix-core"
 		revision="0.5.28"
 		status="release"

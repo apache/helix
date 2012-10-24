@@ -15,11 +15,11 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>com.linkedin.helix</groupId>
+      <groupId>org.apache.helix</groupId>
       <artifactId>helix-core</artifactId>
-      <version>0.5.28</version>
+      <version>0.1-SNAPSHOT-incubating</version>
       <scope>system</scope>
-      <systemPath>${PWD}/lib/helix-core-0.5.28.jar</systemPath>
+      <systemPath>${PWD}/lib/helix-core-0.1-SNAPSHOT-incubating.jar</systemPath>
     </dependency>
     <dependency>
       <groupId>com.rabbitmq</groupId>

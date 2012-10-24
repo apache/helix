@@ -117,18 +117,4 @@ Helix approach of using a distributed state machine with constraints on state an
 * Since the controller's goal is to satisfy state machine constraints at all times, use cases like cluster startup, node failure, cluster expansion are solved in a similar way.
 
 At LinkedIn, we have been able to use this to manage 3 different distributed systems that look very different on paper.  
-
-----------------
-[Home]:wiki/Home "Introduction"
-[SampleApp]:wiki/Sample_App "Sample Application"
-[Quickstart]: wiki/Quickstart "Quick Start Guide"
-[Architecture]: wiki/Architecture "Helix Architecture"
-[Features]: wiki/Features "Features"
-[ApiUsage]: wiki/ApiUsage "Api usage"
-[Javadocs]: http://linkedin.github.com/helix/apidocs/
-[UseCases]: wiki/UseCases "Some usecases at LinkedIn"
-
-
-
-
    

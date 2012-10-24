@@ -17,6 +17,11 @@
 -->
 <project name="Apache Helix">
 
+  <bannerRight>
+    <src>http://incubator.apache.org/images/egg-logo.png</src>
+    <href>http://incubator.apache.org/</href>
+  </bannerRight>
+
   <publishDate position="right"/>
   <version position="right"/>
 

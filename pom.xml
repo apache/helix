@@ -109,6 +109,8 @@ under the License.
     <svnkit.version>1.7.5-v1</svnkit.version>
 
     <helix.siteFilePath>${user.home}/helix-site-deploy</helix.siteFilePath>
+    <!-- you can use javasvn too -->
+    <svnImpl>svn</svnImpl>
     <siteUrlDeployment>file://${helix.siteFilePath}</siteUrlDeployment>
     <helix.scmPubCheckoutDirectory>${user.home}/helix-site-content</helix.scmPubCheckoutDirectory>
     <scmSkipDeletedFiles>false</scmSkipDeletedFiles>
@@ -252,7 +254,7 @@ under the License.
           <configuration>
             <tryUpdate>true</tryUpdate>
             <providerImplementations>
-              <svn>javasvn</svn>
+              <svn>${svnImpl}</svn>
             </providerImplementations>
             <pubScmUrl>scm:svn:https://svn.apache.org/repos/asf/incubator/helix/site-content/</pubScmUrl>
             <content>${helix.siteFilePath}</content>

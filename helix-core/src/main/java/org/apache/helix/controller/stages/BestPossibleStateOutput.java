@@ -1,0 +1,73 @@
+/**
+ * Copyright (C) 2012 LinkedIn Inc <opensource@linkedin.com>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.helix.controller.stages;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.apache.helix.model.Partition;
+
+
+public class BestPossibleStateOutput
+{
+  // resource->partition->instance->state
+  Map<String, Map<Partition, Map<String, String>>> _dataMap;
+
+  public BestPossibleStateOutput()
+  {
+    _dataMap = new HashMap<String, Map<Partition, Map<String, String>>>();
+  }
+
+  public void setState(String resourceName, Partition resource,
+      Map<String, String> bestInstanceStateMappingForResource)
+  {
+    if (!_dataMap.containsKey(resourceName))
+    {
+      _dataMap.put(resourceName,
+          new HashMap<Partition, Map<String, String>>());
+    }
+    Map<Partition, Map<String, String>> map = _dataMap.get(resourceName);
+    map.put(resource, bestInstanceStateMappingForResource);
+  }
+
+  public Map<String, String> getInstanceStateMap(String resourceName,
+      Partition resource)
+  {
+    Map<Partition, Map<String, String>> map = _dataMap.get(resourceName);
+    if (map != null)
+    {
+      return map.get(resource);
+    }
+    return Collections.emptyMap();
+  }
+
+  public Map<Partition, Map<String, String>> getResourceMap(String resourceName)
+  {
+    Map<Partition, Map<String, String>> map = _dataMap.get(resourceName);
+    if (map != null)
+    {
+      return map;
+    }
+    return Collections.emptyMap();
+  }
+
+  @Override
+  public String toString()
+  {
+    return _dataMap.toString();
+  }
+}

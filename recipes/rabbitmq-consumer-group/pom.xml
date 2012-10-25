@@ -19,7 +19,6 @@
       <artifactId>helix-core</artifactId>
       <version>0.6-SNAPSHOT-incubating</version>
       <scope>system</scope>
-      <systemPath>${PWD}/lib/helix-core-0.1-SNAPSHOT-incubating.jar</systemPath>
     </dependency>
     <dependency>
       <groupId>com.rabbitmq</groupId>

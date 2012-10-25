@@ -281,36 +281,6 @@ under the License.
     </pluginManagement>
     <plugins>
       <plugin>
-        <inherited>true</inherited>
-        <groupId>com.mycila.maven-license-plugin</groupId>
-        <artifactId>maven-license-plugin</artifactId>
-        <version>1.9.0</version>
-        <configuration>
-          <header>${basedir}/header.txt</header>
-          <failIfMissing>false</failIfMissing>
-          <aggregate>false</aggregate>
-          <properties>
-            <owner>LinkedIn Inc</owner>
-            <year>2012</year>
-            <email>opensource@linkedin.com</email>
-          </properties>
-          <excludes>
-            <exclude>LICENSE.txt</exclude>
-            <exclude>**/src/test/resources/**</exclude>
-            <exclude>**/src/test/data/**</exclude>
-          </excludes>
-        </configuration>
-        <executions>
-          <execution>
-            <id>check-headers</id>
-            <phase>verify</phase>
-            <goals>
-              <goal>check</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-site-plugin</artifactId>
         <version>3.2</version>
@@ -383,4 +353,44 @@ under the License.
       </plugin>
     </plugins>
   </reporting>
+
+  <profiles>
+    <profile>
+      <id>rat</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.rat</groupId>
+            <artifactId>apache-rat-plugin</artifactId>
+            <version>0.8</version>
+            <executions>
+              <execution>
+                <id>rat-verify</id>
+                <phase>test</phase>
+                <goals>
+                  <goal>check</goal>
+                </goals>
+                <configuration>
+                  <excludes>
+                    <exclude>.gitignore</exclude>
+                    <exclude>DEPENDENCIES</exclude>
+                    <exclude>README.md</exclude>
+                    <exclude>*.sh</exclude>
+                    <exclude>.git/**</exclude>
+                    <exclude>.idea/**</exclude>
+                    <exclude>*.bat</exclude>
+                    <exclude>**/*.iml</exclude>
+                    <exclude>.repository/**</exclude>
+                    <!-- currenty exclude this module which is not part of the build -->
+                    <exclude>recipes/rabbitmq-consumer-group/**</exclude>
+                    <exclude>bump-up.command</exclude>
+                  </excludes>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>

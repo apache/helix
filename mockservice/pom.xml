@@ -22,7 +22,7 @@ under the License.
   <parent>
     <groupId>org.apache.helix</groupId>
     <artifactId>helix</artifactId>
-    <version>0.1-SNAPSHOT-incubating</version>
+    <version>0.6-SNAPSHOT-incubating</version>
   </parent>
   <artifactId>mockservice</artifactId>
   <name>Helix :: Mockservice</name>

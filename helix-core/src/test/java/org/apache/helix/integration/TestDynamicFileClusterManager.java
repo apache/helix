@@ -46,6 +46,7 @@ public class TestDynamicFileClusterManager extends FileCMTestBase
     _mgmtTool.dropResource(CLUSTER_NAME, "MyDB");
 
     TestHelper.verifyWithTimeout("verifyEmptyCurStateFile",
+                                 30 * 1000,
                                  CLUSTER_NAME,
                                  "MyDB",
                                  TestHelper.<String>setOf("localhost_12918", "localhost_12919",

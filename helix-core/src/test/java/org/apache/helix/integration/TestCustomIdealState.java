@@ -142,7 +142,7 @@ public class TestCustomIdealState extends ZkIntegrationTestBase
     ClusterSetup setup = new ClusterSetup(ZK_ADDR);
     setup.dropResourceFromCluster(uniqClusterName, "TestDB0");
 
-    TestHelper.verifyWithTimeout("verifyEmptyCurStateAndExtView", uniqClusterName, "TestDB0",
+    TestHelper.verifyWithTimeout("verifyEmptyCurStateAndExtView", 30 * 1000, uniqClusterName, "TestDB0",
         TestHelper.<String> setOf("localhost_12918", "localhost_12919", "localhost_12920",
             "localhost_12921", "localhost_12922"), ZK_ADDR);
 

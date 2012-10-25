@@ -229,10 +229,10 @@ public class TestHelper
     return set;
   }
 
-  public static void verifyWithTimeout(String verifierName, Object... args)
-  {
-    verifyWithTimeout(verifierName, 30 * 1000, args);
-  }
+//  public static void verifyWithTimeout(String verifierName, Object... args)
+//  {
+//    verifyWithTimeout(verifierName, 30 * 1000, args);
+//  }
 
   /**
    * generic method for verification with a timeout

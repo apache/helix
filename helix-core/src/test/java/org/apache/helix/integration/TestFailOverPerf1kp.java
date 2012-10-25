@@ -11,7 +11,8 @@ import org.testng.annotations.Test;
 
 public class TestFailOverPerf1kp
 {
-  @Test
+  // TODO: renable this test. disable it because the script is not running properly on apache jenkins
+  // @Test
   public void testFailOverPerf1kp() throws Exception
   {
     // Logger.getRootLogger().setLevel(Level.INFO);

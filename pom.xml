@@ -385,6 +385,9 @@ under the License.
                     <!-- currenty exclude this module which is not part of the build -->
                     <exclude>recipes/rabbitmq-consumer-group/**</exclude>
                     <exclude>bump-up.command</exclude>
+                    <exclude>src/main/scripts/integration-test/var/log/**</exclude>
+                    <exclude>src/test/resources/static_view.txt</exclude>
+                    <exclude>src/main/scripts/integration-test/script/.metadata_infra</exclude>
                   </excludes>
                 </configuration>
               </execution>

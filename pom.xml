@@ -117,6 +117,8 @@ under the License.
     <helix.siteUrlDeployment>file://${helix.siteFilePath}</helix.siteUrlDeployment>
     <helix.scmPubCheckoutDirectory>${user.home}/helix-site-content</helix.scmPubCheckoutDirectory>
     <scmSkipDeletedFiles>false</scmSkipDeletedFiles>
+    <!-- fix issue with current apache parent pom -->
+    <arguments></arguments>
 
   </properties>
 

@@ -120,6 +120,7 @@ under the License.
     <!-- fix issue with current apache parent pom -->
     <arguments></arguments>
 
+    <release.preparationGoals>clean install</release.preparationGoals>
   </properties>
 
   <distributionManagement>
@@ -153,6 +154,13 @@ under the License.
           <configuration>
             <source>1.6</source>
             <target>1.6</target>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-release-plugin</artifactId>
+          <configuration>
+            <preparationGoals>${release.preparationGoals}</preparationGoals>
           </configuration>
         </plugin>
         <plugin>

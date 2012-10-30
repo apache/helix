@@ -560,7 +560,6 @@ public class Message extends HelixProperty
     }
   }
   
-  // TODO replace with util from espresso or linkedin
   private boolean isNullOrEmpty(String data)
   {
     return data == null || data.length() == 0 || data.trim().length() == 0;

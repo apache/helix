@@ -287,7 +287,6 @@ under the License.
             </dependency>
           </dependencies>
         </plugin>
-
       </plugins>
     </pluginManagement>
     <plugins>
@@ -303,7 +302,11 @@ under the License.
           </dependency>
         </dependencies>
       </plugin>
-
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>license-maven-plugin</artifactId>
+        <version>1.3</version>
+      </plugin>
     </plugins>
   </build>
   <reporting>

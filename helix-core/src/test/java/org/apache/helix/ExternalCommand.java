@@ -33,14 +33,6 @@ import java.util.concurrent.TimeoutException;
 
 import org.apache.log4j.Logger;
 
-/**
-* This class encapsulates a java <code>Process</code> to handle properly
-* output and error and preventing potential deadlocks. The idea is that the
-* command is executed and you can get the error or output. Simple to use.
-* Should not be used for big outputs because they are buffered internally.
-*
-* @author ypujante@linkedin.com
-*/
 public class ExternalCommand
 {
   public static final String MODULE = ExternalCommand.class.getName();

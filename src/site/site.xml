@@ -47,6 +47,16 @@
       <item name="Use Cases" href="./UseCases.html"/>
     </menu>
 
+    <menu name="Get Involved">
+      <item name="Mailing Lists" href="mail-lists.html"/>
+      <item name="Issues" href="issue-tracking.html"/>
+      <item name="Team" href="team-list.html"/>
+      <item name="Sources" href="source-repository.html"/>
+      <item name="Continuous Integration" href="integration.html"/>
+      <item name="Building Guide" href="/involved/building.html"/>
+      <item name="Release Guide" href="/involved/release.html"/>
+    </menu>
+
     <menu ref="reports" inherit="bottom"/>
     <menu ref="modules" inherit="bottom"/>
 

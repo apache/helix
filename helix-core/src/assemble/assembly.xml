@@ -24,13 +24,13 @@ under the License.
 	</formats>
 	<fileSets>
 		<fileSet>
-			<directory>target/cluster-manager-pkg/bin</directory>
+			<directory>${project.build.directory}/${project.artifactId}-pkg/bin</directory>
 			<outputDirectory>/bin</outputDirectory>
 			<lineEnding>unix</lineEnding>
 			<fileMode>0744</fileMode>
 		</fileSet>
 		<fileSet>
-			<directory>target/cluster-manager-pkg/repo</directory>
+			<directory>${project.build.directory}/${project.artifactId}-pkg/repo</directory>
 			<outputDirectory>/repo</outputDirectory>
 		</fileSet>
 		<!-- <fileSet> <directory>src/main/conf</directory> <includes> <include>app-env.bat</include> 

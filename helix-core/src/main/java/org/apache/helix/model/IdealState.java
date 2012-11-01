@@ -313,4 +313,7 @@ public class IdealState extends HelixProperty
     }
     return true;
   }
+  public static class Builder{
+	  
+  }
 }

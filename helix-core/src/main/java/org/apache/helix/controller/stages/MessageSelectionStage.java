@@ -41,7 +41,7 @@ public class MessageSelectionStage extends AbstractBaseStage
 {
   private static final Logger LOG = Logger.getLogger(MessageSelectionStage.class);
 
-  static class Bounds
+  public static class Bounds
   {
     private int upper;
     private int lower;

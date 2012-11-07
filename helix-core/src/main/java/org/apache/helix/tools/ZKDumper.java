@@ -54,7 +54,7 @@ public class ZKDumper
   static Options options;
   private String suffix = "";
   //enable by default
-  private boolean removeSuffix=true;
+  private boolean removeSuffix=false;
 
   public String getSuffix()
   {

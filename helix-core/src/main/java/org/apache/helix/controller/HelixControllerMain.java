@@ -199,8 +199,7 @@ public class HelixControllerMain
       }
     } catch (Exception e)
     {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
+      logger.error("Exception while starting controller",e);
     }
 
     return manager;

@@ -428,15 +428,12 @@ public class FileHelixAdmin implements HelixAdmin
   @Override
   public void setConfig(ConfigScope scope, Map<String, String> properties)
   {
-    // TODO Auto-generated method stub
     throw new UnsupportedOperationException("unsupported operation");
-
   }
 
   @Override
   public Map<String, String> getConfig(ConfigScope scope, Set<String> keys)
   {
-    // TODO Auto-generated method stub
     throw new UnsupportedOperationException("unsupported operation");
   }
 
@@ -445,14 +442,12 @@ public class FileHelixAdmin implements HelixAdmin
                                     String clusterName,
                                     String... keys)
   {
-    // TODO Auto-generated method stub
     throw new UnsupportedOperationException("unsupported operation");
   }
 
   @Override
   public void removeConfig(ConfigScope scope, Set<String> keys)
   {
-    // TODO Auto-generated method stub
     throw new UnsupportedOperationException("unsupported operation");
 
   }
@@ -460,14 +455,12 @@ public class FileHelixAdmin implements HelixAdmin
   @Override
   public void rebalance(String clusterName, String resourceName, int replica)
   {
-    // TODO Auto-generated method stub
     throw new UnsupportedOperationException("unsupported operation");
   }
 
   @Override
   public void addIdealState(String clusterName, String resourceName, String idealStateFile) throws IOException
   {
-    // TODO Auto-generated method stub
     throw new UnsupportedOperationException("unsupported operation");
   }
 
@@ -476,7 +469,6 @@ public class FileHelixAdmin implements HelixAdmin
                                String stateModelDefName,
                                String stateModelDefFile) throws IOException
   {
-    // TODO Auto-generated method stub
     throw new UnsupportedOperationException("unsupported operation");
   }
 
@@ -485,7 +477,13 @@ public class FileHelixAdmin implements HelixAdmin
                                    String constraintId,
                                    Map<String, String> constraints)
   {
-    // TODO Auto-generated method stub
+    throw new UnsupportedOperationException("unsupported operation");
+  }
+
+  @Override
+  public void addResource(String clusterName, String resourceName,
+      IdealState idealstate)
+  {
     throw new UnsupportedOperationException("unsupported operation");
   }
 }

@@ -39,7 +39,6 @@ import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.tools.ClusterStateVerifier;
 
-
 public class ExampleProcess
 {
 
@@ -59,7 +58,7 @@ public class ExampleProcess
   private final String stateModelType;
   private HelixManager manager;
 
-//  private StateMachineEngine genericStateMachineHandler;
+  // private StateMachineEngine genericStateMachineHandler;
 
   private String _file = null;
   private StateModelFactory<StateModel> stateModelFactory;
@@ -81,17 +80,12 @@ public class ExampleProcess
     if (_file == null)
     {
       manager = HelixManagerFactory.getZKHelixManager(clusterName,
-                                                          instanceName,
-                                                          InstanceType.PARTICIPANT,
-                                                          zkConnectString);
+          instanceName, InstanceType.PARTICIPANT, zkConnectString);
 
-    }
-    else
+    } else
     {
       manager = HelixManagerFactory.getStaticFileHelixManager(clusterName,
-                                                                  instanceName,
-                                                                  InstanceType.PARTICIPANT,
-                                                                  _file);
+          instanceName, InstanceType.PARTICIPANT, _file);
 
     }
 
@@ -105,9 +99,10 @@ public class ExampleProcess
     {
       stateModelFactory = new LeaderStandbyStateModelFactory(delay);
     }
-//    genericStateMachineHandler = new StateMachineEngine();
-//    genericStateMachineHandler.registerStateModelFactory(stateModelType, stateModelFactory);
-    
+    // genericStateMachineHandler = new StateMachineEngine();
+    // genericStateMachineHandler.registerStateModelFactory(stateModelType,
+    // stateModelFactory);
+
     StateMachineEngine stateMach = manager.getStateMachineEngine();
     stateMach.registerStateModelFactory(stateModelType, stateModelFactory);
     manager.connect();
@@ -119,6 +114,11 @@ public class ExampleProcess
           stateModelFactory);
 
     }
+  }
+
+  public void stop()
+  {
+    manager.disconnect();
   }
 
   @SuppressWarnings("static-access")
@@ -191,7 +191,8 @@ public class ExampleProcess
   public static void printUsage(Options cliOptions)
   {
     HelpFormatter helpFormatter = new HelpFormatter();
-    helpFormatter.printHelp("java " + ExampleProcess.class.getName(), cliOptions);
+    helpFormatter.printHelp("java " + ExampleProcess.class.getName(),
+        cliOptions);
   }
 
   public static CommandLine processCommandLineArgs(String[] cliArgs)

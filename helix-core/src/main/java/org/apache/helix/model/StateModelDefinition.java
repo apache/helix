@@ -175,10 +175,10 @@ public class StateModelDefinition extends HelixProperty
      * 
      * @param state
      */
-    public void initialState(String initialState)
+    public Builder initialState(String initialState)
     {
       this.initialState = initialState;
-
+      return this;
     }
 
     /**
@@ -190,9 +190,21 @@ public class StateModelDefinition extends HelixProperty
      * 
      * @param states
      */
-    public void addState(String state, int priority)
+    public Builder addState(String state, int priority)
     {
       statesMap.put(state, priority);
+      return this;
+    }
+
+    /**
+     * Sets the priority to Integer.MAX_VALUE
+     * 
+     * @param state
+     */
+    public Builder addState(String state)
+    {
+      addState(state, Integer.MAX_VALUE);
+      return this;
     }
 
     /**
@@ -207,31 +219,42 @@ public class StateModelDefinition extends HelixProperty
      * @param toState
      * @param priority
      */
-    public void addTransition(String fromState, String toState, int priority)
+    public Builder addTransition(String fromState, String toState, int priority)
     {
       transitionMap.put(new Transition(fromState, toState), priority);
+      return this;
     }
 
-    public void upperBound(String state, int upperBound)
+    public Builder addTransition(String fromState, String toState)
+    {
+      addTransition(fromState, toState, Integer.MAX_VALUE);
+      return this;
+    }
+
+    public Builder upperBound(String state, int upperBound)
     {
       stateConstraintMap.put(state, String.valueOf(upperBound));
+      return this;
     }
 
     /**
      * You can use this to have the bounds dynamically change based on other
-     * parameters. Currently support 2 values R --> Refers to the number of
-     * replicas specified during resource creation. This allows having different
-     * replication factor for each resource without having to create a different
-     * state machine. N --> Refers to all nodes in the cluster. Useful for
-     * resources that need to exist on all nodes. This way one can add/remove
-     * nodes without having the change the bounds.
+     * parameters. <br/>
+     * Currently support 2 values <br/>
+     * R --> Refers to the number of replicas specified during resource
+     * creation. This allows having different replication factor for each
+     * resource without having to create a different state machine. <br/>
+     * N --> Refers to all nodes in the cluster. Useful for resources that need
+     * to exist on all nodes. This way one can add/remove nodes without having
+     * the change the bounds.
      * 
      * @param state
      * @param bound
      */
-    public void dynamicUpperBound(String state, String bound)
+    public Builder dynamicUpperBound(String state, String bound)
     {
       stateConstraintMap.put(state, bound);
+      return this;
     }
 
     public StateModelDefinition build()
@@ -249,22 +272,24 @@ public class StateModelDefinition extends HelixProperty
         }
       };
       Collections.sort(statePriorityList, c1);
-      ArrayList<String> transitionPriorityList = new ArrayList<String>(
-          transitionMap.size());
-      for (Transition t : transitionMap.keySet())
+      ArrayList<Transition> transitionList = new ArrayList<Transition>(
+          transitionMap.keySet());
+
+      Comparator<? super Transition> c2 = new Comparator<Transition>()
+      {
+        @Override
+        public int compare(Transition o1, Transition o2)
+        {
+          return transitionMap.get(o1).compareTo(transitionMap.get(o2));
+        }
+      };
+      Collections.sort(transitionList, c2);
+      List<String> transitionPriorityList = new ArrayList<String>(
+          transitionList.size());
+      for (Transition t : transitionList)
       {
         transitionPriorityList.add(t.toString());
       }
-      Comparator<? super String> c2 = new Comparator<String>()
-      {
-
-        @Override
-        public int compare(String o1, String o2)
-        {
-          return statesMap.get(o1).compareTo(statesMap.get(o2));
-        }
-      };
-      Collections.sort(transitionPriorityList, c2);
 
       record.setSimpleField(
           StateModelDefinitionProperty.INITIAL_STATE.toString(), initialState);
@@ -283,10 +308,16 @@ public class StateModelDefinition extends HelixProperty
       {
         record.setMapField(state + ".next", transitionTable.get(state));
       }
-      for (String state : stateConstraintMap.keySet())
+      for (String state : statePriorityList)
       {
         HashMap<String, String> metadata = new HashMap<String, String>();
-        metadata.put("count", stateConstraintMap.get(state));
+        if (stateConstraintMap.get(state) != null)
+        {
+          metadata.put("count", stateConstraintMap.get(state));
+        } else
+        {
+          metadata.put("count", "-1");
+        }
         record.setMapField(state + ".meta", metadata);
       }
       return new StateModelDefinition(record);

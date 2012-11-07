@@ -32,7 +32,6 @@ import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 import org.apache.log4j.Logger;
 
-
 /**
  * The ideal states of all partition in a resource
  */
@@ -40,12 +39,7 @@ public class IdealState extends HelixProperty
 {
   public enum IdealStateProperty
   {
-    NUM_PARTITIONS,
-    STATE_MODEL_DEF_REF,
-    STATE_MODEL_FACTORY_NAME,
-    REPLICAS,
-    IDEAL_STATE_MODE,
-    REBALANCE_TIMER_PERIOD
+    NUM_PARTITIONS, STATE_MODEL_DEF_REF, STATE_MODEL_FACTORY_NAME, REPLICAS, IDEAL_STATE_MODE, REBALANCE_TIMER_PERIOD
   }
 
   public static final String QUERY_LIST = "PREFERENCE_LIST_QUERYS";
@@ -55,7 +49,8 @@ public class IdealState extends HelixProperty
     AUTO, CUSTOMIZED, AUTO_REBALANCE
   }
 
-  private static final Logger logger = Logger.getLogger(IdealState.class.getName());
+  private static final Logger logger = Logger.getLogger(IdealState.class
+      .getName());
 
   public IdealState(String resourceName)
   {
@@ -74,23 +69,25 @@ public class IdealState extends HelixProperty
 
   public void setIdealStateMode(String mode)
   {
-    _record.setSimpleField(IdealStateProperty.IDEAL_STATE_MODE.toString(), mode);
+    _record
+        .setSimpleField(IdealStateProperty.IDEAL_STATE_MODE.toString(), mode);
   }
 
   public IdealStateModeProperty getIdealStateMode()
   {
-    String mode = _record.getSimpleField(IdealStateProperty.IDEAL_STATE_MODE.toString());
+    String mode = _record.getSimpleField(IdealStateProperty.IDEAL_STATE_MODE
+        .toString());
     try
     {
       return IdealStateModeProperty.valueOf(mode);
-    }
-    catch (Exception e)
+    } catch (Exception e)
     {
       return IdealStateModeProperty.AUTO;
     }
   }
 
-  public void setPartitionState(String partitionName, String instanceName, String state)
+  public void setPartitionState(String partitionName, String instanceName,
+      String state)
   {
     Map<String, String> mapField = _record.getMapField(partitionName);
     if (mapField == null)
@@ -106,12 +103,10 @@ public class IdealState extends HelixProperty
         || getIdealStateMode() == IdealStateModeProperty.AUTO_REBALANCE)
     {
       return _record.getListFields().keySet();
-    }
-    else if (getIdealStateMode() == IdealStateModeProperty.CUSTOMIZED)
+    } else if (getIdealStateMode() == IdealStateModeProperty.CUSTOMIZED)
     {
       return _record.getMapFields().keySet();
-    }
-    else
+    } else
     {
       logger.error("Invalid ideal state mode:" + getResourceName());
       return Collections.emptySet();
@@ -132,27 +127,23 @@ public class IdealState extends HelixProperty
       if (prefList != null)
       {
         return new TreeSet<String>(prefList);
-      }
-      else
+      } else
       {
         logger.warn(partitionName + " does NOT exist");
         return Collections.emptySet();
       }
-    }
-    else if (getIdealStateMode() == IdealStateModeProperty.CUSTOMIZED)
+    } else if (getIdealStateMode() == IdealStateModeProperty.CUSTOMIZED)
     {
       Map<String, String> stateMap = _record.getMapField(partitionName);
       if (stateMap != null)
       {
         return new TreeSet<String>(stateMap.keySet());
-      }
-      else
+      } else
       {
         logger.warn(partitionName + " does NOT exist");
         return Collections.emptySet();
       }
-    }
-    else
+    } else
     {
       logger.error("Invalid ideal state mode: " + getResourceName());
       return Collections.emptySet();
@@ -175,30 +166,31 @@ public class IdealState extends HelixProperty
 
   public String getStateModelDefRef()
   {
-    return _record.getSimpleField(IdealStateProperty.STATE_MODEL_DEF_REF.toString());
+    return _record.getSimpleField(IdealStateProperty.STATE_MODEL_DEF_REF
+        .toString());
   }
 
   public void setStateModelDefRef(String stateModel)
   {
-    _record.setSimpleField(IdealStateProperty.STATE_MODEL_DEF_REF.toString(), stateModel);
+    _record.setSimpleField(IdealStateProperty.STATE_MODEL_DEF_REF.toString(),
+        stateModel);
   }
 
   public void setNumPartitions(int numPartitions)
   {
     _record.setSimpleField(IdealStateProperty.NUM_PARTITIONS.toString(),
-                           String.valueOf(numPartitions));
+        String.valueOf(numPartitions));
   }
 
   public int getNumPartitions()
   {
-    String numPartitionStr =
-        _record.getSimpleField(IdealStateProperty.NUM_PARTITIONS.toString());
+    String numPartitionStr = _record
+        .getSimpleField(IdealStateProperty.NUM_PARTITIONS.toString());
 
     try
     {
       return Integer.parseInt(numPartitionStr);
-    }
-    catch (Exception e)
+    } catch (Exception e)
     {
       logger.error("Can't parse number of partitions: " + numPartitionStr, e);
       return -1;
@@ -212,9 +204,11 @@ public class IdealState extends HelixProperty
 
   public String getReplicas()
   {
-    // HACK: if replica doesn't exists, use the length of the first list field instead
+    // HACK: if replica doesn't exists, use the length of the first list field
+    // instead
     // TODO: remove it when Dbus fixed the IdealState writer
-    String replica = _record.getSimpleField(IdealStateProperty.REPLICAS.toString());
+    String replica = _record.getSimpleField(IdealStateProperty.REPLICAS
+        .toString());
     if (replica == null)
     {
       String firstPartition = null;
@@ -224,27 +218,31 @@ public class IdealState extends HelixProperty
         if (_record.getListFields().size() == 0)
         {
           replica = "0";
-        }
-        else
+        } else
         {
-          firstPartition = new ArrayList<String>(_record.getListFields().keySet()).get(0);
-          replica = Integer.toString(firstPartition == null ? 0 : _record.getListField(firstPartition).size());
+          firstPartition = new ArrayList<String>(_record.getListFields()
+              .keySet()).get(0);
+          replica = Integer.toString(firstPartition == null ? 0 : _record
+              .getListField(firstPartition).size());
         }
-        logger.warn("could NOT found replicas in idealState. Use size of the first list instead. replica: "
-            + replica + ", 1st partition: " + firstPartition);
+        logger
+            .warn("could NOT found replicas in idealState. Use size of the first list instead. replica: "
+                + replica + ", 1st partition: " + firstPartition);
         break;
       case CUSTOMIZED:
         if (_record.getMapFields().size() == 0)
         {
           replica = "0";
-        }
-        else
+        } else
         {
-          firstPartition = new ArrayList<String>(_record.getMapFields().keySet()).get(0);
-          replica = Integer.toString(firstPartition == null ? 0 : _record.getMapField(firstPartition).size());
+          firstPartition = new ArrayList<String>(_record.getMapFields()
+              .keySet()).get(0);
+          replica = Integer.toString(firstPartition == null ? 0 : _record
+              .getMapField(firstPartition).size());
         }
-        logger.warn("could NOT found replicas in idealState. Use size of the first map instead. replica: "
-            + replica + ", 1st partition: " + firstPartition);
+        logger
+            .warn("could NOT found replicas in idealState. Use size of the first map instead. replica: "
+                + replica + ", 1st partition: " + firstPartition);
         break;
       default:
         replica = "0";
@@ -258,31 +256,33 @@ public class IdealState extends HelixProperty
 
   public void setStateModelFactoryName(String name)
   {
-    _record.setSimpleField(IdealStateProperty.STATE_MODEL_FACTORY_NAME.toString(), name);
+    _record.setSimpleField(
+        IdealStateProperty.STATE_MODEL_FACTORY_NAME.toString(), name);
   }
 
   public String getStateModelFactoryName()
   {
-    String ftyName = _record.getSimpleField(IdealStateProperty.STATE_MODEL_FACTORY_NAME.toString());
+    String ftyName = _record
+        .getSimpleField(IdealStateProperty.STATE_MODEL_FACTORY_NAME.toString());
     if (ftyName == null)
     {
       ftyName = HelixConstants.DEFAULT_STATE_MODEL_FACTORY;
     }
-    return ftyName; 
+    return ftyName;
   }
 
   public int getRebalanceTimerPeriod()
   {
-    if (_record.getSimpleFields()
-               .containsKey(IdealStateProperty.REBALANCE_TIMER_PERIOD.toString()))
+    if (_record.getSimpleFields().containsKey(
+        IdealStateProperty.REBALANCE_TIMER_PERIOD.toString()))
     {
       try
       {
-        int result =
-            Integer.parseInt(_record.getSimpleField(IdealStateProperty.REBALANCE_TIMER_PERIOD.toString()));
+        int result = Integer.parseInt(_record
+            .getSimpleField(IdealStateProperty.REBALANCE_TIMER_PERIOD
+                .toString()));
         return result;
-      }
-      catch (Exception e)
+      } catch (Exception e)
       {
         logger.error("", e);
       }
@@ -295,25 +295,56 @@ public class IdealState extends HelixProperty
   {
     if (getNumPartitions() < 0)
     {
-      logger.error("idealState:" + _record + " does not have number of partitions (was "
-          + getNumPartitions() + ").");
+      logger.error("idealState:" + _record
+          + " does not have number of partitions (was " + getNumPartitions()
+          + ").");
       return false;
     }
 
     if (getStateModelDefRef() == null)
     {
-      logger.error("idealStates:" + _record + " does not have state model definition.");
+      logger.error("idealStates:" + _record
+          + " does not have state model definition.");
       return false;
     }
 
-    if (getIdealStateMode() == IdealStateModeProperty.AUTO && getReplicas() == null)
+    if (getIdealStateMode() == IdealStateModeProperty.AUTO
+        && getReplicas() == null)
     {
       logger.error("idealStates:" + _record + " does not have replica.");
       return false;
     }
     return true;
   }
-  public static class Builder{
-	  
+
+  public static class CustomBuilder
+  {
+    public void set(String partitionName, String instanceName, String state)
+    {
+
+    }
+
+  }
+
+  public static class AutoModeBuilder
+  {
+    public void setNumPartitions(int partitions)
+    {
+      
+    }
+
+    public void replicas(int replicas)
+    {
+
+    }
+
+  }
+
+  public static class SemiAutoBuilder
+  {
+    public void set(String partitionName, String... instancePreferenceList)
+    {
+
+    }
   }
 }

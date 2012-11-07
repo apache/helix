@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import org.I0Itec.zkclient.DataUpdater;
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
@@ -87,6 +88,14 @@ public class ZKHelixAdmin implements HelixAdmin
     _configAccessor = new ConfigAccessor(zkClient);
   }
 
+  public ZKHelixAdmin(String zkAddress)
+  {
+    _zkClient = new ZkClient(zkAddress);
+    _zkClient.setZkSerializer(new ZNRecordSerializer());
+    _zkClient.waitUntilConnected(30, TimeUnit.SECONDS);
+    _configAccessor = new ConfigAccessor(_zkClient);
+  }
+  
   @Override
   public void addInstance(String clusterName, InstanceConfig instanceConfig)
   {
@@ -644,6 +653,33 @@ public class ZKHelixAdmin implements HelixAdmin
   }
 
   @Override
+  public void addResource(String clusterName, 
+                          String resourceName,
+                          IdealState idealstate)
+  {
+    String stateModelRef = idealstate.getStateModelDefRef();
+    String stateModelDefPath =
+      PropertyPathConfig.getPath(PropertyType.STATEMODELDEFS,
+                                 clusterName,
+                                 stateModelRef);
+  if (!_zkClient.exists(stateModelDefPath))
+  {
+    throw new HelixException("State model " + stateModelRef
+        + " not found in the cluster STATEMODELDEFS path");
+  }
+
+  String idealStatePath = HelixUtil.getIdealStatePath(clusterName);
+  String dbIdealStatePath = idealStatePath + "/" + resourceName;
+  if (_zkClient.exists(dbIdealStatePath))
+  {
+    throw new HelixException("Skip the operation. DB ideal state directory exists:"
+        + dbIdealStatePath);
+  }
+
+  ZKUtil.createChildren(_zkClient, idealStatePath, idealstate.getRecord()); 
+  }
+  
+  @Override
   public void addResource(String clusterName,
                           String resourceName,
                           int partitions,
@@ -676,26 +712,8 @@ public class ZKHelixAdmin implements HelixAdmin
     {
       idealState.setBucketSize(bucketSize);
     }
+    addResource(clusterName, resourceName, idealState);
 
-    String stateModelDefPath =
-        PropertyPathConfig.getPath(PropertyType.STATEMODELDEFS,
-                                   clusterName,
-                                   stateModelRef);
-    if (!_zkClient.exists(stateModelDefPath))
-    {
-      throw new HelixException("State model " + stateModelRef
-          + " not found in the cluster STATEMODELDEFS path");
-    }
-
-    String idealStatePath = HelixUtil.getIdealStatePath(clusterName);
-    String dbIdealStatePath = idealStatePath + "/" + resourceName;
-    if (_zkClient.exists(dbIdealStatePath))
-    {
-      throw new HelixException("Skip the operation. DB ideal state directory exists:"
-          + dbIdealStatePath);
-    }
-
-    ZKUtil.createChildren(_zkClient, idealStatePath, idealState.getRecord());
   }
 
   @Override
@@ -1273,4 +1291,6 @@ public class ZKHelixAdmin implements HelixAdmin
       }
     }, AccessOption.PERSISTENT);
   }
+
+  
 }

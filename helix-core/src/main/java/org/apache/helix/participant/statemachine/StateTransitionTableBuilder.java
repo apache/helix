@@ -151,29 +151,35 @@ public class StateTransitionTableBuilder
               && (pathVal1 + pathVal2) < pathValCur)
           {
             setPathVal(path, fromState, toState, pathVal1 + pathVal2);
-            setNext(next, fromState, toState, intermediateState);
+            setNext(next, fromState, toState, getNext(next, fromState, intermediateState));
           }
         }
       }
     }
-
     return next;
   }
 
   public static void main(String[] args)
   {
     List<String> states = new ArrayList<String>();
-    states.add("OFFLINE");
-    states.add("SLAVE");
+    //[MASTER, SLAVE, DROPPED, OFFLINE]
+    //[SLAVE-OFFLINE, OFFLINE-SLAVE, SLAVE-MASTER, OFFLINE-DROPPED, MASTER-SLAVE]
     states.add("MASTER");
+    states.add("SLAVE");
+    states.add("DROPPED");
+    states.add("OFFLINE");
+
 
     List<Transition> transitions = new ArrayList<Transition>();
+    transitions.add(new Transition("SLAVE", "OFFLINE"));
     transitions.add(new Transition("OFFLINE", "SLAVE"));
     transitions.add(new Transition("SLAVE", "MASTER"));
+    transitions.add(new Transition("OFFLINE", "DROPPED"));
     transitions.add(new Transition("MASTER", "SLAVE"));
-    transitions.add(new Transition("SLAVE", "OFFLINE"));
+
     StateTransitionTableBuilder builder = new StateTransitionTableBuilder();
     Map<String, Map<String, String>> next = builder.buildTransitionTable(states, transitions);
+    System.out.println(next);
     printPath(states, next);
   }
 }

@@ -78,7 +78,7 @@ public class InstanceConfig extends HelixProperty
   public boolean getInstanceEnabled()
   {
     String isEnabled = _record.getSimpleField(InstanceConfigProperty.HELIX_ENABLED.toString());
-    return Boolean.parseBoolean(isEnabled);
+    return isEnabled == null || Boolean.parseBoolean(isEnabled);
   }
 
   public void setInstanceEnabled(boolean enabled)

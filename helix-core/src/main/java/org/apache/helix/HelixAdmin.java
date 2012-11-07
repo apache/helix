@@ -93,6 +93,15 @@ public interface HelixAdmin
                    String resourceName,
                    int numResources,
                    String stateModelRef);
+  /**
+   * 
+   * @param clusterName
+   * @param resourceName
+   * @param idealstate
+   */
+  void addResource(String clusterName,
+                   String resourceName,
+                   IdealState idealstate);
 
   /**
    * Add a resource to a cluster

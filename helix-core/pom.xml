@@ -179,6 +179,10 @@ under the License.
               <name>zk-log-analyzer</name>
             </program>
             <program>
+              <mainClass>org.apache.helix.examples.Quickstart</mainClass>
+              <name>quickstart</name>
+            </program>
+            <program>
               <mainClass>org.apache.helix.tools.JmxDumper</mainClass>
               <name>JmxDumper</name>
             </program>

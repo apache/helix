@@ -17,6 +17,49 @@ specific language governing permissions and limitations
 under the License.
 -->
 
+Build/Download Helix
+===================
+
+Build
+-----
+
+Jump to download section to skip building code
+
+    git clone http://git-wip-us.apache.org/repos/asf/incubator-helix.git
+    cd incubator-helix
+    mvn install package -DskipTests 
+    cd helix-core/target/helix-core-pkg/bin //This folder contains all the scripts used in following sections
+    chmod \+x *
+
+Download Helix
+--------------
+Instead of building the package from the code, you can download the 0.5.28 release package from [here](http://linkedin.github.com/helix/download/release-0.5.28/helix-core-pkg-0.5.28.tar.gz) 
+
+Short Version
+=============
+
+    cd helix-core/target/helix-core-pkg/bin
+    chmod +x *
+    ./quickstart.sh
+
+
+This gives an overview of Helix Apis and how it facilitates Automatic Partition Management, Failure Handling and Cluster Expansion. 
+
+The quick start does the following
+
+* Add a cluster
+* Add two nodes
+* Add a resource with 6 partitions with 1 master and 1 slave replica.
+* Shows the cluster state after all nodes are up.
+* Add a node and see the partitions get rebalanced
+* Shows cluster state after the rebalance
+* Stop a node and see that master ship transfer occurs.
+* Shows cluster state after node is stopped.
+
+Long Version
+===========
+
+Helix also provides command line interfaces to setup the cluster and also view the cluster state. Follow the steps below to get a better understanding of the steps involved to setup a distributed system.
 
 Install/Start zookeeper
 -----------------------
@@ -27,20 +70,6 @@ More info is available at http://zookeeper.apache.org/doc/r3.3.3/zookeeperStarte
 and http://zookeeper.apache.org/doc/trunk/zookeeperAdmin.html#sc_zkMulitServerSetup
 
 In this example, we will start zookeeper in local mode.
-
-BUILD Helix
------------
-Jump to Download section to skip this test.
-
-    git clone git@github.com:linkedin/helix.git
-    cd helix-core
-    mvn install package appassembler:assemble -Dmaven.test.skip=true 
-    cd target/helix-core-pkg/bin //This folder contains all the scripts used in following sections
-    chmod \+x *
-
-Download Helix
---------------
-Instead of building the package from the code, you can download the 0.5.28 release package from [here](http://linkedin.github.com/helix/download/release-0.5.28/helix-core-pkg-0.5.28.tar.gz) 
 
 Cluster setup
 -------------

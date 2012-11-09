@@ -42,6 +42,5 @@
  * @see RoutingTableProvider for spectator
  * @see GenericHelixController for controller
  * 
- * @author kgopalak
  */
 package org.apache.helix;

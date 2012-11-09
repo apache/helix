@@ -37,7 +37,6 @@ import org.apache.helix.model.Message.MessageType;
  * sessionId from LiveInstance Get Partition,State for all the resources computed in
  * previous State [ResourceComputationStage]
  * 
- * @author kgopalak
  * 
  */
 public class CurrentStateComputationStage extends AbstractBaseStage

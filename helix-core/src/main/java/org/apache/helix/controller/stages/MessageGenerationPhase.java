@@ -40,7 +40,6 @@ import org.apache.log4j.Logger;
 /**
  * Compares the currentState,pendingState with IdealState and generate messages
  * 
- * @author kgopalak
  * 
  */
 public class MessageGenerationPhase extends AbstractBaseStage

@@ -34,8 +34,6 @@ import org.apache.zookeeper.data.Stat;
 /**
  * Generic class that will read the data given the root path.
  * 
- * @author kgopalak
- * 
  */
 public class HierarchicalDataHolder<T>
 {

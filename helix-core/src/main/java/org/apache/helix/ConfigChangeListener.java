@@ -25,7 +25,6 @@ import org.apache.helix.model.InstanceConfig;
 
 
 /**
- * @author kgopalak
  * 
  */
 public interface ConfigChangeListener

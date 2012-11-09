@@ -37,9 +37,7 @@ import org.apache.helix.PropertyKey.Builder;
 
 
 /**
- * Message class basically extends ZNRecord but provides additional fields
  * 
- * @author kgopalak
  */
 
 public class Message extends HelixProperty

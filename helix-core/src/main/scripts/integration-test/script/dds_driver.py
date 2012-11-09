@@ -37,7 +37,6 @@ $SCRIPT_DIR/dbus2_driver.py -c zookeeper -o start --zookeeper_server_ports=${zoo
   -. execute the cmd
 
 '''
-__author__ = "David Zhang"
 __version__ = "$Revision: 0.1 $"
 __date__ = "$Date: 2010/11/16 $"
 

@@ -48,8 +48,6 @@ import org.apache.log4j.Logger;
  * For partition compute best possible (instance,state) pair based on
  * IdealState,StateModel,LiveInstance
  * 
- * @author kgopalak
- * 
  */
 // TODO: refactor this
 public class BestPossibleStateCalcStage extends AbstractBaseStage

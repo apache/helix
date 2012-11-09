@@ -29,7 +29,6 @@ import org.I0Itec.zkclient.DataUpdater;
  * LiveInstance, Message, ExternalView etc PropertyKey represent the HelixData
  * type. See {@link Builder} to get more information on building a propertyKey.
  * 
- * @author kgopalak
  * 
  */
 public interface HelixDataAccessor

@@ -43,7 +43,6 @@ import org.apache.log4j.Logger;
  * Reads the data from the cluster using data accessor. This output ClusterData which
  * provides useful methods to search/lookup properties
  * 
- * @author kgopalak
  * 
  */
 public class ClusterDataCache

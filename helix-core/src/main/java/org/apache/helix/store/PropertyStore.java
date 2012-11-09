@@ -35,7 +35,6 @@ import org.I0Itec.zkclient.DataUpdater;
  * getPropertyNames("/foo") will return "bar1" and "bar2" 
  * removeProperty("/foo/bar1") will simply remove the property stored at /foo/bar1
  * 
- * @author kgopalak
  * @param <T>
  */
 public interface PropertyStore<T>

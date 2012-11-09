@@ -47,8 +47,6 @@ import org.apache.zookeeper.data.Stat;
  * any bug found in ZKClient or if we need additional features but can't wait for the new
  * ZkClient jar Ideally we should commit the changes we do here to ZKClient.
  *
- * @author kgopalak
- *
  */
 
 public class ZkClient extends org.I0Itec.zkclient.ZkClient

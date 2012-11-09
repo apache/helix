@@ -43,7 +43,6 @@ import org.apache.helix.manager.zk.ZkClient;
 /**
  * Dumps the Zookeeper file structure on to Disk
  * 
- * @author kgopalak
  * 
  */
 @SuppressWarnings("static-access")

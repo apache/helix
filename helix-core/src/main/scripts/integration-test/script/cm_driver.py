@@ -22,7 +22,6 @@
   Load the dds driver and support file if needed
 
 '''
-__author__ = "David Zhang"
 __version__ = "$Revision: 0.1 $"
 __date__ = "$Date: 2011/6/27 $"
 

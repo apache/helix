@@ -56,7 +56,6 @@ import org.apache.zookeeper.data.Stat;
  * update-value> in which key is k1 for SIMPLE, k1|index for LIST, and k1|k2 for MAP field
  * if COMMAND is start/stop, arg is a thread handler
  * 
- * @author zzhang
  * 
  */
 

@@ -58,8 +58,6 @@ import org.apache.log4j.Logger;
  * sessionId from LiveInstance Get Partition,State for all the resources computed in
  * previous State [ResourceComputationStage]
  *
- * @author asilbers
- *
  */
 public class StatsAggregationStage extends AbstractBaseStage
 {

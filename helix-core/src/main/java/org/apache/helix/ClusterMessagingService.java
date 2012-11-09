@@ -26,12 +26,10 @@ import org.apache.helix.model.Message;
 /**
  * Provides the ability to <br>
  * <li>Send message to a specific component in the cluster[ participant,
- * controller, Router(probably not needed) ]</li> <li>Broadcast message to all
- * nodes</li> <li>Send message to instances that hold a specific resource</li>
+ * controller, Spectator(probably not needed) ]</li> <li>Broadcast message to all
+ * participants</li> <li>Send message to instances that hold a specific resource</li>
  * <li>Asynchronous request response api. Send message with a co-relation id and
  * invoke a method when there is a response. Can support timeout.</li>
- * 
- * @author kgopalak
  * 
  */
 public interface ClusterMessagingService

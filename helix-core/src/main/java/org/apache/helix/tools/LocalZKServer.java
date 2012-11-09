@@ -26,7 +26,6 @@ import org.I0Itec.zkclient.ZkServer;
 /**
  * Provides ability to start zookeeper locally on a particular port
  * 
- * @author kgopalak
  * 
  */
 public class LocalZKServer

@@ -52,7 +52,6 @@ import org.apache.log4j.Logger;
  *  .run()
  * </code>
  *
- * @author kgopalak
  *
  */
 public class HelixCustomCodeRunner

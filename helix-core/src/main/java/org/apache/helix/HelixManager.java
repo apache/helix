@@ -52,7 +52,6 @@ import org.apache.helix.store.zk.ZkHelixPropertyStore;
  * @see HelixStateMachineEngine for participant
  * @see RoutingTableProvider for spectator
  * @see GenericHelixController for controller
- * @author kgopalak
  */
 public interface HelixManager
 {

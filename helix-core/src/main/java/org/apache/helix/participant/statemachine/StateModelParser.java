@@ -29,7 +29,6 @@ import org.apache.helix.model.Message;
 /**
  * Finds the method in stateModel to generate
  * 
- * @author kgopalak
  * 
  */
 public class StateModelParser

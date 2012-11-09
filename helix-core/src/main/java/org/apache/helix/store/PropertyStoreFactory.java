@@ -21,7 +21,6 @@ package org.apache.helix.store;
 
 import org.apache.helix.manager.zk.ByteArraySerializer;
 import org.apache.helix.manager.zk.ZkClient;
-import org.apache.helix.store.file.FilePropertyStore;
 import org.apache.helix.store.zk.ZKPropertyStore;
 import org.apache.log4j.Logger;
 
@@ -47,21 +46,4 @@ public class PropertyStoreFactory
                      new ByteArraySerializer());
     return new ZKPropertyStore<T>(zkClient, serializer, rootNamespace);
   }
-
-  public static <T extends Object> PropertyStore<T> getFilePropertyStore(PropertySerializer<T> serializer,
-                                                                         String rootNamespace,
-                                                                         PropertyJsonComparator<T> comparator)
-  {
-    if (comparator == null || serializer == null || rootNamespace == null)
-    {
-      throw new IllegalArgumentException("arguments can't be null");
-    }
-
-    LOG.info("Get a file property store. root: " + rootNamespace);
-    FilePropertyStore<T> store =
-        new FilePropertyStore<T>(serializer, rootNamespace, comparator);
-    return store;
-
-  }
-
 }

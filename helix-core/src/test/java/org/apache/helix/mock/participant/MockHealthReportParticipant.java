@@ -1,4 +1,4 @@
-package org.apache.helix.mock.storage;
+package org.apache.helix.mock.participant;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one

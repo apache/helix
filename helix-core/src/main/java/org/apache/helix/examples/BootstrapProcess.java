@@ -92,34 +92,23 @@ public class BootstrapProcess
   private final int delay;
 
   public BootstrapProcess(String zkConnectString, String clusterName,
-      String instanceName, String file, String stateModel, int delay)
+      String instanceName, String stateModel, int delay)
   {
     this.zkConnectString = zkConnectString;
     this.clusterName = clusterName;
     this.instanceName = instanceName;
-    this._file = file;
     stateModelType = stateModel;
     this.delay = delay;
   }
 
   public void start() throws Exception
   {
-    if (_file == null)
-    {
       manager = HelixManagerFactory.getZKHelixManager(clusterName,
                                                           instanceName,
                                                           InstanceType.PARTICIPANT,
                                                           zkConnectString);
 
-    }
-    else
-    {
-      manager = HelixManagerFactory.getStaticFileHelixManager(clusterName,
-                                                                  instanceName,
-                                                                  InstanceType.PARTICIPANT,
-                                                                  _file);
-
-    }
+    
     stateModelFactory = new BootstrapHandler();
 //    genericStateMachineHandler = new StateMachineEngine();
 //    genericStateMachineHandler.registerStateModelFactory("MasterSlave", stateModelFactory);
@@ -133,12 +122,6 @@ public class BootstrapProcess
         MessageType.USER_DEFINE_MSG.toString(),
         new CustomMessageHandlerFactory());
     manager.connect();
-    if (_file != null)
-    {
-      ClusterStateVerifier.verifyFileBasedClusterStates(_file, instanceName,
-          stateModelFactory);
-
-    }
   }
 
   public static class CustomMessageHandlerFactory implements
@@ -312,7 +295,6 @@ public class BootstrapProcess
     String zkConnectString = "localhost:2181";
     String clusterName = "storage-integration-cluster";
     String instanceName = "localhost_8905";
-    String file = null;
     String stateModelValue = "MasterSlave";
     int delay = 0;
     boolean skipZeroArgs = true;// false is for dev testing
@@ -327,16 +309,6 @@ public class BootstrapProcess
       int port = Integer.parseInt(portString);
       instanceName = host + "_" + port;
 
-      file = cmd.getOptionValue(configFile);
-      if (file != null)
-      {
-        File f = new File(file);
-        if (!f.exists())
-        {
-          System.err.println("static config file doesn't exist");
-          System.exit(1);
-        }
-      }
 
       stateModelValue = cmd.getOptionValue(stateModel);
       if (cmd.hasOption(transDelay))
@@ -359,7 +331,7 @@ public class BootstrapProcess
     System.out.println("Starting Process with ZK:" + zkConnectString);
 
     BootstrapProcess process = new BootstrapProcess(zkConnectString,
-        clusterName, instanceName, file, stateModelValue, delay);
+        clusterName, instanceName, stateModelValue, delay);
 
     process.start();
     Thread.currentThread().join();

@@ -1,4 +1,4 @@
-package org.apache.helix.mock.router;
+package org.apache.helix.mock.participant;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,7 +19,10 @@ package org.apache.helix.mock.router;
  * under the License.
  */
 
-public class RouterAdapter
-{
+import org.apache.helix.HelixManager;
 
+public interface MockJobIntf
+{
+  public void doPreConnectJob(HelixManager manager);
+  public void doPostConnectJob(HelixManager manager);
 }

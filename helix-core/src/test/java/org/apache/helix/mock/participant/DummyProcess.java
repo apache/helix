@@ -1,4 +1,4 @@
-package org.apache.helix.mock.storage;
+package org.apache.helix.mock.participant;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,7 +19,6 @@ package org.apache.helix.mock.storage;
  * under the License.
  */
 
-import java.io.File;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -34,12 +33,10 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.model.Message;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
-import org.apache.helix.store.file.FilePropertyStore;
 import org.apache.log4j.Logger;
 
 
@@ -52,7 +49,6 @@ public class DummyProcess
   public static final String hostPort = "port";
   public static final String relayCluster = "relayCluster";
   public static final String help = "help";
-  public static final String clusterViewFile = "clusterViewFile";
   public static final String transDelay = "transDelay";
   public static final String helixManagerType = "helixManagerType";
 //  public static final String rootNamespace = "rootNamespace";
@@ -63,9 +59,7 @@ public class DummyProcess
   private DummyStateModelFactory stateModelFactory;
 //  private StateMachineEngine genericStateMachineHandler;
 
-  private final FilePropertyStore<ZNRecord> _fileStore;
 
-  private final String _clusterViewFile;
   private int _transDelayInMs = 0;
   private final String _clusterMangerType;
 
@@ -73,27 +67,13 @@ public class DummyProcess
                       String clusterName,
                       String instanceName,
                       String clusterMangerType,
-                      String clusterViewFile,
                       int delay)
-  {
-    this(zkConnectString, clusterName, instanceName, "zk", clusterViewFile, delay, null);
-  }
-
-  public DummyProcess(String zkConnectString,
-                      String clusterName,
-                      String instanceName,
-                      String clusterMangerType,
-                      String clusterViewFile,
-                      int delay,
-                      FilePropertyStore<ZNRecord> fileStore)
   {
     _zkConnectString = zkConnectString;
     _clusterName = clusterName;
     _instanceName = instanceName;
-    _clusterViewFile = clusterViewFile;
     _clusterMangerType = clusterMangerType;
     _transDelayInMs = delay > 0 ? delay : 0;
-    _fileStore = fileStore;
   }
 
   static void sleep(long transDelay)
@@ -122,23 +102,6 @@ public class DummyProcess
                                                           _instanceName,
                                                           InstanceType.PARTICIPANT,
                                                           _zkConnectString);
-    }
-    // static file cluster manager
-    else if (_clusterMangerType.equalsIgnoreCase("static-file"))
-    {
-      manager = HelixManagerFactory.getStaticFileHelixManager(_clusterName,
-                                                                  _instanceName,
-                                                                  InstanceType.PARTICIPANT,
-                                                                  _clusterViewFile);
-
-    }
-    // dynamic file cluster manager
-    else if (_clusterMangerType.equalsIgnoreCase("dynamic-file"))
-    {
-      manager = HelixManagerFactory.getDynamicFileHelixManager(_clusterName,
-                                                                   _instanceName,
-                                                                   InstanceType.PARTICIPANT,
-                                                                   _fileStore);
     }
     else
     {
@@ -389,13 +352,6 @@ public class DummyProcess
     cmTypeOption.setRequired(true);
     cmTypeOption.setArgName("Clsuter manager type (e.g. 'zk', 'static-file', or 'dynamic-file') (Required)");
 
-    // add an option group including either --zkSvr or --clusterViewFile
-    Option fileOption = OptionBuilder.withLongOpt(clusterViewFile)
-        .withDescription("Provide a cluster-view file for static-file based cluster manager").create();
-    fileOption.setArgs(1);
-    fileOption.setRequired(true);
-    fileOption.setArgName("Cluster-view file (Required for static-file based cluster manager)");
-
     Option zkServerOption = OptionBuilder.withLongOpt(zkServer)
       .withDescription("Provide zookeeper address").create();
     zkServerOption.setArgs(1);
@@ -417,8 +373,6 @@ public class DummyProcess
 
     OptionGroup optionGroup = new OptionGroup();
     optionGroup.addOption(zkServerOption);
-    optionGroup.addOption(fileOption);
-//    optionGroup.addOption(rootNsOption);
 
     Options options = new Options();
     options.addOption(helpOption);
@@ -481,22 +435,6 @@ public class DummyProcess
       int port = Integer.parseInt(portString);
       instanceName = host + "_" + port;
       cmType = cmd.getOptionValue(helixManagerType);
-
-      if (cmd.hasOption(clusterViewFile))
-      {
-        cvFileStr = cmd.getOptionValue(clusterViewFile);
-        if (!new File(cvFileStr).exists())
-        {
-          throw new IllegalArgumentException("Cluster-view file:" + cvFileStr
-                                             + " does NOT exist");
-        }
-      }
-
-//      if (cmd.hasOption(rootNamespace))
-//      {
-//        rootNs = cmd.getOptionValue(rootNamespace);
-//      }
-
       if (cmd.hasOption(transDelay))
       {
         try
@@ -520,7 +458,6 @@ public class DummyProcess
                                             clusterName,
                                             instanceName,
                                             cmType,
-                                            cvFileStr,
                                             delay);
     HelixManager manager = process.start();
 

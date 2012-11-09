@@ -171,7 +171,7 @@ cmd_direct_call={
       ,"IVY_DIR/org/apache/commons/commons-math/2.1/commons-math-2.1.jar"
 ]+cm_jar_files
 
-  ,"class_name":"org.apache.helix.mock.storage.DummyProcess"
+  ,"class_name":"org.apache.helix.mock.participant.DummyProcess"
   ,"before_cmd":"../../../mvn package -Dmaven.test.skip.exec=true"  # build jar first
    }
 
@@ -194,7 +194,7 @@ cmd_direct_call={
       ,"IVY_DIR/com/noelios/restlet/com.noelios.restlet/1.1.10/com.noelios.restlet-1.1.10.jar"
 ]+cm_jar_files
 
-  ,"class_name":"org.apache.helix.mock.storage.MockHealthReportParticipant"
+  ,"class_name":"org.apache.helix.mock.participant.MockHealthReportParticipant"
   ,"before_cmd":"../../../mvn package -Dmaven.test.skip.exec=true"  # build jar first
    }
 
@@ -249,7 +249,7 @@ cmd_direct_call={
      ,"IVY_DIR/commons-cli/commons-cli/1.2/commons-cli-1.2.jar"
      ,"IVY_DIR/commons-math/commons-math/2.1/commons-math-2.1.jar"
 ]+cm_jar_files
-  ,"class_name":"org.apache.helix.mock.storage.MockStorageProcess"
+  ,"class_name":"org.apache.helix.mock.participant.MockStorageProcess"
    }
 }
 

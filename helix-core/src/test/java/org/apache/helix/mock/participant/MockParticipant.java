@@ -1,4 +1,4 @@
-package org.apache.helix.mock.storage;
+package org.apache.helix.mock.participant;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -34,8 +34,8 @@ import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.mock.storage.DummyProcess.DummyLeaderStandbyStateModelFactory;
-import org.apache.helix.mock.storage.DummyProcess.DummyOnlineOfflineStateModelFactory;
+import org.apache.helix.mock.participant.DummyProcess.DummyLeaderStandbyStateModelFactory;
+import org.apache.helix.mock.participant.DummyProcess.DummyOnlineOfflineStateModelFactory;
 import org.apache.helix.model.Message;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.participant.statemachine.StateModel;

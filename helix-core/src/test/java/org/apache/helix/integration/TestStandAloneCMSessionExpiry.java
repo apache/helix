@@ -25,7 +25,7 @@ import org.apache.helix.InstanceType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkTestHelper;
 import org.apache.helix.ZkTestHelper.TestZkHelixManager;
-import org.apache.helix.mock.storage.MockParticipant;
+import org.apache.helix.mock.participant.MockParticipant;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.log4j.Logger;

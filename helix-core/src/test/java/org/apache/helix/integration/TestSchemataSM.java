@@ -23,7 +23,7 @@ import java.util.Date;
 
 import org.apache.helix.TestHelper;
 import org.apache.helix.controller.HelixControllerMain;
-import org.apache.helix.mock.storage.MockParticipant;
+import org.apache.helix.mock.participant.MockParticipant;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.testng.Assert;

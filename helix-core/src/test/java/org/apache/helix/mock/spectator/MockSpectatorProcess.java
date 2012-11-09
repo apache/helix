@@ -1,4 +1,4 @@
-package org.apache.helix.mock.router;
+package org.apache.helix.mock.spectator;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -35,13 +35,11 @@ import org.apache.helix.util.HelixUtil;
 
 
 /**
- * A MockRouter process to demonstrate the integration with cluster manager.
+ * A MockSpectatorProcess to demonstrate the integration with cluster manager.
  * This uses Zookeeper in local mode and runs at port 2188
  *
- * @author kgopalak
- *
  */
-public class MockRouterProcess
+public class MockSpectatorProcess
 {
   private static final int port = 2188;
   static long runId = System.currentTimeMillis();
@@ -56,7 +54,7 @@ public class MockRouterProcess
   private final RoutingTableProvider _routingTableProvider;
   private static ZkServer zkServer;
 
-  public MockRouterProcess()
+  public MockSpectatorProcess()
   {
     _routingTableProvider = new RoutingTableProvider();
   }
@@ -70,7 +68,7 @@ public class MockRouterProcess
 
     String externalViewPath = HelixUtil.getExternalViewPath(clusterName, "TestDB");
 
-    MockRouterProcess process = new MockRouterProcess();
+    MockSpectatorProcess process = new MockSpectatorProcess();
     process.start();
     //try to route, there is no master or slave available
     process.routeRequest("TestDB", "TestDB_1");

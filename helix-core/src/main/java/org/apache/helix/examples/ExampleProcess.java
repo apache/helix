@@ -60,7 +60,6 @@ public class ExampleProcess
 
   // private StateMachineEngine genericStateMachineHandler;
 
-  private String _file = null;
   private StateModelFactory<StateModel> stateModelFactory;
   private final int delay;
 
@@ -70,25 +69,15 @@ public class ExampleProcess
     this.zkConnectString = zkConnectString;
     this.clusterName = clusterName;
     this.instanceName = instanceName;
-    this._file = file;
     stateModelType = stateModel;
     this.delay = delay;
   }
 
   public void start() throws Exception
   {
-    if (_file == null)
-    {
-      manager = HelixManagerFactory.getZKHelixManager(clusterName,
-          instanceName, InstanceType.PARTICIPANT, zkConnectString);
-
-    } else
-    {
-      manager = HelixManagerFactory.getStaticFileHelixManager(clusterName,
-          instanceName, InstanceType.PARTICIPANT, _file);
-
-    }
-
+    manager = HelixManagerFactory.getZKHelixManager(clusterName, instanceName,
+        InstanceType.PARTICIPANT, zkConnectString);
+    
     if ("MasterSlave".equalsIgnoreCase(stateModelType))
     {
       stateModelFactory = new MasterSlaveStateModelFactory(delay);
@@ -108,12 +97,6 @@ public class ExampleProcess
     manager.connect();
     manager.getMessagingService().registerMessageHandlerFactory(
         MessageType.STATE_TRANSITION.toString(), stateMach);
-    if (_file != null)
-    {
-      ClusterStateVerifier.verifyFileBasedClusterStates(_file, instanceName,
-          stateModelFactory);
-
-    }
   }
 
   public void stop()

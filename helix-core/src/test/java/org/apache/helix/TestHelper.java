@@ -54,7 +54,6 @@ import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.controller.HelixControllerMain;
-import org.apache.helix.manager.file.FileDataAccessor;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
@@ -67,7 +66,6 @@ import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.IdealState.IdealStateModeProperty;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.StateModelDefinition.StateModelDefinitionProperty;
-import org.apache.helix.store.file.FilePropertyStore;
 import org.apache.helix.store.zk.ZNode;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.util.ZKClientPool;
@@ -298,44 +296,6 @@ public class TestHelper
       }
     }
     return null;
-  }
-
-  // for file-based cluster manager
-  public static boolean verifyEmptyCurStateFile(String clusterName,
-                                                String resourceName,
-                                                Set<String> instanceNames,
-                                                FilePropertyStore<ZNRecord> filePropertyStore)
-  {
-    DataAccessor accessor = new FileDataAccessor(filePropertyStore, clusterName);
-
-    for (String instanceName : instanceNames)
-    {
-      String path =
-          PropertyPathConfig.getPath(PropertyType.CURRENTSTATES,
-                                     clusterName,
-                                     instanceName);
-      List<String> subPaths =
-          accessor.getChildNames(PropertyType.CURRENTSTATES, instanceName);
-
-      for (String previousSessionId : subPaths)
-      {
-        if (filePropertyStore.exists(path + "/" + previousSessionId + "/" + resourceName))
-        {
-          CurrentState previousCurrentState =
-              accessor.getProperty(CurrentState.class,
-                                   PropertyType.CURRENTSTATES,
-                                   instanceName,
-                                   previousSessionId,
-                                   resourceName);
-
-          if (previousCurrentState.getRecord().getMapFields().size() != 0)
-          {
-            return false;
-          }
-        }
-      }
-    }
-    return true;
   }
 
   public static boolean verifyEmptyCurStateAndExtView(String clusterName,

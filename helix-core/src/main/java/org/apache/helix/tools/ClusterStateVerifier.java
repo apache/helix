@@ -39,7 +39,6 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.apache.helix.ClusterView;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyPathConfig;
 import org.apache.helix.PropertyType;
@@ -54,7 +53,6 @@ import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.ClusterEvent;
 import org.apache.helix.controller.stages.CurrentStateComputationStage;
 import org.apache.helix.controller.stages.ResourceComputationStage;
-import org.apache.helix.manager.file.FileHelixDataAccessor;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
@@ -65,7 +63,6 @@ import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.store.PropertyJsonComparator;
 import org.apache.helix.store.PropertyJsonSerializer;
-import org.apache.helix.store.file.FilePropertyStore;
 import org.apache.helix.util.ZKClientPool;
 import org.apache.log4j.Logger;
 
@@ -209,65 +206,6 @@ public class ClusterStateVerifier
       verifierName =
           verifierName.substring(verifierName.lastIndexOf('.') + 1, verifierName.length());
       return verifierName + "(" + clusterName + "@" + zkAddr + ")";
-    }
-  }
-
-  public static class BestPossAndExtViewFileVerifier implements Verifier
-  {
-    private final String                           rootPath;
-    private final String                           clusterName;
-    private final Map<String, Map<String, String>> errStates;
-    private final FilePropertyStore<ZNRecord>      fileStore;
-
-    public BestPossAndExtViewFileVerifier(String rootPath, String clusterName)
-    {
-      this(rootPath, clusterName, null);
-    }
-
-    public BestPossAndExtViewFileVerifier(String rootPath,
-                                          String clusterName,
-                                          Map<String, Map<String, String>> errStates)
-    {
-      if (rootPath == null || clusterName == null)
-      {
-        throw new IllegalArgumentException("requires rootPath|clusterName");
-      }
-      this.rootPath = rootPath;
-      this.clusterName = clusterName;
-      this.errStates = errStates;
-
-      this.fileStore =
-          new FilePropertyStore<ZNRecord>(new PropertyJsonSerializer<ZNRecord>(ZNRecord.class),
-                                          rootPath,
-                                          new PropertyJsonComparator<ZNRecord>(ZNRecord.class));
-    }
-
-    @Override
-    public boolean verify()
-    {
-      try
-      {
-        HelixDataAccessor accessor = new FileHelixDataAccessor(fileStore, clusterName);
-
-        return ClusterStateVerifier.verifyBestPossAndExtView(accessor, errStates);
-      }
-      catch (Exception e)
-      {
-        LOG.error("exception in verification", e);
-        return false;
-      }
-      finally
-      {
-      }
-    }
-
-    @Override
-    public String toString()
-    {
-      String verifierName = getClass().getName();
-      verifierName =
-          verifierName.substring(verifierName.lastIndexOf('.') + 1, verifierName.length());
-      return verifierName + "(" + rootPath + "@" + clusterName + ")";
     }
   }
 
@@ -704,78 +642,6 @@ public class ClusterStateVerifier
     System.err.println(result + ": wait " + (endTime - startTime) + "ms, " + verifier);
 
     return result;
-  }
-
-  public static boolean verifyFileBasedClusterStates(String file,
-                                                     String instanceName,
-                                                     StateModelFactory<StateModel> stateModelFactory)
-  {
-    ClusterView clusterView = ClusterViewSerializer.deserialize(new File(file));
-    boolean ret = true;
-    int nonOfflineStateNr = 0;
-
-    // ideal_state for instance with name $instanceName
-    Map<String, String> instanceIdealStates = new HashMap<String, String>();
-    for (ZNRecord idealStateItem : clusterView.getPropertyList(PropertyType.IDEALSTATES))
-    {
-      Map<String, Map<String, String>> idealStates = idealStateItem.getMapFields();
-
-      for (Map.Entry<String, Map<String, String>> entry : idealStates.entrySet())
-      {
-        if (entry.getValue().containsKey(instanceName))
-        {
-          String state = entry.getValue().get(instanceName);
-          instanceIdealStates.put(entry.getKey(), state);
-        }
-      }
-    }
-
-    Map<String, StateModel> currentStateMap = stateModelFactory.getStateModelMap();
-
-    if (currentStateMap.size() != instanceIdealStates.size())
-    {
-      LOG.warn("Number of current states (" + currentStateMap.size() + ") mismatch "
-          + "number of ideal states (" + instanceIdealStates.size() + ")");
-      return false;
-    }
-
-    for (Map.Entry<String, String> entry : instanceIdealStates.entrySet())
-    {
-
-      String stateUnitKey = entry.getKey();
-      String idealState = entry.getValue();
-
-      if (!idealState.equalsIgnoreCase("offline"))
-      {
-        nonOfflineStateNr++;
-      }
-
-      if (!currentStateMap.containsKey(stateUnitKey))
-      {
-        LOG.warn("Current state does not contain " + stateUnitKey);
-        // return false;
-        ret = false;
-        continue;
-      }
-
-      String curState = currentStateMap.get(stateUnitKey).getCurrentState();
-      if (!idealState.equalsIgnoreCase(curState))
-      {
-        LOG.info("State mismatch--unit_key:" + stateUnitKey + " cur:" + curState
-            + " ideal:" + idealState + " instance_name:" + instanceName);
-        // return false;
-        ret = false;
-        continue;
-      }
-    }
-
-    if (ret == true)
-    {
-      System.out.println(instanceName + ": verification succeed");
-      LOG.info(instanceName + ": verification succeed (" + nonOfflineStateNr + " states)");
-    }
-
-    return ret;
   }
 
   @SuppressWarnings("static-access")

@@ -16,26 +16,26 @@
 
 -->
 <assembly>
-	<id>pkg</id>
-	<formats>
-		<format>tar</format>
-	</formats>
-	<fileSets>
-		<fileSet>
-			<directory>target/helix-admin-webapp-pkg/bin</directory>
-			<outputDirectory>bin</outputDirectory>
-			<lineEnding>unix</lineEnding>
+  <id>pkg</id>
+  <formats>
+    <format>tar</format>
+  </formats>
+  <fileSets>
+    <fileSet>
+      <directory>target/helix-admin-webapp-pkg/bin</directory>
+      <outputDirectory>bin</outputDirectory>
+      <lineEnding>unix</lineEnding>
       <fileMode>0755</fileMode>
       <directoryMode>0755</directoryMode>
-		</fileSet>
-		<fileSet>
-			<directory>target/helix-admin-webapp-pkg/repo</directory>
-			<outputDirectory>repo</outputDirectory>
+    </fileSet>
+    <fileSet>
+      <directory>target/helix-admin-webapp-pkg/repo</directory>
+      <outputDirectory>repo</outputDirectory>
       <fileMode>0755</fileMode>
       <directoryMode>0755</directoryMode>
-		</fileSet>
-		<!-- <fileSet> <directory>src/main/conf</directory> <includes> <include>app-env.bat</include> 
-			</includes> <outputDirectory>/booter-windows/bin</outputDirectory> </fileSet> -->
+    </fileSet>
+    <!-- <fileSet> <directory>src/main/conf</directory> <includes> <include>app-env.bat</include>
+      </includes> <outputDirectory>/booter-windows/bin</outputDirectory> </fileSet> -->
     <fileSet>
       <directory>target/maven-shared-archive-resources/META-INF/</directory>
       <outputDirectory>/</outputDirectory>
@@ -45,5 +45,5 @@
       </includes>
       <fileMode>0755</fileMode>
     </fileSet>
-	</fileSets>
+  </fileSets>
 </assembly>

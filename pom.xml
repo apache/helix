@@ -48,9 +48,9 @@ under the License.
       <post>user@helix.incubator.apache.org</post>
       <subscribe>user-subscribe@helix.incubator.apache.org</subscribe>
       <unsubscribe>user-unsubscribe@helix.incubator.apache.org</unsubscribe>
-      <archive>http://mail-archives.apache.org/mod_mbox/directmemory-user/</archive>
+      <archive>http://mail-archives.apache.org/mod_mbox/helix-user/</archive>
       <otherArchives>
-        <otherArchive>http://directmemory-user.markmail.org/</otherArchive>
+        <otherArchive>http://helix-user.markmail.org</otherArchive>
       </otherArchives>
     </mailingList>
     <mailingList>
@@ -58,9 +58,9 @@ under the License.
       <post>dev@helix.incubator.apache.org</post>
       <subscribe>dev-subscribe@helix.incubator.apache.org</subscribe>
       <unsubscribe>dev-unsubscribe@helix.incubator.apache.org</unsubscribe>
-      <archive>http://mail-archives.apache.org/mod_mbox/directmemory-dev/</archive>
+      <archive>http://mail-archives.apache.org/mod_mbox/helix-dev/</archive>
       <otherArchives>
-        <otherArchive>http://directmemory-dev.markmail.org/</otherArchive>
+        <otherArchive>http://helix-dev.markmail.org</otherArchive>
       </otherArchives>
     </mailingList>
     <mailingList>
@@ -68,9 +68,9 @@ under the License.
       <post>commits@helix.incubator.apache.org</post>
       <subscribe>commits-subscribe@helix.incubator.apache.org</subscribe>
       <unsubscribe>commits-unsubscribe@helix.incubator.apache.org</unsubscribe>
-      <archive>http://mail-archives.apache.org/mod_mbox/directmemory-commits/</archive>
+      <archive>http://mail-archives.apache.org/mod_mbox/helix-commits/</archive>
       <otherArchives>
-        <otherArchive>http://directmemory-commits.markmail.org/</otherArchive>
+        <otherArchive>http://helix-comits.markmail.org</otherArchive>
       </otherArchives>
     </mailingList>
   </mailingLists>

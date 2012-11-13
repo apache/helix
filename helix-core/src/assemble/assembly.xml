@@ -25,15 +25,27 @@ under the License.
 	<fileSets>
 		<fileSet>
 			<directory>${project.build.directory}/${project.artifactId}-pkg/bin</directory>
-			<outputDirectory>/bin</outputDirectory>
+			<outputDirectory>bin</outputDirectory>
 			<lineEnding>unix</lineEnding>
-			<fileMode>0744</fileMode>
+      <fileMode>0755</fileMode>
+      <directoryMode>0755</directoryMode>
 		</fileSet>
 		<fileSet>
 			<directory>${project.build.directory}/${project.artifactId}-pkg/repo</directory>
-			<outputDirectory>/repo</outputDirectory>
+			<outputDirectory>repo</outputDirectory>
+      <fileMode>0755</fileMode>
+      <directoryMode>0755</directoryMode>
 		</fileSet>
 		<!-- <fileSet> <directory>src/main/conf</directory> <includes> <include>app-env.bat</include> 
 			</includes> <outputDirectory>/booter-windows/bin</outputDirectory> </fileSet> -->
+    <fileSet>
+      <directory>target/maven-shared-archive-resources/META-INF/</directory>
+      <outputDirectory>/</outputDirectory>
+      <includes>
+        <include>NOTICE</include>
+        <include>LICENSE</include>
+      </includes>
+      <fileMode>0755</fileMode>
+    </fileSet>
 	</fileSets>
 </assembly>

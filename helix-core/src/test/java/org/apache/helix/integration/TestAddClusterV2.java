@@ -25,7 +25,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.helix.DataAccessor;
 import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.TestHelper.StartCMResult;
@@ -207,11 +206,6 @@ public class TestAddClusterV2 extends ZkIntegrationTestBase
     result = ClusterStateVerifier.verifyByPolling(
         new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_PREFIX + "_" + CLASS_NAME + "_0"));
     Assert.assertTrue(result);
-  }
-
-  protected void pauseController(DataAccessor clusterDataAccessor)
-  {
-    clusterDataAccessor.setProperty(PropertyType.PAUSE, new PauseSignal("pause"));
   }
 
   protected void setupStorageCluster(ClusterSetup setupTool, String clusterName,

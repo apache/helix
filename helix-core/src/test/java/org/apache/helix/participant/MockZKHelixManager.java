@@ -26,7 +26,6 @@ import org.apache.helix.ConfigAccessor;
 import org.apache.helix.ConfigChangeListener;
 import org.apache.helix.ControllerChangeListener;
 import org.apache.helix.CurrentStateChangeListener;
-import org.apache.helix.DataAccessor;
 import org.apache.helix.ExternalViewChangeListener;
 import org.apache.helix.HealthStateChangeListener;
 import org.apache.helix.HelixAdmin;
@@ -43,7 +42,6 @@ import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.participant.StateMachineEngine;
-import org.apache.helix.store.PropertyStore;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
 
 
@@ -184,13 +182,6 @@ public class MockZKHelixManager implements HelixManager
   }
 
   @Override
-  public PropertyStore<ZNRecord> getPropertyStore()
-  {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
   public ClusterMessagingService getMessagingService()
   {
     // TODO Auto-generated method stub
@@ -258,13 +249,6 @@ public class MockZKHelixManager implements HelixManager
   {
     // TODO Auto-generated method stub
 
-  }
-
-  @Override
-  public DataAccessor getDataAccessor()
-  {
-    // TODO Auto-generated method stub
-    return null;
   }
 
   @Override

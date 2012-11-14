@@ -24,7 +24,6 @@ import org.apache.helix.ConfigAccessor;
 import org.apache.helix.ConfigChangeListener;
 import org.apache.helix.ControllerChangeListener;
 import org.apache.helix.CurrentStateChangeListener;
-import org.apache.helix.DataAccessor;
 import org.apache.helix.ExternalViewChangeListener;
 import org.apache.helix.HealthStateChangeListener;
 import org.apache.helix.HelixAdmin;
@@ -38,7 +37,6 @@ import org.apache.helix.PreConnectCallback;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
 import org.apache.helix.participant.StateMachineEngine;
-import org.apache.helix.store.PropertyStore;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
 
 public class DummyClusterManager implements HelixManager
@@ -127,12 +125,6 @@ public class DummyClusterManager implements HelixManager
   }
 
   @Override
-  public DataAccessor getDataAccessor()
-  {
-    return null;
-  }
-
-  @Override
   public String getClusterName()
   {
     return _clusterName;
@@ -167,13 +159,6 @@ public class DummyClusterManager implements HelixManager
 
   @Override
   public HelixAdmin getClusterManagmentTool()
-  {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
-  public PropertyStore<ZNRecord> getPropertyStore()
   {
     // TODO Auto-generated method stub
     return null;

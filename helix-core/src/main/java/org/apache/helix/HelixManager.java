@@ -26,7 +26,6 @@ import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
 import org.apache.helix.participant.HelixStateMachineEngine;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.spectator.RoutingTableProvider;
-import org.apache.helix.store.PropertyStore;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
 
 
@@ -161,16 +160,6 @@ public interface HelixManager
    * @return
    */
   boolean removeListener(Object listener);
-
-  /**
-   * Return the client to perform read/write operations on the cluster data
-   * store {@link getHelixDataAccessor() }
-   * 
-   * @return DataAccessor
-   */
-  @Deprecated
-  DataAccessor getDataAccessor();
-
   /**
    * Return the client to perform read/write operations on the cluster data
    * store
@@ -221,16 +210,6 @@ public interface HelixManager
    */
   HelixAdmin getClusterManagmentTool();
 
-  /**
-   * Provide get property store for a cluster
-   * 
-   * @param rootNamespace
-   * @param serializer
-   * @return
-   */
-  @Deprecated
-  PropertyStore<ZNRecord> getPropertyStore();
-  
   /**
    * Get property store
    * 

@@ -21,7 +21,6 @@ package org.apache.helix.monitoring.mbeans;
 
 import java.util.Map;
 
-import org.apache.helix.DataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyType;
 import org.apache.helix.model.ExternalView;

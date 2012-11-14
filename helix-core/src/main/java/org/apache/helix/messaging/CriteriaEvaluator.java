@@ -20,26 +20,15 @@ package org.apache.helix.messaging;
  */
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.helix.Criteria;
-import org.apache.helix.DataAccessor;
 import org.apache.helix.HelixManager;
-import org.apache.helix.PropertyType;
-import org.apache.helix.ZNRecord;
-import org.apache.helix.Criteria.DataSource;
 import org.apache.helix.josql.ClusterJosqlQueryProcessor;
 import org.apache.helix.josql.ZNRecordRow;
 import org.apache.log4j.Logger;
-import org.josql.Query;
-import org.josql.QueryExecutionException;
-import org.josql.QueryParseException;
-import org.josql.QueryResults;
 
 
 public class CriteriaEvaluator

@@ -33,7 +33,8 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.manager.MockListener;
 import org.apache.helix.manager.zk.ZKHelixManager;
-import org.apache.helix.store.PropertyStore;
+import org.apache.helix.store.zk.ZkHelixPropertyStore;
+import org.apache.zookeeper.data.Stat;
 import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
@@ -90,10 +91,12 @@ public class TestZkClusterManager extends ZkUnitTestBase
     AssertJUnit.assertTrue(listener.isControllerChangeListenerInvoked);
     controller.removeListener(listener);
 
-    PropertyStore<ZNRecord> store = controller.getPropertyStore();
+    ZkHelixPropertyStore<ZNRecord> store = controller.getHelixPropertyStore();
     ZNRecord record = new ZNRecord("node_1");
-    store.setProperty("node_1", record);
-    record = store.getProperty("node_1");
+    int options = 0;
+    store.set("node_1", record, options);
+    Stat stat = new Stat();
+    record = store.get("node_1",stat, options);
     AssertJUnit.assertEquals("node_1", record.getId());
 
     controller.getMessagingService();

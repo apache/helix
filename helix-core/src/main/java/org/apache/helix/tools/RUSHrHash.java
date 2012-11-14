@@ -20,7 +20,6 @@ package org.apache.helix.tools;
  */
 
 import java.util.*;
-import java.util.ArrayList;
 import java.util.zip.CRC32;
 
 public class RUSHrHash
@@ -130,7 +129,7 @@ public class RUSHrHash
     int nodeCt = 0;
     HashMap[] nodeData = null;
     ArrayList<HashMap> tempNodes = new ArrayList<HashMap>();
-    HashMap subCluster = null, clusterData = null;
+    HashMap<String, Object> subCluster = null, clusterData = null;
     Integer clusterDataList[] = null;
     for (int i = 0; i < totalClusters; i++)
     {

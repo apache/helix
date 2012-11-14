@@ -24,17 +24,12 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
-import org.apache.helix.DataAccessor;
 import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.HelixProperty;
 import org.apache.helix.Mocks;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.model.ExternalView;
-import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.LiveInstance.LiveInstanceProperty;
-import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.helix.tools.IdealStateCalculatorForStorageNode;
 import org.testng.annotations.Test;
 

@@ -37,7 +37,6 @@ import org.apache.helix.ConfigChangeListener;
 import org.apache.helix.ControllerChangeListener;
 import org.apache.helix.Criteria;
 import org.apache.helix.CurrentStateChangeListener;
-import org.apache.helix.DataAccessor;
 import org.apache.helix.ExternalViewChangeListener;
 import org.apache.helix.HealthStateChangeListener;
 import org.apache.helix.HelixAdmin;
@@ -65,7 +64,6 @@ import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
-import org.apache.helix.store.PropertyStore;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
 import org.apache.zookeeper.data.Stat;
 
@@ -346,11 +344,6 @@ public class Mocks {
 		}
 
 		@Override
-		public DataAccessor getDataAccessor() {
-			return null;
-		}
-
-		@Override
 		public String getClusterName() {
 			return _clusterName;
 		}
@@ -416,12 +409,6 @@ public class Mocks {
 		@Override
 		public InstanceType getInstanceType() {
 			return InstanceType.PARTICIPANT;
-		}
-
-		@Override
-		public PropertyStore<ZNRecord> getPropertyStore() {
-			// TODO Auto-generated method stub
-			return null;
 		}
 
 		@Override

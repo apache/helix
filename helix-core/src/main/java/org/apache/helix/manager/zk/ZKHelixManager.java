@@ -47,7 +47,6 @@ import org.apache.helix.ConfigChangeListener;
 import org.apache.helix.ConfigScope.ConfigScopeProperty;
 import org.apache.helix.ControllerChangeListener;
 import org.apache.helix.CurrentStateChangeListener;
-import org.apache.helix.DataAccessor;
 import org.apache.helix.ExternalViewChangeListener;
 import org.apache.helix.HealthStateChangeListener;
 import org.apache.helix.HelixAdmin;
@@ -79,9 +78,7 @@ import org.apache.helix.monitoring.ZKPathDataDumpTask;
 import org.apache.helix.participant.DistClusterControllerElection;
 import org.apache.helix.participant.HelixStateMachineEngine;
 import org.apache.helix.participant.StateMachineEngine;
-import org.apache.helix.store.PropertyStore;
 import org.apache.helix.store.ZNRecordJsonSerializer;
-import org.apache.helix.store.zk.ZKPropertyStore;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
 import org.apache.helix.tools.PropertiesReader;
 import org.apache.log4j.Logger;
@@ -99,7 +96,6 @@ public class ZKHelixManager implements HelixManager
   private final String                         _instanceName;
   private final String                         _zkConnectString;
   private static final int                     DEFAULT_SESSION_TIMEOUT = 30 * 1000;
-  private ZKDataAccessor                       _accessor;
   private ZKHelixDataAccessor                  _helixAccessor;
   private ConfigAccessor                       _configAccessor;
   protected ZkClient                           _zkClient;
@@ -115,7 +111,6 @@ public class ZKHelixManager implements HelixManager
   private final String                         _version;
   private final StateMachineEngine             _stateMachEngine;
   private int                                  _sessionTimeout;
-  private PropertyStore<ZNRecord>              _propertyStore;
   private ZkHelixPropertyStore<ZNRecord>       _helixPropertyStore;
   private final List<HelixTimerTask>           _controllerTimerTasks;
   private BaseDataAccessor<ZNRecord>           _baseDataAccessor;
@@ -356,13 +351,6 @@ public class ZKHelixManager implements HelixManager
   }
 
   @Override
-  public DataAccessor getDataAccessor()
-  {
-    checkConnected();
-    return _accessor;
-  }
-
-  @Override
   public HelixDataAccessor getHelixDataAccessor()
   {
     checkConnected();
@@ -453,11 +441,6 @@ public class ZKHelixManager implements HelixManager
     if (_instanceType == InstanceType.CONTROLLER)
     {
       stopTimerTasks();
-    }
-
-    if (_propertyStore != null)
-    {
-      _propertyStore.stop();
     }
 
     // unsubscribe accessor from controllerChange
@@ -594,7 +577,6 @@ public class ZKHelixManager implements HelixManager
                                .build();
 
     _zkClient = new ZkClient(zkServers, _sessionTimeout, CONNECTIONTIMEOUT, zkSerializer);
-    _accessor = new ZKDataAccessor(_clusterName, _zkClient);
 
     ZkBaseDataAccessor<ZNRecord> baseDataAccessor =
         new ZkBaseDataAccessor<ZNRecord>(_zkClient);
@@ -698,7 +680,6 @@ public class ZKHelixManager implements HelixManager
     {
       _sessionId = Long.toHexString(zkConnection.getZookeeper().getSessionId());
     }
-    _accessor.reset();
     _baseDataAccessor.reset();
 
     resetHandlers();
@@ -976,25 +957,6 @@ public class ZKHelixManager implements HelixManager
 
       }
     }
-  }
-
-  @Deprecated
-  @Override
-  public synchronized PropertyStore<ZNRecord> getPropertyStore()
-  {
-    checkConnected();
-
-    if (_propertyStore == null)
-    {
-      String path = PropertyPathConfig.getPath(PropertyType.PROPERTYSTORE, _clusterName);
-
-      // reuse the existing zkClient because its serializer will use raw serialization
-      // for paths of the property store.
-      _propertyStore =
-          new ZKPropertyStore<ZNRecord>(_zkClient, new ZNRecordJsonSerializer(), path);
-    }
-
-    return _propertyStore;
   }
 
   @Override

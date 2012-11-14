@@ -23,7 +23,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.helix.DataAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyType;
@@ -44,31 +43,6 @@ public class HealthDataCache
   PersistentStats _persistentStats;
   Alerts _alerts;
   AlertStatus _alertStatus;
-
-  public boolean refresh(DataAccessor accessor)
-  {
-    _liveInstanceMap = accessor.getChildValuesMap(LiveInstance.class,
-        PropertyType.LIVEINSTANCES);
-
-    Map<String, Map<String, HealthStat>> hsMap = new HashMap<String, Map<String, HealthStat>>();
-
-    for (String instanceName : _liveInstanceMap.keySet())
-    {
-      // xxx clearly getting znodes for the instance here...so get the
-      // timestamp!
-
-      hsMap.put(instanceName, accessor.getChildValuesMap(HealthStat.class,
-          PropertyType.HEALTHREPORT, instanceName));
-    }
-    _healthStatMap = Collections.unmodifiableMap(hsMap);
-    _persistentStats = accessor.getProperty(PersistentStats.class,
-        PropertyType.PERSISTENTSTATS);
-    _alerts = accessor.getProperty(Alerts.class, PropertyType.ALERTS);
-    _alertStatus = accessor.getProperty(AlertStatus.class,
-        PropertyType.ALERT_STATUS);
-
-    return true;
-  }
 
   public HealthStat getGlobalStats()
   {

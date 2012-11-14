@@ -119,7 +119,7 @@ public class IdealStateCalculatorByRush
       ArrayList<HashMap> partitionAssignmentResult = rushHash
           .findNode(i);
       List<String> nodeNames = new ArrayList<String>();
-      for (HashMap p : partitionAssignmentResult)
+      for (HashMap<?, ?> p : partitionAssignmentResult)
       {
         for (Object key : p.keySet())
         {

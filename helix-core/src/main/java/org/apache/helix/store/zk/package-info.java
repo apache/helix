@@ -17,7 +17,7 @@
  * under the License.
  */
 /**
- * Helix implementation of zookeeper-based property store (Deprecated)
+ * Helix implementation of zookeeper-based property store
  * 
  */
 package org.apache.helix.store.zk;

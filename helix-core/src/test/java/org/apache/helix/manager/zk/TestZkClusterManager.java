@@ -23,6 +23,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.helix.AccessOption;
 import org.apache.helix.ConfigScope;
 import org.apache.helix.ConfigScopeBuilder;
 import org.apache.helix.HelixAdmin;
@@ -94,7 +95,7 @@ public class TestZkClusterManager extends ZkUnitTestBase
     ZkHelixPropertyStore<ZNRecord> store = controller.getHelixPropertyStore();
     ZNRecord record = new ZNRecord("node_1");
     int options = 0;
-    store.set("node_1", record, options);
+    store.set("node_1", record, AccessOption.PERSISTENT);
     Stat stat = new Stat();
     record = store.get("node_1",stat, options);
     AssertJUnit.assertEquals("node_1", record.getId());

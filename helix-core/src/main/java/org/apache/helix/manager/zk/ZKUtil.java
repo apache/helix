@@ -48,40 +48,36 @@ public final class ZKUtil
     {
       return false;
     }
-
-    boolean isValid =
-        zkClient.exists(PropertyPathConfig.getPath(PropertyType.IDEALSTATES, clusterName))
-            && zkClient.exists(PropertyPathConfig.getPath(PropertyType.CONFIGS,
-                                                          clusterName,
-                                                          ConfigScopeProperty.CLUSTER.toString(),
-                                                          clusterName))
-            && zkClient.exists(PropertyPathConfig.getPath(PropertyType.CONFIGS,
-                                                          clusterName,
-                                                          ConfigScopeProperty.PARTICIPANT.toString()))
-            && zkClient.exists(PropertyPathConfig.getPath(PropertyType.CONFIGS,
-                                                          clusterName,
-                                                          ConfigScopeProperty.RESOURCE.toString()))
-            && zkClient.exists(PropertyPathConfig.getPath(PropertyType.PROPERTYSTORE,
-                                                          clusterName))
-            && zkClient.exists(PropertyPathConfig.getPath(PropertyType.LIVEINSTANCES,
-                                                          clusterName))
-            && zkClient.exists(PropertyPathConfig.getPath(PropertyType.INSTANCES,
-                                                          clusterName))
-            && zkClient.exists(PropertyPathConfig.getPath(PropertyType.EXTERNALVIEW,
-                                                          clusterName))
-            && zkClient.exists(PropertyPathConfig.getPath(PropertyType.CONTROLLER,
-                                                          clusterName))
-            && zkClient.exists(PropertyPathConfig.getPath(PropertyType.STATEMODELDEFS,
-                                                          clusterName))
-            && zkClient.exists(PropertyPathConfig.getPath(PropertyType.MESSAGES_CONTROLLER,
-                                                          clusterName))
-            && zkClient.exists(PropertyPathConfig.getPath(PropertyType.ERRORS_CONTROLLER,
-                                                          clusterName))
-            && zkClient.exists(PropertyPathConfig.getPath(PropertyType.STATUSUPDATES_CONTROLLER,
-                                                          clusterName))
-            && zkClient.exists(PropertyPathConfig.getPath(PropertyType.HISTORY,
-                                                          clusterName));
-
+    ArrayList<String> requiredPaths = new ArrayList<String>();
+    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.IDEALSTATES, clusterName));
+    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.CONFIGS,
+                                                 clusterName,
+                                                 ConfigScopeProperty.CLUSTER.toString(),
+                                                 clusterName));
+    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.CONFIGS,
+                                                 clusterName, 
+                                                 ConfigScopeProperty.PARTICIPANT.toString()));
+    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.CONFIGS,
+                                                 clusterName, 
+                                                 ConfigScopeProperty.RESOURCE.toString()));
+    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.PROPERTYSTORE,clusterName));
+    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.LIVEINSTANCES,clusterName));
+    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.INSTANCES,clusterName));
+    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.EXTERNALVIEW,clusterName));
+    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.CONTROLLER, clusterName));
+    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.STATEMODELDEFS,clusterName));
+    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.MESSAGES_CONTROLLER, clusterName));
+    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.ERRORS_CONTROLLER, clusterName));
+    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.STATUSUPDATES_CONTROLLER, clusterName));
+    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.HISTORY,clusterName));
+    boolean isValid =true;
+    
+    for(String path:requiredPaths){
+      if(!zkClient.exists(path)){
+        isValid =false;
+        logger.error("Invalid cluster setup, missing znode path: "+path);
+      }
+    }
     return isValid;
   }
 

@@ -46,6 +46,7 @@ public interface BaseDataAccessor<T>
    * 
    * @param path
    * @param record
+   * @param options Set the type of ZNode see the valid values in {@link AccessOption}
    * @return
    */
   boolean set(String path, T record, int options);
@@ -56,6 +57,7 @@ public interface BaseDataAccessor<T>
    * 
    * @param path
    * @param record
+   * @param options Set the type of ZNode see the valid values in {@link AccessOption}
    * @return
    */
   boolean update(String path, DataUpdater<T> updater, int options);
@@ -64,6 +66,7 @@ public interface BaseDataAccessor<T>
    * This will remove znode and all it's child nodes if any
    * 
    * @param path
+   * @param options Set the type of ZNode see the valid values in {@link AccessOption}
    * @return
    */
   boolean remove(String path, int options);
@@ -74,6 +77,7 @@ public interface BaseDataAccessor<T>
    * 
    * @param parentPath
    * @param record
+   * @param options Set the type of ZNode see the valid values in {@link AccessOption}
    * @return
    */
   boolean[] createChildren(List<String> paths, List<T> records, int options);
@@ -84,6 +88,7 @@ public interface BaseDataAccessor<T>
    * 
    * @param parentPath
    * @param record
+   * @param options Set the type of ZNode see the valid values in {@link AccessOption}
    */
   boolean[] setChildren(List<String> paths, List<T> records, int options);
 
@@ -93,6 +98,7 @@ public interface BaseDataAccessor<T>
    * 
    * @param parentPath
    * @param record
+   * @param options Set the type of ZNode see the valid values in {@link AccessOption}
    * @return
    */
   boolean[] updateChildren(List<String> paths, List<DataUpdater<T>> updaters, int options);
@@ -101,6 +107,7 @@ public interface BaseDataAccessor<T>
    * remove multiple paths using async api. will remove any child nodes if any
    * 
    * @param paths
+   * @param options Set the type of ZNode see the valid values in {@link AccessOption}
    * @return
    */
   boolean[] remove(List<String> paths, int options);
@@ -109,6 +116,7 @@ public interface BaseDataAccessor<T>
    * Get the {@link T} corresponding to the path
    * 
    * @param path
+   * @param options Set the type of ZNode see the valid values in {@link AccessOption}
    * @return
    */
   T get(String path, Stat stat, int options);
@@ -117,6 +125,7 @@ public interface BaseDataAccessor<T>
    * Get List of {@link T} corresponding to the paths using async api
    * 
    * @param paths
+   * @param options Set the type of ZNode see the valid values in {@link AccessOption}
    * @return
    */
   List<T> get(List<String> paths, List<Stat> stats, int options);
@@ -125,6 +134,7 @@ public interface BaseDataAccessor<T>
    * Get the children under a parent path using async api
    * 
    * @param path
+   * @param options Set the type of ZNode see the valid values in {@link AccessOption}
    * @return
    */
   List<T> getChildren(String parentPath, List<Stat> stats, int options);
@@ -134,6 +144,7 @@ public interface BaseDataAccessor<T>
    * 
    * @param type
    * @param keys
+   * @param options Set the type of ZNode see the valid values in {@link AccessOption}
    * @return
    */
   List<String> getChildNames(String parentPath, int options);
@@ -142,6 +153,7 @@ public interface BaseDataAccessor<T>
    * checks if the path exists in zk
    * 
    * @param path
+   * @param options Set the type of ZNode see the valid values in {@link AccessOption}
    * @return
    */
   boolean exists(String path, int options);
@@ -150,6 +162,7 @@ public interface BaseDataAccessor<T>
    * checks if the all the paths exists
    * 
    * @param paths
+   * @param options Set the type of ZNode see the valid values in {@link AccessOption}
    * @return
    */
   boolean[] exists(List<String> paths, int options);
@@ -158,6 +171,7 @@ public interface BaseDataAccessor<T>
    * Get the stats of all the paths
    * 
    * @param paths
+   * @param options Set the type of ZNode see the valid values in {@link AccessOption}
    * @return
    */
   Stat[] getStats(List<String> paths, int options);
@@ -166,6 +180,7 @@ public interface BaseDataAccessor<T>
    * Get the stats of all the paths
    * 
    * @param paths
+   * @param options Set the type of ZNode see the valid values in {@link AccessOption}
    * @return
    */
   Stat getStat(String path, int options);

@@ -366,6 +366,15 @@ public class TestHelixAdminScenariosCli extends ZkIntegrationTestBase
     
     accessor = _startCMResultMap.get("localhost_1232")._manager.getHelixDataAccessor();
     LiveInstance leader = accessor.getProperty(accessor.keyBuilder().controllerLeader());
+    for(int i = 0; i < 5; i++)
+    {
+      if(leader != null)
+      {
+        break;
+      }
+      Thread.sleep(1000);
+      leader = accessor.getProperty(accessor.keyBuilder().controllerLeader());
+    }
     Assert.assertTrue(leader.getInstanceName().startsWith("controller_900"));
     
     boolean verifyResult =

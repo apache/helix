@@ -148,14 +148,14 @@ public class TestEnablePartitionDuringDisable extends ZkIntegrationTestBase
 
     // ensure we get 1 slaveToOffline and 1 offlineToSlave after disable partition
     long startT = System.currentTimeMillis();
-    while (System.currentTimeMillis() - startT < 1000)  // retry in 1s
+    while (System.currentTimeMillis() - startT < 10000)  // retry in 5s
     {
       if (transition.slaveToOfflineCnt > 0 && transition.offlineToSlave > 0)
       {
         break;
       }
 
-      Thread.sleep(10);
+      Thread.sleep(100);
     }
     long endT = System.currentTimeMillis();
     System.out.println("1 disable and re-enable took: " + (endT - startT) + "ms");

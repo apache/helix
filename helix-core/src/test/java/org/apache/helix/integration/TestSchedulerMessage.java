@@ -173,20 +173,31 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
     Assert.assertEquals(_PARTITIONS, _factory._results.size());
     PropertyKey controllerTaskStatus = keyBuilder.controllerTaskStatus(
         MessageType.SCHEDULER_MSG.toString(), schedulerMessage.getMsgId());
-    ZNRecord statusUpdate = helixDataAccessor.getProperty(controllerTaskStatus)
-        .getRecord();
-    Assert.assertTrue(statusUpdate.getMapField("SentMessageCount")
-        .get("MessageCount").equals("" + (_PARTITIONS * 3)));
+      
     int messageResultCount = 0;
-    for(String key : statusUpdate.getMapFields().keySet())
+    for(int i = 0; i < 10; i++)
     {
-      if(key.startsWith("MessageResult "))
+      ZNRecord statusUpdate = helixDataAccessor.getProperty(controllerTaskStatus)
+          .getRecord();
+      Assert.assertTrue(statusUpdate.getMapField("SentMessageCount")
+          .get("MessageCount").equals("" + (_PARTITIONS * 3)));
+      for(String key : statusUpdate.getMapFields().keySet())
       {
-        messageResultCount ++;
+        if(key.startsWith("MessageResult "))
+        {
+          messageResultCount ++;
+        }
+      }
+      if(messageResultCount == _PARTITIONS * 3)
+      {
+        break;
+      }
+      else
+      {
+        Thread.sleep(2000);
       }
     }
     Assert.assertEquals(messageResultCount, _PARTITIONS * 3);
-    
     int count = 0;
     for (Set<String> val : _factory._results.values())
     {

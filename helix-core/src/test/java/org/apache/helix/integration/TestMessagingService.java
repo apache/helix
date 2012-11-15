@@ -343,7 +343,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBaseWithPropertyServ
     cr.setSessionSpecific(false);
     AsyncCallback callback1 = new MockAsyncCallback();
     int messageSent1 = _startCMResultMap.get(hostSrc)._manager.getMessagingService()
-        .sendAndWait(cr, msg, callback1, 2000);
+        .sendAndWait(cr, msg, callback1, 10000);
 
     AssertJUnit.assertTrue(callback1.getMessageReplied().get(0).getRecord()
         .getMapField(Message.Attributes.MESSAGE_RESULT.toString())
@@ -358,26 +358,26 @@ public class TestMessagingService extends ZkStandAloneCMTestBaseWithPropertyServ
     cr.setPartition("TestDB_17");
     AsyncCallback callback3 = new MockAsyncCallback();
     int messageSent3 = _startCMResultMap.get(hostSrc)._manager.getMessagingService()
-        .sendAndWait(cr, msg, callback3, 2000);
+        .sendAndWait(cr, msg, callback3, 10000);
     AssertJUnit.assertTrue(callback3.getMessageReplied().size() == _replica - 1);
 
 
     cr.setPartition("TestDB_15");
     AsyncCallback callback4 = new MockAsyncCallback();
     int messageSent4 = _startCMResultMap.get(hostSrc)._manager.getMessagingService()
-        .sendAndWait(cr, msg, callback4, 2000);
+        .sendAndWait(cr, msg, callback4, 10000);
     AssertJUnit.assertTrue(callback4.getMessageReplied().size() == _replica);
     
     cr.setPartitionState("SLAVE");
     AsyncCallback callback5 = new MockAsyncCallback();
     int messageSent5 = _startCMResultMap.get(hostSrc)._manager.getMessagingService()
-        .sendAndWait(cr, msg, callback5, 2000);
+        .sendAndWait(cr, msg, callback5, 10000);
     AssertJUnit.assertTrue(callback5.getMessageReplied().size() == _replica - 1);
     
     cr.setDataSource(DataSource.IDEALSTATES);
     AsyncCallback callback6 = new MockAsyncCallback();
     int messageSent6 = _startCMResultMap.get(hostSrc)._manager.getMessagingService()
-        .sendAndWait(cr, msg, callback6, 2000);
+        .sendAndWait(cr, msg, callback6, 10000);
     AssertJUnit.assertTrue(callback6.getMessageReplied().size() == _replica - 1);
   }
 
@@ -411,7 +411,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBaseWithPropertyServ
     cr.setSelfExcluded(false);
     AsyncCallback callback1 = new MockAsyncCallback();
     int messageSent1 = _startCMResultMap.get(hostSrc)._manager.getMessagingService()
-        .sendAndWait(cr, msg, callback1, 3000);
+        .sendAndWait(cr, msg, callback1, 10000);
 
     AssertJUnit.assertTrue(callback1.getMessageReplied().size() == NODE_NR);
     AssertJUnit.assertTrue(callback1.getMessageReplied().get(0).getRecord()
@@ -448,7 +448,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBaseWithPropertyServ
 
     AsyncCallback callback1 = new MockAsyncCallback();
     int messagesSent = _startCMResultMap.get(hostSrc)._manager.getMessagingService()
-        .sendAndWait(cr, msg, callback1, 2000);
+        .sendAndWait(cr, msg, callback1, 10000);
 
     AssertJUnit.assertTrue(callback1.getMessageReplied().get(0).getRecord()
         .getMapField(Message.Attributes.MESSAGE_RESULT.toString())
@@ -460,7 +460,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBaseWithPropertyServ
     cr.setPartition("TestDB_17");
     AsyncCallback callback2 = new MockAsyncCallback();
     messagesSent = _startCMResultMap.get(hostSrc)._manager.getMessagingService()
-        .sendAndWait(cr, msg, callback2, 2000);
+        .sendAndWait(cr, msg, callback2, 10000);
     AssertJUnit.assertTrue(callback2.getMessageReplied().get(0).getRecord()
         .getMapField(Message.Attributes.MESSAGE_RESULT.toString())
         .get("ControllerResult").indexOf(hostSrc) != -1);
@@ -472,7 +472,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBaseWithPropertyServ
     cr.setPartitionState("SLAVE");
     AsyncCallback callback3 = new MockAsyncCallback();
     messagesSent = _startCMResultMap.get(hostSrc)._manager.getMessagingService()
-        .sendAndWait(cr, msg, callback3, 2000);
+        .sendAndWait(cr, msg, callback3, 10000);
     AssertJUnit.assertTrue(callback3.getMessageReplied().get(0).getRecord()
         .getMapField(Message.Attributes.MESSAGE_RESULT.toString())
         .get("ControllerResult").indexOf(hostSrc) != -1);

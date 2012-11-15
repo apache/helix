@@ -38,15 +38,15 @@ import org.apache.helix.ControllerChangeListener;
 import org.apache.helix.CurrentStateChangeListener;
 import org.apache.helix.ExternalViewChangeListener;
 import org.apache.helix.HealthStateChangeListener;
+import org.apache.helix.HelixConstants.ChangeType;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.IdealStateChangeListener;
 import org.apache.helix.LiveInstanceChangeListener;
 import org.apache.helix.MessageListener;
 import org.apache.helix.NotificationContext;
-import org.apache.helix.PropertyPathConfig;
-import org.apache.helix.HelixConstants.ChangeType;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.PropertyPathConfig;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.HealthStat;
@@ -57,24 +57,27 @@ import org.apache.helix.model.Message;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.Watcher.Event.EventType;
 
-
 public class CallbackHandler implements IZkChildListener, IZkDataListener
 
 {
 
-  private static Logger logger = Logger.getLogger(CallbackHandler.class);
+  private static Logger           logger = Logger.getLogger(CallbackHandler.class);
 
-  private final String _path;
-  private final Object _listener;
-  private final EventType[] _eventTypes;
+  private final String            _path;
+  private final Object            _listener;
+  private final EventType[]       _eventTypes;
   private final HelixDataAccessor _accessor;
-  private final ChangeType _changeType;
-  private final ZkClient _zkClient;
-  private final AtomicLong lastNotificationTimeStamp;
-  private final HelixManager _manager;
+  private final ChangeType        _changeType;
+  private final ZkClient          _zkClient;
+  private final AtomicLong        lastNotificationTimeStamp;
+  private final HelixManager      _manager;
 
-  public CallbackHandler(HelixManager manager, ZkClient client, String path,
-                         Object listener, EventType[] eventTypes, ChangeType changeType)
+  public CallbackHandler(HelixManager manager,
+                         ZkClient client,
+                         String path,
+                         Object listener,
+                         EventType[] eventTypes,
+                         ChangeType changeType)
   {
     this._manager = manager;
     this._accessor = manager.getHelixDataAccessor();
@@ -231,15 +234,19 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
                                    boolean watchChild)
   {
     NotificationContext.Type type = context.getType();
-    if (watchParent && type == NotificationContext.Type.INIT)
+    if (watchParent)
     {
-      logger.info(_manager.getInstanceName() + " subscribe child change@" + path);
-      _zkClient.subscribeChildChanges(path, this);
-    }
-    else if (watchParent && type == NotificationContext.Type.FINALIZE)
-    {
-      logger.info(_manager.getInstanceName() + " UNsubscribe child change@" + path);
-      _zkClient.unsubscribeChildChanges(path, this);
+      if (type == NotificationContext.Type.INIT
+          || type == NotificationContext.Type.CALLBACK)
+      {
+        logger.info(_manager.getInstanceName() + " subscribe child change@" + path);
+        _zkClient.subscribeChildChanges(path, this);
+      }
+      else if (watchParent && type == NotificationContext.Type.FINALIZE)
+      {
+        logger.info(_manager.getInstanceName() + " UNsubscribe child change@" + path);
+        _zkClient.unsubscribeChildChanges(path, this);
+      }
     }
 
     if (watchChild)
@@ -260,14 +267,14 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
           {
             if (logger.isDebugEnabled())
             {
-              logger.debug(_manager.getInstanceName() + " subscribe data change@" + path);
+              logger.debug(_manager.getInstanceName() + " subscribe data change@" + childPath);
             }
             _zkClient.subscribeDataChanges(childPath, this);
 
           }
           else if (type == NotificationContext.Type.FINALIZE)
           {
-            logger.info(_manager.getInstanceName() + " UNsubscribe data change@" + path);
+            logger.info(_manager.getInstanceName() + " UNsubscribe data change@" + childPath);
             _zkClient.unsubscribeDataChanges(childPath, this);
           }
 
@@ -276,7 +283,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
       }
       catch (ZkNoNodeException e)
       {
-        logger.warn("fail to subscribe data change@" + path);
+        logger.warn("fail to subscribe child data change@" + path);
       }
     }
 

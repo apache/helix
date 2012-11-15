@@ -36,15 +36,15 @@ import org.apache.helix.HelixProperty;
 import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZNRecordAssembler;
 import org.apache.helix.ZNRecordBucketizer;
 import org.apache.helix.ZNRecordUpdater;
-import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.controller.restlet.ZNRecordUpdate;
-import org.apache.helix.controller.restlet.ZkPropertyTransferClient;
 import org.apache.helix.controller.restlet.ZNRecordUpdate.OpCode;
+import org.apache.helix.controller.restlet.ZkPropertyTransferClient;
 import org.apache.helix.model.LiveInstance;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.data.Stat;
@@ -498,6 +498,8 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
         }
         else
         {
+          _baseDataAccessor.remove(path, options);
+
           ZNRecord metaRecord = new ZNRecord(value.getId());
           metaRecord.setSimpleFields(value.getRecord().getSimpleFields());
           records.add(metaRecord);

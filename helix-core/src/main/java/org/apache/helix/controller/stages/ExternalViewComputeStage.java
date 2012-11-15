@@ -34,7 +34,6 @@ import org.apache.helix.model.Resource;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.log4j.Logger;
 
-
 public class ExternalViewComputeStage extends AbstractBaseStage
 {
   private static Logger log = Logger.getLogger(ExternalViewComputeStage.class);
@@ -63,13 +62,23 @@ public class ExternalViewComputeStage extends AbstractBaseStage
 
     List<ExternalView> newExtViews = new ArrayList<ExternalView>();
     List<PropertyKey> keys = new ArrayList<PropertyKey>();
-    
+
     for (String resourceName : resourceMap.keySet())
     {
       ExternalView view = new ExternalView(resourceName);
-      view.setBucketSize(currentStateOutput.getBucketSize(resourceName));
-      
+      // view.setBucketSize(currentStateOutput.getBucketSize(resourceName));
+      // if resource ideal state has bucket size, set it
+      // otherwise resource has been dropped, use bucket size from current state instead
       Resource resource = resourceMap.get(resourceName);
+      if (resource.getBucketSize() > 0)
+      {
+        view.setBucketSize(resource.getBucketSize());
+      }
+      else
+      {
+        view.setBucketSize(currentStateOutput.getBucketSize(resourceName));
+      }
+
       for (Partition partition : resource.getPartitions())
       {
         Map<String, String> currentStateMap =
@@ -97,12 +106,12 @@ public class ExternalViewComputeStage extends AbstractBaseStage
         clusterStatusMonitor.onExternalViewChange(view,
                                                   cache._idealStateMap.get(view.getResourceName()));
       }
-      
+
       // compare the new external view with current one, set only on different
       Map<String, ExternalView> curExtViews =
           dataAccessor.getChildValuesMap(manager.getHelixDataAccessor()
-                                             .keyBuilder()
-                                             .externalViews());
+                                                .keyBuilder()
+                                                .externalViews());
 
       ExternalView curExtView = curExtViews.get(resourceName);
       if (curExtView == null || !curExtView.getRecord().equals(view.getRecord()))
@@ -118,9 +127,10 @@ public class ExternalViewComputeStage extends AbstractBaseStage
     {
       dataAccessor.setChildren(keys, newExtViews);
     }
-    
+
     long endTime = System.currentTimeMillis();
-    log.info("END ExternalViewComputeStage.process(). took: " + (endTime - startTime) + " ms");
+    log.info("END ExternalViewComputeStage.process(). took: " + (endTime - startTime)
+        + " ms");
   }
 
 }

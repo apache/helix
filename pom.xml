@@ -32,7 +32,7 @@ under the License.
   <artifactId>helix</artifactId>
   <version>0.6-incubating-SNAPSHOT</version>
   <packaging>pom</packaging>
-  <name>Helix</name>
+  <name>Apache Helix</name>
 
   <url>http://helix.incubator.apache.org</url>
 

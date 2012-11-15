@@ -28,7 +28,7 @@ under the License.
   <artifactId>helix-core</artifactId>
   <packaging>jar</packaging>
 
-  <name>Helix :: Core</name>
+  <name>Apache Helix :: Core</name>
 
   <dependencies>
     <dependency>

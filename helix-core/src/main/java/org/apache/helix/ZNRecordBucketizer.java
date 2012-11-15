@@ -19,7 +19,6 @@ package org.apache.helix;
  * under the License.
  */
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 

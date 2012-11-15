@@ -27,31 +27,40 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import org.apache.helix.HelixException;
-import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.LiveInstance;
-import org.apache.helix.model.PauseSignal;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.util.StatusUpdateUtil.Level;
 import org.apache.helix.webapp.RestAdminApplication;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
+import org.restlet.Context;
 import org.restlet.data.MediaType;
+import org.restlet.data.Request;
+import org.restlet.data.Response;
 import org.restlet.data.Status;
 import org.restlet.resource.Representation;
 import org.restlet.resource.Resource;
 import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 
-
 public class ControllerResource extends Resource
 {
+
+  public ControllerResource(Context context, Request request, Response response)
+
+  {
+    super(context, request, response);
+    getVariants().add(new Variant(MediaType.TEXT_PLAIN));
+    getVariants().add(new Variant(MediaType.APPLICATION_JSON));
+  }
+
   @Override
   public boolean allowGet()
   {
@@ -87,7 +96,6 @@ public class ControllerResource extends Resource
     ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
 
-
     ZNRecord record = null;
     LiveInstance leader = accessor.getProperty(keyBuilder.controllerLeader());
     if (leader != null)
@@ -103,8 +111,8 @@ public class ControllerResource extends Resource
       contentMap.put("AdditionalInfo", "No leader exists");
       record.setMapField(Level.HELIX_INFO + "-" + time, contentMap);
     }
-    
-    boolean paused = (accessor.getProperty(keyBuilder.pause()) == null? false : true);
+
+    boolean paused = (accessor.getProperty(keyBuilder.pause()) == null ? false : true);
     record.setSimpleField(PropertyType.PAUSE.toString(), "" + paused);
 
     String retVal = ClusterRepresentationUtil.ZNRecordToJson(record);
@@ -147,7 +155,8 @@ public class ControllerResource extends Resource
 
       if (command == null)
       {
-        throw new HelixException("Could NOT find 'command' in parameterMap: " + jsonParameters._parameterMap);
+        throw new HelixException("Could NOT find 'command' in parameterMap: "
+            + jsonParameters._parameterMap);
       }
       else if (command.equalsIgnoreCase(ClusterSetup.enableCluster))
       {
@@ -159,9 +168,9 @@ public class ControllerResource extends Resource
       else
       {
         throw new HelixException("Unsupported command: " + command
-                                 + ". Should be one of [" + ClusterSetup.enableCluster + "]");
+            + ". Should be one of [" + ClusterSetup.enableCluster + "]");
       }
-      
+
       getResponse().setEntity(getControllerRepresentation(clusterName));
       getResponse().setStatus(Status.SUCCESS_OK);
 

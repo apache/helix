@@ -250,10 +250,17 @@ public class TestClusterAlertItemMBeanCollection
     beanCollection.setAlerts(originAlert1, alertResultMap1, clusterName);
     beanCollection.checkMBeanFreshness(200);
     
-    Thread.sleep(500);
-    
-    jmxMBeanObserver.refresh();
-    
+    for(int i = 0; i < 10; i++)
+    {
+      Thread.sleep(500);
+      
+      jmxMBeanObserver.refresh();
+      
+      if(jmxMBeanObserver._beanValueMap.size() == nAlerts1 + 1)
+      {
+        break;
+      }
+    }
     Assert.assertEquals(jmxMBeanObserver._beanValueMap.size(), nAlerts1 + 1);
   }
 }

@@ -352,6 +352,7 @@ under the License.
             | Apple's JVM sometimes requires more memory
           -->
           <additionalJOption>-J-Xmx1024m</additionalJOption>
+          <notimestamp>true</notimestamp>
         </configuration>
       </plugin>
       <plugin>

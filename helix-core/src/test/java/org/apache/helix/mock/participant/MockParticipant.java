@@ -28,7 +28,6 @@ import java.util.concurrent.CountDownLatch;
 import org.I0Itec.zkclient.DataUpdater;
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.apache.helix.AccessOption;
-import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
@@ -405,7 +404,11 @@ public class MockParticipant extends Thread
         }
         catch (ZkNoNodeException e)
         {
-          record = new ZNRecord(setPath);
+          // record = new ZNRecord(setPath);
+        }
+        if (record == null)
+        {
+            record = new ZNRecord(setPath);
         }
         record.setSimpleField("setTimestamp", "" + System.currentTimeMillis());
         store.set(setPath, record, AccessOption.PERSISTENT);

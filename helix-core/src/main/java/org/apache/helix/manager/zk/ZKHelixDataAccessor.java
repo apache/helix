@@ -177,8 +177,9 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
         }
         else
         {
-          LOG.debug("getPropertyTransferUrl is null, skip updating the value");
-          // TODO: consider skip the write operation
+          if(LOG.isTraceEnabled()){
+            LOG.trace("getPropertyTransferUrl is null, skip updating the value");
+          }
           return true;
         }
       }

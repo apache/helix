@@ -223,7 +223,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
       {
         logger.info(Thread.currentThread().getId() + " END:INVOKE " + _path
             + " listener:" + _listener.getClass().getCanonicalName() + " Took: "
-            + (end - start));
+            + (end - start) +"ms");
       }
     }
   }

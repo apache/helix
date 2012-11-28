@@ -64,9 +64,10 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
   {
     super(connection, connectionTimeout, new ByteArraySerializer());
     _zkSerializer = zkSerializer;
-
-    StackTraceElement[] calls = Thread.currentThread().getStackTrace();
-    LOG.info("create a new zkclient. " + Arrays.asList(calls));
+    if(LOG.isTraceEnabled()){
+      StackTraceElement[] calls = Thread.currentThread().getStackTrace();
+      LOG.info("create a new zkclient. " + Arrays.asList(calls));
+    }
   }
 
   public ZkClient(IZkConnection connection, int connectionTimeout,
@@ -136,11 +137,12 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
   @Override
   public void close() throws ZkInterruptedException
   {
-    StackTraceElement[] calls = Thread.currentThread().getStackTrace();
-    LOG.info("closing a zkclient. zookeeper: "
-        + (_connection == null ? "null" : ((ZkConnection) _connection).getZookeeper())
-        + ", callStack: " + Arrays.asList(calls));
-
+    if(LOG.isTraceEnabled()){
+      StackTraceElement[] calls = Thread.currentThread().getStackTrace();
+      LOG.trace("closing a zkclient. zookeeper: "
+          + (_connection == null ? "null" : ((ZkConnection) _connection).getZookeeper())
+          + ", callStack: " + Arrays.asList(calls));
+    }
     super.close();
   }
 
@@ -166,9 +168,9 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
     finally
     {
       long endT = System.nanoTime();
-      if (LOG.isDebugEnabled())
+      if (LOG.isTraceEnabled())
       {
-        LOG.debug("exists, path: " + path + ", time: " + (endT - startT) + " ns");
+        LOG.trace("exists, path: " + path + ", time: " + (endT - startT) + " ns");
       }
     }
   }
@@ -193,9 +195,9 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
     finally
     {
       long endT = System.nanoTime();
-      if (LOG.isDebugEnabled())
+      if (LOG.isTraceEnabled())
       {
-        LOG.debug("exists, path: " + path + ", time: " + (endT - startT) + " ns");
+        LOG.trace("exists, path: " + path + ", time: " + (endT - startT) + " ns");
       }
     }
   }
@@ -220,9 +222,9 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
     finally
     {
       long endT = System.nanoTime();
-      if (LOG.isDebugEnabled())
+      if (LOG.isTraceEnabled())
       {
-        LOG.debug("getChildren, path: " + path + ", time: " + (endT - startT) + " ns");
+        LOG.trace("getChildren, path: " + path + ", time: " + (endT - startT) + " ns");
       }
     }
   }
@@ -261,9 +263,9 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
     finally
     {
       long endT = System.nanoTime();
-      if (LOG.isDebugEnabled())
+      if (LOG.isTraceEnabled())
       {
-        LOG.debug("getData, path: " + path + ", time: " + (endT - startT) + " ns");
+        LOG.trace("getData, path: " + path + ", time: " + (endT - startT) + " ns");
       }
     }
   }
@@ -320,9 +322,9 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
     finally
     {
       long endT = System.nanoTime();
-      if (LOG.isDebugEnabled())
+      if (LOG.isTraceEnabled())
       {
-        LOG.debug("setData, path: " + path + ", time: " + (endT - startT) + " ns");
+        LOG.trace("setData, path: " + path + ", time: " + (endT - startT) + " ns");
       }
     }
   }
@@ -347,9 +349,9 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
     finally
     {
       long end = System.nanoTime();
-      if (LOG.isDebugEnabled())
+      if (LOG.isTraceEnabled())
       {
-        LOG.debug("setData, path: " + path + ", time: " + (end - start) + " ns");
+        LOG.trace("setData, path: " + path + ", time: " + (end - start) + " ns");
       }
     }
   }
@@ -383,9 +385,9 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
     finally
     {
       long endT = System.nanoTime();
-      if (LOG.isDebugEnabled())
+      if (LOG.isTraceEnabled())
       {
-        LOG.debug("create, path: " + path + ", time: " + (endT - startT) + " ns");
+        LOG.trace("create, path: " + path + ", time: " + (endT - startT) + " ns");
       }
     }
   }
@@ -419,9 +421,9 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
     finally
     {
       long endT = System.nanoTime();
-      if (LOG.isDebugEnabled())
+      if (LOG.isTraceEnabled())
       {
-        LOG.debug("delete, path: " + path + ", time: " + (endT - startT) + " ns");
+        LOG.trace("delete, path: " + path + ", time: " + (endT - startT) + " ns");
       }
     }
   }

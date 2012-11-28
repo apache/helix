@@ -172,7 +172,9 @@ public class StatsAggregationStage extends AbstractBaseStage
     }
     if (_statsHolder.getStatsList().size() == 0)
     {
-      logger.info("stat holder is empty");
+      if(logger.isTraceEnabled()){
+        logger.trace("stat holder is empty");
+      }
       return;
     }
 

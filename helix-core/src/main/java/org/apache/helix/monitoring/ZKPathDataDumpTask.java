@@ -85,7 +85,6 @@ public class ZKPathDataDumpTask extends TimerTask
     } catch (Exception e)
     {
       logger.error(e);
-      e.printStackTrace();
     }
   }
 

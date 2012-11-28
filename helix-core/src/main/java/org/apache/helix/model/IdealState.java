@@ -226,7 +226,7 @@ public class IdealState extends HelixProperty
               .getListField(firstPartition).size());
         }
         logger
-            .warn("could NOT found replicas in idealState. Use size of the first list instead. replica: "
+            .warn("could NOT find number of replicas in idealState. Use size of the first list instead. replica: "
                 + replica + ", 1st partition: " + firstPartition);
         break;
       case CUSTOMIZED:
@@ -241,7 +241,7 @@ public class IdealState extends HelixProperty
               .getMapField(firstPartition).size());
         }
         logger
-            .warn("could NOT found replicas in idealState. Use size of the first map instead. replica: "
+            .warn("could NOT find replicas in idealState. Use size of the first map instead. replica: "
                 + replica + ", 1st partition: " + firstPartition);
         break;
       default:

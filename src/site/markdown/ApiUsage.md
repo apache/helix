@@ -40,6 +40,7 @@ It requires the following parameters:
                                                       
 #Setting up a cluster
 Initial setup of a cluster, involves creating appropriate znodes in the cluster. 
+
 ```
     //Create setuptool instance
     ClusterSetupTool setupTool = new ClusterSetupTool(zkConnectString);
@@ -97,7 +98,7 @@ public class OnlineOfflineStateModelFactory extends
 		public void onBecomeOfflineFromOnline(Message message,
 				NotificationContext context) {
 			System.out
-					.println("OnlineOfflineStateModel.onBecomeOfflineFromOnline()");
+						.println("OnlineOfflineStateModel.onBecomeOfflineFromOnline()");
 			//Application logic to handle transition
 		}
 	}
@@ -116,13 +117,14 @@ If you have a need to add additional functionality, see GenericHelixController o
                                                           zkConnectString);
      manager.connect();
      GenericHelixController controller = new GenericHelixController();
-      manager.addConfigChangeListener(controller);
-      manager.addLiveInstanceChangeListener(controller);
-      manager.addIdealStateChangeListener(controller);
-      manager.addExternalViewChangeListener(controller);
-      manager.addControllerListener(controller);
+     manager.addConfigChangeListener(controller);
+     manager.addLiveInstanceChangeListener(controller);
+     manager.addIdealStateChangeListener(controller);
+     manager.addExternalViewChangeListener(controller);
+     manager.addControllerListener(controller);
 ```
-This above snippet shows how the controller is started. Helix comes with commands to start the controller.  
+This above snippet shows how the controller is started. You can also start the controller using command line interface.
+  
 ```
 cd helix
 mvn clean install -Dmaven.test.skip=true
@@ -134,20 +136,24 @@ chmod +x *
 ## Spectator Code
 A spectator simply observes all cluster is notified when the state of the system changes. Helix consolidates the state of entire cluster in one Znode called ExternalView.
 Helix provides a default implementation RoutingTableProvider that caches the cluster state and updates it when there is a change in the cluster
+
 ```
 manager = HelixManagerFactory.getZKHelixManager(clusterName,
                                                           instanceName,
                                                           InstanceType.PARTICIPANT,
                                                           zkConnectString);
-     manager.connect();
+manager.connect();
 RoutingTableProvider routingTableProvider = new RoutingTableProvider();
 manager.addExternalViewChangeListener(routingTableProvider);
 
 ```
+
 In order to figure out who is serving a partition, here are the apis
+
 ```
 instances = routingTableProvider.getInstances("DBNAME", "PARITION_NAME", "PARTITION_STATE");
 ```
+
 ##  Helix Admin operations
 Helix provides multiple ways to administer the cluster. It has a command line interface and also a REST interface.
 
@@ -157,58 +163,77 @@ mvn clean install -Dmaven.test.skip=true
 cd helix-core/target/helix-core-pkg/bin
 chmod +x *
 ./helix-admin --help
-    --activateCluster <clusterName grandCluster true/false>                                             Enable/disable a cluster in distributed controller mode
-    --addAlert <clusterName alertName>                                                                  Add an alert
-    --addCluster <clusterName>                                                                          Add a new cluster
-    --addIdealState <clusterName reourceName <filename>>                                                Add a State model to a cluster
-    --addNode <clusterName InstanceAddress(host:port)>                                                  Add a new Instance to a cluster
-    --addResource <clusterName resourceName partitionNum stateModelRef <-mode modeValue>>               Add a resource to a cluster
-    --addResourceProperty <clusterName resourceName propertyName propertyValue>                         Add a resource property
-    --addStat <clusterName statName>                                                                    Add a persistent stat
-    --addStateModelDef <clusterName <filename>>                                                         Add a State model to a cluster
-    --bucketSize <Size of a bucket for a resource>                                                      Specify size of a bucket, used with addResourceGroup command
-    --dropAlert <clusterName alertName>                                                                 Drop an alert
-    --dropCluster <clusterName>                                                                         Delete a cluster
-    --dropNode <clusterName InstanceAddress(host:port)>                                                 Drop an existing Instance from a cluster
-    --dropResource <clusterName resourceName>                                                           Drop an existing resource from a cluster
-    --dropStat <clusterName statName>                                                                   Drop a persistent stat
-    --enableCluster <clusterName true/false>                                                            pause/resume the controller of a cluster
-    --enableInstance <clusterName InstanceName true/false>                                              Enable/disable a Instance
-    --enablePartition <clusterName instanceName resourceName partitionName true/false>                  Enable/disable a partition
-    --expandCluster <clusterName>                                                                       Expand a cluster and all the resources
-    --expandResource <clusterName resourceName>                                                         Expand resource to additional nodes
-    --getConfig <ConfigScope(e.g. CLUSTER=cluster,RESOURCE=rc,...) KeySet(e.g. k1,k2,...)>              Get a config
-    --help                                                                                              Prints command-line options info
-    --key <Resource key prefix>                                                                         Specify resource key prefix, used with rebalance command
-    --listClusterInfo <clusterName>                                                                     Query info of a cluster
-    --listClusters                                                                                      List existing clusters
-    --listInstanceInfo <clusterName InstanceName>                                                       Query info of a Instance in a cluster
-    --listInstances <clusterName>                                                                       List Instances in a cluster
-    --listPartitionInfo <clusterName resourceName partitionName>                                        Query info of a partition
-    --listResourceInfo <clusterName resourceName>                                                       Query info of a resource
-    --listResources <clusterName>                                                                       List resources hosted in a cluster
-    --listStateModel <clusterName stateModelName>                                                       Query info of a state model in a cluster
-    --listStateModels <clusterName>                                                                     Query info of state models in a cluster
-    --mode <IdealState mode>                                                                            Specify resource mode, used with addResourceGroup command
-    --rebalance <clusterName resourceName replicas>                                                     Rebalance a resource in a cluster
-    --removeResourceProperty <clusterName resourceName propertyName>                                    Remove a resource property
-    --resetPartition <clusterName instanceName resourceName partitionName>                              Reset a partition in error state
-    --setConfig <ConfigScope(e.g. CLUSTER=cluster,RESOURCE=rc,...) KeyValueMap(e.g. k1=v1,k2=v2,...)>   Set a config
-    --swapInstance <clusterName oldInstance newInstance>                                                Swap an old instance from a cluster with a new instance
-    --zkSvr <ZookeeperServerAddress(Required)>                                                          Provide zookeeper address
+Provide zookeeper address. Required for all commands  
+   --zkSvr <ZookeeperServerAddress(Required)>       
+
+Add a new cluster                                                          
+   --addCluster <clusterName>                              
+
+Add a new Instance to a cluster                                    
+   --addNode <clusterName InstanceAddress(host:port)>                                      
+
+Add a State model to a cluster                                     
+   --addStateModelDef <clusterName <filename>>    
+
+Add a resource to a cluster            
+   --addResource <clusterName resourceName partitionNum stateModelRef <mode(AUTO_REBALANCE|AUTO|CUSTOM)>>      
+
+Upload an IdealState(Partition to Node Mapping)                                         
+   --addIdealState <clusterName resourceName <filename>>            
+
+Delete a cluster
+   --dropCluster <clusterName>                                                                         
+
+Delete a resource
+   --dropResource <clusterName resourceName>                                                           Drop an existing resource from a cluster
+
+Drop an existing Instance from a cluster    
+   --dropNode <clusterName InstanceAddress(host:port)>                    
+
+Enable/disable the entire cluster, this will basically pause the controller which means no transitions will be trigger, but the existing node sin the cluster continue to function 
+   --enableCluster <clusterName>
+
+Enable/disable a Instance. Useful to take a faulty node out of the cluster.
+   --enableInstance <clusterName InstanceName true/false>
+
+Enable/disable a partition
+   --enablePartition <clusterName instanceName resourceName partitionName true/false>
+
+
+   --listClusterInfo <clusterName>                                                                     Query info of a cluster
+   --listClusters                                                                                      List existing clusters
+   --listInstanceInfo <clusterName InstanceName>                                                       Query info of a Instance in a cluster
+   --listInstances <clusterName>                                                                       List Instances in a cluster
+   --listPartitionInfo <clusterName resourceName partitionName>                                        Query info of a partition
+   --listResourceInfo <clusterName resourceName>                                                       Query info of a resource
+   --listResources <clusterName>                                                                       List resources hosted in a cluster
+   --listStateModel <clusterName stateModelName>                                                       Query info of a state model in a cluster
+   --listStateModels <clusterName>                                                                     Query info of state models in a cluster
+
 ```
 
 ## Idealstate modes and configuration
 
 
- * AUTO mode: ideal state is pre-generated using consistent hashing 
- `setupTool.addResourceToCluster(clusterName, resourceName, partitionNumber, "MasterSlave")`
- `setupTool.rebalanceStorageCluster(clusterName, resourceName, replicas)`
- * AUTO_REBALANCE mode: ideal state is generated dynamically by cluster manager
- `setupTool.addResourceToCluster(clusterName, resourceName, partitionNumber, "MasterSlave", "AUTO_REBALANCE)`
- `setupTool.rebalanceStorageCluster(clusterName, resourceName, replicas)`
- * CUSTOMIZED mode: ideal state is pre-generated from a JSON format file
+ * AUTO mode: Partition to Node assignment is pre-generated using consistent hashing 
+
+```
+  setupTool.addResourceToCluster(clusterName, resourceName, partitionNumber, "MasterSlave")
+  setupTool.rebalanceStorageCluster(clusterName, resourceName, replicas)
+```
+
+ * AUTO_REBALANCE mode: Partition to Node assignment is generated dynamically by cluster manager based on the nodes that are currently up and running
+
+ ```
+ setupTool.addResourceToCluster(clusterName, resourceName, partitionNumber, "MasterSlave", "AUTO_REBALANCE")
+ setupTool.rebalanceStorageCluster(clusterName, resourceName, replicas)
+```
+
+ * CUSTOMIZED mode: Allows one to set the is pre-generated from a JSON format file
+
  `setupTool.addIdealState(clusterName, resourceName, idealStateJsonFile)`
+
+
 
 ## Configuring state model
 
@@ -219,6 +244,7 @@ StateModelDefinition stateModelDef = new StateModelDefinition(stateModelConfig);
 ClusterSetup setupTool = new ClusterSetup(zkConnectString);
 setupTool.addStateModelDef(cluster,stateModelName,stateModelDef);
 ```
+
 See StateModelConfigGenerator to get more info on creating custom state model.
 
 ## Messaging Api usage

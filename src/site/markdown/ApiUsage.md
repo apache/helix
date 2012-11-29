@@ -224,7 +224,7 @@ Enable/disable a partition
 
  * AUTO_REBALANCE mode: Partition to Node assignment is generated dynamically by cluster manager based on the nodes that are currently up and running
 
- ```
+```
  setupTool.addResourceToCluster(clusterName, resourceName, partitionNumber, "MasterSlave", "AUTO_REBALANCE")
  setupTool.rebalanceStorageCluster(clusterName, resourceName, replicas)
 ```

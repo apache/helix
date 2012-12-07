@@ -138,6 +138,7 @@ public class IntegrationTest
           + "/filestore/c.txt"), "some_data in c");
       FileUtils.writeStringToFile(new File(baseDir + "localhost_12002"
           + "/filestore/d.txt"), "some_data in d");
+      Thread.sleep(10000);
       listFiles(baseDir);
       System.out.println("Create or modify any files under " + baseDir
           + "localhost_12002" + "/filestore"

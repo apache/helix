@@ -109,6 +109,16 @@ under the License.
             </execution>
           </executions>
         </plugin>
+        <plugin>
+          <groupId>org.apache.rat</groupId>
+          <artifactId>apache-rat-plugin</artifactId>
+          <version>0.8</version>
+            <configuration>
+              <excludes combine.children="append">
+                <exclude>data/localhost_**/**</exclude>
+              </excludes>
+            </configuration>
+        </plugin>
       </plugins>
     </pluginManagement>
     <plugins>

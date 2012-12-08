@@ -428,8 +428,6 @@ under the License.
                     <exclude>*.bat</exclude>
                     <exclude>**/*.iml</exclude>
                     <exclude>.repository/**</exclude>
-                    <!-- currenty exclude this module which is not part of the build -->
-                    <exclude>recipes/rabbitmq-consumer-group/**</exclude>
                     <exclude>bump-up.command</exclude>
                     <exclude>src/main/scripts/integration-test/var/log/**</exclude>
                     <exclude>src/test/resources/static_view.txt</exclude>

@@ -112,11 +112,11 @@ under the License.
     <maven-scm-provider-svnjava.version>2.0.5</maven-scm-provider-svnjava.version>
     <svnkit.version>1.7.5-v1</svnkit.version>
 
-    <helix.siteFilePath>${user.home}/helix-site-deploy</helix.siteFilePath>
+    <helix.siteFilePath>${user.home}/helix-site/helix-site-deploy</helix.siteFilePath>
     <!-- you can use javasvn too -->
     <svnImpl>svn</svnImpl>
     <helix.siteUrlDeployment>file://${helix.siteFilePath}</helix.siteUrlDeployment>
-    <helix.scmPubCheckoutDirectory>${user.home}/helix-site-content</helix.scmPubCheckoutDirectory>
+    <helix.scmPubCheckoutDirectory>${user.home}/helix-site/helix-site-content</helix.scmPubCheckoutDirectory>
     <scmSkipDeletedFiles>false</scmSkipDeletedFiles>
     <!-- fix issue with current apache parent pom -->
     <arguments></arguments>
@@ -143,6 +143,17 @@ under the License.
         <artifactId>helix-core</artifactId>
         <version>${project.version}</version>
       </dependency>
+      <dependency>
+        <groupId>log4j</groupId>
+        <artifactId>log4j</artifactId>
+        <version>1.2.15</version>
+      </dependency>
+      <dependency>
+        <groupId>junit</groupId>
+        <artifactId>junit</artifactId>
+        <version>4.11</version>
+        <scope>test</scope>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
@@ -165,6 +176,11 @@ under the License.
           <configuration>
             <preparationGoals>${release.preparationGoals}</preparationGoals>
           </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-deploy-plugin</artifactId>
+          <version>2.7</version>
         </plugin>
         <plugin>
           <groupId>org.codehaus.mojo</groupId>

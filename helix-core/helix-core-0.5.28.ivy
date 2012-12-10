@@ -56,11 +56,11 @@ under the License.
     <dependency org="commons-math" name="commons-math" rev="2.1" conf="compile->compile(default);runtime->runtime(default);default->default"/>
     <dependency org="com.github.sgroschupf" name="zkclient" rev="0.1" conf="compile->compile(default);runtime->runtime(default);default->default"/>
     <dependency org="org.apache.camel" name="camel-josql" rev="2.5.0" conf="compile->compile(default);runtime->runtime(default);default->default"/>
-    <dependency org="org.apache.camel" name="camel-core" rev="2.5.0"/>
-    <dependency org="net.sf.josql" name="gentlyweb-utils" rev="1.5"/>
-    <dependency org="net.sf.josql" name="josql" rev="1.5"/>
-    <dependency org="org.fusesource.commonman" name="commons-management" rev="1.0"/>
-    <dependency org="commons-logging" name="commons-logging-api" rev="1.1"/>
+    <dependency org="org.apache.camel" name="camel-core" rev="2.5.0" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
+    <dependency org="net.sf.josql" name="gentlyweb-utils" rev="1.5" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
+    <dependency org="net.sf.josql" name="josql" rev="1.5" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
+    <dependency org="org.fusesource.commonman" name="commons-management" rev="1.0" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
+    <dependency org="commons-logging" name="commons-logging-api" rev="1.1" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
     <dependency org="org.restlet" name="org.restlet" rev="1.1.10" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
     <dependency org="com.noelios.restlet" name="com.noelios.restlet" rev="1.1.10" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
     <dependency org="net.sf" name="jsqlparser" rev="0.7.0" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>

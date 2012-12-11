@@ -2,10 +2,10 @@ Near real time rsync replicated file system
 ===========================================
 
 Quickdemo
-=========
+---------
 
 * This demo starts 3 instances with id's as ```localhost_12001, localhost_12002, localhost_12003```
-* Each instance stores its files under /tmp/<id>/filestore
+* Each instance stores its files under ```/tmp/<id>/filestore```
 * ``` localhost_12001 ``` is designated as the master and ``` localhost_12002 and localhost_12003``` are the slaves.
 * Files written to master are replicated to the slaves automatically. In this demo, a.txt and b.txt are written to ```/tmp/localhost_12001/filestore``` and it gets replicated to other folders.
 * When the master is stopped, ```localhost_12002``` is promoted to master. 
@@ -26,7 +26,7 @@ chmod +x *
 ```
 
 Overview
-========
+--------
 
 There are many applications that require storage for storing large number of relatively small data files. Examples include media stores to store small videos, images, mail attachments etc. Each of these objects is typically kilobytes, often no larger than a few megabytes. An additional distinguishing feature of these usecases is also that files are typically only added or deleted, rarely updated. When there are updates, they are rare and do not have any concurrency requirements.
 
@@ -55,7 +55,7 @@ Apache Helix is a generic cluster management framework that makes it very easy t
 Rsync can be easily used as a replication channel between servers so that each file gets replicated on multiple servers.
 
 Design
-======
+------
 
 High level 
 
@@ -84,14 +84,14 @@ changes from previous master before taking up mastership. The new master will re
 with sequence starting from 1. After this the master will begin accepting writes. 
 
 
-![Partitioned File Store](images/PFS-Generic.png)
+![Partitioned File Store](../images/PFS-Generic.png)
 
 
 
 Rsync based solution
-====================
+-------------------
 
-![Rsync based File Store](images/RSYNC_BASED_PFS.png)
+![Rsync based File Store](../images/RSYNC_BASED_PFS.png)
 
 
 This application demonstrate a file store that uses rsync as the replication mechanism. One can envision a similar system where instead of using rsync, 
@@ -115,7 +115,7 @@ can implement a custom solution to notify the slave of the changes and also prov
     - On demand rsync invoker: This is registered as a listener to change log watcher and on every change invokes rsync to sync only the changed file.
 
 
-##### Coordination
+#### Coordination
 
 The coordination between nodes is done by Helix. Helix does the partition management and assigns the partition to multiple nodes based on the replication factor. It elects one the nodes as master and designates others as slaves.
 It provides notifications to each node in the form of state transitions ( Offline to Slave, Slave to Master). It also provides notification when there is change is cluster state. 

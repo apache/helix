@@ -20,13 +20,15 @@ under the License.
 
 Pages
 ---------------
-* [SampleApp](./Sample_App.html)
 * [Quickstart](./Quickstart.html)
 * [Architecture](./Architecture.html)
 * [Features](./Features.html)
 * [ApiUsage](./ApiUsage.html)
 * [Javadocs](./apidocs/index.html)
 * [UseCases](./UseCases.html)
+* Recipes
+    - [Rabbit MQ consumer group](./recipes/rabbitmq_consumer_group.html)
+    - [Rsync replicated file store](./recipes/rsync_replicated_file_store.html)
 
 WHAT IS HELIX
 --------------

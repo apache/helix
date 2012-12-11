@@ -32,15 +32,15 @@ There are many applications that require storage for storing large number of rel
 
 These are much simpler requirements than what general purpose distributed file system have to satisfy including concurrent access to files, random access for reads and updates, posix compliance etc. To satisfy those requirements, general DFSs are also pretty complex that are expensive to build and maintain.
  
-A different implementation of a distributed file system includes HDFS which is inspired by Google’s GFS. This is one of the most widely used distributed file system that forms the main data storage platform for Hadoop. HDFS is primary aimed at processing very large data sets and distributes files across a cluster of commodity servers by splitting up files in fixed size chunks. HDFS is not particularly well suited for storing a very large number of relatively tiny files.
+A different implementation of a distributed file system includes HDFS which is inspired by Google's GFS. This is one of the most widely used distributed file system that forms the main data storage platform for Hadoop. HDFS is primary aimed at processing very large data sets and distributes files across a cluster of commodity servers by splitting up files in fixed size chunks. HDFS is not particularly well suited for storing a very large number of relatively tiny files.
 
 ### File Store
 
-It’s possible to build a vastly simpler system for the class of applications that have simpler requirements as we have pointed out.
+It's possible to build a vastly simpler system for the class of applications that have simpler requirements as we have pointed out.
 
 * Large number of files but each file is relatively small.
 * Access is limited to create, delete and get entire files.
-* No updates to files that are already created (or it’s feasible to delete the old file and create a new one).
+* No updates to files that are already created (or it's feasible to delete the old file and create a new one).
  
 
 We call this system a Partitioned File Store (PFS) to distinguish it from other distributed file systems. This system needs to provide the following features:

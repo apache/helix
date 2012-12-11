@@ -25,7 +25,7 @@ Build
 
 Jump to download section to skip building code
 
-    git clone http://git-wip-us.apache.org/repos/asf/incubator-helix.git
+    git clone https://git-wip-us.apache.org/repos/asf/incubator-helix.git
     cd incubator-helix
     mvn install package -DskipTests 
     cd helix-core/target/helix-core-pkg/bin //This folder contains all the scripts used in following sections

@@ -86,51 +86,33 @@ public class FileStore
 
   public static void main(String[] args) throws Exception
   {
-    if (args.length < 3)
+    if (args.length < 2)
     {
-      System.err.println("USAGE: java FileStore zookeeperAddress (e.g. localhost:2181) serverId , rabbitmqServer (e.g. localhost)");
+      System.err.println("USAGE: java FileStore zookeeperAddress(e.g. localhost:2181) serverId(host_port)");
       System.exit(1);
     }
 
     final String zkAddr = args[0];
     final String clusterName = SetupCluster.DEFAULT_CLUSTER_NAME;
-    final String consumerId = args[1];
+    final String serverId = args[1];
 
     ZkClient zkclient = null;
     try
     {
-      // add node to cluster if not already added
-      zkclient =
-          new ZkClient(zkAddr,
-                       ZkClient.DEFAULT_SESSION_TIMEOUT,
-                       ZkClient.DEFAULT_CONNECTION_TIMEOUT,
-                       new ZNRecordSerializer());
-      ZKHelixAdmin admin = new ZKHelixAdmin(zkclient);
-
-      List<String> nodes = admin.getInstancesInCluster(clusterName);
-      if (!nodes.contains("consumer_" + consumerId))
-      {
-        InstanceConfig config = new InstanceConfig("consumer_" + consumerId);
-        config.setHostName("localhost");
-        config.setInstanceEnabled(true);
-        admin.addInstance(clusterName, config);
-      }
-
       // start consumer
-      final FileStore consumer =
-          new FileStore(zkAddr, clusterName, "consumer_" + consumerId);
+      final FileStore store =
+          new FileStore(zkAddr, clusterName, serverId);
 
       Runtime.getRuntime().addShutdownHook(new Thread()
       {
         @Override
         public void run()
         {
-          System.out.println("Shutting down consumer_" + consumerId);
-          consumer.disconnect();
+          System.out.println("Shutting down server:" + serverId);
+          store.disconnect();
         }
       });
-
-      consumer.connect();
+      store.connect();
     }
     finally
     {

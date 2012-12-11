@@ -23,6 +23,7 @@ import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.IdealState.IdealStateModeProperty;
+import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.StateModelConfigGenerator;
 
@@ -35,13 +36,15 @@ public class SetupCluster
 
   public static void main(String[] args)
   {
-    if (args.length < 1)
+    if (args.length < 2)
     {
-      System.err.println("USAGE: java SetupConsumerCluster zookeeperAddress (e.g. localhost:2181)");
+      System.err
+          .println("USAGE: java SetupCluster zookeeperAddress(e.g. localhost:2181) numberOfNodes");
       System.exit(1);
     }
 
     final String zkAddr = args[0];
+    final int numNodes = Integer.parseInt(args[1]);
     final String clusterName = DEFAULT_CLUSTER_NAME;
 
     ZkClient zkclient = null;
@@ -58,12 +61,21 @@ public class SetupCluster
       StateModelConfigGenerator generator = new StateModelConfigGenerator();
       admin.addStateModelDef(clusterName, DEFAULT_STATE_MODEL,
           new StateModelDefinition(generator.generateConfigForOnlineOffline()));
-
-      // add resource "topic" which has 6 partitions
+      // addNodes
+      for (int i = 0; i < numNodes; i++)
+      {
+        String port = "" +(12001+ i);
+        String serverId = "localhost_"+ port;
+        InstanceConfig config = new InstanceConfig(serverId);
+        config.setHostName("localhost");
+        config.setPort(port);
+        config.setInstanceEnabled(true);
+        admin.addInstance(clusterName, config);
+      }
+      // add resource "repository" which has 1 partition
       String resourceName = DEFAULT_RESOURCE_NAME;
-      admin.addResource(clusterName, resourceName, DEFAULT_PARTITION_NUMBER, DEFAULT_STATE_MODEL,
-          IdealStateModeProperty.AUTO_REBALANCE.toString());
-      
+      admin.addResource(clusterName, resourceName, DEFAULT_PARTITION_NUMBER,
+          DEFAULT_STATE_MODEL, IdealStateModeProperty.AUTO.toString());
       admin.rebalance(clusterName, resourceName, 1);
 
     } finally

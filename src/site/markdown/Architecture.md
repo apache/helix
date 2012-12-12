@@ -46,6 +46,8 @@ In general any distributed system cluster will have the following
 Roles
 -----
 
+![Helix Design](images/HELIX-components.png)
+
 Not all nodes in a distributed system will perform similar functionality. For e.g, a few nodes might be serving requests, few nodes might be sending the request and some nodes might be controlling the nodes in the cluster. Based on functionality we have grouped them into
 
 We have divided Helix in 3 logical components based on their responsibility 

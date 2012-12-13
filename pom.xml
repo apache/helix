@@ -121,7 +121,10 @@ under the License.
     <!-- fix issue with current apache parent pom -->
     <arguments></arguments>
 
-    <release.preparationGoals>clean install</release.preparationGoals>
+    <helix.release.preparationGoals>clean install</helix.release.preparationGoals>
+    <helix.release.performGoals>deploy</helix.release.performGoals>
+    <helix.release.arguments></helix.release.arguments>
+
   </properties>
 
   <distributionManagement>
@@ -174,7 +177,9 @@ under the License.
           <artifactId>maven-release-plugin</artifactId>
           <version>2.3.2</version>
           <configuration>
-            <preparationGoals>${release.preparationGoals}</preparationGoals>
+            <preparationGoals>${helix.release.preparationGoals}</preparationGoals>
+            <goals>${helix.release.performGoals}</goals>
+            <arguments>${helix.release.arguments}</arguments>
           </configuration>
         </plugin>
         <plugin>

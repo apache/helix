@@ -250,7 +250,7 @@ public class TestClusterAlertItemMBeanCollection
     beanCollection.setAlerts(originAlert1, alertResultMap1, clusterName);
     beanCollection.checkMBeanFreshness(200);
     
-    for(int i = 0; i < 10; i++)
+    for(int i = 0; i < 20; i++)
     {
       Thread.sleep(500);
       

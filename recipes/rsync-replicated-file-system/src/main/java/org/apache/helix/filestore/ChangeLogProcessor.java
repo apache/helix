@@ -34,8 +34,7 @@ import org.apache.commons.io.FileUtils;
  * Processes the change log and invokes rsync for every change on the remote
  * machine
  * 
- * @author kgopalak
- * 
+ *
  */
 public class ChangeLogProcessor implements Runnable
 {

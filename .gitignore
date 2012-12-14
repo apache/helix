@@ -7,3 +7,4 @@ target/
 .idea
 *.iml
 .settings/
+out/

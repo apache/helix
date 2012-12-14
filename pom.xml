@@ -123,7 +123,7 @@ under the License.
 
     <helix.release.preparationGoals>clean install</helix.release.preparationGoals>
     <helix.release.performGoals>deploy</helix.release.performGoals>
-    <helix.release.arguments />
+    <helix.release.arguments>-Papache-release</helix.release.arguments>
 
   </properties>
 

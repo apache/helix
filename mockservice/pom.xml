@@ -25,7 +25,7 @@ under the License.
     <version>0.6-incubating-SNAPSHOT</version>
   </parent>
   <artifactId>mockservice</artifactId>
-  <name>Helix :: Mockservice</name>
+  <name>Apache Helix :: Mockservice</name>
 
 
   <dependencies>

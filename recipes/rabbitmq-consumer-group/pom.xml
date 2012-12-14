@@ -30,7 +30,7 @@ under the License.
 
   <artifactId>rabbitmq-consumer-group</artifactId>
   <packaging>jar</packaging>
-  <name>Helix :: Recipes :: Rabbitmq Consumer Group</name>
+  <name>Apache Helix :: Recipes :: Rabbitmq Consumer Group</name>
 
   <dependencies>
     <dependency>

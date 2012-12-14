@@ -27,7 +27,7 @@ under the License.
   <groupId>org.apache.helix.recipes</groupId>
   <artifactId>recipes</artifactId>
   <packaging>pom</packaging>
-  <name>Helix :: Recipes</name>
+  <name>Apache Helix :: Recipes</name>
 
   <modules>
     <module>rabbitmq-consumer-group</module>

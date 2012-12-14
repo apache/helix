@@ -30,7 +30,7 @@ under the License.
   <artifactId>rsync-replicated-file-system</artifactId>
   <packaging>jar</packaging>
   <version>1.0-SNAPSHOT</version>
-  <name>Helix :: Recipes :: Rsync Replicated File Store</name>
+  <name>Apache Helix :: Recipes :: Rsync Replicated File Store</name>
 
   <dependencies>
     <dependency>

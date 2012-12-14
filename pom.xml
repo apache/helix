@@ -334,6 +334,28 @@ under the License.
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-changes-plugin</artifactId>
+        <version>2.8</version>
+        <inherited>false</inherited>
+        <configuration>
+          <columnNames>Type,Fix Version,Key,Summary,Assignee,Status,Created</columnNames>
+          <maxEntries>200</maxEntries>
+          <onlyCurrentVersion>true</onlyCurrentVersion>
+          <resolutionIds>Fixed</resolutionIds>
+          <sortColumnNames>Type</sortColumnNames>
+          <!--fixVersionIds>12320767</fixVersionIds-->
+          <useJql>true</useJql>
+        </configuration>
+        <reportSets>
+          <reportSet>
+            <reports>
+              <report>jira-report</report>
+            </reports>
+          </reportSet>
+        </reportSets>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jxr-plugin</artifactId>
         <version>2.3</version>
         <configuration>

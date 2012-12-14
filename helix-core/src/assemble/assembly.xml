@@ -39,11 +39,11 @@ under the License.
     <!-- <fileSet> <directory>src/main/conf</directory> <includes> <include>app-env.bat</include>
       </includes> <outputDirectory>/booter-windows/bin</outputDirectory> </fileSet> -->
     <fileSet>
-      <directory>target/maven-shared-archive-resources/META-INF/</directory>
+      <directory>${project.basedir}</directory>
       <outputDirectory>/</outputDirectory>
       <includes>
-        <include>NOTICE</include>
         <include>LICENSE</include>
+        <include>NOTICE</include>
       </includes>
       <fileMode>0755</fileMode>
     </fileSet>

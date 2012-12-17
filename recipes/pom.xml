@@ -32,6 +32,7 @@ under the License.
   <modules>
     <module>rabbitmq-consumer-group</module>
     <module>rsync-replicated-file-system</module>
+    <module>distributed-lock-manager</module>
   </modules>
 
   <build>

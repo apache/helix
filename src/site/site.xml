@@ -16,7 +16,10 @@
   limitations under the License.
 -->
 <project name="Apache Helix">
-
+  <bannerLeft>
+    <src>images/helix-logo.jpg</src>
+    <href>http://helix.incubator.apache.org/</href>
+  </bannerLeft>
   <bannerRight>
     <src>http://incubator.apache.org/images/egg-logo.png</src>
     <href>http://incubator.apache.org/</href>
@@ -73,8 +76,8 @@
 
   <custom>
     <fluidoSkin>
-      <topBarEnabled>true</topBarEnabled>
-      <sideBarEnabled>false</sideBarEnabled>
+      <topBarEnabled>false</topBarEnabled>
+      <sideBarEnabled>true</sideBarEnabled>
       <googleSearch></googleSearch>
     </fluidoSkin>
   </custom>

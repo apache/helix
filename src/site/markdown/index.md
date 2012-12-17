@@ -27,6 +27,7 @@ Pages
 * [Javadocs](./apidocs/index.html)
 * [UseCases](./UseCases.html)
 * Recipes
+    - [Distributed lock manager](./recipes/lock_manager.html)
     - [Rabbit MQ consumer group](./recipes/rabbitmq_consumer_group.html)
     - [Rsync replicated file store](./recipes/rsync_replicated_file_store.html)
 

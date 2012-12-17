@@ -22,7 +22,7 @@ under the License.
   <parent>
     <groupId>org.apache.helix</groupId>
     <artifactId>helix</artifactId>
-    <version>0.7-incubating-SNAPSHOT</version>
+    <version>0.6.0-incubating-SNAPSHOT</version>
   </parent>
   <groupId>org.apache.helix.recipes</groupId>
   <artifactId>recipes</artifactId>

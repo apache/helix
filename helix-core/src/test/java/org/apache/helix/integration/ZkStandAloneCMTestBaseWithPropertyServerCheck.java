@@ -57,6 +57,20 @@ public class ZkStandAloneCMTestBaseWithPropertyServerCheck extends ZkStandAloneC
         List<StatusUpdate> statusUpdates = accessor.getChildValues(
             kb.stateTransitionStatus(instanceName, _startCMResultMap.get(instanceName)._manager.getSessionId(),
                 TEST_DB));
+        for(int j = 0;j < 10; j++)
+        {
+          statusUpdates = accessor.getChildValues(
+            kb.stateTransitionStatus(instanceName, _startCMResultMap.get(instanceName)._manager.getSessionId(),
+                TEST_DB));
+          if(statusUpdates.size() == 0)
+          {
+            Thread.sleep(500);
+          }
+          else
+          {
+            break;
+          }
+        }
         Assert.assertTrue(statusUpdates.size() > 0);
         for(StatusUpdate update : statusUpdates)
         {

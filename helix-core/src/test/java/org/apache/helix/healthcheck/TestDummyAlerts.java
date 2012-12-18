@@ -138,8 +138,20 @@ public class TestDummyAlerts extends ZkIntegrationTestBase
     for (int i = 0; i < n; i++)
     {
       String instance = "localhost_" + (12918 + i);
-      ZNRecord record =
-          accessor.getProperty(keyBuilder.healthReport(instance, "mockAlerts")).getRecord();
+      ZNRecord record = null;
+      for(int j = 0; j < 10; j++)
+      {
+        record =
+            accessor.getProperty(keyBuilder.healthReport(instance, "mockAlerts")).getRecord();
+        if(record.getId().equals("mockAlerts4"))
+        {
+          break;
+        }
+        else
+        {
+          Thread.sleep(500);
+        }
+      }
       Assert.assertEquals(record.getId(), "mockAlerts4");
     }
 

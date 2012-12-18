@@ -34,7 +34,80 @@ under the License.
   <name>Apache Helix</name>
 
   <url>http://helix.incubator.apache.org</url>
-
+  <developers>
+    <developer>
+      <id>olamy</id>
+      <name>Olivier Lamy</name>
+      <email>olamy@apache.org</email>
+      <roles>
+        <role>PMC Member</role>
+      </roles>
+      <timezone>Europe/Paris</timezone>
+    </developer>
+    <developer>
+      <id>phunt</id>
+      <name>Patrick Hunt</name>
+      <email>phunt@apache.org</email>
+      <roles>
+        <role>PMC Member</role>
+      </roles>
+      <timezone>-8</timezone>
+    </developer>
+    <developer>
+      <id>Mahadev</id>
+      <name>Mahadev Konar</name>
+      <email>mahadev@apache.org</email>
+      <roles>
+        <role>PMC Member</role>
+      </roles>
+      <timezone>-8</timezone>
+    </developer>
+    <developer>
+      <id>omalley</id>
+      <name>Owen O'Malley</name>
+      <email>omalley@apache.org</email>
+      <roles>
+        <role>PMC Member</role>
+      </roles>
+      <timezone>-8</timezone>
+    </developer>
+    <developer>
+      <id>kishoreg</id>
+      <name>Kishore Gopalakrishna</name>
+      <email>kishoreg@apache.org</email>
+      <roles>
+        <role>Committer</role>
+      </roles>
+      <timezone>-8</timezone>
+    </developer>
+    <developer>
+      <id>zzhang</id>
+      <name>Zhen Zhang</name>
+      <email>zzhang@apache.org</email>
+      <roles>
+        <role>Committer</role>
+      </roles>
+      <timezone>-8</timezone>
+    </developer>
+    <developer>
+      <id>slu</id>
+      <name>Shi Lu</name>
+      <email>slu@apache.org</email>
+      <roles>
+        <role>Committer</role>
+      </roles>
+      <timezone>-8</timezone>
+    </developer>
+    <developer>
+      <id>ksurlaker</id>
+      <name>Kapil Surlaker</name>
+      <email>ksurlaker@apache.org</email>
+      <roles>
+        <role>Committer</role>
+      </roles>
+      <timezone>-8</timezone>
+    </developer>                                     
+  </developers>
   <modules>
     <module>helix-core</module>
     <module>helix-admin-webapp</module>

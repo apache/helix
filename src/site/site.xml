@@ -62,7 +62,7 @@
     </menu>
 
     <menu ref="reports" inherit="bottom"/>
-    <menu ref="modules" inherit="bottom"/>
+    <!--<menu ref="modules" inherit="bottom"/>-->
 
     <menu name="ASF">
       <item name="How Apache Works" href="http://www.apache.org/foundation/how-it-works.html"/>

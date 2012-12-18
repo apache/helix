@@ -76,8 +76,8 @@
 
   <custom>
     <fluidoSkin>
-      <topBarEnabled>false</topBarEnabled>
-      <sideBarEnabled>true</sideBarEnabled>
+      <topBarEnabled>true</topBarEnabled>
+      <sideBarEnabled>false</sideBarEnabled>
       <googleSearch></googleSearch>
     </fluidoSkin>
   </custom>

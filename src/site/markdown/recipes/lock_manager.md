@@ -24,9 +24,9 @@ The simplest way to model a lock using zookeeper is (See Zookeeper leader recipe
 
 * Each process tries to create an emphemeral node.
 * If can successfully create it then, it acquires the lock
-* Else it will watch on the znode and try to acquire the lock again.
+* Else it will watch on the znode and try to acquire the lock again if the current lock holder disappears 
 
-This is good enough if there is only one lock. But in practice, an application will have many such locks. Distributing and managing the locks among difference process becomes challenging. Extending such a solution to many locks will result in
+This is good enough if there is only one lock. But in practice, an application will need many such locks. Distributing and managing the locks among difference process becomes challenging. Extending such a solution to many locks will result in
 
 * Uneven distribution of locks among nodes, the node that starts first will acquire all the lock. Nodes that start later will be idle.
 * When a node fails, how the locks will be distributed among remaining nodes is not predicable. 
@@ -78,40 +78,40 @@ localhost_12002 acquired lock:lock-group_11
 localhost_12000 acquired lock:lock-group_6
 localhost_12002 acquired lock:lock-group_0
 localhost_12000 acquired lock:lock-group_9
-lockName	acquired By
+lockName    acquired By
 ======================================
-lock-group_0	localhost_12002
-lock-group_1	localhost_12002
-lock-group_10	localhost_12002
-lock-group_11	localhost_12002
-lock-group_2	localhost_12001
-lock-group_3	localhost_12001
-lock-group_4	localhost_12001
-lock-group_5	localhost_12001
-lock-group_6	localhost_12000
-lock-group_7	localhost_12000
-lock-group_8	localhost_12000
-lock-group_9	localhost_12000
+lock-group_0    localhost_12002
+lock-group_1    localhost_12002
+lock-group_10    localhost_12002
+lock-group_11    localhost_12002
+lock-group_2    localhost_12001
+lock-group_3    localhost_12001
+lock-group_4    localhost_12001
+lock-group_5    localhost_12001
+lock-group_6    localhost_12000
+lock-group_7    localhost_12000
+lock-group_8    localhost_12000
+lock-group_9    localhost_12000
 Stopping localhost_12000
 localhost_12000Interrupted
 localhost_12001 acquired lock:lock-group_9
 localhost_12001 acquired lock:lock-group_8
 localhost_12002 acquired lock:lock-group_6
 localhost_12002 acquired lock:lock-group_7
-lockName	acquired By
+lockName    acquired By
 ======================================
-lock-group_0	localhost_12002
-lock-group_1	localhost_12002
-lock-group_10	localhost_12002
-lock-group_11	localhost_12002
-lock-group_2	localhost_12001
-lock-group_3	localhost_12001
-lock-group_4	localhost_12001
-lock-group_5	localhost_12001
-lock-group_6	localhost_12002
-lock-group_7	localhost_12002
-lock-group_8	localhost_12001
-lock-group_9	localhost_12001
+lock-group_0    localhost_12002
+lock-group_1    localhost_12002
+lock-group_10    localhost_12002
+lock-group_11    localhost_12002
+lock-group_2    localhost_12001
+lock-group_3    localhost_12001
+lock-group_4    localhost_12001
+lock-group_5    localhost_12001
+lock-group_6    localhost_12002
+lock-group_7    localhost_12002
+lock-group_8    localhost_12001
+lock-group_9    localhost_12001
 
 ```
 
@@ -135,6 +135,7 @@ This provides more details on how to setup the cluster and where to plugin appli
 ##### Create a lock group
 
 Create a lock group and specify the number of locks in the lock group. 
+
 ```
 ./helix-admin --zkSvr localhost:2199  --addResource lock-manager-demo lock-group 6 OnlineOffline AUTO_REBALANCE
 ```
@@ -172,11 +173,11 @@ LockFactory that creates the lock
  
 ```
 public class LockFactory extends StateModelFactory<Lock>{
-	
-	/* Instantiates the lock handler, one per lockName*/
+    
+    /* Instantiates the lock handler, one per lockName*/
     public Lock create(String lockName)
     {
-    	return new Lock(lockName);
+        return new Lock(lockName);
     }   
 }
 ```
@@ -186,23 +187,27 @@ At node start up, simply join the cluster and helix will invoke the appropriate 
 ```
 public class LockProcess{
 
-	public static void main(String args){
-	    String zkAddress= "localhost:2199";
-	    String clusterName = "lock-manager-demo";
-	    //Give a unique id to each process, most commonly used format hostname_port
-	    String instanceName ="localhost_12000";
-	    ZKHelixAdmin helixAdmin = new ZKHelixAdmin(zkAddress);
-	    //configure the instance and provide some metadata 
-	    InstanceConfig config = new InstanceConfig(instanceName);
-	    config.setHostName("localhost");
-	    config.setPort("12000");
-	    admin.addInstance(clusterName, config);
-	    //join the cluster
-		HelixManager manager = HelixManager.getHelixManager(clusterName,null,InstanceType.PARTICIPANT,zkAddress);
-		manager.getStateMachineEngine().registerStateModelFactory("OnlineOffline", modelFactory);
-		manager.connect();
-		Thread.currentThread.join();
-	}
+  public static void main(String args){
+    String zkAddress= "localhost:2199";
+    String clusterName = "lock-manager-demo";
+    //Give a unique id to each process, most commonly used format hostname_port
+    String instanceName ="localhost_12000";
+    ZKHelixAdmin helixAdmin = new ZKHelixAdmin(zkAddress);
+    //configure the instance and provide some metadata 
+    InstanceConfig config = new InstanceConfig(instanceName);
+    config.setHostName("localhost");
+    config.setPort("12000");
+    admin.addInstance(clusterName, config);
+    //join the cluster
+    HelixManager manager;
+    manager = HelixManagerFactory.getHelixManager(clusterName,
+                                                  instanceName,
+                                                  InstanceType.PARTICIPANT,
+                                                  zkAddress);
+    manager.getStateMachineEngine().registerStateModelFactory("OnlineOffline", modelFactory);
+    manager.connect();
+    Thread.currentThread.join();
+    }
 
 }
 ```
@@ -224,15 +229,19 @@ This is recommended when the number of nodes in the cluster is less than 100. To
 ```
 public class LockProcess{
 
-	public static void main(String args){
-	    String zkAddress= "localhost:2199";
-	    String clusterName = "lock-manager-demo";
-	    .
-	    .
-	    manager.connect();
-	    final HelixManager controller = HelixControllerMain.startHelixController(zkAddress, clusterName, "controller", HelixControllerMain.STANDALONE);
-	    Thread.currentThread.join();
-	}
+  public static void main(String args){
+    String zkAddress= "localhost:2199";
+    String clusterName = "lock-manager-demo";
+    .
+    .
+    manager.connect();
+    HelixManager controller;
+    controller = HelixControllerMain.startHelixController(zkAddress, 
+                                                          clusterName,
+                                                          "controller", 
+                                                          HelixControllerMain.STANDALONE);
+    Thread.currentThread.join();
+  }
 }
 ```
 

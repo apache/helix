@@ -526,17 +526,12 @@ under the License.
                 <configuration>
                   <excludes>
                     <exclude>.gitignore</exclude>
-                    <!--exclude>DEPENDENCIES</exclude-->
-                    <!--exclude>README.md</exclude-->
                     <exclude>*.sh</exclude>
                     <exclude>.git/**</exclude>
                     <exclude>.idea/**</exclude>
                     <exclude>*.bat</exclude>
                     <exclude>**/*.iml</exclude>
                     <exclude>.repository/**</exclude>
-                    <exclude>test-output/**</exclude>
-                    <exclude>bump-up.command</exclude>
-                    <exclude>src/main/scripts/integration-test/var/log/**</exclude>
                     <exclude>src/test/resources/static_view.txt</exclude>
                     <exclude>src/main/scripts/integration-test/script/.metadata_infra</exclude>
                     <exclude>helix-dev-release/**</exclude>

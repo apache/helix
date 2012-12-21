@@ -535,6 +535,7 @@ under the License.
                 <configuration>
                   <excludes>
                     <exclude>.gitignore</exclude>
+                    <exclude>.git/**</exclude>
                     <exclude>*.sh</exclude>
                     <exclude>.git/**</exclude>
                     <exclude>.idea/**</exclude>

@@ -43,6 +43,14 @@ Helix release process
     You should have a GPG agent running (preferred), and confirm it works by running "gpg -ab" (type some text and press Ctrl-D).
     If you do not have a GPG agent running, make sure that you have the "apache-release" profile set in your settings.xml as shown below.
 
+   Run the release
+
++-------------
+mvn release:prepare release:perform -B
++-------------
+
+  GPG configuration
+
 +-------------
 <profile>
   <id>apache-release</id>

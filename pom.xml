@@ -33,6 +33,10 @@ under the License.
   <packaging>pom</packaging>
   <name>Apache Helix</name>
 
+  <description>
+    Helix is a generic cluster management framework used for the automatic management of partitioned, replicated and distributed resources hosted on a cluster of nodes.
+  </description>
+
   <url>http://helix.incubator.apache.org</url>
   <developers>
     <developer>
@@ -194,9 +198,14 @@ under the License.
     <!-- fix issue with current apache parent pom -->
     <arguments />
 
+    <!-- for svnpubsub site deployment -->
     <helix.release.preparationGoals>clean install</helix.release.preparationGoals>
     <helix.release.performGoals>deploy</helix.release.performGoals>
     <helix.release.arguments>-Papache-release</helix.release.arguments>
+
+    <!-- for release changelog page -->
+    <currentRelease>0.6.0-incubating</currentRelease>
+
 
   </properties>
 

@@ -30,6 +30,8 @@ under the License.
 
   <name>Apache Helix :: Core</name>
 
+
+
   <dependencies>
     <dependency>
       <groupId>log4j</groupId>
@@ -127,6 +129,17 @@ under the License.
     </dependency>
   </dependencies>
   <build>
+    <resources>
+      <resource>
+        <directory>${basedir}/src/main/resources</directory>
+      </resource>
+      <resource>
+        <directory>${basedir}</directory>
+        <includes>
+          <include>DISCLAIMER</include>
+        </includes>
+      </resource>
+    </resources>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>

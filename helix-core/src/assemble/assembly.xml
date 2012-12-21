@@ -44,6 +44,7 @@ under the License.
       <includes>
         <include>LICENSE</include>
         <include>NOTICE</include>
+        <include>DISCLAIMER</include>
       </includes>
       <fileMode>0755</fileMode>
     </fileSet>

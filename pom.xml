@@ -544,6 +544,7 @@ under the License.
                     <exclude>src/test/resources/static_view.txt</exclude>
                     <exclude>src/main/scripts/integration-test/script/.metadata_infra</exclude>
                     <exclude>helix-dev-release/**</exclude>
+                    <exclude>DEPENDENCIES</exclude>
                   </excludes>
                 </configuration>
               </execution>

@@ -93,7 +93,7 @@ lock-group_7    localhost_12000
 lock-group_8    localhost_12000
 lock-group_9    localhost_12000
 Stopping localhost_12000
-localhost_12000Interrupted
+localhost_12000 Interrupted
 localhost_12001 acquired lock:lock-group_9
 localhost_12001 acquired lock:lock-group_8
 localhost_12002 acquired lock:lock-group_6
@@ -182,7 +182,7 @@ public class LockFactory extends StateModelFactory<Lock>{
 }
 ```
 
-At node start up, simply join the cluster and helix will invoke the appropriate call backs on Lock instance. One can start any number of nodes and Helix detects that a new node has joined the cluster and re-distributes the locks automatically.
+At node start up, simply join the cluster and helix will invoke the appropriate callbacks on Lock instance. One can start any number of nodes and Helix detects that a new node has joined the cluster and re-distributes the locks automatically.
 
 ```
 public class LockProcess{
@@ -220,7 +220,7 @@ Controller can be started either as a separate process or can be embedded within
 This is recommended when number of nodes in the cluster >100. For fault tolerance, you can run multiple controllers on different boxes.
 
 ```
-./run-helix-controller --zkSvr localhost:2199 --cluster mycluster 2>&1 > /tmp/controller.log &
+./run-helix-controller --zkSvr localhost:2199 --cluster lock-manager-demo 2>&1 > /tmp/controller.log &
 ```
 
 ###### Embedded within the node process

@@ -169,6 +169,15 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
         schedulerMessage);
 
     Thread.sleep(15000);
+    
+    for(int i = 0; i < 30; i++)
+    {
+      Thread.sleep(2000);
+      if(_PARTITIONS == _factory._results.size())
+      {
+        break;
+      }
+    }
 
     Assert.assertEquals(_PARTITIONS, _factory._results.size());
     PropertyKey controllerTaskStatus = keyBuilder.controllerTaskStatus(

@@ -24,6 +24,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.management.AttributeNotFoundException;
 import javax.management.InstanceNotFoundException;
@@ -72,7 +73,7 @@ public class TestWildcardAlert extends ZkIntegrationTestBase
 {
   public static class TestClusterMBeanObserver extends ClusterMBeanObserver
   {
-    public Map<String, Map<String, Object>> _beanValueMap = new HashMap<String, Map<String, Object>>();
+    public Map<String, Map<String, Object>> _beanValueMap = new ConcurrentHashMap<String, Map<String, Object>>();
 
     public TestClusterMBeanObserver(String domain) throws InstanceNotFoundException, IOException,
         MalformedObjectNameException, NullPointerException
@@ -88,7 +89,7 @@ public class TestWildcardAlert extends ZkIntegrationTestBase
       {
         MBeanInfo info = _server.getMBeanInfo(mbsNotification.getMBeanName());
         MBeanAttributeInfo[] infos = info.getAttributes();
-        _beanValueMap.put(mbsNotification.getMBeanName().toString(), new HashMap<String, Object>());
+        _beanValueMap.put(mbsNotification.getMBeanName().toString(), new ConcurrentHashMap<String, Object>());
         for (MBeanAttributeInfo infoItem : infos)
         {
           Object val = _server.getAttribute(mbsNotification.getMBeanName(), infoItem.getName());

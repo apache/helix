@@ -1108,7 +1108,7 @@ public class ZKHelixAdmin implements HelixAdmin
   public void rebalance(String clusterName, String resourceName, int replica, String keyPrefix)
   {
     List<String> instanceNames = getInstancesInCluster(clusterName);
-    rebalance(clusterName, resourceName, replica, keyPrefix, instances);
+    rebalance(clusterName, resourceName, replica, keyPrefix, instanceNames);
   }
   @Override
   public void rebalance(String clusterName, String resourceName, int replica, List<String> instances)

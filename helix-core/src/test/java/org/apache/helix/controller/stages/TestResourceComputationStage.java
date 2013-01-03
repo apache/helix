@@ -36,7 +36,7 @@ import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Resource;
-import org.apache.helix.tools.IdealStateCalculatorForStorageNode;
+import org.apache.helix.tools.DefaultIdealStateCalculator;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
@@ -60,7 +60,7 @@ public class TestResourceComputationStage extends BaseStageTest
     int partitions = 10;
     int replicas = 1;
     String resourceName = "testResource";
-    ZNRecord record = IdealStateCalculatorForStorageNode.calculateIdealState(
+    ZNRecord record = DefaultIdealStateCalculator.calculateIdealState(
         instances, partitions, replicas, resourceName, "MASTER", "SLAVE");
     IdealState idealState = new IdealState(record);
     idealState.setStateModelDefRef("MasterSlave");
@@ -133,7 +133,7 @@ public class TestResourceComputationStage extends BaseStageTest
       int partitions = 10;
       int replicas = 1;
       String resourceName = resources[i];
-      ZNRecord record = IdealStateCalculatorForStorageNode
+      ZNRecord record = DefaultIdealStateCalculator
           .calculateIdealState(instances, partitions, replicas,
               resourceName, "MASTER", "SLAVE");
       IdealState idealState = new IdealState(record);

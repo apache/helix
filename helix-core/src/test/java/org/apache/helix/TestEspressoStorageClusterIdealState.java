@@ -30,7 +30,8 @@ import java.util.TreeSet;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.tools.ClusterSetup;
-import org.apache.helix.tools.IdealStateCalculatorForStorageNode;
+import org.apache.helix.tools.DefaultIdealStateCalculator;
+import org.apache.helix.util.RebalanceUtil;
 import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
@@ -48,7 +49,7 @@ public class TestEspressoStorageClusterIdealState
       instanceNames.add("localhost:123" + i);
     }
     int partitions = 8, replicas = 0;
-    Map<String, Object> result0 = IdealStateCalculatorForStorageNode.calculateInitialIdealState(instanceNames, partitions, replicas);
+    Map<String, Object> result0 = DefaultIdealStateCalculator.calculateInitialIdealState(instanceNames, partitions, replicas);
     Verify(result0, partitions,replicas);
 
     partitions = 8192;
@@ -59,12 +60,12 @@ public class TestEspressoStorageClusterIdealState
     {
       instanceNames.add("localhost:123" + i);
     }
-    Map<String, Object> resultOriginal = IdealStateCalculatorForStorageNode.calculateInitialIdealState(instanceNames, partitions, replicas);
+    Map<String, Object> resultOriginal = DefaultIdealStateCalculator.calculateInitialIdealState(instanceNames, partitions, replicas);
 
     Verify(resultOriginal, partitions,replicas);
     printStat(resultOriginal);
 
-    Map<String, Object> result1 = IdealStateCalculatorForStorageNode.calculateInitialIdealState(instanceNames, partitions, replicas);
+    Map<String, Object> result1 = DefaultIdealStateCalculator.calculateInitialIdealState(instanceNames, partitions, replicas);
 
     List<String> instanceNames2 = new ArrayList<String>();
     for(int i = 30;i < 35; i++)
@@ -72,7 +73,7 @@ public class TestEspressoStorageClusterIdealState
       instanceNames2.add("localhost:123" + i);
     }
 
-    IdealStateCalculatorForStorageNode.calculateNextIdealState(instanceNames2, result1);
+    DefaultIdealStateCalculator.calculateNextIdealState(instanceNames2, result1);
 
     List<String> instanceNames3 = new ArrayList<String>();
     for(int i = 35;i < 40; i++)
@@ -80,7 +81,7 @@ public class TestEspressoStorageClusterIdealState
       instanceNames3.add("localhost:123" + i);
     }
 
-    IdealStateCalculatorForStorageNode.calculateNextIdealState(instanceNames3, result1);
+    DefaultIdealStateCalculator.calculateNextIdealState(instanceNames3, result1);
     Double masterKeepRatio = 0.0, slaveKeepRatio = 0.0;
     Verify(result1, partitions,replicas);
     double[] result = compareResult(resultOriginal, result1);
@@ -102,11 +103,11 @@ public class TestEspressoStorageClusterIdealState
       instanceNames.add("localhost:123" + i);
     }
     
-    Map<String, Object> resultOriginal = IdealStateCalculatorForStorageNode.calculateInitialIdealState(instanceNames, partitions, replicas);
+    Map<String, Object> resultOriginal = DefaultIdealStateCalculator.calculateInitialIdealState(instanceNames, partitions, replicas);
     
-    ZNRecord idealState1 = IdealStateCalculatorForStorageNode.convertToZNRecord(resultOriginal, "TestDB", "MASTER", "SLAVE");
+    ZNRecord idealState1 = DefaultIdealStateCalculator.convertToZNRecord(resultOriginal, "TestDB", "MASTER", "SLAVE");
     
-    Map<String, Object> result1 = ClusterSetup.buildInternalIdealState(new IdealState(idealState1));
+    Map<String, Object> result1 = RebalanceUtil.buildInternalIdealState(new IdealState(idealState1));
     
     List<String> instanceNames2 = new ArrayList<String>();
     for(int i = 30;i < 35; i++)
@@ -114,7 +115,7 @@ public class TestEspressoStorageClusterIdealState
       instanceNames2.add("localhost:123" + i);
     }
     
-    Map<String, Object> result2 = IdealStateCalculatorForStorageNode.calculateNextIdealState(instanceNames2, result1);
+    Map<String, Object> result2 = DefaultIdealStateCalculator.calculateNextIdealState(instanceNames2, result1);
     
     Verify(resultOriginal, partitions,replicas);
     Verify(result2, partitions,replicas);

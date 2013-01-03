@@ -31,7 +31,7 @@ import org.apache.helix.controller.stages.ReadClusterDataStage;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.LiveInstance.LiveInstanceProperty;
-import org.apache.helix.tools.IdealStateCalculatorForStorageNode;
+import org.apache.helix.tools.DefaultIdealStateCalculator;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -47,7 +47,7 @@ public class TestCompatibilityCheckStage extends BaseStageTest
 
     // set ideal state
     String resourceName = "testResource";
-    ZNRecord record = IdealStateCalculatorForStorageNode.calculateIdealState(
+    ZNRecord record = DefaultIdealStateCalculator.calculateIdealState(
         instances, partitions, replicas, resourceName, "MASTER", "SLAVE");
     IdealState idealState = new IdealState(record);
     idealState.setStateModelDefRef("MasterSlave");

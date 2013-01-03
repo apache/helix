@@ -24,6 +24,7 @@ import java.util.Map;
 import org.apache.helix.TestEspressoStorageClusterIdealState;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.tools.ClusterSetup;
+import org.apache.helix.util.RebalanceUtil;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -59,8 +60,8 @@ public class TestExpandCluster extends ZkStandAloneCMTestBase
     IdealState testDB2_1 = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, DB2);
     IdealState testDB3_1 = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, DB3);
     
-    Map<String, Object> resultOld2 = ClusterSetup.buildInternalIdealState(testDB2);
-    Map<String, Object> result2 = ClusterSetup.buildInternalIdealState(testDB2_1);
+    Map<String, Object> resultOld2 = RebalanceUtil.buildInternalIdealState(testDB2);
+    Map<String, Object> result2 = RebalanceUtil.buildInternalIdealState(testDB2_1);
     
     TestEspressoStorageClusterIdealState.Verify(result2, partitions, replica - 1);
 
@@ -80,8 +81,8 @@ public class TestExpandCluster extends ZkStandAloneCMTestBase
     Assert.assertTrue(testDB3_1.getRecord().getMapFields().keySet().containsAll(testDB3.getRecord().getMapFields().keySet()));
     Assert.assertTrue(testDB3_1.getRecord().getMapFields().size() == testDB3.getRecord().getMapFields().size());
     
-    Map<String, Object> resultOld = ClusterSetup.buildInternalIdealState(testDB0);
-    Map<String, Object> resultNew = ClusterSetup.buildInternalIdealState(testDB0_1);
+    Map<String, Object> resultOld = RebalanceUtil.buildInternalIdealState(testDB0);
+    Map<String, Object> resultNew = RebalanceUtil.buildInternalIdealState(testDB0_1);
     
     result = TestEspressoStorageClusterIdealState.compareResult(resultOld, resultNew);
     masterKeepRatio = result[0];

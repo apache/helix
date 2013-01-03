@@ -39,7 +39,7 @@ import org.apache.helix.messaging.handling.MessageHandlerFactory;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.LiveInstance.LiveInstanceProperty;
 import org.apache.helix.model.Message;
-import org.apache.helix.tools.IdealStateCalculatorForStorageNode;
+import org.apache.helix.tools.DefaultIdealStateCalculator;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
@@ -105,7 +105,7 @@ public class TestDefaultMessagingService
             UUID.randomUUID().toString());
         _liveInstances.add(metaData);
       }
-      _externalView = IdealStateCalculatorForStorageNode.calculateIdealState(
+      _externalView = DefaultIdealStateCalculator.calculateIdealState(
           _instances, _partitions, _replicas, _db, "MASTER", "SLAVE");
 
     }

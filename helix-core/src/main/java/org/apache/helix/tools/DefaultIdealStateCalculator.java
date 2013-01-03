@@ -32,7 +32,7 @@ import org.apache.helix.model.IdealState.IdealStateProperty;
 
 
 /**
- * IdealStateCalculatorForStorageNode tries to optimally allocate master/slave partitions among
+ * DefaultIdealStateCalculator tries to optimally allocate master/slave partitions among
  * espresso storage nodes.
  *
  * Given a batch of storage nodes, the partition and replication factor, the algorithm first given a initial state
@@ -40,7 +40,7 @@ import org.apache.helix.model.IdealState.IdealStateProperty;
  * partition movements are minimized.
  *
  */
-public class IdealStateCalculatorForStorageNode
+public class DefaultIdealStateCalculator
 {
   static final String _MasterAssignmentMap = "MasterAssignmentMap";
   static final String _SlaveAssignmentMap = "SlaveAssignmentMap";
@@ -786,7 +786,7 @@ public class IdealStateCalculatorForStorageNode
       instanceNames.add("localhost:123" + i);
     }
     int partitions = 48*3, replicas = 3;
-    Map<String, Object> resultOriginal = IdealStateCalculatorForStorageNode.calculateInitialIdealState(instanceNames, partitions, replicas);
+    Map<String, Object> resultOriginal = DefaultIdealStateCalculator.calculateInitialIdealState(instanceNames, partitions, replicas);
 
   }
 }

@@ -397,4 +397,33 @@ public interface HelixAdmin
   void addMessageConstraint(String clusterName,
                             String constraintId,
                             Map<String, String> constraints);
+
+  /**
+   * 
+   * @param clusterName
+   * @param currentIdealState
+   * @param instanceNames
+   * @return
+   */
+  void rebalance(String clusterName, 
+                       IdealState currentIdealState,
+                       List<String> instanceNames);
+  /**
+   * 
+   * @param clusterName
+   * @param resourceName
+   * @param replica
+   * @param instances
+   */
+  void rebalance(String clusterName, String resourceName, int replica,
+      List<String> instances);
+  /**
+   * 
+   * @param clusterName
+   * @param resourceName
+   * @param replica
+   * @param keyPrefix
+   */
+  void rebalance(String clusterName, String resourceName, int replica,
+      String keyPrefix);
 }

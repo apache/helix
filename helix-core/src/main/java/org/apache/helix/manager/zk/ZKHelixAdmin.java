@@ -69,8 +69,9 @@ import org.apache.helix.model.IdealState.IdealStateModeProperty;
 import org.apache.helix.model.InstanceConfig.InstanceConfigProperty;
 import org.apache.helix.model.Message.MessageState;
 import org.apache.helix.model.Message.MessageType;
-import org.apache.helix.tools.IdealStateCalculatorForStorageNode;
+import org.apache.helix.tools.DefaultIdealStateCalculator;
 import org.apache.helix.util.HelixUtil;
+import org.apache.helix.util.RebalanceUtil;
 import org.apache.log4j.Logger;
 
 
@@ -1100,15 +1101,30 @@ public class ZKHelixAdmin implements HelixAdmin
   @Override
   public void rebalance(String clusterName, String resourceName, int replica)
   {
-    rebalance(clusterName, resourceName, replica, resourceName);
+    List<String> instanceNames = getInstancesInCluster(clusterName);
+    rebalance(clusterName, resourceName, replica, resourceName, instanceNames);
   }
-
-  void rebalance(String clusterName, String resourceName, int replica, String keyPrefix)
+  @Override
+  public void rebalance(String clusterName, String resourceName, int replica, String keyPrefix)
   {
-    List<String> InstanceNames = getInstancesInCluster(clusterName);
-
+    List<String> instanceNames = getInstancesInCluster(clusterName);
+    rebalance(clusterName, resourceName, replica, keyPrefix, instances);
+  }
+  @Override
+  public void rebalance(String clusterName, String resourceName, int replica, List<String> instances)
+  {
+    rebalance(clusterName, resourceName, replica, resourceName, instances);
+  }
+  
+  
+  void rebalance(String clusterName, 
+                 String resourceName, 
+                 int replica, 
+                 String keyPrefix, 
+                 List<String> instanceNames)
+  {
     // ensure we get the same idealState with the same set of instances
-    Collections.sort(InstanceNames);
+    Collections.sort(instanceNames);
 
     IdealState idealState = getResourceIdealState(clusterName, resourceName);
     if (idealState == null)
@@ -1158,7 +1174,7 @@ public class ZKHelixAdmin implements HelixAdmin
         {
           throw new HelixException("Invalid or unsupported state model definition");
         }
-        replica = InstanceNames.size() - 1;
+        replica = instanceNames.size() - 1;
         masterStateValue = slaveStateValue = state;
       }
     }
@@ -1174,7 +1190,7 @@ public class ZKHelixAdmin implements HelixAdmin
     if (idealState.getIdealStateMode() != IdealStateModeProperty.AUTO_REBALANCE)
     {
       ZNRecord newIdealState =
-          IdealStateCalculatorForStorageNode.calculateIdealState(InstanceNames,
+          DefaultIdealStateCalculator.calculateIdealState(instanceNames,
                                                                  partitions,
                                                                  replica,
                                                                  keyPrefix,
@@ -1291,6 +1307,77 @@ public class ZKHelixAdmin implements HelixAdmin
       }
     }, AccessOption.PERSISTENT);
   }
-
   
+  
+  /**
+   * Takes the existing idealstate as input and computes newIdealState such that 
+   * the partition movement is minimized. The partitions are redistributed among the instances provided.
+   * @param clusterName 
+   * @param currentIdealState
+   * @param instanceNames
+   * @return
+   */
+  @Override
+  public void rebalance(String clusterName,
+                              IdealState currentIdealState, 
+                              List<String> instanceNames)
+  {
+    Set<String> activeInstances = new HashSet<String>();
+    for (String partition : currentIdealState.getPartitionSet())
+    {
+      activeInstances.addAll(currentIdealState.getRecord().getListField(partition));
+    }
+    instanceNames.removeAll(activeInstances);
+    Map<String, Object> previousIdealState = RebalanceUtil.buildInternalIdealState(currentIdealState);
+
+    Map<String, Object> balancedRecord =
+        DefaultIdealStateCalculator.calculateNextIdealState(instanceNames,
+                                                                   previousIdealState);
+    StateModelDefinition stateModDef =
+        this.getStateModelDef(clusterName, currentIdealState.getStateModelDefRef());
+
+    if (stateModDef == null)
+    {
+      throw new HelixException("cannot find state model: " + currentIdealState.getStateModelDefRef());
+    }
+    String[] states = RebalanceUtil.parseStates(clusterName, stateModDef);
+
+    ZNRecord newIdealStateRecord =
+        DefaultIdealStateCalculator.convertToZNRecord(balancedRecord,
+                                                             currentIdealState.getResourceName(),
+                                                             states[0],
+                                                             states[1]);
+    Set<String> partitionSet = new HashSet<String>();
+    partitionSet.addAll(newIdealStateRecord.getMapFields().keySet());
+    partitionSet.addAll(newIdealStateRecord.getListFields().keySet());
+
+    Map<String, String> reversePartitionIndex =
+        (Map<String, String>) balancedRecord.get("reversePartitionIndex");
+    for (String partition : partitionSet)
+    {
+      if (reversePartitionIndex.containsKey(partition))
+      {
+        String originPartitionName = reversePartitionIndex.get(partition);
+        if (partition.equals(originPartitionName))
+        {
+          continue;
+        }
+        newIdealStateRecord.getMapFields()
+                           .put(originPartitionName,
+                                newIdealStateRecord.getMapField(partition));
+        newIdealStateRecord.getMapFields().remove(partition);
+
+        newIdealStateRecord.getListFields()
+                           .put(originPartitionName,
+                                newIdealStateRecord.getListField(partition));
+        newIdealStateRecord.getListFields().remove(partition);
+      }
+    }
+
+    newIdealStateRecord.getSimpleFields()
+                       .putAll(currentIdealState.getRecord().getSimpleFields());
+    IdealState newIdealState = new IdealState(newIdealStateRecord);
+    setResourceIdealState(clusterName, newIdealStateRecord.getId(), newIdealState);
+  }
+ 
 }

@@ -43,7 +43,7 @@ import org.apache.helix.store.PropertyJsonSerializer;
 import org.apache.helix.store.PropertyStoreException;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
-import org.apache.helix.tools.IdealStateCalculatorForStorageNode;
+import org.apache.helix.tools.DefaultIdealStateCalculator;
 import org.apache.helix.tools.TestCommand;
 import org.apache.helix.tools.TestExecutor;
 import org.apache.helix.tools.TestTrigger;
@@ -364,7 +364,7 @@ public class TestDriver
     for (int i = 0; i < testInfo._numDb; i++)
     {
       String dbName = TEST_DB_PREFIX + i;
-      ZNRecord destIS = IdealStateCalculatorForStorageNode.calculateIdealState(instanceNames,
+      ZNRecord destIS = DefaultIdealStateCalculator.calculateIdealState(instanceNames,
           testInfo._numPartitionsPerDb, testInfo._replica - 1, dbName, "MASTER", "SLAVE");
       // destIS.setId(dbName);
       destIS.setSimpleField(IdealStateProperty.IDEAL_STATE_MODE.toString(),

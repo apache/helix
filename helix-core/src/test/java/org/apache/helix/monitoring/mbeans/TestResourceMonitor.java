@@ -35,7 +35,7 @@ import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.LiveInstance.LiveInstanceProperty;
 import org.apache.helix.monitoring.mbeans.ResourceMonitor;
-import org.apache.helix.tools.IdealStateCalculatorForStorageNode;
+import org.apache.helix.tools.DefaultIdealStateCalculator;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
@@ -107,7 +107,7 @@ public class TestResourceMonitor
             UUID.randomUUID().toString());
 
       }
-      _idealState= IdealStateCalculatorForStorageNode.calculateIdealState(_instances,
+      _idealState= DefaultIdealStateCalculator.calculateIdealState(_instances,
                                                                           _partitions,
                                                                           _replicas,
                                                                           _dbName,

@@ -30,7 +30,7 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.model.LiveInstance.LiveInstanceProperty;
-import org.apache.helix.tools.IdealStateCalculatorForStorageNode;
+import org.apache.helix.tools.DefaultIdealStateCalculator;
 import org.testng.annotations.Test;
 
 
@@ -55,10 +55,10 @@ public class TestClusterStatusMonitor
         String instance = "localhost_"+(12918+i);
         _instances.add(instance);
       }
-      ZNRecord externalView = IdealStateCalculatorForStorageNode.calculateIdealState(
+      ZNRecord externalView = DefaultIdealStateCalculator.calculateIdealState(
           _instances, _partitions, _replicas, _db, "MASTER", "SLAVE");
 
-      ZNRecord externalView2 = IdealStateCalculatorForStorageNode.calculateIdealState(
+      ZNRecord externalView2 = DefaultIdealStateCalculator.calculateIdealState(
           _instances, 80, 2, _db2, "MASTER", "SLAVE");
 
     }
@@ -109,10 +109,10 @@ public class TestClusterStatusMonitor
           UUID.randomUUID().toString());
       _liveInstances.add(metaData);
     }
-    ZNRecord externalView = IdealStateCalculatorForStorageNode.calculateIdealState(
+    ZNRecord externalView = DefaultIdealStateCalculator.calculateIdealState(
         _instances, _partitions, _replicas, _db, "MASTER", "SLAVE");
 
-    ZNRecord externalView2 = IdealStateCalculatorForStorageNode.calculateIdealState(
+    ZNRecord externalView2 = DefaultIdealStateCalculator.calculateIdealState(
         _instances, 80, 2, "TestDB", "MASTER", "SLAVE");
 
     List<ZNRecord> externalViews = new ArrayList<ZNRecord>();

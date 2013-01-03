@@ -483,8 +483,7 @@ public class ClusterSetup
       _logger.warn("Resource " + resourceName + " not balanced, skip");
       return;
     }
-    IdealState newIdealState = balanceIdealState(clusterName, idealState);
-    _admin.setResourceIdealState(clusterName, resourceName, newIdealState);
+    balanceIdealState(clusterName, idealState);
   }
 
   public void expandCluster(String clusterName)
@@ -496,305 +495,30 @@ public class ClusterSetup
     }
   }
 
-  public String[] parseStates(String clusterName, String stateModelName)
-  {
-    String[] result = new String[2];
-    String masterStateValue = null, slaveStateValue = null;
-    StateModelDefinition stateModDef =
-        _admin.getStateModelDef(clusterName, stateModelName);
+  
 
-    if (stateModDef == null)
-    {
-      throw new HelixException("cannot find state model: " + stateModelName);
-    }
-    // StateModelDefinition def = new StateModelDefinition(stateModDef);
-
-    List<String> statePriorityList = stateModDef.getStatesPriorityList();
-
-    for (String state : statePriorityList)
-    {
-      String count = stateModDef.getNumInstancesPerState(state);
-      if (count.equals("1"))
-      {
-        if (masterStateValue != null)
-        {
-          throw new HelixException("Invalid or unsupported state model definition");
-        }
-        masterStateValue = state;
-      }
-      else if (count.equalsIgnoreCase("R"))
-      {
-        if (slaveStateValue != null)
-        {
-          throw new HelixException("Invalid or unsupported state model definition");
-        }
-        slaveStateValue = state;
-      }
-      else if (count.equalsIgnoreCase("N"))
-      {
-        if (!(masterStateValue == null && slaveStateValue == null))
-        {
-          throw new HelixException("Invalid or unsupported state model definition");
-        }
-        masterStateValue = slaveStateValue = state;
-      }
-    }
-    if (masterStateValue == null && slaveStateValue == null)
-    {
-      throw new HelixException("Invalid or unsupported state model definition");
-    }
-
-    if (masterStateValue == null)
-    {
-      masterStateValue = slaveStateValue;
-    }
-    result[0] = masterStateValue;
-    result[1] = slaveStateValue;
-    return result;
-  }
-
-  public IdealState balanceIdealState(String clusterName, IdealState idealState)
+  public void balanceIdealState(String clusterName, IdealState idealState)
   {
     // The new instances are added into the cluster already. So we need to find out the
     // instances that
     // already have partitions assigned to them.
     List<String> instanceNames = _admin.getInstancesInCluster(clusterName);
-    Set<String> activeInstances = new HashSet<String>();
-    for (String partition : idealState.getPartitionSet())
-    {
-      activeInstances.addAll(idealState.getRecord().getListField(partition));
-    }
-    instanceNames.removeAll(activeInstances);
-    Map<String, Object> previousIdealState = buildInternalIdealState(idealState);
-
-    Map<String, Object> balancedRecord =
-        IdealStateCalculatorForStorageNode.calculateNextIdealState(instanceNames,
-                                                                   previousIdealState);
-
-    String[] states = parseStates(clusterName, idealState.getStateModelDefRef());
-
-    ZNRecord newIdealStateRecord =
-        IdealStateCalculatorForStorageNode.convertToZNRecord(balancedRecord,
-                                                             idealState.getResourceName(),
-                                                             states[0],
-                                                             states[1]);
-    Set<String> partitionSet = new HashSet<String>();
-    partitionSet.addAll(newIdealStateRecord.getMapFields().keySet());
-    partitionSet.addAll(newIdealStateRecord.getListFields().keySet());
-
-    Map<String, String> reversePartitionIndex =
-        (Map<String, String>) balancedRecord.get("reversePartitionIndex");
-    for (String partition : partitionSet)
-    {
-      if (reversePartitionIndex.containsKey(partition))
-      {
-        String originPartitionName = reversePartitionIndex.get(partition);
-        if (partition.equals(originPartitionName))
-        {
-          continue;
-        }
-        newIdealStateRecord.getMapFields()
-                           .put(originPartitionName,
-                                newIdealStateRecord.getMapField(partition));
-        newIdealStateRecord.getMapFields().remove(partition);
-
-        newIdealStateRecord.getListFields()
-                           .put(originPartitionName,
-                                newIdealStateRecord.getListField(partition));
-        newIdealStateRecord.getListFields().remove(partition);
-      }
-    }
-
-    newIdealStateRecord.getSimpleFields()
-                       .putAll(idealState.getRecord().getSimpleFields());
-    return new IdealState(newIdealStateRecord);
+    rebalanceResource(clusterName, idealState, instanceNames);
 
   }
 
-  public static Map<String, Object> buildInternalIdealState(IdealState state)
+  private void rebalanceResource(String clusterName,
+      IdealState idealState, List<String> instanceNames)
   {
-    // Try parse the partition number from name DB_n. If not, sort the partitions and
-    // assign id
-    Map<String, Integer> partitionIndex = new HashMap<String, Integer>();
-    Map<String, String> reversePartitionIndex = new HashMap<String, String>();
-    boolean indexInPartitionName = true;
-    for (String partitionId : state.getPartitionSet())
-    {
-      int lastPos = partitionId.lastIndexOf("_");
-      if (lastPos < 0)
-      {
-        indexInPartitionName = false;
-        break;
-      }
-      try
-      {
-        String idStr = partitionId.substring(lastPos + 1);
-        int partition = Integer.parseInt(idStr);
-        partitionIndex.put(partitionId, partition);
-        reversePartitionIndex.put(state.getResourceName() + "_" + partition, partitionId);
-      }
-      catch (Exception e)
-      {
-        indexInPartitionName = false;
-        partitionIndex.clear();
-        reversePartitionIndex.clear();
-        break;
-      }
-    }
-
-    if (indexInPartitionName == false)
-    {
-      List<String> partitions = new ArrayList<String>();
-      partitions.addAll(state.getPartitionSet());
-      Collections.sort(partitions);
-      for (int i = 0; i < partitions.size(); i++)
-      {
-        partitionIndex.put(partitions.get(i), i);
-        reversePartitionIndex.put(state.getResourceName() + "_" + i, partitions.get(i));
-      }
-    }
-
-    Map<String, List<Integer>> nodeMasterAssignmentMap =
-        new TreeMap<String, List<Integer>>();
-    Map<String, Map<String, List<Integer>>> combinedNodeSlaveAssignmentMap =
-        new TreeMap<String, Map<String, List<Integer>>>();
-    for (String partition : state.getPartitionSet())
-    {
-      List<String> instances = state.getRecord().getListField(partition);
-      String master = instances.get(0);
-      if (!nodeMasterAssignmentMap.containsKey(master))
-      {
-        nodeMasterAssignmentMap.put(master, new ArrayList<Integer>());
-      }
-      if (!combinedNodeSlaveAssignmentMap.containsKey(master))
-      {
-        combinedNodeSlaveAssignmentMap.put(master, new TreeMap<String, List<Integer>>());
-      }
-      nodeMasterAssignmentMap.get(master).add(partitionIndex.get(partition));
-      for (int i = 1; i < instances.size(); i++)
-      {
-        String instance = instances.get(i);
-        Map<String, List<Integer>> slaveMap = combinedNodeSlaveAssignmentMap.get(master);
-        if (!slaveMap.containsKey(instance))
-        {
-          slaveMap.put(instance, new ArrayList<Integer>());
-        }
-        slaveMap.get(instance).add(partitionIndex.get(partition));
-      }
-    }
-
-    Map<String, Object> result = new TreeMap<String, Object>();
-    result.put("MasterAssignmentMap", nodeMasterAssignmentMap);
-    result.put("SlaveAssignmentMap", combinedNodeSlaveAssignmentMap);
-    result.put("replicas", Integer.parseInt(state.getReplicas()));
-    result.put("partitions", new Integer(state.getRecord().getListFields().size()));
-    result.put("reversePartitionIndex", reversePartitionIndex);
-    return result;
+     _admin.rebalance(clusterName, idealState, instanceNames);
   }
 
-  // TODO: remove this. has moved to ZkHelixAdmin
   public void rebalanceStorageCluster(String clusterName,
                                       String resourceName,
                                       int replica,
                                       String keyPrefix)
   {
-    List<String> InstanceNames = _admin.getInstancesInCluster(clusterName);
-    // ensure we get the same idealState with the same set of instances
-    Collections.sort(InstanceNames);
-
-    IdealState idealState = _admin.getResourceIdealState(clusterName, resourceName);
-    if (idealState == null)
-    {
-      throw new HelixException("Resource: " + resourceName + " has NOT been added yet");
-    }
-
-    idealState.setReplicas(Integer.toString(replica));
-    int partitions = idealState.getNumPartitions();
-    String stateModelName = idealState.getStateModelDefRef();
-    StateModelDefinition stateModDef =
-        _admin.getStateModelDef(clusterName, stateModelName);
-
-    if (stateModDef == null)
-    {
-      throw new HelixException("cannot find state model: " + stateModelName);
-    }
-    // StateModelDefinition def = new StateModelDefinition(stateModDef);
-
-    List<String> statePriorityList = stateModDef.getStatesPriorityList();
-
-    String masterStateValue = null;
-    String slaveStateValue = null;
-    replica--;
-
-    for (String state : statePriorityList)
-    {
-      String count = stateModDef.getNumInstancesPerState(state);
-      if (count.equals("1"))
-      {
-        if (masterStateValue != null)
-        {
-          throw new HelixException("Invalid or unsupported state model definition");
-        }
-        masterStateValue = state;
-      }
-      else if (count.equalsIgnoreCase("R"))
-      {
-        if (slaveStateValue != null)
-        {
-          throw new HelixException("Invalid or unsupported state model definition");
-        }
-        slaveStateValue = state;
-      }
-      else if (count.equalsIgnoreCase("N"))
-      {
-        if (!(masterStateValue == null && slaveStateValue == null))
-        {
-          throw new HelixException("Invalid or unsupported state model definition");
-        }
-        replica = InstanceNames.size() - 1;
-        masterStateValue = slaveStateValue = state;
-      }
-    }
-    if (masterStateValue == null && slaveStateValue == null)
-    {
-      throw new HelixException("Invalid or unsupported state model definition");
-    }
-
-    if (masterStateValue == null)
-    {
-      masterStateValue = slaveStateValue;
-    }
-    if (idealState.getIdealStateMode() != IdealStateModeProperty.AUTO_REBALANCE)
-    {
-      ZNRecord newIdealState =
-          IdealStateCalculatorForStorageNode.calculateIdealState(InstanceNames,
-                                                                 partitions,
-                                                                 replica,
-                                                                 keyPrefix,
-                                                                 masterStateValue,
-                                                                 slaveStateValue);
-
-      // for now keep mapField in AUTO mode and remove listField in CUSTOMIZED mode
-      if (idealState.getIdealStateMode() == IdealStateModeProperty.AUTO)
-      {
-        idealState.getRecord().setListFields(newIdealState.getListFields());
-        idealState.getRecord().setMapFields(newIdealState.getMapFields());
-      }
-      if (idealState.getIdealStateMode() == IdealStateModeProperty.CUSTOMIZED)
-      {
-        idealState.getRecord().setMapFields(newIdealState.getMapFields());
-      }
-    }
-    else
-    {
-      for (int i = 0; i < partitions; i++)
-      {
-        String partitionName = keyPrefix + "_" + i;
-        idealState.getRecord().setMapField(partitionName, new HashMap<String, String>());
-        idealState.getRecord().setListField(partitionName, new ArrayList<String>());
-      }
-    }
-    _admin.setResourceIdealState(clusterName, resourceName, idealState);
+    _admin.rebalance(clusterName, resourceName, replica);
   }
 
   /**

@@ -40,7 +40,7 @@ Short Version
 
     cd helix-core/target/helix-core-pkg/bin
     chmod +x *
-    ./quickstart.sh
+    ./quickstart
 
 
 This gives an overview of Helix Apis and how it facilitates Automatic Partition Management, Failure Handling and Cluster Expansion. 

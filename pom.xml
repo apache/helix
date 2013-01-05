@@ -279,6 +279,9 @@ under the License.
           <artifactId>appassembler-maven-plugin</artifactId>
           <version>1.1.1</version>
           <configuration>
+            <binFileExtensions>
+              <unix>.sh</unix>
+            </binFileExtensions>
             <!-- Set the target configuration directory to be used in the bin scripts -->
             <configurationDirectory>conf</configurationDirectory>
             <!-- Copy the contents from "/src/main/config" to the target configuration directory in the assembled application -->

@@ -518,7 +518,7 @@ public class ClusterSetup
                                       int replica,
                                       String keyPrefix)
   {
-    _admin.rebalance(clusterName, resourceName, replica);
+    _admin.rebalance(clusterName, resourceName, replica, keyPrefix);
   }
 
   /**

@@ -92,8 +92,7 @@ Apart from defining State for each partition, the transition path to each STATE 
 
 Helix provides a way to configure an application specific state machine along with constraints on each state. Along with constraints on State, Helix also provides a way to specify constraints on transitions.(More on this later)
 
-
-<pre><code>
+```
           OFFLINE  | SLAVE  |  MASTER  
          _____________________________
         |          |        |         |
@@ -106,7 +105,7 @@ SLAVE   |  OFFLINE |   N/A  | MASTER  |
 MASTER  | SLAVE    | SLAVE  |   N/A   |
         |__________|________|_________|
 
-</code></pre>
+```
 
 ![Helix Design](images/statemachine.png)
 

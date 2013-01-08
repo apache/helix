@@ -64,7 +64,7 @@ Here are some common state models used
 For example in the case of a MasterSlave state model one can specify the state machine as follows. The table says given a start state and an end state what should be the next state. 
 For example, if the current state is Offline and the target state is Master, the table says that the next state is Slave.  So in this case, Helix issues an Offline-Slave transition
 
-<pre><code>
+```
           OFFLINE  | SLAVE  |  MASTER  
          _____________________________
         |          |        |         |
@@ -77,7 +77,7 @@ SLAVE   |  OFFLINE |   N/A  | MASTER  |
 MASTER  | SLAVE    | SLAVE  |   N/A   |
         |__________|________|_________|
 
-</code></pre>
+```
 
 Helix also supports the ability to provide constraints on each state. For example in a MasterSlave state model with a replication factor of 3 one can say 
 
@@ -99,7 +99,7 @@ Helix framework can be used to build distributed, scalable, elastic and fault to
 
 Once the state machine and constraints are configured through Helix, application will have the provide implementation to handle the transitions appropriately.  
 
-<pre><code>
+```
 MasterSlaveStateModel extends HelixStateModel {
 
   void onOfflineToSlave(Message m, NotificationContext context){
@@ -115,7 +115,7 @@ MasterSlaveStateModel extends HelixStateModel {
     print("Transitioning from Slave to Offline for resource:"+ m.getResourceName() + " and partition:"+ m.getPartitionName());
   }
 }
-</code></pre>
+```
 
 Once the state machine is configured, the framework allows one to 
 

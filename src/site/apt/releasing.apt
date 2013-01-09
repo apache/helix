@@ -66,6 +66,8 @@ mvn release:prepare release:perform -B
 svn co https://dist.apache.org/repos/dist/dev/incubator/helix helix-dev-release
 cd helix-dev-release
 sh ./release-script-svn.sh version stagingRepoUrl
+then svn add new directory
+then svn ci 
 +-------------
 
  [[5]] Call for a vote in the dev list and wait for 72 hrs. for the vote results. 3 binding votes are necessary for the release to be finalized. example

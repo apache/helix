@@ -48,30 +48,19 @@ We showcase how such a dynamic App can be developed using Helix.
 
 Try it
 ======
-Before getting into the details on how to develop such an App using Helix, you can try the following steps to get a feel of it.
 
 ```
-git clone git@github.com:linkedin/helix.git
-cd helix
-./build
+git clone https://git-wip-us.apache.org/repos/asf/incubator-helix.git
+cd incubator-helix
+mvn clean install package -DskipTests
+cd recipes/rabbitmq-consumer-group/bin
+chmod +x *
 export HELIX_PKG_ROOT=`pwd`/helix-core/target/helix-core-pkg
-```
-OR
-Download the latest 0.5.28 release tar ball from [here](http://linkedin.github.com/helix/download/release-0.5.28//helix-core-pkg-0.5.28.tar.gz)
-```
-tar -xzvf helix-core-pkg-0.5.28.tar.gz
-export HELIX_PKG_ROOT=`pwd`/helix-core-pkg
-```
-
-Download the rabbitmq-consumer-group recipe from [here](http://linkedin.github.com/helix/download/release-0.5.28/rabbitmq-consumer-group-0.5.28.tar.gz)
-```
-tar -xzvf rabbitmq-consumer-group-0.5.28.tar.gz
-export HELIX_RABBITMQ_ROOT=`pwd`/rabbitmq-consumer-group/
-```
-```
+export HELIX_RABBITMQ_ROOT=`pwd`/recipes/rabbitmq-consumer-group/
 chmod +x $HELIX_PKG_ROOT/bin/*
 chmod +x $HELIX_RABBITMQ_ROOT/bin/*
 ```
+
 
 Install Rabbit MQ
 ----------------
@@ -82,13 +71,15 @@ http://www.rabbitmq.com/download.html
 Start ZK
 --------
 Start zookeeper at port 2199
+
 ```
 $HELIX_PKG_ROOT/bin/start-standalone-zookeeper 2199
 ```
 
 Setup the consumer group cluster
 --------------------------------
-This will setup the cluster by creating a "rabbitmq-consumer-group" cluster and adds a "topic" resource with "6" queues. 
+This will setup the cluster by creating a "rabbitmq-consumer-group" cluster and adds a "topic" with "6" queues. 
+
 ```
 $HELIX_RABBITMQ_ROOT/bin/setup-cluster.sh localhost:2199 
 ```
@@ -96,6 +87,7 @@ $HELIX_RABBITMQ_ROOT/bin/setup-cluster.sh localhost:2199
 Add consumers
 -------------
 Start 2 consumers in 2 different terminals. Each consumer is given a unique id.
+
 ```
 //start-consumer.sh zookeeperAddress (e.g. localhost:2181) consumerId , rabbitmqServer (e.g. localhost)
 $HELIX_RABBITMQ_ROOT/bin/start-consumer.sh localhost:2199 0 localhost 
@@ -106,9 +98,11 @@ $HELIX_RABBITMQ_ROOT/bin/start-consumer.sh localhost:2199 1 localhost
 Start HelixController
 --------------------
 Now start a Helix controller that starts managing the "rabbitmq-consumer-group" cluster.
+
 ```
 $HELIX_RABBITMQ_ROOT/bin/start-cluster-manager.sh localhost:2199
 ```
+
 Send messages to the Topic
 --------------------------
 
@@ -118,6 +112,7 @@ Based on the key, messages gets routed to the appropriate queue.
 ```
 $HELIX_RABBITMQ_ROOT/bin/send-message.sh localhost 20
 ```
+
 After running this, you should see all 20 messages being processed by 2 consumers. 
 
 Add another consumer
@@ -125,14 +120,17 @@ Add another consumer
 Once a new consumer is started, helix detects it. In order to balance the load between 3 consumers, it deallocates 1 partition from the existing consumers and allocates it to the new consumer. We see that
 each consumer is now processing only 2 queues.
 Helix makes sure that old nodes are asked to stop consuming before the new consumer is asked to start consuming for a given partition. But the transitions for each partition can happen in parallel.
+
 ```
 $HELIX_RABBITMQ_ROOT/bin/start-consumer.sh localhost:2199 2 localhost
 ```
 
 Send messages again to the topic.
+
 ```
 $HELIX_RABBITMQ_ROOT/bin/send-message.sh localhost 100
 ```
+
 You should see that messages are now received by all 3 consumers.
 
 Stop a consumer
@@ -143,7 +141,7 @@ In any terminal press CTRL^C and notice that Helix detects the consumer failure 
 How does it work
 ================
 
-Find the entire code [here](https://github.com/linkedin/helix/tree/master/recipes/rabbitmq-consumer-group/src/main/java/com/linkedin/helix/recipes/rabbitmq). 
+Find the entire code [here](https://git-wip-us.apache.org/repos/asf?p=incubator-helix.git;a=tree;f=recipes/rabbitmq-consumer-group/src/main/java/org/apache/helix/recipes/rabbitmq). 
  
 Cluster setup
 -------------
@@ -168,6 +166,7 @@ It creates a resource called "rabbitmq-consumer-group" with 6 partitions. The ex
       String resourceName = "rabbitmq-consumer-group";
       admin.addResource(clusterName, resourceName, 6, "OnlineOffline", "AUTO_REBALANCE");
 ```
+
 Starting the consumers
 ----------------------
 The only thing consumers need to know is the zkaddress, cluster name and consumer id. It does not need to know anything else.
@@ -187,6 +186,7 @@ The only thing consumers need to know is the zkaddress, cluster name and consume
       _manager.connect();
 
 ```
+
 Once the consumer has registered the statemodel and the controller is started, the consumer starts getting callbacks (onBecomeOnlineFromOffline) for the partition it needs to host. All it needs to do as part of the callback is to start consuming messages from the appropriate queue. Similarly, when the controller deallocates a partitions from a consumer, it fires onBecomeOfflineFromOnline for the same partition. 
 As a part of this transition, the consumer will stop consuming from a that queue.
 

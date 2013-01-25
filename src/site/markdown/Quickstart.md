@@ -67,8 +67,9 @@ Helix provides command line interfaces to setup the cluster and also view the cl
 Zookeeper can be started in standalone mode or replicated mode.
 
 More info is available at 
- * http://zookeeper.apache.org/doc/r3.3.3/zookeeperStarted.html
- * http://zookeeper.apache.org/doc/trunk/zookeeperAdmin.html#sc_zkMulitServerSetup
+
+* http://zookeeper.apache.org/doc/r3.3.3/zookeeperStarted.html
+* http://zookeeper.apache.org/doc/trunk/zookeeperAdmin.html#sc_zkMulitServerSetup
 
 In this example, we will start zookeeper in local mode.
 

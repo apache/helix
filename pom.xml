@@ -427,7 +427,7 @@ under the License.
           <onlyCurrentVersion>true</onlyCurrentVersion>
           <resolutionIds>Fixed</resolutionIds>
           <sortColumnNames>Type</sortColumnNames>
-          <fixVersionIds>12323457</fixVersionIds>
+          <fixVersionIds>12324012</fixVersionIds>
           <useJql>true</useJql>
         </configuration>
         <reportSets>

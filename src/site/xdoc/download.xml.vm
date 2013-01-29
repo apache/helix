@@ -127,7 +127,7 @@ under the License.
           <tbody>
             <tr>
               <td>
-                <a href="[preferred]incubator/helix/${currentRelease}/binaries/helix-core-${currentRelease}-pkg.tar">helix-${currentRelease}-pkg.tar</a>
+                <a href="[preferred]incubator/helix/${currentRelease}/binaries/helix-core-${currentRelease}-pkg.tar">helix-core-${currentRelease}-pkg.tar</a>
               </td>
               <td>
                 <a href="http://www.apache.org/dist/incubator/helix/${currentRelease}/binaries/helix-core-${currentRelease}-pkg.tar.asc">asc</a>
@@ -137,7 +137,7 @@ under the License.
             </tr>
             <tr>
               <td>
-                <a href="[preferred]incubator/helix/${currentRelease}/binaries/helix-admin-webapp-${currentRelease}-pkg.tar">helix-${currentRelease}-pkg.tar</a>
+                <a href="[preferred]incubator/helix/${currentRelease}/binaries/helix-admin-webapp-${currentRelease}-pkg.tar">helix-admin-webapp-${currentRelease}-pkg.tar</a>
               </td>
               <td>
                 <a href="http://www.apache.org/dist/incubator/helix/${currentRelease}/binaries/helix-admin-webapp-${currentRelease}-pkg.tar.asc">asc</a>

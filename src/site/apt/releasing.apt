@@ -71,7 +71,7 @@ then svn ci
 +-------------
 
  [[5]] Call for a vote in the dev list and wait for 72 hrs. for the vote results. 3 binding votes are necessary for the release to be finalized. example
-  After the vote has passed, move the files from dist dev to dist release: svn mv https://dist.apache.org/repos/dist/dev/incubator/helix/version to https://dist.apache.org/repos/dist/relase/incubator/helix/
+  After the vote has passed, move the files from dist dev to dist release: svn mv https://dist.apache.org/repos/dist/dev/incubator/helix/version to https://dist.apache.org/repos/dist/release/incubator/helix/
 
  [[6]] Prepare release note. Add a page in src/site/apt/releasenotes/ and change value of \<currentRelease> in parent pom.
 

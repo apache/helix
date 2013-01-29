@@ -203,9 +203,8 @@ under the License.
     <helix.release.performGoals>deploy</helix.release.performGoals>
     <helix.release.arguments>-Papache-release</helix.release.arguments>
 
-    <!-- for release changelog page -->
+    <!-- for release changelog and download pages -->
     <currentRelease>0.6.0-incubating</currentRelease>
-
 
   </properties>
 

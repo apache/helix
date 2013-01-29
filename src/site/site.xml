@@ -26,7 +26,6 @@
   </bannerRight>
 
   <publishDate position="right"/>
-  <version position="right"/>
 
   <skin>
     <groupId>org.apache.maven.skins</groupId>

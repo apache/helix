@@ -92,7 +92,7 @@ under the License.
         </p>
 
       </subsection>
-      <subsection name="${currentRelease}">
+      <subsection name="${currentRelease} Sources">
         <p>Release date: ?</p>
         <p><a href="releasenotes/release-${currentRelease}.html">Release notes</a></p>
         <table>

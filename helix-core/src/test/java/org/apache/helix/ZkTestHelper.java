@@ -66,7 +66,42 @@ public class ZkTestHelper
     {
       return _zkClient;
     }
+  }
+  
+  public static void disconnectSession(final ZkClient zkClient) throws Exception
+  {
+    
+    ZkConnection connection = ((ZkConnection) zkClient.getConnection());
+    ZooKeeper curZookeeper = connection.getZookeeper();
+    LOG.info("Before expiry. sessionId: " + Long.toHexString(curZookeeper.getSessionId()));
 
+    Watcher watcher = new Watcher()
+    {
+      @Override
+      public void process(WatchedEvent event)
+      {
+        LOG.info("Process watchEvent: " + event);
+      }
+    };
+
+    final ZooKeeper dupZookeeper =
+        new ZooKeeper(connection.getServers(),
+                      curZookeeper.getSessionTimeout(),
+                      watcher,
+                      curZookeeper.getSessionId(),
+                      curZookeeper.getSessionPasswd());
+    // wait until connected, then close
+    while (dupZookeeper.getState() != States.CONNECTED)
+    {
+      Thread.sleep(10);
+    }
+    dupZookeeper.close();
+
+    connection = (ZkConnection) zkClient.getConnection();
+    curZookeeper = connection.getZookeeper();
+
+    // System.err.println("zk: " + oldZookeeper);
+    LOG.info("After expiry. sessionId: " + Long.toHexString(curZookeeper.getSessionId()));
   }
 
   public static void expireSession(final ZkClient zkClient) throws Exception
@@ -78,7 +113,7 @@ public class ZkTestHelper
       @Override
       public void handleStateChanged(KeeperState state) throws Exception
       {
-        // System.err.println("handleStateChanged. state: " + state);
+         System.err.println("handleStateChanged. state: " + state);
       }
 
       @Override
@@ -182,10 +217,8 @@ public class ZkTestHelper
                   + expectState + ", op: " + op);
               result = false;
             }
-
           }
         }
-
       }
     }
     return result;

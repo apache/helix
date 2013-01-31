@@ -70,7 +70,29 @@ public class ZkTestHelper
   
   public static void disconnectSession(final ZkClient zkClient) throws Exception
   {
-    
+    IZkStateListener listener = new IZkStateListener()
+    {
+      @Override
+      public void handleStateChanged(KeeperState state) throws Exception
+      {
+//         System.err.println("disconnectSession handleStateChanged. state: " + state);
+      }
+
+      @Override
+      public void handleNewSession() throws Exception
+      {
+        // make sure zkclient is connected again
+        zkClient.waitUntilConnected();
+
+        ZkConnection connection = ((ZkConnection) zkClient.getConnection());
+        ZooKeeper curZookeeper = connection.getZookeeper();
+
+        LOG.info("handleNewSession. sessionId: "
+            + Long.toHexString(curZookeeper.getSessionId()));
+      }
+    };
+
+    zkClient.subscribeStateChanges(listener);
     ZkConnection connection = ((ZkConnection) zkClient.getConnection());
     ZooKeeper curZookeeper = connection.getZookeeper();
     LOG.info("Before expiry. sessionId: " + Long.toHexString(curZookeeper.getSessionId()));
@@ -99,6 +121,7 @@ public class ZkTestHelper
 
     connection = (ZkConnection) zkClient.getConnection();
     curZookeeper = connection.getZookeeper();
+    zkClient.unsubscribeStateChanges(listener);
 
     // System.err.println("zk: " + oldZookeeper);
     LOG.info("After expiry. sessionId: " + Long.toHexString(curZookeeper.getSessionId()));
@@ -113,7 +136,7 @@ public class ZkTestHelper
       @Override
       public void handleStateChanged(KeeperState state) throws Exception
       {
-         System.err.println("handleStateChanged. state: " + state);
+//         System.err.println("handleStateChanged. state: " + state);
       }
 
       @Override

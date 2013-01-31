@@ -497,6 +497,11 @@ public class GenericHelixController implements
   public void onControllerChange(NotificationContext changeContext)
   {
     logger.info("START: GenericClusterController.onControllerChange()");
+    if (changeContext!= null && changeContext.getType() == Type.FINALIZE)
+    {
+      logger.info("GenericClusterController.onControllerChange() FINALIZE");
+      return;
+    }
     HelixDataAccessor accessor = changeContext.getManager().getHelixDataAccessor();
 
     // double check if this controller is the leader

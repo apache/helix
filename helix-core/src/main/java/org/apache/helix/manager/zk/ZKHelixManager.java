@@ -151,7 +151,7 @@ public class ZKHelixManager implements HelixManager
     }
     catch (NumberFormatException e)
     {
-      logger.warn("Exception while parsing helixmanager.flappingTimeWindow: "
+      logger.warn("Exception while parsing helixmanager.maxDisconnectThreshold: "
           + System.getProperty("helixmanager.maxDisconnectThreshold", "" + MAX_DISCONNECT_THRESHOLD));
     }
     int sessionTimeoutInt = -1;
@@ -159,28 +159,6 @@ public class ZKHelixManager implements HelixManager
     {
       sessionTimeoutInt =
           Integer.parseInt(System.getProperty("helixmanager.flappingTimeWindow", ""
-              + DEFAULT_SESSION_TIMEOUT));
-    }
-    catch (NumberFormatException e)
-    {
-      logger.warn("Exception while parsing session timeout: "
-          + System.getProperty("zk.session.timeout", "" + DEFAULT_SESSION_TIMEOUT));
-    }
-    try
-    {
-      sessionTimeoutInt =
-          Integer.parseInt(System.getProperty("zk.session.timeout", ""
-              + DEFAULT_SESSION_TIMEOUT));
-    }
-    catch (NumberFormatException e)
-    {
-      logger.warn("Exception while parsing session timeout: "
-          + System.getProperty("zk.session.timeout", "" + DEFAULT_SESSION_TIMEOUT));
-    }
-    try
-    {
-      sessionTimeoutInt =
-          Integer.parseInt(System.getProperty("zk.session.timeout", ""
               + DEFAULT_SESSION_TIMEOUT));
     }
     catch (NumberFormatException e)

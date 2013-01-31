@@ -39,7 +39,7 @@ It requires the following parameters:
 ```
                                                       
 #Setting up a cluster
-Initial setup of a cluster, involves creating appropriate znodes in the cluster. 
+Initial setup of a cluster, involves creating appropriate znodes in the zookeeper. 
 
 ```
     //Create setuptool instance
@@ -130,7 +130,7 @@ cd helix
 mvn clean install -Dmaven.test.skip=true
 cd helix-core/target/helix-core-pkg/bin
 chmod +x *
-./run-helix-controller --zkSvr <ZookeeperServerAddress(Required)>  --cluster <Cluster name (Required)>
+./run-helix-controller.sh --zkSvr <ZookeeperServerAddress(Required)>  --cluster <Cluster name (Required)>
 ```
 
 ## Spectator Code
@@ -162,7 +162,7 @@ cd helix
 mvn clean install -Dmaven.test.skip=true
 cd helix-core/target/helix-core-pkg/bin
 chmod +x *
-./helix-admin --help
+./helix-admin.sh --help
 Provide zookeeper address. Required for all commands  
    --zkSvr <ZookeeperServerAddress(Required)>       
 
@@ -231,7 +231,9 @@ Enable/disable a partition
 
  * CUSTOMIZED mode: Allows one to set the is pre-generated from a JSON format file
 
- `setupTool.addIdealState(clusterName, resourceName, idealStateJsonFile)`
+ ```
+ setupTool.addIdealState(clusterName, resourceName, idealStateJsonFile)
+ ```
 
 
 
@@ -275,8 +277,8 @@ See BootstrapProcess.java in examples package to see how Participants can exchan
       //This will return only after all recipients respond or after timeout.
       int sentMessageCount = messagingService.sendAndWait(recipientCriteria,
           requestBackupUriRequest, responseHandler, timeout);
-
 ```
+
 For more details on MessagingService see ClusterMessagingService
 
 

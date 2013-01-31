@@ -33,14 +33,14 @@ Jump to download section to skip building code
 
 ### Download Helix
 
-Instead of building the package from the code, you can download the 0.5.28 release package from [here](http://linkedin.github.com/helix/download/release-0.5.28/helix-core-pkg-0.5.28.tar.gz) 
+Instead of building the package from the code, you can download the 0.6.0-incubating release package from [here](https://dist.apache.org/repos/dist/dev/incubator/helix/0.6.0-incubating/binaries/helix-core-0.6.0-incubating-pkg.tar) 
 
 Short Version
 -------------
 
     cd helix-core/target/helix-core-pkg/bin
     chmod +x *
-    ./quickstart
+    ./quickstart.sh
 
 
 This gives an overview of Helix Apis and how it facilitates Automatic Partition Management, Failure Handling and Cluster Expansion. 
@@ -66,20 +66,22 @@ Helix provides command line interfaces to setup the cluster and also view the cl
 
 Zookeeper can be started in standalone mode or replicated mode.
 
-More info is available at http://zookeeper.apache.org/doc/r3.3.3/zookeeperStarted.html
-and http://zookeeper.apache.org/doc/trunk/zookeeperAdmin.html#sc_zkMulitServerSetup
+More info is available at 
+
+* http://zookeeper.apache.org/doc/r3.3.3/zookeeperStarted.html
+* http://zookeeper.apache.org/doc/trunk/zookeeperAdmin.html#sc_zkMulitServerSetup
 
 In this example, we will start zookeeper in local mode.
 
 ### Cluster setup
 
-cluster-admin tool is used for cluster administration tasks. Apart from a command line interface Helix supports a REST interface as well.
+helix-admin tool is used for cluster administration tasks. Apart from a command line interface Helix supports a REST interface as well.
 
 zookeeper_address is of the format host:port e.g localhost:2199 for standalone or host1:port,host2:port for multi node.
 
 In the following section we will see how one can set up a mock mycluster cluster with 
 
-* 3 node instances running on localhost at 12913, 12914,12915 
+* 3 instances running on localhost at 12913, 12914,12915 
 * One database named MyDB with 6 partitions 
 * Each partition will have 3 replicas with 1 master, 2 slaves
 * zookeeper running locally at localhost:2199
@@ -88,43 +90,50 @@ Note that this mock cluster does not have any functionality apart from handling 
  
 ### Steps
 
-If you build the code
+* If you built the code
+
+```
 cd helix/helix-core/target/helix-core-pkg
-If you download the release package, extract it.
+```
+
+* If you downloaded the release package, extract it.
+
+```
 cd helix-core-pkg
+```
      
 ##### start zookeeper locally at port 2199
 
     ./start-standalone-zookeeper 2199 &
 
 ##### create the cluster mycluster
-    ## helix-admin --zkSvr localhost:2199 --addCluster <clustername> 
-    ./helix-admin --zkSvr localhost:2199 --addCluster mycluster 
+    ## helix-admin.sh --zkSvr localhost:2199 --addCluster <clustername> 
+    ./helix-admin.sh --zkSvr localhost:2199 --addCluster mycluster 
 
 ##### Create a database with 6 partitions using MasterSlave state model. This ensures there will be one master for each partition 
-    ### helix-admin --zkSvr localhost:2199  --addResource <clustername> <resourceName> <numPartitions> <StateModelName>
-    ./helix-admin --zkSvr localhost:2199  --addResource mycluster myDB 6 MasterSlave
+    ### helix-admin.sh --zkSvr localhost:2199  --addResource <clustername> <resourceName> <numPartitions> <StateModelName>
+    ./helix-admin.sh --zkSvr localhost:2199  --addResource mycluster myDB 6 MasterSlave
    
 ##### Add nodes to the cluster, in this case we add three nodes, hostname:port is host and port on which the service will start
-    ## helix-admin --zkSvr <zk_address>  --addNode <clustername> <host:port>
-    ./helix-admin --zkSvr localhost:2199  --addNode mycluster localhost:12913
-    ./helix-admin --zkSvr localhost:2199  --addNode mycluster localhost:12914
-    ./helix-admin --zkSvr localhost:2199  --addNode mycluster localhost:12915
+    ## helix-admin.sh --zkSvr <zk_address>  --addNode <clustername> <host:port>
+    ./helix-admin.sh --zkSvr localhost:2199  --addNode mycluster localhost:12913
+    ./helix-admin.sh --zkSvr localhost:2199  --addNode mycluster localhost:12914
+    ./helix-admin.sh --zkSvr localhost:2199  --addNode mycluster localhost:12915
 
 ##### After adding nodes assign partitions to nodes. This command will distribute the partitions amongst all the nodes in the cluster. Each partition will have 3 replicas    
-     helix-admin --rebalance <clustername> <resourceName> <replication factor>
-    ./helix-admin --zkSvr localhost:2199 --rebalance mycluster myDB 3
+     helix-admin.sh --rebalance <clustername> <resourceName> <replication factor>
+    ./helix-admin.sh --zkSvr localhost:2199 --rebalance mycluster myDB 3
 
 ##### Start Helix Controller
     #This will start the cluster manager which will manage <mycluster>
     ./run-helix-controller --zkSvr localhost:2199 --cluster mycluster 2>&1 > /tmp/controller.log &
 
 ##### Start Example Participant, This is a dummy participant where the transitions are no-ops.    
-    ./start-helix-participant --help
+    ./start-helix-participant.sh --help
     # start process 1 process corresponding to every host port added during cluster setup
-    ./start-helix-participant --zkSvr localhost:2199 --cluster mycluster --host localhost --port 12913 --stateModelType MasterSlave 2>&1 > /tmp/participant_12913.log 
-    ./start-helix-participant --zkSvr localhost:2199 --cluster mycluster --host localhost --port 12914 --stateModelType MasterSlave 2>&1 > /tmp/participant_12914.log
-    ./start-helix-participant --zkSvr localhost:2199 --cluster mycluster --host localhost --port 12915 --stateModelType MasterSlave 2>&1 > /tmp/participant_12915.log
+    ./start-helix-participant.sh --zkSvr localhost:2199 --cluster mycluster --host localhost --port 12913 --stateModelType MasterSlave 2>&1 > /tmp/participant_12913.log 
+    ./start-helix-participant.sh --zkSvr localhost:2199 --cluster mycluster --host localhost --port 12914 --stateModelType MasterSlave 2>&1 > /tmp/participant_12914.log
+    ./start-helix-participant.sh --zkSvr localhost:2199 --cluster mycluster --host localhost --port 12915 --stateModelType MasterSlave 2>&1 > /tmp/participant_12915.log
 
 
 ### Inspect Cluster Data
@@ -133,43 +142,44 @@ cd helix-core-pkg
 At any time, we can get the cluster status on zookeeper and view the partition assignment and current state of each partition.
 
 Command line tool
+
 ##### List existing clusters
-    ./helix-admin --zkSvr localhost:2199 --listClusters        
+    ./helix-admin.sh --zkSvr localhost:2199 --listClusters        
                                        
 #####  Query info of a cluster
 
-    #helix-admin --zkSvr localhost:2199 --listClusterInfo <clusterName> 
-    ./helix-admin --zkSvr localhost:2199 --listClusterInfo mycluster
+    #helix-admin.sh --zkSvr localhost:2199 --listClusterInfo <clusterName> 
+    ./helix-admin.sh --zkSvr localhost:2199 --listClusterInfo mycluster
 
 #####  List Instances in a cluster
-    ## helix-admin --zkSvr localhost:2199 --listInstances <clusterName>
-     ./helix-admin --zkSvr localhost:2199 --listInstances mycluster
+    ## helix-admin.sh --zkSvr localhost:2199 --listInstances <clusterName>
+     ./helix-admin.sh --zkSvr localhost:2199 --listInstances mycluster
     
 ##### Query info of a Instance in a cluster
-    #./helix-admin --zkSvr localhost:2199 --listInstanceInfo <clusterName InstanceName>    
-     ./helix-admin --zkSvr localhost:2199 --listInstanceInfo mycluster localhost_12913
-     ./helix-admin --zkSvr localhost:2199 --listInstanceInfo mycluster localhost_12914
-     ./helix-admin --zkSvr localhost:2199 --listInstanceInfo mycluster localhost_12915
+    #./helix-admin.sh --zkSvr localhost:2199 --listInstanceInfo <clusterName InstanceName>    
+     ./helix-admin.sh --zkSvr localhost:2199 --listInstanceInfo mycluster localhost_12913
+     ./helix-admin.sh --zkSvr localhost:2199 --listInstanceInfo mycluster localhost_12914
+     ./helix-admin.sh --zkSvr localhost:2199 --listInstanceInfo mycluster localhost_12915
 
 ##### List resourceGroups hosted in a cluster
-    ## helix-admin --zkSvr localhost:2199 --listResources <clusterName>
-    ./helix-admin --zkSvr localhost:2199 --listResources mycluster
+    ## helix-admin.sh --zkSvr localhost:2199 --listResources <clusterName>
+    ./helix-admin.sh --zkSvr localhost:2199 --listResources mycluster
     
 ##### Query info of a resource
-    ## helix-admin --zkSvr localhost:2199 --listResourceInfo <clusterName resourceName>
-    ./helix-admin --zkSvr localhost:2199 --listResourceInfo mycluster myDB
+    ## helix-admin.sh --zkSvr localhost:2199 --listResourceInfo <clusterName resourceName>
+    ./helix-admin.sh --zkSvr localhost:2199 --listResourceInfo mycluster myDB
 
 ##### Query info about a partition   
-    ## helix-admin --zkSvr localhost:2199 --listResourceInfo <clusterName partition> 
-    ./helix-admin --zkSvr localhost:2199 --listResourceInfo mycluster myDB_0
+    ## helix-admin.sh --zkSvr localhost:2199 --listResourceInfo <clusterName partition> 
+    ./helix-admin.sh --zkSvr localhost:2199 --listResourceInfo mycluster myDB_0
    
 ##### List all state models in the cluster
-    # helix-admin --zkSvr localhost:2199 --listStateModels <clusterName>
-    ./helix-admin --zkSvr localhost:2199 --listStateModels mycluster
+    # helix-admin.sh --zkSvr localhost:2199 --listStateModels <clusterName>
+    ./helix-admin.sh --zkSvr localhost:2199 --listStateModels mycluster
     
 ##### Query info about a state model in a cluster
-    ## helix-admin --zkSvr localhost:2199 --listStateModel <clusterName stateModelName>
-    ./helix-admin --zkSvr localhost:2199 --listStateModel mycluster MasterSlave
+    ## helix-admin.sh --zkSvr localhost:2199 --listStateModel <clusterName stateModelName>
+    ./helix-admin.sh --zkSvr localhost:2199 --listStateModel mycluster MasterSlave
 
 ##### ZOOINSPECTOR
 

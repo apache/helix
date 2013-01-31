@@ -141,3 +141,9 @@ Helix approach of using a distributed state machine with constraints on state an
 
 At LinkedIn, we have been able to use this to manage 3 different distributed systems that look very different on paper.  
    
+PUBLICATIONS
+-------------
+
+* Untangling cluster management using Helix at [SOCC 2012](http://www.socc2012.org/home/program)  
+    - [paper](https://915bbc94-a-62cb3a1a-s-sites.googlegroups.com/site/acm2012socc/helix_onecol.pdf)
+    - [presentation](https://docs.google.com/a/google.com/viewer?a=v&pid=sites&srcid=ZGVmYXVsdGRvbWFpbnxhY20yMDEyc29jY3xneDoyYTRlNjc2OTZhZTg3OTRm)

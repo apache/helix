@@ -24,7 +24,7 @@ under the License.
   <parent>
     <groupId>org.apache</groupId>
     <artifactId>apache</artifactId>
-    <version>12</version>
+    <version>13</version>
   </parent>
 
   <groupId>org.apache.helix</groupId>
@@ -203,9 +203,8 @@ under the License.
     <helix.release.performGoals>deploy</helix.release.performGoals>
     <helix.release.arguments>-Papache-release</helix.release.arguments>
 
-    <!-- for release changelog page -->
+    <!-- for release changelog and download pages -->
     <currentRelease>0.6.0-incubating</currentRelease>
-
 
   </properties>
 
@@ -428,7 +427,7 @@ under the License.
           <onlyCurrentVersion>true</onlyCurrentVersion>
           <resolutionIds>Fixed</resolutionIds>
           <sortColumnNames>Type</sortColumnNames>
-          <fixVersionIds>12323457</fixVersionIds>
+          <fixVersionIds>12324012</fixVersionIds>
           <useJql>true</useJql>
         </configuration>
         <reportSets>

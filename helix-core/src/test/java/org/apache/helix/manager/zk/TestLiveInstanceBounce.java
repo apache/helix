@@ -21,6 +21,7 @@ package org.apache.helix.manager.zk;
 
 import org.apache.helix.TestHelper;
 import org.apache.helix.TestHelper.StartCMResult;
+import org.apache.helix.ZkHelixTestManager;
 import org.apache.helix.integration.ZkStandAloneCMTestBase;
 import org.apache.helix.integration.ZkStandAloneCMTestBaseWithPropertyServerCheck;
 import org.apache.helix.manager.zk.ZKHelixManager;
@@ -36,7 +37,7 @@ public class TestLiveInstanceBounce extends ZkStandAloneCMTestBaseWithPropertySe
   {
     String controllerName = CONTROLLER_PREFIX + "_0";
     StartCMResult controllerResult = _startCMResultMap.get(controllerName);
-    ZKHelixManager controller = (ZKHelixManager) controllerResult._manager;
+    ZkHelixTestManager controller = (ZkHelixTestManager) controllerResult._manager;
     int handlerSize = controller.getHandlers().size();
 
     for (int i = 0; i < 2; i++)

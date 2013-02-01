@@ -33,6 +33,7 @@ import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.ZkHelixTestManager;
 import org.apache.helix.mock.participant.DummyProcess.DummyLeaderStandbyStateModelFactory;
 import org.apache.helix.mock.participant.DummyProcess.DummyOnlineOfflineStateModelFactory;
 import org.apache.helix.model.Message;
@@ -57,7 +58,7 @@ public class MockParticipant extends Thread
   private final CountDownLatch    _stopCountDown           = new CountDownLatch(1);
   private final CountDownLatch    _waitStopFinishCountDown = new CountDownLatch(1);
 
-  private final HelixManager      _manager;
+  private final ZkHelixTestManager _manager;
   private final StateModelFactory _msModelFactory;
   private final MockJobIntf       _job;
 
@@ -463,11 +464,7 @@ public class MockParticipant extends Thread
     _instanceName = instanceName;
     _msModelFactory = new MockMSModelFactory(transition);
 
-    _manager =
-        HelixManagerFactory.getZKHelixManager(_clusterName,
-                                              _instanceName,
-                                              InstanceType.PARTICIPANT,
-                                              zkAddr);
+    _manager = new ZkHelixTestManager(_clusterName, _instanceName, InstanceType.PARTICIPANT, zkAddr);
     _job = job;
   }
 
@@ -481,11 +478,7 @@ public class MockParticipant extends Thread
     _instanceName = instanceName;
     _msModelFactory = factory;
 
-    _manager =
-        HelixManagerFactory.getZKHelixManager(_clusterName,
-                                              _instanceName,
-                                              InstanceType.PARTICIPANT,
-                                              zkAddr);
+    _manager = new ZkHelixTestManager(_clusterName, _instanceName, InstanceType.PARTICIPANT, zkAddr);
     _job = job;
   }
 
@@ -494,7 +487,7 @@ public class MockParticipant extends Thread
     return _msModelFactory;
   }
 
-  public MockParticipant(HelixManager manager, MockTransition transition)
+  public MockParticipant(ZkHelixTestManager manager, MockTransition transition)
   {
     _clusterName = manager.getClusterName();
     _instanceName = manager.getInstanceName();

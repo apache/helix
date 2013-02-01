@@ -23,8 +23,8 @@ import java.util.UUID;
 
 import org.apache.helix.InstanceType;
 import org.apache.helix.TestHelper;
+import org.apache.helix.ZkHelixTestManager;
 import org.apache.helix.ZkTestHelper;
-import org.apache.helix.ZkTestHelper.TestZkHelixManager;
 import org.apache.helix.integration.ZkIntegrationTestBase;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -50,8 +50,8 @@ public class TestZkManagerFlappingDetection extends ZkIntegrationTestBase
     
     
       String instanceName = "localhost_" + (12918 + 0);
-      TestZkHelixManager manager =
-          new TestZkHelixManager(clusterName,
+      ZkHelixTestManager manager =
+          new ZkHelixTestManager(clusterName,
                                  instanceName,
                                  InstanceType.PARTICIPANT,
                                  ZK_ADDR);
@@ -117,8 +117,8 @@ public class TestZkManagerFlappingDetection extends ZkIntegrationTestBase
       // flapping time window to 5 sec
       System.setProperty("helixmanager.flappingTimeWindow", "10000");
       System.setProperty("helixmanager.maxDisconnectThreshold", "7");
-      TestZkHelixManager manager2 =
-          new TestZkHelixManager(clusterName,
+      ZkHelixTestManager manager2 =
+          new ZkHelixTestManager(clusterName,
                                  instanceName,
                                  type,
                                  ZK_ADDR);
@@ -168,8 +168,8 @@ public class TestZkManagerFlappingDetection extends ZkIntegrationTestBase
       // flapping time window to 5 sec
       System.setProperty("helixmanager.flappingTimeWindow", "5000");
       System.setProperty("helixmanager.maxDisconnectThreshold", "3");
-      TestZkHelixManager manager2 =
-          new TestZkHelixManager(clusterName,
+      ZkHelixTestManager manager2 =
+          new ZkHelixTestManager(clusterName,
                                  null,
                                  InstanceType.CONTROLLER,
                                  ZK_ADDR);

@@ -58,6 +58,8 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.StateModelDefinition.StateModelDefinitionProperty;
+import org.apache.helix.participant.DistClusterControllerStateModelFactory;
+import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.store.zk.ZNode;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.util.ZKClientPool;
@@ -138,12 +140,11 @@ public class TestHelper
                                                 final String instanceName) throws Exception
   {
     StartCMResult result = new StartCMResult();
-    HelixManager manager = null;
-    manager =
-        HelixManagerFactory.getZKHelixManager(clusterName,
-                                              instanceName,
-                                              InstanceType.PARTICIPANT,
-                                              zkAddr);
+    ZkHelixTestManager manager = null;
+    manager = new ZkHelixTestManager(clusterName,
+                                     instanceName,
+                                     InstanceType.PARTICIPANT,
+                                     zkAddr);
     result._manager = manager;
     Thread thread = new Thread(new DummyProcessThread(manager, instanceName));
     result._thread = thread;
@@ -152,6 +153,39 @@ public class TestHelper
     return result;
   }
 
+  private static ZkHelixTestManager startHelixController(final String zkConnectString,
+	      final String clusterName, final String controllerName, final String controllerMode)
+  {
+	ZkHelixTestManager manager = null;
+    try
+    {
+      if (controllerMode.equalsIgnoreCase(HelixControllerMain.STANDALONE))
+      {
+        manager = new ZkHelixTestManager(clusterName, controllerName, InstanceType.CONTROLLER, zkConnectString);
+        manager.connect();
+      } else if (controllerMode.equalsIgnoreCase(HelixControllerMain.DISTRIBUTED))
+      {
+        manager = new ZkHelixTestManager(clusterName, controllerName, InstanceType.CONTROLLER_PARTICIPANT, zkConnectString);
+
+        DistClusterControllerStateModelFactory stateModelFactory = new DistClusterControllerStateModelFactory(
+            zkConnectString);
+
+        StateMachineEngine stateMach = manager.getStateMachineEngine();
+        stateMach.registerStateModelFactory("LeaderStandby", stateModelFactory);
+        manager.connect();
+      } else
+      {
+        LOG.error("cluster controller mode:" + controllerMode + " NOT supported");
+      }
+    } catch (Exception e)
+    {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+
+    return manager;
+  }
+  
   // TODO refactor this
   public static StartCMResult startController(final String clusterName,
                                               final String controllerName,
@@ -159,11 +193,10 @@ public class TestHelper
                                               final String controllerMode) throws Exception
   {
     final StartCMResult result = new StartCMResult();
-    final HelixManager manager =
-        HelixControllerMain.startHelixController(zkConnectString,
-                                                 clusterName,
-                                                 controllerName,
-                                                 controllerMode);
+    final ZkHelixTestManager manager = startHelixController(zkConnectString,
+                                                 	clusterName,
+                                                 	controllerName,
+                                                 	controllerMode);
     result._manager = manager;
 
     Thread thread = new Thread(new Runnable()
@@ -201,7 +234,7 @@ public class TestHelper
   public static class StartCMResult
   {
     public Thread       _thread;
-    public HelixManager _manager;
+    public ZkHelixTestManager _manager;
 
   }
 
@@ -577,46 +610,6 @@ public class TestHelper
     msg.setStateModelDef("MasterSlave");
 
     return msg;
-  }
-
-  public static int numberOfListeners(String zkAddr, String path) throws Exception
-  {
-    int count = 0;
-    String splits[] = zkAddr.split(":");
-    Socket sock = new Socket(splits[0], Integer.parseInt(splits[1]));
-    PrintWriter out = new PrintWriter(sock.getOutputStream(), true);
-    BufferedReader in = new BufferedReader(new InputStreamReader(sock.getInputStream()));
-
-    out.println("wchp");
-
-    String line = in.readLine();
-    while (line != null)
-    {
-      // System.out.println(line);
-      if (line.equals(path))
-      {
-        // System.out.println("match: " + line);
-
-        String nextLine = in.readLine();
-        if (nextLine == null)
-        {
-          break;
-        }
-        // System.out.println(nextLine);
-        while (nextLine.startsWith("\t0x"))
-        {
-          count++;
-          nextLine = in.readLine();
-          if (nextLine == null)
-          {
-            break;
-          }
-        }
-      }
-      line = in.readLine();
-    }
-    sock.close();
-    return count;
   }
 
   public static String getTestMethodName()

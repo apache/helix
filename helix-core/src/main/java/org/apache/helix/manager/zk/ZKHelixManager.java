@@ -99,7 +99,7 @@ public class ZKHelixManager implements HelixManager
   private ZKHelixDataAccessor                  _helixAccessor;
   private ConfigAccessor                       _configAccessor;
   protected ZkClient                           _zkClient;
-  private final List<CallbackHandler>          _handlers;
+  protected final List<CallbackHandler>         _handlers;
   private final ZkStateChangeListener          _zkStateChangeListener;
   private final InstanceType                   _instanceType;
   volatile String                              _sessionId;
@@ -1067,11 +1067,6 @@ public class ZKHelixManager implements HelixManager
   public StateMachineEngine getStateMachineEngine()
   {
     return _stateMachEngine;
-  }
-
-  protected List<CallbackHandler> getHandlers()
-  {
-    return _handlers;
   }
 
   // TODO: rename this and not expose this function as part of interface

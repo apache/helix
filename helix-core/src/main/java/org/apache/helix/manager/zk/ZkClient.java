@@ -64,9 +64,11 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
   {
     super(connection, connectionTimeout, new ByteArraySerializer());
     _zkSerializer = zkSerializer;
-    if(LOG.isTraceEnabled()){
+    if(LOG.isTraceEnabled())
+    {
       StackTraceElement[] calls = Thread.currentThread().getStackTrace();
-      LOG.info("create a new zkclient. " + Arrays.asList(calls));
+      int min = Math.min(calls.length, 5);
+      LOG.trace("creating a zkclient. callstack: " + Arrays.asList(calls).subList(0, min));
     }
   }
 
@@ -137,11 +139,11 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
   @Override
   public void close() throws ZkInterruptedException
   {
-    if(LOG.isTraceEnabled()){
+    if(LOG.isTraceEnabled())
+    {
       StackTraceElement[] calls = Thread.currentThread().getStackTrace();
-      LOG.trace("closing a zkclient. zookeeper: "
-          + (_connection == null ? "null" : ((ZkConnection) _connection).getZookeeper())
-          + ", callStack: " + Arrays.asList(calls));
+      int min = Math.min(calls.length, 5);
+      LOG.trace("closing a zkclient. callStack: " + Arrays.asList(calls).subList(0, min));
     }
     super.close();
   }

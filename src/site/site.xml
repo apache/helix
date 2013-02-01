@@ -40,13 +40,12 @@
     </breadcrumbs>
 
     <menu name="Helix">
-      <item name="About" href="./index.html"/>
+      <item name="Introduction" href="./index.html"/>
       <item name="Quick Start" href="./Quickstart.html"/>
-      <item name="Api Usage" href="./ApiUsage.html"/>
+      <item name="Tutorial" href="./Tutorial.html"/>
       <item name="Architecture" href="./Architecture.html"/>
       <item name="Features" href="./Features.html"/>
-      <item name="Current release ${currentRelease}" href="releasenotes/release-${currentRelease}.html"/>
-      <item name="Current Version Change Log" href="./jira-report.html"/>
+      <item name="release ${currentRelease}" href="releasenotes/release-${currentRelease}.html"/>
       <item name="Download" href="./download.html"/>
     </menu>
     
@@ -65,9 +64,10 @@
       <item name="Building Guide" href="/involved/building.html"/>
       <item name="Release Guide" href="/releasing.html"/>
     </menu>
-
+<!--
     <menu ref="reports" inherit="bottom"/>
-    <!--<menu ref="modules" inherit="bottom"/>-->
+    <menu ref="modules" inherit="bottom"/>
+
 
     <menu name="ASF">
       <item name="How Apache Works" href="http://www.apache.org/foundation/how-it-works.html"/>
@@ -75,7 +75,7 @@
       <item name="Sponsoring Apache" href="http://www.apache.org/foundation/sponsorship.html"/>
       <item name="Thanks" href="http://www.apache.org/foundation/thanks.html"/>
     </menu>
-
+-->
 
   </body>
 
@@ -84,6 +84,11 @@
       <topBarEnabled>true</topBarEnabled>
       <sideBarEnabled>true</sideBarEnabled>
       <googleSearch></googleSearch>
+      <twitter>
+        <user>apachehelix</user>
+        <showUser>true</showUser>
+        <showFollowers>false</showFollowers>
+      </twitter>
     </fluidoSkin>
   </custom>
 

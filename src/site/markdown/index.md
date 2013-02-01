@@ -45,29 +45,35 @@ Helix is a generic cluster management framework used for the automatic managemen
 -----
 
 OVERVIEW
--------------
-Helix uses terms that are commonly used to describe distributed data system concepts. 
+---------
 
-1. Cluster: A logical set of Instances that perform a similar set of activities. 
-2. Instance: An Instance is a logical entity in the cluster that can be identified by a unique Id. 
-3. Node: A Node is a physical entity in the cluster. A Node can have one or more logical Instances. 
-4. Resource: A resource represents the logical entity hosted by the distributed system. It can be a database name, index or a task group name 
-5. Partition: A resource is generally split into one or more partitions.
-6. Replica: Each partition can have one or more replicas
-7. State: Each replica can have state associated with it. For example: Master, Slave, Leader, Stand By, Offline, Online etc. 
+A distributed system comprises of one or more *nodes*. Depending on the purpose, each node performs a specific task. For example, in a search system it can be a index, in a pub sub system it can be a topic/queue, in storage system it can be a database. Helix refers to such tasks as a *resource*. In order to scale the system, each node is responsible for a part of task referred to as *partition*. For scalability and fault tolerance, task associated with each partition can run on multiple nodes. Helix refers to them as *replica*. 
+ 
+Helix refers to each of the node in the cluster as a *PARTICIPANT*. As seen in many distributed system, there is a central component called *CONTROLLER* that co-ordinates the *PARTICIPANT*'s  during start up, failures and cluster expansion. In most distributed systems need to provide a service discovery mechanism for external entities like clients, request routers, load balancers to interact with the distributed system. These external entities are referred as SPECTATOR.
 
-To summarize, a resource (database, index or any task) in general is partitioned, replicated and distributed among the Instance/nodes in the cluster and each partition has a state associated with it. 
+Helix is built on top of Zookeeper and uses it store the cluster state and serves as the communication channel between CONTROLLER, PARTICIPANT and spectator. There is no single point of failure in Helix.
 
-Helix manages the state of a resource by supporting a pluggable distributed state machine. One can define the state machine table along with the constraints for each state. 
+Helix managed distributed system architecture.
 
-Here are some common state models used
+![Helix Design](images/HELIX-components.png)
 
-1. Master, Slave
-2. Online, Offline
-3. Leader, Standby.
 
-For example in the case of a MasterSlave state model one can specify the state machine as follows. The table says given a start state and an end state what should be the next state. 
-For example, if the current state is Offline and the target state is Master, the table says that the next state is Slave.  So in this case, Helix issues an Offline-Slave transition
+WHAT MAKES IT GENERIC
+---------------------
+
+Even though most distributed systems follow similar mechanism of co-ordinating the nodes through a controller or zookeeper, the implementation is 
+specific to the use case. Helix abstracts out the cluster management of distributed system from its core functionality. 
+
+Helix allows one to express the system behavior via Pluggable Finite State Machine 
+
+Consider the simple use cases where all partitions are actively processing search query request. 
+We can express it using a OnlineOffline state model where a task can be either 
+ONLINE (task is active) or OFFLINE (not active).
+
+Similarly take a slightly more complicated system, where we need three states OFFLINE, SLAVE and MASTER. 
+
+The following state machine table provides transition from start state to End state. For example, if the current state is Offline and the target state is Master,
+ the table says that the first transition must be Offline-Slave and then Slave-Master.
 
 ```
           OFFLINE  | SLAVE  |  MASTER  
@@ -84,25 +90,37 @@ MASTER  | SLAVE    | SLAVE  |   N/A   |
 
 ```
 
-Helix also supports the ability to provide constraints on each state. For example in a MasterSlave state model with a replication factor of 3 one can say 
+
+Another unique feature of Helix is it allows one to add constraints on each state and transitions. 
+
+For example 
+In a OnlineOffline state model one can enforce a constraint that there should be 3 replicas in ONLINE state per partition.
+
+    ONLINE:3
+
+In a MasterSlave state model with a replication factor of 3 one can enforce a single master by specifying constraints on number of Masters and Slaves.
 
     MASTER:1 
     SLAVE:2
 
-Helix will automatically maintain 1 Master and 2 Slaves by initiating appropriate state transitions on each instance in the cluster. 
+Given these constraints, Helix will ensure that there is 1 Master and 2 Slaves by initiating appropriate state transitions in the cluster.
 
-Each transition results in a partition moving from its CURRENT state to a NEW state. These transitions are triggered on changes in the cluster state like 
 
-* Node start up
-* Node soft and hard failures 
-* Addition of resources
-* Addition of nodes
+Apart from Constraints on STATES, Helix supports constraints on transitions as well. For example, consider a OFFLINE-BOOTSTRAP transition where a service download the index over the network. 
+Without any throttling during start up of a cluster, all nodes might start downloading at once which might impact the system stability. 
+Using Helix with out changing any application code, one can simply place a constraint of max 5 transitions OFFLINE-BOOTSTRAP across the entire cluster.
 
-In simple words, Helix is a distributed state machine with support for constraints on each state.
+The constraints can be at any scope node, resource, transition type and 
+
+Helix comes with 3 commonly used state models, you can also plugin your custom state model. 
+
+1. Master, Slave
+2. Online, Offline
+3. Leader, Standby.
+
 
 Helix framework can be used to build distributed, scalable, elastic and fault tolerant systems by configuring the distributed state machine and its constraints based on application requirements. The application has to provide the implementation for handling state transitions appropriately. Example 
 
-Once the state machine and constraints are configured through Helix, application will have the provide implementation to handle the transitions appropriately.  
 
 ```
 MasterSlaveStateModel extends HelixStateModel {
@@ -122,24 +140,60 @@ MasterSlaveStateModel extends HelixStateModel {
 }
 ```
 
-Once the state machine is configured, the framework allows one to 
+Each transition results in a partition moving from its CURRENT state to a NEW state. These transitions are triggered on changes in the cluster state like 
 
-* Dynamically add nodes to the cluster
-* Automatically modify the topology(rebalance partitions) of the cluster  
-* Dynamically add resources to the cluster
-* Enable/disable partition/instances for software upgrade without impacting availability.
+* Node start up
+* Node soft and hard failures 
+* Addition of resources
+* Addition of nodes
 
-Helix uses Zookeeper for maintaining the cluster state and change notifications.
+
+TERMINOLOGIES
+-------------
+Helix uses terms that are commonly used to describe distributed data system concepts. 
+
+1. Cluster: A logical set of Instances that perform a similar set of activities. 
+2. Instance: An Instance is a logical entity in the cluster that can be identified by a unique Id. 
+3. Node: A Node is a physical entity in the cluster. A Node can have one or more logical Instances. 
+4. Resource: A resource represents the logical entity hosted by the distributed system. It can be a database name, index or a task group name 
+5. Partition: A resource is generally split into one or more partitions.
+6. Replica: Each partition can have one or more replicas
+7. State: Each replica can have state associated with it. For example: Master, Slave, Leader, Stand By, Offline, Online etc. 
+
+
 
 WHY HELIX
 -------------
-Helix approach of using a distributed state machine with constraints on state and transitions has benefited us in multiple ways.
+Helix approach of using a distributed state machine with constraints on state and transitions has the following benefits
 
-* Abstract cluster management aspects from the core functionality of DDS.
-* Each node in DDS is not aware of the global state since they simply have to follow . This proved quite useful since we could deploy the same system in different topologies.
+* Abstract cluster management from the core functionality.
+* Quick transformation from a single node system to a distributed system.
+* PARTICIPANT is not aware of the global state since they simply have to follow the instructions issued by the CONTROLLER. This design provide clear division of responsibilities and easier to debug issues.
 * Since the controller's goal is to satisfy state machine constraints at all times, use cases like cluster startup, node failure, cluster expansion are solved in a similar way.
 
-At LinkedIn, we have been able to use this to manage 3 different distributed systems that look very different on paper.  
+
+BUILD INSTRUCTIONS
+-------------------------
+
+Requirements: Jdk 1.6+, Maven 2.0.8+
+
+```
+    git clone https://git-wip-us.apache.org/repos/asf/incubator-helix.git
+    cd incubator-helix
+    mvn install package -DskipTests 
+```
+
+Maven dependency
+
+```
+    <dependency>
+      <groupId>org.apache.helix</groupId>
+      <artifactId>helix-core</artifactId>
+      <version>0.6.0-incubating</version>
+    </dependency>
+```
+
+[Download](./download.html) Helix artifacts from here.
    
 PUBLICATIONS
 -------------

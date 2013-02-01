@@ -104,7 +104,7 @@ cd helix-core-pkg
      
 ##### start zookeeper locally at port 2199
 
-    ./start-standalone-zookeeper 2199 &
+    ./start-standalone-zookeeper.sh 2199 &
 
 ##### create the cluster mycluster
     ## helix-admin.sh --zkSvr localhost:2199 --addCluster <clustername> 

@@ -44,8 +44,8 @@ under the License.
     </section>
 
     <section name="Current Release">
-      <p>Release date: ?</p>
-      <p><a href="releasenotes/release-${currentRelease}.html">Release notes</a></p>
+      <p>Release date: 01/29/2013 </p>
+      <p><a href="releasenotes/release-${currentRelease}.html">0.6.0-incubating Release notes</a></p>
       <a name="mirror"/>
       <subsection name="Mirror">
 

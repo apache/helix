@@ -19,34 +19,15 @@ package org.apache.helix;
  * under the License.
  */
 
-public interface HelixConstants
+import java.util.List;
+
+public interface ScopedConfigChangeListener 
 {
-  // ChangeType and PropertyType are the same; remove this
-  enum ChangeType
-  {
-    // @formatter:off
-    IDEAL_STATE,
-    CONFIG,
-    INSTANCE_CONFIG,
-    LIVE_INSTANCE,
-    CURRENT_STATE,
-    MESSAGE,
-    EXTERNAL_VIEW,
-    CONTROLLER,
-    MESSAGES_CONTROLLER,
-    HEALTH
-    // @formatter:on
-  }
-
-  enum StateModelToken
-  {
-    ANY_LIVEINSTANCE
-  }
-
-  enum ClusterConfigType
-  {
-    HELIX_DISABLE_PIPELINE_TRIGGERS
-  }
-
-  static final String DEFAULT_STATE_MODEL_FACTORY = "DEFAULT";
+    /**
+     * Invoked when configs of a scope (cluster, participant, or resource) change
+     * 
+     * @param configs
+     * @param context
+     */
+    public void onConfigChange(List<HelixProperty> configs, NotificationContext context);
 }

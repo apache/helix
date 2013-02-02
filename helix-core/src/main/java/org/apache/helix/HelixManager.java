@@ -21,6 +21,7 @@ package org.apache.helix;
 
 import java.util.List;
 
+import org.apache.helix.ConfigScope.ConfigScopeProperty;
 import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
 import org.apache.helix.participant.HelixStateMachineEngine;
@@ -100,9 +101,25 @@ public interface HelixManager
   /**
    * @see ConfigChangeListener#onConfigChange(List, NotificationContext)
    * @param listener
+   * 
+   * @deprecated replaced by addInstanceConfigChangeListener()
    */
   void addConfigChangeListener(ConfigChangeListener listener) throws Exception;
 
+  /**
+   * @see InstanceConfigChangeListener#onInstanceConfigChange(List, NotificationContext)
+   * @param listener
+   * 
+   */
+  void addInstanceConfigChangeListener(InstanceConfigChangeListener listener) throws Exception;
+
+  /**
+   * @see ScopedConfigChangeListener#onConfigChange(List, NotificationContext)
+   * @param listener
+   * @param scope
+   */
+  void addConfigChangeListener(ScopedConfigChangeListener listener, ConfigScopeProperty scope) throws Exception;
+  
   /**
    * @see MessageListener#onMessage(String, List, NotificationContext)
    * @param listener

@@ -24,6 +24,7 @@ import java.util.UUID;
 import org.apache.helix.ClusterMessagingService;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.ConfigChangeListener;
+import org.apache.helix.ConfigScope.ConfigScopeProperty;
 import org.apache.helix.ControllerChangeListener;
 import org.apache.helix.CurrentStateChangeListener;
 import org.apache.helix.ExternalViewChangeListener;
@@ -32,10 +33,12 @@ import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.IdealStateChangeListener;
+import org.apache.helix.InstanceConfigChangeListener;
 import org.apache.helix.InstanceType;
 import org.apache.helix.LiveInstanceChangeListener;
 import org.apache.helix.MessageListener;
 import org.apache.helix.PreConnectCallback;
+import org.apache.helix.ScopedConfigChangeListener;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -263,6 +266,19 @@ public class MockZKHelixManager implements HelixManager
   {
     // TODO Auto-generated method stub
     return null;
+  }
+  
+  @Override
+  public void addInstanceConfigChangeListener(InstanceConfigChangeListener listener) throws Exception {
+  	// TODO Auto-generated method stub
+
+  }
+
+  @Override
+  public void addConfigChangeListener(ScopedConfigChangeListener listener, ConfigScopeProperty scope)
+          throws Exception {
+  	// TODO Auto-generated method stub
+
   }
 
 }

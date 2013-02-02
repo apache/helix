@@ -205,7 +205,7 @@ public class HelixProperty
   
   public boolean isValid()
   {
-    return false;
+    return true;
   }
 
   @Override

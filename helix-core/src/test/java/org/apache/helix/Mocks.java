@@ -34,6 +34,7 @@ import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ClusterMessagingService;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.ConfigChangeListener;
+import org.apache.helix.ConfigScope.ConfigScopeProperty;
 import org.apache.helix.ControllerChangeListener;
 import org.apache.helix.Criteria;
 import org.apache.helix.CurrentStateChangeListener;
@@ -474,6 +475,20 @@ public class Mocks {
     {
       // TODO Auto-generated method stub
       return null;
+    }
+    
+    @Override
+    public void addInstanceConfigChangeListener(InstanceConfigChangeListener listener)
+            throws Exception {
+	    // TODO Auto-generated method stub
+
+    }
+
+	@Override
+    public void addConfigChangeListener(ScopedConfigChangeListener listener,
+            ConfigScopeProperty scope) throws Exception {
+	    // TODO Auto-generated method stub
+
     }
 
 	}

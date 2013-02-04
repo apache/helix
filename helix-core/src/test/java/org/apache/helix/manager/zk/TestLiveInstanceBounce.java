@@ -64,15 +64,18 @@ public class TestLiveInstanceBounce extends ZkStandAloneCMTestBaseWithPropertySe
     boolean result = ClusterStateVerifier.verifyByPolling(
         new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_NAME), 50 * 1000);
     Assert.assertTrue(result);
-    // When a new live instance is created, we still add current state listener to it thus number should increase by 2
-    for(int j = 0; j < 10; j++)
+
+    // When a new live instance is created, we add current state listener to it
+    // and we will remove current-state listener on expired session
+    // so the number of callback handlers is unchanged
+    for (int j = 0; j < 10; j++)
     {
-      if(controller.getHandlers().size() == (handlerSize + 2))
+      if(controller.getHandlers().size() == (handlerSize))
       {
         break;
       }
       Thread.sleep(400);
     }
-    Assert.assertEquals( controller.getHandlers().size(), handlerSize + 2);
+    Assert.assertEquals( controller.getHandlers().size(), handlerSize);
   }
 }

@@ -505,7 +505,7 @@ public class MockParticipant extends Thread
     }
   }
 
-  public HelixManager getManager()
+  public ZkHelixTestManager getManager()
   {
     return _manager;
   }

@@ -384,7 +384,7 @@ public class Mocks {
 		}
 
 		@Override
-		public boolean removeListener(Object listener) {
+		public boolean removeListener(PropertyKey key, Object listener) {
 			// TODO Auto-generated method stub
 			return false;
 		}

@@ -38,6 +38,7 @@ import org.apache.helix.InstanceType;
 import org.apache.helix.LiveInstanceChangeListener;
 import org.apache.helix.MessageListener;
 import org.apache.helix.PreConnectCallback;
+import org.apache.helix.PropertyKey;
 import org.apache.helix.ScopedConfigChangeListener;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
@@ -132,7 +133,7 @@ public class MockZKHelixManager implements HelixManager
   }
 
   @Override
-  public boolean removeListener(Object listener)
+  public boolean removeListener(PropertyKey key, Object listener)
   {
     // TODO Auto-generated method stub
     return false;

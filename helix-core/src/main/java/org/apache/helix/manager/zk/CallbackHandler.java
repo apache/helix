@@ -350,7 +350,8 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
       }
       catch (ZkNoNodeException e)
       {
-        logger.warn("fail to subscribe child/data change@" + path, e);
+        logger.warn("fail to subscribe child/data change@. path: " + path 
+        		+ ", listener: " + _listener, e);
       }
     }
 
@@ -396,6 +397,8 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
     }
     catch (Exception e)
     {
+      logger.error("exception in handling data-change. path: " + dataPath 
+    		  + ", listener: " + _listener);
       ZKExceptionHandler.getInstance().handle(e);
     }
   }
@@ -412,7 +415,8 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
         		  + dataPath + ", listener: " + _listener);
           _zkClient.unsubscribeDataChanges(dataPath, this);
 
-          // only needed for bucketized parent, but OK if we don't have child-change watch on the path
+          // only needed for bucketized parent, but OK if we don't have child-change 
+          //  watch on the bucketized parent path
           logger.info(_manager.getInstanceName() + " unsubscribe child-change. path: "
         		  + dataPath + ", listener: " + _listener);
           _zkClient.unsubscribeChildChanges(dataPath, this);
@@ -444,6 +448,8 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
     }
     catch (Exception e)
     {
+      logger.error("exception in handling child-change. parentPath: " 
+    		  + parentPath + ", listener: " + _listener);
       ZKExceptionHandler.getInstance().handle(e);
     }
   }

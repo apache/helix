@@ -29,6 +29,7 @@ import org.apache.helix.ConfigScopeBuilder;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixException;
 import org.apache.helix.InstanceType;
+import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
@@ -88,9 +89,10 @@ public class TestZkClusterManager extends ZkUnitTestBase
       // OK
     }
 
+    Builder keyBuilder = new Builder(controller.getClusterName());
     controller.addControllerListener(listener);
     AssertJUnit.assertTrue(listener.isControllerChangeListenerInvoked);
-    controller.removeListener(listener);
+    controller.removeListener(keyBuilder.controller(), listener);
 
     ZkHelixPropertyStore<ZNRecord> store = controller.getHelixPropertyStore();
     ZNRecord record = new ZNRecord("node_1");

@@ -151,7 +151,8 @@ public class HelixControllerMain
       manager.addConfigChangeListener(controller);
       manager.addLiveInstanceChangeListener(controller);
       manager.addIdealStateChangeListener(controller);
-      manager.addExternalViewChangeListener(controller);
+      // no need for controller to listen on external-view
+      // manager.addExternalViewChangeListener(controller);
       manager.addControllerListener(controller);
     } catch (ZkInterruptedException e)
     {

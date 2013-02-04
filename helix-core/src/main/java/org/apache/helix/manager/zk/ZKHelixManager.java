@@ -102,7 +102,7 @@ public class ZKHelixManager implements HelixManager
   private ZKHelixDataAccessor                  _helixAccessor;
   private ConfigAccessor                       _configAccessor;
   protected ZkClient                           _zkClient;
-  protected final List<CallbackHandler>         _handlers;
+  protected List<CallbackHandler>         	   _handlers;
   private final ZkStateChangeListener          _zkStateChangeListener;
   private final InstanceType                   _instanceType;
   volatile String                              _sessionId;
@@ -201,8 +201,6 @@ public class ZKHelixManager implements HelixManager
     _zkStateChangeListener = new ZkStateChangeListener(this, _flappingTimeWindowMs, _maxDisconnectThreshold);
     _timer = null;
 
-    _handlers = new ArrayList<CallbackHandler>();
-
     _messagingService = new DefaultMessagingService(this);
 
     _version =
@@ -246,6 +244,35 @@ public class ZKHelixManager implements HelixManager
     return true;
   }
   
+  @Override
+  public boolean removeListener(PropertyKey key, Object listener)
+  {
+    logger.info("Removing listener: " + listener + " on path: " + key.getPath() 
+    		+ " from cluster: " + _clusterName + " by instance: " + _instanceName);
+
+    synchronized (this)
+    {
+      List<CallbackHandler> toRemove = new ArrayList<CallbackHandler>();
+      for (CallbackHandler handler : _handlers)
+      {
+        // compare property-key path and listener reference
+        if (handler.getPath().equals(key.getPath()) && handler.getListener().equals(listener))
+        {
+          toRemove.add(handler);
+        }
+      }
+      
+      _handlers.removeAll(toRemove);
+      
+      // handler.reset() may modify the handlers list, so do it outside the iteration
+      for (CallbackHandler handler : toRemove) {
+    	  handler.reset();
+      }
+    }
+
+    return true;
+  }
+
   private void addListener(Object listener, PropertyKey propertyKey, ChangeType changeType, EventType[] eventType)
   {
     checkConnected();
@@ -494,30 +521,6 @@ public class ZKHelixManager implements HelixManager
     return -1;
   }
 
-  @Override
-  public boolean removeListener(Object listener)
-  {
-	logger.info("remove listener: " + listener + " from cluster: " + _clusterName 
-			+ ", instance: " + _instanceName);
-
-    synchronized (this)
-    {
-      Iterator<CallbackHandler> iterator = _handlers.iterator();
-      while (iterator.hasNext())
-      {
-        CallbackHandler handler = iterator.next();
-        // simply compare reference
-        if (handler.getListener().equals(listener))
-        {
-          handler.reset();
-          iterator.remove();
-        }
-      }
-    }
-
-    return true;
-  }
-
   private void addLiveInstance()
   {
     LiveInstance liveInstance = new LiveInstance(_instanceName);
@@ -686,7 +689,10 @@ public class ZKHelixManager implements HelixManager
     }
     _baseDataAccessor.reset();
 
+    // reset all handlers so they have a chance to unsubscribe zk changes from zkclient
+    // abandon all callback-handlers added in expired session
     resetHandlers();
+    _handlers = new ArrayList<CallbackHandler>();
 
     logger.info("Handling new session, session id:" + _sessionId + ", instance:"
         + _instanceName + ", instanceTye: " + _instanceType + ", cluster: " + _clusterName);
@@ -730,22 +736,13 @@ public class ZKHelixManager implements HelixManager
                        .registerMessageHandlerFactory(defaultParticipantErrorMessageHandlerFactory.getMessageType(),
                                                       defaultParticipantErrorMessageHandlerFactory);
 
-      if (_leaderElectionHandler == null)
-      {
-        final String path =
-            PropertyPathConfig.getPath(PropertyType.CONTROLLER, _clusterName);
-
-        _leaderElectionHandler =
+      // create a new leader-election handler for a new session
+      _leaderElectionHandler =
             createCallBackHandler(new Builder(_clusterName).controller(),
                                   new DistClusterControllerElection(_zkConnectString),
                                   new EventType[] { EventType.NodeChildrenChanged,
                                       EventType.NodeDeleted, EventType.NodeCreated },
                                   ChangeType.CONTROLLER);
-      }
-      else
-      {
-        _leaderElectionHandler.init();
-      }
     }
 
     if (_instanceType == InstanceType.PARTICIPANT
@@ -830,42 +827,38 @@ public class ZKHelixManager implements HelixManager
   {
     synchronized (this)
     {
-      // get a copy of the list and iterate over the copy list
-      // in case handler.reset() will modify the original handler list
-      List<CallbackHandler> handlers = new ArrayList<CallbackHandler>();
-      handlers.addAll(_handlers);
+    	if (_handlers != null)
+        {
+            // get a copy of the list and iterate over the copy list
+            // in case handler.reset() will modify the original handler list
+            List<CallbackHandler> tmpHandlers = new ArrayList<CallbackHandler>();
+            tmpHandlers.addAll(_handlers);
 
-      for (CallbackHandler handler : handlers)
-      {
-        handler.reset();
-        logger.info("reset handler: " + handler.getPath() + " by "
-            + Thread.currentThread().getName());
-      }
+            for (CallbackHandler handler : tmpHandlers)
+            {
+              handler.reset();
+              logger.info("reset handler: " + handler.getPath() + ", " + handler.getListener());
+            }
+        }
     }
   }
 
   private void initHandlers()
   {
-    // may add new currentState and message listeners during init()
-    // so make a copy and iterate over the copy
     synchronized (this)
     {
-      List<CallbackHandler> handlers = new ArrayList<CallbackHandler>();
-      handlers.addAll(_handlers);
-      for (CallbackHandler handler : handlers)
-      {
-        handler.init();
-      }
-    }
-  }
-
-  private void addListener(CallbackHandler handler)
-  {
-    synchronized (this)
-    {
-      _handlers.add(handler);
-      logger.info("add handler: " + handler.getPath() + " by "
-          + Thread.currentThread().getName());
+    	if (_handlers != null)
+    	{
+    	  // may add new currentState and message listeners during init()
+    	  // so make a copy and iterate over the copy
+    	  List<CallbackHandler> tmpHandlers = new ArrayList<CallbackHandler>();
+    	  tmpHandlers.addAll(_handlers);
+          for (CallbackHandler handler : tmpHandlers)
+          {
+            handler.init();
+            logger.info("init handler: " + handler.getPath() + ", " + handler.getListener());
+          }
+    	}
     }
   }
 

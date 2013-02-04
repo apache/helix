@@ -106,7 +106,7 @@ public class TestAddStateModelFactoryAfterConnect extends ZkIntegrationTestBase
       long now = System.currentTimeMillis();
       if (now - start > 5000)
       {
-        Assert.fail("Timeout waiting for an empty external view of TestDB1");
+        Assert.fail("Timeout waiting for an empty external view of TestDB1. extView: " + extView);
       }
     }
     Assert.assertEquals(extView.getRecord().getMapFields().size(),

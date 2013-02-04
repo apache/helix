@@ -290,15 +290,19 @@ public class TestAlertFireHistory extends ZkStandAloneCMTestBaseWithPropertyServ
       
       setHealthData(metricsx, metricsy);
       task.run();
-      Thread.sleep(100);
-      history = helixDataAccessor.getProperty(keyBuilder.alertHistory()).getRecord();
+      for (int j = 0; j < 10; j++) {
+          Thread.sleep(100);
+          history = helixDataAccessor.getProperty(keyBuilder.alertHistory()).getRecord();
+          recordMap = new TreeMap<String, Map<String, String>>();
+          recordMap.putAll( history.getMapFields());
+          lastRecord = recordMap.lastEntry().getValue();
+          
+          if (history.getMapFields().size() == 30 && lastRecord.size() == 10)
+        	  break;
+      }
+      Assert.assertEquals(history.getMapFields().size(), 30, "expect history.map-field size is 30, but was " + history);
+      Assert.assertEquals(lastRecord.size() , 10, "expect last-record size is 10, but was " + lastRecord);
       
-      Assert.assertEquals(history.getMapFields().size(), 30);
-      recordMap = new TreeMap<String, Map<String, String>>();
-      recordMap.putAll( history.getMapFields());
-      lastRecord = recordMap.lastEntry().getValue();
-      
-      Assert.assertEquals(lastRecord.size() , 10);
       if(x == 0)
       {
         Assert.assertTrue(lastRecord.get("(localhost_12922.TestStat@DB#db1.TestMetric2)GREATER(100)").equals("ON"));

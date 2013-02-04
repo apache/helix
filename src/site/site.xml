@@ -93,6 +93,13 @@
       <item name="Thanks" href="http://www.apache.org/foundation/thanks.html"/>
     </menu>
 -->
+    <footer>
+      <div class="row span16"><div>Apache Helix, Apache, the Apache feather logo, and the Apache Helix project logos are trademarks of The Apache Software Foundation.
+        All other marks mentioned may be trademarks or registered trademarks of their respective owners.</div>
+        <a href="${project.url}/privacy-policy.html">Privacy Policy</a>
+      </div>
+    </footer>
+
 
   </body>
 

@@ -116,7 +116,8 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase
     }
     long endT = System.currentTimeMillis();
     System.out.println("1000 Get() time used: " + (endT - startT) + "ms");
-    Assert.assertTrue((endT - startT) < 60, "1000 Gets should be finished within 50ms");
+    long latency = endT - startT;
+    Assert.assertTrue(latency < 100, "1000 Gets should be finished within 100ms, but was " + latency + " ms");
 
     store.stop();
     System.out.println("END testSet() at " + new Date(System.currentTimeMillis()));
@@ -171,7 +172,11 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase
     int expectDeleteNodes = 1 + firstLevelNr + firstLevelNr * secondLevelNr;
     store.remove("/", 0);
     // wait until all callbacks have been received
-    Thread.sleep(500);
+    for (int i = 0; i < 10; i++) {
+    	if (listener._deleteKeys.size() == expectDeleteNodes)
+    		break;
+    	Thread.sleep(500);
+    }
 
     System.out.println("createKey#:" + listener._createKeys.size() + ", changeKey#:"
         + listener._changeKeys.size() + ", deleteKey#:" + listener._deleteKeys.size());
@@ -216,7 +221,11 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase
     listener.reset();
     setNodes(_gZkClient, subRoot, 'b', true);
     int expectChangeNodes = firstLevelNr * secondLevelNr;
-    Thread.sleep(500);
+    for (int i = 0; i < 10; i++) {
+    	if (listener._changeKeys.size() >= expectChangeNodes)
+    		break;
+    	Thread.sleep(500);
+    }
 
     System.out.println("createKey#:" + listener._createKeys.size() + ", changeKey#:"
         + listener._changeKeys.size() + ", deleteKey#:" + listener._deleteKeys.size());

@@ -19,15 +19,6 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
-import static org.apache.helix.HelixConstants.ChangeType.CONFIG;
-import static org.apache.helix.HelixConstants.ChangeType.CURRENT_STATE;
-import static org.apache.helix.HelixConstants.ChangeType.EXTERNAL_VIEW;
-import static org.apache.helix.HelixConstants.ChangeType.HEALTH;
-import static org.apache.helix.HelixConstants.ChangeType.IDEAL_STATE;
-import static org.apache.helix.HelixConstants.ChangeType.LIVE_INSTANCE;
-import static org.apache.helix.HelixConstants.ChangeType.MESSAGE;
-import static org.apache.helix.HelixConstants.ChangeType.MESSAGES_CONTROLLER;
-
 import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -737,6 +728,9 @@ public class ZKHelixManager implements HelixManager
                                                       defaultParticipantErrorMessageHandlerFactory);
 
       // create a new leader-election handler for a new session
+      if (_leaderElectionHandler != null) {
+    	  _leaderElectionHandler.reset();
+      }
       _leaderElectionHandler =
             createCallBackHandler(new Builder(_clusterName).controller(),
                                   new DistClusterControllerElection(_zkConnectString),

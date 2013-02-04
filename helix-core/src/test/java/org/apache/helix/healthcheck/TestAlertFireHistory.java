@@ -206,14 +206,25 @@ public class TestAlertFireHistory extends ZkStandAloneCMTestBaseWithPropertyServ
     int [] metrics6 = {0, 0, 0, 0,0};
     setHealthData(metrics5, metrics6);
     task.run();
-    Thread.sleep(500);
-    history = helixDataAccessor.getProperty(keyBuilder.alertHistory()).getRecord();
+    
+    for (int i = 0; i < 10; i++) 
+    {
+        Thread.sleep(500);
+        history = helixDataAccessor.getProperty(keyBuilder.alertHistory()).getRecord();
+        recordMap = new TreeMap<String, Map<String, String>>();
+        recordMap.putAll( history.getMapFields());
+        lastRecord = recordMap.lastEntry().getValue();
+
+        if (history.getMapFields().size() == 3 + historySize && lastRecord.size() == 6) {
+        	break;
+        }
+    }
+    
     // reset everything
-    Assert.assertEquals(history.getMapFields().size(), 3 + historySize);
-    recordMap = new TreeMap<String, Map<String, String>>();
-    recordMap.putAll( history.getMapFields());
-    lastRecord = recordMap.lastEntry().getValue();
-    Assert.assertTrue(lastRecord.size() == 6);
+    Assert.assertEquals(history.getMapFields().size(), 3 + historySize, 
+    		"expect history-map-field size is " + (3 + historySize) + ", but was " + history);
+    Assert.assertTrue(lastRecord.size() == 6, "expect last-record size is 6, but was " + lastRecord);
+    
     Assert.assertTrue(lastRecord.get("(localhost_12918.TestStat@DB#db1.TestMetric1)GREATER(20)").equals("OFF"));
     Assert.assertTrue(lastRecord.get("(localhost_12920.TestStat@DB#db1.TestMetric1)GREATER(20)").equals("OFF"));
     Assert.assertTrue(lastRecord.get("(localhost_12920.TestStat@DB#db1.TestMetric2)GREATER(100)").equals("OFF"));

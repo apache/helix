@@ -19,7 +19,9 @@ package org.apache.helix.integration;
  * under the License.
  */
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
@@ -29,6 +31,7 @@ import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.mock.controller.ClusterController;
 import org.apache.helix.mock.participant.MockParticipant;
 import org.apache.helix.mock.participant.MockParticipant.MockMSModelFactory;
+import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.tools.ClusterSetup;
@@ -41,7 +44,7 @@ import org.testng.annotations.Test;
 public class TestAddStateModelFactoryAfterConnect extends ZkIntegrationTestBase
 {
   @Test
-  public void testAddStateModelFactoryAfterConnect() throws Exception
+  public void testBasic() throws Exception
   {
     // Logger.getRootLogger().setLevel(Level.INFO);
     String className = TestHelper.getTestClassName();
@@ -97,18 +100,26 @@ public class TestAddStateModelFactoryAfterConnect extends ZkIntegrationTestBase
 
     // external view for TestDB1 should be empty
     ExternalView extView = null;
-    long start = System.currentTimeMillis();
-    while (extView == null)
+    for (int i = 0; i < 10; i++)
     {
-      Thread.sleep(50);
+      Thread.sleep(100);
       extView = accessor.getProperty(keyBuilder.externalView("TestDB1"));
 
-      long now = System.currentTimeMillis();
-      if (now - start > 5000)
-      {
-        Assert.fail("Timeout waiting for an empty external view of TestDB1. extView: " + extView);
-      }
+      if (extView != null)
+    	  break;
     }
+
+    if (extView == null) {
+    	// output current-state for debug
+    	List<CurrentState> curStates = new ArrayList<CurrentState>();
+    	for (int i = 0; i < n; i++) {
+    		CurrentState curState = accessor.getProperty(keyBuilder.currentState(participants[i].getInstanceName(), 
+    				participants[i].getManager().getSessionId(), "TestDB1"));
+    		curStates.add(curState);
+    	}
+    	Assert.fail("Timeout waiting for an empty external view of TestDB1. curStates: " + curStates);
+    }
+
     Assert.assertEquals(extView.getRecord().getMapFields().size(),
                         0,
                         "External view for TestDB1 should be empty since TestDB1 is added without a state model factory");

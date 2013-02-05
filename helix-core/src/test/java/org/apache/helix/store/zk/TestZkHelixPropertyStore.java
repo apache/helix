@@ -117,7 +117,7 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase
     long endT = System.currentTimeMillis();
     System.out.println("1000 Get() time used: " + (endT - startT) + "ms");
     long latency = endT - startT;
-    Assert.assertTrue(latency < 100, "1000 Gets should be finished within 100ms, but was " + latency + " ms");
+    Assert.assertTrue(latency < 200, "1000 Gets should be finished within 200ms, but was " + latency + " ms");
 
     store.stop();
     System.out.println("END testSet() at " + new Date(System.currentTimeMillis()));

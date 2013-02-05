@@ -212,7 +212,7 @@ public class TestZkCacheSyncOpSingleThread extends ZkUnitTestBase
     // System.out.println("ret: " + ret);
     Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
     System.out.println("deleteCnt: " + listener._deletePathQueue.size());
-    Assert.assertTrue(listener._deletePathQueue.size() > 10,
+    Assert.assertTrue(listener._deletePathQueue.size() >= 10,
                         "Shall get at least 10 onDelete callbacks.");
 
     // verify each callback path

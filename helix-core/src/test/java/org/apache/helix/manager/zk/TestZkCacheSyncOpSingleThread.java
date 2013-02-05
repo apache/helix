@@ -24,6 +24,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.apache.helix.AccessOption;
@@ -54,21 +57,21 @@ public class TestZkCacheSyncOpSingleThread extends ZkUnitTestBase
     public void onDataDelete(String path)
     {
       // System.out.println(Thread.currentThread().getName() + ", onDelete: " + path);
-      _deletePathQueue.add(path);
+    	_deletePathQueue.add(path);
     }
 
     @Override
     public void onDataCreate(String path)
     {
       // System.out.println(Thread.currentThread().getName() + ", onCreate: " + path);
-      _createPathQueue.add(path);
+    	_createPathQueue.add(path);
     }
 
     @Override
     public void onDataChange(String path)
     {
       // System.out.println(Thread.currentThread().getName() + ", onChange: " + path);
-      _changePathQueue.add(path);
+    	_changePathQueue.add(path);
     }
 
     public void reset()
@@ -191,7 +194,7 @@ public class TestZkCacheSyncOpSingleThread extends ZkUnitTestBase
                             + updateCallbackPaths);
 
     // remove 10 current states
-    List<String> removePaths = new ArrayList<String>();
+    TreeSet<String> removePaths = new TreeSet<String>();
     listener.reset();
     for (int i = 0; i < 10; i++)
     {
@@ -209,14 +212,11 @@ public class TestZkCacheSyncOpSingleThread extends ZkUnitTestBase
     // System.out.println("ret: " + ret);
     Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
     System.out.println("deleteCnt: " + listener._deletePathQueue.size());
-    Assert.assertEquals(listener._deletePathQueue.size(),
-                        10,
-                        "Shall get 10 onDelete callbacks.");
+    Assert.assertTrue(listener._deletePathQueue.size() > 10,
+                        "Shall get at least 10 onDelete callbacks.");
 
     // verify each callback path
-    List<String> removeCallbackPaths = new ArrayList<String>(listener._deletePathQueue);
-    Collections.sort(removePaths);
-    Collections.sort(removeCallbackPaths);
+    Set<String> removeCallbackPaths = new TreeSet<String>(listener._deletePathQueue);
     Assert.assertEquals(removeCallbackPaths,
                         removePaths,
                         "Should get remove callbacks at " + removePaths + ", but was "

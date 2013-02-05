@@ -75,7 +75,7 @@ public class TestHelixTaskHandler
     currentStateDelta.setState("TestDB_0", "OFFLINE");
 
     HelixStateTransitionHandler stHandler = new HelixStateTransitionHandler(stateModel, message,
-        context, currentStateDelta, executor);
+        context, currentStateDelta);
     HelixTask handler;
     handler = new HelixTask(message, context, stHandler, executor);
     handler.call();
@@ -122,7 +122,7 @@ public class TestHelixTaskHandler
     currentStateDelta.setState("TestDB_0", "OFFLINE");
 
     HelixStateTransitionHandler stHandler = new HelixStateTransitionHandler(stateModel, message,
-        context, currentStateDelta, executor);
+        context, currentStateDelta);
 
     HelixTask handler = new HelixTask(message, context, stHandler, executor);
     handler.call();

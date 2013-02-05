@@ -79,7 +79,7 @@ public class CurrentStateComputationStage extends AbstractBaseStage
           continue;
         }
 
-        if (!message.getGroupMessageMode())
+        if (!message.getBatchMessageMode())
         {
           String partitionName = message.getPartitionName();
           Partition partition = resource.getPartition(partitionName);

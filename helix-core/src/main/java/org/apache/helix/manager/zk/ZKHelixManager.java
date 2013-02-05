@@ -456,7 +456,7 @@ public class ZKHelixManager implements HelixManager
      * shutdown thread pool first to avoid reset() being invoked in the middle of state
      * transition
      */
-    _messagingService.getExecutor().shutDown();
+    _messagingService.getExecutor().shutdown();
     resetHandlers();
 
     _helixAccessor.shutdown();

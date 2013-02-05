@@ -51,9 +51,11 @@ public abstract class StateModelFactory<T extends StateModel>
    * 
    * @param partitionName
    */
-  public void createAndAddStateModel(String partitionName)
+  public T createAndAddStateModel(String partitionName)
   {
-    _stateModelMap.put(partitionName, createNewStateModel(partitionName));
+		T stateModel = createNewStateModel(partitionName);
+	    _stateModelMap.put(partitionName, stateModel);
+	    return stateModel;
   }
 
   /**

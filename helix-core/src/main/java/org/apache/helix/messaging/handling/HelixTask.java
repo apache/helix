@@ -26,11 +26,13 @@ import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
+import org.apache.helix.NotificationContext.MapKey;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.messaging.handling.GroupMessageHandler.GroupMessageInfo;
@@ -38,6 +40,7 @@ import org.apache.helix.messaging.handling.MessageHandler.ErrorCode;
 import org.apache.helix.messaging.handling.MessageHandler.ErrorType;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Message;
+import org.apache.helix.model.Message.Attributes;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.monitoring.StateTransitionContext;
 import org.apache.helix.monitoring.StateTransitionDataPoint;
@@ -45,7 +48,7 @@ import org.apache.helix.util.StatusUpdateUtil;
 import org.apache.log4j.Logger;
 
 
-public class HelixTask implements Callable<HelixTaskResult>
+public class HelixTask implements MessageTask
 {
   private static Logger             logger     = Logger.getLogger(HelixTask.class);
   private final Message             _message;
@@ -56,37 +59,10 @@ public class HelixTask implements Callable<HelixTaskResult>
   HelixTaskExecutor                 _executor;
   volatile boolean                  _isTimeout = false;
 
-  public class TimeoutCancelTask extends TimerTask
-  {
-    HelixTaskExecutor   _executor;
-    Message             _message;
-    NotificationContext _context;
-
-    public TimeoutCancelTask(HelixTaskExecutor executor,
-                             Message message,
-                             NotificationContext context)
-    {
-      _executor = executor;
-      _message = message;
-      _context = context;
-    }
-
-    @Override
-    public void run()
-    {
-      _isTimeout = true;
-      logger.warn("Message time out, canceling. id:" + _message.getMsgId()
-          + " timeout : " + _message.getExecutionTimeout());
-      _handler.onTimeout();
-      _executor.cancelTask(_message, _context);
-    }
-
-  }
-
   public HelixTask(Message message,
                    NotificationContext notificationContext,
                    MessageHandler handler,
-                   HelixTaskExecutor executor) throws Exception
+                   HelixTaskExecutor executor)
   {
     this._notificationContext = notificationContext;
     this._message = message;
@@ -99,30 +75,13 @@ public class HelixTask implements Callable<HelixTaskResult>
   @Override
   public HelixTaskResult call()
   {
-    // Start the timeout TimerTask, if necessary
-    Timer timer = null;
-    if (_message.getExecutionTimeout() > 0)
-    {
-      timer = new Timer(true);
-      timer.schedule(new TimeoutCancelTask(_executor, _message, _notificationContext),
-                     _message.getExecutionTimeout());
-      logger.info("Message starts with timeout " + _message.getExecutionTimeout()
-          + " MsgId:" + _message.getMsgId());
-    }
-    else
-    {
-      logger.info("Message does not have timeout. MsgId:" + _message.getMsgId() + "/"
-          + _message.getPartitionName());
-    }
+    HelixTaskResult taskResult = null;
 
-    HelixTaskResult taskResult = new HelixTaskResult();
-
-    Exception exception = null;
-    ErrorType type = ErrorType.INTERNAL;
-    ErrorCode code = ErrorCode.ERROR;
+    ErrorType type = null;
+    ErrorCode code = null;
 
     long start = System.currentTimeMillis();
-    logger.info("msg:" + _message.getMsgId() + " handling task begin, at: " + start);
+    logger.info("handling task: " + getTaskId() + " begin, at: " + start);
     HelixDataAccessor accessor = _manager.getHelixDataAccessor();
     _statusUpdateUtil.logInfo(_message,
                               HelixTask.class,
@@ -130,147 +89,133 @@ public class HelixTask implements Callable<HelixTaskResult>
                               accessor);
     _message.setExecuteStartTimeStamp(new Date().getTime());
 
+    // add a concurrent map to hold currentStateUpdates for sub-messages of a batch-message
+    // partitionName -> csUpdate
+    if (_message.getBatchMessageMode() == true) {
+  	  _notificationContext.add(MapKey.CURRENT_STATE_UPDATE.toString(), 
+  			  new ConcurrentHashMap<String, CurrentStateUpdate>());
+    }
+
     // Handle the message
     try
     {
       taskResult = _handler.handleMessage();
-      exception = taskResult.getException();
     }
     catch (InterruptedException e)
     {
+      taskResult = new HelixTaskResult();
+      taskResult.setException(e);
+      taskResult.setInterrupted(true);
+
       _statusUpdateUtil.logError(_message,
                                  HelixTask.class,
                                  e,
                                  "State transition interrupted, timeout:" + _isTimeout,
                                  accessor);
       logger.info("Message " + _message.getMsgId() + " is interrupted");
-      taskResult.setInterrupted(true);
-      taskResult.setException(e);
-      exception = e;
     }
     catch (Exception e)
     {
+      taskResult = new HelixTaskResult();
+      taskResult.setException(e);
+      taskResult.setMessage(e.getMessage());
+        
       String errorMessage =
           "Exception while executing a message. " + e + " msgId: " + _message.getMsgId()
               + " type: " + _message.getMsgType();
       logger.error(errorMessage, e);
       _statusUpdateUtil.logError(_message, HelixTask.class, e, errorMessage, accessor);
-      taskResult.setSuccess(false);
-      taskResult.setException(e);
-      taskResult.setMessage(e.getMessage());
-      exception = e;
     }
 
-    // Cancel the timer since the handling is done
-    // it is fine if the TimerTask for canceling is called already
-    if (timer != null)
+    // cancel timeout task
+    _executor.cancelTimeoutTask(this);
+    
+    Exception exception = null;
+    try
     {
-      timer.cancel();
-    }
-
-    if (taskResult.isSucess())
-    {
-      _statusUpdateUtil.logInfo(_message,
+      if (taskResult.isSucess())
+      {
+        _statusUpdateUtil.logInfo(_message,
                                 _handler.getClass(),
                                 "Message handling task completed successfully",
                                 accessor);
-      logger.info("Message " + _message.getMsgId() + " completed.");
-    }
-    else if (taskResult.isInterrupted())
-    {
-      logger.info("Message " + _message.getMsgId() + " is interrupted");
-      code = _isTimeout ? ErrorCode.TIMEOUT : ErrorCode.CANCEL;
-      if (_isTimeout)
-      {
-        int retryCount = _message.getRetryCount();
-        logger.info("Message timeout, retry count: " + retryCount + " MSGID:"
-            + _message.getMsgId());
-        _statusUpdateUtil.logInfo(_message,
+        logger.info("Message " + _message.getMsgId() + " completed.");
+      }
+      else {
+    	  type = ErrorType.INTERNAL;
+    	  
+    	  if (taskResult.isInterrupted())
+          {
+    		  logger.info("Message " + _message.getMsgId() + " is interrupted");
+    		  code = _isTimeout ? ErrorCode.TIMEOUT : ErrorCode.CANCEL;
+    		  if (_isTimeout)
+    		  {
+    			  int retryCount = _message.getRetryCount();
+    			  logger.info("Message timeout, retry count: " + retryCount + " msgId:"
+    					  + _message.getMsgId());
+    			  _statusUpdateUtil.logInfo(_message,
                                   _handler.getClass(),
                                   "Message handling task timeout, retryCount:"
                                       + retryCount,
                                   accessor);
-        // Notify the handler that timeout happens, and the number of retries left
-        // In case timeout happens (time out and also interrupted)
-        // we should retry the execution of the message by re-schedule it in
-        if (retryCount > 0)
-        {
-          _message.setRetryCount(retryCount - 1);
-          _executor.scheduleTask(_message, _handler, _notificationContext);
-          return taskResult;
-        }
-      }
-    }
-    else
-    // logging for errors
-    {
-      String errorMsg =
-          "Message execution failed. msgId: " + _message.getMsgId()
-              + taskResult.getMessage();
-      if (exception != null)
-      {
-        errorMsg += exception;
-      }
-      logger.error(errorMsg, exception);
-      _statusUpdateUtil.logError(_message, _handler.getClass(), errorMsg, accessor);
-    }
-
-    // Post-processing for the finished task
-    try
-    {
-      if (!_message.getGroupMessageMode())
-      {
-        removeMessageFromZk(accessor, _message);
-        reportMessageStat(_manager, _message, taskResult);
-        sendReply(accessor, _message, taskResult);
-      }
-      else
-      {
-        GroupMessageInfo info = _executor._groupMsgHandler.onCompleteSubMessage(_message); 
-        if (info != null)
-        {
-          // TODO: changed to async update
-          // group update current state
-          Map<PropertyKey, CurrentState> curStateMap = info.merge();
-          for (PropertyKey key : curStateMap.keySet())
-          {
-            accessor.updateProperty(key, curStateMap.get(key));
+    			  // Notify the handler that timeout happens, and the number of retries left
+    			  // In case timeout happens (time out and also interrupted)
+    			  // we should retry the execution of the message by re-schedule it in
+    			  if (retryCount > 0)
+    			  {
+    				  _message.setRetryCount(retryCount - 1);
+                      HelixTask task = new HelixTask(_message, _notificationContext, _handler, _executor);
+                      _executor.scheduleTask(task);
+                      return taskResult;
+    			  }
+    		  }
           }
-
-          // remove group message
+    	  else  // logging for errors
+    	  {
+    		  code = ErrorCode.ERROR;
+    		  String errorMsg =
+    			  "Message execution failed. msgId: " + getTaskId()
+    			  + ", errorMsg: " + taskResult.getMessage();
+    		  logger.error(errorMsg);
+    		  _statusUpdateUtil.logError(_message, _handler.getClass(), errorMsg, accessor);
+    	  }
+      }
+      
+      if (_message.getAttribute(Attributes.PARENT_MSG_ID) == null) {
+    	  // System.err.println("\t[dbg]remove msg: " + getTaskId());
           removeMessageFromZk(accessor, _message);
           reportMessageStat(_manager, _message, taskResult);
           sendReply(accessor, _message, taskResult);
-        }
+          _executor.finishTask(this);
       }
-      _executor.reportCompletion(_message);
     }
-
-    // TODO: capture errors and log here
     catch (Exception e)
     {
+      exception = e;
+      type = ErrorType.FRAMEWORK;
+      code = ErrorCode.ERROR;
+        
       String errorMessage =
           "Exception after executing a message, msgId: " + _message.getMsgId() + e;
       logger.error(errorMessage, e);
       _statusUpdateUtil.logError(_message, HelixTask.class, errorMessage, accessor);
-      exception = e;
-      type = ErrorType.FRAMEWORK;
-      code = ErrorCode.ERROR;
     }
-    //
     finally
     {
       long end = System.currentTimeMillis();
-      logger.info("msg:" + _message.getMsgId() + " handling task completed, results:"
+      logger.info("msg: " + _message.getMsgId() + " handling task completed, results:"
           + taskResult.isSucess() + ", at: " + end + ", took:" + (end - start));
 
       // Notify the handler about any error happened in the handling procedure, so that
       // the handler have chance to finally cleanup
-      if (exception != null)
+      if (type == ErrorType.INTERNAL)
       {
-        _handler.onError(exception, code, type);
+        _handler.onError(taskResult.getException(), code, type);
+      } else if (type == ErrorType.FRAMEWORK) {
+    	  _handler.onError(exception, code, type);
       }
     }
+    
     return taskResult;
   }
 
@@ -370,4 +315,26 @@ public class HelixTask implements Callable<HelixTaskResult>
     }
   }
 
+  @Override
+  public String getTaskId()
+  {
+	  return _message.getId();
+  }
+  
+  @Override
+  public Message getMessage() {
+		return _message;
+  }
+
+  @Override
+  public 	NotificationContext getNotificationContext()
+  {
+	return _notificationContext;
+  }
+
+  @Override
+  public void onTimeout() {
+	_isTimeout = true;
+	_handler.onTimeout();
+  }
 };

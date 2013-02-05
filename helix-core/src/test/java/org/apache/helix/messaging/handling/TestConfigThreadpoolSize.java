@@ -125,9 +125,9 @@ public class TestConfigThreadpoolSize extends ZkStandAloneCMTestBase
       
       DefaultMessagingService svc = (DefaultMessagingService)(_startCMResultMap.get(instanceName)._manager.getMessagingService());
       HelixTaskExecutor helixExecutor = svc.getExecutor();
-      ThreadPoolExecutor executor = (ThreadPoolExecutor)(helixExecutor._threadpoolMap.get("TestMsg"));
+      ThreadPoolExecutor executor = (ThreadPoolExecutor)(helixExecutor._executorMap.get("TestMsg"));
       
-      ThreadPoolExecutor executor2 = (ThreadPoolExecutor)(helixExecutor._threadpoolMap.get("TestMsg2"));
+      ThreadPoolExecutor executor2 = (ThreadPoolExecutor)(helixExecutor._executorMap.get("TestMsg2"));
       if(i != 0)
       {
         

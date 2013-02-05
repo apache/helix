@@ -60,7 +60,7 @@ public class TestResourceThreadpoolSize extends ZkStandAloneCMTestBase
       
       DefaultMessagingService svc = (DefaultMessagingService)(_startCMResultMap.get(instanceName)._manager.getMessagingService());
       HelixTaskExecutor helixExecutor = svc.getExecutor();
-      ThreadPoolExecutor executor = (ThreadPoolExecutor)(helixExecutor._threadpoolMap.get(MessageType.STATE_TRANSITION + "." + "NextDB"));
+      ThreadPoolExecutor executor = (ThreadPoolExecutor)(helixExecutor._executorMap.get(MessageType.STATE_TRANSITION + "." + "NextDB"));
       Assert.assertEquals(12, executor.getMaximumPoolSize());
       taskcount += executor.getCompletedTaskCount();
       Assert.assertTrue(executor.getCompletedTaskCount() > 0);

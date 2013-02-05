@@ -110,7 +110,7 @@ public class TaskAssignmentStage extends AbstractBaseStage
       if (!groupMessages.containsKey(key))
       {
         Message groupMessage = new Message(message.getRecord());
-        groupMessage.setGroupMessageMode(true);
+        groupMessage.setBatchMessageMode(true);
         outputMessages.add(groupMessage);
         groupMessages.put(key, groupMessage);
       }

@@ -25,11 +25,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.NotificationContext;
+import org.apache.helix.NotificationContext.MapKey;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecordBucketizer;
 import org.apache.helix.ZNRecordDelta;
@@ -37,6 +39,7 @@ import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecordDelta.MergeOperation;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Message;
+import org.apache.helix.model.Message.Attributes;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelParser;
 import org.apache.helix.participant.statemachine.StateTransitionError;
@@ -60,25 +63,24 @@ public class HelixStateTransitionHandler extends MessageHandler
   private final StateModelParser _transitionMethodFinder;
   private final CurrentState     _currentStateDelta;
   volatile boolean               _isTimeout = false;
-  private final HelixTaskExecutor              _executor;
 
   public HelixStateTransitionHandler(StateModel stateModel,
                                      Message message,
                                      NotificationContext context,
-                                     CurrentState currentStateDelta,
-                                     HelixTaskExecutor executor)
+                                     CurrentState currentStateDelta)
   {
     super(message, context);
     _stateModel = stateModel;
     _statusUpdateUtil = new StatusUpdateUtil();
     _transitionMethodFinder = new StateModelParser();
     _currentStateDelta = currentStateDelta;
-    _executor = executor;
   }
 
-  private void prepareMessageExecution(HelixManager manager, Message message) throws HelixException,
-      HelixStateMismatchException
+  void preHandleMessage() throws Exception
   {
+	Message message = _message;
+	HelixManager manager = _notificationContext.getManager();
+
     if (!message.isValid())
     {
       String errorMessage =
@@ -93,7 +95,7 @@ public class HelixStateTransitionHandler extends MessageHandler
       logger.error(errorMessage);
       throw new HelixException(errorMessage);
     }
-    // DataAccessor accessor = manager.getDataAccessor();
+    
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
 
     String partitionName = message.getPartitionName();
@@ -119,12 +121,13 @@ public class HelixStateTransitionHandler extends MessageHandler
     }
   }
 
-  void postExecutionMessage(HelixManager manager,
-                            Message message,
-                            NotificationContext context,
-                            HelixTaskResult taskResult,
-                            Exception exception)
+  void postHandleMessage()
   {
+	Message message = _message;
+	HelixManager manager = _notificationContext.getManager();
+	HelixTaskResult taskResult = (HelixTaskResult) _notificationContext.get(MapKey.HELIX_TASK_RESULT.toString());
+	Exception exception = taskResult.getException();
+		
     String partitionKey = message.getPartitionName();
     String resource = message.getResourceName();
     String sessionId = message.getTgtSessionId();
@@ -209,7 +212,7 @@ public class HelixStateTransitionHandler extends MessageHandler
               return;
             }
           }
-          _stateModel.rollbackOnError(message, context, error);
+          _stateModel.rollbackOnError(message, _notificationContext, error);
           _currentStateDelta.setState(partitionKey, "ERROR");
           _stateModel.updateState("ERROR");
         }
@@ -222,32 +225,39 @@ public class HelixStateTransitionHandler extends MessageHandler
                               sessionId,
                               resource,
                               bucketizer.getBucketName(partitionKey));
-      if (!_message.getGroupMessageMode())
+      if (_message.getAttribute(Attributes.PARENT_MSG_ID) == null)
       {
+    	// normal message
         accessor.updateProperty(key, _currentStateDelta);
       }
       else
       {
-        _executor._groupMsgHandler.addCurStateUpdate(_message, key, _currentStateDelta);
+    	// sub-message of a batch message
+        ConcurrentHashMap<String, CurrentStateUpdate> csUpdateMap 
+          = (ConcurrentHashMap<String, CurrentStateUpdate>) _notificationContext.get(MapKey.CURRENT_STATE_UPDATE.toString());
+        csUpdateMap.put(partitionKey, new CurrentStateUpdate(key, _currentStateDelta));
       }
     }
     catch (Exception e)
     {
-      logger.error("Error when updating the state ", e);
+      logger.error("Error when updating current-state ", e);
       StateTransitionError error =
           new StateTransitionError(ErrorType.FRAMEWORK, ErrorCode.ERROR, e);
-      _stateModel.rollbackOnError(message, context, error);
+      _stateModel.rollbackOnError(message, _notificationContext, error);
       _statusUpdateUtil.logError(message,
                                  HelixStateTransitionHandler.class,
                                  e,
-                                 "Error when update the state ",
+                                 "Error when update current-state ",
                                  accessor);
     }
   }
 
-  public HelixTaskResult handleMessageInternal(Message message,
-                                               NotificationContext context)
+  @Override
+  public HelixTaskResult handleMessage()
   {
+	NotificationContext context = _notificationContext;
+	Message message = _message;
+		
     synchronized (_stateModel)
     {
       HelixTaskResult taskResult = new HelixTaskResult();
@@ -260,10 +270,11 @@ public class HelixStateTransitionHandler extends MessageHandler
                                 accessor);
       message.setExecuteStartTimeStamp(new Date().getTime());
 
-      Exception exception = null;
+      // Exception exception = null;
       try
       {
-        prepareMessageExecution(manager, message);
+    	preHandleMessage();
+        // prepareMessageExecution(manager, message);
         invoke(accessor, context, taskResult, message);
       }
       catch (HelixStateMismatchException e)
@@ -273,7 +284,7 @@ public class HelixStateTransitionHandler extends MessageHandler
         taskResult.setSuccess(false);
         taskResult.setMessage(e.toString());
         taskResult.setException(e);
-        exception = e;
+        // exception = e;
         // return taskResult;
       }
       catch (Exception e)
@@ -295,9 +306,13 @@ public class HelixStateTransitionHandler extends MessageHandler
         taskResult.setMessage(e.toString());
         taskResult.setException(e);
         taskResult.setInterrupted(e instanceof InterruptedException);
-        exception = e;
+        // exception = e;
       }
-      postExecutionMessage(manager, message, context, taskResult, exception);
+//      postExecutionMessage(manager, message, context, taskResult, exception);
+      
+      // add task result to context for postHandling
+      context.add(MapKey.HELIX_TASK_RESULT.toString(), taskResult);
+      postHandleMessage();
 
       return taskResult;
     }
@@ -346,18 +361,12 @@ public class HelixStateTransitionHandler extends MessageHandler
   }
 
   @Override
-  public HelixTaskResult handleMessage()
-  {
-    return handleMessageInternal(_message, _notificationContext);
-  }
-
-  @Override
   public void onError(Exception e, ErrorCode code, ErrorType type)
   {
     // All internal error has been processed already, so we can skip them
     if (type == ErrorType.INTERNAL)
     {
-      logger.error("Skip internal error " + e.getMessage() + " " + code);
+      logger.error("Skip internal error. errCode: " + code + ", errMsg: " + e.getMessage());
       return;
     }
     HelixManager manager = _notificationContext.getManager();

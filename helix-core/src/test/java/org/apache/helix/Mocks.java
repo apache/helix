@@ -60,6 +60,7 @@ import org.apache.helix.messaging.AsyncCallback;
 import org.apache.helix.messaging.handling.HelixTaskExecutor;
 import org.apache.helix.messaging.handling.HelixTaskResult;
 import org.apache.helix.messaging.handling.MessageHandlerFactory;
+import org.apache.helix.messaging.handling.MessageTask;
 import org.apache.helix.model.Message;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.participant.statemachine.StateModel;
@@ -262,13 +263,14 @@ public class Mocks {
 		boolean completionInvoked = false;
 
 		@Override
-		protected void reportCompletion(Message message) {
-			System.out.println("Mocks.MockCMTaskExecutor.reportCompletion()");
+		public void finishTask(MessageTask task) {
+			System.out.println("Mocks.MockCMTaskExecutor.finishTask()");
 			completionInvoked = true;
 		}
 
+
 		public boolean isDone(String taskId) {
-			Future<HelixTaskResult> future = _taskMap.get(taskId);
+			Future<HelixTaskResult> future = _taskMap.get(taskId).getFuture();
 			if (future != null) {
 				return future.isDone();
 			}
@@ -790,5 +792,4 @@ public class Mocks {
 		}
 
 	}
-// >>>>>>> 5ef256eeced461eae733d568ad730aabeda3c0f2
 }

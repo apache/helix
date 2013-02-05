@@ -246,53 +246,21 @@ public class ZkTestHelper
    */
   public static int numberOfListeners(String zkAddr, String path) throws Exception
   {
-    int count = 0;
-    String splits[] = zkAddr.split(":");
-    Socket sock = new Socket(splits[0], Integer.parseInt(splits[1]));
-    PrintWriter out = new PrintWriter(sock.getOutputStream(), true);
-    BufferedReader in = new BufferedReader(new InputStreamReader(sock.getInputStream()));
-
-    out.println("wchp");
-
-    String line = in.readLine();
-    while (line != null)
-    {
-      // System.out.println(line);
-      if (line.equals(path))
-      {
-        // System.out.println("match: " + line);
-
-        String nextLine = in.readLine();
-        if (nextLine == null)
-        {
-          break;
-        }
-        // System.out.println(nextLine);
-        while (nextLine.startsWith("\t0x"))
-        {
-          count++;
-          nextLine = in.readLine();
-          if (nextLine == null)
-          {
-            break;
-          }
-        }
-      }
-      line = in.readLine();
-    }
-    sock.close();
-    return count;
+	  Map<String, Set<String>> listenerMap = getListenersByZkPath(zkAddr);
+	  if (listenerMap.containsKey(path)) {
+		  return listenerMap.get(path).size();
+	  }
+	  return 0;
   }
   
   /**
    * return a map from zk-path to a set of zk-session-id that put watches on the zk-path
    * 
    * @param zkAddr
-   * @param path
    * @return
    * @throws Exception
    */
-  public static Map<String, Set<String>> getListenersByInstance(String zkAddr) throws Exception
+  public static Map<String, Set<String>> getListenersByZkPath(String zkAddr) throws Exception
   {
     int count = 0;
     String splits[] = zkAddr.split(":");
@@ -338,7 +306,7 @@ public class ZkTestHelper
    * @return
    */
   public static Map<String, Set<String>> getListenersBySession(String zkAddr) throws Exception {
-	  Map<String, Set<String>> listenerMapByInstance = getListenersByInstance(zkAddr);
+	  Map<String, Set<String>> listenerMapByInstance = getListenersByZkPath(zkAddr);
 	  
 	  // convert to index by sessionId
 	  Map<String, Set<String>> listenerMapBySession = new TreeMap<String, Set<String>>();

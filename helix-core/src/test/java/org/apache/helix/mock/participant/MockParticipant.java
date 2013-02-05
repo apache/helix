@@ -306,7 +306,7 @@ public class MockParticipant extends Thread
       if (_errPartitions.containsKey(key) && _errPartitions.get(key).contains(partition))
       {
         String errMsg =
-            "IGNORABLE: test throw exception for " + partition + " transit from "
+            "IGNORABLE: test throw exception in msgId: " + message.getId() + " for " + partition + " transit from "
                 + fromState + " to " + toState;
         throw new RuntimeException(errMsg);
       }

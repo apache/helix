@@ -26,25 +26,26 @@ RabbitMQ Consumer Group
 One of the commonly implemented recipes using this software is a work queue.  http://www.rabbitmq.com/tutorials/tutorial-four-java.html describes the use case where
 
 * A producer sends a message with a routing key. 
-* The message goes to the queues whose binding key exactly matches the routing key of the message.	
+* The message is routed to the queue whose binding key exactly matches the routing key of the message.	
 * There are multiple consumers and each consumer is interested in processing only a subset of the messages by binding to the interested keys
 
-The example provided [here](http://www.rabbitmq.com/tutorials/tutorial-four-java.html) describes how multiple consumers can be started to process all the tasks.
+The example provided [here](http://www.rabbitmq.com/tutorials/tutorial-four-java.html) describes how multiple consumers can be started to process all the messages.
 
 While this works, in production systems one needs the following 
+
 * Ability to handle failures: when a consumers fails another consumer must be started or the other consumers must start processing these messages that should have been processed by the failed consumer.
 * When the existing consumers cannot keep up with the task generation rate, new consumers will be added. The tasks must be redistributed among all the consumers. 
 
-In this sample app, we explain how these set of consumers can be grouped together and handle consumer failures and expansion automatically.
+In this recipe, we demonstrate handling of consumer failures and new consumer additions using Helix.
 
 Mapping this usecase to Helix is pretty easy as the binding key/routing key is equivalent to a partition. 
 
-Lets take a real example. Lets say a topic has 6 partitions, and we have 2 consumers to process all the queues. 
+Let's take an example. Lets say the queue has 6 partitions, and we have 2 consumers to process all the queues. 
 What we want is all 6 queues to be evenly divided among 2 consumers. 
 Eventually when the system scales, we add more consumers to keep up. This will make each consumer process tasks from 2 queues.
-Now let's say that a consumer fails and that the number of active consumers is now reduced to 2. This means each consumer must process 3 queues.
+Now let's say that a consumer failed which reduces the number of active consumers to 2. This means each consumer must process 3 queues.
 
-We showcase how such a dynamic App can be developed using Helix. 
+We showcase how such a dynamic App can be developed using Helix. Even though we use rabbitmq as the pub/sub system one can extend this solution to other pub/sub systems.
 
 Try it
 ======

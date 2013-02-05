@@ -78,7 +78,7 @@ public class TestZkManagerFlappingDetection extends ZkIntegrationTestBase
       Assert.assertFalse(manager.isConnected());
   }
   
-  @Test
+  @Test(enabled=false)
   public void testDisconnectFlappingWindow() throws Exception
   {
     String className = TestHelper.getTestClassName();

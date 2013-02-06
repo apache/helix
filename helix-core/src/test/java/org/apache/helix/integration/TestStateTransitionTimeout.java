@@ -36,9 +36,10 @@ import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.messaging.handling.MessageHandler.ErrorCode;
 import org.apache.helix.mock.participant.MockJobIntf;
+import org.apache.helix.mock.participant.MockMSStateModel;
 import org.apache.helix.mock.participant.MockParticipant;
 import org.apache.helix.mock.participant.MockTransition;
-import org.apache.helix.mock.participant.MockParticipant.MockMSStateModel;
+import org.apache.helix.mock.participant.SleepTransition;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Message;
@@ -96,7 +97,7 @@ public class TestStateTransitionTimeout extends ZkStandAloneCMTestBase
   }
   
   @StateModelInfo(initialState = "OFFLINE", states = { "MASTER", "SLAVE", "ERROR" })
-  public static class TimeOutStateModel extends MockParticipant.MockMSStateModel
+  public static class TimeOutStateModel extends MockMSStateModel
   {
     boolean _sleep = false;
     StateTransitionError _error;
@@ -175,7 +176,7 @@ public class TestStateTransitionTimeout extends ZkStandAloneCMTestBase
     @Override
     public TimeOutStateModel createNewStateModel(String stateUnitKey)
     {
-      return new TimeOutStateModel(new MockParticipant.SleepTransition(_sleepTime), partitionsToSleep.contains(stateUnitKey));
+      return new TimeOutStateModel(new SleepTransition(_sleepTime), partitionsToSleep.contains(stateUnitKey));
     }
   }
   

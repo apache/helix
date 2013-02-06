@@ -25,7 +25,7 @@ import org.apache.helix.TestHelper;
 import org.apache.helix.controller.HelixControllerMain;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.mock.participant.MockParticipant;
-import org.apache.helix.mock.participant.MockParticipant.MockBootstrapModelFactory;
+import org.apache.helix.mock.participant.MockBootstrapModelFactory;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;

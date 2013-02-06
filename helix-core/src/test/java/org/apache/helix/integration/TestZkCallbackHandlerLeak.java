@@ -156,8 +156,10 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
 	    // printHandlers(controllerManager);
 	    int controllerHandlerNb = controllerManager.getHandlers().size();
 	    int particHandlerNb = participantManager.getHandlers().size();
-	    Assert.assertEquals(controllerHandlerNb, 9, "HelixController should have 9 (5+2n) callback handlers for 2 (n) participant");
-	    Assert.assertEquals(particHandlerNb, 2, "HelixParticipant should have 2 (msg+cur-state) callback handlers");
+	    Assert.assertEquals(controllerHandlerNb, 9, "HelixController should have 9 (5+2n) callback handlers for 2 (n) participant, but was " 
+	    		+ printHandlers(controllerManager));
+	    Assert.assertEquals(particHandlerNb, 2, "HelixParticipant should have 2 (msg+cur-state) callback handlers, but was "
+	    		+ printHandlers(participantManager));
 
 
 	    // expire controller
@@ -174,24 +176,29 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
 	    Assert.assertTrue(result);
 	    // printHandlers(controllerManager);
 	    int handlerNb = controllerManager.getHandlers().size();
-	    Assert.assertEquals(handlerNb, controllerHandlerNb, "controller callback handlers should not increase after participant session expiry");
+	    Assert.assertEquals(handlerNb, controllerHandlerNb, "controller callback handlers should not increase after participant session expiry, but was "
+	    		+ printHandlers(controllerManager));
 	    handlerNb = participantManager.getHandlers().size();
-	    Assert.assertEquals(handlerNb, particHandlerNb, "participant callback handlers should not increase after participant session expiry");
+	    Assert.assertEquals(handlerNb, particHandlerNb, "participant callback handlers should not increase after participant session expiry, but was " 
+	    		+ printHandlers(participantManager));
 
 
 	    System.out.println("END " + clusterName + " at "
 	            + new Date(System.currentTimeMillis()));
 	}
 
-	static void printHandlers(ZkHelixTestManager manager) 
+	static String printHandlers(ZkHelixTestManager manager) 
 	{
+		StringBuilder sb = new StringBuilder();
 	    List<CallbackHandler> handlers = manager.getHandlers();
-    	System.out.println("\n" + manager.getInstanceName() + " cb-handler#: " + handlers.size());
+    	sb.append("\n" + manager.getInstanceName() + " cb-handler#: " + handlers.size());
     	
 	    for (int i = 0; i < handlers.size(); i++) {
 	    	CallbackHandler handler = handlers.get(i);
 	    	String path = handler.getPath();
-	    	System.out.println(path.substring(manager.getClusterName().length() + 1) + ": " + handler.getListener());
+	    	sb.append(path.substring(manager.getClusterName().length() + 1) + ": " + handler.getListener());
 	    }
+	    
+	    return sb.toString();
     }
 }

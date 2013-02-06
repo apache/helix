@@ -448,8 +448,8 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
     }
     catch (Exception e)
     {
-      logger.error("exception in handling child-change. parentPath: " 
-    		  + parentPath + ", listener: " + _listener);
+      logger.error("exception in handling child-change. instance: " + _manager.getInstanceName() 
+    		  + ", parentPath: " + parentPath + ", listener: " + _listener);
       ZKExceptionHandler.getInstance().handle(e);
     }
   }

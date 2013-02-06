@@ -262,40 +262,55 @@ public class ZkTestHelper
    */
   public static Map<String, Set<String>> getListenersByZkPath(String zkAddr) throws Exception
   {
-    int count = 0;
     String splits[] = zkAddr.split(":");
-    Socket sock = new Socket(splits[0], Integer.parseInt(splits[1]));
-    PrintWriter out = new PrintWriter(sock.getOutputStream(), true);
-    BufferedReader in = new BufferedReader(new InputStreamReader(sock.getInputStream()));
-
-    out.println("wchp");
-
     Map<String, Set<String>> listenerMap = new TreeMap<String, Set<String>>();
-    String lastPath = null;
-    String line = in.readLine();
-    while (line != null)
-    {
-    	line = line.trim();
-    	
-    	if (line.startsWith("/")) {
-    		lastPath = line;
-    		if (!listenerMap.containsKey(lastPath)) {
-    			listenerMap.put(lastPath, new TreeSet<String>());
-    		}
-    	} else if (line.startsWith("0x")) {
-    		if (lastPath != null && listenerMap.containsKey(lastPath) ) {
-    			listenerMap.get(lastPath).add(line);
-    		} else
-    		{
-    			LOG.error("Not path associated with listener sessionId: " + line + ", lastPath: " + lastPath);
-    		}
-    	} else
-    	{
-//    		LOG.error("unrecognized line: " + line);
-    	}
-      line = in.readLine();
+    Socket sock = null;
+    int retry = 5;
+    
+    while (retry > 0) {
+      try {
+        sock = new Socket(splits[0], Integer.parseInt(splits[1]));
+        PrintWriter out = new PrintWriter(sock.getOutputStream(), true);
+        BufferedReader in = new BufferedReader(new InputStreamReader(sock.getInputStream()));
+    
+        out.println("wchp");
+    
+        listenerMap.clear();
+        String lastPath = null;
+        String line = in.readLine();
+        while (line != null)
+        {
+        	line = line.trim();
+        	
+        	if (line.startsWith("/")) {
+        		lastPath = line;
+        		if (!listenerMap.containsKey(lastPath)) {
+        			listenerMap.put(lastPath, new TreeSet<String>());
+        		}
+        	} else if (line.startsWith("0x")) {
+        		if (lastPath != null && listenerMap.containsKey(lastPath) ) {
+        			listenerMap.get(lastPath).add(line);
+        		} else
+        		{
+        			LOG.error("Not path associated with listener sessionId: " + line + ", lastPath: " + lastPath);
+        		}
+        	} else
+        	{
+    //    		LOG.error("unrecognized line: " + line);
+        	}
+          line = in.readLine();
+        }
+        break;
+      } catch (Exception e) {
+    	  // sometimes in test, we see connection-reset exceptions when in.readLine()
+    	  // so add this retry logic
+    	  retry--;
+      } finally
+      {
+    	if (sock != null)
+    		sock.close();
+      }
     }
-    sock.close();
     return listenerMap;
   }
 

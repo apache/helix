@@ -270,11 +270,9 @@ public class HelixStateTransitionHandler extends MessageHandler
                                 accessor);
       message.setExecuteStartTimeStamp(new Date().getTime());
 
-      // Exception exception = null;
       try
       {
     	preHandleMessage();
-        // prepareMessageExecution(manager, message);
         invoke(accessor, context, taskResult, message);
       }
       catch (HelixStateMismatchException e)
@@ -284,8 +282,6 @@ public class HelixStateTransitionHandler extends MessageHandler
         taskResult.setSuccess(false);
         taskResult.setMessage(e.toString());
         taskResult.setException(e);
-        // exception = e;
-        // return taskResult;
       }
       catch (Exception e)
       {
@@ -306,9 +302,7 @@ public class HelixStateTransitionHandler extends MessageHandler
         taskResult.setMessage(e.toString());
         taskResult.setException(e);
         taskResult.setInterrupted(e instanceof InterruptedException);
-        // exception = e;
       }
-//      postExecutionMessage(manager, message, context, taskResult, exception);
       
       // add task result to context for postHandling
       context.add(MapKey.HELIX_TASK_RESULT.toString(), taskResult);

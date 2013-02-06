@@ -104,11 +104,11 @@ public class TestAddNodeAfterControllerStart extends ZkIntegrationTestBase
     Assert.assertTrue(result);
 
     // clean up
-    controller.disconnect();
-    for (int i = 0; i < nodeNr; i++)
-    {
-      participants[i].syncStop();
-    }
+//    controller.disconnect();
+//    for (int i = 0; i < nodeNr; i++)
+//    {
+//      participants[i].syncStop();
+//    }
 
     System.out.println("END " + clusterName + " at "
         + new Date(System.currentTimeMillis()));
@@ -199,10 +199,10 @@ public class TestAddNodeAfterControllerStart extends ZkIntegrationTestBase
     Assert.assertEquals(numberOfListeners, 2);  // 1 of participant, and 1 of controller
 
     // clean up
-    for (int i = 0; i < nodeNr; i++)
-    {
-      participants[i].syncStop();
-    }
+//    for (int i = 0; i < nodeNr; i++)
+//    {
+//      participants[i].syncStop();
+//    }
 
     System.out.println("END " + clusterName + " at "
         + new Date(System.currentTimeMillis()));

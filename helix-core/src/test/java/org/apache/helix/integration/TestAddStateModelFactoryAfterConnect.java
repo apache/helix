@@ -34,6 +34,7 @@ import org.apache.helix.mock.participant.MockMSModelFactory;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.Message;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
@@ -98,31 +99,22 @@ public class TestAddStateModelFactoryAfterConnect extends ZkIntegrationTestBase
     accessor.setProperty(keyBuilder.idealStates("TestDB1"), idealState);
     setupTool.rebalanceStorageCluster(clusterName, "TestDB1", 3);
 
-    // external view for TestDB1 should be empty
-    ExternalView extView = null;
-    for (int i = 0; i < 10; i++)
-    {
-      Thread.sleep(100);
-      extView = accessor.getProperty(keyBuilder.externalView("TestDB1"));
-
-      if (extView != null)
-    	  break;
+    // assert that we have received OFFLINE->SLAVE messages for all partitions
+    int totalMsgs = 0;
+    for (int retry = 0; retry < 5; retry++) {
+    	Thread.sleep(100);
+    	totalMsgs = 0;
+        for (int i = 0; i < n; i++) {
+        	List<Message> msgs = accessor.getChildValues(keyBuilder.messages(participants[i].getInstanceName()));
+        	totalMsgs += msgs.size();
+        }
+        
+        if (totalMsgs == 48) // partition# x replicas
+        	break;
     }
-
-    if (extView == null) {
-    	// output current-state for debug
-    	List<CurrentState> curStates = new ArrayList<CurrentState>();
-    	for (int i = 0; i < n; i++) {
-    		CurrentState curState = accessor.getProperty(keyBuilder.currentState(participants[i].getInstanceName(), 
-    				participants[i].getManager().getSessionId(), "TestDB1"));
-    		curStates.add(curState);
-    	}
-    	Assert.fail("Timeout waiting for an empty external view of TestDB1. curStates: " + curStates);
-    }
-
-    Assert.assertEquals(extView.getRecord().getMapFields().size(),
-                        0,
-                        "External view for TestDB1 should be empty since TestDB1 is added without a state model factory");
+    
+    Assert.assertEquals(totalMsgs, 48,
+      "Should accumulated 48 unprocessed messages (1 O->S per partition per replica) because TestDB1 is added without state-model-factory but was " + totalMsgs);
 
     // register "TestDB1_Factory" state model factory
     // Logger.getRootLogger().setLevel(Level.INFO);

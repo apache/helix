@@ -97,9 +97,9 @@ public class TestZkClusterManager extends ZkUnitTestBase
     ZkHelixPropertyStore<ZNRecord> store = controller.getHelixPropertyStore();
     ZNRecord record = new ZNRecord("node_1");
     int options = 0;
-    store.set("node_1", record, AccessOption.PERSISTENT);
+    store.set("/node_1", record, AccessOption.PERSISTENT);
     Stat stat = new Stat();
-    record = store.get("node_1",stat, options);
+    record = store.get("/node_1",stat, options);
     AssertJUnit.assertEquals("node_1", record.getId());
 
     controller.getMessagingService();

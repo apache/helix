@@ -153,13 +153,22 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
 	    ZkHelixTestManager controllerManager = controller.getManager();
 	    ZkHelixTestManager participantManager = participants[0].getManager();
 
-	    // printHandlers(controllerManager);
+	    // wait until we get all the listeners registered
 	    int controllerHandlerNb = controllerManager.getHandlers().size();
 	    int particHandlerNb = participantManager.getHandlers().size();
-	    Assert.assertEquals(controllerHandlerNb, 9, "HelixController should have 9 (5+2n) callback handlers for 2 (n) participant, but was " 
-	    		+ printHandlers(controllerManager));
-	    Assert.assertEquals(particHandlerNb, 2, "HelixParticipant should have 2 (msg+cur-state) callback handlers, but was "
-	    		+ printHandlers(participantManager));
+	    for (int i = 0; i < 10; i++) {
+	    	if (controllerHandlerNb == 9 && particHandlerNb == 2)
+	    		break;
+	    	Thread.sleep(100);
+	    	controllerHandlerNb = controllerManager.getHandlers().size();
+	    	particHandlerNb = participantManager.getHandlers().size();
+	    }
+    	Assert.assertEquals(controllerHandlerNb, 9, "HelixController should have 9 (5+2n) callback handlers for 2 participant, but was " 
+    	    		+ controllerHandlerNb + ", "
+    	    		+ printHandlers(controllerManager));
+    	Assert.assertEquals(particHandlerNb, 2, "HelixParticipant should have 2 (msg+cur-state) callback handlers, but was " 
+    	    		+ particHandlerNb + ", "
+    	    		+ printHandlers(participantManager));
 
 
 	    // expire controller
@@ -191,13 +200,17 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
 	{
 		StringBuilder sb = new StringBuilder();
 	    List<CallbackHandler> handlers = manager.getHandlers();
-    	sb.append("\n" + manager.getInstanceName() + " cb-handler#: " + handlers.size());
+    	sb.append(manager.getInstanceName() + " has " + handlers.size() + " cb-handlers. [");
     	
 	    for (int i = 0; i < handlers.size(); i++) {
 	    	CallbackHandler handler = handlers.get(i);
 	    	String path = handler.getPath();
 	    	sb.append(path.substring(manager.getClusterName().length() + 1) + ": " + handler.getListener());
+	    	if (i < (handlers.size() - 1) ) {
+	    		sb.append(", ");
+	    	}
 	    }
+	    sb.append("]");
 	    
 	    return sb.toString();
     }

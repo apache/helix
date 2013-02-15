@@ -107,6 +107,11 @@ public class PropertyKey
     return super.hashCode();
   }
 
+  @Override
+  public String toString() {
+	  return getPath();
+  }
+  
   public String getPath()
   {
     String clusterName = _params[0];
@@ -576,4 +581,5 @@ public class PropertyKey
   {
 	  return _configScope;
   }
+  
 }

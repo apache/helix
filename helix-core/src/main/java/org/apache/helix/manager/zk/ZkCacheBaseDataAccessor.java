@@ -160,6 +160,8 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T>
 
   private String prependChroot(String clientPath)
   {
+    PathUtils.validatePath(clientPath);
+
     if (_chrootPath != null)
     {
       // handle clientPath = "/"

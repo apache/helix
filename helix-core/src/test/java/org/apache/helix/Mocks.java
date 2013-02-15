@@ -791,5 +791,13 @@ public class Mocks {
 			return 0;
 		}
 
+    @Override
+    public Map<InstanceType, List<Message>> generateMessage(
+        Criteria recipientCriteria, Message messageTemplate)
+    {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
 	}
 }

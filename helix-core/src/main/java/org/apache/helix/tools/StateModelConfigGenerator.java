@@ -25,8 +25,11 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.helix.ZNRecord;
+import org.apache.helix.manager.zk.DefaultSchedulerMessageHandlerFactory;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
+import org.apache.helix.model.Transition;
 import org.apache.helix.model.StateModelDefinition.StateModelDefinitionProperty;
+import org.apache.helix.participant.statemachine.StateTransitionTableBuilder;
 
 
 public class StateModelConfigGenerator
@@ -347,5 +350,65 @@ public class StateModelConfigGenerator
     return record;
     // ZNRecordSerializer serializer = new ZNRecordSerializer();
     // System.out.println(new String(serializer.serialize(record)));
+  }
+  
+  public ZNRecord generateConfigForScheduledTaskQueue()
+  {
+    ZNRecord record = new ZNRecord(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE);
+    record.setSimpleField(StateModelDefinitionProperty.INITIAL_STATE.toString(),
+                          "OFFLINE");
+    List<String> statePriorityList = new ArrayList<String>();
+    statePriorityList.add("COMPLETED");
+    statePriorityList.add("OFFLINE");
+    statePriorityList.add("DROPPED");
+    record.setListField(StateModelDefinitionProperty.STATE_PRIORITY_LIST.toString(),
+                        statePriorityList);
+    for (String state : statePriorityList)
+    {
+      String key = state + ".meta";
+      Map<String, String> metadata = new HashMap<String, String>();
+      if (state.equals("COMPLETED"))
+      {
+        metadata.put("count", "1");
+        record.setMapField(key, metadata);
+      }
+      if (state.equals("OFFLINE"))
+      {
+        metadata.put("count", "-1");
+        record.setMapField(key, metadata);
+      }
+      if (state.equals("DROPPED"))
+      {
+        metadata.put("count", "-1");
+        record.setMapField(key, metadata);
+      }
+    }
+
+    List<String> states = new ArrayList<String>();
+    states.add("COMPLETED");
+    states.add("DROPPED");
+    states.add("OFFLINE");
+
+    List<Transition> transitions = new ArrayList<Transition>();
+    transitions.add(new Transition("OFFLINE", "COMPLETED"));
+    transitions.add(new Transition("OFFLINE", "DROPPED"));
+    transitions.add(new Transition("COMPLETED", "DROPPED"));
+
+    StateTransitionTableBuilder builder = new StateTransitionTableBuilder();
+    Map<String, Map<String, String>> next = builder.buildTransitionTable(states, transitions);
+
+    for (String state : statePriorityList)
+    {
+      String key = state + ".next";
+      record.setMapField(key, next.get(state));
+    }
+    List<String> stateTransitionPriorityList = new ArrayList<String>();
+    stateTransitionPriorityList.add("OFFLINE-COMPLETED");
+    stateTransitionPriorityList.add("OFFLINE-DROPPED");
+    stateTransitionPriorityList.add("COMPLETED-DROPPED");
+
+    record.setListField(StateModelDefinitionProperty.STATE_TRANSITION_PRIORITYLIST.toString(),
+                        stateTransitionPriorityList);
+    return record;
   }
 }

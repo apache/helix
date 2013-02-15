@@ -31,6 +31,7 @@ import org.apache.helix.HelixException;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyPathConfig;
 import org.apache.helix.PropertyType;
+import org.apache.helix.manager.zk.DefaultSchedulerMessageHandlerFactory;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
@@ -62,6 +63,7 @@ public class SchedulerTasksResource extends Resource
 
   public static String CRITERIA = "Criteria";
   public static String MESSAGETEMPLATE = "MessageTemplate";
+  public static String TASKQUEUENAME = "TaskQueueName";
   public SchedulerTasksResource(Context context,
           Request request,
           Response response) 
@@ -152,17 +154,27 @@ public class SchedulerTasksResource extends Resource
       {
         throw new HelixException("SchedulerTasksResource need to have Criteria specified.");
       }
+      HelixDataAccessor accessor = ClusterRepresentationUtil.getClusterDataAccessor(zkClient, clusterName);
+      LiveInstance leader = accessor.getProperty(accessor.keyBuilder().controllerLeader());
+      if(leader == null)
+      {
+        throw new HelixException("There is no leader for the cluster " + clusterName);
+      }
       
       Message schedulerMessage = new Message(MessageType.SCHEDULER_MSG, UUID.randomUUID().toString());
       schedulerMessage.getRecord().getSimpleFields().put(CRITERIA, criteriaString);
       
       schedulerMessage.getRecord().getMapFields().put(MESSAGETEMPLATE, messageTemplate);
       
-      schedulerMessage.setTgtSessionId("*");
+      schedulerMessage.setTgtSessionId(leader.getSessionId());
       schedulerMessage.setTgtName("CONTROLLER");
       schedulerMessage.setSrcInstanceType(InstanceType.CONTROLLER);
-      
-      HelixDataAccessor accessor = ClusterRepresentationUtil.getClusterDataAccessor(zkClient, clusterName);
+      String taskQueueName =  ClusterRepresentationUtil.getFormJsonParameterString(form, TASKQUEUENAME);
+      if(taskQueueName != null)
+      {
+        throw new HelixException("SchedulerTasksResource need to have " + TASKQUEUENAME +" specified.");
+      }
+      schedulerMessage.getRecord().setSimpleField(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE, taskQueueName);
       accessor.setProperty(accessor.keyBuilder().controllerMessage(schedulerMessage.getMsgId()), schedulerMessage);
       
       Map<String, String> resultMap = new HashMap<String, String>();

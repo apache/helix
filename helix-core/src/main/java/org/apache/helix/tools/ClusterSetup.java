@@ -162,6 +162,9 @@ public class ClusterSetup
     addStateModelDef(clusterName,
                      "OnlineOffline",
                      new StateModelDefinition(generator.generateConfigForOnlineOffline()));
+    addStateModelDef(clusterName,
+                     "ScheduledTask",
+                     new StateModelDefinition(generator.generateConfigForScheduledTaskQueue()));
   }
 
   public void activateCluster(String clusterName, String grandCluster, boolean enable)

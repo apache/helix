@@ -72,6 +72,7 @@ import org.apache.helix.monitoring.ZKPathDataDumpTask;
 import org.apache.helix.participant.DistClusterControllerElection;
 import org.apache.helix.participant.HelixStateMachineEngine;
 import org.apache.helix.participant.StateMachineEngine;
+import org.apache.helix.participant.statemachine.ScheduledTaskStateModelFactory;
 import org.apache.helix.store.ZNRecordJsonSerializer;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
 import org.apache.helix.tools.PropertiesReader;
@@ -792,6 +793,9 @@ public class ZKHelixManager implements HelixManager
                                                     _stateMachEngine);
     addMessageListener(_messagingService.getExecutor(), _instanceName);
     addControllerListener(_helixAccessor);
+    
+    ScheduledTaskStateModelFactory stStateModelFactory = new ScheduledTaskStateModelFactory(_messagingService.getExecutor());
+    _stateMachEngine.registerStateModelFactory(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE, stStateModelFactory);
 
     if (_participantHealthCheckInfoCollector == null)
     {

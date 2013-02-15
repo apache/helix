@@ -160,7 +160,7 @@ public class DefaultMessagingService implements ClusterMessagingService
     return totalMessageCount;
   }
 
-  private Map<InstanceType, List<Message>> generateMessage(final Criteria recipientCriteria,
+  public Map<InstanceType, List<Message>> generateMessage(final Criteria recipientCriteria,
                                                            final Message message)
   {
     Map<InstanceType, List<Message>> messagesToSendMap =

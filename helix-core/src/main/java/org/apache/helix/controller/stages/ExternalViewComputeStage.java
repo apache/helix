@@ -20,17 +20,30 @@ package org.apache.helix.controller.stages;
  */
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
+import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.ZNRecord;
+import org.apache.helix.ZNRecordDelta;
+import org.apache.helix.ZNRecordDelta.MergeOperation;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
+import org.apache.helix.manager.zk.DefaultSchedulerMessageHandlerFactory;
 import org.apache.helix.model.ExternalView;
+import org.apache.helix.model.IdealState;
+import org.apache.helix.model.Message;
+import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
+import org.apache.helix.model.StatusUpdate;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.log4j.Logger;
 
@@ -101,12 +114,15 @@ public class ExternalViewComputeStage extends AbstractBaseStage
       // Update cluster status monitor mbean
       ClusterStatusMonitor clusterStatusMonitor =
           (ClusterStatusMonitor) event.getAttribute("clusterStatusMonitor");
-      if (clusterStatusMonitor != null)
+      IdealState idealState = cache._idealStateMap.get(view.getResourceName());
+      if(idealState != null)
       {
-        clusterStatusMonitor.onExternalViewChange(view,
+        if (clusterStatusMonitor != null && !idealState.getStateModelDefRef().equalsIgnoreCase(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE))
+        {
+          clusterStatusMonitor.onExternalViewChange(view,
                                                   cache._idealStateMap.get(view.getResourceName()));
+        }
       }
-
       // compare the new external view with current one, set only on different
       Map<String, ExternalView> curExtViews =
           dataAccessor.getChildValuesMap(manager.getHelixDataAccessor()
@@ -118,11 +134,20 @@ public class ExternalViewComputeStage extends AbstractBaseStage
       {
         keys.add(manager.getHelixDataAccessor().keyBuilder().externalView(resourceName));
         newExtViews.add(view);
-        // dataAccessor.setProperty(PropertyType.EXTERNALVIEW, view,
-        // resourceName);
+        // dataAccessor.setProperty(PropertyType.EXTERNALVIEW, view, resourceName);
+        
+        // For SCHEDULER_TASK_RESOURCE resource group (helix task queue), we need to find out which task 
+        // partitions are finished (COMPLETED or ERROR), update the status update of the original scheduler 
+        // message, and then remove the partitions from the ideal state
+        if(idealState.getStateModelDefRef().equalsIgnoreCase(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE))
+        {
+          updateScheduledTaskStatus(view, manager, idealState);
+        }
       }
     }
-
+    // TODO: consider not setting the externalview of SCHEDULER_TASK_QUEUE at all. 
+    // Are there any entity that will be interested in its change?
+    
     if (newExtViews.size() > 0)
     {
       dataAccessor.setChildren(keys, newExtViews);
@@ -131,6 +156,123 @@ public class ExternalViewComputeStage extends AbstractBaseStage
     long endTime = System.currentTimeMillis();
     log.info("END ExternalViewComputeStage.process(). took: " + (endTime - startTime)
         + " ms");
+  }
+  
+  private void updateScheduledTaskStatus(ExternalView ev, HelixManager manager, IdealState taskQueueIdealState)
+  {
+    HelixDataAccessor accessor = manager.getHelixDataAccessor();
+    ZNRecord finishedTasks = new ZNRecord(ev.getResourceName());
+    
+    // Place holder for finished partitions
+    Map<String, String> emptyMap = new HashMap<String, String>();
+    List<String> emptyList = new LinkedList<String>();
+    
+    Map<String, Integer> controllerMsgIdCountMap = new HashMap<String, Integer>();
+    Map<String, Map<String, String>> controllerMsgUpdates = new HashMap<String, Map<String, String>>();
+    
+    Builder keyBuilder = accessor.keyBuilder();
+          
+    for(String taskPartitionName : ev.getPartitionSet())
+    {
+      for(String taskState : ev.getStateMap(taskPartitionName).values())
+      {
+        if(taskState.equalsIgnoreCase("ERROR") || taskState.equalsIgnoreCase("COMPLETED"))
+        {
+          log.info(taskPartitionName + " finished as " + taskState);
+          finishedTasks.getListFields().put(taskPartitionName, emptyList);
+          finishedTasks.getMapFields().put(taskPartitionName, emptyMap);
+          
+          // Update original scheduler message status update
+          if(taskQueueIdealState.getRecord().getMapField(taskPartitionName) != null)
+          {
+            String controllerMsgId 
+              = taskQueueIdealState.getRecord().getMapField(taskPartitionName).get(DefaultSchedulerMessageHandlerFactory.CONTROLLER_MSG_ID);
+            if(controllerMsgId != null)
+            {
+              log.info(taskPartitionName + " finished with controllerMsg " + controllerMsgId);
+              if(!controllerMsgUpdates.containsKey(controllerMsgId))
+              {
+                controllerMsgUpdates.put(controllerMsgId, new HashMap<String, String>());
+              }
+              controllerMsgUpdates.get(controllerMsgId).put(taskPartitionName, taskState);
+            }
+          }
+        }
+      }
+    }
+    // fill the controllerMsgIdCountMap
+    for(String taskId : taskQueueIdealState.getPartitionSet())
+    {
+      String controllerMsgId 
+        = taskQueueIdealState.getRecord().getMapField(taskId).get(DefaultSchedulerMessageHandlerFactory.CONTROLLER_MSG_ID);
+      if(controllerMsgId != null)
+      {
+        if(!controllerMsgIdCountMap.containsKey(controllerMsgId))
+        {
+          controllerMsgIdCountMap.put(controllerMsgId, 0);
+        }
+        controllerMsgIdCountMap.put(controllerMsgId, (controllerMsgIdCountMap.get(controllerMsgId) + 1));
+      }
+    }
+    
+    if(controllerMsgUpdates.size() > 0)
+    {
+      for(String controllerMsgId : controllerMsgUpdates.keySet())
+      {
+        PropertyKey controllerStatusUpdateKey 
+          = keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(), controllerMsgId);
+        StatusUpdate controllerStatusUpdate = accessor.getProperty(controllerStatusUpdateKey);
+        for(String taskPartitionName : controllerMsgUpdates.get(controllerMsgId).keySet())
+        {
+          Map<String, String> result = new HashMap<String, String>();
+          result.put("Result", controllerMsgUpdates.get(controllerMsgId).get(taskPartitionName));
+          controllerStatusUpdate.getRecord().setMapField("MessageResult "  + 
+             taskQueueIdealState.getRecord().getMapField(taskPartitionName).get(Message.Attributes.TGT_NAME.toString()) + " " + taskPartitionName + " " + 
+             taskQueueIdealState.getRecord().getMapField(taskPartitionName).get(Message.Attributes.MSG_ID.toString())
+             , result);
+        }
+        // All done for the scheduled tasks that came from controllerMsgId, add summary for it
+        if(controllerMsgUpdates.get(controllerMsgId).size() == controllerMsgIdCountMap.get(controllerMsgId).intValue())
+        {
+          int finishedTasksNum = 0;
+          int completedTasksNum = 0;
+          for(String key : controllerStatusUpdate.getRecord().getMapFields().keySet())
+          {
+            if(key.startsWith("MessageResult "))
+            {
+              finishedTasksNum ++;
+            }
+            if(controllerStatusUpdate.getRecord().getMapField(key).get("Result") != null)
+            {
+              if(controllerStatusUpdate.getRecord().getMapField(key).get("Result").equalsIgnoreCase("COMPLETED"))
+              {
+                completedTasksNum++;
+              }
+            }
+          }
+          Map<String, String> summary = new TreeMap<String, String>();
+          summary.put("TotalMessages:", "" + finishedTasksNum);
+          summary.put("CompletedMessages", "" + completedTasksNum);
+          
+          controllerStatusUpdate.getRecord().setMapField("Summary", summary);
+        }
+        // Update the statusUpdate of controllerMsgId
+        accessor.updateProperty(controllerStatusUpdateKey, controllerStatusUpdate);
+      }
+    }
+    
+    if(finishedTasks.getListFields().size() > 0)
+    {
+      ZNRecordDelta znDelta = new ZNRecordDelta(finishedTasks, MergeOperation.SUBTRACT);
+      List<ZNRecordDelta> deltaList = new LinkedList<ZNRecordDelta>();
+      deltaList.add(znDelta);
+      IdealState delta = new IdealState(taskQueueIdealState.getResourceName());
+      delta.setDeltaList(deltaList);
+
+      // Remove the finished (COMPLETED or ERROR) tasks from the SCHEDULER_TASK_RESOURCE idealstate
+      keyBuilder = accessor.keyBuilder();
+      accessor.updateProperty(keyBuilder.idealStates(taskQueueIdealState.getResourceName()), delta);
+    }
   }
 
 }

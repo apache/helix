@@ -50,12 +50,10 @@ import org.apache.helix.MessageListener;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.NotificationContext.MapKey;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.NotificationContext.Type;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Message;
-import org.apache.helix.model.Message.Attributes;
 import org.apache.helix.model.Message.MessageState;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.monitoring.ParticipantMonitor;
@@ -624,7 +622,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor
     }
   }
 
-  private MessageHandler createMessageHandler(Message message,
+  public MessageHandler createMessageHandler(Message message,
                                               NotificationContext changeContext)
   {
     String msgType = message.getMsgType().toString();

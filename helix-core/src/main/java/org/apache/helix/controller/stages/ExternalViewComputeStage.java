@@ -139,7 +139,7 @@ public class ExternalViewComputeStage extends AbstractBaseStage
         // For SCHEDULER_TASK_RESOURCE resource group (helix task queue), we need to find out which task 
         // partitions are finished (COMPLETED or ERROR), update the status update of the original scheduler 
         // message, and then remove the partitions from the ideal state
-        if(idealState.getStateModelDefRef().equalsIgnoreCase(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE))
+        if(idealState != null && idealState.getStateModelDefRef().equalsIgnoreCase(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE))
         {
           updateScheduledTaskStatus(view, manager, idealState);
         }

@@ -244,7 +244,8 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
     }
     List<String> orphanedPartitionsList = new ArrayList<String>();
     orphanedPartitionsList.addAll(orphanedPartitions);
-    normalizeAssignmentMap(masterAssignmentMap, orphanedPartitionsList);
+    int maxPartitionsPerInstance = idealState.getMaxPartitionsPerInstance();
+    normalizeAssignmentMap(masterAssignmentMap, orphanedPartitionsList, maxPartitionsPerInstance);
     idealState.getRecord()
               .setListFields(generateListFieldFromMasterAssignment(masterAssignmentMap,
                                                                    replicas));
@@ -262,7 +263,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
    * @return
    */
   private void normalizeAssignmentMap(Map<String, List<String>> masterAssignmentMap,
-                                      List<String> orphanPartitions)
+                                      List<String> orphanPartitions, int maxPartitionsPerInstance)
   {
     int totalPartitions = 0;
     String[] instanceNames = new String[masterAssignmentMap.size()];
@@ -300,6 +301,10 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
     {
       int targetPartitionNo = leave > 0 ? (partitionNumber + 1) : partitionNumber;
       leave--;
+      if(targetPartitionNo > maxPartitionsPerInstance)
+      {
+        targetPartitionNo = maxPartitionsPerInstance;
+      }
       while (masterAssignmentMap.get(instanceNames[i]).size() < targetPartitionNo)
       {
         int lastElementIndex = orphanPartitions.size() - 1;
@@ -310,7 +315,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
     }
     if (orphanPartitions.size() > 0)
     {
-      logger.error("orphanPartitions still contains elements");
+      logger.warn("orphanPartitions still contains elements");
     }
   }
 

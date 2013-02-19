@@ -59,6 +59,9 @@ public class JsonParameters
   public static final String             RESOURCE_GROUP_NAME = "resourceGroupName";
   public static final String             STATE_MODEL_DEF_REF = "stateModelDefRef";
   public static final String             IDEAL_STATE_MODE    = "mode";
+  public static final String             MAX_PARTITIONS_PER_NODE = "maxPartitionsPerNode";
+  public static final String             BUCKET_SIZE         = "bucketSize";
+  
 
   // zk commands
   public static final String             ZK_DELETE_CHILDREN  = "zkDeleteChildren";

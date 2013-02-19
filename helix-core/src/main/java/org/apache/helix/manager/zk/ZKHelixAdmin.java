@@ -688,6 +688,16 @@ public class ZKHelixAdmin implements HelixAdmin
                           String idealStateMode,
                           int bucketSize)
   {
+    addResource(clusterName, resourceName, partitions, stateModelRef, idealStateMode,
+        bucketSize, -1);
+
+  }
+  
+  @Override
+  public void addResource(String clusterName, String resourceName,
+      int partitions, String stateModelRef, String idealStateMode,
+      int bucketSize, int maxPartitionsPerInstance)
+  {
     if (!ZKUtil.isClusterSetup(clusterName, _zkClient))
     {
       throw new HelixException("cluster " + clusterName + " is not setup yet");
@@ -708,13 +718,15 @@ public class ZKHelixAdmin implements HelixAdmin
     idealState.setIdealStateMode(mode.toString());
     idealState.setReplicas("" + 0);
     idealState.setStateModelFactoryName(HelixConstants.DEFAULT_STATE_MODEL_FACTORY);
-
+    if(maxPartitionsPerInstance > 0 && maxPartitionsPerInstance < Integer.MAX_VALUE)
+    {
+      idealState.setMaxPartitionsPerInstance(maxPartitionsPerInstance);
+    }
     if (bucketSize > 0)
     {
       idealState.setBucketSize(bucketSize);
     }
     addResource(clusterName, resourceName, idealState);
-
   }
 
   @Override
@@ -1379,5 +1391,7 @@ public class ZKHelixAdmin implements HelixAdmin
     IdealState newIdealState = new IdealState(newIdealStateRecord);
     setResourceIdealState(clusterName, newIdealStateRecord.getId(), newIdealState);
   }
+
+  
  
 }

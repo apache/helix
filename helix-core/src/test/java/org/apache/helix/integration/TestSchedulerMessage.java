@@ -334,7 +334,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
         Assert.assertTrue(_zkClient.getChildren(nextnextPath).size() > 0);
       }
     }
-    
+    Thread.sleep(3000);
     ZKPathDataDumpTask dumpTask = new ZKPathDataDumpTask(manager, _zkClient, 0);
     dumpTask.run();
     
@@ -922,7 +922,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
     
     for(int i = 0; i < _PARTITIONS * 3 / 5; i++)
     {
-      for(int j = 0; i< 10; j++)
+      for(int j = 0; j< 10; j++)
       {
         Thread.sleep(300);
         if(factory._messageCount == 5*(i+1)) break;

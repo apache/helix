@@ -93,6 +93,8 @@ public class ClusterSetup
   public static final String mode = "mode";
   public static final String bucketSize = "bucketSize";
   public static final String resourceKeyPrefix = "key";
+  public static final String maxPartitionsPerNode = "maxPartitionsPerNode";
+  
   public static final String addResourceProperty = "addResourceProperty";
   public static final String removeResourceProperty = "removeResourceProperty";
 
@@ -431,6 +433,23 @@ public class ClusterSetup
                        idealStateMode,
                        bucketSize);
   }
+  
+  public void addResourceToCluster(String clusterName,
+      String resourceName,
+      int numResources,
+      String stateModelRef,
+      String idealStateMode,
+      int bucketSize,
+      int maxPartitionsPerInstance)
+  {
+    _admin.addResource(clusterName,
+      resourceName,
+      numResources,
+      stateModelRef,
+      idealStateMode,
+      bucketSize,
+      maxPartitionsPerInstance);
+  }
 
   public void dropResourceFromCluster(String clusterName, String resourceName)
   {
@@ -443,7 +462,7 @@ public class ClusterSetup
     rebalanceStorageCluster(clusterName, resourceName, replica, resourceName);
   }
 
-  public void reblanceResource(String clusterName, String resourceName, int replica)
+  public void rebalanceResource(String clusterName, String resourceName, int replica)
   {
     rebalanceStorageCluster(clusterName, resourceName, replica, resourceName); 
   }
@@ -738,6 +757,14 @@ public class ClusterSetup
     resourceBucketSizeOption.setArgs(1);
     resourceBucketSizeOption.setRequired(false);
     resourceBucketSizeOption.setArgName("Size of a bucket for a resource");
+    
+    Option maxPartitionsPerNodeOption =
+        OptionBuilder.withLongOpt(maxPartitionsPerNode)
+                     .withDescription("Specify max partitions per node, used with addResourceGroup command")
+                     .create();
+    maxPartitionsPerNodeOption.setArgs(1);
+    maxPartitionsPerNodeOption.setRequired(false);
+    maxPartitionsPerNodeOption.setArgName("Max partitions per node for a resource");
 
     Option resourceKeyOption =
         OptionBuilder.withLongOpt(resourceKeyPrefix)
@@ -952,6 +979,7 @@ public class ClusterSetup
     group.addOption(addResourceOption);
     group.addOption(resourceModeOption);
     group.addOption(resourceBucketSizeOption);
+    group.addOption(maxPartitionsPerNodeOption);
     group.addOption(expandResourceOption);
     group.addOption(expandClusterOption);
     group.addOption(resourceKeyOption);
@@ -1083,13 +1111,19 @@ public class ClusterSetup
       {
         bucketSizeVal = Integer.parseInt(cmd.getOptionValues(bucketSize)[0]);
       }
-
+      
+      int maxPartitionsPerNodeVal = -1;
+      if (cmd.hasOption(maxPartitionsPerNode))
+      {
+        maxPartitionsPerNodeVal = Integer.parseInt(cmd.getOptionValues(maxPartitionsPerNode)[0]);
+      }
       setupTool.addResourceToCluster(clusterName,
                                      resourceName,
                                      partitions,
                                      stateModelRef,
                                      modeValue,
-                                     bucketSizeVal);
+                                     bucketSizeVal,
+                                     maxPartitionsPerNodeVal);
       return 0;
     }
 

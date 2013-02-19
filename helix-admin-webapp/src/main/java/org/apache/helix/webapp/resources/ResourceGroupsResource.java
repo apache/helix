@@ -145,6 +145,32 @@ public class ResourceGroupsResource extends Resource
         {
           mode = jsonParameters.getParameter(JsonParameters.IDEAL_STATE_MODE);
         }
+        
+        int bucketSize = 0;
+        if (jsonParameters.getParameter(JsonParameters.BUCKET_SIZE) != null)
+        {
+          try
+          {
+            bucketSize = Integer.parseInt(jsonParameters.getParameter(JsonParameters.BUCKET_SIZE));
+          }
+          catch(Exception e)
+          {
+            
+          }
+        }
+        
+        int maxPartitionsPerNode = -1;
+        if (jsonParameters.getParameter(JsonParameters.MAX_PARTITIONS_PER_NODE) != null)
+        {
+          try
+          {
+            maxPartitionsPerNode = Integer.parseInt(jsonParameters.getParameter(JsonParameters.MAX_PARTITIONS_PER_NODE));
+          }
+          catch(Exception e)
+          {
+            
+          }
+        }
 
         ZkClient zkClient =
             (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
@@ -154,7 +180,10 @@ public class ResourceGroupsResource extends Resource
                                        entityName,
                                        partitions,
                                        stateModelDefRef,
-                                       mode);
+                                       mode,
+                                       bucketSize,
+                                       maxPartitionsPerNode
+                                       );
       }
       else
       {

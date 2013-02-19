@@ -134,7 +134,26 @@ public interface HelixAdmin
                    String stateModelRef,
                    String idealStateMode,
                    int bucketSize);
-
+  
+  /**
+   * Add a resource to a cluster, using a bucket size > 1
+   * 
+   * @param clusterName
+   * @param resourceName
+   * @param numResources
+   * @param stateModelRef
+   * @param idealStateMode
+   * @param bucketSize
+   * @param maxPartitionsPerInstance
+   */
+  void addResource(String clusterName,
+                   String resourceName,
+                   int numResources,
+                   String stateModelRef,
+                   String idealStateMode,
+                   int bucketSize,
+                   int maxPartitionsPerInstance);
+  
   /**
    * Add an instance to a cluster
    * 

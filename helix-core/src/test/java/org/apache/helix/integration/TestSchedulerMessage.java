@@ -48,6 +48,7 @@ import org.apache.helix.messaging.handling.MessageHandlerFactory;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageState;
 import org.apache.helix.model.Message.MessageType;
+import org.apache.helix.model.StatusUpdate;
 import org.apache.helix.monitoring.ZKPathDataDumpTask;
 import org.apache.helix.util.HelixUtil;
 import org.codehaus.jackson.JsonGenerationException;
@@ -521,7 +522,8 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
         MessageType.SCHEDULER_MSG.toString(), schedulerMessage.getMsgId());
     for(int i = 0; i< 10; i++)
     {
-      if(helixDataAccessor.getProperty(controllerTaskStatus) == null)
+      StatusUpdate update = helixDataAccessor.getProperty(controllerTaskStatus);
+      if(update == null || update.getRecord().getMapField("SentMessageCount") == null)
       {
         Thread.sleep(1000);
       }

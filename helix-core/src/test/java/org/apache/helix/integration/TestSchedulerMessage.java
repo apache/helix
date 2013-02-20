@@ -519,6 +519,13 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
     Assert.assertEquals(0, factory._results.size());
     PropertyKey controllerTaskStatus = keyBuilder.controllerTaskStatus(
         MessageType.SCHEDULER_MSG.toString(), schedulerMessage.getMsgId());
+    for(int i = 0; i< 10; i++)
+    {
+      if(helixDataAccessor.getProperty(controllerTaskStatus) == null)
+      {
+        Thread.sleep(1000);
+      }
+    }
     ZNRecord statusUpdate = helixDataAccessor.getProperty(controllerTaskStatus)
         .getRecord();
     Assert.assertTrue(statusUpdate.getMapField("SentMessageCount")

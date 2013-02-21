@@ -40,7 +40,7 @@ public class MessageGenerationOutput
 
   }
 
-  public void addMessage(String resourceName, Partition resource,
+  public void addMessage(String resourceName, Partition partition,
       Message message)
   {
     if (!_messagesMap.containsKey(resourceName))
@@ -48,13 +48,13 @@ public class MessageGenerationOutput
       _messagesMap.put(resourceName,
           new HashMap<Partition, List<Message>>());
     }
-    if (!_messagesMap.get(resourceName).containsKey(resource))
+    if (!_messagesMap.get(resourceName).containsKey(partition))
     {
-      _messagesMap.get(resourceName).put(resource,
+      _messagesMap.get(resourceName).put(partition,
           new ArrayList<Message>());
 
     }
-    _messagesMap.get(resourceName).get(resource).add(message);
+    _messagesMap.get(resourceName).get(partition).add(message);
 
   }
 

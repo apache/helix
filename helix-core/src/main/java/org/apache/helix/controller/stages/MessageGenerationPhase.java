@@ -19,7 +19,9 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -37,10 +39,8 @@ import org.apache.helix.model.Message.MessageState;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.log4j.Logger;
 
-
 /**
- * Compares the currentState,pendingState with IdealState and generate messages
- * 
+ * Compares the currentState, pendingState with IdealState and generate messages
  * 
  */
 public class MessageGenerationPhase extends AbstractBaseStage
@@ -85,6 +85,11 @@ public class MessageGenerationPhase extends AbstractBaseStage
         Map<String, String> instanceStateMap = bestPossibleStateOutput.getInstanceStateMap(
             resourceName, partition);
 
+        // we should generate message based on the desired-state priority
+        // so keep generated messages in a temp map keyed by state
+        // desired-state->list of generated-messages
+        Map<String, List<Message>> messageMap = new HashMap<String, List<Message>>();
+        
         for (String instanceName : instanceStateMap.keySet())
         {
           String desiredState = instanceStateMap.get(instanceName);
@@ -173,10 +178,25 @@ public class MessageGenerationPhase extends AbstractBaseStage
               }
             }
             message.getRecord().setSimpleField("ClusterEventName", event.getName());
-            output.addMessage(resourceName, partition, message);
+            // output.addMessage(resourceName, partition, message);
+            if (!messageMap.containsKey(desiredState)) {
+            	messageMap.put(desiredState, new ArrayList<Message>());
+            }
+            messageMap.get(desiredState).add(message);
           }
         }
-      }
+        
+        // add generated messages to output according to state priority
+        List<String> statesPriorityList = stateModelDef.getStatesPriorityList();
+        for (String state : statesPriorityList) {
+        	if (messageMap.containsKey(state)) {
+        		for (Message message : messageMap.get(state)) {
+        			output.addMessage(resourceName, partition, message);
+        		}
+        	}
+        }
+        
+      }	// end of for-each-partition
     }
     event.addAttribute(AttributeName.MESSAGES_ALL.toString(), output);
   }

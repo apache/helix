@@ -606,13 +606,13 @@ public class GenericHelixController implements
 	for (String instance : curInstances.keySet()) {
 		if (lastInstances == null || !lastInstances.containsKey(instance)) {
 	        try {
-	          // add message listeners for new sessions
+	          // add message listeners for new instances
 	          manager.addMessageListener(this, instance);
 	          logger.info("Succeed in adding message listener for " + instance);
 	        }
 	        catch (Exception e)
 	        {
-	          logger.error("Fail to add message listener for instance:" + instance, e);
+	          logger.error("Fail to add message listener for instance: " + instance, e);
 	        }
 		}
 	}

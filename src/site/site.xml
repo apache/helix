@@ -106,10 +106,10 @@
   <custom>
     <fluidoSkin>
       <topBarEnabled>true</topBarEnabled>
-      <sideBarEnabled>true</sideBarEnabled>
+      <sideBarEnabled>false</sideBarEnabled>
       <googleSearch></googleSearch>
       <twitter>
-        <user>apachehelix</user>
+        <user>ApacheHelix</user>
         <showUser>true</showUser>
         <showFollowers>false</showFollowers>
       </twitter>

@@ -106,6 +106,7 @@
   <custom>
     <fluidoSkin>
       <topBarEnabled>true</topBarEnabled>
+      <!-- twitter link work only with sidebar disabled -->
       <sideBarEnabled>false</sideBarEnabled>
       <googleSearch></googleSearch>
       <twitter>

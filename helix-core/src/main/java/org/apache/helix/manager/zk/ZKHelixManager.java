@@ -153,7 +153,7 @@ public class ZKHelixManager implements HelixManager
     try
     {
       sessionTimeoutInt =
-          Integer.parseInt(System.getProperty("helixmanager.flappingTimeWindow", ""
+          Integer.parseInt(System.getProperty("zk.session.timeout", ""
               + DEFAULT_SESSION_TIMEOUT));
     }
     catch (NumberFormatException e)

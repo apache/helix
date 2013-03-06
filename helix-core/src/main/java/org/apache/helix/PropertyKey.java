@@ -214,17 +214,6 @@ public class PropertyKey
                              resourceName);
     }
 
-    
-    public PropertyKey resourceConfig(String instanceName, String resourceName)
-    {
-      return new PropertyKey(CONFIGS,
-    		  				 ConfigScopeProperty.RESOURCE,
-    		  				 HelixProperty.class,
-    		  				 _clusterName,
-                             ConfigScopeProperty.RESOURCE.toString(),
-                             resourceName);
-    }
-
     public PropertyKey partitionConfig(String resourceName, String partitionName)
     {
       return new PropertyKey(CONFIGS,

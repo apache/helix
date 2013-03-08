@@ -60,16 +60,6 @@ public final class HelixUtil
     return getPropertyPath(clusterName, PropertyType.LIVEINSTANCES);
   }
 
-  // public static String getConfigPath(String clusterName)
-  // {
-  // return getPropertyPath(clusterName, PropertyType.PARTICIPANT_CONFIGS);
-  // }
-
-  // public static String getConfigPath(String clusterName, String instanceName)
-  // {
-  // return getConfigPath(clusterName) + "/" + instanceName;
-  // }
-
   public static String getMessagePath(String clusterName, String instanceName)
   {
     return getInstancePropertyPath(clusterName, instanceName, PropertyType.MESSAGES);
@@ -181,5 +171,31 @@ public final class HelixUtil
   public static String getControllerPropertyPath(String clusterName, PropertyType type)
   {
     return PropertyPathConfig.getPath(type, clusterName);
+  }
+  
+  /**
+   * get the parent-path of given path
+   * return "/" string if path = "/xxx", null if path = "/"
+   * 
+   * @param path
+   * @return
+   */
+  public static String getZkParentPath(String path) {
+      if (path.equals("/")) {
+          return null;
+      }
+      
+      int idx = path.lastIndexOf('/');
+      return idx == 0? "/" : path.substring(0, idx);
+  }
+  
+  /**
+   * get the last part of the zk-path
+   * 
+   * @param path
+   * @return
+   */
+  public static String getZkName(String path) {
+      return path.substring(path.lastIndexOf('/') + 1);
   }
 }

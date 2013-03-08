@@ -106,10 +106,11 @@
   <custom>
     <fluidoSkin>
       <topBarEnabled>true</topBarEnabled>
-      <sideBarEnabled>true</sideBarEnabled>
+      <!-- twitter link work only with sidebar disabled -->
+      <sideBarEnabled>false</sideBarEnabled>
       <googleSearch></googleSearch>
       <twitter>
-        <user>apachehelix</user>
+        <user>ApacheHelix</user>
         <showUser>true</showUser>
         <showFollowers>false</showFollowers>
       </twitter>

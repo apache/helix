@@ -28,6 +28,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.helix.store.zk.ZNode;
+import org.apache.helix.util.HelixUtil;
 import org.apache.zookeeper.data.Stat;
 
 
@@ -116,8 +117,8 @@ public abstract class Cache<T>
     {
       _lock.writeLock().lock();
 
-      String parentPath = new File(path).getParent();
-      String name = new File(path).getName();
+      String parentPath = HelixUtil.getZkParentPath(path);
+      String name = HelixUtil.getZkName(path);
       removeFromParentChildSet(parentPath, name);
 
       ZNode znode = _cache.remove(path);

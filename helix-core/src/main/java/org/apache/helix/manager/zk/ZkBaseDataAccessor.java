@@ -42,6 +42,7 @@ import org.apache.helix.manager.zk.ZkAsyncCallbacks.ExistsCallbackHandler;
 import org.apache.helix.manager.zk.ZkAsyncCallbacks.GetDataCallbackHandler;
 import org.apache.helix.manager.zk.ZkAsyncCallbacks.SetDataCallbackHandler;
 import org.apache.helix.store.zk.ZNode;
+import org.apache.helix.util.HelixUtil;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException.Code;
@@ -101,7 +102,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
       catch (ZkNoNodeException e)
       {
         // this will happen if parent node does not exist
-        String parentPath = new File(path).getParent();
+        String parentPath = HelixUtil.getZkParentPath(path);
         try
         {
           RetCode rc = create(parentPath, null, pathCreated, AccessOption.PERSISTENT);
@@ -581,7 +582,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
 
         if (Code.get(cb.getRc()) == Code.NONODE)
         {
-          String parentPath = new File(path).getParent();
+          String parentPath = HelixUtil.getZkParentPath(path);
           parentPaths.set(i, parentPath);
           failOnNoNode = true;
         }

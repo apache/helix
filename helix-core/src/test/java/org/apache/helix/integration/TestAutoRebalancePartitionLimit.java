@@ -101,12 +101,13 @@ private static final Logger LOG = Logger.getLogger(TestAutoRebalancePartitionLim
         startResult =
             TestHelper.startDummyProcess(ZK_ADDR, CLUSTER_NAME, instanceName);
         _startCMResultMap.put(instanceName, startResult);
-        Thread.sleep(1000);
+        Thread.sleep(2000);
         boolean result =
             ClusterStateVerifier.verifyByZkCallback(new ExternalViewBalancedVerifier(_zkClient,
                                                                                   CLUSTER_NAME, TEST_DB));
         Assert.assertTrue(result);
         ExternalView ev = manager.getHelixDataAccessor().getProperty(accessor.keyBuilder().externalView(TEST_DB));
+        System.out.println(ev.getPartitionSet().size());
         if(i < 3)
         {
           Assert.assertEquals(ev.getPartitionSet().size(), 25*(i+1));

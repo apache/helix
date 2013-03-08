@@ -64,7 +64,30 @@ WHAT MAKES IT GENERIC
 Even though most distributed systems follow similar mechanism of co-ordinating the nodes through a controller or zookeeper, the implementation is 
 specific to the use case. Helix abstracts out the cluster management of distributed system from its core functionality. 
 
-Helix allows one to express the system behavior via Pluggable Finite State Machine 
+Helix allows one to express the system behavior via  
+
+#### STATE MACHINE
+State machine allows one to express the different roles a replica can take up and transition from one role to another.
+
+* Set of valid states (S1,S2,S3 etc) for each replica
+* Set of valid transitions that allow replicas to transition from one state to another. 
+   
+#### CONSTRAINTS
+Helix allows one to specify constraints on states and transitions. 
+
+* Minimum and maximum number of replicas that need to be in a given state. For example S3: Max=1 S2: Min=2, Max=3
+* Set a max concurrency limit of each transition type. For example, if S1-S2 involves moving data, one can limit the data movement by setting limit on maximum number of concurrent (S1->S2) transitions per node to 5.  
+
+#### OBJECTIVES
+Objectives are used to control the replica placement strategy across the nodes. For example
+
+* Replicas must be evenly distributed across nodes.  
+* Replicas of one partition must be on different nodes/racks.
+* When a node fails, its load must be evenly distributed among rest of the nodes.
+* When new nodes are added, it must result in minimum number of movements.    
+
+EXAMPLE
+-------
 
 Consider the simple use cases where all partitions are actively processing search query request. 
 We can express it using a OnlineOffline state model where a task can be either 
@@ -198,6 +221,10 @@ Maven dependency
 PUBLICATIONS
 -------------
 
-* Untangling cluster management using Helix at [SOCC 2012](http://www.socc2012.org/home/program)  
+* Untangling cluster management using Helix at [SOCC Oct 2012](http://www.socc2012.org/home/program)  
     - [paper](https://915bbc94-a-62cb3a1a-s-sites.googlegroups.com/site/acm2012socc/helix_onecol.pdf)
-    - [presentation](https://docs.google.com/a/google.com/viewer?a=v&pid=sites&srcid=ZGVmYXVsdGRvbWFpbnxhY20yMDEyc29jY3xneDoyYTRlNjc2OTZhZTg3OTRm)
+    - [presentation](http://www.slideshare.net/KishoreGopalakrishna/helix-socc-v10final)
+* Building distributed systems using Helix Apache Con Feb 2013
+    - [presentation at ApacheCon](http://www.slideshare.net/KishoreGopalakrishna/apache-con-buildingddsusinghelix)
+    - [presentation at vmware](http://www.slideshare.net/KishoreGopalakrishna/apache-helix-presentation-at-vmware)
+

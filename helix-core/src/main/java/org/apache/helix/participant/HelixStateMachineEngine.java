@@ -32,6 +32,7 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.NotificationContext.MapKey;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.messaging.handling.BatchMessageHandler;
+import org.apache.helix.messaging.handling.BatchMessageWrapper;
 import org.apache.helix.messaging.handling.HelixStateTransitionHandler;
 import org.apache.helix.messaging.handling.HelixTaskExecutor;
 import org.apache.helix.messaging.handling.MessageHandler;
@@ -264,6 +265,12 @@ public class HelixStateMachineEngine implements StateMachineEngine
                                                currentStateDelta);
     } else
     {    	
+      BatchMessageWrapper wrapper = stateModelFactory.getBatchMessageWrapper(resourceName);
+      if (wrapper == null)
+      {
+        wrapper = stateModelFactory.createAndAddBatchMessageWrapper(resourceName);
+      }
+      
     	// get executor-service for the message
     	TaskExecutor executor = (TaskExecutor) context.get(MapKey.TASK_EXECUTOR.toString());
     	if (executor == null)
@@ -272,8 +279,9 @@ public class HelixStateMachineEngine implements StateMachineEngine
     				+ ". msgType: " + message.getMsgType() + ", resource: " + message.getResourceName());
     		return null;
     	}
-    	return new BatchMessageHandler(message, context, this, executor);
-    }  }
+    	return new BatchMessageHandler(message, context, this, wrapper, executor);
+    }  
+  }
 
   @Override
   public String getMessageType()

@@ -179,16 +179,7 @@ public class InstanceConfig extends HelixProperty
   @Override
   public boolean isValid()
   {
-    if(getHostName() == null)
-    {
-      _logger.error("instanceconfig does not have host name. id:" + _record.getId());
-      return false;
-    }
-    if(getPort() == null)
-    {
-      _logger.error("instanceconfig does not have host port. id:" + _record.getId());
-      return false;
-    }
+    // HELIX-65: remove check for hostname/port existence
     return true;
   }
 }

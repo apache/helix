@@ -119,12 +119,12 @@ public class TestDrop extends ZkIntegrationTestBase
     
     // clean up
     // wait for all zk callbacks done
-    Thread.sleep(1000);
-    controller.syncStop();
-    for (int i = 0; i < 5; i++)
-    {
-      participants[i].syncStop();
-    }
+//    Thread.sleep(1000);
+//    controller.syncStop();
+//    for (int i = 0; i < 5; i++)
+//    {
+//      participants[i].syncStop();
+//    }
 
     System.out.println("END " + clusterName + " at "
         + new Date(System.currentTimeMillis())); 
@@ -178,7 +178,7 @@ public class TestDrop extends ZkIntegrationTestBase
         " schemata 1 STORAGE_DEFAULT_SM_SCHEMATA";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
     command = "--zkSvr " + ZK_ADDR +" --rebalance " + clusterName + 
-        " schemata 1";
+        " schemata " + n;
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
     
     result =

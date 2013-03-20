@@ -339,14 +339,17 @@ public class IdealState extends HelixProperty
             return false;
         }
 
-        int replica = Integer.parseInt(replicaStr);
-        Set<String> partitionSet = getPartitionSet();
-        for (String partition : partitionSet) {
-            List<String> preferenceList = getPreferenceList(partition);
-            if (preferenceList == null || preferenceList.size() != replica) {
-                logger.error("invalid ideal-state. preference-list size not equals to replicas in auto mode. record was: "
-                        + _record);
-                return false;
+        if (!replicaStr.equals(HelixConstants.StateModelToken.ANY_LIVEINSTANCE.toString())) {
+            int replica = Integer.parseInt(replicaStr);
+            Set<String> partitionSet = getPartitionSet();
+            for (String partition : partitionSet) {
+                List<String> preferenceList = getPreferenceList(partition);
+                if (preferenceList == null || preferenceList.size() != replica) {
+                    logger.error("invalid ideal-state. preference-list size not equals to replicas in auto mode. replica: "
+                            + replica + ", preference-list size: " + preferenceList.size() + ", record was: "
+                            + _record);
+                    return false;
+                }
             }
         }
     }

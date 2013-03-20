@@ -23,10 +23,7 @@ import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -42,8 +39,8 @@ import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.apache.helix.ConfigScope;
-import org.apache.helix.ConfigScopeBuilder;
+import org.apache.helix.model.ConfigScope;
+import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixException;
 import org.apache.helix.ZNRecord;
@@ -546,9 +543,9 @@ public class ClusterSetup
   /**
    * setConfig
    * 
-   * @param scopeStr
+   * @param scopesStr
    *          : scope=value, ... where scope=CLUSTER, RESOURCE, PARTICIPANT, PARTITION
-   * @param properitesStr
+   * @param propertiesStr
    *          : key=value, ... which represents a Map<String, String>
    */
   public void setConfig(String scopesStr, String propertiesStr)

@@ -24,11 +24,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.helix.ConfigScope.ConfigScopeProperty;
-import org.apache.helix.model.ExternalView;
-import org.apache.helix.model.IdealState;
-import org.apache.helix.model.InstanceConfig;
-import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.model.*;
+import org.apache.helix.model.ConfigScope.ConfigScopeProperty;
 
 
 public interface HelixAdmin

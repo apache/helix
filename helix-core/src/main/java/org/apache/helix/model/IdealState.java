@@ -357,34 +357,4 @@ public class IdealState extends HelixProperty
     return true;
   }
 
-  public static class CustomBuilder
-  {
-    public void set(String partitionName, String instanceName, String state)
-    {
-
-    }
-
-  }
-
-  public static class AutoModeBuilder
-  {
-    public void setNumPartitions(int partitions)
-    {
-      
-    }
-
-    public void replicas(int replicas)
-    {
-
-    }
-
-  }
-
-  public static class SemiAutoBuilder
-  {
-    public void set(String partitionName, String... instancePreferenceList)
-    {
-
-    }
-  }
 }

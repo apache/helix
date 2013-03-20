@@ -90,7 +90,7 @@ public class TestBatchMessage extends ZkIntegrationTestBase
     idealState.setBatchMessageMode(true);
     accessor.setProperty(keyBuilder.idealStates("TestDB0"), idealState);
 
-    // registry a message listener so we know how many message generated
+    // register a message listener so we know how many message generated
     TestZkChildListener listener = new TestZkChildListener();
     _gZkClient.subscribeChildChanges(keyBuilder.messages("localhost_12918").getPath(), listener);
 

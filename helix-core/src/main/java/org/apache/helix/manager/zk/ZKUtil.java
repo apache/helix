@@ -27,7 +27,7 @@ import org.I0Itec.zkclient.DataUpdater;
 import org.apache.helix.PropertyPathConfig;
 import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.ConfigScope.ConfigScopeProperty;
+import org.apache.helix.model.ConfigScope.ConfigScopeProperty;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.data.Stat;

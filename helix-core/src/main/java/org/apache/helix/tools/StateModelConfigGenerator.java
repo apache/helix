@@ -29,7 +29,7 @@ import org.apache.helix.manager.zk.DefaultSchedulerMessageHandlerFactory;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.model.Transition;
 import org.apache.helix.model.StateModelDefinition.StateModelDefinitionProperty;
-import org.apache.helix.participant.statemachine.StateTransitionTableBuilder;
+import org.apache.helix.model.builder.StateTransitionTableBuilder;
 
 
 public class StateModelConfigGenerator

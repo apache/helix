@@ -1,4 +1,4 @@
-package org.apache.helix;
+package org.apache.helix.model;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.apache.helix.util.StringTemplate;
 import org.apache.log4j.Logger;
 
@@ -83,7 +84,7 @@ public class ConfigScope
   private final ConfigScopeProperty _scope;
   private final String _scopeStr;
 
-  ConfigScope(ConfigScopeBuilder configScopeBuilder)
+  public ConfigScope(ConfigScopeBuilder configScopeBuilder)
   {
     Map<ConfigScopeProperty, String> scopeMap = configScopeBuilder
         .getScopeMap();

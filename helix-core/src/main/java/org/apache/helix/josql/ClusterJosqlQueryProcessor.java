@@ -30,7 +30,7 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.ConfigScope.ConfigScopeProperty;
+import org.apache.helix.model.ConfigScope.ConfigScopeProperty;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.model.LiveInstance.LiveInstanceProperty;
 import org.apache.log4j.Logger;

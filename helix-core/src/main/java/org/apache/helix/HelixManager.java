@@ -21,7 +21,7 @@ package org.apache.helix;
 
 import java.util.List;
 
-import org.apache.helix.ConfigScope.ConfigScopeProperty;
+import org.apache.helix.model.ConfigScope.ConfigScopeProperty;
 import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
 import org.apache.helix.participant.HelixStateMachineEngine;

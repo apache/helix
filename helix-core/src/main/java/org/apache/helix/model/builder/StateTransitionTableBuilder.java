@@ -1,4 +1,4 @@
-package org.apache.helix.participant.statemachine;
+package org.apache.helix.model.builder;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -178,6 +178,7 @@ public class StateTransitionTableBuilder
     return next;
   }
 
+  // TODO move this to test
   public static void main(String[] args)
   {
     List<String> states = new ArrayList<String>();

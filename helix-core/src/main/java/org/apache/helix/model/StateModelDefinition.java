@@ -28,7 +28,7 @@ import java.util.Map;
 
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.participant.statemachine.StateTransitionTableBuilder;
+import org.apache.helix.model.builder.StateTransitionTableBuilder;
 import org.apache.log4j.Logger;
 
 /**

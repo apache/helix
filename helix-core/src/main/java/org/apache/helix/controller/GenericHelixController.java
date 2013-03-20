@@ -24,16 +24,11 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.apache.helix.ConfigAccessor;
 import org.apache.helix.ConfigChangeListener;
-import org.apache.helix.ConfigScope;
-import org.apache.helix.ConfigScopeBuilder;
 import org.apache.helix.ControllerChangeListener;
 import org.apache.helix.CurrentStateChangeListener;
 import org.apache.helix.ExternalViewChangeListener;
@@ -69,7 +64,6 @@ import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.PauseSignal;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
-import org.apache.helix.monitoring.mbeans.MessageQueueMonitor;
 import org.apache.log4j.Logger;
 
 

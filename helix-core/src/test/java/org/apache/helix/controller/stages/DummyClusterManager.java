@@ -22,7 +22,7 @@ package org.apache.helix.controller.stages;
 import org.apache.helix.ClusterMessagingService;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.ConfigChangeListener;
-import org.apache.helix.ConfigScope.ConfigScopeProperty;
+import org.apache.helix.model.ConfigScope.ConfigScopeProperty;
 import org.apache.helix.ControllerChangeListener;
 import org.apache.helix.CurrentStateChangeListener;
 import org.apache.helix.ExternalViewChangeListener;

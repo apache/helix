@@ -21,10 +21,9 @@ package org.apache.helix;
 
 import java.util.List;
 
-import org.apache.helix.ConfigAccessor;
-import org.apache.helix.ConfigScope;
-import org.apache.helix.ConfigScopeBuilder;
-import org.apache.helix.ConfigScope.ConfigScopeProperty;
+import org.apache.helix.model.ConfigScope;
+import org.apache.helix.model.ConfigScope.ConfigScopeProperty;
+import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

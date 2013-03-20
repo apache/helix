@@ -435,11 +435,11 @@ public class TestHelper
 
     for (int i = 0; i < resourceNb; i++)
     {
-      String dbName = resourceNamePrefix + i;
-      setupTool.addResourceToCluster(clusterName, dbName, partitionNb, stateModelDef, mode.toString());
+      String resourceName = resourceNamePrefix + i;
+      setupTool.addResourceToCluster(clusterName, resourceName, partitionNb, stateModelDef, mode.toString());
       if (doRebalance)
       {
-        setupTool.rebalanceStorageCluster(clusterName, dbName, replica);
+        setupTool.rebalanceStorageCluster(clusterName, resourceName, replica);
       }
     }
     zkClient.close();

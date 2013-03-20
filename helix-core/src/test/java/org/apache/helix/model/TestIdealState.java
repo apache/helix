@@ -22,7 +22,6 @@ package org.apache.helix.model;
 import java.util.*;
 
 import org.apache.helix.TestHelper;
-import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.IdealStateModeProperty;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -90,7 +89,6 @@ public class TestIdealState
       preferenceList.add("node_1");
       idealState.getRecord().setListField("test-db_0", preferenceList);
       Assert.assertTrue(idealState.isValid(), "should pass since replicas equals to preference-list size");
-
 
   }
 }

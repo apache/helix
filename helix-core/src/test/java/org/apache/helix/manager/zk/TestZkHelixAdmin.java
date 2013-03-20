@@ -24,18 +24,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.helix.ConfigScope;
-import org.apache.helix.ConfigScopeBuilder;
-import org.apache.helix.HelixException;
-import org.apache.helix.PropertyPathConfig;
-import org.apache.helix.PropertyType;
-import org.apache.helix.ZNRecord;
-import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.*;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.tools.StateModelConfigGenerator;
 import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
@@ -199,4 +194,34 @@ public class TestZkHelixAdmin extends ZkUnitTestBase
     System.out.println("END testZkHelixAdmin at " + new Date(System.currentTimeMillis()));
   }
 
+    @Test
+    public void testDropResource() {
+        String className = TestHelper.getTestClassName();
+        String methodName = TestHelper.getTestMethodName();
+        String clusterName = className + "_" + methodName;
+
+        System.out.println("START " + clusterName + " at "
+                + new Date(System.currentTimeMillis()));
+
+        ZKHelixAdmin tool = new ZKHelixAdmin(_gZkClient);
+        tool.addCluster(clusterName, true);
+        Assert.assertTrue(ZKUtil.isClusterSetup(clusterName, _gZkClient), "Cluster should be setup");
+
+        tool.addStateModelDef(clusterName, "MasterSlave", new StateModelDefinition(StateModelConfigGenerator.generateConfigForMasterSlave()));
+        tool.addResource(clusterName, "test-db", 4, "MasterSlave");
+        Map<String, String> resourceConfig = new HashMap<String, String>();
+        resourceConfig.put("key1", "value1");
+        tool.setConfig(new ConfigScopeBuilder().forCluster(clusterName).forResource("test-db").build(), resourceConfig);
+
+        PropertyKey.Builder keyBuilder = new PropertyKey.Builder(clusterName);
+        Assert.assertTrue(_gZkClient.exists(keyBuilder.idealStates("test-db").getPath()), "test-db ideal-state should exist");
+        Assert.assertTrue(_gZkClient.exists(keyBuilder.resourceConfig("test-db").getPath()), "test-db resource config should exist");
+
+        tool.dropResource(clusterName, "test-db");
+        Assert.assertFalse(_gZkClient.exists(keyBuilder.idealStates("test-db").getPath()), "test-db ideal-state should be dropped");
+        Assert.assertFalse(_gZkClient.exists(keyBuilder.resourceConfig("test-db").getPath()), "test-db resource config should be dropped");
+
+        System.out.println("END " + clusterName + " at "
+                + new Date(System.currentTimeMillis()));
+    }
 }

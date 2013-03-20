@@ -812,6 +812,7 @@ public class ZKHelixAdmin implements HelixAdmin
     Builder keyBuilder = accessor.keyBuilder();
 
     accessor.removeProperty(keyBuilder.idealStates(resourceName));
+    accessor.removeProperty(keyBuilder.resourceConfig(resourceName));
   }
 
   @Override

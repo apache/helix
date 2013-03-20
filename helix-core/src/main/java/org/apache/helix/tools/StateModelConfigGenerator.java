@@ -49,7 +49,7 @@ public class StateModelConfigGenerator
    * to last state
    */
 
-  public ZNRecord generateConfigForStorageSchemata()
+  public static ZNRecord generateConfigForStorageSchemata()
   {
     ZNRecord record = new ZNRecord("STORAGE_DEFAULT_SM_SCHEMATA");
     record.setSimpleField(StateModelDefinitionProperty.INITIAL_STATE.toString(),
@@ -118,7 +118,7 @@ public class StateModelConfigGenerator
     return record;
   }
 
-  public ZNRecord generateConfigForMasterSlave()
+  public static ZNRecord generateConfigForMasterSlave()
   {
     ZNRecord record = new ZNRecord("MasterSlave");
     record.setSimpleField(StateModelDefinitionProperty.INITIAL_STATE.toString(),
@@ -208,7 +208,7 @@ public class StateModelConfigGenerator
     // System.out.println(new String(serializer.serialize(record)));
   }
 
-  public ZNRecord generateConfigForLeaderStandby()
+  public static ZNRecord generateConfigForLeaderStandby()
   {
     ZNRecord record = new ZNRecord("LeaderStandby");
     record.setSimpleField(StateModelDefinitionProperty.INITIAL_STATE.toString(),
@@ -290,7 +290,7 @@ public class StateModelConfigGenerator
     // System.out.println(new String(serializer.serialize(record)));
   }
 
-  public ZNRecord generateConfigForOnlineOffline()
+  public static ZNRecord generateConfigForOnlineOffline()
   {
     ZNRecord record = new ZNRecord("OnlineOffline");
     record.setSimpleField(StateModelDefinitionProperty.INITIAL_STATE.toString(),
@@ -352,7 +352,7 @@ public class StateModelConfigGenerator
     // System.out.println(new String(serializer.serialize(record)));
   }
   
-  public ZNRecord generateConfigForScheduledTaskQueue()
+  public static ZNRecord generateConfigForScheduledTaskQueue()
   {
     ZNRecord record = new ZNRecord(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE);
     record.setSimpleField(StateModelDefinitionProperty.INITIAL_STATE.toString(),

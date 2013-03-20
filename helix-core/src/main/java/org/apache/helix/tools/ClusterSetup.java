@@ -71,7 +71,7 @@ public class ClusterSetup
   private static Logger logger = Logger.getLogger(ClusterSetup.class);
   public static final String zkServerAddress = "zkSvr";
 
-  // List info about the cluster / DB/ Instances
+  // List info about the cluster / resource / Instances
   public static final String listClusters = "listClusters";
   public static final String listResources = "listResources";
   public static final String listInstances = "listInstances";
@@ -1242,7 +1242,7 @@ public class ClusterSetup
     }
     else if (cmd.hasOption(listResourceInfo))
     {
-      // print out partition number, db name and replication number
+      // print out partition number, resource name and replication number
       // Also the ideal states and current states
       String clusterName = cmd.getOptionValues(listResourceInfo)[0];
       String resourceName = cmd.getOptionValues(listResourceInfo)[1];

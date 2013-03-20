@@ -670,11 +670,11 @@ public class ZKHelixAdmin implements HelixAdmin
   }
 
   String idealStatePath = HelixUtil.getIdealStatePath(clusterName);
-  String dbIdealStatePath = idealStatePath + "/" + resourceName;
-  if (_zkClient.exists(dbIdealStatePath))
+  String resourceIdealStatePath = idealStatePath + "/" + resourceName;
+  if (_zkClient.exists(resourceIdealStatePath))
   {
-    throw new HelixException("Skip the operation. DB ideal state directory exists:"
-        + dbIdealStatePath);
+    throw new HelixException("Skip the operation. Resource ideal state directory already exists:"
+        + resourceIdealStatePath);
   }
 
   ZKUtil.createChildren(_zkClient, idealStatePath, idealstate.getRecord()); 
@@ -751,25 +751,25 @@ public class ZKHelixAdmin implements HelixAdmin
   }
 
   @Override
-  public IdealState getResourceIdealState(String clusterName, String dbName)
+  public IdealState getResourceIdealState(String clusterName, String resourceName)
   {
     ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
-    return accessor.getProperty(keyBuilder.idealStates(dbName));
+    return accessor.getProperty(keyBuilder.idealStates(resourceName));
   }
 
   @Override
   public void setResourceIdealState(String clusterName,
-                                    String dbName,
+                                    String resourceName,
                                     IdealState idealState)
   {
     ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
-    accessor.setProperty(keyBuilder.idealStates(dbName), idealState);
+    accessor.setProperty(keyBuilder.idealStates(resourceName), idealState);
   }
 
   @Override

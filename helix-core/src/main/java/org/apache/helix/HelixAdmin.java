@@ -174,10 +174,10 @@ public interface HelixAdmin
    * Get ideal state for a resource
    * 
    * @param clusterName
-   * @param dbName
+   * @param resourceName
    * @return
    */
-  IdealState getResourceIdealState(String clusterName, String dbName);
+  IdealState getResourceIdealState(String clusterName, String resourceName);
 
   /**
    * Set ideal state for a resource
@@ -381,7 +381,6 @@ public interface HelixAdmin
    * @param clusterName
    * @param resourceName
    * @param replica
-   * @param keyPrefix
    */
   void rebalance(String clusterName, String resourceName, int replica);
 
@@ -399,8 +398,8 @@ public interface HelixAdmin
    * Add state model definition using a json format file
    * 
    * @param clusterName
-   * @param resourceName
-   * @param idealStateFile
+   * @param stateModelDefName
+   * @param stateModelDefFile
    * @throws IOException
    */
   void addStateModelDef(String clusterName,
@@ -408,7 +407,7 @@ public interface HelixAdmin
                         String stateModelDefFile) throws IOException;
 
   /**
-   * Add a message contraint
+   * Add a message constraint
    * 
    * @param constraintId
    * @param constraints

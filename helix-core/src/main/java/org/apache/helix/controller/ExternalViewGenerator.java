@@ -64,21 +64,21 @@ public class ExternalViewGenerator
    * partition name and the expected state.
    */
   public Map<String, Map<String, Set<String>>> getRouterMapFromExternalView(
-      List<ZNRecord> dbExternalViewList)
+      List<ZNRecord> externalViewList)
   {
     Map<String, Map<String, Set<String>>> result = new TreeMap<String, Map<String, Set<String>>>();
 
-    for (ZNRecord dbNodeView : dbExternalViewList)
+    for (ZNRecord nodeView : externalViewList)
     {
-      Map<String, Map<String, String>> dbNodeStateMap = dbNodeView
+      Map<String, Map<String, String>> partitionNodeStateMap = nodeView
           .getMapFields();
-      for (String partitionId : dbNodeStateMap.keySet())
+      for (String partitionId : partitionNodeStateMap.keySet())
       {
         if (!result.containsKey(partitionId))
         {
           result.put(partitionId, new TreeMap<String, Set<String>>());
         }
-        Map<String, String> nodeStateMap = dbNodeStateMap.get(partitionId);
+        Map<String, String> nodeStateMap = partitionNodeStateMap.get(partitionId);
         for (String nodeName : nodeStateMap.keySet())
         {
           String state = nodeStateMap.get(nodeName);
@@ -101,7 +101,7 @@ public class ExternalViewGenerator
   {
     List<ZNRecord> resultList = new ArrayList<ZNRecord>();
     Map<String, ZNRecord> resultRoutingTable = new HashMap<String, ZNRecord>();
-    // maps from dbName to another map : partition -> map <nodename,
+    // maps from resourceName to another map : partition -> map <nodename,
     // master/slave>;
     // Fill the routing table with "empty" default state according to ideals
     // states
@@ -110,8 +110,8 @@ public class ExternalViewGenerator
     {
       for (ZNRecord idealState : idealStates)
       {
-        ZNRecord defaultDBExternalView = new ZNRecord(idealState.getId());
-        resultRoutingTable.put(idealState.getId(), defaultDBExternalView);
+        ZNRecord defaultExternalView = new ZNRecord(idealState.getId());
+        resultRoutingTable.put(idealState.getId(), defaultExternalView);
       }
     } else
     {
@@ -120,21 +120,21 @@ public class ExternalViewGenerator
     }
     for (String nodeName : currentStates.keySet())
     {
-      List<ZNRecord> zndbStates = currentStates.get(nodeName);
-      for (ZNRecord dbNodeStateRecord : zndbStates)
+      List<ZNRecord> znStates = currentStates.get(nodeName);
+      for (ZNRecord nodeStateRecord : znStates)
       {
-        Map<String, Map<String, String>> dbStates = dbNodeStateRecord
+        Map<String, Map<String, String>> resourceStates = nodeStateRecord
             .getMapFields();
-        for (String stateUnitKey : dbStates.keySet())
+        for (String stateUnitKey : resourceStates.keySet())
         {
-          Map<String, String> dbPartitionStates = dbStates.get(stateUnitKey);
-          String dbName = dbPartitionStates
+          Map<String, String> partitionStates = resourceStates.get(stateUnitKey);
+          String resourceName = partitionStates
               .get(Message.Attributes.RESOURCE_NAME.toString());
-          ZNRecord partitionStatus = resultRoutingTable.get(dbName);
+          ZNRecord partitionStatus = resultRoutingTable.get(resourceName);
           if (partitionStatus == null)
           {
-            partitionStatus = new ZNRecord(dbName);
-            resultRoutingTable.put(dbName, partitionStatus);
+            partitionStatus = new ZNRecord(resourceName);
+            resultRoutingTable.put(resourceName, partitionStatus);
           }
           String currentStateKey = CurrentStateProperty.CURRENT_STATE.toString();
 
@@ -144,7 +144,7 @@ public class ExternalViewGenerator
                 new TreeMap<String, String>());
           }
           partitionStatus.getMapField(stateUnitKey).put(nodeName,
-              dbPartitionStates.get(currentStateKey));
+                  partitionStates.get(currentStateKey));
 
         }
       }

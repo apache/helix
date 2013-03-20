@@ -58,12 +58,12 @@ public class IdealStateCalculatorByShuffling
 
 
   public static ZNRecord calculateIdealState(List<String> instanceNames,
-      int partitions, int replicas, String dbName, long randomSeed)
+      int partitions, int replicas, String resourceName, long randomSeed)
   {
-    return calculateIdealState(instanceNames, partitions, replicas, dbName, randomSeed, "MASTER", "SLAVE");
+    return calculateIdealState(instanceNames, partitions, replicas, resourceName, randomSeed, "MASTER", "SLAVE");
   }
   public static ZNRecord calculateIdealState(List<String> instanceNames,
-      int partitions, int replicas, String dbName, long randomSeed, String masterValue, String slaveValue)
+      int partitions, int replicas, String resourceName, long randomSeed, String masterValue, String slaveValue)
   {
     if (instanceNames.size() <= replicas)
     {
@@ -73,7 +73,7 @@ public class IdealStateCalculatorByShuffling
 
     Collections.sort(instanceNames);
 
-    ZNRecord result = new ZNRecord(dbName);
+    ZNRecord result = new ZNRecord(resourceName);
 
     List<Integer> partitionList = new ArrayList<Integer>(partitions);
     for (int i = 0; i < partitions; i++)
@@ -105,7 +105,7 @@ public class IdealStateCalculatorByShuffling
             .put(instanceNames.get(index),
                 slaveValue);
       }
-      String partitionName = dbName + "_" + partitionId;
+      String partitionName = resourceName + "_" + partitionId;
       result.setMapField(partitionName, partitionAssignment);
     }
     result.setSimpleField(IdealStateProperty.NUM_PARTITIONS.toString(), String.valueOf(partitions));
@@ -113,11 +113,11 @@ public class IdealStateCalculatorByShuffling
   }
 
   public static ZNRecord calculateIdealState(List<String> instanceNames,
-      int partitions, int replicas, String dbName)
+      int partitions, int replicas, String resourceName)
   {
     long randomSeed = 888997632;
     // seed is a constant, so that the shuffle always give same result
-    return calculateIdealState(instanceNames, partitions, replicas, dbName,
+    return calculateIdealState(instanceNames, partitions, replicas, resourceName,
         randomSeed);
   }
 }

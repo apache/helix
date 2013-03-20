@@ -331,12 +331,26 @@ public class IdealState extends HelixProperty
       return false;
     }
 
-    if (getIdealStateMode() == IdealStateModeProperty.AUTO
-        && getReplicas() == null)
+    if (getIdealStateMode() == IdealStateModeProperty.AUTO)
     {
-      logger.error("idealStates:" + _record + " does not have replica.");
-      return false;
+        String replicaStr = getReplicas();
+        if (replicaStr == null) {
+            logger.error("invalid ideal-state. missing replicas in auto mode. record was: " + _record);
+            return false;
+        }
+
+        int replica = Integer.parseInt(replicaStr);
+        Set<String> partitionSet = getPartitionSet();
+        for (String partition : partitionSet) {
+            List<String> preferenceList = getPreferenceList(partition);
+            if (preferenceList == null || preferenceList.size() != replica) {
+                logger.error("invalid ideal-state. preference-list size not equals to replicas in auto mode. record was: "
+                        + _record);
+                return false;
+            }
+        }
     }
+
     return true;
   }
 

@@ -19,23 +19,31 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.helix.AccessOption;
 import org.apache.helix.ConfigScope;
 import org.apache.helix.ConfigScopeBuilder;
 import org.apache.helix.HelixAdmin;
+import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.InstanceType;
+import org.apache.helix.LiveInstanceInfoProvider;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.ZkHelixTestManager;
+import org.apache.helix.ZkTestHelper;
 import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.manager.MockListener;
 import org.apache.helix.manager.zk.ZKHelixManager;
+import org.apache.helix.model.LiveInstance;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
+import org.apache.helix.tools.ClusterSetup;
 import org.apache.zookeeper.data.Stat;
 import org.testng.Assert;
 import org.testng.AssertJUnit;
@@ -112,6 +120,120 @@ public class TestZkClusterManager extends ZkUnitTestBase
 
     System.out.println("END " + className + ".testController() at " + new Date(System.currentTimeMillis()));
   }
+  
+  @Test
+  public void testLiveInstanceInfoProvider() throws Exception
+  {
+    System.out.println("START " + className + ".testLiveInstanceInfoProvider() at " + new Date(System.currentTimeMillis()));
+    final String clusterName = CLUSTER_PREFIX + "_" + className + "_liveInstanceInfoProvider";
+    class provider implements LiveInstanceInfoProvider
+    {
+      boolean _flag = false;
+      public provider(boolean genSessionId)
+      {
+        _flag = genSessionId;
+      }
+      @Override
+      public ZNRecord getAdditionalLiveInstanceInfo()
+      {
+        ZNRecord record = new ZNRecord("info");
+        record.setSimpleField("simple", "value");
+        List<String> listFieldVal = new ArrayList<String>();
+        listFieldVal.add("val1");
+        listFieldVal.add("val2");
+        listFieldVal.add("val3");
+        record.setListField("list", listFieldVal);
+        Map<String,String> mapFieldVal = new HashMap<String, String>();
+        mapFieldVal.put("k1", "val1");
+        mapFieldVal.put("k2","val2");
+        mapFieldVal.put("k3","val3");
+        record.setMapField("map", mapFieldVal);
+        if(_flag)
+        {
+          record.setSimpleField("SESSION_ID", "value");
+          record.setSimpleField("LIVE_INSTANCE", "value");
+          record.setSimpleField("Others", "value");
+        }
+        return record;
+      }
+    }
+    
+    
+    TestHelper.setupEmptyCluster(_gZkClient, clusterName);
+    int[] ids = {0,1,2,3, 4, 5};
+    setupInstances(clusterName, ids);
+
+    /////////////////////
+    ZKHelixManager manager = new ZKHelixManager(clusterName, "localhost_0",
+        InstanceType.PARTICIPANT,
+        ZK_ADDR);
+    manager.connect();
+    HelixDataAccessor accessor = manager.getHelixDataAccessor();
+    
+    LiveInstance liveInstance = accessor.getProperty(accessor.keyBuilder().liveInstance("localhost_0"));
+    Assert.assertTrue(liveInstance.getRecord().getListFields().size() == 0);
+    Assert.assertTrue(liveInstance.getRecord().getMapFields().size() == 0);
+    Assert.assertTrue(liveInstance.getRecord().getSimpleFields().size() == 3);
+    
+    manager = new ZKHelixManager(clusterName, "localhost_1",
+        InstanceType.PARTICIPANT,
+        ZK_ADDR);
+    manager.setLiveInstanceInfoProvider(new provider(false));
+    
+    manager.connect();
+    accessor = manager.getHelixDataAccessor();
+    
+    liveInstance = accessor.getProperty(accessor.keyBuilder().liveInstance("localhost_1"));
+    Assert.assertTrue(liveInstance.getRecord().getListFields().size() == 1);
+    Assert.assertTrue(liveInstance.getRecord().getMapFields().size() == 1);
+    Assert.assertTrue(liveInstance.getRecord().getSimpleFields().size() == 4);
+    
+    manager = new ZKHelixManager(clusterName, "localhost_2",
+        InstanceType.PARTICIPANT,
+        ZK_ADDR);
+    manager.setLiveInstanceInfoProvider(new provider(true));
+    
+    manager.connect();
+    accessor = manager.getHelixDataAccessor();
+    
+    liveInstance = accessor.getProperty(accessor.keyBuilder().liveInstance("localhost_2"));
+    Assert.assertTrue(liveInstance.getRecord().getListFields().size() == 1);
+    Assert.assertTrue(liveInstance.getRecord().getMapFields().size() == 1);
+    Assert.assertTrue(liveInstance.getRecord().getSimpleFields().size() == 5);
+    Assert.assertFalse(liveInstance.getSessionId().equals("value"));
+    Assert.assertFalse(liveInstance.getLiveInstance().equals("value"));
+    
+    ////////////////////////////////////
+    
+    ZkHelixTestManager manager2 = new ZkHelixTestManager(clusterName, "localhost_3",
+        InstanceType.PARTICIPANT,
+        ZK_ADDR);
+    manager2.setLiveInstanceInfoProvider(new provider(true));
+    
+    manager2.connect();
+    accessor = manager2.getHelixDataAccessor();
+    
+    liveInstance = accessor.getProperty(accessor.keyBuilder().liveInstance("localhost_3"));
+    Assert.assertTrue(liveInstance.getRecord().getListFields().size() == 1);
+    Assert.assertTrue(liveInstance.getRecord().getMapFields().size() == 1);
+    Assert.assertTrue(liveInstance.getRecord().getSimpleFields().size() == 5);
+    Assert.assertFalse(liveInstance.getSessionId().equals("value"));
+    Assert.assertFalse(liveInstance.getLiveInstance().equals("value"));
+    String sessionId = liveInstance.getSessionId();
+    
+    ZkTestHelper.expireSession(manager2.getZkClient());
+    Thread.sleep(1000);
+    
+    liveInstance = accessor.getProperty(accessor.keyBuilder().liveInstance("localhost_3"));
+    Assert.assertTrue(liveInstance.getRecord().getListFields().size() == 1);
+    Assert.assertTrue(liveInstance.getRecord().getMapFields().size() == 1);
+    Assert.assertTrue(liveInstance.getRecord().getSimpleFields().size() == 5);
+    Assert.assertFalse(liveInstance.getSessionId().equals("value"));
+    Assert.assertFalse(liveInstance.getLiveInstance().equals("value"));
+    Assert.assertFalse(sessionId.equals(liveInstance.getSessionId()));
+
+    System.out.println("END " + className + ".testLiveInstanceInfoProvider() at " + new Date(System.currentTimeMillis()));
+  }
 
   @Test()
   public void testAdministrator() throws Exception
@@ -152,5 +274,4 @@ public class TestZkClusterManager extends ZkUnitTestBase
 
     System.out.println("END " + className + ".testAdministrator() at " + new Date(System.currentTimeMillis()));
   }
-
 }

@@ -36,6 +36,7 @@ import org.apache.helix.IdealStateChangeListener;
 import org.apache.helix.InstanceConfigChangeListener;
 import org.apache.helix.InstanceType;
 import org.apache.helix.LiveInstanceChangeListener;
+import org.apache.helix.LiveInstanceInfoProvider;
 import org.apache.helix.MessageListener;
 import org.apache.helix.PreConnectCallback;
 import org.apache.helix.PropertyKey;
@@ -280,6 +281,14 @@ public class MockZKHelixManager implements HelixManager
           throws Exception {
   	// TODO Auto-generated method stub
 
+  }
+
+  @Override
+  public void setLiveInstanceInfoProvider(
+      LiveInstanceInfoProvider liveInstanceInfoProvider)
+  {
+    // TODO Auto-generated method stub
+    
   }
 
 }

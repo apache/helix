@@ -293,4 +293,12 @@ public interface HelixManager
    * @param callback
    */
   void addPreConnectCallback(PreConnectCallback callback);
+  
+  /**
+   * Add a LiveInstanceInfoProvider that is invoked before cluster manager connects
+   * 
+   * @see LiveInstanceInfoProvider#getAdditionalLiveInstanceInfo()
+   * @param liveInstanceInfoProvider
+   */
+  void setLiveInstanceInfoProvider(LiveInstanceInfoProvider liveInstanceInfoProvider);
 }

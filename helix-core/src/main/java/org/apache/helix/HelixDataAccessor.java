@@ -27,7 +27,7 @@ import org.I0Itec.zkclient.DataUpdater;
 /**
  * Interface used to interact with Helix Data Types like IdealState, Config,
  * LiveInstance, Message, ExternalView etc PropertyKey represent the HelixData
- * type. See {@link Builder} to get more information on building a propertyKey.
+ * type. See {@link PropertyKey.Builder} to get more information on building a propertyKey.
  * 
  * 
  */
@@ -96,7 +96,7 @@ public interface HelixDataAccessor
    * Return the child names for a property. PropertyKey needs to refer to a
    * collection like instances, resources. PropertyKey.isLeaf must be false
    * 
-   * @param type
+   * @param key
    * @return SubPropertyNames
    */
   List<String> getChildNames(PropertyKey key);
@@ -105,7 +105,7 @@ public interface HelixDataAccessor
    * Get the child values for a property. PropertyKey needs to refer to just one
    * level above the non leaf. PropertyKey.isCollection must be true.
    * 
-   * @param type
+   * @param key
    * @return subPropertyValues
    */
   <T extends HelixProperty> List<T> getChildValues(PropertyKey key);
@@ -123,7 +123,7 @@ public interface HelixDataAccessor
   /**
    * Adds multiple children to a parent.
    * 
-   * @param key
+   * @param keys
    * @param children
    * @return
    */
@@ -133,16 +133,17 @@ public interface HelixDataAccessor
   /**
    * Sets multiple children under one parent
    * 
-   * @param externalViews
-   * @param views
+   * @param keys
+   * @param children
    */
   <T extends HelixProperty> boolean[] setChildren(List<PropertyKey> keys, List<T> children);
   
   /**
    * Updates multiple children under one parent
+   * TODO: change to use property-keys instead of paths
    * 
-   * @param externalViews
-   * @param views
+   * @param paths
+   * @param updaters
    */
   <T extends HelixProperty> boolean[] updateChildren(List<String> paths,
       List<DataUpdater<ZNRecord>> updaters,

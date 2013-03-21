@@ -1,4 +1,4 @@
-package org.apache.helix;
+package org.apache.helix.model.builder;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -22,7 +22,8 @@ package org.apache.helix;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.helix.ConfigScope.ConfigScopeProperty;
+import org.apache.helix.model.ConfigScope;
+import org.apache.helix.model.ConfigScope.ConfigScopeProperty;
 import org.apache.helix.util.StringTemplate;
 import org.apache.log4j.Logger;
 

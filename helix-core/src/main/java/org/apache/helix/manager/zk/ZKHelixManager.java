@@ -24,7 +24,6 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Timer;
@@ -35,7 +34,7 @@ import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ClusterMessagingService;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.ConfigChangeListener;
-import org.apache.helix.ConfigScope.ConfigScopeProperty;
+import org.apache.helix.model.ConfigScope.ConfigScopeProperty;
 import org.apache.helix.ControllerChangeListener;
 import org.apache.helix.CurrentStateChangeListener;
 import org.apache.helix.ExternalViewChangeListener;
@@ -74,7 +73,6 @@ import org.apache.helix.participant.DistClusterControllerElection;
 import org.apache.helix.participant.HelixStateMachineEngine;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.participant.statemachine.ScheduledTaskStateModelFactory;
-import org.apache.helix.store.ZNRecordJsonSerializer;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
 import org.apache.helix.tools.PropertiesReader;
 import org.apache.log4j.Logger;
@@ -210,34 +208,6 @@ public class ZKHelixManager implements HelixManager
     }
   }
 
-  private boolean isInstanceSetup()
-  {
-    if (_instanceType == InstanceType.PARTICIPANT
-        || _instanceType == InstanceType.CONTROLLER_PARTICIPANT)
-    {
-      boolean isValid =
-          _zkClient.exists(PropertyPathConfig.getPath(PropertyType.CONFIGS,
-                                                      _clusterName,
-                                                      ConfigScopeProperty.PARTICIPANT.toString(),
-                                                      _instanceName))
-              && _zkClient.exists(PropertyPathConfig.getPath(PropertyType.MESSAGES,
-                                                             _clusterName,
-                                                             _instanceName))
-              && _zkClient.exists(PropertyPathConfig.getPath(PropertyType.CURRENTSTATES,
-                                                             _clusterName,
-                                                             _instanceName))
-              && _zkClient.exists(PropertyPathConfig.getPath(PropertyType.STATUSUPDATES,
-                                                             _clusterName,
-                                                             _instanceName))
-              && _zkClient.exists(PropertyPathConfig.getPath(PropertyType.ERRORS,
-                                                             _clusterName,
-                                                             _instanceName));
-
-      return isValid;
-    }
-    return true;
-  }
-  
   @Override
   public boolean removeListener(PropertyKey key, Object listener)
   {
@@ -711,7 +681,8 @@ public class ZKHelixManager implements HelixManager
       throw new HelixException("Initial cluster structure is not set up for cluster:"
           + _clusterName);
     }
-    if (!isInstanceSetup())
+
+    if (!ZKUtil.isInstanceSetup(_zkClient, _clusterName, _instanceName, _instanceType))
     {
       throw new HelixException("Initial cluster structure is not set up for instance:"
           + _instanceName + " instanceType:" + _instanceType);

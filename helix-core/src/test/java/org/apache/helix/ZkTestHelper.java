@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 
 import org.I0Itec.zkclient.IZkStateListener;
@@ -317,7 +318,6 @@ public class ZkTestHelper
   /**
    * return a map from session-id to a set of zk-path that the session has watches on
    * 
-   * @param listenerMap
    * @return
    */
   public static Map<String, Set<String>> getListenersBySession(String zkAddr) throws Exception {
@@ -336,5 +336,43 @@ public class ZkTestHelper
 
 	  return listenerMapBySession;
   }
-  
+    static java.lang.reflect.Field getField(Class clazz, String fieldName) throws NoSuchFieldException {
+        try {
+            return clazz.getDeclaredField(fieldName);
+        } catch (NoSuchFieldException e) {
+            Class superClass = clazz.getSuperclass();
+            if (superClass == null) {
+                throw e;
+            } else {
+                return getField(superClass, fieldName);
+            }
+        }
+    }
+
+    public static boolean tryWaitZkEventsCleaned(ZkClient zkclient) throws Exception {
+        java.lang.reflect.Field field = getField(zkclient.getClass(), "_eventThread");
+        field.setAccessible(true);
+        Object eventThread = field.get(zkclient);
+        // System.out.println("field: " + eventThread);
+
+        java.lang.reflect.Field field2 = getField(eventThread.getClass(), "_events");
+        field2.setAccessible(true);
+        BlockingQueue queue = (BlockingQueue) field2.get(eventThread);
+        // System.out.println("field2: " + queue + ", " + queue.size());
+
+
+        if (queue == null) {
+            LOG.error("fail to get event-queue from zkclient. skip waiting");
+            return false;
+        }
+
+        for (int i = 0; i < 20; i++) {
+            if (queue.size() == 0) {
+                return true;
+            }
+            Thread.sleep(100);
+            System.out.println("pending zk-events in queue: " + queue);
+        }
+        return false;
+    }
 }

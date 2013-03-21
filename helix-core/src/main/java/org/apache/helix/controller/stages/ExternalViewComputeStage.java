@@ -69,12 +69,16 @@ public class ExternalViewComputeStage extends AbstractBaseStage
     }
 
     HelixDataAccessor dataAccessor = manager.getHelixDataAccessor();
+    PropertyKey.Builder keyBuilder = dataAccessor.keyBuilder();
 
     CurrentStateOutput currentStateOutput =
         event.getAttribute(AttributeName.CURRENT_STATE.toString());
 
     List<ExternalView> newExtViews = new ArrayList<ExternalView>();
     List<PropertyKey> keys = new ArrayList<PropertyKey>();
+
+    Map<String, ExternalView> curExtViews =
+          dataAccessor.getChildValuesMap(keyBuilder.externalViews());
 
     for (String resourceName : resourceMap.keySet())
     {
@@ -123,19 +127,14 @@ public class ExternalViewComputeStage extends AbstractBaseStage
                                                   cache._idealStateMap.get(view.getResourceName()));
         }
       }
-      // compare the new external view with current one, set only on different
-      Map<String, ExternalView> curExtViews =
-          dataAccessor.getChildValuesMap(manager.getHelixDataAccessor()
-                                                .keyBuilder()
-                                                .externalViews());
 
+      // compare the new external view with current one, set only on different
       ExternalView curExtView = curExtViews.get(resourceName);
       if (curExtView == null || !curExtView.getRecord().equals(view.getRecord()))
       {
-        keys.add(manager.getHelixDataAccessor().keyBuilder().externalView(resourceName));
+        keys.add(keyBuilder.externalView(resourceName));
         newExtViews.add(view);
-        // dataAccessor.setProperty(PropertyType.EXTERNALVIEW, view, resourceName);
-        
+
         // For SCHEDULER_TASK_RESOURCE resource group (helix task queue), we need to find out which task 
         // partitions are finished (COMPLETED or ERROR), update the status update of the original scheduler 
         // message, and then remove the partitions from the ideal state
@@ -147,10 +146,18 @@ public class ExternalViewComputeStage extends AbstractBaseStage
     }
     // TODO: consider not setting the externalview of SCHEDULER_TASK_QUEUE at all. 
     // Are there any entity that will be interested in its change?
-    
+
+    // add/update external-views
     if (newExtViews.size() > 0)
     {
       dataAccessor.setChildren(keys, newExtViews);
+    }
+
+    // remove dead external-views
+    for (String resourceName : curExtViews.keySet()) {
+        if (!resourceMap.keySet().contains(resourceName)) {
+            dataAccessor.removeProperty(keyBuilder.externalView(resourceName));
+        }
     }
 
     long endTime = System.currentTimeMillis();

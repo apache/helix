@@ -22,7 +22,7 @@ package org.apache.helix;
 import java.util.Date;
 import java.util.List;
 
-import org.apache.helix.ConfigScope.ConfigScopeProperty;
+import org.apache.helix.model.ConfigScope.ConfigScopeProperty;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.model.InstanceConfig;
 import org.testng.Assert;

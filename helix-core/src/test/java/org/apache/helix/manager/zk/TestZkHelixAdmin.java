@@ -25,11 +25,11 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.helix.*;
-import org.apache.helix.manager.zk.ZKHelixAdmin;
-import org.apache.helix.manager.zk.ZKUtil;
+import org.apache.helix.model.ConfigScope;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.apache.helix.tools.StateModelConfigGenerator;
 import org.testng.Assert;
 import org.testng.AssertJUnit;

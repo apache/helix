@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.List;
 
 import org.I0Itec.zkclient.DataUpdater;
+import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyPathConfig;
 import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
@@ -74,12 +75,47 @@ public final class ZKUtil
     
     for(String path:requiredPaths){
       if(!zkClient.exists(path)){
-        isValid =false;
-        logger.error("Invalid cluster setup, missing znode path: "+path);
+        isValid = false;
+        logger.error("Invalid cluster setup, missing znode path: " + path);
       }
     }
     return isValid;
   }
+
+    public static boolean isInstanceSetup(ZkClient zkclient, String clusterName, String instanceName, InstanceType type)
+    {
+        if (type == InstanceType.PARTICIPANT || type == InstanceType.CONTROLLER_PARTICIPANT)
+        {
+            ArrayList<String> requiredPaths = new ArrayList<String>();
+            requiredPaths.add(PropertyPathConfig.getPath(PropertyType.CONFIGS,
+                                                         clusterName,
+                                                         ConfigScopeProperty.PARTICIPANT.toString(),
+                                                         instanceName));
+            requiredPaths.add(PropertyPathConfig.getPath(PropertyType.MESSAGES,
+                                                         clusterName,
+                                                         instanceName));
+            requiredPaths.add(PropertyPathConfig.getPath(PropertyType.CURRENTSTATES,
+                                                         clusterName,
+                                                         instanceName));
+            requiredPaths.add(PropertyPathConfig.getPath(PropertyType.STATUSUPDATES,
+                                                         clusterName,
+                                                         instanceName));
+            requiredPaths.add(PropertyPathConfig.getPath(PropertyType.ERRORS,
+                                                         clusterName,
+                                                         instanceName));
+            boolean isValid =true;
+
+            for(String path:requiredPaths){
+                if(!zkclient.exists(path)){
+                    isValid =false;
+                    logger.error("Invalid instance setup, missing znode path: " + path);
+                }
+            }
+            return isValid;
+        }
+
+        return true;
+    }
 
   public static void createChildren(ZkClient client,
                                     String parentPath,

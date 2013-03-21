@@ -206,34 +206,6 @@ public class ZKHelixManager implements HelixManager
     }
   }
 
-  private boolean isInstanceSetup()
-  {
-    if (_instanceType == InstanceType.PARTICIPANT
-        || _instanceType == InstanceType.CONTROLLER_PARTICIPANT)
-    {
-      boolean isValid =
-          _zkClient.exists(PropertyPathConfig.getPath(PropertyType.CONFIGS,
-                                                      _clusterName,
-                                                      ConfigScopeProperty.PARTICIPANT.toString(),
-                                                      _instanceName))
-              && _zkClient.exists(PropertyPathConfig.getPath(PropertyType.MESSAGES,
-                                                             _clusterName,
-                                                             _instanceName))
-              && _zkClient.exists(PropertyPathConfig.getPath(PropertyType.CURRENTSTATES,
-                                                             _clusterName,
-                                                             _instanceName))
-              && _zkClient.exists(PropertyPathConfig.getPath(PropertyType.STATUSUPDATES,
-                                                             _clusterName,
-                                                             _instanceName))
-              && _zkClient.exists(PropertyPathConfig.getPath(PropertyType.ERRORS,
-                                                             _clusterName,
-                                                             _instanceName));
-
-      return isValid;
-    }
-    return true;
-  }
-  
   @Override
   public boolean removeListener(PropertyKey key, Object listener)
   {
@@ -694,7 +666,8 @@ public class ZKHelixManager implements HelixManager
       throw new HelixException("Initial cluster structure is not set up for cluster:"
           + _clusterName);
     }
-    if (!isInstanceSetup())
+
+    if (!ZKUtil.isInstanceSetup(_zkClient, _clusterName, _instanceName, _instanceType))
     {
       throw new HelixException("Initial cluster structure is not set up for instance:"
           + _instanceName + " instanceType:" + _instanceType);

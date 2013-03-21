@@ -134,9 +134,18 @@ public class ConfigAccessor
     String clusterName = scope.getClusterName();
     if (!ZKUtil.isClusterSetup(clusterName, zkClient))
     {
-      throw new HelixException("cluster " + clusterName + " is not setup yet");
+      throw new HelixException("cluster: " + clusterName + " is NOT setup.");
     }
 
+    if (scope.getScope() == ConfigScopeProperty.PARTICIPANT) {
+       String scopeStr = scope.getScopeStr();
+       String instanceName = scopeStr.substring(scopeStr.lastIndexOf('/') + 1);
+       if (!ZKUtil.isInstanceSetup(zkClient, scope.getClusterName(), instanceName, InstanceType.PARTICIPANT)) {
+           throw new HelixException("instance: " + instanceName + " is NOT setup in cluster: " + clusterName);
+       }
+    }
+
+    // use "|" to delimit resource and partition. e.g. /MyCluster/CONFIGS/PARTICIPANT/MyDB|MyDB_0
     String scopeStr = scope.getScopeStr();
     String[] splits = scopeStr.split("\\|");
 

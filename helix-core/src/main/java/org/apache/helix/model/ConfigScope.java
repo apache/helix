@@ -82,6 +82,11 @@ public class ConfigScope
 
   private final String _clusterName;
   private final ConfigScopeProperty _scope;
+
+    /**
+     * _scopeStr is like:
+     *   "/ClusterName/CONFIGS/{CLUSTER|PARTICIPANT|RESOURCE|PARTITION}/{clusterName|instanceName|resourceName}{|partitionName}"
+     */
   private final String _scopeStr;
 
   public ConfigScope(ConfigScopeBuilder configScopeBuilder)

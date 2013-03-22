@@ -1310,7 +1310,7 @@ public class ZKHelixAdmin implements HelixAdmin
 
         for (String key : constraints.keySet())
         {
-          // make sure contraint attribute is valid
+          // make sure constraint attribute is valid
           ConstraintAttribute attr = ConstraintAttribute.valueOf(key.toUpperCase());
 
           map.put(attr.toString(), constraints.get(key));

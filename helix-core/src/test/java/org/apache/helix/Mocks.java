@@ -471,6 +471,14 @@ public class Mocks {
 
     }
 
+  @Override
+  public void setLiveInstanceInfoProvider(
+      LiveInstanceInfoProvider liveInstanceInfoProvider)
+  {
+    // TODO Auto-generated method stub
+    
+  }
+
 	}
 
 	public static class MockAccessor implements HelixDataAccessor // DataAccessor

@@ -49,6 +49,7 @@ import org.apache.helix.IdealStateChangeListener;
 import org.apache.helix.InstanceConfigChangeListener;
 import org.apache.helix.InstanceType;
 import org.apache.helix.LiveInstanceChangeListener;
+import org.apache.helix.LiveInstanceInfoProvider;
 import org.apache.helix.MessageListener;
 import org.apache.helix.PreConnectCallback;
 import org.apache.helix.PropertyKey;
@@ -114,6 +115,7 @@ public class ZKHelixManager implements HelixManager
   int                                          _maxDisconnectThreshold;
   public static final int                     FLAPPING_TIME_WINDIOW   = 300000; // Default to 300 sec
   public static final int                     MAX_DISCONNECT_THRESHOLD = 5;
+  LiveInstanceInfoProvider                    _liveInstanceInfoProvider = null;
 
   public ZKHelixManager(String clusterName,
                         String instanceName,
@@ -489,6 +491,19 @@ public class ZKHelixManager implements HelixManager
     liveInstance.setSessionId(_sessionId);
     liveInstance.setHelixVersion(_version);
     liveInstance.setLiveInstance(ManagementFactory.getRuntimeMXBean().getName());
+    
+    if(_liveInstanceInfoProvider != null)
+    {
+      logger.info("invoking _liveInstanceInfoProvider");
+      ZNRecord additionalLiveInstanceInfo = _liveInstanceInfoProvider.getAdditionalLiveInstanceInfo();
+      if(additionalLiveInstanceInfo != null)
+      {
+        additionalLiveInstanceInfo.merge(liveInstance.getRecord());
+        ZNRecord mergedLiveInstance = new ZNRecord(additionalLiveInstanceInfo, _instanceName);
+        liveInstance = new LiveInstance(mergedLiveInstance);
+        logger.info("liveInstance content :" + _instanceName + " " + liveInstance.toString());
+      }
+    }
 
     logger.info("Add live instance: InstanceName: " + _instanceName + " Session id:"
         + _sessionId);
@@ -1019,5 +1034,12 @@ public class ZKHelixManager implements HelixManager
     {
       task.stop();
     }
+  }
+
+  @Override
+  public void setLiveInstanceInfoProvider(
+      LiveInstanceInfoProvider liveInstanceInfoProvider)
+  {
+    _liveInstanceInfoProvider = liveInstanceInfoProvider;
   }
 }

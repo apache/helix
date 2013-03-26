@@ -25,11 +25,16 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.helix.*;
+import org.apache.helix.model.ClusterConstraints;
+import org.apache.helix.model.ClusterConstraints.ConstraintAttribute;
+import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.ConfigScope;
+import org.apache.helix.model.ConstraintItem;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.builder.ConfigScopeBuilder;
+import org.apache.helix.model.builder.ConstraintItemBuilder;
 import org.apache.helix.tools.StateModelConfigGenerator;
 import org.testng.Assert;
 import org.testng.AssertJUnit;
@@ -194,6 +199,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase
     System.out.println("END testZkHelixAdmin at " + new Date(System.currentTimeMillis()));
   }
 
+    // drop resource should drop corresponding resource-level config also
     @Test
     public void testDropResource() {
         String className = TestHelper.getTestClassName();
@@ -223,5 +229,66 @@ public class TestZkHelixAdmin extends ZkUnitTestBase
 
         System.out.println("END " + clusterName + " at "
                 + new Date(System.currentTimeMillis()));
+    }
+    
+    // test add/remove message constraint
+    @Test
+    public void testAddRemoveMsgConstraint() {
+      String className = TestHelper.getTestClassName();
+      String methodName = TestHelper.getTestMethodName();
+      String clusterName = className + "_" + methodName;
+
+      System.out.println("START " + clusterName + " at "
+              + new Date(System.currentTimeMillis()));
+
+      ZKHelixAdmin tool = new ZKHelixAdmin(_gZkClient);
+      tool.addCluster(clusterName, true);
+      Assert.assertTrue(ZKUtil.isClusterSetup(clusterName, _gZkClient), "Cluster should be setup");
+
+      // test admin.getMessageConstraints()
+      ClusterConstraints constraints = tool.getMessageConstraints(clusterName);
+      Assert.assertNull(constraints, "message-constraint should NOT exist for cluster: " + className);
+
+      // remove non-exist constraint
+      try {
+        tool.removeMessageConstraint(clusterName, "constraint1");
+        // will leave a null message-constraint znode on zk
+      } catch (Exception e) {
+        Assert.fail("Should not throw exception when remove a non-exist constraint.");
+      }
+
+      // add a message constraint
+      ConstraintItemBuilder builder = new ConstraintItemBuilder();
+      builder.addConstraintAttribute(ConstraintAttribute.RESOURCE.toString(), "MyDB")
+             .addConstraintAttribute(ConstraintAttribute.CONSTRAINT_VALUE.toString(), "1");
+      tool.addMessageConstraint(clusterName, "constraint1", builder.build());
+
+      HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+      PropertyKey.Builder keyBuilder = new PropertyKey.Builder(clusterName);
+      constraints = accessor.getProperty(keyBuilder.constraint(ConstraintType.MESSAGE_CONSTRAINT.toString()));
+      Assert.assertNotNull(constraints, "message-constraint should exist");
+      ConstraintItem item = constraints.getConstraintItem("constraint1");
+      Assert.assertNotNull(item, "message-constraint for constraint1 should exist");
+      Assert.assertEquals(item.getConstraintValue(), "1");
+      Assert.assertEquals(item.getAttributeValue(ConstraintAttribute.RESOURCE), "MyDB");
+      
+      // test admin.getMessageConstraints()
+      constraints = tool.getMessageConstraints(clusterName);
+      Assert.assertNotNull(constraints, "message-constraint should exist");
+      item = constraints.getConstraintItem("constraint1");
+      Assert.assertNotNull(item, "message-constraint for constraint1 should exist");
+      Assert.assertEquals(item.getConstraintValue(), "1");
+      Assert.assertEquals(item.getAttributeValue(ConstraintAttribute.RESOURCE), "MyDB");
+      
+
+      // remove a exist message-constraint
+      tool.removeMessageConstraint(clusterName, "constraint1");
+      constraints = accessor.getProperty(keyBuilder.constraint(ConstraintType.MESSAGE_CONSTRAINT.toString()));
+      Assert.assertNotNull(constraints, "message-constraint should exist");
+      item = constraints.getConstraintItem("constraint1");
+      Assert.assertNull(item, "message-constraint for constraint1 should NOT exist");
+
+      System.out.println("END " + clusterName + " at "
+              + new Date(System.currentTimeMillis()));
     }
 }

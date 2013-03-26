@@ -39,6 +39,7 @@ import org.apache.helix.TestHelper.StartCMResult;
 import org.apache.helix.controller.HelixControllerMain;
 import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.model.ExternalView;
+import org.apache.helix.model.IdealState.IdealStateProperty;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
@@ -71,6 +72,9 @@ public class TestHelixAdminScenariosRest extends AdminTestBase
   Map<String, StartCMResult> _startCMResultMap = new HashMap<String, StartCMResult>();
   RestAdminApplication       _adminApp;
   Component                  _component;
+  String _tag1 = "tag1123";
+  String _tag2 = "tag212334";
+  
 
   public static String ObjectToJson(Object object) throws JsonGenerationException,
       JsonMappingException,
@@ -354,6 +358,14 @@ public class TestHelixAdminScenariosRest extends AdminTestBase
     Assert.assertTrue(response.contains("db_11"));
 
     Assert.assertTrue(_gZkClient.exists("/clusterTest1/IDEALSTATES/db_11"));
+    
+    paraMap.put(JsonParameters.RESOURCE_GROUP_NAME, "db_33");
+    response = assertSuccessPostOperation(reourcesUrl, paraMap, false);
+    Assert.assertTrue(response.contains("db_33"));
+    
+    paraMap.put(JsonParameters.RESOURCE_GROUP_NAME, "db_44");
+    response = assertSuccessPostOperation(reourcesUrl, paraMap, false);
+    Assert.assertTrue(response.contains("db_44"));
   }
 
   private void testDeactivateCluster() throws Exception,
@@ -704,6 +716,56 @@ public class TestHelixAdminScenariosRest extends AdminTestBase
     Assert.assertTrue((((List<String>) (record.getListFields().values().toArray()[0]))).size() == 2);
     Assert.assertTrue((((Map<String, String>) (record.getMapFields().values().toArray()[0]))).size() == 2);
     Assert.assertTrue((((String) (record.getMapFields().keySet().toArray()[0]))).startsWith("alias_"));
+    Assert.assertFalse(response.contains(IdealStateProperty.INSTANCE_GROUP_TAG.toString()));
+    resourceUrl = getResourceUrl("clusterTest1", "db_33");
+    ISUrl = resourceUrl + "/idealState";
+    paraMap.put(JsonParameters.REPLICAS, "2");
+    paraMap.remove(JsonParameters.RESOURCE_KEY_PREFIX);
+    paraMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.rebalance);
+    paraMap.put(ClusterSetup.instanceGroupTag,_tag1);
+    response = assertSuccessPostOperation(ISUrl, paraMap, false);
+
+    Assert.assertTrue(response.contains(IdealStateProperty.INSTANCE_GROUP_TAG.toString()));
+    Assert.assertTrue(response.contains(_tag1));
+    for (int i = 0; i < 6; i++)
+    {
+      String instance = "localhost_123"+i;
+      if(i<3)
+      {
+        Assert.assertTrue(response.contains(instance));
+      }
+      else
+      {
+        Assert.assertFalse(response.contains(instance));
+      }
+    }
+    
+    resourceUrl = getResourceUrl("clusterTest1", "db_44");
+    ISUrl = resourceUrl + "/idealState";
+    paraMap.put(JsonParameters.REPLICAS, "2");
+    paraMap.remove(JsonParameters.RESOURCE_KEY_PREFIX);
+    paraMap.put(JsonParameters.RESOURCE_KEY_PREFIX, "alias");
+    paraMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.rebalance);
+    paraMap.put(ClusterSetup.instanceGroupTag,_tag1);
+    response = assertSuccessPostOperation(ISUrl, paraMap, false);
+    Assert.assertTrue(response.contains(IdealStateProperty.INSTANCE_GROUP_TAG.toString()));
+    Assert.assertTrue(response.contains(_tag1));
+
+    record = JsonToObject(ZNRecord.class, response);
+    Assert.assertTrue((((String) (record.getMapFields().keySet().toArray()[0]))).startsWith("alias_"));
+    
+    for (int i = 0; i < 6; i++)
+    {
+      String instance = "localhost_123"+i;
+      if(i<3)
+      {
+        Assert.assertTrue(response.contains(instance));
+      }
+      else
+      {
+        Assert.assertFalse(response.contains(instance));
+      }
+    }
   }
 
   private void testAddInstance() throws Exception
@@ -765,5 +827,23 @@ public class TestHelixAdminScenariosRest extends AdminTestBase
     paraMap.remove(JsonParameters.INSTANCE_NAMES);
     paraMap.put(JsonParameters.INSTANCE_NAME, "localhost:1234");
     response = assertSuccessPostOperation(instancesUrl, paraMap, true);
+    
+    // add tags
+    
+    paraMap.clear();
+    paraMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.addInstanceTag);
+    paraMap.put(ClusterSetup.instanceGroupTag, _tag1);
+    for (int i = 0; i < 4; i++)
+    {
+      instanceUrl = instancesUrl + "/localhost_123"+i;
+      response = assertSuccessPostOperation(instanceUrl, paraMap, false);
+      Assert.assertTrue(response.contains(_tag1));
+      
+    }
+    paraMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.removeInstanceTag);
+    instanceUrl = instancesUrl + "/localhost_1233";
+    response = assertSuccessPostOperation(instanceUrl, paraMap, false);
+    Assert.assertFalse(response.contains(_tag1));
+    
   }
 }

@@ -70,6 +70,8 @@ public class JsonParameters
   public static final String             NEW_IDEAL_STATE     = "newIdealState";
   public static final String             NEW_STATE_MODEL_DEF = "newStateModelDef";
 
+  public static final String TAG = "tag";
+
   // aliases for ClusterSetup commands
   public static Map<String, Set<String>> CLUSTERSETUP_COMMAND_ALIASES;
   static
@@ -230,6 +232,20 @@ public class JsonParameters
       if (!_parameterMap.containsKey(CONFIGS))
       {
         throw new HelixException("Missing Json parameters: '" + CONFIGS + "'");
+      }
+    }
+    else if (command.equalsIgnoreCase(ClusterSetup.addInstanceTag))
+    {
+      if (!_parameterMap.containsKey(ClusterSetup.instanceGroupTag))
+      {
+        throw new HelixException("Missing Json parameters: '" + ClusterSetup.instanceGroupTag + "'");
+      }
+    }
+    else if (command.equalsIgnoreCase(ClusterSetup.removeInstanceTag))
+    {
+      if (!_parameterMap.containsKey(ClusterSetup.instanceGroupTag))
+      {
+        throw new HelixException("Missing Json parameters: '" + ClusterSetup.instanceGroupTag + "'");
       }
     }
     else if (command.equalsIgnoreCase(ClusterSetup.addCluster))

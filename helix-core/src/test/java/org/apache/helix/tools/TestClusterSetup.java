@@ -367,18 +367,25 @@ public class TestClusterSetup extends ZkUnitTestBase
   @Test()
   public void testSetGetConfig() throws Exception
   {
-    System.out.println("START testSetGetConfig() " + new Date(System.currentTimeMillis()));
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = className + "_" + methodName;
+
+    System.out.println("START " + clusterName + " at "
+        + new Date(System.currentTimeMillis()));
 
     // basic
-    String scopesStr = "CLUSTER=" + CLUSTER_NAME + ",PARTICIPANT=localhost_0";
+    _clusterSetup.addCluster(clusterName, true);
+    _clusterSetup.addInstanceToCluster(clusterName, "localhost", 0);
+    String scopesStr = "CLUSTER=" + clusterName + ",PARTICIPANT=localhost_0";
     String propertiesStr = "key1=value1,key2=value2";
     String keysStr = "key1,key2";
     _clusterSetup.setConfig(scopesStr, propertiesStr);
     String valuesStr = _clusterSetup.getConfig(scopesStr, keysStr);
     Assert.assertEquals(valuesStr, propertiesStr);
 
-    System.out.println("END testSetGetConfig() " + new Date(System.currentTimeMillis()));
-
+    System.out.println("END " + clusterName + " at "
+        + new Date(System.currentTimeMillis()));
   }
 
   @Test

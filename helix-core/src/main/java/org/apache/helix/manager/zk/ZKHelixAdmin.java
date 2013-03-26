@@ -41,36 +41,37 @@ import org.I0Itec.zkclient.DataUpdater;
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.apache.helix.AccessOption;
 import org.apache.helix.ConfigAccessor;
-import org.apache.helix.model.ConfigScope;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.PropertyPathConfig;
 import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.model.ConfigScope.ConfigScopeProperty;
-import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.alerts.AlertsHolder;
 import org.apache.helix.alerts.StatsHolder;
 import org.apache.helix.model.Alerts;
+import org.apache.helix.model.ClusterConstraints;
+import org.apache.helix.model.ClusterConstraints.ConstraintType;
+import org.apache.helix.model.ConfigScope;
+import org.apache.helix.model.ConfigScope.ConfigScopeProperty;
+import org.apache.helix.model.ConstraintItem;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.IdealState.IdealStateModeProperty;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.InstanceConfig.InstanceConfigProperty;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
+import org.apache.helix.model.Message.MessageState;
+import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.PersistentStats;
 import org.apache.helix.model.StateModelDefinition;
-import org.apache.helix.model.ClusterConstraints.ConstraintAttribute;
-import org.apache.helix.model.ClusterConstraints.ConstraintType;
-import org.apache.helix.model.IdealState.IdealStateModeProperty;
-import org.apache.helix.model.InstanceConfig.InstanceConfigProperty;
-import org.apache.helix.model.Message.MessageState;
-import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.tools.DefaultIdealStateCalculator;
 import org.apache.helix.util.HelixUtil;
 import org.apache.helix.util.RebalanceUtil;
@@ -1326,9 +1327,10 @@ public class ZKHelixAdmin implements HelixAdmin
 
   }
 
+  @Override
   public void addMessageConstraint(String clusterName,
                                    final String constraintId,
-                                   final Map<String, String> constraints)
+                                   final ConstraintItem constraintItem)
   {
     ZkBaseDataAccessor<ZNRecord> baseAccessor =
         new ZkBaseDataAccessor<ZNRecord>(_zkClient);
@@ -1341,34 +1343,49 @@ public class ZKHelixAdmin implements HelixAdmin
       @Override
       public ZNRecord update(ZNRecord currentData)
       {
-        if (currentData == null)
-        {
-          currentData = new ZNRecord(ConstraintType.MESSAGE_CONSTRAINT.toString());
-        }
+        ClusterConstraints constraints = currentData == null? 
+            new ClusterConstraints(ConstraintType.MESSAGE_CONSTRAINT) : new ClusterConstraints(currentData);
 
-        Map<String, String> map = currentData.getMapField(constraintId);
-        if (map == null)
-        {
-          map = new TreeMap<String, String>();
-          currentData.setMapField(constraintId, map);
-        } else
-        {
-          logger.warn("Overwrite existing constraint " + constraintId + ": " + map);
-        }
-
-        for (String key : constraints.keySet())
-        {
-          // make sure contraint attribute is valid
-          ConstraintAttribute attr = ConstraintAttribute.valueOf(key.toUpperCase());
-
-          map.put(attr.toString(), constraints.get(key));
-        }
-        
-        return currentData;
+        constraints.addConstraintItem(constraintId, constraintItem);
+        return constraints.getRecord();
       }
     }, AccessOption.PERSISTENT);
   }
   
+  @Override
+  public void removeMessageConstraint(String clusterName, final String constraintId)
+  {
+    ZkBaseDataAccessor<ZNRecord> baseAccessor =
+        new ZkBaseDataAccessor<ZNRecord>(_zkClient);
+
+    Builder keyBuilder = new Builder(clusterName);
+    String path = keyBuilder.constraint(ConstraintType.MESSAGE_CONSTRAINT.toString()).getPath();
+
+    baseAccessor.update(path, new DataUpdater<ZNRecord>()
+    {
+      @Override
+      public ZNRecord update(ZNRecord currentData)
+      {
+        if (currentData != null) {
+          ClusterConstraints constraints = new ClusterConstraints(currentData);
+
+          constraints.removeConstraintItem(constraintId);
+          return constraints.getRecord();
+        }
+        return null;
+      }
+    }, AccessOption.PERSISTENT);
+  }
+  
+  @Override
+  public ClusterConstraints getMessageConstraints(String clusterName)
+  {
+    HelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+
+    Builder keyBuilder = new Builder(clusterName);
+    return accessor.getProperty(keyBuilder.constraint(ConstraintType.MESSAGE_CONSTRAINT.toString()));
+  }
   
   /**
    * Takes the existing idealstate as input and computes newIdealState such that 

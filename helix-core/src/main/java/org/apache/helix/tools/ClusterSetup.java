@@ -95,12 +95,16 @@ public class ClusterSetup
   public static final String expandCluster = "expandCluster";
   public static final String expandResource = "expandResource";
   public static final String mode = "mode";
+  public static final String instanceGroupTag = "instanceGroupTag";
   public static final String bucketSize = "bucketSize";
   public static final String resourceKeyPrefix = "key";
   public static final String maxPartitionsPerNode = "maxPartitionsPerNode";
   
   public static final String addResourceProperty = "addResourceProperty";
   public static final String removeResourceProperty = "removeResourceProperty";
+  
+  public static final String addInstanceTag = "addInstanceTag";
+  public static final String removeInstanceTag = "removeInstanceTag";
 
   // Query info (TBD in V2)
   public static final String listClusterInfo = "listClusterInfo";
@@ -549,7 +553,23 @@ public class ClusterSetup
                                       int replica,
                                       String keyPrefix)
   {
-    _admin.rebalance(clusterName, resourceName, replica, keyPrefix);
+    _admin.rebalance(clusterName, resourceName, replica, keyPrefix, "");
+  }
+  
+  
+  public void rebalanceStorageCluster(String clusterName,
+      String resourceName,
+      int replica,
+      String keyPrefix, String group)
+  {
+    _admin.rebalance(clusterName, resourceName, replica, keyPrefix, group);
+  }
+  
+  public void rebalanceStorageCluster(String clusterName,
+      String resourceName, String group,
+      int replica)
+  {
+    _admin.rebalance(clusterName, resourceName, replica, resourceName, group);
   }
 
   
@@ -815,6 +835,14 @@ public class ClusterSetup
     resourceKeyOption.setArgs(1);
     resourceKeyOption.setRequired(false);
     resourceKeyOption.setArgName("Resource key prefix");
+    
+    Option instanceGroupTagOption =
+        OptionBuilder.withLongOpt(instanceGroupTag)
+                     .withDescription("Specify instance group tag, used with rebalance command")
+                     .create();
+    instanceGroupTagOption.setArgs(1);
+    instanceGroupTagOption.setRequired(false);
+    instanceGroupTagOption.setArgName("Instance group tag");
 
     Option addStateModelDefOption =
         OptionBuilder.withLongOpt(addStateModelDef)
@@ -988,7 +1016,20 @@ public class ClusterSetup
     addAlertOption.setArgs(2);
     addAlertOption.setRequired(false);
     addAlertOption.setArgName("clusterName alertName");
-
+    
+    Option addInstanceTagOption =
+        OptionBuilder.withLongOpt(addInstanceTag)
+                     .withDescription("Add a tag to instance")
+                     .create();
+    addInstanceTagOption.setArgs(3);
+    addInstanceTagOption.setRequired(false);
+    addInstanceTagOption.setArgName("clusterName instanceName tag");
+    Option removeInstanceTagOption =
+        OptionBuilder.withLongOpt(removeInstanceTag).withDescription("Remove tag from instance").create();
+    removeInstanceTagOption.setArgs(3);
+    removeInstanceTagOption.setRequired(false);
+    removeInstanceTagOption.setArgName("clusterName instanceName tag");
+    
     Option dropStatOption =
         OptionBuilder.withLongOpt(dropStat)
                      .withDescription("Drop a persistent stat")
@@ -1093,14 +1134,23 @@ public class ClusterSetup
     group.addOption(addAlertOption);
     group.addOption(dropStatOption);
     group.addOption(dropAlertOption);
-    group.addOption(setConfOption);
-    group.addOption(getConfOption);
     group.addOption(addResourcePropertyOption);
     group.addOption(removeResourcePropertyOption);
+    
+    // set/get/remove config options
+    group.addOption(setConfOption);
+    group.addOption(getConfOption);
     group.addOption(removeConfOption);
+    
+    // set/get/remove constraint options
     group.addOption(setConstraintOption);
     group.addOption(getConstraintsOption);
     group.addOption(removeConstraintOption);
+
+    group.addOption(addInstanceTagOption);
+    group.addOption(removeInstanceTagOption);
+    group.addOption(instanceGroupTagOption);
+
 
     Options options = new Options();
     options.addOption(helpOption);
@@ -1217,15 +1267,17 @@ public class ClusterSetup
       String clusterName = cmd.getOptionValues(rebalance)[0];
       String resourceName = cmd.getOptionValues(rebalance)[1];
       int replicas = Integer.parseInt(cmd.getOptionValues(rebalance)[2]);
+      String keyPrefixVal = "";
+      String instanceGroupTagVal = "";
       if (cmd.hasOption(resourceKeyPrefix))
       {
-        setupTool.rebalanceStorageCluster(clusterName,
-                                          resourceName,
-                                          replicas,
-                                          cmd.getOptionValue(resourceKeyPrefix));
-        return 0;
+        keyPrefixVal = cmd.getOptionValue(resourceKeyPrefix);
       }
-      setupTool.rebalanceStorageCluster(clusterName, resourceName, replicas);
+      if (cmd.hasOption(instanceGroupTag))
+      {
+        instanceGroupTagVal = cmd.getOptionValue(instanceGroupTag);
+      }
+      setupTool.rebalanceStorageCluster(clusterName, resourceName, replicas, keyPrefixVal, instanceGroupTagVal);
       return 0;
     }
 
@@ -1633,6 +1685,20 @@ public class ClusterSetup
       String constraintType = values[1];
       String constraintId = values[2];
       setupTool.removeConstraint(clusterName, constraintType, constraintId);
+    }
+    else if (cmd.hasOption(addInstanceTag))
+    {
+      String clusterName = cmd.getOptionValues(addInstanceTag)[0];
+      String instanceName = cmd.getOptionValues(addInstanceTag)[1];
+      String tag = cmd.getOptionValues(addInstanceTag)[2];
+      setupTool.getClusterManagementTool().addInstanceTag(clusterName, instanceName, tag);
+    }
+    else if (cmd.hasOption(removeInstanceTag))
+    {
+      String clusterName = cmd.getOptionValues(removeInstanceTag)[0];
+      String instanceName = cmd.getOptionValues(removeInstanceTag)[1];
+      String tag = cmd.getOptionValues(removeInstanceTag)[2];
+      setupTool.getClusterManagementTool().removeInstanceTag(clusterName, instanceName, tag);
     }
     // help option
     else if (cmd.hasOption(help))

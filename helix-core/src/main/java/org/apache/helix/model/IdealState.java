@@ -39,7 +39,7 @@ public class IdealState extends HelixProperty
 {
   public enum IdealStateProperty
   {
-    NUM_PARTITIONS, STATE_MODEL_DEF_REF, STATE_MODEL_FACTORY_NAME, REPLICAS, IDEAL_STATE_MODE, REBALANCE_TIMER_PERIOD, MAX_PARTITONS_PER_INSTANCE
+    NUM_PARTITIONS, STATE_MODEL_DEF_REF, STATE_MODEL_FACTORY_NAME, REPLICAS, IDEAL_STATE_MODE, REBALANCE_TIMER_PERIOD, MAX_PARTITONS_PER_INSTANCE, INSTANCE_GROUP_TAG
   }
 
   public static final String QUERY_LIST = "PREFERENCE_LIST_QUERYS";
@@ -356,5 +356,16 @@ public class IdealState extends HelixProperty
 
     return true;
   }
-
+  
+  public void setInstanceGroupTag(String groupTag)
+  {
+    _record.setSimpleField(
+        IdealStateProperty.INSTANCE_GROUP_TAG.toString(), groupTag);
+  }
+  
+  public String getInstanceGroupTag()
+  {
+    return _record.getSimpleField(
+        IdealStateProperty.INSTANCE_GROUP_TAG.toString());
+  }
 }

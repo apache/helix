@@ -41,7 +41,8 @@ public class InstanceConfig extends HelixProperty
     HELIX_HOST,
     HELIX_PORT,
     HELIX_ENABLED,
-    HELIX_DISABLED_PARTITION
+    HELIX_DISABLED_PARTITION,
+    TAG_LIST
   }
   private static final Logger _logger = Logger.getLogger(InstanceConfig.class.getName());
 
@@ -73,6 +74,53 @@ public class InstanceConfig extends HelixProperty
   public void setPort(String port)
   {
     _record.setSimpleField(InstanceConfigProperty.HELIX_PORT.toString(), port);
+  }
+  
+  public List<String> getTags()
+  {
+    List<String> tags = getRecord().getListField(InstanceConfigProperty.TAG_LIST.toString());
+    if(tags == null)
+    {
+      tags = new ArrayList<String>(0);
+    }
+    return tags;
+  }
+  
+  public void addTag(String tag)
+  {
+    List<String> tags = getRecord().getListField(InstanceConfigProperty.TAG_LIST.toString());
+    if(tags == null)
+    {
+      tags = new ArrayList<String>(0);
+    }
+    if(!tags.contains(tag))
+    {
+      tags.add(tag);
+    }
+    getRecord().setListField(InstanceConfigProperty.TAG_LIST.toString(), tags);
+  }
+  
+  public void removeTag(String tag)
+  {
+    List<String> tags = getRecord().getListField(InstanceConfigProperty.TAG_LIST.toString());
+    if(tags == null)
+    {
+      return;
+    }
+    if(tags.contains(tag))
+    {
+      tags.remove(tag);
+    }
+  }
+  
+  public boolean containsTag(String tag)
+  {
+    List<String> tags = getRecord().getListField(InstanceConfigProperty.TAG_LIST.toString());
+    if(tags == null)
+    {
+      return false;
+    }
+    return tags.contains(tag);
   }
 
   public boolean getInstanceEnabled()

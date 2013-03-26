@@ -188,6 +188,24 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
   {
     String topStateValue = stateModelDef.getStatesPriorityList().get(0);
     Set<String> liveInstances = cache._liveInstanceMap.keySet();
+    Set<String> taggedInstances = new HashSet<String>();
+    
+    // If there are instances tagged with resource name, use only those instances
+    if(idealState.getInstanceGroupTag() != null)
+    {
+      for(String instanceName : liveInstances)
+      {
+        if(cache._instanceConfigMap.get(instanceName).containsTag(idealState.getInstanceGroupTag()))
+        {
+          taggedInstances.add(instanceName);
+        }
+      }
+    }
+    if(taggedInstances.size() > 0)
+    {
+      logger.info("found the following instances with tag " + idealState.getResourceName() + " " + taggedInstances);
+      liveInstances = taggedInstances;
+    }
     // Obtain replica number
     int replicas = 1;
     try

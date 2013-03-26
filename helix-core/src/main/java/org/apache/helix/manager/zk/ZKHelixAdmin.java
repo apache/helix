@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -44,6 +45,7 @@ import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
+import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.PropertyPathConfig;
@@ -629,6 +631,28 @@ public class ZKHelixAdmin implements HelixAdmin
     String memberInstancesPath = HelixUtil.getMemberInstancesPath(clusterName);
     return _zkClient.getChildren(memberInstancesPath);
   }
+  
+  @Override
+  public List<String> getInstancesInClusterWithTag(String clusterName, String tag)
+  {
+    String memberInstancesPath = HelixUtil.getMemberInstancesPath(clusterName);
+    List<String> instances =  _zkClient.getChildren(memberInstancesPath);
+    List<String> result = new ArrayList<String>();
+    
+    ZKHelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+    
+    for(String instanceName : instances)
+    {
+      InstanceConfig config = accessor.getProperty(keyBuilder.instanceConfig(instanceName));
+      if(config.containsTag(tag))
+      {
+        result.add(instanceName);
+      }
+    }
+    return result;
+  }
 
   @Override
   public void addResource(String clusterName,
@@ -1115,19 +1139,38 @@ public class ZKHelixAdmin implements HelixAdmin
   @Override
   public void rebalance(String clusterName, String resourceName, int replica)
   {
-    List<String> instanceNames = getInstancesInCluster(clusterName);
-    rebalance(clusterName, resourceName, replica, resourceName, instanceNames);
+    rebalance(clusterName, resourceName, replica, resourceName, "");
   }
+  
   @Override
-  public void rebalance(String clusterName, String resourceName, int replica, String keyPrefix)
+  public void rebalance(String clusterName, String resourceName, int replica, String keyPrefix, String group)
   {
-    List<String> instanceNames = getInstancesInCluster(clusterName);
-    rebalance(clusterName, resourceName, replica, keyPrefix, instanceNames);
+    List<String> instanceNames = new LinkedList<String>();
+    if(keyPrefix == null || keyPrefix.length() == 0)
+    {
+      keyPrefix = resourceName;
+    }
+    if(group != null && group.length() > 0)
+    {
+      instanceNames = getInstancesInClusterWithTag(clusterName, group);
+    }
+    if(instanceNames.size() == 0)
+    {
+      logger.info("No tags found for resource " + resourceName + ", use all instances");
+      instanceNames = getInstancesInCluster(clusterName);
+      group = "";
+    }
+    else
+    {
+      logger.info("Found instances with tag for " + resourceName + " " + instanceNames);
+    }
+    rebalance(clusterName, resourceName, replica, keyPrefix, instanceNames, group);
   }
+  
   @Override
   public void rebalance(String clusterName, String resourceName, int replica, List<String> instances)
   {
-    rebalance(clusterName, resourceName, replica, resourceName, instances);
+    rebalance(clusterName, resourceName, replica, resourceName, instances, "");
   }
   
   
@@ -1135,7 +1178,8 @@ public class ZKHelixAdmin implements HelixAdmin
                  String resourceName, 
                  int replica, 
                  String keyPrefix, 
-                 List<String> instanceNames)
+                 List<String> instanceNames,
+                 String groupId)
   {
     // ensure we get the same idealState with the same set of instances
     Collections.sort(instanceNames);
@@ -1146,6 +1190,10 @@ public class ZKHelixAdmin implements HelixAdmin
       throw new HelixException("Resource: " + resourceName + " has NOT been added yet");
     }
 
+    if(groupId != null && groupId.length() > 0)
+    {
+      idealState.setInstanceGroupTag(groupId);
+    }
     idealState.setReplicas(Integer.toString(replica));
     int partitions = idealState.getNumPartitions();
     String stateModelName = idealState.getStateModelDefRef();
@@ -1411,6 +1459,49 @@ public class ZKHelixAdmin implements HelixAdmin
                        .putAll(currentIdealState.getRecord().getSimpleFields());
     IdealState newIdealState = new IdealState(newIdealStateRecord);
     setResourceIdealState(clusterName, newIdealStateRecord.getId(), newIdealState);
+  }
+
+  @Override
+  public void addInstanceTag(String clusterName, String instanceName, String tag)
+  {
+    if (!ZKUtil.isClusterSetup(clusterName, _zkClient))
+    {
+      throw new HelixException("cluster " + clusterName + " is not setup yet");
+    }
+    
+    if (!ZKUtil.isInstanceSetup(_zkClient, clusterName, instanceName, InstanceType.PARTICIPANT))
+    {
+      throw new HelixException("cluster " + clusterName + " instance "+instanceName +" is not setup yet");
+    }
+    ZKHelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+
+    InstanceConfig config =  accessor.getProperty(keyBuilder.instanceConfig(instanceName));
+    config.addTag(tag);
+    accessor.setProperty(keyBuilder.instanceConfig(instanceName), config);
+  }
+
+  @Override
+  public void removeInstanceTag(String clusterName, String instanceName,
+      String tag)
+  {
+    if (!ZKUtil.isClusterSetup(clusterName, _zkClient))
+    {
+      throw new HelixException("cluster " + clusterName + " is not setup yet");
+    }
+    
+    if (!ZKUtil.isInstanceSetup(_zkClient, clusterName, instanceName, InstanceType.PARTICIPANT))
+    {
+      throw new HelixException("cluster " + clusterName + " instance "+instanceName +" is not setup yet");
+    }
+    ZKHelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+    
+    InstanceConfig config =  accessor.getProperty(keyBuilder.instanceConfig(instanceName));
+    config.removeTag(tag);
+    accessor.setProperty(keyBuilder.instanceConfig(instanceName), config);
   }
 
   

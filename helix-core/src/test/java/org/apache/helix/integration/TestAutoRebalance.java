@@ -21,7 +21,9 @@ package org.apache.helix.integration;
 
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.TestHelper;
@@ -34,6 +36,7 @@ import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState.IdealStateModeProperty;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
@@ -47,7 +50,8 @@ import org.testng.annotations.Test;
 public class TestAutoRebalance extends ZkStandAloneCMTestBaseWithPropertyServerCheck
 {
   private static final Logger LOG = Logger.getLogger(TestAutoRebalance.class.getName());
-  
+  String db2 = TEST_DB+"2";
+  String _tag = "SSDSSD";
   @BeforeClass
   public void beforeClass() throws Exception
   {
@@ -67,12 +71,25 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBaseWithPropertyServerC
     // setup storage cluster
     _setupTool.addCluster(CLUSTER_NAME, true);
     _setupTool.addResourceToCluster(CLUSTER_NAME, TEST_DB, _PARTITIONS, STATE_MODEL, IdealStateModeProperty.AUTO_REBALANCE+"");
+    
+    _setupTool.addResourceToCluster(CLUSTER_NAME, db2, _PARTITIONS, "OnlineOffline", IdealStateModeProperty.AUTO_REBALANCE+"");
+    
+    
     for (int i = 0; i < NODE_NR; i++)
     {
       String storageNodeName = PARTICIPANT_PREFIX + ":" + (START_PORT + i);
       _setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
     }
+    
     _setupTool.rebalanceStorageCluster(CLUSTER_NAME, TEST_DB, _replica);
+    
+    for (int i = 0; i < 3; i++)
+    {
+      String storageNodeName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
+      _setupTool.getClusterManagementTool().addInstanceTag(CLUSTER_NAME, storageNodeName, _tag);
+    }
+
+    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, db2, 1, "ucpx",_tag);
     
     // start dummy participants
     for (int i = 0; i < NODE_NR; i++)
@@ -105,6 +122,8 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBaseWithPropertyServerC
                                                                               CLUSTER_NAME, TEST_DB));
 
     Assert.assertTrue(result);
+    
+    
   }
   
   @Test()
@@ -138,6 +157,24 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBaseWithPropertyServerC
         ClusterStateVerifier.verifyByZkCallback(new ExternalViewBalancedVerifier(_zkClient,
                                                                               CLUSTER_NAME, TEST_DB));
     Assert.assertTrue(result);
+    
+    result =
+        ClusterStateVerifier.verifyByZkCallback(new ExternalViewBalancedVerifier(_zkClient,
+            CLUSTER_NAME, db2));
+    Assert.assertTrue(result);
+    HelixDataAccessor accessor = new ZKHelixDataAccessor( CLUSTER_NAME, new ZkBaseDataAccessor(_zkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+    ExternalView ev = accessor.getProperty(keyBuilder.externalView(db2));
+    Set<String> instancesSet = new HashSet<String>();
+    for(String partitionName : ev.getRecord().getMapFields().keySet())
+    {
+      Map<String, String> assignmentMap = ev.getRecord().getMapField(partitionName);
+      for(String instance : assignmentMap.keySet())
+      {
+        instancesSet.add(instance);
+      }
+    }
+    Assert.assertEquals(instancesSet.size(), 2);
   }
   
   static boolean verifyBalanceExternalView(ZNRecord externalView, int partitionCount, String masterState, int replica, int instances)
@@ -209,7 +246,20 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBaseWithPropertyServerC
       cache.refresh(accessor);
       String masterValue = cache.getStateModelDef(cache.getIdealState(_resourceName).getStateModelDefRef()).getStatesPriorityList().get(0);
       int replicas = Integer.parseInt(cache.getIdealState(_resourceName).getReplicas());
-      return verifyBalanceExternalView(accessor.getProperty(keyBuilder.externalView(_resourceName)).getRecord(), numberOfPartitions, masterValue, replicas, cache.getLiveInstances().size());
+      String instanceGroupTag = cache.getIdealState(_resourceName).getInstanceGroupTag();
+      int instances = 0;
+      for(String  liveInstanceName : cache.getLiveInstances().keySet())
+      {
+        if(cache.getInstanceConfigMap().get(liveInstanceName).containsTag(instanceGroupTag))
+        {
+          instances ++;
+        }
+      }
+      if(instances == 0)
+      {
+        instances = cache.getLiveInstances().size();
+      }
+      return verifyBalanceExternalView(accessor.getProperty(keyBuilder.externalView(_resourceName)).getRecord(), numberOfPartitions, masterValue, replicas, instances);
     }
 
     @Override

@@ -149,17 +149,15 @@ public class IdealStateResource extends Resource
       {
         int replicas = 
             Integer.parseInt(jsonParameters.getParameter(JsonParameters.REPLICAS));
-        if (jsonParameters.getParameter(JsonParameters.RESOURCE_KEY_PREFIX) != null)
-        {
+        String keyPrefix = jsonParameters.getParameter(JsonParameters.RESOURCE_KEY_PREFIX);
+        String groupTag = jsonParameters.getParameter(ClusterSetup.instanceGroupTag);
+        
           setupTool.rebalanceStorageCluster(clusterName,
                                             resourceName,
                                             replicas,
-                                            jsonParameters.getParameter(JsonParameters.RESOURCE_KEY_PREFIX));
-        }
-        else
-        {
-          setupTool.rebalanceStorageCluster(clusterName, resourceName, replicas);
-        }
+                                            keyPrefix,
+                                            groupTag);
+       
       }
       else if (command.equalsIgnoreCase(ClusterSetup.expandResource))
       {

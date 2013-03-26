@@ -465,5 +465,29 @@ public interface HelixAdmin
    * @param keyPrefix
    */
   void rebalance(String clusterName, String resourceName, int replica,
-      String keyPrefix);
+      String keyPrefix, String group);
+  /**
+   * 
+   * @param clusterName
+   * @param tag
+   */
+  List<String> getInstancesInClusterWithTag(String clusterName, String tag);
+  
+  /**
+   * 
+   * @param clusterName
+   * @param instanceNames
+   * @param tag
+   * @return
+   */
+  void addInstanceTag(String clusterName, String instanceName, String tag);
+  
+  /**
+   * 
+   * @param clusterName
+   * @param instanceNames
+   * @param tag
+   * @return
+   */
+  void removeInstanceTag(String clusterName, String instanceName, String tag);
 }

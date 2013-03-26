@@ -191,11 +191,14 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
     Set<String> taggedInstances = new HashSet<String>();
     
     // If there are instances tagged with resource name, use only those instances
-    for(String instanceName : liveInstances)
+    if(idealState.getInstanceGroupTag() != null)
     {
-      if(cache._instanceConfigMap.get(instanceName).containsTag(idealState.getResourceName()))
+      for(String instanceName : liveInstances)
       {
-        taggedInstances.add(instanceName);
+        if(cache._instanceConfigMap.get(instanceName).containsTag(idealState.getInstanceGroupTag()))
+        {
+          taggedInstances.add(instanceName);
+        }
       }
     }
     if(taggedInstances.size() > 0)

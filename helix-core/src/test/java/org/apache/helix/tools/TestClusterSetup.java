@@ -37,6 +37,7 @@ import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.tools.ClusterSetup;
+import org.apache.helix.util.HelixUtil;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.AssertJUnit;
@@ -382,7 +383,12 @@ public class TestClusterSetup extends ZkUnitTestBase
     String keysStr = "key1,key2";
     _clusterSetup.setConfig(scopesStr, propertiesStr);
     String valuesStr = _clusterSetup.getConfig(scopesStr, keysStr);
-    Assert.assertEquals(valuesStr, propertiesStr);
+    
+    // getConfig returns json-formatted key-value pairs
+    ZNRecord record = new ZNRecord(scopesStr);
+    record.setMapField(scopesStr,HelixUtil.parseCsvFormatedKeyValuePairs(propertiesStr));
+    ZNRecordSerializer serializer = new ZNRecordSerializer();
+    Assert.assertEquals(valuesStr, new String(serializer.serialize(record)));
 
     System.out.println("END " + clusterName + " at "
         + new Date(System.currentTimeMillis()));

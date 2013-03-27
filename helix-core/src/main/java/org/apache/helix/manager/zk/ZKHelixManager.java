@@ -22,6 +22,7 @@ package org.apache.helix.manager.zk;
 import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.security.AccessControlContext;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -35,6 +36,7 @@ import org.apache.helix.ClusterMessagingService;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.ConfigChangeListener;
 import org.apache.helix.model.ConfigScope.ConfigScopeProperty;
+import org.apache.helix.AccessOption;
 import org.apache.helix.ControllerChangeListener;
 import org.apache.helix.CurrentStateChangeListener;
 import org.apache.helix.ExternalViewChangeListener;
@@ -882,61 +884,56 @@ public class ZKHelixManager implements HelixManager
     return true;
   }
 
+  /**
+   * carry over current-states from last sessions
+   * set to initial state for current session only when the state doesn't exist in current session
+   */
   private void carryOverPreviousCurrentState()
   {
     Builder keyBuilder = _helixAccessor.keyBuilder();
+    List<String> sessions = _helixAccessor.getChildNames(keyBuilder.sessions(_instanceName));
+    
+    // carry-over
+    for (String session : sessions) {
+      if (session.equals(_sessionId)) {
+        continue;
+      }
+      
+      List<CurrentState> lastCurStates = 
+          _helixAccessor.getChildValues(keyBuilder.currentStates(_instanceName, session));
 
-    List<String> subPaths =
-        _helixAccessor.getChildNames(keyBuilder.sessions(_instanceName));
-    for (String previousSessionId : subPaths)
-    {
-      List<CurrentState> previousCurrentStates =
-          _helixAccessor.getChildValues(keyBuilder.currentStates(_instanceName,
-                                                                 previousSessionId));
-
-      for (CurrentState previousCurrentState : previousCurrentStates)
-      {
-        if (!previousSessionId.equalsIgnoreCase(_sessionId))
+      for (CurrentState lastCurState : lastCurStates) {
+        logger.info("Carrying over old session: " + session + ", resource: "
+            + lastCurState.getId() + " to current session: " + _sessionId);
+        String stateModelDefRef = lastCurState.getStateModelDefRef();
+        if (stateModelDefRef == null)
         {
-          logger.info("Carrying over old session:" + previousSessionId + " resource "
-              + previousCurrentState.getId() + " to new session:" + _sessionId);
-          String stateModelDefRef = previousCurrentState.getStateModelDefRef();
-          if (stateModelDefRef == null)
-          {
-            logger.error("pervious current state doesn't have a state model def. skip it. prevCS: "
-                + previousCurrentState);
-            continue;
-          }
-          StateModelDefinition stateModel =
-              _helixAccessor.getProperty(keyBuilder.stateModelDef(stateModelDefRef));
-          for (String partitionName : previousCurrentState.getPartitionStateMap()
-                                                          .keySet())
-          {
-
-            previousCurrentState.setState(partitionName, stateModel.getInitialState());
-          }
-          previousCurrentState.setSessionId(_sessionId);
-          _helixAccessor.setProperty(keyBuilder.currentState(_instanceName,
-                                                             _sessionId,
-                                                             previousCurrentState.getId()),
-                                     previousCurrentState);
+          logger.error("skip carry-over because previous current state doesn't have a state model definition. previous current-state: "
+              + lastCurState);
+          continue;
         }
+        StateModelDefinition stateModel =
+            _helixAccessor.getProperty(keyBuilder.stateModelDef(stateModelDefRef));
+
+        String curStatePath = keyBuilder.currentState(_instanceName, _sessionId, lastCurState.getResourceName()).getPath();
+        _helixAccessor.getBaseDataAccessor().update(curStatePath, 
+           new CurStateCarryOverUpdater(_sessionId, stateModel.getInitialState(), lastCurState), AccessOption.PERSISTENT);
       }
     }
-    // Deleted old current state
-    for (String previousSessionId : subPaths)
+    
+    // remove previous current states
+    for (String session : sessions)
     {
-      if (!previousSessionId.equalsIgnoreCase(_sessionId))
-      {
-        String path =
-            _helixAccessor.keyBuilder()
-                          .currentStates(_instanceName, previousSessionId)
-                          .getPath();
-        logger.info("Deleting previous current state. path: " + path + "/"
-            + previousSessionId);
-        _zkClient.deleteRecursive(path);
-
+      if (session.equals(_sessionId)) {
+        continue;
       }
+
+      String path =
+          _helixAccessor.keyBuilder()
+                        .currentStates(_instanceName, session)
+                        .getPath();
+      logger.info("Removing current states from previous sessions. path: " + path);
+      _zkClient.deleteRecursive(path);
     }
   }
 

@@ -52,6 +52,8 @@ class CurStateCarryOverUpdater implements DataUpdater<ZNRecord> {
     CurrentState curState = null;
     if (currentData == null) {
       curState = new CurrentState(_lastCurState.getId());
+      // copy all simple fields settings and overwrite session-id to current session
+      curState.getRecord().setSimpleFields(_lastCurState.getRecord().getSimpleFields());
       curState.setSessionId(_curSessionId);
     } else
     {

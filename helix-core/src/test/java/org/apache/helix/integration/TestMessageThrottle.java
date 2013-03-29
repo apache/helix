@@ -88,7 +88,7 @@ public class TestMessageThrottle extends ZkIntegrationTestBase
 //    // constraints.put("TRANSITION", "OFFLINE-SLAVE");
 //    constraints.put("CONSTRAINT_VALUE", "1");
 //    constraints.put("INSTANCE", ".*");
-    admin.addMessageConstraint(clusterName, "constraint1", builder.build());
+    admin.setConstraint(clusterName, ConstraintType.MESSAGE_CONSTRAINT, "constraint1", builder.build());
     
 
     final ZKHelixDataAccessor accessor =

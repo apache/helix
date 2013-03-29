@@ -1328,15 +1328,16 @@ public class ZKHelixAdmin implements HelixAdmin
   }
 
   @Override
-  public void addMessageConstraint(String clusterName,
-                                   final String constraintId,
-                                   final ConstraintItem constraintItem)
+  public void setConstraint(String clusterName,
+                            final ConstraintType constraintType,
+                            final String constraintId,
+                            final ConstraintItem constraintItem)
   {
     ZkBaseDataAccessor<ZNRecord> baseAccessor =
         new ZkBaseDataAccessor<ZNRecord>(_zkClient);
 
     Builder keyBuilder = new Builder(clusterName);
-    String path = keyBuilder.constraint(ConstraintType.MESSAGE_CONSTRAINT.toString()).getPath();
+    String path = keyBuilder.constraint(constraintType.toString()).getPath();
 
     baseAccessor.update(path, new DataUpdater<ZNRecord>()
     {
@@ -1344,7 +1345,7 @@ public class ZKHelixAdmin implements HelixAdmin
       public ZNRecord update(ZNRecord currentData)
       {
         ClusterConstraints constraints = currentData == null? 
-            new ClusterConstraints(ConstraintType.MESSAGE_CONSTRAINT) : new ClusterConstraints(currentData);
+            new ClusterConstraints(constraintType) : new ClusterConstraints(currentData);
 
         constraints.addConstraintItem(constraintId, constraintItem);
         return constraints.getRecord();
@@ -1353,13 +1354,15 @@ public class ZKHelixAdmin implements HelixAdmin
   }
   
   @Override
-  public void removeMessageConstraint(String clusterName, final String constraintId)
+  public void removeConstraint(String clusterName, 
+                               final ConstraintType constraintType,
+                               final String constraintId)
   {
     ZkBaseDataAccessor<ZNRecord> baseAccessor =
         new ZkBaseDataAccessor<ZNRecord>(_zkClient);
 
     Builder keyBuilder = new Builder(clusterName);
-    String path = keyBuilder.constraint(ConstraintType.MESSAGE_CONSTRAINT.toString()).getPath();
+    String path = keyBuilder.constraint(constraintType.toString()).getPath();
 
     baseAccessor.update(path, new DataUpdater<ZNRecord>()
     {
@@ -1378,13 +1381,13 @@ public class ZKHelixAdmin implements HelixAdmin
   }
   
   @Override
-  public ClusterConstraints getMessageConstraints(String clusterName)
+  public ClusterConstraints getConstraints(String clusterName, ConstraintType constraintType)
   {
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
 
     Builder keyBuilder = new Builder(clusterName);
-    return accessor.getProperty(keyBuilder.constraint(ConstraintType.MESSAGE_CONSTRAINT.toString()));
+    return accessor.getProperty(keyBuilder.constraint(constraintType.toString()));
   }
   
   /**

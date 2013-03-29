@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.helix.model.*;
+import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.ConfigScope.ConfigScopeProperty;
 
 
@@ -404,30 +405,38 @@ public interface HelixAdmin
                         String stateModelDefFile) throws IOException;
 
   /**
-   * Add a message constraint item
+   * Add a constraint item; create if not exist
    * 
+   * @param clusterName
+   * @param constraintType
    * @param constraintId
    * @param constraintItem
    */
-  void addMessageConstraint(String clusterName,
-                            String constraintId,
-                            ConstraintItem constraintItem);
+  void setConstraint(String clusterName,
+                     ConstraintType constraintType,
+                     String constraintId,
+                     ConstraintItem constraintItem);
 
   /**
-   * Remove a message constraint item
+   * Remove a constraint item
    * 
    * @param clusterName
+   * @param constraintType
    * @param constraintId
    */
-  void removeMessageConstraint(String clusterName, String constraintId);
+  void removeConstraint(String clusterName, 
+                        ConstraintType constraintType, 
+                        String constraintId);
   
   /**
-   * Get all message constraints for a cluster
+   * Get all constraints for a type
    * 
    * @param clusterName
+   * @param constraintType
    * @return
    */
-  ClusterConstraints getMessageConstraints(String clusterName);
+  ClusterConstraints getConstraints(String clusterName,
+                                    ConstraintType constraintType);
   
   /**
    * 

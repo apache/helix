@@ -45,6 +45,7 @@ import org.apache.helix.messaging.AsyncCallback;
 import org.apache.helix.messaging.handling.HelixTaskResult;
 import org.apache.helix.messaging.handling.MessageHandler;
 import org.apache.helix.messaging.handling.MessageHandlerFactory;
+import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.ConstraintItem;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageState;
@@ -734,8 +735,10 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
     constraints.put("TRANSITION", "OFFLINE-COMPLETED");
     constraints.put("CONSTRAINT_VALUE", "1");
     constraints.put("INSTANCE", ".*");
-    manager.getClusterManagmentTool().addMessageConstraint(manager.getClusterName(), "constraint1", 
-        new ConstraintItem(constraints));
+    manager.getClusterManagmentTool().setConstraint(manager.getClusterName(), 
+                                                    ConstraintType.MESSAGE_CONSTRAINT, 
+                                                    "constraint1", 
+                                                    new ConstraintItem(constraints));
     
     MockAsyncCallback callback = new MockAsyncCallback();
     cr.setInstanceName("localhost_%");
@@ -909,8 +912,10 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
     constraints.put("TRANSITION", "OFFLINE-COMPLETED");
     constraints.put("CONSTRAINT_VALUE", "1");
     constraints.put("INSTANCE", ".*");
-    manager.getClusterManagmentTool().addMessageConstraint(manager.getClusterName(), "constraint1", 
-        new ConstraintItem(constraints));
+    manager.getClusterManagmentTool().setConstraint(manager.getClusterName(), 
+                                                    ConstraintType.MESSAGE_CONSTRAINT,
+                                                    "constraint1", 
+                                                    new ConstraintItem(constraints));
     
     // Send scheduler message
     crString = sw.toString();
@@ -982,8 +987,10 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
     }
     Assert.assertEquals(count, _PARTITIONS * 3);
     
-    manager.getClusterManagmentTool().addMessageConstraint(manager.getClusterName(), "constraint1", 
-        new ConstraintItem(new TreeMap<String, String>()));
+    manager.getClusterManagmentTool().setConstraint(manager.getClusterName(), 
+                                                    ConstraintType.MESSAGE_CONSTRAINT,
+                                                    "constraint1", 
+                                                    new ConstraintItem(new TreeMap<String, String>()));
     
   }
 }

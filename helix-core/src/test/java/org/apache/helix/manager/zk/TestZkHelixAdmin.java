@@ -246,12 +246,12 @@ public class TestZkHelixAdmin extends ZkUnitTestBase
       Assert.assertTrue(ZKUtil.isClusterSetup(clusterName, _gZkClient), "Cluster should be setup");
 
       // test admin.getMessageConstraints()
-      ClusterConstraints constraints = tool.getMessageConstraints(clusterName);
+      ClusterConstraints constraints = tool.getConstraints(clusterName, ConstraintType.MESSAGE_CONSTRAINT);
       Assert.assertNull(constraints, "message-constraint should NOT exist for cluster: " + className);
 
       // remove non-exist constraint
       try {
-        tool.removeMessageConstraint(clusterName, "constraint1");
+        tool.removeConstraint(clusterName, ConstraintType.MESSAGE_CONSTRAINT, "constraint1");
         // will leave a null message-constraint znode on zk
       } catch (Exception e) {
         Assert.fail("Should not throw exception when remove a non-exist constraint.");
@@ -261,7 +261,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase
       ConstraintItemBuilder builder = new ConstraintItemBuilder();
       builder.addConstraintAttribute(ConstraintAttribute.RESOURCE.toString(), "MyDB")
              .addConstraintAttribute(ConstraintAttribute.CONSTRAINT_VALUE.toString(), "1");
-      tool.addMessageConstraint(clusterName, "constraint1", builder.build());
+      tool.setConstraint(clusterName, ConstraintType.MESSAGE_CONSTRAINT, "constraint1", builder.build());
 
       HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
       PropertyKey.Builder keyBuilder = new PropertyKey.Builder(clusterName);
@@ -273,7 +273,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase
       Assert.assertEquals(item.getAttributeValue(ConstraintAttribute.RESOURCE), "MyDB");
       
       // test admin.getMessageConstraints()
-      constraints = tool.getMessageConstraints(clusterName);
+      constraints = tool.getConstraints(clusterName, ConstraintType.MESSAGE_CONSTRAINT);
       Assert.assertNotNull(constraints, "message-constraint should exist");
       item = constraints.getConstraintItem("constraint1");
       Assert.assertNotNull(item, "message-constraint for constraint1 should exist");
@@ -282,7 +282,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase
       
 
       // remove a exist message-constraint
-      tool.removeMessageConstraint(clusterName, "constraint1");
+      tool.removeConstraint(clusterName, ConstraintType.MESSAGE_CONSTRAINT, "constraint1");
       constraints = accessor.getProperty(keyBuilder.constraint(ConstraintType.MESSAGE_CONSTRAINT.toString()));
       Assert.assertNotNull(constraints, "message-constraint should exist");
       item = constraints.getConstraintItem("constraint1");

@@ -30,6 +30,7 @@ import org.apache.commons.cli.ParseException;
 import org.apache.helix.webapp.resources.ClusterResource;
 import org.apache.helix.webapp.resources.ClustersResource;
 import org.apache.helix.webapp.resources.ConfigResource;
+import org.apache.helix.webapp.resources.ConstraintResource;
 import org.apache.helix.webapp.resources.ControllerResource;
 import org.apache.helix.webapp.resources.ControllerStatusUpdateResource;
 import org.apache.helix.webapp.resources.CurrentStateResource;
@@ -107,6 +108,8 @@ public class RestAdminApplication extends Application
     router.attach("/clusters/{clusterName}/configs/{scope}", ConfigResource.class);
     router.attach("/clusters/{clusterName}/configs/{scope}/{scopeKey1}", ConfigResource.class);
     router.attach("/clusters/{clusterName}/configs/{scope}/{scopeKey1}/{scopeKey2}", ConfigResource.class);
+    router.attach("/clusters/{clusterName}/constraints/{constraintType}", ConstraintResource.class);
+    router.attach("/clusters/{clusterName}/constraints/{constraintType}/{constraintId}", ConstraintResource.class);
     router.attach("/zkPath", ZkPathResource.class).setMatchingMode(Template.MODE_STARTS_WITH);
     router.attach("/zkChild", ZkChildResource.class).setMatchingMode(Template.MODE_STARTS_WITH);
 

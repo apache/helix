@@ -19,11 +19,18 @@ package org.apache.helix.util;
  * under the License.
  */
 
+import java.util.Map;
+import java.util.TreeMap;
+
 import org.apache.helix.PropertyPathConfig;
 import org.apache.helix.PropertyType;
+import org.apache.helix.store.PropertyJsonSerializer;
+import org.apache.log4j.Logger;
 
 public final class HelixUtil
 {
+  static private Logger LOG = Logger.getLogger(HelixUtil.class);
+
   private HelixUtil()
   {
   }
@@ -198,4 +205,30 @@ public final class HelixUtil
   public static String getZkName(String path) {
       return path.substring(path.lastIndexOf('/') + 1);
   }
+  
+  /**
+   * parse a csv-formated key-value pairs
+   * 
+   * @param keyValuePairs : csv-formatted key-value pairs. e.g. k1=v1,k2=v2,...
+   * @return 
+   */
+  public static Map<String, String> parseCsvFormatedKeyValuePairs(String keyValuePairs) {
+    String[] pairs = keyValuePairs.split("[\\s,]");
+    Map<String, String> keyValueMap = new TreeMap<String, String>();
+    for (String pair : pairs)
+    {
+      int idx = pair.indexOf('=');
+      if (idx == -1)
+      {
+        LOG.error("Invalid key-value pair: " + pair + ". Igonore it.");
+        continue;
+      }
+
+      String key = pair.substring(0, idx);
+      String value = pair.substring(idx + 1);
+      keyValueMap.put(key, value);
+    }
+    return keyValueMap;
+  }
+
 }

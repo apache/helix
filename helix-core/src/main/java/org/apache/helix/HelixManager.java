@@ -31,6 +31,7 @@ import org.apache.helix.store.zk.ZkHelixPropertyStore;
 
 
 /**
+ * Class that represents the Helix Agent.
  * First class Object any process will interact with<br/>
  * General flow <blockquote>
  * 

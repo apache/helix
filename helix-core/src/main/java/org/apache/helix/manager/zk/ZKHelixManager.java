@@ -122,7 +122,7 @@ public class ZKHelixManager implements HelixManager
   public ZKHelixManager(String clusterName,
                         String instanceName,
                         InstanceType instanceType,
-                        String zkConnectString) throws Exception
+                        String zkConnectString)
   {
     logger.info("Create a zk-based cluster manager. clusterName:" + clusterName
         + ", instanceName:" + instanceName + ", type:" + instanceType + ", zkSvr:"

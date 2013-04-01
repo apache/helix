@@ -56,7 +56,7 @@ public class HelixBatchMessageTask implements MessageTask {
     			if (handler != null) {
     				HelixTaskResult subTaskResult = handler.handleMessage();
     				// if any fails, return false
-    				if (!subTaskResult.isSucess()) {
+    				if (!subTaskResult.isSuccess()) {
     					// System.err.println("\t[dbg]error handling message: " + handler._message);
     					isSucceed = false;
     				}

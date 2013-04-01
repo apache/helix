@@ -29,6 +29,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+import org.apache.helix.HelixConstants;
+import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixManager;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.HelixConstants.StateModelToken;
@@ -410,15 +412,16 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
       for (String instance : currentStateMap.keySet())
       {
         if ((instancePreferenceList == null || !instancePreferenceList.contains(instance))
-            && !"ERROR".equals(currentStateMap.get(instance)))
+            && !disabledInstancesForPartition.contains(instance))
         {
-          // move to DROPPED state only if not in ERROR state
-          instanceStateMap.put(instance, "DROPPED");
+          // if dropped and not disabled, transit to DROPPED
+          instanceStateMap.put(instance, HelixDefinedState.DROPPED.toString());
         }
-        else if (!"ERROR".equals(currentStateMap.get(instance))
+        else if ( (currentStateMap.get(instance) == null 
+            || !currentStateMap.get(instance).equals(HelixDefinedState.ERROR.toString()))
             && disabledInstancesForPartition.contains(instance))
         {
-          // if a non-error node is disabled, put it into initial state (OFFLINE)
+          // if disabled and not in ERROR state, transit to initial-state (e.g. OFFLINE)
           instanceStateMap.put(instance, stateModelDef.getInitialState());
         }
       }
@@ -467,9 +470,9 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
         {
           String instanceName = instancePreferenceList.get(i);
 
-          boolean notInErrorState =
-              currentStateMap == null
-                  || !"ERROR".equals(currentStateMap.get(instanceName));
+          boolean notInErrorState = currentStateMap == null 
+              || currentStateMap.get(instanceName) == null
+              || !currentStateMap.get(instanceName).equals(HelixDefinedState.ERROR.toString());
 
           if (liveInstancesMap.containsKey(instanceName) && !assigned[i]
               && notInErrorState && !disabledInstancesForPartition.contains(instanceName))
@@ -512,16 +515,17 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
     {
       for (String instance : currentStateMap.keySet())
       {
-        if ( (idealStateMap == null || !idealStateMap.containsKey(instance))
-            && !"ERROR".equals(currentStateMap.get(instance)))
+        if ((idealStateMap == null || !idealStateMap.containsKey(instance))
+            && !disabledInstancesForPartition.contains(instance))
         {
-          // move to DROPPED state only if not in ERROR state
-          instanceStateMap.put(instance, "DROPPED");
+          // if dropped and not disabled, transit to DROPPED
+          instanceStateMap.put(instance, HelixDefinedState.DROPPED.toString());
         }
-        else if (!"ERROR".equals(currentStateMap.get(instance))
+        else if ( (currentStateMap.get(instance) == null 
+            || !currentStateMap.get(instance).equals(HelixDefinedState.ERROR.toString()))
             && disabledInstancesForPartition.contains(instance))
         {
-          // if a non-error node is disabled, put it into initial state (OFFLINE)
+          // if disabled and not in ERROR state, transit to initial-state (e.g. OFFLINE)
           instanceStateMap.put(instance, stateModelDef.getInitialState());
         }
       }
@@ -536,8 +540,9 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
     Map<String, LiveInstance> liveInstancesMap = cache.getLiveInstances();
     for (String instance : idealStateMap.keySet())
     {
-      boolean notInErrorState =
-          currentStateMap == null || !"ERROR".equals(currentStateMap.get(instance));
+      boolean notInErrorState = currentStateMap == null 
+          || currentStateMap.get(instance) == null
+          || !currentStateMap.get(instance).equals(HelixDefinedState.ERROR.toString());
 
       if (liveInstancesMap.containsKey(instance) && notInErrorState
           && !disabledInstancesForPartition.contains(instance))

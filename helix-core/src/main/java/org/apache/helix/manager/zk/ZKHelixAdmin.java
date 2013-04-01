@@ -44,6 +44,7 @@ import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixException;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey;
@@ -258,22 +259,26 @@ public class ZKHelixAdmin implements HelixAdmin
       // OK.
     }
 
+    // check resource exist. warn if not.
     if (idealStateRecord == null)
     {
-      throw new HelixException("Cluster: " + clusterName + ", resource: " + resourceName
-          + ", ideal state does not exist");
-    }
+//      throw new HelixException("Cluster: " + clusterName + ", resource: " + resourceName
+//          + ", ideal state does not exist");
+      logger.warn("Disable partitions: " + partitionNames + " but Cluster: " + clusterName 
+          + ", resource: " + resourceName + " does not exists. probably disable it during ERROR->DROPPED transtition");
 
-    // check partitions exist. warn if not
-    IdealState idealState = new IdealState(idealStateRecord);
-    for (String partitionName : partitionNames)
-    {
-      if ((idealState.getIdealStateMode() == IdealStateModeProperty.AUTO && idealState.getPreferenceList(partitionName) == null)
-          || (idealState.getIdealStateMode() == IdealStateModeProperty.CUSTOMIZED && idealState.getInstanceStateMap(partitionName) == null))
+    } else {
+      // check partitions exist. warn if not
+      IdealState idealState = new IdealState(idealStateRecord);
+      for (String partitionName : partitionNames)
       {
-        logger.warn("Cluster: " + clusterName + ", resource: " + resourceName
-            + ", partition: " + partitionName
-            + ", partition does not exist in ideal state");
+        if ((idealState.getIdealStateMode() == IdealStateModeProperty.AUTO && idealState.getPreferenceList(partitionName) == null)
+            || (idealState.getIdealStateMode() == IdealStateModeProperty.CUSTOMIZED && idealState.getInstanceStateMap(partitionName) == null))
+        {
+          logger.warn("Cluster: " + clusterName + ", resource: " + resourceName
+              + ", partition: " + partitionName
+              + ", partition does not exist in ideal state");
+        }
       }
     }
 
@@ -397,7 +402,7 @@ public class ZKHelixAdmin implements HelixAdmin
                                                      resourceName));
     for (String partitionName : resetPartitionNames)
     {
-      if (!curState.getState(partitionName).equals("ERROR"))
+      if (!curState.getState(partitionName).equals(HelixDefinedState.ERROR.toString()))
       {
         throw new HelixException("Can't reset state for " + resourceName + "/"
             + partitionNames + " on " + instanceName + ", because not all "
@@ -459,7 +464,7 @@ public class ZKHelixAdmin implements HelixAdmin
       message.setResourceName(resourceName);
       message.setTgtSessionId(sessionId);
       message.setStateModelDef(stateModelDef);
-      message.setFromState("ERROR");
+      message.setFromState(HelixDefinedState.ERROR.toString());
       message.setToState(stateModel.getInitialState());
       message.setStateModelFactoryName(idealState.getStateModelFactoryName());
 
@@ -491,7 +496,7 @@ public class ZKHelixAdmin implements HelixAdmin
           Map<String, String> instanceStateMap = stateMap.get(partitionName);
 
           if (instanceStateMap.containsKey(instanceName)
-              && instanceStateMap.get(instanceName).equals("ERROR"))
+              && instanceStateMap.get(instanceName).equals(HelixDefinedState.ERROR.toString()))
           {
             resetPartitionNames.add(partitionName);
           }
@@ -530,7 +535,7 @@ public class ZKHelixAdmin implements HelixAdmin
         Map<String, String> instanceStateMap = stateMap.get(partitionName);
         for (String instanceName : instanceStateMap.keySet())
         {
-          if (instanceStateMap.get(instanceName).equals("ERROR"))
+          if (instanceStateMap.get(instanceName).equals(HelixDefinedState.ERROR.toString()))
           {
             if (!resetPartitionNames.containsKey(instanceName))
             {

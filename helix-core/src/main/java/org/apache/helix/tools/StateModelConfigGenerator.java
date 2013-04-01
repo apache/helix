@@ -32,6 +32,7 @@ import org.apache.helix.model.StateModelDefinition.StateModelDefinitionProperty;
 import org.apache.helix.model.builder.StateTransitionTableBuilder;
 
 
+// TODO refactor to use StateModelDefinition.Builder
 public class StateModelConfigGenerator
 {
 

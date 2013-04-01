@@ -32,7 +32,7 @@ import org.apache.helix.store.zk.ZkHelixPropertyStore;
 public class StoreAccessDiffNodeTransition extends MockTransition
 {
   @Override
-  public void doTransition(Message message, NotificationContext context) throws InterruptedException
+  public void doTransition(Message message, NotificationContext context)
   {
     HelixManager manager = context.getManager();
     ZkHelixPropertyStore<ZNRecord> store = manager.getHelixPropertyStore();

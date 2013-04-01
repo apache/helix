@@ -133,7 +133,7 @@ public class HelixTask implements MessageTask
     Exception exception = null;
     try
     {
-      if (taskResult.isSucess())
+      if (taskResult.isSuccess())
       {
         _statusUpdateUtil.logInfo(_message,
                                 _handler.getClass(),
@@ -204,7 +204,7 @@ public class HelixTask implements MessageTask
     {
       long end = System.currentTimeMillis();
       logger.info("msg: " + _message.getMsgId() + " handling task completed, results:"
-          + taskResult.isSucess() + ", at: " + end + ", took:" + (end - start));
+          + taskResult.isSuccess() + ", at: " + end + ", took:" + (end - start));
 
       // Notify the handler about any error happened in the handling procedure, so that
       // the handler have chance to finally cleanup
@@ -244,9 +244,9 @@ public class HelixTask implements MessageTask
       logger.info("Sending reply for message " + message.getCorrelationId());
       _statusUpdateUtil.logInfo(message, HelixTask.class, "Sending reply", accessor);
 
-      taskResult.getTaskResultMap().put("SUCCESS", "" + taskResult.isSucess());
+      taskResult.getTaskResultMap().put("SUCCESS", "" + taskResult.isSuccess());
       taskResult.getTaskResultMap().put("INTERRUPTED", "" + taskResult.isInterrupted());
-      if (!taskResult.isSucess())
+      if (!taskResult.isSuccess())
       {
         taskResult.getTaskResultMap().put("ERRORINFO", taskResult.getMessage());
       }
@@ -305,7 +305,7 @@ public class HelixTask implements MessageTask
         StateTransitionDataPoint data =
             new StateTransitionDataPoint(totalDelay,
                                          executionDelay,
-                                         taskResult.isSucess());
+                                         taskResult.isSuccess());
         _executor.getParticipantMonitor().reportTransitionStat(cxt, data);
       }
     }

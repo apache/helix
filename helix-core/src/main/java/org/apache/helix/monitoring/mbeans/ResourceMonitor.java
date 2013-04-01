@@ -21,6 +21,7 @@ package org.apache.helix.monitoring.mbeans;
 
 import java.util.Map;
 
+import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyType;
 import org.apache.helix.model.ExternalView;
@@ -120,7 +121,7 @@ public class ResourceMonitor implements ResourceMonitorMBean
 
       for (String host : externalViewRecord.keySet())
       {
-        if (externalViewRecord.get(host).equalsIgnoreCase("ERROR"))
+        if (externalViewRecord.get(host).equalsIgnoreCase(HelixDefinedState.ERROR.toString()))
         {
           numOfErrorPartitions++;
         }

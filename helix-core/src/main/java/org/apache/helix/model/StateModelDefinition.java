@@ -25,7 +25,10 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
+import org.apache.helix.HelixConstants;
+import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.model.builder.StateTransitionTableBuilder;
@@ -40,9 +43,14 @@ public class StateModelDefinition extends HelixProperty
   {
     INITIAL_STATE, STATE_TRANSITION_PRIORITYLIST, STATE_PRIORITY_LIST
   }
-
+  
   private static final Logger _logger = Logger
       .getLogger(StateModelDefinition.class.getName());
+  /**
+   * state model's initial state
+   */
+  private final String _initialState;
+  
   /**
    * State Names in priority order. Indicates the order in which states are
    * fulfilled
@@ -72,6 +80,12 @@ public class StateModelDefinition extends HelixProperty
   {
     super(record);
 
+    _initialState = record.getSimpleField(StateModelDefinitionProperty.INITIAL_STATE.toString());
+    
+    if (_initialState == null) {
+      throw new IllegalArgumentException("initial-state for " + record.getId() + " is null");
+    }
+    
     _statesPriorityList = record
         .getListField(StateModelDefinitionProperty.STATE_PRIORITY_LIST
             .toString());
@@ -95,6 +109,37 @@ public class StateModelDefinition extends HelixProperty
         Map<String, String> nextData = record.getMapField(state + ".next");
         _stateTransitionTable.put(state, nextData);
       }
+    }
+    
+    // add transitions for helix-defined states
+    for (HelixDefinedState state : HelixDefinedState.values()) {
+      if (!_statesPriorityList.contains(state.toString())) {
+        _statesCountMap.put(state.toString(), "-1");
+      }
+    }
+    
+    addDefaultTransition(HelixDefinedState.ERROR.toString(), 
+        HelixDefinedState.DROPPED.toString(), HelixDefinedState.DROPPED.toString()); 
+    addDefaultTransition(HelixDefinedState.ERROR.toString(), 
+        _initialState, _initialState);
+    addDefaultTransition(_initialState, 
+        HelixDefinedState.DROPPED.toString(), HelixDefinedState.DROPPED.toString());  
+  }
+  
+  /**
+   * add transitions involving helix-defines states
+   * these transitions need not to be specified in state-model-definition
+   * @param from
+   * @param to
+   * @param next
+   */
+  void addDefaultTransition(String from, String to, String next) {
+    if (!_stateTransitionTable.containsKey(from)) {
+      _stateTransitionTable.put(from, new TreeMap<String, String>());
+    }
+    
+    if (!_stateTransitionTable.get(from).containsKey(to)) {
+      _stateTransitionTable.get(from).put(to, next);
     }
   }
 
@@ -120,8 +165,9 @@ public class StateModelDefinition extends HelixProperty
 
   public String getInitialState()
   {
-    return _record.getSimpleField(StateModelDefinitionProperty.INITIAL_STATE
-        .toString());
+//    return _record.getSimpleField(StateModelDefinitionProperty.INITIAL_STATE
+//        .toString());
+    return _initialState;
   }
 
   public String getNumInstancesPerState(String state)
@@ -149,6 +195,7 @@ public class StateModelDefinition extends HelixProperty
     return true;
   }
 
+  // TODO move this to model.builder package, refactor StateModelConfigGenerator to use this
   /**
    * 
    *

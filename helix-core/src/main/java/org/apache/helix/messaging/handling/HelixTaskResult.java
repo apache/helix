@@ -31,7 +31,7 @@ public class HelixTaskResult
   private boolean _interrupted = false;
   Exception _exception = null;
   
-  public boolean isSucess()
+  public boolean isSuccess()
   {
     return _success;
   }

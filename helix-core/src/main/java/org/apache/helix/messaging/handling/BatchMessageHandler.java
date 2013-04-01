@@ -173,7 +173,7 @@ public class BatchMessageHandler extends MessageHandler {
 					MessageTask subTask = batchTasks.get(i);
 					try {
               HelixTaskResult subTaskResult = future.get();
-              if (!subTaskResult.isSucess()) {
+              if (!subTaskResult.isSuccess()) {
               	isBatchTaskSucceed = false;
               }
             } catch (InterruptedException e) {

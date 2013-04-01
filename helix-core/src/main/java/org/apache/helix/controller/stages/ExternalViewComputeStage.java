@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixManager;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
@@ -183,7 +184,7 @@ public class ExternalViewComputeStage extends AbstractBaseStage
     {
       for(String taskState : ev.getStateMap(taskPartitionName).values())
       {
-        if(taskState.equalsIgnoreCase("ERROR") || taskState.equalsIgnoreCase("COMPLETED"))
+        if(taskState.equalsIgnoreCase(HelixDefinedState.ERROR.toString()) || taskState.equalsIgnoreCase("COMPLETED"))
         {
           log.info(taskPartitionName + " finished as " + taskState);
           finishedTasks.getListFields().put(taskPartitionName, emptyList);

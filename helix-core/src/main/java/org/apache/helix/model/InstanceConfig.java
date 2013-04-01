@@ -149,27 +149,14 @@ public class InstanceConfig extends HelixProperty
     }
   }
 
-  public Map<String, String> getDisabledPartitionMap()
+  public List<String> getDisabledPartitions()
   {
-    return _record.getMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString());
+    return _record.getListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString());
+
   }
 
   public void setInstanceEnabledForPartition(String partitionName, boolean enabled)
   {
-//    if (_record.getListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString()) == null)
-//    {
-//      _record.setMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString(),
-//                             new TreeMap<String, String>());
-//    }
-//    if (enabled == true)
-//    {
-//      _record.getMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString()).remove(partition);
-//    }
-//    else
-//    {
-//      _record.getMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString()).put(partition, Boolean.toString(false));
-//    }
-    
     List<String> list =
         _record.getListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString());
     Set<String> disabledPartitions = new HashSet<String>();

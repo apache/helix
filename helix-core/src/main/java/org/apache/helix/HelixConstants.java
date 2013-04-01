@@ -21,7 +21,7 @@ package org.apache.helix;
 
 public interface HelixConstants
 {
-  // ChangeType and PropertyType are the same; remove this
+  // TODO: ChangeType and PropertyType are duplicated, consider unifying
   enum ChangeType
   {
     // @formatter:off
@@ -47,6 +47,6 @@ public interface HelixConstants
   {
     HELIX_DISABLE_PIPELINE_TRIGGERS
   }
-
+  
   static final String DEFAULT_STATE_MODEL_FACTORY = "DEFAULT";
 }

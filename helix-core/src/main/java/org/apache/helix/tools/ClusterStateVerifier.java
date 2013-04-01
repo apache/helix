@@ -40,6 +40,7 @@ import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixDefinedState;
 import org.apache.helix.PropertyPathConfig;
 import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
@@ -295,6 +296,7 @@ public class ClusterStateVerifier
       // calculate best possible state
       BestPossibleStateOutput bestPossOutput =
           ClusterStateVerifier.calcBestPossState(cache);
+      Map<String, Map<Partition, Map<String, String>>> bestPossStateMap = bestPossOutput.getStateMap();
 
       // set error states
       if (errStates != null)
@@ -305,13 +307,20 @@ public class ClusterStateVerifier
           for (String partitionName : partErrStates.keySet())
           {
             String instanceName = partErrStates.get(partitionName);
-            Map<String, String> partStateMap =
-                bestPossOutput.getInstanceStateMap(resourceName,
-                                                   new Partition(partitionName));
-            partStateMap.put(instanceName, "ERROR");
+            
+            if (!bestPossStateMap.containsKey(resourceName)) {
+              bestPossStateMap.put(resourceName, new HashMap<Partition, Map<String, String>>());
+            }
+            Partition partition = new Partition(partitionName);
+            if (!bestPossStateMap.get(resourceName).containsKey(partition)) {
+              bestPossStateMap.get(resourceName).put(partition, new HashMap<String, String>());
+            }
+            bestPossStateMap.get(resourceName).get(partition).put(instanceName, HelixDefinedState.ERROR.toString());
           }
         }
       }
+      
+      // System.out.println("stateMap: " + bestPossStateMap);
 
       
       for (String resourceName : idealStates.keySet())
@@ -343,7 +352,7 @@ public class ClusterStateVerifier
             {
               Map.Entry<String, String> insEntry = insIter.next();
               String state = insEntry.getValue();
-              if (state.equalsIgnoreCase("DROPPED"))
+              if (state.equalsIgnoreCase(HelixDefinedState.DROPPED.toString()))
               {
                 insIter.remove();
               }   
@@ -361,6 +370,10 @@ public class ClusterStateVerifier
           LOG.info("exterView size (" + extViewSize
               + ") is different from bestPossState size (" + bestPossStateSize
               + ") for resource: " + resourceName);
+          
+//          System.err.println("exterView size (" + extViewSize
+//              + ") is different from bestPossState size (" + bestPossStateSize
+//              + ") for resource: " + resourceName);
           // System.out.println("extView: " + extView.getRecord().getMapFields());
           // System.out.println("bestPossState: " +
           // bestPossOutput.getResourceMap(resourceName));
@@ -382,6 +395,9 @@ public class ClusterStateVerifier
           {
             LOG.info("externalView is different from bestPossibleState for partition:"
                 + partition);
+            
+//            System.err.println("externalView is different from bestPossibleState for partition: "
+//                + partition + ", actual: " + evInstanceStateMap + ", bestPoss: " + bpInstanceStateMap);
             return false;
           }
         }

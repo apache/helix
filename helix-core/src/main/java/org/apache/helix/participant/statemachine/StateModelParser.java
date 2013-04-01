@@ -133,7 +133,7 @@ public class StateModelParser
 	}
 
 	/**
-	 * Get the intial state for the state model
+	 * Get the initial state for the state model
 	 * 
 	 * @param clazz
 	 * @return

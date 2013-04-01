@@ -68,6 +68,10 @@ public class BestPossibleStateOutput
     }
     return Collections.emptyMap();
   }
+  
+  public Map<String, Map<Partition, Map<String, String>>> getStateMap() {
+    return _dataMap;
+  }
 
   @Override
   public String toString()

@@ -206,6 +206,9 @@ under the License.
     <!-- for release changelog and download pages -->
     <currentRelease>0.6.0-incubating</currentRelease>
 
+    <!--Skips test in default 'mvn clean install' build command-->
+    <maven.test.skip.exec>true</maven.test.skip.exec>
+
   </properties>
 
   <distributionManagement>
@@ -247,6 +250,7 @@ under the License.
   </dependencyManagement>
 
   <build>
+    <defaultGoal>clean install</defaultGoal>
     <pluginManagement>
       <plugins>
         <plugin>

@@ -65,9 +65,12 @@ import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollectorImpl;
 import org.apache.helix.messaging.DefaultMessagingService;
 import org.apache.helix.messaging.handling.MessageHandlerFactory;
+import org.apache.helix.model.ConfigScope;
 import org.apache.helix.model.CurrentState;
+import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message.MessageType;
+import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.monitoring.ZKPathDataDumpTask;
 import org.apache.helix.participant.DistClusterControllerElection;
@@ -117,6 +120,7 @@ public class ZKHelixManager implements HelixManager
   public static final int                     FLAPPING_TIME_WINDIOW   = 300000; // Default to 300 sec
   public static final int                     MAX_DISCONNECT_THRESHOLD = 5;
   LiveInstanceInfoProvider                    _liveInstanceInfoProvider = null;
+  public static final String                  ALLOW_PARTICIPANT_AUTO_JOIN = "allowParticipantAutoJoin";
 
   public ZKHelixManager(String clusterName,
                         String instanceName,
@@ -682,11 +686,43 @@ public class ZKHelixManager implements HelixManager
       throw new HelixException("Initial cluster structure is not set up for cluster:"
           + _clusterName);
     }
-
+    // Read cluster config and see if instance can auto join the cluster
+    boolean autoJoin = false;
+    try
+    {
+      ConfigScope scope =
+          new ConfigScopeBuilder().forCluster(getClusterName())
+                                  .build();
+      autoJoin = Boolean.parseBoolean(getConfigAccessor().get(scope, ALLOW_PARTICIPANT_AUTO_JOIN));
+      logger.info("Auto joining " + _clusterName +" is true");
+    }
+    catch(Exception e)
+    {
+    }
     if (!ZKUtil.isInstanceSetup(_zkClient, _clusterName, _instanceName, _instanceType))
     {
-      throw new HelixException("Initial cluster structure is not set up for instance:"
+      if(!autoJoin)
+      {
+        throw new HelixException("Initial cluster structure is not set up for instance:"
           + _instanceName + " instanceType:" + _instanceType);
+      }
+      else
+      {
+        logger.info("Auto joining instance " + _instanceName);
+        InstanceConfig instanceConfig = new InstanceConfig(_instanceName);
+        String hostName = _instanceName;
+        String port = "";
+        int lastPos = _instanceName.lastIndexOf("_");
+        if (lastPos > 0)
+        {
+          hostName = _instanceName.substring(0, lastPos);
+          port = _instanceName.substring(lastPos + 1);
+        }
+        instanceConfig.setHostName(hostName);
+        instanceConfig.setPort(port);
+        instanceConfig.setInstanceEnabled(true);
+        getClusterManagmentTool().addInstance(_clusterName, instanceConfig);
+      }
     }
 
     if (_instanceType == InstanceType.PARTICIPANT

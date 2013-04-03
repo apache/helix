@@ -80,7 +80,7 @@ public class TestMessageThrottle extends ZkIntegrationTestBase
     HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
     ConstraintItemBuilder builder = new ConstraintItemBuilder();
     builder.addConstraintAttribute("MESSAGE_TYPE", "STATE_TRANSITION")
-           .addConstraintAttribute("InSTANCE", ".*")
+           .addConstraintAttribute("INSTANCE", ".*")
            .addConstraintAttribute("CONSTRAINT_VALUE", "1");
     
 //    Map<String, String> constraints = new TreeMap<String, String>();

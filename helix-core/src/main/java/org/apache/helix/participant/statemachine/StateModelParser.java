@@ -115,8 +115,8 @@ public class StateModelParser
 					Transition annotation = method.getAnnotation(Transition.class);
 					if (annotation != null)
 					{
-						boolean matchesFrom = annotation.from().equalsIgnoreCase(fromState);
-						boolean matchesTo = annotation.to().equalsIgnoreCase(toState);
+						boolean matchesFrom = "*".equals(annotation.from()) || annotation.from().equalsIgnoreCase(fromState);
+						boolean matchesTo = "*".equals(annotation.to()) || annotation.to().equalsIgnoreCase(toState);
 						boolean matchesParamTypes = Arrays.equals(paramTypes,
 						    method.getParameterTypes());
 						if (matchesFrom && matchesTo && matchesParamTypes)

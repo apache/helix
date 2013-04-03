@@ -329,13 +329,14 @@ public class ExternalCommand
   }
 
   /**
-* Executes the external command in the given working directory and waits for it to be
-* finished.
-*
-* @param workingDirectory the root directory from where to run the command
-* @param command the command to execute (should be relative to the working directory
-* @param args the arguments to the command
-* @return the process */
+    * Executes the external command in the given working directory and waits for it to be
+    * finished.
+    *
+    * @param workingDirectory the root directory from where to run the command
+    * @param command the command to execute (should be relative to the working directory
+    * @param args the arguments to the command
+    * @return the process 
+    */
   public static ExternalCommand execute(File workingDirectory,
                                         String command,
                                         String... args)
@@ -353,20 +354,20 @@ public class ExternalCommand
   }
 
 /**
-* Executes the external command in the given working directory and waits (until timeout
-* is elapsed) for it to be finished.
-*
-* @param workingDirectory
-* the root directory from where to run the command
-* @param command
-* the command to execute (should be relative to the working directory
-* @param timeout
-* the maximum amount of time to wait for this external command (in ms). If
-* this value is less than or equal to 0, timeout is ignored
-* @param args
-* the arguments to the command
-* @return the process
-*/
+  * Executes the external command in the given working directory and waits (until timeout
+  * is elapsed) for it to be finished.
+  *
+  * @param workingDirectory
+  * the root directory from where to run the command
+  * @param command
+  * the command to execute (should be relative to the working directory
+  * @param timeout
+  * the maximum amount of time to wait for this external command (in ms). If
+  * this value is less than or equal to 0, timeout is ignored
+  * @param args
+  * the arguments to the command
+  * @return the process
+  */
   public static ExternalCommand executeWithTimeout(File workingDirectory,
                                                    String command,
                                                    long timeout,

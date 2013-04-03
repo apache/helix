@@ -33,13 +33,14 @@ public class SleepTransition extends MockTransition
   }
 
   @Override
-  public void doTransition(Message message, NotificationContext context)
+  public void doTransition(Message message, NotificationContext context) throws InterruptedException
   {
     try {
       Thread.sleep(_delay);
     } catch (InterruptedException e) {
       // TODO Auto-generated catch block
       e.printStackTrace();
+      throw e;
     }
 
   }

@@ -29,7 +29,7 @@ public class MockTransition
   private static Logger LOG = Logger.getLogger(MockTransition.class);
 
   // called by state model transition functions
-  public void doTransition(Message message, NotificationContext context)
+  public void doTransition(Message message, NotificationContext context) throws InterruptedException
   {
     LOG.info("default doTransition() invoked");
   }

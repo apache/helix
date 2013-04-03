@@ -116,7 +116,7 @@ public class TestStateTransitionTimeout extends ZkStandAloneCMTestBase
     }
 
     @Transition(to="MASTER",from="SLAVE")
-    public void onBecomeMasterFromSlave(Message message, NotificationContext context)
+    public void onBecomeMasterFromSlave(Message message, NotificationContext context) throws InterruptedException
     {
       LOG.info("Become MASTER from SLAVE");
       if (_transition != null && _sleep)

@@ -130,9 +130,18 @@ public class TestZkHelixAdmin extends ZkUnitTestBase
     {
       // OK
     }
+    catch(IllegalArgumentException ex)
+    {
+      // OK
+    }
+    
+    tool.addStateModelDef(clusterName,
+        "MasterSlave",
+        new StateModelDefinition(StateModelConfigGenerator.generateConfigForMasterSlave()));
+    stateModelRecord = StateModelConfigGenerator.generateConfigForMasterSlave();
     try
     {
-      tool.addStateModelDef(clusterName, "id1", new StateModelDefinition(
+      tool.addStateModelDef(clusterName, stateModelRecord.getId(), new StateModelDefinition(
           stateModelRecord));
       Assert.fail("should fail if add an already-existing state model");
     } catch (HelixException e)
@@ -140,7 +149,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase
       // OK
     }
     list = tool.getStateModelDefs(clusterName);
-    AssertJUnit.assertEquals(list.size(), 0);
+    AssertJUnit.assertEquals(list.size(), 1);
 
     try
     {

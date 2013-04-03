@@ -40,6 +40,7 @@ public interface Rebalancer
    * This allows one to compute the newIdealState according to app specific requirement.
    * 
    * @param resourceName Name of the resource to be rebalanced
+   * @param currentIdealState
    * @param currentStateOutput
    *          Provides the current state and pending state transition for all
    *          partitions
@@ -47,8 +48,8 @@ public interface Rebalancer
    * @return
    */
   IdealState computeNewIdealState(String resourceName,
-                                  String currentIdealState,
-                                  CurrentStateOutput currentStateOutput, 
-                                  ClusterDataCache clusterData);
+                                  IdealState currentIdealState,
+                                  final CurrentStateOutput currentStateOutput, 
+                                  final ClusterDataCache clusterData);
 
 }

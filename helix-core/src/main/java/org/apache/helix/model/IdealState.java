@@ -39,7 +39,7 @@ public class IdealState extends HelixProperty
 {
   public enum IdealStateProperty
   {
-    NUM_PARTITIONS, STATE_MODEL_DEF_REF, STATE_MODEL_FACTORY_NAME, REPLICAS, IDEAL_STATE_MODE, REBALANCE_TIMER_PERIOD, MAX_PARTITONS_PER_INSTANCE, INSTANCE_GROUP_TAG
+    NUM_PARTITIONS, STATE_MODEL_DEF_REF, STATE_MODEL_FACTORY_NAME, REPLICAS, IDEAL_STATE_MODE, REBALANCE_TIMER_PERIOD, MAX_PARTITONS_PER_INSTANCE, INSTANCE_GROUP_TAG, REBALANCER_CLASS_NAME
   }
 
   public static final String QUERY_LIST = "PREFERENCE_LIST_QUERYS";
@@ -88,6 +88,17 @@ public class IdealState extends HelixProperty
     {
     }
     return Integer.MAX_VALUE;
+  }
+  
+  public void setRebalancerClassName(String rebalancerClassName)
+  {
+    _record
+    .setSimpleField(IdealStateProperty.REBALANCER_CLASS_NAME.toString(), rebalancerClassName);
+  }
+  
+  public String getRebalancerClassName()
+  {
+    return _record.getSimpleField(IdealStateProperty.REBALANCER_CLASS_NAME.toString());
   }
   
   public void setMaxPartitionsPerInstance(int max)

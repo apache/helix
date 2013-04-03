@@ -46,17 +46,12 @@ public class MockMSStateModel extends StateModel
 
   // overwrite default error->dropped transition
   @Transition(to = "DROPPED", from = "ERROR")
-  public void onBecomeDroppedFromError(Message message, NotificationContext context)
+  public void onBecomeDroppedFromError(Message message, NotificationContext context) throws InterruptedException
   {
     LOG.info("Become DROPPED from ERROR");
     if (_transition != null)
     {
-      try
-      {
         _transition.doTransition(message, context);
-      }
-      catch(Exception e)
-      {}
     }
   }
 

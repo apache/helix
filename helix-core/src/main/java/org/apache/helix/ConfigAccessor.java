@@ -22,7 +22,9 @@ package org.apache.helix;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.TreeMap;
 
 import org.apache.helix.model.ConfigScope;
@@ -80,13 +82,27 @@ public class ConfigAccessor
    */
   public String get(ConfigScope scope, String key)
   {
+    Map<String, String> map = get(scope, Arrays.asList(key));
+    return map.get(key);
+  }
+  
+  /**
+   * get config values
+   * 
+   * @param scope
+   * @param keys
+   * @return
+   */
+  public Map<String, String> get(ConfigScope scope, List<String> keys)
+  {
     if (scope == null || scope.getScope() == null)
     {
       LOG.error("Scope can't be null");
       return null;
     }
 
-    String value = null;
+    // String value = null;
+    Map<String, String> map = new HashMap<String, String>();
     String clusterName = scope.getClusterName();
     if (!ZKUtil.isClusterSetup(clusterName, zkClient))
     {
@@ -102,28 +118,48 @@ public class ConfigAccessor
     {
       if (splits.length == 1)
       {
-        value = record.getSimpleField(key);
+        for (String key : keys) {
+          if (record.getSimpleFields().containsKey(key)) {
+            map.put(key, record.getSimpleField(key));
+          }
+        }
       }
       else if (splits.length == 2)
       {
         if (record.getMapField(splits[1]) != null)
         {
-          value = record.getMapField(splits[1]).get(key);
+          for (String key : keys) {
+            if (record.getMapField(splits[1]).containsKey(key)) {
+              map.put(key, record.getMapField(splits[1]).get(key));
+            }
+          }
         }
       }
     }
-    return value;
+    return map;
 
   }
 
   /**
-   * Set a config value
+   * Set a config value, create if doesn't exist
    * 
    * @param scope
    * @param key
    * @param value
    */
-  public void set(ConfigScope scope, String key, String value)
+  public void set(ConfigScope scope, String key, String value) {
+    Map<String, String> map = new HashMap<String, String>();
+    map.put(key, value);
+    set(scope, map);
+  }
+  
+  /**
+   * Set config values, create if doesn't exist
+   *
+   * @param scope
+   * @param keyValueMap
+   */
+  public void set(ConfigScope scope, Map<String, String> keyValueMap)
   {
     if (scope == null || scope.getScope() == null)
     {
@@ -153,7 +189,10 @@ public class ConfigAccessor
     ZNRecord update = new ZNRecord(id);
     if (splits.length == 1)
     {
-      update.setSimpleField(key, value);
+      for (String key: keyValueMap.keySet()) {
+        String value = keyValueMap.get(key);
+        update.setSimpleField(key, value);
+      }
     }
     else if (splits.length == 2)
     {
@@ -161,7 +200,10 @@ public class ConfigAccessor
       {
         update.setMapField(splits[1], new TreeMap<String, String>());
       }
-      update.getMapField(splits[1]).put(key, value);
+      for (String key: keyValueMap.keySet()) {
+        String value = keyValueMap.get(key);
+        update.getMapField(splits[1]).put(key, value);
+      }
     }
     ZKUtil.createOrUpdate(zkClient, splits[0], update, true, true);
     return;
@@ -173,7 +215,17 @@ public class ConfigAccessor
    * @param scope
    * @param key
    */
-  public void remove(ConfigScope scope, String key)
+  public void remove(ConfigScope scope, String key) {
+    remove(scope, Arrays.asList(key));
+  }
+  
+  /**
+   * remove config values
+   * 
+   * @param scope
+   * @param keys
+   */
+  public void remove(ConfigScope scope, List<String> keys)
   {
     if (scope == null || scope.getScope() == null)
     {
@@ -195,7 +247,9 @@ public class ConfigAccessor
     if (splits.length == 1)
     {
       // subtract doesn't care about value, use empty string
-      update.setSimpleField(key, "");
+      for (String key : keys) {
+        update.setSimpleField(key, "");
+      }
     }
     else if (splits.length == 2)
     {
@@ -204,7 +258,9 @@ public class ConfigAccessor
         update.setMapField(splits[1], new TreeMap<String, String>());
       }
       // subtract doesn't care about value, use empty string
-      update.getMapField(splits[1]).put(key, "");
+      for (String key : keys) {
+        update.getMapField(splits[1]).put(key, "");
+      }
     }
 
     ZKUtil.subtract(zkClient, splits[0], update);

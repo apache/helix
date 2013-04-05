@@ -66,6 +66,15 @@ public class TestInstanceAutoJoin extends ZkStandAloneCMTestBase
     
     Thread.sleep(500);
     Assert.assertTrue(result._thread.isAlive() || result2._thread.isAlive());
+    for(int i = 0; i< 20; i++)
+    {
+      if(null == manager.getHelixDataAccessor().getProperty(accessor.keyBuilder().liveInstance(instance2)))
+      {
+        Thread.sleep(100);
+      }
+      else
+        break;
+    }
     Assert.assertTrue(null != manager.getHelixDataAccessor().getProperty(accessor.keyBuilder().liveInstance(instance2)));
     
     result._manager.disconnect();

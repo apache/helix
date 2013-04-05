@@ -207,7 +207,15 @@ under the License.
     <currentRelease>0.6.0-incubating</currentRelease>
 
     <!--Skips test in default 'mvn clean install' build command-->
-    <maven.test.skip.exec>true</maven.test.skip.exec>
+    <!-- <maven.test.skip.exec>true</maven.test.skip.exec> -->
+    
+    <!--  Configuration for unit/integration tests section 1 of 3 (properties) STARTS HERE.
+    Property for running integration tests with profiles
+    at the command line, where you do:
+    mvn integration-test -P integration-test
+    See also: the surefire plugin section and the profiles section.-->
+    <SKIP_INTEGRATION_TESTS>true</SKIP_INTEGRATION_TESTS>
+    <!-- Configuration for unit/integration tests section 1 of 3 (properties) ENDS HERE.-->
 
   </properties>
 
@@ -229,6 +237,12 @@ under the License.
         <groupId>org.apache.helix</groupId>
         <artifactId>helix-core</artifactId>
         <version>${project.version}</version>
+      </dependency>
+      <dependency>
+         <groupId>org.apache.helix</groupId>
+         <artifactId>helix-core</artifactId>
+         <type>test-jar</type>
+         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>log4j</groupId>
@@ -354,17 +368,6 @@ under the License.
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-surefire-plugin</artifactId>
-          <version>2.14</version>
-          <configuration>
-            <argLine>-Xms1024m -Xmx1024m</argLine>
-            <suiteXmlFiles>
-              <suiteXmlFile>src/test/conf/testng.xml</suiteXmlFile>
-            </suiteXmlFiles>
-          </configuration>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-checkstyle-plugin</artifactId>
           <version>2.8</version>
         </plugin>
@@ -396,6 +399,16 @@ under the License.
             </dependency>
           </dependencies>
         </plugin>
+        <plugin>
+           <groupId>org.apache.maven.plugins</groupId>
+           <artifactId>maven-surefire-plugin</artifactId>
+           <version>2.14</version>
+        </plugin>
+        <plugin>
+           <groupId>org.apache.rat</groupId>
+           <artifactId>apache-rat-plugin</artifactId>
+           <version>0.8</version>
+        </plugin>
       </plugins>
     </pluginManagement>
     <plugins>
@@ -420,6 +433,44 @@ under the License.
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-source-plugin</artifactId>
+      </plugin>
+      <plugin>
+         <groupId>org.apache.maven.plugins</groupId>
+         <artifactId>maven-surefire-plugin</artifactId>
+         <!--
+               Configuration for unit/integration tests section 2 of 3 (plugins) STARTS HERE.
+               This is the core piece for being able to manage unit tests and
+               integration (='system') tests within Maven by using surefire.
+               See also: properties section and profiles section.
+         -->
+         <configuration>
+            <argLine>-Xms1024m -Xmx1024m</argLine>
+            <suiteXmlFiles>
+               <suiteXmlFile>src/test/conf/testng.xml</suiteXmlFile>
+            </suiteXmlFiles>
+            <excludes>
+               <exclude>**/integration/**</exclude>
+            </excludes>
+         </configuration>
+         <executions>
+            <execution>
+               <id>integration-tests</id>
+               <phase>integration-test</phase>
+               <goals>
+                  <goal>test</goal>
+               </goals>
+               <configuration>
+                  <skip>${SKIP_INTEGRATION_TESTS}</skip>
+                  <excludes>
+                     <exclude>none</exclude>
+                  </excludes>
+                  <includes>
+                     <include>**/integration/**</include>
+                  </includes>
+               </configuration>
+            </execution>
+         </executions>
+         <!--  Configuration for unit/integration tests section 2 of 3 (plugins) ENDS HERE. -->
       </plugin>
     </plugins>
   </build>
@@ -534,7 +585,6 @@ under the License.
           <plugin>
             <groupId>org.apache.rat</groupId>
             <artifactId>apache-rat-plugin</artifactId>
-            <version>0.8</version>
             <executions>
               <execution>
                 <id>rat-verify</id>
@@ -566,5 +616,26 @@ under the License.
         </plugins>
       </build>
     </profile>
+      <!--
+      Configuration for unit/integration tests section 3 of 3 (profiles) STARTS HERE.
+      Use the following profile to run Integration tests. From the command line:
+      mvn clean install -P integration-test
+      or:
+      mvn integration-test -P integration-test
+      * Note that if you do: 'mvn test -P integration-test'
+      integration tests will not run, because the test phase is before the
+      integration phase in the default maven lifecycle.
+      * Also note that unit tests will also be run when integration tests are
+      run, because the integration-test phase is always after the test phase
+      in the default Maven lifecycle.
+      See also: surefire plugin section and properties section.
+      -->
+      <profile>
+         <id>integration-test</id>
+         <properties>
+            <SKIP_INTEGRATION_TESTS>false</SKIP_INTEGRATION_TESTS>
+         </properties>
+      </profile>
+      <!-- Configuration for unit/integration tests section 3 of 3 (profiles) ENDS HERE.-->
   </profiles>
 </project>

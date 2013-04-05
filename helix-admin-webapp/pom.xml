@@ -67,7 +67,6 @@ under the License.
     <dependency>
       <groupId>org.apache.helix</groupId>
       <artifactId>helix-core</artifactId>
-      <version>${project.version}</version>
       <type>test-jar</type>
       <scope>test</scope>
     </dependency>

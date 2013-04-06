@@ -25,6 +25,7 @@ import org.apache.helix.Mocks.MockStateModel;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.messaging.handling.AsyncCallbackService;
 import org.apache.helix.messaging.handling.HelixStateTransitionHandler;
+import org.apache.helix.messaging.handling.HelixTask;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
@@ -76,14 +77,15 @@ public class TestHelixTaskExecutor
         new HelixStateTransitionHandler(stateModel,
                                         message,
                                         context,
-                                        currentStateDelta,
-                                        executor);
+                                        currentStateDelta);
 
-    executor.scheduleTask(message, handler, context);
-    while (!executor.isDone(msgId + "/" + message.getPartitionName()))
-    {
-      Thread.sleep(500);
-    }
+	HelixTask task = new HelixTask(message, context, handler, executor);
+	executor.scheduleTask(task);
+	for (int i = 0; i < 10; i++) {
+		if (!executor.isDone(task.getTaskId())) {
+			Thread.sleep(500);
+		}
+	}
     AssertJUnit.assertTrue(stateModel.stateModelInvoked);
     System.out.println("END TestCMTaskExecutor");
   }

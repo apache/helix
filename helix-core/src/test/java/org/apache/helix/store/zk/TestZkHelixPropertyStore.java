@@ -96,6 +96,7 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase
                                            subRoot,
                                            subscribedPaths);
 
+    // test set
     setNodes(store, 'a', false);
     for (int i = 0; i < 10; i++)
     {
@@ -108,6 +109,7 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase
       }
     }
 
+    // test get from cache
     long startT = System.currentTimeMillis();
     for (int i = 0; i < 1000; i++)
     {
@@ -116,10 +118,30 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase
     }
     long endT = System.currentTimeMillis();
     System.out.println("1000 Get() time used: " + (endT - startT) + "ms");
-    Assert.assertTrue((endT - startT) < 60, "1000 Gets should be finished within 50ms");
+    long latency = endT - startT;
+    Assert.assertTrue(latency < 200, "1000 Gets should be finished within 200ms, but was " + latency + " ms");
 
     store.stop();
     System.out.println("END testSet() at " + new Date(System.currentTimeMillis()));
+  }
+  
+  @Test
+  public void testSetInvalidPath()
+  {
+	    String subRoot = _root + "/" + "setInvalidPath";
+	    ZkHelixPropertyStore<ZNRecord> store =
+	        new ZkHelixPropertyStore<ZNRecord>(new ZkBaseDataAccessor<ZNRecord>(_gZkClient),
+	                                           subRoot,
+	                                           null);
+	    try {
+	    	store.set("abc/xyz", new ZNRecord("testInvalid"), AccessOption.PERSISTENT);
+	    	Assert.fail("Should throw illegal-argument-exception since path doesn't start with /");
+	    } catch (IllegalArgumentException e) {
+	    	// e.printStackTrace();
+	    	// OK
+	    } catch (Exception e) {
+	    	Assert.fail("Should not throw exceptions other than illegal-argument");
+	    }
   }
 
   @Test
@@ -171,7 +193,11 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase
     int expectDeleteNodes = 1 + firstLevelNr + firstLevelNr * secondLevelNr;
     store.remove("/", 0);
     // wait until all callbacks have been received
-    Thread.sleep(500);
+    for (int i = 0; i < 10; i++) {
+    	if (listener._deleteKeys.size() == expectDeleteNodes)
+    		break;
+    	Thread.sleep(500);
+    }
 
     System.out.println("createKey#:" + listener._createKeys.size() + ", changeKey#:"
         + listener._changeKeys.size() + ", deleteKey#:" + listener._deleteKeys.size());
@@ -216,7 +242,11 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase
     listener.reset();
     setNodes(_gZkClient, subRoot, 'b', true);
     int expectChangeNodes = firstLevelNr * secondLevelNr;
-    Thread.sleep(500);
+    for (int i = 0; i < 10; i++) {
+    	if (listener._changeKeys.size() >= expectChangeNodes)
+    		break;
+    	Thread.sleep(500);
+    }
 
     System.out.println("createKey#:" + listener._createKeys.size() + ", changeKey#:"
         + listener._changeKeys.size() + ", deleteKey#:" + listener._deleteKeys.size());

@@ -19,6 +19,9 @@ package org.apache.helix;
  * under the License.
  */
 
+import java.util.List;
+import java.util.Map;
+
 import org.apache.helix.messaging.AsyncCallback;
 import org.apache.helix.messaging.handling.MessageHandlerFactory;
 import org.apache.helix.model.Message;
@@ -114,5 +117,15 @@ public interface ClusterMessagingService
   public void registerMessageHandlerFactory(String type,
       MessageHandlerFactory factory);
   
+  /**
+   * This will generate all messages to be sent given the recipientCriteria and MessageTemplate,
+   * the messages are not sent.
+   * 
+   * @param receipientCriteria
+   * @param messageTemplate
+   * @return
+   */
+  public Map<InstanceType, List<Message>> generateMessage(final Criteria recipientCriteria,
+      final Message messageTemplate);
 
 }

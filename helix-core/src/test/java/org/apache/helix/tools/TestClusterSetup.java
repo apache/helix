@@ -37,6 +37,7 @@ import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.tools.ClusterSetup;
+import org.apache.helix.util.HelixUtil;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.AssertJUnit;
@@ -367,18 +368,30 @@ public class TestClusterSetup extends ZkUnitTestBase
   @Test()
   public void testSetGetConfig() throws Exception
   {
-    System.out.println("START testSetGetConfig() " + new Date(System.currentTimeMillis()));
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = className + "_" + methodName;
+
+    System.out.println("START " + clusterName + " at "
+        + new Date(System.currentTimeMillis()));
 
     // basic
-    String scopesStr = "CLUSTER=" + CLUSTER_NAME + ",PARTICIPANT=localhost_0";
+    _clusterSetup.addCluster(clusterName, true);
+    _clusterSetup.addInstanceToCluster(clusterName, "localhost", 0);
+    String scopesStr = "CLUSTER=" + clusterName + ",PARTICIPANT=localhost_0";
     String propertiesStr = "key1=value1,key2=value2";
     String keysStr = "key1,key2";
     _clusterSetup.setConfig(scopesStr, propertiesStr);
     String valuesStr = _clusterSetup.getConfig(scopesStr, keysStr);
-    Assert.assertEquals(valuesStr, propertiesStr);
+    
+    // getConfig returns json-formatted key-value pairs
+    ZNRecord record = new ZNRecord(scopesStr);
+    record.setMapField(scopesStr,HelixUtil.parseCsvFormatedKeyValuePairs(propertiesStr));
+    ZNRecordSerializer serializer = new ZNRecordSerializer();
+    Assert.assertEquals(valuesStr, new String(serializer.serialize(record)));
 
-    System.out.println("END testSetGetConfig() " + new Date(System.currentTimeMillis()));
-
+    System.out.println("END " + clusterName + " at "
+        + new Date(System.currentTimeMillis()));
   }
 
   @Test
@@ -495,4 +508,5 @@ public class TestClusterSetup extends ZkUnitTestBase
         + new Date(System.currentTimeMillis()));
 
   }
+  
 }

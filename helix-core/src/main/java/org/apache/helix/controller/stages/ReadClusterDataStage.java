@@ -63,11 +63,11 @@ public class ReadClusterDataStage extends AbstractBaseStage
       {
         if(config.getInstanceEnabled() == false)
         {
-          disabledInstances ++;
+          disabledInstances++;
         }
-        if(config.getDisabledPartitionMap() != null)
+        if(config.getDisabledPartitions() != null)
         {
-          disabledPartitions += config.getDisabledPartitionMap().size();
+          disabledPartitions += config.getDisabledPartitions().size();
         }
       }
       clusterStatusMonitor.setClusterStatusCounters(_cache._liveInstanceMap.size(), _cache._instanceConfigMap.size(), 

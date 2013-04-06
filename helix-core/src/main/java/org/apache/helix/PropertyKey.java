@@ -42,12 +42,8 @@ import static org.apache.helix.PropertyType.STATUSUPDATES;
 import static org.apache.helix.PropertyType.STATUSUPDATES_CONTROLLER;
 
 import java.util.Arrays;
-import java.util.concurrent.TimeUnit;
 
-import org.apache.helix.ConfigScope.ConfigScopeProperty;
-import org.apache.helix.manager.zk.ZKHelixDataAccessor;
-import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.model.ConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.AlertHistory;
 import org.apache.helix.model.AlertStatus;
 import org.apache.helix.model.Alerts;
@@ -75,7 +71,17 @@ public class PropertyKey
   private final String[]         _params;
   Class<? extends HelixProperty> _typeClazz;
 
+  //if type is CONFIGS, set configScope; otherwise null
+  ConfigScopeProperty _configScope;
+
+  public PropertyKey(PropertyType type, Class<? extends HelixProperty> typeClazz, 
+		  String... params)
+  {
+    this(type, null, typeClazz, params);
+  }
+  
   public PropertyKey(PropertyType type,
+		  			 ConfigScopeProperty configScope,
                      Class<? extends HelixProperty> typeClazz,
                      String... params)
   {
@@ -87,6 +93,8 @@ public class PropertyKey
 
     _params = params;
     _typeClazz = typeClazz;
+    
+    _configScope = configScope;
   }
 
   @Override
@@ -95,6 +103,11 @@ public class PropertyKey
     return super.hashCode();
   }
 
+  @Override
+  public String toString() {
+	  return getPath();
+  }
+  
   public String getPath()
   {
     String clusterName = _params[0];
@@ -140,44 +153,58 @@ public class PropertyKey
                              stateModelName);
     }
 
-    public PropertyKey clusterConfig()
+    public PropertyKey clusterConfigs()
     {
       return new PropertyKey(CONFIGS,
-                             null,
+    		  				 ConfigScopeProperty.CLUSTER,
+                             HelixProperty.class,
                              _clusterName,
                              ConfigScopeProperty.CLUSTER.toString());
+    }
+    
+    public PropertyKey clusterConfig()
+    {
+    	return new PropertyKey(CONFIGS,
+ 				 ConfigScopeProperty.CLUSTER,
+                HelixProperty.class,
+                _clusterName,
+                ConfigScopeProperty.CLUSTER.toString(),
+                _clusterName);    	
     }
 
     public PropertyKey instanceConfigs()
     {
-      return new PropertyKey(CONFIGS,
-                             InstanceConfig.class,
-                             _clusterName,
-                             ConfigScopeProperty.PARTICIPANT.toString());
+        return new PropertyKey(CONFIGS,
+ 				 ConfigScopeProperty.PARTICIPANT,
+                InstanceConfig.class,
+                _clusterName,
+                ConfigScopeProperty.PARTICIPANT.toString());        
     }
 
     public PropertyKey instanceConfig(String instanceName)
     {
       return new PropertyKey(CONFIGS,
+    		  	ConfigScopeProperty.PARTICIPANT,
                              InstanceConfig.class,
                              _clusterName,
                              ConfigScopeProperty.PARTICIPANT.toString(),
                              instanceName);
     }
 
+    public PropertyKey resourceConfigs()
+    {
+      return new PropertyKey(CONFIGS,
+				 			 ConfigScopeProperty.RESOURCE,
+    		  				 HelixProperty.class,
+                             _clusterName,
+                             ConfigScopeProperty.RESOURCE.toString());
+    }
+    
     public PropertyKey resourceConfig(String resourceName)
     {
       return new PropertyKey(CONFIGS,
-                             null,
-                             _clusterName,
-                             ConfigScopeProperty.RESOURCE.toString(),
-                             resourceName);
-    }
-
-    public PropertyKey resourceConfig(String instanceName, String resourceName)
-    {
-      return new PropertyKey(CONFIGS,
-                             null,
+    		  				ConfigScopeProperty.RESOURCE,
+    		  				HelixProperty.class,
                              _clusterName,
                              ConfigScopeProperty.RESOURCE.toString(),
                              resourceName);
@@ -186,7 +213,8 @@ public class PropertyKey
     public PropertyKey partitionConfig(String resourceName, String partitionName)
     {
       return new PropertyKey(CONFIGS,
-                             null,
+    		  				ConfigScopeProperty.RESOURCE,
+    		  				HelixProperty.class,
                              _clusterName,
                              ConfigScopeProperty.RESOURCE.toString(),
                              resourceName);
@@ -197,8 +225,9 @@ public class PropertyKey
                                        String partitionName)
     {
       return new PropertyKey(CONFIGS,
-                             null,
-                             _clusterName,
+    		  				ConfigScopeProperty.RESOURCE,
+				 			 HelixProperty.class,
+				 			 _clusterName,
                              ConfigScopeProperty.RESOURCE.toString(),
                              resourceName);
     }
@@ -308,14 +337,6 @@ public class PropertyKey
       }
     }
 
-    // addEntry(PropertyType.STATUSUPDATES, 2,
-    // "/{clusterName}/INSTANCES/{instanceName}/STATUSUPDATES");
-    // addEntry(PropertyType.STATUSUPDATES, 3,
-    // "/{clusterName}/INSTANCES/{instanceName}/STATUSUPDATES/{sessionId}");
-    // addEntry(PropertyType.STATUSUPDATES, 4,
-    // "/{clusterName}/INSTANCES/{instanceName}/STATUSUPDATES/{sessionId}/{subPath}");
-    // addEntry(PropertyType.STATUSUPDATES, 5,
-    // "/{clusterName}/INSTANCES/{instanceName}/STATUSUPDATES/{sessionId}/{subPath}/{recordName}");
     public PropertyKey stateTransitionStatus(String instanceName,
                                              String sessionId,
                                              String resourceName,
@@ -433,22 +454,6 @@ public class PropertyKey
       return new PropertyKey(EXTERNALVIEW, ExternalView.class, _clusterName, resourceName);
     }
 
-    // * addEntry(PropertyType.STATUSUPDATES_CONTROLLER, 4,
-    // *
-    // "/{clusterName}/CONTROLLER/STATUSUPDATES/{sessionId}/{subPath}/{recordName}"
-    // * ); addEntry(PropertyType.LEADER, 1,
-    // "/{clusterName}/CONTROLLER/LEADER");
-    // * addEntry(PropertyType.HISTORY, 1, "/{clusterName}/CONTROLLER/HISTORY");
-    // * addEntry(PropertyType.PAUSE, 1, "/{clusterName}/CONTROLLER/PAUSE");
-    // * addEntry(PropertyType.PERSISTENTSTATS, 1,
-    // * "/{clusterName}/CONTROLLER/PERSISTENTSTATS");
-    // addEntry(PropertyType.ALERTS,
-    // * 1, "/{clusterName}/CONTROLLER/ALERTS");
-    // addEntry(PropertyType.ALERT_STATUS,
-    // * 1, "/{clusterName}/CONTROLLER/ALERT_STATUS");
-    // * addEntry(PropertyType.ALERT_HISTORY, 1,
-    // * "/{clusterName}/CONTROLLER/ALERT_HISTORY"); // @formatter:on
-
     public PropertyKey controller()
     {
       return new PropertyKey(CONTROLLER, null, _clusterName);
@@ -557,16 +562,9 @@ public class PropertyKey
     return _typeClazz;
   }
 
-  public static void main(String[] args)
+  public ConfigScopeProperty getConfigScope()
   {
-    ZkClient zkClient = new ZkClient("localhost:2181");
-    zkClient.waitUntilConnected(10, TimeUnit.SECONDS);
-    BaseDataAccessor baseDataAccessor = new ZkBaseDataAccessor(zkClient);
-    HelixDataAccessor accessor =
-        new ZKHelixDataAccessor("test-cluster", baseDataAccessor);
-    Builder builder = new PropertyKey.Builder("test-cluster");
-    HelixProperty value = new IdealState("test-resource");
-    accessor.createProperty(builder.idealStates("test-resource"), value);
+	  return _configScope;
   }
-
+  
 }

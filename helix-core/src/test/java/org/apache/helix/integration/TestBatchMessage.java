@@ -20,16 +20,22 @@ package org.apache.helix.integration;
  */
 
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.I0Itec.zkclient.IZkChildListener;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.controller.HelixControllerMain;
+import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.mock.controller.ClusterController;
 import org.apache.helix.mock.participant.MockParticipant;
+import org.apache.helix.mock.participant.ErrTransition;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
@@ -37,7 +43,7 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 
-public class TestGroupMessage extends ZkIntegrationTestBase
+public class TestBatchMessage extends ZkIntegrationTestBase
 {
   class TestZkChildListener implements IZkChildListener
   {
@@ -77,14 +83,14 @@ public class TestGroupMessage extends ZkIntegrationTestBase
                             "MasterSlave",
                             true); // do rebalance
     
-    // enable group message
+    // enable batch message
     ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
     Builder keyBuilder = accessor.keyBuilder();
     IdealState idealState = accessor.getProperty(keyBuilder.idealStates("TestDB0"));
-    idealState.setGroupMessageMode(true);
+    idealState.setBatchMessageMode(true);
     accessor.setProperty(keyBuilder.idealStates("TestDB0"), idealState);
 
-    // registry a message listener so we know how many message generated
+    // register a message listener so we know how many message generated
     TestZkChildListener listener = new TestZkChildListener();
     _gZkClient.subscribeChildChanges(keyBuilder.messages("localhost_12918").getPath(), listener);
 
@@ -122,9 +128,9 @@ public class TestGroupMessage extends ZkIntegrationTestBase
         + new Date(System.currentTimeMillis()));
   }
   
-  // a non-group-message run followed by a group-message-enabled run
+  // a non-batch-message run followed by a batch-message-enabled run
   @Test
-  public void testChangeGroupMessageMode() throws Exception
+  public void testChangeBatchMessageMode() throws Exception
   {
     // Logger.getRootLogger().setLevel(Level.INFO);
     String className = TestHelper.getTestClassName();
@@ -171,11 +177,11 @@ public class TestGroupMessage extends ZkIntegrationTestBase
       participants[i].syncStop();
     }
     
-    // enable group message
+    // enable batch message
     ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
     Builder keyBuilder = accessor.keyBuilder();
     IdealState idealState = accessor.getProperty(keyBuilder.idealStates("TestDB0"));
-    idealState.setGroupMessageMode(true);
+    idealState.setBatchMessageMode(true);
     accessor.setProperty(keyBuilder.idealStates("TestDB0"), idealState);
 
     // registry a message listener so we know how many message generated
@@ -209,5 +215,84 @@ public class TestGroupMessage extends ZkIntegrationTestBase
 
     System.out.println("END " + clusterName + " at "
         + new Date(System.currentTimeMillis()));
+  }
+  
+  @Test
+  public void testSubMsgExecutionFail() throws Exception
+  {
+	    String className = TestHelper.getTestClassName();
+	    String methodName = TestHelper.getTestMethodName();
+	    String clusterName = className + "_" + methodName;
+	    
+	    final int n = 5;
+	    MockParticipant[] participants = new MockParticipant[n];
+
+	    System.out.println("START " + clusterName + " at "
+	        + new Date(System.currentTimeMillis()));
+//	    ZKHelixAdmin tool = new ZKHelixAdmin(_gZkClient);
+
+	    TestHelper.setupCluster(clusterName,
+	                            ZK_ADDR,
+	                            12918,
+	                            "localhost",
+	                            "TestDB",
+	                            1,	// resource#
+	                            6,	// partition#
+	                            n,	// nodes#
+	                            3,  // replicas#
+	                            "MasterSlave",
+	                            true);
+
+	    // enable batch message
+	    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+	    Builder keyBuilder = accessor.keyBuilder();
+	    IdealState idealState = accessor.getProperty(keyBuilder.idealStates("TestDB0"));
+	    idealState.setBatchMessageMode(true);
+	    accessor.setProperty(keyBuilder.idealStates("TestDB0"), idealState);
+
+	    TestHelper.startController(clusterName,
+	                               "controller_0",
+	                               ZK_ADDR,
+	                               HelixControllerMain.STANDALONE);
+	    for (int i = 0; i < n; i++)
+	    {
+	      String instanceName = "localhost_" + (12918 + i);
+
+	      if (i == 1)
+	      {
+	        Map<String, Set<String>> errPartitions = new HashMap<String, Set<String>>();
+	        errPartitions.put("SLAVE-MASTER", TestHelper.setOf("TestDB0_4"));
+	        participants[i] =
+	            new MockParticipant(clusterName,
+	                                instanceName,
+	                                ZK_ADDR,
+	                                new ErrTransition(errPartitions));
+	      }
+	      else
+	      {
+	        participants[i] = new MockParticipant(clusterName, instanceName, ZK_ADDR);
+	      }
+	      participants[i].syncStart();
+	    }
+
+	    Map<String, Map<String, String>> errStates =
+	        new HashMap<String, Map<String, String>>();
+	    errStates.put("TestDB0", new HashMap<String, String>());
+	    errStates.get("TestDB0").put("TestDB0_4", "localhost_12919");
+	    boolean result =
+	        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
+	                                                                                          clusterName,
+	                                                                                          errStates));
+	    Assert.assertTrue(result);
+
+	    Map<String, Set<String>> errorStateMap = new HashMap<String, Set<String>>();
+	    errorStateMap.put("TestDB0_4", TestHelper.setOf("localhost_12919"));
+
+	    // verify "TestDB0_4", "localhost_12919" is in ERROR state
+	    TestHelper.verifyState(clusterName, ZK_ADDR, errorStateMap, "ERROR");
+	    
+	    System.out.println("END " + clusterName + " at "
+	            + new Date(System.currentTimeMillis()));
+
   }
 }

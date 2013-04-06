@@ -96,14 +96,14 @@ public class IdealCalculatorByConsistentHashing
    *          the partition number of the database
    * @param replicas
    *          the replication degree
-   * @param dbName
+   * @param resourceName
    *          the name of the database
    * @return The ZNRecord that contains the ideal state
    */
   public static ZNRecord calculateIdealState(List<String> instanceNames,
-      int partitions, int replicas, String dbName, HashFunction hashFunc)
+      int partitions, int replicas, String resourceName, HashFunction hashFunc)
   {
-    return calculateIdealState(instanceNames, partitions, replicas, dbName,
+    return calculateIdealState(instanceNames, partitions, replicas, resourceName,
         hashFunc, 65536);
   }
 
@@ -117,24 +117,24 @@ public class IdealCalculatorByConsistentHashing
    *          the partition number of the database
    * @param replicas
    *          the replication degree
-   * @param dbName
+   * @param resourceName
    *          the name of the database
-   * @param hashringSize
+   * @param hashRingSize
    *          the size of the hash ring used by consistent hashing
    * @return The ZNRecord that contains the ideal state
    */
   public static ZNRecord calculateIdealState(List<String> instanceNames,
-      int partitions, int replicas, String dbName, HashFunction hashFunc,
+      int partitions, int replicas, String resourceName, HashFunction hashFunc,
       int hashRingSize)
   {
-    ZNRecord result = new ZNRecord(dbName);
+    ZNRecord result = new ZNRecord(resourceName);
 
     int[] hashRing = generateEvenHashRing(instanceNames, hashRingSize);
     result.setSimpleField(IdealStateProperty.NUM_PARTITIONS.toString(), String.valueOf(partitions));
     Random rand = new Random(0xc0ffee);
     for (int i = 0; i < partitions; i++)
     {
-      String partitionName = dbName + ".partition-" + i;
+      String partitionName = resourceName + ".partition-" + i;
       int hashPos = rand.nextInt() % hashRingSize;
       // (int)(hashFunc.getHashValue(partitionName) % hashRingSize);
       hashPos = hashPos < 0 ? (hashPos + hashRingSize) : hashPos;
@@ -170,7 +170,7 @@ public class IdealCalculatorByConsistentHashing
    *
    * @param instanceNames
    *          List of instance names.
-   * @param hashringSize
+   * @param hashRingSize
    *          the size of the hash ring used by consistent hashing
    * @return The int array as the hashing. it contains random values ranges from
    *         0..size of instanceNames-1
@@ -561,7 +561,7 @@ public class IdealCalculatorByConsistentHashing
     {
       deviation += (mean - vals[i]) * (mean - vals[i]);
     }
-    System.out.println("normalied deviation: "
+    System.out.println("normalized deviation: "
         + Math.sqrt(deviation / vals.length) / mean);
   }
 

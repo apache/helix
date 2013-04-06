@@ -24,6 +24,7 @@ import java.util.Date;
 import org.apache.helix.PropertyPathConfig;
 import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
+import org.apache.helix.ZkTestHelper;
 import org.apache.helix.mock.controller.ClusterController;
 import org.apache.helix.model.IdealState.IdealStateModeProperty;
 import org.apache.log4j.Level;
@@ -61,7 +62,7 @@ public class TestStartMultipleControllersWithSameName extends ZkIntegrationTestB
 
 	Thread.sleep(500); // wait leader election finishes
 	String liPath = PropertyPathConfig.getPath(PropertyType.LIVEINSTANCES, clusterName);
-	int listenerNb = TestHelper.numberOfListeners(ZK_ADDR, liPath);
+	int listenerNb = ZkTestHelper.numberOfListeners(ZK_ADDR, liPath);
 	// System.out.println("listenerNb: " + listenerNb);
 	Assert.assertEquals(listenerNb, 1, "Only one controller should succeed in becoming leader");
 	

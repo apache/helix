@@ -29,6 +29,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+import org.apache.helix.HelixConstants;
+import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixManager;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.HelixConstants.StateModelToken;
@@ -188,6 +190,24 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
   {
     String topStateValue = stateModelDef.getStatesPriorityList().get(0);
     Set<String> liveInstances = cache._liveInstanceMap.keySet();
+    Set<String> taggedInstances = new HashSet<String>();
+    
+    // If there are instances tagged with resource name, use only those instances
+    if(idealState.getInstanceGroupTag() != null)
+    {
+      for(String instanceName : liveInstances)
+      {
+        if(cache._instanceConfigMap.get(instanceName).containsTag(idealState.getInstanceGroupTag()))
+        {
+          taggedInstances.add(instanceName);
+        }
+      }
+    }
+    if(taggedInstances.size() > 0)
+    {
+      logger.info("found the following instances with tag " + idealState.getResourceName() + " " + taggedInstances);
+      liveInstances = taggedInstances;
+    }
     // Obtain replica number
     int replicas = 1;
     try
@@ -244,7 +264,8 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
     }
     List<String> orphanedPartitionsList = new ArrayList<String>();
     orphanedPartitionsList.addAll(orphanedPartitions);
-    normalizeAssignmentMap(masterAssignmentMap, orphanedPartitionsList);
+    int maxPartitionsPerInstance = idealState.getMaxPartitionsPerInstance();
+    normalizeAssignmentMap(masterAssignmentMap, orphanedPartitionsList, maxPartitionsPerInstance);
     idealState.getRecord()
               .setListFields(generateListFieldFromMasterAssignment(masterAssignmentMap,
                                                                    replicas));
@@ -262,7 +283,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
    * @return
    */
   private void normalizeAssignmentMap(Map<String, List<String>> masterAssignmentMap,
-                                      List<String> orphanPartitions)
+                                      List<String> orphanPartitions, int maxPartitionsPerInstance)
   {
     int totalPartitions = 0;
     String[] instanceNames = new String[masterAssignmentMap.size()];
@@ -300,6 +321,10 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
     {
       int targetPartitionNo = leave > 0 ? (partitionNumber + 1) : partitionNumber;
       leave--;
+      if(targetPartitionNo > maxPartitionsPerInstance)
+      {
+        targetPartitionNo = maxPartitionsPerInstance;
+      }
       while (masterAssignmentMap.get(instanceNames[i]).size() < targetPartitionNo)
       {
         int lastElementIndex = orphanPartitions.size() - 1;
@@ -310,7 +335,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
     }
     if (orphanPartitions.size() > 0)
     {
-      logger.error("orphanPartitions still contains elements");
+      logger.warn("orphanPartitions still contains elements");
     }
   }
 
@@ -387,15 +412,16 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
       for (String instance : currentStateMap.keySet())
       {
         if ((instancePreferenceList == null || !instancePreferenceList.contains(instance))
-            && !"ERROR".equals(currentStateMap.get(instance)))
+            && !disabledInstancesForPartition.contains(instance))
         {
-          // move to DROPPED state only if not in ERROR state
-          instanceStateMap.put(instance, "DROPPED");
+          // if dropped and not disabled, transit to DROPPED
+          instanceStateMap.put(instance, HelixDefinedState.DROPPED.toString());
         }
-        else if (!"ERROR".equals(currentStateMap.get(instance))
+        else if ( (currentStateMap.get(instance) == null 
+            || !currentStateMap.get(instance).equals(HelixDefinedState.ERROR.toString()))
             && disabledInstancesForPartition.contains(instance))
         {
-          // if a non-error node is disabled, put it into initial state (OFFLINE)
+          // if disabled and not in ERROR state, transit to initial-state (e.g. OFFLINE)
           instanceStateMap.put(instance, stateModelDef.getInitialState());
         }
       }
@@ -444,9 +470,9 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
         {
           String instanceName = instancePreferenceList.get(i);
 
-          boolean notInErrorState =
-              currentStateMap == null
-                  || !"ERROR".equals(currentStateMap.get(instanceName));
+          boolean notInErrorState = currentStateMap == null 
+              || currentStateMap.get(instanceName) == null
+              || !currentStateMap.get(instanceName).equals(HelixDefinedState.ERROR.toString());
 
           if (liveInstancesMap.containsKey(instanceName) && !assigned[i]
               && notInErrorState && !disabledInstancesForPartition.contains(instanceName))
@@ -489,16 +515,17 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
     {
       for (String instance : currentStateMap.keySet())
       {
-        if ( (idealStateMap == null || !idealStateMap.containsKey(instance))
-            && !"ERROR".equals(currentStateMap.get(instance)))
+        if ((idealStateMap == null || !idealStateMap.containsKey(instance))
+            && !disabledInstancesForPartition.contains(instance))
         {
-          // move to DROPPED state only if not in ERROR state
-          instanceStateMap.put(instance, "DROPPED");
+          // if dropped and not disabled, transit to DROPPED
+          instanceStateMap.put(instance, HelixDefinedState.DROPPED.toString());
         }
-        else if (!"ERROR".equals(currentStateMap.get(instance))
+        else if ( (currentStateMap.get(instance) == null 
+            || !currentStateMap.get(instance).equals(HelixDefinedState.ERROR.toString()))
             && disabledInstancesForPartition.contains(instance))
         {
-          // if a non-error node is disabled, put it into initial state (OFFLINE)
+          // if disabled and not in ERROR state, transit to initial-state (e.g. OFFLINE)
           instanceStateMap.put(instance, stateModelDef.getInitialState());
         }
       }
@@ -513,8 +540,9 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
     Map<String, LiveInstance> liveInstancesMap = cache.getLiveInstances();
     for (String instance : idealStateMap.keySet())
     {
-      boolean notInErrorState =
-          currentStateMap == null || !"ERROR".equals(currentStateMap.get(instance));
+      boolean notInErrorState = currentStateMap == null 
+          || currentStateMap.get(instance) == null
+          || !currentStateMap.get(instance).equals(HelixDefinedState.ERROR.toString());
 
       if (liveInstancesMap.containsKey(instance) && notInErrorState
           && !disabledInstancesForPartition.contains(instance))

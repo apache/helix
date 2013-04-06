@@ -65,6 +65,13 @@ public class ClusterDataCache
   private static final Logger                         LOG =
                                                               Logger.getLogger(ClusterDataCache.class.getName());
 
+  /**
+   * This refreshes the cluster data by re-fetching the data from zookeeper in
+   * an efficient way
+   * 
+   * @param accessor
+   * @return
+   */
   public boolean refresh(HelixDataAccessor accessor)
   {
     Builder keyBuilder = accessor.keyBuilder();
@@ -118,23 +125,39 @@ public class ClusterDataCache
 
     return true;
   }
-
+  /**
+   * Retrieves the idealstates for all resources
+   * @return
+   */
   public Map<String, IdealState> getIdealStates()
   {
     return _idealStateMap;
   }
-
+  /**
+   * Returns the LiveInstances for each of the instances that are curretnly up and running
+   * @return
+   */
   public Map<String, LiveInstance> getLiveInstances()
   {
     return _liveInstanceMap;
   }
-
+  /**
+   * Provides the current state of the node for a given session id, 
+   * the sessionid can be got from LiveInstance
+   * @param instanceName
+   * @param clientSessionId
+   * @return
+   */
   public Map<String, CurrentState> getCurrentState(String instanceName,
                                                    String clientSessionId)
   {
     return _currentStateMap.get(instanceName).get(clientSessionId);
   }
-
+  /**
+   * Provides a list of current outstanding transitions on a given instance.
+   * @param instanceName
+   * @return
+   */
   public Map<String, Message> getMessages(String instanceName)
   {
     Map<String, Message> map = _messageMap.get(instanceName);
@@ -179,23 +202,40 @@ public class ClusterDataCache
   // return Collections.emptyMap();
   // }
   // }
-
+ /**
+  * Provides the state model definition for a given state model
+  * @param stateModelDefRef
+  * @return
+  */
   public StateModelDefinition getStateModelDef(String stateModelDefRef)
   {
 
     return _stateModelDefMap.get(stateModelDefRef);
   }
-
+  /**
+   * Provides the idealstate for a given resource
+   * @param resourceName
+   * @return
+   */
   public IdealState getIdealState(String resourceName)
   {
     return _idealStateMap.get(resourceName);
   }
-
+  /**
+   * Returns the instance config map
+   * @return
+   */
   public Map<String, InstanceConfig> getInstanceConfigMap()
   {
     return _instanceConfigMap;
   }
-
+  
+  /**
+   * Some partitions might be disabled on specific nodes. 
+   * This method allows one to fetch the set of nodes where a given partition is disabled
+   * @param partition
+   * @return
+   */
   public Set<String> getDisabledInstancesForPartition(String partition)
   {
     Set<String> disabledInstancesSet = new HashSet<String>();
@@ -210,7 +250,11 @@ public class ClusterDataCache
     }
     return disabledInstancesSet;
   }
-
+  /**
+   * Returns the number of replicas for a given resource.
+   * @param resourceName
+   * @return
+   */
   public int getReplicas(String resourceName)
   {
     int replicas = -1;
@@ -245,6 +289,11 @@ public class ClusterDataCache
     return replicas;
   }
 
+  /**
+   * Returns the ClusterConstraints for a given constraintType
+   * @param type
+   * @return
+   */
   public ClusterConstraints getConstraint(ConstraintType type)
   {
     if (_constraintMap != null)
@@ -253,7 +302,10 @@ public class ClusterDataCache
     }
     return null;
   }
-
+  
+  /**
+   * toString method to print the entire cluster state
+   */
   @Override
   public String toString()
   {

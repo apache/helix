@@ -39,7 +39,7 @@ public class IdealState extends HelixProperty
 {
   public enum IdealStateProperty
   {
-    NUM_PARTITIONS, STATE_MODEL_DEF_REF, STATE_MODEL_FACTORY_NAME, REPLICAS, IDEAL_STATE_MODE, REBALANCE_TIMER_PERIOD
+    NUM_PARTITIONS, STATE_MODEL_DEF_REF, STATE_MODEL_FACTORY_NAME, REPLICAS, IDEAL_STATE_MODE, REBALANCE_TIMER_PERIOD, MAX_PARTITONS_PER_INSTANCE, INSTANCE_GROUP_TAG, REBALANCER_CLASS_NAME
   }
 
   public static final String QUERY_LIST = "PREFERENCE_LIST_QUERYS";
@@ -71,6 +71,40 @@ public class IdealState extends HelixProperty
   {
     _record
         .setSimpleField(IdealStateProperty.IDEAL_STATE_MODE.toString(), mode);
+  }
+  
+  public int getMaxPartitionsPerInstance()
+  {
+    try
+    {
+      String strVal =  _record
+          .getSimpleField(IdealStateProperty.MAX_PARTITONS_PER_INSTANCE.toString());
+      if(strVal != null)
+      {
+        return Integer.parseInt(strVal);
+      }
+    } 
+    catch (Exception e)
+    {
+    }
+    return Integer.MAX_VALUE;
+  }
+  
+  public void setRebalancerClassName(String rebalancerClassName)
+  {
+    _record
+    .setSimpleField(IdealStateProperty.REBALANCER_CLASS_NAME.toString(), rebalancerClassName);
+  }
+  
+  public String getRebalancerClassName()
+  {
+    return _record.getSimpleField(IdealStateProperty.REBALANCER_CLASS_NAME.toString());
+  }
+  
+  public void setMaxPartitionsPerInstance(int max)
+  {
+    _record
+    .setSimpleField(IdealStateProperty.MAX_PARTITONS_PER_INSTANCE.toString(), Integer.toString(max));
   }
 
   public IdealStateModeProperty getIdealStateMode()
@@ -308,43 +342,41 @@ public class IdealState extends HelixProperty
       return false;
     }
 
-    if (getIdealStateMode() == IdealStateModeProperty.AUTO
-        && getReplicas() == null)
+    if (getIdealStateMode() == IdealStateModeProperty.AUTO)
     {
-      logger.error("idealStates:" + _record + " does not have replica.");
-      return false;
+        String replicaStr = getReplicas();
+        if (replicaStr == null) {
+            logger.error("invalid ideal-state. missing replicas in auto mode. record was: " + _record);
+            return false;
+        }
+
+        if (!replicaStr.equals(HelixConstants.StateModelToken.ANY_LIVEINSTANCE.toString())) {
+            int replica = Integer.parseInt(replicaStr);
+            Set<String> partitionSet = getPartitionSet();
+            for (String partition : partitionSet) {
+                List<String> preferenceList = getPreferenceList(partition);
+                if (preferenceList == null || preferenceList.size() != replica) {
+                    logger.error("invalid ideal-state. preference-list size not equals to replicas in auto mode. replica: "
+                            + replica + ", preference-list size: " + preferenceList.size() + ", record was: "
+                            + _record);
+                    return false;
+                }
+            }
+        }
     }
+
     return true;
   }
-
-  public static class CustomBuilder
+  
+  public void setInstanceGroupTag(String groupTag)
   {
-    public void set(String partitionName, String instanceName, String state)
-    {
-
-    }
-
+    _record.setSimpleField(
+        IdealStateProperty.INSTANCE_GROUP_TAG.toString(), groupTag);
   }
-
-  public static class AutoModeBuilder
+  
+  public String getInstanceGroupTag()
   {
-    public void setNumPartitions(int partitions)
-    {
-      
-    }
-
-    public void replicas(int replicas)
-    {
-
-    }
-
-  }
-
-  public static class SemiAutoBuilder
-  {
-    public void set(String partitionName, String... instancePreferenceList)
-    {
-
-    }
+    return _record.getSimpleField(
+        IdealStateProperty.INSTANCE_GROUP_TAG.toString());
   }
 }

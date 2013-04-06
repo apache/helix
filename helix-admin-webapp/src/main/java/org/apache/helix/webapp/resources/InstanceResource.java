@@ -190,6 +190,26 @@ public class InstanceResource extends Resource
         setupTool.getClusterManagementTool().resetInstance(clusterName,
                                                            Arrays.asList(instanceName));
       }
+      else if (command.equalsIgnoreCase(ClusterSetup.addInstanceTag))
+      {
+        jsonParameters.verifyCommand(ClusterSetup.addInstanceTag);
+        String tag = 
+            jsonParameters.getParameter(ClusterSetup.instanceGroupTag);
+        ZkClient zkClient =
+            (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
+        ClusterSetup setupTool = new ClusterSetup(zkClient);
+        setupTool.getClusterManagementTool().addInstanceTag(clusterName, instanceName, tag);
+      }
+      else if (command.equalsIgnoreCase(ClusterSetup.removeInstanceTag))
+      {
+        jsonParameters.verifyCommand(ClusterSetup.removeInstanceTag);
+        String tag = 
+            jsonParameters.getParameter(ClusterSetup.instanceGroupTag);
+        ZkClient zkClient =
+            (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
+        ClusterSetup setupTool = new ClusterSetup(zkClient);
+        setupTool.getClusterManagementTool().removeInstanceTag(clusterName, instanceName, tag);
+      }
       else
       {
         throw new HelixException("Unsupported command: " + command

@@ -27,7 +27,7 @@ import java.util.Set;
 import org.apache.helix.TestHelper;
 import org.apache.helix.mock.controller.ClusterController;
 import org.apache.helix.mock.participant.MockParticipant;
-import org.apache.helix.mock.participant.MockParticipant.ErrTransition;
+import org.apache.helix.mock.participant.ErrTransition;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.webapp.resources.JsonParameters;

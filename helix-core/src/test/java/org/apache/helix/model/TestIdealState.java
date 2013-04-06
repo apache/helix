@@ -19,15 +19,9 @@ package org.apache.helix.model;
  * under the License.
  */
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import org.apache.helix.TestHelper;
-import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.IdealStateModeProperty;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -76,5 +70,25 @@ public class TestIdealState
     
     System.out.println("END " + testName + " at "
         + new Date(System.currentTimeMillis()));
+  }
+
+  @Test
+  public void testReplicas() {
+      IdealState idealState = new IdealState("test-db");
+      idealState.setIdealStateMode(IdealStateModeProperty.AUTO.toString());
+      idealState.setNumPartitions(4);
+      idealState.setStateModelDefRef("MasterSlave");
+
+      idealState.setReplicas("" + 2);
+
+      List<String> preferenceList = new ArrayList<String>();
+      preferenceList.add("node_0");
+      idealState.getRecord().setListField("test-db_0", preferenceList);
+      Assert.assertFalse(idealState.isValid(), "should fail since replicas not equals to preference-list size");
+
+      preferenceList.add("node_1");
+      idealState.getRecord().setListField("test-db_0", preferenceList);
+      Assert.assertTrue(idealState.isValid(), "should pass since replicas equals to preference-list size");
+
   }
 }

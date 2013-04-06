@@ -19,7 +19,9 @@ package org.apache.helix.integration;
  * under the License.
  */
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
@@ -28,9 +30,11 @@ import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.mock.controller.ClusterController;
 import org.apache.helix.mock.participant.MockParticipant;
-import org.apache.helix.mock.participant.MockParticipant.MockMSModelFactory;
+import org.apache.helix.mock.participant.MockMSModelFactory;
+import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.Message;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
@@ -41,7 +45,7 @@ import org.testng.annotations.Test;
 public class TestAddStateModelFactoryAfterConnect extends ZkIntegrationTestBase
 {
   @Test
-  public void testAddStateModelFactoryAfterConnect() throws Exception
+  public void testBasic() throws Exception
   {
     // Logger.getRootLogger().setLevel(Level.INFO);
     String className = TestHelper.getTestClassName();
@@ -95,23 +99,22 @@ public class TestAddStateModelFactoryAfterConnect extends ZkIntegrationTestBase
     accessor.setProperty(keyBuilder.idealStates("TestDB1"), idealState);
     setupTool.rebalanceStorageCluster(clusterName, "TestDB1", 3);
 
-    // external view for TestDB1 should be empty
-    ExternalView extView = null;
-    long start = System.currentTimeMillis();
-    while (extView == null)
-    {
-      Thread.sleep(50);
-      extView = accessor.getProperty(keyBuilder.externalView("TestDB1"));
-
-      long now = System.currentTimeMillis();
-      if (now - start > 5000)
-      {
-        Assert.fail("Timeout waiting for an empty external view of TestDB1");
-      }
+    // assert that we have received OFFLINE->SLAVE messages for all partitions
+    int totalMsgs = 0;
+    for (int retry = 0; retry < 5; retry++) {
+    	Thread.sleep(100);
+    	totalMsgs = 0;
+        for (int i = 0; i < n; i++) {
+        	List<Message> msgs = accessor.getChildValues(keyBuilder.messages(participants[i].getInstanceName()));
+        	totalMsgs += msgs.size();
+        }
+        
+        if (totalMsgs == 48) // partition# x replicas
+        	break;
     }
-    Assert.assertEquals(extView.getRecord().getMapFields().size(),
-                        0,
-                        "External view for TestDB1 should be empty since TestDB1 is added without a state model factory");
+    
+    Assert.assertEquals(totalMsgs, 48,
+      "Should accumulated 48 unprocessed messages (1 O->S per partition per replica) because TestDB1 is added without state-model-factory but was " + totalMsgs);
 
     // register "TestDB1_Factory" state model factory
     // Logger.getRootLogger().setLevel(Level.INFO);

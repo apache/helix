@@ -21,38 +21,34 @@ package org.apache.helix.messaging.handling;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
-import java.util.concurrent.Callable;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.helix.ConfigAccessor;
-import org.apache.helix.ConfigScope;
-import org.apache.helix.ConfigScopeBuilder;
+import org.apache.helix.model.ConfigScope;
+import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.MessageListener;
 import org.apache.helix.NotificationContext;
+import org.apache.helix.NotificationContext.MapKey;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.NotificationContext.Type;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Message;
-import org.apache.helix.model.Message.Attributes;
 import org.apache.helix.model.Message.MessageState;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.monitoring.ParticipantMonitor;
@@ -61,14 +57,14 @@ import org.apache.helix.util.StatusUpdateUtil;
 import org.apache.log4j.Logger;
 
 
-public class HelixTaskExecutor implements MessageListener
+public class HelixTaskExecutor implements MessageListener, TaskExecutor
 {
   // TODO: we need to further design how to throttle this.
   // From storage point of view, only bootstrap case is expensive
   // and we need to throttle, which is mostly IO / network bounded.
   public static final int                                DEFAULT_PARALLEL_TASKS     = 40;
   // TODO: create per-task type threadpool with customizable pool size
-  protected final Map<String, Future<HelixTaskResult>>   _taskMap;
+  protected final Map<String, MessageTaskInfo>   _taskMap;
   private final Object                                   _lock;
   private final StatusUpdateUtil                         _statusUpdateUtil;
   private final ParticipantMonitor                       _monitor;
@@ -78,8 +74,7 @@ public class HelixTaskExecutor implements MessageListener
   final ConcurrentHashMap<String, MessageHandlerFactory> _handlerFactoryMap         =
                                                                                         new ConcurrentHashMap<String, MessageHandlerFactory>();
 
-  final ConcurrentHashMap<String, ExecutorService>       _threadpoolMap             =
-                                                                                        new ConcurrentHashMap<String, ExecutorService>();
+  final ConcurrentHashMap<String, ExecutorService>       _executorMap;
 
   private static Logger                                  LOG                        =
                                                                                         Logger.getLogger(HelixTaskExecutor.class);
@@ -87,24 +82,31 @@ public class HelixTaskExecutor implements MessageListener
   Map<String, Integer>                                   _resourceThreadpoolSizeMap =
                                                                                         new ConcurrentHashMap<String, Integer>();
 
-  final GroupMessageHandler                              _groupMsgHandler;
+  // timer for schedule timeout tasks
+  final Timer _timer;
+
 
   public HelixTaskExecutor()
   {
-    _taskMap = new ConcurrentHashMap<String, Future<HelixTaskResult>>();
-    _groupMsgHandler = new GroupMessageHandler();
+    _taskMap = new ConcurrentHashMap<String, MessageTaskInfo>();
+    _executorMap = new ConcurrentHashMap<String, ExecutorService>();
 
     _lock = new Object();
     _statusUpdateUtil = new StatusUpdateUtil();
     _monitor = new ParticipantMonitor();
+    
+    _timer = new Timer(true);	// created as a daemon timer thread to handle task timeout
+
     startMonitorThread();
   }
 
+  @Override
   public void registerMessageHandlerFactory(String type, MessageHandlerFactory factory)
   {
     registerMessageHandlerFactory(type, factory, DEFAULT_PARALLEL_TASKS);
   }
 
+  @Override
   public void registerMessageHandlerFactory(String type,
                                             MessageHandlerFactory factory,
                                             int threadpoolSize)
@@ -118,13 +120,16 @@ public class HelixTaskExecutor implements MessageListener
 
       }
       _handlerFactoryMap.put(type, factory);
-      _threadpoolMap.put(type, Executors.newFixedThreadPool(threadpoolSize));
-      LOG.info("Adding msg factory for type " + type + " threadpool size "
+      ExecutorService executorSvc = Executors.newFixedThreadPool(threadpoolSize);
+      _executorMap.put(type, executorSvc);
+      
+      LOG.info("Added msg-factory for type: " + type + ", threadpool size "
           + threadpoolSize);
     }
     else
     {
-      LOG.error("Ignoring duplicate msg handler factory for type " + type);
+      LOG.warn("Fail to register msg-handler-factory for type: " + type 
+    		  + ", pool-size: " + threadpoolSize + ", factory: " + factory);
     }
   }
 
@@ -167,9 +172,9 @@ public class HelixTaskExecutor implements MessageListener
       if (threadpoolSize > 0)
       {
         String key = MessageType.STATE_TRANSITION.toString() + "." + resourceName;
-        _threadpoolMap.put(key, Executors.newFixedThreadPool(threadpoolSize));
-        LOG.info("Adding per resource threadpool for resource " + resourceName
-            + " with size " + threadpoolSize);
+        _executorMap.put(key, Executors.newFixedThreadPool(threadpoolSize));
+        LOG.info("Added per resource threadpool for resource: " + resourceName
+            + " with size: " + threadpoolSize);
       }
       _resourceThreadpoolSizeMap.put(resourceName, threadpoolSize);
     }
@@ -182,38 +187,81 @@ public class HelixTaskExecutor implements MessageListener
    **/
   ExecutorService findExecutorServiceForMsg(Message message)
   {
-    ExecutorService executorService = _threadpoolMap.get(message.getMsgType());
+    ExecutorService executorService = _executorMap.get(message.getMsgType());
     if (message.getMsgType().equals(MessageType.STATE_TRANSITION.toString()))
     {
       String resourceName = message.getResourceName();
       if (resourceName != null)
       {
         String key = message.getMsgType() + "." + resourceName;
-        if (_threadpoolMap.containsKey(key))
+        if (_executorMap.containsKey(key))
         {
-          LOG.info("Find per-resource thread pool with key " + key);
-          executorService = _threadpoolMap.get(key);
+          LOG.info("Find per-resource thread pool with key: " + key);
+          executorService = _executorMap.get(key);
         }
       }
     }
     return executorService;
   }
 
-  public void scheduleTask(Message message,
-                           MessageHandler handler,
-                           NotificationContext notificationContext)
+  // ExecutorService impl's in JDK are thread-safe
+  @Override
+  public List<Future<HelixTaskResult>> invokeAllTasks(List<MessageTask> tasks, long timeout, TimeUnit unit) throws InterruptedException
   {
-    assert (handler != null);
-    synchronized (_lock)
-    {
-      try
-      {
-        String taskId = message.getMsgId() + "/" + message.getPartitionName();
+	  if (tasks == null || tasks.size() == 0) {
+		  return null;
+	  }
+	  
+	  // check all tasks use the same executor-service
+	  ExecutorService exeSvc = findExecutorServiceForMsg(tasks.get(0).getMessage());
+	  for (int i = 1; i < tasks.size(); i++) {
+		  MessageTask task = tasks.get(i);
+		  ExecutorService curExeSvc = findExecutorServiceForMsg(task.getMessage());
+		  if (curExeSvc != exeSvc) {
+			  LOG.error("Fail to invoke all tasks because they are not using the same executor-service");
+			  return null;
+		  }
+	  }
+	  
+	  // TODO: check if any of the task has already been scheduled
+	  	  
+	  // this is a blocking call
+      List<Future<HelixTaskResult>> futures = exeSvc.invokeAll(tasks, timeout, unit);
+      
+      return futures;
+  }
 
+  @Override
+  public boolean cancelTimeoutTask(MessageTask task)
+  {
+	  synchronized(_lock) {
+		  String taskId = task.getTaskId();
+          if (_taskMap.containsKey(taskId)) {
+        	  MessageTaskInfo info = _taskMap.get(taskId);
+        	  if (info._timerTask != null) {
+        		  info._timerTask.cancel();
+        	  }
+        	  return true;
+          }
+          return false;
+	  }
+  }
+  
+  @Override 
+  public boolean scheduleTask(MessageTask task)
+  {
+    String taskId = task.getTaskId();
+    Message message = task.getMessage();
+    NotificationContext notificationContext = task.getNotificationContext();
+
+    
+    try 
+    {
         if (message.getMsgType().equals(MessageType.STATE_TRANSITION.toString()))
         {
           checkResourceConfig(message.getResourceName(), notificationContext.getManager());
         }
+        
         LOG.info("Scheduling message: " + taskId);
         // System.out.println("sched msg: " + message.getPartitionName() + "-"
         // + message.getTgtName() + "-" + message.getFromState() + "-"
@@ -223,28 +271,48 @@ public class HelixTaskExecutor implements MessageListener
                                   HelixTaskExecutor.class,
                                   "Message handling task scheduled",
                                   notificationContext.getManager().getHelixDataAccessor());
+        
+        // this sync guarantees that ExecutorService.submit() task and put taskInfo into map are sync'ed
+        synchronized (_lock)
+        {
+          if (!_taskMap.containsKey(taskId))
+          {
+          	ExecutorService exeSvc = findExecutorServiceForMsg(message);
+        	Future<HelixTaskResult> future = exeSvc.submit(task);
+        	
+            TimerTask timerTask = null;
+            if (message.getExecutionTimeout() > 0)
+            {
+              timerTask = new MessageTimeoutTask(this, task);
+              _timer.schedule(timerTask, message.getExecutionTimeout());
+              LOG.info("Message starts with timeout " + message.getExecutionTimeout()
+                  + " MsgId: " + task.getTaskId());
+            }
+            else
+            {
+              LOG.debug("Message does not have timeout. MsgId: " + task.getTaskId());
+            }
 
-        HelixTask task = new HelixTask(message, notificationContext, handler, this);
-        if (!_taskMap.containsKey(taskId))
-        {
-          LOG.info("Message:" + taskId + " handling task scheduled");
-          Future<HelixTaskResult> future =
-              findExecutorServiceForMsg(message).submit(task);
-          _taskMap.put(taskId, future);
-        }
-        else
-        {
-          _statusUpdateUtil.logWarning(message,
+        	_taskMap.put(taskId, new MessageTaskInfo(task, future, timerTask));
+
+            LOG.info("Message: " + taskId + " handling task scheduled");
+
+            return true;
+          }
+          else
+          {
+            _statusUpdateUtil.logWarning(message,
                                        HelixTaskExecutor.class,
                                        "Message handling task already sheduled for "
                                            + taskId,
                                        notificationContext.getManager()
                                                           .getHelixDataAccessor());
+          }
         }
       }
       catch (Exception e)
       {
-        LOG.error("Error while executing task." + message, e);
+        LOG.error("Error while executing task. " + message, e);
 
         _statusUpdateUtil.logError(message,
                                    HelixTaskExecutor.class,
@@ -253,67 +321,87 @@ public class HelixTaskExecutor implements MessageListener
                                    notificationContext.getManager()
                                                       .getHelixDataAccessor());
       }
-    }
+      return false;
   }
 
-  public void cancelTask(Message message, NotificationContext notificationContext)
+  @Override
+  public boolean cancelTask(MessageTask task)
   {
-    synchronized (_lock)
-    {
-      String taskId = message.getMsgId() + "/" + message.getPartitionName();
+      Message message = task.getMessage();
+      NotificationContext notificationContext = task.getNotificationContext();
+      String taskId = task.getTaskId();
 
-      if (_taskMap.containsKey(taskId))
+      synchronized(_lock) 
       {
-        _statusUpdateUtil.logInfo(message,
-                                  HelixTaskExecutor.class,
-                                  "Trying to cancel the future for " + taskId,
-                                  notificationContext.getManager().getHelixDataAccessor());
-        Future<HelixTaskResult> future = _taskMap.get(taskId);
-
-        // If the thread is still running it will be interrupted if cancel(true)
-        // is called. So state transition callbacks should implement logic to
-        // return
-        // if it is interrupted.
-        if (future.cancel(true))
+        if (_taskMap.containsKey(taskId))
         {
-          _statusUpdateUtil.logInfo(message, HelixTaskExecutor.class, "Canceled "
+      	  MessageTaskInfo taskInfo = _taskMap.get(taskId);
+    	  // cancel timeout task
+          if (taskInfo._timerTask != null) {
+        	  taskInfo._timerTask.cancel();
+          }
+
+    	  // cancel task
+          Future<HelixTaskResult> future = taskInfo.getFuture();
+
+          _statusUpdateUtil.logInfo(message,
+                                  HelixTaskExecutor.class,
+                                  "Canceling task: " + taskId,
+                                  notificationContext.getManager().getHelixDataAccessor());
+
+          // If the thread is still running it will be interrupted if cancel(true)
+          // is called. So state transition callbacks should implement logic to
+          // return
+          // if it is interrupted.
+          if (future.cancel(true))
+          {
+            _statusUpdateUtil.logInfo(message, HelixTaskExecutor.class, "Canceled task: "
               + taskId, notificationContext.getManager().getHelixDataAccessor());
-          _taskMap.remove(taskId);
+            _taskMap.remove(taskId);
+            return true;
+          }
+          else
+          {
+            _statusUpdateUtil.logInfo(message,
+                                    HelixTaskExecutor.class,
+                                    "fail to cancel task: " + taskId,
+                                    notificationContext.getManager()
+                                                       .getHelixDataAccessor());
+          }
         }
         else
         {
-          _statusUpdateUtil.logInfo(message,
-                                    HelixTaskExecutor.class,
-                                    "false when trying to cancel the message " + taskId,
-                                    notificationContext.getManager()
-                                                       .getHelixDataAccessor());
-        }
-      }
-      else
-      {
-        _statusUpdateUtil.logWarning(message,
+          _statusUpdateUtil.logWarning(message,
                                      HelixTaskExecutor.class,
-                                     "Future not found when trying to cancel " + taskId,
+                                     "fail to cancel task: " + taskId + ", future not found",
                                      notificationContext.getManager()
                                                         .getHelixDataAccessor());
+        }
       }
-    }
+      return false;
   }
 
-  protected void reportCompletion(Message message) // String msgId)
+  @Override
+  public void finishTask(MessageTask task)
   {
+	Message message = task.getMessage();
+    String taskId = task.getTaskId();
+    LOG.info("message finished: " + taskId + ", took "
+            + (new Date().getTime() - message.getExecuteStartTimeStamp()));
+
     synchronized (_lock)
     {
-      String taskId = message.getMsgId() + "/" + message.getPartitionName();
-      LOG.info("message finished: " + taskId + ", took "
-          + (new Date().getTime() - message.getExecuteStartTimeStamp()));
       if (_taskMap.containsKey(taskId))
       {
-        _taskMap.remove(taskId);
+          MessageTaskInfo info = _taskMap.remove(taskId);
+          if (info._timerTask != null) {
+        	  // ok to cancel multiple times
+        	  info._timerTask.cancel();
+          }
       }
       else
       {
-        LOG.warn("message " + taskId + "not found in task map");
+        LOG.warn("message " + taskId + " not found in task map");
       }
     }
   }
@@ -346,21 +434,17 @@ public class HelixTaskExecutor implements MessageListener
       {
         factory.reset();
       }
-      // Cancel all scheduled future
-      // synchronized (_lock)
+      // Cancel all scheduled tasks
+      synchronized (_lock)
       {
-        for (Future<HelixTaskResult> f : _taskMap.values())
-        {
-          f.cancel(true);
-        }
+          for (MessageTaskInfo info : _taskMap.values())
+          {
+            cancelTask(info._task);
+          }
         _taskMap.clear();
       }
       return;
     }
-
-    HelixManager manager = changeContext.getManager();
-    HelixDataAccessor accessor = manager.getHelixDataAccessor();
-    Builder keyBuilder = accessor.keyBuilder();
 
     if (messages == null || messages.size() == 0)
     {
@@ -370,6 +454,10 @@ public class HelixTaskExecutor implements MessageListener
 
     // sort message by creation timestamp, so message created earlier is processed first
     Collections.sort(messages, Message.CREATE_TIME_COMPARATOR);
+
+    HelixManager manager = changeContext.getManager();
+    HelixDataAccessor accessor = manager.getHelixDataAccessor();
+    Builder keyBuilder = accessor.keyBuilder();
 
     // message handlers created
     List<MessageHandler> handlers = new ArrayList<MessageHandler>();
@@ -384,7 +472,6 @@ public class HelixTaskExecutor implements MessageListener
     List<CurrentState> metaCurStates = new ArrayList<CurrentState>();
     Set<String> createCurStateNames = new HashSet<String>();
 
-    changeContext.add(NotificationContext.TASK_EXECUTOR_KEY, this);
     for (Message message : messages)
     {
       // nop messages are simply removed. It is used to trigger onMessage() in
@@ -399,7 +486,7 @@ public class HelixTaskExecutor implements MessageListener
 
       String tgtSessionId = message.getTgtSessionId();
 
-      // if sessionId not match, remove it
+      // sessionId mismatch normally means message comes from expired session, just remove it
       if (!sessionId.equals(tgtSessionId) && !tgtSessionId.equals("*"))
       {
         String warningMessage =
@@ -422,20 +509,21 @@ public class HelixTaskExecutor implements MessageListener
         // read. Instead we keep it until the current state is updated.
         // We will read the message again if there is a new message but we
         // check for the status and ignore if its already read
-        LOG.trace("Message already read. mid: " + message.getMsgId());
+    	if (LOG.isTraceEnabled()) {
+    		LOG.trace("Message already read. msgId: " + message.getMsgId());
+    	}
         continue;
       }
 
       // create message handlers, if handlers not found, leave its state as NEW
       try
       {
-        List<MessageHandler> createHandlers =
-            createMessageHandlers(message, changeContext);
-        if (createHandlers.isEmpty())
+        MessageHandler createHandler = createMessageHandler(message, changeContext);
+        if (createHandler == null)
         {
           continue;
         }
-        handlers.addAll(createHandlers);
+        handlers.add(createHandler);
       }
       catch (Exception e)
       {
@@ -450,10 +538,10 @@ public class HelixTaskExecutor implements MessageListener
                                    error,
                                    accessor);
 
-        // Mark message state UNPROCESSABLE if we hit an exception in creating
-        // message handler. The message will stay on zookeeper but will not be processed
         message.setMsgState(MessageState.UNPROCESSABLE);
-        accessor.updateProperty(message.getKey(keyBuilder, instanceName), message);
+        accessor.removeProperty(message.getKey(keyBuilder, instanceName));
+        LOG.error("Message cannot be proessed: " + message.getRecord(), e);
+
         continue;
       }
 
@@ -487,7 +575,7 @@ public class HelixTaskExecutor implements MessageListener
           metaCurState.setBucketSize(message.getBucketSize());
           metaCurState.setStateModelDefRef(message.getStateModelDef());
           metaCurState.setSessionId(sessionId);
-          metaCurState.setGroupMessageMode(message.getGroupMessageMode());
+          metaCurState.setBatchMessageMode(message.getBatchMessageMode());
           String ftyName = message.getStateModelFactoryName();
           if (ftyName != null)
           {
@@ -512,7 +600,7 @@ public class HelixTaskExecutor implements MessageListener
       }
       catch (Exception e)
       {
-        LOG.error(e);
+        LOG.error("fail to create cur-state znodes for messages: " + readMsgs, e);
       }
     }
 
@@ -523,12 +611,13 @@ public class HelixTaskExecutor implements MessageListener
 
       for (MessageHandler handler : handlers)
       {
-        scheduleTask(handler._message, handler, changeContext);
+          HelixTask task = new HelixTask(handler._message, changeContext, handler, this);
+          scheduleTask(task);
       }
     }
   }
 
-  private MessageHandler createMessageHandler(Message message,
+  public MessageHandler createMessageHandler(Message message,
                                               NotificationContext changeContext)
   {
     String msgType = message.getMsgType().toString();
@@ -540,70 +629,35 @@ public class HelixTaskExecutor implements MessageListener
     // the corresponding MessageHandlerFactory is registered
     if (handlerFactory == null)
     {
-      LOG.warn("Fail to find message handler factory for type: " + msgType + " mid:"
+      LOG.warn("Fail to find message handler factory for type: " + msgType + " msgId: "
           + message.getMsgId());
       return null;
     }
 
+    // pass the executor to msg-handler since batch-msg-handler needs task-executor to schedule sub-msgs
+    changeContext.add(MapKey.TASK_EXECUTOR.toString(), this);
     return handlerFactory.createHandler(message, changeContext);
   }
 
-  private List<MessageHandler> createMessageHandlers(Message message,
-                                                     NotificationContext changeContext)
-  {
-    List<MessageHandler> handlers = new ArrayList<MessageHandler>();
-    if (!message.getGroupMessageMode())
-    {
-      LOG.info("Creating handler for message " + message.getMsgId() + "/"
-          + message.getPartitionName());
-
-      MessageHandler handler = createMessageHandler(message, changeContext);
-
-      if (handler != null)
-      {
-        handlers.add(handler);
-      }
-    }
-    else
-    {
-      _groupMsgHandler.put(message);
-
-      List<String> partitionNames = message.getPartitionNames();
-      for (String partitionName : partitionNames)
-      {
-        Message subMsg = new Message(message.getRecord());
-        subMsg.setPartitionName(partitionName);
-        subMsg.setAttribute(Attributes.PARENT_MSG_ID, message.getId());
-
-        LOG.info("Creating handler for group message " + subMsg.getMsgId() + "/"
-            + partitionName);
-        MessageHandler handler = createMessageHandler(subMsg, changeContext);
-        if (handler != null)
-        {
-          handlers.add(handler);
-        }
-      }
-    }
-
-    return handlers;
-  }
-
-  public void shutDown()
+  @Override
+  public void shutdown()
   {
     LOG.info("shutting down TaskExecutor");
+    _timer.cancel();
+    
     synchronized (_lock)
     {
-      for (String msgType : _threadpoolMap.keySet())
+      for (String msgType : _executorMap.keySet())
       {
-        List<Runnable> tasksLeft = _threadpoolMap.get(msgType).shutdownNow();
+        List<Runnable> tasksLeft = _executorMap.get(msgType).shutdownNow();
         LOG.info(tasksLeft.size() + " tasks are still in the threadpool for msgType "
             + msgType);
       }
-      for (String msgType : _threadpoolMap.keySet())
+      for (String msgType : _executorMap.keySet())
       {
         try
         {
-          if (!_threadpoolMap.get(msgType).awaitTermination(200, TimeUnit.MILLISECONDS))
+          if (!_executorMap.get(msgType).awaitTermination(200, TimeUnit.MILLISECONDS))
           {
             LOG.warn(msgType + " is not fully termimated in 200 MS");
             System.out.println(msgType + " is not fully termimated in 200 MS");
@@ -617,26 +671,5 @@ public class HelixTaskExecutor implements MessageListener
     }
     _monitor.shutDown();
     LOG.info("shutdown finished");
-  }
-
-  // TODO: remove this
-  public static void main(String[] args) throws Exception
-  {
-    ExecutorService pool = Executors.newFixedThreadPool(DEFAULT_PARALLEL_TASKS);
-    Future<HelixTaskResult> future;
-    future = pool.submit(new Callable<HelixTaskResult>()
-    {
-
-      @Override
-      public HelixTaskResult call() throws Exception
-      {
-        System.out.println("CMTaskExecutor.main(...).new Callable() {...}.call()");
-        return null;
-      }
-
-    });
-    future = pool.submit(new HelixTask(null, null, null, null));
-    Thread.currentThread().join();
-    System.out.println(future.isDone());
   }
 }

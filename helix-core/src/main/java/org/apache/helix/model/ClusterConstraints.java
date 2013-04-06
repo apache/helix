@@ -19,10 +19,8 @@ package org.apache.helix.model;
  * under the License.
  */
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -30,6 +28,7 @@ import java.util.TreeMap;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.model.Message.MessageType;
+import org.apache.helix.model.builder.ConstraintItemBuilder;
 import org.apache.log4j.Logger;
 
 
@@ -52,131 +51,82 @@ public class ClusterConstraints extends HelixProperty
     STATE_CONSTRAINT, MESSAGE_CONSTRAINT
   }
 
-  static public class ConstraintItem
-  {
-    // attributes e.g. {STATE:MASTER, RESOURCEG:TestDB, INSTANCE:localhost_12918}
-    final Map<ConstraintAttribute, String> _attributes;
-    String _constraintValue;
-
-    public ConstraintItem(Map<String, String> attributes)
-    {
-      _attributes = new TreeMap<ConstraintAttribute, String>();
-      _constraintValue = null;
-
-      if (attributes != null)
-      {
-        for (String key : attributes.keySet())
-        {
-          try
-          {
-            ConstraintAttribute attr = ConstraintAttribute.valueOf(key);
-            if (attr == ConstraintAttribute.CONSTRAINT_VALUE)
-            {
-              String value = attributes.get(key);
-              try
-              {
-                ConstraintValue.valueOf(value);
-              } catch (Exception e)
-              {
-                try
-                {
-                  Integer.parseInt(value);
-                }
-                catch (NumberFormatException ne)
-                {
-                  LOG.error("Invalid constraintValue " + key + ":" + value);
-                  continue;
-                }
-              }
-              _constraintValue = attributes.get(key);
-            } else
-            {
-              _attributes.put(attr, attributes.get(key));
-            }
-          } catch (Exception e)
-          {
-            LOG.error("Invalid constraintAttribute " + key + ":" + attributes.get(key));
-            continue;
-          }
-        }
-      }
-    }
-
-    public boolean match(Map<ConstraintAttribute, String> attributes)
-    {
-      for (ConstraintAttribute key : _attributes.keySet())
-      {
-        if (!attributes.containsKey(key))
-        {
-          return false;
-        }
-
-        if (!attributes.get(key).matches(_attributes.get(key)))
-        {
-          return false;
-        }
-      }
-      return true;
-    }
-
-    // filter out attributes that are not specified by this constraint
-    public Map<ConstraintAttribute, String> filter(Map<ConstraintAttribute, String> attributes)
-    {
-      Map<ConstraintAttribute, String> ret = new HashMap<ConstraintAttribute, String>();
-      for (ConstraintAttribute key : _attributes.keySet())
-      {
-        // TODO: what if attributes.get(key)==null? might need match function at constrait level  
-        ret.put(key, attributes.get(key));
-      }
-
-      return ret;
-    }
-
-    public String getConstraintValue()
-    {
-      return _constraintValue;
-    }
-
-    public Map<ConstraintAttribute, String> getAttributes()
-    {
-      return _attributes;
-    }
-
-    @Override
-    public String toString()
-    {
-      StringBuffer sb = new StringBuffer();
-      sb.append(_attributes + ":" + _constraintValue);
-      return sb.toString();
-    }
+  // constraint-id -> constraint-item
+  private final Map<String, ConstraintItem> _constraints = new HashMap<String, ConstraintItem>();
+  
+  public ClusterConstraints(ConstraintType type) {
+    super(type.toString());
   }
-
-  private final List<ConstraintItem> _constraints = new ArrayList<ConstraintItem>();
-
+  
   public ClusterConstraints(ZNRecord record)
   {
     super(record);
 
-    for (String key : _record.getMapFields().keySet())
+    for (String constraintId : _record.getMapFields().keySet())
     {
-      ConstraintItem item = new ConstraintItem(_record.getMapField(key));
+      ConstraintItemBuilder builder = new ConstraintItemBuilder();
+      ConstraintItem item =  builder.addConstraintAttributes(_record.getMapField(constraintId)).build();
+      // ignore item with empty attributes or no constraint-value
       if (item.getAttributes().size() > 0 && item.getConstraintValue() != null)
       {
-        _constraints.add(item);
+        addConstraintItem(constraintId, item);
       } else
       {
-        LOG.error("Invalid constraint " + key + ":" + _record.getMapField(key));
+        LOG.error("Skip invalid constraint. key: " + constraintId + ", value: " 
+              + _record.getMapField(constraintId));
       }
     }
   }
 
+  /**
+   * add the constraint, overwrite existing one if constraint with same constraint-id already exists
+   * 
+   * @param constraintId
+   * @param item
+   */
+  public void addConstraintItem(String constraintId, ConstraintItem item) {
+    Map<String, String> map = new TreeMap<String, String>();
+    for (ConstraintAttribute attr : item.getAttributes().keySet()) {
+      map.put(attr.toString(), item.getAttributeValue(attr));
+    }
+    map.put(ConstraintAttribute.CONSTRAINT_VALUE.toString(), item.getConstraintValue());
+    _record.setMapField(constraintId, map);
+    _constraints.put(constraintId, item);
+  }
+  
+  public void addConstraintItems(Map<String, ConstraintItem> items) {
+    for (String constraintId : items.keySet()) {
+      addConstraintItem(constraintId, items.get(constraintId));
+    }
+  }
+  
+  /**
+   * remove a constraint-item
+   * 
+   * @param constraintId
+   */
+  public void removeConstraintItem(String constraintId) {
+    _constraints.remove(constraintId);
+    _record.getMapFields().remove(constraintId);
+  }
+  
+  /**
+   * get a constraint-item
+   * 
+   * @param constraintId
+   * @return
+   */
+  public ConstraintItem getConstraintItem(String constraintId) {
+    return _constraints.get(constraintId);
+  }
+  
   /**
    * return a set of constraints that match the attribute pairs
    */
   public Set<ConstraintItem> match(Map<ConstraintAttribute, String> attributes)
   {
     Set<ConstraintItem> matches = new HashSet<ConstraintItem>();
-    for (ConstraintItem item : _constraints)
+    for (ConstraintItem item : _constraints.values())
     {
       if (item.match(attributes))
       {

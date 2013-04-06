@@ -91,16 +91,16 @@ public class IdealStateCalculatorByRush
    *          the partition number of the database
    * @param replicas
    *          the replication degree
-   * @param dbName
+   * @param resourceName
    *          the name of the database
    * @return The ZNRecord that contains the ideal state
    */
   public static ZNRecord calculateIdealState(
       List<List<String>> instanceClusters,
       List<Integer> instanceClusterWeights, int partitions, int replicas,
-      String dbName) throws Exception
+      String resourceName) throws Exception
   {
-    ZNRecord result = new ZNRecord(dbName);
+    ZNRecord result = new ZNRecord(resourceName);
 
     int numberOfClusters = instanceClusters.size();
     List<List<String>> nodesInClusters = instanceClusters;
@@ -114,7 +114,7 @@ public class IdealStateCalculatorByRush
     for (int i = 0; i < partitions; i++)
     {
       int partitionId = i;
-      String partitionName = dbName + ".partition-" + partitionId;
+      String partitionName = resourceName + ".partition-" + partitionId;
 
       ArrayList<HashMap> partitionAssignmentResult = rushHash
           .findNode(i);
@@ -149,7 +149,7 @@ public class IdealStateCalculatorByRush
   public static ZNRecord calculateIdealState(
       List<String> instanceClusters,
       int instanceClusterWeight, int partitions, int replicas,
-      String dbName) throws Exception
+      String resourceName) throws Exception
   {
     List<List<String>> instanceClustersList = new ArrayList<List<String>>();
     instanceClustersList.add(instanceClusters);
@@ -160,7 +160,7 @@ public class IdealStateCalculatorByRush
     return calculateIdealState(
         instanceClustersList,
         instanceClusterWeightList, partitions, replicas,
-        dbName);
+        resourceName);
   }
   /**
    * Helper function to see how many partitions are mapped to different
@@ -299,7 +299,7 @@ public class IdealStateCalculatorByRush
   public static void main(String args[]) throws Exception
   {
     int partitions = 4096, replicas = 2;
-    String dbName = "espressoDB1";
+    String resourceName = "espressoDB1";
     List<String> instanceNames = new ArrayList<String>();
     List<List<String>> instanceCluster1 = new ArrayList<List<String>>();
     for (int i = 0; i < 20; i++)
@@ -310,7 +310,7 @@ public class IdealStateCalculatorByRush
     List<Integer> weights1 = new ArrayList<Integer>();
     weights1.add(1);
     ZNRecord result = IdealStateCalculatorByRush.calculateIdealState(
-        instanceCluster1, weights1, partitions, replicas, dbName);
+        instanceCluster1, weights1, partitions, replicas, resourceName);
 
     printIdealStateStats(result);
 
@@ -322,7 +322,7 @@ public class IdealStateCalculatorByRush
     instanceCluster1.add(instanceNames2);
     weights1.add(1);
     ZNRecord result2 = IdealStateCalculatorByRush.calculateIdealState(
-        instanceCluster1, weights1, partitions, replicas, dbName);
+        instanceCluster1, weights1, partitions, replicas, resourceName);
 
     printDiff(result, result2);
     printIdealStateStats(result2);

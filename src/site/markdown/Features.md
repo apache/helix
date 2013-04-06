@@ -18,10 +18,6 @@ under the License.
 -->
 
 
-As we started using Helix in production we found various things that were needed as part of most distributed data systems.
-
-These features have been implemented in a way that other systems can benefit.
-
 Partition Placement
 -------------------
 The placement of partitions in a DDS is very critical for reliability and scalability of the system. 
@@ -38,6 +34,7 @@ The partition assignment table can look like
 
     P1 -> {N1:M, N2:S}
     P2 -> {N1:S, N2:M}
+    
 This means Partition P1 must be a Master at N1 and Slave at N2 and vice versa for P2
 
 Helix provides multiple ways to control the partition placement. See Execution modes section for more info on this.
@@ -49,17 +46,17 @@ Helix uses this as the target state of the system and computes the appropriate t
 
 Helix supports 3 different execution modes which allows application to explicitly control the placement and state of the replica.
 
-AUTO_REBALANCE
+##### AUTO_REBALANCE
 When the idealstate mode is set to AUTO_REBALANCE, Helix controls both the location of the replica along with the state. This option is useful for applications where creation of a replica is not expensive. 
 A typical example is evenly distributing a group of tasks among the currently alive processes. For example, if there are 60 tasks and 4 nodes, Helix assigns 15 tasks to each node. 
 When one node fails Helix redistributes its 15 tasks to the remaining 3 nodes. Similarly, if a node is added, Helix re-allocates 3 tasks from each of the 4 nodes to the 5th node. 
 
-AUTO
+#### AUTO
 When the idealstate mode is set to AUTO, Helix only controls STATE of the replicas where as the location of the partition is controlled by application. 
 For example the application can say P1->{N1,N2,N3} which means P1 should only exist N1,N2,N3. In this mode when N1 fails, unlike in AUTO-REBALANCE mode the partition is not moved from N1 to others nodes in the cluster. 
 But Helix might decide to change the state of P1 in N2 and N3 based on the system constraints. For example, if a system constraint specified that there should be 1 Master and if the Master failed, then N2 will be made the master.
 
-CUSTOM
+#### CUSTOM
 Helix offers a third mode called CUSTOM, in which application can completely control the placement and state of each replica. Applications will have to implement an interface that Helix will invoke when the cluster state changes. 
 Within this callback, the application can recompute the partition assignment mapping. Helix will then issue transitions to get the system to the final state. Note that Helix will ensure that system constraints are not violated at any time.
 For example, the current state of the system might be P1 -> {N1:M,N2:S} and the application changes the ideal state to P2 -> {N1:S,N2:M}. Helix will not blindly issue M-S to N1 and S-M to N2 in parallel since it might result in a transient state where both N1 and N2 are masters.
@@ -113,6 +110,32 @@ Since Helix is aware of the global state of the system, it can send the message 
 This is a very generic api and can also be used to schedule various periodic tasks in the cluster like data backups etc. 
 System Admins can also perform adhoc tasks like on demand backup or execute a system command(like rm -rf ;-)) across all nodes.
 
+```
+      ClusterMessagingService messagingService = manager.getMessagingService();
+      //CONSTRUCT THE MESSAGE
+      Message requestBackupUriRequest = new Message(
+          MessageType.USER_DEFINE_MSG, UUID.randomUUID().toString());
+      requestBackupUriRequest
+          .setMsgSubType(BootstrapProcess.REQUEST_BOOTSTRAP_URL);
+      requestBackupUriRequest.setMsgState(MessageState.NEW);
+      //SET THE RECIPIENT CRITERIA, All nodes that satisfy the criteria will receive the message
+      Criteria recipientCriteria = new Criteria();
+      recipientCriteria.setInstanceName("*");
+      recipientCriteria.setRecipientInstanceType(InstanceType.PARTICIPANT);
+      recipientCriteria.setResource("MyDB");
+      recipientCriteria.setPartition("");
+      //Should be processed only the process that is active at the time of sending the message. 
+      //This means if the recipient is restarted after message is sent, it will not be processed.
+      recipientCriteria.setSessionSpecific(true);
+      // wait for 30 seconds
+      int timeout = 30000;
+      //The handler that will be invoked when any recipient responds to the message.
+      BootstrapReplyHandler responseHandler = new BootstrapReplyHandler();
+      //This will return only after all recipients respond or after timeout.
+      int sentMessageCount = messagingService.sendAndWait(recipientCriteria,
+          requestBackupUriRequest, responseHandler, timeout);
+```
+
 See HelixManager.getMessagingService for more info.
 
 
@@ -146,7 +169,6 @@ Currently Helix only fires an alert but eventually we plan to use this metrics t
 This feature will be valuable in for distributed systems that support multi-tenancy and have huge variation in work load patterns. Another place this can be used is to detect skewed partitions and rebalance the cluster.
 
 This feature is not yet stable and do not recommend to be used in production.
-
 
 
 Controller deployment modes

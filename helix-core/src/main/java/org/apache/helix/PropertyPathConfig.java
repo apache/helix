@@ -59,8 +59,8 @@ public class PropertyPathConfig
 {
   private static Logger logger = Logger.getLogger(PropertyPathConfig.class);
 
-  static Map<PropertyType, Map<Integer, String>> templateMap = new HashMap<PropertyType, Map<Integer, String>>();
-  static Map<PropertyType, Class<? extends HelixProperty>> typeToClassMapping= new HashMap<PropertyType, Class<? extends HelixProperty>>();
+  static final Map<PropertyType, Map<Integer, String>> templateMap = new HashMap<PropertyType, Map<Integer, String>>();
+  static final Map<PropertyType, Class<? extends HelixProperty>> typeToClassMapping= new HashMap<PropertyType, Class<? extends HelixProperty>>();
   static{
     typeToClassMapping.put(LIVEINSTANCES, LiveInstance.class);
     typeToClassMapping.put(IDEALSTATES, IdealState.class);
@@ -75,9 +75,7 @@ public class PropertyPathConfig
     typeToClassMapping.put(ALERTS, Alerts.class);
     typeToClassMapping.put(ALERT_STATUS, AlertStatus.class);
     typeToClassMapping.put(PAUSE, PauseSignal.class);
-  }
-  static
-  {
+
     // @formatter:off
     addEntry(PropertyType.CONFIGS, 1, "/{clusterName}/CONFIGS");
     addEntry(PropertyType.CONFIGS, 2, "/{clusterName}/CONFIGS/{scope}");

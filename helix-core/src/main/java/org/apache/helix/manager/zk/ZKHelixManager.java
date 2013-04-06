@@ -19,21 +19,11 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
-import static org.apache.helix.HelixConstants.ChangeType.CONFIG;
-import static org.apache.helix.HelixConstants.ChangeType.CURRENT_STATE;
-import static org.apache.helix.HelixConstants.ChangeType.EXTERNAL_VIEW;
-import static org.apache.helix.HelixConstants.ChangeType.HEALTH;
-import static org.apache.helix.HelixConstants.ChangeType.IDEAL_STATE;
-import static org.apache.helix.HelixConstants.ChangeType.LIVE_INSTANCE;
-import static org.apache.helix.HelixConstants.ChangeType.MESSAGE;
-import static org.apache.helix.HelixConstants.ChangeType.MESSAGES_CONTROLLER;
-
 import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Timer;
@@ -44,7 +34,8 @@ import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ClusterMessagingService;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.ConfigChangeListener;
-import org.apache.helix.ConfigScope.ConfigScopeProperty;
+import org.apache.helix.model.ConfigScope.ConfigScopeProperty;
+import org.apache.helix.AccessOption;
 import org.apache.helix.ControllerChangeListener;
 import org.apache.helix.CurrentStateChangeListener;
 import org.apache.helix.ExternalViewChangeListener;
@@ -56,13 +47,17 @@ import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixTimerTask;
 import org.apache.helix.IdealStateChangeListener;
+import org.apache.helix.InstanceConfigChangeListener;
 import org.apache.helix.InstanceType;
 import org.apache.helix.LiveInstanceChangeListener;
+import org.apache.helix.LiveInstanceInfoProvider;
 import org.apache.helix.MessageListener;
 import org.apache.helix.PreConnectCallback;
+import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.PropertyPathConfig;
 import org.apache.helix.PropertyType;
+import org.apache.helix.ScopedConfigChangeListener;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.restlet.ZKPropertyTransferServer;
 import org.apache.helix.healthcheck.HealthStatsAggregationTask;
@@ -70,15 +65,18 @@ import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollectorImpl;
 import org.apache.helix.messaging.DefaultMessagingService;
 import org.apache.helix.messaging.handling.MessageHandlerFactory;
+import org.apache.helix.model.ConfigScope;
 import org.apache.helix.model.CurrentState;
+import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message.MessageType;
+import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.monitoring.ZKPathDataDumpTask;
 import org.apache.helix.participant.DistClusterControllerElection;
 import org.apache.helix.participant.HelixStateMachineEngine;
 import org.apache.helix.participant.StateMachineEngine;
-import org.apache.helix.store.ZNRecordJsonSerializer;
+import org.apache.helix.participant.statemachine.ScheduledTaskStateModelFactory;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
 import org.apache.helix.tools.PropertiesReader;
 import org.apache.log4j.Logger;
@@ -99,7 +97,7 @@ public class ZKHelixManager implements HelixManager
   private ZKHelixDataAccessor                  _helixAccessor;
   private ConfigAccessor                       _configAccessor;
   protected ZkClient                           _zkClient;
-  private final List<CallbackHandler>          _handlers;
+  protected List<CallbackHandler>         	   _handlers;
   private final ZkStateChangeListener          _zkStateChangeListener;
   private final InstanceType                   _instanceType;
   volatile String                              _sessionId;
@@ -117,15 +115,45 @@ public class ZKHelixManager implements HelixManager
   List<PreConnectCallback>                     _preConnectCallbacks    =
                                                                            new LinkedList<PreConnectCallback>();
   ZKPropertyTransferServer                     _transferServer         = null;
+  int                                          _flappingTimeWindowMs; 
+  int                                          _maxDisconnectThreshold;
+  public static final int                     FLAPPING_TIME_WINDIOW   = 300000; // Default to 300 sec
+  public static final int                     MAX_DISCONNECT_THRESHOLD = 5;
+  LiveInstanceInfoProvider                    _liveInstanceInfoProvider = null;
+  public static final String                  ALLOW_PARTICIPANT_AUTO_JOIN = "allowParticipantAutoJoin";
 
   public ZKHelixManager(String clusterName,
                         String instanceName,
                         InstanceType instanceType,
-                        String zkConnectString) throws Exception
+                        String zkConnectString)
   {
     logger.info("Create a zk-based cluster manager. clusterName:" + clusterName
         + ", instanceName:" + instanceName + ", type:" + instanceType + ", zkSvr:"
         + zkConnectString);
+    _flappingTimeWindowMs = FLAPPING_TIME_WINDIOW;
+    try
+    {
+      _flappingTimeWindowMs =
+          Integer.parseInt(System.getProperty("helixmanager.flappingTimeWindow", ""
+              + FLAPPING_TIME_WINDIOW));
+    }
+    catch (NumberFormatException e)
+    {
+      logger.warn("Exception while parsing helixmanager.flappingTimeWindow: "
+          + System.getProperty("helixmanager.flappingTimeWindow", "" + FLAPPING_TIME_WINDIOW));
+    }
+    _maxDisconnectThreshold = MAX_DISCONNECT_THRESHOLD;
+    try
+    {
+      _maxDisconnectThreshold =
+          Integer.parseInt(System.getProperty("helixmanager.maxDisconnectThreshold", ""
+              + MAX_DISCONNECT_THRESHOLD));
+    }
+    catch (NumberFormatException e)
+    {
+      logger.warn("Exception while parsing helixmanager.maxDisconnectThreshold: "
+          + System.getProperty("helixmanager.maxDisconnectThreshold", "" + MAX_DISCONNECT_THRESHOLD));
+    }
     int sessionTimeoutInt = -1;
     try
     {
@@ -167,10 +195,8 @@ public class ZKHelixManager implements HelixManager
     _instanceName = instanceName;
     _instanceType = instanceType;
     _zkConnectString = zkConnectString;
-    _zkStateChangeListener = new ZkStateChangeListener(this);
+    _zkStateChangeListener = new ZkStateChangeListener(this, _flappingTimeWindowMs, _maxDisconnectThreshold);
     _timer = null;
-
-    _handlers = new ArrayList<CallbackHandler>();
 
     _messagingService = new DefaultMessagingService(this);
 
@@ -187,114 +213,122 @@ public class ZKHelixManager implements HelixManager
     }
   }
 
-  private boolean isInstanceSetup()
+  @Override
+  public boolean removeListener(PropertyKey key, Object listener)
   {
-    if (_instanceType == InstanceType.PARTICIPANT
-        || _instanceType == InstanceType.CONTROLLER_PARTICIPANT)
-    {
-      boolean isValid =
-          _zkClient.exists(PropertyPathConfig.getPath(PropertyType.CONFIGS,
-                                                      _clusterName,
-                                                      ConfigScopeProperty.PARTICIPANT.toString(),
-                                                      _instanceName))
-              && _zkClient.exists(PropertyPathConfig.getPath(PropertyType.MESSAGES,
-                                                             _clusterName,
-                                                             _instanceName))
-              && _zkClient.exists(PropertyPathConfig.getPath(PropertyType.CURRENTSTATES,
-                                                             _clusterName,
-                                                             _instanceName))
-              && _zkClient.exists(PropertyPathConfig.getPath(PropertyType.STATUSUPDATES,
-                                                             _clusterName,
-                                                             _instanceName))
-              && _zkClient.exists(PropertyPathConfig.getPath(PropertyType.ERRORS,
-                                                             _clusterName,
-                                                             _instanceName));
+    logger.info("Removing listener: " + listener + " on path: " + key.getPath() 
+    		+ " from cluster: " + _clusterName + " by instance: " + _instanceName);
 
-      return isValid;
+    synchronized (this)
+    {
+      List<CallbackHandler> toRemove = new ArrayList<CallbackHandler>();
+      for (CallbackHandler handler : _handlers)
+      {
+        // compare property-key path and listener reference
+        if (handler.getPath().equals(key.getPath()) && handler.getListener().equals(listener))
+        {
+          toRemove.add(handler);
+        }
+      }
+      
+      _handlers.removeAll(toRemove);
+      
+      // handler.reset() may modify the handlers list, so do it outside the iteration
+      for (CallbackHandler handler : toRemove) {
+    	  handler.reset();
+      }
     }
+
     return true;
   }
 
+  private void addListener(Object listener, PropertyKey propertyKey, ChangeType changeType, EventType[] eventType)
+  {
+    checkConnected();
+
+    PropertyType type = propertyKey.getType();
+    CallbackHandler handler =
+        createCallBackHandler(propertyKey, listener, eventType, changeType);
+
+    synchronized (this)
+    {
+      _handlers.add(handler);
+      logger.info("Add listener: " + listener + " for type: " + type + " to path: " + handler.getPath());
+    }
+  }
+  
   @Override
   public void addIdealStateChangeListener(final IdealStateChangeListener listener) throws Exception
   {
-    logger.info("ClusterManager.addIdealStateChangeListener()");
-    checkConnected();
-    final String path =
-        PropertyPathConfig.getPath(PropertyType.IDEALSTATES, _clusterName);
-    CallbackHandler callbackHandler =
-        createCallBackHandler(path,
-                              listener,
-                              new EventType[] { EventType.NodeDataChanged,
-                                  EventType.NodeDeleted, EventType.NodeCreated },
-                              IDEAL_STATE);
-    addListener(callbackHandler);
+	  addListener(listener, new Builder(_clusterName).idealStates(), ChangeType.IDEAL_STATE, 
+	    new EventType[] { EventType.NodeDataChanged, EventType.NodeDeleted, EventType.NodeCreated });
   }
 
   @Override
   public void addLiveInstanceChangeListener(LiveInstanceChangeListener listener) throws Exception
   {
-    logger.info("ClusterManager.addLiveInstanceChangeListener()");
-    checkConnected();
-    final String path = _helixAccessor.keyBuilder().liveInstances().getPath();
-    CallbackHandler callbackHandler =
-        createCallBackHandler(path,
-                              listener,
-                              new EventType[] { EventType.NodeDataChanged, EventType.NodeChildrenChanged,
-                                  EventType.NodeDeleted, EventType.NodeCreated },
-                              LIVE_INSTANCE);
-    addListener(callbackHandler);
+	  addListener(listener, new Builder(_clusterName).liveInstances(), ChangeType.LIVE_INSTANCE, 
+	    new EventType[] { EventType.NodeDataChanged, EventType.NodeChildrenChanged, EventType.NodeDeleted, EventType.NodeCreated });
   }
 
   @Override
   public void addConfigChangeListener(ConfigChangeListener listener)
   {
-    logger.info("ClusterManager.addConfigChangeListener()");
-    checkConnected();
-    final String path =
-        PropertyPathConfig.getPath(PropertyType.CONFIGS,
-                                   _clusterName,
-                                   ConfigScopeProperty.PARTICIPANT.toString());
-
-    CallbackHandler callbackHandler =
-        createCallBackHandler(path,
-                              listener,
-                              new EventType[] { EventType.NodeChildrenChanged },
-                              CONFIG);
-    addListener(callbackHandler);
-
+	 addListener(listener, new Builder(_clusterName).instanceConfigs(), ChangeType.INSTANCE_CONFIG, 
+	   new EventType[] { EventType.NodeChildrenChanged });
   }
 
+  @Override
+  public void addInstanceConfigChangeListener(InstanceConfigChangeListener listener)
+  {
+	 addListener(listener, new Builder(_clusterName).instanceConfigs(), ChangeType.INSTANCE_CONFIG, 
+			 new EventType[] { EventType.NodeChildrenChanged });
+  }
+
+  @Override
+  public void addConfigChangeListener(ScopedConfigChangeListener listener, ConfigScopeProperty scope)
+  {
+	Builder keyBuilder = new Builder(_clusterName);
+
+	PropertyKey propertyKey = null;
+	switch(scope)
+	{
+	case CLUSTER:
+		propertyKey = keyBuilder.clusterConfigs();
+		break;
+	case PARTICIPANT:
+		propertyKey = keyBuilder.instanceConfigs();
+		break;
+	case RESOURCE:
+		propertyKey = keyBuilder.resourceConfigs();
+		break;
+	default:
+		break;
+	}
+
+	if (propertyKey != null)
+	{
+		addListener(listener, propertyKey, ChangeType.CONFIG, 
+				new EventType[] { EventType.NodeChildrenChanged });
+	} else
+	{
+		logger.error("Can't add listener to config scope: " + scope);
+	}
+  }
+  
   // TODO: Decide if do we still need this since we are exposing
   // ClusterMessagingService
   @Override
   public void addMessageListener(MessageListener listener, String instanceName)
   {
-    logger.info("ClusterManager.addMessageListener() " + instanceName);
-    checkConnected();
-    final String path = _helixAccessor.keyBuilder().messages(instanceName).getPath();
-    CallbackHandler callbackHandler =
-        createCallBackHandler(path,
-                              listener,
-                              new EventType[] { EventType.NodeChildrenChanged,
-                                  EventType.NodeDeleted, EventType.NodeCreated },
-                              MESSAGE);
-    addListener(callbackHandler);
+	 addListener(listener, new Builder(_clusterName).messages(instanceName), ChangeType.MESSAGE, 
+	    		new EventType[] { EventType.NodeChildrenChanged, EventType.NodeDeleted, EventType.NodeCreated });
   }
 
   void addControllerMessageListener(MessageListener listener)
   {
-    logger.info("ClusterManager.addControllerMessageListener()");
-    checkConnected();
-    final String path = _helixAccessor.keyBuilder().controllerMessages().getPath();
-
-    CallbackHandler callbackHandler =
-        createCallBackHandler(path,
-                              listener,
-                              new EventType[] { EventType.NodeChildrenChanged,
-                                  EventType.NodeDeleted, EventType.NodeCreated },
-                              MESSAGES_CONTROLLER);
-    addListener(callbackHandler);
+	 addListener(listener, new Builder(_clusterName).controllerMessages(), ChangeType.MESSAGES_CONTROLLER,
+	    		new EventType[] { EventType.NodeChildrenChanged, EventType.NodeDeleted, EventType.NodeCreated });
   }
 
   @Override
@@ -302,52 +336,30 @@ public class ZKHelixManager implements HelixManager
                                             String instanceName,
                                             String sessionId)
   {
-    logger.info("ClusterManager.addCurrentStateChangeListener() " + instanceName + " "
-        + sessionId);
-    checkConnected();
-    final String path =
-        _helixAccessor.keyBuilder().currentStates(instanceName, sessionId).getPath();
-
-    CallbackHandler callbackHandler =
-        createCallBackHandler(path,
-                              listener,
-                              new EventType[] { EventType.NodeChildrenChanged,
-                                  EventType.NodeDeleted, EventType.NodeCreated },
-                              CURRENT_STATE);
-    addListener(callbackHandler);
+	 addListener(listener, new Builder(_clusterName).currentStates(instanceName, sessionId), ChangeType.CURRENT_STATE,
+	    		new EventType[] { EventType.NodeChildrenChanged, EventType.NodeDeleted, EventType.NodeCreated });
   }
 
   @Override
   public void addHealthStateChangeListener(HealthStateChangeListener listener,
                                            String instanceName)
   {
-    // System.out.println("ZKClusterManager.addHealthStateChangeListener()");
-    // TODO: re-form this for stats checking
-    logger.info("ClusterManager.addHealthStateChangeListener()" + instanceName);
-    checkConnected();
-    final String path = _helixAccessor.keyBuilder().healthReports(instanceName).getPath();
-
-    CallbackHandler callbackHandler =
-        createCallBackHandler(path, listener, new EventType[] {
-            EventType.NodeChildrenChanged, EventType.NodeDataChanged,
-            EventType.NodeDeleted, EventType.NodeCreated }, HEALTH);
-    addListener(callbackHandler);
+	  addListener(listener, new Builder(_clusterName).healthReports(instanceName), ChangeType.HEALTH,
+	    		new EventType[] { EventType.NodeChildrenChanged, EventType.NodeDeleted, EventType.NodeCreated });
   }
 
   @Override
   public void addExternalViewChangeListener(ExternalViewChangeListener listener)
   {
-    logger.info("ClusterManager.addExternalViewChangeListener()");
-    checkConnected();
-    final String path = _helixAccessor.keyBuilder().externalViews().getPath();
+	  addListener(listener, new Builder(_clusterName).externalViews(), ChangeType.EXTERNAL_VIEW,
+	    		new EventType[] { EventType.NodeChildrenChanged, EventType.NodeDeleted, EventType.NodeCreated });
+  }
 
-    CallbackHandler callbackHandler =
-        createCallBackHandler(path,
-                              listener,
-                              new EventType[] { EventType.NodeDataChanged,
-                                  EventType.NodeDeleted, EventType.NodeCreated },
-                              EXTERNAL_VIEW);
-    addListener(callbackHandler);
+  @Override
+  public void addControllerListener(ControllerChangeListener listener)
+  {
+	  addListener(listener, new Builder(_clusterName).controller(), ChangeType.CONTROLLER,
+	    		new EventType[] { EventType.NodeChildrenChanged, EventType.NodeDeleted, EventType.NodeCreated });
   }
 
   @Override
@@ -403,13 +415,18 @@ public class ZKHelixManager implements HelixManager
   @Override
   public void disconnect()
   {
-
     if (!isConnected())
     {
-      logger.warn("ClusterManager " + _instanceName + " already disconnected");
+      logger.error("ClusterManager " + _instanceName + " already disconnected");
       return;
     }
-
+    disconnectInternal();
+  }
+  
+  void disconnectInternal()
+  {
+    // This function can be called when the connection are in bad state(e.g. flapping), 
+    // in which isConnected() could be false and we want to disconnect from cluster.
     logger.info("disconnect " + _instanceName + "(" + _instanceType + ") from "
         + _clusterName);
 
@@ -417,7 +434,7 @@ public class ZKHelixManager implements HelixManager
      * shutdown thread pool first to avoid reset() being invoked in the middle of state
      * transition
      */
-    _messagingService.getExecutor().shutDown();
+    _messagingService.getExecutor().shutdown();
     resetHandlers();
 
     _helixAccessor.shutdown();
@@ -451,6 +468,7 @@ public class ZKHelixManager implements HelixManager
     // HACK seems that zkClient is not sending DISCONNECT event
     _zkStateChangeListener.disconnect();
     logger.info("Cluster manager: " + _instanceName + " disconnected");
+  
   }
 
   @Override
@@ -472,54 +490,25 @@ public class ZKHelixManager implements HelixManager
     return -1;
   }
 
-  @Override
-  public void addControllerListener(ControllerChangeListener listener)
-  {
-    checkConnected();
-    final String path = _helixAccessor.keyBuilder().controller().getPath();
-    logger.info("Add controller listener at: " + path);
-    CallbackHandler callbackHandler =
-        createCallBackHandler(path,
-                              listener,
-                              new EventType[] { EventType.NodeChildrenChanged,
-                                  EventType.NodeDeleted, EventType.NodeCreated },
-                              ChangeType.CONTROLLER);
-
-    // System.out.println("add controller listeners to " + _instanceName +
-    // " for " + _clusterName);
-    // _handlers.add(callbackHandler);
-    addListener(callbackHandler);
-  }
-
-  @Override
-  public boolean removeListener(Object listener)
-  {
-    logger.info("remove listener: " + listener + " from " + _instanceName);
-
-    synchronized (this)
-    {
-      Iterator<CallbackHandler> iterator = _handlers.iterator();
-      while (iterator.hasNext())
-      {
-        CallbackHandler handler = iterator.next();
-        // simply compare reference
-        if (handler.getListener().equals(listener))
-        {
-          handler.reset();
-          iterator.remove();
-        }
-      }
-    }
-
-    return true;
-  }
-
   private void addLiveInstance()
   {
     LiveInstance liveInstance = new LiveInstance(_instanceName);
     liveInstance.setSessionId(_sessionId);
     liveInstance.setHelixVersion(_version);
     liveInstance.setLiveInstance(ManagementFactory.getRuntimeMXBean().getName());
+    
+    if(_liveInstanceInfoProvider != null)
+    {
+      logger.info("invoking _liveInstanceInfoProvider");
+      ZNRecord additionalLiveInstanceInfo = _liveInstanceInfoProvider.getAdditionalLiveInstanceInfo();
+      if(additionalLiveInstanceInfo != null)
+      {
+        additionalLiveInstanceInfo.merge(liveInstance.getRecord());
+        ZNRecord mergedLiveInstance = new ZNRecord(additionalLiveInstanceInfo, _instanceName);
+        liveInstance = new LiveInstance(mergedLiveInstance);
+        logger.info("liveInstance content :" + _instanceName + " " + liveInstance.toString());
+      }
+    }
 
     logger.info("Add live instance: InstanceName: " + _instanceName + " Session id:"
         + _sessionId);
@@ -638,7 +627,7 @@ public class ZKHelixManager implements HelixManager
     }
   }
 
-  private CallbackHandler createCallBackHandler(String path,
+  private CallbackHandler createCallBackHandler(PropertyKey propertyKey,
                                                 Object listener,
                                                 EventType[] eventTypes,
                                                 ChangeType changeType)
@@ -647,7 +636,7 @@ public class ZKHelixManager implements HelixManager
     {
       throw new HelixException("Listener cannot be null");
     }
-    return new CallbackHandler(this, _zkClient, path, listener, eventTypes, changeType);
+    return new CallbackHandler(this, _zkClient, propertyKey, listener, eventTypes, changeType);
   }
 
   /**
@@ -682,7 +671,10 @@ public class ZKHelixManager implements HelixManager
     }
     _baseDataAccessor.reset();
 
+    // reset all handlers so they have a chance to unsubscribe zk changes from zkclient
+    // abandon all callback-handlers added in expired session
     resetHandlers();
+    _handlers = new ArrayList<CallbackHandler>();
 
     logger.info("Handling new session, session id:" + _sessionId + ", instance:"
         + _instanceName + ", instanceTye: " + _instanceType + ", cluster: " + _clusterName);
@@ -694,10 +686,43 @@ public class ZKHelixManager implements HelixManager
       throw new HelixException("Initial cluster structure is not set up for cluster:"
           + _clusterName);
     }
-    if (!isInstanceSetup())
+    // Read cluster config and see if instance can auto join the cluster
+    boolean autoJoin = false;
+    try
     {
-      throw new HelixException("Initial cluster structure is not set up for instance:"
+      ConfigScope scope =
+          new ConfigScopeBuilder().forCluster(getClusterName())
+                                  .build();
+      autoJoin = Boolean.parseBoolean(getConfigAccessor().get(scope, ALLOW_PARTICIPANT_AUTO_JOIN));
+      logger.info("Auto joining " + _clusterName +" is true");
+    }
+    catch(Exception e)
+    {
+    }
+    if (!ZKUtil.isInstanceSetup(_zkClient, _clusterName, _instanceName, _instanceType))
+    {
+      if(!autoJoin)
+      {
+        throw new HelixException("Initial cluster structure is not set up for instance:"
           + _instanceName + " instanceType:" + _instanceType);
+      }
+      else
+      {
+        logger.info("Auto joining instance " + _instanceName);
+        InstanceConfig instanceConfig = new InstanceConfig(_instanceName);
+        String hostName = _instanceName;
+        String port = "";
+        int lastPos = _instanceName.lastIndexOf("_");
+        if (lastPos > 0)
+        {
+          hostName = _instanceName.substring(0, lastPos);
+          port = _instanceName.substring(lastPos + 1);
+        }
+        instanceConfig.setHostName(hostName);
+        instanceConfig.setPort(port);
+        instanceConfig.setInstanceEnabled(true);
+        getClusterManagmentTool().addInstance(_clusterName, instanceConfig);
+      }
     }
 
     if (_instanceType == InstanceType.PARTICIPANT
@@ -726,22 +751,16 @@ public class ZKHelixManager implements HelixManager
                        .registerMessageHandlerFactory(defaultParticipantErrorMessageHandlerFactory.getMessageType(),
                                                       defaultParticipantErrorMessageHandlerFactory);
 
-      if (_leaderElectionHandler == null)
-      {
-        final String path =
-            PropertyPathConfig.getPath(PropertyType.CONTROLLER, _clusterName);
-
-        _leaderElectionHandler =
-            createCallBackHandler(path,
+      // create a new leader-election handler for a new session
+      if (_leaderElectionHandler != null) {
+    	  _leaderElectionHandler.reset();
+      }
+      _leaderElectionHandler =
+            createCallBackHandler(new Builder(_clusterName).controller(),
                                   new DistClusterControllerElection(_zkConnectString),
                                   new EventType[] { EventType.NodeChildrenChanged,
                                       EventType.NodeDeleted, EventType.NodeCreated },
                                   ChangeType.CONTROLLER);
-      }
-      else
-      {
-        _leaderElectionHandler.init();
-      }
     }
 
     if (_instanceType == InstanceType.PARTICIPANT
@@ -797,6 +816,9 @@ public class ZKHelixManager implements HelixManager
                                                     _stateMachEngine);
     addMessageListener(_messagingService.getExecutor(), _instanceName);
     addControllerListener(_helixAccessor);
+    
+    ScheduledTaskStateModelFactory stStateModelFactory = new ScheduledTaskStateModelFactory(_messagingService.getExecutor());
+    _stateMachEngine.registerStateModelFactory(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE, stStateModelFactory);
 
     if (_participantHealthCheckInfoCollector == null)
     {
@@ -826,42 +848,38 @@ public class ZKHelixManager implements HelixManager
   {
     synchronized (this)
     {
-      // get a copy of the list and iterate over the copy list
-      // in case handler.reset() will modify the original handler list
-      List<CallbackHandler> handlers = new ArrayList<CallbackHandler>();
-      handlers.addAll(_handlers);
+    	if (_handlers != null)
+        {
+            // get a copy of the list and iterate over the copy list
+            // in case handler.reset() will modify the original handler list
+            List<CallbackHandler> tmpHandlers = new ArrayList<CallbackHandler>();
+            tmpHandlers.addAll(_handlers);
 
-      for (CallbackHandler handler : handlers)
-      {
-        handler.reset();
-        logger.info("reset handler: " + handler.getPath() + " by "
-            + Thread.currentThread().getName());
-      }
+            for (CallbackHandler handler : tmpHandlers)
+            {
+              handler.reset();
+              logger.info("reset handler: " + handler.getPath() + ", " + handler.getListener());
+            }
+        }
     }
   }
 
   private void initHandlers()
   {
-    // may add new currentState and message listeners during init()
-    // so make a copy and iterate over the copy
     synchronized (this)
     {
-      List<CallbackHandler> handlers = new ArrayList<CallbackHandler>();
-      handlers.addAll(_handlers);
-      for (CallbackHandler handler : handlers)
-      {
-        handler.init();
-      }
-    }
-  }
-
-  private void addListener(CallbackHandler handler)
-  {
-    synchronized (this)
-    {
-      _handlers.add(handler);
-      logger.info("add handler: " + handler.getPath() + " by "
-          + Thread.currentThread().getName());
+    	if (_handlers != null)
+    	{
+    	  // may add new currentState and message listeners during init()
+    	  // so make a copy and iterate over the copy
+    	  List<CallbackHandler> tmpHandlers = new ArrayList<CallbackHandler>();
+    	  tmpHandlers.addAll(_handlers);
+          for (CallbackHandler handler : tmpHandlers)
+          {
+            handler.init();
+            logger.info("init handler: " + handler.getPath() + ", " + handler.getListener());
+          }
+    	}
     }
   }
 
@@ -901,61 +919,56 @@ public class ZKHelixManager implements HelixManager
     return true;
   }
 
+  /**
+   * carry over current-states from last sessions
+   * set to initial state for current session only when the state doesn't exist in current session
+   */
   private void carryOverPreviousCurrentState()
   {
     Builder keyBuilder = _helixAccessor.keyBuilder();
+    List<String> sessions = _helixAccessor.getChildNames(keyBuilder.sessions(_instanceName));
+    
+    // carry-over
+    for (String session : sessions) {
+      if (session.equals(_sessionId)) {
+        continue;
+      }
+      
+      List<CurrentState> lastCurStates = 
+          _helixAccessor.getChildValues(keyBuilder.currentStates(_instanceName, session));
 
-    List<String> subPaths =
-        _helixAccessor.getChildNames(keyBuilder.sessions(_instanceName));
-    for (String previousSessionId : subPaths)
-    {
-      List<CurrentState> previousCurrentStates =
-          _helixAccessor.getChildValues(keyBuilder.currentStates(_instanceName,
-                                                                 previousSessionId));
-
-      for (CurrentState previousCurrentState : previousCurrentStates)
-      {
-        if (!previousSessionId.equalsIgnoreCase(_sessionId))
+      for (CurrentState lastCurState : lastCurStates) {
+        logger.info("Carrying over old session: " + session + ", resource: "
+            + lastCurState.getId() + " to current session: " + _sessionId);
+        String stateModelDefRef = lastCurState.getStateModelDefRef();
+        if (stateModelDefRef == null)
         {
-          logger.info("Carrying over old session:" + previousSessionId + " resource "
-              + previousCurrentState.getId() + " to new session:" + _sessionId);
-          String stateModelDefRef = previousCurrentState.getStateModelDefRef();
-          if (stateModelDefRef == null)
-          {
-            logger.error("pervious current state doesn't have a state model def. skip it. prevCS: "
-                + previousCurrentState);
-            continue;
-          }
-          StateModelDefinition stateModel =
-              _helixAccessor.getProperty(keyBuilder.stateModelDef(stateModelDefRef));
-          for (String partitionName : previousCurrentState.getPartitionStateMap()
-                                                          .keySet())
-          {
-
-            previousCurrentState.setState(partitionName, stateModel.getInitialState());
-          }
-          previousCurrentState.setSessionId(_sessionId);
-          _helixAccessor.setProperty(keyBuilder.currentState(_instanceName,
-                                                             _sessionId,
-                                                             previousCurrentState.getId()),
-                                     previousCurrentState);
+          logger.error("skip carry-over because previous current state doesn't have a state model definition. previous current-state: "
+              + lastCurState);
+          continue;
         }
+        StateModelDefinition stateModel =
+            _helixAccessor.getProperty(keyBuilder.stateModelDef(stateModelDefRef));
+
+        String curStatePath = keyBuilder.currentState(_instanceName, _sessionId, lastCurState.getResourceName()).getPath();
+        _helixAccessor.getBaseDataAccessor().update(curStatePath, 
+           new CurStateCarryOverUpdater(_sessionId, stateModel.getInitialState(), lastCurState), AccessOption.PERSISTENT);
       }
     }
-    // Deleted old current state
-    for (String previousSessionId : subPaths)
+    
+    // remove previous current states
+    for (String session : sessions)
     {
-      if (!previousSessionId.equalsIgnoreCase(_sessionId))
-      {
-        String path =
-            _helixAccessor.keyBuilder()
-                          .currentStates(_instanceName, previousSessionId)
-                          .getPath();
-        logger.info("Deleting previous current state. path: " + path + "/"
-            + previousSessionId);
-        _zkClient.deleteRecursive(path);
-
+      if (session.equals(_sessionId)) {
+        continue;
       }
+
+      String path =
+          _helixAccessor.keyBuilder()
+                        .currentStates(_instanceName, session)
+                        .getPath();
+      logger.info("Removing current states from previous sessions. path: " + path);
+      _zkClient.deleteRecursive(path);
     }
   }
 
@@ -1035,11 +1048,6 @@ public class ZKHelixManager implements HelixManager
     return _stateMachEngine;
   }
 
-  protected List<CallbackHandler> getHandlers()
-  {
-    return _handlers;
-  }
-
   // TODO: rename this and not expose this function as part of interface
   @Override
   public void startTimerTasks()
@@ -1058,5 +1066,12 @@ public class ZKHelixManager implements HelixManager
     {
       task.stop();
     }
+  }
+
+  @Override
+  public void setLiveInstanceInfoProvider(
+      LiveInstanceInfoProvider liveInstanceInfoProvider)
+  {
+    _liveInstanceInfoProvider = liveInstanceInfoProvider;
   }
 }

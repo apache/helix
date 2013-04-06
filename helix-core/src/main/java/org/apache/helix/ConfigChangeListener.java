@@ -26,6 +26,7 @@ import org.apache.helix.model.InstanceConfig;
 
 /**
  * 
+ * @deprecated replaced by InstanceConfigChangeListener
  */
 public interface ConfigChangeListener
 {

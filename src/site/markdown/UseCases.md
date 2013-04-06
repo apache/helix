@@ -41,7 +41,7 @@ For fault tolerance, it adds the constraint that no two replicas of the same par
 Espresso follows a Master-Slave state model. A replica can be in Offline,Slave or Master state. 
 The state machine table describes the next state given the Current State, Final State
 
-<pre><code>
+```
           OFFLINE  | SLAVE  |  MASTER  
          _____________________________
         |          |        |         |
@@ -54,7 +54,7 @@ SLAVE   |  OFFLINE |   N/A  | MASTER  |
 MASTER  | SLAVE    | SLAVE  |   N/A   |
         |__________|________|_________|
 
-</code></pre>
+```
 
 ### Constraints
 * Max number of replicas in Master state:1

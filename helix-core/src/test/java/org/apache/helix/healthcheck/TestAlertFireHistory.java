@@ -24,15 +24,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.apache.helix.ConfigScope;
-import org.apache.helix.ConfigScopeBuilder;
+import org.apache.helix.model.ConfigScope;
+import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.healthcheck.HealthStatsAggregationTask;
-import org.apache.helix.integration.ZkStandAloneCMTestBase;
 import org.apache.helix.integration.ZkStandAloneCMTestBaseWithPropertyServerCheck;
 import org.apache.helix.model.AlertHistory;
 import org.apache.helix.model.HealthStat;
@@ -206,14 +204,25 @@ public class TestAlertFireHistory extends ZkStandAloneCMTestBaseWithPropertyServ
     int [] metrics6 = {0, 0, 0, 0,0};
     setHealthData(metrics5, metrics6);
     task.run();
-    Thread.sleep(500);
-    history = helixDataAccessor.getProperty(keyBuilder.alertHistory()).getRecord();
+    
+    for (int i = 0; i < 10; i++) 
+    {
+        Thread.sleep(500);
+        history = helixDataAccessor.getProperty(keyBuilder.alertHistory()).getRecord();
+        recordMap = new TreeMap<String, Map<String, String>>();
+        recordMap.putAll( history.getMapFields());
+        lastRecord = recordMap.lastEntry().getValue();
+
+        if (history.getMapFields().size() == 3 + historySize && lastRecord.size() == 6) {
+        	break;
+        }
+    }
+    
     // reset everything
-    Assert.assertEquals(history.getMapFields().size(), 3 + historySize);
-    recordMap = new TreeMap<String, Map<String, String>>();
-    recordMap.putAll( history.getMapFields());
-    lastRecord = recordMap.lastEntry().getValue();
-    Assert.assertTrue(lastRecord.size() == 6);
+    Assert.assertEquals(history.getMapFields().size(), 3 + historySize, 
+    		"expect history-map-field size is " + (3 + historySize) + ", but was " + history);
+    Assert.assertTrue(lastRecord.size() == 6, "expect last-record size is 6, but was " + lastRecord);
+    
     Assert.assertTrue(lastRecord.get("(localhost_12918.TestStat@DB#db1.TestMetric1)GREATER(20)").equals("OFF"));
     Assert.assertTrue(lastRecord.get("(localhost_12920.TestStat@DB#db1.TestMetric1)GREATER(20)").equals("OFF"));
     Assert.assertTrue(lastRecord.get("(localhost_12920.TestStat@DB#db1.TestMetric2)GREATER(100)").equals("OFF"));
@@ -290,15 +299,19 @@ public class TestAlertFireHistory extends ZkStandAloneCMTestBaseWithPropertyServ
       
       setHealthData(metricsx, metricsy);
       task.run();
-      Thread.sleep(100);
-      history = helixDataAccessor.getProperty(keyBuilder.alertHistory()).getRecord();
+      for (int j = 0; j < 10; j++) {
+          Thread.sleep(100);
+          history = helixDataAccessor.getProperty(keyBuilder.alertHistory()).getRecord();
+          recordMap = new TreeMap<String, Map<String, String>>();
+          recordMap.putAll( history.getMapFields());
+          lastRecord = recordMap.lastEntry().getValue();
+          
+          if (history.getMapFields().size() == 30 && lastRecord.size() == 10)
+        	  break;
+      }
+      Assert.assertEquals(history.getMapFields().size(), 30, "expect history.map-field size is 30, but was " + history);
+      Assert.assertEquals(lastRecord.size() , 10, "expect last-record size is 10, but was " + lastRecord);
       
-      Assert.assertEquals(history.getMapFields().size(), 30);
-      recordMap = new TreeMap<String, Map<String, String>>();
-      recordMap.putAll( history.getMapFields());
-      lastRecord = recordMap.lastEntry().getValue();
-      
-      Assert.assertEquals(lastRecord.size() , 10);
       if(x == 0)
       {
         Assert.assertTrue(lastRecord.get("(localhost_12922.TestStat@DB#db1.TestMetric2)GREATER(100)").equals("ON"));

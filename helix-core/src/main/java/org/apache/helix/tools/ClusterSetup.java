@@ -23,9 +23,7 @@ import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -42,8 +40,9 @@ import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.apache.helix.ConfigScope;
-import org.apache.helix.ConfigScopeBuilder;
+import org.apache.helix.model.ConfigScope;
+import org.apache.helix.model.builder.ConfigScopeBuilder;
+import org.apache.helix.model.builder.ConstraintItemBuilder;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixException;
 import org.apache.helix.ZNRecord;
@@ -54,12 +53,17 @@ import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.model.ClusterConstraints;
+import org.apache.helix.model.ClusterConstraints.ConstraintType;
+import org.apache.helix.model.ConstraintItem;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.IdealState.IdealStateModeProperty;
+import org.apache.helix.store.PropertyJsonSerializer;
+import org.apache.helix.util.HelixUtil;
 import org.apache.helix.util.ZKClientPool;
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.JsonGenerationException;
@@ -71,7 +75,7 @@ public class ClusterSetup
   private static Logger logger = Logger.getLogger(ClusterSetup.class);
   public static final String zkServerAddress = "zkSvr";
 
-  // List info about the cluster / DB/ Instances
+  // List info about the cluster / resource / Instances
   public static final String listClusters = "listClusters";
   public static final String listResources = "listResources";
   public static final String listInstances = "listInstances";
@@ -91,10 +95,16 @@ public class ClusterSetup
   public static final String expandCluster = "expandCluster";
   public static final String expandResource = "expandResource";
   public static final String mode = "mode";
+  public static final String instanceGroupTag = "instanceGroupTag";
   public static final String bucketSize = "bucketSize";
   public static final String resourceKeyPrefix = "key";
+  public static final String maxPartitionsPerNode = "maxPartitionsPerNode";
+  
   public static final String addResourceProperty = "addResourceProperty";
   public static final String removeResourceProperty = "removeResourceProperty";
+  
+  public static final String addInstanceTag = "addInstanceTag";
+  public static final String removeInstanceTag = "removeInstanceTag";
 
   // Query info (TBD in V2)
   public static final String listClusterInfo = "listClusterInfo";
@@ -121,10 +131,15 @@ public class ClusterSetup
   public static final String dropStat = "dropStat";
   public static final String dropAlert = "dropAlert";
 
-  // get/set configs
+  // get/set/remove configs
   public static final String getConfig = "getConfig";
   public static final String setConfig = "setConfig";
   public static final String removeConfig = "removeConfig";
+  
+  // get/set/remove constraints
+  public static final String getConstraints = "getConstraints";
+  public static final String setConstraint = "setConstraint";
+  public static final String removeConstraint = "removeConstraint";
 
   static Logger _logger = Logger.getLogger(ClusterSetup.class);
   String _zkServerAddress;
@@ -149,19 +164,22 @@ public class ClusterSetup
   {
     _admin.addCluster(clusterName, overwritePrevious);
 
-    StateModelConfigGenerator generator = new StateModelConfigGenerator();
+    // StateModelConfigGenerator generator = new StateModelConfigGenerator();
     addStateModelDef(clusterName,
                      "MasterSlave",
-                     new StateModelDefinition(generator.generateConfigForMasterSlave()));
+                     new StateModelDefinition(StateModelConfigGenerator.generateConfigForMasterSlave()));
     addStateModelDef(clusterName,
                      "LeaderStandby",
-                     new StateModelDefinition(generator.generateConfigForLeaderStandby()));
+                     new StateModelDefinition(StateModelConfigGenerator.generateConfigForLeaderStandby()));
     addStateModelDef(clusterName,
                      "StorageSchemata",
-                     new StateModelDefinition(generator.generateConfigForStorageSchemata()));
+                     new StateModelDefinition(StateModelConfigGenerator.generateConfigForStorageSchemata()));
     addStateModelDef(clusterName,
                      "OnlineOffline",
-                     new StateModelDefinition(generator.generateConfigForOnlineOffline()));
+                     new StateModelDefinition(StateModelConfigGenerator.generateConfigForOnlineOffline()));
+    addStateModelDef(clusterName,
+                     "ScheduledTask",
+                     new StateModelDefinition(StateModelConfigGenerator.generateConfigForScheduledTaskQueue()));
   }
 
   public void activateCluster(String clusterName, String grandCluster, boolean enable)
@@ -428,6 +446,23 @@ public class ClusterSetup
                        idealStateMode,
                        bucketSize);
   }
+  
+  public void addResourceToCluster(String clusterName,
+      String resourceName,
+      int numResources,
+      String stateModelRef,
+      String idealStateMode,
+      int bucketSize,
+      int maxPartitionsPerInstance)
+  {
+    _admin.addResource(clusterName,
+      resourceName,
+      numResources,
+      stateModelRef,
+      idealStateMode,
+      bucketSize,
+      maxPartitionsPerInstance);
+  }
 
   public void dropResourceFromCluster(String clusterName, String resourceName)
   {
@@ -440,7 +475,7 @@ public class ClusterSetup
     rebalanceStorageCluster(clusterName, resourceName, replica, resourceName);
   }
 
-  public void reblanceResource(String clusterName, String resourceName, int replica)
+  public void rebalanceResource(String clusterName, String resourceName, int replica)
   {
     rebalanceStorageCluster(clusterName, resourceName, replica, resourceName); 
   }
@@ -518,42 +553,48 @@ public class ClusterSetup
                                       int replica,
                                       String keyPrefix)
   {
-    _admin.rebalance(clusterName, resourceName, replica);
+    _admin.rebalance(clusterName, resourceName, replica, keyPrefix, "");
+  }
+  
+  
+  public void rebalanceStorageCluster(String clusterName,
+      String resourceName,
+      int replica,
+      String keyPrefix, String group)
+  {
+    _admin.rebalance(clusterName, resourceName, replica, keyPrefix, group);
+  }
+  
+  public void rebalanceStorageCluster(String clusterName,
+      String resourceName, String group,
+      int replica)
+  {
+    _admin.rebalance(clusterName, resourceName, replica, resourceName, group);
+  }
+
+  
+  /**
+   * set config
+   * 
+   * @param scopesKeyValuePairs : csv-formated scope key-value pair. e.g CLUSTER=MyCluster,RESOURCE=MyDB,... 
+   *                      where scope-key could be: CLUSTER, RESOURCE, PARTICIPANT, and PARTITION
+   * @param keyValuePairs : csv-formatted key-value pairs. e.g. k1=v1,k2=v2,...
+   */
+  public void setConfig(String scopesKeyValuePairs, String keyValuePairs)
+  {
+    ConfigScope scope = new ConfigScopeBuilder().build(scopesKeyValuePairs);
+
+    Map<String, String> keyValueMap = HelixUtil.parseCsvFormatedKeyValuePairs(keyValuePairs);
+    _admin.setConfig(scope, keyValueMap);
   }
 
   /**
-   * setConfig
+   * remove config
    * 
-   * @param scopeStr
-   *          : scope=value, ... where scope=CLUSTER, RESOURCE, PARTICIPANT, PARTITION
-   * @param properitesStr
-   *          : key=value, ... which represents a Map<String, String>
+   * @param scopesStr : comma-separated scope key-value pair. e.g CLUSTER=MyCluster,RESOURCE=MyDB,... 
+   *                      where scope-key could be: CLUSTER, RESOURCE, PARTICIPANT, and PARTITION
+   * @param keysStr : comma-separated keys. e.g. k1,k2...
    */
-  public void setConfig(String scopesStr, String propertiesStr)
-  {
-    ConfigScope scope = new ConfigScopeBuilder().build(scopesStr);
-
-    // parse properties
-    String[] properties = propertiesStr.split("[\\s,]");
-    Map<String, String> propertiesMap = new TreeMap<String, String>();
-    for (String property : properties)
-    {
-      int idx = property.indexOf('=');
-      if (idx == -1)
-      {
-        logger.error("Invalid property string: " + property);
-        continue;
-      }
-
-      String key = property.substring(0, idx);
-      String value = property.substring(idx + 1);
-      propertiesMap.put(key, value);
-    }
-    logger.debug("propertiesMap: " + propertiesMap);
-
-    _admin.setConfig(scope, propertiesMap);
-  }
-
   public void removeConfig(String scopesStr, String keysStr)
   {
     ConfigScope scope = new ConfigScopeBuilder().build(scopesStr);
@@ -565,8 +606,17 @@ public class ClusterSetup
     _admin.removeConfig(scope, keysSet);
   }
 
+  /**
+   * get config
+   * 
+   * @param scopesStr : comma-separated scope key-value pair. e.g CLUSTER=MyCluster,RESOURCE=MyDB,... 
+   *                      where scope-key could be: CLUSTER, RESOURCE, PARTICIPANT, and PARTITION
+   * @param keysStr :  comma-separated keys. e.g. k1,k2...
+   * @return : json-formated key-value pair. e.g. {k1=v1,k2=v2,...}
+   */
   public String getConfig(String scopesStr, String keysStr)
   {
+    
     ConfigScope scope = new ConfigScopeBuilder().build(scopesStr);
 
     // parse keys
@@ -574,31 +624,65 @@ public class ClusterSetup
     Set<String> keysSet = new HashSet<String>(Arrays.asList(keys));
 
     Map<String, String> propertiesMap = _admin.getConfig(scope, keysSet);
-    StringBuffer sb = new StringBuffer();
-    for (String key : keys)
-    {
-      if (propertiesMap.containsKey(key))
-      {
-        if (sb.length() > 0)
-        {
-          sb.append("," + key + "=" + propertiesMap.get(key));
-        }
-        else
-        {
-          // sb.length()==0 means the first key=value
-          sb.append(key + "=" + propertiesMap.get(key));
-        }
-      }
-      else
-      {
-        logger.error("Config doesn't exist for key: " + key);
-      }
-    }
-
-    System.out.println(sb.toString());
-    return sb.toString();
+    ZNRecord record = new ZNRecord(scopesStr);
+    record.setMapField(scopesStr, propertiesMap);
+    ZNRecordSerializer serializer = new ZNRecordSerializer();
+    return new String(serializer.serialize(record));
   }
 
+  /**
+   * set constraint
+   * 
+   * @param clusterName
+   * @param constraintType
+   * @param constraintId
+   * @param constraintAttributesMap : csv-formated constraint key-value pairs
+   */
+  public void setConstraint(String clusterName, String constraintType, String constraintId, String constraintAttributesMap) {
+    if (clusterName == null || constraintType == null || constraintId == null || constraintAttributesMap == null) {
+      throw new IllegalArgumentException("fail to set constraint. missing clusterName|constraintType|constraintId|constraintAttributesMap");
+    }
+    
+    ConstraintType type = ConstraintType.valueOf(constraintType);
+    ConstraintItemBuilder builder = new ConstraintItemBuilder();
+    Map<String, String> constraintAttributes = HelixUtil.parseCsvFormatedKeyValuePairs(constraintAttributesMap);
+    ConstraintItem constraintItem = builder.addConstraintAttributes(constraintAttributes).build();
+    _admin.setConstraint(clusterName, type, constraintId, constraintItem);
+  }
+  
+  /**
+   * remove constraint
+   * 
+   * @param clusterName
+   * @param constraintType
+   * @param constraintId
+   */
+  public void removeConstraint(String clusterName, String constraintType, String constraintId) {
+    if (clusterName == null || constraintType == null || constraintId == null) {
+      throw new IllegalArgumentException("fail to remove constraint. missing clusterName|constraintType|constraintId");
+    }
+
+    ConstraintType type = ConstraintType.valueOf(constraintType);
+    _admin.removeConstraint(clusterName, type, constraintId);
+  }
+  
+  /**
+   * get constraints associated with given type
+   * 
+   * @param constraintType : constraint-type. e.g. MESSAGE_CONSTRAINT
+   * @return json-formated constraints
+   */
+  public String getConstraints(String clusterName, String constraintType) {
+    if (clusterName == null || constraintType == null) {
+      throw new IllegalArgumentException("fail to get constraint. missing clusterName|constraintType");
+    }
+
+    ConstraintType type = ConstraintType.valueOf(constraintType);
+    ClusterConstraints constraints = _admin.getConstraints(clusterName, type);
+    ZNRecordSerializer serializer = new ZNRecordSerializer();
+    return new String(serializer.serialize(constraints.getRecord()));
+  }
+  
   /**
    * Sets up a cluster with 6 Instances[localhost:8900 to localhost:8905], 1
    * resource[EspressoDB] with a replication factor of 3
@@ -735,6 +819,14 @@ public class ClusterSetup
     resourceBucketSizeOption.setArgs(1);
     resourceBucketSizeOption.setRequired(false);
     resourceBucketSizeOption.setArgName("Size of a bucket for a resource");
+    
+    Option maxPartitionsPerNodeOption =
+        OptionBuilder.withLongOpt(maxPartitionsPerNode)
+                     .withDescription("Specify max partitions per node, used with addResourceGroup command")
+                     .create();
+    maxPartitionsPerNodeOption.setArgs(1);
+    maxPartitionsPerNodeOption.setRequired(false);
+    maxPartitionsPerNodeOption.setArgName("Max partitions per node for a resource");
 
     Option resourceKeyOption =
         OptionBuilder.withLongOpt(resourceKeyPrefix)
@@ -743,6 +835,14 @@ public class ClusterSetup
     resourceKeyOption.setArgs(1);
     resourceKeyOption.setRequired(false);
     resourceKeyOption.setArgName("Resource key prefix");
+    
+    Option instanceGroupTagOption =
+        OptionBuilder.withLongOpt(instanceGroupTag)
+                     .withDescription("Specify instance group tag, used with rebalance command")
+                     .create();
+    instanceGroupTagOption.setArgs(1);
+    instanceGroupTagOption.setRequired(false);
+    instanceGroupTagOption.setArgName("Instance group tag");
 
     Option addStateModelDefOption =
         OptionBuilder.withLongOpt(addStateModelDef)
@@ -916,7 +1016,20 @@ public class ClusterSetup
     addAlertOption.setArgs(2);
     addAlertOption.setRequired(false);
     addAlertOption.setArgName("clusterName alertName");
-
+    
+    Option addInstanceTagOption =
+        OptionBuilder.withLongOpt(addInstanceTag)
+                     .withDescription("Add a tag to instance")
+                     .create();
+    addInstanceTagOption.setArgs(3);
+    addInstanceTagOption.setRequired(false);
+    addInstanceTagOption.setArgName("clusterName instanceName tag");
+    Option removeInstanceTagOption =
+        OptionBuilder.withLongOpt(removeInstanceTag).withDescription("Remove tag from instance").create();
+    removeInstanceTagOption.setArgs(3);
+    removeInstanceTagOption.setRequired(false);
+    removeInstanceTagOption.setArgName("clusterName instanceName tag");
+    
     Option dropStatOption =
         OptionBuilder.withLongOpt(dropStat)
                      .withDescription("Drop a persistent stat")
@@ -930,25 +1043,65 @@ public class ClusterSetup
     dropAlertOption.setRequired(false);
     dropAlertOption.setArgName("clusterName alertName");
 
-    // set/get configs option
-    Option setConfOption =
-        OptionBuilder.withLongOpt(setConfig).withDescription("Set a config").create();
-    setConfOption.setArgs(2);
-    setConfOption.setRequired(false);
-    setConfOption.setArgName("ConfigScope(e.g. CLUSTER=cluster,RESOURCE=rc,...) KeyValueMap(e.g. k1=v1,k2=v2,...)");
+    // TODO need deal with resource-names containing ","
+    // set/get/remove configs options
+    Option setConfOption = 
+        OptionBuilder.hasArgs(2)
+                     .isRequired(false)
+                     .withArgName("ConfigScope(e.g. CLUSTER=cluster,RESOURCE=rc,...) KeyValueMap(e.g. k1=v1,k2=v2,...)")
+                     .withLongOpt(setConfig)
+                     .withDescription("Set a config")
+                     .create();
 
-    Option getConfOption =
-        OptionBuilder.withLongOpt(getConfig).withDescription("Get a config").create();
-    getConfOption.setArgs(2);
-    getConfOption.setRequired(false);
-    getConfOption.setArgName("ConfigScope(e.g. CLUSTER=cluster,RESOURCE=rc,...) KeySet(e.g. k1,k2,...)");
+    Option getConfOption = 
+        OptionBuilder.hasArgs(2)
+                     .isRequired(false)
+                     .withArgName("ConfigScope(e.g. CLUSTER=cluster,RESOURCE=rc,...) KeySet(e.g. k1,k2,...)")
+                     .withLongOpt(getConfig)
+                     .withDescription("Get a config")
+                     .create();
+    
+    Option removeConfOption = 
+        OptionBuilder.hasArgs(2)
+                     .isRequired(false)
+                     .withArgName("ConfigScope(e.g. CLUSTER=cluster,RESOURCE=rc,...) KeySet(e.g. k1,k2,...)")
+                     .withLongOpt(getConfig)
+                     .withDescription("Remove a config")
+                     .create();
+    
+    // set/get/remove constraints options
+    Option setConstraintOption = 
+        OptionBuilder.hasArgs(4)
+                     .isRequired(false)
+                     .withArgName("clusterName ConstraintType(e.g. MESSAGE_CONSTRAINT) ConstraintId ConstraintAttributesMap(e.g. attribute1=valule1,attribute2=value2,...)")
+                     .withLongOpt(setConstraint)
+                     .withDescription("Set a constraint associated with a give id. create if not exist")
+                     .create();
 
+    Option getConstraintsOption = 
+        OptionBuilder.hasArgs(2)
+                     .isRequired(false)
+                     .withArgName("clusterName ConstraintType(e.g. MESSAGE_CONSTRAINT)")
+                     .withLongOpt(getConstraints)
+                     .withDescription("Get constraints associated with given type")
+                     .create();
+
+    Option removeConstraintOption = 
+        OptionBuilder.hasArgs(3)
+                     .isRequired(false)
+                     .withArgName("clusterName ConstraintType(e.g. MESSAGE_CONSTRAINT) ConstraintId")
+                     .withLongOpt(removeConstraint)
+                     .withDescription("Remove a constraint associated with given id")
+                     .create();
+
+    
     OptionGroup group = new OptionGroup();
     group.setRequired(true);
     group.addOption(rebalanceOption);
     group.addOption(addResourceOption);
     group.addOption(resourceModeOption);
     group.addOption(resourceBucketSizeOption);
+    group.addOption(maxPartitionsPerNodeOption);
     group.addOption(expandResourceOption);
     group.addOption(expandClusterOption);
     group.addOption(resourceKeyOption);
@@ -981,10 +1134,23 @@ public class ClusterSetup
     group.addOption(addAlertOption);
     group.addOption(dropStatOption);
     group.addOption(dropAlertOption);
-    group.addOption(setConfOption);
-    group.addOption(getConfOption);
     group.addOption(addResourcePropertyOption);
     group.addOption(removeResourcePropertyOption);
+    
+    // set/get/remove config options
+    group.addOption(setConfOption);
+    group.addOption(getConfOption);
+    group.addOption(removeConfOption);
+    
+    // set/get/remove constraint options
+    group.addOption(setConstraintOption);
+    group.addOption(getConstraintsOption);
+    group.addOption(removeConstraintOption);
+
+    group.addOption(addInstanceTagOption);
+    group.addOption(removeInstanceTagOption);
+    group.addOption(instanceGroupTagOption);
+
 
     Options options = new Options();
     options.addOption(helpOption);
@@ -1080,13 +1246,19 @@ public class ClusterSetup
       {
         bucketSizeVal = Integer.parseInt(cmd.getOptionValues(bucketSize)[0]);
       }
-
+      
+      int maxPartitionsPerNodeVal = -1;
+      if (cmd.hasOption(maxPartitionsPerNode))
+      {
+        maxPartitionsPerNodeVal = Integer.parseInt(cmd.getOptionValues(maxPartitionsPerNode)[0]);
+      }
       setupTool.addResourceToCluster(clusterName,
                                      resourceName,
                                      partitions,
                                      stateModelRef,
                                      modeValue,
-                                     bucketSizeVal);
+                                     bucketSizeVal,
+                                     maxPartitionsPerNodeVal);
       return 0;
     }
 
@@ -1095,15 +1267,17 @@ public class ClusterSetup
       String clusterName = cmd.getOptionValues(rebalance)[0];
       String resourceName = cmd.getOptionValues(rebalance)[1];
       int replicas = Integer.parseInt(cmd.getOptionValues(rebalance)[2]);
+      String keyPrefixVal = "";
+      String instanceGroupTagVal = "";
       if (cmd.hasOption(resourceKeyPrefix))
       {
-        setupTool.rebalanceStorageCluster(clusterName,
-                                          resourceName,
-                                          replicas,
-                                          cmd.getOptionValue(resourceKeyPrefix));
-        return 0;
+        keyPrefixVal = cmd.getOptionValue(resourceKeyPrefix);
       }
-      setupTool.rebalanceStorageCluster(clusterName, resourceName, replicas);
+      if (cmd.hasOption(instanceGroupTag))
+      {
+        instanceGroupTagVal = cmd.getOptionValue(instanceGroupTag);
+      }
+      setupTool.rebalanceStorageCluster(clusterName, resourceName, replicas, keyPrefixVal, instanceGroupTagVal);
       return 0;
     }
 
@@ -1205,7 +1379,7 @@ public class ClusterSetup
     }
     else if (cmd.hasOption(listResourceInfo))
     {
-      // print out partition number, db name and replication number
+      // print out partition number, resource name and replication number
       // Also the ideal states and current states
       String clusterName = cmd.getOptionValues(listResourceInfo)[0];
       String resourceName = cmd.getOptionValues(listResourceInfo)[1];
@@ -1475,18 +1649,58 @@ public class ClusterSetup
 
       setupTool.swapInstance(clusterName, oldInstanceName, newInstanceName);
     }
-    else if (cmd.hasOption(setConfig))
-    {
-      String scopeStr = cmd.getOptionValues(setConfig)[0];
-      String propertiesStr = cmd.getOptionValues(setConfig)[1];
+    // set/get/remove config options
+    else if (cmd.hasOption(setConfig)) {
+      String values[] = cmd.getOptionValues(setConfig);
+      String scopeStr = values[0];
+      String propertiesStr = values[1];
       setupTool.setConfig(scopeStr, propertiesStr);
+    } else if (cmd.hasOption(getConfig)) {
+      String values[] = cmd.getOptionValues(getConfig);
+      String scopeStr = values[0];
+      String keySetStr = values[1];
+      setupTool.getConfig(scopeStr, keySetStr);
+    }  else if (cmd.hasOption(removeConfig)) {
+      String values[] = cmd.getOptionValues(removeConfig);
+      String scoepStr = values[0];
+      String keySetStr = values[1];
+      setupTool.removeConfig(scoepStr, keySetStr);
     }
-    else if (cmd.hasOption(getConfig))
+    // set/get/remove constraint options
+    else if (cmd.hasOption(setConstraint)) {
+      String values[] = cmd.getOptionValues(setConstraint);
+      String clusterName = values[0];
+      String constraintType = values[1];
+      String constraintId = values[2];
+      String constraintAttributesMap = values[3];
+      setupTool.setConstraint(clusterName, constraintType, constraintId, constraintAttributesMap);
+    } else if (cmd.hasOption(getConstraints)) {
+      String values[] = cmd.getOptionValues(getConstraints);
+      String clusterName = values[0];
+      String constraintType = values[1];
+      setupTool.getConstraints(clusterName, constraintType);
+    } else if (cmd.hasOption(removeConstraint)) {
+      String values[] = cmd.getOptionValues(removeConstraint);
+      String clusterName = values[0];
+      String constraintType = values[1];
+      String constraintId = values[2];
+      setupTool.removeConstraint(clusterName, constraintType, constraintId);
+    }
+    else if (cmd.hasOption(addInstanceTag))
     {
-      String scopeStr = cmd.getOptionValues(getConfig)[0];
-      String keysStr = cmd.getOptionValues(getConfig)[1];
-      setupTool.getConfig(scopeStr, keysStr);
+      String clusterName = cmd.getOptionValues(addInstanceTag)[0];
+      String instanceName = cmd.getOptionValues(addInstanceTag)[1];
+      String tag = cmd.getOptionValues(addInstanceTag)[2];
+      setupTool.getClusterManagementTool().addInstanceTag(clusterName, instanceName, tag);
     }
+    else if (cmd.hasOption(removeInstanceTag))
+    {
+      String clusterName = cmd.getOptionValues(removeInstanceTag)[0];
+      String instanceName = cmd.getOptionValues(removeInstanceTag)[1];
+      String tag = cmd.getOptionValues(removeInstanceTag)[2];
+      setupTool.getClusterManagementTool().removeInstanceTag(clusterName, instanceName, tag);
+    }
+    // help option
     else if (cmd.hasOption(help))
     {
       printUsage(cliOptions);

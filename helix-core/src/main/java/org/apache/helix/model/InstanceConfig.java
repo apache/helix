@@ -41,7 +41,8 @@ public class InstanceConfig extends HelixProperty
     HELIX_HOST,
     HELIX_PORT,
     HELIX_ENABLED,
-    HELIX_DISABLED_PARTITION
+    HELIX_DISABLED_PARTITION,
+    TAG_LIST
   }
   private static final Logger _logger = Logger.getLogger(InstanceConfig.class.getName());
 
@@ -74,6 +75,53 @@ public class InstanceConfig extends HelixProperty
   {
     _record.setSimpleField(InstanceConfigProperty.HELIX_PORT.toString(), port);
   }
+  
+  public List<String> getTags()
+  {
+    List<String> tags = getRecord().getListField(InstanceConfigProperty.TAG_LIST.toString());
+    if(tags == null)
+    {
+      tags = new ArrayList<String>(0);
+    }
+    return tags;
+  }
+  
+  public void addTag(String tag)
+  {
+    List<String> tags = getRecord().getListField(InstanceConfigProperty.TAG_LIST.toString());
+    if(tags == null)
+    {
+      tags = new ArrayList<String>(0);
+    }
+    if(!tags.contains(tag))
+    {
+      tags.add(tag);
+    }
+    getRecord().setListField(InstanceConfigProperty.TAG_LIST.toString(), tags);
+  }
+  
+  public void removeTag(String tag)
+  {
+    List<String> tags = getRecord().getListField(InstanceConfigProperty.TAG_LIST.toString());
+    if(tags == null)
+    {
+      return;
+    }
+    if(tags.contains(tag))
+    {
+      tags.remove(tag);
+    }
+  }
+  
+  public boolean containsTag(String tag)
+  {
+    List<String> tags = getRecord().getListField(InstanceConfigProperty.TAG_LIST.toString());
+    if(tags == null)
+    {
+      return false;
+    }
+    return tags.contains(tag);
+  }
 
   public boolean getInstanceEnabled()
   {
@@ -101,27 +149,14 @@ public class InstanceConfig extends HelixProperty
     }
   }
 
-  public Map<String, String> getDisabledPartitionMap()
+  public List<String> getDisabledPartitions()
   {
-    return _record.getMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString());
+    return _record.getListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString());
+
   }
 
   public void setInstanceEnabledForPartition(String partitionName, boolean enabled)
   {
-//    if (_record.getListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString()) == null)
-//    {
-//      _record.setMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString(),
-//                             new TreeMap<String, String>());
-//    }
-//    if (enabled == true)
-//    {
-//      _record.getMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString()).remove(partition);
-//    }
-//    else
-//    {
-//      _record.getMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString()).put(partition, Boolean.toString(false));
-//    }
-    
     List<String> list =
         _record.getListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString());
     Set<String> disabledPartitions = new HashSet<String>();
@@ -179,16 +214,7 @@ public class InstanceConfig extends HelixProperty
   @Override
   public boolean isValid()
   {
-    if(getHostName() == null)
-    {
-      _logger.error("instanceconfig does not have host name. id:" + _record.getId());
-      return false;
-    }
-    if(getPort() == null)
-    {
-      _logger.error("instanceconfig does not have host port. id:" + _record.getId());
-      return false;
-    }
+    // HELIX-65: remove check for hostname/port existence
     return true;
   }
 }

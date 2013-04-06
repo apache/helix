@@ -19,13 +19,16 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 import org.apache.helix.HelixManager;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
+import org.apache.helix.manager.zk.DefaultSchedulerMessageHandlerFactory;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
@@ -36,10 +39,8 @@ import org.apache.helix.model.Message.MessageState;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.log4j.Logger;
 
-
 /**
- * Compares the currentState,pendingState with IdealState and generate messages
- * 
+ * Compares the currentState, pendingState with IdealState and generate messages
  * 
  */
 public class MessageGenerationPhase extends AbstractBaseStage
@@ -84,6 +85,11 @@ public class MessageGenerationPhase extends AbstractBaseStage
         Map<String, String> instanceStateMap = bestPossibleStateOutput.getInstanceStateMap(
             resourceName, partition);
 
+        // we should generate message based on the desired-state priority
+        // so keep generated messages in a temp map keyed by state
+        // desired-state->list of generated-messages
+        Map<String, List<Message>> messageMap = new HashMap<String, List<Message>>();
+        
         for (String instanceName : instanceStateMap.keySet())
         {
           String desiredState = instanceStateMap.get(instanceName);
@@ -135,30 +141,62 @@ public class MessageGenerationPhase extends AbstractBaseStage
                 instanceName, currentState, nextState, sessionIdMap.get(instanceName),
                 stateModelDef.getId(), resource.getStateModelFactoryname(), bucketSize);
             IdealState idealState = cache.getIdealState(resourceName);
+            if(idealState!= null && idealState.getStateModelDefRef().equalsIgnoreCase(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE))
+            {
+              if(idealState.getRecord().getMapField(partition.getPartitionName())!=null)
+              {
+                message.getRecord().setMapField(Message.Attributes.INNER_MESSAGE.toString(), idealState.getRecord().getMapField(partition.getPartitionName()));
+              }
+            }
             // Set timeout of needed
             String stateTransition = currentState + "-" + nextState + "_"
                 + Message.Attributes.TIMEOUT;
-            if (idealState != null
-                && idealState.getRecord().getSimpleField(stateTransition) != null)
+            if (idealState != null)
             {
-              try
+              String timeOutStr = idealState.getRecord().getSimpleField(stateTransition);
+              if(timeOutStr == null && idealState.getStateModelDefRef().equalsIgnoreCase(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE))
               {
-                int timeout = Integer.parseInt(idealState.getRecord().getSimpleField(
-                    stateTransition));
-                if (timeout > 0)
+                // scheduled task queue
+                if(idealState.getRecord().getMapField(partition.getPartitionName()) != null)
                 {
-                  message.setExecutionTimeout(timeout);
+                  timeOutStr = idealState.getRecord().getMapField(partition.getPartitionName()).get(Message.Attributes.TIMEOUT.toString());
                 }
-              } catch (Exception e)
+              }
+              if(timeOutStr !=null)
               {
-                logger.error("", e);
+                try
+                {
+                  int timeout = Integer.parseInt(timeOutStr);
+                  if (timeout > 0)
+                  {
+                    message.setExecutionTimeout(timeout);
+                  }
+                } catch (Exception e)
+                {
+                  logger.error("", e);
+                }
               }
             }
             message.getRecord().setSimpleField("ClusterEventName", event.getName());
-            output.addMessage(resourceName, partition, message);
+            // output.addMessage(resourceName, partition, message);
+            if (!messageMap.containsKey(desiredState)) {
+            	messageMap.put(desiredState, new ArrayList<Message>());
+            }
+            messageMap.get(desiredState).add(message);
           }
         }
-      }
+        
+        // add generated messages to output according to state priority
+        List<String> statesPriorityList = stateModelDef.getStatesPriorityList();
+        for (String state : statesPriorityList) {
+        	if (messageMap.containsKey(state)) {
+        		for (Message message : messageMap.get(state)) {
+        			output.addMessage(resourceName, partition, message);
+        		}
+        	}
+        }
+        
+      }	// end of for-each-partition
     }
     event.addAttribute(AttributeName.MESSAGES_ALL.toString(), output);
   }

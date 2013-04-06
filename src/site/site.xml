@@ -26,7 +26,6 @@
   </bannerRight>
 
   <publishDate position="right"/>
-  <version position="right"/>
 
   <skin>
     <groupId>org.apache.maven.skins</groupId>
@@ -36,20 +35,41 @@
 
   <body>
 
+    <head>
+      <script type="text/javascript">
+
+        var _gaq = _gaq || [];
+        _gaq.push(['_setAccount', 'UA-3211522-12']);
+        _gaq.push(['_trackPageview']);
+
+        (function() {
+        var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+        })();
+
+      </script>
+
+    </head>
+
     <breadcrumbs position="left">
       <item name="Apache Helix" href="http://helix.incubator.apache.org/"/>
     </breadcrumbs>
 
     <menu name="Helix">
-      <item name="About" href="./index.html"/>
+      <item name="Introduction" href="./index.html"/>
       <item name="Quick Start" href="./Quickstart.html"/>
-      <item name="Api Usage" href="./ApiUsage.html"/>
+      <item name="Tutorial" href="./Tutorial.html"/>
       <item name="Architecture" href="./Architecture.html"/>
       <item name="Features" href="./Features.html"/>
-      <item name="Sample App" href="./Sample_App.html"/>
-      <item name="Use Cases" href="./UseCases.html"/>
-      <item name="Current release ${currentRelease}" href="releasenotes/release-${currentRelease}.html"/>
-      <item name="Current Version Change Log" href="./jira-report.html"/>
+      <item name="release ${currentRelease}" href="releasenotes/release-${currentRelease}.html"/>
+      <item name="Download" href="./download.html"/>
+    </menu>
+    
+    <menu name="Recipes">  
+      <item name="Distributed lock manager" href="./recipes/lock_manager.html"/>
+      <item name="Rabbit MQ consumer group" href="./recipes/rabbitmq_consumer_group.html"/>
+      <item name="Rsync replicated file store" href="./recipes/rsync_replicated_file_store.html"/>
     </menu>
 
     <menu name="Get Involved">
@@ -61,9 +81,10 @@
       <item name="Building Guide" href="/involved/building.html"/>
       <item name="Release Guide" href="/releasing.html"/>
     </menu>
-
+<!--
     <menu ref="reports" inherit="bottom"/>
-    <!--<menu ref="modules" inherit="bottom"/>-->
+    <menu ref="modules" inherit="bottom"/>
+
 
     <menu name="ASF">
       <item name="How Apache Works" href="http://www.apache.org/foundation/how-it-works.html"/>
@@ -71,6 +92,13 @@
       <item name="Sponsoring Apache" href="http://www.apache.org/foundation/sponsorship.html"/>
       <item name="Thanks" href="http://www.apache.org/foundation/thanks.html"/>
     </menu>
+-->
+    <footer>
+      <div class="row span16"><div>Apache Helix, Apache, the Apache feather logo, and the Apache Helix project logos are trademarks of The Apache Software Foundation.
+        All other marks mentioned may be trademarks or registered trademarks of their respective owners.</div>
+        <a href="${project.url}/privacy-policy.html">Privacy Policy</a>
+      </div>
+    </footer>
 
 
   </body>
@@ -78,8 +106,14 @@
   <custom>
     <fluidoSkin>
       <topBarEnabled>true</topBarEnabled>
+      <!-- twitter link work only with sidebar disabled -->
       <sideBarEnabled>false</sideBarEnabled>
       <googleSearch></googleSearch>
+      <twitter>
+        <user>ApacheHelix</user>
+        <showUser>true</showUser>
+        <showFollowers>false</showFollowers>
+      </twitter>
     </fluidoSkin>
   </custom>
 

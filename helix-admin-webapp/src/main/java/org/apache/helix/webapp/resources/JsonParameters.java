@@ -39,26 +39,31 @@ import org.restlet.resource.Representation;
 public class JsonParameters
 {
   // json parameter key
-  public static final String             JSON_PARAMETERS     = "jsonParameters";
+  public static final String           JSON_PARAMETERS       = "jsonParameters";
 
   // json parameter map keys
-  public static final String             PARTITION           = "partition";
-  public static final String             RESOURCE            = "resource";
-  public static final String             MANAGEMENT_COMMAND  = "command";
-  public static final String             ENABLED             = "enabled";
-  public static final String             GRAND_CLUSTER       = "grandCluster";
-  public static final String             REPLICAS            = "replicas";
-  public static final String             RESOURCE_KEY_PREFIX = "key";
-  public static final String             INSTANCE_NAME       = "instanceName";
-  public static final String             INSTANCE_NAMES      = "instanceNames";
-  public static final String             OLD_INSTANCE        = "oldInstance";
-  public static final String             NEW_INSTANCE        = "newInstance";
-  public static final String             CONFIGS             = "configs";
-  public static final String             CLUSTER_NAME        = "clusterName";
-  public static final String             PARTITIONS          = "partitions";
-  public static final String             RESOURCE_GROUP_NAME = "resourceGroupName";
-  public static final String             STATE_MODEL_DEF_REF = "stateModelDefRef";
-  public static final String             IDEAL_STATE_MODE    = "mode";
+  public static final String           PARTITION             = "partition";
+  public static final String           RESOURCE              = "resource";
+  public static final String           MANAGEMENT_COMMAND    = "command";
+  public static final String           ENABLED               = "enabled";
+  public static final String           GRAND_CLUSTER         = "grandCluster";
+  public static final String           REPLICAS              = "replicas";
+  public static final String           RESOURCE_KEY_PREFIX   = "key";
+  public static final String           INSTANCE_NAME         = "instanceName";
+  public static final String           INSTANCE_NAMES        = "instanceNames";
+  public static final String           OLD_INSTANCE          = "oldInstance";
+  public static final String           NEW_INSTANCE          = "newInstance";
+  public static final String           CONFIGS               = "configs";
+  public static final String           CONSTRAINT_ATTRIBUTES = "constraintAttributes";
+//  public static final String           CONSTRAINT_ID         = "constraintId";
+  public static final String           CLUSTER_NAME          = "clusterName";
+  public static final String           PARTITIONS            = "partitions";
+  public static final String           RESOURCE_GROUP_NAME   = "resourceGroupName";
+  public static final String           STATE_MODEL_DEF_REF   = "stateModelDefRef";
+  public static final String           IDEAL_STATE_MODE      = "mode";
+  public static final String           MAX_PARTITIONS_PER_NODE = "maxPartitionsPerNode";
+  public static final String           BUCKET_SIZE           = "bucketSize";
+  
 
   // zk commands
   public static final String             ZK_DELETE_CHILDREN  = "zkDeleteChildren";
@@ -66,6 +71,8 @@ public class JsonParameters
   // extra json parameter map keys
   public static final String             NEW_IDEAL_STATE     = "newIdealState";
   public static final String             NEW_STATE_MODEL_DEF = "newStateModelDef";
+
+  public static final String TAG = "tag";
 
   // aliases for ClusterSetup commands
   public static Map<String, Set<String>> CLUSTERSETUP_COMMAND_ALIASES;
@@ -227,6 +234,20 @@ public class JsonParameters
       if (!_parameterMap.containsKey(CONFIGS))
       {
         throw new HelixException("Missing Json parameters: '" + CONFIGS + "'");
+      }
+    }
+    else if (command.equalsIgnoreCase(ClusterSetup.addInstanceTag))
+    {
+      if (!_parameterMap.containsKey(ClusterSetup.instanceGroupTag))
+      {
+        throw new HelixException("Missing Json parameters: '" + ClusterSetup.instanceGroupTag + "'");
+      }
+    }
+    else if (command.equalsIgnoreCase(ClusterSetup.removeInstanceTag))
+    {
+      if (!_parameterMap.containsKey(ClusterSetup.instanceGroupTag))
+      {
+        throw new HelixException("Missing Json parameters: '" + ClusterSetup.instanceGroupTag + "'");
       }
     }
     else if (command.equalsIgnoreCase(ClusterSetup.addCluster))

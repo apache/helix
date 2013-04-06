@@ -24,6 +24,7 @@ import java.util.concurrent.CountDownLatch;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
+import org.apache.helix.ZkHelixTestManager;
 import org.apache.helix.controller.HelixControllerMain;
 import org.apache.helix.participant.DistClusterControllerStateModelFactory;
 import org.apache.helix.participant.StateMachineEngine;
@@ -41,7 +42,7 @@ public class ClusterController extends Thread
   private final String         _controllerMode;
   private final String         _zkAddr;
 
-  private HelixManager   _manager;
+  private ZkHelixTestManager   _manager;
 
   public ClusterController(String clusterName, String controllerName, String zkAddr) throws Exception
   {
@@ -58,20 +59,11 @@ public class ClusterController extends Thread
 
     if (_controllerMode.equals(HelixControllerMain.STANDALONE.toString()))
     {
-      _manager =
-          HelixManagerFactory.getZKHelixManager(clusterName,
-                                                controllerName,
-                                                InstanceType.CONTROLLER,
-                                                zkAddr);
+      _manager = new ZkHelixTestManager(clusterName, controllerName, InstanceType.CONTROLLER, zkAddr);
     }
     else if (_controllerMode.equals(HelixControllerMain.DISTRIBUTED.toString()))
     {
-      _manager =
-          HelixManagerFactory.getZKHelixManager(clusterName,
-                                                controllerName,
-                                                InstanceType.CONTROLLER_PARTICIPANT,
-                                                zkAddr);
-
+      _manager = new ZkHelixTestManager(clusterName, controllerName, InstanceType.CONTROLLER_PARTICIPANT, zkAddr);
     }
     else
     {
@@ -80,7 +72,7 @@ public class ClusterController extends Thread
     }
   }
 
-  public HelixManager getManager()
+  public ZkHelixTestManager getManager()
   {
     return _manager;
   }

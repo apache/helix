@@ -22,6 +22,7 @@ package org.apache.helix.util;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.helix.HelixException;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.zookeeper.ZooKeeper.States;
@@ -71,5 +72,69 @@ public class ZKClientPool
   public static void reset()
   {
     _zkClientMap.clear();
+  }
+  
+  public static void main(String[] args) throws InterruptedException
+  {
+    Thread /*_dataSampleThread = new Thread(new Runnable()
+    {
+      @Override
+      public void run()
+      {
+        int i = 0;
+        while(!Thread.currentThread().isInterrupted())
+        {
+          try
+          {
+            // if the queue is empty, sleep 100 ms and try again
+            Thread.sleep(1000);
+            System.out.println(i++ + "...");
+            throw new RuntimeException("" + i);
+          }
+          catch (InterruptedException e)
+          {
+            System.out.println("Collector thread interrupted" + e);
+            return;
+          }
+          catch(Throwable th)
+          {
+            System.out.println("Collector thread exception/ error" + th);
+          }
+        }
+      }
+    });
+    _dataSampleThread.start();
+    
+    Thread.sleep(10000);
+    _dataSampleThread.interrupt();
+    */
+    _dataSampleThread = new Thread(new Runnable()
+    {
+      @Override
+      public void run()
+      {
+        int i = 0;
+        while(!Thread.currentThread().isInterrupted())
+        {
+          
+            // if the queue is empty, sleep 100 ms and try again
+            try
+            {
+              Thread.sleep(1000);
+            } catch (InterruptedException e)
+            {
+              // TODO Auto-generated catch block
+              e.printStackTrace();
+            }
+            System.out.println(i++ + "...");
+            throw new Error("" + i);
+          
+        }
+      }
+    });
+    _dataSampleThread.start();
+    
+    Thread.sleep(10000);
+    _dataSampleThread.interrupt();
   }
 }

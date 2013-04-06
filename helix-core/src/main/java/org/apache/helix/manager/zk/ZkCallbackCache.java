@@ -35,6 +35,7 @@ import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.manager.zk.ZkCacheEventThread.ZkCacheEvent;
 import org.apache.helix.store.HelixPropertyListener;
 import org.apache.helix.store.zk.ZNode;
+import org.apache.helix.util.HelixUtil;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
@@ -78,8 +79,8 @@ public class ZkCallbackCache<T> extends Cache<T> implements
   @Override
   public void update(String path, T data, Stat stat)
   {
-    String parentPath = new File(path).getParent();
-    String childName = new File(path).getName();
+    String parentPath = HelixUtil.getZkParentPath(path);
+    String childName = HelixUtil.getZkName(path);
 
     addToParentChildSet(parentPath, childName);
     ZNode znode = _cache.get(path);
@@ -241,8 +242,8 @@ public class ZkCallbackCache<T> extends Cache<T> implements
       _accessor.unsubscribeDataChanges(dataPath, this);
       _accessor.unsubscribeChildChanges(dataPath, this);
 
-      String parentPath = new File(dataPath).getParent();
-      String name = new File(dataPath).getName();
+      String parentPath = HelixUtil.getZkParentPath(dataPath);
+      String name = HelixUtil.getZkName(dataPath);
       removeFromParentChildSet(parentPath, name);
       _cache.remove(dataPath);
 
@@ -360,7 +361,7 @@ public class ZkCallbackCache<T> extends Cache<T> implements
         }
       }
 
-      tmpPath = new File(tmpPath).getParent();
+      tmpPath = HelixUtil.getZkParentPath(tmpPath);
     }
   }
 

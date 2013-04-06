@@ -25,11 +25,16 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.helix.HelixAdmin;
+import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.NotificationContext;
+import org.apache.helix.NotificationContext.MapKey;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecordBucketizer;
 import org.apache.helix.ZNRecordDelta;
@@ -37,6 +42,7 @@ import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecordDelta.MergeOperation;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Message;
+import org.apache.helix.model.Message.Attributes;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelParser;
 import org.apache.helix.participant.statemachine.StateTransitionError;
@@ -59,45 +65,43 @@ public class HelixStateTransitionHandler extends MessageHandler
   StatusUpdateUtil               _statusUpdateUtil;
   private final StateModelParser _transitionMethodFinder;
   private final CurrentState     _currentStateDelta;
+  private final HelixManager     _manager;
   volatile boolean               _isTimeout = false;
-  private final HelixTaskExecutor              _executor;
 
   public HelixStateTransitionHandler(StateModel stateModel,
                                      Message message,
                                      NotificationContext context,
-                                     CurrentState currentStateDelta,
-                                     HelixTaskExecutor executor)
+                                     CurrentState currentStateDelta)
   {
     super(message, context);
     _stateModel = stateModel;
     _statusUpdateUtil = new StatusUpdateUtil();
     _transitionMethodFinder = new StateModelParser();
     _currentStateDelta = currentStateDelta;
-    _executor = executor;
+    _manager = _notificationContext.getManager();;
   }
 
-  private void prepareMessageExecution(HelixManager manager, Message message) throws HelixException,
-      HelixStateMismatchException
+  void preHandleMessage() throws Exception
   {
-    if (!message.isValid())
+    if (!_message.isValid())
     {
       String errorMessage =
-          "Invalid Message, ensure that message: " + message
+          "Invalid Message, ensure that message: " + _message
               + " has all the required fields: "
               + Arrays.toString(Message.Attributes.values());
 
-      _statusUpdateUtil.logError(message,
+      _statusUpdateUtil.logError(_message,
                                  HelixStateTransitionHandler.class,
                                  errorMessage,
-                                 manager.getHelixDataAccessor());
+                                 _manager.getHelixDataAccessor());
       logger.error(errorMessage);
       throw new HelixException(errorMessage);
     }
-    // DataAccessor accessor = manager.getDataAccessor();
-    HelixDataAccessor accessor = manager.getHelixDataAccessor();
+    
+    HelixDataAccessor accessor = _manager.getHelixDataAccessor();
 
-    String partitionName = message.getPartitionName();
-    String fromState = message.getFromState();
+    String partitionName = _message.getPartitionName();
+    String fromState = _message.getFromState();
 
     // Verify the fromState and current state of the stateModel
     String state = _currentStateDelta.getState(partitionName);
@@ -107,10 +111,10 @@ public class HelixStateTransitionHandler extends MessageHandler
       String errorMessage =
           "Current state of stateModel does not match the fromState in Message"
               + ", Current State:" + state + ", message expected:" + fromState
-              + ", partition: " + partitionName + ", from: " + message.getMsgSrc()
-              + ", to: " + message.getTgtName();
+              + ", partition: " + partitionName + ", from: " + _message.getMsgSrc()
+              + ", to: " + _message.getTgtName();
 
-      _statusUpdateUtil.logError(message,
+      _statusUpdateUtil.logError(_message,
                                  HelixStateTransitionHandler.class,
                                  errorMessage,
                                  accessor);
@@ -119,43 +123,44 @@ public class HelixStateTransitionHandler extends MessageHandler
     }
   }
 
-  void postExecutionMessage(HelixManager manager,
-                            Message message,
-                            NotificationContext context,
-                            HelixTaskResult taskResult,
-                            Exception exception)
+  void postHandleMessage()
   {
-    String partitionKey = message.getPartitionName();
-    String resource = message.getResourceName();
-    String sessionId = message.getTgtSessionId();
-    String instanceName = manager.getInstanceName();
+	// Message message = _message;
+	// HelixManager manager = _notificationContext.getManager();
+	HelixTaskResult taskResult = (HelixTaskResult) _notificationContext.get(MapKey.HELIX_TASK_RESULT.toString());
+	Exception exception = taskResult.getException();
+		
+    String partitionKey = _message.getPartitionName();
+    String resource = _message.getResourceName();
+    String sessionId = _message.getTgtSessionId();
+    String instanceName = _manager.getInstanceName();
 
-    HelixDataAccessor accessor = manager.getHelixDataAccessor();
+    HelixDataAccessor accessor = _manager.getHelixDataAccessor();
     Builder keyBuilder = accessor.keyBuilder();
 
-    int bucketSize = message.getBucketSize();
+    int bucketSize = _message.getBucketSize();
     ZNRecordBucketizer bucketizer = new ZNRecordBucketizer(bucketSize);
 
     // Lock the helix manager so that the session id will not change when we update
     // the state model state. for zk current state it is OK as we have the per-session
     // current state node
-    synchronized (manager)
+    synchronized (_manager)
     {
-      if (!message.getTgtSessionId().equals(manager.getSessionId()))
+      if (!_message.getTgtSessionId().equals(_manager.getSessionId()))
       {
         logger.warn("Session id has changed. Skip postExecutionMessage. Old session "
-            + message.getExecutionSessionId() + " , new session : "
-            + manager.getSessionId());
+            + _message.getExecutionSessionId() + " , new session : "
+            + _manager.getSessionId());
         return;
       }
 
-      if (taskResult.isSucess())
+      if (taskResult.isSuccess())
       {
         // String fromState = message.getFromState();
-        String toState = message.getToState();
+        String toState = _message.getToState();
         _currentStateDelta.setState(partitionKey, toState);
 
-        if (toState.equalsIgnoreCase("DROPPED"))
+        if (toState.equalsIgnoreCase(HelixDefinedState.DROPPED.toString()))
         {
           // for "OnOfflineToDROPPED" message, we need to remove the resource key record
           // from the current state of the instance because the resource key is dropped.
@@ -184,7 +189,7 @@ public class HelixStateTransitionHandler extends MessageHandler
               + partitionKey
               + ", currentState: "
               + _stateModel.getCurrentState()
-              + ", message: " + message);
+              + ", message: " + _message);
           _currentStateDelta.setState(partitionKey, _stateModel.getCurrentState());
         }
         else
@@ -205,13 +210,18 @@ public class HelixStateTransitionHandler extends MessageHandler
               // State transition interrupted but not caused by timeout. Keep the current
               // state in this case
               logger.error("State transition interrupted but not timeout. Not updating state. Partition : "
-                  + message.getPartitionName() + " MsgId : " + message.getMsgId());
+                  + _message.getPartitionName() + " MsgId : " + _message.getMsgId());
               return;
             }
           }
-          _stateModel.rollbackOnError(message, context, error);
-          _currentStateDelta.setState(partitionKey, "ERROR");
-          _stateModel.updateState("ERROR");
+          _stateModel.rollbackOnError(_message, _notificationContext, error);
+          _currentStateDelta.setState(partitionKey, HelixDefinedState.ERROR.toString());
+          _stateModel.updateState(HelixDefinedState.ERROR.toString());
+          
+          // if we have errors transit from ERROR state, disable the partition
+          if (_message.getFromState().equalsIgnoreCase(HelixDefinedState.ERROR.toString())) {
+            disablePartition();
+          }
         }
       }
     }
@@ -222,32 +232,51 @@ public class HelixStateTransitionHandler extends MessageHandler
                               sessionId,
                               resource,
                               bucketizer.getBucketName(partitionKey));
-      if (!_message.getGroupMessageMode())
+      if (_message.getAttribute(Attributes.PARENT_MSG_ID) == null)
       {
+        // normal message
         accessor.updateProperty(key, _currentStateDelta);
       }
       else
       {
-        _executor._groupMsgHandler.addCurStateUpdate(_message, key, _currentStateDelta);
+        // sub-message of a batch message
+        ConcurrentHashMap<String, CurrentStateUpdate> csUpdateMap 
+          = (ConcurrentHashMap<String, CurrentStateUpdate>) _notificationContext.get(MapKey.CURRENT_STATE_UPDATE.toString());
+        csUpdateMap.put(partitionKey, new CurrentStateUpdate(key, _currentStateDelta));
       }
     }
     catch (Exception e)
     {
-      logger.error("Error when updating the state ", e);
+      logger.error("Error when updating current-state ", e);
       StateTransitionError error =
           new StateTransitionError(ErrorType.FRAMEWORK, ErrorCode.ERROR, e);
-      _stateModel.rollbackOnError(message, context, error);
-      _statusUpdateUtil.logError(message,
+      _stateModel.rollbackOnError(_message, _notificationContext, error);
+      _statusUpdateUtil.logError(_message,
                                  HelixStateTransitionHandler.class,
                                  e,
-                                 "Error when update the state ",
+                                 "Error when update current-state ",
                                  accessor);
     }
   }
 
-  public HelixTaskResult handleMessageInternal(Message message,
-                                               NotificationContext context)
+  void disablePartition() {
+    String instanceName = _manager.getInstanceName();
+    String resourceName = _message.getResourceName();
+    String partitionName = _message.getPartitionName();
+    String clusterName = _manager.getClusterName();
+    HelixAdmin admin = _manager.getClusterManagmentTool();
+    admin.enablePartition(false, clusterName, instanceName, resourceName, Arrays.asList(partitionName));
+    logger.info("error in transit from ERROR to " + _message.getToState()
+          + " for partition: " + partitionName + ". disable it on " + instanceName);
+
+  }
+  
+  @Override
+  public HelixTaskResult handleMessage()
   {
+	NotificationContext context = _notificationContext;
+	Message message = _message;
+		
     synchronized (_stateModel)
     {
       HelixTaskResult taskResult = new HelixTaskResult();
@@ -260,10 +289,9 @@ public class HelixStateTransitionHandler extends MessageHandler
                                 accessor);
       message.setExecuteStartTimeStamp(new Date().getTime());
 
-      Exception exception = null;
       try
       {
-        prepareMessageExecution(manager, message);
+    	preHandleMessage();
         invoke(accessor, context, taskResult, message);
       }
       catch (HelixStateMismatchException e)
@@ -273,8 +301,6 @@ public class HelixStateTransitionHandler extends MessageHandler
         taskResult.setSuccess(false);
         taskResult.setMessage(e.toString());
         taskResult.setException(e);
-        exception = e;
-        // return taskResult;
       }
       catch (Exception e)
       {
@@ -295,9 +321,11 @@ public class HelixStateTransitionHandler extends MessageHandler
         taskResult.setMessage(e.toString());
         taskResult.setException(e);
         taskResult.setInterrupted(e instanceof InterruptedException);
-        exception = e;
       }
-      postExecutionMessage(manager, message, context, taskResult, exception);
+      
+      // add task result to context for postHandling
+      context.add(MapKey.HELIX_TASK_RESULT.toString(), taskResult);
+      postHandleMessage();
 
       return taskResult;
     }
@@ -334,7 +362,7 @@ public class HelixStateTransitionHandler extends MessageHandler
     {
       String errorMessage =
           "Unable to find method for transition from " + fromState + " to " + toState
-              + "in " + _stateModel.getClass();
+              + " in " + _stateModel.getClass();
       logger.error(errorMessage);
       taskResult.setSuccess(false);
 
@@ -346,42 +374,43 @@ public class HelixStateTransitionHandler extends MessageHandler
   }
 
   @Override
-  public HelixTaskResult handleMessage()
-  {
-    return handleMessageInternal(_message, _notificationContext);
-  }
-
-  @Override
   public void onError(Exception e, ErrorCode code, ErrorType type)
-  {
+  {    
+    HelixDataAccessor accessor = _manager.getHelixDataAccessor();
+    Builder keyBuilder = accessor.keyBuilder();
+    String instanceName = _manager.getInstanceName();
+    String resourceName = _message.getResourceName();
+    String partition = _message.getPartitionName();
+    
     // All internal error has been processed already, so we can skip them
     if (type == ErrorType.INTERNAL)
     {
-      logger.error("Skip internal error " + e.getMessage() + " " + code);
+      logger.error("Skip internal error. errCode: " + code + ", errMsg: " + e.getMessage());
       return;
     }
-    HelixManager manager = _notificationContext.getManager();
-    HelixDataAccessor accessor = manager.getHelixDataAccessor();
-    Builder keyBuilder = accessor.keyBuilder();
 
-    String instanceName = manager.getInstanceName();
-    String partition = _message.getPartitionName();
-    String resourceName = _message.getResourceName();
-    CurrentState currentStateDelta = new CurrentState(resourceName);
-
-    StateTransitionError error = new StateTransitionError(type, code, e);
-    _stateModel.rollbackOnError(_message, _notificationContext, error);
-    // if the transition is not canceled, it should go into error state
-    if (code == ErrorCode.ERROR)
-    {
-      currentStateDelta.setState(partition, "ERROR");
-      _stateModel.updateState("ERROR");
-
-      accessor.updateProperty(keyBuilder.currentState(instanceName,
-                                                      _message.getTgtSessionId(),
-                                                      resourceName),
-                              currentStateDelta);
+    try {
+      // set current state to ERROR for the partition
+      // if the transition is not canceled, it should go into error state
+      if (code == ErrorCode.ERROR) {
+        CurrentState currentStateDelta = new CurrentState(resourceName);
+        currentStateDelta.setState(partition, HelixDefinedState.ERROR.toString());
+        _stateModel.updateState(HelixDefinedState.ERROR.toString());
+  
+        // if transit from ERROR state, disable the partition
+        if (_message.getFromState().equalsIgnoreCase(HelixDefinedState.ERROR.toString())) {
+          disablePartition();
+        }
+        accessor.updateProperty(keyBuilder.currentState(instanceName,
+                                                        _message.getTgtSessionId(),
+                                                        resourceName),
+                                currentStateDelta);
     }
+    } finally {
+      StateTransitionError error = new StateTransitionError(type, code, e);
+      _stateModel.rollbackOnError(_message, _notificationContext, error);
+    }
+
   }
 
   @Override

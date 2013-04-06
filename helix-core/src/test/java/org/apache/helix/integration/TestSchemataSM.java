@@ -50,7 +50,7 @@ public class TestSchemataSM extends ZkIntegrationTestBase
                             1, // resources
                             10, // partitions per resource
                             5, // number of nodes
-                            1, // replicas
+                            5, // replicas
                             "STORAGE_DEFAULT_SM_SCHEMATA",
                             true); // do rebalance
 

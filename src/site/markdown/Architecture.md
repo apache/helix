@@ -92,8 +92,7 @@ Apart from defining State for each partition, the transition path to each STATE 
 
 Helix provides a way to configure an application specific state machine along with constraints on each state. Along with constraints on State, Helix also provides a way to specify constraints on transitions.(More on this later)
 
-
-<pre><code>
+```
           OFFLINE  | SLAVE  |  MASTER  
          _____________________________
         |          |        |         |
@@ -106,7 +105,7 @@ SLAVE   |  OFFLINE |   N/A  | MASTER  |
 MASTER  | SLAVE    | SLAVE  |   N/A   |
         |__________|________|_________|
 
-</code></pre>
+```
 
 ![Helix Design](images/statemachine.png)
 
@@ -217,6 +216,7 @@ The following picture shows how controllers, participants and spectators interac
 * After any task is completed by Participant, Controllers gets notified of the change and State Transition algorithm is re-run until the current state is same as Ideal State.
 
 ## Helix znode layout
+
 Helix organizes znodes under clusterName in multiple levels. 
 The top level (under clusterName) znodes are all Helix defined and in upper case
 * PROPERTYSTORE: application property store

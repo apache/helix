@@ -17,8 +17,138 @@ specific language governing permissions and limitations
 under the License.
 -->
 
+Lets walk through the steps in building a distributed system using Helix.
 
-# Create an instance of Manager
+### Start zookeeper
+
+This starts a zookeeper in standalone mode. For production deployment, see [Apache Zookeeper] page for instructions.
+
+```
+    ./start-standalone-zookeeper.sh 2199 &
+```
+
+### Create cluster
+
+Creating a cluster will create appropriate znodes on zookeeper.   
+
+```
+    //Create setuptool instance
+    admin = new ZKHelixAdmin(ZK_ADDRESS);
+    String CLUSTER_NAME = "helix-demo";
+    //Create cluster namespace in zookeeper
+    admin.addCluster(clusterName, true);
+```
+
+OR
+
+```
+    ./helix-admin.sh --zkSvr localhost:2199 --addCluster helix-demo 
+```
+
+
+### Configure nodes
+
+Add new nodes to the cluster, configure new nodes in the cluster. Each node in the cluster must be uniquely identifiable. 
+Most commonly used convention is hostname:port.
+
+
+```
+    String CLUSTER_NAME = "helix-demo";
+    int NUM_NODES = 2;
+    String hosts[] = new String[]{"localhost","localhost"};
+    String ports[] = new String[]{7000,7001};
+    for (int i = 0; i < NUM_NODES; i++)
+    {
+      
+      InstanceConfig instanceConfig = new InstanceConfig(hosts[i]+ "_" + ports[i]);
+      instanceConfig.setHostName(hosts[i]);
+      instanceConfig.setPort(ports[i]);
+      instanceConfig.setInstanceEnabled(true);
+      //Add additional system specific configuration if needed. These can be accessed during the node start up.
+      instanceConfig.getRecord().setSimpleField("key", "value");
+      admin.addInstance(CLUSTER_NAME, instanceConfig);
+      
+    }
+
+```
+
+### Configure the resource
+
+Resource represents the actual task performed by the nodes. It can be a database, index, topic, queue or any other processing.
+A Resource can be divided into many sub parts called as partitions. 
+
+
+#### Define state model and constraints
+
+For scalability and fault tolerance each partition can have one or more replicas. 
+State model allows one to declare the system behavior by first enumerating the various STATES and TRANSITIONS between them.
+A simple model is ONLINE-OFFLINE where ONLINE means the task is active and OFFLINE means its not active.
+You can also specify how of replicas must be in each state. 
+For example In a Search System, one might need more than one node serving the same index. 
+Helix allows one to express this via constraints on each STATE.   
+
+The following snippet shows how to declare the state model and constraints for MASTER-SLAVE model.
+
+```
+
+    StateModelDefinition.Builder builder = new StateModelDefinition.Builder(
+        STATE_MODEL_NAME);
+    // Add states and their rank to indicate priority. Lower the rank higher the
+    // priority
+    builder.addState(MASTER, 1);
+    builder.addState(SLAVE, 2);
+    builder.addState(OFFLINE);
+    // Set the initial state when the node starts
+    builder.initialState(OFFLINE);
+
+    // Add transitions between the states.
+    builder.addTransition(OFFLINE, SLAVE);
+    builder.addTransition(SLAVE, OFFLINE);
+    builder.addTransition(SLAVE, MASTER);
+    builder.addTransition(MASTER, SLAVE);
+
+    // set constraints on states.
+    // static constraint
+    builder.upperBound(MASTER, 1);
+    // dynamic constraint, R means it should be derived based on the replica,
+    // this allows use different replication factor for each resource without 
+    //having to define a new state model
+    builder.dynamicUpperBound(SLAVE, "R");
+
+    StateModelDefinition statemodelDefinition = builder.build();
+    admin.addStateModelDef(CLUSTER_NAME, STATE_MODEL_NAME, myStateModel);
+   
+```
+
+
+
+ 
+#### Assigning partitions to nodes
+
+The final goal of Helix is to ensure that the constraints on the state model are satisfied. 
+Helix does this by assigning a STATE to a partition and placing it on a particular node.
+
+
+There are 3 assignment modes Helix can operate on
+
+* AUTO_REBALANCE: Helix decides the placement and state of a partition.
+* AUTO: Application decides the placement but Helix decides the state of a partition.
+* CUSTOM: Application controls the placement and state of a partition.
+
+For more info on the modes see the *partition placement* section on [Features](./Features.html) page.
+
+```
+    String RESOURCE_NAME="MyDB";
+    int NUM_PARTITIONs=6;
+    STATE_MODEL_NAME = "MasterSlave";
+    String MODE = "AUTO";
+    int NUM_REPLICAS = 2;
+    admin.addResource(CLUSTER_NAME, RESOURCE_NAME, NUM_PARTITIONS, STATE_MODEL_NAME, MODE);
+    admin.rebalance(CLUSTER_NAME, RESOURCE_NAME, NUM_REPLICAS);
+```
+
+### Starting a Helix based process
+
 The first step of using the Helix api will be creating a Helix manager instance. 
 It requires the following parameters:
  
@@ -38,30 +168,9 @@ It requires the following parameters:
                                                       zkConnectString);
 ```
                                                       
-#Setting up a cluster
-Initial setup of a cluster, involves creating appropriate znodes in the cluster. 
 
-```
-    //Create setuptool instance
-    ClusterSetupTool setupTool = new ClusterSetupTool(zkConnectString);
-    //Create cluster namespace in zookeeper
-    setupTool.addCluster(clusterName, true);
-    //Add six Participant instances, each instance must have a unique id. host:port is the standard convention
-    String instances[] = new String[6];
-    for (int i = 0; i < storageInstanceInfoArray.length; i++)
-    {
-      instance[i] = "localhost:" + (8900 + i);
-    }
-    setupTool.addInstancesToCluster(clusterName, instances);
-    //add the resource with 10 partitions to the cluster. Using MasterSlave state model. 
-    //See the section on how to configure a application specific state model
-    setupTool.addResourceToCluster(clusterName, "TestDB", 10, "MasterSlave");
-    //This will do the assignment of partitions to instances. Assignment algorithm is based on consistent hashing and RUSH. 
-    //See how to do custom partition assignment
-    setupTool.rebalanceResource(clusterName, "TestDB", 3);
-```
 
-## Participant
+### Participant
 Starting up a participant is pretty straightforward. After the Helix manager instance is created, only thing that needs to be registered is the state model factory. 
 The Methods on the State Model will be called when controller sends transitions to the Participant.
 
@@ -79,33 +188,33 @@ The Methods on the State Model will be called when controller sends transitions 
 
 ```
 public class OnlineOfflineStateModelFactory extends
-		StateModelFactory<StateModel> {
-	@Override
-	public StateModel createNewStateModel(String stateUnitKey) {
-		OnlineOfflineStateModel stateModel = new OnlineOfflineStateModel();
-		return stateModel;
-	}
-	@StateModelInfo(states = "{'OFFLINE','ONLINE'}", initialState = "OFFINE")
-	public static class OnlineOfflineStateModel extends StateModel {
+        StateModelFactory<StateModel> {
+    @Override
+    public StateModel createNewStateModel(String stateUnitKey) {
+        OnlineOfflineStateModel stateModel = new OnlineOfflineStateModel();
+        return stateModel;
+    }
+    @StateModelInfo(states = "{'OFFLINE','ONLINE'}", initialState = "OFFINE")
+    public static class OnlineOfflineStateModel extends StateModel {
         @Transition(from = "OFFLINE", to = "ONLINE")
-		public void onBecomeOnlineFromOffline(Message message,
-				NotificationContext context) {
-			System.out
-					.println("OnlineOfflineStateModel.onBecomeOnlineFromOffline()");
-			//Application logic to handle transition 
-		}
+        public void onBecomeOnlineFromOffline(Message message,
+                NotificationContext context) {
+            System.out
+                    .println("OnlineOfflineStateModel.onBecomeOnlineFromOffline()");
+            //Application logic to handle transition 
+        }
         @Transition(from = "ONLINE", to = "OFFLINE")
-		public void onBecomeOfflineFromOnline(Message message,
-				NotificationContext context) {
-			System.out
-						.println("OnlineOfflineStateModel.onBecomeOfflineFromOnline()");
-			//Application logic to handle transition
-		}
-	}
+        public void onBecomeOfflineFromOnline(Message message,
+                NotificationContext context) {
+            System.out
+                        .println("OnlineOfflineStateModel.onBecomeOfflineFromOnline()");
+            //Application logic to handle transition
+        }
+    }
 }
 ```
 
-## Controller Code
+### Controller Code
 Controller needs to know about all changes in the cluster. Helix comes with default implementation to handle all changes in the cluster. 
 If you have a need to add additional functionality, see GenericHelixController on how to configure the pipeline.
 
@@ -130,10 +239,11 @@ cd helix
 mvn clean install -Dmaven.test.skip=true
 cd helix-core/target/helix-core-pkg/bin
 chmod +x *
-./run-helix-controller --zkSvr <ZookeeperServerAddress(Required)>  --cluster <Cluster name (Required)>
+./run-helix-controller.sh --zkSvr <ZookeeperServerAddress(Required)>  --cluster <Cluster name (Required)>
 ```
+See controller deployment modes section in [Features](./Features.html) page for different ways to deploy the controller.
 
-## Spectator Code
+### Spectator Code
 A spectator simply observes all cluster is notified when the state of the system changes. Helix consolidates the state of entire cluster in one Znode called ExternalView.
 Helix provides a default implementation RoutingTableProvider that caches the cluster state and updates it when there is a change in the cluster
 
@@ -154,7 +264,13 @@ In order to figure out who is serving a partition, here are the apis
 instances = routingTableProvider.getInstances("DBNAME", "PARITION_NAME", "PARTITION_STATE");
 ```
 
-##  Helix Admin operations
+### Zookeeper znode layout.
+
+See  *Helix znode layout* section in [Architecture](./Architecture.html) page.
+
+
+###  Helix Admin operations
+
 Helix provides multiple ways to administer the cluster. It has a command line interface and also a REST interface.
 
 ```
@@ -162,7 +278,7 @@ cd helix
 mvn clean install -Dmaven.test.skip=true
 cd helix-core/target/helix-core-pkg/bin
 chmod +x *
-./helix-admin --help
+./helix-admin.sh --help
 Provide zookeeper address. Required for all commands  
    --zkSvr <ZookeeperServerAddress(Required)>       
 
@@ -212,72 +328,7 @@ Enable/disable a partition
 
 ```
 
-## Idealstate modes and configuration
 
-
- * AUTO mode: Partition to Node assignment is pre-generated using consistent hashing 
-
-```
-  setupTool.addResourceToCluster(clusterName, resourceName, partitionNumber, "MasterSlave")
-  setupTool.rebalanceStorageCluster(clusterName, resourceName, replicas)
-```
-
- * AUTO_REBALANCE mode: Partition to Node assignment is generated dynamically by cluster manager based on the nodes that are currently up and running
-
-```
- setupTool.addResourceToCluster(clusterName, resourceName, partitionNumber, "MasterSlave", "AUTO_REBALANCE")
- setupTool.rebalanceStorageCluster(clusterName, resourceName, replicas)
-```
-
- * CUSTOMIZED mode: Allows one to set the is pre-generated from a JSON format file
-
- `setupTool.addIdealState(clusterName, resourceName, idealStateJsonFile)`
-
-
-
-## Configuring state model
-
-```
-StateModelConfigGenerator generator = new StateModelConfigGenerator();
-ZnRecord stateModelConfig = generator.generateConfigForOnlineOffline();
-StateModelDefinition stateModelDef = new StateModelDefinition(stateModelConfig);
-ClusterSetup setupTool = new ClusterSetup(zkConnectString);
-setupTool.addStateModelDef(cluster,stateModelName,stateModelDef);
-```
-
-See StateModelConfigGenerator to get more info on creating custom state model.
-
-## Messaging Api usage
-
-See BootstrapProcess.java in examples package to see how Participants can exchange messages with each other.
-
-```
-      ClusterMessagingService messagingService = manager.getMessagingService();
-      //CONSTRUCT THE MESSAGE
-      Message requestBackupUriRequest = new Message(
-          MessageType.USER_DEFINE_MSG, UUID.randomUUID().toString());
-      requestBackupUriRequest
-          .setMsgSubType(BootstrapProcess.REQUEST_BOOTSTRAP_URL);
-      requestBackupUriRequest.setMsgState(MessageState.NEW);
-      //SET THE RECIPIENT CRITERIA, All nodes that satisfy the criteria will receive the message
-      Criteria recipientCriteria = new Criteria();
-      recipientCriteria.setInstanceName("*");
-      recipientCriteria.setRecipientInstanceType(InstanceType.PARTICIPANT);
-      recipientCriteria.setResource("MyDB");
-      recipientCriteria.setPartition("");
-      //Should be processed only the process that is active at the time of sending the message. 
-      //This means if the recipient is restarted after message is sent, it will not be processed.
-      recipientCriteria.setSessionSpecific(true);
-      // wait for 30 seconds
-      int timeout = 30000;
-      //The handler that will be invoked when any recipient responds to the message.
-      BootstrapReplyHandler responseHandler = new BootstrapReplyHandler();
-      //This will return only after all recipients respond or after timeout.
-      int sentMessageCount = messagingService.sendAndWait(recipientCriteria,
-          requestBackupUriRequest, responseHandler, timeout);
-
-```
-For more details on MessagingService see ClusterMessagingService
 
 
 

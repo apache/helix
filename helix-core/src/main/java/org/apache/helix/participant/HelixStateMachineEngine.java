@@ -29,10 +29,14 @@ import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
+import org.apache.helix.NotificationContext.MapKey;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.messaging.handling.BatchMessageHandler;
+import org.apache.helix.messaging.handling.BatchMessageWrapper;
 import org.apache.helix.messaging.handling.HelixStateTransitionHandler;
 import org.apache.helix.messaging.handling.HelixTaskExecutor;
 import org.apache.helix.messaging.handling.MessageHandler;
+import org.apache.helix.messaging.handling.TaskExecutor;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.StateModelDefinition;
@@ -49,11 +53,19 @@ public class HelixStateMachineEngine implements StateMachineEngine
 
   // StateModelName->FactoryName->StateModelFactory
   private final Map<String, Map<String, StateModelFactory<? extends StateModel>>> _stateModelFactoryMap;
-  StateModelParser _stateModelParser;
-
+  private final StateModelParser _stateModelParser;
   private final HelixManager _manager;
-
   private final ConcurrentHashMap<String, StateModelDefinition> _stateModelDefs;
+
+  public HelixStateMachineEngine(HelixManager manager)
+  {
+    _stateModelParser = new StateModelParser();
+    _manager = manager;
+
+    _stateModelFactoryMap =
+        new ConcurrentHashMap<String, Map<String, StateModelFactory<? extends StateModel>>>();
+    _stateModelDefs = new ConcurrentHashMap<String, StateModelDefinition>();
+  }
 
   public StateModelFactory<? extends StateModel> getStateModelFactory(String stateModelName)
   {
@@ -69,16 +81,6 @@ public class HelixStateMachineEngine implements StateMachineEngine
       return null;
     }
     return _stateModelFactoryMap.get(stateModelName).get(factoryName);
-  }
-
-  public HelixStateMachineEngine(HelixManager manager)
-  {
-    _stateModelParser = new StateModelParser();
-    _manager = manager;
-
-    _stateModelFactoryMap =
-        new ConcurrentHashMap<String, Map<String, StateModelFactory<? extends StateModel>>>();
-    _stateModelDefs = new ConcurrentHashMap<String, StateModelDefinition>();
   }
 
   @Override
@@ -191,8 +193,8 @@ public class HelixStateMachineEngine implements StateMachineEngine
 
     if (!type.equals(MessageType.STATE_TRANSITION.toString()))
     {
-      throw new HelixException("Unexpected msg type for message " + message.getMsgId()
-          + " type:" + message.getMsgType());
+      throw new HelixException("Expect state-transition message type, but was " 
+    		  + message.getMsgType() + ", msgId: " + message.getMsgId());
     }
 
     String partitionKey = message.getPartitionName();
@@ -203,7 +205,7 @@ public class HelixStateMachineEngine implements StateMachineEngine
 
     if (stateModelName == null)
     {
-      logger.error("message does not contain stateModelDef");
+      logger.error("Fail to create msg-handler because message does not contain stateModelDef. msgId: " + message.getId());
       return null;
     }
 
@@ -213,12 +215,12 @@ public class HelixStateMachineEngine implements StateMachineEngine
       factoryName = HelixConstants.DEFAULT_STATE_MODEL_FACTORY;
     }
 
-    StateModelFactory stateModelFactory =
+    StateModelFactory<? extends StateModel> stateModelFactory =
         getStateModelFactory(stateModelName, factoryName);
     if (stateModelFactory == null)
     {
-      logger.warn("Cannot find stateModelFactory for model:" + stateModelName
-          + " using factoryName:" + factoryName + " for resourceGroup:" + resourceName);
+      logger.warn("Fail to create msg-handler because cannot find stateModelFactory for model: " + stateModelName
+          + " using factoryName: " + factoryName + " for resource: " + resourceName);
       return null;
     }
 
@@ -231,38 +233,54 @@ public class HelixStateMachineEngine implements StateMachineEngine
           accessor.getProperty(keyBuilder.stateModelDef(stateModelName));
       if (stateModelDef == null)
       {
-        throw new HelixException("stateModelDef for " + stateModelName
-            + " does NOT exists");
+        throw new HelixException("fail to create msg-handler because stateModelDef for " + stateModelName
+            + " does NOT exist");
       }
       _stateModelDefs.put(stateModelName, stateModelDef);
     }
 
-    // create currentStateDelta for this partition
-    String initState = _stateModelDefs.get(message.getStateModelDef()).getInitialState();
-    StateModel stateModel = stateModelFactory.getStateModel(partitionKey);
-    if (stateModel == null)
-    {
-      stateModelFactory.createAndAddStateModel(partitionKey);
-      stateModel = stateModelFactory.getStateModel(partitionKey);
-      stateModel.updateState(initState);
-    }
+    if (message.getBatchMessageMode() == false) {
+        // create currentStateDelta for this partition
+        String initState = _stateModelDefs.get(message.getStateModelDef()).getInitialState();
+        StateModel stateModel = stateModelFactory.getStateModel(partitionKey);
+        if (stateModel == null)
+        {
+          stateModel = stateModelFactory.createAndAddStateModel(partitionKey);
+          stateModel.updateState(initState);
+        }
 
-    CurrentState currentStateDelta = new CurrentState(resourceName);
-    currentStateDelta.setSessionId(sessionId);
-    currentStateDelta.setStateModelDefRef(stateModelName);
-    currentStateDelta.setStateModelFactoryName(factoryName);
-    currentStateDelta.setBucketSize(bucketSize);
+        // TODO: move currentStateDelta to StateTransitionMsgHandler
+        CurrentState currentStateDelta = new CurrentState(resourceName);
+        currentStateDelta.setSessionId(sessionId);
+        currentStateDelta.setStateModelDefRef(stateModelName);
+        currentStateDelta.setStateModelFactoryName(factoryName);
+        currentStateDelta.setBucketSize(bucketSize);
 
-    currentStateDelta.setState(partitionKey, (stateModel.getCurrentState() == null)
-        ? initState : stateModel.getCurrentState());
+        currentStateDelta.setState(partitionKey, (stateModel.getCurrentState() == null)
+            ? initState : stateModel.getCurrentState());
 
-    HelixTaskExecutor executor = (HelixTaskExecutor) context.get(NotificationContext.TASK_EXECUTOR_KEY);
-    
-    return new HelixStateTransitionHandler(stateModel,
-                                           message,
-                                           context,
-                                           currentStateDelta,
-                                           executor);
+        return new HelixStateTransitionHandler(stateModel,
+                                               message,
+                                               context,
+                                               currentStateDelta);
+    } else
+    {    	
+      BatchMessageWrapper wrapper = stateModelFactory.getBatchMessageWrapper(resourceName);
+      if (wrapper == null)
+      {
+        wrapper = stateModelFactory.createAndAddBatchMessageWrapper(resourceName);
+      }
+      
+    	// get executor-service for the message
+    	TaskExecutor executor = (TaskExecutor) context.get(MapKey.TASK_EXECUTOR.toString());
+    	if (executor == null)
+    	{
+    		logger.error("fail to get executor-service for batch message: " + message.getId() 
+    				+ ". msgType: " + message.getMsgType() + ", resource: " + message.getResourceName());
+    		return null;
+    	}
+    	return new BatchMessageHandler(message, context, this, wrapper, executor);
+    }  
   }
 
   @Override

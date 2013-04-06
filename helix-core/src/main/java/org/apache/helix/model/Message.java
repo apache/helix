@@ -79,7 +79,8 @@ public class Message extends HelixProperty
     RETRY_COUNT,
     STATE_MODEL_FACTORY_NAME,
     BUCKET_SIZE,
-    PARENT_MSG_ID   // used for group message mode
+    PARENT_MSG_ID,   // used for group message mode
+    INNER_MESSAGE
   }
 
   public enum MessageState

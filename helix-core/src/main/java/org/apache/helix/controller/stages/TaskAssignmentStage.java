@@ -110,7 +110,7 @@ public class TaskAssignmentStage extends AbstractBaseStage
       if (!groupMessages.containsKey(key))
       {
         Message groupMessage = new Message(message.getRecord());
-        groupMessage.setGroupMessageMode(true);
+        groupMessage.setBatchMessageMode(true);
         outputMessages.add(groupMessage);
         groupMessages.put(key, groupMessage);
       }
@@ -135,6 +135,10 @@ public class TaskAssignmentStage extends AbstractBaseStage
       logger.info("Sending Message " + message.getMsgId() + " to " + message.getTgtName()
           + " transit " + message.getPartitionName() + "|" + message.getPartitionNames()
           + " from:" + message.getFromState() + " to:" + message.getToState());
+
+//      System.out.println("[dbg] Sending Message " + message.getMsgId() + " to " + message.getTgtName()
+//              + " transit " + message.getPartitionName() + "|" + message.getPartitionNames()
+//              + " from: " + message.getFromState() + " to: " + message.getToState());
 
       keys.add(keyBuilder.message(message.getTgtName(), message.getId()));
     }

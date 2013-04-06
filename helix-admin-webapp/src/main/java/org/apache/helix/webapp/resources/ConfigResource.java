@@ -24,13 +24,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.helix.ConfigScope;
-import org.apache.helix.ConfigScopeBuilder;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixException;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.ConfigScope.ConfigScopeProperty;
 import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.model.ConfigScope;
+import org.apache.helix.model.ConfigScope.ConfigScopeProperty;
+import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.webapp.RestAdminApplication;
 import org.apache.log4j.Logger;

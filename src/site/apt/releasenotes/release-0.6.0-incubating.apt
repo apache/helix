@@ -54,6 +54,8 @@ Release Notes for Apache Helix
 
  * [HELIX-3] - Fix license headers in sources.
 
+ * [HELIX-12] - Issue with starting multiple controllers with same name
+ 
  * [HELIX-14] - error in helix-core ivy file
 
  []
@@ -66,7 +68,10 @@ Release Notes for Apache Helix
 
   * [HELIX-13] - New usecase to replicate files between replicas using simple rsync
 
+  * [HELIX-15] - Distributed lock manager recipe
 
-Have Fun
---
-The Apache Helix Team
+  []
+
+  Have Fun
+  --
+  The Apache Helix Team

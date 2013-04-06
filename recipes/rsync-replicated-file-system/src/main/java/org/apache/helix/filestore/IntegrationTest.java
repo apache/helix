@@ -29,13 +29,13 @@ import org.I0Itec.zkclient.IDefaultNameSpace;
 import org.I0Itec.zkclient.ZkClient;
 import org.I0Itec.zkclient.ZkServer;
 import org.apache.commons.io.FileUtils;
-import org.apache.helix.ConfigScope;
-import org.apache.helix.ConfigScopeBuilder;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.controller.HelixControllerMain;
+import org.apache.helix.model.ConfigScope;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.StateModelConfigGenerator;
 
@@ -76,7 +76,7 @@ public class IntegrationTest
       setup.addInstanceToCluster(clusterName, "localhost", 12002);
       setup.addInstanceToCluster(clusterName, "localhost", 12003);
       setup.addResourceToCluster(clusterName, "repository", 1, "MasterSlave");
-      setup.reblanceResource(clusterName, "repository", 3);
+      setup.rebalanceResource(clusterName, "repository", 3);
       // Set the configuration
       final String instanceName1 = "localhost_12001";
       addConfiguration(setup, baseDir, clusterName, instanceName1);

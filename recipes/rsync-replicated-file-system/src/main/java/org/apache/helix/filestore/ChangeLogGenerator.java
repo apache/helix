@@ -59,7 +59,7 @@ public class ChangeLogGenerator implements FileChangeWatcher
     int max = 1;
     for (String name : list)
     {
-      String[] split = name.split(".");
+      String[] split = name.split("\\.");
       if (split.length == 2)
       {
         try

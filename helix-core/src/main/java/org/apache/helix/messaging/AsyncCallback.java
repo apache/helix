@@ -166,6 +166,13 @@ public abstract class AsyncCallback
       {
         _logger.error(e);
       }
+      finally
+      {
+        if(_timer != null)
+        {
+          _timer.cancel();
+        }
+      }
     }
   }
 

@@ -38,8 +38,11 @@ import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.mock.participant.MockParticipant;
 import org.apache.helix.model.ClusterConstraints;
+import org.apache.helix.model.ConstraintItem;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
+import org.apache.helix.model.builder.ClusterConstraintsBuilder;
+import org.apache.helix.model.builder.ConstraintItemBuilder;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.MasterNbInExtViewVerifier;
@@ -75,12 +78,17 @@ public class TestMessageThrottle extends ZkIntegrationTestBase
     // setup message constraint
     // "MESSAGE_TYPE=STATE_TRANSITION,TRANSITION=OFFLINE-SLAVE,INSTANCE=.*,CONSTRAINT_VALUE=1";
     HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
-    Map<String, String> constraints = new TreeMap<String, String>();
-    constraints.put("MESSAGE_TYPE", "STATE_TRANSITION");
-    // constraints.put("TRANSITION", "OFFLINE-SLAVE");
-    constraints.put("CONSTRAINT_VALUE", "1");
-    constraints.put("INSTANCE", ".*");
-    admin.addMessageConstraint(clusterName, "constraint1", constraints);
+    ConstraintItemBuilder builder = new ConstraintItemBuilder();
+    builder.addConstraintAttribute("MESSAGE_TYPE", "STATE_TRANSITION")
+           .addConstraintAttribute("INSTANCE", ".*")
+           .addConstraintAttribute("CONSTRAINT_VALUE", "1");
+    
+//    Map<String, String> constraints = new TreeMap<String, String>();
+//    constraints.put("MESSAGE_TYPE", "STATE_TRANSITION");
+//    // constraints.put("TRANSITION", "OFFLINE-SLAVE");
+//    constraints.put("CONSTRAINT_VALUE", "1");
+//    constraints.put("INSTANCE", ".*");
+    admin.setConstraint(clusterName, ConstraintType.MESSAGE_CONSTRAINT, "constraint1", builder.build());
     
 
     final ZKHelixDataAccessor accessor =

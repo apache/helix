@@ -19,6 +19,9 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
+import java.util.LinkedList;
+import java.util.List;
+
 import org.I0Itec.zkclient.IZkStateListener;
 import org.I0Itec.zkclient.ZkConnection;
 import org.apache.log4j.Logger;
@@ -29,13 +32,23 @@ public class ZkStateChangeListener implements IZkStateListener
   private volatile boolean _isConnected;
   private volatile boolean _hasSessionExpired;
   private final ZKHelixManager _zkHelixManager;
+  
+  // Keep track of timestamps that zk State has become Disconnected
+  // If in a _timeWindowLengthMs window zk State has become Disconnected 
+  // for more than_maxDisconnectThreshold times disconnect the zkHelixManager
+  List<Long> _disconnectTimeHistory = new LinkedList<Long>();
+  int _timeWindowLengthMs;
+  int _maxDisconnectThreshold;
 
   private static Logger logger = Logger.getLogger(ZkStateChangeListener.class);
 
-  public ZkStateChangeListener(ZKHelixManager zkHelixManager)
+  public ZkStateChangeListener(ZKHelixManager zkHelixManager, int timeWindowLengthMs, int maxDisconnectThreshold)
   {
     this._zkHelixManager = zkHelixManager;
-
+    _timeWindowLengthMs = timeWindowLengthMs;
+    // _maxDisconnectThreshold min value is 1. 
+    // We don't want to disconnect from zk for the first time zkState become Disconnected
+    _maxDisconnectThreshold = maxDisconnectThreshold > 0 ? maxDisconnectThreshold : 1;
   }
 
   @Override
@@ -67,6 +80,15 @@ public class ZkStateChangeListener implements IZkStateListener
           + _zkHelixManager.getInstanceType());
 
       _isConnected = false;
+      // Track the time stamp that the disconnected happens, then check history and see if
+      // we should disconnect the _zkHelixManager
+      _disconnectTimeHistory.add(System.currentTimeMillis());
+      if(isFlapping())
+      {
+        logger.error("isFlapping() returns true, so disconnect the helix manager. " + _zkHelixManager.getInstanceName() + " "
+          + _maxDisconnectThreshold + " disconnects in " + _timeWindowLengthMs + " Ms."); 
+        _zkHelixManager.disconnectInternal();
+      }
       break;
     case Expired:
       logger.info("KeeperState:" + keeperState + ", expiredSessionId: "
@@ -93,5 +115,24 @@ public class ZkStateChangeListener implements IZkStateListener
   boolean hasSessionExpired()
   {
     return _hasSessionExpired;
+  }
+  
+  /**
+   * If zk state has changed into Disconnected for _maxDisconnectThreshold times during previous _timeWindowLengthMs Ms
+   * time window, we think that there are something wrong going on and disconnect the zkHelixManager from zk.
+   * */
+  boolean isFlapping()
+  {
+    if(_disconnectTimeHistory.size() == 0)
+    {
+      return false;
+    }
+    long mostRecentTimestamp = _disconnectTimeHistory.get(_disconnectTimeHistory.size() - 1);
+    // Remove disconnect history timestamp that are older than _timeWindowLengthMs ago
+    while((_disconnectTimeHistory.get(0) + _timeWindowLengthMs) < mostRecentTimestamp)
+    {
+      _disconnectTimeHistory.remove(0);
+    }
+    return _disconnectTimeHistory.size() > _maxDisconnectThreshold;
   }
 }

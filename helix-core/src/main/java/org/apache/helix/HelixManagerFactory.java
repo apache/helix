@@ -42,12 +42,11 @@ public final class HelixManagerFactory
    * @param type
    * @param zkAddr
    * @return
-   * @throws Exception
    */
   public static HelixManager getZKHelixManager(String clusterName,
                                                String instanceName,
                                                InstanceType type,
-                                               String zkAddr) throws Exception
+                                               String zkAddr)
   {
     return new ZKHelixManager(clusterName, instanceName, type, zkAddr);
   }

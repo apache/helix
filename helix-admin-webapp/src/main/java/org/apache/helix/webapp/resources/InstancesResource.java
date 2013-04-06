@@ -20,7 +20,10 @@ package org.apache.helix.webapp.resources;
  */
 
 import java.io.IOException;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
@@ -111,17 +114,31 @@ public class InstancesResource extends Resource
         accessor.getChildValuesMap(accessor.keyBuilder().liveInstances());
     Map<String, InstanceConfig> instanceConfigsMap =
         accessor.getChildValuesMap(accessor.keyBuilder().instanceConfigs());
-
+    
+    Map<String, List<String>> tagInstanceLists = new TreeMap<String, List<String>>();
+    
     for (String instanceName : instanceConfigsMap.keySet())
     {
       boolean isAlive = liveInstancesMap.containsKey(instanceName);
       instanceConfigsMap.get(instanceName)
                         .getRecord()
                         .setSimpleField("Alive", isAlive + "");
+      InstanceConfig config = instanceConfigsMap.get(instanceName);
+      for(String tag : config.getTags())
+      {
+        if(!tagInstanceLists.containsKey(tag))
+        {
+          tagInstanceLists.put(tag, new LinkedList<String>());
+        }
+        if(!tagInstanceLists.get(tag).contains(instanceName))
+        {
+          tagInstanceLists.get(tag).add(instanceName);
+        }
+      }
     }
 
     StringRepresentation representation =
-        new StringRepresentation(ClusterRepresentationUtil.ObjectToJson(instanceConfigsMap.values()),
+        new StringRepresentation(ClusterRepresentationUtil.ObjectToJson(instanceConfigsMap.values()) + ClusterRepresentationUtil.ObjectToJson(tagInstanceLists),
                                  MediaType.APPLICATION_JSON);
 
     return representation;

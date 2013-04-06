@@ -21,6 +21,7 @@ package org.apache.helix;
 
 import java.util.List;
 
+import org.apache.helix.model.ConfigScope.ConfigScopeProperty;
 import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
 import org.apache.helix.participant.HelixStateMachineEngine;
@@ -30,6 +31,7 @@ import org.apache.helix.store.zk.ZkHelixPropertyStore;
 
 
 /**
+ * Class that represents the Helix Agent.
  * First class Object any process will interact with<br/>
  * General flow <blockquote>
  * 
@@ -100,9 +102,25 @@ public interface HelixManager
   /**
    * @see ConfigChangeListener#onConfigChange(List, NotificationContext)
    * @param listener
+   * 
+   * @deprecated replaced by addInstanceConfigChangeListener()
    */
   void addConfigChangeListener(ConfigChangeListener listener) throws Exception;
 
+  /**
+   * @see InstanceConfigChangeListener#onInstanceConfigChange(List, NotificationContext)
+   * @param listener
+   * 
+   */
+  void addInstanceConfigChangeListener(InstanceConfigChangeListener listener) throws Exception;
+
+  /**
+   * @see ScopedConfigChangeListener#onConfigChange(List, NotificationContext)
+   * @param listener
+   * @param scope
+   */
+  void addConfigChangeListener(ScopedConfigChangeListener listener, ConfigScopeProperty scope) throws Exception;
+  
   /**
    * @see MessageListener#onMessage(String, List, NotificationContext)
    * @param listener
@@ -159,7 +177,7 @@ public interface HelixManager
    * @param listener
    * @return
    */
-  boolean removeListener(Object listener);
+  boolean removeListener(PropertyKey key, Object listener);
   /**
    * Return the client to perform read/write operations on the cluster data
    * store
@@ -276,4 +294,12 @@ public interface HelixManager
    * @param callback
    */
   void addPreConnectCallback(PreConnectCallback callback);
+  
+  /**
+   * Add a LiveInstanceInfoProvider that is invoked before cluster manager connects
+   * 
+   * @see LiveInstanceInfoProvider#getAdditionalLiveInstanceInfo()
+   * @param liveInstanceInfoProvider
+   */
+  void setLiveInstanceInfoProvider(LiveInstanceInfoProvider liveInstanceInfoProvider);
 }

@@ -35,7 +35,7 @@ public class HelixProperty
   public enum HelixPropertyAttribute
   {
     BUCKET_SIZE,
-    GROUP_MESSAGE_MODE
+    BATCH_MESSAGE_MODE
   }
 
   protected final ZNRecord _record;
@@ -178,16 +178,16 @@ public class HelixProperty
     return records;
   }
 
-  public void setGroupMessageMode(boolean enable)
+  public void setBatchMessageMode(boolean enable)
   {
-    _record.setSimpleField(HelixPropertyAttribute.GROUP_MESSAGE_MODE.toString(), ""
+    _record.setSimpleField(HelixPropertyAttribute.BATCH_MESSAGE_MODE.toString(), ""
         + enable);
   }
 
-  public boolean getGroupMessageMode()
+  public boolean getBatchMessageMode()
   {
     String enableStr =
-        _record.getSimpleField(HelixPropertyAttribute.GROUP_MESSAGE_MODE.toString());
+        _record.getSimpleField(HelixPropertyAttribute.BATCH_MESSAGE_MODE.toString());
     if (enableStr == null)
     {
       return false;
@@ -205,7 +205,7 @@ public class HelixProperty
   
   public boolean isValid()
   {
-    return false;
+    return true;
   }
 
   @Override

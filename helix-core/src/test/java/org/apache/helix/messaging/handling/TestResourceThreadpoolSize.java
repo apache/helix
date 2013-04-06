@@ -22,12 +22,11 @@ package org.apache.helix.messaging.handling;
 import java.util.concurrent.ThreadPoolExecutor;
 
 import org.apache.helix.ConfigAccessor;
-import org.apache.helix.ConfigScope;
-import org.apache.helix.ConfigScopeBuilder;
+import org.apache.helix.model.ConfigScope;
+import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.apache.helix.HelixManager;
 import org.apache.helix.integration.ZkStandAloneCMTestBase;
 import org.apache.helix.messaging.DefaultMessagingService;
-import org.apache.helix.messaging.handling.HelixTaskExecutor;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
@@ -60,7 +59,7 @@ public class TestResourceThreadpoolSize extends ZkStandAloneCMTestBase
       
       DefaultMessagingService svc = (DefaultMessagingService)(_startCMResultMap.get(instanceName)._manager.getMessagingService());
       HelixTaskExecutor helixExecutor = svc.getExecutor();
-      ThreadPoolExecutor executor = (ThreadPoolExecutor)(helixExecutor._threadpoolMap.get(MessageType.STATE_TRANSITION + "." + "NextDB"));
+      ThreadPoolExecutor executor = (ThreadPoolExecutor)(helixExecutor._executorMap.get(MessageType.STATE_TRANSITION + "." + "NextDB"));
       Assert.assertEquals(12, executor.getMaximumPoolSize());
       taskcount += executor.getCompletedTaskCount();
       Assert.assertTrue(executor.getCompletedTaskCount() > 0);

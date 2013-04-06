@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -40,35 +41,38 @@ import org.I0Itec.zkclient.DataUpdater;
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.apache.helix.AccessOption;
 import org.apache.helix.ConfigAccessor;
-import org.apache.helix.ConfigScope;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixException;
+import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.PropertyPathConfig;
 import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.ConfigScope.ConfigScopeProperty;
-import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.alerts.AlertsHolder;
 import org.apache.helix.alerts.StatsHolder;
 import org.apache.helix.model.Alerts;
+import org.apache.helix.model.ClusterConstraints;
+import org.apache.helix.model.ClusterConstraints.ConstraintType;
+import org.apache.helix.model.ConfigScope;
+import org.apache.helix.model.ConfigScope.ConfigScopeProperty;
+import org.apache.helix.model.ConstraintItem;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.IdealState.IdealStateModeProperty;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.InstanceConfig.InstanceConfigProperty;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
+import org.apache.helix.model.Message.MessageState;
+import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.PersistentStats;
 import org.apache.helix.model.StateModelDefinition;
-import org.apache.helix.model.ClusterConstraints.ConstraintAttribute;
-import org.apache.helix.model.ClusterConstraints.ConstraintType;
-import org.apache.helix.model.IdealState.IdealStateModeProperty;
-import org.apache.helix.model.InstanceConfig.InstanceConfigProperty;
-import org.apache.helix.model.Message.MessageState;
-import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.tools.DefaultIdealStateCalculator;
 import org.apache.helix.util.HelixUtil;
 import org.apache.helix.util.RebalanceUtil;
@@ -255,22 +259,26 @@ public class ZKHelixAdmin implements HelixAdmin
       // OK.
     }
 
+    // check resource exist. warn if not.
     if (idealStateRecord == null)
     {
-      throw new HelixException("Cluster: " + clusterName + ", resource: " + resourceName
-          + ", ideal state does not exist");
-    }
+//      throw new HelixException("Cluster: " + clusterName + ", resource: " + resourceName
+//          + ", ideal state does not exist");
+      logger.warn("Disable partitions: " + partitionNames + " but Cluster: " + clusterName 
+          + ", resource: " + resourceName + " does not exists. probably disable it during ERROR->DROPPED transtition");
 
-    // check partitions exist. warn if not
-    IdealState idealState = new IdealState(idealStateRecord);
-    for (String partitionName : partitionNames)
-    {
-      if ((idealState.getIdealStateMode() == IdealStateModeProperty.AUTO && idealState.getPreferenceList(partitionName) == null)
-          || (idealState.getIdealStateMode() == IdealStateModeProperty.CUSTOMIZED && idealState.getInstanceStateMap(partitionName) == null))
+    } else {
+      // check partitions exist. warn if not
+      IdealState idealState = new IdealState(idealStateRecord);
+      for (String partitionName : partitionNames)
       {
-        logger.warn("Cluster: " + clusterName + ", resource: " + resourceName
-            + ", partition: " + partitionName
-            + ", partition does not exist in ideal state");
+        if ((idealState.getIdealStateMode() == IdealStateModeProperty.AUTO && idealState.getPreferenceList(partitionName) == null)
+            || (idealState.getIdealStateMode() == IdealStateModeProperty.CUSTOMIZED && idealState.getInstanceStateMap(partitionName) == null))
+        {
+          logger.warn("Cluster: " + clusterName + ", resource: " + resourceName
+              + ", partition: " + partitionName
+              + ", partition does not exist in ideal state");
+        }
       }
     }
 
@@ -394,7 +402,7 @@ public class ZKHelixAdmin implements HelixAdmin
                                                      resourceName));
     for (String partitionName : resetPartitionNames)
     {
-      if (!curState.getState(partitionName).equals("ERROR"))
+      if (!curState.getState(partitionName).equals(HelixDefinedState.ERROR.toString()))
       {
         throw new HelixException("Can't reset state for " + resourceName + "/"
             + partitionNames + " on " + instanceName + ", because not all "
@@ -456,7 +464,7 @@ public class ZKHelixAdmin implements HelixAdmin
       message.setResourceName(resourceName);
       message.setTgtSessionId(sessionId);
       message.setStateModelDef(stateModelDef);
-      message.setFromState("ERROR");
+      message.setFromState(HelixDefinedState.ERROR.toString());
       message.setToState(stateModel.getInitialState());
       message.setStateModelFactoryName(idealState.getStateModelFactoryName());
 
@@ -488,7 +496,7 @@ public class ZKHelixAdmin implements HelixAdmin
           Map<String, String> instanceStateMap = stateMap.get(partitionName);
 
           if (instanceStateMap.containsKey(instanceName)
-              && instanceStateMap.get(instanceName).equals("ERROR"))
+              && instanceStateMap.get(instanceName).equals(HelixDefinedState.ERROR.toString()))
           {
             resetPartitionNames.add(partitionName);
           }
@@ -527,7 +535,7 @@ public class ZKHelixAdmin implements HelixAdmin
         Map<String, String> instanceStateMap = stateMap.get(partitionName);
         for (String instanceName : instanceStateMap.keySet())
         {
-          if (instanceStateMap.get(instanceName).equals("ERROR"))
+          if (instanceStateMap.get(instanceName).equals(HelixDefinedState.ERROR.toString()))
           {
             if (!resetPartitionNames.containsKey(instanceName))
             {
@@ -628,6 +636,28 @@ public class ZKHelixAdmin implements HelixAdmin
     String memberInstancesPath = HelixUtil.getMemberInstancesPath(clusterName);
     return _zkClient.getChildren(memberInstancesPath);
   }
+  
+  @Override
+  public List<String> getInstancesInClusterWithTag(String clusterName, String tag)
+  {
+    String memberInstancesPath = HelixUtil.getMemberInstancesPath(clusterName);
+    List<String> instances =  _zkClient.getChildren(memberInstancesPath);
+    List<String> result = new ArrayList<String>();
+    
+    ZKHelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+    
+    for(String instanceName : instances)
+    {
+      InstanceConfig config = accessor.getProperty(keyBuilder.instanceConfig(instanceName));
+      if(config.containsTag(tag))
+      {
+        result.add(instanceName);
+      }
+    }
+    return result;
+  }
 
   @Override
   public void addResource(String clusterName,
@@ -670,11 +700,11 @@ public class ZKHelixAdmin implements HelixAdmin
   }
 
   String idealStatePath = HelixUtil.getIdealStatePath(clusterName);
-  String dbIdealStatePath = idealStatePath + "/" + resourceName;
-  if (_zkClient.exists(dbIdealStatePath))
+  String resourceIdealStatePath = idealStatePath + "/" + resourceName;
+  if (_zkClient.exists(resourceIdealStatePath))
   {
-    throw new HelixException("Skip the operation. DB ideal state directory exists:"
-        + dbIdealStatePath);
+    throw new HelixException("Skip the operation. Resource ideal state directory already exists:"
+        + resourceIdealStatePath);
   }
 
   ZKUtil.createChildren(_zkClient, idealStatePath, idealstate.getRecord()); 
@@ -687,6 +717,16 @@ public class ZKHelixAdmin implements HelixAdmin
                           String stateModelRef,
                           String idealStateMode,
                           int bucketSize)
+  {
+    addResource(clusterName, resourceName, partitions, stateModelRef, idealStateMode,
+        bucketSize, -1);
+
+  }
+  
+  @Override
+  public void addResource(String clusterName, String resourceName,
+      int partitions, String stateModelRef, String idealStateMode,
+      int bucketSize, int maxPartitionsPerInstance)
   {
     if (!ZKUtil.isClusterSetup(clusterName, _zkClient))
     {
@@ -708,13 +748,15 @@ public class ZKHelixAdmin implements HelixAdmin
     idealState.setIdealStateMode(mode.toString());
     idealState.setReplicas("" + 0);
     idealState.setStateModelFactoryName(HelixConstants.DEFAULT_STATE_MODEL_FACTORY);
-
+    if(maxPartitionsPerInstance > 0 && maxPartitionsPerInstance < Integer.MAX_VALUE)
+    {
+      idealState.setMaxPartitionsPerInstance(maxPartitionsPerInstance);
+    }
     if (bucketSize > 0)
     {
       idealState.setBucketSize(bucketSize);
     }
     addResource(clusterName, resourceName, idealState);
-
   }
 
   @Override
@@ -739,25 +781,25 @@ public class ZKHelixAdmin implements HelixAdmin
   }
 
   @Override
-  public IdealState getResourceIdealState(String clusterName, String dbName)
+  public IdealState getResourceIdealState(String clusterName, String resourceName)
   {
     ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
-    return accessor.getProperty(keyBuilder.idealStates(dbName));
+    return accessor.getProperty(keyBuilder.idealStates(resourceName));
   }
 
   @Override
   public void setResourceIdealState(String clusterName,
-                                    String dbName,
+                                    String resourceName,
                                     IdealState idealState)
   {
     ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
-    accessor.setProperty(keyBuilder.idealStates(dbName), idealState);
+    accessor.setProperty(keyBuilder.idealStates(resourceName), idealState);
   }
 
   @Override
@@ -800,6 +842,7 @@ public class ZKHelixAdmin implements HelixAdmin
     Builder keyBuilder = accessor.keyBuilder();
 
     accessor.removeProperty(keyBuilder.idealStates(resourceName));
+    accessor.removeProperty(keyBuilder.resourceConfig(resourceName));
   }
 
   @Override
@@ -1101,19 +1144,38 @@ public class ZKHelixAdmin implements HelixAdmin
   @Override
   public void rebalance(String clusterName, String resourceName, int replica)
   {
-    List<String> instanceNames = getInstancesInCluster(clusterName);
-    rebalance(clusterName, resourceName, replica, resourceName, instanceNames);
+    rebalance(clusterName, resourceName, replica, resourceName, "");
   }
+  
   @Override
-  public void rebalance(String clusterName, String resourceName, int replica, String keyPrefix)
+  public void rebalance(String clusterName, String resourceName, int replica, String keyPrefix, String group)
   {
-    List<String> instanceNames = getInstancesInCluster(clusterName);
-    rebalance(clusterName, resourceName, replica, keyPrefix, instanceNames);
+    List<String> instanceNames = new LinkedList<String>();
+    if(keyPrefix == null || keyPrefix.length() == 0)
+    {
+      keyPrefix = resourceName;
+    }
+    if(group != null && group.length() > 0)
+    {
+      instanceNames = getInstancesInClusterWithTag(clusterName, group);
+    }
+    if(instanceNames.size() == 0)
+    {
+      logger.info("No tags found for resource " + resourceName + ", use all instances");
+      instanceNames = getInstancesInCluster(clusterName);
+      group = "";
+    }
+    else
+    {
+      logger.info("Found instances with tag for " + resourceName + " " + instanceNames);
+    }
+    rebalance(clusterName, resourceName, replica, keyPrefix, instanceNames, group);
   }
+  
   @Override
   public void rebalance(String clusterName, String resourceName, int replica, List<String> instances)
   {
-    rebalance(clusterName, resourceName, replica, resourceName, instances);
+    rebalance(clusterName, resourceName, replica, resourceName, instances, "");
   }
   
   
@@ -1121,7 +1183,8 @@ public class ZKHelixAdmin implements HelixAdmin
                  String resourceName, 
                  int replica, 
                  String keyPrefix, 
-                 List<String> instanceNames)
+                 List<String> instanceNames,
+                 String groupId)
   {
     // ensure we get the same idealState with the same set of instances
     Collections.sort(instanceNames);
@@ -1132,6 +1195,10 @@ public class ZKHelixAdmin implements HelixAdmin
       throw new HelixException("Resource: " + resourceName + " has NOT been added yet");
     }
 
+    if(groupId != null && groupId.length() > 0)
+    {
+      idealState.setInstanceGroupTag(groupId);
+    }
     idealState.setReplicas(Integer.toString(replica));
     int partitions = idealState.getNumPartitions();
     String stateModelName = idealState.getStateModelDefRef();
@@ -1265,49 +1332,68 @@ public class ZKHelixAdmin implements HelixAdmin
 
   }
 
-  public void addMessageConstraint(String clusterName,
-                                   final String constraintId,
-                                   final Map<String, String> constraints)
+  @Override
+  public void setConstraint(String clusterName,
+                            final ConstraintType constraintType,
+                            final String constraintId,
+                            final ConstraintItem constraintItem)
   {
     ZkBaseDataAccessor<ZNRecord> baseAccessor =
         new ZkBaseDataAccessor<ZNRecord>(_zkClient);
 
     Builder keyBuilder = new Builder(clusterName);
-    String path = keyBuilder.constraint(ConstraintType.MESSAGE_CONSTRAINT.toString()).getPath();
+    String path = keyBuilder.constraint(constraintType.toString()).getPath();
 
     baseAccessor.update(path, new DataUpdater<ZNRecord>()
     {
       @Override
       public ZNRecord update(ZNRecord currentData)
       {
-        if (currentData == null)
-        {
-          currentData = new ZNRecord(ConstraintType.MESSAGE_CONSTRAINT.toString());
-        }
+        ClusterConstraints constraints = currentData == null? 
+            new ClusterConstraints(constraintType) : new ClusterConstraints(currentData);
 
-        Map<String, String> map = currentData.getMapField(constraintId);
-        if (map == null)
-        {
-          map = new TreeMap<String, String>();
-          currentData.setMapField(constraintId, map);
-        } else
-        {
-          logger.warn("Overwrite existing constraint " + constraintId + ": " + map);
-        }
-
-        for (String key : constraints.keySet())
-        {
-          // make sure contraint attribute is valid
-          ConstraintAttribute attr = ConstraintAttribute.valueOf(key.toUpperCase());
-
-          map.put(attr.toString(), constraints.get(key));
-        }
-        
-        return currentData;
+        constraints.addConstraintItem(constraintId, constraintItem);
+        return constraints.getRecord();
       }
     }, AccessOption.PERSISTENT);
   }
   
+  @Override
+  public void removeConstraint(String clusterName, 
+                               final ConstraintType constraintType,
+                               final String constraintId)
+  {
+    ZkBaseDataAccessor<ZNRecord> baseAccessor =
+        new ZkBaseDataAccessor<ZNRecord>(_zkClient);
+
+    Builder keyBuilder = new Builder(clusterName);
+    String path = keyBuilder.constraint(constraintType.toString()).getPath();
+
+    baseAccessor.update(path, new DataUpdater<ZNRecord>()
+    {
+      @Override
+      public ZNRecord update(ZNRecord currentData)
+      {
+        if (currentData != null) {
+          ClusterConstraints constraints = new ClusterConstraints(currentData);
+
+          constraints.removeConstraintItem(constraintId);
+          return constraints.getRecord();
+        }
+        return null;
+      }
+    }, AccessOption.PERSISTENT);
+  }
+  
+  @Override
+  public ClusterConstraints getConstraints(String clusterName, ConstraintType constraintType)
+  {
+    HelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+
+    Builder keyBuilder = new Builder(clusterName);
+    return accessor.getProperty(keyBuilder.constraint(constraintType.toString()));
+  }
   
   /**
    * Takes the existing idealstate as input and computes newIdealState such that 
@@ -1379,5 +1465,50 @@ public class ZKHelixAdmin implements HelixAdmin
     IdealState newIdealState = new IdealState(newIdealStateRecord);
     setResourceIdealState(clusterName, newIdealStateRecord.getId(), newIdealState);
   }
+
+  @Override
+  public void addInstanceTag(String clusterName, String instanceName, String tag)
+  {
+    if (!ZKUtil.isClusterSetup(clusterName, _zkClient))
+    {
+      throw new HelixException("cluster " + clusterName + " is not setup yet");
+    }
+    
+    if (!ZKUtil.isInstanceSetup(_zkClient, clusterName, instanceName, InstanceType.PARTICIPANT))
+    {
+      throw new HelixException("cluster " + clusterName + " instance "+instanceName +" is not setup yet");
+    }
+    ZKHelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+
+    InstanceConfig config =  accessor.getProperty(keyBuilder.instanceConfig(instanceName));
+    config.addTag(tag);
+    accessor.setProperty(keyBuilder.instanceConfig(instanceName), config);
+  }
+
+  @Override
+  public void removeInstanceTag(String clusterName, String instanceName,
+      String tag)
+  {
+    if (!ZKUtil.isClusterSetup(clusterName, _zkClient))
+    {
+      throw new HelixException("cluster " + clusterName + " is not setup yet");
+    }
+    
+    if (!ZKUtil.isInstanceSetup(_zkClient, clusterName, instanceName, InstanceType.PARTICIPANT))
+    {
+      throw new HelixException("cluster " + clusterName + " instance "+instanceName +" is not setup yet");
+    }
+    ZKHelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+    
+    InstanceConfig config =  accessor.getProperty(keyBuilder.instanceConfig(instanceName));
+    config.removeTag(tag);
+    accessor.setProperty(keyBuilder.instanceConfig(instanceName), config);
+  }
+
+  
  
 }

@@ -30,28 +30,7 @@ import java.util.concurrent.Future;
 import org.I0Itec.zkclient.DataUpdater;
 import org.I0Itec.zkclient.IZkChildListener;
 import org.I0Itec.zkclient.IZkDataListener;
-import org.apache.helix.BaseDataAccessor;
-import org.apache.helix.ClusterMessagingService;
-import org.apache.helix.ConfigAccessor;
-import org.apache.helix.ConfigChangeListener;
-import org.apache.helix.ControllerChangeListener;
-import org.apache.helix.Criteria;
-import org.apache.helix.CurrentStateChangeListener;
-import org.apache.helix.ExternalViewChangeListener;
-import org.apache.helix.HealthStateChangeListener;
-import org.apache.helix.HelixAdmin;
-import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.HelixManager;
-import org.apache.helix.HelixProperty;
-import org.apache.helix.IdealStateChangeListener;
-import org.apache.helix.InstanceType;
-import org.apache.helix.LiveInstanceChangeListener;
-import org.apache.helix.MessageListener;
-import org.apache.helix.NotificationContext;
-import org.apache.helix.PreConnectCallback;
-import org.apache.helix.PropertyKey;
-import org.apache.helix.PropertyType;
-import org.apache.helix.ZNRecord;
+import org.apache.helix.model.ConfigScope.ConfigScopeProperty;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.healthcheck.HealthReportProvider;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
@@ -59,6 +38,7 @@ import org.apache.helix.messaging.AsyncCallback;
 import org.apache.helix.messaging.handling.HelixTaskExecutor;
 import org.apache.helix.messaging.handling.HelixTaskResult;
 import org.apache.helix.messaging.handling.MessageHandlerFactory;
+import org.apache.helix.messaging.handling.MessageTask;
 import org.apache.helix.model.Message;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.participant.statemachine.StateModel;
@@ -261,13 +241,14 @@ public class Mocks {
 		boolean completionInvoked = false;
 
 		@Override
-		protected void reportCompletion(Message message) {
-			System.out.println("Mocks.MockCMTaskExecutor.reportCompletion()");
+		public void finishTask(MessageTask task) {
+			System.out.println("Mocks.MockCMTaskExecutor.finishTask()");
 			completionInvoked = true;
 		}
 
+
 		public boolean isDone(String taskId) {
-			Future<HelixTaskResult> future = _taskMap.get(taskId);
+			Future<HelixTaskResult> future = _taskMap.get(taskId).getFuture();
 			if (future != null) {
 				return future.isDone();
 			}
@@ -383,7 +364,7 @@ public class Mocks {
 		}
 
 		@Override
-		public boolean removeListener(Object listener) {
+		public boolean removeListener(PropertyKey key, Object listener) {
 			// TODO Auto-generated method stub
 			return false;
 		}
@@ -475,6 +456,28 @@ public class Mocks {
       // TODO Auto-generated method stub
       return null;
     }
+    
+    @Override
+    public void addInstanceConfigChangeListener(InstanceConfigChangeListener listener)
+            throws Exception {
+	    // TODO Auto-generated method stub
+
+    }
+
+	@Override
+    public void addConfigChangeListener(ScopedConfigChangeListener listener,
+            ConfigScopeProperty scope) throws Exception {
+	    // TODO Auto-generated method stub
+
+    }
+
+  @Override
+  public void setLiveInstanceInfoProvider(
+      LiveInstanceInfoProvider liveInstanceInfoProvider)
+  {
+    // TODO Auto-generated method stub
+    
+  }
 
 	}
 
@@ -774,6 +777,13 @@ public class Mocks {
 			return 0;
 		}
 
+    @Override
+    public Map<InstanceType, List<Message>> generateMessage(
+        Criteria recipientCriteria, Message messageTemplate)
+    {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
 	}
-// >>>>>>> 5ef256eeced461eae733d568ad730aabeda3c0f2
 }

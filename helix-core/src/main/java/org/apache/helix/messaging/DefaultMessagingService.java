@@ -28,8 +28,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.helix.ClusterMessagingService;
 import org.apache.helix.ConfigAccessor;
-import org.apache.helix.ConfigScope;
-import org.apache.helix.ConfigScopeBuilder;
+import org.apache.helix.model.ConfigScope;
+import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.apache.helix.Criteria;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
@@ -160,7 +160,7 @@ public class DefaultMessagingService implements ClusterMessagingService
     return totalMessageCount;
   }
 
-  private Map<InstanceType, List<Message>> generateMessage(final Criteria recipientCriteria,
+  public Map<InstanceType, List<Message>> generateMessage(final Criteria recipientCriteria,
                                                            final Message message)
   {
     Map<InstanceType, List<Message>> messagesToSendMap =

@@ -63,7 +63,7 @@ public abstract class StateModel
 	    StateTransitionError error)
 	{
 
-		logger.error("Default rollback method invoked on error. Error Code:"
+		logger.error("Default rollback method invoked on error. Error Code: "
 		    + error.getCode());
 
 	}
@@ -75,5 +75,18 @@ public abstract class StateModel
 	{
     logger.warn("Default reset method invoked. Either because the process longer own this resource or session timedout");
 	}
+
+	/**
+	 * default transition for drop partition in error state
+	 * 
+	 * @param message
+	 * @param context
+	 * @throws InterruptedException
+	 */
+  @Transition(to = "DROPPED", from = "ERROR")
+  public void defaultOnBecomeDroppedFromError(Message message, NotificationContext context)
+  {
+    logger.info("Default ERROR->DROPPED transition invoked.");
+  }
 
 }

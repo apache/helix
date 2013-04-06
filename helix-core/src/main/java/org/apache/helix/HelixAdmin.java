@@ -24,11 +24,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.helix.ConfigScope.ConfigScopeProperty;
-import org.apache.helix.model.ExternalView;
-import org.apache.helix.model.IdealState;
-import org.apache.helix.model.InstanceConfig;
-import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.model.*;
+import org.apache.helix.model.ClusterConstraints.ConstraintType;
+import org.apache.helix.model.ConfigScope.ConfigScopeProperty;
 
 
 public interface HelixAdmin
@@ -134,7 +132,26 @@ public interface HelixAdmin
                    String stateModelRef,
                    String idealStateMode,
                    int bucketSize);
-
+  
+  /**
+   * Add a resource to a cluster, using a bucket size > 1
+   * 
+   * @param clusterName
+   * @param resourceName
+   * @param numResources
+   * @param stateModelRef
+   * @param idealStateMode
+   * @param bucketSize
+   * @param maxPartitionsPerInstance
+   */
+  void addResource(String clusterName,
+                   String resourceName,
+                   int numResources,
+                   String stateModelRef,
+                   String idealStateMode,
+                   int bucketSize,
+                   int maxPartitionsPerInstance);
+  
   /**
    * Add an instance to a cluster
    * 
@@ -155,10 +172,10 @@ public interface HelixAdmin
    * Get ideal state for a resource
    * 
    * @param clusterName
-   * @param dbName
+   * @param resourceName
    * @return
    */
-  IdealState getResourceIdealState(String clusterName, String dbName);
+  IdealState getResourceIdealState(String clusterName, String resourceName);
 
   /**
    * Set ideal state for a resource
@@ -362,7 +379,6 @@ public interface HelixAdmin
    * @param clusterName
    * @param resourceName
    * @param replica
-   * @param keyPrefix
    */
   void rebalance(String clusterName, String resourceName, int replica);
 
@@ -380,8 +396,8 @@ public interface HelixAdmin
    * Add state model definition using a json format file
    * 
    * @param clusterName
-   * @param resourceName
-   * @param idealStateFile
+   * @param stateModelDefName
+   * @param stateModelDefFile
    * @throws IOException
    */
   void addStateModelDef(String clusterName,
@@ -389,15 +405,39 @@ public interface HelixAdmin
                         String stateModelDefFile) throws IOException;
 
   /**
-   * Add a message contraint
+   * Add a constraint item; create if not exist
    * 
+   * @param clusterName
+   * @param constraintType
    * @param constraintId
-   * @param constraints
+   * @param constraintItem
    */
-  void addMessageConstraint(String clusterName,
-                            String constraintId,
-                            Map<String, String> constraints);
+  void setConstraint(String clusterName,
+                     ConstraintType constraintType,
+                     String constraintId,
+                     ConstraintItem constraintItem);
 
+  /**
+   * Remove a constraint item
+   * 
+   * @param clusterName
+   * @param constraintType
+   * @param constraintId
+   */
+  void removeConstraint(String clusterName, 
+                        ConstraintType constraintType, 
+                        String constraintId);
+  
+  /**
+   * Get all constraints for a type
+   * 
+   * @param clusterName
+   * @param constraintType
+   * @return
+   */
+  ClusterConstraints getConstraints(String clusterName,
+                                    ConstraintType constraintType);
+  
   /**
    * 
    * @param clusterName
@@ -425,5 +465,29 @@ public interface HelixAdmin
    * @param keyPrefix
    */
   void rebalance(String clusterName, String resourceName, int replica,
-      String keyPrefix);
+      String keyPrefix, String group);
+  /**
+   * 
+   * @param clusterName
+   * @param tag
+   */
+  List<String> getInstancesInClusterWithTag(String clusterName, String tag);
+  
+  /**
+   * 
+   * @param clusterName
+   * @param instanceNames
+   * @param tag
+   * @return
+   */
+  void addInstanceTag(String clusterName, String instanceName, String tag);
+  
+  /**
+   * 
+   * @param clusterName
+   * @param instanceNames
+   * @param tag
+   * @return
+   */
+  void removeInstanceTag(String clusterName, String instanceName, String tag);
 }

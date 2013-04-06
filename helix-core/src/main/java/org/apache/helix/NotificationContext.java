@@ -24,8 +24,12 @@ import java.util.Map;
 
 public class NotificationContext
 {
-  // keys used for object map
-  public static final String TASK_EXECUTOR_KEY = "TASK_EXECUTOR";
+	// keys used for object map
+	public enum MapKey {
+		TASK_EXECUTOR,
+		CURRENT_STATE_UPDATE,
+		HELIX_TASK_RESULT
+	}
   
   private Map<String, Object> _map;
 

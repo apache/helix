@@ -125,7 +125,7 @@ public class TestClusterManagementWebapp extends AdminTestBase
     sw = new StringWriter();
     result.write(sw);
 
-    System.out.println(sw.toString());
+    // System.out.println(sw.toString());
 
     AssertJUnit.assertTrue(sw.toString().contains("Test"));
   }
@@ -152,7 +152,7 @@ public class TestClusterManagementWebapp extends AdminTestBase
     StringWriter sw = new StringWriter();
     result.write(sw);
 
-    System.out.println(sw.toString());
+    // System.out.println(sw.toString());
 
     ObjectMapper mapper = new ObjectMapper();
     ZNRecord zn = mapper.readValue(new StringReader(sw.toString()), ZNRecord.class);
@@ -186,7 +186,7 @@ public class TestClusterManagementWebapp extends AdminTestBase
     StringWriter sw = new StringWriter();
     result.write(sw);
 
-    System.out.println(sw.toString());
+    // System.out.println(sw.toString());
 
     ObjectMapper mapper = new ObjectMapper();
     ZNRecord zn = mapper.readValue(new StringReader(sw.toString()), ZNRecord.class);
@@ -206,7 +206,7 @@ public class TestClusterManagementWebapp extends AdminTestBase
     sw = new StringWriter();
     result.write(sw);
 
-    System.out.println(sw.toString());
+    // System.out.println(sw.toString());
   }
 
   void verifyAddInstance() throws JsonGenerationException,
@@ -233,7 +233,7 @@ public class TestClusterManagementWebapp extends AdminTestBase
     StringWriter sw = new StringWriter();
     result.write(sw);
 
-    System.out.println(sw.toString());
+    // System.out.println(sw.toString());
 
     ObjectMapper mapper = new ObjectMapper();
 
@@ -276,7 +276,7 @@ public class TestClusterManagementWebapp extends AdminTestBase
     sw = new StringWriter();
     result.write(sw);
 
-    System.out.println(sw.toString());
+    // System.out.println(sw.toString());
 
     mapper = new ObjectMapper();
 
@@ -323,7 +323,7 @@ public class TestClusterManagementWebapp extends AdminTestBase
     StringWriter sw = new StringWriter();
     result.write(sw);
 
-    System.out.println(sw.toString());
+    // System.out.println(sw.toString());
 
     ObjectMapper mapper = new ObjectMapper();
     ZNRecord r = mapper.readValue(new StringReader(sw.toString()), ZNRecord.class);
@@ -372,7 +372,7 @@ public class TestClusterManagementWebapp extends AdminTestBase
     StringWriter sw = new StringWriter();
     result.write(sw);
 
-    System.out.println(sw.toString());
+    // System.out.println(sw.toString());
 
     ObjectMapper mapper = new ObjectMapper();
     ZNRecord r = mapper.readValue(new StringReader(sw.toString()), ZNRecord.class);
@@ -392,7 +392,7 @@ public class TestClusterManagementWebapp extends AdminTestBase
     sw = new StringWriter();
     result.write(sw);
 
-    System.out.println(sw.toString());
+    // System.out.println(sw.toString());
 
     mapper = new ObjectMapper();
     r = mapper.readValue(new StringReader(sw.toString()), ZNRecord.class);
@@ -416,7 +416,7 @@ public class TestClusterManagementWebapp extends AdminTestBase
     StringWriter sw = new StringWriter();
     result.write(sw);
 
-    System.out.println(sw.toString());
+    // System.out.println(sw.toString());
 
     ObjectMapper mapper = new ObjectMapper();
     ZNRecord r = mapper.readValue(new StringReader(sw.toString()), ZNRecord.class);
@@ -442,7 +442,7 @@ public class TestClusterManagementWebapp extends AdminTestBase
     sw = new StringWriter();
     result.write(sw);
 
-    System.out.println(sw.toString());
+    // System.out.println(sw.toString());
 
     mapper = new ObjectMapper();
     ZNRecord r2 = mapper.readValue(new StringReader(sw.toString()), ZNRecord.class);
@@ -473,14 +473,15 @@ public class TestClusterManagementWebapp extends AdminTestBase
     Assert.assertEquals(record.getSimpleField("key2"), "value2");
 
     // set/get participant scope configs
+    String participantName = "test2_9999";
     url =
         "http://localhost:" + ADMIN_PORT + "/clusters/" + clusterName
-            + "/configs/participant/localhost_12918";
+            + "/configs/participant/" + participantName;
 
     postConfig(client, url, mapper, ClusterSetup.setConfig, "key3=value3,key4=value4");
 
     record = get(client, url, mapper);
-    Assert.assertEquals(record.getSimpleFields().size(), 2);
+    Assert.assertTrue(record.getSimpleFields().size() >= 2, "Should at least contains 2 keys");
     Assert.assertEquals(record.getSimpleField("key3"), "value3");
     Assert.assertEquals(record.getSimpleField("key4"), "value4");
 
@@ -529,7 +530,7 @@ public class TestClusterManagementWebapp extends AdminTestBase
         "http://localhost:" + ADMIN_PORT + "/clusters/" + clusterName + "/configs/participant";
     record = get(client, url, mapper);
     Assert.assertTrue(record.getListFields().containsKey("PARTICIPANT"));
-    Assert.assertTrue(contains(record.getListField("PARTICIPANT"), "localhost_12918"));
+    Assert.assertTrue(contains(record.getListField("PARTICIPANT"), participantName));
 
     url = "http://localhost:" + ADMIN_PORT + "/clusters/" + clusterName + "/configs/resource";
     record = get(client, url, mapper);

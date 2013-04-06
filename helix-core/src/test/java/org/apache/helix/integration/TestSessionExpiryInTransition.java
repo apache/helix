@@ -25,8 +25,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.TestHelper;
+import org.apache.helix.ZkHelixTestManager;
 import org.apache.helix.ZkTestHelper;
-import org.apache.helix.ZkTestHelper.TestZkHelixManager;
 import org.apache.helix.mock.controller.ClusterController;
 import org.apache.helix.mock.participant.MockParticipant;
 import org.apache.helix.mock.participant.MockTransition;
@@ -48,7 +48,7 @@ public class TestSessionExpiryInTransition extends ZkIntegrationTestBase
     @Override
     public void doTransition(Message message, NotificationContext context)
     {
-      TestZkHelixManager manager = (TestZkHelixManager)context.getManager();
+      ZkHelixTestManager manager = (ZkHelixTestManager)context.getManager();
      
       String instance = message.getTgtName();
       String partition = message.getPartitionName();
@@ -104,8 +104,8 @@ public class TestSessionExpiryInTransition extends ZkIntegrationTestBase
     for (int i = 0; i < 5; i++)
     {
       String instanceName = "localhost_" + (12918 + i);
-      TestZkHelixManager manager =
-          new TestZkHelixManager(clusterName,
+      ZkHelixTestManager manager =
+          new ZkHelixTestManager(clusterName,
                                  instanceName,
                                  InstanceType.PARTICIPANT,
                                  ZK_ADDR);

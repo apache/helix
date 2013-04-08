@@ -116,6 +116,7 @@ under the License.
     <module>helix-core</module>
     <module>helix-admin-webapp</module>
     <module>mockservice</module>
+    <module>helix-agent</module>
     <module>recipes</module>
   </modules>
 

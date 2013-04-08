@@ -34,8 +34,11 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.controller.HelixControllerMain;
 import org.apache.helix.model.ConfigScope;
+import org.apache.helix.model.HelixConfigScope;
+import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.builder.ConfigScopeBuilder;
+import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.StateModelConfigGenerator;
 
@@ -204,8 +207,8 @@ public class IntegrationTest
       String clusterName, String instanceName) throws IOException
   {
     Map<String, String> properties = new HashMap<String, String>();
-    ConfigScopeBuilder builder = new ConfigScopeBuilder();
-    ConfigScope instanceScope = builder.forCluster(clusterName)
+    HelixConfigScopeBuilder builder = new HelixConfigScopeBuilder(ConfigScopeProperty.PARTICIPANT);
+    HelixConfigScope instanceScope = builder.forCluster(clusterName)
         .forParticipant(instanceName).build();
     properties.put("change_log_dir", baseDir + instanceName + "/translog");
     properties.put("file_store_dir", baseDir + instanceName + "/filestore");

@@ -26,7 +26,7 @@ import java.util.Set;
 
 import org.apache.helix.model.*;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
-import org.apache.helix.model.ConfigScope.ConfigScopeProperty;
+import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 
 
 public interface HelixAdmin
@@ -342,7 +342,7 @@ public interface HelixAdmin
    * @param scope
    * @param properties
    */
-  void setConfig(ConfigScope scope, Map<String, String> properties);
+  void setConfig(HelixConfigScope scope, Map<String, String> properties);
 
   /**
    * Remove configuration values
@@ -350,7 +350,7 @@ public interface HelixAdmin
    * @param scope
    * @param keys
    */
-  void removeConfig(ConfigScope scope, Set<String> keys);
+  void removeConfig(HelixConfigScope scope, List<String> keys);
 
   /**
    * Get configuration values
@@ -359,19 +359,15 @@ public interface HelixAdmin
    * @param keys
    * @return
    */
-  Map<String, String> getConfig(ConfigScope scope, Set<String> keys);
+  Map<String, String> getConfig(HelixConfigScope scope, List<String> keys);
 
   /**
    * Get configuration keys
    * 
    * @param scope
-   * @param clusterName
-   * @param keys
    * @return
    */
-  List<String> getConfigKeys(ConfigScopeProperty scope,
-                             String clusterName,
-                             String... keys);
+  List<String> getConfigKeys(HelixConfigScope scope);
 
   /**
    * Rebalance a resource in cluster

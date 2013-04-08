@@ -43,6 +43,7 @@ import org.apache.commons.cli.ParseException;
 import org.apache.helix.model.ConfigScope;
 import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.apache.helix.model.builder.ConstraintItemBuilder;
+import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixException;
 import org.apache.helix.ZNRecord;
@@ -57,10 +58,12 @@ import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.ConstraintItem;
 import org.apache.helix.model.ExternalView;
+import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.IdealState.IdealStateModeProperty;
 import org.apache.helix.store.PropertyJsonSerializer;
 import org.apache.helix.util.HelixUtil;
@@ -574,58 +577,69 @@ public class ClusterSetup
 
   
   /**
-   * set config
+   * set configs
    * 
-   * @param scopesKeyValuePairs : csv-formated scope key-value pair. e.g CLUSTER=MyCluster,RESOURCE=MyDB,... 
-   *                      where scope-key could be: CLUSTER, RESOURCE, PARTICIPANT, and PARTITION
-   * @param keyValuePairs : csv-formatted key-value pairs. e.g. k1=v1,k2=v2,...
+   * @param type config-scope type, e.g. CLUSTER, RESOURCE, etc.
+   * @param scopesStr scopeArgsCsv csv-formatted scope-args, e.g myCluster,testDB 
+   * @param keyValuePairs csv-formatted key-value pairs. e.g. k1=v1,k2=v2
    */
-  public void setConfig(String scopesKeyValuePairs, String keyValuePairs)
+  public void setConfig(ConfigScopeProperty type, String scopeArgsCsv, String keyValuePairs)
   {
-    ConfigScope scope = new ConfigScopeBuilder().build(scopesKeyValuePairs);
+//    ConfigScope scope = new ConfigScopeBuilder().build(scopesKeyValuePairs);
+    String[] scopeArgs = scopeArgsCsv.split("[\\s,]");
+    HelixConfigScope scope = new HelixConfigScopeBuilder(type, scopeArgs).build();
 
     Map<String, String> keyValueMap = HelixUtil.parseCsvFormatedKeyValuePairs(keyValuePairs);
     _admin.setConfig(scope, keyValueMap);
   }
 
   /**
-   * remove config
+   * remove configs
    * 
-   * @param scopesStr : comma-separated scope key-value pair. e.g CLUSTER=MyCluster,RESOURCE=MyDB,... 
-   *                      where scope-key could be: CLUSTER, RESOURCE, PARTICIPANT, and PARTITION
-   * @param keysStr : comma-separated keys. e.g. k1,k2...
+   * @param type config-scope type, e.g. CLUSTER, RESOURCE, etc.
+   * @param scopesStr scopeArgsCsv csv-formatted scope-args, e.g myCluster,testDB 
+   * @param keysCsv csv-formatted keys. e.g. k1,k2
    */
-  public void removeConfig(String scopesStr, String keysStr)
+  public void removeConfig(ConfigScopeProperty type, String scopeArgsCsv, String keysCsv)
   {
-    ConfigScope scope = new ConfigScopeBuilder().build(scopesStr);
+//    ConfigScope scope = new ConfigScopeBuilder().build(scopesStr);
+//
+//    // parse keys
+//    String[] keys = keysStr.split("[\\s,]");
+//    Set<String> keysSet = new HashSet<String>(Arrays.asList(keys));
+    
+    String[] scopeArgs = scopeArgsCsv.split("[\\s,]");
+    HelixConfigScope scope = new HelixConfigScopeBuilder(type, scopeArgs).build();
 
-    // parse keys
-    String[] keys = keysStr.split("[\\s,]");
-    Set<String> keysSet = new HashSet<String>(Arrays.asList(keys));
+    String[] keys = keysCsv.split("[\\s,]");
 
-    _admin.removeConfig(scope, keysSet);
+    _admin.removeConfig(scope, Arrays.asList(keys));
   }
 
   /**
-   * get config
+   * get configs
    * 
-   * @param scopesStr : comma-separated scope key-value pair. e.g CLUSTER=MyCluster,RESOURCE=MyDB,... 
-   *                      where scope-key could be: CLUSTER, RESOURCE, PARTICIPANT, and PARTITION
-   * @param keysStr :  comma-separated keys. e.g. k1,k2...
-   * @return : json-formated key-value pair. e.g. {k1=v1,k2=v2,...}
+   * @param type config-scope-type, e.g. CLUSTER, RESOURCE, etc.
+   * @param scopeArgsCsv csv-formatted scope-args, e.g myCluster,testDB 
+   * @param keysCsv   csv-formatted keys. e.g. k1,k2
+   * @return json-formated key-value pairs, e.g. {k1=v1,k2=v2}
    */
-  public String getConfig(String scopesStr, String keysStr)
+  public String getConfig(ConfigScopeProperty type, String scopeArgsCsv, String keysCsv)
   {
-    
-    ConfigScope scope = new ConfigScopeBuilder().build(scopesStr);
+//    ConfigScope scope = new ConfigScopeBuilder().build(scopesStr);
 
+    String[] scopeArgs = scopeArgsCsv.split("[\\s,]");
+    HelixConfigScope scope = new HelixConfigScopeBuilder(type, scopeArgs).build();
+
+    String[] keys = keysCsv.split("[\\s,]");
     // parse keys
-    String[] keys = keysStr.split("[\\s,]");
-    Set<String> keysSet = new HashSet<String>(Arrays.asList(keys));
+//    String[] keys = keysStr.split("[\\s,]");
+//    Set<String> keysSet = new HashSet<String>(Arrays.asList(keys));
 
-    Map<String, String> propertiesMap = _admin.getConfig(scope, keysSet);
-    ZNRecord record = new ZNRecord(scopesStr);
-    record.setMapField(scopesStr, propertiesMap);
+    Map<String, String> keyValueMap = _admin.getConfig(scope, Arrays.asList(keys));
+    ZNRecord record = new ZNRecord(type.toString());
+    // record.setMapField(scopesStr, propertiesMap);
+    record.getSimpleFields().putAll(keyValueMap);
     ZNRecordSerializer serializer = new ZNRecordSerializer();
     return new String(serializer.serialize(record));
   }
@@ -1046,34 +1060,34 @@ public class ClusterSetup
     // TODO need deal with resource-names containing ","
     // set/get/remove configs options
     Option setConfOption = 
-        OptionBuilder.hasArgs(2)
+        OptionBuilder.hasArgs(3)
                      .isRequired(false)
-                     .withArgName("ConfigScope(e.g. CLUSTER=cluster,RESOURCE=rc,...) KeyValueMap(e.g. k1=v1,k2=v2,...)")
+                     .withArgName("ConfigScope(e.g. RESOURCE) ConfigScopeArgs(e.g. myCluster,testDB) KeyValueMap(e.g. k1=v1,k2=v2)")
                      .withLongOpt(setConfig)
-                     .withDescription("Set a config")
+                     .withDescription("Set configs")
                      .create();
 
     Option getConfOption = 
-        OptionBuilder.hasArgs(2)
+        OptionBuilder.hasArgs(3)
                      .isRequired(false)
-                     .withArgName("ConfigScope(e.g. CLUSTER=cluster,RESOURCE=rc,...) KeySet(e.g. k1,k2,...)")
+                     .withArgName("ConfigScope(e.g. RESOURCE) ConfigScopeArgs(e.g. myCluster,testDB) Keys(e.g. k1,k2)")
                      .withLongOpt(getConfig)
-                     .withDescription("Get a config")
+                     .withDescription("Get configs")
                      .create();
     
     Option removeConfOption = 
-        OptionBuilder.hasArgs(2)
+        OptionBuilder.hasArgs(3)
                      .isRequired(false)
-                     .withArgName("ConfigScope(e.g. CLUSTER=cluster,RESOURCE=rc,...) KeySet(e.g. k1,k2,...)")
+                     .withArgName("ConfigScope(e.g. RESOURCE) ConfigScopeArgs(e.g. myCluster,testDB) Keys(e.g. k1,k2)")
                      .withLongOpt(getConfig)
-                     .withDescription("Remove a config")
+                     .withDescription("Remove configs")
                      .create();
     
     // set/get/remove constraints options
     Option setConstraintOption = 
         OptionBuilder.hasArgs(4)
                      .isRequired(false)
-                     .withArgName("clusterName ConstraintType(e.g. MESSAGE_CONSTRAINT) ConstraintId ConstraintAttributesMap(e.g. attribute1=valule1,attribute2=value2,...)")
+                     .withArgName("clusterName ConstraintType(e.g. MESSAGE_CONSTRAINT) ConstraintId KeyValueMap(e.g. k1=v1,k2=v2)")
                      .withLongOpt(setConstraint)
                      .withDescription("Set a constraint associated with a give id. create if not exist")
                      .create();
@@ -1652,19 +1666,22 @@ public class ClusterSetup
     // set/get/remove config options
     else if (cmd.hasOption(setConfig)) {
       String values[] = cmd.getOptionValues(setConfig);
-      String scopeStr = values[0];
-      String propertiesStr = values[1];
-      setupTool.setConfig(scopeStr, propertiesStr);
+      ConfigScopeProperty type = ConfigScopeProperty.valueOf(values[0]);
+      String scopeArgs = values[1];
+      String keyValueMap = values[2];
+      setupTool.setConfig(type, scopeArgs, keyValueMap);
     } else if (cmd.hasOption(getConfig)) {
       String values[] = cmd.getOptionValues(getConfig);
-      String scopeStr = values[0];
-      String keySetStr = values[1];
-      setupTool.getConfig(scopeStr, keySetStr);
+      ConfigScopeProperty type = ConfigScopeProperty.valueOf(values[0]);
+      String scopeArgs = values[1];
+      String keys = values[2];
+      setupTool.getConfig(type, scopeArgs, keys);
     }  else if (cmd.hasOption(removeConfig)) {
       String values[] = cmd.getOptionValues(removeConfig);
-      String scoepStr = values[0];
-      String keySetStr = values[1];
-      setupTool.removeConfig(scoepStr, keySetStr);
+      ConfigScopeProperty type = ConfigScopeProperty.valueOf(values[0]);
+      String scoepArgs = values[1];
+      String keys = values[2];
+      setupTool.removeConfig(type, scoepArgs, keys);
     }
     // set/get/remove constraint options
     else if (cmd.hasOption(setConstraint)) {

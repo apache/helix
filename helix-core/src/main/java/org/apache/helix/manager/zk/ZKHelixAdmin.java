@@ -58,10 +58,11 @@ import org.apache.helix.model.Alerts;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.ConfigScope;
-import org.apache.helix.model.ConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.ConstraintItem;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
+import org.apache.helix.model.HelixConfigScope;
+import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.IdealStateModeProperty;
 import org.apache.helix.model.InstanceConfig;
@@ -1089,56 +1090,27 @@ public class ZKHelixAdmin implements HelixAdmin
   }
 
   @Override
-  public void setConfig(ConfigScope scope, Map<String, String> properties)
+  public void setConfig(HelixConfigScope scope, Map<String, String> properties)
   {
-    for (String key : properties.keySet())
-    {
-      _configAccessor.set(scope, key, properties.get(key));
-    }
+    _configAccessor.set(scope, properties);
   }
 
   @Override
-  public Map<String, String> getConfig(ConfigScope scope, Set<String> keys)
+  public Map<String, String> getConfig(HelixConfigScope scope, List<String> keys)
   {
-    Map<String, String> properties = new TreeMap<String, String>();
-
-    if (keys == null)
-    {
-      // read all simple fields
-
-    }
-    else
-    {
-      for (String key : keys)
-      {
-        String value = _configAccessor.get(scope, key);
-        if (value == null)
-        {
-          logger.error("Config doesn't exist for key: " + key);
-          continue;
-        }
-        properties.put(key, value);
-      }
-    }
-
-    return properties;
+    return _configAccessor.get(scope, keys);
   }
 
   @Override
-  public List<String> getConfigKeys(ConfigScopeProperty scope,
-                                    String clusterName,
-                                    String... keys)
+  public List<String> getConfigKeys(HelixConfigScope scope)
   {
-    return _configAccessor.getKeys(scope, clusterName, keys);
+    return _configAccessor.getKeys(scope);
   }
 
   @Override
-  public void removeConfig(ConfigScope scope, Set<String> keys)
+  public void removeConfig(HelixConfigScope scope, List<String> keys)
   {
-    for (String key : keys)
-    {
-      _configAccessor.remove(scope, key);
-    }
+    _configAccessor.remove(scope, keys);
   }
 
   @Override

@@ -23,11 +23,15 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.helix.model.ConfigScope;
-import org.apache.helix.model.ConfigScope.ConfigScopeProperty;
+import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.util.StringTemplate;
 import org.apache.log4j.Logger;
 
 
+/**
+ * @deprecated replaced by {@link HelixConfigScopeBuilder}
+ */
+@Deprecated
 public class ConfigScopeBuilder
 {
   private static Logger LOG = Logger.getLogger(ConfigScopeBuilder.class);

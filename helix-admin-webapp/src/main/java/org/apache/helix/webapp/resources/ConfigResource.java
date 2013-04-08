@@ -29,8 +29,10 @@ import org.apache.helix.HelixException;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.ConfigScope;
-import org.apache.helix.model.ConfigScope.ConfigScopeProperty;
+import org.apache.helix.model.HelixConfigScope;
+import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.builder.ConfigScopeBuilder;
+import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.webapp.RestAdminApplication;
 import org.apache.log4j.Logger;
@@ -62,7 +64,7 @@ public class ConfigResource extends Resource
     return (String) getRequest().getAttributes().get(key);
   }
 
-  StringRepresentation getConfigScopes() throws Exception
+  static StringRepresentation getConfigScopes() throws Exception
   {
     StringRepresentation representation = null;
     ZNRecord record = new ZNRecord("Config");
@@ -84,7 +86,7 @@ public class ConfigResource extends Resource
   StringRepresentation getConfigKeys(ConfigScopeProperty scopeProperty, String... keys) throws Exception
   {
     StringRepresentation representation = null;
-    String clusterName = getValue("clusterName");
+    // String clusterName = getValue("clusterName");
 
     ZkClient zkClient =
         (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
@@ -92,7 +94,9 @@ public class ConfigResource extends Resource
     HelixAdmin admin = setupTool.getClusterManagementTool();
     ZNRecord record = new ZNRecord(scopeProperty + " Config");
 
-    List<String> configKeys = admin.getConfigKeys(scopeProperty, clusterName, keys);
+    HelixConfigScope scope = new HelixConfigScopeBuilder(scopeProperty, keys).build();
+    // List<String> configKeys = admin.getConfigKeys(scopeProperty, clusterName, keys);
+    List<String> configKeys = admin.getConfigKeys(scope);
     record.setListField(scopeProperty.toString(), configKeys);
 
     representation =
@@ -102,12 +106,12 @@ public class ConfigResource extends Resource
     return representation;
   }
 
-  StringRepresentation getConfigs(ConfigScope scope,
+  StringRepresentation getConfigs(// ConfigScope scope,
                                   ConfigScopeProperty scopeProperty,
                                   String... keys) throws Exception
   {
     StringRepresentation representation = null;
-    String clusterName = getValue("clusterName");
+//    String clusterName = getValue("clusterName");
 
     ZkClient zkClient =
         (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
@@ -115,8 +119,9 @@ public class ConfigResource extends Resource
     HelixAdmin admin = setupTool.getClusterManagementTool();
     ZNRecord record = new ZNRecord(scopeProperty + " Config");
 
-    List<String> configKeys = admin.getConfigKeys(scopeProperty, clusterName, keys);
-    Map<String, String> configs = admin.getConfig(scope, new HashSet<String>(configKeys));
+    HelixConfigScope scope = new HelixConfigScopeBuilder(scopeProperty, keys).build();
+    List<String> configKeys = admin.getConfigKeys(scope);
+    Map<String, String> configs = admin.getConfig(scope, configKeys);
     record.setSimpleFields(configs);
 
     representation =
@@ -153,22 +158,22 @@ public class ConfigResource extends Resource
         if (scopeKey1 == null)
         {
           // path is "/clusters/{clusterName}/configs/cluster|participant|resource"
-          representation = getConfigKeys(scopeProperty);
+          representation = getConfigKeys(scopeProperty, clusterName);
         }
         else
         {
-          // path is "/clusters/{clusterName}/configs/cluster|particicpant|resource/
+          // path is "/clusters/{clusterName}/configs/cluster|participant|resource/
           // {clusterName}|{participantName}|{resourceName}"
-          ConfigScope scope;
-          if (scopeProperty == ConfigScopeProperty.CLUSTER)
-          {
-            scope = new ConfigScopeBuilder().build(scopeProperty, clusterName);
-          }
-          else
-          {
-            scope = new ConfigScopeBuilder().build(scopeProperty, clusterName, scopeKey1);
-          }
-          representation = getConfigs(scope, scopeProperty, scopeKey1);
+//          ConfigScope scope;
+//          if (scopeProperty == ConfigScopeProperty.CLUSTER)
+//          {
+//            scope = new ConfigScopeBuilder().build(scopeProperty, clusterName);
+//          }
+//          else
+//          {
+//            scope = new ConfigScopeBuilder().build(scopeProperty, clusterName, scopeKey1);
+//          }
+          representation = getConfigs(scopeProperty, clusterName, scopeKey1);
         }
         break;
       case PARTITION:
@@ -182,18 +187,18 @@ public class ConfigResource extends Resource
         else if (scopeKey2 == null)
         {
           // path is "/clusters/{clusterName}/configs/partition/resourceName"
-          representation = getConfigKeys(scopeProperty, scopeKey1);
+          representation = getConfigKeys(scopeProperty, clusterName, scopeKey1);
         }
         else
         {
           // path is
           // "/clusters/{clusterName}/configs/partition/resourceName/partitionName"
-          ConfigScope scope =
-              new ConfigScopeBuilder().build(scopeProperty,
-                                             clusterName,
-                                             scopeKey1,
-                                             scopeKey2);
-          representation = getConfigs(scope, scopeProperty, scopeKey1, scopeKey2);
+//          ConfigScope scope =
+//              new ConfigScopeBuilder().build(scopeProperty,
+//                                             clusterName,
+//                                             scopeKey1,
+//                                             scopeKey2);
+          representation = getConfigs(scopeProperty, clusterName, scopeKey1, scopeKey2);
         }
         break;
       default:
@@ -217,7 +222,7 @@ public class ConfigResource extends Resource
    * @param scopeStr
    * @throws Exception
    */
-  void setConfigs(Representation entity, String scopeStr) throws Exception
+  void setConfigs(Representation entity, ConfigScopeProperty type, String scopeArgs) throws Exception
   {
     JsonParameters jsonParameters = new JsonParameters(entity);
     String command = jsonParameters.getCommand();
@@ -230,14 +235,15 @@ public class ConfigResource extends Resource
       jsonParameters.verifyCommand(ClusterSetup.setConfig);
       String propertiesStr = jsonParameters.getParameter(JsonParameters.CONFIGS);
 
-      setupTool.setConfig(scopeStr, propertiesStr);
+      // setupTool.setConfig(scopeStr, propertiesStr);
+      setupTool.setConfig(type, scopeArgs, propertiesStr);
     }
     else if (command.equalsIgnoreCase(ClusterSetup.removeConfig))
     {
       jsonParameters.verifyCommand(ClusterSetup.removeConfig);
       String propertiesStr = jsonParameters.getParameter(JsonParameters.CONFIGS);
 
-      setupTool.removeConfig(scopeStr, propertiesStr);
+      setupTool.removeConfig(type, scopeArgs, propertiesStr);
     }
     else
     {
@@ -263,9 +269,8 @@ public class ConfigResource extends Resource
       switch (scopeProperty)
       {
       case CLUSTER:
-        String scopeConfigStr =
-            ConfigScopeProperty.CLUSTER.toString() + "=" + clusterName;
-        setConfigs(entity, scopeConfigStr);
+        String scopeArgs = clusterName;
+        setConfigs(entity, scopeProperty, scopeArgs);
         break;
       case PARTICIPANT:
       case RESOURCE:
@@ -277,11 +282,8 @@ public class ConfigResource extends Resource
         }
         else
         {
-          scopeConfigStr =
-              ConfigScopeProperty.CLUSTER.toString() + "=" + clusterName + ","
-                  + scopeProperty.toString() + "=" + scopeKey1;
-
-          setConfigs(entity, scopeConfigStr);
+          scopeArgs = clusterName + "," + scopeKey1;
+          setConfigs(entity, scopeProperty, scopeArgs);
         }
         break;
       case PARTITION:
@@ -293,11 +295,8 @@ public class ConfigResource extends Resource
         }
         else
         {
-          scopeConfigStr =
-              ConfigScopeProperty.CLUSTER.toString() + "=" + clusterName + ","
-                  + ConfigScopeProperty.RESOURCE.toString() + "=" + scopeKey1 + ","
-                  + scopeProperty.toString() + "=" + scopeKey2;
-          setConfigs(entity, scopeConfigStr);
+          scopeArgs = clusterName + "," + scopeKey1 + "," + scopeKey2;
+          setConfigs(entity, scopeProperty, scopeArgs);
         }
         break;
       default:

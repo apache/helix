@@ -20,6 +20,7 @@ package org.apache.helix.manager.zk;
  */
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -27,7 +28,10 @@ import java.util.Map;
 
 import org.apache.helix.AccessOption;
 import org.apache.helix.model.ConfigScope;
+import org.apache.helix.model.HelixConfigScope;
+import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.builder.ConfigScopeBuilder;
+import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
@@ -256,14 +260,20 @@ public class TestZkClusterManager extends ZkUnitTestBase
     AssertJUnit.assertTrue(admin.isConnected());
 
     HelixAdmin adminTool = admin.getClusterManagmentTool();
-    ConfigScope scope = new ConfigScopeBuilder().forCluster(clusterName)
-        .forResource("testResource").forPartition("testPartition").build();
+//    ConfigScope scope = new ConfigScopeBuilder().forCluster(clusterName)
+//        .forResource("testResource").forPartition("testPartition").build();
+    HelixConfigScope scope = new HelixConfigScopeBuilder(ConfigScopeProperty.PARTITION)
+                                      .forCluster(clusterName)
+                                      .forResource("testResource")
+                                      .forPartition("testPartition")
+                                      .build();
+
     Map<String, String> properties = new HashMap<String, String>();
     properties.put("pKey1", "pValue1");
     properties.put("pKey2", "pValue2");
     adminTool.setConfig(scope, properties);
 
-    properties = adminTool.getConfig(scope, TestHelper.setOf("pKey1", "pKey2"));
+    properties = adminTool.getConfig(scope, Arrays.asList("pKey1", "pKey2"));
     Assert.assertEquals(properties.size(), 2);
     Assert.assertEquals(properties.get("pKey1"), "pValue1");
     Assert.assertEquals(properties.get("pKey2"), "pValue2");

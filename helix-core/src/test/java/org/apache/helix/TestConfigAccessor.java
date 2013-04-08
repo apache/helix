@@ -24,7 +24,7 @@ import java.util.List;
 
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.model.ConfigScope;
-import org.apache.helix.model.ConfigScope.ConfigScopeProperty;
+import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.testng.Assert;
@@ -197,7 +197,5 @@ public class TestConfigAccessor extends ZkUnitTestBase
 
         System.out.println("END " + clusterName + " at "
                 + new Date(System.currentTimeMillis()));
-
-
     }
 }

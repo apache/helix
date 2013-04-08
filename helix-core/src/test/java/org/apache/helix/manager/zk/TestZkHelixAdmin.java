@@ -19,6 +19,7 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -28,13 +29,16 @@ import org.apache.helix.*;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintAttribute;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
+import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.ConfigScope;
 import org.apache.helix.model.ConstraintItem;
 import org.apache.helix.model.ExternalView;
+import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.apache.helix.model.builder.ConstraintItemBuilder;
+import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.tools.StateModelConfigGenerator;
 import org.testng.Assert;
 import org.testng.AssertJUnit;
@@ -187,8 +191,14 @@ public class TestZkHelixAdmin extends ZkUnitTestBase
     AssertJUnit.assertNull(resourceExternalView);
 
     // test config support
-    ConfigScope scope = new ConfigScopeBuilder().forCluster(clusterName)
-        .forResource("testResource").forPartition("testPartition").build();
+//    ConfigScope scope = new ConfigScopeBuilder().forCluster(clusterName)
+//        .forResource("testResource").forPartition("testPartition").build();
+    HelixConfigScope scope = new HelixConfigScopeBuilder(ConfigScopeProperty.PARTITION)
+                                  .forCluster(clusterName)
+                                  .forResource("testResource")
+                                  .forPartition("testPartition")
+                                  .build();
+  
     Map<String, String> properties = new HashMap<String, String>();
     properties.put("pKey1", "pValue1");
     properties.put("pKey2", "pValue2");
@@ -198,7 +208,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase
     for (int i = 0; i < 100; i++)
     {
       tool.setConfig(scope, properties);
-      Map<String, String> newProperties = tool.getConfig(scope, properties.keySet());
+      Map<String, String> newProperties = tool.getConfig(scope, new ArrayList<String>(properties.keySet()));
       Assert.assertEquals(newProperties.size(), 2);
       Assert.assertEquals(newProperties.get("pKey1"), "pValue1");
       Assert.assertEquals(newProperties.get("pKey2"), "pValue2");
@@ -226,7 +236,11 @@ public class TestZkHelixAdmin extends ZkUnitTestBase
         tool.addResource(clusterName, "test-db", 4, "MasterSlave");
         Map<String, String> resourceConfig = new HashMap<String, String>();
         resourceConfig.put("key1", "value1");
-        tool.setConfig(new ConfigScopeBuilder().forCluster(clusterName).forResource("test-db").build(), resourceConfig);
+        tool.setConfig(new HelixConfigScopeBuilder(ConfigScopeProperty.RESOURCE)
+                                .forCluster(clusterName)
+                                .forResource("test-db")
+                                .build(), 
+                       resourceConfig);
 
         PropertyKey.Builder keyBuilder = new PropertyKey.Builder(clusterName);
         Assert.assertTrue(_gZkClient.exists(keyBuilder.idealStates("test-db").getPath()), "test-db ideal-state should exist");

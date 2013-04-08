@@ -26,6 +26,7 @@ import java.util.Map;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.model.ConfigScope;
 import org.apache.helix.model.builder.ConfigScopeBuilder;
+import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.ZNRecord;
@@ -33,6 +34,8 @@ import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.integration.ZkStandAloneCMTestBaseWithPropertyServerCheck;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.HealthStat;
+import org.apache.helix.model.HelixConfigScope;
+import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.InstanceConfig.InstanceConfigProperty;
 import org.apache.helix.tools.ClusterStateVerifier;
@@ -106,7 +109,8 @@ public class TestAlertActionTriggering extends
   @Test
   public void testAlertActionDisableNode() throws InterruptedException
   {
-    ConfigScope scope = new ConfigScopeBuilder().forCluster(CLUSTER_NAME).build();
+    // ConfigScope scope = new ConfigScopeBuilder().forCluster(CLUSTER_NAME).build();
+    HelixConfigScope scope = new HelixConfigScopeBuilder(ConfigScopeProperty.CLUSTER).forCluster(CLUSTER_NAME).build();
     Map<String, String> properties = new HashMap<String, String>();
     properties.put("healthChange.enabled", "true");
     _setupTool.getClusterManagementTool().setConfig(scope, properties);
@@ -144,11 +148,19 @@ public class TestAlertActionTriggering extends
     String participant1 = "localhost_" + (START_PORT + 3);
     String participant2 = "localhost_" + (START_PORT + 2);
     ConfigAccessor configAccessor = manager.getConfigAccessor();
-    scope = new ConfigScopeBuilder().forCluster(manager.getClusterName()).forParticipant(participant1).build();
+    // scope = new ConfigScopeBuilder().forCluster(manager.getClusterName()).forParticipant(participant1).build();
+    scope = new HelixConfigScopeBuilder(ConfigScopeProperty.PARTICIPANT)
+                  .forCluster(manager.getClusterName())
+                  .forParticipant(participant1)
+                  .build();
     String isEnabled = configAccessor.get(scope, "HELIX_ENABLED");
     Assert.assertFalse(Boolean.parseBoolean(isEnabled));
 
-    scope = new ConfigScopeBuilder().forCluster(manager.getClusterName()).forParticipant(participant2).build();
+    // scope = new ConfigScopeBuilder().forCluster(manager.getClusterName()).forParticipant(participant2).build();
+    scope = new HelixConfigScopeBuilder(ConfigScopeProperty.PARTICIPANT)
+                  .forCluster(manager.getClusterName())
+                  .forParticipant(participant2)
+                  .build();
     isEnabled = configAccessor.get(scope, "HELIX_ENABLED");
     Assert.assertFalse(Boolean.parseBoolean(isEnabled));
 
@@ -181,11 +193,19 @@ public class TestAlertActionTriggering extends
     setHealthData2(metrics4);
     task.run();
 
-    scope = new ConfigScopeBuilder().forCluster(manager.getClusterName()).forParticipant(participant1).build();
+    // scope = new ConfigScopeBuilder().forCluster(manager.getClusterName()).forParticipant(participant1).build();
+    scope = new HelixConfigScopeBuilder(ConfigScopeProperty.PARTICIPANT)
+                .forCluster(manager.getClusterName())
+                .forParticipant(participant1)
+                .build();
     isEnabled = configAccessor.get(scope, "HELIX_ENABLED");
     Assert.assertTrue(Boolean.parseBoolean(isEnabled));
 
-    scope = new ConfigScopeBuilder().forCluster(manager.getClusterName()).forParticipant(participant2).build();
+    // scope = new ConfigScopeBuilder().forCluster(manager.getClusterName()).forParticipant(participant2).build();
+    scope = new HelixConfigScopeBuilder(ConfigScopeProperty.PARTICIPANT)
+                .forCluster(manager.getClusterName())
+                .forParticipant(participant2)
+                .build();
     isEnabled = configAccessor.get(scope, "HELIX_ENABLED");
     Assert.assertTrue(Boolean.parseBoolean(isEnabled));
 

@@ -24,18 +24,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.apache.helix.util.StringTemplate;
 import org.apache.log4j.Logger;
 
-
+/**
+ *  @deprecated replaced by {@link HelixConfigScope}
+ */
+@Deprecated
 public class ConfigScope
 {
-  public enum ConfigScopeProperty
-  {
-    CLUSTER, PARTICIPANT, RESOURCE, PARTITION, CONSTRAINT;
-  }
-
   private static Logger LOG = Logger.getLogger(ConfigScope.class);
 
   private static final List<ConfigScopeProperty> scopePriority =

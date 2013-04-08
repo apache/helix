@@ -25,7 +25,9 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import org.apache.helix.model.ConfigScope;
+import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.builder.ConfigScopeBuilder;
+import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixProperty;
@@ -34,6 +36,7 @@ import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.integration.ZkStandAloneCMTestBaseWithPropertyServerCheck;
 import org.apache.helix.model.AlertHistory;
 import org.apache.helix.model.HealthStat;
+import org.apache.helix.model.HelixConfigScope;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -97,7 +100,10 @@ public class TestAlertFireHistory extends ZkStandAloneCMTestBaseWithPropertyServ
     _setupTool.getClusterManagementTool().addAlert(CLUSTER_NAME, _alertStr1);
     _setupTool.getClusterManagementTool().addAlert(CLUSTER_NAME, _alertStr2);
     
-    ConfigScope scope = new ConfigScopeBuilder().forCluster(CLUSTER_NAME).build();
+    // ConfigScope scope = new ConfigScopeBuilder().forCluster(CLUSTER_NAME).build();
+    HelixConfigScope scope = new HelixConfigScopeBuilder(ConfigScopeProperty.CLUSTER)
+                                        .forCluster(CLUSTER_NAME)
+                                        .build();
     Map<String, String> properties = new HashMap<String, String>();
     properties.put("healthChange.enabled", "false");
     _setupTool.getClusterManagementTool().setConfig(scope, properties);

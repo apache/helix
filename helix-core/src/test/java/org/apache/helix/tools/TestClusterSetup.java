@@ -36,6 +36,7 @@ import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.LiveInstance;
+import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.util.HelixUtil;
 import org.apache.log4j.Logger;
@@ -378,15 +379,16 @@ public class TestClusterSetup extends ZkUnitTestBase
     // basic
     _clusterSetup.addCluster(clusterName, true);
     _clusterSetup.addInstanceToCluster(clusterName, "localhost", 0);
-    String scopesStr = "CLUSTER=" + clusterName + ",PARTICIPANT=localhost_0";
-    String propertiesStr = "key1=value1,key2=value2";
-    String keysStr = "key1,key2";
-    _clusterSetup.setConfig(scopesStr, propertiesStr);
-    String valuesStr = _clusterSetup.getConfig(scopesStr, keysStr);
+    String scopeArgs = clusterName + ",localhost_0";
+    String keyValueMap = "key1=value1,key2=value2";
+    String keys = "key1,key2";
+    _clusterSetup.setConfig(ConfigScopeProperty.PARTICIPANT, scopeArgs, keyValueMap);
+    String valuesStr = _clusterSetup.getConfig(ConfigScopeProperty.PARTICIPANT, scopeArgs, keys);
     
     // getConfig returns json-formatted key-value pairs
-    ZNRecord record = new ZNRecord(scopesStr);
-    record.setMapField(scopesStr,HelixUtil.parseCsvFormatedKeyValuePairs(propertiesStr));
+    ZNRecord record = new ZNRecord(ConfigScopeProperty.PARTICIPANT.toString());
+    // record.setMapField(scopesStr,HelixUtil.parseCsvFormatedKeyValuePairs(propertiesStr));
+    record.getSimpleFields().putAll(HelixUtil.parseCsvFormatedKeyValuePairs(keyValueMap));
     ZNRecordSerializer serializer = new ZNRecordSerializer();
     Assert.assertEquals(valuesStr, new String(serializer.serialize(record)));
 

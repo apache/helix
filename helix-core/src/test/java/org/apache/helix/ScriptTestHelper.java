@@ -32,6 +32,8 @@ public class ScriptTestHelper
 
   public static final String INTEGRATION_SCRIPT_DIR = "src/main/scripts/integration-test/script";
   public static final String INTEGRATION_TEST_DIR = "src/main/scripts/integration-test/testcases";
+  public static final String INTEGRATION_LOG_DIR = "src/main/scripts/integration-test/var/log";
+
   public static final long EXEC_TIMEOUT = 1200;
   
   public static String getPrefix()

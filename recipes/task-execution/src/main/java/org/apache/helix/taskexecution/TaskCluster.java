@@ -20,13 +20,14 @@ package org.apache.helix.taskexecution;
  */
 
 import org.apache.helix.ConfigAccessor;
-import org.apache.helix.ConfigScope;
-import org.apache.helix.ConfigScopeBuilder;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.IdealState.IdealStateModeProperty;
+import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.tools.StateModelConfigGenerator;
 
 public class TaskCluster {
@@ -49,11 +50,11 @@ public class TaskCluster {
 		_admin.addCluster(_clusterName, true);
 
 		// add state model definition
-		StateModelConfigGenerator generator = new StateModelConfigGenerator();
+		// StateModelConfigGenerator generator = new StateModelConfigGenerator();
 		_admin.addStateModelDef(
 				_clusterName,
 				DEFAULT_STATE_MODEL,
-				new StateModelDefinition(generator
+				new StateModelDefinition(StateModelConfigGenerator
 						.generateConfigForOnlineOffline()));
 
 	}
@@ -69,7 +70,9 @@ public class TaskCluster {
 
 	public void submitDag(Dag dag) throws Exception {
 		ConfigAccessor clusterConfig = new ConfigAccessor(_zkclient);
-		ConfigScope clusterScope = new ConfigScopeBuilder().forCluster(_clusterName).build();
+		HelixConfigScope clusterScope = new HelixConfigScopeBuilder(ConfigScopeProperty.CLUSTER)
+		                                  .forCluster(_clusterName)
+		                                  .build();
 		for (String id : dag.getNodeIds()) {
 			Dag.Node node = dag.getNode(id);
 			clusterConfig.set(clusterScope, node.getId(), node.toJson());

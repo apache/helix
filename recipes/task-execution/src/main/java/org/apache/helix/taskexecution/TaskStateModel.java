@@ -24,11 +24,12 @@ import java.util.Set;
 import org.apache.log4j.Logger;
 
 import org.apache.helix.ConfigAccessor;
-import org.apache.helix.ConfigScope;
-import org.apache.helix.ConfigScopeBuilder;
 import org.apache.helix.HelixManager;
 import org.apache.helix.NotificationContext;
+import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.Message;
+import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
+import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
@@ -58,7 +59,9 @@ public class TaskStateModel extends StateModel {
 				+ _partition);
 		ConfigAccessor clusterConfig = context.getManager().getConfigAccessor();
 		HelixManager manager = context.getManager();
-		ConfigScope clusterScope = new ConfigScopeBuilder().forCluster(manager.getClusterName()).build();
+		HelixConfigScope clusterScope = new HelixConfigScopeBuilder(ConfigScopeProperty.CLUSTER)
+		                                    .forCluster(manager.getClusterName())
+		                                    .build();
 		String json = clusterConfig.get(clusterScope, message.getResourceName());
 		Dag.Node node = Dag.Node.fromJson(json); 
 		Set<String> parentIds = node.getParentIds();

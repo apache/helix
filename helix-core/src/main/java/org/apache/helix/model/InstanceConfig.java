@@ -46,9 +46,9 @@ public class InstanceConfig extends HelixProperty
   }
   private static final Logger _logger = Logger.getLogger(InstanceConfig.class.getName());
 
-  public InstanceConfig(String id)
+  public InstanceConfig(String instanceId)
   {
-    super(id);
+    super(instanceId);
   }
 
   public InstanceConfig(ZNRecord record)

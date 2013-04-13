@@ -62,8 +62,6 @@ import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.util.HelixUtil;
 import org.apache.helix.util.ZKClientPool;
 import org.apache.log4j.Logger;
-import org.codehaus.jackson.JsonGenerationException;
-import org.codehaus.jackson.map.JsonMappingException;
 
 
 public class ClusterSetup
@@ -195,46 +193,73 @@ public class ClusterSetup
     _admin.dropCluster(clusterName);
   }
 
-  public void addInstancesToCluster(String clusterName, String[] InstanceInfoArray)
+  public void addInstancesToCluster(String clusterName, String[] instanceInfoArray)
   {
-    for (String InstanceInfo : InstanceInfoArray)
+    for (String instanceInfo : instanceInfoArray)
     {
-      if (InstanceInfo.length() > 0)
+      if (instanceInfo.length() > 0)
       {
-        addInstanceToCluster(clusterName, InstanceInfo);
+        addInstanceToCluster(clusterName, instanceInfo);
       }
     }
+  }
+
+  private InstanceConfig toInstanceConfig(String instanceId)
+  {
+    String host = null;
+    int port = -1;
+    // to maintain backward compatibility we parse string of format host:port
+    // and host_port, where host port must be of type string and int
+    char[] delims = new char[]
+    { ':', '_' };
+    for (char delim : delims)
+    {
+      String regex = String.format("(.*)[%c]([\\d]+)", delim);
+      if (instanceId.matches(regex))
+      {
+        int lastIndexOf = instanceId.lastIndexOf(delim);
+        try
+        {
+          port = Integer.parseInt(instanceId.substring(lastIndexOf + 1));
+          host = instanceId.substring(0, lastIndexOf);
+        } catch (Exception e)
+        {
+          _logger.warn("Unable to extract host and port from instanceId:"
+              + instanceId);
+        }
+        break;
+      }
+    }
+    if (host != null && port > 0)
+    {
+      instanceId = host + "_" + port;
+    }
+    InstanceConfig config = new InstanceConfig(instanceId);
+    if (host != null && port > 0)
+    {
+      config.setHostName(host);
+      config.setPort(String.valueOf(port));
+
+    }
+
+    config.setInstanceEnabled(true);
+    config.setHostName(instanceId);
+    return config;
   }
 
   public void addInstanceToCluster(String clusterName, String instanceId)
   {
-    if(instanceId.contains(":"))
-    {
-      int lastPos = instanceId.lastIndexOf(":");
-      
-      String host = instanceId.substring(0, lastPos);
-      String portStr = instanceId.substring(lastPos + 1);
-      try
-      {
-        int port = Integer.parseInt(portStr);
-        instanceId = host + "_" + portStr;
-      }
-      catch(Exception e)
-      {}
-    }
-    InstanceConfig config = new InstanceConfig(instanceId);
-    config.setInstanceEnabled(true);
-    config.setHostName(instanceId);
+    InstanceConfig config = toInstanceConfig(instanceId);
     _admin.addInstance(clusterName, config);
   }
 
-  public void dropInstancesFromCluster(String clusterName, String[] InstanceInfoArray)
+  public void dropInstancesFromCluster(String clusterName, String[] instanceInfoArray)
   {
-    for (String InstanceInfo : InstanceInfoArray)
+    for (String instanceInfo : instanceInfoArray)
     {
-      if (InstanceInfo.length() > 0)
+      if (instanceInfo.length() > 0)
       {
-        dropInstanceFromCluster(clusterName, InstanceInfo);
+        dropInstanceFromCluster(clusterName, instanceInfo);
       }
     }
   }
@@ -245,20 +270,8 @@ public class ClusterSetup
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
     Builder keyBuilder = accessor.keyBuilder();
     
-    if(instanceId.contains(":"))
-    {
-      int lastPos = instanceId.lastIndexOf(":");
-      
-      String host = instanceId.substring(0, lastPos);
-      String portStr = instanceId.substring(lastPos + 1);
-      try
-      {
-        int port = Integer.parseInt(portStr);
-        instanceId = host + "_" + portStr;
-      }
-      catch(Exception e)
-      {}
-    }
+   InstanceConfig instanceConfig = toInstanceConfig(instanceId);
+   instanceId = instanceConfig.getInstanceName();
     
     // ensure node is stopped
     LiveInstance liveInstance = accessor.getProperty(keyBuilder.liveInstance(instanceId));
@@ -291,7 +304,7 @@ public class ClusterSetup
                            String newInstanceName)
   {
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(_zkClient));
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
     InstanceConfig oldConfig =
@@ -536,7 +549,7 @@ public class ClusterSetup
   }
   
   
-  public void rebalanceStorageCluster(String clusterName,
+  public void rebalanceCluster(String clusterName,
       String resourceName,
       int replica,
       String keyPrefix, String group)
@@ -674,20 +687,20 @@ public class ClusterSetup
   }
   
   /**
-   * Sets up a cluster with 6 Instances[localhost:8900 to localhost:8905], 1
-   * resource[EspressoDB] with a replication factor of 3
-   * 
+   * Sets up a cluster<br/>
+   * 6 Instances[localhost:8900 to localhost:8905], <br/>
+   * 1 resource[TestDB] with a replication factor of 3 and using MasterSlave state model<br/>
    * @param clusterName
    */
   public void setupTestCluster(String clusterName)
   {
     addCluster(clusterName, true);
-    String storageInstanceInfoArray[] = new String[6];
-    for (int i = 0; i < storageInstanceInfoArray.length; i++)
+    String instanceInfoArray[] = new String[6];
+    for (int i = 0; i < instanceInfoArray.length; i++)
     {
-      storageInstanceInfoArray[i] = "localhost_" + (8900 + i);
+      instanceInfoArray[i] = "localhost_" + (8900 + i);
     }
-    addInstancesToCluster(clusterName, storageInstanceInfoArray);
+    addInstancesToCluster(clusterName, instanceInfoArray);
     addResourceToCluster(clusterName, "TestDB", 10, "MasterSlave");
     rebalanceStorageCluster(clusterName, "TestDB", 3);
   }
@@ -1213,9 +1226,9 @@ public class ClusterSetup
     if (cmd.hasOption(addInstance))
     {
       String clusterName = cmd.getOptionValues(addInstance)[0];
-      String InstanceAddressInfo = cmd.getOptionValues(addInstance)[1];
-      String[] InstanceAddresses = InstanceAddressInfo.split(";");
-      setupTool.addInstancesToCluster(clusterName, InstanceAddresses);
+      String instanceAddressInfo = cmd.getOptionValues(addInstance)[1];
+      String[] instanceAddresses = instanceAddressInfo.split(";");
+      setupTool.addInstancesToCluster(clusterName, instanceAddresses);
       return 0;
     }
 
@@ -1267,7 +1280,7 @@ public class ClusterSetup
       {
         instanceGroupTagVal = cmd.getOptionValue(instanceGroupTag);
       }
-      setupTool.rebalanceStorageCluster(clusterName, resourceName, replicas, keyPrefixVal, instanceGroupTagVal);
+      setupTool.rebalanceCluster(clusterName, resourceName, replicas, keyPrefixVal, instanceGroupTagVal);
       return 0;
     }
 
@@ -1290,9 +1303,9 @@ public class ClusterSetup
     if (cmd.hasOption(dropInstance))
     {
       String clusterName = cmd.getOptionValues(dropInstance)[0];
-      String InstanceAddressInfo = cmd.getOptionValues(dropInstance)[1];
-      String[] InstanceAddresses = InstanceAddressInfo.split(";");
-      setupTool.dropInstancesFromCluster(clusterName, InstanceAddresses);
+      String instanceAddressInfo = cmd.getOptionValues(dropInstance)[1];
+      String[] instanceAddresses = instanceAddressInfo.split(";");
+      setupTool.dropInstancesFromCluster(clusterName, instanceAddresses);
       return 0;
     }
 
@@ -1326,7 +1339,7 @@ public class ClusterSetup
       String clusterName = cmd.getOptionValue(listClusterInfo);
       List<String> resourceNames =
           setupTool.getClusterManagementTool().getResourcesInCluster(clusterName);
-      List<String> Instances =
+      List<String> instances =
           setupTool.getClusterManagementTool().getInstancesInCluster(clusterName);
 
       System.out.println("Existing resources in cluster " + clusterName + ":");
@@ -1336,7 +1349,7 @@ public class ClusterSetup
       }
 
       System.out.println("Instances in cluster " + clusterName + ":");
-      for (String InstanceName : Instances)
+      for (String InstanceName : instances)
       {
         System.out.println(InstanceName);
       }
@@ -1345,13 +1358,13 @@ public class ClusterSetup
     else if (cmd.hasOption(listInstances))
     {
       String clusterName = cmd.getOptionValue(listInstances);
-      List<String> Instances =
+      List<String> instances =
           setupTool.getClusterManagementTool().getInstancesInCluster(clusterName);
 
       System.out.println("Instances in cluster " + clusterName + ":");
-      for (String InstanceName : Instances)
+      for (String instanceName : instances)
       {
-        System.out.println(InstanceName);
+        System.out.println(instanceName);
       }
       return 0;
     }
@@ -1766,19 +1779,14 @@ public class ClusterSetup
   /**
    * @param args
    * @throws Exception
-   * @throws JsonMappingException
-   * @throws JsonGenerationException
    */
   public static void main(String[] args) throws Exception
   {
-    // debug
-    // System.out.println("args(" + args.length + "): " + Arrays.asList(args));
-
+    System.exit(1);
     if (args.length == 1 && args[0].equals("setup-test-cluster"))
     {
-      System.out.println("By default setting up ");
-      new ClusterSetup("localhost:2181").setupTestCluster("storage-integration-cluster");
-      new ClusterSetup("localhost:2181").setupTestCluster("relay-integration-cluster");
+      System.out.println("By default setting up TestCluster with 6 instances, 10 partitions, Each partition will have 3 replicas");
+      new ClusterSetup("localhost:2181").setupTestCluster("TestCluster");
       System.exit(0);
     }
 

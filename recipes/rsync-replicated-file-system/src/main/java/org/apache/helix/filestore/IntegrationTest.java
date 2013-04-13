@@ -33,14 +33,10 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.controller.HelixControllerMain;
-import org.apache.helix.model.ConfigScope;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
-import org.apache.helix.model.StateModelDefinition;
-import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.tools.ClusterSetup;
-import org.apache.helix.tools.StateModelConfigGenerator;
 
 public class IntegrationTest
 {
@@ -75,9 +71,9 @@ public class IntegrationTest
       final String clusterName = "file-store-test";
       setup.deleteCluster(clusterName);
       setup.addCluster(clusterName, true);
-      setup.addInstanceToCluster(clusterName, "localhost", 12001);
-      setup.addInstanceToCluster(clusterName, "localhost", 12002);
-      setup.addInstanceToCluster(clusterName, "localhost", 12003);
+      setup.addInstanceToCluster(clusterName, "localhost_12001");
+      setup.addInstanceToCluster(clusterName, "localhost_12002");
+      setup.addInstanceToCluster(clusterName, "localhost_12003");
       setup.addResourceToCluster(clusterName, "repository", 1, "MasterSlave");
       setup.rebalanceResource(clusterName, "repository", 3);
       // Set the configuration

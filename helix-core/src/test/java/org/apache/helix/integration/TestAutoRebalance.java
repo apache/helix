@@ -89,7 +89,7 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBaseWithPropertyServerC
       _setupTool.getClusterManagementTool().addInstanceTag(CLUSTER_NAME, storageNodeName, _tag);
     }
 
-    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, db2, 1, "ucpx",_tag);
+    _setupTool.rebalanceCluster(CLUSTER_NAME, db2, 1, "ucpx",_tag);
     
     // start dummy participants
     for (int i = 0; i < NODE_NR; i++)

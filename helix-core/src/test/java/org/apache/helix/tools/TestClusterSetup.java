@@ -135,20 +135,6 @@ public class TestClusterSetup extends ZkUnitTestBase
       caughtException = true;
     }
     AssertJUnit.assertTrue(caughtException);
-
-    // bad instance format
-    String badFormatInstance = "badinstance";
-    caughtException = false;
-    try
-    {
-      _clusterSetup.addInstanceToCluster(CLUSTER_NAME, badFormatInstance);
-    }
-    catch (HelixException e)
-    {
-      caughtException = true;
-    }
-    AssertJUnit.assertTrue(caughtException);
-
   }
 
   @Test()

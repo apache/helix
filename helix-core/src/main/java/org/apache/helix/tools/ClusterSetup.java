@@ -208,8 +208,23 @@ public class ClusterSetup
 
   public void addInstanceToCluster(String clusterName, String instanceId)
   {
+    if(instanceId.contains(":"))
+    {
+      int lastPos = instanceId.lastIndexOf(":");
+      
+      String host = instanceId.substring(0, lastPos);
+      String portStr = instanceId.substring(lastPos + 1);
+      try
+      {
+        int port = Integer.parseInt(portStr);
+        instanceId = host + "_" + portStr;
+      }
+      catch(Exception e)
+      {}
+    }
     InstanceConfig config = new InstanceConfig(instanceId);
     config.setInstanceEnabled(true);
+    config.setHostName(instanceId);
     _admin.addInstance(clusterName, config);
   }
 
@@ -229,7 +244,22 @@ public class ClusterSetup
     ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
     Builder keyBuilder = accessor.keyBuilder();
-
+    
+    if(instanceId.contains(":"))
+    {
+      int lastPos = instanceId.lastIndexOf(":");
+      
+      String host = instanceId.substring(0, lastPos);
+      String portStr = instanceId.substring(lastPos + 1);
+      try
+      {
+        int port = Integer.parseInt(portStr);
+        instanceId = host + "_" + portStr;
+      }
+      catch(Exception e)
+      {}
+    }
+    
     // ensure node is stopped
     LiveInstance liveInstance = accessor.getProperty(keyBuilder.liveInstance(instanceId));
     if (liveInstance != null)

@@ -89,7 +89,7 @@ public class TestAddNodeAfterControllerStart extends ZkIntegrationTestBase
     result = checkHandlers(controller.getHandlers(), msgPath);
     Assert.assertTrue(result);
 
-    _gSetupTool.addInstanceToCluster(clusterName, "localhost:12922");
+    _gSetupTool.addInstanceToCluster(clusterName, "localhost_12922");
     _gSetupTool.rebalanceStorageCluster(clusterName, "TestDB0", 3);
 
     participants[nodeNr - 1] =
@@ -154,7 +154,7 @@ public class TestAddNodeAfterControllerStart extends ZkIntegrationTestBase
     for (int i = 0; i < nodeNr - 1; i++)
     {
       int port = 12918 + i;
-      _gSetupTool.addInstanceToCluster(clusterName, "localhost:" + port);
+      _gSetupTool.addInstanceToCluster(clusterName, "localhost_" + port);
     }
 
     _gSetupTool.addResourceToCluster(clusterName, "TestDB0", 1, "LeaderStandby");
@@ -180,7 +180,7 @@ public class TestAddNodeAfterControllerStart extends ZkIntegrationTestBase
     // System.out.println("numberOfListeners(" + msgPath + "): " + numberOfListeners);
     Assert.assertEquals(numberOfListeners, 2);  // 1 of participant, and 1 of controller
 
-    _gSetupTool.addInstanceToCluster(clusterName, "localhost:12919");
+    _gSetupTool.addInstanceToCluster(clusterName, "localhost_12919");
     _gSetupTool.rebalanceStorageCluster(clusterName, "TestDB0", 2);
 
     participants[nodeNr - 1] =

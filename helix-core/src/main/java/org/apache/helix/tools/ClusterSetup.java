@@ -24,12 +24,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -40,15 +36,11 @@ import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.apache.helix.model.ConfigScope;
-import org.apache.helix.model.builder.ConfigScopeBuilder;
-import org.apache.helix.model.builder.ConstraintItemBuilder;
-import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.HelixAdmin;
-import org.apache.helix.HelixException;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.HelixConstants.StateModelToken;
+import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
@@ -59,13 +51,14 @@ import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.ConstraintItem;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.HelixConfigScope;
+import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.IdealState.IdealStateModeProperty;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.StateModelDefinition;
-import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
-import org.apache.helix.model.IdealState.IdealStateModeProperty;
-import org.apache.helix.store.PropertyJsonSerializer;
+import org.apache.helix.model.builder.ConstraintItemBuilder;
+import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.util.HelixUtil;
 import org.apache.helix.util.ZKClientPool;
 import org.apache.log4j.Logger;
@@ -206,7 +199,6 @@ public class ClusterSetup
   {
     for (String InstanceInfo : InstanceInfoArray)
     {
-      // the storage Instance info must be hostname:port format.
       if (InstanceInfo.length() > 0)
       {
         addInstanceToCluster(clusterName, InstanceInfo);
@@ -214,32 +206,9 @@ public class ClusterSetup
     }
   }
 
-  public void addInstanceToCluster(String clusterName, String InstanceAddress)
+  public void addInstanceToCluster(String clusterName, String instanceId)
   {
-    // InstanceAddress must be in host:port format
-    int lastPos = InstanceAddress.lastIndexOf("_");
-    if (lastPos <= 0)
-    {
-      lastPos = InstanceAddress.lastIndexOf(":");
-    }
-    if (lastPos <= 0)
-    {
-      String error = "Invalid storage Instance info format: " + InstanceAddress;
-      _logger.warn(error);
-      throw new HelixException(error);
-    }
-    String host = InstanceAddress.substring(0, lastPos);
-    String portStr = InstanceAddress.substring(lastPos + 1);
-    int port = Integer.parseInt(portStr);
-    addInstanceToCluster(clusterName, host, port);
-  }
-
-  public void addInstanceToCluster(String clusterName, String host, int port)
-  {
-    String instanceId = host + "_" + port;
     InstanceConfig config = new InstanceConfig(instanceId);
-    config.setHostName(host);
-    config.setPort(Integer.toString(port));
     config.setInstanceEnabled(true);
     _admin.addInstance(clusterName, config);
   }
@@ -248,7 +217,6 @@ public class ClusterSetup
   {
     for (String InstanceInfo : InstanceInfoArray)
     {
-      // the storage Instance info must be hostname:port format.
       if (InstanceInfo.length() > 0)
       {
         dropInstanceFromCluster(clusterName, InstanceInfo);
@@ -256,30 +224,8 @@ public class ClusterSetup
     }
   }
 
-  public void dropInstanceFromCluster(String clusterName, String InstanceAddress)
+  public void dropInstanceFromCluster(String clusterName, String instanceId)
   {
-    // InstanceAddress must be in host:port format
-    int lastPos = InstanceAddress.lastIndexOf("_");
-    if (lastPos <= 0)
-    {
-      lastPos = InstanceAddress.lastIndexOf(":");
-    }
-    if (lastPos <= 0)
-    {
-      String error = "Invalid storage Instance info format: " + InstanceAddress;
-      _logger.warn(error);
-      throw new HelixException(error);
-    }
-    String host = InstanceAddress.substring(0, lastPos);
-    String portStr = InstanceAddress.substring(lastPos + 1);
-    int port = Integer.parseInt(portStr);
-    dropInstanceFromCluster(clusterName, host, port);
-  }
-
-  public void dropInstanceFromCluster(String clusterName, String host, int port)
-  {
-    String instanceId = host + "_" + port;
-
     ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
     Builder keyBuilder = accessor.keyBuilder();
@@ -709,7 +655,7 @@ public class ClusterSetup
     String storageInstanceInfoArray[] = new String[6];
     for (int i = 0; i < storageInstanceInfoArray.length; i++)
     {
-      storageInstanceInfoArray[i] = "localhost:" + (8900 + i);
+      storageInstanceInfoArray[i] = "localhost_" + (8900 + i);
     }
     addInstancesToCluster(clusterName, storageInstanceInfoArray);
     addResourceToCluster(clusterName, "TestDB", 10, "MasterSlave");
@@ -792,7 +738,7 @@ public class ClusterSetup
                      .create();
     addInstanceOption.setArgs(2);
     addInstanceOption.setRequired(false);
-    addInstanceOption.setArgName("clusterName InstanceAddress(host:port)");
+    addInstanceOption.setArgName("clusterName InstanceId");
 
     Option addResourceOption =
         OptionBuilder.withLongOpt(addResource)
@@ -880,7 +826,7 @@ public class ClusterSetup
                      .create();
     dropInstanceOption.setArgs(2);
     dropInstanceOption.setRequired(false);
-    dropInstanceOption.setArgName("clusterName InstanceAddress(host:port)");
+    dropInstanceOption.setArgName("clusterName InstanceId");
 
     Option swapInstanceOption =
         OptionBuilder.withLongOpt(swapInstance)

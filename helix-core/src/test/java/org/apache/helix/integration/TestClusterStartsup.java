@@ -54,7 +54,7 @@ public class TestClusterStartsup extends ZkStandAloneCMTestBase
     _setupTool.addResourceToCluster(CLUSTER_NAME, TEST_DB, 20, STATE_MODEL);
     for (int i = 0; i < NODE_NR; i++)
     {
-      String storageNodeName = "localhost:" + (START_PORT + i);
+      String storageNodeName = "localhost_" + (START_PORT + i);
       _setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
     }
     _setupTool.rebalanceStorageCluster(CLUSTER_NAME, TEST_DB, 3);

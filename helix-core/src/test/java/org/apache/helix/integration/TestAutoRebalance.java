@@ -77,7 +77,7 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBaseWithPropertyServerC
     
     for (int i = 0; i < NODE_NR; i++)
     {
-      String storageNodeName = PARTICIPANT_PREFIX + ":" + (START_PORT + i);
+      String storageNodeName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
       _setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
     }
     
@@ -145,7 +145,7 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBaseWithPropertyServerC
     // add 2 nodes
     for (int i = 0; i < 2; i++)
     {
-      String storageNodeName = PARTICIPANT_PREFIX + ":" + (1000 + i);
+      String storageNodeName = PARTICIPANT_PREFIX + "_" + (1000 + i);
       _setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
       
       StartCMResult resultx =

@@ -89,7 +89,7 @@ public class ZkStandAloneCMTestBase extends ZkIntegrationTestBase
     _setupTool.addResourceToCluster(CLUSTER_NAME, TEST_DB, _PARTITIONS, STATE_MODEL);
     for (int i = 0; i < NODE_NR; i++)
     {
-      String storageNodeName = PARTICIPANT_PREFIX + ":" + (START_PORT + i);
+      String storageNodeName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
       _setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
     }
     _setupTool.rebalanceStorageCluster(CLUSTER_NAME, TEST_DB, _replica);

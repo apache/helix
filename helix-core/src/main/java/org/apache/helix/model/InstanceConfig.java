@@ -187,7 +187,7 @@ public class InstanceConfig extends HelixProperty
     {
       InstanceConfig that = (InstanceConfig) obj;
 
-      if (this.getHostName().equals(that.getHostName()) && this.getPort().equals(that.getPort()))
+      if (this.getId().equals(that.getId()))
       {
         return true;
       }
@@ -198,12 +198,7 @@ public class InstanceConfig extends HelixProperty
   @Override
   public int hashCode()
   {
-
-    StringBuffer sb = new StringBuffer();
-    sb.append(this.getHostName());
-    sb.append("_");
-    sb.append(this.getPort());
-    return sb.toString().hashCode();
+    return getId().hashCode();
   }
 
   public String getInstanceName()

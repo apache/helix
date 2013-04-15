@@ -62,7 +62,7 @@ public class SystemUtil {
       cmd.waitFor();
       
       // split by new lines
-      // should get 2 lines for existing process, 1 line for non-existing process
+      // should return 2 lines for an existing process, or 1 line for a non-existing process
       String lines[] = cmd.getStringOutput().split("[\\r\\n]+");
       if (lines.length != 2) {
         LOG.info("process: " + processId + " not exist");

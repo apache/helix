@@ -76,7 +76,7 @@ public final class ZKUtil
     for(String path:requiredPaths){
       if(!zkClient.exists(path)){
         isValid = false;
-        logger.error("Invalid cluster setup, missing znode path: " + path);
+        logger.info("Invalid cluster setup, missing znode path: " + path);
       }
     }
     return isValid;
@@ -108,7 +108,7 @@ public final class ZKUtil
             for(String path:requiredPaths){
                 if(!zkclient.exists(path)){
                     isValid =false;
-                    logger.error("Invalid instance setup, missing znode path: " + path);
+                    logger.info("Invalid instance setup, missing znode path: " + path);
                 }
             }
             return isValid;

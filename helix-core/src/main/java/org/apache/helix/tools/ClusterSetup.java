@@ -1782,7 +1782,6 @@ public class ClusterSetup
    */
   public static void main(String[] args) throws Exception
   {
-    System.exit(1);
     if (args.length == 1 && args[0].equals("setup-test-cluster"))
     {
       System.out.println("By default setting up TestCluster with 6 instances, 10 partitions, Each partition will have 3 replicas");

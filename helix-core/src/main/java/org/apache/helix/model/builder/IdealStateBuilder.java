@@ -157,7 +157,8 @@ public abstract class IdealStateBuilder {
         idealstate.setStateModelDefRef(stateModel);
         idealstate.setStateModelFactoryName(stateModelFactoryName);
         idealstate.setIdealStateMode(mode.toString());
-
+        idealstate.setReplicas("" + numReplica);
+        
         if (!idealstate.isValid()) {
             throw new HelixException("invalid ideal-state: " + idealstate);
         }

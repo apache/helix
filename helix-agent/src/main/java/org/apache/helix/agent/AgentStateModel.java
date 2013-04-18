@@ -88,10 +88,12 @@ public class AgentStateModel extends StateModel
                                           .forResource(message.getResourceName())
                                           .build();
       Map<String, String> cmdKeyValueMap = manager.getConfigAccessor().get(resourceScope, cmdConfigKeys);
-      cmd = cmdKeyValueMap.get(cmdKey);
-      workingDir = cmdKeyValueMap.get(workingDirKey);
-      timeout = cmdKeyValueMap.get(timeoutKey);
-      pidFile = cmdKeyValueMap.get(pidFileKey);
+      if (cmdKeyValueMap != null) {
+        cmd = cmdKeyValueMap.get(cmdKey);
+        workingDir = cmdKeyValueMap.get(workingDirKey);
+        timeout = cmdKeyValueMap.get(timeoutKey);
+        pidFile = cmdKeyValueMap.get(pidFileKey);
+      }
     }
     
     // if resource-scope doesn't contain command, fall back to cluster-scope configures
@@ -100,10 +102,13 @@ public class AgentStateModel extends StateModel
                                           .forCluster(clusterName)
                                           .build();
       Map<String, String> cmdKeyValueMap = manager.getConfigAccessor().get(clusterScope, cmdConfigKeys);
-      cmd = cmdKeyValueMap.get(cmdKey);
-      workingDir = cmdKeyValueMap.get(workingDirKey);
-      timeout = cmdKeyValueMap.get(timeoutKey);
-      pidFile = cmdKeyValueMap.get(pidFileKey);
+      
+      if (cmdKeyValueMap != null) {
+        cmd = cmdKeyValueMap.get(cmdKey);
+        workingDir = cmdKeyValueMap.get(workingDirKey);
+        timeout = cmdKeyValueMap.get(timeoutKey);
+        pidFile = cmdKeyValueMap.get(pidFileKey);
+      }
     }
 
     if (cmd == null)
@@ -157,6 +162,8 @@ public class AgentStateModel extends StateModel
     String pidFileValue = instantiateByMessage(pidFile, message);
     String pid = SystemUtil.getPidFromFile(new File(pidFileValue));
 
-    new ProcessMonitorThread(pid).start();
+    if (pid != null) {
+      new ProcessMonitorThread(pid).start();
+    }
   }
 }

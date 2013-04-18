@@ -101,9 +101,6 @@ do
   grep -C 1 "$new_version" $POM
 done
 
-cecho "bump up helix-core/src/main/resources/cluster-manager-version.properties" $green
-sed -i "s/${version}/${new_version}/g" helix-core/src/main/resources/cluster-manager-version.properties
-grep -C 1 "$new_version" helix-core/src/main/resources/cluster-manager-version.properties
 #END
 
 

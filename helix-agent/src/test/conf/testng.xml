@@ -21,7 +21,7 @@ under the License.
 <suite name="Suite" parallel="none">
   <test name="Test" preserve-order="false">
     <packages>
-      <package name="org.apache.helix"/>
+      <package name="org.apache.helix.agent"/>
     </packages>
   </test>
 </suite>

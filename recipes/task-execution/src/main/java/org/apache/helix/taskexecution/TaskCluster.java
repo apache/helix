@@ -20,8 +20,8 @@ package org.apache.helix.taskexecution;
  */
 
 import org.apache.helix.ConfigAccessor;
-import org.apache.helix.ConfigScope;
-import org.apache.helix.ConfigScopeBuilder;
+import org.apache.helix.model.ConfigScope;
+import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkClient;
@@ -49,11 +49,10 @@ public class TaskCluster {
 		_admin.addCluster(_clusterName, true);
 
 		// add state model definition
-		StateModelConfigGenerator generator = new StateModelConfigGenerator();
 		_admin.addStateModelDef(
 				_clusterName,
 				DEFAULT_STATE_MODEL,
-				new StateModelDefinition(generator
+				new StateModelDefinition(StateModelConfigGenerator
 						.generateConfigForOnlineOffline()));
 
 	}

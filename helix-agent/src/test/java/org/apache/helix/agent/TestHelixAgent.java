@@ -81,6 +81,15 @@ public class TestHelixAgent extends ZkUnitTestBase {
     
     // System.out.println("workingDir: " + workingDir);
     
+    // the pid file path for the first partition
+    // delete it if exists
+    String pidFileFirstPartition = ScriptTestHelper.getPrefix() + ScriptTestHelper.INTEGRATION_LOG_DIR + "/default/foo_TestDB0_0_pid.txt";
+    File file = new File(pidFileFirstPartition);
+    if (file.exists()) {
+      file.delete();
+    }
+    
+    
     CommandConfig.Builder builder = new CommandConfig.Builder();
     CommandConfig cmdConfig = builder.setTransition("SLAVE", "MASTER")
                                      .setCommand("dds_driver.py -c foo_test -o start")
@@ -148,8 +157,7 @@ public class TestHelixAgent extends ZkUnitTestBase {
     Assert.assertTrue(result);
 
     // read the pid file should get current process id
-    String pidFilePath = ScriptTestHelper.getPrefix() + ScriptTestHelper.INTEGRATION_LOG_DIR + "/default/foo_TestDB0_0_pid.txt";
-    String readPid = SystemUtil.getPidFromFile(new File(pidFilePath));
+    String readPid = SystemUtil.getPidFromFile(new File(pidFileFirstPartition));
     Assert.assertNotNull(readPid, "readPid is the pid for foo_test.py. should NOT be null");
     
     // String name = ManagementFactory.getRuntimeMXBean().getName();

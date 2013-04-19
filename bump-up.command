@@ -94,7 +94,7 @@ cecho "bump up mockservice/pom.xml" $green
 sed -i "s/${version}/${new_version}/g" mockservice/pom.xml
 grep -C 1 "$new_version" mockservice/pom.xml
 
-for POM in recipes/pom.xml recipes/distributed-lock-manager/pom.xml recipes/rsync-replicated-file-system/pom.xml recipes/rabbitmq-consumer-group/pom.xml
+for POM in helix-agent/pom.xml recipes/task-execution/pom.xml recipes/pom.xml recipes/distributed-lock-manager/pom.xml recipes/rsync-replicated-file-system/pom.xml recipes/rabbitmq-consumer-group/pom.xml
 do
   cecho "bump up $POM" $green
   sed -i "s/${version}/${new_version}/g" $POM 

@@ -263,6 +263,14 @@ public interface HelixManager
   String getVersion();
 
   /**
+   * Get helix manager properties read from 
+   * helix-core/src/main/resources/cluster-manager.properties 
+   * 
+   * @return
+   */
+  HelixManagerProperties getProperties();
+  
+  /**
    * 
    * @return the state machine engine
    */

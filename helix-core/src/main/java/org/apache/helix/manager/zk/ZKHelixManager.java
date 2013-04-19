@@ -52,6 +52,7 @@ import org.apache.helix.LiveInstanceChangeListener;
 import org.apache.helix.LiveInstanceInfoProvider;
 import org.apache.helix.MessageListener;
 import org.apache.helix.PreConnectCallback;
+import org.apache.helix.HelixManagerProperties;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.PropertyPathConfig;
@@ -79,7 +80,6 @@ import org.apache.helix.participant.HelixStateMachineEngine;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.participant.statemachine.ScheduledTaskStateModelFactory;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
-import org.apache.helix.tools.PropertiesReader;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
@@ -108,6 +108,7 @@ public class ZKHelixManager implements HelixManager
   private final DefaultMessagingService        _messagingService;
   private ZKHelixAdmin                         _managementTool;
   private final String                         _version;
+  private final HelixManagerProperties         _properties;
   private final StateMachineEngine             _stateMachEngine;
   private int                                  _sessionTimeout;
   private ZkHelixPropertyStore<ZNRecord>       _helixPropertyStore;
@@ -201,9 +202,10 @@ public class ZKHelixManager implements HelixManager
 
     _messagingService = new DefaultMessagingService(this);
 
-    _version =
-        new PropertiesReader("cluster-manager-version.properties").getProperty("clustermanager.version");
-
+    _properties = 
+        new HelixManagerProperties("cluster-manager-version.properties");
+    _version = _properties.getVersion();
+        
     _stateMachEngine = new HelixStateMachineEngine(this);
 
     // add all timer tasks
@@ -1043,6 +1045,11 @@ public class ZKHelixManager implements HelixManager
     return _version;
   }
 
+  @Override
+  public HelixManagerProperties getProperties() {
+    return _properties;
+  }
+  
   @Override
   public StateMachineEngine getStateMachineEngine()
   {

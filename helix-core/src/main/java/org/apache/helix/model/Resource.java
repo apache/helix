@@ -39,7 +39,7 @@ public class Resource
   private String _stateModelDefRef;
   private String _stateModelFactoryName;
   private int _bucketSize = 0;
-  private boolean _groupMessageMode = false;
+  private boolean _batchMessageMode = false;
 
   public Resource(String resourceName)
   {
@@ -103,14 +103,14 @@ public class Resource
     _bucketSize = bucketSize;
   }
 
-  public void setGroupMessageMode(boolean mode)
+  public void setBatchMessageMode(boolean mode)
   {
-    _groupMessageMode = mode;
+    _batchMessageMode = mode;
   }
   
-  public boolean getGroupMessageMode()
+  public boolean getBatchMessageMode()
   {
-    return _groupMessageMode;
+    return _batchMessageMode;
   }
   
   @Override

@@ -29,6 +29,7 @@ import org.apache.helix.HealthStateChangeListener;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
+import org.apache.helix.HelixManagerProperties;
 import org.apache.helix.IdealStateChangeListener;
 import org.apache.helix.InstanceConfigChangeListener;
 import org.apache.helix.InstanceType;
@@ -279,5 +280,11 @@ public class DummyClusterManager implements HelixManager
   {
     // TODO Auto-generated method stub
     
+  }
+
+  @Override
+  public HelixManagerProperties getProperties() {
+    // TODO Auto-generated method stub
+    return null;
   }
 }

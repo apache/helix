@@ -96,7 +96,7 @@ public class RedisTaskResultStore implements TaskResultStore {
 	}
 
 	@Override
-	public Map<String, String> hgetAll(String key) {
+	public Map<String, String> hgetAll(String key) throws Exception {
 		Jedis jedis = _jedisPool.getResource();
 		try {
 			return jedis.hgetAll(key);

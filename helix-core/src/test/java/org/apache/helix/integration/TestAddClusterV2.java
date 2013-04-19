@@ -82,7 +82,7 @@ public class TestAddClusterV2 extends ZkIntegrationTestBase
     _setupTool.addCluster(CONTROLLER_CLUSTER, true);
     for (int i = 0; i < NODE_NR; i++)
     {
-      String controllerName = CONTROLLER_PREFIX + ":" + i;
+      String controllerName = CONTROLLER_PREFIX + "_" + i;
       _setupTool.addInstanceToCluster(CONTROLLER_CLUSTER, controllerName);
     }
 
@@ -214,7 +214,7 @@ public class TestAddClusterV2 extends ZkIntegrationTestBase
     setupTool.addResourceToCluster(clusterName, dbName, partitionNr, stateModel);
     for (int i = 0; i < NODE_NR; i++)
     {
-      String instanceName = prefix + ":" + (startPort + i);
+      String instanceName = prefix + "_" + (startPort + i);
       setupTool.addInstanceToCluster(clusterName, instanceName);
     }
     if(rebalance)

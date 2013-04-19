@@ -55,26 +55,12 @@ public class TestClusterSetup extends ZkUnitTestBase
 
   protected static final String CLUSTER_NAME    = "TestClusterSetup";
   protected static final String TEST_DB         = "TestDB";
-  protected static final String INSTANCE_PREFIX = "instance:";
+  protected static final String INSTANCE_PREFIX = "instance_";
   protected static final String STATE_MODEL     = "MasterSlave";
-  protected static final String TEST_NODE       = "testnode:1";
+  protected static final String TEST_NODE       = "testnode_1";
 
   ZkClient                      _zkClient;
   ClusterSetup                  _clusterSetup;
-
-  String instanceColonToUnderscoreFormat(String colonFormat)
-  {
-    int lastPos = colonFormat.lastIndexOf(":");
-    if (lastPos <= 0)
-    {
-      String error = "Invalid storage Instance info format: " + colonFormat;
-      LOG.warn(error);
-      throw new HelixException(error);
-    }
-    String host = colonFormat.substring(0, lastPos);
-    String portStr = colonFormat.substring(lastPos + 1);
-    return host + "_" + portStr;
-  }
 
   private static String[] createArgs(String str)
   {
@@ -129,14 +115,14 @@ public class TestClusterSetup extends ZkUnitTestBase
     {
       verifyInstance(_zkClient,
                      CLUSTER_NAME,
-                     instanceColonToUnderscoreFormat(instance),
+                     instance,
                      true);
     }
 
     _clusterSetup.addInstanceToCluster(CLUSTER_NAME, nextInstanceAddress);
     verifyInstance(_zkClient,
                    CLUSTER_NAME,
-                   instanceColonToUnderscoreFormat(nextInstanceAddress),
+                   nextInstanceAddress,
                    true);
     // re-add
     boolean caughtException = false;
@@ -149,20 +135,6 @@ public class TestClusterSetup extends ZkUnitTestBase
       caughtException = true;
     }
     AssertJUnit.assertTrue(caughtException);
-
-    // bad instance format
-    String badFormatInstance = "badinstance";
-    caughtException = false;
-    try
-    {
-      _clusterSetup.addInstanceToCluster(CLUSTER_NAME, badFormatInstance);
-    }
-    catch (HelixException e)
-    {
-      caughtException = true;
-    }
-    AssertJUnit.assertTrue(caughtException);
-
   }
 
   @Test()
@@ -192,18 +164,18 @@ public class TestClusterSetup extends ZkUnitTestBase
     // disable
     _clusterSetup.getClusterManagementTool()
                  .enableInstance(CLUSTER_NAME,
-                                 instanceColonToUnderscoreFormat(nextInstanceAddress),
+                                 nextInstanceAddress,
                                  false);
     verifyEnabled(_zkClient,
                   CLUSTER_NAME,
-                  instanceColonToUnderscoreFormat(nextInstanceAddress),
+                  nextInstanceAddress,
                   false);
 
     // drop
     _clusterSetup.dropInstanceFromCluster(CLUSTER_NAME, nextInstanceAddress);
     verifyInstance(_zkClient,
                    CLUSTER_NAME,
-                   instanceColonToUnderscoreFormat(nextInstanceAddress),
+                   nextInstanceAddress,
                    false);
 
     // re-drop
@@ -310,7 +282,7 @@ public class TestClusterSetup extends ZkUnitTestBase
         + CLUSTER_NAME + " " + TEST_NODE));
     verifyInstance(_zkClient,
                    CLUSTER_NAME,
-                   instanceColonToUnderscoreFormat(TEST_NODE),
+                   TEST_NODE,
                    true);
     try
     {
@@ -326,10 +298,10 @@ public class TestClusterSetup extends ZkUnitTestBase
     // .processCommandLineArgs(createArgs("-zkSvr "+ZK_ADDR+" --addNode node-1"));
     ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR
         + " --enableInstance " + CLUSTER_NAME + " "
-        + instanceColonToUnderscoreFormat(TEST_NODE) + " true"));
+        + TEST_NODE + " true"));
     verifyEnabled(_zkClient,
                   CLUSTER_NAME,
-                  instanceColonToUnderscoreFormat(TEST_NODE),
+                  TEST_NODE,
                   true);
 
     // TODO: verify list commands
@@ -357,10 +329,10 @@ public class TestClusterSetup extends ZkUnitTestBase
     // .processCommandLineArgs(createArgs("-zkSvr "+ZK_ADDR+" --rebalance "+CLUSTER_NAME+" "+TEST_DB+" 1"));
     ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR
         + " --enableInstance " + CLUSTER_NAME + " "
-        + instanceColonToUnderscoreFormat(TEST_NODE) + " false"));
+        + TEST_NODE + " false"));
     verifyEnabled(_zkClient,
                   CLUSTER_NAME,
-                  instanceColonToUnderscoreFormat(TEST_NODE),
+                  TEST_NODE,
                   false);
     ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " --dropNode "
         + CLUSTER_NAME + " " + TEST_NODE));
@@ -378,7 +350,7 @@ public class TestClusterSetup extends ZkUnitTestBase
 
     // basic
     _clusterSetup.addCluster(clusterName, true);
-    _clusterSetup.addInstanceToCluster(clusterName, "localhost", 0);
+    _clusterSetup.addInstanceToCluster(clusterName, "localhost_0");
     String scopeArgs = clusterName + ",localhost_0";
     String keyValueMap = "key1=value1,key2=value2";
     String keys = "key1,key2";

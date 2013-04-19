@@ -48,10 +48,11 @@ public class CommandConfig {
   public Map<String, String> toKeyValueMap() {
     Map<String, String> map = new TreeMap<String, String>();
     map.put(buildKey(_fromState, _toState, CommandAttribute.COMMAND), _command);
-    map.put(buildKey(_fromState, _toState, CommandAttribute.WORKING_DIR), _workingDir);
-    map.put(buildKey(_fromState, _toState, CommandAttribute.TIMEOUT), _timeout);
-    map.put(buildKey(_fromState, _toState, CommandAttribute.PID_FILE), _pidFile);
-    
+    if (!_command.equals(CommandAttribute.NOP.getName())) {
+      map.put(buildKey(_fromState, _toState, CommandAttribute.WORKING_DIR), _workingDir);
+      map.put(buildKey(_fromState, _toState, CommandAttribute.TIMEOUT), _timeout);
+      map.put(buildKey(_fromState, _toState, CommandAttribute.PID_FILE), _pidFile);
+    }  
     return map;
   }
   

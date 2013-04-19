@@ -71,7 +71,7 @@ private static final Logger LOG = Logger.getLogger(TestAutoRebalancePartitionLim
     _setupTool.addResourceToCluster(CLUSTER_NAME, TEST_DB, 100, "OnlineOffline", IdealStateModeProperty.AUTO_REBALANCE+"", 0, 25);
     for (int i = 0; i < NODE_NR; i++)
     {
-      String storageNodeName = PARTICIPANT_PREFIX + ":" + (START_PORT + i);
+      String storageNodeName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
       _setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
     }
     _setupTool.rebalanceStorageCluster(CLUSTER_NAME, TEST_DB, 1);
@@ -162,7 +162,7 @@ private static final Logger LOG = Logger.getLogger(TestAutoRebalancePartitionLim
     // add 2 nodes
     for (int i = 0; i < 2; i++)
     {
-      String storageNodeName = PARTICIPANT_PREFIX + ":" + (1000 + i);
+      String storageNodeName = PARTICIPANT_PREFIX + "_" + (1000 + i);
       _setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
       
       StartCMResult resultx =

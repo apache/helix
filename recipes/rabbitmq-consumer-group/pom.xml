@@ -29,6 +29,7 @@ under the License.
 
   <artifactId>rabbitmq-consumer-group</artifactId>
   <packaging>jar</packaging>
+  <version>0.6.1-incubating-SNAPSHOT</version>
   <name>Apache Helix :: Recipes :: Rabbitmq Consumer Group</name>
 
   <dependencies>
@@ -38,9 +39,13 @@ under the License.
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>org.testng</groupId>
+      <artifactId>testng</artifactId>
+      <version>6.0.1</version>
+    </dependency>
+    <dependency>
       <groupId>org.apache.helix</groupId>
       <artifactId>helix-core</artifactId>
-      <version>0.6.1-incubating-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>com.rabbitmq</groupId>

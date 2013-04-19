@@ -19,76 +19,22 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.helix.HelixManager;
+import org.apache.helix.HelixManagerProperties;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.model.LiveInstance;
 import org.apache.log4j.Logger;
 
-
-public class CompatibilityCheckStage extends AbstractBaseStage
-{
+/**
+ * controller checks if participant version is compatible 
+ *
+ */
+public class CompatibilityCheckStage extends AbstractBaseStage {
   private static final Logger LOG = Logger
       .getLogger(CompatibilityCheckStage.class.getName());
-
-  /**
-   * INCOMPATIBLE_MAP stores primary version pairs:
-   *  {controllerPrimaryVersion, participantPrimaryVersion}
-   *  that are incompatible
-   */
-  private static final Map<String, Boolean> INCOMPATIBLE_MAP;
-  static
-  {
-      Map<String, Boolean> map = new HashMap<String, Boolean>();
-      /**
-       * {controllerPrimaryVersion,participantPrimaryVersion} -> false
-       */
-      map.put("0.4,0.3", false);
-      INCOMPATIBLE_MAP = Collections.unmodifiableMap(map);
-  }
-
-  private String getPrimaryVersion(String version)
-  {
-    String[] splits = version.split("\\.");
-    if (splits == null || splits.length != 3)
-    {
-      return null;
-    }
-    return version.substring(0, version.lastIndexOf('.'));
-  }
-
-  private boolean isCompatible(String controllerVersion, String participantVersion)
-  {
-    if (participantVersion == null)
-    {
-      LOG.warn("Missing version of participant. Skip version check.");
-      return true;
-    }
-
-    // compare primary version
-    String controllerPrimaryVersion = getPrimaryVersion(controllerVersion);
-    String participantPrimaryVersion = getPrimaryVersion(participantVersion);
-    if (controllerPrimaryVersion != null && participantPrimaryVersion != null)
-    {
-      if (controllerPrimaryVersion.compareTo(participantPrimaryVersion) < 0)
-      {
-        LOG.info("Controller primary version is less than participant primary version.");
-        return false;
-      }
-      else
-      {
-        if (INCOMPATIBLE_MAP.containsKey(controllerPrimaryVersion + "," + participantPrimaryVersion))
-        {
-          return false;
-        }
-      }
-    }
-    return true;
-  }
 
   @Override
   public void process(ClusterEvent event) throws Exception
@@ -101,24 +47,20 @@ public class CompatibilityCheckStage extends AbstractBaseStage
           + ". Requires HelixManager | DataCache");
     }
 
-    String controllerVersion = manager.getVersion();
-    if (controllerVersion == null)
-    {
-      String errorMsg = "Missing version of controller: " + manager.getInstanceName()
-          + ". Pipeline will not continue.";
-      LOG.error(errorMsg);
-      throw new StageException(errorMsg);
-    }
-
+    HelixManagerProperties properties = manager.getProperties();
     Map<String, LiveInstance> liveInstanceMap = cache.getLiveInstances();
     for (LiveInstance liveInstance : liveInstanceMap.values())
     {
       String participantVersion = liveInstance.getHelixVersion();
-      if (!isCompatible(controllerVersion, participantVersion))
+      if (!properties.isParticipantCompatible(participantVersion))
       {
-        String errorMsg = "cluster manager versions are incompatible; pipeline will not continue. "
-                        + "controller:" + manager.getInstanceName() + ", controllerVersion:" + controllerVersion
-                        + "; participant:" + liveInstance.getInstanceName() + ", participantVersion:" + participantVersion;
+        String errorMsg = "incompatible participant. pipeline will not continue. "
+                        + "controller: " + manager.getInstanceName() 
+                        + ", controllerVersion: " + properties.getVersion()
+                        + ", minimumSupportedParticipantVersion: " 
+                        + properties.getProperty("miminum_supported_version.participant")
+                        + ", participant: " + liveInstance.getInstanceName() 
+                        + ", participantVersion: " + participantVersion;
         LOG.error(errorMsg);
         throw new StageException(errorMsg);
       }

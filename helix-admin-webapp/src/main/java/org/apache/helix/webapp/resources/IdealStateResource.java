@@ -152,7 +152,7 @@ public class IdealStateResource extends Resource
         String keyPrefix = jsonParameters.getParameter(JsonParameters.RESOURCE_KEY_PREFIX);
         String groupTag = jsonParameters.getParameter(ClusterSetup.instanceGroupTag);
         
-          setupTool.rebalanceStorageCluster(clusterName,
+          setupTool.rebalanceCluster(clusterName,
                                             resourceName,
                                             replicas,
                                             keyPrefix,

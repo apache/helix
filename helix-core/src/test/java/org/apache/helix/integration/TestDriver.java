@@ -160,7 +160,7 @@ public class TestDriver
     for (int i = 0; i < numInstances; i++)
     {
       int port = START_PORT + i;
-      setupTool.addInstanceToCluster(clusterName, PARTICIPANT_PREFIX + ":" + port);
+      setupTool.addInstanceToCluster(clusterName, PARTICIPANT_PREFIX + "_" + port);
     }
 
     for (int i = 0; i < numResources; i++)

@@ -71,7 +71,7 @@ public class ResourceComputationStage extends AbstractBaseStage
           resource.setStateModelDefRef(idealState.getStateModelDefRef());
           resource.setStateModelFactoryName(idealState.getStateModelFactoryName());
           resource.setBucketSize(idealState.getBucketSize());
-          resource.setGroupMessageMode(idealState.getBatchMessageMode());
+          resource.setBatchMessageMode(idealState.getBatchMessageMode());
         }
       }
     }
@@ -107,7 +107,7 @@ public class ResourceComputationStage extends AbstractBaseStage
             resource.setStateModelDefRef(currentState.getStateModelDefRef());
             resource.setStateModelFactoryName(currentState.getStateModelFactoryName());
             resource.setBucketSize(currentState.getBucketSize());
-            resource.setGroupMessageMode(currentState.getBatchMessageMode());
+            resource.setBatchMessageMode(currentState.getBatchMessageMode());
           }
           
           if (currentState.getStateModelDefRef() == null)

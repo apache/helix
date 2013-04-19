@@ -24,12 +24,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -40,15 +36,11 @@ import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.apache.helix.model.ConfigScope;
-import org.apache.helix.model.builder.ConfigScopeBuilder;
-import org.apache.helix.model.builder.ConstraintItemBuilder;
-import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.HelixAdmin;
-import org.apache.helix.HelixException;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.HelixConstants.StateModelToken;
+import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
@@ -59,18 +51,17 @@ import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.ConstraintItem;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.HelixConfigScope;
+import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.IdealState.IdealStateModeProperty;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.StateModelDefinition;
-import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
-import org.apache.helix.model.IdealState.IdealStateModeProperty;
-import org.apache.helix.store.PropertyJsonSerializer;
+import org.apache.helix.model.builder.ConstraintItemBuilder;
+import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.util.HelixUtil;
 import org.apache.helix.util.ZKClientPool;
 import org.apache.log4j.Logger;
-import org.codehaus.jackson.JsonGenerationException;
-import org.codehaus.jackson.map.JsonMappingException;
 
 
 public class ClusterSetup
@@ -202,88 +193,86 @@ public class ClusterSetup
     _admin.dropCluster(clusterName);
   }
 
-  public void addInstancesToCluster(String clusterName, String[] InstanceInfoArray)
+  public void addInstancesToCluster(String clusterName, String[] instanceInfoArray)
   {
-    for (String InstanceInfo : InstanceInfoArray)
+    for (String instanceInfo : instanceInfoArray)
     {
-      // the storage Instance info must be hostname:port format.
-      if (InstanceInfo.length() > 0)
+      if (instanceInfo.length() > 0)
       {
-        addInstanceToCluster(clusterName, InstanceInfo);
+        addInstanceToCluster(clusterName, instanceInfo);
       }
     }
   }
 
-  public void addInstanceToCluster(String clusterName, String InstanceAddress)
+  private InstanceConfig toInstanceConfig(String instanceId)
   {
-    // InstanceAddress must be in host:port format
-    int lastPos = InstanceAddress.lastIndexOf("_");
-    if (lastPos <= 0)
+    String host = null;
+    int port = -1;
+    // to maintain backward compatibility we parse string of format host:port
+    // and host_port, where host port must be of type string and int
+    char[] delims = new char[]
+    { ':', '_' };
+    for (char delim : delims)
     {
-      lastPos = InstanceAddress.lastIndexOf(":");
+      String regex = String.format("(.*)[%c]([\\d]+)", delim);
+      if (instanceId.matches(regex))
+      {
+        int lastIndexOf = instanceId.lastIndexOf(delim);
+        try
+        {
+          port = Integer.parseInt(instanceId.substring(lastIndexOf + 1));
+          host = instanceId.substring(0, lastIndexOf);
+        } catch (Exception e)
+        {
+          _logger.warn("Unable to extract host and port from instanceId:"
+              + instanceId);
+        }
+        break;
+      }
     }
-    if (lastPos <= 0)
+    if (host != null && port > 0)
     {
-      String error = "Invalid storage Instance info format: " + InstanceAddress;
-      _logger.warn(error);
-      throw new HelixException(error);
+      instanceId = host + "_" + port;
     }
-    String host = InstanceAddress.substring(0, lastPos);
-    String portStr = InstanceAddress.substring(lastPos + 1);
-    int port = Integer.parseInt(portStr);
-    addInstanceToCluster(clusterName, host, port);
+    InstanceConfig config = new InstanceConfig(instanceId);
+    if (host != null && port > 0)
+    {
+      config.setHostName(host);
+      config.setPort(String.valueOf(port));
+
+    }
+
+    config.setInstanceEnabled(true);
+    config.setHostName(instanceId);
+    return config;
   }
 
-  public void addInstanceToCluster(String clusterName, String host, int port)
+  public void addInstanceToCluster(String clusterName, String instanceId)
   {
-    String instanceId = host + "_" + port;
-    InstanceConfig config = new InstanceConfig(instanceId);
-    config.setHostName(host);
-    config.setPort(Integer.toString(port));
-    config.setInstanceEnabled(true);
+    InstanceConfig config = toInstanceConfig(instanceId);
     _admin.addInstance(clusterName, config);
   }
 
-  public void dropInstancesFromCluster(String clusterName, String[] InstanceInfoArray)
+  public void dropInstancesFromCluster(String clusterName, String[] instanceInfoArray)
   {
-    for (String InstanceInfo : InstanceInfoArray)
+    for (String instanceInfo : instanceInfoArray)
     {
-      // the storage Instance info must be hostname:port format.
-      if (InstanceInfo.length() > 0)
+      if (instanceInfo.length() > 0)
       {
-        dropInstanceFromCluster(clusterName, InstanceInfo);
+        dropInstanceFromCluster(clusterName, instanceInfo);
       }
     }
   }
 
-  public void dropInstanceFromCluster(String clusterName, String InstanceAddress)
+  public void dropInstanceFromCluster(String clusterName, String instanceId)
   {
-    // InstanceAddress must be in host:port format
-    int lastPos = InstanceAddress.lastIndexOf("_");
-    if (lastPos <= 0)
-    {
-      lastPos = InstanceAddress.lastIndexOf(":");
-    }
-    if (lastPos <= 0)
-    {
-      String error = "Invalid storage Instance info format: " + InstanceAddress;
-      _logger.warn(error);
-      throw new HelixException(error);
-    }
-    String host = InstanceAddress.substring(0, lastPos);
-    String portStr = InstanceAddress.substring(lastPos + 1);
-    int port = Integer.parseInt(portStr);
-    dropInstanceFromCluster(clusterName, host, port);
-  }
-
-  public void dropInstanceFromCluster(String clusterName, String host, int port)
-  {
-    String instanceId = host + "_" + port;
-
     ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
     Builder keyBuilder = accessor.keyBuilder();
-
+    
+   InstanceConfig instanceConfig = toInstanceConfig(instanceId);
+   instanceId = instanceConfig.getInstanceName();
+    
     // ensure node is stopped
     LiveInstance liveInstance = accessor.getProperty(keyBuilder.liveInstance(instanceId));
     if (liveInstance != null)
@@ -315,7 +304,7 @@ public class ClusterSetup
                            String newInstanceName)
   {
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(_zkClient));
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
     InstanceConfig oldConfig =
@@ -560,7 +549,7 @@ public class ClusterSetup
   }
   
   
-  public void rebalanceStorageCluster(String clusterName,
+  public void rebalanceCluster(String clusterName,
       String resourceName,
       int replica,
       String keyPrefix, String group)
@@ -698,20 +687,20 @@ public class ClusterSetup
   }
   
   /**
-   * Sets up a cluster with 6 Instances[localhost:8900 to localhost:8905], 1
-   * resource[EspressoDB] with a replication factor of 3
-   * 
+   * Sets up a cluster<br/>
+   * 6 Instances[localhost:8900 to localhost:8905], <br/>
+   * 1 resource[TestDB] with a replication factor of 3 and using MasterSlave state model<br/>
    * @param clusterName
    */
   public void setupTestCluster(String clusterName)
   {
     addCluster(clusterName, true);
-    String storageInstanceInfoArray[] = new String[6];
-    for (int i = 0; i < storageInstanceInfoArray.length; i++)
+    String instanceInfoArray[] = new String[6];
+    for (int i = 0; i < instanceInfoArray.length; i++)
     {
-      storageInstanceInfoArray[i] = "localhost:" + (8900 + i);
+      instanceInfoArray[i] = "localhost_" + (8900 + i);
     }
-    addInstancesToCluster(clusterName, storageInstanceInfoArray);
+    addInstancesToCluster(clusterName, instanceInfoArray);
     addResourceToCluster(clusterName, "TestDB", 10, "MasterSlave");
     rebalanceStorageCluster(clusterName, "TestDB", 3);
   }
@@ -792,7 +781,7 @@ public class ClusterSetup
                      .create();
     addInstanceOption.setArgs(2);
     addInstanceOption.setRequired(false);
-    addInstanceOption.setArgName("clusterName InstanceAddress(host:port)");
+    addInstanceOption.setArgName("clusterName InstanceId");
 
     Option addResourceOption =
         OptionBuilder.withLongOpt(addResource)
@@ -880,7 +869,7 @@ public class ClusterSetup
                      .create();
     dropInstanceOption.setArgs(2);
     dropInstanceOption.setRequired(false);
-    dropInstanceOption.setArgName("clusterName InstanceAddress(host:port)");
+    dropInstanceOption.setArgName("clusterName InstanceId");
 
     Option swapInstanceOption =
         OptionBuilder.withLongOpt(swapInstance)
@@ -1237,9 +1226,9 @@ public class ClusterSetup
     if (cmd.hasOption(addInstance))
     {
       String clusterName = cmd.getOptionValues(addInstance)[0];
-      String InstanceAddressInfo = cmd.getOptionValues(addInstance)[1];
-      String[] InstanceAddresses = InstanceAddressInfo.split(";");
-      setupTool.addInstancesToCluster(clusterName, InstanceAddresses);
+      String instanceAddressInfo = cmd.getOptionValues(addInstance)[1];
+      String[] instanceAddresses = instanceAddressInfo.split(";");
+      setupTool.addInstancesToCluster(clusterName, instanceAddresses);
       return 0;
     }
 
@@ -1291,7 +1280,7 @@ public class ClusterSetup
       {
         instanceGroupTagVal = cmd.getOptionValue(instanceGroupTag);
       }
-      setupTool.rebalanceStorageCluster(clusterName, resourceName, replicas, keyPrefixVal, instanceGroupTagVal);
+      setupTool.rebalanceCluster(clusterName, resourceName, replicas, keyPrefixVal, instanceGroupTagVal);
       return 0;
     }
 
@@ -1314,9 +1303,9 @@ public class ClusterSetup
     if (cmd.hasOption(dropInstance))
     {
       String clusterName = cmd.getOptionValues(dropInstance)[0];
-      String InstanceAddressInfo = cmd.getOptionValues(dropInstance)[1];
-      String[] InstanceAddresses = InstanceAddressInfo.split(";");
-      setupTool.dropInstancesFromCluster(clusterName, InstanceAddresses);
+      String instanceAddressInfo = cmd.getOptionValues(dropInstance)[1];
+      String[] instanceAddresses = instanceAddressInfo.split(";");
+      setupTool.dropInstancesFromCluster(clusterName, instanceAddresses);
       return 0;
     }
 
@@ -1350,7 +1339,7 @@ public class ClusterSetup
       String clusterName = cmd.getOptionValue(listClusterInfo);
       List<String> resourceNames =
           setupTool.getClusterManagementTool().getResourcesInCluster(clusterName);
-      List<String> Instances =
+      List<String> instances =
           setupTool.getClusterManagementTool().getInstancesInCluster(clusterName);
 
       System.out.println("Existing resources in cluster " + clusterName + ":");
@@ -1360,7 +1349,7 @@ public class ClusterSetup
       }
 
       System.out.println("Instances in cluster " + clusterName + ":");
-      for (String InstanceName : Instances)
+      for (String InstanceName : instances)
       {
         System.out.println(InstanceName);
       }
@@ -1369,13 +1358,13 @@ public class ClusterSetup
     else if (cmd.hasOption(listInstances))
     {
       String clusterName = cmd.getOptionValue(listInstances);
-      List<String> Instances =
+      List<String> instances =
           setupTool.getClusterManagementTool().getInstancesInCluster(clusterName);
 
       System.out.println("Instances in cluster " + clusterName + ":");
-      for (String InstanceName : Instances)
+      for (String instanceName : instances)
       {
-        System.out.println(InstanceName);
+        System.out.println(instanceName);
       }
       return 0;
     }
@@ -1790,19 +1779,13 @@ public class ClusterSetup
   /**
    * @param args
    * @throws Exception
-   * @throws JsonMappingException
-   * @throws JsonGenerationException
    */
   public static void main(String[] args) throws Exception
   {
-    // debug
-    // System.out.println("args(" + args.length + "): " + Arrays.asList(args));
-
     if (args.length == 1 && args[0].equals("setup-test-cluster"))
     {
-      System.out.println("By default setting up ");
-      new ClusterSetup("localhost:2181").setupTestCluster("storage-integration-cluster");
-      new ClusterSetup("localhost:2181").setupTestCluster("relay-integration-cluster");
+      System.out.println("By default setting up TestCluster with 6 instances, 10 partitions, Each partition will have 3 replicas");
+      new ClusterSetup("localhost:2181").setupTestCluster("TestCluster");
       System.exit(0);
     }
 

@@ -23,20 +23,15 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.helix.ExternalCommand;
 import org.apache.helix.HelixManager;
 import org.apache.helix.NotificationContext;
-import org.apache.helix.ZNRecord;
-import org.apache.helix.agent.SystemUtil.ProcessStateCode;
-import org.apache.helix.model.ConfigScope;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
-import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelInfo;
@@ -47,7 +42,6 @@ import org.apache.log4j.Logger;
 public class AgentStateModel extends StateModel
 {
   private static final Logger _logger = Logger.getLogger(AgentStateModel.class);
-  private static final int MONITOR_PERIOD_BASE = 1000;  // 1 second
   private static Pattern pattern = Pattern.compile("(\\{.+?\\})");
 
   private static String buildKey(String fromState, String toState, CommandAttribute attribute) {
@@ -94,10 +88,12 @@ public class AgentStateModel extends StateModel
                                           .forResource(message.getResourceName())
                                           .build();
       Map<String, String> cmdKeyValueMap = manager.getConfigAccessor().get(resourceScope, cmdConfigKeys);
-      cmd = cmdKeyValueMap.get(cmdKey);
-      workingDir = cmdKeyValueMap.get(workingDirKey);
-      timeout = cmdKeyValueMap.get(timeoutKey);
-      pidFile = cmdKeyValueMap.get(pidFileKey);
+      if (cmdKeyValueMap != null) {
+        cmd = cmdKeyValueMap.get(cmdKey);
+        workingDir = cmdKeyValueMap.get(workingDirKey);
+        timeout = cmdKeyValueMap.get(timeoutKey);
+        pidFile = cmdKeyValueMap.get(pidFileKey);
+      }
     }
     
     // if resource-scope doesn't contain command, fall back to cluster-scope configures
@@ -106,10 +102,13 @@ public class AgentStateModel extends StateModel
                                           .forCluster(clusterName)
                                           .build();
       Map<String, String> cmdKeyValueMap = manager.getConfigAccessor().get(clusterScope, cmdConfigKeys);
-      cmd = cmdKeyValueMap.get(cmdKey);
-      workingDir = cmdKeyValueMap.get(workingDirKey);
-      timeout = cmdKeyValueMap.get(timeoutKey);
-      pidFile = cmdKeyValueMap.get(pidFileKey);
+      
+      if (cmdKeyValueMap != null) {
+        cmd = cmdKeyValueMap.get(cmdKey);
+        workingDir = cmdKeyValueMap.get(workingDirKey);
+        timeout = cmdKeyValueMap.get(timeoutKey);
+        pidFile = cmdKeyValueMap.get(pidFileKey);
+      }
     }
 
     if (cmd == null)
@@ -162,15 +161,9 @@ public class AgentStateModel extends StateModel
     
     String pidFileValue = instantiateByMessage(pidFile, message);
     String pid = SystemUtil.getPidFromFile(new File(pidFileValue));
-    
-    // monitor pid
-    ProcessStateCode processState = SystemUtil.getProcessState(pid);
-    while (processState != null) {
-      if (processState == ProcessStateCode.Z) {
-        throw new Exception("process: " + pid + " is in zombie state");
-      }
-      Thread.sleep(new Random().nextInt(MONITOR_PERIOD_BASE) + MONITOR_PERIOD_BASE);
-      processState = SystemUtil.getProcessState(pid);
+
+    if (pid != null) {
+      new ProcessMonitorThread(pid).start();
     }
   }
 }

@@ -114,7 +114,7 @@ public class TestNonOfflineInitState extends ZkIntegrationTestBase
     for (int i = 0; i < nodesNb; i++)
     {
       int port = startPort + i;
-      setupTool.addInstanceToCluster(clusterName, participantNamePrefix + ":" + port);
+      setupTool.addInstanceToCluster(clusterName, participantNamePrefix + "_" + port);
     }
 
     for (int i = 0; i < resourceNb; i++)

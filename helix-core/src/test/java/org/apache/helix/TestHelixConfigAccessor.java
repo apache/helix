@@ -110,8 +110,8 @@ public class TestHelixConfigAccessor extends ZkUnitTestBase {
                                     .forCluster(clusterName)
                                     .build());
     Assert.assertEquals(keys.size(), 5, "should be [localhost_12918~22] sorted");
-    Assert.assertEquals(keys.get(0), "localhost_12918");
-    Assert.assertEquals(keys.get(4), "localhost_12922");
+    Assert.assertTrue(keys.contains("localhost_12918"));
+    Assert.assertTrue(keys.contains("localhost_12922"));
 
     keys = configAccessor.getKeys(new HelixConfigScopeBuilder(ConfigScopeProperty.PARTITION)
                                       .forCluster(clusterName)
@@ -125,20 +125,20 @@ public class TestHelixConfigAccessor extends ZkUnitTestBase {
                                       .forResource("testResource")
                                       .build());
     Assert.assertEquals(keys.size(), 1, "should be [resourceConfigKey]");
-    Assert.assertEquals(keys.get(0), "resourceConfigKey");
+    Assert.assertTrue(keys.contains("resourceConfigKey"));
 
     keys = configAccessor.getKeys(new HelixConfigScopeBuilder(ConfigScopeProperty.CLUSTER)
                                       .forCluster(clusterName)
                                       .build());
     Assert.assertEquals(keys.size(), 1, "should be [clusterConfigKey]");
-    Assert.assertEquals(keys.get(0), "clusterConfigKey");
+    Assert.assertTrue(keys.contains("clusterConfigKey"));
 
     keys = configAccessor.getKeys(new HelixConfigScopeBuilder(ConfigScopeProperty.PARTICIPANT)
                                       .forCluster(clusterName)
                                       .forParticipant("localhost_12918")
                                       .build());
-    Assert.assertEquals(keys.size(), 4, "should be [HELIX_ENABLED, HELIX_HOST, HELIX_PORT, participantConfigKey]");
-    Assert.assertEquals(keys.get(3), "participantConfigKey");
+    Assert.assertEquals(keys.size(), 4, "should be [HELIX_ENABLED, HELIX_PORT, HELIX_HOST, participantConfigKey]");
+    Assert.assertTrue(keys.contains("participantConfigKey"));
 
     keys = configAccessor.getKeys(new HelixConfigScopeBuilder(ConfigScopeProperty.PARTITION)
                                       .forCluster(clusterName)

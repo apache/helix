@@ -121,7 +121,7 @@ public class TestDistributedCMMain extends ZkIntegrationTestBase
     ClusterSetup setupTool = new ClusterSetup(ZK_ADDR);
     for (int i = 0; i < n; i++)
     {
-      String controller = "controller:" + (n + i);
+      String controller = "controller_" + (n + i);
       setupTool.addInstanceToCluster(controllerClusterName, controller);
     }
     setupTool.rebalanceStorageCluster(controllerClusterName, clusterNamePrefix + "0", 6);

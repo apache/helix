@@ -19,6 +19,7 @@ package org.apache.helix;
  * under the License.
  */
 
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
@@ -104,6 +105,7 @@ public class TestConfigAccessor extends ZkUnitTestBase
     Assert.assertEquals(keys.get(0), "clusterConfigKey");
 
     keys = configAccessor.getKeys(ConfigScopeProperty.PARTICIPANT, clusterName, "localhost_12918");
+    System.out.println((keys));
     Assert.assertEquals(keys.size(), 4, "should be [HELIX_ENABLED, HELIX_HOST, HELIX_PORT, participantConfigKey]");
     Assert.assertEquals(keys.get(3), "participantConfigKey");
 

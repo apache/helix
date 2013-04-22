@@ -46,6 +46,7 @@ import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
 import org.apache.zookeeper.data.Stat;
+import org.omg.CORBA._PolicyStub;
 
 
 public class Mocks {
@@ -264,6 +265,8 @@ public class Mocks {
 		String _instanceName;
 		ClusterMessagingService _msgSvc;
 		private String _version;
+		
+		HelixManagerProperties _properties = new HelixManagerProperties();
 
 		public MockManager() {
 			this("testCluster-" + Math.random() * 10000 % 999);
@@ -398,7 +401,9 @@ public class Mocks {
 		}
 
 		public void setVersion(String version) {
+		  _properties.getProperties().put("clustermanager.version", version);
 			_version = version;
+			
 		}
 
 		@Override
@@ -477,6 +482,12 @@ public class Mocks {
   {
     // TODO Auto-generated method stub
     
+  }
+
+  @Override
+  public HelixManagerProperties getProperties() {
+    // TODO Auto-generated method stub
+    return _properties;
   }
 
 	}

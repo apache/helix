@@ -27,10 +27,12 @@ import java.util.Map;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
+import org.apache.helix.HelixManagerProperties;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
+import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
@@ -52,11 +54,14 @@ public class TaskAssignmentStage extends AbstractBaseStage
         event.getAttribute(AttributeName.RESOURCES.toString());
     MessageThrottleStageOutput messageOutput =
         event.getAttribute(AttributeName.MESSAGES_THROTTLE.toString());
+    ClusterDataCache cache = event.getAttribute("ClusterDataCache");
+    Map<String, LiveInstance> liveInstanceMap = cache.getLiveInstances();
 
-    if (manager == null || resourceMap == null || messageOutput == null)
+    if (manager == null || resourceMap == null || messageOutput == null
+        || cache == null || liveInstanceMap == null)
     {
       throw new StageException("Missing attributes in event:" + event
-          + ". Requires HelixManager|RESOURCES|MESSAGES_THROTTLE|DataCache");
+          + ". Requires HelixManager|RESOURCES|MESSAGES_THROTTLE|DataCache|liveInstanceMap");
     }
 
     HelixDataAccessor dataAccessor = manager.getHelixDataAccessor();
@@ -71,8 +76,9 @@ public class TaskAssignmentStage extends AbstractBaseStage
       }
     }
 
-    List<Message> outputMessages =
-        groupMessage(dataAccessor.keyBuilder(), messagesToSend, resourceMap);
+    
+    List<Message> outputMessages = batchMessage(dataAccessor.keyBuilder(), 
+                  messagesToSend, resourceMap, liveInstanceMap, manager.getProperties());
     sendMessages(dataAccessor, outputMessages);
 
     long endTime = System.currentTimeMillis();
@@ -81,12 +87,14 @@ public class TaskAssignmentStage extends AbstractBaseStage
 
   }
 
-  List<Message> groupMessage(Builder keyBuilder,
+  List<Message> batchMessage(Builder keyBuilder,
                              List<Message> messages,
-                             Map<String, Resource> resourceMap)
+                             Map<String, Resource> resourceMap,
+                             Map<String, LiveInstance> liveInstanceMap,
+                             HelixManagerProperties properties)
   {
     // group messages by its CurrentState path + "/" + fromState + "/" + toState
-    Map<String, Message> groupMessages = new HashMap<String, Message>();
+    Map<String, Message> batchMessages = new HashMap<String, Message>();
     List<Message> outputMessages = new ArrayList<Message>();
 
     Iterator<Message> iter = messages.iterator();
@@ -95,7 +103,17 @@ public class TaskAssignmentStage extends AbstractBaseStage
       Message message = iter.next();
       String resourceName = message.getResourceName();
       Resource resource = resourceMap.get(resourceName);
-      if (resource == null || !resource.getGroupMessageMode())
+      
+      String instanceName = message.getTgtName();
+      LiveInstance liveInstance = liveInstanceMap.get(instanceName);
+      String participantVersion = null;
+      if (liveInstance != null) {
+        participantVersion = liveInstance.getHelixVersion();
+      }
+
+      if (resource == null || !resource.getBatchMessageMode() 
+          || participantVersion == null 
+          || !properties.isFeatureSupported("batch_message", participantVersion))
       {
         outputMessages.add(message);
         continue;
@@ -107,14 +125,14 @@ public class TaskAssignmentStage extends AbstractBaseStage
                                   message.getResourceName()).getPath()
               + "/" + message.getFromState() + "/" + message.getToState();
 
-      if (!groupMessages.containsKey(key))
+      if (!batchMessages.containsKey(key))
       {
-        Message groupMessage = new Message(message.getRecord());
-        groupMessage.setBatchMessageMode(true);
-        outputMessages.add(groupMessage);
-        groupMessages.put(key, groupMessage);
+        Message batchMessage = new Message(message.getRecord());
+        batchMessage.setBatchMessageMode(true);
+        outputMessages.add(batchMessage);
+        batchMessages.put(key, batchMessage);
       }
-      groupMessages.get(key).addPartitionName(message.getPartitionName());
+      batchMessages.get(key).addPartitionName(message.getPartitionName());
     }
 
     return outputMessages;

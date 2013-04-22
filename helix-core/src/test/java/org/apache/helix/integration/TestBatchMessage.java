@@ -28,7 +28,9 @@ import java.util.Set;
 import org.I0Itec.zkclient.IZkChildListener;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.HelixProperty.HelixPropertyAttribute;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.ZkTestHelper;
 import org.apache.helix.controller.HelixControllerMain;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -37,6 +39,8 @@ import org.apache.helix.mock.controller.ClusterController;
 import org.apache.helix.mock.participant.MockParticipant;
 import org.apache.helix.mock.participant.ErrTransition;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.LiveInstance;
+import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.testng.Assert;
@@ -294,5 +298,87 @@ public class TestBatchMessage extends ZkIntegrationTestBase
 	    System.out.println("END " + clusterName + " at "
 	            + new Date(System.currentTimeMillis()));
 
+  }
+  
+  @Test
+  public void testParticipantIncompatibleWithBatchMsg() throws Exception {
+    // Logger.getRootLogger().setLevel(Level.INFO);
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = className + "_" + methodName;
+    int n = 2;
+
+    System.out.println("START " + clusterName + " at "
+        + new Date(System.currentTimeMillis()));
+
+    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+                            "localhost", // participant name prefix
+                            "TestDB", // resource name prefix
+                            1, // resources
+                            32, // partitions per resource
+                            n, // number of nodes
+                            2, // replicas
+                            "MasterSlave",
+                            true); // do rebalance
+    
+    // enable batch message
+    // --addResourceProperty <clusterName resourceName propertyName propertyValue>
+    ClusterSetup.processCommandLineArgs(new String[] {"--zkSvr", ZK_ADDR, "--addResourceProperty", clusterName, 
+                  "TestDB0", HelixPropertyAttribute.BATCH_MESSAGE_MODE.toString(), 
+                  "true"});
+    
+    
+    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+
+    // register a message listener so we know how many message generated
+    TestZkChildListener listener = new TestZkChildListener();
+    _gZkClient.subscribeChildChanges(keyBuilder.messages("localhost_12918").getPath(), listener);
+
+    
+    ClusterController controller =
+        new ClusterController(clusterName, "controller_0", ZK_ADDR);
+    controller.syncStart();
+    
+    // pause controller
+    // --enableCluster <clusterName true/false>  
+    ClusterSetup.processCommandLineArgs(new String[]{"--zkSvr", ZK_ADDR, "--enableCluster", clusterName, "false"});
+
+    // start participants
+    MockParticipant[] participants = new MockParticipant[n];
+    for (int i = 0; i < n; i++)
+    {
+      String instanceName = "localhost_" + (12918 + i);
+
+      participants[i] = new MockParticipant(clusterName, instanceName, ZK_ADDR, null);
+      participants[i].syncStart();
+    }
+    
+    // change localhost_12918 version to 0.5, so batch-message-mode will be ignored
+    LiveInstance liveInstance = accessor.getProperty(keyBuilder.liveInstance("localhost_12918"));
+    liveInstance.setHelixVersion("0.5");
+    accessor.setProperty(keyBuilder.liveInstance("localhost_12918"), liveInstance);
+
+    // resume controller
+    // --enableCluster <clusterName true/false>  
+    ClusterSetup.processCommandLineArgs(new String[]{"--zkSvr", ZK_ADDR, "--enableCluster", clusterName, "true"});
+
+    boolean result =
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+                                                                                 clusterName));
+    Assert.assertTrue(result);
+    Assert.assertTrue(listener._maxNbOfChilds > 16, "Should see more than 16 messages at the same time (32 O->S and 32 S->M)");
+    
+    // clean up
+    // wait for all zk callbacks done
+    Thread.sleep(1000);
+    controller.syncStop();
+    for (int i = 0; i < n; i++)
+    {
+      participants[i].syncStop();
+    }
+
+    System.out.println("END " + clusterName + " at "
+        + new Date(System.currentTimeMillis()));
   }
 }

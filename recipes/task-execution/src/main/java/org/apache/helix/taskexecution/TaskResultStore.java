@@ -35,5 +35,5 @@ public interface TaskResultStore {
     
     public Long hincrBy(final String key, final String field, final long value) throws Exception;
   
-    public Map<String, String> hgetAll(final String key);
+    public Map<String, String> hgetAll(final String key) throws Exception;
 }

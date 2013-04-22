@@ -24,6 +24,8 @@ import java.util.Set;
 import org.apache.log4j.Logger;
 
 import org.apache.helix.ConfigAccessor;
+import org.apache.helix.model.ConfigScope;
+import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.apache.helix.HelixManager;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.model.HelixConfigScope;

@@ -79,9 +79,14 @@ public class TaskExecutionDemo {
 
 			Dag dag = getAnalyticsDag();
 			taskCluster.submitDag(dag);
-		} finally {
+		}
+		catch(Exception e) {
+			e.printStackTrace();
+			throw e;
+		}
+		finally {
 			if (server != null) {
-				// server.shutdown();
+				//server.shutdown();
 			}
 		}
 	}
@@ -143,11 +148,11 @@ public class TaskExecutionDemo {
 	
 	private static Dag getAnalyticsDag() {
 		Dag dag = new Dag();
-		dag.addNode(new Node("filterImps", 5, ""));
+		dag.addNode(new Node("filterImps", 10, ""));
 		dag.addNode(new Node("filterClicks", 5, ""));
-		dag.addNode(new Node("impClickJoin", 5, "filterImps,filterClicks"));
-		dag.addNode(new Node("impCountsByGender", 5, "filterImps"));
-		dag.addNode(new Node("impCountsByCountry", 5, "filterImps"));
+		dag.addNode(new Node("impClickJoin", 10, "filterImps,filterClicks"));
+		dag.addNode(new Node("impCountsByGender", 10, "filterImps"));
+		dag.addNode(new Node("impCountsByCountry", 10, "filterImps"));
 		dag.addNode(new Node("clickCountsByGender", 5, "impClickJoin"));
 		dag.addNode(new Node("clickCountsByCountry", 5, "impClickJoin"));
 		

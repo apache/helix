@@ -49,7 +49,7 @@ public class ReportTask extends Task {
 		printCounts(JoinTask.JOINED_CLICKS + "_gender_counts");
 	}
 
-	private void printCounts(String tableName) {
+	private void printCounts(String tableName) throws Exception {
 		Map<String, String> counts = resultStore.hgetAll(tableName);
 		System.out.println(counts);
 	}

@@ -243,7 +243,10 @@ public class ClusterSetup
     }
 
     config.setInstanceEnabled(true);
-    config.setHostName(instanceId);
+    if(config.getHostName() == null)
+    {
+      config.setHostName(instanceId);
+    }
     return config;
   }
 

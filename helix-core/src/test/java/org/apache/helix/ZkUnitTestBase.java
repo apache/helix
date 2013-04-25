@@ -86,9 +86,9 @@ public class ZkUnitTestBase
   @AfterSuite(alwaysRun = true)
   public void afterTest()
   {
+    _gZkClient.close();
     TestHelper.stopZkServer(_zkServer);
     _zkServer = null;
-    _gZkClient.close();
 
     // System.out.println("Number of open zkClient after ZkUnitTests: "
     // + ZkClient.getNumberOfConnections());

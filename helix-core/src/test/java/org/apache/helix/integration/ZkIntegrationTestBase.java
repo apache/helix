@@ -79,8 +79,8 @@ public class ZkIntegrationTestBase
   public void afterSuite()
   {
     ZKClientPool.reset();
-    TestHelper.stopZkServer(_zkServer);
     _gZkClient.close();
+    TestHelper.stopZkServer(_zkServer);
   }
 
   protected String getShortClassName()

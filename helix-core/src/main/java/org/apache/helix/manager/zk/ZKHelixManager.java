@@ -98,7 +98,7 @@ public class ZKHelixManager implements HelixManager
   private ZKHelixDataAccessor                  _helixAccessor;
   private ConfigAccessor                       _configAccessor;
   protected ZkClient                           _zkClient;
-  protected List<CallbackHandler>         	   _handlers;
+  protected final List<CallbackHandler>        _handlers = new ArrayList<CallbackHandler>();
   private final ZkStateChangeListener          _zkStateChangeListener;
   private final InstanceType                   _instanceType;
   volatile String                              _sessionId;
@@ -250,13 +250,23 @@ public class ZKHelixManager implements HelixManager
     checkConnected();
 
     PropertyType type = propertyKey.getType();
-    CallbackHandler handler =
+    CallbackHandler newHandler =
         createCallBackHandler(propertyKey, listener, eventType, changeType);
 
     synchronized (this)
     {
-      _handlers.add(handler);
-      logger.info("Add listener: " + listener + " for type: " + type + " to path: " + handler.getPath());
+      for (CallbackHandler handler : _handlers)
+      {
+        // compare property-key path and listener reference
+        if (handler.getPath().equals(propertyKey.getPath()) && handler.getListener().equals(listener))
+        {
+          // TODO add log
+          return;
+        }
+      }
+
+      _handlers.add(newHandler);
+      logger.info("Add listener: " + listener + " for type: " + type + " to path: " + newHandler.getPath());
     }
   }
   
@@ -677,7 +687,6 @@ public class ZKHelixManager implements HelixManager
     // reset all handlers so they have a chance to unsubscribe zk changes from zkclient
     // abandon all callback-handlers added in expired session
     resetHandlers();
-    _handlers = new ArrayList<CallbackHandler>();
 
     logger.info("Handling new session, session id:" + _sessionId + ", instance:"
         + _instanceName + ", instanceTye: " + _instanceType + ", cluster: " + _clusterName);
@@ -754,16 +763,17 @@ public class ZKHelixManager implements HelixManager
                        .registerMessageHandlerFactory(defaultParticipantErrorMessageHandlerFactory.getMessageType(),
                                                       defaultParticipantErrorMessageHandlerFactory);
 
-      // create a new leader-election handler for a new session
       if (_leaderElectionHandler != null) {
     	  _leaderElectionHandler.reset();
+    	  _leaderElectionHandler.init();
+      } else {
+        _leaderElectionHandler =
+              createCallBackHandler(new Builder(_clusterName).controller(),
+                                    new DistClusterControllerElection(_zkConnectString),
+                                    new EventType[] { EventType.NodeChildrenChanged,
+                                        EventType.NodeDeleted, EventType.NodeCreated },
+                                    ChangeType.CONTROLLER);
       }
-      _leaderElectionHandler =
-            createCallBackHandler(new Builder(_clusterName).controller(),
-                                  new DistClusterControllerElection(_zkConnectString),
-                                  new EventType[] { EventType.NodeChildrenChanged,
-                                      EventType.NodeDeleted, EventType.NodeCreated },
-                                  ChangeType.CONTROLLER);
     }
 
     if (_instanceType == InstanceType.PARTICIPANT

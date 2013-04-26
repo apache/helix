@@ -333,20 +333,20 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
 
   public Stat writeDataGetStat(final String path, Object datat, final int expectedVersion) throws InterruptedException
   {
-    Stat stat = null;
     long start = System.nanoTime();
     try
     {
-      byte[] bytes = _zkSerializer.serialize(datat, path);
-      stat =
-          ((ZkConnection) _connection).getZookeeper().setData(path,
-                                                              bytes,
-                                                              expectedVersion);
-      return stat;
-    }
-    catch (KeeperException e)
-    {
-      throw ZkException.create(e);
+      final byte[] bytes = _zkSerializer.serialize(datat, path);
+      return retryUntilConnected(new Callable<Stat>() {
+        
+        @Override
+        public Stat call() throws Exception {
+          return
+              ((ZkConnection) _connection).getZookeeper().setData(path,
+                                                                  bytes,
+                                                                  expectedVersion);
+        }
+      });
     }
     finally
     {
@@ -432,44 +432,74 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient
 
   public void asyncCreate(final String path,
                           Object datat,
-                          CreateMode mode,
-                          CreateCallbackHandler cb)
+                          final CreateMode mode,
+                          final CreateCallbackHandler cb)
   {
-    byte[] data = null;
-    if (datat != null)
-    {
-      data = serialize(datat, path);
-    }
-    ((ZkConnection) _connection).getZookeeper().create(path, data, Ids.OPEN_ACL_UNSAFE, // Arrays.asList(DEFAULT_ACL),
-                                                       mode,
-                                                       cb,
-                                                       null);
+    final byte[] data = (datat == null? null : serialize(datat, path));
+    
+    retryUntilConnected(new Callable<Object>() {
+      @Override
+      public Object call() throws Exception {
+        ((ZkConnection) _connection).getZookeeper().create(path, data, Ids.OPEN_ACL_UNSAFE, // Arrays.asList(DEFAULT_ACL),
+            mode,
+            cb,
+            null);
+        return null;
+      }
+    });
   }
 
   public void asyncSetData(final String path,
                            Object datat,
-                           int version,
-                           SetDataCallbackHandler cb)
+                           final int version,
+                           final SetDataCallbackHandler cb)
   {
     final byte[] data = serialize(datat, path);
-    ((ZkConnection) _connection).getZookeeper().setData(path, data, version, cb, null);
+    retryUntilConnected(new Callable<Object>() {
+      @Override
+      public Object call() throws Exception {
+
+        ((ZkConnection) _connection).getZookeeper().setData(path, data, version, cb, null);
+        return null;
+      }
+    });
 
   }
 
-  public void asyncGetData(final String path, GetDataCallbackHandler cb)
+  public void asyncGetData(final String path, final GetDataCallbackHandler cb)
   {
-    ((ZkConnection) _connection).getZookeeper().getData(path, null, cb, null);
+    retryUntilConnected(new Callable<Object>() {
+      @Override
+      public Object call() throws Exception {
+        ((ZkConnection) _connection).getZookeeper().getData(path, null, cb, null);
+        return null;
+      }
+    });
   }
 
-  public void asyncExists(final String path, ExistsCallbackHandler cb)
+  public void asyncExists(final String path, final ExistsCallbackHandler cb)
   {
-    ((ZkConnection) _connection).getZookeeper().exists(path, null, cb, null);
+    retryUntilConnected(new Callable<Object>() {
+      @Override
+      public Object call() throws Exception {
+
+        ((ZkConnection) _connection).getZookeeper().exists(path, null, cb, null);
+        return null;
+      }
+    });
 
   }
 
-  public void asyncDelete(String path, DeleteCallbackHandler cb)
+  public void asyncDelete(final String path, final DeleteCallbackHandler cb)
   {
-    ((ZkConnection) _connection).getZookeeper().delete(path, -1, cb, null);
+    retryUntilConnected(new Callable<Object>() {
+      @Override
+      public Object call() throws Exception {
+
+        ((ZkConnection) _connection).getZookeeper().delete(path, -1, cb, null);
+        return null;
+      }
+    });
   }
 
 }

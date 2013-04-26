@@ -21,9 +21,11 @@ package org.apache.helix;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.lang.reflect.Method;
+import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -72,21 +74,38 @@ public class TestHelper
 {
   private static final Logger LOG = Logger.getLogger(TestHelper.class);
 
+  /**
+   * Returns a unused random port.
+   */
+  public static int getRandomPort() throws IOException {
+      ServerSocket sock = new ServerSocket();
+      sock.bind(null);
+      int port = sock.getLocalPort();
+      sock.close();
+
+      return port;
+  }
+  
   static public ZkServer startZkSever(final String zkAddress) throws Exception
   {
     List<String> empty = Collections.emptyList();
-    return TestHelper.startZkSever(zkAddress, empty);
+    return TestHelper.startZkSever(zkAddress, empty, true);
   }
 
   static public ZkServer startZkSever(final String zkAddress, final String rootNamespace) throws Exception
   {
     List<String> rootNamespaces = new ArrayList<String>();
     rootNamespaces.add(rootNamespace);
-    return TestHelper.startZkSever(zkAddress, rootNamespaces);
+    return TestHelper.startZkSever(zkAddress, rootNamespaces, true);
   }
 
   static public ZkServer startZkSever(final String zkAddress,
-                                      final List<String> rootNamespaces) throws Exception
+      final List<String> rootNamespaces) throws Exception {
+    return startZkSever(zkAddress, rootNamespaces, true);
+  }
+  
+  static public ZkServer startZkSever(final String zkAddress,
+                                      final List<String> rootNamespaces, boolean overwrite) throws Exception
   {
     System.out.println("Start zookeeper at " + zkAddress + " in thread "
         + Thread.currentThread().getName());
@@ -94,8 +113,10 @@ public class TestHelper
     String zkDir = zkAddress.replace(':', '_');
     final String logDir = "/tmp/" + zkDir + "/logs";
     final String dataDir = "/tmp/" + zkDir + "/dataDir";
-    FileUtils.deleteDirectory(new File(dataDir));
-    FileUtils.deleteDirectory(new File(logDir));
+    if (overwrite) {
+      FileUtils.deleteDirectory(new File(dataDir));
+      FileUtils.deleteDirectory(new File(logDir));
+    }
     ZKClientPool.reset();
 
     IDefaultNameSpace defaultNameSpace = new IDefaultNameSpace()
@@ -103,6 +124,10 @@ public class TestHelper
       @Override
       public void createDefaultNameSpace(org.I0Itec.zkclient.ZkClient zkClient)
       {
+        if (rootNamespaces == null) {
+          return;
+        }
+        
         for (String rootNamespace : rootNamespaces)
         {
           try

@@ -1035,4 +1035,19 @@ public class TestHelper
 
     return sb.toString();
   }
+  
+  public static interface Verifier {
+    boolean verify() throws Exception;
+  }
+  
+  public static boolean verify(Verifier verifier, long timeout) throws Exception {
+    long start = System.currentTimeMillis();
+    do {
+      boolean result = verifier.verify();
+      if (result || (System.currentTimeMillis() - start) > timeout) {
+        return result;
+      }
+      Thread.sleep(100);
+    } while (true);
+  }
 }

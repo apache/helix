@@ -45,9 +45,11 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.IdealStateChangeListener;
 import org.apache.helix.InstanceConfigChangeListener;
+import org.apache.helix.InstanceType;
 import org.apache.helix.LiveInstanceChangeListener;
 import org.apache.helix.MessageListener;
 import org.apache.helix.NotificationContext;
+import org.apache.helix.NotificationContext.Type;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.PropertyPathConfig;
@@ -110,6 +112,14 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
 
   public void invoke(NotificationContext changeContext) throws Exception
   {
+    // remove this listener if path no longer exists after session expiry
+    if (changeContext.getType() == Type.INIT && !_zkClient.exists(_path)) {
+      logger.info("removing listener because path no longer exists. path: " 
+          + _path + ", listener: " + _listener);
+      _manager.removeListener(_propertyKey, _listener);
+      return;
+    }
+
     // This allows the listener to work with one change at a time
     synchronized (_manager)
     {
@@ -231,6 +241,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
                                                  healthReportList,
                                                  changeContext);
       }
+
       long end = System.currentTimeMillis();
       if (logger.isInfoEnabled())
       {
@@ -254,6 +265,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
       {
         logger.info(_manager.getInstanceName() + " unsubscribe child-change. path: " 
         		+ path + ", listener: " + _listener);
+        
         _zkClient.unsubscribeChildChanges(path, this);
       }
   }
@@ -276,10 +288,12 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
         {
           logger.info(_manager.getInstanceName() + " unsubscribe data-change. path: " 
         		  + path + ", listener: " + _listener);
+
           _zkClient.unsubscribeDataChanges(path, this);
         }
   }
   
+  // TODO watchParent is always true. consider remove it
   private void subscribeForChanges(NotificationContext context,
                                    String path,
                                    boolean watchParent,
@@ -350,7 +364,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
       }
       catch (ZkNoNodeException e)
       {
-        logger.warn("fail to subscribe child/data change@. path: " + path 
+        logger.warn("fail to subscribe child/data change. path: " + path 
         		+ ", listener: " + _listener, e);
       }
     }
@@ -420,7 +434,6 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
           logger.info(_manager.getInstanceName() + " unsubscribe child-change. path: "
         		  + dataPath + ", listener: " + _listener);
           _zkClient.unsubscribeChildChanges(dataPath, this);
-
           // No need to invoke() since this event will handled by child-change on parent-node
 //        NotificationContext changeContext = new NotificationContext(_manager);
 //        changeContext.setType(NotificationContext.Type.CALLBACK);

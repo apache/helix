@@ -21,6 +21,8 @@ package org.apache.helix.integration;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkHelixTestManager;
@@ -42,7 +44,7 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
 	    String className = TestHelper.getTestClassName();
 	    String methodName = TestHelper.getTestMethodName();
 	    String clusterName = className + "_" + methodName;
-	    int n = 2;
+	    final int n = 2;
 
 	    System.out.println("START " + clusterName + " at "
 	        + new Date(System.currentTimeMillis()));
@@ -76,9 +78,42 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
 	        ClusterStateVerifier.verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
 	                                                                                 clusterName));
 	    Assert.assertTrue(result);
-	    ZkHelixTestManager controllerManager = controller.getManager();
-	    ZkHelixTestManager participantManagerToExpire = (ZkHelixTestManager)participants[1].getManager();
+	    final ZkHelixTestManager controllerManager = controller.getManager();
+	    final ZkHelixTestManager participantManagerToExpire = (ZkHelixTestManager)participants[1].getManager();
 
+	    // check controller zk-watchers
+	    result = TestHelper.verify(new TestHelper.Verifier() {
+        
+        @Override
+        public boolean verify() throws Exception {
+          Map<String, Set<String>> watchers = ZkTestHelper.getListenersBySession(ZK_ADDR);
+          Set<String> watchPaths = watchers.get("0x" + controllerManager.getSessionId());
+          // System.out.println("controller watch paths: " + watchPaths);
+          
+          // controller should have 5 + 2n + m + (m+2)n zk-watchers
+          // where n is number of nodes and m is number of resources
+          return watchPaths.size() == (6 + 5 * n);
+        }
+      }, 500);
+	    Assert.assertTrue(result, "Controller should have 6 + 5*n zk-watchers.");
+	    
+	    // check participant zk-watchers
+      result = TestHelper.verify(new TestHelper.Verifier() {
+        
+        @Override
+        public boolean verify() throws Exception {
+          Map<String, Set<String>> watchers = ZkTestHelper.getListenersBySession(ZK_ADDR);
+          Set<String> watchPaths = watchers.get("0x" + participantManagerToExpire.getSessionId());
+          // System.out.println("participant watch paths: " + watchPaths);
+          
+          // participant should have 2 zk-watchers: 1 for MESSAGE and 1 for CONTROLLER
+          return watchPaths.size() == 2;
+        }
+      }, 500);
+      Assert.assertTrue(result, "Participant should have 2 zk-watchers.");
+
+	    
+	    // check HelixManager#_handlers
 	    // printHandlers(controllerManager);
 	    // printHandlers(participantManagerToExpire);
 	    int controllerHandlerNb = controllerManager.getHandlers().size();
@@ -98,6 +133,40 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
 	        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
 	                                                                                                   clusterName));
 	    Assert.assertTrue(result);
+	    
+	    // check controller zk-watchers
+     result = TestHelper.verify(new TestHelper.Verifier() {
+        
+        @Override
+        public boolean verify() throws Exception {
+          Map<String, Set<String>> watchers = ZkTestHelper.getListenersBySession(ZK_ADDR);
+          Set<String> watchPaths = watchers.get("0x" + controllerManager.getSessionId());
+          // System.out.println("controller watch paths after session expiry: " + watchPaths);
+          
+          // controller should have 5 + 2n + m + (m+2)n zk-watchers
+          // where n is number of nodes and m is number of resources
+          return watchPaths.size() == (6 + 5 * n);
+        }
+      }, 500);
+      Assert.assertTrue(result, "Controller should have 6 + 5*n zk-watchers after session expiry.");
+
+      // check participant zk-watchers
+      result = TestHelper.verify(new TestHelper.Verifier() {
+        
+        @Override
+        public boolean verify() throws Exception {
+          Map<String, Set<String>> watchers = ZkTestHelper.getListenersBySession(ZK_ADDR);
+          Set<String> watchPaths = watchers.get("0x" + participantManagerToExpire.getSessionId());
+          // System.out.println("participant watch paths after session expiry: " + watchPaths);
+          
+          // participant should have 2 zk-watchers: 1 for MESSAGE and 1 for CONTROLLER
+          return watchPaths.size() == 2;
+        }
+      }, 500);
+      Assert.assertTrue(result, "Participant should have 2 zk-watchers after session expiry.");
+
+
+	    // check handlers
 	    // printHandlers(controllerManager);
 	    // printHandlers(participantManagerToExpire);
 	    int handlerNb = controllerManager.getHandlers().size();
@@ -116,7 +185,7 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
 	    String className = TestHelper.getTestClassName();
 	    String methodName = TestHelper.getTestMethodName();
 	    String clusterName = className + "_" + methodName;
-	    int n = 2;
+	    final int n = 2;
 
 	    System.out.println("START " + clusterName + " at "
 	        + new Date(System.currentTimeMillis()));
@@ -150,26 +219,31 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
 	        ClusterStateVerifier.verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
 	                                                                                 clusterName));
 	    Assert.assertTrue(result);
-	    ZkHelixTestManager controllerManager = controller.getManager();
-	    ZkHelixTestManager participantManager = participants[0].getManager();
+	    final ZkHelixTestManager controllerManager = controller.getManager();
+	    final ZkHelixTestManager participantManager = participants[0].getManager();
 
 	    // wait until we get all the listeners registered
+      result = TestHelper.verify(new TestHelper.Verifier() {
+        
+        @Override
+        public boolean verify() throws Exception {
+          int controllerHandlerNb = controllerManager.getHandlers().size();
+          int particHandlerNb = participantManager.getHandlers().size();
+          if (controllerHandlerNb == 9 && particHandlerNb == 2)
+            return true;
+          else
+            return false;
+        }
+      }, 1000);
+	    
 	    int controllerHandlerNb = controllerManager.getHandlers().size();
 	    int particHandlerNb = participantManager.getHandlers().size();
-	    for (int i = 0; i < 10; i++) {
-	    	if (controllerHandlerNb == 9 && particHandlerNb == 2)
-	    		break;
-	    	Thread.sleep(100);
-	    	controllerHandlerNb = controllerManager.getHandlers().size();
-	    	particHandlerNb = participantManager.getHandlers().size();
-	    }
     	Assert.assertEquals(controllerHandlerNb, 9, "HelixController should have 9 (5+2n) callback handlers for 2 participant, but was " 
     	    		+ controllerHandlerNb + ", "
     	    		+ printHandlers(controllerManager));
     	Assert.assertEquals(particHandlerNb, 2, "HelixParticipant should have 2 (msg+cur-state) callback handlers, but was " 
     	    		+ particHandlerNb + ", "
     	    		+ printHandlers(participantManager));
-
 
 	    // expire controller
 	    System.out.println("Expiring controller session...");
@@ -183,6 +257,39 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
 	        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
 	                                                                                                   clusterName));
 	    Assert.assertTrue(result);
+	    
+	    // check controller zk-watchers
+     result = TestHelper.verify(new TestHelper.Verifier() {
+        
+        @Override
+        public boolean verify() throws Exception {
+          Map<String, Set<String>> watchers = ZkTestHelper.getListenersBySession(ZK_ADDR);
+          Set<String> watchPaths = watchers.get("0x" + controllerManager.getSessionId());
+          // System.out.println("controller watch paths after session expiry: " + watchPaths);
+          
+          // controller should have 5 + 2n + m + (m+2)n zk-watchers
+          // where n is number of nodes and m is number of resources
+          return watchPaths.size() == (6 + 5 * n);
+        }
+      }, 500);
+      Assert.assertTrue(result, "Controller should have 6 + 5*n zk-watchers after session expiry.");
+
+      // check participant zk-watchers
+      result = TestHelper.verify(new TestHelper.Verifier() {
+        
+        @Override
+        public boolean verify() throws Exception {
+          Map<String, Set<String>> watchers = ZkTestHelper.getListenersBySession(ZK_ADDR);
+          Set<String> watchPaths = watchers.get("0x" + participantManager.getSessionId());
+          // System.out.println("participant watch paths after session expiry: " + watchPaths);
+          
+          // participant should have 2 zk-watchers: 1 for MESSAGE and 1 for CONTROLLER
+          return watchPaths.size() == 2;
+        }
+      }, 500);
+      Assert.assertTrue(result, "Participant should have 2 zk-watchers after session expiry.");
+	    
+	    // check HelixManager#_handlers
 	    // printHandlers(controllerManager);
 	    int handlerNb = controllerManager.getHandlers().size();
 	    Assert.assertEquals(handlerNb, controllerHandlerNb, "controller callback handlers should not increase after participant session expiry, but was "
@@ -196,6 +303,7 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
 	            + new Date(System.currentTimeMillis()));
 	}
 
+	// debug
 	static String printHandlers(ZkHelixTestManager manager) 
 	{
 		StringBuilder sb = new StringBuilder();

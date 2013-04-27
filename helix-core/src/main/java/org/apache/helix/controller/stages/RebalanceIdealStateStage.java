@@ -67,7 +67,7 @@ public class RebalanceIdealStateStage extends AbstractBaseStage
         }
         catch(Exception e)
         {
-          LOG.error("", e);
+          LOG.error("Exception while invoking custom rebalancer class:" + rebalancerClassName , e);
         }
       }
     }

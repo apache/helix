@@ -67,9 +67,17 @@ public interface HelixAdmin
    * Add a cluster
    * 
    * @param clusterName
-   * @param overwritePrevRecord
+   * @return true if successfully created, or if cluster already exists
+     */
+  boolean addCluster(String clusterName);
+  /**
+   * Add a cluster
+   * 
+   * @param clusterName
+   * @param recreateIfExists If the cluster already exists, it will delete it and recreate
+   * @return true if successfully created, or if cluster already exists
    */
-  void addCluster(String clusterName, boolean overwritePrevRecord);
+  boolean addCluster(String clusterName, boolean recreateIfExists);
 
   /**
    * Add a cluster and also add this cluster as a resource group in the super cluster
@@ -486,4 +494,9 @@ public interface HelixAdmin
    * @return
    */
   void removeInstanceTag(String clusterName, String instanceName, String tag);
+  
+  /**
+   * Release resources 
+   */
+  void close();
 }

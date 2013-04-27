@@ -392,7 +392,8 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
     }
     catch (Exception e)
     {
-      ZKExceptionHandler.getInstance().handle(e);
+      String msg = "Exception while invoking init callback for listener:"+ _listener;
+      ZKExceptionHandler.getInstance().handle(msg, e);
     }
   }
 
@@ -411,9 +412,9 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
     }
     catch (Exception e)
     {
-      logger.error("exception in handling data-change. path: " + dataPath 
-    		  + ", listener: " + _listener);
-      ZKExceptionHandler.getInstance().handle(e);
+      String msg = "exception in handling data-change. path: " + dataPath 
+    		  + ", listener: " + _listener;
+      ZKExceptionHandler.getInstance().handle(msg, e);
     }
   }
 
@@ -442,7 +443,9 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
     }
     catch (Exception e)
     {
-      ZKExceptionHandler.getInstance().handle(e);
+      String msg = "exception in handling data-delete-change. path: " + dataPath 
+          + ", listener: " + _listener;
+      ZKExceptionHandler.getInstance().handle(msg, e);
     }
   }
 
@@ -461,9 +464,9 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
     }
     catch (Exception e)
     {
-      logger.error("exception in handling child-change. instance: " + _manager.getInstanceName() 
-    		  + ", parentPath: " + parentPath + ", listener: " + _listener);
-      ZKExceptionHandler.getInstance().handle(e);
+      String msg = "exception in handling child-change. instance: " + _manager.getInstanceName() 
+    		  + ", parentPath: " + parentPath + ", listener: " + _listener;
+      ZKExceptionHandler.getInstance().handle(msg, e);
     }
   }
 
@@ -481,7 +484,8 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
     }
     catch (Exception e)
     {
-      ZKExceptionHandler.getInstance().handle(e);
+      String msg = "Exception while resetting the listener:"+_listener;
+      ZKExceptionHandler.getInstance().handle(msg, e);
     }
   }
 

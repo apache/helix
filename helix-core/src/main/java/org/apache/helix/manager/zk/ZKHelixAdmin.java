@@ -558,27 +558,56 @@ public class ZKHelixAdmin implements HelixAdmin
   }
 
   @Override
-  public void addCluster(String clusterName, boolean overwritePrevRecord)
+  public boolean addCluster(String clusterName){
+    return addCluster(clusterName, false);
+  }
+
+  @Override
+  public boolean addCluster(String clusterName, boolean recreateIfExists)
   {
     String root = "/" + clusterName;
-    String path;
 
-    // TODO For ease of testing only, should remove later
     if (_zkClient.exists(root))
     {
-      logger.warn("Root directory exists.Cleaning the root directory:" + root
-          + " overwritePrevRecord: " + overwritePrevRecord);
-      if (overwritePrevRecord)
+      if (recreateIfExists)
       {
+        logger.warn("Root directory exists.Cleaning the root directory:" + root);
         _zkClient.deleteRecursive(root);
       }
       else
       {
-        throw new HelixException("Cluster " + clusterName + " already exists");
+        logger.info("Cluster " + clusterName + " already exists");
+        return true;
       }
     }
-
-    _zkClient.createPersistent(root);
+    try
+    {
+      _zkClient.createPersistent(root, true);
+    }
+    catch (Exception e) 
+    {
+      //some other process might have created the cluster
+      if(_zkClient.exists(root)){
+        return true;
+      }
+      logger.error("Error creating cluster:"+ clusterName,e);
+      return false;
+    }
+    try
+    {
+      createZKPaths(clusterName);
+    }
+    catch (Exception e) 
+    {
+      logger.error("Error creating cluster:"+ clusterName,e);
+      return false;
+    }
+    logger.info("Created cluster:"+ clusterName);
+    return true;
+  }
+  
+  private void createZKPaths(String clusterName){
+      String path;
 
     // IDEAL STATE
     _zkClient.createPersistent(HelixUtil.getIdealStatePath(clusterName));
@@ -1481,6 +1510,12 @@ public class ZKHelixAdmin implements HelixAdmin
     accessor.setProperty(keyBuilder.instanceConfig(instanceName), config);
   }
 
-  
+  public void close()
+  {
+    if(_zkClient!=null)
+    {
+    _zkClient.close();
+    }
+  }
  
 }

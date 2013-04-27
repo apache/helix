@@ -31,18 +31,15 @@ public class ZKExceptionHandler
 
   }
 
-  void handle(Exception e)
+  public void handle(Exception e){
+    handle("",e);
+  }
+  
+  public void handle(String msg, Exception e)
   {
-    logger.error(Thread.currentThread().getName() + ". isThreadInterruped: " + Thread.currentThread().isInterrupted());
-
-    if (e instanceof ZkInterruptedException)
+    if (!(e instanceof ZkInterruptedException))
     {
-      logger.error("zk connection is interrupted.", e);
-    }
-    else
-    {
-      logger.error(e.getMessage(), e);
-      // e.printStackTrace();
+      logger.error(msg, e);
     }
   }
 

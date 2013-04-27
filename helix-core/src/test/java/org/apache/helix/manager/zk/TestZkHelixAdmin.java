@@ -40,6 +40,7 @@ import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.apache.helix.model.builder.ConstraintItemBuilder;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.tools.StateModelConfigGenerator;
+import org.apache.zookeeper.data.Stat;
 import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
@@ -53,9 +54,10 @@ public class TestZkHelixAdmin extends ZkUnitTestBase
     System.out.println("START testZkHelixAdmin at " + new Date(System.currentTimeMillis()));
 
     final String clusterName = getShortClassName();
-    if (_gZkClient.exists("/" + clusterName))
+    String rootPath = "/" + clusterName;
+    if (_gZkClient.exists(rootPath))
     {
-      _gZkClient.deleteRecursive("/" + clusterName);
+      _gZkClient.deleteRecursive(rootPath);
     }
 
     ZKHelixAdmin tool = new ZKHelixAdmin(_gZkClient);
@@ -69,8 +71,13 @@ public class TestZkHelixAdmin extends ZkUnitTestBase
 
     try
     {
-      tool.addCluster(clusterName, false);
-      Assert.fail("should fail if add an already existing cluster");
+      Stat oldstat = _gZkClient.getStat(rootPath);
+      Assert.assertNotNull(oldstat);
+      boolean success = tool.addCluster(clusterName, false);
+      //Even though it exists, it should return true but it should not make any changes in zk
+      Assert.assertTrue(success);
+      Stat newstat = _gZkClient.getStat(rootPath);
+      Assert.assertEquals(oldstat, newstat);
     } catch (HelixException e)
     {
       // OK

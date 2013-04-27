@@ -30,6 +30,7 @@ Pages
     - [Distributed lock manager](./recipes/lock_manager.html)
     - [Rabbit MQ consumer group](./recipes/rabbitmq_consumer_group.html)
     - [Rsync replicated file store](./recipes/rsync_replicated_file_store.html)
+    - [Service discovery](./recipes/service_discovery.html)
 
 WHAT IS HELIX
 --------------

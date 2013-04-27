@@ -73,6 +73,7 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.builder.ConfigScopeBuilder;
+import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.monitoring.ZKPathDataDumpTask;
 import org.apache.helix.participant.DistClusterControllerElection;
@@ -702,8 +703,8 @@ public class ZKHelixManager implements HelixManager
     boolean autoJoin = false;
     try
     {
-      ConfigScope scope =
-          new ConfigScopeBuilder().forCluster(getClusterName())
+      HelixConfigScope scope =
+          new HelixConfigScopeBuilder(ConfigScopeProperty.CLUSTER).forCluster(getClusterName())
                                   .build();
       autoJoin = Boolean.parseBoolean(getConfigAccessor().get(scope, ALLOW_PARTICIPANT_AUTO_JOIN));
       logger.info("Auto joining " + _clusterName +" is true");

@@ -57,6 +57,8 @@ import org.apache.helix.store.zk.ZkHelixPropertyStore;
 public interface HelixManager
 {
 
+  public static final String ALLOW_PARTICIPANT_AUTO_JOIN = "ALLOW_PARTICIPANT_AUTO_JOIN";
+
   /**
    * Start participating in the cluster operations. All listeners will be
    * initialized and will be notified for every cluster state change This method
@@ -296,15 +298,18 @@ public interface HelixManager
   void stopTimerTasks();
   
   /**
-   * Add a callback that is invoked before cluster manager connects
-   * 
+   * Add a callback that is invoked before a participant joins the cluster.</br>
+   * This zookeeper connection is established at this time and one can read existing cluster data</br>
+   * The purpose of this method is to allow application to have additional logic to validate their existing state and check for any errors.
+   * If the validation fails, throw exception/disable the instance. s
    * @see PreConnectCallback#onPreConnect()
    * @param callback
    */
   void addPreConnectCallback(PreConnectCallback callback);
   
   /**
-   * Add a LiveInstanceInfoProvider that is invoked before cluster manager connects
+   * Add a LiveInstanceInfoProvider that is invoked before creating liveInstance.</br>
+   * This allows applications to provide additional metadata that will be published to zk and made available for discovery</br>
    * 
    * @see LiveInstanceInfoProvider#getAdditionalLiveInstanceInfo()
    * @param liveInstanceInfoProvider

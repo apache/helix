@@ -36,7 +36,7 @@ Creating a cluster will create appropriate znodes on zookeeper.
     admin = new ZKHelixAdmin(ZK_ADDRESS);
     String CLUSTER_NAME = "helix-demo";
     //Create cluster namespace in zookeeper
-    admin.addCluster(clusterName, true);
+    admin.addCluster(clusterName);
 ```
 
 OR

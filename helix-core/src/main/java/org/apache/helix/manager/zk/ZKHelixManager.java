@@ -251,8 +251,6 @@ public class ZKHelixManager implements HelixManager
     checkConnected();
 
     PropertyType type = propertyKey.getType();
-    CallbackHandler newHandler =
-        createCallBackHandler(propertyKey, listener, eventType, changeType);
 
     synchronized (this)
     {
@@ -265,7 +263,9 @@ public class ZKHelixManager implements HelixManager
           return;
         }
       }
-
+      
+      CallbackHandler newHandler =
+          createCallBackHandler(propertyKey, listener, eventType, changeType);
       _handlers.add(newHandler);
       logger.info("Add listener: " + listener + " for type: " + type + " to path: " + newHandler.getPath());
     }

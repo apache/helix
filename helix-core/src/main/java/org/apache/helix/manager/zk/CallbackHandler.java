@@ -112,14 +112,6 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
 
   public void invoke(NotificationContext changeContext) throws Exception
   {
-    // remove this listener if path no longer exists after session expiry
-    if (changeContext.getType() == Type.INIT && !_zkClient.exists(_path)) {
-      logger.info("removing listener because path no longer exists. path: " 
-          + _path + ", listener: " + _listener);
-      _manager.removeListener(_propertyKey, _listener);
-      return;
-    }
-
     // This allows the listener to work with one change at a time
     synchronized (_manager)
     {
@@ -458,7 +450,17 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
       if (parentPath != null && parentPath.startsWith(_path))
       {
         NotificationContext changeContext = new NotificationContext(_manager);
-        changeContext.setType(NotificationContext.Type.CALLBACK);
+        
+        if (currentChilds == null) {
+          // parentPath has been removed
+          if (parentPath.equals(_path)) {
+            // _path has been removed, remove this listener
+            _manager.removeListener(_propertyKey, _listener);
+          }
+          changeContext.setType(NotificationContext.Type.FINALIZE);
+        } else {
+          changeContext.setType(NotificationContext.Type.CALLBACK);
+        }
         invoke(changeContext);
       }
     }

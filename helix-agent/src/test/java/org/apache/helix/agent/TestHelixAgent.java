@@ -40,7 +40,8 @@ import org.testng.annotations.Test;
 
 public class TestHelixAgent extends ZkUnitTestBase {
   
-  @Test
+  // disable this test
+  // @Test
   public void test() throws Exception {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();

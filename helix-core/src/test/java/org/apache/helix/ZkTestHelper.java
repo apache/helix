@@ -23,14 +23,12 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 
+import org.I0Itec.zkclient.IZkChildListener;
+import org.I0Itec.zkclient.IZkDataListener;
 import org.I0Itec.zkclient.IZkStateListener;
 import org.I0Itec.zkclient.ZkConnection;
 import org.apache.helix.InstanceType;
@@ -348,6 +346,49 @@ public class ZkTestHelper
             }
         }
     }
+
+    public static Map<String, List<String>> getZkWatch(ZkClient client) throws Exception {
+        Map<String, List<String>> lists = new HashMap<String, List<String>>();
+        ZkConnection connection = ((ZkConnection) client.getConnection());
+        ZooKeeper zk = connection.getZookeeper();
+
+        java.lang.reflect.Field field = getField(zk.getClass(), "watchManager");
+        field.setAccessible(true);
+        Object watchManager = field.get(zk);
+
+        java.lang.reflect.Field field2 = getField(watchManager.getClass(), "dataWatches");
+        field2.setAccessible(true);
+        HashMap<String, Set<Watcher>> dataWatches = (HashMap<String, Set<Watcher>>) field2.get(watchManager);
+
+        field2 = getField(watchManager.getClass(), "existWatches");
+        field2.setAccessible(true);
+        HashMap<String, Set<Watcher>> existWatches = (HashMap<String, Set<Watcher>>) field2.get(watchManager);
+
+        field2 = getField(watchManager.getClass(), "childWatches");
+        field2.setAccessible(true);
+        HashMap<String, Set<Watcher>> childWatches = (HashMap<String, Set<Watcher>>) field2.get(watchManager);
+
+        lists.put("dataWatches", new ArrayList<String>(dataWatches.keySet()));
+        lists.put("existWatches", new ArrayList<String>(existWatches.keySet()));
+        lists.put("childWatches", new ArrayList<String>(childWatches.keySet()));
+
+        return lists;
+    }
+
+    public static Map<String, Set<IZkDataListener>> getZkDataListener(ZkClient client) throws Exception {
+        java.lang.reflect.Field field = getField(client.getClass(), "_dataListener");
+        field.setAccessible(true);
+        Map<String, Set<IZkDataListener>> dataListener = (Map<String, Set<IZkDataListener>>)field.get(client);
+        return dataListener;
+    }
+
+    public static Map<String, Set<IZkChildListener>> getZkChildListener(ZkClient client) throws Exception {
+        java.lang.reflect.Field field = getField(client.getClass(), "_childListener");
+        field.setAccessible(true);
+        Map<String, Set<IZkChildListener>> childListener = (Map<String, Set<IZkChildListener>>)field.get(client);
+        return childListener;
+    }
+
 
     public static boolean tryWaitZkEventsCleaned(ZkClient zkclient) throws Exception {
         java.lang.reflect.Field field = getField(zkclient.getClass(), "_eventThread");

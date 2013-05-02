@@ -259,7 +259,7 @@ public class ZKHelixManager implements HelixManager
         // compare property-key path and listener reference
         if (handler.getPath().equals(propertyKey.getPath()) && handler.getListener().equals(listener))
         {
-          // TODO add log
+          logger.info("Listener: " + listener + " on path: " + propertyKey.getPath() + " already exists. skip adding it");
           return;
         }
       }

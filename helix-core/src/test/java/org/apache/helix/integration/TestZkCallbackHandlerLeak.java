@@ -340,7 +340,7 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
                     @Override
                     public void onStateChange(String instanceName, List<CurrentState> statesInfo, NotificationContext changeContext) {
                         //To change body of implemented methods use File | Settings | File Templates.
-                        System.out.println(instanceName + " on current-state change, type: " + changeContext.getType());
+                        // System.out.println(instanceName + " on current-state change, type: " + changeContext.getType());
                     }
                 }, manager.getInstanceName(), manager.getSessionId());
             }

@@ -24,12 +24,12 @@ under the License.
   <parent>
     <groupId>org.apache.helix.recipes</groupId>
     <artifactId>recipes</artifactId>
-    <version>0.6.1-incubating-SNAPSHOT</version>
+    <version>0.6.1-incubating</version>
   </parent>
 
   <artifactId>rabbitmq-consumer-group</artifactId>
   <packaging>jar</packaging>
-  <version>0.6.1-incubating-SNAPSHOT</version>
+  <version>0.6.1-incubating</version>
   <name>Apache Helix :: Recipes :: Rabbitmq Consumer Group</name>
 
   <dependencies>

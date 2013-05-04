@@ -46,7 +46,7 @@ under the License.
       <roles>
         <role>PMC Member</role>
       </roles>
-      <timezone>Europe/Paris</timezone>
+      <timezone>Australia/Melbourne</timezone>
     </developer>
     <developer>
       <id>phunt</id>

@@ -1,4 +1,5 @@
 package org.apache.helix;
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -17,10 +18,6 @@ package org.apache.helix;
  * specific language governing permissions and limitations
  * under the License.
  */
-import org.apache.helix.HelixManager;
-import org.apache.helix.HelixManagerFactory;
-import org.apache.helix.InstanceType;
-
 
 public class CMConnector {
 

@@ -99,7 +99,6 @@ under the License.
         <plugin>
           <groupId>org.apache.rat</groupId>
           <artifactId>apache-rat-plugin</artifactId>
-          <version>0.8</version>
             <configuration>
               <excludes combine.children="append">
               </excludes>

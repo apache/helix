@@ -21,7 +21,9 @@ under the License.
 Pages
 ---------------
 * [Quickstart](./Quickstart.html)
+* [Core concepts](./Concepts.html)
 * [Architecture](./Architecture.html)
+* [Tutorial](./Tutorial.html)
 * [Features](./Features.html)
 * [ApiUsage](./ApiUsage.html)
 * [Javadocs](./apidocs/index.html)

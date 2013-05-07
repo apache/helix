@@ -18,53 +18,156 @@ under the License.
 -->
 
 
-Partition Placement
--------------------
+### CONFIGURING IDEALSTATE
+
+
+Read concepts page for definition of Idealstate.
+
 The placement of partitions in a DDS is very critical for reliability and scalability of the system. 
 For example, when a node fails, it is important that the partitions hosted on that node are reallocated evenly among the remaining nodes. Consistent hashing is one such algorithm that can guarantee this.
-Helix by default comes with a variant of consistent hashing based of the RUSH algorithm. This means given a number of partitions, replicas and number of nodes Helix does the automatic assignment of partition to nodes such that
+Helix by default comes with a variant of consistent hashing based of the RUSH algorithm. 
+
+This means given a number of partitions, replicas and number of nodes Helix does the automatic assignment of partition to nodes such that
 
 * Each node has the same number of partitions and replicas of the same partition do not stay on the same node.
 * When a node fails, the partitions will be equally distributed among the remaining nodes
 * When new nodes are added, the number of partitions moved will be minimized along with satisfying the above two criteria.
 
-In simple terms, partition assignment can be defined as the mapping of Replica,State to a Node in the cluster. For example, lets say the system as 2 partitions(P1,P2) and each partition has 2 replicas and there are 2 nodes(N1,N2) in the system and two possible states Master and Slave 
 
-The partition assignment table can look like 
+Helix provides multiple ways to control the placement and state of a replica. 
 
-    P1 -> {N1:M, N2:S}
-    P2 -> {N1:S, N2:M}
-    
-This means Partition P1 must be a Master at N1 and Slave at N2 and vice versa for P2
+```
 
-Helix provides multiple ways to control the partition placement. See Execution modes section for more info on this.
+            |AUTO REBALANCE|   AUTO     |   CUSTOM  |       
+            -----------------------------------------
+   LOCATION | HELIX        |  APP       |  APP      |
+            -----------------------------------------
+      STATE | HELIX        |  HELIX     |  APP      |
+            -----------------------------------------
+```
 
-IdealState execution modes 
---------------------------
+#### HELIX EXECUTION MODE 
+
+
 Idealstate is defined as the state of the DDS when all nodes are up and running and healthy. 
 Helix uses this as the target state of the system and computes the appropriate transitions needed in the system to bring it to a stable state. 
 
 Helix supports 3 different execution modes which allows application to explicitly control the placement and state of the replica.
 
 ##### AUTO_REBALANCE
-When the idealstate mode is set to AUTO_REBALANCE, Helix controls both the location of the replica along with the state. This option is useful for applications where creation of a replica is not expensive. 
-A typical example is evenly distributing a group of tasks among the currently alive processes. For example, if there are 60 tasks and 4 nodes, Helix assigns 15 tasks to each node. 
+
+When the idealstate mode is set to AUTO_REBALANCE, Helix controls both the location of the replica along with the state. This option is useful for applications where creation of a replica is not expensive. Example
+
+```
+{
+  "id" : "MyResource",
+  "simpleFields" : {
+    "IDEAL_STATE_MODE" : "AUTO_REBALANCE",
+    "NUM_PARTITIONS" : "3",
+    "REPLICAS" : "2",
+    "STATE_MODEL_DEF_REF" : "MasterSlave",
+  }
+  "listFields" : {
+    "MyResource_0" : [],
+    "MyResource_1" : [],
+    "MyResource_2" : []
+  },
+  "mapFields" : {
+  }
+}
+```
+
+If there are 3 nodes in the cluster, then Helix will internally compute the ideal state as 
+
+```
+{
+  "id" : "MyResource",
+  "simpleFields" : {
+    "NUM_PARTITIONS" : "3",
+    "REPLICAS" : "2",
+    "STATE_MODEL_DEF_REF" : "MasterSlave",
+  },
+  "mapFields" : {
+    "MyResource_0" : {
+      "N1" : "MASTER",
+      "N2" : "SLAVE",
+    },
+    "MyResource_1" : {
+      "N2" : "MASTER",
+      "N3" : "SLAVE",
+    },
+    "MyResource_2" : {
+      "N3" : "MASTER",
+      "N1" : "SLAVE",
+    }
+  }
+}
+```
+
+Another typical example is evenly distributing a group of tasks among the currently alive processes. For example, if there are 60 tasks and 4 nodes, Helix assigns 15 tasks to each node. 
 When one node fails Helix redistributes its 15 tasks to the remaining 3 nodes. Similarly, if a node is added, Helix re-allocates 3 tasks from each of the 4 nodes to the 5th node. 
 
 #### AUTO
-When the idealstate mode is set to AUTO, Helix only controls STATE of the replicas where as the location of the partition is controlled by application. 
-For example the application can say P1->{N1,N2,N3} which means P1 should only exist N1,N2,N3. In this mode when N1 fails, unlike in AUTO-REBALANCE mode the partition is not moved from N1 to others nodes in the cluster. 
-But Helix might decide to change the state of P1 in N2 and N3 based on the system constraints. For example, if a system constraint specified that there should be 1 Master and if the Master failed, then N2 will be made the master.
+
+When the idealstate mode is set to AUTO, Helix only controls STATE of the replicas where as the location of the partition is controlled by application. Example: The below idealstate indicates thats 'MyResource_0' must be only on node1 and node2.  But gives the control of assigning the STATE to Helix.
+
+```
+{
+  "id" : "MyResource",
+  "simpleFields" : {
+    "IDEAL_STATE_MODE" : "AUTO",
+    "NUM_PARTITIONS" : "3",
+    "REPLICAS" : "2",
+    "STATE_MODEL_DEF_REF" : "MasterSlave",
+  }
+  "listFields" : {
+    "MyResource_0" : [node1, node2],
+    "MyResource_1" : [node2, node3],
+    "MyResource_2" : [node3, node1]
+  },
+  "mapFields" : {
+  }
+}
+```
+In this mode when node1 fails, unlike in AUTO-REBALANCE mode the partition is not moved from node1 to others nodes in the cluster. Instead, Helix will decide to change the state of MyResource_0 in N2 based on the system constraints. For example, if a system constraint specified that there should be 1 Master and if the Master failed, then node2 will be made the new master. 
 
 #### CUSTOM
+
 Helix offers a third mode called CUSTOM, in which application can completely control the placement and state of each replica. Applications will have to implement an interface that Helix will invoke when the cluster state changes. 
-Within this callback, the application can recompute the partition assignment mapping. Helix will then issue transitions to get the system to the final state. Note that Helix will ensure that system constraints are not violated at any time.
-For example, the current state of the system might be P1 -> {N1:M,N2:S} and the application changes the ideal state to P2 -> {N1:S,N2:M}. Helix will not blindly issue M-S to N1 and S-M to N2 in parallel since it might result in a transient state where both N1 and N2 are masters.
-Helix will issue S-M to N2 only when N1 has changed its state to S.
+Within this callback, the application can recompute the idealstate. Helix will then issue appropriate transitions such that Idealstate and Currentstate converges.
+
+```
+{
+  "id" : "MyResource",
+  "simpleFields" : {
+      "IDEAL_STATE_MODE" : "CUSTOM",
+    "NUM_PARTITIONS" : "3",
+    "REPLICAS" : "2",
+    "STATE_MODEL_DEF_REF" : "MasterSlave",
+  },
+  "mapFields" : {
+    "MyResource_0" : {
+      "N1" : "MASTER",
+      "N2" : "SLAVE",
+    },
+    "MyResource_1" : {
+      "N2" : "MASTER",
+      "N3" : "SLAVE",
+    },
+    "MyResource_2" : {
+      "N3" : "MASTER",
+      "N1" : "SLAVE",
+    }
+  }
+}
+```
+
+For example, the current state of the system might be 'MyResource_0' -> {N1:MASTER,N2:SLAVE} and the application changes the ideal state to 'MyResource_0' -> {N1:SLAVE,N2:MASTER}. Helix will not blindly issue MASTER-->SLAVE to N1 and SLAVE-->MASTER to N2 in parallel since it might result in a transient state where both N1 and N2 are masters.
+Helix will first issue MASTER-->SLAVE to N1 and after its completed it will issue SLAVE-->MASTER to N2. 
  
 
-State Machine Configuration
----------------------------
+### State Machine Configuration
+
 Helix comes with 3 default state models that are most commonly used. Its possible to have multiple state models in a cluster. 
 Every resource that is added should have a reference to the state model. 
 
@@ -85,8 +188,8 @@ STATE TRANSITION PRIORITY
 Helix tries to fire as many transitions as possible in parallel to reach the stable state without violating constraints. By default Helix simply sorts the transitions alphabetically and fires as many as it can without violating the constraints. 
 One can control this by overriding the priority order.
  
-Config management
------------------
+### Config management
+
 Helix allows applications to store application specific properties. The configuration can have different scopes.
 
 * Cluster
@@ -98,8 +201,8 @@ Helix also provides notifications when any configs are changed. This allows appl
 
 See HelixManager.getConfigAccessor for more info
 
-Intra cluster messaging api
----------------------------
+### Intra cluster messaging api
+
 This is an interesting feature which is quite useful in practice. Often times, nodes in DDS requires a mechanism to interact with each other. One such requirement is a process of bootstrapping a replica.
 
 Consider a search system use case where the index replica starts up and it does not have an index. One of the commonly used solutions is to get the index from a common location or to copy the index from another replica.
@@ -120,7 +223,7 @@ System Admins can also perform adhoc tasks like on demand backup or execute a sy
       requestBackupUriRequest.setMsgState(MessageState.NEW);
       //SET THE RECIPIENT CRITERIA, All nodes that satisfy the criteria will receive the message
       Criteria recipientCriteria = new Criteria();
-      recipientCriteria.setInstanceName("*");
+      recipientCriteria.setInstanceName("%");
       recipientCriteria.setRecipientInstanceType(InstanceType.PARTICIPANT);
       recipientCriteria.setResource("MyDB");
       recipientCriteria.setPartition("");
@@ -139,15 +242,15 @@ System Admins can also perform adhoc tasks like on demand backup or execute a sy
 See HelixManager.getMessagingService for more info.
 
 
-Application specific property storage
--------------------------------------
+### Application specific property storage
+
 There are several usecases where applications needs support for distributed data structures. Helix uses Zookeeper to store the application data and hence provides notifications when the data changes. 
 One value add Helix provides is the ability to specify cache the data and also write through cache. This is more efficient than reading from ZK every time.
 
 See HelixManager.getHelixPropertyStore
 
-Throttling
-----------
+### Throttling
+
 Since all state changes in the system are triggered through transitions, Helix can control the number of transitions that can happen in parallel. Some of the transitions may be light weight but some might involve moving data around which is quite expensive.
 Helix allows applications to set threshold on transitions. The threshold can be set at the multiple scopes.
 
@@ -158,8 +261,8 @@ Helix allows applications to set threshold on transitions. The threshold can be 
 
 See HelixManager.getHelixAdmin.addMessageConstraint() 
 
-Health monitoring and alerting
-------------------------------
+### Health monitoring and alerting
+
 This in currently in development mode, not yet productionized.
 
 Helix provides ability for each node in the system to report health metrics on a periodic basis. 
@@ -171,24 +274,24 @@ This feature will be valuable in for distributed systems that support multi-tena
 This feature is not yet stable and do not recommend to be used in production.
 
 
-Controller deployment modes
----------------------------
+### Controller deployment modes
+
 Read Architecture wiki for more details on the Role of a controller. In simple words, it basically controls the participants in the cluster by issuing transitions.
 
 Helix provides multiple options to deploy the controller.
 
-STANDALONE
+#### STANDALONE
 
 Controller can be started as a separate process to manage a cluster. This is the recommended approach. How ever since one controller can be a single point of failure, multiple controller processes are required for reliability.
 Even if multiple controllers are running only one will be actively managing the cluster at any time and is decided by a leader election process. If the leader fails, another leader will resume managing the cluster.
 
 Even though we recommend this method of deployment, it has the drawback of having to manage an additional service for each cluster. See Controller As a Service option.
 
-EMBEDDED
+#### EMBEDDED
 
 If setting up a separate controller process is not viable, then it is possible to embed the controller as a library in each of the participant. 
 
-CONTROLLER AS A SERVICE
+#### CONTROLLER AS A SERVICE
 
 One of the cool feature we added in helix was use a set of controllers to manage a large number of clusters. 
 For example if you have X clusters to be managed, instead of deploying X*3(3 controllers for fault tolerance) controllers for each cluster, one can deploy only 3 controllers. Each controller can manage X/3 clusters. 

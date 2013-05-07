@@ -28,7 +28,6 @@ under the License.
 
   <artifactId>task-execution</artifactId>
   <packaging>jar</packaging>
-  <version>1.2-SNAPSHOT</version>
   <name>Apache Helix :: Recipes :: distributed task execution</name>
 
   <dependencies>
@@ -124,7 +123,7 @@ under the License.
           <programs>
             <program>
               <mainClass>org.apache.helix.taskexecution.TaskExecutionDemo</mainClass>
-              <name>task-exection-demo</name>
+              <name>task-execution-demo</name>
             </program>
           </programs>
         </configuration>

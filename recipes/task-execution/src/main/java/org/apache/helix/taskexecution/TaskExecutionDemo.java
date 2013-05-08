@@ -32,10 +32,28 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.controller.HelixControllerMain;
 import org.apache.helix.taskexecution.Dag.Node;
 /**
- * 
- *
+ * Demo for execution of task Dag using primitives provided by Helix. This demo sets up a Dag of tasks for
+ * providing analytics for impression and click events. Each node on the dag has an id and declares the desired parallelism and 
+ * IDs of the nodes it depends on. When we submit this dag for execution using submitDag(){@link TaskCluster}, we create a Helix resource for 
+ * each node with number of partitions based on desired parallelism. We use a "OnlineOffline" state model.
+ * The demo starts NUM_WORKERS workers. Each worker is given a {@link TaskFactory} and {@link TaskResultStore}. Each worker is assigned a bunch of task 
+ * partitions by Helix and gets state transition messages for the task partitions it is assigned. When the worker gets a state transition message 
+ * for a task partition, it first checks if all upstream dependencies are satisfied by making sure that corresponding partitions have transitioned to 
+ * "Online" state. It then creates a Task object using TaskFactory based on resource name (since task IDs have been mapped to resource names)
+ * The demo has the following steps
+ * <OL>
+ * <LI>Start zookeeper</LI>
+ * <LI>Setup task cluster {@link TaskCluster}</LI>
+ * <LI>Start Helix controller</LI>
+ * <LI> Populate dummy impression and click data </LI>
+ * <LI> Start workers </LI>
+ * <LI> Submit dag </LI>
  */
 public class TaskExecutionDemo {
+
+	private static final int NUM_WORKERS = 10;
+	private static final int NUM_IMP_EVENTS = 10000;
+
 
 	public static void main(String[] args) throws Exception {
 		if (args.length != 3) {
@@ -97,7 +115,7 @@ public class TaskExecutionDemo {
 	private static void populateDummyData(TaskResultStore taskResultStore) throws Exception {
 		float fraudProbability = 0.01f;
 		float clickProbability = 0.01f;
-		int numImps = 10000; 
+		int numImps = NUM_IMP_EVENTS; 
 		Random rand = new Random();
 		String[] countries = {"US", "CANADA", "UK", "CHINA", "UNKNOWN"};
 		String[] genders = {"M", "F", "UNKNOWN"};
@@ -139,7 +157,7 @@ public class TaskExecutionDemo {
 
 	private static void startWorkers(String zkAddr, String clusterName,
 			TaskFactory taskFactory, TaskResultStore taskResultStore) {
-		int numWorkers = 10;
+		int numWorkers = NUM_WORKERS;
 		Executor executor = Executors.newFixedThreadPool(numWorkers);
 
 		for (int i = 0; i < numWorkers; i++) {

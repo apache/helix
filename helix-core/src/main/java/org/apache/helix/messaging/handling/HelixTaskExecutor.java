@@ -540,7 +540,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor
 
         message.setMsgState(MessageState.UNPROCESSABLE);
         accessor.removeProperty(message.getKey(keyBuilder, instanceName));
-        LOG.error("Message cannot be proessed: " + message.getRecord(), e);
+        LOG.error("Message cannot be processed: " + message.getRecord(), e);
 
         continue;
       }

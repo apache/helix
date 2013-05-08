@@ -31,6 +31,7 @@ Helix release process
 
  [[2]] Your maven setting must contains the entry to be able to deploy.
 
+ ~/.m2/settings.xml
 +-------------
    <server>
      <id>apache.releases.https</id>
@@ -39,8 +40,15 @@ Helix release process
    </server>
 +-------------
 
- [[3]] Release Helix
-    You should have a GPG agent running (preferred), and confirm it works by running "gpg -ab" (type some text and press Ctrl-D).
+ [[3]] Apache DAV passwords
+
++-------------
+ Add the following info into your ~/.netrc
+ machine git-wip-us.apache.org login <apache username> <password>
+
++-------------
+ [[4]] Release Helix
+    You should have a GPG agent running in the session you will run the maven release commands(preferred), and confirm it works by running "gpg -ab" (type some text and press Ctrl-D).
     If you do not have a GPG agent running, make sure that you have the "apache-release" profile set in your settings.xml as shown below.
 
    Run the release
@@ -49,7 +57,7 @@ Helix release process
 mvn release:prepare release:perform -B
 +-------------
 
-  GPG configuration
+  GPG configuration in maven settings xml:
 
 +-------------
 <profile>
@@ -66,7 +74,7 @@ mvn release:prepare release:perform -B
 svn co https://dist.apache.org/repos/dist/dev/incubator/helix helix-dev-release
 cd helix-dev-release
 sh ./release-script-svn.sh version stagingRepoUrl
-then svn add new directory
+then svn add <new directory created with new version as name>
 then svn ci 
 +-------------
 

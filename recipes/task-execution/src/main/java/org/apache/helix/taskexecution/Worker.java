@@ -29,7 +29,14 @@ import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.participant.StateMachineEngine;
-
+/**
+ * Generic Worker that is a HELIX Participant which on start up joins the cluster and 
+ * waits for state transitions from Helix.<br/>
+ * This class takes taskfactory and taskresultstore as arguments.<br/>
+ * As part of state transition @see {@link TaskStateModel}, 
+ * it launches task corresponding to the resource id.
+ *
+ */
 public class Worker implements Runnable {
 	private final String _zkAddr;
 	private final String _clusterName;

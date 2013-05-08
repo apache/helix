@@ -23,12 +23,11 @@ under the License.
   <parent>
     <groupId>org.apache.helix.recipes</groupId>
     <artifactId>recipes</artifactId>
-    <version>0.6.1-incubating-SNAPSHOT</version>
+    <version>0.6.2-incubating-SNAPSHOT</version>
   </parent>
 
   <artifactId>task-execution</artifactId>
   <packaging>jar</packaging>
-  <version>1.2-SNAPSHOT</version>
   <name>Apache Helix :: Recipes :: distributed task execution</name>
 
   <dependencies>
@@ -40,6 +39,7 @@ under the License.
     <dependency>
       <groupId>org.apache.helix</groupId>
       <artifactId>helix-core</artifactId>
+      <version>0.6.2-incubating-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>log4j</groupId>
@@ -123,7 +123,7 @@ under the License.
           <programs>
             <program>
               <mainClass>org.apache.helix.taskexecution.TaskExecutionDemo</mainClass>
-              <name>task-exection-demo</name>
+              <name>task-execution-demo</name>
             </program>
           </programs>
         </configuration>

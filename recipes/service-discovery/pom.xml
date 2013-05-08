@@ -23,7 +23,7 @@ under the License.
   <parent>
     <groupId>org.apache.helix.recipes</groupId>
     <artifactId>recipes</artifactId>
-    <version>0.6.1-incubating-SNAPSHOT</version>
+    <version>0.6.2-incubating-SNAPSHOT</version>
   </parent>
 
   <artifactId>service-discovery</artifactId>
@@ -99,7 +99,6 @@ under the License.
         <plugin>
           <groupId>org.apache.rat</groupId>
           <artifactId>apache-rat-plugin</artifactId>
-          <version>0.8</version>
             <configuration>
               <excludes combine.children="append">
               </excludes>

@@ -59,6 +59,7 @@
     <menu name="Helix">
       <item name="Introduction" href="./index.html"/>
       <item name="Quick Start" href="./Quickstart.html"/>
+      <item name="Core concept" href="./Concepts.html"/>
       <item name="Tutorial" href="./Tutorial.html"/>
       <item name="Architecture" href="./Architecture.html"/>
       <item name="Features" href="./Features.html"/>
@@ -70,6 +71,8 @@
       <item name="Distributed lock manager" href="./recipes/lock_manager.html"/>
       <item name="Rabbit MQ consumer group" href="./recipes/rabbitmq_consumer_group.html"/>
       <item name="Rsync replicated file store" href="./recipes/rsync_replicated_file_store.html"/>
+      <item name="Service Discovery" href="./recipes/service_discovery.html"/>
+      <item name="Distributed task DAG Execution" href="./recipes/task_dag_execution.html"/>
     </menu>
 
     <menu name="Get Involved">

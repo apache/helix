@@ -92,3 +92,12 @@ then svn ci
 
  [[8]] Celebrate !
 
+ [[9]] Validating the release
++-------------
+  * Download sources, extract, build and run tests - mvn clean package
+  * Verify license headers - mvn -Prat -DskipTests
+  * Download binaries and .asc files
+  * Download release manager's public key - From the KEYS file, get the release manager's public key finger print and run  gpg --keyserver pgpkeys.mit.edu --recv-key <key>
+  * Validate authenticity of key - run  gpg --fingerprint <key>
+  * Check signatures of all the binaries using gpg <binary>
++-------------

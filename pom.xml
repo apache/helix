@@ -603,6 +603,8 @@ under the License.
                     <exclude>.idea/**</exclude>
                     <exclude>*.bat</exclude>
                     <exclude>**/*.iml</exclude>
+                    <exclude>**/*.project</exclude>
+                    <exclude>**/*.classpath</exclude>
                     <exclude>.repository/**</exclude>
                     <exclude>test-output/**</exclude>
                     <exclude>src/test/resources/static_view.txt</exclude>

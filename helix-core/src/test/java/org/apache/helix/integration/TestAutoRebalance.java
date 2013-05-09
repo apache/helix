@@ -32,6 +32,7 @@ import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper.StartCMResult;
 import org.apache.helix.controller.HelixControllerMain;
 import org.apache.helix.controller.stages.ClusterDataCache;
+import org.apache.helix.integration.TestAutoRebalancePartitionLimit.ExternalViewBalancedVerifier;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
@@ -126,6 +127,64 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBaseWithPropertyServerC
     
   }
   
+
+  @Test()
+  public void testDropResourceAutoRebalance() throws Exception
+  {
+    // add a resource to be dropped
+    _setupTool.addResourceToCluster(CLUSTER_NAME, "MyDB", _PARTITIONS, "OnlineOffline", IdealStateModeProperty.AUTO_REBALANCE+"");
+     
+    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, "MyDB", 1);
+
+    boolean result =
+            ClusterStateVerifier.verifyByZkCallback(new ExternalViewBalancedVerifier(_zkClient,
+                    CLUSTER_NAME, "MyDB"));
+    Assert.assertTrue(result);
+
+    String command =
+        "-zkSvr " + ZK_ADDR + " -dropResource " + CLUSTER_NAME + " " + "MyDB";
+    ClusterSetup.processCommandLineArgs(command.split(" "));
+
+    TestHelper.verifyWithTimeout("verifyEmptyCurStateAndExtView",
+                                 30 * 1000,
+                                 CLUSTER_NAME,
+                                 "MyDB",
+                                 TestHelper.<String> setOf("localhost_12918",
+                                                           "localhost_12919",
+                                                           "localhost_12920",
+                                                           "localhost_12921",
+                                                           "localhost_12922"),
+                                 ZK_ADDR);
+    
+ // add a resource to be dropped
+    _setupTool.addResourceToCluster(CLUSTER_NAME, "MyDB2", _PARTITIONS, "MasterSlave", IdealStateModeProperty.AUTO_REBALANCE+"");
+     
+    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, "MyDB2", 3);
+
+    result =
+            ClusterStateVerifier.verifyByZkCallback(new ExternalViewBalancedVerifier(_zkClient,
+                    CLUSTER_NAME, "MyDB2"));
+    Assert.assertTrue(result);
+
+    command =
+        "-zkSvr " + ZK_ADDR + " -dropResource " + CLUSTER_NAME + " " + "MyDB2";
+    ClusterSetup.processCommandLineArgs(command.split(" "));
+
+    TestHelper.verifyWithTimeout("verifyEmptyCurStateAndExtView",
+                                 30 * 1000,
+                                 CLUSTER_NAME,
+                                 "MyDB2",
+                                 TestHelper.<String> setOf("localhost_12918",
+                                                           "localhost_12919",
+                                                           "localhost_12920",
+                                                           "localhost_12921",
+                                                           "localhost_12922"),
+                                 ZK_ADDR);
+  }
+  
+  
+  
+  
   @Test()
   public void testAutoRebalance() throws Exception
   {
@@ -179,6 +238,10 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBaseWithPropertyServerC
   
   static boolean verifyBalanceExternalView(ZNRecord externalView, int partitionCount, String masterState, int replica, int instances)
   {
+    if(externalView == null)
+    {
+      return false;
+    }
     Map<String, Integer> masterPartitionsCountMap = new HashMap<String, Integer>();
     for(String partitionName : externalView.getMapFields().keySet())
     {
@@ -259,7 +322,12 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBaseWithPropertyServerC
       {
         instances = cache.getLiveInstances().size();
       }
-      return verifyBalanceExternalView(accessor.getProperty(keyBuilder.externalView(_resourceName)).getRecord(), numberOfPartitions, masterValue, replicas, instances);
+      ExternalView ev = accessor.getProperty(keyBuilder.externalView(_resourceName));
+      if(ev == null)
+      {
+        return false;
+      }
+      return verifyBalanceExternalView(ev.getRecord(), numberOfPartitions, masterValue, replicas, instances);
     }
 
     @Override

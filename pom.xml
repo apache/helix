@@ -510,7 +510,7 @@ under the License.
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-project-info-reports-plugin</artifactId>
-        <version>2.6</version>
+        <version>2.7-SNAPSHOT</version>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>

@@ -219,7 +219,7 @@ under the License.
     <helix.release.arguments>-Papache-release</helix.release.arguments>
 
     <!-- for release changelog and download pages -->
-    <currentRelease>0.6.0-incubating</currentRelease>
+    <currentRelease>0.6.1-incubating</currentRelease>
 
     <!--Skips test in default 'mvn clean install' build command-->
     <!-- <maven.test.skip.exec>true</maven.test.skip.exec> -->

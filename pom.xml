@@ -524,7 +524,7 @@ under the License.
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-project-info-reports-plugin</artifactId>
-        <version>2.7-SNAPSHOT</version>
+        <version>2.7</version>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>

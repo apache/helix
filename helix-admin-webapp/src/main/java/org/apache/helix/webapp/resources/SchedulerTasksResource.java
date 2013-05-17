@@ -170,11 +170,10 @@ public class SchedulerTasksResource extends Resource
       schedulerMessage.setTgtName("CONTROLLER");
       schedulerMessage.setSrcInstanceType(InstanceType.CONTROLLER);
       String taskQueueName =  ClusterRepresentationUtil.getFormJsonParameterString(form, TASKQUEUENAME);
-      if(taskQueueName != null)
+      if(taskQueueName != null && taskQueueName.length() > 0)
       {
-        throw new HelixException("SchedulerTasksResource need to have " + TASKQUEUENAME +" specified.");
+        schedulerMessage.getRecord().setSimpleField(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE, taskQueueName);
       }
-      schedulerMessage.getRecord().setSimpleField(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE, taskQueueName);
       accessor.setProperty(accessor.keyBuilder().controllerMessage(schedulerMessage.getMsgId()), schedulerMessage);
       
       Map<String, String> resultMap = new HashMap<String, String>();

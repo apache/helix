@@ -17,52 +17,57 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-Build/Download Helix
---------------------
+Get Helix
+---------
+
+First, let\'s get Helix, either build or download.
 
 ### Build
-
-
-Jump to download section to skip building code
 
     git clone https://git-wip-us.apache.org/repos/asf/incubator-helix.git
     cd incubator-helix
     mvn install package -DskipTests 
     cd helix-core/target/helix-core-pkg/bin //This folder contains all the scripts used in following sections
-    chmod \+x *
-
-### Download Helix
-
-Instead of building the package from the code, you can download the 0.6.0-incubating release package from [here](https://dist.apache.org/repos/dist/dev/incubator/helix/0.6.0-incubating/binaries/helix-core-0.6.0-incubating-pkg.tar) 
-
-Short Version
--------------
-
-    cd helix-core/target/helix-core-pkg/bin
     chmod +x *
-    ./quickstart.sh
 
+### Download
 
-This gives an overview of Helix Apis and how it facilitates Automatic Partition Management, Failure Handling and Cluster Expansion. 
+Download the 0.6.1-incubating release package [here](https://dist.apache.org/repos/dist/dev/incubator/helix/0.6.1-incubating/binaries/helix-core-0.6.1-incubating-pkg.tar) 
 
-The quick start does the following
+Overview
+--------
 
-* Add a cluster
-* Add two nodes
-* Add a resource with 6 partitions with 1 master and 1 slave replica.
-* Shows the cluster state after all nodes are up.
-* Add a node and see the partitions get rebalanced
-* Shows cluster state after the rebalance
-* Stop a node and see that master ship transfer occurs.
-* Shows cluster state after node is stopped.
+In this Quickstart, we\'ll set up a master-slave replicated, partitioned system.  Then we\'ll demonstrate how to add a node, rebalance the partitions, and show how Helix manages failover.
 
-Long Version
+The steps:
+
+* Define a cluster
+* Add two nodes to the cluster
+* Add a 6-partition resource with 1 master and 2 slave replicas per partition
+* Verify that the cluster is healthy and inspect the Helix view
+* Expand the cluster: add a few nodes and rebalance the partitions
+* Failover: stop a node and verify the mastership transfer
+
+Let\'s Do It
 ------------
 
-Helix provides command line interfaces to setup the cluster and also view the cluster state. Follow the steps below to get a better understanding of the steps involved to setup a distributed system.
+Helix provides command line interfaces to set up the cluster and view the cluster state. The best way to understand how Helix views a cluster is to build a cluster.
+
+#### First, get to the tools directory.
+
+If you built the code
+
+```
+cd helix/helix-core/target/helix-core-pkg/bin
+```
+
+If you downloaded the release package, extract it.
+
+```
+cd helix-core-pkg/bin
+```
 
 ### Install/Start zookeeper
-
 
 Zookeeper can be started in standalone mode or replicated mode.
 
@@ -71,119 +76,385 @@ More info is available at
 * http://zookeeper.apache.org/doc/r3.3.3/zookeeperStarted.html
 * http://zookeeper.apache.org/doc/trunk/zookeeperAdmin.html#sc_zkMulitServerSetup
 
-In this example, we will start zookeeper in local mode.
+In this example, let\'s start zookeeper in local mode.
 
-### Cluster setup
-
-helix-admin tool is used for cluster administration tasks. Apart from a command line interface Helix supports a REST interface as well.
-
-zookeeper_address is of the format host:port e.g localhost:2199 for standalone or host1:port,host2:port for multi node.
-
-In the following section we will see how one can set up a mock mycluster cluster with 
-
-* 3 instances running on localhost at 12913, 12914,12915 
-* One database named MyDB with 6 partitions 
-* Each partition will have 3 replicas with 1 master, 2 slaves
-* zookeeper running locally at localhost:2199
-
-Note that this mock cluster does not have any functionality apart from handling Helix callbacks.
- 
-### Steps
-
-* If you built the code
-
-```
-cd helix/helix-core/target/helix-core-pkg
-```
-
-* If you downloaded the release package, extract it.
-
-```
-cd helix-core-pkg
-```
-     
-##### start zookeeper locally at port 2199
+##### start zookeeper locally on port 2199
 
     ./start-standalone-zookeeper.sh 2199 &
 
-##### create the cluster mycluster
-    ## helix-admin.sh --zkSvr localhost:2199 --addCluster <clustername> 
-    ./helix-admin.sh --zkSvr localhost:2199 --addCluster mycluster 
 
-##### Create a database with 6 partitions using MasterSlave state model. This ensures there will be one master for each partition 
-    ### helix-admin.sh --zkSvr localhost:2199  --addResource <clustername> <resourceName> <numPartitions> <StateModelName>
-    ./helix-admin.sh --zkSvr localhost:2199  --addResource mycluster myDB 6 MasterSlave
-   
-##### Add nodes to the cluster, in this case we add three nodes, hostname:port is host and port on which the service will start
+### Define the Cluster
+
+The helix-admin tool is used for cluster administration tasks. In the Quickstart, we\'ll use the command line interface. Helix supports a REST interface as well.
+
+zookeeper_address is of the format host:port e.g localhost:2199 for standalone or host1:port,host2:port for multi-node.
+
+Next, we\'ll set up a cluster MYCLUSTER cluster with these attributes:
+
+* 3 instances running on localhost at ports 12913,12914,12915 
+* One database named myDB with 6 partitions 
+* Each partition will have 3 replicas with 1 master, 2 slaves
+* zookeeper running locally at localhost:2199
+
+##### Create the cluster MYCLUSTER
+    ## helix-admin.sh --zkSvr <zk_address> --addCluster <clustername> 
+    ./helix-admin.sh --zkSvr localhost:2199 --addCluster MYCLUSTER 
+
+##### Add nodes to the cluster
+
+In this case we\'ll add three nodes: localhost:12913, localhost:12914, localhost:12915
+
     ## helix-admin.sh --zkSvr <zk_address>  --addNode <clustername> <host:port>
-    ./helix-admin.sh --zkSvr localhost:2199  --addNode mycluster localhost:12913
-    ./helix-admin.sh --zkSvr localhost:2199  --addNode mycluster localhost:12914
-    ./helix-admin.sh --zkSvr localhost:2199  --addNode mycluster localhost:12915
+    ./helix-admin.sh --zkSvr localhost:2199  --addNode MYCLUSTER localhost:12913
+    ./helix-admin.sh --zkSvr localhost:2199  --addNode MYCLUSTER localhost:12914
+    ./helix-admin.sh --zkSvr localhost:2199  --addNode MYCLUSTER localhost:12915
 
-##### After adding nodes assign partitions to nodes. This command will distribute the partitions amongst all the nodes in the cluster. Each partition will have 3 replicas    
-     helix-admin.sh --rebalance <clustername> <resourceName> <replication factor>
-    ./helix-admin.sh --zkSvr localhost:2199 --rebalance mycluster myDB 3
+#### Define the resource and partitioning
 
-##### Start Helix Controller
-    #This will start the cluster manager which will manage <mycluster>
-    ./run-helix-controller --zkSvr localhost:2199 --cluster mycluster 2>&1 > /tmp/controller.log &
+In this example, the resource is a database, partitioned 6 ways.  (In a production system, it\'s common to over-partition for better load balancing.  Helix has been used in production to manage hundreds of databases each with 10s or 100s of partitions running on 10s of physical nodes.)
 
-##### Start Example Participant, This is a dummy participant where the transitions are no-ops.    
-    ./start-helix-participant.sh --help
-    # start process 1 process corresponding to every host port added during cluster setup
-    ./start-helix-participant.sh --zkSvr localhost:2199 --cluster mycluster --host localhost --port 12913 --stateModelType MasterSlave 2>&1 > /tmp/participant_12913.log 
-    ./start-helix-participant.sh --zkSvr localhost:2199 --cluster mycluster --host localhost --port 12914 --stateModelType MasterSlave 2>&1 > /tmp/participant_12914.log
-    ./start-helix-participant.sh --zkSvr localhost:2199 --cluster mycluster --host localhost --port 12915 --stateModelType MasterSlave 2>&1 > /tmp/participant_12915.log
+##### Create a database with 6 partitions using the MasterSlave state model. 
+
+Helix ensures there will be exactly one master for each partition.
+
+    ## helix-admin.sh --zkSvr <zk_address> --addResource <clustername> <resourceName> <numPartitions> <StateModelName>
+    ./helix-admin.sh --zkSvr localhost:2199 --addResource MYCLUSTER myDB 6 MasterSlave
+   
+##### Now we can let Helix assign partitions to nodes. 
+
+This command will distribute the partitions amongst all the nodes in the cluster. In this example, each partition has 3 replicas.
+
+    ## helix-admin.sh --zkSvr <zk_address> --rebalance <clustername> <resourceName> <replication factor>
+    ./helix-admin.sh --zkSvr localhost:2199 --rebalance MYCLUSTER myDB 3
+
+Now the cluster is defined in Zookeeper.  The nodes (localhost:12913, localhost:12914, localhost:12915) and resource (myDB, with 6 partitions using the MasterSlave model).  And the _ideal state_ has been calculated, assuming a replication factor of 3.
+
+##### Start the Helix Controller
+
+Now that the cluster is defined in Zookeeper, the Helix controller can manage the cluster.
+
+    ## Start the cluster manager, which will manage MYCLUSTER
+    ./run-helix-controller.sh --zkSvr localhost:2199 --cluster MYCLUSTER 2>&1 > /tmp/controller.log &
+
+##### Start up the cluster to be managed
+
+We\'ve started up Zookeeper, defined the cluster, the resources, the partitioning, and started up the Helix controller.  Next, we\'ll start up the nodes of the system to be managed.  Each node is a Participant, which is an instance of the system component to be managed.  Helix assigns work to Participants, keeps track of their roles and health, and takes action when a node fails.
+
+    # start up each instance.  These are mock implementations that are actively managed by Helix
+    ./start-helix-participant.sh --zkSvr localhost:2199 --cluster MYCLUSTER --host localhost --port 12913 --stateModelType MasterSlave 2>&1 > /tmp/participant_12913.log 
+    ./start-helix-participant.sh --zkSvr localhost:2199 --cluster MYCLUSTER --host localhost --port 12914 --stateModelType MasterSlave 2>&1 > /tmp/participant_12914.log
+    ./start-helix-participant.sh --zkSvr localhost:2199 --cluster MYCLUSTER --host localhost --port 12915 --stateModelType MasterSlave 2>&1 > /tmp/participant_12915.log
 
 
-### Inspect Cluster Data
+#### Inspect the Cluster
 
+Now, let\'s see the Helix view of our cluster.  We\'ll work our way down as follows:
 
-At any time, we can get the cluster status on zookeeper and view the partition assignment and current state of each partition.
+```
+Clusters -> MYCLUSTER -> instances -> instance detail
+                      -> resources -> resource detail
+                      -> partitions
+```
 
-Command line tool
+A single Helix controller can manage multiple clusters, though so far, we\'ve only defined one cluster.  Let\'s see:
 
-##### List existing clusters
-    ./helix-admin.sh --zkSvr localhost:2199 --listClusters        
+```
+## List existing clusters
+./helix-admin.sh --zkSvr localhost:2199 --listClusters        
+
+Existing clusters:
+MYCLUSTER
+```
                                        
-#####  Query info of a cluster
+Now, let\'s see the Helix view of MYCLUSTER
 
-    #helix-admin.sh --zkSvr localhost:2199 --listClusterInfo <clusterName> 
-    ./helix-admin.sh --zkSvr localhost:2199 --listClusterInfo mycluster
+```
+## helix-admin.sh --zkSvr <zk_address> --listClusterInfo <clusterName> 
+./helix-admin.sh --zkSvr localhost:2199 --listClusterInfo MYCLUSTER
 
-#####  List Instances in a cluster
-    ## helix-admin.sh --zkSvr localhost:2199 --listInstances <clusterName>
-     ./helix-admin.sh --zkSvr localhost:2199 --listInstances mycluster
-    
-##### Query info of a Instance in a cluster
-    #./helix-admin.sh --zkSvr localhost:2199 --listInstanceInfo <clusterName InstanceName>    
-     ./helix-admin.sh --zkSvr localhost:2199 --listInstanceInfo mycluster localhost_12913
-     ./helix-admin.sh --zkSvr localhost:2199 --listInstanceInfo mycluster localhost_12914
-     ./helix-admin.sh --zkSvr localhost:2199 --listInstanceInfo mycluster localhost_12915
+Existing resources in cluster MYCLUSTER:
+myDB
+Instances in cluster MYCLUSTER:
+localhost_12915
+localhost_12914
+localhost_12913
+```
 
-##### List resourceGroups hosted in a cluster
-    ## helix-admin.sh --zkSvr localhost:2199 --listResources <clusterName>
-    ./helix-admin.sh --zkSvr localhost:2199 --listResources mycluster
+
+Let\'s look at the details of an instance
+
+```
+## ./helix-admin.sh --zkSvr <zk_address> --listInstanceInfo <clusterName> <InstanceName>    
+./helix-admin.sh --zkSvr localhost:2199 --listInstanceInfo MYCLUSTER localhost_12913
+
+InstanceConfig: {
+  "id" : "localhost_12913",
+  "mapFields" : {
+  },
+  "listFields" : {
+  },
+  "simpleFields" : {
+    "HELIX_ENABLED" : "true",
+    "HELIX_HOST" : "localhost",
+    "HELIX_PORT" : "12913"
+  }
+}
+```
+
     
 ##### Query info of a resource
-    ## helix-admin.sh --zkSvr localhost:2199 --listResourceInfo <clusterName resourceName>
-    ./helix-admin.sh --zkSvr localhost:2199 --listResourceInfo mycluster myDB
 
-##### Query info about a partition   
-    ## helix-admin.sh --zkSvr localhost:2199 --listResourceInfo <clusterName partition> 
+```
+## helix-admin.sh --zkSvr <zk_address> --listResourceInfo <clusterName> <resourceName>
+./helix-admin.sh --zkSvr localhost:2199 --listResourceInfo MYCLUSTER myDB
+
+IdealState for myDB:
+{
+  "id" : "myDB",
+  "mapFields" : {
+    "myDB_0" : {
+      "localhost_12913" : "SLAVE",
+      "localhost_12914" : "MASTER",
+      "localhost_12915" : "SLAVE"
+    },
+    "myDB_1" : {
+      "localhost_12913" : "SLAVE",
+      "localhost_12914" : "SLAVE",
+      "localhost_12915" : "MASTER"
+    },
+    "myDB_2" : {
+      "localhost_12913" : "MASTER",
+      "localhost_12914" : "SLAVE",
+      "localhost_12915" : "SLAVE"
+    },
+    "myDB_3" : {
+      "localhost_12913" : "SLAVE",
+      "localhost_12914" : "SLAVE",
+      "localhost_12915" : "MASTER"
+    },
+    "myDB_4" : {
+      "localhost_12913" : "MASTER",
+      "localhost_12914" : "SLAVE",
+      "localhost_12915" : "SLAVE"
+    },
+    "myDB_5" : {
+      "localhost_12913" : "SLAVE",
+      "localhost_12914" : "MASTER",
+      "localhost_12915" : "SLAVE"
+    }
+  },
+  "listFields" : {
+    "myDB_0" : [ "localhost_12914", "localhost_12913", "localhost_12915" ],
+    "myDB_1" : [ "localhost_12915", "localhost_12913", "localhost_12914" ],
+    "myDB_2" : [ "localhost_12913", "localhost_12915", "localhost_12914" ],
+    "myDB_3" : [ "localhost_12915", "localhost_12913", "localhost_12914" ],
+    "myDB_4" : [ "localhost_12913", "localhost_12914", "localhost_12915" ],
+    "myDB_5" : [ "localhost_12914", "localhost_12915", "localhost_12913" ]
+  },
+  "simpleFields" : {
+    "IDEAL_STATE_MODE" : "AUTO",
+    "NUM_PARTITIONS" : "6",
+    "REPLICAS" : "3",
+    "STATE_MODEL_DEF_REF" : "MasterSlave",
+    "STATE_MODEL_FACTORY_NAME" : "DEFAULT"
+  }
+}
+
+ExternalView for myDB:
+{
+  "id" : "myDB",
+  "mapFields" : {
+  },
+  "listFields" : {
+  },
+  "simpleFields" : {
+    "BUCKET_SIZE" : "0"
+  }
+}
+```
+
+Now, let\'s look at one of the partitions:
+
+    ## helix-admin.sh --zkSvr <zk_address> --listResourceInfo <clusterName> <partition> 
     ./helix-admin.sh --zkSvr localhost:2199 --listResourceInfo mycluster myDB_0
-   
-##### List all state models in the cluster
-    # helix-admin.sh --zkSvr localhost:2199 --listStateModels <clusterName>
-    ./helix-admin.sh --zkSvr localhost:2199 --listStateModels mycluster
-    
-##### Query info about a state model in a cluster
-    ## helix-admin.sh --zkSvr localhost:2199 --listStateModel <clusterName stateModelName>
-    ./helix-admin.sh --zkSvr localhost:2199 --listStateModel mycluster MasterSlave
+
+#### Expand the Cluster
+
+Next, we\'ll show how Helix does the work that you\'d otherwise have to build into your system.  When you add capacity to your cluster, you want the work to be evenly distributed.  In this example, we started with 3 nodes, with 6 partitions.  The partitions were evenly balanced, 2 masters and 4 slaves per node. Let\'s add 3 more nodes: localhost:12916, localhost:12917, localhost:12918
+
+    ./helix-admin.sh --zkSvr localhost:2199  --addNode MYCLUSTER localhost:12916
+    ./helix-admin.sh --zkSvr localhost:2199  --addNode MYCLUSTER localhost:12917
+    ./helix-admin.sh --zkSvr localhost:2199  --addNode MYCLUSTER localhost:12918
+
+And now, let Helix do the work for you.  To shift the work, simply rebalance.  After the rebalance, each node will have one master and two slaves.
+
+    ./helix-admin.sh --zkSvr localhost:2199 --rebalance MYCLUSTER myDB 3
+
+#### View the cluster
+
+OK, let\'s see how it looks:
+
+
+```
+./helix-admin.sh --zkSvr localhost:2199 --listResourceInfo MYCLUSTER myDB
+
+IdealState for myDB:
+{
+  "id" : "myDB",
+  "mapFields" : {
+    "myDB_0" : {
+      "localhost_12913" : "SLAVE",
+      "localhost_12914" : "SLAVE",
+      "localhost_12917" : "MASTER"
+    },
+    "myDB_1" : {
+      "localhost_12916" : "SLAVE",
+      "localhost_12917" : "SLAVE",
+      "localhost_12918" : "MASTER"
+    },
+    "myDB_2" : {
+      "localhost_12913" : "MASTER",
+      "localhost_12917" : "SLAVE",
+      "localhost_12918" : "SLAVE"
+    },
+    "myDB_3" : {
+      "localhost_12915" : "MASTER",
+      "localhost_12917" : "SLAVE",
+      "localhost_12918" : "SLAVE"
+    },
+    "myDB_4" : {
+      "localhost_12916" : "MASTER",
+      "localhost_12917" : "SLAVE",
+      "localhost_12918" : "SLAVE"
+    },
+    "myDB_5" : {
+      "localhost_12913" : "SLAVE",
+      "localhost_12914" : "MASTER",
+      "localhost_12915" : "SLAVE"
+    }
+  },
+  "listFields" : {
+    "myDB_0" : [ "localhost_12917", "localhost_12913", "localhost_12914" ],
+    "myDB_1" : [ "localhost_12918", "localhost_12917", "localhost_12916" ],
+    "myDB_2" : [ "localhost_12913", "localhost_12917", "localhost_12918" ],
+    "myDB_3" : [ "localhost_12915", "localhost_12917", "localhost_12918" ],
+    "myDB_4" : [ "localhost_12916", "localhost_12917", "localhost_12918" ],
+    "myDB_5" : [ "localhost_12914", "localhost_12915", "localhost_12913" ]
+  },
+  "simpleFields" : {
+    "IDEAL_STATE_MODE" : "AUTO",
+    "NUM_PARTITIONS" : "6",
+    "REPLICAS" : "3",
+    "STATE_MODEL_DEF_REF" : "MasterSlave",
+    "STATE_MODEL_FACTORY_NAME" : "DEFAULT"
+  }
+}
+
+ExternalView for myDB:
+{
+  "id" : "myDB",
+  "mapFields" : {
+  },
+  "listFields" : {
+  },
+  "simpleFields" : {
+    "BUCKET_SIZE" : "0"
+  }
+}
+```
+
+Mission accomplished.  The partitions are nicely balanced.
+
+#### How about Failover?
+
+Building a fault tolerant system isn\'t trivial, but with Helix, it\'s easy.  Helix detects a failed instance, and triggers mastership transfer automatically.
+
+First, let's fail an instance:
+
+_KILL A NODE (need to find the pid via listInstanceInfo)_
+
+We lost localhost:12918, so myDB_1 lost its MASTER.  Helix can fix that, it will transfer mastership to a healthy node that is currently a SLAVE, say localhost:12197.  Helix balances the load as best as it can, given there are 6 partitions on 5 nodes.  Let\'s see:
+
+
+```
+./helix-admin.sh --zkSvr localhost:2199 --listResourceInfo MYCLUSTER myDB
+
+IdealState for myDB:
+{
+  "id" : "myDB",
+  "mapFields" : {
+    "myDB_0" : {
+      "localhost_12913" : "SLAVE",
+      "localhost_12914" : "SLAVE",
+      "localhost_12917" : "MASTER"
+    },
+    "myDB_1" : {
+      "localhost_12916" : "SLAVE",
+      "localhost_12917" : "MASTER"
+      "localhost_12918" : "OFFLINE"
+    },
+    "myDB_2" : {
+      "localhost_12913" : "MASTER",
+      "localhost_12917" : "SLAVE",
+      "localhost_12918" : "OFFLINE"
+    },
+    "myDB_3" : {
+      "localhost_12915" : "MASTER",
+      "localhost_12917" : "SLAVE",
+      "localhost_12918" : "OFFLINE"
+    },
+    "myDB_4" : {
+      "localhost_12916" : "MASTER",
+      "localhost_12917" : "SLAVE",
+      "localhost_12918" : "OFFLINE"
+    },
+    "myDB_5" : {
+      "localhost_12913" : "SLAVE",
+      "localhost_12914" : "MASTER",
+      "localhost_12915" : "SLAVE"
+    }
+  },
+  "listFields" : {
+    "myDB_0" : [ "localhost_12917", "localhost_12913", "localhost_12914" ],
+    "myDB_1" : [ "localhost_12917", "localhost_12916", "localhost_12918" ],
+    "myDB_2" : [ "localhost_12913", "localhost_12917", "localhost_12918" ],
+    "myDB_3" : [ "localhost_12915", "localhost_12917", "localhost_12918" ],
+    "myDB_4" : [ "localhost_12916", "localhost_12917", "localhost_12918" ],
+    "myDB_5" : [ "localhost_12914", "localhost_12915", "localhost_12913" ]
+  },
+  "simpleFields" : {
+    "IDEAL_STATE_MODE" : "AUTO",
+    "NUM_PARTITIONS" : "6",
+    "REPLICAS" : "3",
+    "STATE_MODEL_DEF_REF" : "MasterSlave",
+    "STATE_MODEL_FACTORY_NAME" : "DEFAULT"
+  }
+}
+
+ExternalView for myDB:
+{
+  "id" : "myDB",
+  "mapFields" : {
+  },
+  "listFields" : {
+  },
+  "simpleFields" : {
+    "BUCKET_SIZE" : "0"
+  }
+}
+```
+
+As we\'ve seen in this Quickstart, Helix takes care of partitioning, load balancing, elasticity, failure detection and recovery.
 
 ##### ZOOINSPECTOR
 
-Use ZooInspector that comes with zookeeper to browse the data. This is a java applet ( make sure you have X windows)
+You can view all of the underlying data by going direct to zookeeper.  Use ZooInspector that comes with zookeeper to browse the data. This is a java applet (make sure you have X windows)
+
 To start zooinspector run the following command from <zk_install_directory>/contrib/ZooInspector
       
     java -cp zookeeper-3.3.3-ZooInspector.jar:lib/jtoaster-1.0.4.jar:../../lib/log4j-1.2.15.jar:../../zookeeper-3.3.3.jar org.apache.zookeeper.inspector.ZooInspector
+
+#### Next
+
+Now that you understand the idea of Helix, read the [tutorial](./tutorial.html) to learn how to choose the right state model and constraints for your system, and how to implement it.  In many cases, the built-in features meet your requirements.  And best of all, Helix is a customizable framework, so you can plug in your own behavior, while retaining the automation provided by Helix.
+

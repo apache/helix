@@ -331,9 +331,9 @@ public class DefaultSchedulerMessageHandlerFactory implements
           _logger.warn("",e);
         }
       }
-      
+      boolean hasSchedulerTaskQueue = _message.getRecord().getSimpleFields().containsKey(SCHEDULER_TASK_QUEUE);
       // If the target is PARTICIPANT, use the ScheduledTaskQueue
-      if(InstanceType.PARTICIPANT == recipientCriteria.getRecipientInstanceType())
+      if(InstanceType.PARTICIPANT == recipientCriteria.getRecipientInstanceType() && hasSchedulerTaskQueue)
       {
         handleMessageUsingScheduledTaskQueue(recipientCriteria, messageTemplate, _message.getMsgId());
         result.setSuccess(true);

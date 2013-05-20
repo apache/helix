@@ -53,6 +53,8 @@ import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.StatusUpdate;
 import org.apache.helix.monitoring.ZKPathDataDumpTask;
 import org.apache.helix.util.HelixUtil;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -123,6 +125,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
         HelixTaskResult result = new HelixTaskResult();
         result.setSuccess(true);
         String destName = _message.getTgtName();
+        result.getTaskResultMap().put("Message", _message.getMsgId());
         synchronized (_results)
         {
           if (!_results.containsKey(_message.getPartitionName()))
@@ -190,6 +193,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
       _latch.await();
       HelixTaskResult result = new HelixTaskResult();
       result.setSuccess(true);
+      result.getTaskResultMap().put("Message", _message.getMsgId());
       String destName = _message.getTgtName();
       synchronized (_results)
       {
@@ -211,10 +215,11 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
     }
   }
 }
-
+  
   @Test()
-  public void TestSchedulerMsg() throws Exception
+  public void TestSchedulerMsgUsingQueue() throws Exception
   {
+    Logger.getRootLogger().setLevel(Level.INFO);
     _factory._results.clear();
     HelixManager manager = null;
     for (int i = 0; i < NODE_NR; i++)
@@ -290,6 +295,108 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
         if(key.startsWith("MessageResult "))
         {
           messageResultCount ++;
+        }
+      }
+      if(messageResultCount == _PARTITIONS * 3)
+      {
+        break;
+      }
+      else
+      {
+        Thread.sleep(2000);
+      }
+    }
+    Assert.assertEquals(messageResultCount, _PARTITIONS * 3);
+    int count = 0;
+    for (Set<String> val : _factory._results.values())
+    {
+      count += val.size();
+    }
+    Assert.assertEquals(count, _PARTITIONS * 3);
+    
+   
+  }
+  
+  @Test()
+  public void TestSchedulerMsg() throws Exception
+  {
+    Logger.getRootLogger().setLevel(Level.INFO);
+    _factory._results.clear();
+    HelixManager manager = null;
+    for (int i = 0; i < NODE_NR; i++)
+    {
+      String hostDest = "localhost_" + (START_PORT + i);
+      _startCMResultMap.get(hostDest)._manager.getMessagingService()
+          .registerMessageHandlerFactory(_factory.getMessageType(), _factory);
+      manager = _startCMResultMap.get(hostDest)._manager;
+    }
+
+    Message schedulerMessage = new Message(MessageType.SCHEDULER_MSG + "", UUID
+        .randomUUID().toString());
+    schedulerMessage.setTgtSessionId("*");
+    schedulerMessage.setTgtName("CONTROLLER");
+    // TODO: change it to "ADMIN" ?
+    schedulerMessage.setSrcName("CONTROLLER");
+    //schedulerMessage.getRecord().setSimpleField(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE, "TestSchedulerMsg");
+    // Template for the individual message sent to each participant
+    Message msg = new Message(_factory.getMessageType(), "Template");
+    msg.setTgtSessionId("*");
+    msg.setMsgState(MessageState.NEW);
+
+    // Criteria to send individual messages
+    Criteria cr = new Criteria();
+    cr.setInstanceName("localhost_%");
+    cr.setRecipientInstanceType(InstanceType.PARTICIPANT);
+    cr.setSessionSpecific(false);
+    cr.setResource("%");
+    cr.setPartition("%");
+
+    ObjectMapper mapper = new ObjectMapper();
+    SerializationConfig serializationConfig = mapper.getSerializationConfig();
+    serializationConfig.set(SerializationConfig.Feature.INDENT_OUTPUT, true);
+
+    StringWriter sw = new StringWriter();
+    mapper.writeValue(sw, cr);
+
+    String crString = sw.toString();
+
+    schedulerMessage.getRecord().setSimpleField("Criteria", crString);
+    schedulerMessage.getRecord().setMapField("MessageTemplate",
+        msg.getRecord().getSimpleFields());
+    schedulerMessage.getRecord().setSimpleField("TIMEOUT", "-1");
+
+    HelixDataAccessor helixDataAccessor = manager.getHelixDataAccessor();
+    Builder keyBuilder = helixDataAccessor.keyBuilder();
+    helixDataAccessor.createProperty(
+        keyBuilder.controllerMessage(schedulerMessage.getMsgId()),
+        schedulerMessage);
+    
+    for(int i = 0; i < 30; i++)
+    {
+      Thread.sleep(2000);
+      if(_PARTITIONS == _factory._results.size())
+      {
+        break;
+      }
+    }
+
+    Assert.assertEquals(_PARTITIONS, _factory._results.size());
+    PropertyKey controllerTaskStatus = keyBuilder.controllerTaskStatus(
+        MessageType.SCHEDULER_MSG.toString(), schedulerMessage.getMsgId());
+      
+    int messageResultCount = 0;
+    for(int i = 0; i < 10; i++)
+    {
+      ZNRecord statusUpdate = helixDataAccessor.getProperty(controllerTaskStatus)
+          .getRecord();
+      Assert.assertTrue(statusUpdate.getMapField("SentMessageCount")
+          .get("MessageCount").equals("" + (_PARTITIONS * 3)));
+      for(String key : statusUpdate.getMapFields().keySet())
+      {
+        if(key.startsWith("MessageResult "))
+        {
+          messageResultCount ++;
+          Assert.assertTrue(statusUpdate.getMapField(key).size() > 1);
         }
       }
       if(messageResultCount == _PARTITIONS * 3)
@@ -987,10 +1094,9 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
     }
     Assert.assertEquals(count, _PARTITIONS * 3);
     
-    manager.getClusterManagmentTool().setConstraint(manager.getClusterName(), 
+    manager.getClusterManagmentTool().removeConstraint(manager.getClusterName(), 
                                                     ConstraintType.MESSAGE_CONSTRAINT,
-                                                    "constraint1", 
-                                                    new ConstraintItem(new TreeMap<String, String>()));
+                                                    "constraint1");
     
   }
 }

@@ -58,11 +58,10 @@
 
     <menu name="Helix">
       <item name="Introduction" href="./index.html"/>
-      <item name="Quick Start" href="./Quickstart.html"/>
-      <item name="Core concept" href="./Concepts.html"/>
-      <item name="Tutorial" href="./Tutorial.html"/>
+      <item name="Core concepts" href="./Concepts.html"/>
       <item name="Architecture" href="./Architecture.html"/>
-      <item name="Features" href="./Features.html"/>
+      <item name="Quick Start" href="./Quickstart.html"/>
+      <item name="Tutorial" href="./Tutorial.html"/>
       <item name="release ${currentRelease}" href="releasenotes/release-${currentRelease}.html"/>
       <item name="Download" href="./download.html"/>
     </menu>

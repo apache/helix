@@ -32,6 +32,7 @@ Helix release process
  [[2]] Your maven setting must contains the entry to be able to deploy.
 
  ~/.m2/settings.xml
+
 +-------------
    <server>
      <id>apache.releases.https</id>
@@ -93,6 +94,7 @@ then svn ci
  [[8]] Celebrate !
 
  [[9]] Validating the release
+
 +-------------
   * Download sources, extract, build and run tests - mvn clean package
   * Verify license headers - mvn -Prat -DskipTests

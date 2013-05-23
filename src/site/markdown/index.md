@@ -22,15 +22,14 @@ Navigating the Documentation
 
 ### Conceptual Understanding
 
-[Concepts / Terminology](./concepts.html)
-
-[Architecture](./architecture.html)
+[Concepts / Terminology](./Concepts.html)
+[Architecture](./Architecture.html)
 
 ### Hands-on Helix
 
-[Quickstart](./quickstart.html)
+[Quickstart](./Quickstart.html)
 
-[Tutorial](./tutorial.html)
+[Tutorial](./Tutorial.html)
 
   * [Chapter 1: Participant](./tutorial1.html)
   * [Chapter 2: Spectator](./tutorial2.html)
@@ -64,11 +63,41 @@ Helix is a generic _cluster management_ framework used for the automatic managem
 What Is Cluster Management
 --------------------------
 To understand Helix, first you need to understand what is _cluster management_.  A distributed system typically runs on multiple nodes for the following reasons:
+=======
+
+[Concepts / Terminology](./Concepts.html)
+
+[Architecture](./Architecture.html)
+
+### Hands-on Helix
+
+[Quickstart](./Quickstart.html)
+
+[Tutorial](./Tutorial.html)
+
+[Javadocs](http://helix.incubator.apache.org/apidocs/index.html)
+
+### Recipes
+
+[Distributed lock manager](./recipes/lock_manager.html)
+
+[Rabbit MQ consumer group](./recipes/rabbitmq_consumer_group.html)
+
+[Rsync replicated file store](./recipes/rsync_replicated_file_store.html)
+
+[Service discovery](./recipes/service_discovery.html)
+
+
+What Is Helix
+--------------
+Helix is a generic _cluster management_ framework used for the automatic management of partitioned, replicated and distributed resources hosted on a cluster of nodes. 
+>>>>>>> 93a8770e41e61337525234945193afc2280a3c3d
 
 * scalability
 * fault tolerance
 * load balancing
 
+<<<<<<< HEAD
 Each node performs one or more of the primary function of the cluster, such as storing/serving data, producing/consuming data streams, etc.  Once configured for your system, Helix acts is the global brain for the system.  It is designed to make decisions that cannot be made in isolation.  Examples of decisions that require global knowledge and coordination:
 
 * scheduling of maintainence tasks, such as backups, garbage collection, file consolidation, index rebuilds
@@ -77,8 +106,29 @@ Each node performs one or more of the primary function of the cluster, such as s
 * throttling system tasks and changes
 
 While it is possible to integrate these functions into the distributed system, it complicates the code.  Helix has abstracted common cluster management tasks, enabling the system builder to model the desired behavior in a declarative state model, and let Helix manage the coordination.  The result is less new code to write, and a robust, highly operable system.
+=======
+What Is Cluster Management
+--------------------------
+To understand Helix, first you need to understand what is _cluster management_.  A distributed system typically runs on multiple nodes for the following reasons:
+
+* scalability
+* fault tolerance
+* load balancing
+
+Each node performs one or more of the primary function of the cluster, such as storing/serving data, producing/consuming data streams, etc.  Once configured for your system, Helix acts as the global brain for the system.  It is designed to make decisions that cannot be made in isolation.  Examples of decisions that require global knowledge and coordination:
+>>>>>>> 93a8770e41e61337525234945193afc2280a3c3d
+
+* scheduling of maintainence tasks, such as backups, garbage collection, file consolidation, index rebuilds
+* repartitioning of data or resources across the cluster
+* informing dependent systems of changes so they can react appropriately to cluster changes
+* throttling system tasks and changes
+
+<<<<<<< HEAD
+=======
+While it is possible to integrate these functions into the distributed system, it complicates the code.  Helix has abstracted common cluster management tasks, enabling the system builder to model the desired behavior in a declarative state model, and let Helix manage the coordination.  The result is less new code to write, and a robust, highly operable system.
 
 
+>>>>>>> 93a8770e41e61337525234945193afc2280a3c3d
 Key Features of Helix
 ---------------------
 1. Automatic assignment of resource/partition to nodes
@@ -115,7 +165,7 @@ Maven dependency
     <dependency>
       <groupId>org.apache.helix</groupId>
       <artifactId>helix-core</artifactId>
-      <version>0.6.0-incubating</version>
+      <version>0.6.1-incubating</version>
     </dependency>
 ```
 
@@ -129,5 +179,8 @@ Publications
     - [presentation](http://www.slideshare.net/KishoreGopalakrishna/helix-socc-v10final)
 * Building distributed systems using Helix Apache Con Feb 2013
     - [presentation at ApacheCon](http://www.slideshare.net/KishoreGopalakrishna/apache-con-buildingddsusinghelix)
-    - [presentation at vmware](http://www.slideshare.net/KishoreGopalakrishna/apache-helix-presentation-at-vmware)
+    - [presentation at VMWare](http://www.slideshare.net/KishoreGopalakrishna/apache-helix-presentation-at-vmware)
+* Data driven testing:
+    - [short talk at LSPE meetup](http://www.slideshare.net/KishoreGopalakrishna/data-driven-testing)
+    - [paper DBTest 2013 acm SIGMOD:will be published on Jun 24, 2013](http://dbtest2013.soe.ucsc.edu/Program.htm)
 

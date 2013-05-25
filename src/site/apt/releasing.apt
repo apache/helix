@@ -79,21 +79,7 @@ then svn add <new directory created with new version as name>
 then svn ci 
 +-------------
 
- [[5]] Call for a vote in the dev list and wait for 72 hrs. for the vote results. 3 binding votes are necessary for the release to be finalized. example
-  After the vote has passed, move the files from dist dev to dist release: svn mv https://dist.apache.org/repos/dist/dev/incubator/helix/version to https://dist.apache.org/repos/dist/release/incubator/helix/
-
- [[6]] Prepare release note. Add a page in src/site/apt/releasenotes/ and change value of \<currentRelease> in parent pom.
-
-
- [[7]] Send out an announcement of the release to:
-
-  * users@helix.incubator.apache.org
-
-  * dev@helix.incubator.apache.org
-
- [[8]] Celebrate !
-
- [[9]] Validating the release
+ [[5]] Validating the release
 
 +-------------
   * Download sources, extract, build and run tests - mvn clean package
@@ -103,3 +89,19 @@ then svn ci
   * Validate authenticity of key - run  gpg --fingerprint <key>
   * Check signatures of all the binaries using gpg <binary>
 +-------------
+
+ [[6]] Call for a vote in the dev list and wait for 72 hrs. for the vote results. 3 binding votes are necessary for the release to be finalized. example
+  After the vote has passed, move the files from dist dev to dist release: svn mv https://dist.apache.org/repos/dist/dev/incubator/helix/version to https://dist.apache.org/repos/dist/release/incubator/helix/
+
+ [[7]] Prepare release note. Add a page in src/site/apt/releasenotes/ and change value of \<currentRelease> in parent pom.
+
+
+ [[8]] Send out an announcement of the release to:
+
+  * users@helix.incubator.apache.org
+
+  * dev@helix.incubator.apache.org
+
+ [[9]] Celebrate !
+
+

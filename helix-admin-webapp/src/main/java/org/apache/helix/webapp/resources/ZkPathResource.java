@@ -188,7 +188,7 @@ public class ZkPathResource extends Resource
     List<String> children = zkClient.getChildren(zkPath);
     if (children != null && children.size() > 0)
     {
-      result.setListField("childrenList", children);
+      result.setListField("children", children);
     }
     return result;
   }

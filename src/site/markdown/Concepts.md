@@ -253,7 +253,7 @@ The above steps happen for every change in the system. Once the current state ma
 
 One of the things that makes Helix powerful is that IdealState can be changed dynamically. This means one can listen to cluster events like node failures and dynamically change the ideal state. Helix will then take care of triggering the respective transitions in the system.
 
-Helix comes with few algorithms to automatically compute the IdealState based on the constraints. For example, if you have a resource of 3 partitions and 2 replicas, Helix can automatically compute the IdealState based on the nodes that are currently active. See the [tutorial](./tutorial_rebalance.hmtl) to find out more about various execution modes of Helix like AUTO_REBALANCE, AUTO and CUSTOM. 
+Helix comes with a few algorithms to automatically compute the IdealState based on the constraints. For example, if you have a resource of 3 partitions and 2 replicas, Helix can automatically compute the IdealState based on the nodes that are currently active. See the [tutorial](./tutorial_rebalance.html) to find out more about various execution modes of Helix like AUTO_REBALANCE, AUTO and CUSTOM. 
 
 
 

@@ -41,7 +41,9 @@ After the Helix manager instance is created, only thing that needs to be registe
 The methods of the State Model will be called when controller sends transitions to the Participant.  In this example, we'll use the OnlineOffline factory.  Other options include:
 
 * MasterSlaveStateModelFactory
-* _NEED TO COMPLETE THIS LIST_
+* LeaderStandbyStateModelFactory
+* BootstrapHandler
+
 
 ```
       manager = HelixManagerFactory.getZKHelixManager(clusterName,

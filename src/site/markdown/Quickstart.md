@@ -264,6 +264,36 @@ ExternalView for myDB:
 {
   "id" : "myDB",
   "mapFields" : {
+    "myDB_0" : {
+      "localhost_12913" : "SLAVE",
+      "localhost_12914" : "MASTER",
+      "localhost_12915" : "SLAVE"
+    },
+    "myDB_1" : {
+      "localhost_12913" : "SLAVE",
+      "localhost_12914" : "SLAVE",
+      "localhost_12915" : "MASTER"
+    },
+    "myDB_2" : {
+      "localhost_12913" : "MASTER",
+      "localhost_12914" : "SLAVE",
+      "localhost_12915" : "SLAVE"
+    },
+    "myDB_3" : {
+      "localhost_12913" : "SLAVE",
+      "localhost_12914" : "SLAVE",
+      "localhost_12915" : "MASTER"
+    },
+    "myDB_4" : {
+      "localhost_12913" : "MASTER",
+      "localhost_12914" : "SLAVE",
+      "localhost_12915" : "SLAVE"
+    },
+    "myDB_5" : {
+      "localhost_12913" : "SLAVE",
+      "localhost_12914" : "MASTER",
+      "localhost_12915" : "SLAVE"
+    }
   },
   "listFields" : {
   },
@@ -285,6 +315,14 @@ Next, we\'ll show how Helix does the work that you\'d otherwise have to build in
     ./helix-admin.sh --zkSvr localhost:2199  --addNode MYCLUSTER localhost:12916
     ./helix-admin.sh --zkSvr localhost:2199  --addNode MYCLUSTER localhost:12917
     ./helix-admin.sh --zkSvr localhost:2199  --addNode MYCLUSTER localhost:12918
+
+And start up these instances:
+
+    # start up each instance.  These are mock implementations that are actively managed by Helix
+    ./start-helix-participant.sh --zkSvr localhost:2199 --cluster MYCLUSTER --host localhost --port 12916 --stateModelType MasterSlave 2>&1 > /tmp/participant_12916.log
+    ./start-helix-participant.sh --zkSvr localhost:2199 --cluster MYCLUSTER --host localhost --port 12917 --stateModelType MasterSlave 2>&1 > /tmp/participant_12917.log
+    ./start-helix-participant.sh --zkSvr localhost:2199 --cluster MYCLUSTER --host localhost --port 12918 --stateModelType MasterSlave 2>&1 > /tmp/participant_12918.log
+
 
 And now, let Helix do the work for you.  To shift the work, simply rebalance.  After the rebalance, each node will have one master and two slaves.
 
@@ -354,6 +392,36 @@ ExternalView for myDB:
 {
   "id" : "myDB",
   "mapFields" : {
+    "myDB_0" : {
+      "localhost_12913" : "SLAVE",
+      "localhost_12914" : "SLAVE",
+      "localhost_12917" : "MASTER"
+    },
+    "myDB_1" : {
+      "localhost_12916" : "SLAVE",
+      "localhost_12917" : "SLAVE",
+      "localhost_12918" : "MASTER"
+    },
+    "myDB_2" : {
+      "localhost_12913" : "MASTER",
+      "localhost_12917" : "SLAVE",
+      "localhost_12918" : "SLAVE"
+    },
+    "myDB_3" : {
+      "localhost_12915" : "MASTER",
+      "localhost_12917" : "SLAVE",
+      "localhost_12918" : "SLAVE"
+    },
+    "myDB_4" : {
+      "localhost_12916" : "MASTER",
+      "localhost_12917" : "SLAVE",
+      "localhost_12918" : "SLAVE"
+    },
+    "myDB_5" : {
+      "localhost_12913" : "SLAVE",
+      "localhost_12914" : "MASTER",
+      "localhost_12915" : "SLAVE"
+    }
   },
   "listFields" : {
   },
@@ -369,9 +437,7 @@ Mission accomplished.  The partitions are nicely balanced.
 
 Building a fault tolerant system isn\'t trivial, but with Helix, it\'s easy.  Helix detects a failed instance, and triggers mastership transfer automatically.
 
-First, let's fail an instance:
-
-_KILL A NODE (need to find the pid via listInstanceInfo)_
+First, let's fail an instance.  In this example, we\'ll kill localhost:12918 to simulate a failure.
 
 We lost localhost:12918, so myDB_1 lost its MASTER.  Helix can fix that, it will transfer mastership to a healthy node that is currently a SLAVE, say localhost:12197.  Helix balances the load as best as it can, given there are 6 partitions on 5 nodes.  Let\'s see:
 
@@ -390,23 +456,23 @@ IdealState for myDB:
     },
     "myDB_1" : {
       "localhost_12916" : "SLAVE",
-      "localhost_12917" : "MASTER"
-      "localhost_12918" : "OFFLINE"
+      "localhost_12917" : "SLAVE",
+      "localhost_12918" : "MASTER"
     },
     "myDB_2" : {
       "localhost_12913" : "MASTER",
       "localhost_12917" : "SLAVE",
-      "localhost_12918" : "OFFLINE"
+      "localhost_12918" : "SLAVE"
     },
     "myDB_3" : {
       "localhost_12915" : "MASTER",
       "localhost_12917" : "SLAVE",
-      "localhost_12918" : "OFFLINE"
+      "localhost_12918" : "SLAVE"
     },
     "myDB_4" : {
       "localhost_12916" : "MASTER",
       "localhost_12917" : "SLAVE",
-      "localhost_12918" : "OFFLINE"
+      "localhost_12918" : "SLAVE"
     },
     "myDB_5" : {
       "localhost_12913" : "SLAVE",
@@ -416,9 +482,9 @@ IdealState for myDB:
   },
   "listFields" : {
     "myDB_0" : [ "localhost_12917", "localhost_12913", "localhost_12914" ],
-    "myDB_1" : [ "localhost_12917", "localhost_12916", "localhost_12918" ],
-    "myDB_2" : [ "localhost_12913", "localhost_12917", "localhost_12918" ],
-    "myDB_3" : [ "localhost_12915", "localhost_12917", "localhost_12918" ],
+    "myDB_1" : [ "localhost_12918", "localhost_12917", "localhost_12916" ],
+    "myDB_2" : [ "localhost_12913", "localhost_12918", "localhost_12917" ],
+    "myDB_3" : [ "localhost_12915", "localhost_12918", "localhost_12917" ],
     "myDB_4" : [ "localhost_12916", "localhost_12917", "localhost_12918" ],
     "myDB_5" : [ "localhost_12914", "localhost_12915", "localhost_12913" ]
   },
@@ -435,6 +501,32 @@ ExternalView for myDB:
 {
   "id" : "myDB",
   "mapFields" : {
+    "myDB_0" : {
+      "localhost_12913" : "SLAVE",
+      "localhost_12914" : "SLAVE",
+      "localhost_12917" : "MASTER"
+    },
+    "myDB_1" : {
+      "localhost_12916" : "SLAVE",
+      "localhost_12917" : "MASTER"
+    },
+    "myDB_2" : {
+      "localhost_12913" : "MASTER",
+      "localhost_12917" : "SLAVE"
+    },
+    "myDB_3" : {
+      "localhost_12915" : "MASTER",
+      "localhost_12917" : "SLAVE"
+    },
+    "myDB_4" : {
+      "localhost_12916" : "MASTER",
+      "localhost_12917" : "SLAVE"
+    },
+    "myDB_5" : {
+      "localhost_12913" : "SLAVE",
+      "localhost_12914" : "MASTER",
+      "localhost_12915" : "SLAVE"
+    }
   },
   "listFields" : {
   },

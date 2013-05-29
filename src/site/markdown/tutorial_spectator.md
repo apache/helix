@@ -36,10 +36,7 @@ It requires the following parameters:
     * ADMIN: To carry out system admin actions.
 * zkConnectString: Connection string to Zookeeper. This is of the form host1:port1,host2:port2,host3:port3.
 
-After the Helix manager instance is created, only thing that needs to be registered is the state model factory.
-The methods of the State Model will be called when controller sends transitions to the Participant.  In this example, we'll use the OnlineOffline factory.  Other options:
-
-_NEED TO ADD OTHER OPTIONS HERE_
+After the Helix manager instance is created, only thing that needs to be registered is the listener.  When the ExternalView changes, the listener is notified.
 
 ### Spectator Code
 
@@ -72,7 +69,4 @@ result = theInstance.sendRequest(yourApplicationRequest, responseObject);
 ```
 
 When the external view changes, the application needs to react by sending requests to a different instance.  
-
-_SHOULD WE ADD AN EXAMPLE OF THIS?  IT WOULD MAKE THINGS MORE COMPLICATED, BECAUSE THE APP SHOULD HAVE A LOCAL COPY OF THE ROUTING TABLE AND UPDATE IT ONLY WHEN THE EXTERNAL VIEW CHANGES, THAT\'S HOW I'D IMPLEMENT IT._
-
 

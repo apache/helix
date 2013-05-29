@@ -17,16 +17,16 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-Helix is based on the simple fact that a given task has the following attributes associated with it 
+Helix is based on the idea that a given task has the following attributes associated with it:
 
-* Location of the task, for example it runs on  Node N1
-* State, for examples its running, stopped etc.
+* _Location of the task_. For example it runs on Node N1
+* _State_. For example, it is running, stopped etc.
 
-A task is referred to as a 'resource'. 
+In Helix terminology, a task is referred to as a _resource_.
 
-### IDEALSTATE
+### IdealState
 
-Ideal state simply allows one to map tasks to location and state. A standard way of expressing this in Helix is
+IdealState simply allows one to map tasks to location and state. A standard way of expressing this in Helix:
 
 ```
   "TASK_NAME" : {
@@ -34,7 +34,7 @@ Ideal state simply allows one to map tasks to location and state. A standard way
   }
 
 ```
-Consider a simple case where you want to launch a task 'myTask' on node 'N1'. The idealstate for this can be expressed as follows
+Consider a simple case where you want to launch a task \'myTask\' on node \'N1\'. The IdealState for this can be expressed as follows:
 
 ```
 {
@@ -46,11 +46,11 @@ Consider a simple case where you want to launch a task 'myTask' on node 'N1'. Th
   }
 }
 ```
-#### PARTITION
+### Partition
 
-If this task get too big to fit on one box, you might want to divide it into subTasks. Each subTask is referred to as 'partition' in Helix. Lets say you want to divide the task into 3 subTasks/partitions, the idealstate can be changed as shown below. 
+If this task get too big to fit on one box, you might want to divide it into subTasks. Each subTask is referred to as a _partition_ in Helix. Let\'s say you want to divide the task into 3 subTasks/partitions, the IdealState can be changed as shown below. 
 
-'myTask_0', 'myTask_1', 'myTask_2' are logical names representing the partitions of myTask. Each tasks runs on N1,N2 and N3 respectively.
+\'myTask_0\', \'myTask_1\', \'myTask_2\' are logical names representing the partitions of myTask. Each tasks runs on N1, N2 and N3 respectively.
 
 ```
 {
@@ -72,13 +72,13 @@ If this task get too big to fit on one box, you might want to divide it into sub
 }
 ```
 
-#### REPLICA
+### Replica
 
-Partitioning allows one to split the data/task into multiple subparts. But lets say the request rate each partition increases. The common solution is to have multiple copies for each partition. Helix refers to the copy of a partition as 'replica'. Adding replica also increases the availability of the system during failures. One can see this methodology employed often in Search systems. The index is divided into shard and each shard has multiple copies.
+Partitioning allows one to split the data/task into multiple subparts. But let\'s say the request rate each partition increases. The common solution is to have multiple copies for each partition. Helix refers to the copy of a partition as a _replica_.  Adding a replica also increases the availability of the system during failures. One can see this methodology employed often in Search systems. The index is divided into shards, and each shard has multiple copies.
 
-Lets say you want to add one additional replica for each task. The idealstate can simply be changed as shown below. 
+Let\'s say you want to add one additional replica for each task. The IdealState can simply be changed as shown below. 
 
-For increasing the availability of the system, its better to place replica of given partition on different nodes.
+For increasing the availability of the system, it\'s better to place the replica of a given partition on different nodes.
 
 ```
 {
@@ -104,11 +104,11 @@ For increasing the availability of the system, its better to place replica of gi
 }
 ```
 
-#### STATE 
+### State 
 
-Now lets take a slightly complicated scenario where a task represents a database.  Unlike an index which is in general read only, database supports both reads and write. Keeping the data consistent among the replica is crucial in distributed data stores. One commonly applied technique is to assign one replica as MASTER and remaining as SLAVE. All writes go to MASTER and are then replicated to SLAVE.
+Now let\'s take a slightly complicated scenario where a task represents a database.  Unlike an index which is in general read-only, a database supports both reads and writes. Keeping the data consistent among the replicas is crucial in distributed data stores. One commonly applied technique is to assign one replica as MASTER and remaining replicas as SLAVE. All writes go to the MASTER and are then replicated to the SLAVE replicas.
 
-Helix allows one to assign different states to each replica. Lets say you have two mysql instances N1 and N2 where one will serve as MASTER and another as SLAVE. The ideal state can be changed to
+Helix allows one to assign different states to each replica. Let\'s say you have two MySQL instances N1 and N2, where one will serve as MASTER and another as SLAVE. The IdealState can be changed to:
 
 ```
 {
@@ -128,17 +128,16 @@ Helix allows one to assign different states to each replica. Lets say you have t
 ```
 
 
-### STATE MACHINE and TRANSITIONS
+### State Machine and Transitions
 
-Idealstate allows one to exactly specify the desired state of the cluster. Given an idealstate, Helix takes up the responsibility of ensuring that cluster reaches idealstate. Helix CONTROLLER reads the idealstate and then commands the PARTICIPANT to take appropriate actions to move from one state to another until it matches Idealstate. These actions are referred to as 'transitions' in Helix.
+IdealState allows one to exactly specify the desired state of the cluster. Given an IdealState, Helix takes up the responsibility of ensuring that the cluster reaches the IdealState.  The Helix _controller_ reads the IdealState and then commands the Participant to take appropriate actions to move from one state to another until it matches the IdealState.  These actions are referred to as _transitions_ in Helix.
 
-Next logical question is, how does the CONTROLLER compute the transitions required to get to idealstate. This is where finite state machine concept comes in. Helix allows applications to plug in FSM. A state machine consists of the following
+The next logical question is:  how does the _controller_ compute the transitions required to get to IdealState?  This is where the finite state machine concept comes in. Helix allows applications to plug in a finite state machine.  A state machine consists of the following:
 
-* STATE : Describes the role of a replica
-* TRANSITION: An action that allows a replica to move from one STATE to another, thus changing its role.
+* State: Describes the role of a replica
+* Transition: An action that allows a replica to move from one State to another, thus changing its role.
 
 Here is an example of MASTERSLAVE state machine,
-
 
 ```
           OFFLINE  | SLAVE  |  MASTER  
@@ -155,7 +154,7 @@ MASTER  | SLAVE    | SLAVE  |   N/A   |
 
 ```
 
-Helix allows each resource to be associated with one state machine. This means you can have one resource as a index and another as database in the same cluster. One can associate each resource with a state machine as follows
+Helix allows each resource to be associated with one state machine. This means you can have one resource as an index and another as a database in the same cluster. One can associate each resource with a state machine as follows:
 
 ```
 {
@@ -175,12 +174,12 @@ Helix allows each resource to be associated with one state machine. This means y
 
 ```
 
-### CURRENT STATE
+### Current State
 
-Currentstate of a resource simply represents its actual state at a PARTICIPANT. In the below example, 
+CurrentState of a resource simply represents its actual state at a PARTICIPANT. In the below example:
 
-* 'INSTANCE_NAME' : Unique name representing the process.
-* 'SESSION_ID': Id that is automatically assigned every time a process joins the cluster. 
+* INSTANCE_NAME: Unique name representing the process
+* SESSION_ID: ID that is automatically assigned every time a process joins the cluster
 
 ```
 {
@@ -203,11 +202,11 @@ Currentstate of a resource simply represents its actual state at a PARTICIPANT. 
   }
 }
 ```
-Each node in the cluster has its own Current state.
+Each node in the cluster has its own CurrentState.
 
-### EXTERNAL VIEW
+### External View
 
-In order to communicate with the PARTICIPANTs, external clients need to know the current state of each of the PARTICIPANT. The external clients are referred to as SPECTATORS. In order to make the life of SPECTATOR simple, Helix provides EXTERNALVIEW that is an aggregated view of the current state across all nodes. The EXTERNALVIEW has similar format as IDEALSTATE.
+In order to communicate with the PARTICIPANTs, external clients need to know the current state of each of the PARTICIPANTs. The external clients are referred to as SPECTATORS. In order to make the life of SPECTATOR simple, Helix provides an EXTERNALVIEW that is an aggregated view of the current state across all nodes. The EXTERNALVIEW has a similar format as IDEALSTATE.
 
 ```
 {
@@ -232,29 +231,29 @@ In order to communicate with the PARTICIPANTs, external clients need to know the
 }
 ```
 
-### REBALANCER
+### Rebalancer
 
-The core component of Helix is the CONTROLLER which runs the REBALANCER algorithm on every cluster event. Cluster event can be one of the following
+The core component of Helix is the CONTROLLER which runs the REBALANCER algorithm on every cluster event. Cluster events can be one of the following:
 
 * Nodes start/stop and soft/hard failures
 * New nodes are added/removed
 * Ideal state changes
 
-There are few more like config changes etc but the key point to take away is there are many ways to trigger the rebalancer.
+There are few more such as config changes, etc.  The key takeaway: there are many ways to trigger the rebalancer.
 
-When a rebalancer is run it simply does the following
+When a rebalancer is run it simply does the following:
 
-* Compares the idealstate and current state
-* Computes the transitions required to reach the idealstate.
-* Issues the transitions to PARTICIPANT
+* Compares the IdealState and current state
+* Computes the transitions required to reach the IdealState
+* Issues the transitions to each PARTICIPANT
 
-The above steps happen for every change in the system. Once current state matches the idealstate the system is considered stable which implies  'IDEALSTATE = CURRENTSTATE = EXTERNALVIEW'
+The above steps happen for every change in the system. Once the current state matches the IdealState, the system is considered stable which implies \'IDEALSTATE = CURRENTSTATE = EXTERNALVIEW\'
 
-### DYNAMIC IDEALSTATE
+### Dynamic IdealState
 
-One of the things that makes Helix powerful is that idealstate can be changed dynamically. This means one can listen to cluster events like node failures and dynamically change the ideal state. Helix will then take care of triggering the respective transitions in the system.
+One of the things that makes Helix powerful is that IdealState can be changed dynamically. This means one can listen to cluster events like node failures and dynamically change the ideal state. Helix will then take care of triggering the respective transitions in the system.
 
-Helix comes with few algorithms to automatically compute the idealstate based on the constraints. For e.g. if you have a resource 3 partitions and 2 replicas, Helix can automatically compute the idealstate based on the nodes that are currently active. See features page to find out more about various execution modes of Helix like AUTO_REBALANCE, AUTO and CUSTOM. 
+Helix comes with few algorithms to automatically compute the IdealState based on the constraints. For example, if you have a resource of 3 partitions and 2 replicas, Helix can automatically compute the IdealState based on the nodes that are currently active. See the [tutorial](./tutorial_rebalance.hmtl) to find out more about various execution modes of Helix like AUTO_REBALANCE, AUTO and CUSTOM. 
 
 
 

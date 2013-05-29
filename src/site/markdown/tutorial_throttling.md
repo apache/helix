@@ -32,4 +32,3 @@ Helix allows applications to set a threshold on transitions. The threshold can b
 * Resource e.g database
 * Node i.e per-node maximum transitions in parallel
 
-_I can\'t find this code._  See HelixManager.getHelixAdmin.addMessageConstraint() 

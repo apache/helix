@@ -20,7 +20,7 @@ under the License.
 Get Helix
 ---------
 
-First, let\'s get Helix, either build or download.
+First, let\'s get Helix, either build it, or download.
 
 ### Build
 
@@ -39,7 +39,96 @@ Overview
 
 In this Quickstart, we\'ll set up a master-slave replicated, partitioned system.  Then we\'ll demonstrate how to add a node, rebalance the partitions, and show how Helix manages failover.
 
-The steps:
+
+Let\'s Do It
+------------
+
+Helix provides command line interfaces to set up the cluster and view the cluster state. The best way to understand how Helix views a cluster is to build a cluster.
+
+#### First, get to the tools directory
+
+If you built the code
+
+```
+cd helix/incubator-helix/helix-core/target/helix-core-pkg/bin
+```
+
+If you downloaded the release package, extract it.
+
+
+Short Version
+-------------
+You can observe the components working together in this demo, which does the following:
+
+* Create a cluster
+* Add 2 nodes (participants) to the cluster
+* Set up a resource with 6 partitions and 2 replicas: 1 Master, and 1 Slave per partition
+* Show the cluster state after Helix balances the partitions
+* Add a third node
+* Show the cluster state.  Note that the third node has taken mastership of 2 partitions.
+* Kill the third node (Helix takes care of failover)
+* Show the cluster state.  Note that the two surviving nodes take over mastership of the partitions from the failed node
+
+##### Run the demo
+
+```
+cd helix/incubator-helix/helix-core/target/helix-core-pkg/bin
+./quickstart.sh
+```
+
+##### 2 nodes are set up and the partitions rebalanced
+
+The cluster state is as follows:
+
+```
+CLUSTER STATE: After starting 2 nodes
+	                     localhost_12000	localhost_12001	
+	       MyResource_0	M			S		
+	       MyResource_1	S			M		
+	       MyResource_2	M			S		
+	       MyResource_3	M			S		
+	       MyResource_4	S			M  
+	       MyResource_5	S			M  
+```
+
+Note there is one master and one slave per partition.
+
+##### A third node is added and the cluster rebalanced
+
+The cluster state changes to:
+
+```
+CLUSTER STATE: After adding a third node
+                 	       localhost_12000	    localhost_12001	localhost_12002	
+	       MyResource_0	    S			  M		      S		
+	       MyResource_1	    S			  S		      M	 
+	       MyResource_2	    M			  S	              S  
+	       MyResource_3	    S			  S                   M  
+	       MyResource_4	    M			  S	              S  
+	       MyResource_5	    S			  M                   S  
+```
+
+Note there is one master and _two_ slaves per partition.  This is expected because there are three nodes.
+
+##### Finally, a node is killed to simulate a failure
+
+Helix makes sure each partition has a master.  The cluster state changes to:
+
+```
+CLUSTER STATE: After the 3rd node stops/crashes
+                	       localhost_12000	  localhost_12001	localhost_12002	
+	       MyResource_0	    S			M		      -		
+	       MyResource_1	    S			M		      -	 
+	       MyResource_2	    M			S	              -  
+	       MyResource_3	    M			S                     -  
+	       MyResource_4	    M			S	              -  
+	       MyResource_5	    S			M                     -  
+```
+
+
+Long Version
+------------
+Now you can run the same steps by hand.  In the detailed version, we\'ll do the following:
 
 * Define a cluster
 * Add two nodes to the cluster
@@ -47,25 +136,6 @@ The steps:
 * Verify that the cluster is healthy and inspect the Helix view
 * Expand the cluster: add a few nodes and rebalance the partitions
 * Failover: stop a node and verify the mastership transfer
-
-Let\'s Do It
-------------
-
-Helix provides command line interfaces to set up the cluster and view the cluster state. The best way to understand how Helix views a cluster is to build a cluster.
-
-#### First, get to the tools directory.
-
-If you built the code
-
-```
-cd helix/helix-core/target/helix-core-pkg/bin
-```
-
-If you downloaded the release package, extract it.
-
-```
-cd helix-core-pkg/bin
-```
 
 ### Install/Start zookeeper
 
@@ -81,7 +151,6 @@ In this example, let\'s start zookeeper in local mode.
 ##### start zookeeper locally on port 2199
 
     ./start-standalone-zookeeper.sh 2199 &
-
 
 ### Define the Cluster
 

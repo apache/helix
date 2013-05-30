@@ -1,5 +1,5 @@
  -----
- Release Notes for Apache Helix
+ Release Notes for 0.6.1-incubating Apache Helix
  -----
 
 ~~ Licensed to the Apache Software Foundation (ASF) under one                      
@@ -22,7 +22,7 @@
 ~~ NOTE: For help with the syntax of this file, see:
 ~~ http://maven.apache.org/guides/mini/guide-apt-format.html
 
-Release Notes for Apache Helix
+Release Notes for 0.6.1-incubating Apache Helix
 
   The Apache Helix would like to announce the release of Apache Helix 0.6.1-incubating
 

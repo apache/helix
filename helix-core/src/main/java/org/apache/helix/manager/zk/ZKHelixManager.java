@@ -569,14 +569,10 @@ public class ZKHelixManager implements HelixManager
 
   private void createClient(String zkServers) throws Exception
   {
-    String propertyStorePath =
-        PropertyPathConfig.getPath(PropertyType.PROPERTYSTORE, _clusterName);
-
     // by default use ZNRecordStreamingSerializer except for paths within the property
     // store which expects raw byte[] serialization/deserialization
     PathBasedZkSerializer zkSerializer =
         ChainedPathZkSerializer.builder(new ZNRecordStreamingSerializer())
-                               .serialize(propertyStorePath, new ByteArraySerializer())
                                .build();
 
     _zkClient = new ZkClient(zkServers, _sessionTimeout, CONNECTIONTIMEOUT, zkSerializer);

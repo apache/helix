@@ -54,7 +54,7 @@ public class AdminTestBase
     topJavaLogger.setLevel(Level.WARNING);
 
     // start zk
-    _zkServer = TestHelper.startZkSever(ZK_ADDR);
+    _zkServer = TestHelper.startZkServer(ZK_ADDR);
     AssertJUnit.assertTrue(_zkServer != null);
     ZKClientPool.reset();
 

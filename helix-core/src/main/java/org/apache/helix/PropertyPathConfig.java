@@ -93,7 +93,6 @@ public class PropertyPathConfig
     addEntry(PropertyType.STATEMODELDEFS, 2, "/{clusterName}/STATEMODELDEFS/{stateModelName}");
     addEntry(PropertyType.CONTROLLER, 1, "/{clusterName}/CONTROLLER");
     addEntry(PropertyType.PROPERTYSTORE, 1, "/{clusterName}/PROPERTYSTORE");
-    addEntry(PropertyType.HELIX_PROPERTYSTORE, 1, "/{clusterName}/HELIX_PROPERTYSTORE");
 
     // INSTANCE
     addEntry(PropertyType.MESSAGES, 2, "/{clusterName}/INSTANCES/{instanceName}/MESSAGES");

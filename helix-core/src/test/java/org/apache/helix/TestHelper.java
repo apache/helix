@@ -86,25 +86,25 @@ public class TestHelper
       return port;
   }
   
-  static public ZkServer startZkSever(final String zkAddress) throws Exception
+  static public ZkServer startZkServer(final String zkAddress) throws Exception
   {
     List<String> empty = Collections.emptyList();
-    return TestHelper.startZkSever(zkAddress, empty, true);
+    return TestHelper.startZkServer(zkAddress, empty, true);
   }
 
-  static public ZkServer startZkSever(final String zkAddress, final String rootNamespace) throws Exception
+  static public ZkServer startZkServer(final String zkAddress, final String rootNamespace) throws Exception
   {
     List<String> rootNamespaces = new ArrayList<String>();
     rootNamespaces.add(rootNamespace);
-    return TestHelper.startZkSever(zkAddress, rootNamespaces, true);
+    return TestHelper.startZkServer(zkAddress, rootNamespaces, true);
   }
 
-  static public ZkServer startZkSever(final String zkAddress,
+  static public ZkServer startZkServer(final String zkAddress,
       final List<String> rootNamespaces) throws Exception {
-    return startZkSever(zkAddress, rootNamespaces, true);
+    return startZkServer(zkAddress, rootNamespaces, true);
   }
   
-  static public ZkServer startZkSever(final String zkAddress,
+  static public ZkServer startZkServer(final String zkAddress,
                                       final List<String> rootNamespaces, boolean overwrite) throws Exception
   {
     System.out.println("Start zookeeper at " + zkAddress + " in thread "

@@ -51,7 +51,7 @@ public class TestZkReconnect {
     final AtomicReference<ZkServer> zkServerRef = new AtomicReference<ZkServer>();
     final int zkPort = TestHelper.getRandomPort();
     final String zkAddr = String.format("localhost:%d", zkPort);
-    ZkServer zkServer = TestHelper.startZkSever(zkAddr);
+    ZkServer zkServer = TestHelper.startZkServer(zkAddr);
     zkServerRef.set(zkServer);
     
     String className = TestHelper.getTestClassName();
@@ -108,7 +108,7 @@ public class TestZkReconnect {
             try {
                 LOG.info("Restart ZK server");
                 // zkServer.set(TestUtils.startZookeeper(zkDir, zkPort));
-                zkServerRef.set(TestHelper.startZkSever(zkAddr, null, false));
+                zkServerRef.set(TestHelper.startZkServer(zkAddr, null, false));
             } catch (Exception e) {
                 LOG.error(e.getMessage(), e);
             }

@@ -73,7 +73,7 @@ public class ZkUnitTestBase
   @BeforeSuite(alwaysRun = true)
   public void beforeSuite() throws Exception
   {
-    _zkServer = TestHelper.startZkSever(ZK_ADDR);
+    _zkServer = TestHelper.startZkServer(ZK_ADDR);
     AssertJUnit.assertTrue(_zkServer != null);
 
     // System.out.println("Number of open zkClient before ZkUnitTests: "

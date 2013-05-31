@@ -41,7 +41,7 @@ public class TestZKClientPool
     System.out.println("START " + testName + " at " + new Date(System.currentTimeMillis()));
 
     String zkAddr = "localhost:2189";
-    ZkServer zkServer = TestHelper.startZkSever(zkAddr);
+    ZkServer zkServer = TestHelper.startZkServer(zkAddr);
     ZkClient zkClient = ZKClientPool.getZkClient(zkAddr);
     
     zkClient.createPersistent("/" + testName, new ZNRecord(testName));
@@ -51,7 +51,7 @@ public class TestZKClientPool
     TestHelper.stopZkServer(zkServer);
     
     // restart zk 
-    zkServer = TestHelper.startZkSever(zkAddr);
+    zkServer = TestHelper.startZkServer(zkAddr);
     try
     {
       zkClient = ZKClientPool.getZkClient(zkAddr);

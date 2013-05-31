@@ -66,7 +66,7 @@ public class ZkIntegrationTestBase
     java.util.logging.Logger topJavaLogger = java.util.logging.Logger.getLogger("");
     topJavaLogger.setLevel(Level.WARNING);
     
-    _zkServer = TestHelper.startZkSever(ZK_ADDR);
+    _zkServer = TestHelper.startZkServer(ZK_ADDR);
     AssertJUnit.assertTrue(_zkServer != null);
     ZKClientPool.reset();
 

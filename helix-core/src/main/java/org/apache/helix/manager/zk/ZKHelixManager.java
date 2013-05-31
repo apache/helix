@@ -994,7 +994,7 @@ public class ZKHelixManager implements HelixManager
     if (_helixPropertyStore == null)
     {
       String path =
-          PropertyPathConfig.getPath(PropertyType.HELIX_PROPERTYSTORE, _clusterName);
+          PropertyPathConfig.getPath(PropertyType.PROPERTYSTORE, _clusterName);
 
       _helixPropertyStore =
           new ZkHelixPropertyStore<ZNRecord>(new ZkBaseDataAccessor<ZNRecord>(_zkClient),

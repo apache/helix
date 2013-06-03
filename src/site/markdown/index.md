@@ -44,7 +44,7 @@ Navigating the Documentation
 
 [Service discovery](./recipes/service_discovery.html)
 
-[Distributed Task DAG Execution](./task_dag_execution.html)
+[Distributed Task DAG Execution](./recipes/task_dag_execution.html)
 
 
 What Is Helix

@@ -140,17 +140,16 @@ public class AgentStateModel extends StateModel
     }
     ExternalCommand externalCmd = ExternalCommand.executeWithTimeout(new File(workingDir), 
         cmdValue, timeoutValue, args);
+        
+    int exitValue = externalCmd.exitValue();
     
     // debug
-    // System.out.println("command output:\n" + externalCmd.getStringOutput());
+//    System.out.println("command: " + cmd + ", exitValue: " + exitValue
+//        + " output:\n" + externalCmd.getStringOutput());
     
-    int exitValue = externalCmd.exitValue();
-    _logger.info("Executed command: " + cmd + ", exitValue: " + exitValue);
-    
-    // if exit-value != 0, transition fails
-    if (exitValue != 0) {
-      throw new Exception("fail to execute command: " + cmd + ", exitValue: " + exitValue 
-          + ", error: " + externalCmd.getStringError());
+    if (_logger.isDebugEnabled()) {
+      _logger.debug("command: " + cmd + ", exitValue: " + exitValue
+        + " output:\n" + externalCmd.getStringOutput());
     }
     
     // monitor pid if pidFile exists

@@ -98,7 +98,7 @@ public class SystemUtil {
       String line = br.readLine();
       return line;
     } catch (IOException e) {
-      LOG.error("fail to read pid from pidFile: " + file, e);
+      LOG.warn("fail to read pid from pidFile: " + file + ". will not monitor");
     } finally {
       if (br != null) {
         try {

@@ -32,6 +32,11 @@ public class CommandConfig {
 
   public CommandConfig(String fromState, String toState, String command,
       String workingDir, String timeout, String pidFile) {
+    if (command == null) {
+      throw new IllegalArgumentException("command is null");
+      
+    }
+    
     _fromState = fromState;
     _toState = toState;
     _command = command;
@@ -49,9 +54,17 @@ public class CommandConfig {
     Map<String, String> map = new TreeMap<String, String>();
     map.put(buildKey(_fromState, _toState, CommandAttribute.COMMAND), _command);
     if (!_command.equals(CommandAttribute.NOP.getName())) {
-      map.put(buildKey(_fromState, _toState, CommandAttribute.WORKING_DIR), _workingDir);
-      map.put(buildKey(_fromState, _toState, CommandAttribute.TIMEOUT), _timeout);
-      map.put(buildKey(_fromState, _toState, CommandAttribute.PID_FILE), _pidFile);
+      if (_workingDir != null) {
+        map.put(buildKey(_fromState, _toState, CommandAttribute.WORKING_DIR), _workingDir);
+      }
+      
+      if (_timeout != null) {
+        map.put(buildKey(_fromState, _toState, CommandAttribute.TIMEOUT), _timeout);
+      }
+      
+      if (_pidFile != null) {
+        map.put(buildKey(_fromState, _toState, CommandAttribute.PID_FILE), _pidFile);
+      }
     }  
     return map;
   }

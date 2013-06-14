@@ -2,6 +2,7 @@ package org.apache.helix.agent;
 
 import java.io.File;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.agent.SystemUtil.ProcessStateCode;
 import org.apache.log4j.Logger;
@@ -50,7 +51,7 @@ public class ProcessMonitorThread extends Thread {
           LOG.error("process: " + _pid + " is in zombie state");
           break;
         }
-        Thread.sleep(new Random().nextInt(MONITOR_PERIOD_BASE) + MONITOR_PERIOD_BASE);
+        TimeUnit.MILLISECONDS.sleep(new Random().nextInt(MONITOR_PERIOD_BASE) + MONITOR_PERIOD_BASE);
         processState = SystemUtil.getProcessState(_pid);
       }
     } catch (Exception e) {

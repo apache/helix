@@ -20,9 +20,12 @@ package org.apache.helix.agent;
  */
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Date;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.ConfigAccessor;
+import org.apache.helix.ExternalCommand;
 import org.apache.helix.ScriptTestHelper;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkUnitTestBase;
@@ -36,12 +39,44 @@ import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.testng.Assert;
+import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 public class TestHelixAgent extends ZkUnitTestBase {
+  final String workingDir = ScriptTestHelper.getPrefix() + ScriptTestHelper.INTEGRATION_SCRIPT_DIR;
+  ExternalCommand serverCmd = null;
+
+  @BeforeMethod
+  public void beforeMethod() throws Exception {
+    serverCmd = ExternalCommand.start(workingDir + "/simpleHttpServer.py");
+  }
   
-  // disable this test
-  // @Test
+  @AfterMethod
+  public void afterMethod() throws Exception {
+    if (serverCmd != null) {
+      // shutdown server
+      ExternalCommand.execute(new File(workingDir), "simpleHttpClient.py", "exit");
+//      System.out.println("simpleHttpServer output: \n" + serverCmd.getStringOutput());
+      
+      // check server has received all the requests
+      String serverOutput = serverCmd.getStringOutput();
+      int idx = serverOutput.indexOf("requestPath: /OFFLINE-SLAVE");
+      Assert.assertTrue(idx > 0, "server should receive OFFINE->SLAVE transition");
+      
+      idx = serverOutput.indexOf("requestPath: /SLAVE-MASTER", idx);
+      Assert.assertTrue(idx > 0, "server should receive SLAVE-MASTER transition");
+      
+      idx = serverOutput.indexOf("requestPath: /MASTER-SLAVE", idx);
+      Assert.assertTrue(idx > 0, "server should receive MASTER-SLAVE transition");
+
+      idx = serverOutput.indexOf("requestPath: /SLAVE-OFFLINE", idx);
+      Assert.assertTrue(idx > 0, "server should receive SLAVE-OFFLINE transition");
+
+    }
+  }
+  
+  @Test
   public void test() throws Exception {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
@@ -76,53 +111,51 @@ public class TestHelixAgent extends ZkUnitTestBase {
                                     .build();
     ConfigAccessor configAccessor = new ConfigAccessor(client);
     
-    // run foo_test.py during S->M
-    String workingDir = ScriptTestHelper.getPrefix() + ScriptTestHelper.INTEGRATION_SCRIPT_DIR;
-    String pidFile = ScriptTestHelper.getPrefix() + ScriptTestHelper.INTEGRATION_LOG_DIR + "/default/foo_{PARTITION_NAME}_pid.txt";
-    
-    // System.out.println("workingDir: " + workingDir);
+    // String pidFile = ScriptTestHelper.getPrefix() + ScriptTestHelper.INTEGRATION_LOG_DIR + "/default/foo_{PARTITION_NAME}_pid.txt";
     
     // the pid file path for the first partition
     // delete it if exists
-    String pidFileFirstPartition = ScriptTestHelper.getPrefix() + ScriptTestHelper.INTEGRATION_LOG_DIR + "/default/foo_TestDB0_0_pid.txt";
-    File file = new File(pidFileFirstPartition);
-    if (file.exists()) {
-      file.delete();
-    }
+//    String pidFileFirstPartition = ScriptTestHelper.getPrefix() + ScriptTestHelper.INTEGRATION_LOG_DIR + "/default/foo_TestDB0_0_pid.txt";
+//    File file = new File(pidFileFirstPartition);
+//    if (file.exists()) {
+//      file.delete();
+//    }
     
-    
+    // set commands for state-transitions
     CommandConfig.Builder builder = new CommandConfig.Builder();
     CommandConfig cmdConfig = builder.setTransition("SLAVE", "MASTER")
-                                     .setCommand("dds_driver.py -c foo_test -o start")
+                                     .setCommand("simpleHttpClient.py SLAVE-MASTER")
                                      .setCommandWorkingDir(workingDir)
                                      .setCommandTimeout("0")
-                                     .setPidFile(pidFile)
+    //                                 .setPidFile(pidFile)
                                      .build();
     configAccessor.set(scope, cmdConfig.toKeyValueMap());
     
-    // nop for O->S, M->S, and S->O
     builder = new CommandConfig.Builder();
     cmdConfig = builder.setTransition("OFFLINE", "SLAVE")
-                                     .setCommand(CommandAttribute.NOP.getName())
-                                     .build();
+                       .setCommand("simpleHttpClient.py OFFLINE-SLAVE")
+                       .setCommandWorkingDir(workingDir)
+                       .build();
     configAccessor.set(scope, cmdConfig.toKeyValueMap());
 
     builder = new CommandConfig.Builder();
     cmdConfig = builder.setTransition("MASTER", "SLAVE")
-                                     .setCommand(CommandAttribute.NOP.getName())
-                                     .build();
+                       .setCommand("simpleHttpClient.py MASTER-SLAVE")
+                       .setCommandWorkingDir(workingDir)
+                       .build();
     configAccessor.set(scope, cmdConfig.toKeyValueMap());
     
     builder = new CommandConfig.Builder();
     cmdConfig = builder.setTransition("SLAVE", "OFFLINE")
-                                     .setCommand(CommandAttribute.NOP.getName())
-                                     .build();
+                       .setCommand("simpleHttpClient.py SLAVE-OFFLINE")
+                       .setCommandWorkingDir(workingDir)
+                       .build();
     configAccessor.set(scope, cmdConfig.toKeyValueMap());
     
     builder = new CommandConfig.Builder();
     cmdConfig = builder.setTransition("OFFLINE", "DROPPED")
-                                     .setCommand(CommandAttribute.NOP.getName())
-                                     .build();
+                       .setCommand(CommandAttribute.NOP.getName())
+                       .build();
     configAccessor.set(scope, cmdConfig.toKeyValueMap());
 
 
@@ -158,8 +191,8 @@ public class TestHelixAgent extends ZkUnitTestBase {
     Assert.assertTrue(result);
 
     // read the pid file should get current process id
-    String readPid = SystemUtil.getPidFromFile(new File(pidFileFirstPartition));
-    Assert.assertNotNull(readPid, "readPid is the pid for foo_test.py. should NOT be null");
+//    String readPid = SystemUtil.getPidFromFile(new File(pidFileFirstPartition));
+//    Assert.assertNotNull(readPid, "readPid is the pid for foo_test.py. should NOT be null");
     
     // String name = ManagementFactory.getRuntimeMXBean().getName();
     // String currentPid = name.substring(0,name.indexOf("@"));
@@ -171,8 +204,7 @@ public class TestHelixAgent extends ZkUnitTestBase {
     result =
         ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
                                                                                  clusterName));
-    Assert.assertTrue(result);
-    
+    Assert.assertTrue(result);      
 
     System.out.println("END " + clusterName + " at "
         + new Date(System.currentTimeMillis()));

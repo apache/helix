@@ -27,6 +27,7 @@ import java.util.TimerTask;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
+import org.apache.helix.HelixTimerTask;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.alerts.StatsHolder;
@@ -34,7 +35,7 @@ import org.apache.helix.model.HealthStat;
 import org.apache.log4j.Logger;
 
 
-public class ParticipantHealthReportCollectorImpl implements
+public class ParticipantHealthReportCollectorImpl extends HelixTimerTask implements
     ParticipantHealthReportCollector
 {
   private final LinkedList<HealthReportProvider> _healthReportProviderList = new LinkedList<HealthReportProvider>();
@@ -58,12 +59,13 @@ public class ParticipantHealthReportCollectorImpl implements
     addHealthReportProvider(new DefaultHealthReportProvider());
   }
 
+  @Override
   public void start()
   {
     if (_timer == null)
     {
       _timer = new Timer(true);
-      _timer.scheduleAtFixedRate(new HealthCheckInfoReportingTask(),
+      _timer.scheduleAtFixedRate(this,
           new Random().nextInt(DEFAULT_REPORT_LATENCY), DEFAULT_REPORT_LATENCY);
     }
     else
@@ -124,6 +126,7 @@ public class ParticipantHealthReportCollectorImpl implements
 
   }
 
+  @Override
   public void stop()
   {
     _logger.info("Stop HealthCheckInfoReportingTask");
@@ -179,12 +182,9 @@ public class ParticipantHealthReportCollectorImpl implements
     }
   }
 
-  class HealthCheckInfoReportingTask extends TimerTask
+  @Override
+  public void run()
   {
-    @Override
-    public void run()
-    {
-      transmitHealthReports();
-    }
+    transmitHealthReports();
   }
 }

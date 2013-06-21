@@ -41,6 +41,7 @@ import org.apache.helix.ExternalViewChangeListener;
 import org.apache.helix.HealthStateChangeListener;
 import org.apache.helix.HelixConstants.ChangeType;
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.IdealStateChangeListener;
@@ -88,6 +89,10 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
                          EventType[] eventTypes,
                          ChangeType changeType)
   {
+    if (listener == null) {
+      throw new HelixException("listener could not be null");
+    }
+    
     this._manager = manager;
     this._accessor = manager.getHelixDataAccessor();
     this._zkClient = client;

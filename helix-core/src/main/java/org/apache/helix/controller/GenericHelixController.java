@@ -153,6 +153,7 @@ public class GenericHelixController implements
     }
   }
   
+  // TODO who should stop this timer
   /**
    * Starts the rebalancing timer with the specified period. Start the timer if necessary;
    * If the period is smaller than the current period, cancel the current timer and use 

@@ -82,7 +82,7 @@ import org.apache.log4j.Logger;
 
 public class ZKHelixAdmin implements HelixAdmin
 {
-
+  public static final String CONNECTION_TIMEOUT = "helixAdmin.timeOutInSec";
   private final ZkClient _zkClient;
   private final ConfigAccessor _configAccessor;
 
@@ -96,9 +96,10 @@ public class ZKHelixAdmin implements HelixAdmin
 
   public ZKHelixAdmin(String zkAddress)
   {
-    _zkClient = new ZkClient(zkAddress);
+    int timeOutInSec =  Integer.parseInt(System.getProperty(CONNECTION_TIMEOUT, "30"));
+    _zkClient = new ZkClient(zkAddress, timeOutInSec * 1000);
     _zkClient.setZkSerializer(new ZNRecordSerializer());
-    _zkClient.waitUntilConnected(30, TimeUnit.SECONDS);
+    _zkClient.waitUntilConnected(timeOutInSec, TimeUnit.SECONDS);
     _configAccessor = new ConfigAccessor(_zkClient);
   }
   

@@ -31,6 +31,7 @@ import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
@@ -96,7 +97,35 @@ public class TestClusterSetup extends ZkUnitTestBase
     _clusterSetup = new ClusterSetup(ZK_ADDR);
     _clusterSetup.addCluster(CLUSTER_NAME, true);
   }
-
+  
+  @Test
+  public void testZkAdminTimeout()
+  {
+    boolean exceptionThrown = false;
+    try
+    {
+      new ZKHelixAdmin("localhost:27999");
+    }
+    catch(Exception e)
+    {
+      exceptionThrown = true;
+    }
+    Assert.assertTrue(exceptionThrown);
+    System.setProperty(ZKHelixAdmin.CONNECTION_TIMEOUT, "3");
+    exceptionThrown = false;
+    long time = System.currentTimeMillis();
+    try
+    {
+      new ZKHelixAdmin("localhost:27999");
+    }
+    catch(Exception e)
+    {
+      exceptionThrown = true;
+    }
+    Assert.assertTrue(exceptionThrown);
+    Assert.assertTrue(System.currentTimeMillis() - time  < 5000);
+  }
+  
   @Test()
   public void testAddInstancesToCluster() throws Exception
   {

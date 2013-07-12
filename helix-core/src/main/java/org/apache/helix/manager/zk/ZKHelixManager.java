@@ -61,8 +61,10 @@ import org.apache.helix.ScopedConfigChangeListener;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.restlet.ZKPropertyTransferServer;
 import org.apache.helix.healthcheck.HealthStatsAggregationTask;
+import org.apache.helix.healthcheck.HealthStatsAggregator;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollectorImpl;
+import org.apache.helix.healthcheck.ParticipantHealthReportTask;
 import org.apache.helix.messaging.DefaultMessagingService;
 import org.apache.helix.messaging.handling.MessageHandlerFactory;
 import org.apache.helix.model.ConfigScope;
@@ -106,6 +108,7 @@ public class ZKHelixManager implements HelixManager
   private Timer                                _timer;
   private CallbackHandler                      _leaderElectionHandler;
   private ParticipantHealthReportCollectorImpl _participantHealthCheckInfoCollector;
+  private ParticipantHealthReportTask _participantHealthReportTask;
   private final DefaultMessagingService        _messagingService;
   private ZKHelixAdmin                         _managementTool;
   private final String                         _version;
@@ -213,7 +216,7 @@ public class ZKHelixManager implements HelixManager
     _controllerTimerTasks = new ArrayList<HelixTimerTask>();
     if (_instanceType == InstanceType.CONTROLLER)
     {
-      _controllerTimerTasks.add(new HealthStatsAggregationTask(this));
+      _controllerTimerTasks.add(new HealthStatsAggregationTask(new HealthStatsAggregator(this)));
     }
   }
 
@@ -460,7 +463,7 @@ public class ZKHelixManager implements HelixManager
 
     if (_participantHealthCheckInfoCollector != null)
     {
-      _participantHealthCheckInfoCollector.stop();
+      _participantHealthReportTask.stop();
     }
 
     if (_timer != null)
@@ -834,7 +837,8 @@ public class ZKHelixManager implements HelixManager
     {
       _participantHealthCheckInfoCollector =
           new ParticipantHealthReportCollectorImpl(this, _instanceName);
-      _participantHealthCheckInfoCollector.start();
+      _participantHealthReportTask = new ParticipantHealthReportTask(_participantHealthCheckInfoCollector);
+      _participantHealthReportTask.start();
     }
     // start the participant health check timer, also create zk path for health
     // check info

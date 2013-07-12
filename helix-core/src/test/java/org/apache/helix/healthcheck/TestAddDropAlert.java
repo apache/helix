@@ -174,7 +174,7 @@ public class TestAddDropAlert extends ZkIntegrationTestBase
     ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(_zkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
-    new HealthStatsAggregationTask(cmResult._manager).run();
+    new HealthStatsAggregator(cmResult._manager).aggregate();
     String instance = "localhost_12918";
     ZNRecord record = accessor.getProperty(keyBuilder.alertStatus()).getRecord();
     Map<String, Map<String, String>> recMap = record.getMapFields();
@@ -182,7 +182,7 @@ public class TestAddDropAlert extends ZkIntegrationTestBase
     Assert.assertTrue(keySet.size() > 0);
 
     _setupTool.getClusterManagementTool().dropAlert(clusterName, _alertStr);
-    new HealthStatsAggregationTask(cmResult._manager).run();
+    new HealthStatsAggregator(cmResult._manager).aggregate();
     // other verifications go here
     // for (int i = 0; i < 1; i++) //change 1 back to 5
     // {

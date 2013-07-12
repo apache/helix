@@ -56,6 +56,7 @@ import org.apache.helix.HelixConstants.ChangeType;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollectorImpl;
+import org.apache.helix.healthcheck.ParticipantHealthReportTask;
 import org.apache.helix.messaging.handling.MessageHandlerFactory;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.HelixConfigScope;
@@ -92,7 +93,7 @@ public class ParticipantManager extends AbstractManager {
     _stateMachineEngine = new HelixStateMachineEngine(this);
     _participantHealthInfoCollector = new ParticipantHealthReportCollectorImpl(this, _instanceName);
     
-    _timerTasks.add(_participantHealthInfoCollector);
+    _timerTasks.add(new ParticipantHealthReportTask(_participantHealthInfoCollector));
   }
   
   @Override

@@ -1,4 +1,4 @@
-package org.apache.helix;
+package org.apache.helix.integration.manager;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,17 +19,25 @@ package org.apache.helix;
  * under the License.
  */
 
-public abstract class HelixTimerTask
-{
-  /**
-   * Timer task starts
-   * 
-   */
-  public abstract void start();
-  
-  /**
-   * Timer task stops
-   * 
-   */
-  public abstract void stop();
+import java.util.List;
+
+import org.apache.helix.manager.zk.CallbackHandler;
+import org.apache.helix.manager.zk.ParticipantManager;
+import org.apache.helix.manager.zk.ZkClient;
+
+// ZkHelixManager used for test only. expose more class members
+public class TestAbstractManager extends ParticipantManager {
+
+  public TestAbstractManager(String zkConnectString, String clusterName, 
+      String instanceName) throws Exception {
+    super(zkConnectString, clusterName, instanceName);
+  }
+
+  public ZkClient getZkClient() {
+    return _zkclient;
+  }
+
+  public List<CallbackHandler> getHandlers() {
+    return _handlers;
+  }
 }

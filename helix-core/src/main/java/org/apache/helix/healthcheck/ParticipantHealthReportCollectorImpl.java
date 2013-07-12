@@ -21,170 +21,95 @@ package org.apache.helix.healthcheck;
 
 import java.util.LinkedList;
 import java.util.Map;
-import java.util.Random;
-import java.util.Timer;
-import java.util.TimerTask;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
-import org.apache.helix.HelixTimerTask;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.alerts.StatsHolder;
 import org.apache.helix.model.HealthStat;
 import org.apache.log4j.Logger;
 
-
-public class ParticipantHealthReportCollectorImpl extends HelixTimerTask implements
-    ParticipantHealthReportCollector
-{
+public class ParticipantHealthReportCollectorImpl implements
+    ParticipantHealthReportCollector {
   private final LinkedList<HealthReportProvider> _healthReportProviderList = new LinkedList<HealthReportProvider>();
-  private Timer _timer;
   private static final Logger _logger = Logger
       .getLogger(ParticipantHealthReportCollectorImpl.class);
   private final HelixManager _helixManager;
   String _instanceName;
-  public final static int DEFAULT_REPORT_LATENCY = 60 * 1000;
 
-  public ParticipantHealthReportCollectorImpl(HelixManager helixManager,
-      String instanceName)
-  {
+  public ParticipantHealthReportCollectorImpl(HelixManager helixManager, String instanceName) {
     _helixManager = helixManager;
     _instanceName = instanceName;
     addDefaultHealthCheckInfoProvider();
   }
 
-  private void addDefaultHealthCheckInfoProvider()
-  {
+  private void addDefaultHealthCheckInfoProvider() {
     addHealthReportProvider(new DefaultHealthReportProvider());
   }
 
   @Override
-  public void start()
-  {
-    if (_timer == null)
-    {
-      _timer = new Timer(true);
-      _timer.scheduleAtFixedRate(this,
-          new Random().nextInt(DEFAULT_REPORT_LATENCY), DEFAULT_REPORT_LATENCY);
-    }
-    else
-    {
-      _logger.warn("timer already started");
-    }
-  }
-
-  @Override
-  public void addHealthReportProvider(HealthReportProvider provider)
-  {
-    try
-    {
-      synchronized (_healthReportProviderList)
-      {
-        if (!_healthReportProviderList.contains(provider))
-        {
+  public void addHealthReportProvider(HealthReportProvider provider) {
+    try {
+      synchronized (_healthReportProviderList) {
+        if (!_healthReportProviderList.contains(provider)) {
           _healthReportProviderList.add(provider);
-        }
-        else
-        {
+        } else {
           _logger.warn("Skipping a duplicated HealthCheckInfoProvider");
         }
       }
-    }
-    catch (Exception e)
-    {
+    } catch (Exception e) {
       _logger.error(e);
     }
   }
 
   @Override
-  public void removeHealthReportProvider(HealthReportProvider provider)
-  {
-    synchronized (_healthReportProviderList)
-    {
-      if (_healthReportProviderList.contains(provider))
-      {
+  public void removeHealthReportProvider(HealthReportProvider provider) {
+    synchronized (_healthReportProviderList) {
+      if (_healthReportProviderList.contains(provider)) {
         _healthReportProviderList.remove(provider);
-      }
-      else
-      {
+      } else {
         _logger.warn("Skip removing a non-exist HealthCheckInfoProvider");
       }
     }
   }
 
   @Override
-  public void reportHealthReportMessage(ZNRecord healthCheckInfoUpdate)
-  {
+  public void reportHealthReportMessage(ZNRecord healthCheckInfoUpdate) {
     HelixDataAccessor accessor = _helixManager.getHelixDataAccessor();
     Builder keyBuilder = accessor.keyBuilder();
-//    accessor.setProperty(
-//        PropertyType.HEALTHREPORT, healthCheckInfoUpdate, _instanceName,
-//        healthCheckInfoUpdate.getId());
-    accessor.setProperty(keyBuilder.healthReport(_instanceName, healthCheckInfoUpdate.getId()), 
-                         new HealthStat(healthCheckInfoUpdate));
+    accessor.setProperty(keyBuilder.healthReport(_instanceName, healthCheckInfoUpdate.getId()),
+        new HealthStat(healthCheckInfoUpdate));
 
   }
 
   @Override
-  public void stop()
-  {
-    _logger.info("Stop HealthCheckInfoReportingTask");
-    if (_timer != null)
-    {
-      _timer.cancel();
-      _timer = null;
-    }
-    else
-    {
-      _logger.warn("timer already stopped");
-    }
-  }
-
-  @Override
-  public synchronized void transmitHealthReports()
-  {
-    synchronized (_healthReportProviderList)
-    {
-      for (HealthReportProvider provider : _healthReportProviderList)
-      {
-        try
-        {
+  public synchronized void transmitHealthReports() {
+    synchronized (_healthReportProviderList) {
+      for (HealthReportProvider provider : _healthReportProviderList) {
+        try {
           Map<String, String> report = provider.getRecentHealthReport();
           Map<String, Map<String, String>> partitionReport = provider
               .getRecentPartitionHealthReport();
           ZNRecord record = new ZNRecord(provider.getReportName());
-          if (report != null)
-          {
+          if (report != null) {
             record.setSimpleFields(report);
           }
-          if (partitionReport != null)
-          {
+          if (partitionReport != null) {
             record.setMapFields(partitionReport);
           }
           record.setSimpleField(StatsHolder.TIMESTAMP_NAME, "" + System.currentTimeMillis());
-          
+
           HelixDataAccessor accessor = _helixManager.getHelixDataAccessor();
           Builder keyBuilder = accessor.keyBuilder();
-          accessor.setProperty(keyBuilder.healthReport(_instanceName, record.getId()), 
-                               new HealthStat(record));
+          accessor.setProperty(keyBuilder.healthReport(_instanceName, record.getId()),
+              new HealthStat(record));
 
-//          _helixManager.getDataAccessor().setProperty(
-//              PropertyType.HEALTHREPORT, record, _instanceName, record.getId());
-          // reset stats (for now just the partition stats)
           provider.resetStats();
-        }
-        catch (Exception e)
-        {
-          _logger.error("", e);
+        } catch (Exception e) {
+          _logger.error("fail to transmit health report", e);
         }
       }
     }
-  }
-
-  @Override
-  public void run()
-  {
-    transmitHealthReports();
   }
 }

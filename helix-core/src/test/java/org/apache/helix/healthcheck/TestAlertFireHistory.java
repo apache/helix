@@ -108,8 +108,8 @@ public class TestAlertFireHistory extends ZkStandAloneCMTestBaseWithPropertyServ
     properties.put("healthChange.enabled", "false");
     _setupTool.getClusterManagementTool().setConfig(scope, properties);
     
-    HealthStatsAggregationTask task = new HealthStatsAggregationTask(_startCMResultMap.get(controllerName)._manager);
-    task.run();
+    HealthStatsAggregator task = new HealthStatsAggregator(_startCMResultMap.get(controllerName)._manager);
+    task.aggregate();
     Thread.sleep(100);
     HelixDataAccessor helixDataAccessor = manager.getHelixDataAccessor();
     Builder keyBuilder = helixDataAccessor.keyBuilder();
@@ -121,7 +121,7 @@ public class TestAlertFireHistory extends ZkStandAloneCMTestBaseWithPropertyServ
     properties.put("healthChange.enabled", "true");
     _setupTool.getClusterManagementTool().setConfig(scope, properties);
     
-    task.run();
+    task.aggregate();
     Thread.sleep(100);
     
     history = manager.getHelixDataAccessor().getProperty(keyBuilder.alertHistory());
@@ -155,8 +155,8 @@ public class TestAlertFireHistory extends ZkStandAloneCMTestBaseWithPropertyServ
       historySize = property.getRecord().getMapFields().size();
     }
     
-    HealthStatsAggregationTask task = new HealthStatsAggregationTask(_startCMResultMap.get(controllerName)._manager);
-    task.run();
+    HealthStatsAggregator task = new HealthStatsAggregator(_startCMResultMap.get(controllerName)._manager);
+    task.aggregate();
     Thread.sleep(100);
     
     
@@ -173,7 +173,7 @@ public class TestAlertFireHistory extends ZkStandAloneCMTestBaseWithPropertyServ
     Assert.assertTrue(lastRecord.get("(localhost_12921.TestStat@DB#db1.TestMetric2)GREATER(100)").equals("ON"));
     
     setHealthData(metrics1, metrics2);
-    task.run();
+    task.aggregate();
     Thread.sleep(100);
     history = helixDataAccessor.getProperty(keyBuilder.alertHistory()).getRecord();
     // no change
@@ -190,7 +190,7 @@ public class TestAlertFireHistory extends ZkStandAloneCMTestBaseWithPropertyServ
     int [] metrics3 = {21, 44, 22, 14, 16};
     int [] metrics4 = {122, 115, 222, 41,16};
     setHealthData(metrics3, metrics4);
-    task.run();
+    task.aggregate();
     Thread.sleep(100);
     history = helixDataAccessor.getProperty(keyBuilder.alertHistory()).getRecord();
     // new delta should be recorded
@@ -209,7 +209,7 @@ public class TestAlertFireHistory extends ZkStandAloneCMTestBaseWithPropertyServ
     int [] metrics5 = {0, 0, 0, 0, 0};
     int [] metrics6 = {0, 0, 0, 0,0};
     setHealthData(metrics5, metrics6);
-    task.run();
+    task.aggregate();
     
     for (int i = 0; i < 10; i++) 
     {
@@ -245,7 +245,7 @@ public class TestAlertFireHistory extends ZkStandAloneCMTestBaseWithPropertyServ
       int[] metricsy = {99 + 3*x, 99 + 3*y, 98 + 4*x, 98+4*y, 97+5*y};
       
       setHealthData(metricsx, metricsy);
-      task.run();
+      task.aggregate();
       Thread.sleep(100);
       history = helixDataAccessor.getProperty(keyBuilder.alertHistory()).getRecord();
       
@@ -304,7 +304,7 @@ public class TestAlertFireHistory extends ZkStandAloneCMTestBaseWithPropertyServ
       int[] metricsy = {99 + 3*x, 99 + 3*y, 98 + 4*x, 98+4*y, 97+5*y};
       
       setHealthData(metricsx, metricsy);
-      task.run();
+      task.aggregate();
       for (int j = 0; j < 10; j++) {
           Thread.sleep(100);
           history = helixDataAccessor.getProperty(keyBuilder.alertHistory()).getRecord();

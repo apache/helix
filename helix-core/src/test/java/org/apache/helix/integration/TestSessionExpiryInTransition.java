@@ -36,6 +36,7 @@ import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
+import org.testng.annotations.Test;
 
 
 public class TestSessionExpiryInTransition extends ZkIntegrationTestBase
@@ -69,9 +70,7 @@ public class TestSessionExpiryInTransition extends ZkIntegrationTestBase
     }
   }
  
-  // TODO: disable test first until we have a clean design in handling zk disconnect/session-expiry
-  // when there is pending messages
-  // @Test
+  @Test
   public void testSessionExpiryInTransition() throws Exception
   {
     Logger.getRootLogger().setLevel(Level.WARN);

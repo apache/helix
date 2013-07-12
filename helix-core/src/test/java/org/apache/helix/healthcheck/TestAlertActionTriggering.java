@@ -131,8 +131,8 @@ public class TestAlertActionTriggering extends
     String controllerName = CONTROLLER_PREFIX + "_0";
     HelixManager manager = _startCMResultMap.get(controllerName)._manager;
 
-    HealthStatsAggregationTask task = new HealthStatsAggregationTask(_startCMResultMap.get(controllerName)._manager);
-    task.run();
+    HealthStatsAggregator task = new HealthStatsAggregator(_startCMResultMap.get(controllerName)._manager);
+    task.aggregate();
     Thread.sleep(4000);
     HelixDataAccessor helixDataAccessor = manager.getHelixDataAccessor();
     Builder keyBuilder = helixDataAccessor.keyBuilder();
@@ -177,7 +177,7 @@ public class TestAlertActionTriggering extends
 
     // enable the disabled instances
     setHealthData(metrics3, metrics3);
-    task.run();
+    task.aggregate();
     Thread.sleep(1000);
 
     manager.getClusterManagmentTool().enableInstance(manager.getClusterName(), participant2, true);
@@ -191,7 +191,7 @@ public class TestAlertActionTriggering extends
     // Test the DISABLE_PARTITION case
     int[] metrics4 = {22, 115, 22, 16,163};
     setHealthData2(metrics4);
-    task.run();
+    task.aggregate();
 
     // scope = new ConfigScopeBuilder().forCluster(manager.getClusterName()).forParticipant(participant1).build();
     scope = new HelixConfigScopeBuilder(ConfigScopeProperty.PARTICIPANT)

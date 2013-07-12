@@ -39,6 +39,7 @@ import org.apache.helix.HelixConstants.ChangeType;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.healthcheck.HealthStatsAggregationTask;
+import org.apache.helix.healthcheck.HealthStatsAggregator;
 import org.apache.helix.messaging.handling.MessageHandlerFactory;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.monitoring.ZKPathDataDumpTask;
@@ -78,7 +79,8 @@ public class ControllerManager extends AbstractManager {
 
       if (_timer == null)
       {
-        _timer = new Timer(true);
+        LOG.info("Start StatusDumpTask");
+        _timer = new Timer("StatusDumpTimerTask", true);
         _timer.scheduleAtFixedRate(new ZKPathDataDumpTask(helixController,
                                                           zkclient,
                                                           timeThresholdNoChange),
@@ -92,23 +94,17 @@ public class ControllerManager extends AbstractManager {
     public void stop() {
       if (_timer != null)
       {
+        LOG.info("Stop StatusDumpTask");
         _timer.cancel();
         _timer = null;
       }      
     }
-
-    @Override
-    public void run() {
-      // TODO Auto-generated method stub
-      
-    }
-    
   }
   
   public ControllerManager(String zkAddress, String clusterName, String instanceName) {
     super(zkAddress, clusterName, instanceName, InstanceType.CONTROLLER);
     
-    _timerTasks.add(new HealthStatsAggregationTask(this));
+    _timerTasks.add(new HealthStatsAggregationTask(new HealthStatsAggregator(this)));
     _timerTasks.add(new StatusDumpTask(_zkclient, this));
   }
 

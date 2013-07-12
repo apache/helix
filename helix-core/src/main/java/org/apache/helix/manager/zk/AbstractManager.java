@@ -75,7 +75,7 @@ public abstract class AbstractManager implements HelixManager, IZkStateListener 
   final InstanceType _instanceType;
   final int _sessionTimeout;
   final List<PreConnectCallback> _preConnectCallbacks;
-  final List<CallbackHandler> _handlers;
+  protected final List<CallbackHandler> _handlers;
   final HelixManagerProperties _properties;
   
   /**
@@ -83,7 +83,7 @@ public abstract class AbstractManager implements HelixManager, IZkStateListener 
    */
   final String _version;
 
-  ZkClient _zkclient = null;
+  protected ZkClient _zkclient = null;
   final DefaultMessagingService _messagingService;
 
   BaseDataAccessor<ZNRecord> _baseDataAccessor;

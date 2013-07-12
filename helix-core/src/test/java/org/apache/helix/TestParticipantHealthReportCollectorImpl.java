@@ -22,12 +22,14 @@ package org.apache.helix;
 import org.apache.helix.Mocks.MockHealthReportProvider;
 import org.apache.helix.Mocks.MockManager;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollectorImpl;
+import org.apache.helix.healthcheck.ParticipantHealthReportTask;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 public class TestParticipantHealthReportCollectorImpl {
 
 	protected ParticipantHealthReportCollectorImpl _providerImpl;
+	protected ParticipantHealthReportTask _providerTask;
 	protected HelixManager _manager;
 	protected MockHealthReportProvider _mockProvider;
 	
@@ -35,21 +37,22 @@ public class TestParticipantHealthReportCollectorImpl {
 	public void setup()
 	{
 		 _providerImpl = new ParticipantHealthReportCollectorImpl(new MockManager(), "instance_123");
+		 _providerTask = new ParticipantHealthReportTask(_providerImpl);
 		 _mockProvider = new MockHealthReportProvider();
 	}
 	
 	 @Test (groups = {"unitTest"})
 	  public void testStart() throws Exception
 	  {
-		 _providerImpl.start();
-		 _providerImpl.start();
+	   _providerTask.start();
+	   _providerTask.start();
 	  }
 	 
 	 @Test (groups = {"unitTest"})
 	  public void testStop() throws Exception
 	  {
-		 _providerImpl.stop();
-		 _providerImpl.stop();
+	   _providerTask.stop();
+	   _providerTask.stop();
 	  }
 	 
 	 @Test (groups = {"unitTest"})

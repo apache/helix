@@ -419,6 +419,48 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor
     accessor.setChildren(readMsgKeys, readMsgs);
   }
 
+  /**
+   * remove message-handler factory from map, shutdown the associated executor
+   * 
+   * @param type
+   */
+  void unregisterMessageHandlerFactory(String type) {
+    // shutdown executor-service. disconnect if fail
+    ExecutorService executorSvc = _executorMap.remove(type);
+    if (executorSvc != null) {
+      List<Runnable> tasksLeft = executorSvc.shutdownNow();
+      LOG.info(tasksLeft.size() + " tasks never executed for msgType: "
+          + type + ". tasks: " + tasksLeft);
+      try {
+        if (!executorSvc.awaitTermination(200, TimeUnit.MILLISECONDS)) {
+          LOG.error("executor-service for msgType: " + type 
+              + " is not fully terminated in 200ms. will disconnect helix-participant");
+          throw new HelixException("fail to unregister msg-handler for msgType: " + type);
+        }
+      } catch (InterruptedException e) {
+        LOG.error("interruped when waiting for executor-service shutdown for msgType: " + type, e);
+      }
+    }
+    
+    // reset state-model
+    MessageHandlerFactory handlerFty = _handlerFactoryMap.remove(type);
+    if (handlerFty != null) {
+      handlerFty.reset();
+    }
+  }
+  
+  void reset() {
+    LOG.info("Get FINALIZE notification");
+    for (String msgType : _executorMap.keySet())
+    {
+      unregisterMessageHandlerFactory(msgType);
+    }
+    
+    // clear task-map, all tasks should be terminated by now
+    _taskMap.clear();
+            
+  }
+  
   @Override
   public void onMessage(String instanceName,
                         List<Message> messages,
@@ -429,20 +471,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor
     // TODO: see if we should have a separate notification call for resetting
     if (changeContext.getType() == Type.FINALIZE)
     {
-      LOG.info("Get FINALIZE notification");
-      for (MessageHandlerFactory factory : _handlerFactoryMap.values())
-      {
-        factory.reset();
-      }
-      // Cancel all scheduled tasks
-      synchronized (_lock)
-      {
-          for (MessageTaskInfo info : _taskMap.values())
-          {
-            cancelTask(info._task);
-          }
-        _taskMap.clear();
-      }
+      reset();
       return;
     }
 

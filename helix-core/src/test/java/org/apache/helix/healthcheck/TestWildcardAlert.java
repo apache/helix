@@ -261,7 +261,7 @@ public class TestWildcardAlert extends ZkIntegrationTestBase
     Thread.sleep(3000);
     // HealthAggregationTask is supposed to run by a timer every 30s
     // To make sure HealthAggregationTask is run, we invoke it explicitly for this test
-    new HealthStatsAggregationTask(cmResult._manager).run();
+    new HealthStatsAggregator(cmResult._manager).aggregate();
 
     //sleep for a few seconds to give stats stage time to trigger and for bean to trigger
     Thread.sleep(3000);

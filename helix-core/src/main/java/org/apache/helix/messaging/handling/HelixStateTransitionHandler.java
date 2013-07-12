@@ -125,10 +125,8 @@ public class HelixStateTransitionHandler extends MessageHandler
 
   void postHandleMessage()
   {
-	// Message message = _message;
-	// HelixManager manager = _notificationContext.getManager();
-	HelixTaskResult taskResult = (HelixTaskResult) _notificationContext.get(MapKey.HELIX_TASK_RESULT.toString());
-	Exception exception = taskResult.getException();
+  	HelixTaskResult taskResult = (HelixTaskResult) _notificationContext.get(MapKey.HELIX_TASK_RESULT.toString());
+  	Exception exception = taskResult.getException();
 		
     String partitionKey = _message.getPartitionName();
     String resource = _message.getResourceName();
@@ -141,90 +139,88 @@ public class HelixStateTransitionHandler extends MessageHandler
     int bucketSize = _message.getBucketSize();
     ZNRecordBucketizer bucketizer = new ZNRecordBucketizer(bucketSize);
 
-    // Lock the helix manager so that the session id will not change when we update
-    // the state model state. for zk current state it is OK as we have the per-session
-    // current state node
-    synchronized (_manager)
+    // No need to sync on manager, we are cancel executor in expiry session before start executor in new session
+    // sessionId might change when we update the state model state. 
+    // for zk current state it is OK as we have the per-session current state node
+    if (!_message.getTgtSessionId().equals(_manager.getSessionId()))
     {
-      if (!_message.getTgtSessionId().equals(_manager.getSessionId()))
+      logger.warn("Session id has changed. Skip postExecutionMessage. Old session "
+          + _message.getExecutionSessionId() + " , new session : "
+          + _manager.getSessionId());
+      return;
+    }
+
+    if (taskResult.isSuccess())
+    {
+      // String fromState = message.getFromState();
+      String toState = _message.getToState();
+      _currentStateDelta.setState(partitionKey, toState);
+
+      if (toState.equalsIgnoreCase(HelixDefinedState.DROPPED.toString()))
       {
-        logger.warn("Session id has changed. Skip postExecutionMessage. Old session "
-            + _message.getExecutionSessionId() + " , new session : "
-            + _manager.getSessionId());
-        return;
-      }
+        // for "OnOfflineToDROPPED" message, we need to remove the resource key record
+        // from the current state of the instance because the resource key is dropped.
+        // In the state model it will be stayed as "OFFLINE", which is OK.
+        ZNRecordDelta delta =
+            new ZNRecordDelta(_currentStateDelta.getRecord(), MergeOperation.SUBTRACT);
+        // Don't subtract simple fields since they contain stateModelDefRef
+        delta._record.getSimpleFields().clear();
 
-      if (taskResult.isSuccess())
-      {
-        // String fromState = message.getFromState();
-        String toState = _message.getToState();
-        _currentStateDelta.setState(partitionKey, toState);
-
-        if (toState.equalsIgnoreCase(HelixDefinedState.DROPPED.toString()))
-        {
-          // for "OnOfflineToDROPPED" message, we need to remove the resource key record
-          // from the current state of the instance because the resource key is dropped.
-          // In the state model it will be stayed as "OFFLINE", which is OK.
-          ZNRecordDelta delta =
-              new ZNRecordDelta(_currentStateDelta.getRecord(), MergeOperation.SUBTRACT);
-          // Don't subtract simple fields since they contain stateModelDefRef
-          delta._record.getSimpleFields().clear();
-
-          List<ZNRecordDelta> deltaList = new ArrayList<ZNRecordDelta>();
-          deltaList.add(delta);
-          _currentStateDelta.setDeltaList(deltaList);
-        }
-        else
-        {
-          // if the partition is not to be dropped, update _stateModel to the TO_STATE
-          _stateModel.updateState(toState);
-        }
+        List<ZNRecordDelta> deltaList = new ArrayList<ZNRecordDelta>();
+        deltaList.add(delta);
+        _currentStateDelta.setDeltaList(deltaList);
       }
       else
       {
-        if (exception instanceof HelixStateMismatchException)
+        // if the partition is not to be dropped, update _stateModel to the TO_STATE
+        _stateModel.updateState(toState);
+      }
+    }
+    else
+    {
+      if (exception instanceof HelixStateMismatchException)
+      {
+        // if fromState mismatch, set current state on zk to stateModel's current state
+        logger.warn("Force CurrentState on Zk to be stateModel's CurrentState. partitionKey: "
+            + partitionKey
+            + ", currentState: "
+            + _stateModel.getCurrentState()
+            + ", message: " + _message);
+        _currentStateDelta.setState(partitionKey, _stateModel.getCurrentState());
+      }
+      else
+      {
+        StateTransitionError error =
+            new StateTransitionError(ErrorType.INTERNAL, ErrorCode.ERROR, exception);
+        if (exception instanceof InterruptedException)
         {
-          // if fromState mismatch, set current state on zk to stateModel's current state
-          logger.warn("Force CurrentState on Zk to be stateModel's CurrentState. partitionKey: "
-              + partitionKey
-              + ", currentState: "
-              + _stateModel.getCurrentState()
-              + ", message: " + _message);
-          _currentStateDelta.setState(partitionKey, _stateModel.getCurrentState());
-        }
-        else
-        {
-          StateTransitionError error =
-              new StateTransitionError(ErrorType.INTERNAL, ErrorCode.ERROR, exception);
-          if (exception instanceof InterruptedException)
+          if (_isTimeout)
           {
-            if (_isTimeout)
-            {
-              error =
-                  new StateTransitionError(ErrorType.INTERNAL,
-                                           ErrorCode.TIMEOUT,
-                                           exception);
-            }
-            else
-            {
-              // State transition interrupted but not caused by timeout. Keep the current
-              // state in this case
-              logger.error("State transition interrupted but not timeout. Not updating state. Partition : "
-                  + _message.getPartitionName() + " MsgId : " + _message.getMsgId());
-              return;
-            }
+            error =
+                new StateTransitionError(ErrorType.INTERNAL,
+                                         ErrorCode.TIMEOUT,
+                                         exception);
           }
-          _stateModel.rollbackOnError(_message, _notificationContext, error);
-          _currentStateDelta.setState(partitionKey, HelixDefinedState.ERROR.toString());
-          _stateModel.updateState(HelixDefinedState.ERROR.toString());
-          
-          // if we have errors transit from ERROR state, disable the partition
-          if (_message.getFromState().equalsIgnoreCase(HelixDefinedState.ERROR.toString())) {
-            disablePartition();
+          else
+          {
+            // State transition interrupted but not caused by timeout. Keep the current
+            // state in this case
+            logger.error("State transition interrupted but not timeout. Not updating state. Partition : "
+                + _message.getPartitionName() + " MsgId : " + _message.getMsgId());
+            return;
           }
+        }
+        _stateModel.rollbackOnError(_message, _notificationContext, error);
+        _currentStateDelta.setState(partitionKey, HelixDefinedState.ERROR.toString());
+        _stateModel.updateState(HelixDefinedState.ERROR.toString());
+        
+        // if we have errors transit from ERROR state, disable the partition
+        if (_message.getFromState().equalsIgnoreCase(HelixDefinedState.ERROR.toString())) {
+          disablePartition();
         }
       }
     }
+    
     try
     {
       // Update the ZK current state of the node

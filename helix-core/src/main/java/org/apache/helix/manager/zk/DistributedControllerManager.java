@@ -29,8 +29,10 @@ import org.apache.helix.PreConnectCallback;
 import org.apache.helix.HelixConstants.ChangeType;
 import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.healthcheck.HealthStatsAggregationTask;
+import org.apache.helix.healthcheck.HealthStatsAggregator;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollectorImpl;
+import org.apache.helix.healthcheck.ParticipantHealthReportTask;
 import org.apache.helix.manager.zk.ControllerManager.StatusDumpTask;
 import org.apache.helix.messaging.handling.MessageHandlerFactory;
 import org.apache.helix.model.LiveInstance;
@@ -63,9 +65,9 @@ public class DistributedControllerManager extends AbstractManager {
     _stateMachineEngine = new HelixStateMachineEngine(this);
     _participantHealthInfoCollector = new ParticipantHealthReportCollectorImpl(this, _instanceName);
 
-    _timerTasks.add(_participantHealthInfoCollector);
+    _timerTasks.add(new ParticipantHealthReportTask(_participantHealthInfoCollector));
     
-    _controllerTimerTasks.add(new HealthStatsAggregationTask(this));
+    _controllerTimerTasks.add(new HealthStatsAggregationTask(new HealthStatsAggregator(this)));
     _controllerTimerTasks.add(new ControllerManager.StatusDumpTask(_zkclient, this));
 
   }

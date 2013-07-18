@@ -1071,7 +1071,7 @@ public class ClusterSetup
         OptionBuilder.hasArgs(3)
                      .isRequired(false)
                      .withArgName("ConfigScope(e.g. RESOURCE) ConfigScopeArgs(e.g. myCluster,testDB) Keys(e.g. k1,k2)")
-                     .withLongOpt(getConfig)
+                     .withLongOpt(removeConfig)
                      .withDescription("Remove configs")
                      .create();
     

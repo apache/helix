@@ -368,7 +368,7 @@ public class TestClusterSetup extends ZkUnitTestBase
   }
 
   @Test()
-  public void testSetGetConfig() throws Exception
+  public void testSetGetRemoveParticipantConfig() throws Exception
   {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
@@ -377,22 +377,30 @@ public class TestClusterSetup extends ZkUnitTestBase
     System.out.println("START " + clusterName + " at "
         + new Date(System.currentTimeMillis()));
 
-    // basic
     _clusterSetup.addCluster(clusterName, true);
     _clusterSetup.addInstanceToCluster(clusterName, "localhost_0");
+    
+    // test set/get/remove instance configs
     String scopeArgs = clusterName + ",localhost_0";
     String keyValueMap = "key1=value1,key2=value2";
     String keys = "key1,key2";
-    _clusterSetup.setConfig(ConfigScopeProperty.PARTICIPANT, scopeArgs, keyValueMap);
-    String valuesStr = _clusterSetup.getConfig(ConfigScopeProperty.PARTICIPANT, scopeArgs, keys);
+    ClusterSetup.processCommandLineArgs(new String[]{"--zkSvr", ZK_ADDR, "--setConfig", ConfigScopeProperty.PARTICIPANT.toString(),
+                      scopeArgs, keyValueMap});
     
     // getConfig returns json-formatted key-value pairs
-    ZNRecord record = new ZNRecord(ConfigScopeProperty.PARTICIPANT.toString());
-    // record.setMapField(scopesStr,HelixUtil.parseCsvFormatedKeyValuePairs(propertiesStr));
-    record.getSimpleFields().putAll(HelixUtil.parseCsvFormatedKeyValuePairs(keyValueMap));
+    String valuesStr = _clusterSetup.getConfig(ConfigScopeProperty.PARTICIPANT, scopeArgs, keys);
     ZNRecordSerializer serializer = new ZNRecordSerializer();
-    Assert.assertEquals(valuesStr, new String(serializer.serialize(record)));
+    ZNRecord record = (ZNRecord) serializer.deserialize(valuesStr.getBytes());
+    Assert.assertEquals(record.getSimpleField("key1"), "value1");
+    Assert.assertEquals(record.getSimpleField("key2"), "value2");
 
+    ClusterSetup.processCommandLineArgs(new String[]{"--zkSvr", ZK_ADDR, "--removeConfig", ConfigScopeProperty.PARTICIPANT.toString(),
+        scopeArgs, keys});
+    valuesStr = _clusterSetup.getConfig(ConfigScopeProperty.PARTICIPANT, scopeArgs, keys);
+    record = (ZNRecord) serializer.deserialize(valuesStr.getBytes());
+    Assert.assertNull(record.getSimpleField("key1"));
+    Assert.assertNull(record.getSimpleField("key2"));
+    
     System.out.println("END " + clusterName + " at "
         + new Date(System.currentTimeMillis()));
   }

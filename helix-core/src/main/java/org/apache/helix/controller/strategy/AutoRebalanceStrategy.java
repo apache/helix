@@ -110,6 +110,7 @@ public class AutoRebalanceStrategy implements Rebalancer {
 
     private Map<String, Node> _nodeMap;
     private List<Node> _liveNodesList;
+    private Map<String, Map<Integer, Integer>> _replicaIdMap;
     private Map<Replica, Node> _preferredAssignment;
     private Map<Replica, Node> _existingNonPreferredAssignment;
     private Set<Replica> _orphaned;
@@ -155,6 +156,10 @@ public class AutoRebalanceStrategy implements Rebalancer {
         node.capacity = targetSize;
         _liveNodesList.add(node);
       }
+
+      // compute global ids for all replicas
+      _replicaIdMap = generateReplicaMap();
+
       // compute the preferred mapping if all nodes were up
       _preferredAssignment = computePreferredPlacement(allNodes);
       // logger.info("preferred mapping:"+ preferredAssignment);
@@ -297,14 +302,15 @@ public class AutoRebalanceStrategy implements Rebalancer {
       for (String state : _states.keySet()) {
         int count = _states.get(state);
         for (int replicaId = 0; replicaId < count; replicaId++) {
+          int globalReplicaId = _replicaIdMap.get(state).get(replicaId);
           for (Node node : _liveNodesList) {
             for (Replica replica : node.preferred) {
-              if (replica.state.equals(state) && replicaId == replica.replicaId) {
+              if (replica.state.equals(state) && globalReplicaId == replica.replicaId) {
                 znRecord.getListField(replica.partition).add(node.id);
               }
             }
             for (Replica replica : node.nonPreferred) {
-              if (replica.state.equals(state) && replicaId == replica.replicaId) {
+              if (replica.state.equals(state) && globalReplicaId == replica.replicaId) {
                 znRecord.getListField(replica.partition).add(node.id);
               }
             }
@@ -340,7 +346,8 @@ public class AutoRebalanceStrategy implements Rebalancer {
           }
           // check if its in one of the preferred position
           for (int i = 0; i < count; i++) {
-            Replica replica = new Replica(partition, state, i);
+            int replicaId = _replicaIdMap.get(state).get(i);
+            Replica replica = new Replica(partition, state, replicaId);
             if (_preferredAssignment.get(replica).id != node.id) {
               existingNonPreferredAssignment.put(replica, node);
               node.nonPreferred.add(replica);
@@ -366,7 +373,8 @@ public class AutoRebalanceStrategy implements Rebalancer {
           Integer count = _states.get(state);
           // remove from orphaned if possible
           for (int i = 0; i < count; i++) {
-            Replica replica = new Replica(partition, state, i);
+            int replicaId = _replicaIdMap.get(state).get(i);
+            Replica replica = new Replica(partition, state, replicaId);
             if (orphanedPartitions.contains(replica)) {
               orphanedPartitions.remove(replica);
               break;
@@ -395,7 +403,8 @@ public class AutoRebalanceStrategy implements Rebalancer {
           Integer count = _states.get(state);
           // check if its in one of the preferred position
           for (int i = 0; i < count; i++) {
-            Replica replica = new Replica(partition, state, i);
+            int replicaId = _replicaIdMap.get(state).get(i);
+            Replica replica = new Replica(partition, state, replicaId);
             if (_preferredAssignment.containsKey(replica)
                 && !existingPreferredAssignment.containsKey(replica)
                 && _preferredAssignment.get(replica).id == node.id) {
@@ -424,7 +433,7 @@ public class AutoRebalanceStrategy implements Rebalancer {
         int replicaId = 0;
         for (String state : _states.keySet()) {
           for (int i = 0; i < _states.get(state); i++) {
-            Replica replica = new Replica(partition, state, i);
+            Replica replica = new Replica(partition, state, replicaId);
             int index;
             if (allNodes.size() > _partitions.size()) {
               // assign replicas in partition order in case there are more nodes than partitions
@@ -458,6 +467,27 @@ public class AutoRebalanceStrategy implements Rebalancer {
         total += count;
       }
       return total;
+    }
+
+    /**
+     * Compute a map of local replica ids to global replica ids. Local replica ids are relative to
+     * a state of a partition, while global ids are relative to the partition as a whole
+     * @return A map of (state, local id) to global id
+     */
+    private Map<String, Map<Integer, Integer>> generateReplicaMap() {
+      int replicaId = 0;
+      Map<String, Map<Integer, Integer>> stateToIdMap =
+          new HashMap<String, Map<Integer, Integer>>();
+      for (String state : _states.keySet()) {
+        Integer count = _states.get(state);
+        Map<Integer, Integer> localToGlobalMap = new HashMap<Integer, Integer>();
+        for (int i = 0; i < count; i++) {
+          localToGlobalMap.put(i, replicaId);
+          replicaId++;
+        }
+        stateToIdMap.put(state, localToGlobalMap);
+      }
+      return stateToIdMap;
     }
 
     /**
@@ -523,19 +553,19 @@ public class AutoRebalanceStrategy implements Rebalancer {
 
       private String partition;
       private String state;
-      private int replicaId;
+      private int replicaId; // this is a partition-relative id
       private String format;
 
       public Replica(String partition, String state, int replicaId) {
         this.partition = partition;
         this.state = state;
         this.replicaId = replicaId;
-        this.format = partition + "|" + state + "|" + replicaId;
+        this.format = partition + "|" + replicaId;
       }
 
       @Override
       public String toString() {
-        return format;
+        return format + "|" + state;
       }
 
       @Override

@@ -420,13 +420,23 @@ public class AutoRebalanceStrategy implements Rebalancer {
       Map<Replica, Node> preferredMapping;
       preferredMapping = new HashMap<Replica, Node>();
       int partitionId = 0;
-
       for (String partition : _partitions) {
         int replicaId = 0;
         for (String state : _states.keySet()) {
           for (int i = 0; i < _states.get(state); i++) {
             Replica replica = new Replica(partition, state, i);
-            int index = (partitionId + replicaId) % allNodes.size();
+            int index;
+            if (allNodes.size() > _partitions.size()) {
+              // assign replicas in partition order in case there are more nodes than partitions
+              index = (partitionId + replicaId * _partitions.size()) % allNodes.size();
+            } else if (allNodes.size() == _partitions.size()) {
+              // need a replica offset in case the sizes of these sets are the same
+              index = ((partitionId + replicaId * _partitions.size()) % allNodes.size()
+                  + replicaId) % allNodes.size();
+            } else {
+              // in all other cases, assigning a replica at a time for each partition is reasonable
+              index = (partitionId + replicaId) % allNodes.size();
+            }
             preferredMapping.put(replica, _nodeMap.get(allNodes.get(index)));
             replicaId = replicaId + 1;
           }

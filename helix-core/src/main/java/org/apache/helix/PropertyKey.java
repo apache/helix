@@ -74,12 +74,12 @@ public class PropertyKey
   //if type is CONFIGS, set configScope; otherwise null
   ConfigScopeProperty _configScope;
 
-  public PropertyKey(PropertyType type, Class<? extends HelixProperty> typeClazz, 
+  public PropertyKey(PropertyType type, Class<? extends HelixProperty> typeClazz,
 		  String... params)
   {
     this(type, null, typeClazz, params);
   }
-  
+
   public PropertyKey(PropertyType type,
 		  			 ConfigScopeProperty configScope,
                      Class<? extends HelixProperty> typeClazz,
@@ -93,7 +93,7 @@ public class PropertyKey
 
     _params = params;
     _typeClazz = typeClazz;
-    
+
     _configScope = configScope;
   }
 
@@ -107,7 +107,7 @@ public class PropertyKey
   public String toString() {
 	  return getPath();
   }
-  
+
   public String getPath()
   {
     String clusterName = _params[0];
@@ -161,7 +161,7 @@ public class PropertyKey
                              _clusterName,
                              ConfigScopeProperty.CLUSTER.toString());
     }
-    
+
     public PropertyKey clusterConfig()
     {
     	return new PropertyKey(CONFIGS,
@@ -169,7 +169,7 @@ public class PropertyKey
                 HelixProperty.class,
                 _clusterName,
                 ConfigScopeProperty.CLUSTER.toString(),
-                _clusterName);    	
+                _clusterName);
     }
 
     public PropertyKey instanceConfigs()
@@ -178,7 +178,7 @@ public class PropertyKey
  				 ConfigScopeProperty.PARTICIPANT,
                 InstanceConfig.class,
                 _clusterName,
-                ConfigScopeProperty.PARTICIPANT.toString());        
+                ConfigScopeProperty.PARTICIPANT.toString());
     }
 
     public PropertyKey instanceConfig(String instanceName)
@@ -199,7 +199,7 @@ public class PropertyKey
                              _clusterName,
                              ConfigScopeProperty.RESOURCE.toString());
     }
-    
+
     public PropertyKey resourceConfig(String resourceName)
     {
       return new PropertyKey(CONFIGS,
@@ -264,7 +264,7 @@ public class PropertyKey
 
     public PropertyKey instances()
     {
-      return new PropertyKey(CONFIGS, null, _clusterName);
+      return new PropertyKey(PropertyType.INSTANCES, null, _clusterName);
     }
 
     public PropertyKey messages(String instanceName)
@@ -374,7 +374,7 @@ public class PropertyKey
 
     /**
      * Used to get status update for a NON STATE TRANSITION type
-     * 
+     *
      * @param instanceName
      * @param sessionId
      * @param msgType
@@ -423,7 +423,7 @@ public class PropertyKey
 
     /**
      * Used to get status update for a NON STATE TRANSITION type
-     * 
+     *
      * @param instanceName
      * @param sessionId
      * @param msgType
@@ -566,5 +566,5 @@ public class PropertyKey
   {
 	  return _configScope;
   }
-  
+
 }

@@ -22,22 +22,15 @@ package org.apache.helix.integration.manager;
 import java.util.List;
 
 import org.apache.helix.manager.zk.CallbackHandler;
-import org.apache.helix.manager.zk.ParticipantManager;
 import org.apache.helix.manager.zk.ZkClient;
 
-// ZkHelixManager used for test only. expose more class members
-public class TestAbstractManager extends ParticipantManager {
+public interface ZkTestManager
+{
+  ZkClient getZkClient();
 
-  public TestAbstractManager(String zkConnectString, String clusterName, 
-      String instanceName) throws Exception {
-    super(zkConnectString, clusterName, instanceName);
-  }
+  List<CallbackHandler> getHandlers();
 
-  public ZkClient getZkClient() {
-    return _zkclient;
-  }
+  String getInstanceName();
 
-  public List<CallbackHandler> getHandlers() {
-    return _handlers;
-  }
+  String getClusterName();
 }

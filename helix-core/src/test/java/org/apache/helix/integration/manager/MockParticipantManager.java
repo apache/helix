@@ -19,8 +19,10 @@ package org.apache.helix.integration.manager;
  * under the License.
  */
 
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
+import org.apache.helix.manager.zk.CallbackHandler;
 import org.apache.helix.manager.zk.ParticipantManager;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.mock.participant.DummyProcess.DummyLeaderStandbyStateModelFactory;
@@ -32,7 +34,7 @@ import org.apache.helix.participant.StateMachineEngine;
 import org.apache.log4j.Logger;
 
 
-public class MockParticipantManager extends ParticipantManager implements Runnable
+public class MockParticipantManager extends ParticipantManager implements Runnable, ZkTestManager
 {
   private static Logger           LOG = Logger.getLogger(MockParticipantManager.class);
   private final String            _instanceName;
@@ -133,7 +135,13 @@ public class MockParticipantManager extends ParticipantManager implements Runnab
     }
   }
 
+  @Override
   public ZkClient getZkClient() {
     return _zkclient;
+  }
+
+  @Override
+  public List<CallbackHandler> getHandlers() {
+    return _handlers;
   }
 }

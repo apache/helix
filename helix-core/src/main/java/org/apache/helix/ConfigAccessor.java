@@ -77,7 +77,7 @@ public class ConfigAccessor
   /**
    * get config
    * @deprecated replaced by {@link #get(HelixConfigScope, String)}
-   * 
+   *
    * @param scope
    * @param key
    * @return value or null if doesn't exist
@@ -88,11 +88,11 @@ public class ConfigAccessor
     Map<String, String> map = get(scope, Arrays.asList(key));
     return map.get(key);
   }
-  
+
   /**
    * get configs
    * @deprecated replaced by {@link #get(HelixConfigScope, List<String>)}
-   * 
+   *
    * @param scope
    * @param keys
    * @return
@@ -144,10 +144,10 @@ public class ConfigAccessor
     return map;
 
   }
-  
+
   /**
    * get config
-   * 
+   *
    * @param scope
    * @param key
    * @return
@@ -159,10 +159,10 @@ public class ConfigAccessor
     }
     return null;
   }
-  
+
   /**
    * get configs
-   * 
+   *
    * @param scope
    * @param keys
    * @return
@@ -185,7 +185,7 @@ public class ConfigAccessor
       LOG.warn("No config found at " + scope.getZkPath());
       return null;
     }
-    
+
     String mapKey = scope.getMapKey();
     if (mapKey == null) {
       for (String key : keys) {
@@ -199,7 +199,7 @@ public class ConfigAccessor
         LOG.warn("No map-field found in " + record + " using mapKey: " + mapKey);
         return null;
       }
-      
+
       for (String key : keys) {
         if (record.getMapField(mapKey).containsKey(key)) {
           map.put(key, record.getMapField(mapKey).get(key));
@@ -207,13 +207,13 @@ public class ConfigAccessor
       }
     }
 
-    return map;  
+    return map;
   }
-  
+
   /**
    * Set config, create if not exist
    * @deprecated replaced by {@link #set(HelixConfigScope, String, String)}
-   * 
+   *
    * @param scope
    * @param key
    * @param value
@@ -224,7 +224,7 @@ public class ConfigAccessor
     map.put(key, value);
     set(scope, map);
   }
-  
+
   /**
    * Set configs, create if not exist
    * @deprecated replaced by {@link #set(HelixConfigScope, Map<String, String>)}
@@ -285,7 +285,7 @@ public class ConfigAccessor
 
   /**
    * set config. create if not exist
-   * 
+   *
    * @param scope
    * @param key
    * @param value
@@ -298,7 +298,7 @@ public class ConfigAccessor
 
   /**
    * set configs. create if not exist
-   * 
+   *
    * @param scope
    * @param keyValueMap
    */
@@ -315,9 +315,9 @@ public class ConfigAccessor
     }
 
     if (scope.getType() == ConfigScopeProperty.PARTICIPANT) {
-       if (!ZKUtil.isInstanceSetup(zkClient, scope.getClusterName(), scope.getParticipantName(), 
+       if (!ZKUtil.isInstanceSetup(zkClient, scope.getClusterName(), scope.getParticipantName(),
                InstanceType.PARTICIPANT)) {
-           throw new HelixException("fail to set config. instance: " + scope.getClusterName() 
+           throw new HelixException("fail to set config. instance: " + scope.getParticipantName()
                + " is NOT setup in cluster: " + clusterName);
        }
     }
@@ -334,11 +334,11 @@ public class ConfigAccessor
     ZKUtil.createOrUpdate(zkClient, zkPath, update, true, true);
     return;
   }
-  
+
   /**
    * Remove config
    * @deprecated replaced by {@link #remove(HelixConfigScope, String)}
-   * 
+   *
    * @param scope
    * @param key
    */
@@ -346,11 +346,11 @@ public class ConfigAccessor
   public void remove(ConfigScope scope, String key) {
     remove(scope, Arrays.asList(key));
   }
-  
+
   /**
    * remove configs
    * @deprecated replaced by {@link #remove(HelixConfigScope, List<String>)}
-   * 
+   *
    * @param scope
    * @param keys
    */
@@ -399,7 +399,7 @@ public class ConfigAccessor
 
   /**
    * rmeove config
-   * 
+   *
    * @param scope
    * @param key
    */
@@ -409,7 +409,7 @@ public class ConfigAccessor
 
   /**
    * remove configs
-   * 
+   *
    * @param scope
    * @param keys
    */
@@ -445,11 +445,11 @@ public class ConfigAccessor
     ZKUtil.subtract(zkClient, zkPath, update);
     return;
   }
-  
+
   /**
    * get config keys
    * @deprecated replaced by {@link #getKeys(HelixConfigScope)}
-   * 
+   *
    * @param type
    * @param clusterName
    * @param keys
@@ -517,11 +517,11 @@ public class ConfigAccessor
     }
 
   }
-  
-  
+
+
   /**
    * get list of config keys for a scope
-   * 
+   *
    * @param scope
    * @return
    */
@@ -530,16 +530,16 @@ public class ConfigAccessor
       LOG.error("fail to getKeys. invalid config scope: " + scope);
       return null;
     }
-  
+
     if (!ZKUtil.isClusterSetup(scope.getClusterName(), zkClient)){
       LOG.error("fail to getKeys. cluster " + scope.getClusterName() + " is not setup yet");
       return Collections.emptyList();
     }
-  
+
     String zkPath = scope.getZkPath();
     String mapKey = scope.getMapKey();
     List<String> retKeys = null;
-    
+
     if (scope.isFullKey()) {
       ZNRecord record = zkClient.readData(zkPath);
       if (mapKey == null) {
@@ -555,7 +555,7 @@ public class ConfigAccessor
         retKeys = zkClient.getChildren(zkPath);
       }
     }
-      
+
     if (retKeys != null) {
       Collections.sort(retKeys);
     }

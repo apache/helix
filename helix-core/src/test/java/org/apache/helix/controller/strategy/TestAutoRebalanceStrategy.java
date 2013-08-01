@@ -34,6 +34,7 @@ import java.util.TreeSet;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.strategy.AutoRebalanceStrategy;
 import org.apache.helix.controller.strategy.AutoRebalanceStrategy.AutoRebalanceModeAlgorithm;
+import org.apache.helix.controller.strategy.AutoRebalanceStrategy.ReplicaPlacementScheme;
 import org.apache.log4j.Logger;
 import org.testng.annotations.Test;
 
@@ -75,7 +76,8 @@ public class TestAutoRebalanceStrategy {
     Map<String, Map<String, String>> currentMapping = new TreeMap<String, Map<String, String>>();
 
     new AutoRebalanceTester(partitions, states, liveNodes, currentMapping,
-        allNodes, MAX_PER_NODE).runRepeatedly(NUM_ITERATIONS);
+        allNodes, MAX_PER_NODE,
+        new AutoRebalanceStrategy.DefaultPlacementScheme()).runRepeatedly(NUM_ITERATIONS);
   }
 
   class AutoRebalanceTester {
@@ -93,12 +95,13 @@ public class TestAutoRebalanceStrategy {
     private Map<String, Map<String, String>> _currentMapping;
     private List<String> _allNodes;
     private int _maxPerNode;
+    private ReplicaPlacementScheme _placementScheme;
     private Random _random;
 
     public AutoRebalanceTester(List<String> partitions,
         LinkedHashMap<String, Integer> states, List<String> liveNodes,
         Map<String, Map<String, String>> currentMapping, List<String> allNodes,
-        int maxPerNode) {
+        int maxPerNode, ReplicaPlacementScheme placementScheme) {
       _partitions = partitions;
       _states = states;
       _liveNodes = liveNodes;
@@ -116,6 +119,7 @@ public class TestAutoRebalanceStrategy {
         }
       }
       _maxPerNode = maxPerNode;
+      _placementScheme = placementScheme;
       _random = new Random();
     }
 
@@ -128,7 +132,7 @@ public class TestAutoRebalanceStrategy {
     public void runRepeatedly(int numIterations) {
       logger.info("~~~~ Initial State ~~~~~");
       ZNRecord initialResult = new AutoRebalanceStrategy.AutoRebalanceModeAlgorithm(
-          RESOURCE_NAME, _partitions, _states, _maxPerNode)
+          RESOURCE_NAME, _partitions, _states, _maxPerNode, _placementScheme)
           .computePartitionAssignment(_liveNodes, _currentMapping, _allNodes);
       _currentMapping = initialResult.getMapFields();
       logger.info(_currentMapping);
@@ -426,7 +430,7 @@ public class TestAutoRebalanceStrategy {
       _nonLiveSet.remove(node);
 
       return new AutoRebalanceStrategy.AutoRebalanceModeAlgorithm(
-          RESOURCE_NAME, _partitions, _states, _maxPerNode)
+          RESOURCE_NAME, _partitions, _states, _maxPerNode, _placementScheme)
           .computePartitionAssignment(_liveNodes, _currentMapping, _allNodes);
     }
 
@@ -462,7 +466,7 @@ public class TestAutoRebalanceStrategy {
       }
 
       return new AutoRebalanceStrategy.AutoRebalanceModeAlgorithm(
-          RESOURCE_NAME, _partitions, _states, _maxPerNode)
+          RESOURCE_NAME, _partitions, _states, _maxPerNode, _placementScheme)
           .computePartitionAssignment(_liveNodes, _currentMapping, _allNodes);
     }
 
@@ -490,7 +494,7 @@ public class TestAutoRebalanceStrategy {
       _liveSet.add(node);
 
       return new AutoRebalanceStrategy.AutoRebalanceModeAlgorithm(
-          RESOURCE_NAME, _partitions, _states, _maxPerNode)
+          RESOURCE_NAME, _partitions, _states, _maxPerNode, _placementScheme)
           .computePartitionAssignment(_liveNodes, _currentMapping, _allNodes);
     }
 

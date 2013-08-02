@@ -21,39 +21,29 @@ package org.apache.helix.manager.zk;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Timer;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.BaseDataAccessor;
-import org.apache.helix.ConfigAccessor;
-import org.apache.helix.HelixException;
 import org.apache.helix.HelixTimerTask;
 import org.apache.helix.InstanceType;
-import org.apache.helix.MessageListener;
 import org.apache.helix.PropertyPathConfig;
 import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.HelixConstants.ChangeType;
-import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.healthcheck.HealthStatsAggregationTask;
 import org.apache.helix.healthcheck.HealthStatsAggregator;
-import org.apache.helix.messaging.handling.MessageHandlerFactory;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.monitoring.ZKPathDataDumpTask;
-import org.apache.helix.monitoring.mbeans.HelixStageLatencyMonitor;
-import org.apache.helix.participant.DistClusterControllerElection;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.Watcher.Event.EventType;
-import org.apache.zookeeper.Watcher.Event.KeeperState;
 
 public class ControllerManager extends AbstractManager {
   private static Logger LOG = Logger.getLogger(ControllerManager.class);
 
   final GenericHelixController _controller = new GenericHelixController();
-  
+
   // TODO merge into GenericHelixController
   private CallbackHandler _leaderElectionHandler = null;
 
@@ -65,12 +55,12 @@ public class ControllerManager extends AbstractManager {
     Timer _timer = null;
     final ZkClient zkclient;
     final AbstractManager helixController;
-    
+
     public StatusDumpTask(ZkClient zkclient, AbstractManager helixController) {
       this.zkclient = zkclient;
       this.helixController = helixController;
     }
-    
+
     @Override
     public void start() {
       long initialDelay = 30 * 60 * 1000;
@@ -87,7 +77,7 @@ public class ControllerManager extends AbstractManager {
                                    initialDelay,
                                    period);
       }
-      
+
     }
 
     @Override
@@ -97,13 +87,13 @@ public class ControllerManager extends AbstractManager {
         LOG.info("Stop StatusDumpTask");
         _timer.cancel();
         _timer = null;
-      }      
+      }
     }
   }
-  
+
   public ControllerManager(String zkAddress, String clusterName, String instanceName) {
     super(zkAddress, clusterName, instanceName, InstanceType.CONTROLLER);
-    
+
     _timerTasks.add(new HealthStatsAggregationTask(new HealthStatsAggregator(this)));
     _timerTasks.add(new StatusDumpTask(_zkclient, this));
   }
@@ -114,13 +104,13 @@ public class ControllerManager extends AbstractManager {
   }
 
   @Override
-  public void handleNewSession() throws Exception {  
+  public void handleNewSession() throws Exception {
     waitUntilConnected();
-    
+
     /**
      * reset all handlers, make sure cleanup completed for previous session
      * disconnect if fail to cleanup
-     */    
+     */
     if (_leaderElectionHandler != null) {
       _leaderElectionHandler.reset();
     }
@@ -130,7 +120,7 @@ public class ControllerManager extends AbstractManager {
     /**
      * from here on, we are dealing with new session
      */
-    
+
     if (_leaderElectionHandler != null) {
       _leaderElectionHandler.init();
     } else {
@@ -142,7 +132,7 @@ public class ControllerManager extends AbstractManager {
                                       EventType.NodeDeleted, EventType.NodeCreated },
                                   ChangeType.CONTROLLER);
     }
-    
+
     /**
      * init user defined handlers only
      */
@@ -188,12 +178,12 @@ public class ControllerManager extends AbstractManager {
     } catch (Exception e) {
       // log
     }
-    return false;  
+    return false;
   }
 
   /**
    * helix-controller uses a write-through cache for external-view
-   * 
+   *
    */
   @Override
   BaseDataAccessor<ZNRecord> createBaseDataAccessor(ZkBaseDataAccessor<ZNRecord> baseDataAccessor) {
@@ -202,5 +192,5 @@ public class ControllerManager extends AbstractManager {
                                                 Arrays.asList(extViewPath));
 
   }
-  
+
 }

@@ -56,7 +56,7 @@ public class ZkTestHelper
   {
     // Logger.getRootLogger().setLevel(Level.DEBUG);
   }
-  
+
   public static void disconnectSession(final ZkClient zkClient) throws Exception
   {
     IZkStateListener listener = new IZkStateListener()
@@ -182,6 +182,46 @@ public class ZkTestHelper
     LOG.info("After expiry. sessionId: " + Long.toHexString(curZookeeper.getSessionId()));
   }
 
+  /**
+   * expire zk session asynchronously
+   * @param zkClient
+   * @throws Exception
+   */
+  public static void asyncExpireSession(final ZkClient zkClient) throws Exception
+  {
+    ZkConnection connection = ((ZkConnection) zkClient.getConnection());
+    ZooKeeper curZookeeper = connection.getZookeeper();
+    LOG.info("Before expiry. sessionId: " + Long.toHexString(curZookeeper.getSessionId()));
+
+    Watcher watcher = new Watcher()
+    {
+      @Override
+      public void process(WatchedEvent event)
+      {
+        LOG.info("Process watchEvent: " + event);
+      }
+    };
+
+    final ZooKeeper dupZookeeper =
+        new ZooKeeper(connection.getServers(),
+                      curZookeeper.getSessionTimeout(),
+                      watcher,
+                      curZookeeper.getSessionId(),
+                      curZookeeper.getSessionPasswd());
+    // wait until connected, then close
+    while (dupZookeeper.getState() != States.CONNECTED)
+    {
+      Thread.sleep(10);
+    }
+    dupZookeeper.close();
+
+    connection = (ZkConnection) zkClient.getConnection();
+    curZookeeper = connection.getZookeeper();
+
+    // System.err.println("zk: " + oldZookeeper);
+    LOG.info("After expiry. sessionId: " + Long.toHexString(curZookeeper.getSessionId()));
+  }
+
   /*
    * stateMap: partition->instance->state
    */
@@ -235,7 +275,7 @@ public class ZkTestHelper
     }
     return result;
   }
-  
+
   /**
    * return the number of listeners on given zk-path
    * @param zkAddr
@@ -251,10 +291,10 @@ public class ZkTestHelper
 	  }
 	  return 0;
   }
-  
+
   /**
    * return a map from zk-path to a set of zk-session-id that put watches on the zk-path
-   * 
+   *
    * @param zkAddr
    * @return
    * @throws Exception
@@ -265,22 +305,22 @@ public class ZkTestHelper
     Map<String, Set<String>> listenerMap = new TreeMap<String, Set<String>>();
     Socket sock = null;
     int retry = 5;
-    
+
     while (retry > 0) {
       try {
         sock = new Socket(splits[0], Integer.parseInt(splits[1]));
         PrintWriter out = new PrintWriter(sock.getOutputStream(), true);
         BufferedReader in = new BufferedReader(new InputStreamReader(sock.getInputStream()));
-    
+
         out.println("wchp");
-    
+
         listenerMap.clear();
         String lastPath = null;
         String line = in.readLine();
         while (line != null)
         {
         	line = line.trim();
-        	
+
         	if (line.startsWith("/")) {
         		lastPath = line;
         		if (!listenerMap.containsKey(lastPath)) {
@@ -315,12 +355,12 @@ public class ZkTestHelper
 
   /**
    * return a map from session-id to a set of zk-path that the session has watches on
-   * 
+   *
    * @return
    */
   public static Map<String, Set<String>> getListenersBySession(String zkAddr) throws Exception {
 	  Map<String, Set<String>> listenerMapByInstance = getListenersByZkPath(zkAddr);
-	  
+
 	  // convert to index by sessionId
 	  Map<String, Set<String>> listenerMapBySession = new TreeMap<String, Set<String>>();
 	  for (String path : listenerMapByInstance.keySet()) {

@@ -33,14 +33,9 @@ import org.apache.helix.healthcheck.HealthStatsAggregator;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollectorImpl;
 import org.apache.helix.healthcheck.ParticipantHealthReportTask;
-import org.apache.helix.manager.zk.ControllerManager.StatusDumpTask;
-import org.apache.helix.messaging.handling.MessageHandlerFactory;
 import org.apache.helix.model.LiveInstance;
-import org.apache.helix.model.Message.MessageType;
-import org.apache.helix.participant.DistClusterControllerElection;
 import org.apache.helix.participant.HelixStateMachineEngine;
 import org.apache.helix.participant.StateMachineEngine;
-import org.apache.helix.participant.statemachine.ScheduledTaskStateModelFactory;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.Watcher.Event.EventType;
 
@@ -52,7 +47,7 @@ public class DistributedControllerManager extends AbstractManager {
 
   CallbackHandler _leaderElectionHandler = null;
   final GenericHelixController _controller = new GenericHelixController();
-  
+
   /**
    * hold timer tasks for controller only
    * we need to add/remove controller timer tasks during handle new session
@@ -61,12 +56,12 @@ public class DistributedControllerManager extends AbstractManager {
 
   public DistributedControllerManager(String zkAddress, String clusterName, String instanceName) {
     super(zkAddress, clusterName, instanceName, InstanceType.CONTROLLER_PARTICIPANT);
-    
+
     _stateMachineEngine = new HelixStateMachineEngine(this);
     _participantHealthInfoCollector = new ParticipantHealthReportCollectorImpl(this, _instanceName);
 
     _timerTasks.add(new ParticipantHealthReportTask(_participantHealthInfoCollector));
-    
+
     _controllerTimerTasks.add(new HealthStatsAggregationTask(new HealthStatsAggregator(this)));
     _controllerTimerTasks.add(new ControllerManager.StatusDumpTask(_zkclient, this));
 
@@ -77,12 +72,12 @@ public class DistributedControllerManager extends AbstractManager {
     checkConnected();
     return _participantHealthInfoCollector;
   }
-  
+
   @Override
   public StateMachineEngine getStateMachineEngine() {
     return _stateMachineEngine;
   }
-  
+
   @Override
   protected List<HelixTimerTask> getControllerHelixTimerTasks() {
     return _controllerTimerTasks;
@@ -91,10 +86,10 @@ public class DistributedControllerManager extends AbstractManager {
   @Override
   public void handleNewSession() throws Exception {
     waitUntilConnected();
-    
-    ParticipantManagerHelper participantHelper 
+
+    ParticipantManagerHelper participantHelper
       = new ParticipantManagerHelper(this, _zkclient, _sessionTimeout);
- 
+
     /**
      * stop all timer tasks, reset all handlers, make sure cleanup completed for previous session
      * disconnect if fail to cleanup
@@ -104,13 +99,13 @@ public class DistributedControllerManager extends AbstractManager {
       _leaderElectionHandler.reset();
     }
     resetHandlers();
-    
+
     /**
      * clean up write-through cache
      */
     _baseDataAccessor.reset();
 
-    
+
     /**
      * from here on, we are dealing with new session
      */
@@ -118,7 +113,7 @@ public class DistributedControllerManager extends AbstractManager {
       throw new HelixException("Cluster structure is not set up for cluster: "
           + _clusterName);
     }
-    
+
     /**
      * auto-join
      */
@@ -133,11 +128,11 @@ public class DistributedControllerManager extends AbstractManager {
     }
 
     participantHelper.createLiveInstance();
-    
+
     participantHelper.carryOverPreviousCurrentState();
-    
+
     participantHelper.setupMsgHandler();
-    
+
     /**
      * leader election
      */
@@ -158,7 +153,7 @@ public class DistributedControllerManager extends AbstractManager {
      */
     participantHelper.createHealthCheckPath();
     startTimerTasks();
-    
+
     /**
      * init user defined handlers only
      */
@@ -172,7 +167,7 @@ public class DistributedControllerManager extends AbstractManager {
       }
     }
     initHandlers(userHandlers);
-    
+
   }
 
   @Override
@@ -205,7 +200,7 @@ public class DistributedControllerManager extends AbstractManager {
     } catch (Exception e) {
       // log
     }
-    return false;  
+    return false;
   }
 
 }

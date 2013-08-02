@@ -76,7 +76,7 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase
       String instanceName = "localhost_" + (12918 + i);
 
       participants[i] =
-          new MockParticipantManager(ZK_ADDR, clusterName, instanceName, null);
+          new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
       participants[i].syncStart();
     }
 
@@ -240,7 +240,7 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase
       String instanceName = "localhost_" + (12918 + i);
 
       participants[i] =
-          new MockParticipantManager(ZK_ADDR, clusterName, instanceName, null);
+          new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
       participants[i].syncStart();
     }
 
@@ -374,7 +374,7 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase
     {
       String instanceName = "localhost_" + (12918 + i);
       participants[i] =
-          new MockParticipantManager(zkAddr, clusterName, instanceName, null);
+          new MockParticipantManager(zkAddr, clusterName, instanceName);
       participants[i].syncStart();
 
       // register a controller listener on participant_0

@@ -37,27 +37,16 @@ import org.apache.log4j.Logger;
 public class MockParticipantManager extends ParticipantManager implements Runnable, ZkTestManager
 {
   private static Logger           LOG = Logger.getLogger(MockParticipantManager.class);
-  private final String            _instanceName;
 
   private final CountDownLatch    _startCountDown          = new CountDownLatch(1);
   private final CountDownLatch    _stopCountDown           = new CountDownLatch(1);
   private final CountDownLatch    _waitStopCompleteCountDown = new CountDownLatch(1);
 
-  private final MockMSModelFactory _msModelFactory;
+  private final MockMSModelFactory _msModelFactory = new MockMSModelFactory(null);
 
-  public MockParticipantManager(String clusterName, String instanceName, String zkAddr) throws Exception
-  {
-    this(clusterName, instanceName, zkAddr, null);
-  }
-
-  public MockParticipantManager(String zkAddr,
-                         String clusterName,
-                         String instanceName,
-                         MockTransition transition) throws Exception
+  public MockParticipantManager(String zkAddr, String clusterName, String instanceName)
   {
     super(zkAddr, clusterName, instanceName);
-    _instanceName = instanceName;
-    _msModelFactory = new MockMSModelFactory(transition);
   }
 
   public void setTransition(MockTransition transition)
@@ -117,10 +106,9 @@ public class MockParticipantManager extends ParticipantManager implements Runnab
     catch (InterruptedException e)
     {
       String msg =
-          "participant: " + _instanceName + ", " + Thread.currentThread().getName()
+          "participant: " + getInstanceName() + ", " + Thread.currentThread().getName()
               + " is interrupted";
       LOG.info(msg);
-      System.err.println(msg);
     }
     catch (Exception e)
     {

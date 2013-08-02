@@ -19,89 +19,50 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
-import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
-import org.I0Itec.zkclient.ZkConnection;
-import org.I0Itec.zkclient.exception.ZkNodeExistsException;
-import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
-import org.apache.helix.ClusterMessagingService;
-import org.apache.helix.ConfigAccessor;
-import org.apache.helix.ConfigChangeListener;
-import org.apache.helix.ControllerChangeListener;
-import org.apache.helix.CurrentStateChangeListener;
-import org.apache.helix.ExternalViewChangeListener;
-import org.apache.helix.HealthStateChangeListener;
-import org.apache.helix.HelixAdmin;
-import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
-import org.apache.helix.HelixManagerProperties;
-import org.apache.helix.IdealStateChangeListener;
-import org.apache.helix.InstanceConfigChangeListener;
 import org.apache.helix.InstanceType;
-import org.apache.helix.LiveInstanceChangeListener;
-import org.apache.helix.LiveInstanceInfoProvider;
-import org.apache.helix.MessageListener;
 import org.apache.helix.PreConnectCallback;
-import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyPathConfig;
 import org.apache.helix.PropertyType;
-import org.apache.helix.ScopedConfigChangeListener;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.HelixConstants.ChangeType;
-import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollectorImpl;
 import org.apache.helix.healthcheck.ParticipantHealthReportTask;
-import org.apache.helix.messaging.handling.MessageHandlerFactory;
-import org.apache.helix.model.CurrentState;
-import org.apache.helix.model.HelixConfigScope;
-import org.apache.helix.model.InstanceConfig;
-import org.apache.helix.model.LiveInstance;
-import org.apache.helix.model.StateModelDefinition;
-import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
-import org.apache.helix.model.Message.MessageType;
-import org.apache.helix.model.builder.HelixConfigScopeBuilder;
-import org.apache.helix.participant.DistClusterControllerElection;
 import org.apache.helix.participant.HelixStateMachineEngine;
 import org.apache.helix.participant.StateMachineEngine;
-import org.apache.helix.participant.statemachine.ScheduledTaskStateModelFactory;
-import org.apache.helix.store.zk.ZkHelixPropertyStore;
 import org.apache.log4j.Logger;
-import org.apache.zookeeper.Watcher.Event.EventType;
-import org.apache.zookeeper.Watcher.Event.KeeperState;
-import org.apache.zookeeper.data.Stat;
 
 public class ParticipantManager extends AbstractManager {
 
   private static Logger LOG = Logger.getLogger(ParticipantManager.class);
-  
+
   /**
    * state-transition message handler factory for helix-participant
    */
   final StateMachineEngine _stateMachineEngine;
 
   final ParticipantHealthReportCollectorImpl _participantHealthInfoCollector;
-  
+
   public ParticipantManager(String zkAddress, String clusterName, String instanceName) {
     super(zkAddress, clusterName, instanceName, InstanceType.PARTICIPANT);
-    
+
     _stateMachineEngine = new HelixStateMachineEngine(this);
     _participantHealthInfoCollector = new ParticipantHealthReportCollectorImpl(this, _instanceName);
-    
+
     _timerTasks.add(new ParticipantHealthReportTask(_participantHealthInfoCollector));
   }
-  
+
   @Override
   public ParticipantHealthReportCollector getHealthReportCollector() {
     checkConnected();
     return _participantHealthInfoCollector;
   }
-  
+
   @Override
   public StateMachineEngine getStateMachineEngine() {
     return _stateMachineEngine;
@@ -111,20 +72,20 @@ public class ParticipantManager extends AbstractManager {
   public void handleNewSession() {
     waitUntilConnected();
 
-    
+
     /**
      * stop timer tasks, reset all handlers, make sure cleanup completed for previous session
      * disconnect if cleanup fails
      */
     stopTimerTasks();
     resetHandlers();
-    
+
     /**
      * clear write-through cache
      */
     _baseDataAccessor.reset();
 
-    
+
     /**
      * from here on, we are dealing with new session
      */
@@ -132,11 +93,11 @@ public class ParticipantManager extends AbstractManager {
       throw new HelixException("Cluster structure is not set up for cluster: "
           + _clusterName);
     }
-    
+
     /**
      * auto-join
      */
-    ParticipantManagerHelper participantHelper 
+    ParticipantManagerHelper participantHelper
           = new ParticipantManagerHelper(this, _zkclient, _sessionTimeout);
     participantHelper.joinCluster();
 
@@ -149,9 +110,9 @@ public class ParticipantManager extends AbstractManager {
     }
 
     participantHelper.createLiveInstance();
-    
+
     participantHelper.carryOverPreviousCurrentState();
-    
+
     /**
      * setup message listener
      */
@@ -162,7 +123,7 @@ public class ParticipantManager extends AbstractManager {
      */
     participantHelper.createHealthCheckPath();
     startTimerTasks();
-    
+
     /**
      * init user defined handlers only
      */
@@ -177,10 +138,10 @@ public class ParticipantManager extends AbstractManager {
     initHandlers(userHandlers);
 
   }
-  
+
   /**
    * helix-participant uses a write-through cache for current-state
-   * 
+   *
    */
   @Override
   BaseDataAccessor<ZNRecord> createBaseDataAccessor(ZkBaseDataAccessor<ZNRecord> baseDataAccessor) {
@@ -200,6 +161,7 @@ public class ParticipantManager extends AbstractManager {
   /**
    * disconnect logic for helix-participant
    */
+  @Override
   void doDisconnect() {
     // nothing for participant
   }

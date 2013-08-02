@@ -26,7 +26,7 @@ import org.apache.helix.participant.statemachine.StateModelFactory;
 // mock master slave state model factory
 public class MockMSModelFactory extends StateModelFactory<MockMSStateModel>
 {
-  private final MockTransition _transition;
+  private MockTransition _transition;
 
   public MockMSModelFactory()
   {
@@ -40,6 +40,9 @@ public class MockMSModelFactory extends StateModelFactory<MockMSStateModel>
 
   public void setTrasition(MockTransition transition)
   {
+    _transition = transition;
+
+    // set existing transition
     Map<String, MockMSStateModel> stateModelMap = getStateModelMap();
     for (MockMSStateModel stateModel : stateModelMap.values())
     {

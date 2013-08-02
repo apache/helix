@@ -113,8 +113,7 @@ public class Message extends HelixProperty
     _record.setSimpleField(Attributes.MSG_TYPE.toString(), type);
     setMsgId(msgId);
     setMsgState(MessageState.NEW);
-    _record.setSimpleField(Attributes.CREATE_TIMESTAMP.toString(),
-                           "" + new Date().getTime());
+    _record.setLongField(Attributes.CREATE_TIMESTAMP.toString(), new Date().getTime());
   }
 
   public Message(ZNRecord record)
@@ -126,14 +125,13 @@ public class Message extends HelixProperty
     }
     if (getCreateTimeStamp() == 0)
     {
-      _record.setSimpleField(Attributes.CREATE_TIMESTAMP.toString(),
-                             "" + new Date().getTime());
+      _record.setLongField(Attributes.CREATE_TIMESTAMP.toString(), new Date().getTime());
     }
   }
 
   public void setCreateTimeStamp(long timestamp)
   {
-    _record.setSimpleField(Attributes.CREATE_TIMESTAMP.toString(), "" + timestamp);
+    _record.setLongField(Attributes.CREATE_TIMESTAMP.toString(), timestamp);
   }
 
   public Message(ZNRecord record, String id)
@@ -199,16 +197,13 @@ public class Message extends HelixProperty
 
   public void setSrcInstanceType(InstanceType type)
   {
-    _record.setSimpleField(Attributes.SRC_INSTANCE_TYPE.toString(), type.toString());
+    _record.setEnumField(Attributes.SRC_INSTANCE_TYPE.toString(), type);
   }
 
   public InstanceType getSrcInstanceType()
   {
-    if (_record.getSimpleFields().containsKey(Attributes.SRC_INSTANCE_TYPE.toString()))
-    {
-      return InstanceType.valueOf(_record.getSimpleField(Attributes.SRC_INSTANCE_TYPE.toString()));
-    }
-    return InstanceType.PARTICIPANT;
+    return _record.getEnumField(Attributes.SRC_INSTANCE_TYPE.toString(),
+        InstanceType.class, InstanceType.PARTICIPANT);
   }
 
   public void setSrcName(String msgSrc)
@@ -311,64 +306,27 @@ public class Message extends HelixProperty
 
   public void setReadTimeStamp(long time)
   {
-    _record.setSimpleField(Attributes.READ_TIMESTAMP.toString(), "" + time);
+    _record.setLongField(Attributes.READ_TIMESTAMP.toString(), time);
   }
 
   public void setExecuteStartTimeStamp(long time)
   {
-    _record.setSimpleField(Attributes.EXECUTE_START_TIMESTAMP.toString(), "" + time);
+    _record.setLongField(Attributes.EXECUTE_START_TIMESTAMP.toString(), time);
   }
 
   public long getReadTimeStamp()
   {
-    String timestamp = _record.getSimpleField(Attributes.READ_TIMESTAMP.toString());
-    if (timestamp == null)
-    {
-      return 0;
-    }
-    try
-    {
-      return Long.parseLong(timestamp);
-    }
-    catch (Exception e)
-    {
-      return 0;
-    }
-
+    return _record.getLongField(Attributes.READ_TIMESTAMP.toString(), 0L);
   }
 
   public long getExecuteStartTimeStamp()
   {
-    String timestamp =
-        _record.getSimpleField(Attributes.EXECUTE_START_TIMESTAMP.toString());
-    if (timestamp == null)
-    {
-      return 0;
-    }
-    try
-    {
-      return Long.parseLong(timestamp);
-    }
-    catch (Exception e)
-    {
-      return 0;
-    }
+    return _record.getLongField(Attributes.EXECUTE_START_TIMESTAMP.toString(), 0L);
   }
 
   public long getCreateTimeStamp()
   {
-    if (_record.getSimpleField(Attributes.CREATE_TIMESTAMP.toString()) == null)
-    {
-      return 0;
-    }
-    try
-    {
-      return Long.parseLong(_record.getSimpleField(Attributes.CREATE_TIMESTAMP.toString()));
-    }
-    catch (Exception e)
-    {
-      return 0;
-    }
+    return _record.getLongField(Attributes.CREATE_TIMESTAMP.toString(), 0L);
   }
 
   public void setCorrelationId(String correlationId)
@@ -383,41 +341,22 @@ public class Message extends HelixProperty
 
   public int getExecutionTimeout()
   {
-    if (!_record.getSimpleFields().containsKey(Attributes.TIMEOUT.toString()))
-    {
-      return -1;
-    }
-    try
-    {
-      return Integer.parseInt(_record.getSimpleField(Attributes.TIMEOUT.toString()));
-    }
-    catch (Exception e)
-    {
-    }
-    return -1;
+    return _record.getIntField(Attributes.TIMEOUT.toString(), -1);
   }
 
   public void setExecutionTimeout(int timeout)
   {
-    _record.setSimpleField(Attributes.TIMEOUT.toString(), "" + timeout);
+    _record.setIntField(Attributes.TIMEOUT.toString(), timeout);
   }
 
   public void setRetryCount(int retryCount)
   {
-    _record.setSimpleField(Attributes.RETRY_COUNT.toString(), "" + retryCount);
+    _record.setIntField(Attributes.RETRY_COUNT.toString(), retryCount);
   }
 
   public int getRetryCount()
   {
-    try
-    {
-      return Integer.parseInt(_record.getSimpleField(Attributes.RETRY_COUNT.toString()));
-    }
-    catch (Exception e)
-    {
-    }
-    // Default to 0, and there is no retry if timeout happens
-    return 0;
+    return _record.getIntField(Attributes.RETRY_COUNT.toString(), 0);
   }
 
   public Map<String, String> getResultMap()
@@ -444,20 +383,7 @@ public class Message extends HelixProperty
   @Override
   public int getBucketSize()
   {
-    String bucketSizeStr = _record.getSimpleField(Attributes.BUCKET_SIZE.toString());
-    int bucketSize = 0;
-    if (bucketSizeStr != null)
-    {
-      try
-      {
-        bucketSize = Integer.parseInt(bucketSizeStr);
-      }
-      catch (NumberFormatException e)
-      {
-        // OK
-      }
-    }
-    return bucketSize;
+    return _record.getIntField(Attributes.BUCKET_SIZE.toString(), 0);
   }
 
   @Override
@@ -465,7 +391,7 @@ public class Message extends HelixProperty
   {
     if (bucketSize > 0)
     {
-      _record.setSimpleField(Attributes.BUCKET_SIZE.toString(), "" + bucketSize);
+      _record.setIntField(Attributes.BUCKET_SIZE.toString(), bucketSize);
     }
   }
 

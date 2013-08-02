@@ -36,6 +36,8 @@ import org.codehaus.jackson.JsonGenerator;
 import org.codehaus.jackson.JsonParser;
 import org.codehaus.jackson.JsonToken;
 
+import com.noelios.restlet.util.Base64;
+
 
 public class ZNRecordStreamingSerializer implements ZkSerializer
 {
@@ -151,6 +153,10 @@ public class ZNRecordStreamingSerializer implements ZkSerializer
       g.writeRaw("\n  ");
       g.writeEndObject(); // for mapFields
 
+      // write rawPayload
+      g.writeRaw("\n  ");
+      g.writeStringField("rawPayload", Base64.encode(record.getRawPayload(), false));
+
       g.writeRaw("\n");
       g.writeEndObject(); // for whole znrecord
 
@@ -245,6 +251,10 @@ public class ZNRecordStreamingSerializer implements ZkSerializer
 
           }
 
+        }
+        else if ("rawPayload".equals(fieldname))
+        {
+          record.setRawPayload(Base64.decode(jp.getText()));
         }
         else
         {

@@ -49,8 +49,7 @@ public class HealthStat extends HelixProperty
       super(record);
       if(getCreateTimeStamp() == 0)
       {
-        _record.setSimpleField(Attributes.CREATE_TIMESTAMP.toString(), ""
-            + new Date().getTime());
+        _record.setLongField(Attributes.CREATE_TIMESTAMP.toString(), new Date().getTime());
       }
     }
 
@@ -61,17 +60,7 @@ public class HealthStat extends HelixProperty
 
   public long getCreateTimeStamp()
   {
-    if (_record.getSimpleField(Attributes.CREATE_TIMESTAMP.toString()) == null)
-    {
-      return 0;
-    }
-    try
-    {
-      return Long.parseLong(_record.getSimpleField(Attributes.CREATE_TIMESTAMP.toString()));
-    } catch (Exception e)
-    {
-      return 0;
-    }
+    return _record.getLongField(Attributes.CREATE_TIMESTAMP.toString(), 0L);
   }
   
   public String getTestField()
@@ -100,11 +89,7 @@ public class HealthStat extends HelixProperty
     for (String key : currMapFields.keySet())
     {
       Map<String, String> currMap = currMapFields.get(key);
-      String timestamp = "-1";
-      if (_record.getSimpleFields().keySet().contains(StatsHolder.TIMESTAMP_NAME))
-      {
-        timestamp = _record.getSimpleField(StatsHolder.TIMESTAMP_NAME);
-      }
+      String timestamp = _record.getStringField(StatsHolder.TIMESTAMP_NAME, "-1");
       for (String subKey : currMap.keySet())
       {
         if (subKey.equals("StatsHolder.TIMESTAMP_NAME"))

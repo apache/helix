@@ -76,25 +76,13 @@ public class IdealState extends HelixProperty
 
   public void setIdealStateMode(String mode)
   {
-    _record
-        .setSimpleField(IdealStateProperty.IDEAL_STATE_MODE.toString(), mode);
+    _record.setSimpleField(IdealStateProperty.IDEAL_STATE_MODE.toString(), mode);
   }
   
   public int getMaxPartitionsPerInstance()
   {
-    try
-    {
-      String strVal =  _record
-          .getSimpleField(IdealStateProperty.MAX_PARTITONS_PER_INSTANCE.toString());
-      if(strVal != null)
-      {
-        return Integer.parseInt(strVal);
-      }
-    } 
-    catch (Exception e)
-    {
-    }
-    return Integer.MAX_VALUE;
+    return _record.getIntField(IdealStateProperty.MAX_PARTITONS_PER_INSTANCE.toString(),
+        Integer.MAX_VALUE);
   }
   
   public void setRebalancerClassName(String rebalancerClassName)
@@ -110,21 +98,13 @@ public class IdealState extends HelixProperty
   
   public void setMaxPartitionsPerInstance(int max)
   {
-    _record
-    .setSimpleField(IdealStateProperty.MAX_PARTITONS_PER_INSTANCE.toString(), Integer.toString(max));
+    _record.setIntField(IdealStateProperty.MAX_PARTITONS_PER_INSTANCE.toString(), max);
   }
 
   public IdealStateModeProperty getIdealStateMode()
   {
-    String mode = _record.getSimpleField(IdealStateProperty.IDEAL_STATE_MODE
-        .toString());
-    try
-    {
-      return IdealStateModeProperty.valueOf(mode);
-    } catch (Exception e)
-    {
-      return IdealStateModeProperty.AUTO;
-    }
+    return _record.getEnumField(IdealStateProperty.IDEAL_STATE_MODE.toString(),
+        IdealStateModeProperty.class, IdealStateModeProperty.AUTO);
   }
 
   public void setPartitionState(String partitionName, String instanceName,
@@ -219,23 +199,12 @@ public class IdealState extends HelixProperty
 
   public void setNumPartitions(int numPartitions)
   {
-    _record.setSimpleField(IdealStateProperty.NUM_PARTITIONS.toString(),
-        String.valueOf(numPartitions));
+    _record.setIntField(IdealStateProperty.NUM_PARTITIONS.toString(), numPartitions);
   }
 
   public int getNumPartitions()
   {
-    String numPartitionStr = _record
-        .getSimpleField(IdealStateProperty.NUM_PARTITIONS.toString());
-
-    try
-    {
-      return Integer.parseInt(numPartitionStr);
-    } catch (Exception e)
-    {
-      logger.error("Can't parse number of partitions: " + numPartitionStr, e);
-      return -1;
-    }
+    return _record.getIntField(IdealStateProperty.NUM_PARTITIONS.toString(), -1);
   }
 
   public void setReplicas(String replicas)
@@ -303,32 +272,13 @@ public class IdealState extends HelixProperty
 
   public String getStateModelFactoryName()
   {
-    String ftyName = _record
-        .getSimpleField(IdealStateProperty.STATE_MODEL_FACTORY_NAME.toString());
-    if (ftyName == null)
-    {
-      ftyName = HelixConstants.DEFAULT_STATE_MODEL_FACTORY;
-    }
-    return ftyName;
+    return _record.getStringField(IdealStateProperty.STATE_MODEL_FACTORY_NAME.toString(),
+        HelixConstants.DEFAULT_STATE_MODEL_FACTORY);
   }
 
   public int getRebalanceTimerPeriod()
   {
-    if (_record.getSimpleFields().containsKey(
-        IdealStateProperty.REBALANCE_TIMER_PERIOD.toString()))
-    {
-      try
-      {
-        int result = Integer.parseInt(_record
-            .getSimpleField(IdealStateProperty.REBALANCE_TIMER_PERIOD
-                .toString()));
-        return result;
-      } catch (Exception e)
-      {
-        logger.error("", e);
-      }
-    }
-    return -1;
+    return _record.getIntField(IdealStateProperty.REBALANCE_TIMER_PERIOD.toString(), -1);
   }
 
   @Override

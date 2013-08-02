@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import org.apache.helix.ZNRecordDelta.MergeOperation;
+import org.apache.helix.manager.zk.serializer.PayloadSerializer;
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.annotate.JsonCreator;
 import org.codehaus.jackson.annotate.JsonIgnore;
@@ -54,6 +55,9 @@ public class ZNRecord
   private Map<String, String> simpleFields;
   private Map<String, Map<String, String>> mapFields;
   private Map<String, List<String>> listFields;
+  private byte[] rawPayload;
+
+  private PayloadSerializer _serializer;
 
   // the version field of zookeeper Stat
   private int _version;
@@ -69,6 +73,13 @@ public class ZNRecord
     simpleFields = new TreeMap<String, String>();
     mapFields = new TreeMap<String, Map<String, String>>();
     listFields = new TreeMap<String, List<String>>();
+    rawPayload = new byte[0];
+  }
+
+  public ZNRecord(String id, PayloadSerializer serializer)
+  {
+    this(id);
+    _serializer = serializer;
   }
 
   public ZNRecord(ZNRecord record)
@@ -82,6 +93,8 @@ public class ZNRecord
     simpleFields.putAll(record.getSimpleFields());
     mapFields.putAll(record.getMapFields());
     listFields.putAll(record.getListFields());
+    rawPayload = new byte[record.rawPayload.length];
+    System.arraycopy(record.rawPayload, 0, rawPayload, 0, record.rawPayload.length);
     _version = record.getVersion();
     _creationTime = record.getCreationTime();
     _modifiedTime = record.getModifiedTime();
@@ -91,6 +104,24 @@ public class ZNRecord
   {
     this(record);
     _version = version;
+  }
+
+  public ZNRecord(ZNRecord record, String id, PayloadSerializer serializer)
+  {
+    this(record, id);
+    _serializer = serializer;
+  }
+
+  public ZNRecord(ZNRecord record, int version, PayloadSerializer serializer)
+  {
+    this(record, version);
+    _serializer = serializer;
+  }
+
+  @JsonIgnore(true)
+  public void setPayloadSerializer(PayloadSerializer serializer)
+  {
+    _serializer = serializer;
   }
 
   @JsonIgnore(true)
@@ -153,6 +184,44 @@ public class ZNRecord
     return id;
   }
 
+  @JsonProperty
+  public void setRawPayload(byte[] payload)
+  {
+    rawPayload = payload;
+  }
+
+  @JsonProperty
+  public byte[] getRawPayload()
+  {
+    return rawPayload;
+  }
+
+  @JsonIgnore(true)
+  public <T> void setPayload(T payload)
+  {
+    if (_serializer != null && payload != null)
+    {
+      rawPayload = _serializer.serialize(payload);
+    }
+    else
+    {
+      rawPayload = null;
+    }
+  }
+
+  @JsonIgnore(true)
+  public <T> T getPayload(Class<T> clazz)
+  {
+    if (_serializer != null && rawPayload != null)
+    {
+      return _serializer.deserialize(clazz, rawPayload);
+    }
+    else
+    {
+      return null;
+    }
+  }
+
   public void setMapField(String k, Map<String, String> v)
   {
     mapFields.put(k, v);
@@ -176,6 +245,139 @@ public class ZNRecord
   public List<String> getListField(String k)
   {
     return listFields.get(k);
+  }
+
+  public void setIntField(String k, int v)
+  {
+    setSimpleField(k, Integer.toString(v));
+  }
+
+  public int getIntField(String k, int defaultValue)
+  {
+    int v = defaultValue;
+    String valueStr = getSimpleField(k);
+    if (valueStr != null)
+    {
+      try
+      {
+        v = Integer.parseInt(valueStr);
+      }
+      catch (NumberFormatException e)
+      {
+        _logger.warn("", e);
+      }
+    }
+    return v;
+  }
+
+  public void setLongField(String k, long v)
+  {
+    setSimpleField(k, Long.toString(v));
+  }
+
+  public long getLongField(String k, long defaultValue)
+  {
+    long v = defaultValue;
+    String valueStr = getSimpleField(k);
+    if (valueStr != null)
+    {
+      try
+      {
+        v = Long.parseLong(valueStr);
+      }
+      catch (NumberFormatException e)
+      {
+        _logger.warn("", e);
+      }
+    }
+    return v;
+  }
+
+  public void setDoubleField(String k, double v)
+  {
+    setSimpleField(k, Double.toString(v));
+  }
+
+  public double getDoubleField(String k, double defaultValue)
+  {
+    double v = defaultValue;
+    String valueStr = getSimpleField(k);
+    if (valueStr != null)
+    {
+      try
+      {
+        v = Double.parseDouble(valueStr);
+      }
+      catch (NumberFormatException e)
+      {
+        _logger.warn("", e);
+      }
+    }
+    return v;
+  }
+
+  public void setBooleanField(String k, boolean v)
+  {
+    setSimpleField(k, Boolean.toString(v));
+  }
+
+  public boolean getBooleanField(String k, boolean defaultValue)
+  {
+    boolean v = defaultValue;
+    String valueStr = getSimpleField(k);
+    if (valueStr != null)
+    {
+      // Boolean.parseBoolean() doesn't throw an exception if the string isn't a valid boolean.
+      // Thus, a direct comparison is necessary to make sure the value is actually "true" or
+      // "false"
+      if (valueStr.equalsIgnoreCase(Boolean.TRUE.toString()))
+      {
+        v = true;
+      }
+      else if (valueStr.equalsIgnoreCase(Boolean.FALSE.toString()))
+      {
+        v = false;
+      }
+    }
+    return v;
+  }
+
+  public <T extends Enum<T>> void setEnumField(String k, T v)
+  {
+    setSimpleField(k, v.toString());
+  }
+
+  public <T extends Enum<T>> T getEnumField(String k, Class<T> enumType, T defaultValue)
+  {
+    T v = defaultValue;
+    String valueStr = getSimpleField(k);
+    if (valueStr != null)
+    {
+      try
+      {
+        v = Enum.valueOf(enumType, valueStr);
+      }
+      catch (NullPointerException e)
+      {
+        _logger.warn("", e);
+      }
+      catch (IllegalArgumentException e)
+      {
+        _logger.warn("", e);
+      }
+    }
+    return v;
+  }
+
+  public String getStringField(String k, String defaultValue)
+  {
+    String v = defaultValue;
+    String valueStr = getSimpleField(k);
+    if (valueStr != null)
+    {
+      v = valueStr;
+    }
+    return v;
   }
 
   @Override

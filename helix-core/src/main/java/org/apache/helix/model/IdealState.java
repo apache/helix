@@ -44,7 +44,7 @@ public class IdealState extends HelixProperty
     STATE_MODEL_FACTORY_NAME, 
     REPLICAS, IDEAL_STATE_MODE, 
     REBALANCE_TIMER_PERIOD, 
-    MAX_PARTITONS_PER_INSTANCE, 
+    MAX_PARTITIONS_PER_INSTANCE, 
     INSTANCE_GROUP_TAG, 
     REBALANCER_CLASS_NAME
   }
@@ -81,7 +81,7 @@ public class IdealState extends HelixProperty
   
   public int getMaxPartitionsPerInstance()
   {
-    return _record.getIntField(IdealStateProperty.MAX_PARTITONS_PER_INSTANCE.toString(),
+    return _record.getIntField(IdealStateProperty.MAX_PARTITIONS_PER_INSTANCE.toString(),
         Integer.MAX_VALUE);
   }
   
@@ -98,7 +98,7 @@ public class IdealState extends HelixProperty
   
   public void setMaxPartitionsPerInstance(int max)
   {
-    _record.setIntField(IdealStateProperty.MAX_PARTITONS_PER_INSTANCE.toString(), max);
+    _record.setIntField(IdealStateProperty.MAX_PARTITIONS_PER_INSTANCE.toString(), max);
   }
 
   public IdealStateModeProperty getIdealStateMode()

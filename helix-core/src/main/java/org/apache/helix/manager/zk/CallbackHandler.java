@@ -27,7 +27,10 @@ import static org.apache.helix.HelixConstants.ChangeType.LIVE_INSTANCE;
 import static org.apache.helix.HelixConstants.ChangeType.MESSAGE;
 import static org.apache.helix.HelixConstants.ChangeType.MESSAGES_CONTROLLER;
 
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.I0Itec.zkclient.IZkChildListener;
@@ -69,8 +72,18 @@ import org.apache.zookeeper.Watcher.Event.EventType;
 public class CallbackHandler implements IZkChildListener, IZkDataListener
 
 {
-
   private static Logger           logger = Logger.getLogger(CallbackHandler.class);
+
+  /**
+   * define the next possible notification types
+   */
+  private static Map<Type, List<Type>> nextNotificationType = new HashMap<Type, List<Type>>();
+  static
+  {
+    nextNotificationType.put(Type.INIT, Arrays.asList(Type.CALLBACK, Type.FINALIZE));
+    nextNotificationType.put(Type.CALLBACK, Arrays.asList(Type.CALLBACK, Type.FINALIZE));
+    nextNotificationType.put(Type.FINALIZE, Arrays.asList(Type.INIT));
+  }
 
   private final String            _path;
   private final Object            _listener;
@@ -82,6 +95,12 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
   private final HelixManager      _manager;
   private final PropertyKey 	  _propertyKey;
 
+  /**
+   * maintain the expected notification types
+   * this is fix for HELIX-195: race condition between FINALIZE callbacks and Zk callbacks
+   */
+  private List<NotificationContext.Type> _expectTypes = nextNotificationType.get(Type.FINALIZE);
+
   public CallbackHandler(HelixManager manager,
                          ZkClient client,
                          PropertyKey propertyKey,
@@ -92,7 +111,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
     if (listener == null) {
       throw new HelixException("listener could not be null");
     }
-    
+
     this._manager = manager;
     this._accessor = manager.getHelixDataAccessor();
     this._zkClient = client;
@@ -120,6 +139,14 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
     // This allows the listener to work with one change at a time
     synchronized (_manager)
     {
+      Type type = changeContext.getType();
+      if (!_expectTypes.contains(type)) {
+        logger.warn("Skip processing callbacks for listener: " + _listener + ", path: " + _path
+                    + ", expected types: " + _expectTypes + " but was " + type);
+        return;
+      }
+      _expectTypes = nextNotificationType.get(type);
+
       // Builder keyBuilder = _accessor.keyBuilder();
       long start = System.currentTimeMillis();
       if (logger.isInfoEnabled())
@@ -151,8 +178,8 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
       	{
       		InstanceConfigChangeListener listener = (InstanceConfigChangeListener) _listener;
       		List<InstanceConfig> configs = _accessor.getChildValues(_propertyKey);
-      		listener.onInstanceConfigChange(configs, changeContext);    		
-      	}	  
+      		listener.onInstanceConfigChange(configs, changeContext);
+      	}
       }
       else if (_changeType == CONFIG)
       {
@@ -254,19 +281,19 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
 	  NotificationContext.Type type = context.getType();
       if (type == NotificationContext.Type.INIT || type == NotificationContext.Type.CALLBACK)
       {
-        logger.info(_manager.getInstanceName() + " subscribes child-change. path: " 
+        logger.info(_manager.getInstanceName() + " subscribes child-change. path: "
         		+ path + ", listener: " + _listener);
         _zkClient.subscribeChildChanges(path, this);
       }
       else if (type == NotificationContext.Type.FINALIZE)
       {
-        logger.info(_manager.getInstanceName() + " unsubscribe child-change. path: " 
+        logger.info(_manager.getInstanceName() + " unsubscribe child-change. path: "
         		+ path + ", listener: " + _listener);
-        
+
         _zkClient.unsubscribeChildChanges(path, this);
       }
   }
-  
+
   private void subscribeDataChange(String path, NotificationContext context)
   {
     	NotificationContext.Type type = context.getType();
@@ -275,7 +302,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
         {
           if (logger.isDebugEnabled())
           {
-            logger.debug(_manager.getInstanceName() + " subscribe data-change. path: " 
+            logger.debug(_manager.getInstanceName() + " subscribe data-change. path: "
             		+ path + ", listener: " + _listener);
           }
           _zkClient.subscribeDataChanges(path, this);
@@ -283,13 +310,13 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
         }
         else if (type == NotificationContext.Type.FINALIZE)
         {
-          logger.info(_manager.getInstanceName() + " unsubscribe data-change. path: " 
+          logger.info(_manager.getInstanceName() + " unsubscribe data-change. path: "
         		  + path + ", listener: " + _listener);
 
           _zkClient.unsubscribeDataChanges(path, this);
         }
   }
-  
+
   // TODO watchParent is always true. consider remove it
   private void subscribeForChanges(NotificationContext context,
                                    String path,
@@ -326,16 +353,16 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
                   // data-change gives a delete-callback which is used to remove watch
                   subscribeChildChange(childPath, context);
                   subscribeDataChange(childPath, context);
-                  
+
                   // subscribe data-change on bucketized child
                   List<String> bucketizedChildNames = _zkClient.getChildren(childPath);
-                  if (bucketizedChildNames != null) 
+                  if (bucketizedChildNames != null)
                   {
                     for (String bucketizedChildName : bucketizedChildNames)
                     {
                        String bucketizedChildPath = childPath + "/" + bucketizedChildName;
                        subscribeDataChange(bucketizedChildPath, context);
-                    }  
+                    }
                   }
                 } else
                 {
@@ -347,13 +374,13 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
         default:
         {
             List<String> childNames = _zkClient.getChildren(path);
-            if (childNames != null) 
+            if (childNames != null)
             {
               for (String childName : childNames)
               {
                  String childPath = path + "/" + childName;
                  subscribeDataChange(childPath, context);
-              }  
+              }
             }
         	break;
         }
@@ -361,7 +388,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
       }
       catch (ZkNoNodeException e)
       {
-        logger.warn("fail to subscribe child/data change. path: " + path 
+        logger.warn("fail to subscribe child/data change. path: " + path
         		+ ", listener: " + _listener, e);
       }
     }
@@ -376,7 +403,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
   /**
    * Invoke the listener so that it sets up the initial values from the zookeeper if any
    * exists
-   * 
+   *
    */
   public void init()
   {
@@ -409,7 +436,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
     }
     catch (Exception e)
     {
-      String msg = "exception in handling data-change. path: " + dataPath 
+      String msg = "exception in handling data-change. path: " + dataPath
     		  + ", listener: " + _listener;
       ZKExceptionHandler.getInstance().handle(msg, e);
     }
@@ -423,11 +450,11 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
       updateNotificationTime(System.nanoTime());
       if (dataPath != null && dataPath.startsWith(_path))
       {
-          logger.info(_manager.getInstanceName() + " unsubscribe data-change. path: " 
+          logger.info(_manager.getInstanceName() + " unsubscribe data-change. path: "
         		  + dataPath + ", listener: " + _listener);
           _zkClient.unsubscribeDataChanges(dataPath, this);
 
-          // only needed for bucketized parent, but OK if we don't have child-change 
+          // only needed for bucketized parent, but OK if we don't have child-change
           //  watch on the bucketized parent path
           logger.info(_manager.getInstanceName() + " unsubscribe child-change. path: "
         		  + dataPath + ", listener: " + _listener);
@@ -440,7 +467,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
     }
     catch (Exception e)
     {
-      String msg = "exception in handling data-delete-change. path: " + dataPath 
+      String msg = "exception in handling data-delete-change. path: " + dataPath
           + ", listener: " + _listener;
       ZKExceptionHandler.getInstance().handle(msg, e);
     }
@@ -455,7 +482,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
       if (parentPath != null && parentPath.startsWith(_path))
       {
         NotificationContext changeContext = new NotificationContext(_manager);
-        
+
         if (currentChilds == null) {
           // parentPath has been removed
           if (parentPath.equals(_path)) {
@@ -471,7 +498,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
     }
     catch (Exception e)
     {
-      String msg = "exception in handling child-change. instance: " + _manager.getInstanceName() 
+      String msg = "exception in handling child-change. instance: " + _manager.getInstanceName()
     		  + ", parentPath: " + parentPath + ", listener: " + _listener;
       ZKExceptionHandler.getInstance().handle(msg, e);
     }
@@ -479,7 +506,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
 
   /**
    * Invoke the listener for the last time so that the listener could clean up resources
-   * 
+   *
    */
   public void reset()
   {

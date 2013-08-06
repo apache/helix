@@ -43,11 +43,15 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.I0Itec.zkclient.IDefaultNameSpace;
+import org.I0Itec.zkclient.IZkChildListener;
+import org.I0Itec.zkclient.IZkDataListener;
 import org.I0Itec.zkclient.ZkServer;
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.apache.commons.io.FileUtils;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.controller.HelixControllerMain;
+import org.apache.helix.integration.manager.ZkTestManager;
+import org.apache.helix.manager.zk.CallbackHandler;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
@@ -85,7 +89,7 @@ public class TestHelper
 
       return port;
   }
-  
+
   static public ZkServer startZkServer(final String zkAddress) throws Exception
   {
     List<String> empty = Collections.emptyList();
@@ -103,7 +107,7 @@ public class TestHelper
       final List<String> rootNamespaces) throws Exception {
     return startZkServer(zkAddress, rootNamespaces, true);
   }
-  
+
   static public ZkServer startZkServer(final String zkAddress,
                                       final List<String> rootNamespaces, boolean overwrite) throws Exception
   {
@@ -127,7 +131,7 @@ public class TestHelper
         if (rootNamespaces == null) {
           return;
         }
-        
+
         for (String rootNamespace : rootNamespaces)
         {
           try
@@ -210,7 +214,7 @@ public class TestHelper
 
     return manager;
   }
-  
+
   // TODO refactor this
   public static StartCMResult startController(final String clusterName,
                                               final String controllerName,
@@ -271,7 +275,7 @@ public class TestHelper
 
   /**
    * convert T[] to set<T>
-   * 
+   *
    * @param s
    * @return
    */
@@ -288,7 +292,7 @@ public class TestHelper
 
   /**
    * generic method for verification with a timeout
-   * 
+   *
    * @param verifierName
    * @param args
    */
@@ -471,7 +475,7 @@ public class TestHelper
   }
 
   /**
-   * 
+   *
    * @param stateMap
    *          : "ResourceName/partitionKey" -> setOf(instances)
    * @param state
@@ -518,10 +522,10 @@ public class TestHelper
   }
 
   /**
-   * 
+   *
    * @param resourcePartition
    *          : key is in form of "resource/partitionKey" or "resource_x"
-   * 
+   *
    * @return
    */
   private static Map<String, String> getResourceAndPartitionKey(String resourcePartition)
@@ -1060,11 +1064,11 @@ public class TestHelper
 
     return sb.toString();
   }
-  
+
   public static interface Verifier {
     boolean verify() throws Exception;
   }
-  
+
   public static boolean verify(Verifier verifier, long timeout) throws Exception {
     long start = System.currentTimeMillis();
     do {
@@ -1074,5 +1078,55 @@ public class TestHelper
       }
       Thread.sleep(100);
     } while (true);
+  }
+
+  // debug code
+  public static String printHandlers(ZkTestManager manager)
+  {
+    StringBuilder sb = new StringBuilder();
+    List<CallbackHandler> handlers = manager.getHandlers();
+    sb.append(manager.getInstanceName() + " has " + handlers.size() + " cb-handlers. [");
+
+    for (int i = 0; i < handlers.size(); i++)
+    {
+      CallbackHandler handler = handlers.get(i);
+      String path = handler.getPath();
+      sb.append(path.substring(manager.getClusterName().length() + 1) + ": "
+          + handler.getListener());
+      if (i < (handlers.size() - 1))
+      {
+        sb.append(", ");
+      }
+    }
+    sb.append("]");
+
+    return sb.toString();
+  }
+
+  public static void printZkListeners(ZkClient client) throws  Exception{
+    Map<String, Set<IZkDataListener>> datalisteners = ZkTestHelper.getZkDataListener(client);
+    Map<String, Set<IZkChildListener>> childListeners = ZkTestHelper.getZkChildListener(client);
+
+    System.out.println("dataListeners {");
+    for (String path : datalisteners.keySet()) {
+        System.out.println("\t" + path + ": ");
+        Set<IZkDataListener> set = datalisteners.get(path);
+        for (IZkDataListener listener : set) {
+            CallbackHandler handler = (CallbackHandler)listener;
+            System.out.println("\t\t" + handler.getListener());
+        }
+    }
+    System.out.println("}");
+
+    System.out.println("childListeners {");
+    for (String path : childListeners.keySet()) {
+        System.out.println("\t" + path + ": ");
+        Set<IZkChildListener> set = childListeners.get(path);
+        for (IZkChildListener listener : set) {
+            CallbackHandler handler = (CallbackHandler)listener;
+            System.out.println("\t\t" + handler.getListener());
+        }
+    }
+    System.out.println("}");
   }
 }

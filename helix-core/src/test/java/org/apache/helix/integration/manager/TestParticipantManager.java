@@ -94,7 +94,7 @@ public class TestParticipantManager extends ZkIntegrationTestBase {
     Assert.assertNull(accessor.getProperty(keyBuilder.liveInstance("localhost_12918")));
     Assert.assertNull(accessor.getProperty(keyBuilder.controllerLeader()));
 
-    System.out.println("START " + clusterName + " at "
+    System.out.println("END " + clusterName + " at "
         + new Date(System.currentTimeMillis()));
   }
 

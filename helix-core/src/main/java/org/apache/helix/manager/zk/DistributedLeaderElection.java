@@ -24,22 +24,19 @@ import java.lang.management.ManagementFactory;
 import org.apache.helix.ControllerChangeListener;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
-import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyType;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.controller.GenericHelixController;
-import org.apache.helix.controller.HelixControllerMain;
 import org.apache.helix.controller.restlet.ZKPropertyTransferServer;
 import org.apache.helix.model.LeaderHistory;
 import org.apache.helix.model.LiveInstance;
-import org.apache.helix.participant.DistClusterControllerElection;
 import org.apache.log4j.Logger;
 
 /**
  * do distributed leader election
- * 
+ *
  */
 public class DistributedLeaderElection implements ControllerChangeListener {
   private static Logger LOG = Logger.getLogger(DistributedLeaderElection.class);
@@ -55,7 +52,7 @@ public class DistributedLeaderElection implements ControllerChangeListener {
   /**
    * may be accessed by multiple threads: zk-client thread and
    * ZkHelixManager.disconnect()->reset() TODO: Refactor accessing
-   * HelixMaangerMain class statically
+   * HelixMangerMain class statically
    */
   @Override
   public synchronized void onControllerChange(NotificationContext changeContext) {
@@ -76,12 +73,17 @@ public class DistributedLeaderElection implements ControllerChangeListener {
     try {
       if (changeContext.getType().equals(NotificationContext.Type.INIT)
           || changeContext.getType().equals(NotificationContext.Type.CALLBACK)) {
+        LOG.info(_manager.getInstanceName() + " is trying to acquire leadership for cluster: "
+                           + _manager.getClusterName());
         HelixDataAccessor accessor = manager.getHelixDataAccessor();
         Builder keyBuilder = accessor.keyBuilder();
 
         while (accessor.getProperty(keyBuilder.controllerLeader()) == null) {
           boolean success = tryUpdateController(manager);
           if (success) {
+            LOG.info(_manager.getInstanceName() + " acquired leadership for cluster: "
+                + _manager.getClusterName());
+
             updateHistory(manager);
             _manager._baseDataAccessor.reset();
             controllerHelper.addListenersToController(_controller);
@@ -89,9 +91,11 @@ public class DistributedLeaderElection implements ControllerChangeListener {
           }
         }
       } else if (changeContext.getType().equals(NotificationContext.Type.FINALIZE)) {
+        LOG.info(_manager.getInstanceName() + " reqlinquish leadership for cluster: "
+              + _manager.getClusterName());
         controllerHelper.stopControllerTimerTasks();
         controllerHelper.removeListenersFromController(_controller);
-        
+
         /**
          * clear write-through cache
          */

@@ -190,7 +190,7 @@ public class ParticipantManagerHelper {
      */
     if (retry) {
       try {
-        _zkclient.createPersistent(liveInstancePath, liveInstance.getRecord());
+        _zkclient.createEphemeral(liveInstancePath, liveInstance.getRecord());
       } catch (Exception e) {
         String errorMessage = "instance: " + _instanceName
             + " already has a live-instance in cluster " + _clusterName;

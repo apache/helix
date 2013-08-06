@@ -125,17 +125,11 @@ public class ParticipantManager extends AbstractManager {
     startTimerTasks();
 
     /**
-     * init user defined handlers only
+     * init handlers
+     * ok to init message handler and data-accessor twice
+     * the second init will be skipped (see CallbackHandler)
      */
-    List<CallbackHandler> userHandlers = new ArrayList<CallbackHandler>();
-    for (CallbackHandler handler : _handlers) {
-      Object listener = handler.getListener();
-      if (!listener.equals(_messagingService.getExecutor())
-          && !listener.equals(_dataAccessor)) {
-        userHandlers.add(handler);
-      }
-    }
-    initHandlers(userHandlers);
+    initHandlers(_handlers);
 
   }
 

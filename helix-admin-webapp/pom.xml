@@ -26,9 +26,20 @@ under the License.
   <modelVersion>4.0.0</modelVersion>
 
   <artifactId>helix-admin-webapp</artifactId>
-  <packaging>jar</packaging>
+  <packaging>bundle</packaging>
   <name>Apache Helix :: Admin Webapp</name>
 
+  <properties>
+    <osgi.import>
+      org.apache.helix*,
+      org.codehaus.jackson*,
+      org.apache.commons.cli*,
+      org.apache.log4j,
+      org.restlet*,
+      *
+    </osgi.import>
+    <osgi.export>org.apache.helix.webapp*;version="${project.version};-noimport:=true</osgi.export>
+  </properties>
 
   <dependencies>
     <dependency>

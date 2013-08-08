@@ -27,8 +27,17 @@ under the License.
   </parent>
 
   <artifactId>service-discovery</artifactId>
-  <packaging>jar</packaging>
+  <packaging>bundle</packaging>
   <name>Apache Helix :: Recipes :: service discovery</name>
+
+  <properties>
+    <osgi.import>
+      org.apache.helix*,
+      org.apache.log4j,
+      *
+    </osgi.import>
+    <osgi.export>org.apache.helix.servicediscovery*;version="${project.version};-noimport:=true</osgi.export>
+  </properties>
 
   <dependencies>
     <dependency>

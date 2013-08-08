@@ -27,8 +27,17 @@ under the License.
   </parent>
 
   <artifactId>distributed-lock-manager</artifactId>
-  <packaging>jar</packaging>
+  <packaging>bundle</packaging>
   <name>Apache Helix :: Recipes :: distributed lock manager</name>
+
+  <properties>
+    <osgi.import>
+      org.apache.helix*,
+      org.apache.log4j,
+      *
+    </osgi.import>
+    <osgi.export>org.apache.helix.lockmanager*;version="${project.version};-noimport:=true</osgi.export>
+  </properties>
 
   <dependencies>
     <dependency>

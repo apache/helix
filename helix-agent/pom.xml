@@ -25,8 +25,18 @@ under the License.
     <version>0.6.2-incubating-SNAPSHOT</version>
   </parent>
   <artifactId>helix-agent</artifactId>
+  <packaging>bundle</packaging>
   <name>Apache Helix :: HelixAgent</name>
 
+  <properties>
+    <osgi.import>
+      org.apache.helix*,
+      org.apache.commons.cli;version="[1.2,2)",
+      org.apache.log4j,
+      *
+    </osgi.import>
+    <osgi.export>org.apache.helix.agent*;version="${project.version};-noimport:=true</osgi.export>
+  </properties>
 
   <dependencies>
     <dependency>

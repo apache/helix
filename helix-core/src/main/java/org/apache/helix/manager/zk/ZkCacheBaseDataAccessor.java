@@ -40,9 +40,9 @@ import org.apache.helix.manager.zk.ZkBaseDataAccessor.RetCode;
 import org.apache.helix.store.HelixPropertyListener;
 import org.apache.helix.store.HelixPropertyStore;
 import org.apache.helix.store.zk.ZNode;
+import org.apache.helix.util.PathUtils;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException.Code;
-import org.apache.zookeeper.common.PathUtils;
 import org.apache.zookeeper.data.Stat;
 import org.apache.zookeeper.server.DataTree;
 

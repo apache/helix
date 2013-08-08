@@ -28,8 +28,17 @@ under the License.
   </parent>
 
   <artifactId>rabbitmq-consumer-group</artifactId>
-  <packaging>jar</packaging>
+  <packaging>bundle</packaging>
   <name>Apache Helix :: Recipes :: Rabbitmq Consumer Group</name>
+
+  <properties>
+    <osgi.import>
+      org.apache.helix*,
+      org.apache.log4j,
+      *
+    </osgi.import>
+    <osgi.export>org.apache.helix.rabbitmq*;version="${project.version};-noimport:=true</osgi.export>
+  </properties>
 
   <dependencies>
     <dependency>

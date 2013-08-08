@@ -60,7 +60,7 @@ public class RebalanceIdealStateStage extends AbstractBaseStage
         LOG.info("resource " + resourceName + " use idealStateRebalancer " + rebalancerClassName);
         try
         {
-          Rebalancer balancer = (Rebalancer) (Class.forName(rebalancerClassName).newInstance());
+          Rebalancer balancer = (Rebalancer) (loadClass(rebalancerClassName).newInstance());
           balancer.init(manager);
           IdealState newIdealState = balancer.computeNewIdealState(resourceName, idealStateMap.get(resourceName), currentStateOutput, cache);
           updatedIdealStates.put(resourceName, newIdealState);
@@ -74,6 +74,25 @@ public class RebalanceIdealStateStage extends AbstractBaseStage
     if(updatedIdealStates.size() > 0)
     {
       cache.getIdealStates().putAll(updatedIdealStates);
+    }
+  }
+
+  /**
+   * Attempts to load the class and delegates to TCCL if class is not found.
+   * Note: The approach is used as a last resort for environments like OSGi.
+   * @param className
+   * @return
+   * @throws ClassNotFoundException
+   */
+  private Class loadClass(String className) throws ClassNotFoundException {
+    try {
+      return getClass().getClassLoader().loadClass(className);
+    } catch (ClassNotFoundException ex) {
+      if (Thread.currentThread().getContextClassLoader() != null) {
+        return Thread.currentThread().getContextClassLoader().loadClass(className);
+      } else {
+        throw ex;
+      }
     }
   }
 }

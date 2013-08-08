@@ -27,7 +27,7 @@ under the License.
   </parent>
 
   <artifactId>task-execution</artifactId>
-  <packaging>jar</packaging>
+  <packaging>bundle</packaging>
   <name>Apache Helix :: Recipes :: distributed task execution</name>
 
   <dependencies>

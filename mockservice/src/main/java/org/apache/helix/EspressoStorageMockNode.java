@@ -20,6 +20,7 @@ package org.apache.helix;
 //import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 //import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 //import java.util.concurrent.ConcurrentMap;
@@ -132,11 +133,10 @@ public class EspressoStorageMockNode extends MockNode {
 	}
 
 	private boolean isPartitionOwnedByNode(String partitionName) {
-		Map<String, StateModel> stateModelMap = _stateModelFactory
-				.getStateModelMap();
-		logger.debug("state model map size: "+stateModelMap.size());
+		Set<String> stateModels = _stateModelFactory.getPartitionSet();
+		logger.debug("state model map size: "+stateModels.size());
 
-		return (stateModelMap.keySet().contains(partitionName));
+		return (stateModels.contains(partitionName));
 	}
 
 	private int getKeyPartition(String dbName, String key) {
@@ -167,9 +167,8 @@ public class EspressoStorageMockNode extends MockNode {
 				synchronized (_partitions) {
 					//logger.debug("Building partition map");
 					_partitions.clear();
-					Map<String, StateModel> stateModelMap = _stateModelFactory
-							.getStateModelMap();
-					for (String s: stateModelMap.keySet()) {
+					Set<String> stateModels = _stateModelFactory.getPartitionSet();
+					for (String s: stateModels) {
 						logger.debug("adding key "+s);
 						_partitions.add(s);
 					}

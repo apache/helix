@@ -40,7 +40,8 @@ public class TestJacksonPayloadSerializer
   {
     final String RECORD_ID = "testJacksonSerializeDeserialize";
     SampleDeserialized sample = getSample();
-    ZNRecord znRecord = new ZNRecord(RECORD_ID, new JacksonPayloadSerializer());
+    ZNRecord znRecord = new ZNRecord(RECORD_ID);
+    znRecord.setPayloadSerializer(new JacksonPayloadSerializer());
     znRecord.setPayload(sample);
     SampleDeserialized duplicate = znRecord.getPayload(SampleDeserialized.class);
     Assert.assertEquals(duplicate, sample);
@@ -55,7 +56,8 @@ public class TestJacksonPayloadSerializer
   {
     final String RECORD_ID = "testFullZNRecordSerializeDeserialize";
     SampleDeserialized sample = getSample();
-    ZNRecord znRecord = new ZNRecord(RECORD_ID, new JacksonPayloadSerializer());
+    ZNRecord znRecord = new ZNRecord(RECORD_ID);
+    znRecord.setPayloadSerializer(new JacksonPayloadSerializer());
     znRecord.setPayload(sample);
     ZNRecordSerializer znRecordSerializer = new ZNRecordSerializer();
     byte[] serialized = znRecordSerializer.serialize(znRecord);
@@ -74,7 +76,8 @@ public class TestJacksonPayloadSerializer
   {
     final String RECORD_ID = "testFullZNRecordStreamingSerializeDeserialize";
     SampleDeserialized sample = getSample();
-    ZNRecord znRecord = new ZNRecord(RECORD_ID, new JacksonPayloadSerializer());
+    ZNRecord znRecord = new ZNRecord(RECORD_ID);
+    znRecord.setPayloadSerializer(new JacksonPayloadSerializer());
     znRecord.setPayload(sample);
     ZNRecordStreamingSerializer znRecordSerializer = new ZNRecordStreamingSerializer();
     byte[] serialized = znRecordSerializer.serialize(znRecord);

@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import org.apache.helix.ZNRecordDelta.MergeOperation;
+import org.apache.helix.manager.zk.serializer.JacksonPayloadSerializer;
 import org.apache.helix.manager.zk.serializer.PayloadSerializer;
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.annotate.JsonCreator;
@@ -74,12 +75,7 @@ public class ZNRecord
     mapFields = new TreeMap<String, Map<String, String>>();
     listFields = new TreeMap<String, List<String>>();
     rawPayload = new byte[0];
-  }
-
-  public ZNRecord(String id, PayloadSerializer serializer)
-  {
-    this(id);
-    _serializer = serializer;
+    _serializer = new JacksonPayloadSerializer();
   }
 
   public ZNRecord(ZNRecord record)
@@ -98,24 +94,6 @@ public class ZNRecord
     _version = record.getVersion();
     _creationTime = record.getCreationTime();
     _modifiedTime = record.getModifiedTime();
-  }
-
-  public ZNRecord(ZNRecord record, int version)
-  {
-    this(record);
-    _version = version;
-  }
-
-  public ZNRecord(ZNRecord record, String id, PayloadSerializer serializer)
-  {
-    this(record, id);
-    _serializer = serializer;
-  }
-
-  public ZNRecord(ZNRecord record, int version, PayloadSerializer serializer)
-  {
-    this(record, version);
-    _serializer = serializer;
   }
 
   @JsonIgnore(true)

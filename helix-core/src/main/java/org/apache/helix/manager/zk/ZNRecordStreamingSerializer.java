@@ -153,9 +153,13 @@ public class ZNRecordStreamingSerializer implements ZkSerializer
       g.writeRaw("\n  ");
       g.writeEndObject(); // for mapFields
 
-      // write rawPayload
-      g.writeRaw("\n  ");
-      g.writeStringField("rawPayload", Base64.encode(record.getRawPayload(), false));
+      byte[] rawPayload = record.getRawPayload();
+      if (rawPayload != null && rawPayload.length > 0)
+      {
+        // write rawPayload
+        g.writeRaw("\n  ");
+        g.writeStringField("rawPayload", Base64.encode(rawPayload, false));
+      }
 
       g.writeRaw("\n");
       g.writeEndObject(); // for whole znrecord

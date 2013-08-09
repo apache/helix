@@ -32,6 +32,8 @@ import org.codehaus.jackson.annotate.JsonCreator;
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 import org.codehaus.jackson.annotate.JsonProperty;
+import org.codehaus.jackson.map.annotate.JsonSerialize;
+import org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion;
 
 
 /**
@@ -39,6 +41,7 @@ import org.codehaus.jackson.annotate.JsonProperty;
  * simpleFields mapFields listFields
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
+@JsonSerialize(include = Inclusion.NON_NULL)
 public class ZNRecord
 {
   static Logger _logger = Logger.getLogger(ZNRecord.class);
@@ -74,7 +77,7 @@ public class ZNRecord
     simpleFields = new TreeMap<String, String>();
     mapFields = new TreeMap<String, Map<String, String>>();
     listFields = new TreeMap<String, List<String>>();
-    rawPayload = new byte[0];
+    rawPayload = null;
     _serializer = new JacksonPayloadSerializer();
   }
 
@@ -89,8 +92,15 @@ public class ZNRecord
     simpleFields.putAll(record.getSimpleFields());
     mapFields.putAll(record.getMapFields());
     listFields.putAll(record.getListFields());
-    rawPayload = new byte[record.rawPayload.length];
-    System.arraycopy(record.rawPayload, 0, rawPayload, 0, record.rawPayload.length);
+    if (record.rawPayload != null)
+    {
+      rawPayload = new byte[record.rawPayload.length];
+      System.arraycopy(record.rawPayload, 0, rawPayload, 0, record.rawPayload.length);
+    }
+    else
+    {
+      rawPayload = null;
+    }
     _version = record.getVersion();
     _creationTime = record.getCreationTime();
     _modifiedTime = record.getModifiedTime();

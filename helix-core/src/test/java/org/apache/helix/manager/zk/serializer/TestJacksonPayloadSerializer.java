@@ -19,14 +19,18 @@ package org.apache.helix.manager.zk.serializer;
  * under the License.
  */
 
+import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZNRecordStreamingSerializer;
+import org.codehaus.jackson.JsonNode;
+import org.codehaus.jackson.JsonProcessingException;
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 import org.codehaus.jackson.annotate.JsonProperty;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -85,6 +89,37 @@ public class TestJacksonPayloadSerializer
     deserialized.setPayloadSerializer(new JacksonPayloadSerializer());
     SampleDeserialized duplicate = deserialized.getPayload(SampleDeserialized.class);
     Assert.assertEquals(duplicate, sample);
+  }
+
+  /**
+   * Test that the payload is not included whenever it is not null. This is mainly to maintain backward
+   * compatibility.
+   */
+  @Test
+  public void testRawPayloadMissingIfUnspecified()
+  {
+    final String RECORD_ID = "testRawPayloadMissingIfUnspecified";
+    ZNRecord znRecord = new ZNRecord(RECORD_ID);
+    ZNRecordSerializer znRecordSerializer = new ZNRecordSerializer();
+    byte[] serialized = znRecordSerializer.serialize(znRecord);
+    ZNRecordStreamingSerializer znRecordStreamingSerializer = new ZNRecordStreamingSerializer();
+    byte[] streamingSerialized = znRecordStreamingSerializer.serialize(znRecord);
+    ObjectMapper mapper = new ObjectMapper();
+    try
+    {
+      JsonNode jsonNode = mapper.readTree(new String(serialized));
+      Assert.assertFalse(jsonNode.has("rawPayload"));
+      JsonNode streamingJsonNode = mapper.readTree(new String(streamingSerialized));
+      Assert.assertFalse(streamingJsonNode.has("rawPayload"));
+    }
+    catch (JsonProcessingException e)
+    {
+      Assert.fail();
+    }
+    catch (IOException e)
+    {
+      Assert.fail();
+    }
   }
 
   /**

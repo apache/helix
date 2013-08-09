@@ -30,10 +30,10 @@ import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.tools.StateModelConfigGenerator;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
-
 
 public class TestHelixTaskExecutor
 {
@@ -56,36 +56,43 @@ public class TestHelixTaskExecutor
     message.setStateModelDef("MasterSlave");
 
     MockManager manager = new MockManager("clusterName");
-    // DataAccessor accessor = manager.getDataAccessor();
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
-    StateModelConfigGenerator generator = new StateModelConfigGenerator();
     StateModelDefinition stateModelDef =
-        new StateModelDefinition(generator.generateConfigForMasterSlave());
+        new StateModelDefinition(StateModelConfigGenerator.generateConfigForMasterSlave());
     Builder keyBuilder = accessor.keyBuilder();
     accessor.setProperty(keyBuilder.stateModelDef("MasterSlave"), stateModelDef);
 
     MockHelixTaskExecutor executor = new MockHelixTaskExecutor();
     MockStateModel stateModel = new MockStateModel();
-    NotificationContext context;
-    executor.registerMessageHandlerFactory(MessageType.TASK_REPLY.toString(),
-                                           new AsyncCallbackService());
-    // String clusterName =" testcluster";
-    context = new NotificationContext(manager);
+    executor.registerMessageHandlerFactory(MessageType.TASK_REPLY.toString(), new AsyncCallbackService());
+
+    NotificationContext context = new NotificationContext(manager);
     CurrentState currentStateDelta = new CurrentState("TestDB");
     currentStateDelta.setState("TestDB_0", "OFFLINE");
-    HelixStateTransitionHandler handler =
-        new HelixStateTransitionHandler(stateModel,
-                                        message,
-                                        context,
-                                        currentStateDelta);
 
-	HelixTask task = new HelixTask(message, context, handler, executor);
-	executor.scheduleTask(task);
-	for (int i = 0; i < 10; i++) {
-		if (!executor.isDone(task.getTaskId())) {
-			Thread.sleep(500);
-		}
-	}
+    StateModelFactory<MockStateModel> stateModelFactory = new StateModelFactory<MockStateModel>()
+    {
+
+      @Override
+      public MockStateModel createNewStateModel(String partitionName)
+      {
+        // TODO Auto-generated method stub
+        return new MockStateModel();
+      }
+
+    };
+    HelixStateTransitionHandler handler =
+        new HelixStateTransitionHandler(stateModelFactory, stateModel, message, context, currentStateDelta);
+
+    HelixTask task = new HelixTask(message, context, handler, executor);
+    executor.scheduleTask(task);
+    for (int i = 0; i < 10; i++)
+    {
+      if (!executor.isDone(task.getTaskId()))
+      {
+        Thread.sleep(500);
+      }
+    }
     AssertJUnit.assertTrue(stateModel.stateModelInvoked);
     System.out.println("END TestCMTaskExecutor");
   }

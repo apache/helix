@@ -167,15 +167,9 @@ public class HelixStateMachineEngine implements StateMachineEngine
     {
       for (StateModelFactory<? extends StateModel> stateModelFactory : ftyMap.values())
       {
-        Map<String, ? extends StateModel> modelMap = stateModelFactory.getStateModelMap();
-        if (modelMap == null || modelMap.isEmpty())
+        for (String resourceKey : stateModelFactory.getPartitionSet())
         {
-          continue;
-        }
-
-        for (String resourceKey : modelMap.keySet())
-        {
-          StateModel stateModel = modelMap.get(resourceKey);
+          StateModel stateModel = stateModelFactory.getStateModel(resourceKey);
           stateModel.reset();
           String initialState = _stateModelParser.getInitialState(stateModel.getClass());
           stateModel.updateState(initialState);
@@ -193,7 +187,7 @@ public class HelixStateMachineEngine implements StateMachineEngine
 
     if (!type.equals(MessageType.STATE_TRANSITION.toString()))
     {
-      throw new HelixException("Expect state-transition message type, but was " 
+      throw new HelixException("Expect state-transition message type, but was "
     		  + message.getMsgType() + ", msgId: " + message.getMsgId());
     }
 
@@ -259,28 +253,29 @@ public class HelixStateMachineEngine implements StateMachineEngine
         currentStateDelta.setState(partitionKey, (stateModel.getCurrentState() == null)
             ? initState : stateModel.getCurrentState());
 
-        return new HelixStateTransitionHandler(stateModel,
+        return new HelixStateTransitionHandler(stateModelFactory,
+                                               stateModel,
                                                message,
                                                context,
                                                currentStateDelta);
     } else
-    {    	
+    {
       BatchMessageWrapper wrapper = stateModelFactory.getBatchMessageWrapper(resourceName);
       if (wrapper == null)
       {
         wrapper = stateModelFactory.createAndAddBatchMessageWrapper(resourceName);
       }
-      
+
     	// get executor-service for the message
     	TaskExecutor executor = (TaskExecutor) context.get(MapKey.TASK_EXECUTOR.toString());
     	if (executor == null)
     	{
-    		logger.error("fail to get executor-service for batch message: " + message.getId() 
+    		logger.error("fail to get executor-service for batch message: " + message.getId()
     				+ ". msgType: " + message.getMsgType() + ", resource: " + message.getResourceName());
     		return null;
     	}
     	return new BatchMessageHandler(message, context, this, wrapper, executor);
-    }  
+    }
   }
 
   @Override

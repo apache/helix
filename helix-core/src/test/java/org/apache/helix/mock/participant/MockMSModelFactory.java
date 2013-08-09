@@ -43,9 +43,9 @@ public class MockMSModelFactory extends StateModelFactory<MockMSStateModel>
     _transition = transition;
 
     // set existing transition
-    Map<String, MockMSStateModel> stateModelMap = getStateModelMap();
-    for (MockMSStateModel stateModel : stateModelMap.values())
+    for (String partition : getPartitionSet())
     {
+      MockMSStateModel stateModel = getStateModel(partition);
       stateModel.setTransition(transition);
     }
   }

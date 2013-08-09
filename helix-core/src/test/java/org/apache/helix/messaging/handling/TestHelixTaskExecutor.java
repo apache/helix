@@ -68,7 +68,7 @@ public class TestHelixTaskExecutor
       {
         HelixTaskResult result = new HelixTaskResult();
         _processedMsgIds.put(_message.getMsgId(), _message.getMsgId());
-        Thread.currentThread().sleep(100);
+        Thread.sleep(100);
         result.setSuccess(true);
         return result;
       }
@@ -77,7 +77,7 @@ public class TestHelixTaskExecutor
       public void onError(Exception e, ErrorCode code, ErrorType type)
       {
         // TODO Auto-generated method stub
-        
+
       }
     }
     @Override
@@ -116,7 +116,7 @@ public class TestHelixTaskExecutor
       // TODO Auto-generated method stub
       return "TestingMessageHandler2";
     }
-    
+
   }
 
   class CancellableHandlerFactory implements MessageHandlerFactory
@@ -150,7 +150,7 @@ public class TestHelixTaskExecutor
           {
             Thread.sleep(100);
           }
-        } 
+        }
         catch (InterruptedException e)
         {
           _interrupted = true;
@@ -374,7 +374,7 @@ public class TestHelixTaskExecutor
 
     TestMessageHandlerFactory factory = new TestMessageHandlerFactory();
     executor.registerMessageHandlerFactory(factory.getMessageType(), factory);
-    
+
 
     NotificationContext changeContext = new NotificationContext(manager);
     List<Message> msgList = new ArrayList<Message>();
@@ -396,7 +396,7 @@ public class TestHelixTaskExecutor
     exceptionMsg.setSrcName("127.101.1.23_2234");
     exceptionMsg.setCorrelationId(UUID.randomUUID().toString());
     msgList.add(exceptionMsg);
-    
+
     executor.onMessage("someInstance", msgList, changeContext);
 
     Thread.sleep(1000);
@@ -527,7 +527,7 @@ public class TestHelixTaskExecutor
       }
       System.out.println("END TestCMTaskExecutor.testShutdown()");
   }
-  
+
   @Test ()
   public void testNoRetry() throws InterruptedException
   {
@@ -554,7 +554,7 @@ public class TestHelixTaskExecutor
       msgList.add(msg);
     }
     executor.onMessage("someInstance", msgList, changeContext);
-    
+
     Thread.sleep(4000);
 
     AssertJUnit.assertTrue(factory._handlersCreated ==  nMsgs2);
@@ -569,7 +569,7 @@ public class TestHelixTaskExecutor
       }
     }
   }
-  
+
   @Test ()
   public void testRetryOnce() throws InterruptedException
   {
@@ -608,6 +608,6 @@ public class TestHelixTaskExecutor
     AssertJUnit.assertTrue(msgList.get(1).getRecord().getSimpleField("Cancelcount").equals("1"));
     AssertJUnit.assertEquals(factory._timedOutMsgIds.size(),2);
     AssertJUnit.assertTrue(executor._taskMap.size() == 0);
-    
+
   }
 }

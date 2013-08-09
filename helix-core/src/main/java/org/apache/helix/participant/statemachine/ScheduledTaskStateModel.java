@@ -34,7 +34,7 @@ public class ScheduledTaskStateModel extends StateModel
 {
   static final String DEFAULT_INITIAL_STATE = "OFFLINE";
   Logger logger = Logger.getLogger(ScheduledTaskStateModel.class);
-  
+
   // TODO Get default state from implementation or from state model annotation
   // StateModel with initial state other than OFFLINE should override this field
   protected String _currentState = DEFAULT_INITIAL_STATE;
@@ -45,7 +45,7 @@ public class ScheduledTaskStateModel extends StateModel
 
   public ScheduledTaskStateModel(ScheduledTaskStateModelFactory factory, HelixTaskExecutor executor, String partitionName)
   {
-   _factory = factory; 
+   _factory = factory;
    _partitionName = partitionName;
    _executor = executor;
   }
@@ -55,7 +55,7 @@ public class ScheduledTaskStateModel extends StateModel
       NotificationContext context) throws InterruptedException
   {
     logger.info(_partitionName + " onBecomeCompletedFromOffline");
-    
+
     // Construct the inner task message from the mapfields of scheduledTaskQueue resource group
     Map<String, String> messageInfo = message.getRecord().getMapField(Message.Attributes.INNER_MESSAGE.toString());
     ZNRecord record = new ZNRecord(_partitionName);
@@ -74,7 +74,7 @@ public class ScheduledTaskStateModel extends StateModel
     handler.handleMessage();
     logger.info(_partitionName + " onBecomeCompletedFromOffline completed");
   }
-  
+
   @Transition(to="OFFLINE",from="COMPLETED")
   public void onBecomeOfflineFromCompleted(Message message,
       NotificationContext context)
@@ -89,7 +89,7 @@ public class ScheduledTaskStateModel extends StateModel
     logger.info(_partitionName + " onBecomeDroppedFromCompleted");
     removeFromStatemodelFactory();
   }
-  
+
 
   @Transition(to="DROPPED",from="OFFLINE")
   public void onBecomeDroppedFromOffline(Message message,
@@ -105,19 +105,20 @@ public class ScheduledTaskStateModel extends StateModel
   {
     logger.info(_partitionName + " onBecomeOfflineFromError");
   }
-  
+
+  @Override
   public void reset()
   {
     logger.info(_partitionName + " ScheduledTask reset");
     removeFromStatemodelFactory();
   }
-  
+
   // We need this to prevent state model leak
   private void removeFromStatemodelFactory()
   {
-    if(_factory.getStateModelMap().containsKey(_partitionName))
+    if(_factory.getStateModel(_partitionName) != null)
     {
-      _factory.getStateModelMap().remove(_partitionName);
+      _factory.removeStateModel(_partitionName);
     }
     else
     {

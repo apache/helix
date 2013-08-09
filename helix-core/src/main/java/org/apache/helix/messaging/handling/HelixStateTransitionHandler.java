@@ -44,6 +44,7 @@ import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.Attributes;
 import org.apache.helix.participant.statemachine.StateModel;
+import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.participant.statemachine.StateModelParser;
 import org.apache.helix.participant.statemachine.StateTransitionError;
 import org.apache.helix.util.StatusUpdateUtil;
@@ -66,9 +67,11 @@ public class HelixStateTransitionHandler extends MessageHandler
   private final StateModelParser _transitionMethodFinder;
   private final CurrentState     _currentStateDelta;
   private final HelixManager     _manager;
+  private final StateModelFactory<? extends StateModel> _stateModelFactory;
   volatile boolean               _isTimeout = false;
 
-  public HelixStateTransitionHandler(StateModel stateModel,
+  public HelixStateTransitionHandler(StateModelFactory<? extends StateModel> stateModelFactory,
+                                     StateModel stateModel,
                                      Message message,
                                      NotificationContext context,
                                      CurrentState currentStateDelta)
@@ -78,7 +81,8 @@ public class HelixStateTransitionHandler extends MessageHandler
     _statusUpdateUtil = new StatusUpdateUtil();
     _transitionMethodFinder = new StateModelParser();
     _currentStateDelta = currentStateDelta;
-    _manager = _notificationContext.getManager();;
+    _manager = _notificationContext.getManager();
+    _stateModelFactory = stateModelFactory;
   }
 
   void preHandleMessage() throws Exception
@@ -97,7 +101,7 @@ public class HelixStateTransitionHandler extends MessageHandler
       logger.error(errorMessage);
       throw new HelixException(errorMessage);
     }
-    
+
     HelixDataAccessor accessor = _manager.getHelixDataAccessor();
 
     String partitionName = _message.getPartitionName();
@@ -127,7 +131,7 @@ public class HelixStateTransitionHandler extends MessageHandler
   {
   	HelixTaskResult taskResult = (HelixTaskResult) _notificationContext.get(MapKey.HELIX_TASK_RESULT.toString());
   	Exception exception = taskResult.getException();
-		
+
     String partitionKey = _message.getPartitionName();
     String resource = _message.getResourceName();
     String sessionId = _message.getTgtSessionId();
@@ -140,7 +144,7 @@ public class HelixStateTransitionHandler extends MessageHandler
     ZNRecordBucketizer bucketizer = new ZNRecordBucketizer(bucketSize);
 
     // No need to sync on manager, we are cancel executor in expiry session before start executor in new session
-    // sessionId might change when we update the state model state. 
+    // sessionId might change when we update the state model state.
     // for zk current state it is OK as we have the per-session current state node
     if (!_message.getTgtSessionId().equals(_manager.getSessionId()))
     {
@@ -169,6 +173,7 @@ public class HelixStateTransitionHandler extends MessageHandler
         List<ZNRecordDelta> deltaList = new ArrayList<ZNRecordDelta>();
         deltaList.add(delta);
         _currentStateDelta.setDeltaList(deltaList);
+        _stateModelFactory.removeStateModel(partitionKey);
       }
       else
       {
@@ -213,14 +218,14 @@ public class HelixStateTransitionHandler extends MessageHandler
         _stateModel.rollbackOnError(_message, _notificationContext, error);
         _currentStateDelta.setState(partitionKey, HelixDefinedState.ERROR.toString());
         _stateModel.updateState(HelixDefinedState.ERROR.toString());
-        
+
         // if we have errors transit from ERROR state, disable the partition
         if (_message.getFromState().equalsIgnoreCase(HelixDefinedState.ERROR.toString())) {
           disablePartition();
         }
       }
     }
-    
+
     try
     {
       // Update the ZK current state of the node
@@ -236,7 +241,7 @@ public class HelixStateTransitionHandler extends MessageHandler
       else
       {
         // sub-message of a batch message
-        ConcurrentHashMap<String, CurrentStateUpdate> csUpdateMap 
+        ConcurrentHashMap<String, CurrentStateUpdate> csUpdateMap
           = (ConcurrentHashMap<String, CurrentStateUpdate>) _notificationContext.get(MapKey.CURRENT_STATE_UPDATE.toString());
         csUpdateMap.put(partitionKey, new CurrentStateUpdate(key, _currentStateDelta));
       }
@@ -266,13 +271,13 @@ public class HelixStateTransitionHandler extends MessageHandler
           + " for partition: " + partitionName + ". disable it on " + instanceName);
 
   }
-  
+
   @Override
   public HelixTaskResult handleMessage()
   {
 	NotificationContext context = _notificationContext;
 	Message message = _message;
-		
+
     synchronized (_stateModel)
     {
       HelixTaskResult taskResult = new HelixTaskResult();
@@ -318,7 +323,7 @@ public class HelixStateTransitionHandler extends MessageHandler
         taskResult.setException(e);
         taskResult.setInterrupted(e instanceof InterruptedException);
       }
-      
+
       // add task result to context for postHandling
       context.add(MapKey.HELIX_TASK_RESULT.toString(), taskResult);
       postHandleMessage();
@@ -371,13 +376,13 @@ public class HelixStateTransitionHandler extends MessageHandler
 
   @Override
   public void onError(Exception e, ErrorCode code, ErrorType type)
-  {    
+  {
     HelixDataAccessor accessor = _manager.getHelixDataAccessor();
     Builder keyBuilder = accessor.keyBuilder();
     String instanceName = _manager.getInstanceName();
     String resourceName = _message.getResourceName();
     String partition = _message.getPartitionName();
-    
+
     // All internal error has been processed already, so we can skip them
     if (type == ErrorType.INTERNAL)
     {
@@ -392,7 +397,7 @@ public class HelixStateTransitionHandler extends MessageHandler
         CurrentState currentStateDelta = new CurrentState(resourceName);
         currentStateDelta.setState(partition, HelixDefinedState.ERROR.toString());
         _stateModel.updateState(HelixDefinedState.ERROR.toString());
-  
+
         // if transit from ERROR state, disable the partition
         if (_message.getFromState().equalsIgnoreCase(HelixDefinedState.ERROR.toString())) {
           disablePartition();

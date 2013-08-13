@@ -25,7 +25,7 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.controller.rebalancer.Rebalancer;
+import org.apache.helix.controller.rebalancer.CustomRebalancer;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -43,7 +43,8 @@ public class TestCustomizedIdealStateRebalancer extends ZkStandAloneCMTestBaseWi
 {
   String db2 = TEST_DB+"2";
   static boolean testRebalancerCreated = false;
-  public static class TestRebalancer implements Rebalancer
+
+  public static class TestRebalancer extends CustomRebalancer
   {
 
     @Override
@@ -70,7 +71,7 @@ public class TestCustomizedIdealStateRebalancer extends ZkStandAloneCMTestBaseWi
       return currentIdealState;
     }
   }
-  
+
   @Test
   public void testCustomizedIdealStateRebalancer() throws InterruptedException
   {
@@ -102,7 +103,7 @@ public class TestCustomizedIdealStateRebalancer extends ZkStandAloneCMTestBaseWi
     }
     Assert.assertTrue(testRebalancerCreated);
   }
-  
+
   public static class ExternalViewBalancedVerifier implements ZkVerifier
   {
     ZkClient _client;

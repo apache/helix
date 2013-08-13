@@ -23,11 +23,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.helix.HelixManager;
-import org.apache.helix.HelixProperty;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.rebalancer.Rebalancer;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.IdealStateProperty;
+import org.apache.helix.util.HelixUtil;
 import org.apache.log4j.Logger;
 
 /**
@@ -60,9 +60,11 @@ public class RebalanceIdealStateStage extends AbstractBaseStage
         LOG.info("resource " + resourceName + " use idealStateRebalancer " + rebalancerClassName);
         try
         {
-          Rebalancer balancer = (Rebalancer) (loadClass(rebalancerClassName).newInstance());
+          Rebalancer balancer = (Rebalancer) (HelixUtil.loadClass(
+              getClass(), rebalancerClassName).newInstance());
           balancer.init(manager);
-          IdealState newIdealState = balancer.computeNewIdealState(resourceName, idealStateMap.get(resourceName), currentStateOutput, cache);
+          IdealState newIdealState = balancer.computeNewIdealState(
+              resourceName, idealStateMap.get(resourceName), currentStateOutput, cache);
           updatedIdealStates.put(resourceName, newIdealState);
         }
         catch(Exception e)
@@ -74,25 +76,6 @@ public class RebalanceIdealStateStage extends AbstractBaseStage
     if(updatedIdealStates.size() > 0)
     {
       cache.getIdealStates().putAll(updatedIdealStates);
-    }
-  }
-
-  /**
-   * Attempts to load the class and delegates to TCCL if class is not found.
-   * Note: The approach is used as a last resort for environments like OSGi.
-   * @param className
-   * @return
-   * @throws ClassNotFoundException
-   */
-  private Class loadClass(String className) throws ClassNotFoundException {
-    try {
-      return getClass().getClassLoader().loadClass(className);
-    } catch (ClassNotFoundException ex) {
-      if (Thread.currentThread().getContextClassLoader() != null) {
-        return Thread.currentThread().getContextClassLoader().loadClass(className);
-      } else {
-        throw ex;
-      }
     }
   }
 }

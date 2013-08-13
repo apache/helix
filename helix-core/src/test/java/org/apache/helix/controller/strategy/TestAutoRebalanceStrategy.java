@@ -33,13 +33,12 @@ import java.util.TreeSet;
 
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.strategy.AutoRebalanceStrategy;
-import org.apache.helix.controller.strategy.AutoRebalanceStrategy.AutoRebalanceModeAlgorithm;
 import org.apache.helix.controller.strategy.AutoRebalanceStrategy.ReplicaPlacementScheme;
 import org.apache.log4j.Logger;
 import org.testng.annotations.Test;
 
 public class TestAutoRebalanceStrategy {
-  private static Logger logger = Logger.getLogger(AutoRebalanceModeAlgorithm.class);
+  private static Logger logger = Logger.getLogger(TestAutoRebalanceStrategy.class);
 
   @Test(groups = { "unitTest" })
   public void simpleTest() {
@@ -131,9 +130,9 @@ public class TestAutoRebalanceStrategy {
      */
     public void runRepeatedly(int numIterations) {
       logger.info("~~~~ Initial State ~~~~~");
-      ZNRecord initialResult = new AutoRebalanceStrategy.AutoRebalanceModeAlgorithm(
-          RESOURCE_NAME, _partitions, _states, _maxPerNode, _placementScheme)
-          .computePartitionAssignment(_liveNodes, _currentMapping, _allNodes);
+      ZNRecord initialResult = new AutoRebalanceStrategy(RESOURCE_NAME, _partitions, _states,
+          _maxPerNode, _placementScheme).computePartitionAssignment(_liveNodes, _currentMapping,
+              _allNodes);
       _currentMapping = initialResult.getMapFields();
       logger.info(_currentMapping);
       getRunResult(_currentMapping, initialResult.getListFields());
@@ -429,9 +428,8 @@ public class TestAutoRebalanceStrategy {
       _liveSet.add(node);
       _nonLiveSet.remove(node);
 
-      return new AutoRebalanceStrategy.AutoRebalanceModeAlgorithm(
-          RESOURCE_NAME, _partitions, _states, _maxPerNode, _placementScheme)
-          .computePartitionAssignment(_liveNodes, _currentMapping, _allNodes);
+      return new AutoRebalanceStrategy(RESOURCE_NAME, _partitions, _states, _maxPerNode,
+          _placementScheme).computePartitionAssignment(_liveNodes, _currentMapping, _allNodes);
     }
 
     /**
@@ -465,9 +463,8 @@ public class TestAutoRebalanceStrategy {
         }
       }
 
-      return new AutoRebalanceStrategy.AutoRebalanceModeAlgorithm(
-          RESOURCE_NAME, _partitions, _states, _maxPerNode, _placementScheme)
-          .computePartitionAssignment(_liveNodes, _currentMapping, _allNodes);
+      return new AutoRebalanceStrategy(RESOURCE_NAME, _partitions, _states, _maxPerNode,
+          _placementScheme).computePartitionAssignment(_liveNodes, _currentMapping, _allNodes);
     }
 
     /**
@@ -493,9 +490,8 @@ public class TestAutoRebalanceStrategy {
       _liveNodes.add(node);
       _liveSet.add(node);
 
-      return new AutoRebalanceStrategy.AutoRebalanceModeAlgorithm(
-          RESOURCE_NAME, _partitions, _states, _maxPerNode, _placementScheme)
-          .computePartitionAssignment(_liveNodes, _currentMapping, _allNodes);
+      return new AutoRebalanceStrategy(RESOURCE_NAME, _partitions, _states, _maxPerNode,
+          _placementScheme).computePartitionAssignment(_liveNodes, _currentMapping, _allNodes);
     }
 
     private <T> T getRandomSetElement(Set<T> source) {

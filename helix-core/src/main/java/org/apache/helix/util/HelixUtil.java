@@ -24,7 +24,6 @@ import java.util.TreeMap;
 
 import org.apache.helix.PropertyPathConfig;
 import org.apache.helix.PropertyType;
-import org.apache.helix.store.PropertyJsonSerializer;
 import org.apache.log4j.Logger;
 
 public final class HelixUtil
@@ -231,4 +230,23 @@ public final class HelixUtil
     return keyValueMap;
   }
 
+  /**
+   * Attempts to load the class and delegates to TCCL if class is not found.
+   * Note: The approach is used as a last resort for environments like OSGi.
+   * @param className
+   * @return
+   * @throws ClassNotFoundException
+   */
+  public static <T> Class<?> loadClass(Class<T> clazz, String className)
+      throws ClassNotFoundException {
+    try {
+      return clazz.getClassLoader().loadClass(className);
+    } catch (ClassNotFoundException ex) {
+      if (Thread.currentThread().getContextClassLoader() != null) {
+        return Thread.currentThread().getContextClassLoader().loadClass(className);
+      } else {
+        throw ex;
+      }
+    }
+  }
 }

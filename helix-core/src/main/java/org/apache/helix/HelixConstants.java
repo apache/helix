@@ -19,6 +19,9 @@ package org.apache.helix;
  * under the License.
  */
 
+/*
+ * Identifying constants of the components in a Helix-managed cluster
+ */
 public interface HelixConstants
 {
   // TODO: ChangeType and PropertyType are duplicated, consider unifying

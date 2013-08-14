@@ -23,7 +23,9 @@ import java.util.List;
 
 import org.apache.helix.model.IdealState;
 
-
+/**
+ * Interface to implement to listen for changes to the ideal state of resources.
+ */
 public interface IdealStateChangeListener
 {
 

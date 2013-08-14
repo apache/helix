@@ -23,7 +23,9 @@ import java.util.List;
 
 import org.apache.helix.model.Message;
 
-
+/**
+ * Interface to implement when there is a change to messages
+ */
 public interface MessageListener
 {
 

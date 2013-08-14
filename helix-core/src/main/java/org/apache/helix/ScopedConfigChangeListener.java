@@ -21,6 +21,9 @@ package org.apache.helix;
 
 import java.util.List;
 
+/**
+ * Interface to implement to listen for changes to any specified scope.
+ */
 public interface ScopedConfigChangeListener 
 {
     /**

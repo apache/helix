@@ -23,6 +23,9 @@ import java.util.List;
 
 import org.apache.helix.model.InstanceConfig;
 
+/**
+ * Interface to implement to listen for changes to instance configurations.
+ */
 public interface InstanceConfigChangeListener 
 {
   /**

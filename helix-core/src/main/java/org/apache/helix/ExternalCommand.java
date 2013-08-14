@@ -33,6 +33,10 @@ import java.util.concurrent.TimeoutException;
 
 import org.apache.log4j.Logger;
 
+/**
+ * Wrapper for running commands outside of the JVM
+ * @see {@link Process}
+ */
 public class ExternalCommand
 {
   public static final String MODULE = ExternalCommand.class.getName();
@@ -44,6 +48,9 @@ public class ExternalCommand
   private InputReader _out;
   private InputReader _err;
 
+  /**
+   * Stream redirector
+   */
   private static class InputReader extends Thread
   {
     private static final int BUFFER_SIZE = 2048;
@@ -87,7 +94,9 @@ public class ExternalCommand
     }
   }
   /**
-* Constructor */
+   * Initialize with a {@link ProcessBuilder}
+   * @param processBuilder initialized {@link ProcessBuilder} object
+   */
   public ExternalCommand(ProcessBuilder processBuilder)
   {
     _processBuilder = processBuilder;
@@ -109,7 +118,7 @@ public class ExternalCommand
   }
 
   /**
-* @see ProcessBuilder
+* @see {@link ProcessBuilder#environment()}
 */
   public Map<String, String> getEnvironment()
   {
@@ -117,7 +126,7 @@ public class ExternalCommand
   }
 
   /**
-* @see ProcessBuilder
+* @see {@link ProcessBuilder#directory()}
 */
   public File getWorkingDirectory()
   {
@@ -125,7 +134,7 @@ public class ExternalCommand
   }
 
   /**
-* @see ProcessBuilder
+* @see {@link ProcessBuilder#directory(File)}
 */
   public void setWorkingDirectory(File directory)
   {
@@ -133,7 +142,7 @@ public class ExternalCommand
   }
 
   /**
-* @see ProcessBuilder
+* @see {@link ProcessBuilder#redirectErrorStream()}
 */
   public boolean getRedirectErrorStream()
   {
@@ -141,19 +150,29 @@ public class ExternalCommand
   }
 
   /**
-* @see ProcessBuilder
+* @see {@link ProcessBuilder#redirectErrorStream(boolean)}
 */
   public void setRedirectErrorStream(boolean redirectErrorStream)
   {
     _processBuilder.redirectErrorStream(redirectErrorStream);
   }
 
+  /**
+   * Get the contents of the output stream after completion
+   * @return bytes from the output stream
+   * @throws InterruptedException the process was interrupted before completion
+   */
   public byte[] getOutput() throws InterruptedException
   {
     waitFor();
     return _out.getOutput();
   }
 
+  /**
+   * Get the contents of the error stream after completion
+   * @return bytes from the error stream
+   * @throws InterruptedException the process was interrupted before completion
+   */
   public byte[] getError() throws InterruptedException
   {
     waitFor();
@@ -163,10 +182,10 @@ public class ExternalCommand
   /**
 * Returns the output as a string.
 *
-* @param encoding
+* @param encoding string encoding scheme, e.g. "UTF-8"
 * @return encoded string
-* @throws InterruptedException
-* @throws UnsupportedEncodingException
+* @throws InterruptedException the process was interrupted before completion
+* @throws UnsupportedEncodingException the encoding scheme is invalid
 */
   public String getStringOutput(String encoding) throws InterruptedException,
                                                         UnsupportedEncodingException
@@ -178,7 +197,7 @@ public class ExternalCommand
 * Returns the output as a string. Uses encoding "UTF-8".
 *
 * @return utf8 encoded string
-* @throws InterruptedException
+* @throws InterruptedException the process was interrupted before completion
 */
   public String getStringOutput() throws InterruptedException
   {
@@ -196,10 +215,10 @@ public class ExternalCommand
   /**
 * Returns the error as a string.
 *
-* @param encoding
+* @param encoding the encoding scheme, e.g. "UTF-8"
 * @return error as string
-* @throws InterruptedException
-* @throws UnsupportedEncodingException
+* @throws InterruptedException the process was interrupted before completion
+* @throws UnsupportedEncodingException the encoding scheme is invalid
 */
   public String getStringError(String encoding) throws InterruptedException,
                                                        UnsupportedEncodingException
@@ -211,7 +230,7 @@ public class ExternalCommand
 * Returns the error as a string. Uses encoding "UTF-8".
 *
 * @return error as string
-* @throws InterruptedException
+* @throws InterruptedException the process was interrupted before completion
 */
   public String getStringError() throws InterruptedException
   {
@@ -232,7 +251,7 @@ public class ExternalCommand
 * wait for the process to be finished.
 * @return the status code of the process.
 *
-* @throws InterruptedException
+* @throws InterruptedException the process was interrupted before completion
 */
   public int waitFor() throws InterruptedException
   {
@@ -252,8 +271,8 @@ public class ExternalCommand
 * {@link TimeoutException}
 * @return the status code of the process.
 *
-* @throws TimeoutException
-* @throws InterruptedException
+* @throws TimeoutException the process timed out
+* @throws InterruptedException the process was interrupted before completion
 */
   public int waitFor(long timeout) throws InterruptedException, TimeoutException
   {
@@ -275,6 +294,10 @@ public class ExternalCommand
     return _process.waitFor();
   }
 
+  /**
+   * @see {@link Process#exitValue()}
+   * @return the return code of the process
+   */
   public int exitValue()
   {
     if(_process == null)
@@ -283,6 +306,9 @@ public class ExternalCommand
     return _process.exitValue();
   }
 
+  /**
+   * see {@link Process#destroy()}
+   */
   public void destroy()
   {
     if(_process == null)

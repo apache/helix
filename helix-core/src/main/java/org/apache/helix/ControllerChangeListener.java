@@ -19,12 +19,15 @@ package org.apache.helix;
  * under the License.
  */
 
+/**
+ * Interface to implement to respond to controller changes.
+ */
 public interface ControllerChangeListener
 {
   /**
    * Invoked when controller changes
    * 
-   * @param changeContext
+   * @param changeContext description of the event and state
    */
   public void onControllerChange(NotificationContext changeContext);
 }

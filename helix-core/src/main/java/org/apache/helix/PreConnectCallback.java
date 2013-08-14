@@ -19,6 +19,9 @@ package org.apache.helix;
  * under the License.
  */
 
+/**
+ * Called to allow definition of tasks prior to connecting to Zookeeper
+ */
 public interface PreConnectCallback
 {
   /**

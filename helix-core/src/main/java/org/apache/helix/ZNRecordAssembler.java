@@ -21,8 +21,16 @@ package org.apache.helix;
 
 import java.util.List;
 
+/**
+ * Constructs ZNRecords from collections of ZNRecords
+ */
 public class ZNRecordAssembler
 {
+  /**
+   * Merge a list of ZNRecords into a single ZNRecord
+   * @param records
+   * @return {@link ZNRecord}
+   */
   public ZNRecord assemble(List<ZNRecord> records)
   {
     ZNRecord assembledRecord = null;

@@ -24,11 +24,18 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 
+/**
+ * Operations to divide a ZNRecord into specified buckets
+ */
 public class ZNRecordBucketizer
 {
   private static Logger LOG = Logger.getLogger(ZNRecordBucketizer.class);
   final int             _bucketSize;
 
+  /**
+   * Instantiate a bucketizer with the number of buckets
+   * @param bucketSize
+   */
   public ZNRecordBucketizer(int bucketSize)
   {
     if (bucketSize <= 0)
@@ -45,7 +52,7 @@ public class ZNRecordBucketizer
    * Calculate bucketName in form of "resourceName_p{startPartition}-p{endPartition}
    * 
    * @param partitionName
-   * @return
+   * @return the bucket name
    */
   public String getBucketName(String key)
   {
@@ -77,6 +84,11 @@ public class ZNRecordBucketizer
     }
   }
 
+  /**
+   * Bucketize a ZNRecord
+   * @param record
+   * @return A map of bucket names to bucketized records
+   */
   public Map<String, ZNRecord> bucketize(ZNRecord record)
   {
     Map<String, ZNRecord> map = new HashMap<String, ZNRecord>();

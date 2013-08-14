@@ -28,20 +28,22 @@ package org.apache.helix;
 import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.log4j.Logger;
 
-
+/**
+ * Obtain one of a set of Helix cluster managers, organized by the backing system.
+ */
 public final class HelixManagerFactory
 {
   private static final Logger logger = Logger.getLogger(HelixManagerFactory.class);
 
   /**
-   * Construct a zk-based cluster manager enforce all types (PARTICIPANT, CONTROLLER, and
-   * SPECTATOR to have a name
+   * Construct a zk-based cluster manager that enforces all types (PARTICIPANT, CONTROLLER, and
+   * SPECTATOR) to have a name
    * 
    * @param clusterName
    * @param instanceName
    * @param type
    * @param zkAddr
-   * @return
+   * @return a HelixManager backed by Zookeeper
    */
   public static HelixManager getZKHelixManager(String clusterName,
                                                String instanceName,

@@ -115,7 +115,7 @@ public interface HelixDataAccessor
    * of the HelixProperty
    * 
    * @param key
-   * @return
+   * @return a map of property identifiers to typed properties
    */
 
   <T extends HelixProperty> Map<String, T> getChildValuesMap(PropertyKey key);
@@ -125,7 +125,7 @@ public interface HelixDataAccessor
    * 
    * @param keys
    * @param children
-   * @return
+   * @return array where true means the child was added and false means it was not
    */
   <T extends HelixProperty> boolean[] createChildren(List<PropertyKey> keys,
       List<T> children);
@@ -135,6 +135,7 @@ public interface HelixDataAccessor
    * 
    * @param keys
    * @param children
+   * @return array where true means the child was set and false means it was not
    */
   <T extends HelixProperty> boolean[] setChildren(List<PropertyKey> keys, List<T> children);
   
@@ -144,6 +145,7 @@ public interface HelixDataAccessor
    * 
    * @param paths
    * @param updaters
+   * @return array where true means the child was updated and false means it was not
    */
   <T extends HelixProperty> boolean[] updateChildren(List<String> paths,
       List<DataUpdater<ZNRecord>> updaters,
@@ -152,14 +154,14 @@ public interface HelixDataAccessor
   /**
    * Get key builder for the accessor
    * 
-   * @return
+   * @return instantiated PropertyKey.Builder
    */
   PropertyKey.Builder keyBuilder();
 
   /**
    * Get underlying base data accessor
    * 
-   * @return
+   * @return a data accessor that can process ZNRecord objects
    */
   BaseDataAccessor<ZNRecord> getBaseDataAccessor();
 }

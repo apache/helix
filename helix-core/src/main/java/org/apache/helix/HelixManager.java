@@ -36,7 +36,9 @@ import org.apache.helix.store.zk.ZkHelixPropertyStore;
  * General flow <blockquote>
  * 
  * <pre>
- * manager = HelixManagerFactory.getManagerFor<ROLE>(); ROLE can be participant, spectator or a controller<br/>
+ * manager = HelixManagerFactory.getZKHelixManager(
+ *    clusterName, instanceName, ROLE, zkAddr);
+ *    // ROLE can be participant, spectator or a controller<br/>
  * manager.connect();
  * manager.addSOMEListener();
  * manager.start()
@@ -50,9 +52,9 @@ import org.apache.helix.store.zk.ZkHelixPropertyStore;
  * 
  * </blockquote> Default implementations available
  * 
- * @see HelixStateMachineEngine for participant
- * @see RoutingTableProvider for spectator
- * @see GenericHelixController for controller
+ * @see HelixStateMachineEngine HelixStateMachineEngine for participant
+ * @see RoutingTableProvider RoutingTableProvider for spectator
+ * @see GenericHelixController RoutingTableProvider for controller
  */
 public interface HelixManager
 {
@@ -74,7 +76,7 @@ public interface HelixManager
    * prevent client in doing anything when its disconnected from the cluster.
    * There is no need to invoke connect again if isConnected return false.
    * 
-   * @return
+   * @return true if connected, false otherwise
    */
   boolean isConnected();
 
@@ -177,7 +179,7 @@ public interface HelixManager
    * any cleanup tasks.<br/>
    * 
    * @param listener
-   * @return
+   * @return true if removed successfully, false otherwise
    */
   boolean removeListener(PropertyKey key, Object listener);
   /**
@@ -191,27 +193,29 @@ public interface HelixManager
   /**
    * Get config accessor
    * 
-   * @return
+   * @return ConfigAccessor
    */
   ConfigAccessor getConfigAccessor();
 
   /**
    * Returns the cluster name associated with this cluster manager
    * 
-   * @return
+   * @return the associated cluster name
    */
   String getClusterName();
 
   /**
    * Returns the instanceName used to connect to the cluster
    * 
-   * @return
+   * @return the associated instance name
    */
 
   String getInstanceName();
 
   /**
    * Get the sessionId associated with the connection to cluster data store.
+   *
+   * @return the session identifier
    */
   String getSessionId();
 
@@ -220,40 +224,44 @@ public interface HelixManager
    * be used to check if there was any new notification when previous
    * notification was being processed. This is updated based on the
    * notifications from listeners registered.
+   *
+   * @return UNIX timestamp
    */
   long getLastNotificationTime();
 
   /**
    * Provides admin interface to setup and modify cluster.
    * 
-   * @return
+   * @return instantiated HelixAdmin
    */
   HelixAdmin getClusterManagmentTool();
 
   /**
    * Get property store
    * 
-   * @return
+   * @return the property store that works with ZNRecord objects
    */
   ZkHelixPropertyStore<ZNRecord> getHelixPropertyStore();
 
   /**
    * Messaging service which can be used to send cluster wide messages.
-   * 
+   *
+   * @return messaging service
    */
   ClusterMessagingService getMessagingService();
 
   /**
    * Participant only component that periodically update participant health
    * report to cluster manager server.
-   * 
+   *
+   * @return ParticipantHealthReportCollector
    */
   ParticipantHealthReportCollector getHealthReportCollector();
 
   /**
    * Get cluster manager instance type
    * 
-   * @return
+   * @return instance type (e.g. PARTICIPANT, CONTROLLER, SPECTATOR)
    */
   InstanceType getInstanceType();
 
@@ -268,7 +276,7 @@ public interface HelixManager
    * Get helix manager properties read from 
    * helix-core/src/main/resources/cluster-manager.properties 
    * 
-   * @return
+   * @return deserialized properties
    */
   HelixManagerProperties getProperties();
   

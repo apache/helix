@@ -20,7 +20,6 @@ package org.apache.helix;
  */
 
 import java.io.InputStream;
-import java.util.Arrays;
 import java.util.Properties;
 
 import org.apache.log4j.Logger;
@@ -37,6 +36,10 @@ public class HelixManagerProperties
   
   private final Properties _properties = new Properties();
 
+  /**
+   * Initialize properties from a file
+   * @param propertyFileName
+   */
   public HelixManagerProperties(String propertyFileName)
   {
     try
@@ -59,14 +62,18 @@ public class HelixManagerProperties
   public HelixManagerProperties() {
     // load empty properties
   }
-  
+
+  /**
+   * Get properties wrapped as {@link Properties}
+   * @return Properties
+   */
   public Properties getProperties() {
     return _properties;
   }
   
   /**
    * get helix version
-   * @return
+   * @return version read from properties
    */
   public String getVersion() {
     return this.getProperty("clustermanager.version");
@@ -76,7 +83,7 @@ public class HelixManagerProperties
    * get property for key
    * 
    * @param key
-   * @return
+   * @return property associated by key
    */
   public String getProperty(String key)
   {
@@ -95,7 +102,7 @@ public class HelixManagerProperties
    * 
    * @param version1
    * @param version2
-   * @return
+   * @return true if version1 >= version2, false otherwise
    */
   static boolean versionNoLessThan(String version1, String version2) {
     if (version1 == null || version2 == null) {
@@ -133,7 +140,7 @@ public class HelixManagerProperties
    * false otherwise
    * 
    * @param participantVersion
-   * @return
+   * @return true if compatible, false otherwise
    */
   public boolean isParticipantCompatible(String participantVersion) {
     return isFeatureSupported("participant", participantVersion);
@@ -145,7 +152,7 @@ public class HelixManagerProperties
    * 
    * @param featureName
    * @param participantVersion
-   * @return
+   * @return true if supported, false otherwise
    */
   public boolean isFeatureSupported(String featureName, String participantVersion) {
     String  minSupportedVersion = getProperty("minimum_supported_version." + featureName);

@@ -35,7 +35,10 @@ import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.util.StringTemplate;
 import org.apache.log4j.Logger;
 
-
+/**
+ * Provides access to the persistent configuration of the cluster, the instances that live on it,
+ * and the logical resources assigned to it.
+ */
 public class ConfigAccessor
 {
   private static Logger               LOG      = Logger.getLogger(ConfigAccessor.class);
@@ -69,6 +72,10 @@ public class ConfigAccessor
 
   private final ZkClient              zkClient;
 
+  /**
+   * Initialize an accessor with a Zookeeper client
+   * @param zkClient
+   */
   public ConfigAccessor(ZkClient zkClient)
   {
     this.zkClient = zkClient;
@@ -146,11 +153,12 @@ public class ConfigAccessor
   }
 
   /**
-   * get config
+   * get a single config entry
    *
-   * @param scope
-   * @param key
-   * @return
+   * @param scope specification of the entity set to query
+   *    (e.g. cluster, resource, participant, etc.)
+   * @param key the identifier of the configuration entry
+   * @return the configuration entry
    */
   public String get(HelixConfigScope scope, String key) {
     Map<String, String> map = get(scope, Arrays.asList(key));
@@ -161,11 +169,12 @@ public class ConfigAccessor
   }
 
   /**
-   * get configs
+   * get many config entries
    *
-   * @param scope
-   * @param keys
-   * @return
+   * @param scope scope specification of the entity set to query
+   *    (e.g. cluster, resource, participant, etc.)
+   * @param keys the identifiers of the configuration entries
+   * @return the configuration entries, organized by key
    */
   public Map<String, String> get(HelixConfigScope scope, List<String> keys) {
     if (scope == null || scope.getType()== null || !scope.isFullKey()) {
@@ -284,11 +293,12 @@ public class ConfigAccessor
   }
 
   /**
-   * set config. create if not exist
+   * Set config, creating it if it doesn't exist
    *
-   * @param scope
-   * @param key
-   * @param value
+   * @param scope scope specification of the entity set to query
+   *    (e.g. cluster, resource, participant, etc.)
+   * @param key the identifier of the configuration entry
+   * @param value the configuration
    */
   public void set(HelixConfigScope scope, String key, String value) {
     Map<String, String> map = new TreeMap<String, String>();
@@ -297,10 +307,11 @@ public class ConfigAccessor
   }
 
   /**
-   * set configs. create if not exist
+   * Set multiple configs, creating them if they don't exist
    *
-   * @param scope
-   * @param keyValueMap
+   * @param scope scope specification of the entity set to query
+   *    (e.g. cluster, resource, participant, etc.)
+   * @param keyValueMap configurations organized by their identifiers
    */
   public void set(HelixConfigScope scope, Map<String, String> keyValueMap)
   {
@@ -398,20 +409,22 @@ public class ConfigAccessor
   }
 
   /**
-   * rmeove config
+   * Remove a single config
    *
-   * @param scope
-   * @param key
+   * @param scope scope specification of the entity set to query
+   *    (e.g. cluster, resource, participant, etc.)
+   * @param key the identifier of the configuration entry
    */
   public void remove(HelixConfigScope scope, String key) {
     remove(scope, Arrays.asList(key));
   }
 
   /**
-   * remove configs
+   * Remove multiple configs
    *
-   * @param scope
-   * @param keys
+   * @param scope scope specification of the entity set to query
+   *    (e.g. cluster, resource, participant, etc.)
+   * @param keys the identifiers of the configuration entries
    */
   public void remove(HelixConfigScope scope, List<String> keys)
   {
@@ -520,10 +533,10 @@ public class ConfigAccessor
 
 
   /**
-   * get list of config keys for a scope
+   * Get list of config keys for a scope
    *
    * @param scope
-   * @return
+   * @return a list of configuration keys
    */
   public List<String> getKeys(HelixConfigScope scope) {
     if (scope == null || scope.getType() == null) {

@@ -32,7 +32,7 @@ public class AccessOption
   /**
    * Helper method to get zookeeper create mode from options
    * 
-   * @param options
+   * @param options bitmask representing mode; least significant set flag is selected
    * @return zookeeper create mode
    */
   public static CreateMode getMode(int options)
@@ -60,8 +60,8 @@ public class AccessOption
   /**
    * Helper method to get is-throw-exception-on-node-not-exist from options
    * 
-   * @param options
-   * @return
+   * @param options bitmask containing Zookeeper mode options
+   * @return true if in is-throw-exception-on-node-not-exist, false otherwise
    */
   public static boolean isThrowExceptionIfNotExist(int options)
   {

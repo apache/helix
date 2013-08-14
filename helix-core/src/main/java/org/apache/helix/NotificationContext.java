@@ -22,9 +22,14 @@ package org.apache.helix;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Metadata associated with a notification event and the current state of the cluster
+ */
 public class NotificationContext
 {
-	// keys used for object map
+	/**
+	 * keys used for object map
+	 */
 	public enum MapKey {
 		TASK_EXECUTOR,
 		CURRENT_STATE_UPDATE,
@@ -38,72 +43,129 @@ public class NotificationContext
   private String _pathChanged;
   private String _eventName;
 
+  /**
+   * Get the name associated with the event
+   * @return event name
+   */
   public String getEventName()
   {
     return _eventName;
   }
 
+  /**
+   * Set the name associated with the event
+   * @param eventName the event name
+   */
   public void setEventName(String eventName)
   {
     _eventName = eventName;
   }
 
+  /**
+   * Instantiate with a HelixManager
+   * @param manager {@link HelixManager} object
+   */
   public NotificationContext(HelixManager manager)
   {
     _manager = manager;
     _map = new HashMap<String, Object>();
   }
 
+  /**
+   * Get the HelixManager associated with this notification
+   * @return {@link HelixManager} object
+   */
   public HelixManager getManager()
   {
     return _manager;
   }
 
+  /**
+   * Get a map describing the update (keyed on {@link MapKey})
+   * @return the object map describing the update
+   */
   public Map<String, Object> getMap()
   {
     return _map;
   }
 
+  /**
+   * Get the type of the notification
+   * @return the notification type
+   */
   public Type getType()
   {
     return _type;
   }
 
+  /**
+   * Set the HelixManager associated with this notification
+   * @param manager {@link HelixManager} object
+   */
   public void setManager(HelixManager manager)
   {
     this._manager = manager;
   }
 
+  /**
+   * Add notification metadata
+   * @param key String value of a {@link MapKey}
+   * @param value
+   */
   public void add(String key, Object value)
   {
     _map.put(key, value);
   }
 
+  /**
+   * Set the notification map
+   * @param map
+   */
   public void setMap(Map<String, Object> map)
   {
     this._map = map;
   }
 
+  /**
+   * Set the notification type
+   * @param {@link Type} object
+   */
   public void setType(Type type)
   {
     this._type = type;
   }
 
+  /**
+   * Get a notification attribute
+   * @param key String from a {@link MapKey}
+   * @return
+   */
   public Object get(String key)
   {
     return _map.get(key);
   }
 
+  /**
+   * Valid types of notifications
+   */
   public enum Type
   {
     INIT, CALLBACK, FINALIZE
   }
 
+  /**
+   * Get the path changed status
+   * @return String corresponding to the path change
+   */
   public String getPathChanged()
   {
     return _pathChanged;
   }
 
+  /**
+   * Set the path changed status
+   * @param pathChanged
+   */
   public void setPathChanged(String pathChanged)
   {
     this._pathChanged = pathChanged;

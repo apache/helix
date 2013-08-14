@@ -54,7 +54,9 @@ import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.StatusUpdate;
 import org.apache.log4j.Logger;
 
-
+/**
+ * Utility mapping properties to their Zookeeper locations
+ */
 public class PropertyPathConfig
 {
   private static Logger logger = Logger.getLogger(PropertyPathConfig.class);
@@ -153,6 +155,13 @@ public class PropertyPathConfig
     templateMap.get(type).put(numKeys, template);
   }
 
+  /**
+   * Get the Zookeeper path given the property type, cluster, and parameters
+   * @param type
+   * @param clusterName
+   * @param keys
+   * @return a valid path, or null if none exists
+   */
   public static String getPath(PropertyType type, String clusterName, String... keys)
   {
     if (clusterName == null)
@@ -198,6 +207,12 @@ public class PropertyPathConfig
     }
     return result;
   }
+
+  /**
+   * Given a path, find the name of an instance at that path
+   * @param path
+   * @return a valid instance name, or null if none exists
+   */
   public static String getInstanceNameFromPath(String path)
   {
     // path structure

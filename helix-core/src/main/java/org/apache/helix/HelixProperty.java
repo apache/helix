@@ -40,26 +40,46 @@ public class HelixProperty
 
   protected final ZNRecord _record;
 
+  /**
+   * Initialize the property with an identifier
+   * @param id
+   */
   public HelixProperty(String id)
   {
     _record = new ZNRecord(id);
   }
 
+  /**
+   * Initialize the property with an existing ZNRecord
+   * @param record
+   */
   public HelixProperty(ZNRecord record)
   {
     _record = new ZNRecord(record);
   }
 
+  /**
+   * Get the property identifier
+   * @return the property id
+   */
   public final String getId()
   {
     return _record.getId();
   }
 
+  /**
+   * Get the backing ZNRecord
+   * @return ZNRecord object associated with this property
+   */
   public final ZNRecord getRecord()
   {
     return _record;
   }
 
+  /**
+   * Set the changes to the backing ZNRecord
+   * @param deltaList list of ZNRecord updates to be made
+   */
   public final void setDeltaList(List<ZNRecordDelta> deltaList)
   {
     _record.setDeltaList(deltaList);
@@ -71,6 +91,10 @@ public class HelixProperty
     return _record.toString();
   }
 
+  /**
+   * Get the size of buckets defined
+   * @return the bucket size, or 0 if not defined
+   */
   public int getBucketSize()
   {
     String bucketSizeStr =
@@ -90,6 +114,10 @@ public class HelixProperty
     return bucketSize;
   }
 
+  /**
+   * Set the size of buckets defined
+   * @param bucketSize the bucket size (will default to 0 if negative)
+   */
   public void setBucketSize(int bucketSize)
   {
     if (bucketSize <= 0)
@@ -99,11 +127,11 @@ public class HelixProperty
   }
 
   /**
-   * static method that convert ZNRecord to an instance that subclasses HelixProperty
+   * static method that converts ZNRecord to an instance that subclasses HelixProperty
    * 
-   * @param clazz
-   * @param record
-   * @return
+   * @param clazz subclass of HelixProperty
+   * @param record the ZNRecord describing the property
+   * @return typed instance corresponding to the record, or null if conversion fails
    */
   public static <T extends HelixProperty> T convertToTypedInstance(Class<T> clazz,
                                                                    ZNRecord record)
@@ -127,6 +155,12 @@ public class HelixProperty
     return null;
   }
 
+  /**
+   * Convert a collection of records to typed properties
+   * @param clazz Subclass of HelixProperty
+   * @param records the ZNRecords describing the property
+   * @return list of typed instances for which the conversion succeeded, or null if records is null
+   */
   public static <T extends HelixProperty> List<T> convertToTypedList(Class<T> clazz,
                                                                      Collection<ZNRecord> records)
   {
@@ -147,6 +181,11 @@ public class HelixProperty
     return decorators;
   }
 
+  /**
+   * Converts a list of records to a map of the record identifier to typed properties
+   * @param records the ZNRecords to convert
+   * @return id --> HelixProperty subclass map
+   */
   public static <T extends HelixProperty> Map<String, T> convertListToMap(List<T> records)
   {
     if (records == null)
@@ -162,6 +201,11 @@ public class HelixProperty
     return decorators;
   }
 
+  /**
+   * Convert typed properties to a list of records
+   * @param typedInstances objects subclassing HelixProperty
+   * @return a list of ZNRecord objects
+   */
   public static <T extends HelixProperty> List<ZNRecord> convertToList(List<T> typedInstances)
   {
     if (typedInstances == null)
@@ -178,12 +222,20 @@ public class HelixProperty
     return records;
   }
 
+  /**
+   * Change the state of batch messaging
+   * @param enable true to enable, false to disable
+   */
   public void setBatchMessageMode(boolean enable)
   {
     _record.setSimpleField(HelixPropertyAttribute.BATCH_MESSAGE_MODE.toString(), ""
         + enable);
   }
 
+  /**
+   * Get the state of batch messaging
+   * @return true if enabled, false if disabled
+   */
   public boolean getBatchMessageMode()
   {
     String enableStr =
@@ -202,7 +254,11 @@ public class HelixProperty
       return false;
     }
   }
-  
+
+  /**
+   * Get property validity
+   * @return true if valid, false if invalid
+   */
   public boolean isValid()
   {
     return true;

@@ -19,17 +19,18 @@ package org.apache.helix;
  * under the License.
  */
 
+/**
+ * Interface for defining a generic task to run periodically.
+ */
 public abstract class HelixTimerTask
 {
   /**
-   * Timer task starts
-   * 
+   * Start a timer task
    */
   public abstract void start();
   
   /**
-   * Timer task stops
-   * 
+   * Stop a timer task
    */
   public abstract void stop();
 }

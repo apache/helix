@@ -19,11 +19,17 @@ package org.apache.helix;
  * under the License.
  */
 
+/**
+ * Types of nodes in a Helix cluster
+ */
 enum Type
 {
   CLUSTER, INSTANCE, CONTROLLER, RESOURCE;
 }
 
+/**
+ * Types of data stored on Zookeeper by Helix
+ */
 public enum PropertyType
 {
 
@@ -132,61 +138,109 @@ public enum PropertyType
     this.usePropertyTransferServer = isAsyncWrite;
   }
 
+  /**
+   * Determine if the property should only be created if it does not exist
+   * @return true if it can only be created if absent, false otherwise
+   */
   public boolean isCreateOnlyIfAbsent()
   {
     return createOnlyIfAbsent;
   }
 
+  /**
+   * Set policy for creating only if it does not already exist
+   * @param createIfAbsent
+   */
   public void setCreateIfAbsent(boolean createIfAbsent)
   {
     this.createOnlyIfAbsent = createIfAbsent;
   }
 
+  /**
+   * Gets the type of the associated node
+   * @return {@link Type}
+   */
   public Type getType()
   {
     return type;
   }
 
+  /**
+   * Set the type of the associated node
+   * @param type {@link Type}
+   */
   public void setType(Type type)
   {
     this.type = type;
   }
 
+  /**
+   * Get the persistent state of the property
+   * @return true if persistent, false if ephemeral
+   */
   public boolean isPersistent()
   {
     return isPersistent;
   }
 
+  /**
+   * Set the persistent state of the property
+   * @param isPersistent
+   */
   public void setPersistent(boolean isPersistent)
   {
     this.isPersistent = isPersistent;
   }
 
+  /**
+   * Determine if the property is merged or replaced on update
+   * @return true if merge occurs on update, false otherwise
+   */
   public boolean isMergeOnUpdate()
   {
     return mergeOnUpdate;
   }
 
+  /**
+   * Enable or disable merging on an update to this property
+   * @param mergeOnUpdate
+   */
   public void setMergeOnUpdate(boolean mergeOnUpdate)
   {
     this.mergeOnUpdate = mergeOnUpdate;
   }
 
+  /**
+   * Determine if this property is only updated if it exists
+   * @return true if only updated when it exists, false otherwise
+   */
   public boolean isUpdateOnlyOnExists()
   {
     return updateOnlyOnExists;
   }
 
+  /**
+   * Enable or disable updating only on existence
+   * @param updateOnlyOnExists
+   */
   public void setUpdateOnlyOnExists(boolean updateOnlyOnExists)
   {
     this.updateOnlyOnExists = updateOnlyOnExists;
   }
 
+  /**
+   * Check if value is cached
+   * @return true if cached, false otherwise
+   */
   public boolean isCached()
   {
     return isCached;
   }
 
+  /**
+   * Check if this property uses a property transfer server
+   * @return true if a property transfer server is used, false otherwise
+   */
   public boolean usePropertyTransferServer()
   {
     return usePropertyTransferServer;

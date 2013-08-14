@@ -19,9 +19,13 @@ package org.apache.helix;
  * under the License.
  */
 
-
+/**
+ * Base class for an exception thrown by Helix due to inconsistencies caught by Helix itself.
+ */
 public class HelixException extends RuntimeException
 {
+
+  private static final long serialVersionUID = 6558251214364526257L;
 
   public HelixException(String message)
   {

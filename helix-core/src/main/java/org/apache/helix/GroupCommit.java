@@ -29,6 +29,9 @@ import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.apache.log4j.Logger;
 
 // TODO: move to mananger.zk
+/**
+ * Support committing updates to data such that they are ordered for each key
+ */
 public class GroupCommit
 { 
   private static Logger  LOG = Logger.getLogger(GroupCommit.class);
@@ -57,7 +60,9 @@ public class GroupCommit
   // TODO: move the cache logic to data accessor
 //  private final Map<String, ZNRecord> _cache  = new ConcurrentHashMap<String, ZNRecord>();
 
-  
+  /**
+   * Set up a group committer and its associated queues
+   */
   public GroupCommit()
   {
     // Don't use Arrays.fill();
@@ -72,6 +77,14 @@ public class GroupCommit
     return _queues[(key.hashCode() & Integer.MAX_VALUE) % _queues.length];
   }
 
+  /**
+   * Do a group update for data associated with a given key
+   * @param accessor accessor with the ability to pull from the current data
+   * @param options see {@link AccessOption}
+   * @param key the data identifier
+   * @param record the data to be merged in
+   * @return true if successful, false otherwise
+   */
   public boolean commit(BaseDataAccessor<ZNRecord> accessor, int options, String key, ZNRecord record)
   {
     Queue queue = getQueue(key);

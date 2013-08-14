@@ -23,7 +23,9 @@ import java.util.List;
 
 import org.apache.helix.model.LiveInstance;
 
-
+/**
+ * Interface to implement to listen for live instance changes.
+ */
 public interface LiveInstanceChangeListener
 {
 

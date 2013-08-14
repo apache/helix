@@ -18,10 +18,13 @@ package org.apache.helix;
  * under the License.
  */
 
+/**
+ * Interface to provide additional information about a live instance at creation time
+ */
 public interface LiveInstanceInfoProvider
 {
   /**
-   * Callback function that is called by HelixManager before it creates LiveInstance Zk Node. 
+   * Callback function that is called by HelixManager before it creates LiveInstance Zk Node.
    * The ZNRecord returned by this function 
    * 
    * @see ZkHelixManager#addLiveInstance()

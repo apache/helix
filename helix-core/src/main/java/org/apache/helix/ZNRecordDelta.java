@@ -19,33 +19,67 @@ package org.apache.helix;
  * under the License.
  */
 
+/**
+ * A ZNRecord container that specifies how it should be merged with another ZNRecord
+ */
 public class ZNRecordDelta
 {
+  /**
+   * Supported methods of updating a ZNRecord
+   */
   public enum MergeOperation {ADD, SUBTRACT};
+
+  /**
+   * Backing ZNRecord containing updates
+   */
   public ZNRecord _record;
+
+  /**
+   * Selected update mode
+   */
   public MergeOperation _mergeOperation;
 
-  public ZNRecordDelta(ZNRecord record, MergeOperation _mergeOperation)
+  /**
+   * Initialize the delta with a record and the update mode
+   * @param record
+   * @param _mergeOperation
+   */
+  public ZNRecordDelta(ZNRecord record, MergeOperation mergeOperation)
   {
     _record = new ZNRecord(record);
-    this._mergeOperation = _mergeOperation;
+    _mergeOperation = mergeOperation;
   }
 
+  /**
+   * Initialize the delta with a record and a default update mode of add
+   * @param record
+   */
   public ZNRecordDelta(ZNRecord record)
   {
     this(record, MergeOperation.ADD);
   }
 
+  /**
+   * Initialize with an empty ZNRecord and a default update mode of add
+   */
   public ZNRecordDelta()
   {
     this(new ZNRecord(""), MergeOperation.ADD);
   }
 
+  /**
+   * Get the backing ZNRecord
+   * @return the ZNRecord containing the changes
+   */
   public ZNRecord getRecord()
   {
     return _record;
   }
 
+  /**
+   * Get the selected update mode
+   * @return MergeOperation currently in effect
+   */
   public MergeOperation getMergeOperation()
   {
     return _mergeOperation;
